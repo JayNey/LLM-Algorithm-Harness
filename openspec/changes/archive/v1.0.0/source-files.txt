@@ -1,0 +1,46 @@
+# Source Code Inventory - v1.0.0
+
+## Core Modules
+src/main.py                           # CLI entry point
+src/harness.py                        # Main coordinator
+src/llm_client.py                     # LLM client wrapper
+src/problem_loader.py                 # Dataset loader
+src/sandbox_executor.py               # Code sandbox executor
+src/strategy_base.py                  # Strategy abstract base
+src/models.py                         # Data models
+
+## Strategies
+src/strategies/__init__.py
+src/strategies/vanilla.py             # Vanilla strategy
+src/strategies/chain_of_thought.py    # Chain-of-Thought strategy
+src/strategies/multi_round_feedback.py # Multi-round feedback strategy
+
+## Utilities
+src/utils/__init__.py
+src/utils/config.py                   # Configuration management
+src/utils/logging.py                  # Logging setup
+src/utils/validators.py               # Validation utilities
+
+## Test Suite
+tests/test_main.py                    # CLI tests (13 cases)
+tests/test_integration.py             # Integration tests (32 cases)
+tests/test_harness.py                 # Harness tests (8 cases)
+tests/test_llm_client.py              # LLM client tests (11 cases)
+tests/test_models.py                  # Model tests (28 cases)
+tests/test_problem_loader.py          # Loader tests (15 cases)
+tests/test_sandbox_executor.py        # Sandbox tests (20 cases)
+tests/test_strategies.py              # Strategy tests (8 cases)
+tests/test_utils.py                   # Utility tests (19 cases)
+
+## Configuration
+pyproject.toml                        # Project configuration
+.gitignore                           # Git ignore rules
+
+## Data
+data/sample_problems.json             # Sample dataset
+
+## Documentation
+README.md                            # Project documentation
+openspec/specs/spec.md               # Specification document
+docs/architecture.md                 # Architecture design
+docs/verify-report.md                # Verification report

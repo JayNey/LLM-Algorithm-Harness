@@ -1,0 +1,212 @@
+"""
+Main entry point for LLM Algorithm Harness.
+"""
+
+import argparse
+import json
+import sys
+from pathlib import Path
+
+from src.harness import AlgorithmHarness
+from src.models import HarnessConfig, LLMConfig, SandboxConfig, StrategyConfig
+from src.utils.logging import get_logger
+
+logger = get_logger(__name__)
+
+
+def load_config(config_path: str) -> HarnessConfig:
+    """
+    Load configuration from JSON file.
+
+    Args:
+        config_path: Path to config file
+
+    Returns:
+        HarnessConfig
+    """
+    with open(config_path, 'r') as f:
+        config_dict = json.load(f)
+
+    return HarnessConfig(**config_dict)
+
+
+def create_default_config(dataset_path: str, output_dir: str) -> HarnessConfig:
+    """
+    Create default configuration.
+
+    Args:
+        dataset_path: Path to dataset
+        output_dir: Output directory
+
+    Returns:
+        HarnessConfig
+    """
+    return HarnessConfig(
+        dataset_path=dataset_path,
+        output_dir=output_dir,
+        llm_config=LLMConfig(
+            provider="openai",
+            api_key="",  # Will use environment variable
+            model="gpt-3.5-turbo",
+            temperature=0.7,
+            max_tokens=2000,
+            timeout=30,
+        ),
+        sandbox_config=SandboxConfig(
+            timeout_seconds=5,
+            memory_limit_mb=256,
+            allowed_imports=["math", "itertools", "collections", "functools", "heapq", "bisect"],
+        ),
+        strategies=[
+            StrategyConfig(name="vanilla", max_iterations=1),
+            StrategyConfig(name="chain_of_thought", max_iterations=1),
+            StrategyConfig(name="multi_round_feedback", max_iterations=3),
+        ],
+    )
+
+
+def print_report(reports: dict):
+    """
+    Print evaluation reports.
+
+    Args:
+        reports: Dict of strategy reports
+    """
+    print("\n" + "="*80)
+    print("EVALUATION RESULTS")
+    print("="*80 + "\n")
+
+    for strategy_name, report in reports.items():
+        print(f"Strategy: {strategy_name}")
+        print(f"  Success Rate: {report.success_rate:.2%}")
+        print(f"  Solved: {report.solved_problems}/{report.total_problems}")
+        print(f"  Avg Attempts: {report.avg_attempts_per_problem:.2f}")
+        print(f"  Avg Tokens: {report.avg_tokens_per_problem:.0f}")
+        print(f"  Estimated Cost: ${report.estimated_cost_usd:.4f}")
+        print()
+
+
+def save_results(reports: dict, output_dir: str, harness: AlgorithmHarness):
+    """
+    Save results to JSON files.
+
+    Args:
+        reports: Strategy reports
+        output_dir: Output directory
+        harness: Harness instance with results
+    """
+    output_path = Path(output_dir)
+    output_path.mkdir(parents=True, exist_ok=True)
+
+    # Save summary report
+    summary = {
+        "strategies": {
+            name: report.model_dump() for name, report in reports.items()
+        }
+    }
+
+    summary_file = output_path / "summary.json"
+    with open(summary_file, 'w') as f:
+        json.dump(summary, f, indent=2)
+
+    logger.info("summary_saved", path=str(summary_file))
+
+    # Save detailed results per strategy
+    for strategy_name, results in harness.results.items():
+        results_file = output_path / f"{strategy_name}_results.json"
+        results_data = [r.model_dump() for r in results]
+
+        with open(results_file, 'w') as f:
+            json.dump(results_data, f, indent=2)
+
+        logger.info("strategy_results_saved", strategy=strategy_name, path=str(results_file))
+
+    print(f"\nResults saved to: {output_dir}")
+
+
+def main():
+    """Main entry point."""
+    parser = argparse.ArgumentParser(
+        description="LLM Algorithm Harness - Evaluate LLM problem-solving strategies"
+    )
+
+    parser.add_argument(
+        "--dataset",
+        type=str,
+        required=True,
+        help="Path to problem dataset JSON file"
+    )
+
+    parser.add_argument(
+        "--config",
+        type=str,
+        help="Path to configuration JSON file (optional)"
+    )
+
+    parser.add_argument(
+        "--output",
+        type=str,
+        default="./results",
+        help="Output directory for results (default: ./results)"
+    )
+
+    parser.add_argument(
+        "--strategy",
+        type=str,
+        choices=["vanilla", "chain_of_thought", "multi_round_feedback"],
+        help="Run only specific strategy (optional, runs all by default)"
+    )
+
+    parser.add_argument(
+        "--limit",
+        type=int,
+        help="Limit number of problems to evaluate (optional)"
+    )
+
+    args = parser.parse_args()
+
+    try:
+        # Load or create config
+        if args.config:
+            config = load_config(args.config)
+            logger.info("config_loaded", path=args.config)
+        else:
+            config = create_default_config(args.dataset, args.output)
+            logger.info("using_default_config")
+
+        # Override with CLI args
+        config.dataset_path = args.dataset
+        config.output_dir = args.output
+
+        if args.strategy:
+            # Filter to specific strategy
+            config.strategies = [s for s in config.strategies if s.name == args.strategy]
+
+        if args.limit:
+            config.problem_filters = config.problem_filters or {}
+            config.problem_filters["limit"] = args.limit
+
+        # Initialize and run harness
+        logger.info("harness_starting")
+        harness = AlgorithmHarness(config)
+        reports = harness.run()
+
+        # Print and save results
+        print_report(reports)
+        save_results(reports, args.output, harness)
+
+        logger.info("harness_completed")
+
+    except FileNotFoundError as e:
+        logger.error("file_not_found", error=str(e))
+        print(f"Error: {e}", file=sys.stderr)
+        sys.exit(1)
+
+    except Exception as e:
+        logger.error("harness_failed", error=str(e))
+        print(f"Error: {e}", file=sys.stderr)
+        sys.exit(1)
+
+
+if __name__ == "__main__":
+    main()

@@ -1,0 +1,190 @@
+[1m============================= test session starts ==============================[0m
+platform darwin -- Python 3.11.16, pytest-9.1.1, pluggy-1.6.0 -- /opt/homebrew/opt/python@3.11/bin/python3.11
+cachedir: .pytest_cache
+rootdir: /Users/charlesleclerc/LLM-Algorithm-Harness
+configfile: pyproject.toml
+plugins: cov-7.1.0
+[1mcollecting ... [0mcollected 109 items
+
+tests/test_harness.py::test_harness_initialization [32mPASSED[0m[33m                [  0%][0m
+tests/test_harness.py::test_load_problems [32mPASSED[0m[33m                         [  1%][0m
+tests/test_harness.py::test_run_strategy [32mPASSED[0m[33m                          [  2%][0m
+tests/test_harness.py::test_generate_report [32mPASSED[0m[33m                       [  3%][0m
+tests/test_harness.py::test_get_results [32mPASSED[0m[33m                           [  4%][0m
+tests/test_harness.py::test_get_failed_problems [32mPASSED[0m[33m                   [  5%][0m
+tests/test_harness.py::test_compare_strategies [32mPASSED[0m[33m                    [  6%][0m
+tests/test_harness.py::test_unknown_strategy_raises_error [32mPASSED[0m[33m         [  7%][0m
+tests/test_llm_client.py::test_initialize_openai_client [32mPASSED[0m[33m           [  8%][0m
+tests/test_llm_client.py::test_initialize_anthropic_client [32mPASSED[0m[33m        [  9%][0m
+tests/test_llm_client.py::test_initialize_unsupported_provider [32mPASSED[0m[33m    [ 10%][0m
+tests/test_llm_client.py::test_initialize_openai_missing_api_key [32mPASSED[0m[33m  [ 11%][0m
+tests/test_llm_client.py::test_generate_openai [32mPASSED[0m[33m                    [ 11%][0m
+tests/test_llm_client.py::test_generate_openai_with_system_prompt [32mPASSED[0m[33m [ 12%][0m
+tests/test_llm_client.py::test_generate_anthropic [32mPASSED[0m[33m                 [ 13%][0m
+tests/test_llm_client.py::test_generate_api_error [32mPASSED[0m[33m                 [ 14%][0m
+tests/test_llm_client.py::test_estimate_cost_gpt35 [32mPASSED[0m[33m                [ 15%][0m
+tests/test_llm_client.py::test_estimate_cost_claude_haiku [32mPASSED[0m[33m         [ 16%][0m
+tests/test_llm_client.py::test_estimate_cost_unknown_model [32mPASSED[0m[33m        [ 17%][0m
+tests/test_llm_client.py::test_openai_api_key_from_env [32mPASSED[0m[33m            [ 18%][0m
+tests/test_llm_client.py::test_anthropic_api_key_from_env [32mPASSED[0m[33m         [ 19%][0m
+tests/test_models.py::test_create_valid_test_case [32mPASSED[0m[33m                 [ 20%][0m
+tests/test_models.py::test_test_case_json_serialization [32mPASSED[0m[33m           [ 21%][0m
+tests/test_models.py::test_create_valid_problem [32mPASSED[0m[33m                   [ 22%][0m
+tests/test_models.py::test_problem_json_serialization [32mPASSED[0m[33m             [ 22%][0m
+tests/test_models.py::test_problem_with_empty_test_cases [32mPASSED[0m[33m          [ 23%][0m
+tests/test_models.py::test_problem_with_invalid_difficulty [32mPASSED[0m[33m        [ 24%][0m
+tests/test_models.py::test_problem_missing_required_field [32mPASSED[0m[33m         [ 25%][0m
+tests/test_models.py::test_create_execution_result [32mPASSED[0m[33m                [ 26%][0m
+tests/test_models.py::test_execution_result_with_negative_tokens [32mPASSED[0m[33m  [ 27%][0m
+tests/test_models.py::test_execution_result_is_successful_false [32mPASSED[0m[33m   [ 28%][0m
+tests/test_models.py::test_token_usage_cost_estimate [32mPASSED[0m[33m              [ 29%][0m
+tests/test_models.py::test_create_llm_config [32mPASSED[0m[33m                      [ 30%][0m
+tests/test_models.py::test_llm_config_invalid_provider [32mPASSED[0m[33m            [ 31%][0m
+tests/test_models.py::test_create_sandbox_config [32mPASSED[0m[33m                  [ 32%][0m
+tests/test_models.py::test_sandbox_config_custom_values [32mPASSED[0m[33m           [ 33%][0m
+tests/test_models.py::test_strategy_config [32mPASSED[0m[33m                        [ 33%][0m
+tests/test_models.py::test_harness_config [32mPASSED[0m[33m                         [ 34%][0m
+tests/test_models.py::test_strategy_metrics_cost_estimate [32mPASSED[0m[33m         [ 35%][0m
+tests/test_models.py::test_strategy_metrics_with_difficulty_breakdown [32mPASSED[0m[33m [ 36%][0m
+tests/test_models.py::test_execution_summary_best_strategy [32mPASSED[0m[33m        [ 37%][0m
+tests/test_models.py::test_execution_summary_most_efficient [32mPASSED[0m[33m       [ 38%][0m
+tests/test_models.py::test_execution_summary_empty_metrics [32mPASSED[0m[33m        [ 39%][0m
+tests/test_models.py::test_sandbox_result_success [32mPASSED[0m[33m                 [ 40%][0m
+tests/test_models.py::test_sandbox_result_timeout [32mPASSED[0m[33m                 [ 41%][0m
+tests/test_models.py::test_test_case_result_passed [32mPASSED[0m[33m                [ 42%][0m
+tests/test_models.py::test_test_case_result_wrong_answer [32mPASSED[0m[33m          [ 43%][0m
+tests/test_problem_loader.py::test_load_valid_dataset [32mPASSED[0m[33m             [ 44%][0m
+tests/test_problem_loader.py::test_load_file_not_found [32mPASSED[0m[33m            [ 44%][0m
+tests/test_problem_loader.py::test_load_empty_dataset [32mPASSED[0m[33m             [ 45%][0m
+tests/test_problem_loader.py::test_load_invalid_json [32mPASSED[0m[33m              [ 46%][0m
+tests/test_problem_loader.py::test_load_non_array_json [32mPASSED[0m[33m            [ 47%][0m
+tests/test_problem_loader.py::test_validate_dataset_valid [32mPASSED[0m[33m         [ 48%][0m
+tests/test_problem_loader.py::test_validate_dataset_partial_valid [32mPASSED[0m[33m [ 49%][0m
+tests/test_problem_loader.py::test_validate_dataset_all_invalid [32mPASSED[0m[33m   [ 50%][0m
+tests/test_problem_loader.py::test_filter_problems_by_difficulty [32mPASSED[0m[33m  [ 51%][0m
+tests/test_problem_loader.py::test_filter_problems_by_tags [32mPASSED[0m[33m        [ 52%][0m
+tests/test_problem_loader.py::test_filter_problems_by_limit [32mPASSED[0m[33m       [ 53%][0m
+tests/test_problem_loader.py::test_filter_problems_combined [32mPASSED[0m[33m       [ 54%][0m
+tests/test_problem_loader.py::test_filter_problems_no_match [32mPASSED[0m[33m       [ 55%][0m
+tests/test_problem_loader.py::test_load_from_dict_valid [32mPASSED[0m[33m           [ 55%][0m
+tests/test_problem_loader.py::test_load_from_dict_invalid [32mPASSED[0m[33m         [ 56%][0m
+tests/test_sandbox_executor.py::test_execute_valid_code [32mPASSED[0m[33m           [ 57%][0m
+tests/test_sandbox_executor.py::test_execute_wrong_answer [32mPASSED[0m[33m         [ 58%][0m
+tests/test_sandbox_executor.py::test_execute_partial_pass [32mPASSED[0m[33m         [ 59%][0m
+tests/test_sandbox_executor.py::test_execute_runtime_error [32mPASSED[0m[33m        [ 60%][0m
+tests/test_sandbox_executor.py::test_execute_timeout [32mPASSED[0m[33m              [ 61%][0m
+tests/test_sandbox_executor.py::test_validate_code_valid [32mPASSED[0m[33m          [ 62%][0m
+tests/test_sandbox_executor.py::test_validate_code_missing_solution [32mPASSED[0m[33m [ 63%][0m
+tests/test_sandbox_executor.py::test_validate_code_no_solution_function [32mPASSED[0m[33m [ 64%][0m
+tests/test_sandbox_executor.py::test_check_imports_allowed [32mPASSED[0m[33m        [ 65%][0m
+tests/test_sandbox_executor.py::test_check_imports_disallowed [32mPASSED[0m[33m     [ 66%][0m
+tests/test_sandbox_executor.py::test_execute_with_allowed_import [32mPASSED[0m[33m  [ 66%][0m
+tests/test_sandbox_executor.py::test_compare_outputs_exact_match [32mPASSED[0m[33m  [ 67%][0m
+tests/test_sandbox_executor.py::test_compare_outputs_mismatch [32mPASSED[0m[33m     [ 68%][0m
+tests/test_sandbox_executor.py::test_compare_outputs_floats [32mPASSED[0m[33m       [ 69%][0m
+tests/test_sandbox_executor.py::test_compare_outputs_float_lists [32mPASSED[0m[33m  [ 70%][0m
+tests/test_sandbox_executor.py::test_execute_returns_list [32mPASSED[0m[33m         [ 71%][0m
+tests/test_sandbox_executor.py::test_execute_returns_dict [32mPASSED[0m[33m         [ 72%][0m
+tests/test_strategies.py::test_vanilla_strategy_success [32mPASSED[0m[33m           [ 73%][0m
+tests/test_strategies.py::test_vanilla_strategy_no_code [32mPASSED[0m[33m           [ 74%][0m
+tests/test_strategies.py::test_cot_strategy_success [32mPASSED[0m[33m               [ 75%][0m
+tests/test_strategies.py::test_multi_round_feedback_converges [32mPASSED[0m[33m     [ 76%][0m
+tests/test_strategies.py::test_multi_round_feedback_max_iterations [32mPASSED[0m[33m [ 77%][0m
+tests/test_strategies.py::test_extract_code_with_python_marker [32mPASSED[0m[33m    [ 77%][0m
+tests/test_strategies.py::test_extract_code_without_marker [32mPASSED[0m[33m        [ 78%][0m
+tests/test_strategies.py::test_extract_code_fallback [32mPASSED[0m[33m              [ 79%][0m
+tests/test_utils.py::test_get_default_config [32mPASSED[0m[33m                      [ 80%][0m
+tests/test_utils.py::test_load_config_valid [32mPASSED[0m[33m                       [ 81%][0m
+tests/test_utils.py::test_load_config_not_found [32mPASSED[0m[33m                   [ 82%][0m
+tests/test_utils.py::test_merge_configs [32mPASSED[0m[33m                           [ 83%][0m
+tests/test_utils.py::test_validate_config_valid [32mPASSED[0m[33m                   [ 84%][0m
+tests/test_utils.py::test_validate_config_missing_key [32mPASSED[0m[33m             [ 85%][0m
+tests/test_utils.py::test_validate_config_missing_llm_key [32mPASSED[0m[33m         [ 86%][0m
+tests/test_utils.py::test_validate_problem_schema_valid [32mPASSED[0m[33m           [ 87%][0m
+tests/test_utils.py::test_validate_problem_schema_missing_field [32mPASSED[0m[33m   [ 88%][0m
+tests/test_utils.py::test_validate_problem_schema_invalid_difficulty [32mPASSED[0m[33m [ 88%][0m
+tests/test_utils.py::test_validate_problem_schema_empty_test_cases [32mPASSED[0m[33m [ 89%][0m
+tests/test_utils.py::test_validate_test_case_valid [32mPASSED[0m[33m                [ 90%][0m
+tests/test_utils.py::test_validate_test_case_missing_input [32mPASSED[0m[33m        [ 91%][0m
+tests/test_utils.py::test_validate_test_case_missing_expected_output [32mPASSED[0m[33m [ 92%][0m
+tests/test_utils.py::test_validate_test_case_input_not_dict [32mPASSED[0m[33m       [ 93%][0m
+tests/test_utils.py::test_validate_file_path_exists [32mPASSED[0m[33m               [ 94%][0m
+tests/test_utils.py::test_validate_file_path_not_exists [32mPASSED[0m[33m           [ 95%][0m
+tests/test_utils.py::test_validate_file_path_not_exists_optional [32mPASSED[0m[33m  [ 96%][0m
+tests/test_utils.py::test_validate_file_path_empty [32mPASSED[0m[33m                [ 97%][0m
+tests/test_utils.py::test_validate_strategy_name_valid [32mPASSED[0m[33m            [ 98%][0m
+tests/test_utils.py::test_validate_strategy_name_empty [32mPASSED[0m[33m            [ 99%][0m
+tests/test_utils.py::test_validate_strategy_name_invalid_chars [32mPASSED[0m[33m    [100%][0m[31m[1m
+ERROR: Coverage failure: total of 85 is less than fail-under=90
+[0m
+
+[33m=============================== warnings summary ===============================[0m
+src/models.py:18
+  /Users/charlesleclerc/LLM-Algorithm-Harness/src/models.py:18: PytestCollectionWarning: cannot collect test class 'TestCase' because it has a __init__ constructor (from: tests/test_harness.py)
+    class TestCase(BaseModel):
+
+src/models.py:18
+  /Users/charlesleclerc/LLM-Algorithm-Harness/src/models.py:18: PytestCollectionWarning: cannot collect test class 'TestCase' because it has a __init__ constructor (from: tests/test_models.py)
+    class TestCase(BaseModel):
+
+src/models.py:85
+  /Users/charlesleclerc/LLM-Algorithm-Harness/src/models.py:85: PytestCollectionWarning: cannot collect test class 'TestCaseResult' because it has a __init__ constructor (from: tests/test_models.py)
+    class TestCaseResult(BaseModel):
+
+src/models.py:18
+  /Users/charlesleclerc/LLM-Algorithm-Harness/src/models.py:18: PytestCollectionWarning: cannot collect test class 'TestCase' because it has a __init__ constructor (from: tests/test_problem_loader.py)
+    class TestCase(BaseModel):
+
+src/models.py:18
+  /Users/charlesleclerc/LLM-Algorithm-Harness/src/models.py:18: PytestCollectionWarning: cannot collect test class 'TestCase' because it has a __init__ constructor (from: tests/test_sandbox_executor.py)
+    class TestCase(BaseModel):
+
+src/models.py:18
+  /Users/charlesleclerc/LLM-Algorithm-Harness/src/models.py:18: PytestCollectionWarning: cannot collect test class 'TestCase' because it has a __init__ constructor (from: tests/test_strategies.py)
+    class TestCase(BaseModel):
+
+src/models.py:85
+  /Users/charlesleclerc/LLM-Algorithm-Harness/src/models.py:85: PytestCollectionWarning: cannot collect test class 'TestCaseResult' because it has a __init__ constructor (from: tests/test_strategies.py)
+    class TestCaseResult(BaseModel):
+
+tests/test_harness.py::test_harness_initialization
+tests/test_harness.py::test_load_problems
+tests/test_harness.py::test_run_strategy
+tests/test_harness.py::test_generate_report
+tests/test_harness.py::test_get_results
+tests/test_harness.py::test_get_failed_problems
+tests/test_harness.py::test_compare_strategies
+tests/test_harness.py::test_unknown_strategy_raises_error
+  /Users/charlesleclerc/LLM-Algorithm-Harness/src/harness.py:46: PydanticDeprecatedSince20: The `dict` method is deprecated; use `model_dump` instead. Deprecated in Pydantic V2.0 to be removed in V3.0. See Pydantic V2 Migration Guide at https://errors.pydantic.dev/2.13/migration/
+    logger.info("harness_initialized", config=config.dict())
+
+tests/test_sandbox_executor.py: 17 warnings
+  /Users/charlesleclerc/LLM-Algorithm-Harness/src/sandbox_executor.py:36: PydanticDeprecatedSince20: The `dict` method is deprecated; use `model_dump` instead. Deprecated in Pydantic V2.0 to be removed in V3.0. See Pydantic V2 Migration Guide at https://errors.pydantic.dev/2.13/migration/
+    logger.info("sandbox_initialized", config=config.dict())
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+================================ tests coverage ================================
+______________ coverage: platform darwin, python 3.11.16-final-0 _______________
+
+Name                                     Stmts   Miss  Cover   Missing
+----------------------------------------------------------------------
+src/harness.py                              80     13    84%   55-69, 83, 127-128
+src/llm_client.py                           71      6    92%   52, 60, 63, 67, 93, 165
+src/main.py                                 78     78     0%   5-212
+src/models.py                              165      2    99%   50, 168
+src/problem_loader.py                       55      0   100%
+src/sandbox_executor.py                     76      1    99%   149
+src/strategies/__init__.py                   0      0   100%
+src/strategies/chain_of_thought.py          28      2    93%   61-62
+src/strategies/multi_round_feedback.py      61      3    95%   71-72, 166
+src/strategies/vanilla.py                   24      2    92%   61-62
+src/strategy_base.py                        53      2    96%   57, 134
+src/utils/__init__.py                        0      0   100%
+src/utils/config.py                         35      1    97%   65
+src/utils/logging.py                        13      6    54%   21-49
+src/utils/validators.py                     33      0   100%
+----------------------------------------------------------------------
+TOTAL                                      772    116    85%
+Coverage HTML written to dir htmlcov
+[31m[1mFAIL Required test coverage of 90% not reached. Total coverage: 84.97%
+[0m[33m======================= [32m109 passed[0m, [33m[1m32 warnings[0m[33m in 6.76s[0m[33m =======================[0m

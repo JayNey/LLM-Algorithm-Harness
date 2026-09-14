@@ -1,0 +1,190 @@
+============================= test session starts ==============================
+platform darwin -- Python 3.11.16, pytest-9.1.1, pluggy-1.6.0 -- /opt/homebrew/opt/python@3.11/bin/python3.11
+cachedir: .pytest_cache
+rootdir: /Users/charlesleclerc/LLM-Algorithm-Harness
+configfile: pyproject.toml
+plugins: cov-7.1.0
+collecting ... collected 109 items
+
+tests/test_harness.py::test_harness_initialization PASSED                [  0%]
+tests/test_harness.py::test_load_problems PASSED                         [  1%]
+tests/test_harness.py::test_run_strategy PASSED                          [  2%]
+tests/test_harness.py::test_generate_report PASSED                       [  3%]
+tests/test_harness.py::test_get_results PASSED                           [  4%]
+tests/test_harness.py::test_get_failed_problems PASSED                   [  5%]
+tests/test_harness.py::test_compare_strategies PASSED                    [  6%]
+tests/test_harness.py::test_unknown_strategy_raises_error PASSED         [  7%]
+tests/test_llm_client.py::test_initialize_openai_client PASSED           [  8%]
+tests/test_llm_client.py::test_initialize_anthropic_client PASSED        [  9%]
+tests/test_llm_client.py::test_initialize_unsupported_provider PASSED    [ 10%]
+tests/test_llm_client.py::test_initialize_openai_missing_api_key PASSED  [ 11%]
+tests/test_llm_client.py::test_generate_openai PASSED                    [ 11%]
+tests/test_llm_client.py::test_generate_openai_with_system_prompt PASSED [ 12%]
+tests/test_llm_client.py::test_generate_anthropic PASSED                 [ 13%]
+tests/test_llm_client.py::test_generate_api_error PASSED                 [ 14%]
+tests/test_llm_client.py::test_estimate_cost_gpt35 PASSED                [ 15%]
+tests/test_llm_client.py::test_estimate_cost_claude_haiku PASSED         [ 16%]
+tests/test_llm_client.py::test_estimate_cost_unknown_model PASSED        [ 17%]
+tests/test_llm_client.py::test_openai_api_key_from_env PASSED            [ 18%]
+tests/test_llm_client.py::test_anthropic_api_key_from_env PASSED         [ 19%]
+tests/test_models.py::test_create_valid_test_case PASSED                 [ 20%]
+tests/test_models.py::test_test_case_json_serialization PASSED           [ 21%]
+tests/test_models.py::test_create_valid_problem PASSED                   [ 22%]
+tests/test_models.py::test_problem_json_serialization PASSED             [ 22%]
+tests/test_models.py::test_problem_with_empty_test_cases PASSED          [ 23%]
+tests/test_models.py::test_problem_with_invalid_difficulty PASSED        [ 24%]
+tests/test_models.py::test_problem_missing_required_field PASSED         [ 25%]
+tests/test_models.py::test_create_execution_result PASSED                [ 26%]
+tests/test_models.py::test_execution_result_with_negative_tokens PASSED  [ 27%]
+tests/test_models.py::test_execution_result_is_successful_false PASSED   [ 28%]
+tests/test_models.py::test_token_usage_cost_estimate PASSED              [ 29%]
+tests/test_models.py::test_create_llm_config PASSED                      [ 30%]
+tests/test_models.py::test_llm_config_invalid_provider PASSED            [ 31%]
+tests/test_models.py::test_create_sandbox_config PASSED                  [ 32%]
+tests/test_models.py::test_sandbox_config_custom_values PASSED           [ 33%]
+tests/test_models.py::test_strategy_config PASSED                        [ 33%]
+tests/test_models.py::test_harness_config PASSED                         [ 34%]
+tests/test_models.py::test_strategy_metrics_cost_estimate PASSED         [ 35%]
+tests/test_models.py::test_strategy_metrics_with_difficulty_breakdown PASSED [ 36%]
+tests/test_models.py::test_execution_summary_best_strategy PASSED        [ 37%]
+tests/test_models.py::test_execution_summary_most_efficient PASSED       [ 38%]
+tests/test_models.py::test_execution_summary_empty_metrics PASSED        [ 39%]
+tests/test_models.py::test_sandbox_result_success PASSED                 [ 40%]
+tests/test_models.py::test_sandbox_result_timeout PASSED                 [ 41%]
+tests/test_models.py::test_test_case_result_passed PASSED                [ 42%]
+tests/test_models.py::test_test_case_result_wrong_answer PASSED          [ 43%]
+tests/test_problem_loader.py::test_load_valid_dataset PASSED             [ 44%]
+tests/test_problem_loader.py::test_load_file_not_found PASSED            [ 44%]
+tests/test_problem_loader.py::test_load_empty_dataset PASSED             [ 45%]
+tests/test_problem_loader.py::test_load_invalid_json PASSED              [ 46%]
+tests/test_problem_loader.py::test_load_non_array_json PASSED            [ 47%]
+tests/test_problem_loader.py::test_validate_dataset_valid PASSED         [ 48%]
+tests/test_problem_loader.py::test_validate_dataset_partial_valid PASSED [ 49%]
+tests/test_problem_loader.py::test_validate_dataset_all_invalid PASSED   [ 50%]
+tests/test_problem_loader.py::test_filter_problems_by_difficulty PASSED  [ 51%]
+tests/test_problem_loader.py::test_filter_problems_by_tags PASSED        [ 52%]
+tests/test_problem_loader.py::test_filter_problems_by_limit PASSED       [ 53%]
+tests/test_problem_loader.py::test_filter_problems_combined PASSED       [ 54%]
+tests/test_problem_loader.py::test_filter_problems_no_match PASSED       [ 55%]
+tests/test_problem_loader.py::test_load_from_dict_valid PASSED           [ 55%]
+tests/test_problem_loader.py::test_load_from_dict_invalid PASSED         [ 56%]
+tests/test_sandbox_executor.py::test_execute_valid_code PASSED           [ 57%]
+tests/test_sandbox_executor.py::test_execute_wrong_answer PASSED         [ 58%]
+tests/test_sandbox_executor.py::test_execute_partial_pass PASSED         [ 59%]
+tests/test_sandbox_executor.py::test_execute_runtime_error PASSED        [ 60%]
+tests/test_sandbox_executor.py::test_execute_timeout PASSED              [ 61%]
+tests/test_sandbox_executor.py::test_validate_code_valid PASSED          [ 62%]
+tests/test_sandbox_executor.py::test_validate_code_missing_solution PASSED [ 63%]
+tests/test_sandbox_executor.py::test_validate_code_no_solution_function PASSED [ 64%]
+tests/test_sandbox_executor.py::test_check_imports_allowed PASSED        [ 65%]
+tests/test_sandbox_executor.py::test_check_imports_disallowed PASSED     [ 66%]
+tests/test_sandbox_executor.py::test_execute_with_allowed_import PASSED  [ 66%]
+tests/test_sandbox_executor.py::test_compare_outputs_exact_match PASSED  [ 67%]
+tests/test_sandbox_executor.py::test_compare_outputs_mismatch PASSED     [ 68%]
+tests/test_sandbox_executor.py::test_compare_outputs_floats PASSED       [ 69%]
+tests/test_sandbox_executor.py::test_compare_outputs_float_lists PASSED  [ 70%]
+tests/test_sandbox_executor.py::test_execute_returns_list PASSED         [ 71%]
+tests/test_sandbox_executor.py::test_execute_returns_dict PASSED         [ 72%]
+tests/test_strategies.py::test_vanilla_strategy_success PASSED           [ 73%]
+tests/test_strategies.py::test_vanilla_strategy_no_code PASSED           [ 74%]
+tests/test_strategies.py::test_cot_strategy_success PASSED               [ 75%]
+tests/test_strategies.py::test_multi_round_feedback_converges PASSED     [ 76%]
+tests/test_strategies.py::test_multi_round_feedback_max_iterations PASSED [ 77%]
+tests/test_strategies.py::test_extract_code_with_python_marker PASSED    [ 77%]
+tests/test_strategies.py::test_extract_code_without_marker PASSED        [ 78%]
+tests/test_strategies.py::test_extract_code_fallback PASSED              [ 79%]
+tests/test_utils.py::test_get_default_config PASSED                      [ 80%]
+tests/test_utils.py::test_load_config_valid PASSED                       [ 81%]
+tests/test_utils.py::test_load_config_not_found PASSED                   [ 82%]
+tests/test_utils.py::test_merge_configs PASSED                           [ 83%]
+tests/test_utils.py::test_validate_config_valid PASSED                   [ 84%]
+tests/test_utils.py::test_validate_config_missing_key PASSED             [ 85%]
+tests/test_utils.py::test_validate_config_missing_llm_key PASSED         [ 86%]
+tests/test_utils.py::test_validate_problem_schema_valid PASSED           [ 87%]
+tests/test_utils.py::test_validate_problem_schema_missing_field PASSED   [ 88%]
+tests/test_utils.py::test_validate_problem_schema_invalid_difficulty PASSED [ 88%]
+tests/test_utils.py::test_validate_problem_schema_empty_test_cases PASSED [ 89%]
+tests/test_utils.py::test_validate_test_case_valid PASSED                [ 90%]
+tests/test_utils.py::test_validate_test_case_missing_input PASSED        [ 91%]
+tests/test_utils.py::test_validate_test_case_missing_expected_output PASSED [ 92%]
+tests/test_utils.py::test_validate_test_case_input_not_dict PASSED       [ 93%]
+tests/test_utils.py::test_validate_file_path_exists PASSED               [ 94%]
+tests/test_utils.py::test_validate_file_path_not_exists PASSED           [ 95%]
+tests/test_utils.py::test_validate_file_path_not_exists_optional PASSED  [ 96%]
+tests/test_utils.py::test_validate_file_path_empty PASSED                [ 97%]
+tests/test_utils.py::test_validate_strategy_name_valid PASSED            [ 98%]
+tests/test_utils.py::test_validate_strategy_name_empty PASSED            [ 99%]
+tests/test_utils.py::test_validate_strategy_name_invalid_chars PASSED    [100%]
+ERROR: Coverage failure: total of 85 is less than fail-under=90
+
+
+=============================== warnings summary ===============================
+src/models.py:18
+  /Users/charlesleclerc/LLM-Algorithm-Harness/src/models.py:18: PytestCollectionWarning: cannot collect test class 'TestCase' because it has a __init__ constructor (from: tests/test_harness.py)
+    class TestCase(BaseModel):
+
+src/models.py:18
+  /Users/charlesleclerc/LLM-Algorithm-Harness/src/models.py:18: PytestCollectionWarning: cannot collect test class 'TestCase' because it has a __init__ constructor (from: tests/test_models.py)
+    class TestCase(BaseModel):
+
+src/models.py:85
+  /Users/charlesleclerc/LLM-Algorithm-Harness/src/models.py:85: PytestCollectionWarning: cannot collect test class 'TestCaseResult' because it has a __init__ constructor (from: tests/test_models.py)
+    class TestCaseResult(BaseModel):
+
+src/models.py:18
+  /Users/charlesleclerc/LLM-Algorithm-Harness/src/models.py:18: PytestCollectionWarning: cannot collect test class 'TestCase' because it has a __init__ constructor (from: tests/test_problem_loader.py)
+    class TestCase(BaseModel):
+
+src/models.py:18
+  /Users/charlesleclerc/LLM-Algorithm-Harness/src/models.py:18: PytestCollectionWarning: cannot collect test class 'TestCase' because it has a __init__ constructor (from: tests/test_sandbox_executor.py)
+    class TestCase(BaseModel):
+
+src/models.py:18
+  /Users/charlesleclerc/LLM-Algorithm-Harness/src/models.py:18: PytestCollectionWarning: cannot collect test class 'TestCase' because it has a __init__ constructor (from: tests/test_strategies.py)
+    class TestCase(BaseModel):
+
+src/models.py:85
+  /Users/charlesleclerc/LLM-Algorithm-Harness/src/models.py:85: PytestCollectionWarning: cannot collect test class 'TestCaseResult' because it has a __init__ constructor (from: tests/test_strategies.py)
+    class TestCaseResult(BaseModel):
+
+tests/test_harness.py::test_harness_initialization
+tests/test_harness.py::test_load_problems
+tests/test_harness.py::test_run_strategy
+tests/test_harness.py::test_generate_report
+tests/test_harness.py::test_get_results
+tests/test_harness.py::test_get_failed_problems
+tests/test_harness.py::test_compare_strategies
+tests/test_harness.py::test_unknown_strategy_raises_error
+  /Users/charlesleclerc/LLM-Algorithm-Harness/src/harness.py:46: PydanticDeprecatedSince20: The `dict` method is deprecated; use `model_dump` instead. Deprecated in Pydantic V2.0 to be removed in V3.0. See Pydantic V2 Migration Guide at https://errors.pydantic.dev/2.13/migration/
+    logger.info("harness_initialized", config=config.dict())
+
+tests/test_sandbox_executor.py: 17 warnings
+  /Users/charlesleclerc/LLM-Algorithm-Harness/src/sandbox_executor.py:36: PydanticDeprecatedSince20: The `dict` method is deprecated; use `model_dump` instead. Deprecated in Pydantic V2.0 to be removed in V3.0. See Pydantic V2 Migration Guide at https://errors.pydantic.dev/2.13/migration/
+    logger.info("sandbox_initialized", config=config.dict())
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+================================ tests coverage ================================
+______________ coverage: platform darwin, python 3.11.16-final-0 _______________
+
+Name                                     Stmts   Miss  Cover   Missing
+----------------------------------------------------------------------
+src/harness.py                              80     13    84%   55-69, 83, 127-128
+src/llm_client.py                           71      6    92%   52, 60, 63, 67, 93, 165
+src/main.py                                 78     78     0%   5-212
+src/models.py                              165      2    99%   50, 168
+src/problem_loader.py                       55      0   100%
+src/sandbox_executor.py                     76      1    99%   149
+src/strategies/__init__.py                   0      0   100%
+src/strategies/chain_of_thought.py          28      2    93%   61-62
+src/strategies/multi_round_feedback.py      61      3    95%   71-72, 166
+src/strategies/vanilla.py                   24      2    92%   61-62
+src/strategy_base.py                        53      2    96%   57, 134
+src/utils/__init__.py                        0      0   100%
+src/utils/config.py                         35      1    97%   65
+src/utils/logging.py                        13      6    54%   21-49
+src/utils/validators.py                     33      0   100%
+----------------------------------------------------------------------
+TOTAL                                      772    116    85%
+Coverage HTML written to dir htmlcov
+FAIL Required test coverage of 90% not reached. Total coverage: 84.97%
+======================= 109 passed, 32 warnings in 6.69s =======================
