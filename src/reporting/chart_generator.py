@@ -6,6 +6,7 @@ import io
 import base64
 from typing import Dict, List, Optional
 
+import numpy as np
 import matplotlib
 matplotlib.use('Agg')  # Non-interactive backend
 import matplotlib.pyplot as plt
@@ -100,12 +101,16 @@ class ChartGenerator:
         return ChartGenerator._fig_to_bytes(fig)
 
     @staticmethod
-    def generate_token_chart(metrics: Dict[str, Dict]) -> io.BytesIO:
+    def generate_token_chart(
+        metrics: Dict[str, Dict],
+        results: Optional[Dict[str, List[ExecutionResult]]] = None
+    ) -> io.BytesIO:
         """
         Generate token consumption line chart.
 
         Args:
             metrics: Dictionary mapping strategy name to metrics dict
+            results: Optional dictionary mapping strategy name to results list (for percentile calculation)
 
         Returns:
             BytesIO containing PNG image
@@ -115,11 +120,59 @@ class ChartGenerator:
         strategies = list(metrics.keys())
         avg_tokens = [metrics[s].get('avg_tokens_per_problem', 0) for s in strategies]
 
+        # Calculate percentiles if results are provided
+        percentile_25 = []
+        percentile_75 = []
+
+        if results:
+            for strategy in strategies:
+                strategy_results = results.get(strategy, [])
+                if strategy_results:
+                    # Extract total tokens from each result
+                    token_counts = []
+                    for result in strategy_results:
+                        total_tokens = sum(
+                            iteration.prompt_tokens + iteration.completion_tokens
+                            for iteration in result.iterations
+                        )
+                        token_counts.append(total_tokens)
+
+                    # Calculate 25th and 75th percentiles
+                    if token_counts:
+                        p25 = np.percentile(token_counts, 25)
+                        p75 = np.percentile(token_counts, 75)
+                        percentile_25.append(p25)
+                        percentile_75.append(p75)
+                    else:
+                        percentile_25.append(0)
+                        percentile_75.append(0)
+                else:
+                    percentile_25.append(0)
+                    percentile_75.append(0)
+
         fig, ax = plt.subplots(figsize=(10, 6))
 
         # Line plot with markers
         x_pos = range(len(strategies))
-        ax.plot(x_pos, avg_tokens, marker='o', markersize=8, linewidth=2, color='#3498db')
+        ax.plot(x_pos, avg_tokens, marker='o', markersize=8, linewidth=2, color='#3498db', label='Average')
+
+        # Add error bars if percentiles are available
+        if percentile_25 and percentile_75:
+            # Calculate error bar sizes (distance from mean to percentile)
+            # Use max(0, ...) to ensure non-negative values
+            yerr_lower = [max(0, avg - p25) for avg, p25 in zip(avg_tokens, percentile_25)]
+            yerr_upper = [max(0, p75 - avg) for avg, p75 in zip(avg_tokens, percentile_75)]
+            ax.errorbar(
+                x_pos, avg_tokens,
+                yerr=[yerr_lower, yerr_upper],
+                fmt='none',
+                ecolor='#95a5a6',
+                elinewidth=2,
+                capsize=5,
+                capthick=2,
+                alpha=0.7,
+                label='25th-75th percentile'
+            )
 
         # Add value labels
         for i, (x, y) in enumerate(zip(x_pos, avg_tokens)):
@@ -131,6 +184,7 @@ class ChartGenerator:
         ax.set_xticks(x_pos)
         ax.set_xticklabels(strategies, rotation=45, ha='right')
         ax.grid(axis='y', linestyle='--', alpha=0.3)
+        ax.legend(loc='upper left')
 
         plt.tight_layout()
 
