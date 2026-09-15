@@ -231,6 +231,313 @@ class TestMainExecution:
     """Test main function execution paths."""
 
     @patch("src.main.AlgorithmHarness")
+    def test_main_uses_dataset_and_output_from_config_when_cli_omits_them(
+        self, mock_harness_class, tmp_path
+    ):
+        """CLI defaults must not overwrite paths explicitly stored in the config file."""
+        config_path = tmp_path / "config.yaml"
+        config_path.write_text(
+            """
+dataset_path: data/from-config.json
+output_dir: reports/from-config
+llm_config:
+  provider: openai
+  api_key: test-key
+  model: gpt-3.5-turbo
+strategies:
+  - name: vanilla
+""",
+            encoding="utf-8",
+        )
+        mock_harness = MagicMock()
+        mock_harness.run.return_value = {}
+        mock_harness.results = {}
+        mock_harness_class.return_value = mock_harness
+
+        from src.main import main
+
+        with patch("sys.argv", ["main.py", "--config", str(config_path)]):
+            with patch("src.main.save_results"):
+                with patch("src.main.print_report"):
+                    main()
+
+        resolved = mock_harness_class.call_args.args[0]
+        assert resolved.dataset_path == "data/from-config.json"
+        assert resolved.output_dir == "reports/from-config"
+
+    @patch("src.main.AlgorithmHarness")
+    def test_main_uses_program_output_default_when_config_omits_it(
+        self, mock_harness_class, tmp_path
+    ):
+        """An omitted output directory falls back to the documented program default."""
+        config_path = tmp_path / "config.yaml"
+        config_path.write_text(
+            """
+dataset_path: data/from-config.json
+llm_config:
+  provider: openai
+  api_key: test-key
+  model: gpt-3.5-turbo
+strategies:
+  - name: vanilla
+""",
+            encoding="utf-8",
+        )
+        mock_harness = MagicMock()
+        mock_harness.run.return_value = {}
+        mock_harness.results = {}
+        mock_harness_class.return_value = mock_harness
+
+        from src.main import main
+
+        with patch("sys.argv", ["main.py", "--config", str(config_path)]):
+            with patch("src.main.save_results"):
+                with patch("src.main.print_report"):
+                    main()
+
+        resolved = mock_harness_class.call_args.args[0]
+        assert resolved.output_dir == "./results"
+
+    @patch("src.main.AlgorithmHarness")
+    def test_explicit_cli_paths_override_config(self, mock_harness_class, tmp_path):
+        """Explicit dataset and output arguments take precedence over file values."""
+        config_path = tmp_path / "config.json"
+        config_path.write_text(
+            json.dumps(
+                {
+                    "dataset_path": "data/from-config.json",
+                    "output_dir": "reports/from-config",
+                    "llm_config": {
+                        "provider": "openai",
+                        "api_key": "test-key",
+                        "model": "gpt-3.5-turbo",
+                    },
+                    "strategies": [{"name": "vanilla"}],
+                }
+            ),
+            encoding="utf-8",
+        )
+        mock_harness = MagicMock()
+        mock_harness.run.return_value = {}
+        mock_harness.results = {}
+        mock_harness_class.return_value = mock_harness
+
+        from src.main import main
+
+        with patch(
+            "sys.argv",
+            [
+                "main.py",
+                "--config",
+                str(config_path),
+                "--dataset",
+                "data/from-cli.json",
+                "--output",
+                "reports/from-cli",
+            ],
+        ):
+            with patch("src.main.save_results"):
+                with patch("src.main.print_report"):
+                    main()
+
+        resolved = mock_harness_class.call_args.args[0]
+        assert resolved.dataset_path == "data/from-cli.json"
+        assert resolved.output_dir == "reports/from-cli"
+
+    @patch("src.main.AlgorithmHarness")
+    def test_cli_dataset_supplies_path_missing_from_config(self, mock_harness_class, tmp_path):
+        """A CLI dataset satisfies the requirement even when the config omits it."""
+        config_path = tmp_path / "config.yaml"
+        config_path.write_text(
+            """
+llm_config:
+  provider: openai
+  api_key: test-key
+  model: gpt-3.5-turbo
+strategies:
+  - name: vanilla
+""",
+            encoding="utf-8",
+        )
+        mock_harness = MagicMock()
+        mock_harness.run.return_value = {}
+        mock_harness.results = {}
+        mock_harness_class.return_value = mock_harness
+
+        from src.main import main
+
+        with patch(
+            "sys.argv",
+            ["main.py", "--config", str(config_path), "--dataset", "data/from-cli.json"],
+        ):
+            with patch("src.main.save_results"):
+                with patch("src.main.print_report"):
+                    main()
+
+        resolved = mock_harness_class.call_args.args[0]
+        assert resolved.dataset_path == "data/from-cli.json"
+
+    @pytest.mark.parametrize("limit", ["0", "-1"])
+    @patch("src.main.AlgorithmHarness")
+    def test_main_rejects_non_positive_limit(self, mock_harness_class, limit):
+        """A zero or negative limit must fail before the harness starts."""
+        from src.main import main
+
+        with patch("sys.argv", ["main.py", "--dataset", "data/problems.json", "--limit", limit]):
+            with pytest.raises(SystemExit) as exc_info:
+                main()
+
+        assert exc_info.value.code == 2
+        mock_harness_class.assert_not_called()
+
+    @pytest.mark.parametrize(
+        "strategies",
+        [[], [{"name": "not_a_strategy"}]],
+        ids=["empty", "unknown"],
+    )
+    @patch("src.main.AlgorithmHarness")
+    def test_main_rejects_config_without_valid_strategies(
+        self, mock_harness_class, tmp_path, strategies
+    ):
+        """Empty and unknown configured strategies must not create an empty evaluation."""
+        config_path = tmp_path / "config.json"
+        config_path.write_text(
+            json.dumps(
+                {
+                    "dataset_path": "data/problems.json",
+                    "llm_config": {
+                        "provider": "openai",
+                        "api_key": "test-key",
+                        "model": "gpt-3.5-turbo",
+                    },
+                    "strategies": strategies,
+                }
+            ),
+            encoding="utf-8",
+        )
+
+        from src.main import main
+
+        with patch("sys.argv", ["main.py", "--config", str(config_path)]):
+            with pytest.raises(SystemExit) as exc_info:
+                main()
+
+        assert exc_info.value.code == 1
+        mock_harness_class.assert_not_called()
+
+    @patch("src.main.AlgorithmHarness")
+    def test_main_rejects_selected_strategy_missing_from_config(self, mock_harness_class, tmp_path):
+        """Selecting a valid built-in strategy absent from the config must fail clearly."""
+        config_path = tmp_path / "config.json"
+        config_path.write_text(
+            json.dumps(
+                {
+                    "dataset_path": "data/problems.json",
+                    "llm_config": {
+                        "provider": "openai",
+                        "api_key": "test-key",
+                        "model": "gpt-3.5-turbo",
+                    },
+                    "strategies": [{"name": "vanilla"}],
+                }
+            ),
+            encoding="utf-8",
+        )
+
+        from src.main import main
+
+        with patch(
+            "sys.argv",
+            ["main.py", "--config", str(config_path), "--strategy", "chain_of_thought"],
+        ):
+            with pytest.raises(SystemExit) as exc_info:
+                main()
+
+        assert exc_info.value.code == 1
+        mock_harness_class.assert_not_called()
+
+    @patch("src.main.AlgorithmHarness")
+    def test_main_rejects_non_positive_limit_from_config(self, mock_harness_class, tmp_path):
+        """A non-positive limit in a configuration file must fail before evaluation."""
+        config_path = tmp_path / "config.yaml"
+        config_path.write_text(
+            """
+dataset_path: data/problems.json
+llm_config:
+  provider: openai
+  api_key: test-key
+  model: gpt-3.5-turbo
+strategies:
+  - name: vanilla
+problem_filters:
+  limit: 0
+""",
+            encoding="utf-8",
+        )
+
+        from src.main import main
+
+        with patch("sys.argv", ["main.py", "--config", str(config_path)]):
+            with pytest.raises(SystemExit) as exc_info:
+                main()
+
+        assert exc_info.value.code == 1
+        mock_harness_class.assert_not_called()
+
+    @patch("src.main.AlgorithmHarness")
+    def test_explicit_cli_filters_override_only_matching_config_values(
+        self, mock_harness_class, tmp_path
+    ):
+        """Difficulty and tags override file values while an omitted limit is preserved."""
+        config_path = tmp_path / "config.yaml"
+        config_path.write_text(
+            """
+dataset_path: data/problems.json
+llm_config:
+  provider: openai
+  api_key: test-key
+  model: gpt-3.5-turbo
+strategies:
+  - name: vanilla
+problem_filters:
+  difficulty: easy
+  tags: [array]
+  limit: 7
+""",
+            encoding="utf-8",
+        )
+        mock_harness = MagicMock()
+        mock_harness.run.return_value = {}
+        mock_harness.results = {}
+        mock_harness_class.return_value = mock_harness
+
+        from src.main import main
+
+        with patch(
+            "sys.argv",
+            [
+                "main.py",
+                "--config",
+                str(config_path),
+                "--difficulty",
+                "hard",
+                "--tags",
+                "graph",
+                "dynamic-programming",
+            ],
+        ):
+            with patch("src.main.save_results"):
+                with patch("src.main.print_report"):
+                    main()
+
+        filters = mock_harness_class.call_args.args[0].problem_filters
+        assert filters == {
+            "difficulty": "hard",
+            "tags": ["graph", "dynamic-programming"],
+            "limit": 7,
+        }
+
+    @patch("src.main.AlgorithmHarness")
     @patch("src.main.Path")
     def test_main_with_dataset_argument(self, mock_path_class, mock_harness_class):
         """Test main execution with dataset argument."""
@@ -302,6 +609,7 @@ class TestMainExecution:
                     "api_key": "test-key-123",
                     "model": "gpt-3.5-turbo",
                 },
+                "strategies": [{"name": "vanilla"}],
             }
             json.dump(config_data, f)
             config_path = f.name

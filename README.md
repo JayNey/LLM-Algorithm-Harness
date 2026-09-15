@@ -58,8 +58,10 @@ cd LLM-Algorithm-Harness
 ### 2. 安装依赖
 
 ```bash
-pip install -r requirements.txt
+python3 -m pip install -e .
 ```
+
+项目要求 Python 3.10 或更高版本。安装后会提供 `harness` 命令；也可以继续使用模块入口 `python3 -m src.main`。
 
 ### 3. 配置 API Key
 
@@ -88,26 +90,43 @@ cp config.example.json config.json
 使用默认配置运行所有策略：
 
 ```bash
-python3 -m src/main --dataset data/problems.json
+harness --dataset data/problems.json
+# 等价写法
+python3 -m src.main --dataset data/problems.json
 ```
 
 ### 运行特定策略
 
 ```bash
-python3 -m src/main --dataset data/problems.json --strategy vanilla
+harness --dataset data/problems.json --strategy vanilla
 ```
 
 ### 限制问题数量
 
 ```bash
-python3 -m src/main --dataset data/problems.json --limit 5
+harness --dataset data/problems.json --limit 5
 ```
 
 ### 使用自定义配置
 
 ```bash
-python3 -m src/main --dataset data/problems.json --config config.json
+harness --config config.json
 ```
+
+配置文件可使用 JSON、YAML 或 YML 格式。数据集路径已经写入配置文件时，不需要再传 `--dataset`。
+
+命令行参数的优先级为：**显式 CLI 参数 > 配置文件 > 程序默认值**。只有实际传入的参数才会覆盖配置文件。例如：
+
+```bash
+harness --config config.yaml \
+  --dataset data/problems.json \
+  --output reports/run-1 \
+  --difficulty medium \
+  --tags array dynamic-programming \
+  --limit 20
+```
+
+`--output-dir` 是 `--output` 的兼容别名。标签筛选采用任意标签匹配；使用 `harness --help` 查看完整参数。
 
 ## 配置说明
 
@@ -119,6 +138,7 @@ python3 -m src/main --dataset data/problems.json --config config.json
   "output_dir": "./results",
   "llm_config": {
     "provider": "openai",
+    "api_key": "",
     "model": "gpt-3.5-turbo",
     "temperature": 0.7,
     "max_tokens": 2000
@@ -139,6 +159,24 @@ python3 -m src/main --dataset data/problems.json --config config.json
     }
   ]
 }
+```
+
+等价的 YAML 配置示例：
+
+```yaml
+dataset_path: data/problems.json
+output_dir: ./results
+llm_config:
+  provider: openai
+  api_key: ""
+  model: gpt-3.5-turbo
+strategies:
+  - name: vanilla
+    max_iterations: 1
+problem_filters:
+  difficulty: easy
+  tags: [array]
+  limit: 10
 ```
 
 ### 数据集格式
@@ -391,7 +429,7 @@ elif self.config.provider == "new_provider":
 ### 测试失败
 
 - 确保所有依赖已安装
-- 检查 Python 版本（需要 3.8+）
+- 检查 Python 版本（需要 3.10+）
 
 ## 贡献指南
 

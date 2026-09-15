@@ -277,7 +277,7 @@ class HarnessConfig(BaseModel):
     strategies: List["StrategyConfig"] = Field(
         default_factory=list, description="List of strategy configurations"
     )
-    output_dir: str = Field("output/", description="Output directory")
+    output_dir: str = Field("./results", description="Output directory")
     max_workers: int = Field(5, ge=1, le=20, description="Number of parallel workers")
     log_level: Literal["DEBUG", "INFO", "WARNING", "ERROR"] = Field(
         "INFO", description="Log level"
