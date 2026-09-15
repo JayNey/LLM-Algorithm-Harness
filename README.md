@@ -223,7 +223,102 @@ Strategy: multi_round_feedback
   Estimated Cost: $0.0024
 ```
 
-## 扩展开发
+## 报告生成
+
+评估完成后，可以使用报告模块生成多种格式的报告，包括 CSV、Markdown、图表和 HTML。
+
+### 支持的报告格式
+
+- **CSV**: 结构化数据，适合导入 Excel 或数据分析工具
+- **Markdown**: 可读性强的文本报告，包含表格和统计信息
+- **图表**: PNG 格式的可视化图表（成功率、Token 消耗、迭代分布）
+- **HTML**: 自包含的交互式报告，包含嵌入的图表
+
+### 使用示例
+
+```python
+from src.reporting import CSVExporter, MarkdownGenerator, ChartGenerator, HTMLGenerator
+
+# 1. 导出 CSV
+CSVExporter.export_all(results_by_strategy, "reports/results.csv")
+
+# 2. 生成 Markdown 报告
+MarkdownGenerator.generate(
+    metrics=metrics,
+    results=results_by_strategy,
+    output_path="reports/report.md",
+    config={
+        'model': 'gpt-4',
+        'temperature': 0.7
+    }
+)
+
+# 3. 生成图表
+success_chart = ChartGenerator.generate_success_rate_chart(metrics)
+with open("reports/success_rate.png", "wb") as f:
+    f.write(success_chart.read())
+
+token_chart = ChartGenerator.generate_token_chart(metrics)
+with open("reports/token_consumption.png", "wb") as f:
+    f.write(token_chart.read())
+
+# 4. 生成 HTML 报告（包含所有图表）
+HTMLGenerator.generate(
+    metrics=metrics,
+    results=results_by_strategy,
+    output_path="reports/report.html",
+    include_charts=True,
+    config={'model': 'gpt-4', 'temperature': 0.7}
+)
+```
+
+### 运行示例脚本
+
+项目包含一个完整的示例脚本，演示如何生成所有格式的报告：
+
+```bash
+python3 examples/generate_reports.py
+```
+
+这会在 `examples/sample_reports/` 目录生成：
+- `results.csv` - CSV 格式的结果数据
+- `report.md` - Markdown 格式的报告
+- `report.html` - 交互式 HTML 报告
+- `charts/` - 单独的图表文件（PNG 格式）
+
+### 报告内容
+
+生成的报告包含以下内容：
+
+- **策略性能摘要**: 各策略的成功率、解决问题数、平均 Token 消耗
+- **难度分层统计**: 按 easy/medium/hard 分类的性能指标
+- **失败案例汇总**: 列出失败的问题及错误信息
+- **可视化图表**:
+  - 成功率柱状图（颜色编码：绿色 ≥80%，黄色 50-80%，红色 <50%）
+  - Token 消耗折线图
+  - 迭代次数分布直方图（仅多轮策略）
+
+### CSV 格式说明
+
+CSV 文件包含以下列：
+
+| 列名 | 说明 |
+|------|------|
+| problem_id | 问题 ID |
+| strategy | 策略名称 |
+| status | 执行状态 (success/failed) |
+| passed | 是否通过所有测试 |
+| tokens | 总 Token 消耗 |
+| time | 执行时间（秒） |
+| iterations | 迭代次数 |
+| error_message | 错误信息（如果失败） |
+| total_tests | 总测试用例数 |
+| passed_tests | 通过的测试用例数 |
+| failed_tests | 失败的测试用例数 |
+
+CSV 文件使用 UTF-8 BOM 编码，确保在 Excel 中正确显示中文。
+
+
 
 ### 添加新策略
 
@@ -268,10 +363,10 @@ elif self.config.provider == "new_provider":
 
 ## 安全考虑
 
-- ✅ 代码在子进程隔离执行
-- ✅ 超时限制防止无限循环
-- ✅ 导入白名单限制危险库
-- ✅ 不执行系统级命令
+- 代码在子进程隔离执行
+- 超时限制防止无限循环
+- 导入白名单限制危险库
+- 不执行系统级命令
 
 ## 性能优化建议
 
