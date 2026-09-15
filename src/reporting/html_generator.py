@@ -455,48 +455,58 @@ class HTMLGenerator:
             html_parts.append("<h2>Performance Charts</h2>")
 
             # Success rate chart
-            try:
-                chart_buf = ChartGenerator.generate_success_rate_chart(metrics)
-                chart_b64 = base64.b64encode(chart_buf.read()).decode('utf-8')
-                html_parts.append("<div class='chart-container'>")
-                html_parts.append("<h3>Success Rate Comparison</h3>")
-                html_parts.append(f"<img src='data:image/png;base64,{chart_b64}' alt='Success Rate Chart'>")
-                html_parts.append("</div>")
-            except Exception as e:
-                logger.error(f"Failed to generate success rate chart: {str(e)}", exc_info=True)
-                html_parts.append(HTMLGenerator._format_chart_error("Success Rate Chart", e, show_traceback=True))
+            chart_buf = ChartGenerator.generate_success_rate_chart(metrics)
+            if chart_buf:
+                try:
+                    chart_b64 = base64.b64encode(chart_buf.read()).decode('utf-8')
+                    html_parts.append("<div class='chart-container'>")
+                    html_parts.append("<h3>Success Rate Comparison</h3>")
+                    html_parts.append(f"<img src='data:image/png;base64,{chart_b64}' alt='Success Rate Chart'>")
+                    html_parts.append("</div>")
+                except Exception as e:
+                    logger.error(f"Failed to encode success rate chart: {str(e)}", exc_info=True)
+                    html_parts.append(HTMLGenerator._format_chart_error("Success Rate Chart", e, show_traceback=True))
+            else:
+                logger.error("Success rate chart generation returned None")
+                error = Exception("Chart generation failed")
+                html_parts.append(HTMLGenerator._format_chart_error("Success Rate Chart", error, show_traceback=False))
 
             # Token chart with cost estimation
-            try:
-                model_name = config.get('model') if config else None
-                token_buf = ChartGenerator.generate_token_chart(metrics, results, model_name)
-                token_b64 = base64.b64encode(token_buf.read()).decode('utf-8')
-                html_parts.append("<div class='chart-container'>")
-                html_parts.append("<h3>Token Consumption and Cost</h3>")
-                html_parts.append(f"<img src='data:image/png;base64,{token_b64}' alt='Token Chart'>")
-                html_parts.append("</div>")
-            except Exception as e:
-                logger.error(f"Failed to generate token chart: {str(e)}", exc_info=True)
-                html_parts.append(HTMLGenerator._format_chart_error("Token Chart", e, show_traceback=True))
+            model_name = config.get('model') if config else None
+            token_buf = ChartGenerator.generate_token_chart(metrics, results, model_name)
+            if token_buf:
+                try:
+                    token_b64 = base64.b64encode(token_buf.read()).decode('utf-8')
+                    html_parts.append("<div class='chart-container'>")
+                    html_parts.append("<h3>Token Consumption and Cost</h3>")
+                    html_parts.append(f"<img src='data:image/png;base64,{token_b64}' alt='Token Chart'>")
+                    html_parts.append("</div>")
+                except Exception as e:
+                    logger.error(f"Failed to encode token chart: {str(e)}", exc_info=True)
+                    html_parts.append(HTMLGenerator._format_chart_error("Token Chart", e, show_traceback=True))
+            else:
+                logger.error("Token chart generation returned None")
+                error = Exception("Chart generation failed")
+                html_parts.append(HTMLGenerator._format_chart_error("Token Chart", error, show_traceback=False))
 
             # Iteration distribution
-            try:
-                iter_buf = ChartGenerator.generate_iteration_distribution(results)
-                if iter_buf:
+            iter_buf = ChartGenerator.generate_iteration_distribution(results)
+            if iter_buf:
+                try:
                     iter_b64 = base64.b64encode(iter_buf.read()).decode('utf-8')
                     html_parts.append("<div class='chart-container'>")
                     html_parts.append("<h3>Iteration Distribution</h3>")
                     html_parts.append(f"<img src='data:image/png;base64,{iter_b64}' alt='Iteration Distribution'>")
                     html_parts.append("</div>")
-                else:
-                    logger.warning("Iteration distribution chart returned None")
-                    html_parts.append("<div class='chart-placeholder'>")
-                    html_parts.append("<div class='chart-placeholder-icon'>📊</div>")
-                    html_parts.append("<p>Iteration Distribution chart: No data available</p>")
-                    html_parts.append("</div>")
-            except Exception as e:
-                logger.error(f"Failed to generate iteration distribution: {str(e)}", exc_info=True)
-                html_parts.append(HTMLGenerator._format_chart_error("Iteration Distribution Chart", e, show_traceback=True))
+                except Exception as e:
+                    logger.error(f"Failed to encode iteration distribution: {str(e)}", exc_info=True)
+                    html_parts.append(HTMLGenerator._format_chart_error("Iteration Distribution Chart", e, show_traceback=True))
+            else:
+                logger.info("Iteration distribution chart returned None (no multi-round data)")
+                html_parts.append("<div class='chart-placeholder'>")
+                html_parts.append("<div class='chart-placeholder-icon'>📊</div>")
+                html_parts.append("<p>Iteration Distribution chart: No multi-round data available</p>")
+                html_parts.append("</div>")
 
 
         # Footer

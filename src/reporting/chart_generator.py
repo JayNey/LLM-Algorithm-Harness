@@ -107,7 +107,7 @@ class ChartGenerator:
         return buf
 
     @staticmethod
-    def generate_success_rate_chart(metrics: Dict[str, Dict]) -> io.BytesIO:
+    def generate_success_rate_chart(metrics: Dict[str, Dict]) -> Optional[io.BytesIO]:
         """
         Generate success rate comparison bar chart.
 
@@ -115,52 +115,56 @@ class ChartGenerator:
             metrics: Dictionary mapping strategy name to metrics dict
 
         Returns:
-            BytesIO containing PNG image
+            BytesIO containing PNG image, or None if generation fails
         """
-        ChartGenerator._setup_chinese_font()
+        try:
+            ChartGenerator._setup_chinese_font()
 
-        strategies = list(metrics.keys())
-        success_rates = [metrics[s].get('success_rate', 0) * 100 for s in strategies]
+            strategies = list(metrics.keys())
+            success_rates = [metrics[s].get('success_rate', 0) * 100 for s in strategies]
 
-        fig, ax = plt.subplots(figsize=(10, 6))
+            fig, ax = plt.subplots(figsize=(10, 6))
 
-        # Color coding: green (>=80%), yellow (50-80%), red (<50%)
-        colors = []
-        for rate in success_rates:
-            if rate >= 80:
-                colors.append('#2ecc71')  # green
-            elif rate >= 50:
-                colors.append('#f39c12')  # yellow
-            else:
-                colors.append('#e74c3c')  # red
+            # Color coding: green (>=80%), yellow (50-80%), red (<50%)
+            colors = []
+            for rate in success_rates:
+                if rate >= 80:
+                    colors.append('#2ecc71')  # green
+                elif rate >= 50:
+                    colors.append('#f39c12')  # yellow
+                else:
+                    colors.append('#e74c3c')  # red
 
-        bars = ax.bar(strategies, success_rates, color=colors, alpha=0.8, edgecolor='black')
+            bars = ax.bar(strategies, success_rates, color=colors, alpha=0.8, edgecolor='black')
 
-        # Add value labels on top of bars
-        for bar, rate in zip(bars, success_rates):
-            height = bar.get_height()
-            ax.text(bar.get_x() + bar.get_width() / 2., height,
-                   f'{rate:.1f}%',
-                   ha='center', va='bottom', fontsize=10, fontweight='bold')
+            # Add value labels on top of bars
+            for bar, rate in zip(bars, success_rates):
+                height = bar.get_height()
+                ax.text(bar.get_x() + bar.get_width() / 2., height,
+                       f'{rate:.1f}%',
+                       ha='center', va='bottom', fontsize=10, fontweight='bold')
 
-        ax.set_xlabel('Strategy', fontsize=12)
-        ax.set_ylabel('Success Rate (%)', fontsize=12)
-        ax.set_title('Success Rate Comparison', fontsize=14, fontweight='bold')
-        ax.set_ylim(0, 105)
-        ax.grid(axis='y', linestyle='--', alpha=0.3)
-        ax.legend(['≥80%', '50-80%', '<50%'], loc='upper right')
+            ax.set_xlabel('Strategy', fontsize=12)
+            ax.set_ylabel('Success Rate (%)', fontsize=12)
+            ax.set_title('Success Rate Comparison', fontsize=14, fontweight='bold')
+            ax.set_ylim(0, 105)
+            ax.grid(axis='y', linestyle='--', alpha=0.3)
+            ax.legend(['≥80%', '50-80%', '<50%'], loc='upper right')
 
-        plt.xticks(rotation=45, ha='right')
-        plt.tight_layout()
+            plt.xticks(rotation=45, ha='right')
+            plt.tight_layout()
 
-        return ChartGenerator._fig_to_bytes(fig)
+            return ChartGenerator._fig_to_bytes(fig)
+        except Exception:
+            # Return None on any error, caller will handle error display
+            return None
 
     @staticmethod
     def generate_token_chart(
         metrics: Dict[str, Dict],
         results: Optional[Dict[str, List[ExecutionResult]]] = None,
         model: Optional[str] = None
-    ) -> io.BytesIO:
+    ) -> Optional[io.BytesIO]:
         """
         Generate token consumption line chart with cost estimation on dual Y-axis.
 
@@ -170,8 +174,9 @@ class ChartGenerator:
             model: Optional model name for cost calculation
 
         Returns:
-            BytesIO containing PNG image
+            BytesIO containing PNG image, or None if generation fails
         """
+        try:
         ChartGenerator._setup_chinese_font()
 
         strategies = list(metrics.keys())
@@ -193,17 +198,21 @@ class ChartGenerator:
                     for result in strategy_results:
                         total_prompt = 0
                         total_completion = 0
+                        result_cost = 0.0
 
                         for iteration in result.iterations:
                             total_prompt += iteration.prompt_tokens
                             total_completion += iteration.completion_tokens
+                            # Calculate cost per iteration to preserve input/output pricing
+                            result_cost += ChartGenerator._calculate_cost(
+                                iteration.prompt_tokens,
+                                iteration.completion_tokens,
+                                model
+                            )
 
                         total_tokens = total_prompt + total_completion
                         token_counts.append(total_tokens)
-
-                        # Calculate cost for this result
-                        cost = ChartGenerator._calculate_cost(total_prompt, total_completion, model)
-                        costs.append(cost)
+                        costs.append(result_cost)
 
                     # Calculate 25th and 75th percentiles
                     if token_counts:
@@ -244,19 +253,40 @@ class ChartGenerator:
 
         # Add error bars if percentiles are available
         if percentile_25 and percentile_75:
-            yerr_lower = [max(0, avg - p25) for avg, p25 in zip(avg_tokens, percentile_25)]
-            yerr_upper = [max(0, p75 - avg) for avg, p75 in zip(avg_tokens, percentile_75)]
-            ax1.errorbar(
-                x_pos, avg_tokens,
-                yerr=[yerr_lower, yerr_upper],
-                fmt='none',
-                ecolor='#95a5a6',
-                elinewidth=2,
-                capsize=5,
-                capthick=2,
-                alpha=0.7,
-                label='25th-75th percentile'
-            )
+            # Validate percentiles and recalculate avg from results if inconsistent
+            yerr_lower = []
+            yerr_upper = []
+
+            for i, (avg, p25, p75) in enumerate(zip(avg_tokens, percentile_25, percentile_75)):
+                # Check for data consistency: p25 should be <= avg <= p75
+                # If not, it means metrics and results are from different datasets
+                if p25 > 0 and p75 > 0:
+                    # If percentiles seem valid but don't bracket avg, skip error bars for this strategy
+                    if p25 <= avg <= p75:
+                        yerr_lower.append(avg - p25)
+                        yerr_upper.append(p75 - avg)
+                    else:
+                        # Inconsistent data - skip error bars for this strategy
+                        yerr_lower.append(0)
+                        yerr_upper.append(0)
+                else:
+                    # No percentile data for this strategy
+                    yerr_lower.append(0)
+                    yerr_upper.append(0)
+
+            # Only show error bars if at least one strategy has valid data
+            if any(y > 0 for y in yerr_lower + yerr_upper):
+                ax1.errorbar(
+                    x_pos, avg_tokens,
+                    yerr=[yerr_lower, yerr_upper],
+                    fmt='none',
+                    ecolor='#95a5a6',
+                    elinewidth=2,
+                    capsize=5,
+                    capthick=2,
+                    alpha=0.7,
+                    label='25th-75th percentile'
+                )
 
         ax1.set_xlabel('Strategy', fontsize=12)
         ax1.set_ylabel('Average Tokens', fontsize=12, color=color_tokens)
@@ -293,10 +323,13 @@ class ChartGenerator:
         lines2, labels2 = ax2.get_legend_handles_labels()
         ax1.legend(lines1 + lines2, labels1 + labels2, loc='upper left')
 
-        plt.title('Token Consumption and Cost Comparison', fontsize=14, fontweight='bold')
-        plt.tight_layout()
+            plt.title('Token Consumption and Cost Comparison (estimated)', fontsize=14, fontweight='bold')
+            plt.tight_layout()
 
-        return ChartGenerator._fig_to_bytes(fig)
+            return ChartGenerator._fig_to_bytes(fig)
+        except Exception:
+            # Return None on any error, caller will handle error display
+            return None
 
     @staticmethod
     def generate_iteration_distribution(results: Dict[str, List[ExecutionResult]]) -> Optional[io.BytesIO]:
@@ -307,89 +340,93 @@ class ChartGenerator:
             results: Dictionary mapping strategy name to results list
 
         Returns:
-            BytesIO containing PNG image, or None if all strategies are single-round
+            BytesIO containing PNG image, or None if all strategies are single-round or generation fails
         """
-        ChartGenerator._setup_chinese_font()
+        try:
+            ChartGenerator._setup_chinese_font()
 
-        # Collect iteration counts
-        iteration_data = {}
-        has_multi_round = False
+            # Collect iteration counts
+            iteration_data = {}
+            has_multi_round = False
 
-        for strategy_name, strategy_results in results.items():
-            iterations = [len(r.iterations) for r in strategy_results]
-            if any(it > 1 for it in iterations):
-                has_multi_round = True
-                iteration_data[strategy_name] = iterations
+            for strategy_name, strategy_results in results.items():
+                iterations = [len(r.iterations) for r in strategy_results]
+                if any(it > 1 for it in iterations):
+                    has_multi_round = True
+                    iteration_data[strategy_name] = iterations
 
-        # Return None if no multi-round strategies
-        if not has_multi_round:
+            # Return None if no multi-round strategies
+            if not has_multi_round:
+                return None
+
+            fig, ax = plt.subplots(figsize=(12, 6))
+
+            # Count occurrences of each iteration number for each strategy
+            max_iterations = max(max(iters) for iters in iteration_data.values())
+            iteration_categories = list(range(1, max_iterations + 1))
+
+            # Prepare data for grouped bar chart
+            strategy_names = list(iteration_data.keys())
+            num_strategies = len(strategy_names)
+
+            # Count frequency for each iteration number per strategy
+            frequency_data = {}
+            for strategy_name in strategy_names:
+                iterations = iteration_data[strategy_name]
+                frequency_data[strategy_name] = []
+                for iter_num in iteration_categories:
+                    count = iterations.count(iter_num)
+                    frequency_data[strategy_name].append(count)
+
+            # Set up bar positions
+            bar_width = 0.8 / num_strategies  # Total width of 0.8 divided by number of strategies
+            x_positions = np.arange(len(iteration_categories))
+
+            # Color palette
+            colors = ['#3498db', '#e74c3c', '#2ecc71', '#f39c12', '#9b59b6', '#1abc9c']
+
+            # Plot grouped bars
+            for i, strategy_name in enumerate(strategy_names):
+                offset = (i - num_strategies / 2 + 0.5) * bar_width
+                bars = ax.bar(
+                    x_positions + offset,
+                    frequency_data[strategy_name],
+                    bar_width,
+                    label=strategy_name,
+                    color=colors[i % len(colors)],
+                    alpha=0.8,
+                    edgecolor='black',
+                    linewidth=0.5
+                )
+
+                # Add value labels on bars (only if count > 0)
+                for j, (bar, count) in enumerate(zip(bars, frequency_data[strategy_name])):
+                    if count > 0:
+                        height = bar.get_height()
+                        ax.text(
+                            bar.get_x() + bar.get_width() / 2.,
+                            height,
+                            f'{int(count)}',
+                            ha='center',
+                            va='bottom',
+                            fontsize=8,
+                            fontweight='bold'
+                        )
+
+            ax.set_xlabel('Iteration Count', fontsize=12)
+            ax.set_ylabel('Number of Problems', fontsize=12)
+            ax.set_title('Iteration Count Distribution', fontsize=14, fontweight='bold')
+            ax.set_xticks(x_positions)
+            ax.set_xticklabels(iteration_categories)
+            ax.legend(loc='upper right')
+            ax.grid(axis='y', linestyle='--', alpha=0.3)
+
+            # Set y-axis to start at 0
+            ax.set_ylim(bottom=0)
+
+            plt.tight_layout()
+
+            return ChartGenerator._fig_to_bytes(fig)
+        except Exception:
+            # Return None on any error, caller will handle error display
             return None
-
-        fig, ax = plt.subplots(figsize=(12, 6))
-
-        # Count occurrences of each iteration number for each strategy
-        max_iterations = max(max(iters) for iters in iteration_data.values())
-        iteration_categories = list(range(1, max_iterations + 1))
-
-        # Prepare data for grouped bar chart
-        strategy_names = list(iteration_data.keys())
-        num_strategies = len(strategy_names)
-
-        # Count frequency for each iteration number per strategy
-        frequency_data = {}
-        for strategy_name in strategy_names:
-            iterations = iteration_data[strategy_name]
-            frequency_data[strategy_name] = []
-            for iter_num in iteration_categories:
-                count = iterations.count(iter_num)
-                frequency_data[strategy_name].append(count)
-
-        # Set up bar positions
-        bar_width = 0.8 / num_strategies  # Total width of 0.8 divided by number of strategies
-        x_positions = np.arange(len(iteration_categories))
-
-        # Color palette
-        colors = ['#3498db', '#e74c3c', '#2ecc71', '#f39c12', '#9b59b6', '#1abc9c']
-
-        # Plot grouped bars
-        for i, strategy_name in enumerate(strategy_names):
-            offset = (i - num_strategies / 2 + 0.5) * bar_width
-            bars = ax.bar(
-                x_positions + offset,
-                frequency_data[strategy_name],
-                bar_width,
-                label=strategy_name,
-                color=colors[i % len(colors)],
-                alpha=0.8,
-                edgecolor='black',
-                linewidth=0.5
-            )
-
-            # Add value labels on bars (only if count > 0)
-            for j, (bar, count) in enumerate(zip(bars, frequency_data[strategy_name])):
-                if count > 0:
-                    height = bar.get_height()
-                    ax.text(
-                        bar.get_x() + bar.get_width() / 2.,
-                        height,
-                        f'{int(count)}',
-                        ha='center',
-                        va='bottom',
-                        fontsize=8,
-                        fontweight='bold'
-                    )
-
-        ax.set_xlabel('Iteration Count', fontsize=12)
-        ax.set_ylabel('Number of Problems', fontsize=12)
-        ax.set_title('Iteration Count Distribution', fontsize=14, fontweight='bold')
-        ax.set_xticks(x_positions)
-        ax.set_xticklabels(iteration_categories)
-        ax.legend(loc='upper right')
-        ax.grid(axis='y', linestyle='--', alpha=0.3)
-
-        # Set y-axis to start at 0
-        ax.set_ylim(bottom=0)
-
-        plt.tight_layout()
-
-        return ChartGenerator._fig_to_bytes(fig)
