@@ -230,3 +230,125 @@ def test_generate_iteration_distribution_empty_results():
 
     # Should return None for empty results
     assert result is None
+
+
+def test_generate_token_chart_with_percentiles():
+    """Test token chart with percentile error bands."""
+    metrics = {
+        "strategy_a": {"avg_tokens_per_problem": 500.0},
+        "strategy_b": {"avg_tokens_per_problem": 800.0},
+    }
+
+    # Create sample results with varying token counts
+    results = {
+        "strategy_a": [
+            ExecutionResult(
+                problem_id=f"prob_{i}",
+                strategy="strategy_a",
+                generated_code="def solution(): pass",
+                status="success",
+                iterations=[
+                    IterationResult(
+                        iteration=1,
+                        prompt_tokens=100 + i * 10,
+                        completion_tokens=50,
+                        code_extracted="def solution(): pass"
+                    )
+                ],
+                test_results=[],
+                total_tokens=400 + i * 20,
+                execution_time_seconds=0.5
+            )
+            for i in range(10)
+        ],
+        "strategy_b": [
+            ExecutionResult(
+                problem_id=f"prob_{i}",
+                strategy="strategy_b",
+                generated_code="def solution(): pass",
+                status="success",
+                iterations=[
+                    IterationResult(
+                        iteration=1,
+                        prompt_tokens=150 + i * 15,
+                        completion_tokens=60,
+                        code_extracted="def solution(): pass"
+                    )
+                ],
+                test_results=[],
+                total_tokens=700 + i * 30,
+                execution_time_seconds=0.6
+            )
+            for i in range(10)
+        ]
+    }
+
+    result = ChartGenerator.generate_token_chart(
+        metrics,
+        show_percentiles=True,
+        results=results
+    )
+
+    assert result is not None
+    assert isinstance(result, io.BytesIO)
+    assert len(result.read()) > 0
+
+
+def test_generate_token_chart_with_percentiles_insufficient_samples():
+    """Test token chart with percentiles when sample size < 5."""
+    metrics = {
+        "strategy_a": {"avg_tokens_per_problem": 500.0},
+    }
+
+    # Only 3 samples - insufficient for percentiles
+    results = {
+        "strategy_a": [
+            ExecutionResult(
+                problem_id=f"prob_{i}",
+                strategy="strategy_a",
+                generated_code="def solution(): pass",
+                status="success",
+                iterations=[
+                    IterationResult(
+                        iteration=1,
+                        prompt_tokens=100,
+                        completion_tokens=50,
+                        code_extracted="def solution(): pass"
+                    )
+                ],
+                test_results=[],
+                total_tokens=400 + i * 20,
+                execution_time_seconds=0.5
+            )
+            for i in range(3)
+        ]
+    }
+
+    # Should still generate chart, just no error bands
+    result = ChartGenerator.generate_token_chart(
+        metrics,
+        show_percentiles=True,
+        results=results
+    )
+
+    assert result is not None
+    assert isinstance(result, io.BytesIO)
+    assert len(result.read()) > 0
+
+
+def test_generate_token_chart_with_percentiles_no_results():
+    """Test token chart with percentiles=True but no results provided."""
+    metrics = {
+        "strategy_a": {"avg_tokens_per_problem": 500.0},
+    }
+
+    # Should still generate chart without error bands
+    result = ChartGenerator.generate_token_chart(
+        metrics,
+        show_percentiles=True,
+        results=None
+    )
+
+    assert result is not None
+    assert isinstance(result, io.BytesIO)
+    assert len(result.read()) > 0

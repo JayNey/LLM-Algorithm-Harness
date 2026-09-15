@@ -351,7 +351,11 @@ class HTMLGenerator:
 
             # Token chart
             try:
-                token_buf = ChartGenerator.generate_token_chart(metrics)
+                token_buf = ChartGenerator.generate_token_chart(
+                    metrics,
+                    show_percentiles=True,
+                    results=results
+                )
                 token_b64 = base64.b64encode(token_buf.read()).decode('utf-8')
                 html_parts.append("<div class='chart-container'>")
                 html_parts.append("<h3>Token Consumption</h3>")

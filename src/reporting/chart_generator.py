@@ -6,6 +6,7 @@ import io
 import base64
 from typing import Dict, List, Optional
 
+import numpy as np
 import matplotlib
 matplotlib.use('Agg')  # Non-interactive backend
 import matplotlib.pyplot as plt
@@ -100,12 +101,20 @@ class ChartGenerator:
         return ChartGenerator._fig_to_bytes(fig)
 
     @staticmethod
-    def generate_token_chart(metrics: Dict[str, Dict]) -> io.BytesIO:
+    def generate_token_chart(
+        metrics: Dict[str, Dict],
+        show_percentiles: bool = False,
+        token_cost_per_1k: float = 0.01,
+        results: Optional[Dict[str, List[ExecutionResult]]] = None
+    ) -> io.BytesIO:
         """
         Generate token consumption line chart.
 
         Args:
             metrics: Dictionary mapping strategy name to metrics dict
+            show_percentiles: Whether to show 25%/75% percentile error bands (default: False)
+            token_cost_per_1k: Cost per 1K tokens in USD for dual-axis display (default: 0.01)
+            results: Optional dictionary mapping strategy name to results list (required for percentiles)
 
         Returns:
             BytesIO containing PNG image
@@ -119,7 +128,34 @@ class ChartGenerator:
 
         # Line plot with markers
         x_pos = range(len(strategies))
-        ax.plot(x_pos, avg_tokens, marker='o', markersize=8, linewidth=2, color='#3498db')
+        line_color = '#3498db'
+        ax.plot(x_pos, avg_tokens, marker='o', markersize=8, linewidth=2, color=line_color, label='Average')
+
+        # Add percentile error bands if requested
+        if show_percentiles and results:
+            for i, strategy in enumerate(strategies):
+                strategy_results = results.get(strategy, [])
+                if len(strategy_results) >= 5:  # Only show percentiles if sample size >= 5
+                    token_counts = [r.total_tokens for r in strategy_results]
+                    p25 = np.percentile(token_counts, 25)
+                    p75 = np.percentile(token_counts, 75)
+
+                    # Create error band for this point
+                    if i > 0:
+                        # Connect to previous point
+                        prev_strategy = strategies[i - 1]
+                        prev_results = results.get(prev_strategy, [])
+                        if len(prev_results) >= 5:
+                            prev_tokens = [r.total_tokens for r in prev_results]
+                            prev_p25 = np.percentile(prev_tokens, 25)
+                            prev_p75 = np.percentile(prev_tokens, 75)
+                            ax.fill_between([i-1, i], [prev_p25, p25], [prev_p75, p75],
+                                          color=line_color, alpha=0.2)
+
+                    if i == len(strategies) - 1 or len(results.get(strategies[i+1] if i+1 < len(strategies) else strategy, [])) < 5:
+                        # Last point or next point has insufficient data - show as single point band
+                        ax.fill_between([i-0.1, i+0.1], [p25, p25], [p75, p75],
+                                      color=line_color, alpha=0.2)
 
         # Add value labels
         for i, (x, y) in enumerate(zip(x_pos, avg_tokens)):
@@ -131,6 +167,10 @@ class ChartGenerator:
         ax.set_xticks(x_pos)
         ax.set_xticklabels(strategies, rotation=45, ha='right')
         ax.grid(axis='y', linestyle='--', alpha=0.3)
+
+        # Add legend if percentiles are shown
+        if show_percentiles and results:
+            ax.legend(loc='upper left')
 
         plt.tight_layout()
 

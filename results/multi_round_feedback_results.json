@@ -1,0 +1,1461 @@
+[
+  {
+    "problem_id": "two-sum",
+    "strategy": "multi_round_feedback",
+    "generated_code": "def solution(nums, target):\n    seen = {}\n    for i, num in enumerate(nums):\n        complement = target - num\n        if complement in seen:\n            return [seen[complement], i]\n        seen[num] = i\n    return []",
+    "status": "success",
+    "iterations": [
+      {
+        "iteration": 1,
+        "prompt_tokens": 271,
+        "completion_tokens": 188,
+        "code_extracted": "def solution(nums, target):\n    seen = {}\n    for i, num in enumerate(nums):\n        complement = target - num\n        if complement in seen:\n            return [seen[complement], i]\n        seen[num] = i\n    return []",
+        "sandbox_result": {
+          "status": "success",
+          "test_results": [
+            {
+              "test_case_index": 0,
+              "passed": true,
+              "actual_output": [
+                0,
+                1
+              ],
+              "expected_output": [
+                0,
+                1
+              ],
+              "error_message": null,
+              "execution_time": 0.05438709259033203,
+              "status": "passed"
+            },
+            {
+              "test_case_index": 1,
+              "passed": true,
+              "actual_output": [
+                1,
+                2
+              ],
+              "expected_output": [
+                1,
+                2
+              ],
+              "error_message": null,
+              "execution_time": 0.024693727493286133,
+              "status": "passed"
+            },
+            {
+              "test_case_index": 2,
+              "passed": true,
+              "actual_output": [
+                0,
+                1
+              ],
+              "expected_output": [
+                0,
+                1
+              ],
+              "error_message": null,
+              "execution_time": 0.020947933197021484,
+              "status": "passed"
+            }
+          ],
+          "execution_time": 0.1001889705657959,
+          "all_passed": true,
+          "error_message": null
+        }
+      }
+    ],
+    "final_result": {
+      "status": "success",
+      "test_results": [
+        {
+          "test_case_index": 0,
+          "passed": true,
+          "actual_output": [
+            0,
+            1
+          ],
+          "expected_output": [
+            0,
+            1
+          ],
+          "error_message": null,
+          "execution_time": 0.05438709259033203,
+          "status": "passed"
+        },
+        {
+          "test_case_index": 1,
+          "passed": true,
+          "actual_output": [
+            1,
+            2
+          ],
+          "expected_output": [
+            1,
+            2
+          ],
+          "error_message": null,
+          "execution_time": 0.024693727493286133,
+          "status": "passed"
+        },
+        {
+          "test_case_index": 2,
+          "passed": true,
+          "actual_output": [
+            0,
+            1
+          ],
+          "expected_output": [
+            0,
+            1
+          ],
+          "error_message": null,
+          "execution_time": 0.020947933197021484,
+          "status": "passed"
+        }
+      ],
+      "execution_time": 0.1001889705657959,
+      "all_passed": true,
+      "error_message": null
+    },
+    "test_results": [
+      {
+        "test_case_index": 0,
+        "passed": true,
+        "actual_output": [
+          0,
+          1
+        ],
+        "expected_output": [
+          0,
+          1
+        ],
+        "error_message": null,
+        "execution_time": 0.05438709259033203,
+        "status": "passed"
+      },
+      {
+        "test_case_index": 1,
+        "passed": true,
+        "actual_output": [
+          1,
+          2
+        ],
+        "expected_output": [
+          1,
+          2
+        ],
+        "error_message": null,
+        "execution_time": 0.024693727493286133,
+        "status": "passed"
+      },
+      {
+        "test_case_index": 2,
+        "passed": true,
+        "actual_output": [
+          0,
+          1
+        ],
+        "expected_output": [
+          0,
+          1
+        ],
+        "error_message": null,
+        "execution_time": 0.020947933197021484,
+        "status": "passed"
+      }
+    ],
+    "error_message": null,
+    "total_tokens": 459,
+    "execution_time_seconds": 0.0,
+    "timestamp": "2026-09-15T10:31:43.051758",
+    "llm_traces": []
+  },
+  {
+    "problem_id": "reverse-string",
+    "strategy": "multi_round_feedback",
+    "generated_code": "def solution(s):\n    left, right = 0, len(s) - 1\n    while left < right:\n        s[left], s[right] = s[right], s[left]\n        left += 1\n        right -= 1\n    return s",
+    "status": "success",
+    "iterations": [
+      {
+        "iteration": 1,
+        "prompt_tokens": 210,
+        "completion_tokens": 298,
+        "code_extracted": "def solution(s):\n    left, right = 0, len(s) - 1\n    while left < right:\n        s[left], s[right] = s[right], s[left]\n        left += 1\n        right -= 1\n    return s",
+        "sandbox_result": {
+          "status": "success",
+          "test_results": [
+            {
+              "test_case_index": 0,
+              "passed": true,
+              "actual_output": [
+                "o",
+                "l",
+                "l",
+                "e",
+                "h"
+              ],
+              "expected_output": [
+                "o",
+                "l",
+                "l",
+                "e",
+                "h"
+              ],
+              "error_message": null,
+              "execution_time": 0.04988598823547363,
+              "status": "passed"
+            },
+            {
+              "test_case_index": 1,
+              "passed": true,
+              "actual_output": [
+                "h",
+                "a",
+                "n",
+                "n",
+                "a",
+                "H"
+              ],
+              "expected_output": [
+                "h",
+                "a",
+                "n",
+                "n",
+                "a",
+                "H"
+              ],
+              "error_message": null,
+              "execution_time": 0.026693105697631836,
+              "status": "passed"
+            }
+          ],
+          "execution_time": 0.0766761302947998,
+          "all_passed": true,
+          "error_message": null
+        }
+      }
+    ],
+    "final_result": {
+      "status": "success",
+      "test_results": [
+        {
+          "test_case_index": 0,
+          "passed": true,
+          "actual_output": [
+            "o",
+            "l",
+            "l",
+            "e",
+            "h"
+          ],
+          "expected_output": [
+            "o",
+            "l",
+            "l",
+            "e",
+            "h"
+          ],
+          "error_message": null,
+          "execution_time": 0.04988598823547363,
+          "status": "passed"
+        },
+        {
+          "test_case_index": 1,
+          "passed": true,
+          "actual_output": [
+            "h",
+            "a",
+            "n",
+            "n",
+            "a",
+            "H"
+          ],
+          "expected_output": [
+            "h",
+            "a",
+            "n",
+            "n",
+            "a",
+            "H"
+          ],
+          "error_message": null,
+          "execution_time": 0.026693105697631836,
+          "status": "passed"
+        }
+      ],
+      "execution_time": 0.0766761302947998,
+      "all_passed": true,
+      "error_message": null
+    },
+    "test_results": [
+      {
+        "test_case_index": 0,
+        "passed": true,
+        "actual_output": [
+          "o",
+          "l",
+          "l",
+          "e",
+          "h"
+        ],
+        "expected_output": [
+          "o",
+          "l",
+          "l",
+          "e",
+          "h"
+        ],
+        "error_message": null,
+        "execution_time": 0.04988598823547363,
+        "status": "passed"
+      },
+      {
+        "test_case_index": 1,
+        "passed": true,
+        "actual_output": [
+          "h",
+          "a",
+          "n",
+          "n",
+          "a",
+          "H"
+        ],
+        "expected_output": [
+          "h",
+          "a",
+          "n",
+          "n",
+          "a",
+          "H"
+        ],
+        "error_message": null,
+        "execution_time": 0.026693105697631836,
+        "status": "passed"
+      }
+    ],
+    "error_message": null,
+    "total_tokens": 508,
+    "execution_time_seconds": 0.0,
+    "timestamp": "2026-09-15T10:31:45.895959",
+    "llm_traces": []
+  },
+  {
+    "problem_id": "fibonacci",
+    "strategy": "multi_round_feedback",
+    "generated_code": "def solution(n):\n    if n <= 1:\n        return n\n    \n    a, b = 0, 1\n    for _ in range(2, n + 1):\n        a, b = b, a + b\n    \n    return b",
+    "status": "success",
+    "iterations": [
+      {
+        "iteration": 1,
+        "prompt_tokens": 191,
+        "completion_tokens": 295,
+        "code_extracted": "def solution(n):\n    if n <= 1:\n        return n\n    \n    a, b = 0, 1\n    for _ in range(2, n + 1):\n        a, b = b, a + b\n    \n    return b",
+        "sandbox_result": {
+          "status": "success",
+          "test_results": [
+            {
+              "test_case_index": 0,
+              "passed": true,
+              "actual_output": 0,
+              "expected_output": 0,
+              "error_message": null,
+              "execution_time": 0.04542684555053711,
+              "status": "passed"
+            },
+            {
+              "test_case_index": 1,
+              "passed": true,
+              "actual_output": 1,
+              "expected_output": 1,
+              "error_message": null,
+              "execution_time": 0.028322696685791016,
+              "status": "passed"
+            },
+            {
+              "test_case_index": 2,
+              "passed": true,
+              "actual_output": 1,
+              "expected_output": 1,
+              "error_message": null,
+              "execution_time": 0.022862911224365234,
+              "status": "passed"
+            },
+            {
+              "test_case_index": 3,
+              "passed": true,
+              "actual_output": 5,
+              "expected_output": 5,
+              "error_message": null,
+              "execution_time": 0.02186298370361328,
+              "status": "passed"
+            },
+            {
+              "test_case_index": 4,
+              "passed": true,
+              "actual_output": 55,
+              "expected_output": 55,
+              "error_message": null,
+              "execution_time": 0.020622968673706055,
+              "status": "passed"
+            }
+          ],
+          "execution_time": 0.13930702209472656,
+          "all_passed": true,
+          "error_message": null
+        }
+      }
+    ],
+    "final_result": {
+      "status": "success",
+      "test_results": [
+        {
+          "test_case_index": 0,
+          "passed": true,
+          "actual_output": 0,
+          "expected_output": 0,
+          "error_message": null,
+          "execution_time": 0.04542684555053711,
+          "status": "passed"
+        },
+        {
+          "test_case_index": 1,
+          "passed": true,
+          "actual_output": 1,
+          "expected_output": 1,
+          "error_message": null,
+          "execution_time": 0.028322696685791016,
+          "status": "passed"
+        },
+        {
+          "test_case_index": 2,
+          "passed": true,
+          "actual_output": 1,
+          "expected_output": 1,
+          "error_message": null,
+          "execution_time": 0.022862911224365234,
+          "status": "passed"
+        },
+        {
+          "test_case_index": 3,
+          "passed": true,
+          "actual_output": 5,
+          "expected_output": 5,
+          "error_message": null,
+          "execution_time": 0.02186298370361328,
+          "status": "passed"
+        },
+        {
+          "test_case_index": 4,
+          "passed": true,
+          "actual_output": 55,
+          "expected_output": 55,
+          "error_message": null,
+          "execution_time": 0.020622968673706055,
+          "status": "passed"
+        }
+      ],
+      "execution_time": 0.13930702209472656,
+      "all_passed": true,
+      "error_message": null
+    },
+    "test_results": [
+      {
+        "test_case_index": 0,
+        "passed": true,
+        "actual_output": 0,
+        "expected_output": 0,
+        "error_message": null,
+        "execution_time": 0.04542684555053711,
+        "status": "passed"
+      },
+      {
+        "test_case_index": 1,
+        "passed": true,
+        "actual_output": 1,
+        "expected_output": 1,
+        "error_message": null,
+        "execution_time": 0.028322696685791016,
+        "status": "passed"
+      },
+      {
+        "test_case_index": 2,
+        "passed": true,
+        "actual_output": 1,
+        "expected_output": 1,
+        "error_message": null,
+        "execution_time": 0.022862911224365234,
+        "status": "passed"
+      },
+      {
+        "test_case_index": 3,
+        "passed": true,
+        "actual_output": 5,
+        "expected_output": 5,
+        "error_message": null,
+        "execution_time": 0.02186298370361328,
+        "status": "passed"
+      },
+      {
+        "test_case_index": 4,
+        "passed": true,
+        "actual_output": 55,
+        "expected_output": 55,
+        "error_message": null,
+        "execution_time": 0.020622968673706055,
+        "status": "passed"
+      }
+    ],
+    "error_message": null,
+    "total_tokens": 486,
+    "execution_time_seconds": 0.0,
+    "timestamp": "2026-09-15T10:31:48.270021",
+    "llm_traces": []
+  },
+  {
+    "problem_id": "max-subarray",
+    "strategy": "multi_round_feedback",
+    "generated_code": "def solution(nums):\n    max_sum = nums[0]\n    current_sum = nums[0]\n\n    for num in nums[1:]:\n        current_sum = max(num, current_sum + num)\n        max_sum = max(max_sum, current_sum)\n\n    return max_sum",
+    "status": "success",
+    "iterations": [
+      {
+        "iteration": 1,
+        "prompt_tokens": 225,
+        "completion_tokens": 291,
+        "code_extracted": "def solution(nums):\n    max_sum = nums[0]\n    current_sum = nums[0]\n\n    for num in nums[1:]:\n        current_sum = max(num, current_sum + num)\n        max_sum = max(max_sum, current_sum)\n\n    return max_sum",
+        "sandbox_result": {
+          "status": "success",
+          "test_results": [
+            {
+              "test_case_index": 0,
+              "passed": true,
+              "actual_output": 6,
+              "expected_output": 6,
+              "error_message": null,
+              "execution_time": 0.05092000961303711,
+              "status": "passed"
+            },
+            {
+              "test_case_index": 1,
+              "passed": true,
+              "actual_output": 1,
+              "expected_output": 1,
+              "error_message": null,
+              "execution_time": 0.02378106117248535,
+              "status": "passed"
+            },
+            {
+              "test_case_index": 2,
+              "passed": true,
+              "actual_output": 23,
+              "expected_output": 23,
+              "error_message": null,
+              "execution_time": 0.020460128784179688,
+              "status": "passed"
+            }
+          ],
+          "execution_time": 0.09526491165161133,
+          "all_passed": true,
+          "error_message": null
+        }
+      }
+    ],
+    "final_result": {
+      "status": "success",
+      "test_results": [
+        {
+          "test_case_index": 0,
+          "passed": true,
+          "actual_output": 6,
+          "expected_output": 6,
+          "error_message": null,
+          "execution_time": 0.05092000961303711,
+          "status": "passed"
+        },
+        {
+          "test_case_index": 1,
+          "passed": true,
+          "actual_output": 1,
+          "expected_output": 1,
+          "error_message": null,
+          "execution_time": 0.02378106117248535,
+          "status": "passed"
+        },
+        {
+          "test_case_index": 2,
+          "passed": true,
+          "actual_output": 23,
+          "expected_output": 23,
+          "error_message": null,
+          "execution_time": 0.020460128784179688,
+          "status": "passed"
+        }
+      ],
+      "execution_time": 0.09526491165161133,
+      "all_passed": true,
+      "error_message": null
+    },
+    "test_results": [
+      {
+        "test_case_index": 0,
+        "passed": true,
+        "actual_output": 6,
+        "expected_output": 6,
+        "error_message": null,
+        "execution_time": 0.05092000961303711,
+        "status": "passed"
+      },
+      {
+        "test_case_index": 1,
+        "passed": true,
+        "actual_output": 1,
+        "expected_output": 1,
+        "error_message": null,
+        "execution_time": 0.02378106117248535,
+        "status": "passed"
+      },
+      {
+        "test_case_index": 2,
+        "passed": true,
+        "actual_output": 23,
+        "expected_output": 23,
+        "error_message": null,
+        "execution_time": 0.020460128784179688,
+        "status": "passed"
+      }
+    ],
+    "error_message": null,
+    "total_tokens": 516,
+    "execution_time_seconds": 0.0,
+    "timestamp": "2026-09-15T10:31:50.638451",
+    "llm_traces": []
+  },
+  {
+    "problem_id": "valid-parentheses",
+    "strategy": "multi_round_feedback",
+    "generated_code": "def solution(s: str) -> bool:\n    stack = []\n    pairs = {')': '(', '}': '{', ']': '['}\n\n    for char in s:\n        if char in pairs.values():\n            stack.append(char)\n        else:\n            if not stack or stack[-1] != pairs[char]:\n                return False\n            stack.pop()\n\n    return len(stack) == 0",
+    "status": "success",
+    "iterations": [
+      {
+        "iteration": 1,
+        "prompt_tokens": 215,
+        "completion_tokens": 270,
+        "code_extracted": "def solution(s: str) -> bool:\n    stack = []\n    pairs = {')': '(', '}': '{', ']': '['}\n\n    for char in s:\n        if char in pairs.values():\n            stack.append(char)\n        else:\n            if not stack or stack[-1] != pairs[char]:\n                return False\n            stack.pop()\n\n    return len(stack) == 0",
+        "sandbox_result": {
+          "status": "success",
+          "test_results": [
+            {
+              "test_case_index": 0,
+              "passed": true,
+              "actual_output": true,
+              "expected_output": true,
+              "error_message": null,
+              "execution_time": 0.04442191123962402,
+              "status": "passed"
+            },
+            {
+              "test_case_index": 1,
+              "passed": true,
+              "actual_output": true,
+              "expected_output": true,
+              "error_message": null,
+              "execution_time": 0.028130054473876953,
+              "status": "passed"
+            },
+            {
+              "test_case_index": 2,
+              "passed": true,
+              "actual_output": false,
+              "expected_output": false,
+              "error_message": null,
+              "execution_time": 0.02277398109436035,
+              "status": "passed"
+            },
+            {
+              "test_case_index": 3,
+              "passed": true,
+              "actual_output": false,
+              "expected_output": false,
+              "error_message": null,
+              "execution_time": 0.021374225616455078,
+              "status": "passed"
+            },
+            {
+              "test_case_index": 4,
+              "passed": true,
+              "actual_output": true,
+              "expected_output": true,
+              "error_message": null,
+              "execution_time": 0.020760774612426758,
+              "status": "passed"
+            }
+          ],
+          "execution_time": 0.1376481056213379,
+          "all_passed": true,
+          "error_message": null
+        }
+      }
+    ],
+    "final_result": {
+      "status": "success",
+      "test_results": [
+        {
+          "test_case_index": 0,
+          "passed": true,
+          "actual_output": true,
+          "expected_output": true,
+          "error_message": null,
+          "execution_time": 0.04442191123962402,
+          "status": "passed"
+        },
+        {
+          "test_case_index": 1,
+          "passed": true,
+          "actual_output": true,
+          "expected_output": true,
+          "error_message": null,
+          "execution_time": 0.028130054473876953,
+          "status": "passed"
+        },
+        {
+          "test_case_index": 2,
+          "passed": true,
+          "actual_output": false,
+          "expected_output": false,
+          "error_message": null,
+          "execution_time": 0.02277398109436035,
+          "status": "passed"
+        },
+        {
+          "test_case_index": 3,
+          "passed": true,
+          "actual_output": false,
+          "expected_output": false,
+          "error_message": null,
+          "execution_time": 0.021374225616455078,
+          "status": "passed"
+        },
+        {
+          "test_case_index": 4,
+          "passed": true,
+          "actual_output": true,
+          "expected_output": true,
+          "error_message": null,
+          "execution_time": 0.020760774612426758,
+          "status": "passed"
+        }
+      ],
+      "execution_time": 0.1376481056213379,
+      "all_passed": true,
+      "error_message": null
+    },
+    "test_results": [
+      {
+        "test_case_index": 0,
+        "passed": true,
+        "actual_output": true,
+        "expected_output": true,
+        "error_message": null,
+        "execution_time": 0.04442191123962402,
+        "status": "passed"
+      },
+      {
+        "test_case_index": 1,
+        "passed": true,
+        "actual_output": true,
+        "expected_output": true,
+        "error_message": null,
+        "execution_time": 0.028130054473876953,
+        "status": "passed"
+      },
+      {
+        "test_case_index": 2,
+        "passed": true,
+        "actual_output": false,
+        "expected_output": false,
+        "error_message": null,
+        "execution_time": 0.02277398109436035,
+        "status": "passed"
+      },
+      {
+        "test_case_index": 3,
+        "passed": true,
+        "actual_output": false,
+        "expected_output": false,
+        "error_message": null,
+        "execution_time": 0.021374225616455078,
+        "status": "passed"
+      },
+      {
+        "test_case_index": 4,
+        "passed": true,
+        "actual_output": true,
+        "expected_output": true,
+        "error_message": null,
+        "execution_time": 0.020760774612426758,
+        "status": "passed"
+      }
+    ],
+    "error_message": null,
+    "total_tokens": 485,
+    "execution_time_seconds": 0.0,
+    "timestamp": "2026-09-15T10:31:52.768752",
+    "llm_traces": []
+  },
+  {
+    "problem_id": "merge-sorted-arrays",
+    "strategy": "multi_round_feedback",
+    "generated_code": "def solution(nums1, nums2):\n    i = 0\n    j = 0\n    result = []\n\n    while i < len(nums1) and j < len(nums2):\n        if nums1[i] <= nums2[j]:\n            result.append(nums1[i])\n            i += 1\n        else:\n            result.append(nums2[j])\n            j += 1\n\n    while i < len(nums1):\n        result.append(nums1[i])\n        i += 1\n\n    while j < len(nums2):\n        result.append(nums2[j])\n        j += 1\n\n    return result",
+    "status": "success",
+    "iterations": [
+      {
+        "iteration": 1,
+        "prompt_tokens": 262,
+        "completion_tokens": 260,
+        "code_extracted": "def solution(nums1, nums2):\n    i = 0\n    j = 0\n    result = []\n\n    while i < len(nums1) and j < len(nums2):\n        if nums1[i] <= nums2[j]:\n            result.append(nums1[i])\n            i += 1\n        else:\n            result.append(nums2[j])\n            j += 1\n\n    while i < len(nums1):\n        result.append(nums1[i])\n        i += 1\n\n    while j < len(nums2):\n        result.append(nums2[j])\n        j += 1\n\n    return result",
+        "sandbox_result": {
+          "status": "success",
+          "test_results": [
+            {
+              "test_case_index": 0,
+              "passed": true,
+              "actual_output": [
+                1,
+                2,
+                2,
+                3,
+                5,
+                6
+              ],
+              "expected_output": [
+                1,
+                2,
+                2,
+                3,
+                5,
+                6
+              ],
+              "error_message": null,
+              "execution_time": 0.04918217658996582,
+              "status": "passed"
+            },
+            {
+              "test_case_index": 1,
+              "passed": true,
+              "actual_output": [
+                1
+              ],
+              "expected_output": [
+                1
+              ],
+              "error_message": null,
+              "execution_time": 0.02533888816833496,
+              "status": "passed"
+            },
+            {
+              "test_case_index": 2,
+              "passed": true,
+              "actual_output": [
+                1
+              ],
+              "expected_output": [
+                1
+              ],
+              "error_message": null,
+              "execution_time": 0.021557092666625977,
+              "status": "passed"
+            }
+          ],
+          "execution_time": 0.09622383117675781,
+          "all_passed": true,
+          "error_message": null
+        }
+      }
+    ],
+    "final_result": {
+      "status": "success",
+      "test_results": [
+        {
+          "test_case_index": 0,
+          "passed": true,
+          "actual_output": [
+            1,
+            2,
+            2,
+            3,
+            5,
+            6
+          ],
+          "expected_output": [
+            1,
+            2,
+            2,
+            3,
+            5,
+            6
+          ],
+          "error_message": null,
+          "execution_time": 0.04918217658996582,
+          "status": "passed"
+        },
+        {
+          "test_case_index": 1,
+          "passed": true,
+          "actual_output": [
+            1
+          ],
+          "expected_output": [
+            1
+          ],
+          "error_message": null,
+          "execution_time": 0.02533888816833496,
+          "status": "passed"
+        },
+        {
+          "test_case_index": 2,
+          "passed": true,
+          "actual_output": [
+            1
+          ],
+          "expected_output": [
+            1
+          ],
+          "error_message": null,
+          "execution_time": 0.021557092666625977,
+          "status": "passed"
+        }
+      ],
+      "execution_time": 0.09622383117675781,
+      "all_passed": true,
+      "error_message": null
+    },
+    "test_results": [
+      {
+        "test_case_index": 0,
+        "passed": true,
+        "actual_output": [
+          1,
+          2,
+          2,
+          3,
+          5,
+          6
+        ],
+        "expected_output": [
+          1,
+          2,
+          2,
+          3,
+          5,
+          6
+        ],
+        "error_message": null,
+        "execution_time": 0.04918217658996582,
+        "status": "passed"
+      },
+      {
+        "test_case_index": 1,
+        "passed": true,
+        "actual_output": [
+          1
+        ],
+        "expected_output": [
+          1
+        ],
+        "error_message": null,
+        "execution_time": 0.02533888816833496,
+        "status": "passed"
+      },
+      {
+        "test_case_index": 2,
+        "passed": true,
+        "actual_output": [
+          1
+        ],
+        "expected_output": [
+          1
+        ],
+        "error_message": null,
+        "execution_time": 0.021557092666625977,
+        "status": "passed"
+      }
+    ],
+    "error_message": null,
+    "total_tokens": 522,
+    "execution_time_seconds": 0.0,
+    "timestamp": "2026-09-15T10:31:54.949091",
+    "llm_traces": []
+  },
+  {
+    "problem_id": "binary-search",
+    "strategy": "multi_round_feedback",
+    "generated_code": "def solution(nums, target):\n    left, right = 0, len(nums) - 1\n\n    while left <= right:\n        mid = left + (right - left) // 2\n\n        if nums[mid] == target:\n            return mid\n        elif nums[mid] < target:\n            left = mid + 1\n        else:\n            right = mid - 1\n\n    return -1",
+    "status": "success",
+    "iterations": [
+      {
+        "iteration": 1,
+        "prompt_tokens": 265,
+        "completion_tokens": 206,
+        "code_extracted": "def solution(nums, target):\n    left, right = 0, len(nums) - 1\n\n    while left <= right:\n        mid = left + (right - left) // 2\n\n        if nums[mid] == target:\n            return mid\n        elif nums[mid] < target:\n            left = mid + 1\n        else:\n            right = mid - 1\n\n    return -1",
+        "sandbox_result": {
+          "status": "success",
+          "test_results": [
+            {
+              "test_case_index": 0,
+              "passed": true,
+              "actual_output": 4,
+              "expected_output": 4,
+              "error_message": null,
+              "execution_time": 0.05283403396606445,
+              "status": "passed"
+            },
+            {
+              "test_case_index": 1,
+              "passed": true,
+              "actual_output": -1,
+              "expected_output": -1,
+              "error_message": null,
+              "execution_time": 0.025670289993286133,
+              "status": "passed"
+            },
+            {
+              "test_case_index": 2,
+              "passed": true,
+              "actual_output": 0,
+              "expected_output": 0,
+              "error_message": null,
+              "execution_time": 0.02100205421447754,
+              "status": "passed"
+            }
+          ],
+          "execution_time": 0.09961485862731934,
+          "all_passed": true,
+          "error_message": null
+        }
+      }
+    ],
+    "final_result": {
+      "status": "success",
+      "test_results": [
+        {
+          "test_case_index": 0,
+          "passed": true,
+          "actual_output": 4,
+          "expected_output": 4,
+          "error_message": null,
+          "execution_time": 0.05283403396606445,
+          "status": "passed"
+        },
+        {
+          "test_case_index": 1,
+          "passed": true,
+          "actual_output": -1,
+          "expected_output": -1,
+          "error_message": null,
+          "execution_time": 0.025670289993286133,
+          "status": "passed"
+        },
+        {
+          "test_case_index": 2,
+          "passed": true,
+          "actual_output": 0,
+          "expected_output": 0,
+          "error_message": null,
+          "execution_time": 0.02100205421447754,
+          "status": "passed"
+        }
+      ],
+      "execution_time": 0.09961485862731934,
+      "all_passed": true,
+      "error_message": null
+    },
+    "test_results": [
+      {
+        "test_case_index": 0,
+        "passed": true,
+        "actual_output": 4,
+        "expected_output": 4,
+        "error_message": null,
+        "execution_time": 0.05283403396606445,
+        "status": "passed"
+      },
+      {
+        "test_case_index": 1,
+        "passed": true,
+        "actual_output": -1,
+        "expected_output": -1,
+        "error_message": null,
+        "execution_time": 0.025670289993286133,
+        "status": "passed"
+      },
+      {
+        "test_case_index": 2,
+        "passed": true,
+        "actual_output": 0,
+        "expected_output": 0,
+        "error_message": null,
+        "execution_time": 0.02100205421447754,
+        "status": "passed"
+      }
+    ],
+    "error_message": null,
+    "total_tokens": 471,
+    "execution_time_seconds": 0.0,
+    "timestamp": "2026-09-15T10:31:56.866517",
+    "llm_traces": []
+  },
+  {
+    "problem_id": "palindrome-number",
+    "strategy": "multi_round_feedback",
+    "generated_code": "def solution(x):\n    return str(x) == str(x)[::-1]",
+    "status": "success",
+    "iterations": [
+      {
+        "iteration": 1,
+        "prompt_tokens": 171,
+        "completion_tokens": 144,
+        "code_extracted": "def solution(x):\n    return str(x) == str(x)[::-1]",
+        "sandbox_result": {
+          "status": "success",
+          "test_results": [
+            {
+              "test_case_index": 0,
+              "passed": true,
+              "actual_output": true,
+              "expected_output": true,
+              "error_message": null,
+              "execution_time": 0.04984092712402344,
+              "status": "passed"
+            },
+            {
+              "test_case_index": 1,
+              "passed": true,
+              "actual_output": false,
+              "expected_output": false,
+              "error_message": null,
+              "execution_time": 0.026935100555419922,
+              "status": "passed"
+            },
+            {
+              "test_case_index": 2,
+              "passed": true,
+              "actual_output": false,
+              "expected_output": false,
+              "error_message": null,
+              "execution_time": 0.021759986877441406,
+              "status": "passed"
+            }
+          ],
+          "execution_time": 0.09868311882019043,
+          "all_passed": true,
+          "error_message": null
+        }
+      }
+    ],
+    "final_result": {
+      "status": "success",
+      "test_results": [
+        {
+          "test_case_index": 0,
+          "passed": true,
+          "actual_output": true,
+          "expected_output": true,
+          "error_message": null,
+          "execution_time": 0.04984092712402344,
+          "status": "passed"
+        },
+        {
+          "test_case_index": 1,
+          "passed": true,
+          "actual_output": false,
+          "expected_output": false,
+          "error_message": null,
+          "execution_time": 0.026935100555419922,
+          "status": "passed"
+        },
+        {
+          "test_case_index": 2,
+          "passed": true,
+          "actual_output": false,
+          "expected_output": false,
+          "error_message": null,
+          "execution_time": 0.021759986877441406,
+          "status": "passed"
+        }
+      ],
+      "execution_time": 0.09868311882019043,
+      "all_passed": true,
+      "error_message": null
+    },
+    "test_results": [
+      {
+        "test_case_index": 0,
+        "passed": true,
+        "actual_output": true,
+        "expected_output": true,
+        "error_message": null,
+        "execution_time": 0.04984092712402344,
+        "status": "passed"
+      },
+      {
+        "test_case_index": 1,
+        "passed": true,
+        "actual_output": false,
+        "expected_output": false,
+        "error_message": null,
+        "execution_time": 0.026935100555419922,
+        "status": "passed"
+      },
+      {
+        "test_case_index": 2,
+        "passed": true,
+        "actual_output": false,
+        "expected_output": false,
+        "error_message": null,
+        "execution_time": 0.021759986877441406,
+        "status": "passed"
+      }
+    ],
+    "error_message": null,
+    "total_tokens": 315,
+    "execution_time_seconds": 0.0,
+    "timestamp": "2026-09-15T10:31:59.313110",
+    "llm_traces": []
+  },
+  {
+    "problem_id": "climbing-stairs",
+    "strategy": "multi_round_feedback",
+    "generated_code": "def solution(n: int) -> int:\n    if n <= 2:\n        return n\n\n    first, second = 1, 2\n    for _ in range(3, n + 1):\n        first, second = second, first + second\n\n    return second",
+    "status": "success",
+    "iterations": [
+      {
+        "iteration": 1,
+        "prompt_tokens": 192,
+        "completion_tokens": 249,
+        "code_extracted": "def solution(n: int) -> int:\n    if n <= 2:\n        return n\n\n    first, second = 1, 2\n    for _ in range(3, n + 1):\n        first, second = second, first + second\n\n    return second",
+        "sandbox_result": {
+          "status": "success",
+          "test_results": [
+            {
+              "test_case_index": 0,
+              "passed": true,
+              "actual_output": 2,
+              "expected_output": 2,
+              "error_message": null,
+              "execution_time": 0.0490870475769043,
+              "status": "passed"
+            },
+            {
+              "test_case_index": 1,
+              "passed": true,
+              "actual_output": 3,
+              "expected_output": 3,
+              "error_message": null,
+              "execution_time": 0.029224872589111328,
+              "status": "passed"
+            },
+            {
+              "test_case_index": 2,
+              "passed": true,
+              "actual_output": 8,
+              "expected_output": 8,
+              "error_message": null,
+              "execution_time": 0.0224149227142334,
+              "status": "passed"
+            }
+          ],
+          "execution_time": 0.10085201263427734,
+          "all_passed": true,
+          "error_message": null
+        }
+      }
+    ],
+    "final_result": {
+      "status": "success",
+      "test_results": [
+        {
+          "test_case_index": 0,
+          "passed": true,
+          "actual_output": 2,
+          "expected_output": 2,
+          "error_message": null,
+          "execution_time": 0.0490870475769043,
+          "status": "passed"
+        },
+        {
+          "test_case_index": 1,
+          "passed": true,
+          "actual_output": 3,
+          "expected_output": 3,
+          "error_message": null,
+          "execution_time": 0.029224872589111328,
+          "status": "passed"
+        },
+        {
+          "test_case_index": 2,
+          "passed": true,
+          "actual_output": 8,
+          "expected_output": 8,
+          "error_message": null,
+          "execution_time": 0.0224149227142334,
+          "status": "passed"
+        }
+      ],
+      "execution_time": 0.10085201263427734,
+      "all_passed": true,
+      "error_message": null
+    },
+    "test_results": [
+      {
+        "test_case_index": 0,
+        "passed": true,
+        "actual_output": 2,
+        "expected_output": 2,
+        "error_message": null,
+        "execution_time": 0.0490870475769043,
+        "status": "passed"
+      },
+      {
+        "test_case_index": 1,
+        "passed": true,
+        "actual_output": 3,
+        "expected_output": 3,
+        "error_message": null,
+        "execution_time": 0.029224872589111328,
+        "status": "passed"
+      },
+      {
+        "test_case_index": 2,
+        "passed": true,
+        "actual_output": 8,
+        "expected_output": 8,
+        "error_message": null,
+        "execution_time": 0.0224149227142334,
+        "status": "passed"
+      }
+    ],
+    "error_message": null,
+    "total_tokens": 441,
+    "execution_time_seconds": 0.0,
+    "timestamp": "2026-09-15T10:32:01.529714",
+    "llm_traces": []
+  },
+  {
+    "problem_id": "contains-duplicate",
+    "strategy": "multi_round_feedback",
+    "generated_code": "def solution(nums):\n    seen = set()\n    for num in nums:\n        if num in seen:\n            return True\n        seen.add(num)\n    return False",
+    "status": "success",
+    "iterations": [
+      {
+        "iteration": 1,
+        "prompt_tokens": 238,
+        "completion_tokens": 153,
+        "code_extracted": "def solution(nums):\n    seen = set()\n    for num in nums:\n        if num in seen:\n            return True\n        seen.add(num)\n    return False",
+        "sandbox_result": {
+          "status": "success",
+          "test_results": [
+            {
+              "test_case_index": 0,
+              "passed": true,
+              "actual_output": true,
+              "expected_output": true,
+              "error_message": null,
+              "execution_time": 0.049597978591918945,
+              "status": "passed"
+            },
+            {
+              "test_case_index": 1,
+              "passed": true,
+              "actual_output": false,
+              "expected_output": false,
+              "error_message": null,
+              "execution_time": 0.03155803680419922,
+              "status": "passed"
+            },
+            {
+              "test_case_index": 2,
+              "passed": true,
+              "actual_output": true,
+              "expected_output": true,
+              "error_message": null,
+              "execution_time": 0.02432417869567871,
+              "status": "passed"
+            }
+          ],
+          "execution_time": 0.10566091537475586,
+          "all_passed": true,
+          "error_message": null
+        }
+      }
+    ],
+    "final_result": {
+      "status": "success",
+      "test_results": [
+        {
+          "test_case_index": 0,
+          "passed": true,
+          "actual_output": true,
+          "expected_output": true,
+          "error_message": null,
+          "execution_time": 0.049597978591918945,
+          "status": "passed"
+        },
+        {
+          "test_case_index": 1,
+          "passed": true,
+          "actual_output": false,
+          "expected_output": false,
+          "error_message": null,
+          "execution_time": 0.03155803680419922,
+          "status": "passed"
+        },
+        {
+          "test_case_index": 2,
+          "passed": true,
+          "actual_output": true,
+          "expected_output": true,
+          "error_message": null,
+          "execution_time": 0.02432417869567871,
+          "status": "passed"
+        }
+      ],
+      "execution_time": 0.10566091537475586,
+      "all_passed": true,
+      "error_message": null
+    },
+    "test_results": [
+      {
+        "test_case_index": 0,
+        "passed": true,
+        "actual_output": true,
+        "expected_output": true,
+        "error_message": null,
+        "execution_time": 0.049597978591918945,
+        "status": "passed"
+      },
+      {
+        "test_case_index": 1,
+        "passed": true,
+        "actual_output": false,
+        "expected_output": false,
+        "error_message": null,
+        "execution_time": 0.03155803680419922,
+        "status": "passed"
+      },
+      {
+        "test_case_index": 2,
+        "passed": true,
+        "actual_output": true,
+        "expected_output": true,
+        "error_message": null,
+        "execution_time": 0.02432417869567871,
+        "status": "passed"
+      }
+    ],
+    "error_message": null,
+    "total_tokens": 391,
+    "execution_time_seconds": 0.0,
+    "timestamp": "2026-09-15T10:32:03.170898",
+    "llm_traces": []
+  }
+]

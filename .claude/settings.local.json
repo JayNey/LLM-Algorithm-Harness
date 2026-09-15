@@ -1,0 +1,22 @@
+{
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "Write|Edit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node",
+            "args": [
+              "/Users/charlesleclerc/LLM-Algorithm-Harness/.claude/skills/comet/scripts/comet-hook-router.mjs",
+              "--platform",
+              "claude",
+              "--project-root",
+              "/Users/charlesleclerc/LLM-Algorithm-Harness"
+            ]
+          }
+        ]
+      }
+    ]
+  }
+}
