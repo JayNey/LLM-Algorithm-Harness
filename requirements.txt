@@ -11,6 +11,10 @@ pytest>=7.4.0
 pytest-cov>=4.1.0
 pytest-mock>=3.11.0
 
+# Reporting
+pandas>=2.0.0
+matplotlib>=3.7.0
+
 # Development
 black>=23.0.0
 isort>=5.12.0
