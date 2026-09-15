@@ -12,12 +12,12 @@
 
 ## 特性
 
-- 🔄 **多策略支持**: 内置三种求解策略，可扩展自定义策略
-- 🧪 **代码沙箱**: 隔离执行环境，安全运行用户生成代码
-- 📊 **详细指标**: 成功率、Token 消耗、成本估算、迭代次数统计
-- 🎯 **灵活过滤**: 按难度、标签、数量筛选问题集
-- 📝 **结构化输出**: JSON 格式结果，便于后续分析
-- 🔌 **多 LLM 支持**: 支持 OpenAI、Anthropic API
+- **多策略支持**: 内置三种求解策略，可扩展自定义策略
+- **代码沙箱**: 隔离执行环境，安全运行用户生成代码
+- **详细指标**: 成功率、Token 消耗、成本估算、迭代次数统计
+- **灵活过滤**: 按难度、标签、数量筛选问题集
+- **结构化输出**: JSON 格式结果，便于后续分析
+- **多 LLM 支持**: 支持 OpenAI、Anthropic API
 
 ## 项目结构
 
@@ -88,25 +88,25 @@ cp config.example.json config.json
 使用默认配置运行所有策略：
 
 ```bash
-python src/main.py --dataset data/problems.json
+python3 -m src/main --dataset data/problems.json
 ```
 
 ### 运行特定策略
 
 ```bash
-python src/main.py --dataset data/problems.json --strategy vanilla
+python3 -m src/main --dataset data/problems.json --strategy vanilla
 ```
 
 ### 限制问题数量
 
 ```bash
-python src/main.py --dataset data/problems.json --limit 5
+python3 -m src/main --dataset data/problems.json --limit 5
 ```
 
 ### 使用自定义配置
 
 ```bash
-python src/main.py --dataset data/problems.json --config config.json
+python3 -m src/main --dataset data/problems.json --config config.json
 ```
 
 ## 配置说明
@@ -311,9 +311,3 @@ elif self.config.provider == "new_provider":
 ## 许可证
 
 MIT License
-
-## 联系方式
-
-项目维护者: [Your Name]
-
-问题反馈: [GitHub Issues]
