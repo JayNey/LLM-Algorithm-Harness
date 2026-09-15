@@ -18,6 +18,61 @@ from src.models import ExecutionResult
 class ChartGenerator:
     """Generate visualization charts using matplotlib."""
 
+    # Pricing per 1M tokens (USD)
+    # Format: (input_price, output_price)
+    MODEL_PRICING = {
+        'gpt-4': (30.0, 60.0),
+        'gpt-4-turbo': (10.0, 30.0),
+        'gpt-3.5-turbo': (0.5, 1.5),
+        'claude-3-opus': (15.0, 75.0),
+        'claude-3-sonnet': (3.0, 15.0),
+        'claude-3-5-sonnet': (3.0, 15.0),
+        'claude-3-haiku': (0.25, 1.25),
+        'gemini-1.5-pro': (3.5, 10.5),
+        'gemini-1.5-flash': (0.35, 1.05),
+        'default': (1.0, 3.0),  # Default pricing if model not found
+    }
+
+    @staticmethod
+    def _calculate_cost(
+        prompt_tokens: int,
+        completion_tokens: int,
+        model: Optional[str] = None
+    ) -> float:
+        """
+        Calculate cost based on token usage and model pricing.
+
+        Args:
+            prompt_tokens: Number of input tokens
+            completion_tokens: Number of output tokens
+            model: Model name (e.g., 'gpt-4', 'claude-3-sonnet')
+
+        Returns:
+            Estimated cost in USD
+        """
+        # Normalize model name to lowercase for matching
+        model_key = model.lower() if model else 'default'
+
+        # Try exact match first
+        if model_key in ChartGenerator.MODEL_PRICING:
+            input_price, output_price = ChartGenerator.MODEL_PRICING[model_key]
+        else:
+            # Try partial match (e.g., 'gpt-4-0125-preview' matches 'gpt-4')
+            matched = False
+            for key in ChartGenerator.MODEL_PRICING:
+                if key != 'default' and key in model_key:
+                    input_price, output_price = ChartGenerator.MODEL_PRICING[key]
+                    matched = True
+                    break
+
+            if not matched:
+                # Use default pricing
+                input_price, output_price = ChartGenerator.MODEL_PRICING['default']
+
+        # Calculate cost (prices are per 1M tokens)
+        cost = (prompt_tokens * input_price + completion_tokens * output_price) / 1_000_000
+        return cost
+
     @staticmethod
     def _setup_chinese_font():
         """Setup Chinese font with fallback strategy."""
@@ -103,14 +158,16 @@ class ChartGenerator:
     @staticmethod
     def generate_token_chart(
         metrics: Dict[str, Dict],
-        results: Optional[Dict[str, List[ExecutionResult]]] = None
+        results: Optional[Dict[str, List[ExecutionResult]]] = None,
+        model: Optional[str] = None
     ) -> io.BytesIO:
         """
-        Generate token consumption line chart.
+        Generate token consumption line chart with cost estimation on dual Y-axis.
 
         Args:
             metrics: Dictionary mapping strategy name to metrics dict
             results: Optional dictionary mapping strategy name to results list (for percentile calculation)
+            model: Optional model name for cost calculation
 
         Returns:
             BytesIO containing PNG image
@@ -123,6 +180,7 @@ class ChartGenerator:
         # Calculate percentiles if results are provided
         percentile_25 = []
         percentile_75 = []
+        avg_costs = []
 
         if results:
             for strategy in strategies:
@@ -130,12 +188,22 @@ class ChartGenerator:
                 if strategy_results:
                     # Extract total tokens from each result
                     token_counts = []
+                    costs = []
+
                     for result in strategy_results:
-                        total_tokens = sum(
-                            iteration.prompt_tokens + iteration.completion_tokens
-                            for iteration in result.iterations
-                        )
+                        total_prompt = 0
+                        total_completion = 0
+
+                        for iteration in result.iterations:
+                            total_prompt += iteration.prompt_tokens
+                            total_completion += iteration.completion_tokens
+
+                        total_tokens = total_prompt + total_completion
                         token_counts.append(total_tokens)
+
+                        # Calculate cost for this result
+                        cost = ChartGenerator._calculate_cost(total_prompt, total_completion, model)
+                        costs.append(cost)
 
                     # Calculate 25th and 75th percentiles
                     if token_counts:
@@ -143,26 +211,42 @@ class ChartGenerator:
                         p75 = np.percentile(token_counts, 75)
                         percentile_25.append(p25)
                         percentile_75.append(p75)
+
+                        # Calculate average cost
+                        avg_cost = np.mean(costs) if costs else 0
+                        avg_costs.append(avg_cost)
                     else:
                         percentile_25.append(0)
                         percentile_75.append(0)
+                        avg_costs.append(0)
                 else:
                     percentile_25.append(0)
                     percentile_75.append(0)
+                    avg_costs.append(0)
 
-        fig, ax = plt.subplots(figsize=(10, 6))
+        # If no results provided, estimate cost using 70/30 split
+        if not avg_costs or all(c == 0 for c in avg_costs):
+            avg_costs = []
+            for avg_token in avg_tokens:
+                # Assume 70% input, 30% output tokens
+                estimated_prompt = int(avg_token * 0.7)
+                estimated_completion = int(avg_token * 0.3)
+                cost = ChartGenerator._calculate_cost(estimated_prompt, estimated_completion, model)
+                avg_costs.append(cost)
 
-        # Line plot with markers
+        fig, ax1 = plt.subplots(figsize=(12, 6))
+
+        # Primary Y-axis: Tokens (left)
         x_pos = range(len(strategies))
-        ax.plot(x_pos, avg_tokens, marker='o', markersize=8, linewidth=2, color='#3498db', label='Average')
+        color_tokens = '#3498db'
+        ax1.plot(x_pos, avg_tokens, marker='o', markersize=8, linewidth=2,
+                color=color_tokens, label='Average Tokens')
 
         # Add error bars if percentiles are available
         if percentile_25 and percentile_75:
-            # Calculate error bar sizes (distance from mean to percentile)
-            # Use max(0, ...) to ensure non-negative values
             yerr_lower = [max(0, avg - p25) for avg, p25 in zip(avg_tokens, percentile_25)]
             yerr_upper = [max(0, p75 - avg) for avg, p75 in zip(avg_tokens, percentile_75)]
-            ax.errorbar(
+            ax1.errorbar(
                 x_pos, avg_tokens,
                 yerr=[yerr_lower, yerr_upper],
                 fmt='none',
@@ -174,18 +258,42 @@ class ChartGenerator:
                 label='25th-75th percentile'
             )
 
-        # Add value labels
-        for i, (x, y) in enumerate(zip(x_pos, avg_tokens)):
-            ax.text(x, y, f'{y:.0f}', ha='center', va='bottom', fontsize=9)
+        ax1.set_xlabel('Strategy', fontsize=12)
+        ax1.set_ylabel('Average Tokens', fontsize=12, color=color_tokens)
+        ax1.tick_params(axis='y', labelcolor=color_tokens)
+        ax1.set_xticks(x_pos)
+        ax1.set_xticklabels(strategies, rotation=45, ha='right')
+        ax1.grid(axis='y', linestyle='--', alpha=0.3)
 
-        ax.set_xlabel('Strategy', fontsize=12)
-        ax.set_ylabel('Average Tokens', fontsize=12)
-        ax.set_title('Token Consumption Comparison', fontsize=14, fontweight='bold')
-        ax.set_xticks(x_pos)
-        ax.set_xticklabels(strategies, rotation=45, ha='right')
-        ax.grid(axis='y', linestyle='--', alpha=0.3)
-        ax.legend(loc='upper left')
+        # Secondary Y-axis: Cost (right)
+        ax2 = ax1.twinx()
+        color_cost = '#2ecc71'
+        ax2.plot(x_pos, avg_costs, marker='s', markersize=7, linewidth=2,
+                linestyle='--', color=color_cost, label='Estimated Cost')
 
+        ax2.set_ylabel('Estimated Cost (USD)', fontsize=12, color=color_cost)
+        ax2.tick_params(axis='y', labelcolor=color_cost)
+
+        # Add value labels for tokens and costs
+        for i, (x, tokens, cost) in enumerate(zip(x_pos, avg_tokens, avg_costs)):
+            # Token label
+            ax1.text(x, tokens, f'{tokens:.0f}', ha='center', va='bottom',
+                    fontsize=9, color=color_tokens)
+
+            # Cost label with smart formatting
+            if cost < 1.0:
+                cost_str = f'${cost:.4f}'
+            else:
+                cost_str = f'${cost:.2f}'
+            ax2.text(x, cost, cost_str, ha='center', va='top',
+                    fontsize=9, color=color_cost)
+
+        # Combined legend
+        lines1, labels1 = ax1.get_legend_handles_labels()
+        lines2, labels2 = ax2.get_legend_handles_labels()
+        ax1.legend(lines1 + lines2, labels1 + labels2, loc='upper left')
+
+        plt.title('Token Consumption and Cost Comparison', fontsize=14, fontweight='bold')
         plt.tight_layout()
 
         return ChartGenerator._fig_to_bytes(fig)
@@ -193,7 +301,7 @@ class ChartGenerator:
     @staticmethod
     def generate_iteration_distribution(results: Dict[str, List[ExecutionResult]]) -> Optional[io.BytesIO]:
         """
-        Generate iteration count distribution histogram.
+        Generate iteration count distribution as grouped bar chart.
 
         Args:
             results: Dictionary mapping strategy name to results list
@@ -217,21 +325,70 @@ class ChartGenerator:
         if not has_multi_round:
             return None
 
-        fig, ax = plt.subplots(figsize=(10, 6))
+        fig, ax = plt.subplots(figsize=(12, 6))
 
-        # Prepare histogram data
+        # Count occurrences of each iteration number for each strategy
         max_iterations = max(max(iters) for iters in iteration_data.values())
-        bins = range(1, max_iterations + 2)
+        iteration_categories = list(range(1, max_iterations + 1))
 
-        # Plot histogram for each strategy
-        for i, (strategy_name, iterations) in enumerate(iteration_data.items()):
-            ax.hist(iterations, bins=bins, alpha=0.6, label=strategy_name, edgecolor='black')
+        # Prepare data for grouped bar chart
+        strategy_names = list(iteration_data.keys())
+        num_strategies = len(strategy_names)
+
+        # Count frequency for each iteration number per strategy
+        frequency_data = {}
+        for strategy_name in strategy_names:
+            iterations = iteration_data[strategy_name]
+            frequency_data[strategy_name] = []
+            for iter_num in iteration_categories:
+                count = iterations.count(iter_num)
+                frequency_data[strategy_name].append(count)
+
+        # Set up bar positions
+        bar_width = 0.8 / num_strategies  # Total width of 0.8 divided by number of strategies
+        x_positions = np.arange(len(iteration_categories))
+
+        # Color palette
+        colors = ['#3498db', '#e74c3c', '#2ecc71', '#f39c12', '#9b59b6', '#1abc9c']
+
+        # Plot grouped bars
+        for i, strategy_name in enumerate(strategy_names):
+            offset = (i - num_strategies / 2 + 0.5) * bar_width
+            bars = ax.bar(
+                x_positions + offset,
+                frequency_data[strategy_name],
+                bar_width,
+                label=strategy_name,
+                color=colors[i % len(colors)],
+                alpha=0.8,
+                edgecolor='black',
+                linewidth=0.5
+            )
+
+            # Add value labels on bars (only if count > 0)
+            for j, (bar, count) in enumerate(zip(bars, frequency_data[strategy_name])):
+                if count > 0:
+                    height = bar.get_height()
+                    ax.text(
+                        bar.get_x() + bar.get_width() / 2.,
+                        height,
+                        f'{int(count)}',
+                        ha='center',
+                        va='bottom',
+                        fontsize=8,
+                        fontweight='bold'
+                    )
 
         ax.set_xlabel('Iteration Count', fontsize=12)
         ax.set_ylabel('Number of Problems', fontsize=12)
         ax.set_title('Iteration Count Distribution', fontsize=14, fontweight='bold')
+        ax.set_xticks(x_positions)
+        ax.set_xticklabels(iteration_categories)
         ax.legend(loc='upper right')
         ax.grid(axis='y', linestyle='--', alpha=0.3)
+
+        # Set y-axis to start at 0
+        ax.set_ylim(bottom=0)
 
         plt.tight_layout()
 
