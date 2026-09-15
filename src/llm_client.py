@@ -53,7 +53,18 @@ class LLMClient:
             api_key = self.config.api_key or os.getenv("OPENAI_API_KEY")
             if not api_key:
                 raise ValueError("OpenAI API key not provided")
-            return OpenAI(api_key=api_key)
+
+            # Support custom base_url for OpenAI-compatible APIs (e.g., DeepSeek)
+            client_kwargs = {"api_key": api_key}
+            if self.config.base_url:
+                client_kwargs["base_url"] = self.config.base_url
+                logger.info(
+                    "using_custom_base_url",
+                    provider=self.config.provider,
+                    base_url=self.config.base_url,
+                )
+
+            return OpenAI(**client_kwargs)
 
         elif self.config.provider == "anthropic":
             if Anthropic is None:
