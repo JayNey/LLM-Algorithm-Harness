@@ -76,6 +76,12 @@ class StrategyBase(ABC):
         elif "def solution(" in llm_response:
             code = llm_response.strip()
             self.logger.info("code_extracted_fallback", code_length=len(code))
+        else:
+            # Fallback: unclosed code block (response truncated mid-answer)
+            unclosed = re.search(r'```(?:python)?\s*\n(.*)', llm_response, re.DOTALL)
+            if unclosed and unclosed.group(1).strip():
+                code = unclosed.group(1).strip()
+                self.logger.warning("code_extracted_unclosed_block", code_length=len(code))
 
         if code is None:
             self.logger.warning("code_extraction_failed")

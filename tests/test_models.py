@@ -309,6 +309,38 @@ def test_harness_config():
     assert config.log_level == "INFO"  # Default
 
 
+def test_harness_config_redacted_dump_masks_api_key():
+    """redacted_dump() must never leak the API key (issue #4)."""
+    llm_config = LLMConfig(
+        provider="openai", api_key="sk-secret-key-123", model="gpt-3.5-turbo"
+    )
+    config = HarnessConfig(
+        llm_config=llm_config,
+        dataset_path="data/problems.json",
+    )
+
+    data = config.redacted_dump()
+
+    assert data["llm_config"]["api_key"] == "***redacted***"
+    assert "sk-secret-key-123" not in str(data)
+    # Other fields stay intact for debugging
+    assert data["llm_config"]["model"] == "gpt-3.5-turbo"
+    assert data["llm_config"]["provider"] == "openai"
+    assert data["dataset_path"] == "data/problems.json"
+    # Original config object is not mutated
+    assert config.llm_config.api_key == "sk-secret-key-123"
+
+
+def test_harness_config_redacted_dump_empty_key():
+    """Empty API key should not gain a placeholder value."""
+    llm_config = LLMConfig(provider="openai", api_key="", model="gpt-3.5-turbo")
+    config = HarnessConfig(llm_config=llm_config, dataset_path="data/problems.json")
+
+    data = config.redacted_dump()
+
+    assert data["llm_config"]["api_key"] == ""
+
+
 # ============================================================================
 # StrategyMetrics Tests
 # ============================================================================

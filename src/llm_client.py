@@ -55,7 +55,7 @@ class LLMClient:
                 raise ValueError("OpenAI API key not provided")
 
             # Support custom base_url for OpenAI-compatible APIs (e.g., DeepSeek)
-            client_kwargs = {"api_key": api_key}
+            client_kwargs = {"api_key": api_key, "max_retries": 3}
             if self.config.base_url:
                 client_kwargs["base_url"] = self.config.base_url
                 logger.info(
@@ -135,13 +135,19 @@ class LLMClient:
             messages.append({"role": "system", "content": system_prompt})
         messages.append({"role": "user", "content": prompt})
 
-        response = self.client.chat.completions.create(
-            model=self.config.model,
-            messages=messages,
-            temperature=self.config.temperature,
-            max_tokens=self.config.max_tokens,
-            timeout=self.config.timeout,
-        )
+        kwargs = {
+            "model": self.config.model,
+            "messages": messages,
+            "temperature": self.config.temperature,
+            "max_tokens": self.config.max_tokens,
+            "timeout": self.config.timeout,
+        }
+
+        # Extra provider-specific switches (e.g. SiliconFlow Qwen3.5 thinking mode)
+        if self.config.enable_thinking is not None:
+            kwargs["extra_body"] = {"enable_thinking": self.config.enable_thinking}
+
+        response = self.client.chat.completions.create(**kwargs)
 
         return LLMResponse(
             text=response.choices[0].message.content,
