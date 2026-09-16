@@ -43,7 +43,7 @@ class AlgorithmHarness:
         self.config = config
         self.problem_loader = ProblemLoader()
         self.results: Dict[str, List[ExecutionResult]] = {}
-        logger.info("harness_initialized", config=config.model_dump())
+        logger.info("harness_initialized", config=config.redacted_dump())
 
     def run(self) -> Dict[str, StrategyReport]:
         """

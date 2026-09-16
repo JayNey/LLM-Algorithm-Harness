@@ -174,10 +174,8 @@ def save_results(reports: dict, output_dir: str, harness: AlgorithmHarness,
     run_path = create_run_dir(output_dir)
 
     # Save run metadata: what model/dataset/config produced these results
-    config_dict = config.model_dump()
+    config_dict = config.redacted_dump()
     llm_config = config_dict.get("llm_config", {})
-    if llm_config.get("api_key"):
-        llm_config["api_key"] = "***redacted***"
 
     first_strategy = next(iter(harness.results.values()), [])
     metadata = {

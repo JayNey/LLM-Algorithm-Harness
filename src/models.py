@@ -289,6 +289,19 @@ class HarnessConfig(BaseModel):
         None, description="Optional filters for problems (difficulty, tags, etc.)"
     )
 
+    def redacted_dump(self) -> Dict[str, Any]:
+        """
+        Return the config as a dict safe for logging and export.
+
+        Identical to ``model_dump()`` except the LLM API key is replaced by a
+        fixed placeholder, so secrets never reach logs or exported metadata.
+        """
+        data = self.model_dump()
+        llm_config = data.get("llm_config", {})
+        if llm_config.get("api_key"):
+            llm_config["api_key"] = "***redacted***"
+        return data
+
 
 # ============================================================================
 # Metrics Models
