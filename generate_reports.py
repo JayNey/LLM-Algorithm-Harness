@@ -3,13 +3,16 @@
 Generate evaluation reports from summary.json files.
 
 Usage:
-    python generate_reports.py <summary.json> [output_dir]
+    python generate_reports.py [summary.json] [output_dir]
 
 Examples:
-    # Generate reports in default reports/ directory
+    # Auto-find latest summary.json and output to reports/
+    python generate_reports.py
+
+    # Specify summary.json path
     python generate_reports.py results/my_evaluation/summary.json
 
-    # Generate reports in custom directory
+    # Specify custom output directory
     python generate_reports.py results/my_evaluation/summary.json custom_reports/
 """
 
@@ -21,19 +24,58 @@ from src.reporting.html_generator import HTMLGenerator
 from src.reporting.markdown_generator import MarkdownGenerator
 
 
-def generate_reports(summary_path: str, output_dir: str = None):
+def find_latest_summary() -> Path:
+    """
+    Find the most recent summary.json file in results/ directory.
+
+    Returns:
+        Path to latest summary.json
+
+    Raises:
+        FileNotFoundError: If no summary.json found
+    """
+    results_dir = Path("results")
+    if not results_dir.exists():
+        raise FileNotFoundError("results/ directory not found")
+
+    # Find all summary.json files (both in subdirs and root)
+    summary_files = list(results_dir.glob("*/summary.json"))
+
+    # Also check for summary.json directly in results/
+    root_summary = results_dir / "summary.json"
+    if root_summary.exists():
+        summary_files.append(root_summary)
+
+    if not summary_files:
+        raise FileNotFoundError("No summary.json files found in results/")
+
+    # Return the most recently modified
+    latest = max(summary_files, key=lambda p: p.stat().st_mtime)
+    return latest
+
+
+def generate_reports(summary_path: str = None, output_dir: str = None):
     """
     Generate HTML and Markdown reports from a summary.json file.
 
     Args:
-        summary_path: Path to summary.json file
+        summary_path: Path to summary.json file (auto-finds latest if None)
         output_dir: Optional output directory (defaults to reports/)
     """
-    summary_file = Path(summary_path)
+    # Auto-find latest summary.json if not specified
+    if summary_path is None:
+        try:
+            summary_file = find_latest_summary()
+            print(f"Auto-detected: {summary_file}")
+        except FileNotFoundError as e:
+            print(f"Error: {e}")
+            sys.exit(1)
+    else:
+        summary_file = Path(summary_path)
 
-    if not summary_file.exists():
-        print(f"Error: Summary file not found: {summary_path}")
-        sys.exit(1)
+        if not summary_file.exists():
+            print(f"Error: Summary file not found: {summary_path}")
+            sys.exit(1)
 
     # Load summary data
     with open(summary_file, 'r') as f:
@@ -78,11 +120,11 @@ def generate_reports(summary_path: str, output_dir: str = None):
 
 
 if __name__ == "__main__":
-    if len(sys.argv) < 2:
+    if len(sys.argv) > 1 and sys.argv[1] in ["-h", "--help"]:
         print(__doc__)
-        sys.exit(1)
+        sys.exit(0)
 
-    summary_path = sys.argv[1]
+    summary_path = sys.argv[1] if len(sys.argv) > 1 else None
     output_dir = sys.argv[2] if len(sys.argv) > 2 else None
 
     generate_reports(summary_path, output_dir)
