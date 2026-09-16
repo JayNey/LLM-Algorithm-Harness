@@ -353,3 +353,77 @@ def test_extract_code_fallback():
 
     code = strategy.extract_code(response)
     assert "def solution(x):" in code
+
+
+def test_extract_code_strips_appended_test_driver():
+    """Test that appended module-level test driver code is truncated."""
+    config = StrategyConfig(name="test")
+    llm_client = Mock()
+    sandbox = Mock()
+    strategy = VanillaStrategy(config, llm_client, sandbox)
+
+    response = """```python
+def solution(nums, target):
+    num_dict = {}
+    for i, num in enumerate(nums):
+        complement = target - num
+        if complement in num_dict:
+            return [num_dict[complement], i]
+        num_dict[num] = i
+    return []
+
+# Test Cases
+test_cases = [
+    {'nums': [2, 7, 11, 15], 'target': 9},
+]
+
+for test in test_cases:
+    print(solution(**test))
+```"""
+
+    code = strategy.extract_code(response)
+    assert "test_cases = [" not in code
+    assert "for test in test_cases" not in code
+    assert code.endswith("return []")
+
+
+def test_extract_code_keeps_helper_definitions_after_solution():
+    """Test that def/class/imports after solution are preserved."""
+    config = StrategyConfig(name="test")
+    llm_client = Mock()
+    sandbox = Mock()
+    strategy = VanillaStrategy(config, llm_client, sandbox)
+
+    response = """```python
+def solution(x):
+    return helper(x) * 2
+
+def helper(x):
+    return x + 1
+
+if __name__ == "__main__":
+    print(solution(3))
+```"""
+
+    code = strategy.extract_code(response)
+    assert "def helper(x):" in code
+    assert 'if __name__' not in code
+    assert "print(" not in code
+
+
+def test_extract_code_keeps_solution_only_response():
+    """Test that a clean response is returned unchanged."""
+    config = StrategyConfig(name="test")
+    llm_client = Mock()
+    sandbox = Mock()
+    strategy = VanillaStrategy(config, llm_client, sandbox)
+
+    response = """```python
+import heapq
+
+def solution(lists):
+    return heapq
+```"""
+
+    code = strategy.extract_code(response)
+    assert code == "import heapq\n\ndef solution(lists):\n    return heapq"
