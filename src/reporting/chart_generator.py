@@ -180,18 +180,18 @@ class ChartGenerator:
             BytesIO containing PNG image, or None if generation fails
         """
         try:
-        ChartGenerator._setup_chinese_font()
+            ChartGenerator._setup_chinese_font()
 
-        strategies = list(metrics.keys())
-        avg_tokens = [metrics[s].get('avg_tokens_per_problem', 0) for s in strategies]
+            strategies = list(metrics.keys())
+            avg_tokens = [metrics[s].get('avg_tokens_per_problem', 0) for s in strategies]
 
-        # Calculate percentiles if results are provided
-        percentile_25 = []
-        percentile_75 = []
-        avg_costs = []
+            # Calculate percentiles if results are provided
+            percentile_25 = []
+            percentile_75 = []
+            avg_costs = []
 
-        if results:
-            for strategy in strategies:
+            if results:
+                for strategy in strategies:
                 strategy_results = results.get(strategy, [])
                 if strategy_results:
                     # Extract total tokens from each result
@@ -236,114 +236,114 @@ class ChartGenerator:
                     percentile_75.append(0)
                     avg_costs.append(0)
 
-        # If no results provided, estimate cost using 70/30 split
-        use_estimated_split = False
-        if not avg_costs or all(c == 0 for c in avg_costs):
-            use_estimated_split = True
-            avg_costs = []
-            for avg_token in avg_tokens:
-                # Assume 70% input, 30% output tokens
-                estimated_prompt = int(avg_token * 0.7)
-                estimated_completion = int(avg_token * 0.3)
-                cost = ChartGenerator._calculate_cost(estimated_prompt, estimated_completion, model)
-                avg_costs.append(cost)
+            # If no results provided, estimate cost using 70/30 split
+            use_estimated_split = False
+            if not avg_costs or all(c == 0 for c in avg_costs):
+                use_estimated_split = True
+                avg_costs = []
+                for avg_token in avg_tokens:
+                    # Assume 70% input, 30% output tokens
+                    estimated_prompt = int(avg_token * 0.7)
+                    estimated_completion = int(avg_token * 0.3)
+                    cost = ChartGenerator._calculate_cost(estimated_prompt, estimated_completion, model)
+                    avg_costs.append(cost)
 
-        fig, ax1 = plt.subplots(figsize=(12, 6))
+                fig, ax1 = plt.subplots(figsize=(12, 6))
 
-        # Primary Y-axis: Tokens (left)
-        x_pos = range(len(strategies))
-        color_tokens = '#3498db'
-        ax1.plot(x_pos, avg_tokens, marker='o', markersize=8, linewidth=2,
-                color=color_tokens, label='Average Tokens')
+            # Primary Y-axis: Tokens (left)
+            x_pos = range(len(strategies))
+            color_tokens = '#3498db'
+            ax1.plot(x_pos, avg_tokens, marker='o', markersize=8, linewidth=2,
+                    color=color_tokens, label='Average Tokens')
 
-        # Add error bars if percentiles are available
-        if percentile_25 and percentile_75:
-            # Validate percentiles and recalculate avg from results if inconsistent
-            yerr_lower = []
-            yerr_upper = []
+            # Add error bars if percentiles are available
+            if percentile_25 and percentile_75:
+                # Validate percentiles and recalculate avg from results if inconsistent
+                yerr_lower = []
+                yerr_upper = []
 
-            for i, (avg, p25, p75) in enumerate(zip(avg_tokens, percentile_25, percentile_75)):
-                # Check for data consistency: p25 should be <= avg <= p75
-                # If not, it means metrics and results are from different datasets
-                if p25 > 0 and p75 > 0:
-                    # If percentiles seem valid but don't bracket avg, log warning
-                    if p25 <= avg <= p75:
-                        yerr_lower.append(avg - p25)
-                        yerr_upper.append(p75 - avg)
+                for i, (avg, p25, p75) in enumerate(zip(avg_tokens, percentile_25, percentile_75)):
+                    # Check for data consistency: p25 should be <= avg <= p75
+                    # If not, it means metrics and results are from different datasets
+                    if p25 > 0 and p75 > 0:
+                        # If percentiles seem valid but don't bracket avg, log warning
+                        if p25 <= avg <= p75:
+                            yerr_lower.append(avg - p25)
+                            yerr_upper.append(p75 - avg)
+                        else:
+                            # Inconsistent data - log warning and skip error bars for this strategy
+                            strategy_name = strategies[i] if i < len(strategies) else f"strategy_{i}"
+                            logger.warning(
+                                f"Token chart: percentiles don't bracket average for {strategy_name} "
+                                f"(p25={p25:.0f}, avg={avg:.0f}, p75={p75:.0f}). "
+                                f"This suggests metrics and results are from different datasets. Skipping error bars."
+                            )
+                            yerr_lower.append(0)
+                            yerr_upper.append(0)
                     else:
-                        # Inconsistent data - log warning and skip error bars for this strategy
-                        strategy_name = strategies[i] if i < len(strategies) else f"strategy_{i}"
-                        logger.warning(
-                            f"Token chart: percentiles don't bracket average for {strategy_name} "
-                            f"(p25={p25:.0f}, avg={avg:.0f}, p75={p75:.0f}). "
-                            f"This suggests metrics and results are from different datasets. Skipping error bars."
-                        )
+                        # No percentile data for this strategy
                         yerr_lower.append(0)
                         yerr_upper.append(0)
+
+                # Only show error bars if at least one strategy has valid data
+                if any(y > 0 for y in yerr_lower + yerr_upper):
+                    ax1.errorbar(
+                        x_pos, avg_tokens,
+                        yerr=[yerr_lower, yerr_upper],
+                        fmt='none',
+                        ecolor='#95a5a6',
+                        elinewidth=2,
+                        capsize=5,
+                        capthick=2,
+                        alpha=0.7,
+                        label='25th-75th percentile'
+                    )
+
+            ax1.set_xlabel('Strategy', fontsize=12)
+            ax1.set_ylabel('Average Tokens', fontsize=12, color=color_tokens)
+            ax1.tick_params(axis='y', labelcolor=color_tokens)
+            ax1.set_xticks(x_pos)
+            ax1.set_xticklabels(strategies, rotation=45, ha='right')
+            ax1.grid(axis='y', linestyle='--', alpha=0.3)
+
+            # Secondary Y-axis: Cost (right)
+            ax2 = ax1.twinx()
+            color_cost = '#2ecc71'
+            ax2.plot(x_pos, avg_costs, marker='s', markersize=7, linewidth=2,
+                    linestyle='--', color=color_cost, label='Estimated Cost')
+
+            ax2.set_ylabel('Estimated Cost (USD)', fontsize=12, color=color_cost)
+            ax2.tick_params(axis='y', labelcolor=color_cost)
+
+            # Add value labels for tokens and costs
+            for i, (x, tokens, cost) in enumerate(zip(x_pos, avg_tokens, avg_costs)):
+                # Token label
+                ax1.text(x, tokens, f'{tokens:.0f}', ha='center', va='bottom',
+                        fontsize=9, color=color_tokens)
+
+                # Cost label with smart formatting
+                if cost < 1.0:
+                    cost_str = f'${cost:.4f}'
                 else:
-                    # No percentile data for this strategy
-                    yerr_lower.append(0)
-                    yerr_upper.append(0)
+                    cost_str = f'${cost:.2f}'
+                ax2.text(x, cost, cost_str, ha='center', va='top',
+                        fontsize=9, color=color_cost)
 
-            # Only show error bars if at least one strategy has valid data
-            if any(y > 0 for y in yerr_lower + yerr_upper):
-                ax1.errorbar(
-                    x_pos, avg_tokens,
-                    yerr=[yerr_lower, yerr_upper],
-                    fmt='none',
-                    ecolor='#95a5a6',
-                    elinewidth=2,
-                    capsize=5,
-                    capthick=2,
-                    alpha=0.7,
-                    label='25th-75th percentile'
-                )
+            # Combined legend
+            lines1, labels1 = ax1.get_legend_handles_labels()
+            lines2, labels2 = ax2.get_legend_handles_labels()
+            ax1.legend(lines1 + lines2, labels1 + labels2, loc='upper left')
 
-        ax1.set_xlabel('Strategy', fontsize=12)
-        ax1.set_ylabel('Average Tokens', fontsize=12, color=color_tokens)
-        ax1.tick_params(axis='y', labelcolor=color_tokens)
-        ax1.set_xticks(x_pos)
-        ax1.set_xticklabels(strategies, rotation=45, ha='right')
-        ax1.grid(axis='y', linestyle='--', alpha=0.3)
-
-        # Secondary Y-axis: Cost (right)
-        ax2 = ax1.twinx()
-        color_cost = '#2ecc71'
-        ax2.plot(x_pos, avg_costs, marker='s', markersize=7, linewidth=2,
-                linestyle='--', color=color_cost, label='Estimated Cost')
-
-        ax2.set_ylabel('Estimated Cost (USD)', fontsize=12, color=color_cost)
-        ax2.tick_params(axis='y', labelcolor=color_cost)
-
-        # Add value labels for tokens and costs
-        for i, (x, tokens, cost) in enumerate(zip(x_pos, avg_tokens, avg_costs)):
-            # Token label
-            ax1.text(x, tokens, f'{tokens:.0f}', ha='center', va='bottom',
-                    fontsize=9, color=color_tokens)
-
-            # Cost label with smart formatting
-            if cost < 1.0:
-                cost_str = f'${cost:.4f}'
+            # Add title with estimation note if 70/30 split was used
+            title = 'Token Consumption and Cost Comparison'
+            if use_estimated_split:
+                title += ' (cost estimated using 70/30 input/output ratio)'
             else:
-                cost_str = f'${cost:.2f}'
-            ax2.text(x, cost, cost_str, ha='center', va='top',
-                    fontsize=9, color=color_cost)
+                title += ' (estimated)'
+            plt.title(title, fontsize=14, fontweight='bold')
+            plt.tight_layout()
 
-        # Combined legend
-        lines1, labels1 = ax1.get_legend_handles_labels()
-        lines2, labels2 = ax2.get_legend_handles_labels()
-        ax1.legend(lines1 + lines2, labels1 + labels2, loc='upper left')
-
-        # Add title with estimation note if 70/30 split was used
-        title = 'Token Consumption and Cost Comparison'
-        if use_estimated_split:
-            title += ' (cost estimated using 70/30 input/output ratio)'
-        else:
-            title += ' (estimated)'
-        plt.title(title, fontsize=14, fontweight='bold')
-        plt.tight_layout()
-
-        return ChartGenerator._fig_to_bytes(fig)
+            return ChartGenerator._fig_to_bytes(fig)
         except Exception as e:
             logger.error(f"Failed to generate token chart: {type(e).__name__}: {str(e)}", exc_info=True)
             return None
