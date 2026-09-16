@@ -6,6 +6,7 @@ import os
 from unittest.mock import Mock, patch
 
 import pytest
+from pydantic import SecretStr
 
 from src.llm_client import LLMClient
 from src.models import LLMConfig, TokenUsage
@@ -44,6 +45,8 @@ def test_initialize_openai_client(openai_config):
 
         mock_openai.assert_called_once_with(api_key="test-openai-key", max_retries=3)
         assert client.config.provider == "openai"
+        assert isinstance(client._resolved_api_key, SecretStr)
+        assert "test-openai-key" not in repr(client._resolved_api_key)
 
 
 def test_initialize_anthropic_client(anthropic_config):
@@ -260,3 +263,78 @@ def test_anthropic_api_key_from_env():
             client = LLMClient(config)
 
             mock_anthropic.assert_called_once_with(api_key="env-key")
+
+
+@pytest.mark.parametrize("reference", ["env:ISSUE4_API_KEY", "${ISSUE4_API_KEY}"])
+def test_openai_api_key_from_explicit_environment_reference(reference):
+    """Explicit references resolve only at the provider client boundary."""
+    config = LLMConfig(provider="openai", api_key=reference, model="gpt-3.5-turbo")
+
+    with patch("src.llm_client.OpenAI") as mock_openai:
+        with patch.dict(os.environ, {"ISSUE4_API_KEY": "resolved-secret"}, clear=True):
+            LLMClient(config)
+
+    mock_openai.assert_called_once_with(api_key="resolved-secret", max_retries=3)
+    assert "resolved-secret" not in config.model_dump_json()
+
+
+def test_missing_explicit_environment_reference_does_not_dump_environment():
+    """A missing reference names only the missing variable."""
+    config = LLMConfig(
+        provider="openai",
+        api_key="env:MISSING_ISSUE4_API_KEY",
+        model="gpt-3.5-turbo",
+    )
+
+    with patch("src.llm_client.OpenAI"):
+        with patch.dict(os.environ, {"UNRELATED_SECRET": "must-not-leak"}, clear=True):
+            with pytest.raises(ValueError) as exc_info:
+                LLMClient(config)
+
+    message = str(exc_info.value)
+    assert "MISSING_ISSUE4_API_KEY" in message
+    assert "must-not-leak" not in message
+
+
+def test_provider_error_redacts_resolved_api_key(openai_config, capsys):
+    """Provider exceptions cannot propagate a resolved API key."""
+    secret = openai_config.api_key.get_secret_value()
+    with patch("src.llm_client.OpenAI") as mock_openai_class:
+        mock_client = Mock()
+        mock_openai_class.return_value = mock_client
+        mock_client.chat.completions.create.side_effect = Exception(
+            f"request rejected for api_key={secret}"
+        )
+        client = LLMClient(openai_config)
+
+        with pytest.raises(RuntimeError) as exc_info:
+            client.generate("Test prompt")
+
+    assert secret not in str(exc_info.value)
+    assert "[REDACTED]" in str(exc_info.value)
+    assert secret not in capsys.readouterr().out
+
+
+def test_provider_error_uses_key_from_initialization_after_environment_changes(capsys):
+    """Error cleanup uses the exact key supplied to the SDK at initialization."""
+    secret = "issue4-ephemeral-environment-secret"
+    config = LLMConfig(
+        provider="openai",
+        api_key="env:ISSUE4_EPHEMERAL_KEY",
+        model="gpt-3.5-turbo",
+    )
+    with patch("src.llm_client.OpenAI") as mock_openai_class:
+        mock_client = Mock()
+        mock_openai_class.return_value = mock_client
+        with patch.dict(os.environ, {"ISSUE4_EPHEMERAL_KEY": secret}, clear=True):
+            client = LLMClient(config)
+
+        mock_client.chat.completions.create.side_effect = Exception(
+            f"provider echoed {secret}"
+        )
+        with patch.dict(os.environ, {}, clear=True):
+            with pytest.raises(RuntimeError) as exc_info:
+                client.generate("Test prompt")
+
+    assert secret not in str(exc_info.value)
+    assert secret not in capsys.readouterr().out

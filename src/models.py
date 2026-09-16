@@ -7,7 +7,9 @@ This module defines all Pydantic data models used throughout the system.
 from datetime import datetime
 from typing import Any, Dict, List, Literal, Optional
 
-from pydantic import BaseModel, Field, field_validator
+from pydantic import BaseModel, Field, SecretStr, field_serializer, field_validator
+
+from src.utils.secrets import REDACTED, redact_sensitive_data
 
 
 # ============================================================================
@@ -234,7 +236,7 @@ class LLMConfig(BaseModel):
     """LLM client configuration."""
 
     provider: Literal["openai", "anthropic", "local"] = Field(..., description="Provider type")
-    api_key: str = Field(..., min_length=0, description="API key")
+    api_key: SecretStr = Field(..., description="API key or environment reference")
     model: str = Field(..., description="Model name")
     base_url: Optional[str] = Field(None, description="Base URL for local models")
     temperature: float = Field(0.7, ge=0.0, le=2.0, description="Sampling temperature")
@@ -243,6 +245,16 @@ class LLMConfig(BaseModel):
     enable_thinking: Optional[bool] = Field(
         None, description="Toggle thinking mode for reasoning models (e.g. SiliconFlow Qwen3.5)"
     )
+
+    @field_serializer("api_key", when_used="always")
+    def serialize_api_key(self, value: SecretStr) -> str:
+        """Never place the underlying key into model dumps."""
+        raw_value = value.get_secret_value() if isinstance(value, SecretStr) else str(value)
+        return REDACTED if raw_value else ""
+
+    def redacted_dict(self) -> Dict[str, Any]:
+        """Return a serialization-safe view of the model configuration."""
+        return redact_sensitive_data(self.model_dump(mode="json"))
 
 
 class SandboxConfig(BaseModel):
@@ -290,17 +302,12 @@ class HarnessConfig(BaseModel):
     )
 
     def redacted_dump(self) -> Dict[str, Any]:
-        """
-        Return the config as a dict safe for logging and export.
+        """Compatibility alias for callers using the original safe dump API."""
+        return self.redacted_dict()
 
-        Identical to ``model_dump()`` except the LLM API key is replaced by a
-        fixed placeholder, so secrets never reach logs or exported metadata.
-        """
-        data = self.model_dump()
-        llm_config = data.get("llm_config", {})
-        if llm_config.get("api_key"):
-            llm_config["api_key"] = "***redacted***"
-        return data
+    def redacted_dict(self) -> Dict[str, Any]:
+        """Return a recursively redacted configuration snapshot."""
+        return redact_sensitive_data(self.model_dump(mode="json"))
 
 
 # ============================================================================

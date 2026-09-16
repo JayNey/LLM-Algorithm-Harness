@@ -11,7 +11,8 @@ from pathlib import Path
 from src.harness import AlgorithmHarness
 from src.models import HarnessConfig, LLMConfig, SandboxConfig, StrategyConfig
 from src.utils.config import load_config
-from src.utils.logging import get_logger
+from src.utils.logging import get_logger, setup_logging
+from src.utils.secrets import redact_sensitive_data
 
 logger = get_logger(__name__)
 
@@ -197,7 +198,9 @@ def save_results(reports: dict, output_dir: str, harness: AlgorithmHarness,
     logger.info("metadata_saved", path=str(metadata_file))
 
     # Save summary report
-    summary = {"strategies": {name: report.model_dump() for name, report in reports.items()}}
+    summary = redact_sensitive_data(
+        {"strategies": {name: report.model_dump() for name, report in reports.items()}}
+    )
 
     summary_file = run_path / "summary.json"
     with open(summary_file, 'w') as f:
@@ -208,7 +211,7 @@ def save_results(reports: dict, output_dir: str, harness: AlgorithmHarness,
     # Save detailed results per strategy
     for strategy_name, results in harness.results.items():
         results_file = run_path / f"{strategy_name}_results.json"
-        results_data = [r.model_dump() for r in results]
+        results_data = redact_sensitive_data([r.model_dump() for r in results])
 
         with open(results_file, "w") as f:
             json.dump(results_data, f, indent=2)
@@ -225,6 +228,7 @@ def save_results(reports: dict, output_dir: str, harness: AlgorithmHarness,
 
 def main():
     """Main entry point."""
+    setup_logging()
     parser = argparse.ArgumentParser(
         description="LLM Algorithm Harness - Evaluate LLM problem-solving strategies"
     )

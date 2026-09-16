@@ -245,3 +245,16 @@ def test_generate_empty_results(temp_md_path: str):
     # Should still generate valid Markdown with headers
     assert "# LLM Algorithm Harness - Evaluation Report" in content
     assert "## Strategy Performance Summary" in content
+
+
+def test_generate_redacts_credentials_in_failed_cases(
+    temp_md_path: str, sample_metrics: Dict, sample_results: Dict
+):
+    """Markdown output sanitizes credential text from failed results."""
+    secret = "issue4-markdown-export-secret"
+    sample_results["direct"][1].error_message = f"Authorization: Bearer {secret}"
+
+    content = MarkdownGenerator.generate(sample_metrics, sample_results, temp_md_path)
+
+    assert secret not in content
+    assert "[REDACTED]" in content

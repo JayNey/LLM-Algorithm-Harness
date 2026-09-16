@@ -7,6 +7,7 @@ from pathlib import Path
 from typing import Dict, List
 
 from src.models import ExecutionResult
+from src.utils.secrets import redact_sensitive_text
 
 
 class MarkdownGenerator:
@@ -144,7 +145,7 @@ class MarkdownGenerator:
             lines.append("No failures recorded.")
             lines.append("")
 
-        markdown_content = "\n".join(lines)
+        markdown_content = redact_sensitive_text("\n".join(lines))
 
         # Save to file
         output_path_obj = Path(output_path)

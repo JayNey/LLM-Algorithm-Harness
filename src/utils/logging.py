@@ -4,12 +4,18 @@ Logging utilities for structured logging.
 
 import logging
 import sys
-from typing import Optional
 
 import structlog
 
+from src.utils.secrets import redact_sensitive_data
 
-def setup_logging(level: str = "INFO", log_file: Optional[str] = None) -> None:
+
+def redact_sensitive_event(logger, method_name, event_dict):
+    """Structlog processor that recursively removes credentials."""
+    return redact_sensitive_data(event_dict)
+
+
+def setup_logging(level: str = "INFO", log_file: str | None = None) -> None:
     """
     Initialize structured logging system.
 
@@ -27,6 +33,7 @@ def setup_logging(level: str = "INFO", log_file: Optional[str] = None) -> None:
             structlog.processors.TimeStamper(fmt="iso"),
             structlog.processors.StackInfoRenderer(),
             structlog.processors.format_exc_info,
+            redact_sensitive_event,
             structlog.processors.UnicodeDecoder(),
             structlog.processors.JSONRenderer(),
         ],
