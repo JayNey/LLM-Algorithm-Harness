@@ -1,9 +1,6 @@
-"""
-Tests for utility modules.
-"""
+"""Tests for utility modules."""
 
-import tempfile
-from pathlib import Path
+import json
 
 import pytest
 import yaml
@@ -20,7 +17,6 @@ from src.utils.validators import (
     validate_strategy_name,
     validate_test_case,
 )
-
 
 # ============================================================================
 # Config Utils Tests
@@ -57,6 +53,40 @@ def test_load_config_valid(tmp_path):
     assert config.llm_config.provider == "openai"
     assert config.max_workers == 5
     assert config.dataset_path == "data/problems.json"
+
+
+def test_load_config_valid_json(tmp_path):
+    """JSON remains supported through the shared configuration loader."""
+    config_file = tmp_path / "config.json"
+    config_file.write_text(
+        json.dumps(
+            {
+                "llm_config": {
+                    "provider": "openai",
+                    "api_key": "test-key",
+                    "model": "gpt-3.5-turbo",
+                },
+                "dataset_path": "data/from-json.json",
+                "strategies": [{"name": "vanilla"}],
+            }
+        ),
+        encoding="utf-8",
+    )
+
+    config = load_config(str(config_file))
+
+    assert config.dataset_path == "data/from-json.json"
+    assert [strategy.name for strategy in config.strategies] == ["vanilla"]
+
+
+@pytest.mark.parametrize("content", ["", "- not\n- a\n- mapping\n"])
+def test_load_config_rejects_non_mapping_document(tmp_path, content):
+    """Empty and sequence documents fail with a configuration-specific error."""
+    config_file = tmp_path / "invalid.yaml"
+    config_file.write_text(content, encoding="utf-8")
+
+    with pytest.raises(ValueError, match="mapping"):
+        load_config(str(config_file))
 
 
 def test_load_config_not_found():

@@ -10,8 +10,7 @@ import subprocess
 import sys
 import tempfile
 from pathlib import Path
-
-import pytest
+from types import SimpleNamespace
 
 
 class TestCLIBasics:
@@ -149,6 +148,98 @@ dataset_path: data/sample_problems.json
             assert "error" in output or "invalid" in output or "yaml" in output
         finally:
             Path(config_path).unlink(missing_ok=True)
+
+    def test_config_only_cli_run_with_fake_model_writes_expected_results(
+        self, tmp_path, monkeypatch
+    ):
+        """Run the real CLI workflow with a fake model response and inspect its files."""
+
+        class FakeCompletions:
+            def create(self, **kwargs):
+                return SimpleNamespace(
+                    choices=[
+                        SimpleNamespace(
+                            message=SimpleNamespace(content="""```python
+def solution(nums, target):
+    seen = {}
+    for index, value in enumerate(nums):
+        complement = target - value
+        if complement in seen:
+            return [seen[complement], index]
+        seen[value] = index
+```"""),
+                            finish_reason="stop",
+                        )
+                    ],
+                    usage=SimpleNamespace(
+                        prompt_tokens=10,
+                        completion_tokens=20,
+                        total_tokens=30,
+                    ),
+                    model=kwargs["model"],
+                )
+
+        class FakeOpenAI:
+            def __init__(self, **kwargs):
+                self.chat = SimpleNamespace(completions=FakeCompletions())
+
+        dataset_path = tmp_path / "problems.json"
+        dataset_path.write_text(
+            json.dumps(
+                [
+                    {
+                        "problem_id": "two-sum",
+                        "title": "Two Sum",
+                        "description": "Return the indices of two values that add up to the target.",
+                        "difficulty": "easy",
+                        "tags": ["array"],
+                        "test_cases": [
+                            {
+                                "input": {"nums": [2, 7, 11, 15], "target": 9},
+                                "expected_output": [0, 1],
+                            }
+                        ],
+                    }
+                ]
+            ),
+            encoding="utf-8",
+        )
+        output_path = tmp_path / "results"
+        config_path = tmp_path / "config.yaml"
+        config_path.write_text(
+            f"""
+dataset_path: {dataset_path}
+output_dir: {output_path}
+llm_config:
+  provider: openai
+  api_key: fake-key
+  model: fake-model
+strategies:
+  - name: vanilla
+""",
+            encoding="utf-8",
+        )
+
+        monkeypatch.setattr("src.llm_client.OpenAI", FakeOpenAI)
+        monkeypatch.setattr(sys, "argv", ["harness", "--config", str(config_path)])
+
+        from src.main import main
+
+        main()
+
+        summary_path = output_path / "summary.json"
+        if not summary_path.exists():
+            # Runs are archived under results/<run-name>/; use the latest pointer.
+            latest = json.loads((output_path / "latest.json").read_text(encoding="utf-8"))
+            summary_path = output_path / latest["latest_run"] / "summary.json"
+        summary = json.loads(summary_path.read_text(encoding="utf-8"))
+        details = json.loads(
+            (summary_path.parent / "vanilla_results.json").read_text(encoding="utf-8")
+        )
+        assert summary["strategies"]["vanilla"]["solved_problems"] == 1
+        assert summary["strategies"]["vanilla"]["total_problems"] == 1
+        assert details[0]["problem_id"] == "two-sum"
+        assert details[0]["status"] == "success"
 
 
 class TestCLIStrategySelection:

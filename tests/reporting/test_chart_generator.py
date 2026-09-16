@@ -89,6 +89,35 @@ def sample_multi_round_results() -> Dict[str, List[ExecutionResult]]:
     }
 
 
+@pytest.fixture
+def sample_results_with_variance() -> Dict[str, List[ExecutionResult]]:
+    """Fixture for results with token variance for percentile testing."""
+    # Create results with varying token counts: 400, 500, 600, 700, 800
+    results = {
+        "strategy_a": [
+            ExecutionResult(
+                problem_id=f"prob_{i}",
+                strategy="strategy_a",
+                generated_code="def solution(): pass",
+                status="success",
+                iterations=[
+                    IterationResult(
+                        iteration=1,
+                        prompt_tokens=int(tokens * 0.6),  # 60% prompt
+                        completion_tokens=int(tokens * 0.4),  # 40% completion
+                        code_extracted="def solution(): pass"
+                    )
+                ],
+                test_results=[],
+                total_tokens=tokens,
+                execution_time_seconds=0.5
+            )
+            for i, tokens in enumerate([400, 500, 600, 700, 800])
+        ]
+    }
+    return results
+
+
 def test_generate_success_rate_chart_returns_bytesio(sample_metrics: Dict):
     """Test that success rate chart returns BytesIO."""
     result = ChartGenerator.generate_success_rate_chart(sample_metrics)
@@ -230,3 +259,66 @@ def test_generate_iteration_distribution_empty_results():
 
     # Should return None for empty results
     assert result is None
+
+
+def test_generate_token_chart_with_percentiles(sample_metrics: Dict, sample_results_with_variance: Dict):
+    """Test that token chart with results generates percentile error bars."""
+    result = ChartGenerator.generate_token_chart(sample_metrics, sample_results_with_variance)
+
+    assert isinstance(result, io.BytesIO)
+    assert len(result.read()) > 0
+
+
+def test_generate_token_chart_without_results(sample_metrics: Dict):
+    """Test that token chart without results works (no error bars)."""
+    result = ChartGenerator.generate_token_chart(sample_metrics, results=None)
+
+    assert isinstance(result, io.BytesIO)
+    assert len(result.read()) > 0
+
+
+def test_generate_token_chart_with_empty_results(sample_metrics: Dict):
+    """Test that token chart with empty results dict works."""
+    result = ChartGenerator.generate_token_chart(sample_metrics, results={})
+
+    assert isinstance(result, io.BytesIO)
+    assert len(result.read()) > 0
+
+
+def test_generate_token_chart_percentile_calculation():
+    """Test percentile calculation in token chart."""
+    metrics = {
+        "test_strategy": {
+            "avg_tokens_per_problem": 600.0
+        }
+    }
+
+    results = {
+        "test_strategy": [
+            ExecutionResult(
+                problem_id=f"prob_{i}",
+                strategy="test_strategy",
+                generated_code="def solution(): pass",
+                status="success",
+                iterations=[
+                    IterationResult(
+                        iteration=1,
+                        prompt_tokens=int(tokens * 0.6),
+                        completion_tokens=int(tokens * 0.4),
+                        code_extracted="def solution(): pass"
+                    )
+                ],
+                test_results=[],
+                total_tokens=tokens,
+                execution_time_seconds=0.5
+            )
+            for i, tokens in enumerate([400, 500, 600, 700, 800])
+        ]
+    }
+
+    # Should generate chart with error bars
+    # 25th percentile = 500, 75th percentile = 700
+    result = ChartGenerator.generate_token_chart(metrics, results)
+
+    assert isinstance(result, io.BytesIO)
+    assert len(result.read()) > 0

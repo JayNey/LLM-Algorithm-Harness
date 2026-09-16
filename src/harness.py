@@ -83,6 +83,8 @@ class AlgorithmHarness:
             problems = self.problem_loader.filter_problems(
                 problems, **self.config.problem_filters
             )
+            if not problems:
+                raise ValueError("No problems match the configured filters")
 
         return problems
 

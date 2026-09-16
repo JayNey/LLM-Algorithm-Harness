@@ -70,26 +70,60 @@ class StrategyBase(ABC):
         pattern = r'```(?:python)?\s*\n(.*?)\n```'
         matches = re.findall(pattern, llm_response, re.DOTALL)
 
+        code = None
         if matches:
             code = matches[0].strip()
-            self.logger.info("code_extracted", code_length=len(code))
+        elif "def solution(" in llm_response:
+            code = llm_response.strip()
+            self.logger.info("code_extracted_fallback", code_length=len(code))
+        else:
+            # Fallback: unclosed code block (response truncated mid-answer)
+            unclosed = re.search(r'```(?:python)?\s*\n(.*)', llm_response, re.DOTALL)
+            if unclosed and unclosed.group(1).strip():
+                code = unclosed.group(1).strip()
+                self.logger.warning("code_extracted_unclosed_block", code_length=len(code))
+
+        if code is None:
+            self.logger.warning("code_extraction_failed")
+            return None
+
+        code = self._strip_after_solution(code)
+        self.logger.info("code_extracted", code_length=len(code))
+        return code
+
+    def _strip_after_solution(self, code: str) -> str:
+        """
+        Truncate executable statements appended after the solution function.
+
+        Some models append their own test drivers (loops, prints, module-level
+        assignments, ``if __name__`` blocks) after ``def solution``; running
+        those in the sandbox causes spurious runtime errors. Definitions
+        (imports, helper functions/classes, decorators) are kept because the
+        solution may rely on them.
+        """
+        lines = code.split("\n")
+        start = next(
+            (i for i, line in enumerate(lines) if line.lstrip().startswith("def solution(")),
+            None,
+        )
+        if start is None:
             return code
 
-        # Fallback 1: unclosed code block (response truncated mid-answer)
-        unclosed = re.search(r'```(?:python)?\s*\n(.*)', llm_response, re.DOTALL)
-        if unclosed:
-            code = unclosed.group(1).strip()
-            if code:
-                self.logger.warning("code_extracted_unclosed_block", code_length=len(code))
-                return code
+        end = len(lines)
+        for i in range(start + 1, len(lines)):
+            stripped = lines[i].lstrip()
+            if stripped and not lines[i][0].isspace() and not stripped.startswith(("def ", "class ", "@")):
+                end = i
+                break
 
-        # Fallback 2: check if entire response looks like code
-        if "def solution(" in llm_response:
-            self.logger.info("code_extracted_fallback", code_length=len(llm_response))
-            return llm_response.strip()
-
-        self.logger.warning("code_extraction_failed")
-        return None
+        truncated = "\n".join(lines[:end]).rstrip()
+        if truncated != code.rstrip():
+            self.logger.info(
+                "code_truncated_after_solution",
+                original_length=len(code),
+                truncated_length=len(truncated),
+            )
+        return truncated
 
     def build_base_prompt(self, problem: Problem) -> str:
         """
