@@ -2,9 +2,10 @@
 Tests for core data models.
 """
 
-import json
+import pickle
 
 import pytest
+import yaml
 from pydantic import ValidationError
 
 from src.models import (
@@ -321,14 +322,14 @@ def test_harness_config_redacted_dump_masks_api_key():
 
     data = config.redacted_dump()
 
-    assert data["llm_config"]["api_key"] == "***redacted***"
+    assert data["llm_config"]["api_key"] == "[REDACTED]"
     assert "sk-secret-key-123" not in str(data)
     # Other fields stay intact for debugging
     assert data["llm_config"]["model"] == "gpt-3.5-turbo"
     assert data["llm_config"]["provider"] == "openai"
     assert data["dataset_path"] == "data/problems.json"
     # Original config object is not mutated
-    assert config.llm_config.api_key == "sk-secret-key-123"
+    assert config.llm_config.api_key.get_secret_value() == "sk-secret-key-123"
 
 
 def test_harness_config_redacted_dump_empty_key():
@@ -339,6 +340,20 @@ def test_harness_config_redacted_dump_empty_key():
     data = config.redacted_dump()
 
     assert data["llm_config"]["api_key"] == ""
+
+
+def test_llm_config_never_serializes_api_key_in_plaintext():
+    """Configuration representations must not expose the API key."""
+    secret = "issue4-fixed-secret-value"
+    config = LLMConfig(provider="openai", api_key=secret, model="gpt-3.5-turbo")
+
+    dumped = config.model_dump()
+
+    assert secret not in repr(config)
+    assert dumped["api_key"] == "[REDACTED]"
+    assert secret not in yaml.dump(dumped)
+    assert secret.encode() not in pickle.dumps(dumped)
+    assert secret not in config.model_dump_json()
 
 
 # ============================================================================

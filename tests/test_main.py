@@ -196,7 +196,7 @@ class TestSaveResults:
             metadata = json.load(f)
         assert metadata["dataset_path"] == "data/problems.json"
         assert metadata["llm"]["model"] == "gpt-3.5-turbo"
-        assert metadata["config"]["llm_config"]["api_key"] == "***redacted***"
+        assert metadata["config"]["llm_config"]["api_key"] == "[REDACTED]"
 
     def test_save_results_writes_detailed_results(self, tmp_path):
         """Test save_results writes per-strategy detailed results in run dir."""
@@ -217,9 +217,58 @@ class TestSaveResults:
             assert len(data) == 1
             assert data[0]["problem_id"] == "test_1"
 
+    def test_save_results_redacts_nested_credentials(self, tmp_path):
+        """JSON snapshots sanitize nested fields and credential-shaped errors."""
+        secret = "issue4-json-export-secret"
+        output_dir = tmp_path / "test_output"
+        report = MagicMock()
+        report.model_dump.return_value = {
+            "strategy_name": "vanilla",
+            "metadata": {"api_key": secret},
+        }
+        result = MagicMock()
+        result.model_dump.return_value = {
+            "problem_id": "test_1",
+            "error_message": f"Authorization: Bearer {secret}",
+        }
+        mock_harness = MagicMock()
+        mock_harness.results = {"vanilla": [result]}
+        config = create_default_config("data/problems.json", str(output_dir))
+        config.llm_config.api_key = secret
+
+        save_results({"vanilla": report}, str(output_dir), mock_harness, config)
+
+        run_name = json.loads((output_dir / "latest.json").read_text())["latest_run"]
+        run_dir = output_dir / run_name
+        exported = (run_dir / "summary.json").read_text() + (
+            run_dir / "vanilla_results.json"
+        ).read_text()
+        assert secret not in exported
+        assert "[REDACTED]" in exported
+
 
 class TestMainExecution:
     """Test main function execution paths."""
+
+    @patch("src.main.setup_logging")
+    @patch("src.main.AlgorithmHarness")
+    def test_main_enables_redacting_logging(
+        self, mock_harness_class, mock_setup_logging
+    ):
+        """The CLI activates the processor that redacts structured events."""
+        mock_harness = MagicMock()
+        mock_harness.run.return_value = {}
+        mock_harness.results = {}
+        mock_harness_class.return_value = mock_harness
+
+        from src.main import main
+
+        with patch("sys.argv", ["main.py", "--dataset", "data/problems.json"]):
+            with patch("src.main.save_results"):
+                with patch("src.main.print_report"):
+                    main()
+
+        mock_setup_logging.assert_called_once()
 
     @patch("src.main.AlgorithmHarness")
     def test_main_uses_dataset_and_output_from_config_when_cli_omits_them(

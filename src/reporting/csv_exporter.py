@@ -7,6 +7,7 @@ from pathlib import Path
 from typing import Dict, List
 
 from src.models import ExecutionResult
+from src.utils.secrets import redact_sensitive_data
 
 
 class CSVExporter:
@@ -67,7 +68,7 @@ class CSVExporter:
                     "failed_tests": failed_tests,
                 }
 
-                writer.writerow(row)
+                writer.writerow(redact_sensitive_data(row))
 
     @staticmethod
     def export_all(results_dict: Dict[str, List[ExecutionResult]], output_path: str) -> None:

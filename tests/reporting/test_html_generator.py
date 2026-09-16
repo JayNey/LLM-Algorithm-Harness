@@ -4,6 +4,7 @@ Unit tests for HTMLGenerator.
 
 from pathlib import Path
 from typing import Dict, List
+from unittest.mock import MagicMock, patch
 
 import pytest
 
@@ -218,6 +219,28 @@ def test_generate_responsive_design(temp_html_path: str, sample_metrics: Dict, s
     # Check for media queries
     assert "@media" in content
     assert "max-width" in content
+
+
+def test_generate_redacts_credentials_from_rendering_errors(
+    temp_html_path: str, sample_metrics: Dict, sample_results: Dict
+):
+    """HTML output sanitizes exceptions raised while rendering charts."""
+    secret = "issue4-html-export-secret"
+    chart_buffer = MagicMock()
+    chart_buffer.read.side_effect = Exception(f"chart failed with api_key={secret}")
+    with patch(
+        "src.reporting.html_generator.ChartGenerator.generate_success_rate_chart",
+        return_value=chart_buffer,
+    ):
+        content = HTMLGenerator.generate(
+            sample_metrics,
+            sample_results,
+            temp_html_path,
+            include_charts=True,
+        )
+
+    assert secret not in content
+    assert "[REDACTED]" in content
 
 
 def test_generate_footer(temp_html_path: str, sample_metrics: Dict, sample_results: Dict):

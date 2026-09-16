@@ -62,6 +62,18 @@ def test_harness_initialization(harness_config):
     assert harness.results == {}
 
 
+def test_harness_initialization_logs_only_redacted_config(harness_config):
+    """Harness initialization uses the shared safe configuration view."""
+    secret = harness_config.llm_config.api_key.get_secret_value()
+
+    with patch("src.harness.logger") as mock_logger:
+        AlgorithmHarness(harness_config)
+
+    logged_config = mock_logger.info.call_args.kwargs["config"]
+    assert secret not in str(logged_config)
+    assert logged_config["llm_config"]["api_key"] == "[REDACTED]"
+
+
 def test_load_problems(harness_config):
     """Test loading problems."""
     harness = AlgorithmHarness(harness_config)

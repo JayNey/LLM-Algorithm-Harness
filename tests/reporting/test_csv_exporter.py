@@ -228,3 +228,17 @@ def test_export_utf8_bom_encoding(temp_csv_path: str, sample_execution_result: E
 
     # UTF-8 BOM is EF BB BF
     assert first_bytes == b'\xef\xbb\xbf'
+
+
+def test_export_redacts_credentials_in_errors(
+    temp_csv_path: str, sample_failed_result: ExecutionResult
+):
+    """CSV output cannot expose credential text from an error message."""
+    secret = "issue4-csv-export-secret"
+    sample_failed_result.error_message = f"request failed with api_key={secret}"
+
+    CSVExporter.export([sample_failed_result], temp_csv_path)
+
+    content = Path(temp_csv_path).read_text(encoding="utf-8-sig")
+    assert secret not in content
+    assert "[REDACTED]" in content

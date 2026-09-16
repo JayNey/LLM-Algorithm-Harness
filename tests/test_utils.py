@@ -5,6 +5,8 @@ import json
 import pytest
 import yaml
 
+import src.utils.logging as logging_utils
+
 from src.utils.config import (
     get_default_config,
     load_config,
@@ -21,6 +23,22 @@ from src.utils.validators import (
 # ============================================================================
 # Config Utils Tests
 # ============================================================================
+
+
+def test_structured_log_processor_redacts_nested_credentials():
+    """Structured event dictionaries are sanitized before rendering."""
+    assert hasattr(logging_utils, "redact_sensitive_event")
+    secret = "issue4-structured-log-secret"
+    event = {
+        "event": "provider_failed",
+        "config": {"llm_config": {"api_key": secret}},
+        "error": f"Authorization: Bearer {secret}",
+    }
+
+    redacted = logging_utils.redact_sensitive_event(None, None, event)
+
+    assert secret not in str(redacted)
+    assert redacted["config"]["llm_config"]["api_key"] == "[REDACTED]"
 
 
 def test_get_default_config():

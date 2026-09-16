@@ -11,6 +11,7 @@ from typing import Dict, List, Optional
 
 from src.models import ExecutionResult
 from src.reporting.chart_generator import ChartGenerator
+from src.utils.secrets import redact_sensitive_text
 
 logger = logging.getLogger(__name__)
 
@@ -519,7 +520,7 @@ class HTMLGenerator:
         html_parts.append("</body>")
         html_parts.append("</html>")
 
-        html_content = "\n".join(html_parts)
+        html_content = redact_sensitive_text("\n".join(html_parts))
 
         # Save to file
         output_path_obj = Path(output_path)

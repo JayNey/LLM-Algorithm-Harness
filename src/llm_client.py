@@ -3,11 +3,15 @@ LLM Client - Interface for calling LLM APIs.
 """
 
 import os
+import re
 import time
 from typing import Optional
 
+from pydantic import SecretStr
+
 from src.models import LLMConfig, LLMResponse, TokenUsage
 from src.utils.logging import get_logger
+from src.utils.secrets import redact_sensitive_text
 
 # Optional imports for LLM providers (may not be installed)
 try:
@@ -22,6 +26,8 @@ except ImportError:
 
 logger = get_logger(__name__)
 
+_ENV_NAME = re.compile(r"^[A-Za-z_][A-Za-z0-9_]*$")
+
 
 class LLMClient:
     """LLM API client."""
@@ -34,6 +40,7 @@ class LLMClient:
             config: LLM configuration
         """
         self.config = config
+        self._resolved_api_key: Optional[SecretStr] = None
         self.client = self._initialize_client()
         logger.info("llm_client_initialized", provider=config.provider, model=config.model)
 
@@ -50,9 +57,8 @@ class LLMClient:
         if self.config.provider == "openai":
             if OpenAI is None:
                 raise ImportError("openai package not installed. Run: pip install openai")
-            api_key = self.config.api_key or os.getenv("OPENAI_API_KEY")
-            if not api_key:
-                raise ValueError("OpenAI API key not provided")
+            api_key = self._resolve_api_key("OPENAI_API_KEY", "OpenAI")
+            self._resolved_api_key = SecretStr(api_key)
 
             # Support custom base_url for OpenAI-compatible APIs (e.g., DeepSeek)
             client_kwargs = {"api_key": api_key, "max_retries": 3}
@@ -64,18 +70,65 @@ class LLMClient:
                     base_url=self.config.base_url,
                 )
 
-            return OpenAI(**client_kwargs)
+            try:
+                return OpenAI(**client_kwargs)
+            except Exception as exc:
+                raise self._safe_provider_error(exc, api_key) from None
 
         elif self.config.provider == "anthropic":
             if Anthropic is None:
                 raise ImportError("anthropic package not installed. Run: pip install anthropic")
-            api_key = self.config.api_key or os.getenv("ANTHROPIC_API_KEY")
-            if not api_key:
-                raise ValueError("Anthropic API key not provided")
-            return Anthropic(api_key=api_key)
+            api_key = self._resolve_api_key("ANTHROPIC_API_KEY", "Anthropic")
+            self._resolved_api_key = SecretStr(api_key)
+            try:
+                return Anthropic(api_key=api_key)
+            except Exception as exc:
+                raise self._safe_provider_error(exc, api_key) from None
 
         else:
             raise ValueError(f"Unsupported provider: {self.config.provider}")
+
+    def _resolve_api_key(self, default_env: str, provider_name: str) -> str:
+        """Resolve a direct key, explicit environment reference, or provider default."""
+        configured = (
+            self.config.api_key.get_secret_value()
+            if isinstance(self.config.api_key, SecretStr)
+            else str(self.config.api_key)
+        )
+        env_name = None
+
+        if configured.startswith("env:"):
+            env_name = configured[4:]
+        elif configured.startswith("${") and configured.endswith("}"):
+            env_name = configured[2:-1]
+
+        if env_name is not None:
+            if not _ENV_NAME.fullmatch(env_name):
+                raise ValueError("API key environment reference is invalid")
+            api_key = os.getenv(env_name)
+            if not api_key:
+                raise ValueError(f"API key environment variable '{env_name}' is not set")
+            return api_key
+
+        if configured:
+            return configured
+
+        api_key = os.getenv(default_env)
+        if not api_key:
+            raise ValueError(
+                f"{provider_name} API key not provided; set {default_env} or configure api_key"
+            )
+        return api_key
+
+    def _safe_provider_error(
+        self, error: Exception, resolved_api_key: Optional[str] = None
+    ) -> RuntimeError:
+        """Create an exception message that cannot contain the resolved credential."""
+        api_key = resolved_api_key
+        if api_key is None and self._resolved_api_key is not None:
+            api_key = self._resolved_api_key.get_secret_value()
+        secrets = [api_key] if api_key else []
+        return RuntimeError(redact_sensitive_text(str(error), secrets))
 
     def generate(self, prompt: str, system_prompt: Optional[str] = None) -> LLMResponse:
         """
@@ -116,8 +169,11 @@ class LLMClient:
             return response
 
         except Exception as e:
-            logger.error("llm_api_error", provider=self.config.provider, error=str(e))
-            raise
+            safe_error = self._safe_provider_error(e)
+            logger.error(
+                "llm_api_error", provider=self.config.provider, error=str(safe_error)
+            )
+            raise safe_error from None
 
     def _call_openai(self, prompt: str, system_prompt: Optional[str]) -> LLMResponse:
         """
