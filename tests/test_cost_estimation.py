@@ -66,13 +66,13 @@ class TestCostEstimation:
 
     def test_calculate_cost_default_pricing(self):
         """Test cost calculation with unknown model uses default pricing."""
-        # Unknown model should use default: $1/1M input, $3/1M output
+        # Fixed: Spec requires default pricing of $10/M input, $30/M output
         cost = ChartGenerator._calculate_cost(
             prompt_tokens=2000,
             completion_tokens=1000,
             model='unknown-model-xyz'
         )
-        expected = (2000 * 1.0 + 1000 * 3.0) / 1_000_000
+        expected = (2000 * 10.0 + 1000 * 30.0) / 1_000_000
         assert cost == pytest.approx(expected, rel=1e-6)
 
     def test_calculate_cost_no_model(self):
@@ -82,7 +82,7 @@ class TestCostEstimation:
             completion_tokens=1500,
             model=None
         )
-        expected = (3000 * 1.0 + 1500 * 3.0) / 1_000_000
+        expected = (3000 * 10.0 + 1500 * 30.0) / 1_000_000
         assert cost == pytest.approx(expected, rel=1e-6)
 
     def test_calculate_cost_zero_tokens(self):
