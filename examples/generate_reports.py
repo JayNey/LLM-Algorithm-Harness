@@ -30,18 +30,31 @@ def load_results_from_dir(results_dir: str) -> Dict[str, List[ExecutionResult]]:
     """
     Load evaluation results from a harness output directory.
 
-    Expects one ``<strategy>_results.json`` file per strategy (as written by
-    ``src.main``); each file is a list of ExecutionResult dicts. Strategies
-    are keyed by the ``strategy`` field of the records.
+    Accepts either a run directory containing ``<strategy>_results.json``
+    files, or the base results directory (picks the run named by
+    ``latest.json``). Strategies are keyed by the ``strategy`` field of
+    the records.
     """
     dir_path = Path(results_dir)
     files = sorted(dir_path.glob("*_results.json"))
+
+    if not files:
+        latest_file = dir_path / "latest.json"
+        if latest_file.exists():
+            with open(latest_file, "r", encoding="utf-8") as f:
+                latest = json.load(f).get("latest_run")
+            if latest:
+                dir_path = dir_path / latest
+                files = sorted(dir_path.glob("*_results.json"))
+
     if not files:
         raise FileNotFoundError(
             f"No *_results.json files found in {dir_path}. "
             "Run an evaluation first, e.g.: "
             "python3 -m src.main --dataset data/problems.json --config config.json"
         )
+
+    print(f"Using run directory: {dir_path}")
 
     results: Dict[str, List[ExecutionResult]] = {}
     for path in files:
