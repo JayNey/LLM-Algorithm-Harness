@@ -2,11 +2,14 @@
 Markdown report generation module.
 """
 
+import logging
 from datetime import datetime
 from pathlib import Path
 from typing import Dict, List
 
 from src.models import ExecutionResult
+
+logger = logging.getLogger(__name__)
 
 
 class MarkdownGenerator:
@@ -64,8 +67,8 @@ class MarkdownGenerator:
         # Overall metrics table
         lines.append("## Strategy Performance Summary")
         lines.append("")
-        lines.append("| Strategy | Success Rate | Solved | Total | Avg Tokens | Avg Time (s) |")
-        lines.append("|----------|-------------:|-------:|------:|-----------:|-------------:|")
+        lines.append("| Strategy | Success Rate | Solved | Total | Avg Tokens | Avg Time (s) | Est. Cost (USD) |")
+        lines.append("|----------|-------------:|-------:|------:|-----------:|-------------:|----------------:|")
 
         # Sort strategies by success rate
         sorted_strategies = sorted(
@@ -80,13 +83,44 @@ class MarkdownGenerator:
             total = strategy_metrics.get('total_problems', 0)
             avg_tokens = strategy_metrics.get('avg_tokens_per_problem', 0)
             avg_time = strategy_metrics.get('avg_time_per_problem', 0)
+            estimated_cost = strategy_metrics.get('estimated_cost_usd', 0)
 
             marker = " ⭐" if strategy_name == sorted_strategies[0][0] else ""
             lines.append(
                 f"| {MarkdownGenerator._escape_markdown(strategy_name)}{marker} | "
                 f"{success_rate:.1f}% | {solved} | {total} | "
-                f"{avg_tokens:.0f} | {avg_time:.2f} |"
+                f"{avg_tokens:.0f} | {avg_time:.2f} | ${estimated_cost:.4f} |"
             )
+
+        lines.append("")
+
+        # Pricing metadata information
+        lines.append("## Cost Estimation Details")
+        lines.append("")
+
+        for strategy_name, strategy_metrics in sorted_strategies:
+            pricing_metadata = strategy_metrics.get('pricing_metadata')
+
+            if pricing_metadata:
+                has_actual_pricing = pricing_metadata.get('has_actual_pricing', False)
+                if has_actual_pricing:
+                    pricing_source = "自定义配置/内置定价"
+                else:
+                    pricing_source = "默认值"
+                    logger.warning(
+                        "pricing_metadata_missing_for_strategy",
+                        strategy=strategy_name,
+                        message="Using fallback pricing for historical report"
+                    )
+            else:
+                logger.warning(
+                    "pricing_metadata_missing_for_strategy",
+                    strategy=strategy_name,
+                    message="No pricing_metadata in summary, using current pricing configuration"
+                )
+                pricing_source = "当前配置（历史数据不可用）"
+
+            lines.append(f"**{MarkdownGenerator._escape_markdown(strategy_name)}:** {pricing_source}")
 
         lines.append("")
 

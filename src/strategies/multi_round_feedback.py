@@ -46,6 +46,7 @@ class MultiRoundFeedbackStrategy(StrategyBase):
         )
 
         iterations = []
+        llm_responses = []
         final_result = None
         success = False
 
@@ -58,6 +59,7 @@ class MultiRoundFeedbackStrategy(StrategyBase):
 
             # Get LLM response
             llm_response = self.llm_client.generate(prompt)
+            llm_responses.append(llm_response)
 
             # Extract code
             code = self.extract_code(llm_response.text)
@@ -100,6 +102,7 @@ class MultiRoundFeedbackStrategy(StrategyBase):
             iterations=iterations,
             final_result=final_result,
             success=success,
+            llm_responses=llm_responses,
         )
 
         self.logger.info(

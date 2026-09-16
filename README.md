@@ -356,6 +356,109 @@ CSV 文件包含以下列：
 
 CSV 文件使用 UTF-8 BOM 编码，确保在 Excel 中正确显示中文。
 
+## 自定义模型定价
+
+Harness 支持用户自定义 LLM 模型定价，用于准确估算评估成本。
+
+### 定价策略
+
+成本估算采用三级降级策略：
+
+1. **自定义定价** (`pricing.json`) - 用户提供的定价配置，优先级最高
+2. **内置定价** - Harness 内置的常见模型定价（GPT-4、Claude 3 等）
+3. **默认定价** - 未知模型使用默认值，并记录警告日志
+
+### 配置方法
+
+#### 1. 创建 `pricing.json`
+
+在项目根目录创建 `pricing.json` 文件：
+
+```json
+{
+  "models": {
+    "gpt-4o": {
+      "prompt_price_per_1k": 0.0025,
+      "completion_price_per_1k": 0.01
+    },
+    "gpt-4o-mini": {
+      "prompt_price_per_1k": 0.00015,
+      "completion_price_per_1k": 0.0006
+    },
+    "claude-3.5-sonnet": {
+      "prompt_price_per_1k": 0.003,
+      "completion_price_per_1k": 0.015
+    }
+  }
+}
+```
+
+项目提供了 `pricing.example.json` 示例文件，包含常见模型的定价配置。
+
+#### 2. 定价格式说明
+
+- `prompt_price_per_1k`: 每 1000 个 prompt tokens 的价格（美元）
+- `completion_price_per_1k`: 每 1000 个 completion tokens 的价格（美元）
+
+#### 3. 模型匹配规则
+
+PricingManager 按以下顺序匹配模型：
+
+1. **精确匹配**: 完全匹配模型名称（如 `gpt-4-turbo-2024-04-09`）
+2. **前缀匹配**: 匹配模型名称前缀（如 `gpt-4-turbo` 匹配所有 `gpt-4-turbo-*` 模型）
+3. **降级默认**: 使用默认定价并记录警告
+
+### 历史数据准确性保障
+
+定价元数据会随评估结果保存到 `summary.json`：
+
+```json
+{
+  "strategies": {
+    "vanilla": {
+      "success_rate": 0.8,
+      "estimated_cost_usd": 0.0156,
+      "pricing_metadata": {
+        "model": "gpt-4o",
+        "prompt_price_per_1k": 0.0025,
+        "completion_price_per_1k": 0.01,
+        "source": "custom",
+        "has_actual_pricing": true
+      }
+    }
+  }
+}
+```
+
+**定价来源标识**：
+- `custom`: 来自 `pricing.json` 自定义配置
+- `builtin`: 来自 Harness 内置定价
+- `default`: 使用默认值（未知模型）
+
+生成报告时优先使用 `summary.json` 中的历史定价数据，确保即使模型定价更新，历史评估的成本估算仍然准确。
+
+### 使用示例
+
+```bash
+# 1. 创建自定义定价配置
+cp pricing.example.json pricing.json
+# 编辑 pricing.json 设置实际定价
+
+# 2. 运行评估
+harness --dataset data/problems.json --model gpt-4o
+
+# 3. 查看成本估算
+cat results/summary.json | jq '.strategies.vanilla.pricing_metadata'
+```
+
+生成的 HTML 和 Markdown 报告会显示成本估算和定价来源。
+
+### 注意事项
+
+- 如果 `pricing.json` 文件格式错误或不存在，系统会自动降级到内置定价
+- 未知模型使用默认定价时，会在日志中记录 WARNING 信息
+- 旧版本的 `summary.json` 不包含 `pricing_metadata`，生成报告时会使用当前配置重新估算（报告中会标注"历史数据不可用"）
+
 
 
 ### 添加新策略

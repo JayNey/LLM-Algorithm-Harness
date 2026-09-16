@@ -8,6 +8,7 @@ from typing import Optional
 
 from src.models import LLMConfig, LLMResponse, TokenUsage
 from src.utils.logging import get_logger
+from src.utils.pricing import PricingManager
 
 # Optional imports for LLM providers (may not be installed)
 try:
@@ -35,6 +36,7 @@ class LLMClient:
         """
         self.config = config
         self.client = self._initialize_client()
+        self.pricing_manager = PricingManager()
         logger.info("llm_client_initialized", provider=config.provider, model=config.model)
 
     def _initialize_client(self):
@@ -143,6 +145,9 @@ class LLMClient:
             timeout=self.config.timeout,
         )
 
+        # Get pricing metadata for this model
+        pricing_info = self.pricing_manager.get_pricing(response.model)
+
         return LLMResponse(
             text=response.choices[0].message.content,
             usage=TokenUsage(
@@ -152,6 +157,12 @@ class LLMClient:
             ),
             model=response.model,
             finish_reason=response.choices[0].finish_reason,
+            pricing_metadata={
+                "model": response.model,
+                "prompt_price_per_1k": pricing_info.prompt_price,
+                "completion_price_per_1k": pricing_info.completion_price,
+                "source": pricing_info.source,
+            },
         )
 
     def _call_anthropic(self, prompt: str, system_prompt: Optional[str]) -> LLMResponse:
@@ -177,6 +188,9 @@ class LLMClient:
 
         response = self.client.messages.create(**kwargs)
 
+        # Get pricing metadata for this model
+        pricing_info = self.pricing_manager.get_pricing(response.model)
+
         return LLMResponse(
             text=response.content[0].text,
             usage=TokenUsage(
@@ -186,6 +200,12 @@ class LLMClient:
             ),
             model=response.model,
             finish_reason=response.stop_reason,
+            pricing_metadata={
+                "model": response.model,
+                "prompt_price_per_1k": pricing_info.prompt_price,
+                "completion_price_per_1k": pricing_info.completion_price,
+                "source": pricing_info.source,
+            },
         )
 
     def estimate_cost(self, usage: TokenUsage) -> float:
@@ -198,24 +218,20 @@ class LLMClient:
         Returns:
             Estimated cost in USD
         """
-        # Pricing (as of 2024, approximate)
-        pricing = {
-            "gpt-3.5-turbo": {"prompt": 0.0015 / 1000, "completion": 0.002 / 1000},
-            "gpt-4": {"prompt": 0.03 / 1000, "completion": 0.06 / 1000},
-            "gpt-4-turbo": {"prompt": 0.01 / 1000, "completion": 0.03 / 1000},
-            "claude-3-haiku": {"prompt": 0.00025 / 1000, "completion": 0.00125 / 1000},
-            "claude-3-sonnet": {"prompt": 0.003 / 1000, "completion": 0.015 / 1000},
-            "claude-3-opus": {"prompt": 0.015 / 1000, "completion": 0.075 / 1000},
-        }
+        pricing_info = self.pricing_manager.get_pricing(self.config.model)
 
-        model_pricing = pricing.get(self.config.model)
-        if not model_pricing:
-            logger.warning("unknown_model_pricing", model=self.config.model)
-            return 0.0
+        if pricing_info.source == "default":
+            logger.warning(
+                "unknown_model_pricing",
+                model=self.config.model,
+                using_default_pricing=f"${pricing_info.prompt_price}/{pricing_info.completion_price} per 1K tokens"
+            )
 
         cost = (
-            usage.prompt_tokens * model_pricing["prompt"]
-            + usage.completion_tokens * model_pricing["completion"]
+            usage.prompt_tokens * pricing_info.prompt_price / 1000
+            + usage.completion_tokens * pricing_info.completion_price / 1000
         )
+
+        return cost
 
         return cost

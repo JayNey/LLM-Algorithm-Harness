@@ -169,8 +169,8 @@ class AlgorithmHarness:
         avg_attempts = total_attempts / total_problems if total_problems > 0 else 0.0
         avg_tokens_per_problem = total_tokens / total_problems if total_problems > 0 else 0.0
 
-        # Estimate cost (approximate)
-        avg_cost_per_problem = self._estimate_cost(results) / total_problems if total_problems > 0 else 0.0
+        # Estimate cost with pricing metadata
+        total_cost, pricing_metadata = self._estimate_cost(results)
 
         report = StrategyReport(
             strategy_name=strategy_config.name,
@@ -181,7 +181,8 @@ class AlgorithmHarness:
             avg_attempts_per_problem=avg_attempts,
             total_tokens=total_tokens,
             avg_tokens_per_problem=avg_tokens_per_problem,
-            estimated_cost_usd=avg_cost_per_problem * total_problems,
+            estimated_cost_usd=total_cost,
+            pricing_metadata=pricing_metadata,
         )
 
         logger.info(
@@ -194,25 +195,63 @@ class AlgorithmHarness:
 
         return report
 
-    def _estimate_cost(self, results: List[ExecutionResult]) -> float:
+    def _estimate_cost(self, results: List[ExecutionResult]) -> tuple[float, dict]:
         """
-        Estimate total cost for results.
+        Estimate total cost for results using actual pricing metadata.
 
         Args:
             results: Execution results
 
         Returns:
-            Estimated cost in USD
+            Tuple of (total_cost_usd, pricing_metadata_dict)
         """
-        # Simple approximation based on token pricing
-        # This should use actual pricing from LLMClient
         total_cost = 0.0
+        pricing_metadata = {
+            "total_prompt_tokens": 0,
+            "total_completion_tokens": 0,
+            "total_tokens": 0,
+            "models_used": {},
+            "has_actual_pricing": False,
+        }
 
-        # Approximate: $0.002 per 1K tokens (GPT-3.5 average)
-        total_tokens = sum(r.total_tokens for r in results)
-        total_cost = total_tokens * (0.002 / 1000)
+        for result in results:
+            if result.llm_traces:
+                # Use actual pricing from llm_traces
+                for trace in result.llm_traces:
+                    pricing_metadata["total_prompt_tokens"] += trace.get("prompt_tokens", 0)
+                    pricing_metadata["total_completion_tokens"] += trace.get("completion_tokens", 0)
+                    pricing_metadata["total_tokens"] += trace.get("total_tokens", 0)
 
-        return total_cost
+                    if "pricing_metadata" in trace:
+                        pricing_metadata["has_actual_pricing"] = True
+                        pm = trace["pricing_metadata"]
+
+                        # Accumulate cost
+                        total_cost += pm.get("total_cost", 0.0)
+
+                        # Track model usage
+                        model = pm.get("model", "unknown")
+                        if model not in pricing_metadata["models_used"]:
+                            pricing_metadata["models_used"][model] = {
+                                "prompt_tokens": 0,
+                                "completion_tokens": 0,
+                                "total_cost": 0.0,
+                                "input_price_per_mtok": pm.get("input_price_per_mtok"),
+                                "output_price_per_mtok": pm.get("output_price_per_mtok"),
+                            }
+
+                        pricing_metadata["models_used"][model]["prompt_tokens"] += pm.get("prompt_tokens", 0)
+                        pricing_metadata["models_used"][model]["completion_tokens"] += pm.get("completion_tokens", 0)
+                        pricing_metadata["models_used"][model]["total_cost"] += pm.get("total_cost", 0.0)
+            else:
+                # Fallback: use token counts without pricing
+                pricing_metadata["total_tokens"] += result.total_tokens
+                # Approximate: $0.002 per 1K tokens (fallback default)
+                total_cost += result.total_tokens * (0.002 / 1000)
+
+        pricing_metadata["total_cost"] = total_cost
+
+        return total_cost, pricing_metadata
 
     def get_results(self, strategy_name: str) -> List[ExecutionResult]:
         """

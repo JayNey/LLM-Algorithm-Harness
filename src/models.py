@@ -180,6 +180,10 @@ class StrategyReport(BaseModel):
     total_tokens: int = Field(..., ge=0, description="Total tokens used")
     avg_tokens_per_problem: float = Field(..., ge=0.0, description="Average tokens per problem")
     estimated_cost_usd: float = Field(..., ge=0.0, description="Estimated cost in USD")
+    pricing_metadata: Optional[Dict[str, Any]] = Field(
+        None,
+        description="Pricing information used for cost estimation (model, prompt_price_per_1k, completion_price_per_1k, source)"
+    )
 
 
 # ============================================================================
@@ -213,6 +217,10 @@ class LLMResponse(BaseModel):
     usage: TokenUsage = Field(..., description="Token usage")
     model: str = Field(..., description="Model name")
     finish_reason: Optional[str] = Field(None, description="Finish reason")
+    pricing_metadata: Optional[Dict[str, Any]] = Field(
+        None,
+        description="Pricing information used for cost estimation"
+    )
 
 
 class ProviderResponse(BaseModel):
