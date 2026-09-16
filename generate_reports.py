@@ -6,8 +6,11 @@ Usage:
     python generate_reports.py <summary.json> [output_dir]
 
 Examples:
+    # Generate reports in default reports/ directory
     python generate_reports.py results/my_evaluation/summary.json
-    python generate_reports.py results/my_evaluation/summary.json reports/
+
+    # Generate reports in custom directory
+    python generate_reports.py results/my_evaluation/summary.json custom_reports/
 """
 
 import json
@@ -24,7 +27,7 @@ def generate_reports(summary_path: str, output_dir: str = None):
 
     Args:
         summary_path: Path to summary.json file
-        output_dir: Optional output directory (defaults to same dir as summary.json)
+        output_dir: Optional output directory (defaults to reports/)
     """
     summary_file = Path(summary_path)
 
@@ -40,7 +43,8 @@ def generate_reports(summary_path: str, output_dir: str = None):
     if output_dir:
         out_dir = Path(output_dir)
     else:
-        out_dir = summary_file.parent
+        # Default to reports/ directory
+        out_dir = Path("reports")
 
     out_dir.mkdir(parents=True, exist_ok=True)
 
