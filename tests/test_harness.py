@@ -71,7 +71,7 @@ def test_load_problems(harness_config):
     assert problems[0].problem_id == "test-001"
 
 
-def test_run_strategy(harness_config):
+def test_run_strategy(harness_config, monkeypatch):
     """Test running a single strategy."""
     # Mock strategy execution
     mock_strategy = MagicMock()
@@ -93,7 +93,7 @@ def test_run_strategy(harness_config):
 
         harness = AlgorithmHarness(harness_config)
         # Replace the strategy in STRATEGY_MAP
-        harness.STRATEGY_MAP["vanilla"] = mock_strategy_class
+        monkeypatch.setitem(harness.STRATEGY_MAP, "vanilla", mock_strategy_class)
 
         problems = harness._load_problems()
         report = harness._run_strategy(harness_config.strategies[0], problems)
@@ -403,6 +403,35 @@ def test_harness_with_difficulty_filter(harness_config, tmp_path):
     # Should only load easy problems (1 out of 2)
     assert len(problems) == 1
     assert problems[0].difficulty == "easy"
+
+
+def test_harness_rejects_filters_that_match_no_problems(tmp_path):
+    """A configured evaluation must fail instead of reporting success for zero matches."""
+    import json
+
+    dataset_file = tmp_path / "easy_dataset.json"
+    dataset_file.write_text(
+        json.dumps(
+            [
+                {
+                    "problem_id": "easy1",
+                    "title": "Easy Problem",
+                    "description": "An easy test problem with sufficient description",
+                    "difficulty": "easy",
+                    "test_cases": [{"input": {"x": 1}, "expected_output": 2}],
+                }
+            ]
+        )
+    )
+    config = HarnessConfig(
+        dataset_path=str(dataset_file),
+        llm_config=LLMConfig(provider="openai", api_key="test", model="gpt-3.5-turbo"),
+        strategies=[StrategyConfig(name="vanilla")],
+        problem_filters={"difficulty": "hard"},
+    )
+
+    with pytest.raises(ValueError, match="No problems match"):
+        AlgorithmHarness(config)._load_problems()
 
 
 def test_harness_concurrent_strategy_execution(harness_config, tmp_path):

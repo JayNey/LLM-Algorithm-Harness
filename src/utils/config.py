@@ -1,42 +1,50 @@
-"""
-Configuration utilities for loading and managing configuration.
-"""
+"""Configuration utilities for loading and managing configuration."""
 
 from pathlib import Path
-from typing import Any, Dict, Optional
+from typing import Any
 
 import yaml
 
 from src.models import HarnessConfig
 
 
-def load_config(config_path: str) -> HarnessConfig:
+def load_config(config_path: str, overrides: dict[str, Any] | None = None) -> HarnessConfig:
     """
-    Load configuration from YAML file.
+    Load configuration from a JSON or YAML file.
 
     Args:
         config_path: Path to configuration file
+        overrides: Explicit values to merge before model validation
 
     Returns:
         HarnessConfig object
 
     Raises:
         FileNotFoundError: If config file doesn't exist
-        yaml.YAMLError: If YAML is malformed
+        yaml.YAMLError: If YAML/JSON is malformed
+        ValueError: If the document root is not a mapping
     """
     path = Path(config_path)
     if not path.exists():
         raise FileNotFoundError(f"Configuration file not found: {config_path}")
 
-    with open(path, "r") as f:
+    with open(path, encoding="utf-8") as f:
         config_data = yaml.safe_load(f)
+
+    if not isinstance(config_data, dict):
+        raise ValueError("Configuration document must be a mapping")
+
+    if overrides:
+        config_data = merge_configs(config_data, overrides, {})
 
     return HarnessConfig(**config_data)
 
 
 def merge_configs(
-    default_config: Dict[str, Any], user_config: Dict[str, Any], env_overrides: Dict[str, Any]
-) -> Dict[str, Any]:
+    default_config: dict[str, Any],
+    user_config: dict[str, Any],
+    env_overrides: dict[str, Any],
+) -> dict[str, Any]:
     """
     Merge multiple configuration layers.
 
@@ -69,7 +77,7 @@ def merge_configs(
     return merged
 
 
-def validate_config(config_dict: Dict[str, Any]) -> bool:
+def validate_config(config_dict: dict[str, Any]) -> bool:
     """
     Validate configuration completeness.
 
@@ -97,7 +105,7 @@ def validate_config(config_dict: Dict[str, Any]) -> bool:
     return True
 
 
-def get_default_config() -> Dict[str, Any]:
+def get_default_config() -> dict[str, Any]:
     """
     Get default configuration.
 
@@ -118,7 +126,7 @@ def get_default_config() -> Dict[str, Any]:
             "memory_limit_mb": 256,
             "allowed_imports": ["math", "itertools", "collections", "heapq", "bisect", "functools"],
         },
-        "output_dir": "output/",
+        "output_dir": "./results",
         "max_workers": 5,
         "log_level": "INFO",
     }
