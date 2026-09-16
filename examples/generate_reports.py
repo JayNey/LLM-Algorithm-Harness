@@ -3,11 +3,16 @@
 Example script demonstrating how to use the reporting module.
 
 This script shows how to:
-1. Load evaluation results from JSON
+1. Load real evaluation results from the results/ directory
 2. Calculate metrics
 3. Generate reports in multiple formats (CSV, Markdown, HTML with charts)
+
+Usage:
+    python3 examples/generate_reports.py                       # use results/, output to reports/
+    python3 examples/generate_reports.py --results-dir results --output reports
 """
 
+import argparse
 import sys
 from pathlib import Path
 
@@ -21,33 +26,42 @@ from src.models import ExecutionResult
 from src.reporting import CSVExporter, MarkdownGenerator, ChartGenerator, HTMLGenerator
 
 
-def load_results_from_json(json_path: str) -> Dict[str, List[ExecutionResult]]:
+def load_results_from_dir(results_dir: str) -> Dict[str, List[ExecutionResult]]:
     """
-    Load evaluation results from JSON file.
+    Load evaluation results from a harness output directory.
 
-    Expected JSON format:
-    {
-        "strategy_name": [
-            {
-                "problem_id": "two-sum",
-                "success": true,
-                "iterations": [...],
-                ...
-            },
-            ...
-        ]
-    }
+    Expects one ``<strategy>_results.json`` file per strategy (as written by
+    ``src.main``); each file is a list of ExecutionResult dicts. Strategies
+    are keyed by the ``strategy`` field of the records.
     """
-    with open(json_path, 'r', encoding='utf-8') as f:
-        data = json.load(f)
+    dir_path = Path(results_dir)
+    files = sorted(dir_path.glob("*_results.json"))
+    if not files:
+        raise FileNotFoundError(
+            f"No *_results.json files found in {dir_path}. "
+            "Run an evaluation first, e.g.: "
+            "python3 -m src.main --dataset data/problems.json --config config.json"
+        )
 
-    results = {}
-    for strategy_name, result_list in data.items():
-        results[strategy_name] = [
-            ExecutionResult(**result_data) for result_data in result_list
-        ]
+    results: Dict[str, List[ExecutionResult]] = {}
+    for path in files:
+        with open(path, "r", encoding="utf-8") as f:
+            data = json.load(f)
+        for result_data in data:
+            strategy = result_data.get("strategy", path.stem.replace("_results", ""))
+            results.setdefault(strategy, []).append(ExecutionResult(**result_data))
 
     return results
+
+
+def load_model_name(config_path: str = "config.json") -> str:
+    """Read the model name from config.json (never touches the API key)."""
+    path = Path(config_path)
+    if not path.exists():
+        return "unknown"
+    with open(path, "r", encoding="utf-8") as f:
+        config = json.load(f)
+    return config.get("llm_config", {}).get("model", "unknown")
 
 
 def calculate_metrics(results: Dict[str, List[ExecutionResult]]) -> Dict[str, Dict]:
@@ -76,17 +90,27 @@ def calculate_metrics(results: Dict[str, List[ExecutionResult]]) -> Dict[str, Di
 
 def main():
     """Main execution function."""
-    # Example: Load results from JSON
-    # results_path = "results/evaluation_results.json"
-    # results = load_results_from_json(results_path)
+    parser = argparse.ArgumentParser(
+        description="Generate visualization reports from real evaluation results"
+    )
+    parser.add_argument(
+        "--results-dir", type=str, default="results",
+        help="Directory containing <strategy>_results.json files (default: results)"
+    )
+    parser.add_argument(
+        "--output", type=str, default="reports",
+        help="Output directory for generated reports (default: reports)"
+    )
+    args = parser.parse_args()
 
-    # For demonstration, create sample data
-    print("Creating sample evaluation data...")
-    results = create_sample_data()
+    print(f"Loading evaluation results from {args.results_dir}/ ...")
+    results = load_results_from_dir(args.results_dir)
+    for strategy, strategy_results in sorted(results.items()):
+        print(f"  {strategy}: {len(strategy_results)} problems")
     metrics = calculate_metrics(results)
 
     # Create output directory
-    output_dir = Path("examples/sample_reports")
+    output_dir = Path(args.output)
     output_dir.mkdir(parents=True, exist_ok=True)
 
     print(f"\nGenerating reports in {output_dir}/")
@@ -139,7 +163,7 @@ def main():
         output_path=str(html_path),
         include_charts=True,
         config={
-            'model': 'gpt-4',
+            'model': load_model_name(),
             'temperature': 0.7,
             'timeout': 300
         }
@@ -148,115 +172,6 @@ def main():
 
     print(f"\n✅ All reports generated successfully!")
     print(f"\n📊 Open {html_path} in your browser to view the interactive report.")
-
-
-def create_sample_data() -> Dict[str, List[ExecutionResult]]:
-    """Create sample evaluation data for demonstration."""
-    from src.models import IterationResult, TestCaseResult
-
-    # Strategy 1: Zero-shot
-    zero_shot_results = [
-        ExecutionResult(
-            problem_id=f"problem-{i}",
-            strategy="zero-shot",
-            generated_code=f"def solution_{i}():\n    return {i}",
-            status="success" if i % 3 != 0 else "failed",
-            iterations=[
-                IterationResult(
-                    iteration=1,
-                    prompt_tokens=100,
-                    completion_tokens=50 + i * 10
-                )
-            ],
-            test_results=[
-                TestCaseResult(
-                    test_case_index=j,
-                    passed=i % 3 != 0,
-                    actual_output="actual" if i % 3 != 0 else "wrong",
-                    expected_output="expected",
-                    error_message=None if i % 3 != 0 else "Test failed",
-                    status="passed" if i % 3 != 0 else "wrong_answer"
-                )
-                for j in range(3)
-            ],
-            total_tokens=150 + i * 10,
-            execution_time_seconds=0.5 + i * 0.1
-        )
-        for i in range(10)
-    ]
-
-    # Strategy 2: Few-shot
-    few_shot_results = [
-        ExecutionResult(
-            problem_id=f"problem-{i}",
-            strategy="few-shot",
-            generated_code=f"def solution_{i}():\n    return {i * 2}",
-            status="success" if i % 4 != 0 else "failed",
-            iterations=[
-                IterationResult(
-                    iteration=1,
-                    prompt_tokens=200,
-                    completion_tokens=50 + i * 15
-                )
-            ],
-            test_results=[
-                TestCaseResult(
-                    test_case_index=j,
-                    passed=i % 4 != 0,
-                    actual_output="actual" if i % 4 != 0 else "wrong",
-                    expected_output="expected",
-                    error_message=None if i % 4 != 0 else "Test failed",
-                    status="passed" if i % 4 != 0 else "wrong_answer"
-                )
-                for j in range(3)
-            ],
-            total_tokens=250 + i * 15,
-            execution_time_seconds=0.6 + i * 0.12
-        )
-        for i in range(10)
-    ]
-
-    # Strategy 3: Self-refine (multi-round)
-    self_refine_results = []
-    for i in range(10):
-        success = i % 2 == 0
-        iterations = [
-            IterationResult(
-                iteration=j + 1,
-                prompt_tokens=150 + j * 20,
-                completion_tokens=30 + i * 8 + j * 50
-            )
-            for j in range(3)  # 3 iterations
-        ]
-
-        self_refine_results.append(
-            ExecutionResult(
-                problem_id=f"problem-{i}",
-                strategy="self-refine",
-                generated_code=f"def solution_{i}_v3():\n    return {i ** 2}",
-                status="success" if success else "failed",
-                iterations=iterations,
-                test_results=[
-                    TestCaseResult(
-                        test_case_index=j,
-                        passed=success,
-                        actual_output="actual" if success else "wrong",
-                        expected_output="expected",
-                        error_message=None if success else "Test failed after 3 iterations",
-                        status="passed" if success else "wrong_answer"
-                    )
-                    for j in range(3)
-                ],
-                total_tokens=sum(it.prompt_tokens + it.completion_tokens for it in iterations),
-                execution_time_seconds=1.5 + i * 0.2
-            )
-        )
-
-    return {
-        "zero-shot": zero_shot_results,
-        "few-shot": few_shot_results,
-        "self-refine": self_refine_results,
-    }
 
 
 if __name__ == "__main__":
