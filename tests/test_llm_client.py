@@ -42,7 +42,7 @@ def test_initialize_openai_client(openai_config):
     with patch("src.llm_client.OpenAI") as mock_openai:
         client = LLMClient(openai_config)
 
-        mock_openai.assert_called_once_with(api_key="test-openai-key")
+        mock_openai.assert_called_once_with(api_key="test-openai-key", max_retries=3)
         assert client.config.provider == "openai"
 
 
@@ -244,7 +244,7 @@ def test_openai_api_key_from_env():
         with patch.dict(os.environ, {"OPENAI_API_KEY": "env-key"}):
             client = LLMClient(config)
 
-            mock_openai.assert_called_once_with(api_key="env-key")
+            mock_openai.assert_called_once_with(api_key="env-key", max_retries=3)
 
 
 def test_anthropic_api_key_from_env():

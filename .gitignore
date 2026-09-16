@@ -216,8 +216,20 @@ __marimo__/
 
 # Streamlit
 .streamlit/secrets.toml
+
+# Local config with API keys
+config.json
+
+# SiliconFlow config with API key
+config_siliconflow.json
 # >>> Comet managed project state >>>
 !/.comet/
 /.comet/*
 !/.comet/config.yaml
 # <<< Comet managed project state <<<
+
+# Alibaba DashScope config with API key
+config_dashscope.json
+
+# Qwen 27B config
+config_qwen27b.json

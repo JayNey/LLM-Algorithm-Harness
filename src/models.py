@@ -240,6 +240,9 @@ class LLMConfig(BaseModel):
     temperature: float = Field(0.7, ge=0.0, le=2.0, description="Sampling temperature")
     max_tokens: int = Field(2000, ge=1, le=8000, description="Max generation tokens")
     timeout: int = Field(30, ge=1, description="Request timeout in seconds")
+    enable_thinking: Optional[bool] = Field(
+        None, description="Toggle thinking mode for reasoning models (e.g. SiliconFlow Qwen3.5)"
+    )
 
 
 class SandboxConfig(BaseModel):

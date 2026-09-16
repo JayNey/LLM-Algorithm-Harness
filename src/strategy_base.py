@@ -75,7 +75,15 @@ class StrategyBase(ABC):
             self.logger.info("code_extracted", code_length=len(code))
             return code
 
-        # Fallback: check if entire response looks like code
+        # Fallback 1: unclosed code block (response truncated mid-answer)
+        unclosed = re.search(r'```(?:python)?\s*\n(.*)', llm_response, re.DOTALL)
+        if unclosed:
+            code = unclosed.group(1).strip()
+            if code:
+                self.logger.warning("code_extracted_unclosed_block", code_length=len(code))
+                return code
+
+        # Fallback 2: check if entire response looks like code
         if "def solution(" in llm_response:
             self.logger.info("code_extracted_fallback", code_length=len(llm_response))
             return llm_response.strip()
