@@ -21,6 +21,14 @@
 - **WHEN** `pricing.json` 文件存在但 JSON 格式无效
 - **THEN** 系统记录警告日志并回退到内置定价字典
 
+#### Scenario: 前缀匹配使用最长匹配优先
+- **WHEN** 定价文件包含 `gpt-4` 和 `gpt-4o` 两个键，且用户请求 `gpt-4o-mini`
+- **THEN** 系统匹配 `gpt-4o` 而非 `gpt-4`
+
+#### Scenario: 前缀匹配在无精确匹配时生效
+- **WHEN** 定价文件不包含精确的 `gpt-4-0613` 键，但包含 `gpt-4` 前缀
+- **THEN** 系统使用 `gpt-4` 的定价
+
 ### Requirement: 定价配置文件格式规范
 
 `pricing.json` SHALL 使用以下 JSON 格式：包含顶层 `models` 对象，每个模型键对应一个包含 `prompt` 和 `completion` 定价的对象（单位为美元/1000 tokens）。
@@ -43,7 +51,11 @@
 
 #### Scenario: 定价元数据包含必需字段
 - **WHEN** 保存定价元数据
-- **THEN** 元数据包含 `model`、`prompt_price_per_1k`、`completion_price_per_1k` 和 `source` 字段
+- **THEN** 元数据包含 `model`、`prompt_price_per_1k`、`completion_price_per_1k`、`source` 和 `total_cost` 字段
+
+#### Scenario: trace 中的 token 计数位于顶层
+- **WHEN** 从 trace 读取 token 计数
+- **THEN** 系统从 trace 顶层读取 `prompt_tokens` 和 `completion_tokens`，而非从嵌套的 `pricing_metadata` 读取
 
 #### Scenario: 定价来源标识
 - **WHEN** 定价从 `pricing.json` 加载
