@@ -4,6 +4,7 @@ Chart generation module using matplotlib.
 
 import io
 import base64
+import logging
 from typing import Dict, List, Optional
 
 import numpy as np
@@ -14,11 +15,13 @@ import matplotlib.font_manager as fm
 
 from src.models import ExecutionResult
 
+logger = logging.getLogger(__name__)
+
 
 class ChartGenerator:
     """Generate visualization charts using matplotlib."""
 
-    # Pricing per 1M tokens (USD)
+    # Pricing per 1M tokens (USD) - Based on 2026-09 official pricing
     # Format: (input_price, output_price)
     MODEL_PRICING = {
         'gpt-4': (30.0, 60.0),
@@ -28,9 +31,9 @@ class ChartGenerator:
         'claude-3-sonnet': (3.0, 15.0),
         'claude-3-5-sonnet': (3.0, 15.0),
         'claude-3-haiku': (0.25, 1.25),
-        'gemini-1.5-pro': (3.5, 10.5),
+        'gemini-1.5-pro': (1.25, 5.0),  # Fixed: was (3.5, 10.5)
         'gemini-1.5-flash': (0.35, 1.05),
-        'default': (1.0, 3.0),  # Default pricing if model not found
+        'default': (10.0, 30.0),  # Fixed: was (1.0, 3.0) - Conservative default for unknown models
     }
 
     @staticmethod
@@ -155,8 +158,8 @@ class ChartGenerator:
             plt.tight_layout()
 
             return ChartGenerator._fig_to_bytes(fig)
-        except Exception:
-            # Return None on any error, caller will handle error display
+        except Exception as e:
+            logger.error(f"Failed to generate success rate chart: {type(e).__name__}: {str(e)}", exc_info=True)
             return None
 
     @staticmethod
@@ -234,7 +237,9 @@ class ChartGenerator:
                     avg_costs.append(0)
 
         # If no results provided, estimate cost using 70/30 split
+        use_estimated_split = False
         if not avg_costs or all(c == 0 for c in avg_costs):
+            use_estimated_split = True
             avg_costs = []
             for avg_token in avg_tokens:
                 # Assume 70% input, 30% output tokens
@@ -261,12 +266,18 @@ class ChartGenerator:
                 # Check for data consistency: p25 should be <= avg <= p75
                 # If not, it means metrics and results are from different datasets
                 if p25 > 0 and p75 > 0:
-                    # If percentiles seem valid but don't bracket avg, skip error bars for this strategy
+                    # If percentiles seem valid but don't bracket avg, log warning
                     if p25 <= avg <= p75:
                         yerr_lower.append(avg - p25)
                         yerr_upper.append(p75 - avg)
                     else:
-                        # Inconsistent data - skip error bars for this strategy
+                        # Inconsistent data - log warning and skip error bars for this strategy
+                        strategy_name = strategies[i] if i < len(strategies) else f"strategy_{i}"
+                        logger.warning(
+                            f"Token chart: percentiles don't bracket average for {strategy_name} "
+                            f"(p25={p25:.0f}, avg={avg:.0f}, p75={p75:.0f}). "
+                            f"This suggests metrics and results are from different datasets. Skipping error bars."
+                        )
                         yerr_lower.append(0)
                         yerr_upper.append(0)
                 else:
@@ -323,12 +334,18 @@ class ChartGenerator:
         lines2, labels2 = ax2.get_legend_handles_labels()
         ax1.legend(lines1 + lines2, labels1 + labels2, loc='upper left')
 
-            plt.title('Token Consumption and Cost Comparison (estimated)', fontsize=14, fontweight='bold')
-            plt.tight_layout()
+        # Add title with estimation note if 70/30 split was used
+        title = 'Token Consumption and Cost Comparison'
+        if use_estimated_split:
+            title += ' (cost estimated using 70/30 input/output ratio)'
+        else:
+            title += ' (estimated)'
+        plt.title(title, fontsize=14, fontweight='bold')
+        plt.tight_layout()
 
-            return ChartGenerator._fig_to_bytes(fig)
-        except Exception:
-            # Return None on any error, caller will handle error display
+        return ChartGenerator._fig_to_bytes(fig)
+        except Exception as e:
+            logger.error(f"Failed to generate token chart: {type(e).__name__}: {str(e)}", exc_info=True)
             return None
 
     @staticmethod
@@ -427,6 +444,6 @@ class ChartGenerator:
             plt.tight_layout()
 
             return ChartGenerator._fig_to_bytes(fig)
-        except Exception:
-            # Return None on any error, caller will handle error display
+        except Exception as e:
+            logger.error(f"Failed to generate iteration distribution: {type(e).__name__}: {str(e)}", exc_info=True)
             return None
