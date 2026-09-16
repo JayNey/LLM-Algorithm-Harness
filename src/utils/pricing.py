@@ -8,7 +8,7 @@ supporting custom pricing files, built-in defaults, and fallback strategies.
 import json
 import logging
 from pathlib import Path
-from typing import Dict, Literal, Optional, Tuple
+from typing import Any, Dict, Literal, Optional, Tuple
 
 logger = logging.getLogger(__name__)
 
@@ -30,7 +30,7 @@ class PricingInfo:
         self.completion_price = completion_price
         self.source = source
 
-    def to_dict(self) -> Dict[str, any]:
+    def to_dict(self) -> Dict[str, Any]:
         """Convert to dictionary format for serialization."""
         return {
             "model": self.model,
@@ -133,8 +133,8 @@ class PricingManager:
                 source="custom"
             )
 
-        # Try prefix match in custom pricing
-        for key in self.custom_pricing:
+        # Try prefix match in custom pricing (longest match first)
+        for key in sorted(self.custom_pricing.keys(), key=len, reverse=True):
             if model.startswith(key):
                 pricing = self.custom_pricing[key]
                 logger.debug(f"Prefix match: {model} matched to custom pricing key '{key}'")

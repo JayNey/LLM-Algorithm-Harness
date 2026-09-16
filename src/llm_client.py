@@ -205,6 +205,10 @@ class LLMClient:
                 "prompt_price_per_1k": pricing_info.prompt_price,
                 "completion_price_per_1k": pricing_info.completion_price,
                 "source": pricing_info.source,
+                "total_cost": (
+                    response.usage.input_tokens * pricing_info.prompt_price / 1000
+                    + response.usage.output_tokens * pricing_info.completion_price / 1000
+                ),
             },
         )
 
@@ -231,7 +235,5 @@ class LLMClient:
             usage.prompt_tokens * pricing_info.prompt_price / 1000
             + usage.completion_tokens * pricing_info.completion_price / 1000
         )
-
-        return cost
 
         return cost

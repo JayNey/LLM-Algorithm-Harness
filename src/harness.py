@@ -236,12 +236,12 @@ class AlgorithmHarness:
                                 "prompt_tokens": 0,
                                 "completion_tokens": 0,
                                 "total_cost": 0.0,
-                                "input_price_per_mtok": pm.get("input_price_per_mtok"),
-                                "output_price_per_mtok": pm.get("output_price_per_mtok"),
+                                "prompt_price_per_1k": pm.get("prompt_price_per_1k"),
+                                "completion_price_per_1k": pm.get("completion_price_per_1k"),
                             }
 
-                        pricing_metadata["models_used"][model]["prompt_tokens"] += pm.get("prompt_tokens", 0)
-                        pricing_metadata["models_used"][model]["completion_tokens"] += pm.get("completion_tokens", 0)
+                        pricing_metadata["models_used"][model]["prompt_tokens"] += trace.get("prompt_tokens", 0)
+                        pricing_metadata["models_used"][model]["completion_tokens"] += trace.get("completion_tokens", 0)
                         pricing_metadata["models_used"][model]["total_cost"] += pm.get("total_cost", 0.0)
             else:
                 # Fallback: use token counts without pricing
