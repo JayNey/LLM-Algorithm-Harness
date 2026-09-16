@@ -26,7 +26,7 @@ from src.models import ExecutionResult
 from src.reporting import CSVExporter, MarkdownGenerator, ChartGenerator, HTMLGenerator
 
 
-def load_results_from_dir(results_dir: str) -> Dict[str, List[ExecutionResult]]:
+def load_results_from_dir(results_dir: str):
     """
     Load evaluation results from a harness output directory.
 
@@ -34,6 +34,9 @@ def load_results_from_dir(results_dir: str) -> Dict[str, List[ExecutionResult]]:
     files, or the base results directory (picks the run named by
     ``latest.json``). Strategies are keyed by the ``strategy`` field of
     the records.
+
+    Returns:
+        (results, run_dir) where run_dir is the resolved run directory.
     """
     dir_path = Path(results_dir)
     files = sorted(dir_path.glob("*_results.json"))
@@ -64,7 +67,7 @@ def load_results_from_dir(results_dir: str) -> Dict[str, List[ExecutionResult]]:
             strategy = result_data.get("strategy", path.stem.replace("_results", ""))
             results.setdefault(strategy, []).append(ExecutionResult(**result_data))
 
-    return results
+    return results, dir_path
 
 
 def load_model_name(config_path: str = "config.json") -> str:
@@ -111,19 +114,26 @@ def main():
         help="Directory containing <strategy>_results.json files (default: results)"
     )
     parser.add_argument(
-        "--output", type=str, default="reports",
-        help="Output directory for generated reports (default: reports)"
+        "--output", type=str, default=None,
+        help="Output directory for generated reports (default: reports/<run-name>, "
+             "plus a copy in reports/latest)"
     )
     args = parser.parse_args()
 
     print(f"Loading evaluation results from {args.results_dir}/ ...")
-    results = load_results_from_dir(args.results_dir)
+    results, run_dir = load_results_from_dir(args.results_dir)
     for strategy, strategy_results in sorted(results.items()):
         print(f"  {strategy}: {len(strategy_results)} problems")
     metrics = calculate_metrics(results)
 
-    # Create output directory
-    output_dir = Path(args.output)
+    # Reports are archived per run: reports/<run-name>/ keeps history,
+    # reports/latest/ always mirrors the most recent generation.
+    if args.output:
+        output_dir = Path(args.output)
+        latest_dir = None
+    else:
+        output_dir = Path("reports") / run_dir.name
+        latest_dir = Path("reports") / "latest"
     output_dir.mkdir(parents=True, exist_ok=True)
 
     print(f"\nGenerating reports in {output_dir}/")
@@ -182,6 +192,15 @@ def main():
         }
     )
     print(f"        ✓ Saved to {html_path}")
+
+    # Mirror the freshest reports to reports/latest/ for a stable entry point
+    if latest_dir is not None:
+        import shutil
+
+        if latest_dir.exists():
+            shutil.rmtree(latest_dir)
+        shutil.copytree(output_dir, latest_dir)
+        print(f"\nℹ Also copied to {latest_dir}/ (always reflects the latest run)")
 
     print(f"\n✅ All reports generated successfully!")
     print(f"\n📊 Open {html_path} in your browser to view the interactive report.")
