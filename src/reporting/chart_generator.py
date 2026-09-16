@@ -192,49 +192,49 @@ class ChartGenerator:
 
             if results:
                 for strategy in strategies:
-                strategy_results = results.get(strategy, [])
-                if strategy_results:
-                    # Extract total tokens from each result
-                    token_counts = []
-                    costs = []
+                    strategy_results = results.get(strategy, [])
+                    if strategy_results:
+                        # Extract total tokens from each result
+                        token_counts = []
+                        costs = []
 
-                    for result in strategy_results:
-                        total_prompt = 0
-                        total_completion = 0
-                        result_cost = 0.0
+                        for result in strategy_results:
+                            total_prompt = 0
+                            total_completion = 0
+                            result_cost = 0.0
 
-                        for iteration in result.iterations:
-                            total_prompt += iteration.prompt_tokens
-                            total_completion += iteration.completion_tokens
-                            # Calculate cost per iteration to preserve input/output pricing
-                            result_cost += ChartGenerator._calculate_cost(
-                                iteration.prompt_tokens,
-                                iteration.completion_tokens,
-                                model
-                            )
+                            for iteration in result.iterations:
+                                total_prompt += iteration.prompt_tokens
+                                total_completion += iteration.completion_tokens
+                                # Calculate cost per iteration to preserve input/output pricing
+                                result_cost += ChartGenerator._calculate_cost(
+                                    iteration.prompt_tokens,
+                                    iteration.completion_tokens,
+                                    model
+                                )
 
-                        total_tokens = total_prompt + total_completion
-                        token_counts.append(total_tokens)
-                        costs.append(result_cost)
+                            total_tokens = total_prompt + total_completion
+                            token_counts.append(total_tokens)
+                            costs.append(result_cost)
 
-                    # Calculate 25th and 75th percentiles
-                    if token_counts:
-                        p25 = np.percentile(token_counts, 25)
-                        p75 = np.percentile(token_counts, 75)
-                        percentile_25.append(p25)
-                        percentile_75.append(p75)
+                        # Calculate 25th and 75th percentiles
+                        if token_counts:
+                            p25 = np.percentile(token_counts, 25)
+                            p75 = np.percentile(token_counts, 75)
+                            percentile_25.append(p25)
+                            percentile_75.append(p75)
 
-                        # Calculate average cost
-                        avg_cost = np.mean(costs) if costs else 0
-                        avg_costs.append(avg_cost)
+                            # Calculate average cost
+                            avg_cost = np.mean(costs) if costs else 0
+                            avg_costs.append(avg_cost)
+                        else:
+                            percentile_25.append(0)
+                            percentile_75.append(0)
+                            avg_costs.append(0)
                     else:
                         percentile_25.append(0)
                         percentile_75.append(0)
                         avg_costs.append(0)
-                else:
-                    percentile_25.append(0)
-                    percentile_75.append(0)
-                    avg_costs.append(0)
 
             # If no results provided, estimate cost using 70/30 split
             use_estimated_split = False
@@ -248,7 +248,8 @@ class ChartGenerator:
                     cost = ChartGenerator._calculate_cost(estimated_prompt, estimated_completion, model)
                     avg_costs.append(cost)
 
-                fig, ax1 = plt.subplots(figsize=(12, 6))
+            # Create figure and axes
+            fig, ax1 = plt.subplots(figsize=(12, 6))
 
             # Primary Y-axis: Tokens (left)
             x_pos = range(len(strategies))
