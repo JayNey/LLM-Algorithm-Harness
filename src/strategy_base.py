@@ -4,7 +4,7 @@ Base strategy interface and common utilities.
 
 import re
 from abc import ABC, abstractmethod
-from typing import Optional
+from typing import List, Optional
 
 from src.llm_client import LLMClient
 from src.models import (

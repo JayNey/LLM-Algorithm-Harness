@@ -184,6 +184,10 @@ class StrategyReport(BaseModel):
         None,
         description="Pricing information used for cost estimation (model, prompt_price_per_1k, completion_price_per_1k, source)"
     )
+    by_difficulty: Dict[str, Dict[str, Any]] = Field(
+        default_factory=dict,
+        description="Success rate breakdown by difficulty level"
+    )
 
 
 # ============================================================================

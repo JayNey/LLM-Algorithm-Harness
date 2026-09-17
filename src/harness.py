@@ -2,7 +2,7 @@
 Main Harness - Coordinates evaluation workflow.
 """
 
-from typing import Dict, List
+from typing import Any, Dict, List
 
 from src.llm_client import LLMClient
 from src.models import (
@@ -172,6 +172,9 @@ class AlgorithmHarness:
         # Estimate cost with pricing metadata
         total_cost, pricing_metadata = self._estimate_cost(results)
 
+        # Calculate by_difficulty breakdown
+        by_difficulty = self._calculate_by_difficulty(results, problems)
+
         report = StrategyReport(
             strategy_name=strategy_config.name,
             total_problems=total_problems,
@@ -183,6 +186,7 @@ class AlgorithmHarness:
             avg_tokens_per_problem=avg_tokens_per_problem,
             estimated_cost_usd=total_cost,
             pricing_metadata=pricing_metadata,
+            by_difficulty=by_difficulty,
         )
 
         logger.info(
@@ -252,6 +256,44 @@ class AlgorithmHarness:
         pricing_metadata["total_cost"] = total_cost
 
         return total_cost, pricing_metadata
+
+    def _calculate_by_difficulty(
+        self, results: List[ExecutionResult], problems: List[Problem]
+    ) -> Dict[str, Dict[str, Any]]:
+        """
+        Calculate success rate breakdown by difficulty level.
+
+        Args:
+            results: Execution results
+            problems: List of problems
+
+        Returns:
+            Dictionary mapping difficulty level to stats
+        """
+        # Create a mapping from problem_id to difficulty
+        problem_difficulty = {p.problem_id: p.difficulty for p in problems}
+
+        # Group results by difficulty
+        by_difficulty = {}
+        for result in results:
+            difficulty = problem_difficulty.get(result.problem_id)
+            if difficulty:
+                if difficulty not in by_difficulty:
+                    by_difficulty[difficulty] = {
+                        "solved": 0,
+                        "total": 0,
+                        "success_rate": 0.0,
+                    }
+                by_difficulty[difficulty]["total"] += 1
+                if result.status == "success":
+                    by_difficulty[difficulty]["solved"] += 1
+
+        # Calculate success rates
+        for difficulty, stats in by_difficulty.items():
+            if stats["total"] > 0:
+                stats["success_rate"] = stats["solved"] / stats["total"]
+
+        return by_difficulty
 
     def get_results(self, strategy_name: str) -> List[ExecutionResult]:
         """

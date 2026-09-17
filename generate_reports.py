@@ -22,6 +22,8 @@ from pathlib import Path
 
 from src.reporting.html_generator import HTMLGenerator
 from src.reporting.markdown_generator import MarkdownGenerator
+from src.reporting.csv_exporter import CSVExporter
+from src.models import ExecutionResult
 
 
 def find_latest_summary() -> Path:
@@ -91,8 +93,29 @@ def generate_reports(summary_path: str = None, output_dir: str = None):
     out_dir.mkdir(parents=True, exist_ok=True)
 
     # Extract data from summary
-    metrics = data.get("metrics", {})
-    results = data.get("results", {})
+    # Handle both old format (metrics/results) and new format (strategies)
+    if "strategies" in data:
+        # New format: {"strategies": {"strategy_name": {...}}}
+        metrics = data["strategies"]
+        # Load individual result files
+        results = {}
+        results_dir = summary_file.parent
+        for strategy_name in metrics.keys():
+            result_file = results_dir / f"{strategy_name}_results.json"
+            if result_file.exists():
+                with open(result_file, 'r') as f:
+                    strategy_data = json.load(f)
+                    # Convert to ExecutionResult objects
+                    results[strategy_name] = [
+                        ExecutionResult(**r) for r in strategy_data
+                    ]
+            else:
+                results[strategy_name] = []
+    else:
+        # Old format: {"metrics": {...}, "results": {...}}
+        metrics = data.get("metrics", {})
+        results = data.get("results", {})
+
     config = data.get("config", {})
 
     # Generate HTML report
@@ -115,6 +138,12 @@ def generate_reports(summary_path: str = None, output_dir: str = None):
         config=config,
     )
     print(f"✓ Generated Markdown report: {md_path}")
+
+    # Generate CSV export
+    if results:
+        csv_path = out_dir / "evaluation_results.csv"
+        CSVExporter.export_all(results, str(csv_path))
+        print(f"✓ Generated CSV export: {csv_path}")
 
     print(f"\nReports generated successfully in: {out_dir}")
 
