@@ -465,16 +465,16 @@ class HTMLGenerator:
                 else:
                     pricing_source = "默认值"
                     logger.warning(
-                        "pricing_metadata_missing_for_strategy",
-                        strategy=strategy_name,
-                        message="Using fallback pricing for historical report"
+                        "pricing_metadata_missing_for_strategy strategy=%s: %s",
+                        strategy_name,
+                        "Using fallback pricing for historical report",
                     )
             else:
                 # Fallback: re-estimate using current PricingManager
                 logger.warning(
-                    "pricing_metadata_missing_for_strategy",
-                    strategy=strategy_name,
-                    message="No pricing_metadata in summary, using current pricing configuration"
+                    "pricing_metadata_missing_for_strategy strategy=%s: %s",
+                    strategy_name,
+                    "No pricing_metadata in summary, using current pricing configuration",
                 )
                 pricing_source = "当前配置（历史数据不可用）"
 
