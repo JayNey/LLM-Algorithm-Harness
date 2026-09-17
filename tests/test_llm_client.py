@@ -302,7 +302,9 @@ def test_estimate_cost_unknown_model():
         )
 
         cost = client.estimate_cost(usage)
-        assert cost == 0.0
+        # With new PricingManager, unknown models use default pricing ($0.002/1k for both)
+        expected_cost = (1000 * 0.002 / 1000) + (500 * 0.002 / 1000)
+        assert cost == expected_cost
 
 
 def test_openai_api_key_from_env():

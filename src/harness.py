@@ -2,7 +2,7 @@
 Main Harness - Coordinates evaluation workflow.
 """
 
-from typing import Dict, List
+from typing import Any, Dict, List
 
 from src.llm_client import LLMClient
 from src.models import (
@@ -187,8 +187,11 @@ class AlgorithmHarness:
         avg_attempts = total_attempts / total_problems if total_problems > 0 else 0.0
         avg_tokens_per_problem = total_tokens / total_problems if total_problems > 0 else 0.0
 
-        # Estimate cost (approximate)
-        avg_cost_per_problem = self._estimate_cost(results) / total_problems if total_problems > 0 else 0.0
+        # Estimate cost with pricing metadata
+        total_cost, pricing_metadata = self._estimate_cost(results)
+
+        # Calculate by_difficulty breakdown
+        by_difficulty = self._calculate_by_difficulty(results, problems)
 
         report = StrategyReport(
             strategy_name=strategy_config.name,
@@ -199,7 +202,9 @@ class AlgorithmHarness:
             avg_attempts_per_problem=avg_attempts,
             total_tokens=total_tokens,
             avg_tokens_per_problem=avg_tokens_per_problem,
-            estimated_cost_usd=avg_cost_per_problem * total_problems,
+            estimated_cost_usd=total_cost,
+            pricing_metadata=pricing_metadata,
+            by_difficulty=by_difficulty,
             model_failed_problems=model_failed,
             system_failed_problems=system_failed,
         )
@@ -214,25 +219,101 @@ class AlgorithmHarness:
 
         return report
 
-    def _estimate_cost(self, results: List[ExecutionResult]) -> float:
+    def _estimate_cost(self, results: List[ExecutionResult]) -> tuple[float, dict]:
         """
-        Estimate total cost for results.
+        Estimate total cost for results using actual pricing metadata.
 
         Args:
             results: Execution results
 
         Returns:
-            Estimated cost in USD
+            Tuple of (total_cost_usd, pricing_metadata_dict)
         """
-        # Simple approximation based on token pricing
-        # This should use actual pricing from LLMClient
         total_cost = 0.0
+        pricing_metadata = {
+            "total_prompt_tokens": 0,
+            "total_completion_tokens": 0,
+            "total_tokens": 0,
+            "models_used": {},
+            "has_actual_pricing": False,
+        }
 
-        # Approximate: $0.002 per 1K tokens (GPT-3.5 average)
-        total_tokens = sum(r.total_tokens for r in results)
-        total_cost = total_tokens * (0.002 / 1000)
+        for result in results:
+            if result.llm_traces:
+                # Use actual pricing from llm_traces
+                for trace in result.llm_traces:
+                    pricing_metadata["total_prompt_tokens"] += trace.get("prompt_tokens", 0)
+                    pricing_metadata["total_completion_tokens"] += trace.get("completion_tokens", 0)
+                    pricing_metadata["total_tokens"] += trace.get("total_tokens", 0)
 
-        return total_cost
+                    if "pricing_metadata" in trace:
+                        pricing_metadata["has_actual_pricing"] = True
+                        pm = trace["pricing_metadata"]
+
+                        # Accumulate cost
+                        total_cost += pm.get("total_cost", 0.0)
+
+                        # Track model usage
+                        model = pm.get("model", "unknown")
+                        if model not in pricing_metadata["models_used"]:
+                            pricing_metadata["models_used"][model] = {
+                                "prompt_tokens": 0,
+                                "completion_tokens": 0,
+                                "total_cost": 0.0,
+                                "prompt_price_per_1k": pm.get("prompt_price_per_1k"),
+                                "completion_price_per_1k": pm.get("completion_price_per_1k"),
+                            }
+
+                        pricing_metadata["models_used"][model]["prompt_tokens"] += trace.get("prompt_tokens", 0)
+                        pricing_metadata["models_used"][model]["completion_tokens"] += trace.get("completion_tokens", 0)
+                        pricing_metadata["models_used"][model]["total_cost"] += pm.get("total_cost", 0.0)
+            else:
+                # Fallback: use token counts without pricing
+                pricing_metadata["total_tokens"] += result.total_tokens
+                # Approximate: $0.002 per 1K tokens (fallback default)
+                total_cost += result.total_tokens * (0.002 / 1000)
+
+        pricing_metadata["total_cost"] = total_cost
+
+        return total_cost, pricing_metadata
+
+    def _calculate_by_difficulty(
+        self, results: List[ExecutionResult], problems: List[Problem]
+    ) -> Dict[str, Dict[str, Any]]:
+        """
+        Calculate success rate breakdown by difficulty level.
+
+        Args:
+            results: Execution results
+            problems: List of problems
+
+        Returns:
+            Dictionary mapping difficulty level to stats
+        """
+        # Create a mapping from problem_id to difficulty
+        problem_difficulty = {p.problem_id: p.difficulty for p in problems}
+
+        # Group results by difficulty
+        by_difficulty = {}
+        for result in results:
+            difficulty = problem_difficulty.get(result.problem_id)
+            if difficulty:
+                if difficulty not in by_difficulty:
+                    by_difficulty[difficulty] = {
+                        "solved": 0,
+                        "total": 0,
+                        "success_rate": 0.0,
+                    }
+                by_difficulty[difficulty]["total"] += 1
+                if result.status == "success":
+                    by_difficulty[difficulty]["solved"] += 1
+
+        # Calculate success rates
+        for difficulty, stats in by_difficulty.items():
+            if stats["total"] > 0:
+                stats["success_rate"] = stats["solved"] / stats["total"]
+
+        return by_difficulty
 
     def get_results(self, strategy_name: str) -> List[ExecutionResult]:
         """

@@ -50,6 +50,7 @@ class MultiRoundFeedbackStrategy(StrategyBase):
 
         started = time.monotonic()
         iterations = []
+        llm_responses = []
         final_result = None
         success = False
 
@@ -65,6 +66,7 @@ class MultiRoundFeedbackStrategy(StrategyBase):
             llm_error = None
             try:
                 llm_response = self.llm_client.generate(prompt)
+                llm_responses.append(llm_response)
             except Exception as e:
                 llm_error = str(e)
                 self.logger.error(
@@ -129,6 +131,7 @@ class MultiRoundFeedbackStrategy(StrategyBase):
             iterations=iterations,
             final_result=final_result,
             success=success,
+            llm_responses=llm_responses,
             execution_time_seconds=time.monotonic() - started,
         )
 

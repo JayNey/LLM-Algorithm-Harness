@@ -1,0 +1,49 @@
+{
+  "comment": "Custom pricing configuration for LLM Algorithm Harness. Copy this file to 'pricing.json' and modify as needed.",
+  "models": {
+    "gpt-4o": {
+      "prompt_price_per_1k": 0.0025,
+      "completion_price_per_1k": 0.01
+    },
+    "gpt-4o-mini": {
+      "prompt_price_per_1k": 0.00015,
+      "completion_price_per_1k": 0.0006
+    },
+    "gpt-4-turbo": {
+      "prompt_price_per_1k": 0.01,
+      "completion_price_per_1k": 0.03
+    },
+    "gpt-4": {
+      "prompt_price_per_1k": 0.03,
+      "completion_price_per_1k": 0.06
+    },
+    "gpt-3.5-turbo": {
+      "prompt_price_per_1k": 0.0005,
+      "completion_price_per_1k": 0.0015
+    },
+    "claude-3-opus": {
+      "prompt_price_per_1k": 0.015,
+      "completion_price_per_1k": 0.075
+    },
+    "claude-3-sonnet": {
+      "prompt_price_per_1k": 0.003,
+      "completion_price_per_1k": 0.015
+    },
+    "claude-3-haiku": {
+      "prompt_price_per_1k": 0.00025,
+      "completion_price_per_1k": 0.00125
+    },
+    "claude-3.5-sonnet": {
+      "prompt_price_per_1k": 0.003,
+      "completion_price_per_1k": 0.015
+    },
+    "gemini-1.5-pro": {
+      "prompt_price_per_1k": 0.00125,
+      "completion_price_per_1k": 0.005
+    },
+    "gemini-1.5-flash": {
+      "prompt_price_per_1k": 0.000075,
+      "completion_price_per_1k": 0.0003
+    }
+  }
+}

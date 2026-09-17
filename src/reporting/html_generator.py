@@ -444,6 +444,32 @@ class HTMLGenerator:
             html_parts.append(f"<p><strong>System failed:</strong> {system_failed}</p>")
             html_parts.append(f"<p><strong>Avg Tokens:</strong> {avg_tokens:.0f}</p>")
 
+            # Cost information with pricing source
+            estimated_cost = strategy_metrics.get('estimated_cost_usd', 0)
+            pricing_metadata = strategy_metrics.get('pricing_metadata')
+
+            if pricing_metadata:
+                has_actual_pricing = pricing_metadata.get('has_actual_pricing', False)
+                if has_actual_pricing:
+                    pricing_source = "自定义配置/内置定价"
+                else:
+                    pricing_source = "默认值"
+                    logger.warning(
+                        "pricing_metadata_missing_for_strategy",
+                        strategy=strategy_name,
+                        message="Using fallback pricing for historical report"
+                    )
+            else:
+                # Fallback: re-estimate using current PricingManager
+                logger.warning(
+                    "pricing_metadata_missing_for_strategy",
+                    strategy=strategy_name,
+                    message="No pricing_metadata in summary, using current pricing configuration"
+                )
+                pricing_source = "当前配置（历史数据不可用）"
+
+            html_parts.append(f"<p><strong>Estimated Cost:</strong> ${estimated_cost:.4f} ({pricing_source})</p>")
+
             # Details toggle
             details_id = f"details-{idx}"
             html_parts.append(f"<button class='details-toggle' onclick='toggleDetails(\"{details_id}\")'>Show Details</button>")

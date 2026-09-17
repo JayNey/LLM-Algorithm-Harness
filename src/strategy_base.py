@@ -5,7 +5,7 @@ Base strategy interface and common utilities.
 import re
 import time
 from abc import ABC, abstractmethod
-from typing import Optional
+from typing import List, Optional
 
 from src.llm_client import LLMClient
 from src.models import (
@@ -276,6 +276,7 @@ Your response should include the code in a ```python code block.
         iterations: list,
         final_result: Optional[SandboxResult],
         success: bool,
+        llm_responses: Optional[List[LLMResponse]] = None,
         failure_category: Optional[str] = None,
         execution_time_seconds: Optional[float] = None,
     ) -> ExecutionResult:
@@ -287,6 +288,7 @@ Your response should include the code in a ```python code block.
             iterations: List of iteration results
             final_result: Last valid sandbox result (kept on failure too)
             success: Whether solution succeeded
+            llm_responses: Optional list of LLM responses for tracing
             failure_category: Explicit category; derived when omitted
             execution_time_seconds: Measured duration; callers should always
                 pass a real measurement
@@ -309,6 +311,20 @@ Your response should include the code in a ```python code block.
         # Extract error message
         error_message = final_result.error_message if final_result else None
 
+        # Build LLM traces with pricing metadata
+        llm_traces = []
+        if llm_responses:
+            for idx, response in enumerate(llm_responses):
+                trace = {
+                    "iteration": idx + 1,
+                    "prompt_tokens": response.usage.prompt_tokens,
+                    "completion_tokens": response.usage.completion_tokens,
+                    "total_tokens": response.usage.total_tokens,
+                }
+                if response.pricing_metadata:
+                    trace["pricing_metadata"] = response.pricing_metadata
+                llm_traces.append(trace)
+
         return ExecutionResult(
             problem_id=problem.problem_id,
             strategy=self.config.name,
@@ -327,5 +343,5 @@ Your response should include the code in a ```python code block.
             execution_time_seconds=(
                 execution_time_seconds if execution_time_seconds is not None else 0.0
             ),
-            llm_traces=self._build_llm_traces(iterations),
+            llm_traces=llm_traces if llm_responses else self._build_llm_traces(iterations),
         )

@@ -93,6 +93,7 @@ class VanillaStrategy(StrategyBase):
             iterations=[iteration_result],
             final_result=sandbox_result,
             success=success,
+            llm_responses=[llm_response],
             execution_time_seconds=time.monotonic() - started,
         )
 
