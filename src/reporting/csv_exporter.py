@@ -7,6 +7,7 @@ from pathlib import Path
 from typing import Dict, List
 
 from src.models import ExecutionResult
+from src.utils.secrets import redact_sensitive_data
 
 
 class CSVExporter:
@@ -29,6 +30,7 @@ class CSVExporter:
             "problem_id",
             "strategy",
             "status",
+            "failure_category",
             "passed",
             "tokens",
             "time",
@@ -57,6 +59,7 @@ class CSVExporter:
                     "problem_id": result.problem_id,
                     "strategy": result.strategy,
                     "status": result.status,
+                    "failure_category": result.failure_category or "",
                     "passed": result.is_successful(),
                     "tokens": result.total_tokens,
                     "time": round(result.execution_time_seconds, 3),
@@ -67,7 +70,7 @@ class CSVExporter:
                     "failed_tests": failed_tests,
                 }
 
-                writer.writerow(row)
+                writer.writerow(redact_sensitive_data(row))
 
     @staticmethod
     def export_all(results_dict: Dict[str, List[ExecutionResult]], output_path: str) -> None:

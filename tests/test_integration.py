@@ -227,8 +227,15 @@ strategies:
 
         main()
 
-        summary = json.loads((output_path / "summary.json").read_text(encoding="utf-8"))
-        details = json.loads((output_path / "vanilla_results.json").read_text(encoding="utf-8"))
+        summary_path = output_path / "summary.json"
+        if not summary_path.exists():
+            # Runs are archived under results/<run-name>/; use the latest pointer.
+            latest = json.loads((output_path / "latest.json").read_text(encoding="utf-8"))
+            summary_path = output_path / latest["latest_run"] / "summary.json"
+        summary = json.loads(summary_path.read_text(encoding="utf-8"))
+        details = json.loads(
+            (summary_path.parent / "vanilla_results.json").read_text(encoding="utf-8")
+        )
         assert summary["strategies"]["vanilla"]["solved_problems"] == 1
         assert summary["strategies"]["vanilla"]["total_problems"] == 1
         assert details[0]["problem_id"] == "two-sum"

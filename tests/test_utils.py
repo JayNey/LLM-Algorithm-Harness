@@ -1,9 +1,16 @@
 """Tests for utility modules."""
 
 import json
+import logging as std_logging
+import uuid
 
 import pytest
 import yaml
+
+import structlog
+
+import src.utils.logging as logging_utils
+from src.utils.logging import get_logger, setup_logging
 
 from src.utils.config import (
     get_default_config,
@@ -21,6 +28,22 @@ from src.utils.validators import (
 # ============================================================================
 # Config Utils Tests
 # ============================================================================
+
+
+def test_structured_log_processor_redacts_nested_credentials():
+    """Structured event dictionaries are sanitized before rendering."""
+    assert hasattr(logging_utils, "redact_sensitive_event")
+    secret = "issue4-structured-log-secret"
+    event = {
+        "event": "provider_failed",
+        "config": {"llm_config": {"api_key": secret}},
+        "error": f"Authorization: Bearer {secret}",
+    }
+
+    redacted = logging_utils.redact_sensitive_event(None, None, event)
+
+    assert secret not in str(redacted)
+    assert redacted["config"]["llm_config"]["api_key"] == "[REDACTED]"
 
 
 def test_get_default_config():
@@ -284,3 +307,89 @@ def test_validate_strategy_name_invalid_chars():
 
     with pytest.raises(ValueError, match="alphanumeric"):
         validate_strategy_name("invalid/name")
+
+
+# ============================================================================
+# Console logging format tests (readable-console-logs)
+# ============================================================================
+
+
+@pytest.fixture
+def fresh_logging():
+    """Reset logging state around each test so runs stay independent."""
+    root = std_logging.getLogger()
+    for handler in list(root.handlers):
+        root.removeHandler(handler)
+    noisy_levels = {
+        name: std_logging.getLogger(name).level
+        for name in ("httpx", "httpx2", "httpcore", "openai")
+    }
+    yield
+    for handler in list(root.handlers):
+        root.removeHandler(handler)
+    for name, level in noisy_levels.items():
+        std_logging.getLogger(name).setLevel(level)
+    structlog.reset_defaults()
+
+
+def test_console_format_renders_human_readable(fresh_logging, capsys):
+    """Default console mode emits readable key=value lines, not JSON."""
+    setup_logging(level="INFO", console_format="console")
+    get_logger(f"probe-console-{uuid.uuid4().hex}").info("probe_event", problem_id="two-sum")
+
+    out = capsys.readouterr().out
+    assert "probe_event" in out
+    assert "two-sum" in out
+    assert not out.strip().startswith("{")
+
+
+def test_json_format_keeps_machine_readable(fresh_logging, capsys):
+    """Explicit json mode preserves the existing machine-readable output."""
+    import json as json_lib
+
+    setup_logging(level="INFO", console_format="json")
+    get_logger(f"probe-json-{uuid.uuid4().hex}").info("probe_event", problem_id="two-sum")
+
+    out = capsys.readouterr().out
+    parsed = json_lib.loads(out.strip().splitlines()[-1])
+    assert parsed["event"] == "probe_event"
+    assert parsed["problem_id"] == "two-sum"
+
+
+def test_console_format_redacts_credentials(fresh_logging, capsys):
+    """Redaction applies to console output as well."""
+    setup_logging(level="INFO", console_format="console")
+    get_logger(f"probe-redact-{uuid.uuid4().hex}").info("cfg", api_key="sk-secret-123")
+
+    out = capsys.readouterr().out
+    assert "sk-secret-123" not in out
+    assert "[REDACTED]" in out
+
+
+def test_invalid_console_format_rejected(fresh_logging):
+    """Unknown formats fail fast instead of silently falling back."""
+    with pytest.raises(ValueError):
+        setup_logging(level="INFO", console_format="yaml")
+
+
+def test_third_party_noise_suppressed(fresh_logging):
+    """httpx/httpx2/httpcore/openai request logs no longer flood the console."""
+    setup_logging(level="INFO", console_format="console")
+    for name in ("httpx", "httpx2", "httpcore", "openai"):
+        assert std_logging.getLogger(name).level == std_logging.WARNING
+
+
+def test_repeat_setup_switches_format_for_bound_logger(fresh_logging, capsys):
+    """Re-calling setup_logging switches rendering even for already-used loggers."""
+    setup_logging(level="INFO", console_format="json")
+    log = get_logger("probe-rebind")
+    log.info("first_event")
+
+    setup_logging(level="INFO", console_format="console")
+    log.info("second_event")
+
+    lines = [ln for ln in capsys.readouterr().out.strip().splitlines() if ln.strip()]
+    assert len(lines) == 2
+    assert lines[0].startswith("{")
+    assert "second_event" in lines[1]
+    assert not lines[1].startswith("{")

@@ -152,6 +152,14 @@ activemq-data/
 .envrc
 .venv
 env/
+
+# Local secrets
+config.json
+
+# Comet workflow (installed locally via `comet init`; .comet/config.yaml is
+# intentionally tracked per Comet's own managed rules at the end of this file)
+.zcode/
+.DS_Store
 venv/
 ENV/
 env.bak/
@@ -216,8 +224,26 @@ __marimo__/
 
 # Streamlit
 .streamlit/secrets.toml
+
+# Local config with API keys
+config.json
+
+# SiliconFlow config with API key
+config_siliconflow.json
 # >>> Comet managed project state >>>
 !/.comet/
 /.comet/*
 !/.comet/config.yaml
 # <<< Comet managed project state <<<
+
+# Alibaba DashScope config with API key
+config_dashscope.json
+
+# Qwen 27B config
+config_qwen27b.json
+
+# Generated evaluation reports (per-run archives)
+reports/
+
+# Harness evaluation run outputs
+results/

@@ -7,7 +7,9 @@ This module defines all Pydantic data models used throughout the system.
 from datetime import datetime
 from typing import Any, Dict, List, Literal, Optional
 
-from pydantic import BaseModel, Field, field_validator
+from pydantic import BaseModel, Field, SecretStr, field_serializer, field_validator
+
+from src.utils.secrets import REDACTED, redact_sensitive_data
 
 
 # ============================================================================
@@ -132,6 +134,24 @@ class IterationResult(BaseModel):
     completion_tokens: int = Field(0, ge=0, description="Completion tokens used")
     code_extracted: Optional[str] = Field(None, description="Extracted code")
     sandbox_result: Optional[SandboxResult] = Field(None, description="Sandbox execution result")
+    prompt: Optional[str] = Field(
+        None, description="Redacted request prompt sent to the model"
+    )
+    response_text: Optional[str] = Field(
+        None, description="Raw model response text (redacted before persisting)"
+    )
+    llm_error: Optional[str] = Field(
+        None, description="Redacted model API error for this iteration"
+    )
+    sandbox_error: Optional[str] = Field(
+        None, description="Redacted sandbox failure reason for this iteration"
+    )
+    usage_missing: bool = Field(
+        False, description="True when the provider returned no usage data"
+    )
+    elapsed_seconds: float = Field(
+        0.0, ge=0, description="Wall-clock duration of this iteration"
+    )
 
 
 class ExecutionResult(BaseModel):
@@ -141,6 +161,15 @@ class ExecutionResult(BaseModel):
     strategy: str = Field(..., description="Strategy name")
     generated_code: str = Field(..., description="Generated code")
     status: str = Field(..., description="Execution status")
+    failure_category: Optional[
+        Literal["wrong_answer", "code_extraction_failed", "model_error", "system_error"]
+    ] = Field(
+        None,
+        description=(
+            "Failure classification; None for successful runs. Kept separate "
+            "from status so existing status consumers stay compatible"
+        ),
+    )
     iterations: List[IterationResult] = Field(
         default_factory=list, description="Iteration results"
     )
@@ -188,6 +217,12 @@ class StrategyReport(BaseModel):
         default_factory=dict,
         description="Success rate breakdown by difficulty level"
     )
+    model_failed_problems: int = Field(
+        0, ge=0, description="Problems that failed because the model API errored"
+    )
+    system_failed_problems: int = Field(
+        0, ge=0, description="Problems that failed because of harness/system errors"
+    )
 
 
 # ============================================================================
@@ -225,6 +260,10 @@ class LLMResponse(BaseModel):
         None,
         description="Pricing information used for cost estimation"
     )
+    usage_missing: bool = Field(
+        False,
+        description="True when the provider response carried no usage data",
+    )
 
 
 class ProviderResponse(BaseModel):
@@ -246,12 +285,25 @@ class LLMConfig(BaseModel):
     """LLM client configuration."""
 
     provider: Literal["openai", "anthropic", "local"] = Field(..., description="Provider type")
-    api_key: str = Field(..., min_length=0, description="API key")
+    api_key: SecretStr = Field(..., description="API key or environment reference")
     model: str = Field(..., description="Model name")
     base_url: Optional[str] = Field(None, description="Base URL for local models")
     temperature: float = Field(0.7, ge=0.0, le=2.0, description="Sampling temperature")
     max_tokens: int = Field(2000, ge=1, le=8000, description="Max generation tokens")
     timeout: int = Field(30, ge=1, description="Request timeout in seconds")
+    enable_thinking: Optional[bool] = Field(
+        None, description="Toggle thinking mode for reasoning models (e.g. SiliconFlow Qwen3.5)"
+    )
+
+    @field_serializer("api_key", when_used="always")
+    def serialize_api_key(self, value: SecretStr) -> str:
+        """Never place the underlying key into model dumps."""
+        raw_value = value.get_secret_value() if isinstance(value, SecretStr) else str(value)
+        return REDACTED if raw_value else ""
+
+    def redacted_dict(self) -> Dict[str, Any]:
+        """Return a serialization-safe view of the model configuration."""
+        return redact_sensitive_data(self.model_dump(mode="json"))
 
 
 class SandboxConfig(BaseModel):
@@ -297,6 +349,14 @@ class HarnessConfig(BaseModel):
     problem_filters: Optional[Dict[str, Any]] = Field(
         None, description="Optional filters for problems (difficulty, tags, etc.)"
     )
+
+    def redacted_dump(self) -> Dict[str, Any]:
+        """Compatibility alias for callers using the original safe dump API."""
+        return self.redacted_dict()
+
+    def redacted_dict(self) -> Dict[str, Any]:
+        """Return a recursively redacted configuration snapshot."""
+        return redact_sensitive_data(self.model_dump(mode="json"))
 
 
 # ============================================================================

@@ -6,6 +6,7 @@ import os
 from unittest.mock import Mock, patch
 
 import pytest
+from pydantic import SecretStr
 
 from src.llm_client import LLMClient
 from src.models import LLMConfig, TokenUsage
@@ -42,8 +43,10 @@ def test_initialize_openai_client(openai_config):
     with patch("src.llm_client.OpenAI") as mock_openai:
         client = LLMClient(openai_config)
 
-        mock_openai.assert_called_once_with(api_key="test-openai-key")
+        mock_openai.assert_called_once_with(api_key="test-openai-key", max_retries=3)
         assert client.config.provider == "openai"
+        assert isinstance(client._resolved_api_key, SecretStr)
+        assert "test-openai-key" not in repr(client._resolved_api_key)
 
 
 def test_initialize_anthropic_client(anthropic_config):
@@ -161,6 +164,76 @@ def test_generate_anthropic(anthropic_config):
         assert response.model == "claude-3-haiku"
 
 
+def test_generate_openai_missing_usage_marks_response(openai_config):
+    """Providers that omit usage produce a zeroed, explicitly marked response."""
+    with patch("src.llm_client.OpenAI") as mock_openai_class:
+        mock_client = Mock()
+        mock_openai_class.return_value = mock_client
+
+        mock_response = Mock()
+        mock_response.choices = [Mock()]
+        mock_response.choices[0].message.content = "Test response"
+        mock_response.choices[0].finish_reason = "stop"
+        mock_response.usage = None
+        mock_response.model = "gpt-3.5-turbo"
+
+        mock_client.chat.completions.create.return_value = mock_response
+
+        client = LLMClient(openai_config)
+        response = client.generate("Test prompt")
+
+    assert response.usage_missing is True
+    assert response.usage.prompt_tokens == 0
+    assert response.usage.completion_tokens == 0
+    assert response.usage.total_tokens == 0
+
+
+def test_generate_anthropic_missing_usage_marks_response(anthropic_config):
+    """Anthropic responses without usage are zeroed and marked as well."""
+    with patch("src.llm_client.Anthropic") as mock_anthropic_class:
+        mock_client = Mock()
+        mock_anthropic_class.return_value = mock_client
+
+        mock_response = Mock()
+        mock_response.content = [Mock()]
+        mock_response.content[0].text = "Claude response"
+        mock_response.stop_reason = "end_turn"
+        mock_response.usage = None
+        mock_response.model = "claude-3-haiku"
+
+        mock_client.messages.create.return_value = mock_response
+
+        client = LLMClient(anthropic_config)
+        response = client.generate("Test prompt")
+
+    assert response.usage_missing is True
+    assert response.usage.total_tokens == 0
+
+
+def test_generate_openai_usage_present_not_marked_missing(openai_config):
+    """Responses carrying usage keep usage_missing disabled."""
+    with patch("src.llm_client.OpenAI") as mock_openai_class:
+        mock_client = Mock()
+        mock_openai_class.return_value = mock_client
+
+        mock_response = Mock()
+        mock_response.choices = [Mock()]
+        mock_response.choices[0].message.content = "Test response"
+        mock_response.choices[0].finish_reason = "stop"
+        mock_response.usage.prompt_tokens = 100
+        mock_response.usage.completion_tokens = 50
+        mock_response.usage.total_tokens = 150
+        mock_response.model = "gpt-3.5-turbo"
+
+        mock_client.chat.completions.create.return_value = mock_response
+
+        client = LLMClient(openai_config)
+        response = client.generate("Test prompt")
+
+    assert response.usage_missing is False
+    assert response.usage.total_tokens == 150
+
+
 def test_generate_api_error(openai_config):
     """Test handling API errors during generation."""
     with patch("src.llm_client.OpenAI") as mock_openai_class:
@@ -246,7 +319,7 @@ def test_openai_api_key_from_env():
         with patch.dict(os.environ, {"OPENAI_API_KEY": "env-key"}):
             client = LLMClient(config)
 
-            mock_openai.assert_called_once_with(api_key="env-key")
+            mock_openai.assert_called_once_with(api_key="env-key", max_retries=3)
 
 
 def test_anthropic_api_key_from_env():
@@ -262,3 +335,78 @@ def test_anthropic_api_key_from_env():
             client = LLMClient(config)
 
             mock_anthropic.assert_called_once_with(api_key="env-key")
+
+
+@pytest.mark.parametrize("reference", ["env:ISSUE4_API_KEY", "${ISSUE4_API_KEY}"])
+def test_openai_api_key_from_explicit_environment_reference(reference):
+    """Explicit references resolve only at the provider client boundary."""
+    config = LLMConfig(provider="openai", api_key=reference, model="gpt-3.5-turbo")
+
+    with patch("src.llm_client.OpenAI") as mock_openai:
+        with patch.dict(os.environ, {"ISSUE4_API_KEY": "resolved-secret"}, clear=True):
+            LLMClient(config)
+
+    mock_openai.assert_called_once_with(api_key="resolved-secret", max_retries=3)
+    assert "resolved-secret" not in config.model_dump_json()
+
+
+def test_missing_explicit_environment_reference_does_not_dump_environment():
+    """A missing reference names only the missing variable."""
+    config = LLMConfig(
+        provider="openai",
+        api_key="env:MISSING_ISSUE4_API_KEY",
+        model="gpt-3.5-turbo",
+    )
+
+    with patch("src.llm_client.OpenAI"):
+        with patch.dict(os.environ, {"UNRELATED_SECRET": "must-not-leak"}, clear=True):
+            with pytest.raises(ValueError) as exc_info:
+                LLMClient(config)
+
+    message = str(exc_info.value)
+    assert "MISSING_ISSUE4_API_KEY" in message
+    assert "must-not-leak" not in message
+
+
+def test_provider_error_redacts_resolved_api_key(openai_config, capsys):
+    """Provider exceptions cannot propagate a resolved API key."""
+    secret = openai_config.api_key.get_secret_value()
+    with patch("src.llm_client.OpenAI") as mock_openai_class:
+        mock_client = Mock()
+        mock_openai_class.return_value = mock_client
+        mock_client.chat.completions.create.side_effect = Exception(
+            f"request rejected for api_key={secret}"
+        )
+        client = LLMClient(openai_config)
+
+        with pytest.raises(RuntimeError) as exc_info:
+            client.generate("Test prompt")
+
+    assert secret not in str(exc_info.value)
+    assert "[REDACTED]" in str(exc_info.value)
+    assert secret not in capsys.readouterr().out
+
+
+def test_provider_error_uses_key_from_initialization_after_environment_changes(capsys):
+    """Error cleanup uses the exact key supplied to the SDK at initialization."""
+    secret = "issue4-ephemeral-environment-secret"
+    config = LLMConfig(
+        provider="openai",
+        api_key="env:ISSUE4_EPHEMERAL_KEY",
+        model="gpt-3.5-turbo",
+    )
+    with patch("src.llm_client.OpenAI") as mock_openai_class:
+        mock_client = Mock()
+        mock_openai_class.return_value = mock_client
+        with patch.dict(os.environ, {"ISSUE4_EPHEMERAL_KEY": secret}, clear=True):
+            client = LLMClient(config)
+
+        mock_client.chat.completions.create.side_effect = Exception(
+            f"provider echoed {secret}"
+        )
+        with patch.dict(os.environ, {}, clear=True):
+            with pytest.raises(RuntimeError) as exc_info:
+                client.generate("Test prompt")
+
+    assert secret not in str(exc_info.value)
+    assert secret not in capsys.readouterr().out

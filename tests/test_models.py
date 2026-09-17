@@ -2,9 +2,10 @@
 Tests for core data models.
 """
 
-import json
+import pickle
 
 import pytest
+import yaml
 from pydantic import ValidationError
 
 from src.models import (
@@ -20,6 +21,7 @@ from src.models import (
     SandboxResult,
     StrategyConfig,
     StrategyMetrics,
+    StrategyReport,
     TestCase,
     TestCaseResult,
     TokenUsage,
@@ -309,6 +311,52 @@ def test_harness_config():
     assert config.log_level == "INFO"  # Default
 
 
+def test_harness_config_redacted_dump_masks_api_key():
+    """redacted_dump() must never leak the API key (issue #4)."""
+    llm_config = LLMConfig(
+        provider="openai", api_key="sk-secret-key-123", model="gpt-3.5-turbo"
+    )
+    config = HarnessConfig(
+        llm_config=llm_config,
+        dataset_path="data/problems.json",
+    )
+
+    data = config.redacted_dump()
+
+    assert data["llm_config"]["api_key"] == "[REDACTED]"
+    assert "sk-secret-key-123" not in str(data)
+    # Other fields stay intact for debugging
+    assert data["llm_config"]["model"] == "gpt-3.5-turbo"
+    assert data["llm_config"]["provider"] == "openai"
+    assert data["dataset_path"] == "data/problems.json"
+    # Original config object is not mutated
+    assert config.llm_config.api_key.get_secret_value() == "sk-secret-key-123"
+
+
+def test_harness_config_redacted_dump_empty_key():
+    """Empty API key should not gain a placeholder value."""
+    llm_config = LLMConfig(provider="openai", api_key="", model="gpt-3.5-turbo")
+    config = HarnessConfig(llm_config=llm_config, dataset_path="data/problems.json")
+
+    data = config.redacted_dump()
+
+    assert data["llm_config"]["api_key"] == ""
+
+
+def test_llm_config_never_serializes_api_key_in_plaintext():
+    """Configuration representations must not expose the API key."""
+    secret = "issue4-fixed-secret-value"
+    config = LLMConfig(provider="openai", api_key=secret, model="gpt-3.5-turbo")
+
+    dumped = config.model_dump()
+
+    assert secret not in repr(config)
+    assert dumped["api_key"] == "[REDACTED]"
+    assert secret not in yaml.dump(dumped)
+    assert secret.encode() not in pickle.dumps(dumped)
+    assert secret not in config.model_dump_json()
+
+
 # ============================================================================
 # StrategyMetrics Tests
 # ============================================================================
@@ -505,3 +553,105 @@ def test_test_case_result_wrong_answer():
     assert result.passed is False
     assert result.status == "wrong_answer"
     assert result.error_message == "Output mismatch"
+
+
+# ============================================================================
+# Result Recording Field Tests (issue #13)
+# ============================================================================
+
+
+def _minimal_execution_result(**overrides):
+    """Build a minimal ExecutionResult with sensible defaults."""
+    payload = {
+        "problem_id": "test-001",
+        "strategy": "vanilla",
+        "generated_code": "def solution():\n    return 0",
+        "status": "failed",
+    }
+    payload.update(overrides)
+    return ExecutionResult(**payload)
+
+
+def test_iteration_result_defaults_recording_fields():
+    """New iteration recording fields default to empty/zero values."""
+    from src.models import IterationResult
+
+    it = IterationResult(iteration=1)
+
+    assert it.prompt is None
+    assert it.response_text is None
+    assert it.llm_error is None
+    assert it.sandbox_error is None
+    assert it.usage_missing is False
+    assert it.elapsed_seconds == 0.0
+
+
+def test_iteration_result_accepts_recording_fields():
+    """Iteration result stores request, response and error context."""
+    from src.models import IterationResult
+
+    it = IterationResult(
+        iteration=2,
+        prompt="Problem: Two Sum...",
+        response_text="```python\ndef solution():\n    return 0```",
+        llm_error=None,
+        sandbox_error="sandbox crashed",
+        usage_missing=True,
+        elapsed_seconds=1.5,
+    )
+
+    assert it.prompt == "Problem: Two Sum..."
+    assert "def solution" in it.response_text
+    assert it.sandbox_error == "sandbox crashed"
+    assert it.usage_missing is True
+    assert it.elapsed_seconds == 1.5
+
+
+def test_execution_result_failure_category_optional():
+    """ExecutionResult carries an optional failure category."""
+    result = _minimal_execution_result()
+    assert result.failure_category is None
+
+    result = _minimal_execution_result(failure_category="wrong_answer")
+    assert result.failure_category == "wrong_answer"
+
+    with pytest.raises(ValidationError):
+        _minimal_execution_result(failure_category="bogus_category")
+
+
+def test_strategy_report_failure_counts_default():
+    """StrategyReport exposes model/system failure counters defaulting to zero."""
+    report = StrategyReport(
+        strategy_name="vanilla",
+        total_problems=2,
+        solved_problems=1,
+        failed_problems=1,
+        success_rate=0.5,
+        avg_attempts_per_problem=1.0,
+        total_tokens=100,
+        avg_tokens_per_problem=50.0,
+        estimated_cost_usd=0.0,
+    )
+
+    assert report.model_failed_problems == 0
+    assert report.system_failed_problems == 0
+
+
+def test_strategy_report_failure_counts_explicit():
+    """StrategyReport accepts explicit model/system failure counters."""
+    report = StrategyReport(
+        strategy_name="vanilla",
+        total_problems=4,
+        solved_problems=1,
+        failed_problems=2,
+        success_rate=0.25,
+        avg_attempts_per_problem=1.0,
+        total_tokens=100,
+        avg_tokens_per_problem=50.0,
+        estimated_cost_usd=0.0,
+        model_failed_problems=1,
+        system_failed_problems=1,
+    )
+
+    assert report.model_failed_problems == 1
+    assert report.system_failed_problems == 1

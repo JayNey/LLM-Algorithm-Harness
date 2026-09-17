@@ -4,12 +4,14 @@ HTML report generation module.
 
 import base64
 import logging
+import traceback
 from datetime import datetime
 from pathlib import Path
 from typing import Dict, List, Optional
 
 from src.models import ExecutionResult
 from src.reporting.chart_generator import ChartGenerator
+from src.utils.secrets import redact_sensitive_text
 
 logger = logging.getLogger(__name__)
 
@@ -197,6 +199,74 @@ class HTMLGenerator:
                     font-size: 0.9em;
                 }
             }
+
+            .error-container {
+                background-color: #fff5f5;
+                border: 1px solid #fc8181;
+                border-left: 4px solid #f56565;
+                border-radius: 5px;
+                padding: 15px;
+                margin: 15px 0;
+            }
+
+            .error-title {
+                color: #c53030;
+                font-weight: bold;
+                margin-bottom: 8px;
+                display: flex;
+                align-items: center;
+            }
+
+            .error-icon {
+                margin-right: 8px;
+                font-size: 1.2em;
+            }
+
+            .error-message {
+                color: #742a2a;
+                margin: 5px 0;
+                font-family: monospace;
+                font-size: 0.9em;
+            }
+
+            .error-details {
+                margin-top: 10px;
+                padding-top: 10px;
+                border-top: 1px solid #fc8181;
+                font-size: 0.85em;
+                color: #742a2a;
+            }
+
+            .error-toggle {
+                background-color: #fc8181;
+                color: white;
+                border: none;
+                padding: 5px 10px;
+                border-radius: 3px;
+                cursor: pointer;
+                font-size: 0.85em;
+                margin-top: 8px;
+            }
+
+            .error-toggle:hover {
+                background-color: #f56565;
+            }
+
+            .chart-placeholder {
+                background-color: #f7fafc;
+                border: 2px dashed #cbd5e0;
+                border-radius: 5px;
+                padding: 40px;
+                text-align: center;
+                color: #718096;
+                margin: 20px 0;
+            }
+
+            .chart-placeholder-icon {
+                font-size: 3em;
+                margin-bottom: 10px;
+                opacity: 0.5;
+            }
         </style>
         """
 
@@ -235,6 +305,50 @@ class HTMLGenerator:
         }
         </script>
         """
+
+    @staticmethod
+    def _format_chart_error(chart_name: str, error: Exception, show_traceback: bool = False) -> str:
+        """
+        Format a chart generation error as HTML.
+
+        Args:
+            chart_name: Name of the chart that failed
+            error: The exception that was raised
+            show_traceback: Whether to include full traceback
+
+        Returns:
+            Formatted HTML error message
+        """
+        error_id = f"error-details-{chart_name.replace(' ', '-').lower()}"
+        error_type = type(error).__name__
+        error_msg = str(error)
+
+        html_parts = []
+        html_parts.append("<div class='error-container'>")
+        html_parts.append("<div class='error-title'>")
+        html_parts.append("<span class='error-icon'>⚠️</span>")
+        html_parts.append(f"<span>Failed to generate {chart_name}</span>")
+        html_parts.append("</div>")
+        html_parts.append(f"<div class='error-message'><strong>{error_type}:</strong> {error_msg}</div>")
+
+        if show_traceback:
+            tb_str = traceback.format_exc()
+            html_parts.append(f"<button class='error-toggle' onclick='toggleDetails(\"{error_id}\")'>Show Technical Details</button>")
+            html_parts.append(f"<div id='{error_id}' class='error-details' style='display: none;'>")
+            html_parts.append("<pre style='white-space: pre-wrap; word-wrap: break-word;'>")
+            html_parts.append(tb_str)
+            html_parts.append("</pre>")
+            html_parts.append("</div>")
+
+        html_parts.append("</div>")
+
+        # Add placeholder
+        html_parts.append("<div class='chart-placeholder'>")
+        html_parts.append("<div class='chart-placeholder-icon'>📊</div>")
+        html_parts.append(f"<p>{chart_name} could not be rendered</p>")
+        html_parts.append("</div>")
+
+        return "\n".join(html_parts)
 
     @staticmethod
     def generate(
@@ -297,6 +411,20 @@ class HTMLGenerator:
             solved = strategy_metrics.get('solved_problems', 0)
             total = strategy_metrics.get('total_problems', 0)
             avg_tokens = strategy_metrics.get('avg_tokens_per_problem', 0)
+            # Callers may pass a flat result list instead of a per-strategy dict
+            if isinstance(results, dict):
+                strategy_results = results.get(strategy_name, [])
+            else:
+                strategy_results = [
+                    r for r in (results or [])
+                    if getattr(r, 'strategy', None) == strategy_name
+                ]
+            model_failed = sum(
+                1 for r in strategy_results if r.failure_category == 'model_error'
+            )
+            system_failed = sum(
+                1 for r in strategy_results if r.failure_category == 'system_error'
+            )
 
             # Badge color based on success rate
             if success_rate >= 80:
@@ -312,6 +440,8 @@ class HTMLGenerator:
             html_parts.append(f"<span class='badge {badge_class}'>{success_rate:.1f}% Success</span>")
             html_parts.append("</div>")
             html_parts.append(f"<p><strong>Solved:</strong> {solved}/{total} problems</p>")
+            html_parts.append(f"<p><strong>Model failed:</strong> {model_failed}</p>")
+            html_parts.append(f"<p><strong>System failed:</strong> {system_failed}</p>")
             html_parts.append(f"<p><strong>Avg Tokens:</strong> {avg_tokens:.0f}</p>")
 
             # Cost information with pricing source
@@ -368,38 +498,59 @@ class HTMLGenerator:
             html_parts.append("<h2>Performance Charts</h2>")
 
             # Success rate chart
-            try:
-                chart_buf = ChartGenerator.generate_success_rate_chart(metrics)
-                chart_b64 = base64.b64encode(chart_buf.read()).decode('utf-8')
-                html_parts.append("<div class='chart-container'>")
-                html_parts.append("<h3>Success Rate Comparison</h3>")
-                html_parts.append(f"<img src='data:image/png;base64,{chart_b64}' alt='Success Rate Chart'>")
-                html_parts.append("</div>")
-            except Exception as e:
-                html_parts.append(f"<p>Error generating success rate chart: {str(e)}</p>")
+            chart_buf = ChartGenerator.generate_success_rate_chart(metrics)
+            if chart_buf:
+                try:
+                    chart_b64 = base64.b64encode(chart_buf.read()).decode('utf-8')
+                    html_parts.append("<div class='chart-container'>")
+                    html_parts.append("<h3>Success Rate Comparison</h3>")
+                    html_parts.append(f"<img src='data:image/png;base64,{chart_b64}' alt='Success Rate Chart'>")
+                    html_parts.append("</div>")
+                except Exception as e:
+                    logger.error(f"Failed to encode success rate chart: {str(e)}", exc_info=True)
+                    html_parts.append(HTMLGenerator._format_chart_error("Success Rate Chart", e, show_traceback=True))
+            else:
+                logger.error("Success rate chart generation returned None")
+                error = Exception("Chart generation failed")
+                html_parts.append(HTMLGenerator._format_chart_error("Success Rate Chart", error, show_traceback=False))
 
-            # Token chart
-            try:
-                token_buf = ChartGenerator.generate_token_chart(metrics)
-                token_b64 = base64.b64encode(token_buf.read()).decode('utf-8')
-                html_parts.append("<div class='chart-container'>")
-                html_parts.append("<h3>Token Consumption</h3>")
-                html_parts.append(f"<img src='data:image/png;base64,{token_b64}' alt='Token Chart'>")
-                html_parts.append("</div>")
-            except Exception as e:
-                html_parts.append(f"<p>Error generating token chart: {str(e)}</p>")
+            # Token chart with cost estimation
+            model_name = config.get('model') if config else None
+            token_buf = ChartGenerator.generate_token_chart(metrics, results, model_name)
+            if token_buf:
+                try:
+                    token_b64 = base64.b64encode(token_buf.read()).decode('utf-8')
+                    html_parts.append("<div class='chart-container'>")
+                    html_parts.append("<h3>Token Consumption and Cost</h3>")
+                    html_parts.append(f"<img src='data:image/png;base64,{token_b64}' alt='Token Chart'>")
+                    html_parts.append("</div>")
+                except Exception as e:
+                    logger.error(f"Failed to encode token chart: {str(e)}", exc_info=True)
+                    html_parts.append(HTMLGenerator._format_chart_error("Token Chart", e, show_traceback=True))
+            else:
+                logger.error("Token chart generation returned None")
+                error = Exception("Chart generation failed")
+                html_parts.append(HTMLGenerator._format_chart_error("Token Chart", error, show_traceback=False))
 
             # Iteration distribution
-            try:
-                iter_buf = ChartGenerator.generate_iteration_distribution(results)
-                if iter_buf:
+            iter_buf = ChartGenerator.generate_iteration_distribution(results)
+            if iter_buf:
+                try:
                     iter_b64 = base64.b64encode(iter_buf.read()).decode('utf-8')
                     html_parts.append("<div class='chart-container'>")
                     html_parts.append("<h3>Iteration Distribution</h3>")
                     html_parts.append(f"<img src='data:image/png;base64,{iter_b64}' alt='Iteration Distribution'>")
                     html_parts.append("</div>")
-            except Exception as e:
-                html_parts.append(f"<p>Error generating iteration distribution: {str(e)}</p>")
+                except Exception as e:
+                    logger.error(f"Failed to encode iteration distribution: {str(e)}", exc_info=True)
+                    html_parts.append(HTMLGenerator._format_chart_error("Iteration Distribution Chart", e, show_traceback=True))
+            else:
+                logger.info("Iteration distribution chart returned None (no multi-round data)")
+                html_parts.append("<div class='chart-placeholder'>")
+                html_parts.append("<div class='chart-placeholder-icon'>📊</div>")
+                html_parts.append("<p>Iteration Distribution chart: No multi-round data available</p>")
+                html_parts.append("</div>")
+
 
         # Footer
         html_parts.append("<div class='footer'>")
@@ -411,7 +562,7 @@ class HTMLGenerator:
         html_parts.append("</body>")
         html_parts.append("</html>")
 
-        html_content = "\n".join(html_parts)
+        html_content = redact_sensitive_text("\n".join(html_parts))
 
         # Save to file
         output_path_obj = Path(output_path)

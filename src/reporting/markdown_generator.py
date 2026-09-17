@@ -8,6 +8,7 @@ from pathlib import Path
 from typing import Dict, List
 
 from src.models import ExecutionResult
+from src.utils.secrets import redact_sensitive_text
 
 logger = logging.getLogger(__name__)
 
@@ -167,7 +168,10 @@ class MarkdownGenerator:
                 shown_count = min(10, len(failed))
                 for result in failed[:shown_count]:
                     error_msg = result.error_message or "Unknown error"
-                    lines.append(f"- **{result.problem_id}**: {error_msg}")
+                    category = result.failure_category or "unknown"
+                    lines.append(
+                        f"- **{result.problem_id}** ({category}): {error_msg}"
+                    )
 
                 if len(failed) > 10:
                     lines.append(f"- ... and {len(failed) - 10} more")
@@ -178,7 +182,7 @@ class MarkdownGenerator:
             lines.append("No failures recorded.")
             lines.append("")
 
-        markdown_content = "\n".join(lines)
+        markdown_content = redact_sensitive_text("\n".join(lines))
 
         # Save to file
         output_path_obj = Path(output_path)

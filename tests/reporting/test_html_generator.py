@@ -4,6 +4,7 @@ Unit tests for HTMLGenerator.
 
 from pathlib import Path
 from typing import Dict, List
+from unittest.mock import MagicMock, patch
 
 import pytest
 
@@ -220,6 +221,28 @@ def test_generate_responsive_design(temp_html_path: str, sample_metrics: Dict, s
     assert "max-width" in content
 
 
+def test_generate_redacts_credentials_from_rendering_errors(
+    temp_html_path: str, sample_metrics: Dict, sample_results: Dict
+):
+    """HTML output sanitizes exceptions raised while rendering charts."""
+    secret = "issue4-html-export-secret"
+    chart_buffer = MagicMock()
+    chart_buffer.read.side_effect = Exception(f"chart failed with api_key={secret}")
+    with patch(
+        "src.reporting.html_generator.ChartGenerator.generate_success_rate_chart",
+        return_value=chart_buffer,
+    ):
+        content = HTMLGenerator.generate(
+            sample_metrics,
+            sample_results,
+            temp_html_path,
+            include_charts=True,
+        )
+
+    assert secret not in content
+    assert "[REDACTED]" in content
+
+
 def test_generate_footer(temp_html_path: str, sample_metrics: Dict, sample_results: Dict):
     """Test that footer is included."""
     content = HTMLGenerator.generate(
@@ -286,3 +309,75 @@ def test_generate_self_contained(temp_html_path: str, sample_metrics: Dict, samp
     assert 'href="http' not in content
     assert 'src="http' not in content
     assert '<link' not in content  # No external stylesheets
+
+
+def test_html_strategy_card_shows_failure_counts(temp_html_path: str):
+    """Strategy cards report model and system failure counts."""
+    def _result(pid: str, status: str, category) -> ExecutionResult:
+        return ExecutionResult(
+            problem_id=pid,
+            strategy="direct",
+            generated_code="",
+            status=status,
+            failure_category=category,
+            iterations=[],
+            test_results=[],
+            total_tokens=10,
+        )
+
+    results = {
+        "direct": [
+            _result("p1", "success", None),
+            _result("p2", "error", "model_error"),
+            _result("p3", "error", "system_error"),
+        ]
+    }
+    metrics = {
+        "direct": {
+            "total_problems": 3,
+            "solved_problems": 1,
+            "success_rate": 1 / 3,
+            "avg_tokens_per_problem": 10.0,
+        }
+    }
+
+    HTMLGenerator.generate(metrics, results, temp_html_path, include_charts=False)
+
+    content = Path(temp_html_path).read_text()
+    assert "<strong>Model failed:</strong> 1" in content
+    assert "<strong>System failed:</strong> 1" in content
+
+
+def test_html_flat_result_list_counts_failures(temp_html_path: str):
+    """A flat results list is filtered per strategy for failure counts."""
+    def _result(pid: str, strategy: str, status: str, category) -> ExecutionResult:
+        return ExecutionResult(
+            problem_id=pid,
+            strategy=strategy,
+            generated_code="",
+            status=status,
+            failure_category=category,
+            iterations=[],
+            test_results=[],
+            total_tokens=10,
+        )
+
+    flat_results = [
+        _result("p1", "direct", "success", None),
+        _result("p2", "direct", "error", "model_error"),
+        _result("p3", "other", "error", "system_error"),
+    ]
+    metrics = {
+        "direct": {
+            "total_problems": 2,
+            "solved_problems": 1,
+            "success_rate": 0.5,
+            "avg_tokens_per_problem": 10.0,
+        }
+    }
+
+    HTMLGenerator.generate(metrics, flat_results, temp_html_path, include_charts=False)
+
+    content = Path(temp_html_path).read_text()
+    assert "<strong>Model failed:</strong> 1" in content
+    assert "<strong>System failed:</strong> 0" in content

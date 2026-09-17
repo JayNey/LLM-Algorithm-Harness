@@ -2,6 +2,8 @@
 Vanilla strategy - Direct problem solving without guidance.
 """
 
+import time
+
 from src.llm_client import LLMClient
 from src.models import ExecutionResult, Problem, StrategyConfig
 from src.sandbox_executor import SandboxExecutor
@@ -41,17 +43,28 @@ class VanillaStrategy(StrategyBase):
         """
         self.logger.info("executing_vanilla_strategy", problem_id=problem.problem_id)
 
+        started = time.monotonic()
+
         # Build prompt
         prompt = self.build_base_prompt(problem)
 
-        # Get LLM response
-        llm_response = self.llm_client.generate(prompt)
+        # Get LLM response (errors become a terminal model_error result)
+        llm_response = None
+        llm_error = None
+        try:
+            llm_response = self.llm_client.generate(prompt)
+        except Exception as e:
+            llm_error = str(e)
+            self.logger.error("llm_generation_failed", error=llm_error)
 
         # Extract code
-        code = self.extract_code(llm_response.text)
+        code = None
+        if llm_response is not None:
+            code = self.extract_code(llm_response.text)
 
         # Execute in sandbox
         sandbox_result = None
+        sandbox_error = None
         success = False
 
         if code:
@@ -59,7 +72,8 @@ class VanillaStrategy(StrategyBase):
                 sandbox_result = self.sandbox.execute(code, problem)
                 success = sandbox_result.all_passed
             except Exception as e:
-                self.logger.error("sandbox_execution_failed", error=str(e))
+                sandbox_error = str(e)
+                self.logger.error("sandbox_execution_failed", error=sandbox_error)
 
         # Create iteration result
         iteration_result = self.create_iteration_result(
@@ -67,6 +81,10 @@ class VanillaStrategy(StrategyBase):
             llm_response=llm_response,
             code=code,
             sandbox_result=sandbox_result,
+            prompt=prompt,
+            llm_error=llm_error,
+            sandbox_error=sandbox_error,
+            elapsed_seconds=time.monotonic() - started,
         )
 
         # Create execution result
@@ -76,6 +94,7 @@ class VanillaStrategy(StrategyBase):
             final_result=sandbox_result,
             success=success,
             llm_responses=[llm_response],
+            execution_time_seconds=time.monotonic() - started,
         )
 
         self.logger.info(

@@ -20,6 +20,7 @@ from src.strategies.chain_of_thought import ChainOfThoughtStrategy
 from src.strategies.multi_round_feedback import MultiRoundFeedbackStrategy
 from src.strategies.vanilla import VanillaStrategy
 from src.utils.logging import get_logger
+from src.utils.secrets import redact_sensitive_text
 
 logger = get_logger(__name__)
 
@@ -43,7 +44,8 @@ class AlgorithmHarness:
         self.config = config
         self.problem_loader = ProblemLoader()
         self.results: Dict[str, List[ExecutionResult]] = {}
-        logger.info("harness_initialized", config=config.model_dump())
+        self.problem_totals: Dict[str, int] = {}
+        logger.info("harness_initialized", config=config.redacted_dict())
 
     def run(self) -> Dict[str, StrategyReport]:
         """
@@ -127,11 +129,24 @@ class AlgorithmHarness:
                 result = strategy.execute(problem)
                 results.append(result)
             except Exception as e:
+                # Every problem x strategy combination must end up with a
+                # terminal record, even when the strategy itself crashes
+                redacted_error = redact_sensitive_text(str(e))
                 logger.error(
                     "problem_execution_failed",
                     strategy=strategy_config.name,
                     problem=problem.problem_id,
-                    error=str(e),
+                    error=redacted_error,
+                )
+                results.append(
+                    ExecutionResult(
+                        problem_id=problem.problem_id,
+                        strategy=strategy_config.name,
+                        generated_code="",
+                        status="error",
+                        failure_category="system_error",
+                        error_message=redacted_error,
+                    )
                 )
 
         # Generate report
@@ -139,6 +154,7 @@ class AlgorithmHarness:
 
         # Store results
         self.results[strategy_config.name] = results
+        self.problem_totals[strategy_config.name] = len(problems)
 
         return report
 
@@ -161,6 +177,8 @@ class AlgorithmHarness:
         """
         total_problems = len(problems)
         solved_problems = sum(1 for r in results if r.status == "success")
+        model_failed = sum(1 for r in results if r.failure_category == "model_error")
+        system_failed = sum(1 for r in results if r.failure_category == "system_error")
         total_attempts = sum(len(r.iterations) for r in results)
         total_tokens = sum(r.total_tokens for r in results)
 
@@ -187,6 +205,8 @@ class AlgorithmHarness:
             estimated_cost_usd=total_cost,
             pricing_metadata=pricing_metadata,
             by_difficulty=by_difficulty,
+            model_failed_problems=model_failed,
+            system_failed_problems=system_failed,
         )
 
         logger.info(
@@ -333,7 +353,9 @@ class AlgorithmHarness:
         }
 
         for strategy_name, results in self.results.items():
-            total = len(results)
+            # Use the same denominator as the strategy report so that a
+            # problem dropped mid-run still counts against the strategy
+            total = self.problem_totals.get(strategy_name, len(results))
             solved = sum(1 for r in results if r.status == "success")
 
             comparison["metrics"][strategy_name] = {

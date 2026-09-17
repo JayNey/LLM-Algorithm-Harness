@@ -5,12 +5,14 @@ Main entry point for LLM Algorithm Harness.
 import argparse
 import json
 import sys
+from datetime import datetime
 from pathlib import Path
 
 from src.harness import AlgorithmHarness
 from src.models import HarnessConfig, LLMConfig, SandboxConfig, StrategyConfig
 from src.utils.config import load_config
-from src.utils.logging import get_logger
+from src.utils.logging import get_logger, setup_logging
+from src.utils.secrets import redact_sensitive_data
 
 logger = get_logger(__name__)
 
@@ -135,44 +137,106 @@ def print_report(reports: dict):
         print()
 
 
-def save_results(reports: dict, output_dir: str, harness: AlgorithmHarness):
+def create_run_dir(output_dir: str) -> Path:
     """
-    Save results to JSON files.
+    Create a timestamped directory for this run's results.
+
+    Args:
+        output_dir: Base output directory
+
+    Returns:
+        Path to the created run directory
+    """
+    run_id = datetime.now().strftime("run-%Y%m%d-%H%M%S")
+    run_path = Path(output_dir) / run_id
+    run_path.mkdir(parents=True, exist_ok=True)
+    return run_path
+
+
+def save_results(reports: dict, output_dir: str, harness: AlgorithmHarness,
+                 config: HarnessConfig):
+    """
+    Save results to a timestamped run directory.
+
+    Layout:
+        <output_dir>/
+        ├── latest.json                     # pointer to the most recent run
+        └── run-YYYYMMDD-HHMMSS/
+            ├── metadata.json               # model, dataset, redacted config snapshot
+            ├── summary.json
+            └── <strategy>_results.json
 
     Args:
         reports: Strategy reports
-        output_dir: Output directory
+        output_dir: Base output directory
         harness: Harness instance with results
+        config: Harness config used for this run (api_key is redacted)
     """
-    output_path = Path(output_dir)
-    output_path.mkdir(parents=True, exist_ok=True)
+    run_path = create_run_dir(output_dir)
+
+    # Save run metadata: what model/dataset/config produced these results
+    config_dict = config.redacted_dump()
+    llm_config = config_dict.get("llm_config", {})
+
+    first_strategy = next(iter(harness.results.values()), [])
+    metadata = {
+        "run_id": run_path.name,
+        "timestamp": datetime.now().isoformat(),
+        "dataset_path": config.dataset_path,
+        "num_problems": len(first_strategy),
+        "strategies": list(harness.results.keys()),
+        "llm": {
+            "provider": llm_config.get("provider"),
+            "model": llm_config.get("model"),
+            "base_url": llm_config.get("base_url"),
+        },
+        "config": config_dict,
+    }
+    metadata_file = run_path / "metadata.json"
+    with open(metadata_file, 'w') as f:
+        json.dump(metadata, f, indent=2)
+    logger.info("metadata_saved", path=str(metadata_file))
 
     # Save summary report
-    summary = {"strategies": {name: report.model_dump() for name, report in reports.items()}}
+    summary = redact_sensitive_data(
+        {"strategies": {name: report.model_dump() for name, report in reports.items()}}
+    )
 
-    summary_file = output_path / "summary.json"
-    with open(summary_file, "w") as f:
+    summary_file = run_path / "summary.json"
+    with open(summary_file, 'w') as f:
         json.dump(summary, f, indent=2)
 
     logger.info("summary_saved", path=str(summary_file))
 
     # Save detailed results per strategy
     for strategy_name, results in harness.results.items():
-        results_file = output_path / f"{strategy_name}_results.json"
-        results_data = [r.model_dump() for r in results]
+        results_file = run_path / f"{strategy_name}_results.json"
+        results_data = redact_sensitive_data([r.model_dump() for r in results])
 
         with open(results_file, "w") as f:
             json.dump(results_data, f, indent=2)
 
         logger.info("strategy_results_saved", strategy=strategy_name, path=str(results_file))
 
-    print(f"\nResults saved to: {output_dir}")
+    # Update the latest-run pointer for tooling
+    latest_file = Path(output_dir) / "latest.json"
+    with open(latest_file, 'w') as f:
+        json.dump({"latest_run": run_path.name}, f, indent=2)
+
+    print(f"\nResults saved to: {run_path}")
 
 
 def main():
     """Main entry point."""
     parser = argparse.ArgumentParser(
         description="LLM Algorithm Harness - Evaluate LLM problem-solving strategies"
+    )
+
+    parser.add_argument(
+        "--log-format",
+        choices=["console", "json"],
+        default="console",
+        help="Terminal log rendering: human-readable console (default) or machine-readable json",
     )
 
     parser.add_argument(
@@ -218,6 +282,8 @@ def main():
 
     args = parser.parse_args()
 
+    setup_logging(console_format=args.log_format)
+
     try:
         # Load or create config
         if args.config:
@@ -238,7 +304,7 @@ def main():
 
         # Print and save results
         print_report(reports)
-        save_results(reports, config.output_dir, harness)
+        save_results(reports, config.output_dir, harness, config)
 
         logger.info("harness_completed")
 

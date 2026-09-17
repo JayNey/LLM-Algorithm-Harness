@@ -1,0 +1,9 @@
+{
+  "action": "pr",
+  "targetBranch": "tweak/20260917/complete-failure-recording",
+  "remote": "origin",
+  "schemaVersion": 1,
+  "changeIdentity": "run:8b99019a-f0fa-46eb-bcd4-7faad2b4244e",
+  "authorizationId": "e28ae80b-b350-45d1-96e1-98c2f75b1784",
+  "authorizedRemoteUrl": "https://github.com/doxassd/LLM-Algorithm-Harness"
+}

@@ -73,7 +73,7 @@ export OPENAI_API_KEY="your-openai-key"
 export ANTHROPIC_API_KEY="your-anthropic-key"
 ```
 
-#### 方式 2: 配置文件
+#### 方式 2: 配置文件引用环境变量
 
 复制示例配置：
 
@@ -81,7 +81,9 @@ export ANTHROPIC_API_KEY="your-anthropic-key"
 cp config.example.json config.json
 ```
 
-编辑 `config.json`，填入 API Key。
+示例配置使用 `"api_key": "env:OPENAI_API_KEY"`，运行时才从环境变量读取原始值。也支持 `${OPENAI_API_KEY}` 语法；留空时会按供应商回退到 `OPENAI_API_KEY` 或 `ANTHROPIC_API_KEY`。
+
+仍可直接填写密钥，但不推荐将凭证保存到文件。配置对象、日志和报告会显示 `[REDACTED]`，模型 SDK 只在初始化边界获得原始值。
 
 ## 快速开始
 
@@ -138,7 +140,7 @@ harness --config config.yaml \
   "output_dir": "./results",
   "llm_config": {
     "provider": "openai",
-    "api_key": "",
+    "api_key": "env:OPENAI_API_KEY",
     "model": "gpt-3.5-turbo",
     "temperature": 0.7,
     "max_tokens": 2000
@@ -168,7 +170,7 @@ dataset_path: data/problems.json
 output_dir: ./results
 llm_config:
   provider: openai
-  api_key: ""
+  api_key: env:OPENAI_API_KEY
   model: gpt-3.5-turbo
 strategies:
   - name: vanilla
