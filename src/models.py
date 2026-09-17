@@ -134,6 +134,24 @@ class IterationResult(BaseModel):
     completion_tokens: int = Field(0, ge=0, description="Completion tokens used")
     code_extracted: Optional[str] = Field(None, description="Extracted code")
     sandbox_result: Optional[SandboxResult] = Field(None, description="Sandbox execution result")
+    prompt: Optional[str] = Field(
+        None, description="Redacted request prompt sent to the model"
+    )
+    response_text: Optional[str] = Field(
+        None, description="Raw model response text (redacted before persisting)"
+    )
+    llm_error: Optional[str] = Field(
+        None, description="Redacted model API error for this iteration"
+    )
+    sandbox_error: Optional[str] = Field(
+        None, description="Redacted sandbox failure reason for this iteration"
+    )
+    usage_missing: bool = Field(
+        False, description="True when the provider returned no usage data"
+    )
+    elapsed_seconds: float = Field(
+        0.0, ge=0, description="Wall-clock duration of this iteration"
+    )
 
 
 class ExecutionResult(BaseModel):
@@ -143,6 +161,15 @@ class ExecutionResult(BaseModel):
     strategy: str = Field(..., description="Strategy name")
     generated_code: str = Field(..., description="Generated code")
     status: str = Field(..., description="Execution status")
+    failure_category: Optional[
+        Literal["wrong_answer", "code_extraction_failed", "model_error", "system_error"]
+    ] = Field(
+        None,
+        description=(
+            "Failure classification; None for successful runs. Kept separate "
+            "from status so existing status consumers stay compatible"
+        ),
+    )
     iterations: List[IterationResult] = Field(
         default_factory=list, description="Iteration results"
     )
@@ -182,6 +209,12 @@ class StrategyReport(BaseModel):
     total_tokens: int = Field(..., ge=0, description="Total tokens used")
     avg_tokens_per_problem: float = Field(..., ge=0.0, description="Average tokens per problem")
     estimated_cost_usd: float = Field(..., ge=0.0, description="Estimated cost in USD")
+    model_failed_problems: int = Field(
+        0, ge=0, description="Problems that failed because the model API errored"
+    )
+    system_failed_problems: int = Field(
+        0, ge=0, description="Problems that failed because of harness/system errors"
+    )
 
 
 # ============================================================================
@@ -215,6 +248,10 @@ class LLMResponse(BaseModel):
     usage: TokenUsage = Field(..., description="Token usage")
     model: str = Field(..., description="Model name")
     finish_reason: Optional[str] = Field(None, description="Finish reason")
+    usage_missing: bool = Field(
+        False,
+        description="True when the provider response carried no usage data",
+    )
 
 
 class ProviderResponse(BaseModel):

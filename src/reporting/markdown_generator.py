@@ -134,7 +134,10 @@ class MarkdownGenerator:
                 shown_count = min(10, len(failed))
                 for result in failed[:shown_count]:
                     error_msg = result.error_message or "Unknown error"
-                    lines.append(f"- **{result.problem_id}**: {error_msg}")
+                    category = result.failure_category or "unknown"
+                    lines.append(
+                        f"- **{result.problem_id}** ({category}): {error_msg}"
+                    )
 
                 if len(failed) > 10:
                     lines.append(f"- ... and {len(failed) - 10} more")

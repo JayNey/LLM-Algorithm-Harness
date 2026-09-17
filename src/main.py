@@ -228,9 +228,15 @@ def save_results(reports: dict, output_dir: str, harness: AlgorithmHarness,
 
 def main():
     """Main entry point."""
-    setup_logging()
     parser = argparse.ArgumentParser(
         description="LLM Algorithm Harness - Evaluate LLM problem-solving strategies"
+    )
+
+    parser.add_argument(
+        "--log-format",
+        choices=["console", "json"],
+        default="console",
+        help="Terminal log rendering: human-readable console (default) or machine-readable json",
     )
 
     parser.add_argument(
@@ -275,6 +281,8 @@ def main():
     )
 
     args = parser.parse_args()
+
+    setup_logging(console_format=args.log_format)
 
     try:
         # Load or create config

@@ -108,7 +108,7 @@ def test_export_empty_list(temp_csv_path: str):
         rows = list(reader)
 
     expected_headers = [
-        "problem_id", "strategy", "status", "passed", "tokens",
+        "problem_id", "strategy", "status", "failure_category", "passed", "tokens",
         "time", "iterations", "error_message", "total_tests",
         "passed_tests", "failed_tests"
     ]
@@ -242,3 +242,33 @@ def test_export_redacts_credentials_in_errors(
     content = Path(temp_csv_path).read_text(encoding="utf-8-sig")
     assert secret not in content
     assert "[REDACTED]" in content
+
+
+def test_csv_export_includes_failure_category(temp_csv_path: str):
+    """Each CSV row records the failure classification."""
+    result = ExecutionResult(
+        problem_id="two_sum",
+        strategy="direct",
+        generated_code="def solution(): pass",
+        status="failed",
+        failure_category="wrong_answer",
+        iterations=[],
+        test_results=[
+            TestCaseResult(
+                test_case_index=0,
+                passed=False,
+                actual_output=[0],
+                expected_output=[1],
+                error_message="Output mismatch",
+                execution_time=0.01,
+                status="wrong_answer",
+            )
+        ],
+    )
+
+    CSVExporter.export([result], temp_csv_path)
+
+    with open(temp_csv_path, encoding="utf-8-sig") as f:
+        rows = list(csv.DictReader(f))
+
+    assert rows[0]["failure_category"] == "wrong_answer"

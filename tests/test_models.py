@@ -21,6 +21,7 @@ from src.models import (
     SandboxResult,
     StrategyConfig,
     StrategyMetrics,
+    StrategyReport,
     TestCase,
     TestCaseResult,
     TokenUsage,
@@ -552,3 +553,105 @@ def test_test_case_result_wrong_answer():
     assert result.passed is False
     assert result.status == "wrong_answer"
     assert result.error_message == "Output mismatch"
+
+
+# ============================================================================
+# Result Recording Field Tests (issue #13)
+# ============================================================================
+
+
+def _minimal_execution_result(**overrides):
+    """Build a minimal ExecutionResult with sensible defaults."""
+    payload = {
+        "problem_id": "test-001",
+        "strategy": "vanilla",
+        "generated_code": "def solution():\n    return 0",
+        "status": "failed",
+    }
+    payload.update(overrides)
+    return ExecutionResult(**payload)
+
+
+def test_iteration_result_defaults_recording_fields():
+    """New iteration recording fields default to empty/zero values."""
+    from src.models import IterationResult
+
+    it = IterationResult(iteration=1)
+
+    assert it.prompt is None
+    assert it.response_text is None
+    assert it.llm_error is None
+    assert it.sandbox_error is None
+    assert it.usage_missing is False
+    assert it.elapsed_seconds == 0.0
+
+
+def test_iteration_result_accepts_recording_fields():
+    """Iteration result stores request, response and error context."""
+    from src.models import IterationResult
+
+    it = IterationResult(
+        iteration=2,
+        prompt="Problem: Two Sum...",
+        response_text="```python\ndef solution():\n    return 0```",
+        llm_error=None,
+        sandbox_error="sandbox crashed",
+        usage_missing=True,
+        elapsed_seconds=1.5,
+    )
+
+    assert it.prompt == "Problem: Two Sum..."
+    assert "def solution" in it.response_text
+    assert it.sandbox_error == "sandbox crashed"
+    assert it.usage_missing is True
+    assert it.elapsed_seconds == 1.5
+
+
+def test_execution_result_failure_category_optional():
+    """ExecutionResult carries an optional failure category."""
+    result = _minimal_execution_result()
+    assert result.failure_category is None
+
+    result = _minimal_execution_result(failure_category="wrong_answer")
+    assert result.failure_category == "wrong_answer"
+
+    with pytest.raises(ValidationError):
+        _minimal_execution_result(failure_category="bogus_category")
+
+
+def test_strategy_report_failure_counts_default():
+    """StrategyReport exposes model/system failure counters defaulting to zero."""
+    report = StrategyReport(
+        strategy_name="vanilla",
+        total_problems=2,
+        solved_problems=1,
+        failed_problems=1,
+        success_rate=0.5,
+        avg_attempts_per_problem=1.0,
+        total_tokens=100,
+        avg_tokens_per_problem=50.0,
+        estimated_cost_usd=0.0,
+    )
+
+    assert report.model_failed_problems == 0
+    assert report.system_failed_problems == 0
+
+
+def test_strategy_report_failure_counts_explicit():
+    """StrategyReport accepts explicit model/system failure counters."""
+    report = StrategyReport(
+        strategy_name="vanilla",
+        total_problems=4,
+        solved_problems=1,
+        failed_problems=2,
+        success_rate=0.25,
+        avg_attempts_per_problem=1.0,
+        total_tokens=100,
+        avg_tokens_per_problem=50.0,
+        estimated_cost_usd=0.0,
+        model_failed_problems=1,
+        system_failed_problems=1,
+    )
+
+    assert report.model_failed_problems == 1
+    assert report.system_failed_problems == 1

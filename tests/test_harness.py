@@ -537,3 +537,105 @@ def test_harness_handles_strategy_failure(harness_config):
         except Exception:
             # Or it may propagate - both behaviors are acceptable
             pass
+
+
+# ============================================================================
+# Terminal record and accounting tests (issue #13)
+# ============================================================================
+
+
+def _execution_result(problem_id, strategy, status, failure_category=None, tokens=100):
+    """Build a minimal ExecutionResult for accounting tests."""
+    return ExecutionResult(
+        problem_id=problem_id,
+        strategy=strategy,
+        generated_code="def solution(): pass",
+        status=status,
+        failure_category=failure_category,
+        iterations=[],
+        total_tokens=tokens,
+    )
+
+
+def test_run_strategy_synthesizes_system_error_result(harness_config, monkeypatch):
+    """Uncaught strategy exceptions still produce a terminal system_error record."""
+    mock_strategy = MagicMock()
+    mock_strategy.execute.side_effect = RuntimeError("boom api_key=sk-secret123")
+    mock_strategy_class = MagicMock(return_value=mock_strategy)
+
+    with patch("src.harness.LLMClient"), patch("src.harness.SandboxExecutor"):
+        harness = AlgorithmHarness(harness_config)
+        monkeypatch.setitem(harness.STRATEGY_MAP, "vanilla", mock_strategy_class)
+
+        problems = harness._load_problems()
+        report = harness._run_strategy(harness_config.strategies[0], problems)
+
+    results = harness.get_results("vanilla")
+    assert len(results) == 1
+    record = results[0]
+    assert record.problem_id == "test-001"
+    assert record.status != "success"
+    assert record.failure_category == "system_error"
+    assert "boom" in record.error_message
+    assert "sk-secret123" not in record.error_message
+
+    assert report.total_problems == 1
+    assert report.solved_problems == 0
+    assert report.system_failed_problems == 1
+
+
+def test_generate_report_failure_accounting(harness_config):
+    """Report totals reconcile as solved + wrong_answer + model + system."""
+    harness = AlgorithmHarness(harness_config)
+
+    problems = [
+        Problem(
+            problem_id=f"test-00{i}",
+            title=f"Problem {i}",
+            description=f"Accounting fixture problem number {i}",
+            difficulty="easy",
+            tags=["test"],
+            test_cases=[TestCase(input={"x": 1}, expected_output=2)],
+        )
+        for i in range(1, 5)
+    ]
+    results = [
+        _execution_result("test-001", "vanilla", "success"),
+        _execution_result("test-002", "vanilla", "failed", "wrong_answer"),
+        _execution_result("test-003", "vanilla", "error", "model_error"),
+        _execution_result("test-004", "vanilla", "error", "system_error"),
+    ]
+
+    report = harness._generate_report(harness_config.strategies[0], results, problems)
+
+    assert report.total_problems == 4
+    assert report.solved_problems == 1
+    assert report.failed_problems == 3
+    assert report.model_failed_problems == 1
+    assert report.system_failed_problems == 1
+    wrong_answer = sum(
+        1 for r in results if r.failure_category == "wrong_answer"
+    )
+    assert (
+        report.solved_problems
+        + wrong_answer
+        + report.model_failed_problems
+        + report.system_failed_problems
+        == report.total_problems
+    )
+
+
+def test_compare_strategies_uses_recorded_problem_total(harness_config):
+    """Comparison denominators match the report totals, not the result count."""
+    harness = AlgorithmHarness(harness_config)
+
+    harness.results["vanilla"] = [
+        _execution_result("test-001", "vanilla", "success"),
+    ]
+    harness.problem_totals["vanilla"] = 2
+
+    comparison = harness.compare_strategies()
+
+    assert comparison["metrics"]["vanilla"]["total"] == 2
+    assert comparison["metrics"]["vanilla"]["solved"] == 1
+    assert comparison["metrics"]["vanilla"]["success_rate"] == 0.5
