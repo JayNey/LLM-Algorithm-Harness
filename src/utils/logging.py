@@ -33,13 +33,17 @@ def setup_logging(
         raise ValueError(f"Unsupported console format: {console_format}")
 
     is_json = console_format == "json"
+    # ANSI codes from the console renderer would leak into the log file,
+    # so file-backed setups stay plain
+    colors = log_file is None and bool(sys.stdout and sys.stdout.isatty())
     renderer = (
         structlog.processors.JSONRenderer()
         if is_json
-        else structlog.dev.ConsoleRenderer(colors=sys.stdout.isatty())
+        else structlog.dev.ConsoleRenderer(colors=colors)
     )
 
-    # Configure structlog
+    # Configure structlog; proxy caching stays off so repeat calls fully
+    # switch rendering for already-bound loggers
     structlog.configure(
         processors=[
             structlog.stdlib.filter_by_level,
@@ -55,11 +59,12 @@ def setup_logging(
         ],
         context_class=dict,
         logger_factory=structlog.stdlib.LoggerFactory(),
-        cache_logger_on_first_use=True,
+        cache_logger_on_first_use=False,
     )
 
-    # Configure standard logging; force rebinds the stream when handlers
-    # already exist (repeat calls, test harnesses, host plugins)
+    # Configure standard logging; force rebinds the stdlib stream when root
+    # handlers already exist (repeat calls, test harnesses, host plugins).
+    # structlog rendering itself is controlled by configure() above
     logging.basicConfig(
         format="%(message)s",
         stream=sys.stdout,

@@ -7,6 +7,8 @@ import uuid
 import pytest
 import yaml
 
+import structlog
+
 import src.utils.logging as logging_utils
 from src.utils.logging import get_logger, setup_logging
 
@@ -314,13 +316,20 @@ def test_validate_strategy_name_invalid_chars():
 
 @pytest.fixture
 def fresh_logging():
-    """Reset root logger handlers so setup_logging rebinds to capsys streams."""
+    """Reset logging state around each test so runs stay independent."""
     root = std_logging.getLogger()
     for handler in list(root.handlers):
         root.removeHandler(handler)
+    noisy_levels = {
+        name: std_logging.getLogger(name).level
+        for name in ("httpx", "httpx2", "httpcore", "openai")
+    }
     yield
     for handler in list(root.handlers):
         root.removeHandler(handler)
+    for name, level in noisy_levels.items():
+        std_logging.getLogger(name).setLevel(level)
+    structlog.reset_defaults()
 
 
 def test_console_format_renders_human_readable(fresh_logging, capsys):
@@ -368,3 +377,19 @@ def test_third_party_noise_suppressed(fresh_logging):
     setup_logging(level="INFO", console_format="console")
     for name in ("httpx", "httpx2", "httpcore", "openai"):
         assert std_logging.getLogger(name).level == std_logging.WARNING
+
+
+def test_repeat_setup_switches_format_for_bound_logger(fresh_logging, capsys):
+    """Re-calling setup_logging switches rendering even for already-used loggers."""
+    setup_logging(level="INFO", console_format="json")
+    log = get_logger("probe-rebind")
+    log.info("first_event")
+
+    setup_logging(level="INFO", console_format="console")
+    log.info("second_event")
+
+    lines = [ln for ln in capsys.readouterr().out.strip().splitlines() if ln.strip()]
+    assert len(lines) == 2
+    assert lines[0].startswith("{")
+    assert "second_event" in lines[1]
+    assert not lines[1].startswith("{")
