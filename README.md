@@ -199,6 +199,12 @@ problem_filters:
     "source_version": "2026-09",
     "input_output_mode": "function",
     "entry_point": "solution(nums, target)",
+    "judge_config": {
+      "comparison": "float_tolerance",
+      "float_tolerance": 0.000001,
+      "whitespace": "trim",
+      "output_format": "auto"
+    },
     "public_test_cases": [
       {
         "input": {"nums": [2, 7, 11, 15], "target": 9},
@@ -217,6 +223,10 @@ problem_filters:
 ```
 
 旧版题目中的 `test_cases` 仍然可以导入，但会保守迁移为 `public_test_cases`，并标记为仅样例验证；系统不会根据旧字段推断隐藏测试。`public_test_cases`、`feedback_test_cases` 和 `hidden_test_cases` 可以按数据集需要为空；缺失的阶段会被显式跳过，空阶段不会被当作通过。
+
+`input_output_mode` 支持 `function` 和 `stdin_stdout`。函数题默认调用 `solution(**test_input)`，也可以用 `entry_point` 声明自定义函数或简单的 LeetCode 方法入口，例如 `solve(value)` 或 `Solution.twoSum(nums, target)`；标准输入输出题的 `TestCase.input` 使用原始字符串，程序从 stdin 读取并写入 stdout。`judge_config.comparison` 可选 `exact`、`float_tolerance` 或 `unordered`，其中 `unordered` 只对明确配置的列表结果忽略顺序；`whitespace` 可选 `exact`、`trim` 或 `tokens`。
+
+链表、树、交互题等需要自定义序列化或交互协议的题目，可以填写 `unsupported_reason`。Harness 会将其标记为 `unsupported`，不会把它记为模型答错。
 
 ## 运行测试
 

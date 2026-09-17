@@ -450,6 +450,57 @@ def test_cot_prompt_includes_input_protocol_and_entry_point(
     assert "main()" in prompt
 
 
+def test_base_prompt_adapts_to_stdin_and_method_protocol(
+    mock_llm_client, mock_sandbox, strategy_config
+):
+    """Prompts describe script and LeetCode method contracts explicitly."""
+    strategy = VanillaStrategy(strategy_config, mock_llm_client, mock_sandbox)
+    stdin_problem = Problem(
+        problem_id="prompt-stdin",
+        title="Prompt Stdin",
+        description="A problem requiring a complete standard input program.",
+        difficulty="easy",
+        input_output_mode="stdin_stdout",
+        entry_point="main()",
+        public_test_cases=[{"input": "1\n", "expected_output": "1\n"}],
+    )
+    method_problem = Problem(
+        problem_id="prompt-method",
+        title="Prompt Method",
+        description="A problem requiring a class method entry point.",
+        difficulty="easy",
+        entry_point="Solution.solve(value)",
+        public_test_cases=[{"input": {"value": 1}, "expected_output": 1}],
+    )
+
+    stdin_prompt = strategy.build_base_prompt(stdin_problem)
+    method_prompt = strategy.build_base_prompt(method_problem)
+
+    assert "complete stdin/stdout program" in stdin_prompt
+    assert "Solution.solve" in method_prompt
+    assert "class Solution" in method_prompt
+
+
+def test_unsupported_problem_is_not_classified_as_wrong_answer(
+    mock_llm_client, mock_sandbox, strategy_config, sample_problem
+):
+    """Unsupported protocol results remain explicitly unsupported."""
+    sample_problem.unsupported_reason = "interactive protocol is unsupported"
+    mock_llm_client.generate.return_value = _code_response()
+    mock_sandbox.execute.return_value = SandboxResult(
+        status="unsupported",
+        all_passed=False,
+        error_message=sample_problem.unsupported_reason,
+    )
+
+    result = VanillaStrategy(strategy_config, mock_llm_client, mock_sandbox).execute(
+        sample_problem
+    )
+
+    assert result.status == "unsupported"
+    assert result.failure_category == "unsupported"
+
+
 def test_multi_round_feedback_max_iterations(mock_llm_client, mock_sandbox, sample_problem, strategy_config):
     """Test multi-round feedback respects max iterations."""
     # All attempts fail

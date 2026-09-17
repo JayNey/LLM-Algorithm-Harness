@@ -48,7 +48,9 @@ def validate_problem_schema(data: Dict[str, Any]) -> bool:
     return True
 
 
-def validate_test_case(test_case: Dict[str, Any]) -> bool:
+def validate_test_case(
+    test_case: Dict[str, Any], input_output_mode: str = "function"
+) -> bool:
     """
     Validate test case format.
 
@@ -67,7 +69,12 @@ def validate_test_case(test_case: Dict[str, Any]) -> bool:
     if "expected_output" not in test_case:
         raise ValueError("Test case missing 'expected_output' field")
 
-    if not isinstance(test_case["input"], dict):
+    if input_output_mode == "stdin_stdout":
+        if not isinstance(test_case["input"], (str, bytes, dict, list, tuple)):
+            raise ValueError(
+                "Test case 'input' must be raw text or a JSON-serializable value"
+            )
+    elif not isinstance(test_case["input"], dict):
         raise ValueError("Test case 'input' must be a dictionary")
 
     return True

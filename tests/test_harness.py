@@ -207,6 +207,36 @@ def test_hidden_only_problem_is_scored_by_hidden_stage(harness_config, monkeypat
     assert sandbox.execute.call_args.kwargs["stage"] == "hidden"
 
 
+def test_unsupported_problem_is_short_circuited_before_strategy(
+    harness_config, monkeypatch
+):
+    """Unsupported protocols never enter model generation or hidden scoring."""
+    problem = Problem(
+        problem_id="unsupported-hidden",
+        title="Unsupported Hidden",
+        description="A problem whose custom protocol is not implemented.",
+        difficulty="hard",
+        unsupported_reason="interactive protocol is unsupported",
+        hidden_test_cases=[{"input": {}, "expected_output": 1}],
+    )
+    strategy = MagicMock()
+    sandbox = MagicMock()
+    monkeypatch.setattr("src.harness.LLMClient", MagicMock())
+    monkeypatch.setattr("src.harness.SandboxExecutor", lambda config: sandbox)
+
+    harness = AlgorithmHarness(harness_config)
+    monkeypatch.setitem(harness.STRATEGY_MAP, "vanilla", lambda *args: strategy)
+
+    report = harness._run_strategy(harness_config.strategies[0], [problem])
+    result = harness.get_results("vanilla")[0]
+
+    strategy.execute.assert_not_called()
+    sandbox.execute.assert_not_called()
+    assert result.status == "unsupported"
+    assert result.failure_category == "unsupported"
+    assert report.formal_evaluable_problems == 0
+
+
 def test_hidden_execution_error_keeps_formal_record(harness_config, monkeypatch):
     """A hidden executor exception remains a formal system failure record."""
     problem = Problem(

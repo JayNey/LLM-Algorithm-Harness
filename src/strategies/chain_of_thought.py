@@ -60,7 +60,7 @@ class ChainOfThoughtStrategy(StrategyBase):
         # Extract code
         code = None
         if llm_response is not None:
-            code = self.extract_code(llm_response.text)
+            code = self.extract_code(llm_response.text, problem)
 
         # Execute in sandbox
         sandbox_result = None
@@ -124,6 +124,7 @@ class ChainOfThoughtStrategy(StrategyBase):
             CoT prompt with reasoning instructions
         """
         test_cases_str = self._format_test_cases(problem)
+        contract = self._solution_contract(problem)
 
         prompt = f"""Problem: {problem.title}
 
@@ -132,6 +133,7 @@ Description:
 
 Input/Output Mode: {problem.input_output_mode}
 Entry Point: {problem.entry_point}
+Judge: {problem.judge_config.comparison}, float tolerance={problem.judge_config.float_tolerance}, whitespace={problem.judge_config.whitespace}
 
 {f"Constraints: {problem.constraints}" if problem.constraints else ""}
 
@@ -145,7 +147,7 @@ Please solve this problem step-by-step:
 3. Consider edge cases and constraints
 4. Then provide a Python solution
 
-Your solution should define a function named 'solution' that takes the test case inputs as parameters and returns the expected output.
+{contract}
 
 Please structure your response as:
 
