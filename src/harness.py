@@ -178,7 +178,9 @@ class AlgorithmHarness:
                             if hidden_result.status != "failed"
                             else "wrong_answer"
                         )
-                        result.error_message = "Hidden evaluation failed"
+                        # Preserve original error_message if present
+                        if not result.error_message:
+                            result.error_message = "Hidden evaluation failed"
                 results.append(result)
             except Exception as e:
                 # Every problem x strategy combination must end up with a
