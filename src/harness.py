@@ -126,6 +126,20 @@ class AlgorithmHarness:
                 progress=f"{i+1}/{len(problems)}",
             )
 
+            if problem.unsupported_reason:
+                results.append(
+                    ExecutionResult(
+                        problem_id=problem.problem_id,
+                        strategy=strategy_config.name,
+                        generated_code="",
+                        status="unsupported",
+                        failure_category="unsupported",
+                        difficulty=problem.difficulty,
+                        error_message=problem.unsupported_reason,
+                    )
+                )
+                continue
+
             try:
                 # Strategies receive a copy with hidden cases removed. The
                 # Harness retains the complete problem for the post-strategy
@@ -134,7 +148,11 @@ class AlgorithmHarness:
                 strategy_problem = problem.model_copy(update={"hidden_test_cases": []})
                 result = strategy.execute(strategy_problem)
                 result.formal_evaluable = problem.formal_evaluable
-                if problem.formal_evaluable and result.generated_code:
+                if (
+                    problem.formal_evaluable
+                    and result.generated_code
+                    and not problem.unsupported_reason
+                ):
                     try:
                         hidden_result = sandbox.execute(
                             result.generated_code, problem, stage="hidden"

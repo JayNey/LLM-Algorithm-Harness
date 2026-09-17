@@ -60,7 +60,7 @@ class VanillaStrategy(StrategyBase):
         # Extract code
         code = None
         if llm_response is not None:
-            code = self.extract_code(llm_response.text)
+            code = self.extract_code(llm_response.text, problem)
 
         # Execute in sandbox
         sandbox_result = None

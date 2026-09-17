@@ -78,7 +78,7 @@ class MultiRoundFeedbackStrategy(StrategyBase):
             sandbox_error = None
 
             if llm_response is not None:
-                code = self.extract_code(llm_response.text)
+                code = self.extract_code(llm_response.text, problem)
 
                 if code:
                     try:
@@ -199,6 +199,7 @@ class MultiRoundFeedbackStrategy(StrategyBase):
             Feedback prompt
         """
         feedback = self._format_feedback(sandbox_result)
+        contract = self._solution_contract(problem)
 
         prompt = f"""Your previous solution for "{problem.title}" had issues.
 
@@ -209,6 +210,7 @@ Description:
 
 Input/Output Mode: {problem.input_output_mode}
 Entry Point: {problem.entry_point}
+Judge: {problem.judge_config.comparison}, float tolerance={problem.judge_config.float_tolerance}, whitespace={problem.judge_config.whitespace}
 
 {f"Constraints: {problem.constraints}" if problem.constraints else ""}
 
@@ -225,7 +227,8 @@ Please fix the issues and provide an improved solution. Focus on:
 2. Correcting the logic errors
 3. Ensuring all edge cases are handled
 
-Provide your improved solution in a ```python code block with a 'solution' function.
+{contract}
+Provide your improved solution in a ```python code block.
 """
 
         return prompt

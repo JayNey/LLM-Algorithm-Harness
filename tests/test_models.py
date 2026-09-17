@@ -13,6 +13,7 @@ from src.models import (
     ExecutionResult,
     ExecutionSummary,
     HarnessConfig,
+    JudgeConfig,
     LLMConfig,
     LLMResponse,
     Problem,
@@ -72,6 +73,26 @@ def test_problem_schema_tracks_sources_and_test_purposes():
     assert problem.feedback_test_cases[0].source == "feedback"
     assert problem.hidden_test_cases[0].source == "hidden"
     assert len(problem.test_cases_for("all")) == 3
+
+
+def test_judge_config_defaults_and_stdin_input_are_supported():
+    """Judge rules have compatibility defaults and stdin cases accept raw text."""
+    config = JudgeConfig()
+    assert config.comparison == "float_tolerance"
+    assert config.float_tolerance == 1e-6
+    assert config.whitespace == "trim"
+
+    problem = Problem(
+        problem_id="stdin-model",
+        title="Stdin Model",
+        description="A problem that stores raw standard input test data.",
+        difficulty="easy",
+        input_output_mode="stdin_stdout",
+        entry_point="main()",
+        public_test_cases=[{"input": "1 2\n", "expected_output": "3\n"}],
+    )
+    assert problem.public_test_cases[0].input == "1 2\n"
+    assert problem.prompt_view()["judge_config"]["whitespace"] == "trim"
 
 
 def test_legacy_test_cases_migrate_to_public_only():

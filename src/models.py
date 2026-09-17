@@ -27,7 +27,7 @@ from src.utils.secrets import REDACTED, redact_sensitive_data
 class TestCase(BaseModel):
     """Single test case for an algorithm problem."""
 
-    input: Dict[str, Any] = Field(..., description="Test input parameters")
+    input: Any = Field(..., description="Function parameters or raw stdin payload")
     expected_output: Any = Field(..., description="Expected output value")
     source: Literal["public", "feedback", "hidden"] = Field(
         "public", description="Test purpose and visibility"
@@ -42,6 +42,23 @@ class TestCase(BaseModel):
             }
         }
     }
+
+
+class JudgeConfig(BaseModel):
+    """Problem-level output comparison and stdin/stdout parsing rules."""
+
+    comparison: Literal["exact", "float_tolerance", "unordered"] = Field(
+        "float_tolerance", description="Output comparison strategy"
+    )
+    float_tolerance: float = Field(
+        1e-6, ge=0.0, description="Absolute and relative tolerance for float comparison"
+    )
+    whitespace: Literal["exact", "trim", "tokens"] = Field(
+        "trim", description="Whitespace policy for text stdout"
+    )
+    output_format: Literal["auto", "text", "json"] = Field(
+        "auto", description="How stdout should be parsed"
+    )
 
 
 class Problem(BaseModel):
@@ -62,6 +79,12 @@ class Problem(BaseModel):
         "function", description="Input/output protocol"
     )
     entry_point: str = Field("solution(**test_input)", description="Execution entry signature")
+    judge_config: JudgeConfig = Field(
+        default_factory=JudgeConfig, description="Problem-level judge configuration"
+    )
+    unsupported_reason: Optional[str] = Field(
+        None, description="Explicit reason when this problem type is unsupported"
+    )
     public_test_cases: List[TestCase] = Field(
         default_factory=list, description="Public examples visible to the model"
     )
@@ -130,7 +153,7 @@ class Problem(BaseModel):
     @property
     def formal_evaluable(self) -> bool:
         """Whether an independent hidden score can be produced for this problem."""
-        return bool(self.hidden_test_cases)
+        return bool(self.hidden_test_cases) and not self.unsupported_reason
 
     def prompt_view(self) -> Dict[str, Any]:
         """Return problem context that excludes feedback and hidden test contents."""
@@ -148,6 +171,8 @@ class Problem(BaseModel):
             "source_version": self.source_version,
             "input_output_mode": self.input_output_mode,
             "entry_point": self.entry_point,
+            "judge_config": self.judge_config.model_dump(mode="json"),
+            "unsupported_reason": self.unsupported_reason,
             "test_cases": [case.model_dump(mode="json") for case in self.public_test_cases],
         }
 
@@ -225,6 +250,7 @@ class SandboxResult(BaseModel):
         "output_limit",
         "process_limit",
         "sandbox_error",
+        "unsupported",
     ] = Field(..., description="Execution status")
     test_results: List[TestCaseResult] = Field(
         default_factory=list, description="Individual test results"
@@ -270,7 +296,13 @@ class ExecutionResult(BaseModel):
     generated_code: str = Field(..., description="Generated code")
     status: str = Field(..., description="Execution status")
     failure_category: Optional[
-        Literal["wrong_answer", "code_extraction_failed", "model_error", "system_error"]
+        Literal[
+            "wrong_answer",
+            "code_extraction_failed",
+            "model_error",
+            "system_error",
+            "unsupported",
+        ]
     ] = Field(
         None,
         description=(
@@ -447,7 +479,16 @@ class SandboxConfig(BaseModel):
     max_output_bytes: int = Field(1_000_000, ge=1024, le=10_000_000)
     max_processes: int = Field(16, ge=1, le=256)
     allowed_imports: List[str] = Field(
-        default_factory=lambda: ["math", "itertools", "collections", "heapq", "bisect", "functools"],
+        default_factory=lambda: [
+            "math",
+            "itertools",
+            "collections",
+            "heapq",
+            "bisect",
+            "functools",
+            "sys",
+            "json",
+        ],
         description="Allowed import modules",
     )
 

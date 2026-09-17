@@ -58,7 +58,9 @@ class StrategyBase(ABC):
         """
         pass
 
-    def extract_code(self, llm_response: str) -> Optional[str]:
+    def extract_code(
+        self, llm_response: str, problem: Problem | None = None
+    ) -> Optional[str]:
         """
         Extract Python code from LLM response.
 
@@ -73,11 +75,31 @@ class StrategyBase(ABC):
         matches = re.findall(pattern, llm_response, re.DOTALL)
 
         code = None
+        entry_name = "solution"
+        if problem and problem.input_output_mode == "function":
+            target = SandboxExecutor._entry_point_parts(problem.entry_point)
+            if target and target[1] is None:
+                entry_name = target[0]
         if matches:
             code = matches[0].strip()
         elif "def solution(" in llm_response:
             code = llm_response.strip()
             self.logger.info("code_extracted_fallback", code_length=len(code))
+        elif problem and problem.input_output_mode == "stdin_stdout":
+            # Script-style answers may omit a Markdown fence and do not define
+            # the function marker used by function-style extraction.
+            code = llm_response.strip()
+            self.logger.info("script_extracted_fallback", code_length=len(code))
+        elif problem and re.search(rf"def\s+{re.escape(entry_name)}\s*\(", llm_response):
+            code = llm_response.strip()
+            self.logger.info("code_extracted_fallback", code_length=len(code))
+        elif problem and problem.input_output_mode == "function":
+            target = SandboxExecutor._entry_point_parts(problem.entry_point)
+            if target and target[1] and re.search(
+                rf"class\s+{re.escape(target[0])}\b", llm_response
+            ):
+                code = llm_response.strip()
+                self.logger.info("class_extracted_fallback", code_length=len(code))
         else:
             # Fallback: unclosed code block (response truncated mid-answer)
             unclosed = re.search(r'```(?:python)?\s*\n(.*)', llm_response, re.DOTALL)
@@ -89,11 +111,11 @@ class StrategyBase(ABC):
             self.logger.warning("code_extraction_failed")
             return None
 
-        code = self._strip_after_solution(code)
+        code = self._strip_after_solution(code, entry_name)
         self.logger.info("code_extracted", code_length=len(code))
         return code
 
-    def _strip_after_solution(self, code: str) -> str:
+    def _strip_after_solution(self, code: str, entry_name: str = "solution") -> str:
         """
         Truncate executable statements appended after the solution function.
 
@@ -105,7 +127,11 @@ class StrategyBase(ABC):
         """
         lines = code.split("\n")
         start = next(
-            (i for i, line in enumerate(lines) if line.lstrip().startswith("def solution(")),
+            (
+                i
+                for i, line in enumerate(lines)
+                if line.lstrip().startswith(f"def {entry_name}(")
+            ),
             None,
         )
         if start is None:
@@ -138,6 +164,7 @@ class StrategyBase(ABC):
             Formatted prompt
         """
         test_cases_str = self._format_test_cases(problem)
+        contract = self._solution_contract(problem)
 
         prompt = f"""Problem: {problem.title}
 
@@ -146,18 +173,45 @@ Description:
 
 Input/Output Mode: {problem.input_output_mode}
 Entry Point: {problem.entry_point}
+Judge: {problem.judge_config.comparison}, float tolerance={problem.judge_config.float_tolerance}, whitespace={problem.judge_config.whitespace}
 
 {f"Constraints: {problem.constraints}" if problem.constraints else ""}
 
 Test Cases:
 {test_cases_str}
 
-Please provide a Python solution that defines a function named 'solution' that takes the test case inputs as parameters and returns the expected output.
+{contract}
 
 Your response should include the code in a ```python code block.
 """
 
         return prompt
+
+    @staticmethod
+    def _solution_contract(problem: Problem) -> str:
+        """Describe the code entry contract appropriate for this problem."""
+        if problem.input_output_mode == "stdin_stdout":
+            return (
+                "Please provide a complete stdin/stdout program in Python. Read input "
+                "from standard input and write only the judged result to standard output. "
+                f"The declared entry point is {problem.entry_point}."
+            )
+        target = SandboxExecutor._entry_point_parts(problem.entry_point)
+        if target and target[1]:
+            class_name, method_name = target
+            return (
+                f"Please define class {class_name} with a method {method_name} "
+                f"matching the entry point {problem.entry_point}."
+            )
+        if target and target[0] != "solution":
+            return (
+                f"Please define a Python function named {target[0]} matching the "
+                f"entry point {problem.entry_point}."
+            )
+        return (
+            "Please provide a Python solution that defines a function named 'solution' "
+            "that takes the test case inputs as parameters and returns the expected output."
+        )
 
     def _format_test_cases(self, problem: Problem, limit: int = 3) -> str:
         """
@@ -250,6 +304,13 @@ Your response should include the code in a ```python code block.
             if last.code_extracted is None and last.sandbox_result is None:
                 return "code_extraction_failed"
         if final_result is not None:
+            if final_result.status == "unsupported":
+                return "unsupported"
+            if any(
+                result.status in {"runtime_error", "syntax_error"}
+                for result in final_result.test_results
+            ):
+                return "system_error"
             if final_result.status in {
                 "sandbox_error",
                 "backend_unavailable",
@@ -257,6 +318,8 @@ Your response should include the code in a ```python code block.
                 "memory_error",
                 "output_limit",
                 "process_limit",
+                "runtime_error",
+                "syntax_error",
             }:
                 return "system_error"
             return "wrong_answer"
@@ -318,7 +381,12 @@ Your response should include the code in a ```python code block.
         generated_code = iterations[-1].code_extracted if iterations and iterations[-1].code_extracted else ""
 
         # Determine status
-        status = "success" if success else ("error" if final_result and final_result.error_message else "failed")
+        if success:
+            status = "success"
+        elif final_result and final_result.status == "unsupported":
+            status = "unsupported"
+        else:
+            status = "error" if final_result and final_result.error_message else "failed"
 
         # Extract test results
         test_results = final_result.test_results if final_result else []
