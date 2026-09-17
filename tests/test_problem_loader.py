@@ -67,6 +67,47 @@ def test_load_valid_dataset(problem_loader, sample_dataset, tmp_path):
     assert problems[0].problem_id == "test-001"
     assert problems[1].title == "Reverse String"
     assert problems[2].difficulty == "medium"
+    assert problems[0].migration_status == "legacy_test_cases_as_public"
+
+
+def test_load_staged_problem_schema(problem_loader, tmp_path):
+    """ProblemLoader accepts native staged tests and source metadata."""
+    dataset_file = tmp_path / "staged.json"
+    dataset_file.write_text(
+        json.dumps(
+            [
+                {
+                    "schema_version": "1.1",
+                    "problem_id": "staged-1",
+                    "title": "Staged Problem",
+                    "description": "A staged problem with independent hidden tests.",
+                    "difficulty": "hard",
+                    "source_platform": "benchmark",
+                    "source_problem_id": "42",
+                    "source_url": "https://example.test/problems/42",
+                    "source_version": "v1",
+                    "input_output_mode": "function",
+                    "entry_point": "solution(value)",
+                    "public_test_cases": [
+                        {"input": {"value": 1}, "expected_output": 1}
+                    ],
+                    "feedback_test_cases": [
+                        {"input": {"value": 2}, "expected_output": 2}
+                    ],
+                    "hidden_test_cases": [
+                        {"input": {"value": 99}, "expected_output": 99}
+                    ],
+                }
+            ]
+        ),
+        encoding="utf-8",
+    )
+
+    problems = problem_loader.load(str(dataset_file))
+
+    assert len(problems) == 1
+    assert problems[0].source_platform == "benchmark"
+    assert len(problems[0].hidden_test_cases) == 1
 
 
 def test_load_file_not_found(problem_loader):

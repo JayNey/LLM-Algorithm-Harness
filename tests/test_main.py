@@ -91,6 +91,10 @@ class TestPrintReport:
             total_tokens=5000,
             avg_tokens_per_problem=500.0,
             estimated_cost_usd=0.025,
+            formal_evaluable_problems=4,
+            formal_solved_problems=3,
+            formal_success_rate=0.75,
+            sample_only_problems=6,
         )
         reports = {"vanilla": report}
 
@@ -112,6 +116,10 @@ class TestPrintReport:
             total_tokens=3000,
             avg_tokens_per_problem=300.0,
             estimated_cost_usd=0.015,
+            formal_evaluable_problems=4,
+            formal_solved_problems=3,
+            formal_success_rate=0.75,
+            sample_only_problems=6,
         )
         report2 = StrategyReport(
             strategy_name="chain_of_thought",
@@ -123,6 +131,10 @@ class TestPrintReport:
             total_tokens=8000,
             avg_tokens_per_problem=800.0,
             estimated_cost_usd=0.040,
+            formal_evaluable_problems=8,
+            formal_solved_problems=6,
+            formal_success_rate=0.75,
+            sample_only_problems=2,
         )
         reports = {"vanilla": report1, "chain_of_thought": report2}
 
@@ -133,6 +145,8 @@ class TestPrintReport:
         assert "chain_of_thought" in captured.out
         assert "50.00%" in captured.out
         assert "80.00%" in captured.out
+        assert "Formal" in captured.out
+        assert "3/4" in captured.out
 
 
 class TestSaveResults:

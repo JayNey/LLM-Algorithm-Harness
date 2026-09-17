@@ -125,6 +125,32 @@ class MarkdownGenerator:
 
         lines.append("")
 
+        formal_metrics = [
+            strategy_metrics
+            for _, strategy_metrics in sorted_strategies
+            if "formal_evaluable_problems" in strategy_metrics
+        ]
+        if formal_metrics:
+            lines.append("## Formal Hidden Evaluation")
+            lines.append("")
+            lines.append(
+                "| Strategy | Formal Success Rate | Formal Solved | Formal Evaluable | Sample Only |"
+            )
+            lines.append(
+                "|----------|--------------------:|--------------:|-----------------:|------------:|"
+            )
+            for strategy_name, strategy_metrics in sorted_strategies:
+                if "formal_evaluable_problems" not in strategy_metrics:
+                    continue
+                lines.append(
+                    f"| {MarkdownGenerator._escape_markdown(strategy_name)} | "
+                    f"{strategy_metrics.get('formal_success_rate', 0) * 100:.1f}% | "
+                    f"{strategy_metrics.get('formal_solved_problems', 0)} | "
+                    f"{strategy_metrics.get('formal_evaluable_problems', 0)} | "
+                    f"{strategy_metrics.get('sample_only_problems', 0)} |"
+                )
+            lines.append("")
+
         # Difficulty breakdown
         lines.append("## Performance by Difficulty")
         lines.append("")

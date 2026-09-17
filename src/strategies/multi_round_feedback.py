@@ -82,7 +82,22 @@ class MultiRoundFeedbackStrategy(StrategyBase):
 
                 if code:
                     try:
-                        sandbox_result = self.sandbox.execute(code, problem)
+                        if problem.public_test_cases:
+                            sandbox_result = self.sandbox.execute(
+                                code, problem, stage="public"
+                            )
+                        if problem.feedback_test_cases:
+                            feedback_result = self.sandbox.execute(
+                                code, problem, stage="feedback"
+                            )
+                            sandbox_result = (
+                                feedback_result
+                                if sandbox_result is None
+                                else self._merge_sandbox_results(sandbox_result, feedback_result)
+                            )
+                        if sandbox_result is None:
+                            # Hidden-only problems are finalized by Harness after this strategy.
+                            success = True
                     except Exception as e:
                         sandbox_error = str(e)
                         self.logger.error(
@@ -112,9 +127,10 @@ class MultiRoundFeedbackStrategy(StrategyBase):
             # failed runs remain inspectable
             if sandbox_result is not None:
                 final_result = sandbox_result
+                success = sandbox_result.all_passed
 
             # Check if successful
-            if sandbox_result is not None and sandbox_result.all_passed:
+            if success:
                 success = True
                 self.logger.info("solution_found", iteration=iteration)
                 break
@@ -144,6 +160,25 @@ class MultiRoundFeedbackStrategy(StrategyBase):
 
         return execution_result
 
+    @staticmethod
+    def _merge_sandbox_results(
+        primary: SandboxResult, feedback: SandboxResult
+    ) -> SandboxResult:
+        """Combine public and feedback results without involving hidden tests."""
+        status = "success" if primary.all_passed and feedback.all_passed else "failed"
+        resource_statuses = {"timeout", "memory_error", "output_limit", "process_limit"}
+        for result in (primary, feedback):
+            if result.status in resource_statuses:
+                status = result.status
+                break
+        return SandboxResult(
+            status=status,
+            test_results=primary.test_results + feedback.test_results,
+            execution_time=primary.execution_time + feedback.execution_time,
+            all_passed=primary.all_passed and feedback.all_passed,
+            error_message=primary.error_message or feedback.error_message,
+        )
+
     def build_feedback_prompt(
         self,
         problem: Problem,
@@ -171,6 +206,9 @@ Problem: {problem.title}
 
 Description:
 {problem.description}
+
+Input/Output Mode: {problem.input_output_mode}
+Entry Point: {problem.entry_point}
 
 {f"Constraints: {problem.constraints}" if problem.constraints else ""}
 

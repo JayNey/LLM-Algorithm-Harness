@@ -144,6 +144,9 @@ class StrategyBase(ABC):
 Description:
 {problem.description}
 
+Input/Output Mode: {problem.input_output_mode}
+Entry Point: {problem.entry_point}
+
 {f"Constraints: {problem.constraints}" if problem.constraints else ""}
 
 Test Cases:
@@ -168,14 +171,16 @@ Your response should include the code in a ```python code block.
             Formatted test cases string
         """
         lines = []
-        for i, tc in enumerate(problem.test_cases[:limit]):
+        for i, tc in enumerate(problem.public_test_cases[:limit]):
             lines.append(f"Test {i+1}:")
             lines.append(f"  Input: {tc.input}")
             lines.append(f"  Expected Output: {tc.expected_output}")
             lines.append("")
 
-        if len(problem.test_cases) > limit:
-            lines.append(f"... and {len(problem.test_cases) - limit} more test cases")
+        if len(problem.public_test_cases) > limit:
+            lines.append(
+                f"... and {len(problem.public_test_cases) - limit} more test cases"
+            )
 
         return "\n".join(lines)
 
@@ -245,6 +250,15 @@ Your response should include the code in a ```python code block.
             if last.code_extracted is None and last.sandbox_result is None:
                 return "code_extraction_failed"
         if final_result is not None:
+            if final_result.status in {
+                "sandbox_error",
+                "backend_unavailable",
+                "timeout",
+                "memory_error",
+                "output_limit",
+                "process_limit",
+            }:
+                return "system_error"
             return "wrong_answer"
         return "code_extraction_failed"
 

@@ -19,7 +19,7 @@ def validate_problem_schema(data: Dict[str, Any]) -> bool:
     Raises:
         ValueError: If schema is invalid
     """
-    required_fields = ["problem_id", "title", "description", "difficulty", "test_cases"]
+    required_fields = ["problem_id", "title", "description", "difficulty"]
 
     for field in required_fields:
         if field not in data:
@@ -28,8 +28,22 @@ def validate_problem_schema(data: Dict[str, Any]) -> bool:
     if data["difficulty"] not in ["easy", "medium", "hard"]:
         raise ValueError(f"Invalid difficulty: {data['difficulty']}")
 
-    if not isinstance(data["test_cases"], list) or len(data["test_cases"]) == 0:
-        raise ValueError("test_cases must be a non-empty list")
+    if "test_cases" in data:
+        if not isinstance(data["test_cases"], list) or len(data["test_cases"]) == 0:
+            raise ValueError("test_cases must be a non-empty list")
+    else:
+        staged_fields = [
+            "public_test_cases",
+            "feedback_test_cases",
+            "hidden_test_cases",
+        ]
+        present_fields = [field for field in staged_fields if field in data]
+        if not present_fields:
+            raise ValueError("Missing required field: test_cases")
+        if any(not isinstance(data[field], list) for field in present_fields):
+            raise ValueError("Staged test case fields must be lists")
+        if not any(data[field] for field in present_fields):
+            raise ValueError("At least one staged test case is required")
 
     return True
 

@@ -39,6 +39,24 @@ def test_docker_backend_unavailable_is_structured(monkeypatch):
     assert result.test_results[0].status == "backend_unavailable"
 
 
+def test_empty_execution_stage_is_not_success():
+    """An empty public stage cannot be reported as a successful evaluation."""
+    problem = Problem(
+        problem_id="empty-public",
+        title="Empty Public",
+        description="A problem with only hidden evaluation cases.",
+        difficulty="easy",
+        public_test_cases=[],
+        hidden_test_cases=[{"input": {}, "expected_output": 1}],
+    )
+    executor = SandboxExecutor(SandboxConfig(backend="host"))
+
+    result = executor.execute("def solution(): return 1", problem, stage="public")
+
+    assert result.status == "sandbox_error"
+    assert result.all_passed is False
+
+
 def test_docker_command_has_isolation_and_resource_flags():
     """Docker invocation disables network, privileges and unbounded resources."""
     executor = SandboxExecutor(
