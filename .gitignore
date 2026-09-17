@@ -230,11 +230,12 @@ config.json
 
 # SiliconFlow config with API key
 config_siliconflow.json
-# >>> Comet managed project state >>>
-!/.comet/
-/.comet/*
-!/.comet/config.yaml
-# <<< Comet managed project state <<<
+# Local agent and workflow state
+/.comet/
+/.claude/
+/.codex/
+/.agents/
+/skills-lock.json
 
 # Alibaba DashScope config with API key
 config_dashscope.json

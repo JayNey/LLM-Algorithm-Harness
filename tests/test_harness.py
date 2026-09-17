@@ -43,6 +43,7 @@ def harness_config(tmp_path):
             model="gpt-3.5-turbo",
         ),
         sandbox_config=SandboxConfig(
+            backend="host",
             timeout_seconds=5,
             memory_limit_mb=256,
             allowed_imports=["math"],

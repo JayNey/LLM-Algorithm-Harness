@@ -12,6 +12,7 @@ from src.sandbox_executor import SandboxExecutor
 def sandbox_config():
     """Sandbox configuration fixture."""
     return SandboxConfig(
+        backend="host",
         timeout_seconds=5,
         memory_limit_mb=256,
         allowed_imports=["math", "itertools", "collections"],
@@ -136,7 +137,7 @@ def solution(n):
 
     result = sandbox_executor.execute(code, problem)
 
-    assert result.status == "failed"
+    assert result.status == "timeout"
     assert result.test_results[0].status == "timeout"
     assert "timeout" in result.test_results[0].error_message.lower()
 
