@@ -241,3 +241,6 @@ config_dashscope.json
 
 # Qwen 27B config
 config_qwen27b.json
+
+# Generated evaluation reports (per-run archives)
+reports/
