@@ -613,11 +613,14 @@ def test_generate_report_failure_accounting(harness_config):
     assert report.failed_problems == 3
     assert report.model_failed_problems == 1
     assert report.system_failed_problems == 1
+    wrong_answer = sum(
+        1 for r in results if r.failure_category == "wrong_answer"
+    )
     assert (
         report.solved_problems
+        + wrong_answer
         + report.model_failed_problems
         + report.system_failed_problems
-        + (report.failed_problems - report.model_failed_problems - report.system_failed_problems)
         == report.total_problems
     )
 

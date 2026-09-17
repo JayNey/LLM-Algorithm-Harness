@@ -346,3 +346,38 @@ def test_html_strategy_card_shows_failure_counts(temp_html_path: str):
     content = Path(temp_html_path).read_text()
     assert "<strong>Model failed:</strong> 1" in content
     assert "<strong>System failed:</strong> 1" in content
+
+
+def test_html_flat_result_list_counts_failures(temp_html_path: str):
+    """A flat results list is filtered per strategy for failure counts."""
+    def _result(pid: str, strategy: str, status: str, category) -> ExecutionResult:
+        return ExecutionResult(
+            problem_id=pid,
+            strategy=strategy,
+            generated_code="",
+            status=status,
+            failure_category=category,
+            iterations=[],
+            test_results=[],
+            total_tokens=10,
+        )
+
+    flat_results = [
+        _result("p1", "direct", "success", None),
+        _result("p2", "direct", "error", "model_error"),
+        _result("p3", "other", "error", "system_error"),
+    ]
+    metrics = {
+        "direct": {
+            "total_problems": 2,
+            "solved_problems": 1,
+            "success_rate": 0.5,
+            "avg_tokens_per_problem": 10.0,
+        }
+    }
+
+    HTMLGenerator.generate(metrics, flat_results, temp_html_path, include_charts=False)
+
+    content = Path(temp_html_path).read_text()
+    assert "<strong>Model failed:</strong> 1" in content
+    assert "<strong>System failed:</strong> 0" in content

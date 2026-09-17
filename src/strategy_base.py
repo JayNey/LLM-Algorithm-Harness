@@ -230,16 +230,20 @@ Your response should include the code in a ```python code block.
         Classify why an unsuccessful execution failed.
 
         Precedence: the latest terminal reason wins — model API failure,
-        sandbox/system failure, missing code extraction, otherwise the
-        program simply answered incorrectly.
+        sandbox/system failure, a final round that produced no code, and
+        only then the program answering incorrectly.
         """
         if success:
             return None
         for iteration in reversed(iterations):
             if iteration.llm_error:
                 return "model_error"
-        if iterations and iterations[-1].sandbox_error:
-            return "system_error"
+        if iterations:
+            last = iterations[-1]
+            if last.sandbox_error:
+                return "system_error"
+            if last.code_extracted is None and last.sandbox_result is None:
+                return "code_extraction_failed"
         if final_result is not None:
             return "wrong_answer"
         return "code_extraction_failed"

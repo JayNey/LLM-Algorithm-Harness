@@ -597,3 +597,35 @@ def test_execution_result_llm_traces_redacted_and_timed(
     assert "sk-live-secret" not in str(result.llm_traces)
     assert "sk-live-secret" not in (result.iterations[0].response_text or "")
     assert result.iterations[0].elapsed_seconds >= 0
+
+
+def test_multi_round_final_round_extraction_failure_category(
+    mock_llm_client, mock_sandbox, sample_problem, strategy_config
+):
+    """A run ending on extraction failure is classified as such even when
+    earlier rounds produced sandbox results."""
+    responses = [
+        _code_response(),
+        LLMResponse(
+            text="Sorry, I cannot solve this.",
+            usage=TokenUsage(prompt_tokens=10, completion_tokens=5, total_tokens=15),
+            model="gpt-3.5-turbo",
+            finish_reason="stop",
+        ),
+        LLMResponse(
+            text="Sorry, I still cannot solve this.",
+            usage=TokenUsage(prompt_tokens=10, completion_tokens=5, total_tokens=15),
+            model="gpt-3.5-turbo",
+            finish_reason="stop",
+        ),
+    ]
+    mock_llm_client.generate.side_effect = responses
+    mock_sandbox.execute.return_value = _failing_sandbox_result()
+
+    strategy = MultiRoundFeedbackStrategy(strategy_config, mock_llm_client, mock_sandbox)
+    result = strategy.execute(sample_problem)
+
+    assert len(result.iterations) == 3
+    assert result.final_result is not None
+    assert result.final_result.all_passed is False
+    assert result.failure_category == "code_extraction_failed"
