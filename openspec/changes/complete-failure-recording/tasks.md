@@ -5,11 +5,11 @@
 
 ## 2. 策略与结果组装
 
-- [ ] 2.1 先增加连续多轮失败保留 `final_result` 与失败用例的测试，再修改多轮策略终态逻辑与失败分类
-- [ ] 2.2 先增加中途模型调用失败保留已完成轮次的测试，再在策略内捕获模型异常并终止循环
-- [ ] 2.3 先增加后续轮次提示包含题意与约束的测试，再补全 `build_feedback_prompt`
-- [ ] 2.4 先增加单轮策略沙箱异常原因记录测试，再为 vanilla 与 chain_of_thought 补充 `sandbox_error`
-- [ ] 2.5 先增加 `llm_traces` 填充与轨迹脱敏测试，再扩展 `create_execution_result` 并接入实测耗时
+- [x] 2.1 先增加连续多轮失败保留 `final_result` 与失败用例的测试，再修改多轮策略终态逻辑与失败分类
+- [x] 2.2 先增加中途模型调用失败保留已完成轮次的测试，再在策略内捕获模型异常并终止循环
+- [x] 2.3 先增加后续轮次提示包含题意与约束的测试，再补全 `build_feedback_prompt`
+- [x] 2.4 先增加单轮策略沙箱异常原因记录测试，再为 vanilla 与 chain_of_thought 补充 `sandbox_error`
+- [x] 2.5 先增加 `llm_traces` 填充与轨迹脱敏测试，再扩展 `create_execution_result` 并接入实测耗时
 
 ## 3. 汇总与导出
 

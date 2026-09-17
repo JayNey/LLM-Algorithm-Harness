@@ -427,3 +427,173 @@ def solution(lists):
 
     code = strategy.extract_code(response)
     assert code == "import heapq\n\ndef solution(lists):\n    return heapq"
+
+
+# ============================================================================
+# Result recording tests (issue #13)
+# ============================================================================
+
+
+def _code_response(body="def solution(nums, target):\n    return [0, 0]"):
+    """LLM response fixture containing an extractable code block."""
+    return LLMResponse(
+        text=f"```python\n{body}\n```",
+        usage=TokenUsage(prompt_tokens=100, completion_tokens=50, total_tokens=150),
+        model="gpt-3.5-turbo",
+        finish_reason="stop",
+    )
+
+
+def _failing_sandbox_result():
+    """Sandbox result fixture with one wrong-answer test case."""
+    return SandboxResult(
+        status="failed",
+        test_results=[
+            TestCaseResult(
+                test_case_index=0,
+                passed=False,
+                actual_output=[0, 0],
+                expected_output=[0, 1],
+                error_message="Output mismatch",
+                execution_time=0.01,
+                status="wrong_answer",
+            )
+        ],
+        execution_time=0.01,
+        all_passed=False,
+    )
+
+
+def test_multi_round_all_failures_preserve_final_result(
+    mock_llm_client, mock_sandbox, sample_problem, strategy_config
+):
+    """A fully failed multi-round run still exposes the last sandbox result."""
+    mock_llm_client.generate.return_value = _code_response()
+    mock_sandbox.execute.return_value = _failing_sandbox_result()
+
+    strategy = MultiRoundFeedbackStrategy(strategy_config, mock_llm_client, mock_sandbox)
+    result = strategy.execute(sample_problem)
+
+    assert result.success is False
+    assert len(result.iterations) == strategy_config.max_iterations
+    assert result.final_result is not None
+    assert result.final_result.all_passed is False
+    assert result.final_result.test_results[0].passed is False
+    assert result.final_result.test_results[0].actual_output == [0, 0]
+    assert result.test_results
+    assert result.failure_category == "wrong_answer"
+
+
+def test_multi_round_model_error_keeps_completed_rounds(
+    mock_llm_client, mock_sandbox, sample_problem, strategy_config
+):
+    """A model failure mid-run keeps earlier traces and yields a terminal record."""
+    mock_llm_client.generate.side_effect = [
+        _code_response(),
+        RuntimeError("provider unavailable"),
+    ]
+    mock_sandbox.execute.return_value = _failing_sandbox_result()
+
+    strategy = MultiRoundFeedbackStrategy(strategy_config, mock_llm_client, mock_sandbox)
+    result = strategy.execute(sample_problem)
+
+    assert len(result.iterations) == 2
+    assert result.iterations[0].sandbox_result is not None
+    assert result.iterations[0].response_text is not None
+    assert result.iterations[1].llm_error is not None
+    assert result.iterations[1].sandbox_result is None
+    assert result.final_result is not None
+    assert result.final_result.all_passed is False
+    assert result.failure_category == "model_error"
+    assert result.total_tokens == 150
+
+
+def test_multi_round_code_extraction_failure_category(
+    mock_llm_client, mock_sandbox, sample_problem, strategy_config
+):
+    """Responses without code mark the run as code extraction failure."""
+    mock_llm_client.generate.return_value = LLMResponse(
+        text="Sorry, I cannot solve this.",
+        usage=TokenUsage(prompt_tokens=10, completion_tokens=5, total_tokens=15),
+        model="gpt-3.5-turbo",
+        finish_reason="stop",
+    )
+
+    strategy = MultiRoundFeedbackStrategy(strategy_config, mock_llm_client, mock_sandbox)
+    result = strategy.execute(sample_problem)
+
+    assert result.success is False
+    assert result.final_result is None
+    assert result.failure_category == "code_extraction_failed"
+    assert mock_sandbox.execute.call_count == 0
+    assert len(result.iterations) == strategy_config.max_iterations
+
+
+def test_multi_round_feedback_prompt_includes_problem_context(
+    mock_llm_client, mock_sandbox, sample_problem, strategy_config
+):
+    """Feedback prompts restate the problem statement and constraints."""
+    problem = sample_problem.model_copy(update={"constraints": "2 <= nums.length <= 10^4"})
+    strategy = MultiRoundFeedbackStrategy(strategy_config, mock_llm_client, mock_sandbox)
+    prompt = strategy.build_feedback_prompt(
+        problem, "def solution(nums, target):\n    return [0, 0]", _failing_sandbox_result(), 1
+    )
+
+    assert problem.title in prompt
+    assert problem.description in prompt
+    assert problem.constraints in prompt
+    assert "Output mismatch" in prompt
+
+
+def test_vanilla_sandbox_exception_records_reason(
+    mock_llm_client, mock_sandbox, sample_problem, strategy_config
+):
+    """Vanilla keeps the sandbox failure reason instead of dropping it."""
+    mock_llm_client.generate.return_value = _code_response()
+    mock_sandbox.execute.side_effect = Exception("sandbox boom")
+
+    strategy = VanillaStrategy(strategy_config, mock_llm_client, mock_sandbox)
+    result = strategy.execute(sample_problem)
+
+    assert result.success is False
+    assert result.final_result is None
+    assert result.iterations[0].sandbox_error == "sandbox boom"
+    assert result.failure_category == "system_error"
+
+
+def test_vanilla_model_error_returns_terminal_result(
+    mock_llm_client, mock_sandbox, sample_problem, strategy_config
+):
+    """Vanilla turns model API errors into a recorded model_error result."""
+    mock_llm_client.generate.side_effect = RuntimeError("provider unavailable")
+
+    strategy = VanillaStrategy(strategy_config, mock_llm_client, mock_sandbox)
+    result = strategy.execute(sample_problem)
+
+    assert result.success is False
+    assert result.failure_category == "model_error"
+    assert result.iterations[0].llm_error == "provider unavailable"
+    assert result.final_result is None
+
+
+def test_execution_result_llm_traces_redacted_and_timed(
+    mock_llm_client, mock_sandbox, sample_problem, strategy_config
+):
+    """Traces carry redacted prompts/responses and measured wall-clock time."""
+    mock_llm_client.generate.return_value = _code_response(
+        "def solution(nums, target):\n    return [0, 0]  # Bearer sk-live-secret"
+    )
+    mock_sandbox.execute.return_value = _failing_sandbox_result()
+
+    strategy = VanillaStrategy(strategy_config, mock_llm_client, mock_sandbox)
+    result = strategy.execute(sample_problem)
+
+    assert result.execution_time_seconds > 0
+    assert len(result.llm_traces) == 1
+    trace = result.llm_traces[0]
+    assert trace["iteration"] == 1
+    assert trace["prompt_tokens"] == 100
+    assert "[REDACTED]" in trace["response_text"]
+    assert "sk-live-secret" not in str(result.llm_traces)
+    assert "sk-live-secret" not in (result.iterations[0].response_text or "")
+    assert result.iterations[0].elapsed_seconds >= 0

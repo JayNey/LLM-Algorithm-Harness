@@ -2,6 +2,8 @@
 Multi-Round Feedback strategy - Iterative refinement with test feedback.
 """
 
+import time
+
 from src.llm_client import LLMClient
 from src.models import ExecutionResult, Problem, StrategyConfig
 from src.sandbox_executor import SandboxExecutor
@@ -45,45 +47,72 @@ class MultiRoundFeedbackStrategy(StrategyBase):
             max_iterations=self.config.max_iterations,
         )
 
+        started = time.monotonic()
         iterations = []
         final_result = None
         success = False
 
         # Initial prompt
         prompt = self.build_base_prompt(problem)
-        previous_code = None
 
         for iteration in range(1, self.config.max_iterations + 1):
+            iteration_started = time.monotonic()
             self.logger.info("iteration_start", iteration=iteration)
 
-            # Get LLM response
-            llm_response = self.llm_client.generate(prompt)
+            # Get LLM response (errors terminate the run but keep the trace)
+            llm_response = None
+            llm_error = None
+            try:
+                llm_response = self.llm_client.generate(prompt)
+            except Exception as e:
+                llm_error = str(e)
+                self.logger.error(
+                    "llm_generation_failed", iteration=iteration, error=llm_error
+                )
 
-            # Extract code
-            code = self.extract_code(llm_response.text)
-
-            # Execute in sandbox
+            code = None
             sandbox_result = None
+            sandbox_error = None
 
-            if code:
-                try:
-                    sandbox_result = self.sandbox.execute(code, problem)
-                except Exception as e:
-                    self.logger.error("sandbox_execution_failed", error=str(e))
+            if llm_response is not None:
+                code = self.extract_code(llm_response.text)
 
-            # Create iteration result
+                if code:
+                    try:
+                        sandbox_result = self.sandbox.execute(code, problem)
+                    except Exception as e:
+                        sandbox_error = str(e)
+                        self.logger.error(
+                            "sandbox_execution_failed", error=sandbox_error
+                        )
+
             iteration_result = self.create_iteration_result(
                 iteration=iteration,
                 llm_response=llm_response,
                 code=code,
                 sandbox_result=sandbox_result,
+                prompt=prompt,
+                llm_error=llm_error,
+                sandbox_error=sandbox_error,
+                elapsed_seconds=time.monotonic() - iteration_started,
             )
             iterations.append(iteration_result)
 
-            # Check if successful
-            if sandbox_result and sandbox_result.all_passed:
-                success = True
+            # A model failure is terminal: keep completed rounds and return
+            if llm_error is not None:
+                self.logger.error(
+                    "multi_round_aborted_on_model_error", iteration=iteration
+                )
+                break
+
+            # Keep the last valid execution regardless of pass/fail so that
+            # failed runs remain inspectable
+            if sandbox_result is not None:
                 final_result = sandbox_result
+
+            # Check if successful
+            if sandbox_result is not None and sandbox_result.all_passed:
+                success = True
                 self.logger.info("solution_found", iteration=iteration)
                 break
 
@@ -92,7 +121,6 @@ class MultiRoundFeedbackStrategy(StrategyBase):
                 prompt = self.build_feedback_prompt(
                     problem, code, sandbox_result, iteration
                 )
-                previous_code = code
 
         # Create execution result
         execution_result = self.create_execution_result(
@@ -100,6 +128,7 @@ class MultiRoundFeedbackStrategy(StrategyBase):
             iterations=iterations,
             final_result=final_result,
             success=success,
+            execution_time_seconds=time.monotonic() - started,
         )
 
         self.logger.info(
@@ -134,9 +163,16 @@ class MultiRoundFeedbackStrategy(StrategyBase):
 
         prompt = f"""Your previous solution for "{problem.title}" had issues.
 
+Problem: {problem.title}
+
+Description:
+{problem.description}
+
+{f"Constraints: {problem.constraints}" if problem.constraints else ""}
+
 Previous Code:
 ```python
-{previous_code}
+{previous_code if previous_code else "# No code was extracted from the previous response"}
 ```
 
 Test Results:
