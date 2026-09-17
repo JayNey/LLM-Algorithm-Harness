@@ -62,7 +62,7 @@ def generate_reports(summary_path: str = None, output_dir: str = None):
 
     Args:
         summary_path: Path to summary.json file (auto-finds latest if None)
-        output_dir: Optional output directory (defaults to reports/)
+        output_dir: Optional output directory (defaults to reports/run-YYYYMMDD-HHMMSS/)
     """
     # Auto-find latest summary.json if not specified
     if summary_path is None:
@@ -87,10 +87,23 @@ def generate_reports(summary_path: str = None, output_dir: str = None):
     if output_dir:
         out_dir = Path(output_dir)
     else:
-        # Default to reports/ directory
-        out_dir = Path("reports")
+        # Extract run ID from the summary file path (e.g., run-20260917-145342)
+        # If summary is in results/run-YYYYMMDD-HHMMSS/summary.json, use that run ID
+        if summary_file.parent.name.startswith("run-"):
+            run_id = summary_file.parent.name
+            out_dir = Path("reports") / run_id
+        else:
+            # Fallback: create a new timestamped directory
+            from datetime import datetime
+            timestamp = datetime.now().strftime("%Y%m%d-%H%M%S")
+            out_dir = Path("reports") / f"run-{timestamp}"
 
     out_dir.mkdir(parents=True, exist_ok=True)
+
+    # Create latest.json pointer in reports/ directory
+    latest_file = Path("reports") / "latest.json"
+    with open(latest_file, 'w') as f:
+        json.dump({"latest_run": out_dir.name}, f, indent=2)
 
     # Extract data from summary
     # Handle both old format (metrics/results) and new format (strategies)
