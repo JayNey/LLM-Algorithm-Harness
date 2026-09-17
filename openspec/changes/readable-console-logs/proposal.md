@@ -11,7 +11,9 @@
 
 ## Capabilities
 
-（无新增能力规格；本变更只调整日志呈现方式，不改变任何评测行为与导出语义。）
+### New Capabilities
+
+- `console-output`: 定义评测日志的终端呈现：默认人类可读、JSON 显式可选、第三方噪音压制与双格式一致脱敏。
 
 ## Impact
 
