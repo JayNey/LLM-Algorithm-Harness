@@ -145,6 +145,7 @@ class AlgorithmHarness:
                         generated_code="",
                         status="error",
                         failure_category="system_error",
+                        difficulty=problem.difficulty,
                         error_message=redacted_error,
                     )
                 )
@@ -290,13 +291,16 @@ class AlgorithmHarness:
         Returns:
             Dictionary mapping difficulty level to stats
         """
-        # Create a mapping from problem_id to difficulty
-        problem_difficulty = {p.problem_id: p.difficulty for p in problems}
-
-        # Group results by difficulty
+        # Group results by difficulty (use result.difficulty directly if available)
         by_difficulty = {}
         for result in results:
-            difficulty = problem_difficulty.get(result.problem_id)
+            # Prefer result.difficulty (populated in newer runs)
+            difficulty = result.difficulty
+            if not difficulty:
+                # Fallback: look up from problems list (for backward compatibility)
+                problem_map = {p.problem_id: p.difficulty for p in problems}
+                difficulty = problem_map.get(result.problem_id)
+
             if difficulty:
                 if difficulty not in by_difficulty:
                     by_difficulty[difficulty] = {

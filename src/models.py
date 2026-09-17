@@ -170,6 +170,9 @@ class ExecutionResult(BaseModel):
             "from status so existing status consumers stay compatible"
         ),
     )
+    difficulty: Optional[Literal["easy", "medium", "hard"]] = Field(
+        None, description="Problem difficulty level"
+    )
     iterations: List[IterationResult] = Field(
         default_factory=list, description="Iteration results"
     )

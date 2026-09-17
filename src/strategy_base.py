@@ -335,6 +335,7 @@ Your response should include the code in a ```python code block.
                 if failure_category is not None
                 else self._derive_failure_category(iterations, final_result, success)
             ),
+            difficulty=problem.difficulty,
             iterations=iterations,
             final_result=final_result,
             test_results=test_results,
