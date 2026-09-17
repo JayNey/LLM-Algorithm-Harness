@@ -1,6 +1,6 @@
 workflow: tweak
 language: zh-CN
-phase: verify
+phase: archive
 context_compression: off
 build_mode: direct
 build_pause: null
@@ -13,14 +13,14 @@ auto_transition: true
 base_ref: 36e4df3018120d0814b0d13699b1be7128ac7a75
 design_doc: null
 plan: null
-verify_result: pending
-verify_failures: 1
+verify_result: pass
+verify_failures: 0
 verification_report: docs/superpowers/reports/2026-09-17-readable-console-logs-verify.md
-branch_status: pending
+branch_status: handled
 created_at: 2026-09-17
-verified_at: null
-archive_confirmation: null
-archived: false
+verified_at: 2026-09-17
+archive_confirmation: confirmed
+archived: true
 bound_branch: tweak/20260917/complete-failure-recording
 direct_override: null
 handoff_context: null
@@ -28,4 +28,4 @@ handoff_hash: null
 classic_profile: tweak
 classic_migration: 1
 run_id: 8b99019a-f0fa-46eb-bcd4-7faad2b4244e
-check_epoch: 4
+check_epoch: 7
