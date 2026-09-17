@@ -411,6 +411,20 @@ class HTMLGenerator:
             solved = strategy_metrics.get('solved_problems', 0)
             total = strategy_metrics.get('total_problems', 0)
             avg_tokens = strategy_metrics.get('avg_tokens_per_problem', 0)
+            # Callers may pass a flat result list instead of a per-strategy dict
+            if isinstance(results, dict):
+                strategy_results = results.get(strategy_name, [])
+            else:
+                strategy_results = [
+                    r for r in (results or [])
+                    if getattr(r, 'strategy', None) == strategy_name
+                ]
+            model_failed = sum(
+                1 for r in strategy_results if r.failure_category == 'model_error'
+            )
+            system_failed = sum(
+                1 for r in strategy_results if r.failure_category == 'system_error'
+            )
 
             # Badge color based on success rate
             if success_rate >= 80:
@@ -426,6 +440,8 @@ class HTMLGenerator:
             html_parts.append(f"<span class='badge {badge_class}'>{success_rate:.1f}% Success</span>")
             html_parts.append("</div>")
             html_parts.append(f"<p><strong>Solved:</strong> {solved}/{total} problems</p>")
+            html_parts.append(f"<p><strong>Model failed:</strong> {model_failed}</p>")
+            html_parts.append(f"<p><strong>System failed:</strong> {system_failed}</p>")
             html_parts.append(f"<p><strong>Avg Tokens:</strong> {avg_tokens:.0f}</p>")
 
             # Details toggle

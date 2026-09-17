@@ -13,9 +13,9 @@
 
 ## 3. 汇总与导出
 
-- [ ] 3.1 先增加 Harness 异常合成 `system_error` 终态记录的测试，再修改 `_run_strategy` 异常分支
-- [ ] 3.2 先增加报告计数对账与对比口径测试，再统一 `_generate_report` 与 `compare_strategies`
-- [ ] 3.3 更新 CSV、Markdown、HTML 导出失败分类与计数并补充导出测试
+- [x] 3.1 先增加 Harness 异常合成 `system_error` 终态记录的测试，再修改 `_run_strategy` 异常分支
+- [x] 3.2 先增加报告计数对账与对比口径测试，再统一 `_generate_report` 与 `compare_strategies`
+- [x] 3.3 更新 CSV、Markdown、HTML 导出失败分类与计数并补充导出测试
 
 ## 4. 文档与验证
 

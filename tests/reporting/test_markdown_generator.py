@@ -258,3 +258,30 @@ def test_generate_redacts_credentials_in_failed_cases(
 
     assert secret not in content
     assert "[REDACTED]" in content
+
+
+def test_markdown_failed_cases_include_failure_category(temp_md_path: str):
+    """Failed case list lines carry the failure classification."""
+    failed = ExecutionResult(
+        problem_id="problem_1",
+        strategy="direct",
+        generated_code="",
+        status="failed",
+        failure_category="wrong_answer",
+        error_message="Output mismatch",
+        iterations=[],
+    )
+    metrics = {
+        "direct": {
+            "total_problems": 1,
+            "solved_problems": 0,
+            "success_rate": 0.0,
+            "avg_tokens_per_problem": 0.0,
+        }
+    }
+
+    MarkdownGenerator.generate(metrics, {"direct": [failed]}, temp_md_path)
+
+    content = Path(temp_md_path).read_text()
+    assert "(wrong_answer)" in content
+    assert "Output mismatch" in content

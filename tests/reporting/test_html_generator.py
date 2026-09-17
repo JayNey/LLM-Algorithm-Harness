@@ -309,3 +309,40 @@ def test_generate_self_contained(temp_html_path: str, sample_metrics: Dict, samp
     assert 'href="http' not in content
     assert 'src="http' not in content
     assert '<link' not in content  # No external stylesheets
+
+
+def test_html_strategy_card_shows_failure_counts(temp_html_path: str):
+    """Strategy cards report model and system failure counts."""
+    def _result(pid: str, status: str, category) -> ExecutionResult:
+        return ExecutionResult(
+            problem_id=pid,
+            strategy="direct",
+            generated_code="",
+            status=status,
+            failure_category=category,
+            iterations=[],
+            test_results=[],
+            total_tokens=10,
+        )
+
+    results = {
+        "direct": [
+            _result("p1", "success", None),
+            _result("p2", "error", "model_error"),
+            _result("p3", "error", "system_error"),
+        ]
+    }
+    metrics = {
+        "direct": {
+            "total_problems": 3,
+            "solved_problems": 1,
+            "success_rate": 1 / 3,
+            "avg_tokens_per_problem": 10.0,
+        }
+    }
+
+    HTMLGenerator.generate(metrics, results, temp_html_path, include_charts=False)
+
+    content = Path(temp_html_path).read_text()
+    assert "<strong>Model failed:</strong> 1" in content
+    assert "<strong>System failed:</strong> 1" in content
