@@ -248,12 +248,18 @@ Your response should include the code in a ```python code block.
             return "wrong_answer"
         return "code_extraction_failed"
 
-    def _build_llm_traces(self, iterations: list) -> list:
+    def _build_llm_traces(
+        self, iterations: list, llm_responses: Optional[List[LLMResponse]] = None
+    ) -> list:
         """
         Build redacted per-round traces from iteration results.
+
+        When the corresponding LLMResponse carries provider pricing metadata
+        (openai>=3 pricing feature), it is attached to the round's trace.
+        Responses may be None for rounds that failed at the API boundary.
         """
         traces = []
-        for it in iterations:
+        for idx, it in enumerate(iterations):
             trace = {
                 "iteration": it.iteration,
                 "prompt": it.prompt,
@@ -267,6 +273,9 @@ Your response should include the code in a ```python code block.
                 "elapsed_seconds": it.elapsed_seconds,
                 "sandbox": it.sandbox_result.model_dump() if it.sandbox_result else None,
             }
+            response = llm_responses[idx] if llm_responses and idx < len(llm_responses) else None
+            if response is not None and response.pricing_metadata:
+                trace["pricing_metadata"] = response.pricing_metadata
             traces.append(redact_sensitive_data(trace))
         return traces
 
@@ -311,19 +320,8 @@ Your response should include the code in a ```python code block.
         # Extract error message
         error_message = final_result.error_message if final_result else None
 
-        # Build LLM traces with pricing metadata
-        llm_traces = []
-        if llm_responses:
-            for idx, response in enumerate(llm_responses):
-                trace = {
-                    "iteration": idx + 1,
-                    "prompt_tokens": response.usage.prompt_tokens,
-                    "completion_tokens": response.usage.completion_tokens,
-                    "total_tokens": response.usage.total_tokens,
-                }
-                if response.pricing_metadata:
-                    trace["pricing_metadata"] = response.pricing_metadata
-                llm_traces.append(trace)
+        # Build LLM traces with per-round context and pricing metadata
+        llm_traces = self._build_llm_traces(iterations, llm_responses)
 
         return ExecutionResult(
             problem_id=problem.problem_id,
@@ -344,5 +342,5 @@ Your response should include the code in a ```python code block.
             execution_time_seconds=(
                 execution_time_seconds if execution_time_seconds is not None else 0.0
             ),
-            llm_traces=llm_traces if llm_responses else self._build_llm_traces(iterations),
+            llm_traces=llm_traces,
         )

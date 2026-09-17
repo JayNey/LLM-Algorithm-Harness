@@ -43,7 +43,7 @@ class VanillaStrategy(StrategyBase):
         """
         self.logger.info("executing_vanilla_strategy", problem_id=problem.problem_id)
 
-        started = time.monotonic()
+        started = time.perf_counter()
 
         # Build prompt
         prompt = self.build_base_prompt(problem)
@@ -84,7 +84,7 @@ class VanillaStrategy(StrategyBase):
             prompt=prompt,
             llm_error=llm_error,
             sandbox_error=sandbox_error,
-            elapsed_seconds=time.monotonic() - started,
+            elapsed_seconds=time.perf_counter() - started,
         )
 
         # Create execution result
@@ -94,7 +94,7 @@ class VanillaStrategy(StrategyBase):
             final_result=sandbox_result,
             success=success,
             llm_responses=[llm_response],
-            execution_time_seconds=time.monotonic() - started,
+            execution_time_seconds=time.perf_counter() - started,
         )
 
         self.logger.info(

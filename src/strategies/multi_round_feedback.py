@@ -48,7 +48,7 @@ class MultiRoundFeedbackStrategy(StrategyBase):
             max_iterations=self.config.max_iterations,
         )
 
-        started = time.monotonic()
+        started = time.perf_counter()
         iterations = []
         llm_responses = []
         final_result = None
@@ -58,7 +58,7 @@ class MultiRoundFeedbackStrategy(StrategyBase):
         prompt = self.build_base_prompt(problem)
 
         for iteration in range(1, self.config.max_iterations + 1):
-            iteration_started = time.monotonic()
+            iteration_started = time.perf_counter()
             self.logger.info("iteration_start", iteration=iteration)
 
             # Get LLM response (errors terminate the run but keep the trace)
@@ -97,7 +97,7 @@ class MultiRoundFeedbackStrategy(StrategyBase):
                 prompt=prompt,
                 llm_error=llm_error,
                 sandbox_error=sandbox_error,
-                elapsed_seconds=time.monotonic() - iteration_started,
+                elapsed_seconds=time.perf_counter() - iteration_started,
             )
             iterations.append(iteration_result)
 
@@ -132,7 +132,7 @@ class MultiRoundFeedbackStrategy(StrategyBase):
             final_result=final_result,
             success=success,
             llm_responses=llm_responses,
-            execution_time_seconds=time.monotonic() - started,
+            execution_time_seconds=time.perf_counter() - started,
         )
 
         self.logger.info(

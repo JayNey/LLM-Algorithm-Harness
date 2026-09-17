@@ -109,16 +109,16 @@ class MarkdownGenerator:
                 else:
                     pricing_source = "默认值"
                     logger.warning(
-                        "pricing_metadata_missing_for_strategy",
-                        strategy=strategy_name,
-                        message="Using fallback pricing for historical report"
+                        "pricing_metadata_missing_for_strategy strategy=%s: %s",
+                        strategy_name,
+                        "Using fallback pricing for historical report"
                     )
             else:
                 logger.warning(
-                    "pricing_metadata_missing_for_strategy",
-                    strategy=strategy_name,
-                    message="No pricing_metadata in summary, using current pricing configuration"
-                )
+                        "pricing_metadata_missing_for_strategy strategy=%s: %s",
+                        strategy_name,
+                        "No pricing_metadata in summary, using current pricing configuration"
+                    )
                 pricing_source = "当前配置（历史数据不可用）"
 
             lines.append(f"**{MarkdownGenerator._escape_markdown(strategy_name)}:** {pricing_source}")
