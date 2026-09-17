@@ -244,3 +244,6 @@ config_qwen27b.json
 
 # Generated evaluation reports (per-run archives)
 reports/
+
+# Harness evaluation run outputs
+results/
