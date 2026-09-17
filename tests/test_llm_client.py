@@ -164,6 +164,76 @@ def test_generate_anthropic(anthropic_config):
         assert response.model == "claude-3-haiku"
 
 
+def test_generate_openai_missing_usage_marks_response(openai_config):
+    """Providers that omit usage produce a zeroed, explicitly marked response."""
+    with patch("src.llm_client.OpenAI") as mock_openai_class:
+        mock_client = Mock()
+        mock_openai_class.return_value = mock_client
+
+        mock_response = Mock()
+        mock_response.choices = [Mock()]
+        mock_response.choices[0].message.content = "Test response"
+        mock_response.choices[0].finish_reason = "stop"
+        mock_response.usage = None
+        mock_response.model = "gpt-3.5-turbo"
+
+        mock_client.chat.completions.create.return_value = mock_response
+
+        client = LLMClient(openai_config)
+        response = client.generate("Test prompt")
+
+    assert response.usage_missing is True
+    assert response.usage.prompt_tokens == 0
+    assert response.usage.completion_tokens == 0
+    assert response.usage.total_tokens == 0
+
+
+def test_generate_anthropic_missing_usage_marks_response(anthropic_config):
+    """Anthropic responses without usage are zeroed and marked as well."""
+    with patch("src.llm_client.Anthropic") as mock_anthropic_class:
+        mock_client = Mock()
+        mock_anthropic_class.return_value = mock_client
+
+        mock_response = Mock()
+        mock_response.content = [Mock()]
+        mock_response.content[0].text = "Claude response"
+        mock_response.stop_reason = "end_turn"
+        mock_response.usage = None
+        mock_response.model = "claude-3-haiku"
+
+        mock_client.messages.create.return_value = mock_response
+
+        client = LLMClient(anthropic_config)
+        response = client.generate("Test prompt")
+
+    assert response.usage_missing is True
+    assert response.usage.total_tokens == 0
+
+
+def test_generate_openai_usage_present_not_marked_missing(openai_config):
+    """Responses carrying usage keep usage_missing disabled."""
+    with patch("src.llm_client.OpenAI") as mock_openai_class:
+        mock_client = Mock()
+        mock_openai_class.return_value = mock_client
+
+        mock_response = Mock()
+        mock_response.choices = [Mock()]
+        mock_response.choices[0].message.content = "Test response"
+        mock_response.choices[0].finish_reason = "stop"
+        mock_response.usage.prompt_tokens = 100
+        mock_response.usage.completion_tokens = 50
+        mock_response.usage.total_tokens = 150
+        mock_response.model = "gpt-3.5-turbo"
+
+        mock_client.chat.completions.create.return_value = mock_response
+
+        client = LLMClient(openai_config)
+        response = client.generate("Test prompt")
+
+    assert response.usage_missing is False
+    assert response.usage.total_tokens == 150
+
+
 def test_generate_api_error(openai_config):
     """Test handling API errors during generation."""
     with patch("src.llm_client.OpenAI") as mock_openai_class:

@@ -205,15 +205,24 @@ class LLMClient:
 
         response = self.client.chat.completions.create(**kwargs)
 
+        usage = getattr(response, "usage", None)
+        if usage is None:
+            token_usage = TokenUsage(prompt_tokens=0, completion_tokens=0, total_tokens=0)
+            usage_missing = True
+        else:
+            token_usage = TokenUsage(
+                prompt_tokens=usage.prompt_tokens,
+                completion_tokens=usage.completion_tokens,
+                total_tokens=usage.total_tokens,
+            )
+            usage_missing = False
+
         return LLMResponse(
             text=response.choices[0].message.content,
-            usage=TokenUsage(
-                prompt_tokens=response.usage.prompt_tokens,
-                completion_tokens=response.usage.completion_tokens,
-                total_tokens=response.usage.total_tokens,
-            ),
+            usage=token_usage,
             model=response.model,
             finish_reason=response.choices[0].finish_reason,
+            usage_missing=usage_missing,
         )
 
     def _call_anthropic(self, prompt: str, system_prompt: Optional[str]) -> LLMResponse:
@@ -239,15 +248,24 @@ class LLMClient:
 
         response = self.client.messages.create(**kwargs)
 
+        usage = getattr(response, "usage", None)
+        if usage is None:
+            token_usage = TokenUsage(prompt_tokens=0, completion_tokens=0, total_tokens=0)
+            usage_missing = True
+        else:
+            token_usage = TokenUsage(
+                prompt_tokens=usage.input_tokens,
+                completion_tokens=usage.output_tokens,
+                total_tokens=usage.input_tokens + usage.output_tokens,
+            )
+            usage_missing = False
+
         return LLMResponse(
             text=response.content[0].text,
-            usage=TokenUsage(
-                prompt_tokens=response.usage.input_tokens,
-                completion_tokens=response.usage.output_tokens,
-                total_tokens=response.usage.input_tokens + response.usage.output_tokens,
-            ),
+            usage=token_usage,
             model=response.model,
             finish_reason=response.stop_reason,
+            usage_missing=usage_missing,
         )
 
     def estimate_cost(self, usage: TokenUsage) -> float:

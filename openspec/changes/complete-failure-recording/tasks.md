@@ -1,7 +1,7 @@
 ## 1. 模型与客户端
 
-- [ ] 1.1 先增加 usage 缺失容错测试，再更新模型客户端返回零值 usage 并标记 `usage_missing`
-- [ ] 1.2 先增加模型字段测试，再扩展 `IterationResult` 轨迹字段、`ExecutionResult.failure_category` 与 `StrategyReport` 失败计数
+- [x] 1.1 先增加 usage 缺失容错测试，再更新模型客户端返回零值 usage 并标记 `usage_missing`
+- [x] 1.2 先增加模型字段测试，再扩展 `IterationResult` 轨迹字段、`ExecutionResult.failure_category` 与 `StrategyReport` 失败计数
 
 ## 2. 策略与结果组装
 
