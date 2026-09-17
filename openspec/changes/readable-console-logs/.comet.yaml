@@ -1,6 +1,6 @@
 workflow: tweak
 language: zh-CN
-phase: open
+phase: build
 context_compression: off
 build_mode: direct
 build_pause: null
@@ -28,3 +28,4 @@ handoff_hash: null
 classic_profile: tweak
 classic_migration: 1
 run_id: 8b99019a-f0fa-46eb-bcd4-7faad2b4244e
+check_epoch: 1

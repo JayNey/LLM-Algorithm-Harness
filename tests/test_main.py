@@ -270,6 +270,46 @@ class TestMainExecution:
 
         mock_setup_logging.assert_called_once()
 
+    @patch("src.main.setup_logging")
+    @patch("src.main.AlgorithmHarness")
+    def test_main_passes_log_format_to_setup_logging(
+        self, mock_harness_class, mock_setup_logging
+    ):
+        """--log-format reaches setup_logging so the console rendering switches."""
+        mock_harness = MagicMock()
+        mock_harness.run.return_value = {}
+        mock_harness.results = {}
+        mock_harness_class.return_value = mock_harness
+
+        from src.main import main
+
+        with patch("sys.argv", ["main.py", "--dataset", "data/problems.json", "--log-format", "json"]):
+            with patch("src.main.save_results"):
+                with patch("src.main.print_report"):
+                    main()
+
+        mock_setup_logging.assert_called_once_with(console_format="json")
+
+    @patch("src.main.setup_logging")
+    @patch("src.main.AlgorithmHarness")
+    def test_main_defaults_log_format_to_console(
+        self, mock_harness_class, mock_setup_logging
+    ):
+        """Without --log-format the CLI activates the human-readable console."""
+        mock_harness = MagicMock()
+        mock_harness.run.return_value = {}
+        mock_harness.results = {}
+        mock_harness_class.return_value = mock_harness
+
+        from src.main import main
+
+        with patch("sys.argv", ["main.py", "--dataset", "data/problems.json"]):
+            with patch("src.main.save_results"):
+                with patch("src.main.print_report"):
+                    main()
+
+        mock_setup_logging.assert_called_once_with(console_format="console")
+
     @patch("src.main.AlgorithmHarness")
     def test_main_uses_dataset_and_output_from_config_when_cli_omits_them(
         self, mock_harness_class, tmp_path
