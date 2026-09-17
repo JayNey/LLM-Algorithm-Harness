@@ -116,7 +116,16 @@ class SandboxResult(BaseModel):
     """Aggregated result of sandbox execution."""
 
     status: Literal[
-        "success", "failed", "timeout", "memory_error", "syntax_error", "runtime_error"
+        "success",
+        "failed",
+        "timeout",
+        "memory_error",
+        "syntax_error",
+        "runtime_error",
+        "backend_unavailable",
+        "output_limit",
+        "process_limit",
+        "sandbox_error",
     ] = Field(..., description="Execution status")
     test_results: List[TestCaseResult] = Field(
         default_factory=list, description="Individual test results"
@@ -297,8 +306,14 @@ class LLMConfig(BaseModel):
 class SandboxConfig(BaseModel):
     """Sandbox executor configuration."""
 
+    backend: Literal["docker", "host"] = Field(
+        "docker", description="Isolation backend; host is intended for tests only"
+    )
+    docker_image: str = Field("python:3.11-slim", description="Docker image for isolated execution")
     timeout_seconds: int = Field(5, ge=1, le=60, description="Timeout per test case")
     memory_limit_mb: int = Field(256, ge=64, le=2048, description="Memory limit in MB")
+    max_output_bytes: int = Field(1_000_000, ge=1024, le=10_000_000)
+    max_processes: int = Field(16, ge=1, le=256)
     allowed_imports: List[str] = Field(
         default_factory=lambda: ["math", "itertools", "collections", "heapq", "bisect", "functools"],
         description="Allowed import modules",

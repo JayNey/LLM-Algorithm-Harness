@@ -311,6 +311,23 @@ def test_harness_config():
     assert config.log_level == "INFO"  # Default
 
 
+def test_sandbox_config_defaults_to_docker_backend():
+    """Production sandbox configuration must not default to host execution."""
+    config = SandboxConfig()
+
+    assert config.backend == "docker"
+    assert config.docker_image
+    assert config.max_output_bytes == 1_000_000
+    assert config.max_processes >= 1
+
+
+def test_sandbox_result_supports_backend_and_resource_failures():
+    """Sandbox failures have explicit structured statuses."""
+    for status in ("backend_unavailable", "output_limit", "process_limit"):
+        result = SandboxResult(status=status, error_message="sandbox failed")
+        assert result.status == status
+
+
 def test_harness_config_redacted_dump_masks_api_key():
     """redacted_dump() must never leak the API key (issue #4)."""
     llm_config = LLMConfig(

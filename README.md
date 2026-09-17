@@ -417,6 +417,22 @@ elif self.config.provider == "new_provider":
 
 ## 故障排查
 
+### 代码沙箱
+
+生产配置默认使用 Docker 执行模型生成代码。Docker 后端会禁用网络、使用只读根文件系统、移除容器 capabilities，并限制内存、进程数和输出大小；请先启动 Docker Desktop 并准备配置中的镜像。
+
+```yaml
+sandbox_config:
+  backend: docker
+  docker_image: python:3.11-slim
+  timeout_seconds: 5
+  memory_limit_mb: 256
+  max_output_bytes: 1000000
+  max_processes: 16
+```
+
+Docker 不可用时评测会返回明确的 `backend_unavailable` 失败，不会偷偷退回宿主进程。`backend: host` 只适合单元测试，不具备生产隔离能力。
+
 ### API 调用失败
 
 - 检查 API Key 是否正确设置

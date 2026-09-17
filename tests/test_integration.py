@@ -210,6 +210,8 @@ def solution(nums, target):
             f"""
 dataset_path: {dataset_path}
 output_dir: {output_path}
+sandbox_config:
+  backend: host
 llm_config:
   provider: openai
   api_key: fake-key
