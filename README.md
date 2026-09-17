@@ -186,21 +186,37 @@ problem_filters:
 ```json
 [
   {
+    "schema_version": "1.1",
     "problem_id": "two-sum",
     "title": "Two Sum",
     "description": "问题描述...",
     "difficulty": "easy",
     "tags": ["array", "hash-table"],
     "constraints": "约束条件...",
-    "test_cases": [
+    "source_platform": "leetcode",
+    "source_problem_id": "1",
+    "source_url": "https://leetcode.com/problems/two-sum/",
+    "source_version": "2026-09",
+    "input_output_mode": "function",
+    "entry_point": "solution(nums, target)",
+    "public_test_cases": [
       {
         "input": {"nums": [2, 7, 11, 15], "target": 9},
+        "expected_output": [0, 1]
+      }
+    ],
+    "feedback_test_cases": [],
+    "hidden_test_cases": [
+      {
+        "input": {"nums": [3, 3], "target": 6},
         "expected_output": [0, 1]
       }
     ]
   }
 ]
 ```
+
+旧版题目中的 `test_cases` 仍然可以导入，但会保守迁移为 `public_test_cases`，并标记为仅样例验证；系统不会根据旧字段推断隐藏测试。`public_test_cases`、`feedback_test_cases` 和 `hidden_test_cases` 可以按数据集需要为空；缺失的阶段会被显式跳过，空阶段不会被当作通过。
 
 ## 运行测试
 
@@ -333,6 +349,7 @@ python3 examples/generate_reports.py
 - **策略性能摘要**: 各策略的成功率、解决问题数、平均 Token 消耗
 - **难度分层统计**: 按 easy/medium/hard 分类的性能指标
 - **失败案例汇总**: 列出失败的问题及错误信息
+- **正式评测边界**: 展示正式可评测题数、隐藏测试通过率和仅样例题数
 - **可视化图表**:
   - 成功率柱状图（颜色编码：绿色 ≥80%，黄色 50-80%，红色 <50%）
   - Token 消耗折线图
@@ -355,6 +372,12 @@ CSV 文件包含以下列：
 | total_tests | 总测试用例数 |
 | passed_tests | 通过的测试用例数 |
 | failed_tests | 失败的测试用例数 |
+| formal_evaluable | 是否有独立隐藏评测用例 |
+| formal_passed | 隐藏评测是否全部通过 |
+| sample_only | 是否仅有公开/反馈测试 |
+| hidden_total_tests | 隐藏测试总数 |
+| hidden_passed_tests | 隐藏测试通过数 |
+| hidden_failed_tests | 隐藏测试失败数 |
 
 CSV 文件使用 UTF-8 BOM 编码，确保在 Excel 中正确显示中文。
 

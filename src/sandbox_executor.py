@@ -49,7 +49,7 @@ class SandboxExecutor:
         self.config = config
         logger.info("sandbox_initialized", config=config.model_dump())
 
-    def execute(self, code: str, problem: Problem) -> SandboxResult:
+    def execute(self, code: str, problem: Problem, stage: str = "public") -> SandboxResult:
         """
         Execute code against problem test cases.
 
@@ -63,9 +63,14 @@ class SandboxExecutor:
         Raises:
             ValueError: If code is invalid or missing solution function
         """
+        test_cases = problem.test_cases_for(stage)
         logger.info(
-            "executing_code", problem_id=problem.problem_id, num_tests=len(problem.test_cases)
+            "executing_code", problem_id=problem.problem_id, stage=stage, num_tests=len(test_cases)
         )
+
+        if not test_cases:
+            message = f"No test cases configured for stage '{stage}'"
+            return SandboxResult(status="sandbox_error", all_passed=False, error_message=message)
 
         if self.config.backend == "docker" and not self._docker_available():
             message = (
@@ -82,7 +87,7 @@ class SandboxExecutor:
                         error_message=message,
                         status="backend_unavailable",
                     )
-                    for index, test_case in enumerate(problem.test_cases)
+                    for index, test_case in enumerate(test_cases)
                 ],
                 all_passed=False,
                 error_message=message,
@@ -98,7 +103,7 @@ class SandboxExecutor:
         test_results = []
         start_time = time.time()
 
-        for i, test_case in enumerate(problem.test_cases):
+        for i, test_case in enumerate(test_cases):
             result = self._execute_single_test(code, test_case, i)
             test_results.append(result)
 

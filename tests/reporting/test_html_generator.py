@@ -221,6 +221,31 @@ def test_generate_responsive_design(temp_html_path: str, sample_metrics: Dict, s
     assert "max-width" in content
 
 
+def test_generate_includes_formal_evaluation_summary(
+    temp_html_path: str, sample_results: Dict
+):
+    """HTML reports show formal and sample-only counts."""
+    metrics = {
+        "direct": {
+            "total_problems": 3,
+            "solved_problems": 2,
+            "success_rate": 2 / 3,
+            "avg_tokens_per_problem": 100.0,
+            "formal_evaluable_problems": 2,
+            "formal_solved_problems": 1,
+            "formal_success_rate": 0.5,
+            "sample_only_problems": 1,
+            "by_difficulty": {},
+        }
+    }
+
+    content = HTMLGenerator.generate(metrics, sample_results, temp_html_path, include_charts=False)
+
+    assert "Formal Evaluation" in content
+    assert "1/2" in content
+    assert "Sample Only" in content
+
+
 def test_generate_redacts_credentials_from_rendering_errors(
     temp_html_path: str, sample_metrics: Dict, sample_results: Dict
 ):

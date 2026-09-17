@@ -144,6 +144,9 @@ class StrategyBase(ABC):
 Description:
 {problem.description}
 
+Input/Output Mode: {problem.input_output_mode}
+Entry Point: {problem.entry_point}
+
 {f"Constraints: {problem.constraints}" if problem.constraints else ""}
 
 Test Cases:
@@ -168,14 +171,16 @@ Your response should include the code in a ```python code block.
             Formatted test cases string
         """
         lines = []
-        for i, tc in enumerate(problem.test_cases[:limit]):
+        for i, tc in enumerate(problem.public_test_cases[:limit]):
             lines.append(f"Test {i+1}:")
             lines.append(f"  Input: {tc.input}")
             lines.append(f"  Expected Output: {tc.expected_output}")
             lines.append("")
 
-        if len(problem.test_cases) > limit:
-            lines.append(f"... and {len(problem.test_cases) - limit} more test cases")
+        if len(problem.public_test_cases) > limit:
+            lines.append(
+                f"... and {len(problem.public_test_cases) - limit} more test cases"
+            )
 
         return "\n".join(lines)
 
@@ -245,6 +250,15 @@ Your response should include the code in a ```python code block.
             if last.code_extracted is None and last.sandbox_result is None:
                 return "code_extraction_failed"
         if final_result is not None:
+            if final_result.status in {
+                "sandbox_error",
+                "backend_unavailable",
+                "timeout",
+                "memory_error",
+                "output_limit",
+                "process_limit",
+            }:
+                return "system_error"
             return "wrong_answer"
         return "code_extraction_failed"
 
@@ -263,6 +277,7 @@ Your response should include the code in a ```python code block.
                 "sandbox_error": it.sandbox_error,
                 "prompt_tokens": it.prompt_tokens,
                 "completion_tokens": it.completion_tokens,
+                "total_tokens": it.prompt_tokens + it.completion_tokens,
                 "usage_missing": it.usage_missing,
                 "elapsed_seconds": it.elapsed_seconds,
                 "sandbox": it.sandbox_result.model_dump() if it.sandbox_result else None,
@@ -311,19 +326,16 @@ Your response should include the code in a ```python code block.
         # Extract error message
         error_message = final_result.error_message if final_result else None
 
-        # Build LLM traces with pricing metadata
-        llm_traces = []
-        if llm_responses:
-            for idx, response in enumerate(llm_responses):
-                trace = {
-                    "iteration": idx + 1,
-                    "prompt_tokens": response.usage.prompt_tokens,
-                    "completion_tokens": response.usage.completion_tokens,
-                    "total_tokens": response.usage.total_tokens,
-                }
-                if response.pricing_metadata:
-                    trace["pricing_metadata"] = response.pricing_metadata
-                llm_traces.append(trace)
+        # Keep the complete redacted iteration trace and add pricing metadata
+        # when a provider response is available. Failed model calls may be
+        # represented by None in the response list and must not abort result
+        # recording.
+        llm_traces = self._build_llm_traces(iterations)
+        for idx, response in enumerate(llm_responses or []):
+            if response is None or idx >= len(llm_traces):
+                continue
+            if response.pricing_metadata:
+                llm_traces[idx]["pricing_metadata"] = response.pricing_metadata
 
         return ExecutionResult(
             problem_id=problem.problem_id,
@@ -344,5 +356,5 @@ Your response should include the code in a ```python code block.
             execution_time_seconds=(
                 execution_time_seconds if execution_time_seconds is not None else 0.0
             ),
-            llm_traces=llm_traces if llm_responses else self._build_llm_traces(iterations),
+            llm_traces=llm_traces,
         )

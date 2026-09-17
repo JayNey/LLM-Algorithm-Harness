@@ -247,6 +247,33 @@ def test_generate_empty_results(temp_md_path: str):
     assert "## Strategy Performance Summary" in content
 
 
+def test_generate_includes_formal_evaluation_summary(
+    temp_md_path: str, sample_results: Dict
+):
+    """Markdown reports show formal and sample-only denominators."""
+    metrics = {
+        "direct": {
+            "total_problems": 3,
+            "solved_problems": 2,
+            "success_rate": 2 / 3,
+            "avg_tokens_per_problem": 100.0,
+            "avg_time_per_problem": 0.5,
+            "formal_evaluable_problems": 2,
+            "formal_solved_problems": 1,
+            "formal_success_rate": 0.5,
+            "sample_only_problems": 1,
+            "by_difficulty": {},
+        }
+    }
+
+    content = MarkdownGenerator.generate(metrics, sample_results, temp_md_path)
+
+    assert "## Formal Hidden Evaluation" in content
+    assert "Formal Evaluable" in content
+    assert "| 1 | 2 |" in content
+    assert "Sample Only" in content
+
+
 def test_generate_redacts_credentials_in_failed_cases(
     temp_md_path: str, sample_metrics: Dict, sample_results: Dict
 ):

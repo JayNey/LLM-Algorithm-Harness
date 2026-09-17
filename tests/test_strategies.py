@@ -263,6 +263,193 @@ def solution(nums, target):
     assert result.iterations[1].sandbox_result.all_passed is True
 
 
+def test_feedback_stage_runs_without_exposing_hidden_cases(
+    mock_llm_client, mock_sandbox, strategy_config
+):
+    """Feedback tests can inform retries while hidden cases remain unavailable."""
+    problem = Problem(
+        problem_id="staged-strategy",
+        title="Staged Strategy",
+        description="A staged strategy problem with visibility markers.",
+        difficulty="easy",
+        public_test_cases=[
+            {"input": {"value": 1}, "expected_output": "PUBLIC_MARKER"}
+        ],
+        feedback_test_cases=[
+            {"input": {"value": 2}, "expected_output": "FEEDBACK_MARKER"}
+        ],
+        hidden_test_cases=[
+            {"input": {"value": 3}, "expected_output": "HIDDEN_MARKER"}
+        ],
+    )
+    response = LLMResponse(
+        text="```python\ndef solution(value):\n    return value\n```",
+        usage=TokenUsage(prompt_tokens=10, completion_tokens=10, total_tokens=20),
+        model="gpt-3.5-turbo",
+        finish_reason="stop",
+    )
+    mock_llm_client.generate.side_effect = [response, response]
+    failed_public = SandboxResult(
+        status="failed",
+        test_results=[
+            TestCaseResult(
+                test_case_index=0,
+                passed=False,
+                actual_output="wrong",
+                expected_output="PUBLIC_MARKER",
+                status="wrong_answer",
+            )
+        ],
+        all_passed=False,
+    )
+    failed_feedback = SandboxResult(
+        status="failed",
+        test_results=[
+            TestCaseResult(
+                test_case_index=0,
+                passed=False,
+                actual_output="wrong",
+                expected_output="FEEDBACK_MARKER",
+                status="wrong_answer",
+            )
+        ],
+        all_passed=False,
+    )
+    passed_public = SandboxResult(status="success", all_passed=True)
+    mock_sandbox.execute.side_effect = [failed_public, failed_feedback, passed_public]
+
+    strategy = MultiRoundFeedbackStrategy(strategy_config, mock_llm_client, mock_sandbox)
+    result = strategy.execute(problem)
+
+    assert result.success is True
+    assert mock_sandbox.execute.call_args_list[1].kwargs["stage"] == "feedback"
+    retry_prompt = mock_llm_client.generate.call_args_list[1].args[0]
+    assert "HIDDEN_MARKER" not in retry_prompt
+    assert "FEEDBACK_MARKER" in retry_prompt
+
+
+def test_feedback_stage_runs_when_public_tests_pass(
+    mock_llm_client, mock_sandbox, strategy_config
+):
+    """Feedback failures prevent early success even when public tests pass."""
+    problem = Problem(
+        problem_id="feedback-after-public",
+        title="Feedback After Public",
+        description="A problem that requires feedback tests after public tests pass.",
+        difficulty="easy",
+        public_test_cases=[{"input": {}, "expected_output": "public"}],
+        feedback_test_cases=[{"input": {}, "expected_output": "feedback"}],
+    )
+    response = LLMResponse(
+        text="```python\ndef solution():\n    return 'public'\n```",
+        usage=TokenUsage(prompt_tokens=10, completion_tokens=10, total_tokens=20),
+        model="gpt-3.5-turbo",
+        finish_reason="stop",
+    )
+    mock_llm_client.generate.return_value = response
+    public_pass = SandboxResult(status="success", all_passed=True)
+    feedback_fail = SandboxResult(
+        status="failed",
+        test_results=[
+            TestCaseResult(
+                test_case_index=0,
+                passed=False,
+                actual_output="public",
+                expected_output="feedback",
+                status="wrong_answer",
+            )
+        ],
+        all_passed=False,
+    )
+    mock_sandbox.execute.side_effect = [public_pass, feedback_fail, public_pass, feedback_fail]
+
+    strategy_config.max_iterations = 2
+    strategy = MultiRoundFeedbackStrategy(strategy_config, mock_llm_client, mock_sandbox)
+    result = strategy.execute(problem)
+
+    assert result.success is False
+    assert [call.kwargs.get("stage", "public") for call in mock_sandbox.execute.call_args_list] == [
+        "public",
+        "feedback",
+        "public",
+        "feedback",
+    ]
+
+
+def test_feedback_only_problem_uses_feedback_stage(
+    mock_llm_client, mock_sandbox, strategy_config
+):
+    """A problem without public samples can still use feedback tests."""
+    problem = Problem(
+        problem_id="feedback-only",
+        title="Feedback Only",
+        description="A problem whose visible tests are reserved for feedback.",
+        difficulty="easy",
+        feedback_test_cases=[{"input": {}, "expected_output": "ok"}],
+    )
+    mock_llm_client.generate.return_value = LLMResponse(
+        text="```python\ndef solution():\n    return 'ok'\n```",
+        usage=TokenUsage(prompt_tokens=1, completion_tokens=1, total_tokens=2),
+        model="test",
+    )
+    mock_sandbox.execute.return_value = SandboxResult(status="success", all_passed=True)
+
+    result = MultiRoundFeedbackStrategy(strategy_config, mock_llm_client, mock_sandbox).execute(
+        problem
+    )
+
+    assert result.success is True
+    assert mock_sandbox.execute.call_args.kwargs["stage"] == "feedback"
+
+
+def test_hidden_only_problem_defers_success_to_harness(
+    mock_llm_client, mock_sandbox, strategy_config
+):
+    """A hidden-only problem does not fail before the independent final stage."""
+    problem = Problem(
+        problem_id="hidden-only",
+        title="Hidden Only",
+        description="A problem whose only tests are reserved for final evaluation.",
+        difficulty="easy",
+        hidden_test_cases=[{"input": {}, "expected_output": "ok"}],
+    )
+    mock_llm_client.generate.return_value = LLMResponse(
+        text="```python\ndef solution():\n    return 'ok'\n```",
+        usage=TokenUsage(prompt_tokens=1, completion_tokens=1, total_tokens=2),
+        model="test",
+    )
+
+    result = MultiRoundFeedbackStrategy(strategy_config, mock_llm_client, mock_sandbox).execute(
+        problem
+    )
+
+    assert result.success is True
+    assert result.final_result is None
+    assert mock_llm_client.generate.call_count == 1
+    mock_sandbox.execute.assert_not_called()
+
+
+def test_cot_prompt_includes_input_protocol_and_entry_point(
+    mock_llm_client, mock_sandbox, strategy_config
+):
+    """CoT prompts tell the model which execution protocol to implement."""
+    problem = Problem(
+        problem_id="cot-protocol",
+        title="CoT Protocol",
+        description="A problem with an explicit execution protocol and entry point.",
+        difficulty="medium",
+        input_output_mode="stdin_stdout",
+        entry_point="main()",
+        test_cases=[{"input": {}, "expected_output": "ok"}],
+    )
+    strategy = ChainOfThoughtStrategy(strategy_config, mock_llm_client, mock_sandbox)
+
+    prompt = strategy.build_cot_prompt(problem)
+
+    assert "stdin_stdout" in prompt
+    assert "main()" in prompt
+
+
 def test_multi_round_feedback_max_iterations(mock_llm_client, mock_sandbox, sample_problem, strategy_config):
     """Test multi-round feedback respects max iterations."""
     # All attempts fail

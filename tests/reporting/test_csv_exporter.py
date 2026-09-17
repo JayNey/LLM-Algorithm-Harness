@@ -110,7 +110,8 @@ def test_export_empty_list(temp_csv_path: str):
     expected_headers = [
         "problem_id", "strategy", "status", "failure_category", "passed", "tokens",
         "time", "iterations", "error_message", "total_tests",
-        "passed_tests", "failed_tests"
+        "passed_tests", "failed_tests", "formal_evaluable", "formal_passed",
+        "sample_only", "hidden_total_tests", "hidden_passed_tests", "hidden_failed_tests"
     ]
     assert headers == expected_headers
     assert len(rows) == 0
@@ -138,6 +139,52 @@ def test_export_single_strategy(temp_csv_path: str, sample_execution_result: Exe
     assert row['total_tests'] == '1'
     assert row['passed_tests'] == '1'
     assert row['failed_tests'] == '0'
+    assert row['formal_evaluable'] == 'False'
+    assert row['formal_passed'] == 'False'
+    assert row['sample_only'] == 'True'
+
+
+def test_export_includes_formal_hidden_evaluation_fields(temp_csv_path: str):
+    """CSV rows preserve the formal hidden-test boundary."""
+    result = ExecutionResult(
+        problem_id="formal-problem",
+        strategy="direct",
+        generated_code="def solution(): return 1",
+        status="failed",
+        formal_evaluable=True,
+        hidden_result=SandboxResult(
+            status="failed",
+            test_results=[
+                TestCaseResult(
+                    test_case_index=0,
+                    passed=False,
+                    actual_output=1,
+                    expected_output=2,
+                    status="wrong_answer",
+                ),
+                TestCaseResult(
+                    test_case_index=1,
+                    passed=True,
+                    actual_output=1,
+                    expected_output=1,
+                    status="passed",
+                ),
+            ],
+            all_passed=False,
+        ),
+    )
+
+    CSVExporter.export([result], temp_csv_path)
+
+    with open(temp_csv_path, encoding="utf-8-sig") as f:
+        row = next(csv.DictReader(f))
+
+    assert row["formal_evaluable"] == "True"
+    assert row["formal_passed"] == "False"
+    assert row["sample_only"] == "False"
+    assert row["hidden_total_tests"] == "2"
+    assert row["hidden_passed_tests"] == "1"
+    assert row["hidden_failed_tests"] == "1"
 
 
 def test_export_multiple_results(
