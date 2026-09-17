@@ -131,7 +131,6 @@ class MultiRoundFeedbackStrategy(StrategyBase):
 
             # Check if successful
             if success:
-                success = True
                 self.logger.info("solution_found", iteration=iteration)
                 break
 
@@ -166,7 +165,14 @@ class MultiRoundFeedbackStrategy(StrategyBase):
     ) -> SandboxResult:
         """Combine public and feedback results without involving hidden tests."""
         status = "success" if primary.all_passed and feedback.all_passed else "failed"
-        resource_statuses = {"timeout", "memory_error", "output_limit", "process_limit"}
+        resource_statuses = {
+            "timeout",
+            "memory_error",
+            "output_limit",
+            "process_limit",
+            "sandbox_error",
+            "backend_unavailable",
+        }
         for result in (primary, feedback):
             if result.status in resource_statuses:
                 status = result.status
