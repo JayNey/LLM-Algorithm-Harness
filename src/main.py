@@ -244,12 +244,16 @@ def run_import_command(args: argparse.Namespace) -> int:
         Exit code (0=success, 1=partial, 2=failure, 3=strict mode failure)
     """
     from src.importers.base import ImportResult
+    from src.importers.leetcode import LeetCodeImporter
     from src.importers.local_json import LocalJsonImporter
+    from src.importers.mock import MockPlatformImporter
     from src.problem_loader import ProblemLoader
 
     # Map source type to importer class
     IMPORTERS = {
         "local-json": LocalJsonImporter,
+        "leetcode": LeetCodeImporter,
+        "mock": MockPlatformImporter,
     }
 
     if args.source not in IMPORTERS:
@@ -273,6 +277,7 @@ def run_import_command(args: argparse.Namespace) -> int:
 
         # Validate problems
         valid_problems, failed_items = importer.validate_problems(problems)
+        failed_items = list(getattr(importer, "transform_failures", [])) + failed_items
 
         # Load existing dataset
         existing_problems = []
@@ -293,6 +298,11 @@ def run_import_command(args: argparse.Namespace) -> int:
         result.failed = failed_items
         result.duplicates_skipped = skipped_ids
         result.duplicates_overwritten = overwritten_ids
+        result.warnings.extend(
+            f"{problem.problem_id}: manual completion required"
+            for problem in result.successful
+            if problem.needs_manual_completion
+        )
 
         # Display summary
         print(f"Import Summary:")
@@ -301,6 +311,10 @@ def run_import_command(args: argparse.Namespace) -> int:
         print(f"  Failed validation: {len(failed_items)}")
         print(f"  Duplicates (skipped): {len(skipped_ids)}")
         print(f"  Duplicates (overwritten): {len(overwritten_ids)}")
+        print(
+            "  Needs manual completion: "
+            f"{sum(problem.needs_manual_completion for problem in result.successful)}"
+        )
         print(f"  New problems to import: {len([p for p in valid_problems if p.problem_id not in skipped_ids and p.problem_id not in overwritten_ids])}")
         print()
 

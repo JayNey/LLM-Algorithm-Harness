@@ -1,0 +1,63 @@
+[
+  {
+    "_source_slug": "two-sum",
+    "_source_url": "https://leetcode.com/problems/two-sum/",
+    "questionId": "1",
+    "questionFrontendId": "1",
+    "title": "Two Sum",
+    "difficulty": "Easy",
+    "content": "<p>Given an array of integers <code>nums</code> and an integer <code>target</code>.</p><p><strong>Example 1:</strong></p><p>Input: nums = [2,7,11,15], target = 9<br>Output: [0,1]</p><p>Constraints:</p><ul><li>2 &lt;= nums.length &lt;= 10<sup>4</sup></li></ul>",
+    "constraints": "<p>2 &lt;= nums.length &lt;= 10<sup>4</sup></p>",
+    "topicTags": [{"name": "Array", "slug": "array"}, {"name": "Hash Table", "slug": "hash-table"}],
+    "codeSnippets": [{"lang": "Python3", "langSlug": "python3", "code": "class Solution:\n    def twoSum(self, nums: List[int], target: int) -> List[int]:"}]
+  },
+  {
+    "_source_slug": "maximum-product-subarray",
+    "_source_url": "https://leetcode.com/problems/maximum-product-subarray/",
+    "questionId": "152",
+    "questionFrontendId": "152",
+    "title": "Maximum Product Subarray",
+    "difficulty": "Medium",
+    "content": "<p>Find a subarray with the largest product.</p><p>Example 1:<br>Input: nums = [2,3,-2,4]<br>Output: 6<br>Explanation: <code>[2,3]</code> has product 6.</p><p>Constraints: 1 &lt;= nums.length &lt;= 2 * 10<sup>4</sup></p>",
+    "constraints": "1 &lt;= nums.length &lt;= 2 * 10<sup>4</sup>",
+    "topicTags": [{"name": "Array", "slug": "array"}],
+    "codeSnippets": [{"lang": "Python3", "langSlug": "python3", "code": "class Solution:\n    def maxProduct(self, nums):\n        pass"}]
+  },
+  {
+    "_source_slug": "valid-palindrome",
+    "_source_url": "https://leetcode.com/problems/valid-palindrome/",
+    "questionId": "125",
+    "questionFrontendId": "125",
+    "title": "Valid Palindrome",
+    "difficulty": "Easy",
+    "content": "<p>Determine whether a phrase is a palindrome.</p><p>Example 1:</p><p>Input: s = \"A man, a plan, a canal: Panama\"<br>Output: true</p>",
+    "constraints": "<p>1 &lt;= s.length &lt;= 2 * 10<sup>5</sup></p>",
+    "topicTags": [{"name": "String", "slug": "string"}],
+    "codeSnippets": [{"lang": "Python3", "langSlug": "python3", "code": "class Solution:\n    def isPalindrome(self, s):\n        pass"}]
+  },
+  {
+    "_source_slug": "shortest-path-visiting-all-nodes",
+    "_source_url": "https://leetcode.com/problems/shortest-path-visiting-all-nodes/",
+    "questionId": "847",
+    "questionFrontendId": "847",
+    "title": "Shortest Path Visiting All Nodes",
+    "difficulty": "Hard",
+    "content": "<p>Return the length of a shortest path.</p><p>Example 1:<br>Input: graph = [[1,2,3],[0],[0],[0]]<br>Output: 4</p>",
+    "constraints": "<p>n == graph.length</p>",
+    "topicTags": [{"name": "Graph", "slug": "graph"}],
+    "codeSnippets": [{"lang": "Python3", "langSlug": "python3", "code": "class Solution:\n    def shortestPathLength(self, graph):\n        pass"}]
+  },
+  {
+    "_source_slug": "design-twitter",
+    "_source_url": "https://leetcode.com/problems/design-twitter/",
+    "questionId": "355",
+    "questionFrontendId": "355",
+    "title": "Design Twitter",
+    "difficulty": "Medium",
+    "content": "<p>Design a simplified Twitter.</p><p>Example 1: create and post operations are described in the statement.</p>",
+    "constraints": "<p>Calls are bounded.</p>",
+    "topicTags": [{"name": "Hash Table", "slug": "hash-table"}],
+    "exampleTestcases": "twitter = Twitter()\ntwitter.postTweet(1, 5)",
+    "codeSnippets": [{"lang": "Python3", "langSlug": "python3", "code": "class Twitter:\n    def __init__(self):\n        pass"}]
+  }
+]

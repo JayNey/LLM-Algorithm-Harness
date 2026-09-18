@@ -84,6 +84,17 @@ harness import --source local-json --input data/new_problems.json --strict
 harness import --source local-json --input data/leetcode_problems.json
 ```
 
+### leetcode
+
+从 LeetCode 公开题目 URL 或 slug 导入题面、难度、标签、约束和 Python 入口信息：
+
+```bash
+harness import --source leetcode --input https://leetcode.com/problems/two-sum/ --preview
+harness import --source leetcode --input two-sum --force
+```
+
+适配器只使用公开 GraphQL 题目查询。受限题目、限流、网络超时和不支持的域名会返回明确失败；没有可靠公开期望输出的题目会保存为 `needs_manual_completion`，不会猜测测试答案或声称拥有隐藏测试。RSS/每日题目订阅适合做题目发现，正式导入仍需要通过 URL/slug 查询题面。
+
 ### mock
 
 生成测试用的模拟数据，用于演示和测试。
