@@ -7,7 +7,14 @@ This module defines all Pydantic data models used throughout the system.
 from datetime import datetime
 from typing import Any, Dict, List, Literal, Optional
 
-from pydantic import BaseModel, Field, SecretStr, field_serializer, field_validator
+from pydantic import (
+    BaseModel,
+    Field,
+    SecretStr,
+    field_serializer,
+    field_validator,
+    model_validator,
+)
 
 from src.utils.secrets import REDACTED, redact_sensitive_data
 
@@ -20,8 +27,12 @@ from src.utils.secrets import REDACTED, redact_sensitive_data
 class TestCase(BaseModel):
     """Single test case for an algorithm problem."""
 
-    input: Dict[str, Any] = Field(..., description="Test input parameters")
+    input: Any = Field(..., description="Function parameters or raw stdin payload")
     expected_output: Any = Field(..., description="Expected output value")
+    source: Literal["public", "feedback", "hidden"] = Field(
+        "public", description="Test purpose and visibility"
+    )
+    test_case_id: Optional[str] = Field(None, description="Stable test case identifier")
 
     model_config = {
         "json_schema_extra": {
@@ -33,6 +44,23 @@ class TestCase(BaseModel):
     }
 
 
+class JudgeConfig(BaseModel):
+    """Problem-level output comparison and stdin/stdout parsing rules."""
+
+    comparison: Literal["exact", "float_tolerance", "unordered"] = Field(
+        "float_tolerance", description="Output comparison strategy"
+    )
+    float_tolerance: float = Field(
+        1e-6, ge=0.0, description="Absolute and relative tolerance for float comparison"
+    )
+    whitespace: Literal["exact", "trim", "tokens"] = Field(
+        "trim", description="Whitespace policy for text stdout"
+    )
+    output_format: Literal["auto", "text", "json"] = Field(
+        "auto", description="How stdout should be parsed"
+    )
+
+
 class Problem(BaseModel):
     """Algorithm problem definition."""
 
@@ -41,16 +69,112 @@ class Problem(BaseModel):
     description: str = Field(..., min_length=10, description="Problem description")
     difficulty: Literal["easy", "medium", "hard"] = Field(..., description="Difficulty level")
     tags: List[str] = Field(default_factory=list, description="Problem tags")
-    test_cases: List[TestCase] = Field(..., min_length=1, description="Test cases")
     constraints: Optional[str] = Field(None, description="Problem constraints")
+    schema_version: str = Field("1.1", description="Problem schema version")
+    source_platform: str = Field("legacy", description="Source platform")
+    source_problem_id: Optional[str] = Field(None, description="Source platform problem ID")
+    source_url: Optional[str] = Field(None, description="Source problem URL")
+    source_version: Optional[str] = Field(None, description="Source dataset version")
+    input_output_mode: Literal["function", "stdin_stdout"] = Field(
+        "function", description="Input/output protocol"
+    )
+    entry_point: str = Field("solution(**test_input)", description="Execution entry signature")
+    judge_config: JudgeConfig = Field(
+        default_factory=JudgeConfig, description="Problem-level judge configuration"
+    )
+    unsupported_reason: Optional[str] = Field(
+        None, description="Explicit reason when this problem type is unsupported"
+    )
+    public_test_cases: List[TestCase] = Field(
+        default_factory=list, description="Public examples visible to the model"
+    )
+    feedback_test_cases: List[TestCase] = Field(
+        default_factory=list, description="Tests allowed for iterative feedback"
+    )
+    hidden_test_cases: List[TestCase] = Field(
+        default_factory=list, description="Tests reserved for final evaluation"
+    )
+    migration_status: Literal["native", "legacy_test_cases_as_public"] = Field(
+        "native", description="How the problem entered the current schema"
+    )
 
-    @field_validator("test_cases")
+    @model_validator(mode="before")
     @classmethod
-    def test_cases_not_empty(cls, v: List[TestCase]) -> List[TestCase]:
-        """Ensure at least one test case exists."""
-        if len(v) == 0:
-            raise ValueError("test_cases must contain at least one test case")
-        return v
+    def migrate_legacy_test_cases(cls, data: Any) -> Any:
+        """Move legacy test_cases to public examples without inferring hidden tests."""
+        if not isinstance(data, dict):
+            return data
+        values = dict(data)
+        legacy_cases = values.pop("test_cases", None)
+        if legacy_cases is not None:
+            if any(
+                key in values
+                for key in ("public_test_cases", "feedback_test_cases", "hidden_test_cases")
+            ):
+                raise ValueError("Use test_cases or the staged test lists, not both")
+            values["public_test_cases"] = legacy_cases
+            values["migration_status"] = "legacy_test_cases_as_public"
+        return values
+
+    @model_validator(mode="after")
+    def assign_test_case_sources(self) -> "Problem":
+        """Ensure each staged list carries its authoritative visibility label."""
+        self.public_test_cases = [
+            case.model_copy(update={"source": "public"}) for case in self.public_test_cases
+        ]
+        self.feedback_test_cases = [
+            case.model_copy(update={"source": "feedback"}) for case in self.feedback_test_cases
+        ]
+        self.hidden_test_cases = [
+            case.model_copy(update={"source": "hidden"}) for case in self.hidden_test_cases
+        ]
+        if not self.public_test_cases and not self.feedback_test_cases and not self.hidden_test_cases:
+            raise ValueError("At least one public, feedback, or hidden test case is required")
+        return self
+
+    @property
+    def test_cases(self) -> List[TestCase]:
+        """Backward-compatible public test list; hidden cases are never included."""
+        return self.public_test_cases
+
+    def test_cases_for(self, stage: str = "public") -> List[TestCase]:
+        """Return only tests for an explicit execution stage."""
+        stages = {
+            "public": self.public_test_cases,
+            "feedback": self.feedback_test_cases,
+            "hidden": self.hidden_test_cases,
+            "all_visible": self.public_test_cases + self.feedback_test_cases,
+            "all": self.public_test_cases + self.feedback_test_cases + self.hidden_test_cases,
+        }
+        if stage not in stages:
+            raise ValueError(f"Unknown test stage: {stage}")
+        return stages[stage]
+
+    @property
+    def formal_evaluable(self) -> bool:
+        """Whether an independent hidden score can be produced for this problem."""
+        return bool(self.hidden_test_cases) and not self.unsupported_reason
+
+    def prompt_view(self) -> Dict[str, Any]:
+        """Return problem context that excludes feedback and hidden test contents."""
+        return {
+            "schema_version": self.schema_version,
+            "problem_id": self.problem_id,
+            "title": self.title,
+            "description": self.description,
+            "difficulty": self.difficulty,
+            "tags": list(self.tags),
+            "constraints": self.constraints,
+            "source_platform": self.source_platform,
+            "source_problem_id": self.source_problem_id,
+            "source_url": self.source_url,
+            "source_version": self.source_version,
+            "input_output_mode": self.input_output_mode,
+            "entry_point": self.entry_point,
+            "judge_config": self.judge_config.model_dump(mode="json"),
+            "unsupported_reason": self.unsupported_reason,
+            "test_cases": [case.model_dump(mode="json") for case in self.public_test_cases],
+        }
 
     def validate_completeness(self) -> bool:
         """Validate problem data completeness."""
@@ -58,7 +182,7 @@ class Problem(BaseModel):
             bool(self.problem_id)
             and bool(self.title)
             and bool(self.description)
-            and len(self.test_cases) > 0
+            and len(self.public_test_cases) + len(self.feedback_test_cases) + len(self.hidden_test_cases) > 0
             and self.difficulty in ["easy", "medium", "hard"]
         )
 
@@ -116,7 +240,17 @@ class SandboxResult(BaseModel):
     """Aggregated result of sandbox execution."""
 
     status: Literal[
-        "success", "failed", "timeout", "memory_error", "syntax_error", "runtime_error"
+        "success",
+        "failed",
+        "timeout",
+        "memory_error",
+        "syntax_error",
+        "runtime_error",
+        "backend_unavailable",
+        "output_limit",
+        "process_limit",
+        "sandbox_error",
+        "unsupported",
     ] = Field(..., description="Execution status")
     test_results: List[TestCaseResult] = Field(
         default_factory=list, description="Individual test results"
@@ -162,7 +296,13 @@ class ExecutionResult(BaseModel):
     generated_code: str = Field(..., description="Generated code")
     status: str = Field(..., description="Execution status")
     failure_category: Optional[
-        Literal["wrong_answer", "code_extraction_failed", "model_error", "system_error"]
+        Literal[
+            "wrong_answer",
+            "code_extraction_failed",
+            "model_error",
+            "system_error",
+            "unsupported",
+        ]
     ] = Field(
         None,
         description=(
@@ -177,6 +317,12 @@ class ExecutionResult(BaseModel):
         default_factory=list, description="Iteration results"
     )
     final_result: Optional[SandboxResult] = Field(None, description="Final sandbox result")
+    hidden_result: Optional[SandboxResult] = Field(
+        None, description="Independent hidden evaluation result"
+    )
+    formal_evaluable: bool = Field(
+        False, description="Whether this problem has independent hidden evaluation cases"
+    )
     test_results: List[TestCaseResult] = Field(
         default_factory=list, description="Test results"
     )
@@ -225,6 +371,18 @@ class StrategyReport(BaseModel):
     )
     system_failed_problems: int = Field(
         0, ge=0, description="Problems that failed because of harness/system errors"
+    )
+    formal_evaluable_problems: int = Field(
+        0, ge=0, description="Problems with independent hidden evaluation cases"
+    )
+    sample_only_problems: int = Field(
+        0, ge=0, description="Problems that only have public/feedback tests"
+    )
+    formal_solved_problems: int = Field(
+        0, ge=0, description="Formally evaluated problems solved by hidden tests"
+    )
+    formal_success_rate: float = Field(
+        0.0, ge=0.0, le=1.0, description="Success rate over formal hidden evaluations"
     )
 
 
@@ -312,10 +470,25 @@ class LLMConfig(BaseModel):
 class SandboxConfig(BaseModel):
     """Sandbox executor configuration."""
 
+    backend: Literal["docker", "host"] = Field(
+        "docker", description="Isolation backend; host is intended for tests only"
+    )
+    docker_image: str = Field("python:3.11-slim", description="Docker image for isolated execution")
     timeout_seconds: int = Field(5, ge=1, le=60, description="Timeout per test case")
     memory_limit_mb: int = Field(256, ge=64, le=2048, description="Memory limit in MB")
+    max_output_bytes: int = Field(1_000_000, ge=1024, le=10_000_000)
+    max_processes: int = Field(16, ge=1, le=256)
     allowed_imports: List[str] = Field(
-        default_factory=lambda: ["math", "itertools", "collections", "heapq", "bisect", "functools"],
+        default_factory=lambda: [
+            "math",
+            "itertools",
+            "collections",
+            "heapq",
+            "bisect",
+            "functools",
+            "sys",
+            "json",
+        ],
         description="Allowed import modules",
     )
 

@@ -442,6 +442,16 @@ class HTMLGenerator:
             html_parts.append(f"<p><strong>Solved:</strong> {solved}/{total} problems</p>")
             html_parts.append(f"<p><strong>Model failed:</strong> {model_failed}</p>")
             html_parts.append(f"<p><strong>System failed:</strong> {system_failed}</p>")
+            if "formal_evaluable_problems" in strategy_metrics:
+                formal_solved = strategy_metrics.get("formal_solved_problems", 0)
+                formal_total = strategy_metrics.get("formal_evaluable_problems", 0)
+                formal_rate = strategy_metrics.get("formal_success_rate", 0) * 100
+                sample_only = strategy_metrics.get("sample_only_problems", 0)
+                html_parts.append(
+                    f"<p><strong>Formal Evaluation:</strong> {formal_solved}/{formal_total} "
+                    f"({formal_rate:.1f}%)</p>"
+                )
+                html_parts.append(f"<p><strong>Sample Only:</strong> {sample_only}</p>")
             html_parts.append(f"<p><strong>Avg Tokens:</strong> {avg_tokens:.0f}</p>")
 
             # Cost information with pricing source
@@ -457,15 +467,15 @@ class HTMLGenerator:
                     logger.warning(
                         "pricing_metadata_missing_for_strategy strategy=%s: %s",
                         strategy_name,
-                        "Using fallback pricing for historical report"
+                        "Using fallback pricing for historical report",
                     )
             else:
                 # Fallback: re-estimate using current PricingManager
                 logger.warning(
-                        "pricing_metadata_missing_for_strategy strategy=%s: %s",
-                        strategy_name,
-                        "No pricing_metadata in summary, using current pricing configuration"
-                    )
+                    "pricing_metadata_missing_for_strategy strategy=%s: %s",
+                    strategy_name,
+                    "No pricing_metadata in summary, using current pricing configuration",
+                )
                 pricing_source = "当前配置（历史数据不可用）"
 
             html_parts.append(f"<p><strong>Estimated Cost:</strong> ${estimated_cost:.4f} ({pricing_source})</p>")

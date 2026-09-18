@@ -60,7 +60,7 @@ class VanillaStrategy(StrategyBase):
         # Extract code
         code = None
         if llm_response is not None:
-            code = self.extract_code(llm_response.text)
+            code = self.extract_code(llm_response.text, problem)
 
         # Execute in sandbox
         sandbox_result = None
@@ -69,8 +69,16 @@ class VanillaStrategy(StrategyBase):
 
         if code:
             try:
-                sandbox_result = self.sandbox.execute(code, problem)
-                success = sandbox_result.all_passed
+                if problem.public_test_cases:
+                    sandbox_result = self.sandbox.execute(code, problem, stage="public")
+                    success = sandbox_result.all_passed
+                elif problem.feedback_test_cases:
+                    # A feedback-only problem still has an executable visible stage.
+                    sandbox_result = self.sandbox.execute(code, problem, stage="feedback")
+                    success = sandbox_result.all_passed
+                else:
+                    # Hidden-only problems are finalized by Harness after this strategy.
+                    success = True
             except Exception as e:
                 sandbox_error = str(e)
                 self.logger.error("sandbox_execution_failed", error=sandbox_error)

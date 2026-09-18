@@ -58,6 +58,7 @@ def sample_llm_config():
 def sample_sandbox_config():
     """Sample sandbox configuration."""
     return SandboxConfig(
+        backend="host",
         timeout_seconds=5,
         memory_limit_mb=256,
         allowed_imports=["math", "itertools", "collections"]

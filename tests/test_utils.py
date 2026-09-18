@@ -237,6 +237,14 @@ def test_validate_test_case_valid():
     assert validate_test_case(test_case) is True
 
 
+def test_validate_stdin_test_case_accepts_raw_text():
+    """stdin/stdout test cases may use raw input strings."""
+    assert validate_test_case(
+        {"input": "2 3\n", "expected_output": "5\n"},
+        input_output_mode="stdin_stdout",
+    ) is True
+
+
 def test_validate_test_case_missing_input():
     """Test validation fails for missing input."""
     test_case = {"expected_output": 2}

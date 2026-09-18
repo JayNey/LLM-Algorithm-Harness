@@ -131,6 +131,12 @@ def print_report(reports: dict):
         print(f"Strategy: {strategy_name}")
         print(f"  Success Rate: {report.success_rate:.2%}")
         print(f"  Solved: {report.solved_problems}/{report.total_problems}")
+        print(
+            "  Formal Hidden Evaluation: "
+            f"{report.formal_solved_problems}/{report.formal_evaluable_problems} "
+            f"({report.formal_success_rate:.2%})"
+        )
+        print(f"  Sample-only Problems: {report.sample_only_problems}")
         print(f"  Avg Attempts: {report.avg_attempts_per_problem:.2f}")
         print(f"  Avg Tokens: {report.avg_tokens_per_problem:.0f}")
         print(f"  Estimated Cost: ${report.estimated_cost_usd:.4f}")

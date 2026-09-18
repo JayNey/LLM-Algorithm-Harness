@@ -16,6 +16,7 @@ from src.models import (
     SandboxResult,
     StrategyConfig,
     TestCase,
+    TestCaseResult,
 )
 
 
@@ -43,6 +44,7 @@ def harness_config(tmp_path):
             model="gpt-3.5-turbo",
         ),
         sandbox_config=SandboxConfig(
+            backend="host",
             timeout_seconds=5,
             memory_limit_mb=256,
             allowed_imports=["math"],
@@ -60,6 +62,268 @@ def test_harness_initialization(harness_config):
     assert harness.config == harness_config
     assert harness.problem_loader is not None
     assert harness.results == {}
+
+
+def test_hidden_evaluation_runs_after_strategy_without_feedback_leak(
+    harness_config, monkeypatch
+):
+    """Hidden failures change the final result only after strategy execution ends."""
+    public_problem = Problem(
+        problem_id="hidden-1",
+        title="Hidden Evaluation",
+        description="A problem with a hidden case that catches sample overfitting.",
+        difficulty="easy",
+        public_test_cases=[{"input": {"value": 1}, "expected_output": 1}],
+        feedback_test_cases=[{"input": {"value": 2}, "expected_output": 2}],
+        hidden_test_cases=[{"input": {"value": 99}, "expected_output": 100}],
+    )
+    public_result = SandboxResult(
+        status="success",
+        test_results=[
+            TestCaseResult(
+                test_case_index=0,
+                passed=True,
+                actual_output=1,
+                expected_output=1,
+                status="passed",
+            )
+        ],
+        all_passed=True,
+    )
+    hidden_result = SandboxResult(
+        status="failed",
+        test_results=[
+            TestCaseResult(
+                test_case_index=0,
+                passed=False,
+                actual_output=1,
+                expected_output=100,
+                status="wrong_answer",
+            )
+        ],
+        all_passed=False,
+    )
+    execution_result = ExecutionResult(
+        problem_id="hidden-1",
+        strategy="vanilla",
+        generated_code="def solution(value): return 1",
+        status="success",
+        iterations=[],
+        final_result=public_result,
+        test_results=public_result.test_results,
+    )
+    strategy = MagicMock()
+    strategy.execute.return_value = execution_result
+    sandbox = MagicMock()
+    sandbox.execute.side_effect = [hidden_result]
+    monkeypatch.setattr("src.harness.LLMClient", MagicMock())
+    monkeypatch.setattr("src.harness.SandboxExecutor", lambda config: sandbox)
+
+    harness = AlgorithmHarness(harness_config)
+    monkeypatch.setitem(harness.STRATEGY_MAP, "vanilla", lambda *args: strategy)
+
+    report = harness._run_strategy(harness_config.strategies[0], [public_problem])
+
+    assert execution_result.status == "failed"
+    assert execution_result.hidden_result is hidden_result
+    assert report.solved_problems == 0
+    assert report.formal_evaluable_problems == 1
+    assert report.formal_solved_problems == 0
+    assert report.formal_success_rate == 0.0
+    assert sandbox.execute.call_args_list[-1].kwargs["stage"] == "hidden"
+
+
+def test_strategy_receives_problem_without_hidden_cases(harness_config, monkeypatch):
+    """Custom strategies cannot inspect hidden inputs during candidate generation."""
+    problem = Problem(
+        problem_id="isolated-hidden",
+        title="Isolated Hidden",
+        description="A problem used to verify strategy input isolation.",
+        difficulty="easy",
+        public_test_cases=[{"input": {}, "expected_output": 1}],
+        hidden_test_cases=[{"input": {"secret": "HIDDEN"}, "expected_output": 2}],
+    )
+    strategy = MagicMock()
+    strategy.execute.side_effect = lambda visible_problem: (
+        None
+        if visible_problem.hidden_test_cases
+        else ExecutionResult(
+            problem_id=visible_problem.problem_id,
+            strategy="vanilla",
+            generated_code="def solution(): return 1",
+            status="success",
+            iterations=[],
+        )
+    )
+    sandbox = MagicMock()
+    sandbox.execute.return_value = SandboxResult(status="success", all_passed=True)
+    monkeypatch.setattr("src.harness.LLMClient", MagicMock())
+    monkeypatch.setattr("src.harness.SandboxExecutor", lambda config: sandbox)
+
+    harness = AlgorithmHarness(harness_config)
+    monkeypatch.setitem(harness.STRATEGY_MAP, "vanilla", lambda *args: strategy)
+
+    report = harness._run_strategy(harness_config.strategies[0], [problem])
+
+    visible_problem = strategy.execute.call_args.args[0]
+    assert visible_problem.hidden_test_cases == []
+    assert visible_problem.public_test_cases
+    assert report.formal_evaluable_problems == 1
+
+
+def test_hidden_only_problem_is_scored_by_hidden_stage(harness_config, monkeypatch):
+    """A hidden-only problem can pass when its independent final tests pass."""
+    problem = Problem(
+        problem_id="hidden-only",
+        title="Hidden Only",
+        description="A problem whose only tests are reserved for final evaluation.",
+        difficulty="easy",
+        hidden_test_cases=[{"input": {}, "expected_output": 1}],
+    )
+    execution_result = ExecutionResult(
+        problem_id="hidden-only",
+        strategy="vanilla",
+        generated_code="def solution(): return 1",
+        status="success",
+        iterations=[],
+    )
+    strategy = MagicMock()
+    strategy.execute.return_value = execution_result
+    hidden_result = SandboxResult(status="success", all_passed=True)
+    sandbox = MagicMock()
+    sandbox.execute.return_value = hidden_result
+    monkeypatch.setattr("src.harness.LLMClient", MagicMock())
+    monkeypatch.setattr("src.harness.SandboxExecutor", lambda config: sandbox)
+
+    harness = AlgorithmHarness(harness_config)
+    monkeypatch.setitem(harness.STRATEGY_MAP, "vanilla", lambda *args: strategy)
+
+    report = harness._run_strategy(harness_config.strategies[0], [problem])
+
+    assert execution_result.status == "success"
+    assert execution_result.formal_evaluable is True
+    assert execution_result.hidden_result is hidden_result
+    assert report.formal_solved_problems == 1
+    assert sandbox.execute.call_args.kwargs["stage"] == "hidden"
+
+
+def test_unsupported_problem_is_short_circuited_before_strategy(
+    harness_config, monkeypatch
+):
+    """Unsupported protocols never enter model generation or hidden scoring."""
+    problem = Problem(
+        problem_id="unsupported-hidden",
+        title="Unsupported Hidden",
+        description="A problem whose custom protocol is not implemented.",
+        difficulty="hard",
+        unsupported_reason="interactive protocol is unsupported",
+        hidden_test_cases=[{"input": {}, "expected_output": 1}],
+    )
+    strategy = MagicMock()
+    sandbox = MagicMock()
+    monkeypatch.setattr("src.harness.LLMClient", MagicMock())
+    monkeypatch.setattr("src.harness.SandboxExecutor", lambda config: sandbox)
+
+    harness = AlgorithmHarness(harness_config)
+    monkeypatch.setitem(harness.STRATEGY_MAP, "vanilla", lambda *args: strategy)
+
+    report = harness._run_strategy(harness_config.strategies[0], [problem])
+    result = harness.get_results("vanilla")[0]
+
+    strategy.execute.assert_not_called()
+    sandbox.execute.assert_not_called()
+    assert result.status == "unsupported"
+    assert result.failure_category == "unsupported"
+    assert report.formal_evaluable_problems == 0
+
+
+def test_hidden_execution_error_keeps_formal_record(harness_config, monkeypatch):
+    """A hidden executor exception remains a formal system failure record."""
+    problem = Problem(
+        problem_id="hidden-error",
+        title="Hidden Error",
+        description="A problem used to verify hidden execution error handling.",
+        difficulty="easy",
+        hidden_test_cases=[{"input": {}, "expected_output": 1}],
+    )
+    strategy = MagicMock()
+    strategy.execute.return_value = ExecutionResult(
+        problem_id="hidden-error",
+        strategy="vanilla",
+        generated_code="def solution(): return 1",
+        status="success",
+        iterations=[],
+    )
+    sandbox = MagicMock()
+    sandbox.execute.side_effect = RuntimeError("hidden backend unavailable")
+    monkeypatch.setattr("src.harness.LLMClient", MagicMock())
+    monkeypatch.setattr("src.harness.SandboxExecutor", lambda config: sandbox)
+
+    harness = AlgorithmHarness(harness_config)
+    monkeypatch.setitem(harness.STRATEGY_MAP, "vanilla", lambda *args: strategy)
+
+    report = harness._run_strategy(harness_config.strategies[0], [problem])
+    result = harness.get_results("vanilla")[0]
+
+    assert result.formal_evaluable is True
+    assert result.hidden_result.status == "sandbox_error"
+    assert result.failure_category == "system_error"
+    assert report.formal_evaluable_problems == 1
+    assert report.formal_solved_problems == 0
+
+
+def test_formal_report_uses_hidden_result_independently(harness_config):
+    """Formal hidden metrics count hidden passes even when visible tests failed."""
+    problem = Problem(
+        problem_id="visible-fail-hidden-pass",
+        title="Visible Fail Hidden Pass",
+        description="A problem used to define formal metric independence.",
+        difficulty="easy",
+        public_test_cases=[{"input": {}, "expected_output": 1}],
+        hidden_test_cases=[{"input": {}, "expected_output": 1}],
+    )
+    result = ExecutionResult(
+        problem_id=problem.problem_id,
+        strategy="vanilla",
+        generated_code="def solution(): return 1",
+        status="failed",
+        formal_evaluable=True,
+        hidden_result=SandboxResult(status="success", all_passed=True),
+    )
+
+    report = AlgorithmHarness(harness_config)._generate_report(
+        harness_config.strategies[0], [result], [problem]
+    )
+
+    assert report.solved_problems == 0
+    assert report.formal_solved_problems == 1
+    assert report.formal_success_rate == 1.0
+
+
+def test_report_marks_legacy_problem_as_sample_only(harness_config):
+    """Legacy problems are excluded from the formal hidden-test denominator."""
+    problem = Problem(
+        problem_id="sample-only",
+        title="Sample Only",
+        description="A legacy problem with no independent scoring cases.",
+        difficulty="easy",
+        test_cases=[{"input": {"value": 1}, "expected_output": 1}],
+    )
+    result = ExecutionResult(
+        problem_id="sample-only",
+        strategy="vanilla",
+        generated_code="def solution(value): return value",
+        status="success",
+        iterations=[],
+        test_results=[],
+    )
+    report = AlgorithmHarness(harness_config)._generate_report(
+        harness_config.strategies[0], [result], [problem]
+    )
+
+    assert report.formal_evaluable_problems == 0
+    assert report.sample_only_problems == 1
+    assert report.formal_success_rate == 0.0
 
 
 def test_harness_initialization_logs_only_redacted_config(harness_config):

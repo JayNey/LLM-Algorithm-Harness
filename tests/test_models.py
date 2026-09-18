@@ -13,6 +13,7 @@ from src.models import (
     ExecutionResult,
     ExecutionSummary,
     HarnessConfig,
+    JudgeConfig,
     LLMConfig,
     LLMResponse,
     Problem,
@@ -39,6 +40,118 @@ def test_create_valid_test_case():
 
     assert tc.input == {"nums": [2, 7], "target": 9}
     assert tc.expected_output == [0, 1]
+
+
+def test_problem_schema_tracks_sources_and_test_purposes():
+    """Native problems preserve metadata and separate test purposes."""
+    problem = Problem(
+        schema_version="1.1",
+        problem_id="schema-1",
+        title="Schema Problem",
+        description="A problem with separate evaluation stages.",
+        difficulty="medium",
+        source_platform="leetcode",
+        source_problem_id="1",
+        source_url="https://leetcode.com/problems/two-sum/",
+        source_version="2026-09",
+        input_output_mode="function",
+        entry_point="solution(nums, target)",
+        public_test_cases=[
+            {"input": {"nums": [2, 7], "target": 9}, "expected_output": [0, 1]}
+        ],
+        feedback_test_cases=[
+            {"input": {"nums": [3, 3], "target": 6}, "expected_output": [0, 1]}
+        ],
+        hidden_test_cases=[
+            {"input": {"nums": [1, 5], "target": 6}, "expected_output": [0, 1]}
+        ],
+    )
+
+    assert problem.schema_version == "1.1"
+    assert problem.source_platform == "leetcode"
+    assert problem.public_test_cases[0].source == "public"
+    assert problem.feedback_test_cases[0].source == "feedback"
+    assert problem.hidden_test_cases[0].source == "hidden"
+    assert len(problem.test_cases_for("all")) == 3
+
+
+def test_judge_config_defaults_and_stdin_input_are_supported():
+    """Judge rules have compatibility defaults and stdin cases accept raw text."""
+    config = JudgeConfig()
+    assert config.comparison == "float_tolerance"
+    assert config.float_tolerance == 1e-6
+    assert config.whitespace == "trim"
+
+    problem = Problem(
+        problem_id="stdin-model",
+        title="Stdin Model",
+        description="A problem that stores raw standard input test data.",
+        difficulty="easy",
+        input_output_mode="stdin_stdout",
+        entry_point="main()",
+        public_test_cases=[{"input": "1 2\n", "expected_output": "3\n"}],
+    )
+    assert problem.public_test_cases[0].input == "1 2\n"
+    assert problem.prompt_view()["judge_config"]["whitespace"] == "trim"
+
+
+def test_legacy_test_cases_migrate_to_public_only():
+    """Legacy test_cases are never inferred to be feedback or hidden."""
+    problem = Problem(
+        problem_id="legacy-1",
+        title="Legacy Problem",
+        description="A legacy problem with one public test case.",
+        difficulty="easy",
+        test_cases=[{"input": {"x": 1}, "expected_output": 1}],
+    )
+
+    assert problem.migration_status == "legacy_test_cases_as_public"
+    assert len(problem.public_test_cases) == 1
+    assert problem.feedback_test_cases == []
+    assert problem.hidden_test_cases == []
+    assert problem.test_cases == problem.public_test_cases
+    assert problem.formal_evaluable is False
+
+
+def test_legacy_migration_status_cannot_be_overridden():
+    """Legacy input always records its actual migration path."""
+    problem = Problem(
+        problem_id="legacy-status",
+        title="Legacy Status",
+        description="A legacy problem whose migration status must be truthful.",
+        difficulty="easy",
+        migration_status="native",
+        test_cases=[{"input": {"x": 1}, "expected_output": 1}],
+    )
+
+    assert problem.migration_status == "legacy_test_cases_as_public"
+
+
+def test_prompt_view_excludes_feedback_and_hidden_contents():
+    """Prompt context contains public examples but no hidden markers or answers."""
+    problem = Problem(
+        problem_id="prompt-1",
+        title="Prompt Isolation",
+        description="A problem used to verify prompt visibility boundaries.",
+        difficulty="easy",
+        public_test_cases=[
+            {"input": {"value": "PUBLIC_MARKER"}, "expected_output": "public"}
+        ],
+        feedback_test_cases=[
+            {"input": {"value": "FEEDBACK_MARKER"}, "expected_output": "feedback"}
+        ],
+        hidden_test_cases=[
+            {"input": {"value": "HIDDEN_MARKER"}, "expected_output": "hidden"}
+        ],
+    )
+
+    view = problem.prompt_view()
+    serialized = str(view)
+
+    assert "PUBLIC_MARKER" in serialized
+    assert "FEEDBACK_MARKER" not in serialized
+    assert "HIDDEN_MARKER" not in serialized
+    assert "hidden" not in serialized
 
 
 def test_test_case_json_serialization():
@@ -309,6 +422,23 @@ def test_harness_config():
     assert config.output_dir == "output/"
     assert config.dataset_path == "data/problems.json"
     assert config.log_level == "INFO"  # Default
+
+
+def test_sandbox_config_defaults_to_docker_backend():
+    """Production sandbox configuration must not default to host execution."""
+    config = SandboxConfig()
+
+    assert config.backend == "docker"
+    assert config.docker_image
+    assert config.max_output_bytes == 1_000_000
+    assert config.max_processes >= 1
+
+
+def test_sandbox_result_supports_backend_and_resource_failures():
+    """Sandbox failures have explicit structured statuses."""
+    for status in ("backend_unavailable", "output_limit", "process_limit"):
+        result = SandboxResult(status=status, error_message="sandbox failed")
+        assert result.status == status
 
 
 def test_harness_config_redacted_dump_masks_api_key():

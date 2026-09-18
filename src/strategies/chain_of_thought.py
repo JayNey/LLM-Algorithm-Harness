@@ -60,7 +60,7 @@ class ChainOfThoughtStrategy(StrategyBase):
         # Extract code
         code = None
         if llm_response is not None:
-            code = self.extract_code(llm_response.text)
+            code = self.extract_code(llm_response.text, problem)
 
         # Execute in sandbox
         sandbox_result = None
@@ -69,8 +69,16 @@ class ChainOfThoughtStrategy(StrategyBase):
 
         if code:
             try:
-                sandbox_result = self.sandbox.execute(code, problem)
-                success = sandbox_result.all_passed
+                if problem.public_test_cases:
+                    sandbox_result = self.sandbox.execute(code, problem, stage="public")
+                    success = sandbox_result.all_passed
+                elif problem.feedback_test_cases:
+                    # A feedback-only problem still has an executable visible stage.
+                    sandbox_result = self.sandbox.execute(code, problem, stage="feedback")
+                    success = sandbox_result.all_passed
+                else:
+                    # Hidden-only problems are finalized by Harness after this strategy.
+                    success = True
             except Exception as e:
                 sandbox_error = str(e)
                 self.logger.error("sandbox_execution_failed", error=sandbox_error)
@@ -116,11 +124,16 @@ class ChainOfThoughtStrategy(StrategyBase):
             CoT prompt with reasoning instructions
         """
         test_cases_str = self._format_test_cases(problem)
+        contract = self._solution_contract(problem)
 
         prompt = f"""Problem: {problem.title}
 
 Description:
 {problem.description}
+
+Input/Output Mode: {problem.input_output_mode}
+Entry Point: {problem.entry_point}
+Judge: {problem.judge_config.comparison}, float tolerance={problem.judge_config.float_tolerance}, whitespace={problem.judge_config.whitespace}
 
 {f"Constraints: {problem.constraints}" if problem.constraints else ""}
 
@@ -134,7 +147,7 @@ Please solve this problem step-by-step:
 3. Consider edge cases and constraints
 4. Then provide a Python solution
 
-Your solution should define a function named 'solution' that takes the test case inputs as parameters and returns the expected output.
+{contract}
 
 Please structure your response as:
 

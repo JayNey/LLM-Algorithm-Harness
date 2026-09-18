@@ -11,6 +11,7 @@ from src.models import (
     LLMConfig,
     Problem,
     SandboxConfig,
+    SandboxResult,
     StrategyConfig,
     StrategyReport,
 )
@@ -125,8 +126,61 @@ class AlgorithmHarness:
                 progress=f"{i+1}/{len(problems)}",
             )
 
+            if problem.unsupported_reason:
+                results.append(
+                    ExecutionResult(
+                        problem_id=problem.problem_id,
+                        strategy=strategy_config.name,
+                        generated_code="",
+                        status="unsupported",
+                        failure_category="unsupported",
+                        difficulty=problem.difficulty,
+                        error_message=problem.unsupported_reason,
+                    )
+                )
+                continue
+
             try:
-                result = strategy.execute(problem)
+                # Strategies receive a copy with hidden cases removed. The
+                # Harness retains the complete problem for the post-strategy
+                # evaluation below, so custom strategies cannot inspect or run
+                # hidden cases during candidate generation.
+                strategy_problem = problem.model_copy(update={"hidden_test_cases": []})
+                result = strategy.execute(strategy_problem)
+                result.formal_evaluable = problem.formal_evaluable
+                if (
+                    problem.formal_evaluable
+                    and result.generated_code
+                    and not problem.unsupported_reason
+                ):
+                    try:
+                        hidden_result = sandbox.execute(
+                            result.generated_code, problem, stage="hidden"
+                        )
+                    except Exception as e:
+                        hidden_error = redact_sensitive_text(str(e))
+                        logger.error(
+                            "hidden_evaluation_failed",
+                            strategy=strategy_config.name,
+                            problem=problem.problem_id,
+                            error=hidden_error,
+                        )
+                        hidden_result = SandboxResult(
+                            status="sandbox_error",
+                            all_passed=False,
+                            error_message=hidden_error,
+                        )
+                    result.hidden_result = hidden_result
+                    if not hidden_result.all_passed:
+                        result.status = "failed"
+                        result.failure_category = (
+                            "system_error"
+                            if hidden_result.status != "failed"
+                            else "wrong_answer"
+                        )
+                        # Preserve original error_message if present
+                        if not result.error_message:
+                            result.error_message = "Hidden evaluation failed"
                 results.append(result)
             except Exception as e:
                 # Every problem x strategy combination must end up with a
@@ -147,6 +201,7 @@ class AlgorithmHarness:
                         failure_category="system_error",
                         difficulty=problem.difficulty,
                         error_message=redacted_error,
+                        formal_evaluable=problem.formal_evaluable,
                     )
                 )
 
@@ -193,6 +248,17 @@ class AlgorithmHarness:
 
         # Calculate by_difficulty breakdown
         by_difficulty = self._calculate_by_difficulty(results, problems)
+        formal_evaluable = sum(1 for problem in problems if problem.formal_evaluable)
+        formal_solved = sum(
+            1
+            for problem, result in zip(problems, results, strict=False)
+            if (
+                problem.formal_evaluable
+                and result.formal_evaluable
+                and result.hidden_result is not None
+                and result.hidden_result.all_passed
+            )
+        )
 
         report = StrategyReport(
             strategy_name=strategy_config.name,
@@ -208,6 +274,10 @@ class AlgorithmHarness:
             by_difficulty=by_difficulty,
             model_failed_problems=model_failed,
             system_failed_problems=system_failed,
+            formal_evaluable_problems=formal_evaluable,
+            sample_only_problems=total_problems - formal_evaluable,
+            formal_solved_problems=formal_solved,
+            formal_success_rate=(formal_solved / formal_evaluable if formal_evaluable else 0.0),
         )
 
         logger.info(

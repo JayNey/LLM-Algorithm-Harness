@@ -10,8 +10,12 @@
     "timeout": 30
   },
   "sandbox_config": {
+    "backend": "docker",
+    "docker_image": "python:3.11-slim",
     "timeout_seconds": 5,
     "memory_limit_mb": 256,
+    "max_output_bytes": 1000000,
+    "max_processes": 16,
     "allowed_imports": [
       "math",
       "itertools",

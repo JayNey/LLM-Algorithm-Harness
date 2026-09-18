@@ -39,6 +39,12 @@ class CSVExporter:
             "total_tests",
             "passed_tests",
             "failed_tests",
+            "formal_evaluable",
+            "formal_passed",
+            "sample_only",
+            "hidden_total_tests",
+            "hidden_passed_tests",
+            "hidden_failed_tests",
         ]
 
         # Write CSV with UTF-8 BOM for Excel compatibility
@@ -51,6 +57,13 @@ class CSVExporter:
                 total_tests = len(result.test_results)
                 passed_tests = sum(1 for tc in result.test_results if tc.passed)
                 failed_tests = total_tests - passed_tests
+                hidden_result = result.hidden_result
+                hidden_total_tests = len(hidden_result.test_results) if hidden_result else 0
+                hidden_passed_tests = (
+                    sum(1 for tc in hidden_result.test_results if tc.passed)
+                    if hidden_result
+                    else 0
+                )
 
                 # Calculate iteration count
                 iteration_count = len(result.iterations) if result.iterations else 1
@@ -68,6 +81,12 @@ class CSVExporter:
                     "total_tests": total_tests,
                     "passed_tests": passed_tests,
                     "failed_tests": failed_tests,
+                    "formal_evaluable": result.formal_evaluable,
+                    "formal_passed": bool(hidden_result and hidden_result.all_passed),
+                    "sample_only": not result.formal_evaluable,
+                    "hidden_total_tests": hidden_total_tests,
+                    "hidden_passed_tests": hidden_passed_tests,
+                    "hidden_failed_tests": hidden_total_tests - hidden_passed_tests,
                 }
 
                 writer.writerow(redact_sensitive_data(row))

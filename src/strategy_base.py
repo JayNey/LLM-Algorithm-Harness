@@ -58,7 +58,9 @@ class StrategyBase(ABC):
         """
         pass
 
-    def extract_code(self, llm_response: str) -> Optional[str]:
+    def extract_code(
+        self, llm_response: str, problem: Problem | None = None
+    ) -> Optional[str]:
         """
         Extract Python code from LLM response.
 
@@ -73,11 +75,31 @@ class StrategyBase(ABC):
         matches = re.findall(pattern, llm_response, re.DOTALL)
 
         code = None
+        entry_name = "solution"
+        if problem and problem.input_output_mode == "function":
+            target = SandboxExecutor._entry_point_parts(problem.entry_point)
+            if target and target[1] is None:
+                entry_name = target[0]
         if matches:
             code = matches[0].strip()
         elif "def solution(" in llm_response:
             code = llm_response.strip()
             self.logger.info("code_extracted_fallback", code_length=len(code))
+        elif problem and problem.input_output_mode == "stdin_stdout":
+            # Script-style answers may omit a Markdown fence and do not define
+            # the function marker used by function-style extraction.
+            code = llm_response.strip()
+            self.logger.info("script_extracted_fallback", code_length=len(code))
+        elif problem and re.search(rf"def\s+{re.escape(entry_name)}\s*\(", llm_response):
+            code = llm_response.strip()
+            self.logger.info("code_extracted_fallback", code_length=len(code))
+        elif problem and problem.input_output_mode == "function":
+            target = SandboxExecutor._entry_point_parts(problem.entry_point)
+            if target and target[1] and re.search(
+                rf"class\s+{re.escape(target[0])}\b", llm_response
+            ):
+                code = llm_response.strip()
+                self.logger.info("class_extracted_fallback", code_length=len(code))
         else:
             # Fallback: unclosed code block (response truncated mid-answer)
             unclosed = re.search(r'```(?:python)?\s*\n(.*)', llm_response, re.DOTALL)
@@ -89,11 +111,11 @@ class StrategyBase(ABC):
             self.logger.warning("code_extraction_failed")
             return None
 
-        code = self._strip_after_solution(code)
+        code = self._strip_after_solution(code, entry_name)
         self.logger.info("code_extracted", code_length=len(code))
         return code
 
-    def _strip_after_solution(self, code: str) -> str:
+    def _strip_after_solution(self, code: str, entry_name: str = "solution") -> str:
         """
         Truncate executable statements appended after the solution function.
 
@@ -105,7 +127,11 @@ class StrategyBase(ABC):
         """
         lines = code.split("\n")
         start = next(
-            (i for i, line in enumerate(lines) if line.lstrip().startswith("def solution(")),
+            (
+                i
+                for i, line in enumerate(lines)
+                if line.lstrip().startswith(f"def {entry_name}(")
+            ),
             None,
         )
         if start is None:
@@ -138,23 +164,54 @@ class StrategyBase(ABC):
             Formatted prompt
         """
         test_cases_str = self._format_test_cases(problem)
+        contract = self._solution_contract(problem)
 
         prompt = f"""Problem: {problem.title}
 
 Description:
 {problem.description}
 
+Input/Output Mode: {problem.input_output_mode}
+Entry Point: {problem.entry_point}
+Judge: {problem.judge_config.comparison}, float tolerance={problem.judge_config.float_tolerance}, whitespace={problem.judge_config.whitespace}
+
 {f"Constraints: {problem.constraints}" if problem.constraints else ""}
 
 Test Cases:
 {test_cases_str}
 
-Please provide a Python solution that defines a function named 'solution' that takes the test case inputs as parameters and returns the expected output.
+{contract}
 
 Your response should include the code in a ```python code block.
 """
 
         return prompt
+
+    @staticmethod
+    def _solution_contract(problem: Problem) -> str:
+        """Describe the code entry contract appropriate for this problem."""
+        if problem.input_output_mode == "stdin_stdout":
+            return (
+                "Please provide a complete stdin/stdout program in Python. Read input "
+                "from standard input and write only the judged result to standard output. "
+                f"The declared entry point is {problem.entry_point}."
+            )
+        target = SandboxExecutor._entry_point_parts(problem.entry_point)
+        if target and target[1]:
+            class_name, method_name = target
+            return (
+                f"Please define class {class_name} with a method {method_name} "
+                f"matching the entry point {problem.entry_point}."
+            )
+        if target and target[0] != "solution":
+            return (
+                f"Please define a Python function named {target[0]} matching the "
+                f"entry point {problem.entry_point}."
+            )
+        return (
+            "Please provide a Python solution that defines a function named 'solution' "
+            "that takes the test case inputs as parameters and returns the expected output."
+        )
 
     def _format_test_cases(self, problem: Problem, limit: int = 3) -> str:
         """
@@ -168,14 +225,16 @@ Your response should include the code in a ```python code block.
             Formatted test cases string
         """
         lines = []
-        for i, tc in enumerate(problem.test_cases[:limit]):
+        for i, tc in enumerate(problem.public_test_cases[:limit]):
             lines.append(f"Test {i+1}:")
             lines.append(f"  Input: {tc.input}")
             lines.append(f"  Expected Output: {tc.expected_output}")
             lines.append("")
 
-        if len(problem.test_cases) > limit:
-            lines.append(f"... and {len(problem.test_cases) - limit} more test cases")
+        if len(problem.public_test_cases) > limit:
+            lines.append(
+                f"... and {len(problem.public_test_cases) - limit} more test cases"
+            )
 
         return "\n".join(lines)
 
@@ -245,21 +304,33 @@ Your response should include the code in a ```python code block.
             if last.code_extracted is None and last.sandbox_result is None:
                 return "code_extraction_failed"
         if final_result is not None:
+            if final_result.status == "unsupported":
+                return "unsupported"
+            if any(
+                result.status in {"runtime_error", "syntax_error"}
+                for result in final_result.test_results
+            ):
+                return "system_error"
+            if final_result.status in {
+                "sandbox_error",
+                "backend_unavailable",
+                "timeout",
+                "memory_error",
+                "output_limit",
+                "process_limit",
+                "runtime_error",
+                "syntax_error",
+            }:
+                return "system_error"
             return "wrong_answer"
         return "code_extraction_failed"
 
-    def _build_llm_traces(
-        self, iterations: list, llm_responses: Optional[List[LLMResponse]] = None
-    ) -> list:
+    def _build_llm_traces(self, iterations: list) -> list:
         """
         Build redacted per-round traces from iteration results.
-
-        When the corresponding LLMResponse carries provider pricing metadata
-        (openai>=3 pricing feature), it is attached to the round's trace.
-        Responses may be None for rounds that failed at the API boundary.
         """
         traces = []
-        for idx, it in enumerate(iterations):
+        for it in iterations:
             trace = {
                 "iteration": it.iteration,
                 "prompt": it.prompt,
@@ -269,14 +340,13 @@ Your response should include the code in a ```python code block.
                 "sandbox_error": it.sandbox_error,
                 "prompt_tokens": it.prompt_tokens,
                 "completion_tokens": it.completion_tokens,
+                "total_tokens": it.prompt_tokens + it.completion_tokens,
                 "usage_missing": it.usage_missing,
                 "elapsed_seconds": it.elapsed_seconds,
                 "sandbox": it.sandbox_result.model_dump() if it.sandbox_result else None,
             }
-            response = llm_responses[idx] if llm_responses and idx < len(llm_responses) else None
-            if response is not None and response.pricing_metadata:
-                trace["pricing_metadata"] = response.pricing_metadata
             traces.append(redact_sensitive_data(trace))
+        return traces
         return traces
 
     def create_execution_result(
@@ -312,7 +382,12 @@ Your response should include the code in a ```python code block.
         generated_code = iterations[-1].code_extracted if iterations and iterations[-1].code_extracted else ""
 
         # Determine status
-        status = "success" if success else ("error" if final_result and final_result.error_message else "failed")
+        if success:
+            status = "success"
+        elif final_result and final_result.status == "unsupported":
+            status = "unsupported"
+        else:
+            status = "error" if final_result and final_result.error_message else "failed"
 
         # Extract test results
         test_results = final_result.test_results if final_result else []
@@ -320,8 +395,16 @@ Your response should include the code in a ```python code block.
         # Extract error message
         error_message = final_result.error_message if final_result else None
 
-        # Build LLM traces with per-round context and pricing metadata
-        llm_traces = self._build_llm_traces(iterations, llm_responses)
+        # Keep the complete redacted iteration trace and add pricing metadata
+        # when a provider response is available. Failed model calls may be
+        # represented by None in the response list and must not abort result
+        # recording.
+        llm_traces = self._build_llm_traces(iterations)
+        for idx, response in enumerate(llm_responses or []):
+            if response is None or idx >= len(llm_traces):
+                continue
+            if response.pricing_metadata:
+                llm_traces[idx]["pricing_metadata"] = response.pricing_metadata
 
         return ExecutionResult(
             problem_id=problem.problem_id,

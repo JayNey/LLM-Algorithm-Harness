@@ -186,21 +186,47 @@ problem_filters:
 ```json
 [
   {
+    "schema_version": "1.1",
     "problem_id": "two-sum",
     "title": "Two Sum",
     "description": "问题描述...",
     "difficulty": "easy",
     "tags": ["array", "hash-table"],
     "constraints": "约束条件...",
-    "test_cases": [
+    "source_platform": "leetcode",
+    "source_problem_id": "1",
+    "source_url": "https://leetcode.com/problems/two-sum/",
+    "source_version": "2026-09",
+    "input_output_mode": "function",
+    "entry_point": "solution(nums, target)",
+    "judge_config": {
+      "comparison": "float_tolerance",
+      "float_tolerance": 0.000001,
+      "whitespace": "trim",
+      "output_format": "auto"
+    },
+    "public_test_cases": [
       {
         "input": {"nums": [2, 7, 11, 15], "target": 9},
+        "expected_output": [0, 1]
+      }
+    ],
+    "feedback_test_cases": [],
+    "hidden_test_cases": [
+      {
+        "input": {"nums": [3, 3], "target": 6},
         "expected_output": [0, 1]
       }
     ]
   }
 ]
 ```
+
+旧版题目中的 `test_cases` 仍然可以导入，但会保守迁移为 `public_test_cases`，并标记为仅样例验证；系统不会根据旧字段推断隐藏测试。`public_test_cases`、`feedback_test_cases` 和 `hidden_test_cases` 可以按数据集需要为空；缺失的阶段会被显式跳过，空阶段不会被当作通过。
+
+`input_output_mode` 支持 `function` 和 `stdin_stdout`。函数题默认调用 `solution(**test_input)`，也可以用 `entry_point` 声明自定义函数或简单的 LeetCode 方法入口，例如 `solve(value)` 或 `Solution.twoSum(nums, target)`；标准输入输出题的 `TestCase.input` 使用原始字符串，程序从 stdin 读取并写入 stdout。`judge_config.comparison` 可选 `exact`、`float_tolerance` 或 `unordered`，其中 `unordered` 只对明确配置的列表结果忽略顺序；`whitespace` 可选 `exact`、`trim` 或 `tokens`。
+
+链表、树、交互题等需要自定义序列化或交互协议的题目，可以填写 `unsupported_reason`。Harness 会将其标记为 `unsupported`，不会把它记为模型答错。
 
 ## 运行测试
 
@@ -333,6 +359,7 @@ python3 examples/generate_reports.py
 - **策略性能摘要**: 各策略的成功率、解决问题数、平均 Token 消耗
 - **难度分层统计**: 按 easy/medium/hard 分类的性能指标
 - **失败案例汇总**: 列出失败的问题及错误信息
+- **正式评测边界**: 展示正式可评测题数、隐藏测试通过率和仅样例题数
 - **可视化图表**:
   - 成功率柱状图（颜色编码：绿色 ≥80%，黄色 50-80%，红色 <50%）
   - Token 消耗折线图
@@ -355,6 +382,12 @@ CSV 文件包含以下列：
 | total_tests | 总测试用例数 |
 | passed_tests | 通过的测试用例数 |
 | failed_tests | 失败的测试用例数 |
+| formal_evaluable | 是否有独立隐藏评测用例 |
+| formal_passed | 隐藏评测是否全部通过 |
+| sample_only | 是否仅有公开/反馈测试 |
+| hidden_total_tests | 隐藏测试总数 |
+| hidden_passed_tests | 隐藏测试通过数 |
+| hidden_failed_tests | 隐藏测试失败数 |
 
 CSV 文件使用 UTF-8 BOM 编码，确保在 Excel 中正确显示中文。
 
@@ -519,6 +552,22 @@ elif self.config.provider == "new_provider":
 4. **增量评估**: 只评估新增或修改的问题
 
 ## 故障排查
+
+### 代码沙箱
+
+生产配置默认使用 Docker 执行模型生成代码。Docker 后端会禁用网络、使用只读根文件系统、移除容器 capabilities，并限制内存、进程数和输出大小；请先启动 Docker Desktop 并准备配置中的镜像。
+
+```yaml
+sandbox_config:
+  backend: docker
+  docker_image: python:3.11-slim
+  timeout_seconds: 5
+  memory_limit_mb: 256
+  max_output_bytes: 1000000
+  max_processes: 16
+```
+
+Docker 不可用时评测会返回明确的 `backend_unavailable` 失败，不会偷偷退回宿主进程。`backend: host` 只适合单元测试，不具备生产隔离能力。
 
 ### API 调用失败
 

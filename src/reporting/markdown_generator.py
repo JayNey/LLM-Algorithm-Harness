@@ -111,19 +111,45 @@ class MarkdownGenerator:
                     logger.warning(
                         "pricing_metadata_missing_for_strategy strategy=%s: %s",
                         strategy_name,
-                        "Using fallback pricing for historical report"
+                        "Using fallback pricing for historical report",
                     )
             else:
                 logger.warning(
-                        "pricing_metadata_missing_for_strategy strategy=%s: %s",
-                        strategy_name,
-                        "No pricing_metadata in summary, using current pricing configuration"
-                    )
+                    "pricing_metadata_missing_for_strategy strategy=%s: %s",
+                    strategy_name,
+                    "No pricing_metadata in summary, using current pricing configuration",
+                )
                 pricing_source = "当前配置（历史数据不可用）"
 
             lines.append(f"**{MarkdownGenerator._escape_markdown(strategy_name)}:** {pricing_source}")
 
         lines.append("")
+
+        formal_metrics = [
+            strategy_metrics
+            for _, strategy_metrics in sorted_strategies
+            if "formal_evaluable_problems" in strategy_metrics
+        ]
+        if formal_metrics:
+            lines.append("## Formal Hidden Evaluation")
+            lines.append("")
+            lines.append(
+                "| Strategy | Formal Success Rate | Formal Solved | Formal Evaluable | Sample Only |"
+            )
+            lines.append(
+                "|----------|--------------------:|--------------:|-----------------:|------------:|"
+            )
+            for strategy_name, strategy_metrics in sorted_strategies:
+                if "formal_evaluable_problems" not in strategy_metrics:
+                    continue
+                lines.append(
+                    f"| {MarkdownGenerator._escape_markdown(strategy_name)} | "
+                    f"{strategy_metrics.get('formal_success_rate', 0) * 100:.1f}% | "
+                    f"{strategy_metrics.get('formal_solved_problems', 0)} | "
+                    f"{strategy_metrics.get('formal_evaluable_problems', 0)} | "
+                    f"{strategy_metrics.get('sample_only_problems', 0)} |"
+                )
+            lines.append("")
 
         # Difficulty breakdown
         lines.append("## Performance by Difficulty")
