@@ -195,6 +195,49 @@ class SandboxExecutor:
             return False
         return image.returncode == 0
 
+    def health_check(self) -> tuple[bool, str | None]:
+        """
+        Probe sandbox availability through the real execution path.
+
+        Runs a minimal known-good solution against a trivial problem via
+        ``execute()``, so the probe inherits the exact backend, resource
+        limits and cleanup semantics of a real evaluation run.
+
+        Returns:
+            (ok, detail) — detail is None on success, otherwise an
+            actionable failure description
+        """
+        if self.config.backend == "docker" and not self._docker_available():
+            return False, (
+                "Docker sandbox backend unavailable; start Docker Desktop and ensure "
+                f"image '{self.config.docker_image}' is available"
+            )
+
+        probe_problem = Problem(
+            problem_id="__preflight__",
+            title="Sandbox preflight",
+            description="Minimal probe used by health_check; never shown to the model.",
+            difficulty="easy",
+            test_cases=[TestCase(input={"x": 1}, expected_output=1)],
+        )
+        probe_code = "def solution(x=None):\n    return x"
+
+        try:
+            result = self.execute(probe_code, probe_problem)
+        except Exception as exc:
+            return False, f"Sandbox probe execution failed: {exc}"
+
+        failing_statuses = {"backend_unavailable", "sandbox_error"}
+        if result.status in failing_statuses or any(
+            tc.status in failing_statuses for tc in result.test_results
+        ):
+            detail = result.error_message or "; ".join(
+                filter(None, (tc.error_message for tc in result.test_results))
+            )
+            return False, detail or "Sandbox probe execution failed"
+
+        return True, None
+
     def _build_docker_command(
         self, workdir: str, runner_path: str, container_name: str | None = None
     ) -> list[str]:

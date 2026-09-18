@@ -104,9 +104,14 @@ class AlgorithmHarness:
         Returns:
             StrategyReport
         """
-        # Initialize components
-        llm_client = LLMClient(self.config.llm_config)
+        # Initialize components; probe the sandbox once before any model call
+        # so an unusable backend cannot burn tokens across the whole batch
         sandbox = SandboxExecutor(self.config.sandbox_config)
+        preflight_ok, preflight_detail = sandbox.health_check()
+        if not preflight_ok:
+            raise RuntimeError(f"Sandbox preflight failed: {preflight_detail}")
+
+        llm_client = LLMClient(self.config.llm_config)
 
         # Get strategy class
         strategy_class = self.STRATEGY_MAP.get(strategy_config.name)
