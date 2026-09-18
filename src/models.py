@@ -85,6 +85,12 @@ class Problem(BaseModel):
     unsupported_reason: Optional[str] = Field(
         None, description="Explicit reason when this problem type is unsupported"
     )
+    needs_manual_completion: bool = Field(
+        False, description="Whether imported metadata or public samples need manual completion"
+    )
+    manual_completion_notes: List[str] = Field(
+        default_factory=list, description="Reasons and fields that need manual completion"
+    )
     public_test_cases: List[TestCase] = Field(
         default_factory=list, description="Public examples visible to the model"
     )
@@ -128,7 +134,12 @@ class Problem(BaseModel):
         self.hidden_test_cases = [
             case.model_copy(update={"source": "hidden"}) for case in self.hidden_test_cases
         ]
-        if not self.public_test_cases and not self.feedback_test_cases and not self.hidden_test_cases:
+        if (
+            not self.public_test_cases
+            and not self.feedback_test_cases
+            and not self.hidden_test_cases
+            and not self.needs_manual_completion
+        ):
             raise ValueError("At least one public, feedback, or hidden test case is required")
         return self
 
@@ -173,6 +184,8 @@ class Problem(BaseModel):
             "entry_point": self.entry_point,
             "judge_config": self.judge_config.model_dump(mode="json"),
             "unsupported_reason": self.unsupported_reason,
+            "needs_manual_completion": self.needs_manual_completion,
+            "manual_completion_notes": list(self.manual_completion_notes),
             "test_cases": [case.model_dump(mode="json") for case in self.public_test_cases],
         }
 
@@ -182,7 +195,13 @@ class Problem(BaseModel):
             bool(self.problem_id)
             and bool(self.title)
             and bool(self.description)
-            and len(self.public_test_cases) + len(self.feedback_test_cases) + len(self.hidden_test_cases) > 0
+            and (
+                len(self.public_test_cases)
+                + len(self.feedback_test_cases)
+                + len(self.hidden_test_cases)
+                > 0
+                or self.needs_manual_completion
+            )
             and self.difficulty in ["easy", "medium", "hard"]
         )
 

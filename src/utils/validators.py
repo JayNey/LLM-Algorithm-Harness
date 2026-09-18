@@ -42,7 +42,9 @@ def validate_problem_schema(data: Dict[str, Any]) -> bool:
             raise ValueError("Missing required field: test_cases")
         if any(not isinstance(data[field], list) for field in present_fields):
             raise ValueError("Staged test case fields must be lists")
-        if not any(data[field] for field in present_fields):
+        if not any(data[field] for field in present_fields) and not data.get(
+            "needs_manual_completion", False
+        ):
             raise ValueError("At least one staged test case is required")
 
     return True
