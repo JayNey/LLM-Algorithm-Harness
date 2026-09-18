@@ -9,6 +9,7 @@ from datetime import datetime
 from pathlib import Path
 
 from src.harness import AlgorithmHarness
+from src.llm_client import LLMClient
 from src.models import HarnessConfig, LLMConfig, SandboxConfig, StrategyConfig
 from src.utils.config import load_config
 from src.utils.logging import get_logger, setup_logging
@@ -286,6 +287,25 @@ def main():
         help="Limit number of problems to evaluate; must be positive (overrides config)",
     )
 
+    parser.add_argument(
+        "--list-models",
+        action="store_true",
+        help=(
+            "List provider model IDs via the free model listing endpoint and exit. "
+            "Model size metadata is not reliably provided by the API and is shown as unknown. "
+            "A generation-based connectivity check would incur billing."
+        ),
+    )
+
+    parser.add_argument(
+        "--check-connection",
+        action="store_true",
+        help=(
+            "Verify provider credentials/connectivity via the free model listing endpoint "
+            "and exit (no generation request, no billing). Generation-based checks would be billed."
+        ),
+    )
+
     args = parser.parse_args()
 
     setup_logging(console_format=args.log_format)
@@ -302,6 +322,50 @@ def main():
             logger.info("using_default_config")
 
         config = apply_cli_overrides(config, args)
+
+        # Provider introspection commands: use the free listing endpoint and
+        # exit before any evaluation runs
+        if args.list_models or args.check_connection:
+            client = LLMClient(config.llm_config)
+
+            if args.check_connection:
+                status = client.check_connection()
+                if status["ok"]:
+                    print(
+                        f"Connection OK: provider={status['provider']} "
+                        f"base_url={status['base_url']} models={status['model_count']}"
+                    )
+                    print(
+                        "Note: this check used the free model listing endpoint; "
+                        "a generation-based check would incur billing."
+                    )
+                else:
+                    print(f"Connection failed: {status['error']}")
+                    print(
+                        "Fix the credentials/network above, or configure a model ID "
+                        "manually in your config (llm_config.model) and run the evaluation."
+                    )
+                    sys.exit(1)
+
+            if args.list_models:
+                try:
+                    models = client.list_models()
+                except Exception as e:
+                    print(f"Model listing failed: {e}")
+                    print(
+                        "You can still configure the model ID manually in your config "
+                        "(llm_config.model) and run the evaluation."
+                    )
+                    sys.exit(1)
+                print(f"Available models ({len(models)}):")
+                for model_id in models:
+                    print(f"  - {model_id}")
+                print(
+                    "Note: model size metadata is not reliably provided by the listing "
+                    "API and is shown as unknown."
+                )
+
+            return
 
         # Initialize and run harness
         logger.info("harness_starting")

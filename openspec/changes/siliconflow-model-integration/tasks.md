@@ -5,9 +5,9 @@
 
 ## 2. CLI、配置与文档
 
-- [ ] 2.1 先增加 `--list-models` / `--check-connection` 的参数测试，再接入 CLI 入口（含计费说明与失败引导）
-- [ ] 2.2 更新 `config.example.json` 无密钥示例与 README 三策略调用说明；注册 `online` 标记并补在线单题验证用例（无凭证自动跳过）
+- [x] 2.1 先增加 `--list-models` / `--check-connection` 的参数测试，再接入 CLI 入口（含计费说明与失败引导）
+- [x] 2.2 更新 `config.example.json` 无密钥示例与 README 三策略调用说明；注册 `online` 标记并补在线单题验证用例（无凭证自动跳过）
 
 ## 3. 验证
 
-- [ ] 3.1 运行全量测试、静态检查与 OpenSpec 严格校验
+- [x] 3.1 运行全量测试、静态检查与 OpenSpec 严格校验

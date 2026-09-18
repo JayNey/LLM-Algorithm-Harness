@@ -1,0 +1,45 @@
+{
+  "dataset_path": "data/problems.json",
+  "output_dir": "./results",
+  "llm_config": {
+    "provider": "siliconflow",
+    "api_key": "env:SILICONFLOW_API_KEY",
+    "model": "Qwen/Qwen2.5-7B-Instruct",
+    "temperature": 0.7,
+    "max_tokens": 2000,
+    "timeout": 60
+  },
+  "sandbox_config": {
+    "timeout_seconds": 5,
+    "memory_limit_mb": 256,
+    "allowed_imports": [
+      "math",
+      "itertools",
+      "collections",
+      "functools",
+      "heapq",
+      "bisect",
+      "re",
+      "string"
+    ]
+  },
+  "strategies": [
+    {
+      "name": "vanilla",
+      "max_iterations": 1
+    },
+    {
+      "name": "chain_of_thought",
+      "max_iterations": 1
+    },
+    {
+      "name": "multi_round_feedback",
+      "max_iterations": 3
+    }
+  ],
+  "problem_filters": {
+    "difficulty": null,
+    "tags": null,
+    "limit": null
+  }
+}
