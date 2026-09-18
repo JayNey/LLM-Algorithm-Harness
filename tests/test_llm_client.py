@@ -410,3 +410,147 @@ def test_provider_error_uses_key_from_initialization_after_environment_changes(c
 
     assert secret not in str(exc_info.value)
     assert secret not in capsys.readouterr().out
+
+
+# ============================================================================
+# SiliconFlow provider preset tests (issue #11)
+# ============================================================================
+
+
+def _siliconflow_config(**overrides):
+    """SiliconFlow config with empty key so env fallback is exercised."""
+    payload = {"provider": "siliconflow", "api_key": "", "model": "Qwen/Qwen2.5-7B-Instruct"}
+    payload.update(overrides)
+    return LLMConfig(**payload)
+
+
+def test_initialize_siliconflow_uses_preset_base_url_and_env_key():
+    """The preset routes through the OpenAI SDK with the SiliconFlow defaults."""
+    with patch("src.llm_client.OpenAI") as mock_openai:
+        with patch.dict(os.environ, {"SILICONFLOW_API_KEY": "sf-env-key"}, clear=True):
+            LLMClient(_siliconflow_config())
+
+    mock_openai.assert_called_once_with(
+        api_key="sf-env-key",
+        base_url="https://api.siliconflow.cn/v1",
+        max_retries=3,
+    )
+
+
+def test_siliconflow_explicit_key_and_base_url_override_preset():
+    """Explicit key and base_url win over the preset and the environment."""
+    config = _siliconflow_config(api_key="sf-explicit-key", base_url="https://custom.example/v1")
+    with patch("src.llm_client.OpenAI") as mock_openai:
+        with patch.dict(os.environ, {"SILICONFLOW_API_KEY": "sf-env-key"}, clear=True):
+            LLMClient(config)
+
+    mock_openai.assert_called_once_with(
+        api_key="sf-explicit-key",
+        base_url="https://custom.example/v1",
+        max_retries=3,
+    )
+
+
+def test_siliconflow_missing_key_names_expected_env():
+    """A missing key reports the SiliconFlow-specific variable."""
+    with patch("src.llm_client.OpenAI"):
+        with patch.dict(os.environ, {}, clear=True):
+            with pytest.raises(ValueError, match="SILICONFLOW_API_KEY"):
+                LLMClient(_siliconflow_config())
+
+
+def test_siliconflow_supports_explicit_env_reference():
+    """env:NAME references keep working for SiliconFlow."""
+    config = _siliconflow_config(api_key="env:MY_SF_KEY")
+    with patch("src.llm_client.OpenAI") as mock_openai:
+        with patch.dict(os.environ, {"MY_SF_KEY": "sf-ref-key"}, clear=True):
+            LLMClient(config)
+
+    assert mock_openai.call_args.kwargs["api_key"] == "sf-ref-key"
+
+
+def test_siliconflow_provider_secret_never_serialized():
+    """The resolved key stays out of model serialization."""
+    with patch("src.llm_client.OpenAI"):
+        with patch.dict(os.environ, {"SILICONFLOW_API_KEY": "sf-secret-value"}, clear=True):
+            client = LLMClient(_siliconflow_config())
+
+    assert "sf-secret-value" not in client.config.model_dump_json()
+    assert "sf-secret-value" not in repr(client.config)
+
+
+# ============================================================================
+# SiliconFlow model listing & connection check tests (issue #11)
+# ============================================================================
+
+
+def _siliconflow_client(env_key="sf-env-key"):
+    """SiliconFlow client backed by a mocked OpenAI SDK."""
+    config = _siliconflow_config()
+    with patch("src.llm_client.OpenAI") as mock_openai_class:
+        with patch.dict(os.environ, {"SILICONFLOW_API_KEY": env_key}, clear=True):
+            client = LLMClient(config)
+    return client, mock_openai_class.return_value
+
+
+def _model_page(ids):
+    page = Mock()
+    page.data = [Mock(id=model_id) for model_id in ids]
+    return page
+
+
+def test_list_models_returns_sorted_ids():
+    """Model IDs come from the listing endpoint, sorted for stable output."""
+    client, sdk = _siliconflow_client()
+    sdk.models.list.return_value = _model_page(["Qwen/Qwen2.5-7B", "deepseek-ai/DeepSeek-V3"])
+
+    assert client.list_models() == ["Qwen/Qwen2.5-7B", "deepseek-ai/DeepSeek-V3"] or (
+        client.list_models() == ["deepseek-ai/DeepSeek-V3", "Qwen/Qwen2.5-7B"]
+    )
+    assert client.list_models()[0] <= client.list_models()[-1]
+
+
+def test_list_models_sorted_deterministically():
+    """Listing is sorted alphabetically regardless of endpoint order."""
+    client, sdk = _siliconflow_client()
+    sdk.models.list.return_value = _model_page(["z-model", "a-model"])
+
+    assert client.list_models() == ["a-model", "z-model"]
+
+
+def test_list_models_error_keeps_reason_and_redacts_key():
+    """Listing failures surface a readable, credential-free reason."""
+    client, sdk = _siliconflow_client(env_key="sf-list-secret")
+    sdk.models.list.side_effect = Exception("401 unauthorized for sf-list-secret")
+
+    with pytest.raises(RuntimeError) as exc_info:
+        client.list_models()
+
+    assert "401" in str(exc_info.value)
+    assert "sf-list-secret" not in str(exc_info.value)
+
+
+def test_check_connection_success_without_generation():
+    """Connection check uses the free listing endpoint only."""
+    client, sdk = _siliconflow_client()
+    sdk.base_url = "https://api.siliconflow.cn/v1"
+    sdk.models.list.return_value = _model_page(["m1", "m2", "m3"])
+
+    result = client.check_connection()
+
+    assert result["ok"] is True
+    assert result["model_count"] == 3
+    assert result["base_url"] == "https://api.siliconflow.cn/v1"
+    sdk.chat.completions.create.assert_not_called()
+
+
+def test_check_connection_failure_returns_reason():
+    """Failures return the reason instead of raising, for CLI reporting."""
+    client, sdk = _siliconflow_client()
+    sdk.models.list.side_effect = Exception("connection refused")
+
+    result = client.check_connection()
+
+    assert result["ok"] is False
+    assert "connection refused" in result["error"]
+    assert result["model_count"] == 0

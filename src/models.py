@@ -445,7 +445,9 @@ class ProviderResponse(BaseModel):
 class LLMConfig(BaseModel):
     """LLM client configuration."""
 
-    provider: Literal["openai", "anthropic", "local"] = Field(..., description="Provider type")
+    provider: Literal["openai", "anthropic", "local", "siliconflow"] = Field(
+        ..., description="Provider type"
+    )
     api_key: SecretStr = Field(..., description="API key or environment reference")
     model: str = Field(..., description="Model name")
     base_url: Optional[str] = Field(None, description="Base URL for local models")
