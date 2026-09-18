@@ -277,7 +277,9 @@ class TestImportIntegration:
         problems = importer.transform_to_schema(raw_data)
         valid_problems, failed = importer.validate_problems(problems)
 
-        # Should have 1 valid, 1 failed
+        # Invalid problem is skipped during transform (Pydantic validation failure)
+        # Only valid problems reach validate_problems()
+        assert len(problems) == 1  # Only valid problem transformed
         assert len(valid_problems) == 1
-        assert len(failed) == 1
+        assert len(failed) == 0  # No validation failures (invalid already filtered)
         assert valid_problems[0].problem_id == "valid-001"
