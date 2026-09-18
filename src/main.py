@@ -321,10 +321,9 @@ def main():
             config = create_default_config(args.dataset, args.output or "./results")
             logger.info("using_default_config")
 
-        config = apply_cli_overrides(config, args)
-
         # Provider introspection commands: use the free listing endpoint and
-        # exit before any evaluation runs
+        # exit before any evaluation runs. Placed before apply_cli_overrides so
+        # strategy/dataset overrides cannot block pure query commands
         if args.list_models or args.check_connection:
             client = LLMClient(config.llm_config)
 
@@ -366,6 +365,8 @@ def main():
                 )
 
             return
+
+        config = apply_cli_overrides(config, args)
 
         # Initialize and run harness
         logger.info("harness_starting")

@@ -107,6 +107,7 @@ PYTHONPATH=. python3 -m src.main --config config.siliconflow.example.json --stra
 - 模型 ID 以官方模型列表为准，也可手动填写完整模型 ID（`llm_config.model`）；模型规模元数据接口未可靠提供，一律标注未知。
 - 列表查询失败时按错误原因排查（401 为鉴权问题），也可直接手动配置模型 ID 运行评测。
 - 示例配置见 `config.siliconflow.example.json`（无真实密钥）。
+- 成本估算：未收录进 `pricing.json` 的模型按默认单价估算（报告来源标记为 `default`），可能与实际计费有偏差；可在 `pricing.json` 中为常用模型补充真实单价。
 - 真实 API 端到端验证位于 `tests/test_online_verification.py`，标记为 `online`：无凭证环境自动跳过，Mock 测试不构成真实 API 验证。
 
 ## 快速开始

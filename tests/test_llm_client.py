@@ -504,10 +504,7 @@ def test_list_models_returns_sorted_ids():
     client, sdk = _siliconflow_client()
     sdk.models.list.return_value = _model_page(["Qwen/Qwen2.5-7B", "deepseek-ai/DeepSeek-V3"])
 
-    assert client.list_models() == ["Qwen/Qwen2.5-7B", "deepseek-ai/DeepSeek-V3"] or (
-        client.list_models() == ["deepseek-ai/DeepSeek-V3", "Qwen/Qwen2.5-7B"]
-    )
-    assert client.list_models()[0] <= client.list_models()[-1]
+    assert client.list_models() == ["Qwen/Qwen2.5-7B", "deepseek-ai/DeepSeek-V3"]
 
 
 def test_list_models_sorted_deterministically():
