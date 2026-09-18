@@ -42,6 +42,11 @@ harness import --source local-json --input data/new_problems.json --output data/
 
 导入器使用 `(source_platform, source_problem_id)` 组合唯一识别题目。
 
+**重要说明**：
+- 只有包含有效 `source_problem_id` 的题目才会被去重检测
+- 如果 `source_problem_id` 为 `null` 或缺失，该题目会被视为唯一题目并总是添加到数据集中
+- 这避免了来自不同平台但恰好使用相同 `problem_id` 的题目被错误地识别为重复
+
 **跳过重复（默认）：**
 ```bash
 harness import --source local-json --input data/new_problems.json --update-strategy skip

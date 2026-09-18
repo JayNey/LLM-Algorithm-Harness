@@ -5,6 +5,7 @@ Problem Importer - Base class for extensible problem dataset importers.
 import json
 import os
 from abc import ABC, abstractmethod
+from dataclasses import dataclass, field
 from datetime import datetime
 from pathlib import Path
 from typing import Any, Dict, List, Tuple
@@ -18,15 +19,15 @@ from src.utils.validators import validate_problem_schema
 logger = get_logger(__name__)
 
 
+@dataclass
 class ImportResult:
     """Result of an import operation."""
 
-    def __init__(self):
-        self.successful: List[Problem] = []
-        self.failed: List[Dict[str, Any]] = []
-        self.duplicates_skipped: List[str] = []
-        self.duplicates_overwritten: List[str] = []
-        self.warnings: List[str] = []
+    successful: List[Problem] = field(default_factory=list)
+    failed: List[Dict[str, Any]] = field(default_factory=list)
+    duplicates_skipped: List[str] = field(default_factory=list)
+    duplicates_overwritten: List[str] = field(default_factory=list)
+    warnings: List[str] = field(default_factory=list)
 
     @property
     def total_attempted(self) -> int:

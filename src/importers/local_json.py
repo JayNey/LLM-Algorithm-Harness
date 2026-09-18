@@ -74,8 +74,8 @@ class LocalJsonImporter(ProblemImporter):
                 problem = Problem(**item)
                 problems.append(problem)
             except (ValueError, ValidationError) as e:
-                # Log but don't fail - handled in validate_problems
-                logger.debug("problem_transform_skipped", index=i, error=str(e))
+                # Log at warning level for visibility
+                logger.warning("problem_transform_skipped", index=i, error=str(e))
 
         logger.info("problems_transformed", total=len(raw_data), successful=len(problems))
         return problems
@@ -93,35 +93,77 @@ class LocalJsonImporter(ProblemImporter):
 
         Returns:
             Tuple of (final_problems, skipped_ids, overwritten_ids)
+
+        Raises:
+            ValueError: If update_strategy is not 'skip' or 'overwrite'
         """
+        # Validate update_strategy
+        if update_strategy not in ("skip", "overwrite"):
+            raise ValueError(
+                f"Invalid update_strategy: {update_strategy}. Must be 'skip' or 'overwrite'."
+            )
+
         # Build existing problems map: (platform, id) -> Problem
+        # Only use source_problem_id if it exists; treat None as non-duplicate
         existing_map: Dict[Tuple[str, str], Problem] = {}
         for p in existing_problems:
-            key = (p.source_platform, p.source_problem_id or p.problem_id)
-            existing_map[key] = p
+            if p.source_problem_id is not None:
+                key = (p.source_platform, p.source_problem_id)
+                existing_map[key] = p
 
-        final_problems = list(existing_problems)  # Start with all existing
+        # Build new problems map for efficient lookup
+        new_problems_map: Dict[Tuple[str, str], Problem] = {}
+        for p in problems:
+            if p.source_problem_id is not None:
+                key = (p.source_platform, p.source_problem_id)
+                new_problems_map[key] = p
+
         skipped_ids = []
         overwritten_ids = []
+        keys_to_remove = set()
 
+        # Identify duplicates and determine actions
         for problem in problems:
-            key = (problem.source_platform, problem.source_problem_id or problem.problem_id)
+            if problem.source_problem_id is None:
+                # Cannot deduplicate without source_problem_id - treat as new
+                continue
+
+            key = (problem.source_platform, problem.source_problem_id)
 
             if key in existing_map:
                 # Duplicate detected
                 if update_strategy == "overwrite":
-                    # Remove old, add new
-                    old_problem = existing_map[key]
-                    final_problems.remove(old_problem)
-                    final_problems.append(problem)
+                    keys_to_remove.add(key)
                     overwritten_ids.append(problem.problem_id)
                     logger.info("problem_overwritten", problem_id=problem.problem_id)
                 else:  # skip
                     skipped_ids.append(problem.problem_id)
                     logger.info("problem_skipped_duplicate", problem_id=problem.problem_id)
+
+        # Efficiently build final list by filtering existing and adding new
+        final_problems = []
+
+        # Add existing problems that aren't being overwritten
+        for p in existing_problems:
+            if p.source_problem_id is None:
+                # Keep existing problems without source_problem_id
+                final_problems.append(p)
             else:
-                # New problem
+                key = (p.source_platform, p.source_problem_id)
+                if key not in keys_to_remove:
+                    final_problems.append(p)
+
+        # Add new problems (including overwrites, excluding skips)
+        for problem in problems:
+            if problem.source_problem_id is None:
+                # New problem without source_problem_id - always add
                 final_problems.append(problem)
+            else:
+                key = (problem.source_platform, problem.source_problem_id)
+                if key not in existing_map or update_strategy == "overwrite":
+                    # New problem or overwriting existing
+                    if problem.problem_id not in skipped_ids:
+                        final_problems.append(problem)
 
         logger.info(
             "duplicates_detected",
