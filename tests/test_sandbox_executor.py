@@ -598,3 +598,27 @@ def test_health_check_reports_probe_failure(sample_sandbox_config):
 
     assert ok is False
     assert "image broken" in detail
+
+
+def test_health_check_host_backend(sample_sandbox_config):
+    """Host backend probes with the system python."""
+    from src.sandbox_executor import SandboxExecutor
+
+    executor = SandboxExecutor(SandboxConfig(backend="host"))
+    ok, detail = executor.health_check()
+
+    assert ok is True
+    assert detail is None
+
+
+def test_health_check_host_backend_failure():
+    """Host probe failures return the reason."""
+    from src.sandbox_executor import SandboxExecutor
+
+    executor = SandboxExecutor(SandboxConfig(backend="host"))
+    with patch("src.sandbox_executor.subprocess.run") as mock_run:
+        mock_run.side_effect = OSError("python3 missing")
+        ok, detail = executor.health_check()
+
+    assert ok is False
+    assert "python3 missing" in detail

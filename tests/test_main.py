@@ -857,3 +857,65 @@ def test_main_exits_1_on_sandbox_preflight_failure(capsys):
     captured = capsys.readouterr()
     assert "Sandbox preflight failed" in captured.err
     assert exit_code == 1
+
+
+class TestImportCommand:
+    """`import` subcommand wiring through main() (upstream #36)."""
+
+    def _problem_payload(self, pid="imported-1"):
+        return {
+            "problem_id": pid,
+            "title": "Imported Problem",
+            "description": "An imported problem used by CLI tests",
+            "difficulty": "easy",
+            "tags": [],
+            "test_cases": [{"input": {"x": 1}, "expected_output": 2}],
+        }
+
+    def test_import_command_writes_output_dataset(self, tmp_path, capsys):
+        source = tmp_path / "input.json"
+        source.write_text(json.dumps([self._problem_payload()]), encoding="utf-8")
+        output = tmp_path / "out" / "problems.json"
+
+        with patch("sys.argv", [
+            "main.py", "import", "--source", "local-json",
+            "--input", str(source), "--output", str(output), "--force",
+        ]):
+            from src.main import main
+            with pytest.raises(SystemExit) as exc_info:
+                main()
+
+        assert exc_info.value.code in (0, None)
+        assert output.exists()
+        imported = json.loads(output.read_text())
+        assert imported[0]["problem_id"] == "imported-1"
+
+    def test_import_command_preview_does_not_write(self, tmp_path, capsys):
+        source = tmp_path / "input.json"
+        source.write_text(json.dumps([self._problem_payload(pid="preview-1")]), encoding="utf-8")
+        output = tmp_path / "problems.json"
+
+        with patch("sys.argv", [
+            "main.py", "import", "--source", "local-json",
+            "--input", str(source), "--output", str(output), "--preview",
+        ]):
+            from src.main import main
+            with pytest.raises(SystemExit) as exc_info:
+                main()
+
+        assert exc_info.value.code in (0, None)
+        assert not output.exists()
+
+    def test_import_command_reports_bad_source(self, tmp_path, capsys):
+        source = tmp_path / "input.json"
+        source.write_text("not json", encoding="utf-8")
+
+        with patch("sys.argv", [
+            "main.py", "import", "--source", "local-json",
+            "--input", str(source), "--output", str(tmp_path / "o.json"), "--force",
+        ]):
+            from src.main import main
+            with pytest.raises(SystemExit) as exc_info:
+                main()
+
+        assert exc_info.value.code == 2
