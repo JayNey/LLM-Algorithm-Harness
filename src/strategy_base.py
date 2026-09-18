@@ -322,6 +322,20 @@ Your response should include the code in a ```python code block.
                 "syntax_error",
             }:
                 return "system_error"
+            if any(
+                result.status in {
+                    "sandbox_error",
+                    "backend_unavailable",
+                    "timeout",
+                    "memory_error",
+                    "output_limit",
+                    "process_limit",
+                    "runtime_error",
+                    "syntax_error",
+                }
+                for result in final_result.test_results
+            ):
+                return "system_error"
             return "wrong_answer"
         return "code_extraction_failed"
 

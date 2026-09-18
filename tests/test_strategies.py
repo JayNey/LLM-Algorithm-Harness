@@ -867,3 +867,28 @@ def test_multi_round_final_round_extraction_failure_category(
     assert result.final_result is not None
     assert result.final_result.all_passed is False
     assert result.failure_category == "code_extraction_failed"
+
+
+def test_sandbox_error_test_cases_classified_system_error(
+    mock_llm_client, mock_sandbox, sample_problem, strategy_config
+):
+    """Per-test sandbox_error cases classify the run as system_error."""
+    mock_llm_client.generate.return_value = _code_response()
+    sandbox_result = SandboxResult(
+        status="failed",
+        test_results=[
+            TestCaseResult(
+                test_case_index=0,
+                passed=False,
+                expected_output=[0, 1],
+                status="sandbox_error",
+            )
+        ],
+        all_passed=False,
+    )
+    mock_sandbox.execute.return_value = sandbox_result
+
+    strategy = VanillaStrategy(strategy_config, mock_llm_client, mock_sandbox)
+    result = strategy.execute(sample_problem)
+
+    assert result.failure_category == "system_error"

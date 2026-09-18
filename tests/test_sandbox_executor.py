@@ -2,6 +2,8 @@
 Tests for SandboxExecutor.
 """
 
+from unittest.mock import Mock, patch
+
 import pytest
 
 from src.models import Problem, SandboxConfig, TestCase
@@ -544,3 +546,55 @@ def solution(nums):
 
     assert result.status == "success"
     assert result.test_results[0].passed is True
+
+
+# ============================================================================
+# Health check tests (sandbox-preflight-check)
+# ============================================================================
+
+
+def test_health_check_reports_docker_unavailable(sample_sandbox_config):
+    """Docker backend down -> (False, actionable message)."""
+    from src.sandbox_executor import SandboxExecutor
+
+    executor = SandboxExecutor(SandboxConfig(backend="docker"))
+    with patch.object(executor, "_docker_available", return_value=False):
+        ok, detail = executor.health_check()
+
+    assert ok is False
+    assert "Docker Desktop" in detail
+    assert sample_sandbox_config.docker_image in detail
+
+
+def test_health_check_runs_real_probe_when_docker_available(sample_sandbox_config):
+    """When Docker is up, a minimal real container execution backs the verdict."""
+    from src.sandbox_executor import SandboxExecutor
+
+    executor = SandboxExecutor(SandboxConfig(backend="docker"))
+    with patch.object(executor, "_docker_available", return_value=True), \
+         patch("src.sandbox_executor.subprocess.run") as mock_run:
+        mock_run.return_value = Mock(returncode=0, stdout="sandbox-ok\n", stderr="")
+        ok, detail = executor.health_check()
+
+    assert ok is True
+    assert detail is None
+    probe_call = mock_run.call_args
+    probe_cmd = probe_call.args[0]
+    assert probe_cmd[0] == "docker"
+    assert sample_sandbox_config.docker_image in probe_cmd
+    assert "sandbox-ok" in probe_cmd[-1]
+
+
+def test_health_check_reports_probe_failure(sample_sandbox_config):
+    """Daemon up but container execution broken -> False with reason."""
+    from src.sandbox_executor import SandboxExecutor
+
+    executor = SandboxExecutor(SandboxConfig(backend="docker"))
+    with patch.object(executor, "_docker_available", return_value=True), \
+         patch("src.sandbox_executor.subprocess.run") as mock_run:
+        mock_run.return_value = Mock(returncode=125, stdout="", stderr="image broken")
+
+        ok, detail = executor.health_check()
+
+    assert ok is False
+    assert "image broken" in detail

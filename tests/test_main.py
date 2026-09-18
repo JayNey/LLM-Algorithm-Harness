@@ -833,3 +833,27 @@ class TestSiliconFlowCliFlags:
         out = capsys.readouterr().out
         assert "401 unauthorized" in out
         assert code == 1
+
+
+def test_main_exits_1_on_sandbox_preflight_failure(capsys):
+    """A preflight failure surfaces an actionable error and exit code 1."""
+    mock_harness = MagicMock()
+    mock_harness.run.return_value = {}
+    mock_harness.results = {}
+    mock_harness.run.side_effect = RuntimeError(
+        "Sandbox preflight failed: Docker sandbox backend unavailable; start Docker Desktop"
+    )
+
+    with patch("src.main.AlgorithmHarness", MagicMock(return_value=mock_harness)):
+        with patch("sys.argv", ["main.py", "--dataset", "data/problems.json"]):
+            with patch("src.main.save_results"), patch("src.main.print_report"):
+                exit_code = 0
+                try:
+                    from src.main import main
+                    main()
+                except SystemExit as exc:
+                    exit_code = exc.code or 0
+
+    captured = capsys.readouterr()
+    assert "Sandbox preflight failed" in captured.err
+    assert exit_code == 1

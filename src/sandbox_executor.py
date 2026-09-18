@@ -195,6 +195,49 @@ class SandboxExecutor:
             return False
         return image.returncode == 0
 
+    def health_check(self) -> tuple[bool, str | None]:
+        """
+        Probe sandbox availability with a minimal real execution.
+
+        Runs a tiny print program through the same backend used for real
+        evaluations, so the verdict reflects genuine runnability rather than
+        a superficial check.
+
+        Returns:
+            (ok, detail) — detail is None on success, otherwise an
+            actionable failure description
+        """
+        if self.config.backend == "docker":
+            if not self._docker_available():
+                return False, (
+                    "Docker sandbox backend unavailable; start Docker Desktop and ensure "
+                    f"image '{self.config.docker_image}' is available"
+                )
+            probe = ["docker", "run", "--rm", self.config.docker_image, "python", "-c", "print('sandbox-ok')"]
+            try:
+                result = subprocess.run(probe, capture_output=True, text=True, timeout=60)
+            except (OSError, subprocess.TimeoutExpired) as exc:
+                return False, f"Sandbox probe execution failed: {exc}"
+            if result.returncode != 0 or "sandbox-ok" not in result.stdout:
+                stderr = (result.stderr or "").strip()[:200]
+                return False, f"Sandbox probe execution failed: {stderr or 'no output'}"
+            return True, None
+
+        # Host backend
+        try:
+            result = subprocess.run(
+                ["python3", "-c", "print('sandbox-ok')"],
+                capture_output=True,
+                text=True,
+                timeout=30,
+            )
+        except (OSError, subprocess.TimeoutExpired) as exc:
+            return False, f"Sandbox probe execution failed: {exc}"
+        if result.returncode != 0 or "sandbox-ok" not in result.stdout:
+            stderr = (result.stderr or "").strip()[:200]
+            return False, f"Sandbox probe execution failed: {stderr or 'no output'}"
+        return True, None
+
     def _build_docker_command(
         self, workdir: str, runner_path: str, container_name: str | None = None
     ) -> list[str]:

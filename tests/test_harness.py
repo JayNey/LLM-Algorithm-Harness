@@ -115,6 +115,7 @@ def test_hidden_evaluation_runs_after_strategy_without_feedback_leak(
     strategy = MagicMock()
     strategy.execute.return_value = execution_result
     sandbox = MagicMock()
+    sandbox.health_check.return_value = (True, None)
     sandbox.execute.side_effect = [hidden_result]
     monkeypatch.setattr("src.harness.LLMClient", MagicMock())
     monkeypatch.setattr("src.harness.SandboxExecutor", lambda config: sandbox)
@@ -156,6 +157,7 @@ def test_strategy_receives_problem_without_hidden_cases(harness_config, monkeypa
         )
     )
     sandbox = MagicMock()
+    sandbox.health_check.return_value = (True, None)
     sandbox.execute.return_value = SandboxResult(status="success", all_passed=True)
     monkeypatch.setattr("src.harness.LLMClient", MagicMock())
     monkeypatch.setattr("src.harness.SandboxExecutor", lambda config: sandbox)
@@ -191,6 +193,7 @@ def test_hidden_only_problem_is_scored_by_hidden_stage(harness_config, monkeypat
     strategy.execute.return_value = execution_result
     hidden_result = SandboxResult(status="success", all_passed=True)
     sandbox = MagicMock()
+    sandbox.health_check.return_value = (True, None)
     sandbox.execute.return_value = hidden_result
     monkeypatch.setattr("src.harness.LLMClient", MagicMock())
     monkeypatch.setattr("src.harness.SandboxExecutor", lambda config: sandbox)
@@ -221,6 +224,7 @@ def test_unsupported_problem_is_short_circuited_before_strategy(
     )
     strategy = MagicMock()
     sandbox = MagicMock()
+    sandbox.health_check.return_value = (True, None)
     monkeypatch.setattr("src.harness.LLMClient", MagicMock())
     monkeypatch.setattr("src.harness.SandboxExecutor", lambda config: sandbox)
 
@@ -255,6 +259,7 @@ def test_hidden_execution_error_keeps_formal_record(harness_config, monkeypatch)
         iterations=[],
     )
     sandbox = MagicMock()
+    sandbox.health_check.return_value = (True, None)
     sandbox.execute.side_effect = RuntimeError("hidden backend unavailable")
     monkeypatch.setattr("src.harness.LLMClient", MagicMock())
     monkeypatch.setattr("src.harness.SandboxExecutor", lambda config: sandbox)
@@ -366,6 +371,7 @@ def test_run_strategy(harness_config, monkeypatch):
 
     with patch("src.harness.LLMClient") as mock_llm_class, \
          patch("src.harness.SandboxExecutor") as mock_sandbox_class:
+        mock_sandbox_class.return_value.health_check.return_value = (True, None)
 
         harness = AlgorithmHarness(harness_config)
         # Replace the strategy in STRATEGY_MAP
@@ -524,7 +530,8 @@ def test_unknown_strategy_raises_error(harness_config):
     problems = harness._load_problems()
 
     with patch("src.harness.LLMClient"), \
-         patch("src.harness.SandboxExecutor"):
+         patch("src.harness.SandboxExecutor") as mock_sandbox_class:
+        mock_sandbox_class.return_value.health_check.return_value = (True, None)
         with pytest.raises(ValueError, match="Unknown strategy"):
             harness._run_strategy(unknown_config, problems)
 
@@ -827,7 +834,8 @@ def test_run_strategy_synthesizes_system_error_result(harness_config, monkeypatc
     mock_strategy.execute.side_effect = RuntimeError("boom api_key=sk-secret123")
     mock_strategy_class = MagicMock(return_value=mock_strategy)
 
-    with patch("src.harness.LLMClient"), patch("src.harness.SandboxExecutor"):
+    with patch("src.harness.LLMClient"), patch("src.harness.SandboxExecutor") as mock_sandbox_class:
+        mock_sandbox_class.return_value.health_check.return_value = (True, None)
         harness = AlgorithmHarness(harness_config)
         monkeypatch.setitem(harness.STRATEGY_MAP, "vanilla", mock_strategy_class)
 
@@ -903,3 +911,28 @@ def test_compare_strategies_uses_recorded_problem_total(harness_config):
     assert comparison["metrics"]["vanilla"]["total"] == 2
     assert comparison["metrics"]["vanilla"]["solved"] == 1
     assert comparison["metrics"]["vanilla"]["success_rate"] == 0.5
+
+
+def test_run_strategy_preflight_failure_aborts_before_llm(harness_config, monkeypatch):
+    """Sandbox preflight failure aborts before any model interaction."""
+    mock_strategy = MagicMock()
+    mock_strategy_class = MagicMock(return_value=mock_strategy)
+    mock_sandbox_class = MagicMock()
+    mock_sandbox_class.return_value.health_check.return_value = (
+        False,
+        "Docker sandbox backend unavailable; start Docker Desktop",
+    )
+    mock_llm_class = MagicMock()
+
+    with patch("src.harness.LLMClient", mock_llm_class), \
+         patch("src.harness.SandboxExecutor", mock_sandbox_class):
+        harness = AlgorithmHarness(harness_config)
+        monkeypatch.setitem(harness.STRATEGY_MAP, "vanilla", mock_strategy_class)
+
+        problems = harness._load_problems()
+
+        with pytest.raises(RuntimeError, match="Sandbox preflight failed"):
+            harness._run_strategy(harness_config.strategies[0], problems)
+
+    mock_llm_class.assert_not_called()
+    mock_strategy.execute.assert_not_called()
