@@ -253,7 +253,7 @@ config_siliconflow_122b.json
 config_ollama.json
 
 # Generated evaluation reports (per-run archives)
-reports/
+/reports/
 
 # Harness evaluation run outputs
-results/
+/results/
