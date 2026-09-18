@@ -112,6 +112,33 @@ PYTHONPATH=. python3 -m src.main --config config.siliconflow.example.json --stra
 
 ## 快速开始
 
+### 导入题目数据集
+
+使用 `import` 子命令从不同来源导入题目：
+
+```bash
+# 从本地 JSON 文件导入
+harness import --source local-json --input data/new_problems.json
+
+# 预览导入结果（不实际写入）
+harness import --source local-json --input data/new_problems.json --preview
+
+# 指定输出路径
+harness import --source local-json --input data/new_problems.json --output data/custom.json
+
+# 覆盖重复题目（默认跳过）
+harness import --source local-json --input data/new_problems.json --update-strategy overwrite
+
+# 跳过确认提示
+harness import --source local-json --input data/new_problems.json --force
+```
+
+**支持的导入来源：**
+- `local-json` — 本地 JSON 文件
+- `mock` — 测试用模拟数据（用于演示和测试）
+
+详细的导入功能说明请参考 [docs/importing.md](docs/importing.md)。
+
 ### 运行评估
 
 使用默认配置运行所有策略：
