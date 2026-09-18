@@ -306,11 +306,6 @@ Your response should include the code in a ```python code block.
         if final_result is not None:
             if final_result.status == "unsupported":
                 return "unsupported"
-            if any(
-                result.status in {"runtime_error", "syntax_error"}
-                for result in final_result.test_results
-            ):
-                return "system_error"
             if final_result.status in {
                 "sandbox_error",
                 "backend_unavailable",

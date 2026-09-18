@@ -553,72 +553,87 @@ def solution(nums):
 # ============================================================================
 
 
-def test_health_check_reports_docker_unavailable(sample_sandbox_config):
-    """Docker backend down -> (False, actionable message)."""
-    from src.sandbox_executor import SandboxExecutor
+def _probe_success_result():
+    from src.models import SandboxResult, TestCaseResult
 
+    return SandboxResult(
+        status="success",
+        test_results=[
+            TestCaseResult(test_case_index=0, passed=True, status="passed")
+        ],
+        all_passed=True,
+    )
+
+
+def _probe_backend_failure_result():
+    from src.models import SandboxResult, TestCaseResult
+
+    return SandboxResult(
+        status="failed",
+        test_results=[
+            TestCaseResult(
+                test_case_index=0,
+                passed=False,
+                status="backend_unavailable",
+                error_message="Docker sandbox backend unavailable",
+            )
+        ],
+        all_passed=False,
+        error_message="Docker sandbox backend unavailable",
+    )
+
+
+def test_health_check_reports_docker_unavailable():
+    """Docker backend down -> (False, actionable message)."""
     executor = SandboxExecutor(SandboxConfig(backend="docker"))
-    with patch.object(executor, "_docker_available", return_value=False):
+    with patch.object(executor, "_docker_available", return_value=False), \
+         patch.object(executor, "execute") as mock_execute:
         ok, detail = executor.health_check()
 
     assert ok is False
     assert "Docker Desktop" in detail
-    assert sample_sandbox_config.docker_image in detail
+    assert mock_execute.assert_not_called() is None
 
 
-def test_health_check_runs_real_probe_when_docker_available(sample_sandbox_config):
-    """When Docker is up, a minimal real container execution backs the verdict."""
-    from src.sandbox_executor import SandboxExecutor
-
+def test_health_check_delegates_to_real_execution_path():
+    """The probe runs through execute() so it inherits real run semantics."""
     executor = SandboxExecutor(SandboxConfig(backend="docker"))
     with patch.object(executor, "_docker_available", return_value=True), \
-         patch("src.sandbox_executor.subprocess.run") as mock_run:
-        mock_run.return_value = Mock(returncode=0, stdout="sandbox-ok\n", stderr="")
+         patch.object(executor, "execute", return_value=_probe_success_result()) as mock_execute:
         ok, detail = executor.health_check()
 
     assert ok is True
     assert detail is None
-    probe_call = mock_run.call_args
-    probe_cmd = probe_call.args[0]
-    assert probe_cmd[0] == "docker"
-    assert sample_sandbox_config.docker_image in probe_cmd
-    assert "sandbox-ok" in probe_cmd[-1]
+    assert mock_execute.call_args.args[0].startswith("def solution(")
 
 
-def test_health_check_reports_probe_failure(sample_sandbox_config):
-    """Daemon up but container execution broken -> False with reason."""
-    from src.sandbox_executor import SandboxExecutor
-
+def test_health_check_reports_backend_failure_from_result():
+    """Backend failures surfaced by execute() become (False, reason)."""
     executor = SandboxExecutor(SandboxConfig(backend="docker"))
     with patch.object(executor, "_docker_available", return_value=True), \
-         patch("src.sandbox_executor.subprocess.run") as mock_run:
-        mock_run.return_value = Mock(returncode=125, stdout="", stderr="image broken")
-
+         patch.object(executor, "execute", return_value=_probe_backend_failure_result()):
         ok, detail = executor.health_check()
 
     assert ok is False
-    assert "image broken" in detail
+    assert "Docker sandbox backend unavailable" in detail
 
 
-def test_health_check_host_backend(sample_sandbox_config):
-    """Host backend probes with the system python."""
-    from src.sandbox_executor import SandboxExecutor
-
+def test_health_check_reports_probe_exception():
+    """Exceptions from the execution path become (False, reason)."""
     executor = SandboxExecutor(SandboxConfig(backend="host"))
-    ok, detail = executor.health_check()
-
-    assert ok is True
-    assert detail is None
-
-
-def test_health_check_host_backend_failure():
-    """Host probe failures return the reason."""
-    from src.sandbox_executor import SandboxExecutor
-
-    executor = SandboxExecutor(SandboxConfig(backend="host"))
-    with patch("src.sandbox_executor.subprocess.run") as mock_run:
-        mock_run.side_effect = OSError("python3 missing")
+    with patch.object(executor, "execute", side_effect=OSError("python3 missing")):
         ok, detail = executor.health_check()
 
     assert ok is False
     assert "python3 missing" in detail
+
+
+def test_health_check_host_backend_delegates():
+    """Host backend uses the same delegation (no separate subprocess path)."""
+    executor = SandboxExecutor(SandboxConfig(backend="host"))
+    with patch.object(executor, "execute", return_value=_probe_success_result()) as mock_execute:
+        ok, detail = executor.health_check()
+
+    assert ok is True
+    assert detail is None
+    mock_execute.assert_called_once()
