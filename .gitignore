@@ -243,8 +243,17 @@ config_dashscope.json
 # Qwen 27B config
 config_qwen27b.json
 
+# Qwen 4B config
+config_qwen4b.json
+
+# SiliconFlow 122B config
+config_siliconflow_122b.json
+
+# Local Ollama config
+config_ollama.json
+
 # Generated evaluation reports (per-run archives)
-reports/
+/reports/
 
 # Harness evaluation run outputs
-results/
+/results/

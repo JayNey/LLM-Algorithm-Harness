@@ -347,6 +347,7 @@ Your response should include the code in a ```python code block.
             }
             traces.append(redact_sensitive_data(trace))
         return traces
+        return traces
 
     def create_execution_result(
         self,

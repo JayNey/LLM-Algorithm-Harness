@@ -85,6 +85,31 @@ cp config.example.json config.json
 
 仍可直接填写密钥，但不推荐将凭证保存到文件。配置对象、日志和报告会显示 `[REDACTED]`，模型 SDK 只在初始化边界获得原始值。
 
+### 接入硅基流动（SiliconFlow）
+
+`provider: "siliconflow"` 预设复用 OpenAI 兼容协议，默认兼容地址 `https://api.siliconflow.cn/v1`，密钥回退顺序：显式配置 → `SILICONFLOW_API_KEY` 环境变量（也支持 `env:NAME` / `${NAME}` 引用）。
+
+```bash
+export SILICONFLOW_API_KEY="your-siliconflow-key"
+
+# 查看可选模型（免费模型列表接口，不产生计费）
+PYTHONPATH=. python3 -m src.main --config config.siliconflow.example.json --list-models
+
+# 连接检查（同样免费；注意：生成式连接检查才会按量计费）
+PYTHONPATH=. python3 -m src.main --config config.siliconflow.example.json --check-connection
+
+# 三种策略评测（--strategy 可选 vanilla / chain_of_thought / multi_round_feedback）
+PYTHONPATH=. python3 -m src.main --config config.siliconflow.example.json --strategy multi_round_feedback --limit 1
+```
+
+说明：
+
+- 模型 ID 以官方模型列表为准，也可手动填写完整模型 ID（`llm_config.model`）；模型规模元数据接口未可靠提供，一律标注未知。
+- 列表查询失败时按错误原因排查（401 为鉴权问题），也可直接手动配置模型 ID 运行评测。
+- 示例配置见 `config.siliconflow.example.json`（无真实密钥）。
+- 成本估算：未收录进 `pricing.json` 的模型按默认单价估算（报告来源标记为 `default`），可能与实际计费有偏差；可在 `pricing.json` 中为常用模型补充真实单价。
+- 真实 API 端到端验证位于 `tests/test_online_verification.py`，标记为 `online`：无凭证环境自动跳过，Mock 测试不构成真实 API 验证。
+
 ## 快速开始
 
 ### 导入题目数据集

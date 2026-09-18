@@ -9,6 +9,7 @@ from datetime import datetime
 from pathlib import Path
 
 from src.harness import AlgorithmHarness
+from src.llm_client import LLMClient
 from src.models import HarnessConfig, LLMConfig, SandboxConfig, StrategyConfig
 from src.utils.config import load_config
 from src.utils.logging import get_logger, setup_logging
@@ -405,6 +406,25 @@ def main():
     )
 
     # Import command
+    run_parser.add_argument(
+        "--list-models",
+        action="store_true",
+        help=(
+            "List provider model IDs via the free model listing endpoint and exit. "
+            "Model size metadata is not reliably provided by the API and is shown as unknown. "
+            "A generation-based connectivity check would incur billing."
+        ),
+    )
+
+    run_parser.add_argument(
+        "--check-connection",
+        action="store_true",
+        help=(
+            "Verify provider credentials/connectivity via the free model listing endpoint "
+            "and exit (no generation request, no billing). Generation-based checks would be billed."
+        ),
+    )
+
     import_parser = subparsers.add_parser("import", help="Import problems from external sources")
     import_parser.add_argument(
         "--source",
@@ -452,24 +472,21 @@ def main():
         help="Terminal log rendering",
     )
 
-    args = parser.parse_args()
+    # Subcommand dispatch: `run` (default) and `import`. Bare invocation
+    # without a subcommand is parsed directly by the run parser so legacy
+    # flag-only command lines keep working.
+    argv = sys.argv[1:]
+    if argv and argv[0] in ("run", "import"):
+        args = parser.parse_args(argv)
+    else:
+        args = run_parser.parse_args(argv)
+        args.command = "run"
 
     # Handle import command
     if args.command == "import":
-        setup_logging(console_format=args.log_format)
+        setup_logging(console_format=getattr(args, "log_format", "console"))
         exit_code = run_import_command(args)
         sys.exit(exit_code)
-
-    # Default to run command if no subcommand specified
-    if args.command is None:
-        # Backward compatibility: treat as run command
-        args.command = "run"
-        # Add missing attributes for run command
-        for attr in ['log_format', 'dataset', 'config', 'output', 'strategy', 'difficulty', 'tags', 'limit']:
-            if not hasattr(args, attr):
-                setattr(args, attr, None)
-        if not hasattr(args, 'log_format') or args.log_format is None:
-            args.log_format = "console"
 
     setup_logging(console_format=args.log_format)
 
@@ -485,6 +502,51 @@ def main():
                     parser.error("--dataset is required when --config is not provided")
                 config = create_default_config(args.dataset, args.output or "./results")
                 logger.info("using_default_config")
+
+            # Provider introspection commands: use the free listing endpoint and
+            # exit before any evaluation runs. Placed before apply_cli_overrides so
+            # strategy/dataset overrides cannot block pure query commands
+            if args.list_models or args.check_connection:
+                client = LLMClient(config.llm_config)
+
+                if args.check_connection:
+                    status = client.check_connection()
+                    if status["ok"]:
+                        print(
+                            f"Connection OK: provider={status['provider']} "
+                            f"base_url={status['base_url']} models={status['model_count']}"
+                        )
+                        print(
+                            "Note: this check used the free model listing endpoint; "
+                            "a generation-based check would incur billing."
+                        )
+                    else:
+                        print(f"Connection failed: {status['error']}")
+                        print(
+                            "Fix the credentials/network above, or configure a model ID "
+                            "manually in your config (llm_config.model) and run the evaluation."
+                        )
+                        sys.exit(1)
+
+                if args.list_models:
+                    try:
+                        models = client.list_models()
+                    except Exception as e:
+                        print(f"Model listing failed: {e}")
+                        print(
+                            "You can still configure the model ID manually in your config "
+                            "(llm_config.model) and run the evaluation."
+                        )
+                        sys.exit(1)
+                    print(f"Available models ({len(models)}):")
+                    for model_id in models:
+                        print(f"  - {model_id}")
+                    print(
+                        "Note: model size metadata is not reliably provided by the listing "
+                        "API and is shown as unknown."
+                    )
+
+                return
 
             config = apply_cli_overrides(config, args)
 

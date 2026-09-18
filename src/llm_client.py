@@ -5,7 +5,7 @@ LLM Client - Interface for calling LLM APIs.
 import os
 import re
 import time
-from typing import Optional
+from typing import Any, Dict, List, Optional
 
 from pydantic import SecretStr
 
@@ -70,6 +70,35 @@ class LLMClient:
                     "using_custom_base_url",
                     provider=self.config.provider,
                     base_url=self.config.base_url,
+                )
+
+            try:
+                return OpenAI(**client_kwargs)
+            except Exception as exc:
+                raise self._safe_provider_error(exc, api_key) from None
+
+        elif self.config.provider == "siliconflow":
+            # SiliconFlow exposes an OpenAI-compatible API; reuse the SDK and
+            # only inject the service preset (base_url + dedicated key source)
+            if OpenAI is None:
+                raise ImportError("openai package not installed. Run: pip install openai")
+            api_key = self._resolve_api_key("SILICONFLOW_API_KEY", "SiliconFlow")
+            self._resolved_api_key = SecretStr(api_key)
+
+            client_kwargs = {"api_key": api_key, "max_retries": 3}
+            if self.config.base_url:
+                client_kwargs["base_url"] = self.config.base_url
+                logger.info(
+                    "using_custom_base_url",
+                    provider=self.config.provider,
+                    base_url=self.config.base_url,
+                )
+            else:
+                client_kwargs["base_url"] = "https://api.siliconflow.cn/v1"
+                logger.info(
+                    "using_preset_base_url",
+                    provider=self.config.provider,
+                    base_url=client_kwargs["base_url"],
                 )
 
             try:
@@ -151,7 +180,7 @@ class LLMClient:
         start_time = time.time()
 
         try:
-            if self.config.provider == "openai":
+            if self.config.provider in ("openai", "siliconflow"):
                 response = self._call_openai(prompt, system_prompt)
             elif self.config.provider == "anthropic":
                 response = self._call_anthropic(prompt, system_prompt)
@@ -291,6 +320,53 @@ class LLMClient:
             },
             usage_missing=usage_missing,
         )
+
+    def list_models(self) -> List[str]:
+        """
+        List model IDs from the provider's model listing endpoint.
+
+        The listing API is free (no generation, no billing). Errors are
+        re-raised with the raw reason preserved and credentials redacted.
+
+        Returns:
+            Sorted list of model IDs
+
+        Raises:
+            RuntimeError: If the listing endpoint fails
+        """
+        try:
+            page = self.client.models.list()
+        except Exception as exc:
+            raise self._safe_provider_error(exc) from None
+        return sorted(str(model.id) for model in page.data)
+
+    def check_connection(self) -> Dict[str, Any]:
+        """
+        Verify credentials and connectivity via the model listing endpoint.
+
+        Uses only the (free) listing API — no generation request is made, so
+        the check does not incur billing. Generation-based checks would be
+        billed and are the caller's responsibility to disclose.
+
+        Returns:
+            Dict with ok, provider, base_url, model_count and error fields
+        """
+        base_url = getattr(self.client, "base_url", None)
+        result: Dict[str, Any] = {
+            "ok": False,
+            "provider": self.config.provider,
+            "base_url": str(base_url) if base_url else None,
+            "model_count": 0,
+            "error": None,
+        }
+        try:
+            models = self.list_models()
+        except Exception as exc:
+            result["error"] = str(exc)
+            return result
+        result["ok"] = True
+        result["model_count"] = len(models)
+        return result
 
     def estimate_cost(self, usage: TokenUsage) -> float:
         """

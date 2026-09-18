@@ -762,3 +762,74 @@ problem_filters:
                 main()
             # argparse exits with code 2 for usage errors
             assert exc_info.value.code == 2
+
+
+class TestSiliconFlowCliFlags:
+    """--list-models / --check-connection CLI behaviour (issue #11)."""
+
+    def _run_main(self, argv_extra, mock_llm_class, capsys=None):
+        mock_harness = MagicMock()
+        mock_harness.run.return_value = {}
+        mock_harness.results = {}
+
+        with patch("src.main.LLMClient", mock_llm_class), \
+             patch("src.main.AlgorithmHarness", MagicMock(return_value=mock_harness)) as mock_harness_class, \
+             patch("sys.argv", ["main.py", "--dataset", "data/problems.json"] + argv_extra):
+            with patch("src.main.save_results"), patch("src.main.print_report"):
+                exit_code = 0
+                try:
+                    from src.main import main
+                    main()
+                except SystemExit as exc:
+                    exit_code = exc.code or 0
+        return mock_harness_class, exit_code
+
+    def test_list_models_prints_ids_and_skips_evaluation(self, capsys):
+        mock_llm_class = MagicMock()
+        mock_llm_class.return_value.list_models.return_value = ["z-model", "a-model"]
+
+        harness_class, code = self._run_main(["--list-models"], mock_llm_class, capsys)
+
+        out = capsys.readouterr().out
+        assert "a-model" in out and "z-model" in out
+        assert "unknown" in out.lower()  # size metadata marked unknown
+        assert code == 0
+        harness_class.assert_not_called()  # evaluation not started
+
+    def test_list_models_failure_reports_reason_and_manual_hint(self, capsys):
+        mock_llm_class = MagicMock()
+        mock_llm_class.return_value.list_models.side_effect = RuntimeError("401 unauthorized")
+
+        _, code = self._run_main(["--list-models"], mock_llm_class, capsys)
+
+        out = capsys.readouterr().out
+        assert "401 unauthorized" in out
+        assert "manually" in out.lower()
+        assert code == 1
+
+    def test_check_connection_success_reports_status(self, capsys):
+        mock_llm_class = MagicMock()
+        mock_llm_class.return_value.check_connection.return_value = {
+            "ok": True, "provider": "siliconflow",
+            "base_url": "https://api.siliconflow.cn/v1", "model_count": 7, "error": None,
+        }
+
+        _, code = self._run_main(["--check-connection"], mock_llm_class, capsys)
+
+        out = capsys.readouterr().out
+        assert "Connection OK" in out
+        assert "https://api.siliconflow.cn/v1" in out
+        assert code == 0
+
+    def test_check_connection_failure_reports_reason(self, capsys):
+        mock_llm_class = MagicMock()
+        mock_llm_class.return_value.check_connection.return_value = {
+            "ok": False, "provider": "siliconflow", "base_url": None,
+            "model_count": 0, "error": "401 unauthorized",
+        }
+
+        _, code = self._run_main(["--check-connection"], mock_llm_class, capsys)
+
+        out = capsys.readouterr().out
+        assert "401 unauthorized" in out
+        assert code == 1

@@ -73,6 +73,7 @@ markers = [
     "security: Security tests",
     "performance: Performance tests",
     "slow: Slow-running tests",
+    "online: Requires real provider credentials; skipped automatically without them",
 ]
 
 [tool.mypy]
