@@ -1,0 +1,41 @@
+[
+  {
+    "question_title": "Add Numbers",
+    "question_content": "Read two integers and print their sum.",
+    "platform": "codeforces",
+    "question_id": "cf-001",
+    "contest_id": "round-1",
+    "contest_date": "2024-01-15T00:00:00",
+    "starter_code": "",
+    "difficulty": "easy",
+    "public_test_cases": "[{\"input\": \"2 3\\n\", \"output\": \"5\\n\", \"testtype\": \"stdin\"}]",
+    "private_test_cases": "[{\"input\": \"4 5\\n\", \"output\": \"9\\n\", \"testtype\": \"stdin\"}]",
+    "metadata": "{\"func_name\": null}"
+  },
+  {
+    "question_title": "Function Sum",
+    "question_content": "Return the sum of two values.",
+    "platform": "leetcode",
+    "question_id": "lc-002",
+    "contest_id": "round-2",
+    "contest_date": "2024-02-20T00:00:00",
+    "starter_code": "def solve(a, b):\n    pass",
+    "difficulty": "hard",
+    "public_test_cases": [{"input": {"a": 1, "b": 2}, "output": 3, "testtype": "functional"}],
+    "private_test_cases": "[{\"input\": {\"a\": 3, \"b\": 4}, \"output\": 7, \"testtype\": \"functional\"}]",
+    "metadata": {"func_name": "solve"}
+  },
+  {
+    "question_title": "Unsafe Private",
+    "question_content": "A problem with an unsafe private payload.",
+    "platform": "atcoder",
+    "question_id": "ac-003",
+    "contest_id": "round-3",
+    "contest_date": "2024-03-20T00:00:00",
+    "starter_code": "",
+    "difficulty": "medium",
+    "public_test_cases": "[{\"input\": \"1\\n\", \"output\": \"1\\n\", \"testtype\": \"stdin\"}]",
+    "private_test_cases": "base64+zlib+pickle payload",
+    "metadata": "{}"
+  }
+]
