@@ -5,14 +5,14 @@ LLM Client - Interface for calling LLM APIs.
 import os
 import re
 import time
-from typing import Any, Dict, List, Optional
+from typing import Any, Callable, Dict, List, Optional
 
 from pydantic import SecretStr
 
 from src.models import LLMConfig, LLMResponse, TokenUsage
 from src.utils.logging import get_logger
 from src.utils.pricing import PricingManager
-from src.utils.secrets import redact_sensitive_text
+from src.utils.secrets import redact_sensitive_data, redact_sensitive_text
 
 # Optional imports for LLM providers (may not be installed)
 try:
@@ -56,14 +56,20 @@ class LLMClient:
         Raises:
             ValueError: If provider not supported
         """
-        if self.config.provider == "openai":
+        if self.config.provider in ("openai", "local"):
             if OpenAI is None:
                 raise ImportError("openai package not installed. Run: pip install openai")
-            api_key = self._resolve_api_key("OPENAI_API_KEY", "OpenAI")
+            if self.config.provider == "local" and not self.config.base_url:
+                raise ValueError("provider=local requires base_url for its OpenAI-compatible endpoint")
+            api_key = self._resolve_api_key(
+                "OPENAI_API_KEY", "OpenAI", allow_missing=self.config.provider == "local"
+            )
             self._resolved_api_key = SecretStr(api_key)
 
             # Support custom base_url for OpenAI-compatible APIs (e.g., DeepSeek)
-            client_kwargs = {"api_key": api_key, "max_retries": 3}
+            # Keep retries in one place (_call_with_retry) to avoid SDK retry
+            # multiplication when a provider returns a rate-limit/5xx error.
+            client_kwargs = {"api_key": api_key, "max_retries": 0}
             if self.config.base_url:
                 client_kwargs["base_url"] = self.config.base_url
                 logger.info(
@@ -85,7 +91,7 @@ class LLMClient:
             api_key = self._resolve_api_key("SILICONFLOW_API_KEY", "SiliconFlow")
             self._resolved_api_key = SecretStr(api_key)
 
-            client_kwargs = {"api_key": api_key, "max_retries": 3}
+            client_kwargs = {"api_key": api_key, "max_retries": 0}
             if self.config.base_url:
                 client_kwargs["base_url"] = self.config.base_url
                 logger.info(
@@ -112,14 +118,18 @@ class LLMClient:
             api_key = self._resolve_api_key("ANTHROPIC_API_KEY", "Anthropic")
             self._resolved_api_key = SecretStr(api_key)
             try:
-                return Anthropic(api_key=api_key)
+                # Timeout is also passed to messages.create so it applies to
+                # each request even when the SDK constructor is mocked.
+                return Anthropic(api_key=api_key, max_retries=0)
             except Exception as exc:
                 raise self._safe_provider_error(exc, api_key) from None
 
         else:
             raise ValueError(f"Unsupported provider: {self.config.provider}")
 
-    def _resolve_api_key(self, default_env: str, provider_name: str) -> str:
+    def _resolve_api_key(
+        self, default_env: str, provider_name: str, *, allow_missing: bool = False
+    ) -> str:
         """Resolve a direct key, explicit environment reference, or provider default."""
         configured = (
             self.config.api_key.get_secret_value()
@@ -145,6 +155,10 @@ class LLMClient:
             return configured
 
         api_key = os.getenv(default_env)
+        if not api_key and allow_missing:
+            # Local OpenAI-compatible servers commonly do not authenticate;
+            # the SDK still requires a non-empty value in its constructor.
+            return "local"
         if not api_key:
             raise ValueError(
                 f"{provider_name} API key not provided; set {default_env} or configure api_key"
@@ -161,7 +175,14 @@ class LLMClient:
         secrets = [api_key] if api_key else []
         return RuntimeError(redact_sensitive_text(str(error), secrets))
 
-    def generate(self, prompt: str, system_prompt: Optional[str] = None) -> LLMResponse:
+    def generate(
+        self,
+        prompt: str,
+        system_prompt: Optional[str] = None,
+        temperature: Optional[float] = None,
+        max_tokens: Optional[int] = None,
+        custom_params: Optional[Dict[str, Any]] = None,
+    ) -> LLMResponse:
         """
         Generate response from LLM.
 
@@ -175,15 +196,21 @@ class LLMClient:
         Raises:
             Exception: If API call fails
         """
+        effective = self._effective_params(
+            system_prompt=system_prompt,
+            temperature=temperature,
+            max_tokens=max_tokens,
+            custom_params=custom_params,
+        )
         logger.info("generating_llm_response", provider=self.config.provider, model=self.config.model)
 
         start_time = time.time()
 
         try:
-            if self.config.provider in ("openai", "siliconflow"):
-                response = self._call_openai(prompt, system_prompt)
+            if self.config.provider in ("openai", "local", "siliconflow"):
+                response = self._call_openai(prompt, effective)
             elif self.config.provider == "anthropic":
-                response = self._call_anthropic(prompt, system_prompt)
+                response = self._call_anthropic(prompt, effective)
             else:
                 raise ValueError(f"Unsupported provider: {self.config.provider}")
 
@@ -206,7 +233,125 @@ class LLMClient:
             )
             raise safe_error from None
 
-    def _call_openai(self, prompt: str, system_prompt: Optional[str]) -> LLMResponse:
+    def _effective_params(
+        self,
+        *,
+        system_prompt: Optional[str],
+        temperature: Optional[float],
+        max_tokens: Optional[int],
+        custom_params: Optional[Dict[str, Any]],
+    ) -> Dict[str, Any]:
+        """Resolve strategy overrides against the global LLM configuration."""
+        params: Dict[str, Any] = {
+            "temperature": self.config.temperature if temperature is None else temperature,
+            "max_tokens": self.config.max_tokens if max_tokens is None else max_tokens,
+            "timeout": self.config.timeout,
+            "system_prompt": system_prompt,
+        }
+        if self.config.enable_thinking is not None:
+            params["enable_thinking"] = self.config.enable_thinking
+        if custom_params:
+            # Strategy-specific values intentionally override global extras,
+            # while reserved request fields remain controlled by this method.
+            for key, value in custom_params.items():
+                if key not in {"model", "messages", "timeout", "system_prompt"}:
+                    params[key] = value
+        return params
+
+    @staticmethod
+    def _extract_text(content: Any) -> str:
+        """Normalize string and provider content blocks into answer text."""
+        if content is None:
+            return ""
+        if isinstance(content, str):
+            return content
+        if isinstance(content, dict):
+            value = content.get("text")
+            if value is None:
+                value = content.get("thinking") or content.get("reasoning") or content.get("content")
+            return value if isinstance(value, str) else ""
+        if isinstance(content, (list, tuple)):
+            parts = []
+            for part in content:
+                block_type = part.get("type") if isinstance(part, dict) else getattr(part, "type", None)
+                if block_type in {"thinking", "reasoning"}:
+                    continue
+                parts.append(LLMClient._extract_text(part))
+            return "".join(part for part in parts if part)
+        value = getattr(content, "text", None)
+        if value is None:
+            value = getattr(content, "thinking", None) or getattr(content, "reasoning", None)
+        return value if isinstance(value, str) else ""
+
+    @staticmethod
+    def _field(value: Any, name: str, default: Any = None) -> Any:
+        """Read a field from either an SDK object or a dict fixture."""
+        if isinstance(value, dict):
+            return value.get(name, default)
+        return getattr(value, name, default)
+
+    @staticmethod
+    def _extract_reasoning(message: Any) -> Optional[str]:
+        """Read optional reasoning fields without mixing them into code text."""
+        for key in ("reasoning_content", "reasoning", "thinking"):
+            value = message.get(key) if isinstance(message, dict) else getattr(message, key, None)
+            text = LLMClient._extract_text(value)
+            if text:
+                return text
+        content = message.get("content") if isinstance(message, dict) else getattr(message, "content", None)
+        if isinstance(content, (list, tuple)):
+            parts = []
+            for block in content:
+                block_type = block.get("type") if isinstance(block, dict) else getattr(block, "type", None)
+                if block_type in {"thinking", "reasoning"}:
+                    parts.append(LLMClient._extract_text(block))
+            combined = "".join(parts)
+            return combined or None
+        return None
+
+    @staticmethod
+    def _status_code(error: Exception) -> Optional[int]:
+        """Extract HTTP status from SDK errors without importing SDK classes."""
+        for candidate in (error, getattr(error, "response", None)):
+            value = getattr(candidate, "status_code", None)
+            if value is not None:
+                try:
+                    return int(value)
+                except (TypeError, ValueError):
+                    pass
+        return None
+
+    @classmethod
+    def _is_retryable_error(cls, error: Exception) -> bool:
+        status = cls._status_code(error)
+        if status == 401 or status == 403 or (status is not None and 400 <= status < 500 and status != 429):
+            return False
+        if status == 429 or (status is not None and status >= 500):
+            return True
+        name = error.__class__.__name__.lower()
+        return any(token in name for token in ("ratelimit", "timeout", "connection", "internalserver"))
+
+    def _call_with_retry(self, operation: Callable[[], Any]) -> Any:
+        """Run one provider operation with bounded retry and backoff."""
+        started = time.monotonic()
+        last_error: Optional[Exception] = None
+        for attempt in range(self.config.retry_max_attempts):
+            try:
+                return operation()
+            except Exception as error:
+                last_error = error
+                if not self._is_retryable_error(error) or attempt + 1 >= self.config.retry_max_attempts:
+                    raise
+                delay = self.config.retry_backoff_seconds * (2**attempt)
+                elapsed = time.monotonic() - started
+                if self.config.retry_max_elapsed_seconds <= elapsed + delay:
+                    raise
+                if delay:
+                    time.sleep(delay)
+        assert last_error is not None
+        raise last_error
+
+    def _call_openai(self, prompt: str, effective: Dict[str, Any]) -> LLMResponse:
         """
         Call OpenAI API.
 
@@ -218,54 +363,64 @@ class LLMClient:
             LLMResponse
         """
         messages = []
-        if system_prompt:
-            messages.append({"role": "system", "content": system_prompt})
+        if effective.get("system_prompt"):
+            messages.append({"role": "system", "content": effective["system_prompt"]})
         messages.append({"role": "user", "content": prompt})
 
         kwargs = {
             "model": self.config.model,
             "messages": messages,
-            "temperature": self.config.temperature,
-            "max_tokens": self.config.max_tokens,
-            "timeout": self.config.timeout,
+            "temperature": effective["temperature"],
+            "max_tokens": effective["max_tokens"],
+            "timeout": effective["timeout"],
         }
 
-        # Extra provider-specific switches (e.g. SiliconFlow Qwen3.5 thinking mode)
-        if self.config.enable_thinking is not None:
-            kwargs["extra_body"] = {"enable_thinking": self.config.enable_thinking}
+        # Provider-specific switches can be supplied through custom_params.
+        extra_body = effective.get("extra_body")
+        if effective.get("enable_thinking") is not None:
+            extra_body = {**(extra_body or {}), "enable_thinking": effective["enable_thinking"]}
+        if extra_body:
+            kwargs["extra_body"] = extra_body
+        for key, value in effective.items():
+            if key not in {"system_prompt", "temperature", "max_tokens", "timeout", "enable_thinking", "extra_body"}:
+                kwargs[key] = value
 
-        response = self.client.chat.completions.create(**kwargs)
+        response = self._call_with_retry(lambda: self.client.chat.completions.create(**kwargs))
 
-        usage = getattr(response, "usage", None)
-        if usage is None:
-            token_usage = TokenUsage(prompt_tokens=0, completion_tokens=0, total_tokens=0)
-            usage_missing = True
-        else:
-            token_usage = TokenUsage(
-                prompt_tokens=usage.prompt_tokens,
-                completion_tokens=usage.completion_tokens,
-                total_tokens=usage.total_tokens,
-            )
-            usage_missing = False
+        token_usage, usage_missing = self._openai_usage(self._field(response, "usage"))
 
         # Get pricing metadata for this model
-        pricing_info = self.pricing_manager.get_pricing(response.model)
+        model = self._field(response, "model") or self.config.model
+        pricing_info = self.pricing_manager.get_pricing(model)
+        choices = self._field(response, "choices")
+        choice = choices[0] if choices else None
+        message = self._field(choice, "message") if choice is not None else None
+        usage_metadata = {
+            "usage_known": not usage_missing,
+            "total_cost": (
+                token_usage.prompt_tokens * pricing_info.prompt_price / 1000
+                + token_usage.completion_tokens * pricing_info.completion_price / 1000
+            ) if not usage_missing else None,
+        }
 
         return LLMResponse(
-            text=response.choices[0].message.content,
+            text=self._extract_text(self._field(message, "content") if message is not None else None),
             usage=token_usage,
-            model=response.model,
-            finish_reason=response.choices[0].finish_reason,
+            model=model,
+            finish_reason=self._field(choice, "finish_reason"),
             pricing_metadata={
-                "model": response.model,
+                "model": model,
                 "prompt_price_per_1k": pricing_info.prompt_price,
                 "completion_price_per_1k": pricing_info.completion_price,
                 "source": pricing_info.source,
+                **usage_metadata,
             },
             usage_missing=usage_missing,
+            reasoning_text=self._extract_reasoning(message) if message is not None else None,
+            effective_params=self._redacted_effective_params(effective),
         )
 
-    def _call_anthropic(self, prompt: str, system_prompt: Optional[str]) -> LLMResponse:
+    def _call_anthropic(self, prompt: str, effective: Dict[str, Any]) -> LLMResponse:
         """
         Call Anthropic API.
 
@@ -278,48 +433,98 @@ class LLMClient:
         """
         kwargs = {
             "model": self.config.model,
-            "max_tokens": self.config.max_tokens,
-            "temperature": self.config.temperature,
+            "max_tokens": effective["max_tokens"],
+            "temperature": effective["temperature"],
+            "timeout": effective["timeout"],
             "messages": [{"role": "user", "content": prompt}],
         }
 
-        if system_prompt:
-            kwargs["system"] = system_prompt
+        if effective.get("system_prompt"):
+            kwargs["system"] = effective["system_prompt"]
+        for key, value in effective.items():
+            if key not in {"system_prompt", "temperature", "max_tokens", "timeout", "enable_thinking", "extra_body"}:
+                kwargs[key] = value
 
-        response = self.client.messages.create(**kwargs)
+        response = self._call_with_retry(lambda: self.client.messages.create(**kwargs))
 
         # Get pricing metadata for this model
-        pricing_info = self.pricing_manager.get_pricing(response.model)
+        model = self._field(response, "model") or self.config.model
+        pricing_info = self.pricing_manager.get_pricing(model)
 
-        usage = getattr(response, "usage", None)
-        if usage is None:
-            token_usage = TokenUsage(prompt_tokens=0, completion_tokens=0, total_tokens=0)
-            usage_missing = True
-        else:
-            token_usage = TokenUsage(
-                prompt_tokens=usage.input_tokens,
-                completion_tokens=usage.output_tokens,
-                total_tokens=usage.input_tokens + usage.output_tokens,
-            )
-            usage_missing = False
+        token_usage, usage_missing = self._anthropic_usage(self._field(response, "usage"))
 
         return LLMResponse(
-            text=response.content[0].text,
+            text=self._extract_text(self._field(response, "content")),
             usage=token_usage,
-            model=response.model,
-            finish_reason=response.stop_reason,
+            model=model,
+            finish_reason=self._field(response, "stop_reason"),
             pricing_metadata={
-                "model": response.model,
+                "model": model,
                 "prompt_price_per_1k": pricing_info.prompt_price,
                 "completion_price_per_1k": pricing_info.completion_price,
                 "source": pricing_info.source,
                 "total_cost": (
                     token_usage.prompt_tokens * pricing_info.prompt_price / 1000
                     + token_usage.completion_tokens * pricing_info.completion_price / 1000
-                ) if not usage_missing else 0.0,
+                ) if not usage_missing else None,
+                "usage_known": not usage_missing,
             },
             usage_missing=usage_missing,
+            reasoning_text=self._extract_reasoning({"content": self._field(response, "content")}),
+            effective_params=self._redacted_effective_params(effective),
         )
+
+    @staticmethod
+    def _redacted_effective_params(params: Dict[str, Any]) -> Dict[str, Any]:
+        """Keep snapshots useful while preventing prompt/credential leakage."""
+        snapshot = dict(params)
+        snapshot.pop("system_prompt", None)
+        normalized = {"temperature": snapshot.get("temperature"), "max_tokens": snapshot.get("max_tokens"), **{
+            key: value for key, value in snapshot.items() if key not in {"temperature", "max_tokens", "timeout"}
+        }, "timeout": snapshot.get("timeout")}
+        return redact_sensitive_data(normalized)
+
+    @staticmethod
+    def _openai_usage(usage: Any) -> tuple[TokenUsage, bool]:
+        """Normalize optional OpenAI usage fields without dropping a trace."""
+        if usage is None:
+            return TokenUsage(prompt_tokens=0, completion_tokens=0, total_tokens=0), True
+        try:
+            prompt = LLMClient._field(usage, "prompt_tokens")
+            completion = LLMClient._field(usage, "completion_tokens")
+            if prompt is None or completion is None:
+                raise ValueError("OpenAI usage fields are incomplete")
+            prompt_int = int(prompt)
+            completion_int = int(completion)
+            total = LLMClient._field(usage, "total_tokens")
+            total_int = int(total) if total is not None else prompt_int + completion_int
+            return TokenUsage(
+                prompt_tokens=max(prompt_int, 0),
+                completion_tokens=max(completion_int, 0),
+                total_tokens=max(total_int, 0),
+            ), False
+        except (TypeError, ValueError):
+            return TokenUsage(prompt_tokens=0, completion_tokens=0, total_tokens=0), True
+
+    @staticmethod
+    def _anthropic_usage(usage: Any) -> tuple[TokenUsage, bool]:
+        """Normalize optional Anthropic usage fields without dropping a trace."""
+        if usage is None:
+            return TokenUsage(prompt_tokens=0, completion_tokens=0, total_tokens=0), True
+        try:
+            prompt = LLMClient._field(usage, "input_tokens")
+            completion = LLMClient._field(usage, "output_tokens")
+            if prompt is None or completion is None:
+                raise ValueError("Anthropic usage fields are incomplete")
+            prompt_int = max(int(prompt), 0)
+            completion_int = max(int(completion), 0)
+            return TokenUsage(
+                prompt_tokens=prompt_int,
+                completion_tokens=completion_int,
+                total_tokens=prompt_int + completion_int,
+            ), False
+        except (TypeError, ValueError):
+            return TokenUsage(prompt_tokens=0, completion_tokens=0, total_tokens=0), True
 
     def list_models(self) -> List[str]:
         """

@@ -43,7 +43,7 @@ def test_initialize_openai_client(openai_config):
     with patch("src.llm_client.OpenAI") as mock_openai:
         client = LLMClient(openai_config)
 
-        mock_openai.assert_called_once_with(api_key="test-openai-key", max_retries=3)
+        mock_openai.assert_called_once_with(api_key="test-openai-key", max_retries=0)
         assert client.config.provider == "openai"
         assert isinstance(client._resolved_api_key, SecretStr)
         assert "test-openai-key" not in repr(client._resolved_api_key)
@@ -54,7 +54,7 @@ def test_initialize_anthropic_client(anthropic_config):
     with patch("src.llm_client.Anthropic") as mock_anthropic:
         client = LLMClient(anthropic_config)
 
-        mock_anthropic.assert_called_once_with(api_key="test-anthropic-key")
+        mock_anthropic.assert_called_once_with(api_key="test-anthropic-key", max_retries=0)
         assert client.config.provider == "anthropic"
 
 
@@ -319,7 +319,7 @@ def test_openai_api_key_from_env():
         with patch.dict(os.environ, {"OPENAI_API_KEY": "env-key"}):
             client = LLMClient(config)
 
-            mock_openai.assert_called_once_with(api_key="env-key", max_retries=3)
+            mock_openai.assert_called_once_with(api_key="env-key", max_retries=0)
 
 
 def test_anthropic_api_key_from_env():
@@ -334,7 +334,7 @@ def test_anthropic_api_key_from_env():
         with patch.dict(os.environ, {"ANTHROPIC_API_KEY": "env-key"}):
             client = LLMClient(config)
 
-            mock_anthropic.assert_called_once_with(api_key="env-key")
+            mock_anthropic.assert_called_once_with(api_key="env-key", max_retries=0)
 
 
 @pytest.mark.parametrize("reference", ["env:ISSUE4_API_KEY", "${ISSUE4_API_KEY}"])
@@ -346,7 +346,7 @@ def test_openai_api_key_from_explicit_environment_reference(reference):
         with patch.dict(os.environ, {"ISSUE4_API_KEY": "resolved-secret"}, clear=True):
             LLMClient(config)
 
-    mock_openai.assert_called_once_with(api_key="resolved-secret", max_retries=3)
+    mock_openai.assert_called_once_with(api_key="resolved-secret", max_retries=0)
     assert "resolved-secret" not in config.model_dump_json()
 
 
@@ -433,7 +433,7 @@ def test_initialize_siliconflow_uses_preset_base_url_and_env_key():
     mock_openai.assert_called_once_with(
         api_key="sf-env-key",
         base_url="https://api.siliconflow.cn/v1",
-        max_retries=3,
+        max_retries=0,
     )
 
 
@@ -447,7 +447,7 @@ def test_siliconflow_explicit_key_and_base_url_override_preset():
     mock_openai.assert_called_once_with(
         api_key="sf-explicit-key",
         base_url="https://custom.example/v1",
-        max_retries=3,
+        max_retries=0,
     )
 
 
@@ -551,3 +551,215 @@ def test_check_connection_failure_returns_reason():
     assert result["ok"] is False
     assert "connection refused" in result["error"]
     assert result["model_count"] == 0
+
+
+# ============================================================================
+# Unified request/response behavior (issue #12)
+# ============================================================================
+
+
+def test_strategy_overrides_are_sent_to_openai_request(openai_config):
+    """Effective strategy values reach the provider request and are traceable."""
+    with patch("src.llm_client.OpenAI") as mock_openai_class:
+        sdk = Mock()
+        mock_openai_class.return_value = sdk
+        response = Mock()
+        response.choices = [Mock()]
+        response.choices[0].message.content = "answer"
+        response.choices[0].finish_reason = "stop"
+        response.usage.prompt_tokens = 2
+        response.usage.completion_tokens = 3
+        response.usage.total_tokens = 5
+        response.model = "gpt-3.5-turbo"
+        sdk.chat.completions.create.return_value = response
+
+        client = LLMClient(openai_config)
+        result = client.generate(
+            "prompt",
+            system_prompt="strategy system",
+            temperature=0.1,
+            max_tokens=321,
+            custom_params={"top_p": 0.8, "extra_body": {"foo": "bar"}},
+        )
+
+    request = sdk.chat.completions.create.call_args.kwargs
+    assert request["temperature"] == 0.1
+    assert request["max_tokens"] == 321
+    assert request["messages"][0] == {"role": "system", "content": "strategy system"}
+    assert request["top_p"] == 0.8
+    assert request["extra_body"] == {"foo": "bar"}
+    assert result.effective_params == {"temperature": 0.1, "max_tokens": 321, "top_p": 0.8, "extra_body": {"foo": "bar"}, "timeout": 30}
+
+
+def test_openai_content_blocks_and_reasoning_are_normalized(openai_config):
+    """Multiple text blocks and optional reasoning do not lose the response."""
+    with patch("src.llm_client.OpenAI") as mock_openai_class:
+        sdk = Mock()
+        mock_openai_class.return_value = sdk
+        response = Mock()
+        response.choices = [Mock()]
+        response.choices[0].message.content = [
+            {"type": "text", "text": "```python\n"},
+            {"type": "text", "text": "def solution():\n    return 1\n```"},
+        ]
+        response.choices[0].message.reasoning_content = "reasoning"
+        response.choices[0].finish_reason = "stop"
+        response.usage = None
+        response.model = "gpt-3.5-turbo"
+        sdk.chat.completions.create.return_value = response
+
+        result = LLMClient(openai_config).generate("prompt")
+
+    assert result.text.startswith("```python")
+    assert result.reasoning_text == "reasoning"
+    assert result.usage_missing is True
+    assert result.pricing_metadata["usage_known"] is False
+    assert result.pricing_metadata["total_cost"] is None
+
+
+def test_openai_dict_response_fixture_is_supported(openai_config):
+    """Compatibility fixtures can use plain dictionaries like raw JSON."""
+    with patch("src.llm_client.OpenAI") as mock_openai_class:
+        sdk = Mock()
+        mock_openai_class.return_value = sdk
+        sdk.chat.completions.create.return_value = {
+            "choices": [
+                {
+                    "message": {"content": [{"type": "text", "text": "answer"}]},
+                    "finish_reason": "stop",
+                }
+            ],
+            "usage": {"prompt_tokens": 1, "completion_tokens": 2, "total_tokens": 3},
+            "model": "gpt-3.5-turbo",
+        }
+
+        result = LLMClient(openai_config).generate("prompt")
+
+    assert result.text == "answer"
+    assert result.usage.total_tokens == 3
+
+
+def test_retryable_provider_error_is_bounded(openai_config):
+    """429 retries stop after the configured total attempts."""
+    openai_config.retry_backoff_seconds = 0
+    openai_config.retry_max_attempts = 3
+
+    class RateLimitError(Exception):
+        status_code = 429
+
+    with patch("src.llm_client.OpenAI") as mock_openai_class:
+        sdk = Mock()
+        mock_openai_class.return_value = sdk
+        sdk.chat.completions.create.side_effect = RateLimitError("busy")
+        client = LLMClient(openai_config)
+
+        with pytest.raises(RuntimeError, match="busy"):
+            client.generate("prompt")
+
+    assert sdk.chat.completions.create.call_count == 3
+
+
+def test_authentication_error_is_not_retried(openai_config):
+    """401 errors fail immediately instead of multiplying invalid requests."""
+    class UnauthorizedError(Exception):
+        status_code = 401
+
+    with patch("src.llm_client.OpenAI") as mock_openai_class:
+        sdk = Mock()
+        mock_openai_class.return_value = sdk
+        sdk.chat.completions.create.side_effect = UnauthorizedError("unauthorized")
+        client = LLMClient(openai_config)
+
+        with pytest.raises(RuntimeError, match="unauthorized"):
+            client.generate("prompt")
+
+    assert sdk.chat.completions.create.call_count == 1
+
+
+def test_anthropic_request_receives_timeout(anthropic_config):
+    """Anthropic timeout is applied to the actual messages request."""
+    with patch("src.llm_client.Anthropic") as mock_anthropic_class:
+        sdk = Mock()
+        mock_anthropic_class.return_value = sdk
+        response = Mock()
+        response.content = [{"type": "text", "text": "answer"}]
+        response.stop_reason = "end_turn"
+        response.usage = None
+        response.model = "claude-3-haiku"
+        sdk.messages.create.return_value = response
+
+        LLMClient(anthropic_config).generate("prompt")
+
+    assert sdk.messages.create.call_args.kwargs["timeout"] == 30
+
+
+def test_anthropic_thinking_block_stays_out_of_answer_text(anthropic_config):
+    """Anthropic thinking and answer blocks remain distinguishable."""
+    with patch("src.llm_client.Anthropic") as mock_anthropic_class:
+        sdk = Mock()
+        mock_anthropic_class.return_value = sdk
+        response = Mock()
+        response.content = [
+            {"type": "thinking", "thinking": "internal plan"},
+            {"type": "text", "text": "final answer"},
+        ]
+        response.stop_reason = "end_turn"
+        response.usage = Mock(input_tokens=4, output_tokens=2)
+        response.model = "claude-3-haiku"
+        sdk.messages.create.return_value = response
+
+        result = LLMClient(anthropic_config).generate("prompt")
+
+    assert result.text == "final answer"
+    assert result.reasoning_text == "internal plan"
+    assert result.usage_missing is False
+
+
+def test_incomplete_usage_is_marked_unknown(openai_config):
+    """Malformed usage metadata is unknown instead of raising or charging zero."""
+    with patch("src.llm_client.OpenAI") as mock_openai_class:
+        sdk = Mock()
+        mock_openai_class.return_value = sdk
+        response = Mock()
+        response.choices = [Mock()]
+        response.choices[0].message.content = "answer"
+        response.choices[0].finish_reason = "length"
+        response.usage = Mock(prompt_tokens=10)
+        response.model = "gpt-3.5-turbo"
+        sdk.chat.completions.create.return_value = response
+
+        result = LLMClient(openai_config).generate("prompt")
+
+    assert result.usage_missing is True
+    assert result.pricing_metadata["usage_known"] is False
+    assert result.pricing_metadata["total_cost"] is None
+
+
+def test_local_provider_requires_explicit_openai_compatible_endpoint():
+    """The local provider declaration matches its OpenAI-compatible behavior."""
+    config = LLMConfig(provider="local", api_key="local-key", model="local-model")
+    with patch("src.llm_client.OpenAI"):
+        with pytest.raises(ValueError, match="provider=local requires base_url"):
+            LLMClient(config)
+
+    config.base_url = "http://localhost:8000/v1"
+    with patch("src.llm_client.OpenAI") as mock_openai:
+        client = LLMClient(config)
+    mock_openai.assert_called_once_with(
+        api_key="local-key", base_url="http://localhost:8000/v1", max_retries=0
+    )
+    assert client.config.provider == "local"
+
+
+def test_local_provider_can_use_empty_key_for_unauthenticated_server():
+    """Unauthenticated local servers receive a harmless SDK placeholder key."""
+    config = LLMConfig(
+        provider="local",
+        api_key="",
+        model="local-model",
+        base_url="http://localhost:8000/v1",
+    )
+    with patch("src.llm_client.OpenAI") as mock_openai:
+        with patch.dict(os.environ, {}, clear=True):
+            LLMClient(config)
+    assert mock_openai.call_args.kwargs["api_key"] == "local"

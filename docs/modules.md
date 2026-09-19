@@ -526,6 +526,9 @@ class LLMConfig(BaseModel):
     temperature: float = 0.7
     max_tokens: int = 2000
     timeout: int = 30
+    retry_max_attempts: int = 3
+    retry_backoff_seconds: float = 0.5
+    retry_max_elapsed_seconds: float = 60.0
 
 class SandboxConfig(BaseModel):
     timeout_seconds: int = 5
@@ -536,6 +539,8 @@ class StrategyConfig(BaseModel):
     max_iterations: int = 1
     temperature: float = 0.7
     max_tokens: int = 2000
+    system_prompt: str | None = None
+    custom_params: dict = {}
 
 class HarnessConfig(BaseModel):
     llm_config: LLMConfig
