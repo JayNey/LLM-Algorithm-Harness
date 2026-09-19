@@ -245,6 +245,7 @@ def run_import_command(args: argparse.Namespace) -> int:
     """
     from src.importers.base import ImportResult
     from src.importers.leetcode import LeetCodeImporter
+    from src.importers.livecodebench import LiveCodeBenchImporter
     from src.importers.local_json import LocalJsonImporter
     from src.importers.mock import MockPlatformImporter
     from src.problem_loader import ProblemLoader
@@ -253,6 +254,7 @@ def run_import_command(args: argparse.Namespace) -> int:
     IMPORTERS = {
         "local-json": LocalJsonImporter,
         "leetcode": LeetCodeImporter,
+        "livecodebench": LiveCodeBenchImporter,
         "mock": MockPlatformImporter,
     }
 
@@ -263,7 +265,16 @@ def run_import_command(args: argparse.Namespace) -> int:
     try:
         # Instantiate importer
         importer_class = IMPORTERS[args.source]
-        importer = importer_class()
+        if args.source == "livecodebench":
+            importer = importer_class(
+                release_version=args.release_version,
+                start_date=args.start_date,
+                end_date=args.end_date,
+                difficulty=args.import_difficulty,
+                limit=args.import_limit,
+            )
+        else:
+            importer = importer_class()
 
         # Preview mode indicator
         if args.preview:
@@ -478,6 +489,23 @@ def main():
         "--strict",
         action="store_true",
         help="Strict mode: return error exit code on any failure",
+    )
+    import_parser.add_argument(
+        "--release-version",
+        default="release_v6",
+        help="LiveCodeBench release version (default: release_v6)",
+    )
+    import_parser.add_argument("--start-date", help="LiveCodeBench contest start date (YYYY-MM-DD)")
+    import_parser.add_argument("--end-date", help="LiveCodeBench contest end date (YYYY-MM-DD)")
+    import_parser.add_argument(
+        "--import-difficulty",
+        choices=["easy", "medium", "hard"],
+        help="Filter LiveCodeBench imports by difficulty",
+    )
+    import_parser.add_argument(
+        "--import-limit",
+        type=positive_int,
+        help="Limit LiveCodeBench imported problems",
     )
     import_parser.add_argument(
         "--log-format",

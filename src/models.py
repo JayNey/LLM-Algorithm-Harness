@@ -75,6 +75,9 @@ class Problem(BaseModel):
     source_problem_id: Optional[str] = Field(None, description="Source platform problem ID")
     source_url: Optional[str] = Field(None, description="Source problem URL")
     source_version: Optional[str] = Field(None, description="Source dataset version")
+    source_metadata: Dict[str, Any] = Field(
+        default_factory=dict, description="Additional auditable source metadata"
+    )
     input_output_mode: Literal["function", "stdin_stdout"] = Field(
         "function", description="Input/output protocol"
     )
@@ -180,6 +183,7 @@ class Problem(BaseModel):
             "source_problem_id": self.source_problem_id,
             "source_url": self.source_url,
             "source_version": self.source_version,
+            "source_metadata": dict(self.source_metadata),
             "input_output_mode": self.input_output_mode,
             "entry_point": self.entry_point,
             "judge_config": self.judge_config.model_dump(mode="json"),

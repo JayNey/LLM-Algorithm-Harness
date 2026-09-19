@@ -105,6 +105,23 @@ harness import --source leetcode --input two-sum --force
 harness import --source mock --input 5
 ```
 
+### livecodebench
+
+LiveCodeBench 导入需要一个固定版本的本地 JSON/JSONL 缓存：
+
+```bash
+harness import --source livecodebench \
+  --input data/livecodebench-release-v6.json \
+  --release-version release_v6 \
+  --start-date 2024-01-01 \
+  --end-date 2024-12-31 \
+  --difficulty hard \
+  --import-limit 100 \
+  --preview
+```
+
+导入报告会记录 release、过滤条件、源文件 SHA-256 和确定的题目 ID 列表。JSON/JSONL 中的 public/private 测试会分别映射为公开/隐藏测试；压缩或 pickle 私有字段不会被反序列化，会标记人工补全。使用前应根据 [LiveCodeBench 官方仓库](https://github.com/LiveCodeBench/LiveCodeBench) 的许可和可再分发范围准备本地缓存。
+
 ## 导入报告
 
 每次导入完成后会显示详细报告：
