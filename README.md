@@ -108,6 +108,9 @@ PYTHONPATH=. python3 -m src.main --config config.siliconflow.example.json --stra
 - 列表查询失败时按错误原因排查（401 为鉴权问题），也可直接手动配置模型 ID 运行评测。
 - 示例配置见 `config.siliconflow.example.json`（无真实密钥）。
 - 成本估算：未收录进 `pricing.json` 的模型按默认单价估算（报告来源标记为 `default`），可能与实际计费有偏差；可在 `pricing.json` 中为常用模型补充真实单价。
+- 请求参数：策略中的 `temperature`、`max_tokens`、`system_prompt` 和 `custom_params` 会覆盖全局 `llm_config` 对应值；模型、超时和认证仍由全局配置控制，每轮 trace 会保存脱敏后的有效参数。
+- 本地服务：`provider: "local"` 表示 OpenAI 兼容服务，必须设置 `base_url`；无认证的本地服务可将 `api_key` 留空。
+- API 错误：客户端只对 429、5xx、超时和连接错误做有限重试；401/403 和参数错误立即失败。缺少 token usage 时报告会标注 usage 未知，不会把调用当作零成本。
 - 真实 API 端到端验证位于 `tests/test_online_verification.py`，标记为 `online`：无凭证环境自动跳过，Mock 测试不构成真实 API 验证。
 
 ## 快速开始
@@ -210,7 +213,10 @@ harness --config config.yaml \
     "api_key": "env:OPENAI_API_KEY",
     "model": "gpt-3.5-turbo",
     "temperature": 0.7,
-    "max_tokens": 2000
+    "max_tokens": 2000,
+    "timeout": 30,
+    "retry_max_attempts": 3,
+    "retry_backoff_seconds": 0.5
   },
   "sandbox_config": {
     "timeout_seconds": 5,
@@ -220,7 +226,11 @@ harness --config config.yaml \
   "strategies": [
     {
       "name": "vanilla",
-      "max_iterations": 1
+      "max_iterations": 1,
+      "temperature": 0.2,
+      "max_tokens": 1200,
+      "system_prompt": "Return only executable Python code.",
+      "custom_params": {"top_p": 0.9}
     },
     {
       "name": "multi_round_feedback",

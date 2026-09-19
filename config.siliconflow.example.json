@@ -7,7 +7,9 @@
     "model": "Qwen/Qwen2.5-7B-Instruct",
     "temperature": 0.7,
     "max_tokens": 2000,
-    "timeout": 60
+    "timeout": 60,
+    "retry_max_attempts": 3,
+    "retry_backoff_seconds": 0.5
   },
   "sandbox_config": {
     "timeout_seconds": 5,

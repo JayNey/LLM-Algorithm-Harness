@@ -45,6 +45,29 @@ class StrategyBase(ABC):
         self.sandbox = sandbox
         self.logger = get_logger(f"{__name__}.{self.__class__.__name__}")
 
+    def generate(self, prompt: str) -> LLMResponse:
+        """Generate with this strategy's parameters applied consistently."""
+        # Pydantic keeps track of fields explicitly supplied by the caller.
+        # This lets the StrategyConfig defaults remain backwards compatible
+        # while an omitted override still inherits the global LLMConfig.
+        temperature = (
+            self.config.temperature
+            if "temperature" in self.config.model_fields_set
+            else None
+        )
+        max_tokens = (
+            self.config.max_tokens
+            if "max_tokens" in self.config.model_fields_set
+            else None
+        )
+        return self.llm_client.generate(
+            prompt,
+            system_prompt=self.config.system_prompt,
+            temperature=temperature,
+            max_tokens=max_tokens,
+            custom_params=self.config.custom_params,
+        )
+
     @abstractmethod
     def execute(self, problem: Problem) -> ExecutionResult:
         """
@@ -276,6 +299,7 @@ Your response should include the code in a ```python code block.
             llm_error=redact_sensitive_text(llm_error) if llm_error else None,
             sandbox_error=redact_sensitive_text(sandbox_error) if sandbox_error else None,
             usage_missing=llm_response.usage_missing if llm_response else False,
+            effective_params=llm_response.effective_params if llm_response else {},
             elapsed_seconds=max(elapsed_seconds, 0.0),
         )
 
@@ -351,6 +375,7 @@ Your response should include the code in a ```python code block.
                 "completion_tokens": it.completion_tokens,
                 "total_tokens": it.prompt_tokens + it.completion_tokens,
                 "usage_missing": it.usage_missing,
+                "effective_params": it.effective_params,
                 "elapsed_seconds": it.elapsed_seconds,
                 "sandbox": it.sandbox_result.model_dump() if it.sandbox_result else None,
             }
@@ -414,6 +439,8 @@ Your response should include the code in a ```python code block.
                 continue
             if response.pricing_metadata:
                 llm_traces[idx]["pricing_metadata"] = response.pricing_metadata
+            if response.reasoning_text:
+                llm_traces[idx]["reasoning_text"] = redact_sensitive_text(response.reasoning_text)
 
         return ExecutionResult(
             problem_id=problem.problem_id,

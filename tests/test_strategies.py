@@ -115,6 +115,55 @@ def solution(nums, target):
     assert result.final_result.all_passed is True
 
 
+def test_strategy_config_parameters_reach_llm_client(
+    mock_llm_client, mock_sandbox, sample_problem
+):
+    """Strategy-level model settings are forwarded on every generation."""
+    response = LLMResponse(
+        text="I cannot solve this problem.",
+        usage=TokenUsage(prompt_tokens=1, completion_tokens=1, total_tokens=2),
+        model="gpt-3.5-turbo",
+        finish_reason="stop",
+    )
+    mock_llm_client.generate.return_value = response
+    config = StrategyConfig(
+        name="override-strategy",
+        max_iterations=1,
+        temperature=0.15,
+        max_tokens=321,
+        system_prompt="Use the requested contract.",
+        custom_params={"top_p": 0.8},
+    )
+
+    VanillaStrategy(config, mock_llm_client, mock_sandbox).execute(sample_problem)
+
+    kwargs = mock_llm_client.generate.call_args.kwargs
+    assert kwargs["temperature"] == 0.15
+    assert kwargs["max_tokens"] == 321
+    assert kwargs["system_prompt"] == "Use the requested contract."
+    assert kwargs["custom_params"] == {"top_p": 0.8}
+
+
+def test_omitted_strategy_model_params_inherit_global_client_config(
+    mock_llm_client, mock_sandbox, sample_problem
+):
+    """Defaults do not accidentally override a global LLM configuration."""
+    mock_llm_client.generate.return_value = LLMResponse(
+        text="no code",
+        usage=TokenUsage(prompt_tokens=1, completion_tokens=1, total_tokens=2),
+        model="gpt-3.5-turbo",
+        finish_reason="stop",
+    )
+
+    VanillaStrategy(StrategyConfig(name="inherits-global"), mock_llm_client, mock_sandbox).execute(
+        sample_problem
+    )
+
+    kwargs = mock_llm_client.generate.call_args.kwargs
+    assert kwargs["temperature"] is None
+    assert kwargs["max_tokens"] is None
+
+
 def test_vanilla_strategy_no_code(mock_llm_client, mock_sandbox, sample_problem, strategy_config):
     """Test vanilla strategy when LLM returns no code."""
     # Mock LLM response without code

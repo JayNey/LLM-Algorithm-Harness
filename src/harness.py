@@ -312,6 +312,7 @@ class AlgorithmHarness:
             "total_tokens": 0,
             "models_used": {},
             "has_actual_pricing": False,
+            "unknown_usage": False,
         }
 
         for result in results:
@@ -327,7 +328,11 @@ class AlgorithmHarness:
                         pm = trace["pricing_metadata"]
 
                         # Accumulate cost
-                        total_cost += pm.get("total_cost", 0.0)
+                        trace_cost = pm.get("total_cost")
+                        if trace_cost is None or pm.get("usage_known") is False:
+                            pricing_metadata["unknown_usage"] = True
+                        else:
+                            total_cost += trace_cost
 
                         # Track model usage
                         model = pm.get("model", "unknown")
@@ -336,13 +341,21 @@ class AlgorithmHarness:
                                 "prompt_tokens": 0,
                                 "completion_tokens": 0,
                                 "total_cost": 0.0,
+                                "unknown_usage": False,
                                 "prompt_price_per_1k": pm.get("prompt_price_per_1k"),
                                 "completion_price_per_1k": pm.get("completion_price_per_1k"),
                             }
 
                         pricing_metadata["models_used"][model]["prompt_tokens"] += trace.get("prompt_tokens", 0)
                         pricing_metadata["models_used"][model]["completion_tokens"] += trace.get("completion_tokens", 0)
-                        pricing_metadata["models_used"][model]["total_cost"] += pm.get("total_cost", 0.0)
+                        if trace_cost is not None and pm.get("usage_known") is not False:
+                            pricing_metadata["models_used"][model]["total_cost"] += trace_cost
+                        if trace_cost is None or pm.get("usage_known") is False:
+                            pricing_metadata["models_used"][model]["unknown_usage"] = True
+                    else:
+                        # A trace without provider pricing cannot be treated
+                        # as a free call, even when token counts are present.
+                        pricing_metadata["unknown_usage"] = True
             else:
                 # Fallback: use token counts without pricing
                 pricing_metadata["total_tokens"] += result.total_tokens
