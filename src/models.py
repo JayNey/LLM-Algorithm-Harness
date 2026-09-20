@@ -306,6 +306,10 @@ class IterationResult(BaseModel):
     usage_missing: bool = Field(
         False, description="True when the provider returned no usage data"
     )
+    effective_params: Dict[str, Any] = Field(
+        default_factory=dict,
+        description="Redacted model parameters effective for this iteration",
+    )
     elapsed_seconds: float = Field(
         0.0, ge=0, description="Wall-clock duration of this iteration"
     )
@@ -448,6 +452,14 @@ class LLMResponse(BaseModel):
         False,
         description="True when the provider response carried no usage data",
     )
+    reasoning_text: Optional[str] = Field(
+        None,
+        description="Optional provider reasoning content kept separate from answer text",
+    )
+    effective_params: Dict[str, Any] = Field(
+        default_factory=dict,
+        description="Redacted request parameters used for this response",
+    )
 
 
 class ProviderResponse(BaseModel):
@@ -479,6 +491,24 @@ class LLMConfig(BaseModel):
     timeout: int = Field(30, ge=1, description="Request timeout in seconds")
     enable_thinking: Optional[bool] = Field(
         None, description="Toggle thinking mode for reasoning models (e.g. SiliconFlow Qwen3.5)"
+    )
+    retry_max_attempts: int = Field(
+        3,
+        ge=1,
+        le=5,
+        description="Maximum total attempts for retryable provider errors",
+    )
+    retry_backoff_seconds: float = Field(
+        0.5,
+        ge=0.0,
+        le=60.0,
+        description="Initial delay between retry attempts",
+    )
+    retry_max_elapsed_seconds: float = Field(
+        60.0,
+        ge=0.0,
+        le=600.0,
+        description="Maximum wall-clock time spent retrying one request",
     )
 
     @field_serializer("api_key", when_used="always")

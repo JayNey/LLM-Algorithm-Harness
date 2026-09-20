@@ -65,7 +65,7 @@ class MultiRoundFeedbackStrategy(StrategyBase):
             llm_response = None
             llm_error = None
             try:
-                llm_response = self.llm_client.generate(prompt)
+                llm_response = self.generate(prompt)
             except Exception as e:
                 llm_error = str(e)
                 self.logger.error(

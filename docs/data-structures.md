@@ -378,7 +378,7 @@ class LLMResponse(BaseModel):
 class LLMConfig(BaseModel):
     """LLM客户端配置"""
     
-    provider: Literal["openai", "anthropic", "local"] = Field(
+    provider: Literal["openai", "anthropic", "local", "siliconflow"] = Field(
         ...,
         description="Provider类型"
     )
@@ -413,6 +413,9 @@ class LLMConfig(BaseModel):
         description="请求超时（秒）",
         ge=1
     )
+    retry_max_attempts: int = Field(3, ge=1, le=5)
+    retry_backoff_seconds: float = Field(0.5, ge=0.0, le=60.0)
+    retry_max_elapsed_seconds: float = Field(60.0, ge=0.0, le=600.0)
     
     class Config:
         json_schema_extra = {
