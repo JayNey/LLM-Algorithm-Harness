@@ -55,6 +55,11 @@ class AlgorithmHarness:
         Returns:
             Dict mapping strategy name to StrategyReport
         """
+        if not self.config.strategies:
+            raise ValueError(
+                "No strategies configured; add at least one strategy to the config"
+            )
+
         logger.info("harness_run_started")
 
         # Load problems
