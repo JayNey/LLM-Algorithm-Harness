@@ -227,14 +227,17 @@ def test_cli_help_entry_works():
     """The module entry point is importable and its help text is reachable."""
     import subprocess
 
+    repo_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
     result = subprocess.run(
         [sys.executable, "-m", "src.main", "--help"],
         capture_output=True,
         text=True,
         timeout=60,
+        cwd=repo_root,
     )
     assert result.returncode == 0
-    assert "run" in result.stdout
+    assert "usage:" in result.stdout
+    assert "--dataset" in result.stdout
 
 
 def test_online_verification_skips_without_credentials():
@@ -255,5 +258,29 @@ def test_online_verification_skips_without_credentials():
         env=env,
         cwd=os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
     )
-    assert "1 skipped" in result.stdout
-    assert "passed" not in result.stdout.split("\n")[0] or "1 skipped" in result.stdout
+    summary_line = [ln for ln in result.stdout.splitlines() if ln.strip()][-1]
+    assert "1 skipped" in summary_line
+    assert "passed" not in summary_line
+
+
+def test_missing_dataset_flag_reports_error(tmp_path, capsys):
+    """`--dataset` pointing at a missing file reports the missing dataset."""
+    missing = tmp_path / "nope-problems.json"
+
+    from src.main import main
+
+    exit_code = 0
+    with patch("sys.argv", [
+        "main.py",
+        "--dataset", str(missing),
+        "--output", str(tmp_path / "results"),
+    ]):
+        try:
+            main()
+        except SystemExit as exc:
+            exit_code = exc.code or 0
+
+    captured = capsys.readouterr()
+    assert exit_code == 1
+    assert "nope-problems.json" in captured.err
+    assert not (tmp_path / "results").exists()
