@@ -1,0 +1,33 @@
+{
+  "comment": "Fixed-budget experiment configuration. Copy to 'experiment.json' and modify. api_key uses 'env:NAME' references so the raw key never lands in this file.",
+  "name": "vanilla-vs-multi-round-budget-demo",
+  "dataset_path": "data/problems.json",
+  "output_dir": "./results/experiments",
+  "repeats": 1,
+  "budget": {
+    "max_calls": 3,
+    "max_tokens": 20000,
+    "max_seconds": 120
+  },
+  "problem_filters": {
+    "difficulty": "easy",
+    "limit": 10
+  },
+  "models": [
+    {
+      "provider": "siliconflow",
+      "api_key": "env:SILICONFLOW_API_KEY",
+      "model": "Qwen/Qwen2.5-7B-Instruct",
+      "temperature": 0.2,
+      "max_tokens": 2000,
+      "timeout": 60
+    }
+  ],
+  "strategies": [
+    { "name": "vanilla", "max_iterations": 1 },
+    { "name": "multi_round_feedback", "max_iterations": 3 }
+  ],
+  "sandbox_config": {
+    "backend": "docker"
+  }
+}
