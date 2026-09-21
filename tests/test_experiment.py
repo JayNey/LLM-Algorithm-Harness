@@ -12,7 +12,7 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
-from src.models import ExperimentConfig, LLMConfig, ProblemBudget, StrategyConfig
+from src.models import ExperimentConfig, LLMConfig, ProblemBudget, SandboxConfig, StrategyConfig
 
 # ============================================================================
 # Experiment configuration (task 1)
@@ -355,3 +355,139 @@ def test_estimate_cost_no_traces_is_unknown_not_fabricated(tmp_path):
     assert total == 0.0
     assert meta["total_tokens"] == 1000
     assert meta["unknown_usage"] is True
+
+
+# ============================================================================
+# Experiment runner and reproducibility metadata (task 3)
+# ============================================================================
+
+
+import hashlib
+
+from src.experiment import ExperimentRunner
+
+
+def _runner_dataset(tmp_path):
+    """Two problems; the first carries hidden cases for formal metrics."""
+    dataset = tmp_path / "problems.json"
+    dataset.write_text(
+        json.dumps(
+            [
+                {
+                    "problem_id": "exp-1",
+                    "title": "Add One",
+                    "description": "Return x plus one for the experiment run.",
+                    "difficulty": "easy",
+                    "tags": ["math"],
+                    "public_test_cases": [{"input": {"x": 1}, "expected_output": 2}],
+                    "hidden_test_cases": [{"input": {"x": 2}, "expected_output": 3}],
+                },
+                {
+                    "problem_id": "exp-2",
+                    "title": "Add One Again",
+                    "description": "Return x plus one for the experiment run.",
+                    "difficulty": "medium",
+                    "tags": ["math", "basics"],
+                    "test_cases": [{"input": {"x": 5}, "expected_output": 6}],
+                },
+            ]
+        ),
+        encoding="utf-8",
+    )
+    return dataset
+
+
+def _correct_factory():
+    def factory(config):
+        double = MagicMock()
+        double.generate.return_value = LLMResponse(
+            text="```python\ndef solution(x):\n    return x + 1\n```",
+            usage=TokenUsage(prompt_tokens=10, completion_tokens=5, total_tokens=15),
+            model="fixed-double",
+            finish_reason="stop",
+        )
+        return double
+
+    return factory
+
+
+def _runner_config(tmp_path, dataset, **overrides):
+    values = dict(
+        name="repro-e2e",
+        dataset_path=str(dataset),
+        output_dir=str(tmp_path / "experiments"),
+        models=[LLMConfig(provider="openai", api_key="offline-test-key", model="fixed-double")],
+        strategies=[
+            StrategyConfig(name="vanilla", max_iterations=1),
+            StrategyConfig(name="multi_round_feedback", max_iterations=2),
+        ],
+        repeats=2,
+        budget=ProblemBudget(max_calls=2),
+        sandbox_config=SandboxConfig(backend="host"),
+    )
+    values.update(overrides)
+    return ExperimentConfig(**values)
+
+
+def test_runner_executes_all_combinations_with_metadata(tmp_path):
+    dataset = _runner_dataset(tmp_path)
+    config = _runner_config(tmp_path, dataset)
+
+    with patch("src.harness.LLMClient", side_effect=_correct_factory()):
+        exp_dir = ExperimentRunner(config, pricing_file="nonexistent.json").run()
+
+    meta = json.loads((exp_dir / "experiment.json").read_text(encoding="utf-8"))
+
+    # Reproducibility metadata
+    assert meta["dataset"]["sha256"] == hashlib.sha256(dataset.read_bytes()).hexdigest()
+    assert meta["dataset"]["problem_ids"] == ["exp-1", "exp-2"]
+    assert meta["code_version"]["git_commit"]
+    assert meta["budget"] == {"max_calls": 2, "max_tokens": None, "max_seconds": None}
+    assert meta["pricing_snapshot"]["fixed-double"]["source"] == "unknown"
+    assert meta["finished_at"]
+
+    # API key never lands in the metadata
+    assert "offline-test-key" not in json.dumps(meta)
+
+    # model x strategy x repeat = 1 x 2 x 2 combinations
+    assert len(meta["combinations"]) == 4
+    combo_ids = [c["combo_id"] for c in meta["combinations"]]
+    assert combo_ids == [
+        "fixed-double__vanilla__r1",
+        "fixed-double__vanilla__r2",
+        "fixed-double__multi_round_feedback__r1",
+        "fixed-double__multi_round_feedback__r2",
+    ]
+
+    # Per-combination artifacts use the regular run shape
+    for combo in meta["combinations"]:
+        combo_dir = exp_dir / combo["combo_dir"]
+        summary = json.loads((combo_dir / "summary.json").read_text(encoding="utf-8"))
+        strategy_name = combo["strategy"]
+        assert summary[strategy_name]["total_problems"] == 2
+        results = json.loads(
+            (combo_dir / f"{strategy_name}_results.json").read_text(encoding="utf-8")
+        )
+        assert len(results) == 2
+        ledger = json.loads((combo_dir / "budget_ledger.json").read_text(encoding="utf-8"))
+        assert len(ledger["problems"]) == 2
+        for entry in ledger["problems"]:
+            assert entry["stop_reason"] == "completed"
+            assert entry["total_tokens"] == 15
+
+
+def test_runner_respects_problem_filters(tmp_path):
+    dataset = _runner_dataset(tmp_path)
+    config = _runner_config(tmp_path, dataset, repeats=1, problem_filters={"difficulty": "easy"})
+
+    with patch("src.harness.LLMClient", side_effect=_correct_factory()):
+        exp_dir = ExperimentRunner(config, pricing_file="nonexistent.json").run()
+
+    meta = json.loads((exp_dir / "experiment.json").read_text(encoding="utf-8"))
+    assert meta["dataset"]["problem_ids"] == ["exp-1"]
+    summary = json.loads(
+        (exp_dir / meta["combinations"][0]["combo_dir"] / "summary.json").read_text(
+            encoding="utf-8"
+        )
+    )
+    assert summary["vanilla"]["total_problems"] == 1

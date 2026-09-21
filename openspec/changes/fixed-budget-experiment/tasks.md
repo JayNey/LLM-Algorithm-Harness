@@ -21,18 +21,18 @@
 
 **文件**: `src/experiment.py`
 
-- [ ] 遍历 (模型, 策略, 重复) 组合，复用 AlgorithmHarness 执行并落盘 `results/experiments/<id>/`
-- [ ] 写实验级 `experiment.json`：题集 SHA-256 + 题目 ID 列表、git commit、有效模型参数、预算、定价快照（source + as_of）
-- [ ] 预算耗尽题目进未完成清单；统计总数 / 完成 / 未完成
-- [ ] 测试：离线假模型客户端下端到端跑通 2 策略 × 2 重复，目录与元数据断言
+- [x] 遍历 (模型, 策略, 重复) 组合，复用 AlgorithmHarness 执行并落盘 `results/experiments/<id>/`
+- [x] 写实验级 `experiment.json`：题集 SHA-256 + 题目 ID 列表、git commit、有效模型参数、预算、定价快照（source + as_of）
+- [x] 预算耗尽题目进未完成清单；统计总数 / 完成 / 未完成
+- [x] 测试：离线假模型客户端下端到端跑通 2 策略 × 2 重复，目录与元数据断言
 
 ## Task 4: 未知定价显式标记
 
 **文件**: 成本估算模块、`pricing_metadata` 写入、报告成本展示
 
-- [ ] 无可用定价 → 未知标记 + 空成本 + 警告（含模型名），删除默认单价折算
-- [ ] `pricing_metadata` 保留未知标记；HTML / Markdown 报告显示"未知"，不显示 $0
-- [ ] 测试：未知模型不再产生默认价金额；已知模型定价行为不变
+- [x] 无可用定价 → 未知标记 + 空成本 + 警告（含模型名），删除默认单价折算
+- [x] `pricing_metadata` 保留未知标记；HTML / Markdown 报告显示"未知"，不显示 $0
+- [x] 测试：未知模型不再产生默认价金额；已知模型定价行为不变
 
 ## Task 5: 对比报告生成
 
