@@ -204,6 +204,20 @@ harness --config config.yaml \
 
 ## 配置说明
 
+### 固定预算策略实验
+
+Issue #15 的实验入口会对同一题集按“模型 × 策略 × 题目 × 重复编号”运行。先复制 [config.experiment.example.json](config.experiment.example.json)，填写模型 ID 和可选的实际价格，再执行：
+
+```bash
+python3 -m src.main experiment --config config.experiment.example.json --run-id budget-demo
+```
+
+中断后使用相同配置、题集和 `--run-id` 加上 `--resume`；已确认完成的单元不会重跑。结果在 `results/experiments/budget-demo/`：`report.json`、`results.csv`、`report.md`，任务状态在 `results/experiments/tasks/budget-demo.json`。
+
+预算按每题设置 `max_calls`、`max_total_tokens` 和 `max_elapsed_seconds`，每种策略获得相同上限。调用次数会在请求前严格限制。Token 和耗时在供应商返回后才能确认，可能因单次请求超出上限；报告会标记超额。缺少 usage 时不会把未知 token 当作 0，也不会继续发起受严格 token 预算约束的调用。供应商报告的推理 token 单独列出；通常已包含在输出 token 内，若报告值超出输出部分则预算按较大值计入且将无法分配的成本标为未知。
+
+价格可在每个模型的 `price` 中设置 `input_per_1k_usd`、`output_per_1k_usd`、`source` 和 `as_of`。未配置价格或 usage 未知时，成本显示为 `unknown`。正式隐藏测试通过率与公开样例通过率分别统计；重复实验给出各次正式通过率范围，但远端生成不保证逐字复现。
+
 ### 配置文件格式
 
 ```json

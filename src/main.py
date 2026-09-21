@@ -535,11 +535,19 @@ def main():
         help="Terminal log rendering",
     )
 
+    experiment_parser = subparsers.add_parser(
+        "experiment", help="Run a fixed-budget model and strategy comparison"
+    )
+    experiment_parser.add_argument("--config", required=True, help="Experiment JSON or YAML config")
+    experiment_parser.add_argument("--run-id", help="Stable experiment run ID")
+    experiment_parser.add_argument("--resume", action="store_true", help="Resume a matching run ID")
+    experiment_parser.add_argument("--log-format", choices=["console", "json"], default="console")
+
     # Subcommand dispatch: `run` (default) and `import`. Bare invocation
     # without a subcommand is parsed directly by the run parser so legacy
     # flag-only command lines keep working.
     argv = sys.argv[1:]
-    if argv and argv[0] in ("run", "import"):
+    if argv and argv[0] in ("run", "import", "experiment"):
         args = parser.parse_args(argv)
     else:
         args = run_parser.parse_args(argv)
@@ -550,6 +558,23 @@ def main():
         setup_logging(console_format=getattr(args, "log_format", "console"))
         exit_code = run_import_command(args)
         sys.exit(exit_code)
+
+    if args.command == "experiment":
+        setup_logging(console_format=args.log_format)
+        try:
+            import yaml
+
+            from src.experiments import ExperimentConfig, ExperimentRunner
+
+            with open(args.config, encoding="utf-8") as stream:
+                config = ExperimentConfig.model_validate(yaml.safe_load(stream))
+            report = ExperimentRunner(config).run(run_id=args.run_id, resume=args.resume)
+            print(f"Experiment {report['run_id']}: {report['state']}")
+            print(f"Results saved to: {config.output_dir}/experiments/{report['run_id']}")
+            return
+        except Exception as exc:
+            print(f"Error: {redact_sensitive_data(str(exc))}", file=sys.stderr)
+            sys.exit(1)
 
     setup_logging(console_format=args.log_format)
 

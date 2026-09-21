@@ -639,6 +639,26 @@ def test_openai_dict_response_fixture_is_supported(openai_config):
     assert result.usage.total_tokens == 3
 
 
+def test_openai_reasoning_usage_is_recorded_within_completion(openai_config):
+    """Reasoning tokens are visible without being added twice to total usage."""
+    with patch("src.llm_client.OpenAI") as mock_openai_class:
+        sdk = Mock()
+        mock_openai_class.return_value = sdk
+        sdk.chat.completions.create.return_value = {
+            "choices": [{"message": {"content": "answer"}, "finish_reason": "stop"}],
+            "usage": {
+                "prompt_tokens": 10,
+                "completion_tokens": 7,
+                "total_tokens": 17,
+                "completion_tokens_details": {"reasoning_tokens": 3},
+            },
+            "model": "gpt-3.5-turbo",
+        }
+        result = LLMClient(openai_config).generate("prompt")
+    assert result.reasoning_tokens == 3
+    assert result.usage.total_tokens == 17
+
+
 def test_retryable_provider_error_is_bounded(openai_config):
     """429 retries stop after the configured total attempts."""
     openai_config.retry_backoff_seconds = 0

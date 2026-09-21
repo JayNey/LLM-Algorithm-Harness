@@ -416,6 +416,7 @@ class LLMClient:
                 **usage_metadata,
             },
             usage_missing=usage_missing,
+            reasoning_tokens=self._reasoning_token_count(self._field(response, "usage")),
             reasoning_text=self._extract_reasoning(message) if message is not None else None,
             effective_params=self._redacted_effective_params(effective),
         )
@@ -470,6 +471,7 @@ class LLMClient:
                 "usage_known": not usage_missing,
             },
             usage_missing=usage_missing,
+            reasoning_tokens=self._reasoning_token_count(self._field(response, "usage")),
             reasoning_text=self._extract_reasoning({"content": self._field(response, "content")}),
             effective_params=self._redacted_effective_params(effective),
         )
@@ -483,6 +485,20 @@ class LLMClient:
             key: value for key, value in snapshot.items() if key not in {"temperature", "max_tokens", "timeout"}
         }, "timeout": snapshot.get("timeout")}
         return redact_sensitive_data(normalized)
+
+    @staticmethod
+    def _reasoning_token_count(usage: Any) -> Optional[int]:
+        """Reasoning tokens are a subset of provider completion/output usage."""
+        if usage is None:
+            return None
+        details = LLMClient._field(usage, "completion_tokens_details")
+        value = LLMClient._field(details, "reasoning_tokens") if details else None
+        if value is None:
+            value = LLMClient._field(usage, "reasoning_tokens")
+        try:
+            return max(0, int(value)) if value is not None else None
+        except (TypeError, ValueError):
+            return None
 
     @staticmethod
     def _openai_usage(usage: Any) -> tuple[TokenUsage, bool]:

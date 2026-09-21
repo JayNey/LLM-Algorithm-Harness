@@ -36,6 +36,7 @@ class TaskUnit(BaseModel):
     unit_id: str
     strategy: str
     problem_id: str
+    model_id: str = ""
     repeat_index: int = Field(0, ge=0)
     status: TaskState = "queued"
     uncertain: bool = False

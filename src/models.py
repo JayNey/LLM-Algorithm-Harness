@@ -329,6 +329,7 @@ class ExecutionResult(BaseModel):
             "model_error",
             "system_error",
             "unsupported",
+            "budget_exhausted",
         ]
     ] = Field(
         None,
@@ -451,6 +452,9 @@ class LLMResponse(BaseModel):
     usage_missing: bool = Field(
         False,
         description="True when the provider response carried no usage data",
+    )
+    reasoning_tokens: Optional[int] = Field(
+        None, ge=0, description="Provider-reported reasoning tokens (normally part of completion tokens)"
     )
     reasoning_text: Optional[str] = Field(
         None,
