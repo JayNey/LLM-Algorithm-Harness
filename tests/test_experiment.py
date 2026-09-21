@@ -674,3 +674,92 @@ def test_comparison_report_budget_exhausted_and_ranges(tmp_path):
 
     report_md = (exp_dir / "REPORT.md").read_text(encoding="utf-8")
     assert "预算未完成" in report_md
+
+
+# ============================================================================
+# CLI experiment subcommand (task 6)
+# ============================================================================
+
+
+def _run_main(argv):
+    from src.main import main
+
+    exit_code = 0
+    with patch("sys.argv", ["main.py"] + argv):
+        try:
+            main()
+        except SystemExit as exc:
+            exit_code = exc.code or 0
+    return exit_code
+
+
+def _experiment_config_file(tmp_path, dataset, strategies=None, repeats=1):
+    config = tmp_path / "experiment.json"
+    payload = {
+        "name": "cli-e2e",
+        "dataset_path": str(dataset),
+        "output_dir": str(tmp_path / "experiments"),
+        "repeats": repeats,
+        "models": [
+            {
+                "provider": "openai",
+                "api_key": "offline-test-key",
+                "model": "fixed-double",
+            }
+        ],
+        "strategies": (
+            strategies if strategies is not None else [{"name": "vanilla", "max_iterations": 1}]
+        ),
+        "sandbox_config": {"backend": "host"},
+    }
+    config.write_text(json.dumps(payload), encoding="utf-8")
+    return config
+
+
+def test_cli_experiment_end_to_end(tmp_path, capsys):
+    dataset = _report_dataset(tmp_path)
+    config_path = _experiment_config_file(tmp_path, dataset)
+
+    with patch("src.harness.LLMClient", side_effect=_correct_factory()):
+        exit_code = _run_main(["experiment", "--config", str(config_path)])
+
+    assert exit_code == 0
+    captured = capsys.readouterr()
+    assert "Experiment completed" in captured.out
+    exp_dirs = list((tmp_path / "experiments").glob("exp-*"))
+    assert len(exp_dirs) == 1
+    assert (exp_dirs[0] / "REPORT.md").exists()
+    assert (exp_dirs[0] / "comparison.json").exists()
+    assert (exp_dirs[0] / "comparison.csv").exists()
+
+
+def test_cli_experiment_rejects_unknown_strategy(tmp_path, capsys):
+    dataset = _report_dataset(tmp_path)
+    config_path = _experiment_config_file(
+        tmp_path, dataset, strategies=[{"name": "no_such_strategy"}]
+    )
+
+    exit_code = _run_main(["experiment", "--config", str(config_path)])
+
+    assert exit_code == 1
+    captured = capsys.readouterr()
+    assert "no_such_strategy" in captured.err
+
+
+def test_cli_experiment_output_dir_override(tmp_path):
+    dataset = _report_dataset(tmp_path)
+    config_path = _experiment_config_file(tmp_path, dataset)
+
+    with patch("src.harness.LLMClient", side_effect=_correct_factory()):
+        exit_code = _run_main(
+            [
+                "experiment",
+                "--config",
+                str(config_path),
+                "--output-dir",
+                str(tmp_path / "override"),
+            ]
+        )
+
+    assert exit_code == 0
+    assert list((tmp_path / "override").glob("exp-*"))

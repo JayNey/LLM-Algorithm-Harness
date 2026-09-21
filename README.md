@@ -490,6 +490,16 @@ CSV 文件包含以下列：
 
 CSV 文件使用 UTF-8 BOM 编码，确保在 Excel 中正确显示中文。
 
+## 固定预算实验（模型与策略对比）
+
+不同策略调用模型的次数不同，直接比较通过率会混入额外计算量的影响。`harness experiment` 让模型 × 策略 × 重复组合在相同的每题预算（调用数 / token / 耗时）下运行，输出隐藏测试通过率、样例验证率、失败类型、修复率与实际消耗的可复现对比报告：
+
+```bash
+harness experiment --config experiment.json
+```
+
+配置格式、预算生效方式与报告口径详见 [docs/experiments.md](docs/experiments.md)；示例配置见 `experiment.example.json`。未配置定价的模型成本显示"未知"，不会按默认单价折算。
+
 ## 自定义模型定价
 
 Harness 支持用户自定义 LLM 模型定价，用于准确估算评估成本。

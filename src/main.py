@@ -399,6 +399,52 @@ def run_import_command(args: argparse.Namespace) -> int:
         return 2
 
 
+def run_experiment_command(args: argparse.Namespace) -> int:
+    """
+    Execute a fixed-budget experiment (issue #15).
+
+    Args:
+        args: Parsed arguments with --config and optional --output-dir
+
+    Returns:
+        Exit code (0=success, 1=failure)
+    """
+    from src.experiment import ExperimentRunner
+    from src.models import ExperimentConfig
+
+    try:
+        payload = json.loads(Path(args.config).read_text(encoding="utf-8"))
+        payload.pop("comment", None)
+        config = ExperimentConfig(**payload)
+
+        unknown_names = sorted({s.name for s in config.strategies} - set(SUPPORTED_STRATEGIES))
+        if unknown_names:
+            raise ValueError(f"Unknown configured strategies: {', '.join(unknown_names)}")
+
+        if args.output_dir is not None:
+            config = config.model_copy(update={"output_dir": args.output_dir})
+
+        logger.info(
+            "experiment_starting",
+            config=args.config,
+            models=[m.model for m in config.models],
+            strategies=[s.name for s in config.strategies],
+            repeats=config.repeats,
+        )
+        exp_dir = ExperimentRunner(config).run()
+        print("\nExperiment completed.")
+        print(f"  Artifacts: {exp_dir}")
+        print(f"  Comparison report: {exp_dir / 'REPORT.md'}")
+        return 0
+    except FileNotFoundError as e:
+        print(f"Error: {e}", file=sys.stderr)
+        return 1
+    except Exception as e:
+        logger.error("experiment_failed", error=str(e))
+        print(f"Error: {e}", file=sys.stderr)
+        return 1
+
+
 def main():
     """Main entry point."""
     parser = argparse.ArgumentParser(
@@ -543,11 +589,31 @@ def main():
         help="Terminal log rendering",
     )
 
-    # Subcommand dispatch: `run` (default) and `import`. Bare invocation
-    # without a subcommand is parsed directly by the run parser so legacy
-    # flag-only command lines keep working.
+    experiment_parser = subparsers.add_parser(
+        "experiment", help="Run fixed-budget model/strategy comparison experiments"
+    )
+    experiment_parser.add_argument(
+        "--config",
+        required=True,
+        help="Path to the experiment configuration JSON (see experiment.example.json)",
+    )
+    experiment_parser.add_argument(
+        "--output-dir",
+        default=None,
+        help="Override the configured experiment output directory",
+    )
+    experiment_parser.add_argument(
+        "--log-format",
+        choices=["console", "json"],
+        default="console",
+        help="Terminal log rendering",
+    )
+
+    # Subcommand dispatch: `run` (default), `import`, and `experiment`. Bare
+    # invocation without a subcommand is parsed directly by the run parser so
+    # legacy flag-only command lines keep working.
     argv = sys.argv[1:]
-    if argv and argv[0] in ("run", "import"):
+    if argv and argv[0] in ("run", "import", "experiment"):
         args = parser.parse_args(argv)
     else:
         args = run_parser.parse_args(argv)
@@ -557,6 +623,12 @@ def main():
     if args.command == "import":
         setup_logging(console_format=getattr(args, "log_format", "console"))
         exit_code = run_import_command(args)
+        sys.exit(exit_code)
+
+    # Handle experiment command
+    if args.command == "experiment":
+        setup_logging(console_format=getattr(args, "log_format", "console"))
+        exit_code = run_experiment_command(args)
         sys.exit(exit_code)
 
     setup_logging(console_format=args.log_format)

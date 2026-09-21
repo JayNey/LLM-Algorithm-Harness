@@ -47,6 +47,6 @@
 
 **文件**: `src/main.py`, `README.md` 或 `docs/`
 
-- [ ] 新增 `harness experiment --config <file> [--output-dir <dir>]` 子命令与退出码
-- [ ] 文档补充实验配置字段、报告口径与示例
-- [ ] 全量测试 + 离线回归套件通过
+- [x] 新增 `harness experiment --config <file> [--output-dir <dir>]` 子命令与退出码
+- [x] 文档补充实验配置字段、报告口径与示例
+- [x] 全量测试 + 离线回归套件通过
