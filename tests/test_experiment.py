@@ -787,4 +787,4 @@ def test_runner_rerun_creates_new_directory(tmp_path):
 
     assert first != second
     assert first.exists() and second.exists()
-    assert list((tmp_path / "experiments").glob("exp-*")) == [first, second]
+    assert sorted((tmp_path / "experiments").glob("exp-*")) == [first, second]
