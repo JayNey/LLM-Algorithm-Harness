@@ -4,6 +4,7 @@ Vanilla strategy - Direct problem solving without guidance.
 
 import time
 
+from src.budget import BudgetExhausted
 from src.llm_client import LLMClient
 from src.models import ExecutionResult, Problem, StrategyConfig
 from src.sandbox_executor import SandboxExecutor
@@ -51,8 +52,12 @@ class VanillaStrategy(StrategyBase):
         # Get LLM response (errors become a terminal model_error result)
         llm_response = None
         llm_error = None
+        budget_stop = None
         try:
             llm_response = self.generate(prompt)
+        except BudgetExhausted as e:
+            budget_stop = str(e)
+            self.logger.warning("llm_generation_stopped_on_budget", stop_reason=budget_stop)
         except Exception as e:
             llm_error = str(e)
             self.logger.error("llm_generation_failed", error=llm_error)
@@ -104,6 +109,9 @@ class VanillaStrategy(StrategyBase):
             llm_responses=[llm_response],
             execution_time_seconds=time.perf_counter() - started,
         )
+
+        if budget_stop is not None:
+            execution_result = self.mark_budget_exhausted(execution_result, budget_stop)
 
         self.logger.info(
             "vanilla_strategy_completed",

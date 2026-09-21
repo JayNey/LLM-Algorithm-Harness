@@ -412,6 +412,14 @@ class TokenUsage(BaseModel):
     prompt_tokens: int = Field(..., ge=0, description="Input tokens")
     completion_tokens: int = Field(..., ge=0, description="Output tokens")
     total_tokens: int = Field(..., ge=0, description="Total tokens")
+    reasoning_tokens: int = Field(
+        0,
+        ge=0,
+        description=(
+            "Reasoning tokens reported by the provider; already included in "
+            "the completion and total counts, tracked separately for budgets"
+        ),
+    )
 
     @property
     def cost_estimate_usd(self) -> float:

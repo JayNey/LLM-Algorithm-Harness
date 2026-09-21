@@ -51,14 +51,10 @@ class StrategyBase(ABC):
         # This lets the StrategyConfig defaults remain backwards compatible
         # while an omitted override still inherits the global LLMConfig.
         temperature = (
-            self.config.temperature
-            if "temperature" in self.config.model_fields_set
-            else None
+            self.config.temperature if "temperature" in self.config.model_fields_set else None
         )
         max_tokens = (
-            self.config.max_tokens
-            if "max_tokens" in self.config.model_fields_set
-            else None
+            self.config.max_tokens if "max_tokens" in self.config.model_fields_set else None
         )
         return self.llm_client.generate(
             prompt,
@@ -81,9 +77,7 @@ class StrategyBase(ABC):
         """
         pass
 
-    def extract_code(
-        self, llm_response: str, problem: Problem | None = None
-    ) -> Optional[str]:
+    def extract_code(self, llm_response: str, problem: Problem | None = None) -> Optional[str]:
         """
         Extract Python code from LLM response.
 
@@ -94,7 +88,7 @@ class StrategyBase(ABC):
             Extracted code or None if not found
         """
         # Look for code blocks with ```python or ```
-        pattern = r'```(?:python)?\s*\n(.*?)\n```'
+        pattern = r"```(?:python)?\s*\n(.*?)\n```"
         matches = re.findall(pattern, llm_response, re.DOTALL)
 
         code = None
@@ -118,14 +112,16 @@ class StrategyBase(ABC):
             self.logger.info("code_extracted_fallback", code_length=len(code))
         elif problem and problem.input_output_mode == "function":
             target = SandboxExecutor._entry_point_parts(problem.entry_point)
-            if target and target[1] and re.search(
-                rf"class\s+{re.escape(target[0])}\b", llm_response
+            if (
+                target
+                and target[1]
+                and re.search(rf"class\s+{re.escape(target[0])}\b", llm_response)
             ):
                 code = llm_response.strip()
                 self.logger.info("class_extracted_fallback", code_length=len(code))
         else:
             # Fallback: unclosed code block (response truncated mid-answer)
-            unclosed = re.search(r'```(?:python)?\s*\n(.*)', llm_response, re.DOTALL)
+            unclosed = re.search(r"```(?:python)?\s*\n(.*)", llm_response, re.DOTALL)
             if unclosed and unclosed.group(1).strip():
                 code = unclosed.group(1).strip()
                 self.logger.warning("code_extracted_unclosed_block", code_length=len(code))
@@ -150,11 +146,7 @@ class StrategyBase(ABC):
         """
         lines = code.split("\n")
         start = next(
-            (
-                i
-                for i, line in enumerate(lines)
-                if line.lstrip().startswith(f"def {entry_name}(")
-            ),
+            (i for i, line in enumerate(lines) if line.lstrip().startswith(f"def {entry_name}(")),
             None,
         )
         if start is None:
@@ -163,7 +155,11 @@ class StrategyBase(ABC):
         end = len(lines)
         for i in range(start + 1, len(lines)):
             stripped = lines[i].lstrip()
-            if stripped and not lines[i][0].isspace() and not stripped.startswith(("def ", "class ", "@")):
+            if (
+                stripped
+                and not lines[i][0].isspace()
+                and not stripped.startswith(("def ", "class ", "@"))
+            ):
                 end = i
                 break
 
@@ -255,9 +251,7 @@ Your response should include the code in a ```python code block.
             lines.append("")
 
         if len(problem.public_test_cases) > limit:
-            lines.append(
-                f"... and {len(problem.public_test_cases) - limit} more test cases"
-            )
+            lines.append(f"... and {len(problem.public_test_cases) - limit} more test cases")
 
         return "\n".join(lines)
 
@@ -303,6 +297,20 @@ Your response should include the code in a ```python code block.
             elapsed_seconds=max(elapsed_seconds, 0.0),
         )
 
+    def mark_budget_exhausted(
+        self, execution_result: ExecutionResult, reason: str
+    ) -> ExecutionResult:
+        """
+        Reclassify a result whose strategy stopped on the per-problem budget.
+
+        Budget stops are neither model nor system failures, so the record
+        keeps a terminal ``budget_exhausted`` status with no failure category.
+        """
+        execution_result.status = "budget_exhausted"
+        execution_result.failure_category = None
+        execution_result.error_message = reason
+        return execution_result
+
     def _derive_failure_category(
         self,
         iterations: list,
@@ -342,7 +350,8 @@ Your response should include the code in a ```python code block.
             }:
                 return "system_error"
             if any(
-                result.status in {
+                result.status
+                in {
                     "sandbox_error",
                     "backend_unavailable",
                     "timeout",
@@ -413,7 +422,9 @@ Your response should include the code in a ```python code block.
         total_completion_tokens = sum(it.completion_tokens for it in iterations)
 
         # Extract generated code from the last iteration
-        generated_code = iterations[-1].code_extracted if iterations and iterations[-1].code_extracted else ""
+        generated_code = (
+            iterations[-1].code_extracted if iterations and iterations[-1].code_extracted else ""
+        )
 
         # Determine status
         if success:

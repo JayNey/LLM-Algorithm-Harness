@@ -3,8 +3,9 @@ Main Harness - Coordinates evaluation workflow.
 """
 
 from pathlib import Path
-from typing import Any, Dict, List
+from typing import Any, Dict, List, Optional
 
+from src.budget import BudgetExhausted, BudgetTracker, BudgetedLLMClient
 from src.llm_client import LLMClient
 from src.models import (
     ExecutionResult,
@@ -37,14 +38,17 @@ class AlgorithmHarness:
         "multi_round_feedback": MultiRoundFeedbackStrategy,
     }
 
-    def __init__(self, config: HarnessConfig):
+    def __init__(self, config: HarnessConfig, budget_tracker: Optional[BudgetTracker] = None):
         """
         Initialize harness.
 
         Args:
             config: Harness configuration
+            budget_tracker: Optional per-problem budget tracker; when present,
+                every model call is gated through a budgeted client wrapper
         """
         self.config = config
+        self.budget_tracker = budget_tracker
         self.problem_loader = ProblemLoader()
         self.results: Dict[str, List[ExecutionResult]] = {}
         self.problem_totals: Dict[str, int] = {}
@@ -219,7 +223,38 @@ class AlgorithmHarness:
                 problem=problem.problem_id,
                 progress=f"{i+1}/{len(problems)}",
             )
-            results.append(self._execute_problem(strategy_config, problem, strategy, sandbox))
+            if self.budget_tracker is not None:
+                self.budget_tracker.begin_problem(problem.problem_id)
+            try:
+                results.append(
+                    self._execute_problem(strategy_config, problem, strategy, sandbox)
+                )
+            except BudgetExhausted as exc:
+                # Budget stop is not a model or system failure: record a
+                # terminal, category-free marker so the denominator stays
+                # intact and the experiment report can count it as unfinished.
+                redacted_reason = redact_sensitive_text(str(exc))
+                logger.warning(
+                    "problem_budget_exhausted",
+                    strategy=strategy_config.name,
+                    problem=problem.problem_id,
+                    stop_reason=redacted_reason,
+                )
+                results.append(
+                    ExecutionResult(
+                        problem_id=problem.problem_id,
+                        strategy=strategy_config.name,
+                        generated_code="",
+                        status="budget_exhausted",
+                        failure_category=None,
+                        difficulty=problem.difficulty,
+                        error_message=redacted_reason,
+                        formal_evaluable=problem.formal_evaluable,
+                    )
+                )
+            finally:
+                if self.budget_tracker is not None:
+                    self.budget_tracker.finalize_problem()
 
         # Generate report
         report = self._generate_report(strategy_config, results, problems)
@@ -237,6 +272,8 @@ class AlgorithmHarness:
         if not preflight_ok:
             raise RuntimeError(f"Sandbox preflight failed: {preflight_detail}")
         llm_client = LLMClient(self.config.llm_config)
+        if self.budget_tracker is not None:
+            llm_client = BudgetedLLMClient(llm_client, self.budget_tracker)
         strategy_class = self.STRATEGY_MAP.get(strategy_config.name)
         if not strategy_class:
             raise ValueError(f"Unknown strategy: {strategy_config.name}")

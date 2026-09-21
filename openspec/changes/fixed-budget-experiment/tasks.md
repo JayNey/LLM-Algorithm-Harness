@@ -10,12 +10,12 @@
 
 ## Task 2: 预算控制 BudgetTracker
 
-**文件**: `src/experiment.py`, `src/harness.py`
+**文件**: `src/budget.py`（预算原语独立模块，避免 runner ↔ harness 循环导入）, `src/harness.py`, `src/strategies/*.py`
 
-- [ ] 实现 `BudgetTracker`：每题调用数 / token（含推理 token）/ 耗时结算与 `can_call()` 判断
-- [ ] Harness 模型调用前挂预算检查；耗尽时停止该题并记录停止原因与实际消耗
-- [ ] 无 usage 响应 + 硬 token 预算 → 组合标记 `token_budget_unsupported`
-- [ ] 单元测试：三类预算各自触发停止；无 usage 标注
+- [x] 实现 `BudgetTracker`：每题调用数 / token（含推理 token）/ 耗时结算与 `allow_call()` 判断；`BudgetedLLMClient` 包装调用入口
+- [x] Harness 模型调用前挂预算检查；耗尽时停止该题并记录停止原因与实际消耗（`budget_exhausted` 终态、不占用失败分类）
+- [x] 无 usage 响应 + 硬 token 预算 → 组合标记 `token_budget_unsupported`
+- [x] 单元测试：三类预算各自触发停止；无 usage 标注
 
 ## Task 3: 实验编排与可复现元数据
 

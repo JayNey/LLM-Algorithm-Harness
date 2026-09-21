@@ -5,6 +5,7 @@ Multi-Round Feedback strategy - Iterative refinement with test feedback.
 import time
 from typing import Optional
 
+from src.budget import BudgetExhausted
 from src.llm_client import LLMClient
 from src.models import ExecutionResult, Problem, SandboxResult, StrategyConfig
 from src.sandbox_executor import SandboxExecutor
@@ -53,6 +54,7 @@ class MultiRoundFeedbackStrategy(StrategyBase):
         llm_responses = []
         final_result = None
         success = False
+        budget_stop = None
 
         # Initial prompt
         prompt = self.build_base_prompt(problem)
@@ -66,11 +68,17 @@ class MultiRoundFeedbackStrategy(StrategyBase):
             llm_error = None
             try:
                 llm_response = self.generate(prompt)
+            except BudgetExhausted as e:
+                # The refused call never happened: stop with the completed
+                # rounds only and let the result carry the budget marker.
+                budget_stop = str(e)
+                self.logger.warning(
+                    "llm_generation_stopped_on_budget", iteration=iteration, stop_reason=budget_stop
+                )
+                break
             except Exception as e:
                 llm_error = str(e)
-                self.logger.error(
-                    "llm_generation_failed", iteration=iteration, error=llm_error
-                )
+                self.logger.error("llm_generation_failed", iteration=iteration, error=llm_error)
             llm_responses.append(llm_response)
 
             code = None
@@ -83,13 +91,9 @@ class MultiRoundFeedbackStrategy(StrategyBase):
                 if code:
                     try:
                         if problem.public_test_cases:
-                            sandbox_result = self.sandbox.execute(
-                                code, problem, stage="public"
-                            )
+                            sandbox_result = self.sandbox.execute(code, problem, stage="public")
                         if problem.feedback_test_cases:
-                            feedback_result = self.sandbox.execute(
-                                code, problem, stage="feedback"
-                            )
+                            feedback_result = self.sandbox.execute(code, problem, stage="feedback")
                             sandbox_result = (
                                 feedback_result
                                 if sandbox_result is None
@@ -100,9 +104,7 @@ class MultiRoundFeedbackStrategy(StrategyBase):
                             success = True
                     except Exception as e:
                         sandbox_error = str(e)
-                        self.logger.error(
-                            "sandbox_execution_failed", error=sandbox_error
-                        )
+                        self.logger.error("sandbox_execution_failed", error=sandbox_error)
 
             iteration_result = self.create_iteration_result(
                 iteration=iteration,
@@ -118,9 +120,7 @@ class MultiRoundFeedbackStrategy(StrategyBase):
 
             # A model failure is terminal: keep completed rounds and return
             if llm_error is not None:
-                self.logger.error(
-                    "multi_round_aborted_on_model_error", iteration=iteration
-                )
+                self.logger.error("multi_round_aborted_on_model_error", iteration=iteration)
                 break
 
             # Keep the last valid execution regardless of pass/fail so that
@@ -136,9 +136,7 @@ class MultiRoundFeedbackStrategy(StrategyBase):
 
             # Prepare feedback for next iteration
             if iteration < self.config.max_iterations:
-                prompt = self.build_feedback_prompt(
-                    problem, code, sandbox_result, iteration
-                )
+                prompt = self.build_feedback_prompt(problem, code, sandbox_result, iteration)
 
         # Create execution result
         execution_result = self.create_execution_result(
@@ -150,6 +148,9 @@ class MultiRoundFeedbackStrategy(StrategyBase):
             execution_time_seconds=time.perf_counter() - started,
         )
 
+        if budget_stop is not None:
+            execution_result = self.mark_budget_exhausted(execution_result, budget_stop)
+
         self.logger.info(
             "multi_round_strategy_completed",
             problem_id=problem.problem_id,
@@ -160,9 +161,7 @@ class MultiRoundFeedbackStrategy(StrategyBase):
         return execution_result
 
     @staticmethod
-    def _merge_sandbox_results(
-        primary: SandboxResult, feedback: SandboxResult
-    ) -> SandboxResult:
+    def _merge_sandbox_results(primary: SandboxResult, feedback: SandboxResult) -> SandboxResult:
         """Combine public and feedback results without involving hidden tests."""
         status = "success" if primary.all_passed and feedback.all_passed else "failed"
         resource_statuses = {
