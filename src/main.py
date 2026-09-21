@@ -144,7 +144,7 @@ def print_report(reports: dict):
         print()
 
 
-def create_run_dir(output_dir: str) -> Path:
+def create_run_dir(output_dir: str, run_id: str | None = None) -> Path:
     """
     Create a timestamped directory for this run's results.
 
@@ -154,7 +154,7 @@ def create_run_dir(output_dir: str) -> Path:
     Returns:
         Path to the created run directory
     """
-    run_id = datetime.now().strftime("run-%Y%m%d-%H%M%S")
+    run_id = run_id or datetime.now().strftime("run-%Y%m%d-%H%M%S")
     run_path = Path(output_dir) / run_id
     run_path.mkdir(parents=True, exist_ok=True)
     return run_path
@@ -179,7 +179,10 @@ def save_results(reports: dict, output_dir: str, harness: AlgorithmHarness,
         harness: Harness instance with results
         config: Harness config used for this run (api_key is redacted)
     """
-    run_path = create_run_dir(output_dir)
+    task_run_id = getattr(getattr(harness, "task_record", None), "run_id", None)
+    if not isinstance(task_run_id, str):
+        task_run_id = None
+    run_path = create_run_dir(output_dir, task_run_id)
 
     # Save run metadata: what model/dataset/config produced these results
     config_dict = config.redacted_dump()
@@ -199,6 +202,15 @@ def save_results(reports: dict, output_dir: str, harness: AlgorithmHarness,
         },
         "config": config_dict,
     }
+    task_record = getattr(harness, "task_record", None)
+    if isinstance(task_run_id, str) and task_record is not None:
+        metadata["task"] = {
+            "state": task_record.state,
+            "total_units": task_record.total_units,
+            "completed_units": task_record.completed_units,
+            "config_fingerprint": task_record.config_fingerprint,
+            "dataset_fingerprint": task_record.dataset_fingerprint,
+        }
     metadata_file = run_path / "metadata.json"
     with open(metadata_file, 'w') as f:
         json.dump(metadata, f, indent=2)
@@ -429,6 +441,15 @@ def main():
         type=positive_int,
         help="Limit number of problems to evaluate; must be positive (overrides config)",
     )
+    run_parser.add_argument(
+        "--run-id",
+        help="Use a stable task run ID for persistence or resumption",
+    )
+    run_parser.add_argument(
+        "--resume",
+        action="store_true",
+        help="Resume an existing task; requires --run-id and matching config/dataset fingerprints",
+    )
 
     # Import command
     run_parser.add_argument(
@@ -595,7 +616,7 @@ def main():
             # Initialize and run harness
             logger.info("harness_starting")
             harness = AlgorithmHarness(config)
-            reports = harness.run()
+            reports = harness.run(use_task_service=True, run_id=args.run_id, resume=args.resume)
 
             # Print and save results
             print_report(reports)
