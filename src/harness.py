@@ -64,6 +64,10 @@ class AlgorithmHarness:
         Returns:
             Dict mapping strategy name to StrategyReport
         """
+        if not self.config.strategies:
+            raise ValueError(
+                "No strategies configured; add at least one strategy to the config"
+            )
         if use_task_service:
             return self._run_with_task_service(run_id=run_id, resume=resume)
 

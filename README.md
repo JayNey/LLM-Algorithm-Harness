@@ -327,6 +327,26 @@ pytest tests/test_models.py -v
 pytest --cov=src tests/
 ```
 
+### 离线端到端回归与真实 API 验证的区分
+
+| 类型 | 位置 | 网络请求 | 运行方式 |
+|------|------|---------|---------|
+| 离线端到端回归（替身） | `tests/test_offline_e2e.py` | 无（固定响应模型替身 + host 沙箱） | 默认 `pytest` 即运行 |
+| 在线真实验证 | `tests/test_online_verification.py` | 是（硅基流动真实调用） | 标记 `online`，无凭证自动跳过 |
+
+- **替身测试**证明链路与断言正确，**不构成**真实 API 验证；真实凭证验证记录提供商、模型 ID 与日期。
+- 在线验证默认跳过；设置 `SILICONFLOW_API_KEY` 后运行 `pytest tests/test_online_verification.py -s` 即可执行并输出验证记录（模型 ID + 日期）。
+- 默认 CI 不向外部模型服务发起请求；online 用例的跳过状态在输出中可见。
+
+### 故障排查
+
+| 现象 | 原因与处理 |
+|------|-----------|
+| `Sandbox preflight failed: Docker sandbox backend unavailable...` | 沙箱预检失败（评测在任何 API 调用前中止）。启动 Docker Desktop 并确认镜像存在后重跑 |
+| `Unknown model '...' - using default pricing` | `pricing.json` 未收录该模型，成本按默认单价估算；可按 `pricing.example.json` 格式补充真实单价 |
+| `Model listing failed: ...` | 模型列表接口失败（401 为鉴权问题）；可手动在配置中填写完整模型 ID 继续评测 |
+| 全部题目 `system_error: backend_unavailable` | Docker 在运行中途掉线；启动 Docker 后重跑（评测开始前有预检，此情况仅发生在运行中途） |
+
 ## 输出结果
 
 运行完成后，结果保存在 `results/` 目录：
