@@ -312,3 +312,17 @@ def test_markdown_failed_cases_include_failure_category(temp_md_path: str):
     content = Path(temp_md_path).read_text()
     assert "(wrong_answer)" in content
     assert "Output mismatch" in content
+
+
+def test_generate_shows_unknown_cost_for_unknown_pricing(temp_md_path: str, sample_metrics: Dict, sample_results: Dict):
+    """Unknown pricing renders 未知 instead of a $0-style figure (issue #15)."""
+    metrics = dict(sample_metrics)
+    metrics["direct"] = {
+        **metrics["direct"],
+        "estimated_cost_usd": 0.0,
+        "pricing_metadata": {"unknown_usage": True, "has_actual_pricing": True},
+    }
+
+    content = MarkdownGenerator.generate(metrics, sample_results, temp_md_path)
+
+    assert "未知" in content

@@ -763,3 +763,28 @@ def test_cli_experiment_output_dir_override(tmp_path):
 
     assert exit_code == 0
     assert list((tmp_path / "override").glob("exp-*"))
+
+
+def test_time_budget_stops_problem(tmp_path):
+    """A per-problem max_seconds budget refuses calls once elapsed."""
+    tracker = BudgetTracker(ProblemBudget(max_seconds=0.05))
+    tracker.begin_problem("p1")
+    import time as _time
+
+    _time.sleep(0.06)
+    assert tracker.allow_call() is False
+    assert tracker.stop_reason() == "budget_exhausted: max_seconds"
+
+
+def test_runner_rerun_creates_new_directory(tmp_path):
+    """The same config reruns into a fresh directory without overwriting."""
+    dataset = _runner_dataset(tmp_path)
+    config = _runner_config(tmp_path, dataset, repeats=1)
+
+    with patch("src.harness.LLMClient", side_effect=_correct_factory()):
+        first = ExperimentRunner(config, pricing_file="nonexistent.json").run()
+        second = ExperimentRunner(config, pricing_file="nonexistent.json").run()
+
+    assert first != second
+    assert first.exists() and second.exists()
+    assert list((tmp_path / "experiments").glob("exp-*")) == [first, second]
