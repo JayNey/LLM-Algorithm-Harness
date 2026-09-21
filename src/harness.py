@@ -434,6 +434,7 @@ class AlgorithmHarness:
             "models_used": {},
             "has_actual_pricing": False,
             "unknown_usage": False,
+            "unknown_pricing": False,
         }
 
         for result in results:
@@ -455,6 +456,9 @@ class AlgorithmHarness:
                         else:
                             total_cost += trace_cost
 
+                        if pm.get("pricing_known") is False or pm.get("source") == "unknown":
+                            pricing_metadata["unknown_pricing"] = True
+
                         # Track model usage
                         model = pm.get("model", "unknown")
                         if model not in pricing_metadata["models_used"]:
@@ -463,6 +467,8 @@ class AlgorithmHarness:
                                 "completion_tokens": 0,
                                 "total_cost": 0.0,
                                 "unknown_usage": False,
+                                "pricing_known": pm.get("pricing_known", True),
+                                "as_of": pm.get("as_of"),
                                 "prompt_price_per_1k": pm.get("prompt_price_per_1k"),
                                 "completion_price_per_1k": pm.get("completion_price_per_1k"),
                             }
@@ -478,10 +484,11 @@ class AlgorithmHarness:
                         # as a free call, even when token counts are present.
                         pricing_metadata["unknown_usage"] = True
             else:
-                # Fallback: use token counts without pricing
+                # Token counts without pricing cannot be converted honestly;
+                # leave the cost untouched and flag it as unknown instead of
+                # applying a fabricated per-token default (issue #15).
                 pricing_metadata["total_tokens"] += result.total_tokens
-                # Approximate: $0.002 per 1K tokens (fallback default)
-                total_cost += result.total_tokens * (0.002 / 1000)
+                pricing_metadata["unknown_usage"] = True
 
         pricing_metadata["total_cost"] = total_cost
 

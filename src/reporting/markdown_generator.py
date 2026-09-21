@@ -19,7 +19,7 @@ class MarkdownGenerator:
     @staticmethod
     def _escape_markdown(text: str) -> str:
         """Escape special Markdown characters."""
-        special_chars = ['*', '_', '|', '`', '[', ']']
+        special_chars = ["*", "_", "|", "`", "[", "]"]
         for char in special_chars:
             text = text.replace(char, f"\\{char}")
         return text
@@ -29,7 +29,7 @@ class MarkdownGenerator:
         metrics: Dict[str, Dict],
         results: Dict[str, List[ExecutionResult]],
         output_path: str,
-        config: Dict = None
+        config: Dict = None,
     ) -> str:
         """
         Generate Markdown evaluation report.
@@ -68,29 +68,36 @@ class MarkdownGenerator:
         # Overall metrics table
         lines.append("## Strategy Performance Summary")
         lines.append("")
-        lines.append("| Strategy | Success Rate | Solved | Total | Avg Tokens | Avg Time (s) | Est. Cost (USD) |")
-        lines.append("|----------|-------------:|-------:|------:|-----------:|-------------:|----------------:|")
+        lines.append(
+            "| Strategy | Success Rate | Solved | Total | Avg Tokens | Avg Time (s) | Est. Cost (USD) |"
+        )
+        lines.append(
+            "|----------|-------------:|-------:|------:|-----------:|-------------:|----------------:|"
+        )
 
         # Sort strategies by success rate
         sorted_strategies = sorted(
-            metrics.items(),
-            key=lambda x: x[1].get('success_rate', 0),
-            reverse=True
+            metrics.items(), key=lambda x: x[1].get("success_rate", 0), reverse=True
         )
 
         for strategy_name, strategy_metrics in sorted_strategies:
-            success_rate = strategy_metrics.get('success_rate', 0) * 100
-            solved = strategy_metrics.get('solved_problems', 0)
-            total = strategy_metrics.get('total_problems', 0)
-            avg_tokens = strategy_metrics.get('avg_tokens_per_problem', 0)
-            avg_time = strategy_metrics.get('avg_time_per_problem', 0)
-            estimated_cost = strategy_metrics.get('estimated_cost_usd', 0)
+            success_rate = strategy_metrics.get("success_rate", 0) * 100
+            solved = strategy_metrics.get("solved_problems", 0)
+            total = strategy_metrics.get("total_problems", 0)
+            avg_tokens = strategy_metrics.get("avg_tokens_per_problem", 0)
+            avg_time = strategy_metrics.get("avg_time_per_problem", 0)
+            estimated_cost = strategy_metrics.get("estimated_cost_usd", 0)
+            cost_pricing = strategy_metrics.get("pricing_metadata") or {}
+            if cost_pricing.get("unknown_usage") or cost_pricing.get("unknown_pricing"):
+                cost_display = "未知"
+            else:
+                cost_display = f"${estimated_cost:.4f}"
 
             marker = " ⭐" if strategy_name == sorted_strategies[0][0] else ""
             lines.append(
                 f"| {MarkdownGenerator._escape_markdown(strategy_name)}{marker} | "
                 f"{success_rate:.1f}% | {solved} | {total} | "
-                f"{avg_tokens:.0f} | {avg_time:.2f} | ${estimated_cost:.4f} |"
+                f"{avg_tokens:.0f} | {avg_time:.2f} | {cost_display} |"
             )
 
         lines.append("")
@@ -100,18 +107,23 @@ class MarkdownGenerator:
         lines.append("")
 
         for strategy_name, strategy_metrics in sorted_strategies:
-            pricing_metadata = strategy_metrics.get('pricing_metadata')
+            pricing_metadata = strategy_metrics.get("pricing_metadata")
 
             if pricing_metadata:
-                has_actual_pricing = pricing_metadata.get('has_actual_pricing', False)
-                if has_actual_pricing:
+                has_actual_pricing = pricing_metadata.get("has_actual_pricing", False)
+                unknown_cost = pricing_metadata.get("unknown_usage", False) or pricing_metadata.get(
+                    "unknown_pricing", False
+                )
+                if has_actual_pricing and not unknown_cost:
                     pricing_source = "自定义配置/内置定价"
+                elif has_actual_pricing:
+                    pricing_source = "部分未知（定价或用量缺失，成本不可信）"
                 else:
-                    pricing_source = "默认值"
+                    pricing_source = "未知（模型定价未配置）"
                     logger.warning(
                         "pricing_metadata_missing_for_strategy strategy=%s: %s",
                         strategy_name,
-                        "Using fallback pricing for historical report",
+                        "No configured pricing; cost reported as unknown",
                     )
             else:
                 logger.warning(
@@ -121,7 +133,9 @@ class MarkdownGenerator:
                 )
                 pricing_source = "当前配置（历史数据不可用）"
 
-            lines.append(f"**{MarkdownGenerator._escape_markdown(strategy_name)}:** {pricing_source}")
+            lines.append(
+                f"**{MarkdownGenerator._escape_markdown(strategy_name)}:** {pricing_source}"
+            )
 
         lines.append("")
 
@@ -156,7 +170,7 @@ class MarkdownGenerator:
         lines.append("")
 
         for strategy_name, strategy_metrics in sorted_strategies:
-            by_difficulty = strategy_metrics.get('by_difficulty', {})
+            by_difficulty = strategy_metrics.get("by_difficulty", {})
             if not by_difficulty:
                 continue
 
@@ -165,13 +179,15 @@ class MarkdownGenerator:
             lines.append("| Difficulty | Success Rate | Solved | Total |")
             lines.append("|------------|-------------:|-------:|------:|")
 
-            for difficulty in ['easy', 'medium', 'hard']:
+            for difficulty in ["easy", "medium", "hard"]:
                 if difficulty in by_difficulty:
                     diff_data = by_difficulty[difficulty]
-                    rate = diff_data.get('success_rate', 0) * 100
-                    solved = diff_data.get('solved', 0)
-                    total = diff_data.get('total', 0)
-                    lines.append(f"| {difficulty.capitalize()} | {rate:.1f}% | {solved} | {total} |")
+                    rate = diff_data.get("success_rate", 0) * 100
+                    solved = diff_data.get("solved", 0)
+                    total = diff_data.get("total", 0)
+                    lines.append(
+                        f"| {difficulty.capitalize()} | {rate:.1f}% | {solved} | {total} |"
+                    )
 
             lines.append("")
 
@@ -195,9 +211,7 @@ class MarkdownGenerator:
                 for result in failed[:shown_count]:
                     error_msg = result.error_message or "Unknown error"
                     category = result.failure_category or "unknown"
-                    lines.append(
-                        f"- **{result.problem_id}** ({category}): {error_msg}"
-                    )
+                    lines.append(f"- **{result.problem_id}** ({category}): {error_msg}")
 
                 if len(failed) > 10:
                     lines.append(f"- ... and {len(failed) - 10} more")
@@ -213,6 +227,6 @@ class MarkdownGenerator:
         # Save to file
         output_path_obj = Path(output_path)
         output_path_obj.parent.mkdir(parents=True, exist_ok=True)
-        output_path_obj.write_text(markdown_content, encoding='utf-8')
+        output_path_obj.write_text(markdown_content, encoding="utf-8")
 
         return markdown_content

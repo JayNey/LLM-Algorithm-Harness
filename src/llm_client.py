@@ -425,12 +425,14 @@ class LLMClient:
         message = self._field(choice, "message") if choice is not None else None
         usage_metadata = {
             "usage_known": not usage_missing,
+            "pricing_known": pricing_info.pricing_known,
+            "as_of": pricing_info.as_of,
             "total_cost": (
                 (
                     token_usage.prompt_tokens * pricing_info.prompt_price / 1000
                     + token_usage.completion_tokens * pricing_info.completion_price / 1000
                 )
-                if not usage_missing
+                if not usage_missing and pricing_info.pricing_known
                 else None
             ),
         }
@@ -504,12 +506,14 @@ class LLMClient:
                 "prompt_price_per_1k": pricing_info.prompt_price,
                 "completion_price_per_1k": pricing_info.completion_price,
                 "source": pricing_info.source,
+                "as_of": pricing_info.as_of,
+                "pricing_known": pricing_info.pricing_known,
                 "total_cost": (
                     (
                         token_usage.prompt_tokens * pricing_info.prompt_price / 1000
                         + token_usage.completion_tokens * pricing_info.completion_price / 1000
                     )
-                    if not usage_missing
+                    if not usage_missing and pricing_info.pricing_known
                     else None
                 ),
                 "usage_known": not usage_missing,
@@ -555,7 +559,7 @@ class LLMClient:
             raw_reasoning = (
                 LLMClient._field(details, "reasoning_tokens") if details is not None else None
             )
-            if raw_reasoning is not None:
+            if isinstance(raw_reasoning, (int, float)) and not isinstance(raw_reasoning, bool):
                 reasoning_int = max(int(raw_reasoning), 0)
             return (
                 TokenUsage(
@@ -639,7 +643,7 @@ class LLMClient:
         result["model_count"] = len(models)
         return result
 
-    def estimate_cost(self, usage: TokenUsage) -> float:
+    def estimate_cost(self, usage: TokenUsage) -> Optional[float]:
         """
         Estimate API call cost.
 
@@ -647,16 +651,18 @@ class LLMClient:
             usage: Token usage
 
         Returns:
-            Estimated cost in USD
+            Estimated cost in USD, or None when the model has no configured
+            pricing (unknown pricing is never converted with defaults)
         """
         pricing_info = self.pricing_manager.get_pricing(self.config.model)
 
-        if pricing_info.source == "default":
+        if not pricing_info.pricing_known:
             logger.warning(
                 "unknown_model_pricing",
                 model=self.config.model,
-                using_default_pricing=f"${pricing_info.prompt_price}/{pricing_info.completion_price} per 1K tokens",
+                detail="no pricing configured; cost reported as unknown",
             )
+            return None
 
         cost = (
             usage.prompt_tokens * pricing_info.prompt_price / 1000

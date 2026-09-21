@@ -140,7 +140,11 @@ def print_report(reports: dict):
         print(f"  Sample-only Problems: {report.sample_only_problems}")
         print(f"  Avg Attempts: {report.avg_attempts_per_problem:.2f}")
         print(f"  Avg Tokens: {report.avg_tokens_per_problem:.0f}")
-        print(f"  Estimated Cost: ${report.estimated_cost_usd:.4f}")
+        cost_pricing = report.pricing_metadata or {}
+        if cost_pricing.get("unknown_usage") or cost_pricing.get("unknown_pricing"):
+            print("  Estimated Cost: 未知")
+        else:
+            print(f"  Estimated Cost: ${report.estimated_cost_usd:.4f}")
         print()
 
 
@@ -160,8 +164,7 @@ def create_run_dir(output_dir: str, run_id: str | None = None) -> Path:
     return run_path
 
 
-def save_results(reports: dict, output_dir: str, harness: AlgorithmHarness,
-                 config: HarnessConfig):
+def save_results(reports: dict, output_dir: str, harness: AlgorithmHarness, config: HarnessConfig):
     """
     Save results to a timestamped run directory.
 
@@ -212,7 +215,7 @@ def save_results(reports: dict, output_dir: str, harness: AlgorithmHarness,
             "dataset_fingerprint": task_record.dataset_fingerprint,
         }
     metadata_file = run_path / "metadata.json"
-    with open(metadata_file, 'w') as f:
+    with open(metadata_file, "w") as f:
         json.dump(metadata, f, indent=2)
     logger.info("metadata_saved", path=str(metadata_file))
 
@@ -222,7 +225,7 @@ def save_results(reports: dict, output_dir: str, harness: AlgorithmHarness,
     )
 
     summary_file = run_path / "summary.json"
-    with open(summary_file, 'w') as f:
+    with open(summary_file, "w") as f:
         json.dump(summary, f, indent=2)
 
     logger.info("summary_saved", path=str(summary_file))
@@ -239,7 +242,7 @@ def save_results(reports: dict, output_dir: str, harness: AlgorithmHarness,
 
     # Update the latest-run pointer for tooling
     latest_file = Path(output_dir) / "latest.json"
-    with open(latest_file, 'w') as f:
+    with open(latest_file, "w") as f:
         json.dump({"latest_run": run_path.name}, f, indent=2)
 
     print(f"\nResults saved to: {run_path}")
@@ -271,7 +274,10 @@ def run_import_command(args: argparse.Namespace) -> int:
     }
 
     if args.source not in IMPORTERS:
-        print(f"Error: --source is required. Supported types: {', '.join(IMPORTERS.keys())}", file=sys.stderr)
+        print(
+            f"Error: --source is required. Supported types: {', '.join(IMPORTERS.keys())}",
+            file=sys.stderr,
+        )
         return 2
 
     try:
@@ -338,7 +344,9 @@ def run_import_command(args: argparse.Namespace) -> int:
             "  Needs manual completion: "
             f"{sum(problem.needs_manual_completion for problem in result.successful)}"
         )
-        print(f"  New problems to import: {len([p for p in valid_problems if p.problem_id not in skipped_ids and p.problem_id not in overwritten_ids])}")
+        print(
+            f"  New problems to import: {len([p for p in valid_problems if p.problem_id not in skipped_ids and p.problem_id not in overwritten_ids])}"
+        )
         print()
 
         # Show failed items
@@ -353,7 +361,7 @@ def run_import_command(args: argparse.Namespace) -> int:
         # Confirmation (unless preview or force)
         if not args.preview and not args.force:
             response = input(f"Proceed with import? (y/N): ")
-            if response.lower() != 'y':
+            if response.lower() != "y":
                 print("Import cancelled.")
                 return 0
 

@@ -285,7 +285,7 @@ def test_estimate_cost_claude_haiku(anthropic_config):
 
 
 def test_estimate_cost_unknown_model():
-    """Test estimating cost for unknown model returns 0."""
+    """Unknown model pricing returns None instead of a fabricated estimate."""
     config = LLMConfig(
         provider="openai",
         api_key="test-key",
@@ -302,9 +302,7 @@ def test_estimate_cost_unknown_model():
         )
 
         cost = client.estimate_cost(usage)
-        # With new PricingManager, unknown models use default pricing ($0.002/1k for both)
-        expected_cost = (1000 * 0.002 / 1000) + (500 * 0.002 / 1000)
-        assert cost == expected_cost
+        assert cost is None
 
 
 def test_openai_api_key_from_env():
@@ -401,9 +399,7 @@ def test_provider_error_uses_key_from_initialization_after_environment_changes(c
         with patch.dict(os.environ, {"ISSUE4_EPHEMERAL_KEY": secret}, clear=True):
             client = LLMClient(config)
 
-        mock_client.chat.completions.create.side_effect = Exception(
-            f"provider echoed {secret}"
-        )
+        mock_client.chat.completions.create.side_effect = Exception(f"provider echoed {secret}")
         with patch.dict(os.environ, {}, clear=True):
             with pytest.raises(RuntimeError) as exc_info:
                 client.generate("Test prompt")
@@ -588,7 +584,13 @@ def test_strategy_overrides_are_sent_to_openai_request(openai_config):
     assert request["messages"][0] == {"role": "system", "content": "strategy system"}
     assert request["top_p"] == 0.8
     assert request["extra_body"] == {"foo": "bar"}
-    assert result.effective_params == {"temperature": 0.1, "max_tokens": 321, "top_p": 0.8, "extra_body": {"foo": "bar"}, "timeout": 30}
+    assert result.effective_params == {
+        "temperature": 0.1,
+        "max_tokens": 321,
+        "top_p": 0.8,
+        "extra_body": {"foo": "bar"},
+        "timeout": 30,
+    }
 
 
 def test_openai_content_blocks_and_reasoning_are_normalized(openai_config):
@@ -661,6 +663,7 @@ def test_retryable_provider_error_is_bounded(openai_config):
 
 def test_authentication_error_is_not_retried(openai_config):
     """401 errors fail immediately instead of multiplying invalid requests."""
+
     class UnauthorizedError(Exception):
         status_code = 401
 

@@ -304,3 +304,54 @@ def test_unbudgeted_harness_keeps_baseline_behavior(tmp_path):
     record = harness.get_results("multi_round_feedback")[0]
     assert record.status == "failed"
     assert record.failure_category == "wrong_answer"
+
+
+def test_estimate_cost_marks_unknown_pricing(tmp_path):
+    """Unknown pricing keeps cost at zero value with explicit unknown flags."""
+    from src.models import ExecutionResult
+
+    harness, _ = _budget_harness(tmp_path, tmp_path / "unused.json", None)
+    result = ExecutionResult(
+        problem_id="p",
+        strategy="vanilla",
+        generated_code="",
+        status="success",
+        llm_traces=[
+            {
+                "prompt_tokens": 10,
+                "completion_tokens": 5,
+                "total_tokens": 15,
+                "pricing_metadata": {
+                    "model": "mystery-model",
+                    "prompt_price_per_1k": None,
+                    "completion_price_per_1k": None,
+                    "source": "unknown",
+                    "pricing_known": False,
+                    "total_cost": None,
+                    "usage_known": True,
+                },
+            }
+        ],
+    )
+    total, meta = harness._estimate_cost([result])
+    assert total == 0.0
+    assert meta["unknown_pricing"] is True
+    assert meta["unknown_usage"] is True
+
+
+def test_estimate_cost_no_traces_is_unknown_not_fabricated(tmp_path):
+    """Traces-less results no longer get the GPT-3.5-style fabricated cost."""
+    from src.models import ExecutionResult
+
+    harness, _ = _budget_harness(tmp_path, tmp_path / "unused.json", None)
+    result = ExecutionResult(
+        problem_id="p",
+        strategy="vanilla",
+        generated_code="",
+        status="success",
+        total_tokens=1000,
+    )
+    total, meta = harness._estimate_cost([result])
+    assert total == 0.0
+    assert meta["total_tokens"] == 1000
+    assert meta["unknown_usage"] is True

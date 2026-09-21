@@ -2,17 +2,20 @@
 Model pricing management for LLM cost estimation.
 
 This module provides centralized pricing configuration for LLM models,
-supporting custom pricing files, built-in defaults, and fallback strategies.
+supporting custom pricing files and built-in pricing. Models without any
+configurable pricing are marked "unknown" instead of being converted with a
+fabricated default, so reports never show a confident $0-style estimate for
+an unpriced model (issue #15).
 """
 
 import json
 import logging
 from pathlib import Path
-from typing import Any, Dict, Literal, Optional, Tuple
+from typing import Any, Dict, Literal, Optional
 
 logger = logging.getLogger(__name__)
 
-PricingSource = Literal["custom", "builtin", "default"]
+PricingSource = Literal["custom", "builtin", "unknown"]
 
 
 class PricingInfo:
@@ -21,14 +24,21 @@ class PricingInfo:
     def __init__(
         self,
         model: str,
-        prompt_price: float,
-        completion_price: float,
-        source: PricingSource
+        prompt_price: Optional[float],
+        completion_price: Optional[float],
+        source: PricingSource,
+        as_of: Optional[str] = None,
     ):
         self.model = model
         self.prompt_price = prompt_price
         self.completion_price = completion_price
         self.source = source
+        self.as_of = as_of
+
+    @property
+    def pricing_known(self) -> bool:
+        """Whether both unit prices are actually configured."""
+        return self.prompt_price is not None and self.completion_price is not None
 
     def to_dict(self) -> Dict[str, Any]:
         """Convert to dictionary format for serialization."""
@@ -36,7 +46,9 @@ class PricingInfo:
             "model": self.model,
             "prompt_price_per_1k": self.prompt_price,
             "completion_price_per_1k": self.completion_price,
-            "source": self.source
+            "source": self.source,
+            "as_of": self.as_of,
+            "pricing_known": self.pricing_known,
         }
 
 
@@ -56,10 +68,6 @@ class PricingManager:
         "claude-3-5-haiku": {"prompt": 0.001, "completion": 0.005},
     }
 
-    # Default pricing for unknown models
-    DEFAULT_PROMPT_PRICE = 0.002
-    DEFAULT_COMPLETION_PRICE = 0.002
-
     def __init__(self, pricing_file: Optional[str] = None):
         """
         Initialize PricingManager.
@@ -68,7 +76,7 @@ class PricingManager:
             pricing_file: Path to custom pricing JSON file. If None, looks for
                          'pricing.json' in the current directory.
         """
-        self.custom_pricing: Dict[str, Dict[str, float]] = {}
+        self.custom_pricing: Dict[str, Dict[str, Any]] = {}
         self.pricing_file = pricing_file or "pricing.json"
         self._load_custom_pricing()
 
@@ -81,7 +89,7 @@ class PricingManager:
             return
 
         try:
-            with open(pricing_path, 'r', encoding='utf-8') as f:
+            with open(pricing_path, "r", encoding="utf-8") as f:
                 data = json.load(f)
 
             if "models" not in data:
@@ -90,7 +98,18 @@ class PricingManager:
                 )
                 return
 
-            self.custom_pricing = data["models"]
+            normalized: Dict[str, Dict[str, Any]] = {}
+            for model_key, raw in data["models"].items():
+                entry = self._normalize_entry(raw)
+                if entry is None:
+                    logger.warning(
+                        f"Skipping pricing entry '{model_key}' in {self.pricing_file}: "
+                        "missing prompt/completion prices"
+                    )
+                    continue
+                normalized[model_key] = entry
+
+            self.custom_pricing = normalized
             logger.info(
                 f"Loaded custom pricing for {len(self.custom_pricing)} models from {self.pricing_file}"
             )
@@ -106,6 +125,21 @@ class PricingManager:
                 "Falling back to built-in pricing."
             )
 
+    @staticmethod
+    def _normalize_entry(raw: Any) -> Optional[Dict[str, Any]]:
+        """Accept both short and long price keys plus an optional as_of date."""
+        if not isinstance(raw, dict):
+            return None
+        prompt = raw.get("prompt", raw.get("prompt_price_per_1k"))
+        completion = raw.get("completion", raw.get("completion_price_per_1k"))
+        if not isinstance(prompt, (int, float)) or not isinstance(completion, (int, float)):
+            return None
+        as_of = raw.get("as_of")
+        entry: Dict[str, Any] = {"prompt": prompt, "completion": completion}
+        if isinstance(as_of, str) and as_of.strip():
+            entry["as_of"] = as_of.strip()
+        return entry
+
     def get_pricing(self, model: str) -> PricingInfo:
         """
         Get pricing information for a model.
@@ -115,70 +149,51 @@ class PricingManager:
         2. Custom pricing (prefix match)
         3. Built-in pricing (exact match)
         4. Built-in pricing (prefix match)
-        5. Default pricing with warning
+        5. Explicit "unknown" marking - never a fabricated default price
 
         Args:
             model: Model name (e.g., "gpt-4-0613", "claude-3-opus-20240229")
 
         Returns:
-            PricingInfo object containing pricing and source
+            PricingInfo object containing pricing, source, and as_of date
         """
         # Try exact match in custom pricing
         if model in self.custom_pricing:
-            pricing = self.custom_pricing[model]
-            return PricingInfo(
-                model=model,
-                prompt_price=pricing["prompt"],
-                completion_price=pricing["completion"],
-                source="custom"
-            )
+            return self._pricing_from_entry(model, self.custom_pricing[model], "custom")
 
         # Try prefix match in custom pricing (longest match first)
         for key in sorted(self.custom_pricing.keys(), key=len, reverse=True):
             if model.startswith(key):
-                pricing = self.custom_pricing[key]
                 logger.debug(f"Prefix match: {model} matched to custom pricing key '{key}'")
-                return PricingInfo(
-                    model=model,
-                    prompt_price=pricing["prompt"],
-                    completion_price=pricing["completion"],
-                    source="custom"
-                )
+                return self._pricing_from_entry(model, self.custom_pricing[key], "custom")
 
         # Try exact match in built-in pricing
         if model in self.BUILTIN_PRICING:
-            pricing = self.BUILTIN_PRICING[model]
-            return PricingInfo(
-                model=model,
-                prompt_price=pricing["prompt"],
-                completion_price=pricing["completion"],
-                source="builtin"
-            )
+            return self._pricing_from_entry(model, self.BUILTIN_PRICING[model], "builtin")
 
         # Try prefix match in built-in pricing
         for key in self.BUILTIN_PRICING:
             if model.startswith(key):
-                pricing = self.BUILTIN_PRICING[key]
                 logger.debug(f"Prefix match: {model} matched to built-in pricing key '{key}'")
-                return PricingInfo(
-                    model=model,
-                    prompt_price=pricing["prompt"],
-                    completion_price=pricing["completion"],
-                    source="builtin"
-                )
+                return self._pricing_from_entry(model, self.BUILTIN_PRICING[key], "builtin")
 
-        # Fall back to default pricing with warning
+        # Unknown pricing: mark explicitly instead of estimating with defaults
         logger.warning(
-            f"Unknown model '{model}' - using default pricing "
-            f"(prompt: ${self.DEFAULT_PROMPT_PRICE}/1k, "
-            f"completion: ${self.DEFAULT_COMPLETION_PRICE}/1k). "
-            f"Consider adding this model to {self.pricing_file}"
+            f"Unknown model '{model}' - no pricing configured; cost will be "
+            f"reported as unknown. Consider adding this model to {self.pricing_file}"
         )
+        return PricingInfo(model=model, prompt_price=None, completion_price=None, source="unknown")
+
+    @classmethod
+    def _pricing_from_entry(
+        cls, model: str, entry: Dict[str, Any], source: PricingSource
+    ) -> PricingInfo:
         return PricingInfo(
             model=model,
-            prompt_price=self.DEFAULT_PROMPT_PRICE,
-            completion_price=self.DEFAULT_COMPLETION_PRICE,
-            source="default"
+            prompt_price=entry["prompt"],
+            completion_price=entry["completion"],
+            source=source,
+            as_of=entry.get("as_of"),
         )
 
     def load_custom_pricing(self, pricing_file: str) -> None:
