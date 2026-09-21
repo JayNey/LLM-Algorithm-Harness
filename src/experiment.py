@@ -17,6 +17,7 @@ from pathlib import Path
 from typing import Any, Dict, List, Optional
 
 from src.budget import BudgetTracker
+from src.experiment_report import generate_comparison_report
 from src.harness import AlgorithmHarness
 from src.models import ExperimentConfig, HarnessConfig, StrategyConfig
 from src.problem_loader import ProblemLoader
@@ -115,6 +116,7 @@ class ExperimentRunner:
             experiment_id=exp_dir.name,
             combinations=len(metadata["combinations"]),
         )
+        generate_comparison_report(exp_dir)
         return exp_dir
 
     def _load_problems(self):

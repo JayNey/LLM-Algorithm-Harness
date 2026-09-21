@@ -491,3 +491,186 @@ def test_runner_respects_problem_filters(tmp_path):
         )
     )
     assert summary["vanilla"]["total_problems"] == 1
+
+
+# ============================================================================
+# Comparison report (task 5)
+# ============================================================================
+
+
+from src.experiment_report import generate_comparison_report
+
+
+def _report_dataset(tmp_path):
+    """exp-1 has hidden cases (formal); exp-2 is sample-only."""
+    dataset = tmp_path / "problems.json"
+    dataset.write_text(
+        json.dumps(
+            [
+                {
+                    "problem_id": "exp-1",
+                    "title": "Add One",
+                    "description": "Return x plus one for the report run.",
+                    "difficulty": "easy",
+                    "tags": ["math"],
+                    "public_test_cases": [{"input": {"x": 1}, "expected_output": 2}],
+                    "hidden_test_cases": [{"input": {"x": 2}, "expected_output": 3}],
+                },
+                {
+                    "problem_id": "exp-2",
+                    "title": "Add One Again",
+                    "description": "Return x plus one for the report run.",
+                    "difficulty": "medium",
+                    "tags": ["math", "basics"],
+                    "test_cases": [{"input": {"x": 5}, "expected_output": 6}],
+                },
+            ]
+        ),
+        encoding="utf-8",
+    )
+    return dataset
+
+
+def _alternating_factory():
+    """Combo 1 (vanilla) is always correct; combo 2 fails then fixes.
+
+    The runner executes combinations sequentially, so the client
+    construction order identifies which strategy a double serves.
+    """
+    construction = {"n": 0}
+    call_counter = {"n": 0}
+
+    def _response(text):
+        return LLMResponse(
+            text=f"```python\n{text}\n```",
+            usage=TokenUsage(prompt_tokens=10, completion_tokens=5, total_tokens=15),
+            model="fixed-double",
+            finish_reason="stop",
+        )
+
+    def factory(config):
+        construction["n"] += 1
+        double = MagicMock()
+        if construction["n"] % 2 == 1:
+            double.generate.return_value = _response("def solution(x):\n    return x + 1")
+        else:
+
+            def generate(*args, **kwargs):
+                call_counter["n"] += 1
+                if call_counter["n"] % 2 == 1:
+                    return _response("def solution(x):\n    return x + 100")
+                return _response("def solution(x):\n    return x + 1")
+
+            double.generate.side_effect = generate
+        return double
+
+    return factory
+
+
+def _always_wrong_factory():
+    def _response(text):
+        return LLMResponse(
+            text=f"```python\n{text}\n```",
+            usage=TokenUsage(prompt_tokens=10, completion_tokens=5, total_tokens=15),
+            model="fixed-double",
+            finish_reason="stop",
+        )
+
+    def factory(config):
+        double = MagicMock()
+        double.generate.return_value = _response("def solution(x):\n    return x + 100")
+        return double
+
+    return factory
+
+
+def test_comparison_report_hand_computed_metrics(tmp_path):
+    dataset = _report_dataset(tmp_path)
+    config = _runner_config(
+        tmp_path,
+        dataset,
+        repeats=1,
+        strategies=[
+            StrategyConfig(name="vanilla", max_iterations=1),
+            StrategyConfig(name="multi_round_feedback", max_iterations=2),
+        ],
+    )
+
+    with patch("src.harness.LLMClient", side_effect=_alternating_factory()):
+        exp_dir = ExperimentRunner(config, pricing_file="nonexistent.json").run()
+
+    comparison = json.loads((exp_dir / "comparison.json").read_text(encoding="utf-8"))
+    assert (exp_dir / "REPORT.md").exists()
+    assert (exp_dir / "comparison.csv").exists()
+    assert len(comparison["combinations"]) == 2
+
+    vanilla = comparison["combinations"][0]
+    assert vanilla["strategy"] == "vanilla"
+    assert vanilla["denominator"] == {"total": 2, "completed": 2, "budget_exhausted": 0}
+    assert vanilla["solved"] == 2
+    assert vanilla["pass_rate_over_total"] == 1.0
+    # Only exp-1 has hidden cases: formal rate is 1/1
+    assert vanilla["formal"] == {"evaluable": 1, "solved": 1, "rate": 1.0}
+    assert vanilla["sample_validation"] == {"validated": 2, "completed": 2, "rate": 1.0}
+    # Single-round strategy has no fix opportunities
+    assert vanilla["fix_rate"] == {"opportunities": 0, "fixed": 0, "rate": None}
+    # 1 call and 15 tokens per problem (hand computed: 2 problems x 15 tokens)
+    assert vanilla["actual_consumption"]["avg_calls_per_problem"] == 1
+    assert vanilla["actual_consumption"]["avg_tokens_per_problem"] == 15
+    # Unknown pricing never reports a dollar figure
+    assert vanilla["cost"] == {"total_cost_usd": None, "known": False}
+    assert vanilla["by_difficulty"]["easy"] == {"solved": 1, "total": 1, "rate": 1.0}
+    assert vanilla["by_tags"]["basics"] == {"solved": 1, "total": 1, "rate": 1.0}
+
+    multi = comparison["combinations"][1]
+    assert multi["strategy"] == "multi_round_feedback"
+    assert multi["solved"] == 2
+    assert multi["denominator"] == {"total": 2, "completed": 2, "budget_exhausted": 0}
+    # Both problems failed round 1 and were fixed in round 2
+    assert multi["fix_rate"] == {"opportunities": 2, "fixed": 2, "rate": 1.0}
+    assert multi["actual_consumption"]["avg_calls_per_problem"] == 2
+    assert multi["actual_consumption"]["avg_tokens_per_problem"] == 30
+
+    # Single repeat: explicit no-range note
+    agg = comparison["by_model_strategy"][0]
+    assert agg["repeats"] == 1
+    assert "单次运行" in agg["uncertainty_note"]
+
+    report_md = (exp_dir / "REPORT.md").read_text(encoding="utf-8")
+    assert "未知" in report_md  # unknown cost display
+    assert "total = completed" in report_md or "总数 = 完成" in report_md
+
+    csv_lines = (exp_dir / "comparison.csv").read_text(encoding="utf-8").strip().splitlines()
+    assert len(csv_lines) == 3  # header + 2 combos
+
+
+def test_comparison_report_budget_exhausted_and_ranges(tmp_path):
+    dataset = _report_dataset(tmp_path)
+    config = _runner_config(
+        tmp_path,
+        dataset,
+        repeats=2,
+        budget=ProblemBudget(max_calls=1),
+        strategies=[StrategyConfig(name="multi_round_feedback", max_iterations=3)],
+    )
+
+    with patch("src.harness.LLMClient", side_effect=_always_wrong_factory()):
+        exp_dir = ExperimentRunner(config, pricing_file="nonexistent.json").run()
+
+    comparison = json.loads((exp_dir / "comparison.json").read_text(encoding="utf-8"))
+    assert len(comparison["combinations"]) == 2  # 1 model x 1 strategy x 2 repeats
+    for combo in comparison["combinations"]:
+        assert combo["denominator"] == {"total": 2, "completed": 0, "budget_exhausted": 2}
+        assert combo["solved"] == 0
+        assert combo["pass_rate_over_total"] == 0.0
+        assert combo["pass_rate_over_completed"] is None
+        assert combo["failure_categories"]["budget_exhausted"] == 2
+        assert combo["sample_validation"]["rate"] is None
+
+    agg = comparison["by_model_strategy"][0]
+    assert agg["repeats"] == 2
+    assert "重复 2 次" in agg["uncertainty_note"]
+    assert agg["ranges"]["pass_rate_over_total"] == {"min": 0.0, "max": 0.0}
+
+    report_md = (exp_dir / "REPORT.md").read_text(encoding="utf-8")
+    assert "预算未完成" in report_md

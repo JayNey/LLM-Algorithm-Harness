@@ -298,7 +298,11 @@ class AlgorithmHarness:
             strategy_problem = problem.model_copy(update={"hidden_test_cases": []})
             result = strategy.execute(strategy_problem)
             result.formal_evaluable = problem.formal_evaluable
-            if problem.formal_evaluable and result.generated_code:
+            if (
+                problem.formal_evaluable
+                and result.generated_code
+                and result.status != "budget_exhausted"
+            ):
                 try:
                     hidden_result = sandbox.execute(result.generated_code, problem, stage="hidden")
                 except Exception as e:
