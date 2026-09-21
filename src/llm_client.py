@@ -60,7 +60,9 @@ class LLMClient:
             if OpenAI is None:
                 raise ImportError("openai package not installed. Run: pip install openai")
             if self.config.provider == "local" and not self.config.base_url:
-                raise ValueError("provider=local requires base_url for its OpenAI-compatible endpoint")
+                raise ValueError(
+                    "provider=local requires base_url for its OpenAI-compatible endpoint"
+                )
             api_key = self._resolve_api_key(
                 "OPENAI_API_KEY", "OpenAI", allow_missing=self.config.provider == "local"
             )
@@ -202,7 +204,9 @@ class LLMClient:
             max_tokens=max_tokens,
             custom_params=custom_params,
         )
-        logger.info("generating_llm_response", provider=self.config.provider, model=self.config.model)
+        logger.info(
+            "generating_llm_response", provider=self.config.provider, model=self.config.model
+        )
 
         start_time = time.time()
 
@@ -228,9 +232,7 @@ class LLMClient:
 
         except Exception as e:
             safe_error = self._safe_provider_error(e)
-            logger.error(
-                "llm_api_error", provider=self.config.provider, error=str(safe_error)
-            )
+            logger.error("llm_api_error", provider=self.config.provider, error=str(safe_error))
             raise safe_error from None
 
     def _effective_params(
@@ -268,12 +270,16 @@ class LLMClient:
         if isinstance(content, dict):
             value = content.get("text")
             if value is None:
-                value = content.get("thinking") or content.get("reasoning") or content.get("content")
+                value = (
+                    content.get("thinking") or content.get("reasoning") or content.get("content")
+                )
             return value if isinstance(value, str) else ""
         if isinstance(content, (list, tuple)):
             parts = []
             for part in content:
-                block_type = part.get("type") if isinstance(part, dict) else getattr(part, "type", None)
+                block_type = (
+                    part.get("type") if isinstance(part, dict) else getattr(part, "type", None)
+                )
                 if block_type in {"thinking", "reasoning"}:
                     continue
                 parts.append(LLMClient._extract_text(part))
@@ -298,11 +304,17 @@ class LLMClient:
             text = LLMClient._extract_text(value)
             if text:
                 return text
-        content = message.get("content") if isinstance(message, dict) else getattr(message, "content", None)
+        content = (
+            message.get("content")
+            if isinstance(message, dict)
+            else getattr(message, "content", None)
+        )
         if isinstance(content, (list, tuple)):
             parts = []
             for block in content:
-                block_type = block.get("type") if isinstance(block, dict) else getattr(block, "type", None)
+                block_type = (
+                    block.get("type") if isinstance(block, dict) else getattr(block, "type", None)
+                )
                 if block_type in {"thinking", "reasoning"}:
                     parts.append(LLMClient._extract_text(block))
             combined = "".join(parts)
@@ -324,12 +336,18 @@ class LLMClient:
     @classmethod
     def _is_retryable_error(cls, error: Exception) -> bool:
         status = cls._status_code(error)
-        if status == 401 or status == 403 or (status is not None and 400 <= status < 500 and status != 429):
+        if (
+            status == 401
+            or status == 403
+            or (status is not None and 400 <= status < 500 and status != 429)
+        ):
             return False
         if status == 429 or (status is not None and status >= 500):
             return True
         name = error.__class__.__name__.lower()
-        return any(token in name for token in ("ratelimit", "timeout", "connection", "internalserver"))
+        return any(
+            token in name for token in ("ratelimit", "timeout", "connection", "internalserver")
+        )
 
     def _call_with_retry(self, operation: Callable[[], Any]) -> Any:
         """Run one provider operation with bounded retry and backoff."""
@@ -340,7 +358,10 @@ class LLMClient:
                 return operation()
             except Exception as error:
                 last_error = error
-                if not self._is_retryable_error(error) or attempt + 1 >= self.config.retry_max_attempts:
+                if (
+                    not self._is_retryable_error(error)
+                    or attempt + 1 >= self.config.retry_max_attempts
+                ):
                     raise
                 delay = self.config.retry_backoff_seconds * (2**attempt)
                 elapsed = time.monotonic() - started
@@ -382,7 +403,14 @@ class LLMClient:
         if extra_body:
             kwargs["extra_body"] = extra_body
         for key, value in effective.items():
-            if key not in {"system_prompt", "temperature", "max_tokens", "timeout", "enable_thinking", "extra_body"}:
+            if key not in {
+                "system_prompt",
+                "temperature",
+                "max_tokens",
+                "timeout",
+                "enable_thinking",
+                "extra_body",
+            }:
                 kwargs[key] = value
 
         response = self._call_with_retry(lambda: self.client.chat.completions.create(**kwargs))
@@ -397,14 +425,22 @@ class LLMClient:
         message = self._field(choice, "message") if choice is not None else None
         usage_metadata = {
             "usage_known": not usage_missing,
+            "pricing_known": pricing_info.pricing_known,
+            "as_of": pricing_info.as_of,
             "total_cost": (
-                token_usage.prompt_tokens * pricing_info.prompt_price / 1000
-                + token_usage.completion_tokens * pricing_info.completion_price / 1000
-            ) if not usage_missing else None,
+                (
+                    token_usage.prompt_tokens * pricing_info.prompt_price / 1000
+                    + token_usage.completion_tokens * pricing_info.completion_price / 1000
+                )
+                if not usage_missing and pricing_info.pricing_known
+                else None
+            ),
         }
 
         return LLMResponse(
-            text=self._extract_text(self._field(message, "content") if message is not None else None),
+            text=self._extract_text(
+                self._field(message, "content") if message is not None else None
+            ),
             usage=token_usage,
             model=model,
             finish_reason=self._field(choice, "finish_reason"),
@@ -442,7 +478,14 @@ class LLMClient:
         if effective.get("system_prompt"):
             kwargs["system"] = effective["system_prompt"]
         for key, value in effective.items():
-            if key not in {"system_prompt", "temperature", "max_tokens", "timeout", "enable_thinking", "extra_body"}:
+            if key not in {
+                "system_prompt",
+                "temperature",
+                "max_tokens",
+                "timeout",
+                "enable_thinking",
+                "extra_body",
+            }:
                 kwargs[key] = value
 
         response = self._call_with_retry(lambda: self.client.messages.create(**kwargs))
@@ -463,10 +506,16 @@ class LLMClient:
                 "prompt_price_per_1k": pricing_info.prompt_price,
                 "completion_price_per_1k": pricing_info.completion_price,
                 "source": pricing_info.source,
+                "as_of": pricing_info.as_of,
+                "pricing_known": pricing_info.pricing_known,
                 "total_cost": (
-                    token_usage.prompt_tokens * pricing_info.prompt_price / 1000
-                    + token_usage.completion_tokens * pricing_info.completion_price / 1000
-                ) if not usage_missing else None,
+                    (
+                        token_usage.prompt_tokens * pricing_info.prompt_price / 1000
+                        + token_usage.completion_tokens * pricing_info.completion_price / 1000
+                    )
+                    if not usage_missing and pricing_info.pricing_known
+                    else None
+                ),
                 "usage_known": not usage_missing,
             },
             usage_missing=usage_missing,
@@ -479,9 +528,16 @@ class LLMClient:
         """Keep snapshots useful while preventing prompt/credential leakage."""
         snapshot = dict(params)
         snapshot.pop("system_prompt", None)
-        normalized = {"temperature": snapshot.get("temperature"), "max_tokens": snapshot.get("max_tokens"), **{
-            key: value for key, value in snapshot.items() if key not in {"temperature", "max_tokens", "timeout"}
-        }, "timeout": snapshot.get("timeout")}
+        normalized = {
+            "temperature": snapshot.get("temperature"),
+            "max_tokens": snapshot.get("max_tokens"),
+            **{
+                key: value
+                for key, value in snapshot.items()
+                if key not in {"temperature", "max_tokens", "timeout"}
+            },
+            "timeout": snapshot.get("timeout"),
+        }
         return redact_sensitive_data(normalized)
 
     @staticmethod
@@ -498,11 +554,22 @@ class LLMClient:
             completion_int = int(completion)
             total = LLMClient._field(usage, "total_tokens")
             total_int = int(total) if total is not None else prompt_int + completion_int
-            return TokenUsage(
-                prompt_tokens=max(prompt_int, 0),
-                completion_tokens=max(completion_int, 0),
-                total_tokens=max(total_int, 0),
-            ), False
+            reasoning_int = 0
+            details = LLMClient._field(usage, "completion_tokens_details")
+            raw_reasoning = (
+                LLMClient._field(details, "reasoning_tokens") if details is not None else None
+            )
+            if isinstance(raw_reasoning, (int, float)) and not isinstance(raw_reasoning, bool):
+                reasoning_int = max(int(raw_reasoning), 0)
+            return (
+                TokenUsage(
+                    prompt_tokens=max(prompt_int, 0),
+                    completion_tokens=max(completion_int, 0),
+                    total_tokens=max(total_int, 0),
+                    reasoning_tokens=reasoning_int,
+                ),
+                False,
+            )
         except (TypeError, ValueError):
             return TokenUsage(prompt_tokens=0, completion_tokens=0, total_tokens=0), True
 
@@ -518,11 +585,14 @@ class LLMClient:
                 raise ValueError("Anthropic usage fields are incomplete")
             prompt_int = max(int(prompt), 0)
             completion_int = max(int(completion), 0)
-            return TokenUsage(
-                prompt_tokens=prompt_int,
-                completion_tokens=completion_int,
-                total_tokens=prompt_int + completion_int,
-            ), False
+            return (
+                TokenUsage(
+                    prompt_tokens=prompt_int,
+                    completion_tokens=completion_int,
+                    total_tokens=prompt_int + completion_int,
+                ),
+                False,
+            )
         except (TypeError, ValueError):
             return TokenUsage(prompt_tokens=0, completion_tokens=0, total_tokens=0), True
 
@@ -573,7 +643,7 @@ class LLMClient:
         result["model_count"] = len(models)
         return result
 
-    def estimate_cost(self, usage: TokenUsage) -> float:
+    def estimate_cost(self, usage: TokenUsage) -> Optional[float]:
         """
         Estimate API call cost.
 
@@ -581,16 +651,18 @@ class LLMClient:
             usage: Token usage
 
         Returns:
-            Estimated cost in USD
+            Estimated cost in USD, or None when the model has no configured
+            pricing (unknown pricing is never converted with defaults)
         """
         pricing_info = self.pricing_manager.get_pricing(self.config.model)
 
-        if pricing_info.source == "default":
+        if not pricing_info.pricing_known:
             logger.warning(
                 "unknown_model_pricing",
                 model=self.config.model,
-                using_default_pricing=f"${pricing_info.prompt_price}/{pricing_info.completion_price} per 1K tokens"
+                detail="no pricing configured; cost reported as unknown",
             )
+            return None
 
         cost = (
             usage.prompt_tokens * pricing_info.prompt_price / 1000

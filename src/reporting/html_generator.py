@@ -329,11 +329,15 @@ class HTMLGenerator:
         html_parts.append("<span class='error-icon'>⚠️</span>")
         html_parts.append(f"<span>Failed to generate {chart_name}</span>")
         html_parts.append("</div>")
-        html_parts.append(f"<div class='error-message'><strong>{error_type}:</strong> {error_msg}</div>")
+        html_parts.append(
+            f"<div class='error-message'><strong>{error_type}:</strong> {error_msg}</div>"
+        )
 
         if show_traceback:
             tb_str = traceback.format_exc()
-            html_parts.append(f"<button class='error-toggle' onclick='toggleDetails(\"{error_id}\")'>Show Technical Details</button>")
+            html_parts.append(
+                f"<button class='error-toggle' onclick='toggleDetails(\"{error_id}\")'>Show Technical Details</button>"
+            )
             html_parts.append(f"<div id='{error_id}' class='error-details' style='display: none;'>")
             html_parts.append("<pre style='white-space: pre-wrap; word-wrap: break-word;'>")
             html_parts.append(tb_str)
@@ -356,7 +360,7 @@ class HTMLGenerator:
         results: Dict[str, List[ExecutionResult]],
         output_path: str,
         include_charts: bool = True,
-        config: Dict = None
+        config: Dict = None,
     ) -> str:
         """
         Generate self-contained HTML report.
@@ -390,10 +394,14 @@ class HTMLGenerator:
 
         # Metadata
         html_parts.append("<div class='metadata'>")
-        html_parts.append(f"<p><strong>Generated:</strong> {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}</p>")
+        html_parts.append(
+            f"<p><strong>Generated:</strong> {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}</p>"
+        )
         if config:
             html_parts.append(f"<p><strong>Model:</strong> {config.get('model', 'N/A')}</p>")
-            html_parts.append(f"<p><strong>Temperature:</strong> {config.get('temperature', 'N/A')}</p>")
+            html_parts.append(
+                f"<p><strong>Temperature:</strong> {config.get('temperature', 'N/A')}</p>"
+            )
             html_parts.append(f"<p><strong>Timeout:</strong> {config.get('timeout', 'N/A')}s</p>")
         html_parts.append("</div>")
 
@@ -401,43 +409,38 @@ class HTMLGenerator:
         html_parts.append("<h2>Strategy Overview</h2>")
 
         sorted_strategies = sorted(
-            metrics.items(),
-            key=lambda x: x[1].get('success_rate', 0),
-            reverse=True
+            metrics.items(), key=lambda x: x[1].get("success_rate", 0), reverse=True
         )
 
         for idx, (strategy_name, strategy_metrics) in enumerate(sorted_strategies):
-            success_rate = strategy_metrics.get('success_rate', 0) * 100
-            solved = strategy_metrics.get('solved_problems', 0)
-            total = strategy_metrics.get('total_problems', 0)
-            avg_tokens = strategy_metrics.get('avg_tokens_per_problem', 0)
+            success_rate = strategy_metrics.get("success_rate", 0) * 100
+            solved = strategy_metrics.get("solved_problems", 0)
+            total = strategy_metrics.get("total_problems", 0)
+            avg_tokens = strategy_metrics.get("avg_tokens_per_problem", 0)
             # Callers may pass a flat result list instead of a per-strategy dict
             if isinstance(results, dict):
                 strategy_results = results.get(strategy_name, [])
             else:
                 strategy_results = [
-                    r for r in (results or [])
-                    if getattr(r, 'strategy', None) == strategy_name
+                    r for r in (results or []) if getattr(r, "strategy", None) == strategy_name
                 ]
-            model_failed = sum(
-                1 for r in strategy_results if r.failure_category == 'model_error'
-            )
-            system_failed = sum(
-                1 for r in strategy_results if r.failure_category == 'system_error'
-            )
+            model_failed = sum(1 for r in strategy_results if r.failure_category == "model_error")
+            system_failed = sum(1 for r in strategy_results if r.failure_category == "system_error")
 
             # Badge color based on success rate
             if success_rate >= 80:
-                badge_class = 'badge-success'
+                badge_class = "badge-success"
             elif success_rate >= 50:
-                badge_class = 'badge-warning'
+                badge_class = "badge-warning"
             else:
-                badge_class = 'badge-danger'
+                badge_class = "badge-danger"
 
             html_parts.append("<div class='card'>")
             html_parts.append("<div class='card-header'>")
             html_parts.append(f"<span class='card-title'>{strategy_name}</span>")
-            html_parts.append(f"<span class='badge {badge_class}'>{success_rate:.1f}% Success</span>")
+            html_parts.append(
+                f"<span class='badge {badge_class}'>{success_rate:.1f}% Success</span>"
+            )
             html_parts.append("</div>")
             html_parts.append(f"<p><strong>Solved:</strong> {solved}/{total} problems</p>")
             html_parts.append(f"<p><strong>Model failed:</strong> {model_failed}</p>")
@@ -455,19 +458,24 @@ class HTMLGenerator:
             html_parts.append(f"<p><strong>Avg Tokens:</strong> {avg_tokens:.0f}</p>")
 
             # Cost information with pricing source
-            estimated_cost = strategy_metrics.get('estimated_cost_usd', 0)
-            pricing_metadata = strategy_metrics.get('pricing_metadata')
+            estimated_cost = strategy_metrics.get("estimated_cost_usd", 0)
+            pricing_metadata = strategy_metrics.get("pricing_metadata")
 
             if pricing_metadata:
-                has_actual_pricing = pricing_metadata.get('has_actual_pricing', False)
-                if has_actual_pricing:
+                has_actual_pricing = pricing_metadata.get("has_actual_pricing", False)
+                unknown_cost = pricing_metadata.get("unknown_usage", False) or pricing_metadata.get(
+                    "unknown_pricing", False
+                )
+                if has_actual_pricing and not unknown_cost:
                     pricing_source = "自定义配置/内置定价"
+                elif has_actual_pricing:
+                    pricing_source = "部分未知（定价或用量缺失，成本不可信）"
                 else:
-                    pricing_source = "默认值"
+                    pricing_source = "未知（模型定价未配置）"
                     logger.warning(
                         "pricing_metadata_missing_for_strategy strategy=%s: %s",
                         strategy_name,
-                        "Using fallback pricing for historical report",
+                        "No configured pricing; cost reported as unknown",
                     )
             else:
                 # Fallback: re-estimate using current PricingManager
@@ -478,26 +486,41 @@ class HTMLGenerator:
                 )
                 pricing_source = "当前配置（历史数据不可用）"
 
-            html_parts.append(f"<p><strong>Estimated Cost:</strong> ${estimated_cost:.4f} ({pricing_source})</p>")
+            if pricing_metadata and (
+                pricing_metadata.get("unknown_usage") or pricing_metadata.get("unknown_pricing")
+            ):
+                cost_display = "未知"
+            else:
+                cost_display = f"${estimated_cost:.4f}"
+
+            html_parts.append(
+                f"<p><strong>Estimated Cost:</strong> {cost_display} ({pricing_source})</p>"
+            )
 
             # Details toggle
             details_id = f"details-{idx}"
-            html_parts.append(f"<button class='details-toggle' onclick='toggleDetails(\"{details_id}\")'>Show Details</button>")
+            html_parts.append(
+                f"<button class='details-toggle' onclick='toggleDetails(\"{details_id}\")'>Show Details</button>"
+            )
             html_parts.append(f"<div id='{details_id}' class='details-content'>")
 
             # Difficulty breakdown
-            by_difficulty = strategy_metrics.get('by_difficulty', {})
+            by_difficulty = strategy_metrics.get("by_difficulty", {})
             if by_difficulty:
                 html_parts.append("<h3>By Difficulty</h3>")
                 html_parts.append("<table>")
-                html_parts.append("<tr><th>Difficulty</th><th>Success Rate</th><th>Solved</th></tr>")
-                for diff in ['easy', 'medium', 'hard']:
+                html_parts.append(
+                    "<tr><th>Difficulty</th><th>Success Rate</th><th>Solved</th></tr>"
+                )
+                for diff in ["easy", "medium", "hard"]:
                     if diff in by_difficulty:
                         diff_data = by_difficulty[diff]
-                        rate = diff_data.get('success_rate', 0) * 100
-                        solved_diff = diff_data.get('solved', 0)
-                        total_diff = diff_data.get('total', 0)
-                        html_parts.append(f"<tr><td>{diff.capitalize()}</td><td>{rate:.1f}%</td><td>{solved_diff}/{total_diff}</td></tr>")
+                        rate = diff_data.get("success_rate", 0) * 100
+                        solved_diff = diff_data.get("solved", 0)
+                        total_diff = diff_data.get("total", 0)
+                        html_parts.append(
+                            f"<tr><td>{diff.capitalize()}</td><td>{rate:.1f}%</td><td>{solved_diff}/{total_diff}</td></tr>"
+                        )
                 html_parts.append("</table>")
 
             html_parts.append("</div>")  # details-content
@@ -511,56 +534,81 @@ class HTMLGenerator:
             chart_buf = ChartGenerator.generate_success_rate_chart(metrics)
             if chart_buf:
                 try:
-                    chart_b64 = base64.b64encode(chart_buf.read()).decode('utf-8')
+                    chart_b64 = base64.b64encode(chart_buf.read()).decode("utf-8")
                     html_parts.append("<div class='chart-container'>")
                     html_parts.append("<h3>Success Rate Comparison</h3>")
-                    html_parts.append(f"<img src='data:image/png;base64,{chart_b64}' alt='Success Rate Chart'>")
+                    html_parts.append(
+                        f"<img src='data:image/png;base64,{chart_b64}' alt='Success Rate Chart'>"
+                    )
                     html_parts.append("</div>")
                 except Exception as e:
                     logger.error(f"Failed to encode success rate chart: {str(e)}", exc_info=True)
-                    html_parts.append(HTMLGenerator._format_chart_error("Success Rate Chart", e, show_traceback=True))
+                    html_parts.append(
+                        HTMLGenerator._format_chart_error(
+                            "Success Rate Chart", e, show_traceback=True
+                        )
+                    )
             else:
                 logger.error("Success rate chart generation returned None")
                 error = Exception("Chart generation failed")
-                html_parts.append(HTMLGenerator._format_chart_error("Success Rate Chart", error, show_traceback=False))
+                html_parts.append(
+                    HTMLGenerator._format_chart_error(
+                        "Success Rate Chart", error, show_traceback=False
+                    )
+                )
 
             # Token chart with cost estimation
-            model_name = config.get('model') if config else None
+            model_name = config.get("model") if config else None
             token_buf = ChartGenerator.generate_token_chart(metrics, results, model_name)
             if token_buf:
                 try:
-                    token_b64 = base64.b64encode(token_buf.read()).decode('utf-8')
+                    token_b64 = base64.b64encode(token_buf.read()).decode("utf-8")
                     html_parts.append("<div class='chart-container'>")
                     html_parts.append("<h3>Token Consumption and Cost</h3>")
-                    html_parts.append(f"<img src='data:image/png;base64,{token_b64}' alt='Token Chart'>")
+                    html_parts.append(
+                        f"<img src='data:image/png;base64,{token_b64}' alt='Token Chart'>"
+                    )
                     html_parts.append("</div>")
                 except Exception as e:
                     logger.error(f"Failed to encode token chart: {str(e)}", exc_info=True)
-                    html_parts.append(HTMLGenerator._format_chart_error("Token Chart", e, show_traceback=True))
+                    html_parts.append(
+                        HTMLGenerator._format_chart_error("Token Chart", e, show_traceback=True)
+                    )
             else:
                 logger.error("Token chart generation returned None")
                 error = Exception("Chart generation failed")
-                html_parts.append(HTMLGenerator._format_chart_error("Token Chart", error, show_traceback=False))
+                html_parts.append(
+                    HTMLGenerator._format_chart_error("Token Chart", error, show_traceback=False)
+                )
 
             # Iteration distribution
             iter_buf = ChartGenerator.generate_iteration_distribution(results)
             if iter_buf:
                 try:
-                    iter_b64 = base64.b64encode(iter_buf.read()).decode('utf-8')
+                    iter_b64 = base64.b64encode(iter_buf.read()).decode("utf-8")
                     html_parts.append("<div class='chart-container'>")
                     html_parts.append("<h3>Iteration Distribution</h3>")
-                    html_parts.append(f"<img src='data:image/png;base64,{iter_b64}' alt='Iteration Distribution'>")
+                    html_parts.append(
+                        f"<img src='data:image/png;base64,{iter_b64}' alt='Iteration Distribution'>"
+                    )
                     html_parts.append("</div>")
                 except Exception as e:
-                    logger.error(f"Failed to encode iteration distribution: {str(e)}", exc_info=True)
-                    html_parts.append(HTMLGenerator._format_chart_error("Iteration Distribution Chart", e, show_traceback=True))
+                    logger.error(
+                        f"Failed to encode iteration distribution: {str(e)}", exc_info=True
+                    )
+                    html_parts.append(
+                        HTMLGenerator._format_chart_error(
+                            "Iteration Distribution Chart", e, show_traceback=True
+                        )
+                    )
             else:
                 logger.info("Iteration distribution chart returned None (no multi-round data)")
                 html_parts.append("<div class='chart-placeholder'>")
                 html_parts.append("<div class='chart-placeholder-icon'>📊</div>")
-                html_parts.append("<p>Iteration Distribution chart: No multi-round data available</p>")
+                html_parts.append(
+                    "<p>Iteration Distribution chart: No multi-round data available</p>"
+                )
                 html_parts.append("</div>")
-
 
         # Footer
         html_parts.append("<div class='footer'>")
@@ -577,6 +625,6 @@ class HTMLGenerator:
         # Save to file
         output_path_obj = Path(output_path)
         output_path_obj.parent.mkdir(parents=True, exist_ok=True)
-        output_path_obj.write_text(html_content, encoding='utf-8')
+        output_path_obj.write_text(html_content, encoding="utf-8")
 
         return html_content

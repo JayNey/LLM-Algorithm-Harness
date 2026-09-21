@@ -3,8 +3,9 @@ Main Harness - Coordinates evaluation workflow.
 """
 
 from pathlib import Path
-from typing import Any, Dict, List
+from typing import Any, Dict, List, Optional
 
+from src.budget import BudgetExhausted, BudgetTracker, BudgetedLLMClient
 from src.llm_client import LLMClient
 from src.models import (
     ExecutionResult,
@@ -37,14 +38,17 @@ class AlgorithmHarness:
         "multi_round_feedback": MultiRoundFeedbackStrategy,
     }
 
-    def __init__(self, config: HarnessConfig):
+    def __init__(self, config: HarnessConfig, budget_tracker: Optional[BudgetTracker] = None):
         """
         Initialize harness.
 
         Args:
             config: Harness configuration
+            budget_tracker: Optional per-problem budget tracker; when present,
+                every model call is gated through a budgeted client wrapper
         """
         self.config = config
+        self.budget_tracker = budget_tracker
         self.problem_loader = ProblemLoader()
         self.results: Dict[str, List[ExecutionResult]] = {}
         self.problem_totals: Dict[str, int] = {}
@@ -219,7 +223,38 @@ class AlgorithmHarness:
                 problem=problem.problem_id,
                 progress=f"{i+1}/{len(problems)}",
             )
-            results.append(self._execute_problem(strategy_config, problem, strategy, sandbox))
+            if self.budget_tracker is not None:
+                self.budget_tracker.begin_problem(problem.problem_id)
+            try:
+                results.append(
+                    self._execute_problem(strategy_config, problem, strategy, sandbox)
+                )
+            except BudgetExhausted as exc:
+                # Budget stop is not a model or system failure: record a
+                # terminal, category-free marker so the denominator stays
+                # intact and the experiment report can count it as unfinished.
+                redacted_reason = redact_sensitive_text(str(exc))
+                logger.warning(
+                    "problem_budget_exhausted",
+                    strategy=strategy_config.name,
+                    problem=problem.problem_id,
+                    stop_reason=redacted_reason,
+                )
+                results.append(
+                    ExecutionResult(
+                        problem_id=problem.problem_id,
+                        strategy=strategy_config.name,
+                        generated_code="",
+                        status="budget_exhausted",
+                        failure_category=None,
+                        difficulty=problem.difficulty,
+                        error_message=redacted_reason,
+                        formal_evaluable=problem.formal_evaluable,
+                    )
+                )
+            finally:
+                if self.budget_tracker is not None:
+                    self.budget_tracker.finalize_problem()
 
         # Generate report
         report = self._generate_report(strategy_config, results, problems)
@@ -237,6 +272,8 @@ class AlgorithmHarness:
         if not preflight_ok:
             raise RuntimeError(f"Sandbox preflight failed: {preflight_detail}")
         llm_client = LLMClient(self.config.llm_config)
+        if self.budget_tracker is not None:
+            llm_client = BudgetedLLMClient(llm_client, self.budget_tracker)
         strategy_class = self.STRATEGY_MAP.get(strategy_config.name)
         if not strategy_class:
             raise ValueError(f"Unknown strategy: {strategy_config.name}")
@@ -261,7 +298,11 @@ class AlgorithmHarness:
             strategy_problem = problem.model_copy(update={"hidden_test_cases": []})
             result = strategy.execute(strategy_problem)
             result.formal_evaluable = problem.formal_evaluable
-            if problem.formal_evaluable and result.generated_code:
+            if (
+                problem.formal_evaluable
+                and result.generated_code
+                and result.status != "budget_exhausted"
+            ):
                 try:
                     hidden_result = sandbox.execute(result.generated_code, problem, stage="hidden")
                 except Exception as e:
@@ -397,6 +438,7 @@ class AlgorithmHarness:
             "models_used": {},
             "has_actual_pricing": False,
             "unknown_usage": False,
+            "unknown_pricing": False,
         }
 
         for result in results:
@@ -418,6 +460,9 @@ class AlgorithmHarness:
                         else:
                             total_cost += trace_cost
 
+                        if pm.get("pricing_known") is False or pm.get("source") == "unknown":
+                            pricing_metadata["unknown_pricing"] = True
+
                         # Track model usage
                         model = pm.get("model", "unknown")
                         if model not in pricing_metadata["models_used"]:
@@ -426,6 +471,8 @@ class AlgorithmHarness:
                                 "completion_tokens": 0,
                                 "total_cost": 0.0,
                                 "unknown_usage": False,
+                                "pricing_known": pm.get("pricing_known", True),
+                                "as_of": pm.get("as_of"),
                                 "prompt_price_per_1k": pm.get("prompt_price_per_1k"),
                                 "completion_price_per_1k": pm.get("completion_price_per_1k"),
                             }
@@ -441,10 +488,11 @@ class AlgorithmHarness:
                         # as a free call, even when token counts are present.
                         pricing_metadata["unknown_usage"] = True
             else:
-                # Fallback: use token counts without pricing
+                # Token counts without pricing cannot be converted honestly;
+                # leave the cost untouched and flag it as unknown instead of
+                # applying a fabricated per-token default (issue #15).
                 pricing_metadata["total_tokens"] += result.total_tokens
-                # Approximate: $0.002 per 1K tokens (fallback default)
-                total_cost += result.total_tokens * (0.002 / 1000)
+                pricing_metadata["unknown_usage"] = True
 
         pricing_metadata["total_cost"] = total_cost
 

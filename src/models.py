@@ -18,7 +18,6 @@ from pydantic import (
 
 from src.utils.secrets import REDACTED, redact_sensitive_data
 
-
 # ============================================================================
 # Problem-related Models
 # ============================================================================
@@ -291,9 +290,7 @@ class IterationResult(BaseModel):
     completion_tokens: int = Field(0, ge=0, description="Completion tokens used")
     code_extracted: Optional[str] = Field(None, description="Extracted code")
     sandbox_result: Optional[SandboxResult] = Field(None, description="Sandbox execution result")
-    prompt: Optional[str] = Field(
-        None, description="Redacted request prompt sent to the model"
-    )
+    prompt: Optional[str] = Field(None, description="Redacted request prompt sent to the model")
     response_text: Optional[str] = Field(
         None, description="Raw model response text (redacted before persisting)"
     )
@@ -303,16 +300,12 @@ class IterationResult(BaseModel):
     sandbox_error: Optional[str] = Field(
         None, description="Redacted sandbox failure reason for this iteration"
     )
-    usage_missing: bool = Field(
-        False, description="True when the provider returned no usage data"
-    )
+    usage_missing: bool = Field(False, description="True when the provider returned no usage data")
     effective_params: Dict[str, Any] = Field(
         default_factory=dict,
         description="Redacted model parameters effective for this iteration",
     )
-    elapsed_seconds: float = Field(
-        0.0, ge=0, description="Wall-clock duration of this iteration"
-    )
+    elapsed_seconds: float = Field(0.0, ge=0, description="Wall-clock duration of this iteration")
 
 
 class ExecutionResult(BaseModel):
@@ -340,9 +333,7 @@ class ExecutionResult(BaseModel):
     difficulty: Optional[Literal["easy", "medium", "hard"]] = Field(
         None, description="Problem difficulty level"
     )
-    iterations: List[IterationResult] = Field(
-        default_factory=list, description="Iteration results"
-    )
+    iterations: List[IterationResult] = Field(default_factory=list, description="Iteration results")
     final_result: Optional[SandboxResult] = Field(None, description="Final sandbox result")
     hidden_result: Optional[SandboxResult] = Field(
         None, description="Independent hidden evaluation result"
@@ -350,9 +341,7 @@ class ExecutionResult(BaseModel):
     formal_evaluable: bool = Field(
         False, description="Whether this problem has independent hidden evaluation cases"
     )
-    test_results: List[TestCaseResult] = Field(
-        default_factory=list, description="Test results"
-    )
+    test_results: List[TestCaseResult] = Field(default_factory=list, description="Test results")
     error_message: Optional[str] = Field(None, description="Error message")
     total_tokens: int = Field(0, ge=0, description="Total tokens used")
     execution_time_seconds: float = Field(0.0, ge=0, description="Execution time")
@@ -387,11 +376,10 @@ class StrategyReport(BaseModel):
     estimated_cost_usd: float = Field(..., ge=0.0, description="Estimated cost in USD")
     pricing_metadata: Optional[Dict[str, Any]] = Field(
         None,
-        description="Pricing information used for cost estimation (model, prompt_price_per_1k, completion_price_per_1k, source)"
+        description="Pricing information used for cost estimation (model, prompt_price_per_1k, completion_price_per_1k, source)",
     )
     by_difficulty: Dict[str, Dict[str, Any]] = Field(
-        default_factory=dict,
-        description="Success rate breakdown by difficulty level"
+        default_factory=dict, description="Success rate breakdown by difficulty level"
     )
     model_failed_problems: int = Field(
         0, ge=0, description="Problems that failed because the model API errored"
@@ -424,6 +412,14 @@ class TokenUsage(BaseModel):
     prompt_tokens: int = Field(..., ge=0, description="Input tokens")
     completion_tokens: int = Field(..., ge=0, description="Output tokens")
     total_tokens: int = Field(..., ge=0, description="Total tokens")
+    reasoning_tokens: int = Field(
+        0,
+        ge=0,
+        description=(
+            "Reasoning tokens reported by the provider; already included in "
+            "the completion and total counts, tracked separately for budgets"
+        ),
+    )
 
     @property
     def cost_estimate_usd(self) -> float:
@@ -445,8 +441,7 @@ class LLMResponse(BaseModel):
     model: str = Field(..., description="Model name")
     finish_reason: Optional[str] = Field(None, description="Finish reason")
     pricing_metadata: Optional[Dict[str, Any]] = Field(
-        None,
-        description="Pricing information used for cost estimation"
+        None, description="Pricing information used for cost estimation"
     )
     usage_missing: bool = Field(
         False,
@@ -556,9 +551,58 @@ class StrategyConfig(BaseModel):
     temperature: float = Field(0.7, ge=0.0, le=2.0, description="LLM temperature")
     max_tokens: int = Field(2000, ge=100, le=8000, description="Max tokens per generation")
     system_prompt: Optional[str] = Field(None, description="System prompt override")
-    custom_params: Dict[str, Any] = Field(
-        default_factory=dict, description="Custom parameters"
+    custom_params: Dict[str, Any] = Field(default_factory=dict, description="Custom parameters")
+
+
+class ProblemBudget(BaseModel):
+    """Per-problem budget caps for fixed-budget experiments.
+
+    Each problem starts with a fresh budget. Token budgets settle against
+    known provider usage only (input + output, including any reasoning
+    tokens the provider reports inside its completion count).
+    """
+
+    max_calls: Optional[int] = Field(None, ge=1, description="Maximum model calls per problem")
+    max_tokens: Optional[int] = Field(
+        None,
+        ge=1,
+        description="Maximum known token usage per problem before the next call is refused",
     )
+    max_seconds: Optional[float] = Field(
+        None, gt=0, description="Maximum wall-clock seconds per problem"
+    )
+
+
+class ExperimentConfig(BaseModel):
+    """Fixed-budget experiment configuration (model x strategy x dataset x repeat)."""
+
+    name: Optional[str] = Field(None, description="Human-readable experiment name")
+    dataset_path: str = Field(..., description="Path to the problem dataset JSON file")
+    output_dir: str = Field(
+        "./results/experiments", description="Base output directory for experiment artifacts"
+    )
+    models: List[LLMConfig] = Field(
+        ..., min_length=1, description="Model configurations to compare"
+    )
+    strategies: List[StrategyConfig] = Field(
+        ..., min_length=1, description="Strategy configurations to compare"
+    )
+    repeats: int = Field(
+        1, ge=1, description="Number of repetitions per model x strategy combination"
+    )
+    budget: Optional[ProblemBudget] = Field(
+        None, description="Optional per-problem budget caps applied to every combination"
+    )
+    sandbox_config: SandboxConfig = Field(
+        default_factory=SandboxConfig, description="Sandbox configuration"
+    )
+    problem_filters: Optional[Dict[str, Any]] = Field(
+        None, description="Optional filters applied to the dataset before execution"
+    )
+
+    def redacted_dict(self) -> Dict[str, Any]:
+        """Return a serialization-safe view of the experiment configuration."""
+        return redact_sensitive_data(self.model_dump(mode="json"))
 
 
 class HarnessConfig(BaseModel):
@@ -574,9 +618,7 @@ class HarnessConfig(BaseModel):
     )
     output_dir: str = Field("./results", description="Output directory")
     max_workers: int = Field(5, ge=1, le=20, description="Number of parallel workers")
-    log_level: Literal["DEBUG", "INFO", "WARNING", "ERROR"] = Field(
-        "INFO", description="Log level"
-    )
+    log_level: Literal["DEBUG", "INFO", "WARNING", "ERROR"] = Field("INFO", description="Log level")
     problem_filters: Optional[Dict[str, Any]] = Field(
         None, description="Optional filters for problems (difficulty, tags, etc.)"
     )
@@ -661,9 +703,7 @@ class ExecutionSummary(BaseModel):
     def most_efficient_strategy(self) -> str:
         """Get most token-efficient strategy (among those with >50% success)."""
         eligible = {
-            name: metrics
-            for name, metrics in self.metrics.items()
-            if metrics.success_rate > 0.5
+            name: metrics for name, metrics in self.metrics.items() if metrics.success_rate > 0.5
         }
         if not eligible:
             return ""

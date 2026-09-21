@@ -140,7 +140,11 @@ def print_report(reports: dict):
         print(f"  Sample-only Problems: {report.sample_only_problems}")
         print(f"  Avg Attempts: {report.avg_attempts_per_problem:.2f}")
         print(f"  Avg Tokens: {report.avg_tokens_per_problem:.0f}")
-        print(f"  Estimated Cost: ${report.estimated_cost_usd:.4f}")
+        cost_pricing = report.pricing_metadata or {}
+        if cost_pricing.get("unknown_usage") or cost_pricing.get("unknown_pricing"):
+            print("  Estimated Cost: 未知")
+        else:
+            print(f"  Estimated Cost: ${report.estimated_cost_usd:.4f}")
         print()
 
 
@@ -160,8 +164,7 @@ def create_run_dir(output_dir: str, run_id: str | None = None) -> Path:
     return run_path
 
 
-def save_results(reports: dict, output_dir: str, harness: AlgorithmHarness,
-                 config: HarnessConfig):
+def save_results(reports: dict, output_dir: str, harness: AlgorithmHarness, config: HarnessConfig):
     """
     Save results to a timestamped run directory.
 
@@ -212,7 +215,7 @@ def save_results(reports: dict, output_dir: str, harness: AlgorithmHarness,
             "dataset_fingerprint": task_record.dataset_fingerprint,
         }
     metadata_file = run_path / "metadata.json"
-    with open(metadata_file, 'w') as f:
+    with open(metadata_file, "w") as f:
         json.dump(metadata, f, indent=2)
     logger.info("metadata_saved", path=str(metadata_file))
 
@@ -222,7 +225,7 @@ def save_results(reports: dict, output_dir: str, harness: AlgorithmHarness,
     )
 
     summary_file = run_path / "summary.json"
-    with open(summary_file, 'w') as f:
+    with open(summary_file, "w") as f:
         json.dump(summary, f, indent=2)
 
     logger.info("summary_saved", path=str(summary_file))
@@ -239,7 +242,7 @@ def save_results(reports: dict, output_dir: str, harness: AlgorithmHarness,
 
     # Update the latest-run pointer for tooling
     latest_file = Path(output_dir) / "latest.json"
-    with open(latest_file, 'w') as f:
+    with open(latest_file, "w") as f:
         json.dump({"latest_run": run_path.name}, f, indent=2)
 
     print(f"\nResults saved to: {run_path}")
@@ -271,7 +274,10 @@ def run_import_command(args: argparse.Namespace) -> int:
     }
 
     if args.source not in IMPORTERS:
-        print(f"Error: --source is required. Supported types: {', '.join(IMPORTERS.keys())}", file=sys.stderr)
+        print(
+            f"Error: --source is required. Supported types: {', '.join(IMPORTERS.keys())}",
+            file=sys.stderr,
+        )
         return 2
 
     try:
@@ -338,7 +344,9 @@ def run_import_command(args: argparse.Namespace) -> int:
             "  Needs manual completion: "
             f"{sum(problem.needs_manual_completion for problem in result.successful)}"
         )
-        print(f"  New problems to import: {len([p for p in valid_problems if p.problem_id not in skipped_ids and p.problem_id not in overwritten_ids])}")
+        print(
+            f"  New problems to import: {len([p for p in valid_problems if p.problem_id not in skipped_ids and p.problem_id not in overwritten_ids])}"
+        )
         print()
 
         # Show failed items
@@ -353,7 +361,7 @@ def run_import_command(args: argparse.Namespace) -> int:
         # Confirmation (unless preview or force)
         if not args.preview and not args.force:
             response = input(f"Proceed with import? (y/N): ")
-            if response.lower() != 'y':
+            if response.lower() != "y":
                 print("Import cancelled.")
                 return 0
 
@@ -389,6 +397,52 @@ def run_import_command(args: argparse.Namespace) -> int:
         logger.error("import_failed", error=str(e))
         print(f"Error: {e}", file=sys.stderr)
         return 2
+
+
+def run_experiment_command(args: argparse.Namespace) -> int:
+    """
+    Execute a fixed-budget experiment (issue #15).
+
+    Args:
+        args: Parsed arguments with --config and optional --output-dir
+
+    Returns:
+        Exit code (0=success, 1=failure)
+    """
+    from src.experiment import ExperimentRunner
+    from src.models import ExperimentConfig
+
+    try:
+        payload = json.loads(Path(args.config).read_text(encoding="utf-8"))
+        payload.pop("comment", None)
+        config = ExperimentConfig(**payload)
+
+        unknown_names = sorted({s.name for s in config.strategies} - set(SUPPORTED_STRATEGIES))
+        if unknown_names:
+            raise ValueError(f"Unknown configured strategies: {', '.join(unknown_names)}")
+
+        if args.output_dir is not None:
+            config = config.model_copy(update={"output_dir": args.output_dir})
+
+        logger.info(
+            "experiment_starting",
+            config=args.config,
+            models=[m.model for m in config.models],
+            strategies=[s.name for s in config.strategies],
+            repeats=config.repeats,
+        )
+        exp_dir = ExperimentRunner(config).run()
+        print("\nExperiment completed.")
+        print(f"  Artifacts: {exp_dir}")
+        print(f"  Comparison report: {exp_dir / 'REPORT.md'}")
+        return 0
+    except FileNotFoundError as e:
+        print(f"Error: {e}", file=sys.stderr)
+        return 1
+    except Exception as e:
+        logger.error("experiment_failed", error=str(e))
+        print(f"Error: {e}", file=sys.stderr)
+        return 1
 
 
 def main():
@@ -535,11 +589,31 @@ def main():
         help="Terminal log rendering",
     )
 
-    # Subcommand dispatch: `run` (default) and `import`. Bare invocation
-    # without a subcommand is parsed directly by the run parser so legacy
-    # flag-only command lines keep working.
+    experiment_parser = subparsers.add_parser(
+        "experiment", help="Run fixed-budget model/strategy comparison experiments"
+    )
+    experiment_parser.add_argument(
+        "--config",
+        required=True,
+        help="Path to the experiment configuration JSON (see experiment.example.json)",
+    )
+    experiment_parser.add_argument(
+        "--output-dir",
+        default=None,
+        help="Override the configured experiment output directory",
+    )
+    experiment_parser.add_argument(
+        "--log-format",
+        choices=["console", "json"],
+        default="console",
+        help="Terminal log rendering",
+    )
+
+    # Subcommand dispatch: `run` (default), `import`, and `experiment`. Bare
+    # invocation without a subcommand is parsed directly by the run parser so
+    # legacy flag-only command lines keep working.
     argv = sys.argv[1:]
-    if argv and argv[0] in ("run", "import"):
+    if argv and argv[0] in ("run", "import", "experiment"):
         args = parser.parse_args(argv)
     else:
         args = run_parser.parse_args(argv)
@@ -549,6 +623,12 @@ def main():
     if args.command == "import":
         setup_logging(console_format=getattr(args, "log_format", "console"))
         exit_code = run_import_command(args)
+        sys.exit(exit_code)
+
+    # Handle experiment command
+    if args.command == "experiment":
+        setup_logging(console_format=getattr(args, "log_format", "console"))
+        exit_code = run_experiment_command(args)
         sys.exit(exit_code)
 
     setup_logging(console_format=args.log_format)

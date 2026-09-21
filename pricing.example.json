@@ -1,9 +1,10 @@
 {
-  "comment": "Custom pricing configuration for LLM Algorithm Harness. Copy this file to 'pricing.json' and modify as needed.",
+  "comment": "Custom pricing configuration for LLM Algorithm Harness. Copy this file to 'pricing.json' and modify as needed. Prices are USD per 1K tokens. 'as_of' (optional) records the date the price was taken from the provider so reports can show pricing freshness.",
   "models": {
     "gpt-4o": {
       "prompt_price_per_1k": 0.0025,
-      "completion_price_per_1k": 0.01
+      "completion_price_per_1k": 0.01,
+      "as_of": "2026-09-01"
     },
     "gpt-4o-mini": {
       "prompt_price_per_1k": 0.00015,
