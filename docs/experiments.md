@@ -65,11 +65,23 @@ results/experiments/exp-YYYYMMDD-HHMMSS/
 ├── experiment.json                        # 可复现元数据与组合清单
 ├── comparison.json / comparison.csv       # 机器可读对比结果
 ├── REPORT.md                              # 可阅读对比报告
+├── panel.html                             # 交互式对比面板（Chart.js）
 └── <model>__<strategy>__r<repeat>/
     ├── summary.json                       # 与普通 run 相同结构的策略汇总
     ├── <strategy>_results.json            # 每题终态结果
     └── budget_ledger.json                 # 每题实际消耗与停止原因
 ```
+
+## 模型对比分析（多模型实验）
+
+配置多个 `models` 后，`comparison.json` 会额外包含 `model_comparison` 段，`panel.html` 提供交互式面板：
+
+- **胜率矩阵**：同策略下模型两两逐题配对——A 过 B 挂计 A 胜，双方同果计平；重复实验按题取多数结果后再配对，`budget_exhausted` 视为未解出。每格胜/平/负之和恒等于题目总数。
+- **统计显著性**：对每对模型的不一致对（胜/负）做精确 McNemar 检验，报告 p 值并标注 `p<0.05` 是否显著；不一致对为 0 时标注"样本不足"，少于 5 对时提示结论保守。
+- **成本效益**：按"解出题数 / 总成本"排名；定价未配置的模型显示"未知"，不参与排名，也不进入成本散点图。
+- **面板图表**：能力雷达图（隐藏通过率/样例验证率/修复率/成本效益归一化）、成本 vs 准确率散点图、消耗柱状图；胜率矩阵以表格呈现。图表库 Chart.js 走 CDN，离线打开时图表区显示降级提示，表格数据不受影响。
+
+并行执行：配置 `"execution": "parallel"` 后按 (模型, 策略, 重复) 组合粒度并行（`max_workers` 限制并发上限，默认 4）。每个组合持有独立的 harness 与预算追踪器，串行与并行产出的目录与数据结构完全一致。
 
 `experiment.json` 记录：题集文件 SHA-256 与确定的题目 ID 列表、git commit、每个组合的有效模型参数（脱敏）、预算定义、定价快照（单价 + 来源 + `as_of` 日期）。相同配置与题集重跑会生成新目录，不会覆盖旧实验。
 

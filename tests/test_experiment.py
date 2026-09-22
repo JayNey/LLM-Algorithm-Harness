@@ -788,3 +788,289 @@ def test_runner_rerun_creates_new_directory(tmp_path):
     assert first != second
     assert first.exists() and second.exists()
     assert sorted((tmp_path / "experiments").glob("exp-*")) == [first, second]
+
+
+# ============================================================================
+# Model comparison: win-rate matrix, significance, cost-effectiveness (#48)
+# ============================================================================
+
+
+import re
+
+from src.experiment_report import _mcnemar_annotation, build_model_comparison
+
+
+def _pairwise_dataset(tmp_path, count=8):
+    dataset = tmp_path / "problems.json"
+    problems = []
+    for i in range(1, count + 1):
+        problems.append(
+            {
+                "problem_id": f"pw-{i}",
+                "title": f"Problem {i}",
+                "description": f"Return x plus one for pairwise problem {i}.",
+                "difficulty": "easy" if i % 2 else "medium",
+                "tags": ["math"],
+                "test_cases": [{"input": {"x": i}, "expected_output": i + 1}],
+            }
+        )
+    dataset.write_text(json.dumps(problems), encoding="utf-8")
+    return dataset
+
+
+def _model_solution(model: str, problem_number: int) -> str:
+    if model == "model-a":
+        solved = problem_number <= 6
+    else:  # model-b solves 1,2,3,7
+        solved = problem_number in {1, 2, 3, 7}
+    if solved:
+        return "def solution(x):\n    return x + 1"
+    return "def solution(x):\n    return x + 100"
+
+
+def _pairwise_factory():
+    def factory(config):
+        model = config.model
+        double = MagicMock()
+        double.generate.return_value = None
+        double.generate.side_effect = lambda prompt, **kwargs: LLMResponse(
+            text="```python\n"
+            + _model_solution(model, int(re.search(r"Problem (\d+)", prompt).group(1)))
+            + "\n```",
+            usage=TokenUsage(prompt_tokens=10, completion_tokens=5, total_tokens=15),
+            model=model,
+            finish_reason="stop",
+            # Only model-a carries pricing; model-b stays cost-unknown
+            pricing_metadata={
+                "model": model,
+                "prompt_price_per_1k": 0.001,
+                "completion_price_per_1k": 0.002,
+                "source": "custom",
+                "pricing_known": model == "model-a",
+                "usage_known": True,
+                "total_cost": 0.00002 if model == "model-a" else None,
+            },
+        )
+        return double
+
+    return factory
+
+
+def _pricing_known_for_a(tmp_path):
+    pricing = tmp_path / "pricing.json"
+    pricing.write_text(
+        json.dumps({"models": {"model-a": {"prompt": 0.001, "completion": 0.002}}}),
+        encoding="utf-8",
+    )
+    return str(pricing)
+
+
+def _pairwise_runner(tmp_path, repeats=1, execution="serial"):
+    dataset = _pairwise_dataset(tmp_path)
+    config = ExperimentConfig(
+        name="pairwise",
+        dataset_path=str(dataset),
+        output_dir=str(tmp_path / "experiments"),
+        models=[
+            LLMConfig(provider="openai", api_key="k", model="model-a"),
+            LLMConfig(provider="openai", api_key="k", model="model-b"),
+        ],
+        strategies=[StrategyConfig(name="vanilla", max_iterations=1)],
+        repeats=repeats,
+        sandbox_config=SandboxConfig(backend="host"),
+        execution=execution,
+    )
+    return config, dataset
+
+
+def test_win_rate_matrix_hand_computed(tmp_path):
+    config, _ = _pairwise_runner(tmp_path)
+    with patch("src.harness.LLMClient", side_effect=_pairwise_factory()):
+        exp_dir = ExperimentRunner(config, pricing_file=_pricing_known_for_a(tmp_path)).run()
+
+    comparison = json.loads((exp_dir / "comparison.json").read_text(encoding="utf-8"))
+    mc = comparison["model_comparison"]
+    strategy = mc["strategies"]["vanilla"]
+
+    row_a = strategy["matrix"][0]
+    assert row_a["model"] == "model-a"
+    assert row_a["solved"] == 6
+    cell = row_a["against"]["model-b"]
+    # A-only: pw-4/5/6 (3 wins); B-only: pw-7 (1 loss); same outcome: 4 ties
+    assert cell == {"wins": 3, "ties": 4, "losses": 1, "win_rate": 0.375}
+    assert cell["wins"] + cell["ties"] + cell["losses"] == 8
+
+    row_b = strategy["matrix"][1]
+    assert row_b["solved"] == 4
+    assert row_b["against"]["model-a"]["wins"] == 1
+    assert row_b["against"]["model-a"]["losses"] == 3
+
+    # Discordant pairs (3, 1): exact McNemar p = 0.625, not significant
+    sig = strategy["significance"][0]
+    assert (sig["a"], sig["b"]) == ("model-a", "model-b")
+    assert sig["discordant_pairs"] == 4
+    assert abs(sig["p_value"] - 0.625) < 1e-6
+    assert sig["significant"] is False
+
+    # model-a priced, model-b unknown: only model-a is ranked
+    assert [entry["model"] for entry in mc["cost_effectiveness"]] == ["model-a"]
+    assert mc["cost_unknown_models"] == ["model-b"]
+
+
+def test_mcnemar_annotation_branches():
+    insufficient = _mcnemar_annotation(0, 0)
+    assert insufficient["significant"] is None
+    assert "样本不足" in insufficient["note"]
+
+    significant = _mcnemar_annotation(6, 0)
+    assert significant["significant"] is True
+    assert abs(significant["p_value"] - 0.03125) < 1e-6
+
+    small = _mcnemar_annotation(3, 1)
+    assert small["significant"] is False
+    assert "保守" in small["note"]
+
+
+def test_budget_exhausted_pairing_counts_as_loss(tmp_path):
+    """A problem finished by B but budget-stopped under A counts for B."""
+    dataset = _pairwise_dataset(tmp_path, count=2)
+    config = ExperimentConfig(
+        name="pairwise-budget",
+        dataset_path=str(dataset),
+        output_dir=str(tmp_path / "experiments"),
+        models=[LLMConfig(provider="openai", api_key="k", model="model-a")],
+        strategies=[StrategyConfig(name="vanilla", max_iterations=1)],
+        repeats=1,
+        sandbox_config=SandboxConfig(backend="host"),
+    )
+    with patch("src.harness.LLMClient", side_effect=_pairwise_factory()):
+        exp_dir_a = ExperimentRunner(config, pricing_file="nonexistent.json").run()
+
+    # Manually assemble a model-b run that solves pw-1 and budget-stops pw-2,
+    # then verify the pairing logic through build_model_comparison
+    meta = json.loads((exp_dir_a / "experiment.json").read_text(encoding="utf-8"))
+    results_a = json.loads(
+        (exp_dir_a / "model-a__vanilla__r1" / "vanilla_results.json").read_text(encoding="utf-8")
+    )
+    results_b = [
+        {"problem_id": "pw-1", "status": "success"},
+        {"problem_id": "pw-2", "status": "budget_exhausted"},
+    ]
+    combos = [
+        {
+            "combo_id": "model-a__vanilla__r1",
+            "model": "model-a",
+            "strategy": "vanilla",
+            "repeat": 1,
+            "solved": 1,
+            "cost": {"total_cost_usd": 0.5, "known": True},
+        },
+        {
+            "combo_id": "model-b__vanilla__r1",
+            "model": "model-b",
+            "strategy": "vanilla",
+            "repeat": 1,
+            "solved": 1,
+            "cost": {"total_cost_usd": None, "known": False},
+        },
+    ]
+    raw = {
+        "model-a__vanilla__r1": [
+            {"problem_id": r["problem_id"], "status": "failed"} for r in results_a
+        ],
+        "model-b__vanilla__r1": results_b,
+    }
+    # Override model-a outcomes: pw-1 solved, pw-2 budget exhausted
+    raw["model-a__vanilla__r1"] = [
+        {"problem_id": "pw-1", "status": "success"},
+        {"problem_id": "pw-2", "status": "budget_exhausted"},
+    ]
+    meta["dataset"]["problem_ids"] = ["pw-1", "pw-2"]
+
+    mc = build_model_comparison(meta, combos, raw)
+    cell = mc["strategies"]["vanilla"]["matrix"][0]["against"]["model-b"]
+    # pw-1: both solved (tie); pw-2: both budget-exhausted (tie)
+    assert cell == {"wins": 0, "ties": 2, "losses": 0, "win_rate": 0.0}
+
+
+# ============================================================================
+# HTML comparison panel and parallel execution (#48)
+# ============================================================================
+
+
+def test_panel_html_contains_charts_and_matrix(tmp_path):
+    config, _ = _pairwise_runner(tmp_path)
+    with patch("src.harness.LLMClient", side_effect=_pairwise_factory()):
+        exp_dir = ExperimentRunner(config, pricing_file=_pricing_known_for_a(tmp_path)).run()
+
+    panel_path = exp_dir / "panel.html"
+    assert panel_path.exists(), "runner must generate panel.html"
+    panel = panel_path.read_text(encoding="utf-8")
+
+    # Three chart canvases plus the Chart.js CDN reference
+    assert 'id="radar"' in panel and 'id="scatter"' in panel and 'id="bar"' in panel
+    assert "cdn.jsdelivr.net/npm/chart.js" in panel
+
+    # Win-rate matrix table rendered with the hand-computed counts
+    assert "胜率矩阵 — vanilla" in panel
+    assert "3胜 4平 1负" in panel
+
+    # Cost-unknown model-b never enters the scatter payload
+    data_match = re.search(
+        r'<script id="panel-data" type="application/json">(.*?)</script>', panel, re.DOTALL
+    )
+    assert data_match, "panel data must be embedded"
+    payload = json.loads(data_match.group(1).replace("<\\/", "</"))
+    scatter_labels = [point["label"] for point in payload["scatter"]]
+    assert scatter_labels == ["model-a × vanilla"]
+
+    # Offline degradation hint ships with the page
+    assert "offline-hint" in panel
+
+
+def test_parallel_execution_matches_serial_structure(tmp_path):
+    """Same config under serial and parallel yields identical artifacts."""
+    dataset = _pairwise_dataset(tmp_path)
+    serial_config = ExperimentConfig(
+        name="mode-serial",
+        dataset_path=str(dataset),
+        output_dir=str(tmp_path / "serial"),
+        models=[
+            LLMConfig(provider="openai", api_key="k", model="model-a"),
+            LLMConfig(provider="openai", api_key="k", model="model-b"),
+        ],
+        strategies=[StrategyConfig(name="vanilla", max_iterations=1)],
+        repeats=2,
+        sandbox_config=SandboxConfig(backend="host"),
+    )
+    parallel_config = serial_config.model_copy(
+        update={
+            "name": "mode-parallel",
+            "output_dir": str(tmp_path / "parallel"),
+            "execution": "parallel",
+            "max_workers": 2,
+        }
+    )
+    with patch("src.harness.LLMClient", side_effect=_pairwise_factory()):
+        serial_dir = ExperimentRunner(serial_config, pricing_file="nonexistent.json").run()
+        parallel_dir = ExperimentRunner(parallel_config, pricing_file="nonexistent.json").run()
+
+    def _structure(exp_dir):
+        meta = json.loads((exp_dir / "experiment.json").read_text(encoding="utf-8"))
+        combos = [c["combo_id"] for c in meta["combinations"]]
+        panel = (exp_dir / "panel.html").exists()
+        comparison = json.loads((exp_dir / "comparison.json").read_text(encoding="utf-8"))
+        return combos, panel, sorted(comparison["model_comparison"]["strategies"].keys())
+
+    assert _structure(serial_dir) == _structure(parallel_dir)
+
+    # max_workers bounds concurrency and stays valid at 1
+    assert parallel_config.max_workers == 2
+    with patch("src.harness.LLMClient", side_effect=_pairwise_factory()):
+        single = ExperimentRunner(
+            parallel_config.model_copy(
+                update={"max_workers": 1, "output_dir": str(tmp_path / "w1")}
+            ),
+            pricing_file="nonexistent.json",
+        ).run()
+    assert (single / "panel.html").exists()

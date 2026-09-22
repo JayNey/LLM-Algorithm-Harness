@@ -12,11 +12,13 @@ import hashlib
 import json
 import re
 import subprocess
+from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 
 from src.budget import BudgetTracker
+from src.experiment_panel import generate_html_panel
 from src.experiment_report import generate_comparison_report
 from src.harness import AlgorithmHarness
 from src.models import ExperimentConfig, HarnessConfig, StrategyConfig
@@ -102,12 +104,29 @@ class ExperimentRunner:
         }
         self._write_json(exp_dir / "experiment.json", metadata)
 
-        for model in self.config.models:
-            for strategy in self.config.strategies:
-                for repeat in range(1, self.config.repeats + 1):
-                    combo = self._run_combo(exp_dir, model, strategy, repeat)
-                    metadata["combinations"].append(combo)
-                    self._write_json(exp_dir / "experiment.json", metadata)
+        jobs = [
+            (model, strategy, repeat)
+            for model in self.config.models
+            for strategy in self.config.strategies
+            for repeat in range(1, self.config.repeats + 1)
+        ]
+        if self.config.execution == "parallel" and len(jobs) > 1:
+            workers = min(self.config.max_workers, len(jobs))
+            logger.info("experiment_parallel_start", jobs=len(jobs), workers=workers)
+            with ThreadPoolExecutor(max_workers=workers) as pool:
+                # Iterate futures in submission order so the recorded
+                # combination order stays identical to serial execution
+                futures = [
+                    pool.submit(self._run_combo, exp_dir, model, strategy, repeat)
+                    for model, strategy, repeat in jobs
+                ]
+                for future in futures:
+                    metadata["combinations"].append(future.result())
+        else:
+            for model, strategy, repeat in jobs:
+                combo = self._run_combo(exp_dir, model, strategy, repeat)
+                metadata["combinations"].append(combo)
+                self._write_json(exp_dir / "experiment.json", metadata)
 
         metadata["finished_at"] = datetime.now().isoformat()
         self._write_json(exp_dir / "experiment.json", metadata)
@@ -117,6 +136,7 @@ class ExperimentRunner:
             combinations=len(metadata["combinations"]),
         )
         generate_comparison_report(exp_dir)
+        generate_html_panel(exp_dir)
         return exp_dir
 
     def _load_problems(self):

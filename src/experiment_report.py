@@ -11,6 +11,7 @@ as unknown, never as $0.
 import csv
 import json
 from datetime import datetime
+from math import comb
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 
@@ -358,15 +359,151 @@ def _render_markdown(comparison: Dict[str, Any]) -> str:
     return "\n".join(lines)
 
 
+def _majority_solved(
+    problem_ids: List[str],
+    raw_results: Dict[str, List[Dict[str, Any]]],
+    model_combos: List[Dict[str, Any]],
+) -> Dict[str, bool]:
+    """Per-problem majority outcome across a model's repeats.
+
+    ``budget_exhausted`` counts as not solved; a problem is solved only when
+    the majority of the model's repeats finished it successfully.
+    """
+    per_repeat: Dict[int, Dict[str, bool]] = {}
+    for combo in model_combos:
+        for result in raw_results.get(combo["combo_id"], []):
+            record = per_repeat.setdefault(combo["repeat"], {})
+            record[result.get("problem_id")] = result.get("status") == "success"
+    total = len(per_repeat.values())
+    return {
+        problem_id: sum(1 for rep in per_repeat.values() if rep.get(problem_id)) > total / 2
+        for problem_id in problem_ids
+    }
+
+
+def _mcnemar_annotation(wins: int, losses: int) -> Dict[str, Any]:
+    """Exact McNemar annotation over discordant pairs (wins, losses).
+
+    Two-sided exact binomial p-value: 2 * P(X <= min(wins, losses)) under
+    H0 with p=0.5 — identical to scipy's ``binomtest`` without the import.
+    """
+    discordant = wins + losses
+    if discordant == 0:
+        return {
+            "discordant_pairs": 0,
+            "p_value": None,
+            "significant": None,
+            "note": "样本不足，无法检验",
+        }
+    tail = sum(comb(discordant, k) for k in range(0, min(wins, losses) + 1))
+    p_value = min(1.0, 2.0 * tail / 2**discordant)
+    note = "样本量较小，结论保守" if discordant < 5 else ""
+    return {
+        "discordant_pairs": discordant,
+        "p_value": round(p_value, 6),
+        "significant": p_value < 0.05,
+        "note": note,
+    }
+
+
+def build_model_comparison(
+    meta: Dict[str, Any],
+    combos: List[Dict[str, Any]],
+    raw_results: Dict[str, List[Dict[str, Any]]],
+) -> Dict[str, Any]:
+    """Cross-model analysis: win-rate matrix, significance, cost-effectiveness."""
+    problem_ids = list(meta.get("dataset", {}).get("problem_ids", []))
+    by_strategy: Dict[str, List[Dict[str, Any]]] = {}
+    for combo in combos:
+        by_strategy.setdefault(combo["strategy"], []).append(combo)
+
+    strategies: Dict[str, Any] = {}
+    for strategy in sorted(by_strategy):
+        members = by_strategy[strategy]
+        models = sorted({member["model"] for member in members})
+        solved = {
+            model: _majority_solved(
+                problem_ids,
+                raw_results,
+                [m for m in members if m["model"] == model],
+            )
+            for model in models
+        }
+
+        matrix = []
+        significance = []
+        for a in models:
+            cells: Dict[str, Any] = {}
+            for b in models:
+                if a == b:
+                    continue
+                wins = ties = losses = 0
+                for problem_id in problem_ids:
+                    solved_a = solved[a][problem_id]
+                    solved_b = solved[b][problem_id]
+                    if solved_a and not solved_b:
+                        wins += 1
+                    elif solved_b and not solved_a:
+                        losses += 1
+                    else:
+                        ties += 1
+                cells[b] = {
+                    "wins": wins,
+                    "ties": ties,
+                    "losses": losses,
+                    "win_rate": _rate(wins, wins + ties + losses),
+                }
+                if a < b:
+                    # Wins of b against a are the losses recorded from a's view
+                    annotation = _mcnemar_annotation(wins, losses)
+                    annotation.update({"a": a, "b": b})
+                    significance.append(annotation)
+            matrix.append({"model": a, "solved": sum(solved[a].values()), "against": cells})
+        strategies[strategy] = {"matrix": matrix, "significance": significance}
+
+    # Cost-effectiveness per model across all its combinations
+    per_model: Dict[str, Dict[str, Any]] = {}
+    for combo in combos:
+        entry = per_model.setdefault(combo["model"], {"solved": 0, "cost": 0.0, "known": True})
+        entry["solved"] += combo["solved"]
+        if not combo["cost"]["known"]:
+            entry["known"] = False
+        else:
+            entry["cost"] += combo["cost"]["total_cost_usd"] or 0.0
+
+    ranked = []
+    unknown_models = []
+    for model, entry in sorted(per_model.items()):
+        if not entry["known"] or entry["cost"] <= 0:
+            unknown_models.append(model)
+            continue
+        ranked.append(
+            {
+                "model": model,
+                "solved": entry["solved"],
+                "total_cost_usd": round(entry["cost"], 6),
+                "solved_per_usd": round(entry["solved"] / entry["cost"], 3),
+            }
+        )
+    ranked.sort(key=lambda item: item["solved_per_usd"], reverse=True)
+
+    return {
+        "strategies": strategies,
+        "cost_effectiveness": ranked,
+        "cost_unknown_models": unknown_models,
+    }
+
+
 def generate_comparison_report(exp_dir: Path) -> Dict[str, Any]:
-    """Aggregate one experiment directory into comparison.json/csv/REPORT.md."""
     meta = _load_json(Path(exp_dir) / "experiment.json")
     combos: List[Dict[str, Any]] = []
+    raw_results: Dict[str, List[Dict[str, Any]]] = {}
     for combo_ref in meta.get("combinations", []):
         combo_dir = Path(exp_dir) / combo_ref["combo_dir"]
         summary = _load_json(combo_dir / "summary.json")
         results = _load_json(combo_dir / f"{combo_ref['strategy']}_results.json")
         ledger = _load_json(combo_dir / "budget_ledger.json")
+        raw_results[combo_ref["combo_id"]] = results
         combos.append(_combo_metrics(meta, combo_ref, summary, results, ledger))
 
     comparison = {
@@ -374,6 +511,7 @@ def generate_comparison_report(exp_dir: Path) -> Dict[str, Any]:
         "experiment": meta,
         "combinations": combos,
         "by_model_strategy": _aggregate_by_model_strategy(combos),
+        "model_comparison": build_model_comparison(meta, combos, raw_results),
     }
 
     with open(Path(exp_dir) / "comparison.json", "w", encoding="utf-8") as f:
