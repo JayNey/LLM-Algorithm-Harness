@@ -28,5 +28,5 @@
 
 **文件**: `docs/experiments.md`, `README.md`
 
-- [ ] 成本优化使用指南（三目标、启发式边界、与 #65 数据关系）
-- [ ] 全量测试 + OpenSpec validate 通过
+- [x] 成本优化使用指南（三目标、启发式边界、与 #65 数据关系）
+- [x] 全量测试 + OpenSpec validate 通过
