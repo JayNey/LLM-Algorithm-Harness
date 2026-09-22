@@ -244,7 +244,8 @@ harness --config config.yaml \
       "name": "self_consistency",
       "max_iterations": 1,
       "custom_params": {
-        "num_candidates": 5
+        "num_candidates": 5,
+        "temperature": 0.8
       }
     }
   ]
@@ -642,11 +643,11 @@ cat results/summary.json | jq '.strategies.vanilla.pricing_metadata'
 多轮反馈迭代优化策略。根据测试结果提供反馈，让模型修正代码，最多进行配置的最大迭代次数。
 
 ### Self-Consistency
-生成多个候选解（默认 5 个）并通过投票选择最频繁的正确答案。通过高温度采样（0.8）增加候选解的多样性，适合有多种求解路径的问题。
+生成多个候选解（默认 5 个）并通过投票选择最频繁的正确答案。通过高温度采样（默认 0.8）增加候选解的多样性，适合有多种求解路径的问题。
 
 **配置参数：**
 - `num_candidates`: 生成的候选解数量（默认 5）
-- `temperature`: 固定为 0.8 以保证多样性
+- `temperature`: 采样温度（默认 0.8，可通过 custom_params 配置）
 
 **适用场景：**
 - 有多种求解思路的问题

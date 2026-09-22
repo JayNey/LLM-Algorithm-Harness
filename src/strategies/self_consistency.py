@@ -78,16 +78,19 @@ class SelfConsistencyStrategy(StrategyBase):
 
         base_prompt = self.build_base_prompt(problem)
 
+        # Get temperature from custom_params, default to 0.8 for diversity
+        temperature = self.config.custom_params.get("temperature", 0.8)
+
         for i in range(self.num_candidates):
             iter_start = time.time()
             iteration_num = i + 1
 
             try:
-                # Generate with high temperature (0.8) for diversity
+                # Generate with configured temperature for diversity
                 llm_response = self.llm_client.generate(
                     base_prompt,
                     system_prompt=self.config.system_prompt,
-                    temperature=0.8,  # High temperature for diversity
+                    temperature=temperature,
                     max_tokens=(
                         self.config.max_tokens
                         if "max_tokens" in self.config.model_fields_set
