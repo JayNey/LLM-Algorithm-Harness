@@ -991,3 +991,86 @@ def test_budget_exhausted_pairing_counts_as_loss(tmp_path):
     cell = mc["strategies"]["vanilla"]["matrix"][0]["against"]["model-b"]
     # pw-1: both solved (tie); pw-2: both budget-exhausted (tie)
     assert cell == {"wins": 0, "ties": 2, "losses": 0, "win_rate": 0.0}
+
+
+# ============================================================================
+# HTML comparison panel and parallel execution (#48)
+# ============================================================================
+
+
+def test_panel_html_contains_charts_and_matrix(tmp_path):
+    config, _ = _pairwise_runner(tmp_path)
+    with patch("src.harness.LLMClient", side_effect=_pairwise_factory()):
+        exp_dir = ExperimentRunner(config, pricing_file=_pricing_known_for_a(tmp_path)).run()
+
+    panel_path = exp_dir / "panel.html"
+    assert panel_path.exists(), "runner must generate panel.html"
+    panel = panel_path.read_text(encoding="utf-8")
+
+    # Three chart canvases plus the Chart.js CDN reference
+    assert 'id="radar"' in panel and 'id="scatter"' in panel and 'id="bar"' in panel
+    assert "cdn.jsdelivr.net/npm/chart.js" in panel
+
+    # Win-rate matrix table rendered with the hand-computed counts
+    assert "胜率矩阵 — vanilla" in panel
+    assert "3胜 4平 1负" in panel
+
+    # Cost-unknown model-b never enters the scatter payload
+    data_match = re.search(
+        r'<script id="panel-data" type="application/json">(.*?)</script>', panel, re.DOTALL
+    )
+    assert data_match, "panel data must be embedded"
+    payload = json.loads(data_match.group(1).replace("<\\/", "</"))
+    scatter_labels = [point["label"] for point in payload["scatter"]]
+    assert scatter_labels == ["model-a × vanilla"]
+
+    # Offline degradation hint ships with the page
+    assert "offline-hint" in panel
+
+
+def test_parallel_execution_matches_serial_structure(tmp_path):
+    """Same config under serial and parallel yields identical artifacts."""
+    dataset = _pairwise_dataset(tmp_path)
+    serial_config = ExperimentConfig(
+        name="mode-serial",
+        dataset_path=str(dataset),
+        output_dir=str(tmp_path / "serial"),
+        models=[
+            LLMConfig(provider="openai", api_key="k", model="model-a"),
+            LLMConfig(provider="openai", api_key="k", model="model-b"),
+        ],
+        strategies=[StrategyConfig(name="vanilla", max_iterations=1)],
+        repeats=2,
+        sandbox_config=SandboxConfig(backend="host"),
+    )
+    parallel_config = serial_config.model_copy(
+        update={
+            "name": "mode-parallel",
+            "output_dir": str(tmp_path / "parallel"),
+            "execution": "parallel",
+            "max_workers": 2,
+        }
+    )
+    with patch("src.harness.LLMClient", side_effect=_pairwise_factory()):
+        serial_dir = ExperimentRunner(serial_config, pricing_file="nonexistent.json").run()
+        parallel_dir = ExperimentRunner(parallel_config, pricing_file="nonexistent.json").run()
+
+    def _structure(exp_dir):
+        meta = json.loads((exp_dir / "experiment.json").read_text(encoding="utf-8"))
+        combos = [c["combo_id"] for c in meta["combinations"]]
+        panel = (exp_dir / "panel.html").exists()
+        comparison = json.loads((exp_dir / "comparison.json").read_text(encoding="utf-8"))
+        return combos, panel, sorted(comparison["model_comparison"]["strategies"].keys())
+
+    assert _structure(serial_dir) == _structure(parallel_dir)
+
+    # max_workers bounds concurrency and stays valid at 1
+    assert parallel_config.max_workers == 2
+    with patch("src.harness.LLMClient", side_effect=_pairwise_factory()):
+        single = ExperimentRunner(
+            parallel_config.model_copy(
+                update={"max_workers": 1, "output_dir": str(tmp_path / "w1")}
+            ),
+            pricing_file="nonexistent.json",
+        ).run()
+    assert (single / "panel.html").exists()

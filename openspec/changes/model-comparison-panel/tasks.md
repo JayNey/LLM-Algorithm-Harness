@@ -21,19 +21,19 @@
 
 **文件**: 新增 `src/experiment_panel.py`
 
-- [ ] `generate_html_panel(exp_dir)`：消费 comparison.json 渲染 `panel.html`
-- [ ] Chart.js（CDN）雷达图 / 散点图 / 柱状图，数据 JSON 内嵌；离线降级提示
-- [ ] 胜率矩阵 HTML 表格；成本未知模型不进散点图
-- [ ] runner 生成 comparison 后调用面板生成
-- [ ] 测试：panel.html 含三种图表数据与矩阵表格；成本未知排除断言
+- [x] `generate_html_panel(exp_dir)`：消费 comparison.json 渲染 `panel.html`
+- [x] Chart.js（CDN）雷达图 / 散点图 / 柱状图，数据 JSON 内嵌；离线降级提示
+- [x] 胜率矩阵 HTML 表格；成本未知模型不进散点图
+- [x] runner 生成 comparison 后调用面板生成
+- [x] 测试：panel.html 含三种图表数据与矩阵表格；成本未知排除断言
 
 ## Task 4: 组合粒度并行执行
 
 **文件**: `src/models.py`, `src/experiment.py`
 
-- [ ] `ExperimentConfig.execution: serial|parallel`（默认 serial）与并行度配置
-- [ ] parallel：ThreadPoolExecutor 按组合并行，组合内逻辑与 serial 一致
-- [ ] 测试：serial 与 parallel 产出结构一致；并行度不超过上限
+- [x] `ExperimentConfig.execution: serial|parallel`（默认 serial）与并行度配置
+- [x] parallel：ThreadPoolExecutor 按组合并行，组合内逻辑与 serial 一致
+- [x] 测试：serial 与 parallel 产出结构一致；并行度不超过上限
 
 ## Task 5: 文档与回归
 

@@ -593,6 +593,19 @@ class ExperimentConfig(BaseModel):
     budget: Optional[ProblemBudget] = Field(
         None, description="Optional per-problem budget caps applied to every combination"
     )
+    execution: Literal["serial", "parallel"] = Field(
+        "serial",
+        description=(
+            "Combination execution mode; parallel runs combinations concurrently, "
+            "each with its own harness and budget tracker"
+        ),
+    )
+    max_workers: int = Field(
+        4,
+        ge=1,
+        le=16,
+        description="Upper bound of concurrently executed combinations in parallel mode",
+    )
     sandbox_config: SandboxConfig = Field(
         default_factory=SandboxConfig, description="Sandbox configuration"
     )
