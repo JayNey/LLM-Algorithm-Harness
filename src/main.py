@@ -439,9 +439,36 @@ def run_experiment_command(args: argparse.Namespace) -> int:
     except FileNotFoundError as e:
         print(f"Error: {e}", file=sys.stderr)
         return 1
+
     except Exception as e:
         logger.error("experiment_failed", error=str(e))
         print(f"Error: {e}", file=sys.stderr)
+        return 1
+
+
+def run_recommend_command(args: argparse.Namespace) -> int:
+    """Analyze history and write a recommended problem dataset."""
+    from src.recommender import RecommendationEngine
+
+    try:
+        report = RecommendationEngine(
+            args.history,
+            dataset_path=args.dataset,
+            failure_threshold=args.failure_threshold,
+            min_samples=args.min_samples,
+        ).write(args.output, limit=args.limit)
+        dataset_path = report["recommendation_config"]["dataset_path"]
+        print(f"Recommendation report saved to: {args.output}")
+        print(f"Recommended dataset saved to: {dataset_path}")
+        print(f"Weak groups: {len(report['weakness_report'])}")
+        print(f"Recommended problems: {len(report['recommended_problem_ids'])}")
+        return 0
+    except FileNotFoundError as exc:
+        print(f"Error: {exc}", file=sys.stderr)
+        return 1
+    except Exception as exc:
+        logger.error("recommendation_failed", error=str(exc))
+        print(f"Error: {exc}", file=sys.stderr)
         return 1
 
 
@@ -609,11 +636,31 @@ def main():
         help="Terminal log rendering",
     )
 
+    recommend_parser = subparsers.add_parser(
+        "recommend", help="Analyze evaluation history and recommend unevaluated problems"
+    )
+    recommend_parser.add_argument("--history", required=True, help="Results directory or JSON result file")
+    recommend_parser.add_argument("--output", required=True, help="Recommendation report JSON path")
+    recommend_parser.add_argument("--dataset", help="Problem dataset; inferred from history metadata when omitted")
+    recommend_parser.add_argument(
+        "--failure-threshold", type=float, default=0.5,
+        help="Minimum failure rate for a weak group (default: 0.5)",
+    )
+    recommend_parser.add_argument(
+        "--min-samples", type=positive_int, default=1,
+        help="Minimum historical records per group (default: 1)",
+    )
+    recommend_parser.add_argument(
+        "--limit", type=positive_int, default=20,
+        help="Maximum recommended problems (default: 20)",
+    )
+    recommend_parser.add_argument("--log-format", choices=["console", "json"], default="console")
+
     # Subcommand dispatch: `run` (default), `import`, and `experiment`. Bare
     # invocation without a subcommand is parsed directly by the run parser so
     # legacy flag-only command lines keep working.
     argv = sys.argv[1:]
-    if argv and argv[0] in ("run", "import", "experiment"):
+    if argv and argv[0] in ("run", "import", "experiment", "recommend"):
         args = parser.parse_args(argv)
     else:
         args = run_parser.parse_args(argv)
@@ -629,6 +676,11 @@ def main():
     if args.command == "experiment":
         setup_logging(console_format=getattr(args, "log_format", "console"))
         exit_code = run_experiment_command(args)
+        sys.exit(exit_code)
+
+    if args.command == "recommend":
+        setup_logging(console_format=getattr(args, "log_format", "console"))
+        exit_code = run_recommend_command(args)
         sys.exit(exit_code)
 
     setup_logging(console_format=args.log_format)

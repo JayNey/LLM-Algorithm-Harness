@@ -309,6 +309,22 @@ problem_filters:
 
 ## 运行测试
 
+### 根据历史结果推荐题目
+
+推荐器会按历史失败率分析难度、标签和标签组合，排除已评估题目，生成报告和标准题目数据集：
+
+```bash
+harness recommend \
+  --history results/ \
+  --dataset data/problems.json \
+  --output recommended.json \
+  --failure-threshold 0.5 \
+  --min-samples 2 \
+  --limit 20
+```
+
+也可以省略 `--dataset`，让工具从历史 `metadata.json` 或 `experiment.json` 推断题库路径。命令会生成 `recommended.json` 和同目录的 `recommended.problems.json`；后者可直接用于 `harness --dataset recommended.problems.json`。推荐报告包含失败率排名、样本数、失败类型和推荐理由。
+
 ### 运行所有测试
 
 ```bash
