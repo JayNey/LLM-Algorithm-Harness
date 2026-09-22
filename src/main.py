@@ -445,6 +445,73 @@ def run_experiment_command(args: argparse.Namespace) -> int:
         return 1
 
 
+def run_optimize_command(args: argparse.Namespace) -> int:
+    """
+    Produce a cost optimization advisory from a completed experiment (issue #56).
+
+    Args:
+        args: Parsed arguments with --experiment and optimization options
+
+    Returns:
+        Exit code (0=success, 1=failure)
+    """
+    from src.cost_optimizer import build_advisory, render_markdown
+
+    exp_dir = Path(args.experiment)
+    comparison_file = exp_dir / "comparison.json"
+    if not comparison_file.exists():
+        print(
+            f"Error: comparison.json not found under {exp_dir}; "
+            "run an experiment first (harness experiment --config ...).",
+            file=sys.stderr,
+        )
+        return 1
+    try:
+        comparison = json.loads(comparison_file.read_text(encoding="utf-8"))
+        advisory = build_advisory(
+            comparison,
+            budget=args.budget,
+            min_accuracy=args.min_accuracy,
+            objective=args.objective,
+        )
+        optimization_file = exp_dir / "optimization.json"
+        with open(optimization_file, "w", encoding="utf-8") as f:
+            json.dump(advisory, f, indent=2, ensure_ascii=False)
+            f.write("\n")
+        with open(exp_dir / "OPTIMIZATION.md", "w", encoding="utf-8") as f:
+            f.write(render_markdown(advisory))
+
+        print("\nCost optimization advisory:")
+        ranking = advisory["ranking"]["ranking"]
+        if ranking:
+            print(
+                "  Best value: "
+                + f"{ranking[0]['model']} × {ranking[0]['strategy']}"
+                + f" (ratio {ranking[0]['ratio']})"
+            )
+        for name in ("highest_accuracy", "best_value", "lowest_cost"):
+            rec = advisory["recommendations"][name]
+            if rec.get("feasible"):
+                print(
+                    f"  {name}: {rec['model']} × {rec['strategy']}"
+                    f" (accuracy {rec['accuracy']:.1%}, ${rec['cost_usd']:.4f})"
+                )
+            else:
+                print(f"  {name}: {rec.get('note')}")
+        if advisory.get("budget_plan"):
+            plan = advisory["budget_plan"]
+            print(
+                f"  Budget plan: ${plan['estimated_cost']:.4f} of ${plan['budget']},"
+                f" coverage {plan['coverage']} problems"
+            )
+        print(f"  Artifacts: {optimization_file} and {exp_dir / 'OPTIMIZATION.md'}")
+        return 0
+    except Exception as e:
+        logger.error("optimize_failed", error=str(e))
+        print(f"Error: {e}", file=sys.stderr)
+        return 1
+
+
 def main():
     """Main entry point."""
     parser = argparse.ArgumentParser(
@@ -609,11 +676,44 @@ def main():
         help="Terminal log rendering",
     )
 
-    # Subcommand dispatch: `run` (default), `import`, and `experiment`. Bare
-    # invocation without a subcommand is parsed directly by the run parser so
-    # legacy flag-only command lines keep working.
+    optimize_parser = subparsers.add_parser(
+        "optimize", help="Cost optimization advisory from a completed experiment"
+    )
+    optimize_parser.add_argument(
+        "--experiment",
+        required=True,
+        help="Path to the experiment directory containing comparison.json",
+    )
+    optimize_parser.add_argument(
+        "--budget",
+        type=float,
+        default=None,
+        help="Budget in USD for the per-difficulty plan",
+    )
+    optimize_parser.add_argument(
+        "--min-accuracy",
+        type=float,
+        default=0.0,
+        help="Minimum accuracy constraint for recommendations (0-1)",
+    )
+    optimize_parser.add_argument(
+        "--objective",
+        choices=["highest_accuracy", "best_value", "lowest_cost"],
+        default="best_value",
+        help="Primary recommendation objective",
+    )
+    optimize_parser.add_argument(
+        "--log-format",
+        choices=["console", "json"],
+        default="console",
+        help="Terminal log rendering",
+    )
+
+    # Subcommand dispatch: `run` (default), `import`, `experiment`, and
+    # `optimize`. Bare invocation without a subcommand is parsed directly by
+    # the run parser so legacy flag-only command lines keep working.
     argv = sys.argv[1:]
-    if argv and argv[0] in ("run", "import", "experiment"):
+    if argv and argv[0] in ("run", "import", "experiment", "optimize"):
         args = parser.parse_args(argv)
     else:
         args = run_parser.parse_args(argv)
@@ -629,6 +729,12 @@ def main():
     if args.command == "experiment":
         setup_logging(console_format=getattr(args, "log_format", "console"))
         exit_code = run_experiment_command(args)
+        sys.exit(exit_code)
+
+    # Handle optimize command
+    if args.command == "optimize":
+        setup_logging(console_format=getattr(args, "log_format", "console"))
+        exit_code = run_optimize_command(args)
         sys.exit(exit_code)
 
     setup_logging(console_format=args.log_format)

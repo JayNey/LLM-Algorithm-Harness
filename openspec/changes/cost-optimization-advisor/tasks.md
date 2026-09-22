@@ -20,9 +20,9 @@
 
 **文件**: `src/main.py`
 
-- [ ] `harness optimize --experiment <dir> [--budget] [--min-accuracy] [--objective]` 子命令
-- [ ] 写 `optimization.json` + `OPTIMIZATION.md`，stdout 摘要；缺输入报错退出码 1
-- [ ] 端到端测试：产物与退出码断言；缺输入报错断言
+- [x] `harness optimize --experiment <dir> [--budget] [--min-accuracy] [--objective]` 子命令
+- [x] 写 `optimization.json` + `OPTIMIZATION.md`，stdout 摘要；缺输入报错退出码 1
+- [x] 端到端测试：产物与退出码断言；缺输入报错断言
 
 ## Task 4: 文档与回归
 

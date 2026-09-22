@@ -7,6 +7,7 @@ priced mid-tier — plus one cost-unknown combination.
 """
 
 import pytest
+from unittest.mock import patch
 
 from src.cost_optimizer import (
     build_advisory,
@@ -166,3 +167,74 @@ class TestBudgetOptimizer:
             "lowest_cost",
         }
         assert "budget_plan" in payload
+
+
+# ============================================================================
+# CLI optimize subcommand (task 3)
+# ============================================================================
+
+
+import json as _json
+
+
+def _run_main(argv):
+    from src.main import main
+
+    exit_code = 0
+    with patch("sys.argv", ["main.py"] + argv):
+        try:
+            main()
+        except SystemExit as exc:
+            exit_code = exc.code or 0
+    return exit_code
+
+
+def _comparison_file(tmp_path):
+    exp_dir = tmp_path / "exp-test"
+    exp_dir.mkdir()
+    comparison = {
+        "experiment": {"experiment_id": "exp-test"},
+        "combinations": [
+            _combo("budget-model", "vanilla", 5, 10, 1.00),
+            _combo("pro-model", "vanilla", 9, 10, 4.00),
+            _combo("mid-model", "cot", 7, 10, 2.00),
+            _combo("mystery-model", "vanilla", 8, 10, None),
+        ],
+    }
+    (exp_dir / "comparison.json").write_text(_json.dumps(comparison), encoding="utf-8")
+    return exp_dir
+
+
+def test_cli_optimize_end_to_end(tmp_path, capsys):
+    exp_dir = _comparison_file(tmp_path)
+
+    exit_code = _run_main(
+        [
+            "optimize",
+            "--experiment",
+            str(exp_dir),
+            "--budget",
+            "10",
+            "--min-accuracy",
+            "0.6",
+        ]
+    )
+
+    assert exit_code == 0
+    captured = capsys.readouterr()
+    assert "Cost optimization advisory" in captured.out
+    optimization = _json.loads((exp_dir / "optimization.json").read_text(encoding="utf-8"))
+    assert optimization["recommendations"]["highest_accuracy"]["model"] == "pro-model"
+    assert optimization["budget_plan"]["budget"] == 10.0
+    assert "成本优化建议" in (exp_dir / "OPTIMIZATION.md").read_text(encoding="utf-8")
+
+
+def test_cli_optimize_missing_comparison_fails(tmp_path, capsys):
+    missing = tmp_path / "not-an-experiment"
+    missing.mkdir()
+
+    exit_code = _run_main(["optimize", "--experiment", str(missing)])
+
+    assert exit_code == 1
+    assert "comparison.json" in capsys.readouterr().err
+    assert not (missing / "optimization.json").exists()
