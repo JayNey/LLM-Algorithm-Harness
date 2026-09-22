@@ -29,5 +29,5 @@
 
 **文件**: `docs/experiments.md`
 
-- [ ] 错误分类规则、建议口径与面板使用说明
-- [ ] 全量测试 + OpenSpec validate 通过
+- [x] 错误分类规则、建议口径与面板使用说明
+- [x] 全量测试 + OpenSpec validate 通过
