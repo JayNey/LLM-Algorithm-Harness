@@ -498,7 +498,7 @@ CSV 文件使用 UTF-8 BOM 编码，确保在 Excel 中正确显示中文。
 harness experiment --config experiment.json
 ```
 
-配置格式、预算生效方式与报告口径详见 [docs/experiments.md](docs/experiments.md)；示例配置见 `experiment.example.json`。未配置定价的模型成本显示"未知"，不会按默认单价折算。
+多模型实验会额外输出胜率矩阵、精确 McNemar 显著性标注、成本效益排名和交互式对比面板 `panel.html`（雷达图 / 成本-准确率散点图 / 消耗柱状图），并支持 `"execution": "parallel"` 组合粒度并行。配置格式、预算生效方式与报告口径详见 [docs/experiments.md](docs/experiments.md)；示例配置见 `experiment.example.json`。未配置定价的模型成本显示"未知"，不会按默认单价折算。
 
 ## 自定义模型定价
 

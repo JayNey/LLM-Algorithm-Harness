@@ -39,5 +39,5 @@
 
 **文件**: `docs/experiments.md`, `README.md`
 
-- [ ] 文档补充：胜率/显著性/成本效益口径、panel.html 使用说明
-- [ ] 全量测试 + OpenSpec validate 通过
+- [x] 文档补充：胜率/显著性/成本效益口径、panel.html 使用说明
+- [x] 全量测试 + OpenSpec validate 通过
