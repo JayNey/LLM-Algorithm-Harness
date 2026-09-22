@@ -4,15 +4,16 @@
 
 ## 项目概述
 
-本项目为轻量级 LLM（如 GPT-3.5、Claude Haiku）提供一个完整的算法问题求解评估框架。支持三种核心策略：
+本项目为轻量级 LLM（如 GPT-3.5、Claude Haiku）提供一个完整的算法问题求解评估框架。支持四种核心策略：
 
 - **Vanilla**: 直接提示，无特殊引导
 - **Chain of Thought (CoT)**: 分步推理引导
 - **Multi-Round Feedback**: 多轮反馈迭代优化
+- **Self-Consistency**: 生成多个候选解并通过投票选择最佳答案
 
 ## 特性
 
-- **多策略支持**: 内置三种求解策略，可扩展自定义策略
+- **多策略支持**: 内置四种求解策略，可扩展自定义策略
 - **代码沙箱**: 隔离执行环境，安全运行用户生成代码
 - **详细指标**: 成功率、Token 消耗、成本估算、迭代次数统计
 - **灵活过滤**: 按难度、标签、数量筛选问题集
@@ -32,7 +33,8 @@ LLM-Algorithm-Harness/
 │   ├── strategies/
 │   │   ├── vanilla.py         # Vanilla 策略
 │   │   ├── chain_of_thought.py    # CoT 策略
-│   │   └── multi_round_feedback.py # 多轮反馈策略
+│   │   ├── multi_round_feedback.py # 多轮反馈策略
+│   │   └── self_consistency.py     # Self-Consistency 策略
 │   ├── harness.py             # 主协调器
 │   ├── main.py                # 入口程序
 │   └── utils/
@@ -98,7 +100,7 @@ PYTHONPATH=. python3 -m src.main --config config.siliconflow.example.json --list
 # 连接检查（同样免费；注意：生成式连接检查才会按量计费）
 PYTHONPATH=. python3 -m src.main --config config.siliconflow.example.json --check-connection
 
-# 三种策略评测（--strategy 可选 vanilla / chain_of_thought / multi_round_feedback）
+# 三种策略评测（--strategy 可选 vanilla / chain_of_thought / multi_round_feedback / self_consistency）
 PYTHONPATH=. python3 -m src.main --config config.siliconflow.example.json --strategy multi_round_feedback --limit 1
 ```
 
@@ -237,6 +239,14 @@ harness --config config.yaml \
     {
       "name": "multi_round_feedback",
       "max_iterations": 3
+    },
+    {
+      "name": "self_consistency",
+      "max_iterations": 1,
+      "custom_params": {
+        "num_candidates": 5,
+        "temperature": 0.8
+      }
     }
   ]
 }
@@ -372,7 +382,8 @@ results/
 ├── summary.json                    # 总结报告
 ├── vanilla_results.json            # Vanilla 策略详细结果
 ├── chain_of_thought_results.json   # CoT 策略详细结果
-└── multi_round_feedback_results.json
+├── multi_round_feedback_results.json
+└── self_consistency_results.json   # Self-Consistency 策略详细结果
 ```
 
 ### 示例输出
@@ -402,6 +413,13 @@ Strategy: multi_round_feedback
   Avg Attempts: 2.10
   Avg Tokens: 678
   Estimated Cost: $0.0024
+
+Strategy: self_consistency
+  Success Rate: 85.00%
+  Solved: 8.5/10
+  Avg Attempts: 5.00
+  Avg Tokens: 892
+  Estimated Cost: $0.0031
 ```
 
 ## 报告生成
@@ -613,15 +631,36 @@ cat results/summary.json | jq '.strategies.vanilla.pricing_metadata'
 
 生成的 HTML 和 Markdown 报告会显示成本估算和定价来源。
 
-### 注意事项
+## 策略说明
+
+### Vanilla
+直接提示策略，不包含特殊引导或推理步骤。适合简单问题或测试基准性能。
+
+### Chain of Thought (CoT)
+引导模型进行分步推理，通过"让我们一步步思考"的方式提高复杂问题的求解准确率。
+
+### Multi-Round Feedback
+多轮反馈迭代优化策略。根据测试结果提供反馈，让模型修正代码，最多进行配置的最大迭代次数。
+
+### Self-Consistency
+生成多个候选解（默认 5 个）并通过投票选择最频繁的正确答案。通过高温度采样（默认 0.8）增加候选解的多样性，适合有多种求解路径的问题。
+
+**配置参数：**
+- `num_candidates`: 生成的候选解数量（默认 5）
+- `temperature`: 采样温度（默认 0.8，可通过 custom_params 配置）
+
+**适用场景：**
+- 有多种求解思路的问题
+- 需要提高鲁棒性的场景
+- 对准确率要求高于效率的情况
+
+## 注意事项
 
 - 如果 `pricing.json` 文件格式错误或不存在，系统会自动降级到内置定价
 - 未知模型使用默认定价时，会在日志中记录 WARNING 信息
 - 旧版本的 `summary.json` 不包含 `pricing_metadata`，生成报告时会使用当前配置重新估算（报告中会标注"历史数据不可用"）
 
-
-
-### 添加新策略
+## 添加新策略
 
 1. 在 `src/strategies/` 创建新文件
 2. 继承 `StrategyBase` 类

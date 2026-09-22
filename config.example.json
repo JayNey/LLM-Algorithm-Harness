@@ -41,6 +41,13 @@
     {
       "name": "multi_round_feedback",
       "max_iterations": 3
+    },
+    {
+      "name": "self_consistency",
+      "max_iterations": 1,
+      "custom_params": {
+        "num_candidates": 5
+      }
     }
   ],
   "problem_filters": {
