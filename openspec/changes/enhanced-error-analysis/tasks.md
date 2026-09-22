@@ -21,9 +21,9 @@
 
 **文件**: `src/experiment_report.py`, `src/experiment_panel.py`
 
-- [ ] comparison.json 每组合 + 整体聚合的 `error_analysis` 段；REPORT.md 错误分析章节
-- [ ] panel.html 错误类别 doughnut 图
-- [ ] 测试：pairwise 夹具集成断言；panel 含占比图
+- [x] comparison.json 每组合 + 整体聚合的 `error_analysis` 段；REPORT.md 错误分析章节
+- [x] panel.html 错误类别 doughnut 图
+- [x] 测试：pairwise 夹具集成断言；panel 含占比图
 
 ## Task 4: 文档与回归
 

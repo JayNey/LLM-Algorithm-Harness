@@ -164,3 +164,100 @@ def test_analyze_results_hand_computed(tmp_path):
 def test_unknown_category_gets_generic_suggestion_only():
     suggestions = suggestions_for("unknown", ["weird failure"])
     assert suggestions == ["查看完整轨迹与失败输入，先确认失败发生在哪个环节"]
+
+
+# ============================================================================
+# Experiment report and panel integration (task 3)
+# ============================================================================
+
+
+import json
+from pathlib import Path
+from unittest.mock import MagicMock, patch
+
+from src.experiment import ExperimentRunner
+from src.models import (
+    ExperimentConfig,
+    LLMConfig,
+    SandboxConfig,
+    StrategyConfig,
+    LLMResponse,
+    TokenUsage,
+)
+
+
+def _wrong_experiment(tmp_path):
+    dataset = tmp_path / "problems.json"
+    dataset.write_text(
+        json.dumps(
+            [
+                {
+                    "problem_id": "ea-1",
+                    "title": "Problem 1",
+                    "description": "Return x plus one for the error analysis run.",
+                    "difficulty": "easy",
+                    "tags": ["math"],
+                    "test_cases": [{"input": {"x": 1}, "expected_output": 2}],
+                },
+                {
+                    "problem_id": "ea-2",
+                    "title": "Problem 2",
+                    "description": "Return x plus one for the error analysis run.",
+                    "difficulty": "medium",
+                    "tags": ["dp"],
+                    "test_cases": [{"input": {"x": 5}, "expected_output": 6}],
+                },
+            ]
+        ),
+        encoding="utf-8",
+    )
+    config = ExperimentConfig(
+        name="error-analysis-e2e",
+        dataset_path=str(dataset),
+        output_dir=str(tmp_path / "experiments"),
+        models=[LLMConfig(provider="openai", api_key="k", model="fixed-double")],
+        strategies=[StrategyConfig(name="vanilla", max_iterations=1)],
+        repeats=1,
+        sandbox_config=SandboxConfig(backend="host"),
+    )
+
+    def factory(config):
+        double = MagicMock()
+        double.generate.return_value = LLMResponse(
+            text="```python\ndef solution(x):\n    return x + 100\n```",
+            usage=TokenUsage(prompt_tokens=10, completion_tokens=5, total_tokens=15),
+            model="fixed-double",
+            finish_reason="stop",
+        )
+        return double
+
+    return config, factory
+
+
+def test_experiment_report_and_panel_include_error_analysis(tmp_path):
+    config, factory = _wrong_experiment(tmp_path)
+    with patch("src.harness.LLMClient", side_effect=factory):
+        exp_dir = ExperimentRunner(config, pricing_file="nonexistent.json").run()
+
+    comparison = json.loads((exp_dir / "comparison.json").read_text(encoding="utf-8"))
+
+    # Both problems fail with wrong answers: logic_error, denominators reconcile
+    overall = comparison["error_analysis"]
+    assert overall["total_failures"] == 2
+    assert overall["categories"]["logic_error"] == 2
+    assert sum(overall["categories"].values()) == overall["total_failures"]
+    combo_analysis = comparison["combinations"][0]["error_analysis"]
+    assert combo_analysis["categories"]["logic_error"] == 2
+
+    # Distribution by difficulty covers both problems
+    assert overall["by_difficulty"]["easy"]["total"] == 1
+    assert overall["by_tags"]["dp"]["total"] == 1
+
+    report_md = (exp_dir / "REPORT.md").read_text(encoding="utf-8")
+    assert "## 错误分析" in report_md
+    assert "logic_error 修复建议" in report_md
+
+    panel = (exp_dir / "panel.html").read_text(encoding="utf-8")
+    assert 'id="error-pie"' in panel
+    assert '"error_categories"' in panel
+    assert "doughnut" in panel
