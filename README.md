@@ -128,6 +128,9 @@ harness import --source local-json --input data/new_problems.json
 # 从 LeetCode 公开题目 URL 或 slug 导入
 harness import --source leetcode --input https://leetcode.com/problems/two-sum/ --preview
 
+# 从 Codeforces 公开 API 和题面导入
+harness import codeforces --contest 1234 --tags dp,graphs --import-limit 50 --output data/codeforces.json --force
+
 # 从固定版本的 LiveCodeBench 缓存导入
 harness import --source livecodebench --input data/livecodebench-release-v6.json \
   --release-version release_v6 --difficulty hard --import-limit 50 --preview
@@ -152,6 +155,7 @@ harness import --source local-json --input data/new_problems.json --force
 **支持的导入来源：**
 - `local-json` — 本地 JSON 文件
 - `leetcode` — LeetCode 公开题面、元数据和可可靠解析的公开样例
+- `codeforces` — Codeforces 公开题面、样例、rating 和标签
 - `livecodebench` — 固定版本的本地 JSON/JSONL 基准缓存
 - `mock` — 测试用模拟数据（用于演示和测试）
 

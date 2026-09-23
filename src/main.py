@@ -259,6 +259,7 @@ def run_import_command(args: argparse.Namespace) -> int:
         Exit code (0=success, 1=partial, 2=failure, 3=strict mode failure)
     """
     from src.importers.base import ImportResult
+    from src.importers.codeforces import CodeforcesImporter
     from src.importers.leetcode import LeetCodeImporter
     from src.importers.livecodebench import LiveCodeBenchImporter
     from src.importers.local_json import LocalJsonImporter
@@ -267,13 +268,15 @@ def run_import_command(args: argparse.Namespace) -> int:
 
     # Map source type to importer class
     IMPORTERS = {
+        "codeforces": CodeforcesImporter,
         "local-json": LocalJsonImporter,
         "leetcode": LeetCodeImporter,
         "livecodebench": LiveCodeBenchImporter,
         "mock": MockPlatformImporter,
     }
 
-    if args.source not in IMPORTERS:
+    source_name = args.source or args.import_source
+    if source_name not in IMPORTERS:
         print(
             f"Error: --source is required. Supported types: {', '.join(IMPORTERS.keys())}",
             file=sys.stderr,
@@ -282,8 +285,19 @@ def run_import_command(args: argparse.Namespace) -> int:
 
     try:
         # Instantiate importer
-        importer_class = IMPORTERS[args.source]
-        if args.source == "livecodebench":
+        importer_class = IMPORTERS[source_name]
+        if source_name == "codeforces":
+            tags = []
+            for value in args.tags or []:
+                tags.extend(item.strip() for item in value.split(",") if item.strip())
+            importer = importer_class(
+                contest=args.contest,
+                min_rating=args.min_rating,
+                max_rating=args.max_rating,
+                tags=tags,
+                limit=args.import_limit,
+            )
+        elif source_name == "livecodebench":
             importer = importer_class(
                 release_version=args.release_version,
                 start_date=args.start_date,
@@ -300,8 +314,12 @@ def run_import_command(args: argparse.Namespace) -> int:
             print()
 
         # Fetch and transform problems
-        logger.info("import_starting", source=args.source, input=args.input)
-        raw_data = importer.fetch_problems(args.input)
+        source_input = args.input or "codeforces-api"
+        if source_name != "codeforces" and not args.input:
+            print("Error: --input is required for this source", file=sys.stderr)
+            return 2
+        logger.info("import_starting", source=source_name, input=source_input)
+        raw_data = importer.fetch_problems(source_input)
         problems = importer.transform_to_schema(raw_data)
 
         # Validate problems
@@ -373,7 +391,7 @@ def run_import_command(args: argparse.Namespace) -> int:
             print("No changes were made to the dataset (preview mode).")
 
         # Generate and display report
-        report = importer.generate_report(result, args.input, args.output, args.preview)
+        report = importer.generate_report(result, source_input, args.output, args.preview)
         print()
         print("Import Report:")
         print(f"  Timestamp: {report['timestamp']}")
@@ -553,16 +571,16 @@ def main():
     )
 
     import_parser = subparsers.add_parser("import", help="Import problems from external sources")
+    import_parser.add_argument("import_source", nargs="?", help="Optional positional source, e.g. codeforces")
     import_parser.add_argument(
         "--source",
         type=str,
-        required=True,
-        help="Import source type (e.g., local-json, leetcode, mock)",
+        help="Import source type (e.g., codeforces, local-json, leetcode, mock)",
     )
     import_parser.add_argument(
         "--input",
         type=str,
-        required=True,
+        required=False,
         help="Input path (file, directory, or URL)",
     )
     import_parser.add_argument(
@@ -608,6 +626,12 @@ def main():
         "--import-limit",
         type=positive_int,
         help="Limit LiveCodeBench imported problems",
+    )
+    import_parser.add_argument("--contest", help="Codeforces contest ID")
+    import_parser.add_argument("--min-rating", type=int, help="Minimum Codeforces rating")
+    import_parser.add_argument("--max-rating", type=int, help="Maximum Codeforces rating")
+    import_parser.add_argument(
+        "--tags", nargs="+", help="Codeforces tags; comma-separated or space-separated"
     )
     import_parser.add_argument(
         "--log-format",

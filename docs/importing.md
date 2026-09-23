@@ -122,6 +122,29 @@ harness import --source livecodebench \
 
 导入报告会记录 release、过滤条件、源文件 SHA-256 和确定的题目 ID 列表。JSON/JSONL 中的 public/private 测试会分别映射为公开/隐藏测试；压缩或 pickle 私有字段不会被反序列化，会标记人工补全。使用前应根据 [LiveCodeBench 官方仓库](https://github.com/LiveCodeBench/LiveCodeBench) 的许可和可再分发范围准备本地缓存。
 
+### codeforces
+
+Codeforces 导入使用公开 `problemset.problems` API，并抓取公开题面和样例；不需要登录，不访问提交或私有测试。支持按 contest、rating、标签和数量筛选：
+
+```bash
+harness import codeforces \
+  --contest 1234 \
+  --min-rating 1200 \
+  --max-rating 2000 \
+  --tags dp,graphs \
+  --import-limit 50 \
+  --output data/codeforces.json \
+  --force
+```
+
+也可以使用兼容的显式参数形式：
+
+```bash
+harness import --source codeforces --input codeforces-api --tags dp --preview
+```
+
+Codeforces rating 会映射为 `easy`（不超过 1400）、`medium`（1500–2100）和 `hard`（2200 以上）。题面样例按 stdin/stdout 协议写入；无法访问题面或没有可靠样例时会标记 `needs_manual_completion`，不会生成隐藏测试。
+
 ## 导入报告
 
 每次导入完成后会显示详细报告：
