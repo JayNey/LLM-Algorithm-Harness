@@ -101,6 +101,26 @@ results/experiments/exp-YYYYMMDD-HHMMSS/
 - 修复率 = 首轮未通过但最终通过的完成题数 ÷ 首轮未通过的完成题数；单轮策略没有修复机会，显示为空。
 - 重复 ≥ 2 次时，报告给出各指标跨重复的最小/最大范围；远端生成的随机性不宣称为位级复现。
 
+## 成本优化建议
+
+实验完成后，`harness optimize` 基于该实验的 `comparison.json` 给出成本优化建议：
+
+```bash
+# 性价比排名 + 三目标推荐
+harness optimize --experiment results/experiments/exp-YYYYMMDD-HHMMSS
+
+# 追加预算方案：10 美元预算、每层准确率不低于 60%
+harness optimize --experiment results/experiments/exp-YYYYMMDD-HHMMSS \
+  --budget 10 --min-accuracy 0.6 --objective best_value
+```
+
+- **性价比排名**：通过题数 / 总成本，降序排列；定价未配置的组合标注"未知"并排除，不显示 $0。
+- **三目标推荐**：`highest_accuracy`（不看成本）、`best_value`（性价比最高）、`lowest_cost`（满足 `--min-accuracy` 的最便宜组合；无达标组合时明确说明）。
+- **预算优化器**：按 easy/medium/hard 分层，为每层选"单位成本通过数最高且层准确率达标"的组合，输出估算总成本、预期准确率与覆盖题数；预算不足或无历史数据的层会明确标注。
+- **产物**：实验目录下新增 `optimization.json` 与 `OPTIMIZATION.md`。
+
+边界：推荐基于历史数据与启发式贪心，不保证未来表现一致或全局最优；定价使用当前配置，不做价格预测。
+
 ## 定价与成本
 
 成本按模型配置计价（`pricing.json`，输入输出分别计价），并在实验元数据中保存定价快照与来源日期（`as_of`）。没有配置定价的模型，成本列显示"未知"而不是 $0——未知定价不参与任何折算。

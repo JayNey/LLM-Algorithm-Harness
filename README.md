@@ -538,6 +538,12 @@ harness experiment --config experiment.json
 
 多模型实验会额外输出胜率矩阵、精确 McNemar 显著性标注、成本效益排名和交互式对比面板 `panel.html`（雷达图 / 成本-准确率散点图 / 消耗柱状图），并支持 `"execution": "parallel"` 组合粒度并行。配置格式、预算生效方式与报告口径详见 [docs/experiments.md](docs/experiments.md)；示例配置见 `experiment.example.json`。未配置定价的模型成本显示"未知"，不会按默认单价折算。
 
+基于实验数据还能一键生成成本优化建议（性价比排名、三目标组合推荐、给定预算下的分层方案）：
+
+```bash
+harness optimize --experiment results/experiments/exp-YYYYMMDD-HHMMSS --budget 10 --min-accuracy 0.6
+```
+
 ## 自定义模型定价
 
 Harness 支持用户自定义 LLM 模型定价，用于准确估算评估成本。
