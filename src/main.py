@@ -551,12 +551,30 @@ def run_recommend_command(args: argparse.Namespace) -> int:
     except FileNotFoundError as exc:
         print(f"Error: {exc}", file=sys.stderr)
         return 1
-    except Exception as exc:
-        logger.error("recommendation_failed", error=str(exc))
+
+
+def run_ab_test_command(args: argparse.Namespace) -> int:
+    """Run a two-variant stratified prompt A/B test."""
+    from src.ab_testing import ABTestConfig, ABTestRunner
+
+    try:
+        import yaml
+
+        payload = yaml.safe_load(Path(args.config).read_text(encoding="utf-8"))
+        config = ABTestConfig.model_validate(payload)
+        if args.output_dir:
+            config = config.model_copy(update={"output_dir": args.output_dir})
+        output = ABTestRunner(config).run()
+        print(f"A/B test completed: {output}")
+        print(f"  Report: {output / 'REPORT.md'}")
+        return 0
+    except FileNotFoundError as exc:
         print(f"Error: {exc}", file=sys.stderr)
         return 1
-
-
+    except Exception as exc:
+        logger.error("ab_test_failed", error=str(exc))
+        print(f"Error: {exc}", file=sys.stderr)
+        return 1
 def main():
     """Main entry point."""
     parser = argparse.ArgumentParser(
@@ -780,11 +798,16 @@ def main():
     )
     recommend_parser.add_argument("--log-format", choices=["console", "json"], default="console")
 
+    ab_parser = subparsers.add_parser("ab-test", help="Run a two-variant prompt A/B test")
+    ab_parser.add_argument("--config", required=True, help="A/B test JSON or YAML configuration")
+    ab_parser.add_argument("--output-dir", help="Override configured output directory")
+    ab_parser.add_argument("--log-format", choices=["console", "json"], default="console")
+
     # Subcommand dispatch: `run` (default), `import`, `experiment`, `optimize`,
-    # and `recommend`. Bare invocation without a subcommand is parsed directly
-    # by the run parser so legacy flag-only command lines keep working.
+    # `recommend`, and `ab-test`. Bare invocation without a subcommand is parsed
+    # directly by the run parser so legacy flag-only command lines keep working.
     argv = sys.argv[1:]
-    if argv and argv[0] in ("run", "import", "experiment", "optimize", "recommend"):
+    if argv and argv[0] in ("run", "import", "experiment", "optimize", "recommend", "ab-test"):
         args = parser.parse_args(argv)
     else:
         args = run_parser.parse_args(argv)
@@ -812,6 +835,11 @@ def main():
     if args.command == "recommend":
         setup_logging(console_format=getattr(args, "log_format", "console"))
         exit_code = run_recommend_command(args)
+        sys.exit(exit_code)
+
+    if args.command == "ab-test":
+        setup_logging(console_format=getattr(args, "log_format", "console"))
+        exit_code = run_ab_test_command(args)
         sys.exit(exit_code)
 
     setup_logging(console_format=args.log_format)

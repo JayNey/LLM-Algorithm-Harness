@@ -323,6 +323,16 @@ problem_filters:
 
 ## 运行测试
 
+### Prompt A/B 测试
+
+同一策略的两个 prompt 版本可以按难度和标签分层后进行 A/B 测试：
+
+```bash
+harness ab-test --config ab_test.example.json
+```
+
+配置示例见 [ab_test.example.json](ab_test.example.json)。报告会输出样例/隐藏通过率、成功率差异、95% 置信区间、Fisher 或卡方检验、Welch t 检验、Token/耗时和分组统计。p-value 只表示当前样本下的统计证据，不代表远端生成具有因果或逐字可复现结论。
+
 ### 根据历史结果推荐题目
 
 推荐器会按历史失败率分析难度、标签和标签组合，排除已评估题目，生成报告和标准题目数据集：

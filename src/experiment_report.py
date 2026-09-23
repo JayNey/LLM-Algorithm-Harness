@@ -370,7 +370,8 @@ def _render_markdown(comparison: Dict[str, Any]) -> str:
             lines.append("| 高频错误模式 | 次数 |")
             lines.append("|---|---:|")
             for entry in top:
-                lines.append(f"| {entry['pattern'].replace('|', '\\|')} | {entry['count']} |")
+                pattern = entry["pattern"].replace("|", "\\|")
+                lines.append(f"| {pattern} | {entry['count']} |")
         for category, hints in error_analysis.get("suggestions", {}).items():
             lines.append(f"- **{category} 修复建议**：{'；'.join(hints)}")
         lines.append("")

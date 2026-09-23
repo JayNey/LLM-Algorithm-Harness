@@ -1,0 +1,26 @@
+{
+  "name": "prompt-ab-example",
+  "dataset_path": "data/problems.json",
+  "output_dir": "./results/ab-tests",
+  "model": {
+    "provider": "siliconflow",
+    "api_key": "env:SILICONFLOW_API_KEY",
+    "model": "Qwen/Qwen2.5-7B-Instruct",
+    "temperature": 0.7,
+    "max_tokens": 2000,
+    "timeout": 30
+  },
+  "strategy": {"name": "vanilla", "max_iterations": 1},
+  "prompt_variants": [
+    {"id": "baseline", "description": "Current prompt"},
+    {
+      "id": "treatment",
+      "description": "Explicit edge-case prompt",
+      "system_prompt": "Solve carefully and check edge cases before returning code."
+    }
+  ],
+  "baseline_id": "baseline",
+  "seed": 42,
+  "max_workers": 1,
+  "sandbox_config": {"backend": "docker", "docker_image": "python:3.11-slim"}
+}
