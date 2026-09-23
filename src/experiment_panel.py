@@ -104,6 +104,13 @@ def _build_panel_data(comparison: Dict[str, Any]) -> Dict[str, Any]:
         "bar": bar,
         "matrix_tables": matrix_tables,
         "cost_unknown_models": model_comparison.get("cost_unknown_models", []),
+        "error_categories": [
+            {"label": name, "count": count}
+            for name, count in (
+                comparison.get("error_analysis", {}).get("categories") or {}
+            ).items()
+            if count
+        ],
         "generated_at": comparison.get("generated_at") or datetime.now().isoformat(),
     }
 
@@ -172,6 +179,7 @@ def _render_panel(data: Dict[str, Any]) -> str:
         '<div><h2>能力雷达图</h2><div class="chart-box"><canvas id="radar"></canvas></div></div>\n'
         '<div><h2>成本 vs 准确率</h2><div class="chart-box"><canvas id="scatter"></canvas></div></div>\n'
         '<div><h2>消耗并排对比</h2><div class="chart-box"><canvas id="bar"></canvas></div></div>\n'
+        '<div><h2>错误类别占比</h2><div class="chart-box"><canvas id="error-pie"></canvas></div></div>\n'
         "</div>\n"
         + "".join(matrix_html)
         + '\n<script id="panel-data" type="application/json">'
@@ -190,6 +198,9 @@ def _render_panel(data: Dict[str, Any]) -> str:
         " datasets: [{label: '平均调用数', data: DATA.bar.calls}, {label: '平均耗时(秒)', data: DATA.bar.elapsed},"
         " {label: '平均 tokens', data: DATA.bar.tokens, yAxisID: 'y1'}]},"
         " options: {scales: {y1: {position: 'right'}}}});\n"
+        "  if (DATA.error_categories.length) { new Chart(document.getElementById('error-pie'),"
+        " {type: 'doughnut', data: {labels: DATA.error_categories.map(e => e.label),"
+        " datasets: [{data: DATA.error_categories.map(e => e.count)}]}}); }\n"
         "}\n</script>\n</body>\n</html>\n"
     )
 

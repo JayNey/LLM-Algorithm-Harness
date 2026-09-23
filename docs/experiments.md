@@ -83,6 +83,15 @@ results/experiments/exp-YYYYMMDD-HHMMSS/
 
 并行执行：配置 `"execution": "parallel"` 后按 (模型, 策略, 重复) 组合粒度并行（`max_workers` 限制并发上限，默认 4）。每个组合持有独立的 harness 与预算追踪器，串行与并行产出的目录与数据结构完全一致。
 
+## 错误分析
+
+实验报告内置错误分析（`comparison.json` 的 `error_analysis` 段、`REPORT.md` 的"错误分析"章节、`panel.html` 的类别占比图）：
+
+- **七类分类**：`syntax_error`（语法/缩进）、`logic_error`（输出不匹配、断言失败）、`runtime_error`（IndexError/KeyError/TypeError 等运行时异常）、`timeout_error`（执行超时）、`memory_error`（内存超限）、`api_error`（模型调用失败）、`unknown`（无法识别）。分类优先看沙箱终态，再看异常名与消息关键词；粗粒度 `failure_category` 口径不变。
+- **高频模式**：错误消息取首行、数字归一化为 `N` 后聚合，报告 Top 10 模式——相同模式仅数字不同会合并计数。
+- **分布**：错误类别 × 难度、类别 × 标签，均带计数与组内占比；`budget_exhausted` 与 `unsupported` 不计入失败。
+- **修复建议**：规则化生成（如 IndexError → 检查列表边界；超时 → 优化复杂度）；建议仅作提示，不自动修改代码，unknown 类只给通用排查提示。
+
 `experiment.json` 记录：题集文件 SHA-256 与确定的题目 ID 列表、git commit、每个组合的有效模型参数（脱敏）、预算定义、定价快照（单价 + 来源 + `as_of` 日期）。相同配置与题集重跑会生成新目录，不会覆盖旧实验。
 
 报告口径：
@@ -91,6 +100,26 @@ results/experiments/exp-YYYYMMDD-HHMMSS/
 - 通过率同时给出按总数与按完成题数两种分母；隐藏测试通过率只计有独立隐藏测试的题目（正式口径），样例验证率只反映公开/反馈测试。
 - 修复率 = 首轮未通过但最终通过的完成题数 ÷ 首轮未通过的完成题数；单轮策略没有修复机会，显示为空。
 - 重复 ≥ 2 次时，报告给出各指标跨重复的最小/最大范围；远端生成的随机性不宣称为位级复现。
+
+## 成本优化建议
+
+实验完成后，`harness optimize` 基于该实验的 `comparison.json` 给出成本优化建议：
+
+```bash
+# 性价比排名 + 三目标推荐
+harness optimize --experiment results/experiments/exp-YYYYMMDD-HHMMSS
+
+# 追加预算方案：10 美元预算、每层准确率不低于 60%
+harness optimize --experiment results/experiments/exp-YYYYMMDD-HHMMSS \
+  --budget 10 --min-accuracy 0.6 --objective best_value
+```
+
+- **性价比排名**：通过题数 / 总成本，降序排列；定价未配置的组合标注"未知"并排除，不显示 $0。
+- **三目标推荐**：`highest_accuracy`（不看成本）、`best_value`（性价比最高）、`lowest_cost`（满足 `--min-accuracy` 的最便宜组合；无达标组合时明确说明）。
+- **预算优化器**：按 easy/medium/hard 分层，为每层选"单位成本通过数最高且层准确率达标"的组合，输出估算总成本、预期准确率与覆盖题数；预算不足或无历史数据的层会明确标注。
+- **产物**：实验目录下新增 `optimization.json` 与 `OPTIMIZATION.md`。
+
+边界：推荐基于历史数据与启发式贪心，不保证未来表现一致或全局最优；定价使用当前配置，不做价格预测。
 
 ## 定价与成本
 
