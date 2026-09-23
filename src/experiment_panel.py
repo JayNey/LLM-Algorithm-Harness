@@ -16,6 +16,7 @@ from pathlib import Path
 from typing import Any, Dict, List
 
 from src.utils.logging import get_logger
+from src.capability import build_capability_map
 
 logger = get_logger(__name__)
 
@@ -111,6 +112,7 @@ def _build_panel_data(comparison: Dict[str, Any]) -> Dict[str, Any]:
             ).items()
             if count
         ],
+        "capability": build_capability_map(comparison),
         "generated_at": comparison.get("generated_at") or datetime.now().isoformat(),
     }
 
@@ -177,10 +179,12 @@ def _render_panel(data: Dict[str, Any]) -> str:
         "（不进入成本散点图与成本效益排名）</p>\n"
         '<div class="charts">\n'
         '<div><h2>能力雷达图</h2><div class="chart-box"><canvas id="radar"></canvas></div></div>\n'
+        '<div><h2>能力图谱雷达图</h2><div class="chart-box"><canvas id="capability-radar"></canvas></div></div>\n'
         '<div><h2>成本 vs 准确率</h2><div class="chart-box"><canvas id="scatter"></canvas></div></div>\n'
         '<div><h2>消耗并排对比</h2><div class="chart-box"><canvas id="bar"></canvas></div></div>\n'
         '<div><h2>错误类别占比</h2><div class="chart-box"><canvas id="error-pie"></canvas></div></div>\n'
         "</div>\n"
+        '<section><h2>知识覆盖热力图</h2><table class="matrix" id="capability-heatmap"></table></section>\n'
         + "".join(matrix_html)
         + '\n<script id="panel-data" type="application/json">'
         + embedded
@@ -191,6 +195,8 @@ def _render_panel(data: Dict[str, Any]) -> str:
         "else {\n"
         "  new Chart(document.getElementById('radar'), {type: 'radar', data: {labels: DATA.radar.labels,"
         " datasets: DATA.radar.datasets.map(d => ({label: d.label, data: d.values, fill: false}))}});\n"
+        "  new Chart(document.getElementById('capability-radar'), {type: 'radar', data: {labels: DATA.capability.dimension_labels,"
+        " datasets: Object.entries(DATA.capability.models).map(([model, value]) => ({label: model, data: DATA.capability.dimension_labels.map(k => value.dimensions[k]), fill: false}))}});\n"
         "  new Chart(document.getElementById('scatter'), {type: 'scatter', data: {datasets: [{"
         " label: '模型×策略（成本已知）', data: DATA.scatter, pointRadius: 6}]},"
         " options: {scales: {x: {title: {display: true, text: '总成本 (USD)'}}, y: {title: {display: true, text: '隐藏通过率'}, min: 0, max: 1}}}});\n"
@@ -201,6 +207,8 @@ def _render_panel(data: Dict[str, Any]) -> str:
         "  if (DATA.error_categories.length) { new Chart(document.getElementById('error-pie'),"
         " {type: 'doughnut', data: {labels: DATA.error_categories.map(e => e.label),"
         " datasets: [{data: DATA.error_categories.map(e => e.count)}]}}); }\n"
+        "  const heatmap = document.getElementById('capability-heatmap'); const rows = DATA.capability.heatmap;"
+        " heatmap.innerHTML = '<tr><th>模型</th><th>维度</th><th>通过率</th><th>样本</th></tr>' + rows.map(r => `<tr><td>${r.model}</td><td>${r.dimension}</td><td>${r.rate == null ? '未知' : (r.rate * 100).toFixed(1) + '%'}</td><td>${r.success}/${r.total}</td></tr>`).join('');\n"
         "}\n</script>\n</body>\n</html>\n"
     )
 
