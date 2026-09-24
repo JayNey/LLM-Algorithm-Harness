@@ -15,10 +15,57 @@
 
 - **多策略支持**: 内置四种求解策略，可扩展自定义策略
 - **代码沙箱**: 隔离执行环境，安全运行用户生成代码
+- **代码质量评估**: 全面的代码质量分析，包括时间复杂度、空间复杂度、可读性和风格一致性评估
 - **详细指标**: 成功率、Token 消耗、成本估算、迭代次数统计
 - **灵活过滤**: 按难度、标签、数量筛选问题集
 - **结构化输出**: JSON 格式结果，便于后续分析
 - **多 LLM 支持**: 支持 OpenAI、Anthropic API
+
+## 代码质量评估功能
+
+本项目新增了全面的代码质量评估功能，超越单纯的正确性检查：
+
+### 评估维度
+
+1. **时间复杂度分析**
+   - 静态分析（AST 循环嵌套层数识别）
+   - 性能测试（不同数据规模执行时间）
+   - 复杂度推断与超时标注
+
+2. **空间复杂度分析**
+   - 内存使用峰值监控
+   - 内存分配模式识别
+   - 空间效率评分
+
+3. **代码可读性评分**
+   - pylint 综合质量评分
+   - flake8 风格检查
+   - radon 圈复杂度分析
+
+4. **代码风格一致性**
+   - black 格式检查
+   - 风格偏差统计
+   - 代码风格报告
+
+### 使用方式
+
+代码质量分析默认是可选的。在评估配置中启用：
+
+```python
+from src.code_quality.analyzer import CodeQualityAnalyzer
+
+# 创建分析器
+analyzer = CodeQualityAnalyzer(
+    enable_time_analysis=True,
+    enable_space_analysis=True,
+    enable_readability_analysis=True,
+    enable_style_analysis=True
+)
+
+# 分析代码
+metrics = analyzer.analyze(code, problem)
+print(f"Overall quality score: {metrics.overall_score}")
+```
 
 ## 项目结构
 
@@ -30,6 +77,12 @@ LLM-Algorithm-Harness/
 │   ├── llm_client.py          # LLM API 客户端
 │   ├── sandbox_executor.py    # 代码沙箱执行器
 │   ├── strategy_base.py       # 策略基类
+│   ├── code_quality/          # 代码质量分析模块
+│   │   ├── analyzer.py        # 主分析器
+│   │   ├── time_analyzer.py   # 时间复杂度分析
+│   │   ├── space_analyzer.py  # 空间复杂度分析
+│   │   ├── readability_analyzer.py  # 可读性分析
+│   │   └── style_analyzer.py  # 风格一致性分析
 │   ├── strategies/
 │   │   ├── vanilla.py         # Vanilla 策略
 │   │   ├── chain_of_thought.py    # CoT 策略
@@ -42,6 +95,7 @@ LLM-Algorithm-Harness/
 │       ├── logging.py         # 日志工具
 │       └── validators.py      # 验证工具
 ├── tests/                     # 单元测试
+│   └── test_code_quality/     # 代码质量测试
 ├── data/
 │   └── problems.json          # 示例问题数据集
 ├── docs/                      # 文档

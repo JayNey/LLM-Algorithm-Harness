@@ -267,6 +267,42 @@ class HTMLGenerator:
                 margin-bottom: 10px;
                 opacity: 0.5;
             }
+
+            /* Code Quality Styles */
+            .quality-section {
+                margin: 20px 0;
+            }
+
+            .overall-score {
+                font-size: 1.5em;
+                font-weight: bold;
+                color: #2c3e50;
+                text-align: center;
+                padding: 20px;
+                background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+                color: white;
+                border-radius: 8px;
+                margin: 20px 0;
+            }
+
+            .metric-card {
+                border: 1px solid #e0e0e0;
+                border-radius: 8px;
+                padding: 20px;
+                margin: 15px 0;
+                background-color: #fafafa;
+            }
+
+            .metric-card h3 {
+                color: #34495e;
+                margin-bottom: 10px;
+                font-size: 1.2em;
+            }
+
+            .metric-card p {
+                margin: 8px 0;
+                color: #555;
+            }
         </style>
         """
 
@@ -609,6 +645,39 @@ class HTMLGenerator:
                     "<p>Iteration Distribution chart: No multi-round data available</p>"
                 )
                 html_parts.append("</div>")
+
+        # Code Quality Section (if quality metrics are available)
+        quality_results = []
+        if isinstance(results, dict) and results:
+            first_key = list(results.keys())[0]
+            quality_results = [
+                r
+                for r in results.get(first_key, [])
+                if hasattr(r, "quality_metrics") and r.quality_metrics
+            ]
+        elif isinstance(results, list):
+            quality_results = [
+                r for r in results if hasattr(r, "quality_metrics") and r.quality_metrics
+            ]
+
+        if quality_results:
+            html_parts.append("<h2>代码质量评估</h2>")
+
+            # Import quality report generator
+            from src.reporting.quality_report import generate_quality_section
+
+            # Generate quality section for each result with quality metrics
+            for result in quality_results[:5]:  # Show top 5 for brevity
+                if result.quality_metrics:
+                    quality_dict = (
+                        result.quality_metrics
+                        if isinstance(result.quality_metrics, dict)
+                        else result.quality_metrics.model_dump()
+                    )
+                    html_parts.append(
+                        f"<h3>Problem: {getattr(result, 'problem_id', 'Unknown')}</h3>"
+                    )
+                    html_parts.append(generate_quality_section(quality_dict))
 
         # Footer
         html_parts.append("<div class='footer'>")
