@@ -18,6 +18,12 @@ from pydantic import (
 
 from src.utils.secrets import REDACTED, redact_sensitive_data
 
+# Forward reference for code quality metrics
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from src.code_quality.models import CodeQualityMetrics
+
 # ============================================================================
 # Problem-related Models
 # ============================================================================
@@ -351,6 +357,9 @@ class ExecutionResult(BaseModel):
     llm_traces: List[Dict[str, Any]] = Field(
         default_factory=list, description="LLM interaction traces"
     )
+    quality_metrics: Optional["CodeQualityMetrics"] = Field(
+        None, description="Code quality evaluation metrics"
+    )
 
     @property
     def success(self) -> bool:
@@ -634,6 +643,13 @@ class HarnessConfig(BaseModel):
     log_level: Literal["DEBUG", "INFO", "WARNING", "ERROR"] = Field("INFO", description="Log level")
     problem_filters: Optional[Dict[str, Any]] = Field(
         None, description="Optional filters for problems (difficulty, tags, etc.)"
+    )
+    enable_quality_analysis: bool = Field(
+        False, description="Enable code quality analysis (time/space complexity, readability, style)"
+    )
+    quality_analysis_config: Optional[Dict[str, bool]] = Field(
+        None,
+        description="Fine-grained quality analysis toggles: enable_time_analysis, enable_space_analysis, enable_readability_analysis, enable_style_analysis",
     )
 
     def redacted_dump(self) -> Dict[str, Any]:

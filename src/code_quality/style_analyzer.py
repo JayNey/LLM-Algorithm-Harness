@@ -63,6 +63,7 @@ class StyleConsistencyAnalyzer:
         Returns:
             (is_compliant, violations_list)
         """
+        temp_path = None
         try:
             with tempfile.NamedTemporaryFile(mode="w", suffix=".py", delete=False) as f:
                 f.write(code)
@@ -81,7 +82,6 @@ class StyleConsistencyAnalyzer:
                 if result.stderr:
                     violations.append(result.stderr[:200])
 
-            Path(temp_path).unlink(missing_ok=True)
             return is_compliant, violations
 
         except FileNotFoundError:
@@ -90,3 +90,6 @@ class StyleConsistencyAnalyzer:
         except Exception as e:
             logger.debug("black_check_failed", error=str(e))
             return True, []
+        finally:
+            if temp_path:
+                Path(temp_path).unlink(missing_ok=True)

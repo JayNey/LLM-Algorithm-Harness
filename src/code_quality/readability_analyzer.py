@@ -61,6 +61,7 @@ class ReadabilityAnalyzer:
 
     def _run_pylint(self, code: str) -> Optional[float]:
         """Run pylint and extract score."""
+        temp_path = None
         try:
             with tempfile.NamedTemporaryFile(mode="w", suffix=".py", delete=False) as f:
                 f.write(code)
@@ -78,15 +79,18 @@ class ReadabilityAnalyzer:
                         score_str = parts[0].split()[-1]
                         return float(score_str)
 
-            Path(temp_path).unlink(missing_ok=True)
             return None
 
         except Exception as e:
             logger.debug("pylint_failed", error=str(e))
             return None
+        finally:
+            if temp_path:
+                Path(temp_path).unlink(missing_ok=True)
 
     def _run_flake8(self, code: str) -> Optional[int]:
         """Run flake8 and count issues."""
+        temp_path = None
         try:
             with tempfile.NamedTemporaryFile(mode="w", suffix=".py", delete=False) as f:
                 f.write(code)
@@ -97,15 +101,18 @@ class ReadabilityAnalyzer:
             )
 
             issue_count = len([l for l in result.stdout.splitlines() if l.strip()])
-            Path(temp_path).unlink(missing_ok=True)
             return issue_count
 
         except Exception as e:
             logger.debug("flake8_failed", error=str(e))
             return None
+        finally:
+            if temp_path:
+                Path(temp_path).unlink(missing_ok=True)
 
     def _run_radon(self, code: str) -> Optional[float]:
         """Run radon and get cyclomatic complexity."""
+        temp_path = None
         try:
             with tempfile.NamedTemporaryFile(mode="w", suffix=".py", delete=False) as f:
                 f.write(code)
@@ -122,12 +129,14 @@ class ReadabilityAnalyzer:
                     if len(parts) > 1:
                         return float(parts[1].strip().split()[0])
 
-            Path(temp_path).unlink(missing_ok=True)
             return None
 
         except Exception as e:
             logger.debug("radon_failed", error=str(e))
             return None
+        finally:
+            if temp_path:
+                Path(temp_path).unlink(missing_ok=True)
 
     def _calculate_readability_score(
         self,
