@@ -262,6 +262,32 @@ harness --config config.yaml \
 
 评测默认通过本地任务服务执行。使用 `--run-id` 可固定任务身份，任务状态和每个策略/题目单元保存在 `output_dir/tasks/<run_id>.json`；中断后可用相同配置和题库执行 `--resume --run-id <run_id>`。恢复会校验配置与题库指纹，已确认完成的单元不会重复执行；取消时在途模型调用会标记为不确定，不承诺外部 API 恰好调用一次。
 
+### 交互式调试模式
+
+对于需要深入理解模型推理过程、测试参数调整或手动干预的场景，可以使用交互式调试模式单步执行单个问题：
+
+```bash
+harness debug --problem leetcode_1 --strategy chain_of_thought --model gpt-4
+```
+
+**主要功能：**
+- **单步执行**：在生成、执行、反馈等关键步骤暂停，逐步检查
+- **断点控制**：在策略关键位置设置断点
+- **实时干预**：修改 prompt、调整参数（temperature、max_rounds 等）、注入自定义提示
+- **轨迹可视化**：查看完整执行轨迹，导出 JSON 格式便于分析
+
+**常用命令：**
+```
+(debug) break generate        # 在代码生成后设置断点
+(debug) next                  # 执行下一步
+(debug) set temperature 0.9   # 动态修改参数
+(debug) trace                 # 查看执行轨迹摘要
+(debug) export trace.json     # 导出完整轨迹
+(debug) exit                  # 退出调试会话
+```
+
+详细使用指南请参考 [docs/interactive_debugging.md](docs/interactive_debugging.md)。
+
 ## 配置说明
 
 ### 配置文件格式

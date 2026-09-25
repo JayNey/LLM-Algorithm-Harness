@@ -74,6 +74,9 @@ class VanillaStrategy(StrategyBase):
 
         if code:
             try:
+                # Trigger debug hook before execution
+                self._before_execute(code)
+
                 if problem.public_test_cases:
                     sandbox_result = self.sandbox.execute(code, problem, stage="public")
                     success = sandbox_result.all_passed
@@ -84,9 +87,17 @@ class VanillaStrategy(StrategyBase):
                 else:
                     # Hidden-only problems are finalized by Harness after this strategy.
                     success = True
+
+                # Trigger debug hook after feedback is available
+                if sandbox_result:
+                    feedback = f"All passed: {sandbox_result.all_passed}, Status: {sandbox_result.status}"
+                    if sandbox_result.error_message:
+                        feedback += f", Error: {sandbox_result.error_message}"
+                    self._after_feedback(feedback)
             except Exception as e:
                 sandbox_error = str(e)
                 self.logger.error("sandbox_execution_failed", error=sandbox_error)
+                self._after_feedback(f"Sandbox error: {sandbox_error}")
 
         # Create iteration result
         iteration_result = self.create_iteration_result(
