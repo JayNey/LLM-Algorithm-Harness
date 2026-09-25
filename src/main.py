@@ -575,6 +575,79 @@ def run_ab_test_command(args: argparse.Namespace) -> int:
         logger.error("ab_test_failed", error=str(exc))
         print(f"Error: {exc}", file=sys.stderr)
         return 1
+
+
+def run_benchmark_command(args: argparse.Namespace) -> int:
+    """Run benchmark evaluation for learning curve tracking."""
+    from src.benchmark import BenchmarkManager
+    from src.benchmark.executor import BenchmarkExecutor
+    from src.utils.config import load_config
+
+    try:
+        manager = BenchmarkManager(".")
+
+        # List available suites if requested
+        if args.list_suites:
+            suites = manager.list_suites()
+            if not suites:
+                print("No benchmark suites found.")
+                return 0
+
+            print("Available benchmark suites:")
+            for suite_file in suites:
+                print(f"  - {suite_file}")
+            return 0
+
+        # Load specified suite
+        if not args.suite:
+            print("Error: --suite is required", file=sys.stderr)
+            print("Use --list-suites to see available benchmark suites", file=sys.stderr)
+            return 1
+
+        suite = manager.load_suite(args.suite)
+        print(f"Loaded benchmark suite: {suite.name}")
+        print(f"  Problems: {len(suite.problems)}")
+        print(f"  Version: {suite.version}")
+        print(f"  Frozen: {suite.frozen}")
+
+        # Load harness config
+        config = load_config()
+        if not config:
+            print("Error: No configuration found. Please provide a config file.", file=sys.stderr)
+            return 1
+
+        print(f"\nExecuting benchmark evaluation...")
+
+        # Execute benchmark
+        executor = BenchmarkExecutor(suite, config)
+        results = executor.execute()
+
+        print(f"\n✓ Benchmark evaluation completed!")
+        print(f"  Suite: {results['suite']['name']}")
+        print(f"  Problems evaluated: {results['problems_evaluated']}")
+        if results['problems_missing'] > 0:
+            print(f"  Problems missing: {results['problems_missing']}")
+
+        print(f"\nResults by strategy:")
+        for strategy_name, strategy_results in results['strategies'].items():
+            print(f"  {strategy_name}:")
+            print(f"    - Accuracy: {strategy_results['accuracy']:.2%}")
+            print(f"    - Passed: {strategy_results['passed']}/{strategy_results['total']}")
+
+        # TODO: Save results to history storage
+        print("\nNote: History storage coming in next task...")
+
+        return 0
+    except FileNotFoundError as exc:
+        print(f"Error: {exc}", file=sys.stderr)
+        return 1
+    except ValueError as exc:
+        print(f"Error: {exc}", file=sys.stderr)
+        return 1
+    except Exception as exc:
+        logger.error("benchmark_failed", error=str(exc))
+        print(f"Error: {exc}", file=sys.stderr)
+        return 1
 def main():
     """Main entry point."""
     parser = argparse.ArgumentParser(
@@ -803,15 +876,33 @@ def main():
     ab_parser.add_argument("--output-dir", help="Override configured output directory")
     ab_parser.add_argument("--log-format", choices=["console", "json"], default="console")
 
+    # Benchmark command for learning curve tracking
+    benchmark_parser = subparsers.add_parser(
+        "benchmark", help="Run benchmark evaluation for learning curve tracking"
+    )
+    benchmark_parser.add_argument(
+        "--suite", type=str, help="Path to benchmark suite configuration file"
+    )
+    benchmark_parser.add_argument(
+        "--list-suites", action="store_true", help="List available benchmark suites"
+    )
+    benchmark_parser.add_argument(
+        "--compare", action="store_true", help="Enable multi-model comparison mode"
+    )
+    benchmark_parser.add_argument("--output", type=str, help="Output path for report")
+    benchmark_parser.add_argument(
+        "--log-format", choices=["console", "json"], default="console"
+    )
+
     # Debug command
     from harness.cli.debug import add_debug_subcommand
     add_debug_subcommand(subparsers)
 
     # Subcommand dispatch: `run` (default), `import`, `experiment`, `optimize`,
-    # `recommend`, `ab-test`, and `debug`. Bare invocation without a subcommand is parsed
+    # `recommend`, `ab-test`, `benchmark`, and `debug`. Bare invocation without a subcommand is parsed
     # directly by the run parser so legacy flag-only command lines keep working.
     argv = sys.argv[1:]
-    if argv and argv[0] in ("run", "import", "experiment", "optimize", "recommend", "ab-test", "debug"):
+    if argv and argv[0] in ("run", "import", "experiment", "optimize", "recommend", "ab-test", "benchmark", "debug"):
         args = parser.parse_args(argv)
     else:
         args = run_parser.parse_args(argv)
@@ -844,6 +935,12 @@ def main():
     if args.command == "ab-test":
         setup_logging(console_format=getattr(args, "log_format", "console"))
         exit_code = run_ab_test_command(args)
+        sys.exit(exit_code)
+
+    # Handle benchmark command
+    if args.command == "benchmark":
+        setup_logging(console_format=getattr(args, "log_format", "console"))
+        exit_code = run_benchmark_command(args)
         sys.exit(exit_code)
 
     # Handle debug command

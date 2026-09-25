@@ -288,6 +288,48 @@ harness debug --problem leetcode_1 --strategy chain_of_thought --model gpt-4
 
 详细使用指南请参考 [docs/interactive_debugging.md](docs/interactive_debugging.md)。
 
+### 学习曲线追踪（Benchmark Suite）
+
+对于需要长期追踪模型性能演变的场景，可以使用基准题目集管理和学习曲线追踪功能：
+
+```bash
+# 列出可用的 benchmark suites
+harness benchmark --list-suites
+
+# 运行基准评估
+harness benchmark --suite benchmark.example.json
+
+# 生成学习曲线报告（对比多个模型）
+harness benchmark --suite benchmark.example.json --compare --output reports/learning_curve.md
+```
+
+**主要功能：**
+- **基准题目集管理**：定义固定的题目集（frozen benchmark），确保评估一致性
+- **历史数据存储**：自动保存每次评估结果，按时间戳和模型 ID 组织
+- **趋势分析**：生成时间序列图，可视化模型性能变化
+- **多模型对比**：在同一图表中对比不同模型或版本的性能趋势
+- **统计分析**：计算性能增长率、标准差、版本间差异
+- **完整报告**：生成包含趋势图、统计表和里程碑的 Markdown 报告
+
+**Benchmark Suite 配置示例：**
+```json
+{
+  "name": "Standard Benchmark v1.0",
+  "problems": ["leetcode_1", "leetcode_2", "leetcode_15"],
+  "frozen": true,
+  "version": "1.0",
+  "description": "固定基准题目集，用于追踪长期性能趋势"
+}
+```
+
+**使用场景：**
+- 追踪模型版本迭代的性能变化
+- 对比不同模型在相同题目集上的表现
+- 监控算法求解能力的长期趋势
+- 建立可复现的评估基线
+
+详细使用指南请参考 [docs/learning-curve-tracking.md](docs/learning-curve-tracking.md)。
+
 ## 配置说明
 
 ### 配置文件格式
