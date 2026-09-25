@@ -45,6 +45,45 @@ class StrategyBase(ABC):
         self.sandbox = sandbox
         self.logger = get_logger(f"{__name__}.{self.__class__.__name__}")
 
+    def _before_generate(self, prompt: str) -> None:
+        """
+        Hook called before generating code with LLM.
+
+        Args:
+            prompt: The prompt about to be sent to the LLM
+
+        Note:
+            Default implementation does nothing. Override in debug wrapper
+            to implement breakpoints and inspection.
+        """
+        pass
+
+    def _before_execute(self, code: str) -> None:
+        """
+        Hook called before executing code in sandbox.
+
+        Args:
+            code: The code about to be executed
+
+        Note:
+            Default implementation does nothing. Override in debug wrapper
+            to implement breakpoints and inspection.
+        """
+        pass
+
+    def _after_feedback(self, feedback: str) -> None:
+        """
+        Hook called after receiving execution feedback.
+
+        Args:
+            feedback: The feedback from test execution
+
+        Note:
+            Default implementation does nothing. Override in debug wrapper
+            to implement breakpoints and inspection.
+        """
+        pass
+
     def generate(self, prompt: str) -> LLMResponse:
         """Generate with this strategy's parameters applied consistently."""
         # Pydantic keeps track of fields explicitly supplied by the caller.
