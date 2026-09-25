@@ -86,6 +86,9 @@ class StrategyBase(ABC):
 
     def generate(self, prompt: str) -> LLMResponse:
         """Generate with this strategy's parameters applied consistently."""
+        # Trigger debug hook before LLM call
+        self._before_generate(prompt)
+
         # Pydantic keeps track of fields explicitly supplied by the caller.
         # This lets the StrategyConfig defaults remain backwards compatible
         # while an omitted override still inherits the global LLMConfig.

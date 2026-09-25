@@ -803,11 +803,15 @@ def main():
     ab_parser.add_argument("--output-dir", help="Override configured output directory")
     ab_parser.add_argument("--log-format", choices=["console", "json"], default="console")
 
+    # Debug command
+    from harness.cli.debug import add_debug_subcommand
+    add_debug_subcommand(subparsers)
+
     # Subcommand dispatch: `run` (default), `import`, `experiment`, `optimize`,
-    # `recommend`, and `ab-test`. Bare invocation without a subcommand is parsed
+    # `recommend`, `ab-test`, and `debug`. Bare invocation without a subcommand is parsed
     # directly by the run parser so legacy flag-only command lines keep working.
     argv = sys.argv[1:]
-    if argv and argv[0] in ("run", "import", "experiment", "optimize", "recommend", "ab-test"):
+    if argv and argv[0] in ("run", "import", "experiment", "optimize", "recommend", "ab-test", "debug"):
         args = parser.parse_args(argv)
     else:
         args = run_parser.parse_args(argv)
@@ -840,6 +844,13 @@ def main():
     if args.command == "ab-test":
         setup_logging(console_format=getattr(args, "log_format", "console"))
         exit_code = run_ab_test_command(args)
+        sys.exit(exit_code)
+
+    # Handle debug command
+    if args.command == "debug":
+        setup_logging(console_format=getattr(args, "log_format", "console"))
+        from harness.cli.debug import run_debug_command
+        exit_code = run_debug_command(args)
         sys.exit(exit_code)
 
     setup_logging(console_format=args.log_format)

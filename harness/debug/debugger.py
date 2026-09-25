@@ -50,8 +50,29 @@ Type 'help <command>' for detailed help on a specific command.
         self.modified_prompt: Optional[str] = None
         self.injected_text: Optional[str] = None
         self.param_overrides = {}
+        self.strategy = None  # Set externally by CLI
+        self.problem = None   # Set externally by CLI
+        self.result = None    # Stores execution result{}
 
     # ===== Execution control commands =====
+
+    def do_run(self, arg):
+        """Execute the strategy on the problem."""
+        if not self.strategy or not self.problem:
+            print("✗ Strategy or problem not initialized")
+            return
+
+        print(f"Running strategy on problem: {self.problem.problem_id}")
+        try:
+            self.result = self.strategy.execute(self.problem)
+            print(f"\n✓ Execution completed")
+            print(f"  Success: {self.result.success}")
+            if self.result.success:
+                print(f"  Solution found in {len(self.result.attempts)} attempt(s)")
+            else:
+                print(f"  Failed after {len(self.result.attempts)} attempt(s)")
+        except Exception as e:
+            print(f"✗ Execution failed: {e}")
 
     def do_next(self, arg):
         """Execute the next step and pause."""

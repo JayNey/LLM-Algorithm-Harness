@@ -43,6 +43,18 @@ class DebugStrategyWrapper(StrategyBase):
         self._paused = False
         self._skip_next = False
 
+        # Save original hook methods
+        self._original_hooks = {
+            'generate': wrapped_strategy._before_generate,
+            'execute': wrapped_strategy._before_execute,
+            'feedback': wrapped_strategy._after_feedback,
+        }
+
+        # Override wrapped strategy's hooks to point to our debugging hooks
+        wrapped_strategy._before_generate = self._before_generate
+        wrapped_strategy._before_execute = self._before_execute
+        wrapped_strategy._after_feedback = self._after_feedback
+
     def _before_generate(self, prompt: str) -> None:
         """Hook before generating code."""
         if self._breakpoint_manager.should_break("generate") and not self._skip_next:

@@ -68,12 +68,67 @@ def run_debug_command(args: argparse.Namespace) -> int:
         print(f"Model: {args.model}")
         print(f"{'='*60}\n")
 
-        # TODO: Initialize strategy and wrapper
-        # This requires loading the full harness configuration
-        # For now, just run the debugger loop to verify the CLI works
+        # Initialize strategy with wrapper
+        from src.models import StrategyConfig, LLMConfig, SandboxConfig
+        from src.llm_client import LLMClient
 
-        print("Note: Full strategy execution integration is pending.")
-        print("You can test debugger commands:\n")
+        # Create configurations
+        llm_config = LLMConfig(
+            provider="openai",
+            api_key="",  # Will use environment variable
+            model=args.model,
+            temperature=0.7,
+            max_tokens=2000,
+            timeout=30,
+        )
+
+        sandbox_config = SandboxConfig(
+            timeout_seconds=5,
+            memory_limit_mb=256,
+            allowed_imports=["math", "itertools", "collections", "functools", "heapq", "bisect"],
+        )
+
+        strategy_config = StrategyConfig(
+            name=args.strategy,
+            max_iterations=3,
+        )
+
+        # Initialize components
+        llm_client = LLMClient(llm_config)
+        sandbox = SandboxExecutor(sandbox_config)
+
+        # Get strategy class
+        from src.harness import AlgorithmHarness
+        strategy_class = AlgorithmHarness.STRATEGY_MAP.get(args.strategy)
+        if not strategy_class:
+            print(f"Error: Unknown strategy '{args.strategy}'")
+            print(f"Available strategies: {', '.join(AlgorithmHarness.STRATEGY_MAP.keys())}")
+            return 1
+
+        # Create base strategy
+        base_strategy = strategy_class(strategy_config, llm_client, sandbox)
+
+        # Wrap with debug strategy - use pause callback to integrate with debugger
+        def pause_callback(location: str, context: dict):
+            """Called when strategy hits a breakpoint."""
+            trace_recorder.record_breakpoint(location, context)
+            print(f"\n⊙ Breakpoint hit at '{location}'")
+            print(f"Context: {list(context.keys())}")
+            # Return to debugger prompt
+            debugger.cmdloop()
+
+        wrapped_strategy = DebugStrategyWrapper(
+            wrapped_strategy=base_strategy,
+            breakpoint_manager=breakpoint_manager,
+            pause_callback=pause_callback
+        )
+
+        # Give debugger access to strategy and problem
+        debugger.strategy = wrapped_strategy
+        debugger.problem = problem
+
+        print("Strategy initialized.")
+        print("Commands: 'break <location>', 'run', 'next', 'continue', 'trace', 'help'\n")
 
         # Start debugger loop
         debugger.cmdloop()
