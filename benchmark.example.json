@@ -1,0 +1,13 @@
+{
+  "name": "Standard Benchmark v1.0",
+  "problems": [
+    "leetcode_1",
+    "leetcode_2",
+    "leetcode_15",
+    "leetcode_20",
+    "leetcode_53"
+  ],
+  "frozen": true,
+  "version": "1.0",
+  "description": "Standard benchmark suite covering basic to medium difficulty problems"
+}
