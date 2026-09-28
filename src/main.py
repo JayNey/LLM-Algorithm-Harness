@@ -4,6 +4,7 @@ Main entry point for LLM Algorithm Harness.
 
 import argparse
 import json
+import math
 import sys
 from datetime import datetime
 from pathlib import Path
@@ -24,6 +25,17 @@ def positive_int(value: str) -> int:
     """Parse a strictly positive integer for argparse."""
     parsed = int(value)
     if parsed <= 0:
+        raise argparse.ArgumentTypeError("must be greater than zero")
+    return parsed
+
+
+def positive_float(value: str) -> float:
+    """Parse a strictly positive finite float for argparse."""
+    try:
+        parsed = float(value)
+    except ValueError:
+        raise argparse.ArgumentTypeError("must be a number")
+    if not math.isfinite(parsed) or parsed <= 0:
         raise argparse.ArgumentTypeError("must be greater than zero")
     return parsed
 
@@ -60,6 +72,32 @@ def apply_cli_overrides(config: HarnessConfig, args: argparse.Namespace) -> Harn
     if limit is not None and (not isinstance(limit, int) or isinstance(limit, bool) or limit <= 0):
         raise ValueError("Problem limit must be a positive integer")
     config.problem_filters = filters or None
+
+    if args.difficulty_strategy:
+        mapping = {}
+        for item in args.difficulty_strategy:
+            difficulty, sep, strategy_name = item.partition("=")
+            difficulty = difficulty.strip().lower()
+            strategy_name = strategy_name.strip()
+            if not sep or not difficulty or not strategy_name:
+                raise ValueError(f"--difficulty-strategy expects DIFF=STRATEGY pairs, got '{item}'")
+            if difficulty in mapping:
+                raise ValueError(f"Duplicate difficulty in --difficulty-strategy: '{difficulty}'")
+            mapping[difficulty] = strategy_name
+        config.difficulty_strategy = mapping
+    if args.budget_cap is not None:
+        config.budget_cap_usd = args.budget_cap
+
+    if config.budget_cap_usd is not None and not config.difficulty_strategy:
+        raise ValueError("budget_cap_usd (--budget-cap) requires a difficulty_strategy mapping")
+    if config.difficulty_strategy:
+        if args.strategy is not None:
+            raise ValueError("--strategy cannot be combined with --difficulty-strategy")
+        unknown = sorted(set(config.difficulty_strategy.values()) - set(SUPPORTED_STRATEGIES))
+        if unknown:
+            raise ValueError(
+                "Unknown strategy in difficulty-strategy mapping: " f"{', '.join(unknown)}"
+            )
 
     return config
 
@@ -707,6 +745,26 @@ def main():
         action="store_true",
         help="Resume an existing task; requires --run-id and matching config/dataset fingerprints",
     )
+    run_parser.add_argument(
+        "--difficulty-strategy",
+        nargs="+",
+        metavar="DIFF=STRATEGY",
+        help=(
+            "Cost-sensitive selector: map each difficulty (easy/medium/hard) to a "
+            "strategy, e.g. easy=vanilla medium=chain_of_thought hard=multi_round_feedback. "
+            "Each problem runs once with its mapped strategy"
+        ),
+    )
+    run_parser.add_argument(
+        "--budget-cap",
+        dest="budget_cap",
+        type=positive_float,
+        help=(
+            "Run-level cost cap in USD; once accumulated known-pricing cost reaches "
+            "the cap, remaining problems downgrade to the cheapest mapped strategy. "
+            "Requires --difficulty-strategy"
+        ),
+    )
 
     # Import command
     run_parser.add_argument(
@@ -1020,6 +1078,21 @@ def main():
             # Print and save results
             print_report(reports)
             save_results(reports, config.output_dir, harness, config)
+
+            if config.difficulty_strategy:
+                snapshot = harness.cost_monitor.snapshot()
+                cap_text = (
+                    f"${snapshot['budget_cap_usd']}"
+                    if snapshot["budget_cap_usd"] is not None
+                    else "no cap"
+                )
+                print(
+                    f"Cost control: accumulated ${snapshot['accumulated_cost_usd']:.4f} "
+                    f"of {cap_text}; "
+                    f"{snapshot['downgraded_problems']} problem(s) downgraded; "
+                    f"{snapshot['unknown_usage_results']} result(s) with unknown usage "
+                    "not counted toward the cap"
+                )
 
             logger.info("harness_completed")
 

@@ -262,6 +262,27 @@ harness --config config.yaml \
 
 评测默认通过本地任务服务执行。使用 `--run-id` 可固定任务身份，任务状态和每个策略/题目单元保存在 `output_dir/tasks/<run_id>.json`；中断后可用相同配置和题库执行 `--resume --run-id <run_id>`。恢复会校验配置与题库指纹，已确认完成的单元不会重复执行；取消时在途模型调用会标记为不确定，不承诺外部 API 恰好调用一次。
 
+### 成本敏感策略选择与预算降级
+
+`--difficulty-strategy` 让每道题按自身难度只跑一次映射的策略，替代"每个策略全量跑一遍"的高成本模式：
+
+```bash
+harness --dataset data/problems.json \
+  --difficulty-strategy easy=vanilla medium=chain_of_thought hard=multi_round_feedback
+```
+
+- 数据集中出现的难度必须全部被映射覆盖，映射的策略必须在配置的策略列表中；与 `--strategy` 互斥，校验失败不会发起任何模型调用。
+- 该模式的整体报告以 `cost_aware` 命名，每条结果记录实际使用的策略与难度维度。
+- 配合 `--budget-cap <USD>` 启用运行中预算降级：系统逐题累计已知定价的调用成本，达到上限后，剩余题目自动改用映射中最便宜的策略，结果标记 `cost_downgraded=true`；已完成题目的结果不受影响。
+
+```bash
+harness --dataset data/problems.json \
+  --difficulty-strategy easy=vanilla medium=chain_of_thought hard=multi_round_feedback \
+  --budget-cap 5
+```
+
+预算监控覆盖同一任务的完整成本：`--resume` 恢复时会先把已完成题目的成本回放进台账，避免同一任务多次中断累计突破上限；不追溯其他运行的历史。usage 数据缺失的调用无法真实计价，不计入累计值，其数量会在运行结束的 `Cost control` 摘要中如实列出。并行执行时，达上限瞬间已在途的题目会按原映射策略完成，实际花费可能略超上限（最多并发数减一题的成本）。降级是确定性阶梯规则（达上限后一律最便宜策略），不保证全局最优；两个参数也可以直接写入配置文件的 `difficulty_strategy` 与 `budget_cap_usd` 字段。
+
 ### 交互式调试模式
 
 对于需要深入理解模型推理过程、测试参数调整或手动干预的场景，可以使用交互式调试模式单步执行单个问题：
