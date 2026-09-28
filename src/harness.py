@@ -6,6 +6,7 @@ from pathlib import Path
 from typing import Any, Dict, List, Optional
 
 from src.budget import BudgetExhausted, BudgetTracker, BudgetedLLMClient
+from src.cost_strategy import CostAwareSelector, RunCostMonitor
 from src.llm_client import LLMClient
 from src.models import (
     ExecutionResult,
@@ -49,6 +50,7 @@ class AlgorithmHarness:
         """
         self.config = config
         self.budget_tracker = budget_tracker
+        self.cost_monitor: Optional[RunCostMonitor] = None
         self.problem_loader = ProblemLoader()
         self.results: Dict[str, List[ExecutionResult]] = {}
         self.problem_totals: Dict[str, int] = {}
@@ -71,6 +73,11 @@ class AlgorithmHarness:
         if not self.config.strategies:
             raise ValueError(
                 "No strategies configured; add at least one strategy to the config"
+            )
+        if self.config.difficulty_strategy and not use_task_service:
+            raise ValueError(
+                "difficulty_strategy selection requires the task service run "
+                "path; fixed-budget experiment combinations do not support it"
             )
         if use_task_service:
             return self._run_with_task_service(run_id=run_id, resume=resume)
@@ -96,6 +103,13 @@ class AlgorithmHarness:
     ) -> Dict[str, StrategyReport]:
         """Run CLI evaluations through the persistent task service."""
         problems = self._load_problems()
+        selector = self._cost_aware_selector(problems)
+        monitor: Optional[RunCostMonitor] = None
+        if selector is not None:
+            # The monitor exists whenever the selector runs: without a cap it
+            # still records accumulated cost and unknown-usage results.
+            monitor = RunCostMonitor(self.config.budget_cap_usd)
+            self.cost_monitor = monitor
         service = TaskService(Path(self.config.output_dir) / "tasks")
         config_fingerprint = service.config_fingerprint(self.config)
         dataset_fingerprint = service.dataset_fingerprint(self.config.dataset_path)
@@ -105,15 +119,27 @@ class AlgorithmHarness:
                 raise ValueError("--resume requires --run-id")
             record = service.get(run_id)
         else:
-            units = [
-                TaskUnit(
-                    unit_id=f"{strategy.name}:{problem.problem_id}:0",
-                    strategy=strategy.name,
-                    problem_id=problem.problem_id,
-                )
-                for strategy in self.config.strategies
-                for problem in problems
-            ]
+            if selector is not None:
+                units = []
+                for problem in problems:
+                    strategy_name = selector.select(problem.difficulty)
+                    units.append(
+                        TaskUnit(
+                            unit_id=f"{strategy_name}:{problem.problem_id}:0",
+                            strategy=strategy_name,
+                            problem_id=problem.problem_id,
+                        )
+                    )
+            else:
+                units = [
+                    TaskUnit(
+                        unit_id=f"{strategy.name}:{problem.problem_id}:0",
+                        strategy=strategy.name,
+                        problem_id=problem.problem_id,
+                    )
+                    for strategy in self.config.strategies
+                    for problem in problems
+                ]
             if len({unit.unit_id for unit in units}) != len(units):
                 raise ValueError("Duplicate strategy/problem task unit; use unique strategy names and problem IDs")
             record = service.create(
@@ -138,7 +164,28 @@ class AlgorithmHarness:
             strategy_config = strategy_map[unit.strategy]
             problem = problem_map[unit.problem_id]
             strategy, sandbox = runtimes[unit.strategy]
-            return self._execute_problem(strategy_config, problem, strategy, sandbox)
+            downgraded = False
+            if monitor is not None and monitor.over_cap:
+                cheapest = selector.cheapest_strategy
+                if cheapest != unit.strategy:
+                    strategy_config = strategy_map[cheapest]
+                    strategy, _ = runtimes[cheapest]
+                    downgraded = True
+            result = self._execute_problem(strategy_config, problem, strategy, sandbox)
+            if monitor is not None:
+                monitor.add_result(result)
+                if downgraded:
+                    result.cost_downgraded = True
+                    if monitor.record_downgrade():
+                        logger.warning(
+                            "budget_cap_reached_downgrade",
+                            budget_cap_usd=self.config.budget_cap_usd,
+                            accumulated_cost_usd=monitor.snapshot()[
+                                "accumulated_cost_usd"
+                            ],
+                            cheap_strategy=selector.cheapest_strategy,
+                        )
+            return result
 
         self.task_record = service.run(
             record.run_id,
@@ -148,6 +195,20 @@ class AlgorithmHarness:
             dataset_fingerprint=dataset_fingerprint,
             resume=resume,
         )
+
+        if selector is not None:
+            results = self._collect_cost_aware_results(problems, selector)
+            self.results["cost_aware"] = results
+            self.problem_totals["cost_aware"] = len(problems)
+            report = self._generate_report(
+                StrategyConfig(name="cost_aware"), results, problems
+            )
+            logger.info(
+                "cost_aware_report_generated",
+                total=len(results),
+                downgraded=sum(1 for r in results if r.cost_downgraded),
+            )
+            return {"cost_aware": report}
 
         reports: Dict[str, StrategyReport] = {}
         for strategy_config in self.config.strategies:
@@ -178,6 +239,58 @@ class AlgorithmHarness:
                 strategy_config, results, problems
             )
         return reports
+
+    def _cost_aware_selector(
+        self, problems: List[Problem]
+    ) -> Optional[CostAwareSelector]:
+        """Build the difficulty selector when configured; validate coverage."""
+        mapping = self.config.difficulty_strategy
+        if not mapping:
+            return None
+        selector = CostAwareSelector(
+            mapping, allowed_strategies=list(self.STRATEGY_MAP)
+        )
+        selector.validate_coverage(problem.difficulty for problem in problems)
+        missing = sorted(
+            set(mapping.values()) - {strategy.name for strategy in self.config.strategies}
+        )
+        if missing:
+            raise ValueError(
+                "Strategies referenced by the difficulty-strategy mapping are "
+                f"not configured: {', '.join(missing)}; add them to the config "
+                "strategies"
+            )
+        return selector
+
+    def _collect_cost_aware_results(
+        self, problems: List[Problem], selector: CostAwareSelector
+    ) -> List[ExecutionResult]:
+        """Gather selector-mode results in dataset order, one per problem."""
+        unit_by_problem = {unit.problem_id: unit for unit in self.task_record.units}
+        results = []
+        for problem in problems:
+            unit = unit_by_problem.get(problem.problem_id)
+            if unit is not None and unit.result is not None:
+                results.append(ExecutionResult.model_validate(unit.result))
+                continue
+            results.append(
+                ExecutionResult(
+                    problem_id=problem.problem_id,
+                    strategy=selector.select(problem.difficulty),
+                    generated_code="",
+                    status=(
+                        "cancelled"
+                        if unit is not None and unit.status == "cancelled"
+                        else "error"
+                    ),
+                    failure_category="system_error",
+                    difficulty=problem.difficulty,
+                    error_message=(unit.error if unit is not None else None)
+                    or "Task unit did not produce a result",
+                    formal_evaluable=problem.formal_evaluable,
+                )
+            )
+        return results
 
     def _load_problems(self) -> List[Problem]:
         """

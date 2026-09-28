@@ -351,6 +351,10 @@ class ExecutionResult(BaseModel):
     llm_traces: List[Dict[str, Any]] = Field(
         default_factory=list, description="LLM interaction traces"
     )
+    cost_downgraded: bool = Field(
+        False,
+        description="True when the run-level budget cap downgraded this problem to a cheaper strategy",
+    )
 
     @property
     def success(self) -> bool:
@@ -634,6 +638,22 @@ class HarnessConfig(BaseModel):
     log_level: Literal["DEBUG", "INFO", "WARNING", "ERROR"] = Field("INFO", description="Log level")
     problem_filters: Optional[Dict[str, Any]] = Field(
         None, description="Optional filters for problems (difficulty, tags, etc.)"
+    )
+    difficulty_strategy: Optional[Dict[str, str]] = Field(
+        None,
+        description=(
+            "Cost-aware difficulty to strategy mapping (easy/medium/hard); "
+            "when set, each problem runs once with its mapped strategy"
+        ),
+    )
+    budget_cap_usd: Optional[float] = Field(
+        None,
+        gt=0,
+        description=(
+            "Run-level cost cap in USD; once accumulated known-pricing cost "
+            "reaches the cap, remaining problems downgrade to the cheapest "
+            "mapped strategy"
+        ),
     )
 
     def redacted_dump(self) -> Dict[str, Any]:
