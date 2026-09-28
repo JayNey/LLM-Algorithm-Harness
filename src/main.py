@@ -89,7 +89,7 @@ def apply_cli_overrides(config: HarnessConfig, args: argparse.Namespace) -> Harn
         config.budget_cap_usd = args.budget_cap
 
     if config.budget_cap_usd is not None and not config.difficulty_strategy:
-        raise ValueError("--budget-cap requires --difficulty-strategy mapping")
+        raise ValueError("budget_cap_usd (--budget-cap) requires a difficulty_strategy mapping")
     if config.difficulty_strategy:
         if args.strategy is not None:
             raise ValueError("--strategy cannot be combined with --difficulty-strategy")

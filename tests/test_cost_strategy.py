@@ -266,7 +266,7 @@ class TestCliOverrides:
             )
 
     def test_budget_cap_requires_mapping(self):
-        with pytest.raises(ValueError, match="requires --difficulty-strategy"):
+        with pytest.raises(ValueError, match="requires a difficulty_strategy mapping"):
             apply_cli_overrides(self.make_config(), self.make_args(budget_cap=5.0))
 
     def test_selector_conflicts_with_strategy_flag(self):
@@ -381,6 +381,11 @@ class TestHarnessCostAwareIntegration:
         assert calls == [("vanilla", "p-easy"), ("multi_round_feedback", "p-hard")]
         assert set(reports) == {"cost_aware"}
         assert reports["cost_aware"].total_problems == 2
+        # Difficulty dimension survives the merged report.
+        by_difficulty = reports["cost_aware"].by_difficulty
+        assert set(by_difficulty) == {"easy", "hard"}
+        assert by_difficulty["easy"]["solved"] == 1
+        assert by_difficulty["hard"]["success_rate"] == 1.0
         assert [r.strategy for r in harness.results["cost_aware"]] == [
             "vanilla",
             "multi_round_feedback",
@@ -424,7 +429,7 @@ class TestHarnessCostAwareIntegration:
         assert snapshot["downgraded_problems"] == 1
 
     def test_unmapped_difficulty_fails_fast(self, tmp_path, monkeypatch):
-        patch_runtimes(monkeypatch, {"vanilla": 0.0})
+        calls = patch_runtimes(monkeypatch, {"vanilla": 0.0})
         harness = make_harness(
             tmp_path,
             [problem_payload("p1", "easy"), problem_payload("p2", "hard")],
@@ -432,6 +437,8 @@ class TestHarnessCostAwareIntegration:
         )
         with pytest.raises(ValueError, match="not covered"):
             harness.run(use_task_service=True, run_id="run-unmapped")
+        # Validation runs before any model call happens.
+        assert calls == []
 
     def test_selector_requires_task_service_path(self, tmp_path):
         harness = make_harness(
@@ -441,3 +448,66 @@ class TestHarnessCostAwareIntegration:
         )
         with pytest.raises(ValueError, match="task service"):
             harness.run()
+
+    def test_non_selector_run_keeps_per_strategy_reports(self, tmp_path, monkeypatch):
+        calls = patch_runtimes(
+            monkeypatch,
+            {"vanilla": 0.0, "chain_of_thought": 0.0, "multi_round_feedback": 0.0},
+        )
+        harness = make_harness(
+            tmp_path,
+            [problem_payload("p1", "easy")],
+            difficulty_strategy=None,
+        )
+        reports = harness.run(use_task_service=True, run_id="run-plain")
+
+        # Without the selector every configured strategy runs every problem
+        # and reports stay keyed per strategy — the pre-change behavior.
+        assert set(reports) == {"vanilla", "chain_of_thought", "multi_round_feedback"}
+        assert len(calls) == 3
+        assert harness.cost_monitor is None
+
+    def test_resume_replays_completed_cost_into_cap(self, tmp_path, monkeypatch):
+        patch_runtimes(
+            monkeypatch,
+            {"vanilla": 0.6, "chain_of_thought": 0.6, "multi_round_feedback": 0.6},
+        )
+        problems = [
+            problem_payload("p1", "easy"),
+            problem_payload("p2", "medium"),
+            problem_payload("p3", "hard"),
+        ]
+        first = make_harness(
+            tmp_path,
+            problems,
+            {
+                "easy": "vanilla",
+                "medium": "chain_of_thought",
+                "hard": "multi_round_feedback",
+            },
+            budget_cap_usd=1.0,
+        )
+        first.run(use_task_service=True, run_id="run-resume")
+
+        replay_calls = patch_runtimes(
+            monkeypatch,
+            {"vanilla": 0.6, "chain_of_thought": 0.6, "multi_round_feedback": 0.6},
+        )
+        resumed = make_harness(
+            tmp_path,
+            problems,
+            {
+                "easy": "vanilla",
+                "medium": "chain_of_thought",
+                "hard": "multi_round_feedback",
+            },
+            budget_cap_usd=1.0,
+        )
+        resumed.run(use_task_service=True, run_id="run-resume", resume=True)
+
+        # Completed problems settle into the ledger before any new work, so
+        # the same run cannot spend past the cap across resume cycles.
+        assert replay_calls == []
+        snapshot = resumed.cost_monitor.snapshot()
+        assert snapshot["accumulated_cost_usd"] == pytest.approx(1.8)
+        assert resumed.cost_monitor.over_cap

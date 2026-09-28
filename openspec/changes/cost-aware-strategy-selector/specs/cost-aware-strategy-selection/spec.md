@@ -36,7 +36,7 @@
 
 ### Requirement: 运行中预算降级
 
-系统 SHALL 支持通过 `--budget-cap USD` 设置本次运行的累计成本上限：逐题累计已知定价的调用成本，达到上限后，后续题目 SHALL 自动改用映射中最便宜策略执行，其结果 SHALL 标记 `cost_downgraded=true`；监控只针对本次运行新增成本，不追溯历史运行。
+系统 SHALL 支持通过 `--budget-cap USD` 设置本次任务的累计成本上限：逐题累计已知定价的调用成本，达到上限后，后续题目 SHALL 自动改用映射中最便宜策略执行，其结果 SHALL 标记 `cost_downgraded=true`；监控覆盖同一任务的完整成本，`--resume` 恢复时 SHALL 先回放已完成题目的成本再继续执行，不追溯其他运行的历史。
 
 #### Scenario: 达上限后降级
 

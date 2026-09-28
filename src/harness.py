@@ -118,6 +118,12 @@ class AlgorithmHarness:
             if not run_id:
                 raise ValueError("--resume requires --run-id")
             record = service.get(run_id)
+            if monitor is not None:
+                # Same run resumed: settle already-completed problems into the
+                # ledger so the remaining work cannot spend past the cap again.
+                for unit in record.units:
+                    if unit.result is not None:
+                        monitor.add_result(ExecutionResult.model_validate(unit.result))
         else:
             if selector is not None:
                 units = []
@@ -169,6 +175,9 @@ class AlgorithmHarness:
                 cheapest = selector.cheapest_strategy
                 if cheapest != unit.strategy:
                     strategy_config = strategy_map[cheapest]
+                    # Executors are stateless per SandboxConfig; only the
+                    # strategy wrapper differs between runtimes, so the
+                    # unit's sandbox stays valid for the hidden stage.
                     strategy, _ = runtimes[cheapest]
                     downgraded = True
             result = self._execute_problem(strategy_config, problem, strategy, sandbox)
