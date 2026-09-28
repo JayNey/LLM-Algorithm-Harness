@@ -90,6 +90,9 @@ class MultiRoundFeedbackStrategy(StrategyBase):
 
                 if code:
                     try:
+                        # Trigger debug hook before execution
+                        self._before_execute(code)
+
                         if problem.public_test_cases:
                             sandbox_result = self.sandbox.execute(code, problem, stage="public")
                         if problem.feedback_test_cases:
@@ -102,9 +105,15 @@ class MultiRoundFeedbackStrategy(StrategyBase):
                         if sandbox_result is None:
                             # Hidden-only problems are finalized by Harness after this strategy.
                             success = True
+
+                        # Trigger debug hook after feedback is available
+                        if sandbox_result:
+                            feedback_text = self._format_feedback(sandbox_result)
+                            self._after_feedback(feedback_text)
                     except Exception as e:
                         sandbox_error = str(e)
                         self.logger.error("sandbox_execution_failed", error=sandbox_error)
+                        self._after_feedback(f"Sandbox error: {sandbox_error}")
 
             iteration_result = self.create_iteration_result(
                 iteration=iteration,

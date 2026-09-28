@@ -15,6 +15,7 @@ from math import comb
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 
+from src.error_analysis import analyze_results
 from src.utils.logging import get_logger
 
 logger = get_logger(__name__)
@@ -352,6 +353,29 @@ def _render_markdown(comparison: Dict[str, Any]) -> str:
             lines.append(f"- {label}：{'；'.join(parts) if parts else '无数据'}")
         lines.append("")
 
+    error_analysis = comparison.get("error_analysis")
+    if error_analysis:
+        lines.append("## 错误分析")
+        lines.append("")
+        total = error_analysis.get("total_failures", 0)
+        counts = "；".join(
+            f"{name}: {count}"
+            for name, count in error_analysis.get("categories", {}).items()
+            if count
+        )
+        lines.append(f"- 失败总数：{total}（{counts or '无失败'}）")
+        top = error_analysis.get("top_patterns", [])
+        if top:
+            lines.append("")
+            lines.append("| 高频错误模式 | 次数 |")
+            lines.append("|---|---:|")
+            for entry in top:
+                pattern = entry["pattern"].replace("|", "\\|")
+                lines.append(f"| {pattern} | {entry['count']} |")
+        for category, hints in error_analysis.get("suggestions", {}).items():
+            lines.append(f"- **{category} 修复建议**：{'；'.join(hints)}")
+        lines.append("")
+
     lines.append(
         f"> 生成时间：{comparison['generated_at']}；未知成本表示模型定价未配置，不代表 $0。"
     )
@@ -506,12 +530,21 @@ def generate_comparison_report(exp_dir: Path) -> Dict[str, Any]:
         raw_results[combo_ref["combo_id"]] = results
         combos.append(_combo_metrics(meta, combo_ref, summary, results, ledger))
 
+    problem_info = {
+        problem["problem_id"]: problem for problem in meta.get("dataset", {}).get("problems", [])
+    }
+    for combo in combos:
+        combo["error_analysis"] = analyze_results(raw_results[combo["combo_id"]], problem_info)
+
     comparison = {
         "generated_at": datetime.now().isoformat(),
         "experiment": meta,
         "combinations": combos,
         "by_model_strategy": _aggregate_by_model_strategy(combos),
         "model_comparison": build_model_comparison(meta, combos, raw_results),
+        "error_analysis": analyze_results(
+            [r for results in raw_results.values() for r in results], problem_info
+        ),
     }
 
     with open(Path(exp_dir) / "comparison.json", "w", encoding="utf-8") as f:

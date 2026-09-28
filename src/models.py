@@ -18,6 +18,12 @@ from pydantic import (
 
 from src.utils.secrets import REDACTED, redact_sensitive_data
 
+# Forward reference for code quality metrics
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from src.code_quality.models import CodeQualityMetrics
+
 # ============================================================================
 # Problem-related Models
 # ============================================================================
@@ -355,6 +361,9 @@ class ExecutionResult(BaseModel):
         False,
         description="True when the run-level budget cap downgraded this problem to a cheaper strategy",
     )
+    quality_metrics: Optional["CodeQualityMetrics"] = Field(
+        None, description="Code quality evaluation metrics"
+    )
 
     @property
     def success(self) -> bool:
@@ -654,6 +663,13 @@ class HarnessConfig(BaseModel):
             "reaches the cap, remaining problems downgrade to the cheapest "
             "mapped strategy"
         ),
+    )
+    enable_quality_analysis: bool = Field(
+        False, description="Enable code quality analysis (time/space complexity, readability, style)"
+    )
+    quality_analysis_config: Optional[Dict[str, bool]] = Field(
+        None,
+        description="Fine-grained quality analysis toggles: enable_time_analysis, enable_space_analysis, enable_readability_analysis, enable_style_analysis",
     )
 
     def redacted_dump(self) -> Dict[str, Any]:

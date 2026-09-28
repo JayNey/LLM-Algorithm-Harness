@@ -297,6 +297,7 @@ def run_import_command(args: argparse.Namespace) -> int:
         Exit code (0=success, 1=partial, 2=failure, 3=strict mode failure)
     """
     from src.importers.base import ImportResult
+    from src.importers.codeforces import CodeforcesImporter
     from src.importers.leetcode import LeetCodeImporter
     from src.importers.livecodebench import LiveCodeBenchImporter
     from src.importers.local_json import LocalJsonImporter
@@ -305,13 +306,15 @@ def run_import_command(args: argparse.Namespace) -> int:
 
     # Map source type to importer class
     IMPORTERS = {
+        "codeforces": CodeforcesImporter,
         "local-json": LocalJsonImporter,
         "leetcode": LeetCodeImporter,
         "livecodebench": LiveCodeBenchImporter,
         "mock": MockPlatformImporter,
     }
 
-    if args.source not in IMPORTERS:
+    source_name = args.source or args.import_source
+    if source_name not in IMPORTERS:
         print(
             f"Error: --source is required. Supported types: {', '.join(IMPORTERS.keys())}",
             file=sys.stderr,
@@ -320,8 +323,19 @@ def run_import_command(args: argparse.Namespace) -> int:
 
     try:
         # Instantiate importer
-        importer_class = IMPORTERS[args.source]
-        if args.source == "livecodebench":
+        importer_class = IMPORTERS[source_name]
+        if source_name == "codeforces":
+            tags = []
+            for value in args.tags or []:
+                tags.extend(item.strip() for item in value.split(",") if item.strip())
+            importer = importer_class(
+                contest=args.contest,
+                min_rating=args.min_rating,
+                max_rating=args.max_rating,
+                tags=tags,
+                limit=args.import_limit,
+            )
+        elif source_name == "livecodebench":
             importer = importer_class(
                 release_version=args.release_version,
                 start_date=args.start_date,
@@ -338,8 +352,12 @@ def run_import_command(args: argparse.Namespace) -> int:
             print()
 
         # Fetch and transform problems
-        logger.info("import_starting", source=args.source, input=args.input)
-        raw_data = importer.fetch_problems(args.input)
+        source_input = args.input or "codeforces-api"
+        if source_name != "codeforces" and not args.input:
+            print("Error: --input is required for this source", file=sys.stderr)
+            return 2
+        logger.info("import_starting", source=source_name, input=source_input)
+        raw_data = importer.fetch_problems(source_input)
         problems = importer.transform_to_schema(raw_data)
 
         # Validate problems
@@ -411,7 +429,7 @@ def run_import_command(args: argparse.Namespace) -> int:
             print("No changes were made to the dataset (preview mode).")
 
         # Generate and display report
-        report = importer.generate_report(result, args.input, args.output, args.preview)
+        report = importer.generate_report(result, source_input, args.output, args.preview)
         print()
         print("Import Report:")
         print(f"  Timestamp: {report['timestamp']}")
@@ -571,12 +589,103 @@ def run_recommend_command(args: argparse.Namespace) -> int:
     except FileNotFoundError as exc:
         print(f"Error: {exc}", file=sys.stderr)
         return 1
+
+
+def run_ab_test_command(args: argparse.Namespace) -> int:
+    """Run a two-variant stratified prompt A/B test."""
+    from src.ab_testing import ABTestConfig, ABTestRunner
+
+    try:
+        import yaml
+
+        payload = yaml.safe_load(Path(args.config).read_text(encoding="utf-8"))
+        config = ABTestConfig.model_validate(payload)
+        if args.output_dir:
+            config = config.model_copy(update={"output_dir": args.output_dir})
+        output = ABTestRunner(config).run()
+        print(f"A/B test completed: {output}")
+        print(f"  Report: {output / 'REPORT.md'}")
+        return 0
+    except FileNotFoundError as exc:
+        print(f"Error: {exc}", file=sys.stderr)
+        return 1
     except Exception as exc:
-        logger.error("recommendation_failed", error=str(exc))
+        logger.error("ab_test_failed", error=str(exc))
         print(f"Error: {exc}", file=sys.stderr)
         return 1
 
 
+def run_benchmark_command(args: argparse.Namespace) -> int:
+    """Run benchmark evaluation for learning curve tracking."""
+    from src.benchmark import BenchmarkManager
+    from src.benchmark.executor import BenchmarkExecutor
+    from src.utils.config import load_config
+
+    try:
+        manager = BenchmarkManager(".")
+
+        # List available suites if requested
+        if args.list_suites:
+            suites = manager.list_suites()
+            if not suites:
+                print("No benchmark suites found.")
+                return 0
+
+            print("Available benchmark suites:")
+            for suite_file in suites:
+                print(f"  - {suite_file}")
+            return 0
+
+        # Load specified suite
+        if not args.suite:
+            print("Error: --suite is required", file=sys.stderr)
+            print("Use --list-suites to see available benchmark suites", file=sys.stderr)
+            return 1
+
+        suite = manager.load_suite(args.suite)
+        print(f"Loaded benchmark suite: {suite.name}")
+        print(f"  Problems: {len(suite.problems)}")
+        print(f"  Version: {suite.version}")
+        print(f"  Frozen: {suite.frozen}")
+
+        # Load harness config
+        config = load_config()
+        if not config:
+            print("Error: No configuration found. Please provide a config file.", file=sys.stderr)
+            return 1
+
+        print(f"\nExecuting benchmark evaluation...")
+
+        # Execute benchmark
+        executor = BenchmarkExecutor(suite, config)
+        results = executor.execute()
+
+        print(f"\n✓ Benchmark evaluation completed!")
+        print(f"  Suite: {results['suite']['name']}")
+        print(f"  Problems evaluated: {results['problems_evaluated']}")
+        if results['problems_missing'] > 0:
+            print(f"  Problems missing: {results['problems_missing']}")
+
+        print(f"\nResults by strategy:")
+        for strategy_name, strategy_results in results['strategies'].items():
+            print(f"  {strategy_name}:")
+            print(f"    - Accuracy: {strategy_results['accuracy']:.2%}")
+            print(f"    - Passed: {strategy_results['passed']}/{strategy_results['total']}")
+
+        # TODO: Save results to history storage
+        print("\nNote: History storage coming in next task...")
+
+        return 0
+    except FileNotFoundError as exc:
+        print(f"Error: {exc}", file=sys.stderr)
+        return 1
+    except ValueError as exc:
+        print(f"Error: {exc}", file=sys.stderr)
+        return 1
+    except Exception as exc:
+        logger.error("benchmark_failed", error=str(exc))
+        print(f"Error: {exc}", file=sys.stderr)
+        return 1
 def main():
     """Main entry point."""
     parser = argparse.ArgumentParser(
@@ -678,16 +787,16 @@ def main():
     )
 
     import_parser = subparsers.add_parser("import", help="Import problems from external sources")
+    import_parser.add_argument("import_source", nargs="?", help="Optional positional source, e.g. codeforces")
     import_parser.add_argument(
         "--source",
         type=str,
-        required=True,
-        help="Import source type (e.g., local-json, leetcode, mock)",
+        help="Import source type (e.g., codeforces, local-json, leetcode, mock)",
     )
     import_parser.add_argument(
         "--input",
         type=str,
-        required=True,
+        required=False,
         help="Input path (file, directory, or URL)",
     )
     import_parser.add_argument(
@@ -733,6 +842,12 @@ def main():
         "--import-limit",
         type=positive_int,
         help="Limit LiveCodeBench imported problems",
+    )
+    import_parser.add_argument("--contest", help="Codeforces contest ID")
+    import_parser.add_argument("--min-rating", type=int, help="Minimum Codeforces rating")
+    import_parser.add_argument("--max-rating", type=int, help="Maximum Codeforces rating")
+    import_parser.add_argument(
+        "--tags", nargs="+", help="Codeforces tags; comma-separated or space-separated"
     )
     import_parser.add_argument(
         "--log-format",
@@ -814,11 +929,38 @@ def main():
     )
     recommend_parser.add_argument("--log-format", choices=["console", "json"], default="console")
 
+    ab_parser = subparsers.add_parser("ab-test", help="Run a two-variant prompt A/B test")
+    ab_parser.add_argument("--config", required=True, help="A/B test JSON or YAML configuration")
+    ab_parser.add_argument("--output-dir", help="Override configured output directory")
+    ab_parser.add_argument("--log-format", choices=["console", "json"], default="console")
+
+    # Benchmark command for learning curve tracking
+    benchmark_parser = subparsers.add_parser(
+        "benchmark", help="Run benchmark evaluation for learning curve tracking"
+    )
+    benchmark_parser.add_argument(
+        "--suite", type=str, help="Path to benchmark suite configuration file"
+    )
+    benchmark_parser.add_argument(
+        "--list-suites", action="store_true", help="List available benchmark suites"
+    )
+    benchmark_parser.add_argument(
+        "--compare", action="store_true", help="Enable multi-model comparison mode"
+    )
+    benchmark_parser.add_argument("--output", type=str, help="Output path for report")
+    benchmark_parser.add_argument(
+        "--log-format", choices=["console", "json"], default="console"
+    )
+
+    # Debug command
+    from harness.cli.debug import add_debug_subcommand
+    add_debug_subcommand(subparsers)
+
     # Subcommand dispatch: `run` (default), `import`, `experiment`, `optimize`,
-    # and `recommend`. Bare invocation without a subcommand is parsed directly
-    # by the run parser so legacy flag-only command lines keep working.
+    # `recommend`, `ab-test`, `benchmark`, and `debug`. Bare invocation without a subcommand is parsed
+    # directly by the run parser so legacy flag-only command lines keep working.
     argv = sys.argv[1:]
-    if argv and argv[0] in ("run", "import", "experiment", "optimize", "recommend"):
+    if argv and argv[0] in ("run", "import", "experiment", "optimize", "recommend", "ab-test", "benchmark", "debug"):
         args = parser.parse_args(argv)
     else:
         args = run_parser.parse_args(argv)
@@ -846,6 +988,24 @@ def main():
     if args.command == "recommend":
         setup_logging(console_format=getattr(args, "log_format", "console"))
         exit_code = run_recommend_command(args)
+        sys.exit(exit_code)
+
+    if args.command == "ab-test":
+        setup_logging(console_format=getattr(args, "log_format", "console"))
+        exit_code = run_ab_test_command(args)
+        sys.exit(exit_code)
+
+    # Handle benchmark command
+    if args.command == "benchmark":
+        setup_logging(console_format=getattr(args, "log_format", "console"))
+        exit_code = run_benchmark_command(args)
+        sys.exit(exit_code)
+
+    # Handle debug command
+    if args.command == "debug":
+        setup_logging(console_format=getattr(args, "log_format", "console"))
+        from harness.cli.debug import run_debug_command
+        exit_code = run_debug_command(args)
         sys.exit(exit_code)
 
     setup_logging(console_format=args.log_format)

@@ -869,3 +869,164 @@ _harness_write(_harness_fd, ({result_marker!r} + _harness_dumps(result) + "\\n")
             return False
 
         return all(find_match(index, set()) for index in range(len(actual)))
+
+    def execute_with_performance_profiling(
+        self, code: str, problem: Problem, scales: list[int] = None
+    ) -> dict[str, float]:
+        """
+        Execute code with performance profiling at different scales.
+
+        Args:
+            code: Python code to execute
+            problem: Problem definition
+            scales: List of scale multipliers (default: [10, 100, 1000])
+
+        Returns:
+            Dict mapping scale to execution time
+        """
+        if scales is None:
+            scales = [10, 100, 1000]
+
+        execution_times = {}
+
+        # Get base test cases
+        if not problem.public_tests:
+            logger.warning("no_public_tests_for_profiling", problem=problem.id)
+            return execution_times
+
+        for scale in scales:
+            try:
+                # Create scaled test cases
+                scaled_problem = Problem(
+                    id=problem.id,
+                    title=problem.title,
+                    description=problem.description,
+                    difficulty=problem.difficulty,
+                    topics=problem.topics,
+                    public_tests=self._scale_test_cases(problem.public_tests, scale),
+                    private_tests=[],
+                    solution_stub=problem.solution_stub,
+                    constraints=problem.constraints,
+                    time_limit_ms=problem.time_limit_ms,
+                    memory_limit_mb=problem.memory_limit_mb,
+                )
+
+                start = time.time()
+                result = self.execute(code, scaled_problem, stage="public")
+                elapsed = time.time() - start
+
+                if result.status == "pass":
+                    execution_times[f"{scale}x"] = elapsed
+                else:
+                    logger.warning(
+                        "scaled_execution_failed",
+                        scale=scale,
+                        status=result.status
+                    )
+                    break
+            except Exception as e:
+                logger.warning("performance_profiling_failed", scale=scale, error=str(e))
+                break
+
+        return execution_times
+
+    def _scale_test_cases(self, test_cases: list, scale: int) -> list:
+        """
+        Scale test cases by multiplying array sizes or numeric ranges.
+
+        This is a heuristic approach that works for common problem types.
+        """
+        scaled = []
+        for test in test_cases:
+            scaled_inputs = []
+            for inp in test.inputs:
+                scaled_inp = self._scale_value(inp, scale)
+                scaled_inputs.append(scaled_inp)
+
+            # Keep expected output as-is; execution will generate actual output
+            scaled.append(type(test)(inputs=scaled_inputs, expected=test.expected))
+
+        return scaled
+
+    def _scale_value(self, value: Any, scale: int) -> Any:
+        """Scale a single input value."""
+        if isinstance(value, list):
+            # For lists, replicate or extend based on scale
+            if not value:
+                return value
+            return value * scale
+        elif isinstance(value, int) and value > 1:
+            # Scale positive integers
+            return value * scale
+        else:
+            # Keep other values unchanged
+            return value
+
+    def execute_with_memory_profiling(
+        self, code: str, problem: Problem, scales: list[int] = None
+    ) -> dict[str, Any]:
+        """
+        Execute code with memory profiling at different scales.
+
+        Args:
+            code: Python code to execute
+            problem: Problem definition
+            scales: List of scale multipliers (default: [1, 10, 100])
+
+        Returns:
+            Dict with memory usage statistics per scale
+        """
+        import tracemalloc
+
+        if scales is None:
+            scales = [1, 10, 100]
+
+        memory_results = {}
+
+        if not problem.public_tests:
+            logger.warning("no_public_tests_for_memory_profiling", problem=problem.id)
+            return memory_results
+
+        for scale in scales:
+            try:
+                # Create scaled test cases
+                scaled_problem = Problem(
+                    id=problem.id,
+                    title=problem.title,
+                    description=problem.description,
+                    difficulty=problem.difficulty,
+                    topics=problem.topics,
+                    public_tests=self._scale_test_cases(problem.public_tests, scale),
+                    private_tests=[],
+                    solution_stub=problem.solution_stub,
+                    constraints=problem.constraints,
+                    time_limit_ms=problem.time_limit_ms,
+                    memory_limit_mb=problem.memory_limit_mb,
+                )
+
+                tracemalloc.start()
+                result = self.execute(code, scaled_problem, stage="public")
+                current, peak = tracemalloc.get_traced_memory()
+                tracemalloc.stop()
+
+                if result.status == "pass":
+                    memory_results[f"{scale}x"] = {
+                        "current_bytes": current,
+                        "peak_bytes": peak,
+                        "peak_mb": peak / (1024 * 1024),
+                    }
+                else:
+                    logger.warning(
+                        "scaled_memory_profiling_failed",
+                        scale=scale,
+                        status=result.status
+                    )
+                    tracemalloc.stop()
+                    break
+            except Exception as e:
+                logger.warning("memory_profiling_failed", scale=scale, error=str(e))
+                if tracemalloc.is_tracing():
+                    tracemalloc.stop()
+                break
+
+        return memory_results

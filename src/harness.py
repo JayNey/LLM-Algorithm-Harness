@@ -7,6 +7,7 @@ from typing import Any, Dict, List, Optional
 
 from src.budget import BudgetExhausted, BudgetTracker, BudgetedLLMClient
 from src.cost_strategy import CostAwareSelector, RunCostMonitor
+from src.code_quality.analyzer import CodeQualityAnalyzer
 from src.llm_client import LLMClient
 from src.models import (
     ExecutionResult,
@@ -22,6 +23,7 @@ from src.problem_loader import ProblemLoader
 from src.sandbox_executor import SandboxExecutor
 from src.strategies.chain_of_thought import ChainOfThoughtStrategy
 from src.strategies.multi_round_feedback import MultiRoundFeedbackStrategy
+from src.strategies.self_consistency import SelfConsistencyStrategy
 from src.strategies.vanilla import VanillaStrategy
 from src.task_service import TaskService, TaskUnit
 from src.utils.logging import get_logger
@@ -37,6 +39,7 @@ class AlgorithmHarness:
         "vanilla": VanillaStrategy,
         "chain_of_thought": ChainOfThoughtStrategy,
         "multi_round_feedback": MultiRoundFeedbackStrategy,
+        "self_consistency": SelfConsistencyStrategy,
     }
 
     def __init__(self, config: HarnessConfig, budget_tracker: Optional[BudgetTracker] = None):
@@ -55,6 +58,20 @@ class AlgorithmHarness:
         self.results: Dict[str, List[ExecutionResult]] = {}
         self.problem_totals: Dict[str, int] = {}
         self.task_record = None
+
+        # Initialize quality analyzer based on config
+        if config.enable_quality_analysis:
+            quality_config = config.quality_analysis_config or {}
+            self.quality_analyzer = CodeQualityAnalyzer(
+                enable_time=quality_config.get("enable_time_analysis", True),
+                enable_space=quality_config.get("enable_space_analysis", True),
+                enable_readability=quality_config.get("enable_readability_analysis", True),
+                enable_style=quality_config.get("enable_style_analysis", True),
+            )
+            logger.info("quality_analyzer_enabled", config=quality_config)
+        else:
+            self.quality_analyzer = None
+
         logger.info("harness_initialized", config=config.redacted_dict())
 
     def run(
@@ -420,6 +437,17 @@ class AlgorithmHarness:
             strategy_problem = problem.model_copy(update={"hidden_test_cases": []})
             result = strategy.execute(strategy_problem)
             result.formal_evaluable = problem.formal_evaluable
+
+            # Analyze code quality if analyzer is enabled
+            if self.quality_analyzer and result.generated_code:
+                try:
+                    quality_metrics = self.quality_analyzer.analyze(
+                        result.generated_code, problem
+                    )
+                    result.quality_metrics = quality_metrics.model_dump()
+                except Exception as e:
+                    logger.warning("quality_analysis_failed", error=str(e))
+
             if (
                 problem.formal_evaluable
                 and result.generated_code

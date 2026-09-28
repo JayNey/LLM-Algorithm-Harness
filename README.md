@@ -4,20 +4,68 @@
 
 ## 项目概述
 
-本项目为轻量级 LLM（如 GPT-3.5、Claude Haiku）提供一个完整的算法问题求解评估框架。支持三种核心策略：
+本项目为轻量级 LLM（如 GPT-3.5、Claude Haiku）提供一个完整的算法问题求解评估框架。支持四种核心策略：
 
 - **Vanilla**: 直接提示，无特殊引导
 - **Chain of Thought (CoT)**: 分步推理引导
 - **Multi-Round Feedback**: 多轮反馈迭代优化
+- **Self-Consistency**: 生成多个候选解并通过投票选择最佳答案
 
 ## 特性
 
-- **多策略支持**: 内置三种求解策略，可扩展自定义策略
+- **多策略支持**: 内置四种求解策略，可扩展自定义策略
 - **代码沙箱**: 隔离执行环境，安全运行用户生成代码
+- **代码质量评估**: 全面的代码质量分析，包括时间复杂度、空间复杂度、可读性和风格一致性评估
 - **详细指标**: 成功率、Token 消耗、成本估算、迭代次数统计
 - **灵活过滤**: 按难度、标签、数量筛选问题集
 - **结构化输出**: JSON 格式结果，便于后续分析
 - **多 LLM 支持**: 支持 OpenAI、Anthropic API
+
+## 代码质量评估功能
+
+本项目新增了全面的代码质量评估功能，超越单纯的正确性检查：
+
+### 评估维度
+
+1. **时间复杂度分析**
+   - 静态分析（AST 循环嵌套层数识别）
+   - 性能测试（不同数据规模执行时间）
+   - 复杂度推断与超时标注
+
+2. **空间复杂度分析**
+   - 内存使用峰值监控
+   - 内存分配模式识别
+   - 空间效率评分
+
+3. **代码可读性评分**
+   - pylint 综合质量评分
+   - flake8 风格检查
+   - radon 圈复杂度分析
+
+4. **代码风格一致性**
+   - black 格式检查
+   - 风格偏差统计
+   - 代码风格报告
+
+### 使用方式
+
+代码质量分析默认是可选的。在评估配置中启用：
+
+```python
+from src.code_quality.analyzer import CodeQualityAnalyzer
+
+# 创建分析器
+analyzer = CodeQualityAnalyzer(
+    enable_time_analysis=True,
+    enable_space_analysis=True,
+    enable_readability_analysis=True,
+    enable_style_analysis=True
+)
+
+# 分析代码
+metrics = analyzer.analyze(code, problem)
+print(f"Overall quality score: {metrics.overall_score}")
+```
 
 ## 项目结构
 
@@ -29,10 +77,17 @@ LLM-Algorithm-Harness/
 │   ├── llm_client.py          # LLM API 客户端
 │   ├── sandbox_executor.py    # 代码沙箱执行器
 │   ├── strategy_base.py       # 策略基类
+│   ├── code_quality/          # 代码质量分析模块
+│   │   ├── analyzer.py        # 主分析器
+│   │   ├── time_analyzer.py   # 时间复杂度分析
+│   │   ├── space_analyzer.py  # 空间复杂度分析
+│   │   ├── readability_analyzer.py  # 可读性分析
+│   │   └── style_analyzer.py  # 风格一致性分析
 │   ├── strategies/
 │   │   ├── vanilla.py         # Vanilla 策略
 │   │   ├── chain_of_thought.py    # CoT 策略
-│   │   └── multi_round_feedback.py # 多轮反馈策略
+│   │   ├── multi_round_feedback.py # 多轮反馈策略
+│   │   └── self_consistency.py     # Self-Consistency 策略
 │   ├── harness.py             # 主协调器
 │   ├── main.py                # 入口程序
 │   └── utils/
@@ -40,6 +95,7 @@ LLM-Algorithm-Harness/
 │       ├── logging.py         # 日志工具
 │       └── validators.py      # 验证工具
 ├── tests/                     # 单元测试
+│   └── test_code_quality/     # 代码质量测试
 ├── data/
 │   └── problems.json          # 示例问题数据集
 ├── docs/                      # 文档
@@ -98,7 +154,7 @@ PYTHONPATH=. python3 -m src.main --config config.siliconflow.example.json --list
 # 连接检查（同样免费；注意：生成式连接检查才会按量计费）
 PYTHONPATH=. python3 -m src.main --config config.siliconflow.example.json --check-connection
 
-# 三种策略评测（--strategy 可选 vanilla / chain_of_thought / multi_round_feedback）
+# 三种策略评测（--strategy 可选 vanilla / chain_of_thought / multi_round_feedback / self_consistency）
 PYTHONPATH=. python3 -m src.main --config config.siliconflow.example.json --strategy multi_round_feedback --limit 1
 ```
 
@@ -126,6 +182,9 @@ harness import --source local-json --input data/new_problems.json
 # 从 LeetCode 公开题目 URL 或 slug 导入
 harness import --source leetcode --input https://leetcode.com/problems/two-sum/ --preview
 
+# 从 Codeforces 公开 API 和题面导入
+harness import codeforces --contest 1234 --tags dp,graphs --import-limit 50 --output data/codeforces.json --force
+
 # 从固定版本的 LiveCodeBench 缓存导入
 harness import --source livecodebench --input data/livecodebench-release-v6.json \
   --release-version release_v6 --difficulty hard --import-limit 50 --preview
@@ -150,6 +209,7 @@ harness import --source local-json --input data/new_problems.json --force
 **支持的导入来源：**
 - `local-json` — 本地 JSON 文件
 - `leetcode` — LeetCode 公开题面、元数据和可可靠解析的公开样例
+- `codeforces` — Codeforces 公开题面、样例、rating 和标签
 - `livecodebench` — 固定版本的本地 JSON/JSONL 基准缓存
 - `mock` — 测试用模拟数据（用于演示和测试）
 
@@ -223,6 +283,74 @@ harness --dataset data/problems.json \
 
 预算监控覆盖同一任务的完整成本：`--resume` 恢复时会先把已完成题目的成本回放进台账，避免同一任务多次中断累计突破上限；不追溯其他运行的历史。usage 数据缺失的调用无法真实计价，不计入累计值，其数量会在运行结束的 `Cost control` 摘要中如实列出。并行执行时，达上限瞬间已在途的题目会按原映射策略完成，实际花费可能略超上限（最多并发数减一题的成本）。降级是确定性阶梯规则（达上限后一律最便宜策略），不保证全局最优；两个参数也可以直接写入配置文件的 `difficulty_strategy` 与 `budget_cap_usd` 字段。
 
+### 交互式调试模式
+
+对于需要深入理解模型推理过程、测试参数调整或手动干预的场景，可以使用交互式调试模式单步执行单个问题：
+
+```bash
+harness debug --problem leetcode_1 --strategy chain_of_thought --model gpt-4
+```
+
+**主要功能：**
+- **单步执行**：在生成、执行、反馈等关键步骤暂停，逐步检查
+- **断点控制**：在策略关键位置设置断点
+- **实时干预**：修改 prompt、调整参数（temperature、max_rounds 等）、注入自定义提示
+- **轨迹可视化**：查看完整执行轨迹，导出 JSON 格式便于分析
+
+**常用命令：**
+```
+(debug) break generate        # 在代码生成后设置断点
+(debug) next                  # 执行下一步
+(debug) set temperature 0.9   # 动态修改参数
+(debug) trace                 # 查看执行轨迹摘要
+(debug) export trace.json     # 导出完整轨迹
+(debug) exit                  # 退出调试会话
+```
+
+详细使用指南请参考 [docs/interactive_debugging.md](docs/interactive_debugging.md)。
+
+### 学习曲线追踪（Benchmark Suite）
+
+对于需要长期追踪模型性能演变的场景，可以使用基准题目集管理和学习曲线追踪功能：
+
+```bash
+# 列出可用的 benchmark suites
+harness benchmark --list-suites
+
+# 运行基准评估
+harness benchmark --suite benchmark.example.json
+
+# 生成学习曲线报告（对比多个模型）
+harness benchmark --suite benchmark.example.json --compare --output reports/learning_curve.md
+```
+
+**主要功能：**
+- **基准题目集管理**：定义固定的题目集（frozen benchmark），确保评估一致性
+- **历史数据存储**：自动保存每次评估结果，按时间戳和模型 ID 组织
+- **趋势分析**：生成时间序列图，可视化模型性能变化
+- **多模型对比**：在同一图表中对比不同模型或版本的性能趋势
+- **统计分析**：计算性能增长率、标准差、版本间差异
+- **完整报告**：生成包含趋势图、统计表和里程碑的 Markdown 报告
+
+**Benchmark Suite 配置示例：**
+```json
+{
+  "name": "Standard Benchmark v1.0",
+  "problems": ["leetcode_1", "leetcode_2", "leetcode_15"],
+  "frozen": true,
+  "version": "1.0",
+  "description": "固定基准题目集，用于追踪长期性能趋势"
+}
+```
+
+**使用场景：**
+- 追踪模型版本迭代的性能变化
+- 对比不同模型在相同题目集上的表现
+- 监控算法求解能力的长期趋势
+- 建立可复现的评估基线
+
+详细使用指南请参考 [docs/learning-curve-tracking.md](docs/learning-curve-tracking.md)。
+
 ## 配置说明
 
 ### 配置文件格式
@@ -258,6 +386,14 @@ harness --dataset data/problems.json \
     {
       "name": "multi_round_feedback",
       "max_iterations": 3
+    },
+    {
+      "name": "self_consistency",
+      "max_iterations": 1,
+      "custom_params": {
+        "num_candidates": 5,
+        "temperature": 0.8
+      }
     }
   ]
 }
@@ -330,6 +466,16 @@ problem_filters:
 
 ## 运行测试
 
+### Prompt A/B 测试
+
+同一策略的两个 prompt 版本可以按难度和标签分层后进行 A/B 测试：
+
+```bash
+harness ab-test --config ab_test.example.json
+```
+
+配置示例见 [ab_test.example.json](ab_test.example.json)。报告会输出样例/隐藏通过率、成功率差异、95% 置信区间、Fisher 或卡方检验、Welch t 检验、Token/耗时和分组统计。p-value 只表示当前样本下的统计证据，不代表远端生成具有因果或逐字可复现结论。
+
 ### 根据历史结果推荐题目
 
 推荐器会按历史失败率分析难度、标签和标签组合，排除已评估题目，生成报告和标准题目数据集：
@@ -393,7 +539,8 @@ results/
 ├── summary.json                    # 总结报告
 ├── vanilla_results.json            # Vanilla 策略详细结果
 ├── chain_of_thought_results.json   # CoT 策略详细结果
-└── multi_round_feedback_results.json
+├── multi_round_feedback_results.json
+└── self_consistency_results.json   # Self-Consistency 策略详细结果
 ```
 
 ### 示例输出
@@ -423,9 +570,18 @@ Strategy: multi_round_feedback
   Avg Attempts: 2.10
   Avg Tokens: 678
   Estimated Cost: $0.0024
+
+Strategy: self_consistency
+  Success Rate: 85.00%
+  Solved: 8.5/10
+  Avg Attempts: 5.00
+  Avg Tokens: 892
+  Estimated Cost: $0.0031
 ```
 
 ## 报告生成
+
+实验 HTML panel 还会包含模型能力图谱：能力雷达图展示算法设计、代码实现、调试、优化和边界处理五个启发式维度，热力图表格展示按难度和标签的通过数、分母和通过率。评分来自已有实验结果，样本不足时显示未知，并附带启发式说明。
 
 评估完成后，可以使用报告模块生成多种格式的报告，包括 CSV、Markdown、图表和 HTML。
 
@@ -640,15 +796,36 @@ cat results/summary.json | jq '.strategies.vanilla.pricing_metadata'
 
 生成的 HTML 和 Markdown 报告会显示成本估算和定价来源。
 
-### 注意事项
+## 策略说明
+
+### Vanilla
+直接提示策略，不包含特殊引导或推理步骤。适合简单问题或测试基准性能。
+
+### Chain of Thought (CoT)
+引导模型进行分步推理，通过"让我们一步步思考"的方式提高复杂问题的求解准确率。
+
+### Multi-Round Feedback
+多轮反馈迭代优化策略。根据测试结果提供反馈，让模型修正代码，最多进行配置的最大迭代次数。
+
+### Self-Consistency
+生成多个候选解（默认 5 个）并通过投票选择最频繁的正确答案。通过高温度采样（默认 0.8）增加候选解的多样性，适合有多种求解路径的问题。
+
+**配置参数：**
+- `num_candidates`: 生成的候选解数量（默认 5）
+- `temperature`: 采样温度（默认 0.8，可通过 custom_params 配置）
+
+**适用场景：**
+- 有多种求解思路的问题
+- 需要提高鲁棒性的场景
+- 对准确率要求高于效率的情况
+
+## 注意事项
 
 - 如果 `pricing.json` 文件格式错误或不存在，系统会自动降级到内置定价
 - 未知模型使用默认定价时，会在日志中记录 WARNING 信息
 - 旧版本的 `summary.json` 不包含 `pricing_metadata`，生成报告时会使用当前配置重新估算（报告中会标注"历史数据不可用"）
 
-
-
-### 添加新策略
+## 添加新策略
 
 1. 在 `src/strategies/` 创建新文件
 2. 继承 `StrategyBase` 类
