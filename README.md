@@ -137,6 +137,7 @@ LLM-Algorithm-Harness/
 │   ├── harness.py             # 主协调器
 │   ├── main.py                # 入口程序
 │   └── utils/
+│       ├── tag_manager.py     # 标签归一化与关键词推荐
 │       ├── config.py          # 配置工具
 │       ├── logging.py         # 日志工具
 │       └── validators.py      # 验证工具
@@ -203,6 +204,18 @@ PYTHONPATH=. python3 -m src.main --config config.siliconflow.example.json --chec
 # 策略评测（--strategy 可选 vanilla / chain_of_thought / multi_round_feedback / self_consistency / reflexion）
 PYTHONPATH=. python3 -m src.main --config config.siliconflow.example.json --strategy reflexion --limit 1
 ```
+
+### 标签标准化
+
+标签命令默认只生成预览报告，不会覆盖原题库。映射表位于 `config/tag_mapping.yaml`，覆盖常见的英文、下划线、平台别名和中英文标签：
+
+```bash
+harness tags normalize \
+  --dataset data/problems.json \
+  --report results/tag-normalization.json
+```
+
+确认报告中的建议后，使用 `--output` 写入新的题库；只有显式添加 `--apply-recommendations` 才会把文本推荐标签写入新文件。原始题库始终保持不变，也可以用 `--mapping custom-tags.yaml` 提供项目自定义映射规则。完整字段说明见 [`docs/tag-management.md`](docs/tag-management.md)。
 
 说明：
 
