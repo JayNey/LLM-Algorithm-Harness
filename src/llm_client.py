@@ -10,6 +10,7 @@ from typing import Any, Callable, Dict, List, Optional
 from pydantic import SecretStr
 
 from src.models import LLMConfig, LLMResponse, TokenUsage
+from src.cache import CacheKey, LLMResponseCache
 from src.utils.logging import get_logger
 from src.utils.pricing import PricingManager
 from src.utils.secrets import redact_sensitive_data, redact_sensitive_text
@@ -44,6 +45,15 @@ class LLMClient:
         self._resolved_api_key: Optional[SecretStr] = None
         self.client = self._initialize_client()
         self.pricing_manager = PricingManager()
+
+        # Initialize cache
+        self.cache = LLMResponseCache(
+            cache_dir=".cache/llm_responses",
+            ttl_days=config.cache.ttl_days,
+            max_size_mb=config.cache.max_size_mb,
+            enabled=config.cache.enabled,
+        )
+
         logger.info("llm_client_initialized", provider=config.provider, model=config.model)
 
     def _initialize_client(self):
@@ -184,6 +194,8 @@ class LLMClient:
         temperature: Optional[float] = None,
         max_tokens: Optional[int] = None,
         custom_params: Optional[Dict[str, Any]] = None,
+        problem_id: Optional[str] = None,
+        strategy_name: Optional[str] = None,
     ) -> LLMResponse:
         """
         Generate response from LLM.
@@ -191,6 +203,11 @@ class LLMClient:
         Args:
             prompt: User prompt
             system_prompt: Optional system prompt
+            temperature: Optional temperature override
+            max_tokens: Optional max_tokens override
+            custom_params: Optional custom parameters
+            problem_id: Optional problem identifier for cache key
+            strategy_name: Optional strategy name for cache key
 
         Returns:
             LLMResponse object
@@ -204,6 +221,30 @@ class LLMClient:
             max_tokens=max_tokens,
             custom_params=custom_params,
         )
+
+        # Generate cache key
+        cache_key = CacheKey.generate(
+            model=self.config.model,
+            prompt=prompt,
+            temperature=effective["temperature"],
+            max_tokens=effective["max_tokens"],
+            problem_id=problem_id,
+            strategy_name=strategy_name,
+            system_prompt=effective.get("system_prompt"),
+        )
+
+        # Check cache if enabled
+        if self.config.cache.enabled:
+            cached_response = self.cache.get(cache_key)
+            if cached_response is not None:
+                logger.info(
+                    "cache_hit",
+                    provider=self.config.provider,
+                    model=self.config.model,
+                    cache_key=cache_key[:16],
+                )
+                return cached_response
+
         logger.info(
             "generating_llm_response", provider=self.config.provider, model=self.config.model
         )
@@ -227,6 +268,15 @@ class LLMClient:
                 tokens=response.usage.total_tokens,
                 time=response_time,
             )
+
+            # Cache the response if enabled
+            if self.config.cache.enabled:
+                self.cache.set(cache_key, response)
+                logger.info(
+                    "response_cached",
+                    cache_key=cache_key[:16],
+                    model=self.config.model,
+                )
 
             return response
 
