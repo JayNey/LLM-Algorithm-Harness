@@ -4,16 +4,17 @@
 
 ## 项目概述
 
-本项目为轻量级 LLM（如 GPT-3.5、Claude Haiku）提供一个完整的算法问题求解评估框架。支持四种核心策略：
+本项目为轻量级 LLM（如 GPT-3.5、Claude Haiku）提供一个完整的算法问题求解评估框架。支持五种核心策略：
 
 - **Vanilla**: 直接提示，无特殊引导
 - **Chain of Thought (CoT)**: 分步推理引导
 - **Multi-Round Feedback**: 多轮反馈迭代优化
 - **Self-Consistency**: 生成多个候选解并通过投票选择最佳答案
+- **Reflexion**: 对可见测试失败进行结构化反思，再带着有限反思上下文生成下一版代码
 
 ## 特性
 
-- **多策略支持**: 内置四种求解策略，可扩展自定义策略
+- **多策略支持**: 内置五种求解策略，可扩展自定义策略
 - **代码沙箱**: 隔离执行环境，安全运行用户生成代码
 - **代码质量评估**: 全面的代码质量分析，包括时间复杂度、空间复杂度、可读性和风格一致性评估
 - **并行执行**: 支持题目级和策略级并行，显著提升评估速度
@@ -131,7 +132,8 @@ LLM-Algorithm-Harness/
 │   │   ├── vanilla.py         # Vanilla 策略
 │   │   ├── chain_of_thought.py    # CoT 策略
 │   │   ├── multi_round_feedback.py # 多轮反馈策略
-│   │   └── self_consistency.py     # Self-Consistency 策略
+│   │   ├── self_consistency.py     # Self-Consistency 策略
+│   │   └── reflexion.py            # Reflexion 反思式学习策略
 │   ├── harness.py             # 主协调器
 │   ├── main.py                # 入口程序
 │   └── utils/
@@ -198,8 +200,8 @@ PYTHONPATH=. python3 -m src.main --config config.siliconflow.example.json --list
 # 连接检查（同样免费；注意：生成式连接检查才会按量计费）
 PYTHONPATH=. python3 -m src.main --config config.siliconflow.example.json --check-connection
 
-# 三种策略评测（--strategy 可选 vanilla / chain_of_thought / multi_round_feedback / self_consistency）
-PYTHONPATH=. python3 -m src.main --config config.siliconflow.example.json --strategy multi_round_feedback --limit 1
+# 策略评测（--strategy 可选 vanilla / chain_of_thought / multi_round_feedback / self_consistency / reflexion）
+PYTHONPATH=. python3 -m src.main --config config.siliconflow.example.json --strategy reflexion --limit 1
 ```
 
 说明：

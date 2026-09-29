@@ -415,6 +415,8 @@ Your response should include the code in a ```python code block.
         """
         traces = []
         for it in iterations:
+            prompt_tokens = it.prompt_tokens + it.reflection_prompt_tokens
+            completion_tokens = it.completion_tokens + it.reflection_completion_tokens
             trace = {
                 "iteration": it.iteration,
                 "prompt": it.prompt,
@@ -422,16 +424,20 @@ Your response should include the code in a ```python code block.
                 "code_extracted": it.code_extracted,
                 "llm_error": it.llm_error,
                 "sandbox_error": it.sandbox_error,
-                "prompt_tokens": it.prompt_tokens,
-                "completion_tokens": it.completion_tokens,
-                "total_tokens": it.prompt_tokens + it.completion_tokens,
-                "usage_missing": it.usage_missing,
+                "reflection_text": it.reflection_text,
+                "reflection_error": it.reflection_error,
+                "reflection_reasoning_text": it.reflection_reasoning_text,
+                "prompt_tokens": prompt_tokens,
+                "completion_tokens": completion_tokens,
+                "total_tokens": prompt_tokens + completion_tokens,
+                "usage_missing": it.usage_missing or it.reflection_usage_missing,
                 "effective_params": it.effective_params,
                 "elapsed_seconds": it.elapsed_seconds,
                 "sandbox": it.sandbox_result.model_dump() if it.sandbox_result else None,
             }
+            if it.reflection_pricing_metadata:
+                trace["reflection_pricing_metadata"] = it.reflection_pricing_metadata
             traces.append(redact_sensitive_data(trace))
-        return traces
         return traces
 
     def create_execution_result(
@@ -460,8 +466,12 @@ Your response should include the code in a ```python code block.
         Returns:
             ExecutionResult
         """
-        total_prompt_tokens = sum(it.prompt_tokens for it in iterations)
-        total_completion_tokens = sum(it.completion_tokens for it in iterations)
+        total_prompt_tokens = sum(
+            it.prompt_tokens + it.reflection_prompt_tokens for it in iterations
+        )
+        total_completion_tokens = sum(
+            it.completion_tokens + it.reflection_completion_tokens for it in iterations
+        )
 
         # Extract generated code from the last iteration
         generated_code = (
@@ -490,8 +500,17 @@ Your response should include the code in a ```python code block.
         for idx, response in enumerate(llm_responses or []):
             if response is None or idx >= len(llm_traces):
                 continue
+            reflection_pricing = iterations[idx].reflection_pricing_metadata
             if response.pricing_metadata:
                 llm_traces[idx]["pricing_metadata"] = response.pricing_metadata
+                if reflection_pricing:
+                    llm_traces[idx]["pricing_metadata"] = self._merge_pricing_metadata(
+                        response.pricing_metadata, reflection_pricing
+                    )
+            elif reflection_pricing:
+                # A provider may omit pricing for the solution call while the
+                # reflection response still carries usable pricing metadata.
+                llm_traces[idx]["pricing_metadata"] = reflection_pricing
             if response.reasoning_text:
                 llm_traces[idx]["reasoning_text"] = redact_sensitive_text(response.reasoning_text)
 
@@ -516,3 +535,25 @@ Your response should include the code in a ```python code block.
             ),
             llm_traces=llm_traces,
         )
+
+    @staticmethod
+    def _merge_pricing_metadata(
+        primary: dict, reflection: dict
+    ) -> dict:
+        """Combine two pricing records while preserving provider metadata."""
+        merged = dict(primary)
+        primary_cost = primary.get("total_cost")
+        reflection_cost = reflection.get("total_cost")
+        primary_known = primary.get("usage_known", True) is not False and primary_cost is not None
+        reflection_known = (
+            reflection.get("usage_known", True) is not False and reflection_cost is not None
+        )
+        if isinstance(primary_cost, (int, float)) and isinstance(reflection_cost, (int, float)):
+            merged["total_cost"] = primary_cost + reflection_cost
+        else:
+            # A round's cost is complete only when both model calls have known
+            # usage and pricing. Preserve the unknown state for reports.
+            merged["total_cost"] = None
+        merged["usage_known"] = primary_known and reflection_known
+        merged["reflection_pricing_metadata"] = reflection
+        return merged
