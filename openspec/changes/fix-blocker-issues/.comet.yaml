@@ -1,6 +1,6 @@
 workflow: tweak
 language: zh-CN
-phase: build
+phase: verify
 context_compression: off
 build_mode: direct
 build_pause: null
@@ -8,14 +8,14 @@ subagent_dispatch: null
 tdd_mode: direct
 review_mode: off
 isolation: branch
-verify_mode: light
+verify_mode: full
 auto_transition: true
 base_ref: fc9829b8ddbe2227f48c64e1e857126ffb3321d4
 design_doc: null
 plan: null
 verify_result: pending
 verify_failures: 0
-verification_report: null
+verification_report: docs/superpowers/reports/2026-09-29-fix-blocker-issues-verify.md
 branch_status: pending
 created_at: 2026-09-29
 verified_at: null
