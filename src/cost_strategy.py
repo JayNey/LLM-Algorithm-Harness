@@ -12,6 +12,7 @@ unknown usage are counted separately and never treated as free.
 """
 
 import threading
+from decimal import Decimal
 from typing import Any, Dict, List, Optional
 
 from src.utils.logging import get_logger
@@ -78,15 +79,15 @@ class RunCostMonitor:
     """Thread-safe run-level cost ledger driving the budget-cap downgrade."""
 
     def __init__(self, budget_cap_usd: Optional[float] = None):
-        self.budget_cap_usd = budget_cap_usd
+        self.budget_cap_usd = Decimal(str(budget_cap_usd)) if budget_cap_usd is not None else None
         self._lock = threading.Lock()
-        self._accumulated_cost = 0.0
+        self._accumulated_cost = Decimal("0")
         self._unknown_usage_results = 0
         self._downgraded_count = 0
 
     def add_result(self, result: Any) -> None:
         """Settle one finished problem's known-pricing cost into the ledger."""
-        known_cost = 0.0
+        known_cost = Decimal("0")
         usage_unknown = False
         for trace in getattr(result, "llm_traces", None) or []:
             if not isinstance(trace, dict):
@@ -101,7 +102,7 @@ class RunCostMonitor:
             if trace_cost is None or pricing.get("usage_known") is False:
                 usage_unknown = True
             else:
-                known_cost += trace_cost
+                known_cost += Decimal(str(trace_cost))
         if not usage_unknown and not (getattr(result, "llm_traces", None) or []):
             # A result without traces still burns unpriced tokens when the
             # provider reported usage; truly call-free results stay clean.
@@ -131,8 +132,8 @@ class RunCostMonitor:
         """Point-in-time view for logs and the run summary."""
         with self._lock:
             return {
-                "budget_cap_usd": self.budget_cap_usd,
-                "accumulated_cost_usd": round(self._accumulated_cost, 6),
+                "budget_cap_usd": float(self.budget_cap_usd) if self.budget_cap_usd is not None else None,
+                "accumulated_cost_usd": float(round(self._accumulated_cost, 6)),
                 "unknown_usage_results": self._unknown_usage_results,
                 "downgraded_problems": self._downgraded_count,
             }
