@@ -18,12 +18,7 @@ from pydantic import (
 )
 
 from src.utils.secrets import REDACTED, redact_sensitive_data
-
-# Forward reference for code quality metrics
-from typing import TYPE_CHECKING
-
-if TYPE_CHECKING:
-    from src.code_quality.models import CodeQualityMetrics
+from src.code_quality.models import CodeQualityMetrics
 
 # ============================================================================
 # Problem-related Models
@@ -307,6 +302,25 @@ class IterationResult(BaseModel):
     sandbox_error: Optional[str] = Field(
         None, description="Redacted sandbox failure reason for this iteration"
     )
+    reflection_text: Optional[str] = Field(
+        None, description="Redacted reflection generated after a visible failure"
+    )
+    reflection_error: Optional[str] = Field(
+        None, description="Redacted error from the optional reflection call"
+    )
+    reflection_prompt_tokens: int = Field(0, ge=0, description="Reflection prompt tokens used")
+    reflection_completion_tokens: int = Field(
+        0, ge=0, description="Reflection completion tokens used"
+    )
+    reflection_usage_missing: bool = Field(
+        False, description="True when the reflection provider response had no usage data"
+    )
+    reflection_pricing_metadata: Optional[Dict[str, Any]] = Field(
+        None, description="Pricing metadata for the reflection call"
+    )
+    reflection_reasoning_text: Optional[str] = Field(
+        None, description="Redacted provider reasoning from the reflection call"
+    )
     usage_missing: bool = Field(False, description="True when the provider returned no usage data")
     effective_params: Dict[str, Any] = Field(
         default_factory=dict,
@@ -329,6 +343,7 @@ class ExecutionResult(BaseModel):
             "model_error",
             "system_error",
             "unsupported",
+            "budget_exhausted",
         ]
     ] = Field(
         None,

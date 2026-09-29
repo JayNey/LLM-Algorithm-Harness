@@ -37,6 +37,13 @@
     {
       "name": "multi_round_feedback",
       "max_iterations": 3
+    },
+    {
+      "name": "reflexion",
+      "max_iterations": 3,
+      "custom_params": {
+        "reflection_context_chars": 6000
+      }
     }
   ],
   "problem_filters": {
