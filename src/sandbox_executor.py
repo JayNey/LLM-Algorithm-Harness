@@ -694,20 +694,30 @@ _harness_write(_harness_fd, ({result_marker!r} + _harness_dumps(result) + "\\n")
             container_name = f"llm-harness-{uuid.uuid4().hex}"
             command = self._build_docker_command(workdir, str(runner_path), container_name)
 
-            def cleanup_container():
-                subprocess.run(
-                    ["docker", "rm", "--force", container_name],
-                    capture_output=True,
-                    timeout=5,
+            try:
+                result = self._run_command(
+                    command,
+                    timeout=self.config.timeout_seconds + 2,
+                    env={"PATH": os.environ.get("PATH", "")},
+                    cleanup=None,
+                    input_data=input_data,
                 )
+            finally:
+                # Ensure container cleanup in all exit paths
+                try:
+                    subprocess.run(
+                        ["docker", "rm", "--force", container_name],
+                        capture_output=True,
+                        timeout=5,
+                        check=False,
+                    )
+                except Exception as cleanup_exc:
+                    logger.warning(
+                        "container_cleanup_failed",
+                        container=container_name,
+                        error=str(cleanup_exc)
+                    )
 
-            result = self._run_command(
-                command,
-                timeout=self.config.timeout_seconds + 2,
-                env={"PATH": os.environ.get("PATH", "")},
-                cleanup=cleanup_container,
-                input_data=input_data,
-            )
             if result.returncode != 0:
                 stderr = result.stderr.lower()
                 status = (

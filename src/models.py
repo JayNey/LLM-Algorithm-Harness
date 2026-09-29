@@ -5,6 +5,7 @@ This module defines all Pydantic data models used throughout the system.
 """
 
 from datetime import datetime
+from decimal import Decimal
 from typing import Any, Dict, List, Literal, Optional
 
 from pydantic import (
@@ -435,14 +436,14 @@ class TokenUsage(BaseModel):
     )
 
     @property
-    def cost_estimate_usd(self) -> float:
-        """Estimate cost in USD (based on GPT-3.5 pricing)."""
-        INPUT_PRICE_PER_1K = 0.0005
-        OUTPUT_PRICE_PER_1K = 0.0015
+    def cost_estimate_usd(self) -> Decimal:
+        """Estimate cost in USD with precise decimal arithmetic."""
+        INPUT_PRICE_PER_1K = Decimal("0.0005")
+        OUTPUT_PRICE_PER_1K = Decimal("0.0015")
 
         return (
-            self.prompt_tokens * INPUT_PRICE_PER_1K / 1000
-            + self.completion_tokens * OUTPUT_PRICE_PER_1K / 1000
+            Decimal(str(self.prompt_tokens)) * INPUT_PRICE_PER_1K / 1000
+            + Decimal(str(self.completion_tokens)) * OUTPUT_PRICE_PER_1K / 1000
         )
 
 
@@ -704,16 +705,16 @@ class StrategyMetrics(BaseModel):
     )
 
     @property
-    def total_cost_estimate_usd(self) -> float:
-        """Estimate total cost in USD."""
-        INPUT_PRICE_PER_1K = 0.0005
-        OUTPUT_PRICE_PER_1K = 0.0015
-        avg_input = self.average_tokens * 0.4
-        avg_output = self.average_tokens * 0.6
+    def total_cost_estimate_usd(self) -> Decimal:
+        """Estimate total cost in USD with precise decimal arithmetic."""
+        INPUT_PRICE_PER_1K = Decimal("0.0005")
+        OUTPUT_PRICE_PER_1K = Decimal("0.0015")
+        avg_input = Decimal(str(self.average_tokens)) * Decimal("0.4")
+        avg_output = Decimal(str(self.average_tokens)) * Decimal("0.6")
 
         return (
             avg_input * INPUT_PRICE_PER_1K / 1000 + avg_output * OUTPUT_PRICE_PER_1K / 1000
-        ) * self.total_problems
+        ) * Decimal(str(self.total_problems))
 
 
 class ComparisonResult(BaseModel):

@@ -2,6 +2,7 @@
 Main Harness - Coordinates evaluation workflow.
 """
 
+import threading
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 
@@ -58,6 +59,7 @@ class AlgorithmHarness:
         self.results: Dict[str, List[ExecutionResult]] = {}
         self.problem_totals: Dict[str, int] = {}
         self.task_record = None
+        self._results_lock = threading.Lock()
 
         # Initialize quality analyzer based on config
         if config.enable_quality_analysis:
@@ -224,8 +226,9 @@ class AlgorithmHarness:
 
         if selector is not None:
             results = self._collect_cost_aware_results(problems, selector)
-            self.results["cost_aware"] = results
-            self.problem_totals["cost_aware"] = len(problems)
+            with self._results_lock:
+                self.results["cost_aware"] = results
+                self.problem_totals["cost_aware"] = len(problems)
             report = self._generate_report(
                 StrategyConfig(name="cost_aware"), results, problems
             )
@@ -259,8 +262,9 @@ class AlgorithmHarness:
                         error_message=unit.error or "Task unit did not produce a result",
                     )
                 results.append(result)
-            self.results[strategy_config.name] = results
-            self.problem_totals[strategy_config.name] = len(problems)
+            with self._results_lock:
+                self.results[strategy_config.name] = results
+                self.problem_totals[strategy_config.name] = len(problems)
             reports[strategy_config.name] = self._generate_report(
                 strategy_config, results, problems
             )

@@ -3,6 +3,7 @@ Tests for core data models.
 """
 
 import pickle
+from decimal import Decimal
 
 import pytest
 import yaml
@@ -341,9 +342,9 @@ def test_token_usage_cost_estimate():
 
     cost = usage.cost_estimate_usd
     assert cost > 0
-    assert isinstance(cost, float)
+    assert isinstance(cost, Decimal)
     # Rough check: 1000 * 0.0005 / 1000 + 500 * 0.0015 / 1000 = 0.0005 + 0.00075 = 0.00125
-    assert abs(cost - 0.00125) < 0.0001
+    assert abs(cost - Decimal("0.00125")) < Decimal("0.0001")
 
 
 # ============================================================================
@@ -506,7 +507,7 @@ def test_strategy_metrics_cost_estimate():
 
     cost = metrics.total_cost_estimate_usd
     assert cost > 0
-    assert isinstance(cost, float)
+    assert isinstance(cost, Decimal)
 
 
 def test_strategy_metrics_with_difficulty_breakdown():
