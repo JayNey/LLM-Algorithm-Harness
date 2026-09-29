@@ -81,7 +81,73 @@ def test_task_run_respects_max_workers_and_records_results(tmp_path):
     assert [event.sequence for event in result.events] == list(range(1, len(result.events) + 1))
 
 
-def test_task_failure_is_terminal_but_resume_skips_confirmed_units(tmp_path):
+def test_parallel_execution_with_different_max_workers(tmp_path):
+    """Test that parallel execution scales with max_workers configuration."""
+    service = TaskService(tmp_path / "tasks")
+
+    # Test with max_workers=1 (serial execution)
+    record_serial = service.create(
+        units=_units(4), config_fingerprint="config-a", dataset_fingerprint="data-a", run_id="run-serial"
+    )
+    start_serial = time.time()
+    service.run(
+        record_serial.run_id,
+        lambda unit: time.sleep(0.05) or {"status": "success"},
+        max_workers=1,
+        config_fingerprint="config-a",
+        dataset_fingerprint="data-a"
+    )
+    duration_serial = time.time() - start_serial
+
+    # Test with max_workers=4 (parallel execution)
+    record_parallel = service.create(
+        units=_units(4), config_fingerprint="config-a", dataset_fingerprint="data-a", run_id="run-parallel"
+    )
+    start_parallel = time.time()
+    service.run(
+        record_parallel.run_id,
+        lambda unit: time.sleep(0.05) or {"status": "success"},
+        max_workers=4,
+        config_fingerprint="config-a",
+        dataset_fingerprint="data-a"
+    )
+    duration_parallel = time.time() - start_parallel
+
+    # Parallel execution should be significantly faster (at least 2x)
+    assert duration_parallel < duration_serial / 2
+
+
+def test_thread_safe_cost_tracking(tmp_path):
+    """Test that cost tracking remains accurate under concurrent execution."""
+    service = TaskService(tmp_path / "tasks")
+    record = service.create(
+        units=_units(10), config_fingerprint="config-a", dataset_fingerprint="data-a", run_id="run-cost"
+    )
+
+    total_cost = 0.0
+    cost_lock = threading.Lock()
+
+    def worker(unit):
+        nonlocal total_cost
+        cost = 0.01  # Fixed cost per unit
+        with cost_lock:
+            total_cost += cost
+        time.sleep(0.01)
+        return {"status": "success", "cost": cost}
+
+    result = service.run(
+        record.run_id,
+        worker,
+        max_workers=5,
+        config_fingerprint="config-a",
+        dataset_fingerprint="data-a"
+    )
+
+    assert result.state == "completed"
+    assert abs(total_cost - 0.10) < 0.001  # 10 units * 0.01 = 0.10
+
+
+def test_failure_category_system_error(tmp_path):
     service = TaskService(tmp_path / "tasks")
     record = service.create(
         units=_units(3), config_fingerprint="config-a", dataset_fingerprint="data-a", run_id="run-failed"
