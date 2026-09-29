@@ -1,0 +1,7 @@
+{
+  "openspec_proposal": "openspec/changes/llm-response-cache/proposal.md",
+  "openspec_design": "openspec/changes/llm-response-cache/design.md",
+  "openspec_tasks": "openspec/changes/llm-response-cache/tasks.md",
+  "openspec_delta_spec": "openspec/changes/llm-response-cache/specs/llm-response-cache/spec.md",
+  "archive_directory": "openspec/changes/archive/2026-09-29-llm-response-cache"
+}

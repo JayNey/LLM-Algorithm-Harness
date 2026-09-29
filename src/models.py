@@ -501,6 +501,15 @@ class ProviderResponse(BaseModel):
 # ============================================================================
 
 
+class CacheConfig(BaseModel):
+    """Cache configuration for LLM responses."""
+
+    enabled: bool = Field(True, description="Whether caching is enabled")
+    backend: Literal["disk"] = Field("disk", description="Cache storage backend")
+    ttl_days: int = Field(30, ge=1, description="Cache entry time-to-live in days")
+    max_size_mb: int = Field(1000, ge=1, description="Maximum cache size in MB")
+
+
 class LLMConfig(BaseModel):
     """LLM client configuration."""
 
@@ -533,6 +542,9 @@ class LLMConfig(BaseModel):
         ge=0.0,
         le=600.0,
         description="Maximum wall-clock time spent retrying one request",
+    )
+    cache: CacheConfig = Field(
+        default_factory=CacheConfig, description="Cache configuration"
     )
 
     @field_serializer("api_key", when_used="always")

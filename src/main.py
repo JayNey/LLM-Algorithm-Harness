@@ -686,6 +686,50 @@ def run_benchmark_command(args: argparse.Namespace) -> int:
         logger.error("benchmark_failed", error=str(exc))
         print(f"Error: {exc}", file=sys.stderr)
         return 1
+
+
+def run_cache_command(args: argparse.Namespace) -> int:
+    """Execute cache management commands."""
+    from pathlib import Path
+    from src.cache import LLMResponseCache
+
+    try:
+        cache = LLMResponseCache(
+            cache_dir=".cache/llm_responses",
+            enabled=True,
+        )
+
+        if args.cache_action == "clear":
+            model_filter = args.model if hasattr(args, "model") and args.model else None
+            cache.clear(model_filter=model_filter)
+            if model_filter:
+                print(f"Cache cleared for model: {model_filter}")
+            else:
+                print("All cache entries cleared.")
+            return 0
+
+        elif args.cache_action == "stats":
+            stats = cache.stats()
+            print("\nCache Statistics:")
+            print(f"  Enabled: {stats['enabled']}")
+            print(f"  Total entries: {stats['total_entries']}")
+            print(f"  Disk usage: {stats['disk_usage_mb']:.2f} MB")
+            print(f"  Hit rate: {stats['hit_rate']:.2%}")
+            print(f"  Hits: {stats['hits']}")
+            print(f"  Misses: {stats['misses']}")
+            print(f"  API calls saved: {stats['api_calls_saved']}")
+            return 0
+
+        else:
+            print(f"Error: Unknown cache action: {args.cache_action}", file=sys.stderr)
+            return 1
+
+    except Exception as exc:
+        logger.error("cache_command_failed", error=str(exc))
+        print(f"Error: {exc}", file=sys.stderr)
+        return 1
+
+
 def main():
     """Main entry point."""
     parser = argparse.ArgumentParser(
@@ -956,11 +1000,32 @@ def main():
     from harness.cli.debug import add_debug_subcommand
     add_debug_subcommand(subparsers)
 
+    # Cache command
+    cache_parser = subparsers.add_parser(
+        "cache", help="Manage LLM response cache"
+    )
+    cache_subparsers = cache_parser.add_subparsers(dest="cache_action", help="Cache actions")
+
+    # cache clear
+    clear_parser = cache_subparsers.add_parser("clear", help="Clear cache entries")
+    clear_parser.add_argument(
+        "--model",
+        type=str,
+        help="Clear only entries for the specified model",
+    )
+
+    # cache stats
+    stats_parser = cache_subparsers.add_parser("stats", help="Show cache statistics")
+
+    cache_parser.add_argument(
+        "--log-format", choices=["console", "json"], default="console"
+    )
+
     # Subcommand dispatch: `run` (default), `import`, `experiment`, `optimize`,
-    # `recommend`, `ab-test`, `benchmark`, and `debug`. Bare invocation without a subcommand is parsed
+    # `recommend`, `ab-test`, `benchmark`, `debug`, and `cache`. Bare invocation without a subcommand is parsed
     # directly by the run parser so legacy flag-only command lines keep working.
     argv = sys.argv[1:]
-    if argv and argv[0] in ("run", "import", "experiment", "optimize", "recommend", "ab-test", "benchmark", "debug"):
+    if argv and argv[0] in ("run", "import", "experiment", "optimize", "recommend", "ab-test", "benchmark", "debug", "cache"):
         args = parser.parse_args(argv)
     else:
         args = run_parser.parse_args(argv)
@@ -1006,6 +1071,14 @@ def main():
         setup_logging(console_format=getattr(args, "log_format", "console"))
         from harness.cli.debug import run_debug_command
         exit_code = run_debug_command(args)
+        sys.exit(exit_code)
+
+    # Handle cache command
+    if args.command == "cache":
+        setup_logging(console_format=getattr(args, "log_format", "console"))
+        if not hasattr(args, "cache_action") or args.cache_action is None:
+            parser.error("cache command requires an action (clear, stats)")
+        exit_code = run_cache_command(args)
         sys.exit(exit_code)
 
     setup_logging(console_format=args.log_format)
