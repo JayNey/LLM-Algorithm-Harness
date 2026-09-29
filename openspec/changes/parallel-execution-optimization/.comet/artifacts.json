@@ -1,0 +1,5 @@
+{
+  "openspec_proposal": "openspec/changes/parallel-execution-optimization/proposal.md",
+  "openspec_design": "openspec/changes/parallel-execution-optimization/design.md",
+  "openspec_tasks": "openspec/changes/parallel-execution-optimization/tasks.md"
+}

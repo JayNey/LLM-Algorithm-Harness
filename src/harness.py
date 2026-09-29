@@ -4,7 +4,16 @@ Main Harness - Coordinates evaluation workflow.
 
 import threading
 from pathlib import Path
-from typing import Any, Dict, List, Optional
+from typing import Any, Callable, Dict, List, Optional
+
+from rich.progress import (
+    BarColumn,
+    MofNCompleteColumn,
+    Progress,
+    TaskID,
+    TextColumn,
+    TimeRemainingColumn,
+)
 
 from src.budget import BudgetExhausted, BudgetTracker, BudgetedLLMClient
 from src.cost_strategy import CostAwareSelector, RunCostMonitor
@@ -133,6 +142,18 @@ class AlgorithmHarness:
         config_fingerprint = service.config_fingerprint(self.config)
         dataset_fingerprint = service.dataset_fingerprint(self.config.dataset_path)
 
+        # Initialize progress tracking
+        progress = Progress(
+            TextColumn("[bold blue]{task.description}"),
+            BarColumn(),
+            MofNCompleteColumn(),
+            TextColumn("•"),
+            TextColumn("[green]{task.fields[success_rate]}"),
+            TimeRemainingColumn(),
+        )
+        progress_task_id: Optional[TaskID] = None
+        progress_lock = threading.Lock()
+
         if resume:
             if not run_id:
                 raise ValueError("--resume requires --run-id")
@@ -213,16 +234,49 @@ class AlgorithmHarness:
                             ],
                             cheap_strategy=selector.cheapest_strategy,
                         )
+
+            # Update progress bar
+            if progress_task_id is not None:
+                with progress_lock:
+                    progress.advance(progress_task_id, 1)
+                    # Calculate current success rate
+                    completed = progress.tasks[progress_task_id].completed
+                    if completed > 0:
+                        # Collect results so far to calculate success rate
+                        success_count = sum(
+                            1 for r in self.results.get(unit.strategy, [])
+                            if r.status == "success"
+                        )
+                        success_rate = f"{success_count}/{completed} ({success_count/completed*100:.1f}%)"
+                        progress.update(progress_task_id, success_rate=success_rate)
+
             return result
 
-        self.task_record = service.run(
-            record.run_id,
-            worker,
-            max_workers=self.config.max_workers,
-            config_fingerprint=config_fingerprint,
-            dataset_fingerprint=dataset_fingerprint,
-            resume=resume,
-        )
+        # Calculate total units for progress tracking
+        if resume:
+            total_units = len([u for u in record.units if u.status == "queued"])
+        else:
+            if selector is not None:
+                total_units = len(problems)
+            else:
+                total_units = len(self.config.strategies) * len(problems)
+
+        # Start progress bar
+        with progress:
+            progress_task_id = progress.add_task(
+                "Evaluating problems...",
+                total=total_units,
+                success_rate="0/0 (0.0%)"
+            )
+
+            self.task_record = service.run(
+                record.run_id,
+                worker,
+                max_workers=self.config.max_workers,
+                config_fingerprint=config_fingerprint,
+                dataset_fingerprint=dataset_fingerprint,
+                resume=resume,
+            )
 
         if selector is not None:
             results = self._collect_cost_aware_results(problems, selector)
