@@ -40,6 +40,17 @@ def positive_float(value: str) -> float:
     return parsed
 
 
+def confidence_threshold(value: str) -> float:
+    """Parse a confidence threshold in the inclusive [0, 1] range."""
+    try:
+        parsed = float(value)
+    except ValueError as exc:
+        raise argparse.ArgumentTypeError("must be a number between 0 and 1") from exc
+    if not math.isfinite(parsed) or not 0.0 <= parsed <= 1.0:
+        raise argparse.ArgumentTypeError("must be between 0 and 1")
+    return parsed
+
+
 def apply_cli_overrides(config: HarnessConfig, args: argparse.Namespace) -> HarnessConfig:
     """Apply only values that the user explicitly supplied on the command line."""
     if args.dataset is not None:
@@ -730,6 +741,36 @@ def run_cache_command(args: argparse.Namespace) -> int:
         return 1
 
 
+def run_tags_normalize_command(args: argparse.Namespace) -> int:
+    """Preview or write canonical tags for a problem dataset."""
+    from src.utils.tag_manager import TagManager
+
+    try:
+        report = TagManager(args.mapping).normalize_dataset(
+            args.dataset,
+            output_path=args.output,
+            apply_recommendations=args.apply_recommendations,
+            min_confidence=args.min_confidence,
+        )
+        if args.report:
+            report_path = Path(args.report)
+            report_path.parent.mkdir(parents=True, exist_ok=True)
+            report_path.write_text(
+                json.dumps(report, ensure_ascii=False, indent=2) + "\n", encoding="utf-8"
+            )
+        print(json.dumps(report, ensure_ascii=False, indent=2))
+        if args.output:
+            print(f"Normalized dataset written to: {args.output}")
+        else:
+            print("Preview only: pass --output PATH after reviewing suggestions to write a dataset.")
+        if args.report:
+            print(f"Normalization report written to: {args.report}")
+        return 0
+    except (FileNotFoundError, TypeError, ValueError, OSError) as exc:
+        print(f"Error: {exc}", file=sys.stderr)
+        return 1
+
+
 def main():
     """Main entry point."""
     parser = argparse.ArgumentParser(
@@ -996,6 +1037,34 @@ def main():
         "--log-format", choices=["console", "json"], default="console"
     )
 
+    # Tag management commands
+    tags_parser = subparsers.add_parser("tags", help="Normalize and recommend problem tags")
+    tags_subparsers = tags_parser.add_subparsers(dest="tags_command", required=True)
+    normalize_tags_parser = tags_subparsers.add_parser(
+        "normalize", help="Preview or write canonical tags for a dataset"
+    )
+    normalize_tags_parser.add_argument("--dataset", required=True, help="Problem dataset JSON path")
+    normalize_tags_parser.add_argument(
+        "--mapping", default=None, help="Custom tag mapping YAML (default: config/tag_mapping.yaml)"
+    )
+    normalize_tags_parser.add_argument(
+        "--output", help="Write a normalized dataset to this path; input is never overwritten"
+    )
+    normalize_tags_parser.add_argument(
+        "--report", help="Write the JSON normalization report to this path"
+    )
+    normalize_tags_parser.add_argument(
+        "--apply-recommendations",
+        action="store_true",
+        help="Include suggested tags in --output after user review",
+    )
+    normalize_tags_parser.add_argument(
+        "--min-confidence",
+        type=confidence_threshold,
+        default=0.8,
+        help="Minimum keyword confidence for suggestions (default: 0.8)",
+    )
+
     # Debug command
     from harness.cli.debug import add_debug_subcommand
     add_debug_subcommand(subparsers)
@@ -1022,10 +1091,21 @@ def main():
     )
 
     # Subcommand dispatch: `run` (default), `import`, `experiment`, `optimize`,
-    # `recommend`, `ab-test`, `benchmark`, `debug`, and `cache`. Bare invocation without a subcommand is parsed
+    # `recommend`, `ab-test`, `benchmark`, `tags`, `debug`, and `cache`. Bare invocation without a subcommand is parsed
     # directly by the run parser so legacy flag-only command lines keep working.
     argv = sys.argv[1:]
-    if argv and argv[0] in ("run", "import", "experiment", "optimize", "recommend", "ab-test", "benchmark", "debug", "cache"):
+    if argv and argv[0] in (
+        "run",
+        "import",
+        "experiment",
+        "optimize",
+        "recommend",
+        "ab-test",
+        "benchmark",
+        "tags",
+        "debug",
+        "cache",
+    ):
         args = parser.parse_args(argv)
     else:
         args = run_parser.parse_args(argv)
@@ -1065,6 +1145,12 @@ def main():
         setup_logging(console_format=getattr(args, "log_format", "console"))
         exit_code = run_benchmark_command(args)
         sys.exit(exit_code)
+
+    if args.command == "tags":
+        setup_logging(console_format="console")
+        if args.tags_command == "normalize":
+            exit_code = run_tags_normalize_command(args)
+            sys.exit(exit_code)
 
     # Handle debug command
     if args.command == "debug":

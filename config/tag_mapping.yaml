@@ -1,0 +1,68 @@
+version: 1
+
+# Canonical names are the values persisted in normalized datasets. Aliases
+# cover common LeetCode, Codeforces, English and Chinese spellings.
+tags:
+  array:
+    aliases: [arrays, list, sequence, 数组, 列表]
+    keywords: [array, arrays, 数组, 列表]
+  string:
+    aliases: [strings, text, 字符串]
+    keywords: [string, strings, 字符串]
+  hash-table:
+    aliases: [hash_table, hash map, hashmap, dictionary, dict, 哈希表, 哈希映射, 字典]
+    keywords: [hash table, hash map, hashmap, 哈希表, 哈希映射, 字典]
+  two-pointers:
+    aliases: [two_pointers, two pointer, 双指针]
+    keywords: [two pointer, two-pointers, 双指针]
+  sliding-window:
+    aliases: [sliding_window, sliding window, 滑动窗口]
+    keywords: [sliding window, 滑动窗口]
+  binary-search:
+    aliases: [binary_search, binary search, 二分查找, 二分搜索]
+    keywords: [binary search, 二分查找, 二分搜索]
+  dynamic-programming:
+    aliases: [dynamic_programming, dynamic programming, dp, 动态规划]
+    keywords: [dynamic programming, dp, 动态规划]
+  divide-and-conquer:
+    aliases: [divide_and_conquer, divide and conquer, 分治]
+    keywords: [divide and conquer, 分治]
+  union-find:
+    aliases: [union_find, disjoint set, disjoint-set, 并查集]
+    keywords: [union find, disjoint set, 并查集]
+  linked-list:
+    aliases: [linked_list, linked list, 链表]
+    keywords: [linked list, 链表]
+  tree:
+    aliases: [trees, binary tree, 二叉树, 树]
+    keywords: [binary tree, tree, 二叉树]
+  graph:
+    aliases: [graphs, 图, 图论]
+    keywords: [graph, graphs, 图, 图论]
+  stack:
+    aliases: [stacks, 栈]
+    keywords: [stack, 栈]
+  queue:
+    aliases: [queues, 队列]
+    keywords: [queue, 队列]
+  heap:
+    aliases: [heaps, priority queue, priority_queue, 优先队列, 堆]
+    keywords: [heap, priority queue, 优先队列, 堆]
+  sorting:
+    aliases: [sort, 排序]
+    keywords: [sorting, sort, 排序]
+  greedy:
+    aliases: [贪心, 贪心算法]
+    keywords: [greedy, 贪心, 贪心算法]
+  backtracking:
+    aliases: [backtrack, 回溯]
+    keywords: [backtracking, backtrack, 回溯]
+  matrix:
+    aliases: [matrices, 矩阵]
+    keywords: [matrix, matrices, 矩阵]
+  prefix-sum:
+    aliases: [prefix_sum, prefix sum, 前缀和]
+    keywords: [prefix sum, 前缀和]
+  math:
+    aliases: [数学, 数学题]
+    keywords: [math, mathematical, 数学]
