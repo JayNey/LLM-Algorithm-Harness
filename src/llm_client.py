@@ -48,7 +48,6 @@ class LLMClient:
 
         # Initialize cache
         self.cache = LLMResponseCache(
-            cache_dir=".cache/llm_responses",
             ttl_days=config.cache.ttl_days,
             max_size_mb=config.cache.max_size_mb,
             enabled=config.cache.enabled,
