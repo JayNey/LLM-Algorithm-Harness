@@ -21,6 +21,7 @@ from src.failure_report import (
     render_failure_mode_markdown,
     summarize_failure_modes,
 )
+from src.pareto import build_pareto_analysis, write_pareto_artifacts
 from src.utils.logging import get_logger
 
 logger = get_logger(__name__)
@@ -564,6 +565,8 @@ def generate_comparison_report(exp_dir: Path) -> Dict[str, Any]:
             [r for results in raw_results.values() for r in results], problem_info
         ),
     }
+    comparison["pareto"] = build_pareto_analysis([comparison])
+    write_pareto_artifacts(comparison["pareto"], exp_dir)
 
     with open(Path(exp_dir) / "comparison.json", "w", encoding="utf-8") as f:
         json.dump(comparison, f, indent=2, ensure_ascii=False)
@@ -579,6 +582,7 @@ def generate_comparison_report(exp_dir: Path) -> Dict[str, Any]:
 
     with open(Path(exp_dir) / "REPORT.md", "w", encoding="utf-8") as f:
         f.write(_render_markdown(comparison))
+        f.write("\n## 成本-准确率权衡\n\n参阅 [帕累托分析与预算推荐](PARETO.md)。\n")
 
     failure_chart = render_failure_mode_chart(comparison["failure_modes"])
     if failure_chart is not None:

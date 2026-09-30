@@ -15,7 +15,7 @@ import subprocess
 from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime
 from pathlib import Path
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, Optional
 
 from src.budget import BudgetTracker
 from src.experiment_panel import generate_html_panel
@@ -93,6 +93,8 @@ class ExperimentRunner:
             "code_version": {"git_commit": _git_commit(), "git_dirty": _git_dirty()},
             "dataset": self._dataset_fingerprint(problems),
             "budget": self.config.budget.model_dump() if self.config.budget else None,
+            "sandbox_config": self.config.sandbox_config.model_dump(mode="json"),
+            "problem_filters": self.config.problem_filters,
             "repeats": self.config.repeats,
             "models": [model.redacted_dict() for model in self.config.models],
             "strategies": [strategy.model_dump() for strategy in self.config.strategies],

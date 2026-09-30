@@ -608,6 +608,8 @@ pytest --cov=src tests/
 
 ## 输出结果
 
+固定预算实验还会自动生成成本-准确率帕累托前沿与预算推荐。可使用 `harness pareto --experiments <实验目录...> --output-dir <输出目录>` 汇总可比实验，详见[帕累托分析说明](docs/pareto-analysis.md)。
+
 运行完成后，结果保存在 `results/<run-id>/` 目录：
 
 ```
