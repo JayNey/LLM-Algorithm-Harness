@@ -176,6 +176,14 @@ def _gradient_dataset(tmp_path):
             "tags": ["dp"],
             "test_cases": [{"input": {"x": 3}, "expected_output": 3}],
         },
+        {
+            "problem_id": "cand-hard-multi",
+            "title": "Candidate Hard Multi",
+            "description": "Hard practice problem with two tags.",
+            "difficulty": "hard",
+            "tags": ["dp", "graph"],
+            "test_cases": [{"input": {"x": 4}, "expected_output": 4}],
+        },
     ]
     path = tmp_path / "problems.json"
     path.write_text(json.dumps(data), encoding="utf-8")
@@ -228,14 +236,21 @@ def test_gradient_orders_easy_first_with_cost_and_dimensions(tmp_path):
     # Selection by relevance: fail-hard matches its own failed group and is
     # already evaluated... it is excluded (evaluated); candidates remain.
     items = {item["problem_id"]: item for item in report["recommended_problems"]}
-    assert set(items) == {"cand-easy", "cand-medium"}
-    # Gradient: easy before medium.
-    assert report["recommended_problem_ids"] == ["cand-easy", "cand-medium"]
-    # Cost fallback: cand-easy -> easy level mean (0.1); cand-medium -> None.
+    assert set(items) == {"cand-easy", "cand-medium", "cand-hard-multi"}
+    # Gradient: easy -> medium -> hard.
+    assert report["recommended_problem_ids"] == [
+        "cand-easy",
+        "cand-medium",
+        "cand-hard-multi",
+    ]
+    # Cost estimate: per-difficulty level mean (hard level mean = 0.3).
     assert items["cand-easy"]["estimated_cost_usd"] == pytest.approx(0.1)
     assert items["cand-medium"]["estimated_cost_usd"] is None
-    assert report["total_estimated_cost_usd"] == pytest.approx(0.1)
+    assert items["cand-hard-multi"]["estimated_cost_usd"] == pytest.approx(0.3)
+    assert report["total_estimated_cost_usd"] == pytest.approx(0.4)
     assert report["unknown_cost_problem_count"] == 1
-    # Dimensions: matched weak tag group "tag:dp" -> "dp".
+    # Dimensions: only tags whose weak group actually matched ("graph" has
+    # no failed history, so it is not a weak dimension).
     assert items["cand-easy"]["expected_improvement_dimensions"] == ["dp"]
+    assert items["cand-hard-multi"]["expected_improvement_dimensions"] == ["dp"]
     assert report["covered_dimensions"] == ["dp"]

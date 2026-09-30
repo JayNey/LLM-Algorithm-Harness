@@ -9,6 +9,7 @@ reports surface the weak-tag dimensions each recommendation would improve.
 from __future__ import annotations
 
 import json
+import math
 from collections import defaultdict
 from collections.abc import Iterable
 from datetime import datetime, timezone
@@ -53,9 +54,14 @@ def _record_known_cost(record: dict[str, Any]) -> tuple[float, bool]:
             countable = False
             continue
         try:
-            total += float(cost)
+            amount = float(cost)
         except (TypeError, ValueError):
             countable = False
+        else:
+            if math.isfinite(amount) and amount >= 0:
+                total += amount
+            else:
+                countable = False
     return total, countable
 
 
@@ -92,7 +98,6 @@ class RecommendationEngine:
 
         evaluated_ids = {record["problem_id"] for record in history}
         problem_map = {problem.problem_id: problem for problem in problems}
-        cost_by_problem: dict[str, tuple[float, int]] = {}
         cost_by_difficulty: dict[str, tuple[float, int]] = {}
         stats: dict[str, dict[str, Any]] = defaultdict(self._new_group)
         per_problem: dict[str, dict[str, int]] = defaultdict(lambda: {"total": 0, "failed": 0})
@@ -107,8 +112,6 @@ class RecommendationEngine:
             per_problem[problem_id]["failed"] += int(failed)
             cost, countable = _record_known_cost(record)
             if countable:
-                summed, count = cost_by_problem.get(problem_id, (0.0, 0))
-                cost_by_problem[problem_id] = (summed + cost, count + 1)
                 difficulty = problem.difficulty or "unknown"
                 summed, count = cost_by_difficulty.get(difficulty, (0.0, 0))
                 cost_by_difficulty[difficulty] = (summed + cost, count + 1)
@@ -148,7 +151,6 @@ class RecommendationEngine:
             evaluated_ids,
             weaknesses,
             limit,
-            cost_by_problem=cost_by_problem,
             cost_by_difficulty=cost_by_difficulty,
         )
         known_costs = [
@@ -156,6 +158,7 @@ class RecommendationEngine:
             for item in recommendations
             if item["estimated_cost_usd"] is not None
         ]
+        total_estimated_cost = round(sum(known_costs), 6) if known_costs else 0.0
         unknown_cost_count = sum(
             1 for item in recommendations if item["estimated_cost_usd"] is None
         )
@@ -179,7 +182,7 @@ class RecommendationEngine:
                 "weakness_report": weaknesses,
                 "recommended_problems": recommendations,
                 "recommended_problem_ids": [item["problem_id"] for item in recommendations],
-                "total_estimated_cost_usd": round(sum(known_costs), 6),
+                "total_estimated_cost_usd": total_estimated_cost,
                 "unknown_cost_problem_count": unknown_cost_count,
                 "covered_dimensions": covered_dimensions,
                 "recommendation_config": {
@@ -276,7 +279,6 @@ class RecommendationEngine:
         weaknesses: list[dict[str, Any]],
         limit: int,
         *,
-        cost_by_problem: dict[str, tuple[float, int]],
         cost_by_difficulty: dict[str, tuple[float, int]],
     ) -> list[dict[str, Any]]:
         weakness_map = {item["key"]: item for item in weaknesses}
@@ -323,7 +325,7 @@ class RecommendationEngine:
                 }
             )
             estimated = RecommendationEngine._estimate_cost(
-                problem, matches, cost_by_problem, cost_by_difficulty
+                problem, cost_by_difficulty
             )
             data["estimated_cost_usd"] = (
                 round(estimated, 6) if estimated is not None else None
@@ -334,14 +336,13 @@ class RecommendationEngine:
     @staticmethod
     def _estimate_cost(
         problem: Problem,
-        matches: list[str],
-        cost_by_problem: dict[str, tuple[float, int]],
         cost_by_difficulty: dict[str, tuple[float, int]],
     ) -> float | None:
-        """Practice cost estimate: own history mean -> difficulty mean -> None."""
-        own = cost_by_problem.get(problem.problem_id)
-        if own and own[1]:
-            return own[0] / own[1]
+        """Practice cost estimate from the difficulty's known-cost mean.
+
+        Recommended problems are unevaluated by construction, so they have
+        no own history; the difficulty level mean is the only grounded tier.
+        """
         difficulty = problem.difficulty or "unknown"
         level = cost_by_difficulty.get(difficulty)
         if level and level[1]:
