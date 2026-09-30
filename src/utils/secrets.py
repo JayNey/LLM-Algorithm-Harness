@@ -23,6 +23,8 @@ _SENSITIVE_KEYS = frozenset(
         "secret",
         "credential",
         "credentials",
+        "webhook_url",
+        "slack_webhook_url",
     }
 )
 _SENSITIVE_SUFFIXES = tuple(f"_{key}" for key in _SENSITIVE_KEYS)

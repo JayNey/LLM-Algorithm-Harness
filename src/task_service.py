@@ -23,7 +23,7 @@ from pydantic import BaseModel, Field
 
 from src.utils.secrets import redact_sensitive_data
 
-TaskState = Literal["queued", "running", "completed", "failed", "cancelled"]
+TaskState = Literal["queued", "running", "paused", "completed", "failed", "cancelled"]
 
 
 def _now() -> str:
@@ -88,7 +88,10 @@ class TaskStore:
         self._lock = threading.RLock()
 
     def path_for(self, run_id: str) -> Path:
-        if not run_id or Path(run_id).name != run_id or "/" in run_id or "\\" in run_id:
+        if (
+            not run_id or Path(run_id).name != run_id or "/" in run_id or "\\" in run_id
+            or any(ord(character) < 32 or ord(character) == 127 for character in run_id)
+        ):
             raise ValueError("Invalid run_id")
         return self.root / f"{run_id}.json"
 
@@ -157,6 +160,18 @@ class TaskService:
             payload["llm_api_key_fingerprint"] = hashlib.sha256(
                 raw_key.encode("utf-8")
             ).hexdigest()
+        cost_alerts = getattr(config, "cost_alerts", None)
+        if cost_alerts is not None:
+            secret_hashes = {}
+            for field in ("slack_webhook_url", "webhook_url", "smtp_password"):
+                secret = getattr(cost_alerts, field, None)
+                if hasattr(secret, "get_secret_value"):
+                    secret = secret.get_secret_value()
+                if isinstance(secret, str):
+                    secret_hashes[field] = hashlib.sha256(secret.encode("utf-8")).hexdigest()
+            if secret_hashes:
+                payload = dict(payload)
+                payload["cost_alert_secret_fingerprints"] = secret_hashes
         return TaskService._hash_json(payload)
 
     @staticmethod
@@ -252,6 +267,8 @@ class TaskService:
         config_fingerprint: str | None = None,
         dataset_fingerprint: str | None = None,
         resume: bool = False,
+        pause_when: Callable[[TaskRecord], bool] | None = None,
+        on_unit_finished: Callable[[TaskRecord, TaskUnit], None] | None = None,
     ) -> TaskRecord:
         """Execute queued units, or resume a compatible interrupted task."""
         if max_workers < 1:
@@ -305,7 +322,21 @@ class TaskService:
                     detached_executor = True
                     return record
 
-                while queue and len(pending) < max_workers and not cancel_event.is_set():
+                # A budget pause keeps untouched units queued for inspection
+                # and deliberate resumption. Callers should use one worker for
+                # a strict stop at a completed-unit boundary.
+                pause_requested = bool(queue and pause_when is not None and pause_when(record))
+                if pause_requested and not pending:
+                    record.state = "paused"
+                    record.updated_at = _now()
+                    self._append_event(record, "task_paused", message="Budget cap reached")
+                    self._save_with_external_events(record)
+                    return record
+
+                while (
+                    queue and len(pending) < max_workers
+                    and not cancel_event.is_set() and not pause_requested
+                ):
                     if self.store.load(run_id).cancel_requested:
                         break
                     unit = queue.pop(0)
@@ -343,6 +374,8 @@ class TaskService:
                     )
                     record.updated_at = _now()
                     self._save_with_external_events(record)
+                    if on_unit_finished is not None:
+                        on_unit_finished(record, unit)
 
             record.state = "completed" if all(unit.status == "completed" for unit in record.units) else "failed"
             record.completed_units = sum(

@@ -7,6 +7,7 @@ This module defines all Pydantic data models used throughout the system.
 from datetime import datetime
 from decimal import Decimal
 from typing import Any, Dict, List, Literal, Optional
+from urllib.parse import urlparse
 
 from pydantic import (
     BaseModel,
@@ -17,8 +18,8 @@ from pydantic import (
     model_validator,
 )
 
-from src.utils.secrets import REDACTED, redact_sensitive_data
 from src.code_quality.models import CodeQualityMetrics
+from src.utils.secrets import REDACTED, redact_sensitive_data
 
 # ============================================================================
 # Problem-related Models
@@ -659,6 +660,56 @@ class ExperimentConfig(BaseModel):
         return redact_sensitive_data(self.model_dump(mode="json"))
 
 
+class CostAlertConfig(BaseModel):
+    """Run-level cost alert delivery settings. Endpoints are credentials."""
+
+    thresholds: List[int] = Field(
+        default_factory=lambda: [50, 80, 90],
+        description="Budget percentages that trigger one alert each",
+    )
+    slack_webhook_url: Optional[SecretStr] = None
+    webhook_url: Optional[SecretStr] = None
+    smtp_host: Optional[str] = None
+    smtp_port: int = Field(587, ge=1, le=65535)
+    smtp_username: Optional[str] = None
+    smtp_password: Optional[SecretStr] = None
+    smtp_from: Optional[str] = None
+    smtp_to: List[str] = Field(default_factory=list)
+    smtp_use_starttls: bool = True
+    timeout_seconds: float = Field(5.0, gt=0, le=60)
+    max_retries: int = Field(2, ge=0, le=5)
+
+    @field_validator("thresholds")
+    @classmethod
+    def validate_thresholds(cls, value: List[int]) -> List[int]:
+        if not value or any(type(item) is not int or item < 1 or item > 99 for item in value):
+            raise ValueError("cost alert thresholds must be integer percentages from 1 to 99")
+        if len(set(value)) != len(value):
+            raise ValueError("cost alert thresholds must be unique")
+        return sorted(value)
+
+    @model_validator(mode="after")
+    def validate_delivery(self) -> "CostAlertConfig":
+        for endpoint in (self.slack_webhook_url, self.webhook_url):
+            if endpoint is not None:
+                parsed = urlparse(endpoint.get_secret_value())
+                if parsed.scheme != "https" or not parsed.netloc or parsed.username or parsed.password:
+                    raise ValueError("webhook URLs must be HTTPS URLs without embedded credentials")
+        smtp_fields = (self.smtp_host, self.smtp_username, self.smtp_password, self.smtp_from, self.smtp_to)
+        if any(smtp_fields):
+            if not self.smtp_host or not self.smtp_from or not self.smtp_to:
+                raise ValueError("SMTP delivery requires smtp_host, smtp_from and smtp_to")
+            if self.smtp_username and (
+                self.smtp_password is None or not self.smtp_password.get_secret_value()
+            ):
+                raise ValueError("SMTP authentication requires smtp_password")
+            if self.smtp_username and not self.smtp_use_starttls:
+                raise ValueError("SMTP authentication requires STARTTLS")
+            if any("\r" in address or "\n" in address for address in [self.smtp_from, *self.smtp_to]):
+                raise ValueError("SMTP addresses must not contain line breaks")
+        return self
+
+
 class HarnessConfig(BaseModel):
     """Overall harness configuration."""
 
@@ -686,11 +737,14 @@ class HarnessConfig(BaseModel):
     budget_cap_usd: Optional[float] = Field(
         None,
         gt=0,
-        description=(
-            "Run-level cost cap in USD; once accumulated known-pricing cost "
-            "reaches the cap, remaining problems downgrade to the cheapest "
-            "mapped strategy"
-        ),
+        allow_inf_nan=False,
+        description="Run-level known cost cap in USD",
+    )
+    budget_action: Optional[Literal["auto_stop", "downgrade"]] = Field(
+        None, description="Action at the run-level cost cap; selector runs default to downgrade"
+    )
+    cost_alerts: Optional[CostAlertConfig] = Field(
+        None, description="Thresholds and notification channels for run-level cost alerts"
     )
     enable_quality_analysis: bool = Field(
         False, description="Enable code quality analysis (time/space complexity, readability, style)"

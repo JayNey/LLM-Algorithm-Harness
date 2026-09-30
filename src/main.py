@@ -11,7 +11,7 @@ from pathlib import Path
 
 from src.harness import AlgorithmHarness
 from src.llm_client import LLMClient
-from src.models import HarnessConfig, LLMConfig, SandboxConfig, StrategyConfig
+from src.models import CostAlertConfig, HarnessConfig, LLMConfig, SandboxConfig, StrategyConfig
 from src.utils.config import load_config
 from src.utils.logging import get_logger, setup_logging
 from src.utils.secrets import redact_sensitive_data
@@ -38,6 +38,17 @@ def positive_float(value: str) -> float:
     if not math.isfinite(parsed) or parsed <= 0:
         raise argparse.ArgumentTypeError("must be greater than zero")
     return parsed
+
+
+def parse_cost_alert_thresholds(value: str) -> list[int]:
+    """Parse a comma-separated list of integer budget percentages."""
+    try:
+        values = [int(item.strip()) for item in value.split(",")]
+        return CostAlertConfig(thresholds=values).thresholds
+    except (ValueError, TypeError) as exc:
+        raise argparse.ArgumentTypeError(
+            "thresholds must be unique integer percentages between 1 and 99"
+        ) from exc
 
 
 def confidence_threshold(value: str) -> float:
@@ -99,8 +110,23 @@ def apply_cli_overrides(config: HarnessConfig, args: argparse.Namespace) -> Harn
     if args.budget_cap is not None:
         config.budget_cap_usd = args.budget_cap
 
-    if config.budget_cap_usd is not None and not config.difficulty_strategy:
-        raise ValueError("budget_cap_usd (--budget-cap) requires a difficulty_strategy mapping")
+    if getattr(args, "auto_stop_on_budget", False):
+        config.budget_action = "auto_stop"
+    elif getattr(args, "downgrade_on_budget", False):
+        config.budget_action = "downgrade"
+
+    thresholds = getattr(args, "cost_alert_thresholds", None)
+    if thresholds is not None:
+        existing = config.cost_alerts.model_dump() if config.cost_alerts else {}
+        config.cost_alerts = CostAlertConfig(**{**existing, "thresholds": thresholds})
+
+    if config.budget_cap_usd is None:
+        if config.budget_action is not None or config.cost_alerts is not None:
+            raise ValueError("Cost alerts and budget action require budget_cap_usd (--budget-cap)")
+    elif config.budget_action == "downgrade" and not config.difficulty_strategy:
+        raise ValueError("--downgrade-on-budget requires a difficulty_strategy mapping")
+    elif config.budget_action is None and not config.difficulty_strategy:
+        raise ValueError("budget_cap_usd (--budget-cap) requires a difficulty_strategy mapping or --auto-stop-on-budget")
     if config.difficulty_strategy:
         if args.strategy is not None:
             raise ValueError("--strategy cannot be combined with --difficulty-strategy")
@@ -273,11 +299,39 @@ def save_results(reports: dict, output_dir: str, harness: AlgorithmHarness, conf
         {"strategies": {name: report.model_dump() for name, report in reports.items()}}
     )
 
+    cost_monitor = getattr(harness, "cost_monitor", None)
+    if cost_monitor is not None and (
+        config.budget_cap_usd is not None or config.difficulty_strategy
+    ):
+        summary["cost_control"] = {
+            **cost_monitor.snapshot(),
+            "budget_action": config.budget_action or (
+                "downgrade" if config.difficulty_strategy and config.budget_cap_usd else None
+            ),
+            "incomplete": task_record is not None and task_record.state == "paused",
+        }
+
     summary_file = run_path / "summary.json"
     with open(summary_file, "w") as f:
         json.dump(summary, f, indent=2)
 
     logger.info("summary_saved", path=str(summary_file))
+
+    if task_record is not None and task_record.state == "paused":
+        cutoff = {
+            "run_id": task_run_id,
+            "timestamp": datetime.now().isoformat(),
+            "state": "paused",
+            "reason": "known_cost_reached_budget_cap",
+            **cost_monitor.snapshot(),
+            "completed_units": task_record.completed_units,
+            "queued_units": sum(unit.status == "queued" for unit in task_record.units),
+            "total_units": task_record.total_units,
+            "note": "Unknown-price or missing-usage calls are excluded from the known cost total.",
+        }
+        cutoff_file = run_path / "cost_cutoff.json"
+        cutoff_file.write_text(json.dumps(cutoff, indent=2), encoding="utf-8")
+        logger.warning("budget_run_paused", report=str(cutoff_file))
 
     # Save detailed results per strategy
     for strategy_name, results in harness.results.items():
@@ -701,7 +755,6 @@ def run_benchmark_command(args: argparse.Namespace) -> int:
 
 def run_cache_command(args: argparse.Namespace) -> int:
     """Execute cache management commands."""
-    from pathlib import Path
     from src.cache import LLMResponseCache
 
     try:
@@ -845,10 +898,23 @@ def main():
         dest="budget_cap",
         type=positive_float,
         help=(
-            "Run-level cost cap in USD; once accumulated known-pricing cost reaches "
-            "the cap, remaining problems downgrade to the cheapest mapped strategy. "
-            "Requires --difficulty-strategy"
+            "Run-level known cost cap in USD; use --auto-stop-on-budget to pause "
+            "or --difficulty-strategy for the existing downgrade behavior"
         ),
+    )
+    budget_action = run_parser.add_mutually_exclusive_group()
+    budget_action.add_argument(
+        "--auto-stop-on-budget", action="store_true",
+        help="Pause queued work once known cost reaches the budget cap and write a cutoff report",
+    )
+    budget_action.add_argument(
+        "--downgrade-on-budget", action="store_true",
+        help="Downgrade remaining problems to the cheapest mapped strategy at the cap",
+    )
+    run_parser.add_argument(
+        "--cost-alert-thresholds", type=parse_cost_alert_thresholds,
+        metavar="PCT,PCT,...",
+        help="Alert at these budget percentages (default: 50,80,90)",
     )
 
     # Import command
@@ -1238,7 +1304,7 @@ def main():
             print_report(reports)
             save_results(reports, config.output_dir, harness, config)
 
-            if config.difficulty_strategy:
+            if config.budget_cap_usd is not None or config.difficulty_strategy:
                 snapshot = harness.cost_monitor.snapshot()
                 cap_text = (
                     f"${snapshot['budget_cap_usd']}"
@@ -1252,6 +1318,8 @@ def main():
                     f"{snapshot['unknown_usage_results']} result(s) with unknown usage "
                     "not counted toward the cap"
                 )
+                if harness.task_record is not None and harness.task_record.state == "paused":
+                    print("Evaluation paused at budget cap; see cost_cutoff.json in the run output.")
 
             logger.info("harness_completed")
 

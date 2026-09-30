@@ -12,7 +12,7 @@ unknown usage are counted separately and never treated as free.
 """
 
 import threading
-from decimal import Decimal
+from decimal import Decimal, InvalidOperation
 from typing import Any, Dict, List, Optional
 
 from src.utils.logging import get_logger
@@ -99,10 +99,21 @@ class RunCostMonitor:
                 usage_unknown = True
                 continue
             trace_cost = pricing.get("total_cost")
-            if trace_cost is None or pricing.get("usage_known") is False:
+            if (
+                trace_cost is None or pricing.get("usage_known") is False
+                or pricing.get("pricing_known") is False
+            ):
                 usage_unknown = True
             else:
-                known_cost += Decimal(str(trace_cost))
+                try:
+                    amount = Decimal(str(trace_cost))
+                except (InvalidOperation, TypeError, ValueError):
+                    usage_unknown = True
+                    continue
+                if not amount.is_finite() or amount < 0:
+                    usage_unknown = True
+                    continue
+                known_cost += amount
         if not usage_unknown and not (getattr(result, "llm_traces", None) or []):
             # A result without traces still burns unpriced tokens when the
             # provider reported usage; truly call-free results stay clean.
@@ -120,6 +131,12 @@ class RunCostMonitor:
             return False
         with self._lock:
             return self._accumulated_cost >= self.budget_cap_usd
+
+    @property
+    def accumulated_cost(self) -> Decimal:
+        """Exact known cost for threshold decisions, without display rounding."""
+        with self._lock:
+            return self._accumulated_cost
 
     def record_downgrade(self) -> bool:
         """Record one downgraded problem; True when this is the cap trigger."""
