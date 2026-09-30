@@ -55,7 +55,7 @@ def _record_known_cost(record: dict[str, Any]) -> tuple[float, bool]:
             continue
         try:
             amount = float(cost)
-        except (TypeError, ValueError):
+        except (TypeError, ValueError, OverflowError):
             countable = False
         else:
             if math.isfinite(amount) and amount >= 0:
