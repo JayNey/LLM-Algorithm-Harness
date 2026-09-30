@@ -17,6 +17,7 @@ from src.failure_report import (
 from src.harness import AlgorithmHarness
 from src.llm_client import LLMClient
 from src.models import CostAlertConfig, HarnessConfig, LLMConfig, SandboxConfig, StrategyConfig
+from src.task_service import TaskService
 from src.utils.config import load_config
 from src.utils.logging import get_logger, setup_logging
 from src.utils.secrets import redact_sensitive_data
@@ -805,6 +806,69 @@ def run_recalibrate_command(args: argparse.Namespace) -> int:
     return 0
 
 
+def run_runs_command(args: argparse.Namespace) -> int:
+    """List or clean persisted runs (checkpoint resume management)."""
+    from src.runs import summarize_run
+
+    output_root = Path(getattr(args, "output", None) or "./results") / "tasks"
+    if not output_root.exists():
+        print(f"No persisted runs under: {output_root}")
+        return 0
+    service = TaskService(output_root)
+    records = service.list()
+    if args.runs_command == "clean":
+        return _run_runs_clean(service, records, confirm=not args.force)
+    summaries = [summarize_run(record) for record in records]
+    if not getattr(args, "all", False):
+        summaries = [item for item in summaries if item["resumable"]]
+    summaries.sort(key=lambda item: item["updated_at"], reverse=True)
+    if not summaries:
+        if getattr(args, "all", False):
+            print("No persisted runs found.")
+        else:
+            print("No resumable runs found. Use --all to include completed runs.")
+        return 0
+    print(f"{'RUN_ID':<40} {'STATE':<10} {'PROGRESS':>9} {'COST(USD)':>10}  UPDATED")
+    for item in summaries:
+        print(
+            f"{item['run_id']:<40} {item['state']:<10} "
+            f"{item['completed']}/{item['total']:>4} {item['cost_usd']:>10.4f}  "
+            f"{item['updated_at']}"
+        )
+        if item["unknown_usage_results"]:
+            print(
+                f"  note: {item['unknown_usage_results']} result(s) with unknown usage "
+                "not counted toward cost"
+            )
+    print(
+        "\nResume a run with: harness --resume --run-id <RUN_ID> "
+        "(same config and dataset required)"
+    )
+    return 0
+
+
+def _run_runs_clean(service: TaskService, records, confirm: bool) -> int:
+    """Delete task state files of completed runs; never unfinished ones."""
+    completed = [record for record in records if record.state == "completed"]
+    if not completed:
+        print("No completed runs to clean.")
+        return 0
+    removed = 0
+    for record in completed:
+        if confirm:
+            answer = input(
+                f"Delete state of completed run '{record.run_id}'? [y/N] "
+            )
+            if answer.strip().lower() not in {"y", "yes"}:
+                print(f"Skipped: {record.run_id}")
+                continue
+        service.store.delete(record.run_id)
+        print(f"Deleted: {record.run_id}")
+        removed += 1
+    print(f"Removed {removed} state file(s).")
+    return 0
+
+
 def run_ab_test_command(args: argparse.Namespace) -> int:
     """Run a two-variant stratified prompt A/B test."""
     from src.ab_testing import ABTestConfig, ABTestRunner
@@ -1266,6 +1330,24 @@ def main():
     )
     recalibrate_parser.add_argument("--log-format", choices=["console", "json"], default="console")
 
+    runs_parser = subparsers.add_parser(
+        "runs", help="Manage persisted evaluation runs (checkpoint resume)"
+    )
+    runs_subparsers = runs_parser.add_subparsers(dest="runs_command")
+    runs_list_parser = runs_subparsers.add_parser(
+        "list", help="List persisted runs (resumable runs by default; --all for everything)"
+    )
+    runs_list_parser.add_argument(
+        "--all", action="store_true", help="Include completed runs, not only resumable ones"
+    )
+    runs_clean_parser = runs_subparsers.add_parser(
+        "clean", help="Delete task state files of completed runs"
+    )
+    runs_clean_parser.add_argument(
+        "--force", action="store_true", help="Delete without per-run confirmation"
+    )
+    runs_parser.add_argument("--log-format", choices=["console", "json"], default="console")
+
     ab_parser = subparsers.add_parser("ab-test", help="Run a two-variant prompt A/B test")
     ab_parser.add_argument("--config", required=True, help="A/B test JSON or YAML configuration")
     ab_parser.add_argument("--output-dir", help="Override configured output directory")
@@ -1353,6 +1435,7 @@ def main():
         "optimize",
         "recommend",
         "recalibrate",
+        "runs",
         "ab-test",
         "benchmark",
         "tags",
@@ -1392,6 +1475,12 @@ def main():
     if args.command == "recalibrate":
         setup_logging(console_format=getattr(args, "log_format", "console"))
         exit_code = run_recalibrate_command(args)
+        sys.exit(exit_code)
+
+    # Handle runs management command
+    if args.command == "runs":
+        setup_logging(console_format=getattr(args, "log_format", "console"))
+        exit_code = run_runs_command(args)
         sys.exit(exit_code)
 
     if args.command == "ab-test":
@@ -1487,6 +1576,35 @@ def main():
                 return
 
             config = apply_cli_overrides(config, args)
+
+            # Startup hint: point out resumable runs with the same config and
+            # dataset before spending money on a duplicate evaluation. Purely
+            # informational; execution behavior is unchanged.
+            if not args.resume and not args.run_id:
+                tasks_root = Path(config.output_dir) / "tasks"
+                # Probe only an existing store: instantiating TaskService
+                # would mkdir the output dir, and a missing dir cannot hold
+                # resumable runs anyway.
+                if tasks_root.exists():
+                    try:
+                        from src.runs import find_matching_unfinished
+
+                        service = TaskService(tasks_root)
+                        unfinished = find_matching_unfinished(
+                            service,
+                            TaskService.config_fingerprint(config),
+                            TaskService.dataset_fingerprint(config.dataset_path),
+                        )
+                        for record in unfinished:
+                            print(
+                                f"Note: unfinished run '{record.run_id}' "
+                                f"({record.completed_units}/{record.total_units} problems) matches "
+                                f"this config and dataset; resume it with "
+                                f"`harness --resume --run-id {record.run_id}` "
+                                "(or use a different --output/--run-id to start fresh)."
+                            )
+                    except (OSError, ValueError, FileNotFoundError):
+                        pass
 
             # Initialize and run harness
             logger.info("harness_starting")

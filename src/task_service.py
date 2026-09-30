@@ -118,6 +118,14 @@ class TaskStore:
         except FileNotFoundError:
             raise FileNotFoundError(f"Task '{run_id}' was not found") from None
 
+    def delete(self, run_id: str) -> bool:
+        """Remove one task file; False when it did not exist."""
+        try:
+            self.path_for(run_id).unlink()
+            return True
+        except FileNotFoundError:
+            return False
+
     def list(self) -> builtins.list[TaskRecord]:
         records = []
         for path in sorted(self.root.glob("*.json")):
