@@ -1,4 +1,10 @@
-"""Rule-based problem weakness analysis and recommendation (issue #49)."""
+"""Rule-based problem weakness analysis and recommendation (issue #49).
+
+Issue #91 additions: the recommendation list is ordered easy -> medium ->
+hard (relevance stays the selection rule), each recommendation carries an
+estimated practice cost derived from historical known-pricing traces, and
+reports surface the weak-tag dimensions each recommendation would improve.
+"""
 
 from __future__ import annotations
 
@@ -10,8 +16,47 @@ from pathlib import Path
 from typing import Any
 
 from src.models import Problem
+
+DIFFICULTY_RANK = {"easy": 0, "medium": 1, "hard": 2}
 from src.problem_loader import ProblemLoader
 from src.utils.secrets import redact_sensitive_data
+
+
+def _record_known_cost(record: dict[str, Any]) -> tuple[float, bool]:
+    """Known-pricing cost of one history record, and whether it was countable.
+
+    Same honest criteria as the cost modules: traces with unknown usage or
+    unknown pricing (or a missing/invalid total_cost) make the record
+    uncountable instead of contributing a partial or fabricated amount.
+    """
+    traces = record.get("llm_traces")
+    if not traces:
+        # No traces: the record's cost cannot be verified, so it must not
+        # silently pass as a free call.
+        return 0.0, False
+    total = 0.0
+    countable = True
+    for trace in traces:
+        if not isinstance(trace, dict):
+            countable = False
+            continue
+        pricing = trace.get("pricing_metadata")
+        if not isinstance(pricing, dict):
+            countable = False
+            continue
+        cost = pricing.get("total_cost")
+        if (
+            cost is None
+            or pricing.get("usage_known") is False
+            or pricing.get("pricing_known") is False
+        ):
+            countable = False
+            continue
+        try:
+            total += float(cost)
+        except (TypeError, ValueError):
+            countable = False
+    return total, countable
 
 
 class RecommendationEngine:
@@ -47,6 +92,8 @@ class RecommendationEngine:
 
         evaluated_ids = {record["problem_id"] for record in history}
         problem_map = {problem.problem_id: problem for problem in problems}
+        cost_by_problem: dict[str, tuple[float, int]] = {}
+        cost_by_difficulty: dict[str, tuple[float, int]] = {}
         stats: dict[str, dict[str, Any]] = defaultdict(self._new_group)
         per_problem: dict[str, dict[str, int]] = defaultdict(lambda: {"total": 0, "failed": 0})
 
@@ -58,6 +105,13 @@ class RecommendationEngine:
             failed = self._record_failed(record)
             per_problem[problem_id]["total"] += 1
             per_problem[problem_id]["failed"] += int(failed)
+            cost, countable = _record_known_cost(record)
+            if countable:
+                summed, count = cost_by_problem.get(problem_id, (0.0, 0))
+                cost_by_problem[problem_id] = (summed + cost, count + 1)
+                difficulty = problem.difficulty or "unknown"
+                summed, count = cost_by_difficulty.get(difficulty, (0.0, 0))
+                cost_by_difficulty[difficulty] = (summed + cost, count + 1)
             for key, group_type in self._group_keys(problem):
                 bucket = stats[key]
                 bucket["type"] = group_type
@@ -89,7 +143,29 @@ class RecommendationEngine:
             )
         weaknesses.sort(key=lambda item: (-item["failure_rate"], -item["failed"], item["key"]))
 
-        recommendations = self._recommend(problems, evaluated_ids, weaknesses, limit)
+        recommendations = self._recommend(
+            problems,
+            evaluated_ids,
+            weaknesses,
+            limit,
+            cost_by_problem=cost_by_problem,
+            cost_by_difficulty=cost_by_difficulty,
+        )
+        known_costs = [
+            item["estimated_cost_usd"]
+            for item in recommendations
+            if item["estimated_cost_usd"] is not None
+        ]
+        unknown_cost_count = sum(
+            1 for item in recommendations if item["estimated_cost_usd"] is None
+        )
+        covered_dimensions = sorted(
+            {
+                dimension
+                for item in recommendations
+                for dimension in item["expected_improvement_dimensions"]
+            }
+        )
         return redact_sensitive_data(
             {
                 "schema_version": "1.0",
@@ -103,6 +179,9 @@ class RecommendationEngine:
                 "weakness_report": weaknesses,
                 "recommended_problems": recommendations,
                 "recommended_problem_ids": [item["problem_id"] for item in recommendations],
+                "total_estimated_cost_usd": round(sum(known_costs), 6),
+                "unknown_cost_problem_count": unknown_cost_count,
+                "covered_dimensions": covered_dimensions,
                 "recommendation_config": {
                     "dataset_path": "recommended.problems.json",
                     "problem_ids": [item["problem_id"] for item in recommendations],
@@ -196,6 +275,9 @@ class RecommendationEngine:
         evaluated_ids: set[str],
         weaknesses: list[dict[str, Any]],
         limit: int,
+        *,
+        cost_by_problem: dict[str, tuple[float, int]],
+        cost_by_difficulty: dict[str, tuple[float, int]],
     ) -> list[dict[str, Any]]:
         weakness_map = {item["key"]: item for item in weaknesses}
         scored = []
@@ -221,13 +303,47 @@ class RecommendationEngine:
                 )
             )
         scored.sort(key=lambda item: (-item[0], -item[1], -item[2], item[3].problem_id))
+        selected = scored[:limit]
+        # Difficulty gradient for practice order: relevance decides WHO gets
+        # in, easy-first decides the OUTPUT order (stable within a rank).
+        selected.sort(key=lambda item: DIFFICULTY_RANK.get(item[3].difficulty, 3))
         output = []
-        for failure_rate, failed, _, problem, matches in scored[:limit]:
+        for failure_rate, failed, _, problem, matches in selected:
             data = problem.model_dump(mode="json")
             data["recommendation_reason"] = (
                 f"匹配高失败率分组 {', '.join(matches)}；最高失败率 "
                 f"{failure_rate:.1%}（{failed} 次失败）"
             )
             data["recommendation_score"] = failure_rate
+            data["expected_improvement_dimensions"] = sorted(
+                {
+                    key.split(":", 1)[1]
+                    for key in matches
+                    if key.startswith("tag:")
+                }
+            )
+            estimated = RecommendationEngine._estimate_cost(
+                problem, matches, cost_by_problem, cost_by_difficulty
+            )
+            data["estimated_cost_usd"] = (
+                round(estimated, 6) if estimated is not None else None
+            )
             output.append(data)
         return output
+
+    @staticmethod
+    def _estimate_cost(
+        problem: Problem,
+        matches: list[str],
+        cost_by_problem: dict[str, tuple[float, int]],
+        cost_by_difficulty: dict[str, tuple[float, int]],
+    ) -> float | None:
+        """Practice cost estimate: own history mean -> difficulty mean -> None."""
+        own = cost_by_problem.get(problem.problem_id)
+        if own and own[1]:
+            return own[0] / own[1]
+        difficulty = problem.difficulty or "unknown"
+        level = cost_by_difficulty.get(difficulty)
+        if level and level[1]:
+            return level[0] / level[1]
+        return None

@@ -129,3 +129,113 @@ def test_recommend_cli_writes_outputs(tmp_path):
     assert completed.returncode == 0, completed.stderr
     assert output.exists()
     assert output.with_name("cli-recommended.problems.json").exists()
+
+
+def _trace_record(problem_id, status="success", cost="0.5"):
+    payload = {
+        "problem_id": problem_id,
+        "status": status,
+        "hidden_result": {"all_passed": status == "success"},
+        "iterations": [{}],
+    }
+    if cost is not None:
+        payload["llm_traces"] = [
+            {
+                "prompt_tokens": 10,
+                "completion_tokens": 5,
+                "total_tokens": 15,
+                "pricing_metadata": {"total_cost": cost, "usage_known": True},
+            }
+        ]
+    return payload
+
+
+def _gradient_dataset(tmp_path):
+    data = [
+        {
+            "problem_id": "fail-hard",
+            "title": "Fail Hard",
+            "description": "Hard problem that failed.",
+            "difficulty": "hard",
+            "tags": ["dp"],
+            "test_cases": [{"input": {"x": 1}, "expected_output": 1}],
+        },
+        {
+            "problem_id": "cand-easy",
+            "title": "Candidate Easy",
+            "description": "Easy practice problem.",
+            "difficulty": "easy",
+            "tags": ["dp"],
+            "test_cases": [{"input": {"x": 2}, "expected_output": 2}],
+        },
+        {
+            "problem_id": "cand-medium",
+            "title": "Candidate Medium",
+            "description": "Medium practice problem.",
+            "difficulty": "medium",
+            "tags": ["dp"],
+            "test_cases": [{"input": {"x": 3}, "expected_output": 3}],
+        },
+    ]
+    path = tmp_path / "problems.json"
+    path.write_text(json.dumps(data), encoding="utf-8")
+    return path
+
+
+def test_gradient_orders_easy_first_with_cost_and_dimensions(tmp_path):
+    """Issue #91: gradient output order, cost fallback chain, dimensions."""
+    dataset = _gradient_dataset(tmp_path)
+    history = tmp_path / "results"
+    history.mkdir(parents=True, exist_ok=True)
+    records = [
+        # fail-hard: 2 failed records with known costs 0.2 + 0.4 (mean 0.3)
+        _trace_record("fail-hard", status="failed", cost="0.2"),
+        _trace_record("fail-hard", status="failed", cost="0.4"),
+        # Level costs come from OTHER (evaluated) problems: easy level has a
+        # known-cost record; medium level only an unknown-usage one.
+        _trace_record("solved-easy", status="success", cost="0.1"),
+        _trace_record("solved-medium", status="success", cost=None),
+    ]
+    # Evaluated problems must exist in the dataset to map their difficulty.
+    dataset_payload = json.loads(dataset.read_text(encoding="utf-8"))
+    dataset_payload.extend(
+        [
+            {
+                "problem_id": "solved-easy",
+                "title": "Solved Easy",
+                "description": "Already solved easy problem.",
+                "difficulty": "easy",
+                "tags": ["dp"],
+                "test_cases": [{"input": {"x": 9}, "expected_output": 9}],
+            },
+            {
+                "problem_id": "solved-medium",
+                "title": "Solved Medium",
+                "description": "Already solved medium problem.",
+                "difficulty": "medium",
+                "tags": ["dp"],
+                "test_cases": [{"input": {"x": 8}, "expected_output": 8}],
+            },
+        ]
+    )
+    dataset.write_text(json.dumps(dataset_payload), encoding="utf-8")
+    (history / "vanilla_results.json").write_text(
+        json.dumps(records), encoding="utf-8"
+    )
+
+    report = RecommendationEngine(history, dataset_path=dataset).analyze()
+
+    # Selection by relevance: fail-hard matches its own failed group and is
+    # already evaluated... it is excluded (evaluated); candidates remain.
+    items = {item["problem_id"]: item for item in report["recommended_problems"]}
+    assert set(items) == {"cand-easy", "cand-medium"}
+    # Gradient: easy before medium.
+    assert report["recommended_problem_ids"] == ["cand-easy", "cand-medium"]
+    # Cost fallback: cand-easy -> easy level mean (0.1); cand-medium -> None.
+    assert items["cand-easy"]["estimated_cost_usd"] == pytest.approx(0.1)
+    assert items["cand-medium"]["estimated_cost_usd"] is None
+    assert report["total_estimated_cost_usd"] == pytest.approx(0.1)
+    assert report["unknown_cost_problem_count"] == 1
+    # Dimensions: matched weak tag group "tag:dp" -> "dp".
+    assert items["cand-easy"]["expected_improvement_dimensions"] == ["dp"]
+    assert report["covered_dimensions"] == ["dp"]
