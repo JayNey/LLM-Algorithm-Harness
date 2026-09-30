@@ -115,6 +115,24 @@ def apply_cli_overrides(config: HarnessConfig, args: argparse.Namespace) -> Harn
     if args.budget_cap is not None:
         config.budget_cap_usd = args.budget_cap
 
+    if getattr(args, "budget_allocation", None):
+        allocation = {}
+        for item in args.budget_allocation:
+            difficulty, sep, raw_amount = item.partition("=")
+            difficulty = difficulty.strip().lower()
+            if not sep or not difficulty:
+                raise ValueError(f"--budget-allocation expects DIFF=USD pairs, got '{item}'")
+            try:
+                amount = float(raw_amount)
+            except ValueError:
+                raise ValueError(f"--budget-allocation expects DIFF=USD pairs, got '{item}'")
+            if not math.isfinite(amount) or amount <= 0:
+                raise ValueError(f"--budget-allocation amounts must be positive, got '{item}'")
+            if difficulty in allocation:
+                raise ValueError(f"Duplicate difficulty in --budget-allocation: '{difficulty}'")
+            allocation[difficulty] = amount
+        config.budget_allocation = allocation
+
     if getattr(args, "auto_stop_on_budget", False):
         config.budget_action = "auto_stop"
     elif getattr(args, "downgrade_on_budget", False):
@@ -132,6 +150,24 @@ def apply_cli_overrides(config: HarnessConfig, args: argparse.Namespace) -> Harn
         raise ValueError("--downgrade-on-budget requires a difficulty_strategy mapping")
     elif config.budget_action is None and not config.difficulty_strategy:
         raise ValueError("budget_cap_usd (--budget-cap) requires a difficulty_strategy mapping or --auto-stop-on-budget")
+    if config.budget_allocation is not None:
+        invalid_keys = sorted(set(config.budget_allocation) - {"easy", "medium", "hard"})
+        if invalid_keys:
+            raise ValueError(f"Unknown difficulty in budget_allocation: {', '.join(invalid_keys)}")
+        non_positive = sorted(k for k, v in config.budget_allocation.items() if v <= 0)
+        if non_positive:
+            raise ValueError(
+                f"budget_allocation amounts must be positive: {', '.join(non_positive)}"
+            )
+        if not config.difficulty_strategy:
+            raise ValueError(
+                "budget_allocation (--budget-allocation) requires a difficulty_strategy mapping"
+            )
+        if config.budget_action == "auto_stop":
+            raise ValueError(
+                "budget_allocation only supports the downgrade action; "
+                "drop --auto-stop-on-budget"
+            )
     if config.difficulty_strategy:
         if args.strategy is not None:
             raise ValueError("--strategy cannot be combined with --difficulty-strategy")
@@ -805,10 +841,7 @@ def run_cache_command(args: argparse.Namespace) -> int:
     from src.cache import LLMResponseCache
 
     try:
-        cache = LLMResponseCache(
-            cache_dir=".cache/llm_responses",
-            enabled=True,
-        )
+        cache = LLMResponseCache(enabled=True)
 
         if args.cache_action == "clear":
             model_filter = args.model if hasattr(args, "model") and args.model else None
@@ -962,6 +995,16 @@ def main():
         "--cost-alert-thresholds", type=parse_cost_alert_thresholds,
         metavar="PCT,PCT,...",
         help="Alert at these budget percentages (default: 50,80,90)",
+    )
+    run_parser.add_argument(
+        "--budget-allocation",
+        nargs="+",
+        metavar="DIFF=USD",
+        help=(
+            "Per-difficulty known cost budgets in USD, e.g. easy=2.0 medium=5.0 hard=3.0; "
+            "each difficulty accumulates independently and only its remaining problems "
+            "downgrade when its budget is exhausted. Requires --difficulty-strategy"
+        ),
     )
 
     # Import command
@@ -1367,6 +1410,13 @@ def main():
                 )
                 if harness.task_record is not None and harness.task_record.state == "paused":
                     print("Evaluation paused at budget cap; see cost_cutoff.json in the run output.")
+            if harness.budget_allocation_monitor is not None:
+                for difficulty, usage in harness.budget_allocation_monitor.snapshot().items():
+                    print(
+                        f"  {difficulty}: ${usage['accumulated_cost_usd']:.4f} "
+                        f"of ${usage['budget_cap_usd']} budget; "
+                        f"{usage['downgraded_problems']} problem(s) downgraded"
+                    )
 
             logger.info("harness_completed")
 

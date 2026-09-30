@@ -14,6 +14,11 @@ from typing import Any, Dict, Optional
 
 from src.models import LLMResponse, TokenUsage
 
+DEFAULT_CACHE_DIR = ".cache/llm_responses"
+# Environment override for the cache location; tests use it to isolate the
+# disk-backed cache per test, and deployments can redirect it without config.
+CACHE_DIR_ENV = "LLM_CACHE_DIR"
+
 
 class CacheKey:
     """Generate unique cache keys based on LLM request parameters."""
@@ -72,7 +77,7 @@ class LLMResponseCache:
 
     def __init__(
         self,
-        cache_dir: str = ".cache/llm_responses",
+        cache_dir: str = DEFAULT_CACHE_DIR,
         ttl_days: int = 30,
         max_size_mb: int = 1000,
         enabled: bool = True,

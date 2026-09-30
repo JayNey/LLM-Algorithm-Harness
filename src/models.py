@@ -6,6 +6,7 @@ This module defines all Pydantic data models used throughout the system.
 
 from datetime import datetime
 from decimal import Decimal
+import math
 from typing import Any, Dict, List, Literal, Optional
 from urllib.parse import urlparse
 
@@ -765,6 +766,30 @@ class HarnessConfig(BaseModel):
     budget_action: Optional[Literal["auto_stop", "downgrade"]] = Field(
         None, description="Action at the run-level cost cap; selector runs default to downgrade"
     )
+    budget_allocation: Optional[Dict[str, float]] = Field(
+        None,
+        description=(
+            "Per-difficulty known cost budgets in USD (easy/medium/hard); each "
+            "difficulty accumulates and downgrades independently"
+        ),
+    )
+
+    @field_validator("budget_allocation")
+    @classmethod
+    def validate_budget_allocation(cls, value: Optional[Dict[str, float]]):
+        if value is None:
+            return value
+        if not value:
+            raise ValueError("budget_allocation must not be empty")
+        invalid_keys = sorted(set(value) - {"easy", "medium", "hard"})
+        if invalid_keys:
+            raise ValueError(f"Unknown difficulty in budget_allocation: {', '.join(invalid_keys)}")
+        for difficulty, amount in value.items():
+            if not math.isfinite(amount) or amount <= 0:
+                raise ValueError(
+                    f"budget_allocation amounts must be positive finite numbers: {difficulty}"
+                )
+        return value
     cost_alerts: Optional[CostAlertConfig] = Field(
         None, description="Thresholds and notification channels for run-level cost alerts"
     )

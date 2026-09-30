@@ -75,6 +75,51 @@ class CostAwareSelector:
         return sorted(present)[0]
 
 
+def result_cost(result: Any) -> tuple[Decimal, bool]:
+    """Known-pricing cost of one result, and whether its usage was unknown.
+
+    Shared settlement logic for the run-level and per-difficulty ledgers and
+    the report's per-difficulty cost breakdown. Mirrors
+    ``harness._estimate_cost``: only traces with known pricing and known
+    usage count toward the cost; unknown usage is flagged, never silently
+    treated as free.
+    """
+    known_cost = Decimal("0")
+    usage_unknown = False
+    for trace in getattr(result, "llm_traces", None) or []:
+        if not isinstance(trace, dict):
+            usage_unknown = True
+            continue
+        pricing = trace.get("pricing_metadata")
+        if not isinstance(pricing, dict):
+            # Tokens without provider pricing cannot be converted honestly.
+            usage_unknown = True
+            continue
+        trace_cost = pricing.get("total_cost")
+        if (
+            trace_cost is None
+            or pricing.get("usage_known") is False
+            or pricing.get("pricing_known") is False
+        ):
+            usage_unknown = True
+        else:
+            try:
+                amount = Decimal(str(trace_cost))
+            except (InvalidOperation, TypeError, ValueError):
+                usage_unknown = True
+                continue
+            if not amount.is_finite() or amount < 0:
+                usage_unknown = True
+                continue
+            known_cost += amount
+    if not usage_unknown and not (getattr(result, "llm_traces", None) or []):
+        # A result without traces still burns unpriced tokens when the
+        # provider reported usage; truly call-free results stay clean.
+        if getattr(result, "total_tokens", 0):
+            usage_unknown = True
+    return known_cost, usage_unknown
+
+
 class RunCostMonitor:
     """Thread-safe run-level cost ledger driving the budget-cap downgrade."""
 
@@ -87,38 +132,7 @@ class RunCostMonitor:
 
     def add_result(self, result: Any) -> None:
         """Settle one finished problem's known-pricing cost into the ledger."""
-        known_cost = Decimal("0")
-        usage_unknown = False
-        for trace in getattr(result, "llm_traces", None) or []:
-            if not isinstance(trace, dict):
-                usage_unknown = True
-                continue
-            pricing = trace.get("pricing_metadata")
-            if not isinstance(pricing, dict):
-                # Tokens without provider pricing cannot be converted honestly.
-                usage_unknown = True
-                continue
-            trace_cost = pricing.get("total_cost")
-            if (
-                trace_cost is None or pricing.get("usage_known") is False
-                or pricing.get("pricing_known") is False
-            ):
-                usage_unknown = True
-            else:
-                try:
-                    amount = Decimal(str(trace_cost))
-                except (InvalidOperation, TypeError, ValueError):
-                    usage_unknown = True
-                    continue
-                if not amount.is_finite() or amount < 0:
-                    usage_unknown = True
-                    continue
-                known_cost += amount
-        if not usage_unknown and not (getattr(result, "llm_traces", None) or []):
-            # A result without traces still burns unpriced tokens when the
-            # provider reported usage; truly call-free results stay clean.
-            if getattr(result, "total_tokens", 0):
-                usage_unknown = True
+        known_cost, usage_unknown = result_cost(result)
         with self._lock:
             self._accumulated_cost += known_cost
             if usage_unknown:
@@ -154,3 +168,49 @@ class RunCostMonitor:
                 "unknown_usage_results": self._unknown_usage_results,
                 "downgraded_problems": self._downgraded_count,
             }
+
+
+class DifficultyBudgetMonitor:
+    """Per-difficulty budget ledgers; each difficulty degrades independently.
+
+    Each configured difficulty gets its own RunCostMonitor with its budget
+    as the cap. Problems of unconfigured difficulties are ignored here —
+    they carry no per-difficulty budget and stay governed by the global cap.
+    """
+
+    def __init__(self, allocation: Dict[str, float]):
+        self.monitors = {difficulty: RunCostMonitor(cap) for difficulty, cap in allocation.items()}
+        self._trigger_log_lock = threading.Lock()
+        self._trigger_logged: set = set()
+
+    def add_result(self, result: Any, difficulty: Optional[str]) -> None:
+        """Settle one finished problem into its difficulty's ledger."""
+        monitor = self.monitors.get(difficulty or "")
+        if monitor is not None:
+            monitor.add_result(result)
+
+    def over_cap_for(self, difficulty: Optional[str]) -> bool:
+        """Whether this difficulty has exhausted its own budget."""
+        monitor = self.monitors.get(difficulty or "")
+        return monitor.over_cap if monitor is not None else False
+
+    def cap_for(self, difficulty: Optional[str]) -> Optional[Decimal]:
+        """The configured budget for a difficulty, if any."""
+        monitor = self.monitors.get(difficulty or "")
+        return monitor.budget_cap_usd if monitor is not None else None
+
+    def mark_trigger_logged(self, difficulty: Optional[str]) -> bool:
+        """True once per difficulty, so the budget trigger logs exactly once."""
+        with self._trigger_log_lock:
+            first = difficulty not in self._trigger_logged
+            self._trigger_logged.add(difficulty)
+        return first
+
+    def record_downgrade(self, difficulty: Optional[str]) -> bool:
+        """Count one downgraded problem of this difficulty; True when first."""
+        monitor = self.monitors.get(difficulty or "")
+        return monitor.record_downgrade() if monitor is not None else False
+
+    def snapshot(self) -> Dict[str, Dict[str, Any]]:
+        """Per-difficulty budget usage for the run summary."""
+        return {difficulty: monitor.snapshot() for difficulty, monitor in self.monitors.items()}
