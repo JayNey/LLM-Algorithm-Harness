@@ -624,7 +624,7 @@ def run_problems_deduplicate_command(args: argparse.Namespace) -> int:
     Returns:
         Exit code (0=success, 1=failure)
     """
-    from src.harness.utils.deduplication import (
+    from src.problem_utils.utils.deduplication import (
         find_fingerprint_duplicates,
         find_similar_pairs,
         merge_problems,

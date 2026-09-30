@@ -5,7 +5,7 @@
 """
 
 import pytest
-from src.harness.utils.deduplication import (
+from src.problem_utils.utils.deduplication import (
     compute_similarity,
     find_similar_pairs,
     generate_fingerprint,

@@ -39,12 +39,12 @@
 
 ## 7. 集成测试
 
-- [ ] 7.1 创建测试数据集包含重复题目（相似度检测和指纹匹配各一对），运行 `harness problems deduplicate --dry-run` 验证检测到所有重复
-- [ ] 7.2 在测试数据集上运行交互式去重，验证用户可以选择保留或合并
-- [ ] 7.3 在测试数据集上运行自动去重（--auto-merge），验证重复题目被正确合并且数据集文件更新
-- [ ] 7.4 验证合并后的题目包含 merged_from 字段且信息完整
+- [x] 7.1 创建测试数据集包含重复题目（相似度检测和指纹匹配各一对），运行 `harness problems deduplicate --dry-run` 验证检测到所有重复
+- [x] 7.2 在测试数据集上运行交互式去重，验证用户可以选择保留或合并
+- [x] 7.3 在测试数据集上运行自动去重（--auto-merge），验证重复题目被正确合并且数据集文件更新
+- [x] 7.4 验证合并后的题目包含 merged_from 字段且信息完整
 
 ## 8. 文档和清理
 
-- [ ] 8.1 在 CLI help 中添加 deduplicate 命令的使用说明，运行 `harness problems deduplicate --help` 验证显示正确
-- [ ] 8.2 运行所有单元测试确保通过，运行 `pytest tests/test_deduplication.py -v` 验证全部通过
+- [x] 8.1 在 CLI help 中添加 deduplicate 命令的使用说明，运行 `harness problems deduplicate --help` 验证显示正确
+- [x] 8.2 运行所有单元测试确保通过，运行 `pytest tests/test_deduplication.py -v` 验证全部通过
