@@ -18,7 +18,12 @@ from rich.progress import (
 from src.budget import BudgetedLLMClient, BudgetExhausted, BudgetTracker
 from src.code_quality.analyzer import CodeQualityAnalyzer
 from src.cost_alert import CostAlertManager
-from src.cost_strategy import CostAwareSelector, RunCostMonitor
+from src.cost_strategy import (
+    CostAwareSelector,
+    DifficultyBudgetMonitor,
+    RunCostMonitor,
+    result_cost,
+)
 from src.llm_client import LLMClient
 from src.models import (
     CostAlertConfig,
@@ -66,6 +71,7 @@ class AlgorithmHarness:
         self.config = config
         self.budget_tracker = budget_tracker
         self.cost_monitor: Optional[RunCostMonitor] = None
+        self.budget_allocation_monitor: Optional[DifficultyBudgetMonitor] = None
         self.cost_alert_manager: Optional[CostAlertManager] = None
         self.problem_loader = ProblemLoader()
         self.results: Dict[str, List[ExecutionResult]] = {}
@@ -158,6 +164,14 @@ class AlgorithmHarness:
             # still records accumulated cost and unknown-usage results.
             monitor = RunCostMonitor(self.config.budget_cap_usd)
             self.cost_monitor = monitor
+        allocation_monitor: Optional[DifficultyBudgetMonitor] = None
+        if self.config.budget_allocation:
+            if selector is None:
+                raise ValueError("Budget allocation requires a difficulty_strategy mapping")
+            if budget_action == "auto_stop":
+                raise ValueError("Budget allocation only supports the downgrade action")
+            allocation_monitor = DifficultyBudgetMonitor(self.config.budget_allocation)
+            self.budget_allocation_monitor = allocation_monitor
         service = TaskService(Path(self.config.output_dir) / "tasks")
         config_fingerprint = service.config_fingerprint(self.config)
         dataset_fingerprint = service.dataset_fingerprint(self.config.dataset_path)
@@ -181,9 +195,16 @@ class AlgorithmHarness:
             if monitor is not None:
                 # Same run resumed: settle already-completed problems into the
                 # ledger so the remaining work cannot spend past the cap again.
+                resume_problem_map = {p.problem_id: p for p in problems}
                 for unit in record.units:
                     if unit.result is not None:
-                        monitor.add_result(ExecutionResult.model_validate(unit.result))
+                        result = ExecutionResult.model_validate(unit.result)
+                        monitor.add_result(result)
+                        if allocation_monitor is not None:
+                            difficulty = getattr(
+                                resume_problem_map.get(unit.problem_id), "difficulty", None
+                            )
+                            allocation_monitor.add_result(result, difficulty)
         else:
             if selector is not None:
                 units = []
@@ -240,7 +261,11 @@ class AlgorithmHarness:
             problem = problem_map[unit.problem_id]
             strategy, sandbox = runtimes[unit.strategy]
             downgraded = False
-            if budget_action == "downgrade" and monitor is not None and monitor.over_cap:
+            global_over = budget_action == "downgrade" and monitor is not None and monitor.over_cap
+            difficulty_over = allocation_monitor is not None and allocation_monitor.over_cap_for(
+                problem.difficulty
+            )
+            if global_over or difficulty_over:
                 cheapest = selector.cheapest_strategy
                 if cheapest != unit.strategy:
                     strategy_config = strategy_map[cheapest]
@@ -249,6 +274,18 @@ class AlgorithmHarness:
                     # unit's sandbox stays valid for the hidden stage.
                     strategy, _ = runtimes[cheapest]
                     downgraded = True
+                    if difficulty_over and not global_over:
+                        logger.warning(
+                            "difficulty_budget_reached_downgrade",
+                            difficulty=problem.difficulty,
+                            budget_cap_usd=allocation_monitor.cap_for(problem.difficulty),
+                            accumulated_cost_usd=(
+                                allocation_monitor.snapshot()
+                                .get(problem.difficulty, {})
+                                .get("accumulated_cost_usd")
+                            ),
+                            cheap_strategy=cheapest,
+                        )
             result = self._execute_problem(strategy_config, problem, strategy, sandbox)
             if downgraded:
                 result.cost_downgraded = True
@@ -277,12 +314,26 @@ class AlgorithmHarness:
                 return
             result = ExecutionResult.model_validate(unit.result)
             monitor.add_result(result)
+            if allocation_monitor is not None:
+                difficulty = problem_map.get(unit.problem_id)
+                allocation_monitor.add_result(result, getattr(difficulty, "difficulty", None))
             if result.cost_downgraded and monitor.record_downgrade():
                 logger.warning(
                     "budget_cap_reached_downgrade",
                     budget_cap_usd=self.config.budget_cap_usd,
                     accumulated_cost_usd=monitor.snapshot()["accumulated_cost_usd"],
                     cheap_strategy=selector.cheapest_strategy if selector is not None else None,
+                )
+            if (
+                result.cost_downgraded
+                and allocation_monitor is not None
+                and allocation_monitor.record_downgrade(
+                    getattr(problem_map.get(unit.problem_id), "difficulty", None)
+                )
+            ):
+                logger.warning(
+                    "difficulty_budget_reached_downgrade",
+                    difficulty=getattr(problem_map.get(unit.problem_id), "difficulty", None),
                 )
             self._process_cost_alerts(monitor)
 
@@ -829,10 +880,15 @@ class AlgorithmHarness:
                         "solved": 0,
                         "total": 0,
                         "success_rate": 0.0,
+                        "cost_usd": 0.0,
                     }
                 by_difficulty[difficulty]["total"] += 1
                 if result.status == "success":
                     by_difficulty[difficulty]["solved"] += 1
+                known_cost, _ = result_cost(result)
+                by_difficulty[difficulty]["cost_usd"] = round(
+                    by_difficulty[difficulty]["cost_usd"] + float(known_cost), 6
+                )
 
         # Calculate success rates
         for difficulty, stats in by_difficulty.items():

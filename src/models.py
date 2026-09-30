@@ -743,6 +743,13 @@ class HarnessConfig(BaseModel):
     budget_action: Optional[Literal["auto_stop", "downgrade"]] = Field(
         None, description="Action at the run-level cost cap; selector runs default to downgrade"
     )
+    budget_allocation: Optional[Dict[str, float]] = Field(
+        None,
+        description=(
+            "Per-difficulty known cost budgets in USD (easy/medium/hard); each "
+            "difficulty accumulates and downgrades independently"
+        ),
+    )
     cost_alerts: Optional[CostAlertConfig] = Field(
         None, description="Thresholds and notification channels for run-level cost alerts"
     )

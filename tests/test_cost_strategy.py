@@ -11,6 +11,7 @@ import pytest
 
 from src.cost_strategy import (
     CostAwareSelector,
+    DifficultyBudgetMonitor,
     RunCostMonitor,
 )
 from src.harness import AlgorithmHarness
@@ -188,6 +189,40 @@ class TestRunCostMonitor:
         assert monitor.snapshot()["accumulated_cost_usd"] == pytest.approx(40.0)
 
 
+class TestDifficultyBudgetMonitor:
+    def test_difficulties_accumulate_independently(self):
+        monitor = DifficultyBudgetMonitor({"easy": 1.0, "medium": 2.0})
+        monitor.add_result(make_result(cost=0.6), "easy")
+        monitor.add_result(make_result(cost=0.6), "easy")
+        monitor.add_result(make_result(cost=0.6), "medium")
+        assert monitor.over_cap_for("easy") is True
+        assert monitor.over_cap_for("medium") is False
+        snapshot = monitor.snapshot()
+        assert snapshot["easy"]["accumulated_cost_usd"] == pytest.approx(1.2)
+        assert snapshot["medium"]["accumulated_cost_usd"] == pytest.approx(0.6)
+
+    def test_unallocated_difficulty_is_ignored(self):
+        monitor = DifficultyBudgetMonitor({"easy": 0.5})
+        monitor.add_result(make_result(cost=100.0), "hard")
+        monitor.add_result(make_result(cost=100.0), None)
+        assert monitor.over_cap_for("hard") is False
+        assert monitor.over_cap_for(None) is False
+        assert set(monitor.snapshot()) == {"easy"}
+
+    def test_downgrade_counting_is_per_difficulty(self):
+        monitor = DifficultyBudgetMonitor({"easy": 1.0, "medium": 1.0})
+        assert monitor.record_downgrade("easy") is True
+        assert monitor.record_downgrade("easy") is False
+        assert monitor.record_downgrade("medium") is True
+        assert monitor.snapshot()["easy"]["downgraded_problems"] == 2
+        assert monitor.snapshot()["medium"]["downgraded_problems"] == 1
+
+    def test_cap_for_reports_configured_budget(self):
+        monitor = DifficultyBudgetMonitor({"easy": 0.25})
+        assert monitor.cap_for("easy") == 0.25
+        assert monitor.cap_for("hard") is None
+
+
 class TestModelFields:
     def test_cost_downgraded_defaults_false(self):
         result = ExecutionResult(
@@ -229,6 +264,7 @@ class TestCliOverrides:
             limit=None,
             difficulty_strategy=None,
             budget_cap=None,
+            budget_allocation=None,
         )
         defaults.update(kwargs)
         return argparse.Namespace(**defaults)
@@ -290,6 +326,64 @@ class TestCliOverrides:
         assert parse_cost_alert_thresholds("90,50,80") == [50, 80, 90]
         with pytest.raises(argparse.ArgumentTypeError):
             parse_cost_alert_thresholds("50,50")
+
+    def test_parses_budget_allocation(self):
+        config = apply_cli_overrides(
+            self.make_config(),
+            self.make_args(
+                difficulty_strategy=[
+                    "easy=vanilla",
+                    "medium=chain_of_thought",
+                    "hard=multi_round_feedback",
+                ],
+                budget_allocation=["easy=2.5", "medium=5", "hard=0.75"],
+            ),
+        )
+        assert config.budget_allocation == {"easy": 2.5, "medium": 5.0, "hard": 0.75}
+
+    def test_allocation_requires_mapping(self):
+        with pytest.raises(ValueError, match="requires a difficulty_strategy mapping"):
+            apply_cli_overrides(self.make_config(), self.make_args(budget_allocation=["easy=2.0"]))
+
+    def test_allocation_rejects_duplicate_and_bad_amount(self):
+        mapping = ["easy=vanilla", "medium=chain_of_thought", "hard=multi_round_feedback"]
+        with pytest.raises(ValueError, match="Duplicate"):
+            apply_cli_overrides(
+                self.make_config(),
+                self.make_args(difficulty_strategy=mapping, budget_allocation=["easy=1", "easy=2"]),
+            )
+        with pytest.raises(ValueError, match="positive"):
+            apply_cli_overrides(
+                self.make_config(),
+                self.make_args(difficulty_strategy=mapping, budget_allocation=["easy=-1"]),
+            )
+        with pytest.raises(ValueError, match="DIFF=USD"):
+            apply_cli_overrides(
+                self.make_config(),
+                self.make_args(difficulty_strategy=mapping, budget_allocation=["easy"]),
+            )
+
+    def test_allocation_rejects_unknown_difficulty(self):
+        with pytest.raises(ValueError, match="Unknown difficulty in budget_allocation"):
+            apply_cli_overrides(
+                self.make_config(),
+                self.make_args(
+                    difficulty_strategy=["easy=vanilla"],
+                    budget_allocation=["extreme=1.0"],
+                ),
+            )
+
+    def test_allocation_conflicts_with_auto_stop(self):
+        with pytest.raises(ValueError, match="downgrade action"):
+            apply_cli_overrides(
+                self.make_config(),
+                self.make_args(
+                    difficulty_strategy=["easy=vanilla", "medium=chain_of_thought"],
+                    budget_allocation=["easy=1.0"],
+                    auto_stop_on_budget=True,
+                    budget_cap=5.0,
+                ),
+            )
 
     def test_selector_conflicts_with_strategy_flag(self):
         with pytest.raises(ValueError, match="cannot be combined"):
@@ -360,7 +454,9 @@ def patch_runtimes(monkeypatch, costs):
     return calls
 
 
-def make_harness(tmp_path, problems, difficulty_strategy, budget_cap_usd=None):
+def make_harness(
+    tmp_path, problems, difficulty_strategy, budget_cap_usd=None, budget_allocation=None
+):
     dataset = tmp_path / "problems.json"
     write_dataset(dataset, problems)
     config = HarnessConfig(
@@ -375,6 +471,7 @@ def make_harness(tmp_path, problems, difficulty_strategy, budget_cap_usd=None):
         ],
         difficulty_strategy=difficulty_strategy,
         budget_cap_usd=budget_cap_usd,
+        budget_allocation=budget_allocation,
         max_workers=1,
     )
     return AlgorithmHarness(config)
@@ -597,3 +694,109 @@ class TestHarnessCostAwareIntegration:
         snapshot = resumed.cost_monitor.snapshot()
         assert snapshot["accumulated_cost_usd"] == pytest.approx(1.8)
         assert resumed.cost_monitor.over_cap
+
+    def test_allocation_downgrades_only_that_difficulty(self, tmp_path, monkeypatch):
+        calls = patch_runtimes(
+            monkeypatch,
+            {"vanilla": 0.6, "chain_of_thought": 0.6, "multi_round_feedback": 0.6},
+        )
+        harness = make_harness(
+            tmp_path,
+            [
+                problem_payload("m1", "medium"),
+                problem_payload("m2", "medium"),
+                problem_payload("m3", "medium"),
+                problem_payload("e1", "easy"),
+                problem_payload("h1", "hard"),
+            ],
+            {
+                "easy": "vanilla",
+                "medium": "chain_of_thought",
+                "hard": "multi_round_feedback",
+            },
+            budget_allocation={"medium": 1.0},
+        )
+        reports = harness.run(use_task_service=True, run_id="run-alloc")
+
+        # medium budget (1.0) exhausts after m1+m2; m3 downgrades to the
+        # cheapest mapped strategy while easy/hard stay on their mapping.
+        assert calls == [
+            ("chain_of_thought", "m1"),
+            ("chain_of_thought", "m2"),
+            ("vanilla", "m3"),
+            ("vanilla", "e1"),
+            ("multi_round_feedback", "h1"),
+        ]
+        results = {r.problem_id: r for r in harness.results["cost_aware"]}
+        assert results["m3"].cost_downgraded is True
+        assert results["m2"].cost_downgraded is False
+        assert results["e1"].cost_downgraded is False
+        assert results["h1"].cost_downgraded is False
+        snapshot = harness.budget_allocation_monitor.snapshot()
+        assert snapshot["medium"]["accumulated_cost_usd"] == pytest.approx(1.8)
+        assert snapshot["medium"]["downgraded_problems"] == 1
+        assert "easy" not in snapshot and "hard" not in snapshot
+        by_difficulty = reports["cost_aware"].by_difficulty
+        assert by_difficulty["medium"]["cost_usd"] == pytest.approx(1.8)
+        assert by_difficulty["easy"]["cost_usd"] == pytest.approx(0.6)
+        assert by_difficulty["hard"]["cost_usd"] == pytest.approx(0.6)
+
+    def test_global_cap_downgrades_across_difficulties_with_allocation(self, tmp_path, monkeypatch):
+        calls = patch_runtimes(
+            monkeypatch,
+            {"vanilla": 0.6, "chain_of_thought": 0.6, "multi_round_feedback": 0.6},
+        )
+        harness = make_harness(
+            tmp_path,
+            [
+                problem_payload("e1", "easy"),
+                problem_payload("m1", "medium"),
+                problem_payload("m2", "medium"),
+            ],
+            {
+                "easy": "vanilla",
+                "medium": "chain_of_thought",
+                "hard": "multi_round_feedback",
+            },
+            budget_cap_usd=0.9,
+            budget_allocation={"medium": 100.0},
+        )
+        harness.run(use_task_service=True, run_id="run-global-alloc")
+
+        # Global cap (0.9) is exhausted after e1+m1; m2 downgrades even
+        # though the medium budget (100.0) is untouched.
+        assert calls == [("vanilla", "e1"), ("chain_of_thought", "m1"), ("vanilla", "m2")]
+        results = {r.problem_id: r for r in harness.results["cost_aware"]}
+        assert results["m2"].cost_downgraded is True
+        assert harness.budget_allocation_monitor.snapshot()["medium"]["downgraded_problems"] == 1
+
+    def test_resume_replays_into_difficulty_budgets(self, tmp_path, monkeypatch):
+        patch_runtimes(
+            monkeypatch,
+            {"vanilla": 0.6, "chain_of_thought": 0.6, "multi_round_feedback": 0.6},
+        )
+        problems = [
+            problem_payload("m1", "medium"),
+            problem_payload("m2", "medium"),
+            problem_payload("e1", "easy"),
+        ]
+        mapping = {
+            "easy": "vanilla",
+            "medium": "chain_of_thought",
+            "hard": "multi_round_feedback",
+        }
+        first = make_harness(tmp_path, problems, mapping, budget_allocation={"medium": 1.0})
+        first.run(use_task_service=True, run_id="run-alloc-resume")
+
+        replay_calls = patch_runtimes(
+            monkeypatch,
+            {"vanilla": 0.6, "chain_of_thought": 0.6, "multi_round_feedback": 0.6},
+        )
+        resumed = make_harness(tmp_path, problems, mapping, budget_allocation={"medium": 1.0})
+        resumed.run(use_task_service=True, run_id="run-alloc-resume", resume=True)
+
+        assert replay_calls == []
+        snapshot = resumed.budget_allocation_monitor.snapshot()
+        assert snapshot["medium"]["accumulated_cost_usd"] == pytest.approx(1.2)
+        assert resumed.budget_allocation_monitor.over_cap_for("medium") is True
+        assert resumed.budget_allocation_monitor.over_cap_for("easy") is False
