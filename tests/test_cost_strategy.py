@@ -3,6 +3,7 @@ Tests for cost-aware strategy selection and run-level budget downgrade (#56b).
 """
 
 import argparse
+import json
 import threading
 from unittest.mock import Mock
 
@@ -13,7 +14,12 @@ from src.cost_strategy import (
     RunCostMonitor,
 )
 from src.harness import AlgorithmHarness
-from src.main import SUPPORTED_STRATEGIES, apply_cli_overrides
+from src.main import (
+    SUPPORTED_STRATEGIES,
+    apply_cli_overrides,
+    parse_cost_alert_thresholds,
+    save_results,
+)
 from src.models import (
     ExecutionResult,
     HarnessConfig,
@@ -102,6 +108,8 @@ def make_result(shape="known", cost=0.5):
         traces = [{"pricing_metadata": {"total_cost": None, "usage_known": True}}]
     elif shape == "usage_unknown":
         traces = [{"pricing_metadata": {"total_cost": cost, "usage_known": False}}]
+    elif shape == "pricing_unknown":
+        traces = [{"pricing_metadata": {"total_cost": cost, "usage_known": True, "pricing_known": False}}]
     else:
         traces = [{"pricing_metadata": {"total_cost": cost, "usage_known": True}}]
     return ExecutionResult(
@@ -127,10 +135,12 @@ class TestRunCostMonitor:
         monitor = RunCostMonitor(budget_cap_usd=0.5)
         monitor.add_result(make_result("no_pricing"))
         monitor.add_result(make_result("usage_unknown", cost=0.2))
+        monitor.add_result(make_result("pricing_unknown", cost=0.2))
         monitor.add_result(make_result("cost_none"))
+        monitor.add_result(make_result(cost=float("nan")))
         snapshot = monitor.snapshot()
         assert snapshot["accumulated_cost_usd"] == 0.0
-        assert snapshot["unknown_usage_results"] == 3
+        assert snapshot["unknown_usage_results"] == 5
         assert not monitor.over_cap
 
     def test_call_free_result_is_not_flagged_unknown(self):
@@ -269,6 +279,18 @@ class TestCliOverrides:
         with pytest.raises(ValueError, match="requires a difficulty_strategy mapping"):
             apply_cli_overrides(self.make_config(), self.make_args(budget_cap=5.0))
 
+    def test_auto_stop_allows_budget_without_selector(self):
+        config = apply_cli_overrides(
+            self.make_config(), self.make_args(budget_cap=5.0, auto_stop_on_budget=True)
+        )
+        assert config.budget_action == "auto_stop"
+        assert config.difficulty_strategy is None
+
+    def test_threshold_cli_validation(self):
+        assert parse_cost_alert_thresholds("90,50,80") == [50, 80, 90]
+        with pytest.raises(argparse.ArgumentTypeError):
+            parse_cost_alert_thresholds("50,50")
+
     def test_selector_conflicts_with_strategy_flag(self):
         with pytest.raises(ValueError, match="cannot be combined"):
             apply_cli_overrides(
@@ -359,6 +381,62 @@ def make_harness(tmp_path, problems, difficulty_strategy, budget_cap_usd=None):
 
 
 class TestHarnessCostAwareIntegration:
+    def test_auto_stop_pauses_queued_work_writes_cutoff_and_survives_resume(
+        self, tmp_path, monkeypatch
+    ):
+        calls = patch_runtimes(monkeypatch, {"vanilla": 0.6})
+        harness = make_harness(
+            tmp_path,
+            [problem_payload("p1", "easy"), problem_payload("p2", "easy"), problem_payload("p3", "easy")],
+            difficulty_strategy=None,
+            budget_cap_usd=1.0,
+        )
+        harness.config.strategies = [StrategyConfig(name="vanilla")]
+        harness.config.budget_action = "auto_stop"
+        harness.config.max_workers = 3
+
+        reports = harness.run(use_task_service=True, run_id="run-auto-stop")
+        assert calls == [("vanilla", "p1"), ("vanilla", "p2")]
+        assert harness.task_record.state == "paused"
+        assert [unit.status for unit in harness.task_record.units] == ["completed", "completed", "queued"]
+        assert reports["vanilla"].total_problems == 2
+        assert reports["vanilla"].failed_problems == 0
+        assert harness.results["vanilla"][2].status == "cancelled"
+        assert harness.cost_monitor.snapshot()["accumulated_cost_usd"] == pytest.approx(1.2)
+
+        save_results(reports, harness.config.output_dir, harness, harness.config)
+        run_dir = tmp_path / "results" / "run-auto-stop"
+        cutoff = json.loads((run_dir / "cost_cutoff.json").read_text())
+        summary = json.loads((run_dir / "summary.json").read_text())
+        assert cutoff["queued_units"] == 1
+        assert cutoff["completed_units"] == 2
+        assert summary["cost_control"]["incomplete"] is True
+
+        resumed = AlgorithmHarness(harness.config)
+        resumed.run(use_task_service=True, run_id="run-auto-stop", resume=True)
+        assert resumed.task_record.state == "paused"
+        assert calls == [("vanilla", "p1"), ("vanilla", "p2")]
+
+    def test_auto_stop_with_selector_pauses_without_downgrading(self, tmp_path, monkeypatch):
+        calls = patch_runtimes(
+            monkeypatch, {"vanilla": 0.6, "chain_of_thought": 0.6, "multi_round_feedback": 0.6}
+        )
+        harness = make_harness(
+            tmp_path,
+            [problem_payload("p1", "easy"), problem_payload("p2", "medium"), problem_payload("p3", "hard")],
+            {"easy": "vanilla", "medium": "chain_of_thought", "hard": "multi_round_feedback"},
+            budget_cap_usd=1.0,
+        )
+        harness.config.budget_action = "auto_stop"
+        harness.config.max_workers = 3
+        reports = harness.run(use_task_service=True, run_id="run-selector-stop")
+        assert calls == [("vanilla", "p1"), ("chain_of_thought", "p2")]
+        assert harness.task_record.state == "paused"
+        assert harness.task_record.units[2].status == "queued"
+        assert reports["cost_aware"].total_problems == 2
+        assert reports["cost_aware"].failed_problems == 0
+        assert all(not result.cost_downgraded for result in harness.results["cost_aware"])
+
     def test_problems_route_by_difficulty(self, tmp_path, monkeypatch):
         calls = patch_runtimes(
             monkeypatch,
@@ -446,6 +524,14 @@ class TestHarnessCostAwareIntegration:
             [problem_payload("p1", "easy")],
             {"easy": "vanilla"},
         )
+        with pytest.raises(ValueError, match="task service"):
+            harness.run()
+
+    def test_auto_stop_requires_task_service_path(self, tmp_path):
+        harness = make_harness(
+            tmp_path, [problem_payload("p1", "easy")], None, budget_cap_usd=1.0
+        )
+        harness.config.budget_action = "auto_stop"
         with pytest.raises(ValueError, match="task service"):
             harness.run()
 

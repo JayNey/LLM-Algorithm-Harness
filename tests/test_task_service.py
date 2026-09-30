@@ -7,7 +7,14 @@ from unittest.mock import Mock
 import pytest
 
 from src.harness import AlgorithmHarness
-from src.models import ExecutionResult, HarnessConfig, LLMConfig, SandboxConfig, StrategyConfig
+from src.models import (
+    CostAlertConfig,
+    ExecutionResult,
+    HarnessConfig,
+    LLMConfig,
+    SandboxConfig,
+    StrategyConfig,
+)
 from src.task_service import TaskService, TaskUnit
 
 
@@ -36,6 +43,8 @@ def test_task_creation_persists_atomic_record_and_events(tmp_path):
     assert failed.error == "setup failed"
     assert service.events_since(record.run_id)[-1].kind == "task_failed"
     assert service.cancel(record.run_id).state == "failed"
+    with pytest.raises(ValueError, match="Invalid run_id"):
+        service.store.path_for("run\nInjected-Header: value")
 
 
 def test_fingerprints_are_content_sensitive_without_storing_api_key(tmp_path):
@@ -51,6 +60,20 @@ def test_fingerprints_are_content_sensitive_without_storing_api_key(tmp_path):
     assert first != second
     assert "secret-a" not in first
     assert "secret-b" not in second
+
+
+def test_alert_endpoint_secret_changes_resume_fingerprint(tmp_path):
+    config = HarnessConfig(
+        dataset_path=str(tmp_path / "dataset.json"),
+        llm_config=LLMConfig(provider="openai", api_key="key", model="model-a"),
+        budget_cap_usd=1.0,
+        budget_action="auto_stop",
+        cost_alerts=CostAlertConfig(webhook_url="https://example.com/secret-a"),
+    )
+    changed = config.model_copy(deep=True)
+    changed.cost_alerts = CostAlertConfig(webhook_url="https://example.com/secret-b")
+    assert TaskService.config_fingerprint(config) != TaskService.config_fingerprint(changed)
+    assert "secret-a" not in str(config.redacted_dict())
 
 
 def test_task_run_respects_max_workers_and_records_results(tmp_path):
@@ -79,6 +102,34 @@ def test_task_run_respects_max_workers_and_records_results(tmp_path):
     assert peak <= 2
     assert all(unit.status == "completed" for unit in result.units)
     assert [event.sequence for event in result.events] == list(range(1, len(result.events) + 1))
+
+
+def test_budget_pause_preserves_queued_units_and_resume_does_not_dispatch(tmp_path):
+    service = TaskService(tmp_path / "tasks")
+    record = service.create(
+        units=_units(3), config_fingerprint="config-a", dataset_fingerprint="data-a", run_id="run-pause"
+    )
+    completed = []
+
+    def worker(unit):
+        completed.append(unit.problem_id)
+        return {"status": "success"}
+
+    paused = service.run(
+        record.run_id, worker, max_workers=1,
+        pause_when=lambda state: state.completed_units >= 1,
+    )
+    assert paused.state == "paused"
+    assert completed == ["p0"]
+    assert [unit.status for unit in paused.units] == ["completed", "queued", "queued"]
+    assert paused.events[-1].kind == "task_paused"
+
+    again = service.run(
+        record.run_id, worker, max_workers=1, resume=True,
+        pause_when=lambda state: state.completed_units >= 1,
+    )
+    assert again.state == "paused"
+    assert completed == ["p0"]
 
 
 def test_parallel_execution_with_different_max_workers(tmp_path):

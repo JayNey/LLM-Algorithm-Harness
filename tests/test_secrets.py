@@ -29,6 +29,12 @@ def test_recursive_redaction_removes_nested_credentials():
     assert redacted["llm_config"]["model"] == "fake-model"
 
 
+def test_webhook_endpoints_are_redacted_as_credentials():
+    secrets = importlib.import_module("src.utils.secrets")
+    value = secrets.redact_sensitive_data({"webhook_url": "https://example.test/private-token"})
+    assert value["webhook_url"] == "[REDACTED]"
+
+
 def test_text_redaction_handles_quoted_keys_and_authorization_schemes():
     """JSON-like key text and complete authorization values are removed."""
     secrets = importlib.import_module("src.utils.secrets")

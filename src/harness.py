@@ -4,7 +4,7 @@ Main Harness - Coordinates evaluation workflow.
 
 import threading
 from pathlib import Path
-from typing import Any, Callable, Dict, List, Optional
+from typing import Any, Dict, List, Optional
 
 from rich.progress import (
     BarColumn,
@@ -15,16 +15,16 @@ from rich.progress import (
     TimeRemainingColumn,
 )
 
-from src.budget import BudgetExhausted, BudgetTracker, BudgetedLLMClient
-from src.cost_strategy import CostAwareSelector, RunCostMonitor
+from src.budget import BudgetedLLMClient, BudgetExhausted, BudgetTracker
 from src.code_quality.analyzer import CodeQualityAnalyzer
+from src.cost_alert import CostAlertManager
+from src.cost_strategy import CostAwareSelector, RunCostMonitor
 from src.llm_client import LLMClient
 from src.models import (
+    CostAlertConfig,
     ExecutionResult,
     HarnessConfig,
-    LLMConfig,
     Problem,
-    SandboxConfig,
     SandboxResult,
     StrategyConfig,
     StrategyReport,
@@ -66,6 +66,7 @@ class AlgorithmHarness:
         self.config = config
         self.budget_tracker = budget_tracker
         self.cost_monitor: Optional[RunCostMonitor] = None
+        self.cost_alert_manager: Optional[CostAlertManager] = None
         self.problem_loader = ProblemLoader()
         self.results: Dict[str, List[ExecutionResult]] = {}
         self.problem_totals: Dict[str, int] = {}
@@ -104,6 +105,12 @@ class AlgorithmHarness:
             raise ValueError(
                 "No strategies configured; add at least one strategy to the config"
             )
+        if (
+            self.config.budget_cap_usd is not None
+            or self.config.cost_alerts is not None
+            or self.config.budget_action is not None
+        ) and not use_task_service:
+            raise ValueError("Run-level cost budgets require the task service run path")
         if self.config.difficulty_strategy and not use_task_service:
             raise ValueError(
                 "difficulty_strategy selection requires the task service run "
@@ -134,8 +141,19 @@ class AlgorithmHarness:
         """Run CLI evaluations through the persistent task service."""
         problems = self._load_problems()
         selector = self._cost_aware_selector(problems)
+        budget_action = self.config.budget_action
+        if self.config.budget_cap_usd is None:
+            if budget_action is not None or self.config.cost_alerts is not None:
+                raise ValueError("Cost alerts and budget action require budget_cap_usd")
+        else:
+            if budget_action is None and selector is not None:
+                budget_action = "downgrade"
+            if budget_action == "downgrade" and selector is None:
+                raise ValueError("Budget downgrade requires a difficulty_strategy mapping")
+            if budget_action is None:
+                raise ValueError("Budget cap requires auto_stop or a difficulty_strategy mapping")
         monitor: Optional[RunCostMonitor] = None
-        if selector is not None:
+        if selector is not None or self.config.budget_cap_usd is not None:
             # The monitor exists whenever the selector runs: without a cap it
             # still records accumulated cost and unknown-usage results.
             monitor = RunCostMonitor(self.config.budget_cap_usd)
@@ -197,6 +215,15 @@ class AlgorithmHarness:
                 run_id=run_id,
             )
 
+        if self.config.budget_cap_usd is not None:
+            self.cost_alert_manager = CostAlertManager(
+                self.config.cost_alerts or CostAlertConfig(),
+                record.run_id,
+                service.store.root / f"{record.run_id}.cost-alerts.json",
+            )
+            if resume and monitor is not None:
+                self._process_cost_alerts(monitor)
+
         problem_map = {problem.problem_id: problem for problem in problems}
         strategy_map = {strategy.name: strategy for strategy in self.config.strategies}
         try:
@@ -213,7 +240,7 @@ class AlgorithmHarness:
             problem = problem_map[unit.problem_id]
             strategy, sandbox = runtimes[unit.strategy]
             downgraded = False
-            if monitor is not None and monitor.over_cap:
+            if budget_action == "downgrade" and monitor is not None and monitor.over_cap:
                 cheapest = selector.cheapest_strategy
                 if cheapest != unit.strategy:
                     strategy_config = strategy_map[cheapest]
@@ -223,19 +250,8 @@ class AlgorithmHarness:
                     strategy, _ = runtimes[cheapest]
                     downgraded = True
             result = self._execute_problem(strategy_config, problem, strategy, sandbox)
-            if monitor is not None:
-                monitor.add_result(result)
-                if downgraded:
-                    result.cost_downgraded = True
-                    if monitor.record_downgrade():
-                        logger.warning(
-                            "budget_cap_reached_downgrade",
-                            budget_cap_usd=self.config.budget_cap_usd,
-                            accumulated_cost_usd=monitor.snapshot()[
-                                "accumulated_cost_usd"
-                            ],
-                            cheap_strategy=selector.cheapest_strategy,
-                        )
+            if downgraded:
+                result.cost_downgraded = True
 
             # Update progress bar
             if progress_task_id is not None:
@@ -253,6 +269,22 @@ class AlgorithmHarness:
                         progress.update(progress_task_id, success_rate=success_rate)
 
             return result
+
+        def settle_unit(_record: Any, unit: TaskUnit) -> None:
+            # Settle only durable results. This keeps resume replay and alert
+            # state aligned even if a worker finishes just before a crash.
+            if monitor is None or unit.result is None:
+                return
+            result = ExecutionResult.model_validate(unit.result)
+            monitor.add_result(result)
+            if result.cost_downgraded and monitor.record_downgrade():
+                logger.warning(
+                    "budget_cap_reached_downgrade",
+                    budget_cap_usd=self.config.budget_cap_usd,
+                    accumulated_cost_usd=monitor.snapshot()["accumulated_cost_usd"],
+                    cheap_strategy=selector.cheapest_strategy if selector is not None else None,
+                )
+            self._process_cost_alerts(monitor)
 
         # Calculate total units for progress tracking
         if resume:
@@ -274,10 +306,15 @@ class AlgorithmHarness:
             self.task_record = service.run(
                 record.run_id,
                 worker,
-                max_workers=self.config.max_workers,
+                max_workers=1 if budget_action == "auto_stop" else self.config.max_workers,
                 config_fingerprint=config_fingerprint,
                 dataset_fingerprint=dataset_fingerprint,
                 resume=resume,
+                pause_when=(
+                    (lambda _: monitor.over_cap)
+                    if budget_action == "auto_stop" and monitor is not None else None
+                ),
+                on_unit_finished=settle_unit if monitor is not None else None,
             )
 
         if selector is not None:
@@ -285,8 +322,14 @@ class AlgorithmHarness:
             with self._results_lock:
                 self.results["cost_aware"] = results
                 self.problem_totals["cost_aware"] = len(problems)
+            reported_ids = (
+                {unit.problem_id for unit in self.task_record.units if unit.status != "queued"}
+                if self.task_record.state == "paused" else {problem.problem_id for problem in problems}
+            )
             report = self._generate_report(
-                StrategyConfig(name="cost_aware"), results, problems
+                StrategyConfig(name="cost_aware"),
+                [result for result in results if result.problem_id in reported_ids],
+                [problem for problem in problems if problem.problem_id in reported_ids],
             )
             logger.info(
                 "cost_aware_report_generated",
@@ -312,19 +355,59 @@ class AlgorithmHarness:
                         problem_id=problem.problem_id,
                         strategy=strategy_config.name,
                         generated_code="",
-                        status="cancelled" if unit.status == "cancelled" else "error",
-                        failure_category="system_error",
+                        status=(
+                            "cancelled"
+                            if unit.status == "cancelled"
+                            or (self.task_record.state == "paused" and unit.status == "queued")
+                            else "error"
+                        ),
+                        failure_category=(
+                            None if self.task_record.state == "paused" and unit.status == "queued"
+                            else "system_error"
+                        ),
                         difficulty=problem.difficulty,
-                        error_message=unit.error or "Task unit did not produce a result",
+                        error_message=unit.error or (
+                            "Not run: budget cap reached"
+                            if self.task_record.state == "paused" and unit.status == "queued"
+                            else "Task unit did not produce a result"
+                        ),
                     )
                 results.append(result)
             with self._results_lock:
                 self.results[strategy_config.name] = results
                 self.problem_totals[strategy_config.name] = len(problems)
+            reported_ids = (
+                {
+                    unit.problem_id for unit in self.task_record.units
+                    if unit.strategy == strategy_config.name and unit.status != "queued"
+                }
+                if self.task_record.state == "paused" else {problem.problem_id for problem in problems}
+            )
             reports[strategy_config.name] = self._generate_report(
-                strategy_config, results, problems
+                strategy_config,
+                [result for result in results if result.problem_id in reported_ids],
+                [problem for problem in problems if problem.problem_id in reported_ids],
             )
         return reports
+
+    def _process_cost_alerts(self, monitor: RunCostMonitor) -> None:
+        """Deliver crossed thresholds without interrupting evaluation on network failure."""
+        if self.cost_alert_manager is None or self.config.budget_cap_usd is None:
+            return
+        snapshot = monitor.snapshot()
+        try:
+            events = self.cost_alert_manager.process(
+                monitor.accumulated_cost,
+                self.config.budget_cap_usd,
+                snapshot["unknown_usage_results"],
+            )
+        except Exception as exc:
+            # Network endpoints and credentials may be embedded in an exception
+            # string; only its class is safe to include in logs.
+            logger.error("cost_alert_processing_failed", error_type=type(exc).__name__)
+            return
+        for event in events:
+            logger.warning("cost_alert", **event)
 
     def _cost_aware_selector(
         self, problems: List[Problem]
@@ -366,13 +449,22 @@ class AlgorithmHarness:
                     generated_code="",
                     status=(
                         "cancelled"
-                        if unit is not None and unit.status == "cancelled"
+                        if (unit is not None and unit.status == "cancelled")
+                        or (self.task_record.state == "paused" and unit is not None
+                            and unit.status == "queued")
                         else "error"
                     ),
-                    failure_category="system_error",
+                    failure_category=(
+                        None if self.task_record.state == "paused" and unit is not None
+                        and unit.status == "queued" else "system_error"
+                    ),
                     difficulty=problem.difficulty,
                     error_message=(unit.error if unit is not None else None)
-                    or "Task unit did not produce a result",
+                    or (
+                        "Not run: budget cap reached"
+                        if self.task_record.state == "paused" and unit is not None
+                        and unit.status == "queued" else "Task unit did not produce a result"
+                    ),
                     formal_evaluable=problem.formal_evaluable,
                 )
             )
