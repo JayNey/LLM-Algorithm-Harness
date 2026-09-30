@@ -9,6 +9,11 @@ import sys
 from datetime import datetime
 from pathlib import Path
 
+from src.failure_report import (
+    render_failure_mode_chart,
+    render_failure_mode_markdown,
+    summarize_failure_modes,
+)
 from src.harness import AlgorithmHarness
 from src.llm_client import LLMClient
 from src.models import CostAlertConfig, HarnessConfig, LLMConfig, SandboxConfig, StrategyConfig
@@ -49,6 +54,17 @@ def parse_cost_alert_thresholds(value: str) -> list[int]:
         raise argparse.ArgumentTypeError(
             "thresholds must be unique integer percentages between 1 and 99"
         ) from exc
+
+
+def nonnegative_float(value: str) -> float:
+    """Parse a finite non-negative amount, including a zero-cost budget."""
+    try:
+        amount = float(value)
+    except ValueError as exc:
+        raise argparse.ArgumentTypeError("must be a number") from exc
+    if not math.isfinite(amount) or amount < 0:
+        raise argparse.ArgumentTypeError("must be finite and non-negative")
+    return amount
 
 
 def confidence_threshold(value: str) -> float:
@@ -110,6 +126,24 @@ def apply_cli_overrides(config: HarnessConfig, args: argparse.Namespace) -> Harn
     if args.budget_cap is not None:
         config.budget_cap_usd = args.budget_cap
 
+    if getattr(args, "budget_allocation", None):
+        allocation = {}
+        for item in args.budget_allocation:
+            difficulty, sep, raw_amount = item.partition("=")
+            difficulty = difficulty.strip().lower()
+            if not sep or not difficulty:
+                raise ValueError(f"--budget-allocation expects DIFF=USD pairs, got '{item}'")
+            try:
+                amount = float(raw_amount)
+            except ValueError:
+                raise ValueError(f"--budget-allocation expects DIFF=USD pairs, got '{item}'")
+            if not math.isfinite(amount) or amount <= 0:
+                raise ValueError(f"--budget-allocation amounts must be positive, got '{item}'")
+            if difficulty in allocation:
+                raise ValueError(f"Duplicate difficulty in --budget-allocation: '{difficulty}'")
+            allocation[difficulty] = amount
+        config.budget_allocation = allocation
+
     if getattr(args, "auto_stop_on_budget", False):
         config.budget_action = "auto_stop"
     elif getattr(args, "downgrade_on_budget", False):
@@ -127,6 +161,24 @@ def apply_cli_overrides(config: HarnessConfig, args: argparse.Namespace) -> Harn
         raise ValueError("--downgrade-on-budget requires a difficulty_strategy mapping")
     elif config.budget_action is None and not config.difficulty_strategy:
         raise ValueError("budget_cap_usd (--budget-cap) requires a difficulty_strategy mapping or --auto-stop-on-budget")
+    if config.budget_allocation is not None:
+        invalid_keys = sorted(set(config.budget_allocation) - {"easy", "medium", "hard"})
+        if invalid_keys:
+            raise ValueError(f"Unknown difficulty in budget_allocation: {', '.join(invalid_keys)}")
+        non_positive = sorted(k for k, v in config.budget_allocation.items() if v <= 0)
+        if non_positive:
+            raise ValueError(
+                f"budget_allocation amounts must be positive: {', '.join(non_positive)}"
+            )
+        if not config.difficulty_strategy:
+            raise ValueError(
+                "budget_allocation (--budget-allocation) requires a difficulty_strategy mapping"
+            )
+        if config.budget_action == "auto_stop":
+            raise ValueError(
+                "budget_allocation only supports the downgrade action; "
+                "drop --auto-stop-on-budget"
+            )
     if config.difficulty_strategy:
         if args.strategy is not None:
             raise ValueError("--strategy cannot be combined with --difficulty-strategy")
@@ -299,6 +351,26 @@ def save_results(reports: dict, output_dir: str, harness: AlgorithmHarness, conf
         {"strategies": {name: report.model_dump() for name, report in reports.items()}}
     )
 
+    problem_objects = getattr(harness, "problems_by_id", {})
+    problem_info = (
+        {key: problem.model_dump(mode="json") for key, problem in problem_objects.items()}
+        if isinstance(problem_objects, dict) else {}
+    )
+    by_strategy_results = {
+        name: [result.model_dump(mode="json") for result in results]
+        for name, results in harness.results.items()
+    }
+    failure_modes = {
+        "overall": summarize_failure_modes(
+            [row for rows in by_strategy_results.values() for row in rows], problem_info
+        ),
+        "by_strategy": {
+            name: summarize_failure_modes(rows, problem_info)
+            for name, rows in by_strategy_results.items()
+        },
+    }
+    summary["failure_modes"] = redact_sensitive_data(failure_modes)
+
     cost_monitor = getattr(harness, "cost_monitor", None)
     if cost_monitor is not None and (
         config.budget_cap_usd is not None or config.difficulty_strategy
@@ -316,6 +388,28 @@ def save_results(reports: dict, output_dir: str, harness: AlgorithmHarness, conf
         json.dump(summary, f, indent=2)
 
     logger.info("summary_saved", path=str(summary_file))
+
+    (run_path / "failure_mode_summary.json").write_text(
+        json.dumps(summary["failure_modes"], ensure_ascii=False, indent=2) + "\n",
+        encoding="utf-8",
+    )
+    failure_markdown = [render_failure_mode_markdown(failure_modes["overall"])]
+    chart = render_failure_mode_chart(failure_modes["overall"])
+    if chart is not None:
+        (run_path / "failure_mode_distribution.png").write_bytes(chart)
+        failure_markdown.append("\n![失败模式分布](failure_mode_distribution.png)\n")
+    for name, strategy_summary in failure_modes["by_strategy"].items():
+        failure_markdown.append(f"\n## 策略：{name}\n")
+        failure_markdown.append(
+            render_failure_mode_markdown(strategy_summary).replace(
+                "## 失败模式分析", "### 失败模式分析", 1
+            ).replace("### 按题目标签", "#### 按题目标签").replace(
+                "### 高频弱项", "#### 高频弱项"
+            )
+        )
+    (run_path / "failure_mode_report.md").write_text(
+        "\n".join(failure_markdown), encoding="utf-8"
+    )
 
     if task_record is not None and task_record.state == "paused":
         cutoff = {
@@ -634,6 +728,30 @@ def run_optimize_command(args: argparse.Namespace) -> int:
         return 1
 
 
+def run_pareto_command(args: argparse.Namespace) -> int:
+    """Analyze existing comparable experiments without making model calls."""
+    from src.pareto import build_pareto_analysis, write_pareto_artifacts
+
+    try:
+        files = [(Path(path) / "comparison.json").resolve() for path in args.experiments]
+        if len(set(files)) != len(files):
+            raise ValueError("Duplicate experiment input")
+        comparisons = [json.loads(path.read_text(encoding="utf-8")) for path in files]
+        analysis = build_pareto_analysis(
+            comparisons, budgets=args.budgets or (), accuracy_metric=args.accuracy_metric
+        )
+        write_pareto_artifacts(analysis, args.output_dir)
+        print(f"Pareto analysis saved to: {Path(args.output_dir)}")
+        print(
+            f"  {len(analysis['frontier_ids'])} frontier point(s); "
+            f"{len(analysis['excluded'])} excluded group(s)"
+        )
+        return 0
+    except (OSError, ValueError, TypeError) as exc:
+        print(f"Error: {exc}", file=sys.stderr)
+        return 1
+
+
 def run_recommend_command(args: argparse.Namespace) -> int:
     """Analyze history and write a recommended problem dataset."""
     from src.recommender import RecommendationEngine
@@ -913,6 +1031,16 @@ def main():
         metavar="PCT,PCT,...",
         help="Alert at these budget percentages (default: 50,80,90)",
     )
+    run_parser.add_argument(
+        "--budget-allocation",
+        nargs="+",
+        metavar="DIFF=USD",
+        help=(
+            "Per-difficulty known cost budgets in USD, e.g. easy=2.0 medium=5.0 hard=3.0; "
+            "each difficulty accumulates independently and only its remaining problems "
+            "downgrade when its budget is exhausted. Requires --difficulty-strategy"
+        ),
+    )
 
     # Import command
     run_parser.add_argument(
@@ -1023,6 +1151,26 @@ def main():
         default="console",
         help="Terminal log rendering",
     )
+
+    pareto_parser = subparsers.add_parser(
+        "pareto", help="Cost/accuracy frontier and budget recommendations from experiments"
+    )
+    pareto_parser.add_argument(
+        "--experiments", nargs="+", required=True,
+        help="Comparable experiment directories containing comparison.json",
+    )
+    pareto_parser.add_argument(
+        "--output-dir", required=True, help="Directory for pareto.json, PARETO.md and pareto.png"
+    )
+    pareto_parser.add_argument(
+        "--budgets", nargs="+", type=nonnegative_float,
+        help="Budgets in USD for one full dataset run; defaults to frontier costs",
+    )
+    pareto_parser.add_argument(
+        "--accuracy-metric", choices=["overall", "formal"], default="overall",
+        help="Overall success rate or independent hidden-test success rate",
+    )
+    pareto_parser.add_argument("--log-format", choices=["console", "json"], default="console")
 
     optimize_parser = subparsers.add_parser(
         "optimize", help="Cost optimization advisory from a completed experiment"
@@ -1168,6 +1316,7 @@ def main():
         "tags",
         "debug",
         "cache",
+        "pareto",
     ):
         args = parser.parse_args(argv)
     else:
@@ -1187,6 +1336,10 @@ def main():
         sys.exit(exit_code)
 
     # Handle optimize command
+    if args.command == "pareto":
+        setup_logging(console_format=args.log_format)
+        sys.exit(run_pareto_command(args))
+
     if args.command == "optimize":
         setup_logging(console_format=getattr(args, "log_format", "console"))
         exit_code = run_optimize_command(args)
@@ -1317,6 +1470,13 @@ def main():
                 )
                 if harness.task_record is not None and harness.task_record.state == "paused":
                     print("Evaluation paused at budget cap; see cost_cutoff.json in the run output.")
+            if harness.budget_allocation_monitor is not None:
+                for difficulty, usage in harness.budget_allocation_monitor.snapshot().items():
+                    print(
+                        f"  {difficulty}: ${usage['accumulated_cost_usd']:.4f} "
+                        f"of ${usage['budget_cap_usd']} budget; "
+                        f"{usage['downgraded_problems']} problem(s) downgraded"
+                    )
 
             logger.info("harness_completed")
 

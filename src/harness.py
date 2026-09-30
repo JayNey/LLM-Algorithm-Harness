@@ -18,7 +18,13 @@ from rich.progress import (
 from src.budget import BudgetedLLMClient, BudgetExhausted, BudgetTracker
 from src.code_quality.analyzer import CodeQualityAnalyzer
 from src.cost_alert import CostAlertManager
-from src.cost_strategy import CostAwareSelector, RunCostMonitor
+from src.cost_strategy import (
+    CostAwareSelector,
+    DifficultyBudgetMonitor,
+    RunCostMonitor,
+    result_cost,
+)
+from src.failure_classifier import classify_failure_mode
 from src.llm_client import LLMClient
 from src.models import (
     CostAlertConfig,
@@ -66,10 +72,12 @@ class AlgorithmHarness:
         self.config = config
         self.budget_tracker = budget_tracker
         self.cost_monitor: Optional[RunCostMonitor] = None
+        self.budget_allocation_monitor: Optional[DifficultyBudgetMonitor] = None
         self.cost_alert_manager: Optional[CostAlertManager] = None
         self.problem_loader = ProblemLoader()
         self.results: Dict[str, List[ExecutionResult]] = {}
         self.problem_totals: Dict[str, int] = {}
+        self.problems_by_id: Dict[str, Problem] = {}
         self.task_record = None
         self._results_lock = threading.Lock()
 
@@ -123,6 +131,7 @@ class AlgorithmHarness:
 
         # Load problems
         problems = self._load_problems()
+        self.problems_by_id = {problem.problem_id: problem for problem in problems}
         logger.info("problems_loaded", count=len(problems))
 
         # Run each strategy
@@ -140,6 +149,7 @@ class AlgorithmHarness:
     ) -> Dict[str, StrategyReport]:
         """Run CLI evaluations through the persistent task service."""
         problems = self._load_problems()
+        self.problems_by_id = {problem.problem_id: problem for problem in problems}
         selector = self._cost_aware_selector(problems)
         budget_action = self.config.budget_action
         if self.config.budget_cap_usd is None:
@@ -158,6 +168,14 @@ class AlgorithmHarness:
             # still records accumulated cost and unknown-usage results.
             monitor = RunCostMonitor(self.config.budget_cap_usd)
             self.cost_monitor = monitor
+        allocation_monitor: Optional[DifficultyBudgetMonitor] = None
+        if self.config.budget_allocation:
+            if selector is None:
+                raise ValueError("Budget allocation requires a difficulty_strategy mapping")
+            if budget_action == "auto_stop":
+                raise ValueError("Budget allocation only supports the downgrade action")
+            allocation_monitor = DifficultyBudgetMonitor(self.config.budget_allocation)
+            self.budget_allocation_monitor = allocation_monitor
         service = TaskService(Path(self.config.output_dir) / "tasks")
         config_fingerprint = service.config_fingerprint(self.config)
         dataset_fingerprint = service.dataset_fingerprint(self.config.dataset_path)
@@ -181,9 +199,16 @@ class AlgorithmHarness:
             if monitor is not None:
                 # Same run resumed: settle already-completed problems into the
                 # ledger so the remaining work cannot spend past the cap again.
+                resume_problem_map = {p.problem_id: p for p in problems}
                 for unit in record.units:
                     if unit.result is not None:
-                        monitor.add_result(ExecutionResult.model_validate(unit.result))
+                        result = ExecutionResult.model_validate(unit.result)
+                        monitor.add_result(result)
+                        if allocation_monitor is not None:
+                            difficulty = getattr(
+                                resume_problem_map.get(unit.problem_id), "difficulty", None
+                            )
+                            allocation_monitor.add_result(result, difficulty)
         else:
             if selector is not None:
                 units = []
@@ -240,7 +265,11 @@ class AlgorithmHarness:
             problem = problem_map[unit.problem_id]
             strategy, sandbox = runtimes[unit.strategy]
             downgraded = False
-            if budget_action == "downgrade" and monitor is not None and monitor.over_cap:
+            global_over = budget_action == "downgrade" and monitor is not None and monitor.over_cap
+            difficulty_over = allocation_monitor is not None and allocation_monitor.over_cap_for(
+                problem.difficulty
+            )
+            if global_over or difficulty_over:
                 cheapest = selector.cheapest_strategy
                 if cheapest != unit.strategy:
                     strategy_config = strategy_map[cheapest]
@@ -249,6 +278,23 @@ class AlgorithmHarness:
                     # unit's sandbox stays valid for the hidden stage.
                     strategy, _ = runtimes[cheapest]
                     downgraded = True
+                    if difficulty_over and not global_over:
+                        # Difficulty-triggered downgrades log here, once per
+                        # difficulty; global-triggered ones log in settle_unit.
+                        if allocation_monitor.mark_trigger_logged(problem.difficulty):
+                            logger.warning(
+                                "difficulty_budget_reached_downgrade",
+                                difficulty=problem.difficulty,
+                                budget_cap_usd=float(
+                                    allocation_monitor.cap_for(problem.difficulty)
+                                ),
+                                accumulated_cost_usd=(
+                                    allocation_monitor.snapshot()
+                                    .get(problem.difficulty, {})
+                                    .get("accumulated_cost_usd")
+                                ),
+                                cheap_strategy=cheapest,
+                            )
             result = self._execute_problem(strategy_config, problem, strategy, sandbox)
             if downgraded:
                 result.cost_downgraded = True
@@ -277,13 +323,24 @@ class AlgorithmHarness:
                 return
             result = ExecutionResult.model_validate(unit.result)
             monitor.add_result(result)
-            if result.cost_downgraded and monitor.record_downgrade():
+            if result.cost_downgraded and monitor.over_cap and monitor.record_downgrade():
+                # Global-cap event only: allocation-only downgrades log (once
+                # per difficulty) at the worker's decision point instead.
                 logger.warning(
                     "budget_cap_reached_downgrade",
                     budget_cap_usd=self.config.budget_cap_usd,
                     accumulated_cost_usd=monitor.snapshot()["accumulated_cost_usd"],
                     cheap_strategy=selector.cheapest_strategy if selector is not None else None,
                 )
+            if allocation_monitor is not None:
+                difficulty = getattr(problem_map.get(unit.problem_id), "difficulty", None)
+                allocation_monitor.add_result(result, difficulty)
+                if result.cost_downgraded:
+                    # Per-difficulty count covers every downgraded problem of
+                    # the difficulty, whatever triggered it; the budget-reached
+                    # logs (worker for difficulty, above for global) already
+                    # attributed the trigger.
+                    allocation_monitor.record_downgrade(difficulty)
             self._process_cost_alerts(monitor)
 
         # Calculate total units for progress tracking
@@ -341,7 +398,9 @@ class AlgorithmHarness:
         reports: Dict[str, StrategyReport] = {}
         for strategy_config in self.config.strategies:
             results_by_problem = {
-                unit.problem_id: ExecutionResult.model_validate(unit.result)
+                unit.problem_id: self._annotate_failure_mode(
+                    ExecutionResult.model_validate(unit.result), problem_map[unit.problem_id]
+                )
                 for unit in self.task_record.units
                 if unit.strategy == strategy_config.name and unit.result is not None
             }
@@ -355,6 +414,7 @@ class AlgorithmHarness:
                         problem_id=problem.problem_id,
                         strategy=strategy_config.name,
                         generated_code="",
+                        evaluation_completed=False,
                         status=(
                             "cancelled"
                             if unit.status == "cancelled"
@@ -372,6 +432,7 @@ class AlgorithmHarness:
                             else "Task unit did not produce a result"
                         ),
                     )
+                    result = self._annotate_failure_mode(result, problem)
                 results.append(result)
             with self._results_lock:
                 self.results[strategy_config.name] = results
@@ -440,13 +501,17 @@ class AlgorithmHarness:
         for problem in problems:
             unit = unit_by_problem.get(problem.problem_id)
             if unit is not None and unit.result is not None:
-                results.append(ExecutionResult.model_validate(unit.result))
+                results.append(self._annotate_failure_mode(
+                    ExecutionResult.model_validate(unit.result),
+                    self.problems_by_id[problem.problem_id],
+                ))
                 continue
             results.append(
-                ExecutionResult(
+                self._annotate_failure_mode(ExecutionResult(
                     problem_id=problem.problem_id,
                     strategy=selector.select(problem.difficulty),
                     generated_code="",
+                    evaluation_completed=False,
                     status=(
                         "cancelled"
                         if (unit is not None and unit.status == "cancelled")
@@ -466,7 +531,7 @@ class AlgorithmHarness:
                         and unit.status == "queued" else "Task unit did not produce a result"
                     ),
                     formal_evaluable=problem.formal_evaluable,
-                )
+                ), problem)
             )
         return results
 
@@ -626,7 +691,7 @@ class AlgorithmHarness:
                     )
                     if not result.error_message:
                         result.error_message = "Hidden evaluation failed"
-            return result
+            return self._annotate_failure_mode(result, problem)
         except Exception as e:
             redacted_error = redact_sensitive_text(str(e))
             logger.error(
@@ -635,7 +700,7 @@ class AlgorithmHarness:
                 problem=problem.problem_id,
                 error=redacted_error,
             )
-            return ExecutionResult(
+            return self._annotate_failure_mode(ExecutionResult(
                 problem_id=problem.problem_id,
                 strategy=strategy_config.name,
                 generated_code="",
@@ -644,7 +709,30 @@ class AlgorithmHarness:
                 difficulty=problem.difficulty,
                 error_message=redacted_error,
                 formal_evaluable=problem.formal_evaluable,
+            ), problem)
+
+    @staticmethod
+    def _annotate_failure_mode(result: ExecutionResult, problem: Problem) -> ExecutionResult:
+        """Store a detailed, auditable mode without changing the coarse failure category."""
+        if not result.evaluation_completed or result.failure_mode is not None or result.status in {
+            "success", "budget_exhausted", "unsupported", "cancelled"
+        }:
+            return result
+        try:
+            decision = classify_failure_mode(
+                result.model_dump(mode="python"), problem.model_dump(mode="python")
             )
+        except Exception as exc:
+            logger.warning("failure_mode_classification_failed", error_type=type(exc).__name__)
+            result.failure_mode = "unknown"
+            result.failure_mode_confidence = 0.0
+            result.failure_mode_evidence = ["classifier_error"]
+            return result
+        if decision is not None:
+            result.failure_mode = decision.mode
+            result.failure_mode_confidence = decision.confidence
+            result.failure_mode_evidence = list(decision.evidence)
+        return result
 
     def _generate_report(
         self,
@@ -829,10 +917,15 @@ class AlgorithmHarness:
                         "solved": 0,
                         "total": 0,
                         "success_rate": 0.0,
+                        "cost_usd": 0.0,
                     }
                 by_difficulty[difficulty]["total"] += 1
                 if result.status == "success":
                     by_difficulty[difficulty]["solved"] += 1
+                known_cost, _ = result_cost(result)
+                by_difficulty[difficulty]["cost_usd"] = round(
+                    by_difficulty[difficulty]["cost_usd"] + float(known_cost), 6
+                )
 
         # Calculate success rates
         for difficulty, stats in by_difficulty.items():

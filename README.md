@@ -344,6 +344,21 @@ harness --dataset data/problems.json \
 
 如需预算达到上限时暂停派发新题，并通过 Slack、Webhook 或 SMTP 收取 50%、80%、90% 成本预警，请参阅 [成本预警与预算暂停](docs/cost-alerts.md)。`--auto-stop-on-budget` 会使用单个工作线程，在每题结算后检查上限。
 
+### 按难度的成本预算分配
+
+`--budget-allocation` 为每个难度设置独立预算（美元），某难度超支只降级该难度的剩余题目，其他难度不受影响：
+
+```bash
+harness --dataset data/problems.json \
+  --difficulty-strategy easy=vanilla medium=chain_of_thought hard=multi_round_feedback \
+  --budget-allocation easy=2.0 medium=5.0 hard=3.0
+```
+
+- 分配依赖 `--difficulty-strategy`（降级目标取映射中最便宜策略），与 `--auto-stop-on-budget` 互斥；可与全局 `--budget-cap` 同时使用，任一触顶即生效。
+- 未出现在分配中的难度没有独立上限，仅受全局上限约束。
+- 分配预算同样支持 `--resume`：恢复时已完成题目的成本按其难度回放进对应预算。
+- 报告的 `by_difficulty` 统计新增 `cost_usd`（该难度累计已知定价成本），运行结束的摘要逐难度列出累计成本、预算与降级题数（该难度被降级的题数，含全局上限触发的情况）。
+
 ### 交互式调试模式
 
 对于需要深入理解模型推理过程、测试参数调整或手动干预的场景，可以使用交互式调试模式单步执行单个问题：
@@ -595,16 +610,23 @@ pytest --cov=src tests/
 
 ## 输出结果
 
-运行完成后，结果保存在 `results/` 目录：
+固定预算实验还会自动生成成本-准确率帕累托前沿与预算推荐。可使用 `harness pareto --experiments <实验目录...> --output-dir <输出目录>` 汇总可比实验，详见[帕累托分析说明](docs/pareto-analysis.md)。
+
+运行完成后，结果保存在 `results/<run-id>/` 目录：
 
 ```
 results/
-├── summary.json                    # 总结报告
-├── vanilla_results.json            # Vanilla 策略详细结果
-├── chain_of_thought_results.json   # CoT 策略详细结果
-├── multi_round_feedback_results.json
-└── self_consistency_results.json   # Self-Consistency 策略详细结果
+├── latest.json                     # 最近一次运行目录指针
+└── <run-id>/
+    ├── metadata.json               # 运行配置摘要
+    ├── summary.json                # 策略及失败模式汇总
+    ├── failure_mode_summary.json   # 总体及各策略的失败模式统计
+    ├── failure_mode_report.md      # 失败模式与标签弱项报告
+    ├── failure_mode_distribution.png # 有失败时生成的分布图
+    └── <strategy>_results.json     # 各策略详细结果
 ```
+
+失败结果会记录独立的 `failure_mode`、规则置信度和非敏感证据代码；分类范围、分母和报告解释见[失败模式自动分类与报告](docs/failure-mode-classification.md)。
 
 ### 示例输出
 

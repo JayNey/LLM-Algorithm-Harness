@@ -16,6 +16,12 @@ from pathlib import Path
 from typing import Any, Dict, List, Optional
 
 from src.error_analysis import analyze_results
+from src.failure_report import (
+    render_failure_mode_chart,
+    render_failure_mode_markdown,
+    summarize_failure_modes,
+)
+from src.pareto import build_pareto_analysis, write_pareto_artifacts
 from src.utils.logging import get_logger
 
 logger = get_logger(__name__)
@@ -376,6 +382,13 @@ def _render_markdown(comparison: Dict[str, Any]) -> str:
             lines.append(f"- **{category} 修复建议**：{'；'.join(hints)}")
         lines.append("")
 
+    failure_modes = comparison.get("failure_modes")
+    if failure_modes:
+        lines.append(render_failure_mode_markdown(failure_modes))
+        if failure_modes.get("total_failures", 0):
+            lines.append("![失败模式分布](failure_mode_distribution.png)")
+        lines.append("")
+
     lines.append(
         f"> 生成时间：{comparison['generated_at']}；未知成本表示模型定价未配置，不代表 $0。"
     )
@@ -535,6 +548,9 @@ def generate_comparison_report(exp_dir: Path) -> Dict[str, Any]:
     }
     for combo in combos:
         combo["error_analysis"] = analyze_results(raw_results[combo["combo_id"]], problem_info)
+        combo["failure_modes"] = summarize_failure_modes(
+            raw_results[combo["combo_id"]], problem_info
+        )
 
     comparison = {
         "generated_at": datetime.now().isoformat(),
@@ -545,7 +561,12 @@ def generate_comparison_report(exp_dir: Path) -> Dict[str, Any]:
         "error_analysis": analyze_results(
             [r for results in raw_results.values() for r in results], problem_info
         ),
+        "failure_modes": summarize_failure_modes(
+            [r for results in raw_results.values() for r in results], problem_info
+        ),
     }
+    comparison["pareto"] = build_pareto_analysis([comparison])
+    write_pareto_artifacts(comparison["pareto"], exp_dir)
 
     with open(Path(exp_dir) / "comparison.json", "w", encoding="utf-8") as f:
         json.dump(comparison, f, indent=2, ensure_ascii=False)
@@ -561,6 +582,11 @@ def generate_comparison_report(exp_dir: Path) -> Dict[str, Any]:
 
     with open(Path(exp_dir) / "REPORT.md", "w", encoding="utf-8") as f:
         f.write(_render_markdown(comparison))
+        f.write("\n## 成本-准确率权衡\n\n参阅 [帕累托分析与预算推荐](PARETO.md)。\n")
+
+    failure_chart = render_failure_mode_chart(comparison["failure_modes"])
+    if failure_chart is not None:
+        (Path(exp_dir) / "failure_mode_distribution.png").write_bytes(failure_chart)
 
     logger.info(
         "comparison_report_generated",

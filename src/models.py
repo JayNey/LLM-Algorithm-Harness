@@ -6,6 +6,7 @@ This module defines all Pydantic data models used throughout the system.
 
 from datetime import datetime
 from decimal import Decimal
+import math
 from typing import Any, Dict, List, Literal, Optional
 from urllib.parse import urlparse
 
@@ -337,6 +338,10 @@ class ExecutionResult(BaseModel):
     strategy: str = Field(..., description="Strategy name")
     generated_code: str = Field(..., description="Generated code")
     status: str = Field(..., description="Execution status")
+    evaluation_completed: bool = Field(
+        True,
+        description="False for a task-service placeholder when no execution result was recorded",
+    )
     failure_category: Optional[
         Literal[
             "wrong_answer",
@@ -352,6 +357,24 @@ class ExecutionResult(BaseModel):
             "Failure classification; None for successful runs. Kept separate "
             "from status so existing status consumers stay compatible"
         ),
+    )
+    failure_mode: Optional[
+        Literal[
+            "syntax_error",
+            "logic_error",
+            "timeout",
+            "boundary_condition",
+            "understanding_error",
+            "runtime_error",
+            "infrastructure_error",
+            "unknown",
+        ]
+    ] = Field(None, description="Evidence-based detailed failure mode for this completed result")
+    failure_mode_confidence: Optional[float] = Field(
+        None, ge=0.0, le=1.0, description="Rule confidence, not calibrated probability"
+    )
+    failure_mode_evidence: List[str] = Field(
+        default_factory=list, description="Non-sensitive rule identifiers supporting the mode"
     )
     difficulty: Optional[Literal["easy", "medium", "hard"]] = Field(
         None, description="Problem difficulty level"
@@ -743,6 +766,30 @@ class HarnessConfig(BaseModel):
     budget_action: Optional[Literal["auto_stop", "downgrade"]] = Field(
         None, description="Action at the run-level cost cap; selector runs default to downgrade"
     )
+    budget_allocation: Optional[Dict[str, float]] = Field(
+        None,
+        description=(
+            "Per-difficulty known cost budgets in USD (easy/medium/hard); each "
+            "difficulty accumulates and downgrades independently"
+        ),
+    )
+
+    @field_validator("budget_allocation")
+    @classmethod
+    def validate_budget_allocation(cls, value: Optional[Dict[str, float]]):
+        if value is None:
+            return value
+        if not value:
+            raise ValueError("budget_allocation must not be empty")
+        invalid_keys = sorted(set(value) - {"easy", "medium", "hard"})
+        if invalid_keys:
+            raise ValueError(f"Unknown difficulty in budget_allocation: {', '.join(invalid_keys)}")
+        for difficulty, amount in value.items():
+            if not math.isfinite(amount) or amount <= 0:
+                raise ValueError(
+                    f"budget_allocation amounts must be positive finite numbers: {difficulty}"
+                )
+        return value
     cost_alerts: Optional[CostAlertConfig] = Field(
         None, description="Thresholds and notification channels for run-level cost alerts"
     )

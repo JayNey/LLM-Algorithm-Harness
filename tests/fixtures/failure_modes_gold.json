@@ -1,0 +1,147 @@
+[
+  {
+    "id": "syntax-terminal",
+    "expected_mode": "syntax_error",
+    "result": {"status": "error", "final_result": {"status": "syntax_error"}}
+  },
+  {
+    "id": "syntax-test-row",
+    "expected_mode": "syntax_error",
+    "result": {"status": "failed", "final_result": {"status": "failed", "test_results": [{"passed": false, "status": "syntax_error"}]}}
+  },
+  {
+    "id": "syntax-exception-message",
+    "expected_mode": "syntax_error",
+    "result": {"status": "error", "failure_category": "system_error", "error_message": "IndentationError: unexpected indent"}
+  },
+  {
+    "id": "logic-numeric-output",
+    "expected_mode": "logic_error",
+    "result": {"status": "failed", "failure_category": "wrong_answer", "final_result": {"status": "failed", "test_results": [{"passed": false, "status": "wrong_answer", "expected_output": 10, "actual_output": 9}]}}
+  },
+  {
+    "id": "logic-hidden-output",
+    "expected_mode": "logic_error",
+    "result": {"status": "failed", "failure_category": "wrong_answer", "final_result": {"status": "success", "all_passed": true}, "hidden_result": {"status": "failed", "all_passed": false, "test_results": [{"passed": false, "status": "wrong_answer", "expected_output": [1, 2], "actual_output": [2, 1]}]}}
+  },
+  {
+    "id": "logic-unlabeled-special-case",
+    "expected_mode": "logic_error",
+    "result": {"status": "failed", "failure_category": "wrong_answer", "final_result": {"status": "failed", "test_results": [{"passed": true, "status": "passed"}, {"passed": false, "status": "wrong_answer", "expected_output": 42, "actual_output": 43}]}},
+    "problem": {"public_test_cases": [{"input": {"items": [1, 2, 3]}}, {"input": {"items": [4, 5, 6]}}]}
+  },
+  {
+    "id": "timeout-terminal",
+    "expected_mode": "timeout",
+    "result": {"status": "failed", "failure_category": "system_error", "final_result": {"status": "timeout"}}
+  },
+  {
+    "id": "timeout-test-row",
+    "expected_mode": "timeout",
+    "result": {"status": "failed", "final_result": {"status": "failed", "test_results": [{"passed": false, "status": "timeout"}]}}
+  },
+  {
+    "id": "timeout-message",
+    "expected_mode": "timeout",
+    "result": {"status": "error", "error_message": "Time limit exceeded during execution"}
+  },
+  {
+    "id": "boundary-explicit-test-id",
+    "expected_mode": "boundary_condition",
+    "result": {"status": "failed", "failure_category": "wrong_answer", "final_result": {"status": "failed", "test_results": [{"passed": false, "status": "wrong_answer"}]}},
+    "problem": {"public_test_cases": [{"test_case_id": "edge-empty", "input": {"nums": []}}]}
+  },
+  {
+    "id": "boundary-empty-sequence",
+    "expected_mode": "boundary_condition",
+    "result": {"status": "failed", "failure_category": "wrong_answer", "final_result": {"status": "failed", "test_results": [{"passed": true, "status": "passed"}, {"passed": false, "status": "wrong_answer"}]}},
+    "problem": {"public_test_cases": [{"input": {"nums": [1, 2, 3]}}, {"input": {"nums": []}}]}
+  },
+  {
+    "id": "boundary-singleton-string",
+    "expected_mode": "boundary_condition",
+    "result": {"status": "failed", "failure_category": "wrong_answer", "final_result": {"status": "failed", "test_results": [{"passed": true, "status": "passed"}, {"passed": false, "status": "wrong_answer"}]}},
+    "problem": {"public_test_cases": [{"input": {"s": "abc"}}, {"input": {"s": "a"}}]}
+  },
+  {
+    "id": "boundary-empty-index-error",
+    "expected_mode": "boundary_condition",
+    "result": {"status": "failed", "failure_category": "system_error", "final_result": {"status": "failed", "test_results": [{"passed": true, "status": "passed"}, {"passed": false, "status": "runtime_error", "error_message": "IndexError: list index out of range"}]}},
+    "problem": {"public_test_cases": [{"input": {"nums": [2, 3]}}, {"input": {"nums": []}}]}
+  },
+  {
+    "id": "understanding-entry-point",
+    "expected_mode": "understanding_error",
+    "result": {"status": "error", "failure_category": "system_error", "error_message": "Code must define the configured entry point"}
+  },
+  {
+    "id": "understanding-output-shape",
+    "expected_mode": "understanding_error",
+    "result": {"status": "failed", "failure_category": "wrong_answer", "final_result": {"status": "failed", "test_results": [{"passed": false, "status": "wrong_answer", "expected_output": [1, 2], "actual_output": "1 2"}, {"passed": false, "status": "wrong_answer", "expected_output": [3], "actual_output": "3"}]}}
+  },
+  {
+    "id": "understanding-explicit-format",
+    "expected_mode": "understanding_error",
+    "result": {"status": "failed", "failure_category": "wrong_answer", "error_message": "Output format mismatch: expected a JSON array"}
+  },
+  {
+    "id": "runtime-test-row",
+    "expected_mode": "runtime_error",
+    "result": {"status": "failed", "failure_category": "system_error", "final_result": {"status": "failed", "test_results": [{"passed": false, "status": "runtime_error", "error_message": "IndexError: list index out of range"}]}}
+  },
+  {
+    "id": "runtime-terminal",
+    "expected_mode": "runtime_error",
+    "result": {"status": "error", "final_result": {"status": "runtime_error"}}
+  },
+  {
+    "id": "runtime-message",
+    "expected_mode": "runtime_error",
+    "result": {"status": "error", "error_message": "ZeroDivisionError: division by zero"}
+  },
+  {
+    "id": "infrastructure-backend",
+    "expected_mode": "infrastructure_error",
+    "result": {"status": "error", "failure_category": "system_error", "final_result": {"status": "backend_unavailable"}}
+  },
+  {
+    "id": "infrastructure-sandbox",
+    "expected_mode": "infrastructure_error",
+    "result": {"status": "error", "final_result": {"status": "sandbox_error", "error_message": "No test cases configured for stage 'public'"}}
+  },
+  {
+    "id": "infrastructure-model-api",
+    "expected_mode": "infrastructure_error",
+    "result": {"status": "error", "failure_category": "model_error", "iterations": [{"llm_error": "Connection reset by peer"}]}
+  },
+  {
+    "id": "infrastructure-provider-timeout-message",
+    "expected_mode": "infrastructure_error",
+    "result": {"status": "error", "failure_category": "model_error", "error_message": "Model API request timed out", "iterations": [{"llm_error": "Model API request timed out"}]}
+  },
+  {
+    "id": "unknown-code-extraction",
+    "expected_mode": "unknown",
+    "result": {"status": "failed", "failure_category": "code_extraction_failed", "iterations": [{"code_extracted": null}]}
+  },
+  {
+    "id": "unknown-coarse-system",
+    "expected_mode": "unknown",
+    "result": {"status": "error", "failure_category": "system_error", "error_message": "Unexpected failure"}
+  },
+  {
+    "id": "unknown-resource-cap",
+    "expected_mode": "unknown",
+    "result": {"status": "failed", "failure_category": "system_error", "final_result": {"status": "output_limit"}}
+  },
+  {
+    "id": "unknown-unlabeled-hidden",
+    "expected_mode": "unknown",
+    "result": {"status": "failed", "failure_category": "system_error", "hidden_result": {"status": "failed", "all_passed": false, "test_results": [{"passed": false, "status": "unknown"}]}},
+    "problem": {"hidden_test_cases": [{"input": {"nums": []}, "expected_output": "SECRET_HIDDEN_VALUE"}]}
+  },
+  {"id": "skip-success", "expected_mode": null, "result": {"status": "success", "failure_category": null}},
+  {"id": "skip-unsupported", "expected_mode": null, "result": {"status": "unsupported", "failure_category": "unsupported"}},
+  {"id": "skip-budget", "expected_mode": null, "result": {"status": "budget_exhausted", "failure_category": null}},
+  {"id": "skip-cancelled", "expected_mode": null, "result": {"status": "cancelled", "failure_category": "system_error"}}
+]
