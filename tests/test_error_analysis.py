@@ -248,6 +248,11 @@ def test_experiment_report_and_panel_include_error_analysis(tmp_path):
     combo_analysis = comparison["combinations"][0]["error_analysis"]
     assert combo_analysis["categories"]["logic_error"] == 2
     assert comparison["failure_modes"]["total_failures"] == 2
+    assert "pareto" in comparison
+    assert (exp_dir / "pareto.json").exists()
+    assert (exp_dir / "PARETO.md").exists()
+    assert (exp_dir / "pareto.png").read_bytes().startswith(b"\x89PNG")
+    assert comparison["experiment"]["sandbox_config"]["backend"] == "host"
     assert comparison["failure_modes"]["categories"]["logic_error"]["count"] == 2
     assert comparison["combinations"][0]["failure_modes"]["total_failures"] == 2
 

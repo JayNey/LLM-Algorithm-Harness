@@ -56,6 +56,17 @@ def parse_cost_alert_thresholds(value: str) -> list[int]:
         ) from exc
 
 
+def nonnegative_float(value: str) -> float:
+    """Parse a finite non-negative amount, including a zero-cost budget."""
+    try:
+        amount = float(value)
+    except ValueError as exc:
+        raise argparse.ArgumentTypeError("must be a number") from exc
+    if not math.isfinite(amount) or amount < 0:
+        raise argparse.ArgumentTypeError("must be finite and non-negative")
+    return amount
+
+
 def confidence_threshold(value: str) -> float:
     """Parse a confidence threshold in the inclusive [0, 1] range."""
     try:
@@ -681,6 +692,30 @@ def run_optimize_command(args: argparse.Namespace) -> int:
         return 1
 
 
+def run_pareto_command(args: argparse.Namespace) -> int:
+    """Analyze existing comparable experiments without making model calls."""
+    from src.pareto import build_pareto_analysis, write_pareto_artifacts
+
+    try:
+        files = [(Path(path) / "comparison.json").resolve() for path in args.experiments]
+        if len(set(files)) != len(files):
+            raise ValueError("Duplicate experiment input")
+        comparisons = [json.loads(path.read_text(encoding="utf-8")) for path in files]
+        analysis = build_pareto_analysis(
+            comparisons, budgets=args.budgets or (), accuracy_metric=args.accuracy_metric
+        )
+        write_pareto_artifacts(analysis, args.output_dir)
+        print(f"Pareto analysis saved to: {Path(args.output_dir)}")
+        print(
+            f"  {len(analysis['frontier_ids'])} frontier point(s); "
+            f"{len(analysis['excluded'])} excluded group(s)"
+        )
+        return 0
+    except (OSError, ValueError, TypeError) as exc:
+        print(f"Error: {exc}", file=sys.stderr)
+        return 1
+
+
 def run_recommend_command(args: argparse.Namespace) -> int:
     """Analyze history and write a recommended problem dataset."""
     from src.recommender import RecommendationEngine
@@ -1074,6 +1109,26 @@ def main():
         help="Terminal log rendering",
     )
 
+    pareto_parser = subparsers.add_parser(
+        "pareto", help="Cost/accuracy frontier and budget recommendations from experiments"
+    )
+    pareto_parser.add_argument(
+        "--experiments", nargs="+", required=True,
+        help="Comparable experiment directories containing comparison.json",
+    )
+    pareto_parser.add_argument(
+        "--output-dir", required=True, help="Directory for pareto.json, PARETO.md and pareto.png"
+    )
+    pareto_parser.add_argument(
+        "--budgets", nargs="+", type=nonnegative_float,
+        help="Budgets in USD for one full dataset run; defaults to frontier costs",
+    )
+    pareto_parser.add_argument(
+        "--accuracy-metric", choices=["overall", "formal"], default="overall",
+        help="Overall success rate or independent hidden-test success rate",
+    )
+    pareto_parser.add_argument("--log-format", choices=["console", "json"], default="console")
+
     optimize_parser = subparsers.add_parser(
         "optimize", help="Cost optimization advisory from a completed experiment"
     )
@@ -1218,6 +1273,7 @@ def main():
         "tags",
         "debug",
         "cache",
+        "pareto",
     ):
         args = parser.parse_args(argv)
     else:
@@ -1237,6 +1293,10 @@ def main():
         sys.exit(exit_code)
 
     # Handle optimize command
+    if args.command == "pareto":
+        setup_logging(console_format=args.log_format)
+        sys.exit(run_pareto_command(args))
+
     if args.command == "optimize":
         setup_logging(console_format=getattr(args, "log_format", "console"))
         exit_code = run_optimize_command(args)
