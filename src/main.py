@@ -758,10 +758,7 @@ def run_cache_command(args: argparse.Namespace) -> int:
     from src.cache import LLMResponseCache
 
     try:
-        cache = LLMResponseCache(
-            cache_dir=".cache/llm_responses",
-            enabled=True,
-        )
+        cache = LLMResponseCache(enabled=True)
 
         if args.cache_action == "clear":
             model_filter = args.model if hasattr(args, "model") and args.model else None

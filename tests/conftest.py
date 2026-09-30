@@ -18,6 +18,33 @@ from src.models import (
 )
 
 
+@pytest.fixture(autouse=True)
+def _isolate_llm_response_cache(tmp_path, monkeypatch):
+    """Redirect the disk-backed LLM response cache to a per-test directory.
+
+    LLMClient enables caching by default and constructs its cache with the
+    default directory; without this fixture every client in the suite shares
+    the real `.cache/llm_responses` in the repo root, so a mocked success
+    cached by one test comes back as a cache hit in later tests (e.g.
+    error-path tests stop raising) and across runs.
+
+    Only default-directory callers are redirected, so cache-specific tests
+    that pass an explicit cache_dir keep full control. Patching the class
+    instead of an env var keeps isolation working inside tests that wipe the
+    environment with ``patch.dict(os.environ, clear=True)``.
+    """
+    from src.cache import DEFAULT_CACHE_DIR, LLMResponseCache
+
+    real_init = LLMResponseCache.__init__
+
+    def isolated_init(self, cache_dir=DEFAULT_CACHE_DIR, **kwargs):
+        if cache_dir == DEFAULT_CACHE_DIR:
+            cache_dir = str(tmp_path / "llm_responses")
+        real_init(self, cache_dir=cache_dir, **kwargs)
+
+    monkeypatch.setattr(LLMResponseCache, "__init__", isolated_init)
+
+
 @pytest.fixture
 def sample_test_case():
     """Sample test case fixture."""
