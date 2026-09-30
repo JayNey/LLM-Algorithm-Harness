@@ -232,6 +232,10 @@ class TaskService:
     def list(self) -> builtins.list[TaskRecord]:
         return self.store.list()
 
+    def delete(self, run_id: str) -> bool:
+        """Remove one persisted run; False when it did not exist."""
+        return self.store.delete(run_id)
+
     def events_since(self, run_id: str, sequence: int = 0) -> builtins.list[TaskEvent]:
         """Return ordered events after a sequence number for polling/SSE adapters."""
         if sequence < 0:

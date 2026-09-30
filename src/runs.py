@@ -17,6 +17,9 @@ from typing import Any, Dict, List
 from src.cost_strategy import result_cost
 from src.models import ExecutionResult
 from src.task_service import TaskRecord, TaskService
+from src.utils.logging import get_logger
+
+logger = get_logger(__name__)
 
 # Only a fully completed run has nothing left to resume; failed and
 # cancelled runs requeue their unfinished or uncertain units on --resume.
@@ -30,7 +33,13 @@ def summarize_run(record: TaskRecord) -> Dict[str, Any]:
     for unit in record.units:
         if unit.result is None:
             continue
-        result = ExecutionResult.model_validate(unit.result)
+        try:
+            result = ExecutionResult.model_validate(unit.result)
+        except Exception:
+            # A legacy or malformed unit result must not take down the
+            # listing; skip its contribution like any other uncountable cost.
+            logger.warning("run_unit_result_unreadable", run_id=record.run_id, unit=unit.unit_id)
+            continue
         cost, usage_unknown = result_cost(result)
         known_cost += float(cost)
         if usage_unknown:

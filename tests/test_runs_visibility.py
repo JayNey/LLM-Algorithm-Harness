@@ -197,6 +197,71 @@ class TestRunsCommand:
         assert "No persisted runs" in capsys.readouterr().out
 
 
+class TestResumeHint:
+    def _config(self, output_dir):
+        from src.models import HarnessConfig, LLMConfig, StrategyConfig
+
+        return HarnessConfig(
+            dataset_path="data/problems.json",
+            llm_config=LLMConfig(provider="openai", api_key="k", model="m"),
+            strategies=[StrategyConfig(name="vanilla")],
+            output_dir=output_dir,
+        )
+
+    def test_hint_prints_matching_unfinished_run(self, tmp_path, capsys):
+        from src.main import maybe_print_resume_hint
+
+        service = TaskService(tmp_path / "tasks")
+        record = make_record("match-me", "paused", 1, 2, fingerprint="cfg-x")
+        record.config_fingerprint = "cfg-x"
+        service.store.save(record)
+        config = self._config(str(tmp_path))
+        from src.task_service import TaskService as svc
+
+        monkey_fingerprint = {"cfg": "cfg-x", "data": "data-1"}
+        record.config_fingerprint = svc.config_fingerprint(config)
+        service.store.save(record)
+
+        with patch.object(
+            svc,
+            "dataset_fingerprint",
+            staticmethod(lambda path: "data-1"),
+        ):
+            maybe_print_resume_hint(config)
+        out = capsys.readouterr().out
+        assert "match-me" in out
+        assert "--resume --run-id match-me" in out
+        assert "no other process" in out
+
+    def test_hint_silent_without_store(self, tmp_path, capsys):
+        from src.main import maybe_print_resume_hint
+
+        maybe_print_resume_hint(self._config(str(tmp_path)))
+        assert capsys.readouterr().out == ""
+
+    def test_summarize_skips_unreadable_unit_results(self, tmp_path):
+        record = make_record("run-x", "running", 2, 2)
+        record.units[0].result = {"foo": "bar"}
+        record.units[1].result = priced_result(0.5).model_dump(mode="json")
+        summary = summarize_run(record)
+        assert summary["cost_usd"] == 0.5
+        assert summary["unknown_usage_results"] == 0
+
+    def test_output_flag_reachable_via_real_cli(self, tmp_path):
+        """Regression: runs list/clean must accept --output (IMPORTANT-1)."""
+        import subprocess
+        import sys
+
+        result = subprocess.run(
+            [sys.executable, "-m", "src.main", "runs", "list", "--output", str(tmp_path)],
+            capture_output=True,
+            text=True,
+            timeout=60,
+        )
+        assert result.returncode == 0, result.stderr
+        assert "No persisted runs" in result.stdout
+
+
 class TestStartupHintMatching:
     def test_fingerprint_includes_budget_and_dataset(self, tmp_path):
         """The hint matcher is fingerprint-driven: config/dataset changes break it."""
