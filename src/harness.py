@@ -275,17 +275,20 @@ class AlgorithmHarness:
                     strategy, _ = runtimes[cheapest]
                     downgraded = True
                     if difficulty_over and not global_over:
-                        logger.warning(
-                            "difficulty_budget_reached_downgrade",
-                            difficulty=problem.difficulty,
-                            budget_cap_usd=allocation_monitor.cap_for(problem.difficulty),
-                            accumulated_cost_usd=(
-                                allocation_monitor.snapshot()
-                                .get(problem.difficulty, {})
-                                .get("accumulated_cost_usd")
-                            ),
-                            cheap_strategy=cheapest,
-                        )
+                        # Difficulty-triggered downgrades log here, once per
+                        # difficulty; global-triggered ones log in settle_unit.
+                        if allocation_monitor.mark_trigger_logged(problem.difficulty):
+                            logger.warning(
+                                "difficulty_budget_reached_downgrade",
+                                difficulty=problem.difficulty,
+                                budget_cap_usd=allocation_monitor.cap_for(problem.difficulty),
+                                accumulated_cost_usd=(
+                                    allocation_monitor.snapshot()
+                                    .get(problem.difficulty, {})
+                                    .get("accumulated_cost_usd")
+                                ),
+                                cheap_strategy=cheapest,
+                            )
             result = self._execute_problem(strategy_config, problem, strategy, sandbox)
             if downgraded:
                 result.cost_downgraded = True
@@ -314,9 +317,6 @@ class AlgorithmHarness:
                 return
             result = ExecutionResult.model_validate(unit.result)
             monitor.add_result(result)
-            if allocation_monitor is not None:
-                difficulty = problem_map.get(unit.problem_id)
-                allocation_monitor.add_result(result, getattr(difficulty, "difficulty", None))
             if result.cost_downgraded and monitor.record_downgrade():
                 logger.warning(
                     "budget_cap_reached_downgrade",
@@ -324,17 +324,15 @@ class AlgorithmHarness:
                     accumulated_cost_usd=monitor.snapshot()["accumulated_cost_usd"],
                     cheap_strategy=selector.cheapest_strategy if selector is not None else None,
                 )
-            if (
-                result.cost_downgraded
-                and allocation_monitor is not None
-                and allocation_monitor.record_downgrade(
-                    getattr(problem_map.get(unit.problem_id), "difficulty", None)
-                )
-            ):
-                logger.warning(
-                    "difficulty_budget_reached_downgrade",
-                    difficulty=getattr(problem_map.get(unit.problem_id), "difficulty", None),
-                )
+            if allocation_monitor is not None:
+                difficulty = getattr(problem_map.get(unit.problem_id), "difficulty", None)
+                allocation_monitor.add_result(result, difficulty)
+                if result.cost_downgraded:
+                    # Per-difficulty count covers every downgraded problem of
+                    # the difficulty, whatever triggered it; the budget-reached
+                    # logs (worker for difficulty, above for global) already
+                    # attributed the trigger.
+                    allocation_monitor.record_downgrade(difficulty)
             self._process_cost_alerts(monitor)
 
         # Calculate total units for progress tracking

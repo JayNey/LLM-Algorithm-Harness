@@ -180,6 +180,8 @@ class DifficultyBudgetMonitor:
 
     def __init__(self, allocation: Dict[str, float]):
         self.monitors = {difficulty: RunCostMonitor(cap) for difficulty, cap in allocation.items()}
+        self._trigger_log_lock = threading.Lock()
+        self._trigger_logged: set = set()
 
     def add_result(self, result: Any, difficulty: Optional[str]) -> None:
         """Settle one finished problem into its difficulty's ledger."""
@@ -192,10 +194,17 @@ class DifficultyBudgetMonitor:
         monitor = self.monitors.get(difficulty or "")
         return monitor.over_cap if monitor is not None else False
 
-    def cap_for(self, difficulty: Optional[str]) -> Optional[float]:
+    def cap_for(self, difficulty: Optional[str]) -> Optional[Decimal]:
         """The configured budget for a difficulty, if any."""
         monitor = self.monitors.get(difficulty or "")
         return monitor.budget_cap_usd if monitor is not None else None
+
+    def mark_trigger_logged(self, difficulty: Optional[str]) -> bool:
+        """True once per difficulty, so the budget trigger logs exactly once."""
+        with self._trigger_log_lock:
+            first = difficulty not in self._trigger_logged
+            self._trigger_logged.add(difficulty)
+        return first
 
     def record_downgrade(self, difficulty: Optional[str]) -> bool:
         """Count one downgraded problem of this difficulty; True when first."""

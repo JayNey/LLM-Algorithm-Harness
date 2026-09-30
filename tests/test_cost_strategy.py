@@ -800,3 +800,43 @@ class TestHarnessCostAwareIntegration:
         assert snapshot["medium"]["accumulated_cost_usd"] == pytest.approx(1.2)
         assert resumed.budget_allocation_monitor.over_cap_for("medium") is True
         assert resumed.budget_allocation_monitor.over_cap_for("easy") is False
+
+
+class TestDifficultyBudgetValidation:
+    def test_unknown_usage_counts_into_its_difficulty(self):
+        monitor = DifficultyBudgetMonitor({"easy": 1.0, "medium": 1.0})
+        monitor.add_result(make_result("no_pricing"), "easy")
+        monitor.add_result(make_result("cost_none"), "easy")
+        monitor.add_result(make_result("usage_unknown", cost=0.2), "medium")
+        snapshot = monitor.snapshot()
+        assert snapshot["easy"]["unknown_usage_results"] == 2
+        assert snapshot["medium"]["unknown_usage_results"] == 1
+        assert snapshot["easy"]["accumulated_cost_usd"] == 0.0
+
+    @staticmethod
+    def make_config(**allocation):
+        return HarnessConfig(
+            dataset_path="data/problems.json",
+            llm_config=LLMConfig(provider="openai", api_key="k", model="m"),
+            strategies=[StrategyConfig(name="vanilla")],
+            budget_allocation=allocation or None,
+        )
+
+    def test_model_rejects_non_finite_and_non_positive_amounts(self):
+        with pytest.raises(Exception, match="positive finite"):
+            self.make_config(easy=float("nan"))
+        with pytest.raises(Exception, match="positive finite"):
+            self.make_config(easy=float("inf"))
+        with pytest.raises(Exception, match="positive finite"):
+            self.make_config(easy=-1.0)
+
+    def test_model_rejects_unknown_difficulty_and_empty(self):
+        with pytest.raises(Exception, match="Unknown difficulty"):
+            self.make_config(extreme=1.0)
+        with pytest.raises(Exception, match="must not be empty"):
+            HarnessConfig(
+                dataset_path="data/problems.json",
+                llm_config=LLMConfig(provider="openai", api_key="k", model="m"),
+                strategies=[StrategyConfig(name="vanilla")],
+                budget_allocation={},
+            )
