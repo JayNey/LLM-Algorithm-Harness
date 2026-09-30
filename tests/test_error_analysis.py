@@ -172,16 +172,15 @@ def test_unknown_category_gets_generic_suggestion_only():
 
 
 import json
-from pathlib import Path
 from unittest.mock import MagicMock, patch
 
 from src.experiment import ExperimentRunner
 from src.models import (
     ExperimentConfig,
     LLMConfig,
+    LLMResponse,
     SandboxConfig,
     StrategyConfig,
-    LLMResponse,
     TokenUsage,
 )
 
@@ -248,6 +247,9 @@ def test_experiment_report_and_panel_include_error_analysis(tmp_path):
     assert sum(overall["categories"].values()) == overall["total_failures"]
     combo_analysis = comparison["combinations"][0]["error_analysis"]
     assert combo_analysis["categories"]["logic_error"] == 2
+    assert comparison["failure_modes"]["total_failures"] == 2
+    assert comparison["failure_modes"]["categories"]["logic_error"]["count"] == 2
+    assert comparison["combinations"][0]["failure_modes"]["total_failures"] == 2
 
     # Distribution by difficulty covers both problems
     assert overall["by_difficulty"]["easy"]["total"] == 1
@@ -256,8 +258,12 @@ def test_experiment_report_and_panel_include_error_analysis(tmp_path):
     report_md = (exp_dir / "REPORT.md").read_text(encoding="utf-8")
     assert "## 错误分析" in report_md
     assert "logic_error 修复建议" in report_md
+    assert "失败模式" in report_md
+    assert (exp_dir / "failure_mode_distribution.png").read_bytes().startswith(b"\x89PNG")
 
     panel = (exp_dir / "panel.html").read_text(encoding="utf-8")
     assert 'id="error-pie"' in panel
     assert '"error_categories"' in panel
+    assert 'id="failure-mode-pie"' in panel
+    assert '"failure_mode_categories"' in panel
     assert "doughnut" in panel

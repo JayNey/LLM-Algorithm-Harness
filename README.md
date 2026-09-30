@@ -608,16 +608,21 @@ pytest --cov=src tests/
 
 ## 输出结果
 
-运行完成后，结果保存在 `results/` 目录：
+运行完成后，结果保存在 `results/<run-id>/` 目录：
 
 ```
 results/
-├── summary.json                    # 总结报告
-├── vanilla_results.json            # Vanilla 策略详细结果
-├── chain_of_thought_results.json   # CoT 策略详细结果
-├── multi_round_feedback_results.json
-└── self_consistency_results.json   # Self-Consistency 策略详细结果
+├── latest.json                     # 最近一次运行目录指针
+└── <run-id>/
+    ├── metadata.json               # 运行配置摘要
+    ├── summary.json                # 策略及失败模式汇总
+    ├── failure_mode_summary.json   # 总体及各策略的失败模式统计
+    ├── failure_mode_report.md      # 失败模式与标签弱项报告
+    ├── failure_mode_distribution.png # 有失败时生成的分布图
+    └── <strategy>_results.json     # 各策略详细结果
 ```
+
+失败结果会记录独立的 `failure_mode`、规则置信度和非敏感证据代码；分类范围、分母和报告解释见[失败模式自动分类与报告](docs/failure-mode-classification.md)。
 
 ### 示例输出
 
