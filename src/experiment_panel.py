@@ -15,8 +15,8 @@ from html import escape
 from pathlib import Path
 from typing import Any, Dict, List
 
-from src.utils.logging import get_logger
 from src.capability import build_capability_map
+from src.utils.logging import get_logger
 
 logger = get_logger(__name__)
 
@@ -112,6 +112,13 @@ def _build_panel_data(comparison: Dict[str, Any]) -> Dict[str, Any]:
             ).items()
             if count
         ],
+        "failure_mode_categories": [
+            {"label": name, "count": entry.get("count", 0)}
+            for name, entry in (
+                comparison.get("failure_modes", {}).get("categories") or {}
+            ).items()
+            if entry.get("count", 0)
+        ],
         "capability": build_capability_map(comparison),
         "generated_at": comparison.get("generated_at") or datetime.now().isoformat(),
     }
@@ -183,6 +190,7 @@ def _render_panel(data: Dict[str, Any]) -> str:
         '<div><h2>成本 vs 准确率</h2><div class="chart-box"><canvas id="scatter"></canvas></div></div>\n'
         '<div><h2>消耗并排对比</h2><div class="chart-box"><canvas id="bar"></canvas></div></div>\n'
         '<div><h2>错误类别占比</h2><div class="chart-box"><canvas id="error-pie"></canvas></div></div>\n'
+        '<div><h2>失败模式分布</h2><div class="chart-box"><canvas id="failure-mode-pie"></canvas></div></div>\n'
         "</div>\n"
         '<section><h2>知识覆盖热力图</h2><table class="matrix" id="capability-heatmap"></table></section>\n'
         + "".join(matrix_html)
@@ -207,6 +215,9 @@ def _render_panel(data: Dict[str, Any]) -> str:
         "  if (DATA.error_categories.length) { new Chart(document.getElementById('error-pie'),"
         " {type: 'doughnut', data: {labels: DATA.error_categories.map(e => e.label),"
         " datasets: [{data: DATA.error_categories.map(e => e.count)}]}}); }\n"
+        "  if (DATA.failure_mode_categories.length) { new Chart(document.getElementById('failure-mode-pie'),"
+        " {type: 'doughnut', data: {labels: DATA.failure_mode_categories.map(e => e.label),"
+        " datasets: [{data: DATA.failure_mode_categories.map(e => e.count)}]}}); }\n"
         "  const heatmap = document.getElementById('capability-heatmap'); const rows = DATA.capability.heatmap;"
         " heatmap.innerHTML = '<tr><th>模型</th><th>维度</th><th>通过率</th><th>样本</th></tr>' + rows.map(r => `<tr><td>${r.model}</td><td>${r.dimension}</td><td>${r.rate == null ? '未知' : (r.rate * 100).toFixed(1) + '%'}</td><td>${r.success}/${r.total}</td></tr>`).join('');\n"
         "}\n</script>\n</body>\n</html>\n"
