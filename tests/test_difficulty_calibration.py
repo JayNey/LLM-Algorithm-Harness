@@ -132,10 +132,12 @@ class TestChangeReport:
         write_results(tmp_path / "vanilla_results.json", [record("weak", status="failed")])
         calibrator = DifficultyCalibrator(tmp_path)
         calibrator.collect_stats()
-        decisions = calibrator.recalibrate([make_problem("weak", "easy")])
+        decisions = calibrator.recalibrate(
+            [make_problem("weak", "easy"), make_problem("mystery", "medium")]
+        )
 
         report = build_change_report(decisions)
-        assert report["distribution_before"] == {"easy": 1, "medium": 0, "hard": 0}
+        assert report["distribution_before"] == {"easy": 1, "medium": 1, "hard": 0}
         assert report["distribution_after"]["hard"] == 1
         assert report["changes"] == [
             {
@@ -146,9 +148,12 @@ class TestChangeReport:
                 "avg_iterations": 1.0,
             }
         ]
+        assert report["no_data_count"] == 1
+        assert report["no_data_problem_ids"] == ["mystery"]
         rendered = format_change_report(report)
         assert "难度重标注报告" in rendered
         assert "weak" in rendered
+        assert "无历史数据题目：mystery" in rendered
 
 
 class TestRecalibrateCommand:
@@ -204,6 +209,35 @@ class TestRecalibrateCommand:
         )
         assert run_recalibrate_command(args) == 1
         assert not (tmp_path / "calibrated.json").exists()
+
+    def test_output_equal_to_dataset_is_rejected(self, tmp_path, capsys):
+        self._write_inputs(tmp_path)
+        args = argparse.Namespace(
+            history=str(tmp_path / "results"),
+            dataset=str(tmp_path / "problems.json"),
+            output=str(tmp_path / "problems.json"),
+            easy_threshold=0.7,
+            hard_threshold=0.3,
+            report=None,
+            log_format="console",
+        )
+        assert run_recalibrate_command(args) == 1
+        assert "must differ" in capsys.readouterr().err
+
+    def test_empty_dataset_reports_clean_error(self, tmp_path, capsys):
+        (tmp_path / "problems.json").write_text("[]", encoding="utf-8")
+        write_results(tmp_path / "results" / "vanilla_results.json", [record("p1")])
+        args = argparse.Namespace(
+            history=str(tmp_path / "results"),
+            dataset=str(tmp_path / "problems.json"),
+            output=str(tmp_path / "calibrated.json"),
+            easy_threshold=0.7,
+            hard_threshold=0.3,
+            report=None,
+            log_format="console",
+        )
+        assert run_recalibrate_command(args) == 1
+        assert "Dataset is empty" in capsys.readouterr().err
 
     def test_invalid_thresholds_exits_nonzero(self, tmp_path):
         args = argparse.Namespace(

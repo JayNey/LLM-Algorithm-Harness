@@ -7,9 +7,10 @@ from historical ``*_results.json`` files, classifies each problem by
 configurable thresholds, and produces a recalibrated dataset plus a change
 report for human review.
 
-Classification: success rate >= easy threshold (default 0.7) -> easy;
-< hard threshold (default 0.3) -> hard; otherwise medium. Problems without
-any history keep their original label and are listed for review.
+Classification: success rate above the easy threshold (default 0.7) -> easy;
+below the hard threshold (default 0.3) -> hard; rates equal to a threshold
+fall in medium. Problems without any history keep their original label and
+are listed for review.
 """
 
 import json
@@ -81,15 +82,15 @@ class DifficultyCalibrator:
                 record["problem_id"], {"total": 0, "solved": 0, "iterations": 0.0}
             )
             entry["total"] += 1
-            entry["iterations"] += float(len(record.get("iterations") or []))
+            iterations = record.get("iterations")
+            if isinstance(iterations, list):
+                entry["iterations"] += float(len(iterations))
             if _record_solved(record):
                 entry["solved"] += 1
-        for problem_id, entry in acc.items():
-            total = entry.pop("total")
-            iterations = entry.pop("iterations")
-            entry["total"] = total
+        for entry in acc.values():
+            total = entry["total"]
             entry["success_rate"] = entry["solved"] / total if total else 0.0
-            entry["avg_iterations"] = iterations / total if total else 0.0
+            entry["avg_iterations"] = entry["iterations"] / total if total else 0.0
         self.stats = acc
         return acc
 
@@ -141,12 +142,12 @@ def build_change_report(decisions: Dict[str, Dict[str, Any]]) -> Dict[str, Any]:
     before: Dict[str, int] = {"easy": 0, "medium": 0, "hard": 0}
     after: Dict[str, int] = {"easy": 0, "medium": 0, "hard": 0}
     changes: List[Dict[str, Any]] = []
-    no_data = 0
+    no_data_ids: List[str] = []
     for problem_id, decision in decisions.items():
         before[decision["original"]] = before.get(decision["original"], 0) + 1
         after[decision["calibrated"]] = after.get(decision["calibrated"], 0) + 1
         if not decision.get("has_data"):
-            no_data += 1
+            no_data_ids.append(problem_id)
         if decision["calibrated"] != decision["original"]:
             changes.append(
                 {
@@ -161,7 +162,8 @@ def build_change_report(decisions: Dict[str, Dict[str, Any]]) -> Dict[str, Any]:
         "distribution_before": before,
         "distribution_after": after,
         "changes": changes,
-        "no_data_count": no_data,
+        "no_data_count": len(no_data_ids),
+        "no_data_problem_ids": no_data_ids,
         "total": len(decisions),
     }
 
@@ -185,6 +187,9 @@ def format_change_report(report: Dict[str, Any]) -> str:
             f"| {difficulty} | {report['distribution_before'][difficulty]} "
             f"| {report['distribution_after'][difficulty]} |"
         )
+    if report["no_data_problem_ids"]:
+        lines.append("")
+        lines.append("无历史数据题目：" + "、".join(report["no_data_problem_ids"]))
     lines.extend(["", "## 难度变更明细", ""])
     if report["changes"]:
         lines.append("| 题目 | 原难度 | 新难度 | 成功率 | 平均迭代 |")

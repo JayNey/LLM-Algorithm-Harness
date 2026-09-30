@@ -5,7 +5,7 @@
 ### 统计与判定（src/difficulty_calibration.py）
 
 - `collect_stats()`：复用推荐器的历史解析口径——遍历 `--history` 目录（或单文件）下所有 `*_results.json`（跳过 metadata/summary/comparison 等），按 `problem_id` 聚合：`total`（出现次数）、`solved`（status=success 且 hidden_result.all_passed 不为 False）、`success_rate = solved/total`、`avg_iterations`（iterations 列表长度的均值，缺省记 0）。解析失败的文件静默跳过。
-- `classify(success_rate)`：`rate > easy_threshold`（默认 0.7）→ easy；`rate < hard_threshold`（默认 0.3）→ hard；其余 → medium。边界语义固定为"达到 easy 阈值即 easy、低于 hard 阈值即 hard"。
+- `classify(success_rate)`：`rate > easy_threshold`（默认 0.7）→ easy；`rate < hard_threshold`（默认 0.3）→ hard；其余 → medium。边界语义固定为"高于 easy 阈值即 easy、低于 hard 阈值即 hard（等于阈值归 medium）"。
 - `recalibrate(problems)`：有历史的题目按判定重标注；无历史的保留原难度并计入 `no_data`。
 
 ### CLI（src/main.py 新增 recalibrate 子命令）

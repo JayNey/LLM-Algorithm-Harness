@@ -763,9 +763,13 @@ def run_recalibrate_command(args: argparse.Namespace) -> int:
         hard_threshold=args.hard_threshold,
     )
     try:
+        if Path(args.output).resolve() == Path(args.dataset).resolve():
+            print(
+                "Error: --output must differ from --dataset; recalibration never overwrites the source dataset",
+                file=sys.stderr,
+            )
+            return 1
         problems = ProblemLoader().load(args.dataset)
-        if not problems:
-            raise FileNotFoundError(f"No problems loaded from dataset: {args.dataset}")
         stats = calibrator.collect_stats()
         if not stats:
             print(
@@ -777,6 +781,11 @@ def run_recalibrate_command(args: argparse.Namespace) -> int:
         report = build_change_report(decisions)
         write_calibrated_dataset(problems, decisions, args.output)
     except FileNotFoundError as exc:
+        print(f"Error: {exc}", file=sys.stderr)
+        return 1
+    except ValueError as exc:
+        # ProblemLoader raises ValueError for empty datasets, malformed JSON
+        # and records that all fail validation.
         print(f"Error: {exc}", file=sys.stderr)
         return 1
 
@@ -1244,7 +1253,7 @@ def main():
         "--easy-threshold",
         type=float,
         default=0.7,
-        help="Success rate at or above this is easy (default: 0.7)",
+        help="Success rate above this is easy (default: 0.7)",
     )
     recalibrate_parser.add_argument(
         "--hard-threshold",
