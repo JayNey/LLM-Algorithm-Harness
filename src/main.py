@@ -9,6 +9,11 @@ import sys
 from datetime import datetime
 from pathlib import Path
 
+from src.failure_report import (
+    render_failure_mode_chart,
+    render_failure_mode_markdown,
+    summarize_failure_modes,
+)
 from src.harness import AlgorithmHarness
 from src.llm_client import LLMClient
 from src.models import CostAlertConfig, HarnessConfig, LLMConfig, SandboxConfig, StrategyConfig
@@ -299,6 +304,26 @@ def save_results(reports: dict, output_dir: str, harness: AlgorithmHarness, conf
         {"strategies": {name: report.model_dump() for name, report in reports.items()}}
     )
 
+    problem_objects = getattr(harness, "problems_by_id", {})
+    problem_info = (
+        {key: problem.model_dump(mode="json") for key, problem in problem_objects.items()}
+        if isinstance(problem_objects, dict) else {}
+    )
+    by_strategy_results = {
+        name: [result.model_dump(mode="json") for result in results]
+        for name, results in harness.results.items()
+    }
+    failure_modes = {
+        "overall": summarize_failure_modes(
+            [row for rows in by_strategy_results.values() for row in rows], problem_info
+        ),
+        "by_strategy": {
+            name: summarize_failure_modes(rows, problem_info)
+            for name, rows in by_strategy_results.items()
+        },
+    }
+    summary["failure_modes"] = redact_sensitive_data(failure_modes)
+
     cost_monitor = getattr(harness, "cost_monitor", None)
     if cost_monitor is not None and (
         config.budget_cap_usd is not None or config.difficulty_strategy
@@ -316,6 +341,28 @@ def save_results(reports: dict, output_dir: str, harness: AlgorithmHarness, conf
         json.dump(summary, f, indent=2)
 
     logger.info("summary_saved", path=str(summary_file))
+
+    (run_path / "failure_mode_summary.json").write_text(
+        json.dumps(summary["failure_modes"], ensure_ascii=False, indent=2) + "\n",
+        encoding="utf-8",
+    )
+    failure_markdown = [render_failure_mode_markdown(failure_modes["overall"])]
+    chart = render_failure_mode_chart(failure_modes["overall"])
+    if chart is not None:
+        (run_path / "failure_mode_distribution.png").write_bytes(chart)
+        failure_markdown.append("\n![失败模式分布](failure_mode_distribution.png)\n")
+    for name, strategy_summary in failure_modes["by_strategy"].items():
+        failure_markdown.append(f"\n## 策略：{name}\n")
+        failure_markdown.append(
+            render_failure_mode_markdown(strategy_summary).replace(
+                "## 失败模式分析", "### 失败模式分析", 1
+            ).replace("### 按题目标签", "#### 按题目标签").replace(
+                "### 高频弱项", "#### 高频弱项"
+            )
+        )
+    (run_path / "failure_mode_report.md").write_text(
+        "\n".join(failure_markdown), encoding="utf-8"
+    )
 
     if task_record is not None and task_record.state == "paused":
         cutoff = {

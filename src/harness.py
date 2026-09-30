@@ -19,6 +19,7 @@ from src.budget import BudgetedLLMClient, BudgetExhausted, BudgetTracker
 from src.code_quality.analyzer import CodeQualityAnalyzer
 from src.cost_alert import CostAlertManager
 from src.cost_strategy import CostAwareSelector, RunCostMonitor
+from src.failure_classifier import classify_failure_mode
 from src.llm_client import LLMClient
 from src.models import (
     CostAlertConfig,
@@ -70,6 +71,7 @@ class AlgorithmHarness:
         self.problem_loader = ProblemLoader()
         self.results: Dict[str, List[ExecutionResult]] = {}
         self.problem_totals: Dict[str, int] = {}
+        self.problems_by_id: Dict[str, Problem] = {}
         self.task_record = None
         self._results_lock = threading.Lock()
 
@@ -123,6 +125,7 @@ class AlgorithmHarness:
 
         # Load problems
         problems = self._load_problems()
+        self.problems_by_id = {problem.problem_id: problem for problem in problems}
         logger.info("problems_loaded", count=len(problems))
 
         # Run each strategy
@@ -140,6 +143,7 @@ class AlgorithmHarness:
     ) -> Dict[str, StrategyReport]:
         """Run CLI evaluations through the persistent task service."""
         problems = self._load_problems()
+        self.problems_by_id = {problem.problem_id: problem for problem in problems}
         selector = self._cost_aware_selector(problems)
         budget_action = self.config.budget_action
         if self.config.budget_cap_usd is None:
@@ -341,7 +345,9 @@ class AlgorithmHarness:
         reports: Dict[str, StrategyReport] = {}
         for strategy_config in self.config.strategies:
             results_by_problem = {
-                unit.problem_id: ExecutionResult.model_validate(unit.result)
+                unit.problem_id: self._annotate_failure_mode(
+                    ExecutionResult.model_validate(unit.result), problem_map[unit.problem_id]
+                )
                 for unit in self.task_record.units
                 if unit.strategy == strategy_config.name and unit.result is not None
             }
@@ -355,6 +361,7 @@ class AlgorithmHarness:
                         problem_id=problem.problem_id,
                         strategy=strategy_config.name,
                         generated_code="",
+                        evaluation_completed=False,
                         status=(
                             "cancelled"
                             if unit.status == "cancelled"
@@ -372,6 +379,7 @@ class AlgorithmHarness:
                             else "Task unit did not produce a result"
                         ),
                     )
+                    result = self._annotate_failure_mode(result, problem)
                 results.append(result)
             with self._results_lock:
                 self.results[strategy_config.name] = results
@@ -440,13 +448,17 @@ class AlgorithmHarness:
         for problem in problems:
             unit = unit_by_problem.get(problem.problem_id)
             if unit is not None and unit.result is not None:
-                results.append(ExecutionResult.model_validate(unit.result))
+                results.append(self._annotate_failure_mode(
+                    ExecutionResult.model_validate(unit.result),
+                    self.problems_by_id[problem.problem_id],
+                ))
                 continue
             results.append(
-                ExecutionResult(
+                self._annotate_failure_mode(ExecutionResult(
                     problem_id=problem.problem_id,
                     strategy=selector.select(problem.difficulty),
                     generated_code="",
+                    evaluation_completed=False,
                     status=(
                         "cancelled"
                         if (unit is not None and unit.status == "cancelled")
@@ -466,7 +478,7 @@ class AlgorithmHarness:
                         and unit.status == "queued" else "Task unit did not produce a result"
                     ),
                     formal_evaluable=problem.formal_evaluable,
-                )
+                ), problem)
             )
         return results
 
@@ -626,7 +638,7 @@ class AlgorithmHarness:
                     )
                     if not result.error_message:
                         result.error_message = "Hidden evaluation failed"
-            return result
+            return self._annotate_failure_mode(result, problem)
         except Exception as e:
             redacted_error = redact_sensitive_text(str(e))
             logger.error(
@@ -635,7 +647,7 @@ class AlgorithmHarness:
                 problem=problem.problem_id,
                 error=redacted_error,
             )
-            return ExecutionResult(
+            return self._annotate_failure_mode(ExecutionResult(
                 problem_id=problem.problem_id,
                 strategy=strategy_config.name,
                 generated_code="",
@@ -644,7 +656,30 @@ class AlgorithmHarness:
                 difficulty=problem.difficulty,
                 error_message=redacted_error,
                 formal_evaluable=problem.formal_evaluable,
+            ), problem)
+
+    @staticmethod
+    def _annotate_failure_mode(result: ExecutionResult, problem: Problem) -> ExecutionResult:
+        """Store a detailed, auditable mode without changing the coarse failure category."""
+        if not result.evaluation_completed or result.failure_mode is not None or result.status in {
+            "success", "budget_exhausted", "unsupported", "cancelled"
+        }:
+            return result
+        try:
+            decision = classify_failure_mode(
+                result.model_dump(mode="python"), problem.model_dump(mode="python")
             )
+        except Exception as exc:
+            logger.warning("failure_mode_classification_failed", error_type=type(exc).__name__)
+            result.failure_mode = "unknown"
+            result.failure_mode_confidence = 0.0
+            result.failure_mode_evidence = ["classifier_error"]
+            return result
+        if decision is not None:
+            result.failure_mode = decision.mode
+            result.failure_mode_confidence = decision.confidence
+            result.failure_mode_evidence = list(decision.evidence)
+        return result
 
     def _generate_report(
         self,

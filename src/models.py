@@ -337,6 +337,10 @@ class ExecutionResult(BaseModel):
     strategy: str = Field(..., description="Strategy name")
     generated_code: str = Field(..., description="Generated code")
     status: str = Field(..., description="Execution status")
+    evaluation_completed: bool = Field(
+        True,
+        description="False for a task-service placeholder when no execution result was recorded",
+    )
     failure_category: Optional[
         Literal[
             "wrong_answer",
@@ -352,6 +356,24 @@ class ExecutionResult(BaseModel):
             "Failure classification; None for successful runs. Kept separate "
             "from status so existing status consumers stay compatible"
         ),
+    )
+    failure_mode: Optional[
+        Literal[
+            "syntax_error",
+            "logic_error",
+            "timeout",
+            "boundary_condition",
+            "understanding_error",
+            "runtime_error",
+            "infrastructure_error",
+            "unknown",
+        ]
+    ] = Field(None, description="Evidence-based detailed failure mode for this completed result")
+    failure_mode_confidence: Optional[float] = Field(
+        None, ge=0.0, le=1.0, description="Rule confidence, not calibrated probability"
+    )
+    failure_mode_evidence: List[str] = Field(
+        default_factory=list, description="Non-sensitive rule identifiers supporting the mode"
     )
     difficulty: Optional[Literal["easy", "medium", "hard"]] = Field(
         None, description="Problem difficulty level"
