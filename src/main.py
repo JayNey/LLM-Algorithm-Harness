@@ -739,6 +739,63 @@ def run_recommend_command(args: argparse.Namespace) -> int:
         return 1
 
 
+def run_recalibrate_command(args: argparse.Namespace) -> int:
+    """Recalibrate problem difficulty labels from historical evaluation data."""
+    from src.difficulty_calibration import (
+        DifficultyCalibrator,
+        build_change_report,
+        format_change_report,
+        write_calibrated_dataset,
+    )
+    from src.problem_loader import ProblemLoader
+
+    if not (0 <= args.hard_threshold < args.easy_threshold <= 1):
+        print(
+            "Error: thresholds must satisfy 0 <= hard < easy <= 1 "
+            f"(got easy={args.easy_threshold}, hard={args.hard_threshold})",
+            file=sys.stderr,
+        )
+        return 1
+
+    calibrator = DifficultyCalibrator(
+        Path(args.history),
+        easy_threshold=args.easy_threshold,
+        hard_threshold=args.hard_threshold,
+    )
+    try:
+        problems = ProblemLoader().load(args.dataset)
+        if not problems:
+            raise FileNotFoundError(f"No problems loaded from dataset: {args.dataset}")
+        stats = calibrator.collect_stats()
+        if not stats:
+            print(
+                f"Error: no evaluation records found under: {args.history}",
+                file=sys.stderr,
+            )
+            return 1
+        decisions = calibrator.recalibrate(problems)
+        report = build_change_report(decisions)
+        write_calibrated_dataset(problems, decisions, args.output)
+    except FileNotFoundError as exc:
+        print(f"Error: {exc}", file=sys.stderr)
+        return 1
+
+    rendered = format_change_report(report)
+    if args.report:
+        report_path = Path(args.report)
+        report_path.parent.mkdir(parents=True, exist_ok=True)
+        report_path.write_text(rendered, encoding="utf-8")
+        print(f"Change report saved to: {args.report}")
+    else:
+        print(rendered)
+    print(f"Recalibrated dataset saved to: {args.output}")
+    print(
+        f"Problems: {report['total']}; changed: {len(report['changes'])}; "
+        f"no history data: {report['no_data_count']}"
+    )
+    return 0
+
+
 def run_ab_test_command(args: argparse.Namespace) -> int:
     """Run a two-variant stratified prompt A/B test."""
     from src.ab_testing import ABTestConfig, ABTestRunner
@@ -1170,6 +1227,36 @@ def main():
     )
     recommend_parser.add_argument("--log-format", choices=["console", "json"], default="console")
 
+    recalibrate_parser = subparsers.add_parser(
+        "recalibrate",
+        help="Recalibrate problem difficulty labels from historical evaluation data",
+    )
+    recalibrate_parser.add_argument(
+        "--history", required=True, help="Results directory or JSON result file"
+    )
+    recalibrate_parser.add_argument(
+        "--output", required=True, help="Path for the recalibrated dataset JSON"
+    )
+    recalibrate_parser.add_argument(
+        "--dataset", default="data/problems.json", help="Problem dataset path (default: data/problems.json)"
+    )
+    recalibrate_parser.add_argument(
+        "--easy-threshold",
+        type=float,
+        default=0.7,
+        help="Success rate at or above this is easy (default: 0.7)",
+    )
+    recalibrate_parser.add_argument(
+        "--hard-threshold",
+        type=float,
+        default=0.3,
+        help="Success rate below this is hard (default: 0.3)",
+    )
+    recalibrate_parser.add_argument(
+        "--report", help="Write the Markdown change report to this path (default: stdout)"
+    )
+    recalibrate_parser.add_argument("--log-format", choices=["console", "json"], default="console")
+
     ab_parser = subparsers.add_parser("ab-test", help="Run a two-variant prompt A/B test")
     ab_parser.add_argument("--config", required=True, help="A/B test JSON or YAML configuration")
     ab_parser.add_argument("--output-dir", help="Override configured output directory")
@@ -1256,6 +1343,7 @@ def main():
         "experiment",
         "optimize",
         "recommend",
+        "recalibrate",
         "ab-test",
         "benchmark",
         "tags",
@@ -1289,6 +1377,12 @@ def main():
     if args.command == "recommend":
         setup_logging(console_format=getattr(args, "log_format", "console"))
         exit_code = run_recommend_command(args)
+        sys.exit(exit_code)
+
+    # Handle recalibrate command
+    if args.command == "recalibrate":
+        setup_logging(console_format=getattr(args, "log_format", "console"))
+        exit_code = run_recalibrate_command(args)
         sys.exit(exit_code)
 
     if args.command == "ab-test":
