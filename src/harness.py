@@ -281,7 +281,9 @@ class AlgorithmHarness:
                             logger.warning(
                                 "difficulty_budget_reached_downgrade",
                                 difficulty=problem.difficulty,
-                                budget_cap_usd=allocation_monitor.cap_for(problem.difficulty),
+                                budget_cap_usd=float(
+                                    allocation_monitor.cap_for(problem.difficulty)
+                                ),
                                 accumulated_cost_usd=(
                                     allocation_monitor.snapshot()
                                     .get(problem.difficulty, {})
@@ -317,7 +319,9 @@ class AlgorithmHarness:
                 return
             result = ExecutionResult.model_validate(unit.result)
             monitor.add_result(result)
-            if result.cost_downgraded and monitor.record_downgrade():
+            if result.cost_downgraded and monitor.over_cap and monitor.record_downgrade():
+                # Global-cap event only: allocation-only downgrades log (once
+                # per difficulty) at the worker's decision point instead.
                 logger.warning(
                     "budget_cap_reached_downgrade",
                     budget_cap_usd=self.config.budget_cap_usd,
