@@ -595,6 +595,8 @@ harness recommend \
 
 也可以省略 `--dataset`，让工具从历史 `metadata.json` 或 `experiment.json` 推断题库路径。命令会生成 `recommended.json` 和同目录的 `recommended.problems.json`；后者可直接用于 `harness --dataset recommended.problems.json`。推荐报告包含失败率排名、样本数、失败类型和推荐理由。
 
+推荐列表按难度从易到难排序（相关度入选逻辑不变）；每条推荐附**估算练习成本**（优先该题历史已知定价成本均值，回退同难度均值，无数据标注未知）与**预期提升维度**（匹配的弱项标签），报告汇总总估算成本、未知成本题数与覆盖的能力维度。
+
 ### 运行所有测试
 
 ```bash
