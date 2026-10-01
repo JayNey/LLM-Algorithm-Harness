@@ -123,7 +123,7 @@ class BenchmarkExecutor:
                     "passed": report.solved_problems,
                     "failed": report.failed_problems,
                     "accuracy": report.success_rate,
-                    "avg_time": report.avg_attempts_per_problem,
+                    "avg_attempts": report.avg_attempts_per_problem,
                     "total_tokens": report.total_tokens,
                     "total_cost": report.estimated_cost_usd,
                 }

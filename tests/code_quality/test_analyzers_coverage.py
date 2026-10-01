@@ -43,9 +43,7 @@ class TestSpaceAnalyzer:
         assert "Very efficient memory usage" in score.analysis_notes
 
     def test_high_memory_notes(self):
-        sandbox = self._sandbox(
-            {"success": True, "peak_memory_bytes": 60 * 1024 * 1024}
-        )
+        sandbox = self._sandbox({"success": True, "peak_memory_bytes": 60 * 1024 * 1024})
         score = SpaceAnalyzer().analyze(SAMPLE_CODE, "1", sandbox_executor=sandbox)
         assert score.memory_efficiency_score == pytest.approx(
             100.0 - ((60 - 10) / 90 * 100), abs=0.01
@@ -53,9 +51,7 @@ class TestSpaceAnalyzer:
         assert "High memory usage detected" in score.analysis_notes
 
     def test_over_100mb_scores_zero(self):
-        sandbox = self._sandbox(
-            {"success": True, "peak_memory_bytes": 200 * 1024 * 1024}
-        )
+        sandbox = self._sandbox({"success": True, "peak_memory_bytes": 200 * 1024 * 1024})
         score = SpaceAnalyzer().analyze(SAMPLE_CODE, "1", sandbox_executor=sandbox)
         assert score.memory_efficiency_score == 0.0
 
