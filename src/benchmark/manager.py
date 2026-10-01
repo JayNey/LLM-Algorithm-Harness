@@ -64,7 +64,9 @@ class BenchmarkManager:
         for pattern in ["benchmark.json", "benchmark.*.json", "benchmark*.json"]:
             suite_files.extend(self.benchmark_dir.glob(pattern))
 
-        return sorted([str(f) for f in suite_files])
+        # The patterns overlap (benchmark.json also matches benchmark*.json);
+        # dedupe so each file is listed once.
+        return sorted({str(f) for f in suite_files})
 
     def get_suite(self, name: str) -> BenchmarkSuite | None:
         """
