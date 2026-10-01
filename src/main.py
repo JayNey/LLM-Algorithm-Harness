@@ -614,6 +614,167 @@ def run_import_command(args: argparse.Namespace) -> int:
         return 2
 
 
+def run_problems_deduplicate_command(args: argparse.Namespace) -> int:
+    """
+    Execute the problems deduplicate command.
+
+    Args:
+        args: Parsed command-line arguments
+
+    Returns:
+        Exit code (0=success, 1=failure)
+    """
+    from src.problem_utils.utils.deduplication import (
+        find_fingerprint_duplicates,
+        find_similar_pairs,
+        merge_problems,
+        select_primary_problem,
+    )
+
+    dataset_path = Path(args.dataset)
+
+    try:
+        # Load dataset
+        if not dataset_path.exists():
+            print(f"Error: Dataset not found: {dataset_path}", file=sys.stderr)
+            return 1
+
+        with open(dataset_path, 'r', encoding='utf-8') as f:
+            problems = json.load(f)
+
+        if not isinstance(problems, list):
+            print("Error: Dataset must be a JSON array of problems", file=sys.stderr)
+            return 1
+
+        print(f"Loaded {len(problems)} problems from {dataset_path}")
+
+        # Statistics
+        stats = {
+            "total_problems": len(problems),
+            "fingerprint_duplicates": 0,
+            "similarity_duplicates": 0,
+            "merged": 0,
+            "skipped": 0,
+        }
+
+        # Find duplicates using both strategies
+        print("\n🔍 Detecting duplicates...")
+
+        # Strategy 1: Fingerprint matching
+        fingerprint_groups = find_fingerprint_duplicates(problems)
+        stats["fingerprint_duplicates"] = sum(len(group) - 1 for group in fingerprint_groups)
+
+        if fingerprint_groups:
+            print(f"  Found {len(fingerprint_groups)} fingerprint duplicate groups")
+
+        # Strategy 2: Similarity detection
+        similar_pairs = find_similar_pairs(problems, threshold=args.threshold)
+        stats["similarity_duplicates"] = len(similar_pairs)
+
+        if similar_pairs:
+            print(f"  Found {len(similar_pairs)} similar pairs (threshold: {args.threshold})")
+
+        # Dry-run mode: just show duplicates
+        if args.dry_run:
+            print("\n[DRY RUN MODE] No changes will be made\n")
+
+            if fingerprint_groups:
+                print("Fingerprint duplicates:")
+                for group in fingerprint_groups:
+                    print(f"  Group: {', '.join(problems[i].get('problem_id', f'index-{i}') for i in group)}")
+
+            if similar_pairs:
+                print("\nSimilarity duplicates:")
+                for i, j, sim in similar_pairs:
+                    print(f"  {problems[i].get('problem_id', f'index-{i}')} ↔ "
+                          f"{problems[j].get('problem_id', f'index-{j}')} (similarity: {sim:.3f})")
+
+            return 0
+
+        # Collect all duplicate groups (combining fingerprint and similarity)
+        all_duplicates = []
+
+        # Add fingerprint groups
+        for group in fingerprint_groups:
+            all_duplicates.append(group)
+
+        # Add similarity pairs as groups
+        for i, j, sim in similar_pairs:
+            # Check if already in a fingerprint group
+            in_group = False
+            for group in all_duplicates:
+                if i in group or j in group:
+                    in_group = True
+                    break
+            if not in_group:
+                all_duplicates.append([i, j])
+
+        if not all_duplicates:
+            print("\n✅ No duplicates found!")
+            return 0
+
+        # Process duplicates
+        merged_problems = problems.copy()
+        indices_to_remove = set()
+
+        for group in all_duplicates:
+            group_problems = [merged_problems[i] for i in group]
+
+            # Interactive mode: ask user
+            if not args.auto_merge:
+                print(f"\n🔄 Duplicate group found:")
+                for idx in group:
+                    p = merged_problems[idx]
+                    print(f"  [{idx}] {p.get('problem_id', 'N/A')}: {p.get('title', 'N/A')}")
+
+                response = input("Merge this group? [y/N]: ").strip().lower()
+                if response != 'y':
+                    stats["skipped"] += len(group) - 1
+                    continue
+
+            # Select primary and merge
+            primary_idx = select_primary_problem(group_problems)
+            primary = group_problems[primary_idx]
+            others = [p for i, p in enumerate(group_problems) if i != primary_idx]
+
+            merged = merge_problems(primary, others)
+            merged_problems[group[primary_idx]] = merged
+
+            # Mark others for removal
+            for i, idx in enumerate(group):
+                if i != primary_idx:
+                    indices_to_remove.add(idx)
+
+            stats["merged"] += len(group) - 1
+
+        # Remove duplicates
+        final_problems = [p for i, p in enumerate(merged_problems) if i not in indices_to_remove]
+
+        # Write output
+        with open(dataset_path, 'w', encoding='utf-8') as f:
+            json.dump(final_problems, f, indent=2, ensure_ascii=False)
+
+        # Print report
+        print("\n" + "=" * 60)
+        print("📊 Deduplication Report")
+        print("=" * 60)
+        print(f"Total problems scanned:           {stats['total_problems']}")
+        print(f"Fingerprint duplicates found:     {stats['fingerprint_duplicates']}")
+        print(f"Similarity duplicates found:      {stats['similarity_duplicates']}")
+        print(f"Problems merged:                  {stats['merged']}")
+        print(f"Skipped by user:                  {stats['skipped']}")
+        print(f"Final problem count:              {len(final_problems)}")
+        print("=" * 60)
+        print(f"\n✅ Dataset updated: {dataset_path}")
+
+        return 0
+
+    except Exception as e:
+        logger.error("deduplicate_failed", error=str(e))
+        print(f"Error: {e}", file=sys.stderr)
+        return 1
+
+
 def run_experiment_command(args: argparse.Namespace) -> int:
     """
     Execute a fixed-budget experiment (issue #15).
@@ -1301,8 +1462,41 @@ def main():
         "--log-format", choices=["console", "json"], default="console"
     )
 
+    # Problems command group
+    problems_parser = subparsers.add_parser(
+        "problems", help="Problem dataset management tools"
+    )
+    problems_subparsers = problems_parser.add_subparsers(dest="problems_command", required=True)
+
+    # problems deduplicate
+    deduplicate_parser = problems_subparsers.add_parser(
+        "deduplicate", help="Detect and merge duplicate problems"
+    )
+    deduplicate_parser.add_argument(
+        "--dataset",
+        type=str,
+        default="data/problems.json",
+        help="Path to problem dataset JSON file (default: data/problems.json)",
+    )
+    deduplicate_parser.add_argument(
+        "--threshold",
+        type=float,
+        default=0.9,
+        help="Similarity threshold for text-based detection (default: 0.9)",
+    )
+    deduplicate_parser.add_argument(
+        "--auto-merge",
+        action="store_true",
+        help="Automatically merge all duplicates without prompting",
+    )
+    deduplicate_parser.add_argument(
+        "--dry-run",
+        action="store_true",
+        help="Show duplicates without modifying the dataset",
+    )
+
     # Subcommand dispatch: `run` (default), `import`, `experiment`, `optimize`,
-    # `recommend`, `ab-test`, `benchmark`, `tags`, `debug`, and `cache`. Bare invocation without a subcommand is parsed
+    # `recommend`, `ab-test`, `benchmark`, `tags`, `debug`, `cache`, and `problems`. Bare invocation without a subcommand is parsed
     # directly by the run parser so legacy flag-only command lines keep working.
     argv = sys.argv[1:]
     if argv and argv[0] in (
@@ -1317,11 +1511,19 @@ def main():
         "debug",
         "cache",
         "pareto",
+        "problems",
     ):
         args = parser.parse_args(argv)
     else:
         args = run_parser.parse_args(argv)
         args.command = "run"
+
+    # Handle problems command
+    if args.command == "problems":
+        setup_logging(console_format="console")
+        if args.problems_command == "deduplicate":
+            exit_code = run_problems_deduplicate_command(args)
+            sys.exit(exit_code)
 
     # Handle import command
     if args.command == "import":

@@ -1,0 +1,27 @@
+[
+  {
+    "problem_id": "test-1",
+    "title": "Two Sum",
+    "description": "Given an array of integers nums and an integer target, return indices of the two numbers such that they add up to target.",
+    "difficulty": "easy",
+    "tags": [
+      "array",
+      "hash-table"
+    ],
+    "source_platform": "leetcode",
+    "source_problem_id": "1",
+    "merged_from": [
+      "test-2"
+    ]
+  },
+  {
+    "problem_id": "test-3",
+    "title": "Three Sum",
+    "description": "Given an integer array nums, return all the triplets that sum to zero.",
+    "difficulty": "medium",
+    "tags": [
+      "array",
+      "two-pointers"
+    ]
+  }
+]
