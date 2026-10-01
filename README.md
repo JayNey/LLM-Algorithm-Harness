@@ -359,6 +359,19 @@ harness --dataset data/problems.json \
 - 分配预算同样支持 `--resume`：恢复时已完成题目的成本按其难度回放进对应预算。
 - 报告的 `by_difficulty` 统计新增 `cost_usd`（该难度累计已知定价成本），运行结束的摘要逐难度列出累计成本、预算与降级题数（该难度被降级的题数，含全局上限触发的情况）。
 
+### 难度重标注（基于历史表现）
+
+题库难度标注来自来源站点，可能与实际模型表现不符。`harness recalibrate` 基于历史评估结果自动重标注难度：
+
+```bash
+harness recalibrate --history results/ --output data/calibrated.json \
+  --dataset data/problems.json --report data/calibration-report.md
+```
+
+- 判定规则：某题历史成功率 **> easy 阈值（默认 0.7）→ easy**，**< hard 阈值（默认 0.3）→ hard**，其余（含等于阈值）→ medium；阈值可用 `--easy-threshold`/`--hard-threshold` 自定义。
+- 通过口径与推荐器一致：`status=success` 且隐藏测试全部通过才算通过；无历史数据的题目保留原标注并在报告中列出。
+- `--report` 输出 Markdown 变更报告（前后难度分布、逐题变更明细含成功率与平均迭代、无历史题数），缺省打印 stdout；`--output` 为重标注后的完整题库 JSON，不会覆盖原题库文件——建议人工复核报告后再决定是否替换。
+
 ### 交互式调试模式
 
 对于需要深入理解模型推理过程、测试参数调整或手动干预的场景，可以使用交互式调试模式单步执行单个问题：
