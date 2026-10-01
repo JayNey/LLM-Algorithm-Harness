@@ -17,6 +17,7 @@ from src.failure_report import (
 from src.harness import AlgorithmHarness
 from src.llm_client import LLMClient
 from src.models import CostAlertConfig, HarnessConfig, LLMConfig, SandboxConfig, StrategyConfig
+from src.task_service import TaskService
 from src.utils.config import load_config
 from src.utils.logging import get_logger, setup_logging
 from src.utils.secrets import redact_sensitive_data
@@ -938,6 +939,177 @@ def run_recommend_command(args: argparse.Namespace) -> int:
         return 1
 
 
+def run_recalibrate_command(args: argparse.Namespace) -> int:
+    """Recalibrate problem difficulty labels from historical evaluation data."""
+    from src.difficulty_calibration import (
+        DifficultyCalibrator,
+        build_change_report,
+        format_change_report,
+        write_calibrated_dataset,
+    )
+    from src.problem_loader import ProblemLoader
+
+    if not (0 <= args.hard_threshold < args.easy_threshold <= 1):
+        print(
+            "Error: thresholds must satisfy 0 <= hard < easy <= 1 "
+            f"(got easy={args.easy_threshold}, hard={args.hard_threshold})",
+            file=sys.stderr,
+        )
+        return 1
+
+    calibrator = DifficultyCalibrator(
+        Path(args.history),
+        easy_threshold=args.easy_threshold,
+        hard_threshold=args.hard_threshold,
+    )
+    try:
+        if Path(args.output).resolve() == Path(args.dataset).resolve():
+            print(
+                "Error: --output must differ from --dataset; recalibration never overwrites the source dataset",
+                file=sys.stderr,
+            )
+            return 1
+        problems = ProblemLoader().load(args.dataset)
+        stats = calibrator.collect_stats()
+        if not stats:
+            print(
+                f"Error: no evaluation records found under: {args.history}",
+                file=sys.stderr,
+            )
+            return 1
+        decisions = calibrator.recalibrate(problems)
+        report = build_change_report(decisions)
+        write_calibrated_dataset(problems, decisions, args.output)
+    except FileNotFoundError as exc:
+        print(f"Error: {exc}", file=sys.stderr)
+        return 1
+    except ValueError as exc:
+        # ProblemLoader raises ValueError for empty datasets, malformed JSON
+        # and records that all fail validation.
+        print(f"Error: {exc}", file=sys.stderr)
+        return 1
+
+    rendered = format_change_report(report)
+    if args.report:
+        report_path = Path(args.report)
+        report_path.parent.mkdir(parents=True, exist_ok=True)
+        report_path.write_text(rendered, encoding="utf-8")
+        print(f"Change report saved to: {args.report}")
+    else:
+        print(rendered)
+    print(f"Recalibrated dataset saved to: {args.output}")
+    print(
+        f"Problems: {report['total']}; changed: {len(report['changes'])}; "
+        f"no history data: {report['no_data_count']}"
+    )
+    return 0
+
+
+def maybe_print_resume_hint(config: HarnessConfig) -> None:
+    """Print matching unfinished runs so users can resume instead of rerunning."""
+    tasks_root = Path(config.output_dir) / "tasks"
+    # Probe only an existing store: instantiating TaskService would mkdir the
+    # output dir, and a missing dir cannot hold resumable runs anyway.
+    if not tasks_root.exists():
+        return
+    try:
+        from src.runs import find_matching_unfinished
+
+        service = TaskService(tasks_root)
+        config_fingerprint = TaskService.config_fingerprint(config)
+        candidates = [
+            record
+            for record in service.list()
+            if record.state not in {"completed"} and record.config_fingerprint == config_fingerprint
+        ]
+        # Dataset fingerprinting hashes the whole dataset; pay for it only
+        # when a config-matching candidate exists.
+        if not candidates:
+            return
+        dataset_fingerprint = TaskService.dataset_fingerprint(config.dataset_path)
+        for record in find_matching_unfinished(service, config_fingerprint, dataset_fingerprint):
+            print(
+                f"Note: unfinished run '{record.run_id}' "
+                f"({record.completed_units}/{record.total_units} problems) matches "
+                f"this config and dataset; resume it with "
+                f"`harness --resume --run-id {record.run_id}` "
+                "(same config and dataset required; make sure no other process "
+                "is still running it)."
+            )
+    except (OSError, ValueError, FileNotFoundError):
+        pass
+
+
+def run_runs_command(args: argparse.Namespace) -> int:
+    """List or clean persisted runs (checkpoint resume management)."""
+    from src.runs import summarize_run
+
+    output_root = Path(getattr(args, "output", None) or "./results") / "tasks"
+    if args.runs_command is None:
+        args.runs_command = "list"
+    if not output_root.exists():
+        print(f"No persisted runs under: {output_root}")
+        return 0
+    service = TaskService(output_root)
+    records = service.list()
+    if args.runs_command == "clean":
+        return _run_runs_clean(service, records, confirm=not args.force)
+    summaries = [summarize_run(record) for record in records]
+    if not getattr(args, "all", False):
+        summaries = [item for item in summaries if item["resumable"]]
+    summaries.sort(key=lambda item: item["updated_at"], reverse=True)
+    if not summaries:
+        if getattr(args, "all", False):
+            print("No persisted runs found.")
+        else:
+            print("No resumable runs found. Use --all to include completed runs.")
+        return 0
+    print(f"{'RUN_ID':<40} {'STATE':<10} {'PROGRESS':>9} {'COST(USD)':>10}  UPDATED")
+    for item in summaries:
+        print(
+            f"{item['run_id']:<40} {item['state']:<10} "
+            f"{item['completed']}/{item['total']:>4} {item['cost_usd']:>10.4f}  "
+            f"{item['updated_at']}"
+        )
+        if item["unknown_usage_results"]:
+            print(
+                f"  note: {item['unknown_usage_results']} result(s) with unknown usage "
+                "not counted toward cost"
+            )
+    print(
+        "\nResume a run with: harness --resume --run-id <RUN_ID> "
+        "(same config and dataset required)"
+    )
+    return 0
+
+
+def _run_runs_clean(service: TaskService, records, confirm: bool) -> int:
+    """Delete task state files of completed runs; never unfinished ones."""
+    from src.runs import FINISHED_STATES
+
+    completed = [record for record in records if record.state in FINISHED_STATES]
+    if not completed:
+        print("No completed runs to clean.")
+        return 0
+    removed = 0
+    for record in completed:
+        if confirm:
+            try:
+                answer = input(f"Delete state of completed run '{record.run_id}'? [y/N] ")
+            except (EOFError, KeyboardInterrupt):
+                # Non-interactive stdin defaults to keeping the run.
+                print(f"Skipped: {record.run_id}")
+                continue
+            if answer.strip().lower() not in {"y", "yes"}:
+                print(f"Skipped: {record.run_id}")
+                continue
+        service.delete(record.run_id)
+        print(f"Deleted: {record.run_id}")
+        removed += 1
+    print(f"Removed {removed} state file(s).")
+    return 0
+
+
 def run_ab_test_command(args: argparse.Namespace) -> int:
     """Run a two-variant stratified prompt A/B test."""
     from src.ab_testing import ABTestConfig, ABTestRunner
@@ -1412,6 +1584,62 @@ def main():
     )
     recommend_parser.add_argument("--log-format", choices=["console", "json"], default="console")
 
+    recalibrate_parser = subparsers.add_parser(
+        "recalibrate",
+        help="Recalibrate problem difficulty labels from historical evaluation data",
+    )
+    recalibrate_parser.add_argument(
+        "--history", required=True, help="Results directory or JSON result file"
+    )
+    recalibrate_parser.add_argument(
+        "--output", required=True, help="Path for the recalibrated dataset JSON"
+    )
+    recalibrate_parser.add_argument(
+        "--dataset",
+        default="data/problems.json",
+        help="Problem dataset path (default: data/problems.json)",
+    )
+    recalibrate_parser.add_argument(
+        "--easy-threshold",
+        type=float,
+        default=0.7,
+        help="Success rate above this is easy (default: 0.7)",
+    )
+    recalibrate_parser.add_argument(
+        "--hard-threshold",
+        type=float,
+        default=0.3,
+        help="Success rate below this is hard (default: 0.3)",
+    )
+    recalibrate_parser.add_argument(
+        "--report", help="Write the Markdown change report to this path (default: stdout)"
+    )
+    recalibrate_parser.add_argument("--log-format", choices=["console", "json"], default="console")
+
+    runs_parser = subparsers.add_parser(
+        "runs", help="Manage persisted evaluation runs (checkpoint resume)"
+    )
+    runs_subparsers = runs_parser.add_subparsers(dest="runs_command")
+    runs_list_parser = runs_subparsers.add_parser(
+        "list", help="List persisted runs (resumable runs by default; --all for everything)"
+    )
+    runs_list_parser.add_argument(
+        "--all", action="store_true", help="Include completed runs, not only resumable ones"
+    )
+    runs_clean_parser = runs_subparsers.add_parser(
+        "clean", help="Delete task state files of completed runs"
+    )
+    runs_clean_parser.add_argument(
+        "--force", action="store_true", help="Delete without per-run confirmation"
+    )
+    for runs_sub_parser in (runs_list_parser, runs_clean_parser):
+        runs_sub_parser.add_argument(
+            "--output",
+            default="./results",
+            help="Results directory holding the runs (default: ./results)",
+        )
+    runs_parser.add_argument("--log-format", choices=["console", "json"], default="console")
+
     ab_parser = subparsers.add_parser("ab-test", help="Run a two-variant prompt A/B test")
     ab_parser.add_argument("--config", required=True, help="A/B test JSON or YAML configuration")
     ab_parser.add_argument("--output-dir", help="Override configured output directory")
@@ -1524,6 +1752,8 @@ def main():
         "experiment",
         "optimize",
         "recommend",
+        "recalibrate",
+        "runs",
         "ab-test",
         "benchmark",
         "tags",
@@ -1570,6 +1800,18 @@ def main():
     if args.command == "recommend":
         setup_logging(console_format=getattr(args, "log_format", "console"))
         exit_code = run_recommend_command(args)
+        sys.exit(exit_code)
+
+    # Handle recalibrate command
+    if args.command == "recalibrate":
+        setup_logging(console_format=getattr(args, "log_format", "console"))
+        exit_code = run_recalibrate_command(args)
+        sys.exit(exit_code)
+
+    # Handle runs management command
+    if args.command == "runs":
+        setup_logging(console_format=getattr(args, "log_format", "console"))
+        exit_code = run_runs_command(args)
         sys.exit(exit_code)
 
     if args.command == "ab-test":
@@ -1666,6 +1908,12 @@ def main():
                 return
 
             config = apply_cli_overrides(config, args)
+
+            # Startup hint: point out resumable runs with the same config and
+            # dataset before spending money on a duplicate evaluation. Purely
+            # informational; execution behavior is unchanged.
+            if not args.resume and not args.run_id:
+                maybe_print_resume_hint(config)
 
             # Initialize and run harness
             logger.info("harness_starting")
