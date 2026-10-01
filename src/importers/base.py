@@ -187,8 +187,9 @@ class ProblemImporter(ABC):
                 json.dump(data, f, indent=2, ensure_ascii=False)
                 f.write("\n")  # Trailing newline
 
-            # Atomic rename
-            os.rename(temp_path, target)
+            # Atomic rename. os.replace (unlike os.rename) also replaces an
+            # existing target on Windows, so re-importing over a dataset works.
+            os.replace(temp_path, target)
             logger.info("dataset_persisted", path=target_path, count=len(problems))
 
         except Exception as e:

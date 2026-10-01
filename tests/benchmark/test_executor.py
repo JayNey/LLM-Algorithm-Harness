@@ -2,14 +2,13 @@
 
 import json
 from pathlib import Path
-from unittest.mock import MagicMock, patch
+from unittest.mock import patch
 
 import pytest
 
 from src.benchmark.executor import BenchmarkExecutor
 from src.benchmark.suite import load_benchmark_suite
 from src.models import (
-    ExecutionResult,
     HarnessConfig,
     LLMConfig,
     SandboxConfig,
@@ -87,7 +86,7 @@ class TestBenchmarkExecutor:
             "passed": 1,
             "failed": 1,
             "accuracy": 0.5,
-            "avg_time": 1.0,
+            "avg_attempts": 1.0,
             "total_tokens": 200,
             "total_cost": 0.02,
         }

@@ -7,8 +7,6 @@ import subprocess
 import sys
 from pathlib import Path
 
-import pytest
-
 from src.main import (
     run_benchmark_command,
     run_cache_command,

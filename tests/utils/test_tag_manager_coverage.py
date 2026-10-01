@@ -104,13 +104,11 @@ class TestCustomMapping:
             encoding="utf-8",
         )
         manager = TagManager(path)
-        suggestions = manager.recommend_tags(
-            "shortest path problem", "", min_confidence=0.0
-        )
+        suggestions = manager.recommend_tags("shortest path problem", "", min_confidence=0.0)
         assert any(item["tag"] == "graph theory" for item in suggestions)
 
     def test_aliases_section_merged(self, tmp_path):
         path = tmp_path / "mapping.yaml"
-        path.write_text("aliases:\n  \"greedy algorithm\": greedy\n", encoding="utf-8")
+        path.write_text('aliases:\n  "greedy algorithm": greedy\n', encoding="utf-8")
         manager = TagManager(path)
         assert "greedy" in manager.normalize_tags(["Greedy Algorithm"])

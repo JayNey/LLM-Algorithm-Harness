@@ -29,12 +29,8 @@ class TestSuccessRateChart:
 
 class TestTokenChart:
     def test_token_chart_returns_bytes(self, metrics):
-        metrics["green-strategy"].update(
-            {"prompt_tokens": 100, "completion_tokens": 50}
-        )
-        metrics["yellow-strategy"].update(
-            {"prompt_tokens": 80, "completion_tokens": 40}
-        )
+        metrics["green-strategy"].update({"prompt_tokens": 100, "completion_tokens": 50})
+        metrics["yellow-strategy"].update({"prompt_tokens": 80, "completion_tokens": 40})
         metrics["red-strategy"].update({"prompt_tokens": 60, "completion_tokens": 30})
         chart = ChartGenerator.generate_token_chart(metrics)
         assert chart is None or isinstance(chart, io.BytesIO)
