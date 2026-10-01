@@ -273,3 +273,17 @@ class TestStartupHintMatching:
         fp1 = svc.config_fingerprint(base)
         changed = base.model_copy(update={"budget_cap_usd": 1.0})
         assert fp1 != svc.config_fingerprint(changed)
+
+
+class TestTaskServiceDelete:
+    def test_delete_returns_false_for_missing(self, tmp_path):
+        service = TaskService(tmp_path / "tasks")
+        assert service.delete("ghost") is False
+
+    def test_delete_removes_persisted_record(self, tmp_path):
+        service = TaskService(tmp_path / "tasks")
+        record = make_record("gone", "completed", 0, 0)
+        service.store.save(record)
+        assert service.delete("gone") is True
+        with pytest.raises(FileNotFoundError):
+            service.get("gone")

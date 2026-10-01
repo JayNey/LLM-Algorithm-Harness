@@ -268,3 +268,29 @@ def test_gradient_orders_easy_first_with_cost_and_dimensions(tmp_path):
     assert items["cand-easy"]["expected_improvement_dimensions"] == ["dp"]
     assert items["cand-hard-multi"]["expected_improvement_dimensions"] == ["dp"]
     assert report["covered_dimensions"] == ["dp"]
+
+
+def test_missing_history_raises(tmp_path):
+    with pytest.raises(FileNotFoundError, match="History path not found"):
+        RecommendationEngine(tmp_path / "nope", dataset_path=_dataset(tmp_path))
+
+
+def test_dataset_inference_failure_raises_helpful_error(tmp_path):
+    history = tmp_path / "results"
+    history.mkdir()
+    (history / "vanilla_results.json").write_text("[]", encoding="utf-8")
+    with pytest.raises(ValueError, match="Dataset path is required"):
+        RecommendationEngine(history)
+
+
+def test_empty_history_records_raises_in_analyze(tmp_path):
+    dataset = _dataset(tmp_path)
+    history = tmp_path / "results"
+    history.mkdir()
+    (history / "vanilla_results.json").write_text("[]", encoding="utf-8")
+    (history / "metadata.json").write_text(
+        json.dumps({"dataset_path": str(dataset)}), encoding="utf-8"
+    )
+    engine = RecommendationEngine(history, dataset_path=dataset)
+    with pytest.raises(ValueError, match="No result records found"):
+        engine.analyze()
