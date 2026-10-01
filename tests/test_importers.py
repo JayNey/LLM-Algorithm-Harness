@@ -25,9 +25,7 @@ class TestLocalJsonImporter:
                 "difficulty": "easy",
                 "tags": ["test"],
                 "source_platform": "test",
-                "public_test_cases": [
-                    {"input": {"n": 1}, "expected_output": 1}
-                ],
+                "public_test_cases": [{"input": {"n": 1}, "expected_output": 1}],
             }
         ]
         test_file = tmp_path / "test_problems.json"
@@ -56,9 +54,7 @@ class TestLocalJsonImporter:
                 "description": "Test problem",
                 "difficulty": "easy",
                 "source_platform": "test",
-                "public_test_cases": [
-                    {"input": {"n": 1}, "expected_output": 1}
-                ],
+                "public_test_cases": [{"input": {"n": 1}, "expected_output": 1}],
             }
         ]
 
@@ -79,9 +75,7 @@ class TestLocalJsonImporter:
                 difficulty="easy",
                 source_platform="test",
                 source_problem_id="001",
-                public_test_cases=[
-                    {"input": {"n": 1}, "expected_output": 1}
-                ],
+                public_test_cases=[{"input": {"n": 1}, "expected_output": 1}],
             )
         ]
 
@@ -93,9 +87,7 @@ class TestLocalJsonImporter:
                 difficulty="easy",
                 source_platform="test",
                 source_problem_id="001",
-                public_test_cases=[
-                    {"input": {"n": 1}, "expected_output": 1}
-                ],
+                public_test_cases=[{"input": {"n": 1}, "expected_output": 1}],
             )
         ]
 
@@ -119,9 +111,7 @@ class TestLocalJsonImporter:
                 difficulty="easy",
                 source_platform="test",
                 source_problem_id="001",
-                public_test_cases=[
-                    {"input": {"n": 1}, "expected_output": 1}
-                ],
+                public_test_cases=[{"input": {"n": 1}, "expected_output": 1}],
             )
         ]
 
@@ -133,9 +123,7 @@ class TestLocalJsonImporter:
                 difficulty="easy",
                 source_platform="test",
                 source_problem_id="001",
-                public_test_cases=[
-                    {"input": {"n": 1}, "expected_output": 1}
-                ],
+                public_test_cases=[{"input": {"n": 1}, "expected_output": 1}],
             )
         ]
 
@@ -158,9 +146,7 @@ class TestLocalJsonImporter:
                 description="Test problem",
                 difficulty="easy",
                 source_platform="test",
-                public_test_cases=[
-                    {"input": {"n": 1}, "expected_output": 1}
-                ],
+                public_test_cases=[{"input": {"n": 1}, "expected_output": 1}],
             )
         ]
 
@@ -218,9 +204,7 @@ class TestImportIntegration:
                 "difficulty": "medium",
                 "source_platform": "test-platform",
                 "source_problem_id": "001",
-                "public_test_cases": [
-                    {"input": {"n": 1}, "expected_output": 1}
-                ],
+                "public_test_cases": [{"input": {"n": 1}, "expected_output": 1}],
             }
         ]
         source_file = tmp_path / "source.json"
@@ -255,9 +239,7 @@ class TestImportIntegration:
                 "description": "Valid problem",
                 "difficulty": "easy",
                 "source_platform": "test",
-                "public_test_cases": [
-                    {"input": {"n": 1}, "expected_output": 1}
-                ],
+                "public_test_cases": [{"input": {"n": 1}, "expected_output": 1}],
             },
             {
                 "problem_id": "invalid-001",

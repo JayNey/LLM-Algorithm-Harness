@@ -69,13 +69,13 @@ class TestDebugE2E:
 
         # Record multiple rounds
         for i in range(3):
-            trace_recorder.start_round(i+1, f"Prompt {i+1}")
+            trace_recorder.start_round(i + 1, f"Prompt {i+1}")
             trace_recorder.record_response(f"Response {i+1}")
             trace_recorder.record_execution({"status": "success"})
             trace_recorder.complete_round("passed")
 
         # Export to temporary file
-        with tempfile.NamedTemporaryFile(mode='w', delete=False, suffix='.json') as f:
+        with tempfile.NamedTemporaryFile(mode="w", delete=False, suffix=".json") as f:
             temp_path = f.name
 
         try:
@@ -86,20 +86,20 @@ class TestDebugE2E:
             with open(temp_path) as f:
                 data = json.load(f)
 
-            assert 'problem_id' in data
-            assert data['problem_id'] == "test_problem"
-            assert 'strategy' in data
-            assert data['strategy'] == "test_strategy"
-            assert 'model' in data
-            assert data['model'] == "test_model"
-            assert 'rounds' in data
-            assert len(data['rounds']) == 3
+            assert "problem_id" in data
+            assert data["problem_id"] == "test_problem"
+            assert "strategy" in data
+            assert data["strategy"] == "test_strategy"
+            assert "model" in data
+            assert data["model"] == "test_model"
+            assert "rounds" in data
+            assert len(data["rounds"]) == 3
 
             # Verify first round data
-            assert data['rounds'][0]['round'] == 1
-            assert data['rounds'][0]['prompt'] == "Prompt 1"
-            assert data['rounds'][0]['response'] == "Response 1"
-            assert data['rounds'][0]['status'] == "passed"
+            assert data["rounds"][0]["round"] == 1
+            assert data["rounds"][0]["prompt"] == "Prompt 1"
+            assert data["rounds"][0]["response"] == "Response 1"
+            assert data["rounds"][0]["status"] == "passed"
         finally:
             # Cleanup
             Path(temp_path).unlink(missing_ok=True)
@@ -120,8 +120,8 @@ class TestDebugE2E:
         # Verify interventions were recorded
         assert len(trace_recorder.rounds) == 1
         assert len(trace_recorder.rounds[0].user_interventions) == 2
-        assert trace_recorder.rounds[0].user_interventions[0]['type'] == "edit_prompt"
-        assert trace_recorder.rounds[0].user_interventions[1]['type'] == "set_parameter"
+        assert trace_recorder.rounds[0].user_interventions[0]["type"] == "edit_prompt"
+        assert trace_recorder.rounds[0].user_interventions[1]["type"] == "set_parameter"
 
     def test_multiple_breakpoint_locations(self):
         """Test multiple breakpoint locations can be managed independently."""
@@ -146,7 +146,11 @@ class TestDebugE2E:
             # Verify others are still enabled
             for other_loc in locations:
                 if other_loc != loc:
-                    expected = other_loc in [loc_item for loc_item in locations if locations.index(loc_item) > locations.index(loc)]
+                    expected = other_loc in [
+                        loc_item
+                        for loc_item in locations
+                        if locations.index(loc_item) > locations.index(loc)
+                    ]
                     if not expected:
                         assert not bp_manager.should_break(other_loc)
 
@@ -156,7 +160,7 @@ class TestDebugE2E:
 
         # Record some rounds
         for i in range(2):
-            trace_recorder.start_round(i+1, f"Prompt {i+1}")
+            trace_recorder.start_round(i + 1, f"Prompt {i+1}")
             trace_recorder.record_response(f"Response {i+1}")
             trace_recorder.complete_round("passed")
 

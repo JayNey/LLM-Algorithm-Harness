@@ -51,8 +51,8 @@ Type 'help <command>' for detailed help on a specific command.
         self.injected_text: str | None = None
         self.param_overrides = {}
         self.strategy = None  # Set externally by CLI
-        self.problem = None   # Set externally by CLI
-        self.result = None    # Stores execution result{}
+        self.problem = None  # Set externally by CLI
+        self.result = None  # Stores execution result{}
 
     # ===== Execution control commands =====
 
@@ -267,7 +267,7 @@ Type 'help <command>' for detailed help on a specific command.
         """Handle exit with optional trace save prompt."""
         if self.trace_recorder.get_round_count() > 0:
             response = input("\nSave trace before exiting? (y/n): ").strip().lower()
-            if response in ('y', 'yes'):
+            if response in ("y", "yes"):
                 filepath = input("Enter filepath (default: trace.json): ").strip()
                 if not filepath:
                     filepath = "trace.json"

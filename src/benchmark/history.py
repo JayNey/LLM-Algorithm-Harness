@@ -184,9 +184,7 @@ class BenchmarkHistoryStorage:
             if not strategies:
                 return None
 
-            accuracies = [
-                s.get("accuracy", 0.0) for s in strategies.values() if "accuracy" in s
-            ]
+            accuracies = [s.get("accuracy", 0.0) for s in strategies.values() if "accuracy" in s]
 
             if not accuracies:
                 return None

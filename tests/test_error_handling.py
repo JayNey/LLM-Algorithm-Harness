@@ -22,8 +22,8 @@ class TestChartErrorHandling(unittest.TestCase):
 
         # Create minimal test data
         self.metrics = {
-            'vanilla': {'success_rate': 0.8, 'avg_tokens': 1000, 'avg_time': 1.5},
-            'cot': {'success_rate': 0.9, 'avg_tokens': 1200, 'avg_time': 2.0},
+            "vanilla": {"success_rate": 0.8, "avg_tokens": 1000, "avg_time": 1.5},
+            "cot": {"success_rate": 0.9, "avg_tokens": 1200, "avg_time": 2.0},
         }
 
         self.results = [
@@ -38,7 +38,7 @@ class TestChartErrorHandling(unittest.TestCase):
                 iterations=[],
                 feedback_rounds=0,
                 generated_code="def test(): pass",
-                status="success"
+                status="success",
             )
         ]
 
@@ -78,71 +78,59 @@ class TestChartErrorHandling(unittest.TestCase):
         # The ID should have special characters escaped/replaced
         self.assertIn("error-details-", result)
 
-    @patch('src.reporting.chart_generator.ChartGenerator.generate_success_rate_chart')
+    @patch("src.reporting.chart_generator.ChartGenerator.generate_success_rate_chart")
     def test_success_rate_chart_error_handling(self, mock_chart):
         """Test error handling when success rate chart fails."""
         # Fixed: Return None instead of raising exception to test actual error handling
         mock_chart.return_value = None
 
         html_content = HTMLGenerator.generate(
-            self.metrics,
-            self.results,
-            self.output_path,
-            include_charts=True
+            self.metrics, self.results, self.output_path, include_charts=True
         )
 
         # When chart generation returns None, HTMLGenerator should show placeholder
         self.assertIn("chart-placeholder", html_content)
 
-    @patch('src.reporting.chart_generator.ChartGenerator.generate_token_chart')
+    @patch("src.reporting.chart_generator.ChartGenerator.generate_token_chart")
     def test_token_chart_error_handling(self, mock_chart):
         """Test error handling when token chart fails."""
         # Fixed: Return None instead of raising exception to test actual error handling
         mock_chart.return_value = None
 
         html_content = HTMLGenerator.generate(
-            self.metrics,
-            self.results,
-            self.output_path,
-            include_charts=True
+            self.metrics, self.results, self.output_path, include_charts=True
         )
 
         # When chart generation returns None, HTMLGenerator should show placeholder
         self.assertIn("chart-placeholder", html_content)
 
-    @patch('src.reporting.chart_generator.ChartGenerator.generate_iteration_distribution')
+    @patch("src.reporting.chart_generator.ChartGenerator.generate_iteration_distribution")
     def test_iteration_chart_error_handling(self, mock_chart):
         """Test error handling when iteration distribution fails."""
         # Fixed: Return None instead of raising exception to test actual error handling
         mock_chart.return_value = None
 
         html_content = HTMLGenerator.generate(
-            self.metrics,
-            self.results,
-            self.output_path,
-            include_charts=True
+            self.metrics, self.results, self.output_path, include_charts=True
         )
 
         # When chart generation returns None, HTMLGenerator should show placeholder
         self.assertIn("chart-placeholder", html_content)
 
-    @patch('src.reporting.chart_generator.ChartGenerator.generate_iteration_distribution')
+    @patch("src.reporting.chart_generator.ChartGenerator.generate_iteration_distribution")
     def test_iteration_chart_none_handling(self, mock_chart):
         """Test handling when iteration distribution returns None."""
         mock_chart.return_value = None
 
         html_content = HTMLGenerator.generate(
-            self.metrics,
-            self.results,
-            self.output_path,
-            include_charts=True
+            self.metrics, self.results, self.output_path, include_charts=True
         )
 
         self.assertIn("chart-placeholder", html_content)
         self.assertIn("No multi-round data available", html_content)
 
-    @patch('src.reporting.chart_generator.ChartGenerator.generate_success_rate_chart')
-    @patch('src.reporting.chart_generator.ChartGenerator.generate_token_chart')
+    @patch("src.reporting.chart_generator.ChartGenerator.generate_success_rate_chart")
+    @patch("src.reporting.chart_generator.ChartGenerator.generate_token_chart")
     def test_multiple_chart_failures(self, mock_token, mock_success):
         """Test handling multiple chart failures."""
         # Fixed: Return None instead of raising exception to test actual error handling
@@ -150,10 +138,7 @@ class TestChartErrorHandling(unittest.TestCase):
         mock_token.return_value = None
 
         html_content = HTMLGenerator.generate(
-            self.metrics,
-            self.results,
-            self.output_path,
-            include_charts=True
+            self.metrics, self.results, self.output_path, include_charts=True
         )
 
         # Both charts should show placeholders when they return None
@@ -162,10 +147,7 @@ class TestChartErrorHandling(unittest.TestCase):
     def test_error_css_classes_present(self):
         """Test that error CSS classes are included in HTML."""
         html_content = HTMLGenerator.generate(
-            self.metrics,
-            self.results,
-            self.output_path,
-            include_charts=False
+            self.metrics, self.results, self.output_path, include_charts=False
         )
 
         # Check CSS definitions are present
@@ -179,14 +161,11 @@ class TestChartErrorHandling(unittest.TestCase):
     def test_error_javascript_present(self):
         """Test that toggle JavaScript is included."""
         html_content = HTMLGenerator.generate(
-            self.metrics,
-            self.results,
-            self.output_path,
-            include_charts=False
+            self.metrics, self.results, self.output_path, include_charts=False
         )
 
         self.assertIn("function toggleDetails", html_content)
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     unittest.main()

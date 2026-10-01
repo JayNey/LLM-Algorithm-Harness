@@ -4,7 +4,6 @@ Code Quality Data Models
 Defines all data structures for code quality evaluation metrics.
 """
 
-
 from pydantic import BaseModel, Field
 
 
@@ -32,9 +31,7 @@ class SpaceComplexityScore(BaseModel):
     """Space complexity analysis result."""
 
     peak_memory_bytes: int | None = Field(None, ge=0, description="Peak memory usage in bytes")
-    peak_memory_mb: float | None = Field(
-        None, ge=0.0, description="Peak memory usage in megabytes"
-    )
+    peak_memory_mb: float | None = Field(None, ge=0.0, description="Peak memory usage in megabytes")
     memory_efficiency_score: float | None = Field(
         None, ge=0.0, le=100.0, description="Space efficiency score (0-100)"
     )

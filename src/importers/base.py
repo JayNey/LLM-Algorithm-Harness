@@ -120,7 +120,9 @@ class ProblemImporter(ABC):
         """
         pass
 
-    def validate_problems(self, problems: list[Problem]) -> tuple[list[Problem], list[dict[str, Any]]]:
+    def validate_problems(
+        self, problems: list[Problem]
+    ) -> tuple[list[Problem], list[dict[str, Any]]]:
         """
         Validate problems using schema validation.
 
@@ -142,12 +144,21 @@ class ProblemImporter(ABC):
                     raise ValueError("Problem data incomplete")
                 valid.append(problem)
             except (ValueError, ValidationError) as e:
-                failed.append({
-                    "index": i,
-                    "problem_id": problem.problem_id if hasattr(problem, "problem_id") else "unknown",
-                    "error": str(e),
-                })
-                logger.warning("problem_validation_failed", index=i, problem_id=problem.problem_id, error=str(e))
+                failed.append(
+                    {
+                        "index": i,
+                        "problem_id": (
+                            problem.problem_id if hasattr(problem, "problem_id") else "unknown"
+                        ),
+                        "error": str(e),
+                    }
+                )
+                logger.warning(
+                    "problem_validation_failed",
+                    index=i,
+                    problem_id=problem.problem_id,
+                    error=str(e),
+                )
 
         return valid, failed
 

@@ -120,7 +120,9 @@ class RecommendationEngine:
 
         dataset_output = output.with_name(f"{output.stem}.problems.json")
         recommended = report["recommended_problems"]
-        dataset_output.write_text(json.dumps(recommended, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+        dataset_output.write_text(
+            json.dumps(recommended, ensure_ascii=False, indent=2) + "\n", encoding="utf-8"
+        )
         report["recommendation_config"]["dataset_path"] = str(dataset_output)
         output.write_text(json.dumps(report, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
         return report
@@ -132,7 +134,11 @@ class RecommendationEngine:
 
     def _infer_dataset_path(self) -> Path:
         candidates = []
-        files = [self.history_path] if self.history_path.is_file() else list(self.history_path.rglob("*.json"))
+        files = (
+            [self.history_path]
+            if self.history_path.is_file()
+            else list(self.history_path.rglob("*.json"))
+        )
         for path in files:
             if path.name not in {"metadata.json", "experiment.json"}:
                 continue
@@ -148,12 +154,24 @@ class RecommendationEngine:
         for candidate in candidates:
             if candidate.exists():
                 return candidate
-        raise ValueError("Dataset path is required when history metadata does not contain an existing dataset_path")
+        raise ValueError(
+            "Dataset path is required when history metadata does not contain an existing dataset_path"
+        )
 
     def _iter_history_records(self) -> Iterable[dict[str, Any]]:
-        paths = [self.history_path] if self.history_path.is_file() else sorted(self.history_path.rglob("*.json"))
+        paths = (
+            [self.history_path]
+            if self.history_path.is_file()
+            else sorted(self.history_path.rglob("*.json"))
+        )
         for path in paths:
-            if path.name in {"metadata.json", "experiment.json", "summary.json", "comparison.json", "report.json"}:
+            if path.name in {
+                "metadata.json",
+                "experiment.json",
+                "summary.json",
+                "comparison.json",
+                "report.json",
+            }:
                 continue
             if not path.name.endswith("_results.json"):
                 continue
@@ -187,7 +205,12 @@ class RecommendationEngine:
             keys.extend((f"tag:{tag}", "tag") for tag in tags)
         else:
             keys.append(("tags:unknown", "tag_combination"))
-        keys.append((f"difficulty_tags:{problem.difficulty}|{','.join(tags) or 'unknown'}", "difficulty_tag_combination"))
+        keys.append(
+            (
+                f"difficulty_tags:{problem.difficulty}|{','.join(tags) or 'unknown'}",
+                "difficulty_tag_combination",
+            )
+        )
         return keys
 
     @staticmethod

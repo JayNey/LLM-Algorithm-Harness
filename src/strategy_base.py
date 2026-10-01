@@ -535,9 +535,7 @@ Your response should include the code in a ```python code block.
         )
 
     @staticmethod
-    def _merge_pricing_metadata(
-        primary: dict, reflection: dict
-    ) -> dict:
+    def _merge_pricing_metadata(primary: dict, reflection: dict) -> dict:
         """Combine two pricing records while preserving provider metadata."""
         merged = dict(primary)
         primary_cost = primary.get("total_cost")

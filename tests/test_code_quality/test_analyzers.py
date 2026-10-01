@@ -2,7 +2,6 @@
 Test suite for code quality analyzers.
 """
 
-
 from src.code_quality.analyzer import CodeQualityAnalyzer
 from src.code_quality.readability_analyzer import ReadabilityAnalyzer
 from src.code_quality.space_analyzer import SpaceAnalyzer

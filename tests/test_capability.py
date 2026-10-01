@@ -10,23 +10,33 @@ def _comparison():
         "experiment": {"experiment_id": "exp-1", "name": "fixture"},
         "combinations": [
             {
-                "model": "model-a", "strategy": "vanilla",
+                "model": "model-a",
+                "strategy": "vanilla",
                 "denominator": {"total": 4},
                 "formal": {"rate": 0.75},
                 "sample_validation": {"rate": 1.0},
                 "fix_rate": {"rate": 0.5},
-                "actual_consumption": {"avg_tokens_per_problem": 100, "avg_calls_per_problem": 1, "elapsed_seconds": 0.2},
+                "actual_consumption": {
+                    "avg_tokens_per_problem": 100,
+                    "avg_calls_per_problem": 1,
+                    "elapsed_seconds": 0.2,
+                },
                 "by_difficulty": {"easy": {"solved": 2, "total": 2, "rate": 1.0}},
                 "by_tags": {"dp": {"solved": 2, "total": 3, "rate": 2 / 3}},
                 "cost": {"known": True, "total_cost_usd": 0.1},
             },
             {
-                "model": "model-a", "strategy": "cot",
+                "model": "model-a",
+                "strategy": "cot",
                 "denominator": {"total": 2},
                 "formal": {"rate": 0.5},
                 "sample_validation": {"rate": 0.5},
                 "fix_rate": {"rate": None},
-                "actual_consumption": {"avg_tokens_per_problem": 200, "avg_calls_per_problem": 2, "elapsed_seconds": 0.3},
+                "actual_consumption": {
+                    "avg_tokens_per_problem": 200,
+                    "avg_calls_per_problem": 2,
+                    "elapsed_seconds": 0.3,
+                },
                 "by_difficulty": {"hard": {"solved": 1, "total": 2, "rate": 0.5}},
                 "by_tags": {"graph": {"solved": 1, "total": 2, "rate": 0.5}},
                 "cost": {"known": True, "total_cost_usd": 0.2},
@@ -40,10 +50,16 @@ def _comparison():
 def test_capability_map_has_five_dimensions_and_heatmap():
     capability = build_capability_map(_comparison())
     assert capability["dimension_labels"] == [
-        "algorithm_design", "code_implementation", "debugging", "optimization", "boundary_handling"
+        "algorithm_design",
+        "code_implementation",
+        "debugging",
+        "optimization",
+        "boundary_handling",
     ]
     assert capability["models"]["model-a"]["dimensions"]["code_implementation"] == 0.75
-    assert any(cell["dimension"] == "dp" or cell["dimension"] == "tag:dp" for cell in capability["heatmap"])
+    assert any(
+        cell["dimension"] == "dp" or cell["dimension"] == "tag:dp" for cell in capability["heatmap"]
+    )
     assert capability["heuristic_note"]
 
 

@@ -197,7 +197,9 @@ class TestLLMResponseCache:
     def test_clear_all(self, cache, sample_response):
         """Clear should remove all cache entries."""
         key1 = CacheKey.generate(model="gpt-4", prompt="Test1", temperature=0.7, max_tokens=100)
-        key2 = CacheKey.generate(model="gpt-3.5-turbo", prompt="Test2", temperature=0.7, max_tokens=100)
+        key2 = CacheKey.generate(
+            model="gpt-3.5-turbo", prompt="Test2", temperature=0.7, max_tokens=100
+        )
 
         cache.set(key1, sample_response)
         cache.set(key2, sample_response)
@@ -237,7 +239,9 @@ class TestLLMResponseCache:
             reasoning_text=None,
             effective_params={"temperature": 0.7, "max_tokens": 100},
         )
-        key2 = CacheKey.generate(model="gpt-3.5-turbo", prompt="Test2", temperature=0.7, max_tokens=100)
+        key2 = CacheKey.generate(
+            model="gpt-3.5-turbo", prompt="Test2", temperature=0.7, max_tokens=100
+        )
 
         cache.set(key1, sample_response)
         cache.set(key2, response2)
@@ -298,4 +302,3 @@ class TestLLMResponseCache:
         # Some entries should be evicted
         stats = cache.stats()
         assert stats["total_entries"] < 5
-

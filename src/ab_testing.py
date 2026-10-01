@@ -56,7 +56,11 @@ class ABTestConfig(BaseModel):
 
     @property
     def baseline(self) -> PromptVariant:
-        return next(variant for variant in self.prompt_variants if variant.id == (self.baseline_id or self.prompt_variants[0].id))
+        return next(
+            variant
+            for variant in self.prompt_variants
+            if variant.id == (self.baseline_id or self.prompt_variants[0].id)
+        )
 
     @property
     def treatment(self) -> PromptVariant:
@@ -80,7 +84,9 @@ class PromptVariantClient:
         )
 
 
-def stratified_assign(problems: list[Problem], variants: list[PromptVariant], seed: int) -> dict[str, str]:
+def stratified_assign(
+    problems: list[Problem], variants: list[PromptVariant], seed: int
+) -> dict[str, str]:
     if len(variants) != 2:
         raise ValueError("A/B tests require exactly two variants")
     rng = random.Random(seed)
@@ -96,20 +102,30 @@ def stratified_assign(problems: list[Problem], variants: list[PromptVariant], se
     return assignment
 
 
-def _proportion_ci(success_a: int, total_a: int, success_b: int, total_b: int) -> dict[str, float | None]:
+def _proportion_ci(
+    success_a: int, total_a: int, success_b: int, total_b: int
+) -> dict[str, float | None]:
     if not total_a or not total_b:
         return {"difference": None, "lower": None, "upper": None}
     p_a = success_a / total_a
     p_b = success_b / total_b
     difference = p_b - p_a
     standard_error = math.sqrt(p_a * (1 - p_a) / total_a + p_b * (1 - p_b) / total_b)
-    return {"difference": difference, "lower": difference - 1.96 * standard_error, "upper": difference + 1.96 * standard_error}
+    return {
+        "difference": difference,
+        "lower": difference - 1.96 * standard_error,
+        "upper": difference + 1.96 * standard_error,
+    }
 
 
 def _statistical_tests(success_a: list[int], success_b: list[int]) -> dict[str, Any]:
-    table = [[sum(success_a), len(success_a) - sum(success_a)], [sum(success_b), len(success_b) - sum(success_b)]]
+    table = [
+        [sum(success_a), len(success_a) - sum(success_a)],
+        [sum(success_b), len(success_b) - sum(success_b)],
+    ]
     try:
         from scipy import stats
+
         expected = stats.chi2_contingency(table, correction=False)[3]
         if min(min(row) for row in expected) < 5:
             _, p_value = stats.fisher_exact(table)
@@ -118,13 +134,23 @@ def _statistical_tests(success_a: list[int], success_b: list[int]) -> dict[str, 
             _, p_value, _, _ = stats.chi2_contingency(table, correction=False)
             test = "chi_square"
         _, welch_p = stats.ttest_ind(success_a, success_b, equal_var=False)
-        return {"categorical_test": test, "p_value": float(p_value), "welch_t_p_value": float(welch_p)}
+        return {
+            "categorical_test": test,
+            "p_value": float(p_value),
+            "welch_t_p_value": float(welch_p),
+        }
     except (ImportError, ValueError, ZeroDivisionError):
         return {"categorical_test": "unavailable", "p_value": None, "welch_t_p_value": None}
 
 
 class ABTestRunner:
-    def __init__(self, config: ABTestConfig, *, client_factory: Callable[[LLMConfig], Any] = LLMClient, sandbox_factory: Callable[[SandboxConfig], Any] = SandboxExecutor):
+    def __init__(
+        self,
+        config: ABTestConfig,
+        *,
+        client_factory: Callable[[LLMConfig], Any] = LLMClient,
+        sandbox_factory: Callable[[SandboxConfig], Any] = SandboxExecutor,
+    ):
         self.config = config
         self.client_factory = client_factory
         self.sandbox_factory = sandbox_factory
@@ -147,9 +173,15 @@ class ABTestRunner:
         }
         rows = []
         for variant in self.config.prompt_variants:
-            rows.extend(self._run_variant(variant, [p for p in problems if assignment[p.problem_id] == variant.id]))
+            rows.extend(
+                self._run_variant(
+                    variant, [p for p in problems if assignment[p.problem_id] == variant.id]
+                )
+            )
         report = self._build_report(rows, assignments, output)
-        (output / "ab_test.json").write_text(json.dumps(report, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+        (output / "ab_test.json").write_text(
+            json.dumps(report, ensure_ascii=False, indent=2) + "\n", encoding="utf-8"
+        )
         self._write_csv(output / "results.csv", rows)
         (output / "REPORT.md").write_text(self._markdown(report), encoding="utf-8")
         return output
@@ -161,17 +193,36 @@ class ABTestRunner:
             if not ok:
                 raise RuntimeError(f"Sandbox preflight failed: {detail}")
             client = PromptVariantClient(self.client_factory(self.config.model), variant)
-            strategy = AlgorithmHarness.STRATEGY_MAP[self.config.strategy.name](self.config.strategy, client, sandbox)
-            harness = AlgorithmHarness(HarnessConfig(llm_config=self.config.model, sandbox_config=self.config.sandbox_config, dataset_path=self.config.dataset_path, strategies=[self.config.strategy]))
+            strategy = AlgorithmHarness.STRATEGY_MAP[self.config.strategy.name](
+                self.config.strategy, client, sandbox
+            )
+            harness = AlgorithmHarness(
+                HarnessConfig(
+                    llm_config=self.config.model,
+                    sandbox_config=self.config.sandbox_config,
+                    dataset_path=self.config.dataset_path,
+                    strategies=[self.config.strategy],
+                )
+            )
             started = time.perf_counter()
             result = harness._execute_problem(self.config.strategy, problem, strategy, sandbox)
             return {
-                "variant": variant.id, "problem_id": problem.problem_id, "difficulty": problem.difficulty, "tags": list(problem.tags),
-                "status": result.status, "success": result.status == "success", "formal_evaluable": result.formal_evaluable,
-                "formal_passed": bool(result.hidden_result and result.hidden_result.all_passed), "sample_passed": bool(result.final_result and result.final_result.all_passed),
-                "failure_category": result.failure_category, "total_tokens": result.total_tokens,
-                "elapsed_seconds": time.perf_counter() - started, "iterations": len(result.iterations), "error_message": result.error_message,
+                "variant": variant.id,
+                "problem_id": problem.problem_id,
+                "difficulty": problem.difficulty,
+                "tags": list(problem.tags),
+                "status": result.status,
+                "success": result.status == "success",
+                "formal_evaluable": result.formal_evaluable,
+                "formal_passed": bool(result.hidden_result and result.hidden_result.all_passed),
+                "sample_passed": bool(result.final_result and result.final_result.all_passed),
+                "failure_category": result.failure_category,
+                "total_tokens": result.total_tokens,
+                "elapsed_seconds": time.perf_counter() - started,
+                "iterations": len(result.iterations),
+                "error_message": result.error_message,
             }
+
         if self.config.max_workers == 1 or len(problems) < 2:
             return [run(problem) for problem in problems]
         with ThreadPoolExecutor(max_workers=min(self.config.max_workers, len(problems))) as pool:
@@ -184,67 +235,71 @@ class ABTestRunner:
             variant.id: [row for row in rows if row["variant"] == variant.id]
             for variant in self.config.prompt_variants
         }
-        binary = {
-            key: [int(row["success"]) for row in value]
-            for key, value in by_variant.items()
-        }
+        binary = {key: [int(row["success"]) for row in value] for key, value in by_variant.items()}
         formal = {
             key: [int(row["formal_passed"]) for row in value if row["formal_evaluable"]]
             for key, value in by_variant.items()
         }
         sample_diff = _proportion_ci(
-            sum(binary[baseline]), len(binary[baseline]),
-            sum(binary[treatment]), len(binary[treatment])
+            sum(binary[baseline]),
+            len(binary[baseline]),
+            sum(binary[treatment]),
+            len(binary[treatment]),
         )
         formal_diff = _proportion_ci(
-            sum(formal[baseline]), len(formal[baseline]),
-            sum(formal[treatment]), len(formal[treatment])
+            sum(formal[baseline]),
+            len(formal[baseline]),
+            sum(formal[treatment]),
+            len(formal[treatment]),
         )
         stats = _statistical_tests(binary[baseline], binary[treatment])
         grouped = self._grouped_rates(rows)
-        return redact_sensitive_data({
-            "schema_version": "1.0",
-            "name": self.config.name or "ab-test",
-            "generated_at": datetime.now(timezone.utc).isoformat(),
-            "output_dir": str(output),
-            "seed": self.config.seed,
-            "model": self.config.model.redacted_dict(),
-            "strategy": self.config.strategy.model_dump(mode="json"),
-            "variants": [variant.model_dump(mode="json") for variant in self.config.prompt_variants],
-            "baseline_id": baseline,
-            "treatment_id": treatment,
-            "assignments": assignments,
-            "balance": self._balance(assignments),
-            "comparison": {
-                "sample": {
-                    "baseline": self._rate(binary[baseline]),
-                    "treatment": self._rate(binary[treatment]),
-                    "ci95": sample_diff,
+        return redact_sensitive_data(
+            {
+                "schema_version": "1.0",
+                "name": self.config.name or "ab-test",
+                "generated_at": datetime.now(timezone.utc).isoformat(),
+                "output_dir": str(output),
+                "seed": self.config.seed,
+                "model": self.config.model.redacted_dict(),
+                "strategy": self.config.strategy.model_dump(mode="json"),
+                "variants": [
+                    variant.model_dump(mode="json") for variant in self.config.prompt_variants
+                ],
+                "baseline_id": baseline,
+                "treatment_id": treatment,
+                "assignments": assignments,
+                "balance": self._balance(assignments),
+                "comparison": {
+                    "sample": {
+                        "baseline": self._rate(binary[baseline]),
+                        "treatment": self._rate(binary[treatment]),
+                        "ci95": sample_diff,
+                    },
+                    "formal": {
+                        "baseline": self._rate(formal[baseline]),
+                        "treatment": self._rate(formal[treatment]),
+                        "ci95": formal_diff,
+                    },
+                    "statistics": stats,
+                    "elapsed_seconds": {
+                        key: sum(row["elapsed_seconds"] for row in value)
+                        for key, value in by_variant.items()
+                    },
+                    "tokens": {
+                        key: sum(row["total_tokens"] for row in value)
+                        for key, value in by_variant.items()
+                    },
+                    "failure_categories": {
+                        key: self._failure_counts(value) for key, value in by_variant.items()
+                    },
                 },
-                "formal": {
-                    "baseline": self._rate(formal[baseline]),
-                    "treatment": self._rate(formal[treatment]),
-                    "ci95": formal_diff,
-                },
-                "statistics": stats,
-                "elapsed_seconds": {
-                    key: sum(row["elapsed_seconds"] for row in value)
-                    for key, value in by_variant.items()
-                },
-                "tokens": {
-                    key: sum(row["total_tokens"] for row in value)
-                    for key, value in by_variant.items()
-                },
-                "failure_categories": {
-                    key: self._failure_counts(value)
-                    for key, value in by_variant.items()
-                },
-            },
-            "by_difficulty": grouped["difficulty"],
-            "by_tag": grouped["tag"],
-            "recommendation": self._recommendation(stats, sample_diff),
-            "rows": rows,
-        })
+                "by_difficulty": grouped["difficulty"],
+                "by_tag": grouped["tag"],
+                "recommendation": self._recommendation(stats, sample_diff),
+                "rows": rows,
+            }
+        )
 
     @staticmethod
     def _rate(values):
@@ -301,9 +356,18 @@ class ABTestRunner:
     @staticmethod
     def _write_csv(path, rows):
         fields = [
-            "variant", "problem_id", "difficulty", "status", "success",
-            "formal_evaluable", "formal_passed", "sample_passed", "failure_category",
-            "total_tokens", "elapsed_seconds", "iterations",
+            "variant",
+            "problem_id",
+            "difficulty",
+            "status",
+            "success",
+            "formal_evaluable",
+            "formal_passed",
+            "sample_passed",
+            "failure_category",
+            "total_tokens",
+            "elapsed_seconds",
+            "iterations",
         ]
         with path.open("w", encoding="utf-8-sig", newline="") as stream:
             writer = csv.DictWriter(stream, fieldnames=fields)
@@ -330,10 +394,15 @@ class ABTestRunner:
                 f"{comparison['formal'][variant_id]} | {comparison['tokens'][variant_id]} | "
                 f"{comparison['elapsed_seconds'][variant_id]:.3f} |"
             )
-        lines.extend([
-            "", f"p-value: {comparison['statistics'].get('p_value')}",
-            "", report["recommendation"], "",
-        ])
+        lines.extend(
+            [
+                "",
+                f"p-value: {comparison['statistics'].get('p_value')}",
+                "",
+                report["recommendation"],
+                "",
+            ]
+        )
         return "\n".join(lines)
 
     def _create_output_dir(self):

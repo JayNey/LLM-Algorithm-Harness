@@ -160,12 +160,8 @@ def test_e2e_execution_result_contains_all_candidates_and_voting_stats(
                 assert isinstance(entry["count"], int)
                 assert entry["count"] > 0
 
-            print(
-                f"✓ Voting statistics present with {len(voting_stats)} unique solutions"
-            )
-            print(
-                f"✓ Selected solution appears {trace['selected_code_frequency']} times"
-            )
+            print(f"✓ Voting statistics present with {len(voting_stats)} unique solutions")
+            print(f"✓ Selected solution appears {trace['selected_code_frequency']} times")
             break
 
     assert voting_stats_found, "Voting statistics not found in llm_traces"
@@ -221,6 +217,4 @@ def test_execution_result_serialization_with_voting_stats(
             break
 
     assert voting_stats_found, "Voting statistics lost during serialization"
-    print(
-        "\n✓ ExecutionResult with voting stats successfully serialized and deserialized"
-    )
+    print("\n✓ ExecutionResult with voting stats successfully serialized and deserialized")

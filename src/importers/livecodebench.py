@@ -32,7 +32,9 @@ class LiveCodeBenchImporter(ProblemImporter):
     ):
         if release_version not in self.SUPPORTED_RELEASES:
             supported = ", ".join(sorted(self.SUPPORTED_RELEASES))
-            raise ValueError(f"Unsupported LiveCodeBench release '{release_version}'. Use: {supported}")
+            raise ValueError(
+                f"Unsupported LiveCodeBench release '{release_version}'. Use: {supported}"
+            )
         self.release_version = release_version
         self.start_date = start_date
         self.end_date = end_date
@@ -85,9 +87,11 @@ class LiveCodeBenchImporter(ProblemImporter):
                 self.transform_failures.append(
                     {
                         "index": index,
-                        "problem_id": str(record.get("question_id", "unknown"))
-                        if isinstance(record, dict)
-                        else "unknown",
+                        "problem_id": (
+                            str(record.get("question_id", "unknown"))
+                            if isinstance(record, dict)
+                            else "unknown"
+                        ),
                         "error": str(exc),
                     }
                 )
@@ -116,11 +120,15 @@ class LiveCodeBenchImporter(ProblemImporter):
         hidden_cases, hidden_mode = self._map_tests(private_raw, "hidden", notes)
         modes = {mode for mode in (public_mode, hidden_mode) if mode}
         if len(modes) > 1:
-            notes.append("Public and hidden tests use different protocols; review input_output_mode manually.")
+            notes.append(
+                "Public and hidden tests use different protocols; review input_output_mode manually."
+            )
         input_output_mode = next(iter(modes), "function")
         entry_point = self._entry_point(record, metadata, input_output_mode)
         if not entry_point:
-            entry_point = "main()" if input_output_mode == "stdin_stdout" else "solution(**test_input)"
+            entry_point = (
+                "main()" if input_output_mode == "stdin_stdout" else "solution(**test_input)"
+            )
             notes.append("Entry point could not be extracted; review entry_point manually.")
         question_id = str(record.get("question_id") or record.get("id") or "unknown")
         contest_date = str(record.get("contest_date") or "")
@@ -140,7 +148,10 @@ class LiveCodeBenchImporter(ProblemImporter):
             schema_version="1.1",
             problem_id=f"livecodebench-{question_id}",
             title=str(record.get("question_title") or question_id),
-            description=str(record.get("question_content") or "LiveCodeBench question requires manual completion."),
+            description=str(
+                record.get("question_content")
+                or "LiveCodeBench question requires manual completion."
+            ),
             difficulty=str(record.get("difficulty") or "medium").lower(),
             tags=[],
             source_platform="livecodebench",
@@ -180,7 +191,10 @@ class LiveCodeBenchImporter(ProblemImporter):
         try:
             decoded = json.loads(value)
         except json.JSONDecodeError:
-            return [], "Test payload is not JSON; compressed/pickle decoding is intentionally disabled."
+            return (
+                [],
+                "Test payload is not JSON; compressed/pickle decoding is intentionally disabled.",
+            )
         if not isinstance(decoded, list):
             return [], "Test payload JSON is not a list; manual completion required."
         return decoded, None
@@ -193,7 +207,9 @@ class LiveCodeBenchImporter(ProblemImporter):
         modes = set()
         for record in records:
             if not isinstance(record, dict) or "input" not in record or "output" not in record:
-                notes.append(f"A {source} test lacks input/output fields; manual completion required.")
+                notes.append(
+                    f"A {source} test lacks input/output fields; manual completion required."
+                )
                 continue
             test_type = str(record.get("testtype", "functional")).lower()
             if test_type == "stdin":
@@ -205,10 +221,14 @@ class LiveCodeBenchImporter(ProblemImporter):
                 input_value = cls._parse_value(record["input"])
                 output_value = cls._parse_value(record["output"])
                 if input_value is None or output_value is None:
-                    notes.append(f"A {source} functional test is not safe JSON; manual completion required.")
+                    notes.append(
+                        f"A {source} functional test is not safe JSON; manual completion required."
+                    )
                     continue
             else:
-                notes.append(f"Unsupported LiveCodeBench test type '{test_type}'; manual completion required.")
+                notes.append(
+                    f"Unsupported LiveCodeBench test type '{test_type}'; manual completion required."
+                )
                 continue
             modes.add(mode)
             mapped.append({"input": input_value, "expected_output": output_value})

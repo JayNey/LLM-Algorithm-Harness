@@ -198,7 +198,9 @@ def render_failure_mode_markdown(summary: Mapping[str, Any]) -> str:
     for mode, values in summary.get("categories", {}).items():
         if values.get("count", 0):
             label = MODE_LABELS.get(mode, mode)
-            lines.append(f"| {_safe_cell(label)} (`{mode}`) | {values['count']} | {values['share']:.1%} |")
+            lines.append(
+                f"| {_safe_cell(label)} (`{mode}`) | {values['count']} | {values['share']:.1%} |"
+            )
     lines.extend(["", "### 按题目标签", ""])
     by_tags = summary.get("by_tags", {})
     if by_tags:

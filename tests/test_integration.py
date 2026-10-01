@@ -63,12 +63,7 @@ class TestCLIDatasetLoading:
         )
         # May fail due to API key, but should attempt to load dataset
         output = (result.stdout + result.stderr).lower()
-        assert (
-            "dataset" in output
-            or "problem" in output
-            or "api" in output
-            or "strategy" in output
-        )
+        assert "dataset" in output or "problem" in output or "api" in output or "strategy" in output
 
     def test_cli_with_nonexistent_dataset(self):
         """Test CLI handles missing dataset file gracefully."""
@@ -94,19 +89,15 @@ class TestCLIConfigLoading:
 
     def test_cli_with_yaml_config(self):
         """Test CLI loads YAML configuration file."""
-        with tempfile.NamedTemporaryFile(
-            mode="w", suffix=".yaml", delete=False
-        ) as f:
+        with tempfile.NamedTemporaryFile(mode="w", suffix=".yaml", delete=False) as f:
             # Write minimal valid YAML config
-            f.write(
-                """
+            f.write("""
 llm_config:
   provider: openai
   model: gpt-3.5-turbo
   api_key: test-key-12345
 dataset_path: data/sample_problems.json
-"""
-            )
+""")
             config_path = f.name
 
         try:
@@ -130,9 +121,7 @@ dataset_path: data/sample_problems.json
 
     def test_cli_with_invalid_config(self):
         """Test CLI handles invalid configuration gracefully."""
-        with tempfile.NamedTemporaryFile(
-            mode="w", suffix=".yaml", delete=False
-        ) as f:
+        with tempfile.NamedTemporaryFile(mode="w", suffix=".yaml", delete=False) as f:
             f.write("invalid: yaml: content: [unclosed")
             config_path = f.name
 
@@ -314,11 +303,7 @@ class TestCLIOutputOptions:
         )
         # Check that output dir option was recognized
         output = (result.stdout + result.stderr).lower()
-        assert (
-            result.returncode in [0, 1]
-            or "output" in output
-            or str(output_dir) in result.stderr
-        )
+        assert result.returncode in [0, 1] or "output" in output or str(output_dir) in result.stderr
 
     def test_cli_with_limit_option(self):
         """Test CLI respects problem limit option."""

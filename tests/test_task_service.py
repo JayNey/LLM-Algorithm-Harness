@@ -28,7 +28,10 @@ def _units(count=4):
 def test_task_creation_persists_atomic_record_and_events(tmp_path):
     service = TaskService(tmp_path / "tasks")
     record = service.create(
-        units=_units(2), config_fingerprint="config-a", dataset_fingerprint="data-a", run_id="run-test"
+        units=_units(2),
+        config_fingerprint="config-a",
+        dataset_fingerprint="data-a",
+        run_id="run-test",
     )
 
     loaded = service.get(record.run_id)
@@ -79,7 +82,10 @@ def test_alert_endpoint_secret_changes_resume_fingerprint(tmp_path):
 def test_task_run_respects_max_workers_and_records_results(tmp_path):
     service = TaskService(tmp_path / "tasks")
     record = service.create(
-        units=_units(8), config_fingerprint="config-a", dataset_fingerprint="data-a", run_id="run-concurrent"
+        units=_units(8),
+        config_fingerprint="config-a",
+        dataset_fingerprint="data-a",
+        run_id="run-concurrent",
     )
     active = 0
     peak = 0
@@ -95,7 +101,13 @@ def test_task_run_respects_max_workers_and_records_results(tmp_path):
             active -= 1
         return {"unit_id": unit.unit_id, "status": "success"}
 
-    result = service.run(record.run_id, worker, max_workers=2, config_fingerprint="config-a", dataset_fingerprint="data-a")
+    result = service.run(
+        record.run_id,
+        worker,
+        max_workers=2,
+        config_fingerprint="config-a",
+        dataset_fingerprint="data-a",
+    )
 
     assert result.state == "completed"
     assert result.completed_units == 8
@@ -107,7 +119,10 @@ def test_task_run_respects_max_workers_and_records_results(tmp_path):
 def test_budget_pause_preserves_queued_units_and_resume_does_not_dispatch(tmp_path):
     service = TaskService(tmp_path / "tasks")
     record = service.create(
-        units=_units(3), config_fingerprint="config-a", dataset_fingerprint="data-a", run_id="run-pause"
+        units=_units(3),
+        config_fingerprint="config-a",
+        dataset_fingerprint="data-a",
+        run_id="run-pause",
     )
     completed = []
 
@@ -116,7 +131,9 @@ def test_budget_pause_preserves_queued_units_and_resume_does_not_dispatch(tmp_pa
         return {"status": "success"}
 
     paused = service.run(
-        record.run_id, worker, max_workers=1,
+        record.run_id,
+        worker,
+        max_workers=1,
         pause_when=lambda state: state.completed_units >= 1,
     )
     assert paused.state == "paused"
@@ -125,7 +142,10 @@ def test_budget_pause_preserves_queued_units_and_resume_does_not_dispatch(tmp_pa
     assert paused.events[-1].kind == "task_paused"
 
     again = service.run(
-        record.run_id, worker, max_workers=1, resume=True,
+        record.run_id,
+        worker,
+        max_workers=1,
+        resume=True,
         pause_when=lambda state: state.completed_units >= 1,
     )
     assert again.state == "paused"
@@ -138,7 +158,10 @@ def test_parallel_execution_with_different_max_workers(tmp_path):
 
     # Test with max_workers=1 (serial execution)
     record_serial = service.create(
-        units=_units(4), config_fingerprint="config-a", dataset_fingerprint="data-a", run_id="run-serial"
+        units=_units(4),
+        config_fingerprint="config-a",
+        dataset_fingerprint="data-a",
+        run_id="run-serial",
     )
     start_serial = time.time()
     service.run(
@@ -146,13 +169,16 @@ def test_parallel_execution_with_different_max_workers(tmp_path):
         lambda unit: time.sleep(0.05) or {"status": "success"},
         max_workers=1,
         config_fingerprint="config-a",
-        dataset_fingerprint="data-a"
+        dataset_fingerprint="data-a",
     )
     duration_serial = time.time() - start_serial
 
     # Test with max_workers=4 (parallel execution)
     record_parallel = service.create(
-        units=_units(4), config_fingerprint="config-a", dataset_fingerprint="data-a", run_id="run-parallel"
+        units=_units(4),
+        config_fingerprint="config-a",
+        dataset_fingerprint="data-a",
+        run_id="run-parallel",
     )
     start_parallel = time.time()
     service.run(
@@ -160,7 +186,7 @@ def test_parallel_execution_with_different_max_workers(tmp_path):
         lambda unit: time.sleep(0.05) or {"status": "success"},
         max_workers=4,
         config_fingerprint="config-a",
-        dataset_fingerprint="data-a"
+        dataset_fingerprint="data-a",
     )
     duration_parallel = time.time() - start_parallel
 
@@ -172,7 +198,10 @@ def test_thread_safe_cost_tracking(tmp_path):
     """Test that cost tracking remains accurate under concurrent execution."""
     service = TaskService(tmp_path / "tasks")
     record = service.create(
-        units=_units(10), config_fingerprint="config-a", dataset_fingerprint="data-a", run_id="run-cost"
+        units=_units(10),
+        config_fingerprint="config-a",
+        dataset_fingerprint="data-a",
+        run_id="run-cost",
     )
 
     total_cost = 0.0
@@ -191,7 +220,7 @@ def test_thread_safe_cost_tracking(tmp_path):
         worker,
         max_workers=5,
         config_fingerprint="config-a",
-        dataset_fingerprint="data-a"
+        dataset_fingerprint="data-a",
     )
 
     assert result.state == "completed"
@@ -201,7 +230,10 @@ def test_thread_safe_cost_tracking(tmp_path):
 def test_failure_category_system_error(tmp_path):
     service = TaskService(tmp_path / "tasks")
     record = service.create(
-        units=_units(3), config_fingerprint="config-a", dataset_fingerprint="data-a", run_id="run-failed"
+        units=_units(3),
+        config_fingerprint="config-a",
+        dataset_fingerprint="data-a",
+        run_id="run-failed",
     )
     calls = []
 
@@ -232,7 +264,10 @@ def test_failure_category_system_error(tmp_path):
 def test_cancel_marks_queued_and_inflight_units_without_claiming_exactly_once(tmp_path):
     service = TaskService(tmp_path / "tasks")
     record = service.create(
-        units=_units(4), config_fingerprint="config-a", dataset_fingerprint="data-a", run_id="run-cancel"
+        units=_units(4),
+        config_fingerprint="config-a",
+        dataset_fingerprint="data-a",
+        run_id="run-cancel",
     )
     started = threading.Event()
     release = threading.Event()
@@ -244,7 +279,9 @@ def test_cancel_marks_queued_and_inflight_units_without_claiming_exactly_once(tm
         return {"status": "success"}
 
     thread = threading.Thread(
-        target=lambda: holder.setdefault("record", service.run(record.run_id, worker, max_workers=1)),
+        target=lambda: holder.setdefault(
+            "record", service.run(record.run_id, worker, max_workers=1)
+        ),
         daemon=True,
     )
     thread.start()
@@ -260,13 +297,18 @@ def test_cancel_marks_queued_and_inflight_units_without_claiming_exactly_once(tm
     assert any(unit.status == "cancelled" and not unit.uncertain for unit in cancelled.units)
     assert any(event.kind == "cancel_requested" for event in cancelled.events)
     assert any(event.kind == "task_cancelled" for event in cancelled.events)
-    assert [event.sequence for event in cancelled.events] == list(range(1, len(cancelled.events) + 1))
+    assert [event.sequence for event in cancelled.events] == list(
+        range(1, len(cancelled.events) + 1)
+    )
 
 
 def test_resume_requeues_uncertain_units_and_rejects_fingerprint_mismatch(tmp_path):
     service = TaskService(tmp_path / "tasks")
     record = service.create(
-        units=_units(2), config_fingerprint="config-a", dataset_fingerprint="data-a", run_id="run-resume"
+        units=_units(2),
+        config_fingerprint="config-a",
+        dataset_fingerprint="data-a",
+        run_id="run-resume",
     )
     started = threading.Event()
     release = threading.Event()
@@ -276,7 +318,9 @@ def test_resume_requeues_uncertain_units_and_rejects_fingerprint_mismatch(tmp_pa
         release.wait(timeout=2)
         return {"status": "success"}
 
-    thread = threading.Thread(target=lambda: service.run(record.run_id, blocking_worker, max_workers=1), daemon=True)
+    thread = threading.Thread(
+        target=lambda: service.run(record.run_id, blocking_worker, max_workers=1), daemon=True
+    )
     thread.start()
     assert started.wait(timeout=1)
     service.request_cancel(record.run_id)

@@ -124,7 +124,7 @@ class TestLLMClientCache:
                 enabled=config.cache.enabled,
             )
 
-        with patch.object(LLMClient, '__init__', patched_init):
+        with patch.object(LLMClient, "__init__", patched_init):
             client = LLMClient(llm_config)
 
             # First call should hit API
@@ -169,6 +169,7 @@ class TestLLMClientCache:
 
         # Patch cache initialization to use temp directory
         from src.cache import LLMResponseCache
+
         original_init = LLMClient.__init__
 
         def patched_init(self, config):
@@ -176,6 +177,7 @@ class TestLLMClientCache:
             self._resolved_api_key = None
             self.client = mock_client
             from src.utils.pricing import PricingManager
+
             self.pricing_manager = PricingManager()
             # Use temp_cache_dir instead of default
             self.cache = LLMResponseCache(
@@ -185,7 +187,7 @@ class TestLLMClientCache:
                 enabled=config.cache.enabled,
             )
 
-        with patch.object(LLMClient, '__init__', patched_init):
+        with patch.object(LLMClient, "__init__", patched_init):
             client = LLMClient(llm_config)
 
             # First call should hit API
@@ -277,7 +279,7 @@ class TestLLMClientCache:
                 enabled=config.cache.enabled,
             )
 
-        with patch.object(LLMClient, '__init__', patched_init):
+        with patch.object(LLMClient, "__init__", patched_init):
             client = LLMClient(llm_config)
 
             # Call with problem_id="problem1"
@@ -337,7 +339,7 @@ class TestLLMClientCache:
                 enabled=config.cache.enabled,
             )
 
-        with patch.object(LLMClient, '__init__', patched_init):
+        with patch.object(LLMClient, "__init__", patched_init):
             client = LLMClient(llm_config)
 
             # Call with strategy_name="cot"

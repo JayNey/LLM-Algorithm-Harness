@@ -27,8 +27,13 @@ def test_summary_counts_modes_and_tag_denominators_without_unrun_rows():
         {"problem_id": "p8"},
         {"problem_id": "p9", "status": "unrecognized"},
         {"problem_id": "p10", "status": []},
-        {"problem_id": "p11", "status": "error", "evaluation_completed": False,
-         "tags": ["graph"], "error_message": "Task unit did not produce a result"},
+        {
+            "problem_id": "p11",
+            "status": "error",
+            "evaluation_completed": False,
+            "tags": ["graph"],
+            "error_message": "Task unit did not produce a result",
+        },
     ]
 
     summary = summarize_failure_modes(results, problem_info)

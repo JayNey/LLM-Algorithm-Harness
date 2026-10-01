@@ -74,9 +74,10 @@ class SandboxExecutor:
                 all_passed=False,
                 error_message=problem.unsupported_reason,
             )
-        if problem.input_output_mode == "function" and self._entry_point_parts(
-            problem.entry_point
-        ) is None:
+        if (
+            problem.input_output_mode == "function"
+            and self._entry_point_parts(problem.entry_point) is None
+        ):
             return SandboxResult(
                 status="unsupported",
                 all_passed=False,
@@ -592,9 +593,7 @@ if __name__ == "__main__":
                 for key, mask in selector.select(remaining):
                     if key.data == "stdin":
                         try:
-                            written = os.write(
-                                key.fileobj.fileno(), input_data[input_offset:]
-                            )
+                            written = os.write(key.fileobj.fileno(), input_data[input_offset:])
                             input_offset += written
                             if input_offset >= len(input_data):
                                 selector.unregister(key.fileobj)
@@ -713,9 +712,7 @@ _harness_write(_harness_fd, ({result_marker!r} + _harness_dumps(result) + "\\n")
                     )
                 except Exception as cleanup_exc:
                     logger.warning(
-                        "container_cleanup_failed",
-                        container=container_name,
-                        error=str(cleanup_exc)
+                        "container_cleanup_failed", container=container_name, error=str(cleanup_exc)
                     )
 
             if result.returncode != 0:
@@ -840,8 +837,7 @@ _harness_write(_harness_fd, ({result_marker!r} + _harness_dumps(result) + "\\n")
             return False
         if isinstance(actual, dict) and isinstance(expected, dict):
             return set(actual) == set(expected) and all(
-                cls._compare_float_tolerant(actual[key], expected[key], tolerance)
-                for key in actual
+                cls._compare_float_tolerant(actual[key], expected[key], tolerance) for key in actual
             )
         if isinstance(actual, (list, tuple)) and isinstance(expected, (list, tuple)):
             return len(actual) == len(expected) and all(
@@ -928,11 +924,7 @@ _harness_write(_harness_fd, ({result_marker!r} + _harness_dumps(result) + "\\n")
                 if result.status == "pass":
                     execution_times[f"{scale}x"] = elapsed
                 else:
-                    logger.warning(
-                        "scaled_execution_failed",
-                        scale=scale,
-                        status=result.status
-                    )
+                    logger.warning("scaled_execution_failed", scale=scale, status=result.status)
                     break
             except Exception as e:
                 logger.warning("performance_profiling_failed", scale=scale, error=str(e))
@@ -1027,9 +1019,7 @@ _harness_write(_harness_fd, ({result_marker!r} + _harness_dumps(result) + "\\n")
                     }
                 else:
                     logger.warning(
-                        "scaled_memory_profiling_failed",
-                        scale=scale,
-                        status=result.status
+                        "scaled_memory_profiling_failed", scale=scale, status=result.status
                     )
                     tracemalloc.stop()
                     break

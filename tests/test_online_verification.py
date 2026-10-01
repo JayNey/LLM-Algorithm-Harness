@@ -82,6 +82,4 @@ def test_siliconflow_single_problem_end_to_end(tmp_path):
     )
     print(f"\nONLINE VERIFICATION: {json.dumps(record, ensure_ascii=False)}")
 
-    assert result.status == "success", (
-        f"model {model_id} failed the single-problem check: {record}"
-    )
+    assert result.status == "success", f"model {model_id} failed the single-problem check: {record}"

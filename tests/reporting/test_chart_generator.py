@@ -26,7 +26,7 @@ def sample_metrics() -> dict[str, dict]:
         "self_refine": {
             "success_rate": 0.45,
             "avg_tokens_per_problem": 1200.0,
-        }
+        },
     }
 
 
@@ -45,16 +45,13 @@ def sample_multi_round_results() -> dict[str, list[ExecutionResult]]:
                 completion_tokens=50,
                 code_extracted="def solution(): pass",
                 sandbox_result=SandboxResult(
-                    status="success",
-                    test_results=[],
-                    execution_time=0.1,
-                    all_passed=True
-                )
+                    status="success", test_results=[], execution_time=0.1, all_passed=True
+                ),
             )
         ],
         test_results=[],
         total_tokens=150,
-        execution_time_seconds=0.5
+        execution_time_seconds=0.5,
     )
 
     multi_round = ExecutionResult(
@@ -72,20 +69,17 @@ def sample_multi_round_results() -> dict[str, list[ExecutionResult]]:
                     status="success",
                     test_results=[],
                     execution_time=0.1,
-                    all_passed=False if i < 3 else True
-                )
+                    all_passed=False if i < 3 else True,
+                ),
             )
             for i in range(1, 4)
         ],
         test_results=[],
         total_tokens=450,
-        execution_time_seconds=1.5
+        execution_time_seconds=1.5,
     )
 
-    return {
-        "direct": [single_round],
-        "self_refine": [multi_round]
-    }
+    return {"direct": [single_round], "self_refine": [multi_round]}
 
 
 @pytest.fixture
@@ -104,12 +98,12 @@ def sample_results_with_variance() -> dict[str, list[ExecutionResult]]:
                         iteration=1,
                         prompt_tokens=int(tokens * 0.6),  # 60% prompt
                         completion_tokens=int(tokens * 0.4),  # 40% completion
-                        code_extracted="def solution(): pass"
+                        code_extracted="def solution(): pass",
                     )
                 ],
                 test_results=[],
                 total_tokens=tokens,
-                execution_time_seconds=0.5
+                execution_time_seconds=0.5,
             )
             for i, tokens in enumerate([400, 500, 600, 700, 800])
         ]
@@ -185,12 +179,12 @@ def test_generate_iteration_distribution_single_round_only():
                         iteration=1,
                         prompt_tokens=100,
                         completion_tokens=50,
-                        code_extracted="def solution(): pass"
+                        code_extracted="def solution(): pass",
                     )
                 ],
                 test_results=[],
                 total_tokens=150,
-                execution_time_seconds=0.5
+                execution_time_seconds=0.5,
             )
         ]
     }
@@ -260,7 +254,9 @@ def test_generate_iteration_distribution_empty_results():
     assert result is None
 
 
-def test_generate_token_chart_with_percentiles(sample_metrics: dict, sample_results_with_variance: dict):
+def test_generate_token_chart_with_percentiles(
+    sample_metrics: dict, sample_results_with_variance: dict
+):
     """Test that token chart with results generates percentile error bars."""
     result = ChartGenerator.generate_token_chart(sample_metrics, sample_results_with_variance)
 
@@ -286,11 +282,7 @@ def test_generate_token_chart_with_empty_results(sample_metrics: dict):
 
 def test_generate_token_chart_percentile_calculation():
     """Test percentile calculation in token chart."""
-    metrics = {
-        "test_strategy": {
-            "avg_tokens_per_problem": 600.0
-        }
-    }
+    metrics = {"test_strategy": {"avg_tokens_per_problem": 600.0}}
 
     results = {
         "test_strategy": [
@@ -304,12 +296,12 @@ def test_generate_token_chart_percentile_calculation():
                         iteration=1,
                         prompt_tokens=int(tokens * 0.6),
                         completion_tokens=int(tokens * 0.4),
-                        code_extracted="def solution(): pass"
+                        code_extracted="def solution(): pass",
                     )
                 ],
                 test_results=[],
                 total_tokens=tokens,
-                execution_time_seconds=0.5
+                execution_time_seconds=0.5,
             )
             for i, tokens in enumerate([400, 500, 600, 700, 800])
         ]

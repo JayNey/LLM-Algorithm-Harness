@@ -27,7 +27,9 @@ def run_debug_command(args: argparse.Namespace) -> int:
     try:
         # Load problem
         problem_loader = ProblemLoader()
-        problems = problem_loader.load_problems(args.dataset if hasattr(args, 'dataset') else 'data/problems.json')
+        problems = problem_loader.load_problems(
+            args.dataset if hasattr(args, "dataset") else "data/problems.json"
+        )
 
         # Find the requested problem
         problem = None
@@ -48,9 +50,7 @@ def run_debug_command(args: argparse.Namespace) -> int:
         # Initialize components
         breakpoint_manager = BreakpointManager()
         trace_recorder = TraceRecorder(
-            problem_id=args.problem,
-            strategy_name=args.strategy,
-            model_name=args.model
+            problem_id=args.problem, strategy_name=args.strategy, model_name=args.model
         )
 
         # Create debugger
@@ -95,6 +95,7 @@ def run_debug_command(args: argparse.Namespace) -> int:
 
         # Get strategy class
         from src.harness import AlgorithmHarness
+
         strategy_class = AlgorithmHarness.STRATEGY_MAP.get(args.strategy)
         if not strategy_class:
             print(f"Error: Unknown strategy '{args.strategy}'")
@@ -116,7 +117,7 @@ def run_debug_command(args: argparse.Namespace) -> int:
         wrapped_strategy = DebugStrategyWrapper(
             wrapped_strategy=base_strategy,
             breakpoint_manager=breakpoint_manager,
-            pause_callback=pause_callback
+            pause_callback=pause_callback,
         )
 
         # Give debugger access to strategy and problem
@@ -130,7 +131,7 @@ def run_debug_command(args: argparse.Namespace) -> int:
         debugger.cmdloop()
 
         # Handle trace output if specified
-        if hasattr(args, 'trace_output') and args.trace_output:
+        if hasattr(args, "trace_output") and args.trace_output:
             if trace_recorder.export_json(args.trace_output):
                 print(f"\n✓ Trace saved to {args.trace_output}")
             else:
@@ -152,42 +153,31 @@ def add_debug_subcommand(subparsers) -> None:
         subparsers: Subparsers object from main parser
     """
     debug_parser = subparsers.add_parser(
-        "debug",
-        help="Run interactive debugging session for a single problem"
+        "debug", help="Run interactive debugging session for a single problem"
     )
 
-    debug_parser.add_argument(
-        "--problem",
-        type=str,
-        required=True,
-        help="Problem ID to debug"
-    )
+    debug_parser.add_argument("--problem", type=str, required=True, help="Problem ID to debug")
 
     debug_parser.add_argument(
         "--strategy",
         type=str,
         required=True,
-        help="Strategy to use (e.g., vanilla, chain_of_thought, multi_round_feedback)"
+        help="Strategy to use (e.g., vanilla, chain_of_thought, multi_round_feedback)",
     )
 
     debug_parser.add_argument(
-        "--model",
-        type=str,
-        required=True,
-        help="Model name to use (e.g., gpt-4, gpt-3.5-turbo)"
+        "--model", type=str, required=True, help="Model name to use (e.g., gpt-4, gpt-3.5-turbo)"
     )
 
     debug_parser.add_argument(
-        "--trace-output",
-        type=str,
-        help="Path to save execution trace JSON (optional)"
+        "--trace-output", type=str, help="Path to save execution trace JSON (optional)"
     )
 
     debug_parser.add_argument(
         "--dataset",
         type=str,
         default="data/problems.json",
-        help="Path to problems dataset (default: data/problems.json)"
+        help="Path to problems dataset (default: data/problems.json)",
     )
 
     debug_parser.set_defaults(func=run_debug_command)

@@ -114,9 +114,7 @@ def _build_panel_data(comparison: dict[str, Any]) -> dict[str, Any]:
         ],
         "failure_mode_categories": [
             {"label": name, "count": entry.get("count", 0)}
-            for name, entry in (
-                comparison.get("failure_modes", {}).get("categories") or {}
-            ).items()
+            for name, entry in (comparison.get("failure_modes", {}).get("categories") or {}).items()
             if entry.get("count", 0)
         ],
         "capability": build_capability_map(comparison),

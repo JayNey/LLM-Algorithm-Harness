@@ -29,16 +29,16 @@ def sample_metrics() -> dict[str, dict]:
             "by_difficulty": {
                 "easy": {"total": 5, "solved": 5, "success_rate": 1.0},
                 "medium": {"total": 3, "solved": 2, "success_rate": 0.67},
-                "hard": {"total": 2, "solved": 1, "success_rate": 0.5}
-            }
+                "hard": {"total": 2, "solved": 1, "success_rate": 0.5},
+            },
         },
         "cot": {
             "total_problems": 10,
             "solved_problems": 5,
             "success_rate": 0.5,
             "avg_tokens_per_problem": 800.0,
-            "by_difficulty": {}
-        }
+            "by_difficulty": {},
+        },
     }
 
 
@@ -58,24 +58,28 @@ def sample_results() -> dict[str, list[ExecutionResult]]:
                 actual_output=[0],
                 expected_output=[0],
                 execution_time=0.01,
-                status="passed"
+                status="passed",
             )
         ],
         total_tokens=100,
-        execution_time_seconds=0.5
+        execution_time_seconds=0.5,
     )
 
     return {"direct": [result], "cot": [result]}
 
 
-def test_generate_creates_html_file(temp_html_path: str, sample_metrics: dict, sample_results: dict):
+def test_generate_creates_html_file(
+    temp_html_path: str, sample_metrics: dict, sample_results: dict
+):
     """Test that generate creates an HTML file."""
     HTMLGenerator.generate(sample_metrics, sample_results, temp_html_path)
 
     assert Path(temp_html_path).exists()
 
 
-def test_generate_valid_html5_structure(temp_html_path: str, sample_metrics: dict, sample_results: dict):
+def test_generate_valid_html5_structure(
+    temp_html_path: str, sample_metrics: dict, sample_results: dict
+):
     """Test that generated HTML has valid HTML5 structure."""
     content = HTMLGenerator.generate(sample_metrics, sample_results, temp_html_path)
 
@@ -88,7 +92,9 @@ def test_generate_valid_html5_structure(temp_html_path: str, sample_metrics: dic
     assert "</html>" in content
 
 
-def test_generate_contains_embedded_css(temp_html_path: str, sample_metrics: dict, sample_results: dict):
+def test_generate_contains_embedded_css(
+    temp_html_path: str, sample_metrics: dict, sample_results: dict
+):
     """Test that HTML contains embedded CSS with no external dependencies."""
     content = HTMLGenerator.generate(sample_metrics, sample_results, temp_html_path)
 
@@ -101,7 +107,9 @@ def test_generate_contains_embedded_css(temp_html_path: str, sample_metrics: dic
     assert "table" in content
 
 
-def test_generate_contains_embedded_js(temp_html_path: str, sample_metrics: dict, sample_results: dict):
+def test_generate_contains_embedded_js(
+    temp_html_path: str, sample_metrics: dict, sample_results: dict
+):
     """Test that HTML contains embedded JavaScript."""
     content = HTMLGenerator.generate(sample_metrics, sample_results, temp_html_path)
 
@@ -111,20 +119,14 @@ def test_generate_contains_embedded_js(temp_html_path: str, sample_metrics: dict
     assert "function sortTable" in content
 
 
-def test_generate_includes_metadata(temp_html_path: str, sample_metrics: dict, sample_results: dict):
+def test_generate_includes_metadata(
+    temp_html_path: str, sample_metrics: dict, sample_results: dict
+):
     """Test that HTML includes metadata section."""
-    config = {
-        "model": "gpt-4",
-        "temperature": 0.7,
-        "timeout": 30
-    }
+    config = {"model": "gpt-4", "temperature": 0.7, "timeout": 30}
 
     content = HTMLGenerator.generate(
-        sample_metrics,
-        sample_results,
-        temp_html_path,
-        include_charts=False,
-        config=config
+        sample_metrics, sample_results, temp_html_path, include_charts=False, config=config
     )
 
     assert "Generated:" in content
@@ -136,10 +138,7 @@ def test_generate_includes_metadata(temp_html_path: str, sample_metrics: dict, s
 def test_generate_strategy_cards(temp_html_path: str, sample_metrics: dict, sample_results: dict):
     """Test that strategy cards are generated."""
     content = HTMLGenerator.generate(
-        sample_metrics,
-        sample_results,
-        temp_html_path,
-        include_charts=False
+        sample_metrics, sample_results, temp_html_path, include_charts=False
     )
 
     assert "Strategy Overview" in content
@@ -149,13 +148,12 @@ def test_generate_strategy_cards(temp_html_path: str, sample_metrics: dict, samp
     assert "50.0% Success" in content
 
 
-def test_generate_badge_color_coding(temp_html_path: str, sample_metrics: dict, sample_results: dict):
+def test_generate_badge_color_coding(
+    temp_html_path: str, sample_metrics: dict, sample_results: dict
+):
     """Test that badges are color-coded based on success rate."""
     content = HTMLGenerator.generate(
-        sample_metrics,
-        sample_results,
-        temp_html_path,
-        include_charts=False
+        sample_metrics, sample_results, temp_html_path, include_charts=False
     )
 
     # 80% should get badge-success
@@ -164,13 +162,12 @@ def test_generate_badge_color_coding(temp_html_path: str, sample_metrics: dict, 
     assert "badge-warning" in content
 
 
-def test_generate_collapsible_details(temp_html_path: str, sample_metrics: dict, sample_results: dict):
+def test_generate_collapsible_details(
+    temp_html_path: str, sample_metrics: dict, sample_results: dict
+):
     """Test that collapsible detail sections are created."""
     content = HTMLGenerator.generate(
-        sample_metrics,
-        sample_results,
-        temp_html_path,
-        include_charts=False
+        sample_metrics, sample_results, temp_html_path, include_charts=False
     )
 
     assert "details-toggle" in content
@@ -182,10 +179,7 @@ def test_generate_collapsible_details(temp_html_path: str, sample_metrics: dict,
 def test_generate_with_charts(temp_html_path: str, sample_metrics: dict, sample_results: dict):
     """Test that charts are embedded as base64 when include_charts=True."""
     content = HTMLGenerator.generate(
-        sample_metrics,
-        sample_results,
-        temp_html_path,
-        include_charts=True
+        sample_metrics, sample_results, temp_html_path, include_charts=True
     )
 
     # Should contain base64 encoded images
@@ -196,23 +190,19 @@ def test_generate_with_charts(temp_html_path: str, sample_metrics: dict, sample_
 def test_generate_without_charts(temp_html_path: str, sample_metrics: dict, sample_results: dict):
     """Test generation without charts."""
     content = HTMLGenerator.generate(
-        sample_metrics,
-        sample_results,
-        temp_html_path,
-        include_charts=False
+        sample_metrics, sample_results, temp_html_path, include_charts=False
     )
 
     # Should not contain chart data
     assert "data:image/png;base64," not in content
 
 
-def test_generate_responsive_design(temp_html_path: str, sample_metrics: dict, sample_results: dict):
+def test_generate_responsive_design(
+    temp_html_path: str, sample_metrics: dict, sample_results: dict
+):
     """Test that HTML includes responsive design CSS."""
     content = HTMLGenerator.generate(
-        sample_metrics,
-        sample_results,
-        temp_html_path,
-        include_charts=False
+        sample_metrics, sample_results, temp_html_path, include_charts=False
     )
 
     # Check for media queries
@@ -220,9 +210,7 @@ def test_generate_responsive_design(temp_html_path: str, sample_metrics: dict, s
     assert "max-width" in content
 
 
-def test_generate_includes_formal_evaluation_summary(
-    temp_html_path: str, sample_results: dict
-):
+def test_generate_includes_formal_evaluation_summary(temp_html_path: str, sample_results: dict):
     """HTML reports show formal and sample-only counts."""
     metrics = {
         "direct": {
@@ -270,38 +258,31 @@ def test_generate_redacts_credentials_from_rendering_errors(
 def test_generate_footer(temp_html_path: str, sample_metrics: dict, sample_results: dict):
     """Test that footer is included."""
     content = HTMLGenerator.generate(
-        sample_metrics,
-        sample_results,
-        temp_html_path,
-        include_charts=False
+        sample_metrics, sample_results, temp_html_path, include_charts=False
     )
 
     assert "footer" in content
     assert "Generated by LLM Algorithm Harness" in content
 
 
-def test_generate_creates_parent_directories(tmp_path: Path, sample_metrics: dict, sample_results: dict):
+def test_generate_creates_parent_directories(
+    tmp_path: Path, sample_metrics: dict, sample_results: dict
+):
     """Test that generate creates parent directories if needed."""
     nested_path = tmp_path / "reports" / "subdir" / "report.html"
 
-    HTMLGenerator.generate(
-        sample_metrics,
-        sample_results,
-        str(nested_path),
-        include_charts=False
-    )
+    HTMLGenerator.generate(sample_metrics, sample_results, str(nested_path), include_charts=False)
 
     assert nested_path.exists()
     assert nested_path.parent.exists()
 
 
-def test_generate_difficulty_breakdown_in_details(temp_html_path: str, sample_metrics: dict, sample_results: dict):
+def test_generate_difficulty_breakdown_in_details(
+    temp_html_path: str, sample_metrics: dict, sample_results: dict
+):
     """Test that difficulty breakdown appears in detail sections."""
     content = HTMLGenerator.generate(
-        sample_metrics,
-        sample_results,
-        temp_html_path,
-        include_charts=False
+        sample_metrics, sample_results, temp_html_path, include_charts=False
     )
 
     assert "By Difficulty" in content
@@ -323,20 +304,18 @@ def test_generate_empty_metrics(temp_html_path: str):
 def test_generate_self_contained(temp_html_path: str, sample_metrics: dict, sample_results: dict):
     """Test that generated HTML is self-contained (no external resources)."""
     content = HTMLGenerator.generate(
-        sample_metrics,
-        sample_results,
-        temp_html_path,
-        include_charts=True
+        sample_metrics, sample_results, temp_html_path, include_charts=True
     )
 
     # Should not reference external CSS/JS/images
     assert 'href="http' not in content
     assert 'src="http' not in content
-    assert '<link' not in content  # No external stylesheets
+    assert "<link" not in content  # No external stylesheets
 
 
 def test_html_strategy_card_shows_failure_counts(temp_html_path: str):
     """Strategy cards report model and system failure counts."""
+
     def _result(pid: str, status: str, category) -> ExecutionResult:
         return ExecutionResult(
             problem_id=pid,
@@ -374,6 +353,7 @@ def test_html_strategy_card_shows_failure_counts(temp_html_path: str):
 
 def test_html_flat_result_list_counts_failures(temp_html_path: str):
     """A flat results list is filtered per strategy for failure counts."""
+
     def _result(pid: str, strategy: str, status: str, category) -> ExecutionResult:
         return ExecutionResult(
             problem_id=pid,

@@ -46,9 +46,9 @@ class DebugStrategyWrapper(StrategyBase):
 
         # Save original hook methods
         self._original_hooks = {
-            'generate': wrapped_strategy._before_generate,
-            'execute': wrapped_strategy._before_execute,
-            'feedback': wrapped_strategy._after_feedback,
+            "generate": wrapped_strategy._before_generate,
+            "execute": wrapped_strategy._before_execute,
+            "feedback": wrapped_strategy._after_feedback,
         }
 
         # Override wrapped strategy's hooks to point to our debugging hooks

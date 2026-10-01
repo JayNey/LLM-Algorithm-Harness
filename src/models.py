@@ -298,9 +298,7 @@ class IterationResult(BaseModel):
     response_text: str | None = Field(
         None, description="Raw model response text (redacted before persisting)"
     )
-    llm_error: str | None = Field(
-        None, description="Redacted model API error for this iteration"
-    )
+    llm_error: str | None = Field(None, description="Redacted model API error for this iteration")
     sandbox_error: str | None = Field(
         None, description="Redacted sandbox failure reason for this iteration"
     )
@@ -342,14 +340,36 @@ class ExecutionResult(BaseModel):
         True,
         description="False for a task-service placeholder when no execution result was recorded",
     )
-    failure_category: Literal["wrong_answer", "code_extraction_failed", "model_error", "system_error", "unsupported", "budget_exhausted"] | None = Field(
+    failure_category: (
+        Literal[
+            "wrong_answer",
+            "code_extraction_failed",
+            "model_error",
+            "system_error",
+            "unsupported",
+            "budget_exhausted",
+        ]
+        | None
+    ) = Field(
         None,
         description=(
             "Failure classification; None for successful runs. Kept separate "
             "from status so existing status consumers stay compatible"
         ),
     )
-    failure_mode: Literal["syntax_error", "logic_error", "timeout", "boundary_condition", "understanding_error", "runtime_error", "infrastructure_error", "unknown"] | None = Field(None, description="Evidence-based detailed failure mode for this completed result")
+    failure_mode: (
+        Literal[
+            "syntax_error",
+            "logic_error",
+            "timeout",
+            "boundary_condition",
+            "understanding_error",
+            "runtime_error",
+            "infrastructure_error",
+            "unknown",
+        ]
+        | None
+    ) = Field(None, description="Evidence-based detailed failure mode for this completed result")
     failure_mode_confidence: float | None = Field(
         None, ge=0.0, le=1.0, description="Rule confidence, not calibrated probability"
     )
@@ -547,9 +567,7 @@ class LLMConfig(BaseModel):
         le=600.0,
         description="Maximum wall-clock time spent retrying one request",
     )
-    cache: CacheConfig = Field(
-        default_factory=CacheConfig, description="Cache configuration"
-    )
+    cache: CacheConfig = Field(default_factory=CacheConfig, description="Cache configuration")
 
     @field_serializer("api_key", when_used="always")
     def serialize_api_key(self, value: SecretStr) -> str:
@@ -696,9 +714,20 @@ class CostAlertConfig(BaseModel):
         for endpoint in (self.slack_webhook_url, self.webhook_url):
             if endpoint is not None:
                 parsed = urlparse(endpoint.get_secret_value())
-                if parsed.scheme != "https" or not parsed.netloc or parsed.username or parsed.password:
+                if (
+                    parsed.scheme != "https"
+                    or not parsed.netloc
+                    or parsed.username
+                    or parsed.password
+                ):
                     raise ValueError("webhook URLs must be HTTPS URLs without embedded credentials")
-        smtp_fields = (self.smtp_host, self.smtp_username, self.smtp_password, self.smtp_from, self.smtp_to)
+        smtp_fields = (
+            self.smtp_host,
+            self.smtp_username,
+            self.smtp_password,
+            self.smtp_from,
+            self.smtp_to,
+        )
         if any(smtp_fields):
             if not self.smtp_host or not self.smtp_from or not self.smtp_to:
                 raise ValueError("SMTP delivery requires smtp_host, smtp_from and smtp_to")
@@ -708,7 +737,9 @@ class CostAlertConfig(BaseModel):
                 raise ValueError("SMTP authentication requires smtp_password")
             if self.smtp_username and not self.smtp_use_starttls:
                 raise ValueError("SMTP authentication requires STARTTLS")
-            if any("\r" in address or "\n" in address for address in [self.smtp_from, *self.smtp_to]):
+            if any(
+                "\r" in address or "\n" in address for address in [self.smtp_from, *self.smtp_to]
+            ):
                 raise ValueError("SMTP addresses must not contain line breaks")
         return self
 
@@ -770,11 +801,13 @@ class HarnessConfig(BaseModel):
                     f"budget_allocation amounts must be positive finite numbers: {difficulty}"
                 )
         return value
+
     cost_alerts: CostAlertConfig | None = Field(
         None, description="Thresholds and notification channels for run-level cost alerts"
     )
     enable_quality_analysis: bool = Field(
-        False, description="Enable code quality analysis (time/space complexity, readability, style)"
+        False,
+        description="Enable code quality analysis (time/space complexity, readability, style)",
     )
     quality_analysis_config: dict[str, bool] | None = Field(
         None,

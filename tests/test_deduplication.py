@@ -22,11 +22,11 @@ class TestSimilarityDetection:
         problems = [
             {
                 "title": "Two Sum",
-                "description": "Given an array of integers nums and an integer target, return indices of the two numbers such that they add up to target. You may assume that each input would have exactly one solution, and you may not use the same element twice."
+                "description": "Given an array of integers nums and an integer target, return indices of the two numbers such that they add up to target. You may assume that each input would have exactly one solution, and you may not use the same element twice.",
             },
             {
                 "title": "Two Sum",
-                "description": "Given an array of integers nums and an integer target, return indices of the two numbers such that they add up to target. You may assume that each input would have exactly one solution, and you may not use the same element twice."
+                "description": "Given an array of integers nums and an integer target, return indices of the two numbers such that they add up to target. You may assume that each input would have exactly one solution, and you may not use the same element twice.",
             },
         ]
 
@@ -48,11 +48,11 @@ class TestSimilarityDetection:
         problems = [
             {
                 "title": "Two Sum",
-                "description": "Given an array of integers, return indices of two numbers that add up to a target."
+                "description": "Given an array of integers, return indices of two numbers that add up to a target.",
             },
             {
                 "title": "Binary Tree Traversal",
-                "description": "Implement inorder, preorder, and postorder traversal of a binary tree."
+                "description": "Implement inorder, preorder, and postorder traversal of a binary tree.",
             },
         ]
 
@@ -183,4 +183,3 @@ class TestMergeStrategy:
         # 验证 merged_from 字段
         assert "merged_from" in merged
         assert merged["merged_from"] == ["p2"]
-

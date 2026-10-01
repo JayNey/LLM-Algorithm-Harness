@@ -32,11 +32,8 @@ def sample_execution_result() -> ExecutionResult:
                 completion_tokens=50,
                 code_extracted="def solution(): pass",
                 sandbox_result=SandboxResult(
-                    status="success",
-                    test_results=[],
-                    execution_time=0.1,
-                    all_passed=True
-                )
+                    status="success", test_results=[], execution_time=0.1, all_passed=True
+                ),
             )
         ],
         final_result=SandboxResult(
@@ -48,11 +45,11 @@ def sample_execution_result() -> ExecutionResult:
                     actual_output=[0, 1],
                     expected_output=[0, 1],
                     execution_time=0.01,
-                    status="passed"
+                    status="passed",
                 )
             ],
             execution_time=0.1,
-            all_passed=True
+            all_passed=True,
         ),
         test_results=[
             TestCaseResult(
@@ -61,11 +58,11 @@ def sample_execution_result() -> ExecutionResult:
                 actual_output=[0, 1],
                 expected_output=[0, 1],
                 execution_time=0.01,
-                status="passed"
+                status="passed",
             )
         ],
         total_tokens=150,
-        execution_time_seconds=0.5
+        execution_time_seconds=0.5,
     )
 
 
@@ -86,12 +83,12 @@ def sample_failed_result() -> ExecutionResult:
                 expected_output=[0, 1, 2],
                 execution_time=0.01,
                 status="failed",
-                error_message="Assertion failed"
+                error_message="Assertion failed",
             )
         ],
         error_message="Test failed",
         total_tokens=100,
-        execution_time_seconds=0.2
+        execution_time_seconds=0.2,
     )
 
 
@@ -101,16 +98,30 @@ def test_export_empty_list(temp_csv_path: str):
 
     assert Path(temp_csv_path).exists()
 
-    with open(temp_csv_path, encoding='utf-8-sig') as f:
+    with open(temp_csv_path, encoding="utf-8-sig") as f:
         reader = csv.DictReader(f)
         headers = reader.fieldnames
         rows = list(reader)
 
     expected_headers = [
-        "problem_id", "strategy", "status", "failure_category", "passed", "tokens",
-        "time", "iterations", "error_message", "total_tests",
-        "passed_tests", "failed_tests", "formal_evaluable", "formal_passed",
-        "sample_only", "hidden_total_tests", "hidden_passed_tests", "hidden_failed_tests"
+        "problem_id",
+        "strategy",
+        "status",
+        "failure_category",
+        "passed",
+        "tokens",
+        "time",
+        "iterations",
+        "error_message",
+        "total_tests",
+        "passed_tests",
+        "failed_tests",
+        "formal_evaluable",
+        "formal_passed",
+        "sample_only",
+        "hidden_total_tests",
+        "hidden_passed_tests",
+        "hidden_failed_tests",
     ]
     assert headers == expected_headers
     assert len(rows) == 0
@@ -123,24 +134,24 @@ def test_export_single_strategy(temp_csv_path: str, sample_execution_result: Exe
 
     assert Path(temp_csv_path).exists()
 
-    with open(temp_csv_path, encoding='utf-8-sig') as f:
+    with open(temp_csv_path, encoding="utf-8-sig") as f:
         reader = csv.DictReader(f)
         rows = list(reader)
 
     assert len(rows) == 1
     row = rows[0]
-    assert row['problem_id'] == 'two_sum'
-    assert row['strategy'] == 'direct'
-    assert row['status'] == 'success'
-    assert row['passed'] == 'True'
-    assert row['tokens'] == '150'
-    assert row['iterations'] == '1'
-    assert row['total_tests'] == '1'
-    assert row['passed_tests'] == '1'
-    assert row['failed_tests'] == '0'
-    assert row['formal_evaluable'] == 'False'
-    assert row['formal_passed'] == 'False'
-    assert row['sample_only'] == 'True'
+    assert row["problem_id"] == "two_sum"
+    assert row["strategy"] == "direct"
+    assert row["status"] == "success"
+    assert row["passed"] == "True"
+    assert row["tokens"] == "150"
+    assert row["iterations"] == "1"
+    assert row["total_tests"] == "1"
+    assert row["passed_tests"] == "1"
+    assert row["failed_tests"] == "0"
+    assert row["formal_evaluable"] == "False"
+    assert row["formal_passed"] == "False"
+    assert row["sample_only"] == "True"
 
 
 def test_export_includes_formal_hidden_evaluation_fields(temp_csv_path: str):
@@ -189,73 +200,72 @@ def test_export_includes_formal_hidden_evaluation_fields(temp_csv_path: str):
 def test_export_multiple_results(
     temp_csv_path: str,
     sample_execution_result: ExecutionResult,
-    sample_failed_result: ExecutionResult
+    sample_failed_result: ExecutionResult,
 ):
     """Test exporting multiple results."""
     results = [sample_execution_result, sample_failed_result]
     CSVExporter.export(results, temp_csv_path)
 
-    with open(temp_csv_path, encoding='utf-8-sig') as f:
+    with open(temp_csv_path, encoding="utf-8-sig") as f:
         reader = csv.DictReader(f)
         rows = list(reader)
 
     assert len(rows) == 2
-    assert rows[0]['status'] == 'success'
-    assert rows[1]['status'] == 'failed'
-    assert rows[1]['error_message'] == 'Test failed'
+    assert rows[0]["status"] == "success"
+    assert rows[1]["status"] == "failed"
+    assert rows[1]["error_message"] == "Test failed"
 
 
 def test_export_special_characters(temp_csv_path: str):
     """Test CSV escaping with special characters (commas, quotes, newlines)."""
     result = ExecutionResult(
-        problem_id='test,problem',
+        problem_id="test,problem",
         strategy='test"strategy',
-        generated_code='def solution():\n    pass',
+        generated_code="def solution():\n    pass",
         status="success",
         iterations=[],
         test_results=[],
         error_message='Error with "quotes" and,commas\nand newlines',
         total_tokens=100,
-        execution_time_seconds=0.1
+        execution_time_seconds=0.1,
     )
 
     CSVExporter.export([result], temp_csv_path)
 
-    with open(temp_csv_path, encoding='utf-8-sig') as f:
+    with open(temp_csv_path, encoding="utf-8-sig") as f:
         reader = csv.DictReader(f)
         rows = list(reader)
 
     assert len(rows) == 1
     row = rows[0]
-    assert row['problem_id'] == 'test,problem'
-    assert row['strategy'] == 'test"strategy'
-    assert 'quotes' in row['error_message']
-    assert 'commas' in row['error_message']
+    assert row["problem_id"] == "test,problem"
+    assert row["strategy"] == 'test"strategy'
+    assert "quotes" in row["error_message"]
+    assert "commas" in row["error_message"]
 
 
 def test_export_all_multiple_strategies(
     temp_csv_path: str,
     sample_execution_result: ExecutionResult,
-    sample_failed_result: ExecutionResult
+    sample_failed_result: ExecutionResult,
 ):
     """Test export_all merges multiple strategies correctly."""
-    results_dict = {
-        "strategy_a": [sample_execution_result],
-        "strategy_b": [sample_failed_result]
-    }
+    results_dict = {"strategy_a": [sample_execution_result], "strategy_b": [sample_failed_result]}
 
     CSVExporter.export_all(results_dict, temp_csv_path)
 
-    with open(temp_csv_path, encoding='utf-8-sig') as f:
+    with open(temp_csv_path, encoding="utf-8-sig") as f:
         reader = csv.DictReader(f)
         rows = list(reader)
 
     assert len(rows) == 2
-    strategies = {row['strategy'] for row in rows}
-    assert 'direct' in strategies
+    strategies = {row["strategy"] for row in rows}
+    assert "direct" in strategies
 
 
-def test_export_creates_parent_directories(tmp_path: Path, sample_execution_result: ExecutionResult):
+def test_export_creates_parent_directories(
+    tmp_path: Path, sample_execution_result: ExecutionResult
+):
     """Test export creates parent directories if they don't exist."""
     nested_path = tmp_path / "reports" / "subdir" / "test.csv"
     CSVExporter.export([sample_execution_result], str(nested_path))
@@ -269,11 +279,11 @@ def test_export_utf8_bom_encoding(temp_csv_path: str, sample_execution_result: E
     CSVExporter.export([sample_execution_result], temp_csv_path)
 
     # Read raw bytes to check BOM
-    with open(temp_csv_path, 'rb') as f:
+    with open(temp_csv_path, "rb") as f:
         first_bytes = f.read(3)
 
     # UTF-8 BOM is EF BB BF
-    assert first_bytes == b'\xef\xbb\xbf'
+    assert first_bytes == b"\xef\xbb\xbf"
 
 
 def test_export_redacts_credentials_in_errors(

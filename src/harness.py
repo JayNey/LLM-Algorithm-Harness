@@ -110,9 +110,7 @@ class AlgorithmHarness:
             Dict mapping strategy name to StrategyReport
         """
         if not self.config.strategies:
-            raise ValueError(
-                "No strategies configured; add at least one strategy to the config"
-            )
+            raise ValueError("No strategies configured; add at least one strategy to the config")
         if (
             self.config.budget_cap_usd is not None
             or self.config.cost_alerts is not None
@@ -232,7 +230,9 @@ class AlgorithmHarness:
                     for problem in problems
                 ]
             if len({unit.unit_id for unit in units}) != len(units):
-                raise ValueError("Duplicate strategy/problem task unit; use unique strategy names and problem IDs")
+                raise ValueError(
+                    "Duplicate strategy/problem task unit; use unique strategy names and problem IDs"
+                )
             record = service.create(
                 units=units,
                 config_fingerprint=config_fingerprint,
@@ -308,10 +308,11 @@ class AlgorithmHarness:
                     if completed > 0:
                         # Collect results so far to calculate success rate
                         success_count = sum(
-                            1 for r in self.results.get(unit.strategy, [])
-                            if r.status == "success"
+                            1 for r in self.results.get(unit.strategy, []) if r.status == "success"
                         )
-                        success_rate = f"{success_count}/{completed} ({success_count/completed*100:.1f}%)"
+                        success_rate = (
+                            f"{success_count}/{completed} ({success_count/completed*100:.1f}%)"
+                        )
                         progress.update(progress_task_id, success_rate=success_rate)
 
             return result
@@ -355,9 +356,7 @@ class AlgorithmHarness:
         # Start progress bar
         with progress:
             progress_task_id = progress.add_task(
-                "Evaluating problems...",
-                total=total_units,
-                success_rate="0/0 (0.0%)"
+                "Evaluating problems...", total=total_units, success_rate="0/0 (0.0%)"
             )
 
             self.task_record = service.run(
@@ -369,7 +368,8 @@ class AlgorithmHarness:
                 resume=resume,
                 pause_when=(
                     (lambda _: monitor.over_cap)
-                    if budget_action == "auto_stop" and monitor is not None else None
+                    if budget_action == "auto_stop" and monitor is not None
+                    else None
                 ),
                 on_unit_finished=settle_unit if monitor is not None else None,
             )
@@ -381,7 +381,8 @@ class AlgorithmHarness:
                 self.problem_totals["cost_aware"] = len(problems)
             reported_ids = (
                 {unit.problem_id for unit in self.task_record.units if unit.status != "queued"}
-                if self.task_record.state == "paused" else {problem.problem_id for problem in problems}
+                if self.task_record.state == "paused"
+                else {problem.problem_id for problem in problems}
             )
             report = self._generate_report(
                 StrategyConfig(name="cost_aware"),
@@ -422,11 +423,13 @@ class AlgorithmHarness:
                             else "error"
                         ),
                         failure_category=(
-                            None if self.task_record.state == "paused" and unit.status == "queued"
+                            None
+                            if self.task_record.state == "paused" and unit.status == "queued"
                             else "system_error"
                         ),
                         difficulty=problem.difficulty,
-                        error_message=unit.error or (
+                        error_message=unit.error
+                        or (
                             "Not run: budget cap reached"
                             if self.task_record.state == "paused" and unit.status == "queued"
                             else "Task unit did not produce a result"
@@ -439,10 +442,12 @@ class AlgorithmHarness:
                 self.problem_totals[strategy_config.name] = len(problems)
             reported_ids = (
                 {
-                    unit.problem_id for unit in self.task_record.units
+                    unit.problem_id
+                    for unit in self.task_record.units
                     if unit.strategy == strategy_config.name and unit.status != "queued"
                 }
-                if self.task_record.state == "paused" else {problem.problem_id for problem in problems}
+                if self.task_record.state == "paused"
+                else {problem.problem_id for problem in problems}
             )
             reports[strategy_config.name] = self._generate_report(
                 strategy_config,
@@ -470,16 +475,12 @@ class AlgorithmHarness:
         for event in events:
             logger.warning("cost_alert", **event)
 
-    def _cost_aware_selector(
-        self, problems: list[Problem]
-    ) -> CostAwareSelector | None:
+    def _cost_aware_selector(self, problems: list[Problem]) -> CostAwareSelector | None:
         """Build the difficulty selector when configured; validate coverage."""
         mapping = self.config.difficulty_strategy
         if not mapping:
             return None
-        selector = CostAwareSelector(
-            mapping, allowed_strategies=list(self.STRATEGY_MAP)
-        )
+        selector = CostAwareSelector(mapping, allowed_strategies=list(self.STRATEGY_MAP))
         selector.validate_coverage(problem.difficulty for problem in problems)
         missing = sorted(
             set(mapping.values()) - {strategy.name for strategy in self.config.strategies}
@@ -501,37 +502,50 @@ class AlgorithmHarness:
         for problem in problems:
             unit = unit_by_problem.get(problem.problem_id)
             if unit is not None and unit.result is not None:
-                results.append(self._annotate_failure_mode(
-                    ExecutionResult.model_validate(unit.result),
-                    self.problems_by_id[problem.problem_id],
-                ))
+                results.append(
+                    self._annotate_failure_mode(
+                        ExecutionResult.model_validate(unit.result),
+                        self.problems_by_id[problem.problem_id],
+                    )
+                )
                 continue
             results.append(
-                self._annotate_failure_mode(ExecutionResult(
-                    problem_id=problem.problem_id,
-                    strategy=selector.select(problem.difficulty),
-                    generated_code="",
-                    evaluation_completed=False,
-                    status=(
-                        "cancelled"
-                        if (unit is not None and unit.status == "cancelled")
-                        or (self.task_record.state == "paused" and unit is not None
-                            and unit.status == "queued")
-                        else "error"
+                self._annotate_failure_mode(
+                    ExecutionResult(
+                        problem_id=problem.problem_id,
+                        strategy=selector.select(problem.difficulty),
+                        generated_code="",
+                        evaluation_completed=False,
+                        status=(
+                            "cancelled"
+                            if (unit is not None and unit.status == "cancelled")
+                            or (
+                                self.task_record.state == "paused"
+                                and unit is not None
+                                and unit.status == "queued"
+                            )
+                            else "error"
+                        ),
+                        failure_category=(
+                            None
+                            if self.task_record.state == "paused"
+                            and unit is not None
+                            and unit.status == "queued"
+                            else "system_error"
+                        ),
+                        difficulty=problem.difficulty,
+                        error_message=(unit.error if unit is not None else None)
+                        or (
+                            "Not run: budget cap reached"
+                            if self.task_record.state == "paused"
+                            and unit is not None
+                            and unit.status == "queued"
+                            else "Task unit did not produce a result"
+                        ),
+                        formal_evaluable=problem.formal_evaluable,
                     ),
-                    failure_category=(
-                        None if self.task_record.state == "paused" and unit is not None
-                        and unit.status == "queued" else "system_error"
-                    ),
-                    difficulty=problem.difficulty,
-                    error_message=(unit.error if unit is not None else None)
-                    or (
-                        "Not run: budget cap reached"
-                        if self.task_record.state == "paused" and unit is not None
-                        and unit.status == "queued" else "Task unit did not produce a result"
-                    ),
-                    formal_evaluable=problem.formal_evaluable,
-                ), problem)
+                    problem,
+                )
             )
         return results
 
@@ -547,9 +561,7 @@ class AlgorithmHarness:
 
         # Apply filters
         if self.config.problem_filters:
-            problems = self.problem_loader.filter_problems(
-                problems, **self.config.problem_filters
-            )
+            problems = self.problem_loader.filter_problems(problems, **self.config.problem_filters)
             if not problems:
                 raise ValueError("No problems match the configured filters")
 
@@ -582,9 +594,7 @@ class AlgorithmHarness:
             if self.budget_tracker is not None:
                 self.budget_tracker.begin_problem(problem.problem_id)
             try:
-                results.append(
-                    self._execute_problem(strategy_config, problem, strategy, sandbox)
-                )
+                results.append(self._execute_problem(strategy_config, problem, strategy, sandbox))
             except BudgetExhausted as exc:
                 # Budget stop is not a model or system failure: record a
                 # terminal, category-free marker so the denominator stays
@@ -658,9 +668,7 @@ class AlgorithmHarness:
             # Analyze code quality if analyzer is enabled
             if self.quality_analyzer and result.generated_code:
                 try:
-                    quality_metrics = self.quality_analyzer.analyze(
-                        result.generated_code, problem
-                    )
+                    quality_metrics = self.quality_analyzer.analyze(result.generated_code, problem)
                     result.quality_metrics = quality_metrics.model_dump()
                 except Exception as e:
                     logger.warning("quality_analysis_failed", error=str(e))
@@ -700,23 +708,28 @@ class AlgorithmHarness:
                 problem=problem.problem_id,
                 error=redacted_error,
             )
-            return self._annotate_failure_mode(ExecutionResult(
-                problem_id=problem.problem_id,
-                strategy=strategy_config.name,
-                generated_code="",
-                status="error",
-                failure_category="system_error",
-                difficulty=problem.difficulty,
-                error_message=redacted_error,
-                formal_evaluable=problem.formal_evaluable,
-            ), problem)
+            return self._annotate_failure_mode(
+                ExecutionResult(
+                    problem_id=problem.problem_id,
+                    strategy=strategy_config.name,
+                    generated_code="",
+                    status="error",
+                    failure_category="system_error",
+                    difficulty=problem.difficulty,
+                    error_message=redacted_error,
+                    formal_evaluable=problem.formal_evaluable,
+                ),
+                problem,
+            )
 
     @staticmethod
     def _annotate_failure_mode(result: ExecutionResult, problem: Problem) -> ExecutionResult:
         """Store a detailed, auditable mode without changing the coarse failure category."""
-        if not result.evaluation_completed or result.failure_mode is not None or result.status in {
-            "success", "budget_exhausted", "unsupported", "cancelled"
-        }:
+        if (
+            not result.evaluation_completed
+            or result.failure_mode is not None
+            or result.status in {"success", "budget_exhausted", "unsupported", "cancelled"}
+        ):
             return result
         try:
             decision = classify_failure_mode(
@@ -867,8 +880,12 @@ class AlgorithmHarness:
                                 "completion_price_per_1k": pm.get("completion_price_per_1k"),
                             }
 
-                        pricing_metadata["models_used"][model]["prompt_tokens"] += trace.get("prompt_tokens", 0)
-                        pricing_metadata["models_used"][model]["completion_tokens"] += trace.get("completion_tokens", 0)
+                        pricing_metadata["models_used"][model]["prompt_tokens"] += trace.get(
+                            "prompt_tokens", 0
+                        )
+                        pricing_metadata["models_used"][model]["completion_tokens"] += trace.get(
+                            "completion_tokens", 0
+                        )
                         if trace_cost is not None and pm.get("usage_known") is not False:
                             pricing_metadata["models_used"][model]["total_cost"] += trace_cost
                         if trace_cost is None or pm.get("usage_known") is False:

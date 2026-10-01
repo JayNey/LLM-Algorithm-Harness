@@ -89,7 +89,10 @@ class TaskStore:
 
     def path_for(self, run_id: str) -> Path:
         if (
-            not run_id or Path(run_id).name != run_id or "/" in run_id or "\\" in run_id
+            not run_id
+            or Path(run_id).name != run_id
+            or "/" in run_id
+            or "\\" in run_id
             or any(ord(character) < 32 or ord(character) == 127 for character in run_id)
         ):
             raise ValueError("Invalid run_id")
@@ -157,9 +160,7 @@ class TaskService:
         if hasattr(api_key, "get_secret_value"):
             raw_key = api_key.get_secret_value()
             payload = dict(payload)
-            payload["llm_api_key_fingerprint"] = hashlib.sha256(
-                raw_key.encode("utf-8")
-            ).hexdigest()
+            payload["llm_api_key_fingerprint"] = hashlib.sha256(raw_key.encode("utf-8")).hexdigest()
         cost_alerts = getattr(config, "cost_alerts", None)
         if cost_alerts is not None:
             secret_hashes = {}
@@ -309,10 +310,14 @@ class TaskService:
                 if cancel_event.is_set() or record.cancel_requested or persisted_cancel:
                     record.cancel_requested = True
                     for unit in queue:
-                        self._mark_cancelled(record, unit, uncertain=False, message="Not dispatched")
+                        self._mark_cancelled(
+                            record, unit, uncertain=False, message="Not dispatched"
+                        )
                     queue.clear()
                     for unit in pending.values():
-                        self._mark_cancelled(record, unit, uncertain=True, message="In-flight request uncertain")
+                        self._mark_cancelled(
+                            record, unit, uncertain=True, message="In-flight request uncertain"
+                        )
                     pending.clear()
                     record.state = "cancelled"
                     record.updated_at = _now()
@@ -334,8 +339,10 @@ class TaskService:
                     return record
 
                 while (
-                    queue and len(pending) < max_workers
-                    and not cancel_event.is_set() and not pause_requested
+                    queue
+                    and len(pending) < max_workers
+                    and not cancel_event.is_set()
+                    and not pause_requested
                 ):
                     if self.store.load(run_id).cancel_requested:
                         break
@@ -370,14 +377,20 @@ class TaskService:
                         self._append_event(record, "unit_failed", unit=unit, message=unit.error)
                     unit.finished_at = _now()
                     record.completed_units = sum(
-                        1 for candidate in record.units if candidate.status in {"completed", "failed"}
+                        1
+                        for candidate in record.units
+                        if candidate.status in {"completed", "failed"}
                     )
                     record.updated_at = _now()
                     self._save_with_external_events(record)
                     if on_unit_finished is not None:
                         on_unit_finished(record, unit)
 
-            record.state = "completed" if all(unit.status == "completed" for unit in record.units) else "failed"
+            record.state = (
+                "completed"
+                if all(unit.status == "completed" for unit in record.units)
+                else "failed"
+            )
             record.completed_units = sum(
                 1 for unit in record.units if unit.status in {"completed", "failed"}
             )

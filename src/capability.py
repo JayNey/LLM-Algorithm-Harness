@@ -33,9 +33,21 @@ def build_capability_map(comparison: dict[str, Any]) -> dict[str, Any]:
 
     models = {}
     for model, entries in by_model.items():
-        formal = [item["formal"]["rate"] for item in entries if item.get("formal", {}).get("rate") is not None]
-        sample = [item["sample_validation"]["rate"] for item in entries if item.get("sample_validation", {}).get("rate") is not None]
-        repair = [item["fix_rate"]["rate"] for item in entries if item.get("fix_rate", {}).get("rate") is not None]
+        formal = [
+            item["formal"]["rate"]
+            for item in entries
+            if item.get("formal", {}).get("rate") is not None
+        ]
+        sample = [
+            item["sample_validation"]["rate"]
+            for item in entries
+            if item.get("sample_validation", {}).get("rate") is not None
+        ]
+        repair = [
+            item["fix_rate"]["rate"]
+            for item in entries
+            if item.get("fix_rate", {}).get("rate") is not None
+        ]
         efficiency = []
         for item in entries:
             rate = item.get("formal", {}).get("rate")

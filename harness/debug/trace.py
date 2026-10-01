@@ -78,10 +78,12 @@ class TraceRecorder:
             details: Details of the intervention
         """
         if self._current_round:
-            self._current_round.user_interventions.append({
-                "type": intervention_type,
-                "details": details,
-            })
+            self._current_round.user_interventions.append(
+                {
+                    "type": intervention_type,
+                    "details": details,
+                }
+            )
 
     def complete_round(self, status: str) -> None:
         """
@@ -151,9 +153,7 @@ class TraceRecorder:
         Returns:
             Formatted round details string
         """
-        round_trace = next(
-            (r for r in self.rounds if r.round == round_number), None
-        )
+        round_trace = next((r for r in self.rounds if r.round == round_number), None)
 
         if not round_trace:
             return f"Round {round_number} not found."
@@ -170,7 +170,9 @@ class TraceRecorder:
 
         if round_trace.response:
             lines.append("--- Response ---")
-            lines.append(round_trace.response[:500] + ("..." if len(round_trace.response) > 500 else ""))
+            lines.append(
+                round_trace.response[:500] + ("..." if len(round_trace.response) > 500 else "")
+            )
             lines.append("")
 
         if round_trace.code:

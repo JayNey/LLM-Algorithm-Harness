@@ -21,21 +21,23 @@ from src.models import (
 def test_run_persists_failure_modes_and_tag_report(tmp_path, monkeypatch):
     dataset = tmp_path / "problems.json"
     dataset.write_text(
-        json.dumps([
-            {
-                "problem_id": key,
-                "title": key,
-                "description": "Return the required answer for this labeled problem.",
-                "difficulty": "easy",
-                "tags": tags,
-                "test_cases": [{"input": {"x": 2}, "expected_output": 3}],
-            }
-            for key, tags in [
-                ("syntax", ["arrays"]),
-                ("logic", ["arrays", "dp"]),
-                ("timeout", ["dp"]),
+        json.dumps(
+            [
+                {
+                    "problem_id": key,
+                    "title": key,
+                    "description": "Return the required answer for this labeled problem.",
+                    "difficulty": "easy",
+                    "tags": tags,
+                    "test_cases": [{"input": {"x": 2}, "expected_output": 3}],
+                }
+                for key, tags in [
+                    ("syntax", ["arrays"]),
+                    ("logic", ["arrays", "dp"]),
+                    ("timeout", ["dp"]),
+                ]
             ]
-        ]),
+        ),
         encoding="utf-8",
     )
 
@@ -51,14 +53,18 @@ def test_run_persists_failure_modes_and_tag_report(tmp_path, monkeypatch):
             sandbox = SandboxResult(
                 status="timeout" if status == "timeout" else "failed",
                 all_passed=False,
-                test_results=[CaseResult(
-                    test_case_index=0,
-                    passed=False,
-                    status=status,
-                    expected_output=3,
-                    actual_output=None if status != "wrong_answer" else 4,
-                    error_message="SyntaxError: invalid syntax" if status == "syntax_error" else None,
-                )],
+                test_results=[
+                    CaseResult(
+                        test_case_index=0,
+                        passed=False,
+                        status=status,
+                        expected_output=3,
+                        actual_output=None if status != "wrong_answer" else 4,
+                        error_message=(
+                            "SyntaxError: invalid syntax" if status == "syntax_error" else None
+                        ),
+                    )
+                ],
             )
             return ExecutionResult(
                 problem_id=problem.problem_id,
@@ -90,7 +96,9 @@ def test_run_persists_failure_modes_and_tag_report(tmp_path, monkeypatch):
     assert [row["failure_mode"] for row in results] == ["syntax_error", "logic_error", "timeout"]
     assert all(row["failure_mode_evidence"] for row in results)
     assert [unit.result["failure_mode"] for unit in harness.task_record.units] == [
-        "syntax_error", "logic_error", "timeout"
+        "syntax_error",
+        "logic_error",
+        "timeout",
     ]
 
     summary = json.loads((run_dir / "failure_mode_summary.json").read_text())
@@ -104,19 +112,28 @@ def test_run_persists_failure_modes_and_tag_report(tmp_path, monkeypatch):
 
 def test_failed_task_unit_is_exported_but_excluded_from_mode_denominator(tmp_path, monkeypatch):
     dataset = tmp_path / "problems.json"
-    dataset.write_text(json.dumps([{
-        "problem_id": "p1",
-        "title": "P1",
-        "description": "Return the required answer for this test problem.",
-        "difficulty": "easy",
-        "tags": ["arrays"],
-        "test_cases": [{"input": {"x": 2}, "expected_output": 3}],
-    }]), encoding="utf-8")
+    dataset.write_text(
+        json.dumps(
+            [
+                {
+                    "problem_id": "p1",
+                    "title": "P1",
+                    "description": "Return the required answer for this test problem.",
+                    "difficulty": "easy",
+                    "tags": ["arrays"],
+                    "test_cases": [{"input": {"x": 2}, "expected_output": 3}],
+                }
+            ]
+        ),
+        encoding="utf-8",
+    )
     config = HarnessConfig(
-        dataset_path=str(dataset), output_dir=str(tmp_path / "results"),
+        dataset_path=str(dataset),
+        output_dir=str(tmp_path / "results"),
         llm_config=LLMConfig(provider="openai", api_key="test", model="test"),
         sandbox_config=SandboxConfig(backend="host"),
-        strategies=[StrategyConfig(name="vanilla")], max_workers=1,
+        strategies=[StrategyConfig(name="vanilla")],
+        max_workers=1,
     )
     monkeypatch.setattr(AlgorithmHarness, "_prepare_strategy_runtime", lambda *_: (Mock(), Mock()))
 
@@ -130,7 +147,9 @@ def test_failed_task_unit_is_exported_but_excluded_from_mode_denominator(tmp_pat
     rows = json.loads((tmp_path / "results" / "failed-unit" / "vanilla_results.json").read_text())
     assert rows[0]["evaluation_completed"] is False
     assert rows[0]["failure_mode"] is None
-    summary = json.loads((tmp_path / "results" / "failed-unit" / "failure_mode_summary.json").read_text())
+    summary = json.loads(
+        (tmp_path / "results" / "failed-unit" / "failure_mode_summary.json").read_text()
+    )
     assert summary["overall"]["total_evaluated"] == 0
     assert summary["overall"]["total_failures"] == 0
     assert harness.task_record.state == "failed"

@@ -498,8 +498,6 @@ def test_runner_respects_problem_filters(tmp_path):
 # ============================================================================
 
 
-
-
 def _report_dataset(tmp_path):
     """exp-1 has hidden cases (formal); exp-2 is sample-only."""
     dataset = tmp_path / "problems.json"

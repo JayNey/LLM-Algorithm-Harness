@@ -81,21 +81,32 @@ class CostAlertManager:
         ):
             raise ValueError("Cost alert state is invalid or belongs to another run")
         for threshold, channels in state["delivered"].items():
-            if not str(threshold).isdigit() or not isinstance(channels, list) or any(
-                channel not in {"slack", "webhook", "smtp", "log"} for channel in channels
+            if (
+                not str(threshold).isdigit()
+                or not isinstance(channels, list)
+                or any(channel not in {"slack", "webhook", "smtp", "log"} for channel in channels)
             ):
                 raise ValueError("Cost alert state has invalid delivery entries")
         for threshold, channels in state["failed"].items():
-            if not str(threshold).isdigit() or not isinstance(channels, dict) or any(
-                channel not in {"slack", "webhook", "smtp"}
-                or not isinstance(detail, dict)
-                or type(detail.get("attempts")) is not int
-                or detail["attempts"] < 1
-                or detail.get("error_type") not in {
-                    "http_error", "network_error", "request_error", "smtp_error", "delivery_error"
-                }
-                and not str(detail.get("error_type", "")).startswith("http_status_")
-                for channel, detail in channels.items()
+            if (
+                not str(threshold).isdigit()
+                or not isinstance(channels, dict)
+                or any(
+                    channel not in {"slack", "webhook", "smtp"}
+                    or not isinstance(detail, dict)
+                    or type(detail.get("attempts")) is not int
+                    or detail["attempts"] < 1
+                    or detail.get("error_type")
+                    not in {
+                        "http_error",
+                        "network_error",
+                        "request_error",
+                        "smtp_error",
+                        "delivery_error",
+                    }
+                    and not str(detail.get("error_type", "")).startswith("http_status_")
+                    for channel, detail in channels.items()
+                )
             ):
                 raise ValueError("Cost alert state has invalid failure entries")
         return state
@@ -280,7 +291,9 @@ class CostAlertManager:
                         "run_id": self.run_id,
                         "threshold_percent": threshold,
                         "channel": channel,
-                        "status": "triggered" if channel == "log" else "sent" if successful else "failed",
+                        "status": (
+                            "triggered" if channel == "log" else "sent" if successful else "failed"
+                        ),
                         "accumulated_cost_usd": payload["accumulated_cost_usd"],
                         "budget_cap_usd": payload["budget_cap_usd"],
                         "unknown_usage_results": unknown_usage_results,

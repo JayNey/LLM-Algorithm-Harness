@@ -55,9 +55,9 @@ def _write_config(tmp_path, dataset, strategies=None):
             "timeout": 30,
         },
         "sandbox_config": {"backend": "host"},
-        "strategies": strategies
-        if strategies is not None
-        else [{"name": "vanilla", "max_iterations": 1}],
+        "strategies": (
+            strategies if strategies is not None else [{"name": "vanilla", "max_iterations": 1}]
+        ),
     }
     config.write_text(json.dumps(payload), encoding="utf-8")
     return config
@@ -111,9 +111,7 @@ def test_run_without_strategies_raises(tmp_path):
     config = HarnessConfig(
         dataset_path=str(dataset),
         output_dir=str(tmp_path / "results"),
-        llm_config=LLMConfig(
-            provider="openai", api_key="offline-test-key", model="fixed-double"
-        ),
+        llm_config=LLMConfig(provider="openai", api_key="offline-test-key", model="fixed-double"),
         sandbox_config=SandboxConfig(backend="host"),
         strategies=[],
     )
@@ -198,10 +196,14 @@ def test_bad_config_fails_without_output_dir(tmp_path):
     bad_config = tmp_path / "bad.json"
     bad_config.write_text("{ this is not json", encoding="utf-8")
 
-    exit_code = _run_main([
-        "--config", str(bad_config),
-        "--output", str(tmp_path / "results"),
-    ])
+    exit_code = _run_main(
+        [
+            "--config",
+            str(bad_config),
+            "--output",
+            str(tmp_path / "results"),
+        ]
+    )
 
     assert exit_code == 1
     assert not (tmp_path / "results").exists()
@@ -248,9 +250,12 @@ def test_online_verification_skips_without_credentials():
     env.pop("SILICONFLOW_API_KEY", None)
     result = subprocess.run(
         [
-            sys.executable, "-m", "pytest",
+            sys.executable,
+            "-m",
+            "pytest",
             "tests/test_online_verification.py",
-            "-q", "--no-cov",
+            "-q",
+            "--no-cov",
         ],
         capture_output=True,
         text=True,
@@ -270,11 +275,16 @@ def test_missing_dataset_flag_reports_error(tmp_path, capsys):
     from src.main import main
 
     exit_code = 0
-    with patch("sys.argv", [
-        "main.py",
-        "--dataset", str(missing),
-        "--output", str(tmp_path / "results"),
-    ]):
+    with patch(
+        "sys.argv",
+        [
+            "main.py",
+            "--dataset",
+            str(missing),
+            "--output",
+            str(tmp_path / "results"),
+        ],
+    ):
         try:
             main()
         except SystemExit as exc:

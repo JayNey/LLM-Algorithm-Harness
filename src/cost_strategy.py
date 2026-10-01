@@ -163,7 +163,9 @@ class RunCostMonitor:
         """Point-in-time view for logs and the run summary."""
         with self._lock:
             return {
-                "budget_cap_usd": float(self.budget_cap_usd) if self.budget_cap_usd is not None else None,
+                "budget_cap_usd": (
+                    float(self.budget_cap_usd) if self.budget_cap_usd is not None else None
+                ),
                 "accumulated_cost_usd": float(round(self._accumulated_cost, 6)),
                 "unknown_usage_results": self._unknown_usage_results,
                 "downgraded_problems": self._downgraded_count,

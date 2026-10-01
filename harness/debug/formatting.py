@@ -2,12 +2,12 @@
 Formatting utilities for interactive debugging output.
 """
 
-
 # Try to import pygments for syntax highlighting
 try:
     from pygments import highlight
     from pygments.formatters import TerminalFormatter
     from pygments.lexers import PythonLexer
+
     PYGMENTS_AVAILABLE = True
 except ImportError:
     PYGMENTS_AVAILABLE = False
@@ -158,19 +158,15 @@ def format_iteration_display(
         lines.append(format_section("Prompt", format_prompt(prompt, max_lines=10)))
 
     if response:
-        lines.append(format_section(
-            "LLM Response",
-            response[:300] + ("..." if len(response) > 300 else "")
-        ))
+        lines.append(
+            format_section("LLM Response", response[:300] + ("..." if len(response) > 300 else ""))
+        )
 
     if code:
         lines.append(format_section("Generated Code", format_code(code)))
 
     if execution_result:
-        lines.append(format_section(
-            "Execution Result",
-            format_execution_result(execution_result)
-        ))
+        lines.append(format_section("Execution Result", format_execution_result(execution_result)))
 
     if feedback:
         lines.append(format_section("Feedback", format_feedback(feedback)))

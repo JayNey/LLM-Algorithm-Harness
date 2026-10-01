@@ -48,20 +48,14 @@ def _edit_with_external_editor(prompt: str, editor: str) -> str | None:
     """
     # Create temporary file with current prompt
     with tempfile.NamedTemporaryFile(
-        mode="w",
-        suffix=".txt",
-        delete=False,
-        encoding="utf-8"
+        mode="w", suffix=".txt", delete=False, encoding="utf-8"
     ) as tmp_file:
         tmp_file.write(prompt)
         tmp_path = tmp_file.name
 
     try:
         # Open editor
-        result = subprocess.run(
-            [editor, tmp_path],
-            check=False
-        )
+        result = subprocess.run([editor, tmp_path], check=False)
 
         if result.returncode != 0:
             print(f"Editor exited with code {result.returncode}")

@@ -92,10 +92,7 @@ def test_function_result_channel_uses_trusted_serializer(sandbox_config):
     result = SandboxExecutor(
         sandbox_config.model_copy(update={"allowed_imports": ["json"]})
     ).execute(
-        "import json\n"
-        "json.dumps = lambda value: '0'\n"
-        "def solution():\n"
-        "    return 1",
+        "import json\n" "json.dumps = lambda value: '0'\n" "def solution():\n" "    return 1",
         problem,
     )
 
@@ -188,9 +185,7 @@ def test_function_judge_exact_and_nested_float_tolerance(sandbox_executor):
         description="A problem that compares nested floating point values.",
         difficulty="easy",
         judge_config={"comparison": "float_tolerance", "float_tolerance": 1e-5},
-        test_cases=[
-            {"input": {}, "expected_output": {"values": [1.0, 2.0]}}
-        ],
+        test_cases=[{"input": {}, "expected_output": {"values": [1.0, 2.0]}}],
     )
     tolerant_result = sandbox_executor.execute(
         "def solution():\n    return {'values': [1.000001, 2.0]}",
@@ -208,7 +203,10 @@ def test_unordered_comparison_does_not_relax_exact_mode(sandbox_executor):
         difficulty="easy",
         test_cases=[{"input": {}, "expected_output": [1, 2]}],
     )
-    assert sandbox_executor.execute("def solution():\n    return [2, 1]", exact_problem).all_passed is False
+    assert (
+        sandbox_executor.execute("def solution():\n    return [2, 1]", exact_problem).all_passed
+        is False
+    )
 
     unordered_problem = Problem(
         problem_id="unordered",
@@ -218,7 +216,10 @@ def test_unordered_comparison_does_not_relax_exact_mode(sandbox_executor):
         judge_config={"comparison": "unordered"},
         test_cases=[{"input": {}, "expected_output": [1, 2]}],
     )
-    assert sandbox_executor.execute("def solution():\n    return [2, 1]", unordered_problem).all_passed is True
+    assert (
+        sandbox_executor.execute("def solution():\n    return [2, 1]", unordered_problem).all_passed
+        is True
+    )
 
 
 def test_leetcode_method_entry_point_adapter(sandbox_executor):
@@ -230,9 +231,7 @@ def test_leetcode_method_entry_point_adapter(sandbox_executor):
         difficulty="easy",
         source_platform="leetcode",
         entry_point="Solution.twoSum(nums, target)",
-        test_cases=[
-            {"input": {"nums": [2, 7], "target": 9}, "expected_output": [0, 1]}
-        ],
+        test_cases=[{"input": {"nums": [2, 7], "target": 9}, "expected_output": [0, 1]}],
     )
 
     result = sandbox_executor.execute(
@@ -558,9 +557,7 @@ def _probe_success_result():
 
     return SandboxResult(
         status="success",
-        test_results=[
-            TestCaseResult(test_case_index=0, passed=True, status="passed")
-        ],
+        test_results=[TestCaseResult(test_case_index=0, passed=True, status="passed")],
         all_passed=True,
     )
 
@@ -586,8 +583,10 @@ def _probe_backend_failure_result():
 def test_health_check_reports_docker_unavailable():
     """Docker backend down -> (False, actionable message)."""
     executor = SandboxExecutor(SandboxConfig(backend="docker"))
-    with patch.object(executor, "_docker_available", return_value=False), \
-         patch.object(executor, "execute") as mock_execute:
+    with (
+        patch.object(executor, "_docker_available", return_value=False),
+        patch.object(executor, "execute") as mock_execute,
+    ):
         ok, detail = executor.health_check()
 
     assert ok is False
@@ -598,8 +597,10 @@ def test_health_check_reports_docker_unavailable():
 def test_health_check_delegates_to_real_execution_path():
     """The probe runs through execute() so it inherits real run semantics."""
     executor = SandboxExecutor(SandboxConfig(backend="docker"))
-    with patch.object(executor, "_docker_available", return_value=True), \
-         patch.object(executor, "execute", return_value=_probe_success_result()) as mock_execute:
+    with (
+        patch.object(executor, "_docker_available", return_value=True),
+        patch.object(executor, "execute", return_value=_probe_success_result()) as mock_execute,
+    ):
         ok, detail = executor.health_check()
 
     assert ok is True
@@ -610,8 +611,10 @@ def test_health_check_delegates_to_real_execution_path():
 def test_health_check_reports_backend_failure_from_result():
     """Backend failures surfaced by execute() become (False, reason)."""
     executor = SandboxExecutor(SandboxConfig(backend="docker"))
-    with patch.object(executor, "_docker_available", return_value=True), \
-         patch.object(executor, "execute", return_value=_probe_backend_failure_result()):
+    with (
+        patch.object(executor, "_docker_available", return_value=True),
+        patch.object(executor, "execute", return_value=_probe_backend_failure_result()),
+    ):
         ok, detail = executor.health_check()
 
     assert ok is False

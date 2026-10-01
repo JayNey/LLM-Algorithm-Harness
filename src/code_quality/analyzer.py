@@ -4,7 +4,6 @@ Main Code Quality Analyzer
 Orchestrates all code quality analysis dimensions.
 """
 
-
 from src.code_quality.models import CodeQualityMetrics
 from src.code_quality.readability_analyzer import ReadabilityAnalyzer
 from src.code_quality.space_analyzer import SpaceAnalyzer

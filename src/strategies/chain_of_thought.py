@@ -90,7 +90,9 @@ class ChainOfThoughtStrategy(StrategyBase):
 
                 # Trigger debug hook after feedback is available
                 if sandbox_result:
-                    feedback = f"All passed: {sandbox_result.all_passed}, Status: {sandbox_result.status}"
+                    feedback = (
+                        f"All passed: {sandbox_result.all_passed}, Status: {sandbox_result.status}"
+                    )
                     if sandbox_result.error_message:
                         feedback += f", Error: {sandbox_result.error_message}"
                     self._after_feedback(feedback)

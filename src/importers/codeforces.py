@@ -272,17 +272,43 @@ class CodeforcesImporter(ProblemImporter):
     def parse_statement(content: str) -> tuple[str, str, str, list[tuple[str, str]]]:
         if not content:
             return "", "", "", []
-        statement = re.search(r'<div[^>]*class="[^"]*problem-statement[^"]*"[^>]*>(.*)</div>\s*</div>\s*$', content, re.S | re.I)
+        statement = re.search(
+            r'<div[^>]*class="[^"]*problem-statement[^"]*"[^>]*>(.*)</div>\s*</div>\s*$',
+            content,
+            re.S | re.I,
+        )
         body = statement.group(1) if statement else content
         samples = []
-        for block in re.findall(r'<div[^>]*class="[^"]*sample-test[^"]*"[^>]*>(.*?)</div>\s*</div>', body, re.S | re.I):
-            input_match = re.search(r'<div[^>]*class="[^"]*input[^"]*"[^>]*>.*?<pre[^>]*>(.*?)</pre>', block, re.S | re.I)
-            output_match = re.search(r'<div[^>]*class="[^"]*output[^"]*"[^>]*>.*?<pre[^>]*>(.*?)</pre>', block, re.S | re.I)
+        for block in re.findall(
+            r'<div[^>]*class="[^"]*sample-test[^"]*"[^>]*>(.*?)</div>\s*</div>', body, re.S | re.I
+        ):
+            input_match = re.search(
+                r'<div[^>]*class="[^"]*input[^"]*"[^>]*>.*?<pre[^>]*>(.*?)</pre>',
+                block,
+                re.S | re.I,
+            )
+            output_match = re.search(
+                r'<div[^>]*class="[^"]*output[^"]*"[^>]*>.*?<pre[^>]*>(.*?)</pre>',
+                block,
+                re.S | re.I,
+            )
             if input_match and output_match:
-                samples.append((_clean_text(input_match.group(1)), _clean_text(output_match.group(1))))
-        body_without_samples = re.sub(r'<div[^>]*class="[^"]*sample-tests[^"]*"[^>]*>.*', "", body, flags=re.S | re.I)
-        input_match = re.search(r'<div[^>]*class="[^"]*input-specification[^"]*"[^>]*>(.*?)</div>\s*</div>', body, re.S | re.I)
-        output_match = re.search(r'<div[^>]*class="[^"]*output-specification[^"]*"[^>]*>(.*?)</div>\s*</div>', body, re.S | re.I)
+                samples.append(
+                    (_clean_text(input_match.group(1)), _clean_text(output_match.group(1)))
+                )
+        body_without_samples = re.sub(
+            r'<div[^>]*class="[^"]*sample-tests[^"]*"[^>]*>.*', "", body, flags=re.S | re.I
+        )
+        input_match = re.search(
+            r'<div[^>]*class="[^"]*input-specification[^"]*"[^>]*>(.*?)</div>\s*</div>',
+            body,
+            re.S | re.I,
+        )
+        output_match = re.search(
+            r'<div[^>]*class="[^"]*output-specification[^"]*"[^>]*>(.*?)</div>\s*</div>',
+            body,
+            re.S | re.I,
+        )
         input_text = _clean_text(input_match.group(1)) if input_match else ""
         output_text = _clean_text(output_match.group(1)) if output_match else ""
         return _clean_text(body_without_samples), input_text, output_text, samples

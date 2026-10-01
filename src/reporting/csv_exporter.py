@@ -47,7 +47,7 @@ class CSVExporter:
         ]
 
         # Write CSV with UTF-8 BOM for Excel compatibility
-        with open(output_path, 'w', encoding='utf-8-sig', newline='') as f:
+        with open(output_path, "w", encoding="utf-8-sig", newline="") as f:
             writer = csv.DictWriter(f, fieldnames=fieldnames)
             writer.writeheader()
 
@@ -59,9 +59,7 @@ class CSVExporter:
                 hidden_result = result.hidden_result
                 hidden_total_tests = len(hidden_result.test_results) if hidden_result else 0
                 hidden_passed_tests = (
-                    sum(1 for tc in hidden_result.test_results if tc.passed)
-                    if hidden_result
-                    else 0
+                    sum(1 for tc in hidden_result.test_results if tc.passed) if hidden_result else 0
                 )
 
                 # Calculate iteration count

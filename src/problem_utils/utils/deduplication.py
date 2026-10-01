@@ -27,17 +27,10 @@ def compute_similarity(problems: list[dict[str, Any]]) -> np.ndarray:
         return np.array([])
 
     # 组合标题和描述作为文本特征
-    texts = [
-        f"{p.get('title', '')} {p.get('description', '')}"
-        for p in problems
-    ]
+    texts = [f"{p.get('title', '')} {p.get('description', '')}" for p in problems]
 
     # 使用 TF-IDF 向量化
-    vectorizer = TfidfVectorizer(
-        max_features=1000,
-        stop_words='english',
-        ngram_range=(1, 2)
-    )
+    vectorizer = TfidfVectorizer(max_features=1000, stop_words="english", ngram_range=(1, 2))
     tfidf_matrix = vectorizer.fit_transform(texts)
 
     # 计算余弦相似度
@@ -47,8 +40,7 @@ def compute_similarity(problems: list[dict[str, Any]]) -> np.ndarray:
 
 
 def find_similar_pairs(
-    problems: list[dict[str, Any]],
-    threshold: float = 0.9
+    problems: list[dict[str, Any]], threshold: float = 0.9
 ) -> list[tuple[int, int, float]]:
     """
     基于相似度阈值检测相似题目对
@@ -88,8 +80,8 @@ def generate_fingerprint(problem: dict[str, Any]) -> str | None:
     Returns:
         指纹字符串，如果缺少来源信息则返回 None
     """
-    source_platform = problem.get('source_platform')
-    source_problem_id = problem.get('source_problem_id')
+    source_platform = problem.get("source_platform")
+    source_problem_id = problem.get("source_problem_id")
 
     if not source_platform or not source_problem_id:
         return None
@@ -97,9 +89,7 @@ def generate_fingerprint(problem: dict[str, Any]) -> str | None:
     return f"{source_platform}:{source_problem_id}"
 
 
-def find_fingerprint_duplicates(
-    problems: list[dict[str, Any]]
-) -> list[list[int]]:
+def find_fingerprint_duplicates(problems: list[dict[str, Any]]) -> list[list[int]]:
     """
     检测完全相同的题目（基于指纹匹配）
 
@@ -119,10 +109,7 @@ def find_fingerprint_duplicates(
             fingerprint_map[fingerprint].append(idx)
 
     # 只返回有重复的组（长度 > 1）
-    duplicate_groups = [
-        indices for indices in fingerprint_map.values()
-        if len(indices) > 1
-    ]
+    duplicate_groups = [indices for indices in fingerprint_map.values() if len(indices) > 1]
 
     return duplicate_groups
 
@@ -160,10 +147,7 @@ def select_primary_problem(problems: list[dict[str, Any]]) -> int:
     return primary_idx
 
 
-def merge_problems(
-    primary: dict[str, Any],
-    others: list[dict[str, Any]]
-) -> dict[str, Any]:
+def merge_problems(primary: dict[str, Any], others: list[dict[str, Any]]) -> dict[str, Any]:
     """
     合并重复题目，保留主版本并合并列表字段
 
@@ -179,11 +163,11 @@ def merge_problems(
     # 收集被合并题目的 ID
     merged_from = []
     for other in others:
-        if 'problem_id' in other:
-            merged_from.append(other['problem_id'])
+        if "problem_id" in other:
+            merged_from.append(other["problem_id"])
 
     # 合并列表字段（去重）
-    list_fields = ['tags', 'public_test_cases', 'feedback_test_cases', 'hidden_test_cases']
+    list_fields = ["tags", "public_test_cases", "feedback_test_cases", "hidden_test_cases"]
 
     for field in list_fields:
         if field in merged:
@@ -208,8 +192,6 @@ def merge_problems(
 
     # 添加合并历史记录
     if merged_from:
-        merged['merged_from'] = merged_from
+        merged["merged_from"] = merged_from
 
     return merged
-
-

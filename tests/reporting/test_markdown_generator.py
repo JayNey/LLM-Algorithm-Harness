@@ -29,8 +29,8 @@ def sample_metrics() -> dict[str, dict]:
             "by_difficulty": {
                 "easy": {"total": 5, "solved": 5, "success_rate": 1.0},
                 "medium": {"total": 3, "solved": 2, "success_rate": 0.67},
-                "hard": {"total": 2, "solved": 1, "success_rate": 0.5}
-            }
+                "hard": {"total": 2, "solved": 1, "success_rate": 0.5},
+            },
         },
         "cot": {
             "total_problems": 10,
@@ -41,9 +41,9 @@ def sample_metrics() -> dict[str, dict]:
             "by_difficulty": {
                 "easy": {"total": 5, "solved": 5, "success_rate": 1.0},
                 "medium": {"total": 3, "solved": 3, "success_rate": 1.0},
-                "hard": {"total": 2, "solved": 1, "success_rate": 0.5}
-            }
-        }
+                "hard": {"total": 2, "solved": 1, "success_rate": 0.5},
+            },
+        },
     }
 
 
@@ -63,11 +63,11 @@ def sample_results() -> dict[str, list[ExecutionResult]]:
                 actual_output=[0],
                 expected_output=[0],
                 execution_time=0.01,
-                status="passed"
+                status="passed",
             )
         ],
         total_tokens=100,
-        execution_time_seconds=0.5
+        execution_time_seconds=0.5,
     )
 
     failed_result = ExecutionResult(
@@ -83,18 +83,15 @@ def sample_results() -> dict[str, list[ExecutionResult]]:
                 actual_output=[],
                 expected_output=[0],
                 execution_time=0.01,
-                status="failed"
+                status="failed",
             )
         ],
         error_message="Test failed",
         total_tokens=100,
-        execution_time_seconds=0.5
+        execution_time_seconds=0.5,
     )
 
-    return {
-        "direct": [passed_result, failed_result],
-        "cot": [passed_result]
-    }
+    return {"direct": [passed_result, failed_result], "cot": [passed_result]}
 
 
 def test_generate_creates_file(temp_md_path: str, sample_metrics: dict, sample_results: dict):
@@ -112,7 +109,9 @@ def test_generate_contains_header(temp_md_path: str, sample_metrics: dict, sampl
     assert "**Generated:**" in content
 
 
-def test_generate_contains_summary_table(temp_md_path: str, sample_metrics: dict, sample_results: dict):
+def test_generate_contains_summary_table(
+    temp_md_path: str, sample_metrics: dict, sample_results: dict
+):
     """Test that generated Markdown contains strategy summary table."""
     content = MarkdownGenerator.generate(sample_metrics, sample_results, temp_md_path)
 
@@ -124,12 +123,14 @@ def test_generate_contains_summary_table(temp_md_path: str, sample_metrics: dict
     assert "90.0%" in content
 
 
-def test_generate_sorts_by_success_rate(temp_md_path: str, sample_metrics: dict, sample_results: dict):
+def test_generate_sorts_by_success_rate(
+    temp_md_path: str, sample_metrics: dict, sample_results: dict
+):
     """Test that strategies are sorted by success rate (descending)."""
     content = MarkdownGenerator.generate(sample_metrics, sample_results, temp_md_path)
 
-    lines = content.split('\n')
-    table_start = next(i for i, line in enumerate(lines) if '| Strategy |' in line)
+    lines = content.split("\n")
+    table_start = next(i for i, line in enumerate(lines) if "| Strategy |" in line)
 
     # Find the first strategy row (skip header and separator)
     first_strategy_row = lines[table_start + 2]
@@ -139,7 +140,9 @@ def test_generate_sorts_by_success_rate(temp_md_path: str, sample_metrics: dict,
     assert "⭐" in first_strategy_row
 
 
-def test_generate_difficulty_breakdown(temp_md_path: str, sample_metrics: dict, sample_results: dict):
+def test_generate_difficulty_breakdown(
+    temp_md_path: str, sample_metrics: dict, sample_results: dict
+):
     """Test that difficulty breakdown tables are generated."""
     content = MarkdownGenerator.generate(sample_metrics, sample_results, temp_md_path)
 
@@ -150,7 +153,9 @@ def test_generate_difficulty_breakdown(temp_md_path: str, sample_metrics: dict, 
     assert "hard" in content.lower()
 
 
-def test_generate_failed_cases_section(temp_md_path: str, sample_metrics: dict, sample_results: dict):
+def test_generate_failed_cases_section(
+    temp_md_path: str, sample_metrics: dict, sample_results: dict
+):
     """Test that failed cases section is generated."""
     content = MarkdownGenerator.generate(sample_metrics, sample_results, temp_md_path)
 
@@ -172,7 +177,7 @@ def test_generate_limits_failed_cases(temp_md_path: str, sample_metrics: dict):
             test_results=[],
             error_message="Failed",
             total_tokens=100,
-            execution_time_seconds=0.5
+            execution_time_seconds=0.5,
         )
         failed_results.append(result)
 
@@ -186,12 +191,7 @@ def test_generate_limits_failed_cases(temp_md_path: str, sample_metrics: dict):
 
 def test_generate_with_config(temp_md_path: str, sample_metrics: dict, sample_results: dict):
     """Test that configuration section is included when provided."""
-    config = {
-        "model": "gpt-4",
-        "temperature": 0.7,
-        "timeout": 30,
-        "max_iterations": 5
-    }
+    config = {"model": "gpt-4", "temperature": 0.7, "timeout": 30, "max_iterations": 5}
 
     content = MarkdownGenerator.generate(sample_metrics, sample_results, temp_md_path, config)
 
@@ -218,7 +218,7 @@ def test_escape_markdown_special_chars(temp_md_path: str, sample_results: dict):
             "success_rate": 1.0,
             "avg_tokens_per_problem": 100.0,
             "avg_time_per_problem": 1.0,
-            "by_difficulty": {}
+            "by_difficulty": {},
         }
     }
 
@@ -228,7 +228,9 @@ def test_escape_markdown_special_chars(temp_md_path: str, sample_results: dict):
     assert "test\\*strategy" in content
 
 
-def test_generate_creates_parent_directories(tmp_path: Path, sample_metrics: dict, sample_results: dict):
+def test_generate_creates_parent_directories(
+    tmp_path: Path, sample_metrics: dict, sample_results: dict
+):
     """Test that generate creates parent directories if needed."""
     nested_path = tmp_path / "reports" / "subdir" / "report.md"
     MarkdownGenerator.generate(sample_metrics, sample_results, str(nested_path))
@@ -246,9 +248,7 @@ def test_generate_empty_results(temp_md_path: str):
     assert "## Strategy Performance Summary" in content
 
 
-def test_generate_includes_formal_evaluation_summary(
-    temp_md_path: str, sample_results: dict
-):
+def test_generate_includes_formal_evaluation_summary(temp_md_path: str, sample_results: dict):
     """Markdown reports show formal and sample-only denominators."""
     metrics = {
         "direct": {
@@ -313,7 +313,9 @@ def test_markdown_failed_cases_include_failure_category(temp_md_path: str):
     assert "Output mismatch" in content
 
 
-def test_generate_shows_unknown_cost_for_unknown_pricing(temp_md_path: str, sample_metrics: dict, sample_results: dict):
+def test_generate_shows_unknown_cost_for_unknown_pricing(
+    temp_md_path: str, sample_metrics: dict, sample_results: dict
+):
     """Unknown pricing renders 未知 instead of a $0-style figure (issue #15)."""
     metrics = dict(sample_metrics)
     metrics["direct"] = {

@@ -49,10 +49,7 @@ def _isolate_llm_response_cache(tmp_path, monkeypatch):
 @pytest.fixture
 def sample_test_case():
     """Sample test case fixture."""
-    return TestCase(
-        input={"nums": [2, 7, 11, 15], "target": 9},
-        expected_output=[0, 1]
-    )
+    return TestCase(input={"nums": [2, 7, 11, 15], "target": 9}, expected_output=[0, 1])
 
 
 @pytest.fixture
@@ -65,7 +62,7 @@ def sample_problem(sample_test_case):
         difficulty="easy",
         tags=["array", "hash-table"],
         test_cases=[sample_test_case],
-        constraints="2 <= nums.length <= 10^4"
+        constraints="2 <= nums.length <= 10^4",
     )
 
 
@@ -78,7 +75,7 @@ def sample_llm_config():
         model="gpt-3.5-turbo",
         temperature=0.7,
         max_tokens=2000,
-        timeout=30
+        timeout=30,
     )
 
 
@@ -89,19 +86,14 @@ def sample_sandbox_config():
         backend="host",
         timeout_seconds=5,
         memory_limit_mb=256,
-        allowed_imports=["math", "itertools", "collections"]
+        allowed_imports=["math", "itertools", "collections"],
     )
 
 
 @pytest.fixture
 def sample_strategy_config():
     """Sample strategy configuration."""
-    return StrategyConfig(
-        name="vanilla",
-        max_iterations=1,
-        temperature=0.7,
-        max_tokens=2000
-    )
+    return StrategyConfig(name="vanilla", max_iterations=1, temperature=0.7, max_tokens=2000)
 
 
 @pytest.fixture
@@ -112,7 +104,7 @@ def mock_llm_client():
         text="```python\ndef solution(nums, target):\n    return [0, 1]\n```",
         usage=TokenUsage(prompt_tokens=100, completion_tokens=50, total_tokens=150),
         model="gpt-3.5-turbo",
-        finish_reason="stop"
+        finish_reason="stop",
     )
     return client
 
@@ -130,11 +122,11 @@ def mock_sandbox_executor():
                 actual_output=[0, 1],
                 expected_output=[0, 1],
                 execution_time=0.01,
-                status="passed"
+                status="passed",
             )
         ],
         execution_time=0.01,
-        all_passed=True
+        all_passed=True,
     )
     return sandbox
 
@@ -159,7 +151,7 @@ def solution(nums, target):
 This uses a hash table for O(n) time complexity.""",
         usage=TokenUsage(prompt_tokens=120, completion_tokens=230, total_tokens=350),
         model="gpt-3.5-turbo",
-        finish_reason="stop"
+        finish_reason="stop",
     )
 
 
@@ -175,7 +167,7 @@ def sample_successful_sandbox_result():
                 actual_output=[0, 1],
                 expected_output=[0, 1],
                 execution_time=0.002,
-                status="passed"
+                status="passed",
             ),
             TestCaseResult(
                 test_case_index=1,
@@ -183,11 +175,11 @@ def sample_successful_sandbox_result():
                 actual_output=[1, 2],
                 expected_output=[1, 2],
                 execution_time=0.003,
-                status="passed"
-            )
+                status="passed",
+            ),
         ],
         execution_time=0.005,
-        all_passed=True
+        all_passed=True,
     )
 
 
@@ -203,7 +195,7 @@ def sample_failed_sandbox_result():
                 actual_output=[0, 1],
                 expected_output=[0, 1],
                 execution_time=0.002,
-                status="passed"
+                status="passed",
             ),
             TestCaseResult(
                 test_case_index=1,
@@ -212,9 +204,9 @@ def sample_failed_sandbox_result():
                 expected_output=[1, 2],
                 error_message="Output mismatch",
                 execution_time=0.003,
-                status="wrong_answer"
-            )
+                status="wrong_answer",
+            ),
         ],
         execution_time=0.005,
-        all_passed=False
+        all_passed=False,
     )

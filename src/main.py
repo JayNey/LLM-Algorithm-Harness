@@ -160,7 +160,9 @@ def apply_cli_overrides(config: HarnessConfig, args: argparse.Namespace) -> Harn
     elif config.budget_action == "downgrade" and not config.difficulty_strategy:
         raise ValueError("--downgrade-on-budget requires a difficulty_strategy mapping")
     elif config.budget_action is None and not config.difficulty_strategy:
-        raise ValueError("budget_cap_usd (--budget-cap) requires a difficulty_strategy mapping or --auto-stop-on-budget")
+        raise ValueError(
+            "budget_cap_usd (--budget-cap) requires a difficulty_strategy mapping or --auto-stop-on-budget"
+        )
     if config.budget_allocation is not None:
         invalid_keys = sorted(set(config.budget_allocation) - {"easy", "medium", "hard"})
         if invalid_keys:
@@ -354,7 +356,8 @@ def save_results(reports: dict, output_dir: str, harness: AlgorithmHarness, conf
     problem_objects = getattr(harness, "problems_by_id", {})
     problem_info = (
         {key: problem.model_dump(mode="json") for key, problem in problem_objects.items()}
-        if isinstance(problem_objects, dict) else {}
+        if isinstance(problem_objects, dict)
+        else {}
     )
     by_strategy_results = {
         name: [result.model_dump(mode="json") for result in results]
@@ -377,9 +380,8 @@ def save_results(reports: dict, output_dir: str, harness: AlgorithmHarness, conf
     ):
         summary["cost_control"] = {
             **cost_monitor.snapshot(),
-            "budget_action": config.budget_action or (
-                "downgrade" if config.difficulty_strategy and config.budget_cap_usd else None
-            ),
+            "budget_action": config.budget_action
+            or ("downgrade" if config.difficulty_strategy and config.budget_cap_usd else None),
             "incomplete": task_record is not None and task_record.state == "paused",
         }
 
@@ -401,15 +403,12 @@ def save_results(reports: dict, output_dir: str, harness: AlgorithmHarness, conf
     for name, strategy_summary in failure_modes["by_strategy"].items():
         failure_markdown.append(f"\n## 策略：{name}\n")
         failure_markdown.append(
-            render_failure_mode_markdown(strategy_summary).replace(
-                "## 失败模式分析", "### 失败模式分析", 1
-            ).replace("### 按题目标签", "#### 按题目标签").replace(
-                "### 高频弱项", "#### 高频弱项"
-            )
+            render_failure_mode_markdown(strategy_summary)
+            .replace("## 失败模式分析", "### 失败模式分析", 1)
+            .replace("### 按题目标签", "#### 按题目标签")
+            .replace("### 高频弱项", "#### 高频弱项")
         )
-    (run_path / "failure_mode_report.md").write_text(
-        "\n".join(failure_markdown), encoding="utf-8"
-    )
+    (run_path / "failure_mode_report.md").write_text("\n".join(failure_markdown), encoding="utf-8")
 
     if task_record is not None and task_record.state == "paused":
         cutoff = {
@@ -639,7 +638,7 @@ def run_problems_deduplicate_command(args: argparse.Namespace) -> int:
             print(f"Error: Dataset not found: {dataset_path}", file=sys.stderr)
             return 1
 
-        with open(dataset_path, encoding='utf-8') as f:
+        with open(dataset_path, encoding="utf-8") as f:
             problems = json.load(f)
 
         if not isinstance(problems, list):
@@ -681,13 +680,17 @@ def run_problems_deduplicate_command(args: argparse.Namespace) -> int:
             if fingerprint_groups:
                 print("Fingerprint duplicates:")
                 for group in fingerprint_groups:
-                    print(f"  Group: {', '.join(problems[i].get('problem_id', f'index-{i}') for i in group)}")
+                    print(
+                        f"  Group: {', '.join(problems[i].get('problem_id', f'index-{i}') for i in group)}"
+                    )
 
             if similar_pairs:
                 print("\nSimilarity duplicates:")
                 for i, j, sim in similar_pairs:
-                    print(f"  {problems[i].get('problem_id', f'index-{i}')} ↔ "
-                          f"{problems[j].get('problem_id', f'index-{j}')} (similarity: {sim:.3f})")
+                    print(
+                        f"  {problems[i].get('problem_id', f'index-{i}')} ↔ "
+                        f"{problems[j].get('problem_id', f'index-{j}')} (similarity: {sim:.3f})"
+                    )
 
             return 0
 
@@ -728,7 +731,7 @@ def run_problems_deduplicate_command(args: argparse.Namespace) -> int:
                     print(f"  [{idx}] {p.get('problem_id', 'N/A')}: {p.get('title', 'N/A')}")
 
                 response = input("Merge this group? [y/N]: ").strip().lower()
-                if response != 'y':
+                if response != "y":
                     stats["skipped"] += len(group) - 1
                     continue
 
@@ -751,7 +754,7 @@ def run_problems_deduplicate_command(args: argparse.Namespace) -> int:
         final_problems = [p for i, p in enumerate(merged_problems) if i not in indices_to_remove]
 
         # Write output
-        with open(dataset_path, 'w', encoding='utf-8') as f:
+        with open(dataset_path, "w", encoding="utf-8") as f:
             json.dump(final_problems, f, indent=2, ensure_ascii=False)
 
         # Print report
@@ -1007,11 +1010,11 @@ def run_benchmark_command(args: argparse.Namespace) -> int:
         print("\n✓ Benchmark evaluation completed!")
         print(f"  Suite: {results['suite']['name']}")
         print(f"  Problems evaluated: {results['problems_evaluated']}")
-        if results['problems_missing'] > 0:
+        if results["problems_missing"] > 0:
             print(f"  Problems missing: {results['problems_missing']}")
 
         print("\nResults by strategy:")
-        for strategy_name, strategy_results in results['strategies'].items():
+        for strategy_name, strategy_results in results["strategies"].items():
             print(f"  {strategy_name}:")
             print(f"    - Accuracy: {strategy_results['accuracy']:.2%}")
             print(f"    - Passed: {strategy_results['passed']}/{strategy_results['total']}")
@@ -1091,7 +1094,9 @@ def run_tags_normalize_command(args: argparse.Namespace) -> int:
         if args.output:
             print(f"Normalized dataset written to: {args.output}")
         else:
-            print("Preview only: pass --output PATH after reviewing suggestions to write a dataset.")
+            print(
+                "Preview only: pass --output PATH after reviewing suggestions to write a dataset."
+            )
         if args.report:
             print(f"Normalization report written to: {args.report}")
         return 0
@@ -1180,15 +1185,18 @@ def main():
     )
     budget_action = run_parser.add_mutually_exclusive_group()
     budget_action.add_argument(
-        "--auto-stop-on-budget", action="store_true",
+        "--auto-stop-on-budget",
+        action="store_true",
         help="Pause queued work once known cost reaches the budget cap and write a cutoff report",
     )
     budget_action.add_argument(
-        "--downgrade-on-budget", action="store_true",
+        "--downgrade-on-budget",
+        action="store_true",
         help="Downgrade remaining problems to the cheapest mapped strategy at the cap",
     )
     run_parser.add_argument(
-        "--cost-alert-thresholds", type=parse_cost_alert_thresholds,
+        "--cost-alert-thresholds",
+        type=parse_cost_alert_thresholds,
         metavar="PCT,PCT,...",
         help="Alert at these budget percentages (default: 50,80,90)",
     )
@@ -1224,7 +1232,9 @@ def main():
     )
 
     import_parser = subparsers.add_parser("import", help="Import problems from external sources")
-    import_parser.add_argument("import_source", nargs="?", help="Optional positional source, e.g. codeforces")
+    import_parser.add_argument(
+        "import_source", nargs="?", help="Optional positional source, e.g. codeforces"
+    )
     import_parser.add_argument(
         "--source",
         type=str,
@@ -1317,18 +1327,24 @@ def main():
         "pareto", help="Cost/accuracy frontier and budget recommendations from experiments"
     )
     pareto_parser.add_argument(
-        "--experiments", nargs="+", required=True,
+        "--experiments",
+        nargs="+",
+        required=True,
         help="Comparable experiment directories containing comparison.json",
     )
     pareto_parser.add_argument(
         "--output-dir", required=True, help="Directory for pareto.json, PARETO.md and pareto.png"
     )
     pareto_parser.add_argument(
-        "--budgets", nargs="+", type=nonnegative_float,
+        "--budgets",
+        nargs="+",
+        type=nonnegative_float,
         help="Budgets in USD for one full dataset run; defaults to frontier costs",
     )
     pareto_parser.add_argument(
-        "--accuracy-metric", choices=["overall", "formal"], default="overall",
+        "--accuracy-metric",
+        choices=["overall", "formal"],
+        default="overall",
         help="Overall success rate or independent hidden-test success rate",
     )
     pareto_parser.add_argument("--log-format", choices=["console", "json"], default="console")
@@ -1369,19 +1385,29 @@ def main():
     recommend_parser = subparsers.add_parser(
         "recommend", help="Analyze evaluation history and recommend unevaluated problems"
     )
-    recommend_parser.add_argument("--history", required=True, help="Results directory or JSON result file")
-    recommend_parser.add_argument("--output", required=True, help="Recommendation report JSON path")
-    recommend_parser.add_argument("--dataset", help="Problem dataset; inferred from history metadata when omitted")
     recommend_parser.add_argument(
-        "--failure-threshold", type=float, default=0.5,
+        "--history", required=True, help="Results directory or JSON result file"
+    )
+    recommend_parser.add_argument("--output", required=True, help="Recommendation report JSON path")
+    recommend_parser.add_argument(
+        "--dataset", help="Problem dataset; inferred from history metadata when omitted"
+    )
+    recommend_parser.add_argument(
+        "--failure-threshold",
+        type=float,
+        default=0.5,
         help="Minimum failure rate for a weak group (default: 0.5)",
     )
     recommend_parser.add_argument(
-        "--min-samples", type=positive_int, default=1,
+        "--min-samples",
+        type=positive_int,
+        default=1,
         help="Minimum historical records per group (default: 1)",
     )
     recommend_parser.add_argument(
-        "--limit", type=positive_int, default=20,
+        "--limit",
+        type=positive_int,
+        default=20,
         help="Maximum recommended problems (default: 20)",
     )
     recommend_parser.add_argument("--log-format", choices=["console", "json"], default="console")
@@ -1405,9 +1431,7 @@ def main():
         "--compare", action="store_true", help="Enable multi-model comparison mode"
     )
     benchmark_parser.add_argument("--output", type=str, help="Output path for report")
-    benchmark_parser.add_argument(
-        "--log-format", choices=["console", "json"], default="console"
-    )
+    benchmark_parser.add_argument("--log-format", choices=["console", "json"], default="console")
 
     # Tag management commands
     tags_parser = subparsers.add_parser("tags", help="Normalize and recommend problem tags")
@@ -1439,12 +1463,11 @@ def main():
 
     # Debug command
     from harness.cli.debug import add_debug_subcommand
+
     add_debug_subcommand(subparsers)
 
     # Cache command
-    cache_parser = subparsers.add_parser(
-        "cache", help="Manage LLM response cache"
-    )
+    cache_parser = subparsers.add_parser("cache", help="Manage LLM response cache")
     cache_subparsers = cache_parser.add_subparsers(dest="cache_action", help="Cache actions")
 
     # cache clear
@@ -1458,14 +1481,10 @@ def main():
     # cache stats
     stats_parser = cache_subparsers.add_parser("stats", help="Show cache statistics")
 
-    cache_parser.add_argument(
-        "--log-format", choices=["console", "json"], default="console"
-    )
+    cache_parser.add_argument("--log-format", choices=["console", "json"], default="console")
 
     # Problems command group
-    problems_parser = subparsers.add_parser(
-        "problems", help="Problem dataset management tools"
-    )
+    problems_parser = subparsers.add_parser("problems", help="Problem dataset management tools")
     problems_subparsers = problems_parser.add_subparsers(dest="problems_command", required=True)
 
     # problems deduplicate
@@ -1574,6 +1593,7 @@ def main():
     if args.command == "debug":
         setup_logging(console_format=getattr(args, "log_format", "console"))
         from harness.cli.debug import run_debug_command
+
         exit_code = run_debug_command(args)
         sys.exit(exit_code)
 
@@ -1671,7 +1691,9 @@ def main():
                     "not counted toward the cap"
                 )
                 if harness.task_record is not None and harness.task_record.state == "paused":
-                    print("Evaluation paused at budget cap; see cost_cutoff.json in the run output.")
+                    print(
+                        "Evaluation paused at budget cap; see cost_cutoff.json in the run output."
+                    )
             if harness.budget_allocation_monitor is not None:
                 for difficulty, usage in harness.budget_allocation_monitor.snapshot().items():
                     print(

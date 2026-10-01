@@ -3,7 +3,6 @@ Breakpoint management for interactive debugging.
 """
 
 
-
 class BreakpointManager:
     """Manages breakpoints at key strategy execution points."""
 

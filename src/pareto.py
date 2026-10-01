@@ -260,9 +260,11 @@ def build_pareto_analysis(
     best = (
         max(free, key=lambda p: (p["accuracy"], p["id"]))
         if free
-        else max(positive, key=lambda p: (p["accuracy"] / p["cost"], p["accuracy"], -p["cost"]))
-        if positive
-        else None
+        else (
+            max(positive, key=lambda p: (p["accuracy"] / p["cost"], p["accuracy"], -p["cost"]))
+            if positive
+            else None
+        )
     )
     if not budget_values:
         budget_values = sorted({p["cost"] for p in frontier})
@@ -288,9 +290,9 @@ def build_pareto_analysis(
             | {
                 "mean_cost_usd": float(cost),
                 "mean_accuracy": float(accuracy),
-                "expected_solved_per_usd": ratio_value
-                if ratio_value is not None and math.isfinite(ratio_value)
-                else None,
+                "expected_solved_per_usd": (
+                    ratio_value if ratio_value is not None and math.isfinite(ratio_value) else None
+                ),
             }
         )
     return redact_sensitive_data(
