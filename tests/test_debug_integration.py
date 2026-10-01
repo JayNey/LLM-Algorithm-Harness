@@ -5,17 +5,17 @@ These tests verify that the hook methods (_before_generate, _before_execute,
 _after_feedback) are actually called during strategy execution.
 """
 
-import pytest
-from unittest.mock import Mock, patch, call
+from unittest.mock import patch
 
-from src.strategies.vanilla import VanillaStrategy
-from src.strategies.chain_of_thought import ChainOfThoughtStrategy
-from harness.debug.strategy_wrapper import DebugStrategyWrapper
 from harness.debug.breakpoint import BreakpointManager
+from harness.debug.strategy_wrapper import DebugStrategyWrapper
 
 # Import to resolve forward references
 from src.code_quality.models import CodeQualityMetrics  # noqa: F401
 from src.models import ExecutionResult
+from src.strategies.chain_of_thought import ChainOfThoughtStrategy
+from src.strategies.vanilla import VanillaStrategy
+
 ExecutionResult.model_rebuild()
 
 

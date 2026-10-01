@@ -2,19 +2,20 @@
 Test Self-Consistency strategy report generation and metadata.
 """
 
-import pytest
-from unittest.mock import MagicMock, patch
+from unittest.mock import MagicMock
 
-from src.strategies.self_consistency import SelfConsistencyStrategy
+import pytest
+
 from src.models import (
-    Problem,
-    TestCase,
-    StrategyConfig,
     LLMResponse,
-    TokenUsage,
+    Problem,
     SandboxResult,
+    StrategyConfig,
+    TestCase,
     TestCaseResult,
+    TokenUsage,
 )
+from src.strategies.self_consistency import SelfConsistencyStrategy
 
 
 @pytest.fixture

@@ -2,10 +2,11 @@
 Strategy wrapper for interactive debugging.
 """
 
-from typing import Optional, Callable
-from src.strategy_base import StrategyBase
-from src.models import Problem, ExecutionResult
+from collections.abc import Callable
+
 from harness.debug.breakpoint import BreakpointManager
+from src.models import ExecutionResult, Problem
+from src.strategy_base import StrategyBase
 
 
 class DebugStrategyWrapper(StrategyBase):
@@ -20,7 +21,7 @@ class DebugStrategyWrapper(StrategyBase):
         self,
         wrapped_strategy: StrategyBase,
         breakpoint_manager: BreakpointManager,
-        pause_callback: Optional[Callable[[str, dict], None]] = None,
+        pause_callback: Callable[[str, dict], None] | None = None,
     ):
         """
         Initialize debug wrapper.

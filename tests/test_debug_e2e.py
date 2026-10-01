@@ -7,11 +7,9 @@ Tests the complete debug workflow including:
 - Parameter configuration
 """
 
-import pytest
-import tempfile
 import json
+import tempfile
 from pathlib import Path
-from unittest.mock import Mock
 
 from harness.debug.breakpoint import BreakpointManager
 from harness.debug.trace import TraceRecorder
@@ -85,7 +83,7 @@ class TestDebugE2E:
             assert result is True
 
             # Verify file was created and contains valid JSON
-            with open(temp_path, 'r') as f:
+            with open(temp_path) as f:
                 data = json.load(f)
 
             assert 'problem_id' in data
@@ -148,7 +146,7 @@ class TestDebugE2E:
             # Verify others are still enabled
             for other_loc in locations:
                 if other_loc != loc:
-                    expected = other_loc in [l for l in locations if locations.index(l) > locations.index(loc)]
+                    expected = other_loc in [loc_item for loc_item in locations if locations.index(loc_item) > locations.index(loc)]
                     if not expected:
                         assert not bp_manager.should_break(other_loc)
 

@@ -4,10 +4,10 @@ LLM Algorithm Harness - Core Data Models
 This module defines all Pydantic data models used throughout the system.
 """
 
+import math
 from datetime import datetime
 from decimal import Decimal
-import math
-from typing import Any, Dict, List, Literal, Optional
+from typing import Any, Literal, Optional
 from urllib.parse import urlparse
 
 from pydantic import (
@@ -35,7 +35,7 @@ class TestCase(BaseModel):
     source: Literal["public", "feedback", "hidden"] = Field(
         "public", description="Test purpose and visibility"
     )
-    test_case_id: Optional[str] = Field(None, description="Stable test case identifier")
+    test_case_id: str | None = Field(None, description="Stable test case identifier")
 
     model_config = {
         "json_schema_extra": {
@@ -71,14 +71,14 @@ class Problem(BaseModel):
     title: str = Field(..., min_length=1, description="Problem title")
     description: str = Field(..., min_length=10, description="Problem description")
     difficulty: Literal["easy", "medium", "hard"] = Field(..., description="Difficulty level")
-    tags: List[str] = Field(default_factory=list, description="Problem tags")
-    constraints: Optional[str] = Field(None, description="Problem constraints")
+    tags: list[str] = Field(default_factory=list, description="Problem tags")
+    constraints: str | None = Field(None, description="Problem constraints")
     schema_version: str = Field("1.1", description="Problem schema version")
     source_platform: str = Field("legacy", description="Source platform")
-    source_problem_id: Optional[str] = Field(None, description="Source platform problem ID")
-    source_url: Optional[str] = Field(None, description="Source problem URL")
-    source_version: Optional[str] = Field(None, description="Source dataset version")
-    source_metadata: Dict[str, Any] = Field(
+    source_problem_id: str | None = Field(None, description="Source platform problem ID")
+    source_url: str | None = Field(None, description="Source problem URL")
+    source_version: str | None = Field(None, description="Source dataset version")
+    source_metadata: dict[str, Any] = Field(
         default_factory=dict, description="Additional auditable source metadata"
     )
     input_output_mode: Literal["function", "stdin_stdout"] = Field(
@@ -88,22 +88,22 @@ class Problem(BaseModel):
     judge_config: JudgeConfig = Field(
         default_factory=JudgeConfig, description="Problem-level judge configuration"
     )
-    unsupported_reason: Optional[str] = Field(
+    unsupported_reason: str | None = Field(
         None, description="Explicit reason when this problem type is unsupported"
     )
     needs_manual_completion: bool = Field(
         False, description="Whether imported metadata or public samples need manual completion"
     )
-    manual_completion_notes: List[str] = Field(
+    manual_completion_notes: list[str] = Field(
         default_factory=list, description="Reasons and fields that need manual completion"
     )
-    public_test_cases: List[TestCase] = Field(
+    public_test_cases: list[TestCase] = Field(
         default_factory=list, description="Public examples visible to the model"
     )
-    feedback_test_cases: List[TestCase] = Field(
+    feedback_test_cases: list[TestCase] = Field(
         default_factory=list, description="Tests allowed for iterative feedback"
     )
-    hidden_test_cases: List[TestCase] = Field(
+    hidden_test_cases: list[TestCase] = Field(
         default_factory=list, description="Tests reserved for final evaluation"
     )
     migration_status: Literal["native", "legacy_test_cases_as_public"] = Field(
@@ -150,11 +150,11 @@ class Problem(BaseModel):
         return self
 
     @property
-    def test_cases(self) -> List[TestCase]:
+    def test_cases(self) -> list[TestCase]:
         """Backward-compatible public test list; hidden cases are never included."""
         return self.public_test_cases
 
-    def test_cases_for(self, stage: str = "public") -> List[TestCase]:
+    def test_cases_for(self, stage: str = "public") -> list[TestCase]:
         """Return only tests for an explicit execution stage."""
         stages = {
             "public": self.public_test_cases,
@@ -172,7 +172,7 @@ class Problem(BaseModel):
         """Whether an independent hidden score can be produced for this problem."""
         return bool(self.hidden_test_cases) and not self.unsupported_reason
 
-    def prompt_view(self) -> Dict[str, Any]:
+    def prompt_view(self) -> dict[str, Any]:
         """Return problem context that excludes feedback and hidden test contents."""
         return {
             "schema_version": self.schema_version,
@@ -241,7 +241,7 @@ class TestCaseResult(BaseModel):
     passed: bool = Field(..., description="Whether test passed")
     actual_output: Any = Field(None, description="Actual output")
     expected_output: Any = Field(None, description="Expected output")
-    error_message: Optional[str] = Field(None, description="Error message if failed")
+    error_message: str | None = Field(None, description="Error message if failed")
     execution_time: float = Field(0.0, ge=0, description="Execution time in seconds")
     status: str = Field(
         "unknown", description="Status: passed, wrong_answer, timeout, runtime_error"
@@ -278,12 +278,12 @@ class SandboxResult(BaseModel):
         "sandbox_error",
         "unsupported",
     ] = Field(..., description="Execution status")
-    test_results: List[TestCaseResult] = Field(
+    test_results: list[TestCaseResult] = Field(
         default_factory=list, description="Individual test results"
     )
     execution_time: float = Field(0.0, ge=0, description="Total execution time")
     all_passed: bool = Field(False, description="Whether all tests passed")
-    error_message: Optional[str] = Field(None, description="Global error message")
+    error_message: str | None = Field(None, description="Global error message")
 
 
 class IterationResult(BaseModel):
@@ -292,22 +292,22 @@ class IterationResult(BaseModel):
     iteration: int = Field(..., ge=1, description="Iteration number")
     prompt_tokens: int = Field(0, ge=0, description="Prompt tokens used")
     completion_tokens: int = Field(0, ge=0, description="Completion tokens used")
-    code_extracted: Optional[str] = Field(None, description="Extracted code")
-    sandbox_result: Optional[SandboxResult] = Field(None, description="Sandbox execution result")
-    prompt: Optional[str] = Field(None, description="Redacted request prompt sent to the model")
-    response_text: Optional[str] = Field(
+    code_extracted: str | None = Field(None, description="Extracted code")
+    sandbox_result: SandboxResult | None = Field(None, description="Sandbox execution result")
+    prompt: str | None = Field(None, description="Redacted request prompt sent to the model")
+    response_text: str | None = Field(
         None, description="Raw model response text (redacted before persisting)"
     )
-    llm_error: Optional[str] = Field(
+    llm_error: str | None = Field(
         None, description="Redacted model API error for this iteration"
     )
-    sandbox_error: Optional[str] = Field(
+    sandbox_error: str | None = Field(
         None, description="Redacted sandbox failure reason for this iteration"
     )
-    reflection_text: Optional[str] = Field(
+    reflection_text: str | None = Field(
         None, description="Redacted reflection generated after a visible failure"
     )
-    reflection_error: Optional[str] = Field(
+    reflection_error: str | None = Field(
         None, description="Redacted error from the optional reflection call"
     )
     reflection_prompt_tokens: int = Field(0, ge=0, description="Reflection prompt tokens used")
@@ -317,14 +317,14 @@ class IterationResult(BaseModel):
     reflection_usage_missing: bool = Field(
         False, description="True when the reflection provider response had no usage data"
     )
-    reflection_pricing_metadata: Optional[Dict[str, Any]] = Field(
+    reflection_pricing_metadata: dict[str, Any] | None = Field(
         None, description="Pricing metadata for the reflection call"
     )
-    reflection_reasoning_text: Optional[str] = Field(
+    reflection_reasoning_text: str | None = Field(
         None, description="Redacted provider reasoning from the reflection call"
     )
     usage_missing: bool = Field(False, description="True when the provider returned no usage data")
-    effective_params: Dict[str, Any] = Field(
+    effective_params: dict[str, Any] = Field(
         default_factory=dict,
         description="Redacted model parameters effective for this iteration",
     )
@@ -342,59 +342,39 @@ class ExecutionResult(BaseModel):
         True,
         description="False for a task-service placeholder when no execution result was recorded",
     )
-    failure_category: Optional[
-        Literal[
-            "wrong_answer",
-            "code_extraction_failed",
-            "model_error",
-            "system_error",
-            "unsupported",
-            "budget_exhausted",
-        ]
-    ] = Field(
+    failure_category: Literal["wrong_answer", "code_extraction_failed", "model_error", "system_error", "unsupported", "budget_exhausted"] | None = Field(
         None,
         description=(
             "Failure classification; None for successful runs. Kept separate "
             "from status so existing status consumers stay compatible"
         ),
     )
-    failure_mode: Optional[
-        Literal[
-            "syntax_error",
-            "logic_error",
-            "timeout",
-            "boundary_condition",
-            "understanding_error",
-            "runtime_error",
-            "infrastructure_error",
-            "unknown",
-        ]
-    ] = Field(None, description="Evidence-based detailed failure mode for this completed result")
-    failure_mode_confidence: Optional[float] = Field(
+    failure_mode: Literal["syntax_error", "logic_error", "timeout", "boundary_condition", "understanding_error", "runtime_error", "infrastructure_error", "unknown"] | None = Field(None, description="Evidence-based detailed failure mode for this completed result")
+    failure_mode_confidence: float | None = Field(
         None, ge=0.0, le=1.0, description="Rule confidence, not calibrated probability"
     )
-    failure_mode_evidence: List[str] = Field(
+    failure_mode_evidence: list[str] = Field(
         default_factory=list, description="Non-sensitive rule identifiers supporting the mode"
     )
-    difficulty: Optional[Literal["easy", "medium", "hard"]] = Field(
+    difficulty: Literal["easy", "medium", "hard"] | None = Field(
         None, description="Problem difficulty level"
     )
-    iterations: List[IterationResult] = Field(default_factory=list, description="Iteration results")
-    final_result: Optional[SandboxResult] = Field(None, description="Final sandbox result")
-    hidden_result: Optional[SandboxResult] = Field(
+    iterations: list[IterationResult] = Field(default_factory=list, description="Iteration results")
+    final_result: SandboxResult | None = Field(None, description="Final sandbox result")
+    hidden_result: SandboxResult | None = Field(
         None, description="Independent hidden evaluation result"
     )
     formal_evaluable: bool = Field(
         False, description="Whether this problem has independent hidden evaluation cases"
     )
-    test_results: List[TestCaseResult] = Field(default_factory=list, description="Test results")
-    error_message: Optional[str] = Field(None, description="Error message")
+    test_results: list[TestCaseResult] = Field(default_factory=list, description="Test results")
+    error_message: str | None = Field(None, description="Error message")
     total_tokens: int = Field(0, ge=0, description="Total tokens used")
     execution_time_seconds: float = Field(0.0, ge=0, description="Execution time")
     timestamp: str = Field(
         default_factory=lambda: datetime.now().isoformat(), description="Timestamp"
     )
-    llm_traces: List[Dict[str, Any]] = Field(
+    llm_traces: list[dict[str, Any]] = Field(
         default_factory=list, description="LLM interaction traces"
     )
     cost_downgraded: bool = Field(
@@ -427,11 +407,11 @@ class StrategyReport(BaseModel):
     total_tokens: int = Field(..., ge=0, description="Total tokens used")
     avg_tokens_per_problem: float = Field(..., ge=0.0, description="Average tokens per problem")
     estimated_cost_usd: float = Field(..., ge=0.0, description="Estimated cost in USD")
-    pricing_metadata: Optional[Dict[str, Any]] = Field(
+    pricing_metadata: dict[str, Any] | None = Field(
         None,
         description="Pricing information used for cost estimation (model, prompt_price_per_1k, completion_price_per_1k, source)",
     )
-    by_difficulty: Dict[str, Dict[str, Any]] = Field(
+    by_difficulty: dict[str, dict[str, Any]] = Field(
         default_factory=dict, description="Success rate breakdown by difficulty level"
     )
     model_failed_problems: int = Field(
@@ -492,19 +472,19 @@ class LLMResponse(BaseModel):
     text: str = Field(..., description="Generated text")
     usage: TokenUsage = Field(..., description="Token usage")
     model: str = Field(..., description="Model name")
-    finish_reason: Optional[str] = Field(None, description="Finish reason")
-    pricing_metadata: Optional[Dict[str, Any]] = Field(
+    finish_reason: str | None = Field(None, description="Finish reason")
+    pricing_metadata: dict[str, Any] | None = Field(
         None, description="Pricing information used for cost estimation"
     )
     usage_missing: bool = Field(
         False,
         description="True when the provider response carried no usage data",
     )
-    reasoning_text: Optional[str] = Field(
+    reasoning_text: str | None = Field(
         None,
         description="Optional provider reasoning content kept separate from answer text",
     )
-    effective_params: Dict[str, Any] = Field(
+    effective_params: dict[str, Any] = Field(
         default_factory=dict,
         description="Redacted request parameters used for this response",
     )
@@ -516,8 +496,8 @@ class ProviderResponse(BaseModel):
     text: str = Field(..., description="Generated text")
     model: str = Field(..., description="Model used")
     usage: TokenUsage = Field(..., description="Token usage")
-    finish_reason: Optional[str] = Field(None, description="Finish reason")
-    raw_response: Optional[Dict[str, Any]] = Field(None, description="Raw response")
+    finish_reason: str | None = Field(None, description="Finish reason")
+    raw_response: dict[str, Any] | None = Field(None, description="Raw response")
 
 
 # ============================================================================
@@ -542,11 +522,11 @@ class LLMConfig(BaseModel):
     )
     api_key: SecretStr = Field(..., description="API key or environment reference")
     model: str = Field(..., description="Model name")
-    base_url: Optional[str] = Field(None, description="Base URL for local models")
+    base_url: str | None = Field(None, description="Base URL for local models")
     temperature: float = Field(0.7, ge=0.0, le=2.0, description="Sampling temperature")
     max_tokens: int = Field(2000, ge=1, le=8000, description="Max generation tokens")
     timeout: int = Field(30, ge=1, description="Request timeout in seconds")
-    enable_thinking: Optional[bool] = Field(
+    enable_thinking: bool | None = Field(
         None, description="Toggle thinking mode for reasoning models (e.g. SiliconFlow Qwen3.5)"
     )
     retry_max_attempts: int = Field(
@@ -577,7 +557,7 @@ class LLMConfig(BaseModel):
         raw_value = value.get_secret_value() if isinstance(value, SecretStr) else str(value)
         return REDACTED if raw_value else ""
 
-    def redacted_dict(self) -> Dict[str, Any]:
+    def redacted_dict(self) -> dict[str, Any]:
         """Return a serialization-safe view of the model configuration."""
         return redact_sensitive_data(self.model_dump(mode="json"))
 
@@ -593,7 +573,7 @@ class SandboxConfig(BaseModel):
     memory_limit_mb: int = Field(256, ge=64, le=2048, description="Memory limit in MB")
     max_output_bytes: int = Field(1_000_000, ge=1024, le=10_000_000)
     max_processes: int = Field(16, ge=1, le=256)
-    allowed_imports: List[str] = Field(
+    allowed_imports: list[str] = Field(
         default_factory=lambda: [
             "math",
             "itertools",
@@ -615,8 +595,8 @@ class StrategyConfig(BaseModel):
     max_iterations: int = Field(1, ge=1, le=10, description="Max iterations")
     temperature: float = Field(0.7, ge=0.0, le=2.0, description="LLM temperature")
     max_tokens: int = Field(2000, ge=100, le=8000, description="Max tokens per generation")
-    system_prompt: Optional[str] = Field(None, description="System prompt override")
-    custom_params: Dict[str, Any] = Field(default_factory=dict, description="Custom parameters")
+    system_prompt: str | None = Field(None, description="System prompt override")
+    custom_params: dict[str, Any] = Field(default_factory=dict, description="Custom parameters")
 
 
 class ProblemBudget(BaseModel):
@@ -627,13 +607,13 @@ class ProblemBudget(BaseModel):
     tokens the provider reports inside its completion count).
     """
 
-    max_calls: Optional[int] = Field(None, ge=1, description="Maximum model calls per problem")
-    max_tokens: Optional[int] = Field(
+    max_calls: int | None = Field(None, ge=1, description="Maximum model calls per problem")
+    max_tokens: int | None = Field(
         None,
         ge=1,
         description="Maximum known token usage per problem before the next call is refused",
     )
-    max_seconds: Optional[float] = Field(
+    max_seconds: float | None = Field(
         None, gt=0, description="Maximum wall-clock seconds per problem"
     )
 
@@ -641,21 +621,21 @@ class ProblemBudget(BaseModel):
 class ExperimentConfig(BaseModel):
     """Fixed-budget experiment configuration (model x strategy x dataset x repeat)."""
 
-    name: Optional[str] = Field(None, description="Human-readable experiment name")
+    name: str | None = Field(None, description="Human-readable experiment name")
     dataset_path: str = Field(..., description="Path to the problem dataset JSON file")
     output_dir: str = Field(
         "./results/experiments", description="Base output directory for experiment artifacts"
     )
-    models: List[LLMConfig] = Field(
+    models: list[LLMConfig] = Field(
         ..., min_length=1, description="Model configurations to compare"
     )
-    strategies: List[StrategyConfig] = Field(
+    strategies: list[StrategyConfig] = Field(
         ..., min_length=1, description="Strategy configurations to compare"
     )
     repeats: int = Field(
         1, ge=1, description="Number of repetitions per model x strategy combination"
     )
-    budget: Optional[ProblemBudget] = Field(
+    budget: ProblemBudget | None = Field(
         None, description="Optional per-problem budget caps applied to every combination"
     )
     execution: Literal["serial", "parallel"] = Field(
@@ -674,11 +654,11 @@ class ExperimentConfig(BaseModel):
     sandbox_config: SandboxConfig = Field(
         default_factory=SandboxConfig, description="Sandbox configuration"
     )
-    problem_filters: Optional[Dict[str, Any]] = Field(
+    problem_filters: dict[str, Any] | None = Field(
         None, description="Optional filters applied to the dataset before execution"
     )
 
-    def redacted_dict(self) -> Dict[str, Any]:
+    def redacted_dict(self) -> dict[str, Any]:
         """Return a serialization-safe view of the experiment configuration."""
         return redact_sensitive_data(self.model_dump(mode="json"))
 
@@ -686,25 +666,25 @@ class ExperimentConfig(BaseModel):
 class CostAlertConfig(BaseModel):
     """Run-level cost alert delivery settings. Endpoints are credentials."""
 
-    thresholds: List[int] = Field(
+    thresholds: list[int] = Field(
         default_factory=lambda: [50, 80, 90],
         description="Budget percentages that trigger one alert each",
     )
-    slack_webhook_url: Optional[SecretStr] = None
-    webhook_url: Optional[SecretStr] = None
-    smtp_host: Optional[str] = None
+    slack_webhook_url: SecretStr | None = None
+    webhook_url: SecretStr | None = None
+    smtp_host: str | None = None
     smtp_port: int = Field(587, ge=1, le=65535)
-    smtp_username: Optional[str] = None
-    smtp_password: Optional[SecretStr] = None
-    smtp_from: Optional[str] = None
-    smtp_to: List[str] = Field(default_factory=list)
+    smtp_username: str | None = None
+    smtp_password: SecretStr | None = None
+    smtp_from: str | None = None
+    smtp_to: list[str] = Field(default_factory=list)
     smtp_use_starttls: bool = True
     timeout_seconds: float = Field(5.0, gt=0, le=60)
     max_retries: int = Field(2, ge=0, le=5)
 
     @field_validator("thresholds")
     @classmethod
-    def validate_thresholds(cls, value: List[int]) -> List[int]:
+    def validate_thresholds(cls, value: list[int]) -> list[int]:
         if not value or any(type(item) is not int or item < 1 or item > 99 for item in value):
             raise ValueError("cost alert thresholds must be integer percentages from 1 to 99")
         if len(set(value)) != len(value):
@@ -741,32 +721,32 @@ class HarnessConfig(BaseModel):
         default_factory=SandboxConfig, description="Sandbox configuration"
     )
     dataset_path: str = Field(..., description="Path to problem dataset directory or JSON file")
-    strategies: List["StrategyConfig"] = Field(
+    strategies: list["StrategyConfig"] = Field(
         default_factory=list, description="List of strategy configurations"
     )
     output_dir: str = Field("./results", description="Output directory")
     max_workers: int = Field(5, ge=1, le=20, description="Number of parallel workers")
     log_level: Literal["DEBUG", "INFO", "WARNING", "ERROR"] = Field("INFO", description="Log level")
-    problem_filters: Optional[Dict[str, Any]] = Field(
+    problem_filters: dict[str, Any] | None = Field(
         None, description="Optional filters for problems (difficulty, tags, etc.)"
     )
-    difficulty_strategy: Optional[Dict[str, str]] = Field(
+    difficulty_strategy: dict[str, str] | None = Field(
         None,
         description=(
             "Cost-aware difficulty to strategy mapping (easy/medium/hard); "
             "when set, each problem runs once with its mapped strategy"
         ),
     )
-    budget_cap_usd: Optional[float] = Field(
+    budget_cap_usd: float | None = Field(
         None,
         gt=0,
         allow_inf_nan=False,
         description="Run-level known cost cap in USD",
     )
-    budget_action: Optional[Literal["auto_stop", "downgrade"]] = Field(
+    budget_action: Literal["auto_stop", "downgrade"] | None = Field(
         None, description="Action at the run-level cost cap; selector runs default to downgrade"
     )
-    budget_allocation: Optional[Dict[str, float]] = Field(
+    budget_allocation: dict[str, float] | None = Field(
         None,
         description=(
             "Per-difficulty known cost budgets in USD (easy/medium/hard); each "
@@ -776,7 +756,7 @@ class HarnessConfig(BaseModel):
 
     @field_validator("budget_allocation")
     @classmethod
-    def validate_budget_allocation(cls, value: Optional[Dict[str, float]]):
+    def validate_budget_allocation(cls, value: dict[str, float] | None):
         if value is None:
             return value
         if not value:
@@ -790,22 +770,22 @@ class HarnessConfig(BaseModel):
                     f"budget_allocation amounts must be positive finite numbers: {difficulty}"
                 )
         return value
-    cost_alerts: Optional[CostAlertConfig] = Field(
+    cost_alerts: CostAlertConfig | None = Field(
         None, description="Thresholds and notification channels for run-level cost alerts"
     )
     enable_quality_analysis: bool = Field(
         False, description="Enable code quality analysis (time/space complexity, readability, style)"
     )
-    quality_analysis_config: Optional[Dict[str, bool]] = Field(
+    quality_analysis_config: dict[str, bool] | None = Field(
         None,
         description="Fine-grained quality analysis toggles: enable_time_analysis, enable_space_analysis, enable_readability_analysis, enable_style_analysis",
     )
 
-    def redacted_dump(self) -> Dict[str, Any]:
+    def redacted_dump(self) -> dict[str, Any]:
         """Compatibility alias for callers using the original safe dump API."""
         return self.redacted_dict()
 
-    def redacted_dict(self) -> Dict[str, Any]:
+    def redacted_dict(self) -> dict[str, Any]:
         """Return a recursively redacted configuration snapshot."""
         return redact_sensitive_data(self.model_dump(mode="json"))
 
@@ -825,10 +805,10 @@ class StrategyMetrics(BaseModel):
     average_tokens: float = Field(..., ge=0, description="Average tokens")
     average_time_seconds: float = Field(..., ge=0, description="Average time")
     average_iterations: float = Field(..., ge=1, description="Average iterations")
-    token_percentiles: Dict[str, float] = Field(
+    token_percentiles: dict[str, float] = Field(
         default_factory=dict, description="Token percentiles"
     )
-    by_difficulty: Dict[str, float] = Field(
+    by_difficulty: dict[str, float] = Field(
         default_factory=dict, description="Success rate by difficulty"
     )
 
@@ -863,7 +843,7 @@ class ExecutionSummary(BaseModel):
 
     total_problems: int = Field(..., ge=0, description="Total problems")
     total_strategies: int = Field(..., ge=1, description="Total strategies")
-    metrics: Dict[str, StrategyMetrics] = Field(..., description="Strategy metrics")
+    metrics: dict[str, StrategyMetrics] = Field(..., description="Strategy metrics")
     report_path: str = Field(..., description="Report file path")
     execution_time_seconds: float = Field(..., ge=0, description="Total execution time")
     timestamp: str = Field(

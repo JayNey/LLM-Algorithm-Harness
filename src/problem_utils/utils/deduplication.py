@@ -4,13 +4,14 @@
 提供相似度检测和指纹匹配功能，用于识别和合并重复题目。
 """
 
-from typing import Any, Dict, List, Optional, Set, Tuple
+from typing import Any
+
+import numpy as np
 from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.metrics.pairwise import cosine_similarity
-import numpy as np
 
 
-def compute_similarity(problems: List[Dict[str, Any]]) -> np.ndarray:
+def compute_similarity(problems: list[dict[str, Any]]) -> np.ndarray:
     """
     计算题目之间的文本相似度矩阵
 
@@ -46,9 +47,9 @@ def compute_similarity(problems: List[Dict[str, Any]]) -> np.ndarray:
 
 
 def find_similar_pairs(
-    problems: List[Dict[str, Any]],
+    problems: list[dict[str, Any]],
     threshold: float = 0.9
-) -> List[Tuple[int, int, float]]:
+) -> list[tuple[int, int, float]]:
     """
     基于相似度阈值检测相似题目对
 
@@ -77,7 +78,7 @@ def find_similar_pairs(
     return pairs
 
 
-def generate_fingerprint(problem: Dict[str, Any]) -> Optional[str]:
+def generate_fingerprint(problem: dict[str, Any]) -> str | None:
     """
     基于 source_platform 和 source_problem_id 生成唯一指纹
 
@@ -97,8 +98,8 @@ def generate_fingerprint(problem: Dict[str, Any]) -> Optional[str]:
 
 
 def find_fingerprint_duplicates(
-    problems: List[Dict[str, Any]]
-) -> List[List[int]]:
+    problems: list[dict[str, Any]]
+) -> list[list[int]]:
     """
     检测完全相同的题目（基于指纹匹配）
 
@@ -108,7 +109,7 @@ def find_fingerprint_duplicates(
     Returns:
         重复组列表，每组包含具有相同指纹的题目索引
     """
-    fingerprint_map: Dict[str, List[int]] = {}
+    fingerprint_map: dict[str, list[int]] = {}
 
     for idx, problem in enumerate(problems):
         fingerprint = generate_fingerprint(problem)
@@ -126,7 +127,7 @@ def find_fingerprint_duplicates(
     return duplicate_groups
 
 
-def select_primary_problem(problems: List[Dict[str, Any]]) -> int:
+def select_primary_problem(problems: list[dict[str, Any]]) -> int:
     """
     基于字段完整度选择主版本
 
@@ -140,7 +141,7 @@ def select_primary_problem(problems: List[Dict[str, Any]]) -> int:
         raise ValueError("Cannot select primary from empty list")
 
     # 计算每个题目的非空字段数量
-    def count_non_empty_fields(problem: Dict[str, Any]) -> int:
+    def count_non_empty_fields(problem: dict[str, Any]) -> int:
         count = 0
         for key, value in problem.items():
             if value is not None and value != "" and value != []:
@@ -160,9 +161,9 @@ def select_primary_problem(problems: List[Dict[str, Any]]) -> int:
 
 
 def merge_problems(
-    primary: Dict[str, Any],
-    others: List[Dict[str, Any]]
-) -> Dict[str, Any]:
+    primary: dict[str, Any],
+    others: list[dict[str, Any]]
+) -> dict[str, Any]:
     """
     合并重复题目，保留主版本并合并列表字段
 

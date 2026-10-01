@@ -13,7 +13,7 @@ import json
 from datetime import datetime
 from math import comb
 from pathlib import Path
-from typing import Any, Dict, List, Optional
+from typing import Any
 
 from src.error_analysis import analyze_results
 from src.failure_report import (
@@ -37,21 +37,21 @@ FAILURE_CATEGORIES = [
 
 
 def _load_json(path: Path) -> Any:
-    with open(path, "r", encoding="utf-8") as f:
+    with open(path, encoding="utf-8") as f:
         return json.load(f)
 
 
-def _rate(numerator: int, denominator: int) -> Optional[float]:
+def _rate(numerator: int, denominator: int) -> float | None:
     return numerator / denominator if denominator > 0 else None
 
 
 def _combo_metrics(
-    meta: Dict[str, Any],
-    combo: Dict[str, Any],
-    summary: Dict[str, Any],
-    results: List[Dict[str, Any]],
-    ledger: Dict[str, Any],
-) -> Dict[str, Any]:
+    meta: dict[str, Any],
+    combo: dict[str, Any],
+    summary: dict[str, Any],
+    results: list[dict[str, Any]],
+    ledger: dict[str, Any],
+) -> dict[str, Any]:
     """Compute one combination's metrics with explicit denominators."""
     strategy = combo["strategy"]
     report = summary.get(strategy, {})
@@ -81,7 +81,7 @@ def _combo_metrics(
         )
     )
 
-    failure_categories = {category: 0 for category in FAILURE_CATEGORIES}
+    failure_categories = dict.fromkeys(FAILURE_CATEGORIES, 0)
     for r in results:
         if r.get("status") == "budget_exhausted":
             failure_categories["budget_exhausted"] += 1
@@ -167,12 +167,12 @@ def _combo_metrics(
 
 
 def _group_rates(
-    results: List[Dict[str, Any]],
-    problem_info: Dict[str, Dict[str, Any]],
+    results: list[dict[str, Any]],
+    problem_info: dict[str, dict[str, Any]],
     attr: str,
-) -> Dict[str, Dict[str, Any]]:
+) -> dict[str, dict[str, Any]]:
     """Group pass rates by a problem attribute; tags allow multiple groups."""
-    groups: Dict[str, Dict[str, int]] = {}
+    groups: dict[str, dict[str, int]] = {}
     for r in results:
         info = problem_info.get(r.get("problem_id"), {})
         values = info.get(attr) or []
@@ -194,11 +194,11 @@ def _group_rates(
 
 
 def _aggregate_by_model_strategy(
-    combos: List[Dict[str, Any]],
-) -> List[Dict[str, Any]]:
+    combos: list[dict[str, Any]],
+) -> list[dict[str, Any]]:
     """Collapse repeats per (model, strategy) into min/max ranges."""
-    grouped: Dict[tuple, List[Dict[str, Any]]] = {}
-    order: List[tuple] = []
+    grouped: dict[tuple, list[dict[str, Any]]] = {}
+    order: list[tuple] = []
     for combo in combos:
         key = (combo["model"], combo["strategy"])
         if key not in grouped:
@@ -216,7 +216,7 @@ def _aggregate_by_model_strategy(
         "actual_consumption.avg_calls_per_problem",
     ]
 
-    def _flat(combo: Dict[str, Any], dotted: str) -> Any:
+    def _flat(combo: dict[str, Any], dotted: str) -> Any:
         value: Any = combo
         for part in dotted.split("."):
             value = value.get(part) if isinstance(value, dict) else None
@@ -228,7 +228,7 @@ def _aggregate_by_model_strategy(
     for key in order:
         members = grouped[key]
         model, strategy = key
-        ranges: Dict[str, Any] = {}
+        ranges: dict[str, Any] = {}
         for dotted in range_keys:
             values = [v for v in (_flat(c, dotted) for c in members) if v is not None]
             if len(members) > 1 and values:
@@ -252,8 +252,8 @@ def _aggregate_by_model_strategy(
     return aggregated
 
 
-def _flat_csv_row(combo: Dict[str, Any]) -> Dict[str, Any]:
-    row: Dict[str, Any] = {
+def _flat_csv_row(combo: dict[str, Any]) -> dict[str, Any]:
+    row: dict[str, Any] = {
         "combo_id": combo["combo_id"],
         "model": combo["model"],
         "strategy": combo["strategy"],
@@ -283,8 +283,8 @@ def _flat_csv_row(combo: Dict[str, Any]) -> Dict[str, Any]:
     return row
 
 
-def _render_markdown(comparison: Dict[str, Any]) -> str:
-    lines: List[str] = []
+def _render_markdown(comparison: dict[str, Any]) -> str:
+    lines: list[str] = []
     meta = comparison.get("experiment", {})
     lines.append(f"# 固定预算实验对比报告：{meta.get('name') or meta.get('experiment_id', '')}")
     lines.append("")
@@ -397,16 +397,16 @@ def _render_markdown(comparison: Dict[str, Any]) -> str:
 
 
 def _majority_solved(
-    problem_ids: List[str],
-    raw_results: Dict[str, List[Dict[str, Any]]],
-    model_combos: List[Dict[str, Any]],
-) -> Dict[str, bool]:
+    problem_ids: list[str],
+    raw_results: dict[str, list[dict[str, Any]]],
+    model_combos: list[dict[str, Any]],
+) -> dict[str, bool]:
     """Per-problem majority outcome across a model's repeats.
 
     ``budget_exhausted`` counts as not solved; a problem is solved only when
     the majority of the model's repeats finished it successfully.
     """
-    per_repeat: Dict[int, Dict[str, bool]] = {}
+    per_repeat: dict[int, dict[str, bool]] = {}
     for combo in model_combos:
         for result in raw_results.get(combo["combo_id"], []):
             record = per_repeat.setdefault(combo["repeat"], {})
@@ -418,7 +418,7 @@ def _majority_solved(
     }
 
 
-def _mcnemar_annotation(wins: int, losses: int) -> Dict[str, Any]:
+def _mcnemar_annotation(wins: int, losses: int) -> dict[str, Any]:
     """Exact McNemar annotation over discordant pairs (wins, losses).
 
     Two-sided exact binomial p-value: 2 * P(X <= min(wins, losses)) under
@@ -444,17 +444,17 @@ def _mcnemar_annotation(wins: int, losses: int) -> Dict[str, Any]:
 
 
 def build_model_comparison(
-    meta: Dict[str, Any],
-    combos: List[Dict[str, Any]],
-    raw_results: Dict[str, List[Dict[str, Any]]],
-) -> Dict[str, Any]:
+    meta: dict[str, Any],
+    combos: list[dict[str, Any]],
+    raw_results: dict[str, list[dict[str, Any]]],
+) -> dict[str, Any]:
     """Cross-model analysis: win-rate matrix, significance, cost-effectiveness."""
     problem_ids = list(meta.get("dataset", {}).get("problem_ids", []))
-    by_strategy: Dict[str, List[Dict[str, Any]]] = {}
+    by_strategy: dict[str, list[dict[str, Any]]] = {}
     for combo in combos:
         by_strategy.setdefault(combo["strategy"], []).append(combo)
 
-    strategies: Dict[str, Any] = {}
+    strategies: dict[str, Any] = {}
     for strategy in sorted(by_strategy):
         members = by_strategy[strategy]
         models = sorted({member["model"] for member in members})
@@ -470,7 +470,7 @@ def build_model_comparison(
         matrix = []
         significance = []
         for a in models:
-            cells: Dict[str, Any] = {}
+            cells: dict[str, Any] = {}
             for b in models:
                 if a == b:
                     continue
@@ -499,7 +499,7 @@ def build_model_comparison(
         strategies[strategy] = {"matrix": matrix, "significance": significance}
 
     # Cost-effectiveness per model across all its combinations
-    per_model: Dict[str, Dict[str, Any]] = {}
+    per_model: dict[str, dict[str, Any]] = {}
     for combo in combos:
         entry = per_model.setdefault(combo["model"], {"solved": 0, "cost": 0.0, "known": True})
         entry["solved"] += combo["solved"]
@@ -531,10 +531,10 @@ def build_model_comparison(
     }
 
 
-def generate_comparison_report(exp_dir: Path) -> Dict[str, Any]:
+def generate_comparison_report(exp_dir: Path) -> dict[str, Any]:
     meta = _load_json(Path(exp_dir) / "experiment.json")
-    combos: List[Dict[str, Any]] = []
-    raw_results: Dict[str, List[Dict[str, Any]]] = {}
+    combos: list[dict[str, Any]] = []
+    raw_results: dict[str, list[dict[str, Any]]] = {}
     for combo_ref in meta.get("combinations", []):
         combo_dir = Path(exp_dir) / combo_ref["combo_dir"]
         summary = _load_json(combo_dir / "summary.json")

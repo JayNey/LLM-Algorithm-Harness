@@ -2,7 +2,6 @@
 Test that new hook points don't affect batch mode performance and behavior.
 """
 
-import pytest
 from src.strategy_base import StrategyBase
 
 
@@ -17,9 +16,9 @@ class TestHookPointsImpact:
         assert hasattr(StrategyBase, '_after_feedback')
 
         # Verify they are defined as methods
-        assert callable(getattr(StrategyBase, '_before_generate'))
-        assert callable(getattr(StrategyBase, '_before_execute'))
-        assert callable(getattr(StrategyBase, '_after_feedback'))
+        assert callable(StrategyBase._before_generate)
+        assert callable(StrategyBase._before_execute)
+        assert callable(StrategyBase._after_feedback)
 
     def test_hook_methods_signature(self):
         """Verify hook methods have correct signatures."""
@@ -67,7 +66,7 @@ class TestHookPointsImpact:
         assert hasattr(StrategyBase, 'create_execution_result')
 
         # Verify they are callable
-        assert callable(getattr(StrategyBase, 'execute'))
-        assert callable(getattr(StrategyBase, 'generate'))
-        assert callable(getattr(StrategyBase, 'extract_code'))
-        assert callable(getattr(StrategyBase, 'create_execution_result'))
+        assert callable(StrategyBase.execute)
+        assert callable(StrategyBase.generate)
+        assert callable(StrategyBase.extract_code)
+        assert callable(StrategyBase.create_execution_result)

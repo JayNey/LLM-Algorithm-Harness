@@ -2,14 +2,14 @@
 Tests for chart error handling in HTML reports.
 """
 
-import unittest
-from unittest.mock import Mock, patch
-from pathlib import Path
-import tempfile
 import shutil
+import tempfile
+import unittest
+from pathlib import Path
+from unittest.mock import patch
 
-from src.reporting.html_generator import HTMLGenerator
 from src.models import ExecutionResult
+from src.reporting.html_generator import HTMLGenerator
 
 
 class TestChartErrorHandling(unittest.TestCase):

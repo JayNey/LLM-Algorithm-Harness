@@ -3,8 +3,8 @@ Trace recording and visualization for interactive debugging.
 """
 
 import json
-from typing import List, Optional, Dict, Any
-from dataclasses import dataclass, asdict, field
+from dataclasses import asdict, dataclass, field
+from typing import Any
 
 
 @dataclass
@@ -13,11 +13,11 @@ class RoundTrace:
 
     round: int
     prompt: str
-    response: Optional[str] = None
-    code: Optional[str] = None
-    execution_result: Optional[Dict[str, Any]] = None
-    feedback: Optional[str] = None
-    user_interventions: List[Dict[str, str]] = field(default_factory=list)
+    response: str | None = None
+    code: str | None = None
+    execution_result: dict[str, Any] | None = None
+    feedback: str | None = None
+    user_interventions: list[dict[str, str]] = field(default_factory=list)
     status: str = "pending"  # pending, passed, failed, error
 
 
@@ -36,8 +36,8 @@ class TraceRecorder:
         self.problem_id = problem_id
         self.strategy_name = strategy_name
         self.model_name = model_name
-        self.rounds: List[RoundTrace] = []
-        self._current_round: Optional[RoundTrace] = None
+        self.rounds: list[RoundTrace] = []
+        self._current_round: RoundTrace | None = None
 
     def start_round(self, round_number: int, prompt: str) -> None:
         """
@@ -59,7 +59,7 @@ class TraceRecorder:
         if self._current_round:
             self._current_round.code = code
 
-    def record_execution(self, result: Dict[str, Any]) -> None:
+    def record_execution(self, result: dict[str, Any]) -> None:
         """Record execution result for current round."""
         if self._current_round:
             self._current_round.execution_result = result

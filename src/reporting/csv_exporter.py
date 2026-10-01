@@ -4,7 +4,6 @@ CSV export module for evaluation results.
 
 import csv
 from pathlib import Path
-from typing import Dict, List
 
 from src.models import ExecutionResult
 from src.utils.secrets import redact_sensitive_data
@@ -14,7 +13,7 @@ class CSVExporter:
     """Export evaluation results to CSV format."""
 
     @staticmethod
-    def export(results: List[ExecutionResult], output_path: str) -> None:
+    def export(results: list[ExecutionResult], output_path: str) -> None:
         """
         Export a single strategy's results to CSV.
 
@@ -92,7 +91,7 @@ class CSVExporter:
                 writer.writerow(redact_sensitive_data(row))
 
     @staticmethod
-    def export_all(results_dict: Dict[str, List[ExecutionResult]], output_path: str) -> None:
+    def export_all(results_dict: dict[str, list[ExecutionResult]], output_path: str) -> None:
         """
         Export multiple strategies' results to a single CSV.
 

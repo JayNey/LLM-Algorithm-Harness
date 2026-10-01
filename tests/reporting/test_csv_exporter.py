@@ -4,11 +4,10 @@ Unit tests for CSVExporter.
 
 import csv
 from pathlib import Path
-from typing import List
 
 import pytest
 
-from src.models import ExecutionResult, TestCaseResult, SandboxResult, IterationResult
+from src.models import ExecutionResult, IterationResult, SandboxResult, TestCaseResult
 from src.reporting.csv_exporter import CSVExporter
 
 
@@ -102,7 +101,7 @@ def test_export_empty_list(temp_csv_path: str):
 
     assert Path(temp_csv_path).exists()
 
-    with open(temp_csv_path, 'r', encoding='utf-8-sig') as f:
+    with open(temp_csv_path, encoding='utf-8-sig') as f:
         reader = csv.DictReader(f)
         headers = reader.fieldnames
         rows = list(reader)
@@ -124,7 +123,7 @@ def test_export_single_strategy(temp_csv_path: str, sample_execution_result: Exe
 
     assert Path(temp_csv_path).exists()
 
-    with open(temp_csv_path, 'r', encoding='utf-8-sig') as f:
+    with open(temp_csv_path, encoding='utf-8-sig') as f:
         reader = csv.DictReader(f)
         rows = list(reader)
 
@@ -196,7 +195,7 @@ def test_export_multiple_results(
     results = [sample_execution_result, sample_failed_result]
     CSVExporter.export(results, temp_csv_path)
 
-    with open(temp_csv_path, 'r', encoding='utf-8-sig') as f:
+    with open(temp_csv_path, encoding='utf-8-sig') as f:
         reader = csv.DictReader(f)
         rows = list(reader)
 
@@ -222,7 +221,7 @@ def test_export_special_characters(temp_csv_path: str):
 
     CSVExporter.export([result], temp_csv_path)
 
-    with open(temp_csv_path, 'r', encoding='utf-8-sig') as f:
+    with open(temp_csv_path, encoding='utf-8-sig') as f:
         reader = csv.DictReader(f)
         rows = list(reader)
 
@@ -247,7 +246,7 @@ def test_export_all_multiple_strategies(
 
     CSVExporter.export_all(results_dict, temp_csv_path)
 
-    with open(temp_csv_path, 'r', encoding='utf-8-sig') as f:
+    with open(temp_csv_path, encoding='utf-8-sig') as f:
         reader = csv.DictReader(f)
         rows = list(reader)
 

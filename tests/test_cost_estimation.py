@@ -7,8 +7,6 @@ import json
 import tempfile
 from pathlib import Path
 
-import pytest
-
 from src.models import StrategyReport
 
 
@@ -124,7 +122,7 @@ class TestPricingMetadataFlow:
 
         try:
             # Read back and verify
-            with open(temp_path, "r") as f:
+            with open(temp_path) as f:
                 loaded = json.load(f)
 
             assert "strategies" in loaded
@@ -161,7 +159,7 @@ class TestPricingMetadataFlow:
 
         try:
             # Read back and verify
-            with open(temp_path, "r") as f:
+            with open(temp_path) as f:
                 loaded = json.load(f)
 
             assert "strategies" in loaded

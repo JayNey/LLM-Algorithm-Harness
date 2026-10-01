@@ -3,17 +3,13 @@ CLI command for interactive debugging.
 """
 
 import argparse
-import sys
-from pathlib import Path
-from typing import Optional
 
-from src.harness import AlgorithmHarness
+from harness.debug.breakpoint import BreakpointManager
+from harness.debug.debugger import Debugger
+from harness.debug.strategy_wrapper import DebugStrategyWrapper
+from harness.debug.trace import TraceRecorder
 from src.problem_loader import ProblemLoader
 from src.utils.logging import get_logger
-from harness.debug.debugger import Debugger
-from harness.debug.breakpoint import BreakpointManager
-from harness.debug.trace import TraceRecorder
-from harness.debug.strategy_wrapper import DebugStrategyWrapper
 
 logger = get_logger(__name__)
 
@@ -61,7 +57,7 @@ def run_debug_command(args: argparse.Namespace) -> int:
         debugger = Debugger(breakpoint_manager, trace_recorder)
 
         print(f"\n{'='*60}")
-        print(f"Interactive Debug Session")
+        print("Interactive Debug Session")
         print(f"{'='*60}")
         print(f"Problem: {problem.problem_id} - {problem.title}")
         print(f"Strategy: {args.strategy}")
@@ -69,8 +65,8 @@ def run_debug_command(args: argparse.Namespace) -> int:
         print(f"{'='*60}\n")
 
         # Initialize strategy with wrapper
-        from src.models import StrategyConfig, LLMConfig, SandboxConfig
         from src.llm_client import LLMClient
+        from src.models import LLMConfig, SandboxConfig, StrategyConfig
 
         # Create configurations
         llm_config = LLMConfig(

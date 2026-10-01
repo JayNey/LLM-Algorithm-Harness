@@ -3,10 +3,10 @@ Validation utilities for data validation.
 """
 
 from pathlib import Path
-from typing import Any, Dict
+from typing import Any
 
 
-def validate_problem_schema(data: Dict[str, Any]) -> bool:
+def validate_problem_schema(data: dict[str, Any]) -> bool:
     """
     Validate problem data schema.
 
@@ -51,7 +51,7 @@ def validate_problem_schema(data: Dict[str, Any]) -> bool:
 
 
 def validate_test_case(
-    test_case: Dict[str, Any], input_output_mode: str = "function"
+    test_case: dict[str, Any], input_output_mode: str = "function"
 ) -> bool:
     """
     Validate test case format.

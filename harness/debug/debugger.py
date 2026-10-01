@@ -4,10 +4,10 @@ Interactive debugger main loop using cmd.Cmd.
 
 import cmd
 import shlex
-from typing import Optional
+
 from harness.debug.breakpoint import BreakpointManager
-from harness.debug.trace import TraceRecorder
 from harness.debug.editor import edit_prompt
+from harness.debug.trace import TraceRecorder
 
 
 class Debugger(cmd.Cmd):
@@ -47,8 +47,8 @@ Type 'help <command>' for detailed help on a specific command.
         self.continue_execution = False
         self.skip_current = False
         self.should_exit = False
-        self.modified_prompt: Optional[str] = None
-        self.injected_text: Optional[str] = None
+        self.modified_prompt: str | None = None
+        self.injected_text: str | None = None
         self.param_overrides = {}
         self.strategy = None  # Set externally by CLI
         self.problem = None   # Set externally by CLI
@@ -65,7 +65,7 @@ Type 'help <command>' for detailed help on a specific command.
         print(f"Running strategy on problem: {self.problem.problem_id}")
         try:
             self.result = self.strategy.execute(self.problem)
-            print(f"\n✓ Execution completed")
+            print("\n✓ Execution completed")
             print(f"  Success: {self.result.success}")
             if self.result.success:
                 print(f"  Solution found in {len(self.result.attempts)} attempt(s)")
@@ -212,7 +212,7 @@ Type 'help <command>' for detailed help on a specific command.
         # Remove quotes if present
         text = arg.strip().strip('"').strip("'")
         self.injected_text = text
-        print(f"✓ Will inject text into next prompt:")
+        print("✓ Will inject text into next prompt:")
         print(f"  {text[:100]}")
 
     # ===== Trace inspection =====
@@ -274,7 +274,7 @@ Type 'help <command>' for detailed help on a specific command.
                 if self.trace_recorder.export_json(filepath):
                     print(f"✓ Trace saved to {filepath}")
                 else:
-                    print(f"✗ Failed to save trace")
+                    print("✗ Failed to save trace")
 
         print("\nExiting debug session...")
         self.should_exit = True

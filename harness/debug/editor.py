@@ -3,12 +3,11 @@ Prompt editing functionality for interactive debugging.
 """
 
 import os
-import tempfile
 import subprocess
-from typing import Optional
+import tempfile
 
 
-def edit_prompt(current_prompt: str) -> Optional[str]:
+def edit_prompt(current_prompt: str) -> str | None:
     """
     Edit prompt text using external editor or inline input.
 
@@ -36,7 +35,7 @@ def edit_prompt(current_prompt: str) -> Optional[str]:
         return _edit_inline(current_prompt)
 
 
-def _edit_with_external_editor(prompt: str, editor: str) -> Optional[str]:
+def _edit_with_external_editor(prompt: str, editor: str) -> str | None:
     """
     Edit prompt using external editor.
 
@@ -69,7 +68,7 @@ def _edit_with_external_editor(prompt: str, editor: str) -> Optional[str]:
             return None
 
         # Read edited content
-        with open(tmp_path, "r", encoding="utf-8") as f:
+        with open(tmp_path, encoding="utf-8") as f:
             edited_prompt = f.read()
 
         return edited_prompt
@@ -82,7 +81,7 @@ def _edit_with_external_editor(prompt: str, editor: str) -> Optional[str]:
             pass
 
 
-def _edit_inline(current_prompt: str) -> Optional[str]:
+def _edit_inline(current_prompt: str) -> str | None:
     """
     Edit prompt using inline multi-line input.
 

@@ -2,13 +2,12 @@
 Formatting utilities for interactive debugging output.
 """
 
-from typing import Optional
 
 # Try to import pygments for syntax highlighting
 try:
     from pygments import highlight
-    from pygments.lexers import PythonLexer
     from pygments.formatters import TerminalFormatter
+    from pygments.lexers import PythonLexer
     PYGMENTS_AVAILABLE = True
 except ImportError:
     PYGMENTS_AVAILABLE = False
@@ -35,7 +34,7 @@ def format_section(title: str, content: str, width: int = 60) -> str:
     return "\n".join(lines)
 
 
-def format_prompt(prompt: str, max_lines: Optional[int] = None) -> str:
+def format_prompt(prompt: str, max_lines: int | None = None) -> str:
     """
     Format prompt for display.
 
@@ -130,11 +129,11 @@ def format_feedback(feedback: str) -> str:
 
 def format_iteration_display(
     round_num: int,
-    prompt: Optional[str] = None,
-    response: Optional[str] = None,
-    code: Optional[str] = None,
-    execution_result: Optional[dict] = None,
-    feedback: Optional[str] = None,
+    prompt: str | None = None,
+    response: str | None = None,
+    code: str | None = None,
+    execution_result: dict | None = None,
+    feedback: str | None = None,
 ) -> str:
     """
     Format a complete iteration for display.

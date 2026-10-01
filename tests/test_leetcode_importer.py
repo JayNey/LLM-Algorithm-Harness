@@ -7,7 +7,6 @@ import pytest
 
 from src.importers.leetcode import LeetCodeImporter
 
-
 FIXTURE_PATH = Path(__file__).parent / "fixtures" / "leetcode_questions.json"
 
 

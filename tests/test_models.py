@@ -10,15 +10,12 @@ import yaml
 from pydantic import ValidationError
 
 from src.models import (
-    ComparisonResult,
     ExecutionResult,
     ExecutionSummary,
     HarnessConfig,
     JudgeConfig,
     LLMConfig,
-    LLMResponse,
     Problem,
-    ProviderResponse,
     SandboxConfig,
     SandboxResult,
     StrategyConfig,
@@ -28,7 +25,6 @@ from src.models import (
     TestCaseResult,
     TokenUsage,
 )
-
 
 # ============================================================================
 # TestCase Tests

@@ -2,14 +2,14 @@
 Tests for AlgorithmHarness.
 """
 
+from unittest.mock import MagicMock, patch
+
 import pytest
-from unittest.mock import Mock, patch, MagicMock
 
 from src.harness import AlgorithmHarness
 from src.models import (
     ExecutionResult,
     HarnessConfig,
-    IterationResult,
     LLMConfig,
     Problem,
     SandboxConfig,

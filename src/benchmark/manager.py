@@ -1,7 +1,6 @@
 """Benchmark suite manager for managing multiple suites."""
 
 from pathlib import Path
-from typing import Any
 
 from src.benchmark.suite import BenchmarkSuite, load_benchmark_suite
 from src.utils.logging import get_logger
@@ -45,7 +44,7 @@ class BenchmarkManager:
             self._suites[suite.name] = suite
             logger.info("benchmark_suite_loaded", name=suite.name, problems=len(suite.problems))
             return suite
-        except FileNotFoundError as e:
+        except FileNotFoundError:
             logger.error("benchmark_config_not_found", path=str(config_path))
             raise
         except ValueError as e:

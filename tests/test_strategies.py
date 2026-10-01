@@ -2,15 +2,14 @@
 Tests for strategy implementations.
 """
 
-import pytest
 from unittest.mock import Mock
+
+import pytest
 
 from src.llm_client import LLMClient
 from src.models import (
-    LLMConfig,
     LLMResponse,
     Problem,
-    SandboxConfig,
     SandboxResult,
     StrategyConfig,
     TestCase,
@@ -18,9 +17,9 @@ from src.models import (
     TokenUsage,
 )
 from src.sandbox_executor import SandboxExecutor
-from src.strategies.vanilla import VanillaStrategy
 from src.strategies.chain_of_thought import ChainOfThoughtStrategy
 from src.strategies.multi_round_feedback import MultiRoundFeedbackStrategy
+from src.strategies.vanilla import VanillaStrategy
 
 
 @pytest.fixture

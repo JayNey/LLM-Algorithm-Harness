@@ -104,7 +104,7 @@ class TestExperimentConfig:
 # ============================================================================
 
 
-from src.budget import BudgetExhausted, BudgetTracker, BudgetedLLMClient
+from src.budget import BudgetedLLMClient, BudgetExhausted, BudgetTracker
 from src.models import LLMResponse, TokenUsage
 
 
@@ -498,7 +498,6 @@ def test_runner_respects_problem_filters(tmp_path):
 # ============================================================================
 
 
-from src.experiment_report import generate_comparison_report
 
 
 def _report_dataset(tmp_path):

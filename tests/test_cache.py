@@ -1,9 +1,7 @@
 """Unit tests for LLM response caching."""
 
-import json
 import tempfile
 import time
-from pathlib import Path
 
 import pytest
 

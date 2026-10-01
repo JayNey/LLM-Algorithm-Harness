@@ -9,7 +9,7 @@ analysis layer on top of recorded results: the coarse-grained
 
 import re
 from collections import Counter
-from typing import Any, Dict, List, Optional
+from typing import Any
 
 CATEGORIES = [
     "syntax_error",
@@ -65,7 +65,7 @@ _SANDBOX_CATEGORY = {
 }
 
 
-def classify_message(message: Optional[str]) -> str:
+def classify_message(message: str | None) -> str:
     """Classify a single error message by exception names and keywords."""
     if not message:
         return "unknown"
@@ -84,7 +84,7 @@ def classify_message(message: Optional[str]) -> str:
     return "unknown"
 
 
-def _terminal_category(result: Dict[str, Any]) -> Optional[str]:
+def _terminal_category(result: dict[str, Any]) -> str | None:
     """Map sandbox terminal statuses and per-test statuses to categories."""
     final = result.get("final_result") or {}
     category = _SANDBOX_CATEGORY.get(final.get("status"))
@@ -100,7 +100,7 @@ def _terminal_category(result: Dict[str, Any]) -> Optional[str]:
     return None
 
 
-def classify_failure(result: Dict[str, Any]) -> str:
+def classify_failure(result: dict[str, Any]) -> str:
     """Classify one recorded result into one of the seven categories.
 
     Priority: sandbox terminal status → API errors → logic errors →
@@ -124,7 +124,7 @@ def classify_failure(result: Dict[str, Any]) -> str:
     return "unknown"
 
 
-def normalize_message(message: Optional[str], limit: int = 120) -> str:
+def normalize_message(message: str | None, limit: int = 120) -> str:
     """Normalize an error message for pattern aggregation."""
     if not message:
         return ""
@@ -134,7 +134,7 @@ def normalize_message(message: Optional[str], limit: int = 120) -> str:
     return first_line[:limit]
 
 
-def _first_error_message(result: Dict[str, Any]) -> str:
+def _first_error_message(result: dict[str, Any]) -> str:
     final = result.get("final_result") or {}
     for test in final.get("test_results") or []:
         if not test.get("passed") and test.get("error_message"):
@@ -150,12 +150,12 @@ def _first_error_message(result: Dict[str, Any]) -> str:
 
 
 def _distribution(
-    failures: List[Dict[str, Any]],
-    problem_info: Dict[str, Dict[str, Any]],
+    failures: list[dict[str, Any]],
+    problem_info: dict[str, dict[str, Any]],
     attribute: str,
-) -> Dict[str, Any]:
+) -> dict[str, Any]:
     """Category counts per group (difficulty or tag) with shares."""
-    groups: Dict[str, Dict[str, Any]] = {}
+    groups: dict[str, dict[str, Any]] = {}
     for result in failures:
         info = problem_info.get(result.get("problem_id"), {})
         values = info.get(attribute) or result.get(attribute) or []
@@ -174,7 +174,7 @@ def _distribution(
     return dict(sorted(groups.items()))
 
 
-def suggestions_for(category: str, patterns: List[str]) -> List[str]:
+def suggestions_for(category: str, patterns: list[str]) -> list[str]:
     """Rule-based fix suggestions for a category, refined by exception names."""
     suggestions = list(_SUGGESTIONS.get(category, _SUGGESTIONS["unknown"]))
     if category in ("runtime_error", "unknown"):
@@ -186,10 +186,10 @@ def suggestions_for(category: str, patterns: List[str]) -> List[str]:
 
 
 def analyze_results(
-    results: List[Dict[str, Any]],
-    problem_info: Optional[Dict[str, Dict[str, Any]]] = None,
+    results: list[dict[str, Any]],
+    problem_info: dict[str, dict[str, Any]] | None = None,
     top_n: int = 10,
-) -> Dict[str, Any]:
+) -> dict[str, Any]:
     """Full error analysis over one set of recorded results."""
     problem_info = problem_info or {}
     failures = []

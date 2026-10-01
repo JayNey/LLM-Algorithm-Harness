@@ -5,13 +5,12 @@
 """
 
 import pytest
+
 from src.problem_utils.utils.deduplication import (
     compute_similarity,
-    find_similar_pairs,
-    generate_fingerprint,
     find_fingerprint_duplicates,
-    select_primary_problem,
     merge_problems,
+    select_primary_problem,
 )
 
 

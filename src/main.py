@@ -549,7 +549,7 @@ def run_import_command(args: argparse.Namespace) -> int:
         )
 
         # Display summary
-        print(f"Import Summary:")
+        print("Import Summary:")
         print(f"  Total problems in input: {len(raw_data)}")
         print(f"  Successfully validated: {len(valid_problems)}")
         print(f"  Failed validation: {len(failed_items)}")
@@ -575,7 +575,7 @@ def run_import_command(args: argparse.Namespace) -> int:
 
         # Confirmation (unless preview or force)
         if not args.preview and not args.force:
-            response = input(f"Proceed with import? (y/N): ")
+            response = input("Proceed with import? (y/N): ")
             if response.lower() != "y":
                 print("Import cancelled.")
                 return 0
@@ -639,7 +639,7 @@ def run_problems_deduplicate_command(args: argparse.Namespace) -> int:
             print(f"Error: Dataset not found: {dataset_path}", file=sys.stderr)
             return 1
 
-        with open(dataset_path, 'r', encoding='utf-8') as f:
+        with open(dataset_path, encoding='utf-8') as f:
             problems = json.load(f)
 
         if not isinstance(problems, list):
@@ -722,7 +722,7 @@ def run_problems_deduplicate_command(args: argparse.Namespace) -> int:
 
             # Interactive mode: ask user
             if not args.auto_merge:
-                print(f"\n🔄 Duplicate group found:")
+                print("\n🔄 Duplicate group found:")
                 for idx in group:
                     p = merged_problems[idx]
                     print(f"  [{idx}] {p.get('problem_id', 'N/A')}: {p.get('title', 'N/A')}")
@@ -998,19 +998,19 @@ def run_benchmark_command(args: argparse.Namespace) -> int:
             print("Error: No configuration found. Please provide a config file.", file=sys.stderr)
             return 1
 
-        print(f"\nExecuting benchmark evaluation...")
+        print("\nExecuting benchmark evaluation...")
 
         # Execute benchmark
         executor = BenchmarkExecutor(suite, config)
         results = executor.execute()
 
-        print(f"\n✓ Benchmark evaluation completed!")
+        print("\n✓ Benchmark evaluation completed!")
         print(f"  Suite: {results['suite']['name']}")
         print(f"  Problems evaluated: {results['problems_evaluated']}")
         if results['problems_missing'] > 0:
             print(f"  Problems missing: {results['problems_missing']}")
 
-        print(f"\nResults by strategy:")
+        print("\nResults by strategy:")
         for strategy_name, strategy_results in results['strategies'].items():
             print(f"  {strategy_name}:")
             print(f"    - Accuracy: {strategy_results['accuracy']:.2%}")

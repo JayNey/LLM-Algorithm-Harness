@@ -20,10 +20,10 @@ import json
 import sys
 from pathlib import Path
 
+from src.models import ExecutionResult
+from src.reporting.csv_exporter import CSVExporter
 from src.reporting.html_generator import HTMLGenerator
 from src.reporting.markdown_generator import MarkdownGenerator
-from src.reporting.csv_exporter import CSVExporter
-from src.models import ExecutionResult
 
 
 def find_latest_summary() -> Path:
@@ -80,7 +80,7 @@ def generate_reports(summary_path: str = None, output_dir: str = None):
             sys.exit(1)
 
     # Load summary data
-    with open(summary_file, 'r') as f:
+    with open(summary_file) as f:
         data = json.load(f)
 
     # Determine output directory
@@ -116,7 +116,7 @@ def generate_reports(summary_path: str = None, output_dir: str = None):
         for strategy_name in metrics.keys():
             result_file = results_dir / f"{strategy_name}_results.json"
             if result_file.exists():
-                with open(result_file, 'r') as f:
+                with open(result_file) as f:
                     strategy_data = json.load(f)
                     # Convert to ExecutionResult objects
                     results[strategy_name] = [

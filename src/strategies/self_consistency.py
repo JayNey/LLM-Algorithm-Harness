@@ -7,14 +7,12 @@ the most frequent correct answer through voting.
 
 import time
 from collections import Counter
-from typing import Dict, List, Optional
 
 from src.models import (
     ExecutionResult,
     IterationResult,
     LLMResponse,
     Problem,
-    SandboxResult,
 )
 from src.strategy_base import StrategyBase
 from src.utils.logging import get_logger
@@ -66,8 +64,8 @@ class SelfConsistencyStrategy(StrategyBase):
             ExecutionResult with all candidate iterations and voting statistics
         """
         start_time = time.time()
-        iterations: List[IterationResult] = []
-        llm_responses: List[Optional[LLMResponse]] = []
+        iterations: list[IterationResult] = []
+        llm_responses: list[LLMResponse | None] = []
 
         # Step 1: Generate N candidate solutions
         self.logger.info(
@@ -202,7 +200,7 @@ class SelfConsistencyStrategy(StrategyBase):
 
         return execution_result
 
-    def _vote_on_candidates(self, iterations: List[IterationResult]) -> Dict:
+    def _vote_on_candidates(self, iterations: list[IterationResult]) -> dict:
         """
         Vote on passing candidate solutions and select the most frequent one.
 
@@ -272,7 +270,7 @@ class SelfConsistencyStrategy(StrategyBase):
             "passing_count": len(passing_candidates),
         }
 
-    def _analyze_failures(self, iterations: List[IterationResult]) -> Dict:
+    def _analyze_failures(self, iterations: list[IterationResult]) -> dict:
         """
         Analyze failed candidates to identify common failure patterns.
 

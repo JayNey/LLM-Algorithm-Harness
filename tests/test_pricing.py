@@ -6,9 +6,7 @@ import json
 import tempfile
 from pathlib import Path
 
-import pytest
-
-from src.utils.pricing import PricingManager, PricingInfo
+from src.utils.pricing import PricingInfo, PricingManager
 
 
 class TestBuiltinPricing:

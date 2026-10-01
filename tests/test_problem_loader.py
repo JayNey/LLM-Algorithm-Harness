@@ -3,13 +3,11 @@ Tests for ProblemLoader.
 """
 
 import json
-import tempfile
-from pathlib import Path
 
 import pytest
 from pydantic import ValidationError
 
-from src.models import Problem, TestCase
+from src.models import Problem
 from src.problem_loader import ProblemLoader
 
 

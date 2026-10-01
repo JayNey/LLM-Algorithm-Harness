@@ -3,8 +3,6 @@ Integration tests for problem importers.
 """
 
 import json
-import tempfile
-from pathlib import Path
 
 import pytest
 

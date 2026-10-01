@@ -3,7 +3,6 @@ Unit tests for HTMLGenerator.
 """
 
 from pathlib import Path
-from typing import Dict, List
 from unittest.mock import MagicMock, patch
 
 import pytest
@@ -19,7 +18,7 @@ def temp_html_path(tmp_path: Path) -> str:
 
 
 @pytest.fixture
-def sample_metrics() -> Dict[str, Dict]:
+def sample_metrics() -> dict[str, dict]:
     """Fixture for sample strategy metrics."""
     return {
         "direct": {
@@ -44,7 +43,7 @@ def sample_metrics() -> Dict[str, Dict]:
 
 
 @pytest.fixture
-def sample_results() -> Dict[str, List[ExecutionResult]]:
+def sample_results() -> dict[str, list[ExecutionResult]]:
     """Fixture for sample execution results."""
     result = ExecutionResult(
         problem_id="problem_1",
@@ -69,14 +68,14 @@ def sample_results() -> Dict[str, List[ExecutionResult]]:
     return {"direct": [result], "cot": [result]}
 
 
-def test_generate_creates_html_file(temp_html_path: str, sample_metrics: Dict, sample_results: Dict):
+def test_generate_creates_html_file(temp_html_path: str, sample_metrics: dict, sample_results: dict):
     """Test that generate creates an HTML file."""
     HTMLGenerator.generate(sample_metrics, sample_results, temp_html_path)
 
     assert Path(temp_html_path).exists()
 
 
-def test_generate_valid_html5_structure(temp_html_path: str, sample_metrics: Dict, sample_results: Dict):
+def test_generate_valid_html5_structure(temp_html_path: str, sample_metrics: dict, sample_results: dict):
     """Test that generated HTML has valid HTML5 structure."""
     content = HTMLGenerator.generate(sample_metrics, sample_results, temp_html_path)
 
@@ -89,7 +88,7 @@ def test_generate_valid_html5_structure(temp_html_path: str, sample_metrics: Dic
     assert "</html>" in content
 
 
-def test_generate_contains_embedded_css(temp_html_path: str, sample_metrics: Dict, sample_results: Dict):
+def test_generate_contains_embedded_css(temp_html_path: str, sample_metrics: dict, sample_results: dict):
     """Test that HTML contains embedded CSS with no external dependencies."""
     content = HTMLGenerator.generate(sample_metrics, sample_results, temp_html_path)
 
@@ -102,7 +101,7 @@ def test_generate_contains_embedded_css(temp_html_path: str, sample_metrics: Dic
     assert "table" in content
 
 
-def test_generate_contains_embedded_js(temp_html_path: str, sample_metrics: Dict, sample_results: Dict):
+def test_generate_contains_embedded_js(temp_html_path: str, sample_metrics: dict, sample_results: dict):
     """Test that HTML contains embedded JavaScript."""
     content = HTMLGenerator.generate(sample_metrics, sample_results, temp_html_path)
 
@@ -112,7 +111,7 @@ def test_generate_contains_embedded_js(temp_html_path: str, sample_metrics: Dict
     assert "function sortTable" in content
 
 
-def test_generate_includes_metadata(temp_html_path: str, sample_metrics: Dict, sample_results: Dict):
+def test_generate_includes_metadata(temp_html_path: str, sample_metrics: dict, sample_results: dict):
     """Test that HTML includes metadata section."""
     config = {
         "model": "gpt-4",
@@ -134,7 +133,7 @@ def test_generate_includes_metadata(temp_html_path: str, sample_metrics: Dict, s
     assert "Timeout:</strong> 30s" in content
 
 
-def test_generate_strategy_cards(temp_html_path: str, sample_metrics: Dict, sample_results: Dict):
+def test_generate_strategy_cards(temp_html_path: str, sample_metrics: dict, sample_results: dict):
     """Test that strategy cards are generated."""
     content = HTMLGenerator.generate(
         sample_metrics,
@@ -150,7 +149,7 @@ def test_generate_strategy_cards(temp_html_path: str, sample_metrics: Dict, samp
     assert "50.0% Success" in content
 
 
-def test_generate_badge_color_coding(temp_html_path: str, sample_metrics: Dict, sample_results: Dict):
+def test_generate_badge_color_coding(temp_html_path: str, sample_metrics: dict, sample_results: dict):
     """Test that badges are color-coded based on success rate."""
     content = HTMLGenerator.generate(
         sample_metrics,
@@ -165,7 +164,7 @@ def test_generate_badge_color_coding(temp_html_path: str, sample_metrics: Dict, 
     assert "badge-warning" in content
 
 
-def test_generate_collapsible_details(temp_html_path: str, sample_metrics: Dict, sample_results: Dict):
+def test_generate_collapsible_details(temp_html_path: str, sample_metrics: dict, sample_results: dict):
     """Test that collapsible detail sections are created."""
     content = HTMLGenerator.generate(
         sample_metrics,
@@ -180,7 +179,7 @@ def test_generate_collapsible_details(temp_html_path: str, sample_metrics: Dict,
     assert "Show Details" in content
 
 
-def test_generate_with_charts(temp_html_path: str, sample_metrics: Dict, sample_results: Dict):
+def test_generate_with_charts(temp_html_path: str, sample_metrics: dict, sample_results: dict):
     """Test that charts are embedded as base64 when include_charts=True."""
     content = HTMLGenerator.generate(
         sample_metrics,
@@ -194,7 +193,7 @@ def test_generate_with_charts(temp_html_path: str, sample_metrics: Dict, sample_
     assert "Performance Charts" in content
 
 
-def test_generate_without_charts(temp_html_path: str, sample_metrics: Dict, sample_results: Dict):
+def test_generate_without_charts(temp_html_path: str, sample_metrics: dict, sample_results: dict):
     """Test generation without charts."""
     content = HTMLGenerator.generate(
         sample_metrics,
@@ -207,7 +206,7 @@ def test_generate_without_charts(temp_html_path: str, sample_metrics: Dict, samp
     assert "data:image/png;base64," not in content
 
 
-def test_generate_responsive_design(temp_html_path: str, sample_metrics: Dict, sample_results: Dict):
+def test_generate_responsive_design(temp_html_path: str, sample_metrics: dict, sample_results: dict):
     """Test that HTML includes responsive design CSS."""
     content = HTMLGenerator.generate(
         sample_metrics,
@@ -222,7 +221,7 @@ def test_generate_responsive_design(temp_html_path: str, sample_metrics: Dict, s
 
 
 def test_generate_includes_formal_evaluation_summary(
-    temp_html_path: str, sample_results: Dict
+    temp_html_path: str, sample_results: dict
 ):
     """HTML reports show formal and sample-only counts."""
     metrics = {
@@ -247,7 +246,7 @@ def test_generate_includes_formal_evaluation_summary(
 
 
 def test_generate_redacts_credentials_from_rendering_errors(
-    temp_html_path: str, sample_metrics: Dict, sample_results: Dict
+    temp_html_path: str, sample_metrics: dict, sample_results: dict
 ):
     """HTML output sanitizes exceptions raised while rendering charts."""
     secret = "issue4-html-export-secret"
@@ -268,7 +267,7 @@ def test_generate_redacts_credentials_from_rendering_errors(
     assert "[REDACTED]" in content
 
 
-def test_generate_footer(temp_html_path: str, sample_metrics: Dict, sample_results: Dict):
+def test_generate_footer(temp_html_path: str, sample_metrics: dict, sample_results: dict):
     """Test that footer is included."""
     content = HTMLGenerator.generate(
         sample_metrics,
@@ -281,7 +280,7 @@ def test_generate_footer(temp_html_path: str, sample_metrics: Dict, sample_resul
     assert "Generated by LLM Algorithm Harness" in content
 
 
-def test_generate_creates_parent_directories(tmp_path: Path, sample_metrics: Dict, sample_results: Dict):
+def test_generate_creates_parent_directories(tmp_path: Path, sample_metrics: dict, sample_results: dict):
     """Test that generate creates parent directories if needed."""
     nested_path = tmp_path / "reports" / "subdir" / "report.html"
 
@@ -296,7 +295,7 @@ def test_generate_creates_parent_directories(tmp_path: Path, sample_metrics: Dic
     assert nested_path.parent.exists()
 
 
-def test_generate_difficulty_breakdown_in_details(temp_html_path: str, sample_metrics: Dict, sample_results: Dict):
+def test_generate_difficulty_breakdown_in_details(temp_html_path: str, sample_metrics: dict, sample_results: dict):
     """Test that difficulty breakdown appears in detail sections."""
     content = HTMLGenerator.generate(
         sample_metrics,
@@ -321,7 +320,7 @@ def test_generate_empty_metrics(temp_html_path: str):
     assert "LLM Algorithm Harness" in content
 
 
-def test_generate_self_contained(temp_html_path: str, sample_metrics: Dict, sample_results: Dict):
+def test_generate_self_contained(temp_html_path: str, sample_metrics: dict, sample_results: dict):
     """Test that generated HTML is self-contained (no external resources)."""
     content = HTMLGenerator.generate(
         sample_metrics,

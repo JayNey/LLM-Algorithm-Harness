@@ -3,9 +3,9 @@ Tests for iteration distribution grouped bar chart.
 """
 
 import pytest
-import numpy as np
-from src.reporting.chart_generator import ChartGenerator
+
 from src.models import ExecutionResult, IterationResult
+from src.reporting.chart_generator import ChartGenerator
 
 
 class TestIterationDistribution:

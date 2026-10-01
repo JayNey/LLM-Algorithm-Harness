@@ -7,7 +7,6 @@ import pytest
 
 from src.importers.livecodebench import LiveCodeBenchImporter
 
-
 FIXTURE = Path(__file__).parent / "fixtures" / "livecodebench.json"
 
 

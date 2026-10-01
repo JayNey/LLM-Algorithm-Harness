@@ -2,16 +2,16 @@
 Chart generation module using matplotlib.
 """
 
-import io
 import base64
+import io
 import logging
-from typing import Dict, List, Optional
 
-import numpy as np
 import matplotlib
+import numpy as np
+
 matplotlib.use('Agg')  # Non-interactive backend
-import matplotlib.pyplot as plt
 import matplotlib.font_manager as fm
+import matplotlib.pyplot as plt
 
 from src.models import ExecutionResult
 
@@ -40,7 +40,7 @@ class ChartGenerator:
     def _calculate_cost(
         prompt_tokens: int,
         completion_tokens: int,
-        model: Optional[str] = None
+        model: str | None = None
     ) -> float:
         """
         Calculate cost based on token usage and model pricing.
@@ -110,7 +110,7 @@ class ChartGenerator:
         return buf
 
     @staticmethod
-    def generate_success_rate_chart(metrics: Dict[str, Dict]) -> Optional[io.BytesIO]:
+    def generate_success_rate_chart(metrics: dict[str, dict]) -> io.BytesIO | None:
         """
         Generate success rate comparison bar chart.
 
@@ -164,10 +164,10 @@ class ChartGenerator:
 
     @staticmethod
     def generate_token_chart(
-        metrics: Dict[str, Dict],
-        results: Optional[Dict[str, List[ExecutionResult]]] = None,
-        model: Optional[str] = None
-    ) -> Optional[io.BytesIO]:
+        metrics: dict[str, dict],
+        results: dict[str, list[ExecutionResult]] | None = None,
+        model: str | None = None
+    ) -> io.BytesIO | None:
         """
         Generate token consumption line chart with cost estimation on dual Y-axis.
 
@@ -350,7 +350,7 @@ class ChartGenerator:
             return None
 
     @staticmethod
-    def generate_iteration_distribution(results: Dict[str, List[ExecutionResult]]) -> Optional[io.BytesIO]:
+    def generate_iteration_distribution(results: dict[str, list[ExecutionResult]]) -> io.BytesIO | None:
         """
         Generate iteration count distribution as grouped bar chart.
 

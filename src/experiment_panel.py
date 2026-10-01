@@ -13,7 +13,7 @@ import json
 from datetime import datetime
 from html import escape
 from pathlib import Path
-from typing import Any, Dict, List
+from typing import Any
 
 from src.capability import build_capability_map
 from src.utils.logging import get_logger
@@ -22,7 +22,7 @@ logger = get_logger(__name__)
 
 
 def _load_json(path: Path) -> Any:
-    with open(path, "r", encoding="utf-8") as f:
+    with open(path, encoding="utf-8") as f:
         return json.load(f)
 
 
@@ -30,7 +30,7 @@ def _rate(value: Any) -> float:
     return round(value, 4) if isinstance(value, (int, float)) else 0.0
 
 
-def _build_panel_data(comparison: Dict[str, Any]) -> Dict[str, Any]:
+def _build_panel_data(comparison: dict[str, Any]) -> dict[str, Any]:
     """Assemble the chart payloads consumed by the embedded page script."""
     combos = comparison.get("combinations", [])
     model_comparison = comparison.get("model_comparison", {})
@@ -41,11 +41,11 @@ def _build_panel_data(comparison: Dict[str, Any]) -> Dict[str, Any]:
     }
     max_ratio = max(cost_ranking.values()) if cost_ranking else 0.0
 
-    radar: Dict[str, Any] = {
+    radar: dict[str, Any] = {
         "labels": ["隐藏通过率", "样例验证率", "修复率", "成本效益"],
         "datasets": [],
     }
-    scatter: List[Dict[str, Any]] = []
+    scatter: list[dict[str, Any]] = []
     bar = {"labels": [], "calls": [], "elapsed": [], "tokens": []}
 
     for combo in combos:
@@ -124,10 +124,10 @@ def _build_panel_data(comparison: Dict[str, Any]) -> Dict[str, Any]:
     }
 
 
-def _render_panel(data: Dict[str, Any]) -> str:
+def _render_panel(data: dict[str, Any]) -> str:
     """Render the self-contained panel page around the embedded data."""
     embedded = json.dumps(data, ensure_ascii=False).replace("</", "<\\/")
-    matrix_html: List[str] = []
+    matrix_html: list[str] = []
     for table in data["matrix_tables"]:
         rows = table["rows"]
         if rows:

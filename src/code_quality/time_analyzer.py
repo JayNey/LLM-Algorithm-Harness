@@ -10,7 +10,6 @@ SECURITY: Performance testing uses SandboxExecutor for safe code execution.
 """
 
 import ast
-from typing import Any, Dict, Optional
 
 from src.code_quality.models import TimeComplexityScore
 from src.models import Problem
@@ -32,7 +31,7 @@ class TimeComplexityAnalyzer:
         self.timeout_seconds = timeout_seconds
 
     def analyze(
-        self, code: str, problem: Optional[Problem] = None, sandbox_executor=None
+        self, code: str, problem: Problem | None = None, sandbox_executor=None
     ) -> TimeComplexityScore:
         """
         Analyze time complexity of code.
@@ -51,7 +50,7 @@ class TimeComplexityAnalyzer:
             static_complexity = self._infer_complexity_from_depth(loop_depth)
 
             # Performance testing (requires sandbox executor for safety)
-            execution_times: Dict[str, float] = {}
+            execution_times: dict[str, float] = {}
             measured_growth = None
             is_timeout = False
 
@@ -132,7 +131,7 @@ class TimeComplexityAnalyzer:
 
     def _performance_test(
         self, code: str, problem: Problem, sandbox_executor
-    ) -> tuple[Dict[str, float], bool]:
+    ) -> tuple[dict[str, float], bool]:
         """
         Run performance tests at different scales using sandbox executor.
 
@@ -144,7 +143,7 @@ class TimeComplexityAnalyzer:
         Returns:
             (execution_times, is_timeout)
         """
-        execution_times: Dict[str, float] = {}
+        execution_times: dict[str, float] = {}
         is_timeout = False
 
         try:
@@ -164,7 +163,7 @@ class TimeComplexityAnalyzer:
 
         return execution_times, is_timeout
 
-    def _calculate_growth_rate(self, execution_times: Dict[str, float]) -> float:
+    def _calculate_growth_rate(self, execution_times: dict[str, float]) -> float:
         """Calculate empirical growth rate from execution times."""
         if len(execution_times) < 2:
             return 1.0
@@ -176,7 +175,7 @@ class TimeComplexityAnalyzer:
         return 1.0
 
     def _calculate_performance_score(
-        self, loop_depth: int, growth_rate: Optional[float], is_timeout: bool
+        self, loop_depth: int, growth_rate: float | None, is_timeout: bool
     ) -> float:
         """
         Calculate overall performance score (0-100).

@@ -5,19 +5,17 @@ import logging as std_logging
 import uuid
 
 import pytest
+import structlog
 import yaml
 
-import structlog
-
 import src.utils.logging as logging_utils
-from src.utils.logging import get_logger, setup_logging
-
 from src.utils.config import (
     get_default_config,
     load_config,
     merge_configs,
     validate_config,
 )
+from src.utils.logging import get_logger, setup_logging
 from src.utils.validators import (
     validate_file_path,
     validate_problem_schema,

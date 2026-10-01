@@ -4,7 +4,7 @@ Main Harness - Coordinates evaluation workflow.
 
 import threading
 from pathlib import Path
-from typing import Any, Dict, List, Optional
+from typing import Any
 
 from rich.progress import (
     BarColumn,
@@ -60,7 +60,7 @@ class AlgorithmHarness:
         "reflexion": ReflexionStrategy,
     }
 
-    def __init__(self, config: HarnessConfig, budget_tracker: Optional[BudgetTracker] = None):
+    def __init__(self, config: HarnessConfig, budget_tracker: BudgetTracker | None = None):
         """
         Initialize harness.
 
@@ -71,13 +71,13 @@ class AlgorithmHarness:
         """
         self.config = config
         self.budget_tracker = budget_tracker
-        self.cost_monitor: Optional[RunCostMonitor] = None
-        self.budget_allocation_monitor: Optional[DifficultyBudgetMonitor] = None
-        self.cost_alert_manager: Optional[CostAlertManager] = None
+        self.cost_monitor: RunCostMonitor | None = None
+        self.budget_allocation_monitor: DifficultyBudgetMonitor | None = None
+        self.cost_alert_manager: CostAlertManager | None = None
         self.problem_loader = ProblemLoader()
-        self.results: Dict[str, List[ExecutionResult]] = {}
-        self.problem_totals: Dict[str, int] = {}
-        self.problems_by_id: Dict[str, Problem] = {}
+        self.results: dict[str, list[ExecutionResult]] = {}
+        self.problem_totals: dict[str, int] = {}
+        self.problems_by_id: dict[str, Problem] = {}
         self.task_record = None
         self._results_lock = threading.Lock()
 
@@ -102,7 +102,7 @@ class AlgorithmHarness:
         use_task_service: bool = False,
         run_id: str | None = None,
         resume: bool = False,
-    ) -> Dict[str, StrategyReport]:
+    ) -> dict[str, StrategyReport]:
         """
         Run full evaluation.
 
@@ -146,7 +146,7 @@ class AlgorithmHarness:
 
     def _run_with_task_service(
         self, *, run_id: str | None = None, resume: bool = False
-    ) -> Dict[str, StrategyReport]:
+    ) -> dict[str, StrategyReport]:
         """Run CLI evaluations through the persistent task service."""
         problems = self._load_problems()
         self.problems_by_id = {problem.problem_id: problem for problem in problems}
@@ -162,13 +162,13 @@ class AlgorithmHarness:
                 raise ValueError("Budget downgrade requires a difficulty_strategy mapping")
             if budget_action is None:
                 raise ValueError("Budget cap requires auto_stop or a difficulty_strategy mapping")
-        monitor: Optional[RunCostMonitor] = None
+        monitor: RunCostMonitor | None = None
         if selector is not None or self.config.budget_cap_usd is not None:
             # The monitor exists whenever the selector runs: without a cap it
             # still records accumulated cost and unknown-usage results.
             monitor = RunCostMonitor(self.config.budget_cap_usd)
             self.cost_monitor = monitor
-        allocation_monitor: Optional[DifficultyBudgetMonitor] = None
+        allocation_monitor: DifficultyBudgetMonitor | None = None
         if self.config.budget_allocation:
             if selector is None:
                 raise ValueError("Budget allocation requires a difficulty_strategy mapping")
@@ -189,7 +189,7 @@ class AlgorithmHarness:
             TextColumn("[green]{task.fields[success_rate]}"),
             TimeRemainingColumn(),
         )
-        progress_task_id: Optional[TaskID] = None
+        progress_task_id: TaskID | None = None
         progress_lock = threading.Lock()
 
         if resume:
@@ -395,7 +395,7 @@ class AlgorithmHarness:
             )
             return {"cost_aware": report}
 
-        reports: Dict[str, StrategyReport] = {}
+        reports: dict[str, StrategyReport] = {}
         for strategy_config in self.config.strategies:
             results_by_problem = {
                 unit.problem_id: self._annotate_failure_mode(
@@ -471,8 +471,8 @@ class AlgorithmHarness:
             logger.warning("cost_alert", **event)
 
     def _cost_aware_selector(
-        self, problems: List[Problem]
-    ) -> Optional[CostAwareSelector]:
+        self, problems: list[Problem]
+    ) -> CostAwareSelector | None:
         """Build the difficulty selector when configured; validate coverage."""
         mapping = self.config.difficulty_strategy
         if not mapping:
@@ -493,8 +493,8 @@ class AlgorithmHarness:
         return selector
 
     def _collect_cost_aware_results(
-        self, problems: List[Problem], selector: CostAwareSelector
-    ) -> List[ExecutionResult]:
+        self, problems: list[Problem], selector: CostAwareSelector
+    ) -> list[ExecutionResult]:
         """Gather selector-mode results in dataset order, one per problem."""
         unit_by_problem = {unit.problem_id: unit for unit in self.task_record.units}
         results = []
@@ -535,7 +535,7 @@ class AlgorithmHarness:
             )
         return results
 
-    def _load_problems(self) -> List[Problem]:
+    def _load_problems(self) -> list[Problem]:
         """
         Load and filter problems.
 
@@ -556,7 +556,7 @@ class AlgorithmHarness:
         return problems
 
     def _run_strategy(
-        self, strategy_config: StrategyConfig, problems: List[Problem]
+        self, strategy_config: StrategyConfig, problems: list[Problem]
     ) -> StrategyReport:
         """
         Run single strategy on all problems.
@@ -737,8 +737,8 @@ class AlgorithmHarness:
     def _generate_report(
         self,
         strategy_config: StrategyConfig,
-        results: List[ExecutionResult],
-        problems: List[Problem],
+        results: list[ExecutionResult],
+        problems: list[Problem],
     ) -> StrategyReport:
         """
         Generate strategy report.
@@ -810,7 +810,7 @@ class AlgorithmHarness:
 
         return report
 
-    def _estimate_cost(self, results: List[ExecutionResult]) -> tuple[float, dict]:
+    def _estimate_cost(self, results: list[ExecutionResult]) -> tuple[float, dict]:
         """
         Estimate total cost for results using actual pricing metadata.
 
@@ -889,8 +889,8 @@ class AlgorithmHarness:
         return total_cost, pricing_metadata
 
     def _calculate_by_difficulty(
-        self, results: List[ExecutionResult], problems: List[Problem]
-    ) -> Dict[str, Dict[str, Any]]:
+        self, results: list[ExecutionResult], problems: list[Problem]
+    ) -> dict[str, dict[str, Any]]:
         """
         Calculate success rate breakdown by difficulty level.
 
@@ -934,7 +934,7 @@ class AlgorithmHarness:
 
         return by_difficulty
 
-    def get_results(self, strategy_name: str) -> List[ExecutionResult]:
+    def get_results(self, strategy_name: str) -> list[ExecutionResult]:
         """
         Get results for specific strategy.
 
@@ -946,7 +946,7 @@ class AlgorithmHarness:
         """
         return self.results.get(strategy_name, [])
 
-    def get_failed_problems(self, strategy_name: str) -> List[str]:
+    def get_failed_problems(self, strategy_name: str) -> list[str]:
         """
         Get problem IDs that failed for strategy.
 
@@ -959,7 +959,7 @@ class AlgorithmHarness:
         results = self.get_results(strategy_name)
         return [r.problem_id for r in results if r.status != "success"]
 
-    def compare_strategies(self) -> Dict:
+    def compare_strategies(self) -> dict:
         """
         Compare all strategies.
 

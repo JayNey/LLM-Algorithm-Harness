@@ -6,8 +6,9 @@ three combinations — cheap/low-accuracy, expensive/high-accuracy, and a
 priced mid-tier — plus one cost-unknown combination.
 """
 
-import pytest
 from unittest.mock import patch
+
+import pytest
 
 from src.cost_optimizer import (
     build_advisory,
