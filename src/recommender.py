@@ -341,18 +341,10 @@ class RecommendationEngine:
             )
             data["recommendation_score"] = failure_rate
             data["expected_improvement_dimensions"] = sorted(
-                {
-                    key.split(":", 1)[1]
-                    for key in matches
-                    if key.startswith("tag:")
-                }
+                {key.split(":", 1)[1] for key in matches if key.startswith("tag:")}
             )
-            estimated = RecommendationEngine._estimate_cost(
-                problem, cost_by_difficulty
-            )
-            data["estimated_cost_usd"] = (
-                round(estimated, 6) if estimated is not None else None
-            )
+            estimated = RecommendationEngine._estimate_cost(problem, cost_by_difficulty)
+            data["estimated_cost_usd"] = round(estimated, 6) if estimated is not None else None
             output.append(data)
         return output
 

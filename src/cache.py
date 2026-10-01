@@ -111,7 +111,7 @@ class LLMResponseCache:
         """Read the access log."""
         try:
             if self.access_log_path.exists():
-                with open(self.access_log_path, encoding='utf-8') as f:
+                with open(self.access_log_path, encoding="utf-8") as f:
                     return json.load(f)
         except (OSError, json.JSONDecodeError):
             pass
@@ -120,7 +120,7 @@ class LLMResponseCache:
     def _write_access_log(self, log: dict[str, float]):
         """Write the access log atomically."""
         temp_path = self.access_log_path.with_suffix(".tmp")
-        with open(temp_path, "w", encoding='utf-8') as f:
+        with open(temp_path, "w", encoding="utf-8") as f:
             json.dump(log, f)
         temp_path.replace(self.access_log_path)
 
@@ -160,7 +160,7 @@ class LLMResponseCache:
             return None
 
         try:
-            with open(cache_path, encoding='utf-8') as f:
+            with open(cache_path, encoding="utf-8") as f:
                 cache_data = json.load(f)
 
             # Check expiration
@@ -224,7 +224,7 @@ class LLMResponseCache:
         # Atomic write: write to temp file then rename
         temp_path = cache_path.with_suffix(".tmp")
         try:
-            with open(temp_path, "w", encoding='utf-8') as f:
+            with open(temp_path, "w", encoding="utf-8") as f:
                 json.dump(cache_data, f, indent=2)
             temp_path.replace(cache_path)
 
@@ -311,7 +311,7 @@ class LLMResponseCache:
                     continue
 
                 try:
-                    with open(cache_file, encoding='utf-8') as f:
+                    with open(cache_file, encoding="utf-8") as f:
                         cache_data = json.load(f)
 
                     if cache_data.get("model") == model_filter:

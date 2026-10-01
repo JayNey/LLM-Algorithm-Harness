@@ -243,9 +243,7 @@ def test_gradient_orders_easy_first_with_cost_and_dimensions(tmp_path):
         ]
     )
     dataset.write_text(json.dumps(dataset_payload), encoding="utf-8")
-    (history / "vanilla_results.json").write_text(
-        json.dumps(records), encoding="utf-8"
-    )
+    (history / "vanilla_results.json").write_text(json.dumps(records), encoding="utf-8")
 
     report = RecommendationEngine(history, dataset_path=dataset).analyze()
 

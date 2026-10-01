@@ -345,7 +345,7 @@ def save_results(reports: dict, output_dir: str, harness: AlgorithmHarness, conf
             "dataset_fingerprint": task_record.dataset_fingerprint,
         }
     metadata_file = run_path / "metadata.json"
-    with open(metadata_file, "w", encoding='utf-8') as f:
+    with open(metadata_file, "w", encoding="utf-8") as f:
         json.dump(metadata, f, indent=2)
     logger.info("metadata_saved", path=str(metadata_file))
 
@@ -387,7 +387,7 @@ def save_results(reports: dict, output_dir: str, harness: AlgorithmHarness, conf
         }
 
     summary_file = run_path / "summary.json"
-    with open(summary_file, "w", encoding='utf-8') as f:
+    with open(summary_file, "w", encoding="utf-8") as f:
         json.dump(summary, f, indent=2)
 
     logger.info("summary_saved", path=str(summary_file))
@@ -432,14 +432,14 @@ def save_results(reports: dict, output_dir: str, harness: AlgorithmHarness, conf
         results_file = run_path / f"{strategy_name}_results.json"
         results_data = redact_sensitive_data([r.model_dump() for r in results])
 
-        with open(results_file, "w", encoding='utf-8') as f:
+        with open(results_file, "w", encoding="utf-8") as f:
             json.dump(results_data, f, indent=2)
 
         logger.info("strategy_results_saved", strategy=strategy_name, path=str(results_file))
 
     # Update the latest-run pointer for tooling
     latest_file = Path(output_dir) / "latest.json"
-    with open(latest_file, "w", encoding='utf-8') as f:
+    with open(latest_file, "w", encoding="utf-8") as f:
         json.dump({"latest_run": run_path.name}, f, indent=2)
 
     print(f"\nResults saved to: {run_path}")
