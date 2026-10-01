@@ -29,7 +29,7 @@ class TestLocalJsonImporter:
             }
         ]
         test_file = tmp_path / "test_problems.json"
-        with open(test_file, "w") as f:
+        with open(test_file, "w", encoding="utf-8") as f:
             json.dump(test_data, f)
 
         importer = LocalJsonImporter()
@@ -158,7 +158,7 @@ class TestLocalJsonImporter:
         assert output_file.exists()
 
         # Verify content
-        with open(output_file) as f:
+        with open(output_file, encoding="utf-8") as f:
             data = json.load(f)
         assert len(data) == 1
         assert data[0]["problem_id"] == "test-001"
@@ -208,7 +208,7 @@ class TestImportIntegration:
             }
         ]
         source_file = tmp_path / "source.json"
-        with open(source_file, "w") as f:
+        with open(source_file, "w", encoding="utf-8") as f:
             json.dump(source_data, f)
 
         # Import
@@ -225,7 +225,7 @@ class TestImportIntegration:
         importer.persist_dataset(valid_problems, str(output_file))
 
         # Verify
-        with open(output_file) as f:
+        with open(output_file, encoding="utf-8") as f:
             saved_data = json.load(f)
         assert len(saved_data) == 1
         assert saved_data[0]["problem_id"] == "import-001"
@@ -249,7 +249,7 @@ class TestImportIntegration:
             },
         ]
         source_file = tmp_path / "mixed.json"
-        with open(source_file, "w") as f:
+        with open(source_file, "w", encoding="utf-8") as f:
             json.dump(source_data, f)
 
         importer = LocalJsonImporter()

@@ -171,7 +171,7 @@ class TestSaveResults:
         config = create_default_config("data/problems.json", str(output_dir))
         config.llm_config.api_key = "sk-test-secret"
         save_results(self._make_reports(), str(output_dir), mock_harness, config)
-        with open(output_dir / "latest.json") as f:
+        with open(output_dir / "latest.json", encoding="utf-8") as f:
             run_name = json.load(f)["latest_run"]
         return output_dir, output_dir / run_name
 
@@ -190,7 +190,7 @@ class TestSaveResults:
         summary_file = run_dir / "summary.json"
         assert summary_file.exists()
 
-        with open(summary_file) as f:
+        with open(summary_file, encoding="utf-8") as f:
             data = json.load(f)
             assert "strategies" in data
             assert "vanilla" in data["strategies"]
@@ -202,7 +202,7 @@ class TestSaveResults:
         metadata_file = run_dir / "metadata.json"
         assert metadata_file.exists()
 
-        with open(metadata_file) as f:
+        with open(metadata_file, encoding="utf-8") as f:
             metadata = json.load(f)
         assert metadata["dataset_path"] == "data/problems.json"
         assert metadata["llm"]["model"] == "gpt-3.5-turbo"
@@ -222,7 +222,7 @@ class TestSaveResults:
         detailed_file = run_dir / "vanilla_results.json"
         assert detailed_file.exists()
 
-        with open(detailed_file) as f:
+        with open(detailed_file, encoding="utf-8") as f:
             data = json.load(f)
             assert len(data) == 1
             assert data[0]["problem_id"] == "test_1"

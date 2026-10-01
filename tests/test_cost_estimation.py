@@ -122,7 +122,7 @@ class TestPricingMetadataFlow:
 
         try:
             # Read back and verify
-            with open(temp_path) as f:
+            with open(temp_path, encoding="utf-8") as f:
                 loaded = json.load(f)
 
             assert "strategies" in loaded
@@ -159,7 +159,7 @@ class TestPricingMetadataFlow:
 
         try:
             # Read back and verify
-            with open(temp_path) as f:
+            with open(temp_path, encoding="utf-8") as f:
                 loaded = json.load(f)
 
             assert "strategies" in loaded

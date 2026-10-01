@@ -83,7 +83,7 @@ class TestDebugE2E:
             assert result is True
 
             # Verify file was created and contains valid JSON
-            with open(temp_path) as f:
+            with open(temp_path, encoding="utf-8") as f:
                 data = json.load(f)
 
             assert "problem_id" in data
