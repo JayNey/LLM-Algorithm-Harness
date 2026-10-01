@@ -15,7 +15,7 @@ from src.difficulty_calibration import (
     format_change_report,
 )
 from src.main import run_recalibrate_command
-from src.models import LLMConfig, Problem
+from src.models import Problem
 
 
 def write_results(path: Path, records):

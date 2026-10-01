@@ -12,7 +12,7 @@ known pricing and known usage count toward the total; results with unknown
 usage are counted separately.
 """
 
-from typing import Any, Dict, List
+from typing import Any
 
 from src.cost_strategy import result_cost
 from src.models import ExecutionResult
@@ -26,7 +26,7 @@ logger = get_logger(__name__)
 FINISHED_STATES = {"completed"}
 
 
-def summarize_run(record: TaskRecord) -> Dict[str, Any]:
+def summarize_run(record: TaskRecord) -> dict[str, Any]:
     """Derive the operational view of one persisted run."""
     known_cost = 0.0
     unknown_usage = 0
@@ -60,7 +60,7 @@ def find_matching_unfinished(
     service: TaskService,
     config_fingerprint: str,
     dataset_fingerprint: str,
-) -> List[TaskRecord]:
+) -> list[TaskRecord]:
     """Unfinished runs whose config and dataset fingerprints both match."""
     matches = [
         record

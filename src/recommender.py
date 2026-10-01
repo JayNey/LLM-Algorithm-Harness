@@ -17,10 +17,10 @@ from pathlib import Path
 from typing import Any
 
 from src.models import Problem
-
-DIFFICULTY_RANK = {"easy": 0, "medium": 1, "hard": 2}
 from src.problem_loader import ProblemLoader
 from src.utils.secrets import redact_sensitive_data
+
+DIFFICULTY_RANK = {"easy": 0, "medium": 1, "hard": 2}
 
 
 def _record_known_cost(record: dict[str, Any]) -> tuple[float, bool]:

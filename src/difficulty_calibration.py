@@ -14,8 +14,9 @@ are listed for review.
 """
 
 import json
+from collections.abc import Iterable
 from pathlib import Path
-from typing import Any, Dict, Iterable, List, Optional
+from typing import Any
 
 from src.models import Problem
 from src.utils.logging import get_logger
@@ -34,7 +35,7 @@ DEFAULT_EASY_THRESHOLD = 0.7
 DEFAULT_HARD_THRESHOLD = 0.3
 
 
-def _iter_history_records(history_path: Path) -> Iterable[Dict[str, Any]]:
+def _iter_history_records(history_path: Path) -> Iterable[dict[str, Any]]:
     """Yield per-problem evaluation records from *_results.json files."""
     paths = [history_path] if history_path.is_file() else sorted(history_path.rglob("*.json"))
     for path in paths:
@@ -52,7 +53,7 @@ def _iter_history_records(history_path: Path) -> Iterable[Dict[str, Any]]:
                 yield record
 
 
-def _record_solved(record: Dict[str, Any]) -> bool:
+def _record_solved(record: dict[str, Any]) -> bool:
     """Same solved semantics as the recommender: sample pass + hidden pass."""
     if record.get("status") != "success":
         return False
@@ -72,11 +73,11 @@ class DifficultyCalibrator:
         self.history_path = history_path
         self.easy_threshold = easy_threshold
         self.hard_threshold = hard_threshold
-        self.stats: Dict[str, Dict[str, float]] = {}
+        self.stats: dict[str, dict[str, float]] = {}
 
-    def collect_stats(self) -> Dict[str, Dict[str, float]]:
+    def collect_stats(self) -> dict[str, dict[str, float]]:
         """Aggregate per-problem success rate and average iterations."""
-        acc: Dict[str, Dict[str, float]] = {}
+        acc: dict[str, dict[str, float]] = {}
         for record in _iter_history_records(self.history_path):
             entry = acc.setdefault(
                 record["problem_id"], {"total": 0, "solved": 0, "iterations": 0.0}
@@ -107,7 +108,7 @@ class DifficultyCalibrator:
             return "hard"
         return "medium"
 
-    def recalibrate(self, problems: List[Problem]) -> Dict[str, Dict[str, Any]]:
+    def recalibrate(self, problems: list[Problem]) -> dict[str, dict[str, Any]]:
         """Return per-problem recalibration decisions.
 
         Each entry maps problem_id to {"original", "calibrated",
@@ -116,7 +117,7 @@ class DifficultyCalibrator:
         """
         if not self.stats:
             self.collect_stats()
-        decisions: Dict[str, Dict[str, Any]] = {}
+        decisions: dict[str, dict[str, Any]] = {}
         for problem in problems:
             stats = self.stats.get(problem.problem_id)
             if stats is None:
@@ -137,12 +138,12 @@ class DifficultyCalibrator:
         return decisions
 
 
-def build_change_report(decisions: Dict[str, Dict[str, Any]]) -> Dict[str, Any]:
+def build_change_report(decisions: dict[str, dict[str, Any]]) -> dict[str, Any]:
     """Summarise recalibration: distribution before/after and changes."""
-    before: Dict[str, int] = {"easy": 0, "medium": 0, "hard": 0}
-    after: Dict[str, int] = {"easy": 0, "medium": 0, "hard": 0}
-    changes: List[Dict[str, Any]] = []
-    no_data_ids: List[str] = []
+    before: dict[str, int] = {"easy": 0, "medium": 0, "hard": 0}
+    after: dict[str, int] = {"easy": 0, "medium": 0, "hard": 0}
+    changes: list[dict[str, Any]] = []
+    no_data_ids: list[str] = []
     for problem_id, decision in decisions.items():
         before[decision["original"]] = before.get(decision["original"], 0) + 1
         after[decision["calibrated"]] = after.get(decision["calibrated"], 0) + 1
@@ -168,7 +169,7 @@ def build_change_report(decisions: Dict[str, Dict[str, Any]]) -> Dict[str, Any]:
     }
 
 
-def format_change_report(report: Dict[str, Any]) -> str:
+def format_change_report(report: dict[str, Any]) -> str:
     """Render the change report as Markdown."""
     lines = [
         "# 难度重标注报告",
@@ -205,8 +206,8 @@ def format_change_report(report: Dict[str, Any]) -> str:
 
 
 def write_calibrated_dataset(
-    problems: List[Problem],
-    decisions: Dict[str, Dict[str, Any]],
+    problems: list[Problem],
+    decisions: dict[str, dict[str, Any]],
     output_path: str,
 ) -> None:
     """Write the full problem list with recalibrated difficulty labels."""

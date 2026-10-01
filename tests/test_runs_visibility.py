@@ -4,15 +4,13 @@ Tests for run-state visibility: runs list/clean and the startup resume hint
 """
 
 import argparse
-import json
-from pathlib import Path
-from unittest.mock import MagicMock, patch
+from unittest.mock import patch
 
 import pytest
 
+from src.main import run_runs_command
 from src.models import ExecutionResult, HarnessConfig, LLMConfig, StrategyConfig
 from src.runs import find_matching_unfinished, summarize_run
-from src.main import run_runs_command
 from src.task_service import TaskRecord, TaskService, TaskUnit
 
 
