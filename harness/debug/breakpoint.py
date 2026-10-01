@@ -2,8 +2,6 @@
 Breakpoint management for interactive debugging.
 """
 
-from typing import Set
-
 
 class BreakpointManager:
     """Manages breakpoints at key strategy execution points."""
@@ -12,7 +10,7 @@ class BreakpointManager:
 
     def __init__(self):
         """Initialize breakpoint manager with no breakpoints enabled."""
-        self._enabled_breakpoints: Set[str] = set()
+        self._enabled_breakpoints: set[str] = set()
 
     def enable(self, location: str) -> bool:
         """
@@ -68,7 +66,7 @@ class BreakpointManager:
         """
         return location in self._enabled_breakpoints
 
-    def get_enabled(self) -> Set[str]:
+    def get_enabled(self) -> set[str]:
         """
         Get set of all enabled breakpoint locations.
 

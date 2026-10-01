@@ -6,9 +6,8 @@ import json
 import os
 from abc import ABC, abstractmethod
 from dataclasses import dataclass, field
-from datetime import datetime
 from pathlib import Path
-from typing import Any, Dict, List, Tuple
+from typing import Any
 
 from pydantic import ValidationError
 
@@ -23,11 +22,11 @@ logger = get_logger(__name__)
 class ImportResult:
     """Result of an import operation."""
 
-    successful: List[Problem] = field(default_factory=list)
-    failed: List[Dict[str, Any]] = field(default_factory=list)
-    duplicates_skipped: List[str] = field(default_factory=list)
-    duplicates_overwritten: List[str] = field(default_factory=list)
-    warnings: List[str] = field(default_factory=list)
+    successful: list[Problem] = field(default_factory=list)
+    failed: list[dict[str, Any]] = field(default_factory=list)
+    duplicates_skipped: list[str] = field(default_factory=list)
+    duplicates_overwritten: list[str] = field(default_factory=list)
+    warnings: list[str] = field(default_factory=list)
 
     @property
     def total_attempted(self) -> int:
@@ -71,7 +70,7 @@ class ProblemImporter(ABC):
         pass
 
     @abstractmethod
-    def transform_to_schema(self, raw_data: Any) -> List[Problem]:
+    def transform_to_schema(self, raw_data: Any) -> list[Problem]:
         """
         Transform raw data to Problem objects.
 
@@ -88,8 +87,8 @@ class ProblemImporter(ABC):
 
     @abstractmethod
     def detect_duplicates(
-        self, problems: List[Problem], existing_problems: List[Problem], update_strategy: str
-    ) -> Tuple[List[Problem], List[str], List[str]]:
+        self, problems: list[Problem], existing_problems: list[Problem], update_strategy: str
+    ) -> tuple[list[Problem], list[str], list[str]]:
         """
         Detect and handle duplicate problems.
 
@@ -106,7 +105,7 @@ class ProblemImporter(ABC):
     @abstractmethod
     def generate_report(
         self, result: ImportResult, source: str, output_path: str, preview: bool
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         """
         Generate import report.
 
@@ -121,7 +120,9 @@ class ProblemImporter(ABC):
         """
         pass
 
-    def validate_problems(self, problems: List[Problem]) -> Tuple[List[Problem], List[Dict[str, Any]]]:
+    def validate_problems(
+        self, problems: list[Problem]
+    ) -> tuple[list[Problem], list[dict[str, Any]]]:
         """
         Validate problems using schema validation.
 
@@ -143,16 +144,25 @@ class ProblemImporter(ABC):
                     raise ValueError("Problem data incomplete")
                 valid.append(problem)
             except (ValueError, ValidationError) as e:
-                failed.append({
-                    "index": i,
-                    "problem_id": problem.problem_id if hasattr(problem, "problem_id") else "unknown",
-                    "error": str(e),
-                })
-                logger.warning("problem_validation_failed", index=i, problem_id=problem.problem_id, error=str(e))
+                failed.append(
+                    {
+                        "index": i,
+                        "problem_id": (
+                            problem.problem_id if hasattr(problem, "problem_id") else "unknown"
+                        ),
+                        "error": str(e),
+                    }
+                )
+                logger.warning(
+                    "problem_validation_failed",
+                    index=i,
+                    problem_id=problem.problem_id,
+                    error=str(e),
+                )
 
         return valid, failed
 
-    def persist_dataset(self, problems: List[Problem], target_path: str) -> None:
+    def persist_dataset(self, problems: list[Problem], target_path: str) -> None:
         """
         Atomically write dataset to disk.
 
@@ -186,4 +196,4 @@ class ProblemImporter(ABC):
             if temp_path.exists():
                 temp_path.unlink()
             logger.error("dataset_persist_failed", path=target_path, error=str(e))
-            raise IOError(f"Failed to write dataset to {target_path}: {e}") from e
+            raise OSError(f"Failed to write dataset to {target_path}: {e}") from e

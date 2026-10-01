@@ -5,7 +5,6 @@ Markdown report generation module.
 import logging
 from datetime import datetime
 from pathlib import Path
-from typing import Dict, List
 
 from src.models import ExecutionResult
 from src.utils.secrets import redact_sensitive_text
@@ -26,10 +25,10 @@ class MarkdownGenerator:
 
     @staticmethod
     def generate(
-        metrics: Dict[str, Dict],
-        results: Dict[str, List[ExecutionResult]],
+        metrics: dict[str, dict],
+        results: dict[str, list[ExecutionResult]],
         output_path: str,
-        config: Dict = None,
+        config: dict = None,
     ) -> str:
         """
         Generate Markdown evaluation report.

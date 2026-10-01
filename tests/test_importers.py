@@ -3,8 +3,6 @@ Integration tests for problem importers.
 """
 
 import json
-import tempfile
-from pathlib import Path
 
 import pytest
 
@@ -27,13 +25,11 @@ class TestLocalJsonImporter:
                 "difficulty": "easy",
                 "tags": ["test"],
                 "source_platform": "test",
-                "public_test_cases": [
-                    {"input": {"n": 1}, "expected_output": 1}
-                ],
+                "public_test_cases": [{"input": {"n": 1}, "expected_output": 1}],
             }
         ]
         test_file = tmp_path / "test_problems.json"
-        with open(test_file, "w") as f:
+        with open(test_file, "w", encoding="utf-8") as f:
             json.dump(test_data, f)
 
         importer = LocalJsonImporter()
@@ -58,9 +54,7 @@ class TestLocalJsonImporter:
                 "description": "Test problem",
                 "difficulty": "easy",
                 "source_platform": "test",
-                "public_test_cases": [
-                    {"input": {"n": 1}, "expected_output": 1}
-                ],
+                "public_test_cases": [{"input": {"n": 1}, "expected_output": 1}],
             }
         ]
 
@@ -81,9 +75,7 @@ class TestLocalJsonImporter:
                 difficulty="easy",
                 source_platform="test",
                 source_problem_id="001",
-                public_test_cases=[
-                    {"input": {"n": 1}, "expected_output": 1}
-                ],
+                public_test_cases=[{"input": {"n": 1}, "expected_output": 1}],
             )
         ]
 
@@ -95,9 +87,7 @@ class TestLocalJsonImporter:
                 difficulty="easy",
                 source_platform="test",
                 source_problem_id="001",
-                public_test_cases=[
-                    {"input": {"n": 1}, "expected_output": 1}
-                ],
+                public_test_cases=[{"input": {"n": 1}, "expected_output": 1}],
             )
         ]
 
@@ -121,9 +111,7 @@ class TestLocalJsonImporter:
                 difficulty="easy",
                 source_platform="test",
                 source_problem_id="001",
-                public_test_cases=[
-                    {"input": {"n": 1}, "expected_output": 1}
-                ],
+                public_test_cases=[{"input": {"n": 1}, "expected_output": 1}],
             )
         ]
 
@@ -135,9 +123,7 @@ class TestLocalJsonImporter:
                 difficulty="easy",
                 source_platform="test",
                 source_problem_id="001",
-                public_test_cases=[
-                    {"input": {"n": 1}, "expected_output": 1}
-                ],
+                public_test_cases=[{"input": {"n": 1}, "expected_output": 1}],
             )
         ]
 
@@ -160,9 +146,7 @@ class TestLocalJsonImporter:
                 description="Test problem",
                 difficulty="easy",
                 source_platform="test",
-                public_test_cases=[
-                    {"input": {"n": 1}, "expected_output": 1}
-                ],
+                public_test_cases=[{"input": {"n": 1}, "expected_output": 1}],
             )
         ]
 
@@ -174,7 +158,7 @@ class TestLocalJsonImporter:
         assert output_file.exists()
 
         # Verify content
-        with open(output_file) as f:
+        with open(output_file, encoding="utf-8") as f:
             data = json.load(f)
         assert len(data) == 1
         assert data[0]["problem_id"] == "test-001"
@@ -220,13 +204,11 @@ class TestImportIntegration:
                 "difficulty": "medium",
                 "source_platform": "test-platform",
                 "source_problem_id": "001",
-                "public_test_cases": [
-                    {"input": {"n": 1}, "expected_output": 1}
-                ],
+                "public_test_cases": [{"input": {"n": 1}, "expected_output": 1}],
             }
         ]
         source_file = tmp_path / "source.json"
-        with open(source_file, "w") as f:
+        with open(source_file, "w", encoding="utf-8") as f:
             json.dump(source_data, f)
 
         # Import
@@ -243,7 +225,7 @@ class TestImportIntegration:
         importer.persist_dataset(valid_problems, str(output_file))
 
         # Verify
-        with open(output_file) as f:
+        with open(output_file, encoding="utf-8") as f:
             saved_data = json.load(f)
         assert len(saved_data) == 1
         assert saved_data[0]["problem_id"] == "import-001"
@@ -257,9 +239,7 @@ class TestImportIntegration:
                 "description": "Valid problem",
                 "difficulty": "easy",
                 "source_platform": "test",
-                "public_test_cases": [
-                    {"input": {"n": 1}, "expected_output": 1}
-                ],
+                "public_test_cases": [{"input": {"n": 1}, "expected_output": 1}],
             },
             {
                 "problem_id": "invalid-001",
@@ -269,7 +249,7 @@ class TestImportIntegration:
             },
         ]
         source_file = tmp_path / "mixed.json"
-        with open(source_file, "w") as f:
+        with open(source_file, "w", encoding="utf-8") as f:
             json.dump(source_data, f)
 
         importer = LocalJsonImporter()

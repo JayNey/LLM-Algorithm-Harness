@@ -5,19 +5,17 @@ import logging as std_logging
 import uuid
 
 import pytest
+import structlog
 import yaml
 
-import structlog
-
 import src.utils.logging as logging_utils
-from src.utils.logging import get_logger, setup_logging
-
 from src.utils.config import (
     get_default_config,
     load_config,
     merge_configs,
     validate_config,
 )
+from src.utils.logging import get_logger, setup_logging
 from src.utils.validators import (
     validate_file_path,
     validate_problem_schema,
@@ -239,10 +237,13 @@ def test_validate_test_case_valid():
 
 def test_validate_stdin_test_case_accepts_raw_text():
     """stdin/stdout test cases may use raw input strings."""
-    assert validate_test_case(
-        {"input": "2 3\n", "expected_output": "5\n"},
-        input_output_mode="stdin_stdout",
-    ) is True
+    assert (
+        validate_test_case(
+            {"input": "2 3\n", "expected_output": "5\n"},
+            input_output_mode="stdin_stdout",
+        )
+        is True
+    )
 
 
 def test_validate_test_case_missing_input():

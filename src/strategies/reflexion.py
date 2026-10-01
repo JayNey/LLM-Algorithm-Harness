@@ -86,7 +86,9 @@ class ReflexionStrategy(StrategyBase):
                 reflection_history.append(reflection)
                 iteration_result.reflection_text = reflection
                 iteration_result.reflection_prompt_tokens = reflection_response.usage.prompt_tokens
-                iteration_result.reflection_completion_tokens = reflection_response.usage.completion_tokens
+                iteration_result.reflection_completion_tokens = (
+                    reflection_response.usage.completion_tokens
+                )
                 iteration_result.reflection_usage_missing = reflection_response.usage_missing
                 iteration_result.reflection_pricing_metadata = reflection_response.pricing_metadata
                 if reflection_response.reasoning_text:
@@ -218,9 +220,7 @@ Previous reflections:
         return SandboxResult(
             status=status,
             test_results=[
-                case_result
-                for result in visible_results
-                for case_result in result.test_results
+                case_result for result in visible_results for case_result in result.test_results
             ],
             execution_time=sum(result.execution_time for result in visible_results),
             all_passed=all(result.all_passed for result in visible_results),

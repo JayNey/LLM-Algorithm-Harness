@@ -4,13 +4,14 @@
 提供相似度检测和指纹匹配功能，用于识别和合并重复题目。
 """
 
-from typing import Any, Dict, List, Optional, Set, Tuple
+from typing import Any
+
+import numpy as np
 from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.metrics.pairwise import cosine_similarity
-import numpy as np
 
 
-def compute_similarity(problems: List[Dict[str, Any]]) -> np.ndarray:
+def compute_similarity(problems: list[dict[str, Any]]) -> np.ndarray:
     """
     计算题目之间的文本相似度矩阵
 
@@ -26,17 +27,10 @@ def compute_similarity(problems: List[Dict[str, Any]]) -> np.ndarray:
         return np.array([])
 
     # 组合标题和描述作为文本特征
-    texts = [
-        f"{p.get('title', '')} {p.get('description', '')}"
-        for p in problems
-    ]
+    texts = [f"{p.get('title', '')} {p.get('description', '')}" for p in problems]
 
     # 使用 TF-IDF 向量化
-    vectorizer = TfidfVectorizer(
-        max_features=1000,
-        stop_words='english',
-        ngram_range=(1, 2)
-    )
+    vectorizer = TfidfVectorizer(max_features=1000, stop_words="english", ngram_range=(1, 2))
     tfidf_matrix = vectorizer.fit_transform(texts)
 
     # 计算余弦相似度
@@ -46,9 +40,8 @@ def compute_similarity(problems: List[Dict[str, Any]]) -> np.ndarray:
 
 
 def find_similar_pairs(
-    problems: List[Dict[str, Any]],
-    threshold: float = 0.9
-) -> List[Tuple[int, int, float]]:
+    problems: list[dict[str, Any]], threshold: float = 0.9
+) -> list[tuple[int, int, float]]:
     """
     基于相似度阈值检测相似题目对
 
@@ -77,7 +70,7 @@ def find_similar_pairs(
     return pairs
 
 
-def generate_fingerprint(problem: Dict[str, Any]) -> Optional[str]:
+def generate_fingerprint(problem: dict[str, Any]) -> str | None:
     """
     基于 source_platform 和 source_problem_id 生成唯一指纹
 
@@ -87,8 +80,8 @@ def generate_fingerprint(problem: Dict[str, Any]) -> Optional[str]:
     Returns:
         指纹字符串，如果缺少来源信息则返回 None
     """
-    source_platform = problem.get('source_platform')
-    source_problem_id = problem.get('source_problem_id')
+    source_platform = problem.get("source_platform")
+    source_problem_id = problem.get("source_problem_id")
 
     if not source_platform or not source_problem_id:
         return None
@@ -96,9 +89,7 @@ def generate_fingerprint(problem: Dict[str, Any]) -> Optional[str]:
     return f"{source_platform}:{source_problem_id}"
 
 
-def find_fingerprint_duplicates(
-    problems: List[Dict[str, Any]]
-) -> List[List[int]]:
+def find_fingerprint_duplicates(problems: list[dict[str, Any]]) -> list[list[int]]:
     """
     检测完全相同的题目（基于指纹匹配）
 
@@ -108,7 +99,7 @@ def find_fingerprint_duplicates(
     Returns:
         重复组列表，每组包含具有相同指纹的题目索引
     """
-    fingerprint_map: Dict[str, List[int]] = {}
+    fingerprint_map: dict[str, list[int]] = {}
 
     for idx, problem in enumerate(problems):
         fingerprint = generate_fingerprint(problem)
@@ -118,15 +109,12 @@ def find_fingerprint_duplicates(
             fingerprint_map[fingerprint].append(idx)
 
     # 只返回有重复的组（长度 > 1）
-    duplicate_groups = [
-        indices for indices in fingerprint_map.values()
-        if len(indices) > 1
-    ]
+    duplicate_groups = [indices for indices in fingerprint_map.values() if len(indices) > 1]
 
     return duplicate_groups
 
 
-def select_primary_problem(problems: List[Dict[str, Any]]) -> int:
+def select_primary_problem(problems: list[dict[str, Any]]) -> int:
     """
     基于字段完整度选择主版本
 
@@ -140,7 +128,7 @@ def select_primary_problem(problems: List[Dict[str, Any]]) -> int:
         raise ValueError("Cannot select primary from empty list")
 
     # 计算每个题目的非空字段数量
-    def count_non_empty_fields(problem: Dict[str, Any]) -> int:
+    def count_non_empty_fields(problem: dict[str, Any]) -> int:
         count = 0
         for key, value in problem.items():
             if value is not None and value != "" and value != []:
@@ -159,10 +147,7 @@ def select_primary_problem(problems: List[Dict[str, Any]]) -> int:
     return primary_idx
 
 
-def merge_problems(
-    primary: Dict[str, Any],
-    others: List[Dict[str, Any]]
-) -> Dict[str, Any]:
+def merge_problems(primary: dict[str, Any], others: list[dict[str, Any]]) -> dict[str, Any]:
     """
     合并重复题目，保留主版本并合并列表字段
 
@@ -178,11 +163,11 @@ def merge_problems(
     # 收集被合并题目的 ID
     merged_from = []
     for other in others:
-        if 'problem_id' in other:
-            merged_from.append(other['problem_id'])
+        if "problem_id" in other:
+            merged_from.append(other["problem_id"])
 
     # 合并列表字段（去重）
-    list_fields = ['tags', 'public_test_cases', 'feedback_test_cases', 'hidden_test_cases']
+    list_fields = ["tags", "public_test_cases", "feedback_test_cases", "hidden_test_cases"]
 
     for field in list_fields:
         if field in merged:
@@ -207,8 +192,6 @@ def merge_problems(
 
     # 添加合并历史记录
     if merged_from:
-        merged['merged_from'] = merged_from
+        merged["merged_from"] = merged_from
 
     return merged
-
-

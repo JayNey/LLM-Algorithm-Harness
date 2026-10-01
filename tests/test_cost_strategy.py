@@ -110,7 +110,9 @@ def make_result(shape="known", cost=0.5):
     elif shape == "usage_unknown":
         traces = [{"pricing_metadata": {"total_cost": cost, "usage_known": False}}]
     elif shape == "pricing_unknown":
-        traces = [{"pricing_metadata": {"total_cost": cost, "usage_known": True, "pricing_known": False}}]
+        traces = [
+            {"pricing_metadata": {"total_cost": cost, "usage_known": True, "pricing_known": False}}
+        ]
     else:
         traces = [{"pricing_metadata": {"total_cost": cost, "usage_known": True}}]
     return ExecutionResult(
@@ -484,7 +486,11 @@ class TestHarnessCostAwareIntegration:
         calls = patch_runtimes(monkeypatch, {"vanilla": 0.6})
         harness = make_harness(
             tmp_path,
-            [problem_payload("p1", "easy"), problem_payload("p2", "easy"), problem_payload("p3", "easy")],
+            [
+                problem_payload("p1", "easy"),
+                problem_payload("p2", "easy"),
+                problem_payload("p3", "easy"),
+            ],
             difficulty_strategy=None,
             budget_cap_usd=1.0,
         )
@@ -495,7 +501,11 @@ class TestHarnessCostAwareIntegration:
         reports = harness.run(use_task_service=True, run_id="run-auto-stop")
         assert calls == [("vanilla", "p1"), ("vanilla", "p2")]
         assert harness.task_record.state == "paused"
-        assert [unit.status for unit in harness.task_record.units] == ["completed", "completed", "queued"]
+        assert [unit.status for unit in harness.task_record.units] == [
+            "completed",
+            "completed",
+            "queued",
+        ]
         assert reports["vanilla"].total_problems == 2
         assert reports["vanilla"].failed_problems == 0
         assert harness.results["vanilla"][2].status == "cancelled"
@@ -520,7 +530,11 @@ class TestHarnessCostAwareIntegration:
         )
         harness = make_harness(
             tmp_path,
-            [problem_payload("p1", "easy"), problem_payload("p2", "medium"), problem_payload("p3", "hard")],
+            [
+                problem_payload("p1", "easy"),
+                problem_payload("p2", "medium"),
+                problem_payload("p3", "hard"),
+            ],
             {"easy": "vanilla", "medium": "chain_of_thought", "hard": "multi_round_feedback"},
             budget_cap_usd=1.0,
         )
@@ -625,9 +639,7 @@ class TestHarnessCostAwareIntegration:
             harness.run()
 
     def test_auto_stop_requires_task_service_path(self, tmp_path):
-        harness = make_harness(
-            tmp_path, [problem_payload("p1", "easy")], None, budget_cap_usd=1.0
-        )
+        harness = make_harness(tmp_path, [problem_payload("p1", "easy")], None, budget_cap_usd=1.0)
         harness.config.budget_action = "auto_stop"
         with pytest.raises(ValueError, match="task service"):
             harness.run()

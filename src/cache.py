@@ -7,10 +7,9 @@ and improve experiment reproducibility.
 
 import hashlib
 import json
-import os
 import time
 from pathlib import Path
-from typing import Any, Dict, Optional
+from typing import Any
 
 from src.models import LLMResponse, TokenUsage
 
@@ -26,9 +25,9 @@ class CacheKey:
         prompt: str,
         temperature: float,
         max_tokens: int,
-        problem_id: Optional[str] = None,
-        strategy_name: Optional[str] = None,
-        system_prompt: Optional[str] = None,
+        problem_id: str | None = None,
+        strategy_name: str | None = None,
+        system_prompt: str | None = None,
     ) -> str:
         """
         Generate a SHA256-based cache key from request parameters.
@@ -108,20 +107,20 @@ class LLMResponseCache:
         if not self.access_log_path.exists():
             self._write_access_log({})
 
-    def _read_access_log(self) -> Dict[str, float]:
+    def _read_access_log(self) -> dict[str, float]:
         """Read the access log."""
         try:
             if self.access_log_path.exists():
-                with open(self.access_log_path, "r") as f:
+                with open(self.access_log_path, encoding="utf-8") as f:
                     return json.load(f)
-        except (json.JSONDecodeError, IOError):
+        except (OSError, json.JSONDecodeError):
             pass
         return {}
 
-    def _write_access_log(self, log: Dict[str, float]):
+    def _write_access_log(self, log: dict[str, float]):
         """Write the access log atomically."""
         temp_path = self.access_log_path.with_suffix(".tmp")
-        with open(temp_path, "w") as f:
+        with open(temp_path, "w", encoding="utf-8") as f:
             json.dump(log, f)
         temp_path.replace(self.access_log_path)
 
@@ -135,13 +134,13 @@ class LLMResponseCache:
         """Get the file path for a cache key."""
         return self.cache_dir / f"{cache_key}.json"
 
-    def _is_expired(self, cache_data: Dict[str, Any]) -> bool:
+    def _is_expired(self, cache_data: dict[str, Any]) -> bool:
         """Check if a cache entry is expired."""
         timestamp = cache_data.get("timestamp", 0)
         age_seconds = time.time() - timestamp
         return age_seconds >= self.ttl_seconds
 
-    def get(self, cache_key: str) -> Optional[LLMResponse]:
+    def get(self, cache_key: str) -> LLMResponse | None:
         """
         Retrieve a cached response.
 
@@ -161,7 +160,7 @@ class LLMResponseCache:
             return None
 
         try:
-            with open(cache_path, "r") as f:
+            with open(cache_path, encoding="utf-8") as f:
                 cache_data = json.load(f)
 
             # Check expiration
@@ -188,7 +187,7 @@ class LLMResponseCache:
             self.api_calls_saved += 1
             return response
 
-        except (json.JSONDecodeError, IOError, KeyError):
+        except (OSError, json.JSONDecodeError, KeyError):
             self.misses += 1
             return None
 
@@ -225,7 +224,7 @@ class LLMResponseCache:
         # Atomic write: write to temp file then rename
         temp_path = cache_path.with_suffix(".tmp")
         try:
-            with open(temp_path, "w") as f:
+            with open(temp_path, "w", encoding="utf-8") as f:
                 json.dump(cache_data, f, indent=2)
             temp_path.replace(cache_path)
 
@@ -235,7 +234,7 @@ class LLMResponseCache:
             # Check and enforce size limit
             self._enforce_size_limit()
 
-        except IOError:
+        except OSError:
             if temp_path.exists():
                 temp_path.unlink()
 
@@ -282,13 +281,13 @@ class LLMResponseCache:
                 if cache_key in access_log:
                     del access_log[cache_key]
 
-            except IOError:
+            except OSError:
                 pass
 
         # Write updated access log
         self._write_access_log(access_log)
 
-    def clear(self, model_filter: Optional[str] = None):
+    def clear(self, model_filter: str | None = None):
         """
         Clear cache entries.
 
@@ -312,7 +311,7 @@ class LLMResponseCache:
                     continue
 
                 try:
-                    with open(cache_file, "r") as f:
+                    with open(cache_file, encoding="utf-8") as f:
                         cache_data = json.load(f)
 
                     if cache_data.get("model") == model_filter:
@@ -321,12 +320,12 @@ class LLMResponseCache:
                         if cache_key in access_log:
                             del access_log[cache_key]
 
-                except (json.JSONDecodeError, IOError):
+                except (OSError, json.JSONDecodeError):
                     pass
 
             self._write_access_log(access_log)
 
-    def stats(self) -> Dict[str, Any]:
+    def stats(self) -> dict[str, Any]:
         """
         Get cache statistics.
 

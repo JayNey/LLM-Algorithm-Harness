@@ -102,7 +102,7 @@ class BenchmarkHistoryStorage:
             raise FileNotFoundError(f"Result file not found: {filepath}")
 
         try:
-            with open(path, "r", encoding="utf-8") as f:
+            with open(path, encoding="utf-8") as f:
                 data = json.load(f)
             return data
         except json.JSONDecodeError as e:
@@ -184,9 +184,7 @@ class BenchmarkHistoryStorage:
             if not strategies:
                 return None
 
-            accuracies = [
-                s.get("accuracy", 0.0) for s in strategies.values() if "accuracy" in s
-            ]
+            accuracies = [s.get("accuracy", 0.0) for s in strategies.values() if "accuracy" in s]
 
             if not accuracies:
                 return None

@@ -33,10 +33,29 @@ def _statement():
 def test_fetch_filters_and_transforms_public_problem():
     session = Mock()
     session.get.side_effect = [
-        Response({"status": "OK", "result": {"problems": [
-            {"contestId": 1234, "index": "A", "name": "Add One", "rating": 800, "tags": ["dp"]},
-            {"contestId": 1234, "index": "B", "name": "Hard", "rating": 2200, "tags": ["graphs"]},
-        ]}}),
+        Response(
+            {
+                "status": "OK",
+                "result": {
+                    "problems": [
+                        {
+                            "contestId": 1234,
+                            "index": "A",
+                            "name": "Add One",
+                            "rating": 800,
+                            "tags": ["dp"],
+                        },
+                        {
+                            "contestId": 1234,
+                            "index": "B",
+                            "name": "Hard",
+                            "rating": 2200,
+                            "tags": ["graphs"],
+                        },
+                    ]
+                },
+            }
+        ),
         Response(text=_statement()),
     ]
     importer = CodeforcesImporter(session=session, contest=1234, max_rating=1400)
@@ -59,10 +78,29 @@ def test_fetch_filters_and_transforms_public_problem():
 def test_rating_and_tag_filters_are_applied_before_detail_fetch():
     session = Mock()
     session.get.side_effect = [
-        Response({"status": "OK", "result": {"problems": [
-            {"contestId": 1, "index": "A", "name": "DP", "rating": 1600, "tags": ["dp"]},
-            {"contestId": 1, "index": "B", "name": "Math", "rating": 1600, "tags": ["math"]},
-        ]}}),
+        Response(
+            {
+                "status": "OK",
+                "result": {
+                    "problems": [
+                        {
+                            "contestId": 1,
+                            "index": "A",
+                            "name": "DP",
+                            "rating": 1600,
+                            "tags": ["dp"],
+                        },
+                        {
+                            "contestId": 1,
+                            "index": "B",
+                            "name": "Math",
+                            "rating": 1600,
+                            "tags": ["math"],
+                        },
+                    ]
+                },
+            }
+        ),
         Response(text=_statement()),
     ]
     importer = CodeforcesImporter(session=session, tags=["dp"], min_rating=1500, max_rating=1700)
@@ -73,12 +111,18 @@ def test_rating_and_tag_filters_are_applied_before_detail_fetch():
 
 def test_missing_statement_is_marked_for_manual_completion():
     importer = CodeforcesImporter()
-    problem = importer.transform_to_schema([
-        {
-            "contestId": 9, "index": "C", "name": "No Statement", "rating": 2300,
-            "tags": ["graphs"], "_statement_error": "rate limited",
-        }
-    ])[0]
+    problem = importer.transform_to_schema(
+        [
+            {
+                "contestId": 9,
+                "index": "C",
+                "name": "No Statement",
+                "rating": 2300,
+                "tags": ["graphs"],
+                "_statement_error": "rate limited",
+            }
+        ]
+    )[0]
     assert problem.needs_manual_completion is True
     assert problem.public_test_cases == []
     assert "rate limited" in problem.manual_completion_notes[0]

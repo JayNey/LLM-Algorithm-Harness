@@ -3,7 +3,6 @@ Multi-Round Feedback strategy - Iterative refinement with test feedback.
 """
 
 import time
-from typing import Optional
 
 from src.budget import BudgetExhausted
 from src.llm_client import LLMClient
@@ -196,8 +195,8 @@ class MultiRoundFeedbackStrategy(StrategyBase):
     def build_feedback_prompt(
         self,
         problem: Problem,
-        previous_code: Optional[str],
-        sandbox_result: Optional[SandboxResult],
+        previous_code: str | None,
+        sandbox_result: SandboxResult | None,
         iteration: int,
     ) -> str:
         """
@@ -247,7 +246,7 @@ Provide your improved solution in a ```python code block.
 
         return prompt
 
-    def _format_feedback(self, sandbox_result: Optional[SandboxResult]) -> str:
+    def _format_feedback(self, sandbox_result: SandboxResult | None) -> str:
         """
         Format sandbox results as feedback.
 

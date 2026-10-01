@@ -196,13 +196,15 @@ def test_wrong_answer_output_text_is_not_exception_or_boundary_evidence():
         "failure_category": "wrong_answer",
         "final_result": {
             "status": "failed",
-            "test_results": [{
-                "passed": False,
-                "status": "wrong_answer",
-                "expected_output": "SyntaxError",
-                "actual_output": "timeout edge case",
-                "error_message": "Expected SyntaxError, got timeout edge case",
-            }],
+            "test_results": [
+                {
+                    "passed": False,
+                    "status": "wrong_answer",
+                    "expected_output": "SyntaxError",
+                    "actual_output": "timeout edge case",
+                    "error_message": "Expected SyntaxError, got timeout edge case",
+                }
+            ],
         },
     }
     prediction = classify_failure_mode(result)
@@ -210,8 +212,11 @@ def test_wrong_answer_output_text_is_not_exception_or_boundary_evidence():
 
 
 def test_unrecorded_execution_placeholder_is_not_a_failure():
-    result = {"status": "error", "evaluation_completed": False,
-              "error_message": "Task unit did not produce a result"}
+    result = {
+        "status": "error",
+        "evaluation_completed": False,
+        "error_message": "Task unit did not produce a result",
+    }
     assert classify_failure_mode(result) is None
 
 
@@ -231,9 +236,7 @@ def test_boundary_contrast_can_explain_runtime_exception_on_empty_case():
             ],
         },
     }
-    problem = {
-        "public_test_cases": [{"input": {"nums": [1, 2]}}, {"input": {"nums": []}}]
-    }
+    problem = {"public_test_cases": [{"input": {"nums": [1, 2]}}, {"input": {"nums": []}}]}
     prediction = classify_failure_mode(result, problem)
     assert prediction is not None and prediction.mode == "boundary_condition"
 

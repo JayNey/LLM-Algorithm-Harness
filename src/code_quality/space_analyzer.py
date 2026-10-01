@@ -5,8 +5,6 @@ Analyzes memory usage through sandbox-isolated memory profiling.
 SECURITY: Uses SandboxExecutor for safe code execution - never executes untrusted code directly.
 """
 
-from typing import Optional
-
 from src.code_quality.models import SpaceComplexityScore
 from src.utils.logging import get_logger
 

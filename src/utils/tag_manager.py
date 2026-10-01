@@ -61,10 +61,7 @@ class TagManager:
                 continue
             target = merged.setdefault(section, {})
             for canonical, definition in custom[section].items():
-                if (
-                    isinstance(target.get(canonical), dict)
-                    and isinstance(definition, dict)
-                ):
+                if isinstance(target.get(canonical), dict) and isinstance(definition, dict):
                     current = target[canonical]
                     for key in ("aliases", "keywords"):
                         if key in definition:
@@ -77,9 +74,13 @@ class TagManager:
         for section in ("aliases", "keywords"):
             if section in custom:
                 merged.setdefault(section, {}).update(custom[section])
-        merged.update({key: value for key, value in custom.items() if key not in {
-            "tags", "canonical_tags", "aliases", "keywords"
-        }})
+        merged.update(
+            {
+                key: value
+                for key, value in custom.items()
+                if key not in {"tags", "canonical_tags", "aliases", "keywords"}
+            }
+        )
         return merged
 
     @staticmethod
@@ -205,7 +206,9 @@ class TagManager:
                 continue
             title_matches = [p for p in phrases if self._contains_phrase(title_text, p)]
             description_matches = [
-                p for p in phrases if p not in title_matches and self._contains_phrase(description_text, p)
+                p
+                for p in phrases
+                if p not in title_matches and self._contains_phrase(description_text, p)
             ]
             if not title_matches and not description_matches:
                 continue
@@ -231,7 +234,10 @@ class TagManager:
             matches = [*title_matches, *description_matches]
             if matches and all(is_dominated(canonical, phrase) for phrase in matches):
                 continue
-            score = min(0.99, 0.76 + (0.12 if title_matches else 0.0) + 0.04 * min(len(description_matches), 3))
+            score = min(
+                0.99,
+                0.76 + (0.12 if title_matches else 0.0) + 0.04 * min(len(description_matches), 3),
+            )
             if score < min_confidence:
                 continue
             matches = title_matches + description_matches

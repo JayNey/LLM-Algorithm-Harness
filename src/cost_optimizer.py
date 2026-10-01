@@ -11,7 +11,7 @@ guarantee about future behavior or global optimality.
 import json
 from datetime import datetime
 from pathlib import Path
-from typing import Any, Dict, List, Optional
+from typing import Any
 
 from src.utils.logging import get_logger
 
@@ -23,15 +23,15 @@ OBJECTIVES = ("highest_accuracy", "best_value", "lowest_cost")
 
 
 def _load_json(path: Path) -> Any:
-    with open(path, "r", encoding="utf-8") as f:
+    with open(path, encoding="utf-8") as f:
         return json.load(f)
 
 
-def _accuracy(combo: Dict[str, Any]) -> Optional[float]:
+def _accuracy(combo: dict[str, Any]) -> float | None:
     return combo.get("pass_rate_over_total")
 
 
-def _combo_rows(comparison: Dict[str, Any]) -> List[Dict[str, Any]]:
+def _combo_rows(comparison: dict[str, Any]) -> list[dict[str, Any]]:
     """One ranked row per combination with cost-known filtering."""
     rows = []
     for combo in comparison.get("combinations", []):
@@ -54,7 +54,7 @@ def _combo_rows(comparison: Dict[str, Any]) -> List[Dict[str, Any]]:
     return rows
 
 
-def rank_combinations(comparison: Dict[str, Any]) -> Dict[str, Any]:
+def rank_combinations(comparison: dict[str, Any]) -> dict[str, Any]:
     """Cost-effectiveness ranking; cost-unknown rows are excluded but listed."""
     rows = _combo_rows(comparison)
     ranked = sorted(
@@ -67,16 +67,16 @@ def rank_combinations(comparison: Dict[str, Any]) -> Dict[str, Any]:
 
 
 def recommend(
-    comparison: Dict[str, Any],
+    comparison: dict[str, Any],
     objective: str,
     min_accuracy: float = 0.0,
-) -> Dict[str, Any]:
+) -> dict[str, Any]:
     """Pick one combination under the requested objective."""
     if objective not in OBJECTIVES:
         raise ValueError(f"Unknown objective: {objective}")
     rows = [row for row in _combo_rows(comparison) if row["available"]]
 
-    def _eligible(row: Dict[str, Any]) -> bool:
+    def _eligible(row: dict[str, Any]) -> bool:
         return row["accuracy"] is not None and row["accuracy"] >= min_accuracy
 
     if objective == "highest_accuracy":
@@ -113,7 +113,7 @@ def recommend(
     }
 
 
-def _layer_cost(row: Dict[str, Any], layer_total: int) -> float:
+def _layer_cost(row: dict[str, Any], layer_total: int) -> float:
     """Estimated layer cost from the row's whole-run unit economics."""
     total = 0
     for combo in row.get("_source_combos", []):
@@ -124,16 +124,16 @@ def _layer_cost(row: Dict[str, Any], layer_total: int) -> float:
 
 
 def optimize_budget(
-    comparison: Dict[str, Any],
+    comparison: dict[str, Any],
     budget: float,
     min_accuracy: float = 0.0,
-) -> Dict[str, Any]:
+) -> dict[str, Any]:
     """Greedy per-difficulty plan: cheapest passing combination per layer."""
     rows = [
         row for row in _combo_rows(comparison) if row["available"] and row["accuracy"] is not None
     ]
     remaining = budget
-    layers: Dict[str, Any] = {}
+    layers: dict[str, Any] = {}
 
     for layer in DIFFICULTY_LAYERS:
         candidates = []
@@ -218,13 +218,13 @@ def optimize_budget(
 
 
 def build_advisory(
-    comparison: Dict[str, Any],
-    budget: Optional[float] = None,
+    comparison: dict[str, Any],
+    budget: float | None = None,
     min_accuracy: float = 0.0,
     objective: str = "best_value",
-) -> Dict[str, Any]:
+) -> dict[str, Any]:
     """Full advisory payload: ranking, recommendations, optional budget plan."""
-    payload: Dict[str, Any] = {
+    payload: dict[str, Any] = {
         "generated_at": datetime.now().isoformat(),
         "experiment_id": comparison.get("experiment", {}).get("experiment_id", ""),
         "ranking": rank_combinations(comparison),
@@ -236,7 +236,7 @@ def build_advisory(
     return payload
 
 
-def render_markdown(payload: Dict[str, Any]) -> str:
+def render_markdown(payload: dict[str, Any]) -> str:
     """Render the advisory as OPTIMIZATION.md."""
     lines = [f"# 成本优化建议 — {payload.get('experiment_id', '')}", ""]
     lines.append("## 性价比排名")

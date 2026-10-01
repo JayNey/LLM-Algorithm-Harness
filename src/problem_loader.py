@@ -4,7 +4,6 @@ Problem Loader - Load and validate algorithm problem datasets.
 
 import json
 from pathlib import Path
-from typing import List, Optional
 
 from pydantic import ValidationError
 
@@ -18,7 +17,7 @@ logger = get_logger(__name__)
 class ProblemLoader:
     """Problem dataset loader."""
 
-    def load(self, dataset_path: str) -> List[Problem]:
+    def load(self, dataset_path: str) -> list[Problem]:
         """
         Load problems from JSON file.
 
@@ -39,7 +38,7 @@ class ProblemLoader:
 
         logger.info("loading_dataset", path=dataset_path)
 
-        with open(path, "r", encoding="utf-8") as f:
+        with open(path, encoding="utf-8") as f:
             data = json.load(f)
 
         if not isinstance(data, list):
@@ -54,7 +53,7 @@ class ProblemLoader:
 
         return problems
 
-    def validate_dataset(self, data: List[dict]) -> List[Problem]:
+    def validate_dataset(self, data: list[dict]) -> list[Problem]:
         """
         Validate and convert dataset to Problem objects.
 
@@ -94,17 +93,17 @@ class ProblemLoader:
 
         # If all problems failed validation, raise error
         if len(problems) == 0:
-            raise ValueError(f"All problems failed validation:\n" + "\n".join(errors))
+            raise ValueError("All problems failed validation:\n" + "\n".join(errors))
 
         return problems
 
     def filter_problems(
         self,
-        problems: List[Problem],
-        difficulty: Optional[str] = None,
-        tags: Optional[List[str]] = None,
-        limit: Optional[int] = None,
-    ) -> List[Problem]:
+        problems: list[Problem],
+        difficulty: str | None = None,
+        tags: list[str] | None = None,
+        limit: int | None = None,
+    ) -> list[Problem]:
         """
         Filter problems by criteria.
 

@@ -10,15 +10,12 @@ import yaml
 from pydantic import ValidationError
 
 from src.models import (
-    ComparisonResult,
     ExecutionResult,
     ExecutionSummary,
     HarnessConfig,
     JudgeConfig,
     LLMConfig,
-    LLMResponse,
     Problem,
-    ProviderResponse,
     SandboxConfig,
     SandboxResult,
     StrategyConfig,
@@ -28,7 +25,6 @@ from src.models import (
     TestCaseResult,
     TokenUsage,
 )
-
 
 # ============================================================================
 # TestCase Tests
@@ -57,15 +53,9 @@ def test_problem_schema_tracks_sources_and_test_purposes():
         source_version="2026-09",
         input_output_mode="function",
         entry_point="solution(nums, target)",
-        public_test_cases=[
-            {"input": {"nums": [2, 7], "target": 9}, "expected_output": [0, 1]}
-        ],
-        feedback_test_cases=[
-            {"input": {"nums": [3, 3], "target": 6}, "expected_output": [0, 1]}
-        ],
-        hidden_test_cases=[
-            {"input": {"nums": [1, 5], "target": 6}, "expected_output": [0, 1]}
-        ],
+        public_test_cases=[{"input": {"nums": [2, 7], "target": 9}, "expected_output": [0, 1]}],
+        feedback_test_cases=[{"input": {"nums": [3, 3], "target": 6}, "expected_output": [0, 1]}],
+        hidden_test_cases=[{"input": {"nums": [1, 5], "target": 6}, "expected_output": [0, 1]}],
     )
 
     assert problem.schema_version == "1.1"
@@ -135,15 +125,11 @@ def test_prompt_view_excludes_feedback_and_hidden_contents():
         title="Prompt Isolation",
         description="A problem used to verify prompt visibility boundaries.",
         difficulty="easy",
-        public_test_cases=[
-            {"input": {"value": "PUBLIC_MARKER"}, "expected_output": "public"}
-        ],
+        public_test_cases=[{"input": {"value": "PUBLIC_MARKER"}, "expected_output": "public"}],
         feedback_test_cases=[
             {"input": {"value": "FEEDBACK_MARKER"}, "expected_output": "feedback"}
         ],
-        hidden_test_cases=[
-            {"input": {"value": "HIDDEN_MARKER"}, "expected_output": "hidden"}
-        ],
+        hidden_test_cases=[{"input": {"value": "HIDDEN_MARKER"}, "expected_output": "hidden"}],
     )
 
     view = problem.prompt_view()
@@ -400,9 +386,7 @@ def test_sandbox_config_custom_values():
 
 def test_strategy_config():
     """Test creating StrategyConfig."""
-    config = StrategyConfig(
-        name="vanilla", max_iterations=3, temperature=0.8, max_tokens=1500
-    )
+    config = StrategyConfig(name="vanilla", max_iterations=3, temperature=0.8, max_tokens=1500)
 
     assert config.name == "vanilla"
     assert config.max_iterations == 3
@@ -416,7 +400,7 @@ def test_harness_config():
         llm_config=llm_config,
         dataset_path="data/problems.json",
         output_dir="output/",
-        max_workers=5
+        max_workers=5,
     )
 
     assert config.max_workers == 5
@@ -444,9 +428,7 @@ def test_sandbox_result_supports_backend_and_resource_failures():
 
 def test_harness_config_redacted_dump_masks_api_key():
     """redacted_dump() must never leak the API key (issue #4)."""
-    llm_config = LLMConfig(
-        provider="openai", api_key="sk-secret-key-123", model="gpt-3.5-turbo"
-    )
+    llm_config = LLMConfig(provider="openai", api_key="sk-secret-key-123", model="gpt-3.5-turbo")
     config = HarnessConfig(
         llm_config=llm_config,
         dataset_path="data/problems.json",

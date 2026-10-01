@@ -7,7 +7,6 @@ import logging
 import traceback
 from datetime import datetime
 from pathlib import Path
-from typing import Dict, List, Optional
 
 from src.models import ExecutionResult
 from src.reporting.chart_generator import ChartGenerator
@@ -392,11 +391,11 @@ class HTMLGenerator:
 
     @staticmethod
     def generate(
-        metrics: Dict[str, Dict],
-        results: Dict[str, List[ExecutionResult]],
+        metrics: dict[str, dict],
+        results: dict[str, list[ExecutionResult]],
         output_path: str,
         include_charts: bool = True,
-        config: Dict = None,
+        config: dict = None,
     ) -> str:
         """
         Generate self-contained HTML report.

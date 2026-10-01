@@ -13,12 +13,13 @@ import time
 import urllib.error
 import urllib.request
 from datetime import datetime
-from typing import Any, Dict, List, Tuple
+from typing import Any
 from urllib.parse import urlparse
 
 try:
     import requests
 except ImportError:  # pragma: no cover - exercised only in minimal installs
+
     class _CompatResponse:
         def __init__(self, status_code: int, body: bytes):
             self.status_code = status_code
@@ -98,10 +99,10 @@ class LeetCodeImporter(ProblemImporter):
         self.retries = max(0, retries)
         self.backoff_seconds = max(0.0, backoff_seconds)
         self.sleep = sleep
-        self.transform_failures: List[Dict[str, Any]] = []
+        self.transform_failures: list[dict[str, Any]] = []
 
     @classmethod
-    def parse_source(cls, source: str) -> Tuple[str, str]:
+    def parse_source(cls, source: str) -> tuple[str, str]:
         """Return a validated slug and canonical public URL."""
         value = source.strip()
         if not value:
@@ -115,9 +116,7 @@ class LeetCodeImporter(ProblemImporter):
         parsed = urlparse(value)
         host = (parsed.hostname or "").lower()
         if host not in cls.allowed_hosts:
-            raise ValueError(
-                f"Unsupported LeetCode host '{host or 'unknown'}'; use leetcode.com"
-            )
+            raise ValueError(f"Unsupported LeetCode host '{host or 'unknown'}'; use leetcode.com")
         parts = [part for part in parsed.path.split("/") if part]
         if len(parts) < 2 or parts[0].lower() != "problems":
             raise ValueError("LeetCode URL must contain /problems/<slug>")
@@ -126,7 +125,7 @@ class LeetCodeImporter(ProblemImporter):
             raise ValueError(f"Invalid LeetCode slug: {slug}")
         return slug, f"https://leetcode.com/problems/{slug}/"
 
-    def fetch_problems(self, source: str) -> List[Dict[str, Any]]:
+    def fetch_problems(self, source: str) -> list[dict[str, Any]]:
         """Fetch one public question through LeetCode's GraphQL endpoint."""
         slug, canonical_url = self.parse_source(source)
         payload = {"query": QUESTION_QUERY, "variables": {"titleSlug": slug}}
@@ -156,7 +155,9 @@ class LeetCodeImporter(ProblemImporter):
                     raise ValueError(f"LeetCode request failed with HTTP {status}")
                 body = response.json()
                 if body.get("errors"):
-                    messages = "; ".join(str(error.get("message", error)) for error in body["errors"])
+                    messages = "; ".join(
+                        str(error.get("message", error)) for error in body["errors"]
+                    )
                     raise ValueError(f"LeetCode GraphQL error: {messages}")
                 question = (body.get("data") or {}).get("question")
                 if not question:
@@ -172,9 +173,11 @@ class LeetCodeImporter(ProblemImporter):
                 if attempt >= self.retries:
                     break
                 self.sleep(self.backoff_seconds * (2**attempt))
-        raise RuntimeError(f"Unable to fetch LeetCode question '{slug}': {last_error}") from last_error
+        raise RuntimeError(
+            f"Unable to fetch LeetCode question '{slug}': {last_error}"
+        ) from last_error
 
-    def transform_to_schema(self, raw_data: Any) -> List[Problem]:
+    def transform_to_schema(self, raw_data: Any) -> list[Problem]:
         """Transform GraphQL question data to the project Problem schema."""
         items = raw_data if isinstance(raw_data, list) else [raw_data]
         problems = []
@@ -193,15 +196,17 @@ class LeetCodeImporter(ProblemImporter):
                 logger.warning("leetcode_problem_transform_failed", index=index, error=str(exc))
         return problems
 
-    def _transform_question(self, question: Dict[str, Any]) -> Problem:
+    def _transform_question(self, question: dict[str, Any]) -> Problem:
         slug = question.get("_source_slug") or self._slug_from_question(question)
         source_url = question.get("_source_url") or f"https://leetcode.com/problems/{slug}/"
         content = self.clean_html_content(question.get("content") or "")
-        notes: List[str] = []
+        notes: list[str] = []
         entry_point = self._extract_entry_point(question.get("codeSnippets") or [])
         if entry_point is None:
             entry_point = "solution(**test_input)"
-            notes.append("Python entry signature could not be extracted; review entry_point manually.")
+            notes.append(
+                "Python entry signature could not be extracted; review entry_point manually."
+            )
 
         public_cases, sample_notes = self._extract_public_examples(content, entry_point)
         notes.extend(sample_notes)
@@ -231,7 +236,7 @@ class LeetCodeImporter(ProblemImporter):
         )
 
     @staticmethod
-    def _slug_from_question(question: Dict[str, Any]) -> str:
+    def _slug_from_question(question: dict[str, Any]) -> str:
         value = str(question.get("titleSlug") or question.get("title") or "leetcode-question")
         return re.sub(r"[^a-z0-9]+", "-", value.lower()).strip("-")
 
@@ -241,11 +246,15 @@ class LeetCodeImporter(ProblemImporter):
         text = content
         text = re.sub(
             r"<pre[^>]*>\s*(?:<code[^>]*>)?(.*?)</(?:code\s*>)?pre>",
-            lambda match: "\n```\n" + html.unescape(re.sub(r"<[^>]+>", "", match.group(1))) + "\n```\n",
+            lambda match: "\n```\n"
+            + html.unescape(re.sub(r"<[^>]+>", "", match.group(1)))
+            + "\n```\n",
             text,
             flags=re.I | re.S,
         )
-        text = re.sub(r"<code[^>]*>(.*?)</code>", lambda m: f"`{m.group(1)}`", text, flags=re.I | re.S)
+        text = re.sub(
+            r"<code[^>]*>(.*?)</code>", lambda m: f"`{m.group(1)}`", text, flags=re.I | re.S
+        )
         text = re.sub(r"<sup[^>]*>(.*?)</sup>", r"^\1", text, flags=re.I | re.S)
         text = re.sub(r"<sub[^>]*>(.*?)</sub>", r"_\1", text, flags=re.I | re.S)
         text = re.sub(r"<br\s*/?>", "\n", text, flags=re.I)
@@ -257,7 +266,7 @@ class LeetCodeImporter(ProblemImporter):
         return text.strip()
 
     @staticmethod
-    def _extract_entry_point(snippets: List[Dict[str, Any]]) -> str | None:
+    def _extract_entry_point(snippets: list[dict[str, Any]]) -> str | None:
         snippet = next(
             (
                 item.get("code", "")
@@ -279,7 +288,9 @@ class LeetCodeImporter(ProblemImporter):
                 flags=re.S,
             )
             if class_match:
-                args = LeetCodeImporter._signature_argument_names(class_match.group(2), skip_self=True)
+                args = LeetCodeImporter._signature_argument_names(
+                    class_match.group(2), skip_self=True
+                )
                 return f"Solution.{class_match.group(1)}({', '.join(args)})"
             function_match = re.search(
                 r"^\s*def\s+([A-Za-z_]\w*)\s*\(([^)]*)\)", snippet, flags=re.M
@@ -300,7 +311,7 @@ class LeetCodeImporter(ProblemImporter):
         return None
 
     @staticmethod
-    def _signature_argument_names(signature: str, skip_self: bool = False) -> List[str]:
+    def _signature_argument_names(signature: str, skip_self: bool = False) -> list[str]:
         """Extract plain argument names from a Python signature stub."""
         names = []
         for argument in signature.split(","):
@@ -313,13 +324,11 @@ class LeetCodeImporter(ProblemImporter):
     @classmethod
     def _extract_public_examples(
         cls, content: str, entry_point: str
-    ) -> Tuple[List[Dict[str, Any]], List[str]]:
+    ) -> tuple[list[dict[str, Any]], list[str]]:
         """Extract only unambiguous Input/Output pairs from cleaned content."""
-        cases: List[Dict[str, Any]] = []
-        notes: List[str] = []
-        pattern = re.compile(
-            r"Input\s*:\s*(.*?)\s+Output\s*:\s*([^\n`]+)", flags=re.I | re.S
-        )
+        cases: list[dict[str, Any]] = []
+        notes: list[str] = []
+        pattern = re.compile(r"Input\s*:\s*(.*?)\s+Output\s*:\s*([^\n`]+)", flags=re.I | re.S)
         for match in pattern.finditer(content):
             parsed_input = cls._parse_named_values(match.group(1).strip())
             parsed_output = cls._parse_literal(match.group(2).strip())
@@ -327,7 +336,9 @@ class LeetCodeImporter(ProblemImporter):
                 continue
             cases.append({"input": parsed_input, "expected_output": parsed_output})
         if not cases:
-            notes.append("Public Input/Output examples could not be paired reliably; review public_test_cases manually.")
+            notes.append(
+                "Public Input/Output examples could not be paired reliably; review public_test_cases manually."
+            )
         return cases, notes
 
     @staticmethod
@@ -354,9 +365,9 @@ class LeetCodeImporter(ProblemImporter):
                 return None
 
     @classmethod
-    def _parse_named_values(cls, value: str) -> Dict[str, Any] | None:
+    def _parse_named_values(cls, value: str) -> dict[str, Any] | None:
         parts = cls._split_top_level(value)
-        parsed: Dict[str, Any] = {}
+        parsed: dict[str, Any] = {}
         for part in parts:
             match = _ASSIGNMENT_RE.match(part.strip())
             if not match:
@@ -367,8 +378,8 @@ class LeetCodeImporter(ProblemImporter):
         return parsed or None
 
     @staticmethod
-    def _split_top_level(value: str) -> List[str]:
-        parts: List[str] = []
+    def _split_top_level(value: str) -> list[str]:
+        parts: list[str] = []
         start = 0
         depth = 0
         quote: str | None = None
@@ -395,8 +406,8 @@ class LeetCodeImporter(ProblemImporter):
         return [part.strip() for part in parts if part.strip()]
 
     def detect_duplicates(
-        self, problems: List[Problem], existing_problems: List[Problem], update_strategy: str
-    ) -> Tuple[List[Problem], List[str], List[str]]:
+        self, problems: list[Problem], existing_problems: list[Problem], update_strategy: str
+    ) -> tuple[list[Problem], list[str], list[str]]:
         """Reuse the standard source/platform duplicate policy."""
         from src.importers.local_json import LocalJsonImporter
 
@@ -404,9 +415,11 @@ class LeetCodeImporter(ProblemImporter):
 
     def generate_report(
         self, result: ImportResult, source: str, output_path: str, preview: bool
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         """Generate a source-specific import report."""
-        manual = [problem.problem_id for problem in result.successful if problem.needs_manual_completion]
+        manual = [
+            problem.problem_id for problem in result.successful if problem.needs_manual_completion
+        ]
         return {
             "timestamp": datetime.now().isoformat(),
             "source": "leetcode",

@@ -2,15 +2,14 @@
 Tests for strategy implementations.
 """
 
-import pytest
 from unittest.mock import Mock
+
+import pytest
 
 from src.llm_client import LLMClient
 from src.models import (
-    LLMConfig,
     LLMResponse,
     Problem,
-    SandboxConfig,
     SandboxResult,
     StrategyConfig,
     TestCase,
@@ -18,9 +17,9 @@ from src.models import (
     TokenUsage,
 )
 from src.sandbox_executor import SandboxExecutor
-from src.strategies.vanilla import VanillaStrategy
 from src.strategies.chain_of_thought import ChainOfThoughtStrategy
 from src.strategies.multi_round_feedback import MultiRoundFeedbackStrategy
+from src.strategies.vanilla import VanillaStrategy
 
 
 @pytest.fixture
@@ -115,9 +114,7 @@ def solution(nums, target):
     assert result.final_result.all_passed is True
 
 
-def test_strategy_config_parameters_reach_llm_client(
-    mock_llm_client, mock_sandbox, sample_problem
-):
+def test_strategy_config_parameters_reach_llm_client(mock_llm_client, mock_sandbox, sample_problem):
     """Strategy-level model settings are forwarded on every generation."""
     response = LLMResponse(
         text="I cannot solve this problem.",
@@ -238,7 +235,9 @@ def solution(nums, target):
     assert len(result.iterations) == 1
 
 
-def test_multi_round_feedback_converges(mock_llm_client, mock_sandbox, sample_problem, strategy_config):
+def test_multi_round_feedback_converges(
+    mock_llm_client, mock_sandbox, sample_problem, strategy_config
+):
     """Test multi-round feedback converges to solution."""
     # First attempt fails
     llm_response_1 = LLMResponse(
@@ -321,15 +320,9 @@ def test_feedback_stage_runs_without_exposing_hidden_cases(
         title="Staged Strategy",
         description="A staged strategy problem with visibility markers.",
         difficulty="easy",
-        public_test_cases=[
-            {"input": {"value": 1}, "expected_output": "PUBLIC_MARKER"}
-        ],
-        feedback_test_cases=[
-            {"input": {"value": 2}, "expected_output": "FEEDBACK_MARKER"}
-        ],
-        hidden_test_cases=[
-            {"input": {"value": 3}, "expected_output": "HIDDEN_MARKER"}
-        ],
+        public_test_cases=[{"input": {"value": 1}, "expected_output": "PUBLIC_MARKER"}],
+        feedback_test_cases=[{"input": {"value": 2}, "expected_output": "FEEDBACK_MARKER"}],
+        hidden_test_cases=[{"input": {"value": 3}, "expected_output": "HIDDEN_MARKER"}],
     )
     response = LLMResponse(
         text="```python\ndef solution(value):\n    return value\n```",
@@ -377,9 +370,7 @@ def test_feedback_stage_runs_without_exposing_hidden_cases(
     assert "FEEDBACK_MARKER" in retry_prompt
 
 
-def test_feedback_stage_runs_when_public_tests_pass(
-    mock_llm_client, mock_sandbox, strategy_config
-):
+def test_feedback_stage_runs_when_public_tests_pass(mock_llm_client, mock_sandbox, strategy_config):
     """Feedback failures prevent early success even when public tests pass."""
     problem = Problem(
         problem_id="feedback-after-public",
@@ -425,9 +416,7 @@ def test_feedback_stage_runs_when_public_tests_pass(
     ]
 
 
-def test_feedback_only_problem_uses_feedback_stage(
-    mock_llm_client, mock_sandbox, strategy_config
-):
+def test_feedback_only_problem_uses_feedback_stage(mock_llm_client, mock_sandbox, strategy_config):
     """A problem without public samples can still use feedback tests."""
     problem = Problem(
         problem_id="feedback-only",
@@ -542,15 +531,15 @@ def test_unsupported_problem_is_not_classified_as_wrong_answer(
         error_message=sample_problem.unsupported_reason,
     )
 
-    result = VanillaStrategy(strategy_config, mock_llm_client, mock_sandbox).execute(
-        sample_problem
-    )
+    result = VanillaStrategy(strategy_config, mock_llm_client, mock_sandbox).execute(sample_problem)
 
     assert result.status == "unsupported"
     assert result.failure_category == "unsupported"
 
 
-def test_multi_round_feedback_max_iterations(mock_llm_client, mock_sandbox, sample_problem, strategy_config):
+def test_multi_round_feedback_max_iterations(
+    mock_llm_client, mock_sandbox, sample_problem, strategy_config
+):
     """Test multi-round feedback respects max iterations."""
     # All attempts fail
     llm_response = LLMResponse(
@@ -694,7 +683,7 @@ if __name__ == "__main__":
 
     code = strategy.extract_code(response)
     assert "def helper(x):" in code
-    assert 'if __name__' not in code
+    assert "if __name__" not in code
     assert "print(" not in code
 
 

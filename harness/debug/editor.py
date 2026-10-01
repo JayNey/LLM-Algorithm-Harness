@@ -3,12 +3,11 @@ Prompt editing functionality for interactive debugging.
 """
 
 import os
-import tempfile
 import subprocess
-from typing import Optional
+import tempfile
 
 
-def edit_prompt(current_prompt: str) -> Optional[str]:
+def edit_prompt(current_prompt: str) -> str | None:
     """
     Edit prompt text using external editor or inline input.
 
@@ -36,7 +35,7 @@ def edit_prompt(current_prompt: str) -> Optional[str]:
         return _edit_inline(current_prompt)
 
 
-def _edit_with_external_editor(prompt: str, editor: str) -> Optional[str]:
+def _edit_with_external_editor(prompt: str, editor: str) -> str | None:
     """
     Edit prompt using external editor.
 
@@ -49,27 +48,21 @@ def _edit_with_external_editor(prompt: str, editor: str) -> Optional[str]:
     """
     # Create temporary file with current prompt
     with tempfile.NamedTemporaryFile(
-        mode="w",
-        suffix=".txt",
-        delete=False,
-        encoding="utf-8"
+        mode="w", suffix=".txt", delete=False, encoding="utf-8"
     ) as tmp_file:
         tmp_file.write(prompt)
         tmp_path = tmp_file.name
 
     try:
         # Open editor
-        result = subprocess.run(
-            [editor, tmp_path],
-            check=False
-        )
+        result = subprocess.run([editor, tmp_path], check=False)
 
         if result.returncode != 0:
             print(f"Editor exited with code {result.returncode}")
             return None
 
         # Read edited content
-        with open(tmp_path, "r", encoding="utf-8") as f:
+        with open(tmp_path, encoding="utf-8") as f:
             edited_prompt = f.read()
 
         return edited_prompt
@@ -82,7 +75,7 @@ def _edit_with_external_editor(prompt: str, editor: str) -> Optional[str]:
             pass
 
 
-def _edit_inline(current_prompt: str) -> Optional[str]:
+def _edit_inline(current_prompt: str) -> str | None:
     """
     Edit prompt using inline multi-line input.
 

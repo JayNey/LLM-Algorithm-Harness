@@ -345,7 +345,7 @@ def save_results(reports: dict, output_dir: str, harness: AlgorithmHarness, conf
             "dataset_fingerprint": task_record.dataset_fingerprint,
         }
     metadata_file = run_path / "metadata.json"
-    with open(metadata_file, "w") as f:
+    with open(metadata_file, "w", encoding="utf-8") as f:
         json.dump(metadata, f, indent=2)
     logger.info("metadata_saved", path=str(metadata_file))
 
@@ -387,7 +387,7 @@ def save_results(reports: dict, output_dir: str, harness: AlgorithmHarness, conf
         }
 
     summary_file = run_path / "summary.json"
-    with open(summary_file, "w") as f:
+    with open(summary_file, "w", encoding="utf-8") as f:
         json.dump(summary, f, indent=2)
 
     logger.info("summary_saved", path=str(summary_file))
@@ -432,14 +432,14 @@ def save_results(reports: dict, output_dir: str, harness: AlgorithmHarness, conf
         results_file = run_path / f"{strategy_name}_results.json"
         results_data = redact_sensitive_data([r.model_dump() for r in results])
 
-        with open(results_file, "w") as f:
+        with open(results_file, "w", encoding="utf-8") as f:
             json.dump(results_data, f, indent=2)
 
         logger.info("strategy_results_saved", strategy=strategy_name, path=str(results_file))
 
     # Update the latest-run pointer for tooling
     latest_file = Path(output_dir) / "latest.json"
-    with open(latest_file, "w") as f:
+    with open(latest_file, "w", encoding="utf-8") as f:
         json.dump({"latest_run": run_path.name}, f, indent=2)
 
     print(f"\nResults saved to: {run_path}")
@@ -549,7 +549,7 @@ def run_import_command(args: argparse.Namespace) -> int:
         )
 
         # Display summary
-        print(f"Import Summary:")
+        print("Import Summary:")
         print(f"  Total problems in input: {len(raw_data)}")
         print(f"  Successfully validated: {len(valid_problems)}")
         print(f"  Failed validation: {len(failed_items)}")
@@ -575,7 +575,7 @@ def run_import_command(args: argparse.Namespace) -> int:
 
         # Confirmation (unless preview or force)
         if not args.preview and not args.force:
-            response = input(f"Proceed with import? (y/N): ")
+            response = input("Proceed with import? (y/N): ")
             if response.lower() != "y":
                 print("Import cancelled.")
                 return 0
@@ -639,7 +639,7 @@ def run_problems_deduplicate_command(args: argparse.Namespace) -> int:
             print(f"Error: Dataset not found: {dataset_path}", file=sys.stderr)
             return 1
 
-        with open(dataset_path, 'r', encoding='utf-8') as f:
+        with open(dataset_path, encoding="utf-8") as f:
             problems = json.load(f)
 
         if not isinstance(problems, list):
@@ -681,13 +681,17 @@ def run_problems_deduplicate_command(args: argparse.Namespace) -> int:
             if fingerprint_groups:
                 print("Fingerprint duplicates:")
                 for group in fingerprint_groups:
-                    print(f"  Group: {', '.join(problems[i].get('problem_id', f'index-{i}') for i in group)}")
+                    print(
+                        f"  Group: {', '.join(problems[i].get('problem_id', f'index-{i}') for i in group)}"
+                    )
 
             if similar_pairs:
                 print("\nSimilarity duplicates:")
                 for i, j, sim in similar_pairs:
-                    print(f"  {problems[i].get('problem_id', f'index-{i}')} ↔ "
-                          f"{problems[j].get('problem_id', f'index-{j}')} (similarity: {sim:.3f})")
+                    print(
+                        f"  {problems[i].get('problem_id', f'index-{i}')} ↔ "
+                        f"{problems[j].get('problem_id', f'index-{j}')} (similarity: {sim:.3f})"
+                    )
 
             return 0
 
@@ -722,13 +726,13 @@ def run_problems_deduplicate_command(args: argparse.Namespace) -> int:
 
             # Interactive mode: ask user
             if not args.auto_merge:
-                print(f"\n🔄 Duplicate group found:")
+                print("\n🔄 Duplicate group found:")
                 for idx in group:
                     p = merged_problems[idx]
                     print(f"  [{idx}] {p.get('problem_id', 'N/A')}: {p.get('title', 'N/A')}")
 
                 response = input("Merge this group? [y/N]: ").strip().lower()
-                if response != 'y':
+                if response != "y":
                     stats["skipped"] += len(group) - 1
                     continue
 
@@ -751,7 +755,7 @@ def run_problems_deduplicate_command(args: argparse.Namespace) -> int:
         final_problems = [p for i, p in enumerate(merged_problems) if i not in indices_to_remove]
 
         # Write output
-        with open(dataset_path, 'w', encoding='utf-8') as f:
+        with open(dataset_path, "w", encoding="utf-8") as f:
             json.dump(final_problems, f, indent=2, ensure_ascii=False)
 
         # Print report
@@ -1169,19 +1173,19 @@ def run_benchmark_command(args: argparse.Namespace) -> int:
             print("Error: No configuration found. Please provide a config file.", file=sys.stderr)
             return 1
 
-        print(f"\nExecuting benchmark evaluation...")
+        print("\nExecuting benchmark evaluation...")
 
         # Execute benchmark
         executor = BenchmarkExecutor(suite, config)
         results = executor.execute()
 
-        print(f"\n✓ Benchmark evaluation completed!")
+        print("\n✓ Benchmark evaluation completed!")
         print(f"  Suite: {results['suite']['name']}")
         print(f"  Problems evaluated: {results['problems_evaluated']}")
         if results["problems_missing"] > 0:
             print(f"  Problems missing: {results['problems_missing']}")
 
-        print(f"\nResults by strategy:")
+        print("\nResults by strategy:")
         for strategy_name, strategy_results in results["strategies"].items():
             print(f"  {strategy_name}:")
             print(f"    - Accuracy: {strategy_results['accuracy']:.2%}")
@@ -1495,18 +1499,24 @@ def main():
         "pareto", help="Cost/accuracy frontier and budget recommendations from experiments"
     )
     pareto_parser.add_argument(
-        "--experiments", nargs="+", required=True,
+        "--experiments",
+        nargs="+",
+        required=True,
         help="Comparable experiment directories containing comparison.json",
     )
     pareto_parser.add_argument(
         "--output-dir", required=True, help="Directory for pareto.json, PARETO.md and pareto.png"
     )
     pareto_parser.add_argument(
-        "--budgets", nargs="+", type=nonnegative_float,
+        "--budgets",
+        nargs="+",
+        type=nonnegative_float,
         help="Budgets in USD for one full dataset run; defaults to frontier costs",
     )
     pareto_parser.add_argument(
-        "--accuracy-metric", choices=["overall", "formal"], default="overall",
+        "--accuracy-metric",
+        choices=["overall", "formal"],
+        default="overall",
         help="Overall success rate or independent hidden-test success rate",
     )
     pareto_parser.add_argument("--log-format", choices=["console", "json"], default="console")
@@ -1702,9 +1712,7 @@ def main():
     cache_parser.add_argument("--log-format", choices=["console", "json"], default="console")
 
     # Problems command group
-    problems_parser = subparsers.add_parser(
-        "problems", help="Problem dataset management tools"
-    )
+    problems_parser = subparsers.add_parser("problems", help="Problem dataset management tools")
     problems_subparsers = problems_parser.add_subparsers(dest="problems_command", required=True)
 
     # problems deduplicate

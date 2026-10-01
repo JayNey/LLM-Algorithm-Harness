@@ -2,19 +2,20 @@
 Test Self-Consistency strategy report generation and metadata.
 """
 
-import pytest
-from unittest.mock import MagicMock, patch
+from unittest.mock import MagicMock
 
-from src.strategies.self_consistency import SelfConsistencyStrategy
+import pytest
+
 from src.models import (
-    Problem,
-    TestCase,
-    StrategyConfig,
     LLMResponse,
-    TokenUsage,
+    Problem,
     SandboxResult,
+    StrategyConfig,
+    TestCase,
     TestCaseResult,
+    TokenUsage,
 )
+from src.strategies.self_consistency import SelfConsistencyStrategy
 
 
 @pytest.fixture
@@ -134,16 +135,11 @@ def test_voting_statistics_in_result(simple_problem, mock_llm_client, mock_sandb
     # Verify values
     assert voting_stats["total_candidates"] == 5
     assert voting_stats["passing_candidates"] == 4  # 4 out of 5 pass tests
-    assert (
-        voting_stats["selected_code_frequency"] == 3
-    )  # Most frequent solution appears 3 times
+    assert voting_stats["selected_code_frequency"] == 3  # Most frequent solution appears 3 times
 
     # Verify voting_statistics contains vote counts per code
     assert len(voting_stats["voting_statistics"]) >= 1
-    assert all(
-        "code" in entry and "count" in entry
-        for entry in voting_stats["voting_statistics"]
-    )
+    assert all("code" in entry and "count" in entry for entry in voting_stats["voting_statistics"])
 
 
 def test_result_serialization(simple_problem, mock_llm_client, mock_sandbox):

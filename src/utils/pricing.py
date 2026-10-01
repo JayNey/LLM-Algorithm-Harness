@@ -11,7 +11,7 @@ an unpriced model (issue #15).
 import json
 import logging
 from pathlib import Path
-from typing import Any, Dict, Literal, Optional
+from typing import Any, Literal
 
 logger = logging.getLogger(__name__)
 
@@ -24,10 +24,10 @@ class PricingInfo:
     def __init__(
         self,
         model: str,
-        prompt_price: Optional[float],
-        completion_price: Optional[float],
+        prompt_price: float | None,
+        completion_price: float | None,
         source: PricingSource,
-        as_of: Optional[str] = None,
+        as_of: str | None = None,
     ):
         self.model = model
         self.prompt_price = prompt_price
@@ -40,7 +40,7 @@ class PricingInfo:
         """Whether both unit prices are actually configured."""
         return self.prompt_price is not None and self.completion_price is not None
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         """Convert to dictionary format for serialization."""
         return {
             "model": self.model,
@@ -68,7 +68,7 @@ class PricingManager:
         "claude-3-5-haiku": {"prompt": 0.001, "completion": 0.005},
     }
 
-    def __init__(self, pricing_file: Optional[str] = None):
+    def __init__(self, pricing_file: str | None = None):
         """
         Initialize PricingManager.
 
@@ -76,7 +76,7 @@ class PricingManager:
             pricing_file: Path to custom pricing JSON file. If None, looks for
                          'pricing.json' in the current directory.
         """
-        self.custom_pricing: Dict[str, Dict[str, Any]] = {}
+        self.custom_pricing: dict[str, dict[str, Any]] = {}
         self.pricing_file = pricing_file or "pricing.json"
         self._load_custom_pricing()
 
@@ -89,7 +89,7 @@ class PricingManager:
             return
 
         try:
-            with open(pricing_path, "r", encoding="utf-8") as f:
+            with open(pricing_path, encoding="utf-8") as f:
                 data = json.load(f)
 
             if "models" not in data:
@@ -98,7 +98,7 @@ class PricingManager:
                 )
                 return
 
-            normalized: Dict[str, Dict[str, Any]] = {}
+            normalized: dict[str, dict[str, Any]] = {}
             for model_key, raw in data["models"].items():
                 entry = self._normalize_entry(raw)
                 if entry is None:
@@ -126,7 +126,7 @@ class PricingManager:
             )
 
     @staticmethod
-    def _normalize_entry(raw: Any) -> Optional[Dict[str, Any]]:
+    def _normalize_entry(raw: Any) -> dict[str, Any] | None:
         """Accept both short and long price keys plus an optional as_of date."""
         if not isinstance(raw, dict):
             return None
@@ -135,7 +135,7 @@ class PricingManager:
         if not isinstance(prompt, (int, float)) or not isinstance(completion, (int, float)):
             return None
         as_of = raw.get("as_of")
-        entry: Dict[str, Any] = {"prompt": prompt, "completion": completion}
+        entry: dict[str, Any] = {"prompt": prompt, "completion": completion}
         if isinstance(as_of, str) and as_of.strip():
             entry["as_of"] = as_of.strip()
         return entry
@@ -186,7 +186,7 @@ class PricingManager:
 
     @classmethod
     def _pricing_from_entry(
-        cls, model: str, entry: Dict[str, Any], source: PricingSource
+        cls, model: str, entry: dict[str, Any], source: PricingSource
     ) -> PricingInfo:
         return PricingInfo(
             model=model,

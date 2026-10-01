@@ -57,9 +57,7 @@ def _problem(include_feedback: bool = False) -> Problem:
         title="Two Sum",
         description="Return the indices of two values whose sum equals target.",
         difficulty="easy",
-        public_test_cases=[
-            TestCase(input={"nums": [2, 7], "target": 9}, expected_output=[0, 1])
-        ],
+        public_test_cases=[TestCase(input={"nums": [2, 7], "target": 9}, expected_output=[0, 1])],
         feedback_test_cases=(
             [TestCase(input={"nums": [1, 8], "target": 9}, expected_output=[0, 1])]
             if include_feedback
@@ -79,14 +77,14 @@ def test_reflexion_reflects_before_retry_and_records_costs():
     sandbox = Mock(spec=SandboxExecutor)
     llm.generate.side_effect = [
         _response("```python\ndef solution(nums, target):\n    return [0, 0]\n```", cost=0.2),
-        _response("The duplicate-value case needs a hash map and a later complement lookup.", cost=0.3),
+        _response(
+            "The duplicate-value case needs a hash map and a later complement lookup.", cost=0.3
+        ),
         _response("```python\ndef solution(nums, target):\n    return [0, 1]\n```", cost=0.4),
     ]
     sandbox.execute.side_effect = [_result(False), _result(True)]
 
-    strategy = ReflexionStrategy(
-        StrategyConfig(name="reflexion", max_iterations=2), llm, sandbox
-    )
+    strategy = ReflexionStrategy(StrategyConfig(name="reflexion", max_iterations=2), llm, sandbox)
     result = strategy.execute(_problem())
 
     assert result.success

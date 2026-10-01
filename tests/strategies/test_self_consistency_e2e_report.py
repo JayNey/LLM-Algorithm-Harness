@@ -11,12 +11,12 @@ from unittest.mock import MagicMock
 import pytest
 
 from src.models import (
+    LLMResponse,
     Problem,
     SandboxResult,
     StrategyConfig,
     TestCase,
     TestCaseResult,
-    LLMResponse,
     TokenUsage,
 )
 from src.strategies.self_consistency import SelfConsistencyStrategy
@@ -122,7 +122,7 @@ def test_e2e_execution_result_contains_all_candidates_and_voting_stats(
 
     # Verify all 5 candidates are recorded in iterations
     assert len(execution_result.iterations) == 5
-    print(f"\n✓ All 5 candidates recorded in iterations")
+    print("\n✓ All 5 candidates recorded in iterations")
 
     # Verify each iteration has necessary fields
     for i, iteration in enumerate(execution_result.iterations, 1):
@@ -160,12 +160,8 @@ def test_e2e_execution_result_contains_all_candidates_and_voting_stats(
                 assert isinstance(entry["count"], int)
                 assert entry["count"] > 0
 
-            print(
-                f"✓ Voting statistics present with {len(voting_stats)} unique solutions"
-            )
-            print(
-                f"✓ Selected solution appears {trace['selected_code_frequency']} times"
-            )
+            print(f"✓ Voting statistics present with {len(voting_stats)} unique solutions")
+            print(f"✓ Selected solution appears {trace['selected_code_frequency']} times")
             break
 
     assert voting_stats_found, "Voting statistics not found in llm_traces"
@@ -173,7 +169,7 @@ def test_e2e_execution_result_contains_all_candidates_and_voting_stats(
     # Verify final code is selected
     assert execution_result.generated_code is not None
     assert len(execution_result.generated_code) > 0
-    print(f"✓ Final code selected from voting")
+    print("✓ Final code selected from voting")
 
     print("\n✓ ExecutionResult contains complete information for report generation")
 
@@ -221,6 +217,4 @@ def test_execution_result_serialization_with_voting_stats(
             break
 
     assert voting_stats_found, "Voting statistics lost during serialization"
-    print(
-        "\n✓ ExecutionResult with voting stats successfully serialized and deserialized"
-    )
+    print("\n✓ ExecutionResult with voting stats successfully serialized and deserialized")

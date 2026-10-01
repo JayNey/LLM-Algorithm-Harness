@@ -4,10 +4,10 @@ HTML Report Generator Extensions for Code Quality
 This module extends the HTML report generator with code quality visualization.
 """
 
-from typing import Any, Dict, Optional
+from typing import Any
 
 
-def generate_quality_section(quality_metrics: Optional[Dict[str, Any]]) -> str:
+def generate_quality_section(quality_metrics: dict[str, Any] | None) -> str:
     """
     Generate HTML section for code quality metrics.
 
@@ -91,7 +91,7 @@ def generate_quality_section(quality_metrics: Optional[Dict[str, Any]]) -> str:
     return html
 
 
-def generate_quality_radar_chart(quality_metrics: Optional[Dict[str, Any]]) -> str:
+def generate_quality_radar_chart(quality_metrics: dict[str, Any] | None) -> str:
     """
     Generate SVG radar chart for code quality metrics.
 

@@ -2,14 +2,14 @@
 Tests for AlgorithmHarness.
 """
 
+from unittest.mock import MagicMock, patch
+
 import pytest
-from unittest.mock import Mock, patch, MagicMock
 
 from src.harness import AlgorithmHarness
 from src.models import (
     ExecutionResult,
     HarnessConfig,
-    IterationResult,
     LLMConfig,
     Problem,
     SandboxConfig,
@@ -64,9 +64,7 @@ def test_harness_initialization(harness_config):
     assert harness.results == {}
 
 
-def test_hidden_evaluation_runs_after_strategy_without_feedback_leak(
-    harness_config, monkeypatch
-):
+def test_hidden_evaluation_runs_after_strategy_without_feedback_leak(harness_config, monkeypatch):
     """Hidden failures change the final result only after strategy execution ends."""
     public_problem = Problem(
         problem_id="hidden-1",
@@ -210,9 +208,7 @@ def test_hidden_only_problem_is_scored_by_hidden_stage(harness_config, monkeypat
     assert sandbox.execute.call_args.kwargs["stage"] == "hidden"
 
 
-def test_unsupported_problem_is_short_circuited_before_strategy(
-    harness_config, monkeypatch
-):
+def test_unsupported_problem_is_short_circuited_before_strategy(harness_config, monkeypatch):
     """Unsupported protocols never enter model generation or hidden scoring."""
     problem = Problem(
         problem_id="unsupported-hidden",
@@ -369,8 +365,10 @@ def test_run_strategy(harness_config, monkeypatch):
     # Create mock strategy class
     mock_strategy_class = MagicMock(return_value=mock_strategy)
 
-    with patch("src.harness.LLMClient") as mock_llm_class, \
-         patch("src.harness.SandboxExecutor") as mock_sandbox_class:
+    with (
+        patch("src.harness.LLMClient") as mock_llm_class,
+        patch("src.harness.SandboxExecutor") as mock_sandbox_class,
+    ):
         mock_sandbox_class.return_value.health_check.return_value = (True, None)
 
         harness = AlgorithmHarness(harness_config)
@@ -529,8 +527,7 @@ def test_unknown_strategy_raises_error(harness_config):
     unknown_config = StrategyConfig(name="unknown_strategy", max_iterations=1)
     problems = harness._load_problems()
 
-    with patch("src.harness.LLMClient"), \
-         patch("src.harness.SandboxExecutor") as mock_sandbox_class:
+    with patch("src.harness.LLMClient"), patch("src.harness.SandboxExecutor") as mock_sandbox_class:
         mock_sandbox_class.return_value.health_check.return_value = (True, None)
         with pytest.raises(ValueError, match="Unknown strategy"):
             harness._run_strategy(unknown_config, problems)
@@ -548,15 +545,15 @@ def test_harness_run_full_execution(harness_config, tmp_path):
             "title": "Problem One",
             "description": "First test problem with sufficient description length",
             "difficulty": "easy",
-            "test_cases": [{"input": {"x": 1}, "expected_output": 2}]
+            "test_cases": [{"input": {"x": 1}, "expected_output": 2}],
         },
         {
             "problem_id": "p2",
             "title": "Problem Two",
             "description": "Second test problem with sufficient description length",
             "difficulty": "medium",
-            "test_cases": [{"input": {"x": 2}, "expected_output": 4}]
-        }
+            "test_cases": [{"input": {"x": 2}, "expected_output": 4}],
+        },
     ]
     dataset_file.write_text(json.dumps(dataset_data))
 
@@ -593,12 +590,15 @@ def test_harness_run_full_execution(harness_config, tmp_path):
         total_tokens=120,
     )
 
-    with patch("src.harness.LLMClient"), \
-         patch("src.harness.SandboxExecutor"), \
-         patch.object(AlgorithmHarness, "_run_strategy") as mock_run_strategy:
+    with (
+        patch("src.harness.LLMClient"),
+        patch("src.harness.SandboxExecutor"),
+        patch.object(AlgorithmHarness, "_run_strategy") as mock_run_strategy,
+    ):
 
         # Mock the report generation
         from src.models import StrategyReport
+
         mock_report = StrategyReport(
             strategy_name="vanilla",
             total_problems=2,
@@ -632,7 +632,7 @@ def test_harness_with_problem_limit(harness_config, tmp_path):
             "title": f"Problem {i}",
             "description": f"Test problem number {i} with sufficient description",
             "difficulty": "easy",
-            "test_cases": [{"input": {"x": i}, "expected_output": i*2}]
+            "test_cases": [{"input": {"x": i}, "expected_output": i * 2}],
         }
         for i in range(10)
     ]
@@ -662,15 +662,15 @@ def test_harness_with_difficulty_filter(harness_config, tmp_path):
             "title": "Easy Problem",
             "description": "An easy test problem with sufficient description",
             "difficulty": "easy",
-            "test_cases": [{"input": {"x": 1}, "expected_output": 2}]
+            "test_cases": [{"input": {"x": 1}, "expected_output": 2}],
         },
         {
             "problem_id": "hard1",
             "title": "Hard Problem",
             "description": "A hard test problem with sufficient description",
             "difficulty": "hard",
-            "test_cases": [{"input": {"x": 2}, "expected_output": 4}]
-        }
+            "test_cases": [{"input": {"x": 2}, "expected_output": 4}],
+        },
     ]
     dataset_file.write_text(json.dumps(dataset_data))
 
@@ -728,7 +728,7 @@ def test_harness_concurrent_strategy_execution(harness_config, tmp_path):
             "title": "Concurrent Problem",
             "description": "Problem for concurrent execution test with sufficient length",
             "difficulty": "easy",
-            "test_cases": [{"input": {"x": 1}, "expected_output": 2}]
+            "test_cases": [{"input": {"x": 1}, "expected_output": 2}],
         }
     ]
     dataset_file.write_text(json.dumps(dataset_data))
@@ -743,11 +743,14 @@ def test_harness_concurrent_strategy_execution(harness_config, tmp_path):
         ],
     )
 
-    with patch("src.harness.LLMClient"), \
-         patch("src.harness.SandboxExecutor"), \
-         patch.object(AlgorithmHarness, "_run_strategy") as mock_run_strategy:
+    with (
+        patch("src.harness.LLMClient"),
+        patch("src.harness.SandboxExecutor"),
+        patch.object(AlgorithmHarness, "_run_strategy") as mock_run_strategy,
+    ):
 
         from src.models import StrategyReport
+
         mock_run_strategy.return_value = StrategyReport(
             strategy_name="test",
             total_problems=1,
@@ -769,12 +772,15 @@ def test_harness_concurrent_strategy_execution(harness_config, tmp_path):
 
 def test_harness_handles_strategy_failure(harness_config):
     """Test harness continues when a strategy fails."""
-    with patch("src.harness.LLMClient"), \
-         patch("src.harness.SandboxExecutor"), \
-         patch.object(AlgorithmHarness, "_run_strategy") as mock_run_strategy:
+    with (
+        patch("src.harness.LLMClient"),
+        patch("src.harness.SandboxExecutor"),
+        patch.object(AlgorithmHarness, "_run_strategy") as mock_run_strategy,
+    ):
 
         # First strategy succeeds, second fails
         from src.models import StrategyReport
+
         success_report = StrategyReport(
             strategy_name="vanilla",
             total_problems=1,
@@ -885,9 +891,7 @@ def test_generate_report_failure_accounting(harness_config):
     assert report.failed_problems == 3
     assert report.model_failed_problems == 1
     assert report.system_failed_problems == 1
-    wrong_answer = sum(
-        1 for r in results if r.failure_category == "wrong_answer"
-    )
+    wrong_answer = sum(1 for r in results if r.failure_category == "wrong_answer")
     assert (
         report.solved_problems
         + wrong_answer
@@ -924,8 +928,10 @@ def test_run_strategy_preflight_failure_aborts_before_llm(harness_config, monkey
     )
     mock_llm_class = MagicMock()
 
-    with patch("src.harness.LLMClient", mock_llm_class), \
-         patch("src.harness.SandboxExecutor", mock_sandbox_class):
+    with (
+        patch("src.harness.LLMClient", mock_llm_class),
+        patch("src.harness.SandboxExecutor", mock_sandbox_class),
+    ):
         harness = AlgorithmHarness(harness_config)
         monkeypatch.setitem(harness.STRATEGY_MAP, "vanilla", mock_strategy_class)
 

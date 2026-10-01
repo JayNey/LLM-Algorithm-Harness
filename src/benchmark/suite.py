@@ -2,7 +2,6 @@
 
 import json
 from pathlib import Path
-from typing import Any
 
 from pydantic import BaseModel, Field, field_validator
 
@@ -63,7 +62,7 @@ def load_benchmark_suite(config_path: str | Path) -> BenchmarkSuite:
         raise FileNotFoundError(f"Benchmark config not found: {config_path}")
 
     try:
-        with open(path, "r", encoding="utf-8") as f:
+        with open(path, encoding="utf-8") as f:
             data = json.load(f)
     except json.JSONDecodeError as e:
         raise ValueError(f"Invalid JSON in benchmark config: {e}")

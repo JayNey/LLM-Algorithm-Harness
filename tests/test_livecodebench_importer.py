@@ -7,7 +7,6 @@ import pytest
 
 from src.importers.livecodebench import LiveCodeBenchImporter
 
-
 FIXTURE = Path(__file__).parent / "fixtures" / "livecodebench.json"
 
 
@@ -16,7 +15,11 @@ def test_import_maps_public_and_hidden_protocols_and_records_version():
     raw = importer.fetch_problems(str(FIXTURE))
     problems = importer.transform_to_schema(raw)
 
-    assert [problem.problem_id for problem in problems] == ["livecodebench-cf-001", "livecodebench-lc-002", "livecodebench-ac-003"]
+    assert [problem.problem_id for problem in problems] == [
+        "livecodebench-cf-001",
+        "livecodebench-lc-002",
+        "livecodebench-ac-003",
+    ]
     assert problems[0].input_output_mode == "stdin_stdout"
     assert len(problems[0].public_test_cases) == 1
     assert len(problems[0].hidden_test_cases) == 1
@@ -40,14 +43,23 @@ def test_filters_are_reproducible_and_recorded():
     problems = importer.transform_to_schema(importer.fetch_problems(str(FIXTURE)))
 
     assert [problem.problem_id for problem in problems] == ["livecodebench-lc-002"]
-    report = importer.generate_report(type("Result", (), {
-        "total_attempted": 1,
-        "successful": problems,
-        "failed": [],
-        "duplicates_skipped": [],
-        "duplicates_overwritten": [],
-        "warnings": [],
-    })(), str(FIXTURE), "out.json", True)
+    report = importer.generate_report(
+        type(
+            "Result",
+            (),
+            {
+                "total_attempted": 1,
+                "successful": problems,
+                "failed": [],
+                "duplicates_skipped": [],
+                "duplicates_overwritten": [],
+                "warnings": [],
+            },
+        )(),
+        str(FIXTURE),
+        "out.json",
+        True,
+    )
     assert report["release_version"] == "release_v6"
     assert report["selected_problem_ids"] == ["livecodebench-lc-002"]
     assert report["source_sha256"]

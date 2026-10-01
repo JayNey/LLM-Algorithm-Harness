@@ -3,9 +3,7 @@ Base strategy interface and common utilities.
 """
 
 import re
-import time
 from abc import ABC, abstractmethod
-from typing import List, Optional
 
 from src.llm_client import LLMClient
 from src.models import (
@@ -119,7 +117,7 @@ class StrategyBase(ABC):
         """
         pass
 
-    def extract_code(self, llm_response: str, problem: Problem | None = None) -> Optional[str]:
+    def extract_code(self, llm_response: str, problem: Problem | None = None) -> str | None:
         """
         Extract Python code from LLM response.
 
@@ -300,12 +298,12 @@ Your response should include the code in a ```python code block.
     def create_iteration_result(
         self,
         iteration: int,
-        llm_response: Optional[LLMResponse],
-        code: Optional[str],
-        sandbox_result: Optional[SandboxResult],
-        prompt: Optional[str] = None,
-        llm_error: Optional[str] = None,
-        sandbox_error: Optional[str] = None,
+        llm_response: LLMResponse | None,
+        code: str | None,
+        sandbox_result: SandboxResult | None,
+        prompt: str | None = None,
+        llm_error: str | None = None,
+        sandbox_error: str | None = None,
         elapsed_seconds: float = 0.0,
     ) -> IterationResult:
         """
@@ -356,9 +354,9 @@ Your response should include the code in a ```python code block.
     def _derive_failure_category(
         self,
         iterations: list,
-        final_result: Optional[SandboxResult],
+        final_result: SandboxResult | None,
         success: bool,
-    ) -> Optional[str]:
+    ) -> str | None:
         """
         Classify why an unsuccessful execution failed.
 
@@ -444,11 +442,11 @@ Your response should include the code in a ```python code block.
         self,
         problem: Problem,
         iterations: list,
-        final_result: Optional[SandboxResult],
+        final_result: SandboxResult | None,
         success: bool,
-        llm_responses: Optional[List[LLMResponse]] = None,
-        failure_category: Optional[str] = None,
-        execution_time_seconds: Optional[float] = None,
+        llm_responses: list[LLMResponse] | None = None,
+        failure_category: str | None = None,
+        execution_time_seconds: float | None = None,
     ) -> ExecutionResult:
         """
         Create final execution result.
@@ -537,9 +535,7 @@ Your response should include the code in a ```python code block.
         )
 
     @staticmethod
-    def _merge_pricing_metadata(
-        primary: dict, reflection: dict
-    ) -> dict:
+    def _merge_pricing_metadata(primary: dict, reflection: dict) -> dict:
         """Combine two pricing records while preserving provider metadata."""
         merged = dict(primary)
         primary_cost = primary.get("total_cost")

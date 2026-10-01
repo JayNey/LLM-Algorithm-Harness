@@ -4,7 +4,6 @@ CSV export module for evaluation results.
 
 import csv
 from pathlib import Path
-from typing import Dict, List
 
 from src.models import ExecutionResult
 from src.utils.secrets import redact_sensitive_data
@@ -14,7 +13,7 @@ class CSVExporter:
     """Export evaluation results to CSV format."""
 
     @staticmethod
-    def export(results: List[ExecutionResult], output_path: str) -> None:
+    def export(results: list[ExecutionResult], output_path: str) -> None:
         """
         Export a single strategy's results to CSV.
 
@@ -48,7 +47,7 @@ class CSVExporter:
         ]
 
         # Write CSV with UTF-8 BOM for Excel compatibility
-        with open(output_path, 'w', encoding='utf-8-sig', newline='') as f:
+        with open(output_path, "w", encoding="utf-8-sig", newline="") as f:
             writer = csv.DictWriter(f, fieldnames=fieldnames)
             writer.writeheader()
 
@@ -60,9 +59,7 @@ class CSVExporter:
                 hidden_result = result.hidden_result
                 hidden_total_tests = len(hidden_result.test_results) if hidden_result else 0
                 hidden_passed_tests = (
-                    sum(1 for tc in hidden_result.test_results if tc.passed)
-                    if hidden_result
-                    else 0
+                    sum(1 for tc in hidden_result.test_results if tc.passed) if hidden_result else 0
                 )
 
                 # Calculate iteration count
@@ -92,7 +89,7 @@ class CSVExporter:
                 writer.writerow(redact_sensitive_data(row))
 
     @staticmethod
-    def export_all(results_dict: Dict[str, List[ExecutionResult]], output_path: str) -> None:
+    def export_all(results_dict: dict[str, list[ExecutionResult]], output_path: str) -> None:
         """
         Export multiple strategies' results to a single CSV.
 

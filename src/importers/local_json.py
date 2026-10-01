@@ -5,7 +5,7 @@ Local JSON file importer.
 import json
 from datetime import datetime
 from pathlib import Path
-from typing import Any, Dict, List, Tuple
+from typing import Any
 
 from pydantic import ValidationError
 
@@ -43,7 +43,7 @@ class LocalJsonImporter(ProblemImporter):
 
         logger.info("fetching_problems", source=source, source_type="local-json")
 
-        with open(path, "r", encoding="utf-8") as f:
+        with open(path, encoding="utf-8") as f:
             data = json.load(f)
 
         if not isinstance(data, list):
@@ -52,7 +52,7 @@ class LocalJsonImporter(ProblemImporter):
         logger.info("problems_fetched", count=len(data), source=source)
         return data
 
-    def transform_to_schema(self, raw_data: Any) -> List[Problem]:
+    def transform_to_schema(self, raw_data: Any) -> list[Problem]:
         """
         Transform raw JSON data to Problem objects.
 
@@ -81,8 +81,8 @@ class LocalJsonImporter(ProblemImporter):
         return problems
 
     def detect_duplicates(
-        self, problems: List[Problem], existing_problems: List[Problem], update_strategy: str
-    ) -> Tuple[List[Problem], List[str], List[str]]:
+        self, problems: list[Problem], existing_problems: list[Problem], update_strategy: str
+    ) -> tuple[list[Problem], list[str], list[str]]:
         """
         Detect and handle duplicates based on (source_platform, source_problem_id).
 
@@ -105,14 +105,14 @@ class LocalJsonImporter(ProblemImporter):
 
         # Build existing problems map: (platform, id) -> Problem
         # Only use source_problem_id if it exists; treat None as non-duplicate
-        existing_map: Dict[Tuple[str, str], Problem] = {}
+        existing_map: dict[tuple[str, str], Problem] = {}
         for p in existing_problems:
             if p.source_problem_id is not None:
                 key = (p.source_platform, p.source_problem_id)
                 existing_map[key] = p
 
         # Build new problems map for efficient lookup
-        new_problems_map: Dict[Tuple[str, str], Problem] = {}
+        new_problems_map: dict[tuple[str, str], Problem] = {}
         for p in problems:
             if p.source_problem_id is not None:
                 key = (p.source_platform, p.source_problem_id)
@@ -176,7 +176,7 @@ class LocalJsonImporter(ProblemImporter):
 
     def generate_report(
         self, result: ImportResult, source: str, output_path: str, preview: bool
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         """
         Generate import report.
 

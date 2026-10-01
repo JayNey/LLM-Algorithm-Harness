@@ -3,10 +3,10 @@ Mock platform importer for testing and examples.
 """
 
 from datetime import datetime
-from typing import Any, Dict, List, Tuple
+from typing import Any
 
 from src.importers.base import ImportResult, ProblemImporter
-from src.models import Problem, TestCase
+from src.models import Problem
 from src.utils.logging import get_logger
 
 logger = get_logger(__name__)
@@ -66,7 +66,7 @@ class MockPlatformImporter(ProblemImporter):
 
         return problems
 
-    def transform_to_schema(self, raw_data: Any) -> List[Problem]:
+    def transform_to_schema(self, raw_data: Any) -> list[Problem]:
         """
         Transform mock data to Problem objects.
 
@@ -88,8 +88,8 @@ class MockPlatformImporter(ProblemImporter):
         return problems
 
     def detect_duplicates(
-        self, problems: List[Problem], existing_problems: List[Problem], update_strategy: str
-    ) -> Tuple[List[Problem], List[str], List[str]]:
+        self, problems: list[Problem], existing_problems: list[Problem], update_strategy: str
+    ) -> tuple[list[Problem], list[str], list[str]]:
         """
         Detect and handle duplicates (reuses base logic via composition).
 
@@ -102,7 +102,7 @@ class MockPlatformImporter(ProblemImporter):
             Tuple of (final_problems, skipped_ids, overwritten_ids)
         """
         # Use same logic as LocalJsonImporter
-        existing_map: Dict[Tuple[str, str], Problem] = {}
+        existing_map: dict[tuple[str, str], Problem] = {}
         for p in existing_problems:
             key = (p.source_platform, p.source_problem_id or p.problem_id)
             existing_map[key] = p
@@ -129,7 +129,7 @@ class MockPlatformImporter(ProblemImporter):
 
     def generate_report(
         self, result: ImportResult, source: str, output_path: str, preview: bool
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         """
         Generate mock import report.
 

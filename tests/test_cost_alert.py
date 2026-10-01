@@ -38,22 +38,34 @@ def test_threshold_crossing_is_exact_durable_and_idempotent(tmp_path, monkeypatc
 
     assert manager.process(0.4999, 1.0) == []
     events = manager.process(0.5, 1.0, unknown_usage_results=2)
-    assert [(event["threshold_percent"], event["status"]) for event in events] == [
-        (50, "sent")
-    ]
+    assert [(event["threshold_percent"], event["status"]) for event in events] == [(50, "sent")]
     assert calls[0][1]["unknown_usage_results"] == 2
     assert calls[0][1]["cost_basis"] == "known_pricing_usage"
     assert manager.process(0.95, 1.0) == [
-        pytest.approx({
-            "run_id": "run-1", "threshold_percent": 80, "channel": "webhook",
-            "status": "sent", "accumulated_cost_usd": 0.95, "budget_cap_usd": 1.0,
-            "unknown_usage_results": 0, "attempts": 1,
-        }),
-        pytest.approx({
-            "run_id": "run-1", "threshold_percent": 90, "channel": "webhook",
-            "status": "sent", "accumulated_cost_usd": 0.95, "budget_cap_usd": 1.0,
-            "unknown_usage_results": 0, "attempts": 1,
-        }),
+        pytest.approx(
+            {
+                "run_id": "run-1",
+                "threshold_percent": 80,
+                "channel": "webhook",
+                "status": "sent",
+                "accumulated_cost_usd": 0.95,
+                "budget_cap_usd": 1.0,
+                "unknown_usage_results": 0,
+                "attempts": 1,
+            }
+        ),
+        pytest.approx(
+            {
+                "run_id": "run-1",
+                "threshold_percent": 90,
+                "channel": "webhook",
+                "status": "sent",
+                "accumulated_cost_usd": 0.95,
+                "budget_cap_usd": 1.0,
+                "unknown_usage_results": 0,
+                "attempts": 1,
+            }
+        ),
     ]
     assert len(calls) == 3
     resumed = CostAlertManager(config, "run-1", state_path)
@@ -142,9 +154,13 @@ def test_smtp_retries_transient_replies_but_not_permanent_auth_failure(tmp_path,
 
     monkeypatch.setattr("src.cost_alert.smtplib.SMTP", FailingSMTP)
     config = CostAlertConfig(
-        thresholds=[50], smtp_host="smtp.example.test", smtp_username="user",
-        smtp_password="private-password", smtp_from="from@example.test",
-        smtp_to=["to@example.test"], max_retries=2,
+        thresholds=[50],
+        smtp_host="smtp.example.test",
+        smtp_username="user",
+        smtp_password="private-password",
+        smtp_from="from@example.test",
+        smtp_to=["to@example.test"],
+        max_retries=2,
     )
     transient_path = tmp_path / "transient.json"
     transient = CostAlertManager(config, "smtp-transient", transient_path).process(0.5, 1.0)[0]
@@ -202,9 +218,7 @@ def test_http_exception_retry_policy_and_redaction(
         (OSError("secret"), 3),
     ],
 )
-def test_smtp_exception_retry_policy_and_redaction(
-    tmp_path, monkeypatch, error, expected_attempts
-):
+def test_smtp_exception_retry_policy_and_redaction(tmp_path, monkeypatch, error, expected_attempts):
     calls = []
 
     class FailingSMTP:
@@ -214,8 +228,11 @@ def test_smtp_exception_retry_policy_and_redaction(
 
     monkeypatch.setattr("src.cost_alert.smtplib.SMTP", FailingSMTP)
     config = CostAlertConfig(
-        thresholds=[50], smtp_host="smtp.example.test", smtp_from="from@example.test",
-        smtp_to=["to@example.test"], max_retries=2,
+        thresholds=[50],
+        smtp_host="smtp.example.test",
+        smtp_from="from@example.test",
+        smtp_to=["to@example.test"],
+        max_retries=2,
     )
     state_path = tmp_path / "smtp-errors.json"
     event = CostAlertManager(config, "smtp-errors", state_path).process(0.5, 1.0)[0]
@@ -246,7 +263,8 @@ def test_channels_keep_independent_success_state_and_hide_errors(tmp_path, monke
     path = tmp_path / "alerts.json"
     events = CostAlertManager(config, "run-3", path).process(0.5, 1.0)
     assert [(event["channel"], event["status"]) for event in events] == [
-        ("slack", "sent"), ("webhook", "failed")
+        ("slack", "sent"),
+        ("webhook", "failed"),
     ]
     assert calls == ["https://hooks.slack.test/private-token", secret_url]
     assert secret_url not in json.dumps(events)
@@ -254,9 +272,7 @@ def test_channels_keep_independent_success_state_and_hide_errors(tmp_path, monke
     assert "private-token" not in path.read_text()
 
     retry = CostAlertManager(config, "run-3", path).process(0.8, 1.0)
-    assert [(event["channel"], event["status"]) for event in retry] == [
-        ("webhook", "sent")
-    ]
+    assert [(event["channel"], event["status"]) for event in retry] == [("webhook", "sent")]
     assert calls.count("https://hooks.slack.test/private-token") == 1
 
 
@@ -284,9 +300,13 @@ def test_smtp_delivery_uses_timeout_tls_and_login(tmp_path, monkeypatch):
 
     monkeypatch.setattr("src.cost_alert.smtplib.SMTP", FakeSMTP)
     config = CostAlertConfig(
-        thresholds=[80], smtp_host="smtp.example.test", smtp_port=2525,
-        smtp_username="user", smtp_password="private-password",
-        smtp_from="sender@example.test", smtp_to=["recipient@example.test"],
+        thresholds=[80],
+        smtp_host="smtp.example.test",
+        smtp_port=2525,
+        smtp_username="user",
+        smtp_password="private-password",
+        smtp_from="sender@example.test",
+        smtp_to=["recipient@example.test"],
         timeout_seconds=3,
     )
     path = tmp_path / "alerts.json"
@@ -306,9 +326,14 @@ def test_local_alert_and_state_validation(tmp_path):
     manager = CostAlertManager(config, "run-5", path)
     assert manager.process(0.5, 1.0) == [
         {
-            "run_id": "run-5", "threshold_percent": 50, "channel": "log",
-            "status": "triggered", "accumulated_cost_usd": 0.5,
-            "budget_cap_usd": 1.0, "unknown_usage_results": 0, "attempts": 0,
+            "run_id": "run-5",
+            "threshold_percent": 50,
+            "channel": "log",
+            "status": "triggered",
+            "accumulated_cost_usd": 0.5,
+            "budget_cap_usd": 1.0,
+            "unknown_usage_results": 0,
+            "attempts": 0,
         }
     ]
     assert CostAlertManager(config, "run-5", path).process(0.6, 1.0) == []
@@ -329,7 +354,8 @@ def test_concurrent_calls_deliver_once(tmp_path, monkeypatch):
     monkeypatch.setattr("src.cost_alert.requests.post", post)
     manager = CostAlertManager(
         CostAlertConfig(thresholds=[50], webhook_url="https://example.test/hook"),
-        "run-6", tmp_path / "alerts.json",
+        "run-6",
+        tmp_path / "alerts.json",
     )
     with ThreadPoolExecutor(max_workers=8) as pool:
         events = list(pool.map(lambda _: manager.process(0.5, 1.0), range(20)))

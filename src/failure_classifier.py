@@ -54,8 +54,7 @@ _CONTRACT_MESSAGE = re.compile(
     re.I,
 )
 _BOUNDARY_MARKER = re.compile(
-    r"(?<![a-z0-9])(?:boundary|edge(?:[-_ ]?case)?|off[-_ ]?by[-_ ]?one)"
-    r"(?![a-z0-9])",
+    r"(?<![a-z0-9])(?:boundary|edge(?:[-_ ]?case)?|off[-_ ]?by[-_ ]?one)" r"(?![a-z0-9])",
     re.I,
 )
 
@@ -99,8 +98,10 @@ def _messages(
     # The sandbox formats wrong answers as "Expected <value>, got <value>".
     # Those values are outputs, not exception diagnostics or causal evidence.
     return [
-        value for value in values
-        if isinstance(value, str) and value
+        value
+        for value in values
+        if isinstance(value, str)
+        and value
         and not (value.lstrip().startswith("Expected ") and ", got " in value)
     ]
 
@@ -131,9 +132,7 @@ def _case_mapping(
     public = cases("public_test_cases") or cases("test_cases")
     feedback = cases("feedback_test_cases")
     if public and feedback and len(public) + len(feedback) == count:
-        return [(case, "public") for case in public] + [
-            (case, "feedback") for case in feedback
-        ]
+        return [(case, "public") for case in public] + [(case, "feedback") for case in feedback]
     if len(public) == count and len(feedback) != count:
         return [(case, "public") for case in public]
     if len(feedback) == count and len(public) != count:
@@ -160,8 +159,7 @@ def _boundary_evidence(
 ) -> FailureClassification | None:
     failing = [test for test in tests if not test.get("passed")]
     if not failing or not all(
-        test.get("status") in (None, "wrong_answer", "failed", "runtime_error")
-        for test in failing
+        test.get("status") in (None, "wrong_answer", "failed", "runtime_error") for test in failing
     ):
         return None
 

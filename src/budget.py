@@ -12,7 +12,7 @@ is flagged ``token_budget_unsupported`` instead of pretending enforcement.
 """
 
 import time
-from typing import Any, Dict, Optional
+from typing import Any
 
 from src.models import ProblemBudget
 from src.utils.logging import get_logger
@@ -32,12 +32,12 @@ class BudgetExhausted(Exception):
 class BudgetTracker:
     """Per-problem budget ledger and gate for one experiment combination."""
 
-    def __init__(self, budget: Optional[ProblemBudget] = None):
+    def __init__(self, budget: ProblemBudget | None = None):
         self.budget = budget
-        self.current_problem: Optional[str] = None
-        self.ledger: Dict[str, Dict[str, Any]] = {}
+        self.current_problem: str | None = None
+        self.ledger: dict[str, dict[str, Any]] = {}
         self.token_budget_unsupported = False
-        self._problem_started: Optional[float] = None
+        self._problem_started: float | None = None
 
     def begin_problem(self, problem_id: str) -> None:
         """Start a fresh budget window for a problem."""
@@ -55,7 +55,7 @@ class BudgetTracker:
             "stop_reason": None,
         }
 
-    def _entry(self) -> Optional[Dict[str, Any]]:
+    def _entry(self) -> dict[str, Any] | None:
         if self.current_problem is None:
             return None
         return self.ledger.get(self.current_problem)

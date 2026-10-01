@@ -79,7 +79,10 @@ def test_analyze_ranks_weak_groups_and_excludes_seen_problems(tmp_path):
     assert report["evaluated_problem_count"] == 2
     assert report["weakness_report"][0]["failure_rate"] == 1.0
     assert report["recommended_problem_ids"] == ["candidate-dp"]
-    assert "candidate-dp" in report["recommended_problems"][0]["recommendation_reason"] or "dp" in report["recommended_problems"][0]["recommendation_reason"]
+    assert (
+        "candidate-dp" in report["recommended_problems"][0]["recommendation_reason"]
+        or "dp" in report["recommended_problems"][0]["recommendation_reason"]
+    )
     assert "seen-dp" not in report["recommended_problem_ids"]
 
 
@@ -99,7 +102,9 @@ def test_write_outputs_report_and_usable_dataset(tmp_path):
 
 def test_threshold_and_min_samples_prevent_weak_group_noise(tmp_path):
     with pytest.raises(ValueError):
-        RecommendationEngine(_history(tmp_path), dataset_path=_dataset(tmp_path), failure_threshold=0)
+        RecommendationEngine(
+            _history(tmp_path), dataset_path=_dataset(tmp_path), failure_threshold=0
+        )
     engine = RecommendationEngine(
         _history(tmp_path), dataset_path=_dataset(tmp_path), min_samples=3
     )
@@ -119,11 +124,22 @@ def test_recommend_cli_writes_outputs(tmp_path):
     output = tmp_path / "cli-recommended.json"
     completed = subprocess.run(
         [
-            sys.executable, "-m", "src.main", "recommend",
-            "--history", str(history), "--dataset", str(dataset),
-            "--output", str(output), "--limit", "1",
+            sys.executable,
+            "-m",
+            "src.main",
+            "recommend",
+            "--history",
+            str(history),
+            "--dataset",
+            str(dataset),
+            "--output",
+            str(output),
+            "--limit",
+            "1",
         ],
-        capture_output=True, text=True, timeout=30,
+        capture_output=True,
+        text=True,
+        timeout=30,
         cwd=str(Path(__file__).resolve().parents[1]),
     )
     assert completed.returncode == 0, completed.stderr
@@ -227,9 +243,7 @@ def test_gradient_orders_easy_first_with_cost_and_dimensions(tmp_path):
         ]
     )
     dataset.write_text(json.dumps(dataset_payload), encoding="utf-8")
-    (history / "vanilla_results.json").write_text(
-        json.dumps(records), encoding="utf-8"
-    )
+    (history / "vanilla_results.json").write_text(json.dumps(records), encoding="utf-8")
 
     report = RecommendationEngine(history, dataset_path=dataset).analyze()
 

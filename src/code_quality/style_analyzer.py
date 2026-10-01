@@ -9,7 +9,6 @@ Analyzes code style consistency through:
 import subprocess
 import tempfile
 from pathlib import Path
-from typing import List, Optional
 
 from src.code_quality.models import StyleConsistencyScore
 from src.utils.logging import get_logger
@@ -56,7 +55,7 @@ class StyleConsistencyAnalyzer:
                 violations_detail=[],
             )
 
-    def _check_black_format(self, code: str) -> tuple[bool, List[str]]:
+    def _check_black_format(self, code: str) -> tuple[bool, list[str]]:
         """
         Check if code passes black formatting.
 

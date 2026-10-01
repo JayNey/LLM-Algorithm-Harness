@@ -2,13 +2,11 @@
 Test suite for code quality analyzers.
 """
 
-import pytest
-
 from src.code_quality.analyzer import CodeQualityAnalyzer
-from src.code_quality.time_analyzer import TimeComplexityAnalyzer
-from src.code_quality.space_analyzer import SpaceAnalyzer
 from src.code_quality.readability_analyzer import ReadabilityAnalyzer
+from src.code_quality.space_analyzer import SpaceAnalyzer
 from src.code_quality.style_analyzer import StyleConsistencyAnalyzer
+from src.code_quality.time_analyzer import TimeComplexityAnalyzer
 
 
 class TestTimeComplexityAnalyzer:

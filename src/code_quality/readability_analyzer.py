@@ -10,7 +10,6 @@ Analyzes code readability through:
 import subprocess
 import tempfile
 from pathlib import Path
-from typing import Optional
 
 from src.code_quality.models import ReadabilityScore
 from src.utils.logging import get_logger
@@ -59,7 +58,7 @@ class ReadabilityAnalyzer:
                 issues=[],
             )
 
-    def _run_pylint(self, code: str) -> Optional[float]:
+    def _run_pylint(self, code: str) -> float | None:
         """Run pylint and extract score."""
         temp_path = None
         try:
@@ -88,7 +87,7 @@ class ReadabilityAnalyzer:
             if temp_path:
                 Path(temp_path).unlink(missing_ok=True)
 
-    def _run_flake8(self, code: str) -> Optional[int]:
+    def _run_flake8(self, code: str) -> int | None:
         """Run flake8 and count issues."""
         temp_path = None
         try:
@@ -100,7 +99,7 @@ class ReadabilityAnalyzer:
                 ["flake8", temp_path], capture_output=True, text=True, timeout=10
             )
 
-            issue_count = len([l for l in result.stdout.splitlines() if l.strip()])
+            issue_count = len([line for line in result.stdout.splitlines() if line.strip()])
             return issue_count
 
         except Exception as e:
@@ -110,7 +109,7 @@ class ReadabilityAnalyzer:
             if temp_path:
                 Path(temp_path).unlink(missing_ok=True)
 
-    def _run_radon(self, code: str) -> Optional[float]:
+    def _run_radon(self, code: str) -> float | None:
         """Run radon and get cyclomatic complexity."""
         temp_path = None
         try:
@@ -140,10 +139,10 @@ class ReadabilityAnalyzer:
 
     def _calculate_readability_score(
         self,
-        pylint_score: Optional[float],
-        flake8_issues: Optional[int],
-        complexity: Optional[float],
-    ) -> Optional[float]:
+        pylint_score: float | None,
+        flake8_issues: int | None,
+        complexity: float | None,
+    ) -> float | None:
         """Calculate overall readability score (0-100)."""
         scores = []
 

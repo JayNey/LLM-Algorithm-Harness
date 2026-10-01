@@ -15,7 +15,7 @@ import subprocess
 from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime
 from pathlib import Path
-from typing import Any, Dict, Optional
+from typing import Any
 
 from src.budget import BudgetTracker
 from src.experiment_panel import generate_html_panel
@@ -43,7 +43,7 @@ def _sha256_file(path: Path) -> str:
     return digest.hexdigest()
 
 
-def _git_commit() -> Optional[str]:
+def _git_commit() -> str | None:
     """Resolve the current git commit, or None outside a repository."""
     try:
         result = subprocess.run(
@@ -75,7 +75,7 @@ def _git_dirty() -> bool:
 class ExperimentRunner:
     """Run one experiment configuration end to end."""
 
-    def __init__(self, config: ExperimentConfig, pricing_file: Optional[str] = None):
+    def __init__(self, config: ExperimentConfig, pricing_file: str | None = None):
         self.config = config
         self.pricing_manager = PricingManager(pricing_file)
 
@@ -85,7 +85,7 @@ class ExperimentRunner:
         problems = self._load_problems()
         exp_dir = self._create_experiment_dir()
 
-        metadata: Dict[str, Any] = {
+        metadata: dict[str, Any] = {
             "schema_version": "1.0",
             "name": self.config.name,
             "experiment_id": exp_dir.name,
@@ -150,7 +150,7 @@ class ExperimentRunner:
             raise ValueError("No problems available for the experiment")
         return problems
 
-    def _dataset_fingerprint(self, problems) -> Dict[str, Any]:
+    def _dataset_fingerprint(self, problems) -> dict[str, Any]:
         dataset_path = Path(self.config.dataset_path)
         return {
             "path": str(dataset_path),
@@ -184,7 +184,7 @@ class ExperimentRunner:
         model,
         strategy: StrategyConfig,
         repeat: int,
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         combo_id = f"{_safe_dirname(model.model)}__{_safe_dirname(strategy.name)}__r{repeat}"
         combo_dir = exp_dir / combo_id
         combo_dir.mkdir(parents=True, exist_ok=True)

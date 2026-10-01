@@ -5,7 +5,7 @@ from typing import Any
 
 from src.benchmark.suite import BenchmarkSuite
 from src.harness import AlgorithmHarness
-from src.models import HarnessConfig, Problem
+from src.models import HarnessConfig
 from src.problem_loader import ProblemLoader
 from src.utils.logging import get_logger
 

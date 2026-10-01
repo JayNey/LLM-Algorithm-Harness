@@ -5,12 +5,13 @@ LLM Client - Interface for calling LLM APIs.
 import os
 import re
 import time
-from typing import Any, Callable, Dict, List, Optional
+from collections.abc import Callable
+from typing import Any
 
 from pydantic import SecretStr
 
-from src.models import LLMConfig, LLMResponse, TokenUsage
 from src.cache import CacheKey, LLMResponseCache
+from src.models import LLMConfig, LLMResponse, TokenUsage
 from src.utils.logging import get_logger
 from src.utils.pricing import PricingManager
 from src.utils.secrets import redact_sensitive_data, redact_sensitive_text
@@ -42,7 +43,7 @@ class LLMClient:
             config: LLM configuration
         """
         self.config = config
-        self._resolved_api_key: Optional[SecretStr] = None
+        self._resolved_api_key: SecretStr | None = None
         self.client = self._initialize_client()
         self.pricing_manager = PricingManager()
 
@@ -177,7 +178,7 @@ class LLMClient:
         return api_key
 
     def _safe_provider_error(
-        self, error: Exception, resolved_api_key: Optional[str] = None
+        self, error: Exception, resolved_api_key: str | None = None
     ) -> RuntimeError:
         """Create an exception message that cannot contain the resolved credential."""
         api_key = resolved_api_key
@@ -189,12 +190,12 @@ class LLMClient:
     def generate(
         self,
         prompt: str,
-        system_prompt: Optional[str] = None,
-        temperature: Optional[float] = None,
-        max_tokens: Optional[int] = None,
-        custom_params: Optional[Dict[str, Any]] = None,
-        problem_id: Optional[str] = None,
-        strategy_name: Optional[str] = None,
+        system_prompt: str | None = None,
+        temperature: float | None = None,
+        max_tokens: int | None = None,
+        custom_params: dict[str, Any] | None = None,
+        problem_id: str | None = None,
+        strategy_name: str | None = None,
     ) -> LLMResponse:
         """
         Generate response from LLM.
@@ -287,13 +288,13 @@ class LLMClient:
     def _effective_params(
         self,
         *,
-        system_prompt: Optional[str],
-        temperature: Optional[float],
-        max_tokens: Optional[int],
-        custom_params: Optional[Dict[str, Any]],
-    ) -> Dict[str, Any]:
+        system_prompt: str | None,
+        temperature: float | None,
+        max_tokens: int | None,
+        custom_params: dict[str, Any] | None,
+    ) -> dict[str, Any]:
         """Resolve strategy overrides against the global LLM configuration."""
-        params: Dict[str, Any] = {
+        params: dict[str, Any] = {
             "temperature": self.config.temperature if temperature is None else temperature,
             "max_tokens": self.config.max_tokens if max_tokens is None else max_tokens,
             "timeout": self.config.timeout,
@@ -346,7 +347,7 @@ class LLMClient:
         return getattr(value, name, default)
 
     @staticmethod
-    def _extract_reasoning(message: Any) -> Optional[str]:
+    def _extract_reasoning(message: Any) -> str | None:
         """Read optional reasoning fields without mixing them into code text."""
         for key in ("reasoning_content", "reasoning", "thinking"):
             value = message.get(key) if isinstance(message, dict) else getattr(message, key, None)
@@ -371,7 +372,7 @@ class LLMClient:
         return None
 
     @staticmethod
-    def _status_code(error: Exception) -> Optional[int]:
+    def _status_code(error: Exception) -> int | None:
         """Extract HTTP status from SDK errors without importing SDK classes."""
         for candidate in (error, getattr(error, "response", None)):
             value = getattr(candidate, "status_code", None)
@@ -401,7 +402,7 @@ class LLMClient:
     def _call_with_retry(self, operation: Callable[[], Any]) -> Any:
         """Run one provider operation with bounded retry and backoff."""
         started = time.monotonic()
-        last_error: Optional[Exception] = None
+        last_error: Exception | None = None
         for attempt in range(self.config.retry_max_attempts):
             try:
                 return operation()
@@ -421,7 +422,7 @@ class LLMClient:
         assert last_error is not None
         raise last_error
 
-    def _call_openai(self, prompt: str, effective: Dict[str, Any]) -> LLMResponse:
+    def _call_openai(self, prompt: str, effective: dict[str, Any]) -> LLMResponse:
         """
         Call OpenAI API.
 
@@ -505,7 +506,7 @@ class LLMClient:
             effective_params=self._redacted_effective_params(effective),
         )
 
-    def _call_anthropic(self, prompt: str, effective: Dict[str, Any]) -> LLMResponse:
+    def _call_anthropic(self, prompt: str, effective: dict[str, Any]) -> LLMResponse:
         """
         Call Anthropic API.
 
@@ -573,7 +574,7 @@ class LLMClient:
         )
 
     @staticmethod
-    def _redacted_effective_params(params: Dict[str, Any]) -> Dict[str, Any]:
+    def _redacted_effective_params(params: dict[str, Any]) -> dict[str, Any]:
         """Keep snapshots useful while preventing prompt/credential leakage."""
         snapshot = dict(params)
         snapshot.pop("system_prompt", None)
@@ -645,7 +646,7 @@ class LLMClient:
         except (TypeError, ValueError):
             return TokenUsage(prompt_tokens=0, completion_tokens=0, total_tokens=0), True
 
-    def list_models(self) -> List[str]:
+    def list_models(self) -> list[str]:
         """
         List model IDs from the provider's model listing endpoint.
 
@@ -664,7 +665,7 @@ class LLMClient:
             raise self._safe_provider_error(exc) from None
         return sorted(str(model.id) for model in page.data)
 
-    def check_connection(self) -> Dict[str, Any]:
+    def check_connection(self) -> dict[str, Any]:
         """
         Verify credentials and connectivity via the model listing endpoint.
 
@@ -676,7 +677,7 @@ class LLMClient:
             Dict with ok, provider, base_url, model_count and error fields
         """
         base_url = getattr(self.client, "base_url", None)
-        result: Dict[str, Any] = {
+        result: dict[str, Any] = {
             "ok": False,
             "provider": self.config.provider,
             "base_url": str(base_url) if base_url else None,
@@ -692,7 +693,7 @@ class LLMClient:
         result["model_count"] = len(models)
         return result
 
-    def estimate_cost(self, usage: TokenUsage) -> Optional[float]:
+    def estimate_cost(self, usage: TokenUsage) -> float | None:
         """
         Estimate API call cost.
 

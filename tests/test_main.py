@@ -53,9 +53,7 @@ class TestCreateDefaultConfig:
 
     def test_create_default_config_basic(self):
         """Test creating default configuration with basic parameters."""
-        config = create_default_config(
-            dataset_path="data/problems.json", output_dir="output"
-        )
+        config = create_default_config(dataset_path="data/problems.json", output_dir="output")
 
         assert config.dataset_path == "data/problems.json"
         assert config.output_dir == "output"
@@ -65,9 +63,7 @@ class TestCreateDefaultConfig:
 
     def test_create_default_config_has_all_required_fields(self):
         """Test default config has all required fields."""
-        config = create_default_config(
-            dataset_path="data/test.json", output_dir="out"
-        )
+        config = create_default_config(dataset_path="data/test.json", output_dir="out")
 
         assert hasattr(config, "dataset_path")
         assert hasattr(config, "output_dir")
@@ -175,7 +171,7 @@ class TestSaveResults:
         config = create_default_config("data/problems.json", str(output_dir))
         config.llm_config.api_key = "sk-test-secret"
         save_results(self._make_reports(), str(output_dir), mock_harness, config)
-        with open(output_dir / "latest.json") as f:
+        with open(output_dir / "latest.json", encoding="utf-8") as f:
             run_name = json.load(f)["latest_run"]
         return output_dir, output_dir / run_name
 
@@ -194,7 +190,7 @@ class TestSaveResults:
         summary_file = run_dir / "summary.json"
         assert summary_file.exists()
 
-        with open(summary_file) as f:
+        with open(summary_file, encoding="utf-8") as f:
             data = json.load(f)
             assert "strategies" in data
             assert "vanilla" in data["strategies"]
@@ -206,7 +202,7 @@ class TestSaveResults:
         metadata_file = run_dir / "metadata.json"
         assert metadata_file.exists()
 
-        with open(metadata_file) as f:
+        with open(metadata_file, encoding="utf-8") as f:
             metadata = json.load(f)
         assert metadata["dataset_path"] == "data/problems.json"
         assert metadata["llm"]["model"] == "gpt-3.5-turbo"
@@ -226,7 +222,7 @@ class TestSaveResults:
         detailed_file = run_dir / "vanilla_results.json"
         assert detailed_file.exists()
 
-        with open(detailed_file) as f:
+        with open(detailed_file, encoding="utf-8") as f:
             data = json.load(f)
             assert len(data) == 1
             assert data[0]["problem_id"] == "test_1"
@@ -266,9 +262,7 @@ class TestMainExecution:
 
     @patch("src.main.setup_logging")
     @patch("src.main.AlgorithmHarness")
-    def test_main_enables_redacting_logging(
-        self, mock_harness_class, mock_setup_logging
-    ):
+    def test_main_enables_redacting_logging(self, mock_harness_class, mock_setup_logging):
         """The CLI activates the processor that redacts structured events."""
         mock_harness = MagicMock()
         mock_harness.run.return_value = {}
@@ -286,9 +280,7 @@ class TestMainExecution:
 
     @patch("src.main.setup_logging")
     @patch("src.main.AlgorithmHarness")
-    def test_main_passes_log_format_to_setup_logging(
-        self, mock_harness_class, mock_setup_logging
-    ):
+    def test_main_passes_log_format_to_setup_logging(self, mock_harness_class, mock_setup_logging):
         """--log-format reaches setup_logging so the console rendering switches."""
         mock_harness = MagicMock()
         mock_harness.run.return_value = {}
@@ -297,7 +289,9 @@ class TestMainExecution:
 
         from src.main import main
 
-        with patch("sys.argv", ["main.py", "--dataset", "data/problems.json", "--log-format", "json"]):
+        with patch(
+            "sys.argv", ["main.py", "--dataset", "data/problems.json", "--log-format", "json"]
+        ):
             with patch("src.main.save_results"):
                 with patch("src.main.print_report"):
                     main()
@@ -306,9 +300,7 @@ class TestMainExecution:
 
     @patch("src.main.setup_logging")
     @patch("src.main.AlgorithmHarness")
-    def test_main_defaults_log_format_to_console(
-        self, mock_harness_class, mock_setup_logging
-    ):
+    def test_main_defaults_log_format_to_console(self, mock_harness_class, mock_setup_logging):
         """Without --log-format the CLI activates the human-readable console."""
         mock_harness = MagicMock()
         mock_harness.run.return_value = {}
@@ -660,9 +652,7 @@ problem_filters:
 
         from src.main import main
 
-        with patch(
-            "sys.argv", ["main.py", "--dataset", "data/sample_problems.json"]
-        ):
+        with patch("sys.argv", ["main.py", "--dataset", "data/sample_problems.json"]):
             with patch("src.main.save_results"):
                 with patch("src.main.print_report"):
                     main()
@@ -692,9 +682,7 @@ problem_filters:
     def test_main_with_config_file(self, mock_harness_class):
         """Test main execution with config file."""
         # Create temporary config file
-        with tempfile.NamedTemporaryFile(
-            mode="w", suffix=".json", delete=False
-        ) as f:
+        with tempfile.NamedTemporaryFile(mode="w", suffix=".json", delete=False) as f:
             config_data = {
                 "dataset_path": "data/sample_problems.json",
                 "output_dir": "output",
@@ -772,13 +760,18 @@ class TestSiliconFlowCliFlags:
         mock_harness.run.return_value = {}
         mock_harness.results = {}
 
-        with patch("src.main.LLMClient", mock_llm_class), \
-             patch("src.main.AlgorithmHarness", MagicMock(return_value=mock_harness)) as mock_harness_class, \
-             patch("sys.argv", ["main.py", "--dataset", "data/problems.json"] + argv_extra):
+        with (
+            patch("src.main.LLMClient", mock_llm_class),
+            patch(
+                "src.main.AlgorithmHarness", MagicMock(return_value=mock_harness)
+            ) as mock_harness_class,
+            patch("sys.argv", ["main.py", "--dataset", "data/problems.json"] + argv_extra),
+        ):
             with patch("src.main.save_results"), patch("src.main.print_report"):
                 exit_code = 0
                 try:
                     from src.main import main
+
                     main()
                 except SystemExit as exc:
                     exit_code = exc.code or 0
@@ -810,8 +803,11 @@ class TestSiliconFlowCliFlags:
     def test_check_connection_success_reports_status(self, capsys):
         mock_llm_class = MagicMock()
         mock_llm_class.return_value.check_connection.return_value = {
-            "ok": True, "provider": "siliconflow",
-            "base_url": "https://api.siliconflow.cn/v1", "model_count": 7, "error": None,
+            "ok": True,
+            "provider": "siliconflow",
+            "base_url": "https://api.siliconflow.cn/v1",
+            "model_count": 7,
+            "error": None,
         }
 
         _, code = self._run_main(["--check-connection"], mock_llm_class, capsys)
@@ -824,8 +820,11 @@ class TestSiliconFlowCliFlags:
     def test_check_connection_failure_reports_reason(self, capsys):
         mock_llm_class = MagicMock()
         mock_llm_class.return_value.check_connection.return_value = {
-            "ok": False, "provider": "siliconflow", "base_url": None,
-            "model_count": 0, "error": "401 unauthorized",
+            "ok": False,
+            "provider": "siliconflow",
+            "base_url": None,
+            "model_count": 0,
+            "error": "401 unauthorized",
         }
 
         _, code = self._run_main(["--check-connection"], mock_llm_class, capsys)
@@ -850,6 +849,7 @@ def test_main_exits_1_on_sandbox_preflight_failure(capsys):
                 exit_code = 0
                 try:
                     from src.main import main
+
                     main()
                 except SystemExit as exc:
                     exit_code = exc.code or 0
@@ -877,11 +877,22 @@ class TestImportCommand:
         source.write_text(json.dumps([self._problem_payload()]), encoding="utf-8")
         output = tmp_path / "out" / "problems.json"
 
-        with patch("sys.argv", [
-            "main.py", "import", "--source", "local-json",
-            "--input", str(source), "--output", str(output), "--force",
-        ]):
+        with patch(
+            "sys.argv",
+            [
+                "main.py",
+                "import",
+                "--source",
+                "local-json",
+                "--input",
+                str(source),
+                "--output",
+                str(output),
+                "--force",
+            ],
+        ):
             from src.main import main
+
             with pytest.raises(SystemExit) as exc_info:
                 main()
 
@@ -895,11 +906,22 @@ class TestImportCommand:
         source.write_text(json.dumps([self._problem_payload(pid="preview-1")]), encoding="utf-8")
         output = tmp_path / "problems.json"
 
-        with patch("sys.argv", [
-            "main.py", "import", "--source", "local-json",
-            "--input", str(source), "--output", str(output), "--preview",
-        ]):
+        with patch(
+            "sys.argv",
+            [
+                "main.py",
+                "import",
+                "--source",
+                "local-json",
+                "--input",
+                str(source),
+                "--output",
+                str(output),
+                "--preview",
+            ],
+        ):
             from src.main import main
+
             with pytest.raises(SystemExit) as exc_info:
                 main()
 
@@ -910,11 +932,22 @@ class TestImportCommand:
         source = tmp_path / "input.json"
         source.write_text("not json", encoding="utf-8")
 
-        with patch("sys.argv", [
-            "main.py", "import", "--source", "local-json",
-            "--input", str(source), "--output", str(tmp_path / "o.json"), "--force",
-        ]):
+        with patch(
+            "sys.argv",
+            [
+                "main.py",
+                "import",
+                "--source",
+                "local-json",
+                "--input",
+                str(source),
+                "--output",
+                str(tmp_path / "o.json"),
+                "--force",
+            ],
+        ):
             from src.main import main
+
             with pytest.raises(SystemExit) as exc_info:
                 main()
 

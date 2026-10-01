@@ -3,13 +3,11 @@ Tests for ProblemLoader.
 """
 
 import json
-import tempfile
-from pathlib import Path
 
 import pytest
 from pydantic import ValidationError
 
-from src.models import Problem, TestCase
+from src.models import Problem
 from src.problem_loader import ProblemLoader
 
 
@@ -39,9 +37,7 @@ def sample_dataset():
             "description": "Reverse a string",
             "difficulty": "easy",
             "tags": ["string"],
-            "test_cases": [
-                {"input": {"s": "hello"}, "expected_output": "olleh"}
-            ],
+            "test_cases": [{"input": {"s": "hello"}, "expected_output": "olleh"}],
         },
         {
             "problem_id": "test-003",
@@ -49,9 +45,7 @@ def sample_dataset():
             "description": "Search in sorted array",
             "difficulty": "medium",
             "tags": ["array", "binary-search"],
-            "test_cases": [
-                {"input": {"nums": [1, 2, 3, 4, 5], "target": 3}, "expected_output": 2}
-            ],
+            "test_cases": [{"input": {"nums": [1, 2, 3, 4, 5], "target": 3}, "expected_output": 2}],
         },
     ]
 
@@ -88,15 +82,9 @@ def test_load_staged_problem_schema(problem_loader, tmp_path):
                     "source_version": "v1",
                     "input_output_mode": "function",
                     "entry_point": "solution(value)",
-                    "public_test_cases": [
-                        {"input": {"value": 1}, "expected_output": 1}
-                    ],
-                    "feedback_test_cases": [
-                        {"input": {"value": 2}, "expected_output": 2}
-                    ],
-                    "hidden_test_cases": [
-                        {"input": {"value": 99}, "expected_output": 99}
-                    ],
+                    "public_test_cases": [{"input": {"value": 1}, "expected_output": 1}],
+                    "feedback_test_cases": [{"input": {"value": 2}, "expected_output": 2}],
+                    "hidden_test_cases": [{"input": {"value": 99}, "expected_output": 99}],
                 }
             ]
         ),
@@ -218,9 +206,7 @@ def test_filter_problems_combined(problem_loader, sample_dataset, tmp_path):
     dataset_file.write_text(json.dumps(sample_dataset))
 
     problems = problem_loader.load(str(dataset_file))
-    filtered = problem_loader.filter_problems(
-        problems, difficulty="easy", tags=["array"], limit=1
-    )
+    filtered = problem_loader.filter_problems(problems, difficulty="easy", tags=["array"], limit=1)
 
     assert len(filtered) == 1
     assert filtered[0].difficulty == "easy"

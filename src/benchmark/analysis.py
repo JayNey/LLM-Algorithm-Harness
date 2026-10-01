@@ -113,7 +113,9 @@ class TrendAnalyzer:
 
         # Save plot
         if output_path is None:
-            output_path = Path("results/benchmark") / f"learning_curve_{model_id.replace('/', '_')}.png"
+            output_path = (
+                Path("results/benchmark") / f"learning_curve_{model_id.replace('/', '_')}.png"
+            )
         else:
             output_path = Path(output_path)
 
@@ -182,15 +184,11 @@ class TrendAnalyzer:
         plt.savefig(output_path, dpi=150, bbox_inches="tight")
         plt.close()
 
-        logger.info(
-            "model_comparison_plotted", models=len(time_series), path=str(output_path)
-        )
+        logger.info("model_comparison_plotted", models=len(time_series), path=str(output_path))
 
         return output_path
 
-    def calculate_statistics(
-        self, model_id: str, suite_name: str | None = None
-    ) -> dict[str, Any]:
+    def calculate_statistics(self, model_id: str, suite_name: str | None = None) -> dict[str, Any]:
         """
         Calculate statistical metrics for a model's performance.
 
@@ -272,9 +270,7 @@ class TrendAnalyzer:
                             "model_a": model_a,
                             "model_b": model_b,
                             "accuracy_difference": acc_b - acc_a,
-                            "relative_improvement": (
-                                (acc_b - acc_a) / acc_a if acc_a > 0 else 0.0
-                            ),
+                            "relative_improvement": ((acc_b - acc_a) / acc_a if acc_a > 0 else 0.0),
                         }
                     )
 

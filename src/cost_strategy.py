@@ -13,7 +13,7 @@ unknown usage are counted separately and never treated as free.
 
 import threading
 from decimal import Decimal, InvalidOperation
-from typing import Any, Dict, List, Optional
+from typing import Any
 
 from src.utils.logging import get_logger
 
@@ -28,7 +28,7 @@ VALID_DIFFICULTIES = ("easy", "medium", "hard")
 class CostAwareSelector:
     """Map dataset difficulty labels to strategy names."""
 
-    def __init__(self, mapping: Dict[str, str], allowed_strategies: List[str]):
+    def __init__(self, mapping: dict[str, str], allowed_strategies: list[str]):
         invalid_difficulties = sorted(set(mapping) - set(VALID_DIFFICULTIES))
         if invalid_difficulties:
             raise ValueError(
@@ -45,7 +45,7 @@ class CostAwareSelector:
             raise ValueError("difficulty-strategy mapping must not be empty")
         self.mapping = dict(mapping)
 
-    def select(self, difficulty: Optional[str]) -> str:
+    def select(self, difficulty: str | None) -> str:
         """Return the strategy for a difficulty; uncovered difficulties fail fast."""
         strategy = self.mapping.get(difficulty or "")
         if strategy is None:
@@ -123,7 +123,7 @@ def result_cost(result: Any) -> tuple[Decimal, bool]:
 class RunCostMonitor:
     """Thread-safe run-level cost ledger driving the budget-cap downgrade."""
 
-    def __init__(self, budget_cap_usd: Optional[float] = None):
+    def __init__(self, budget_cap_usd: float | None = None):
         self.budget_cap_usd = Decimal(str(budget_cap_usd)) if budget_cap_usd is not None else None
         self._lock = threading.Lock()
         self._accumulated_cost = Decimal("0")
@@ -159,11 +159,13 @@ class RunCostMonitor:
             self._downgraded_count += 1
         return first
 
-    def snapshot(self) -> Dict[str, Any]:
+    def snapshot(self) -> dict[str, Any]:
         """Point-in-time view for logs and the run summary."""
         with self._lock:
             return {
-                "budget_cap_usd": float(self.budget_cap_usd) if self.budget_cap_usd is not None else None,
+                "budget_cap_usd": (
+                    float(self.budget_cap_usd) if self.budget_cap_usd is not None else None
+                ),
                 "accumulated_cost_usd": float(round(self._accumulated_cost, 6)),
                 "unknown_usage_results": self._unknown_usage_results,
                 "downgraded_problems": self._downgraded_count,
@@ -178,39 +180,39 @@ class DifficultyBudgetMonitor:
     they carry no per-difficulty budget and stay governed by the global cap.
     """
 
-    def __init__(self, allocation: Dict[str, float]):
+    def __init__(self, allocation: dict[str, float]):
         self.monitors = {difficulty: RunCostMonitor(cap) for difficulty, cap in allocation.items()}
         self._trigger_log_lock = threading.Lock()
         self._trigger_logged: set = set()
 
-    def add_result(self, result: Any, difficulty: Optional[str]) -> None:
+    def add_result(self, result: Any, difficulty: str | None) -> None:
         """Settle one finished problem into its difficulty's ledger."""
         monitor = self.monitors.get(difficulty or "")
         if monitor is not None:
             monitor.add_result(result)
 
-    def over_cap_for(self, difficulty: Optional[str]) -> bool:
+    def over_cap_for(self, difficulty: str | None) -> bool:
         """Whether this difficulty has exhausted its own budget."""
         monitor = self.monitors.get(difficulty or "")
         return monitor.over_cap if monitor is not None else False
 
-    def cap_for(self, difficulty: Optional[str]) -> Optional[Decimal]:
+    def cap_for(self, difficulty: str | None) -> Decimal | None:
         """The configured budget for a difficulty, if any."""
         monitor = self.monitors.get(difficulty or "")
         return monitor.budget_cap_usd if monitor is not None else None
 
-    def mark_trigger_logged(self, difficulty: Optional[str]) -> bool:
+    def mark_trigger_logged(self, difficulty: str | None) -> bool:
         """True once per difficulty, so the budget trigger logs exactly once."""
         with self._trigger_log_lock:
             first = difficulty not in self._trigger_logged
             self._trigger_logged.add(difficulty)
         return first
 
-    def record_downgrade(self, difficulty: Optional[str]) -> bool:
+    def record_downgrade(self, difficulty: str | None) -> bool:
         """Count one downgraded problem of this difficulty; True when first."""
         monitor = self.monitors.get(difficulty or "")
         return monitor.record_downgrade() if monitor is not None else False
 
-    def snapshot(self) -> Dict[str, Dict[str, Any]]:
+    def snapshot(self) -> dict[str, dict[str, Any]]:
         """Per-difficulty budget usage for the run summary."""
         return {difficulty: monitor.snapshot() for difficulty, monitor in self.monitors.items()}

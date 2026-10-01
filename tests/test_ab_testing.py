@@ -36,14 +36,22 @@ class FixedClient:
 
 def _dataset(tmp_path):
     path = tmp_path / "problems.json"
-    path.write_text(json.dumps([
-        {
-            "problem_id": f"p{i}", "title": f"P{i}", "description": "Return x plus one.",
-            "difficulty": "easy" if i < 3 else "hard", "tags": ["array"],
-            "test_cases": [{"input": {"x": 1}, "expected_output": 2}],
-        }
-        for i in range(6)
-    ]), encoding="utf-8")
+    path.write_text(
+        json.dumps(
+            [
+                {
+                    "problem_id": f"p{i}",
+                    "title": f"P{i}",
+                    "description": "Return x plus one.",
+                    "difficulty": "easy" if i < 3 else "hard",
+                    "tags": ["array"],
+                    "test_cases": [{"input": {"x": 1}, "expected_output": 2}],
+                }
+                for i in range(6)
+            ]
+        ),
+        encoding="utf-8",
+    )
     return path
 
 
@@ -66,7 +74,14 @@ def _config(tmp_path, dataset):
 
 def test_stratified_assignment_is_reproducible_and_balanced():
     problems = [
-        Problem(problem_id=f"p{i}", title=f"P{i}", description="A sufficiently long problem description.", difficulty="easy", tags=["array"], test_cases=[{"input": {"x": 1}, "expected_output": 1}])
+        Problem(
+            problem_id=f"p{i}",
+            title=f"P{i}",
+            description="A sufficiently long problem description.",
+            difficulty="easy",
+            tags=["array"],
+            test_cases=[{"input": {"x": 1}, "expected_output": 1}],
+        )
         for i in range(6)
     ]
     variants = [PromptVariant(id="a"), PromptVariant(id="b")]
@@ -142,12 +157,17 @@ def test_ab_command_executes_with_config_and_output_override(monkeypatch, tmp_pa
     from src.main import run_ab_test_command
 
     config_path = tmp_path / "ab.json"
-    config_path.write_text(json.dumps({
-        "dataset_path": str(_dataset(tmp_path)),
-        "model": {"provider": "openai", "api_key": "x", "model": "fixed"},
-        "strategy": {"name": "vanilla"},
-        "prompt_variants": [{"id": "a"}, {"id": "b"}],
-    }), encoding="utf-8")
+    config_path.write_text(
+        json.dumps(
+            {
+                "dataset_path": str(_dataset(tmp_path)),
+                "model": {"provider": "openai", "api_key": "x", "model": "fixed"},
+                "strategy": {"name": "vanilla"},
+                "prompt_variants": [{"id": "a"}, {"id": "b"}],
+            }
+        ),
+        encoding="utf-8",
+    )
 
     class DummyRunner:
         def __init__(self, config):
@@ -157,6 +177,10 @@ def test_ab_command_executes_with_config_and_output_override(monkeypatch, tmp_pa
             return tmp_path / "ab-out"
 
     monkeypatch.setattr(ab_module, "ABTestRunner", DummyRunner)
-    result = run_ab_test_command(Namespace(config=str(config_path), output_dir=str(tmp_path / "override"), log_format="console"))
+    result = run_ab_test_command(
+        Namespace(
+            config=str(config_path), output_dir=str(tmp_path / "override"), log_format="console"
+        )
+    )
     assert result == 0
     assert "A/B test completed" in capsys.readouterr().out

@@ -69,9 +69,7 @@ class ReportGenerator:
         # Individual learning curves
         for model_id in model_ids:
             try:
-                plot_path = self.analyzer.plot_learning_curve(
-                    model_id, suite_name=suite_name
-                )
+                plot_path = self.analyzer.plot_learning_curve(model_id, suite_name=suite_name)
                 plots.append((model_id, plot_path))
             except ValueError as e:
                 logger.warning("failed_to_plot_model", model=model_id, error=str(e))
@@ -174,12 +172,8 @@ class ReportGenerator:
                 lines.append(f"- **Max Accuracy:** {stats['max_accuracy']:.2%}")
 
                 if "growth_rate" in stats:
-                    lines.append(
-                        f"- **Absolute Growth:** {stats['growth_rate']:+.2%}"
-                    )
-                    lines.append(
-                        f"- **Relative Growth:** {stats['relative_growth']:+.2%}"
-                    )
+                    lines.append(f"- **Absolute Growth:** {stats['growth_rate']:+.2%}")
+                    lines.append(f"- **Relative Growth:** {stats['relative_growth']:+.2%}")
 
                 lines.append("")
 
@@ -205,12 +199,15 @@ class ReportGenerator:
 
         if model_stats:
             best_model = max(model_stats.items(), key=lambda x: x[1]["mean_accuracy"])
-            lines.append(f"**Best Performing Model:** {best_model[0]} "
-                        f"({best_model[1]['mean_accuracy']:.2%} mean accuracy)")
+            lines.append(
+                f"**Best Performing Model:** {best_model[0]} "
+                f"({best_model[1]['mean_accuracy']:.2%} mean accuracy)"
+            )
 
             if "growth_rate" in best_model[1]:
-                lines.append(f"**Highest Growth:** {best_model[0]} "
-                            f"({best_model[1]['growth_rate']:+.2%})")
+                lines.append(
+                    f"**Highest Growth:** {best_model[0]} " f"({best_model[1]['growth_rate']:+.2%})"
+                )
 
         lines.append("")
         lines.append("---")
