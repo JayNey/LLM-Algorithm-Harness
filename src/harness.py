@@ -174,6 +174,18 @@ class AlgorithmHarness:
                 raise ValueError("Budget allocation only supports the downgrade action")
             allocation_monitor = DifficultyBudgetMonitor(self.config.budget_allocation)
             self.budget_allocation_monitor = allocation_monitor
+
+        # Create real-time cost panel
+        cost_panel = None
+        if monitor is not None:
+            from src.cost_panel.monitor import RealtimeCostPanel
+
+            cost_panel = RealtimeCostPanel(
+                cost_monitor=monitor,
+                budget_monitor=allocation_monitor,
+                total_problems=len(problems),
+            )
+
         service = TaskService(Path(self.config.output_dir) / "tasks")
         config_fingerprint = service.config_fingerprint(self.config)
         dataset_fingerprint = service.dataset_fingerprint(self.config.dataset_path)
@@ -311,7 +323,7 @@ class AlgorithmHarness:
                             1 for r in self.results.get(unit.strategy, []) if r.status == "success"
                         )
                         success_rate = (
-                            f"{success_count}/{completed} ({success_count/completed*100:.1f}%)"
+                            f"{success_count}/{completed} ({success_count / completed * 100:.1f}%)"
                         )
                         progress.update(progress_task_id, success_rate=success_rate)
 
@@ -344,6 +356,12 @@ class AlgorithmHarness:
                     allocation_monitor.record_downgrade(difficulty)
             self._process_cost_alerts(monitor)
 
+            # Update cost panel with latest result
+            if cost_panel is not None:
+                with progress_lock:
+                    completed_count = len([u for u in _record.units if u.result is not None])
+                    cost_panel.update(completed_count, result)
+
         # Calculate total units for progress tracking
         if resume:
             total_units = len([u for u in record.units if u.status == "queued"])
@@ -353,26 +371,47 @@ class AlgorithmHarness:
             else:
                 total_units = len(self.config.strategies) * len(problems)
 
-        # Start progress bar
-        with progress:
-            progress_task_id = progress.add_task(
-                "Evaluating problems...", total=total_units, success_rate="0/0 (0.0%)"
-            )
+        # Start progress bar and cost panel
+        if cost_panel is not None:
+            with cost_panel.live(), progress:
+                progress_task_id = progress.add_task(
+                    "Evaluating problems...", total=total_units, success_rate="0/0 (0.0%)"
+                )
 
-            self.task_record = service.run(
-                record.run_id,
-                worker,
-                max_workers=1 if budget_action == "auto_stop" else self.config.max_workers,
-                config_fingerprint=config_fingerprint,
-                dataset_fingerprint=dataset_fingerprint,
-                resume=resume,
-                pause_when=(
-                    (lambda _: monitor.over_cap)
-                    if budget_action == "auto_stop" and monitor is not None
-                    else None
-                ),
-                on_unit_finished=settle_unit if monitor is not None else None,
-            )
+                self.task_record = service.run(
+                    record.run_id,
+                    worker,
+                    max_workers=1 if budget_action == "auto_stop" else self.config.max_workers,
+                    config_fingerprint=config_fingerprint,
+                    dataset_fingerprint=dataset_fingerprint,
+                    resume=resume,
+                    pause_when=(
+                        (lambda _: monitor.over_cap)
+                        if budget_action == "auto_stop" and monitor is not None
+                        else None
+                    ),
+                    on_unit_finished=settle_unit if monitor is not None else None,
+                )
+        else:
+            with progress:
+                progress_task_id = progress.add_task(
+                    "Evaluating problems...", total=total_units, success_rate="0/0 (0.0%)"
+                )
+
+                self.task_record = service.run(
+                    record.run_id,
+                    worker,
+                    max_workers=1 if budget_action == "auto_stop" else self.config.max_workers,
+                    config_fingerprint=config_fingerprint,
+                    dataset_fingerprint=dataset_fingerprint,
+                    resume=resume,
+                    pause_when=(
+                        (lambda _: monitor.over_cap)
+                        if budget_action == "auto_stop" and monitor is not None
+                        else None
+                    ),
+                    on_unit_finished=settle_unit if monitor is not None else None,
+                )
 
         if selector is not None:
             results = self._collect_cost_aware_results(problems, selector)
@@ -589,7 +628,7 @@ class AlgorithmHarness:
                 "executing_problem",
                 strategy=strategy_config.name,
                 problem=problem.problem_id,
-                progress=f"{i+1}/{len(problems)}",
+                progress=f"{i + 1}/{len(problems)}",
             )
             if self.budget_tracker is not None:
                 self.budget_tracker.begin_problem(problem.problem_id)
