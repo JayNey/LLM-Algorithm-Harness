@@ -4,7 +4,6 @@ from __future__ import annotations
 
 import json
 from pathlib import Path
-from typing import Any
 
 from src.incremental.history import IncrementalHistory, RunRecord
 from src.models import ExecutionResult
@@ -26,32 +25,27 @@ def merge_results(
     """
     merged = {}
 
-    for strategy_name, new_strategy_results in new_results.items():
-        # Get historical results for this strategy
+    # Get all strategies from both new and historical results
+    all_strategies = set(new_results.keys()) | set(historical_results.keys())
+
+    for strategy_name in all_strategies:
+        new_strategy_results = new_results.get(strategy_name, [])
         historical_strategy_results = historical_results.get(strategy_name, [])
 
         # Create a map of problem_id -> result for quick lookup
         new_by_id = {r.problem_id: r for r in new_strategy_results}
         historical_by_id = {r.problem_id: r for r in historical_strategy_results}
 
-        # Merge: prefer new results, fallback to historical
-        all_problem_ids = set(new_by_id.keys()) | set(historical_by_id.keys())
+        # Merge: new results first (preserving order), then historical results
         merged_strategy_results = []
 
-        for problem_id in sorted(all_problem_ids):
-            if problem_id in new_by_id:
-                # Use new result
-                result = new_by_id[problem_id]
-                # Mark as evaluated
-                if hasattr(result, "metadata") and isinstance(result.metadata, dict):
-                    result.metadata["source"] = "evaluated"
-                merged_strategy_results.append(result)
-            else:
-                # Use historical result
-                result = historical_by_id[problem_id]
-                # Mark as reused
-                if hasattr(result, "metadata") and isinstance(result.metadata, dict):
-                    result.metadata["source"] = "reused"
+        # Add all new results first, preserving their order
+        for result in new_strategy_results:
+            merged_strategy_results.append(result)
+
+        # Add historical results that aren't in new results
+        for result in historical_strategy_results:
+            if result.problem_id not in new_by_id:
                 merged_strategy_results.append(result)
 
         merged[strategy_name] = merged_strategy_results
@@ -112,7 +106,7 @@ def load_historical_results_from_summary(
 
         return results_by_strategy
 
-    except (json.JSONDecodeError, KeyError, IOError) as e:
+    except (OSError, json.JSONDecodeError, KeyError) as e:
         # Log error but don't fail
         print(f"Warning: Failed to load historical results from {result_path}: {e}")
         return {}
@@ -125,6 +119,8 @@ def update_incremental_history(
     result_path: str,
     strategy: str,
     model: str,
+    problem_count: int,
+    success_count: int,
 ) -> None:
     """
     Update incremental history with a new run record.
@@ -136,6 +132,8 @@ def update_incremental_history(
         result_path: Path to the result directory
         strategy: Strategy name
         model: Model name
+        problem_count: Total number of problems evaluated
+        success_count: Number of successful problems
     """
     from datetime import datetime, timezone
 
@@ -147,6 +145,8 @@ def update_incremental_history(
         model=model,
         dataset_fingerprint=dataset_fingerprint,
         result_path=result_path,
+        problem_count=problem_count,
+        success_count=success_count,
     )
 
     # Add to history

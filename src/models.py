@@ -340,6 +340,10 @@ class ExecutionResult(BaseModel):
         True,
         description="False for a task-service placeholder when no execution result was recorded",
     )
+    source: Literal["fresh", "reused"] = Field(
+        "fresh",
+        description="Whether this result was freshly computed or reused from incremental history",
+    )
     failure_category: (
         Literal[
             "wrong_answer",

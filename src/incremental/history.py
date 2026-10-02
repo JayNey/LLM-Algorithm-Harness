@@ -5,9 +5,7 @@ Historical run record management for incremental evaluation.
 import fcntl
 import json
 from dataclasses import asdict, dataclass
-from datetime import datetime
 from pathlib import Path
-from typing import Dict, Optional
 
 from src.utils.logging import get_logger
 
@@ -22,7 +20,7 @@ class RunRecord:
     timestamp: str
     strategy: str
     model: str
-    dataset_fingerprint: Dict[str, str]
+    dataset_fingerprint: dict[str, str]
     result_path: str
     problem_count: int
     success_count: int
@@ -53,7 +51,7 @@ class IncrementalHistory:
             return cls(runs=[])
 
         try:
-            with open(path, "r", encoding="utf-8") as f:
+            with open(path, encoding="utf-8") as f:
                 data = json.load(f)
 
             # Reconstruct RunRecord instances from dict
@@ -95,7 +93,7 @@ class IncrementalHistory:
                         fcntl.flock(f.fileno(), fcntl.LOCK_UN)
                 logger.debug(f"Successfully saved history to {path}")
                 return
-            except (IOError, OSError) as e:
+            except OSError as e:
                 if attempt < max_retries - 1:
                     logger.warning(
                         f"Failed to acquire lock on {path} (attempt {attempt + 1}/{max_retries}): {e}"

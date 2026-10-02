@@ -4,7 +4,6 @@ Problem and dataset fingerprint calculation for incremental evaluation.
 
 import hashlib
 import json
-from typing import Dict
 
 from src.models import Problem
 
@@ -49,7 +48,7 @@ def compute_problem_fingerprint(problem: Problem) -> str:
     return hashlib.sha256(stable_json.encode("utf-8")).hexdigest()
 
 
-def compute_dataset_fingerprint(problems: list[Problem]) -> Dict[str, str]:
+def compute_dataset_fingerprint(problems: list[Problem]) -> dict[str, str]:
     """
     Generate fingerprint mapping for an entire dataset.
 
