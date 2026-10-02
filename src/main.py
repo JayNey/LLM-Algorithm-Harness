@@ -300,7 +300,13 @@ def create_run_dir(output_dir: str, run_id: str | None = None) -> Path:
     return run_path
 
 
-def save_results(reports: dict, output_dir: str, harness: AlgorithmHarness, config: HarnessConfig):
+def save_results(
+    reports: dict,
+    output_dir: str,
+    harness: AlgorithmHarness,
+    config: HarnessConfig,
+    incremental_context: dict | None = None,
+):
     """
     Save results to a timestamped run directory.
 
@@ -317,6 +323,7 @@ def save_results(reports: dict, output_dir: str, harness: AlgorithmHarness, conf
         output_dir: Base output directory
         harness: Harness instance with results
         config: Harness config used for this run (api_key is redacted)
+        incremental_context: Optional incremental evaluation context
     """
     task_run_id = getattr(getattr(harness, "task_record", None), "run_id", None)
     if not isinstance(task_run_id, str):
@@ -341,6 +348,22 @@ def save_results(reports: dict, output_dir: str, harness: AlgorithmHarness, conf
         },
         "config": config_dict,
     }
+
+    # Add incremental mode information
+    if incremental_context and incremental_context.get("enabled"):
+        metadata["incremental_mode"] = {
+            "enabled": True,
+            "unchanged_count": len(incremental_context.get("unchanged", [])),
+            "modified_count": len(incremental_context.get("modified", [])),
+            "added_count": len(incremental_context.get("added", [])),
+            "removed_count": len(incremental_context.get("removed", [])),
+            "reused_results": len(incremental_context.get("unchanged", [])),
+            "newly_evaluated": len(incremental_context.get("added", []))
+            + len(incremental_context.get("modified", [])),
+        }
+    else:
+        metadata["incremental_mode"] = {"enabled": False}
+
     task_record = getattr(harness, "task_record", None)
     if isinstance(task_run_id, str) and task_record is not None:
         metadata["task"] = {
@@ -2089,7 +2112,7 @@ def main():
 
             # Print and save results
             print_report(reports)
-            save_results(reports, config.output_dir, harness, config)
+            save_results(reports, config.output_dir, harness, config, incremental_context)
 
             # Update incremental history after successful save
             if incremental_context and incremental_context.get("enabled"):

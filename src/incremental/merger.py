@@ -101,6 +101,9 @@ def load_historical_results_from_summary(
             filtered_results = []
             for result_dict in results_data:
                 if result_dict.get("problem_id") in problem_ids:
+                    # Ensure metadata field exists
+                    if "metadata" not in result_dict:
+                        result_dict["metadata"] = {}
                     # Convert dict to ExecutionResult
                     result = ExecutionResult(**result_dict)
                     filtered_results.append(result)

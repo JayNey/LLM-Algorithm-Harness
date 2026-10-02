@@ -29,9 +29,9 @@
 
 ## 5. 结果保存与追溯
 
-- [ ] 5.1 在评估完成后调用 `IncrementalHistory.add_run()` 保存当前运行记录到历史索引，并验证 `history.json` 文件包含新记录
-- [ ] 5.2 在生成的结果 JSON 中添加 `incremental_mode` 字段，标识是否使用增量模式，并验证结果文件包含该字段
-- [ ] 5.3 为每个 `ExecutionResult` 添加可选的 `source` 字段（`"evaluated"` 或 `"reused"`），记录结果来源，并验证合并后的结果包含来源信息
+- [x] 5.1 在评估完成后调用 `IncrementalHistory.add_run()` 保存当前运行记录到历史索引，并验证 `history.json` 文件包含新记录
+- [x] 5.2 在生成的结果 JSON 中添加 `incremental_mode` 字段，标识是否使用增量模式，并验证结果文件包含该字段
+- [x] 5.3 为每个 `ExecutionResult` 添加可选的 `source` 字段（`"evaluated"` 或 `"reused"`），记录结果来源，并验证合并后的结果包含来源信息
 
 ## 6. 错误处理与回退
 

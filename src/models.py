@@ -404,6 +404,9 @@ class ExecutionResult(BaseModel):
     quality_metrics: Optional["CodeQualityMetrics"] = Field(
         None, description="Code quality evaluation metrics"
     )
+    metadata: dict[str, Any] = Field(
+        default_factory=dict, description="Additional metadata (e.g., incremental source)"
+    )
 
     @property
     def success(self) -> bool:
@@ -804,6 +807,10 @@ class HarnessConfig(BaseModel):
 
     cost_alerts: CostAlertConfig | None = Field(
         None, description="Thresholds and notification channels for run-level cost alerts"
+    )
+    enable_incremental: bool = Field(
+        False,
+        description="Enable incremental evaluation to reuse results from unchanged problems",
     )
     enable_quality_analysis: bool = Field(
         False,
