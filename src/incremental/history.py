@@ -2,10 +2,16 @@
 Historical run record management for incremental evaluation.
 """
 
-import fcntl
 import json
+import sys
 from dataclasses import asdict, dataclass
 from pathlib import Path
+
+# Import fcntl only on Unix-like systems
+if sys.platform != "win32":
+    import fcntl
+else:
+    fcntl = None  # type: ignore
 
 from src.utils.logging import get_logger
 
@@ -80,17 +86,19 @@ class IncrementalHistory:
 
         data = {"runs": [asdict(record) for record in self.runs]}
 
-        # Retry logic for file locking
+        # Retry logic for file locking (Unix only)
         for attempt in range(max_retries):
             try:
                 with open(path, "w", encoding="utf-8") as f:
-                    # Acquire exclusive lock
-                    fcntl.flock(f.fileno(), fcntl.LOCK_EX)
+                    # Acquire exclusive lock (Unix only)
+                    if fcntl is not None:
+                        fcntl.flock(f.fileno(), fcntl.LOCK_EX)
                     try:
                         json.dump(data, f, indent=2)
                         f.write("\n")  # Trailing newline
                     finally:
-                        fcntl.flock(f.fileno(), fcntl.LOCK_UN)
+                        if fcntl is not None:
+                            fcntl.flock(f.fileno(), fcntl.LOCK_UN)
                 logger.debug(f"Successfully saved history to {path}")
                 return
             except OSError as e:
