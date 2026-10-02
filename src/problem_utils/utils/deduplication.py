@@ -36,7 +36,7 @@ def compute_similarity(problems: list[dict[str, Any]]) -> np.ndarray:
     # 计算余弦相似度
     similarity_matrix = cosine_similarity(tfidf_matrix)
 
-    return similarity_matrix
+    return similarity_matrix  # type: ignore[no-any-return]
 
 
 def find_similar_pairs(

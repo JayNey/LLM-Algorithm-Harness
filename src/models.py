@@ -86,7 +86,8 @@ class Problem(BaseModel):
     )
     entry_point: str = Field("solution(**test_input)", description="Execution entry signature")
     judge_config: JudgeConfig = Field(
-        default_factory=JudgeConfig, description="Problem-level judge configuration"
+        default_factory=lambda: JudgeConfig(),  # type: ignore[call-arg]
+        description="Problem-level judge configuration"
     )
     unsupported_reason: str | None = Field(
         None, description="Explicit reason when this problem type is unsupported"
@@ -574,7 +575,10 @@ class LLMConfig(BaseModel):
         le=600.0,
         description="Maximum wall-clock time spent retrying one request",
     )
-    cache: CacheConfig = Field(default_factory=CacheConfig, description="Cache configuration")
+    cache: CacheConfig = Field(
+        default_factory=lambda: CacheConfig(),  # type: ignore[call-arg]
+        description="Cache configuration"
+    )
 
     @field_serializer("api_key", when_used="always")
     def serialize_api_key(self, value: SecretStr) -> str:
@@ -584,7 +588,8 @@ class LLMConfig(BaseModel):
 
     def redacted_dict(self) -> dict[str, Any]:
         """Return a serialization-safe view of the model configuration."""
-        return redact_sensitive_data(self.model_dump(mode="json"))
+        result = redact_sensitive_data(self.model_dump(mode="json"))
+        return result if isinstance(result, dict) else {}
 
 
 class SandboxConfig(BaseModel):
@@ -677,7 +682,8 @@ class ExperimentConfig(BaseModel):
         description="Upper bound of concurrently executed combinations in parallel mode",
     )
     sandbox_config: SandboxConfig = Field(
-        default_factory=SandboxConfig, description="Sandbox configuration"
+        default_factory=lambda: SandboxConfig(),  # type: ignore[call-arg]
+        description="Sandbox configuration"
     )
     problem_filters: dict[str, Any] | None = Field(
         None, description="Optional filters applied to the dataset before execution"
@@ -685,7 +691,8 @@ class ExperimentConfig(BaseModel):
 
     def redacted_dict(self) -> dict[str, Any]:
         """Return a serialization-safe view of the experiment configuration."""
-        return redact_sensitive_data(self.model_dump(mode="json"))
+        result = redact_sensitive_data(self.model_dump(mode="json"))
+        return result if isinstance(result, dict) else {}
 
 
 class CostAlertConfig(BaseModel):
@@ -756,7 +763,8 @@ class HarnessConfig(BaseModel):
 
     llm_config: LLMConfig = Field(..., description="LLM configuration")
     sandbox_config: SandboxConfig = Field(
-        default_factory=SandboxConfig, description="Sandbox configuration"
+        default_factory=lambda: SandboxConfig(),  # type: ignore[call-arg]
+        description="Sandbox configuration"
     )
     dataset_path: str = Field(..., description="Path to problem dataset directory or JSON file")
     strategies: list["StrategyConfig"] = Field(
@@ -794,7 +802,7 @@ class HarnessConfig(BaseModel):
 
     @field_validator("budget_allocation")
     @classmethod
-    def validate_budget_allocation(cls, value: dict[str, float] | None):
+    def validate_budget_allocation(cls, value: dict[str, float] | None) -> dict[str, float] | None:
         if value is None:
             return value
         if not value:
@@ -831,7 +839,8 @@ class HarnessConfig(BaseModel):
 
     def redacted_dict(self) -> dict[str, Any]:
         """Return a recursively redacted configuration snapshot."""
-        return redact_sensitive_data(self.model_dump(mode="json"))
+        result = redact_sensitive_data(self.model_dump(mode="json"))
+        return result if isinstance(result, dict) else {}
 
 
 # ============================================================================

@@ -87,13 +87,17 @@ def classify_message(message: str | None) -> str:
 def _terminal_category(result: dict[str, Any]) -> str | None:
     """Map sandbox terminal statuses and per-test statuses to categories."""
     final = result.get("final_result") or {}
-    category = _SANDBOX_CATEGORY.get(final.get("status"))
-    if category:
-        return category
-    for test in final.get("test_results") or []:
-        category = _SANDBOX_CATEGORY.get(test.get("status"))
+    status = final.get("status")
+    if isinstance(status, str):
+        category = _SANDBOX_CATEGORY.get(status)
         if category:
             return category
+    for test in final.get("test_results") or []:
+        test_status = test.get("status")
+        if isinstance(test_status, str):
+            category = _SANDBOX_CATEGORY.get(test_status)
+            if category:
+                return category
         message_category = classify_message(test.get("error_message"))
         if message_category != "unknown":
             return message_category
@@ -138,14 +142,19 @@ def _first_error_message(result: dict[str, Any]) -> str:
     final = result.get("final_result") or {}
     for test in final.get("test_results") or []:
         if not test.get("passed") and test.get("error_message"):
-            return test["error_message"]
-    if final.get("error_message"):
-        return final["error_message"]
-    if result.get("error_message"):
-        return result["error_message"]
+            msg = test.get("error_message")
+            if isinstance(msg, str):
+                return msg
+    final_msg = final.get("error_message")
+    if final_msg and isinstance(final_msg, str):
+        return final_msg
+    result_msg = result.get("error_message")
+    if result_msg and isinstance(result_msg, str):
+        return result_msg
     for iteration in reversed(result.get("iterations") or []):
-        if iteration.get("llm_error"):
-            return iteration["llm_error"]
+        llm_err = iteration.get("llm_error")
+        if llm_err and isinstance(llm_err, str):
+            return llm_err
     return ""
 
 
@@ -157,7 +166,8 @@ def _distribution(
     """Category counts per group (difficulty or tag) with shares."""
     groups: dict[str, dict[str, Any]] = {}
     for result in failures:
-        info = problem_info.get(result.get("problem_id"), {})
+        problem_id = result.get("problem_id")
+        info = problem_info.get(problem_id, {}) if isinstance(problem_id, str) else {}
         values = info.get(attribute) or result.get(attribute) or []
         if isinstance(values, str):
             values = [values]
@@ -215,7 +225,10 @@ def analyze_results(
         "by_difficulty": _distribution(failures, problem_info, "difficulty"),
         "by_tags": _distribution(failures, problem_info, "tags"),
         "suggestions": {
-            category: suggestions_for(category, [entry["pattern"] for entry in top_patterns])
+            category: suggestions_for(
+                category,
+                [str(entry["pattern"]) for entry in top_patterns]
+            )
             for category in CATEGORIES
             if categories.get(category, 0) > 0
         },

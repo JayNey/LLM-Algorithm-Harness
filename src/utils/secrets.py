@@ -56,7 +56,7 @@ def _redacted_assignment(match: re.Match) -> str:
     quoted = len(value) >= 2 and value[0] == value[-1] and value[0] in {'"', "'"}
     unquoted = value[1:-1] if quoted else value
     if unquoted == REDACTED:
-        return match.group(0)
+        return str(match.group(0))
     if quoted:
         replacement = f"{value[0]}{REDACTED}{value[-1]}"
     else:
@@ -67,7 +67,7 @@ def _redacted_assignment(match: re.Match) -> str:
 def _redact_key_value(match: re.Match) -> str:
     """Redact only assignments whose key is credential-bearing."""
     if not is_sensitive_key(match.group("key")):
-        return match.group(0)
+        return str(match.group(0))
     return _redacted_assignment(match)
 
 
