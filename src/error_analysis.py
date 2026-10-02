@@ -225,10 +225,7 @@ def analyze_results(
         "by_difficulty": _distribution(failures, problem_info, "difficulty"),
         "by_tags": _distribution(failures, problem_info, "tags"),
         "suggestions": {
-            category: suggestions_for(
-                category,
-                [str(entry["pattern"]) for entry in top_patterns]
-            )
+            category: suggestions_for(category, [str(entry["pattern"]) for entry in top_patterns])
             for category in CATEGORIES
             if categories.get(category, 0) > 0
         },

@@ -87,7 +87,7 @@ class Problem(BaseModel):
     entry_point: str = Field("solution(**test_input)", description="Execution entry signature")
     judge_config: JudgeConfig = Field(
         default_factory=lambda: JudgeConfig(),  # type: ignore[call-arg]
-        description="Problem-level judge configuration"
+        description="Problem-level judge configuration",
     )
     unsupported_reason: str | None = Field(
         None, description="Explicit reason when this problem type is unsupported"
@@ -577,7 +577,7 @@ class LLMConfig(BaseModel):
     )
     cache: CacheConfig = Field(
         default_factory=lambda: CacheConfig(),  # type: ignore[call-arg]
-        description="Cache configuration"
+        description="Cache configuration",
     )
 
     @field_serializer("api_key", when_used="always")
@@ -683,7 +683,7 @@ class ExperimentConfig(BaseModel):
     )
     sandbox_config: SandboxConfig = Field(
         default_factory=lambda: SandboxConfig(),  # type: ignore[call-arg]
-        description="Sandbox configuration"
+        description="Sandbox configuration",
     )
     problem_filters: dict[str, Any] | None = Field(
         None, description="Optional filters applied to the dataset before execution"
@@ -764,7 +764,7 @@ class HarnessConfig(BaseModel):
     llm_config: LLMConfig = Field(..., description="LLM configuration")
     sandbox_config: SandboxConfig = Field(
         default_factory=lambda: SandboxConfig(),  # type: ignore[call-arg]
-        description="Sandbox configuration"
+        description="Sandbox configuration",
     )
     dataset_path: str = Field(..., description="Path to problem dataset directory or JSON file")
     strategies: list["StrategyConfig"] = Field(
