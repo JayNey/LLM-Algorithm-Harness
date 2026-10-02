@@ -109,9 +109,7 @@ def test_compute_dataset_fingerprint():
             input_output_mode="function",
             entry_point="solution",
             judge_config=JudgeConfig(),
-            public_test_cases=[
-                TestCase(input='{"n": 1}', expected_output="1", source="public")
-            ],
+            public_test_cases=[TestCase(input='{"n": 1}', expected_output="1", source="public")],
             feedback_test_cases=[],
             hidden_test_cases=[],
         ),
@@ -130,9 +128,7 @@ def test_compute_dataset_fingerprint():
             input_output_mode="function",
             entry_point="solution",
             judge_config=JudgeConfig(),
-            public_test_cases=[
-                TestCase(input='{"n": 2}', expected_output="2", source="public")
-            ],
+            public_test_cases=[TestCase(input='{"n": 2}', expected_output="2", source="public")],
             feedback_test_cases=[],
             hidden_test_cases=[],
         ),
@@ -152,4 +148,3 @@ def test_compute_dataset_fingerprint_empty():
     """Test dataset fingerprint with empty list."""
     fingerprints = compute_dataset_fingerprint([])
     assert fingerprints == {}
-

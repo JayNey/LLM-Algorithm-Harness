@@ -1976,7 +1976,9 @@ def main():
                     loader = ProblemLoader()
                     all_problems = loader.load(config.dataset_path)
                     if config.problem_filters:
-                        all_problems = loader.filter_problems(all_problems, **config.problem_filters)
+                        all_problems = loader.filter_problems(
+                            all_problems, **config.problem_filters
+                        )
 
                     # Compute current dataset fingerprint
                     current_fingerprint = compute_dataset_fingerprint(all_problems)
@@ -2015,7 +2017,9 @@ def main():
                             # Load historical results for unchanged problems
                             result_path = Path(matching_run.result_path)
                             if result_path.exists():
-                                historical_results = load_historical_results(result_path, unchanged_ids)
+                                historical_results = load_historical_results(
+                                    result_path, unchanged_ids
+                                )
                                 logger.info(
                                     "historical_results_loaded",
                                     count=len(historical_results),
@@ -2077,8 +2081,9 @@ def main():
                     # Rebuild problems_by_id to include historical problems
                     if hasattr(harness, "problems_by_id"):
                         historical_problem_ids = (
-                            incremental_context["historical_results"]
-                            .get(list(incremental_context["historical_results"].keys())[0], [])
+                            incremental_context["historical_results"].get(
+                                list(incremental_context["historical_results"].keys())[0], []
+                            )
                             if incremental_context["historical_results"]
                             else []
                         )
@@ -2138,7 +2143,9 @@ def main():
 
                     if run_name:
                         result_path = str(Path(config.output_dir) / run_name / "summary.json")
-                        strategy_name = config.strategies[0].name if config.strategies else "unknown"
+                        strategy_name = (
+                            config.strategies[0].name if config.strategies else "unknown"
+                        )
                         model_name = config.llm_config.model
 
                         update_incremental_history(
@@ -2149,7 +2156,10 @@ def main():
                             strategy_name,
                             model_name,
                         )
-                        logger.info("incremental_history_updated", path=str(incremental_context["history_path"]))
+                        logger.info(
+                            "incremental_history_updated",
+                            path=str(incremental_context["history_path"]),
+                        )
                 except Exception as e:
                     logger.warning("incremental_history_update_failed", error=str(e))
                     # Non-fatal, continue
