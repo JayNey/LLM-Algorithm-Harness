@@ -1,7 +1,6 @@
 """Integration tests for merger functions that interact with file system."""
 
 import json
-from pathlib import Path
 
 import pytest
 

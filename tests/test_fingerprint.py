@@ -1,8 +1,12 @@
 """Tests for problem and dataset fingerprint calculation."""
 
 import pytest
-from src.incremental.fingerprint import compute_problem_fingerprint, compute_dataset_fingerprint
-from src.models import Problem, TestCase, JudgeConfig
+
+from src.incremental.fingerprint import (
+    compute_dataset_fingerprint,
+    compute_problem_fingerprint,
+)
+from src.models import JudgeConfig, Problem, TestCase
 
 
 @pytest.fixture

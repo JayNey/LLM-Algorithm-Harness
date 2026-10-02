@@ -1958,15 +1958,16 @@ def main():
             incremental_context = None
             historical_results = {}
             if config.enable_incremental and not args.resume:
-                from src.incremental.fingerprint import compute_dataset_fingerprint
-                from src.incremental.history import IncrementalHistory
+                from pathlib import Path
+
                 from src.incremental.detector import (
                     detect_changes,
                     find_matching_run,
                     load_historical_results,
                     should_use_incremental,
                 )
-                from src.models import Problem
+                from src.incremental.fingerprint import compute_dataset_fingerprint
+                from src.incremental.history import IncrementalHistory
 
                 try:
                     # Load problems to compute fingerprints
@@ -2005,7 +2006,7 @@ def main():
                                 set(current_fingerprint.keys()) - added - modified - removed
                             )
 
-                            print(f"\n🔄 Incremental evaluation mode enabled")
+                            print("\n🔄 Incremental evaluation mode enabled")
                             print(f"  Unchanged: {len(unchanged_ids)} problems (reusing results)")
                             print(f"  New: {len(added)} problems")
                             print(f"  Modified: {len(modified)} problems")

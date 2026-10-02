@@ -1,9 +1,9 @@
 """Tests for incremental history management."""
 
 import json
-from pathlib import Path
-import pytest
 from datetime import datetime, timezone
+
+import pytest
 
 from src.incremental.history import IncrementalHistory, RunRecord
 

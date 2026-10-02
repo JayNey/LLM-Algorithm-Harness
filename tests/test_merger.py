@@ -1,6 +1,7 @@
 """Tests for result merging logic."""
 
 import pytest
+
 from src.incremental.merger import merge_results
 from src.models import ExecutionResult
 

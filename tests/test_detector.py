@@ -1,18 +1,17 @@
 """Tests for change detection and matching logic."""
 
 import json
-from pathlib import Path
-import pytest
 from datetime import datetime, timezone
+
+import pytest
 
 from src.incremental.detector import (
     detect_changes,
     find_matching_run,
-    should_use_incremental,
     load_historical_results,
+    should_use_incremental,
 )
 from src.incremental.history import IncrementalHistory, RunRecord
-from src.models import ExecutionResult
 
 
 @pytest.fixture
