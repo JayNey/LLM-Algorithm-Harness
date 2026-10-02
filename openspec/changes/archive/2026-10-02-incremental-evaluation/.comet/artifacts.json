@@ -1,0 +1,7 @@
+{
+  "openspec_proposal": "openspec/changes/incremental-evaluation/proposal.md",
+  "openspec_design": "openspec/changes/incremental-evaluation/design.md",
+  "openspec_tasks": "openspec/changes/incremental-evaluation/tasks.md",
+  "openspec_delta_spec": "openspec/changes/incremental-evaluation/specs/benchmark/spec.md",
+  "archive_directory": "openspec/changes/archive/2026-10-02-incremental-evaluation"
+}

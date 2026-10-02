@@ -43,7 +43,7 @@ def _record(value: Any) -> Mapping[str, Any]:
     if isinstance(value, Mapping):
         return value
     if hasattr(value, "model_dump"):
-        return value.model_dump()
+        return value.model_dump()  # type: ignore[no-any-return]
     raise TypeError("results and problem_info entries must be mappings or Pydantic models")
 
 
@@ -59,7 +59,7 @@ def _tags(result: Mapping[str, Any], info: Mapping[str, Any]) -> list[str]:
 def _mode(result: Mapping[str, Any], info: Mapping[str, Any]) -> str:
     recorded = result.get("failure_mode")
     if recorded in FAILURE_MODES:
-        return recorded
+        return str(recorded)
 
     # Old result files do not have failure_mode. Reclassify them without
     # mutating the original record or persisting inferred evidence.

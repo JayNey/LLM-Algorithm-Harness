@@ -165,7 +165,7 @@ class TaskService:
         # when the credential used for a resume has changed.
         llm_config = getattr(config, "llm_config", None)
         api_key = getattr(llm_config, "api_key", None)
-        if hasattr(api_key, "get_secret_value"):
+        if api_key is not None and hasattr(api_key, "get_secret_value"):
             raw_key = api_key.get_secret_value()
             payload = dict(payload)
             payload["llm_api_key_fingerprint"] = hashlib.sha256(raw_key.encode("utf-8")).hexdigest()
@@ -174,7 +174,7 @@ class TaskService:
             secret_hashes = {}
             for field in ("slack_webhook_url", "webhook_url", "smtp_password"):
                 secret = getattr(cost_alerts, field, None)
-                if hasattr(secret, "get_secret_value"):
+                if secret is not None and hasattr(secret, "get_secret_value"):
                     secret = secret.get_secret_value()
                 if isinstance(secret, str):
                     secret_hashes[field] = hashlib.sha256(secret.encode("utf-8")).hexdigest()
@@ -221,6 +221,7 @@ class TaskService:
             config_fingerprint=config_fingerprint,
             dataset_fingerprint=dataset_fingerprint,
             total_units=len(materialized),
+            completed_units=0,
             units=materialized,
         )
         self._append_event(record, "task_created", message="Task queued")
@@ -496,7 +497,9 @@ class TaskService:
     @staticmethod
     def _serialize_result(result: Any) -> dict[str, Any]:
         if isinstance(result, BaseModel):
-            return redact_sensitive_data(result.model_dump(mode="json"))
+            data = redact_sensitive_data(result.model_dump(mode="json"))
+            return data if isinstance(data, dict) else {}
         if isinstance(result, dict):
-            return redact_sensitive_data(result)
+            data = redact_sensitive_data(result)
+            return data if isinstance(data, dict) else {}
         raise TypeError("Task worker must return a dict or Pydantic model")
