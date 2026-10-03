@@ -490,3 +490,74 @@ class ChartGenerator:
                 exc_info=True,
             )
             return None
+
+    @staticmethod
+    def generate_capability_radar(
+        dimension_scores: dict[str, dict[str, float]],
+        model_names: list[str],
+        dimension_names: list[str],
+    ) -> str:
+        """
+        Generate a radar chart showing model capabilities across dimensions.
+
+        Args:
+            dimension_scores: Nested dict {model_name: {dimension: score_0_to_100}}
+            model_names: List of model names to include
+            dimension_names: List of dimension names (e.g., ["Array", "Graph", ...])
+
+        Returns:
+            Base64-encoded PNG image string
+        """
+        import numpy as np
+
+        # Number of dimensions
+        num_dimensions = len(dimension_names)
+        if num_dimensions == 0:
+            return ""
+
+        # Configure Chinese font support
+        plt.rcParams["font.sans-serif"] = ["Arial Unicode MS", "SimHei", "DejaVu Sans"]
+        plt.rcParams["axes.unicode_minus"] = False
+
+        # Create angles for each dimension
+        angles = np.linspace(0, 2 * np.pi, num_dimensions, endpoint=False).tolist()
+        # Close the plot by appending the first angle
+        angles += angles[:1]
+
+        # Create polar plot with 8x8 inches size
+        fig, ax = plt.subplots(figsize=(8, 8), subplot_kw=dict(projection="polar"))
+
+        # Plot each model
+        colors = ["#1f77b4", "#ff7f0e", "#2ca02c", "#d62728"]  # blue, orange, green, red
+        for idx, model_name in enumerate(model_names):
+            if model_name not in dimension_scores:
+                continue
+
+            # Get scores for this model
+            scores = [dimension_scores[model_name].get(dim, 0.0) for dim in dimension_names]
+            # Close the plot by appending the first score
+            scores += scores[:1]
+
+            color = colors[idx % len(colors)]
+            ax.plot(angles, scores, "o-", linewidth=2, label=model_name, color=color)
+            ax.fill(angles, scores, alpha=0.3, color=color)
+
+        # Set dimension labels with rotation
+        ax.set_xticks(angles[:-1])
+        ax.set_xticklabels(dimension_names, size=10)
+
+        # Set radial limits (0-100 scale)
+        ax.set_ylim(0, 100)
+        ax.set_yticks([0, 20, 40, 60, 80, 100])
+        ax.set_yticklabels(["0", "20", "40", "60", "80", "100"], size=9)
+
+        # Enhance grid appearance
+        ax.grid(True, linestyle="--", alpha=0.7)
+
+        # Add legend if multiple models
+        if len(model_names) > 1:
+            ax.legend(loc="upper right", bbox_to_anchor=(1.3, 1.1), fontsize=10)
+
+        plt.tight_layout()
+
+        return ChartGenerator._fig_to_base64(fig)

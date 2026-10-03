@@ -693,7 +693,12 @@ Strategy: self_consistency
 
 ## 报告生成
 
-实验 HTML panel 还会包含模型能力图谱：能力雷达图展示算法设计、代码实现、调试、优化和边界处理五个启发式维度，热力图表格展示按难度和标签的通过数、分母和通过率。评分来自已有实验结果，样本不足时显示未知，并附带启发式说明。
+实验 HTML panel 还会包含模型能力图谱：
+
+- **算法能力雷达图**: 展示模型在不同算法类型上的成功率，包括 Array、Graph、Dynamic Programming、Greedy、Math、String、Other 七个维度。雷达图基于问题标签自动分类，计算每个维度的成功率（0-100 分），支持单模型和多模型对比视图
+- **热力图表格**: 按难度和标签展示通过数、分母和通过率。评分来自已有实验结果，样本不足时显示未知，并附带维度题目数量标注以避免误导性结论
+
+算法能力雷达图自动识别问题标签（如 "array"/"list" → Array, "graph" → Graph, "dp"/"dynamic-programming" → Dynamic Programming），计算每个维度的成功率，生成直观的极坐标雷达图。多模型对比时使用不同颜色叠加显示，便于识别模型在不同算法类型上的相对优劣势。
 
 评估完成后，可以使用报告模块生成多种格式的报告，包括 CSV、Markdown、图表和 HTML。
 
@@ -768,6 +773,44 @@ python3 examples/generate_reports.py
   - 成功率柱状图（颜色编码：绿色 ≥80%，黄色 50-80%，红色 <50%）
   - Token 消耗折线图
   - 迭代次数分布直方图（仅多轮策略）
+  - **算法能力雷达图**: 展示模型在不同算法类型（Array、Graph、Dynamic Programming、Greedy、Math、String、Other）上的成功率，支持单模型和多模型对比
+
+### 算法能力雷达图
+
+算法能力雷达图是一个专门的可视化工具，用于分析和比较模型在不同算法类型上的表现。
+
+**核心功能**:
+- 自动将问题标签映射到算法维度（如 "array"/"list" → Array, "dp"/"dynamic-programming" → Dynamic Programming）
+- 计算每个维度的成功率（0-100 分）
+- 生成极坐标雷达图，直观展示模型的算法能力分布
+- 支持多模型叠加对比，使用不同颜色区分
+
+**使用场景**:
+- **单模型评估**: 识别模型的强项和弱项算法类型
+- **多模型对比**: 比较不同模型在各算法维度的相对优劣
+- **训练指导**: 根据弱项维度针对性收集训练数据
+
+**示例**:
+```python
+from src.reporting.capability_profiler import calculate_dimension_scores, format_dimension_scores_for_radar
+from src.reporting.chart_generator import ChartGenerator
+
+# 计算维度评分
+dimension_scores = calculate_dimension_scores(results, problems)
+
+# 格式化数据
+formatted = format_dimension_scores_for_radar(dimension_scores)
+
+# 生成雷达图
+chart_gen = ChartGenerator()
+radar_chart = chart_gen.generate_capability_radar(
+    dimension_scores,
+    model_names=["gpt-4", "claude-3"],
+    dimension_names=formatted["dimension_names"]
+)
+```
+
+雷达图自动集成在 HTML 报告和实验对比面板中，并附带维度题目数量标注，避免样本过少导致的误导性结论。
 
 ### CSV 格式说明
 

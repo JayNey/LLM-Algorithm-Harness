@@ -22,6 +22,11 @@ from src.failure_report import (
     summarize_failure_modes,
 )
 from src.pareto import build_pareto_analysis, write_pareto_artifacts
+from src.reporting.capability_profiler import (
+    calculate_dimension_scores,
+    format_dimension_scores_for_radar,
+    get_dimension_problem_counts,
+)
 from src.utils.logging import get_logger
 
 logger = get_logger(__name__)
@@ -572,6 +577,14 @@ def generate_comparison_report(exp_dir: Path) -> dict[str, Any]:
     }
     comparison["pareto"] = build_pareto_analysis([comparison])
     write_pareto_artifacts(comparison["pareto"], exp_dir)
+
+    # Add capability dimension scores
+    all_results = [r for results in raw_results.values() for r in results]
+    problems = list(problem_info.values())
+    dimension_scores = calculate_dimension_scores(all_results, problems)
+    dimension_counts = get_dimension_problem_counts(problems)
+    comparison["capability_dimensions"] = format_dimension_scores_for_radar(dimension_scores)
+    comparison["dimension_problem_counts"] = dimension_counts
 
     with open(Path(exp_dir) / "comparison.json", "w", encoding="utf-8") as f:
         json.dump(comparison, f, indent=2, ensure_ascii=False)
