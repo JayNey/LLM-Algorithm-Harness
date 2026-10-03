@@ -20,12 +20,12 @@ from src.utils.secrets import redact_sensitive_data, redact_sensitive_text
 try:
     from openai import OpenAI
 except ImportError:
-    OpenAI = None
+    OpenAI = None  # type: ignore[assignment, misc]
 
 try:
     from anthropic import Anthropic
 except ImportError:
-    Anthropic = None
+    Anthropic = None  # type: ignore[assignment, misc]
 
 logger = get_logger(__name__)
 
@@ -56,7 +56,7 @@ class LLMClient:
 
         logger.info("llm_client_initialized", provider=config.provider, model=config.model)
 
-    def _initialize_client(self):
+    def _initialize_client(self) -> Any:
         """
         Initialize provider-specific client.
 
@@ -91,7 +91,7 @@ class LLMClient:
                 )
 
             try:
-                return OpenAI(**client_kwargs)
+                return OpenAI(**client_kwargs)  # type: ignore[arg-type]
             except Exception as exc:
                 raise self._safe_provider_error(exc, api_key) from None
 
@@ -120,7 +120,7 @@ class LLMClient:
                 )
 
             try:
-                return OpenAI(**client_kwargs)
+                return OpenAI(**client_kwargs)  # type: ignore[arg-type]
             except Exception as exc:
                 raise self._safe_provider_error(exc, api_key) from None
 
@@ -479,8 +479,8 @@ class LLMClient:
             "as_of": pricing_info.as_of,
             "total_cost": (
                 (
-                    token_usage.prompt_tokens * pricing_info.prompt_price / 1000
-                    + token_usage.completion_tokens * pricing_info.completion_price / 1000
+                    token_usage.prompt_tokens * pricing_info.prompt_price / 1000  # type: ignore[operator]
+                    + token_usage.completion_tokens * pricing_info.completion_price / 1000  # type: ignore[operator]
                 )
                 if not usage_missing and pricing_info.pricing_known
                 else None
@@ -560,8 +560,8 @@ class LLMClient:
                 "pricing_known": pricing_info.pricing_known,
                 "total_cost": (
                     (
-                        token_usage.prompt_tokens * pricing_info.prompt_price / 1000
-                        + token_usage.completion_tokens * pricing_info.completion_price / 1000
+                        token_usage.prompt_tokens * pricing_info.prompt_price / 1000  # type: ignore[operator]
+                        + token_usage.completion_tokens * pricing_info.completion_price / 1000  # type: ignore[operator]
                     )
                     if not usage_missing and pricing_info.pricing_known
                     else None
@@ -588,7 +588,7 @@ class LLMClient:
             },
             "timeout": snapshot.get("timeout"),
         }
-        return redact_sensitive_data(normalized)
+        return redact_sensitive_data(normalized)  # type: ignore[no-any-return]
 
     @staticmethod
     def _openai_usage(usage: Any) -> tuple[TokenUsage, bool]:
@@ -715,8 +715,8 @@ class LLMClient:
             return None
 
         cost = (
-            usage.prompt_tokens * pricing_info.prompt_price / 1000
-            + usage.completion_tokens * pricing_info.completion_price / 1000
+            usage.prompt_tokens * pricing_info.prompt_price / 1000  # type: ignore[operator]
+            + usage.completion_tokens * pricing_info.completion_price / 1000  # type: ignore[operator]
         )
 
         return cost
