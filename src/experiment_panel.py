@@ -97,10 +97,31 @@ def _build_panel_data(comparison: dict[str, Any]) -> dict[str, Any]:
             {"strategy": strategy, "rows": rows, "significance": payload.get("significance", [])}
         )
 
+    # Build algorithm-type capability radar from capability_dimensions
+    capability_dimensions = comparison.get("capability_dimensions", {})
+    dimension_problem_counts = comparison.get("dimension_problem_counts", {})
+    algorithm_radar: dict[str, Any] = {
+        "labels": [],
+        "datasets": [],
+        "dimension_counts": dimension_problem_counts,
+    }
+    if capability_dimensions:
+        dimension_names = capability_dimensions.get("dimension_names", [])
+        model_scores = capability_dimensions.get("model_scores", {})
+        algorithm_radar["labels"] = dimension_names
+        for model, scores in model_scores.items():
+            algorithm_radar["datasets"].append(
+                {
+                    "label": model,
+                    "values": [scores.get(dim, 0.0) for dim in dimension_names],
+                }
+            )
+
     return {
         "experiment_id": comparison.get("experiment", {}).get("experiment_id", ""),
         "name": comparison.get("experiment", {}).get("name"),
         "radar": radar,
+        "algorithm_radar": algorithm_radar,
         "scatter": scatter,
         "bar": bar,
         "matrix_tables": matrix_tables,
@@ -171,6 +192,7 @@ def _render_panel(data: dict[str, Any]) -> str:
         "body{font-family:-apple-system,'PingFang SC','Microsoft YaHei',sans-serif;margin:24px;color:#1f2328}\n"
         "h1{font-size:20px} h2{font-size:16px;margin-top:28px}\n"
         ".charts{display:flex;flex-wrap:wrap;gap:24px}.chart-box{width:420px;height:320px}\n"
+        ".dimension-counts{font-size:12px;color:#57606a;margin-top:8px;line-height:1.5}\n"
         "table.matrix{border-collapse:collapse;margin-top:8px}\n"
         "table.matrix th,table.matrix td{border:1px solid #d0d7de;padding:6px 10px;font-size:14px;text-align:left}\n"
         ".sig{font-size:13px;color:#57606a}\n"
@@ -184,6 +206,8 @@ def _render_panel(data: dict[str, Any]) -> str:
         "（不进入成本散点图与成本效益排名）</p>\n"
         '<div class="charts">\n'
         '<div><h2>能力雷达图</h2><div class="chart-box"><canvas id="radar"></canvas></div></div>\n'
+        '<div><h2>算法类型能力雷达图</h2><div class="chart-box"><canvas id="algorithm-radar"></canvas></div>'
+        '<p class="dimension-counts" id="dimension-counts"></p></div>\n'
         '<div><h2>能力图谱雷达图</h2><div class="chart-box"><canvas id="capability-radar"></canvas></div></div>\n'
         '<div><h2>成本 vs 准确率</h2><div class="chart-box"><canvas id="scatter"></canvas></div></div>\n'
         '<div><h2>消耗并排对比</h2><div class="chart-box"><canvas id="bar"></canvas></div></div>\n'
@@ -201,6 +225,15 @@ def _render_panel(data: dict[str, Any]) -> str:
         "else {\n"
         "  new Chart(document.getElementById('radar'), {type: 'radar', data: {labels: DATA.radar.labels,"
         " datasets: DATA.radar.datasets.map(d => ({label: d.label, data: d.values, fill: false}))}});\n"
+        "  if (DATA.algorithm_radar && DATA.algorithm_radar.labels.length) {"
+        "    new Chart(document.getElementById('algorithm-radar'), {type: 'radar', data: {labels: DATA.algorithm_radar.labels,"
+        "      datasets: DATA.algorithm_radar.datasets.map(d => ({label: d.label, data: d.values, fill: false}))}});"
+        "    if (DATA.algorithm_radar.dimension_counts) {"
+        "      const counts = DATA.algorithm_radar.dimension_counts;"
+        "      const countsText = DATA.algorithm_radar.labels.map(dim => dim + ': ' + (counts[dim] || 0) + '题').join(' | ');"
+        "      document.getElementById('dimension-counts').textContent = '各维度样本数：' + countsText;"
+        "    }"
+        "  }\n"
         "  new Chart(document.getElementById('capability-radar'), {type: 'radar', data: {labels: DATA.capability.dimension_labels,"
         " datasets: Object.entries(DATA.capability.models).map(([model, value]) => ({label: model, data: DATA.capability.dimension_labels.map(k => value.dimensions[k]), fill: false}))}});\n"
         "  new Chart(document.getElementById('scatter'), {type: 'scatter', data: {datasets: [{"
