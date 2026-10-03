@@ -114,7 +114,11 @@ def _build_panel_data(comparison: dict[str, Any]) -> dict[str, Any]:
             algorithm_radar["datasets"].append(
                 {
                     "label": model,
-                    "values": scores if isinstance(scores, list) else [scores.get(dim, 0.0) for dim in dimension_names],
+                    "values": (
+                        scores
+                        if isinstance(scores, list)
+                        else [scores.get(dim, 0.0) for dim in dimension_names]
+                    ),
                 }
             )
 

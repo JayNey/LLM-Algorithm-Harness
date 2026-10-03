@@ -97,7 +97,8 @@ def classify_problem(problem: Problem | dict[str, Any]) -> list[str]:
 
 
 def calculate_dimension_scores(
-    results: list[ExecutionResult] | list[dict[str, Any]], problems: list[Problem] | list[dict[str, Any]]
+    results: list[ExecutionResult] | list[dict[str, Any]],
+    problems: list[Problem] | list[dict[str, Any]],
 ) -> dict[str, dict[str, float]]:
     """
     Calculate dimension-based success rates for each model.
@@ -170,9 +171,7 @@ def calculate_dimension_scores(
     return model_scores
 
 
-def format_dimension_scores_for_radar(
-    model_scores: dict[str, dict[str, float]]
-) -> dict[str, Any]:
+def format_dimension_scores_for_radar(model_scores: dict[str, dict[str, float]]) -> dict[str, Any]:
     """
     Format dimension scores for radar chart consumption.
 
@@ -291,4 +290,3 @@ def generate_capability_analysis(dimension_scores: dict[str, float]) -> str:
         lines.append("Moderate performance across all dimensions.")
 
     return "\n".join(lines)
-

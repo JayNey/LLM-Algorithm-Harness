@@ -58,9 +58,7 @@ class TestCapabilityRadarIntegration:
         # Step 4: Generate radar chart
         chart_gen = ChartGenerator()
         radar_chart = chart_gen.generate_capability_radar(
-            dimension_scores,
-            ["gpt-4"],
-            formatted["dimension_names"]
+            dimension_scores, ["gpt-4"], formatted["dimension_names"]
         )
         assert isinstance(radar_chart, str)
         assert len(radar_chart) > 0
@@ -93,9 +91,7 @@ class TestCapabilityRadarIntegration:
         formatted = format_dimension_scores_for_radar(dimension_scores)
         chart_gen = ChartGenerator()
         radar_chart = chart_gen.generate_capability_radar(
-            dimension_scores,
-            ["gpt-4", "claude-3"],
-            formatted["dimension_names"]
+            dimension_scores, ["gpt-4", "claude-3"], formatted["dimension_names"]
         )
         assert isinstance(radar_chart, str)
         assert len(radar_chart) > 0
@@ -138,9 +134,7 @@ class TestCapabilityRadarIntegration:
         formatted = format_dimension_scores_for_radar(dimension_scores)
         chart_gen = ChartGenerator()
         radar_chart = chart_gen.generate_capability_radar(
-            dimension_scores,
-            ["test-model"],
-            formatted["dimension_names"]
+            dimension_scores, ["test-model"], formatted["dimension_names"]
         )
 
         # Verify chart is valid base64 string
@@ -219,9 +213,7 @@ class TestCapabilityRadarIntegration:
         formatted = format_dimension_scores_for_radar(dimension_scores)
         chart_gen = ChartGenerator()
         radar_chart = chart_gen.generate_capability_radar(
-            dimension_scores,
-            ["model-a"],
-            formatted["dimension_names"]
+            dimension_scores, ["model-a"], formatted["dimension_names"]
         )
 
         assert isinstance(radar_chart, str)

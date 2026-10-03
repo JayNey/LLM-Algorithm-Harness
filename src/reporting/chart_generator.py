@@ -561,5 +561,3 @@ class ChartGenerator:
         plt.tight_layout()
 
         return ChartGenerator._fig_to_base64(fig)
-
-

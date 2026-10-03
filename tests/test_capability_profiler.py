@@ -163,8 +163,24 @@ class TestFormatDimensionScoresForRadar:
     def test_format_conversion(self):
         """Test conversion from model-first to dimension-first format."""
         model_scores = {
-            "model1": {"Array": 80.0, "Graph": 60.0, "Dynamic Programming": 0.0, "Greedy": 0.0, "Math": 0.0, "String": 0.0, "Other": 0.0},
-            "model2": {"Array": 90.0, "Graph": 70.0, "Dynamic Programming": 0.0, "Greedy": 0.0, "Math": 0.0, "String": 0.0, "Other": 0.0},
+            "model1": {
+                "Array": 80.0,
+                "Graph": 60.0,
+                "Dynamic Programming": 0.0,
+                "Greedy": 0.0,
+                "Math": 0.0,
+                "String": 0.0,
+                "Other": 0.0,
+            },
+            "model2": {
+                "Array": 90.0,
+                "Graph": 70.0,
+                "Dynamic Programming": 0.0,
+                "Greedy": 0.0,
+                "Math": 0.0,
+                "String": 0.0,
+                "Other": 0.0,
+            },
         }
         formatted = format_dimension_scores_for_radar(model_scores)
         assert "dimension_names" in formatted
@@ -185,4 +201,3 @@ class TestFormatDimensionScoresForRadar:
         formatted = format_dimension_scores_for_radar({})
         assert formatted["dimension_names"] == []
         assert formatted["model_scores"] == {}
-

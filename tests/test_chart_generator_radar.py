@@ -120,8 +120,7 @@ class TestGenerateCapabilityRadar:
     def test_four_models_uses_all_colors(self):
         """Test that up to 4 models can be displayed with different colors."""
         dimension_scores = {
-            f"model{i}": {dim: 50.0 + (i * 10) for dim in ALL_DIMENSIONS}
-            for i in range(1, 5)
+            f"model{i}": {dim: 50.0 + (i * 10) for dim in ALL_DIMENSIONS} for i in range(1, 5)
         }
         model_names = [f"model{i}" for i in range(1, 5)]
         dimension_names = list(ALL_DIMENSIONS)
@@ -161,4 +160,3 @@ class TestGenerateCapabilityRadar:
         img_data = base64.b64decode(result)
         img = Image.open(io.BytesIO(img_data))
         assert img.format == "PNG"
-

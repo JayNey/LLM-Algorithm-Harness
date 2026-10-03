@@ -673,7 +673,11 @@ class HTMLGenerator:
                             # Extract model names and dimension names
                             model_names = list(all_dimension_scores.keys())
                             # Get dimension names from the first model's scores
-                            dimension_names = list(next(iter(all_dimension_scores.values())).keys()) if all_dimension_scores else []
+                            dimension_names = (
+                                list(next(iter(all_dimension_scores.values())).keys())
+                                if all_dimension_scores
+                                else []
+                            )
 
                             # Generate radar chart
                             radar_buf = ChartGenerator.generate_capability_radar(
@@ -692,15 +696,17 @@ class HTMLGenerator:
                                     # Add capability analysis for the first strategy
                                     first_model_name = model_names[0]
                                     first_dimension_scores = all_dimension_scores[first_model_name]
-                                    analysis_text = generate_capability_analysis(first_dimension_scores)
+                                    analysis_text = generate_capability_analysis(
+                                        first_dimension_scores
+                                    )
                                     html_parts.append("<div class='card'>")
                                     html_parts.append(
                                         f"<div class='card-header'><span class='card-title'>Capability Analysis: {first_model_name}</span></div>"
                                     )
                                     # Convert Markdown to HTML (simple conversion)
-                                    analysis_html = analysis_text.replace("\n\n", "</p><p>").replace(
-                                        "\n", "<br>"
-                                    )
+                                    analysis_html = analysis_text.replace(
+                                        "\n\n", "</p><p>"
+                                    ).replace("\n", "<br>")
                                     analysis_html = analysis_html.replace("## ", "<h2>").replace(
                                         "</p><p><h2>", "</p><h2>"
                                     )
@@ -713,7 +719,10 @@ class HTMLGenerator:
                                     html_parts.append(f"<p>{analysis_html}</p>")
                                     html_parts.append("</div>")
                                 except Exception as e:
-                                    logger.error(f"Failed to encode capability radar: {str(e)}", exc_info=True)
+                                    logger.error(
+                                        f"Failed to encode capability radar: {str(e)}",
+                                        exc_info=True,
+                                    )
                                     html_parts.append(
                                         HTMLGenerator._format_chart_error(
                                             "Capability Radar Chart", e, show_traceback=True
@@ -726,7 +735,9 @@ class HTMLGenerator:
                 else:
                     logger.info("Problems list not provided, skipping capability radar")
             except Exception as e:
-                logger.error(f"Failed to generate capability radar section: {str(e)}", exc_info=True)
+                logger.error(
+                    f"Failed to generate capability radar section: {str(e)}", exc_info=True
+                )
                 html_parts.append(
                     HTMLGenerator._format_chart_error(
                         "Capability Radar Section", e, show_traceback=True
