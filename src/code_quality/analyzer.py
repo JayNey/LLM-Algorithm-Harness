@@ -4,6 +4,8 @@ Main Code Quality Analyzer
 Orchestrates all code quality analysis dimensions.
 """
 
+from typing import TYPE_CHECKING
+
 from src.code_quality.models import CodeQualityMetrics
 from src.code_quality.readability_analyzer import ReadabilityAnalyzer
 from src.code_quality.space_analyzer import SpaceAnalyzer
@@ -11,6 +13,9 @@ from src.code_quality.style_analyzer import StyleConsistencyAnalyzer
 from src.code_quality.time_analyzer import TimeComplexityAnalyzer
 from src.models import Problem
 from src.utils.logging import get_logger
+
+if TYPE_CHECKING:
+    from src.sandbox_executor import SandboxExecutor
 
 logger = get_logger(__name__)
 
@@ -46,7 +51,7 @@ class CodeQualityAnalyzer:
         self.style_analyzer = StyleConsistencyAnalyzer() if enable_style else None
 
     def analyze(
-        self, code: str, problem: Problem | None = None, sandbox_executor=None
+        self, code: str, problem: Problem | None = None, sandbox_executor: "SandboxExecutor | None" = None
     ) -> CodeQualityMetrics:
         """
         Perform comprehensive code quality analysis.

@@ -46,7 +46,7 @@ def _build_panel_data(comparison: dict[str, Any]) -> dict[str, Any]:
         "datasets": [],
     }
     scatter: list[dict[str, Any]] = []
-    bar = {"labels": [], "calls": [], "elapsed": [], "tokens": []}
+    bar: dict[str, list[Any]] = {"labels": [], "calls": [], "elapsed": [], "tokens": []}
 
     for combo in combos:
         label = f"{combo['model']} × {combo['strategy']}"

@@ -58,7 +58,7 @@ class BenchmarkManager:
         Returns:
             List of paths to benchmark configuration files
         """
-        suite_files = []
+        suite_files: list[Path] = []
 
         # Search for benchmark*.json files
         for pattern in ["benchmark.json", "benchmark.*.json", "benchmark*.json"]:

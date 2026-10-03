@@ -102,7 +102,7 @@ class LLMResponseCache:
             self.cache_dir.mkdir(parents=True, exist_ok=True)
             self._init_access_log()
 
-    def _init_access_log(self):
+    def _init_access_log(self) -> None:
         """Initialize access log file if it doesn't exist."""
         if not self.access_log_path.exists():
             self._write_access_log({})
@@ -112,19 +112,19 @@ class LLMResponseCache:
         try:
             if self.access_log_path.exists():
                 with open(self.access_log_path, encoding="utf-8") as f:
-                    return json.load(f)
+                    return json.load(f)  # type: ignore[no-any-return]
         except (OSError, json.JSONDecodeError):
             pass
         return {}
 
-    def _write_access_log(self, log: dict[str, float]):
+    def _write_access_log(self, log: dict[str, float]) -> None:
         """Write the access log atomically."""
         temp_path = self.access_log_path.with_suffix(".tmp")
         with open(temp_path, "w", encoding="utf-8") as f:
             json.dump(log, f)
         temp_path.replace(self.access_log_path)
 
-    def _update_access_time(self, cache_key: str):
+    def _update_access_time(self, cache_key: str) -> None:
         """Update access time for LRU tracking."""
         log = self._read_access_log()
         log[cache_key] = time.time()
@@ -138,7 +138,7 @@ class LLMResponseCache:
         """Check if a cache entry is expired."""
         timestamp = cache_data.get("timestamp", 0)
         age_seconds = time.time() - timestamp
-        return age_seconds >= self.ttl_seconds
+        return age_seconds >= self.ttl_seconds  # type: ignore[no-any-return]
 
     def get(self, cache_key: str) -> LLMResponse | None:
         """
@@ -191,7 +191,7 @@ class LLMResponseCache:
             self.misses += 1
             return None
 
-    def set(self, cache_key: str, response: LLMResponse):
+    def set(self, cache_key: str, response: LLMResponse) -> None:
         """
         Store a response in the cache.
 
@@ -246,7 +246,7 @@ class LLMResponseCache:
                 total_size += cache_file.stat().st_size
         return total_size
 
-    def _enforce_size_limit(self):
+    def _enforce_size_limit(self) -> None:
         """Enforce LRU eviction when cache exceeds size limit."""
         current_size = self._get_cache_size_bytes()
 
@@ -287,7 +287,7 @@ class LLMResponseCache:
         # Write updated access log
         self._write_access_log(access_log)
 
-    def clear(self, model_filter: str | None = None):
+    def clear(self, model_filter: str | None = None) -> None:
         """
         Clear cache entries.
 

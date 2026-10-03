@@ -7,12 +7,12 @@ import re
 import time
 from datetime import datetime
 from html.parser import HTMLParser
-from typing import Any
+from typing import Any, Literal, cast
 
 try:
     import requests
 except ImportError:  # pragma: no cover
-    requests = None
+    requests = None  # type: ignore[assignment]
 
 from src.importers.base import ImportResult, ProblemImporter
 from src.importers.local_json import LocalJsonImporter
@@ -25,14 +25,14 @@ logger = get_logger(__name__)
 class _TextParser(HTMLParser):
     """Small dependency-free HTML to text converter for public statements."""
 
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__()
         self.parts: list[str] = []
 
     def handle_data(self, data: str) -> None:
         self.parts.append(data)
 
-    def handle_starttag(self, tag: str, attrs) -> None:
+    def handle_starttag(self, tag: str, attrs: list[tuple[str, str | None]]) -> None:
         if tag in {"br", "p", "div", "li", "section", "h1", "h2", "h3"}:
             self.parts.append("\n")
 
@@ -70,12 +70,12 @@ class CodeforcesImporter(ProblemImporter):
         max_rating: int | None = None,
         tags: list[str] | None = None,
         limit: int | None = None,
-        session=None,
+        session: Any = None,
         timeout: float = 20.0,
         retries: int = 2,
         backoff_seconds: float = 0.5,
-        sleep=time.sleep,
-    ):
+        sleep: Any = time.sleep,
+    ) -> None:
         if min_rating is not None and max_rating is not None and min_rating > max_rating:
             raise ValueError("min_rating cannot exceed max_rating")
         if limit is not None and limit < 1:
@@ -141,10 +141,14 @@ class CodeforcesImporter(ProblemImporter):
                 logger.warning("codeforces_problem_transform_failed", index=index, error=str(exc))
         return transformed
 
-    def detect_duplicates(self, problems, existing_problems, update_strategy):
+    def detect_duplicates(
+        self, problems: list[Problem], existing_problems: list[Problem], update_strategy: str
+    ) -> tuple[list[Problem], list[str], list[str]]:
         return LocalJsonImporter().detect_duplicates(problems, existing_problems, update_strategy)
 
-    def generate_report(self, result: ImportResult, source: str, output_path: str, preview: bool):
+    def generate_report(
+        self, result: ImportResult, source: str, output_path: str, preview: bool
+    ) -> dict[str, Any]:
         return {
             "timestamp": datetime.now().isoformat(),
             "source": "codeforces",
@@ -171,11 +175,11 @@ class CodeforcesImporter(ProblemImporter):
             "selected_problem_ids": self.selected_problem_ids,
         }
 
-    def _request(self, url: str):
+    def _request(self, url: str) -> Any:
         last_error: Exception | None = None
         for attempt in range(self.retries + 1):
             try:
-                response = self.session.get(
+                response = self.session.get(  # type: ignore[union-attr]
                     url,
                     headers={"User-Agent": "LLM-Algorithm-Harness/0.1"},
                     timeout=self.timeout,
@@ -215,7 +219,7 @@ class CodeforcesImporter(ProblemImporter):
     def _transform_problem(self, item: dict[str, Any]) -> Problem:
         problem_id = self._problem_id(item)
         rating = item.get("rating")
-        difficulty = self.map_difficulty(rating)
+        difficulty = cast(Literal["easy", "medium", "hard"], self.map_difficulty(rating))
         tags = [self.tag_mapping.get(str(tag).lower(), str(tag)) for tag in item.get("tags") or []]
         statement_html = item.get("_statement_html") or ""
         description, input_text, output_text, samples = self.parse_statement(statement_html)
@@ -224,8 +228,11 @@ class CodeforcesImporter(ProblemImporter):
             notes.append(f"Statement unavailable: {item['_statement_error']}")
         if not description:
             notes.append("Codeforces statement requires manual completion")
+
+        from src.models import TestCase
+
         public_cases = [
-            {"input": sample[0], "expected_output": sample[1]}
+            TestCase(input=sample[0], expected_output=sample[1])
             for sample in samples
             if sample[0].strip() and sample[1].strip()
         ]

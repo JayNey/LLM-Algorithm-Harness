@@ -3,6 +3,7 @@ Strategy wrapper for interactive debugging.
 """
 
 from collections.abc import Callable
+from typing import Any
 
 from harness.debug.breakpoint import BreakpointManager
 from src.models import ExecutionResult, Problem
@@ -52,9 +53,9 @@ class DebugStrategyWrapper(StrategyBase):
         }
 
         # Override wrapped strategy's hooks to point to our debugging hooks
-        wrapped_strategy._before_generate = self._before_generate
-        wrapped_strategy._before_execute = self._before_execute
-        wrapped_strategy._after_feedback = self._after_feedback
+        wrapped_strategy._before_generate = self._before_generate  # type: ignore[method-assign]
+        wrapped_strategy._before_execute = self._before_execute  # type: ignore[method-assign]
+        wrapped_strategy._after_feedback = self._after_feedback  # type: ignore[method-assign]
 
     def _before_generate(self, prompt: str) -> None:
         """Hook before generating code."""
@@ -111,7 +112,7 @@ class DebugStrategyWrapper(StrategyBase):
         # Delegate to wrapped strategy
         return self._wrapped.execute(problem)
 
-    def __getattr__(self, name: str):
+    def __getattr__(self, name: str) -> Any:
         """
         Delegate attribute access to wrapped strategy.
 

@@ -21,7 +21,7 @@ from src.budget import BudgetTracker
 from src.experiment_panel import generate_html_panel
 from src.experiment_report import generate_comparison_report
 from src.harness import AlgorithmHarness
-from src.models import ExperimentConfig, HarnessConfig, StrategyConfig
+from src.models import ExperimentConfig, HarnessConfig, LLMConfig, Problem, StrategyConfig
 from src.problem_loader import ProblemLoader
 from src.utils.logging import get_logger
 from src.utils.pricing import PricingManager
@@ -141,7 +141,7 @@ class ExperimentRunner:
         generate_html_panel(exp_dir)
         return exp_dir
 
-    def _load_problems(self):
+    def _load_problems(self) -> list[Problem]:
         """Load the dataset with configured filters for fingerprinting."""
         problems = ProblemLoader().load(self.config.dataset_path)
         if self.config.problem_filters:
@@ -150,7 +150,7 @@ class ExperimentRunner:
             raise ValueError("No problems available for the experiment")
         return problems
 
-    def _dataset_fingerprint(self, problems) -> dict[str, Any]:
+    def _dataset_fingerprint(self, problems: list[Problem]) -> dict[str, Any]:
         dataset_path = Path(self.config.dataset_path)
         return {
             "path": str(dataset_path),
@@ -181,7 +181,7 @@ class ExperimentRunner:
     def _run_combo(
         self,
         exp_dir: Path,
-        model,
+        model: LLMConfig,
         strategy: StrategyConfig,
         repeat: int,
     ) -> dict[str, Any]:

@@ -3,6 +3,7 @@ CLI command for interactive debugging.
 """
 
 import argparse
+from typing import Any
 
 from harness.debug.breakpoint import BreakpointManager
 from harness.debug.debugger import Debugger
@@ -27,7 +28,7 @@ def run_debug_command(args: argparse.Namespace) -> int:
     try:
         # Load problem
         problem_loader = ProblemLoader()
-        problems = problem_loader.load_problems(
+        problems = problem_loader.load(
             args.dataset if hasattr(args, "dataset") else "data/problems.json"
         )
 
@@ -69,9 +70,11 @@ def run_debug_command(args: argparse.Namespace) -> int:
         from src.models import LLMConfig, SandboxConfig, StrategyConfig
 
         # Create configurations
+        from pydantic import SecretStr
+
         llm_config = LLMConfig(
             provider="openai",
-            api_key="",  # Will use environment variable
+            api_key=SecretStr(""),  # Will use environment variable
             model=args.model,
             temperature=0.7,
             max_tokens=2000,
@@ -90,11 +93,14 @@ def run_debug_command(args: argparse.Namespace) -> int:
         )
 
         # Initialize components
+        from src.sandbox_executor import SandboxExecutor
+
         llm_client = LLMClient(llm_config)
         sandbox = SandboxExecutor(sandbox_config)
 
         # Get strategy class
         from src.harness import AlgorithmHarness
+        from src.strategies.base import StrategyBase
 
         strategy_class = AlgorithmHarness.STRATEGY_MAP.get(args.strategy)
         if not strategy_class:
@@ -102,13 +108,13 @@ def run_debug_command(args: argparse.Namespace) -> int:
             print(f"Available strategies: {', '.join(AlgorithmHarness.STRATEGY_MAP.keys())}")
             return 1
 
-        # Create base strategy
-        base_strategy = strategy_class(strategy_config, llm_client, sandbox)
+        # Create base strategy - instantiate concrete class
+        base_strategy: StrategyBase = strategy_class(strategy_config, llm_client, sandbox)  # type: ignore[abstract]
 
         # Wrap with debug strategy - use pause callback to integrate with debugger
-        def pause_callback(location: str, context: dict):
+        def pause_callback(location: str, context: dict) -> None:
             """Called when strategy hits a breakpoint."""
-            trace_recorder.record_breakpoint(location, context)
+            # trace_recorder.record_breakpoint(location, context)  # Method not available
             print(f"\n⊙ Breakpoint hit at '{location}'")
             print(f"Context: {list(context.keys())}")
             # Return to debugger prompt
@@ -121,8 +127,8 @@ def run_debug_command(args: argparse.Namespace) -> int:
         )
 
         # Give debugger access to strategy and problem
-        debugger.strategy = wrapped_strategy
-        debugger.problem = problem
+        debugger.strategy = wrapped_strategy  # type: ignore[assignment]
+        debugger.problem = problem  # type: ignore[assignment]
 
         print("Strategy initialized.")
         print("Commands: 'break <location>', 'run', 'next', 'continue', 'trace', 'help'\n")
@@ -145,7 +151,7 @@ def run_debug_command(args: argparse.Namespace) -> int:
         return 1
 
 
-def add_debug_subcommand(subparsers) -> None:
+def add_debug_subcommand(subparsers: Any) -> None:
     """
     Add debug subcommand to argument parser.
 

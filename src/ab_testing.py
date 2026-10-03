@@ -124,7 +124,7 @@ def _statistical_tests(success_a: list[int], success_b: list[int]) -> dict[str, 
         [sum(success_b), len(success_b) - sum(success_b)],
     ]
     try:
-        from scipy import stats  # type: ignore[import-untyped]
+        from scipy import stats
 
         expected = stats.chi2_contingency(table, correction=False)[3]
         if min(min(row) for row in expected) < 5:

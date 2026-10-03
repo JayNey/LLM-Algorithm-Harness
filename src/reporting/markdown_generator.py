@@ -5,6 +5,7 @@ Markdown report generation module.
 import logging
 from datetime import datetime
 from pathlib import Path
+from typing import Any
 
 from src.models import ExecutionResult
 from src.utils.secrets import redact_sensitive_text
@@ -28,7 +29,7 @@ class MarkdownGenerator:
         metrics: dict[str, dict],
         results: dict[str, list[ExecutionResult]],
         output_path: str,
-        config: dict = None,
+        config: dict[Any, Any] | None = None,
     ) -> str:
         """
         Generate Markdown evaluation report.
@@ -195,8 +196,8 @@ class MarkdownGenerator:
         lines.append("")
 
         has_failures = False
-        for strategy_name in sorted_strategies:
-            strategy_name = strategy_name[0]
+        for strategy_tuple in sorted_strategies:
+            strategy_name = strategy_tuple[0]
             strategy_results = results.get(strategy_name, [])
             failed = [r for r in strategy_results if not r.is_successful()]
 

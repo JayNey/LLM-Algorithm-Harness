@@ -6,10 +6,13 @@
 from collections.abc import Iterator
 from contextlib import contextmanager
 from decimal import Decimal
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 from rich.live import Live
 from rich.table import Table
+
+if TYPE_CHECKING:
+    from rich.console import Group
 
 from src.cost_strategy import DifficultyBudgetMonitor, RunCostMonitor
 
@@ -180,11 +183,11 @@ class RealtimeCostPanel:
 
         return table
 
-    def render(self) -> Table:
+    def render(self) -> "Group":
         """渲染完整面板。
 
         Returns:
-            包含所有部分的完整 Table 对象
+            包含所有部分的完整 Group 对象
         """
         from rich.console import Group
 

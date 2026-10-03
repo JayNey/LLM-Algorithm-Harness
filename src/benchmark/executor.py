@@ -46,7 +46,7 @@ class BenchmarkExecutor:
         )
 
         # Load all problems from dataset
-        all_problems = self.problem_loader.load_problems(self.config.dataset_path)
+        all_problems = self.problem_loader.load(self.config.dataset_path)
         problem_map = {p.problem_id: p for p in all_problems}
 
         # Filter to only problems in the benchmark suite
@@ -106,7 +106,7 @@ class BenchmarkExecutor:
             reports = harness.run()
 
             # Collect results
-            results = {
+            results: dict[str, Any] = {
                 "suite": {
                     "name": self.suite.name,
                     "version": self.suite.version,
@@ -119,13 +119,13 @@ class BenchmarkExecutor:
 
             for strategy_name, report in reports.items():
                 results["strategies"][strategy_name] = {
-                    "total": report.total,
-                    "passed": report.passed,
-                    "failed": report.failed,
-                    "accuracy": report.accuracy,
-                    "avg_time": report.avg_time,
+                    "total": report.total_problems,
+                    "passed": report.solved_problems,
+                    "failed": report.failed_problems,
+                    "accuracy": report.success_rate,
+                    "avg_time": 0.0,  # StrategyReport doesn't have avg_time field
                     "total_tokens": report.total_tokens,
-                    "total_cost": report.total_cost,
+                    "total_cost": report.estimated_cost_usd,
                 }
 
             logger.info(

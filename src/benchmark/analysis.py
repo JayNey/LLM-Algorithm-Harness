@@ -6,6 +6,7 @@ from typing import Any
 
 import matplotlib.pyplot as plt
 import numpy as np
+from matplotlib.ticker import FuncFormatter
 
 from src.benchmark.history import BenchmarkHistoryStorage
 from src.utils.logging import get_logger
@@ -107,7 +108,7 @@ class TrendAnalyzer:
         plt.ylim(0, 1)
 
         # Format y-axis as percentage
-        plt.gca().yaxis.set_major_formatter(plt.FuncFormatter(lambda y, _: f"{y:.0%}"))
+        plt.gca().yaxis.set_major_formatter(FuncFormatter(lambda y, _: f"{y:.0%}"))
 
         plt.tight_layout()
 
@@ -170,7 +171,7 @@ class TrendAnalyzer:
         plt.ylim(0, 1)
 
         # Format y-axis as percentage
-        plt.gca().yaxis.set_major_formatter(plt.FuncFormatter(lambda y, _: f"{y:.0%}"))
+        plt.gca().yaxis.set_major_formatter(FuncFormatter(lambda y, _: f"{y:.0%}"))
 
         plt.tight_layout()
 
@@ -242,7 +243,7 @@ class TrendAnalyzer:
         Returns:
             Dictionary containing comparison metrics
         """
-        comparison = {"models": {}}
+        comparison: dict[str, Any] = {"models": {}}
 
         for model_id in model_ids:
             try:

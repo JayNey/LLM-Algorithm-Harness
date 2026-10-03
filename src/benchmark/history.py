@@ -104,7 +104,7 @@ class BenchmarkHistoryStorage:
         try:
             with open(path, encoding="utf-8") as f:
                 data = json.load(f)
-            return data
+            return dict(data) if isinstance(data, dict) else {}
         except json.JSONDecodeError as e:
             raise ValueError(f"Invalid JSON in result file: {e}")
 
@@ -189,7 +189,7 @@ class BenchmarkHistoryStorage:
             if not accuracies:
                 return None
 
-            return sum(accuracies) / len(accuracies)
+            return float(sum(accuracies) / len(accuracies))
 
         except Exception:
             return None

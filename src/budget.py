@@ -122,7 +122,7 @@ class BudgetedLLMClient:
         self._inner = inner
         self._tracker = tracker
 
-    def generate(self, *args: Any, **kwargs: Any):
+    def generate(self, *args: Any, **kwargs: Any) -> Any:
         if not self._tracker.allow_call():
             raise BudgetExhausted(self._tracker.stop_reason())
         response = self._inner.generate(*args, **kwargs)

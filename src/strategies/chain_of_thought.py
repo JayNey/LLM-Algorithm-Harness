@@ -119,7 +119,7 @@ class ChainOfThoughtStrategy(StrategyBase):
             iterations=[iteration_result],
             final_result=sandbox_result,
             success=success,
-            llm_responses=[llm_response],
+            llm_responses=[llm_response] if llm_response is not None else [],
             execution_time_seconds=time.perf_counter() - started,
         )
 
