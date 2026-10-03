@@ -111,10 +111,12 @@ def calculate_dimension_scores(
         Score is 0.0 if no problems exist for that dimension.
     """
     # Build problem_id -> problem mapping - handle both dicts and model instances
-    problem_map = {}
+    problem_map: dict[str, Problem | dict[str, Any]] = {}
     for p in problems:
         if isinstance(p, dict):
-            problem_map[p.get("problem_id")] = p
+            pid = p.get("problem_id")
+            if pid is not None:
+                problem_map[pid] = p
         else:
             problem_map[p.problem_id] = p
 
@@ -178,12 +180,13 @@ def format_dimension_scores_for_radar(
         model_scores: Nested dict from calculate_dimension_scores
 
     Returns:
-        Dict with dimension_names and model_scores arrays for radar chart
+        Dict with dimension_names and model_scores arrays for radar chart.
+        Format: {dimension_names: [...], model_scores: {model: [score1, score2, ...]}}
     """
     if not model_scores:
         return {"dimension_names": [], "model_scores": {}}
 
-    # Extract dimension names from any model (all models have same dimensions)
+    # Extract dimension names (all models have same dimensions)
     dimension_names = ALL_DIMENSIONS
 
     # Convert to radar format: {model: [score1, score2, ...]}

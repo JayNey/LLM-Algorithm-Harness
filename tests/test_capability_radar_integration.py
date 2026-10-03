@@ -1,9 +1,7 @@
 """Integration tests for capability radar chart functionality."""
 
-import json
-import tempfile
-from pathlib import Path
 import pytest
+
 from src.reporting.capability_profiler import (
     calculate_dimension_scores,
     format_dimension_scores_for_radar,

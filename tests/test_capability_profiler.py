@@ -1,14 +1,15 @@
 """Unit tests for capability_profiler module."""
 
 import pytest
+
 from src.reporting.capability_profiler import (
-    classify_problem,
+    ALL_DIMENSIONS,
     calculate_dimension_scores,
+    classify_problem,
+    format_dimension_scores_for_radar,
+    generate_capability_analysis,
     get_dimension_problem_counts,
     normalize_score_to_100,
-    generate_capability_analysis,
-    format_dimension_scores_for_radar,
-    ALL_DIMENSIONS,
 )
 
 

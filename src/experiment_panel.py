@@ -110,10 +110,11 @@ def _build_panel_data(comparison: dict[str, Any]) -> dict[str, Any]:
         model_scores = capability_dimensions.get("model_scores", {})
         algorithm_radar["labels"] = dimension_names
         for model, scores in model_scores.items():
+            # scores is a list of values corresponding to dimension_names
             algorithm_radar["datasets"].append(
                 {
                     "label": model,
-                    "values": [scores.get(dim, 0.0) for dim in dimension_names],
+                    "values": scores if isinstance(scores, list) else [scores.get(dim, 0.0) for dim in dimension_names],
                 }
             )
 

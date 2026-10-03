@@ -2,10 +2,11 @@
 
 import base64
 import io
-import pytest
+
 from PIL import Image
-from src.reporting.chart_generator import ChartGenerator
+
 from src.reporting.capability_profiler import ALL_DIMENSIONS
+from src.reporting.chart_generator import ChartGenerator
 
 
 class TestGenerateCapabilityRadar:

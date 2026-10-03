@@ -669,21 +669,15 @@ class HTMLGenerator:
                         # Calculate dimension scores using provided problems
                         all_dimension_scores = calculate_dimension_scores(all_results, problems)
 
-                        # Build radar data for each model/strategy
-                        radar_data = []
-                        for model_name, dimension_scores in all_dimension_scores.items():
-                            if dimension_scores:
-                                radar_data.append((model_name, dimension_scores))
-
-                        if radar_data:
+                        if all_dimension_scores:
                             # Extract model names and dimension names
-                            model_names = [name for name, _ in radar_data]
+                            model_names = list(all_dimension_scores.keys())
                             # Get dimension names from the first model's scores
-                            dimension_names = list(radar_data[0][1].keys()) if radar_data else []
+                            dimension_names = list(next(iter(all_dimension_scores.values())).keys()) if all_dimension_scores else []
 
                             # Generate radar chart
                             radar_buf = ChartGenerator.generate_capability_radar(
-                                radar_data, model_names, dimension_names
+                                all_dimension_scores, model_names, dimension_names
                             )
                             if radar_buf:
                                 try:
@@ -696,11 +690,12 @@ class HTMLGenerator:
                                     html_parts.append("</div>")
 
                                     # Add capability analysis for the first strategy
-                                    first_strategy_name, first_dimension_scores = radar_data[0]
+                                    first_model_name = model_names[0]
+                                    first_dimension_scores = all_dimension_scores[first_model_name]
                                     analysis_text = generate_capability_analysis(first_dimension_scores)
                                     html_parts.append("<div class='card'>")
                                     html_parts.append(
-                                        f"<div class='card-header'><span class='card-title'>Capability Analysis: {first_strategy_name}</span></div>"
+                                        f"<div class='card-header'><span class='card-title'>Capability Analysis: {first_model_name}</span></div>"
                                     )
                                     # Convert Markdown to HTML (simple conversion)
                                     analysis_html = analysis_text.replace("\n\n", "</p><p>").replace(
