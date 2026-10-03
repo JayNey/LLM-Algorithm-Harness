@@ -70,7 +70,7 @@ def mock_sandbox():
     sandbox = MagicMock()
 
     # Mock execute to validate based on actual code logic
-    def mock_execute(problem, code, stage="public"):
+    def mock_execute(code, problem, stage="public"):
         # Simple validation: correct solutions pass, wrong ones fail
         if "a + b" in code or "b + a" in code:
             return SandboxResult(

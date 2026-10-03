@@ -66,11 +66,12 @@ def run_debug_command(args: argparse.Namespace) -> int:
         print(f"{'='*60}\n")
 
         # Initialize strategy with wrapper
+        from pydantic import SecretStr
+
         from src.llm_client import LLMClient
         from src.models import LLMConfig, SandboxConfig, StrategyConfig
 
         # Create configurations
-        from pydantic import SecretStr
 
         llm_config = LLMConfig(
             provider="openai",
@@ -99,8 +100,9 @@ def run_debug_command(args: argparse.Namespace) -> int:
         sandbox = SandboxExecutor(sandbox_config)
 
         # Get strategy class
-        from src.harness import AlgorithmHarness
         from src.strategies.base import StrategyBase
+
+        from src.harness import AlgorithmHarness
 
         strategy_class = AlgorithmHarness.STRATEGY_MAP.get(args.strategy)
         if not strategy_class:
