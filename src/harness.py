@@ -42,7 +42,7 @@ from src.strategies.multi_round_feedback import MultiRoundFeedbackStrategy
 from src.strategies.reflexion import ReflexionStrategy
 from src.strategies.self_consistency import SelfConsistencyStrategy
 from src.strategies.vanilla import VanillaStrategy
-from src.task_service import TaskService, TaskUnit
+from src.task_service import TaskRecord, TaskService, TaskUnit
 from src.utils.logging import get_logger
 from src.utils.secrets import redact_sensitive_text
 
@@ -78,10 +78,11 @@ class AlgorithmHarness:
         self.results: dict[str, list[ExecutionResult]] = {}
         self.problem_totals: dict[str, int] = {}
         self.problems_by_id: dict[str, Problem] = {}
-        self.task_record = None
+        self.task_record: TaskRecord | None = None
         self._results_lock = threading.Lock()
 
         # Initialize quality analyzer based on config
+        self.quality_analyzer: CodeQualityAnalyzer | None
         if config.enable_quality_analysis:
             quality_config = config.quality_analysis_config or {}
             self.quality_analyzer = CodeQualityAnalyzer(
@@ -272,7 +273,7 @@ class AlgorithmHarness:
             service.fail(record.run_id, redact_sensitive_text(str(exc)))
             raise
 
-        def worker(unit: TaskUnit):
+        def worker(unit: TaskUnit) -> ExecutionResult:
             strategy_config = strategy_map[unit.strategy]
             problem = problem_map[unit.problem_id]
             strategy, sandbox = runtimes[unit.strategy]
@@ -282,6 +283,8 @@ class AlgorithmHarness:
                 problem.difficulty
             )
             if global_over or difficulty_over:
+                if selector is None:
+                    raise RuntimeError("selector is None but budget downgrade is enabled")
                 cheapest = selector.cheapest_strategy
                 if cheapest != unit.strategy:
                     strategy_config = strategy_map[cheapest]
@@ -293,7 +296,7 @@ class AlgorithmHarness:
                     if difficulty_over and not global_over:
                         # Difficulty-triggered downgrades log here, once per
                         # difficulty; global-triggered ones log in settle_unit.
-                        if allocation_monitor.mark_trigger_logged(problem.difficulty):
+                        if allocation_monitor is not None and allocation_monitor.mark_trigger_logged(problem.difficulty):
                             logger.warning(
                                 "difficulty_budget_reached_downgrade",
                                 difficulty=problem.difficulty,
@@ -444,7 +447,7 @@ class AlgorithmHarness:
                 for unit in self.task_record.units
                 if unit.strategy == strategy_config.name and unit.result is not None
             }
-            results = []
+            results: list[ExecutionResult] = []
             for problem in problems:
                 result = results_by_problem.get(problem.problem_id)
                 if result is None:
@@ -536,6 +539,8 @@ class AlgorithmHarness:
         self, problems: list[Problem], selector: CostAwareSelector
     ) -> list[ExecutionResult]:
         """Gather selector-mode results in dataset order, one per problem."""
+        if self.task_record is None:
+            raise RuntimeError("task_record is None")
         unit_by_problem = {unit.problem_id: unit for unit in self.task_record.units}
         results = []
         for problem in problems:
@@ -670,13 +675,13 @@ class AlgorithmHarness:
 
         return report
 
-    def _prepare_strategy_runtime(self, strategy_config: StrategyConfig):
+    def _prepare_strategy_runtime(self, strategy_config: StrategyConfig) -> tuple[Any, SandboxExecutor]:
         """Create a strategy runtime after validating the execution backend."""
         sandbox = SandboxExecutor(self.config.sandbox_config)
         preflight_ok, preflight_detail = sandbox.health_check()
         if not preflight_ok:
             raise RuntimeError(f"Sandbox preflight failed: {preflight_detail}")
-        llm_client = LLMClient(self.config.llm_config)
+        llm_client: LLMClient | BudgetedLLMClient = LLMClient(self.config.llm_config)
         if self.budget_tracker is not None:
             llm_client = BudgetedLLMClient(llm_client, self.budget_tracker)
         strategy_class = self.STRATEGY_MAP.get(strategy_config.name)

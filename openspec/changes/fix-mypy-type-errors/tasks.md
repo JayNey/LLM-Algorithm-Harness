@@ -5,7 +5,7 @@
 - [x] 修复 `src/harness.py` 的类型错误（83 个错误）
 - [x] 修复 `src/sandbox_executor.py` 的类型错误（63 个错误）
 - [x] 修复 `src/main.py` 的类型错误（57 个错误）
-- [ ] 修复 `src/ab_testing.py` 的类型错误（48 个错误）
+- [x] 修复 `src/ab_testing.py` 的类型错误（48 个错误）
 - [ ] 修复 `src/llm_client.py` 的类型错误（44 个错误）
 - [ ] 阶段 1 完成后运行测试确保无回归
 

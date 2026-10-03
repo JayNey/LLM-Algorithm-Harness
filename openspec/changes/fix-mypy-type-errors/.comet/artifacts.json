@@ -1,0 +1,5 @@
+{
+  "openspec_proposal": "openspec/changes/fix-mypy-type-errors/proposal.md",
+  "openspec_design": "openspec/changes/fix-mypy-type-errors/design.md",
+  "openspec_tasks": "openspec/changes/fix-mypy-type-errors/tasks.md"
+}

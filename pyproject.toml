@@ -87,6 +87,12 @@ warn_unused_configs = true
 disallow_untyped_defs = true
 disallow_any_generics = false
 exclude = ["tests/", "build/"]
+plugins = ["pydantic.mypy"]
+
+[tool.pydantic-mypy]
+init_forbid_extra = true
+init_typed = true
+warn_required_dynamic_aliases = true
 
 [tool.ruff]
 line-length = 100
