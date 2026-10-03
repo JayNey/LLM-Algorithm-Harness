@@ -46,7 +46,7 @@ class ABTestConfig(BaseModel):
     problem_filters: dict[str, Any] | None = None
 
     @model_validator(mode="after")
-    def validate_variants(self) -> "ABTestConfig":
+    def validate_variants(self) -> ABTestConfig:
         ids = [variant.id for variant in self.prompt_variants]
         if len(set(ids)) != 2:
             raise ValueError("prompt_variants must contain exactly two unique IDs")

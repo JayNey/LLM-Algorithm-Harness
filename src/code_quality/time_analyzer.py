@@ -10,7 +10,7 @@ SECURITY: Performance testing uses SandboxExecutor for safe code execution.
 """
 
 import ast
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING
 
 from src.code_quality.models import TimeComplexityScore
 from src.models import Problem
