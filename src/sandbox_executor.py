@@ -16,7 +16,7 @@ import tempfile
 import time
 import uuid
 from pathlib import Path
-from typing import Any
+from typing import Any, Literal
 
 from src.models import (
     JudgeConfig,
@@ -136,10 +136,32 @@ class SandboxExecutor:
         total_time = time.time() - start_time
         all_passed = all(r.passed for r in test_results)
 
+        status: Literal[
+            "success",
+            "failed",
+            "timeout",
+            "memory_error",
+            "syntax_error",
+            "runtime_error",
+            "backend_unavailable",
+            "output_limit",
+            "process_limit",
+            "sandbox_error",
+            "unsupported",
+        ]
         if all_passed:
             status = "success"
         else:
-            resource_statuses = {
+            resource_statuses: set[
+                Literal[
+                    "backend_unavailable",
+                    "timeout",
+                    "memory_error",
+                    "output_limit",
+                    "process_limit",
+                    "unsupported",
+                ]
+            ] = {
                 "backend_unavailable",
                 "timeout",
                 "memory_error",
@@ -150,7 +172,10 @@ class SandboxExecutor:
             resource_failures = [
                 result.status for result in test_results if result.status in resource_statuses
             ]
-            status = resource_failures[0] if resource_failures else "failed"
+            if resource_failures:
+                status = resource_failures[0]
+            else:
+                status = "failed"
 
         sandbox_result = SandboxResult(
             status=status,
@@ -219,7 +244,7 @@ class SandboxExecutor:
             title="Sandbox preflight",
             description="Minimal probe used by health_check; never shown to the model.",
             difficulty="easy",
-            test_cases=[TestCase(input={"x": 1}, expected_output=1)],
+            public_test_cases=[TestCase(input={"x": 1}, expected_output=1)],
         )
         probe_code = "def solution(x=None):\n    return x"
 
@@ -557,9 +582,9 @@ if __name__ == "__main__":
         timeout: float,
         env: dict[str, str] | None = None,
         cwd: str | None = None,
-        cleanup=None,
+        cleanup: Any = None,
         input_data: bytes | None = None,
-    ):
+    ) -> subprocess.CompletedProcess[str]:
         """Run a command while bounding combined stdout/stderr in the parent."""
         process = subprocess.Popen(
             command,
@@ -592,6 +617,8 @@ if __name__ == "__main__":
                     raise SandboxExecutionError("timeout", "Sandbox timeout exceeded")
                 for key, mask in selector.select(remaining):
                     if key.data == "stdin":
+                        assert input_data is not None  # Ensured by registration condition
+                        assert hasattr(key.fileobj, "fileno") and hasattr(key.fileobj, "close")
                         try:
                             written = os.write(key.fileobj.fileno(), input_data[input_offset:])
                             input_offset += written
@@ -602,6 +629,7 @@ if __name__ == "__main__":
                             selector.unregister(key.fileobj)
                             key.fileobj.close()
                         continue
+                    assert hasattr(key.fileobj, "fileno")
                     chunk = os.read(key.fileobj.fileno(), 65536)
                     if not chunk:
                         selector.unregister(key.fileobj)
@@ -821,7 +849,7 @@ _harness_write(_harness_fd, ({result_marker!r} + _harness_dumps(result) + "\\n")
             return actual == expected
 
         if config.comparison == "exact":
-            return actual == expected
+            return bool(actual == expected)
         if config.comparison == "unordered":
             return self._compare_unordered(actual, expected, config.float_tolerance)
         return self._compare_float_tolerant(actual, expected, config.float_tolerance)
@@ -844,7 +872,7 @@ _harness_write(_harness_fd, ({result_marker!r} + _harness_dumps(result) + "\\n")
                 cls._compare_float_tolerant(a, e, tolerance)
                 for a, e in zip(actual, expected, strict=True)
             )
-        return actual == expected
+        return bool(actual == expected)
 
     @classmethod
     def _compare_unordered(cls, actual: Any, expected: Any, tolerance: float) -> bool:
@@ -877,8 +905,8 @@ _harness_write(_harness_fd, ({result_marker!r} + _harness_dumps(result) + "\\n")
         return all(find_match(index, set()) for index in range(len(actual)))
 
     def execute_with_performance_profiling(
-        self, code: str, problem: Problem, scales: list[int] = None
-    ) -> dict[str, float]:
+        self, code: str, problem: Problem, scales: list[int] | None = None
+    ) -> dict[int, float]:
         """
         Execute code with performance profiling at different scales.
 
@@ -893,36 +921,30 @@ _harness_write(_harness_fd, ({result_marker!r} + _harness_dumps(result) + "\\n")
         if scales is None:
             scales = [10, 100, 1000]
 
-        execution_times = {}
+        execution_times: dict[int, float] = {}
 
         # Get base test cases
-        if not problem.public_tests:
-            logger.warning("no_public_tests_for_profiling", problem=problem.id)
+        if not problem.public_test_cases:
+            logger.warning("no_public_tests_for_profiling", problem=problem.problem_id)
             return execution_times
 
         for scale in scales:
             try:
                 # Create scaled test cases
                 scaled_problem = Problem(
-                    id=problem.id,
+                    problem_id=problem.problem_id,
                     title=problem.title,
                     description=problem.description,
                     difficulty=problem.difficulty,
-                    topics=problem.topics,
-                    public_tests=self._scale_test_cases(problem.public_tests, scale),
-                    private_tests=[],
-                    solution_stub=problem.solution_stub,
-                    constraints=problem.constraints,
-                    time_limit_ms=problem.time_limit_ms,
-                    memory_limit_mb=problem.memory_limit_mb,
+                    public_test_cases=self._scale_test_cases(problem.public_test_cases, scale),
                 )
 
                 start = time.time()
                 result = self.execute(code, scaled_problem, stage="public")
                 elapsed = time.time() - start
 
-                if result.status == "pass":
-                    execution_times[f"{scale}x"] = elapsed
+                if result.all_passed:
+                    execution_times[scale] = elapsed
                 else:
                     logger.warning("scaled_execution_failed", scale=scale, status=result.status)
                     break
@@ -965,8 +987,8 @@ _harness_write(_harness_fd, ({result_marker!r} + _harness_dumps(result) + "\\n")
             return value
 
     def execute_with_memory_profiling(
-        self, code: str, problem: Problem, scales: list[int] = None
-    ) -> dict[str, Any]:
+        self, code: str, problem: Problem, scales: list[int] | None = None
+    ) -> dict[int, dict[str, Any]]:
         """
         Execute code with memory profiling at different scales.
 
@@ -983,27 +1005,21 @@ _harness_write(_harness_fd, ({result_marker!r} + _harness_dumps(result) + "\\n")
         if scales is None:
             scales = [1, 10, 100]
 
-        memory_results = {}
+        memory_results: dict[int, dict[str, Any]] = {}
 
-        if not problem.public_tests:
-            logger.warning("no_public_tests_for_memory_profiling", problem=problem.id)
+        if not problem.public_test_cases:
+            logger.warning("no_public_tests_for_memory_profiling", problem=problem.problem_id)
             return memory_results
 
         for scale in scales:
             try:
                 # Create scaled test cases
                 scaled_problem = Problem(
-                    id=problem.id,
+                    problem_id=problem.problem_id,
                     title=problem.title,
                     description=problem.description,
                     difficulty=problem.difficulty,
-                    topics=problem.topics,
-                    public_tests=self._scale_test_cases(problem.public_tests, scale),
-                    private_tests=[],
-                    solution_stub=problem.solution_stub,
-                    constraints=problem.constraints,
-                    time_limit_ms=problem.time_limit_ms,
-                    memory_limit_mb=problem.memory_limit_mb,
+                    public_test_cases=self._scale_test_cases(problem.public_test_cases, scale),
                 )
 
                 tracemalloc.start()
@@ -1011,8 +1027,8 @@ _harness_write(_harness_fd, ({result_marker!r} + _harness_dumps(result) + "\\n")
                 current, peak = tracemalloc.get_traced_memory()
                 tracemalloc.stop()
 
-                if result.status == "pass":
-                    memory_results[f"{scale}x"] = {
+                if result.all_passed:
+                    memory_results[scale] = {
                         "current_bytes": current,
                         "peak_bytes": peak,
                         "peak_mb": peak / (1024 * 1024),
