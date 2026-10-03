@@ -11,11 +11,11 @@
 
 ## 阶段 2: Debug 模块文件
 
-- [ ] 修复 `harness/debug/debugger.py` 的类型错误（23 个错误）
-- [ ] 修复 `harness/debug/cli.py` 的类型错误（21 个错误）
-- [ ] 修复 `harness/debug/breakpoint.py` 的类型错误
-- [ ] 修复 `harness/debug/editor.py` 的类型错误
-- [ ] 阶段 2 完成后运行测试
+- [x] 修复 `harness/debug/debugger.py` 的类型错误（23 个错误）
+- [x] 修复 `harness/debug/cli.py` 的类型错误（21 个错误）
+- [x] 修复 `harness/debug/breakpoint.py` 的类型错误
+- [x] 修复 `harness/debug/editor.py` 的类型错误
+- [x] 阶段 2 完成后运行测试
 
 ## 阶段 3: 剩余核心文件
 
