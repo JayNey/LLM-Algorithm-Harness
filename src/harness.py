@@ -296,7 +296,10 @@ class AlgorithmHarness:
                     if difficulty_over and not global_over:
                         # Difficulty-triggered downgrades log here, once per
                         # difficulty; global-triggered ones log in settle_unit.
-                        if allocation_monitor is not None and allocation_monitor.mark_trigger_logged(problem.difficulty):
+                        if (
+                            allocation_monitor is not None
+                            and allocation_monitor.mark_trigger_logged(problem.difficulty)
+                        ):
                             logger.warning(
                                 "difficulty_budget_reached_downgrade",
                                 difficulty=problem.difficulty,
@@ -675,7 +678,9 @@ class AlgorithmHarness:
 
         return report
 
-    def _prepare_strategy_runtime(self, strategy_config: StrategyConfig) -> tuple[Any, SandboxExecutor]:
+    def _prepare_strategy_runtime(
+        self, strategy_config: StrategyConfig
+    ) -> tuple[Any, SandboxExecutor]:
         """Create a strategy runtime after validating the execution backend."""
         sandbox = SandboxExecutor(self.config.sandbox_config)
         preflight_ok, preflight_detail = sandbox.health_check()

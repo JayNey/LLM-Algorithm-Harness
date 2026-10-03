@@ -51,7 +51,10 @@ class CodeQualityAnalyzer:
         self.style_analyzer = StyleConsistencyAnalyzer() if enable_style else None
 
     def analyze(
-        self, code: str, problem: Problem | None = None, sandbox_executor: "SandboxExecutor | None" = None
+        self,
+        code: str,
+        problem: Problem | None = None,
+        sandbox_executor: "SandboxExecutor | None" = None,
     ) -> CodeQualityMetrics:
         """
         Perform comprehensive code quality analysis.

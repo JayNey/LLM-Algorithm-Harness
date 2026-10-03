@@ -185,7 +185,9 @@ class MultiRoundFeedbackStrategy(StrategyBase):
             "process_limit",
             "sandbox_error",
             "unsupported",
-        ] = "success" if primary.all_passed and feedback.all_passed else "failed"
+        ] = (
+            "success" if primary.all_passed and feedback.all_passed else "failed"
+        )
         resource_statuses = {
             "timeout",
             "memory_error",

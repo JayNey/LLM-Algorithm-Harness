@@ -225,7 +225,9 @@ Previous reflections:
             "process_limit",
             "sandbox_error",
             "unsupported",
-        ] = "success" if all(result.all_passed for result in visible_results) else "failed"
+        ] = (
+            "success" if all(result.all_passed for result in visible_results) else "failed"
+        )
         for result in visible_results:
             if result.status in resource_statuses:
                 status = result.status

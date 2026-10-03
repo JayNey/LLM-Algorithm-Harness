@@ -2078,17 +2078,13 @@ def main() -> None:
                 try:
                     # Merge new results with historical results
                     hist_results: dict[str, list[ExecutionResult]] = incremental_context["historical_results"]  # type: ignore[assignment]
-                    merged_results = merge_results(
-                        harness.results, hist_results
-                    )
+                    merged_results = merge_results(harness.results, hist_results)
                     harness.results = merged_results
 
                     # Rebuild problems_by_id to include historical problems
                     if hasattr(harness, "problems_by_id"):
                         historical_problem_ids = (
-                            hist_results.get(
-                                list(hist_results.keys())[0], []
-                            )
+                            hist_results.get(list(hist_results.keys())[0], [])
                             if hist_results
                             else []
                         )
@@ -2117,9 +2113,9 @@ def main() -> None:
                         )
                     reports = merged_reports
 
-                    unchanged_count = len(incremental_context.get('unchanged', []))  # type: ignore[arg-type]
-                    added_count = len(incremental_context.get('added', []))  # type: ignore[arg-type]
-                    modified_count = len(incremental_context.get('modified', []))  # type: ignore[arg-type]
+                    unchanged_count = len(incremental_context.get("unchanged", []))  # type: ignore[arg-type]
+                    added_count = len(incremental_context.get("added", []))  # type: ignore[arg-type]
+                    modified_count = len(incremental_context.get("modified", []))  # type: ignore[arg-type]
                     print(
                         f"\n✓ Merged {unchanged_count} historical results "
                         f"with {added_count + modified_count} new results"
@@ -2165,7 +2161,8 @@ def main() -> None:
                         # Calculate problem and success counts
                         problem_count = len(harness.results.get(strategy_name, []))
                         success_count = sum(
-                            1 for r in harness.results.get(strategy_name, [])
+                            1
+                            for r in harness.results.get(strategy_name, [])
                             if r.status == "success"
                         )
 
@@ -2191,10 +2188,10 @@ def main() -> None:
                 if harness.cost_monitor is not None:
                     snapshot = harness.cost_monitor.snapshot()
                     cap_text = (
-                    f"${snapshot['budget_cap_usd']}"
-                    if snapshot["budget_cap_usd"] is not None
-                    else "no cap"
-                )
+                        f"${snapshot['budget_cap_usd']}"
+                        if snapshot["budget_cap_usd"] is not None
+                        else "no cap"
+                    )
                 print(
                     f"Cost control: accumulated ${snapshot['accumulated_cost_usd']:.4f} "
                     f"of {cap_text}; "

@@ -35,7 +35,10 @@ class TimeComplexityAnalyzer:
         self.timeout_seconds = timeout_seconds
 
     def analyze(
-        self, code: str, problem: Problem | None = None, sandbox_executor: "SandboxExecutor | None" = None
+        self,
+        code: str,
+        problem: Problem | None = None,
+        sandbox_executor: "SandboxExecutor | None" = None,
     ) -> TimeComplexityScore:
         """
         Analyze time complexity of code.

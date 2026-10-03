@@ -357,14 +357,17 @@ Your response should include the code in a ```python code block.
         iterations: list,
         final_result: SandboxResult | None,
         success: bool,
-    ) -> Literal[
-        "wrong_answer",
-        "code_extraction_failed",
-        "model_error",
-        "system_error",
-        "unsupported",
-        "budget_exhausted",
-    ] | None:
+    ) -> (
+        Literal[
+            "wrong_answer",
+            "code_extraction_failed",
+            "model_error",
+            "system_error",
+            "unsupported",
+            "budget_exhausted",
+        ]
+        | None
+    ):
         """
         Classify why an unsuccessful execution failed.
 
@@ -453,15 +456,17 @@ Your response should include the code in a ```python code block.
         final_result: SandboxResult | None,
         success: bool,
         llm_responses: list[LLMResponse] | None = None,
-        failure_category: Literal[
-            "wrong_answer",
-            "code_extraction_failed",
-            "model_error",
-            "system_error",
-            "unsupported",
-            "budget_exhausted",
-        ]
-        | None = None,
+        failure_category: (
+            Literal[
+                "wrong_answer",
+                "code_extraction_failed",
+                "model_error",
+                "system_error",
+                "unsupported",
+                "budget_exhausted",
+            ]
+            | None
+        ) = None,
         execution_time_seconds: float | None = None,
     ) -> ExecutionResult:
         """
