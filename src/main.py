@@ -9,6 +9,8 @@ import sys
 from datetime import datetime
 from pathlib import Path
 
+from pydantic import SecretStr
+
 from src.failure_report import (
     render_failure_mode_chart,
     render_failure_mode_markdown,
@@ -234,7 +236,7 @@ def create_default_config(dataset_path: str, output_dir: str) -> HarnessConfig:
         output_dir=output_dir,
         llm_config=LLMConfig(
             provider="openai",
-            api_key="",  # Will use environment variable
+            api_key=SecretStr(""),  # Will use environment variable
             model="gpt-3.5-turbo",
             temperature=0.7,
             max_tokens=2000,
@@ -253,7 +255,7 @@ def create_default_config(dataset_path: str, output_dir: str) -> HarnessConfig:
     )
 
 
-def print_report(reports: dict):
+def print_report(reports: dict) -> None:
     """
     Print evaluation reports.
 
@@ -306,7 +308,7 @@ def save_results(
     harness: AlgorithmHarness,
     config: HarnessConfig,
     incremental_context: dict | None = None,
-):
+) -> None:
     """
     Save results to a timestamped run directory.
 
@@ -446,7 +448,7 @@ def save_results(
             "timestamp": datetime.now().isoformat(),
             "state": "paused",
             "reason": "known_cost_reached_budget_cap",
-            **cost_monitor.snapshot(),
+            **(cost_monitor.snapshot() if cost_monitor is not None else {}),
             "completed_units": task_record.completed_units,
             "queued_units": sum(unit.status == "queued" for unit in task_record.units),
             "total_units": task_record.total_units,
@@ -513,7 +515,7 @@ def run_import_command(args: argparse.Namespace) -> int:
         # Instantiate importer
         importer_class = IMPORTERS[source_name]
         if source_name == "codeforces":
-            tags = []
+            tags: list[str] = []
             for value in args.tags or []:
                 tags.extend(item.strip() for item in value.split(",") if item.strip())
             importer = importer_class(
