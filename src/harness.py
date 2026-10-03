@@ -42,7 +42,7 @@ from src.strategies.multi_round_feedback import MultiRoundFeedbackStrategy
 from src.strategies.reflexion import ReflexionStrategy
 from src.strategies.self_consistency import SelfConsistencyStrategy
 from src.strategies.vanilla import VanillaStrategy
-from src.task_service import TaskService, TaskUnit
+from src.task_service import TaskRecord, TaskService, TaskUnit
 from src.utils.logging import get_logger
 from src.utils.secrets import redact_sensitive_text
 
@@ -78,10 +78,11 @@ class AlgorithmHarness:
         self.results: dict[str, list[ExecutionResult]] = {}
         self.problem_totals: dict[str, int] = {}
         self.problems_by_id: dict[str, Problem] = {}
-        self.task_record = None
+        self.task_record: TaskRecord | None = None
         self._results_lock = threading.Lock()
 
         # Initialize quality analyzer based on config
+        self.quality_analyzer: CodeQualityAnalyzer | None
         if config.enable_quality_analysis:
             quality_config = config.quality_analysis_config or {}
             self.quality_analyzer = CodeQualityAnalyzer(
@@ -272,7 +273,7 @@ class AlgorithmHarness:
             service.fail(record.run_id, redact_sensitive_text(str(exc)))
             raise
 
-        def worker(unit: TaskUnit):
+        def worker(unit: TaskUnit) -> ExecutionResult:
             strategy_config = strategy_map[unit.strategy]
             problem = problem_map[unit.problem_id]
             strategy, sandbox = runtimes[unit.strategy]
@@ -282,6 +283,8 @@ class AlgorithmHarness:
                 problem.difficulty
             )
             if global_over or difficulty_over:
+                if selector is None:
+                    raise RuntimeError("selector is None but budget downgrade is enabled")
                 cheapest = selector.cheapest_strategy
                 if cheapest != unit.strategy:
                     strategy_config = strategy_map[cheapest]
@@ -293,12 +296,15 @@ class AlgorithmHarness:
                     if difficulty_over and not global_over:
                         # Difficulty-triggered downgrades log here, once per
                         # difficulty; global-triggered ones log in settle_unit.
-                        if allocation_monitor.mark_trigger_logged(problem.difficulty):
+                        if (
+                            allocation_monitor is not None
+                            and allocation_monitor.mark_trigger_logged(problem.difficulty)
+                        ):
                             logger.warning(
                                 "difficulty_budget_reached_downgrade",
                                 difficulty=problem.difficulty,
                                 budget_cap_usd=float(
-                                    allocation_monitor.cap_for(problem.difficulty)
+                                    allocation_monitor.cap_for(problem.difficulty) or 0
                                 ),
                                 accumulated_cost_usd=(
                                     allocation_monitor.snapshot()
@@ -444,13 +450,13 @@ class AlgorithmHarness:
                 for unit in self.task_record.units
                 if unit.strategy == strategy_config.name and unit.result is not None
             }
-            results = []
+            strategy_results: list[ExecutionResult] = []
             for problem in problems:
-                result = results_by_problem.get(problem.problem_id)
-                if result is None:
+                exec_result: ExecutionResult | None = results_by_problem.get(problem.problem_id)
+                if exec_result is None:
                     unit_id = f"{strategy_config.name}:{problem.problem_id}:0"
                     unit = next(item for item in self.task_record.units if item.unit_id == unit_id)
-                    result = ExecutionResult(
+                    exec_result = ExecutionResult(
                         problem_id=problem.problem_id,
                         strategy=strategy_config.name,
                         generated_code="",
@@ -474,10 +480,10 @@ class AlgorithmHarness:
                             else "Task unit did not produce a result"
                         ),
                     )
-                    result = self._annotate_failure_mode(result, problem)
-                results.append(result)
+                    exec_result = self._annotate_failure_mode(exec_result, problem)
+                strategy_results.append(exec_result)
             with self._results_lock:
-                self.results[strategy_config.name] = results
+                self.results[strategy_config.name] = strategy_results
                 self.problem_totals[strategy_config.name] = len(problems)
             reported_ids = (
                 {
@@ -490,7 +496,7 @@ class AlgorithmHarness:
             )
             reports[strategy_config.name] = self._generate_report(
                 strategy_config,
-                [result for result in results if result.problem_id in reported_ids],
+                [result for result in strategy_results if result.problem_id in reported_ids],
                 [problem for problem in problems if problem.problem_id in reported_ids],
             )
         return reports
@@ -536,6 +542,8 @@ class AlgorithmHarness:
         self, problems: list[Problem], selector: CostAwareSelector
     ) -> list[ExecutionResult]:
         """Gather selector-mode results in dataset order, one per problem."""
+        if self.task_record is None:
+            raise RuntimeError("task_record is None")
         unit_by_problem = {unit.problem_id: unit for unit in self.task_record.units}
         results = []
         for problem in problems:
@@ -670,21 +678,29 @@ class AlgorithmHarness:
 
         return report
 
-    def _prepare_strategy_runtime(self, strategy_config: StrategyConfig):
+    def _prepare_strategy_runtime(
+        self, strategy_config: StrategyConfig
+    ) -> tuple[Any, SandboxExecutor]:
         """Create a strategy runtime after validating the execution backend."""
         sandbox = SandboxExecutor(self.config.sandbox_config)
         preflight_ok, preflight_detail = sandbox.health_check()
         if not preflight_ok:
             raise RuntimeError(f"Sandbox preflight failed: {preflight_detail}")
-        llm_client = LLMClient(self.config.llm_config)
+        llm_client: LLMClient | BudgetedLLMClient = LLMClient(self.config.llm_config)
         if self.budget_tracker is not None:
             llm_client = BudgetedLLMClient(llm_client, self.budget_tracker)
         strategy_class = self.STRATEGY_MAP.get(strategy_config.name)
         if not strategy_class:
             raise ValueError(f"Unknown strategy: {strategy_config.name}")
-        return strategy_class(strategy_config, llm_client, sandbox), sandbox
+        return strategy_class(strategy_config, llm_client, sandbox), sandbox  # type: ignore[abstract, arg-type]
 
-    def _execute_problem(self, strategy_config, problem, strategy, sandbox) -> ExecutionResult:
+    def _execute_problem(
+        self,
+        strategy_config: StrategyConfig,
+        problem: Problem,
+        strategy: Any,
+        sandbox: Any,
+    ) -> ExecutionResult:
         """Execute one visible problem and its independent hidden stage."""
         if problem.unsupported_reason:
             return ExecutionResult(
@@ -781,7 +797,7 @@ class AlgorithmHarness:
             result.failure_mode_evidence = ["classifier_error"]
             return result
         if decision is not None:
-            result.failure_mode = decision.mode
+            result.failure_mode = decision.mode  # type: ignore[assignment]
             result.failure_mode_confidence = decision.confidence
             result.failure_mode_evidence = list(decision.evidence)
         return result
@@ -873,7 +889,7 @@ class AlgorithmHarness:
             Tuple of (total_cost_usd, pricing_metadata_dict)
         """
         total_cost = 0.0
-        pricing_metadata = {
+        pricing_metadata: dict[str, Any] = {
             "total_prompt_tokens": 0,
             "total_completion_tokens": 0,
             "total_tokens": 0,
@@ -958,7 +974,7 @@ class AlgorithmHarness:
             Dictionary mapping difficulty level to stats
         """
         # Group results by difficulty (use result.difficulty directly if available)
-        by_difficulty = {}
+        by_difficulty: dict[str, dict[str, Any]] = {}
         for result in results:
             # Prefer result.difficulty (populated in newer runs)
             difficulty = result.difficulty
@@ -984,7 +1000,7 @@ class AlgorithmHarness:
                 )
 
         # Calculate success rates
-        for difficulty, stats in by_difficulty.items():
+        for diff_level, stats in by_difficulty.items():
             if stats["total"] > 0:
                 stats["success_rate"] = stats["solved"] / stats["total"]
 
@@ -1022,7 +1038,7 @@ class AlgorithmHarness:
         Returns:
             Comparison dictionary
         """
-        comparison = {
+        comparison: dict[str, Any] = {
             "strategies": list(self.results.keys()),
             "metrics": {},
         }

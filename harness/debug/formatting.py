@@ -67,7 +67,7 @@ def format_code(code: str, language: str = "python") -> str:
     """
     if PYGMENTS_AVAILABLE and language == "python":
         try:
-            return highlight(code, PythonLexer(), TerminalFormatter())
+            return str(highlight(code, PythonLexer(), TerminalFormatter()))
         except Exception:
             # Fall back to plain text if highlighting fails
             pass

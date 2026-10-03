@@ -3,10 +3,11 @@ Multi-Round Feedback strategy - Iterative refinement with test feedback.
 """
 
 import time
+from typing import Literal
 
 from src.budget import BudgetExhausted
 from src.llm_client import LLMClient
-from src.models import ExecutionResult, Problem, SandboxResult, StrategyConfig
+from src.models import ExecutionResult, LLMResponse, Problem, SandboxResult, StrategyConfig
 from src.sandbox_executor import SandboxExecutor
 from src.strategy_base import StrategyBase
 
@@ -50,7 +51,7 @@ class MultiRoundFeedbackStrategy(StrategyBase):
 
         started = time.perf_counter()
         iterations = []
-        llm_responses = []
+        llm_responses: list[LLMResponse] = []
         final_result = None
         success = False
         budget_stop = None
@@ -78,7 +79,8 @@ class MultiRoundFeedbackStrategy(StrategyBase):
             except Exception as e:
                 llm_error = str(e)
                 self.logger.error("llm_generation_failed", iteration=iteration, error=llm_error)
-            llm_responses.append(llm_response)
+            if llm_response:
+                llm_responses.append(llm_response)
 
             code = None
             sandbox_result = None
@@ -171,7 +173,21 @@ class MultiRoundFeedbackStrategy(StrategyBase):
     @staticmethod
     def _merge_sandbox_results(primary: SandboxResult, feedback: SandboxResult) -> SandboxResult:
         """Combine public and feedback results without involving hidden tests."""
-        status = "success" if primary.all_passed and feedback.all_passed else "failed"
+        status: Literal[
+            "success",
+            "failed",
+            "timeout",
+            "memory_error",
+            "syntax_error",
+            "runtime_error",
+            "backend_unavailable",
+            "output_limit",
+            "process_limit",
+            "sandbox_error",
+            "unsupported",
+        ] = (
+            "success" if primary.all_passed and feedback.all_passed else "failed"
+        )
         resource_statuses = {
             "timeout",
             "memory_error",

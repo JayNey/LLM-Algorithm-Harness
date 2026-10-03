@@ -7,10 +7,10 @@ import re
 import urllib.request
 from datetime import datetime
 from pathlib import Path
-from typing import Any
+from typing import Any, Literal, cast
 
 from src.importers.base import ImportResult, ProblemImporter
-from src.models import Problem
+from src.models import Problem, TestCase
 from src.utils.logging import get_logger
 
 logger = get_logger(__name__)
@@ -123,8 +123,9 @@ class LiveCodeBenchImporter(ProblemImporter):
             notes.append(
                 "Public and hidden tests use different protocols; review input_output_mode manually."
             )
-        input_output_mode = next(iter(modes), "function")
-        entry_point = self._entry_point(record, metadata, input_output_mode)
+        input_output_mode_str = next(iter(modes), "function")
+        input_output_mode = cast(Literal["function", "stdin_stdout"], input_output_mode_str)
+        entry_point = self._entry_point(record, metadata, input_output_mode_str)
         if not entry_point:
             entry_point = (
                 "main()" if input_output_mode == "stdin_stdout" else "solution(**test_input)"
@@ -144,6 +145,13 @@ class LiveCodeBenchImporter(ProblemImporter):
                 "limit": self.limit,
             },
         }
+
+        difficulty_str = str(record.get("difficulty") or "medium").lower()
+        difficulty = cast(Literal["easy", "medium", "hard"], difficulty_str)
+
+        public_test_cases = [TestCase(**case) for case in public_cases]
+        hidden_test_cases = [TestCase(**case) for case in hidden_cases]
+
         return Problem(
             schema_version="1.1",
             problem_id=f"livecodebench-{question_id}",
@@ -152,7 +160,7 @@ class LiveCodeBenchImporter(ProblemImporter):
                 record.get("question_content")
                 or "LiveCodeBench question requires manual completion."
             ),
-            difficulty=str(record.get("difficulty") or "medium").lower(),
+            difficulty=difficulty,
             tags=[],
             source_platform="livecodebench",
             source_problem_id=question_id,
@@ -160,8 +168,8 @@ class LiveCodeBenchImporter(ProblemImporter):
             source_metadata=source_metadata,
             input_output_mode=input_output_mode,
             entry_point=entry_point,
-            public_test_cases=public_cases,
-            hidden_test_cases=hidden_cases,
+            public_test_cases=public_test_cases,
+            hidden_test_cases=hidden_test_cases,
             needs_manual_completion=bool(notes or not public_cases),
             manual_completion_notes=notes,
         )
@@ -257,12 +265,16 @@ class LiveCodeBenchImporter(ProblemImporter):
         match = re.search(r"(?:def|function)\s+([A-Za-z_]\w*)\s*\(", starter)
         return f"{match.group(1)}(**test_input)" if match else None
 
-    def detect_duplicates(self, problems, existing_problems, update_strategy):
+    def detect_duplicates(
+        self, problems: list[Problem], existing_problems: list[Problem], update_strategy: str
+    ) -> tuple[list[Problem], list[str], list[str]]:
         from src.importers.local_json import LocalJsonImporter
 
         return LocalJsonImporter().detect_duplicates(problems, existing_problems, update_strategy)
 
-    def generate_report(self, result: ImportResult, source: str, output_path: str, preview: bool):
+    def generate_report(
+        self, result: ImportResult, source: str, output_path: str, preview: bool
+    ) -> dict[str, Any]:
         return {
             "timestamp": datetime.now().isoformat(),
             "source": "livecodebench",

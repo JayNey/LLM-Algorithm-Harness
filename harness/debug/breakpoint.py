@@ -8,7 +8,7 @@ class BreakpointManager:
 
     VALID_LOCATIONS = {"generate", "execute", "feedback"}
 
-    def __init__(self):
+    def __init__(self) -> None:
         """Initialize breakpoint manager with no breakpoints enabled."""
         self._enabled_breakpoints: set[str] = set()
 

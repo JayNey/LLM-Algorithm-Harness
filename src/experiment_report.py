@@ -174,7 +174,10 @@ def _group_rates(
     """Group pass rates by a problem attribute; tags allow multiple groups."""
     groups: dict[str, dict[str, int]] = {}
     for r in results:
-        info = problem_info.get(r.get("problem_id"), {})
+        problem_id = r.get("problem_id")
+        if not isinstance(problem_id, str):
+            continue
+        info = problem_info.get(problem_id, {})
         values = info.get(attr) or []
         if isinstance(values, str):
             values = [values]
@@ -410,7 +413,9 @@ def _majority_solved(
     for combo in model_combos:
         for result in raw_results.get(combo["combo_id"], []):
             record = per_repeat.setdefault(combo["repeat"], {})
-            record[result.get("problem_id")] = result.get("status") == "success"
+            problem_id = result.get("problem_id")
+            if isinstance(problem_id, str):
+                record[problem_id] = result.get("status") == "success"
     total = len(per_repeat.values())
     return {
         problem_id: sum(1 for rep in per_repeat.values() if rep.get(problem_id)) > total / 2

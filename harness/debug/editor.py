@@ -91,7 +91,7 @@ def _edit_inline(current_prompt: str) -> str | None:
     print("Or type 'cancel' on first line to abort editing.")
     print()
 
-    lines = []
+    lines: list[str] = []
     try:
         while True:
             try:

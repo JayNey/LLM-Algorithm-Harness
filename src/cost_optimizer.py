@@ -138,7 +138,7 @@ def optimize_budget(
     for layer in DIFFICULTY_LAYERS:
         candidates = []
         for row in rows:
-            by_difficulty = {}
+            by_difficulty: dict[str, Any] = {}
             for combo in comparison.get("combinations", []):
                 if combo.get("model") == row["model"] and combo.get("strategy") == row["strategy"]:
                     by_difficulty = combo.get("by_difficulty") or {}

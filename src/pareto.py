@@ -189,7 +189,7 @@ def build_pareto_analysis(
             seen.add(identity)
             groups[(model, strategy, variant)].append({"source": source, "row": combo})
 
-    internal = []
+    internal: list[dict[str, Any]] = []
     denominator_pairs = set()
     for (model, strategy, variant), records in sorted(groups.items()):
         observations = []
@@ -295,7 +295,7 @@ def build_pareto_analysis(
                 ),
             }
         )
-    return redact_sensitive_data(
+    result: dict[str, Any] = redact_sensitive_data(
         {
             "schema_version": "1.0",
             "accuracy_metric": accuracy_metric,
@@ -316,6 +316,7 @@ def build_pareto_analysis(
             "note": "Historical means and ranges are descriptive, not guaranteed future accuracy or billing.",
         }
     )
+    return result
 
 
 def _cell(value: Any) -> str:

@@ -169,7 +169,7 @@ class RecommendationEngine:
                 for dimension in item["expected_improvement_dimensions"]
             }
         )
-        return redact_sensitive_data(
+        result: dict[str, Any] = redact_sensitive_data(
             {
                 "schema_version": "1.0",
                 "generated_at": datetime.now(timezone.utc).isoformat(),
@@ -192,6 +192,7 @@ class RecommendationEngine:
                 },
             }
         )
+        return result
 
     def write(self, output_path: str | Path, *, limit: int = 20) -> dict[str, Any]:
         """Write report JSON and a directly usable recommended dataset beside it."""
@@ -235,7 +236,8 @@ class RecommendationEngine:
                 candidates.extend([Path(value), path.parent / value])
         for candidate in candidates:
             if candidate.exists():
-                return candidate
+                result_path: Path = candidate
+                return result_path
         raise ValueError(
             "Dataset path is required when history metadata does not contain an existing dataset_path"
         )

@@ -86,7 +86,7 @@ class Problem(BaseModel):
     )
     entry_point: str = Field("solution(**test_input)", description="Execution entry signature")
     judge_config: JudgeConfig = Field(
-        default_factory=lambda: JudgeConfig(),  # type: ignore[call-arg]
+        default_factory=lambda: JudgeConfig(),
         description="Problem-level judge configuration",
     )
     unsupported_reason: str | None = Field(
@@ -576,7 +576,7 @@ class LLMConfig(BaseModel):
         description="Maximum wall-clock time spent retrying one request",
     )
     cache: CacheConfig = Field(
-        default_factory=lambda: CacheConfig(),  # type: ignore[call-arg]
+        default_factory=lambda: CacheConfig(),
         description="Cache configuration",
     )
 
@@ -682,7 +682,7 @@ class ExperimentConfig(BaseModel):
         description="Upper bound of concurrently executed combinations in parallel mode",
     )
     sandbox_config: SandboxConfig = Field(
-        default_factory=lambda: SandboxConfig(),  # type: ignore[call-arg]
+        default_factory=lambda: SandboxConfig(),
         description="Sandbox configuration",
     )
     problem_filters: dict[str, Any] | None = Field(
@@ -763,7 +763,7 @@ class HarnessConfig(BaseModel):
 
     llm_config: LLMConfig = Field(..., description="LLM configuration")
     sandbox_config: SandboxConfig = Field(
-        default_factory=lambda: SandboxConfig(),  # type: ignore[call-arg]
+        default_factory=lambda: SandboxConfig(),
         description="Sandbox configuration",
     )
     dataset_path: str = Field(..., description="Path to problem dataset directory or JSON file")

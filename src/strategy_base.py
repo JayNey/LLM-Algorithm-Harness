@@ -4,6 +4,7 @@ Base strategy interface and common utilities.
 
 import re
 from abc import ABC, abstractmethod
+from typing import Literal
 
 from src.llm_client import LLMClient
 from src.models import (
@@ -356,7 +357,17 @@ Your response should include the code in a ```python code block.
         iterations: list,
         final_result: SandboxResult | None,
         success: bool,
-    ) -> str | None:
+    ) -> (
+        Literal[
+            "wrong_answer",
+            "code_extraction_failed",
+            "model_error",
+            "system_error",
+            "unsupported",
+            "budget_exhausted",
+        ]
+        | None
+    ):
         """
         Classify why an unsuccessful execution failed.
 
@@ -445,7 +456,17 @@ Your response should include the code in a ```python code block.
         final_result: SandboxResult | None,
         success: bool,
         llm_responses: list[LLMResponse] | None = None,
-        failure_category: str | None = None,
+        failure_category: (
+            Literal[
+                "wrong_answer",
+                "code_extraction_failed",
+                "model_error",
+                "system_error",
+                "unsupported",
+                "budget_exhausted",
+            ]
+            | None
+        ) = None,
         execution_time_seconds: float | None = None,
     ) -> ExecutionResult:
         """

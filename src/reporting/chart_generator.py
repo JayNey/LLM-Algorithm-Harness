@@ -5,6 +5,7 @@ Chart generation module using matplotlib.
 import base64
 import io
 import logging
+from typing import Any
 
 import matplotlib
 import numpy as np
@@ -75,7 +76,7 @@ class ChartGenerator:
         return cost
 
     @staticmethod
-    def _setup_chinese_font():
+    def _setup_chinese_font() -> None:
         """Setup Chinese font with fallback strategy."""
         fonts = ["SimHei", "Arial Unicode MS", "DejaVu Sans"]
         available_fonts = [f.name for f in fm.fontManager.ttflist]
@@ -89,7 +90,7 @@ class ChartGenerator:
         plt.rcParams["axes.unicode_minus"] = False
 
     @staticmethod
-    def _fig_to_base64(fig) -> str:
+    def _fig_to_base64(fig: Any) -> str:
         """Convert matplotlib figure to base64 encoded string."""
         buf = io.BytesIO()
         fig.savefig(buf, format="png", dpi=100, bbox_inches="tight")
@@ -99,7 +100,7 @@ class ChartGenerator:
         return base64_str
 
     @staticmethod
-    def _fig_to_bytes(fig) -> io.BytesIO:
+    def _fig_to_bytes(fig: Any) -> io.BytesIO:
         """Convert matplotlib figure to BytesIO."""
         buf = io.BytesIO()
         fig.savefig(buf, format="png", dpi=100, bbox_inches="tight")
@@ -193,9 +194,9 @@ class ChartGenerator:
             avg_tokens = [metrics[s].get("avg_tokens_per_problem", 0) for s in strategies]
 
             # Calculate percentiles if results are provided
-            percentile_25 = []
-            percentile_75 = []
-            avg_costs = []
+            percentile_25: list[float] = []
+            percentile_75: list[float] = []
+            avg_costs: list[float] = []
 
             if results:
                 for strategy in strategies:
@@ -226,20 +227,20 @@ class ChartGenerator:
                         if token_counts:
                             p25 = np.percentile(token_counts, 25)
                             p75 = np.percentile(token_counts, 75)
-                            percentile_25.append(p25)
-                            percentile_75.append(p75)
+                            percentile_25.append(float(p25))
+                            percentile_75.append(float(p75))
 
                             # Calculate average cost
-                            avg_cost = np.mean(costs) if costs else 0
-                            avg_costs.append(avg_cost)
+                            avg_cost = np.mean(costs) if costs else 0.0
+                            avg_costs.append(float(avg_cost))
                         else:
-                            percentile_25.append(0)
-                            percentile_75.append(0)
-                            avg_costs.append(0)
+                            percentile_25.append(0.0)
+                            percentile_75.append(0.0)
+                            avg_costs.append(0.0)
                     else:
-                        percentile_25.append(0)
-                        percentile_75.append(0)
-                        avg_costs.append(0)
+                        percentile_25.append(0.0)
+                        percentile_75.append(0.0)
+                        avg_costs.append(0.0)
 
             # If no results provided, estimate cost using 70/30 split
             use_estimated_split = False
@@ -274,17 +275,20 @@ class ChartGenerator:
             # Add error bars if percentiles are available
             if percentile_25 and percentile_75:
                 # Validate percentiles and recalculate avg from results if inconsistent
-                yerr_lower = []
-                yerr_upper = []
+                yerr_lower: list[float] = []
+                yerr_upper: list[float] = []
 
-                for i, (avg, p25, p75) in enumerate(zip(avg_tokens, percentile_25, percentile_75)):
+                for i, (avg, p25, p75) in enumerate(zip(avg_tokens, percentile_25, percentile_75)):  # type: ignore[assignment]
+                    avg_float = float(avg)
+                    p25_float = float(p25)
+                    p75_float = float(p75)
                     # Check for data consistency: p25 should be <= avg <= p75
                     # If not, it means metrics and results are from different datasets
-                    if p25 > 0 and p75 > 0:
+                    if p25_float > 0 and p75_float > 0:
                         # If percentiles seem valid but don't bracket avg, log warning
-                        if p25 <= avg <= p75:
-                            yerr_lower.append(avg - p25)
-                            yerr_upper.append(p75 - avg)
+                        if p25_float <= avg_float <= p75_float:
+                            yerr_lower.append(avg_float - p25_float)
+                            yerr_upper.append(p75_float - avg_float)
                         else:
                             # Inconsistent data - log warning and skip error bars for this strategy
                             strategy_name = (
@@ -292,11 +296,11 @@ class ChartGenerator:
                             )
                             logger.warning(
                                 f"Token chart: percentiles don't bracket average for {strategy_name} "
-                                f"(p25={p25:.0f}, avg={avg:.0f}, p75={p75:.0f}). "
+                                f"(p25={p25_float:.0f}, avg={avg_float:.0f}, p75={p75_float:.0f}). "
                                 f"This suggests metrics and results are from different datasets. Skipping error bars."
                             )
-                            yerr_lower.append(0)
-                            yerr_upper.append(0)
+                            yerr_lower.append(0.0)
+                            yerr_upper.append(0.0)
                     else:
                         # No percentile data for this strategy
                         yerr_lower.append(0)
@@ -423,7 +427,7 @@ class ChartGenerator:
             num_strategies = len(strategy_names)
 
             # Count frequency for each iteration number per strategy
-            frequency_data = {}
+            frequency_data: dict[str, list[int]] = {}
             for strategy_name in strategy_names:
                 iterations = iteration_data[strategy_name]
                 frequency_data[strategy_name] = []
@@ -470,7 +474,7 @@ class ChartGenerator:
             ax.set_ylabel("Number of Problems", fontsize=12)
             ax.set_title("Iteration Count Distribution", fontsize=14, fontweight="bold")
             ax.set_xticks(x_positions)
-            ax.set_xticklabels(iteration_categories)
+            ax.set_xticklabels([str(i) for i in iteration_categories])
             ax.legend(loc="upper right")
             ax.grid(axis="y", linestyle="--", alpha=0.3)
 

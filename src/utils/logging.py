@@ -4,15 +4,20 @@ Logging utilities for structured logging.
 
 import logging
 import sys
+from collections.abc import MutableMapping
+from typing import Any, cast
 
 import structlog
 
 from src.utils.secrets import redact_sensitive_data
 
 
-def redact_sensitive_event(logger, method_name, event_dict):
+def redact_sensitive_event(
+    logger: Any, method_name: str, event_dict: MutableMapping[str, Any]
+) -> MutableMapping[str, Any]:
     """Structlog processor that recursively removes credentials."""
-    return redact_sensitive_data(event_dict)
+    redacted = redact_sensitive_data(event_dict)
+    return redacted if isinstance(redacted, MutableMapping) else event_dict
 
 
 def setup_logging(
@@ -95,4 +100,4 @@ def get_logger(name: str) -> structlog.BoundLogger:
     Returns:
         Configured structlog logger
     """
-    return structlog.get_logger(name)
+    return cast(structlog.BoundLogger, structlog.get_logger(name))

@@ -4,6 +4,7 @@ Interactive debugger main loop using cmd.Cmd.
 
 import cmd
 import shlex
+from typing import Any
 
 from harness.debug.breakpoint import BreakpointManager
 from harness.debug.editor import edit_prompt
@@ -49,14 +50,14 @@ Type 'help <command>' for detailed help on a specific command.
         self.should_exit = False
         self.modified_prompt: str | None = None
         self.injected_text: str | None = None
-        self.param_overrides = {}
+        self.param_overrides: dict[str, Any] = {}
         self.strategy = None  # Set externally by CLI
         self.problem = None  # Set externally by CLI
         self.result = None  # Stores execution result{}
 
     # ===== Execution control commands =====
 
-    def do_run(self, arg):
+    def do_run(self, arg: str) -> None:
         """Execute the strategy on the problem."""
         if not self.strategy or not self.problem:
             print("✗ Strategy or problem not initialized")
@@ -74,13 +75,13 @@ Type 'help <command>' for detailed help on a specific command.
         except Exception as e:
             print(f"✗ Execution failed: {e}")
 
-    def do_next(self, arg):
+    def do_next(self, arg: str) -> bool:
         """Execute the next step and pause."""
         print("Executing next step...")
         self.continue_execution = True
         return True  # Exit cmdloop
 
-    def do_continue(self, arg):
+    def do_continue(self, arg: str) -> bool:
         """Continue execution until next breakpoint or completion."""
         print("Continuing to next breakpoint...")
         self.continue_execution = True
@@ -88,7 +89,7 @@ Type 'help <command>' for detailed help on a specific command.
         # (handled by caller checking continue_execution flag)
         return True  # Exit cmdloop
 
-    def do_skip(self, arg):
+    def do_skip(self, arg: str) -> bool:
         """Skip the current step and continue."""
         print("Skipping current step...")
         self.skip_current = True
@@ -97,7 +98,7 @@ Type 'help <command>' for detailed help on a specific command.
 
     # ===== Breakpoint management =====
 
-    def do_break(self, arg):
+    def do_break(self, arg: str) -> None:
         """
         Enable a breakpoint at the specified location.
         Usage: break <location>
@@ -115,7 +116,7 @@ Type 'help <command>' for detailed help on a specific command.
             print(f"✗ Invalid location '{location}'")
             print("Available locations: generate, execute, feedback")
 
-    def do_unbreak(self, arg):
+    def do_unbreak(self, arg: str) -> None:
         """
         Disable a breakpoint at the specified location.
         Usage: unbreak <location>
@@ -130,7 +131,7 @@ Type 'help <command>' for detailed help on a specific command.
         else:
             print(f"✗ Invalid location '{location}'")
 
-    def do_breakpoints(self, arg):
+    def do_breakpoints(self, arg: str) -> None:
         """List all enabled breakpoints."""
         enabled = self.breakpoint_manager.get_enabled()
         if enabled:
@@ -142,7 +143,7 @@ Type 'help <command>' for detailed help on a specific command.
 
     # ===== Prompt and parameter modification =====
 
-    def do_edit_prompt(self, arg):
+    def do_edit_prompt(self, arg: str) -> None:
         """
         Edit the prompt for the next round.
         Opens your $EDITOR or provides inline input mode.
@@ -162,7 +163,7 @@ Type 'help <command>' for detailed help on a specific command.
         else:
             print("\n✗ Prompt not modified")
 
-    def do_set(self, arg):
+    def do_set(self, arg: str) -> None:
         """
         Set a strategy parameter.
         Usage: set <param> <value>
@@ -200,7 +201,7 @@ Type 'help <command>' for detailed help on a specific command.
         self.param_overrides[param] = value
         print(f"✓ Set {param} = {value}")
 
-    def do_inject(self, arg):
+    def do_inject(self, arg: str) -> None:
         """
         Inject custom text into the next prompt.
         Usage: inject "<text>"
@@ -217,7 +218,7 @@ Type 'help <command>' for detailed help on a specific command.
 
     # ===== Trace inspection =====
 
-    def do_trace(self, arg):
+    def do_trace(self, arg: str) -> None:
         """
         Display execution trace.
         Usage: trace [round_number]
@@ -233,7 +234,7 @@ Type 'help <command>' for detailed help on a specific command.
             except ValueError:
                 print(f"Invalid round number: {arg}")
 
-    def do_export(self, arg):
+    def do_export(self, arg: str) -> None:
         """
         Export trace to JSON file.
         Usage: export <filepath>
@@ -250,20 +251,20 @@ Type 'help <command>' for detailed help on a specific command.
 
     # ===== Exit commands =====
 
-    def do_exit(self, arg):
+    def do_exit(self, arg: str) -> bool:
         """Exit the debugging session."""
         return self._handle_exit()
 
-    def do_quit(self, arg):
+    def do_quit(self, arg: str) -> bool:
         """Exit the debugging session."""
         return self._handle_exit()
 
-    def do_EOF(self, arg):
+    def do_EOF(self, arg: str) -> bool:
         """Handle Ctrl+D to exit."""
         print()  # New line after EOF
         return self._handle_exit()
 
-    def _handle_exit(self):
+    def _handle_exit(self) -> bool:
         """Handle exit with optional trace save prompt."""
         if self.trace_recorder.get_round_count() > 0:
             response = input("\nSave trace before exiting? (y/n): ").strip().lower()
@@ -282,7 +283,7 @@ Type 'help <command>' for detailed help on a specific command.
 
     # ===== Helper commands =====
 
-    def do_status(self, arg):
+    def do_status(self, arg: str) -> None:
         """Show current debugging status."""
         print("\n" + "=" * 60)
         print("Debugging Status")
@@ -311,11 +312,11 @@ Type 'help <command>' for detailed help on a specific command.
 
         print("=" * 60 + "\n")
 
-    def emptyline(self):
+    def emptyline(self) -> bool:
         """Override to do nothing on empty line instead of repeating last command."""
-        pass
+        return False
 
-    def default(self, line):
+    def default(self, line: str) -> None:
         """Handle unknown commands."""
         print(f"Unknown command: {line}")
         print("Type 'help' for available commands.")

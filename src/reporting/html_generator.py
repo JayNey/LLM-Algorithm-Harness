@@ -7,6 +7,7 @@ import logging
 import traceback
 from datetime import datetime
 from pathlib import Path
+from typing import Any
 
 from src.models import ExecutionResult
 from src.reporting.chart_generator import ChartGenerator
@@ -395,7 +396,7 @@ class HTMLGenerator:
         results: dict[str, list[ExecutionResult]],
         output_path: str,
         include_charts: bool = True,
-        config: dict = None,
+        config: dict[Any, Any] | None = None,
     ) -> str:
         """
         Generate self-contained HTML report.

@@ -8,6 +8,9 @@ import math
 import sys
 from datetime import datetime
 from pathlib import Path
+from typing import Any
+
+from pydantic import SecretStr
 
 from src.failure_report import (
     render_failure_mode_chart,
@@ -234,7 +237,7 @@ def create_default_config(dataset_path: str, output_dir: str) -> HarnessConfig:
         output_dir=output_dir,
         llm_config=LLMConfig(
             provider="openai",
-            api_key="",  # Will use environment variable
+            api_key=SecretStr(""),  # Will use environment variable
             model="gpt-3.5-turbo",
             temperature=0.7,
             max_tokens=2000,
@@ -253,7 +256,7 @@ def create_default_config(dataset_path: str, output_dir: str) -> HarnessConfig:
     )
 
 
-def print_report(reports: dict):
+def print_report(reports: dict) -> None:
     """
     Print evaluation reports.
 
@@ -306,7 +309,7 @@ def save_results(
     harness: AlgorithmHarness,
     config: HarnessConfig,
     incremental_context: dict | None = None,
-):
+) -> None:
     """
     Save results to a timestamped run directory.
 
@@ -446,7 +449,7 @@ def save_results(
             "timestamp": datetime.now().isoformat(),
             "state": "paused",
             "reason": "known_cost_reached_budget_cap",
-            **cost_monitor.snapshot(),
+            **(cost_monitor.snapshot() if cost_monitor is not None else {}),
             "completed_units": task_record.completed_units,
             "queued_units": sum(unit.status == "queued" for unit in task_record.units),
             "total_units": task_record.total_units,
@@ -513,7 +516,7 @@ def run_import_command(args: argparse.Namespace) -> int:
         # Instantiate importer
         importer_class = IMPORTERS[source_name]
         if source_name == "codeforces":
-            tags = []
+            tags: list[str] = []
             for value in args.tags or []:
                 tags.extend(item.strip() for item in value.split(",") if item.strip())
             importer = importer_class(
@@ -1112,7 +1115,7 @@ def run_runs_command(args: argparse.Namespace) -> int:
     return 0
 
 
-def _run_runs_clean(service: TaskService, records, confirm: bool) -> int:
+def _run_runs_clean(service: TaskService, records: list[Any], confirm: bool) -> int:
     """Delete task state files of completed runs; never unfinished ones."""
     from src.runs import FINISHED_STATES
 
@@ -1197,7 +1200,7 @@ def run_benchmark_command(args: argparse.Namespace) -> int:
         print(f"  Frozen: {suite.frozen}")
 
         # Load harness config
-        config = load_config()
+        config = load_config(str(Path("config.yaml")))
         if not config:
             print("Error: No configuration found. Please provide a config file.", file=sys.stderr)
             return 1
@@ -1306,7 +1309,7 @@ def run_tags_normalize_command(args: argparse.Namespace) -> int:
         return 1
 
 
-def main():
+def main() -> None:
     """Main entry point."""
     parser = argparse.ArgumentParser(
         description="LLM Algorithm Harness - Evaluate LLM problem-solving strategies"
@@ -2070,45 +2073,52 @@ def main():
             # Merge incremental results if applicable
             if incremental_context and incremental_context.get("enabled"):
                 from src.incremental.merger import merge_results, update_incremental_history
+                from src.models import ExecutionResult
 
                 try:
                     # Merge new results with historical results
-                    merged_results = merge_results(
-                        harness.results, incremental_context["historical_results"]
-                    )
+                    hist_results: dict[str, list[ExecutionResult]] = incremental_context["historical_results"]  # type: ignore[assignment]
+                    merged_results = merge_results(harness.results, hist_results)
                     harness.results = merged_results
 
                     # Rebuild problems_by_id to include historical problems
                     if hasattr(harness, "problems_by_id"):
                         historical_problem_ids = (
-                            incremental_context["historical_results"].get(
-                                list(incremental_context["historical_results"].keys())[0], []
-                            )
-                            if incremental_context["historical_results"]
+                            hist_results.get(list(hist_results.keys())[0], [])
+                            if hist_results
                             else []
                         )
                         # Historical problems are already in problems_by_id from loader
                         # No action needed as we loaded all problems initially
 
                     # Recalculate reports with merged results
-                    from src.harness import StrategyReport
+                    from src.models import StrategyReport
 
                     merged_reports = {}
                     for strategy_name, results in merged_results.items():
                         total = len(results)
-                        passed = sum(1 for r in results if r.status == "success")
+                        solved = sum(1 for r in results if r.status == "success")
+                        failed = total - solved
+                        total_tokens = sum(r.total_tokens for r in results)
                         merged_reports[strategy_name] = StrategyReport(
                             strategy_name=strategy_name,
                             total_problems=total,
-                            passed=passed,
-                            failed=total - passed,
-                            accuracy=passed / total if total > 0 else 0.0,
+                            solved_problems=solved,
+                            failed_problems=failed,
+                            success_rate=solved / total if total > 0 else 0.0,
+                            avg_attempts_per_problem=1.0,  # Simplified
+                            total_tokens=total_tokens,
+                            avg_tokens_per_problem=total_tokens / total if total > 0 else 0.0,
+                            estimated_cost_usd=0.0,  # Will be calculated if needed
                         )
                     reports = merged_reports
 
+                    unchanged_count = len(incremental_context.get("unchanged", []))  # type: ignore[arg-type]
+                    added_count = len(incremental_context.get("added", []))  # type: ignore[arg-type]
+                    modified_count = len(incremental_context.get("modified", []))  # type: ignore[arg-type]
                     print(
-                        f"\n✓ Merged {len(incremental_context['unchanged'])} historical results "
-                        f"with {len(incremental_context['added']) + len(incremental_context['modified'])} new results"
+                        f"\n✓ Merged {unchanged_count} historical results "
+                        f"with {added_count + modified_count} new results"
                     )
 
                 except Exception as e:
@@ -2142,19 +2152,29 @@ def main():
                             run_name = ""
 
                     if run_name:
-                        result_path = str(Path(config.output_dir) / run_name / "summary.json")
+                        result_path = Path(config.output_dir) / run_name / "summary.json"
                         strategy_name = (
                             config.strategies[0].name if config.strategies else "unknown"
                         )
                         model_name = config.llm_config.model
 
+                        # Calculate problem and success counts
+                        problem_count = len(harness.results.get(strategy_name, []))
+                        success_count = sum(
+                            1
+                            for r in harness.results.get(strategy_name, [])
+                            if r.status == "success"
+                        )
+
                         update_incremental_history(
-                            incremental_context["history"],
-                            incremental_context["history_path"],
-                            incremental_context["current_fingerprint"],
-                            result_path,
+                            incremental_context["history"],  # type: ignore[arg-type]
+                            incremental_context["history_path"],  # type: ignore[arg-type]
+                            incremental_context["current_fingerprint"],  # type: ignore[arg-type]
+                            str(result_path),
                             strategy_name,
                             model_name,
+                            problem_count,
+                            success_count,
                         )
                         logger.info(
                             "incremental_history_updated",
@@ -2165,12 +2185,13 @@ def main():
                     # Non-fatal, continue
 
             if config.budget_cap_usd is not None or config.difficulty_strategy:
-                snapshot = harness.cost_monitor.snapshot()
-                cap_text = (
-                    f"${snapshot['budget_cap_usd']}"
-                    if snapshot["budget_cap_usd"] is not None
-                    else "no cap"
-                )
+                if harness.cost_monitor is not None:
+                    snapshot = harness.cost_monitor.snapshot()
+                    cap_text = (
+                        f"${snapshot['budget_cap_usd']}"
+                        if snapshot["budget_cap_usd"] is not None
+                        else "no cap"
+                    )
                 print(
                     f"Cost control: accumulated ${snapshot['accumulated_cost_usd']:.4f} "
                     f"of {cap_text}; "

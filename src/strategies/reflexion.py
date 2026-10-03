@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import time
+from typing import Literal
 
 from src.budget import BudgetExhausted
 from src.models import ExecutionResult, LLMResponse, Problem, SandboxResult
@@ -29,7 +30,7 @@ class ReflexionStrategy(StrategyBase):
         final_result = None
         success = False
         budget_stop = None
-        self._reflection_budget_stop = None
+        self._reflection_budget_stop: str | None = None
 
         for iteration in range(1, self.config.max_iterations + 1):
             iteration_started = time.perf_counter()
@@ -212,7 +213,21 @@ Previous reflections:
             "sandbox_error",
             "backend_unavailable",
         }
-        status = "success" if all(result.all_passed for result in visible_results) else "failed"
+        status: Literal[
+            "success",
+            "failed",
+            "timeout",
+            "memory_error",
+            "syntax_error",
+            "runtime_error",
+            "backend_unavailable",
+            "output_limit",
+            "process_limit",
+            "sandbox_error",
+            "unsupported",
+        ] = (
+            "success" if all(result.all_passed for result in visible_results) else "failed"
+        )
         for result in visible_results:
             if result.status in resource_statuses:
                 status = result.status

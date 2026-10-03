@@ -46,7 +46,7 @@ class ABTestConfig(BaseModel):
     problem_filters: dict[str, Any] | None = None
 
     @model_validator(mode="after")
-    def validate_variants(self):
+    def validate_variants(self) -> ABTestConfig:
         ids = [variant.id for variant in self.prompt_variants]
         if len(set(ids)) != 2:
             raise ValueError("prompt_variants must contain exactly two unique IDs")
@@ -67,7 +67,7 @@ class ABTestConfig(BaseModel):
         return next(variant for variant in self.prompt_variants if variant.id != self.baseline.id)
 
     def redacted_dict(self) -> dict[str, Any]:
-        return redact_sensitive_data(self.model_dump(mode="json"))
+        return redact_sensitive_data(self.model_dump(mode="json"))  # type: ignore[no-any-return]
 
 
 class PromptVariantClient:
@@ -76,7 +76,7 @@ class PromptVariantClient:
         self.config = inner.config
         self.variant = variant
 
-    def generate(self, prompt: str, *, system_prompt=None, **kwargs):
+    def generate(self, prompt: str, *, system_prompt: str | None = None, **kwargs: Any) -> Any:
         return self.inner.generate(
             f"{self.variant.prefix}{prompt}{self.variant.suffix}",
             system_prompt=self.variant.system_prompt or system_prompt,
@@ -186,15 +186,15 @@ class ABTestRunner:
         (output / "REPORT.md").write_text(self._markdown(report), encoding="utf-8")
         return output
 
-    def _run_variant(self, variant, problems):
-        def run(problem):
+    def _run_variant(self, variant: PromptVariant, problems: list[Problem]) -> list[dict[str, Any]]:
+        def run(problem: Problem) -> dict[str, Any]:
             sandbox = self.sandbox_factory(self.config.sandbox_config)
             ok, detail = sandbox.health_check()
             if not ok:
                 raise RuntimeError(f"Sandbox preflight failed: {detail}")
             client = PromptVariantClient(self.client_factory(self.config.model), variant)
             strategy = AlgorithmHarness.STRATEGY_MAP[self.config.strategy.name](
-                self.config.strategy, client, sandbox
+                self.config.strategy, client, sandbox  # type: ignore[arg-type, abstract]
             )
             harness = AlgorithmHarness(
                 HarnessConfig(
@@ -228,7 +228,9 @@ class ABTestRunner:
         with ThreadPoolExecutor(max_workers=min(self.config.max_workers, len(problems))) as pool:
             return list(pool.map(run, problems))
 
-    def _build_report(self, rows, assignments, output):
+    def _build_report(
+        self, rows: list[dict[str, Any]], assignments: dict[str, Any], output: Path
+    ) -> dict[str, Any]:
         baseline = self.config.baseline.id
         treatment = self.config.treatment.id
         by_variant = {
@@ -254,7 +256,7 @@ class ABTestRunner:
         )
         stats = _statistical_tests(binary[baseline], binary[treatment])
         grouped = self._grouped_rates(rows)
-        return redact_sensitive_data(
+        return redact_sensitive_data(  # type: ignore[no-any-return]
             {
                 "schema_version": "1.0",
                 "name": self.config.name or "ab-test",
@@ -302,27 +304,30 @@ class ABTestRunner:
         )
 
     @staticmethod
-    def _rate(values):
+    def _rate(values: list[int]) -> float | None:
         return sum(values) / len(values) if values else None
 
     @staticmethod
-    def _failure_counts(rows):
-        counts = defaultdict(int)
+    def _failure_counts(rows: list[dict[str, Any]]) -> dict[str, int]:
+        counts: dict[str, int] = defaultdict(int)
         for row in rows:
             if row["failure_category"]:
                 counts[row["failure_category"]] += 1
         return dict(counts)
 
     @staticmethod
-    def _balance(assignments):
-        strata = defaultdict(lambda: defaultdict(int))
+    def _balance(assignments: dict[str, Any]) -> dict[str, dict[str, int]]:
+        strata: dict[str, dict[str, int]] = defaultdict(lambda: defaultdict(int))
         for item in assignments.values():
             strata[str((item["difficulty"], tuple(sorted(item["tags"]))))][item["variant"]] += 1
         return {key: dict(value) for key, value in strata.items()}
 
     @staticmethod
-    def _grouped_rates(rows):
-        grouped = {"difficulty": defaultdict(lambda: [0, 0]), "tag": defaultdict(lambda: [0, 0])}
+    def _grouped_rates(rows: list[dict[str, Any]]) -> dict[str, dict[str, dict[str, Any]]]:
+        grouped: dict[str, dict[str, list[int]]] = {
+            "difficulty": defaultdict(lambda: [0, 0]),
+            "tag": defaultdict(lambda: [0, 0]),
+        }
         for row in rows:
             grouped["difficulty"][row["difficulty"]][0] += int(row["success"])
             grouped["difficulty"][row["difficulty"]][1] += 1
@@ -342,7 +347,7 @@ class ABTestRunner:
         }
 
     @staticmethod
-    def _recommendation(stats, sample_ci):
+    def _recommendation(stats: dict[str, Any], sample_ci: dict[str, float | None]) -> str:
         p_value = stats.get("p_value")
         difference = sample_ci.get("difference")
         if p_value is not None and p_value < 0.05 and difference is not None:
@@ -354,7 +359,7 @@ class ABTestRunner:
         return "No statistically significant sample difference detected; collect more stratified samples before choosing a winner."
 
     @staticmethod
-    def _write_csv(path, rows):
+    def _write_csv(path: Path, rows: list[dict[str, Any]]) -> None:
         fields = [
             "variant",
             "problem_id",
@@ -375,7 +380,7 @@ class ABTestRunner:
             writer.writerows({field: row.get(field) for field in fields} for row in rows)
 
     @staticmethod
-    def _markdown(report):
+    def _markdown(report: dict[str, Any]) -> str:
         comparison = report["comparison"]
         lines = [
             f"# A/B Test: {report['name']}",
@@ -405,7 +410,7 @@ class ABTestRunner:
         )
         return "\n".join(lines)
 
-    def _create_output_dir(self):
+    def _create_output_dir(self) -> Path:
         base = Path(self.config.output_dir)
         name = f"ab-{datetime.now().strftime('%Y%m%d-%H%M%S')}"
         output = base / name

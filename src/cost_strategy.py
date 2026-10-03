@@ -12,6 +12,7 @@ unknown usage are counted separately and never treated as free.
 """
 
 import threading
+from collections.abc import Iterable
 from decimal import Decimal, InvalidOperation
 from typing import Any
 
@@ -54,7 +55,7 @@ class CostAwareSelector:
             )
         return strategy
 
-    def validate_coverage(self, difficulties) -> None:
+    def validate_coverage(self, difficulties: Iterable[str | None]) -> None:
         """Ensure every difficulty in the dataset has a mapping."""
         uncovered = sorted({str(d) for d in difficulties if (d or "") not in self.mapping})
         if uncovered:

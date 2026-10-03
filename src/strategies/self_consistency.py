@@ -7,6 +7,7 @@ the most frequent correct answer through voting.
 
 import time
 from collections import Counter
+from typing import Any
 
 from src.models import (
     ExecutionResult,
@@ -26,7 +27,7 @@ class SelfConsistencyStrategy(StrategyBase):
     and selects the best answer through voting.
     """
 
-    def __init__(self, *args, **kwargs):
+    def __init__(self, *args: Any, **kwargs: Any) -> None:
         """Initialize Self-Consistency strategy with configurable candidate count."""
         super().__init__(*args, **kwargs)
         # Get num_candidates from custom_params, default to 5
@@ -106,7 +107,7 @@ class SelfConsistencyStrategy(StrategyBase):
                 sandbox_error = None
                 if code:
                     try:
-                        sandbox_result = self.sandbox.execute(problem, code)
+                        sandbox_result = self.sandbox.execute(code, problem)
                     except Exception as e:
                         sandbox_error = str(e)
                         self.logger.warning(
@@ -166,12 +167,15 @@ class SelfConsistencyStrategy(StrategyBase):
         final_result = voting_result["final_sandbox_result"]
         success = voting_result["success"]
 
+        # Filter out None values from llm_responses
+        valid_llm_responses = [resp for resp in llm_responses if resp is not None]
+
         execution_result = self.create_execution_result(
             problem=problem,
             iterations=iterations,
             final_result=final_result,
             success=success,
-            llm_responses=llm_responses,
+            llm_responses=valid_llm_responses,
             execution_time_seconds=execution_time,
         )
 

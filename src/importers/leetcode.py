@@ -13,7 +13,7 @@ import time
 import urllib.error
 import urllib.request
 from datetime import datetime
-from typing import Any
+from typing import Any, Literal, cast
 from urllib.parse import urlparse
 
 try:
@@ -25,11 +25,11 @@ except ImportError:  # pragma: no cover - exercised only in minimal installs
             self.status_code = status_code
             self._body = body
 
-        def json(self):
+        def json(self) -> Any:
             return json.loads(self._body.decode("utf-8"))
 
     class _CompatSession:
-        def post(self, url, json=None, headers=None, timeout=None):
+        def post(self, url: str, json: Any = None, headers: Any = None, timeout: Any = None) -> Any:
             request = urllib.request.Request(
                 url,
                 data=__import__("json").dumps(json).encode("utf-8"),
@@ -47,7 +47,7 @@ except ImportError:  # pragma: no cover - exercised only in minimal installs
         HTTPError = urllib.error.HTTPError
         Session = _CompatSession
 
-    requests = _CompatRequests()
+    requests = _CompatRequests()  # type: ignore[assignment]
 
 from src.importers.base import ImportResult, ProblemImporter
 from src.models import Problem
@@ -88,12 +88,12 @@ class LeetCodeImporter(ProblemImporter):
 
     def __init__(
         self,
-        session: requests.Session | None = None,
+        session: Any = None,
         timeout: float = 15.0,
         retries: int = 2,
         backoff_seconds: float = 0.5,
-        sleep=time.sleep,
-    ):
+        sleep: Any = time.sleep,
+    ) -> None:
         self.session = session or requests.Session()
         self.timeout = timeout
         self.retries = max(0, retries)
@@ -140,7 +140,7 @@ class LeetCodeImporter(ProblemImporter):
         for attempt in range(self.retries + 1):
             try:
                 response = self.session.post(
-                    self.endpoint, json=payload, headers=headers, timeout=self.timeout
+                    self.endpoint, json=payload, headers=headers, timeout=self.timeout  # type: ignore[arg-type]
                 )
                 status = getattr(response, "status_code", 200)
                 if status in {401, 403}:
@@ -216,12 +216,20 @@ class LeetCodeImporter(ProblemImporter):
         constraints = self.clean_html_content(question.get("constraints") or "")
         if not constraints:
             constraints = self._extract_constraints(content)
+
+        difficulty_str = str(question.get("difficulty") or "medium").lower()
+        difficulty = cast(Literal["easy", "medium", "hard"], difficulty_str)
+
+        from src.models import TestCase
+
+        public_test_cases = [TestCase(**case) for case in public_cases]
+
         return Problem(
             schema_version="1.1",
             problem_id=f"leetcode-{frontend_id}",
             title=question.get("title") or slug.replace("-", " ").title(),
             description=content or "LeetCode question description requires manual completion.",
-            difficulty=str(question.get("difficulty") or "medium").lower(),
+            difficulty=difficulty,
             tags=tags,
             constraints=constraints or None,
             source_platform="leetcode",
@@ -230,7 +238,7 @@ class LeetCodeImporter(ProblemImporter):
             source_version="leetcode-graphql-public-v1",
             input_output_mode="function",
             entry_point=entry_point,
-            public_test_cases=public_cases,
+            public_test_cases=public_test_cases,
             needs_manual_completion=needs_manual,
             manual_completion_notes=notes,
         )
