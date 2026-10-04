@@ -328,6 +328,9 @@ class IterationResult(BaseModel):
         description="Redacted model parameters effective for this iteration",
     )
     elapsed_seconds: float = Field(0.0, ge=0, description="Wall-clock duration of this iteration")
+    code_quality: CodeQualityMetrics | None = Field(
+        None, description="Code quality metrics for this iteration's generated code"
+    )
 
 
 class ExecutionResult(BaseModel):
@@ -831,6 +834,10 @@ class HarnessConfig(BaseModel):
     quality_analysis_config: dict[str, bool] | None = Field(
         None,
         description="Fine-grained quality analysis toggles: enable_time_analysis, enable_space_analysis, enable_readability_analysis, enable_style_analysis",
+    )
+    enable_evolution_analysis: bool = Field(
+        True,
+        description="Enable code quality evolution analysis for multi-round strategies (detects quality drops across iterations)",
     )
 
     def redacted_dump(self) -> dict[str, Any]:

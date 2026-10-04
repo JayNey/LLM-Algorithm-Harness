@@ -768,3 +768,58 @@ def test_strategy_report_failure_counts_explicit():
 
     assert report.model_failed_problems == 1
     assert report.system_failed_problems == 1
+
+
+# ============================================================================
+# IterationResult Backward Compatibility Tests
+# ============================================================================
+
+
+def test_iteration_result_backward_compatible_without_code_quality():
+    """IterationResult can load old data without code_quality field."""
+    # Simulate old data without code_quality field
+    old_data = {
+        "iteration": 1,
+        "prompt_tokens": 100,
+        "completion_tokens": 50,
+        "code_extracted": "def solution(): pass",
+        "elapsed_seconds": 1.5,
+    }
+
+    # Should load successfully with code_quality defaulting to None
+    from src.models import IterationResult
+
+    result = IterationResult(**old_data)
+    assert result.iteration == 1
+    assert result.code_quality is None
+    assert result.code_extracted == "def solution(): pass"
+
+
+def test_iteration_result_with_code_quality():
+    """IterationResult can store and load with code_quality field."""
+    from src.code_quality.models import CodeQualityMetrics
+    from src.models import IterationResult
+
+    quality = CodeQualityMetrics(
+        time_complexity=None,
+        space_complexity=None,
+        readability=None,
+        style_consistency=None,
+        overall_score=85.0,
+    )
+
+    result = IterationResult(
+        iteration=1,
+        prompt_tokens=100,
+        completion_tokens=50,
+        code_quality=quality,
+    )
+
+    # Verify serialization
+    data = result.model_dump()
+    assert data["code_quality"]["overall_score"] == 85.0
+
+    # Verify deserialization
+    result2 = IterationResult(**data)
+    assert result2.code_quality is not None
+    assert result2.code_quality.overall_score == 85.0
