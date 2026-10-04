@@ -190,11 +190,7 @@ class EvolutionAnalyzer:
             if curr_q.readability and prev_q.readability:
                 curr_complexity = curr_q.readability.cyclomatic_complexity
                 prev_complexity = prev_q.readability.cyclomatic_complexity
-                if (
-                    curr_complexity
-                    and prev_complexity
-                    and curr_complexity > prev_complexity * 1.2
-                ):
+                if curr_complexity and prev_complexity and curr_complexity > prev_complexity * 1.2:
                     return "Code bloat: significant complexity increase detected"
 
         # Pattern 3: Style degradation
@@ -211,10 +207,7 @@ class EvolutionAnalyzer:
         if drop.metric_name == "overall_score":
             dropped_metrics = []
             if prev_q.readability and curr_q.readability:
-                if (
-                    prev_q.readability.readability_score
-                    and curr_q.readability.readability_score
-                ):
+                if prev_q.readability.readability_score and curr_q.readability.readability_score:
                     if curr_q.readability.readability_score < prev_q.readability.readability_score:
                         dropped_metrics.append("readability")
 
@@ -236,7 +229,6 @@ class EvolutionAnalyzer:
             f"{drop.metric_name.replace('_', ' ').title()} decreased by "
             f"{percent_drop:.1f}% (from {drop.previous_value:.1f} to {drop.current_value:.1f})"
         )
-
 
     def generate_evolution_chart(self, output_path: Path) -> None:
         """
@@ -322,7 +314,6 @@ class EvolutionAnalyzer:
         output_path.parent.mkdir(parents=True, exist_ok=True)
         plt.savefig(output_path, dpi=150, bbox_inches="tight")
         plt.close()
-
 
     def generate_evolution_report(self) -> str:
         """
@@ -415,4 +406,3 @@ class EvolutionAnalyzer:
                 lines.append(f"- Style Consistency: {q.style_consistency.style_score:.1f}")
 
         return "\n".join(lines)
-

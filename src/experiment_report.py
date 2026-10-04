@@ -402,9 +402,7 @@ def _render_markdown(comparison: dict[str, Any]) -> str:
     if evolution and evolution.get("has_evolution_data"):
         lines.append("## 代码质量演化分析")
         lines.append("")
-        lines.append(
-            f"- 检测到质量下降的题目数：{evolution.get('problems_with_drops', 0)}"
-        )
+        lines.append(f"- 检测到质量下降的题目数：{evolution.get('problems_with_drops', 0)}")
         lines.append(f"- 质量下降总次数：{evolution.get('total_drops', 0)}")
 
         drop_reasons = evolution.get("drop_reasons", {})
@@ -619,9 +617,9 @@ def _analyze_quality_evolution(
                         evolution_summary["problems_with_drops"] = (
                             int(evolution_summary["problems_with_drops"]) + 1
                         )
-                        evolution_summary["total_drops"] = (
-                            int(evolution_summary["total_drops"]) + len(drops)
-                        )
+                        evolution_summary["total_drops"] = int(
+                            evolution_summary["total_drops"]
+                        ) + len(drops)
 
                         # Categorize drop reasons
                         for drop in drops:

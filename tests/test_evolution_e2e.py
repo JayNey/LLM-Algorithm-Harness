@@ -79,7 +79,9 @@ def test_multi_round_strategy_with_quality_analysis(tmp_path, mock_llm_client, m
         description="Test problem",
         difficulty="easy",
         public_test_cases=[{"input": "[1, 2, 3]", "expected_output": "6"}],
-        metadata={"code_snippet": {"python": "class Solution:\n    def solve(self, nums):\n        pass"}},
+        metadata={
+            "code_snippet": {"python": "class Solution:\n    def solve(self, nums):\n        pass"}
+        },
         entry_point="Solution.solve(nums)",
     )
 
@@ -114,7 +116,9 @@ def test_evolution_analysis_in_strategy_execution(tmp_path, mock_llm_client, moc
         description="Test problem",
         difficulty="medium",
         public_test_cases=[{"input": "[1, 2, 3]", "expected_output": "6"}],
-        metadata={"code_snippet": {"python": "class Solution:\n    def solve(self, nums):\n        pass"}},
+        metadata={
+            "code_snippet": {"python": "class Solution:\n    def solve(self, nums):\n        pass"}
+        },
         entry_point="Solution.solve",
     )
 
@@ -144,7 +148,9 @@ def test_evolution_analysis_not_run_for_single_iteration(tmp_path, mock_llm_clie
         description="Test problem",
         difficulty="easy",
         public_test_cases=[{"input": "[1, 2, 3]", "expected_output": "6"}],
-        metadata={"code_snippet": {"python": "class Solution:\n    def solve(self, nums):\n        pass"}},
+        metadata={
+            "code_snippet": {"python": "class Solution:\n    def solve(self, nums):\n        pass"}
+        },
         entry_point="Solution.solve",
     )
 

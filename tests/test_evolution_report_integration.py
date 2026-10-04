@@ -146,11 +146,7 @@ def test_analyze_quality_evolution_handles_errors_gracefully(tmp_path):
     from src.experiment_report import _analyze_quality_evolution
 
     # Create invalid results that might cause errors
-    raw_results = {
-        "combo1": [
-            {"problem_id": "invalid", "invalid_field": "data"}
-        ]
-    }
+    raw_results = {"combo1": [{"problem_id": "invalid", "invalid_field": "data"}]}
 
     # Should not raise exception
     analysis = _analyze_quality_evolution(raw_results, tmp_path)

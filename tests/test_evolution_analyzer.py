@@ -261,9 +261,7 @@ def test_analyze_drop_reason_syntax_error():
         IterationResult(
             iteration=1,
             code_quality=CodeQualityMetrics(overall_score=80.0),
-            sandbox_result=SandboxResult(
-                status="success", execution_time=1.0, all_passed=True
-            ),
+            sandbox_result=SandboxResult(status="success", execution_time=1.0, all_passed=True),
         ),
         IterationResult(
             iteration=2,
@@ -360,18 +358,14 @@ def test_analyze_drop_reason_code_bloat():
         IterationResult(
             iteration=1,
             code_quality=CodeQualityMetrics(
-                readability=ReadabilityScore(
-                    readability_score=80.0, cyclomatic_complexity=2.0
-                ),
+                readability=ReadabilityScore(readability_score=80.0, cyclomatic_complexity=2.0),
                 overall_score=80.0,
             ),
         ),
         IterationResult(
             iteration=2,
             code_quality=CodeQualityMetrics(
-                readability=ReadabilityScore(
-                    readability_score=60.0, cyclomatic_complexity=5.0
-                ),
+                readability=ReadabilityScore(readability_score=60.0, cyclomatic_complexity=5.0),
                 overall_score=70.0,
             ),
         ),
@@ -427,7 +421,9 @@ def test_analyze_drop_reason_style_degradation():
     style_drop = next((d for d in drops if d.metric_name == "style_consistency"), None)
     if style_drop:
         reason = analyzer.analyze_drop_reason(style_drop)
-        assert "style" in reason.lower() and ("violation" in reason.lower() or "degradation" in reason.lower())
+        assert "style" in reason.lower() and (
+            "violation" in reason.lower() or "degradation" in reason.lower()
+        )
 
 
 # ============================================================================

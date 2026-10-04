@@ -158,5 +158,3 @@ def test_quality_analysis_not_performed_without_quality_data():
     drops = analyzer.identify_quality_drops()
 
     assert len(drops) == 0
-
-
