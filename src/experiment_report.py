@@ -397,6 +397,29 @@ def _render_markdown(comparison: dict[str, Any]) -> str:
             lines.append("![失败模式分布](failure_mode_distribution.png)")
         lines.append("")
 
+    # Evolution analysis section
+    evolution = comparison.get("evolution_analysis")
+    if evolution and evolution.get("has_evolution_data"):
+        lines.append("## 代码质量演化分析")
+        lines.append("")
+        lines.append(f"- 检测到质量下降的题目数：{evolution.get('problems_with_drops', 0)}")
+        lines.append(f"- 质量下降总次数：{evolution.get('total_drops', 0)}")
+
+        drop_reasons = evolution.get("drop_reasons", {})
+        if drop_reasons:
+            lines.append("")
+            lines.append("**下降原因分布：**")
+            lines.append("")
+            for reason, count in sorted(drop_reasons.items(), key=lambda x: x[1], reverse=True):
+                lines.append(f"- {reason}: {count} 次")
+
+        charts = evolution.get("charts_generated", [])
+        if charts:
+            lines.append("")
+            lines.append(f"生成了 {len(charts)} 个质量演化趋势图表（见各题目目录）")
+
+        lines.append("")
+
     lines.append(
         f"> 生成时间：{comparison['generated_at']}；未知成本表示模型定价未配置，不代表 $0。"
     )
@@ -541,6 +564,94 @@ def build_model_comparison(
     }
 
 
+def _analyze_quality_evolution(
+    raw_results: dict[str, list[dict[str, Any]]], exp_dir: Path
+) -> dict[str, Any]:
+    """
+    Analyze quality evolution for multi-round strategies.
+
+    Args:
+        raw_results: Dictionary mapping combo_id to list of result dictionaries
+        exp_dir: Experiment directory for saving charts
+
+    Returns:
+        Dictionary containing evolution analysis summary
+    """
+    from src.models import ExecutionResult
+
+    evolution_summary: dict[str, Any] = {
+        "has_evolution_data": False,
+        "problems_with_drops": 0,
+        "total_drops": 0,
+        "drop_reasons": {},
+        "charts_generated": [],
+    }
+
+    try:
+        from src.analysis.evolution import EvolutionAnalyzer
+
+        for combo_id, results in raw_results.items():
+            for result_dict in results:
+                try:
+                    # Validate and convert to ExecutionResult
+                    result = ExecutionResult.model_validate(result_dict)
+
+                    # Check if evolution analysis is applicable
+                    if len(result.iterations) < 2:
+                        continue
+
+                    has_quality_data = any(
+                        iter_result.code_quality is not None for iter_result in result.iterations
+                    )
+
+                    if not has_quality_data:
+                        continue
+
+                    evolution_summary["has_evolution_data"] = True
+
+                    # Analyze evolution
+                    analyzer = EvolutionAnalyzer(result)
+                    drops = analyzer.identify_quality_drops()
+
+                    if drops:
+                        evolution_summary["problems_with_drops"] = (
+                            int(evolution_summary["problems_with_drops"]) + 1
+                        )
+                        evolution_summary["total_drops"] = int(
+                            evolution_summary["total_drops"]
+                        ) + len(drops)
+
+                        # Categorize drop reasons
+                        for drop in drops:
+                            reason = analyzer.analyze_drop_reason(drop)
+                            drop_reasons_dict = dict(evolution_summary["drop_reasons"])
+                            drop_reasons_dict[reason] = drop_reasons_dict.get(reason, 0) + 1
+                            evolution_summary["drop_reasons"] = drop_reasons_dict
+
+                        # Generate chart
+                        chart_path = exp_dir / f"evolution_{result.problem_id}.png"
+                        try:
+                            analyzer.generate_evolution_chart(chart_path)
+                            charts_list = list(evolution_summary["charts_generated"])
+                            charts_list.append(f"evolution_{result.problem_id}.png")
+                            evolution_summary["charts_generated"] = charts_list
+                        except Exception:
+                            # Chart generation is optional
+                            pass
+
+                except Exception:
+                    # Skip individual results that fail validation/analysis
+                    continue
+
+    except ImportError:
+        # Evolution analysis not available
+        pass
+    except Exception as e:
+        logger.warning("evolution_analysis_failed", error=str(e))
+
+    return evolution_summary
+
+
 def generate_comparison_report(exp_dir: Path) -> dict[str, Any]:
     meta = _load_json(Path(exp_dir) / "experiment.json")
     combos: list[dict[str, Any]] = []
@@ -562,6 +673,9 @@ def generate_comparison_report(exp_dir: Path) -> dict[str, Any]:
             raw_results[combo["combo_id"]], problem_info
         )
 
+    # Add evolution analysis for multi-round strategies
+    evolution_analysis = _analyze_quality_evolution(raw_results, exp_dir)
+
     comparison = {
         "generated_at": datetime.now().isoformat(),
         "experiment": meta,
@@ -574,6 +688,7 @@ def generate_comparison_report(exp_dir: Path) -> dict[str, Any]:
         "failure_modes": summarize_failure_modes(
             [r for results in raw_results.values() for r in results], problem_info
         ),
+        "evolution_analysis": evolution_analysis,
     }
     comparison["pareto"] = build_pareto_analysis([comparison])
     write_pareto_artifacts(comparison["pareto"], exp_dir)

@@ -161,6 +161,41 @@ class MultiRoundFeedbackStrategy(StrategyBase):
         if budget_stop is not None:
             execution_result = self.mark_budget_exhausted(execution_result, budget_stop)
 
+        # Perform quality evolution analysis if we have multiple iterations with quality data
+        if len(iterations) >= 2:
+            # Check if any iteration has quality data
+            has_quality_data = any(
+                iter_result.code_quality is not None for iter_result in iterations
+            )
+
+            if has_quality_data:
+                try:
+                    from src.analysis.evolution import EvolutionAnalyzer
+
+                    analyzer = EvolutionAnalyzer(execution_result)
+                    drops = analyzer.identify_quality_drops()
+
+                    if drops:
+                        self.logger.warning(
+                            "quality_drops_detected",
+                            problem_id=problem.problem_id,
+                            num_drops=len(drops),
+                            affected_iterations=[drop.iteration for drop in drops],
+                        )
+                        for drop in drops:
+                            reason = analyzer.analyze_drop_reason(drop)
+                            self.logger.info(
+                                "quality_drop_detail",
+                                iteration=drop.iteration,
+                                metric=drop.metric_name,
+                                previous_value=drop.previous_value,
+                                current_value=drop.current_value,
+                                reason=reason,
+                            )
+                except Exception as e:
+                    # Don't let quality analysis failures break the execution
+                    self.logger.error("quality_analysis_failed", error=str(e))
+
         self.logger.info(
             "multi_round_strategy_completed",
             problem_id=problem.problem_id,
