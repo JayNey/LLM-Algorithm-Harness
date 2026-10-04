@@ -581,7 +581,7 @@ def _analyze_quality_evolution(
     """
     from src.models import ExecutionResult
 
-    evolution_summary = {
+    evolution_summary: dict[str, Any] = {
         "has_evolution_data": False,
         "problems_with_drops": 0,
         "total_drops": 0,
@@ -616,23 +616,27 @@ def _analyze_quality_evolution(
                     drops = analyzer.identify_quality_drops()
 
                     if drops:
-                        evolution_summary["problems_with_drops"] += 1
-                        evolution_summary["total_drops"] += len(drops)
+                        evolution_summary["problems_with_drops"] = (
+                            int(evolution_summary["problems_with_drops"]) + 1
+                        )
+                        evolution_summary["total_drops"] = (
+                            int(evolution_summary["total_drops"]) + len(drops)
+                        )
 
                         # Categorize drop reasons
                         for drop in drops:
                             reason = analyzer.analyze_drop_reason(drop)
-                            evolution_summary["drop_reasons"][reason] = (
-                                evolution_summary["drop_reasons"].get(reason, 0) + 1
-                            )
+                            drop_reasons_dict = dict(evolution_summary["drop_reasons"])
+                            drop_reasons_dict[reason] = drop_reasons_dict.get(reason, 0) + 1
+                            evolution_summary["drop_reasons"] = drop_reasons_dict
 
                         # Generate chart
                         chart_path = exp_dir / f"evolution_{result.problem_id}.png"
                         try:
                             analyzer.generate_evolution_chart(chart_path)
-                            evolution_summary["charts_generated"].append(
-                                f"evolution_{result.problem_id}.png"
-                            )
+                            charts_list = list(evolution_summary["charts_generated"])
+                            charts_list.append(f"evolution_{result.problem_id}.png")
+                            evolution_summary["charts_generated"] = charts_list
                         except Exception:
                             # Chart generation is optional
                             pass

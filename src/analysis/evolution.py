@@ -156,7 +156,7 @@ class EvolutionAnalyzer:
                 return "Introduced runtime error"
             elif status == "timeout":
                 return "Code timeout - possible infinite loop or excessive complexity"
-            elif status == "test_failure":
+            elif status == "failed":
                 return "Test failures introduced"
             else:
                 return f"Code execution failed: {status}"
@@ -249,11 +249,11 @@ class EvolutionAnalyzer:
 
         # Collect data points
         iterations = []
-        overall_scores = []
-        time_scores = []
-        space_scores = []
-        readability_scores = []
-        style_scores = []
+        overall_scores: list[float | None] = []
+        time_scores: list[float | None] = []
+        space_scores: list[float | None] = []
+        readability_scores: list[float | None] = []
+        style_scores: list[float | None] = []
 
         for iter_result in self.iterations:
             if not iter_result.code_quality:
@@ -370,7 +370,7 @@ class EvolutionAnalyzer:
             lines.append(f"Found {len(drops)} quality drop(s):\n")
 
             # Group drops by iteration
-            drops_by_iteration = {}
+            drops_by_iteration: dict[int, list[QualityDrop]] = {}
             for drop in drops:
                 if drop.iteration not in drops_by_iteration:
                     drops_by_iteration[drop.iteration] = []

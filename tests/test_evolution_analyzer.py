@@ -494,7 +494,7 @@ def test_generate_evolution_chart_insufficient_data(tmp_path):
 
 def test_generate_evolution_chart_with_all_metrics(tmp_path):
     """Test chart generation with all quality metrics present."""
-    from src.code_quality.models import TimeComplexityScore, SpaceComplexityScore
+    from src.code_quality.models import SpaceComplexityScore, TimeComplexityScore
 
     iterations = [
         IterationResult(
@@ -640,7 +640,7 @@ def test_generate_evolution_report_no_drops():
 
 def test_generate_evolution_report_with_all_metrics():
     """Test report includes all quality metrics when present."""
-    from src.code_quality.models import TimeComplexityScore, SpaceComplexityScore
+    from src.code_quality.models import SpaceComplexityScore, TimeComplexityScore
 
     iterations = [
         IterationResult(

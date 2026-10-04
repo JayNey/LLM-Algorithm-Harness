@@ -1,18 +1,17 @@
 """End-to-end tests for code evolution analysis feature."""
 
-import json
-from pathlib import Path
 from unittest.mock import MagicMock, patch
 
 import pytest
 
 from src.models import (
     CodeQualityMetrics,
-    HarnessConfig,
-    LLMConfig,
+    LLMResponse,
     Problem,
-    SandboxConfig,
+    SandboxResult,
     StrategyConfig,
+    TestCaseResult,
+    TokenUsage,
 )
 
 
@@ -21,10 +20,17 @@ def mock_llm_client():
     """Create a mock LLM client."""
     with patch("src.llm_client.LLMClient") as mock:
         client = MagicMock()
-        client.generate.return_value = MagicMock(
+        response = LLMResponse(
             text="```python\ndef solution(nums):\n    return sum(nums)\n```",
-            usage={"total_tokens": 100},
+            usage=TokenUsage(
+                prompt_tokens=50,
+                completion_tokens=50,
+                total_tokens=100,
+            ),
+            model="test-model",
+            effective_params={},
         )
+        client.generate.return_value = response
         mock.return_value = client
         yield client
 
@@ -32,14 +38,16 @@ def mock_llm_client():
 @pytest.fixture
 def mock_sandbox():
     """Create a mock sandbox executor."""
+    from src.sandbox_executor import SandboxExecutor
+
     with patch("src.sandbox_executor.SandboxExecutor") as mock:
         sandbox = MagicMock()
         sandbox.health_check.return_value = (True, "OK")
-        sandbox.execute.return_value = MagicMock(
+        sandbox.execute.return_value = SandboxResult(
             status="success",
             all_passed=True,
             test_results=[
-                MagicMock(
+                TestCaseResult(
                     test_case_index=0,
                     passed=True,
                     status="passed",
@@ -48,6 +56,8 @@ def mock_sandbox():
             ],
             execution_time=0.1,
         )
+        # Keep the static method _entry_point_parts working
+        mock._entry_point_parts = SandboxExecutor._entry_point_parts
         mock.return_value = sandbox
         yield sandbox
 
@@ -70,7 +80,7 @@ def test_multi_round_strategy_with_quality_analysis(tmp_path, mock_llm_client, m
         difficulty="easy",
         public_test_cases=[{"input": "[1, 2, 3]", "expected_output": "6"}],
         metadata={"code_snippet": {"python": "class Solution:\n    def solve(self, nums):\n        pass"}},
-        entry_point="Solution.solve",
+        entry_point="Solution.solve(nums)",
     )
 
     # Execute strategy

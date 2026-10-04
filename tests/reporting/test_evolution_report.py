@@ -1,9 +1,5 @@
 """Tests for evolution report generation."""
 
-from pathlib import Path
-
-import pytest
-
 from src.models import CodeQualityMetrics, ExecutionResult, IterationResult
 from src.reporting.evolution_report import (
     generate_evolution_section,

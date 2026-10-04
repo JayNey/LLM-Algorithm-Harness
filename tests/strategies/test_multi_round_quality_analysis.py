@@ -1,7 +1,5 @@
 """Tests for quality analysis integration in MultiRoundFeedbackStrategy."""
 
-import pytest
-
 from src.models import CodeQualityMetrics, ExecutionResult, IterationResult
 
 

@@ -1,10 +1,5 @@
 """Tests for evolution analysis integration in experiment reports."""
 
-import json
-from pathlib import Path
-
-import pytest
-
 from src.models import CodeQualityMetrics, ExecutionResult, IterationResult
 
 
