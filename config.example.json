@@ -58,6 +58,16 @@
       }
     },
     {
+      "name": "few_shot_learning",
+      "max_iterations": 1,
+      "custom_params": {
+        "num_examples": 3,
+        "similarity_metric": "tag_overlap",
+        "min_similarity_score": 0.3,
+        "example_source": "solved_problems"
+      }
+    },
+    {
       "name": "tree_of_thoughts",
       "max_iterations": 1,
       "custom_params": {
