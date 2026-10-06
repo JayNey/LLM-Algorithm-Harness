@@ -38,16 +38,13 @@ def _raw_result_dict():
 
 class TestAnalyzeQualityEvolution:
     def test_counts_drops_and_generates_chart(self, tmp_path):
-        summary = _analyze_quality_evolution(
-            {"multi_round__r1": [_raw_result_dict()]}, tmp_path
-        )
+        summary = _analyze_quality_evolution({"multi_round__r1": [_raw_result_dict()]}, tmp_path)
         assert summary["has_evolution_data"] is True
         assert summary["problems_with_drops"] == 1
         assert summary["total_drops"] >= 1
         assert summary["charts_generated"] == ["evolution_p1.png"]
         assert any(
-            "syntax" in reason or "Readability" in reason
-            for reason in summary["drop_reasons"]
+            "syntax" in reason or "Readability" in reason for reason in summary["drop_reasons"]
         )
 
     def test_chart_failure_is_optional(self, tmp_path):
@@ -103,7 +100,7 @@ class TestAnalyzeQualityEvolution:
 def test_space_complexity_drop_detected():
     from src.analysis.evolution import EvolutionAnalyzer
     from src.code_quality.models import SpaceComplexityScore
-    from src.models import ExecutionResult, IterationResult
+    from src.models import IterationResult
 
     iterations = [
         IterationResult(
@@ -135,7 +132,7 @@ def test_space_complexity_drop_detected():
 
 def test_chart_skips_iterations_without_quality_data(tmp_path):
     from src.analysis.evolution import EvolutionAnalyzer
-    from src.models import ExecutionResult, IterationResult
+    from src.models import IterationResult
 
     iterations = [
         IterationResult(iteration=1),
@@ -156,7 +153,7 @@ def test_chart_skips_iterations_without_quality_data(tmp_path):
 def test_chart_renders_with_mixed_quality_scores(tmp_path):
     from src.analysis.evolution import EvolutionAnalyzer
     from src.code_quality.models import SpaceComplexityScore
-    from src.models import ExecutionResult, IterationResult
+    from src.models import IterationResult
 
     iterations = [
         IterationResult(

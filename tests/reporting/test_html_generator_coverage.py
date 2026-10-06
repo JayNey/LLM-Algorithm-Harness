@@ -1,10 +1,5 @@
 """Coverage tests for HTMLGenerator.generate branches."""
 
-import json
-from unittest.mock import MagicMock
-
-import pytest
-
 from src.models import ExecutionResult, IterationResult, TokenUsage
 from src.reporting.html_generator import HTMLGenerator
 
@@ -129,7 +124,9 @@ class TestGenerateChartBranches:
     def test_chart_none_branches_render_placeholders(self, tmp_path, monkeypatch):
         from src.reporting import html_generator as hg
 
-        monkeypatch.setattr(hg.ChartGenerator, "generate_token_chart", staticmethod(lambda *a, **k: None))
+        monkeypatch.setattr(
+            hg.ChartGenerator, "generate_token_chart", staticmethod(lambda *a, **k: None)
+        )
         monkeypatch.setattr(
             hg.ChartGenerator,
             "generate_iteration_distribution",

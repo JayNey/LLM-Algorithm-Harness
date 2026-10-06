@@ -126,9 +126,7 @@ class TestExtractCodeFallbacks:
         # by using the existing VanillaStrategy instance attributes we need.
         from src.strategies.vanilla import VanillaStrategy
 
-        real = VanillaStrategy(
-            StrategyConfig(name="vanilla"), MagicMock(), MagicMock()
-        )
+        real = VanillaStrategy(StrategyConfig(name="vanilla"), MagicMock(), MagicMock())
         return real if isinstance(real, StrategyBase) else _Bare.__new__(_Bare)
 
     def test_unfenced_solution_function_fallback(self):

@@ -688,9 +688,9 @@ def _drop_result(sandbox_status=None, curr_readability=None, prev_readability=80
         IterationResult(
             iteration=2,
             code_quality=curr,
-            sandbox_result=SandboxResult(status=sandbox_status, all_passed=False)
-            if sandbox_status
-            else None,
+            sandbox_result=(
+                SandboxResult(status=sandbox_status, all_passed=False) if sandbox_status else None
+            ),
         ),
     ]
     return ExecutionResult(
@@ -766,6 +766,4 @@ def test_drop_reason_single_metric_readability_decline():
     analyzer = EvolutionAnalyzer(_drop_result(curr_readability=40.0))
     drops = analyzer.identify_quality_drops()
     assert drops
-    assert any(
-        "readability" in analyzer.analyze_drop_reason(drop).lower() for drop in drops
-    )
+    assert any("readability" in analyzer.analyze_drop_reason(drop).lower() for drop in drops)
