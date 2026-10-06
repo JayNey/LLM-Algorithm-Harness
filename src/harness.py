@@ -38,6 +38,7 @@ from src.models import (
 from src.problem_loader import ProblemLoader
 from src.sandbox_executor import SandboxExecutor
 from src.strategies.chain_of_thought import ChainOfThoughtStrategy
+from src.strategies.few_shot_learning import FewShotLearningStrategy
 from src.strategies.multi_round_feedback import MultiRoundFeedbackStrategy
 from src.strategies.reflexion import ReflexionStrategy
 from src.strategies.self_consistency import SelfConsistencyStrategy
@@ -58,6 +59,7 @@ class AlgorithmHarness:
         "multi_round_feedback": MultiRoundFeedbackStrategy,
         "self_consistency": SelfConsistencyStrategy,
         "reflexion": ReflexionStrategy,
+        "few_shot_learning": FewShotLearningStrategy,
     }
 
     def __init__(self, config: HarnessConfig, budget_tracker: BudgetTracker | None = None):
