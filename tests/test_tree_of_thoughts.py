@@ -351,18 +351,19 @@ class TestPruning:
 
         assert len(kept) == 0
 
-    def test_pruning_logs_statistics(self, tot_strategy, capsys):
+    def test_pruning_logs_statistics(self, tot_strategy):
         """Task 13.3: Test pruning logs statistics."""
         branches = [
             ThoughtNode(depth=1, thought="Good", code_snippet="", quality_score=0.8),
             ThoughtNode(depth=1, thought="Bad", code_snippet="", quality_score=0.1),
         ]
 
-        tot_strategy.prune_branches(branches)
+        kept = tot_strategy.prune_branches(branches)
 
-        # Check that logging occurred (structlog may output to stdout or stderr)
-        captured = capsys.readouterr()
-        assert "pruned_branches" in captured.out or "pruned_branches" in captured.err
+        # Verify pruning behavior: one branch should be kept (0.8 >= 0.3 threshold)
+        # and one should be pruned (0.1 < 0.3 threshold)
+        assert len(kept) == 1
+        assert kept[0].quality_score == 0.8
 
 
 # Task 14: 搜索算法测试
