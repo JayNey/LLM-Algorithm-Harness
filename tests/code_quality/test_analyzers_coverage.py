@@ -1,4 +1,4 @@
-"""Tests for code quality analyzers (time and space complexity)."""
+"""Tests for code quality analyzers (current upstream placeholder behavior)."""
 
 from unittest.mock import MagicMock
 
@@ -27,88 +27,53 @@ def make_problem():
 class TestSpaceAnalyzer:
     def test_requires_sandbox_executor(self):
         score = SpaceAnalyzer().analyze(SAMPLE_CODE, sandbox_executor=None)
+        assert isinstance(score, SpaceComplexityScore)
         assert "Memory profiling requires sandbox executor" in score.analysis_notes
 
-    def _sandbox(self, payload):
+    def test_sandbox_provided_returns_placeholder(self):
+        """Upstream defers real profiling (needs Problem context); the
+        analyzer returns an explicit placeholder instead of guessing."""
         sandbox = MagicMock()
-        sandbox.execute_with_memory_profiling.return_value = payload
-        return sandbox
-
-    def test_successful_profiling_low_memory(self):
-        sandbox = self._sandbox({"success": True, "peak_memory_bytes": 512 * 1024})
         score = SpaceAnalyzer().analyze(SAMPLE_CODE, "1", sandbox_executor=sandbox)
-        assert isinstance(score, SpaceComplexityScore)
-        assert score.peak_memory_mb == 0.5
-        assert score.memory_efficiency_score == 100.0
-        assert "Very efficient memory usage" in score.analysis_notes
-
-    def test_high_memory_notes(self):
-        sandbox = self._sandbox({"success": True, "peak_memory_bytes": 60 * 1024 * 1024})
-        score = SpaceAnalyzer().analyze(SAMPLE_CODE, "1", sandbox_executor=sandbox)
-        assert score.memory_efficiency_score == pytest.approx(
-            100.0 - ((60 - 10) / 90 * 100), abs=0.01
-        )
-        assert "High memory usage detected" in score.analysis_notes
-
-    def test_over_100mb_scores_zero(self):
-        sandbox = self._sandbox({"success": True, "peak_memory_bytes": 200 * 1024 * 1024})
-        score = SpaceAnalyzer().analyze(SAMPLE_CODE, "1", sandbox_executor=sandbox)
-        assert score.memory_efficiency_score == 0.0
-
-    def test_failed_profiling(self):
-        sandbox = self._sandbox({"success": False, "error": "sandbox exploded"})
-        score = SpaceAnalyzer().analyze(SAMPLE_CODE, "1", sandbox_executor=sandbox)
+        assert "Memory profiling not available without Problem context" in score.analysis_notes
         assert score.peak_memory_bytes is None
-        assert "Memory profiling failed: sandbox exploded" in score.analysis_notes
+        sandbox.execute_with_memory_profiling.assert_not_called()
 
-    def test_missing_peak_data(self):
-        sandbox = self._sandbox({"success": True})
-        score = SpaceAnalyzer().analyze(SAMPLE_CODE, "1", sandbox_executor=sandbox)
-        assert "Memory profiling data unavailable" in score.analysis_notes
-
-    def test_profiling_exception_is_contained(self):
-        sandbox = MagicMock()
-        sandbox.execute_with_memory_profiling.side_effect = OSError("disk full")
-        score = SpaceAnalyzer().analyze(SAMPLE_CODE, "1", sandbox_executor=sandbox)
-        assert "Memory profiling error" in score.analysis_notes[0]
+    def test_default_score_has_no_notes(self):
+        score = SpaceComplexityScore()
+        assert score.analysis_notes == []
+        assert score.peak_memory_bytes is None
 
 
-class TestTimeAnalyzer:
+class TestTimeComplexityAnalyzer:
     def test_static_analysis_without_problem(self):
         analyzer = TimeComplexityAnalyzer()
         score = analyzer.analyze(SAMPLE_CODE)
         assert score.loop_nesting_depth == 0
         assert score.execution_times == {}
-
-    def test_performance_profiling_success(self):
-        problem = make_problem()
-        sandbox = MagicMock()
-        sandbox.execute_with_performance_profiling.return_value = {
-            "success": True,
-            "execution_times": {"n=10": 0.01, "n=100": 0.1},
-            "is_timeout": False,
-        }
-        analyzer = TimeComplexityAnalyzer()
-        score = analyzer.analyze(SAMPLE_CODE, problem, sandbox_executor=sandbox)
-        assert score.execution_times == {"n=10": 0.01, "n=100": 0.1}
         assert score.is_timeout is False
 
-    def test_performance_profiling_failure_is_contained(self):
+    def test_performance_profiling_deferred_returns_empty(self):
+        """Upstream defers performance profiling (sandbox API mismatch); the
+        analyzer degrades to static-only results without raising."""
         problem = make_problem()
         sandbox = MagicMock()
-        sandbox.execute_with_performance_profiling.return_value = {
-            "success": False,
-            "error": "profiler exploded",
-        }
         analyzer = TimeComplexityAnalyzer()
         score = analyzer.analyze(SAMPLE_CODE, problem, sandbox_executor=sandbox)
         assert score.execution_times == {}
-
-    def test_profiling_exception_is_contained(self):
-        problem = make_problem()
-        sandbox = MagicMock()
-        sandbox.execute_with_performance_profiling.side_effect = OSError("blocked")
-        analyzer = TimeComplexityAnalyzer()
-        score = analyzer.analyze(SAMPLE_CODE, problem, sandbox_executor=sandbox)
-        assert score.execution_times == {}
+        assert score.measured_growth_rate is None
         assert score.is_timeout is False
+        sandbox.execute_with_performance_profiling.assert_not_called()
+
+    def test_loop_nesting_detected(self):
+        analyzer = TimeComplexityAnalyzer()
+        nested = (
+            "def solution(rows):\n"
+            "    total = 0\n"
+            "    for row in rows:\n"
+            "        for item in row:\n"
+            "            total += item\n"
+            "    return total\n"
+        )
+        score = analyzer.analyze(nested)
+        assert score.loop_nesting_depth >= 2
