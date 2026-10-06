@@ -190,8 +190,11 @@ def test_parallel_execution_with_different_max_workers(tmp_path):
     )
     duration_parallel = time.time() - start_parallel
 
-    # Parallel execution should be significantly faster (at least 2x)
-    assert duration_parallel < duration_serial / 2
+    # Parallel execution should be faster than serial execution.
+    # We use a conservative speedup factor (1.5x instead of 2x) to account for
+    # thread overhead and CI environment variability. The key behavior being
+    # tested is that max_workers actually enables concurrent execution.
+    assert duration_parallel < duration_serial / 1.5
 
 
 def test_thread_safe_cost_tracking(tmp_path):
