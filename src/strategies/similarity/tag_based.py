@@ -3,7 +3,6 @@ Tag-based similarity calculation for Few-Shot Learning.
 """
 
 
-
 def normalize_tags(tags: list[str]) -> set[str]:
     """
     Normalize and deduplicate tags.
@@ -59,9 +58,7 @@ def calculate_tag_similarity(tags1: list[str], tags2: list[str]) -> float:
     return calculate_jaccard_similarity(normalized_tags1, normalized_tags2)
 
 
-def filter_by_similarity_threshold(
-    similarities: list[tuple], threshold: float
-) -> list[tuple]:
+def filter_by_similarity_threshold(similarities: list[tuple], threshold: float) -> list[tuple]:
     """
     Filter similarity results by threshold.
 

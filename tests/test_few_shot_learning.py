@@ -164,7 +164,9 @@ class TestFewShotLearningStrategy:
             ],
         )
 
-    def test_strategy_initialization(self, strategy_config, mock_llm_client, mock_sandbox, tmp_path, monkeypatch):
+    def test_strategy_initialization(
+        self, strategy_config, mock_llm_client, mock_sandbox, tmp_path, monkeypatch
+    ):
         """Test strategy initialization with config parameters."""
         # Use tmp_path to avoid loading real results directory
         monkeypatch.chdir(tmp_path)
@@ -198,9 +200,7 @@ class TestFewShotLearningStrategy:
                     description="Test problem description with minimum length",
                     difficulty="easy",
                     tags=["array", "math"],
-                    public_test_cases=[
-                        TestCase(input={"nums": [1, 2]}, expected_output=3)
-                    ],
+                    public_test_cases=[TestCase(input={"nums": [1, 2]}, expected_output=3)],
                 ),
                 solution_code="def solution(): pass",
                 similarity_score=0.0,
@@ -213,9 +213,7 @@ class TestFewShotLearningStrategy:
                     description="Test problem description with minimum length",
                     difficulty="easy",
                     tags=["tree"],
-                    public_test_cases=[
-                        TestCase(input={"nums": [1, 2]}, expected_output=3)
-                    ],
+                    public_test_cases=[TestCase(input={"nums": [1, 2]}, expected_output=3)],
                 ),
                 solution_code="def solution(): pass",
                 similarity_score=0.0,
@@ -245,9 +243,7 @@ class TestFewShotLearningStrategy:
                     difficulty="easy",
                     tags=["array"],  # sample has ["array", "sorting"], this has ["array"]
                     # Jaccard = |intersection| / |union| = 1 / 2 = 0.5 < 0.6
-                    public_test_cases=[
-                        TestCase(input={"nums": [1, 2]}, expected_output=3)
-                    ],
+                    public_test_cases=[TestCase(input={"nums": [1, 2]}, expected_output=3)],
                 ),
                 solution_code="def solution(): pass",
                 similarity_score=0.0,
@@ -281,9 +277,7 @@ class TestFewShotLearningStrategy:
                     description="Example description with minimum length required",
                     difficulty="easy",
                     tags=["array"],
-                    public_test_cases=[
-                        TestCase(input={"nums": [1, 2]}, expected_output=3)
-                    ],
+                    public_test_cases=[TestCase(input={"nums": [1, 2]}, expected_output=3)],
                 ),
                 solution_code="def solution(): return 42",
                 similarity_score=0.8,
@@ -347,9 +341,7 @@ class TestFewShotLearningStrategy:
         assert result.failure_category == "code_extraction_failed"
         mock_sandbox.execute.assert_not_called()
 
-    def test_config_parameter_validation(
-        self, strategy_config, mock_llm_client, mock_sandbox
-    ):
+    def test_config_parameter_validation(self, strategy_config, mock_llm_client, mock_sandbox):
         """Test configuration parameter handling."""
         # Test with minimal config
         minimal_config = StrategyConfig(name="few_shot_learning")
@@ -375,9 +367,7 @@ class TestFewShotLearningStrategy:
                     description="An example problem for testing with sufficient length",
                     difficulty="easy",
                     tags=["array", "sorting"],
-                    public_test_cases=[
-                        TestCase(input={"nums": [1, 2]}, expected_output=3)
-                    ],
+                    public_test_cases=[TestCase(input={"nums": [1, 2]}, expected_output=3)],
                 ),
                 solution_code="def solution(nums): return sum(nums)",
                 similarity_score=0.0,
@@ -426,9 +416,7 @@ class TestFewShotLearningStrategy:
         # Strategy should have attempted execution once
         mock_llm_client.generate.assert_called_once()
 
-    def test_execute_with_feedback_test_cases(
-        self, strategy_config, mock_llm_client, mock_sandbox
-    ):
+    def test_execute_with_feedback_test_cases(self, strategy_config, mock_llm_client, mock_sandbox):
         """Test execution with feedback test cases instead of public test cases."""
         strategy = FewShotLearningStrategy(strategy_config, mock_llm_client, mock_sandbox)
 
@@ -440,9 +428,7 @@ class TestFewShotLearningStrategy:
             difficulty="easy",
             tags=["array"],
             public_test_cases=[],
-            feedback_test_cases=[
-                TestCase(input={"nums": [1, 2, 3]}, expected_output=6)
-            ],
+            feedback_test_cases=[TestCase(input={"nums": [1, 2, 3]}, expected_output=6)],
         )
 
         # Mock LLM response using correct LLMResponse format
@@ -479,9 +465,7 @@ class TestFewShotLearningStrategy:
         call_args = mock_sandbox.execute.call_args
         assert call_args[1]["stage"] == "feedback"
 
-    def test_execute_with_hidden_only_problem(
-        self, strategy_config, mock_llm_client, mock_sandbox
-    ):
+    def test_execute_with_hidden_only_problem(self, strategy_config, mock_llm_client, mock_sandbox):
         """Test execution with hidden-only test cases."""
         strategy = FewShotLearningStrategy(strategy_config, mock_llm_client, mock_sandbox)
 
@@ -494,9 +478,7 @@ class TestFewShotLearningStrategy:
             tags=["dynamic-programming"],
             public_test_cases=[],
             feedback_test_cases=[],
-            hidden_test_cases=[
-                TestCase(input={"n": 5}, expected_output=10)
-            ],
+            hidden_test_cases=[TestCase(input={"n": 5}, expected_output=10)],
         )
 
         result = strategy.execute(problem)

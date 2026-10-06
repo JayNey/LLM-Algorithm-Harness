@@ -141,9 +141,7 @@ class FewShotLearningStrategy(StrategyBase):
             total_examples=loaded_count,
         )
 
-    def retrieve_similar(
-        self, problem: Problem, k: int
-    ) -> list[SimilarProblem]:
+    def retrieve_similar(self, problem: Problem, k: int) -> list[SimilarProblem]:
         """
         Retrieve top-k similar problems from example database.
 
@@ -195,9 +193,7 @@ class FewShotLearningStrategy(StrategyBase):
 
         return top_k
 
-    def build_few_shot_prompt(
-        self, problem: Problem, examples: list[SimilarProblem]
-    ) -> str:
+    def build_few_shot_prompt(self, problem: Problem, examples: list[SimilarProblem]) -> str:
         """
         Build few-shot prompt with examples.
 

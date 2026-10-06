@@ -3,6 +3,7 @@
 End-to-end test for Few-Shot Learning strategy.
 Tests the strategy on real problems to verify integration.
 """
+
 from unittest.mock import Mock, patch
 
 from src.models import Problem, StrategyConfig, TestCase
@@ -11,13 +12,12 @@ from src.strategies.few_shot_learning import FewShotLearningStrategy, SimilarPro
 
 class MockLLMResponse:
     """Simple mock response object."""
+
     def __init__(self, text: str):
         self.text = text
-        self.usage = type('obj', (object,), {
-            'prompt_tokens': 100,
-            'completion_tokens': 50,
-            'total_tokens': 150
-        })()
+        self.usage = type(
+            "obj", (object,), {"prompt_tokens": 100, "completion_tokens": 50, "total_tokens": 150}
+        )()
         self.model = "mock-model"
         self.usage_missing = False
         self.finish_reason = "stop"
@@ -58,14 +58,14 @@ def create_mock_sandbox():
         expected_output="[0, 1]",
         execution_time=0.01,
         status="passed",
-        error_message=None
+        error_message=None,
     )
     sandbox_result = SandboxResult(
         status="success",
         test_results=[test_result],
         execution_time=0.01,
         all_passed=True,
-        error_message=None
+        error_message=None,
     )
     mock_sandbox.execute.return_value = sandbox_result
     return mock_sandbox
@@ -78,18 +78,12 @@ def create_test_problems():
             problem_id="two-sum",
             title="Two Sum",
             description="Given an array of integers nums and an integer target, "
-                       "return indices of the two numbers that add up to target.",
+            "return indices of the two numbers that add up to target.",
             difficulty="easy",
             tags=["array", "hash-table"],
             public_test_cases=[
-                TestCase(
-                    input={"nums": [2, 7, 11, 15], "target": 9},
-                    expected_output=[0, 1]
-                ),
-                TestCase(
-                    input={"nums": [3, 2, 4], "target": 6},
-                    expected_output=[1, 2]
-                ),
+                TestCase(input={"nums": [2, 7, 11, 15], "target": 9}, expected_output=[0, 1]),
+                TestCase(input={"nums": [3, 2, 4], "target": 6}, expected_output=[1, 2]),
             ],
         ),
         Problem(
@@ -99,10 +93,7 @@ def create_test_problems():
             difficulty="easy",
             tags=["string", "two-pointers"],
             public_test_cases=[
-                TestCase(
-                    input={"s": "hello"},
-                    expected_output="olleh"
-                ),
+                TestCase(input={"s": "hello"}, expected_output="olleh"),
             ],
         ),
         Problem(
@@ -112,10 +103,7 @@ def create_test_problems():
             difficulty="medium",
             tags=["array", "dynamic-programming"],
             public_test_cases=[
-                TestCase(
-                    input={"nums": [-2, 1, -3, 4, -1, 2, 1, -5, 4]},
-                    expected_output=6
-                ),
+                TestCase(input={"nums": [-2, 1, -3, 4, -1, 2, 1, -5, 4]}, expected_output=6),
             ],
         ),
         Problem(
@@ -125,14 +113,8 @@ def create_test_problems():
             difficulty="easy",
             tags=["string", "stack"],
             public_test_cases=[
-                TestCase(
-                    input={"s": "()[]{}"},
-                    expected_output=True
-                ),
-                TestCase(
-                    input={"s": "(]"},
-                    expected_output=False
-                ),
+                TestCase(input={"s": "()[]{}"}, expected_output=True),
+                TestCase(input={"s": "(]"}, expected_output=False),
             ],
         ),
         Problem(
@@ -144,7 +126,7 @@ def create_test_problems():
             public_test_cases=[
                 TestCase(
                     input={"nums1": [1, 2, 3], "nums2": [2, 5, 6]},
-                    expected_output=[1, 2, 2, 3, 5, 6]
+                    expected_output=[1, 2, 2, 3, 5, 6],
                 ),
             ],
         ),
@@ -166,11 +148,11 @@ def main():
         parameters={
             "max_examples": 3,
             "min_similarity_score": 0.3,
-        }
+        },
     )
 
     # Patch to disable example database loading from disk
-    with patch.object(FewShotLearningStrategy, '_load_example_database'):
+    with patch.object(FewShotLearningStrategy, "_load_example_database"):
         strategy = FewShotLearningStrategy(config, mock_llm, mock_sandbox)
 
     problems = create_test_problems()
@@ -213,22 +195,27 @@ def main():
             print(f"  Status: {result.status}")
             print(f"  Iterations: {len(result.iterations)}")
 
-            results.append({
-                "problem": problem.problem_id,
-                "status": result.status,
-                "similar_count": len(similar),
-            })
+            results.append(
+                {
+                    "problem": problem.problem_id,
+                    "status": result.status,
+                    "similar_count": len(similar),
+                }
+            )
             print("  ✓ PASSED")
 
         except Exception as e:
             import traceback
+
             print(f"  ✗ FAILED: {e}")
             traceback.print_exc()
-            results.append({
-                "problem": problem.problem_id,
-                "status": "error",
-                "error": str(e),
-            })
+            results.append(
+                {
+                    "problem": problem.problem_id,
+                    "status": "error",
+                    "error": str(e),
+                }
+            )
 
         print()
 
