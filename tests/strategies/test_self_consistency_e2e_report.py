@@ -218,3 +218,64 @@ def test_execution_result_serialization_with_voting_stats(
 
     assert voting_stats_found, "Voting statistics lost during serialization"
     print("\n✓ ExecutionResult with voting stats successfully serialized and deserialized")
+
+
+def test_invalid_num_candidates_falls_back_to_five(simple_problem):
+    config = StrategyConfig(
+        name="self_consistency",
+        custom_params={"num_candidates": 0},
+    )
+    strategy = SelfConsistencyStrategy(config, MagicMock(), MagicMock())
+    assert strategy.num_candidates == 5
+
+
+def test_llm_errors_are_counted_in_failure_analysis(simple_problem):
+    client = MagicMock()
+    client.generate.side_effect = RuntimeError("api down")
+    sandbox = MagicMock()
+    config = StrategyConfig(name="self_consistency", custom_params={"num_candidates": 2})
+    strategy = SelfConsistencyStrategy(config, client, sandbox)
+
+    result = strategy.execute(simple_problem)
+
+    assert len(result.iterations) == 2
+    assert all(iteration.llm_error for iteration in result.iterations)
+    failure_analysis = result.llm_traces[-1]["failure_analysis"]
+    assert failure_analysis["summary"]["llm_errors"] == 2
+
+
+def test_no_code_extracted_counted_in_failure_analysis(simple_problem):
+    client = MagicMock()
+    client.generate.return_value = LLMResponse(
+        text="no code block here",
+        usage=TokenUsage(prompt_tokens=1, completion_tokens=1, total_tokens=2),
+        model="gpt-4",
+        finish_reason="stop",
+    )
+    sandbox = MagicMock()
+    config = StrategyConfig(name="self_consistency", custom_params={"num_candidates": 2})
+    strategy = SelfConsistencyStrategy(config, client, sandbox)
+
+    result = strategy.execute(simple_problem)
+
+    failure_analysis = result.llm_traces[-1]["failure_analysis"]
+    assert failure_analysis["summary"]["no_code_extracted"] == 2
+
+
+def test_sandbox_errors_counted_in_failure_analysis(simple_problem):
+    client = MagicMock()
+    client.generate.return_value = LLMResponse(
+        text="```python\nprint('hi')\n```",
+        usage=TokenUsage(prompt_tokens=1, completion_tokens=1, total_tokens=2),
+        model="gpt-4",
+        finish_reason="stop",
+    )
+    sandbox = MagicMock()
+    sandbox.execute.side_effect = RuntimeError("sandbox unavailable")
+    config = StrategyConfig(name="self_consistency", custom_params={"num_candidates": 2})
+    strategy = SelfConsistencyStrategy(config, client, sandbox)
+
+    result = strategy.execute(simple_problem)
+
+    failure_analysis = result.llm_traces[-1]["failure_analysis"]
+    assert failure_analysis["summary"]["sandbox_errors"] == 2
