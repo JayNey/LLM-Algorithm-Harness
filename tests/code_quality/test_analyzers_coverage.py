@@ -2,8 +2,6 @@
 
 from unittest.mock import MagicMock
 
-import pytest
-
 from src.code_quality.models import SpaceComplexityScore
 from src.code_quality.space_analyzer import SpaceAnalyzer
 from src.code_quality.time_analyzer import TimeComplexityAnalyzer
