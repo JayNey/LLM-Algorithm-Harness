@@ -81,9 +81,7 @@ class TreeOfThoughtsStrategy(StrategyBase):
         if max_depth < 1:
             raise ValueError(f"max_depth must be >= 1, got {max_depth}")
         if search_strategy not in ("bfs", "dfs"):
-            raise ValueError(
-                f"search_strategy must be 'bfs' or 'dfs', got '{search_strategy}'"
-            )
+            raise ValueError(f"search_strategy must be 'bfs' or 'dfs', got '{search_strategy}'")
         if not 0.0 <= pruning_threshold <= 1.0:
             raise ValueError(
                 f"pruning_threshold must be between 0.0 and 1.0, got {pruning_threshold}"
@@ -274,14 +272,14 @@ Code:
         branches = []
 
         # Split response by approach/variation markers
-        sections = re.split(r'===\s*(?:Approach|Variation)\s+\d+\s*===', response_text)
+        sections = re.split(r"===\s*(?:Approach|Variation)\s+\d+\s*===", response_text)
 
         for section in sections[1:]:  # Skip first empty section
             if not section.strip():
                 continue
 
             # Extract reasoning
-            reasoning_match = re.search(r'Reasoning:\s*(.+?)(?=Code:|$)', section, re.DOTALL)
+            reasoning_match = re.search(r"Reasoning:\s*(.+?)(?=Code:|$)", section, re.DOTALL)
             reasoning = reasoning_match.group(1).strip() if reasoning_match else "Refinement"
 
             # Extract code using existing extract_code method
@@ -390,7 +388,7 @@ Example: 0.75
             ValueError: If no valid score found
         """
         # Look for a float number in the response
-        matches = re.findall(r'\b0?\.\d+\b|\b1\.0+\b|\b[01]\b', response_text)
+        matches = re.findall(r"\b0?\.\d+\b|\b1\.0+\b|\b[01]\b", response_text)
 
         if not matches:
             raise ValueError(f"No quality score found in response: {response_text[:100]}")
@@ -506,7 +504,11 @@ Example: 0.75
         return self._extract_best_solution(all_nodes, iterations, problem, elapsed_time)
 
     def _extract_best_solution(
-        self, all_nodes: list[ThoughtNode], iterations: list[IterationResult], problem: Problem, elapsed_time: float
+        self,
+        all_nodes: list[ThoughtNode],
+        iterations: list[IterationResult],
+        problem: Problem,
+        elapsed_time: float,
     ) -> ExecutionResult:
         """
         Extract the best solution from explored nodes.
@@ -522,9 +524,7 @@ Example: 0.75
         """
         # Find leaf nodes (nodes with no children or at max depth)
         leaf_nodes = [
-            node
-            for node in all_nodes
-            if not node.children or node.depth >= self.max_depth
+            node for node in all_nodes if not node.children or node.depth >= self.max_depth
         ]
 
         if not leaf_nodes:
