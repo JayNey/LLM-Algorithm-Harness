@@ -1,5 +1,6 @@
 """Hand-computed trade-offs, cohort checks, and offline CLI coverage for #92."""
 
+import argparse
 import copy
 import json
 from unittest.mock import patch
@@ -265,3 +266,51 @@ def test_analysis_does_not_mutate_comparison():
     original = copy.deepcopy(data)
     build_pareto_analysis([data])
     assert data == original
+
+
+def comparison_payload(rows, identifier="exp-a"):
+    payload = comparison(rows, identifier)
+    payload["experiment"]["dataset"]["problem_ids"] = ["p0", "p1"]
+    return payload
+
+
+def _pareto_exp_dir(tmp_path, name, combos):
+    exp_dir = tmp_path / name
+    exp_dir.mkdir()
+    comparison = comparison_payload(rows=combos, identifier=name)
+    (exp_dir / "comparison.json").write_text(json.dumps(comparison), encoding="utf-8")
+    return exp_dir
+
+
+def test_pareto_handler_writes_artifacts(tmp_path, capsys):
+    from src.main import run_pareto_command
+
+    # Two experiments share dataset/git snapshots so the multi-experiment
+    # compatibility check passes.
+    exp_a = _pareto_exp_dir(tmp_path, "exp-a", [combo("m1", 1.0, solved=8)])
+    exp_b = _pareto_exp_dir(tmp_path, "exp-b", [combo("m2", 2.0, solved=9)])
+    out_dir = tmp_path / "pareto-out"
+    args = argparse.Namespace(
+        experiments=[str(exp_a), str(exp_b)],
+        budgets=None,
+        accuracy_metric="overall",
+        output_dir=str(out_dir),
+    )
+    assert run_pareto_command(args) == 0
+    out = capsys.readouterr().out
+    assert "frontier point" in out
+    assert (out_dir / "pareto.json").exists()
+
+
+def test_pareto_handler_rejects_duplicate_inputs(tmp_path, capsys):
+    from src.main import run_pareto_command
+
+    exp = _pareto_exp_dir(tmp_path, "exp-a", [combo("m1", 1.0, solved=8)])
+    args = argparse.Namespace(
+        experiments=[str(exp), str(exp)],
+        budgets=None,
+        accuracy_metric="overall",
+        output_dir=str(tmp_path / "out"),
+    )
+    assert run_pareto_command(args) == 1
+    assert "Duplicate experiment input" in capsys.readouterr().err

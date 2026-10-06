@@ -239,3 +239,11 @@ def test_cli_optimize_missing_comparison_fails(tmp_path, capsys):
     assert exit_code == 1
     assert "comparison.json" in capsys.readouterr().err
     assert not (missing / "optimization.json").exists()
+
+
+def test_cli_optimize_missing_experiment_reports_error(tmp_path, capsys):
+    exit_code = _run_main(
+        ["optimize", "--experiment", str(tmp_path / "nope"), "--budget", "10"]
+    )
+    assert exit_code == 1
+    assert "Error" in capsys.readouterr().err

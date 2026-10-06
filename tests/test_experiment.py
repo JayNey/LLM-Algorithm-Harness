@@ -1071,3 +1071,47 @@ def test_parallel_execution_matches_serial_structure(tmp_path):
             pricing_file="nonexistent.json",
         ).run()
     assert (single / "panel.html").exists()
+
+
+def test_cli_experiment_missing_config_reports_error(tmp_path, capsys):
+    exit_code = _run_main(["experiment", "--config", str(tmp_path / "nope.json")])
+    assert exit_code == 1
+    assert "Error" in capsys.readouterr().err
+
+
+def test_comparison_markdown_renders_evolution_section(tmp_path):
+    from src.experiment_report import _render_markdown
+
+    comparison = {
+        "experiment": {"experiment_id": "exp-evo"},
+        "combinations": [],
+        "by_model_strategy": [],
+        "generated_at": "2026-10-06T00:00:00",
+        "evolution_analysis": {
+            "has_evolution_data": True,
+            "problems_with_drops": 2,
+            "total_drops": 3,
+            "drop_reasons": {"Introduced syntax error": 2, "Test failures introduced": 1},
+            "charts_generated": ["p1/evolution.png"],
+        },
+    }
+    markdown = _render_markdown(comparison)
+
+    assert "## 代码质量演化分析" in markdown
+    assert "检测到质量下降的题目数：2" in markdown
+    assert "Introduced syntax error: 2 次" in markdown
+    assert "质量演化趋势图表" in markdown
+
+
+def test_comparison_markdown_without_evolution_data(tmp_path):
+    from src.experiment_report import _render_markdown
+
+    comparison = {
+        "experiment": {"experiment_id": "exp-noevo"},
+        "combinations": [],
+        "by_model_strategy": [],
+        "generated_at": "2026-10-06T00:00:00",
+        "evolution_analysis": {"has_evolution_data": False},
+    }
+    markdown = _render_markdown(comparison)
+    assert "## 代码质量演化分析" not in markdown

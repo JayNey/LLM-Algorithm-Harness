@@ -112,3 +112,20 @@ class TestCustomMapping:
         path.write_text('aliases:\n  "greedy algorithm": greedy\n', encoding="utf-8")
         manager = TagManager(path)
         assert "greedy" in manager.normalize_tags(["Greedy Algorithm"])
+
+
+def test_tags_section_merged_with_builtin(tmp_path):
+    """The tags section merges aliases/keywords into builtin definitions."""
+    path = tmp_path / "mapping.yaml"
+    path.write_text(
+        "tags:\n"
+        "  dynamic-programming:\n"
+        "    aliases: [DP practice]\n"
+        "    keywords: [state compression]\n",
+        encoding="utf-8",
+    )
+    manager = TagManager(path)
+    assert manager.normalize_tags(["DP practice"]) == ["dynamic-programming"]
+    assert manager.normalize_tags(["dp"]) == manager.normalize_tags(["DP practice"])
+    suggestions = manager.recommend_tags("state compression trick", "", min_confidence=0.0)
+    assert any(item["tag"] == "dynamic-programming" for item in suggestions)
