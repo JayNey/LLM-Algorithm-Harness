@@ -17,10 +17,21 @@ from src.strategies.similarity.tag_based import calculate_tag_similarity
 
 
 @dataclass
+class ExampleProblem:
+    """Lightweight problem representation for few-shot examples."""
+
+    problem_id: str
+    title: str
+    description: str
+    difficulty: str
+    tags: List[str]
+
+
+@dataclass
 class SimilarProblem:
     """Similar problem with its solution."""
 
-    problem: Problem
+    problem: ExampleProblem
     solution_code: str
     similarity_score: float
     matching_tags: List[str]
@@ -87,18 +98,21 @@ class FewShotLearningStrategy(StrategyBase):
                         if not problem_id:
                             continue
 
-                        # Create a minimal Problem object for the example
-                        # (In a real implementation, we'd load the full problem from dataset)
-                        problem_data = {
-                            "problem_id": problem_id,
-                            "title": result.get("problem_id", "Unknown"),
-                            "description": "Example problem from history",
-                            "difficulty": result.get("difficulty", "medium"),
-                            "tags": [],  # Will be loaded if available
-                        }
+                        # Create a lightweight example problem
+                        # Extract tags from result metadata if available
+                        tags = result.get("tags", [])
+                        if not tags and "problem_metadata" in result:
+                            tags = result["problem_metadata"].get("tags", [])
+
+                        problem = ExampleProblem(
+                            problem_id=problem_id,
+                            title=result.get("title", problem_id),
+                            description=result.get("description", "Example problem from history"),
+                            difficulty=result.get("difficulty", "medium"),
+                            tags=tags,
+                        )
 
                         try:
-                            problem = Problem(**problem_data)
                             # We don't compute similarity yet - just store
                             self.example_db.append(
                                 SimilarProblem(

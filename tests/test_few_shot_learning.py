@@ -167,8 +167,11 @@ class TestFewShotLearningStrategy:
             ],
         )
 
-    def test_strategy_initialization(self, strategy_config, mock_llm_client, mock_sandbox):
+    def test_strategy_initialization(self, strategy_config, mock_llm_client, mock_sandbox, tmp_path, monkeypatch):
         """Test strategy initialization with config parameters."""
+        # Use tmp_path to avoid loading real results directory
+        monkeypatch.chdir(tmp_path)
+
         strategy = FewShotLearningStrategy(strategy_config, mock_llm_client, mock_sandbox)
         assert strategy.num_examples == 2
         assert strategy.similarity_metric == "tag_overlap"
@@ -527,13 +530,13 @@ class TestFewShotLearningStrategy:
         results_dir.mkdir()
 
         # Create a result file with the correct naming pattern and format
-        # Note: The loader creates minimal Problem objects, but Problem requires at least one test case
-        # This tests the exception handling path (line 103-111)
         result_file = results_dir / "test_results.json"
         result_data = [
             {
                 "problem_id": "test-problem",
+                "title": "Test Problem",
                 "difficulty": "easy",
+                "tags": ["array", "hash-table"],
                 "generated_code": "def solution(x):\n    return x * 2",
                 "status": "success",  # Must be "success" to be loaded
             }
@@ -544,9 +547,11 @@ class TestFewShotLearningStrategy:
 
         strategy = FewShotLearningStrategy(strategy_config, mock_llm_client, mock_sandbox)
 
-        # Should handle the validation error and skip the invalid example
-        # This covers the exception handling at lines 103-111
-        assert len(strategy.example_db) == 0
+        # Should successfully load the valid example using ExampleProblem
+        assert len(strategy.example_db) == 1
+        assert strategy.example_db[0].problem.problem_id == "test-problem"
+        assert strategy.example_db[0].problem.tags == ["array", "hash-table"]
+        assert strategy.example_db[0].solution_code == "def solution(x):\n    return x * 2"
 
     def test_load_example_database_with_invalid_problem_data(
         self, strategy_config, mock_llm_client, mock_sandbox, tmp_path, monkeypatch
