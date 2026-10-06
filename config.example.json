@@ -56,6 +56,16 @@
       "custom_params": {
         "reflection_context_chars": 6000
       }
+    },
+    {
+      "name": "tree_of_thoughts",
+      "max_iterations": 1,
+      "custom_params": {
+        "branching_factor": 3,
+        "max_depth": 4,
+        "search_strategy": "bfs",
+        "pruning_threshold": 0.3
+      }
     }
   ],
   "problem_filters": {
