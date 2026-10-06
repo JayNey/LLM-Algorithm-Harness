@@ -3,15 +3,13 @@ Tests for Few-Shot Learning strategy.
 """
 
 import json
-from pathlib import Path
-from unittest.mock import MagicMock, Mock, patch
+from unittest.mock import Mock
 
 import pytest
 
 from src.llm_client import LLMClient
 from src.models import (
     ExecutionResult,
-    JudgeConfig,
     LLMResponse,
     Problem,
     SandboxResult,
@@ -28,7 +26,6 @@ from src.strategies.similarity.tag_based import (
     filter_by_similarity_threshold,
     normalize_tags,
 )
-
 
 # ============================================================================
 # Test Tag Similarity Functions

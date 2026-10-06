@@ -6,14 +6,13 @@ import json
 import time
 from dataclasses import dataclass
 from pathlib import Path
-from typing import List
 
 from src.budget import BudgetExhausted
 from src.llm_client import LLMClient
 from src.models import ExecutionResult, Problem, StrategyConfig
 from src.sandbox_executor import SandboxExecutor
-from src.strategy_base import StrategyBase
 from src.strategies.similarity.tag_based import calculate_tag_similarity
+from src.strategy_base import StrategyBase
 
 
 @dataclass
@@ -24,7 +23,7 @@ class ExampleProblem:
     title: str
     description: str
     difficulty: str
-    tags: List[str]
+    tags: list[str]
 
 
 @dataclass
@@ -34,7 +33,7 @@ class SimilarProblem:
     problem: ExampleProblem
     solution_code: str
     similarity_score: float
-    matching_tags: List[str]
+    matching_tags: list[str]
 
 
 class FewShotLearningStrategy(StrategyBase):
@@ -64,7 +63,7 @@ class FewShotLearningStrategy(StrategyBase):
         self.example_source = custom_params.get("example_source", "solved_problems")
 
         # Initialize example database
-        self.example_db: List[SimilarProblem] = []
+        self.example_db: list[SimilarProblem] = []
         self._load_example_database()
 
     def _load_example_database(self) -> None:
@@ -87,7 +86,7 @@ class FewShotLearningStrategy(StrategyBase):
         # Scan for result files
         for result_file in results_dir.rglob("*_results.json"):
             try:
-                with open(result_file, "r", encoding="utf-8") as f:
+                with open(result_file, encoding="utf-8") as f:
                     results = json.load(f)
 
                 # Extract successful solutions
@@ -144,7 +143,7 @@ class FewShotLearningStrategy(StrategyBase):
 
     def retrieve_similar(
         self, problem: Problem, k: int
-    ) -> List[SimilarProblem]:
+    ) -> list[SimilarProblem]:
         """
         Retrieve top-k similar problems from example database.
 
@@ -197,7 +196,7 @@ class FewShotLearningStrategy(StrategyBase):
         return top_k
 
     def build_few_shot_prompt(
-        self, problem: Problem, examples: List[SimilarProblem]
+        self, problem: Problem, examples: list[SimilarProblem]
     ) -> str:
         """
         Build few-shot prompt with examples.

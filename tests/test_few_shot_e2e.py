@@ -3,11 +3,9 @@
 End-to-end test for Few-Shot Learning strategy.
 Tests the strategy on real problems to verify integration.
 """
-import json
-from pathlib import Path
-from unittest.mock import Mock, patch, PropertyMock
+from unittest.mock import Mock, patch
 
-from src.models import Problem, TestCase, StrategyConfig
+from src.models import Problem, StrategyConfig, TestCase
 from src.strategies.few_shot_learning import FewShotLearningStrategy, SimilarProblem
 
 
@@ -244,16 +242,16 @@ def main():
     # Test coverage by difficulty
     easy_count = sum(1 for p in problems if p.difficulty == "easy")
     medium_count = sum(1 for p in problems if p.difficulty == "medium")
-    print(f"\nCoverage:")
+    print("\nCoverage:")
     print(f"  Easy: {easy_count} problems")
     print(f"  Medium: {medium_count} problems")
 
     # Verify requirements
-    print(f"\nRequirements:")
+    print("\nRequirements:")
     print(f"  ✓ Tested on {len(problems)} problems (>= 5 required)")
-    print(f"  ✓ Covered easy and medium difficulties")
-    print(f"  ✓ Strategy initialized without errors")
-    print(f"  ✓ All problems executed successfully")
+    print("  ✓ Covered easy and medium difficulties")
+    print("  ✓ Strategy initialized without errors")
+    print("  ✓ All problems executed successfully")
 
     if passed == len(results):
         print("\n✓ End-to-end test PASSED")

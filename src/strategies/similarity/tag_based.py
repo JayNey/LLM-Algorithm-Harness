@@ -2,10 +2,9 @@
 Tag-based similarity calculation for Few-Shot Learning.
 """
 
-from typing import List, Set
 
 
-def normalize_tags(tags: List[str]) -> Set[str]:
+def normalize_tags(tags: list[str]) -> set[str]:
     """
     Normalize and deduplicate tags.
 
@@ -18,7 +17,7 @@ def normalize_tags(tags: List[str]) -> Set[str]:
     return {tag.lower().strip() for tag in tags if tag.strip()}
 
 
-def calculate_jaccard_similarity(tags1: Set[str], tags2: Set[str]) -> float:
+def calculate_jaccard_similarity(tags1: set[str], tags2: set[str]) -> float:
     """
     Calculate Jaccard similarity between two tag sets.
 
@@ -43,7 +42,7 @@ def calculate_jaccard_similarity(tags1: Set[str], tags2: Set[str]) -> float:
     return len(intersection) / len(union)
 
 
-def calculate_tag_similarity(tags1: List[str], tags2: List[str]) -> float:
+def calculate_tag_similarity(tags1: list[str], tags2: list[str]) -> float:
     """
     Calculate similarity between two tag lists.
 
@@ -61,8 +60,8 @@ def calculate_tag_similarity(tags1: List[str], tags2: List[str]) -> float:
 
 
 def filter_by_similarity_threshold(
-    similarities: List[tuple], threshold: float
-) -> List[tuple]:
+    similarities: list[tuple], threshold: float
+) -> list[tuple]:
     """
     Filter similarity results by threshold.
 
