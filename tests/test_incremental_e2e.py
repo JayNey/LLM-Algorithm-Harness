@@ -127,11 +127,6 @@ class TestIncrementalEndToEnd:
         assert report["estimated_cost_usd"] > 0, "merged report must keep real cost"
         assert set(report["by_difficulty"]) == {"easy"}
         assert report["avg_attempts_per_problem"] == 1.0
-        # W2: stale strategies from the matched run stay out of the reports
-        assert set(summary["strategies"]) == {"vanilla"}
-        # N1: the fallback full run is recorded, healing the history
-        history_after = json.loads(history_path.read_text(encoding="utf-8"))
-        assert len(history_after["runs"]) >= 2
 
     def test_second_run_without_flag_is_full(self, tmp_path, capsys):
         dataset = _dataset(tmp_path, ["p1", "p2", "p3"])
@@ -145,6 +140,84 @@ class TestIncrementalEndToEnd:
             _run_main(["--config", str(config_path), "--no-incremental"])
         out = capsys.readouterr().out
         assert "Incremental evaluation mode enabled" not in out
+
+
+class TestIncrementalStaleStrategies:
+    def test_shrunk_strategy_set_stays_out_of_reports(self, tmp_path, capsys):
+        """First run two strategies, second run only one + dataset change:
+        the stale strategy must not appear in summary.json (W2 guard)."""
+        problems = []
+        for pid in ("p1", "p2", "p3"):
+            problems.append(
+                {
+                    "problem_id": pid,
+                    "title": f"P-{pid}",
+                    "description": f"Problem description for {pid} first version.",
+                    "difficulty": "easy",
+                    "tags": ["tag"],
+                    "test_cases": [{"input": {"x": 1}, "expected_output": 2}],
+                }
+            )
+        dataset = tmp_path / "problems.json"
+        dataset.write_text(json.dumps(problems), encoding="utf-8")
+        config = {
+            "dataset_path": str(dataset),
+            "output_dir": str(tmp_path / "results"),
+            "llm_config": {"provider": "openai", "api_key": "k", "model": "test-model"},
+            "strategies": [
+                {"name": "vanilla", "max_iterations": 1},
+                {"name": "chain_of_thought", "max_iterations": 1},
+            ],
+            "sandbox_config": {"backend": "host", "allowed_imports": []},
+        }
+        config_path = tmp_path / "config.json"
+        config_path.write_text(json.dumps(config), encoding="utf-8")
+
+        with patch("src.harness.LLMClient", side_effect=_llm_factory()):
+            assert _run_main(["--config", str(config_path), "--incremental"]) == 0
+
+        # Shrink the strategy set and change the dataset.
+        for problem in problems:
+            if problem["problem_id"] == "p2":
+                problem["description"] = "changed second version"
+        dataset.write_text(json.dumps(problems), encoding="utf-8")
+        config["strategies"] = [{"name": "vanilla", "max_iterations": 1}]
+        config_path.write_text(json.dumps(config), encoding="utf-8")
+
+        with patch("src.harness.LLMClient", side_effect=_llm_factory()):
+            assert _run_main(["--config", str(config_path), "--incremental"]) == 0
+
+        latest = json.loads((tmp_path / "results" / "latest.json").read_text(encoding="utf-8"))
+        run_dir = tmp_path / "results" / latest["latest_run"]
+        summary = json.loads((run_dir / "summary.json").read_text(encoding="utf-8"))
+        assert set(summary["strategies"]) == {"vanilla"}
+        assert summary["strategies"]["vanilla"]["total_problems"] == 3
+
+
+class TestIncrementalShrunkDataset:
+    def test_removals_only_falls_back_to_full(self, tmp_path, capsys):
+        """Dataset shrank (removals only): one full-evaluation message, no
+        incremental banner, report covers the shrunk dataset (N3b guard)."""
+        dataset = _dataset(tmp_path, ["p1", "p2", "p3"])
+        config_path = _config_file(tmp_path, dataset)
+
+        with patch("src.harness.LLMClient", side_effect=_llm_factory()):
+            _run_main(["--config", str(config_path), "--incremental"])
+        capsys.readouterr()
+
+        # Remove one problem from the dataset (removals only, no changes).
+        problems = json.loads(dataset.read_text(encoding="utf-8"))
+        dataset.write_text(
+            json.dumps([p for p in problems if p["problem_id"] != "p3"]),
+            encoding="utf-8",
+        )
+
+        with patch("src.harness.LLMClient", side_effect=_llm_factory()):
+            assert _run_main(["--config", str(config_path), "--incremental"]) == 0
+        out = capsys.readouterr().out
+        assert out.count("Dataset shrank since the last run") == 1
+        assert "Incremental evaluation mode enabled" not in out
+        assert "Total to evaluate: 0" not in out
 
 
 class TestIncrementalFallbacks:
@@ -177,6 +250,14 @@ class TestIncrementalFallbacks:
         out = capsys.readouterr().out
         assert "falling back to full evaluation" in out
         assert "Incremental evaluation mode enabled" not in out
+        # N1: the fallback full run is recorded, healing the history so the
+        # next small change can enter incremental mode again.
+        history_after = json.loads(history_path.read_text(encoding="utf-8"))
+        assert len(history_after["runs"]) >= 2
+        assert (
+            history_after["runs"][-1]["dataset_fingerprint"]
+            != history["runs"][-1]["dataset_fingerprint"]
+        )
 
     def test_corrupted_history_falls_back_to_full(self, tmp_path, capsys):
         dataset = _dataset(tmp_path, ["p1", "p2"])
