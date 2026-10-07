@@ -1990,9 +1990,7 @@ def main() -> None:
                     # run turns out to be a full evaluation.
 
                     # Load incremental history
-                    history_path = (
-                        Path(config.output_dir) / ".incremental" / "history.json"
-                    )
+                    history_path = Path(config.output_dir) / ".incremental" / "history.json"
                     history = IncrementalHistory.load(history_path)
 
                     # Find matching historical run
@@ -2008,20 +2006,17 @@ def main() -> None:
                             current_fingerprint, matching_run.dataset_fingerprint
                         )
 
-                        if should_use_incremental((added, modified, removed)):
+                        if should_use_incremental((added, modified, removed), current_fingerprint):
                             # Use incremental mode
                             changed_ids = added | modified
                             unchanged_ids = (
                                 set(current_fingerprint.keys()) - added - modified - removed
                             )
 
-                            print("\n🔄 Incremental evaluation mode enabled")
-                            print(f"  Unchanged: {len(unchanged_ids)} problems (reusing results)")
-                            print(f"  New: {len(added)} problems")
-                            print(f"  Modified: {len(modified)} problems")
-                            print(f"  Total to evaluate: {len(changed_ids)} problems\n")
-
                             # Load historical results for unchanged problems
+                            # BEFORE announcing the mode: corrupt or missing
+                            # history must fall back to a full evaluation,
+                            # never a silent subset run.
                             result_path = Path(matching_run.result_path)
                             if result_path.exists():
                                 historical_results = load_historical_results(
@@ -2033,23 +2028,43 @@ def main() -> None:
                                     unchanged=len(unchanged_ids),
                                 )
 
-                            # Filter config to only evaluate changed problems
-                            if config.problem_filters is None:
-                                config.problem_filters = {}
-                            config.problem_filters["problem_ids"] = list(changed_ids)
+                            if unchanged_ids and not historical_results:
+                                print(
+                                    "⚠️  Historical results could not be loaded; "
+                                    "falling back to full evaluation"
+                                )
+                                logger.warning(
+                                    "incremental_mode_skipped",
+                                    reason="historical_results_unavailable",
+                                )
+                                incremental_context = None
+                                current_fingerprint = None
+                            else:
+                                print("\n🔄 Incremental evaluation mode enabled")
+                                print(
+                                    f"  Unchanged: {len(unchanged_ids)} problems (reusing results)"
+                                )
+                                print(f"  New: {len(added)} problems")
+                                print(f"  Modified: {len(modified)} problems")
+                                print(f"  Total to evaluate: {len(changed_ids)} problems\n")
 
-                            # Store incremental context for result merging
-                            incremental_context = {
-                                "enabled": True,
-                                "historical_results": historical_results,
-                                "current_fingerprint": current_fingerprint,
-                                "matching_run": matching_run,
-                                "history": history,
-                                "history_path": history_path,
-                                "added": added,
-                                "modified": modified,
-                                "unchanged": unchanged_ids,
-                            }
+                                # Filter config to only evaluate changed problems
+                                if config.problem_filters is None:
+                                    config.problem_filters = {}
+                                config.problem_filters["problem_ids"] = list(changed_ids)
+
+                                # Store incremental context for result merging
+                                incremental_context = {
+                                    "enabled": True,
+                                    "historical_results": historical_results,
+                                    "current_fingerprint": current_fingerprint,
+                                    "matching_run": matching_run,
+                                    "history": history,
+                                    "history_path": history_path,
+                                    "added": added,
+                                    "modified": modified,
+                                    "unchanged": unchanged_ids,
+                                }
                         else:
                             print(
                                 f"ℹ️  Dataset changes detected but too large for incremental mode "
@@ -2100,33 +2115,45 @@ def main() -> None:
                     from src.models import StrategyReport
 
                     merged_reports = {}
-                    for strategy_name, results in merged_results.items():
+                    for strategy_name in harness.results:
+                        # Only strategies that actually ran this time get a
+                        # report; stale strategies from the matched run are
+                        # merged into results but not reported.
+                        results = merged_results.get(strategy_name, [])
                         # Recompute every metric from the merged results so the
                         # merged report is a real report, not a placeholder.
+                        # _estimate_cost keeps the exact accounting of the
+                        # full-run path (including pricing_metadata).
+                        total_cost, pricing_metadata = harness._estimate_cost(results)
                         total = len(results)
                         solved = sum(1 for r in results if r.status == "success")
                         failed = total - solved
                         total_tokens = sum(r.total_tokens for r in results)
                         total_attempts = sum(len(r.iterations) for r in results)
-                        total_cost = 0.0
-                        for r in results:
-                            cost, _ = result_cost(r)
-                            total_cost += float(cost)
                         by_difficulty: dict[str, dict[str, Any]] = {}
                         formal_evaluable = 0
                         formal_solved = 0
+                        model_failed = 0
+                        system_failed = 0
                         for r in results:
-                            difficulty = r.difficulty or "unknown"
-                            bucket = by_difficulty.setdefault(
-                                difficulty, {"solved": 0, "total": 0, "success_rate": 0.0}
-                            )
-                            bucket["total"] += 1
-                            if r.status == "success":
-                                bucket["solved"] += 1
+                            if r.difficulty:
+                                bucket = by_difficulty.setdefault(
+                                    r.difficulty,
+                                    {"solved": 0, "total": 0, "success_rate": 0.0, "cost_usd": 0.0},
+                                )
+                                bucket["total"] += 1
+                                if r.status == "success":
+                                    bucket["solved"] += 1
+                                cost, _ = result_cost(r)
+                                bucket["cost_usd"] = round(bucket["cost_usd"] + float(cost), 6)
                             if r.formal_evaluable:
                                 formal_evaluable += 1
                                 if r.hidden_result is not None and r.hidden_result.all_passed:
                                     formal_solved += 1
+                            if r.failure_category == "model_error":
+                                model_failed += 1
+                            elif r.failure_category == "system_error":
+                                system_failed += 1
                         for bucket in by_difficulty.values():
                             if bucket["total"] > 0:
                                 bucket["success_rate"] = bucket["solved"] / bucket["total"]
@@ -2136,31 +2163,33 @@ def main() -> None:
                             solved_problems=solved,
                             failed_problems=failed,
                             success_rate=solved / total if total > 0 else 0.0,
-                            avg_attempts_per_problem=(
-                                total_attempts / total if total > 0 else 0.0
-                            ),
+                            avg_attempts_per_problem=(total_attempts / total if total > 0 else 0.0),
                             total_tokens=total_tokens,
-                            avg_tokens_per_problem=(
-                                total_tokens / total if total > 0 else 0.0
-                            ),
+                            avg_tokens_per_problem=(total_tokens / total if total > 0 else 0.0),
                             estimated_cost_usd=total_cost,
+                            pricing_metadata=pricing_metadata,
                             by_difficulty=by_difficulty,
+                            model_failed_problems=model_failed,
+                            system_failed_problems=system_failed,
                             formal_evaluable_problems=formal_evaluable,
                             formal_solved_problems=formal_solved,
                             formal_success_rate=(
-                                formal_solved / formal_evaluable
-                                if formal_evaluable
-                                else 0.0
+                                formal_solved / formal_evaluable if formal_evaluable else 0.0
                             ),
+                            sample_only_problems=total - formal_evaluable,
                         )
                     reports = merged_reports
 
                     unchanged_count = len(incremental_context.get("unchanged", []))  # type: ignore[arg-type]
                     added_count = len(incremental_context.get("added", []))  # type: ignore[arg-type]
                     modified_count = len(incremental_context.get("modified", []))  # type: ignore[arg-type]
+                    reused_count = sum(
+                        len(items) for items in incremental_context["historical_results"].values()  # type: ignore[union-attr]
+                    )
                     print(
-                        f"\n✓ Merged {unchanged_count} historical results "
-                        f"with {added_count + modified_count} new results"
+                        f"\n✓ Merged {reused_count} reused results "
+                        f"with {added_count + modified_count} new results "
+                        f"(unchanged problems: {unchanged_count})"
                     )
 
                 except Exception as e:
@@ -2225,9 +2254,7 @@ def main() -> None:
                             problem_count,
                             success_count,
                         )
-                        logger.info(
-                            "incremental_history_updated", path=str(history_path)
-                        )
+                        logger.info("incremental_history_updated", path=str(history_path))
                 except Exception as e:
                     logger.warning("incremental_history_update_failed", error=str(e))
                     # Non-fatal, continue

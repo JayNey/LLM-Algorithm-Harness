@@ -86,7 +86,10 @@ def detect_changes(
     return added_ids, modified_ids, deleted_ids
 
 
-def should_use_incremental(changes: tuple[set[str], set[str], set[str]]) -> bool:
+def should_use_incremental(
+    changes: tuple[set[str], set[str], set[str]],
+    current_fingerprint: dict[str, str] | None = None,
+) -> bool:
     """
     Determine whether incremental evaluation is beneficial.
 
@@ -105,8 +108,11 @@ def should_use_incremental(changes: tuple[set[str], set[str], set[str]]) -> bool
     if not added_ids and not modified_ids and not deleted_ids:
         return False
 
-    # If there are changes, incremental is useful
-    return True
+    # Incremental only pays off when at least one unchanged problem exists
+    # whose result can be reused; otherwise run the full evaluation.
+    changed = len(added_ids) + len(modified_ids)
+    total = len(current_fingerprint) if current_fingerprint else changed
+    return total - changed > 0
 
 
 def load_historical_results(
@@ -138,11 +144,13 @@ def load_historical_results(
             with open(results_file, encoding="utf-8") as f:
                 data = json.load(f)
         except (OSError, ValueError) as e:
+            # All-or-nothing: a partially readable history would silently
+            # produce a subset report, so any corrupt file disables reuse.
             logger.warning(f"Failed to read historical results {results_file}: {e}")
-            continue
+            return {}
         if not isinstance(data, list):
             logger.warning(f"Unexpected historical results shape in {results_file}")
-            continue
+            return {}
 
         filtered_results = []
         for result_data in data:
@@ -156,6 +164,7 @@ def load_historical_results(
                     filtered_results.append(ExecutionResult(**result_dict))
                 except Exception as e:
                     logger.warning(f"Skipping unreadable historical result in {results_file}: {e}")
+                    return {}
 
         if filtered_results:
             results[strategy] = filtered_results

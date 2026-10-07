@@ -114,7 +114,7 @@ class TestIncrementalEndToEnd:
         assert "Incremental evaluation mode enabled" in second_out
         assert "Unchanged: 2 problems (reusing results)" in second_out
         assert "New: 1 problems" in second_out
-        assert "Merged 2 historical results with 2 new results" in second_out
+        assert "Merged 2 reused results with 2 new results" in second_out
         # The merged report is a real report, not a placeholder.
         assert "Cost" not in second_out or "unknown" not in second_out.lower()
 
@@ -143,6 +143,36 @@ class TestIncrementalEndToEnd:
 
 
 class TestIncrementalFallbacks:
+    def test_missing_results_dir_falls_back_to_full(self, tmp_path, capsys):
+        """Corrupt/missing history results must fall back to full evaluation
+        (delta spec: never a silent subset run)."""
+        dataset = _dataset(tmp_path, ["p1", "p2"])
+        config_path = _config_file(tmp_path, dataset)
+
+        with patch("src.harness.LLMClient", side_effect=_llm_factory()):
+            _run_main(["--config", str(config_path), "--incremental"])
+        capsys.readouterr()
+
+        # Wipe the recorded run directory (results unrecoverable) and change
+        # the dataset so incremental mode would otherwise trigger.
+        history_path = tmp_path / "results" / ".incremental" / "history.json"
+        history = json.loads(history_path.read_text(encoding="utf-8"))
+        for record in history["runs"]:
+            run_dir = tmp_path / "results" / record["run_id"]
+            if run_dir.exists():
+                for results_file in run_dir.glob("*_results.json"):
+                    results_file.unlink()
+        new_dataset = _dataset(tmp_path, ["p1", "p2", "p3"], modify_id="p2")
+        config_data = json.loads(config_path.read_text(encoding="utf-8"))
+        config_data["dataset_path"] = str(new_dataset)
+        config_path.write_text(json.dumps(config_data), encoding="utf-8")
+
+        with patch("src.harness.LLMClient", side_effect=_llm_factory()):
+            assert _run_main(["--config", str(config_path), "--incremental"]) == 0
+        out = capsys.readouterr().out
+        assert "falling back to full evaluation" in out
+        assert "Incremental evaluation mode enabled" not in out
+
     def test_corrupted_history_falls_back_to_full(self, tmp_path, capsys):
         dataset = _dataset(tmp_path, ["p1", "p2"])
         config_path = _config_file(tmp_path, dataset)

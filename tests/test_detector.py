@@ -85,7 +85,8 @@ def test_detect_changes_multiple_types(base_fingerprint):
 def test_should_use_incremental_small_changes():
     """Test incremental mode enabled for small changes."""
     changes = ({"new1"}, {"mod1"}, set())
-    assert should_use_incremental(changes) is True
+    fingerprint = {"p1": "h", "p2": "h", "p3": "h", "p4": "h", "p5": "h"}
+    assert should_use_incremental(changes, fingerprint) is True
 
 
 def test_should_use_incremental_no_changes():
@@ -95,16 +96,15 @@ def test_should_use_incremental_no_changes():
 
 
 def test_should_use_incremental_large_changes():
-    """Test incremental mode disabled for large changes (>70% modified/added)."""
-    # Simulate 8 added out of 10 total (80%)
+    """Test incremental mode disabled when nothing is left to reuse."""
+    # Simulate 8 added out of 8 total (100% changed, nothing reusable)
     added = {f"prob{i}" for i in range(8)}
     modified = set()
     removed = set()
 
     changes = (added, modified, removed)
-    # This should disable incremental since changes are > 70%
-    # But we need historical count - the function uses a heuristic
-    assert should_use_incremental(changes) is True  # Always true in current impl
+    fingerprint = {f"prob{i}": "h" for i in range(8)}
+    assert should_use_incremental(changes, fingerprint) is False
 
 
 def test_find_matching_run_no_history():
@@ -282,3 +282,46 @@ def test_load_historical_results_valid_file(tmp_path):
     assert results["direct"][0].status == "success"
     assert results["direct"][0].source == "reused"
     assert results["direct"][1].problem_id == "prob3"
+
+
+def test_load_historical_results_multi_strategy_dir(tmp_path):
+    """All per-strategy files in the run directory are loaded."""
+    run_dir = tmp_path / "run"
+    run_dir.mkdir()
+    (run_dir / "vanilla_results.json").write_text(
+        json.dumps(
+            [{"problem_id": "p1", "strategy": "vanilla", "generated_code": "", "status": "success"}]
+        ),
+        encoding="utf-8",
+    )
+    (run_dir / "cot_results.json").write_text(
+        json.dumps(
+            [{"problem_id": "p1", "strategy": "cot", "generated_code": "", "status": "success"}]
+        ),
+        encoding="utf-8",
+    )
+    results = load_historical_results(run_dir, {"p1"})
+    assert set(results) == {"vanilla", "cot"}
+
+
+def test_load_historical_results_single_corrupt_file_disables_reuse(tmp_path):
+    """One unreadable strategy file disables reuse entirely (all-or-nothing)."""
+    run_dir = tmp_path / "run"
+    run_dir.mkdir()
+    (run_dir / "vanilla_results.json").write_text(
+        json.dumps([{"problem_id": "p1", "strategy": "vanilla", "status": "success"}]),
+        encoding="utf-8",
+    )
+    (run_dir / "cot_results.json").write_text("{corrupted", encoding="utf-8")
+    assert load_historical_results(run_dir, {"p1"}) == {}
+
+
+def test_should_use_incremental_threshold_requires_reusable_problems():
+    """Incremental only pays off when at least one unchanged problem exists."""
+    from src.incremental.detector import should_use_incremental
+
+    everything_changed = ({"n1", "n2"}, {"m1"}, set())
+    assert should_use_incremental(everything_changed, {"n1": "h", "n2": "h", "m1": "h"}) is False
+    partial = ({"n1"}, {"m1"}, set())
+    assert should_use_incremental(partial, {f"p{i}": "h" for i in range(5)}) is True
+    assert should_use_incremental((set(), set(), set()), {"p1": "h"}) is False

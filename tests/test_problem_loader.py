@@ -250,3 +250,27 @@ def test_load_from_dict_invalid(problem_loader):
 
     with pytest.raises((ValueError, ValidationError)):
         problem_loader.load_from_dict(data)
+
+
+def test_filter_problems_by_ids():
+    from src.models import Problem
+
+    loader = ProblemLoader()
+    problems = [
+        Problem(
+            problem_id=pid,
+            title=f"P-{pid}",
+            description=f"Problem {pid} description",
+            difficulty="easy",
+            tags=[],
+            test_cases=[{"input": {"x": 1}, "expected_output": 1}],
+        )
+        for pid in ("p1", "p2", "p3")
+    ]
+    assert [p.problem_id for p in loader.filter_problems(problems, problem_ids=["p1", "p3"])] == [
+        "p1",
+        "p3",
+    ]
+    # Empty/None whitelist is a no-op
+    assert len(loader.filter_problems(problems, problem_ids=None)) == 3
+    assert len(loader.filter_problems(problems, problem_ids=[])) == 3

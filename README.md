@@ -381,9 +381,10 @@ harness recalibrate --history results/ --output data/calibrated.json \
 harness --config config.json --incremental
 ```
 
-- 触发条件：存在同策略、同模型的历史运行记录（自动记录在 `output_dir/.incremental/history.json`）；变化比例过大时自动回退全量。
+- 触发条件：存在同策略、同模型的历史运行记录（自动记录在 `output_dir/.incremental/history.json`）；至少有一道未变题目可复用时才进入增量，否则自动回退全量。
 - 复用的结果标记 `source="reused"`；合并报告的指标（成功率、成本、难度分布）从合并结果真实重算。
 - 历史文件损坏或不匹配时自动回退全量评估，不影响正常使用。
+- 边界：结果有效性由"题目内容 + 策略 + 模型"保证，`max_iterations`、沙箱配置或提示词变更不触发失效；增量运行若被预算暂停，请改用全量重跑（暂不支持对增量运行 resume）。
 
 ### 运行管理（断点续传运维）
 
