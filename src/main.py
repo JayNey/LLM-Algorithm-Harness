@@ -1959,7 +1959,7 @@ def main() -> None:
 
             # Incremental evaluation setup
             incremental_context: dict[str, Any] | None = None
-            historical_results: dict[str, list[dict[str, Any]]] = {}
+            historical_results: dict[str, list[ExecutionResult]] = {}
             current_fingerprint: dict[str, str] | None = None
             history_path = Path(config.output_dir) / ".incremental" / "history.json"
             if config.enable_incremental and not args.resume:
