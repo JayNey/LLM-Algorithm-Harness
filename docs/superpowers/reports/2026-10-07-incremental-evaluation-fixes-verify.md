@@ -47,8 +47,19 @@ issue #87 已由 PR #122 关闭，但本 change 审计发现其主流程集成�
 
 ## 集成代码审查
 
-（待独立审查结论补记。）
+- 第一轮（全量 diff，1752619）：requests-changes——1 CRITICAL（历史结果损坏不回退全量，静默产出子集报告并污染历史）+ 2 IMPORTANT（变化过大兜底为死代码；合并报告丢 pricing_metadata 且与全量口径分歧）+ 4 WARNING + 5 SUGGESTION。
+- 处置：verify-fail 回 build，9567948 修复（all-or-nothing 加载、真实阈值、同口径成本重算、W2/S2/W4）。
+- 第二轮（定点复审 9567948）：requests-changes——W2 修复无效 + 新发现 N1/N2/N3。
+- 第三轮（97a93e6）：确认我方批量编辑事故（断言中止导致 W2/N1/N3b 未写入），仅 N3a 落地；指正新增守护断言恒真。
+- 第四轮（eabd14b + 8d7e6a2/ebdcb3b）：生产代码三项修复（W2/N1/N3b）全部确认落地并经端到端实测；测试断言按复审给出的位置修正（N1 断言移入回退用例、新增多策略→单策略场景承载 W2 守护、新增 shrank 场景测试），并通过变异验证（临时回退 W2 修复时新测试确实变红）。复审明确"完成后无需再送全量复审，生产代码可直接合入"。
+
+## 接受的偏差
+
+- SUGGESTION（N2）：陈旧策略结果保留在 run 目录与 metadata 以利链式复用，metadata 精度问题不改。
+- SUGGESTION（S1）：run_id 后缀启发式（test_merger_integration 兼容依赖）。
+- SUGGESTION（S4）：history.json load-modify-save 非原子（既有问题，PR #122 遗留）。
+- W1：增量运行被预算暂停后不支持 resume——README 已文档化为"请全量重跑"。
 
 ## 结论
 
-（待审查后填写。）
+全部检查通过：CRITICAL/IMPORTANT/WARNING 全部闭环，守护断言经变异验证有效。**验证通过（verify_result: pass）**，可进入归档前最终确认。
