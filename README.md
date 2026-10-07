@@ -4,18 +4,19 @@
 
 ## 项目概述
 
-本项目为轻量级 LLM（如 GPT-3.5、Claude Haiku）提供一个完整的算法问题求解评估框架。支持六种核心策略：
+本项目为轻量级 LLM（如 GPT-3.5、Claude Haiku）提供一个完整的算法问题求解评估框架。支持七种核心策略：
 
 - **Vanilla**: 直接提示，无特殊引导
 - **Chain of Thought (CoT)**: 分步推理引导
 - **Multi-Round Feedback**: 多轮反馈迭代优化
 - **Self-Consistency**: 生成多个候选解并通过投票选择最佳答案
 - **Reflexion**: 对可见测试失败进行结构化反思，再带着有限反思上下文生成下一版代码
+- **Few-Shot Learning**: 从历史解题记录中检索相似问题作为示例，通过类比学习提高准确率
 - **Tree of Thoughts (ToT)**: 通过搜索树探索多个推理分支，评估并剪枝低质量路径，适合复杂问题求解
 
 ## 特性
 
-- **多策略支持**: 内置六种求解策略，可扩展自定义策略
+- **多策略支持**: 内置七种求解策略，可扩展自定义策略
 - **代码沙箱**: 隔离执行环境，安全运行用户生成代码
 - **代码质量评估**: 全面的代码质量分析，包括时间复杂度、空间复杂度、可读性和风格一致性评估
 - **并行执行**: 支持题目级和策略级并行，显著提升评估速度
@@ -753,14 +754,19 @@ HTMLGenerator.generate(
 项目包含一个完整的示例脚本，演示如何生成所有格式的报告：
 
 ```bash
-python3 examples/generate_reports.py
+python3 generate_reports.py
 ```
 
-这会在 `examples/sample_reports/` 目录生成：
-- `results.csv` - CSV 格式的结果数据
-- `report.md` - Markdown 格式的报告
-- `report.html` - 交互式 HTML 报告
-- `charts/` - 单独的图表文件（PNG 格式）
+这会在 `reports/run-YYYYMMDD-HHMMSS/` 目录生成：
+- `evaluation_report.html` - 交互式 HTML 报告
+- `evaluation_report.md` - Markdown 格式的报告
+- `results.csv` - CSV 格式的结果数据（如果生成）
+
+也可以指定特定的 summary.json 文件：
+
+```bash
+python3 generate_reports.py results/run-20260101-120000/summary.json
+```
 
 ### 报告内容
 

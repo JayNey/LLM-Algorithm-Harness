@@ -42,6 +42,7 @@ from src.strategies.few_shot_learning import FewShotLearningStrategy
 from src.strategies.multi_round_feedback import MultiRoundFeedbackStrategy
 from src.strategies.reflexion import ReflexionStrategy
 from src.strategies.self_consistency import SelfConsistencyStrategy
+from src.strategies.tree_of_thoughts import TreeOfThoughtsStrategy
 from src.strategies.vanilla import VanillaStrategy
 from src.task_service import TaskRecord, TaskService, TaskUnit
 from src.utils.logging import get_logger
@@ -60,6 +61,7 @@ class AlgorithmHarness:
         "self_consistency": SelfConsistencyStrategy,
         "reflexion": ReflexionStrategy,
         "few_shot_learning": FewShotLearningStrategy,
+        "tree_of_thoughts": TreeOfThoughtsStrategy,
     }
 
     def __init__(self, config: HarnessConfig, budget_tracker: BudgetTracker | None = None):
