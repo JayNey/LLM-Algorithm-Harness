@@ -19,7 +19,14 @@ from src.failure_report import (
 )
 from src.harness import AlgorithmHarness
 from src.llm_client import LLMClient
-from src.models import CostAlertConfig, HarnessConfig, LLMConfig, SandboxConfig, StrategyConfig
+from src.models import (
+    CostAlertConfig,
+    ExecutionResult,
+    HarnessConfig,
+    LLMConfig,
+    SandboxConfig,
+    StrategyConfig,
+)
 from src.task_service import TaskService
 from src.utils.config import load_config
 from src.utils.logging import get_logger, setup_logging
