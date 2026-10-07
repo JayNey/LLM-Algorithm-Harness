@@ -19,7 +19,14 @@ from src.failure_report import (
 )
 from src.harness import AlgorithmHarness
 from src.llm_client import LLMClient
-from src.models import CostAlertConfig, HarnessConfig, LLMConfig, SandboxConfig, StrategyConfig
+from src.models import (
+    CostAlertConfig,
+    ExecutionResult,
+    HarnessConfig,
+    LLMConfig,
+    SandboxConfig,
+    StrategyConfig,
+)
 from src.task_service import TaskService
 from src.utils.config import load_config
 from src.utils.logging import get_logger, setup_logging
@@ -1958,9 +1965,9 @@ def main() -> None:
                 maybe_print_resume_hint(config)
 
             # Incremental evaluation setup
-            incremental_context = None
-            historical_results = {}
-            current_fingerprint = None
+            incremental_context: dict[str, Any] | None = None
+            historical_results: dict[str, list[ExecutionResult]] = {}
+            current_fingerprint: dict[str, str] | None = None
             history_path = Path(config.output_dir) / ".incremental" / "history.json"
             if config.enable_incremental and not args.resume:
                 from src.incremental.detector import (
@@ -2022,9 +2029,7 @@ def main() -> None:
                                     "ℹ️  Dataset shrank since the last run;"
                                     " performing full evaluation\n"
                                 )
-                                logger.info(
-                                    "incremental_mode_skipped", reason="dataset_shrunk"
-                                )
+                                logger.info("incremental_mode_skipped", reason="dataset_shrunk")
                             else:
                                 # Load historical results for unchanged problems
                                 # BEFORE announcing the mode: corrupt or missing
@@ -2061,9 +2066,7 @@ def main() -> None:
                                     )
                                     print(f"  New: {len(added)} problems")
                                     print(f"  Modified: {len(modified)} problems")
-                                    print(
-                                        f"  Total to evaluate: {len(changed_ids)} problems\n"
-                                    )
+                                    print(f"  Total to evaluate: {len(changed_ids)} problems\n")
 
                                     # Filter config to only evaluate changed problems
                                     if config.problem_filters is None:
@@ -2088,18 +2091,14 @@ def main() -> None:
                                     "ℹ️  Dataset unchanged since the last run"
                                     " (nothing to evaluate incrementally)\n"
                                 )
-                                logger.info(
-                                    "incremental_mode_skipped", reason="no_changes"
-                                )
+                                logger.info("incremental_mode_skipped", reason="no_changes")
                             else:
                                 print(
                                     f"ℹ️  Dataset changes detected but too large for incremental mode "
                                     f"(added: {len(added)}, modified: {len(modified)}, removed: {len(removed)})"
                                 )
                                 print("   Falling back to full evaluation\n")
-                                logger.info(
-                                    "incremental_mode_skipped", reason="changes_too_large"
-                                )
+                                logger.info("incremental_mode_skipped", reason="changes_too_large")
                     else:
                         print("ℹ️  No matching historical run found, performing full evaluation\n")
                         logger.info("incremental_mode_skipped", reason="no_matching_run")
@@ -2121,11 +2120,11 @@ def main() -> None:
             if incremental_context and incremental_context.get("enabled"):
                 from src.cost_strategy import result_cost
                 from src.incremental.merger import merge_results, update_incremental_history
-                from src.models import ExecutionResult
 
+                context = incremental_context
                 try:
                     # Merge new results with historical results
-                    hist_results: dict[str, list[ExecutionResult]] = incremental_context["historical_results"]  # type: ignore[assignment]
+                    hist_results = context["historical_results"]
                     merged_results = merge_results(harness.results, hist_results)
                     # Capture before reassignment: only strategies that ran
                     # this time get reports; stale ones keep results on disk
@@ -2212,11 +2211,11 @@ def main() -> None:
                         )
                     reports = merged_reports
 
-                    unchanged_count = len(incremental_context.get("unchanged", []))  # type: ignore[arg-type]
-                    added_count = len(incremental_context.get("added", []))  # type: ignore[arg-type]
-                    modified_count = len(incremental_context.get("modified", []))  # type: ignore[arg-type]
+                    unchanged_count = len(context.get("unchanged", []))
+                    added_count = len(context.get("added", []))
+                    modified_count = len(context.get("modified", []))
                     reused_count = sum(
-                        len(items) for items in incremental_context["historical_results"].values()  # type: ignore[union-attr]
+                        len(items) for items in context["historical_results"].values()
                     )
                     print(
                         f"\n✓ Merged {reused_count} reused results "
@@ -2275,7 +2274,7 @@ def main() -> None:
                         update_incremental_history(
                             (
                                 incremental_context["history"]
-                                if incremental_context
+                                if incremental_context and "history" in incremental_context
                                 else IncrementalHistory.load(history_path)
                             ),
                             history_path,
