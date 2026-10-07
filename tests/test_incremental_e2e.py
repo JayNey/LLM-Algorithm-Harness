@@ -127,6 +127,11 @@ class TestIncrementalEndToEnd:
         assert report["estimated_cost_usd"] > 0, "merged report must keep real cost"
         assert set(report["by_difficulty"]) == {"easy"}
         assert report["avg_attempts_per_problem"] == 1.0
+        # W2: stale strategies from the matched run stay out of the reports
+        assert set(summary["strategies"]) == {"vanilla"}
+        # N1: the fallback full run is recorded, healing the history
+        history_after = json.loads(history_path.read_text(encoding="utf-8"))
+        assert len(history_after["runs"]) >= 2
 
     def test_second_run_without_flag_is_full(self, tmp_path, capsys):
         dataset = _dataset(tmp_path, ["p1", "p2", "p3"])
