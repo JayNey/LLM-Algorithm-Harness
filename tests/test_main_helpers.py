@@ -1,6 +1,7 @@
 """Tests for small main.py helpers and config defaults."""
 
 import argparse
+from unittest.mock import MagicMock
 
 import pytest
 
@@ -93,3 +94,66 @@ class TestApplyCliOverridesErrors:
                 self.base_config(strategies=[]),
                 self.base_args(),
             )
+
+
+class TestExtractCodeFallbacks:
+    @staticmethod
+    def problem(entry_point=None, mode=None):
+        from src.models import Problem
+
+        fields = {
+            "problem_id": "p1",
+            "title": "P1",
+            "description": "A problem description long enough",
+            "difficulty": "easy",
+            "test_cases": [{"input": {"x": 1}, "expected_output": 1}],
+        }
+        if entry_point is not None:
+            fields["entry_point"] = entry_point
+        if mode is not None:
+            fields["input_output_mode"] = mode
+        return Problem(**fields)
+
+    @staticmethod
+    def _analyzer():
+        from src.strategy_base import StrategyBase
+
+        class _Bare(StrategyBase):
+            def execute(self, problem):
+                return None
+
+        # extract_code only touches self/logger internals; bypass __init__
+        # by using the existing VanillaStrategy instance attributes we need.
+        from src.strategies.vanilla import VanillaStrategy
+
+        real = VanillaStrategy(StrategyConfig(name="vanilla"), MagicMock(), MagicMock())
+        return real if isinstance(real, StrategyBase) else _Bare.__new__(_Bare)
+
+    def test_unfenced_solution_function_fallback(self):
+        analyzer = self._analyzer()
+        code = analyzer.extract_code("def solution(x):\n    return x\n", self.problem())
+        assert code is not None and "def solution" in code
+
+    def test_stdin_script_fallback(self):
+        analyzer = self._analyzer()
+        code = analyzer.extract_code(
+            "print(sum(map(int, input().split())))",
+            self.problem(mode="stdin_stdout"),
+        )
+        assert code is not None and "print(" in code
+
+    def test_function_entry_point_fallback(self):
+        analyzer = self._analyzer()
+        code = analyzer.extract_code(
+            "def two_sum(nums, target):\n    return nums\n",
+            self.problem(entry_point="two_sum(**test_input)", mode="function"),
+        )
+        assert code is not None and "two_sum" in code
+
+    def test_class_entry_point_fallback(self):
+        analyzer = self._analyzer()
+        code = analyzer.extract_code(
+            "class TwoSum:\n    def solve(self):\n        return 1\n",
+            self.problem(entry_point="TwoSum.solve(**test_input)", mode="function"),
+        )
+        assert code is not None and "TwoSum" in code

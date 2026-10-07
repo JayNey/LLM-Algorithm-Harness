@@ -6,7 +6,7 @@ import pytest
 
 from src.analysis.evolution import EvolutionAnalyzer
 from src.code_quality.models import CodeQualityMetrics, ReadabilityScore, StyleConsistencyScore
-from src.models import ExecutionResult, IterationResult
+from src.models import ExecutionResult, IterationResult, SandboxResult
 
 
 def test_identify_quality_drops_no_drops():
@@ -667,3 +667,103 @@ def test_generate_evolution_report_with_all_metrics():
     assert "Readability: 70.0" in report
     assert "Style Consistency: 85.0" in report
     assert "Overall Score: 77.5" in report
+
+
+def _drop_result(sandbox_status=None, curr_readability=None, prev_readability=80.0):
+    """Build a result whose last iteration triggers analyze_drop_reason."""
+    prev = CodeQualityMetrics(
+        readability=ReadabilityScore(readability_score=prev_readability),
+        overall_score=prev_readability,
+    )
+    curr = (
+        CodeQualityMetrics(
+            readability=ReadabilityScore(readability_score=curr_readability),
+            overall_score=curr_readability,
+        )
+        if curr_readability is not None
+        else None
+    )
+    iterations = [
+        IterationResult(iteration=1, code_quality=prev),
+        IterationResult(
+            iteration=2,
+            code_quality=curr,
+            sandbox_result=(
+                SandboxResult(status=sandbox_status, all_passed=False) if sandbox_status else None
+            ),
+        ),
+    ]
+    return ExecutionResult(
+        problem_id="test",
+        strategy="multi_round",
+        generated_code="def solution(): pass",
+        status="success",
+        iterations=iterations,
+    )
+
+
+def _drop_for(metric_name, iteration=2, previous=80.0, current=40.0):
+    from src.analysis.evolution import QualityDrop
+
+    return QualityDrop(
+        iteration=iteration,
+        metric_name=metric_name,
+        previous_value=previous,
+        current_value=current,
+        reason="test",
+    )
+
+
+@pytest.mark.parametrize(
+    "status,expected",
+    [
+        ("syntax_error", "Introduced syntax error"),
+        ("runtime_error", "Introduced runtime error"),
+        ("timeout", "Code timeout"),
+        ("failed", "Test failures introduced"),
+        ("output_limit", "Code execution failed: output_limit"),
+    ],
+)
+def test_drop_reason_sandbox_status_messages(status, expected):
+    from src.analysis.evolution import EvolutionAnalyzer
+
+    analyzer = EvolutionAnalyzer(_drop_result(sandbox_status=status))
+    reason = analyzer.analyze_drop_reason(_drop_for("readability"))
+    assert expected in reason
+
+
+def test_drop_reason_missing_iterations():
+    from src.analysis.evolution import EvolutionAnalyzer
+
+    analyzer = EvolutionAnalyzer(_drop_result())
+    reason = analyzer.analyze_drop_reason(_drop_for("readability", iteration=99))
+    assert "iteration data not found" in reason
+
+
+def test_drop_reason_incomplete_quality_data():
+    from src.analysis.evolution import EvolutionAnalyzer
+
+    analyzer = EvolutionAnalyzer(_drop_result(curr_readability=None))
+    reason = analyzer.analyze_drop_reason(_drop_for("readability"))
+    assert "Quality data incomplete" in reason
+
+
+def test_drop_reason_comprehensive_decline():
+    from src.analysis.evolution import EvolutionAnalyzer
+
+    result = _drop_result(curr_readability=40.0)
+    # Give the current iteration a style score that also dropped.
+    result.iterations[0].code_quality.style_consistency = StyleConsistencyScore(style_score=75.0)
+    result.iterations[1].code_quality.style_consistency = StyleConsistencyScore(style_score=40.0)
+    analyzer = EvolutionAnalyzer(result)
+    reason = analyzer.analyze_drop_reason(_drop_for("overall_score"))
+    assert "Comprehensive quality decline" in reason
+
+
+def test_drop_reason_single_metric_readability_decline():
+    from src.analysis.evolution import EvolutionAnalyzer
+
+    analyzer = EvolutionAnalyzer(_drop_result(curr_readability=40.0))
+    drops = analyzer.identify_quality_drops()
+    assert drops
+    assert any("readability" in analyzer.analyze_drop_reason(drop).lower() for drop in drops)
