@@ -2265,7 +2265,11 @@ def main() -> None:
                         )
 
                         update_incremental_history(
-                            context["history"],
+                            (
+                                incremental_context["history"]
+                                if incremental_context and "history" in incremental_context
+                                else IncrementalHistory.load(history_path)
+                            ),
                             history_path,
                             current_fingerprint,
                             str(result_path),
