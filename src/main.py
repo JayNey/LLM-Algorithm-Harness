@@ -1960,9 +1960,9 @@ def main() -> None:
             # Incremental evaluation setup
             incremental_context = None
             historical_results = {}
+            current_fingerprint = None
+            history_path = Path(config.output_dir) / ".incremental" / "history.json"
             if config.enable_incremental and not args.resume:
-                from pathlib import Path
-
                 from src.incremental.detector import (
                     detect_changes,
                     find_matching_run,
@@ -1986,9 +1986,13 @@ def main() -> None:
                     # Compute current dataset fingerprint
                     current_fingerprint = compute_dataset_fingerprint(all_problems)
                     logger.info("dataset_fingerprint_computed", problem_count=len(all_problems))
+                    # Hoisted for the post-save history update even when this
+                    # run turns out to be a full evaluation.
 
                     # Load incremental history
-                    history_path = Path(config.output_dir) / ".incremental" / "history.json"
+                    history_path = (
+                        Path(config.output_dir) / ".incremental" / "history.json"
+                    )
                     history = IncrementalHistory.load(history_path)
 
                     # Find matching historical run
@@ -2072,6 +2076,7 @@ def main() -> None:
 
             # Merge incremental results if applicable
             if incremental_context and incremental_context.get("enabled"):
+                from src.cost_strategy import result_cost
                 from src.incremental.merger import merge_results, update_incremental_history
                 from src.models import ExecutionResult
 
@@ -2096,20 +2101,57 @@ def main() -> None:
 
                     merged_reports = {}
                     for strategy_name, results in merged_results.items():
+                        # Recompute every metric from the merged results so the
+                        # merged report is a real report, not a placeholder.
                         total = len(results)
                         solved = sum(1 for r in results if r.status == "success")
                         failed = total - solved
                         total_tokens = sum(r.total_tokens for r in results)
+                        total_attempts = sum(len(r.iterations) for r in results)
+                        total_cost = 0.0
+                        for r in results:
+                            cost, _ = result_cost(r)
+                            total_cost += float(cost)
+                        by_difficulty: dict[str, dict[str, Any]] = {}
+                        formal_evaluable = 0
+                        formal_solved = 0
+                        for r in results:
+                            difficulty = r.difficulty or "unknown"
+                            bucket = by_difficulty.setdefault(
+                                difficulty, {"solved": 0, "total": 0, "success_rate": 0.0}
+                            )
+                            bucket["total"] += 1
+                            if r.status == "success":
+                                bucket["solved"] += 1
+                            if r.formal_evaluable:
+                                formal_evaluable += 1
+                                if r.hidden_result is not None and r.hidden_result.all_passed:
+                                    formal_solved += 1
+                        for bucket in by_difficulty.values():
+                            if bucket["total"] > 0:
+                                bucket["success_rate"] = bucket["solved"] / bucket["total"]
                         merged_reports[strategy_name] = StrategyReport(
                             strategy_name=strategy_name,
                             total_problems=total,
                             solved_problems=solved,
                             failed_problems=failed,
                             success_rate=solved / total if total > 0 else 0.0,
-                            avg_attempts_per_problem=1.0,  # Simplified
+                            avg_attempts_per_problem=(
+                                total_attempts / total if total > 0 else 0.0
+                            ),
                             total_tokens=total_tokens,
-                            avg_tokens_per_problem=total_tokens / total if total > 0 else 0.0,
-                            estimated_cost_usd=0.0,  # Will be calculated if needed
+                            avg_tokens_per_problem=(
+                                total_tokens / total if total > 0 else 0.0
+                            ),
+                            estimated_cost_usd=total_cost,
+                            by_difficulty=by_difficulty,
+                            formal_evaluable_problems=formal_evaluable,
+                            formal_solved_problems=formal_solved,
+                            formal_success_rate=(
+                                formal_solved / formal_evaluable
+                                if formal_evaluable
+                                else 0.0
+                            ),
                         )
                     reports = merged_reports
 
@@ -2130,11 +2172,12 @@ def main() -> None:
             print_report(reports)
             save_results(reports, config.output_dir, harness, config, incremental_context)
 
-            # Update incremental history after successful save
-            if incremental_context and incremental_context.get("enabled"):
+            # Update incremental history after successful save. Record every
+            # run made with incremental enabled — including full evaluations —
+            # so the next run can match against it.
+            if config.enable_incremental and current_fingerprint:
                 try:
-                    from pathlib import Path
-
+                    from src.incremental.history import IncrementalHistory
                     from src.incremental.merger import update_incremental_history
 
                     # Get the run path that was just saved
@@ -2152,7 +2195,9 @@ def main() -> None:
                             run_name = ""
 
                     if run_name:
-                        result_path = Path(config.output_dir) / run_name / "summary.json"
+                        # Record the run directory; load_historical_results reads
+                        # the per-strategy *_results.json files inside it.
+                        result_path = Path(config.output_dir) / run_name
                         strategy_name = (
                             config.strategies[0].name if config.strategies else "unknown"
                         )
@@ -2167,9 +2212,13 @@ def main() -> None:
                         )
 
                         update_incremental_history(
-                            incremental_context["history"],  # type: ignore[arg-type]
-                            incremental_context["history_path"],  # type: ignore[arg-type]
-                            incremental_context["current_fingerprint"],  # type: ignore[arg-type]
+                            (
+                                incremental_context["history"]
+                                if incremental_context
+                                else IncrementalHistory.load(history_path)
+                            ),
+                            history_path,
+                            current_fingerprint,
                             str(result_path),
                             strategy_name,
                             model_name,
@@ -2177,8 +2226,7 @@ def main() -> None:
                             success_count,
                         )
                         logger.info(
-                            "incremental_history_updated",
-                            path=str(incremental_context["history_path"]),
+                            "incremental_history_updated", path=str(history_path)
                         )
                 except Exception as e:
                     logger.warning("incremental_history_update_failed", error=str(e))

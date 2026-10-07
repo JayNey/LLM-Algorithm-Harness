@@ -138,8 +138,12 @@ def update_incremental_history(
     from datetime import datetime, timezone
 
     # Create new run record
+    run_path = Path(result_path)
+    # result_path is normally the run directory; accept a file inside it too
+    # (legacy callers) and use the run directory's name either way.
+    run_id = run_path.name if not run_path.suffix else run_path.parent.name
     run_record = RunRecord(
-        run_id=Path(result_path).parent.name if "/" in result_path else "unknown",
+        run_id=run_id or "unknown",
         timestamp=datetime.now(timezone.utc).isoformat(),
         strategy=strategy,
         model=model,

@@ -103,6 +103,7 @@ class ProblemLoader:
         difficulty: str | None = None,
         tags: list[str] | None = None,
         limit: int | None = None,
+        problem_ids: list[str] | None = None,
     ) -> list[Problem]:
         """
         Filter problems by criteria.
@@ -112,11 +113,19 @@ class ProblemLoader:
             difficulty: Filter by difficulty (optional)
             tags: Filter by tags (any match, optional)
             limit: Maximum number to return (optional)
+            problem_ids: Keep only problems whose ID is in this whitelist
+                (used by incremental evaluation; optional)
 
         Returns:
             Filtered problem list
         """
         filtered = problems
+
+        # Whitelist by problem ID (incremental evaluation selects changed problems)
+        if problem_ids:
+            allowed = set(problem_ids)
+            filtered = [p for p in filtered if p.problem_id in allowed]
+            logger.info("filtered_by_problem_ids", count=len(filtered))
 
         # Filter by difficulty
         if difficulty:

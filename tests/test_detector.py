@@ -238,41 +238,40 @@ def test_load_historical_results_corrupted_file(tmp_path):
 
 
 def test_load_historical_results_valid_file(tmp_path):
-    """Test loading valid historical results."""
-    result_path = tmp_path / "results.json"
+    """Test loading valid historical results from a run directory."""
+    result_path = tmp_path / "run"
+    result_path.mkdir()
 
-    # Create mock results
-    mock_data = {
-        "direct": [
-            {
-                "problem_id": "prob1",
-                "strategy": "direct",
-                "generated_code": "def solution(): pass",
-                "status": "success",
-                "execution_time": 1.5,
-                "cost": 0.01,
-            },
-            {
-                "problem_id": "prob2",
-                "strategy": "direct",
-                "generated_code": "def solution(): pass",
-                "status": "failure",
-                "execution_time": 2.0,
-                "cost": 0.02,
-            },
-            {
-                "problem_id": "prob3",
-                "strategy": "direct",
-                "generated_code": "def solution(): pass",
-                "status": "success",
-                "execution_time": 1.0,
-                "cost": 0.01,
-            },
-        ]
-    }
+    # Create mock results (one strategy's results file: a flat list)
+    MOCK_DATA = [
+        {
+            "problem_id": "prob1",
+            "strategy": "direct",
+            "generated_code": "def solution(): pass",
+            "status": "success",
+            "execution_time": 1.5,
+            "cost": 0.01,
+        },
+        {
+            "problem_id": "prob2",
+            "strategy": "direct",
+            "generated_code": "def solution(): pass",
+            "status": "failure",
+            "execution_time": 2.0,
+            "cost": 0.02,
+        },
+        {
+            "problem_id": "prob3",
+            "strategy": "direct",
+            "generated_code": "def solution(): pass",
+            "status": "success",
+            "execution_time": 1.0,
+            "cost": 0.01,
+        },
+    ]
 
-    with open(result_path, "w") as f:
-        json.dump(mock_data, f)
+    # Per-strategy result files, as written by save_results.
+    (result_path / "direct_results.json").write_text(json.dumps(MOCK_DATA), encoding="utf-8")
 
     # Load only prob1 and prob3
     results = load_historical_results(result_path, {"prob1", "prob3"})

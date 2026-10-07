@@ -373,6 +373,18 @@ harness recalibrate --history results/ --output data/calibrated.json \
 - 通过口径与推荐器一致：`status=success` 且隐藏测试全部通过才算通过；无历史数据的题目保留原标注并在报告中列出。
 - `--report` 输出 Markdown 变更报告（前后难度分布、逐题变更明细含成功率与平均迭代、无历史题数），缺省打印 stdout；`--output` 为重标注后的完整题库 JSON，不会覆盖原题库文件——建议人工复核报告后再决定是否替换。
 
+### 增量评估
+
+数据集变化后不必全量重跑。`--incremental` 启用后（`--no-incremental` 强制关闭），系统按题目粒度比对指纹，只评估新增/修改的题目，未变题目的结果从上次运行复用并合并为完整报告：
+
+```bash
+harness --config config.json --incremental
+```
+
+- 触发条件：存在同策略、同模型的历史运行记录（自动记录在 `output_dir/.incremental/history.json`）；变化比例过大时自动回退全量。
+- 复用的结果标记 `source="reused"`；合并报告的指标（成功率、成本、难度分布）从合并结果真实重算。
+- 历史文件损坏或不匹配时自动回退全量评估，不影响正常使用。
+
 ### 运行管理（断点续传运维）
 
 评测通过 `output_dir/tasks/<run_id>.json` 持久化每个任务单元；中断后 `harness --resume --run-id <id>`（相同配置与题库）只补未完成的单元。`harness runs` 提供运维视图：
