@@ -203,7 +203,7 @@ PYTHONPATH=. python3 -m src.main --config config.siliconflow.example.json --list
 # 连接检查（同样免费；注意：生成式连接检查才会按量计费）
 PYTHONPATH=. python3 -m src.main --config config.siliconflow.example.json --check-connection
 
-# 策略评测（--strategy 可选 vanilla / chain_of_thought / multi_round_feedback / self_consistency / reflexion）
+# 策略评测（--strategy 可选 vanilla / chain_of_thought / multi_round_feedback / self_consistency / reflexion / few_shot_learning / tree_of_thoughts）
 PYTHONPATH=. python3 -m src.main --config config.siliconflow.example.json --strategy reflexion --limit 1
 ```
 
