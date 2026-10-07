@@ -1960,9 +1960,9 @@ def main() -> None:
             # Incremental evaluation setup
             incremental_context = None
             historical_results = {}
+            current_fingerprint = None
+            history_path = Path(config.output_dir) / ".incremental" / "history.json"
             if config.enable_incremental and not args.resume:
-                from pathlib import Path
-
                 from src.incremental.detector import (
                     detect_changes,
                     find_matching_run,
@@ -1986,6 +1986,8 @@ def main() -> None:
                     # Compute current dataset fingerprint
                     current_fingerprint = compute_dataset_fingerprint(all_problems)
                     logger.info("dataset_fingerprint_computed", problem_count=len(all_problems))
+                    # Hoisted for the post-save history update even when this
+                    # run turns out to be a full evaluation.
 
                     # Load incremental history
                     history_path = Path(config.output_dir) / ".incremental" / "history.json"
@@ -2004,55 +2006,100 @@ def main() -> None:
                             current_fingerprint, matching_run.dataset_fingerprint
                         )
 
-                        if should_use_incremental((added, modified, removed)):
+                        if should_use_incremental((added, modified, removed), current_fingerprint):
                             # Use incremental mode
                             changed_ids = added | modified
                             unchanged_ids = (
                                 set(current_fingerprint.keys()) - added - modified - removed
                             )
 
-                            print("\n🔄 Incremental evaluation mode enabled")
-                            print(f"  Unchanged: {len(unchanged_ids)} problems (reusing results)")
-                            print(f"  New: {len(added)} problems")
-                            print(f"  Modified: {len(modified)} problems")
-                            print(f"  Total to evaluate: {len(changed_ids)} problems\n")
-
-                            # Load historical results for unchanged problems
-                            result_path = Path(matching_run.result_path)
-                            if result_path.exists():
-                                historical_results = load_historical_results(
-                                    result_path, unchanged_ids
+                            if not changed_ids:
+                                # Dataset shrank (removals only): nothing new to
+                                # evaluate, and stale results must not be reused
+                                # against a changed problem set. Fall back to a
+                                # full evaluation.
+                                print(
+                                    "ℹ️  Dataset shrank since the last run;"
+                                    " performing full evaluation\n"
                                 )
                                 logger.info(
-                                    "historical_results_loaded",
-                                    count=len(historical_results),
-                                    unchanged=len(unchanged_ids),
+                                    "incremental_mode_skipped", reason="dataset_shrunk"
                                 )
+                            else:
+                                # Load historical results for unchanged problems
+                                # BEFORE announcing the mode: corrupt or missing
+                                # history must fall back to a full evaluation,
+                                # never a silent subset run.
+                                result_path = Path(matching_run.result_path)
+                                if result_path.exists():
+                                    historical_results = load_historical_results(
+                                        result_path, unchanged_ids
+                                    )
+                                    logger.info(
+                                        "historical_results_loaded",
+                                        count=len(historical_results),
+                                        unchanged=len(unchanged_ids),
+                                    )
 
-                            # Filter config to only evaluate changed problems
-                            if config.problem_filters is None:
-                                config.problem_filters = {}
-                            config.problem_filters["problem_ids"] = list(changed_ids)
+                                if unchanged_ids and not historical_results:
+                                    print(
+                                        "⚠️  Historical results could not be loaded; "
+                                        "falling back to full evaluation"
+                                    )
+                                    logger.warning(
+                                        "incremental_mode_skipped",
+                                        reason="historical_results_unavailable",
+                                    )
+                                    # Keep current_fingerprint: the fallback full
+                                    # run is recorded below so future runs can
+                                    # match against fresh, complete results.
+                                    incremental_context = None
+                                else:
+                                    print("\n🔄 Incremental evaluation mode enabled")
+                                    print(
+                                        f"  Unchanged: {len(unchanged_ids)} problems (reusing results)"
+                                    )
+                                    print(f"  New: {len(added)} problems")
+                                    print(f"  Modified: {len(modified)} problems")
+                                    print(
+                                        f"  Total to evaluate: {len(changed_ids)} problems\n"
+                                    )
 
-                            # Store incremental context for result merging
-                            incremental_context = {
-                                "enabled": True,
-                                "historical_results": historical_results,
-                                "current_fingerprint": current_fingerprint,
-                                "matching_run": matching_run,
-                                "history": history,
-                                "history_path": history_path,
-                                "added": added,
-                                "modified": modified,
-                                "unchanged": unchanged_ids,
-                            }
+                                    # Filter config to only evaluate changed problems
+                                    if config.problem_filters is None:
+                                        config.problem_filters = {}
+                                    config.problem_filters["problem_ids"] = list(changed_ids)
+
+                                    # Store incremental context for result merging
+                                    incremental_context = {
+                                        "enabled": True,
+                                        "historical_results": historical_results,
+                                        "current_fingerprint": current_fingerprint,
+                                        "matching_run": matching_run,
+                                        "history": history,
+                                        "history_path": history_path,
+                                        "added": added,
+                                        "modified": modified,
+                                        "unchanged": unchanged_ids,
+                                    }
                         else:
-                            print(
-                                f"ℹ️  Dataset changes detected but too large for incremental mode "
-                                f"(added: {len(added)}, modified: {len(modified)}, removed: {len(removed)})"
-                            )
-                            print("   Falling back to full evaluation\n")
-                            logger.info("incremental_mode_skipped", reason="changes_too_large")
+                            if not added and not modified and not removed:
+                                print(
+                                    "ℹ️  Dataset unchanged since the last run"
+                                    " (nothing to evaluate incrementally)\n"
+                                )
+                                logger.info(
+                                    "incremental_mode_skipped", reason="no_changes"
+                                )
+                            else:
+                                print(
+                                    f"ℹ️  Dataset changes detected but too large for incremental mode "
+                                    f"(added: {len(added)}, modified: {len(modified)}, removed: {len(removed)})"
+                                )
+                                print("   Falling back to full evaluation\n")
+                                logger.info(
+                                    "incremental_mode_skipped", reason="changes_too_large"
+                                )
                     else:
                         print("ℹ️  No matching historical run found, performing full evaluation\n")
                         logger.info("incremental_mode_skipped", reason="no_matching_run")
@@ -2072,6 +2119,7 @@ def main() -> None:
 
             # Merge incremental results if applicable
             if incremental_context and incremental_context.get("enabled"):
+                from src.cost_strategy import result_cost
                 from src.incremental.merger import merge_results, update_incremental_history
                 from src.models import ExecutionResult
 
@@ -2079,6 +2127,10 @@ def main() -> None:
                     # Merge new results with historical results
                     hist_results: dict[str, list[ExecutionResult]] = incremental_context["historical_results"]  # type: ignore[assignment]
                     merged_results = merge_results(harness.results, hist_results)
+                    # Capture before reassignment: only strategies that ran
+                    # this time get reports; stale ones keep results on disk
+                    # for future chain reuse but stay out of the reports.
+                    ran_strategies = list(harness.results)
                     harness.results = merged_results
 
                     # Rebuild problems_by_id to include historical problems
@@ -2095,30 +2147,81 @@ def main() -> None:
                     from src.models import StrategyReport
 
                     merged_reports = {}
-                    for strategy_name, results in merged_results.items():
+                    for strategy_name in ran_strategies:
+                        # Only strategies that actually ran this time get a
+                        # report; stale strategies from the matched run are
+                        # merged into results but not reported.
+                        results = merged_results.get(strategy_name, [])
+                        # Recompute every metric from the merged results so the
+                        # merged report is a real report, not a placeholder.
+                        # _estimate_cost keeps the exact accounting of the
+                        # full-run path (including pricing_metadata).
+                        total_cost, pricing_metadata = harness._estimate_cost(results)
                         total = len(results)
                         solved = sum(1 for r in results if r.status == "success")
                         failed = total - solved
                         total_tokens = sum(r.total_tokens for r in results)
+                        total_attempts = sum(len(r.iterations) for r in results)
+                        by_difficulty: dict[str, dict[str, Any]] = {}
+                        formal_evaluable = 0
+                        formal_solved = 0
+                        model_failed = 0
+                        system_failed = 0
+                        for r in results:
+                            if r.difficulty:
+                                bucket = by_difficulty.setdefault(
+                                    r.difficulty,
+                                    {"solved": 0, "total": 0, "success_rate": 0.0, "cost_usd": 0.0},
+                                )
+                                bucket["total"] += 1
+                                if r.status == "success":
+                                    bucket["solved"] += 1
+                                cost, _ = result_cost(r)
+                                bucket["cost_usd"] = round(bucket["cost_usd"] + float(cost), 6)
+                            if r.formal_evaluable:
+                                formal_evaluable += 1
+                                if r.hidden_result is not None and r.hidden_result.all_passed:
+                                    formal_solved += 1
+                            if r.failure_category == "model_error":
+                                model_failed += 1
+                            elif r.failure_category == "system_error":
+                                system_failed += 1
+                        for bucket in by_difficulty.values():
+                            if bucket["total"] > 0:
+                                bucket["success_rate"] = bucket["solved"] / bucket["total"]
                         merged_reports[strategy_name] = StrategyReport(
                             strategy_name=strategy_name,
                             total_problems=total,
                             solved_problems=solved,
                             failed_problems=failed,
                             success_rate=solved / total if total > 0 else 0.0,
-                            avg_attempts_per_problem=1.0,  # Simplified
+                            avg_attempts_per_problem=(total_attempts / total if total > 0 else 0.0),
                             total_tokens=total_tokens,
-                            avg_tokens_per_problem=total_tokens / total if total > 0 else 0.0,
-                            estimated_cost_usd=0.0,  # Will be calculated if needed
+                            avg_tokens_per_problem=(total_tokens / total if total > 0 else 0.0),
+                            estimated_cost_usd=total_cost,
+                            pricing_metadata=pricing_metadata,
+                            by_difficulty=by_difficulty,
+                            model_failed_problems=model_failed,
+                            system_failed_problems=system_failed,
+                            formal_evaluable_problems=formal_evaluable,
+                            formal_solved_problems=formal_solved,
+                            formal_success_rate=(
+                                formal_solved / formal_evaluable if formal_evaluable else 0.0
+                            ),
+                            sample_only_problems=total - formal_evaluable,
                         )
                     reports = merged_reports
 
                     unchanged_count = len(incremental_context.get("unchanged", []))  # type: ignore[arg-type]
                     added_count = len(incremental_context.get("added", []))  # type: ignore[arg-type]
                     modified_count = len(incremental_context.get("modified", []))  # type: ignore[arg-type]
+                    reused_count = sum(
+                        len(items) for items in incremental_context["historical_results"].values()  # type: ignore[union-attr]
+                    )
                     print(
-                        f"\n✓ Merged {unchanged_count} historical results "
-                        f"with {added_count + modified_count} new results"
+                        f"\n✓ Merged {reused_count} reused results "
+                        f"with {added_count + modified_count} new results "
+                        f"(unchanged problems: {unchanged_count})"
                     )
 
                 except Exception as e:
@@ -2130,11 +2233,12 @@ def main() -> None:
             print_report(reports)
             save_results(reports, config.output_dir, harness, config, incremental_context)
 
-            # Update incremental history after successful save
-            if incremental_context and incremental_context.get("enabled"):
+            # Update incremental history after successful save. Record every
+            # run made with incremental enabled — including full evaluations —
+            # so the next run can match against it.
+            if config.enable_incremental and current_fingerprint:
                 try:
-                    from pathlib import Path
-
+                    from src.incremental.history import IncrementalHistory
                     from src.incremental.merger import update_incremental_history
 
                     # Get the run path that was just saved
@@ -2152,7 +2256,9 @@ def main() -> None:
                             run_name = ""
 
                     if run_name:
-                        result_path = Path(config.output_dir) / run_name / "summary.json"
+                        # Record the run directory; load_historical_results reads
+                        # the per-strategy *_results.json files inside it.
+                        result_path = Path(config.output_dir) / run_name
                         strategy_name = (
                             config.strategies[0].name if config.strategies else "unknown"
                         )
@@ -2167,19 +2273,20 @@ def main() -> None:
                         )
 
                         update_incremental_history(
-                            incremental_context["history"],  # type: ignore[arg-type]
-                            incremental_context["history_path"],  # type: ignore[arg-type]
-                            incremental_context["current_fingerprint"],  # type: ignore[arg-type]
+                            (
+                                incremental_context["history"]
+                                if incremental_context
+                                else IncrementalHistory.load(history_path)
+                            ),
+                            history_path,
+                            current_fingerprint,
                             str(result_path),
                             strategy_name,
                             model_name,
                             problem_count,
                             success_count,
                         )
-                        logger.info(
-                            "incremental_history_updated",
-                            path=str(incremental_context["history_path"]),
-                        )
+                        logger.info("incremental_history_updated", path=str(history_path))
                 except Exception as e:
                     logger.warning("incremental_history_update_failed", error=str(e))
                     # Non-fatal, continue

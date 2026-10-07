@@ -40,12 +40,16 @@ def find_matching_run(
             continue
         if record.model != model:
             continue
-        if record.dataset_fingerprint == current_fingerprint:
-            logger.info(
-                f"Found matching run: {record.run_id} "
-                f"(strategy={strategy}, model={model}, {len(current_fingerprint)} problems)"
-            )
-            return record
+        # Strategy and model match. The dataset fingerprint may differ —
+        # that is the whole point of incremental evaluation; detect_changes
+        # quantifies the diff and should_use_incremental rejects changes
+        # that are too large for reuse to pay off.
+        logger.info(
+            f"Found matching run: {record.run_id} "
+            f"(strategy={strategy}, model={model}, "
+            f"{len(record.dataset_fingerprint or {})} historical problems)"
+        )
+        return record
 
     return None
 
@@ -82,7 +86,10 @@ def detect_changes(
     return added_ids, modified_ids, deleted_ids
 
 
-def should_use_incremental(changes: tuple[set[str], set[str], set[str]]) -> bool:
+def should_use_incremental(
+    changes: tuple[set[str], set[str], set[str]],
+    current_fingerprint: dict[str, str] | None = None,
+) -> bool:
     """
     Determine whether incremental evaluation is beneficial.
 
@@ -101,8 +108,11 @@ def should_use_incremental(changes: tuple[set[str], set[str], set[str]]) -> bool
     if not added_ids and not modified_ids and not deleted_ids:
         return False
 
-    # If there are changes, incremental is useful
-    return True
+    # Incremental only pays off when at least one unchanged problem exists
+    # whose result can be reused; otherwise run the full evaluation.
+    changed = len(added_ids) + len(modified_ids)
+    total = len(current_fingerprint) if current_fingerprint else changed
+    return total - changed > 0
 
 
 def load_historical_results(
@@ -112,44 +122,55 @@ def load_historical_results(
     Load historical execution results for specific problem IDs.
 
     Args:
-        result_path: Path to historical result JSON file
+        result_path: Path to the historical run directory (per-strategy
+            ``<strategy>_results.json`` files are read from it)
         problem_ids: Set of problem IDs to extract
 
     Returns:
         Dict mapping strategy to list of ExecutionResults (only for successfully loaded problems)
-        Returns empty dict if file doesn't exist or has errors
+        Returns empty dict if the directory doesn't exist or has errors
     """
-    if not result_path.exists():
-        logger.info(f"Historical result file not found: {result_path}")
+    run_dir = Path(result_path)
+    if not run_dir.exists():
+        logger.info(f"Historical result directory not found: {result_path}")
         return {}
 
-    try:
-        with open(result_path, encoding="utf-8") as f:
-            data = json.load(f)
+    results: dict[str, list[ExecutionResult]] = {}
+    for results_file in sorted(run_dir.glob("*_results.json")):
+        strategy = results_file.name[: -len("_results.json")]
+        if not strategy:
+            continue
+        try:
+            with open(results_file, encoding="utf-8") as f:
+                data = json.load(f)
+        except (OSError, ValueError) as e:
+            # All-or-nothing: a partially readable history would silently
+            # produce a subset report, so any corrupt file disables reuse.
+            logger.warning(f"Failed to read historical results {results_file}: {e}")
+            return {}
+        if not isinstance(data, list):
+            logger.warning(f"Unexpected historical results shape in {results_file}")
+            return {}
 
-        # Extract results for the requested problem IDs, organized by strategy
-        results = {}
-        for strategy, strategy_results in data.items():
-            filtered_results = []
-            for result_data in strategy_results:
-                problem_id = result_data.get("problem_id")
-                if problem_id in problem_ids:
-                    # Reconstruct ExecutionResult from dict, adding source="reused"
-                    result_dict = {**result_data, "source": "reused"}
+        filtered_results = []
+        for result_data in data:
+            if not isinstance(result_data, dict):
+                continue
+            problem_id = result_data.get("problem_id")
+            if problem_id in problem_ids:
+                # Reconstruct ExecutionResult from dict, adding source="reused"
+                result_dict = {**result_data, "source": "reused"}
+                try:
                     filtered_results.append(ExecutionResult(**result_dict))
+                except Exception as e:
+                    logger.warning(f"Skipping unreadable historical result in {results_file}: {e}")
+                    return {}
 
-            if filtered_results:
-                results[strategy] = filtered_results
+        if filtered_results:
+            results[strategy] = filtered_results
 
-        logger.debug(
-            f"Loaded {sum(len(v) for v in results.values())}/{len(problem_ids)} "
-            f"historical results from {result_path}"
-        )
-        return results
-
-    except json.JSONDecodeError as e:
-        logger.error(f"Failed to parse result file {result_path}: {e}")
-        return {}
-    except (TypeError, KeyError) as e:
-        logger.error(f"Invalid result file structure in {result_path}: {e}")
-        return {}
+    logger.debug(
+        f"Loaded {sum(len(v) for v in results.values())}/{len(problem_ids)} "
+        f"historical results from {result_path}"
+    )
+    return results
