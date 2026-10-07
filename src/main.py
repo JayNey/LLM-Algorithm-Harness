@@ -2013,6 +2013,17 @@ def main() -> None:
                                 set(current_fingerprint.keys()) - added - modified - removed
                             )
 
+                            if not changed_ids:
+                                # Dataset shrank (removals only): nothing new to
+                                # evaluate, and stale results must not be reused
+                                # against a changed problem set.
+                                print(
+                                    "ℹ️  Dataset shrank since the last run;"
+                                    " performing full evaluation\n"
+                                )
+                                logger.info(
+                                    "incremental_mode_skipped", reason="dataset_shrunk"
+                                )
                             # Load historical results for unchanged problems
                             # BEFORE announcing the mode: corrupt or missing
                             # history must fall back to a full evaluation,
@@ -2066,12 +2077,23 @@ def main() -> None:
                                     "unchanged": unchanged_ids,
                                 }
                         else:
-                            print(
-                                f"ℹ️  Dataset changes detected but too large for incremental mode "
-                                f"(added: {len(added)}, modified: {len(modified)}, removed: {len(removed)})"
-                            )
-                            print("   Falling back to full evaluation\n")
-                            logger.info("incremental_mode_skipped", reason="changes_too_large")
+                            if not added and not modified and not removed:
+                                print(
+                                    "ℹ️  Dataset unchanged since the last run"
+                                    " (nothing to evaluate incrementally)\n"
+                                )
+                                logger.info(
+                                    "incremental_mode_skipped", reason="no_changes"
+                                )
+                            else:
+                                print(
+                                    f"ℹ️  Dataset changes detected but too large for incremental mode "
+                                    f"(added: {len(added)}, modified: {len(modified)}, removed: {len(removed)})"
+                                )
+                                print("   Falling back to full evaluation\n")
+                                logger.info(
+                                    "incremental_mode_skipped", reason="changes_too_large"
+                                )
                     else:
                         print("ℹ️  No matching historical run found, performing full evaluation\n")
                         logger.info("incremental_mode_skipped", reason="no_matching_run")
