@@ -1958,9 +1958,9 @@ def main() -> None:
                 maybe_print_resume_hint(config)
 
             # Incremental evaluation setup
-            incremental_context = None
-            historical_results = {}
-            current_fingerprint = None
+            incremental_context: dict[str, Any] | None = None
+            historical_results: dict[str, list[dict[str, Any]]] = {}
+            current_fingerprint: dict[str, str] | None = None
             history_path = Path(config.output_dir) / ".incremental" / "history.json"
             if config.enable_incremental and not args.resume:
                 from src.incremental.detector import (
@@ -2117,7 +2117,7 @@ def main() -> None:
                 context = incremental_context
                 try:
                     # Merge new results with historical results
-                    hist_results: dict[str, list[ExecutionResult]] = context["historical_results"]
+                    hist_results = context["historical_results"]
                     merged_results = merge_results(harness.results, hist_results)
                     # Capture before reassignment: only strategies that ran
                     # this time get reports; stale ones keep results on disk
@@ -2265,11 +2265,7 @@ def main() -> None:
                         )
 
                         update_incremental_history(
-                            (
-                                context["history"]
-                                if incremental_context and "history" in incremental_context
-                                else IncrementalHistory.load(history_path)
-                            ),
+                            context["history"],
                             history_path,
                             current_fingerprint,
                             str(result_path),
