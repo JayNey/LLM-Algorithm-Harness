@@ -21,6 +21,8 @@
 
 使用 review-bugbot skill 审查 #136 的源码、环境副本、扫描器、测试及 CI 范围，未发现可执行问题。审查方复验 18 个编码回归测试、零遗漏扫描和差异检查通过；其远端 CI 尚未核验，最终 CI 结论需查 PR 检查。
 
+首次真实 Windows 专项执行发现工具临时文件测试直接比较 LF 字节，而 Windows 文本写入使用 CRLF；已改成显式 UTF-8 文本读取并采用通用换行处理，保留 Unicode 内容断言，未修改生产文件换行策略。
+
 ## 验证范围
 
 本项验证编码边界，Windows 全套仍需后续子 issue 修复 Unix 进程、文件锁定和路径行为。本地为 macOS；实际 Windows/Ubuntu 结果以本 PR 的 GitHub CI job 与独立编码步骤结论为准。四个子 issue 完成后再移除父 issue #118 的 Windows 容错。

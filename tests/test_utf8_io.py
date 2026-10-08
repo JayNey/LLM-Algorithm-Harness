@@ -7,6 +7,7 @@ import os
 import runpy
 import subprocess
 import sys
+import tempfile
 from pathlib import Path
 
 import pytest
@@ -161,10 +162,19 @@ def test_log_file_round_trip_with_cp1252_default(tmp_path, legacy_default_encodi
 def test_quality_tools_receive_utf8_source_and_utf8_stdio(monkeypatch, legacy_default_encoding):
     source = f"# {UNICODE_TEXT}\ndef solution(x):\n    return x\n"
     calls = []
+    original_temporary_file = tempfile.NamedTemporaryFile
+
+    def windows_temporary_file(*args, **kwargs):
+        kwargs["newline"] = "\r\n"
+        return original_temporary_file(*args, **kwargs)
+
+    monkeypatch.setattr(tempfile, "NamedTemporaryFile", windows_temporary_file)
 
     def execute(command, **kwargs):
         path = Path(command[2] if command[0] in {"black", "radon"} else command[1])
-        assert path.read_bytes().decode("utf-8") == source
+        # Text-mode temporary files use CRLF on Windows; compare decoded text
+        # with universal newline handling while keeping UTF-8 explicit.
+        assert path.read_text(encoding="utf-8") == source
         assert kwargs["encoding"] == "utf-8"
         assert kwargs["env"]["PYTHONIOENCODING"] == "utf-8"
         calls.append(path)
