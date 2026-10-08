@@ -21,7 +21,9 @@ class TestLoadConfig:
 
     def test_load_config_valid_json(self):
         """Test loading valid JSON configuration."""
-        with tempfile.NamedTemporaryFile(mode="w", suffix=".json", delete=False) as f:
+        with tempfile.NamedTemporaryFile(
+            mode="w", suffix=".json", delete=False, encoding="utf-8"
+        ) as f:
             config_data = {
                 "dataset_path": "data/test.json",
                 "output_dir": "output",
@@ -248,11 +250,13 @@ class TestSaveResults:
 
         save_results({"vanilla": report}, str(output_dir), mock_harness, config)
 
-        run_name = json.loads((output_dir / "latest.json").read_text())["latest_run"]
+        run_name = json.loads((output_dir / "latest.json").read_text(encoding="utf-8"))[
+            "latest_run"
+        ]
         run_dir = output_dir / run_name
-        exported = (run_dir / "summary.json").read_text() + (
+        exported = (run_dir / "summary.json").read_text(encoding="utf-8") + (
             run_dir / "vanilla_results.json"
-        ).read_text()
+        ).read_text(encoding="utf-8")
         assert secret not in exported
         assert "[REDACTED]" in exported
 
@@ -682,7 +686,9 @@ problem_filters:
     def test_main_with_config_file(self, mock_harness_class):
         """Test main execution with config file."""
         # Create temporary config file
-        with tempfile.NamedTemporaryFile(mode="w", suffix=".json", delete=False) as f:
+        with tempfile.NamedTemporaryFile(
+            mode="w", suffix=".json", delete=False, encoding="utf-8"
+        ) as f:
             config_data = {
                 "dataset_path": "data/sample_problems.json",
                 "output_dir": "output",
@@ -898,7 +904,7 @@ class TestImportCommand:
 
         assert exc_info.value.code in (0, None)
         assert output.exists()
-        imported = json.loads(output.read_text())
+        imported = json.loads(output.read_text(encoding="utf-8"))
         assert imported[0]["problem_id"] == "imported-1"
 
     def test_import_command_preview_does_not_write(self, tmp_path, capsys):

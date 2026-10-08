@@ -13,6 +13,7 @@ from src.main import (
     run_import_command,
     run_tags_normalize_command,
 )
+from src.utils.encoding import utf8_subprocess_env
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
 
@@ -25,7 +26,8 @@ def run_cli(*argv, cwd=None):
         text=True,
         timeout=120,
         cwd=cwd,
-        env=env,
+        env=utf8_subprocess_env(env),
+        encoding="utf-8",
     )
 
 

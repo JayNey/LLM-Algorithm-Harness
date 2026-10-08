@@ -44,7 +44,9 @@ class TestCustomPricing:
     def test_load_custom_pricing(self):
         """Test loading custom pricing from file."""
         # Create temporary pricing file
-        with tempfile.NamedTemporaryFile(mode="w", suffix=".json", delete=False) as f:
+        with tempfile.NamedTemporaryFile(
+            mode="w", suffix=".json", delete=False, encoding="utf-8"
+        ) as f:
             json.dump(
                 {
                     "models": {
@@ -82,7 +84,9 @@ class TestCustomPricing:
 
     def test_invalid_json_fallback(self):
         """Test fallback when JSON is invalid."""
-        with tempfile.NamedTemporaryFile(mode="w", suffix=".json", delete=False) as f:
+        with tempfile.NamedTemporaryFile(
+            mode="w", suffix=".json", delete=False, encoding="utf-8"
+        ) as f:
             f.write("{ invalid json }")
             temp_path = f.name
 
@@ -101,7 +105,9 @@ class TestModelMatching:
 
     def test_model_matching_strategy(self):
         """Test exact match, prefix match, and default fallback."""
-        with tempfile.NamedTemporaryFile(mode="w", suffix=".json", delete=False) as f:
+        with tempfile.NamedTemporaryFile(
+            mode="w", suffix=".json", delete=False, encoding="utf-8"
+        ) as f:
             json.dump({"models": {"gpt-4": {"prompt": 0.025, "completion": 0.05}}}, f)
             temp_path = f.name
 
@@ -138,7 +144,9 @@ class TestModelMatching:
 
     def test_prefix_match_priority(self):
         """Test that exact match takes priority over prefix match."""
-        with tempfile.NamedTemporaryFile(mode="w", suffix=".json", delete=False) as f:
+        with tempfile.NamedTemporaryFile(
+            mode="w", suffix=".json", delete=False, encoding="utf-8"
+        ) as f:
             json.dump(
                 {
                     "models": {
@@ -169,7 +177,9 @@ class TestPricingSourceTracking:
 
     def test_pricing_source_tracking(self):
         """Test that pricing source is correctly tracked."""
-        with tempfile.NamedTemporaryFile(mode="w", suffix=".json", delete=False) as f:
+        with tempfile.NamedTemporaryFile(
+            mode="w", suffix=".json", delete=False, encoding="utf-8"
+        ) as f:
             json.dump({"models": {"custom-model": {"prompt": 0.001, "completion": 0.002}}}, f)
             temp_path = f.name
 
@@ -226,7 +236,9 @@ class TestUnknownPricingAndFormats:
 
     def test_long_key_format_and_as_of(self):
         """The documented example format (prompt_price_per_1k) must load."""
-        with tempfile.NamedTemporaryFile(mode="w", suffix=".json", delete=False) as f:
+        with tempfile.NamedTemporaryFile(
+            mode="w", suffix=".json", delete=False, encoding="utf-8"
+        ) as f:
             json.dump(
                 {
                     "models": {
@@ -252,7 +264,9 @@ class TestUnknownPricingAndFormats:
             Path(temp_path).unlink()
 
     def test_entry_without_prices_is_skipped(self):
-        with tempfile.NamedTemporaryFile(mode="w", suffix=".json", delete=False) as f:
+        with tempfile.NamedTemporaryFile(
+            mode="w", suffix=".json", delete=False, encoding="utf-8"
+        ) as f:
             json.dump(
                 {
                     "models": {

@@ -52,6 +52,7 @@ def _git_commit() -> str | None:
             text=True,
             timeout=10,
             check=True,
+            encoding="utf-8",
         )
         return result.stdout.strip() or None
     except Exception:
@@ -66,6 +67,7 @@ def _git_dirty() -> bool:
             text=True,
             timeout=10,
             check=True,
+            encoding="utf-8",
         )
         return bool(result.stdout.strip())
     except Exception:

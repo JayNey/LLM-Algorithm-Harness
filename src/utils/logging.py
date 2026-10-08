@@ -85,7 +85,7 @@ def setup_logging(
 
     # Add file handler if specified
     if log_file:
-        file_handler = logging.FileHandler(log_file)
+        file_handler = logging.FileHandler(log_file, encoding="utf-8")
         file_handler.setLevel(getattr(logging, level.upper()))
         logging.getLogger().addHandler(file_handler)
 

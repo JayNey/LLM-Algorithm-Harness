@@ -520,7 +520,7 @@ class TestFewShotLearningStrategy:
                 "status": "success",  # Must be "success" to be loaded
             }
         ]
-        result_file.write_text(json.dumps(result_data))
+        result_file.write_text(json.dumps(result_data), encoding="utf-8")
 
         monkeypatch.chdir(tmp_path)
 
@@ -549,7 +549,7 @@ class TestFewShotLearningStrategy:
                 "status": "success",
             }
         ]
-        result_file.write_text(json.dumps(result_data))
+        result_file.write_text(json.dumps(result_data), encoding="utf-8")
 
         monkeypatch.chdir(tmp_path)
 
@@ -567,7 +567,7 @@ class TestFewShotLearningStrategy:
         results_dir.mkdir()
 
         result_file = results_dir / "corrupted_results.json"
-        result_file.write_text("{invalid json content")
+        result_file.write_text("{invalid json content", encoding="utf-8")
 
         monkeypatch.chdir(tmp_path)
 

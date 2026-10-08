@@ -8,6 +8,7 @@ from pathlib import Path
 import pytest
 
 from src.recommender import RecommendationEngine
+from src.utils.encoding import utf8_subprocess_env
 
 
 def _dataset(tmp_path):
@@ -94,8 +95,8 @@ def test_write_outputs_report_and_usable_dataset(tmp_path):
     assert output.exists()
     dataset_output = tmp_path / "recommended.problems.json"
     assert dataset_output.exists()
-    assert json.loads(dataset_output.read_text())[0]["problem_id"] == "candidate-dp"
-    saved = json.loads(output.read_text())
+    assert json.loads(dataset_output.read_text(encoding="utf-8"))[0]["problem_id"] == "candidate-dp"
+    saved = json.loads(output.read_text(encoding="utf-8"))
     assert saved["recommendation_config"]["dataset_path"] == str(dataset_output)
     assert report["recommended_problem_ids"] == ["candidate-dp"]
 
@@ -141,6 +142,8 @@ def test_recommend_cli_writes_outputs(tmp_path):
         text=True,
         timeout=30,
         cwd=str(Path(__file__).resolve().parents[1]),
+        encoding="utf-8",
+        env=utf8_subprocess_env(),
     )
     assert completed.returncode == 0, completed.stderr
     assert output.exists()

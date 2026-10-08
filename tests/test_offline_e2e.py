@@ -18,6 +18,7 @@ from unittest.mock import MagicMock, patch
 import pytest
 
 from src.models import LLMResponse, TokenUsage
+from src.utils.encoding import utf8_subprocess_env
 
 CORRECT_SOLUTION = "def solution(x):\n    return x + 1"
 WRONG_SOLUTION = "def solution(x):\n    return x + 100"
@@ -137,14 +138,14 @@ def test_e2e_success_chain_records_exact_results(tmp_path):
     assert exit_code == 0
     run_dir = _latest_run_dir(tmp_path)
 
-    summary = json.loads((Path(run_dir) / "summary.json").read_text())
+    summary = json.loads((Path(run_dir) / "summary.json").read_text(encoding="utf-8"))
     vanilla_summary = summary["strategies"]["vanilla"]
     assert vanilla_summary["total_problems"] == 1
     assert vanilla_summary["solved_problems"] == 1
     assert vanilla_summary["success_rate"] == 1.0
     assert vanilla_summary["total_tokens"] == 15
 
-    results = json.loads((Path(run_dir) / "vanilla_results.json").read_text())
+    results = json.loads((Path(run_dir) / "vanilla_results.json").read_text(encoding="utf-8"))
     assert len(results) == 1
     record = results[0]
     assert record["status"] == "success"
@@ -165,14 +166,14 @@ def test_e2e_failure_chain_records_wrong_answer_precisely(tmp_path):
     assert exit_code == 0
     run_dir = _latest_run_dir(tmp_path)
 
-    results = json.loads((Path(run_dir) / "vanilla_results.json").read_text())
+    results = json.loads((Path(run_dir) / "vanilla_results.json").read_text(encoding="utf-8"))
     record = results[0]
     assert record["status"] == "failed"
     assert record["failure_category"] == "wrong_answer"
     assert record["test_results"][0]["actual_output"] == 101
     assert record["test_results"][0]["expected_output"] == 2
 
-    summary = json.loads((Path(run_dir) / "summary.json").read_text())
+    summary = json.loads((Path(run_dir) / "summary.json").read_text(encoding="utf-8"))
     assert summary["strategies"]["vanilla"]["solved_problems"] == 0
 
 
@@ -236,6 +237,8 @@ def test_cli_help_entry_works():
         text=True,
         timeout=60,
         cwd=repo_root,
+        encoding="utf-8",
+        env=utf8_subprocess_env(),
     )
     assert result.returncode == 0
     assert "usage:" in result.stdout
@@ -260,8 +263,9 @@ def test_online_verification_skips_without_credentials():
         capture_output=True,
         text=True,
         timeout=120,
-        env=env,
+        env=utf8_subprocess_env(env),
         cwd=os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
+        encoding="utf-8",
     )
     summary_line = [ln for ln in result.stdout.splitlines() if ln.strip()][-1]
     assert "1 skipped" in summary_line

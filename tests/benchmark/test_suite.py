@@ -37,7 +37,7 @@ def test_benchmark_suite_validation():
 
 def test_load_benchmark_suite():
     """Test loading benchmark suite from file."""
-    with tempfile.NamedTemporaryFile(mode="w", suffix=".json", delete=False) as f:
+    with tempfile.NamedTemporaryFile(mode="w", suffix=".json", delete=False, encoding="utf-8") as f:
         json.dump(
             {
                 "name": "Test Suite",
@@ -59,7 +59,7 @@ def test_load_benchmark_suite():
 
 def test_load_invalid_json():
     """Test loading invalid JSON file."""
-    with tempfile.NamedTemporaryFile(mode="w", suffix=".json", delete=False) as f:
+    with tempfile.NamedTemporaryFile(mode="w", suffix=".json", delete=False, encoding="utf-8") as f:
         f.write("{invalid json")
         temp_file = f.name
 

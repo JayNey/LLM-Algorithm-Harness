@@ -11,6 +11,7 @@ import tempfile
 from pathlib import Path
 
 from src.code_quality.models import StyleConsistencyScore
+from src.utils.encoding import utf8_subprocess_env
 from src.utils.logging import get_logger
 
 logger = get_logger(__name__)
@@ -64,12 +65,19 @@ class StyleConsistencyAnalyzer:
         """
         temp_path = None
         try:
-            with tempfile.NamedTemporaryFile(mode="w", suffix=".py", delete=False) as f:
+            with tempfile.NamedTemporaryFile(
+                mode="w", suffix=".py", delete=False, encoding="utf-8"
+            ) as f:
                 f.write(code)
                 temp_path = f.name
 
             result = subprocess.run(
-                ["black", "--check", temp_path], capture_output=True, text=True, timeout=10
+                ["black", "--check", temp_path],
+                capture_output=True,
+                text=True,
+                timeout=10,
+                encoding="utf-8",
+                env=utf8_subprocess_env(),
             )
 
             is_compliant = result.returncode == 0
