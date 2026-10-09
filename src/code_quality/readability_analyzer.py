@@ -81,6 +81,7 @@ class ReadabilityAnalyzer:
             # Parse score from output
             for line in result.stdout.splitlines():
                 if "rated at" in line.lower():
+                    # Split on forward slash to parse pylint's text format "X.X/10" (text delimiter, not filesystem path)
                     parts = line.split("/")
                     if parts:
                         score_str = parts[0].split()[-1]
