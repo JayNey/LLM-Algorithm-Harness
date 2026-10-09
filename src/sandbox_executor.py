@@ -7,9 +7,7 @@ import math
 import numbers
 import os
 import re
-import selectors
 import shutil
-import signal
 import subprocess
 import sys
 import tempfile
@@ -27,6 +25,11 @@ from src.models import (
     TestCaseResult,
 )
 from src.utils.logging import get_logger
+from src.utils.process_manager import (
+    OutputLimitExceededError,
+    ProcessTimeoutError,
+    run_bounded,
+)
 
 logger = get_logger(__name__)
 
@@ -505,8 +508,7 @@ class SandboxExecutor:
             Function output
 
         Raises:
-            subprocess.TimeoutExpired: If timeout exceeded
-            Exception: If execution fails
+            SandboxExecutionError: If timeout exceeded or execution fails
         """
         if problem and problem.input_output_mode == "stdin_stdout":
             wrapper = code
@@ -593,95 +595,33 @@ if __name__ == "__main__":
         input_data: bytes | None = None,
     ) -> subprocess.CompletedProcess[str]:
         """Run a command while bounding combined stdout/stderr in the parent."""
-        process = subprocess.Popen(
-            command,
-            stdout=subprocess.PIPE,
-            stderr=subprocess.PIPE,
-            stdin=subprocess.PIPE if input_data is not None else None,
-            env=env,
-            cwd=cwd,
-            start_new_session=(os.name != "nt"),
-        )
-        selector = selectors.DefaultSelector()
-        assert process.stdout is not None and process.stderr is not None
-        selector.register(process.stdout, selectors.EVENT_READ, "stdout")
-        selector.register(process.stderr, selectors.EVENT_READ, "stderr")
-        input_offset = 0
-        if input_data is not None and process.stdin is not None:
-            try:
-                os.set_blocking(process.stdin.fileno(), False)
-                selector.register(process.stdin, selectors.EVENT_WRITE, "stdin")
-            except OSError:
-                process.stdin.close()
-
-        buffers = {"stdout": bytearray(), "stderr": bytearray()}
-        deadline = time.monotonic() + timeout
-
         try:
-            while selector.get_map():
-                remaining = deadline - time.monotonic()
-                if remaining <= 0:
-                    raise SandboxExecutionError("timeout", "Sandbox timeout exceeded")
-                for key, mask in selector.select(remaining):
-                    if key.data == "stdin":
-                        assert input_data is not None  # Ensured by registration condition
-                        assert hasattr(key.fileobj, "fileno") and hasattr(key.fileobj, "close")
-                        try:
-                            written = os.write(key.fileobj.fileno(), input_data[input_offset:])
-                            input_offset += written
-                            if input_offset >= len(input_data):
-                                selector.unregister(key.fileobj)
-                                key.fileobj.close()
-                        except (BrokenPipeError, OSError):
-                            selector.unregister(key.fileobj)
-                            key.fileobj.close()
-                        continue
-                    assert hasattr(key.fileobj, "fileno")
-                    chunk = os.read(key.fileobj.fileno(), 65536)
-                    if not chunk:
-                        selector.unregister(key.fileobj)
-                        continue
-                    buffers[key.data].extend(chunk)
-                    if (
-                        sum(len(buffer) for buffer in buffers.values())
-                        > self.config.max_output_bytes
-                    ):
-                        raise SandboxExecutionError(
-                            "output_limit", "Sandbox output exceeded the configured limit"
-                        )
-            returncode = process.wait(timeout=max(0.1, deadline - time.monotonic()))
-            return subprocess.CompletedProcess(
+            result = run_bounded(
                 command,
-                returncode,
-                stdout=bytes(buffers["stdout"]).decode("utf-8", errors="replace"),
-                stderr=bytes(buffers["stderr"]).decode("utf-8", errors="replace"),
+                timeout=timeout,
+                env=env,
+                cwd=cwd,
+                input_data=input_data,
+                max_output_bytes=self.config.max_output_bytes,
             )
-        except subprocess.TimeoutExpired as exc:
+        except ProcessTimeoutError as exc:
             raise SandboxExecutionError("timeout", "Sandbox timeout exceeded") from exc
+        except OutputLimitExceededError as exc:
+            raise SandboxExecutionError(
+                "output_limit", "Sandbox output exceeded the configured limit"
+            ) from exc
         finally:
-            if process.stdin is not None and not process.stdin.closed:
-                process.stdin.close()
-            selector.close()
-            if os.name != "nt" or process.poll() is None:
-                self._terminate_process_group(process)
-            if process.poll() is None:
-                process.wait()
             if cleanup is not None:
                 try:
                     cleanup()
                 except Exception as exc:
                     logger.warning("sandbox_cleanup_failed", error=str(exc))
-
-    @staticmethod
-    def _terminate_process_group(process: subprocess.Popen) -> None:
-        """Terminate the command and any children created in its process group."""
-        if os.name == "nt":
-            process.kill()
-            return
-        try:
-            os.killpg(process.pid, signal.SIGKILL)
-        except ProcessLookupError:
-            pass
+        return subprocess.CompletedProcess(
+            command,
+            result.returncode,
+            stdout=result.stdout.decode("utf-8", errors="replace"),
+            stderr=result.stderr.decode("utf-8", errors="replace"),
+        )
 
     def _run_in_docker(
         self,
