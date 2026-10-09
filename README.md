@@ -629,6 +629,8 @@ harness recommend \
 
 ### 运行所有测试
 
+文本文件与 Python 子进程采用显式 UTF-8 编码约定；可通过 `python scripts/find_missing_encoding.py` 和 `pytest tests/test_utf8_io.py -q --no-cov` 独立检查，详见 [Windows UTF-8 编码说明](docs/windows-utf8.md)。
+
 ```bash
 pytest tests/
 ```

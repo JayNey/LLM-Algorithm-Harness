@@ -67,7 +67,7 @@ def test_load_config_valid(tmp_path):
         "output_dir": "output/",
         "max_workers": 5,
     }
-    config_file.write_text(yaml.dump(config_data))
+    config_file.write_text(yaml.dump(config_data), encoding="utf-8")
 
     config = load_config(str(config_file))
 
@@ -273,7 +273,7 @@ def test_validate_test_case_input_not_dict():
 def test_validate_file_path_exists(tmp_path):
     """Test validating existing file path."""
     file_path = tmp_path / "test.txt"
-    file_path.write_text("test")
+    file_path.write_text("test", encoding="utf-8")
 
     assert validate_file_path(str(file_path), must_exist=True) is True
 

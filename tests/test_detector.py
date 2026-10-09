@@ -231,7 +231,7 @@ def test_load_historical_results_missing_file(tmp_path):
 def test_load_historical_results_corrupted_file(tmp_path):
     """Test loading results from corrupted JSON."""
     result_path = tmp_path / "results.json"
-    result_path.write_text("{ invalid json")
+    result_path.write_text("{ invalid json", encoding="utf-8")
 
     results = load_historical_results(result_path, {"prob1"})
     assert results == {}

@@ -53,7 +53,7 @@ def sample_dataset():
 def test_load_valid_dataset(problem_loader, sample_dataset, tmp_path):
     """Test loading valid dataset file."""
     dataset_file = tmp_path / "dataset.json"
-    dataset_file.write_text(json.dumps(sample_dataset))
+    dataset_file.write_text(json.dumps(sample_dataset), encoding="utf-8")
 
     problems = problem_loader.load(str(dataset_file))
 
@@ -107,7 +107,7 @@ def test_load_file_not_found(problem_loader):
 def test_load_empty_dataset(problem_loader, tmp_path):
     """Test loading empty dataset raises ValueError."""
     dataset_file = tmp_path / "empty.json"
-    dataset_file.write_text(json.dumps([]))
+    dataset_file.write_text(json.dumps([]), encoding="utf-8")
 
     with pytest.raises(ValueError, match="Dataset is empty"):
         problem_loader.load(str(dataset_file))
@@ -116,7 +116,7 @@ def test_load_empty_dataset(problem_loader, tmp_path):
 def test_load_invalid_json(problem_loader, tmp_path):
     """Test loading malformed JSON raises JSONDecodeError."""
     dataset_file = tmp_path / "invalid.json"
-    dataset_file.write_text("{ invalid json }")
+    dataset_file.write_text("{ invalid json }", encoding="utf-8")
 
     with pytest.raises(json.JSONDecodeError):
         problem_loader.load(str(dataset_file))
@@ -125,7 +125,7 @@ def test_load_invalid_json(problem_loader, tmp_path):
 def test_load_non_array_json(problem_loader, tmp_path):
     """Test loading non-array JSON raises ValueError."""
     dataset_file = tmp_path / "object.json"
-    dataset_file.write_text(json.dumps({"key": "value"}))
+    dataset_file.write_text(json.dumps({"key": "value"}), encoding="utf-8")
 
     with pytest.raises(ValueError, match="must be a JSON array"):
         problem_loader.load(str(dataset_file))
@@ -168,7 +168,7 @@ def test_validate_dataset_all_invalid(problem_loader):
 def test_filter_problems_by_difficulty(problem_loader, sample_dataset, tmp_path):
     """Test filtering problems by difficulty."""
     dataset_file = tmp_path / "dataset.json"
-    dataset_file.write_text(json.dumps(sample_dataset))
+    dataset_file.write_text(json.dumps(sample_dataset), encoding="utf-8")
 
     problems = problem_loader.load(str(dataset_file))
     easy_problems = problem_loader.filter_problems(problems, difficulty="easy")
@@ -180,7 +180,7 @@ def test_filter_problems_by_difficulty(problem_loader, sample_dataset, tmp_path)
 def test_filter_problems_by_tags(problem_loader, sample_dataset, tmp_path):
     """Test filtering problems by tags."""
     dataset_file = tmp_path / "dataset.json"
-    dataset_file.write_text(json.dumps(sample_dataset))
+    dataset_file.write_text(json.dumps(sample_dataset), encoding="utf-8")
 
     problems = problem_loader.load(str(dataset_file))
     array_problems = problem_loader.filter_problems(problems, tags=["array"])
@@ -192,7 +192,7 @@ def test_filter_problems_by_tags(problem_loader, sample_dataset, tmp_path):
 def test_filter_problems_by_limit(problem_loader, sample_dataset, tmp_path):
     """Test filtering problems with limit."""
     dataset_file = tmp_path / "dataset.json"
-    dataset_file.write_text(json.dumps(sample_dataset))
+    dataset_file.write_text(json.dumps(sample_dataset), encoding="utf-8")
 
     problems = problem_loader.load(str(dataset_file))
     limited_problems = problem_loader.filter_problems(problems, limit=2)
@@ -203,7 +203,7 @@ def test_filter_problems_by_limit(problem_loader, sample_dataset, tmp_path):
 def test_filter_problems_combined(problem_loader, sample_dataset, tmp_path):
     """Test filtering with multiple criteria."""
     dataset_file = tmp_path / "dataset.json"
-    dataset_file.write_text(json.dumps(sample_dataset))
+    dataset_file.write_text(json.dumps(sample_dataset), encoding="utf-8")
 
     problems = problem_loader.load(str(dataset_file))
     filtered = problem_loader.filter_problems(problems, difficulty="easy", tags=["array"], limit=1)
@@ -216,7 +216,7 @@ def test_filter_problems_combined(problem_loader, sample_dataset, tmp_path):
 def test_filter_problems_no_match(problem_loader, sample_dataset, tmp_path):
     """Test filtering with no matching problems."""
     dataset_file = tmp_path / "dataset.json"
-    dataset_file.write_text(json.dumps(sample_dataset))
+    dataset_file.write_text(json.dumps(sample_dataset), encoding="utf-8")
 
     problems = problem_loader.load(str(dataset_file))
     filtered = problem_loader.filter_problems(problems, difficulty="hard")

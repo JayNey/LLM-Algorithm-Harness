@@ -408,7 +408,7 @@ class TestCliOverrides:
 def write_dataset(path, problems):
     import json
 
-    path.write_text(json.dumps(problems))
+    path.write_text(json.dumps(problems), encoding="utf-8")
 
 
 def problem_payload(problem_id, difficulty):
@@ -513,8 +513,8 @@ class TestHarnessCostAwareIntegration:
 
         save_results(reports, harness.config.output_dir, harness, harness.config)
         run_dir = tmp_path / "results" / "run-auto-stop"
-        cutoff = json.loads((run_dir / "cost_cutoff.json").read_text())
-        summary = json.loads((run_dir / "summary.json").read_text())
+        cutoff = json.loads((run_dir / "cost_cutoff.json").read_text(encoding="utf-8"))
+        summary = json.loads((run_dir / "summary.json").read_text(encoding="utf-8"))
         assert cutoff["queued_units"] == 1
         assert cutoff["completed_units"] == 2
         assert summary["cost_control"]["incomplete"] is True

@@ -116,7 +116,9 @@ class TestPricingMetadataFlow:
         }
 
         # Verify JSON serialization works
-        with tempfile.NamedTemporaryFile(mode="w", suffix=".json", delete=False) as f:
+        with tempfile.NamedTemporaryFile(
+            mode="w", suffix=".json", delete=False, encoding="utf-8"
+        ) as f:
             json.dump(summary, f, indent=2)
             temp_path = f.name
 
@@ -153,7 +155,9 @@ class TestPricingMetadataFlow:
         }
 
         # Verify JSON serialization works
-        with tempfile.NamedTemporaryFile(mode="w", suffix=".json", delete=False) as f:
+        with tempfile.NamedTemporaryFile(
+            mode="w", suffix=".json", delete=False, encoding="utf-8"
+        ) as f:
             json.dump(old_summary, f, indent=2)
             temp_path = f.name
 

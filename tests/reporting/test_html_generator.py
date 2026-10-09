@@ -346,7 +346,7 @@ def test_html_strategy_card_shows_failure_counts(temp_html_path: str):
 
     HTMLGenerator.generate(metrics, results, temp_html_path, include_charts=False)
 
-    content = Path(temp_html_path).read_text()
+    content = Path(temp_html_path).read_text(encoding="utf-8")
     assert "<strong>Model failed:</strong> 1" in content
     assert "<strong>System failed:</strong> 1" in content
 
@@ -382,6 +382,6 @@ def test_html_flat_result_list_counts_failures(temp_html_path: str):
 
     HTMLGenerator.generate(metrics, flat_results, temp_html_path, include_charts=False)
 
-    content = Path(temp_html_path).read_text()
+    content = Path(temp_html_path).read_text(encoding="utf-8")
     assert "<strong>Model failed:</strong> 1" in content
     assert "<strong>System failed:</strong> 0" in content

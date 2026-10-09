@@ -150,7 +150,7 @@ def test_timeout_terminates_the_entire_process_group(tmp_path):
     script = (
         "import os, subprocess, sys, time; "
         "child = subprocess.Popen([sys.executable, '-c', 'import time; time.sleep(30)']); "
-        f"open({str(pid_file)!r}, 'w').write(str(child.pid)); "
+        f"open({str(pid_file)!r}, 'w', encoding='utf-8').write(str(child.pid)); "
         "time.sleep(30)"
     )
     executor = SandboxExecutor(SandboxConfig(backend="host", timeout_seconds=1))
@@ -158,7 +158,7 @@ def test_timeout_terminates_the_entire_process_group(tmp_path):
     with pytest.raises(SandboxExecutionError, match="timeout"):
         executor._run_command([sys.executable, "-c", script], timeout=0.2)
 
-    child_pid = int(pid_file.read_text())
+    child_pid = int(pid_file.read_text(encoding="utf-8"))
     time.sleep(0.05)
     with pytest.raises(ProcessLookupError):
         os.kill(child_pid, 0)
@@ -170,7 +170,7 @@ def test_parent_exit_still_terminates_child_process_group(tmp_path):
     script = (
         "import subprocess, sys; "
         "child = subprocess.Popen([sys.executable, '-c', 'import time; time.sleep(30)']); "
-        f"open({str(pid_file)!r}, 'w').write(str(child.pid)); "
+        f"open({str(pid_file)!r}, 'w', encoding='utf-8').write(str(child.pid)); "
         "sys.exit(0)"
     )
     executor = SandboxExecutor(SandboxConfig(backend="host", timeout_seconds=1))
@@ -178,7 +178,7 @@ def test_parent_exit_still_terminates_child_process_group(tmp_path):
     with pytest.raises(SandboxExecutionError, match="timeout"):
         executor._run_command([sys.executable, "-c", script], timeout=0.2)
 
-    child_pid = int(pid_file.read_text())
+    child_pid = int(pid_file.read_text(encoding="utf-8"))
     time.sleep(0.05)
     with pytest.raises(ProcessLookupError):
         os.kill(child_pid, 0)

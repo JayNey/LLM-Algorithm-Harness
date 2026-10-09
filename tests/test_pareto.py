@@ -210,7 +210,9 @@ def test_artifacts_and_cli_do_not_modify_inputs(tmp_path):
     source = tmp_path / "experiment"
     source.mkdir()
     input_file = source / "comparison.json"
-    input_file.write_text(json.dumps(comparison([combo("a", 1), combo("b", 2, 8)])))
+    input_file.write_text(
+        json.dumps(comparison([combo("a", 1), combo("b", 2, 8)])), encoding="utf-8"
+    )
     original = input_file.read_bytes()
     output = tmp_path / "analysis"
     with patch(
@@ -232,10 +234,10 @@ def test_artifacts_and_cli_do_not_modify_inputs(tmp_path):
             main()
     assert stopped.value.code == 0
     assert input_file.read_bytes() == original
-    report = json.loads((output / "pareto.json").read_text())
+    report = json.loads((output / "pareto.json").read_text(encoding="utf-8"))
     assert report["budget_recommendations"][0]["feasible"] is False
     assert (output / "pareto.png").read_bytes().startswith(b"\x89PNG")
-    assert "性价比之王" in (output / "PARETO.md").read_text()
+    assert "性价比之王" in (output / "PARETO.md").read_text(encoding="utf-8")
 
 
 def test_empty_artifact_chart_and_escaped_labels(tmp_path):
@@ -245,7 +247,7 @@ def test_empty_artifact_chart_and_escaped_labels(tmp_path):
     assert analysis["best_value"]["point_id"] is None
     analysis = build_pareto_analysis([comparison([combo("a|<tag>", 1)])])
     write_pareto_artifacts(analysis, tmp_path)
-    assert "a\\|&lt;tag&gt;" in (tmp_path / "PARETO.md").read_text()
+    assert "a\\|&lt;tag&gt;" in (tmp_path / "PARETO.md").read_text(encoding="utf-8")
 
 
 def test_cli_missing_or_duplicate_input_has_no_output(tmp_path):

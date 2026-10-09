@@ -12,6 +12,7 @@ from src.main import run_runs_command
 from src.models import ExecutionResult, HarnessConfig, LLMConfig, StrategyConfig
 from src.runs import find_matching_unfinished, summarize_run
 from src.task_service import TaskRecord, TaskService, TaskUnit
+from src.utils.encoding import utf8_subprocess_env
 
 
 def make_record(run_id, state, completed, total, results=None, fingerprint="cfg-1"):
@@ -255,6 +256,8 @@ class TestResumeHint:
             capture_output=True,
             text=True,
             timeout=60,
+            encoding="utf-8",
+            env=utf8_subprocess_env(),
         )
         assert result.returncode == 0, result.stderr
         assert "No persisted runs" in result.stdout

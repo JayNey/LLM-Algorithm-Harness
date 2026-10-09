@@ -205,6 +205,7 @@ class SandboxExecutor:
                 capture_output=True,
                 text=True,
                 timeout=5,
+                encoding="utf-8",
             )
         except (OSError, subprocess.TimeoutExpired):
             return False
@@ -216,6 +217,7 @@ class SandboxExecutor:
                 capture_output=True,
                 text=True,
                 timeout=5,
+                encoding="utf-8",
             )
         except (OSError, subprocess.TimeoutExpired):
             return False
@@ -297,6 +299,8 @@ class SandboxExecutor:
             "PYTHONUNBUFFERED=1",
             "--env",
             "PYTHONDONTWRITEBYTECODE=1",
+            "--env",
+            "PYTHONIOENCODING=utf-8",
             "--mount",
             f"type=bind,src={workdir},dst=/workspace,readonly",
             "--workdir",
@@ -535,12 +539,14 @@ if __name__ == "__main__":
         result = target(*test_input)
     else:
         result = target(test_input)
-    _harness_write(_harness_fd, ({result_marker!r} + _harness_dumps(result) + "\\n").encode())
+    _harness_write(_harness_fd, ({result_marker!r} + _harness_dumps(result) + "\\n").encode("utf-8"))
 """
             input_data = None
 
         # Write to temp file
-        with tempfile.NamedTemporaryFile(mode="w", suffix=".py", delete=False) as f:
+        with tempfile.NamedTemporaryFile(
+            mode="w", suffix=".py", delete=False, encoding="utf-8"
+        ) as f:
             f.write(wrapper)
             temp_file = f.name
 
@@ -560,6 +566,7 @@ if __name__ == "__main__":
                 env={
                     "PATH": os.environ.get("PATH", ""),
                     "PYTHONNOUSERSITE": "1",
+                    "PYTHONIOENCODING": "utf-8",
                     "HOME": str(Path(temp_file).parent),
                 },
                 input_data=input_data,
@@ -646,8 +653,8 @@ if __name__ == "__main__":
             return subprocess.CompletedProcess(
                 command,
                 returncode,
-                stdout=bytes(buffers["stdout"]).decode(errors="replace"),
-                stderr=bytes(buffers["stderr"]).decode(errors="replace"),
+                stdout=bytes(buffers["stdout"]).decode("utf-8", errors="replace"),
+                stderr=bytes(buffers["stderr"]).decode("utf-8", errors="replace"),
             )
         except subprocess.TimeoutExpired as exc:
             raise SandboxExecutionError("timeout", "Sandbox timeout exceeded") from exc
@@ -710,7 +717,7 @@ elif isinstance(test_input, (list, tuple)):
     result = target(*test_input)
 else:
     result = target(test_input)
-_harness_write(_harness_fd, ({result_marker!r} + _harness_dumps(result) + "\\n").encode())
+_harness_write(_harness_fd, ({result_marker!r} + _harness_dumps(result) + "\\n").encode("utf-8"))
 """
             input_data = None
         with tempfile.TemporaryDirectory(prefix="llm-harness-sandbox-") as workdir:

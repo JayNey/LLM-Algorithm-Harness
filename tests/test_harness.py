@@ -25,7 +25,8 @@ def harness_config(tmp_path):
     """Harness configuration fixture."""
     # Create a sample dataset file
     dataset_file = tmp_path / "dataset.json"
-    dataset_file.write_text("""[
+    dataset_file.write_text(
+        """[
         {
             "problem_id": "test-001",
             "title": "Test Problem",
@@ -34,7 +35,9 @@ def harness_config(tmp_path):
             "tags": ["test"],
             "test_cases": [{"input": {"x": 1}, "expected_output": 2}]
         }
-    ]""")
+    ]""",
+        encoding="utf-8",
+    )
 
     return HarnessConfig(
         dataset_path=str(dataset_file),
@@ -555,7 +558,7 @@ def test_harness_run_full_execution(harness_config, tmp_path):
             "test_cases": [{"input": {"x": 2}, "expected_output": 4}],
         },
     ]
-    dataset_file.write_text(json.dumps(dataset_data))
+    dataset_file.write_text(json.dumps(dataset_data), encoding="utf-8")
 
     # Create config with multiple strategies
     config = HarnessConfig(
@@ -636,7 +639,7 @@ def test_harness_with_problem_limit(harness_config, tmp_path):
         }
         for i in range(10)
     ]
-    dataset_file.write_text(json.dumps(dataset_data))
+    dataset_file.write_text(json.dumps(dataset_data), encoding="utf-8")
 
     config = HarnessConfig(
         dataset_path=str(dataset_file),
@@ -672,7 +675,7 @@ def test_harness_with_difficulty_filter(harness_config, tmp_path):
             "test_cases": [{"input": {"x": 2}, "expected_output": 4}],
         },
     ]
-    dataset_file.write_text(json.dumps(dataset_data))
+    dataset_file.write_text(json.dumps(dataset_data), encoding="utf-8")
 
     config = HarnessConfig(
         dataset_path=str(dataset_file),
@@ -704,7 +707,8 @@ def test_harness_rejects_filters_that_match_no_problems(tmp_path):
                     "test_cases": [{"input": {"x": 1}, "expected_output": 2}],
                 }
             ]
-        )
+        ),
+        encoding="utf-8",
     )
     config = HarnessConfig(
         dataset_path=str(dataset_file),
@@ -731,7 +735,7 @@ def test_harness_concurrent_strategy_execution(harness_config, tmp_path):
             "test_cases": [{"input": {"x": 1}, "expected_output": 2}],
         }
     ]
-    dataset_file.write_text(json.dumps(dataset_data))
+    dataset_file.write_text(json.dumps(dataset_data), encoding="utf-8")
 
     config = HarnessConfig(
         dataset_path=str(dataset_file),

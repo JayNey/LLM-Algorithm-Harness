@@ -71,9 +71,9 @@ def test_threshold_crossing_is_exact_durable_and_idempotent(tmp_path, monkeypatc
     resumed = CostAlertManager(config, "run-1", state_path)
     assert resumed.process(1.25, 1.0) == []
     assert len(calls) == 3
-    saved = json.loads(state_path.read_text())
+    saved = json.loads(state_path.read_text(encoding="utf-8"))
     assert saved["delivered"] == {"50": ["webhook"], "80": ["webhook"], "90": ["webhook"]}
-    assert "private" not in state_path.read_text()
+    assert "private" not in state_path.read_text(encoding="utf-8")
 
 
 def test_failed_channel_retries_once_per_manager_then_on_resume(tmp_path, monkeypatch):
@@ -103,7 +103,7 @@ def test_failed_channel_retries_once_per_manager_then_on_resume(tmp_path, monkey
     assert retry[0]["attempts"] == 1
     assert len(calls) == 4
     assert CostAlertManager(config, "run-2", path).process(0.9, 1.0) == []
-    assert "private" not in path.read_text()
+    assert "private" not in path.read_text(encoding="utf-8")
 
 
 @pytest.mark.parametrize(
@@ -129,7 +129,7 @@ def test_http_retries_only_rate_limit_and_server_errors(
     assert event["attempts"] == expected_attempts
     assert event["error_type"] == f"http_status_{status_code}"
     assert len(calls) == expected_attempts
-    assert "private-hook" not in path.read_text()
+    assert "private-hook" not in path.read_text(encoding="utf-8")
 
 
 def test_smtp_retries_transient_replies_but_not_permanent_auth_failure(tmp_path, monkeypatch):
@@ -174,7 +174,7 @@ def test_smtp_retries_transient_replies_but_not_permanent_auth_failure(tmp_path,
     assert permanent["attempts"] == 1
     assert permanent["error_type"] == "smtp_error"
     assert len(calls) == 4
-    assert "private-password" not in permanent_path.read_text()
+    assert "private-password" not in permanent_path.read_text(encoding="utf-8")
 
 
 @pytest.mark.parametrize(
@@ -206,7 +206,7 @@ def test_http_exception_retry_policy_and_redaction(
     assert event["error_type"] == error_type
     assert len(calls) == expected_attempts
     assert "secret" not in json.dumps(event).lower()
-    assert "secret" not in state_path.read_text().lower()
+    assert "secret" not in state_path.read_text(encoding="utf-8").lower()
 
 
 @pytest.mark.parametrize(
@@ -240,7 +240,7 @@ def test_smtp_exception_retry_policy_and_redaction(tmp_path, monkeypatch, error,
     assert event["error_type"] == "smtp_error"
     assert len(calls) == expected_attempts
     assert "secret" not in json.dumps(event).lower()
-    assert "secret" not in state_path.read_text().lower()
+    assert "secret" not in state_path.read_text(encoding="utf-8").lower()
 
 
 def test_channels_keep_independent_success_state_and_hide_errors(tmp_path, monkeypatch):
@@ -268,8 +268,8 @@ def test_channels_keep_independent_success_state_and_hide_errors(tmp_path, monke
     ]
     assert calls == ["https://hooks.slack.test/private-token", secret_url]
     assert secret_url not in json.dumps(events)
-    assert secret_url not in path.read_text()
-    assert "private-token" not in path.read_text()
+    assert secret_url not in path.read_text(encoding="utf-8")
+    assert "private-token" not in path.read_text(encoding="utf-8")
 
     retry = CostAlertManager(config, "run-3", path).process(0.8, 1.0)
     assert [(event["channel"], event["status"]) for event in retry] == [("webhook", "sent")]
@@ -316,7 +316,7 @@ def test_smtp_delivery_uses_timeout_tls_and_login(tmp_path, monkeypatch):
     assert calls[1] == ("starttls", True)
     assert calls[2] == ("login", "user", "private-password")
     assert "unknown usage: 1" in calls[3][2]
-    assert "private-password" not in path.read_text()
+    assert "private-password" not in path.read_text(encoding="utf-8")
     assert "private-password" not in json.dumps(events)
 
 
@@ -339,7 +339,7 @@ def test_local_alert_and_state_validation(tmp_path):
     assert CostAlertManager(config, "run-5", path).process(0.6, 1.0) == []
     with pytest.raises(ValueError, match="another run"):
         CostAlertManager(config, "other-run", path)
-    path.write_text("not JSON")
+    path.write_text("not JSON", encoding="utf-8")
     with pytest.raises(ValueError, match="cannot be read safely"):
         CostAlertManager(config, "run-5", path)
 

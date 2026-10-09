@@ -12,6 +12,8 @@ import tempfile
 from pathlib import Path
 from types import SimpleNamespace
 
+from src.utils.encoding import utf8_subprocess_env
+
 
 class TestCLIBasics:
     """Test basic CLI functionality."""
@@ -23,6 +25,8 @@ class TestCLIBasics:
             capture_output=True,
             text=True,
             timeout=10,
+            encoding="utf-8",
+            env=utf8_subprocess_env(),
         )
         assert result.returncode == 0
         assert "usage" in result.stdout.lower() or "LLM" in result.stdout
@@ -35,6 +39,8 @@ class TestCLIBasics:
             capture_output=True,
             text=True,
             timeout=10,
+            encoding="utf-8",
+            env=utf8_subprocess_env(),
         )
         # Either succeeds or fails gracefully with error message
         assert "error" in result.stderr.lower() or result.returncode in [0, 1, 2]
@@ -60,6 +66,8 @@ class TestCLIDatasetLoading:
             capture_output=True,
             text=True,
             timeout=30,
+            encoding="utf-8",
+            env=utf8_subprocess_env(),
         )
         # May fail due to API key, but should attempt to load dataset
         output = (result.stdout + result.stderr).lower()
@@ -78,6 +86,8 @@ class TestCLIDatasetLoading:
             capture_output=True,
             text=True,
             timeout=10,
+            encoding="utf-8",
+            env=utf8_subprocess_env(),
         )
         assert result.returncode != 0
         output = (result.stdout + result.stderr).lower()
@@ -89,7 +99,9 @@ class TestCLIConfigLoading:
 
     def test_cli_with_yaml_config(self):
         """Test CLI loads YAML configuration file."""
-        with tempfile.NamedTemporaryFile(mode="w", suffix=".yaml", delete=False) as f:
+        with tempfile.NamedTemporaryFile(
+            mode="w", suffix=".yaml", delete=False, encoding="utf-8"
+        ) as f:
             # Write minimal valid YAML config
             f.write("""
 llm_config:
@@ -106,6 +118,8 @@ dataset_path: data/sample_problems.json
                 capture_output=True,
                 text=True,
                 timeout=30,
+                encoding="utf-8",
+                env=utf8_subprocess_env(),
             )
             # Config should be loaded even if execution fails later
             output = (result.stdout + result.stderr).lower()
@@ -121,7 +135,9 @@ dataset_path: data/sample_problems.json
 
     def test_cli_with_invalid_config(self):
         """Test CLI handles invalid configuration gracefully."""
-        with tempfile.NamedTemporaryFile(mode="w", suffix=".yaml", delete=False) as f:
+        with tempfile.NamedTemporaryFile(
+            mode="w", suffix=".yaml", delete=False, encoding="utf-8"
+        ) as f:
             f.write("invalid: yaml: content: [unclosed")
             config_path = f.name
 
@@ -131,6 +147,8 @@ dataset_path: data/sample_problems.json
                 capture_output=True,
                 text=True,
                 timeout=10,
+                encoding="utf-8",
+                env=utf8_subprocess_env(),
             )
             assert result.returncode != 0
             output = (result.stdout + result.stderr).lower()
@@ -252,6 +270,8 @@ class TestCLIStrategySelection:
                 capture_output=True,
                 text=True,
                 timeout=30,
+                encoding="utf-8",
+                env=utf8_subprocess_env(),
             )
             # May fail due to API key but should recognize strategy
             output = (result.stdout + result.stderr).lower()
@@ -272,6 +292,8 @@ class TestCLIStrategySelection:
             capture_output=True,
             text=True,
             timeout=10,
+            encoding="utf-8",
+            env=utf8_subprocess_env(),
         )
         assert result.returncode != 0
         output = (result.stdout + result.stderr).lower()
@@ -300,6 +322,8 @@ class TestCLIOutputOptions:
             capture_output=True,
             text=True,
             timeout=30,
+            encoding="utf-8",
+            env=utf8_subprocess_env(),
         )
         # Check that output dir option was recognized
         output = (result.stdout + result.stderr).lower()
@@ -320,6 +344,8 @@ class TestCLIOutputOptions:
             capture_output=True,
             text=True,
             timeout=30,
+            encoding="utf-8",
+            env=utf8_subprocess_env(),
         )
         # Should process or attempt to process limited problems
         output = (result.stdout + result.stderr).lower()
@@ -350,6 +376,8 @@ class TestCLIDifficultyFilter:
                 capture_output=True,
                 text=True,
                 timeout=30,
+                encoding="utf-8",
+                env=utf8_subprocess_env(),
             )
             output = (result.stdout + result.stderr).lower()
             assert (
@@ -370,6 +398,8 @@ class TestCLIErrorHandling:
             capture_output=True,
             text=True,
             timeout=10,
+            encoding="utf-8",
+            env=utf8_subprocess_env(),
         )
         # Should fail or prompt for required args
         assert result.returncode in [0, 1, 2]
@@ -389,6 +419,8 @@ class TestCLIErrorHandling:
             capture_output=True,
             text=True,
             timeout=10,
+            encoding="utf-8",
+            env=utf8_subprocess_env(),
         )
         # Should handle gracefully
         assert result.returncode in [0, 1, 2]

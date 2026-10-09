@@ -2274,7 +2274,7 @@ def main() -> None:
                         output_path = Path(config.output_dir)
                         latest_file = output_path / "latest.json"
                         if latest_file.exists():
-                            latest_data = json.loads(latest_file.read_text())
+                            latest_data = json.loads(latest_file.read_text(encoding="utf-8"))
                             run_name = latest_data.get("latest_run", "")
                         else:
                             run_name = ""

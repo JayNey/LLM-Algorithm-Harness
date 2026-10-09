@@ -75,7 +75,9 @@ class TestDebugE2E:
             trace_recorder.complete_round("passed")
 
         # Export to temporary file
-        with tempfile.NamedTemporaryFile(mode="w", delete=False, suffix=".json") as f:
+        with tempfile.NamedTemporaryFile(
+            mode="w", delete=False, suffix=".json", encoding="utf-8"
+        ) as f:
             temp_path = f.name
 
         try:

@@ -70,7 +70,7 @@ def test_load_nonexistent_file(temp_history_path):
 def test_load_corrupted_file(temp_history_path):
     """Test loading corrupted JSON returns empty history."""
     # Write invalid JSON
-    temp_history_path.write_text("{ invalid json")
+    temp_history_path.write_text("{ invalid json", encoding="utf-8")
 
     history = IncrementalHistory.load(temp_history_path)
     assert history.runs == []
@@ -119,7 +119,7 @@ def test_history_json_format(temp_history_path, sample_run_record):
     history.save(temp_history_path)
 
     # Read and parse JSON
-    with open(temp_history_path) as f:
+    with open(temp_history_path, encoding="utf-8") as f:
         data = json.load(f)
 
     assert "runs" in data

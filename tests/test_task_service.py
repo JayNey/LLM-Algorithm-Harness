@@ -351,7 +351,8 @@ def test_harness_task_mode_uses_persistent_service(tmp_path, monkeypatch):
     dataset = tmp_path / "problems.json"
     dataset.write_text(
         '[{"problem_id":"p1","title":"P1","description":"A problem description",'
-        '"difficulty":"easy","test_cases":[{"input":{"x":1},"expected_output":1}]}]'
+        '"difficulty":"easy","test_cases":[{"input":{"x":1},"expected_output":1}]}]',
+        encoding="utf-8",
     )
     config = HarnessConfig(
         dataset_path=str(dataset),

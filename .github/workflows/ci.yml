@@ -40,6 +40,9 @@ jobs:
       - name: Run ruff
         run: ruff check .
 
+      - name: Check explicit text encodings
+        run: python scripts/find_missing_encoding.py
+
       - name: Run black
         run: black --check .
 
@@ -165,6 +168,9 @@ jobs:
           python -m pip install --upgrade pip
           pip install -e ".[dev]"
           pip install pylint flake8 radon
+
+      - name: Verify UTF-8 file and subprocess boundaries
+        run: python -m pytest tests/test_utf8_io.py -q --no-cov
 
       - name: Run tests
         run: |

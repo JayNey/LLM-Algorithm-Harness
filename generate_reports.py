@@ -80,7 +80,7 @@ def generate_reports(summary_path: str = None, output_dir: str = None):
             sys.exit(1)
 
     # Load summary data
-    with open(summary_file) as f:
+    with open(summary_file, encoding="utf-8") as f:
         data = json.load(f)
 
     # Determine output directory
@@ -103,7 +103,7 @@ def generate_reports(summary_path: str = None, output_dir: str = None):
 
     # Create latest.json pointer in reports/ directory
     latest_file = Path("reports") / "latest.json"
-    with open(latest_file, "w") as f:
+    with open(latest_file, "w", encoding="utf-8") as f:
         json.dump({"latest_run": out_dir.name}, f, indent=2)
 
     # Extract data from summary
@@ -117,7 +117,7 @@ def generate_reports(summary_path: str = None, output_dir: str = None):
         for strategy_name in metrics.keys():
             result_file = results_dir / f"{strategy_name}_results.json"
             if result_file.exists():
-                with open(result_file) as f:
+                with open(result_file, encoding="utf-8") as f:
                     strategy_data = json.load(f)
                     # Convert to ExecutionResult objects
                     results[strategy_name] = [ExecutionResult(**r) for r in strategy_data]

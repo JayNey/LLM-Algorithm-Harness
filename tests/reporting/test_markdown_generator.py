@@ -308,7 +308,7 @@ def test_markdown_failed_cases_include_failure_category(temp_md_path: str):
 
     MarkdownGenerator.generate(metrics, {"direct": [failed]}, temp_md_path)
 
-    content = Path(temp_md_path).read_text()
+    content = Path(temp_md_path).read_text(encoding="utf-8")
     assert "(wrong_answer)" in content
     assert "Output mismatch" in content
 

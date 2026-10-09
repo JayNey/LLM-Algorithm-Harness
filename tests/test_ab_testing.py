@@ -16,6 +16,7 @@ from src.ab_testing import (
 )
 from src.llm_client import LLMResponse
 from src.models import LLMConfig, Problem, SandboxConfig, StrategyConfig, TokenUsage
+from src.utils.encoding import utf8_subprocess_env
 
 
 class FixedClient:
@@ -117,6 +118,8 @@ def test_ab_test_cli_help_is_available():
         capture_output=True,
         text=True,
         timeout=20,
+        encoding="utf-8",
+        env=utf8_subprocess_env(),
     )
     assert completed.returncode == 0
     assert "--config" in completed.stdout

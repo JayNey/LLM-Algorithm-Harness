@@ -92,7 +92,7 @@ def test_run_persists_failure_modes_and_tag_report(tmp_path, monkeypatch):
     save_results(reports, config.output_dir, harness, config)
 
     run_dir = tmp_path / "results" / "failure-modes"
-    results = json.loads((run_dir / "vanilla_results.json").read_text())
+    results = json.loads((run_dir / "vanilla_results.json").read_text(encoding="utf-8"))
     assert [row["failure_mode"] for row in results] == ["syntax_error", "logic_error", "timeout"]
     assert all(row["failure_mode_evidence"] for row in results)
     assert [unit.result["failure_mode"] for unit in harness.task_record.units] == [
@@ -101,13 +101,13 @@ def test_run_persists_failure_modes_and_tag_report(tmp_path, monkeypatch):
         "timeout",
     ]
 
-    summary = json.loads((run_dir / "failure_mode_summary.json").read_text())
+    summary = json.loads((run_dir / "failure_mode_summary.json").read_text(encoding="utf-8"))
     assert summary["overall"]["total_failures"] == 3
     assert summary["overall"]["categories"]["syntax_error"]["count"] == 1
     assert summary["overall"]["by_tags"]["arrays"]["failures"] == 2
     assert summary["overall"]["by_tags"]["dp"]["failures"] == 2
     assert (run_dir / "failure_mode_distribution.png").read_bytes().startswith(b"\x89PNG")
-    assert "失败模式" in (run_dir / "failure_mode_report.md").read_text()
+    assert "失败模式" in (run_dir / "failure_mode_report.md").read_text(encoding="utf-8")
 
 
 def test_failed_task_unit_is_exported_but_excluded_from_mode_denominator(tmp_path, monkeypatch):
@@ -144,11 +144,15 @@ def test_failed_task_unit_is_exported_but_excluded_from_mode_denominator(tmp_pat
     harness = AlgorithmHarness(config)
     reports = harness.run(use_task_service=True, run_id="failed-unit")
     save_results(reports, config.output_dir, harness, config)
-    rows = json.loads((tmp_path / "results" / "failed-unit" / "vanilla_results.json").read_text())
+    rows = json.loads(
+        (tmp_path / "results" / "failed-unit" / "vanilla_results.json").read_text(encoding="utf-8")
+    )
     assert rows[0]["evaluation_completed"] is False
     assert rows[0]["failure_mode"] is None
     summary = json.loads(
-        (tmp_path / "results" / "failed-unit" / "failure_mode_summary.json").read_text()
+        (tmp_path / "results" / "failed-unit" / "failure_mode_summary.json").read_text(
+            encoding="utf-8"
+        )
     )
     assert summary["overall"]["total_evaluated"] == 0
     assert summary["overall"]["total_failures"] == 0
