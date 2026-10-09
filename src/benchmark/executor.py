@@ -89,16 +89,19 @@ class BenchmarkExecutor:
 
         # Create a temporary dataset with only benchmark problems
         import json
+        import os
         import tempfile
 
-        temp_dataset = tempfile.NamedTemporaryFile(
-            mode="w", suffix=".json", delete=False, encoding="utf-8"
-        )
-        json.dump([p.model_dump() for p in benchmark_problems], temp_dataset, indent=2)
-        temp_dataset.close()
+        temp_fd, temp_name = tempfile.mkstemp(suffix=".json")
+        try:
+            with os.fdopen(temp_fd, "w", encoding="utf-8") as temp_dataset:
+                json.dump([p.model_dump() for p in benchmark_problems], temp_dataset, indent=2)
+        except BaseException:
+            Path(temp_name).unlink(missing_ok=True)
+            raise
 
         original_dataset = self.config.dataset_path
-        self.config.dataset_path = temp_dataset.name
+        self.config.dataset_path = temp_name
 
         try:
             # Run evaluation using the harness
@@ -142,4 +145,4 @@ class BenchmarkExecutor:
             self.config.dataset_path = original_dataset
 
             # Clean up temp file
-            Path(temp_dataset.name).unlink(missing_ok=True)
+            Path(temp_name).unlink(missing_ok=True)

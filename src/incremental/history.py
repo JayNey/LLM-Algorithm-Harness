@@ -2,11 +2,11 @@
 Historical run record management for incremental evaluation.
 """
 
-import fcntl
 import json
 from dataclasses import asdict, dataclass
 from pathlib import Path
 
+from src.utils.file_lock import exclusive_lock
 from src.utils.logging import get_logger
 
 logger = get_logger(__name__)
@@ -85,12 +85,9 @@ class IncrementalHistory:
             try:
                 with open(path, "w", encoding="utf-8") as f:
                     # Acquire exclusive lock
-                    fcntl.flock(f.fileno(), fcntl.LOCK_EX)
-                    try:
+                    with exclusive_lock(f):
                         json.dump(data, f, indent=2)
                         f.write("\n")  # Trailing newline
-                    finally:
-                        fcntl.flock(f.fileno(), fcntl.LOCK_UN)
                 logger.debug(f"Successfully saved history to {path}")
                 return
             except OSError as e:
