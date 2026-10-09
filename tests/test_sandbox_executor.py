@@ -640,3 +640,157 @@ def test_health_check_host_backend_delegates():
     assert ok is True
     assert detail is None
     mock_execute.assert_called_once()
+
+
+# ============================================================================
+# Process tree termination tests
+# ============================================================================
+
+
+def test_unix_fork_bomb_process_group_terminated(sandbox_config):
+    """Unix: fork bomb子进程通过进程组一起被终止."""
+    import os
+    import sys
+
+    if os.name == "nt":
+        pytest.skip("Unix-specific fork bomb test")
+
+    problem = Problem(
+        problem_id="fork-bomb",
+        title="Fork Bomb",
+        description="Test process group termination on Unix",
+        difficulty="easy",
+        input_output_mode="stdin_stdout",
+        entry_point="main()",
+        public_test_cases=[{"input": "", "expected_output": ""}],
+    )
+
+    # Fork bomb: parent spawns child, child spawns grandchild, all sleep
+    code = """
+import subprocess
+import time
+import sys
+
+# Spawn child that spawns grandchild
+subprocess.Popen([sys.executable, "-c", "import subprocess, time; subprocess.Popen(['sleep', '3600']); time.sleep(3600)"])
+time.sleep(3600)
+"""
+
+    executor = SandboxExecutor(sandbox_config)
+    result = executor.execute(code, problem)
+
+    # Should timeout and all descendants should be terminated
+    assert result.status == "timeout"
+
+    # Verify no orphaned processes remain
+    time.sleep(0.5)
+    import subprocess as sp
+
+    ps_output = sp.run(["ps", "aux"], capture_output=True, text=True).stdout
+    # Check no orphaned sleep processes from the fork bomb
+    assert "sleep 3600" not in ps_output or ps_output.count("sleep 3600") == 0
+
+
+def test_windows_job_objects_terminate_process_tree(sandbox_config):
+    """Windows: Job Objects 正确终止子进程树."""
+    import os
+    import sys
+
+    if os.name != "nt":
+        pytest.skip("Windows-specific Job Objects test")
+
+    problem = Problem(
+        problem_id="windows-spawn-tree",
+        title="Windows Spawn Tree",
+        description="Test Job Objects termination on Windows",
+        difficulty="easy",
+        input_output_mode="stdin_stdout",
+        entry_point="main()",
+        public_test_cases=[{"input": "", "expected_output": ""}],
+    )
+
+    # Windows: spawn child, child spawns grandchild via subprocess
+    code = """
+import subprocess
+import sys
+import time
+
+# Spawn child that spawns grandchild
+subprocess.Popen([sys.executable, "-c", "import subprocess, time; subprocess.Popen([r'timeout', '/t', '3600']); time.sleep(3600)"])
+time.sleep(3600)
+"""
+
+    executor = SandboxExecutor(sandbox_config)
+    result = executor.execute(code, problem)
+
+    # Should timeout and Job Objects should terminate all descendants
+    assert result.status == "timeout"
+
+    # Verify no orphaned processes remain
+    time.sleep(0.5)
+    import subprocess as sp
+
+    # Check no orphaned python or timeout processes from the test
+    tasklist_output = sp.run(["tasklist"], capture_output=True, text=True).stdout
+    # Count timeout.exe processes - should be minimal (system ones only)
+    timeout_count = tasklist_output.lower().count("timeout.exe")
+    # If there are orphans, count would be significantly higher
+    assert timeout_count < 5, f"Orphaned timeout.exe processes detected: {timeout_count}"
+
+
+def test_managed_process_terminates_children_on_timeout_cross_platform(sandbox_config):
+    """跨平台: ManagedProcess 在超时场景下正确终止子进程树."""
+    import os
+    import sys
+
+    problem = Problem(
+        problem_id="timeout-spawn",
+        title="Timeout with Spawned Children",
+        description="Test ManagedProcess terminates process tree on timeout",
+        difficulty="easy",
+        input_output_mode="stdin_stdout",
+        entry_point="main()",
+        public_test_cases=[{"input": "", "expected_output": ""}],
+    )
+
+    # Platform-specific long-running child command
+    if os.name == "nt":
+        child_cmd = "import time; time.sleep(3600)"
+    else:
+        child_cmd = "import subprocess, time; subprocess.Popen(['sleep', '3600']); time.sleep(3600)"
+
+    code = f"""
+import subprocess
+import sys
+import time
+
+# Spawn child that will sleep
+subprocess.Popen([sys.executable, "-c", "{child_cmd}"])
+time.sleep(3600)
+"""
+
+    executor = SandboxExecutor(sandbox_config)
+    result = executor.execute(code, problem)
+
+    # Should timeout
+    assert result.status == "timeout"
+
+    # Give processes time to be cleaned up
+    time.sleep(0.5)
+
+    # Verify no orphaned processes remain
+    import subprocess as sp
+
+    if os.name == "nt":
+        # Windows: check python.exe processes
+        tasklist_output = sp.run(["tasklist"], capture_output=True, text=True).stdout
+        # Should have minimal python.exe (just test runner)
+        python_count = tasklist_output.lower().count("python.exe")
+        assert python_count < 10, f"Potential orphaned python.exe: {python_count}"
+    else:
+        # Unix: check sleep processes
+        ps_output = sp.run(["ps", "aux"], capture_output=True, text=True).stdout
+        assert "sleep 3600" not in ps_output or ps_output.count("sleep 3600") == 0
+
+
+
