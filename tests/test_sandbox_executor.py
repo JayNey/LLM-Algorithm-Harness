@@ -655,6 +655,9 @@ def test_unix_fork_bomb_process_group_terminated(sandbox_config):
     if os.name == "nt":
         pytest.skip("Unix-specific fork bomb test")
 
+    # Allow subprocess and time for this fork bomb test
+    sandbox_config.allowed_imports.extend(["subprocess", "sys", "time"])
+
     problem = Problem(
         problem_id="fork-bomb",
         title="Fork Bomb",
@@ -699,6 +702,9 @@ def test_windows_job_objects_terminate_process_tree(sandbox_config):
     if os.name != "nt":
         pytest.skip("Windows-specific Job Objects test")
 
+    # Allow subprocess for this process tree test
+    sandbox_config.allowed_imports.extend(["subprocess", "sys", "time"])
+
     problem = Problem(
         problem_id="windows-spawn-tree",
         title="Windows Spawn Tree",
@@ -742,6 +748,9 @@ def test_managed_process_terminates_children_on_timeout_cross_platform(sandbox_c
     """跨平台: ManagedProcess 在超时场景下正确终止子进程树."""
     import os
     import sys
+
+    # Allow subprocess for this cross-platform test
+    sandbox_config.allowed_imports.extend(["subprocess", "sys", "time"])
 
     problem = Problem(
         problem_id="timeout-spawn",
