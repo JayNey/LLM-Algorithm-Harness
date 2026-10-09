@@ -119,7 +119,8 @@ def test_stdin_stdout_problem_executes_without_solution_function(sandbox_config)
     )
 
     assert result.status == "success"
-    assert result.test_results[0].actual_output == "5\n"
+    # Windows child text mode emits \r\n for piped stdout.
+    assert result.test_results[0].actual_output.replace("\r\n", "\n") == "5\n"
 
 
 def test_stdin_stdout_tokens_whitespace_policy(sandbox_config):

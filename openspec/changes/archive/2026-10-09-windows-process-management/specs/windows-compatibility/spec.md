@@ -1,9 +1,10 @@
 # windows-compatibility Specification
 
-## Purpose
-TBD - created by archiving change windows-process-management. Update Purpose after archive.
+## Delta
 
-## Requirements
+`## ADDED Requirements`（归属 capability：windows-compatibility，由 windows-process-management 追加）
+
+## ADDED Requirements
 
 ### Requirement: 跨平台进程树终止
 

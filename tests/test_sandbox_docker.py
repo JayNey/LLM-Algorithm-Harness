@@ -6,6 +6,7 @@ import time
 from types import SimpleNamespace
 
 import pytest
+from test_process_manager import _pid_alive
 
 from src.models import Problem, SandboxConfig, TestCase
 from src.sandbox_executor import SandboxExecutionError, SandboxExecutor
@@ -160,8 +161,7 @@ def test_timeout_terminates_the_entire_process_group(tmp_path):
 
     child_pid = int(pid_file.read_text(encoding="utf-8"))
     time.sleep(0.05)
-    with pytest.raises(ProcessLookupError):
-        os.kill(child_pid, 0)
+    assert not _pid_alive(child_pid)
 
 
 def test_parent_exit_still_terminates_child_process_group(tmp_path):
@@ -180,8 +180,7 @@ def test_parent_exit_still_terminates_child_process_group(tmp_path):
 
     child_pid = int(pid_file.read_text(encoding="utf-8"))
     time.sleep(0.05)
-    with pytest.raises(ProcessLookupError):
-        os.kill(child_pid, 0)
+    assert not _pid_alive(child_pid)
 
 
 def test_docker_pid_limit_error_maps_to_process_limit(monkeypatch):
