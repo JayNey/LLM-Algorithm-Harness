@@ -764,11 +764,11 @@ def test_cli_experiment_output_dir_override(tmp_path):
 
 def test_time_budget_stops_problem(tmp_path):
     """A per-problem max_seconds budget refuses calls once elapsed."""
-    tracker = BudgetTracker(ProblemBudget(max_seconds=0.05))
+    tracker = BudgetTracker(ProblemBudget(max_seconds=0.1))
     tracker.begin_problem("p1")
     import time as _time
 
-    _time.sleep(0.06)
+    _time.sleep(0.15)
     assert tracker.allow_call() is False
     assert tracker.stop_reason() == "budget_exhausted: max_seconds"
 
