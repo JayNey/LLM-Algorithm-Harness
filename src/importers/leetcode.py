@@ -71,6 +71,26 @@ query questionData($titleSlug: String!) {
 }
 """
 
+PROBLEMSET_QUERY = """
+query problemsetQuestionList($categorySlug: String, $limit: Int, $skip: Int, $filters: QuestionListFilterInput) {
+  problemsetQuestionList(
+    categorySlug: $categorySlug
+    limit: $limit
+    skip: $skip
+    filters: $filters
+  ) {
+    total
+    questions {
+      questionFrontendId
+      titleSlug
+      title
+      difficulty
+      topicTags { name slug }
+    }
+  }
+}
+"""
+
 _SLUG_RE = re.compile(r"^[a-z0-9]+(?:-[a-z0-9]+)*$")
 _BLOCK_TAG_RE = re.compile(r"</?(?:p|div|li|ul|ol|h[1-6]|blockquote|section|tr|table)[^>]*>", re.I)
 _ASSIGNMENT_RE = re.compile(r"^([A-Za-z_]\w*)\s*=\s*(.*)$", re.S)
@@ -92,12 +112,14 @@ class LeetCodeImporter(ProblemImporter):
         timeout: float = 15.0,
         retries: int = 2,
         backoff_seconds: float = 0.5,
+        batch_delay_seconds: float = 0.2,
         sleep: Any = time.sleep,
     ) -> None:
         self.session = session or requests.Session()
         self.timeout = timeout
         self.retries = max(0, retries)
         self.backoff_seconds = max(0.0, backoff_seconds)
+        self.batch_delay_seconds = max(0.0, batch_delay_seconds)
         self.sleep = sleep
         self.transform_failures: list[dict[str, Any]] = []
 
@@ -125,9 +147,46 @@ class LeetCodeImporter(ProblemImporter):
             raise ValueError(f"Invalid LeetCode slug: {slug}")
         return slug, f"https://leetcode.com/problems/{slug}/"
 
-    def fetch_problems(self, source: str) -> list[dict[str, Any]]:
-        """Fetch one public question through LeetCode's GraphQL endpoint."""
-        slug, canonical_url = self.parse_source(source)
+    def fetch_problems(
+        self,
+        source: str | None = None,
+        tags: list[str] | None = None,
+        difficulty: str | None = None,
+        limit: int | None = None,
+    ) -> list[dict[str, Any]]:
+        """Fetch LeetCode questions.
+
+        Single-question mode (when source is provided):
+            Fetch one question by URL or slug. Batch parameters are ignored.
+
+        Batch mode (when source is None and filters are provided):
+            Fetch multiple questions matching the given tags/difficulty/limit.
+
+        Args:
+            source: LeetCode URL or slug for single-question import
+            tags: Filter by tags (batch mode only)
+            difficulty: Filter by difficulty: easy, medium, or hard (batch mode only)
+            limit: Maximum number of questions to fetch (batch mode only)
+
+        Returns:
+            List of raw question data dictionaries
+        """
+        # Single-question mode: source provided
+        if source:
+            slug, canonical_url = self.parse_source(source)
+            return self._fetch_question_data(slug, canonical_url)
+
+        # Batch mode: no source but filters provided
+        if tags or difficulty or limit:
+            return self._fetch_batch_questions(tags=tags, difficulty=difficulty, limit=limit)
+
+        # Neither mode: error
+        raise ValueError(
+            "LeetCode import requires either a source (URL/slug) or batch filters (tags, difficulty, limit)"
+        )
+
+    def _fetch_question_data(self, slug: str, canonical_url: str) -> list[dict[str, Any]]:
+        """Fetch a single question's full data."""
         payload = {"query": QUESTION_QUERY, "variables": {"titleSlug": slug}}
         headers = {
             "Accept": "application/json",
@@ -176,6 +235,162 @@ class LeetCodeImporter(ProblemImporter):
         raise RuntimeError(
             f"Unable to fetch LeetCode question '{slug}': {last_error}"
         ) from last_error
+
+    def _fetch_question_list(
+        self,
+        tags: list[str] | None = None,
+        difficulty: str | None = None,
+        limit: int | None = None,
+    ) -> list[dict[str, Any]]:
+        """Fetch question metadata list using problemsetQuestionList query.
+
+        Returns:
+            List of question metadata dicts with keys: questionFrontendId, titleSlug,
+            title, difficulty, topicTags
+        """
+        # Normalize difficulty to LeetCode's enum format
+        difficulty_enum = None
+        if difficulty:
+            difficulty_lower = difficulty.lower()
+            if difficulty_lower == "easy":
+                difficulty_enum = "EASY"
+            elif difficulty_lower == "medium":
+                difficulty_enum = "MEDIUM"
+            elif difficulty_lower == "hard":
+                difficulty_enum = "HARD"
+            else:
+                raise ValueError(f"Invalid difficulty: {difficulty}. Must be easy, medium, or hard")
+
+        # Build filters
+        filters: dict[str, Any] = {}
+        if tags:
+            filters["tags"] = tags
+        if difficulty_enum:
+            filters["difficulty"] = difficulty_enum
+
+        variables: dict[str, Any] = {
+            "categorySlug": "",
+            "skip": 0,
+            "limit": limit or 50,
+            "filters": filters if filters else {},
+        }
+
+        payload = {"query": PROBLEMSET_QUERY, "variables": variables}
+        headers = {
+            "Accept": "application/json",
+            "Content-Type": "application/json",
+            "Origin": "https://leetcode.com",
+            "Referer": "https://leetcode.com/problemset/",
+            "User-Agent": "Mozilla/5.0 (compatible; LLM-Algorithm-Harness/0.1)",
+        }
+
+        last_error: Exception | None = None
+        for attempt in range(self.retries + 1):
+            try:
+                response = self.session.post(
+                    self.endpoint, json=payload, headers=headers, timeout=self.timeout  # type: ignore[arg-type]
+                )
+                status = getattr(response, "status_code", 200)
+                if status == 429:
+                    raise LeetCodeTransientError("LeetCode rate limit exceeded")
+                if status >= 500:
+                    raise LeetCodeTransientError(f"LeetCode server error: HTTP {status}")
+                if status >= 400:
+                    raise ValueError(f"LeetCode request failed with HTTP {status}")
+
+                body = response.json()
+                if body.get("errors"):
+                    messages = "; ".join(
+                        str(error.get("message", error)) for error in body["errors"]
+                    )
+                    raise ValueError(f"LeetCode GraphQL error: {messages}")
+
+                data = body.get("data", {})
+                result = data.get("problemsetQuestionList")
+                if not result:
+                    raise ValueError("LeetCode problemsetQuestionList returned no data")
+
+                questions: list[dict[str, Any]] = result.get("questions")
+                if questions is None:
+                    raise ValueError("LeetCode response missing 'questions' field")
+
+                # Validate each question has required fields
+                for q in questions:
+                    if not q.get("titleSlug"):
+                        raise ValueError(f"Question missing titleSlug: {q}")
+
+                return questions
+
+            except ValueError:
+                raise
+            except (LeetCodeTransientError, requests.RequestException, TimeoutError) as exc:
+                last_error = exc
+                if attempt >= self.retries:
+                    break
+                self.sleep(self.backoff_seconds * (2**attempt))
+
+        raise RuntimeError(f"Unable to fetch LeetCode question list: {last_error}") from last_error
+
+    def _fetch_batch_questions(
+        self,
+        tags: list[str] | None = None,
+        difficulty: str | None = None,
+        limit: int | None = None,
+    ) -> list[dict[str, Any]]:
+        """Fetch multiple questions in batch mode.
+
+        First fetches the question list, then fetches details for each question.
+        Partial failures are recorded but don't stop the batch.
+        """
+        # Get question list
+        question_list = self._fetch_question_list(tags, difficulty, limit)
+
+        if not question_list:
+            logger.info("leetcode_batch_no_questions", tags=tags, difficulty=difficulty)
+            return []
+
+        total = len(question_list)
+        logger.info("leetcode_batch_start", total=total, tags=tags, difficulty=difficulty)
+
+        # Fetch details for each question
+        results = []
+        for idx, question_meta in enumerate(question_list):
+            slug = question_meta["titleSlug"]
+            canonical_url = f"https://leetcode.com/problems/{slug}/"
+
+            print(f"Fetching problem {idx+1}/{total}: {slug}")
+
+            try:
+                question_data = self._fetch_question_data(slug, canonical_url)
+                results.extend(question_data)
+            except Exception as exc:
+                # Record failure but continue with other questions
+                logger.warning(
+                    "leetcode_batch_question_failed",
+                    slug=slug,
+                    index=idx,
+                    error=str(exc),
+                )
+                self.transform_failures.append(
+                    {
+                        "index": idx,
+                        "problem_id": question_meta.get("questionFrontendId", "unknown"),
+                        "slug": slug,
+                        "error": str(exc),
+                    }
+                )
+
+            # Add delay between requests to avoid rate limiting
+            if idx < total - 1:
+                self.sleep(self.batch_delay_seconds)
+
+        logger.info(
+            "leetcode_batch_complete",
+            total=total,
+            fetched=len(results),
+            failed=len(self.transform_failures),
+        )
+        return results
 
     def transform_to_schema(self, raw_data: Any) -> list[Problem]:
         """Transform GraphQL question data to the project Problem schema."""
