@@ -64,12 +64,18 @@ class StyleConsistencyAnalyzer:
         """
         temp_path = None
         try:
-            with tempfile.NamedTemporaryFile(mode="w", suffix=".py", delete=False) as f:
+            with tempfile.NamedTemporaryFile(
+                mode="w", suffix=".py", encoding="utf-8", delete=False
+            ) as f:
                 f.write(code)
                 temp_path = f.name
 
             result = subprocess.run(
-                ["black", "--check", temp_path], capture_output=True, text=True, timeout=10
+                ["black", "--check", temp_path],
+                capture_output=True,
+                text=True,
+                encoding="utf-8",
+                timeout=10,
             )
 
             is_compliant = result.returncode == 0

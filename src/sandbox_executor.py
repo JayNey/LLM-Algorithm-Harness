@@ -204,9 +204,10 @@ class SandboxExecutor:
                 ["docker", "info", "--format", "{{.ServerVersion}}"],
                 capture_output=True,
                 text=True,
+                encoding="utf-8",
                 timeout=5,
             )
-        except (OSError, subprocess.TimeoutExpired):
+        except (OSError, subprocess.TimeoutExpired, UnicodeDecodeError):
             return False
         if result.returncode != 0 or not result.stdout.strip():
             return False
@@ -215,9 +216,10 @@ class SandboxExecutor:
                 ["docker", "image", "inspect", self.config.docker_image],
                 capture_output=True,
                 text=True,
+                encoding="utf-8",
                 timeout=5,
             )
-        except (OSError, subprocess.TimeoutExpired):
+        except (OSError, subprocess.TimeoutExpired, UnicodeDecodeError):
             return False
         return image.returncode == 0
 
@@ -540,7 +542,9 @@ if __name__ == "__main__":
             input_data = None
 
         # Write to temp file
-        with tempfile.NamedTemporaryFile(mode="w", suffix=".py", delete=False) as f:
+        with tempfile.NamedTemporaryFile(
+            mode="w", suffix=".py", encoding="utf-8", delete=False
+        ) as f:
             f.write(wrapper)
             temp_file = f.name
 

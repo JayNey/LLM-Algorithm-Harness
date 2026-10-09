@@ -50,6 +50,7 @@ def _git_commit() -> str | None:
             ["git", "rev-parse", "HEAD"],
             capture_output=True,
             text=True,
+            encoding="utf-8",
             timeout=10,
             check=True,
         )
@@ -64,6 +65,7 @@ def _git_dirty() -> bool:
             ["git", "status", "--porcelain"],
             capture_output=True,
             text=True,
+            encoding="utf-8",
             timeout=10,
             check=True,
         )

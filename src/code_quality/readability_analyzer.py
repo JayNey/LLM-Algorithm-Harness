@@ -62,12 +62,18 @@ class ReadabilityAnalyzer:
         """Run pylint and extract score."""
         temp_path = None
         try:
-            with tempfile.NamedTemporaryFile(mode="w", suffix=".py", delete=False) as f:
+            with tempfile.NamedTemporaryFile(
+                mode="w", suffix=".py", encoding="utf-8", delete=False
+            ) as f:
                 f.write(code)
                 temp_path = f.name
 
             result = subprocess.run(
-                ["pylint", temp_path, "--score=y"], capture_output=True, text=True, timeout=10
+                ["pylint", temp_path, "--score=y"],
+                capture_output=True,
+                text=True,
+                encoding="utf-8",
+                timeout=10,
             )
 
             # Parse score from output
@@ -91,12 +97,18 @@ class ReadabilityAnalyzer:
         """Run flake8 and count issues."""
         temp_path = None
         try:
-            with tempfile.NamedTemporaryFile(mode="w", suffix=".py", delete=False) as f:
+            with tempfile.NamedTemporaryFile(
+                mode="w", suffix=".py", encoding="utf-8", delete=False
+            ) as f:
                 f.write(code)
                 temp_path = f.name
 
             result = subprocess.run(
-                ["flake8", temp_path], capture_output=True, text=True, timeout=10
+                ["flake8", temp_path],
+                capture_output=True,
+                text=True,
+                encoding="utf-8",
+                timeout=10,
             )
 
             issue_count = len([line for line in result.stdout.splitlines() if line.strip()])
@@ -113,12 +125,18 @@ class ReadabilityAnalyzer:
         """Run radon and get cyclomatic complexity."""
         temp_path = None
         try:
-            with tempfile.NamedTemporaryFile(mode="w", suffix=".py", delete=False) as f:
+            with tempfile.NamedTemporaryFile(
+                mode="w", suffix=".py", encoding="utf-8", delete=False
+            ) as f:
                 f.write(code)
                 temp_path = f.name
 
             result = subprocess.run(
-                ["radon", "cc", temp_path, "-s"], capture_output=True, text=True, timeout=10
+                ["radon", "cc", temp_path, "-s"],
+                capture_output=True,
+                text=True,
+                encoding="utf-8",
+                timeout=10,
             )
 
             # Parse average complexity
