@@ -240,8 +240,17 @@ harness tags normalize \
 # 从本地 JSON 文件导入
 harness import --source local-json --input data/new_problems.json
 
-# 从 LeetCode 公开题目 URL 或 slug 导入
+# 从 LeetCode 公开题目 URL 或 slug 导入（单题）
 harness import --source leetcode --input https://leetcode.com/problems/two-sum/ --preview
+
+# 从 LeetCode 按标签批量导入（需要至少一个过滤条件）
+harness import --source leetcode --tags array,hash-table --import-limit 20 --preview
+
+# 从 LeetCode 按难度批量导入
+harness import --source leetcode --import-difficulty medium --import-limit 30 --preview
+
+# 从 LeetCode 组合过滤条件批量导入
+harness import --source leetcode --tags dynamic-programming --import-difficulty hard --import-limit 10 --preview
 
 # 从 Codeforces 公开 API 和题面导入
 harness import codeforces --contest 1234 --tags dp,graphs --import-limit 50 --output data/codeforces.json --force
@@ -269,12 +278,18 @@ harness import --source local-json --input data/new_problems.json --force
 
 **支持的导入来源：**
 - `local-json` — 本地 JSON 文件
-- `leetcode` — LeetCode 公开题面、元数据和可可靠解析的公开样例
+- `leetcode` — LeetCode 公开题面、元数据和可可靠解析的公开样例；支持单题导入（URL/slug）和批量导入（按标签/难度过滤）
 - `codeforces` — Codeforces 公开题面、样例、rating 和标签
 - `livecodebench` — 固定版本的本地 JSON/JSONL 基准缓存
 - `mock` — 测试用模拟数据（用于演示和测试）
 
 LeetCode 导入只访问公开题目接口，不绕过登录、付费限制或反爬验证，也不获取官方隐藏测试。无法可靠配对样例输入/输出或提取 Python 入口时，导入结果会标记为需要人工补全，不会伪造测试数据。
+
+**LeetCode 批量导入限流建议：** 批量导入会对每个题目发起独立的 GraphQL 请求。为避免触发 LeetCode 限流，建议：
+- 首次批量导入使用 `--import-limit 50` 或更小的值
+- 题目间自动延迟 0.2 秒（可通过代码调整 `batch_delay_seconds` 参数）
+- 如遇 429 错误，导入器会自动重试并应用指数退避
+- 建议分批导入大量题目，避免单次请求过多
 
 详细的导入功能说明请参考 [docs/importing.md](docs/importing.md)。
 
