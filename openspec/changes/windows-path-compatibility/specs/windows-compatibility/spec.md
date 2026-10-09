@@ -1,21 +1,3 @@
-## MODIFIED Requirements
-
-### Requirement: 跨平台有界子进程执行
-
-The original requirement remains unchanged. This delta extends the Windows compatibility coverage by adding three new scenarios.
-
-#### Scenario: 在 Windows 上经 host 后端执行任意题目代码（含 stdin_stdout 与 function 两种模式）
-- **WHEN** 在 Windows 上经 host 后端执行任意题目代码（含 stdin_stdout 与 function 两种模式）
-- **THEN** 执行正常完成，不抛 WinError 10038/not a socket
-
-#### Scenario: 子进程输出超过配置的字节数上限
-- **WHEN** 子进程输出超过配置的字节数上限
-- **THEN** 执行立即终止并返回 output_limit 语义错误，已读输出保留，进程树不残留
-
-#### Scenario: 在 macOS/Linux 上运行既有沙箱与全量测试
-- **WHEN** 在 macOS/Linux 上运行既有沙箱与全量测试
-- **THEN** 超时/限幅/输出内容与改动前一致
-
 ## ADDED Requirements
 
 ### Requirement: URL path parsing SHALL NOT conflate URL separators with filesystem path separators
