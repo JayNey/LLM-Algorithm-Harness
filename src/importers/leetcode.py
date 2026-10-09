@@ -139,6 +139,7 @@ class LeetCodeImporter(ProblemImporter):
         host = (parsed.hostname or "").lower()
         if host not in cls.allowed_hosts:
             raise ValueError(f"Unsupported LeetCode host '{host or 'unknown'}'; use leetcode.com")
+        # Split URL path by forward slash (RFC 3986 URL path delimiter, not filesystem separator)
         parts = [part for part in parsed.path.split("/") if part]
         if len(parts) < 2 or parts[0].lower() != "problems":
             raise ValueError("LeetCode URL must contain /problems/<slug>")
