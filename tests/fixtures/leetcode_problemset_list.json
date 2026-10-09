@@ -1,0 +1,39 @@
+{
+  "data": {
+    "problemsetQuestionList": {
+      "total": 3,
+      "questions": [
+        {
+          "questionFrontendId": "1",
+          "titleSlug": "two-sum",
+          "title": "Two Sum",
+          "difficulty": "Easy",
+          "topicTags": [
+            {"name": "Array", "slug": "array"},
+            {"name": "Hash Table", "slug": "hash-table"}
+          ]
+        },
+        {
+          "questionFrontendId": "152",
+          "titleSlug": "maximum-product-subarray",
+          "title": "Maximum Product Subarray",
+          "difficulty": "Medium",
+          "topicTags": [
+            {"name": "Array", "slug": "array"},
+            {"name": "Dynamic Programming", "slug": "dynamic-programming"}
+          ]
+        },
+        {
+          "questionFrontendId": "847",
+          "titleSlug": "shortest-path-visiting-all-nodes",
+          "title": "Shortest Path Visiting All Nodes",
+          "difficulty": "Hard",
+          "topicTags": [
+            {"name": "Graph", "slug": "graph"},
+            {"name": "Bit Manipulation", "slug": "bit-manipulation"}
+          ]
+        }
+      ]
+    }
+  }
+}

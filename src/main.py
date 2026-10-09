@@ -551,11 +551,36 @@ def run_import_command(args: argparse.Namespace) -> int:
 
         # Fetch and transform problems
         source_input = args.input or "codeforces-api"
-        if source_name != "codeforces" and not args.input:
+
+        # LeetCode batch mode validation and parameter passing
+        if source_name == "leetcode":
+            if not args.input and not args.tags and not args.import_difficulty:
+                print(
+                    "Error: LeetCode batch import requires --tags, --import-difficulty, or --input (URL/slug)",
+                    file=sys.stderr,
+                )
+                return 2
+
+            # Build filter parameters for LeetCode
+            fetch_kwargs = {}
+            if args.tags:
+                tags_list: list[str] = []
+                for value in args.tags:
+                    tags_list.extend(item.strip() for item in value.split(",") if item.strip())
+                fetch_kwargs["tags"] = tags_list
+            if args.import_difficulty:
+                fetch_kwargs["difficulty"] = args.import_difficulty
+            if args.import_limit:
+                fetch_kwargs["limit"] = args.import_limit
+
+            raw_data = importer.fetch_problems(args.input, **fetch_kwargs)
+        elif source_name != "codeforces" and not args.input:
             print("Error: --input is required for this source", file=sys.stderr)
             return 2
+        else:
+            raw_data = importer.fetch_problems(source_input)
+
         logger.info("import_starting", source=source_name, input=source_input)
-        raw_data = importer.fetch_problems(source_input)
         problems = importer.transform_to_schema(raw_data)
 
         # Validate problems
