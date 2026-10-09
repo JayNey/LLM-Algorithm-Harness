@@ -567,11 +567,11 @@ def run_import_command(args: argparse.Namespace) -> int:
                 tags_list: list[str] = []
                 for value in args.tags:
                     tags_list.extend(item.strip() for item in value.split(",") if item.strip())
-                fetch_kwargs['tags'] = tags_list
+                fetch_kwargs["tags"] = tags_list
             if args.import_difficulty:
-                fetch_kwargs['difficulty'] = args.import_difficulty
+                fetch_kwargs["difficulty"] = args.import_difficulty
             if args.import_limit:
-                fetch_kwargs['limit'] = args.import_limit
+                fetch_kwargs["limit"] = args.import_limit
 
             raw_data = importer.fetch_problems(args.input, **fetch_kwargs)
         elif source_name != "codeforces" and not args.input:
