@@ -1,11 +1,10 @@
 """Evaluation endpoints."""
 
-from fastapi import APIRouter, HTTPException, status
-from typing import Optional
 
-from api.models import EvaluationCreateRequest, EvaluationUpdateRequest, PaginationParams
+from fastapi import APIRouter, HTTPException, status
+
+from api.models import EvaluationCreateRequest, EvaluationUpdateRequest
 from api.schemas import ApiResponse, EvaluationResponse, PaginatedData, ProgressInfo
-from api.middleware.errors import NotFoundError, ConflictError
 from api.services import EvaluationService
 
 router = APIRouter(prefix="/api/v1", tags=["evaluations"])
@@ -28,7 +27,7 @@ async def create_evaluation(request: EvaluationCreateRequest) -> ApiResponse[Eva
 
 @router.get("/evaluations")
 async def list_evaluations(
-    status: Optional[str] = None,
+    status: str | None = None,
     limit: int = 20,
     offset: int = 0,
 ) -> ApiResponse[PaginatedData[EvaluationResponse]]:

@@ -1,15 +1,14 @@
 """Service layer for evaluation task management."""
 
-import uuid
 import threading
 import time
+import uuid
 from datetime import datetime
-from typing import Optional, Dict, Any
 from threading import Semaphore
 
+from api.config import settings
 from api.models import EvaluationCreateRequest, EvaluationUpdateRequest
 from api.schemas import EvaluationResponse, ProgressInfo
-from api.config import settings
 
 
 class TaskState:
@@ -27,7 +26,7 @@ class TaskState:
         self.spent_usd = 0.0
         self.completed_count = 0
         self.failed_count = 0
-        self.error_message: Optional[str] = None
+        self.error_message: str | None = None
         self._lock = threading.Lock()
 
     def to_response(self) -> EvaluationResponse:
@@ -56,7 +55,7 @@ class EvaluationService:
 
     def __init__(self):
         """Initialize evaluation service."""
-        self.tasks: Dict[str, TaskState] = {}
+        self.tasks: dict[str, TaskState] = {}
         self._tasks_lock = threading.Lock()
         self._concurrent_semaphore = Semaphore(settings.MAX_CONCURRENT_TASKS)
 
@@ -80,7 +79,7 @@ class EvaluationService:
         return task.to_response()
 
     def list_evaluations(
-        self, status: Optional[str] = None, limit: int = 20, offset: int = 0
+        self, status: str | None = None, limit: int = 20, offset: int = 0
     ) -> tuple[list[EvaluationResponse], int]:
         """List all evaluation tasks with optional filtering."""
         with self._tasks_lock:

@@ -1,6 +1,7 @@
 """Unified API schemas and response wrappers."""
 
-from typing import TypeVar, Generic, Optional, Any
+from typing import Generic, TypeVar
+
 from pydantic import BaseModel, Field
 
 T = TypeVar("T")
@@ -10,7 +11,7 @@ class ApiResponse(BaseModel, Generic[T]):
     """Unified API response wrapper."""
 
     success: bool = Field(..., description="Whether the request was successful")
-    data: Optional[T] = Field(None, description="Response data")
+    data: T | None = Field(None, description="Response data")
     message: str = Field(..., description="Response message")
 
     class Config:
@@ -62,7 +63,7 @@ class EvaluationResponse(BaseModel):
     strategy_names: list[str] = Field(..., description="Strategies used in this evaluation")
     problem_count: int = Field(..., ge=0, description="Total number of problems")
     spent_usd: float = Field(..., ge=0, description="Amount spent so far in USD")
-    budget_cap_usd: Optional[float] = Field(None, ge=0, description="Budget limit in USD")
+    budget_cap_usd: float | None = Field(None, ge=0, description="Budget limit in USD")
     progress: ProgressInfo = Field(..., description="Execution progress")
 
 
@@ -75,8 +76,8 @@ class ExecutionResultResponse(BaseModel):
     status: str = Field(..., description="Result status: pass|fail|error|timeout")
     execution_time_ms: float = Field(..., ge=0, description="Execution time in milliseconds")
     cost_usd: float = Field(..., ge=0, description="Cost in USD")
-    output: Optional[str] = Field(None, description="Command output if available")
-    error_message: Optional[str] = Field(None, description="Error message if failed")
+    output: str | None = Field(None, description="Command output if available")
+    error_message: str | None = Field(None, description="Error message if failed")
 
 
 class HealthCheckResponse(BaseModel):

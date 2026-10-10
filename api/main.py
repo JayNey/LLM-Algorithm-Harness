@@ -4,8 +4,8 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from api.config import settings
-from api.middleware.logging import setup_logging_middleware
 from api.middleware.errors import setup_error_handlers
+from api.middleware.logging import setup_logging_middleware
 from api.routes import evaluations_router
 
 
