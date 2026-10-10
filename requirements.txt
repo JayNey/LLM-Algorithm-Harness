@@ -4,6 +4,10 @@ requests>=2.31.0
 structlog>=23.1.0
 PyYAML>=6.0.0
 
+# REST API
+fastapi>=0.104.0
+uvicorn>=0.24.0
+
 # LLM providers
 openai>=1.0.0
 anthropic>=0.18.0
