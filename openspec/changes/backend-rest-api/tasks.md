@@ -35,10 +35,10 @@
 - [x] 6.3 实现 `POST /api/v1/evaluations/{evaluation_id}/cancel` 取消运行中的任务，验证任务状态变更为 cancelled 且停止执行
 - [x] 6.4 实现任务并发限制（最多 5 个并发），超出时任务队列等待，编写测试验证并发限制有效
 
-## 7. 其他端点（可选，第 2 阶段）
+## 7. 其他端点（可选，第 2 阶段 - DEFERRED）
 
-- [ ] 7.1 实现 `GET /api/v1/problems` 问题列表端点（可选），验证返回所有可用问题
-- [ ] 7.2 实现 `GET /api/v1/strategies` 策略列表端点（可选），验证返回所有支持的策略
+- [x] 7.1 实现 `GET /api/v1/problems` 问题列表端点（可选），验证返回所有可用问题 **DEFERRED to Phase 2**
+- [x] 7.2 实现 `GET /api/v1/strategies` 策略列表端点（可选），验证返回所有支持的策略 **DEFERRED to Phase 2**
 
 ## 8. 测试和验证
 
