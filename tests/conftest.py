@@ -2,6 +2,7 @@
 Pytest configuration and shared fixtures.
 """
 
+import sys
 from unittest.mock import Mock
 
 import pytest
@@ -44,6 +45,34 @@ def _isolate_llm_response_cache(tmp_path, monkeypatch):
         real_init(self, cache_dir=cache_dir, **kwargs)
 
     monkeypatch.setattr(LLMResponseCache, "__init__", isolated_init)
+
+
+@pytest.fixture(autouse=True)
+def _increase_docker_timeout_on_windows(monkeypatch):
+    """Increase Docker timeout on Windows where container operations are slower.
+
+    Windows Docker Desktop has higher overhead for container lifecycle operations
+    (create, start, stop, remove) compared to native Linux. The default 5-second
+    timeout causes spurious failures on Windows CI runners.
+
+    This fixture increases the default timeout from 5s to 15s for Docker backend
+    on Windows, while leaving explicitly-set timeouts and host backend unchanged.
+    """
+    if sys.platform == "win32":
+        from src.sandbox_executor import SandboxExecutor
+
+        original_init = SandboxExecutor.__init__
+
+        def patched_init(self, config, *args, **kwargs):
+            # Increase timeout for docker backend if using default
+            if config.backend == "docker" and config.timeout_seconds == 5:
+                # Create a modified config with increased timeout
+                config_dict = config.model_dump()
+                config_dict["timeout_seconds"] = 15
+                config = SandboxConfig(**config_dict)
+            original_init(self, config, *args, **kwargs)
+
+        monkeypatch.setattr(SandboxExecutor, "__init__", patched_init)
 
 
 @pytest.fixture
