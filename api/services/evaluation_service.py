@@ -32,7 +32,9 @@ class TaskState:
     def to_response(self) -> EvaluationResponse:
         """Convert to API response."""
         with self._lock:
-            percentage = (self.completed_count / self.problem_count * 100) if self.problem_count > 0 else 0
+            percentage = (
+                (self.completed_count / self.problem_count * 100) if self.problem_count > 0 else 0
+            )
             return EvaluationResponse(
                 evaluation_id=self.task_id,
                 created_at=self.created_at,
@@ -151,9 +153,7 @@ class EvaluationService:
             task.updated_at = datetime.utcnow().isoformat() + "Z"
 
         # Start background execution
-        thread = threading.Thread(
-            target=self._execute_task, args=(evaluation_id,), daemon=True
-        )
+        thread = threading.Thread(target=self._execute_task, args=(evaluation_id,), daemon=True)
         thread.start()
 
         return task.to_response()
@@ -183,7 +183,9 @@ class EvaluationService:
             task = self.tasks[evaluation_id]
 
         with task._lock:
-            percentage = (task.completed_count / task.problem_count * 100) if task.problem_count > 0 else 0
+            percentage = (
+                (task.completed_count / task.problem_count * 100) if task.problem_count > 0 else 0
+            )
             return ProgressInfo(
                 completed=task.completed_count,
                 total=task.problem_count,
@@ -220,9 +222,11 @@ class EvaluationService:
                         task.spent_usd += 0.01
 
                     # Check budget exceeded
-                    if (task.budget_cap_usd and
-                        task.spent_usd >= task.budget_cap_usd and
-                        task.status == "running"):
+                    if (
+                        task.budget_cap_usd
+                        and task.spent_usd >= task.budget_cap_usd
+                        and task.status == "running"
+                    ):
                         with task._lock:
                             task.status = "completed"
                             task.error_message = "Budget exceeded"

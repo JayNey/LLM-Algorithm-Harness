@@ -1,6 +1,5 @@
 """Evaluation endpoints."""
 
-
 from fastapi import APIRouter, HTTPException, status
 
 from api.models import EvaluationCreateRequest, EvaluationUpdateRequest

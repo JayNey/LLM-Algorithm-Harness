@@ -24,7 +24,7 @@ class LoggingMiddleware(BaseHTTPMiddleware):
                 "method": request.method,
                 "path": request.url.path,
                 "query": str(request.url.query),
-            }
+            },
         )
 
         # Process request
@@ -39,7 +39,7 @@ class LoggingMiddleware(BaseHTTPMiddleware):
             extra={
                 "status_code": response.status_code,
                 "process_time": process_time,
-            }
+            },
         )
 
         return response
