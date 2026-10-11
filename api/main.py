@@ -1,29 +1,55 @@
 """FastAPI application setup and configuration."""
 
-from contextlib import asynccontextmanager
+import asyncio
+import logging
+from contextlib import asynccontextmanager, suppress
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from starlette.concurrency import run_in_threadpool
 
 from api.auth.config import AuthSettings
 from api.auth.middleware import AuthBoundaryMiddleware
 from api.auth.service import AuthService
 from api.config import settings
+from api.files.config import FileSettings
+from api.files.middleware import UploadBoundaryMiddleware
+from api.files.service import FileService
 from api.middleware.errors import setup_error_handlers
 from api.middleware.logging import setup_logging_middleware
 from api.routes import evaluations_router
 from api.routes.auth import router as auth_router
+from api.routes.files import router as files_router
 from api.services import EvaluationService
 
 
-def create_app(auth_settings: AuthSettings | None = None) -> FastAPI:
+def create_app(
+    auth_settings: AuthSettings | None = None, file_settings: FileSettings | None = None
+) -> FastAPI:
     """Create and configure FastAPI application."""
 
     @asynccontextmanager
     async def lifespan(app: FastAPI):
         app.state.auth = AuthService(auth_settings or AuthSettings())
         app.state.evaluations = EvaluationService()
-        yield
+        app.state.files = FileService(app.state.auth, file_settings or FileSettings())
+        await run_in_threadpool(app.state.files.cleanup)
+
+        async def cleanup_files():
+            while True:
+                await asyncio.sleep(app.state.files.settings.FILE_CLEANUP_INTERVAL_SECONDS)
+                try:
+                    await run_in_threadpool(app.state.files.cleanup)
+                except Exception:
+                    logging.getLogger(__name__).warning("file_cleanup_failed")
+
+        cleaner = asyncio.create_task(cleanup_files())
+        try:
+            yield
+        finally:
+            cleaner.cancel()
+            with suppress(asyncio.CancelledError):
+                await cleaner
 
     app = FastAPI(
         title="LLM Algorithm Harness API",
@@ -32,7 +58,11 @@ def create_app(auth_settings: AuthSettings | None = None) -> FastAPI:
         lifespan=lifespan,
     )
 
-    # Configure CORS
+    # Direct ASGI logging stays outside the upload boundary so it records the
+    # final 413 response. CORS also covers early auth/quota rejection responses.
+    app.add_middleware(UploadBoundaryMiddleware)
+    app.add_middleware(AuthBoundaryMiddleware)
+    setup_logging_middleware(app)
     app.add_middleware(
         CORSMiddleware,
         allow_origins=settings.CORS_ORIGINS,
@@ -40,15 +70,12 @@ def create_app(auth_settings: AuthSettings | None = None) -> FastAPI:
         allow_methods=["*"],
         allow_headers=["*"],
     )
-
-    # Setup logging and error handlers
-    setup_logging_middleware(app)
-    app.add_middleware(AuthBoundaryMiddleware)
     setup_error_handlers(app)
 
     # Include routers
     app.include_router(evaluations_router)
     app.include_router(auth_router)
+    app.include_router(files_router)
 
     @app.get("/api/v1/health")
     def health_check():

@@ -1,56 +1,51 @@
-"""Logging middleware for FastAPI."""
+"""ASGI request logging without request-body or Authorization inspection.
+
+Using a direct ASGI wrapper preserves multipart receive exceptions so the
+parser can close spool files when an upload exceeds its byte limit.
+"""
 
 import logging
 import time
 
-from starlette.middleware.base import BaseHTTPMiddleware
-from starlette.requests import Request
-from starlette.responses import Response
+from starlette.types import ASGIApp, Message, Receive, Scope, Send
 
 logger = logging.getLogger(__name__)
 
 
-class LoggingMiddleware(BaseHTTPMiddleware):
-    """Middleware to log all HTTP requests and responses."""
+class LoggingMiddleware:
+    def __init__(self, app: ASGIApp):
+        self.app = app
 
-    async def dispatch(self, request: Request, call_next) -> Response:
-        """Log incoming request and outgoing response."""
-        start_time = time.time()
-
-        # Log incoming request
+    async def __call__(self, scope: Scope, receive: Receive, send: Send) -> None:
+        if scope["type"] != "http":
+            await self.app(scope, receive, send)
+            return
+        start_time = time.monotonic()
         logger.info(
-            f"Incoming request: {request.method} {request.url.path}",
-            extra={
-                "method": request.method,
-                "path": request.url.path,
-            },
+            "Incoming request: %s %s",
+            scope["method"],
+            scope["path"],
+            extra={"method": scope["method"], "path": scope["path"]},
         )
 
-        # Process request
-        response = await call_next(request)
+        async def logged_send(message: Message) -> None:
+            if message["type"] == "http.response.start":
+                logger.info(
+                    "Response sent: %s",
+                    message["status"],
+                    extra={
+                        "status_code": message["status"],
+                        "process_time": time.monotonic() - start_time,
+                    },
+                )
+            await send(message)
 
-        # Calculate processing time
-        process_time = time.time() - start_time
-
-        # Log response
-        logger.info(
-            f"Response sent: {response.status_code}",
-            extra={
-                "status_code": response.status_code,
-                "process_time": process_time,
-            },
-        )
-
-        return response
+        await self.app(scope, receive, logged_send)
 
 
 def setup_logging_middleware(app):
-    """Add logging middleware to FastAPI app."""
-    # Configure logging
     logging.basicConfig(
-        level=logging.INFO,
-        format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
+        level=logging.INFO, format="%(asctime)s - %(name)s - %(levelname)s - %(message)s"
     )
-
     app.add_middleware(LoggingMiddleware)
     return app

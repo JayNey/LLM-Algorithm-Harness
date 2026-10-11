@@ -3,6 +3,7 @@
 import threading
 import time
 import uuid
+from collections.abc import Callable
 from datetime import datetime
 from threading import Semaphore
 
@@ -135,7 +136,9 @@ class EvaluationService:
 
         return task.to_response()
 
-    def delete_evaluation(self, evaluation_id: str, owner_id: str) -> None:
+    def delete_evaluation(
+        self, evaluation_id: str, owner_id: str, cleanup: Callable[[], None] | None = None
+    ) -> None:
         """Delete evaluation task (pending or completed only)."""
         with self._tasks_lock:
             if evaluation_id not in self.tasks or self.tasks[evaluation_id].owner_id != owner_id:
@@ -147,6 +150,8 @@ class EvaluationService:
             if task.status not in ("pending", "completed", "cancelled"):
                 raise ValueError(f"Cannot delete task in {task.status} status")
 
+            if cleanup:
+                cleanup()
             del self.tasks[evaluation_id]
 
     def start_evaluation(self, evaluation_id: str, owner_id: str) -> EvaluationResponse:
