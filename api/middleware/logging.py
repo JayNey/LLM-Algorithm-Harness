@@ -23,7 +23,6 @@ class LoggingMiddleware(BaseHTTPMiddleware):
             extra={
                 "method": request.method,
                 "path": request.url.path,
-                "query": str(request.url.query),
             },
         )
 

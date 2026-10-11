@@ -14,8 +14,10 @@ from api.schemas import EvaluationResponse, ProgressInfo
 class TaskState:
     """In-memory task state."""
 
-    def __init__(self, task_id: str, request: EvaluationCreateRequest):
+    def __init__(self, task_id: str, request: EvaluationCreateRequest, owner_id: str):
         self.task_id = task_id
+        self.owner_id = owner_id
+        self.api_key_id = request.api_key_id
         self.created_at = datetime.utcnow().isoformat() + "Z"
         self.updated_at = self.created_at
         self.status = "pending"  # pending, running, completed, failed, cancelled
@@ -61,31 +63,41 @@ class EvaluationService:
         self._tasks_lock = threading.Lock()
         self._concurrent_semaphore = Semaphore(settings.MAX_CONCURRENT_TASKS)
 
-    def create_evaluation(self, request: EvaluationCreateRequest) -> EvaluationResponse:
+    def create_evaluation(
+        self, request: EvaluationCreateRequest, owner_id: str
+    ) -> EvaluationResponse:
         """Create a new evaluation task."""
         task_id = str(uuid.uuid4())
-        task = TaskState(task_id, request)
+        task = TaskState(task_id, request, owner_id)
 
         with self._tasks_lock:
             self.tasks[task_id] = task
 
         return task.to_response()
 
-    def get_evaluation(self, evaluation_id: str) -> EvaluationResponse:
+    def credential_id(self, evaluation_id: str, owner_id: str) -> str:
+        """Return only the owner's credential reference for worker integration."""
+        with self._tasks_lock:
+            task = self.tasks.get(evaluation_id)
+            if task is None or task.owner_id != owner_id:
+                raise ValueError(f"Evaluation {evaluation_id} not found")
+            return task.api_key_id
+
+    def get_evaluation(self, evaluation_id: str, owner_id: str) -> EvaluationResponse:
         """Get evaluation task details."""
         with self._tasks_lock:
-            if evaluation_id not in self.tasks:
+            if evaluation_id not in self.tasks or self.tasks[evaluation_id].owner_id != owner_id:
                 raise ValueError(f"Evaluation {evaluation_id} not found")
             task = self.tasks[evaluation_id]
 
         return task.to_response()
 
     def list_evaluations(
-        self, status: str | None = None, limit: int = 20, offset: int = 0
+        self, owner_id: str, status: str | None = None, limit: int = 20, offset: int = 0
     ) -> tuple[list[EvaluationResponse], int]:
         """List all evaluation tasks with optional filtering."""
         with self._tasks_lock:
-            tasks = list(self.tasks.values())
+            tasks = [t for t in self.tasks.values() if t.owner_id == owner_id]
 
         # Filter by status if provided
         if status:
@@ -103,11 +115,11 @@ class EvaluationService:
         return responses, total
 
     def update_evaluation(
-        self, evaluation_id: str, request: EvaluationUpdateRequest
+        self, evaluation_id: str, request: EvaluationUpdateRequest, owner_id: str
     ) -> EvaluationResponse:
         """Update evaluation task configuration (pending tasks only)."""
         with self._tasks_lock:
-            if evaluation_id not in self.tasks:
+            if evaluation_id not in self.tasks or self.tasks[evaluation_id].owner_id != owner_id:
                 raise ValueError(f"Evaluation {evaluation_id} not found")
 
             task = self.tasks[evaluation_id]
@@ -123,10 +135,10 @@ class EvaluationService:
 
         return task.to_response()
 
-    def delete_evaluation(self, evaluation_id: str) -> None:
+    def delete_evaluation(self, evaluation_id: str, owner_id: str) -> None:
         """Delete evaluation task (pending or completed only)."""
         with self._tasks_lock:
-            if evaluation_id not in self.tasks:
+            if evaluation_id not in self.tasks or self.tasks[evaluation_id].owner_id != owner_id:
                 raise ValueError(f"Evaluation {evaluation_id} not found")
 
             task = self.tasks[evaluation_id]
@@ -137,10 +149,10 @@ class EvaluationService:
 
             del self.tasks[evaluation_id]
 
-    def start_evaluation(self, evaluation_id: str) -> EvaluationResponse:
+    def start_evaluation(self, evaluation_id: str, owner_id: str) -> EvaluationResponse:
         """Start evaluation task execution in background."""
         with self._tasks_lock:
-            if evaluation_id not in self.tasks:
+            if evaluation_id not in self.tasks or self.tasks[evaluation_id].owner_id != owner_id:
                 raise ValueError(f"Evaluation {evaluation_id} not found")
 
             task = self.tasks[evaluation_id]
@@ -158,10 +170,10 @@ class EvaluationService:
 
         return task.to_response()
 
-    def cancel_evaluation(self, evaluation_id: str) -> EvaluationResponse:
+    def cancel_evaluation(self, evaluation_id: str, owner_id: str) -> EvaluationResponse:
         """Cancel running evaluation task."""
         with self._tasks_lock:
-            if evaluation_id not in self.tasks:
+            if evaluation_id not in self.tasks or self.tasks[evaluation_id].owner_id != owner_id:
                 raise ValueError(f"Evaluation {evaluation_id} not found")
 
             task = self.tasks[evaluation_id]
@@ -175,10 +187,10 @@ class EvaluationService:
 
         return task.to_response()
 
-    def get_progress(self, evaluation_id: str) -> ProgressInfo:
+    def get_progress(self, evaluation_id: str, owner_id: str) -> ProgressInfo:
         """Get task execution progress."""
         with self._tasks_lock:
-            if evaluation_id not in self.tasks:
+            if evaluation_id not in self.tasks or self.tasks[evaluation_id].owner_id != owner_id:
                 raise ValueError(f"Evaluation {evaluation_id} not found")
             task = self.tasks[evaluation_id]
 
@@ -245,7 +257,3 @@ class EvaluationService:
                             task.status = "failed"
                             task.error_message = str(e)
                             task.updated_at = datetime.utcnow().isoformat() + "Z"
-
-
-# Global service instance
-evaluation_service = EvaluationService()

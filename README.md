@@ -1187,3 +1187,7 @@ Docker 不可用时评测会返回明确的 `backend_unavailable` 失败，不�
 ## 许可证
 
 MIT License
+
+### REST API 用户认证
+
+API 支持注册、登录、Token 刷新/登出、用户范围的评估权限和 LLM 密钥加密管理。启动前必须配置签名和加密密钥；详见 [认证指南](docs/api-authentication.md) 和 [API 文档](API.md)。

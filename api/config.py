@@ -25,6 +25,7 @@ class Settings(BaseSettings):
 
     class Config:
         env_file = ".env"
+        extra = "ignore"  # Auth and API settings share the same dotenv file.
 
 
 settings = Settings()
