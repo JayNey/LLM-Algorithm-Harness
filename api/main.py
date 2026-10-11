@@ -18,12 +18,15 @@ from api.files.middleware import UploadBoundaryMiddleware
 from api.files.service import FileService
 from api.middleware.errors import setup_error_handlers
 from api.middleware.logging import setup_logging_middleware
+from api.monitoring.config import MonitorSettings
+from api.monitoring.service import MonitorService
 from api.routes import evaluations_router, tasks_router
 from api.routes.ab_tests import router as ab_tests_router
 from api.routes.auth import router as auth_router
 from api.routes.benchmarks import router as benchmarks_router
 from api.routes.experiments import router as experiments_router
 from api.routes.files import router as files_router
+from api.routes.monitoring import router as monitoring_router
 from api.services import (
     ABTestService,
     BenchmarkService,
@@ -42,6 +45,8 @@ def create_app(
     experiment_runner_factory: Any = None,
     benchmark_executor_factory: Any = None,
     ab_test_runner_factory: Any = None,
+    *,
+    monitor_settings: MonitorSettings | None = None,
 ) -> FastAPI:
     """Create and configure FastAPI application."""
 
@@ -78,6 +83,13 @@ def create_app(
             runner_factory=ab_test_runner_factory or ABTestRunner,
         )
         app.state.files = FileService(app.state.auth, file_settings or FileSettings())
+        app.state.monitor = MonitorService(
+            app.state.auth,
+            app.state.files,
+            app.state.evaluations,
+            monitor_settings or MonitorSettings(),
+        )
+        app.state.auth.audit_sink = app.state.monitor.audit_event
         await run_in_threadpool(app.state.files.cleanup)
 
         async def cleanup_files():
@@ -105,11 +117,10 @@ def create_app(
         lifespan=lifespan,
     )
 
-    # Direct ASGI logging stays outside the upload boundary so it records the
-    # final 413 response. CORS also covers early auth/quota rejection responses.
+    # CORS covers early auth/quota rejection responses. Logging wraps CORS and
+    # the upload boundary, including preflight and final 413 responses.
     app.add_middleware(UploadBoundaryMiddleware)
     app.add_middleware(AuthBoundaryMiddleware)
-    setup_logging_middleware(app)
     app.add_middleware(
         CORSMiddleware,
         allow_origins=settings.CORS_ORIGINS,
@@ -117,6 +128,7 @@ def create_app(
         allow_methods=["*"],
         allow_headers=["*"],
     )
+    setup_logging_middleware(app)
     setup_error_handlers(app)
 
     # Include routers
@@ -124,6 +136,7 @@ def create_app(
     app.include_router(tasks_router)
     app.include_router(auth_router)
     app.include_router(files_router)
+    app.include_router(monitoring_router)
     app.include_router(experiments_router)
     app.include_router(benchmarks_router)
     app.include_router(ab_tests_router)
@@ -135,6 +148,7 @@ def create_app(
             "success": True,
             "data": {
                 "status": "healthy",
+                "scope": "api_liveness_only",
                 "version": "0.1.0",
                 "service": "LLM Algorithm Harness API",
             },

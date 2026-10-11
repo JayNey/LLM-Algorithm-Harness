@@ -259,9 +259,11 @@ class SandboxExecutor:
         except Exception as exc:
             return False, f"Sandbox probe execution failed: {exc}"
 
-        failing_statuses = {"backend_unavailable", "sandbox_error"}
-        if result.status in failing_statuses or any(
-            tc.status in failing_statuses for tc in result.test_results
+        if (
+            result.status != "success"
+            or not result.all_passed
+            or not result.test_results
+            or any(not tc.passed or tc.status != "passed" for tc in result.test_results)
         ):
             detail = result.error_message or "; ".join(
                 filter(None, (tc.error_message for tc in result.test_results))

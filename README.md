@@ -1289,3 +1289,9 @@ API 支持注册、登录、Token 刷新/登出、用户范围的评估权限和
 ### REST API 文件服务
 
 支持 JSON/CSV 私有题库上传与事务去重、JSON/YAML 配置验证脱敏、导入进度、结果和图表下载。详见 [文件服务指南](docs/api-files.md)。真实运行结果由 #149 worker 发布；不会把全局 CLI 目录公开为下载源。
+
+### REST API 系统监控基础
+
+提供受管理员 UUID 白名单保护的 SQLite 健康检查、Docker 预检、本机资源、持久化 API 请求统计、安全日志和离线配置目录。用户可查询自己的任务日志与已有配额；统计窗口不完整时标记 `retained_sample`，缺失真实 worker/LLM 或业务数据库指标时返回 `not_configured`。
+
+这是 #157 可独立运行的基础部分；队列、worker 与真实运行指标仍需 #149/#151 接入。配置 `MONITOR_ADMIN_USER_IDS`、接口与完整性说明见 [监控指南](docs/api-monitoring.md)。

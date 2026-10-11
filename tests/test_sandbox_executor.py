@@ -641,3 +641,31 @@ def test_health_check_host_backend_delegates():
     assert ok is True
     assert detail is None
     mock_execute.assert_called_once()
+
+
+@pytest.mark.parametrize("failure", ["timeout", "wrong_answer", "empty", "inconsistent"])
+def test_health_check_rejects_unsuccessful_known_good_probe(failure):
+    """Availability includes actually passing the fixed, known-good testcase."""
+    result = _probe_success_result()
+    if failure == "timeout":
+        result.status = "timeout"
+        result.all_passed = False
+        result.test_results[0].passed = False
+        result.test_results[0].status = "timeout"
+    elif failure == "wrong_answer":
+        result.status = "failed"
+        result.all_passed = False
+        result.test_results[0].passed = False
+        result.test_results[0].status = "failed"
+    elif failure == "empty":
+        result.test_results = []
+    else:
+        result.all_passed = False
+    executor = SandboxExecutor(SandboxConfig(backend="docker"))
+    with (
+        patch.object(executor, "_docker_available", return_value=True),
+        patch.object(executor, "execute", return_value=result),
+    ):
+        ok, detail = executor.health_check()
+    assert ok is False
+    assert detail

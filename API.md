@@ -41,12 +41,15 @@ curl http://localhost:8000/api/v1/health
   "success": true,
   "data": {
     "status": "healthy",
+    "scope": "api_liveness_only",
     "version": "0.1.0",
     "service": "LLM Algorithm Harness API"
   },
   "message": "Service is healthy"
 }
 ```
+
+该公开端点只检查 API 存活。数据库、Docker 和系统资源需使用受管理员保护的监控端点，详见 [监控指南](docs/api-monitoring.md)。
 
 ## 统一响应格式
 
@@ -411,7 +414,8 @@ curl http://localhost:8000/api/v1/evaluations/{eval_id}/progress -H "Authorizati
 
 - Phase 2: 数据库持久化存储
 - Phase 3: WebSocket 实时推送
-- 用户认证和授权：#152 已实现，等待审查合并
+- 用户认证和授权：#152 已实现
+- 系统监控：#157 已提供基础健康、资源、日志和请求统计；真实队列/worker/LLM 与业务数据库指标待 #149/#151 接入
 - Phase 5: 完整的问题和策略端点
 
 ## 反馈和支持
@@ -421,3 +425,11 @@ curl http://localhost:8000/api/v1/evaluations/{eval_id}/progress -H "Authorizati
 ## 文件上传与下载
 
 支持私有题库/配置上传、JSON/CSV 批量导入、进度查询和结果多格式下载。接口、上传限制及 worker 接入见 [文件服务指南](docs/api-files.md)。所有接口复用 Bearer 认证和资源所有者校验。
+
+## 系统监控与安全日志
+
+本次 #157 基础能力提供 `/system/health`、`/health/database`、`/health/sandbox`、`/system/resources`、`/metrics/api-stats` 和离线配置目录。系统级端点及全局 `/logs` 需要有效 Bearer 身份，并由部署者通过 `MONITOR_ADMIN_USER_IDS` UUID 白名单授权。
+
+用户可读取自己的 `/logs/tasks/{task_id}`、下载 `/logs/download/{task_id}`，以及查询 `/quotas/usage` 的既有存储、请求与导入限额。任务日志按所有者隔离，消息和上下文在存储前脱敏；不接受主机日志路径。
+
+API 指标提供 `window_complete` 与 `retained_sample`，窗口不完整时顶层累计值为 `null`。Redis/worker、业务数据库、真实评估和 LLM 延迟/成功率明确标记 `not_configured`；当前模拟任务不计作生产队列或真实生成指标。管理员配置、全部接口和后续接入边界见 [监控指南](docs/api-monitoring.md)。
