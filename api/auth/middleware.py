@@ -24,7 +24,12 @@ class AuthBoundaryMiddleware:
         path = scope["path"]
         sensitive_input = any(
             path.startswith(prefix)
-            for prefix in ("/api/v1/auth/", "/api/v1/api-keys", "/api/v1/users/")
+            for prefix in (
+                "/api/v1/auth/",
+                "/api/v1/api-keys",
+                "/api/v1/users/",
+                "/api/v1/problems/import",
+            )
         )
         if sensitive_input and scope["method"] in {"POST", "PATCH", "PUT"}:
             chunks = []

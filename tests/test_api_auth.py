@@ -15,6 +15,7 @@ from pydantic import ValidationError
 from api.auth.config import AuthSettings
 from api.auth.service import PROVIDER_URLS, AuthService
 from api.auth.store import AuthStore
+from api.files.config import FileSettings
 from api.main import create_app
 
 PASSWORD = "a-long-test-password-!"
@@ -60,7 +61,10 @@ def add_key(client, tokens, provider="openai", raw=KEY):
 @pytest.fixture
 def api(tmp_path):
     settings = config(tmp_path)
-    app = create_app(settings)
+    app = create_app(
+        settings,
+        FileSettings(_env_file=None, UPLOAD_DIR=settings.AUTH_DATABASE_PATH.parent / "uploads"),
+    )
     with TestClient(app) as client:
         tokens = signup(client)
         yield client, tokens, app, settings
@@ -157,7 +161,12 @@ def test_refresh_rotation_and_logout_persist_after_restart(api):
         == 401
     )
     assert client.post("/api/v1/auth/logout", headers=headers(new)).status_code == 204
-    with TestClient(create_app(settings)) as restarted:
+    with TestClient(
+        create_app(
+            settings,
+            FileSettings(_env_file=None, UPLOAD_DIR=settings.AUTH_DATABASE_PATH.parent / "uploads"),
+        )
+    ) as restarted:
         assert restarted.get("/api/v1/users/me", headers=headers(old)).status_code == 401
         assert restarted.get("/api/v1/users/me", headers=headers(new)).status_code == 401
         assert (
@@ -292,7 +301,12 @@ def test_keys_encrypted_isolated_editable_and_survive_restart(api, caplog):
         json={"api_key": "replacement-secret", "key_name": "updated"},
     )
     assert edited.status_code == 200 and "replacement-secret" not in edited.text
-    with TestClient(create_app(settings)) as restarted:
+    with TestClient(
+        create_app(
+            settings,
+            FileSettings(_env_file=None, UPLOAD_DIR=settings.AUTH_DATABASE_PATH.parent / "uploads"),
+        )
+    ) as restarted:
         assert (
             restarted.get("/api/v1/api-keys", headers=headers(tokens)).json()["data"][0]["key_name"]
             == "updated"
@@ -486,14 +500,26 @@ def test_owner_evaluation_lifecycle(api):
 def test_rate_limits_persist_and_ignore_spoofed_forwarded_headers(tmp_path):
     settings = config(tmp_path, AUTH_RATE_LIMIT=2)
     for _ in range(2):
-        with TestClient(create_app(settings)) as client:
+        with TestClient(
+            create_app(
+                settings,
+                FileSettings(
+                    _env_file=None, UPLOAD_DIR=settings.AUTH_DATABASE_PATH.parent / "uploads"
+                ),
+            )
+        ) as client:
             result = client.post(
                 "/api/v1/auth/login",
                 headers={"X-Forwarded-For": secrets.token_hex(8)},
                 json={"username": "missing", "password": "bad"},
             )
             assert result.status_code == 401
-    with TestClient(create_app(settings)) as client:
+    with TestClient(
+        create_app(
+            settings,
+            FileSettings(_env_file=None, UPLOAD_DIR=settings.AUTH_DATABASE_PATH.parent / "uploads"),
+        )
+    ) as client:
         result = client.post(
             "/api/v1/auth/login",
             headers={"X-Forwarded-For": "other"},

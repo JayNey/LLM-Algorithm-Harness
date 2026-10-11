@@ -378,3 +378,7 @@ curl http://localhost:8000/api/v1/evaluations/{eval_id}/progress -H "Authorizati
 ## 反馈和支持
 
 如有问题或建议，请联系开发团队或提交 Issue。
+
+## 文件上传与下载
+
+支持私有题库/配置上传、JSON/CSV 批量导入、进度查询和结果多格式下载。接口、上传限制及 worker 接入见 [文件服务指南](docs/api-files.md)。所有接口复用 Bearer 认证和资源所有者校验。

@@ -7,6 +7,8 @@ from fastapi import APIRouter, Depends, HTTPException, Request
 
 from api.auth.dependencies import auth_service, current_user
 from api.auth.service import AuthService, Principal
+from api.files.dependencies import file_service
+from api.files.service import FileService
 from api.models import EvaluationCreateRequest, EvaluationUpdateRequest
 from api.schemas import ApiResponse, EvaluationResponse, PaginatedData, ProgressInfo
 from api.services import EvaluationService
@@ -33,9 +35,15 @@ def create_evaluation(
     principal: Principal = Depends(current_user),
     auth: AuthService = Depends(auth_service),
     service: EvaluationService = Depends(evaluation_service),
+    files: FileService = Depends(file_service),
 ) -> ApiResponse[EvaluationResponse]:
     auth.owned_key(request.api_key_id, principal.user_id)
     result = service.create_evaluation(request, principal.user_id)
+    try:
+        files.store.register_run(result.evaluation_id, principal.user_id)
+    except Exception:
+        service.delete_evaluation(result.evaluation_id, principal.user_id)
+        raise
     auth.audit("evaluation_create", principal.user_id, result.evaluation_id)
     return ApiResponse(success=True, data=result, message="Evaluation created successfully")
 
@@ -88,8 +96,15 @@ def delete_evaluation(
     principal: Principal = Depends(current_user),
     auth: AuthService = Depends(auth_service),
     service: EvaluationService = Depends(evaluation_service),
+    files: FileService = Depends(file_service),
 ) -> None:
-    call(lambda: service.delete_evaluation(evaluation_id, principal.user_id))
+    call(
+        lambda: service.delete_evaluation(
+            evaluation_id,
+            principal.user_id,
+            lambda: files.delete_run(evaluation_id, principal.user_id),
+        )
+    )
     auth.audit("evaluation_delete", principal.user_id, evaluation_id)
 
 

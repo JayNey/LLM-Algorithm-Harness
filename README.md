@@ -1191,3 +1191,7 @@ MIT License
 ### REST API 用户认证
 
 API 支持注册、登录、Token 刷新/登出、用户范围的评估权限和 LLM 密钥加密管理。启动前必须配置签名和加密密钥；详见 [认证指南](docs/api-authentication.md) 和 [API 文档](API.md)。
+
+### REST API 文件服务
+
+支持 JSON/CSV 私有题库上传与事务去重、JSON/YAML 配置验证脱敏、导入进度、结果和图表下载。详见 [文件服务指南](docs/api-files.md)。真实运行结果由 #149 worker 发布；不会把全局 CLI 目录公开为下载源。
