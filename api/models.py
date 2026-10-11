@@ -6,6 +6,9 @@ from pydantic import BaseModel, Field
 class EvaluationCreateRequest(BaseModel):
     """Request model for creating a new evaluation."""
 
+    api_key_id: str = Field(
+        ..., min_length=1, max_length=64, description="ID of your stored LLM API key"
+    )
     problem_ids: list[str] = Field(..., min_items=1, description="List of problem IDs to evaluate")
     strategy_names: list[str] = Field(..., min_items=1, description="List of strategy names to use")
     budget_cap_usd: float | None = Field(None, ge=0, description="Maximum budget in USD")
@@ -16,6 +19,7 @@ class EvaluationCreateRequest(BaseModel):
         json_schema_extra = {
             "example": {
                 "problem_ids": ["1", "2", "3"],
+                "api_key_id": "your-stored-key-id",
                 "strategy_names": ["vanilla", "chain_of_thought"],
                 "budget_cap_usd": 10.0,
                 "timeout_seconds": 300,

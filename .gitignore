@@ -257,3 +257,6 @@ config_ollama.json
 
 # Harness evaluation run outputs
 /results/
+
+# Private authentication storage (including SQLite journals)
+/data/auth/

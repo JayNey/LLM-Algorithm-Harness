@@ -1,0 +1,193 @@
+"""Transactional auth storage, isolated from #151's business database.
+
+Connections are operation-scoped. Sessions and rate limits remain effective
+across restarts and multiple processes using the same database file.
+"""
+
+import hashlib
+import os
+import sqlite3
+import time
+from collections.abc import Iterator
+from contextlib import contextmanager
+from pathlib import Path
+from typing import Any
+
+
+class AuthStore:
+    def __init__(self, path: Path):
+        self.path = path
+        path.parent.mkdir(parents=True, exist_ok=True, mode=0o700)
+        # Create with restrictive permissions before SQLite writes any secrets.
+        try:
+            fd = os.open(path, os.O_CREAT | os.O_EXCL | os.O_WRONLY, 0o600)
+        except FileExistsError:
+            pass
+        else:
+            os.close(fd)
+        with self.connection() as db:
+            db.executescript("""
+                CREATE TABLE IF NOT EXISTS auth_users (
+                    id TEXT PRIMARY KEY, username TEXT NOT NULL UNIQUE,
+                    email TEXT NOT NULL UNIQUE, password_hash TEXT NOT NULL,
+                    created_at INTEGER NOT NULL
+                );
+                CREATE TABLE IF NOT EXISTS auth_sessions (
+                    id TEXT PRIMARY KEY, user_id TEXT NOT NULL REFERENCES auth_users(id),
+                    refresh_hash TEXT NOT NULL, expires_at INTEGER NOT NULL,
+                    revoked INTEGER NOT NULL DEFAULT 0
+                );
+                CREATE TABLE IF NOT EXISTS auth_keys (
+                    id TEXT PRIMARY KEY, user_id TEXT NOT NULL REFERENCES auth_users(id),
+                    provider TEXT NOT NULL, key_name TEXT NOT NULL, ciphertext TEXT NOT NULL,
+                    created_at INTEGER NOT NULL, last_used_at INTEGER,
+                    usage_count INTEGER NOT NULL DEFAULT 0,
+                    verification_count INTEGER NOT NULL DEFAULT 0,
+                    last_verified_at INTEGER, verified INTEGER NOT NULL DEFAULT 0
+                );
+                CREATE INDEX IF NOT EXISTS auth_keys_owner ON auth_keys(user_id);
+                CREATE TABLE IF NOT EXISTS auth_rates (
+                    bucket TEXT PRIMARY KEY, count INTEGER NOT NULL, expires_at INTEGER NOT NULL
+                );
+            """)
+
+    @contextmanager
+    def connection(self) -> Iterator[sqlite3.Connection]:
+        db = sqlite3.connect(self.path, timeout=10)
+        db.row_factory = sqlite3.Row
+        db.execute("PRAGMA foreign_keys=ON")
+        try:
+            with db:
+                yield db
+        finally:
+            db.close()
+
+    def user(self, user_id: str) -> dict[str, Any] | None:
+        with self.connection() as db:
+            row = db.execute("SELECT * FROM auth_users WHERE id=?", (user_id,)).fetchone()
+            return dict(row) if row else None
+
+    def find_user(self, identity: str) -> dict[str, Any] | None:
+        with self.connection() as db:
+            row = db.execute(
+                "SELECT * FROM auth_users WHERE username=? OR email=?",
+                (identity.casefold(), identity.casefold()),
+            ).fetchone()
+            return dict(row) if row else None
+
+    def add_user(self, user_id: str, username: str, email: str, password_hash: str) -> None:
+        with self.connection() as db:
+            db.execute(
+                "INSERT INTO auth_users VALUES (?, ?, ?, ?, ?)",
+                (user_id, username.casefold(), email.casefold(), password_hash, int(time.time())),
+            )
+
+    def update_user(self, user_id: str, username: str | None, email: str | None) -> None:
+        with self.connection() as db:
+            db.execute(
+                "UPDATE auth_users SET username=COALESCE(?,username), email=COALESCE(?,email) WHERE id=?",
+                (
+                    username.casefold() if username else None,
+                    email.casefold() if email else None,
+                    user_id,
+                ),
+            )
+
+    def add_session(self, sid: str, user_id: str, refresh_hash: str, expires_at: int) -> None:
+        with self.connection() as db:
+            db.execute("DELETE FROM auth_sessions WHERE expires_at<=?", (int(time.time()),))
+            db.execute(
+                "INSERT INTO auth_sessions VALUES (?, ?, ?, ?, 0)",
+                (sid, user_id, refresh_hash, expires_at),
+            )
+
+    def session(self, sid: str, user_id: str) -> dict[str, Any] | None:
+        with self.connection() as db:
+            row = db.execute(
+                "SELECT * FROM auth_sessions WHERE id=? AND user_id=? AND revoked=0 AND expires_at>?",
+                (sid, user_id, int(time.time())),
+            ).fetchone()
+            return dict(row) if row else None
+
+    def rotate(self, sid: str, user_id: str, old_hash: str, new_hash: str) -> bool:
+        with self.connection() as db:
+            return (
+                db.execute(
+                    "UPDATE auth_sessions SET refresh_hash=? WHERE id=? AND user_id=? AND refresh_hash=? AND revoked=0 AND expires_at>?",
+                    (new_hash, sid, user_id, old_hash, int(time.time())),
+                ).rowcount
+                == 1
+            )
+
+    def revoke(self, sid: str, user_id: str) -> None:
+        with self.connection() as db:
+            db.execute(
+                "UPDATE auth_sessions SET revoked=1 WHERE id=? AND user_id=?", (sid, user_id)
+            )
+
+    def allow(self, bucket: str, limit: int, window: int) -> tuple[bool, int]:
+        now = int(time.time())
+        bucket = hashlib.sha256(bucket.encode("utf-8")).hexdigest()
+        with self.connection() as db:
+            db.execute("BEGIN IMMEDIATE")
+            db.execute("DELETE FROM auth_rates WHERE expires_at<=?", (now,))
+            row = db.execute("SELECT * FROM auth_rates WHERE bucket=?", (bucket,)).fetchone()
+            if row and row["count"] >= limit:
+                return False, max(1, row["expires_at"] - now)
+            if row:
+                db.execute("UPDATE auth_rates SET count=count+1 WHERE bucket=?", (bucket,))
+            else:
+                db.execute("INSERT INTO auth_rates VALUES (?, 1, ?)", (bucket, now + window))
+        return True, 0
+
+    def add_key(self, key_id: str, user_id: str, provider: str, name: str, ciphertext: str) -> None:
+        with self.connection() as db:
+            db.execute(
+                "INSERT INTO auth_keys(id,user_id,provider,key_name,ciphertext,created_at) VALUES (?,?,?,?,?,?)",
+                (key_id, user_id, provider, name, ciphertext, int(time.time())),
+            )
+
+    def key(self, key_id: str, user_id: str) -> dict[str, Any] | None:
+        with self.connection() as db:
+            row = db.execute(
+                "SELECT * FROM auth_keys WHERE id=? AND user_id=?", (key_id, user_id)
+            ).fetchone()
+            return dict(row) if row else None
+
+    def keys(self, user_id: str) -> list[dict[str, Any]]:
+        with self.connection() as db:
+            return [
+                dict(row)
+                for row in db.execute(
+                    "SELECT * FROM auth_keys WHERE user_id=? ORDER BY created_at,id", (user_id,)
+                )
+            ]
+
+    def update_key(
+        self, key_id: str, user_id: str, name: str | None, ciphertext: str | None
+    ) -> None:
+        with self.connection() as db:
+            db.execute(
+                "UPDATE auth_keys SET key_name=COALESCE(?,key_name), ciphertext=COALESCE(?,ciphertext), verified=CASE WHEN ? IS NULL THEN verified ELSE 0 END WHERE id=? AND user_id=?",
+                (name, ciphertext, ciphertext, key_id, user_id),
+            )
+
+    def delete_key(self, key_id: str, user_id: str) -> None:
+        with self.connection() as db:
+            db.execute("DELETE FROM auth_keys WHERE id=? AND user_id=?", (key_id, user_id))
+
+    def record_verification(self, key_id: str, user_id: str, ciphertext: str, ok: bool) -> None:
+        with self.connection() as db:
+            # A concurrent edit must not mark the replacement key as verified.
+            db.execute(
+                "UPDATE auth_keys SET verification_count=verification_count+1,last_verified_at=?,verified=? WHERE id=? AND user_id=? AND ciphertext=?",
+                (int(time.time()), int(ok), key_id, user_id, ciphertext),
+            )
+
+    def record_key_usage(self, key_id: str, user_id: str) -> None:
+        """Worker integration hook: call after a real provider request, not simulation."""
+        with self.connection() as db:
+            db.execute(
+                "UPDATE auth_keys SET usage_count=usage_count+1,last_used_at=? WHERE id=? AND user_id=?",
+                (int(time.time()), key_id, user_id),
+            )

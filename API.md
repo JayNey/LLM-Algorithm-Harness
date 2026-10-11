@@ -9,7 +9,9 @@ REST API 为 LLM 算法评估框架提供程序化接口，支持评估任务管
 
 ## 快速开始
 
-### 1. 启动 API 服务
+### 1. 配置认证并启动 API 服务
+
+先按 [认证指南](docs/api-authentication.md) 设置 `SECRET_KEY` 和 `ENCRYPTION_KEY`；无有效密钥时服务拒绝启动。注册、登录、保存 LLM API 密钥后，全部评估请求必须带 `Authorization: Bearer <access_token>`。创建任务还需提供自己的 `api_key_id`。
 
 ```bash
 ./run_api.sh
@@ -48,7 +50,7 @@ curl http://localhost:8000/api/v1/health
 
 ## 统一响应格式
 
-所有 API 响应都遵循统一格式：
+成功响应使用下列包装。参数校验和内部错误使用结构化错误；认证、权限和状态错误使用 FastAPI 的 `detail` 格式：
 
 ### 成功响应
 
@@ -85,6 +87,7 @@ POST /api/v1/evaluations
 
 ```json
 {
+  "api_key_id": "your-stored-key-id",
   "problem_ids": ["1", "2", "3"],
   "strategy_names": ["vanilla", "chain_of_thought"],
   "budget_cap_usd": 10.0,
@@ -302,10 +305,17 @@ import requests
 
 BASE_URL = "http://localhost:8000/api/v1"
 
+# 先登录，再使用返回的访问 Token 和自己保存的密钥 ID
+ACCESS_TOKEN = "your-access-token"
+API_KEY_ID = "your-stored-key-id"
+session = requests.Session()
+session.headers["Authorization"] = f"Bearer {ACCESS_TOKEN}"
+
 # 创建评估任务
-response = requests.post(
+response = session.post(
     f"{BASE_URL}/evaluations",
     json={
+        "api_key_id": API_KEY_ID,
         "problem_ids": ["1", "2", "3"],
         "strategy_names": ["vanilla"],
         "budget_cap_usd": 10.0,
@@ -315,13 +325,13 @@ evaluation = response.json()["data"]
 eval_id = evaluation["evaluation_id"]
 
 # 启动任务
-response = requests.post(f"{BASE_URL}/evaluations/{eval_id}/start")
+response = session.post(f"{BASE_URL}/evaluations/{eval_id}/start")
 assert response.status_code == 202
 
 # 轮询进度
 import time
 while True:
-    response = requests.get(f"{BASE_URL}/evaluations/{eval_id}/progress")
+    response = session.get(f"{BASE_URL}/evaluations/{eval_id}/progress")
     progress = response.json()["data"]
     print(f"Progress: {progress['completed']}/{progress['total']}")
     
@@ -336,17 +346,19 @@ while True:
 # 创建评估任务
 curl -X POST http://localhost:8000/api/v1/evaluations \
   -H "Content-Type: application/json" \
+  -H "Authorization: Bearer $ACCESS_TOKEN" \
   -d '{
+    "api_key_id": "your-stored-key-id",
     "problem_ids": ["1", "2", "3"],
     "strategy_names": ["vanilla"],
     "budget_cap_usd": 10.0
   }'
 
 # 启动任务 (replace with actual ID)
-curl -X POST http://localhost:8000/api/v1/evaluations/{eval_id}/start
+curl -X POST http://localhost:8000/api/v1/evaluations/{eval_id}/start -H "Authorization: Bearer $ACCESS_TOKEN"
 
 # 获取进度
-curl http://localhost:8000/api/v1/evaluations/{eval_id}/progress
+curl http://localhost:8000/api/v1/evaluations/{eval_id}/progress -H "Authorization: Bearer $ACCESS_TOKEN"
 ```
 
 ## 限制和注意事项
@@ -354,13 +366,13 @@ curl http://localhost:8000/api/v1/evaluations/{eval_id}/progress
 1. **并发限制**: 默认最多 5 个并发任务，超出时排队等待
 2. **状态内存存储**: 第 1 阶段使用内存存储，服务重启时数据丢失。后续版本将支持数据库存储
 3. **WebSocket 支持**: 当前不支持 WebSocket 实时推送，请使用轮询。后续版本计划支持
-4. **认证**: 第 1 阶段不包含认证机制，部署时建议在反向代理层添加
+4. **认证**: 用户、Token 撤销和加密密钥已实现；详见 [认证指南](docs/api-authentication.md)。业务任务仍使用模拟执行器，真实执行由 #149 接入。
 
 ## 路线图
 
 - Phase 2: 数据库持久化存储
 - Phase 3: WebSocket 实时推送
-- Phase 4: 用户认证和授权
+- 用户认证和授权：#152 已实现，等待审查合并
 - Phase 5: 完整的问题和策略端点
 
 ## 反馈和支持
