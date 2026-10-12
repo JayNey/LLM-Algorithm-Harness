@@ -1,0 +1,6 @@
+{
+  "id": "classic-archive:async-task-queue",
+  "stepId": "full.archive.execute",
+  "type": "checkpoint",
+  "ref": "async-task-queue"
+}
