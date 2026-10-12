@@ -27,6 +27,10 @@ class Settings(BaseSettings):
     # in api.db.engine; production deployments point it at PostgreSQL.
     DATABASE_URL: str | None = os.getenv("DATABASE_URL") or None
 
+    # Root directory for API-referenced datasets (issue #156). dataset_path
+    # values must resolve inside this directory to prevent path traversal.
+    DATA_ROOT: str = os.getenv("DATA_ROOT", "data")
+
     class Config:
         env_file = ".env"
         extra = "ignore"  # Auth and API settings share the same dotenv file.

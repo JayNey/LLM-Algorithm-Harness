@@ -3,6 +3,7 @@
 import asyncio
 import logging
 from contextlib import asynccontextmanager, suppress
+from typing import Any
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
@@ -18,15 +19,29 @@ from api.files.service import FileService
 from api.middleware.errors import setup_error_handlers
 from api.middleware.logging import setup_logging_middleware
 from api.routes import evaluations_router
+from api.routes.ab_tests import router as ab_tests_router
 from api.routes.auth import router as auth_router
+from api.routes.benchmarks import router as benchmarks_router
+from api.routes.experiments import router as experiments_router
 from api.routes.files import router as files_router
-from api.services import EvaluationService
+from api.services import (
+    ABTestService,
+    BenchmarkService,
+    EvaluationService,
+    ExperimentService,
+)
+from src.ab_testing import ABTestRunner
+from src.benchmark.executor import BenchmarkExecutor
+from src.experiment import ExperimentRunner
 
 
 def create_app(
     auth_settings: AuthSettings | None = None,
     file_settings: FileSettings | None = None,
     database_url: str | None = None,
+    experiment_runner_factory: Any = None,
+    benchmark_executor_factory: Any = None,
+    ab_test_runner_factory: Any = None,
 ) -> FastAPI:
     """Create and configure FastAPI application."""
 
@@ -34,6 +49,21 @@ def create_app(
     async def lifespan(app: FastAPI):
         app.state.auth = AuthService(auth_settings or AuthSettings())
         app.state.evaluations = EvaluationService(database_url)
+        app.state.experiments = ExperimentService(
+            database_url,
+            auth=app.state.auth,
+            runner_factory=experiment_runner_factory or ExperimentRunner,
+        )
+        app.state.benchmarks = BenchmarkService(
+            database_url,
+            auth=app.state.auth,
+            executor_factory=benchmark_executor_factory or BenchmarkExecutor,
+        )
+        app.state.ab_tests = ABTestService(
+            database_url,
+            auth=app.state.auth,
+            runner_factory=ab_test_runner_factory or ABTestRunner,
+        )
         app.state.files = FileService(app.state.auth, file_settings or FileSettings())
         await run_in_threadpool(app.state.files.cleanup)
 
@@ -79,6 +109,9 @@ def create_app(
     app.include_router(evaluations_router)
     app.include_router(auth_router)
     app.include_router(files_router)
+    app.include_router(experiments_router)
+    app.include_router(benchmarks_router)
+    app.include_router(ab_tests_router)
 
     @app.get("/api/v1/health")
     def health_check():
