@@ -203,9 +203,10 @@ class MonitorService:
                 "success_rate": None,
                 "detail": "Real worker instrumentation awaits #149",
             },
-            "database_queries": self.database_metrics.stats(
-                self.settings.MONITOR_API_WINDOW_SECONDS
-            ),
+            "database_queries": {
+                **self.database_metrics.stats(self.settings.MONITOR_API_WINDOW_SECONDS),
+                "engine_role": "evaluation_service",
+            },
             "llm": self.llm_stats(),
         }
 

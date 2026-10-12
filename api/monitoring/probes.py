@@ -16,7 +16,7 @@ from sqlalchemy import select, text
 
 from api.auth.service import AuthService
 from api.db.migrate import SCRIPT_LOCATION
-from api.db.models import Evaluation, EvaluationResult, Problem
+from api.db.models import Base
 from api.files.service import FileService
 from api.monitoring.config import MonitorSettings
 from api.services import EvaluationService
@@ -102,7 +102,7 @@ class MonitorProbes:
         )
         metadata = {
             "backend": backend,
-            "required_tables": ["problems", "evaluations", "evaluation_results"],
+            "required_tables": sorted(Base.metadata.tables),
             "read_only": True,
         }
         started = time.monotonic()
@@ -110,8 +110,8 @@ class MonitorProbes:
             expected = sorted(ScriptDirectory(str(SCRIPT_LOCATION)).get_heads())
             with engine.connect() as connection:
                 connection.execute(text("SELECT 1")).one()
-                for model in (Problem, Evaluation, EvaluationResult):
-                    connection.execute(select(model).limit(0)).all()
+                for table in Base.metadata.sorted_tables:
+                    connection.execute(select(table).limit(0)).all()
                 revisions = sorted(MigrationContext.configure(connection).get_current_heads())
             if not expected or revisions != expected:
                 return {

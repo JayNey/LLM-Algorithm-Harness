@@ -75,7 +75,7 @@ Docker 预检可能启动一个短生命周期容器，由执行器负责资源�
 
 ## 业务 SQL 查询统计
 
-`GET /api/v1/metrics/performance` 的 `database_queries` 从当前 API 已使用的 SQLAlchemy engine 采集真实 cursor 执行完成与失败事件，提供 `query_count/successes/errors/error_rate/avg_latency_ms/p95_latency_ms/queries_per_second`。查询数以 cursor 执行事件为单位，不是返回行数；连接获取阶段的错误不计作已执行查询。它不保存 SQL 文本、绑定参数、连接 URL、异常详情或用户数据。数据库健康检查和监控查询本身也会进入这个采集口径。
+`GET /api/v1/metrics/performance` 的 `database_queries` 从运行中的评估服务 SQLAlchemy engine 采集真实 cursor 执行完成与失败事件，`engine_role=evaluation_service`，提供 `query_count/successes/errors/error_rate/avg_latency_ms/p95_latency_ms/queries_per_second`。实验、基准与 A/B 服务的独立 engine 尚未纳入这个口径。查询数以 cursor 执行事件为单位，不是返回行数；连接获取阶段的错误不计作已执行查询。它不保存 SQL 文本、绑定参数、连接 URL、异常详情或用户数据。数据库健康检查和监控查询本身也会进入这个采集口径。
 
 `scope=bound_business_engine_current_process` 表示单 engine、单 API 进程；不包含认证/文件 SQLite、其他进程或数据库服务端的全局查询。每 engine 在启动时安装一个稳定转发监听，弱注册采集器；监控关闭后停止采集并解除采集器引用，此后 `collection_active=false`、`status=not_collecting`。空转发器随 engine 生命周期回收，关闭时不并发修改 SQLAlchemy 事件队列，以保护仍在执行的业务查询。统计仅保存在当前进程内，重启后重新建立采集起点，API 启动前已经完成的迁移和任务恢复查询不计入。
 

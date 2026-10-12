@@ -46,7 +46,11 @@ def test_sqlite_probe_checks_real_connection_and_tables(probes):
     assert result["authentication"] == {"status": "ok", "backend": "sqlite"}
     assert result["files"] == {"status": "ok", "backend": "sqlite"}
     assert result["business_database"]["status"] == "ok"
-    assert result["business_database"]["migration"]["revisions"] == ["0001"]
+    assert (
+        result["business_database"]["migration"]["revisions"]
+        == result["business_database"]["migration"]["expected_heads"]
+    )
+    assert "experiments" in result["business_database"]["required_tables"]
     assert result["business_database"]["read_only"] is True
     with probes.files.store.connection() as db:
         db.execute("DROP TABLE api_file_objects")
@@ -84,6 +88,7 @@ def test_business_probe_reuses_engine_without_task_recovery_or_writes(probes):
 
 
 def test_business_probe_schema_and_migration_failure_never_echo_raw_details(probes):
+    expected_revision = probes.database()["business_database"]["migration"]["revisions"][0]
     secret = "credential-private-invalid-revision"
     with probes.evaluations.engine.begin() as connection:
         connection.execute(
@@ -94,7 +99,10 @@ def test_business_probe_schema_and_migration_failure_never_echo_raw_details(prob
     assert response["business_database"]["migration"]["status"] == "mismatch"
     assert secret not in json.dumps(response)
     with probes.evaluations.engine.begin() as connection:
-        connection.execute(text("UPDATE alembic_version SET version_num='0001'"))
+        connection.execute(
+            text("UPDATE alembic_version SET version_num=:revision"),
+            {"revision": expected_revision},
+        )
         connection.execute(text("DROP TABLE evaluation_results"))
     response = probes.database()
     assert response["business_database"]["status"] == "unavailable"

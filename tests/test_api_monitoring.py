@@ -160,7 +160,9 @@ def test_health_sources_and_safe_admin_configuration(api, monkeypatch):
     assert health["status"] == "partial"
     assert health["checks"]["database"]["status"] == "ok"
     assert health["pending_issues"] == [149]
-    assert health["checks"]["database"]["business_database"]["migration"]["revisions"] == ["0001"]
+    business = health["checks"]["database"]["business_database"]
+    assert business["migration"]["revisions"] == business["migration"]["expected_heads"]
+    assert "experiments" in business["required_tables"]
     assert health["checks"]["redis"]["status"] == "not_configured"
     assert health["checks"]["workers"]["dependency_issue"] == 149
     assert health["checks"]["sandbox"]["status"] == "not_checked"
