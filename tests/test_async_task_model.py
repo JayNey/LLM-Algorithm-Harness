@@ -41,7 +41,7 @@ class TestAsyncTaskModel:
             task_type="evaluation",
             entity_id=str(uuid.uuid4()),
             user_id="user123",
-            status="pending"
+            status="pending",
         )
 
         db_session.add(task)
@@ -65,7 +65,7 @@ class TestAsyncTaskModel:
             task_type="evaluation",
             entity_id=str(uuid.uuid4()),
             user_id="user456",
-            status="pending"
+            status="pending",
         )
         db_session.add(task)
         db_session.commit()
@@ -95,7 +95,7 @@ class TestAsyncTaskModel:
             entity_id=str(uuid.uuid4()),
             user_id="user789",
             status="running",
-            progress={"current": 5, "total": 10, "message": "Processing..."}
+            progress={"current": 5, "total": 10, "message": "Processing..."},
         )
         db_session.add(task)
         db_session.commit()

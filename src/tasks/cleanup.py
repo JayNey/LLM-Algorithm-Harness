@@ -61,12 +61,16 @@ def cleanup_old_tasks(self: CleanupTask, days_to_keep: int = 7) -> dict[str, Any
         cutoff_time = cutoff_time.replace(tzinfo=None)  # SQLite 不支持 timezone-aware datetime
 
         # 查询要删除的任务：已完成且在截止时间之前
-        old_tasks = session.query(AsyncTask).filter(
-            and_(
-                AsyncTask.status.in_(["completed", "failed", "cancelled"]),
-                AsyncTask.updated_at < cutoff_time,
+        old_tasks = (
+            session.query(AsyncTask)
+            .filter(
+                and_(
+                    AsyncTask.status.in_(["completed", "failed", "cancelled"]),
+                    AsyncTask.updated_at < cutoff_time,
+                )
             )
-        ).all()
+            .all()
+        )
 
         deleted_count = len(old_tasks)
 

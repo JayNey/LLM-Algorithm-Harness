@@ -137,8 +137,8 @@ def run_evaluation_task(self: EvaluationTask, evaluation_id: str) -> dict[str, A
                 meta={
                     "current": record.completed_units,
                     "total": record.total_units,
-                    "message": f"Completed {record.completed_units}/{record.total_units} units"
-                }
+                    "message": f"Completed {record.completed_units}/{record.total_units} units",
+                },
             )
 
         def should_pause(record: Any) -> bool:
@@ -149,7 +149,10 @@ def run_evaluation_task(self: EvaluationTask, evaluation_id: str) -> dict[str, A
                 return True
 
             # 检查预算上限
-            if evaluation.budget_cap_usd is not None and evaluation.spent_usd >= evaluation.budget_cap_usd:
+            if (
+                evaluation.budget_cap_usd is not None
+                and evaluation.spent_usd >= evaluation.budget_cap_usd
+            ):
                 return True
 
             return False
@@ -161,7 +164,7 @@ def run_evaluation_task(self: EvaluationTask, evaluation_id: str) -> dict[str, A
                 "strategy": unit.strategy,
                 "problem_id": unit.problem_id,
                 "success": True,
-                "mock": True
+                "mock": True,
             }
 
         # 7. 执行 TaskService.run()
@@ -184,7 +187,9 @@ def run_evaluation_task(self: EvaluationTask, evaluation_id: str) -> dict[str, A
             task_manager.update_task_status(async_task.id, "paused")
             evaluation.status = "paused"
         elif final_record.state == "failed":
-            task_manager.update_task_status(async_task.id, "failed", error_message=final_record.error)
+            task_manager.update_task_status(
+                async_task.id, "failed", error_message=final_record.error
+            )
             evaluation.status = "failed"
             evaluation.error_message = final_record.error
         elif final_record.state == "cancelled":

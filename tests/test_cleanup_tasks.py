@@ -46,12 +46,16 @@ def _cleanup_old_tasks_impl(session, days_to_keep=7):
     cutoff_time = datetime.now(timezone.utc) - timedelta(days=days_to_keep)
     cutoff_time = cutoff_time.replace(tzinfo=None)
 
-    old_tasks = session.query(AsyncTask).filter(
-        and_(
-            AsyncTask.status.in_(["completed", "failed", "cancelled"]),
-            AsyncTask.updated_at < cutoff_time,
+    old_tasks = (
+        session.query(AsyncTask)
+        .filter(
+            and_(
+                AsyncTask.status.in_(["completed", "failed", "cancelled"]),
+                AsyncTask.updated_at < cutoff_time,
+            )
         )
-    ).all()
+        .all()
+    )
 
     deleted_count = len(old_tasks)
 

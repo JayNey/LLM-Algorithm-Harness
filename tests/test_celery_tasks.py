@@ -38,7 +38,7 @@ def evaluation_setup(db_session):
         task_type="evaluation",
         entity_id=evaluation_id,
         user_id=user_id,
-        status="pending"
+        status="pending",
     )
     db_session.add(async_task)
 
@@ -50,7 +50,7 @@ def evaluation_setup(db_session):
         strategy_names=["strategy_a"],
         problem_ids=["problem_1"],
         problem_count=1,
-        async_task_id=async_task.id
+        async_task_id=async_task.id,
     )
     db_session.add(evaluation)
     db_session.commit()
@@ -60,7 +60,7 @@ def evaluation_setup(db_session):
         "user_id": user_id,
         "async_task_id": async_task.id,
         "evaluation": evaluation,
-        "async_task": async_task
+        "async_task": async_task,
     }
 
 
@@ -234,8 +234,7 @@ class TestCreateTaskUnits:
         from src.tasks.evaluation import _create_task_units
 
         units = _create_task_units(
-            ["strategy_a", "strategy_b"],
-            ["problem_1", "problem_2", "problem_3"]
+            ["strategy_a", "strategy_b"], ["problem_1", "problem_2", "problem_3"]
         )
 
         # 2 策略 × 3 问题 = 6 单元

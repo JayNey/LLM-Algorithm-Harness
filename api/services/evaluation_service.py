@@ -63,9 +63,7 @@ def _to_response(task: Evaluation) -> EvaluationResponse:
     )
 
 
-def _to_response_async(
-    evaluation: Evaluation, async_task: AsyncTask | None
-) -> EvaluationResponse:
+def _to_response_async(evaluation: Evaluation, async_task: AsyncTask | None) -> EvaluationResponse:
     """Convert Evaluation and AsyncTask to response, aggregating status.
 
     Used when evaluation has an associated async task. Aggregates:
@@ -95,7 +93,11 @@ def _to_response_async(
             error_message = async_task.error_message
 
     # Compute percentage for backwards compatibility
-    percentage = (evaluation.completed_count / evaluation.problem_count * 100) if evaluation.problem_count else 0
+    percentage = (
+        (evaluation.completed_count / evaluation.problem_count * 100)
+        if evaluation.problem_count
+        else 0
+    )
 
     return EvaluationResponse(
         evaluation_id=evaluation.id,
@@ -107,7 +109,8 @@ def _to_response_async(
         spent_usd=evaluation.spent_usd,
         budget_cap_usd=evaluation.budget_cap_usd,
         error_message=error_message,
-        progress=progress or ProgressInfo(
+        progress=progress
+        or ProgressInfo(
             current=evaluation.completed_count,
             total=evaluation.problem_count,
             message=None,
@@ -392,9 +395,7 @@ class EvaluationService:
                     pass
 
                 # Delete the AsyncTask record
-                session.query(AsyncTask).filter(
-                    AsyncTask.id == evaluation.async_task_id
-                ).delete()
+                session.query(AsyncTask).filter(AsyncTask.id == evaluation.async_task_id).delete()
 
             # Delete the Evaluation record
             session.delete(evaluation)
@@ -437,8 +438,10 @@ class EvaluationService:
                 (task.completed_count / task.problem_count * 100) if task.problem_count else 0
             )
             return ProgressInfo(
-                completed=task.completed_count,
+                current=task.completed_count,
                 total=task.problem_count,
+                message=None,
+                completed=task.completed_count,
                 percentage=percentage,
             )
 

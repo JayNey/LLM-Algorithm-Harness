@@ -53,8 +53,12 @@ class ProgressInfo(BaseModel):
     message: str | None = Field(None, description="Progress message")
 
     # Backwards compatibility fields (deprecated)
-    completed: int | None = Field(None, ge=0, description="[Deprecated] Number of completed problems")
-    percentage: float | None = Field(None, ge=0, le=100, description="[Deprecated] Progress percentage")
+    completed: int | None = Field(
+        None, ge=0, description="[Deprecated] Number of completed problems"
+    )
+    percentage: float | None = Field(
+        None, ge=0, le=100, description="[Deprecated] Progress percentage"
+    )
 
 
 class EvaluationResponse(BaseModel):
@@ -100,7 +104,9 @@ class AsyncTaskResponse(BaseModel):
     task_type: str = Field(..., description="Task type (e.g., evaluation, experiment)")
     entity_id: str = Field(..., description="Related entity ID (e.g., evaluation_id)")
     celery_task_id: str = Field(..., description="Celery task ID for tracking")
-    status: str = Field(..., description="Task status: pending|running|paused|completed|failed|cancelled")
+    status: str = Field(
+        ..., description="Task status: pending|running|paused|completed|failed|cancelled"
+    )
     progress: dict | None = Field(None, description="Task progress information")
     error_message: str | None = Field(None, description="Error message if failed")
     created_at: str = Field(..., description="ISO 8601 creation timestamp")

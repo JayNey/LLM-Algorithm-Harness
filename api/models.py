@@ -50,7 +50,9 @@ class AsyncTaskCreateRequest(BaseModel):
     )
     entity_id: str = Field(..., min_length=1, description="Related entity ID")
     celery_task_name: str = Field(
-        ..., min_length=1, description="Celery task name to execute (e.g., src.tasks.evaluation.run_evaluation_task)"
+        ...,
+        min_length=1,
+        description="Celery task name to execute (e.g., src.tasks.evaluation.run_evaluation_task)",
     )
     celery_task_args: list | None = Field(None, description="Positional arguments for Celery task")
     celery_task_kwargs: dict | None = Field(None, description="Keyword arguments for Celery task")

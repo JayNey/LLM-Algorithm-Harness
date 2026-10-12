@@ -80,9 +80,7 @@ class Evaluation(Base):
     failed_count: Mapped[int] = mapped_column(Integer, default=0)
     error_message: Mapped[str | None] = mapped_column(Text)
     async_task_id: Mapped[str | None] = mapped_column(
-        String(36),
-        ForeignKey("async_tasks.id", ondelete="SET NULL"),
-        index=True
+        String(36), ForeignKey("async_tasks.id", ondelete="SET NULL"), index=True
     )
     created_at: Mapped[datetime] = mapped_column(DateTime, default=utcnow)
     updated_at: Mapped[datetime] = mapped_column(DateTime, default=utcnow, onupdate=utcnow)

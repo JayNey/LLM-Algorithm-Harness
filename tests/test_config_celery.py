@@ -1,7 +1,6 @@
 """测试 Celery 配置设置。"""
 
 
-
 def test_settings_has_celery_broker_url():
     """测试 Settings 类包含 CELERY_BROKER_URL 配置。"""
     from api.config import Settings

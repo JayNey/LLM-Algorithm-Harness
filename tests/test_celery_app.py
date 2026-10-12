@@ -1,7 +1,6 @@
 """测试 Celery 应用配置。"""
 
 
-
 def test_celery_app_exists():
     """测试 Celery 应用实例可以被导入。"""
     from src.celery_app import celery_app

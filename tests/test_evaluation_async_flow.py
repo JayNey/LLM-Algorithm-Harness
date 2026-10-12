@@ -215,8 +215,9 @@ class TestPauseAndResume:
         db_session.add(async_task)
         db_session.commit()
 
-        with patch("src.task_manager.celery_app.AsyncResult"), pytest.raises(
-            ValueError, match="Can only pause running"
+        with (
+            patch("src.task_manager.celery_app.AsyncResult"),
+            pytest.raises(ValueError, match="Can only pause running"),
         ):
             task_manager.pause_task(async_task_id, test_user_id)
 
@@ -364,8 +365,9 @@ class TestErrorScenarios:
         db_session.add(async_task)
         db_session.commit()
 
-        with patch("src.task_manager.celery_app.AsyncResult"), pytest.raises(
-            ValueError, match="Cannot cancel completed"
+        with (
+            patch("src.task_manager.celery_app.AsyncResult"),
+            pytest.raises(ValueError, match="Cannot cancel completed"),
         ):
             task_manager.cancel_task(async_task_id, test_user_id)
 
@@ -417,9 +419,7 @@ class TestInvalidStatusTransitions:
         fetched = db_session.query(AsyncTask).filter_by(id=async_task_id).first()
         assert fetched.status == "running"
 
-    def test_pause_completed_task_fails(
-        self, task_manager, db_session, test_user_id
-    ):
+    def test_pause_completed_task_fails(self, task_manager, db_session, test_user_id):
         """测试暂停已完成任务失败."""
         async_task_id = str(uuid.uuid4())
 
@@ -434,8 +434,9 @@ class TestInvalidStatusTransitions:
         db_session.add(async_task)
         db_session.commit()
 
-        with patch("src.task_manager.celery_app.AsyncResult"), pytest.raises(
-            ValueError, match="Can only pause running"
+        with (
+            patch("src.task_manager.celery_app.AsyncResult"),
+            pytest.raises(ValueError, match="Can only pause running"),
         ):
             task_manager.pause_task(async_task_id, test_user_id)
 

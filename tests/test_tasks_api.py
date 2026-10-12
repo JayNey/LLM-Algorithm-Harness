@@ -116,8 +116,10 @@ class TestCancelTaskEndpoint:
         task.status = "running"
         db_session.commit()
 
-        with patch("src.task_manager.celery_app.AsyncResult"), \
-             patch("src.task_manager.celery_app.control.revoke") as mock_revoke:
+        with (
+            patch("src.task_manager.celery_app.AsyncResult"),
+            patch("src.task_manager.celery_app.control.revoke") as mock_revoke,
+        ):
             result = task_manager.cancel_task(task.id, task.user_id)
 
         assert result.status == "cancelled"
@@ -158,8 +160,10 @@ class TestPauseTaskEndpoint:
         """Test pausing a pending task (should fail)."""
         task = create_test_task(db_session, user_id="test-user-123")
 
-        with patch("src.task_manager.celery_app.AsyncResult"), \
-             pytest.raises(ValueError, match="Can only pause running tasks"):
+        with (
+            patch("src.task_manager.celery_app.AsyncResult"),
+            pytest.raises(ValueError, match="Can only pause running tasks"),
+        ):
             task_manager.pause_task(task.id, task.user_id)
 
 

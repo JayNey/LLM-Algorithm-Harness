@@ -56,7 +56,7 @@ class TestCreateTask:
                 user_id=user_id,
                 celery_task_name=celery_task_name,
                 celery_task_args=(entity_id,),
-                celery_task_kwargs={"user_id": user_id}
+                celery_task_kwargs={"user_id": user_id},
             )
 
         # Then: 任务已创建并保存到数据库
@@ -87,7 +87,7 @@ class TestGetTask:
             task_type="evaluation",
             entity_id=str(uuid.uuid4()),
             user_id=user_id,
-            status="completed"  # 使用 completed 状态避免同步 Celery
+            status="completed",  # 使用 completed 状态避免同步 Celery
         )
         db_session.add(task)
         db_session.commit()
@@ -111,7 +111,7 @@ class TestGetTask:
             task_type="evaluation",
             entity_id=str(uuid.uuid4()),
             user_id=owner_id,
-            status="completed"  # 使用 completed 状态避免同步 Celery
+            status="completed",  # 使用 completed 状态避免同步 Celery
         )
         db_session.add(task)
         db_session.commit()
@@ -140,7 +140,7 @@ class TestGetTask:
             task_type="evaluation",
             entity_id=str(uuid.uuid4()),
             user_id="user123",
-            status="running"
+            status="running",
         )
         db_session.add(task)
         db_session.commit()
@@ -173,7 +173,7 @@ class TestUpdateTaskProgress:
             task_type="evaluation",
             entity_id=str(uuid.uuid4()),
             user_id="user123",
-            status="running"
+            status="running",
         )
         db_session.add(task)
         db_session.commit()
@@ -201,7 +201,7 @@ class TestUpdateTaskStatus:
             task_type="evaluation",
             entity_id=str(uuid.uuid4()),
             user_id="user123",
-            status="running"
+            status="running",
         )
         db_session.add(task)
         db_session.commit()
@@ -224,7 +224,7 @@ class TestUpdateTaskStatus:
             task_type="evaluation",
             entity_id=str(uuid.uuid4()),
             user_id="user123",
-            status="running"
+            status="running",
         )
         db_session.add(task)
         db_session.commit()
@@ -254,7 +254,7 @@ class TestPauseTask:
             task_type="evaluation",
             entity_id=str(uuid.uuid4()),
             user_id=user_id,
-            status="running"
+            status="running",
         )
         db_session.add(task)
         db_session.commit()
@@ -280,7 +280,7 @@ class TestPauseTask:
             task_type="evaluation",
             entity_id=str(uuid.uuid4()),
             user_id=user_id,
-            status="completed"
+            status="completed",
         )
         db_session.add(task)
         db_session.commit()
@@ -305,14 +305,16 @@ class TestCancelTask:
             task_type="evaluation",
             entity_id=str(uuid.uuid4()),
             user_id=user_id,
-            status="running"
+            status="running",
         )
         db_session.add(task)
         db_session.commit()
 
         # Mock Celery revoke and state sync
-        with patch("src.task_manager.celery_app.control.revoke") as mock_revoke, \
-             patch.object(task_manager, "_sync_celery_state"):
+        with (
+            patch("src.task_manager.celery_app.control.revoke") as mock_revoke,
+            patch.object(task_manager, "_sync_celery_state"),
+        ):
             # When: 取消任务
             result = task_manager.cancel_task(task_id, user_id)
 
@@ -334,7 +336,7 @@ class TestCancelTask:
             task_type="evaluation",
             entity_id=str(uuid.uuid4()),
             user_id=user_id,
-            status="completed"
+            status="completed",
         )
         db_session.add(task)
         db_session.commit()
@@ -357,7 +359,7 @@ class TestListTasks:
             task_type="evaluation",
             entity_id=str(uuid.uuid4()),
             user_id=user_id,
-            status="completed"
+            status="completed",
         )
         task2 = AsyncTask(
             id=str(uuid.uuid4()),
@@ -365,7 +367,7 @@ class TestListTasks:
             task_type="evaluation",
             entity_id=str(uuid.uuid4()),
             user_id=user_id,
-            status="running"
+            status="running",
         )
         task3 = AsyncTask(
             id=str(uuid.uuid4()),
@@ -373,7 +375,7 @@ class TestListTasks:
             task_type="import",
             entity_id=str(uuid.uuid4()),
             user_id="other_user",
-            status="pending"
+            status="pending",
         )
         db_session.add_all([task1, task2, task3])
         db_session.commit()
@@ -400,7 +402,7 @@ class TestListTasks:
                 task_type="evaluation" if i % 2 == 0 else "import",
                 entity_id=str(uuid.uuid4()),
                 user_id=user_id,
-                status="running" if i % 3 == 0 else "completed"
+                status="running" if i % 3 == 0 else "completed",
             )
             for i in range(6)
         ]
@@ -408,20 +410,14 @@ class TestListTasks:
         db_session.commit()
 
         # When: 按 task_type 过滤
-        eval_tasks, eval_total = task_manager.list_tasks(
-            user_id=user_id,
-            task_type="evaluation"
-        )
+        eval_tasks, eval_total = task_manager.list_tasks(user_id=user_id, task_type="evaluation")
 
         # Then: 只返回 evaluation 类型的任务
         assert eval_total == 3
         assert all(t.task_type == "evaluation" for t in eval_tasks)
 
         # When: 按 status 过滤
-        running_tasks, running_total = task_manager.list_tasks(
-            user_id=user_id,
-            status="running"
-        )
+        running_tasks, running_total = task_manager.list_tasks(user_id=user_id, status="running")
 
         # Then: 只返回 running 状态的任务
         assert running_total == 2
@@ -438,7 +434,7 @@ class TestListTasks:
                 task_type="evaluation",
                 entity_id=str(uuid.uuid4()),
                 user_id=user_id,
-                status="completed"
+                status="completed",
             )
             for i in range(10)
         ]
@@ -446,16 +442,8 @@ class TestListTasks:
         db_session.commit()
 
         # When: 分页查询
-        page1_tasks, total = task_manager.list_tasks(
-            user_id=user_id,
-            limit=5,
-            offset=0
-        )
-        page2_tasks, _ = task_manager.list_tasks(
-            user_id=user_id,
-            limit=5,
-            offset=5
-        )
+        page1_tasks, total = task_manager.list_tasks(user_id=user_id, limit=5, offset=0)
+        page2_tasks, _ = task_manager.list_tasks(user_id=user_id, limit=5, offset=5)
 
         # Then: 正确分页
         assert total == 10

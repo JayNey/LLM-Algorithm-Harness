@@ -216,9 +216,7 @@ class TestCreateEvaluationWithAsyncTask:
             response = service.create_evaluation_async(create_request, test_user_id)
 
         # Then: Evaluation should have async_task_id
-        evaluation = test_db_session.query(Evaluation).filter_by(
-            user_id=test_user_id
-        ).first()
+        evaluation = test_db_session.query(Evaluation).filter_by(user_id=test_user_id).first()
         assert evaluation is not None
         assert evaluation.async_task_id is not None
 
@@ -236,9 +234,7 @@ class TestGetEvaluationAggregatesStatus:
         service._session_factory = lambda: test_db_session
 
         # When: Get evaluation
-        response = service.get_evaluation_async(
-            evaluation_with_task["evaluation_id"], test_user_id
-        )
+        response = service.get_evaluation_async(evaluation_with_task["evaluation_id"], test_user_id)
 
         # Then: Status should be from AsyncTask
         assert response.status == "pending"
@@ -257,9 +253,7 @@ class TestGetEvaluationAggregatesStatus:
         test_db_session.commit()
 
         # When: Get evaluation
-        response = service.get_evaluation_async(
-            evaluation_with_task["evaluation_id"], test_user_id
-        )
+        response = service.get_evaluation_async(evaluation_with_task["evaluation_id"], test_user_id)
 
         # Then: Status should be running
         assert response.status == "running"
@@ -283,9 +277,7 @@ class TestGetEvaluationAggregatesStatus:
         test_db_session.commit()
 
         # When: Get evaluation
-        response = service.get_evaluation_async(
-            evaluation_with_task["evaluation_id"], test_user_id
-        )
+        response = service.get_evaluation_async(evaluation_with_task["evaluation_id"], test_user_id)
 
         # Then: Progress should be included
         assert response.progress is not None
@@ -321,9 +313,7 @@ class TestPauseEvaluation:
             mock_task_mgr.pause_task.return_value = paused_task
 
             # When: Pause evaluation
-            response = service.pause_evaluation(
-                evaluation_with_task["evaluation_id"], test_user_id
-            )
+            response = service.pause_evaluation(evaluation_with_task["evaluation_id"], test_user_id)
 
         # Then: Task should be paused in response
         assert response.status == "paused"
@@ -345,13 +335,9 @@ class TestPauseEvaluation:
 
             # When/Then: Pause evaluation should fail (task is pending, not running)
             with pytest.raises(ValueError, match="Can only pause running"):
-                service.pause_evaluation(
-                    evaluation_with_task["evaluation_id"], test_user_id
-                )
+                service.pause_evaluation(evaluation_with_task["evaluation_id"], test_user_id)
 
-    def test_pause_evaluation_fails_if_no_async_task(
-        self, test_db_session, test_user_id
-    ):
+    def test_pause_evaluation_fails_if_no_async_task(self, test_db_session, test_user_id):
         """Verify pause_evaluation fails if evaluation has no AsyncTask."""
         from api.services.evaluation_service import EvaluationService
 
@@ -418,9 +404,11 @@ class TestResumeEvaluation:
             )
 
         # Then: Evaluation should link to new task
-        evaluation = test_db_session.query(Evaluation).filter_by(
-            id=evaluation_with_task["evaluation_id"]
-        ).first()
+        evaluation = (
+            test_db_session.query(Evaluation)
+            .filter_by(id=evaluation_with_task["evaluation_id"])
+            .first()
+        )
         assert evaluation.async_task_id == new_async_task.id
 
     def test_resume_evaluation_updates_evaluation_status(
@@ -460,9 +448,11 @@ class TestResumeEvaluation:
             )
 
         # Then: Evaluation status should be pending
-        evaluation = test_db_session.query(Evaluation).filter_by(
-            id=evaluation_with_task["evaluation_id"]
-        ).first()
+        evaluation = (
+            test_db_session.query(Evaluation)
+            .filter_by(id=evaluation_with_task["evaluation_id"])
+            .first()
+        )
         assert evaluation.status == "pending"
 
 
@@ -483,9 +473,7 @@ class TestDeleteEvaluation:
             MockTaskManager.return_value = mock_task_mgr
 
             # When: Delete evaluation
-            service.delete_evaluation_async(
-                evaluation_with_task["evaluation_id"], test_user_id
-            )
+            service.delete_evaluation_async(evaluation_with_task["evaluation_id"], test_user_id)
 
         # Then: cancel_task should have been called
         mock_task_mgr.cancel_task.assert_called_once()
@@ -509,9 +497,7 @@ class TestDeleteEvaluation:
             service.delete_evaluation_async(evaluation_id, test_user_id)
 
         # Then: Evaluation should be deleted
-        evaluation = test_db_session.query(Evaluation).filter_by(
-            id=evaluation_id
-        ).first()
+        evaluation = test_db_session.query(Evaluation).filter_by(id=evaluation_id).first()
         assert evaluation is None
 
     def test_delete_evaluation_fails_for_non_existent_evaluation(
@@ -531,9 +517,7 @@ class TestDeleteEvaluation:
 class TestErrorHandling:
     """Test error handling and edge cases."""
 
-    def test_get_evaluation_fails_for_non_existent_evaluation(
-        self, test_db_session, test_user_id
-    ):
+    def test_get_evaluation_fails_for_non_existent_evaluation(self, test_db_session, test_user_id):
         """Verify get_evaluation raises error for non-existent evaluation."""
         from api.services.evaluation_service import EvaluationService
 
@@ -555,6 +539,4 @@ class TestErrorHandling:
 
         # When/Then: Get should fail for different user
         with pytest.raises(ValueError, match="not found"):
-            service.get_evaluation_async(
-                evaluation_with_task["evaluation_id"], "different-user"
-            )
+            service.get_evaluation_async(evaluation_with_task["evaluation_id"], "different-user")
