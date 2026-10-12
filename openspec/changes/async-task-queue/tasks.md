@@ -12,11 +12,11 @@
 - [x] 执行数据库迁移
 
 ## 3. Celery 任务定义
-- [ ] 实现 `run_evaluation_task` Celery 任务
-- [ ] 实现 `run_experiment_task` Celery 任务
-- [ ] 实现 `run_import_task` Celery 任务
-- [ ] 实现 `run_benchmark_task` Celery 任务
-- [ ] 添加任务进度报告机制（update_state）
+- [x] 实现 `run_evaluation_task` Celery 任务
+- [x] 实现 `run_experiment_task` Celery 任务
+- [x] 实现 `run_import_task` Celery 任务
+- [x] 实现 `run_benchmark_task` Celery 任务
+- [x] 添加任务进度报告机制（update_state）
 
 ## 4. API 端点实现
 - [ ] 创建 `src/api/routers/tasks.py` 路由模块
