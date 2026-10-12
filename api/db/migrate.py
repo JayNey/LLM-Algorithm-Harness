@@ -1,9 +1,7 @@
 """Programmatic Alembic entry points for the business database.
 
 The application runs ``run_migrations`` on startup, so no alembic.ini is
-required; the command-line equivalent is::
-
-    alembic -c api/db/alembic.ini upgrade head
+required; use the helpers in this module instead.
 """
 
 from __future__ import annotations
@@ -21,7 +19,9 @@ SCRIPT_LOCATION = Path(__file__).resolve().parent / "migrations"
 def _alembic_config(database_url: str) -> Config:
     cfg = Config()
     cfg.set_main_option("script_location", str(SCRIPT_LOCATION))
-    cfg.set_main_option("sqlalchemy.url", database_url)
+    # set_main_option goes through configparser interpolation, which treats
+    # '%' as a marker — percent-encoded passwords in URLs must be doubled.
+    cfg.set_main_option("sqlalchemy.url", database_url.replace("%", "%%"))
     return cfg
 
 

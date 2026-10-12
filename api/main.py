@@ -52,6 +52,7 @@ def create_app(
             cleaner.cancel()
             with suppress(asyncio.CancelledError):
                 await cleaner
+            app.state.evaluations.close()
 
     app = FastAPI(
         title="LLM Algorithm Harness API",

@@ -157,14 +157,23 @@ class EvaluationService:
     def delete_evaluation(
         self, evaluation_id: str, owner_id: str, cleanup: Callable[[], None] | None = None
     ) -> None:
-        """Delete evaluation task (pending or completed only)."""
+        """Delete evaluation task (pending or completed only).
+
+        Cleanup runs before the row is removed, matching the original
+        in-memory semantics: a cleanup failure leaves the row intact so the
+        client can retry instead of orphaning associated records.
+        """
+        with self._session() as session, session.begin():
+            task = self._owned_task(session, evaluation_id, owner_id)
+            if task.status not in ("pending", "completed", "cancelled"):
+                raise ValueError(f"Cannot delete task in {task.status} status")
+        if cleanup:
+            cleanup()
         with self._session() as session, session.begin():
             task = self._owned_task(session, evaluation_id, owner_id)
             if task.status not in ("pending", "completed", "cancelled"):
                 raise ValueError(f"Cannot delete task in {task.status} status")
             session.delete(task)
-        if cleanup:
-            cleanup()
 
     # -- lifecycle -----------------------------------------------------------
 
@@ -249,7 +258,7 @@ class EvaluationService:
     def _record_tick(self, evaluation_id: str, index: int, problem_count: int) -> str:
         """Persist one execution tick; return the task status after the write."""
         with self._session() as session, session.begin():
-            task = session.get(Evaluation, evaluation_id)
+            task = session.get(Evaluation, evaluation_id, with_for_update=True)
             if task is None:
                 return "failed"
             if task.status == "running":
@@ -258,6 +267,10 @@ class EvaluationService:
                 task.updated_at = utcnow()
             return task.status
 
+    def close(self) -> None:
+        """Release pooled connections (lifespan shutdown hygiene)."""
+        self._engine.dispose()
+
     def _spent_of(self, evaluation_id: str) -> float:
         with self._session() as session:
             task = session.get(Evaluation, evaluation_id)
@@ -265,7 +278,7 @@ class EvaluationService:
 
     def _finish(self, evaluation_id: str, status: str, error_message: str | None) -> None:
         with self._session() as session, session.begin():
-            task = session.get(Evaluation, evaluation_id)
+            task = session.get(Evaluation, evaluation_id, with_for_update=True)
             if task is None or task.status not in ("pending", "running"):
                 return
             task.status = status
@@ -275,7 +288,7 @@ class EvaluationService:
 
     def _fail(self, evaluation_id: str, message: str) -> None:
         with self._session() as session, session.begin():
-            task = session.get(Evaluation, evaluation_id)
+            task = session.get(Evaluation, evaluation_id, with_for_update=True)
             if task is None or task.status in _TERMINAL_STATUSES:
                 return
             task.status = "failed"

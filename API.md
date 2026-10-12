@@ -110,6 +110,7 @@ POST /api/v1/evaluations
     "problem_count": 3,
     "spent_usd": 0.0,
     "budget_cap_usd": 10.0,
+    "error_message": null,
     "progress": {
       "completed": 0,
       "total": 3,
@@ -292,7 +293,13 @@ export API_HOST=0.0.0.0
 export API_PORT=8000
 export MAX_CONCURRENT_TASKS=5
 export TASK_TIMEOUT_SECONDS=3600
+export DATABASE_URL=sqlite:///data/business/business.sqlite3
 ```
+
+`DATABASE_URL` 指向业务数据库（评估任务、结果与题库）。默认使用本地 SQLite 文件
+`data/business/business.sqlite3`，schema 由 Alembic 迁移在启动时自动升级；生产环境可
+切换为 PostgreSQL 连接串（如 `postgresql+psycopg://user:pass@host/business`）。认证
+数据独立存储在 `AUTH_DATABASE_PATH`，与业务库物理隔离。
 
 或在 `.env` 文件中设置。
 
