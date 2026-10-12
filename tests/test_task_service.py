@@ -153,48 +153,52 @@ def test_budget_pause_preserves_queued_units_and_resume_does_not_dispatch(tmp_pa
 
 
 def test_parallel_execution_with_different_max_workers(tmp_path):
-    """Test that parallel execution scales with max_workers configuration."""
+    """max_workers must actually dispatch units concurrently.
+
+    Concurrency is observed with a thread-safe peak counter instead of a
+    wall-clock speedup ratio: timing assertions went red whenever a loaded
+    CI runner (notably windows-latest) compressed the sleep windows, which
+    repeatedly failed unrelated PRs. A serialized pool keeps the peak at 1,
+    so the new assertions still fail if concurrent dispatch regresses.
+    """
     service = TaskService(tmp_path / "tasks")
+    lock = threading.Lock()
 
-    # Test with max_workers=1 (serial execution)
-    record_serial = service.create(
-        units=_units(4),
-        config_fingerprint="config-a",
-        dataset_fingerprint="data-a",
-        run_id="run-serial",
-    )
-    start_serial = time.time()
-    service.run(
-        record_serial.run_id,
-        lambda unit: time.sleep(0.05) or {"status": "success"},
-        max_workers=1,
-        config_fingerprint="config-a",
-        dataset_fingerprint="data-a",
-    )
-    duration_serial = time.time() - start_serial
+    def _run(run_id, max_workers, peak):
+        current = [0]
 
-    # Test with max_workers=4 (parallel execution)
-    record_parallel = service.create(
-        units=_units(4),
-        config_fingerprint="config-a",
-        dataset_fingerprint="data-a",
-        run_id="run-parallel",
-    )
-    start_parallel = time.time()
-    service.run(
-        record_parallel.run_id,
-        lambda unit: time.sleep(0.05) or {"status": "success"},
-        max_workers=4,
-        config_fingerprint="config-a",
-        dataset_fingerprint="data-a",
-    )
-    duration_parallel = time.time() - start_parallel
+        def worker(unit):
+            with lock:
+                current[0] += 1
+                peak[0] = max(peak[0], current[0])
+            time.sleep(0.05)
+            with lock:
+                current[0] -= 1
+            return {"status": "success"}
 
-    # Parallel execution should be faster than serial execution.
-    # We use a conservative speedup factor (1.5x instead of 2x) to account for
-    # thread overhead and CI environment variability. The key behavior being
-    # tested is that max_workers actually enables concurrent execution.
-    assert duration_parallel < duration_serial / 1.5
+        record = service.create(
+            units=_units(4),
+            config_fingerprint="config-a",
+            dataset_fingerprint="data-a",
+            run_id=run_id,
+        )
+        finished = service.run(
+            record.run_id,
+            worker,
+            max_workers=max_workers,
+            config_fingerprint="config-a",
+            dataset_fingerprint="data-a",
+        )
+        assert finished.state == "completed"
+        assert all(unit.status == "completed" for unit in finished.units)
+
+    serial_peak = [0]
+    _run("run-serial", 1, serial_peak)
+    assert serial_peak[0] == 1  # serial mode never overlaps units
+
+    parallel_peak = [0]
+    _run("run-parallel", 4, parallel_peak)
+    assert parallel_peak[0] >= 2  # concurrent dispatch actually happens
 
 
 def test_thread_safe_cost_tracking(tmp_path):
