@@ -47,6 +47,14 @@ def create_app(
 
     @asynccontextmanager
     async def lifespan(app: FastAPI):
+        from api.db.engine import make_engine, make_session_factory, set_session_factory, business_database_url
+
+        # Initialize database session factory
+        db_url = database_url or business_database_url()
+        engine = make_engine(db_url)
+        session_factory = make_session_factory(engine)
+        set_session_factory(session_factory)
+
         app.state.auth = AuthService(auth_settings or AuthSettings())
         app.state.evaluations = EvaluationService(database_url)
         app.state.experiments = ExperimentService(
@@ -83,6 +91,7 @@ def create_app(
             with suppress(asyncio.CancelledError):
                 await cleaner
             app.state.evaluations.close()
+            engine.dispose()
 
     app = FastAPI(
         title="LLM Algorithm Harness API",

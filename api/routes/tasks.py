@@ -192,17 +192,22 @@ def resume_task(
     if task.status != "paused":
         raise HTTPException(400, "Can only resume paused tasks")
 
-    # Update task status to running
+    # Create new Celery task to resume execution
     from src.task_manager import celery_app
 
-    task.status = "running"
-    if task.started_at is None:
-        task.started_at = datetime.now(timezone.utc).replace(tzinfo=None)
-    manager.db.commit()
+    new_task = call(
+        lambda: manager.create_task(
+            task_type=task.task_type,
+            entity_id=task.entity_id,
+            user_id=principal.user_id,
+            celery_task_name=task.celery_task_name or "src.tasks.evaluation.run_evaluation_task",
+            celery_task_args=task.celery_task_args or (task.entity_id,),
+        )
+    )
 
     return ApiResponse(
         success=True,
-        data=task_to_response(task),
+        data=task_to_response(new_task),
         message="Task resumed successfully",
     )
 
