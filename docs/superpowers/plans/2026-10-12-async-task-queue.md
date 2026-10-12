@@ -49,7 +49,7 @@ base-ref: fa79b5a684b55d5f5b873bd470b861bf351c8314
 
 **实现步骤**：
 
-- [ ] **步骤 1: 添加依赖**
+- [x] **步骤 1: 添加依赖**
 
 修改 `requirements.txt` 或 `pyproject.toml`，添加：
 
@@ -58,7 +58,7 @@ celery[redis]>=5.3.0
 redis>=5.0.0
 ```
 
-- [ ] **步骤 2: 安装依赖**
+- [x] **步骤 2: 安装依赖**
 
 ```bash
 pip install celery[redis]>=5.3.0 redis>=5.0.0
@@ -66,7 +66,7 @@ pip install celery[redis]>=5.3.0 redis>=5.0.0
 
 预期：安装成功，无错误
 
-- [ ] **步骤 3: 创建 Celery 应用配置**
+- [x] **步骤 3: 创建 Celery 应用配置**
 
 创建 `src/celery_app.py`：
 
@@ -124,7 +124,7 @@ celery_app.autodiscover_tasks(["src.tasks"])
 configure_celery()
 ```
 
-- [ ] **步骤 4: 添加配置到 api/config.py**
+- [x] **步骤 4: 添加配置到 api/config.py**
 
 在 `api/config.py` 的 `Settings` 类中添加：
 
@@ -137,7 +137,7 @@ CELERY_RESULT_BACKEND: str = "redis://localhost:6379/0"
 TASK_SERVICE_ROOT: str = "./data/tasks"
 ```
 
-- [ ] **步骤 5: 更新 .env.example**
+- [x] **步骤 5: 更新 .env.example**
 
 在 `.env.example` 中添加（如文件不存在则创建）：
 
@@ -150,7 +150,7 @@ CELERY_RESULT_BACKEND=redis://localhost:6379/0
 TASK_SERVICE_ROOT=./data/tasks
 ```
 
-- [ ] **步骤 6: 创建 worker 启动脚本**
+- [x] **步骤 6: 创建 worker 启动脚本**
 
 创建 `scripts/start_worker.sh`：
 
@@ -168,13 +168,13 @@ celery -A src.celery_app worker \
     --hostname=worker@%h
 ```
 
-- [ ] **步骤 7: 赋予启动脚本执行权限**
+- [x] **步骤 7: 赋予启动脚本执行权限**
 
 ```bash
 chmod +x scripts/start_worker.sh
 ```
 
-- [ ] **步骤 8: 验证配置**
+- [x] **步骤 8: 验证配置**
 
 ```bash
 python -c "from src.celery_app import celery_app; print(celery_app.conf.broker_url)"
@@ -182,7 +182,7 @@ python -c "from src.celery_app import celery_app; print(celery_app.conf.broker_u
 
 预期：输出 `redis://localhost:6379/0`（或配置的 URL）
 
-- [ ] **步骤 9: 提交**
+- [x] **步骤 9: 提交**
 
 ```bash
 git add requirements.txt src/celery_app.py api/config.py .env.example scripts/start_worker.sh
@@ -208,7 +208,7 @@ git commit -m "feat: add Celery基础设施配置"
 
 **实现步骤**：
 
-- [ ] **步骤 1: 写失败测试**
+- [x] **步骤 1: 写失败测试**
 
 创建 `tests/test_async_task_model.py`：
 
@@ -250,7 +250,7 @@ def test_create_async_task(db_session):
     assert retrieved.status == "pending"
 ```
 
-- [ ] **步骤 2: 运行测试验证失败**
+- [x] **步骤 2: 运行测试验证失败**
 
 ```bash
 pytest tests/test_async_task_model.py::test_create_async_task -v
@@ -258,7 +258,7 @@ pytest tests/test_async_task_model.py::test_create_async_task -v
 
 预期：FAIL，`ImportError: cannot import name 'AsyncTask'`
 
-- [ ] **步骤 3: 添加 AsyncTask 模型**
+- [x] **步骤 3: 添加 AsyncTask 模型**
 
 在 `api/db/models.py` 中添加：
 
@@ -284,7 +284,7 @@ class AsyncTask(Base):
     updated_at: Mapped[datetime] = mapped_column(DateTime, default=utcnow, onupdate=utcnow)
 ```
 
-- [ ] **步骤 4: 修改 Evaluation 模型添加外键**
+- [x] **步骤 4: 修改 Evaluation 模型添加外键**
 
 在 `Evaluation` 类中添加：
 
@@ -296,11 +296,11 @@ async_task_id: Mapped[str | None] = mapped_column(
 )
 ```
 
-- [ ] **步骤 5: 更新 api/db/__init__.py 导出**
+- [x] **步骤 5: 更新 api/db/__init__.py 导出**
 
 在 `__all__` 列表中添加 `"AsyncTask"`
 
-- [ ] **步骤 6: 运行测试验证通过**
+- [x] **步骤 6: 运行测试验证通过**
 
 ```bash
 pytest tests/test_async_task_model.py::test_create_async_task -v
@@ -308,7 +308,7 @@ pytest tests/test_async_task_model.py::test_create_async_task -v
 
 预期：PASS
 
-- [ ] **步骤 7: 生成 Alembic migration**
+- [x] **步骤 7: 生成 Alembic migration**
 
 ```bash
 alembic revision --autogenerate -m "add async_tasks table"
@@ -316,7 +316,7 @@ alembic revision --autogenerate -m "add async_tasks table"
 
 预期：生成新的 migration 文件
 
-- [ ] **步骤 8: 检查生成的 migration**
+- [x] **步骤 8: 检查生成的 migration**
 
 打开生成的 `api/db/migrations/versions/aXXXX_add_async_tasks.py`，确认包含：
 - 创建 `async_tasks` 表
@@ -324,7 +324,7 @@ alembic revision --autogenerate -m "add async_tasks table"
 - 创建外键约束
 - 创建索引
 
-- [ ] **步骤 9: 执行 migration（开发环境）**
+- [x] **步骤 9: 执行 migration（开发环境）**
 
 ```bash
 alembic upgrade head
@@ -332,7 +332,7 @@ alembic upgrade head
 
 预期：成功执行，数据库包含 `async_tasks` 表
 
-- [ ] **步骤 10: 提交**
+- [x] **步骤 10: 提交**
 
 ```bash
 git add api/db/models.py api/db/__init__.py api/db/migrations/versions/*.py tests/test_async_task_model.py
@@ -364,7 +364,7 @@ git commit -m "feat: add AsyncTask数据库模型和migration"
 
 **实现步骤**：
 
-- [ ] **步骤 1: 写失败测试**
+- [x] **步骤 1: 写失败测试**
 
 创建 `tests/test_task_manager.py`：
 
@@ -412,7 +412,7 @@ def test_create_task(task_manager, mocker):
     assert task.status == "pending"
 ```
 
-- [ ] **步骤 2: 运行测试验证失败**
+- [x] **步骤 2: 运行测试验证失败**
 
 ```bash
 pytest tests/test_task_manager.py::test_create_task -v
@@ -420,7 +420,7 @@ pytest tests/test_task_manager.py::test_create_task -v
 
 预期：FAIL，`ImportError: cannot import name 'TaskManager'`
 
-- [ ] **步骤 3: 实现 TaskManager 基础结构**
+- [x] **步骤 3: 实现 TaskManager 基础结构**
 
 创建 `src/task_manager.py`（前50行）：
 
@@ -477,7 +477,7 @@ class TaskManager:
         self.db.flush()
 ```
 
-- [ ] **步骤 4: 实现 create_task Celery 提交部分**
+- [x] **步骤 4: 实现 create_task Celery 提交部分**
 
 继续在 `src/task_manager.py` 中的 `create_task` 方法：
 
@@ -496,7 +496,7 @@ class TaskManager:
         return task
 ```
 
-- [ ] **步骤 5: 运行测试验证 create_task**
+- [x] **步骤 5: 运行测试验证 create_task**
 
 ```bash
 pytest tests/test_task_manager.py::test_create_task -v
@@ -504,7 +504,7 @@ pytest tests/test_task_manager.py::test_create_task -v
 
 预期：PASS
 
-- [ ] **步骤 6: 实现 get_task 方法**
+- [x] **步骤 6: 实现 get_task 方法**
 
 在 `TaskManager` 类中添加：
 
@@ -552,7 +552,7 @@ pytest tests/test_task_manager.py::test_create_task -v
             logger.warning(f"Failed to sync Celery state for task {task.id}: {exc}")
 ```
 
-- [ ] **步骤 7: 实现 update_task_progress 和 update_task_status**
+- [x] **步骤 7: 实现 update_task_progress 和 update_task_status**
 
 在 `TaskManager` 类中添加：
 
@@ -605,7 +605,7 @@ pytest tests/test_task_manager.py::test_create_task -v
         self.db.commit()
 ```
 
-- [ ] **步骤 8: 实现 pause_task 和 cancel_task**
+- [x] **步骤 8: 实现 pause_task 和 cancel_task**
 
 在 `TaskManager` 类中添加：
 
@@ -643,7 +643,7 @@ pytest tests/test_task_manager.py::test_create_task -v
         return task
 ```
 
-- [ ] **步骤 9: 实现 list_tasks**
+- [x] **步骤 9: 实现 list_tasks**
 
 在 `TaskManager` 类中添加：
 
@@ -670,7 +670,7 @@ pytest tests/test_task_manager.py::test_create_task -v
         return tasks, total
 ```
 
-- [ ] **步骤 10: 添加更多单元测试**
+- [x] **步骤 10: 添加更多单元测试**
 
 在 `tests/test_task_manager.py` 中添加：
 
@@ -710,7 +710,7 @@ def test_pause_task(task_manager, db_session):
     assert paused.status == "paused"
 ```
 
-- [ ] **步骤 11: 运行所有测试**
+- [x] **步骤 11: 运行所有测试**
 
 ```bash
 pytest tests/test_task_manager.py -v
@@ -718,7 +718,7 @@ pytest tests/test_task_manager.py -v
 
 预期：所有测试 PASS
 
-- [ ] **步骤 12: 提交**
+- [x] **步骤 12: 提交**
 
 ```bash
 git add src/task_manager.py tests/test_task_manager.py
@@ -749,7 +749,7 @@ git commit -m "feat: add TaskManager抽象层"
 
 **实现步骤**：
 
-- [ ] **步骤 1: 创建 tasks 模块**
+- [x] **步骤 1: 创建 tasks 模块**
 
 创建 `src/tasks/__init__.py`：
 
@@ -757,7 +757,7 @@ git commit -m "feat: add TaskManager抽象层"
 """Celery tasks for async execution."""
 ```
 
-- [ ] **步骤 2: 写失败测试**
+- [x] **步骤 2: 写失败测试**
 
 创建 `tests/test_celery_tasks.py`：
 
@@ -802,7 +802,7 @@ def test_run_evaluation_task_success(mocker):
     assert result["status"] == "completed"
 ```
 
-- [ ] **步骤 3: 运行测试验证失败**
+- [x] **步骤 3: 运行测试验证失败**
 
 ```bash
 pytest tests/test_celery_tasks.py::test_run_evaluation_task_success -v
@@ -810,7 +810,7 @@ pytest tests/test_celery_tasks.py::test_run_evaluation_task_success -v
 
 预期：FAIL，`ImportError: cannot import name 'run_evaluation_task'`
 
-- [ ] **步骤 4: 实现任务基础结构**
+- [x] **步骤 4: 实现任务基础结构**
 
 创建 `src/tasks/evaluation.py`（基础部分）：
 
@@ -914,7 +914,7 @@ def run_evaluation_task(self, evaluation_id: str) -> dict[str, Any]:
         db.close()
 ```
 
-- [ ] **步骤 5: 实现任务单元创建**
+- [x] **步骤 5: 实现任务单元创建**
 
 在 `src/tasks/evaluation.py` 中添加辅助函数：
 
@@ -950,7 +950,7 @@ def _build_evaluation_config(evaluation: Evaluation) -> dict:
     }
 ```
 
-- [ ] **步骤 6: 实现 TaskService 集成**
+- [x] **步骤 6: 实现 TaskService 集成**
 
 在 `run_evaluation_task` 中替换 TODO 部分：
 
@@ -1055,7 +1055,7 @@ def _build_evaluation_config(evaluation: Evaluation) -> dict:
         }
 ```
 
-- [ ] **步骤 7: 运行测试**
+- [x] **步骤 7: 运行测试**
 
 ```bash
 pytest tests/test_celery_tasks.py::test_run_evaluation_task_success -v
@@ -1063,7 +1063,7 @@ pytest tests/test_celery_tasks.py::test_run_evaluation_task_success -v
 
 预期：PASS
 
-- [ ] **步骤 8: 提交**
+- [x] **步骤 8: 提交**
 
 ```bash
 git add src/tasks/ tests/test_celery_tasks.py
@@ -1092,7 +1092,7 @@ git commit -m "feat: add Celery评估任务实现"
 
 **实现步骤**：
 
-- [ ] **步骤 1: 添加 ProgressInfo schema**
+- [x] **步骤 1: 添加 ProgressInfo schema**
 
 在 `api/schemas.py` 中添加：
 
@@ -1104,7 +1104,7 @@ class ProgressInfo(BaseModel):
     message: str | None = None
 ```
 
-- [ ] **步骤 2: 修改 EvaluationResponse schema**
+- [x] **步骤 2: 修改 EvaluationResponse schema**
 
 在 `api/schemas.py` 的 `EvaluationResponse` 中添加：
 
@@ -1112,7 +1112,7 @@ class ProgressInfo(BaseModel):
 progress: ProgressInfo | None = None  # 实时进度
 ```
 
-- [ ] **步骤 3: 改造 create_evaluation**
+- [x] **步骤 3: 改造 create_evaluation**
 
 在 `api/services/evaluations.py` 中修改 `create_evaluation` 方法：
 
@@ -1158,7 +1158,7 @@ def create_evaluation(
         db.close()
 ```
 
-- [ ] **步骤 4: 改造 get_evaluation**
+- [x] **步骤 4: 改造 get_evaluation**
 
 修改 `get_evaluation` 方法以聚合 AsyncTask 状态：
 
@@ -1187,7 +1187,7 @@ def get_evaluation(self, evaluation_id: str, user_id: str) -> EvaluationResponse
         db.close()
 ```
 
-- [ ] **步骤 5: 实现 _to_response 辅助方法**
+- [x] **步骤 5: 实现 _to_response 辅助方法**
 
 在 `EvaluationService` 类中添加：
 
@@ -1228,7 +1228,7 @@ def _to_response(evaluation: Evaluation, async_task: AsyncTask | None) -> Evalua
     )
 ```
 
-- [ ] **步骤 6: 实现 pause_evaluation**
+- [x] **步骤 6: 实现 pause_evaluation**
 
 在 `EvaluationService` 类中添加：
 
@@ -1257,7 +1257,7 @@ def pause_evaluation(self, evaluation_id: str, user_id: str) -> EvaluationRespon
         db.close()
 ```
 
-- [ ] **步骤 7: 实现 resume_evaluation**
+- [x] **步骤 7: 实现 resume_evaluation**
 
 在 `EvaluationService` 类中添加：
 
@@ -1302,7 +1302,7 @@ def resume_evaluation(self, evaluation_id: str, user_id: str) -> EvaluationRespo
         db.close()
 ```
 
-- [ ] **步骤 8: 改造 delete_evaluation**
+- [x] **步骤 8: 改造 delete_evaluation**
 
 修改 `delete_evaluation` 方法以包含任务取消：
 
@@ -1342,7 +1342,7 @@ def delete_evaluation(self, evaluation_id: str, user_id: str) -> None:
         db.close()
 ```
 
-- [ ] **步骤 9: 添加必要的导入**
+- [x] **步骤 9: 添加必要的导入**
 
 在 `api/services/evaluations.py` 顶部添加：
 
@@ -1353,7 +1353,7 @@ from api.config import settings
 from src.task_manager import TaskManager
 ```
 
-- [ ] **步骤 10: 提交**
+- [x] **步骤 10: 提交**
 
 ```bash
 git add api/services/evaluations.py api/schemas.py
@@ -1377,7 +1377,7 @@ git commit -m "feat: 改造EvaluationService支持异步任务"
 
 **实现步骤**：
 
-- [ ] **步骤 1: 添加 pause 端点**
+- [x] **步骤 1: 添加 pause 端点**
 
 在 `api/routes/evaluations.py` 中添加：
 
@@ -1395,7 +1395,7 @@ def pause_evaluation(
     return ApiResponse(success=True, data=result, message="Evaluation pause requested")
 ```
 
-- [ ] **步骤 2: 添加 resume 端点**
+- [x] **步骤 2: 添加 resume 端点**
 
 在 `api/routes/evaluations.py` 中添加：
 
@@ -1413,7 +1413,7 @@ def resume_evaluation(
     return ApiResponse(success=True, data=result, message="Evaluation resumed")
 ```
 
-- [ ] **步骤 3: 更新 create_evaluation 文档字符串**
+- [x] **步骤 3: 更新 create_evaluation 文档字符串**
 
 修改 `create_evaluation` 的文档字符串：
 
@@ -1429,7 +1429,7 @@ def create_evaluation(
     """
 ```
 
-- [ ] **步骤 4: 测试端点（手动或集成测试）**
+- [x] **步骤 4: 测试端点（手动或集成测试）**
 
 启动 API 服务并测试：
 
@@ -1444,7 +1444,7 @@ docker run -d --name redis -p 6379:6379 redis:7-alpine
 uvicorn api.main:app --reload
 ```
 
-- [ ] **步骤 5: 提交**
+- [x] **步骤 5: 提交**
 
 ```bash
 git add api/routes/evaluations.py
@@ -1464,7 +1464,7 @@ git commit -m "feat: 添加pause和resume API端点"
 
 **实现步骤**：
 
-- [ ] **步骤 1: 创建集成测试框架**
+- [x] **步骤 1: 创建集成测试框架**
 
 创建 `tests/test_evaluation_async_flow.py`：
 
@@ -1496,7 +1496,7 @@ def auth_token(client):
     return response.json()["data"]["token"]
 ```
 
-- [ ] **步骤 2: 测试创建和轮询流程**
+- [x] **步骤 2: 测试创建和轮询流程**
 
 在 `tests/test_evaluation_async_flow.py` 中添加：
 
@@ -1536,7 +1536,7 @@ def test_create_and_poll_evaluation(client, auth_token):
     assert data["status"] in ["completed", "failed"]
 ```
 
-- [ ] **步骤 3: 测试暂停和恢复**
+- [x] **步骤 3: 测试暂停和恢复**
 
 在 `tests/test_evaluation_async_flow.py` 中添加：
 
@@ -1581,7 +1581,7 @@ def test_pause_and_resume_evaluation(client, auth_token):
     assert response.status_code == 200
 ```
 
-- [ ] **步骤 4: 运行集成测试**
+- [x] **步骤 4: 运行集成测试**
 
 ```bash
 pytest tests/test_evaluation_async_flow.py -v
@@ -1589,7 +1589,7 @@ pytest tests/test_evaluation_async_flow.py -v
 
 预期：测试通过（需要 Redis 运行）
 
-- [ ] **步骤 5: 提交**
+- [x] **步骤 5: 提交**
 
 ```bash
 git add tests/test_evaluation_async_flow.py
@@ -1610,7 +1610,7 @@ git commit -m "test: 添加异步评估流程集成测试"
 
 **实现步骤**：
 
-- [ ] **步骤 1: 更新 README.md**
+- [x] **步骤 1: 更新 README.md**
 
 在 `README.md` 中添加异步任务队列部分：
 
@@ -1651,7 +1651,7 @@ celery -A src.celery_app flower --port=5555
 访问 http://localhost:5555 查看任务状态。
 ```
 
-- [ ] **步骤 2: 创建部署指南**
+- [x] **步骤 2: 创建部署指南**
 
 创建 `docs/deployment/async-tasks.md`：
 
@@ -1755,7 +1755,7 @@ tail -f /var/log/celery/worker.log
 - 调整 `autoretry_for` 配置
 ```
 
-- [ ] **步骤 3: 提交**
+- [x] **步骤 3: 提交**
 
 ```bash
 git add README.md docs/deployment/async-tasks.md
@@ -1768,7 +1768,7 @@ git commit -m "docs: 添加异步任务队列文档"
 
 所有 8 个任务已完成。最终验证步骤：
 
-- [ ] **最终集成测试**
+- [x] **最终集成测试**
 
 ```bash
 # 启动全部服务
@@ -1788,7 +1788,7 @@ pytest -v
 - 文档完整
 - 没有 TODO/placeholder
 
-- [ ] **最终提交**
+- [x] **最终提交**
 
 ```bash
 git log --oneline | head -8
