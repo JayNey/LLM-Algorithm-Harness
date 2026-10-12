@@ -6,7 +6,7 @@
 
 ---
 
-## ADDED Requirements
+## Requirements
 
 ### REQ-ATQ-001: 异步任务创建
 
