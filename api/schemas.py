@@ -91,3 +91,19 @@ class HealthCheckResponse(BaseModel):
     status: str = Field(..., description="Service status")
     version: str = Field(..., description="API version")
     service: str = Field(..., description="Service name")
+
+
+class AsyncTaskResponse(BaseModel):
+    """Async task response model."""
+
+    id: str = Field(..., description="Unique task ID")
+    task_type: str = Field(..., description="Task type (e.g., evaluation, experiment)")
+    entity_id: str = Field(..., description="Related entity ID (e.g., evaluation_id)")
+    celery_task_id: str = Field(..., description="Celery task ID for tracking")
+    status: str = Field(..., description="Task status: pending|running|paused|completed|failed|cancelled")
+    progress: dict | None = Field(None, description="Task progress information")
+    error_message: str | None = Field(None, description="Error message if failed")
+    created_at: str = Field(..., description="ISO 8601 creation timestamp")
+    started_at: str | None = Field(None, description="ISO 8601 start timestamp")
+    completed_at: str | None = Field(None, description="ISO 8601 completion timestamp")
+    updated_at: str = Field(..., description="ISO 8601 update timestamp")

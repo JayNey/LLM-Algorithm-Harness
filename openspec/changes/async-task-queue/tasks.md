@@ -18,7 +18,17 @@
 - [x] 实现 `run_benchmark_task` Celery 任务
 - [x] 添加任务进度报告机制（update_state）
 
-## 4. API 端点实现
+## 4. EvaluationService 改造（Task 5）
+- [x] 添加 ProgressInfo schema 支持 current/total/message
+- [x] 修改 EvaluationResponse 添加 progress 字段
+- [x] 改造 create_evaluation 提交 Celery 任务
+- [x] 改造 get_evaluation 聚合 AsyncTask 状态
+- [x] 实现 pause_evaluation 暂停任务
+- [x] 实现 resume_evaluation 恢复任务
+- [x] 实现 delete_evaluation 包含任务取消
+- [x] 实现完整的 TDD 测试套件
+
+## 5. API 端点实现
 - [ ] 创建 `src/api/routers/tasks.py` 路由模块
 - [ ] 实现 `POST /api/v1/tasks` 创建任务端点
 - [ ] 实现 `GET /api/v1/tasks/{task_id}` 查询状态端点
@@ -28,7 +38,7 @@
 - [ ] 实现 `GET /api/v1/tasks` 列表查询端点
 - [ ] 在主 FastAPI 应用中注册路由
 
-## 5. 任务服务集成
+## 6. TaskService 集成
 - [ ] 修改 TaskService 调用，使其能在 Celery worker 进程中运行
 - [ ] 实现任务结果持久化到 `async_tasks` 表
 - [ ] 实现错误处理和重试逻辑

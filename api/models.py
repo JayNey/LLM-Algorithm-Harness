@@ -40,3 +40,28 @@ class PaginationParams(BaseModel):
 
     limit: int = Field(20, ge=1, le=100, description="Number of items per page")
     offset: int = Field(0, ge=0, description="Number of items to skip")
+
+
+class AsyncTaskCreateRequest(BaseModel):
+    """Request model for creating an async task."""
+
+    task_type: str = Field(
+        ..., min_length=1, max_length=32, description="Task type (e.g., evaluation, experiment)"
+    )
+    entity_id: str = Field(..., min_length=1, description="Related entity ID")
+    celery_task_name: str = Field(
+        ..., min_length=1, description="Celery task name to execute (e.g., src.tasks.evaluation.run_evaluation_task)"
+    )
+    celery_task_args: list | None = Field(None, description="Positional arguments for Celery task")
+    celery_task_kwargs: dict | None = Field(None, description="Keyword arguments for Celery task")
+
+    class Config:
+        json_schema_extra = {
+            "example": {
+                "task_type": "evaluation",
+                "entity_id": "eval-123",
+                "celery_task_name": "src.tasks.evaluation.run_evaluation_task",
+                "celery_task_args": ["eval-123"],
+                "celery_task_kwargs": {"user_id": "user-456"},
+            }
+        }

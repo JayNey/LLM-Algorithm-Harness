@@ -1,0 +1,217 @@
+diff --git a/.env.example b/.env.example
+new file mode 100644
+index 0000000..e75a806
+--- /dev/null
++++ b/.env.example
+@@ -0,0 +1,6 @@
++# Celery 配置
++CELERY_BROKER_URL=redis://localhost:6379/0
++CELERY_RESULT_BACKEND=redis://localhost:6379/0
++
++# TaskService
++TASK_SERVICE_ROOT=./data/tasks
+diff --git a/api/config.py b/api/config.py
+index 92256c7..700b871 100644
+--- a/api/config.py
++++ b/api/config.py
+@@ -27,6 +27,13 @@ class Settings(BaseSettings):
+     # in api.db.engine; production deployments point it at PostgreSQL.
+     DATABASE_URL: str | None = os.getenv("DATABASE_URL") or None
+ 
++    # Celery 配置
++    CELERY_BROKER_URL: str = "redis://localhost:6379/0"
++    CELERY_RESULT_BACKEND: str = "redis://localhost:6379/0"
++
++    # TaskService 存储路径
++    TASK_SERVICE_ROOT: str = "./data/tasks"
++
+     class Config:
+         env_file = ".env"
+         extra = "ignore"  # Auth and API settings share the same dotenv file.
+diff --git a/requirements.txt b/requirements.txt
+index 5b53937..118eee8 100644
+--- a/requirements.txt
++++ b/requirements.txt
+@@ -39,3 +39,7 @@ psutil>=5.9.0
+ # Development
+ isort>=5.12.0
+ mypy>=1.5.0
++
++# Async Task Queue
++celery[redis]>=5.3.0
++redis>=5.0.0
+diff --git a/scripts/start_worker.sh b/scripts/start_worker.sh
+new file mode 100755
+index 0000000..7212559
+--- /dev/null
++++ b/scripts/start_worker.sh
+@@ -0,0 +1,11 @@
++#!/bin/bash
++# Celery worker 启动脚本
++
++export PYTHONPATH="${PYTHONPATH}:$(pwd)"
++
++celery -A src.celery_app worker \
++    --loglevel=info \
++    --concurrency=4 \
++    --max-tasks-per-child=50 \
++    --queues=evaluations,default \
++    --hostname=worker@%h
+diff --git a/src/celery_app.py b/src/celery_app.py
+new file mode 100644
+index 0000000..363eff5
+--- /dev/null
++++ b/src/celery_app.py
+@@ -0,0 +1,46 @@
++"""Celery application for async task processing."""
++
++from celery import Celery
++from kombu import Exchange, Queue
++
++# 延迟导入避免循环依赖
++celery_app = Celery("llm_harness")
++
++
++def configure_celery():
++    """配置 Celery，在导入 settings 后调用。"""
++    from api.config import settings
++
++    celery_app.conf.update(
++        broker_url=settings.CELERY_BROKER_URL,
++        result_backend=settings.CELERY_RESULT_BACKEND,
++        result_expires=7 * 24 * 3600,  # 7 天
++        task_serializer="json",
++        accept_content=["json"],
++        result_serializer="json",
++        timezone="UTC",
++        enable_utc=True,
++        worker_prefetch_multiplier=1,
++        worker_max_tasks_per_child=50,
++        task_routes={
++            "src.tasks.evaluation.*": {"queue": "evaluations"},
++        },
++        task_default_queue="default",
++        task_default_exchange="default",
++        task_default_routing_key="default",
++        task_queues=(
++            Queue("default", Exchange("default"), routing_key="default"),
++            Queue("evaluations", Exchange("evaluations"), routing_key="evaluations"),
++        ),
++        task_track_started=True,
++        task_send_sent_event=True,
++        task_acks_late=True,
++        task_reject_on_worker_lost=True,
++    )
++
++
++# 自动发现任务
++celery_app.autodiscover_tasks(["src.tasks"])
++
++# 初始化配置
++configure_celery()
+diff --git a/tests/test_celery_app.py b/tests/test_celery_app.py
+new file mode 100644
+index 0000000..73dab30
+--- /dev/null
++++ b/tests/test_celery_app.py
+@@ -0,0 +1,61 @@
++"""测试 Celery 应用配置。"""
++
++import pytest
++
++
++def test_celery_app_exists():
++    """测试 Celery 应用实例可以被导入。"""
++    from src.celery_app import celery_app
++
++    assert celery_app is not None
++    assert celery_app.main == "llm_harness"
++
++
++def test_celery_app_broker_url_configured():
++    """测试 Celery broker URL 已配置。"""
++    from src.celery_app import celery_app
++
++    broker_url = celery_app.conf.broker_url
++    assert broker_url is not None
++    assert "redis://" in broker_url
++
++
++def test_celery_app_result_backend_configured():
++    """测试 Celery result backend 已配置。"""
++    from src.celery_app import celery_app
++
++    result_backend = celery_app.conf.result_backend
++    assert result_backend is not None
++    assert "redis://" in result_backend
++
++
++def test_celery_app_task_serializer_json():
++    """测试 Celery 任务序列化器使用 JSON。"""
++    from src.celery_app import celery_app
++
++    assert celery_app.conf.task_serializer == "json"
++    assert "json" in celery_app.conf.accept_content
++    assert celery_app.conf.result_serializer == "json"
++
++
++def test_celery_app_queues_configured():
++    """测试 Celery 队列已配置。"""
++    from src.celery_app import celery_app
++
++    queues = celery_app.conf.task_queues
++    assert queues is not None
++    assert len(queues) >= 2
++
++    queue_names = [q.name for q in queues]
++    assert "default" in queue_names
++    assert "evaluations" in queue_names
++
++
++def test_celery_app_task_routes_configured():
++    """测试 Celery 任务路由已配置。"""
++    from src.celery_app import celery_app
++
++    routes = celery_app.conf.task_routes
++    assert routes is not None
++    assert "src.tasks.evaluation.*" in routes
++    assert routes["src.tasks.evaluation.*"]["queue"] == "evaluations"
+diff --git a/tests/test_config_celery.py b/tests/test_config_celery.py
+new file mode 100644
+index 0000000..1ad8797
+--- /dev/null
++++ b/tests/test_config_celery.py
+@@ -0,0 +1,33 @@
++"""测试 Celery 配置设置。"""
++
++import pytest
++
++
++def test_settings_has_celery_broker_url():
++    """测试 Settings 类包含 CELERY_BROKER_URL 配置。"""
++    from api.config import Settings
++
++    settings = Settings()
++    assert hasattr(settings, "CELERY_BROKER_URL")
++    assert settings.CELERY_BROKER_URL is not None
++    assert "redis://" in settings.CELERY_BROKER_URL
++
++
++def test_settings_has_celery_result_backend():
++    """测试 Settings 类包含 CELERY_RESULT_BACKEND 配置。"""
++    from api.config import Settings
++
++    settings = Settings()
++    assert hasattr(settings, "CELERY_RESULT_BACKEND")
++    assert settings.CELERY_RESULT_BACKEND is not None
++    assert "redis://" in settings.CELERY_RESULT_BACKEND
++
++
++def test_settings_has_task_service_root():
++    """测试 Settings 类包含 TASK_SERVICE_ROOT 配置。"""
++    from api.config import Settings
++
++    settings = Settings()
++    assert hasattr(settings, "TASK_SERVICE_ROOT")
++    assert settings.TASK_SERVICE_ROOT is not None
++    assert isinstance(settings.TASK_SERVICE_ROOT, str)

@@ -18,7 +18,7 @@ from api.files.middleware import UploadBoundaryMiddleware
 from api.files.service import FileService
 from api.middleware.errors import setup_error_handlers
 from api.middleware.logging import setup_logging_middleware
-from api.routes import evaluations_router
+from api.routes import evaluations_router, tasks_router
 from api.routes.ab_tests import router as ab_tests_router
 from api.routes.auth import router as auth_router
 from api.routes.benchmarks import router as benchmarks_router
@@ -107,6 +107,7 @@ def create_app(
 
     # Include routers
     app.include_router(evaluations_router)
+    app.include_router(tasks_router)
     app.include_router(auth_router)
     app.include_router(files_router)
     app.include_router(experiments_router)
