@@ -56,3 +56,10 @@
 - [x] 生产环境部署配置（Systemd、Nginx、监控）
 - [x] 故障排查手册
 - [x] 性能优化建议
+
+## 8. 任务清理功能（Task 9）
+- [x] 实现 cleanup_old_tasks Celery 任务
+- [x] 实现 cleanup_task_count 基于容量的清理策略
+- [x] 配置 Celery Beat 定时调度
+- [x] 添加清理功能单元测试（5 个测试全部通过）
+- [x] 部署指南中添加清理配置说明
