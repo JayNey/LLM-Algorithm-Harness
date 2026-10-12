@@ -42,6 +42,25 @@ class Problem(Base):
     updated_at: Mapped[datetime] = mapped_column(DateTime, default=utcnow, onupdate=utcnow)
 
 
+class AsyncTask(Base):
+    """异步任务通用生命周期状态管理。"""
+
+    __tablename__ = "async_tasks"
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True)
+    celery_task_id: Mapped[str] = mapped_column(String(255), unique=True, index=True)
+    task_type: Mapped[str] = mapped_column(String(32), index=True)
+    entity_id: Mapped[str] = mapped_column(String(36), index=True)
+    user_id: Mapped[str] = mapped_column(String(64), index=True)
+    status: Mapped[str] = mapped_column(String(16), default="pending", index=True)
+    progress: Mapped[dict | None] = mapped_column(JSON)
+    error_message: Mapped[str | None] = mapped_column(Text)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=utcnow)
+    started_at: Mapped[datetime | None] = mapped_column(DateTime)
+    completed_at: Mapped[datetime | None] = mapped_column(DateTime)
+    updated_at: Mapped[datetime] = mapped_column(DateTime, default=utcnow, onupdate=utcnow)
+
+
 class Evaluation(Base):
     """One evaluation run requested through the API."""
 
@@ -60,6 +79,11 @@ class Evaluation(Base):
     completed_count: Mapped[int] = mapped_column(Integer, default=0)
     failed_count: Mapped[int] = mapped_column(Integer, default=0)
     error_message: Mapped[str | None] = mapped_column(Text)
+    async_task_id: Mapped[str | None] = mapped_column(
+        String(36),
+        ForeignKey("async_tasks.id", ondelete="SET NULL"),
+        index=True
+    )
     created_at: Mapped[datetime] = mapped_column(DateTime, default=utcnow)
     updated_at: Mapped[datetime] = mapped_column(DateTime, default=utcnow, onupdate=utcnow)
     started_at: Mapped[datetime | None] = mapped_column(DateTime)
