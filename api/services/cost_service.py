@@ -77,9 +77,7 @@ class CostService:
                 return None
             if re.fullmatch(r"\d{4}-\d{2}-\d{2}", raw):
                 day = date.fromisoformat(raw)
-                return datetime.combine(
-                    day, datetime.max.time() if end else datetime.min.time()
-                )
+                return datetime.combine(day, datetime.max.time() if end else datetime.min.time())
             try:
                 parsed = datetime.fromisoformat(raw)
             except ValueError:

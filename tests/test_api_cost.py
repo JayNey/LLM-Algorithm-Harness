@@ -34,6 +34,7 @@ def _app_with_benchmarks(tmp_path):
         benchmark_executor_factory=FakeBenchmarkExecutor,
     )
 
+
 PASSWORD = "a-long-test-password-!"
 KEY = "sk-private-unique-test-value"
 WEBHOOK = "https://hooks.example.com/abc/secret-token"
@@ -229,9 +230,7 @@ class TestBudgets:
                 "action": "downgrade",
             },
         )
-        patched = client.patch(
-            "/api/v1/budgets", headers=headers, json={"global_cap_usd": 5.0}
-        )
+        patched = client.patch("/api/v1/budgets", headers=headers, json={"global_cap_usd": 5.0})
         assert patched.status_code == 200
         data = patched.json()["data"]
         assert data["action"] == "downgrade"  # IMPORTANT regression: not reset to pause
