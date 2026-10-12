@@ -1,3 +1,7 @@
+---
+archived-with: 2026-10-12-async-task-queue
+status: final
+---
 # 异步任务队列系统实施计划
 
 ---
@@ -1794,5 +1798,3 @@ pytest -v
 git log --oneline | head -8
 # 应该看到 8 个任务的提交
 ```
-
-

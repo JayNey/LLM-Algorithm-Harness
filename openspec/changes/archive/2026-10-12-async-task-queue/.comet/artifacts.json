@@ -1,0 +1,6 @@
+{
+  "openspec_proposal": "openspec/changes/async-task-queue/proposal.md",
+  "handoff_context": "openspec/changes/archive/2026-10-12-async-task-queue/.comet/handoff/design-context.json",
+  "handoff_markdown": "openspec/changes/archive/2026-10-12-async-task-queue/.comet/handoff/design-context.md",
+  "archive_directory": "openspec/changes/archive/2026-10-12-async-task-queue"
+}

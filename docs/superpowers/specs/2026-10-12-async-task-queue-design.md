@@ -2,6 +2,8 @@
 comet_change: async-task-queue
 role: technical-design
 canonical_spec: openspec
+archived-with: 2026-10-12-async-task-queue
+status: final
 ---
 
 # 异步任务队列系统 - 技术设计

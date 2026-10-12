@@ -19,11 +19,11 @@ verification_report: docs/superpowers/reports/2026-10-12-async-task-queue-verify
 branch_status: handled
 created_at: 2026-10-12
 verified_at: 2026-10-12
-archive_confirmation: pending
-archived: false
+archive_confirmation: confirmed
+archived: true
 bound_branch: tweak/20250114/async-task-queue
 direct_override: null
-handoff_context: openspec/changes/async-task-queue/.comet/handoff/design-context.json
+handoff_context: openspec/changes/archive/2026-10-12-async-task-queue/.comet/handoff/design-context.json
 handoff_hash: 69bdbf9748cea4b985cbffe501815da35f60eb631e7b2d161b52ca2b9a181fe2
 classic_profile: full
 classic_migration: 1
