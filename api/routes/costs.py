@@ -3,7 +3,8 @@
 from collections.abc import Callable
 from typing import TypeVar, cast
 
-from fastapi import APIRouter, Depends, HTTPException, Path as PathParam, Request
+from fastapi import APIRouter, Depends, HTTPException, Request
+from fastapi import Path as PathParam
 
 from api.auth.dependencies import current_user
 from api.auth.service import Principal
