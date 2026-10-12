@@ -270,6 +270,38 @@ POST /api/v1/evaluations/{evaluation_id}/cancel
 - 404 Not Found: 任务不存在
 - 400 Bad Request: 任务状态不允许取消
 
+### 实验与基准管理（#156）
+
+实验、基准 Suite、A/B 测试均 owner 作用域；请求永不携带明文密钥，`api_key_id` 在创建时校验归属、运行时经认证库解密注入；`dataset_path` 只允许 `DATA_ROOT`（默认 `data/`）内的路径。
+
+| 端点 | 说明 |
+|---|---|
+| `POST /api/v1/experiments` | 创建固定预算实验（校验密钥归属与数据集路径） |
+| `GET /api/v1/experiments` | 实验列表（`status`/`limit`/`offset`） |
+| `GET /api/v1/experiments/{id}` | 实验详情 |
+| `DELETE /api/v1/experiments/{id}` | 删除（运行中拒绝） |
+| `POST /api/v1/experiments/{id}/run` | 异步运行（`ExperimentRunner`） |
+| `GET /api/v1/experiments/{id}/results` | 结果摘要（需 completed） |
+| `GET /api/v1/experiments/{id}/comparison` | 模型×策略对比报告（含胜率矩阵/McNemar） |
+| `GET /api/v1/experiments/{id}/panel` | 交互面板数据 |
+| `POST /api/v1/pareto/analyze` | 成本-准确率帕累托分析（无状态，输入 comparisons） |
+| `POST /api/v1/optimize` | 成本优化建议（无状态，含性价比排名与预算方案） |
+| `GET /api/v1/benchmarks/suites` | Suite 列表 |
+| `POST /api/v1/benchmarks/suites` | 创建 Suite（默认 `frozen: false`） |
+| `GET /api/v1/benchmarks/suites/{id}` | Suite 详情 |
+| `PATCH /api/v1/benchmarks/suites/{id}` | 更新 Suite（frozen 拒绝，返回 400） |
+| `POST /api/v1/benchmarks/suites/{id}/run` | 异步运行基准（`BenchmarkExecutor`） |
+| `GET /api/v1/benchmarks/runs/{run_id}` | 运行结果（含 accuracy/cost 与原始 results） |
+| `GET /api/v1/benchmarks/learning-curve/{suite_id}` | 学习曲线（时间序列 + 趋势；空历史返回空序列） |
+| `POST /api/v1/ab-tests` | 创建 A/B 测试 |
+| `GET /api/v1/ab-tests` | A/B 列表 |
+| `GET /api/v1/ab-tests/{id}` | A/B 详情 |
+| `DELETE /api/v1/ab-tests/{id}` | 删除（运行中拒绝） |
+| `POST /api/v1/ab-tests/{id}/run` | 异步运行（`ABTestRunner`） |
+| `GET /api/v1/ab-tests/{id}/results` | A/B 结果（含显著性检验，来自产物 `ab_test.json`） |
+
+异步端点返回 `202`，随后通过详情端点轮询状态（`pending → running → completed/failed`）；服务重启会把中断的 `pending/running` 任务标记为 `failed`（`error_message: "interrupted by service restart"`）。
+
 ## 错误处理
 
 API 使用标准 HTTP 状态码：

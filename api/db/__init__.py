@@ -7,13 +7,26 @@ in development and connects to PostgreSQL through ``DATABASE_URL``.
 
 from api.db.engine import business_database_url, make_engine, make_session_factory
 from api.db.migrate import downgrade, offline_upgrade_sql, run_migrations, upgrade
-from api.db.models import Base, Evaluation, EvaluationResult, Problem
+from api.db.models import (
+    ABTest,
+    Base,
+    BenchmarkRun,
+    BenchmarkSuite,
+    Evaluation,
+    EvaluationResult,
+    Experiment,
+    Problem,
+)
 from api.db.problem_store import ProblemStore
 
 __all__ = [
+    "ABTest",
     "Base",
+    "BenchmarkRun",
+    "BenchmarkSuite",
     "Evaluation",
     "EvaluationResult",
+    "Experiment",
     "Problem",
     "ProblemStore",
     "business_database_url",
