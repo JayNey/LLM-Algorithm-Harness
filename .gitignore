@@ -260,4 +260,5 @@ config_ollama.json
 
 # Private authentication storage (including SQLite journals)
 /data/auth/
+/data/business/
 /uploads/

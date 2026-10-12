@@ -75,6 +75,20 @@ def _increase_docker_timeout_on_windows(monkeypatch):
         monkeypatch.setattr(SandboxExecutor, "__init__", patched_init)
 
 
+@pytest.fixture(autouse=True)
+def _isolate_business_database(tmp_path, monkeypatch):
+    """Point the API business database at a per-test SQLite file.
+
+    The evaluation service (issue #151) persists every task, so tests must
+    not share (or pollute) the repository-level ``data/business`` database.
+    Tests that need explicit control pass ``database_url`` to ``create_app``
+    or construct ``EvaluationService`` directly, which overrides this default.
+    """
+    from api.config import settings
+
+    monkeypatch.setattr(settings, "DATABASE_URL", f"sqlite:///{tmp_path / 'business.sqlite3'}")
+
+
 @pytest.fixture
 def sample_test_case():
     """Sample test case fixture."""
