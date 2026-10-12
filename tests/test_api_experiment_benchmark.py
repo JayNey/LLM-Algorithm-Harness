@@ -2,6 +2,7 @@
 
 import json
 import secrets
+import threading
 import time
 from pathlib import Path
 
@@ -57,10 +58,12 @@ class FakeBenchmarkExecutor:
     """Returns a fixed summary instead of running the harness."""
 
     accuracy_values = iter([0.5, 0.75])
+    last_config = None
 
     def __init__(self, suite, config):
         self.suite = suite
         self.config = config
+        type(self).last_config = config
 
     def execute(self):
         try:
@@ -72,6 +75,30 @@ class FakeBenchmarkExecutor:
             "accuracy": accuracy,
             "cost_usd": 0.05,
         }
+
+
+class FailingExperimentRunner:
+    """Simulates a runner crash after the experiment is marked running."""
+
+    def __init__(self, config):
+        self.config = config
+
+    def run(self):
+        raise RuntimeError("provider exploded")
+
+
+class BlockingExperimentRunner:
+    """Keeps the experiment running until the test releases the gate."""
+
+    def __init__(self, config):
+        self.config = config
+
+    def run(self):
+        BlockingExperimentRunner.gate.wait(timeout=10)
+        out = Path(self.config.output_dir)
+        out.mkdir(parents=True, exist_ok=True)
+        (out / "experiment.json").write_text("{}", encoding="utf-8")
+        return out
 
 
 class FakeABTestRunner:
@@ -197,13 +224,12 @@ class TestExperiments:
         response = client.post("/api/v1/experiments", headers=headers, json=payload)
         assert response.status_code == 400
 
-    def test_cannot_delete_running_experiment(self, api):
+    def test_delete_completed_experiment_succeeds(self, api):
         client, headers, key_id, _ = api
         experiment_id = client.post(
             "/api/v1/experiments", headers=headers, json=_experiment_payload(key_id)
         ).json()["data"]["id"]
         client.post(f"/api/v1/experiments/{experiment_id}/run", headers=headers)
-        # A completed fake run is fine to delete; a genuinely running one is not.
         _wait_status(
             lambda: client.get(f"/api/v1/experiments/{experiment_id}", headers=headers).json()[
                 "data"
@@ -256,6 +282,96 @@ class TestExperiments:
             ]
             assert data["status"] == "failed"
             assert data["error_message"] == RESTART_REASON
+
+    def test_runner_failure_marks_experiment_failed(self, tmp_path):
+        app = create_app(
+            auth_config(tmp_path),
+            FileSettings(_env_file=None, UPLOAD_DIR=tmp_path / "uploads"),
+            experiment_runner_factory=FailingExperimentRunner,
+        )
+        with TestClient(app) as client:
+            register = client.post(
+                "/api/v1/auth/register",
+                json={"username": "alice", "email": "alice@example.org", "password": PASSWORD},
+            )
+            assert register.status_code == 201
+            tokens = client.post(
+                "/api/v1/auth/login", json={"username": "alice", "password": PASSWORD}
+            ).json()["data"]
+            headers = {"Authorization": "Bearer " + tokens["access_token"]}
+            key_id = client.post(
+                "/api/v1/api-keys",
+                headers=headers,
+                json={"provider": "openai", "key_name": "t", "api_key": KEY},
+            ).json()["data"]["id"]
+            experiment_id = client.post(
+                "/api/v1/experiments", headers=headers, json=_experiment_payload(key_id)
+            ).json()["data"]["id"]
+            assert (
+                client.post(f"/api/v1/experiments/{experiment_id}/run", headers=headers).status_code
+                == 202
+            )
+            data = _wait_status(
+                lambda: client.get(f"/api/v1/experiments/{experiment_id}", headers=headers).json()[
+                    "data"
+                ],
+                {"failed"},
+            )
+            assert data["error_message"] == "provider exploded"
+
+    def test_cannot_delete_running_experiment(self, tmp_path):
+        BlockingExperimentRunner.gate = threading.Event()
+        app = create_app(
+            auth_config(tmp_path),
+            FileSettings(_env_file=None, UPLOAD_DIR=tmp_path / "uploads"),
+            experiment_runner_factory=BlockingExperimentRunner,
+        )
+        with TestClient(app) as client:
+            register = client.post(
+                "/api/v1/auth/register",
+                json={"username": "alice", "email": "alice@example.org", "password": PASSWORD},
+            )
+            assert register.status_code == 201
+            tokens = client.post(
+                "/api/v1/auth/login", json={"username": "alice", "password": PASSWORD}
+            ).json()["data"]
+            headers = {"Authorization": "Bearer " + tokens["access_token"]}
+            key_id = client.post(
+                "/api/v1/api-keys",
+                headers=headers,
+                json={"provider": "openai", "key_name": "t", "api_key": KEY},
+            ).json()["data"]["id"]
+            experiment_id = client.post(
+                "/api/v1/experiments", headers=headers, json=_experiment_payload(key_id)
+            ).json()["data"]["id"]
+            client.post(f"/api/v1/experiments/{experiment_id}/run", headers=headers)
+            _wait_status(
+                lambda: client.get(f"/api/v1/experiments/{experiment_id}", headers=headers).json()[
+                    "data"
+                ],
+                {"running"},
+            )
+
+            deleted = client.delete(f"/api/v1/experiments/{experiment_id}", headers=headers)
+            assert deleted.status_code == 400
+            assert "running" in deleted.json()["detail"]
+
+            BlockingExperimentRunner.gate.set()
+            _wait_status(
+                lambda: client.get(f"/api/v1/experiments/{experiment_id}", headers=headers).json()[
+                    "data"
+                ],
+                {"completed"},
+            )
+
+    def test_results_rejected_before_completion(self, api):
+        client, headers, key_id, _ = api
+        experiment_id = client.post(
+            "/api/v1/experiments", headers=headers, json=_experiment_payload(key_id)
+        ).json()["data"]["id"]
+        for path in ("results", "comparison", "panel"):
+            response = client.get(f"/api/v1/experiments/{experiment_id}/{path}", headers=headers)
+            assert response.status_code == 400
 
     def test_cross_user_access_is_404(self, api):
         client, headers, key_id, _ = api
@@ -363,6 +479,62 @@ class TestBenchmarks:
         assert curve["data"] == []
         assert curve["trends"]["accuracy_growth_rate"] is None
 
+    def test_run_passes_model_and_decrypted_key_to_executor(self, api):
+        client, headers, key_id, _ = api
+        suite_id = client.post(
+            "/api/v1/benchmarks/suites", headers=headers, json=self._suite_payload()
+        ).json()["data"]["id"]
+        FakeBenchmarkExecutor.last_config = None
+        started = client.post(
+            f"/api/v1/benchmarks/suites/{suite_id}/run",
+            headers=headers,
+            json={
+                "api_key_id": key_id,
+                "dataset_path": "problems.json",
+                "model": "gpt-test",
+                "strategies": [{"name": "vanilla"}],
+            },
+        )
+        assert started.status_code == 202
+        run_id = started.json()["data"]["id"]
+        _wait_status(
+            lambda: client.get(f"/api/v1/benchmarks/runs/{run_id}", headers=headers).json()["data"],
+            {"completed"},
+        )
+        assert FakeBenchmarkExecutor.last_config is not None
+        assert FakeBenchmarkExecutor.last_config.llm_config.model == "gpt-test"
+        assert FakeBenchmarkExecutor.last_config.llm_config.api_key.get_secret_value() == KEY
+
+    def test_duplicate_suite_name_rejected(self, api):
+        client, headers, _, _ = api
+        first = client.post(
+            "/api/v1/benchmarks/suites", headers=headers, json=self._suite_payload()
+        )
+        assert first.status_code == 201
+        second = client.post(
+            "/api/v1/benchmarks/suites", headers=headers, json=self._suite_payload()
+        )
+        assert second.status_code == 400
+        assert "already exists" in second.json()["detail"]
+
+    def test_suite_cross_user_access_is_404(self, api):
+        client, headers, _, _ = api
+        suite_id = client.post(
+            "/api/v1/benchmarks/suites", headers=headers, json=self._suite_payload()
+        ).json()["data"]["id"]
+        client.post(
+            "/api/v1/auth/register",
+            json={"username": "dave", "email": "dave@example.org", "password": PASSWORD},
+        )
+        dave = client.post(
+            "/api/v1/auth/login", json={"username": "dave", "password": PASSWORD}
+        ).json()["data"]
+        response = client.get(
+            f"/api/v1/benchmarks/suites/{suite_id}",
+            headers={"Authorization": "Bearer " + dave["access_token"]},
+        )
+        assert response.status_code == 404
+
     def test_run_rejects_foreign_key(self, api):
         client, headers, _, _ = api
         suite_id = client.post(
@@ -422,6 +594,24 @@ class TestABTests:
         results = client.get(f"/api/v1/ab-tests/{test_id}/results", headers=headers)
         assert results.status_code == 200
         assert results.json()["data"]["variants"] == ["baseline", "treatment"]
+
+    def test_ab_test_cross_user_access_is_404(self, api):
+        client, headers, key_id, _ = api
+        test_id = client.post(
+            "/api/v1/ab-tests", headers=headers, json=self._ab_payload(key_id)
+        ).json()["data"]["id"]
+        client.post(
+            "/api/v1/auth/register",
+            json={"username": "erin", "email": "erin@example.org", "password": PASSWORD},
+        )
+        erin = client.post(
+            "/api/v1/auth/login", json={"username": "erin", "password": PASSWORD}
+        ).json()["data"]
+        response = client.get(
+            f"/api/v1/ab-tests/{test_id}",
+            headers={"Authorization": "Bearer " + erin["access_token"]},
+        )
+        assert response.status_code == 404
 
     def test_ab_test_duplicate_variant_ids_rejected(self, api):
         client, headers, key_id, _ = api

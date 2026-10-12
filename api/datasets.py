@@ -21,5 +21,5 @@ def resolve_dataset_path(raw: str) -> Path:
     if resolved != root and root not in resolved.parents:
         raise ValueError(f"dataset_path must stay under the data root: {settings.DATA_ROOT}")
     if not resolved.is_file():
-        raise ValueError(f"dataset file not found: {raw}")
+        raise ValueError(f"dataset file is missing: {raw}")
     return resolved

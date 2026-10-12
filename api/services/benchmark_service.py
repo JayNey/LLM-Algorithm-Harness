@@ -8,6 +8,7 @@ from threading import Semaphore
 from typing import Any
 
 from sqlalchemy import select
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
 from api.auth.service import AuthService
@@ -139,7 +140,11 @@ class BenchmarkService:
             updated_at=utcnow(),
         )
         with self._session() as session, session.begin():
-            session.add(row)
+            try:
+                session.add(row)
+                session.flush()
+            except IntegrityError:
+                raise ValueError("Benchmark suite name already exists") from None
         return _suite_view(row)
 
     def list_suites(self, owner_id: str) -> list[dict[str, Any]]:
@@ -191,6 +196,7 @@ class BenchmarkService:
                 status="pending",
                 model=request.model,
                 config={
+                    "model": request.model,
                     "dataset_path": request.dataset_path,
                     "strategies": [s.model_dump(mode="json") for s in request.strategies],
                     "budget_cap_usd": request.budget_cap_usd,
@@ -224,7 +230,7 @@ class BenchmarkService:
 
                 harness_config = HarnessConfig(
                     llm_config=self._auth.llm_config(
-                        config_dict["api_key_id"], owner_id, config_dict.get("model", "")
+                        config_dict["api_key_id"], owner_id, config_dict["model"]
                     ),
                     dataset_path=str(resolve_dataset_path(config_dict["dataset_path"])),
                     strategies=config_dict.get("strategies") or [],

@@ -133,7 +133,7 @@ class ABTestService:
         with self._session() as session, session.begin():
             row = self._owned(session, test_id, owner_id)
             if row.status == "running":
-                raise ValueError("Cannot delete a running A/B test; cancel it first")
+                raise ValueError("Cannot delete a running A/B test; wait for it to finish")
             session.delete(row)
 
     # -- execution -----------------------------------------------------------

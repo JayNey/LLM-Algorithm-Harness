@@ -155,7 +155,7 @@ class ExperimentService:
         with self._session() as session, session.begin():
             row = self._owned(session, experiment_id, owner_id)
             if row.status == "running":
-                raise ValueError("Cannot delete a running experiment; cancel it first")
+                raise ValueError("Cannot delete a running experiment; wait for it to finish")
             session.delete(row)
 
     # -- execution -----------------------------------------------------------
@@ -246,6 +246,8 @@ class ExperimentService:
         with self._session() as session:
             exp_dir = self._completed_output_dir(session, experiment_id, owner_id)
             meta = exp_dir / "experiment.json"
+            if not meta.is_file():
+                raise ValueError(f"Experiment {experiment_id} artifacts are missing")
             payload = json.loads(meta.read_text(encoding="utf-8"))
         combos = [
             {
@@ -270,7 +272,10 @@ class ExperimentService:
     def comparison(self, experiment_id: str, owner_id: str) -> dict[str, Any]:
         with self._session() as session:
             exp_dir = self._completed_output_dir(session, experiment_id, owner_id)
-        return generate_comparison_report(exp_dir)
+        try:
+            return generate_comparison_report(exp_dir)
+        except FileNotFoundError as exc:
+            raise ValueError(f"Experiment {experiment_id} artifacts are missing") from exc
 
     def panel(self, experiment_id: str, owner_id: str) -> dict[str, Any]:
         comparison = self.comparison(experiment_id, owner_id)

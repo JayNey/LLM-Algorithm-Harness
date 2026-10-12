@@ -55,7 +55,6 @@ def upgrade() -> None:
         sa.Column("created_at", sa.DateTime(), nullable=False),
         sa.Column("updated_at", sa.DateTime(), nullable=False),
         sa.PrimaryKeyConstraint("id"),
-        sa.UniqueConstraint("name"),
     )
     op.create_index(
         op.f("ix_benchmark_suites_user_id"), "benchmark_suites", ["user_id"], unique=False

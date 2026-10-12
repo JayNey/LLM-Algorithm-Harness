@@ -49,7 +49,7 @@ def create_suite(
     auth: AuthService = Depends(auth_service),
     service: BenchmarkService = Depends(benchmark_service),
 ) -> ApiResponse[dict]:
-    result = service.create_suite(request, principal.user_id)
+    result = call(lambda: service.create_suite(request, principal.user_id))
     auth.audit("benchmark_suite_create", principal.user_id, result["id"])
     return ApiResponse(success=True, data=result, message="Benchmark suite created successfully")
 
