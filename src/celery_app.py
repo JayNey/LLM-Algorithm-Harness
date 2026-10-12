@@ -8,7 +8,7 @@ from kombu import Exchange, Queue
 celery_app = Celery("llm_harness")
 
 
-def configure_celery():
+def configure_celery() -> None:
     """配置 Celery，在导入 settings 后调用。"""
     from api.config import settings
 

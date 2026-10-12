@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from collections.abc import Generator
 from pathlib import Path
 from typing import Any
 
@@ -58,7 +59,7 @@ def set_session_factory(session_factory: sessionmaker[Session]) -> None:
     _SessionLocal = session_factory
 
 
-def get_db() -> Session:
+def get_db() -> Generator[Session, None, None]:
     """Dependency to get a database session for FastAPI endpoints."""
     if _SessionLocal is None:
         raise RuntimeError("Database session factory not initialized")

@@ -32,19 +32,19 @@ def get_db_session() -> Session:
     return session_factory()
 
 
-class EvaluationTask(Task):
+class EvaluationTask(Task):  # type: ignore[misc]
     """评估任务基类，处理数据库连接缓存"""
 
     _db_session: Session | None = None
 
-    def after_return(self, *args, **kwargs):
+    def after_return(self, *args: Any, **kwargs: Any) -> None:
         """任务完成后清理数据库连接"""
         if self._db_session is not None:
             self._db_session.close()
             self._db_session = None
 
 
-@celery_app.task(
+@celery_app.task(  # type: ignore[untyped-decorator]
     bind=True,
     base=EvaluationTask,
     name="src.tasks.evaluation.run_evaluation_task",
@@ -55,7 +55,7 @@ class EvaluationTask(Task):
     acks_late=True,
     reject_on_worker_lost=True,
 )
-def run_evaluation_task(self, evaluation_id: str) -> dict[str, Any]:
+def run_evaluation_task(self: EvaluationTask, evaluation_id: str) -> dict[str, Any]:
     """执行评估任务
 
     Args:
@@ -126,7 +126,7 @@ def run_evaluation_task(self, evaluation_id: str) -> dict[str, Any]:
             )
 
         # 6. 定义回调和检查函数
-        def on_unit_finished(record, unit):
+        def on_unit_finished(record: Any, unit: TaskUnit) -> None:
             """单元完成回调，更新进度"""
             evaluation.completed_count = record.completed_units
             db.commit()
@@ -141,7 +141,7 @@ def run_evaluation_task(self, evaluation_id: str) -> dict[str, Any]:
                 }
             )
 
-        def should_pause(record):
+        def should_pause(record: Any) -> bool:
             """检查是否应该暂停"""
             # 检查用户请求暂停
             current_async_task = db.query(AsyncTask).filter(AsyncTask.id == async_task.id).first()
@@ -154,7 +154,7 @@ def run_evaluation_task(self, evaluation_id: str) -> dict[str, Any]:
 
             return False
 
-        def worker(unit: TaskUnit) -> dict:
+        def worker(unit: TaskUnit) -> dict[str, Any]:
             """占位 worker 函数，返回模拟结果"""
             return {
                 "unit_id": unit.unit_id,

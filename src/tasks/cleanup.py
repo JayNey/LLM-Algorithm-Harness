@@ -25,24 +25,24 @@ def get_db_session() -> Session:
     return session_factory()
 
 
-class CleanupTask(Task):
+class CleanupTask(Task):  # type: ignore[misc]
     """清理任务基类，处理数据库连接缓存"""
 
     _db_session: Session | None = None
 
-    def after_return(self, *args, **kwargs):
+    def after_return(self, *args: Any, **kwargs: Any) -> None:
         """任务完成后清理数据库连接"""
         if self._db_session is not None:
             self._db_session.close()
             self._db_session = None
 
 
-@celery_app.task(
+@celery_app.task(  # type: ignore[untyped-decorator]
     bind=True,
     base=CleanupTask,
     name="src.tasks.cleanup.cleanup_old_tasks",
 )
-def cleanup_old_tasks(self, days_to_keep: int = 7) -> dict[str, Any]:
+def cleanup_old_tasks(self: CleanupTask, days_to_keep: int = 7) -> dict[str, Any]:
     """清理已完成的异步任务
 
     删除 N 天前的已完成任务记录（已成功、已失败或已取消）。
@@ -99,12 +99,12 @@ def cleanup_old_tasks(self, days_to_keep: int = 7) -> dict[str, Any]:
         session.close()
 
 
-@celery_app.task(
+@celery_app.task(  # type: ignore[untyped-decorator]
     bind=True,
     base=CleanupTask,
     name="src.tasks.cleanup.cleanup_task_count",
 )
-def cleanup_task_count(self, max_retention: int = 10000) -> dict[str, Any]:
+def cleanup_task_count(self: CleanupTask, max_retention: int = 10000) -> dict[str, Any]:
     """基于总数的清理策略
 
     如果 async_tasks 表的记录总数超过 max_retention，
