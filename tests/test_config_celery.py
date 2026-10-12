@@ -1,6 +1,5 @@
 """测试 Celery 配置设置。"""
 
-import pytest
 
 
 def test_settings_has_celery_broker_url():

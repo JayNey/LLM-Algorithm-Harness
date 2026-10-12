@@ -10,7 +10,7 @@ import pytest
 from sqlalchemy import create_engine, inspect
 from sqlalchemy.orm import sessionmaker
 
-from api.db import Base, run_migrations
+from api.db import run_migrations
 from api.db.models import AsyncTask, Evaluation
 
 

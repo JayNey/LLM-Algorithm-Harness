@@ -1,14 +1,13 @@
 """Async task management endpoints."""
 
 from collections.abc import Callable
-from datetime import datetime, timezone
 from typing import TypeVar
 
-from fastapi import APIRouter, Depends, HTTPException, Request
+from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 
-from api.auth.dependencies import auth_service, current_user
-from api.auth.service import AuthService, Principal
+from api.auth.dependencies import current_user
+from api.auth.service import Principal
 from api.db.engine import get_db
 from api.models import AsyncTaskCreateRequest
 from api.schemas import ApiResponse, AsyncTaskResponse, PaginatedData
@@ -193,7 +192,6 @@ def resume_task(
         raise HTTPException(400, "Can only resume paused tasks")
 
     # Create new Celery task to resume execution
-    from src.task_manager import celery_app
 
     new_task = call(
         lambda: manager.create_task(

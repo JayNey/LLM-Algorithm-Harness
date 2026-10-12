@@ -5,12 +5,11 @@ TaskManager 单元测试
 """
 
 import uuid
-from datetime import datetime
 from unittest.mock import Mock, patch
 
 import pytest
 from sqlalchemy import create_engine
-from sqlalchemy.orm import Session, sessionmaker
+from sqlalchemy.orm import sessionmaker
 
 from api.db.models import AsyncTask, Base
 from src.task_manager import TaskManager

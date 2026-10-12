@@ -4,8 +4,7 @@ Following TDD approach: tests first, then implementation.
 """
 
 import uuid
-from datetime import datetime
-from unittest.mock import Mock, patch, MagicMock
+from unittest.mock import Mock, patch
 
 import pytest
 from sqlalchemy import create_engine

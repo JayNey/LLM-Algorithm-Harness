@@ -1,6 +1,5 @@
 """测试 Celery 应用配置。"""
 
-import pytest
 
 
 def test_celery_app_exists():

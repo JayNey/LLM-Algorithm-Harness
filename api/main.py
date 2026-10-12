@@ -47,7 +47,12 @@ def create_app(
 
     @asynccontextmanager
     async def lifespan(app: FastAPI):
-        from api.db.engine import make_engine, make_session_factory, set_session_factory, business_database_url
+        from api.db.engine import (
+            business_database_url,
+            make_engine,
+            make_session_factory,
+            set_session_factory,
+        )
 
         # Initialize database session factory
         db_url = database_url or business_database_url()

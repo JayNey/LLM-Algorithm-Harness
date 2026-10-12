@@ -5,7 +5,7 @@ from datetime import datetime, timedelta, timezone
 
 import pytest
 
-from api.db.engine import business_database_url, make_engine, make_session_factory
+from api.db.engine import make_engine, make_session_factory
 from api.db.models import AsyncTask
 
 
