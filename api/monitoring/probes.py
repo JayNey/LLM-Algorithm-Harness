@@ -10,10 +10,16 @@ from pathlib import Path
 from typing import Any, get_args
 
 import psutil
+from alembic.runtime.migration import MigrationContext
+from alembic.script import ScriptDirectory
+from sqlalchemy import select, text
 
 from api.auth.service import AuthService
+from api.db.migrate import SCRIPT_LOCATION
+from api.db.models import Evaluation, EvaluationResult, Problem
 from api.files.service import FileService
 from api.monitoring.config import MonitorSettings
+from api.services import EvaluationService
 from src.cache import LLMResponseCache
 from src.harness import AlgorithmHarness
 from src.models import LLMConfig, SandboxConfig, StrategyConfig
@@ -40,10 +46,17 @@ def _unknown() -> dict[str, Any]:
 class MonitorProbes:
     """Probe the services bound to this API process, without inventing dependencies."""
 
-    def __init__(self, auth: AuthService, files: FileService, settings: MonitorSettings):
+    def __init__(
+        self,
+        auth: AuthService,
+        files: FileService,
+        settings: MonitorSettings,
+        evaluations: EvaluationService,
+    ):
         self.auth = auth
         self.files = files
         self.settings = settings
+        self.evaluations = evaluations
         self._sandbox_lock = threading.Lock()
         self._sandbox_result: dict[str, Any] | None = None
         self._sandbox_checked_at = 0.0
@@ -70,18 +83,60 @@ class MonitorProbes:
                     "backend": "sqlite",
                     "detail": "Local database probe failed",
                 }
+        business = self.business_database()
         return {
             "status": (
                 "ok"
-                if all(item["status"] == "ok" for item in components.values())
+                if all(item["status"] == "ok" for item in (*components.values(), business))
                 else "unavailable"
             ),
             **components,
-            "business_database": {
-                "status": "not_configured",
-                "dependency_issue": 151,
-            },
+            "business_database": business,
         }
+
+    def business_database(self) -> dict[str, Any]:
+        """Read the existing engine and migration metadata without recovery/DDL."""
+        engine = self.evaluations.engine
+        backend = (
+            engine.dialect.name if engine.dialect.name in {"sqlite", "postgresql"} else "other"
+        )
+        metadata = {
+            "backend": backend,
+            "required_tables": ["problems", "evaluations", "evaluation_results"],
+            "read_only": True,
+        }
+        started = time.monotonic()
+        try:
+            expected = sorted(ScriptDirectory(str(SCRIPT_LOCATION)).get_heads())
+            with engine.connect() as connection:
+                connection.execute(text("SELECT 1")).one()
+                for model in (Problem, Evaluation, EvaluationResult):
+                    connection.execute(select(model).limit(0)).all()
+                revisions = sorted(MigrationContext.configure(connection).get_current_heads())
+            if not expected or revisions != expected:
+                return {
+                    **metadata,
+                    "status": "unavailable",
+                    "migration": {
+                        "status": "mismatch",
+                        "revisions": None,
+                        "expected_heads": expected,
+                    },
+                    "detail": "Business database migration does not match the application",
+                }
+            return {
+                **metadata,
+                "status": "ok",
+                "latency_ms": round((time.monotonic() - started) * 1000, 3),
+                "migration": {"status": "ok", "revisions": revisions, "expected_heads": expected},
+            }
+        except Exception:
+            return {
+                **metadata,
+                "status": "unavailable",
+                "latency_ms": None,
+                "detail": "Business database probe failed",
+            }
 
     def resources(self) -> dict[str, Any]:
         """Collect host resources; CPU has a bounded 100 ms measurement window."""

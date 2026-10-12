@@ -2,7 +2,6 @@
 
 import math
 import time
-from collections import Counter
 from collections.abc import Iterator
 from datetime import datetime
 from tempfile import SpooledTemporaryFile
@@ -128,12 +127,13 @@ def system_status(
     admin: Principal = Depends(administrator), monitor: MonitorService = Depends(monitor_service)
 ) -> ApiResponse[Any]:
     snapshot = monitor.task_snapshot()
-    counts = Counter(item["status"] for item in snapshot["items"])
     return answer(
         {
             "uptime_seconds": round(time.monotonic() - monitor.started, 3),
             "scope": "current_api_process",
-            "task_counts": dict(counts),
+            "task_counts": snapshot["counts"],
+            "task_count": snapshot["total"],
+            "task_status": snapshot["status"],
             "task_source": snapshot["source"],
             "health": monitor.health(),
             "resources": monitor.probes.resources(),
@@ -148,16 +148,22 @@ def system_status(
 
 @router.get("/system/tasks/running")
 def running_tasks(
-    admin: Principal = Depends(administrator), monitor: MonitorService = Depends(monitor_service)
+    limit: int = Query(100, ge=1, le=1000),
+    offset: int = Query(0, ge=0, le=100000),
+    admin: Principal = Depends(administrator),
+    monitor: MonitorService = Depends(monitor_service),
 ) -> ApiResponse[Any]:
-    return answer(monitor.task_snapshot("running"))
+    return answer(monitor.task_snapshot("running", limit, offset))
 
 
 @router.get("/system/tasks/queued")
 def queued_tasks(
-    admin: Principal = Depends(administrator), monitor: MonitorService = Depends(monitor_service)
+    limit: int = Query(100, ge=1, le=1000),
+    offset: int = Query(0, ge=0, le=100000),
+    admin: Principal = Depends(administrator),
+    monitor: MonitorService = Depends(monitor_service),
 ) -> ApiResponse[Any]:
-    return answer(monitor.task_snapshot("pending"))
+    return answer(monitor.task_snapshot("pending", limit, offset))
 
 
 @router.get("/metrics/api-stats")

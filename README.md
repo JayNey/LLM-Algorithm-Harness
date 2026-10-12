@@ -1292,6 +1292,6 @@ API 支持注册、登录、Token 刷新/登出、用户范围的评估权限和
 
 ### REST API 系统监控基础
 
-提供受管理员 UUID 白名单保护的 SQLite 健康检查、Docker 预检、本机资源、持久化 API 请求统计、安全日志和离线配置目录。用户可查询自己的任务日志与已有配额；统计窗口不完整时标记 `retained_sample`，缺失真实 worker/LLM 或业务数据库指标时返回 `not_configured`。
+提供受管理员 UUID 白名单保护的数据库健康检查、Docker 预检、本机资源、持久化 API 请求统计、安全日志和离线配置目录。#151 的业务数据库已接入只读连接/schema 检查、持久化任务分页与全量状态计数，以及当前 API engine 的实际 SQL 查询统计。用户可查询自己的任务日志与已有配额；统计窗口不完整时标记 `retained_sample`，真实 worker/LLM 指标尚未接入时返回 `not_configured`。
 
-这是 #157 可独立运行的基础部分；队列、worker 与真实运行指标仍需 #149/#151 接入。配置 `MONITOR_ADMIN_USER_IDS`、接口与完整性说明见 [监控指南](docs/api-monitoring.md)。
+这是 #157 可独立运行的基础部分；队列、worker 与真实运行指标仍需 #149 接入。任务执行后端仍为模拟器，持久化 `pending` 记录不代表生产队列；SQL 指标只覆盖当前进程的 cursor 执行阶段。配置 `MONITOR_ADMIN_USER_IDS`、接口与完整性说明见 [监控指南](docs/api-monitoring.md)。

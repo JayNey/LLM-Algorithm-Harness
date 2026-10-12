@@ -1,10 +1,10 @@
 ## 范围与真实性
 
 - 原 `/health` 保持公开轻量 API 存活检查，明确不代表依赖健康；管理员详查在 `/system/health` 和 `/health/*`。
-- 当前数据库健康实际查询 auth/files SQLite，业务数据库、Redis、Celery 未接入时为 not_configured。Docker 复用 health_check，强制 docker、缓存短时结果、限制并发，不回退 host。
+- 当前数据库健康实际查询 auth/files SQLite 以及运行中的 EvaluationService engine，验证业务表和 Alembic revision；不新建服务、不迁移、不改变任务状态，不输出 URL/凭据。Redis、Celery 未接入时为 not_configured。Docker 复用 health_check，强制 docker、缓存短时结果、限制并发，不回退 host。
 - CPU、内存、磁盘来自当前进程所在主机，失败返回 unknown/null；不输出主机路径。容器资源使用尚未接入时明确标记。
 - API 请求统计来自实际最终响应，ASGI 日志包装 CORS 与上传边界，包含预检与最终拒绝状态；使用路由模板、状态、耗时与已验证用户 ID，不记录 body、query、header 或未匹配原始路径。持久化样本有保留期限与行数上限，窗口不完整或存在已知采集缺口时主指标为 null，并提供实际保留样本指标。总量与端点分组均提供错误率与时延。
-- 现有任务执行器是模拟器：状态快照明确标注来源，不把其耗时/成功率或模拟花费当真实评估指标。真实 LLM 调用总数/延迟、生产队列与业务 SQL 性能尚未采集时为 null。
+- 任务快照从业务 Evaluation 表读分页与准确总数/状态计数，明确来源为持久化业务任务、执行仍是进程内模拟器，不把模拟耗时/成功率或花费当真实评估指标。SQLAlchemy engine 的查询监听采集实际次数、耗时与错误，仅覆盖绑定 engine 的当前进程、有限窗口；不完整窗口主指标为 null，提供保留样本，不保存 SQL/参数/异常文本。每 engine 启动时安装一个稳定转发监听，弱注册采集器；关闭时停止采集并解除采集器引用，转发器在无采集器时为空操作并随 engine 回收，避免并发修改 SQLAlchemy 事件队列影响业务。真实 LLM 调用总数/延迟、生产队列尚未采集时为 null。
 
 ## 权限与日志
 

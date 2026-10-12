@@ -1,6 +1,6 @@
 # API 系统监控基础能力（#157）
 
-本次实现可独立运行的 API 监控基础：管理员授权、本机资源和 Docker 预检、持久化请求统计、安全事件日志、离线配置目录，以及当前用户已有配额的查询。#157 仍需后续接入 #149 的真实队列、worker 和 LLM 指标，以及 #151 的业务数据库。
+本次实现 API 监控基础：管理员授权、本机资源和 Docker 预检、持久化请求统计、安全事件日志、离线配置目录，以及当前用户已有配额的查询。#151 已接入业务数据库，本次监控同步读取其持久化评估任务、检查连接与 schema，并采集实际业务 SQL 查询统计。#157 仍需后续接入 #149 的真实队列、worker 和 LLM 指标。
 
 ## 配置管理员
 
@@ -24,7 +24,7 @@ export MONITOR_ADMIN_USER_IDS='["11111111-1111-4111-8111-111111111111"]'
 - `MONITOR_SANDBOX_IMAGE`：`python:3.11-slim`；仅接受受控 Docker 镜像引用。
 - `MONITOR_SANDBOX_TIMEOUT_SECONDS`：5，范围 1–30；Docker 预检中的单个用例执行超时。
 
-请求和日志保存在现有认证 SQLite 的 `api_monitor_*` 表中，复用 `AUTH_DATABASE_PATH`，没有另行创建业务数据库。统计起点与清理水位持久化，同机多进程共享同一数据库时共享这些记录；本机资源、API 模拟任务和缓存实例仍有各自作用范围。
+请求和日志保存在现有认证 SQLite 的 `api_monitor_*` 表中，复用 `AUTH_DATABASE_PATH`。统计起点与清理水位持久化，同机多进程共享同一数据库时共享这些记录。评估任务保存在 #151 的业务数据库，由 `DATABASE_URL` 配置，默认是 `data/business/business.sqlite3`；它与认证和文件元数据 SQLite 独立。业务 SQL 指标、本机资源及缓存实例各有自己的作用范围，详见下文。
 
 ## 健康与资源端点
 
@@ -32,14 +32,18 @@ export MONITOR_ADMIN_USER_IDS='["11111111-1111-4111-8111-111111111111"]'
 
 以下端点全部需要管理员身份，成功响应使用现有 `success/data/message` 包装：
 
-- `GET /api/v1/system/health`：当前基础服务状态。尚未配置 #149/#151 时返回 `status=partial`；已执行的 SQLite 或 Docker 检查失败时为 `degraded`。默认不探测 Docker；传 `include_sandbox=true` 可加入预检。
-- `GET /api/v1/health/database`：对实际认证/文件 SQLite 执行 `SELECT 1`，并验证所需表可查询。`business_database` 明确返回 `not_configured`、`dependency_issue=151`。
+- `GET /api/v1/system/health`：当前基础服务状态。#149 队列与 worker 尚未接入时返回 `status=partial`，`pending_issues=[149]`；已执行的数据库或 Docker 检查失败时为 `degraded`。默认不探测 Docker；传 `include_sandbox=true` 可加入预检。
+- `GET /api/v1/health/database`：对实际认证/文件 SQLite 执行 `SELECT 1`，并验证所需表可查询；`business_database` 使用已绑定的评估服务 engine 检查实际连接、业务表与 Alembic revision，返回 `status/backend/required_tables/migration/read_only/latency_ms`。迁移检查按仓库 Alembic 元数据的 heads 比对数据库当前 heads，成功时通过 `migration.status/revisions/expected_heads` 说明版本一致；不一致时标记故障，不回显数据库中的任意版本文本。探测只读，不运行迁移、不创建评估服务，也不修改任务状态；不返回连接串、主机路径或凭据。任一已配置数据库检查失败时，总体状态为 `unavailable`。
 - `GET /api/v1/health/redis`：返回 `not_configured`、`dependency_issue=149`。
 - `GET /api/v1/health/workers` 与 `/api/v1/system/workers`：返回 `not_configured`、`dependency_issue=149`。
 - `GET /api/v1/health/sandbox`：复用实际 `SandboxExecutor.health_check()` 执行 Docker 预检，失败为 `unavailable`。只使用 Docker；不可用时不回退 host，不返回异常中的主机路径或凭据。
 - `GET /api/v1/system/resources`：CPU、内存、上传目录所在文件系统的磁盘用量，以及已登记且未标记删除的文件数量/字节。
-- `GET /api/v1/system/status`：当前 API 进程运行时间、模拟任务计数、基础健康与本机资源。容器级资源采集返回 `not_configured`。
-- `GET /api/v1/system/tasks/running` 和 `/api/v1/system/tasks/queued`：当前 API 进程的模拟器任务快照，来源为 `in_process_evaluation_simulator`；不能当成集群 worker 或 Redis 队列状态。
+- `GET /api/v1/system/status`：当前 API 进程运行时间、业务数据库中的全量任务状态计数、基础健康与本机资源。`task_counts` 来自数据库聚合，不受快照分页限制。容器级资源采集返回 `not_configured`。
+- `GET /api/v1/system/tasks/running` 和 `/api/v1/system/tasks/queued`：分别查询业务数据库中 `running` 和 `pending` 状态的任务。来源为 `persisted_business_evaluations`，执行后端仍标记 `execution_backend=in_process_simulator`，`production_queue_configured=false`；`queued` 只表示持久化的 `pending` 状态，不能当成 Redis 队列长度。
+
+任务查询支持 `limit/offset`：默认 100 条，`limit` 范围 1–1000，`offset` 范围 0–100000。响应返回 `status/items/total/counts/limit/offset`，`total` 与 `counts` 由所选状态的全量记录聚合得到；`items` 只包含当前页。数据库不可读时明确标记 `unavailable`，不将故障显示为空任务列表。
+
+任务状态跨服务重启持久化。现有评估服务启动时会将前次遗留的 `pending/running` 任务标记为 `failed`，说明任务被服务重启中断；它尚未通过生产队列恢复执行。监控读取这些记录，不触发恢复或重新调度。
 
 ```bash
 curl http://localhost:8000/api/v1/health/sandbox \
@@ -57,7 +61,7 @@ Docker 预检可能启动一个短生命周期容器，由执行器负责资源�
 ## 请求统计与完整性
 
 - `GET /api/v1/metrics/api-stats?window_seconds=60`：统计窗口支持 1–86400 秒，提供请求量、HTTP 4xx/5xx 数与错误率、平均响应时间、P95 和每秒请求数。`endpoints` 按 HTTP 方法与路由模板分组提供同样统计，窗口不完整时各组也只展示 `retained_sample`。
-- `GET /api/v1/metrics/performance`：API 请求统计与尚待接入的评估、业务数据库查询、LLM 指标。
+- `GET /api/v1/metrics/performance`：API 请求统计、实际业务 SQL 查询统计，以及尚待接入的真实评估与 LLM 指标。
 - `GET /api/v1/metrics/llm-stats`：真实生成调用数、成功率、延迟目前为 `not_configured`，数值为 `null`。已有 `recorded_usage_hooks` 和 `key_verification_count` 分别展示使用登记与密钥连通验证计数，不计作真实生成调用总量或成功率。
 - `GET /api/v1/metrics/cache-stats`：默认 `not_configured`。仅在可信 worker 显式绑定实际 `LLMResponseCache` 后展示其白名单统计；命中、未命中等计数为实例创建以来的进程内计数，不代表所有 worker 的累计值。
 
@@ -68,6 +72,16 @@ Docker 预检可能启动一个短生命周期容器，由执行器负责资源�
 当窗口完整时，`source=persisted_requests`，上述顶层指标才提供窗口统计；空窗口的延迟仍为 `null`。`started_at/pruned_through/capture_gap_through/retention_seconds/max_rows` 可用于解释覆盖范围。
 
 数据写入故障会记录通用警告并保留原 API 响应，同时标记采集缺口；数据库恢复后会持久化缺口水位。数据库完全不可写时，未落盘水位只能保留在当前进程中；若此时进程终止，后续重启不能恢复这段未落盘水位。当前存储不是确保每条事件入库的审计流水。
+
+## 业务 SQL 查询统计
+
+`GET /api/v1/metrics/performance` 的 `database_queries` 从当前 API 已使用的 SQLAlchemy engine 采集真实 cursor 执行完成与失败事件，提供 `query_count/successes/errors/error_rate/avg_latency_ms/p95_latency_ms/queries_per_second`。查询数以 cursor 执行事件为单位，不是返回行数；连接获取阶段的错误不计作已执行查询。它不保存 SQL 文本、绑定参数、连接 URL、异常详情或用户数据。数据库健康检查和监控查询本身也会进入这个采集口径。
+
+`scope=bound_business_engine_current_process` 表示单 engine、单 API 进程；不包含认证/文件 SQLite、其他进程或数据库服务端的全局查询。每 engine 在启动时安装一个稳定转发监听，弱注册采集器；监控关闭后停止采集并解除采集器引用，此后 `collection_active=false`、`status=not_collecting`。空转发器随 engine 生命周期回收，关闭时不并发修改 SQLAlchemy 事件队列，以保护仍在执行的业务查询。统计仅保存在当前进程内，重启后重新建立采集起点，API 启动前已经完成的迁移和任务恢复查询不计入。
+
+统计使用 `MONITOR_API_WINDOW_SECONDS` 指定的窗口，保留时间和行数分别受 `MONITOR_RETENTION_SECONDS` 与 `MONITOR_MAX_ROWS` 限制。窗口尚未被完整采集、记录被淘汰或采集发生缺口时，`window_complete=false`、`source=retained_sample`，顶层统计为 `null`，`retained_sample` 仅展示实际保留样本；完整时 `source=captured_business_queries`。`started_at/pruned_through/capture_gap_through` 说明采集起点和覆盖缺口。`latency_scope=cursor_execution_excludes_pool_wait_and_fetch` 明确查询延迟衡量 cursor 执行阶段，不表示连接等待、事务完整耗时、结果处理时间或真实任务执行时长。
+
+业务连接健康与查询样本完整性分别判断：没有完整统计窗口不等于数据库不可用。SQLite 路径已通过本地真实连接验证；PostgreSQL 的离线 SQL 和边界测试不能替代部署环境中实际 PostgreSQL 的连接与运行验证。
 
 ## 安全事件日志与下载
 
@@ -116,4 +130,4 @@ curl http://localhost:8000/api/v1/logs/download/your-task-id \
 
 #149 worker 可用可信任务所有者调用 `app.state.monitor.record_task_event(event, user_id)`。入口会校验登记的任务归属和删除状态；HTTP 不开放指定所有者、写日志或绑定缓存的接口。真实 worker 可将实际 LLM 客户端的缓存实例绑定到 `app.state.monitor.cache`，仍需明确其单实例口径。
 
-队列长度、活跃 worker、任务执行时长/成功率、LLM 请求数/延迟，以及各容器 CPU/内存，需后续采集接入；#151 接入后还需业务数据库连通性与查询延迟采集。当前任务取消继续使用已有所有者权限的评估取消接口，没有增加管理员跨用户强制终止接口。完整 RBAC、远端日志平台和告警通知也未在本次基础实现中提供。
+队列长度、活跃 worker、真实任务执行时长/成功率、LLM 请求数/延迟，以及各容器 CPU/内存，需后续采集接入。业务数据库连通性、schema 与实际查询延迟现已接入；不会把持久化的模拟任务结果或模拟成本计作真实 worker/LLM 指标。当前任务取消继续使用已有所有者权限的评估取消接口，没有增加管理员跨用户强制终止接口。完整 RBAC、远端日志平台和告警通知也未在本次基础实现中提供。

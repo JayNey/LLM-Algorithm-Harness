@@ -8,10 +8,12 @@ import time
 import pytest
 from cryptography.fernet import Fernet
 from fastapi import HTTPException
+from sqlalchemy import update
 
 from api.auth.config import AuthSettings
 from api.auth.models import KeyCreate, RegisterInput
 from api.auth.service import AuthService
+from api.db.models import Evaluation
 from api.files.config import FileSettings
 from api.files.service import FileService
 from api.models import EvaluationCreateRequest
@@ -65,7 +67,11 @@ def monitoring(tmp_path):
     )
     evaluations = EvaluationService()
     monitor = MonitorService(auth, files, evaluations, MonitorSettings(_env_file=None))
-    return monitor, owners, keys
+    try:
+        yield monitor, owners, keys
+    finally:
+        monitor.close()
+        evaluations.close()
 
 
 def upload(files, owner, payload):
@@ -186,20 +192,35 @@ def test_task_snapshot_reports_real_simulator_state_and_filter(monitoring):
             owners[username],
         )
         created.append(response.evaluation_id)
-    task = monitor.evaluations.tasks[created[0]]
-    with task._lock:
-        task.status = "completed"
-        task.completed_count = 2
+    with monitor.evaluations._engine.begin() as connection:
+        connection.execute(
+            update(Evaluation)
+            .where(Evaluation.id == created[0])
+            .values(status="completed", completed_count=2)
+        )
     snapshot = monitor.task_snapshot()
     assert (
-        snapshot["source"] == "in_process_evaluation_simulator"
+        snapshot["source"] == "persisted_business_evaluations"
         and snapshot["production_queue_configured"] is False
     )
+    assert snapshot["execution_backend"] == "in_process_simulator"
     assert snapshot["total"] == 2
+    assert snapshot["counts"] == {"completed": 1, "pending": 1}
+    paged = monitor.task_snapshot(limit=1, offset=1)
+    assert (
+        len(paged["items"]) == 1 and paged["total"] == 2 and paged["counts"] == snapshot["counts"]
+    )
     completed = monitor.task_snapshot("completed")
     assert completed["total"] == 1 and completed["items"][0]["task_id"] == created[0]
     assert completed["items"][0]["completed"] == 2 and completed["items"][0]["total"] == 2
     assert completed["items"][0]["owner_id"] == owners["alice"]
+    with monitor.evaluations._engine.connect() as connection:
+        assert (
+            connection.execute(Evaluation.__table__.select().where(Evaluation.id == created[1]))
+            .mappings()
+            .one()["status"]
+            == "pending"
+        )
 
 
 def test_task_event_requires_live_owner_mapping_and_redacts_before_store(monitoring):

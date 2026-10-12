@@ -8,11 +8,22 @@
 - **THEN** 系统端点仍返回 403，不提升权限
 
 ### Requirement: 真实状态与未配置依赖
-系统 SHALL 查询当前 SQLite、主机资源、Docker 预检和实际 API 统计；尚未配置的业务数据库、Redis、worker 和真实 LLM 指标 SHALL 明确返回 not_configured/null。
+系统 SHALL 查询当前认证/文件 SQLite、已有业务 engine、主机资源、Docker 预检和实际 API 统计；尚未配置的 Redis、worker 和真实 LLM 指标 SHALL 明确返回 not_configured/null。
 
 #### Scenario: 无队列后端
 - **WHEN** #149 尚未接入
 - **THEN** 不报告 Redis/worker 健康或虚构任务负载
+
+#### Scenario: 已接入业务数据库
+- **WHEN** #151 已配置业务 engine，任务处于 pending/running
+- **THEN** 监控读取连通性/业务表/迁移版本与持久化分页快照，不重新创建服务、不迁移、不改变任务状态，数据库失败返回不可用及空值
+
+### Requirement: 有界查询性能采集
+系统 SHALL 从运行中的 SQLAlchemy engine 采集真实查询次数、错误与耗时，明确进程和窗口范围，不保存 SQL/参数/连接凭据，监听故障 SHALL 不影响业务执行。
+
+#### Scenario: 失败与截断窗口
+- **WHEN** 实际查询失败，或采集不足/淘汰/采集缺口造成窗口不完整
+- **THEN** 保留真实失败测量并原样传递业务异常；不完整窗口主指标为 null，样本另行展示，服务关闭停止采集并释放采集器引用，固定转发监听随 engine 生命周期结束回收
 
 ### Requirement: 持久化安全日志
 系统 SHALL 在入库前脱敏日志，支持级别、时间、搜索、分页与下载，并限制保留期、行数和记录大小。

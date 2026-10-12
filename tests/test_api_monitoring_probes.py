@@ -7,13 +7,16 @@ from unittest.mock import patch
 
 import pytest
 from cryptography.fernet import Fernet
+from sqlalchemy import event, text
 
 from api.auth.config import AuthSettings
 from api.auth.service import AuthService
 from api.files.config import FileSettings
 from api.files.service import FileService
+from api.models import EvaluationCreateRequest
 from api.monitoring.config import MonitorSettings
 from api.monitoring.probes import MonitorProbes
+from api.services import EvaluationService
 from src.cache import LLMResponseCache
 from src.harness import AlgorithmHarness
 from src.models import LLMResponse, StrategyConfig, TokenUsage
@@ -30,7 +33,11 @@ def probes(tmp_path):
         )
     )
     files = FileService(auth, FileSettings(_env_file=None, UPLOAD_DIR=tmp_path / "uploads"))
-    return MonitorProbes(auth, files, MonitorSettings(_env_file=None))
+    evaluations = EvaluationService(f"sqlite:///{tmp_path / 'business.sqlite3'}")
+    try:
+        yield MonitorProbes(auth, files, MonitorSettings(_env_file=None), evaluations)
+    finally:
+        evaluations.close()
 
 
 def test_sqlite_probe_checks_real_connection_and_tables(probes):
@@ -38,7 +45,9 @@ def test_sqlite_probe_checks_real_connection_and_tables(probes):
     assert result["status"] == "ok"
     assert result["authentication"] == {"status": "ok", "backend": "sqlite"}
     assert result["files"] == {"status": "ok", "backend": "sqlite"}
-    assert result["business_database"] == {"status": "not_configured", "dependency_issue": 151}
+    assert result["business_database"]["status"] == "ok"
+    assert result["business_database"]["migration"]["revisions"] == ["0001"]
+    assert result["business_database"]["read_only"] is True
     with probes.files.store.connection() as db:
         db.execute("DROP TABLE api_file_objects")
     result = probes.database()
@@ -46,6 +55,60 @@ def test_sqlite_probe_checks_real_connection_and_tables(probes):
     assert result["authentication"]["status"] == "ok"
     assert result["files"]["status"] == "unavailable"
     assert str(probes.auth.store.path) not in json.dumps(result)
+
+
+def test_business_probe_reuses_engine_without_task_recovery_or_writes(probes):
+    run = probes.evaluations.create_evaluation(
+        EvaluationCreateRequest(
+            problem_ids=["p1"], strategy_names=["vanilla"], api_key_id="opaque-key"
+        ),
+        "operator",
+    )
+    statements = []
+
+    def record(connection, cursor, statement, parameters, context, executemany):
+        statements.append(statement.split()[0].upper())
+
+    event.listen(probes.evaluations.engine, "before_cursor_execute", record)
+    try:
+        with patch(
+            "api.monitoring.probes.EvaluationService",
+            side_effect=AssertionError("must not recreate service"),
+        ):
+            for _ in range(2):
+                assert probes.database()["business_database"]["status"] == "ok"
+        assert probes.evaluations.get_evaluation(run.evaluation_id, "operator").status == "pending"
+        assert statements and set(statements) <= {"SELECT", "PRAGMA"}
+    finally:
+        event.remove(probes.evaluations.engine, "before_cursor_execute", record)
+
+
+def test_business_probe_schema_and_migration_failure_never_echo_raw_details(probes):
+    secret = "credential-private-invalid-revision"
+    with probes.evaluations.engine.begin() as connection:
+        connection.execute(
+            text("UPDATE alembic_version SET version_num=:revision"), {"revision": secret}
+        )
+    response = probes.database()
+    assert response["status"] == "unavailable"
+    assert response["business_database"]["migration"]["status"] == "mismatch"
+    assert secret not in json.dumps(response)
+    with probes.evaluations.engine.begin() as connection:
+        connection.execute(text("UPDATE alembic_version SET version_num='0001'"))
+        connection.execute(text("DROP TABLE evaluation_results"))
+    response = probes.database()
+    assert response["business_database"]["status"] == "unavailable"
+    assert response["authentication"]["status"] == "ok"
+
+
+def test_business_connection_failure_is_explicit_and_safe(probes):
+    secret = "postgresql://user:password@private-host/private-database"
+    with patch.object(probes.evaluations.engine, "connect", side_effect=RuntimeError(secret)):
+        response = probes.database()
+    assert (
+        response["status"] == "unavailable" and response["business_database"]["latency_ms"] is None
+    )
+    assert secret not in json.dumps(response)
 
 
 def test_sqlite_connection_failure_remains_explicit_and_safe(probes, tmp_path):

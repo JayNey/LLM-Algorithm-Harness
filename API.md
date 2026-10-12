@@ -406,16 +406,16 @@ curl http://localhost:8000/api/v1/evaluations/{eval_id}/progress -H "Authorizati
 ## 限制和注意事项
 
 1. **并发限制**: 默认最多 5 个并发任务，超出时排队等待
-2. **状态内存存储**: 第 1 阶段使用内存存储，服务重启时数据丢失。后续版本将支持数据库存储
+2. **任务持久化**: #151 已将任务状态存入业务数据库。重启后记录仍可查询，遗留的 `pending/running` 任务标记为 `failed`；生产队列恢复执行待 #149 接入。
 3. **WebSocket 支持**: 当前不支持 WebSocket 实时推送，请使用轮询。后续版本计划支持
 4. **认证**: 用户、Token 撤销和加密密钥已实现；详见 [认证指南](docs/api-authentication.md)。业务任务仍使用模拟执行器，真实执行由 #149 接入。
 
 ## 路线图
 
-- Phase 2: 数据库持久化存储
+- 数据库持久化存储：#151 已实现
 - Phase 3: WebSocket 实时推送
 - 用户认证和授权：#152 已实现
-- 系统监控：#157 已提供基础健康、资源、日志和请求统计；真实队列/worker/LLM 与业务数据库指标待 #149/#151 接入
+- 系统监控：#157 已提供健康、资源、日志、API 与业务 SQL 查询统计；真实队列/worker/LLM 指标待 #149 接入
 - Phase 5: 完整的问题和策略端点
 
 ## 反馈和支持
@@ -428,8 +428,10 @@ curl http://localhost:8000/api/v1/evaluations/{eval_id}/progress -H "Authorizati
 
 ## 系统监控与安全日志
 
-本次 #157 基础能力提供 `/system/health`、`/health/database`、`/health/sandbox`、`/system/resources`、`/metrics/api-stats` 和离线配置目录。系统级端点及全局 `/logs` 需要有效 Bearer 身份，并由部署者通过 `MONITOR_ADMIN_USER_IDS` UUID 白名单授权。
+本次 #157 基础能力提供 `/system/health`、`/health/database`、`/health/sandbox`、`/system/resources`、`/metrics/api-stats`、业务 SQL 查询统计和离线配置目录。系统级端点及全局 `/logs` 需要有效 Bearer 身份，并由部署者通过 `MONITOR_ADMIN_USER_IDS` UUID 白名单授权。
 
 用户可读取自己的 `/logs/tasks/{task_id}`、下载 `/logs/download/{task_id}`，以及查询 `/quotas/usage` 的既有存储、请求与导入限额。任务日志按所有者隔离，消息和上下文在存储前脱敏；不接受主机日志路径。
 
-API 指标提供 `window_complete` 与 `retained_sample`，窗口不完整时顶层累计值为 `null`。Redis/worker、业务数据库、真实评估和 LLM 延迟/成功率明确标记 `not_configured`；当前模拟任务不计作生产队列或真实生成指标。管理员配置、全部接口和后续接入边界见 [监控指南](docs/api-monitoring.md)。
+`/health/database` 只读检查已配置的认证/文件 SQLite 和 #151 业务 engine 的连通性、所需表与迁移版本；不通过健康请求迁移数据库或重新创建任务服务。`/system/tasks/running` 与 `/system/tasks/queued` 从持久化业务任务读取，支持 `limit/offset` 分页并返回准确 `total/counts`；`queued` 表示 `pending` 状态，不代表 Redis 队列。`/system/status` 的任务计数使用全量数据库聚合。
+
+API 与业务 SQL 指标提供 `window_complete` 与 `retained_sample`，窗口不完整时顶层累计值为 `null`。业务 SQL 统计仅覆盖当前 API engine 与进程的 cursor 执行阶段，重启后重建采集起点；不保存 SQL、参数或连接凭据。Redis/worker、真实评估和 LLM 延迟/成功率仍标记 `not_configured`，模拟任务不计作生产队列或真实生成指标。管理员配置、全部接口和后续接入边界见 [监控指南](docs/api-monitoring.md)。

@@ -4,10 +4,13 @@ import time
 from typing import Any
 
 from fastapi import HTTPException
+from sqlalchemy import func, select
 
 from api.auth.service import AuthService, digest
+from api.db.models import Evaluation
 from api.files.service import FileService
 from api.monitoring.config import MonitorSettings
+from api.monitoring.database_metrics import DatabaseQueryMetrics
 from api.monitoring.probes import MonitorProbes
 from api.monitoring.store import MonitorStore
 from api.services import EvaluationService
@@ -27,9 +30,15 @@ class MonitorService:
         self.store = MonitorStore(
             auth.store, settings.MONITOR_RETENTION_SECONDS, settings.MONITOR_MAX_ROWS
         )
-        self.probes = MonitorProbes(auth, files, settings)
+        self.probes = MonitorProbes(auth, files, settings, evaluations)
+        self.database_metrics = DatabaseQueryMetrics(
+            evaluations.engine, settings.MONITOR_RETENTION_SECONDS, settings.MONITOR_MAX_ROWS
+        )
         self.started = time.monotonic()
         self.cache: LLMResponseCache | None = None  # Bound explicitly by a real worker.
+
+    def close(self) -> None:
+        self.database_metrics.close()
 
     def known_secrets(self, user_id: str | None = None) -> list[str]:
         secrets = [
@@ -84,29 +93,80 @@ class MonitorService:
             known_secrets=self.known_secrets(user_id),
         )
 
-    def task_snapshot(self, state: str | None = None) -> dict[str, Any]:
-        with self.evaluations._tasks_lock:
-            tasks = list(self.evaluations.tasks.values())
-            items = []
-            for task in tasks:
-                with task._lock:
-                    if state and task.status != state:
-                        continue
-                    items.append(
-                        {
-                            "task_id": task.task_id,
-                            "owner_id": task.owner_id,
-                            "status": task.status,
-                            "completed": task.completed_count,
-                            "total": task.problem_count,
-                        }
-                    )
-        return {
-            "source": "in_process_evaluation_simulator",
-            "items": items,
-            "total": len(items),
+    def task_snapshot(
+        self, state: str | None = None, limit: int = 100, offset: int = 0
+    ) -> dict[str, Any]:
+        if not 1 <= limit <= 1000 or not 0 <= offset <= 100000:
+            raise ValueError("Invalid task pagination")
+        metadata = {
+            "source": "persisted_business_evaluations",
+            "execution_backend": "in_process_simulator",
+            "limit": limit,
+            "offset": offset,
             "production_queue_configured": False,
         }
+        try:
+            with self.evaluations.engine.connect() as connection:
+                if connection.dialect.name == "postgresql":
+                    connection = connection.execution_options(isolation_level="REPEATABLE READ")
+                with connection.begin():
+                    # Python's SQLite legacy transaction mode does not start a
+                    # read snapshot for SELECT; make both queries see one view.
+                    if connection.dialect.name == "sqlite":
+                        connection.exec_driver_sql("BEGIN")
+                    condition = (Evaluation.status == state,) if state else ()
+                    counts = dict(
+                        connection.execute(
+                            select(Evaluation.status, func.count())
+                            .where(*condition)
+                            .group_by(Evaluation.status)
+                        )
+                        .tuples()
+                        .all()
+                    )
+                    rows = (
+                        connection.execute(
+                            select(
+                                Evaluation.id,
+                                Evaluation.user_id,
+                                Evaluation.status,
+                                Evaluation.completed_count,
+                                Evaluation.problem_count,
+                            )
+                            .where(*condition)
+                            .order_by(Evaluation.created_at, Evaluation.id)
+                            .limit(limit)
+                            .offset(offset)
+                        )
+                        .mappings()
+                        .all()
+                    )
+                    items = [
+                        {
+                            "task_id": row["id"],
+                            "owner_id": row["user_id"],
+                            "status": row["status"],
+                            "completed": row["completed_count"],
+                            "total": row["problem_count"],
+                        }
+                        for row in rows
+                    ]
+            return {
+                **metadata,
+                "status": "ok",
+                "items": items,
+                "total": sum(counts.values()),
+                "counts": counts,
+            }
+        except Exception:
+            return {
+                **metadata,
+                "status": "unavailable",
+                "items": None,
+                "total": None,
+                "counts": None,
+                "detail": "Business task snapshot could not be collected",
+            }
 
     def health(self, include_sandbox: bool = False) -> dict[str, Any]:
         checks = {
@@ -131,7 +191,7 @@ class MonitorService:
             "status": status,
             "scope": "configured_api_foundation",
             "checks": checks,
-            "pending_issues": [149, 151],
+            "pending_issues": [149],
         }
 
     def performance(self) -> dict[str, Any]:
@@ -143,11 +203,9 @@ class MonitorService:
                 "success_rate": None,
                 "detail": "Real worker instrumentation awaits #149",
             },
-            "database_queries": {
-                "status": "not_configured",
-                "avg_latency_ms": None,
-                "detail": "Business database awaits #151",
-            },
+            "database_queries": self.database_metrics.stats(
+                self.settings.MONITOR_API_WINDOW_SECONDS
+            ),
             "llm": self.llm_stats(),
         }
 

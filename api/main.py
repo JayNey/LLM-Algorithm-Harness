@@ -107,6 +107,7 @@ def create_app(
             cleaner.cancel()
             with suppress(asyncio.CancelledError):
                 await cleaner
+            app.state.monitor.close()
             app.state.evaluations.close()
             engine.dispose()
 

@@ -4,12 +4,14 @@ import io
 import json
 import secrets
 import time
+from unittest.mock import patch
 from uuid import UUID
 
 import jwt
 import pytest
 from cryptography.fernet import Fernet
 from fastapi.testclient import TestClient
+from sqlalchemy import text
 from starlette.requests import ClientDisconnect
 
 from api.auth.config import AuthSettings
@@ -75,7 +77,7 @@ def api(tmp_path, monkeypatch):
         _env_file=None, UPLOAD_DIR=tmp_path / "uploads", FILE_UPLOAD_RATE_LIMIT=1000
     )
     monitor = MonitorSettings(_env_file=None)
-    app = create_app(auth, files, monitor)
+    app = create_app(auth, files, monitor_settings=monitor)
     with TestClient(app) as client:
         admin, user = signup(client, "operator"), signup(client, "admin")
         owner = app.state.auth.store.find_user("operator")["id"]
@@ -157,6 +159,8 @@ def test_health_sources_and_safe_admin_configuration(api, monkeypatch):
     health = client.get("/api/v1/system/health", headers=headers(admin)).json()["data"]
     assert health["status"] == "partial"
     assert health["checks"]["database"]["status"] == "ok"
+    assert health["pending_issues"] == [149]
+    assert health["checks"]["database"]["business_database"]["migration"]["revisions"] == ["0001"]
     assert health["checks"]["redis"]["status"] == "not_configured"
     assert health["checks"]["workers"]["dependency_issue"] == 149
     assert health["checks"]["sandbox"]["status"] == "not_checked"
@@ -179,6 +183,7 @@ def test_health_sources_and_safe_admin_configuration(api, monkeypatch):
         assert str(files.UPLOAD_DIR) not in response.text
         assert auth.SECRET_KEY.get_secret_value() not in response.text
         assert auth.ENCRYPTION_KEY.get_secret_value() not in response.text
+        assert str(app.state.evaluations.engine.url) not in response.text
     stats = client.get("/api/v1/metrics/api-stats", headers=headers(admin)).json()["data"]
     assert stats["window_complete"] is False and stats["request_count"] is None
     assert stats["retained_sample"]["request_count"] > 0
@@ -309,7 +314,7 @@ def test_store_survives_restart_with_same_identity_scope(api):
     client, admin, user, app, auth, files, monitor = api
     run_id = make_task(client, user)
     before = client.get(f"/api/v1/logs/tasks/{run_id}", headers=headers(user)).json()["data"]
-    restarted = create_app(auth, files, monitor)
+    restarted = create_app(auth, files, monitor_settings=monitor)
     with TestClient(restarted) as second:
         after = second.get(f"/api/v1/logs/tasks/{run_id}", headers=headers(user))
         assert after.status_code == 200 and after.json()["data"]["items"] == before["items"]
@@ -321,6 +326,9 @@ def test_store_survives_restart_with_same_identity_scope(api):
             ]
             == 0
         )
+        overview = second.get("/api/v1/system/status", headers=headers(admin)).json()["data"]
+        assert overview["task_source"] == "persisted_business_evaluations"
+        assert overview["task_count"] == 1 and overview["task_counts"] == {"failed": 1}
 
 
 def test_quotas_are_available_only_for_current_user_and_real_cache_is_opt_in(api):
@@ -442,3 +450,113 @@ def test_literal_placeholder_inside_known_key_is_removed_from_task_logs(api):
     assert response.status_code == 200
     assert key_value not in response.text
     assert key_value.encode() not in auth.AUTH_DATABASE_PATH.read_bytes()
+
+
+def test_persistent_task_pages_have_accurate_full_counts_and_read_only_health(api):
+    client, admin, user, app, *_ = api
+    first, second = make_task(client, user), make_task(client, admin)
+    response = client.get("/api/v1/system/tasks/queued?limit=1&offset=1", headers=headers(admin))
+    assert response.status_code == 200
+    page = response.json()["data"]
+    assert (
+        page["source"] == "persisted_business_evaluations"
+        and page["execution_backend"] == "in_process_simulator"
+    )
+    assert page["total"] == 2 and page["counts"] == {"pending": 2} and len(page["items"]) == 1
+    assert page["production_queue_configured"] is False
+    with patch(
+        "api.monitoring.probes.EvaluationService", side_effect=AssertionError("no recovery")
+    ):
+        for _ in range(2):
+            assert (
+                client.get("/api/v1/health/database", headers=headers(admin)).json()["data"][
+                    "business_database"
+                ]["status"]
+                == "ok"
+            )
+            overview = client.get("/api/v1/system/status", headers=headers(admin)).json()["data"]
+            assert overview["task_count"] == 2 and overview["task_counts"] == {"pending": 2}
+    assert (
+        app.state.evaluations.get_evaluation(
+            first, app.state.auth.store.find_user("admin")["id"]
+        ).status
+        == "pending"
+    )
+    assert (
+        app.state.evaluations.get_evaluation(
+            second, app.state.auth.store.find_user("operator")["id"]
+        ).status
+        == "pending"
+    )
+    assert (
+        client.get("/api/v1/system/tasks/queued?limit=1001", headers=headers(admin)).status_code
+        == 400
+    )
+    assert (
+        client.get("/api/v1/system/tasks/running?offset=-1", headers=headers(admin)).status_code
+        == 400
+    )
+
+
+def test_actual_queries_errors_and_database_failure_are_explicit_without_secrets(api):
+    client, admin, user, app, *_ = api
+    make_task(client, user)
+    with pytest.raises(Exception):
+        with app.state.evaluations.engine.connect() as connection:
+            connection.execute(
+                text("SELECT :value FROM missing_private_table"),
+                {"value": "query-private-credential"},
+            )
+    data = client.get("/api/v1/metrics/performance", headers=headers(admin)).json()["data"][
+        "database_queries"
+    ]
+    assert data["status"] == "ok" and data["scope"] == "bound_business_engine_current_process"
+    assert data["window_complete"] is False and data["query_count"] is None
+    assert data["retained_sample"]["errors"] == 1 and data["retained_sample"]["query_count"] >= 2
+    assert "query-private-credential" not in json.dumps(
+        data
+    ) and "missing_private_table" not in json.dumps(data)
+    with patch.object(
+        app.state.evaluations.engine,
+        "connect",
+        side_effect=RuntimeError("password=private-db-secret"),
+    ):
+        health = client.get("/api/v1/system/health", headers=headers(admin)).json()["data"]
+        snapshot = client.get("/api/v1/system/tasks/queued", headers=headers(admin)).json()["data"]
+    assert (
+        health["status"] == "degraded"
+        and health["checks"]["database"]["business_database"]["status"] == "unavailable"
+    )
+    assert (
+        snapshot["status"] == "unavailable"
+        and snapshot["total"] is None
+        and snapshot["items"] is None
+        and snapshot["counts"] is None
+    )
+    assert "private-db-secret" not in json.dumps([health, snapshot])
+
+
+def test_database_config_positional_argument_and_metrics_lifecycle(tmp_path):
+    auth = AuthSettings(
+        _env_file=None,
+        SECRET_KEY=secrets.token_urlsafe(48),
+        ENCRYPTION_KEY=Fernet.generate_key().decode(),
+        AUTH_DATABASE_PATH=tmp_path / "auth.sqlite3",
+    )
+    files = FileSettings(_env_file=None, UPLOAD_DIR=tmp_path / "uploads")
+    app = create_app(
+        auth,
+        files,
+        f"sqlite:///{tmp_path/'business.sqlite3'}",
+        monitor_settings=MonitorSettings(_env_file=None),
+    )
+    with TestClient(app):
+        collector = app.state.monitor.database_metrics
+        engine = app.state.evaluations.engine
+        assert collector.stats()["collection_active"] is True
+    assert collector.stats()["collection_active"] is False
+    before = collector.stats()["retained_sample"]["query_count"]
+    with engine.connect() as connection:
+        assert connection.execute(text("SELECT 7")).scalar() == 7
+    assert collector.stats()["retained_sample"]["query_count"] == before
+    engine.dispose()

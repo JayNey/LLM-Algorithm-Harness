@@ -64,10 +64,10 @@ python -c 'from cryptography.fernet import Fernet; print("ENCRYPTION_KEY=" + Fer
 
 ## 与 #149 / #151 / #153 的接入边界
 
-- #148 当前评估服务是内存中的模拟执行器，仍未执行真实 LLM 请求。身份和凭据引用已绑定到任务，但本 change 不实现 #149 的队列和真实执行器，也不把模拟任务计为真实密钥使用。
+- #148 评估接口已由 #151 接入持久化业务数据库；执行后端仍为进程内模拟器，不执行真实 LLM 请求。身份和凭据引用绑定到任务，#149 的队列和真实执行器尚待接入，模拟任务不计为真实密钥使用。
 - #149 worker 应以可信任务的 `owner_id/api_key_id` 调用 `AuthService.llm_config(key_id, user_id, model)`，获得只在内存使用的配置；每次真实提供商请求后调用 `AuthStore.record_key_usage`。禁止将解密凭据写入 broker、任务 JSON 或结果文件。
-- #151 尚未合并。`api/auth/store.py` 是独立、持久化的 SQLite 适配器，包含 `auth_users/auth_sessions/auth_keys/auth_rates`。后续可替换为业务数据库 Repository，保留刷新条件更新、撤销、参数化查询、加密值和原子限流语义。不同实例必须共享同一数据库文件；不支持跨机器独立 SQLite 文件共享认证状态。
-- 评估任务仍存内存，不同进程的任务状态不共享，重启会丢失；认证用户、密钥、会话和限流在同机共享文件的多进程及重启场景有效。
+- #151 业务数据库已合并，但认证仍使用 `api/auth/store.py` 的独立、持久化 SQLite 适配器，包含 `auth_users/auth_sessions/auth_keys/auth_rates`。业务任务的 `user_id` 引用认证用户 ID，不使用跨库外键。后续替换认证 Repository 时需保留刷新条件更新、撤销、参数化查询、加密值和原子限流语义。不同实例必须共享同一认证数据库文件；不支持跨机器独立 SQLite 文件共享认证状态。
+- 评估任务状态跨重启持久化；现有评估服务启动时将遗留的 `pending/running` 任务标记为 `failed`，尚未通过真实队列恢复执行。认证用户、密钥、会话和限流在同机共享文件的多进程及重启场景有效。
 - #153 私有题库/文件 API 和 #150 的订阅权限可复用 `current_user` / `AuthService.authenticate`；各自还需在资源查询时验证 owner，不能只检查 Token。
 - RBAC、管理员账号、邮箱验证和密码重置为 issue 中的可选项，当前不开放。
 
