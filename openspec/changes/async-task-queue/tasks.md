@@ -7,9 +7,9 @@
 - [x] 添加环境变量配置（CELERY_BROKER_URL, CELERY_RESULT_BACKEND）
 
 ## 2. 数据库扩展
-- [ ] 创建 `async_tasks` 表的 SQLAlchemy model
-- [ ] 生成 Alembic migration
-- [ ] 执行数据库迁移
+- [x] 创建 `async_tasks` 表的 SQLAlchemy model
+- [x] 生成 Alembic migration
+- [x] 执行数据库迁移
 
 ## 3. Celery 任务定义
 - [ ] 实现 `run_evaluation_task` Celery 任务
