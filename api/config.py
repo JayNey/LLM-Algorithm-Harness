@@ -23,6 +23,10 @@ class Settings(BaseSettings):
     MAX_CONCURRENT_TASKS: int = int(os.getenv("MAX_CONCURRENT_TASKS", "5"))
     TASK_TIMEOUT_SECONDS: int = int(os.getenv("TASK_TIMEOUT_SECONDS", "3600"))
 
+    # Business database (issue #151). None falls back to the local SQLite file
+    # in api.db.engine; production deployments point it at PostgreSQL.
+    DATABASE_URL: str | None = os.getenv("DATABASE_URL") or None
+
     class Config:
         env_file = ".env"
         extra = "ignore"  # Auth and API settings share the same dotenv file.

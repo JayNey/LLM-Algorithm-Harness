@@ -24,14 +24,16 @@ from api.services import EvaluationService
 
 
 def create_app(
-    auth_settings: AuthSettings | None = None, file_settings: FileSettings | None = None
+    auth_settings: AuthSettings | None = None,
+    file_settings: FileSettings | None = None,
+    database_url: str | None = None,
 ) -> FastAPI:
     """Create and configure FastAPI application."""
 
     @asynccontextmanager
     async def lifespan(app: FastAPI):
         app.state.auth = AuthService(auth_settings or AuthSettings())
-        app.state.evaluations = EvaluationService()
+        app.state.evaluations = EvaluationService(database_url)
         app.state.files = FileService(app.state.auth, file_settings or FileSettings())
         await run_in_threadpool(app.state.files.cleanup)
 
