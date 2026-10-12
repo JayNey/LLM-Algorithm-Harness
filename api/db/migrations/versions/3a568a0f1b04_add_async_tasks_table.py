@@ -1,7 +1,7 @@
 """add async_tasks table
 
 Revision ID: 3a568a0f1b04
-Revises: 0001
+Revises: 0002
 Create Date: 2026-10-12 15:44:51.796101
 """
 
@@ -13,7 +13,7 @@ import sqlalchemy as sa
 from alembic import op
 
 revision: str = '3a568a0f1b04'
-down_revision: str | None = '0001'
+down_revision: str | None = '0002'
 branch_labels: str | Sequence[str] | None = None
 depends_on: str | Sequence[str] | None = None
 
