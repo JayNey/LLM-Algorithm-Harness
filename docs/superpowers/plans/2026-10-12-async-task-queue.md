@@ -1781,7 +1781,7 @@ uvicorn api.main:app --reload &
 pytest -v
 ```
 
-- [ ] **代码审查检查**
+- [x] **代码审查检查**
 
 - 所有测试通过
 - 代码符合项目风格
