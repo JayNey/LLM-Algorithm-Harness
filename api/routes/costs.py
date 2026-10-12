@@ -3,7 +3,7 @@
 from collections.abc import Callable
 from typing import TypeVar, cast
 
-from fastapi import APIRouter, Depends, HTTPException, Request
+from fastapi import APIRouter, Depends, HTTPException, Path as PathParam, Request
 
 from api.auth.dependencies import current_user
 from api.auth.service import Principal
@@ -184,9 +184,9 @@ def pricing_catalog(
 
 @router.get("/pricing/{model_id}/history")
 def pricing_history(
-    model_id: str,
     principal: Principal = Depends(current_user),
     service: CostService = Depends(cost_service),
+    model_id: str = PathParam(..., max_length=200),
 ) -> ApiResponse[list[dict]]:
     result = service.pricing_history(model_id)
     return ApiResponse(success=True, data=result, message="Pricing history retrieved successfully")
@@ -194,10 +194,10 @@ def pricing_history(
 
 @router.post("/pricing/{model_id}", status_code=201)
 def set_pricing_override(
-    model_id: str,
     request: PricingOverrideRequest,
     principal: Principal = Depends(current_user),
     service: CostService = Depends(cost_service),
+    model_id: str = PathParam(..., max_length=200),
 ) -> ApiResponse[dict]:
     result = service.set_pricing_override(model_id, request, principal.user_id)
     return ApiResponse(success=True, data=result, message="Pricing override saved successfully")

@@ -7,7 +7,7 @@ Issue #154 要求成本追踪与预算管理的 Web API。#151 的业务库已�
 - Alembic 迁移 `0003`：`budgets`（每用户一份：全局上限 + 按难度分配 + 阈值行为）、`alert_rules`（阈值/通道/目标）、`alert_events`（触发历史）、`pricing_overrides`（追加式定价覆盖版本）。
 - 成本查询 API：任务成本详情（跨四类任务表解析）、用户成本汇总（时间段）、趋势序列（按日聚合）、成本分解（按来源类型/模型/策略）。
 - 预算管理 API：预算配置 get/upsert/update、使用情况（全局 used/remaining/percentage + 按难度比例估计，口径注明）。
-- 预警配置 API：规则 CRUD + 触发历史（运行期真实触发接线随 #149 队列落地，本 change 交付配置面与数据面）。
+- 预警配置 API：规则 CRUD + 触发历史表（运行期阈值评估与投递接线随 #149 队列落地，本 change 交付配置面与数据面）。
 - 定价 API：目录读取（PricingManager 内置 + 自定义文件）、自定义覆盖入库（追加版本，成本查询侧生效；runner 侧接线随 #159）。
 - 成本报告：任务成本报告；`/reports/cost-optimization` 从用户自己的 run 数据合成 comparison 喂 `src/cost_optimizer.build_advisory`。
 

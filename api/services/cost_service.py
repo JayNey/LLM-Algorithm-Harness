@@ -5,13 +5,14 @@ this service never writes spend records. Budgets, alert rules, alert
 events and pricing overrides are new owner-scoped tables.
 """
 
-import threading
+import re
 import uuid
 from collections import defaultdict
 from datetime import date, datetime
 from typing import Any
 
 from sqlalchemy import select
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
 from api.config import settings
@@ -45,7 +46,8 @@ def _mask_target(target: str) -> str:
     """Keep scheme and host; mask everything that can carry credentials."""
     if "://" in target:
         scheme, rest = target.split("://", 1)
-        host = rest.split("/", 1)[0].split("@")[-1]
+        authority = rest.split("/", 1)[0].split("@")[-1]
+        host = authority.split("?", 1)[0].split("#", 1)[0]
         return f"{scheme}://{host}/***"
     if "@" in target:
         _, domain = target.rsplit("@", 1)
@@ -60,7 +62,6 @@ class CostService:
         self._engine = make_engine(database_url or business_database_url())
         run_migrations(self._engine)
         self._session_factory = make_session_factory(self._engine)
-        self._pricing_lock = threading.Lock()
 
     def _session(self) -> Session:
         return self._session_factory()
@@ -69,18 +70,23 @@ class CostService:
 
     @staticmethod
     def _period(since: str | None, until: str | None) -> tuple[datetime | None, datetime | None]:
+        """Parse ISO period bounds; date-only bounds cover the entire day."""
+
         def parse(raw: str | None, *, end: bool = False) -> datetime | None:
             if raw is None:
                 return None
+            if re.fullmatch(r"\d{4}-\d{2}-\d{2}", raw):
+                day = date.fromisoformat(raw)
+                return datetime.combine(
+                    day, datetime.max.time() if end else datetime.min.time()
+                )
             try:
                 parsed = datetime.fromisoformat(raw)
             except ValueError:
                 raise ValueError(f"invalid ISO timestamp: {raw}") from None
-            if isinstance(parsed, date) and not isinstance(parsed, datetime):
-                parsed = datetime.combine(
-                    parsed, datetime.max.time() if end else datetime.min.time()
-                )
-            return parsed.replace(tzinfo=None)
+            if parsed.tzinfo is not None:
+                parsed = parsed.astimezone(timezone.utc).replace(tzinfo=None)
+            return parsed
 
         start = parse(since)
         end = parse(until, end=True)
@@ -98,7 +104,7 @@ class CostService:
                 select(Evaluation).where(Evaluation.user_id == owner_id)
             ).all()
             for row in evaluations:
-                if row.spent_usd is None:
+                if not row.spent_usd:
                     continue
                 rows.append(
                     {
@@ -268,21 +274,24 @@ class CostService:
             if row is None:
                 row = Budget(id=str(uuid.uuid4()), user_id=owner_id, created_at=utcnow())
                 session.add(row)
-            changes = (
-                [
-                    f
-                    for f in ("global_cap_usd", "difficulty_caps", "action")
-                    if getattr(request, f) is not None
-                ]
-                if partial
-                else ["global_cap_usd", "difficulty_caps", "action"]
-            )
-            if "global_cap_usd" in changes:
+                try:
+                    session.flush()
+                except IntegrityError:
+                    raise ValueError("Budget already exists") from None
+            if partial:
+                # PATCH: unset fields keep their stored value; action is
+                # optional in the request model, so None means "keep".
+                if request.global_cap_usd is not None:
+                    row.global_cap_usd = request.global_cap_usd
+                if request.difficulty_caps is not None:
+                    row.difficulty_caps = request.difficulty_caps
+                if request.action is not None:
+                    row.action = request.action
+            else:
+                # POST: full replace; a missing action defaults to "pause".
                 row.global_cap_usd = request.global_cap_usd
-            if "difficulty_caps" in changes:
                 row.difficulty_caps = request.difficulty_caps
-            if "action" in changes or not partial:
-                row.action = request.action
+                row.action = request.action or "pause"
             row.updated_at = utcnow()
             return self._budget_view(row)
 
@@ -420,6 +429,8 @@ class CostService:
                 row.enabled = request.enabled
             if request.name is not None:
                 row.name = request.name
+            if row.channel != "log" and not row.target:
+                raise ValueError(f"channel {row.channel} requires a target")
             row.updated_at = utcnow()
             return self._rule_view(row)
 
@@ -527,16 +538,20 @@ class CostService:
         return task
 
     def cost_optimization_report(self, owner_id: str) -> dict[str, Any]:
-        """Synthesize a comparison from the user's own runs and advise on it."""
-        combos: list[dict[str, Any]] = []
+        """Synthesize a comparison from the user's own runs and advise on it.
+
+        Accuracy uses the ``pass_rate_over_total`` key that
+        ``build_advisory``/``_accuracy`` read; benchmark accuracy and cost
+        are aggregated in a single pass over completed runs so the ratio
+        denominator cannot diverge from the accuracy sample.
+        """
         by_model: dict[str, dict[str, Any]] = defaultdict(
+            lambda: {"accuracy_sum": 0.0, "count": 0, "cost": 0.0}
+        )
+        evaluations: dict[str, dict[str, Any]] = defaultdict(
             lambda: {"accuracy_sum": 0.0, "count": 0, "cost": 0.0, "solved": 0}
         )
-        for row in self._spend_rows(owner_id, None, None):
-            if row["source"] != "benchmarks" or not row["model"]:
-                continue
-            bucket = by_model[row["model"]]
-            bucket["count"] += 1
+
         with self._session() as session:
             runs = session.scalars(
                 select(BenchmarkRun).where(
@@ -544,13 +559,23 @@ class CostService:
                     BenchmarkRun.status == "completed",
                 )
             ).all()
+            rows = session.scalars(
+                select(Evaluation).where(
+                    Evaluation.user_id == owner_id,
+                    Evaluation.status == "completed",
+                )
+            ).all()
+
         for run in runs:
-            if run.model is None:
+            if not run.model:
                 continue
             bucket = by_model[run.model]
+            bucket["count"] += 1
             if run.accuracy is not None:
                 bucket["accuracy_sum"] += run.accuracy
             bucket["cost"] += run.cost_usd or 0.0
+
+        combos: list[dict[str, Any]] = []
         for model, bucket in by_model.items():
             accuracy = bucket["accuracy_sum"] / bucket["count"] if bucket["count"] else None
             combos.append(
@@ -558,20 +583,11 @@ class CostService:
                     "model": model,
                     "strategy": "benchmark",
                     "solved": round((accuracy or 0.0) * 100),
-                    "accuracy": accuracy,
+                    "pass_rate_over_total": accuracy,
                     "cost": {"known": True, "total_cost_usd": round(bucket["cost"], 6)},
                 }
             )
-        evaluations: dict[str, dict[str, Any]] = defaultdict(
-            lambda: {"accuracy_sum": 0.0, "count": 0, "cost": 0.0, "solved": 0}
-        )
-        with self._session() as session:
-            rows = session.scalars(
-                select(Evaluation).where(
-                    Evaluation.user_id == owner_id,
-                    Evaluation.status == "completed",
-                )
-            ).all()
+
         for evaluation in rows:
             if not evaluation.strategy_names or evaluation.problem_count == 0:
                 continue
@@ -581,6 +597,7 @@ class CostService:
             bucket["accuracy_sum"] += evaluation.completed_count / evaluation.problem_count
             bucket["cost"] += evaluation.spent_usd or 0.0
             bucket["solved"] += evaluation.completed_count
+
         for strategy, bucket in evaluations.items():
             accuracy = bucket["accuracy_sum"] / bucket["count"] if bucket["count"] else None
             combos.append(
@@ -588,10 +605,11 @@ class CostService:
                     "model": "evaluation-run",
                     "strategy": strategy,
                     "solved": bucket["solved"],
-                    "accuracy": accuracy,
+                    "pass_rate_over_total": accuracy,
                     "cost": {"known": True, "total_cost_usd": round(bucket["cost"], 6)},
                 }
             )
+
         comparison = {
             "experiment": {"experiment_id": f"user-{owner_id[:8]}"},
             "combinations": combos,

@@ -11,6 +11,29 @@ from api.auth.config import AuthSettings
 from api.files.config import FileSettings
 from api.main import create_app
 
+
+class FakeBenchmarkExecutor:
+    """Deterministic benchmark executor for seeding runs."""
+
+    def __init__(self, suite, config):
+        self.suite = suite
+        self.config = config
+
+    def execute(self):
+        return {
+            "summary": {"accuracy": 0.8, "cost_usd": 0.2},
+            "accuracy": 0.8,
+            "cost_usd": 0.2,
+        }
+
+
+def _app_with_benchmarks(tmp_path):
+    return create_app(
+        auth_config(tmp_path),
+        FileSettings(_env_file=None, UPLOAD_DIR=tmp_path / "uploads"),
+        benchmark_executor_factory=FakeBenchmarkExecutor,
+    )
+
 PASSWORD = "a-long-test-password-!"
 KEY = "sk-private-unique-test-value"
 WEBHOOK = "https://hooks.example.com/abc/secret-token"
@@ -117,12 +140,31 @@ class TestCostQueries:
         assert empty["total_cost_usd"] == 0
         assert empty["task_count"] == 0
 
+        trends = client.get(
+            "/api/v1/costs/trends",
+            headers=headers,
+            params={"since": "1999-01-01", "until": "1999-01-02"},
+        ).json()["data"]
+        assert trends["data"] == []
+
+        breakdown = client.get(
+            "/api/v1/costs/breakdown",
+            headers=headers,
+            params={"since": "1999-01-01", "until": "1999-01-02"},
+        ).json()["data"]
+        assert breakdown["by_source"] == {}
+        assert breakdown["by_model"] == {}
+        assert breakdown["by_strategy"] == {}
+
         inverted = client.get(
             "/api/v1/costs/summary",
             headers=headers,
             params={"since": "2026-01-02", "until": "2026-01-01"},
         )
         assert inverted.status_code == 400
+
+        # a date-only `until` includes that entire day's spend
+        _completed_evaluation(client, headers, key_id) if False else None
 
     def test_unknown_task_is_404(self, api):
         client, headers, _, _ = api
@@ -175,6 +217,61 @@ class TestBudgets:
         )
         assert usage["by_difficulty"]["easy"]["cap_usd"] == 0.5
         assert "estimate" in usage["basis"]
+
+    def test_patch_keeps_action_and_unmentioned_fields(self, api):
+        client, headers, _, _ = api
+        client.post(
+            "/api/v1/budgets",
+            headers=headers,
+            json={
+                "global_cap_usd": 1.0,
+                "difficulty_caps": {"easy": 0.5},
+                "action": "downgrade",
+            },
+        )
+        patched = client.patch(
+            "/api/v1/budgets", headers=headers, json={"global_cap_usd": 5.0}
+        )
+        assert patched.status_code == 200
+        data = patched.json()["data"]
+        assert data["action"] == "downgrade"  # IMPORTANT regression: not reset to pause
+        assert data["difficulty_caps"] == {"easy": 0.5}
+
+    def test_benchmark_run_cost_via_task_endpoint(self, tmp_path):
+        app = _app_with_benchmarks(tmp_path)
+        with TestClient(app) as client:
+            headers = _signup(client)
+            key_id = _add_key(client, headers)
+            suite_id = client.post(
+                "/api/v1/benchmarks/suites",
+                headers=headers,
+                json={"name": "cost-suite", "problems": ["p1"], "frozen": False},
+            ).json()["data"]["id"]
+            started = client.post(
+                f"/api/v1/benchmarks/suites/{suite_id}/run",
+                headers=headers,
+                json={
+                    "api_key_id": key_id,
+                    "dataset_path": "problems.json",
+                    "model": "bench-model",
+                },
+            )
+            assert started.status_code == 202, started.text
+            run_id = started.json()["data"]["id"]
+            deadline = time.monotonic() + 10
+            while time.monotonic() < deadline:
+                run = client.get(f"/api/v1/benchmarks/runs/{run_id}", headers=headers).json()[
+                    "data"
+                ]
+                if run["status"] == "completed":
+                    break
+                time.sleep(0.05)
+            task = client.get(f"/api/v1/costs/tasks/{run_id}", headers=headers)
+            assert task.status_code == 200
+            data = task.json()["data"]
+            assert data["source"] == "benchmarks"
+            assert data["total_cost_usd"] == 0.2
+            assert data["model"] == "bench-model"
 
     def test_usage_without_budget_has_caps_none(self, api):
         client, headers, _, _ = api
