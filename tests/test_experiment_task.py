@@ -8,7 +8,7 @@ from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 
 from api.db.models import AsyncTask, Base, Experiment
-from src.tasks.experiment import run_experiment_task
+from src.tasks.experiment import execute_experiment, run_experiment_task
 
 
 @pytest.fixture
@@ -123,3 +123,57 @@ def test_run_experiment_task_missing_experiment(db_session):
     assert task.status == "failed"
     assert "not found" in task.error_message
     check.close()
+
+
+def test_run_experiment_task_rejects_other_users_experiment(db_session):
+    experiment_id, user_id = _seed(db_session)
+    experiment = db_session.get(Experiment, experiment_id)
+    assert experiment is not None
+    experiment.user_id = "someone-else"
+    db_session.commit()
+
+    with (
+        patch("src.tasks.experiment.get_db_session", return_value=db_session),
+        patch("src.tasks.experiment.execute_experiment") as execute,
+    ):
+        with pytest.raises(ValueError, match="not found"):
+            run_experiment_task(experiment_id, user_id)
+
+    execute.assert_not_called()
+    check = _reload(db_session)
+    task = check.query(AsyncTask).filter_by(entity_id=experiment_id).one()
+    row = check.get(Experiment, experiment_id)
+    assert task.status == "failed"
+    assert "not found" in task.error_message
+    assert row.status == "pending"
+    check.close()
+
+
+def test_run_experiment_task_rejects_non_pending(db_session):
+    experiment_id, user_id = _seed(db_session)
+    experiment = db_session.get(Experiment, experiment_id)
+    assert experiment is not None
+    experiment.status = "running"
+    db_session.commit()
+
+    with (
+        patch("src.tasks.experiment.get_db_session", return_value=db_session),
+        patch("src.tasks.experiment.execute_experiment") as execute,
+    ):
+        with pytest.raises(ValueError, match="Cannot start experiment"):
+            run_experiment_task(experiment_id, user_id)
+
+    execute.assert_not_called()
+    check = _reload(db_session)
+    task = check.query(AsyncTask).filter_by(entity_id=experiment_id).one()
+    assert task.status == "failed"
+    assert "running" in task.error_message
+    check.close()
+
+
+def test_execute_experiment_disables_recovery():
+    with patch("api.services.experiment_service.ExperimentService") as service_cls:
+        execute_experiment("exp-1", "owner-1")
+
+    service_cls.assert_called_once_with(recover=False)
+    service_cls.return_value._execute.assert_called_once_with("exp-1", "owner-1")
