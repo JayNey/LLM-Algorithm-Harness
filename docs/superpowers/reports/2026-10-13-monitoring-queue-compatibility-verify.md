@@ -25,7 +25,7 @@
 
 上游 #179 提交的 .cursor/skills/comet 是指向另一台机器的失效符号链接。Runtime 默认仓库输入扫描因此拒绝运行；本轮保留上游文件，在本地忽略的 .comet/check-policy.json 为实际编译/67项定向测试命令声明项目文件输入。目录声明会将 __pycache__ 纳入指纹，全量测试并行时首次实际定向检查虽全部通过但输入不稳定；改为明确的普通项目文件清单、全环境指纹并在工作区稳定后执行。验证命令不依赖 HEAD/index；Git 元数据之外的源码、测试、配置、数据、规格和文档仍被绑定，不降低测试门禁。该本地策略不进入 commit 或 PR。
 
-最终 Runtime 编译/定向检查及 build、verify 守卫在交付前执行；其实际结果由本地 checks 日志记录。
+最终 Runtime 实际编译与 **67 项定向测试**分别在 build/verify 成功执行，输入前后指纹一致，未复用旧结果：build 日志 d6a72bec-5ae2-496b-8520-c7c65c924d15.log，verify 日志 d1aec547-4a8a-49da-8ee5-2fe8d235f241.log。build 守卫 **14/14**、verify 守卫 **5/5** 通过，由守卫推进到 phase=archive、verify_result=pass；保持 branch_status=pending、archive_confirmation=pending，没有手工伪记 pass 或自动归档。
 
 ## 规格与设计映射
 
