@@ -9,8 +9,8 @@ class EvaluationCreateRequest(BaseModel):
     api_key_id: str = Field(
         ..., min_length=1, max_length=64, description="ID of your stored LLM API key"
     )
-    problem_ids: list[str] = Field(..., min_items=1, description="List of problem IDs to evaluate")
-    strategy_names: list[str] = Field(..., min_items=1, description="List of strategy names to use")
+    problem_ids: list[str] = Field(..., min_length=1, description="List of problem IDs to evaluate")
+    strategy_names: list[str] = Field(..., min_length=1, description="List of strategy names to use")
     budget_cap_usd: float | None = Field(None, ge=0, description="Maximum budget in USD")
     timeout_seconds: int = Field(300, ge=1, description="Timeout per problem in seconds")
     max_concurrency: int = Field(5, ge=1, description="Max concurrent problems")
