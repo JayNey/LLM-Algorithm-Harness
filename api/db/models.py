@@ -181,3 +181,63 @@ class ABTest(Base):
     updated_at: Mapped[datetime] = mapped_column(DateTime, default=utcnow, onupdate=utcnow)
     started_at: Mapped[datetime | None] = mapped_column(DateTime)
     completed_at: Mapped[datetime | None] = mapped_column(DateTime)
+
+
+class Budget(Base):
+    """Per-user budget configuration: global cap plus per-difficulty split."""
+
+    __tablename__ = "budgets"
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True)
+    user_id: Mapped[str] = mapped_column(String(64), unique=True, index=True)
+    global_cap_usd: Mapped[float | None] = mapped_column(Float)
+    difficulty_caps: Mapped[dict | None] = mapped_column(JSON)
+    action: Mapped[str] = mapped_column(String(16), default="pause")
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=utcnow)
+    updated_at: Mapped[datetime] = mapped_column(DateTime, default=utcnow, onupdate=utcnow)
+
+
+class AlertRule(Base):
+    """A user-defined cost alert rule (threshold + delivery channel)."""
+
+    __tablename__ = "alert_rules"
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True)
+    user_id: Mapped[str] = mapped_column(String(64), index=True)
+    name: Mapped[str] = mapped_column(String(200), default="")
+    threshold_pct: Mapped[int] = mapped_column(Integer)
+    channel: Mapped[str] = mapped_column(String(16))
+    target: Mapped[str] = mapped_column(String(1000), default="")
+    enabled: Mapped[bool] = mapped_column(Boolean, default=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=utcnow)
+    updated_at: Mapped[datetime] = mapped_column(DateTime, default=utcnow, onupdate=utcnow)
+
+
+class AlertEvent(Base):
+    """One recorded cost-alert crossing for history and audit."""
+
+    __tablename__ = "alert_events"
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True)
+    user_id: Mapped[str] = mapped_column(String(64), index=True)
+    rule_id: Mapped[str | None] = mapped_column(
+        ForeignKey("alert_rules.id", ondelete="SET NULL"), index=True
+    )
+    threshold_pct: Mapped[int] = mapped_column(Integer)
+    used_usd: Mapped[float] = mapped_column(Float)
+    cap_usd: Mapped[float] = mapped_column(Float)
+    channel: Mapped[str] = mapped_column(String(16), default="log")
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=utcnow)
+
+
+class PricingOverride(Base):
+    """Append-only custom pricing version for one model (latest row wins)."""
+
+    __tablename__ = "pricing_overrides"
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True)
+    model: Mapped[str] = mapped_column(String(200), index=True)
+    prompt_per_1k: Mapped[float] = mapped_column(Float)
+    completion_per_1k: Mapped[float] = mapped_column(Float)
+    created_by: Mapped[str] = mapped_column(String(64), index=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=utcnow)

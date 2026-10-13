@@ -27,12 +27,14 @@ from api.routes import evaluations_router, tasks_router
 from api.routes.ab_tests import router as ab_tests_router
 from api.routes.auth import router as auth_router
 from api.routes.benchmarks import router as benchmarks_router
+from api.routes.costs import router as costs_router
 from api.routes.experiments import router as experiments_router
 from api.routes.files import router as files_router
 from api.routes.monitoring import router as monitoring_router
 from api.services import (
     ABTestService,
     BenchmarkService,
+    CostService,
     EvaluationService,
     ExperimentService,
 )
@@ -94,6 +96,7 @@ def create_app(
             auth=app.state.auth,
             runner_factory=ab_test_runner_factory or ABTestRunner,
         )
+        app.state.cost = CostService(database_url)
         app.state.files = FileService(app.state.auth, file_settings or FileSettings())
         app.state.monitor = MonitorService(
             app.state.auth,
@@ -155,6 +158,7 @@ def create_app(
     app.include_router(experiments_router)
     app.include_router(benchmarks_router)
     app.include_router(ab_tests_router)
+    app.include_router(costs_router)
 
     @app.get("/api/v1/health")
     def health_check() -> dict[str, Any]:

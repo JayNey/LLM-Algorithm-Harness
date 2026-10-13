@@ -305,6 +305,34 @@ POST /api/v1/evaluations/{evaluation_id}/cancel
 
 异步端点返回 `202`，随后通过详情端点轮询状态（`pending → running → completed/failed`）；服务重启会把中断的 `pending/running` 任务标记为 `failed`（`error_message: "interrupted by service restart"`）。
 
+### 成本追踪、预算与定价（#154）
+
+成本查询为只读聚合（数据来自评估任务与基准运行的持久化记录）；预算与预警规则为 owner 作用域的配置持久化。时间段参数（`since`/`until`）接受 ISO 8601，非法值返回 400；纯日期（如 `2026-01-31`）按当天全天计算。
+
+预算语义：`POST /api/v1/budgets` 为**全量替换**（未传字段重置：`action` 缺省为 `pause`、未传的上限清空）；`PATCH` 为部分更新（未传字段保持不变）。
+
+定价覆盖说明：自定义定价是**服务器全局数据**（影响所有用户的成本查询口径），任何认证用户可写——治理（管理员限制）随 #159 runner 接线一并落地；覆盖在 API 成本查询侧立即生效，runner 记账侧随 #159。
+
+| 端点 | 说明 |
+|---|---|
+| `GET /api/v1/costs/tasks/{task_id}` | 单任务成本（跨评估/实验/基准/A-B 四类任务解析） |
+| `GET /api/v1/costs/summary` | 用户成本汇总（`since`/`until`，按来源类型分列） |
+| `GET /api/v1/costs/trends` | 按日成本趋势序列 |
+| `GET /api/v1/costs/breakdown` | 成本分解（按来源/模型/策略） |
+| `GET /api/v1/budgets` · `POST /api/v1/budgets` | 读取 / 首次设置预算（全局上限 + 按难度分配 + `action: pause\|downgrade`） |
+| `PATCH /api/v1/budgets` | 部分更新预算（未传字段保持不变） |
+| `GET /api/v1/budgets/usage` | 使用情况：全局 used/remaining/percentage + 按难度（难度用量为比例估计，响应 `basis` 注明口径） |
+| `GET /api/v1/alerts` · `POST /api/v1/alerts` | 预警规则列表 / 创建（threshold_pct 1–100；channel: slack/webhook/smtp/log；webhook、smtp 必须带 target） |
+| `PATCH /api/v1/alerts/{id}` · `DELETE /api/v1/alerts/{id}` | 更新 / 删除规则 |
+| `GET /api/v1/alerts/history` | 触发历史（运行期触发接线随 #149 队列落地） |
+| `GET /api/v1/pricing` | 定价目录（内置 + pricing.json + 数据库覆盖，覆盖优先） |
+| `GET /api/v1/pricing/{model_id}/history` | 自定义定价版本历史（追加式，最新在前） |
+| `POST /api/v1/pricing/{model_id}` | 自定义定价覆盖（USD/1k tokens，仅 API 成本查询侧生效；runner 接线随 #159） |
+| `GET /api/v1/reports/cost/{task_id}` | 任务成本报告（含 percentage_used 与定价元数据） |
+| `GET /api/v1/reports/cost-optimization` | 从用户自己的 run 数据合成对比并生成优化建议（build_advisory） |
+
+预警规则的 webhook/邮件目标在响应中脱敏（保留协议与主机）。删除规则用 `DELETE`，成功返回 204。
+
 ## 错误处理
 
 API 使用标准 HTTP 状态码：

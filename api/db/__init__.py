@@ -9,26 +9,34 @@ from api.db.engine import business_database_url, make_engine, make_session_facto
 from api.db.migrate import downgrade, offline_upgrade_sql, run_migrations, upgrade
 from api.db.models import (
     ABTest,
+    AlertEvent,
+    AlertRule,
     AsyncTask,
     Base,
     BenchmarkRun,
     BenchmarkSuite,
+    Budget,
     Evaluation,
     EvaluationResult,
     Experiment,
+    PricingOverride,
     Problem,
 )
 from api.db.problem_store import ProblemStore
 
 __all__ = [
     "ABTest",
+    "AlertEvent",
+    "AlertRule",
     "AsyncTask",
     "Base",
     "BenchmarkRun",
     "BenchmarkSuite",
+    "Budget",
     "Evaluation",
     "EvaluationResult",
     "Experiment",
+    "PricingOverride",
     "Problem",
     "ProblemStore",
     "business_database_url",
