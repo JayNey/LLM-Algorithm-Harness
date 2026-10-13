@@ -4,17 +4,20 @@ from collections.abc import AsyncIterator
 from typing import Any, Literal
 from urllib.parse import quote
 
-from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, Request, Response
+from fastapi import APIRouter, Depends, HTTPException, Request, Response
 from pydantic import BaseModel, ConfigDict, Field
+from sqlalchemy.orm import Session
 from starlette.concurrency import run_in_threadpool
 from starlette.datastructures import FormData, UploadFile
 
 from api.auth.dependencies import current_user
 from api.auth.service import Principal
+from api.db.engine import get_db
 from api.files.dependencies import file_service
 from api.files.service import FileService
 from api.files.templates import TEMPLATES, template
 from api.schemas import ApiResponse
+from src.task_manager import TaskManager
 
 router = APIRouter(prefix="/api/v1", tags=["files"])
 UPLOAD_SCHEMA = {
@@ -133,16 +136,24 @@ class ImportRequest(BaseModel):
 @router.post("/problems/import", status_code=202)
 def import_uploaded(
     request: ImportRequest,
-    background: BackgroundTasks,
     principal: Principal = Depends(current_user),
     service: FileService = Depends(file_service),
+    db: Session = Depends(get_db),
 ) -> ApiResponse[dict[str, Any]]:
     job_id = service.store.create_job(
         request.file_id, principal.user_id, request.mode, service.settings.FILE_MAX_ACTIVE_IMPORTS
     )
-    background.add_task(service.process_job, job_id, principal.user_id)
+    task = TaskManager(db).create_task(
+        task_type="import",
+        entity_id=job_id,
+        user_id=principal.user_id,
+        celery_task_name="src.tasks.imports.run_import_task",
+        celery_task_args=(job_id, principal.user_id),
+    )
     return ApiResponse(
-        success=True, data={"job_id": job_id, "status": "pending"}, message="Import queued"
+        success=True,
+        data={"job_id": job_id, "task_id": task.id, "status": "pending"},
+        message="Import queued",
     )
 
 

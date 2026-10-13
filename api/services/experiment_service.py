@@ -1,12 +1,11 @@
 """Service for fixed-budget experiment management via the API (issue #156).
 
 Persists experiment configuration (never secrets) in the business database,
-executes ``ExperimentRunner`` on background threads, and reads result
+submits execution to the Celery experiment task, and reads result
 analysis from the experiment artifact directory.
 """
 
 import json
-import threading
 import uuid
 from collections.abc import Callable
 from datetime import datetime
@@ -20,7 +19,7 @@ from sqlalchemy.orm import Session
 from api.auth.service import AuthService
 from api.config import settings
 from api.datasets import resolve_dataset_path
-from api.db import Experiment, make_engine, make_session_factory, run_migrations
+from api.db import AsyncTask, Experiment, make_engine, make_session_factory, run_migrations
 from api.db.engine import business_database_url
 from api.db.models import utcnow
 from api.experiment_models import ExperimentCreateRequest, ModelSpec
@@ -28,6 +27,7 @@ from src.experiment import ExperimentRunner
 from src.experiment_panel import _build_panel_data
 from src.experiment_report import generate_comparison_report
 from src.models import ExperimentConfig
+from src.task_manager import TaskManager
 
 _TERMINAL_STATUSES = ("completed", "failed", "cancelled")
 
@@ -75,10 +75,20 @@ class ExperimentService:
 
     def _recover_interrupted(self) -> None:
         with self._session() as session, session.begin():
+            queued = set(
+                session.scalars(
+                    select(AsyncTask.entity_id).where(
+                        AsyncTask.task_type == "experiment",
+                        AsyncTask.status.in_(("pending", "running")),
+                    )
+                )
+            )
             rows = session.scalars(
                 select(Experiment).where(Experiment.status.in_(("pending", "running")))
             )
             for row in rows:
+                if row.status == "pending" and row.id in queued:
+                    continue
                 row.status = "failed"
                 row.error_message = "interrupted by service restart"
                 row.updated_at = utcnow()
@@ -163,18 +173,20 @@ class ExperimentService:
     # -- execution -----------------------------------------------------------
 
     def start_experiment(self, experiment_id: str, owner_id: str) -> dict[str, Any]:
-        with self._session() as session, session.begin():
+        with self._session() as session:
             row = self._owned(session, experiment_id, owner_id)
             if row.status != "pending":
                 raise ValueError(f"Cannot start experiment in {row.status} status")
-            row.status = "running"
-            row.started_at = utcnow()
-            row.updated_at = utcnow()
             view = _job_view(row)
-
-        thread = threading.Thread(target=self._execute, args=(experiment_id, owner_id), daemon=True)
-        thread.start()
-        return view
+            task = TaskManager(session).create_task(
+                task_type="experiment",
+                entity_id=experiment_id,
+                user_id=owner_id,
+                celery_task_name="src.tasks.experiment.run_experiment_task",
+                celery_task_args=(experiment_id, owner_id),
+            )
+            view["task_id"] = task.id
+            return view
 
     def _build_runner_config(self, row: Experiment, owner_id: str) -> ExperimentConfig:
         if self._auth is None:

@@ -1,6 +1,5 @@
 """Service for benchmark suite management and learning curve tracking (issue #156)."""
 
-import threading
 import uuid
 from collections.abc import Callable
 from datetime import datetime
@@ -14,7 +13,14 @@ from sqlalchemy.orm import Session
 from api.auth.service import AuthService
 from api.config import settings
 from api.datasets import resolve_dataset_path
-from api.db import BenchmarkRun, BenchmarkSuite, make_engine, make_session_factory, run_migrations
+from api.db import (
+    AsyncTask,
+    BenchmarkRun,
+    BenchmarkSuite,
+    make_engine,
+    make_session_factory,
+    run_migrations,
+)
 from api.db.engine import business_database_url
 from api.db.models import utcnow
 from api.experiment_models import (
@@ -25,6 +31,7 @@ from api.experiment_models import (
 from src.benchmark.executor import BenchmarkExecutor
 from src.benchmark.suite import BenchmarkSuite as SuiteSpec
 from src.models import HarnessConfig
+from src.task_manager import TaskManager
 
 _TERMINAL_STATUSES = ("completed", "failed", "cancelled")
 
@@ -107,10 +114,20 @@ class BenchmarkService:
 
     def _recover_interrupted(self) -> None:
         with self._session() as session, session.begin():
+            queued = set(
+                session.scalars(
+                    select(AsyncTask.entity_id).where(
+                        AsyncTask.task_type == "benchmark",
+                        AsyncTask.status.in_(("pending", "running")),
+                    )
+                )
+            )
             rows = session.scalars(
                 select(BenchmarkRun).where(BenchmarkRun.status.in_(("pending", "running")))
             )
             for row in rows:
+                if row.status == "pending" and row.id in queued:
+                    continue
                 row.status = "failed"
                 row.error_message = "interrupted by service restart"
                 row.updated_at = utcnow()
@@ -210,10 +227,18 @@ class BenchmarkService:
             )
             session.add(row)
             view = _run_view(row)
+            run_id = row.id
 
-        thread = threading.Thread(target=self._execute, args=(row.id, owner_id), daemon=True)
-        thread.start()
-        return view
+        with self._session() as session:
+            task = TaskManager(session).create_task(
+                task_type="benchmark",
+                entity_id=run_id,
+                user_id=owner_id,
+                celery_task_name="src.tasks.benchmark.run_benchmark_task",
+                celery_task_args=(run_id, owner_id),
+            )
+            view["task_id"] = task.id
+            return view
 
     def _execute(self, run_id: str, owner_id: str) -> None:
         with self._concurrent_semaphore:
