@@ -17,7 +17,7 @@ from collections.abc import Callable
 from datetime import datetime
 from threading import Semaphore
 
-from sqlalchemy import select
+from sqlalchemy import Engine, select
 from sqlalchemy.orm import Session
 
 from api.config import settings
@@ -137,6 +137,11 @@ class EvaluationService:
         self._recover_interrupted()
 
     # -- persistence helpers -------------------------------------------------
+
+    @property
+    def engine(self) -> Engine:
+        """The running service's database engine, available to read-only monitors."""
+        return self._engine
 
     def _session(self) -> Session:
         return self._session_factory()

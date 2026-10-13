@@ -2,28 +2,34 @@
 
 import asyncio
 import logging
+from collections.abc import AsyncIterator, Iterator
 from contextlib import asynccontextmanager, suppress
-from typing import Any
+from typing import Any, cast
 
-from fastapi import FastAPI
+from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
+from sqlalchemy.orm import Session, sessionmaker
 from starlette.concurrency import run_in_threadpool
 
 from api.auth.config import AuthSettings
 from api.auth.middleware import AuthBoundaryMiddleware
 from api.auth.service import AuthService
 from api.config import settings
+from api.db.engine import get_db
 from api.files.config import FileSettings
 from api.files.middleware import UploadBoundaryMiddleware
 from api.files.service import FileService
 from api.middleware.errors import setup_error_handlers
 from api.middleware.logging import setup_logging_middleware
+from api.monitoring.config import MonitorSettings
+from api.monitoring.service import MonitorService
 from api.routes import evaluations_router, tasks_router
 from api.routes.ab_tests import router as ab_tests_router
 from api.routes.auth import router as auth_router
 from api.routes.benchmarks import router as benchmarks_router
 from api.routes.experiments import router as experiments_router
 from api.routes.files import router as files_router
+from api.routes.monitoring import router as monitoring_router
 from api.services import (
     ABTestService,
     BenchmarkService,
@@ -35,6 +41,13 @@ from src.benchmark.executor import BenchmarkExecutor
 from src.experiment import ExperimentRunner
 
 
+def task_database(request: Request) -> Iterator[Session]:
+    """Bind HTTP task sessions to this app rather than a mutable global factory."""
+    factory = cast(sessionmaker[Session], request.app.state.task_session_factory)
+    with factory() as session:
+        yield session
+
+
 def create_app(
     auth_settings: AuthSettings | None = None,
     file_settings: FileSettings | None = None,
@@ -42,11 +55,13 @@ def create_app(
     experiment_runner_factory: Any = None,
     benchmark_executor_factory: Any = None,
     ab_test_runner_factory: Any = None,
+    *,
+    monitor_settings: MonitorSettings | None = None,
 ) -> FastAPI:
     """Create and configure FastAPI application."""
 
     @asynccontextmanager
-    async def lifespan(app: FastAPI):
+    async def lifespan(app: FastAPI) -> AsyncIterator[None]:
         from api.db.engine import (
             business_database_url,
             make_engine,
@@ -59,6 +74,8 @@ def create_app(
         engine = make_engine(db_url)
         session_factory = make_session_factory(engine)
         set_session_factory(session_factory)
+        app.state.task_engine = engine
+        app.state.task_session_factory = session_factory
 
         app.state.auth = AuthService(auth_settings or AuthSettings())
         app.state.evaluations = EvaluationService(database_url)
@@ -78,9 +95,17 @@ def create_app(
             runner_factory=ab_test_runner_factory or ABTestRunner,
         )
         app.state.files = FileService(app.state.auth, file_settings or FileSettings())
+        app.state.monitor = MonitorService(
+            app.state.auth,
+            app.state.files,
+            app.state.evaluations,
+            monitor_settings or MonitorSettings(),
+            task_engine=engine,
+        )
+        app.state.auth.audit_sink = app.state.monitor.audit_event
         await run_in_threadpool(app.state.files.cleanup)
 
-        async def cleanup_files():
+        async def cleanup_files() -> None:
             while True:
                 await asyncio.sleep(app.state.files.settings.FILE_CLEANUP_INTERVAL_SECONDS)
                 try:
@@ -95,6 +120,7 @@ def create_app(
             cleaner.cancel()
             with suppress(asyncio.CancelledError):
                 await cleaner
+            app.state.monitor.close()
             app.state.evaluations.close()
             engine.dispose()
 
@@ -104,12 +130,12 @@ def create_app(
         version="0.1.0",
         lifespan=lifespan,
     )
+    app.dependency_overrides[get_db] = task_database
 
-    # Direct ASGI logging stays outside the upload boundary so it records the
-    # final 413 response. CORS also covers early auth/quota rejection responses.
+    # CORS covers early auth/quota rejection responses. Logging wraps CORS and
+    # the upload boundary, including preflight and final 413 responses.
     app.add_middleware(UploadBoundaryMiddleware)
     app.add_middleware(AuthBoundaryMiddleware)
-    setup_logging_middleware(app)
     app.add_middleware(
         CORSMiddleware,
         allow_origins=settings.CORS_ORIGINS,
@@ -117,6 +143,7 @@ def create_app(
         allow_methods=["*"],
         allow_headers=["*"],
     )
+    setup_logging_middleware(app)
     setup_error_handlers(app)
 
     # Include routers
@@ -124,17 +151,19 @@ def create_app(
     app.include_router(tasks_router)
     app.include_router(auth_router)
     app.include_router(files_router)
+    app.include_router(monitoring_router)
     app.include_router(experiments_router)
     app.include_router(benchmarks_router)
     app.include_router(ab_tests_router)
 
     @app.get("/api/v1/health")
-    def health_check():
+    def health_check() -> dict[str, Any]:
         """Health check endpoint."""
         return {
             "success": True,
             "data": {
                 "status": "healthy",
+                "scope": "api_liveness_only",
                 "version": "0.1.0",
                 "service": "LLM Algorithm Harness API",
             },

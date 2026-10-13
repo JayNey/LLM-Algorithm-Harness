@@ -64,14 +64,14 @@ python -c 'from cryptography.fernet import Fernet; print("ENCRYPTION_KEY=" + Fer
 
 ## 与 #149 / #151 / #153 的接入边界
 
-- #148 当前评估服务是内存中的模拟执行器，仍未执行真实 LLM 请求。身份和凭据引用已绑定到任务，但本 change 不实现 #149 的队列和真实执行器，也不把模拟任务计为真实密钥使用。
+- #148 评估接口已由 #151 接入持久化业务数据库。#179 已合并 Celery/Redis 与异步任务管理基础，#180 已合入实验、导入和基准三类 Celery 任务实现；其端到端执行与真实 LLM 指标仍未接通或验证，HTTP 也没有自动改为队列。当前 `/evaluations` 路由仍使用旧评估流程，异步评估 worker 也仍返回模拟结果，均不代表真实 LLM 评估。身份和凭据引用绑定到任务，真实评估与使用计量仍需接入，模拟任务不计为真实密钥使用，#149 保持开放。
 - #149 worker 应以可信任务的 `owner_id/api_key_id` 调用 `AuthService.llm_config(key_id, user_id, model)`，获得只在内存使用的配置；每次真实提供商请求后调用 `AuthStore.record_key_usage`。禁止将解密凭据写入 broker、任务 JSON 或结果文件。
-- #151 尚未合并。`api/auth/store.py` 是独立、持久化的 SQLite 适配器，包含 `auth_users/auth_sessions/auth_keys/auth_rates`。后续可替换为业务数据库 Repository，保留刷新条件更新、撤销、参数化查询、加密值和原子限流语义。不同实例必须共享同一数据库文件；不支持跨机器独立 SQLite 文件共享认证状态。
-- 评估任务仍存内存，不同进程的任务状态不共享，重启会丢失；认证用户、密钥、会话和限流在同机共享文件的多进程及重启场景有效。
+- #151 业务数据库已合并，但认证仍使用 `api/auth/store.py` 的独立、持久化 SQLite 适配器，包含 `auth_users/auth_sessions/auth_keys/auth_rates`。业务任务的 `user_id` 引用认证用户 ID，不使用跨库外键。后续替换认证 Repository 时需保留刷新条件更新、撤销、参数化查询、加密值和原子限流语义。不同实例必须共享同一认证数据库文件；不支持跨机器独立 SQLite 文件共享认证状态。
+- 评估与异步任务状态跨重启持久化；现有评估服务的启动恢复规则不能当成真实队列恢复执行保障。认证用户、密钥、会话和限流在同机共享文件的多进程及重启场景有效。
 - #153 私有题库/文件 API 和 #150 的订阅权限可复用 `current_user` / `AuthService.authenticate`；各自还需在资源查询时验证 owner，不能只检查 Token。
-- RBAC、管理员账号、邮箱验证和密码重置为 issue 中的可选项，当前不开放。
+- 完整 RBAC、管理员账号创建、邮箱验证和密码重置为 issue 中的可选项，当前不开放。#157 的监控管理员由部署者设置 `MONITOR_ADMIN_USER_IDS` UUID 白名单，仅授权监控端点；用户名或客户端 Token 角色不能赋予权限，详见 [监控指南](api-monitoring.md)。
 
-正式部署使用 HTTPS，保护数据库目录及 `.env` 权限，并明确配置可信代理。应用限流使用 ASGI 的客户端地址，不直接信任请求中的 `X-Forwarded-For`；代理是否信任由服务启动参数控制。当前认证日志不代表完整运维审计平台，后续由 #157 整合。
+正式部署使用 HTTPS，保护数据库目录及 `.env` 权限，并明确配置可信代理。应用限流使用 ASGI 的客户端地址，不直接信任请求中的 `X-Forwarded-For`；代理是否信任由服务启动参数控制。#157 已持久化脱敏的 API 生命周期与可信任务事件，并提供管理员全局查询和所有者任务日志下载；它不代表完整运维审计平台，异步 worker 的真实事件尚待绑定。
 
 ## 验证
 

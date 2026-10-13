@@ -4,6 +4,8 @@ import importlib
 import importlib.util
 import json
 
+import pytest
+
 
 def test_recursive_redaction_removes_nested_credentials():
     """Nested mappings, sequences and credential text use one redaction policy."""
@@ -100,3 +102,29 @@ def test_text_redaction_handles_escaped_quotes_in_json_authorization():
 
     assert secret not in redacted
     assert "[REDACTED]" in redacted
+
+
+@pytest.mark.parametrize("known_secret", ["password", "api_key", "Authorization", "Bearer", "="])
+def test_known_secrets_cannot_disable_credential_syntax_redaction(known_secret):
+    secrets = importlib.import_module("src.utils.secrets")
+    text = "password=private-password api_key=private-key\nAuthorization: Bearer private-token"
+    redacted = secrets.redact_sensitive_text(text, (known_secret,))
+    for value in ("private-password", "private-key", "private-token"):
+        assert value not in redacted
+    assert secrets.redact_sensitive_text(redacted, (known_secret,)) == redacted
+
+
+def test_overlapping_known_secrets_redact_longest_value_first():
+    secrets = importlib.import_module("src.utils.secrets")
+    assert (
+        secrets.redact_sensitive_text("failed: abcdefgh", ("abc", "abcdefgh"))
+        == "failed: [REDACTED]"
+    )
+
+
+def test_known_secret_containing_placeholder_is_redacted_as_one_value():
+    secrets = importlib.import_module("src.utils.secrets")
+    key = "prefix[REDACTED]suffix"
+    redacted = secrets.redact_sensitive_text(f"provider returned {key}", ("prefix", key, "["))
+    assert redacted == "provider returned [REDACTED]"
+    assert secrets.redact_sensitive_text(redacted, ("prefix", key, "[")) == redacted
