@@ -52,6 +52,15 @@ def _seed(db_session, *, with_experiment: bool = True):
     return experiment_id, user_id
 
 
+def test_experiment_task_is_registered_on_default_queue():
+    from src.celery_app import celery_app
+
+    celery_app.loader.import_default_modules()
+    assert "src.tasks.experiment" in celery_app.conf.include
+    assert "src.tasks.experiment.run_experiment_task" in celery_app.tasks
+    assert celery_app.conf.task_routes["src.tasks.experiment.*"]["queue"] == "default"
+
+
 def test_run_experiment_task_success(db_session):
     experiment_id, user_id = _seed(db_session)
 

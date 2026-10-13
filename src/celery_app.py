@@ -26,6 +26,9 @@ def configure_celery() -> None:
         task_routes={
             "src.tasks.evaluation.*": {"queue": "evaluations"},
             "src.tasks.cleanup.*": {"queue": "default"},
+            "src.tasks.experiment.*": {"queue": "default"},
+            "src.tasks.imports.*": {"queue": "default"},
+            "src.tasks.benchmark.*": {"queue": "default"},
         },
         task_default_queue="default",
         task_default_exchange="default",
@@ -39,6 +42,11 @@ def configure_celery() -> None:
         task_acks_late=True,
         task_reject_on_worker_lost=True,
         # Celery Beat 定时任务配置
+        include=[
+            "src.tasks.evaluation",
+            "src.tasks.cleanup",
+            "src.tasks.experiment",
+        ],
         beat_schedule={
             "cleanup-old-tasks": {
                 "task": "src.tasks.cleanup.cleanup_old_tasks",
@@ -56,7 +64,7 @@ def configure_celery() -> None:
     )
 
 
-# 自动发现任务
+# 自动发现任务。worker 通过 conf.include 导入具体任务模块。
 celery_app.autodiscover_tasks(["src.tasks"])
 
 # 初始化配置
