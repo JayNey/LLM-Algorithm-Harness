@@ -8,7 +8,7 @@ from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 
 from api.db.models import AsyncTask, Base, BenchmarkRun, BenchmarkSuite
-from src.tasks.benchmark import run_benchmark_task
+from src.tasks.benchmark import execute_benchmark, run_benchmark_task
 
 
 @pytest.fixture
@@ -148,3 +148,57 @@ def test_run_benchmark_task_cancel_does_not_complete(db_session):
     assert run.status == "cancelled"
     assert task.status == "cancelled"
     check.close()
+
+
+def test_run_benchmark_task_rejects_other_users_run(db_session):
+    run_id, user_id = _seed(db_session)
+    run = db_session.get(BenchmarkRun, run_id)
+    assert run is not None
+    run.user_id = "someone-else"
+    db_session.commit()
+
+    with (
+        patch("src.tasks.benchmark.get_db_session", return_value=db_session),
+        patch("src.tasks.benchmark.execute_benchmark") as execute,
+    ):
+        with pytest.raises(ValueError, match="not found"):
+            run_benchmark_task(run_id, user_id)
+
+    execute.assert_not_called()
+    check = _reload(db_session)
+    task = check.query(AsyncTask).filter_by(entity_id=run_id).one()
+    row = check.get(BenchmarkRun, run_id)
+    assert task.status == "failed"
+    assert "not found" in task.error_message
+    assert row.status == "pending"
+    check.close()
+
+
+def test_run_benchmark_task_rejects_non_pending(db_session):
+    run_id, user_id = _seed(db_session)
+    run = db_session.get(BenchmarkRun, run_id)
+    assert run is not None
+    run.status = "running"
+    db_session.commit()
+
+    with (
+        patch("src.tasks.benchmark.get_db_session", return_value=db_session),
+        patch("src.tasks.benchmark.execute_benchmark") as execute,
+    ):
+        with pytest.raises(ValueError, match="Cannot start benchmark"):
+            run_benchmark_task(run_id, user_id)
+
+    execute.assert_not_called()
+    check = _reload(db_session)
+    task = check.query(AsyncTask).filter_by(entity_id=run_id).one()
+    assert task.status == "failed"
+    assert "running" in task.error_message
+    check.close()
+
+
+def test_execute_benchmark_disables_recovery():
+    with patch("api.services.benchmark_service.BenchmarkService") as service_cls:
+        execute_benchmark("run-1", "owner-1")
+
+    service_cls.assert_called_once_with(recover=False)
+    service_cls.return_value._execute.assert_called_once_with("run-1", "owner-1")
