@@ -7,9 +7,11 @@ import json
 import secrets
 import threading
 import time
+import uuid
 import zipfile
 from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
+from unittest.mock import Mock, patch
 
 import pytest
 import yaml
@@ -102,6 +104,17 @@ def new_task(client, tokens):
     )
     assert task.status_code == 201, task.text
     return task.json()["data"]["evaluation_id"]
+
+
+@pytest.fixture(autouse=True)
+def celery_submit():
+    with (
+        patch("src.task_manager.celery_app.send_task") as send_task,
+        patch("src.task_manager.celery_app.AsyncResult") as async_result,
+    ):
+        send_task.side_effect = lambda *args, **kwargs: Mock(id=str(uuid.uuid4()))
+        async_result.return_value.state = "PENDING"
+        yield send_task
 
 
 @pytest.fixture
@@ -417,7 +430,7 @@ def test_csv_batch_import_and_safe_export(api):
 
 
 def test_existing_upload_background_import_and_owner_progress(api):
-    client, alice, bob, _, _, _ = api
+    client, alice, bob, app, _, _ = api
     file_id = upload(client, alice, [problem()]).json()["data"]["file"]["id"]
     assert (
         client.post(
@@ -429,8 +442,14 @@ def test_existing_upload_background_import_and_owner_progress(api):
         "/api/v1/problems/import", headers=auth_headers(alice), json={"file_id": file_id}
     )
     assert response.status_code == 202, response.text
+    assert response.json()["data"]["status"] == "pending"
+    assert response.json()["data"]["task_id"]
     job_id = response.json()["data"]["job_id"]
+    owner = app.state.auth.store.find_user("alice")["id"]
     assert client.get(f"/api/v1/imports/{job_id}", headers=auth_headers(bob)).status_code == 404
+    queued = client.get(f"/api/v1/imports/{job_id}", headers=auth_headers(alice)).json()["data"]
+    assert queued["status"] == "pending"
+    app.state.files.process_job(job_id, owner)
     progress = client.get(f"/api/v1/imports/{job_id}", headers=auth_headers(alice)).json()["data"]
     assert (
         progress["status"] == "completed"
@@ -441,6 +460,9 @@ def test_existing_upload_background_import_and_owner_progress(api):
     response = client.post(
         "/api/v1/problems/import", headers=auth_headers(alice), json={"file_id": bad_id}
     )
+    assert response.status_code == 202
+    assert response.json()["data"]["task_id"]
+    app.state.files.process_job(response.json()["data"]["job_id"], owner)
     progress = client.get(
         "/api/v1/imports/" + response.json()["data"]["job_id"], headers=auth_headers(alice)
     ).json()["data"]
