@@ -61,4 +61,4 @@
 
 首次头的 Security Check job 成功不表示扫描清零：原工作流继续沿用 continue-on-error；Bandit 四项与 main 基线相同，Safety 仍遇到既有 Timeout 兼容性异常。本 PR 没有修改这些门禁。最新头的运行结果在推送后记录于 PR 描述，旧头成功不替代新头验证。
 
-本次补充的 Runtime 编译/定向检查和阶段守卫在推送前执行；与当前代码绑定的结果保存在 checks 日志中。
+本次补充的 Runtime 实际编译与 **71 项定向测试**分别在 build/verify 成功执行，输入前后指纹一致：build 日志 c8fea080-3ac4-4604-a9b5-54b24af42ad7.log，verify 日志 e0860d64-d203-4c03-aa09-11b9fb8c4f69.log。build **14/14**、verify **5/5** 守卫通过；18 项任务全部完成，由守卫重新记录 pass，继续保留待归档确认。
