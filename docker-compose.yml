@@ -1,0 +1,20 @@
+# Local services for running the async task queue and its integration tests.
+#
+#   docker compose up -d redis          # start the broker/backend
+#   bash scripts/run_integration_tests.sh   # run the @integration tests
+#   docker compose down                  # stop it again
+#
+# The integration tests talk to redis at CELERY_BROKER_URL
+# (default redis://localhost:6379/15) and skip automatically if it is not up.
+services:
+  redis:
+    image: redis:7-alpine
+    container_name: llm-harness-redis
+    ports:
+      - "6379:6379"
+    command: ["redis-server", "--save", "", "--appendonly", "no"]
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 2s
+      timeout: 2s
+      retries: 10
