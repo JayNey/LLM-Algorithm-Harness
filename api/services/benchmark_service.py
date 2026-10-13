@@ -91,6 +91,7 @@ class BenchmarkService:
         database_url: str | None = None,
         auth: AuthService | None = None,
         executor_factory: Callable[[SuiteSpec, HarnessConfig], Any] = BenchmarkExecutor,
+        recover: bool = True,
     ):
         self._engine = make_engine(database_url or business_database_url())
         run_migrations(self._engine)
@@ -98,7 +99,8 @@ class BenchmarkService:
         self._auth = auth
         self._executor_factory = executor_factory
         self._concurrent_semaphore = Semaphore(settings.MAX_CONCURRENT_TASKS)
-        self._recover_interrupted()
+        if recover:
+            self._recover_interrupted()
 
     def _session(self) -> Session:
         return self._session_factory()

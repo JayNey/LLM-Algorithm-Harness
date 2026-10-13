@@ -57,6 +57,7 @@ class ExperimentService:
         database_url: str | None = None,
         auth: AuthService | None = None,
         runner_factory: Callable[[ExperimentConfig], Any] = ExperimentRunner,
+        recover: bool = True,
     ):
         self._engine = make_engine(database_url or business_database_url())
         run_migrations(self._engine)
@@ -64,7 +65,8 @@ class ExperimentService:
         self._auth = auth
         self._runner_factory = runner_factory
         self._concurrent_semaphore = Semaphore(settings.MAX_CONCURRENT_TASKS)
-        self._recover_interrupted()
+        if recover:
+            self._recover_interrupted()
 
     # -- persistence helpers -------------------------------------------------
 
