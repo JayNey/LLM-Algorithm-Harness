@@ -4,15 +4,15 @@ import time
 from typing import Any
 
 from fastapi import HTTPException
-from sqlalchemy import func, select
+from sqlalchemy import Engine
 
 from api.auth.service import AuthService, digest
-from api.db.models import Evaluation
 from api.files.service import FileService
 from api.monitoring.config import MonitorSettings
 from api.monitoring.database_metrics import DatabaseQueryMetrics
 from api.monitoring.probes import MonitorProbes
 from api.monitoring.store import MonitorStore
+from api.monitoring.task_snapshots import read_task_snapshot
 from api.services import EvaluationService
 from src.cache import LLMResponseCache
 from src.task_service import TaskEvent
@@ -25,11 +25,14 @@ class MonitorService:
         files: FileService,
         evaluations: EvaluationService,
         settings: MonitorSettings,
+        *,
+        task_engine: Engine | None = None,
     ):
         self.auth, self.files, self.evaluations, self.settings = auth, files, evaluations, settings
         self.store = MonitorStore(
             auth.store, settings.MONITOR_RETENTION_SECONDS, settings.MONITOR_MAX_ROWS
         )
+        self.task_engine = task_engine if task_engine is not None else evaluations.engine
         self.probes = MonitorProbes(auth, files, settings, evaluations)
         self.database_metrics = DatabaseQueryMetrics(
             evaluations.engine, settings.MONITOR_RETENTION_SECONDS, settings.MONITOR_MAX_ROWS
@@ -94,79 +97,14 @@ class MonitorService:
         )
 
     def task_snapshot(
-        self, state: str | None = None, limit: int = 100, offset: int = 0
+        self,
+        state: str | None = None,
+        limit: int = 100,
+        offset: int = 0,
+        task_source: str = "legacy_evaluation",
     ) -> dict[str, Any]:
-        if not 1 <= limit <= 1000 or not 0 <= offset <= 100000:
-            raise ValueError("Invalid task pagination")
-        metadata = {
-            "source": "persisted_business_evaluations",
-            "execution_backend": "in_process_simulator",
-            "limit": limit,
-            "offset": offset,
-            "production_queue_configured": False,
-        }
-        try:
-            with self.evaluations.engine.connect() as connection:
-                if connection.dialect.name == "postgresql":
-                    connection = connection.execution_options(isolation_level="REPEATABLE READ")
-                with connection.begin():
-                    # Python's SQLite legacy transaction mode does not start a
-                    # read snapshot for SELECT; make both queries see one view.
-                    if connection.dialect.name == "sqlite":
-                        connection.exec_driver_sql("BEGIN")
-                    condition = (Evaluation.status == state,) if state else ()
-                    counts = dict(
-                        connection.execute(
-                            select(Evaluation.status, func.count())
-                            .where(*condition)
-                            .group_by(Evaluation.status)
-                        )
-                        .tuples()
-                        .all()
-                    )
-                    rows = (
-                        connection.execute(
-                            select(
-                                Evaluation.id,
-                                Evaluation.user_id,
-                                Evaluation.status,
-                                Evaluation.completed_count,
-                                Evaluation.problem_count,
-                            )
-                            .where(*condition)
-                            .order_by(Evaluation.created_at, Evaluation.id)
-                            .limit(limit)
-                            .offset(offset)
-                        )
-                        .mappings()
-                        .all()
-                    )
-                    items = [
-                        {
-                            "task_id": row["id"],
-                            "owner_id": row["user_id"],
-                            "status": row["status"],
-                            "completed": row["completed_count"],
-                            "total": row["problem_count"],
-                        }
-                        for row in rows
-                    ]
-            return {
-                **metadata,
-                "status": "ok",
-                "items": items,
-                "total": sum(counts.values()),
-                "counts": counts,
-            }
-        except Exception:
-            return {
-                **metadata,
-                "status": "unavailable",
-                "items": None,
-                "total": None,
-                "counts": None,
-                "detail": "Business task snapshot could not be collected",
-            }
+        engine = self.task_engine if task_source == "async_task" else self.evaluations.engine
+        return read_task_snapshot(engine, state, limit, offset, task_source)
 
     def health(self, include_sandbox: bool = False) -> dict[str, Any]:
         checks = {

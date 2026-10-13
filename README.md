@@ -156,6 +156,7 @@ LLM-Algorithm-Harness/
 ├── docs/                      # 文档
 ├── requirements.txt           # 依赖包
 └── README.md
+```
 
 ## 安装
 
@@ -492,7 +493,7 @@ harness benchmark --suite benchmark.example.json --compare --output reports/lear
 
 ## 异步任务队列
 
-评估任务现在通过 Celery + Redis 异步执行，避免 HTTP 超时，支持长时间运行的评估任务。
+#179 已提供 Celery + Redis、持久化 AsyncTask 和 `/api/v1/tasks` 控制接口，作为长时间任务的队列基础。当前 `/evaluations` 路由仍使用旧评估流程；异步评估 worker 返回模拟结果，真实 LLM 执行与结果发布尚未接通。
 
 ### 架构组件
 
@@ -545,7 +546,7 @@ celery -A src.celery_app flower --port=5555
 
 ### 异步 API 使用
 
-创建评估任务：
+现有评估 API 示例（当前创建旧评估记录，不自动提交 Celery）：
 
 ```bash
 curl -X POST http://localhost:8000/api/v1/evaluations \
@@ -566,7 +567,7 @@ curl http://localhost:8000/api/v1/evaluations/{evaluation_id} \
   -H "Authorization: Bearer <token>"
 ```
 
-暂停和恢复任务：
+对已经由可信服务提交、属于当前用户的异步任务，可使用任务 ID 暂停和恢复；任务 ID 与评估 ID 不是同一资源：
 
 ```bash
 # 暂停
@@ -1288,10 +1289,10 @@ API 支持注册、登录、Token 刷新/登出、用户范围的评估权限和
 
 ### REST API 文件服务
 
-支持 JSON/CSV 私有题库上传与事务去重、JSON/YAML 配置验证脱敏、导入进度、结果和图表下载。详见 [文件服务指南](docs/api-files.md)。真实运行结果由 #149 worker 发布；不会把全局 CLI 目录公开为下载源。
+支持 JSON/CSV 私有题库上传与事务去重、JSON/YAML 配置验证脱敏、导入进度、结果和图表下载。详见 [文件服务指南](docs/api-files.md)。真实运行结果仍需 worker 绑定安全发布入口；模拟任务完成不会生成真实下载结果，不会把全局 CLI 目录公开为下载源。
 
 ### REST API 系统监控基础
 
-提供受管理员 UUID 白名单保护的数据库健康检查、Docker 预检、本机资源、持久化 API 请求统计、安全日志和离线配置目录。#151 的业务数据库已接入只读连接/schema 检查、持久化任务分页与全量状态计数，以及当前 API engine 的实际 SQL 查询统计。用户可查询自己的任务日志与已有配额；统计窗口不完整时标记 `retained_sample`，真实 worker/LLM 指标尚未接入时返回 `not_configured`。
+提供受管理员 UUID 白名单保护的数据库健康检查、Docker 预检、本机资源、持久化 API 请求统计、安全日志和离线配置目录。#151 的业务数据库已接入只读连接/schema 检查、按来源分页的旧评估和 AsyncTask 快照、各自的全量状态计数，以及当前评估 engine 的实际 SQL 查询统计。用户可查询自己的任务日志与已有配额；统计窗口不完整时标记 `retained_sample`，真实 worker/LLM 指标尚未采集时返回 `not_configured/null`。
 
-这是 #157 可独立运行的基础部分；队列、worker 与真实运行指标仍需 #149 接入。任务执行后端仍为模拟器，持久化 `pending` 记录不代表生产队列；SQL 指标只覆盖当前进程的 cursor 执行阶段。配置 `MONITOR_ADMIN_USER_IDS`、接口与完整性说明见 [监控指南](docs/api-monitoring.md)。
+这是 #157 可独立运行的基础部分。#179 已合并 Celery/Redis 基础，Redis/worker 本轮未联网探测，返回 `not_checked`；异步评估 worker 仍为 mock，持久化 `pending` 记录不代表 Redis 队列长度。任务监控默认 `task_source=legacy_evaluation`，可选择 `async_task`；旧来源排除已关联异步任务的评估，监控只读，不同步或提交任务状态。两组计数分别读取，不合并为全局原子快照。SQL 指标只覆盖当前评估 engine 与 API 进程的 cursor 执行阶段，异步任务 engine 的查询未全部纳入。配置 `MONITOR_ADMIN_USER_IDS`、接口与完整性说明见 [监控指南](docs/api-monitoring.md)；真实执行和运行指标仍需后续接入，#157 保持开放。

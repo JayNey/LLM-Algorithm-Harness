@@ -1,12 +1,14 @@
 ## 范围与真实性
 
 - 原 `/health` 保持公开轻量 API 存活检查，明确不代表依赖健康；管理员详查在 `/system/health` 和 `/health/*`。
-- 当前数据库健康实际查询 auth/files SQLite 以及运行中的 EvaluationService engine，按当前 Base.metadata 验证业务表/列并核对 Alembic revision，兼容 main #176 的新增模型与迁移；不新建服务、不迁移、不改变任务状态，不输出 URL/凭据。Redis、Celery 未接入时为 not_configured。Docker 复用 health_check，强制 docker、缓存短时结果、限制并发，不回退 host。
+- 当前数据库健康实际查询 auth/files SQLite 以及运行中的 EvaluationService engine，按当前 Base.metadata 验证业务表/列并核对 Alembic revision，兼容当前 main 的模型与迁移；不新建服务、不迁移、不改变任务状态，不输出 URL/凭据。保留 app startup 的任务会话工厂绑定和 shutdown engine.dispose；监控异步快照绑定 app 的实际 task engine，不读取/改写全局工厂。Redis/Celery 基础已经存在，未联网探测时为 not_checked。Docker 复用 health_check，强制 docker、缓存短时结果、限制并发，不回退 host。
 - CPU、内存、磁盘来自当前进程所在主机，失败返回 unknown/null；不输出主机路径。容器资源使用尚未接入时明确标记。
 - API 请求统计来自实际最终响应，ASGI 日志包装 CORS 与上传边界，包含预检与最终拒绝状态；使用路由模板、状态、耗时与已验证用户 ID，不记录 body、query、header 或未匹配原始路径。持久化样本有保留期限与行数上限，窗口不完整或存在已知采集缺口时主指标为 null，并提供实际保留样本指标。总量与端点分组均提供错误率与时延。
 - 任务快照从业务 Evaluation 表读分页与准确总数/状态计数，明确来源为持久化业务任务、执行仍是进程内模拟器，不把模拟耗时/成功率或花费当真实评估指标。SQLAlchemy engine 的查询监听采集实际次数、耗时与错误，仅覆盖绑定 engine 的当前进程、有限窗口；不完整窗口主指标为 null，提供保留样本，不保存 SQL/参数/异常文本。每 engine 启动时安装一个稳定转发监听，弱注册采集器；关闭时停止采集并解除采集器引用，转发器在无采集器时为空操作并随 engine 回收，避免并发修改 SQLAlchemy 事件队列影响业务。真实 LLM 调用总数/延迟、生产队列尚未采集时为 null。
 
 ## 权限与日志
+
+- 任务列表通过 task_source=legacy_evaluation（默认）或 async_task 选择数据源；旧评估条件 async_task_id IS NULL，异步读取 AsyncTask，分别分页/计数而不相加冒充一个原子快照。system/status 分别列出两组计数。只暴露校验后的 current/total，不输出 raw progress、params、error_message 或 celery_task_id。不调用 TaskManager.get_task，它会轮询并提交状态。异步 transport 标为 Celery，同时明确 evaluation worker 为 mock，不把 completed 视为真实 LLM 成功。
 
 - MonitorSettings 的 MONITOR_ADMIN_USER_IDS 由操作者在服务器配置，只使用不可变用户 UUID；不信任请求/JWT 中的角色，也不以可修改用户名判断。
 - 系统监控、全局日志、配置与性能端点需要管理员；普通用户可查询自己的窗口/文件配额和自己的任务日志。

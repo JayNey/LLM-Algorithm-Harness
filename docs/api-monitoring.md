@@ -1,6 +1,6 @@
 # API 系统监控基础能力（#157）
 
-本次实现 API 监控基础：管理员授权、本机资源和 Docker 预检、持久化请求统计、安全事件日志、离线配置目录，以及当前用户已有配额的查询。#151 已接入业务数据库，本次监控同步读取其持久化评估任务、检查连接与 schema，并采集实际业务 SQL 查询统计。#157 仍需后续接入 #149 的真实队列、worker 和 LLM 指标。
+本次实现 API 监控基础：管理员授权、本机资源和 Docker 预检、持久化请求统计、安全事件日志、离线配置目录，以及当前用户已有配额的查询。#151 已接入业务数据库；#149 的 Celery/Redis 与异步任务管理基础已通过 #179 合并。本次监控分别读取旧评估和异步任务的持久化状态、检查数据库连接与 schema，并采集实际业务 SQL 查询统计。异步评估 worker 仍返回模拟结果；#157 的 Redis/worker 连通探测、真实执行与 LLM 指标仍需接入。
 
 ## 配置管理员
 
@@ -32,23 +32,33 @@ export MONITOR_ADMIN_USER_IDS='["11111111-1111-4111-8111-111111111111"]'
 
 以下端点全部需要管理员身份，成功响应使用现有 `success/data/message` 包装：
 
-- `GET /api/v1/system/health`：当前基础服务状态。#149 队列与 worker 尚未接入时返回 `status=partial`，`pending_issues=[149]`；已执行的数据库或 Docker 检查失败时为 `degraded`。默认不探测 Docker；传 `include_sandbox=true` 可加入预检。
+- `GET /api/v1/system/health`：当前基础服务状态。队列基础已存在，但 Redis/worker 尚未执行联网检查、真实执行指标尚未接入，返回 `status=partial`，`pending_issues=[149]`；已执行的数据库或 Docker 检查失败时为 `degraded`。默认不探测 Docker；传 `include_sandbox=true` 可加入预检。
 - `GET /api/v1/health/database`：对实际认证/文件 SQLite 执行 `SELECT 1`，并验证所需表可查询；`business_database` 使用已绑定的评估服务 engine 检查实际连接、业务表与 Alembic revision，返回 `status/backend/required_tables/migration/read_only/latency_ms`。迁移检查按仓库 Alembic 元数据的 heads 比对数据库当前 heads，成功时通过 `migration.status/revisions/expected_heads` 说明版本一致；不一致时标记故障，不回显数据库中的任意版本文本。探测只读，不运行迁移、不创建评估服务，也不修改任务状态；不返回连接串、主机路径或凭据。任一已配置数据库检查失败时，总体状态为 `unavailable`。
-- `GET /api/v1/health/redis`：返回 `not_configured`、`dependency_issue=149`。
-- `GET /api/v1/health/workers` 与 `/api/v1/system/workers`：返回 `not_configured`、`dependency_issue=149`。
+- `GET /api/v1/health/redis`：队列基础已合并，本轮不进行 Redis 网络探测，返回 `status=not_checked`、`infrastructure_available=true`、`dependency_issue=149`。基础设施标记只说明代码已存在，不证明 Redis 已启动或可达。
+- `GET /api/v1/health/workers` 与 `/api/v1/system/workers`：Celery 基础已合并，本轮不轮询 worker，返回 `status=not_checked`、`infrastructure_available=true`、`dependency_issue=149`，以及 `evaluation_worker_implementation=mock`、`real_evaluation_available=false`；它不证明已有活跃 worker 或生产评估可用。
 - `GET /api/v1/health/sandbox`：复用实际 `SandboxExecutor.health_check()` 执行 Docker 预检，失败为 `unavailable`。只使用 Docker；不可用时不回退 host，不返回异常中的主机路径或凭据。
 - `GET /api/v1/system/resources`：CPU、内存、上传目录所在文件系统的磁盘用量，以及已登记且未标记删除的文件数量/字节。
-- `GET /api/v1/system/status`：当前 API 进程运行时间、业务数据库中的全量任务状态计数、基础健康与本机资源。`task_counts` 来自数据库聚合，不受快照分页限制。容器级资源采集返回 `not_configured`。
-- `GET /api/v1/system/tasks/running` 和 `/api/v1/system/tasks/queued`：分别查询业务数据库中 `running` 和 `pending` 状态的任务。来源为 `persisted_business_evaluations`，执行后端仍标记 `execution_backend=in_process_simulator`，`production_queue_configured=false`；`queued` 只表示持久化的 `pending` 状态，不能当成 Redis 队列长度。
+- `GET /api/v1/system/status`：当前 API 进程运行时间、旧评估与异步任务各自的全量状态计数、基础健康与本机资源。旧来源保留 `task_counts/task_count/task_status/task_source`，来源值为 `persisted_business_evaluations`；异步来源新增 `async_task_counts/async_task_count/async_task_status/async_task_source`，来源值为 `persisted_async_tasks`。两组分别读取，不受分页限制，不提供相加后的全局原子快照；一组故障时只将该组计数标记为 `null`，状态为 `unavailable`。响应另含 `evaluation_worker_implementation=mock`、`real_evaluation_available=false`。容器级资源采集返回 `not_configured`。
+- `GET /api/v1/system/tasks/running` 和 `/api/v1/system/tasks/queued`：分别查询所选持久化来源中 `running` 和 `pending` 状态的任务；`queued` 只表示数据库记录的 `pending` 状态，不能当成 Redis 队列长度。
 
-任务查询支持 `limit/offset`：默认 100 条，`limit` 范围 1–1000，`offset` 范围 0–100000。响应返回 `status/items/total/counts/limit/offset`，`total` 与 `counts` 由所选状态的全量记录聚合得到；`items` 只包含当前页。数据库不可读时明确标记 `unavailable`，不将故障显示为空任务列表。
+任务查询支持 `task_source/limit/offset`：
 
-任务状态跨服务重启持久化。现有评估服务启动时会将前次遗留的 `pending/running` 任务标记为 `failed`，说明任务被服务重启中断；它尚未通过生产队列恢复执行。监控读取这些记录，不触发恢复或重新调度。
+- `task_source=legacy_evaluation` 为默认来源，查询没有 `async_task_id` 关联的 Evaluation 记录，返回 `source=persisted_business_evaluations`、`execution_backend=in_process_simulator`、`production_queue_configured=false`。已关联异步任务的评估不再计入这组，避免双计。
+- `task_source=async_task` 直接查询 AsyncTask 记录，返回 `source=persisted_async_tasks`、`execution_backend=celery`、`queue_infrastructure_available=true`、`real_evaluation_available=false`、`evaluation_worker_implementation=mock`。基础设施标记只说明代码已存在，不代表 Redis/worker 已通过健康检查。
+- 默认 100 条，`limit` 范围 1–1000，`offset` 范围 0–100000。响应返回 `status/items/total/counts/limit/offset/task_source`；`total` 与 `counts` 由所选来源和状态的全量记录聚合得到，`items` 只包含当前页。
+- 两种来源都只返回任务 ID、所有者 ID、状态和经过范围校验的 `completed/total`；异步来源还返回白名单 `task_type`。非法状态或任务类型标记为 `other`，非法或不一致进度为 `null`。不返回原始进度消息、参数、错误详情或 Celery 任务 ID。
+- 每次快照在单个只读事务中完成聚合和分页。监控不调用会同步 Celery 并提交状态的 `TaskManager.get_task`，也不轮询 Redis、恢复任务或重新调度。数据库不可读时返回 `status=unavailable`，`items/total/counts=null`，不将故障显示为空任务列表。
+
+旧来源绑定当前应用的评估 engine；异步来源绑定当前应用启动时建立的任务 engine，与 `/tasks` 使用同一应用的任务会话工厂。并存应用不会因全局工厂后来被替换而读取其他应用的异步任务库。
+
+任务状态跨服务重启持久化。已有评估服务在启动时按其恢复规则处理遗留记录；监控只读这些状态。异步任务的 `completed` 说明当前模拟 worker 生命周期已完成，不能据此推断真实 LLM 评估成功率。
 
 ```bash
 curl http://localhost:8000/api/v1/health/sandbox \
   -H "Authorization: Bearer $ACCESS_TOKEN"
 curl http://localhost:8000/api/v1/system/resources \
+  -H "Authorization: Bearer $ACCESS_TOKEN"
+curl 'http://localhost:8000/api/v1/system/tasks/running?task_source=async_task&limit=100' \
   -H "Authorization: Bearer $ACCESS_TOKEN"
 ```
 
@@ -75,7 +85,7 @@ Docker 预检可能启动一个短生命周期容器，由执行器负责资源�
 
 ## 业务 SQL 查询统计
 
-`GET /api/v1/metrics/performance` 的 `database_queries` 从运行中的评估服务 SQLAlchemy engine 采集真实 cursor 执行完成与失败事件，`engine_role=evaluation_service`，提供 `query_count/successes/errors/error_rate/avg_latency_ms/p95_latency_ms/queries_per_second`。实验、基准与 A/B 服务的独立 engine 尚未纳入这个口径。查询数以 cursor 执行事件为单位，不是返回行数；连接获取阶段的错误不计作已执行查询。它不保存 SQL 文本、绑定参数、连接 URL、异常详情或用户数据。数据库健康检查和监控查询本身也会进入这个采集口径。
+`GET /api/v1/metrics/performance` 的 `database_queries` 从运行中的评估服务 SQLAlchemy engine 采集真实 cursor 执行完成与失败事件，`engine_role=evaluation_service`，提供 `query_count/successes/errors/error_rate/avg_latency_ms/p95_latency_ms/queries_per_second`。实验、基准、A/B 服务及异步任务会话工厂的独立 engine 尚未纳入这个口径；异步任务查询不会全部出现在此计数中。查询数以 cursor 执行事件为单位，不是返回行数；连接获取阶段的错误不计作已执行查询。它不保存 SQL 文本、绑定参数、连接 URL、异常详情或用户数据。绑定评估 engine 上的数据库健康检查和旧任务监控查询本身也会进入这个采集口径。
 
 `scope=bound_business_engine_current_process` 表示单 engine、单 API 进程；不包含认证/文件 SQLite、其他进程或数据库服务端的全局查询。每 engine 在启动时安装一个稳定转发监听，弱注册采集器；监控关闭后停止采集并解除采集器引用，此后 `collection_active=false`、`status=not_collecting`。空转发器随 engine 生命周期回收，关闭时不并发修改 SQLAlchemy 事件队列，以保护仍在执行的业务查询。统计仅保存在当前进程内，重启后重新建立采集起点，API 启动前已经完成的迁移和任务恢复查询不计入。
 
@@ -128,6 +138,8 @@ curl http://localhost:8000/api/v1/logs/download/your-task-id \
 - `GET /api/v1/config/providers`：静态支持的提供商与固定示例配置中的模型名称，`scope=offline_example_catalog`。不访问远端模型列表，不验证当前可用性，不返回密钥或自定义 URL；CLI 提供商能力列表也不会扩大认证密钥接口的提供商白名单。
 - `GET /api/v1/config/sandbox`：受控 Docker 镜像、执行超时、内存、进程、输出和允许导入配置，不返回主机目录或环境变量。
 
-#149 worker 可用可信任务所有者调用 `app.state.monitor.record_task_event(event, user_id)`。入口会校验登记的任务归属和删除状态；HTTP 不开放指定所有者、写日志或绑定缓存的接口。真实 worker 可将实际 LLM 客户端的缓存实例绑定到 `app.state.monitor.cache`，仍需明确其单实例口径。
+#179 已提供 Celery/Redis、AsyncTask 和任务控制基础；本轮保留现有任务路由、应用启动时绑定的任务会话工厂和关闭时的 engine 清理。`/evaluations` 仍保留旧评估流程，不能仅凭队列组件已合并就认为每个评估请求都已进入 Celery。异步评估实现也仍使用返回 `mock=true` 的占位 worker。
 
-队列长度、活跃 worker、真实任务执行时长/成功率、LLM 请求数/延迟，以及各容器 CPU/内存，需后续采集接入。业务数据库连通性、schema 与实际查询延迟现已接入；不会把持久化的模拟任务结果或模拟成本计作真实 worker/LLM 指标。当前任务取消继续使用已有所有者权限的评估取消接口，没有增加管理员跨用户强制终止接口。完整 RBAC、远端日志平台和告警通知也未在本次基础实现中提供。
+真实 worker 可用可信任务所有者调用 `app.state.monitor.record_task_event(event, user_id)`。入口会校验登记的任务归属和删除状态；HTTP 不开放指定所有者、写日志或绑定缓存的接口。现有异步 worker 尚未绑定此入口或实际 LLM 缓存；后续可将实际 LLM 客户端的缓存实例绑定到 `app.state.monitor.cache`，仍需明确其单实例口径。
+
+Redis 实际连通性、队列长度、活跃 worker、真实任务执行时长/成功率、LLM 请求数/延迟，以及各容器 CPU/内存，需后续探测与采集接入。业务数据库连通性、schema 与绑定 engine 的实际查询延迟现已接入；不会把持久化的模拟任务结果或模拟成本计作真实 worker/LLM 指标。取消继续使用已有所有者权限的评估或任务控制接口，没有增加管理员跨用户强制终止接口。完整 RBAC、远端日志平台和告警通知也未在本次基础实现中提供。#157 保持开放。

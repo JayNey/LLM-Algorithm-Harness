@@ -406,16 +406,16 @@ curl http://localhost:8000/api/v1/evaluations/{eval_id}/progress -H "Authorizati
 ## 限制和注意事项
 
 1. **并发限制**: 默认最多 5 个并发任务，超出时排队等待
-2. **任务持久化**: #151 已将任务状态存入业务数据库。重启后记录仍可查询，遗留的 `pending/running` 任务标记为 `failed`；生产队列恢复执行待 #149 接入。
+2. **任务持久化**: #151 已将任务状态存入业务数据库，#179 已提供 Celery/Redis 与 AsyncTask 基础。重启后记录仍可查询；旧评估启动恢复规则不代表异步队列恢复执行保障。当前 `/evaluations` 路由仍保留旧流程，异步评估 worker 也仍使用模拟结果。
 3. **WebSocket 支持**: 当前不支持 WebSocket 实时推送，请使用轮询。后续版本计划支持
-4. **认证**: 用户、Token 撤销和加密密钥已实现；详见 [认证指南](docs/api-authentication.md)。业务任务仍使用模拟执行器，真实执行由 #149 接入。
+4. **认证**: 用户、Token 撤销和加密密钥已实现；详见 [认证指南](docs/api-authentication.md)。队列基础已合并，真实 LLM 执行、密钥使用计量和安全结果发布仍需接入。
 
 ## 路线图
 
 - 数据库持久化存储：#151 已实现
 - Phase 3: WebSocket 实时推送
 - 用户认证和授权：#152 已实现
-- 系统监控：#157 已提供健康、资源、日志、API 与业务 SQL 查询统计；真实队列/worker/LLM 指标待 #149 接入
+- 系统监控：#157 已提供健康、资源、日志、API 与业务 SQL 查询统计，并分别只读查询旧评估和异步任务；队列/worker 连通探测与真实 LLM 指标尚待接入
 - Phase 5: 完整的问题和策略端点
 
 ## 反馈和支持
@@ -432,6 +432,6 @@ curl http://localhost:8000/api/v1/evaluations/{eval_id}/progress -H "Authorizati
 
 用户可读取自己的 `/logs/tasks/{task_id}`、下载 `/logs/download/{task_id}`，以及查询 `/quotas/usage` 的既有存储、请求与导入限额。任务日志按所有者隔离，消息和上下文在存储前脱敏；不接受主机日志路径。
 
-`/health/database` 只读检查已配置的认证/文件 SQLite 和 #151 业务 engine 的连通性、所需表与迁移版本；不通过健康请求迁移数据库或重新创建任务服务。`/system/tasks/running` 与 `/system/tasks/queued` 从持久化业务任务读取，支持 `limit/offset` 分页并返回准确 `total/counts`；`queued` 表示 `pending` 状态，不代表 Redis 队列。`/system/status` 的任务计数使用全量数据库聚合。
+`/health/database` 只读检查已配置的认证/文件 SQLite 和 #151 业务 engine 的连通性、所需表与迁移版本；不通过健康请求迁移数据库或重新创建任务服务。`/system/tasks/running` 与 `/system/tasks/queued` 支持 `task_source=legacy_evaluation`（默认）或 `async_task`，分别读取未关联异步任务的 Evaluation 或 AsyncTask，支持 `limit/offset` 分页并返回准确 `total/counts`。关联评估不再计入旧来源，避免双计；`queued` 表示数据库 `pending` 状态，不代表 Redis 队列长度。`/system/status` 分别提供两组全量状态计数，不能相加视作全局一致快照。监控不轮询 Celery 或提交任务状态，也不暴露原始参数、进度消息、错误详情及 Celery 任务 ID。
 
-API 与业务 SQL 指标提供 `window_complete` 与 `retained_sample`，窗口不完整时顶层累计值为 `null`。业务 SQL 统计仅覆盖当前 API engine 与进程的 cursor 执行阶段，重启后重建采集起点；不保存 SQL、参数或连接凭据。Redis/worker、真实评估和 LLM 延迟/成功率仍标记 `not_configured`，模拟任务不计作生产队列或真实生成指标。管理员配置、全部接口和后续接入边界见 [监控指南](docs/api-monitoring.md)。
+API 与业务 SQL 指标提供 `window_complete` 与 `retained_sample`，窗口不完整时顶层累计值为 `null`。业务 SQL 统计仅覆盖当前评估 engine 与 API 进程的 cursor 执行阶段，未纳入异步任务独立 engine 的全部查询；重启后重建采集起点，不保存 SQL、参数或连接凭据。#179 的队列基础已存在，Redis/worker 本轮未联网探测，标记 `not_checked`；异步评估 worker 仍为 mock，真实评估与 LLM 延迟/成功率标记 `not_configured/null`。管理员配置、全部接口和后续接入边界见 [监控指南](docs/api-monitoring.md)，#157 保持开放。

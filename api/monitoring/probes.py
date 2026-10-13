@@ -230,11 +230,23 @@ class MonitorProbes:
 
     @staticmethod
     def redis() -> dict[str, Any]:
-        return {"status": "not_configured", "dependency_issue": 149}
+        return {
+            "status": "not_checked",
+            "infrastructure_available": True,
+            "dependency_issue": 149,
+            "detail": "Queue infrastructure is present; live Redis availability has not been probed",
+        }
 
     @staticmethod
     def workers() -> dict[str, Any]:
-        return {"status": "not_configured", "dependency_issue": 149}
+        return {
+            "status": "not_checked",
+            "infrastructure_available": True,
+            "dependency_issue": 149,
+            "evaluation_worker_implementation": "mock",
+            "real_evaluation_available": False,
+            "detail": "Worker reachability and load have not been probed",
+        }
 
     @staticmethod
     def cache_stats(cache: LLMResponseCache | None = None) -> dict[str, Any]:

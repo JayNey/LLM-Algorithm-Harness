@@ -163,8 +163,12 @@ def test_health_sources_and_safe_admin_configuration(api, monkeypatch):
     business = health["checks"]["database"]["business_database"]
     assert business["migration"]["revisions"] == business["migration"]["expected_heads"]
     assert "experiments" in business["required_tables"]
-    assert health["checks"]["redis"]["status"] == "not_configured"
+    assert health["checks"]["redis"]["status"] == "not_checked"
+    assert health["checks"]["redis"]["infrastructure_available"] is True
     assert health["checks"]["workers"]["dependency_issue"] == 149
+    assert health["checks"]["workers"]["status"] == "not_checked"
+    assert health["checks"]["workers"]["evaluation_worker_implementation"] == "mock"
+    assert health["checks"]["workers"]["real_evaluation_available"] is False
     assert health["checks"]["sandbox"]["status"] == "not_checked"
     assert (
         client.get("/api/v1/system/health?include_sandbox=true", headers=headers(admin)).json()[

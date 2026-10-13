@@ -5,7 +5,7 @@ import time
 from collections.abc import Iterator
 from datetime import datetime
 from tempfile import SpooledTemporaryFile
-from typing import Any, BinaryIO, cast
+from typing import Any, BinaryIO, Literal, cast
 
 from fastapi import APIRouter, Depends, HTTPException, Query, Response
 from starlette.responses import StreamingResponse
@@ -127,6 +127,7 @@ def system_status(
     admin: Principal = Depends(administrator), monitor: MonitorService = Depends(monitor_service)
 ) -> ApiResponse[Any]:
     snapshot = monitor.task_snapshot()
+    async_snapshot = monitor.task_snapshot(task_source="async_task")
     return answer(
         {
             "uptime_seconds": round(time.monotonic() - monitor.started, 3),
@@ -135,6 +136,12 @@ def system_status(
             "task_count": snapshot["total"],
             "task_status": snapshot["status"],
             "task_source": snapshot["source"],
+            "async_task_counts": async_snapshot["counts"],
+            "async_task_count": async_snapshot["total"],
+            "async_task_status": async_snapshot["status"],
+            "async_task_source": async_snapshot["source"],
+            "evaluation_worker_implementation": "mock",
+            "real_evaluation_available": False,
             "health": monitor.health(),
             "resources": monitor.probes.resources(),
             "workers": monitor.probes.workers(),
@@ -150,20 +157,22 @@ def system_status(
 def running_tasks(
     limit: int = Query(100, ge=1, le=1000),
     offset: int = Query(0, ge=0, le=100000),
+    task_source: Literal["legacy_evaluation", "async_task"] = "legacy_evaluation",
     admin: Principal = Depends(administrator),
     monitor: MonitorService = Depends(monitor_service),
 ) -> ApiResponse[Any]:
-    return answer(monitor.task_snapshot("running", limit, offset))
+    return answer(monitor.task_snapshot("running", limit, offset, task_source))
 
 
 @router.get("/system/tasks/queued")
 def queued_tasks(
     limit: int = Query(100, ge=1, le=1000),
     offset: int = Query(0, ge=0, le=100000),
+    task_source: Literal["legacy_evaluation", "async_task"] = "legacy_evaluation",
     admin: Principal = Depends(administrator),
     monitor: MonitorService = Depends(monitor_service),
 ) -> ApiResponse[Any]:
-    return answer(monitor.task_snapshot("pending", limit, offset))
+    return answer(monitor.task_snapshot("pending", limit, offset, task_source))
 
 
 @router.get("/metrics/api-stats")

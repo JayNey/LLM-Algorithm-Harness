@@ -8,11 +8,15 @@
 - **THEN** 系统端点仍返回 403，不提升权限
 
 ### Requirement: 真实状态与未配置依赖
-系统 SHALL 查询当前认证/文件 SQLite、已有业务 engine、主机资源、Docker 预检和实际 API 统计；尚未配置的 Redis、worker 和真实 LLM 指标 SHALL 明确返回 not_configured/null。
+系统 SHALL 查询当前认证/文件 SQLite、已有业务 engine、主机资源、Docker 预检和实际 API 统计；已接入但未联网探测的 Redis/worker SHALL 返回 not_checked，尚未采集的真实 LLM 指标 SHALL 明确返回 not_configured/null。
 
 #### Scenario: 无队列后端
 - **WHEN** #149 尚未接入
 - **THEN** 不报告 Redis/worker 健康或虚构任务负载
+
+#### Scenario: 存在队列基础但执行仍模拟
+- **WHEN** main 已有 Celery/AsyncTask，而 worker 仍返回 mock 结果
+- **THEN** 保留任务 router/会话生命周期，按来源独立分页与全量计数、关联记录不双计；只返回数值进度，不提交状态或轮询后端；明确未探测网络与模拟评估边界
 
 #### Scenario: 已接入业务数据库
 - **WHEN** #151 已配置业务 engine，任务处于 pending/running
