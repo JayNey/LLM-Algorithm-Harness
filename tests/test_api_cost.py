@@ -2,6 +2,7 @@
 
 import secrets
 import time
+from unittest.mock import patch
 
 import pytest
 from cryptography.fernet import Fernet
@@ -237,40 +238,51 @@ class TestBudgets:
         assert data["difficulty_caps"] == {"easy": 0.5}
 
     def test_benchmark_run_cost_via_task_endpoint(self, tmp_path):
+        # Since #149 runs dispatch through celery, stub the broker send and
+        # complete the run row the way the queue worker would.
         app = _app_with_benchmarks(tmp_path)
-        with TestClient(app) as client:
-            headers = _signup(client)
-            key_id = _add_key(client, headers)
-            suite_id = client.post(
-                "/api/v1/benchmarks/suites",
-                headers=headers,
-                json={"name": "cost-suite", "problems": ["p1"], "frozen": False},
-            ).json()["data"]["id"]
-            started = client.post(
-                f"/api/v1/benchmarks/suites/{suite_id}/run",
-                headers=headers,
-                json={
-                    "api_key_id": key_id,
-                    "dataset_path": "problems.json",
-                    "model": "bench-model",
-                },
-            )
-            assert started.status_code == 202, started.text
-            run_id = started.json()["data"]["id"]
-            deadline = time.monotonic() + 10
-            while time.monotonic() < deadline:
-                run = client.get(f"/api/v1/benchmarks/runs/{run_id}", headers=headers).json()[
-                    "data"
-                ]
-                if run["status"] == "completed":
-                    break
-                time.sleep(0.05)
-            task = client.get(f"/api/v1/costs/tasks/{run_id}", headers=headers)
-            assert task.status_code == 200
-            data = task.json()["data"]
-            assert data["source"] == "benchmarks"
-            assert data["total_cost_usd"] == 0.2
-            assert data["model"] == "bench-model"
+        class _FakeAsyncResult:
+            id = "fake-celery-task-id"
+
+        with patch("src.task_manager.celery_app.send_task", return_value=_FakeAsyncResult()):
+            with TestClient(app) as client:
+                headers = _signup(client)
+                key_id = _add_key(client, headers)
+                suite_id = client.post(
+                    "/api/v1/benchmarks/suites",
+                    headers=headers,
+                    json={"name": "cost-suite", "problems": ["p1"], "frozen": False},
+                ).json()["data"]["id"]
+                started = client.post(
+                    f"/api/v1/benchmarks/suites/{suite_id}/run",
+                    headers=headers,
+                    json={
+                        "api_key_id": key_id,
+                        "dataset_path": "problems.json",
+                        "model": "bench-model",
+                    },
+                )
+                assert started.status_code == 202, started.text
+                run_id = started.json()["data"]["id"]
+
+                from api.db import BenchmarkRun, business_database_url, make_engine, make_session_factory
+                from api.db.models import utcnow
+
+                session_factory = make_session_factory(make_engine(business_database_url()))
+                with session_factory() as session, session.begin():
+                    row = session.get(BenchmarkRun, run_id)
+                    assert row is not None
+                    row.status = "completed"
+                    row.accuracy = 0.8
+                    row.cost_usd = 0.2
+                    row.completed_at = utcnow()
+
+                task = client.get(f"/api/v1/costs/tasks/{run_id}", headers=headers)
+                assert task.status_code == 200
+                data = task.json()["data"]
+                assert data["source"] == "benchmarks"
+                assert data["total_cost_usd"] == 0.2
+                assert data["model"] == "bench-model"
 
     def test_usage_without_budget_has_caps_none(self, api):
         client, headers, _, _ = api
