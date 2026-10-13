@@ -12,3 +12,10 @@
 
 - [x] 3.1 实现 `run_benchmark_task`，执行已有基准运行并写回准确率、成本、完成或失败状态；用单元测试验证完成、失败和取消后不再标成完成
 - [x] 3.2 把基准任务注册到 Celery `default` 队列，并用测试确认任务名可被 worker 发现
+
+## 4. 补齐验收测试
+
+- [x] 4.1 通过 TaskManager 提交实验、导入、基准任务，断言立即返回任务标识，任务可查询为 pending，且实验与基准记录仍保持 pending
+- [ ] 4.2 为实验任务补测试：记录不属于该用户、状态不是 pending，以及 execute_experiment 以 recover=False 构造服务
+- [ ] 4.3 为导入任务补测试：作业失败时把 result.detail 写入任务错误信息
+- [ ] 4.4 为基准任务补测试：记录不属于该用户、状态不是 pending，以及 execute_benchmark 以 recover=False 构造服务
