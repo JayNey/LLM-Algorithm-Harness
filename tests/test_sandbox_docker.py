@@ -1,6 +1,7 @@
 """Tests for the explicit Docker sandbox backend."""
 
 import os
+import subprocess
 import sys
 import time
 from types import SimpleNamespace
@@ -10,6 +11,20 @@ from test_process_manager import _pid_alive
 
 from src.models import Problem, SandboxConfig, TestCase
 from src.sandbox_executor import SandboxExecutionError, SandboxExecutor
+
+
+@pytest.fixture(autouse=True)
+def _stub_docker_cleanup(monkeypatch, request):
+    """Unit tests must not wait on a real Docker daemon to remove containers."""
+    if request.node.name.startswith("test_real_docker"):
+        return
+
+    def fake_run(command, *args, **kwargs):
+        if isinstance(command, (list, tuple)) and list(command[:2]) == ["docker", "rm"]:
+            return subprocess.CompletedProcess(command, 0, stdout="", stderr="")
+        return subprocess.run(command, *args, **kwargs)
+
+    monkeypatch.setattr("src.sandbox_executor.subprocess.run", fake_run)
 
 
 def _problem(expected=3, tag="docker-sum", inputs=None):

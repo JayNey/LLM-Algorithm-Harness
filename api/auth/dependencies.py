@@ -15,12 +15,14 @@ def auth_service(request: Request) -> AuthService:
 
 
 def current_user(
+    request: Request,
     service: AuthService = Depends(auth_service),
     credential: HTTPAuthorizationCredentials | None = Depends(bearer),
 ) -> Principal:
     if credential is None or credential.scheme.lower() != "bearer":
         raise unauthorized()
     principal = service.authenticate(credential.credentials)
+    request.state.monitor_user_id = principal.user_id
     service.limit("protected:" + principal.user_id, service.settings.AUTH_PROTECTED_RATE_LIMIT)
     return principal
 

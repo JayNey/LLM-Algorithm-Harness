@@ -31,7 +31,7 @@ uploads/users/<user-id>/
 - `FILE_MAX_ACTIVE_IMPORTS`：默认共享数据库最多 8 项等待/处理中的导入。
 - `FILE_IMPORT_TIMEOUT_SECONDS`：默认 3600，超过无进度期限的作业被标记失败。
 
-目录与数据库必须成对迁移；不同实例共用认证数据库时应共用文件目录。用户题库合并、作业状态和文件限额采用 SQLite 事务；对象存储及 #151 业务数据库适配不在本版本中。
+目录与数据库必须成对迁移；不同实例共用认证数据库时应共用文件目录。用户题库合并、作业状态和文件限额采用 SQLite 事务。#151 已将评估任务接入独立业务数据库；文件元数据、私有题库与导入作业仍使用上述认证 SQLite 中的 `api_file_*` 表，尚未迁移至业务库或对象存储。
 
 ## 上传
 
@@ -82,7 +82,7 @@ curl -X POST http://localhost:8000/api/v1/problems/upload \
 
 作业状态为 `pending/running/completed/failed`。来源文件已有活跃导入时返回 409；共享作业容量或传输容量不足时返回 429 和 `Retry-After`。进度只对作业所有者可见。
 
-当前后台处理为进程内 BackgroundTasks，尚未接入 #149 的队列；进程崩溃后不会伪记成功，过期作业在清理时变为失败，用户可重新提交。题库提交和最终作业完成状态在同一事务中。
+当前文件导入 HTTP 路由仍由进程内 BackgroundTasks 处理。#179 已合并 Celery/Redis 队列基础，#180 已增加 `src.tasks.imports.run_import_task` Celery 入口，但 HTTP 文件导入尚未切换到该入口，Celery 端到端执行尚未验证。Celery 导入入口将数值进度写入 AsyncTask，任务监控只将经过校验的 `current/total` 映射为 `completed/total`，不返回原始进度消息。进程崩溃后不会伪记成功，过期作业在清理时变为失败，用户可重新提交。题库提交和最终作业完成状态在同一事务中。
 
 ### 配置上传和模板
 
@@ -113,7 +113,7 @@ curl -X POST http://localhost:8000/api/v1/problems/upload \
 app.state.files.publish_results(run_id, user_id, results_by_strategy)
 ```
 
-`results_by_strategy` 是策略名到 `ExecutionResult` 列表的映射，发布前会规范化并脱敏。HTTP 不提供指定所有者或本机路径的结果发布接口。当前 #148 执行器仍是模拟器，需要 #149 接入此发布函数后才能下载实际运行结果。
+`results_by_strategy` 是策略名到 `ExecutionResult` 列表的映射，发布前会规范化并脱敏。HTTP 不提供指定所有者或本机路径的结果发布接口。#179 的异步评估 worker 仍返回模拟结果，尚未绑定真实 LLM 执行和此结果发布函数；旧 `/evaluations` 执行器也仍为模拟器。数据库中任务显示完成不意味着已产生可下载的真实运行结果。
 
 删除评估任务先写入文件归属删除标记，再清理关联文件；迟到 worker 不能重新发布。删除遇到 Windows 占用等错误时隐藏文件并保留元数据，由下次清理重试。原始上传按期限删除，当前题库保留；派生下载在内存中生成，CSV 暂存立即清理，不永久积累派生文件。
 

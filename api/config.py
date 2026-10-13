@@ -31,6 +31,13 @@ class Settings(BaseSettings):
     # values must resolve inside this directory to prevent path traversal.
     DATA_ROOT: str = os.getenv("DATA_ROOT", "data")
 
+    # Celery 配置
+    CELERY_BROKER_URL: str = "redis://localhost:6379/0"
+    CELERY_RESULT_BACKEND: str = "redis://localhost:6379/0"
+
+    # TaskService 存储路径
+    TASK_SERVICE_ROOT: str = "./data/tasks"
+
     class Config:
         env_file = ".env"
         extra = "ignore"  # Auth and API settings share the same dotenv file.

@@ -5,6 +5,7 @@ import logging
 import sqlite3
 import time
 import uuid
+from collections.abc import Callable
 from dataclasses import dataclass
 from typing import Any
 
@@ -61,6 +62,7 @@ class Principal:
 class AuthService:
     def __init__(self, settings: AuthSettings):
         self.settings = settings
+        self.audit_sink: Callable[[str, str, str], None] | None = None
         self.store = AuthStore(settings.AUTH_DATABASE_PATH)
         self.passwords = PasswordHasher()
         self._dummy_hash = self.passwords.hash(uuid.uuid4().hex)
@@ -76,6 +78,11 @@ class AuthService:
 
     def audit(self, action: str, user_id: str, resource_id: str = "") -> None:
         logger.info("auth_audit action=%s user_id=%s resource_id=%s", action, user_id, resource_id)
+        if self.audit_sink:
+            try:
+                self.audit_sink(action, user_id, resource_id)
+            except Exception:
+                logger.warning("monitor_audit_write_failed")
 
     def public_user(self, user_id: str) -> dict[str, Any]:
         user = self.store.user(user_id)

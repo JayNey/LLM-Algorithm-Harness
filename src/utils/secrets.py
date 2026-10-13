@@ -84,13 +84,22 @@ def _redact_mapping_value(key: object, value: Any, known_secrets: tuple[str, ...
 
 def redact_sensitive_text(text: str, known_secrets: Iterable[str] = ()) -> str:
     """Remove credential-shaped text and explicitly known secret values."""
-    redacted = text
-    for secret in known_secrets:
-        if secret and secret != REDACTED:
-            redacted = redacted.replace(secret, REDACTED)
-    redacted = _AUTHORIZATION_VALUE.sub(_redacted_assignment, redacted)
+    # Known values can themselves be syntax such as "password" or "=".
+    # Recognize credential fields before substitutions can alter their labels.
+    redacted = _AUTHORIZATION_VALUE.sub(_redacted_assignment, text)
     redacted = _BEARER_VALUE.sub(lambda match: f"{match.group(1)}{REDACTED}", redacted)
-    return _KEY_VALUE.sub(_redact_key_value, redacted)
+    redacted = _KEY_VALUE.sub(_redact_key_value, redacted)
+    values = {value for value in known_secrets if value and value != REDACTED}
+    if values:
+        # Match complete keys (including keys containing a literal placeholder)
+        # and existing placeholders in one pass, longest alternatives first.
+        # This also prevents short keys from modifying replacement markers.
+        values.add(REDACTED)
+        pattern = re.compile(
+            "|".join(re.escape(value) for value in sorted(values, key=len, reverse=True))
+        )
+        redacted = pattern.sub(REDACTED, redacted)
+    return redacted
 
 
 def redact_sensitive_data(value: Any, known_secrets: Iterable[str] = ()) -> Any:
