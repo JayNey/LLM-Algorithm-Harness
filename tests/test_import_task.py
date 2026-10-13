@@ -108,3 +108,23 @@ def test_run_import_task_missing_job_does_not_continue(db_session):
     assert task.status == "failed"
     assert task.progress is None
     check.close()
+
+
+def test_run_import_task_failure_records_result_detail(db_session):
+    job_id, user_id = _seed(db_session)
+
+    def finish(job_id: str, user_id: str, on_progress) -> dict:
+        return {"status": "failed", "result": {"detail": "row 3 is invalid"}}
+
+    with (
+        patch("src.tasks.imports.get_db_session", return_value=db_session),
+        patch("src.tasks.imports.execute_import", side_effect=finish),
+    ):
+        result = run_import_task(job_id, user_id)
+
+    check = _reload(db_session)
+    task = check.query(AsyncTask).filter_by(entity_id=job_id).one()
+    assert result["status"] == "failed"
+    assert task.status == "failed"
+    assert task.error_message == "row 3 is invalid"
+    check.close()
