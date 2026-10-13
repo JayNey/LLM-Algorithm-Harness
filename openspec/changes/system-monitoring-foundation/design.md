@@ -9,6 +9,7 @@
 ## 权限与日志
 
 - 任务列表通过 task_source=legacy_evaluation（默认）或 async_task 选择数据源；旧评估条件 async_task_id IS NULL，异步读取 AsyncTask，分别分页/计数而不相加冒充一个原子快照。system/status 分别列出两组计数。只暴露校验后的 current/total，不输出 raw progress、params、error_message 或 celery_task_id。不调用 TaskManager.get_task，它会轮询并提交状态。异步 transport 标为 Celery，同时明确 evaluation worker 为 mock，不把 completed 视为真实 LLM 成功。
+- #180 的 import worker 进度为 current/total 加 percentage/message，监控仍只投影数值对；experiment/benchmark 不提供该进度时保持 null，不能凭 completed 补造百分比。新增任务入口不证明端到端执行接通；监控不构造这些服务或运行任务，沿用启动时已有服务的恢复策略。
 
 - MonitorSettings 的 MONITOR_ADMIN_USER_IDS 由操作者在服务器配置，只使用不可变用户 UUID；不信任请求/JWT 中的角色，也不以可修改用户名判断。
 - 系统监控、全局日志、配置与性能端点需要管理员；普通用户可查询自己的窗口/文件配额和自己的任务日志。

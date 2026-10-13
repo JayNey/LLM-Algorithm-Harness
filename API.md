@@ -406,9 +406,9 @@ curl http://localhost:8000/api/v1/evaluations/{eval_id}/progress -H "Authorizati
 ## 限制和注意事项
 
 1. **并发限制**: 默认最多 5 个并发任务，超出时排队等待
-2. **任务持久化**: #151 已将任务状态存入业务数据库，#179 已提供 Celery/Redis 与 AsyncTask 基础。重启后记录仍可查询；旧评估启动恢复规则不代表异步队列恢复执行保障。当前 `/evaluations` 路由仍保留旧流程，异步评估 worker 也仍使用模拟结果。
+2. **任务持久化**: #151 已将任务状态存入业务数据库，#179 已提供 Celery/Redis 与 AsyncTask 基础，#180 已增加实验、导入和基准 Celery 入口。现有 HTTP 路由没有因此自动切换队列。重启后记录仍可查询；旧评估启动恢复规则不代表异步队列恢复执行保障。当前 `/evaluations` 路由仍保留旧流程，异步评估 worker 也仍使用模拟结果。
 3. **WebSocket 支持**: 当前不支持 WebSocket 实时推送，请使用轮询。后续版本计划支持
-4. **认证**: 用户、Token 撤销和加密密钥已实现；详见 [认证指南](docs/api-authentication.md)。队列基础已合并，真实 LLM 执行、密钥使用计量和安全结果发布仍需接入。
+4. **认证**: 用户、Token 撤销和加密密钥已实现；详见 [认证指南](docs/api-authentication.md)。队列基础与三类 Celery 任务实现已合并，但其端到端执行和真实 LLM 指标仍未接通或验证。真实评估 worker、密钥使用计量和安全结果发布仍需接入，#149 保持开放。
 
 ## 路线图
 
@@ -434,4 +434,4 @@ curl http://localhost:8000/api/v1/evaluations/{eval_id}/progress -H "Authorizati
 
 `/health/database` 只读检查已配置的认证/文件 SQLite 和 #151 业务 engine 的连通性、所需表与迁移版本；不通过健康请求迁移数据库或重新创建任务服务。`/system/tasks/running` 与 `/system/tasks/queued` 支持 `task_source=legacy_evaluation`（默认）或 `async_task`，分别读取未关联异步任务的 Evaluation 或 AsyncTask，支持 `limit/offset` 分页并返回准确 `total/counts`。关联评估不再计入旧来源，避免双计；`queued` 表示数据库 `pending` 状态，不代表 Redis 队列长度。`/system/status` 分别提供两组全量状态计数，不能相加视作全局一致快照。监控不轮询 Celery 或提交任务状态，也不暴露原始参数、进度消息、错误详情及 Celery 任务 ID。
 
-API 与业务 SQL 指标提供 `window_complete` 与 `retained_sample`，窗口不完整时顶层累计值为 `null`。业务 SQL 统计仅覆盖当前评估 engine 与 API 进程的 cursor 执行阶段，未纳入异步任务独立 engine 的全部查询；重启后重建采集起点，不保存 SQL、参数或连接凭据。#179 的队列基础已存在，Redis/worker 本轮未联网探测，标记 `not_checked`；异步评估 worker 仍为 mock，真实评估与 LLM 延迟/成功率标记 `not_configured/null`。管理员配置、全部接口和后续接入边界见 [监控指南](docs/api-monitoring.md)，#157 保持开放。
+API 与业务 SQL 指标提供 `window_complete` 与 `retained_sample`，窗口不完整时顶层累计值为 `null`。业务 SQL 统计仅覆盖当前评估 engine 与 API 进程的 cursor 执行阶段，未纳入异步任务独立 engine 的全部查询；重启后重建采集起点，不保存 SQL、参数或连接凭据。#179 的队列基础与 #180 的实验/导入/基准入口已存在，Redis/worker 本轮未联网探测，标记 `not_checked`；`evaluation_worker_implementation=mock` 只指评估 worker，真实评估与 LLM 延迟/成功率标记 `not_configured/null`。管理员配置、全部接口和后续接入边界见 [监控指南](docs/api-monitoring.md)，#157 保持开放。

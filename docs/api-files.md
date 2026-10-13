@@ -82,7 +82,7 @@ curl -X POST http://localhost:8000/api/v1/problems/upload \
 
 作业状态为 `pending/running/completed/failed`。来源文件已有活跃导入时返回 409；共享作业容量或传输容量不足时返回 429 和 `Retry-After`。进度只对作业所有者可见。
 
-当前文件导入仍由进程内 BackgroundTasks 处理。#179 已合并 Celery/Redis 队列基础，但文件导入尚未迁入该队列；进程崩溃后不会伪记成功，过期作业在清理时变为失败，用户可重新提交。题库提交和最终作业完成状态在同一事务中。
+当前文件导入 HTTP 路由仍由进程内 BackgroundTasks 处理。#179 已合并 Celery/Redis 队列基础，#180 已增加 `src.tasks.imports.run_import_task` Celery 入口，但 HTTP 文件导入尚未切换到该入口，Celery 端到端执行尚未验证。Celery 导入入口将数值进度写入 AsyncTask，任务监控只将经过校验的 `current/total` 映射为 `completed/total`，不返回原始进度消息。进程崩溃后不会伪记成功，过期作业在清理时变为失败，用户可重新提交。题库提交和最终作业完成状态在同一事务中。
 
 ### 配置上传和模板
 

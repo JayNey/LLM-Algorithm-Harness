@@ -1,6 +1,6 @@
 # API 系统监控基础能力（#157）
 
-本次实现 API 监控基础：管理员授权、本机资源和 Docker 预检、持久化请求统计、安全事件日志、离线配置目录，以及当前用户已有配额的查询。#151 已接入业务数据库；#149 的 Celery/Redis 与异步任务管理基础已通过 #179 合并。本次监控分别读取旧评估和异步任务的持久化状态、检查数据库连接与 schema，并采集实际业务 SQL 查询统计。异步评估 worker 仍返回模拟结果；#157 的 Redis/worker 连通探测、真实执行与 LLM 指标仍需接入。
+本次实现 API 监控基础：管理员授权、本机资源和 Docker 预检、持久化请求统计、安全事件日志、离线配置目录，以及当前用户已有配额的查询。#151 已接入业务数据库；#179 已合并 Celery/Redis 与异步任务管理基础，#180 已增加实验、导入和基准的 Celery 执行入口。本次监控分别读取旧评估和异步任务的持久化状态、检查数据库连接与 schema，并采集实际业务 SQL 查询统计。异步评估 worker 仍返回模拟结果；#149 保持开放，真实评估、使用计量与 worker 监控指标仍需接入。
 
 ## 配置管理员
 
@@ -47,11 +47,12 @@ export MONITOR_ADMIN_USER_IDS='["11111111-1111-4111-8111-111111111111"]'
 - `task_source=async_task` 直接查询 AsyncTask 记录，返回 `source=persisted_async_tasks`、`execution_backend=celery`、`queue_infrastructure_available=true`、`real_evaluation_available=false`、`evaluation_worker_implementation=mock`。基础设施标记只说明代码已存在，不代表 Redis/worker 已通过健康检查。
 - 默认 100 条，`limit` 范围 1–1000，`offset` 范围 0–100000。响应返回 `status/items/total/counts/limit/offset/task_source`；`total` 与 `counts` 由所选来源和状态的全量记录聚合得到，`items` 只包含当前页。
 - 两种来源都只返回任务 ID、所有者 ID、状态和经过范围校验的 `completed/total`；异步来源还返回白名单 `task_type`。非法状态或任务类型标记为 `other`，非法或不一致进度为 `null`。不返回原始进度消息、参数、错误详情或 Celery 任务 ID。
+- `task_type` 白名单为 `evaluation/experiment/benchmark/import`。#180 的导入入口会写入数值 `current/total`，符合校验时映射为 `completed/total`；实验和基准入口当前不写入数值进度，缺失时返回 `null`。`evaluation_worker_implementation=mock` 只描述评估 worker，不表示全部任务类型都是模拟器。
 - 每次快照在单个只读事务中完成聚合和分页。监控不调用会同步 Celery 并提交状态的 `TaskManager.get_task`，也不轮询 Redis、恢复任务或重新调度。数据库不可读时返回 `status=unavailable`，`items/total/counts=null`，不将故障显示为空任务列表。
 
 旧来源绑定当前应用的评估 engine；异步来源绑定当前应用启动时建立的任务 engine，与 `/tasks` 使用同一应用的任务会话工厂。并存应用不会因全局工厂后来被替换而读取其他应用的异步任务库。
 
-任务状态跨服务重启持久化。已有评估服务在启动时按其恢复规则处理遗留记录；监控只读这些状态。异步任务的 `completed` 说明当前模拟 worker 生命周期已完成，不能据此推断真实 LLM 评估成功率。
+任务状态跨服务重启持久化。已有评估服务在启动时按其恢复规则处理遗留记录；监控只读这些状态。异步评估任务的 `completed` 说明当前模拟评估 worker 生命周期已完成，不能据此推断真实 LLM 评估成功率；其他任务类型的完成状态按各自业务入口记录。
 
 ```bash
 curl http://localhost:8000/api/v1/health/sandbox \
@@ -138,7 +139,7 @@ curl http://localhost:8000/api/v1/logs/download/your-task-id \
 - `GET /api/v1/config/providers`：静态支持的提供商与固定示例配置中的模型名称，`scope=offline_example_catalog`。不访问远端模型列表，不验证当前可用性，不返回密钥或自定义 URL；CLI 提供商能力列表也不会扩大认证密钥接口的提供商白名单。
 - `GET /api/v1/config/sandbox`：受控 Docker 镜像、执行超时、内存、进程、输出和允许导入配置，不返回主机目录或环境变量。
 
-#179 已提供 Celery/Redis、AsyncTask 和任务控制基础；本轮保留现有任务路由、应用启动时绑定的任务会话工厂和关闭时的 engine 清理。`/evaluations` 仍保留旧评估流程，不能仅凭队列组件已合并就认为每个评估请求都已进入 Celery。异步评估实现也仍使用返回 `mock=true` 的占位 worker。
+#179 已提供 Celery/Redis、AsyncTask 和任务控制基础，#180 已合入实验、导入和基准三类 Celery 任务实现；本轮保留现有任务路由、应用启动时绑定的任务会话工厂和关闭时的 engine 清理。这三类 Celery 入口的端到端执行与真实 LLM 指标仍未接通或验证。新增入口不等于 HTTP 请求已自动改为队列：`/evaluations` 仍保留旧评估流程，文件导入仍使用 BackgroundTasks，实验和基准 HTTP 服务仍使用进程内后台线程。异步评估实现也仍使用返回 `mock=true` 的占位 worker；#149 尚未全部完成。
 
 真实 worker 可用可信任务所有者调用 `app.state.monitor.record_task_event(event, user_id)`。入口会校验登记的任务归属和删除状态；HTTP 不开放指定所有者、写日志或绑定缓存的接口。现有异步 worker 尚未绑定此入口或实际 LLM 缓存；后续可将实际 LLM 客户端的缓存实例绑定到 `app.state.monitor.cache`，仍需明确其单实例口径。
 

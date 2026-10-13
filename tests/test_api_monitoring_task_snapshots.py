@@ -194,6 +194,47 @@ def test_known_task_types_are_preserved(engine, task_type):
     )
 
 
+@pytest.mark.parametrize("task_type", ["experiment", "benchmark"])
+def test_completed_tasks_without_numeric_progress_do_not_invent_completion(engine, task_type):
+    add_async(engine, "task", "completed", task_type=task_type, progress=None)
+    snapshot = read_task_snapshot(engine, task_source="async_task")
+    assert snapshot["counts"] == {"completed": 1}
+    assert snapshot["items"][0]["task_type"] == task_type
+    assert snapshot["items"][0]["completed"] is None
+    assert snapshot["items"][0]["total"] is None
+
+
+@pytest.mark.parametrize("outcome", ["completed", "failed"])
+def test_import_worker_persisted_progress_and_status_keep_safe_snapshot_contract(engine, outcome):
+    from src.tasks.imports import run_import_task
+
+    secret = "private-worker-failure-detail"
+    add_async(engine, "task", task_type="import", entity_id="import-job", progress=None)
+
+    def finish(_job_id, _user_id, on_progress):
+        on_progress(2, 4)
+        running = read_task_snapshot(engine, "running", task_source="async_task")
+        assert running["counts"] == {"running": 1}
+        assert running["items"][0]["completed"] == 2
+        assert running["items"][0]["total"] == 4
+        assert "Imported" not in json.dumps(running)
+        return {"status": outcome, "result": {"detail": secret}}
+
+    with (
+        patch("src.tasks.imports.get_db_session", side_effect=make_session_factory(engine)),
+        patch("src.tasks.imports.execute_import", side_effect=finish),
+    ):
+        result = run_import_task("import-job", "owner-queue")
+    assert result["status"] == outcome
+    snapshot = read_task_snapshot(engine, task_source="async_task")
+    assert snapshot["counts"] == {outcome: 1}
+    assert snapshot["items"][0]["task_type"] == "import"
+    assert snapshot["items"][0]["completed"] == 2
+    assert snapshot["items"][0]["total"] == 4
+    assert secret not in json.dumps(snapshot)
+    assert "percentage" not in json.dumps(snapshot)
+
+
 def test_source_queries_are_read_only_and_bound_to_actual_engine(engine, tmp_path):
     add_async(engine, "one")
     add_evaluation(engine, "legacy-one")

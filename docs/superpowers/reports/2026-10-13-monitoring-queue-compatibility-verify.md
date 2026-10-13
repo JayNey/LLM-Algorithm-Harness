@@ -1,6 +1,6 @@
 # PR #174 队列基础兼容验证报告
 
-日期：2026-10-13（Asia/Shanghai）。主线基线：`016f130d1ee6cdd2b35bd7ca47bd308bc3c61b66`，包含 PR #179。分支：`tweak/20261011/system-monitoring-foundation`。使用用户指定的增量 Tweak；更新原 PR #174，关联 `Refs #157`。
+日期：2026-10-13（Asia/Shanghai）。首次队列兼容基线：`016f130d1ee6cdd2b35bd7ca47bd308bc3c61b66`（PR #179）；最新追加基线：`35e246765be4d242414971d618ff473529571428`（PR #180），补充证据见末节。分支：`tweak/20261011/system-monitoring-foundation`。使用用户指定的增量 Tweak；更新原 PR #174，关联 `Refs #157`。
 
 ## 实现与主线兼容
 
@@ -10,7 +10,7 @@
 - PR #179 的队列基础已合并，Redis/worker 尚未联网探测，状态改为 not_checked，并明确 infrastructure_available 只表示代码存在。评估 worker 仍返回 mock；real_evaluation_available=false，不能将 completed 视为真实 LLM 评估成功。
 - 同步 API、认证、文件、监控和 README 文档，说明任务/结果发布、日志与指标作用范围。SQL 指标仍只覆盖评估服务 engine 的游标执行，异步、实验、基准和 A/B 独立 engine 未全部纳入。
 
-## 验证与审查
+## #179 基线验证与审查
 
 - 监控及队列相关回归：**252 passed**。
 - 新增任务快照：**48 passed**；新增 HTTP 集成：**19 passed**。覆盖实际 POST /tasks（仅替身发送任务）、旧评估共存、两来源计数、权限与非法参数、安全进度、监控零轮询/业务库零写入、双应用隔离和关闭顺序。
@@ -46,3 +46,19 @@
 - Redis/worker 无联网可用性验证，模拟 worker 不构成真实执行或 LLM 性能证据。#149 仍未完整完成，#157 的 worker/LLM/缓存/容器指标与新配额策略仍需后续接入。
 - 自有提交和相对 main 的 PR 差异排除 .comet/.claude/.codex/.agents/skills-lock.json；上游已存在的流程文件不由本 PR 修改。保留推送前安全分支，使用显式 force-with-lease 防止覆盖他人远端更新。
 - 更新同一个 PR #174，等待其当前头全部平台 CI；不自动合并或关闭整个 #157，change 保留待归档确认。
+
+## 主线再次前进：#180 补充验证
+
+首次交付核对时，原头 7170a25 的 10 项 CI 全部成功，但 main 刚合并 #180。将五个自有提交重放到 35e2467，无冲突；保留所有新任务模块、recover 参数及默认行为，未修改新 worker 执行实现。补充五份指南和增量规格，准确区分任务入口、HTTP 提交、真实执行及监控采集。
+
+- AsyncTask schema、状态与类型兼容。import worker 写入 current/total 加 percentage/message；SQL 投影继续只读有界数值对。experiment/benchmark 未写数值进度时为 null，不凭 completed 补造百分比。
+- 新增四项回归：实际 import worker 包装器在替身执行函数上写入进度/完成或失败状态后，监控只投影数值、不暴露失败详情；experiment/benchmark completed 且无进度时不虚构完成数。
+- 当前快照 **52 passed**；快照/HTTP 与主线任务相关回归 **99 passed**；Bugbot 补充复审无新增发现，审查者运行快照 **52 passed**。
+- 最新全量离线：**1625 passed、4 skipped**，覆盖率 **93.86%**，90% 门禁不变，**131.19 秒**。命令沿用本报告原离线命令；原始本地日志 /private/tmp/llm-harness-174-workers-full.log。
+- Ruff、Black、编码扫描（0 隐式编码）、mypy src（**96 文件**）、OpenSpec strict 校验通过。当前补充规格场景由新增 import worker 投影和两类 completed/null 测试覆盖；proposal/design/spec 无漂移。
+
+依赖合同核对显示：#180 已提供三类 Celery 模块，但 experiment/benchmark 的执行函数构造服务时未传 auth，既有执行路径会因认证服务未配置失败；HTTP 实验/基准/文件提交仍沿用原流程。新 worker 按传入 type/entity/user 查找任务，尚未绑定当前 Celery message ID，现有所有者替身单测不足以证明自由任务参数提交的生产授权边界。#149 仍开放，不能把模块注册视为端到端执行及授权已完成；本 PR 只提供受管理员保护的状态读取。
+
+首次头的 Security Check job 成功不表示扫描清零：原工作流继续沿用 continue-on-error；Bandit 四项与 main 基线相同，Safety 仍遇到既有 Timeout 兼容性异常。本 PR 没有修改这些门禁。最新头的运行结果在推送后记录于 PR 描述，旧头成功不替代新头验证。
+
+本次补充的 Runtime 编译/定向检查和阶段守卫在推送前执行；与当前代码绑定的结果保存在 checks 日志中。
