@@ -25,7 +25,6 @@ from api.schemas import EvaluationResponse, ProgressInfo
 from src.task_manager import TaskManager
 
 INTERRUPTED_BY_RESTART = "interrupted by service restart"
-_TERMINAL_STATUSES = ("completed", "failed", "cancelled")
 
 
 def _iso(value: datetime) -> str:

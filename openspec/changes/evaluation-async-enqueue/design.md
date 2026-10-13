@@ -23,7 +23,7 @@
 1. 新增 `TaskManager.enqueue_task(...)`：预生成 `celery_task_id=uuid4`，创建 AsyncTask（status=pending）并 flush，调用可选 `on_before_publish(async_task)` 钩子（评估用它设置 `evaluation.async_task_id`），`commit` 落库后再 `celery_app.send_task(name, args, kwargs, task_id=celery_task_id)` 发布；发布失败则把 AsyncTask 置 failed 并 commit 后抛出。`create_task` 保持不变。
 2. `start_evaluation`：校验 `pending` → 用 `enqueue_task` 提交 `run_evaluation_task`（args=(evaluation_id,)），`on_before_publish` 设置关联；不再置 running、不再开线程；返回评估视图。`running` 由 worker 设置。
 3. `cancel_evaluation`：若 `evaluation.async_task_id` 存在，调用 `TaskManager.cancel_task` revoke 并置 AsyncTask cancelled，再把评估置 cancelled；无关联任务时维持原有直接置 cancelled 行为。
-4. `_recover_interrupted`：只把“无关联 AsyncTask 的 pending”与“running 且其关联任务非 pending/running”的评估标失败；已入队 pending 评估保留（对齐 #181 决策 3）。
+4. `_recover_interrupted`：把“无关联活跃 AsyncTask 的 `pending`”与“所有 `running`”评估标失败；已入队（关联任务处于 `pending`/`running`/`paused`）的 `pending` 评估保留，与 #181 experiment/benchmark 的 `_recover_interrupted` 行为一致。
 5. `create_evaluation_async`：改用 `enqueue_task` 修复其入队时序，保持既有语义与测试。
 6. 移除 `_run_simulated`/`_execute_task` 及仅服务于模拟的私有辅助（`_record_tick`/`_status_of`/`_spent_of`/`_finish`/`_fail`），并清理不再使用的 `threading`/`time`/`Semaphore` 导入。
 
