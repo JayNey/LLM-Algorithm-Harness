@@ -18,7 +18,7 @@ from api.files.middleware import UploadBoundaryMiddleware
 from api.files.service import FileService
 from api.middleware.errors import setup_error_handlers
 from api.middleware.logging import setup_logging_middleware
-from api.routes import evaluations_router
+from api.routes import evaluations_router, tasks_router
 from api.routes.ab_tests import router as ab_tests_router
 from api.routes.auth import router as auth_router
 from api.routes.benchmarks import router as benchmarks_router
@@ -47,6 +47,19 @@ def create_app(
 
     @asynccontextmanager
     async def lifespan(app: FastAPI):
+        from api.db.engine import (
+            business_database_url,
+            make_engine,
+            make_session_factory,
+            set_session_factory,
+        )
+
+        # Initialize database session factory
+        db_url = database_url or business_database_url()
+        engine = make_engine(db_url)
+        session_factory = make_session_factory(engine)
+        set_session_factory(session_factory)
+
         app.state.auth = AuthService(auth_settings or AuthSettings())
         app.state.evaluations = EvaluationService(database_url)
         app.state.experiments = ExperimentService(
@@ -83,6 +96,7 @@ def create_app(
             with suppress(asyncio.CancelledError):
                 await cleaner
             app.state.evaluations.close()
+            engine.dispose()
 
     app = FastAPI(
         title="LLM Algorithm Harness API",
@@ -107,6 +121,7 @@ def create_app(
 
     # Include routers
     app.include_router(evaluations_router)
+    app.include_router(tasks_router)
     app.include_router(auth_router)
     app.include_router(files_router)
     app.include_router(experiments_router)

@@ -5,6 +5,9 @@ inserts a row, every status/progress transition is written back, and state
 survives restarts. Non-terminal tasks found at startup are marked failed so
 #149's task queue can take over scheduling later. The public interface and
 transitions match the original in-memory implementation.
+
+Enhanced with async task support (Task 5): create_evaluation now submits Celery
+tasks via TaskManager, and get_evaluation aggregates status from AsyncTask.
 """
 
 import threading
@@ -20,9 +23,10 @@ from sqlalchemy.orm import Session
 from api.config import settings
 from api.db import Evaluation, make_engine, make_session_factory, run_migrations
 from api.db.engine import business_database_url
-from api.db.models import utcnow
+from api.db.models import AsyncTask, utcnow
 from api.models import EvaluationCreateRequest, EvaluationUpdateRequest
 from api.schemas import EvaluationResponse, ProgressInfo
+from src.task_manager import TaskManager
 
 INTERRUPTED_BY_RESTART = "interrupted by service restart"
 _TERMINAL_STATUSES = ("completed", "failed", "cancelled")
@@ -33,7 +37,10 @@ def _iso(value: datetime) -> str:
 
 
 def _to_response(task: Evaluation) -> EvaluationResponse:
-    """Convert an evaluation row to the API response shape."""
+    """Convert an evaluation row to the API response shape.
+
+    Used for legacy in-memory task execution. For async tasks, use _to_response_async.
+    """
     percentage = (task.completed_count / task.problem_count * 100) if task.problem_count else 0
     return EvaluationResponse(
         evaluation_id=task.id,
@@ -46,8 +53,69 @@ def _to_response(task: Evaluation) -> EvaluationResponse:
         budget_cap_usd=task.budget_cap_usd,
         error_message=task.error_message,
         progress=ProgressInfo(
-            completed=task.completed_count,
+            current=task.completed_count,
             total=task.problem_count,
+            message=None,
+            # Backwards compat
+            completed=task.completed_count,
+            percentage=percentage,
+        ),
+    )
+
+
+def _to_response_async(evaluation: Evaluation, async_task: AsyncTask | None) -> EvaluationResponse:
+    """Convert Evaluation and AsyncTask to response, aggregating status.
+
+    Used when evaluation has an associated async task. Aggregates:
+    - Status from AsyncTask if it's pending/running, else from Evaluation
+    - Progress from AsyncTask if available
+    - Error message from AsyncTask if available
+    """
+    status = evaluation.status
+    progress = None
+    error_message = evaluation.error_message
+
+    if async_task:
+        # Use async task status if it's in non-terminal state
+        if async_task.status in ("pending", "running", "paused"):
+            status = async_task.status
+
+        # Include progress from async task
+        if async_task.progress:
+            try:
+                progress = ProgressInfo(**async_task.progress)
+            except Exception:
+                # Fallback if progress dict doesn't match schema
+                progress = None
+
+        # Prefer async task error message
+        if async_task.error_message:
+            error_message = async_task.error_message
+
+    # Compute percentage for backwards compatibility
+    percentage = (
+        (evaluation.completed_count / evaluation.problem_count * 100)
+        if evaluation.problem_count
+        else 0
+    )
+
+    return EvaluationResponse(
+        evaluation_id=evaluation.id,
+        created_at=_iso(evaluation.created_at),
+        updated_at=_iso(evaluation.updated_at),
+        status=status,
+        strategy_names=list(evaluation.strategy_names),
+        problem_count=evaluation.problem_count,
+        spent_usd=evaluation.spent_usd,
+        budget_cap_usd=evaluation.budget_cap_usd,
+        error_message=error_message,
+        progress=progress
+        or ProgressInfo(
+            current=evaluation.completed_count,
+            total=evaluation.problem_count,
+            message=None,
+            # Backwards compat
+            completed=evaluation.completed_count,
             percentage=percentage,
         ),
     )
@@ -175,6 +243,166 @@ class EvaluationService:
                 raise ValueError(f"Cannot delete task in {task.status} status")
             session.delete(task)
 
+    # -- async task support (Task 5) ----------------------------------------
+
+    def create_evaluation_async(
+        self, request: EvaluationCreateRequest, owner_id: str
+    ) -> EvaluationResponse:
+        """Create evaluation and submit Celery async task.
+
+        This is the new async-aware version that:
+        1. Creates an Evaluation record
+        2. Creates and submits an AsyncTask via TaskManager
+        3. Links them together
+        4. Returns response with async task status
+        """
+        session = self._session()
+        try:
+            task_manager = TaskManager(session)
+
+            # 1. Create Evaluation record
+            evaluation = Evaluation(
+                id=str(uuid.uuid4()),
+                user_id=owner_id,
+                status="pending",
+                strategy_names=list(request.strategy_names),
+                problem_ids=list(request.problem_ids),
+                problem_count=len(request.problem_ids),
+                api_key_id=request.api_key_id,
+                budget_cap_usd=request.budget_cap_usd,
+                spent_usd=0.0,
+                completed_count=0,
+                failed_count=0,
+                created_at=utcnow(),
+                updated_at=utcnow(),
+            )
+            session.add(evaluation)
+            session.flush()
+
+            # 2. Create and submit AsyncTask
+            async_task = task_manager.create_task(
+                task_type="evaluation",
+                entity_id=evaluation.id,
+                user_id=owner_id,
+                celery_task_name="src.tasks.evaluation.run_evaluation_task",
+                celery_task_args=(evaluation.id,),
+            )
+
+            # 3. Link AsyncTask to Evaluation
+            evaluation.async_task_id = async_task.id
+            session.commit()
+
+            return _to_response_async(evaluation, async_task)
+        finally:
+            session.close()
+
+    def get_evaluation_async(self, evaluation_id: str, owner_id: str) -> EvaluationResponse:
+        """Get evaluation with aggregated AsyncTask status.
+
+        Returns the evaluation with status aggregated from AsyncTask if present.
+        """
+        session = self._session()
+        try:
+            task = self._owned_task(session, evaluation_id, owner_id)
+
+            # Load async task if linked
+            async_task = None
+            if task.async_task_id:
+                async_task = session.get(AsyncTask, task.async_task_id)
+
+            return _to_response_async(task, async_task)
+        finally:
+            session.close()
+
+    def pause_evaluation(self, evaluation_id: str, owner_id: str) -> EvaluationResponse:
+        """Pause a running evaluation task.
+
+        Only pauses if:
+        - Evaluation exists and belongs to owner
+        - Evaluation has an associated AsyncTask
+        - AsyncTask is in running state
+        """
+        session = self._session()
+        try:
+            evaluation = self._owned_task(session, evaluation_id, owner_id)
+
+            if not evaluation.async_task_id:
+                raise ValueError("Evaluation has no associated task")
+
+            # Load and pause the async task
+            task_manager = TaskManager(session)
+            async_task = task_manager.pause_task(evaluation.async_task_id, owner_id)
+
+            return _to_response_async(evaluation, async_task)
+        finally:
+            session.close()
+
+    def resume_evaluation(self, evaluation_id: str, owner_id: str) -> EvaluationResponse:
+        """Resume a paused or failed evaluation task.
+
+        Creates a new AsyncTask to resume execution from the checkpoint.
+        """
+        session = self._session()
+        try:
+            evaluation = self._owned_task(session, evaluation_id, owner_id)
+
+            if not evaluation.async_task_id:
+                raise ValueError("Evaluation has no associated task")
+
+            task_manager = TaskManager(session)
+
+            # Verify old task is in resumable state
+            old_task = task_manager.get_task(evaluation.async_task_id, owner_id)
+            if old_task.status not in ("paused", "failed"):
+                raise ValueError(
+                    f"Cannot resume evaluation in status '{old_task.status}'; only 'paused' or 'failed' tasks can resume"
+                )
+
+            # Create new task for resume
+            new_task = task_manager.create_task(
+                task_type="evaluation",
+                entity_id=evaluation.id,
+                user_id=owner_id,
+                celery_task_name="src.tasks.evaluation.run_evaluation_task",
+                celery_task_args=(evaluation.id,),
+            )
+
+            # Update evaluation to link new task and set to pending
+            evaluation.async_task_id = new_task.id
+            evaluation.status = "pending"
+            session.commit()
+
+            return _to_response_async(evaluation, new_task)
+        finally:
+            session.close()
+
+    def delete_evaluation_async(self, evaluation_id: str, owner_id: str) -> None:
+        """Delete evaluation and cancel associated async task.
+
+        Cancels the Celery task and removes both AsyncTask and Evaluation records.
+        """
+        session = self._session()
+        try:
+            evaluation = self._owned_task(session, evaluation_id, owner_id)
+
+            # Cancel async task if present
+            if evaluation.async_task_id:
+                task_manager = TaskManager(session)
+                try:
+                    task_manager.cancel_task(evaluation.async_task_id, owner_id)
+                except ValueError:
+                    # Task already in terminal state, ignore
+                    pass
+
+                # Delete the AsyncTask record
+                session.query(AsyncTask).filter(AsyncTask.id == evaluation.async_task_id).delete()
+
+            # Delete the Evaluation record
+            session.delete(evaluation)
+            session.commit()
+        finally:
+            session.close()
+
     # -- lifecycle -----------------------------------------------------------
 
     def start_evaluation(self, evaluation_id: str, owner_id: str) -> EvaluationResponse:
@@ -210,8 +438,10 @@ class EvaluationService:
                 (task.completed_count / task.problem_count * 100) if task.problem_count else 0
             )
             return ProgressInfo(
-                completed=task.completed_count,
+                current=task.completed_count,
                 total=task.problem_count,
+                message=None,
+                completed=task.completed_count,
                 percentage=percentage,
             )
 

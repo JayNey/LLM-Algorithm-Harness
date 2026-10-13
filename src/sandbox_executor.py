@@ -55,6 +55,7 @@ class SandboxExecutor:
             config: Sandbox configuration
         """
         self.config = config
+        self._last_command_seconds: float | None = None
         logger.info("sandbox_initialized", config=config.model_dump())
 
     def execute(self, code: str, problem: Problem, stage: str = "public") -> SandboxResult:
@@ -402,6 +403,7 @@ class SandboxExecutor:
         """
         try:
             start_time = time.time()
+            self._last_command_seconds = None
 
             # Execute in subprocess for isolation
             if problem and problem.input_output_mode == "stdin_stdout":
@@ -417,7 +419,13 @@ class SandboxExecutor:
             else:
                 actual_output = self._run_in_subprocess(code, test_case.input, problem)
 
-            execution_time = time.time() - start_time
+            # Container cleanup runs after the bounded command and must not
+            # consume the algorithm timeout budget.
+            execution_time = (
+                self._last_command_seconds
+                if self._last_command_seconds is not None
+                else time.time() - start_time
+            )
 
             # Check timeout
             if execution_time > self.config.timeout_seconds:
@@ -595,6 +603,7 @@ if __name__ == "__main__":
         input_data: bytes | None = None,
     ) -> subprocess.CompletedProcess[str]:
         """Run a command while bounding combined stdout/stderr in the parent."""
+        started = time.perf_counter()
         try:
             result = run_bounded(
                 command,
@@ -611,6 +620,7 @@ if __name__ == "__main__":
                 "output_limit", "Sandbox output exceeded the configured limit"
             ) from exc
         finally:
+            self._last_command_seconds = time.perf_counter() - started
             if cleanup is not None:
                 try:
                     cleanup()

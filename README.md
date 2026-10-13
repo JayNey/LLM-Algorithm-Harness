@@ -490,6 +490,100 @@ harness benchmark --suite benchmark.example.json --compare --output reports/lear
 
 详细使用指南请参考 [docs/learning-curve-tracking.md](docs/learning-curve-tracking.md)。
 
+## 异步任务队列
+
+评估任务现在通过 Celery + Redis 异步执行，避免 HTTP 超时，支持长时间运行的评估任务。
+
+### 架构组件
+
+- **API 服务**: FastAPI 应用，提供 REST API 接口
+- **Celery Worker**: 后台任务执行器，处理评估任务
+- **Redis**: 消息代理和结果后端
+- **PostgreSQL/SQLite**: 任务状态持久化
+
+### 启动方式
+
+1. **启动 Redis**:
+
+```bash
+docker run -d --name redis -p 6379:6379 redis:7-alpine
+```
+
+2. **运行数据库迁移**:
+
+```bash
+alembic upgrade head
+```
+
+3. **启动 Celery Worker**:
+
+```bash
+celery -A src.celery_app worker --loglevel=info
+```
+
+或使用脚本（如果提供）：
+
+```bash
+./scripts/start_worker.sh
+```
+
+4. **启动 API 服务**:
+
+```bash
+uvicorn api.main:app --host 0.0.0.0 --port 8000
+```
+
+### 监控
+
+可选启动 Flower 监控界面，实时查看任务状态和 Worker 性能：
+
+```bash
+celery -A src.celery_app flower --port=5555
+```
+
+访问 http://localhost:5555 查看任务队列状态、Worker 信息和任务历史。
+
+### 异步 API 使用
+
+创建评估任务：
+
+```bash
+curl -X POST http://localhost:8000/api/v1/evaluations \
+  -H "Content-Type: application/json" \
+  -H "Authorization: Bearer <token>" \
+  -d '{
+    "strategy_names": ["vanilla", "chain_of_thought"],
+    "problem_ids": ["problem1", "problem2"],
+    "api_key_id": "key-001",
+    "budget_cap_usd": 10.0
+  }'
+```
+
+轮询任务状态：
+
+```bash
+curl http://localhost:8000/api/v1/evaluations/{evaluation_id} \
+  -H "Authorization: Bearer <token>"
+```
+
+暂停和恢复任务：
+
+```bash
+# 暂停
+curl -X POST http://localhost:8000/api/v1/tasks/{task_id}/pause \
+  -H "Authorization: Bearer <token>"
+
+# 恢复
+curl -X POST http://localhost:8000/api/v1/tasks/{task_id}/resume \
+  -H "Authorization: Bearer <token>"
+```
+
+### 部署指南
+
+完整的生产环境部署指南（包括 Redis 集群配置、Worker 高可用部署、监控告警设置等）请参考：
+
+📖 [docs/deployment/async-tasks.md](docs/deployment/async-tasks.md)
+
 ## 配置说明
 
 ### 配置文件格式

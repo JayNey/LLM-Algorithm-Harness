@@ -48,9 +48,17 @@ class PaginatedData(BaseModel, Generic[T]):
 class ProgressInfo(BaseModel):
     """Task progress information."""
 
-    completed: int = Field(..., ge=0, description="Number of completed problems")
-    total: int = Field(..., ge=0, description="Total number of problems")
-    percentage: float = Field(..., ge=0, le=100, description="Progress percentage")
+    current: int = Field(..., ge=0, description="Current progress count")
+    total: int = Field(..., ge=0, description="Total count")
+    message: str | None = Field(None, description="Progress message")
+
+    # Backwards compatibility fields (deprecated)
+    completed: int | None = Field(
+        None, ge=0, description="[Deprecated] Number of completed problems"
+    )
+    percentage: float | None = Field(
+        None, ge=0, le=100, description="[Deprecated] Progress percentage"
+    )
 
 
 class EvaluationResponse(BaseModel):
@@ -65,7 +73,7 @@ class EvaluationResponse(BaseModel):
     spent_usd: float = Field(..., ge=0, description="Amount spent so far in USD")
     budget_cap_usd: float | None = Field(None, ge=0, description="Budget limit in USD")
     error_message: str | None = Field(None, description="Failure or stoppage reason, if any")
-    progress: ProgressInfo = Field(..., description="Execution progress")
+    progress: ProgressInfo | None = Field(None, description="Execution progress")
 
 
 class ExecutionResultResponse(BaseModel):
@@ -87,3 +95,21 @@ class HealthCheckResponse(BaseModel):
     status: str = Field(..., description="Service status")
     version: str = Field(..., description="API version")
     service: str = Field(..., description="Service name")
+
+
+class AsyncTaskResponse(BaseModel):
+    """Async task response model."""
+
+    id: str = Field(..., description="Unique task ID")
+    task_type: str = Field(..., description="Task type (e.g., evaluation, experiment)")
+    entity_id: str = Field(..., description="Related entity ID (e.g., evaluation_id)")
+    celery_task_id: str = Field(..., description="Celery task ID for tracking")
+    status: str = Field(
+        ..., description="Task status: pending|running|paused|completed|failed|cancelled"
+    )
+    progress: dict | None = Field(None, description="Task progress information")
+    error_message: str | None = Field(None, description="Error message if failed")
+    created_at: str = Field(..., description="ISO 8601 creation timestamp")
+    started_at: str | None = Field(None, description="ISO 8601 start timestamp")
+    completed_at: str | None = Field(None, description="ISO 8601 completion timestamp")
+    updated_at: str = Field(..., description="ISO 8601 update timestamp")

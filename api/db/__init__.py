@@ -9,6 +9,7 @@ from api.db.engine import business_database_url, make_engine, make_session_facto
 from api.db.migrate import downgrade, offline_upgrade_sql, run_migrations, upgrade
 from api.db.models import (
     ABTest,
+    AsyncTask,
     Base,
     BenchmarkRun,
     BenchmarkSuite,
@@ -21,6 +22,7 @@ from api.db.problem_store import ProblemStore
 
 __all__ = [
     "ABTest",
+    "AsyncTask",
     "Base",
     "BenchmarkRun",
     "BenchmarkSuite",

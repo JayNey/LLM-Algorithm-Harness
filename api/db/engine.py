@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from collections.abc import Generator
 from pathlib import Path
 from typing import Any
 
@@ -46,3 +47,24 @@ def make_engine(database_url: str) -> Engine:
 def make_session_factory(engine: Engine) -> sessionmaker[Session]:
     """Create a session factory producing short-lived, transactional sessions."""
     return sessionmaker(bind=engine, future=True, expire_on_commit=False)
+
+
+# Global session factory, initialized by app startup
+_SessionLocal: sessionmaker[Session] | None = None
+
+
+def set_session_factory(session_factory: sessionmaker[Session]) -> None:
+    """Set the global session factory (called during app startup)."""
+    global _SessionLocal
+    _SessionLocal = session_factory
+
+
+def get_db() -> Generator[Session, None, None]:
+    """Dependency to get a database session for FastAPI endpoints."""
+    if _SessionLocal is None:
+        raise RuntimeError("Database session factory not initialized")
+    db = _SessionLocal()
+    try:
+        yield db
+    finally:
+        db.close()

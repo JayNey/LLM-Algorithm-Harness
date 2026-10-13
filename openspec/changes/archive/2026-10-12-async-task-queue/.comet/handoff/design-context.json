@@ -1,0 +1,13 @@
+{
+  "change": "async-task-queue",
+  "phase": "design",
+  "mode": "compact",
+  "canonical_spec": "openspec",
+  "generated_by": "comet-handoff.sh",
+  "context_hash": "69bdbf9748cea4b985cbffe501815da35f60eb631e7b2d161b52ca2b9a181fe2",
+  "files": [
+    { "path": "openspec/changes/async-task-queue/proposal.md", "sha256": "b1e34cc4db77ac965a11269ae714b3bb9d55166685e3ebb02d07286b49b69605" },
+    { "path": "openspec/changes/async-task-queue/design.md", "sha256": "89541cafaa9518b74aff13adddba6d0600b10718695bf60417583f85411ced56" },
+    { "path": "openspec/changes/async-task-queue/tasks.md", "sha256": "9b0aa570c0bdaf44e61a87a31210adfbcf6a8f6cee94109abc713de3edf16de8" }
+  ]
+}
