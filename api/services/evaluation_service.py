@@ -10,17 +10,13 @@ Enhanced with async task support (Task 5): create_evaluation now submits Celery
 tasks via TaskManager, and get_evaluation aggregates status from AsyncTask.
 """
 
-import threading
-import time
 import uuid
 from collections.abc import Callable
 from datetime import datetime
-from threading import Semaphore
 
 from sqlalchemy import Engine, select
 from sqlalchemy.orm import Session
 
-from api.config import settings
 from api.db import Evaluation, make_engine, make_session_factory, run_migrations
 from api.db.engine import business_database_url
 from api.db.models import AsyncTask, utcnow
@@ -29,7 +25,6 @@ from api.schemas import EvaluationResponse, ProgressInfo
 from src.task_manager import TaskManager
 
 INTERRUPTED_BY_RESTART = "interrupted by service restart"
-_TERMINAL_STATUSES = ("completed", "failed", "cancelled")
 
 
 def _iso(value: datetime) -> str:
@@ -133,7 +128,6 @@ class EvaluationService:
         self._engine = make_engine(database_url or business_database_url())
         run_migrations(self._engine)
         self._session_factory = make_session_factory(self._engine)
-        self._concurrent_semaphore = Semaphore(settings.MAX_CONCURRENT_TASKS)
         self._recover_interrupted()
 
     # -- persistence helpers -------------------------------------------------
@@ -147,14 +141,30 @@ class EvaluationService:
         return self._session_factory()
 
     def _recover_interrupted(self) -> None:
+        """Flag non-terminal evaluations left by a previous process as failed.
+
+        Enqueued ``pending`` evaluations (those with a live AsyncTask) are
+        preserved so a worker can still pick them up after an API restart,
+        matching the experiment/benchmark recovery behaviour from #181.
+        """
         with self._session() as session, session.begin():
-            interrupted = session.scalars(
+            candidates = session.scalars(
                 select(Evaluation).where(Evaluation.status.in_(("pending", "running")))
-            )
-            for task in interrupted:
+            ).all()
+            for task in candidates:
+                if task.status == "pending" and self._is_enqueued(session, task):
+                    continue
                 task.status = "failed"
                 task.error_message = INTERRUPTED_BY_RESTART
                 task.updated_at = utcnow()
+
+    @staticmethod
+    def _is_enqueued(session: Session, evaluation: Evaluation) -> bool:
+        """Whether the evaluation has a live AsyncTask a worker can still run."""
+        if not evaluation.async_task_id:
+            return False
+        async_task = session.get(AsyncTask, evaluation.async_task_id)
+        return async_task is not None and async_task.status in ("pending", "running", "paused")
 
     def _owned_task(self, session: Session, evaluation_id: str, owner_id: str) -> Evaluation:
         """Load the task owned by ``owner_id`` or raise the 404-mapped error."""
@@ -284,18 +294,20 @@ class EvaluationService:
             session.add(evaluation)
             session.flush()
 
-            # 2. Create and submit AsyncTask
-            async_task = task_manager.create_task(
+            # 2. Link + enqueue atomically: the AsyncTask and its evaluation
+            #    linkage are committed before the Celery message is published,
+            #    so the worker always resolves evaluation.async_task_id.
+            def link(async_task: AsyncTask) -> None:
+                evaluation.async_task_id = async_task.id
+
+            async_task = task_manager.enqueue_task(
                 task_type="evaluation",
                 entity_id=evaluation.id,
                 user_id=owner_id,
                 celery_task_name="src.tasks.evaluation.run_evaluation_task",
                 celery_task_args=(evaluation.id,),
+                on_before_publish=link,
             )
-
-            # 3. Link AsyncTask to Evaluation
-            evaluation.async_task_id = async_task.id
-            session.commit()
 
             return _to_response_async(evaluation, async_task)
         finally:
@@ -411,29 +423,54 @@ class EvaluationService:
     # -- lifecycle -----------------------------------------------------------
 
     def start_evaluation(self, evaluation_id: str, owner_id: str) -> EvaluationResponse:
-        """Start evaluation task execution in background."""
-        with self._session() as session, session.begin():
-            task = self._owned_task(session, evaluation_id, owner_id)
-            if task.status != "pending":
-                raise ValueError(f"Cannot start task in {task.status} status")
-            task.status = "running"
-            task.started_at = utcnow()
-            task.updated_at = utcnow()
-            response = _to_response(task)
+        """Enqueue the evaluation for asynchronous execution by a Celery worker.
 
-        thread = threading.Thread(target=self._execute_task, args=(evaluation_id,), daemon=True)
-        thread.start()
-        return response
+        The evaluation stays ``pending`` until a worker picks it up and marks it
+        ``running``; the API process no longer runs a simulated executor inline.
+        """
+        session = self._session()
+        try:
+            task_manager = TaskManager(session)
+            evaluation = self._owned_task(session, evaluation_id, owner_id)
+            if evaluation.status != "pending":
+                raise ValueError(f"Cannot start task in {evaluation.status} status")
+            if self._is_enqueued(session, evaluation):
+                raise ValueError("Cannot start task already queued or running")
+
+            def link(async_task: AsyncTask) -> None:
+                evaluation.async_task_id = async_task.id
+                evaluation.updated_at = utcnow()
+
+            async_task = task_manager.enqueue_task(
+                task_type="evaluation",
+                entity_id=evaluation.id,
+                user_id=owner_id,
+                celery_task_name="src.tasks.evaluation.run_evaluation_task",
+                celery_task_args=(evaluation.id,),
+                on_before_publish=link,
+            )
+            return _to_response_async(evaluation, async_task)
+        finally:
+            session.close()
 
     def cancel_evaluation(self, evaluation_id: str, owner_id: str) -> EvaluationResponse:
-        """Cancel running evaluation task."""
-        with self._session() as session, session.begin():
-            task = self._owned_task(session, evaluation_id, owner_id)
-            if task.status != "running":
-                raise ValueError(f"Cannot cancel task in {task.status} status")
-            task.status = "cancelled"
-            task.updated_at = utcnow()
-            return _to_response(task)
+        """Cancel an evaluation, revoking its Celery task when one is linked."""
+        session = self._session()
+        try:
+            evaluation = self._owned_task(session, evaluation_id, owner_id)
+            task_manager = TaskManager(session)
+            async_task = None
+            if evaluation.async_task_id:
+                # Revoke the Celery task and mark the AsyncTask cancelled.
+                async_task = task_manager.cancel_task(evaluation.async_task_id, evaluation.user_id)
+            elif evaluation.status != "running":
+                raise ValueError(f"Cannot cancel task in {evaluation.status} status")
+            evaluation.status = "cancelled"
+            evaluation.updated_at = utcnow()
+            session.commit()
+            return _to_response_async(evaluation, async_task)
+        finally:
+            session.close()
 
     def get_progress(self, evaluation_id: str, owner_id: str) -> ProgressInfo:
         """Get task execution progress."""
@@ -450,82 +487,8 @@ class EvaluationService:
                 percentage=percentage,
             )
 
-    # -- execution -----------------------------------------------------------
-
-    def _execute_task(self, evaluation_id: str) -> None:
-        """Execute task in background (simulated)."""
-        # Acquire semaphore to limit concurrent execution
-        with self._concurrent_semaphore:
-            try:
-                with self._session() as session:
-                    task = session.get(Evaluation, evaluation_id)
-                if not task or task.status != "running":
-                    return
-                self._run_simulated(evaluation_id)
-            except Exception as e:  # noqa: BLE001 - reported on the task row
-                self._fail(evaluation_id, str(e))
-
-    def _run_simulated(self, evaluation_id: str) -> None:
-        with self._session() as session:
-            task = session.get(Evaluation, evaluation_id)
-            if task is None:
-                return
-            strategy_count = len(task.strategy_names)
-            problem_count = task.problem_count
-            budget_cap_usd = task.budget_cap_usd
-        total_executions = strategy_count * problem_count
-
-        for i in range(total_executions):
-            if self._status_of(evaluation_id) != "running":
-                return
-            time.sleep(0.05)
-            self._record_tick(evaluation_id, i, problem_count)
-            if budget_cap_usd and self._spent_of(evaluation_id) >= budget_cap_usd:
-                self._finish(evaluation_id, "completed", "Budget exceeded")
-                return
-        self._finish(evaluation_id, "completed", None)
-
-    def _status_of(self, evaluation_id: str) -> str | None:
-        with self._session() as session:
-            task = session.get(Evaluation, evaluation_id)
-            return task.status if task else None
-
-    def _record_tick(self, evaluation_id: str, index: int, problem_count: int) -> str:
-        """Persist one execution tick; return the task status after the write."""
-        with self._session() as session, session.begin():
-            task = session.get(Evaluation, evaluation_id, with_for_update=True)
-            if task is None:
-                return "failed"
-            if task.status == "running":
-                task.completed_count = min(index + 1, problem_count)
-                task.spent_usd += 0.01
-                task.updated_at = utcnow()
-            return task.status
+    # -- lifecycle hygiene ---------------------------------------------------
 
     def close(self) -> None:
         """Release pooled connections (lifespan shutdown hygiene)."""
         self._engine.dispose()
-
-    def _spent_of(self, evaluation_id: str) -> float:
-        with self._session() as session:
-            task = session.get(Evaluation, evaluation_id)
-            return task.spent_usd if task else 0.0
-
-    def _finish(self, evaluation_id: str, status: str, error_message: str | None) -> None:
-        with self._session() as session, session.begin():
-            task = session.get(Evaluation, evaluation_id, with_for_update=True)
-            if task is None or task.status not in ("pending", "running"):
-                return
-            task.status = status
-            task.error_message = error_message
-            task.completed_at = utcnow()
-            task.updated_at = utcnow()
-
-    def _fail(self, evaluation_id: str, message: str) -> None:
-        with self._session() as session, session.begin():
-            task = session.get(Evaluation, evaluation_id, with_for_update=True)
-            if task is None or task.status in _TERMINAL_STATUSES:
-                return
-            task.status = "failed"
-            task.error_message = message
-            task.updated_at = utcnow()

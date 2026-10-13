@@ -4,6 +4,7 @@
 """
 
 import uuid
+from collections.abc import Callable
 from datetime import datetime
 
 from sqlalchemy.orm import Session
@@ -81,6 +82,80 @@ class TaskManager:
 
         # 提交到数据库
         self.db.commit()
+
+        return task
+
+    def enqueue_task(
+        self,
+        task_type: str,
+        entity_id: str,
+        user_id: str,
+        celery_task_name: str,
+        celery_task_args: tuple = (),
+        celery_task_kwargs: dict | None = None,
+        on_before_publish: Callable[[AsyncTask], None] | None = None,
+    ) -> AsyncTask:
+        """创建异步任务：先落库，再发布到 Celery。
+
+        与 create_task 的区别在于消除入队时序竞态：预生成 celery_task_id，在
+        send_task 之前提交 AsyncTask 记录，并通过 on_before_publish 钩子让调用方
+        在发布前建立业务关联（如 evaluation.async_task_id）。这样 worker 即使在
+        发布后立即取到消息，也一定能读到已落库的任务记录与关联。
+
+        Args:
+            task_type: 任务类型，如 "evaluation"
+            entity_id: 业务实体 ID，如 evaluation_id
+            user_id: 用户 ID
+            celery_task_name: Celery 任务名
+            celery_task_args: Celery 任务位置参数
+            celery_task_kwargs: Celery 任务关键字参数
+            on_before_publish: 发布前回调，接收已 flush 的 AsyncTask，可用于
+                在同一事务内建立业务实体到该任务的关联
+
+        Returns:
+            创建的 AsyncTask 实例
+
+        Raises:
+            原始发布异常：send_task 失败时把任务置为 failed 后原样抛出
+        """
+        if celery_task_kwargs is None:
+            celery_task_kwargs = {}
+
+        # 预生成 celery_task_id，使记录可以在发布前落库
+        celery_task_id = str(uuid.uuid4())
+        task = AsyncTask(
+            id=str(uuid.uuid4()),
+            celery_task_id=celery_task_id,
+            task_type=task_type,
+            entity_id=entity_id,
+            user_id=user_id,
+            status="pending",
+        )
+        self.db.add(task)
+        self.db.flush()
+
+        # 发布前建立业务关联（与任务记录同一事务提交）
+        if on_before_publish is not None:
+            on_before_publish(task)
+
+        # 先落库，确保 worker 取到消息时一定能解析到任务记录与关联
+        self.db.commit()
+
+        try:
+            celery_app.send_task(
+                celery_task_name,
+                args=celery_task_args,
+                kwargs=celery_task_kwargs,
+                task_id=celery_task_id,
+            )
+        except Exception:
+            # 发布失败：把已落库的任务标记为 failed，避免留下永远 pending 的孤儿
+            task.status = "failed"
+            task.error_message = "failed to publish task to broker"
+            if task.completed_at is None:
+                task.completed_at = datetime.utcnow()
+            self.db.commit()
+            raise
 
         return task
 

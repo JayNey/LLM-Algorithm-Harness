@@ -234,6 +234,7 @@ config_siliconflow.json
 /.comet/
 /.claude/
 /.codex/
+/.qoder/
 /.agents/
 /skills-lock.json
 

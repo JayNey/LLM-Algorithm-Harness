@@ -73,6 +73,89 @@ class TestCreateTask:
         assert db_task.celery_task_id == "celery-task-id-123"
 
 
+class TestEnqueueTask:
+    """测试先落库后发布的入队时序"""
+
+    def test_enqueue_commits_before_publish(self, task_manager, db_session):
+        """验证关联在发布前已落库、on_before_publish 先于 send_task 执行"""
+        entity_id = str(uuid.uuid4())
+        events = []
+        seen = {}
+
+        def on_before_publish(async_task):
+            # 钩子执行时发布尚未发生
+            events.append("hook")
+            seen["celery_task_id"] = async_task.celery_task_id
+
+        def send_side_effect(*args, **kwargs):
+            events.append("send")
+            # 发布时记录已提交：expire 后仍能从数据库查回
+            db_session.expire_all()
+            committed = (
+                db_session.query(AsyncTask).filter_by(celery_task_id=kwargs["task_id"]).first()
+            )
+            seen["committed"] = committed is not None
+            return Mock()
+
+        with patch(
+            "src.task_manager.celery_app.send_task", side_effect=send_side_effect
+        ) as mock_send:
+            task = task_manager.enqueue_task(
+                task_type="evaluation",
+                entity_id=entity_id,
+                user_id="user123",
+                celery_task_name="src.tasks.evaluation.run_evaluation_task",
+                celery_task_args=(entity_id,),
+                on_before_publish=on_before_publish,
+            )
+
+        assert events == ["hook", "send"]
+        assert seen["committed"] is True
+        assert task.celery_task_id == seen["celery_task_id"]
+        mock_send.assert_called_once()
+
+    def test_enqueue_publishes_with_pregenerated_id(self, task_manager, db_session):
+        """验证发布使用预生成的 celery_task_id，并与落库记录一致"""
+        entity_id = str(uuid.uuid4())
+
+        with patch("src.task_manager.celery_app.send_task", return_value=Mock()) as mock_send:
+            task = task_manager.enqueue_task(
+                task_type="evaluation",
+                entity_id=entity_id,
+                user_id="user123",
+                celery_task_name="src.tasks.evaluation.run_evaluation_task",
+                celery_task_args=(entity_id,),
+            )
+
+        _, kwargs = mock_send.call_args
+        assert kwargs["task_id"] == task.celery_task_id
+        assert task.celery_task_id != ""
+        db_task = db_session.query(AsyncTask).filter_by(id=task.id).first()
+        assert db_task.celery_task_id == task.celery_task_id
+
+    def test_enqueue_marks_failed_when_publish_raises(self, task_manager, db_session):
+        """验证 send_task 失败时任务置为 failed 并原样抛出"""
+        entity_id = str(uuid.uuid4())
+        boom = RuntimeError("broker unavailable")
+
+        with patch("src.task_manager.celery_app.send_task", side_effect=boom):
+            with pytest.raises(RuntimeError, match="broker unavailable"):
+                task_manager.enqueue_task(
+                    task_type="evaluation",
+                    entity_id=entity_id,
+                    user_id="user123",
+                    celery_task_name="src.tasks.evaluation.run_evaluation_task",
+                    celery_task_args=(entity_id,),
+                )
+
+        db_session.expire_all()
+        failed = db_session.query(AsyncTask).filter_by(entity_id=entity_id).first()
+        assert failed is not None
+        assert failed.status == "failed"
+        assert failed.error_message == "failed to publish task to broker"
+        assert failed.completed_at is not None
+
+
 class TestGetTask:
     """测试获取任务功能"""
 

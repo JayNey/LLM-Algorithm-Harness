@@ -3,7 +3,7 @@
 import secrets
 import time
 from concurrent.futures import ThreadPoolExecutor
-from unittest.mock import Mock
+from unittest.mock import Mock, patch
 
 import jwt
 import pytest
@@ -481,17 +481,12 @@ def test_owner_evaluation_lifecycle(api):
     assert (
         client.patch(url, headers=headers(tokens), json={"budget_cap_usd": 10}).status_code == 200
     )
-    assert client.post(url + "/start", headers=headers(tokens)).status_code == 202
-    deadline = time.monotonic() + 2
-    while time.monotonic() < deadline:
-        state = client.get(url, headers=headers(tokens)).json()["data"]["status"]
-        if state == "completed":
-            break
-        time.sleep(0.01)
-    assert state == "completed"
-    assert (
-        client.get(url + "/progress", headers=headers(tokens)).json()["data"]["percentage"] == 100
-    )
+    # 启动只入队：交给 Celery worker 执行，worker 接管前评估保持 pending
+    with patch("src.task_manager.celery_app.send_task", return_value=Mock()) as mock_send:
+        assert client.post(url + "/start", headers=headers(tokens)).status_code == 202
+    mock_send.assert_called_once()
+    assert client.get(url, headers=headers(tokens)).json()["data"]["status"] == "pending"
+    # 已入队的评估不能重复启动
     assert client.post(url + "/start", headers=headers(tokens)).status_code == 400
     assert client.delete(url, headers=headers(tokens)).status_code == 204
     assert client.get(url, headers=headers(tokens)).status_code == 404

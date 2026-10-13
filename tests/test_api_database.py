@@ -1,7 +1,7 @@
 """Business database tests for issue #151: migrations, problem import and evaluation persistence."""
 
 import secrets
-import time
+from unittest.mock import Mock, patch
 
 import pytest
 from cryptography.fernet import Fernet
@@ -53,20 +53,9 @@ def _bootstrap_user(client):
     return headers, key_id
 
 
-def _wait_for_status(service, evaluation_id, owner_id, statuses, timeout=10.0):
-    deadline = time.monotonic() + timeout
-    while time.monotonic() < deadline:
-        response = service.get_evaluation(evaluation_id, owner_id)
-        if response.status in statuses:
-            return response
-        time.sleep(0.05)
-    pytest.fail(f"evaluation did not reach {statuses} in time: {response.status}")
-
-
 class TestMigrations:
     def test_roundtrip_on_empty_database(self, tmp_path):
         url = f"sqlite:///{tmp_path / 'migrate.sqlite3'}"
-
         run_migrations(url)
         tables = set(inspect(make_engine(url)).get_table_names())
         assert {"problems", "evaluations", "evaluation_results"} <= tables
@@ -144,25 +133,22 @@ class TestEvaluationPersistence:
             assert data["status"] == "failed"
             assert data["error_message"] == RESTART_REASON
 
-    def test_completed_results_survive_restart(self, tmp_path):
+    def test_enqueued_pending_survives_restart(self, tmp_path):
         url = f"sqlite:///{tmp_path / 'business.sqlite3'}"
         service = EvaluationService(url)
         request = EvaluationCreateRequest(
             api_key_id="k1", problem_ids=["p1"], strategy_names=["cot"]
         )
         created = service.create_evaluation(request, "alice")
-        started = service.start_evaluation(created.evaluation_id, "alice")
-        assert started.status == "running"
+        # 启动只入队：worker 接管前评估保持 pending
+        with patch("src.task_manager.celery_app.send_task", return_value=Mock()):
+            started = service.start_evaluation(created.evaluation_id, "alice")
+        assert started.status == "pending"
 
-        finished = _wait_for_status(service, created.evaluation_id, "alice", {"completed"})
-        assert finished.progress.completed == 1
-        assert finished.spent_usd > 0
-
+        # 已入队的 pending 评估在重启后被保留，而不是标成 failed
         revived = EvaluationService(url)
         after = revived.get_evaluation(created.evaluation_id, "alice")
-        assert after.status == "completed"
-        assert after.progress.completed == 1
-        assert after.spent_usd == finished.spent_usd
+        assert after.status == "pending"
 
     def test_rows_are_owner_scoped(self, tmp_path):
         url = f"sqlite:///{tmp_path / 'business.sqlite3'}"
@@ -176,19 +162,25 @@ class TestEvaluationPersistence:
         with pytest.raises(ValueError, match="not found"):
             service.get_evaluation(created.evaluation_id, "bob")
 
-    def test_cancelled_task_stays_cancelled_after_executor_exits(self, tmp_path):
+    def test_cancel_revokes_celery_and_marks_cancelled(self, tmp_path):
         url = f"sqlite:///{tmp_path / 'business.sqlite3'}"
         service = EvaluationService(url)
         request = EvaluationCreateRequest(
             api_key_id="k1", problem_ids=["p1", "p2"], strategy_names=["cot"]
         )
         created = service.create_evaluation(request, "alice")
-        service.start_evaluation(created.evaluation_id, "alice")
+        with patch("src.task_manager.celery_app.send_task", return_value=Mock()):
+            service.start_evaluation(created.evaluation_id, "alice")
 
-        cancelled = service.cancel_evaluation(created.evaluation_id, "alice")
+        # 取消已入队评估：revoke 对应 Celery 任务并置评估 cancelled
+        with (
+            patch("src.task_manager.celery_app.control.revoke") as mock_revoke,
+            patch("src.task_manager.celery_app.AsyncResult") as mock_result,
+        ):
+            mock_result.return_value.state = "PENDING"
+            cancelled = service.cancel_evaluation(created.evaluation_id, "alice")
         assert cancelled.status == "cancelled"
+        mock_revoke.assert_called_once()
 
-        finished = _wait_for_status(
-            service, created.evaluation_id, "alice", {"cancelled"}, timeout=3.0
-        )
-        assert finished.status == "cancelled"
+        after = service.get_evaluation(created.evaluation_id, "alice")
+        assert after.status == "cancelled"
