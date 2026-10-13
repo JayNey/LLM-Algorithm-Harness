@@ -61,6 +61,15 @@ def _seed(db_session):
     return run_id, user_id
 
 
+def test_benchmark_task_is_registered_on_default_queue():
+    from src.celery_app import celery_app
+
+    celery_app.loader.import_default_modules()
+    assert "src.tasks.benchmark" in celery_app.conf.include
+    assert "src.tasks.benchmark.run_benchmark_task" in celery_app.tasks
+    assert celery_app.conf.task_routes["src.tasks.benchmark.*"]["queue"] == "default"
+
+
 def test_run_benchmark_task_completed_records_metrics(db_session):
     run_id, user_id = _seed(db_session)
 

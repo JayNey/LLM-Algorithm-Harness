@@ -38,7 +38,7 @@ def execute_import(
             original(current_job, processed, total)
             on_progress(processed, total)
 
-        service.store.progress = progress  # type: ignore[method-assign]
+        setattr(service.store, "progress", progress)
     service.process_job(job_id, user_id)
     return service.store.job(job_id, user_id)
 
@@ -83,8 +83,9 @@ def run_import_task(self: ImportTask, job_id: str, user_id: str) -> dict[str, An
         if status == "completed":
             manager.update_task_status(async_task.id, "completed")
         else:
-            result = job.get("result") if isinstance(job.get("result"), dict) else {}
-            message = str(result.get("detail") or "Import failed")
+            raw_result = job.get("result")
+            detail = raw_result.get("detail") if isinstance(raw_result, dict) else None
+            message = str(detail or "Import failed")
             manager.update_task_status(async_task.id, "failed", error_message=message)
         return {"job_id": job_id, "status": status}
     finally:

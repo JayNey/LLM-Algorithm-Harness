@@ -6,7 +6,7 @@ from typing import Any
 
 from celery import Task
 
-from api.db.models import BenchmarkRun
+from api.db.models import AsyncTask, BenchmarkRun
 from src.celery_app import celery_app
 from src.task_manager import TaskManager
 from src.tasks.support import get_db_session, owned_async_task
@@ -60,12 +60,12 @@ def run_benchmark_task(self: BenchmarkTask, run_id: str, user_id: str) -> dict[s
 
         db.expire_all()
         run = db.get(BenchmarkRun, run_id)
-        async_task = db.get(type(async_task), async_task.id)
-        if run is None or async_task is None:
+        current_task = db.get(AsyncTask, async_task.id)
+        if run is None or current_task is None:
             raise ValueError(f"Benchmark run {run_id} not found")
-        if run.status == "cancelled" or async_task.status == "cancelled":
-            if async_task.status != "cancelled":
-                manager.update_task_status(async_task.id, "cancelled")
+        if run.status == "cancelled" or current_task.status == "cancelled":
+            if current_task.status != "cancelled":
+                manager.update_task_status(current_task.id, "cancelled")
             return {"run_id": run_id, "status": "cancelled"}
         if run.status == "completed":
             manager.update_task_status(async_task.id, "completed")
