@@ -132,15 +132,21 @@ def _wait_for_worker(proc: subprocess.Popen, log_path: Path, timeout: float = 45
     deadline = time.monotonic() + timeout
     while time.monotonic() < deadline:
         if proc.poll() is not None:
-            raise RuntimeError(f"worker exited during startup:\n{log_path.read_text()}")
+            raise RuntimeError(
+                "worker exited during startup:\n"
+                f"{log_path.read_text(encoding='utf-8', errors='replace')}"
+            )
         try:
-            text = log_path.read_text()
+            text = log_path.read_text(encoding="utf-8", errors="replace")
         except OSError:
             text = ""
         if "ready." in text:
             return
         time.sleep(0.25)
-    raise RuntimeError(f"worker did not become ready in {timeout}s:\n{log_path.read_text()}")
+    raise RuntimeError(
+        f"worker did not become ready in {timeout}s:\n"
+        f"{log_path.read_text(encoding='utf-8', errors='replace')}"
+    )
 
 
 def _terminate(proc: subprocess.Popen) -> None:
@@ -195,7 +201,11 @@ def _poll_status(session_factory, task_id: str, target: set[str], timeout: float
         with session_factory() as session:
             task = session.get(AsyncTask, task_id)
             if task is not None:
-                last = {"status": task.status, "started": task.started_at, "done": task.completed_at}
+                last = {
+                    "status": task.status,
+                    "started": task.started_at,
+                    "done": task.completed_at,
+                }
                 if task.status in target:
                     return task, session
         time.sleep(0.2)
