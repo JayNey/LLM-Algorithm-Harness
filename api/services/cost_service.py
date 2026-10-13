@@ -8,7 +8,7 @@ events and pricing overrides are new owner-scoped tables.
 import re
 import uuid
 from collections import defaultdict
-from datetime import date, datetime
+from datetime import date, datetime, timezone
 from typing import Any
 
 from sqlalchemy import select

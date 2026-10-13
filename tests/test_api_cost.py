@@ -241,6 +241,7 @@ class TestBudgets:
         # Since #149 runs dispatch through celery, stub the broker send and
         # complete the run row the way the queue worker would.
         app = _app_with_benchmarks(tmp_path)
+
         class _FakeAsyncResult:
             id = "fake-celery-task-id"
 
@@ -265,7 +266,12 @@ class TestBudgets:
                 assert started.status_code == 202, started.text
                 run_id = started.json()["data"]["id"]
 
-                from api.db import BenchmarkRun, business_database_url, make_engine, make_session_factory
+                from api.db import (
+                    BenchmarkRun,
+                    business_database_url,
+                    make_engine,
+                    make_session_factory,
+                )
                 from api.db.models import utcnow
 
                 session_factory = make_session_factory(make_engine(business_database_url()))
