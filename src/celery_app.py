@@ -46,6 +46,7 @@ def configure_celery() -> None:
             "src.tasks.evaluation",
             "src.tasks.cleanup",
             "src.tasks.experiment",
+            "src.tasks.imports",
         ],
         beat_schedule={
             "cleanup-old-tasks": {

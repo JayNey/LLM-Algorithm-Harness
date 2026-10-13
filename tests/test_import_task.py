@@ -43,6 +43,15 @@ def _seed(db_session):
     return job_id, user_id
 
 
+def test_import_task_is_registered_on_default_queue():
+    from src.celery_app import celery_app
+
+    celery_app.loader.import_default_modules()
+    assert "src.tasks.imports" in celery_app.conf.include
+    assert "src.tasks.imports.run_import_task" in celery_app.tasks
+    assert celery_app.conf.task_routes["src.tasks.imports.*"]["queue"] == "default"
+
+
 def test_execute_import_missing_job_does_not_process():
     with (
         patch("api.auth.config.AuthSettings"),
