@@ -136,9 +136,7 @@ def test_guard_positive_controls(tmp_path):
     """The scanner must flag dangling-handle flavours."""
     cases = [
         (  # NTF assigned outside with (the pre-fix benchmark/executor pattern)
-            "import tempfile\n"
-            "f = tempfile.NamedTemporaryFile(mode='w', delete=False)\n"
-            "f.close()\n"
+            "import tempfile\nf = tempfile.NamedTemporaryFile(mode='w', delete=False)\nf.close()\n"
         ),
         (  # mkstemp fd consumed by raw os.write instead of fdopen-with
             "import os\n"

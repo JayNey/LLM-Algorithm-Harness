@@ -100,6 +100,7 @@ def new_task(client, tokens):
             "problem_ids": ["p1"],
             "strategy_names": ["vanilla"],
             "api_key_id": key.json()["data"]["id"],
+            "model": "gpt-4o-mini",
         },
     )
     assert task.status_code == 201, task.text

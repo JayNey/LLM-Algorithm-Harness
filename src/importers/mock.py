@@ -39,14 +39,14 @@ class MockPlatformImporter(ProblemImporter):
         problems = []
         for i in range(count):
             problem = {
-                "problem_id": f"mock-{i+1:03d}",
-                "title": f"Mock Problem {i+1}",
-                "description": f"This is a mock problem generated for testing. Problem number {i+1}.",
+                "problem_id": f"mock-{i + 1:03d}",
+                "title": f"Mock Problem {i + 1}",
+                "description": f"This is a mock problem generated for testing. Problem number {i + 1}.",
                 "difficulty": ["easy", "medium", "hard"][i % 3],
                 "tags": ["mock", "testing"],
                 "constraints": "1 <= n <= 100",
                 "source_platform": "mock",
-                "source_problem_id": f"{i+1:03d}",
+                "source_problem_id": f"{i + 1:03d}",
                 "input_output_mode": "function",
                 "entry_point": "solution(**test_input)",
                 "public_test_cases": [

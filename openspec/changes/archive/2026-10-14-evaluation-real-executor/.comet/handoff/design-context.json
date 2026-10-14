@@ -1,0 +1,13 @@
+{
+  "change": "evaluation-real-executor",
+  "phase": "design",
+  "mode": "compact",
+  "canonical_spec": "openspec",
+  "generated_by": "comet-handoff.sh",
+  "context_hash": "7dacd595489ad2849f90312b1fc541c63dc19ebe0f036ea3d959daa4db0f44ee",
+  "files": [
+    { "path": "openspec/changes/evaluation-real-executor/proposal.md", "sha256": "ed1e4b7e098c1eacc02e403416858ef8382cbb24633c7ffc6115c91237a0af63" },
+    { "path": "openspec/changes/evaluation-real-executor/design.md", "sha256": "ead8c3d7b0f118afc3bc389b6e53a4de89db1ef45a06864a629afe4a9d47e565" },
+    { "path": "openspec/changes/evaluation-real-executor/tasks.md", "sha256": "f39bce49e172faae05fb9f0184793d6cb59beb3e5fa354b29bfcf800484ee8fd" }
+  ]
+}

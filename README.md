@@ -493,12 +493,12 @@ harness benchmark --suite benchmark.example.json --compare --output reports/lear
 
 ## 异步任务队列
 
-#179 已提供 Celery + Redis、持久化 AsyncTask 和 `/api/v1/tasks` 控制接口，#180 已合入实验、导入和基准三类 Celery 任务实现，其端到端执行与真实 LLM 指标仍未接通或验证。现有 HTTP 路由没有因此自动切换队列：`/evaluations` 仍使用旧评估流程，文件导入仍使用 BackgroundTasks，实验和基准服务仍使用后台线程。异步评估 worker 返回模拟结果，真实评估、使用计量与 worker 监控指标尚未接通，#149 保持开放。
+#179 已提供 Celery + Redis、持久化 AsyncTask 和 `/api/v1/tasks` 控制接口，#180 已合入实验、导入和基准三类 Celery 任务实现，其端到端执行与真实 LLM 指标仍未接通或验证。现有 HTTP 路由没有因此自动切换队列：`/evaluations` 仍使用旧评估流程，文件导入仍使用 BackgroundTasks，实验和基准服务仍使用后台线程。异步评估 worker 现已改为经真实 `AlgorithmHarness` 执行（LLM 调用 + Docker 沙箱运行 + 成本统计）并逐单元落库，不再返回模拟结果；但端到端真实 LLM 指标与使用计量仍待生产环境验证（测试不发起在线调用），worker 监控指标尚未接通，#149 保持开放。
 
 ### 架构组件
 
 - **API 服务**: FastAPI 应用，提供 REST API 接口
-- **Celery Worker**: 提供评估、实验、导入和基准任务入口，评估入口仍使用模拟 worker
+- **Celery Worker**: 提供评估、实验、导入和基准任务入口，评估入口现经真实 `AlgorithmHarness` 执行（LLM 调用 + Docker 沙箱运行，详见上节限制说明）
 - **Redis**: 消息代理和结果后端
 - **PostgreSQL/SQLite**: 任务状态持久化
 
@@ -556,6 +556,7 @@ curl -X POST http://localhost:8000/api/v1/evaluations \
     "strategy_names": ["vanilla", "chain_of_thought"],
     "problem_ids": ["problem1", "problem2"],
     "api_key_id": "key-001",
+    "model": "gpt-4o-mini",
     "budget_cap_usd": 10.0
   }'
 ```

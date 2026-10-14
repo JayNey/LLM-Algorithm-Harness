@@ -57,13 +57,13 @@ def run_debug_command(args: argparse.Namespace) -> int:
         # Create debugger
         debugger = Debugger(breakpoint_manager, trace_recorder)
 
-        print(f"\n{'='*60}")
+        print(f"\n{'=' * 60}")
         print("Interactive Debug Session")
-        print(f"{'='*60}")
+        print(f"{'=' * 60}")
         print(f"Problem: {problem.problem_id} - {problem.title}")
         print(f"Strategy: {args.strategy}")
         print(f"Model: {args.model}")
-        print(f"{'='*60}\n")
+        print(f"{'=' * 60}\n")
 
         # Initialize strategy with wrapper
         from pydantic import SecretStr

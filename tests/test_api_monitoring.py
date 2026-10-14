@@ -99,6 +99,7 @@ def make_task(client, tokens):
             "api_key_id": key.json()["data"]["id"],
             "problem_ids": ["p1"],
             "strategy_names": ["vanilla"],
+            "model": "gpt-4o-mini",
         },
     )
     assert response.status_code == 201, response.text
@@ -553,7 +554,7 @@ def test_database_config_positional_argument_and_metrics_lifecycle(tmp_path):
     app = create_app(
         auth,
         files,
-        f"sqlite:///{tmp_path/'business.sqlite3'}",
+        f"sqlite:///{tmp_path / 'business.sqlite3'}",
         monitor_settings=MonitorSettings(_env_file=None),
     )
     with TestClient(app):

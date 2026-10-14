@@ -74,6 +74,7 @@ class Evaluation(Base):
     problem_ids: Mapped[list] = mapped_column(JSON, default=list)
     problem_count: Mapped[int] = mapped_column(Integer, default=0)
     api_key_id: Mapped[str | None] = mapped_column(String(64))
+    model: Mapped[str | None] = mapped_column(String(200))
     budget_cap_usd: Mapped[float | None] = mapped_column(Float)
     spent_usd: Mapped[float] = mapped_column(Float, default=0.0)
     completed_count: Mapped[int] = mapped_column(Integer, default=0)

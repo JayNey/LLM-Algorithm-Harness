@@ -435,7 +435,12 @@ def test_every_evaluation_operation_checks_ownership(api, method, suffix, body):
     response = client.post(
         "/api/v1/evaluations",
         headers=headers(alice),
-        json={"problem_ids": ["1"], "strategy_names": ["vanilla"], "api_key_id": key_id},
+        json={
+            "problem_ids": ["1"],
+            "strategy_names": ["vanilla"],
+            "api_key_id": key_id,
+            "model": "gpt-4o-mini",
+        },
     )
     assert response.status_code == 201
     task_id = response.json()["data"]["evaluation_id"]
@@ -450,7 +455,12 @@ def test_evaluation_cannot_use_other_users_or_deleted_keys(api):
     client, alice, _, _ = api
     bob = signup(client, "bob")
     key_id = add_key(client, alice)
-    payload = {"problem_ids": ["1"], "strategy_names": ["vanilla"], "api_key_id": key_id}
+    payload = {
+        "problem_ids": ["1"],
+        "strategy_names": ["vanilla"],
+        "api_key_id": key_id,
+        "model": "gpt-4o-mini",
+    }
     assert client.post("/api/v1/evaluations", headers=headers(bob), json=payload).status_code == 404
     task_id = client.post("/api/v1/evaluations", headers=headers(alice), json=payload).json()[
         "data"
@@ -474,7 +484,12 @@ def test_owner_evaluation_lifecycle(api):
     response = client.post(
         "/api/v1/evaluations",
         headers=headers(tokens),
-        json={"problem_ids": ["1"], "strategy_names": ["vanilla"], "api_key_id": key_id},
+        json={
+            "problem_ids": ["1"],
+            "strategy_names": ["vanilla"],
+            "api_key_id": key_id,
+            "model": "gpt-4o-mini",
+        },
     )
     task_id = response.json()["data"]["evaluation_id"]
     url = f"/api/v1/evaluations/{task_id}"

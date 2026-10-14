@@ -69,6 +69,7 @@ class EvaluationResponse(BaseModel):
     updated_at: str = Field(..., description="ISO 8601 update timestamp")
     status: str = Field(..., description="Task status: pending|running|completed|failed|cancelled")
     strategy_names: list[str] = Field(..., description="Strategies used in this evaluation")
+    model: str | None = Field(None, description="Model name used to execute the evaluation")
     problem_count: int = Field(..., ge=0, description="Total number of problems")
     spent_usd: float = Field(..., ge=0, description="Amount spent so far in USD")
     budget_cap_usd: float | None = Field(None, ge=0, description="Budget limit in USD")

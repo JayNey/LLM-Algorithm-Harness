@@ -187,7 +187,10 @@ def test_task_snapshot_reports_real_simulator_state_and_filter(monitoring):
     for username in ("alice", "bob"):
         response = monitor.evaluations.create_evaluation(
             EvaluationCreateRequest(
-                api_key_id=keys[username], problem_ids=["p1", "p2"], strategy_names=["vanilla"]
+                api_key_id=keys[username],
+                problem_ids=["p1", "p2"],
+                strategy_names=["vanilla"],
+                model="gpt-4o-mini",
             ),
             owners[username],
         )

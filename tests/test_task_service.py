@@ -155,25 +155,28 @@ def test_budget_pause_preserves_queued_units_and_resume_does_not_dispatch(tmp_pa
 def test_parallel_execution_with_different_max_workers(tmp_path):
     """max_workers must actually dispatch units concurrently.
 
-    Concurrency is observed with a thread-safe peak counter instead of a
-    wall-clock speedup ratio: timing assertions went red whenever a loaded
-    CI runner (notably windows-latest) compressed the sleep windows, which
-    repeatedly failed unrelated PRs. A serialized pool keeps the peak at 1,
-    so the new assertions still fail if concurrent dispatch regresses.
+    并发用线程安全的峰值计数器观测，但重叠窗口不再依赖固定 ``sleep``——
+    慢速 CI runner（尤其 windows-latest）会把 sleep 压缩到线程无法重叠，
+    从而误报 peak==1。改为条件变量握手：只有当「确有并发重叠」尚未被
+    观测到时才阻塞等待（以单调递增的 peak 作谓词，避免在飞计数回减的竞态）；
+    串行池（max_workers=1）永远不会同时进入，超时后继续，peak 保持 1，
+    断言仍能捕获并发回归。
     """
     service = TaskService(tmp_path / "tasks")
-    lock = threading.Lock()
+    cv = threading.Condition()
 
-    def _run(run_id, max_workers, peak):
-        current = [0]
+    def _run(run_id, max_workers, peak, overlap_target):
+        inflight = [0]
 
         def worker(unit):
-            with lock:
-                current[0] += 1
-                peak[0] = max(peak[0], current[0])
-            time.sleep(0.05)
-            with lock:
-                current[0] -= 1
+            with cv:
+                inflight[0] += 1
+                peak[0] = max(peak[0], inflight[0])
+                cv.notify_all()
+                # 并发模式下等到观察到重叠（peak 达目标）再离开；串行时超时后继续。
+                cv.wait_for(lambda: peak[0] >= overlap_target, timeout=5.0)
+                inflight[0] -= 1
+                cv.notify_all()
             return {"status": "success"}
 
         record = service.create(
@@ -193,11 +196,11 @@ def test_parallel_execution_with_different_max_workers(tmp_path):
         assert all(unit.status == "completed" for unit in finished.units)
 
     serial_peak = [0]
-    _run("run-serial", 1, serial_peak)
+    _run("run-serial", 1, serial_peak, overlap_target=1)
     assert serial_peak[0] == 1  # serial mode never overlaps units
 
     parallel_peak = [0]
-    _run("run-parallel", 4, parallel_peak)
+    _run("run-parallel", 4, parallel_peak, overlap_target=2)
     assert parallel_peak[0] >= 2  # concurrent dispatch actually happens
 
 

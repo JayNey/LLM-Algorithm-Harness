@@ -89,6 +89,7 @@ def create_legacy_evaluation(client, credentials):
             "api_key_id": key.json()["data"]["id"],
             "strategy_names": ["vanilla"],
             "problem_ids": ["p1", "p2"],
+            "model": "gpt-4o-mini",
         },
     )
     assert response.status_code == 201, response.text

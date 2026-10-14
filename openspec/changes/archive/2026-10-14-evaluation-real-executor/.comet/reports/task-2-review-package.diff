@@ -1,0 +1,581 @@
+diff --git a/api/models.py b/api/models.py
+index 0c89618..6d35ff8 100644
+--- a/api/models.py
++++ b/api/models.py
+@@ -2,33 +2,35 @@
+ 
+ from pydantic import BaseModel, Field
+ 
+ 
+ class EvaluationCreateRequest(BaseModel):
+     """Request model for creating a new evaluation."""
+ 
+     api_key_id: str = Field(
+         ..., min_length=1, max_length=64, description="ID of your stored LLM API key"
+     )
++    model: str = Field(..., min_length=1, description="Model name used to execute the evaluation")
+     problem_ids: list[str] = Field(..., min_length=1, description="List of problem IDs to evaluate")
+     strategy_names: list[str] = Field(
+         ..., min_length=1, description="List of strategy names to use"
+     )
+     budget_cap_usd: float | None = Field(None, ge=0, description="Maximum budget in USD")
+     timeout_seconds: int = Field(300, ge=1, description="Timeout per problem in seconds")
+     max_concurrency: int = Field(5, ge=1, description="Max concurrent problems")
+ 
+     class Config:
+         json_schema_extra = {
+             "example": {
+                 "problem_ids": ["1", "2", "3"],
+                 "api_key_id": "your-stored-key-id",
++                "model": "gpt-4o-mini",
+                 "strategy_names": ["vanilla", "chain_of_thought"],
+                 "budget_cap_usd": 10.0,
+                 "timeout_seconds": 300,
+                 "max_concurrency": 5,
+             }
+         }
+ 
+ 
+ class EvaluationUpdateRequest(BaseModel):
+     """Request model for updating an evaluation (only pending tasks)."""
+diff --git a/api/schemas.py b/api/schemas.py
+index ce65b53..36324af 100644
+--- a/api/schemas.py
++++ b/api/schemas.py
+@@ -62,20 +62,21 @@ class ProgressInfo(BaseModel):
+ 
+ 
+ class EvaluationResponse(BaseModel):
+     """Evaluation task response model."""
+ 
+     evaluation_id: str = Field(..., description="Unique evaluation ID")
+     created_at: str = Field(..., description="ISO 8601 creation timestamp")
+     updated_at: str = Field(..., description="ISO 8601 update timestamp")
+     status: str = Field(..., description="Task status: pending|running|completed|failed|cancelled")
+     strategy_names: list[str] = Field(..., description="Strategies used in this evaluation")
++    model: str | None = Field(None, description="Model name used to execute the evaluation")
+     problem_count: int = Field(..., ge=0, description="Total number of problems")
+     spent_usd: float = Field(..., ge=0, description="Amount spent so far in USD")
+     budget_cap_usd: float | None = Field(None, ge=0, description="Budget limit in USD")
+     error_message: str | None = Field(None, description="Failure or stoppage reason, if any")
+     progress: ProgressInfo | None = Field(None, description="Execution progress")
+ 
+ 
+ class ExecutionResultResponse(BaseModel):
+     """Single problem execution result response model."""
+ 
+diff --git a/api/services/evaluation_service.py b/api/services/evaluation_service.py
+index 813c78c..afd2147 100644
+--- a/api/services/evaluation_service.py
++++ b/api/services/evaluation_service.py
+@@ -36,20 +36,21 @@ def _to_response(task: Evaluation) -> EvaluationResponse:
+ 
+     Used for legacy in-memory task execution. For async tasks, use _to_response_async.
+     """
+     percentage = (task.completed_count / task.problem_count * 100) if task.problem_count else 0
+     return EvaluationResponse(
+         evaluation_id=task.id,
+         created_at=_iso(task.created_at),
+         updated_at=_iso(task.updated_at),
+         status=task.status,
+         strategy_names=list(task.strategy_names),
++        model=task.model,
+         problem_count=task.problem_count,
+         spent_usd=task.spent_usd,
+         budget_cap_usd=task.budget_cap_usd,
+         error_message=task.error_message,
+         progress=ProgressInfo(
+             current=task.completed_count,
+             total=task.problem_count,
+             message=None,
+             # Backwards compat
+             completed=task.completed_count,
+@@ -93,20 +94,21 @@ def _to_response_async(evaluation: Evaluation, async_task: AsyncTask | None) ->
+         if evaluation.problem_count
+         else 0
+     )
+ 
+     return EvaluationResponse(
+         evaluation_id=evaluation.id,
+         created_at=_iso(evaluation.created_at),
+         updated_at=_iso(evaluation.updated_at),
+         status=status,
+         strategy_names=list(evaluation.strategy_names),
++        model=evaluation.model,
+         problem_count=evaluation.problem_count,
+         spent_usd=evaluation.spent_usd,
+         budget_cap_usd=evaluation.budget_cap_usd,
+         error_message=error_message,
+         progress=progress
+         or ProgressInfo(
+             current=evaluation.completed_count,
+             total=evaluation.problem_count,
+             message=None,
+             # Backwards compat
+@@ -180,20 +182,21 @@ class EvaluationService:
+     ) -> EvaluationResponse:
+         """Create a new evaluation task."""
+         task = Evaluation(
+             id=str(uuid.uuid4()),
+             user_id=owner_id,
+             status="pending",
+             strategy_names=list(request.strategy_names),
+             problem_ids=list(request.problem_ids),
+             problem_count=len(request.problem_ids),
+             api_key_id=request.api_key_id,
++            model=request.model,
+             budget_cap_usd=request.budget_cap_usd,
+             spent_usd=0.0,
+             completed_count=0,
+             failed_count=0,
+             created_at=utcnow(),
+             updated_at=utcnow(),
+         )
+         with self._session() as session, session.begin():
+             session.add(task)
+         return _to_response(task)
+@@ -277,20 +280,21 @@ class EvaluationService:
+ 
+             # 1. Create Evaluation record
+             evaluation = Evaluation(
+                 id=str(uuid.uuid4()),
+                 user_id=owner_id,
+                 status="pending",
+                 strategy_names=list(request.strategy_names),
+                 problem_ids=list(request.problem_ids),
+                 problem_count=len(request.problem_ids),
+                 api_key_id=request.api_key_id,
++                model=request.model,
+                 budget_cap_usd=request.budget_cap_usd,
+                 spent_usd=0.0,
+                 completed_count=0,
+                 failed_count=0,
+                 created_at=utcnow(),
+                 updated_at=utcnow(),
+             )
+             session.add(evaluation)
+             session.flush()
+ 
+diff --git a/tests/test_api_auth.py b/tests/test_api_auth.py
+index 058547f..8e8dc0c 100644
+--- a/tests/test_api_auth.py
++++ b/tests/test_api_auth.py
+@@ -428,36 +428,46 @@ def test_verification_does_not_mark_concurrently_replaced_key_valid(api, monkeyp
+         ("get", "/progress", None),
+     ],
+ )
+ def test_every_evaluation_operation_checks_ownership(api, method, suffix, body):
+     client, alice, _, _ = api
+     bob = signup(client, "bob")
+     key_id = add_key(client, alice)
+     response = client.post(
+         "/api/v1/evaluations",
+         headers=headers(alice),
+-        json={"problem_ids": ["1"], "strategy_names": ["vanilla"], "api_key_id": key_id},
++        json={
++            "problem_ids": ["1"],
++            "strategy_names": ["vanilla"],
++            "api_key_id": key_id,
++            "model": "gpt-4o-mini",
++        },
+     )
+     assert response.status_code == 201
+     task_id = response.json()["data"]["evaluation_id"]
+     url = f"/api/v1/evaluations/{task_id}{suffix}"
+     assert client.request(method, url, headers=headers(bob), json=body).status_code == 404
+     assert client.request(method, url, json=body).status_code == 401
+     assert client.get("/api/v1/evaluations", headers=headers(bob)).json()["data"]["total"] == 0
+     assert client.get("/api/v1/evaluations", headers=headers(alice)).json()["data"]["total"] == 1
+ 
+ 
+ def test_evaluation_cannot_use_other_users_or_deleted_keys(api):
+     client, alice, _, _ = api
+     bob = signup(client, "bob")
+     key_id = add_key(client, alice)
+-    payload = {"problem_ids": ["1"], "strategy_names": ["vanilla"], "api_key_id": key_id}
++    payload = {
++        "problem_ids": ["1"],
++        "strategy_names": ["vanilla"],
++        "api_key_id": key_id,
++        "model": "gpt-4o-mini",
++    }
+     assert client.post("/api/v1/evaluations", headers=headers(bob), json=payload).status_code == 404
+     task_id = client.post("/api/v1/evaluations", headers=headers(alice), json=payload).json()[
+         "data"
+     ]["evaluation_id"]
+     assert client.delete(f"/api/v1/api-keys/{key_id}", headers=headers(alice)).status_code == 204
+     assert (
+         client.post(f"/api/v1/evaluations/{task_id}/start", headers=headers(alice)).status_code
+         == 404
+     )
+     assert (
+@@ -467,21 +477,26 @@ def test_evaluation_cannot_use_other_users_or_deleted_keys(api):
+         == "pending"
+     )
+ 
+ 
+ def test_owner_evaluation_lifecycle(api):
+     client, tokens, app, _ = api
+     key_id = add_key(client, tokens)
+     response = client.post(
+         "/api/v1/evaluations",
+         headers=headers(tokens),
+-        json={"problem_ids": ["1"], "strategy_names": ["vanilla"], "api_key_id": key_id},
++        json={
++            "problem_ids": ["1"],
++            "strategy_names": ["vanilla"],
++            "api_key_id": key_id,
++            "model": "gpt-4o-mini",
++        },
+     )
+     task_id = response.json()["data"]["evaluation_id"]
+     url = f"/api/v1/evaluations/{task_id}"
+     assert (
+         client.patch(url, headers=headers(tokens), json={"budget_cap_usd": 10}).status_code == 200
+     )
+     # 启动只入队：交给 Celery worker 执行，worker 接管前评估保持 pending
+     with patch("src.task_manager.celery_app.send_task", return_value=Mock()) as mock_send:
+         assert client.post(url + "/start", headers=headers(tokens)).status_code == 202
+     mock_send.assert_called_once()
+diff --git a/tests/test_api_database.py b/tests/test_api_database.py
+index 84ae03d..9d2b209 100644
+--- a/tests/test_api_database.py
++++ b/tests/test_api_database.py
+@@ -133,69 +133,70 @@ class TestEvaluationPersistence:
+     def test_restart_marks_non_terminal_tasks_failed(self, tmp_path):
+         url = f"sqlite:///{tmp_path / 'business.sqlite3'}"
+         app = create_app(auth_config(tmp_path), FileSettings(), database_url=url)
+         with TestClient(app) as client:
+             headers, key_id = _bootstrap_user(client)
+             created = client.post(
+                 "/api/v1/evaluations",
+                 headers=headers,
+                 json={
+                     "api_key_id": key_id,
++                    "model": "gpt-4o-mini",
+                     "problem_ids": ["two-sum"],
+                     "strategy_names": ["cot"],
+                 },
+             )
+             assert created.status_code == 201, created.text
+             task_id = created.json()["data"]["evaluation_id"]
+ 
+         # A fresh process against the same database observes the task...
+         revived = create_app(auth_config(tmp_path), FileSettings(), database_url=url)
+         with TestClient(revived) as client:
+             headers, _ = _bootstrap_user(client)
+             data = client.get(f"/api/v1/evaluations/{task_id}", headers=headers).json()["data"]
+             assert data["status"] == "failed"
+             assert data["error_message"] == RESTART_REASON
+ 
+     def test_enqueued_pending_survives_restart(self, tmp_path):
+         url = f"sqlite:///{tmp_path / 'business.sqlite3'}"
+         service = EvaluationService(url)
+         request = EvaluationCreateRequest(
+-            api_key_id="k1", problem_ids=["p1"], strategy_names=["cot"]
++            api_key_id="k1", problem_ids=["p1"], strategy_names=["cot"], model="gpt-4o-mini"
+         )
+         created = service.create_evaluation(request, "alice")
+         # 启动只入队：worker 接管前评估保持 pending
+         with patch("src.task_manager.celery_app.send_task", return_value=Mock()):
+             started = service.start_evaluation(created.evaluation_id, "alice")
+         assert started.status == "pending"
+ 
+         # 已入队的 pending 评估在重启后被保留，而不是标成 failed
+         revived = EvaluationService(url)
+         after = revived.get_evaluation(created.evaluation_id, "alice")
+         assert after.status == "pending"
+ 
+     def test_rows_are_owner_scoped(self, tmp_path):
+         url = f"sqlite:///{tmp_path / 'business.sqlite3'}"
+         service = EvaluationService(url)
+         request = EvaluationCreateRequest(
+-            api_key_id="k1", problem_ids=["p1"], strategy_names=["cot"]
++            api_key_id="k1", problem_ids=["p1"], strategy_names=["cot"], model="gpt-4o-mini"
+         )
+         created = service.create_evaluation(request, "alice")
+ 
+         assert service.get_evaluation(created.evaluation_id, "alice").status == "pending"
+         with pytest.raises(ValueError, match="not found"):
+             service.get_evaluation(created.evaluation_id, "bob")
+ 
+     def test_cancel_revokes_celery_and_marks_cancelled(self, tmp_path):
+         url = f"sqlite:///{tmp_path / 'business.sqlite3'}"
+         service = EvaluationService(url)
+         request = EvaluationCreateRequest(
+-            api_key_id="k1", problem_ids=["p1", "p2"], strategy_names=["cot"]
++            api_key_id="k1", problem_ids=["p1", "p2"], strategy_names=["cot"], model="gpt-4o-mini"
+         )
+         created = service.create_evaluation(request, "alice")
+         with patch("src.task_manager.celery_app.send_task", return_value=Mock()):
+             service.start_evaluation(created.evaluation_id, "alice")
+ 
+         # 取消已入队评估：revoke 对应 Celery 任务并置评估 cancelled
+         with (
+             patch("src.task_manager.celery_app.control.revoke") as mock_revoke,
+             patch("src.task_manager.celery_app.AsyncResult") as mock_result,
+         ):
+diff --git a/tests/test_api_files.py b/tests/test_api_files.py
+index 4fc187a..c9ea4da 100644
+--- a/tests/test_api_files.py
++++ b/tests/test_api_files.py
+@@ -93,20 +93,21 @@ def new_task(client, tokens):
+         json={"provider": "openai", "key_name": "test", "api_key": "fake-file-test-key"},
+     )
+     assert key.status_code == 201
+     task = client.post(
+         "/api/v1/evaluations",
+         headers=auth_headers(tokens),
+         json={
+             "problem_ids": ["p1"],
+             "strategy_names": ["vanilla"],
+             "api_key_id": key.json()["data"]["id"],
++            "model": "gpt-4o-mini",
+         },
+     )
+     assert task.status_code == 201, task.text
+     return task.json()["data"]["evaluation_id"]
+ 
+ 
+ @pytest.fixture(autouse=True)
+ def celery_submit():
+     with (
+         patch("src.task_manager.celery_app.send_task") as send_task,
+diff --git a/tests/test_api_monitoring.py b/tests/test_api_monitoring.py
+index addb4e3..5ac0246 100644
+--- a/tests/test_api_monitoring.py
++++ b/tests/test_api_monitoring.py
+@@ -92,20 +92,21 @@ def make_task(client, tokens):
+         json={"provider": "openai", "key_name": "monitor", "api_key": KEY},
+     )
+     assert key.status_code == 201
+     response = client.post(
+         "/api/v1/evaluations",
+         headers=headers(tokens),
+         json={
+             "api_key_id": key.json()["data"]["id"],
+             "problem_ids": ["p1"],
+             "strategy_names": ["vanilla"],
++            "model": "gpt-4o-mini",
+         },
+     )
+     assert response.status_code == 201, response.text
+     return response.json()["data"]["evaluation_id"]
+ 
+ 
+ @pytest.mark.parametrize("route", ADMIN_ROUTES)
+ def test_system_routes_require_authenticated_operator(api, route):
+     client, _, user, *_ = api
+     assert client.get("/api/v1" + route).status_code == 401
+diff --git a/tests/test_api_monitoring_probes.py b/tests/test_api_monitoring_probes.py
+index 7595e9f..e98203f 100644
+--- a/tests/test_api_monitoring_probes.py
++++ b/tests/test_api_monitoring_probes.py
+@@ -57,21 +57,24 @@ def test_sqlite_probe_checks_real_connection_and_tables(probes):
+     result = probes.database()
+     assert result["status"] == "unavailable"
+     assert result["authentication"]["status"] == "ok"
+     assert result["files"]["status"] == "unavailable"
+     assert str(probes.auth.store.path) not in json.dumps(result)
+ 
+ 
+ def test_business_probe_reuses_engine_without_task_recovery_or_writes(probes):
+     run = probes.evaluations.create_evaluation(
+         EvaluationCreateRequest(
+-            problem_ids=["p1"], strategy_names=["vanilla"], api_key_id="opaque-key"
++            problem_ids=["p1"],
++            strategy_names=["vanilla"],
++            api_key_id="opaque-key",
++            model="gpt-4o-mini",
+         ),
+         "operator",
+     )
+     statements = []
+ 
+     def record(connection, cursor, statement, parameters, context, executemany):
+         statements.append(statement.split()[0].upper())
+ 
+     event.listen(probes.evaluations.engine, "before_cursor_execute", record)
+     try:
+diff --git a/tests/test_api_monitoring_queue_compatibility.py b/tests/test_api_monitoring_queue_compatibility.py
+index 7f663f5..07ad097 100644
+--- a/tests/test_api_monitoring_queue_compatibility.py
++++ b/tests/test_api_monitoring_queue_compatibility.py
+@@ -82,20 +82,21 @@ def create_legacy_evaluation(client, credentials):
+         json={"provider": "openai", "key_name": "queue-monitor", "api_key": PRIVATE_VALUE},
+     )
+     assert key.status_code == 201, key.text
+     response = client.post(
+         "/api/v1/evaluations",
+         headers=credentials,
+         json={
+             "api_key_id": key.json()["data"]["id"],
+             "strategy_names": ["vanilla"],
+             "problem_ids": ["p1", "p2"],
++            "model": "gpt-4o-mini",
+         },
+     )
+     assert response.status_code == 201, response.text
+     return response.json()["data"]["evaluation_id"]
+ 
+ 
+ @pytest.fixture
+ def api(tmp_path):
+     app = make_app(tmp_path)
+     with TestClient(app) as client:
+diff --git a/tests/test_api_monitoring_service.py b/tests/test_api_monitoring_service.py
+index f41d076..d9908c7 100644
+--- a/tests/test_api_monitoring_service.py
++++ b/tests/test_api_monitoring_service.py
+@@ -180,21 +180,24 @@ def test_llm_stats_do_not_treat_verification_or_usage_hooks_as_measured_calls(mo
+         and stats["avg_latency_ms"] is None
+     )
+ 
+ 
+ def test_task_snapshot_reports_real_simulator_state_and_filter(monitoring):
+     monitor, owners, keys = monitoring
+     created = []
+     for username in ("alice", "bob"):
+         response = monitor.evaluations.create_evaluation(
+             EvaluationCreateRequest(
+-                api_key_id=keys[username], problem_ids=["p1", "p2"], strategy_names=["vanilla"]
++                api_key_id=keys[username],
++                problem_ids=["p1", "p2"],
++                strategy_names=["vanilla"],
++                model="gpt-4o-mini",
+             ),
+             owners[username],
+         )
+         created.append(response.evaluation_id)
+     with monitor.evaluations._engine.begin() as connection:
+         connection.execute(
+             update(Evaluation)
+             .where(Evaluation.id == created[0])
+             .values(status="completed", completed_count=2)
+         )
+diff --git a/tests/test_evaluation_service_async.py b/tests/test_evaluation_service_async.py
+index ef33d9e..be0c730 100644
+--- a/tests/test_evaluation_service_async.py
++++ b/tests/test_evaluation_service_async.py
+@@ -1,19 +1,20 @@
+ """Test suite for EvaluationService with async task support.
+ 
+ Following TDD approach: tests first, then implementation.
+ """
+ 
+ import uuid
+ from unittest.mock import Mock, patch
+ 
+ import pytest
++from pydantic import ValidationError
+ from sqlalchemy import create_engine
+ from sqlalchemy.orm import sessionmaker
+ 
+ from api.db.models import AsyncTask, Base, Evaluation
+ from api.models import EvaluationCreateRequest
+ from api.schemas import EvaluationResponse, ProgressInfo
+ 
+ 
+ @pytest.fixture
+ def test_db_session():
+@@ -33,20 +34,21 @@ def test_user_id():
+ 
+ 
+ @pytest.fixture
+ def create_request():
+     """Sample evaluation create request."""
+     return EvaluationCreateRequest(
+         strategy_names=["strategy_a", "strategy_b"],
+         problem_ids=["problem_1", "problem_2", "problem_3"],
+         api_key_id="key-123",
+         budget_cap_usd=100.0,
++        model="gpt-4o-mini",
+     )
+ 
+ 
+ @pytest.fixture
+ def evaluation_with_task(test_db_session, test_user_id):
+     """Create an evaluation with an async task."""
+     evaluation_id = str(uuid.uuid4())
+     async_task_id = str(uuid.uuid4())
+ 
+     # Create AsyncTask
+@@ -533,10 +535,78 @@ class TestErrorHandling:
+     ):
+         """Verify get_evaluation fails if user is not the owner."""
+         from api.services.evaluation_service import EvaluationService
+ 
+         service = EvaluationService.__new__(EvaluationService)
+         service._session_factory = lambda: test_db_session
+ 
+         # When/Then: Get should fail for different user
+         with pytest.raises(ValueError, match="not found"):
+             service.get_evaluation_async(evaluation_with_task["evaluation_id"], "different-user")
++
++
++class TestEvaluationModelPersistence:
++    """Task 2: EvaluationCreateRequest.model 必填且两条创建路径均持久化。
++
++    使用真实 EvaluationService + 临时 SQLite（与生产一致的 expire_on_commit=False），
++    避免共享内存 session 在同步路径 close 后触发 DetachedInstanceError。
++    """
++
++    def _service(self, tmp_path):
++        from api.services.evaluation_service import EvaluationService
++
++        return EvaluationService(f"sqlite:///{tmp_path / 'biz.sqlite3'}")
++
++    def _request(self, **overrides):
++        payload = {
++            "strategy_names": ["vanilla"],
++            "problem_ids": ["p1"],
++            "api_key_id": "key-123",
++            "model": "gpt-4o-mini",
++        }
++        payload.update(overrides)
++        return EvaluationCreateRequest(**payload)
++
++    def test_create_evaluation_persists_model(self, tmp_path):
++        """同步 create_evaluation 回读 model 并落库 evaluations.model。"""
++        service = self._service(tmp_path)
++
++        response = service.create_evaluation(self._request(), "alice")
++
++        assert response.model == "gpt-4o-mini"
++        # 从 DB 回读确认真正持久化
++        fetched = service.get_evaluation(response.evaluation_id, "alice")
++        assert fetched.model == "gpt-4o-mini"
++
++    def test_create_evaluation_async_persists_model(self, tmp_path):
++        """异步 create_evaluation_async 回读 model 并落库 evaluations.model。"""
++        service = self._service(tmp_path)
++
++        with patch("src.task_manager.celery_app.send_task") as mock_send_task:
++            mock_result = Mock()
++            mock_result.id = "celery-task-123"
++            mock_send_task.return_value = mock_result
++
++            response = service.create_evaluation_async(self._request(), "alice")
++
++        assert response.model == "gpt-4o-mini"
++        fetched = service.get_evaluation_async(response.evaluation_id, "alice")
++        assert fetched.model == "gpt-4o-mini"
++
++    def test_create_evaluation_requires_model(self):
++        """缺少 model 的创建请求应触发 Pydantic 校验失败。"""
++        with pytest.raises(ValidationError):
++            EvaluationCreateRequest(
++                strategy_names=["vanilla"],
++                problem_ids=["p1"],
++                api_key_id="key-123",
++            )
++
++    def test_create_evaluation_rejects_empty_model(self):
++        """model 为空字符串应触发 min_length 校验失败。"""
++        with pytest.raises(ValidationError):
++            EvaluationCreateRequest(
++                strategy_names=["vanilla"],
++                problem_ids=["p1"],
++                api_key_id="key-123",
++                model="",
++            )
