@@ -138,12 +138,20 @@ except HTTPException as exc:      # owned_key / decrypt 失败以 HTTPException 
 ```python
 from api.db.problem_store import ProblemStore
 store = ProblemStore(<business engine/session>)   # 复用与 evaluation 同一 DB
-problem_map: dict[str, Problem] = {}
+problem_map: dict[str, DomainProblem] = {}        # DomainProblem = src.models.Problem
 for pid in evaluation.problem_ids:
-    p = store.get_by_problem_id(pid)
-    if p is not None:
-        problem_map[pid] = p
+    row = store.get_by_problem_id(pid)            # 返回 ORM api.db.models.Problem
+    if row is None:
+        missing.add(pid)
+        continue
+    try:
+        problem_map[pid] = _to_domain_problem(row)  # ORM → src.models.Problem
+    except ValidationError:
+        missing.add(pid)                          # 数据不完整/非法：按不可用处理，其单元单独失败
 ```
+- **ORM→domain 转换（build 阶段发现的设计缺口，已补齐）**：`ProblemStore.get_by_problem_id` 返回 ORM `api.db.models.Problem`，而 `_execute_problem`（§5.7）消费 domain `src.models.Problem`（需 `model_copy`/`hidden_test_cases`/`unsupported_reason` 等 pydantic 成员）。故 `problem_map` 必须装 domain Problem。ORM 列与 dataset 字段 1:1（`problem_id/title/description/difficulty/tags/constraints/test_cases/source_platform/source_url`），且 domain `Problem` 的 `migrate_legacy_test_cases`(mode="before") validator 接受 `test_cases` 键（归为 `public_test_cases`，`hidden_test_cases` 为空，`migration_status="legacy_test_cases_as_public"`）。转换实现：`_to_domain_problem(row)` = 用上述列组一个 dict 后 `src.models.Problem(**data)`（等价 `ProblemLoader().load_from_dict(data)`）。所有字段均为 eagerly-loaded 列，`get_by_problem_id` 的 session 已关闭后读取仍安全（无 lazy 关系）。
+- **数据限制（诚实口径）**：DB 导入题目当前只持久化 `test_cases`（→ public），无 hidden 测试；真实执行按 public 测试评测，`migration_status` 标记其来源。这是数据层限制，非代码缺陷。
+- **转换失败不 fail-fast**：ORM 行缺字段/非法（如 `description` 短于 domain 的 `min_length=10`、`difficulty` 不在 `easy/medium/hard`）时 `Problem(**data)` 抛 `ValidationError`；按「不可用题目」并入 `missing` 集合，其单元在 worker 中因 `problem_map.get` 为 None 单独失败，其余题目继续。
 - 缺失题目**不 fail-fast**：其单元在 worker 中因 `problem_map.get` 为 None 抛异常 → `TaskUnit.status=failed` + `unit.error=缺失原因` → `on_unit_finished` 落一条 `status="failed"` 的 `EvaluationResult`，`failed_count` 计入（满足 spec「部分题目缺失其余继续」）。
 - 缺失原因文案：`f"Problem {pid} not found in problem store"`。
 - `ProblemStore` 的构造入口由 builder 对齐现有用法（与 `evaluation` 同一 business engine/session factory）；worker 只读 `problem_map`，不持有 session。

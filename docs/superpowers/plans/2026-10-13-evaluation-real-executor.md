@@ -202,7 +202,7 @@ Expected: PASS
 
 - [ ] **Step 5: 提交**
 ```bash
-git add src/tasks/evaluation.py tests/test_evaluation_task.py
+git add src/tasks/evaluation.py tests/test_celery_tasks.py
 git commit -m "feat(eval): fail-fast model+credential resolution, per-problem store lookup (evaluation-real-executor 2.1)"
 ```
 
@@ -285,7 +285,7 @@ Expected: PASS
 
 - [ ] **Step 5: 提交**
 ```bash
-git add src/tasks/evaluation.py tests/test_evaluation_task.py
+git add src/tasks/evaluation.py tests/test_celery_tasks.py
 git commit -m "feat(eval): idempotent per-unit EvaluationResult upsert + aggregate counts (evaluation-real-executor 2.2)"
 ```
 
@@ -369,7 +369,7 @@ Expected: PASS
 
 - [ ] **Step 6: 提交**
 ```bash
-git add src/tasks/evaluation.py tests/test_evaluation_task.py
+git add src/tasks/evaluation.py tests/test_celery_tasks.py
 git commit -m "feat(eval): real harness-backed worker with honest cost + budget pause (evaluation-real-executor 2.3)"
 ```
 
@@ -378,12 +378,18 @@ git commit -m "feat(eval): real harness-backed worker with honest cost + budget 
 ### Task 6: 接入 run_evaluation_task（替换 mock worker + on_unit_finished 落库 + 终态回写）
 
 **Files:**
-- Modify: `src/tasks/evaluation.py:58-230`（`run_evaluation_task`）
-- Test: `tests/test_evaluation_task.py`
+- Modify: `src/tasks/evaluation.py`（`run_evaluation_task`；并修订 `_resolve_execution_context` 补 ORM→domain 转换）
+- Test: `tests/test_celery_tasks.py`（沿用既定约定，不新建 test_evaluation_task.py）
 
 **Interfaces:**
-- Consumes: `_resolve_execution_context`、`_build_harness`、`worker`、`_record_unit_result`
-- Produces: `run_evaluation_task` 三种终态（completed/paused/failed）正确回写 `Evaluation` + `AsyncTask`；`on_unit_finished` 累计 `spent_usd` + 重算 `completed_count`/`failed_count`。
+- Consumes: `_resolve_execution_context`（本任务修订：`problem_map` 改为装 domain `src.models.Problem`）、`_build_harness`、`_make_worker`、`_record_unit_result`
+- Produces: `run_evaluation_task` 三种终态（completed/paused/failed）正确回写 `Evaluation` + `AsyncTask`；`on_unit_finished` 累计 `spent_usd` + 重算 `completed_count`/`failed_count`；`_to_domain_problem(row) -> src.models.Problem`。
+
+> **Ruling（build 发现的设计缺口，见 Design Doc §5.5）**：Task 3 的 `_resolve_execution_context` 把 `ProblemStore.get_by_problem_id` 返回的 **ORM** `api.db.models.Problem` 直接放进 `problem_map`，但 Task 5 的 worker 调 `_execute_problem` 需 **domain** `src.models.Problem`（`model_copy`/`hidden_test_cases` 等）。本任务在 `_resolve_execution_context` 内补转换：新增 `_to_domain_problem(row)` = 用 ORM 列（`problem_id/title/description/difficulty/tags/constraints/test_cases/source_platform/source_url`）组 dict 后 `src.models.Problem(**data)`（domain `migrate_legacy_test_cases` validator 会把 `test_cases` 归为 public）；转换抛 `pydantic.ValidationError` 时把该 pid 并入 `missing_problems`（数据不可用，不 fail-fast）。字段均为 eagerly-loaded 列，session 关闭后读取安全。相应更新 Task 3 的 `_resolve_execution_context` 测试：`_FakeStore` 改为返回 ORM 形状行，断言 `ctx.problem_map[pid]` 是 domain `src.models.Problem` 且 `migration_status=="legacy_test_cases_as_public"`。
+
+- [ ] **Step 0: 先写/改转换测试（RED）**——在 `tests/test_celery_tasks.py` 改 Task 3 的 `_resolve_execution_context` 用例：`_FakeStore.get_by_problem_id` 返回一个 ORM 形状对象（含上述列，`test_cases` 为 `[{"input":...,"expected_output":...}]`），断言解析后 `ctx.problem_map["p1"]` 是 `src.models.Problem` 实例、`public_test_cases` 非空、`hidden_test_cases==[]`、`migration_status=="legacy_test_cases_as_public"`；再加一例：ORM 行 `description=""`（短于 min_length=10）→ `Problem(**data)` 抛 `ValidationError` → 该 pid 落入 `ctx.missing_problems`、不进 `problem_map`。运行确认 RED（`_to_domain_problem` 未定义 / problem_map 仍是 ORM）。
+
+- [ ] **Step 0b: 实现 `_to_domain_problem` + 修订 `_resolve_execution_context`（GREEN）**——按上方 Ruling 实现；运行 Step 0 测试转绿，且 Task 3 原有 fails_fast/missing 用例仍绿。
 
 - [ ] **Step 1: 写失败集成测试**（patch `AuthService.llm_config`、`AlgorithmHarness._prepare_strategy_runtime`、`_execute_problem`、`_estimate_cost`、`ProblemStore`；临时 SQLite；断言无 `mock`）
 
@@ -406,6 +412,11 @@ def test_run_evaluation_task_budget_pause(run_task_env_cap):
     run_evaluation_task(evaluation_id)
     ev = reload_evaluation(evaluation_id)
     assert ev.status == "paused" and ev.completed_count < 4
+
+def test_run_evaluation_task_unknown_pricing_honest(run_task_env_cap):
+    # Task 5 交接 MINOR：_estimate_cost 返回 (0.0, {"unknown_usage": True}) 时
+    # spent_usd 不伪造增长（==0.0）、不触发预算暂停，结果行 metrics["cost_unknown"] is True
+    ...
 ```
 
 - [ ] **Step 2: 运行确认失败**
@@ -416,7 +427,7 @@ Expected: FAIL（仍是 mock worker）
 - [ ] **Step 3: 改造 `run_evaluation_task`**（Design Doc §5.3）
   - 在「验证配置」后插入 `session_factory = make_session_factory(make_engine(business_database_url()))`；`ctx = _resolve_execution_context(evaluation, session_factory)`（fail-fast 走既有 except）。
   - 置 running 后：`harness, strategy_configs, runtimes = _build_harness(ctx, evaluation.strategy_names)`（异常 → 既有 except 置 failed）。
-  - 定义真实 `worker`（Task 5，闭包捕获 harness/strategy_configs/runtimes/ctx.problem_map）。
+  - 定义真实 worker：`worker = _make_worker(harness, strategy_configs, runtimes, ctx.problem_map)`（Task 5 工厂；闭包捕获 harness/strategy_configs/runtimes/problem_map，不引用 db）。
   - 重写 `on_unit_finished(record, unit)`：
     ```python
     def on_unit_finished(record, unit):
@@ -438,7 +449,7 @@ Expected: PASS
 
 - [ ] **Step 5: 提交**
 ```bash
-git add src/tasks/evaluation.py tests/test_evaluation_task.py
+git add src/tasks/evaluation.py tests/test_celery_tasks.py
 git commit -m "feat(eval): replace mock worker with real harness execution in run_evaluation_task (evaluation-real-executor 3.1)"
 ```
 
@@ -479,7 +490,7 @@ Expected: PASS（如 FAIL，按 Design Doc §5.13 修正）
 
 - [ ] **Step 3: 提交**
 ```bash
-git add src/tasks/evaluation.py tests/test_evaluation_task.py
+git add src/tasks/evaluation.py tests/test_celery_tasks.py
 git commit -m "test(eval): verify resume dedup and continued accumulation (evaluation-real-executor 3.2)"
 ```
 
