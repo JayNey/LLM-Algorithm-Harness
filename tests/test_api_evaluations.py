@@ -129,24 +129,33 @@ class TestDuplicateInputRejected:
         )
 
     def test_duplicate_strategy_names_is_rejected(self, tmp_path):
-        """strategy_names 含重复项时创建应被拒（400），避免幂等键重复导致的脏聚合。"""
+        """strategy_names 含重复项时创建应被拒（400），避免幂等键重复导致的脏聚合。
+
+        断言到结构化字段：details 必须以字段名 strategy_names 为键，客户端才能按字段定位
+        （要求校验器为 field_validator；model_validator(mode="after") 会把错误定位到
+        请求体本身，details 键退化为空串）。
+        """
         url = f"sqlite:///{tmp_path / 'business.sqlite3'}"
         app = create_app(auth_config(tmp_path), FileSettings(), database_url=url)
         with TestClient(app) as client:
             headers, key_id = _bootstrap_user(client)
             resp = self._post(client, headers, key_id, ["vanilla", "vanilla"], ["p1", "p2"])
             assert resp.status_code == 400, resp.text
-            assert "strategy_names" in resp.text
+            details = resp.json()["details"]
+            assert "strategy_names" in details, f"details 键应按字段名定位，实测：{list(details)}"
+            assert "strategy_names must not contain duplicates" in details["strategy_names"]
 
     def test_duplicate_problem_ids_is_rejected(self, tmp_path):
-        """problem_ids 含重复项时创建应被拒（400）。"""
+        """problem_ids 含重复项时创建应被拒（400），details 键定位到字段名 problem_ids。"""
         url = f"sqlite:///{tmp_path / 'business.sqlite3'}"
         app = create_app(auth_config(tmp_path), FileSettings(), database_url=url)
         with TestClient(app) as client:
             headers, key_id = _bootstrap_user(client)
             resp = self._post(client, headers, key_id, ["vanilla", "cot"], ["p1", "p1"])
             assert resp.status_code == 400, resp.text
-            assert "problem_ids" in resp.text
+            details = resp.json()["details"]
+            assert "problem_ids" in details, f"details 键应按字段名定位，实测：{list(details)}"
+            assert "problem_ids must not contain duplicates" in details["problem_ids"]
 
     def test_legal_request_without_duplicates_still_201(self, tmp_path):
         """无重复的合法请求不受影响，仍返回 201（防回归）。"""

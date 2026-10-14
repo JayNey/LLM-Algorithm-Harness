@@ -1,6 +1,6 @@
 """API request and response models."""
 
-from pydantic import BaseModel, Field, model_validator
+from pydantic import BaseModel, Field, field_validator
 
 
 class EvaluationCreateRequest(BaseModel):
@@ -18,21 +18,35 @@ class EvaluationCreateRequest(BaseModel):
     timeout_seconds: int = Field(300, ge=1, description="Timeout per problem in seconds")
     max_concurrency: int = Field(5, ge=1, description="Max concurrent problems")
 
-    @model_validator(mode="after")
-    def _reject_duplicate_inputs(self) -> "EvaluationCreateRequest":
-        """拒绝含重复项的 strategy_names / problem_ids（verify I-4）。
+    @field_validator("strategy_names")
+    @classmethod
+    def _reject_duplicate_strategy_names(cls, v: list[str]) -> list[str]:
+        """拒绝含重复项的 strategy_names（verify I-4）。
 
         重复值会让 _create_task_units 生成同 (strategy, problem) 的多个单元，
         但幂等键 (evaluation_id, problem_id, strategy_name) 只落 1 行
         EvaluationResult，而 completed_count/spent_usd 却累加多次，造成单元计数
-        与实际结果行数不一致的脏聚合。在入口即返回 422，杜绝下游歧义，且不改变
-        既有合法请求的行为。
+        与实际结果行数不一致的脏聚合。在入口即返回 400（validation_error），
+        杜绝下游歧义，且不改变既有合法请求的行为。
+
+        使用 field_validator（而非 model_validator(mode="after")），pydantic 会把错误
+        定位到字段本身，全局校验错误处理器的 details 键为 "strategy_names"，
+        客户端可按字段定位。
         """
-        if len(set(self.strategy_names)) != len(self.strategy_names):
+        if len(set(v)) != len(v):
             raise ValueError("strategy_names must not contain duplicates")
-        if len(set(self.problem_ids)) != len(self.problem_ids):
+        return v
+
+    @field_validator("problem_ids")
+    @classmethod
+    def _reject_duplicate_problem_ids(cls, v: list[str]) -> list[str]:
+        """拒绝含重复项的 problem_ids（verify I-4），原因同上。
+
+        details 键为 "problem_ids"，便于客户端按字段定位。
+        """
+        if len(set(v)) != len(v):
             raise ValueError("problem_ids must not contain duplicates")
-        return self
+        return v
 
     class Config:
         json_schema_extra = {
