@@ -76,6 +76,28 @@ class TestMigrations:
         assert "ON DELETE CASCADE" in sql
         assert "sqlite" not in sql.lower()
 
+    def test_evaluations_model_column_present_after_migration(self, tmp_path):
+        """evaluation-real-executor Task 1：迁移后 evaluations 表必须存在可空的 model 列。"""
+        url = f"sqlite:///{tmp_path / 'model_column.sqlite3'}"
+        run_migrations(url)
+        columns = {c["name"]: c for c in inspect(make_engine(url)).get_columns("evaluations")}
+
+        assert "model" in columns, f"evaluations.model 缺失，现有列：{sorted(columns)}"
+        assert columns["model"]["nullable"] is True
+        assert str(columns["model"]["type"]).upper().startswith("VARCHAR")
+
+    def test_evaluations_model_column_roundtrip_downgrade_upgrade(self, tmp_path):
+        """evaluation-real-executor Task 1：downgrade 到 base 再 run_migrations，model 列仍在。"""
+        url = f"sqlite:///{tmp_path / 'model_column_roundtrip.sqlite3'}"
+        run_migrations(url)
+        downgrade(url, "base")
+        # 回滚到 base 后 evaluations 表已被 drop
+        assert "evaluations" not in set(inspect(make_engine(url)).get_table_names())
+
+        run_migrations(url)
+        columns = {c["name"] for c in inspect(make_engine(url)).get_columns("evaluations")}
+        assert "model" in columns
+
 
 class TestProblemStore:
     @pytest.fixture
