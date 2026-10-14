@@ -20,7 +20,7 @@ from redis.exceptions import ConnectionError as RedisConnectionError
 from sqlalchemy.orm import Session
 
 from api.db.engine import business_database_url, make_engine, make_session_factory
-from api.db.models import AsyncTask, Evaluation
+from api.db.models import AsyncTask, Evaluation, EvaluationResult
 from src.celery_app import celery_app
 from src.task_manager import TaskManager
 from src.task_service import TaskService, TaskUnit
@@ -320,3 +320,63 @@ def _resolve_execution_context(
         else:
             missing.add(pid)
     return _EvalContext(llm_config=llm_config, problem_map=problem_map, missing_problems=missing)
+
+
+def _record_unit_result(db: Session, evaluation: Evaluation, unit: TaskUnit) -> float:
+    """把一个已完成/失败的 TaskUnit 映射为 EvaluationResult 行（Design Doc §5.8/§5.12）。
+
+    以 ``(evaluation_id, problem_id, strategy_name)`` 为幂等键 upsert，返回本单元
+    cost（供 Task 5/6 累计 ``spent_usd``）。**不**设置 ``completed_count`` /
+    ``failed_count``：计数聚合归 Task 6 的 ``on_unit_finished``（Design Doc §5.11）。
+    **不** ``commit``：提交时机属编排层（主线程），本 helper 只做 add/字段更新。
+
+    Args:
+        db: 业务数据库会话。
+        evaluation: 当前 Evaluation ORM 对象。
+        unit: 终态 TaskUnit（status 为 "completed" 或 "failed"）。
+
+    Returns:
+        本单元的 cost（美元）。completed 单元取 ``metadata.cost_usd``，否则 0.0。
+    """
+    if unit.status == "completed" and unit.result:
+        data = unit.result
+        meta = data.get("metadata") or {}
+        status = data.get("status", "failed")
+        metrics = {
+            "success": status == "success",
+            "failure_category": data.get("failure_category"),
+            "failure_mode": data.get("failure_mode"),
+            "difficulty": data.get("difficulty"),
+            "total_tokens": data.get("total_tokens", 0),
+            "execution_time_seconds": data.get("execution_time_seconds", 0.0),
+            "cost_usd": meta.get("cost_usd", 0.0),
+            "cost_unknown": meta.get("cost_unknown", False),
+            "formal_evaluable": data.get("formal_evaluable", False),
+            "quality_metrics": data.get("quality_metrics"),
+        }
+        error_message = data.get("error_message")
+        cost = float(meta.get("cost_usd", 0.0))
+    else:
+        status, metrics, error_message, cost = "failed", None, unit.error, 0.0
+
+    row = (
+        db.query(EvaluationResult)
+        .filter_by(
+            evaluation_id=evaluation.id,
+            problem_id=unit.problem_id,
+            strategy_name=unit.strategy,
+        )
+        .first()
+    )
+    if row is None:
+        row = EvaluationResult(
+            id=str(uuid.uuid4()),
+            evaluation_id=evaluation.id,
+            problem_id=unit.problem_id,
+            strategy_name=unit.strategy,
+        )
+        db.add(row)
+    row.status = status
+    row.metrics = metrics
+    row.error_message = error_message
+    return cost

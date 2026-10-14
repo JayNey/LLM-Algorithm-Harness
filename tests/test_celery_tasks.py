@@ -11,7 +11,8 @@ from fastapi import HTTPException
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 
-from api.db.models import AsyncTask, Base, Evaluation
+from api.db.models import AsyncTask, Base, Evaluation, EvaluationResult
+from src.task_service import TaskUnit
 from src.tasks.evaluation import run_evaluation_task
 
 
@@ -347,3 +348,88 @@ class TestResolveExecutionContext:
         assert "missing" in ctx.missing_problems
         assert "p1" in ctx.problem_map
         assert ctx.problem_map["p1"] is sentinel_problem
+
+
+@pytest.fixture
+def make_unit():
+    """构造 TaskUnit 实例，字段可覆盖（默认已完成单元）。"""
+
+    def _make(**overrides):
+        params = {
+            "unit_id": str(uuid.uuid4()),
+            "strategy": "strategy_a",
+            "problem_id": "problem_1",
+            "repeat_index": 0,
+            "status": "completed",
+        }
+        params.update(overrides)
+        return TaskUnit(**params)
+
+    return _make
+
+
+class TestRecordUnitResult:
+    """测试 _record_unit_result 逐单元映射 + 幂等 upsert + 返回 cost。
+
+    计数聚合（completed_count/failed_count）归 Task 6 的 on_unit_finished，
+    本 helper 不设置 evaluation 计数，故此处不断言计数。
+    """
+
+    def test_record_completed_unit_upserts_and_counts(
+        self, db_session, evaluation_setup, make_unit
+    ):
+        """完成单元写入 success 行 + metrics + 返回 cost；同键二次调用不新增行。"""
+        from src.tasks.evaluation import _record_unit_result
+
+        evaluation = evaluation_setup["evaluation"]
+        unit = make_unit(
+            problem_id="problem_1",
+            strategy="strategy_a",
+            status="completed",
+            result={
+                "status": "success",
+                "total_tokens": 10,
+                "execution_time_seconds": 1.5,
+                "metadata": {"cost_usd": 0.01, "cost_unknown": False},
+            },
+        )
+
+        cost = _record_unit_result(db_session, evaluation, unit)
+
+        row = (
+            db_session.query(EvaluationResult)
+            .filter_by(
+                evaluation_id=evaluation.id,
+                problem_id=unit.problem_id,
+                strategy_name=unit.strategy,
+            )
+            .one()
+        )
+        assert row.status == "success"
+        assert row.metrics["total_tokens"] == 10
+        assert row.metrics["success"] is True
+        assert row.metrics["cost_usd"] == 0.01
+        assert cost == 0.01
+
+        # 同键二次调用不新增行
+        _record_unit_result(db_session, evaluation, unit)
+        assert db_session.query(EvaluationResult).count() == 1
+
+    def test_record_failed_unit_writes_failed_row(self, db_session, evaluation_setup, make_unit):
+        """失败单元写入 status='failed' 行、error_message 含原因、cost==0.0。"""
+        from src.tasks.evaluation import _record_unit_result
+
+        evaluation = evaluation_setup["evaluation"]
+        unit = make_unit(
+            status="failed",
+            result=None,
+            error="Problem x not found in problem store",
+        )
+
+        cost = _record_unit_result(db_session, evaluation, unit)
+
+        row = db_session.query(EvaluationResult).one()
+        assert row.status == "failed"
+        assert row.metrics is None
+        assert "not found" in row.error_message
+        assert cost == 0.0
