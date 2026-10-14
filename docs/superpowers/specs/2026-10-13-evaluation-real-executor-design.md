@@ -278,6 +278,13 @@ row.status = status; row.metrics = metrics; row.error_message = error_message
 
 保持既有映射（[evaluation.py:182-199](file:///Users/charlesleclerc/LLM-Algorithm-Harness/src/tasks/evaluation.py#L182-L199)）：`completed→completed`、`paused→paused`、`failed→failed`(+error_message)、`cancelled→cancelled`，并同步 `task_manager.update_task_status`。`completed` 时记录 `completed_at`（若既有未记录则补 `evaluation.completed_at = utcnow()`）。取消语义与「重启不把已入队 pending 标记失败」语义不变。
 
+### 5.15 Implementation Divergence（verify 阶段补记）
+
+整 change 集成审查发现两项本设计未事先记录的下游/入参口径，已在 build 修复并收录进 delta spec，此处补记设计决策以消除 spec↔design doc 漂移：
+
+- **重复 `strategy_names` / `problem_ids` 入口拒绝（回应 open 阶段 design.md D5）**：§5.12 的幂等键只保证不产生重复 `EvaluationResult` 行，但 `completed_count`/`spent_usd` 仍会把重复单元累加两次，造成计数与结果行数不一致。裁定：在 `EvaluationCreateRequest` 用 `field_validator` 拒绝含重复项的 `strategy_names`/`problem_ids`，创建即在入口返回 **HTTP 400**（项目全局 `RequestValidationError` 统一映射 400，非 422），不创建任何评估记录，杜绝下游歧义。字段级校验器使 400 响应 `details` 键定位到具体字段。
+- **进度 `percentage` 分母改单元总数（§5.11 口径的下游同步）**：§5.11 把 `completed_count` 重定义为单元数（策略×题目），`api/services/evaluation_service.py` 三处 `percentage = completed_count / problem_count * 100` 因此溢出（2×2 → 200）触发 `ProgressInfo.percentage Field(le=100)` 校验失败 → `GET /evaluations` HTTP 500。裁定：`_compute_percentage` 统一以 `problem_count × len(strategy_names)`（单元总数）为分母并 clamp 至 [0,100]；`progress.total` 仍保持题目数口径（进度接口与聚合回退路径），故 `current/total` 比值不等于 `percentage`——该分母差异已在 API.md 显式声明。worker 实时上报的 `async_task.progress` 的 `current`/`total` 均为单元数、不含 percentage，不受影响。
+
 ## 6. 关键取舍
 
 | 决策 | 选择 | 理由 / 被否方案 |
