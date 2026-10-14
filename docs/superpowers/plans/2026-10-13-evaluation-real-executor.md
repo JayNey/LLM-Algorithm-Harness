@@ -425,7 +425,7 @@ Run: `python3 -m pytest tests/test_evaluation_task.py -k "run_evaluation_task" -
 Expected: FAIL（仍是 mock worker）
 
 - [ ] **Step 3: 改造 `run_evaluation_task`**（Design Doc §5.3）
-  - 在「验证配置」后插入 `session_factory = make_session_factory(make_engine(business_database_url()))`；`ctx = _resolve_execution_context(evaluation, session_factory)`（fail-fast 走既有 except）。
+  - 在「验证配置」后插入 `session_factory = sessionmaker(bind=db.get_bind())`（**复用 `db` 同一 engine**，保证 ProblemStore 与 evaluation 读写同一 DB；测试中 `db` 被 patch 为内存 session，用 `business_database_url()` 新建 engine 会指向真实 DB 并破坏隔离）；`ctx = _resolve_execution_context(evaluation, session_factory)`（fail-fast 走既有 except）。
   - 置 running 后：`harness, strategy_configs, runtimes = _build_harness(ctx, evaluation.strategy_names)`（异常 → 既有 except 置 failed）。
   - 定义真实 worker：`worker = _make_worker(harness, strategy_configs, runtimes, ctx.problem_map)`（Task 5 工厂；闭包捕获 harness/strategy_configs/runtimes/problem_map，不引用 db）。
   - 重写 `on_unit_finished(record, unit)`：
