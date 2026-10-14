@@ -22,6 +22,23 @@
    - 内存：8GB+（4GB 最小）
    - 磁盘：20GB+（用于日志、数据和临时文件）
 
+## 真实评估运行前置
+
+本 change 起，异步评估 worker 不再返回模拟结果，而是经真实 `AlgorithmHarness` 执行（LLM 调用 + Docker 沙箱运行 + 成本统计）。因此运行评估 worker 的机器必须额外满足以下硬前置，否则任务会在执行前或首单元即失败。
+
+1. **Docker 守护进程**
+   - `SandboxConfig()` 默认 `backend="docker"`（`docker_image` 默认 `python:3.11-slim`）。
+   - `AlgorithmHarness._prepare_strategy_runtime()` 在构造每个策略运行时会调用 `SandboxExecutor.health_check()`，Docker 不可用（daemon 未运行或镜像缺失）时抛 `RuntimeError("Sandbox preflight failed: ...")`，评估在 preflight 阶段即 fail-fast，任务被置为 `failed`。
+   - 部署机必须提供可用的 Docker daemon，并**预先拉取**目标镜像（如 `docker pull python:3.11-slim`），避免首个执行单元因拉取镜像而超时。
+   - 仅测试用途可显式配置 `backend="host"`；生产评估不应依赖 host 后端。
+
+2. **worker 工作目录约定**
+   - 评估执行体使用 `TaskService(root=f"data/tasks/{evaluation_id}")` 创建逐单元运行目录，该路径为**相对路径**。
+   - Celery worker 必须在仓库根目录启动，或确保 `data/tasks/` 相对于进程 CWD 可写，否则任务运行目录创建失败。下方 systemd 示例的 `WorkingDirectory=/opt/llm-harness` 与 supervisor 示例的 `directory=/opt/llm-harness` 必须指向包含 `data/tasks/` 的仓库根；如服务由其他路径拉起，请相应设置 `--workdir`/`WorkingDirectory=`/`directory=`。
+
+3. **凭证与 `model`**
+   - 创建评估请求必须携带必填 `model`，且 `api_key_id` 必须可解析为该用户的有效凭证；否则任务在执行前即置 `failed`（fail-fast，见 §5.4/§5.5）。缺失 `model` 的请求在 HTTP 层即返回 422。
+
 ## 环境变量配置
 
 ### 核心配置
