@@ -12,6 +12,7 @@ run_evaluation_task 是异步评估执行的核心任务，负责：
 from __future__ import annotations
 
 import uuid
+from collections.abc import Callable, Iterable
 from dataclasses import dataclass
 from typing import TYPE_CHECKING, Any
 
@@ -22,6 +23,8 @@ from sqlalchemy.orm import Session
 from api.db.engine import business_database_url, make_engine, make_session_factory
 from api.db.models import AsyncTask, Evaluation, EvaluationResult
 from src.celery_app import celery_app
+from src.harness import AlgorithmHarness
+from src.models import ExecutionResult, HarnessConfig, SandboxConfig, StrategyConfig
 from src.task_manager import TaskManager
 from src.task_service import TaskService, TaskUnit
 
@@ -30,6 +33,7 @@ if TYPE_CHECKING:
 
     from api.db.models import Problem
     from src.models import LLMConfig
+    from src.models import Problem as DomainProblem
 
 
 def get_db_session() -> Session:
@@ -380,3 +384,92 @@ def _record_unit_result(db: Session, evaluation: Evaluation, unit: TaskUnit) -> 
     row.metrics = metrics
     row.error_message = error_message
     return cost
+
+
+# HarnessConfig 要求 dataset_path 必填，但评估单元的题目来自题库（problem_map），
+# 从不由 harness 自己加载数据集；该常量只是满足 schema 的占位值，运行时从不被读取。
+_UNUSED_DATASET_PATH = "db://evaluations"
+
+
+def _build_harness(
+    ctx: _EvalContext, strategy_names: Iterable[str]
+) -> tuple[AlgorithmHarness, dict[str, StrategyConfig], dict[str, tuple[Any, Any]]]:
+    """构造评估专用 harness，并为每个策略预建一次 runtime。
+
+    runtime（策略实例 + 沙箱）预建成本高且可跨单元复用，因此按策略各建一次；
+    沙箱 preflight 失败或策略名未知时在此 fail-fast（``RuntimeError`` /
+    ``ValueError``），而不是等到第一个单元执行时才暴露。
+
+    ``budget_cap_usd`` 显式置 ``None``：预算口径由评估记录（``budget_cap_usd`` +
+    ``spent_usd``）经 ``TaskService.pause_when`` 执行，harness 内部预算跟踪器不参与，
+    避免出现两个互相冲突的成本闸门。
+
+    Args:
+        ctx: 已解析的执行上下文（提供 llm_config）。
+        strategy_names: 本次评估需要执行的策略名。
+
+    Returns:
+        ``(harness, strategy_configs, runtimes)`` 三元组；``runtimes`` 为
+        ``{strategy_name: (strategy_instance, sandbox)}``。
+    """
+    strategy_configs = {name: StrategyConfig(name=name) for name in strategy_names}
+    config = HarnessConfig(
+        llm_config=ctx.llm_config,
+        sandbox_config=SandboxConfig(),
+        dataset_path=_UNUSED_DATASET_PATH,
+        strategies=list(strategy_configs.values()),
+        budget_cap_usd=None,
+        enable_quality_analysis=False,
+    )
+    harness = AlgorithmHarness(config)
+    runtimes = {
+        name: harness._prepare_strategy_runtime(strategy_config)
+        for name, strategy_config in strategy_configs.items()
+    }
+    return harness, strategy_configs, runtimes
+
+
+def _make_worker(
+    harness: AlgorithmHarness,
+    strategy_configs: dict[str, StrategyConfig],
+    runtimes: dict[str, tuple[Any, Any]],
+    problem_map: dict[str, DomainProblem],
+) -> Callable[[TaskUnit], ExecutionResult]:
+    """返回真实执行一个 TaskUnit 的 worker 闭包。
+
+    闭包只捕获 harness、策略配置、预建 runtime 与只读题目映射——**绝不捕获 db
+    会话**：worker 运行在 TaskService 的 executor 线程，跨线程触碰 SQLAlchemy
+    session 会损坏连接状态；所有落库都在主线程的回调里完成。
+
+    cost 走 harness 的真实定价口径：无定价信息时 ``cost_usd`` 为 0.0 且
+    ``cost_unknown`` 置 True（诚实口径，不伪造花费）。
+
+    Args:
+        harness: 已构造的 AlgorithmHarness。
+        strategy_configs: ``{strategy_name: StrategyConfig}``。
+        runtimes: ``{strategy_name: (strategy_instance, sandbox)}``。
+        problem_map: ``{problem_id: Problem}``，题库命中的题目。
+
+    Returns:
+        ``worker(unit) -> ExecutionResult``。
+
+    Raises:
+        ValueError: 单元对应的题目不在题库映射中（worker 调用时抛出）。
+    """
+
+    def worker(unit: TaskUnit) -> ExecutionResult:
+        """真实执行一个单元，并把真实 cost 写入 ``result.metadata``。"""
+        problem = problem_map.get(unit.problem_id)
+        if problem is None:
+            raise ValueError(f"Problem {unit.problem_id} not found in problem store")
+        strategy_config = strategy_configs[unit.strategy]
+        strategy, sandbox = runtimes[unit.strategy]
+        result = harness._execute_problem(strategy_config, problem, strategy, sandbox)
+        cost, pricing_metadata = harness._estimate_cost([result])
+        result.metadata["cost_usd"] = cost
+        result.metadata["cost_unknown"] = bool(
+            pricing_metadata.get("unknown_usage") or pricing_metadata.get("unknown_pricing")
+        )
+        return result
+
+    return worker

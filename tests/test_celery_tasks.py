@@ -8,10 +8,13 @@ from unittest.mock import Mock, patch
 
 import pytest
 from fastapi import HTTPException
+from pydantic import SecretStr
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 
 from api.db.models import AsyncTask, Base, Evaluation, EvaluationResult
+from src.harness import AlgorithmHarness
+from src.models import ExecutionResult, LLMConfig, Problem
 from src.task_service import TaskUnit
 from src.tasks.evaluation import run_evaluation_task
 
@@ -433,3 +436,135 @@ class TestRecordUnitResult:
         assert row.metrics is None
         assert "not found" in row.error_message
         assert cost == 0.0
+
+
+@pytest.fixture
+def eval_ctx():
+    """构造 _EvalContext：占位凭证 + 一道真实 domain Problem。
+
+    ``api_key`` 为假值；真实 LLMClient 构造发生在 ``_prepare_strategy_runtime``
+    内部，测试中已被 patch，因此绝不发起在线调用。
+    """
+    from src.tasks.evaluation import _EvalContext
+
+    llm_config = LLMConfig(
+        provider="openai", api_key=SecretStr("sk-placeholder"), model="test-model"
+    )
+    problem = Problem(
+        problem_id="p1",
+        title="Two Sum",
+        description="Return indices of the two numbers that add up to the target.",
+        difficulty="easy",
+        public_test_cases=[{"input": {"nums": [2, 7], "target": 9}, "expected_output": [0, 1]}],
+        hidden_test_cases=[{"input": {"nums": [3, 2], "target": 5}, "expected_output": [0, 1]}],
+    )
+    return _EvalContext(
+        llm_config=llm_config,
+        problem_map={"p1": problem},
+        missing_problems=set(),
+    )
+
+
+@pytest.fixture
+def harness_ctx(eval_ctx):
+    """调用真实 _build_harness，但屏蔽 runtime 预建（禁 docker / 禁网）。
+
+    返回 ``((harness, strategy_configs, runtimes), prepare_mock)``。
+    """
+    from src.tasks.evaluation import _build_harness
+
+    forbidden = AssertionError("runtime pre-build must not touch sandbox or LLM client")
+    prepare = Mock(return_value=(object(), object()))
+    with (
+        patch.object(AlgorithmHarness, "_prepare_strategy_runtime", prepare),
+        patch("src.harness.SandboxExecutor", side_effect=forbidden),
+        patch("src.harness.LLMClient", side_effect=forbidden),
+    ):
+        built = _build_harness(eval_ctx, ["vanilla", "chain_of_thought"])
+    return built, prepare
+
+
+class TestBuildHarness:
+    """测试 _build_harness：诚实的 HarnessConfig + 每策略一次 runtime 预建。"""
+
+    def test_build_harness_prepares_runtime_once_per_strategy(self, eval_ctx, harness_ctx):
+        """配置不伪造预算/数据集，且每个策略各预建一次 runtime。"""
+        from src.tasks.evaluation import _UNUSED_DATASET_PATH
+
+        (harness, strategy_configs, runtimes), prepare = harness_ctx
+
+        assert isinstance(harness, AlgorithmHarness)
+        assert harness.config.llm_config is eval_ctx.llm_config
+        assert harness.config.dataset_path == _UNUSED_DATASET_PATH
+        assert harness.config.budget_cap_usd is None
+        assert harness.config.enable_quality_analysis is False
+        assert harness.budget_tracker is None
+
+        assert list(strategy_configs) == ["vanilla", "chain_of_thought"]
+        assert [sc.name for sc in strategy_configs.values()] == [
+            "vanilla",
+            "chain_of_thought",
+        ]
+        assert harness.config.strategies == list(strategy_configs.values())
+
+        # 每策略恰好一次，且传入的是对应 StrategyConfig
+        assert prepare.call_count == len(strategy_configs)
+        assert [call.args[0] for call in prepare.call_args_list] == list(strategy_configs.values())
+
+        assert set(runtimes) == set(strategy_configs)
+        for name in strategy_configs:
+            assert runtimes[name] is prepare.return_value
+
+
+class TestMakeWorker:
+    """测试 _make_worker 返回的真实 worker 闭包（不引用 db / session）。"""
+
+    def test_worker_returns_real_result_with_cost(
+        self, monkeypatch, eval_ctx, harness_ctx, make_unit
+    ):
+        """worker 走 harness 真实执行路径并把真实 cost 写入 result.metadata。"""
+        from src.tasks.evaluation import _make_worker
+
+        (harness, strategy_configs, runtimes), _prepare = harness_ctx
+        seen: dict[str, tuple] = {}
+
+        def fake_execute(strategy_config, problem, strategy, sandbox):
+            seen["args"] = (strategy_config, problem, strategy, sandbox)
+            return ExecutionResult(
+                problem_id=problem.problem_id,
+                strategy=strategy_config.name,
+                generated_code="def solution(**kw):\n    return 1",
+                status="success",
+            )
+
+        monkeypatch.setattr(harness, "_execute_problem", fake_execute)
+        monkeypatch.setattr(
+            harness,
+            "_estimate_cost",
+            lambda results: (0.02, {"unknown_usage": False, "unknown_pricing": False}),
+        )
+
+        worker = _make_worker(harness, strategy_configs, runtimes, eval_ctx.problem_map)
+        result = worker(make_unit(strategy="vanilla", problem_id="p1"))
+
+        assert isinstance(result, ExecutionResult)
+        assert result.status == "success"
+        assert result.problem_id == "p1"
+        assert result.strategy == "vanilla"
+        assert result.metadata["cost_usd"] == 0.02
+        assert result.metadata["cost_unknown"] is False
+
+        # 真实 runtime 被复用（每策略一次预建），不重新构造
+        assert seen["args"][0] is strategy_configs["vanilla"]
+        assert seen["args"][1] is eval_ctx.problem_map["p1"]
+        assert seen["args"][2:] == runtimes["vanilla"]
+
+    def test_worker_missing_problem_raises(self, eval_ctx, harness_ctx, make_unit):
+        """题库缺失的单元由 worker 抛出可审计的 ValueError。"""
+        from src.tasks.evaluation import _make_worker
+
+        (harness, strategy_configs, runtimes), _prepare = harness_ctx
+        worker = _make_worker(harness, strategy_configs, runtimes, eval_ctx.problem_map)
+
+        with pytest.raises(ValueError, match="not found in problem store"):
+            worker(make_unit(strategy="vanilla", problem_id="ghost"))
