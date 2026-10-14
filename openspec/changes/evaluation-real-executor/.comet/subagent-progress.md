@@ -61,5 +61,13 @@
   - **Ruling（协调者）**：单字机械断言收紧 + 与 reviewer 处方逐字一致 + fix agent 自带 mutation-style RED/GREEN 证据 + diff 仅 1 行——re-review 唯一信息量（无夹带）已由 `git diff --stat` + 全文 diff 确认；不重派 re-reviewer（走 "Rulings, not stalls"）。如后续任何非机械 fix/多行改动/新增文件，本例外不适用
   - Reviewer 对 concern 3 裁定：「resume 失效→ValueError→failed 路径」已被 Task 6 `test_run_evaluation_task_credential_failure_no_results` 实证覆盖（同一 `except (ValueError, FileNotFoundError)` 分支），可 deferred → verify 阶段观察清单
   - **tasks.md 3.2 已勾选**（见下）
-- Task 8（边界测试）: pending（下一步派发）
-- Task 9（CI 门禁）: pending
+- Task 8（边界测试）: **done**（impl 1132a10；review Spec ✅ PASS，无 CRITICAL/IMPORTANT）
+  - 命中 DONE_WITH_CONCERNS → 已派每任务 reviewer（多文件协调 + Alembic schema-adjacent）
+  - 覆盖真实缺口：§8 #4 部分题目缺失（集成级）+ #10 聚合口径合并为一条（`test_run_evaluation_task_missing_problem_fails_only_that_unit`）；Ledger Task 1 deferred “既有库迁移不破坏历史行”→ Alembic `upgrade 3a568a0f1b04 → insert model=NULL → upgrade head` 断言行存在 (`test_legacy_evaluation_rows_survive_model_column_migration`)
+  - `test_unknown_pricing_does_not_advance_spent` 未重复添加（Task 6 `test_run_evaluation_task_unknown_pricing_honest` 已覆盖同 scenario且断言更强）
+  - 验证：`pytest tests/ -k evaluation` 88 passed；`pytest -m "not online"` 1653 passed；`pytest test_celery_tasks.py test_api_database.py` 36 passed；ruff/black/encoding 均绿
+  - **Concern 1 语义分歧裁定（协调者+reviewer 一致）**：实跑 `ev.status=="failed"` 为正确终态（TaskService 将任一单元未 completed 的 run 定为 failed），符合 §5.13 「paused/failed 皆可 resume」。若归 completed→resume 不会重跑 failed→与 §5.13 相悖。简报预期 completed 属误读，测试断言按实跑调整保留 failed
+  - Reviewer 无 CRITICAL/IMPORTANT，3 MINOR（字面量 total_units=2 不用动态式、raw SQL 硬编列集、父 revision 字面量与迁移链耦合）均 deferred；Task 7 签名 black 一行化合规顺手修复确认
+  - Task 2 deferred `model max_length=200` 属源码改动→继续 deferred→verify 阶段或后续统一处理
+  - **tasks.md 4.1 已勾选**
+- Task 9（CI 门禁）: pending（下一步派发）

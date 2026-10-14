@@ -16,5 +16,5 @@
 
 ## 4. 测试与质量门禁
 
-- [ ] 4.1 补齐/更新受影响测试（`tests/test_evaluation*`、`test_api_database.py`、`test_api_auth.py` 等），全程 mock LLM 与沙箱、不发起在线调用。验证：`pytest -m "not online" --no-cov -q` 全绿。
+- [x] 4.1 补齐/更新受影响测试（`tests/test_evaluation*`、`test_api_database.py`、`test_api_auth.py` 等），全程 mock LLM 与沙箱、不发起在线调用。验证：`pytest -m "not online" --no-cov -q` 全绿。
 - [ ] 4.2 通过全部 CI 等价门禁。验证：`ruff check .`、`ruff format --check`、`black --check .`、`mypy src/ --ignore-missing-imports`、`python scripts/find_missing_encoding.py`、`pytest tests/test_utf8_io.py -q --no-cov` 全部通过。
