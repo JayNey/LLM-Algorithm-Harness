@@ -140,7 +140,7 @@ git commit -m "feat(api)!: require and persist model on evaluation create (evalu
 
 **Files:**
 - Modify: `src/tasks/evaluation.py`（新增模块级 helper `_resolve_execution_context`）
-- Test: `tests/test_evaluation_task.py`（或现有 run_evaluation_task 测试文件）
+- Test: `tests/test_celery_tasks.py`（或现有 run_evaluation_task 测试文件）
 
 **Interfaces:**
 - Produces:
@@ -171,7 +171,7 @@ def test_missing_problem_recorded_not_fatal(make_evaluation, fake_store):
 
 - [ ] **Step 2: 运行确认失败**
 
-Run: `python3 -m pytest tests/test_evaluation_task.py -k "fails_fast or missing_problem_recorded" -v --no-cov`
+Run: `python3 -m pytest tests/test_celery_tasks.py -k "fails_fast or missing_problem_recorded" -v --no-cov`
 Expected: FAIL（helper 未定义）
 
 - [ ] **Step 3: 实现 `_resolve_execution_context`**（Design Doc §5.4 + §5.5）
@@ -197,7 +197,7 @@ def _resolve_execution_context(evaluation, session_factory) -> _EvalContext:
 
 - [ ] **Step 4: 运行确认通过**
 
-Run: `python3 -m pytest tests/test_evaluation_task.py -k "fails_fast or missing_problem_recorded" -v --no-cov`
+Run: `python3 -m pytest tests/test_celery_tasks.py -k "fails_fast or missing_problem_recorded" -v --no-cov`
 Expected: PASS
 
 - [ ] **Step 5: 提交**
@@ -212,7 +212,7 @@ git commit -m "feat(eval): fail-fast model+credential resolution, per-problem st
 
 **Files:**
 - Modify: `src/tasks/evaluation.py`（新增 `_record_unit_result(db, evaluation, unit)`）
-- Test: `tests/test_evaluation_task.py`
+- Test: `tests/test_celery_tasks.py`
 
 **Interfaces:**
 - Consumes: `EvaluationResult`（api/db/models.py:91）、`TaskUnit`
@@ -242,7 +242,7 @@ def test_record_failed_unit_writes_failed_row(db, evaluation, make_unit):
 
 - [ ] **Step 2: 运行确认失败**
 
-Run: `python3 -m pytest tests/test_evaluation_task.py -k "record_completed_unit or record_failed_unit" -v --no-cov`
+Run: `python3 -m pytest tests/test_celery_tasks.py -k "record_completed_unit or record_failed_unit" -v --no-cov`
 Expected: FAIL
 
 > **Ruling（preflight）**：`_record_unit_result` 只做 `EvaluationResult` 幂等 upsert + 返回 cost，**不**设置 `evaluation.completed_count/failed_count`；计数聚合统一在 Task 6 的 `on_unit_finished` 里按 `record.units` 全量重算（幂等、resume 无漂移，符合 Design Doc §5.11）。原 Task 4 测试的计数断言已移除，改由 Task 6 `test_run_evaluation_task_completes_all_units` 与 Task 8 `test_aggregate_counts_sum_to_total` 覆盖。
@@ -280,7 +280,7 @@ def _record_unit_result(db, evaluation, unit) -> float:
 
 - [ ] **Step 4: 运行确认通过**
 
-Run: `python3 -m pytest tests/test_evaluation_task.py -k "record_completed_unit or record_failed_unit" -v --no-cov`
+Run: `python3 -m pytest tests/test_celery_tasks.py -k "record_completed_unit or record_failed_unit" -v --no-cov`
 Expected: PASS
 
 - [ ] **Step 5: 提交**
@@ -295,7 +295,7 @@ git commit -m "feat(eval): idempotent per-unit EvaluationResult upsert + aggrega
 
 **Files:**
 - Modify: `src/tasks/evaluation.py`（新增 `_build_harness(ctx, strategy_names)` 与真实 `worker`；`should_pause` 复用既有）
-- Test: `tests/test_evaluation_task.py`
+- Test: `tests/test_celery_tasks.py`
 
 **Interfaces:**
 - Consumes: `_EvalContext`（Task 3）、`AlgorithmHarness._prepare_strategy_runtime/_execute_problem/_estimate_cost`
@@ -329,7 +329,7 @@ def test_budget_pause_stops_scheduling(...):
 
 - [ ] **Step 2: 运行确认失败**
 
-Run: `python3 -m pytest tests/test_evaluation_task.py -k "worker_returns_real or worker_missing_problem or budget_pause" -v --no-cov`
+Run: `python3 -m pytest tests/test_celery_tasks.py -k "worker_returns_real or worker_missing_problem or budget_pause" -v --no-cov`
 Expected: FAIL
 
 - [ ] **Step 3: 实现 `_build_harness`**（Design Doc §5.6）
@@ -364,7 +364,7 @@ def worker(unit: TaskUnit) -> ExecutionResult:
 
 - [ ] **Step 5: 运行确认通过**
 
-Run: `python3 -m pytest tests/test_evaluation_task.py -k "worker_returns_real or worker_missing_problem or budget_pause" -v --no-cov`
+Run: `python3 -m pytest tests/test_celery_tasks.py -k "worker_returns_real or worker_missing_problem or budget_pause" -v --no-cov`
 Expected: PASS
 
 - [ ] **Step 6: 提交**
@@ -421,7 +421,7 @@ def test_run_evaluation_task_unknown_pricing_honest(run_task_env_cap):
 
 - [ ] **Step 2: 运行确认失败**
 
-Run: `python3 -m pytest tests/test_evaluation_task.py -k "run_evaluation_task" -v --no-cov`
+Run: `python3 -m pytest tests/test_celery_tasks.py -k "run_evaluation_task" -v --no-cov`
 Expected: FAIL（仍是 mock worker）
 
 - [ ] **Step 3: 改造 `run_evaluation_task`**（Design Doc §5.3）
@@ -444,7 +444,7 @@ Expected: FAIL（仍是 mock worker）
 
 - [ ] **Step 4: 运行确认通过**
 
-Run: `python3 -m pytest tests/test_evaluation_task.py -k "run_evaluation_task" -v --no-cov`
+Run: `python3 -m pytest tests/test_celery_tasks.py -k "run_evaluation_task" -v --no-cov`
 Expected: PASS
 
 - [ ] **Step 5: 提交**
@@ -459,7 +459,7 @@ git commit -m "feat(eval): replace mock worker with real harness execution in ru
 
 **Files:**
 - Modify: `src/tasks/evaluation.py`（resume 分支已在，验证幂等）
-- Test: `tests/test_evaluation_task.py`
+- Test: `tests/test_celery_tasks.py`
 
 **Interfaces:**
 - Consumes: Task 6 的 `run_evaluation_task` + `_record_unit_result` 幂等键
@@ -485,7 +485,7 @@ def test_resume_after_pause_runs_only_remaining(run_task_env_cap):
 
 - [ ] **Step 2: 运行确认失败/通过**——若 Task 6 幂等已正确，此测试应直接 PASS；若 FAIL 则说明 resume 重跑或计数重置，需修正 `on_unit_finished` 计数基于 `record.units` 全量重算（已是）与 upsert 幂等键（已是）。
 
-Run: `python3 -m pytest tests/test_evaluation_task.py -k "resume_after_pause" -v --no-cov`
+Run: `python3 -m pytest tests/test_celery_tasks.py -k "resume_after_pause" -v --no-cov`
 Expected: PASS（如 FAIL，按 Design Doc §5.13 修正）
 
 - [ ] **Step 3: 提交**
@@ -499,7 +499,7 @@ git commit -m "test(eval): verify resume dedup and continued accumulation (evalu
 ### Task 8: 补齐受影响测试套件（mock LLM/沙箱，不触网）
 
 **Files:**
-- Modify/Create: `tests/test_evaluation_task.py`、`tests/test_api_database.py`、受影响 `tests/test_api_evaluation*.py`
+- Modify/Create: `tests/test_celery_tasks.py`、`tests/test_api_database.py`、受影响 `tests/test_api_evaluation*.py`
 - Test: 同上
 
 **Interfaces:**
