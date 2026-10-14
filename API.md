@@ -381,9 +381,11 @@ import time
 while True:
     response = session.get(f"{BASE_URL}/evaluations/{eval_id}/progress")
     progress = response.json()["data"]
-    print(f"Progress: {progress['completed']}/{progress['total']}")
-    
-    if progress["completed"] == progress["total"]:
+    # 多策略评估中 completed 为单元数、total 为题目数（分母不同），
+    # 因此以 percentage 或终态作为退出条件，而不是 completed == total。
+    print(f"Progress: {progress['percentage']}%")
+
+    if progress["percentage"] >= 100:
         break
     time.sleep(1)
 ```

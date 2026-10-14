@@ -498,7 +498,7 @@ harness benchmark --suite benchmark.example.json --compare --output reports/lear
 ### 架构组件
 
 - **API 服务**: FastAPI 应用，提供 REST API 接口
-- **Celery Worker**: 提供评估、实验、导入和基准任务入口，评估入口仍使用模拟 worker
+- **Celery Worker**: 提供评估、实验、导入和基准任务入口，评估入口现经真实 `AlgorithmHarness` 执行（LLM 调用 + Docker 沙箱运行，详见上节限制说明）
 - **Redis**: 消息代理和结果后端
 - **PostgreSQL/SQLite**: 任务状态持久化
 

@@ -118,7 +118,7 @@
 
 ### Requirement: 进度百分比以单元总数为分母
 
-系统 SHALL 以单元总数（题目数 × 策略数）作为进度 `percentage` 的分母，其值 SHALL 恒落在 [0, 100] 区间内。`progress.total` SHALL 保持题目数口径不变，因此 `current`/`total` 的比值与 `percentage` 的分母不同。
+系统 SHALL 以单元总数（题目数 × 策略数）作为进度 `percentage` 的分母，其值 SHALL 恒落在 [0, 100] 区间内。在进度接口与聚合回退口径下，`progress.total` SHALL 保持题目数口径不变，因此 `current`/`total` 的比值与 `percentage` 的分母不同（若存在 worker 实时上报的 `async_task.progress`，其 `current`/`total` 均为单元数口径，不受本约束）。
 
 #### Scenario: 多策略全部完成时百分比不溢出
 
