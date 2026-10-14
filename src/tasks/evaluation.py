@@ -13,7 +13,7 @@ from __future__ import annotations
 
 import uuid
 from collections.abc import Callable, Iterable
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from typing import TYPE_CHECKING, Any
 
 from celery import Task
@@ -179,9 +179,23 @@ def run_evaluation_task(self: EvaluationTask, evaluation_id: str) -> dict[str, A
             )
 
         def should_pause(record: Any) -> bool:
-            """检查是否应该暂停"""
-            # 检查用户请求暂停
-            current_async_task = db.query(AsyncTask).filter(AsyncTask.id == async_task.id).first()
+            """检查是否应该暂停。
+
+            用户暂停分支必须跨进程可见：API 进程（另一 DB 连接）通过 pause_task()
+            把 AsyncTask 写成 "paused"，而本 worker session 的业务 engine 配
+            expire_on_commit=False——该对象已在 identity map 中，普通 ``.first()``
+            命中缓存实例、不重新 SELECT，会永远看不到外部写入。故用
+            ``populate_existing()`` 强制从 DB 重读并刷新该 AsyncTask 实例属性，绕过
+            identity map 短路。**只**作用于被查询的 AsyncTask，不 refresh evaluation
+            等其他对象，以免丢弃主线程待提交状态。budget 分支保持不变。
+            """
+            # 检查用户请求暂停（强制重读，跨进程可见）
+            current_async_task = (
+                db.query(AsyncTask)
+                .populate_existing()
+                .filter(AsyncTask.id == async_task.id)
+                .first()
+            )
             if current_async_task and current_async_task.status == "paused":
                 return True
 
@@ -197,7 +211,9 @@ def run_evaluation_task(self: EvaluationTask, evaluation_id: str) -> dict[str, A
         # 真实 worker（Design Doc §5.7）：闭包捕获 harness/策略配置/预建 runtime/只读题目
         # 映射，绝不引用 db（worker 跑在 executor 线程，跨线程触碰 session 会损坏连接）。
         # worker 返回 ExecutionResult，由 TaskService._serialize_result 序列化入 unit.result。
-        worker = _make_worker(harness, strategy_configs, runtimes, ctx.problem_map)
+        worker = _make_worker(
+            harness, strategy_configs, runtimes, ctx.problem_map, ctx.missing_reasons
+        )
 
         # 7. 执行 TaskService.run()
         final_record = task_service.run(
@@ -294,12 +310,17 @@ class _EvalContext:
     Attributes:
         llm_config: 已解析的模型凭证配置。
         problem_map: 命中题库的题目，按 problem_id 索引。
-        missing_problems: 题库中缺失的 problem_id 集合（不 fail-fast）。
+        missing_problems: 题库中不可用（缺失或非法）的 problem_id 集合（不 fail-fast）。
+        missing_reasons: ``problem_id -> 不可用原因文本``。区分「查不到」
+            （``"not found in problem store"``）与「行存在但数据非法」
+            （``"invalid/incomplete problem data: ..."``），供 worker 把真实原因
+            随单元失败信息下传，避免非法数据被伪装成「not found」误导用户重复导入。
     """
 
     llm_config: LLMConfig
     problem_map: dict[str, DomainProblem]
     missing_problems: set[str]
+    missing_reasons: dict[str, str] = field(default_factory=dict)
 
 
 def _to_domain_problem(row: Problem) -> DomainProblem:
@@ -346,6 +367,22 @@ def _to_domain_problem(row: Problem) -> DomainProblem:
     return DomainProblem(**{k: v for k, v in data.items() if v is not None})
 
 
+def _validation_error_summary(exc: ValidationError) -> str:
+    """把 pydantic ``ValidationError`` 压成一行短摘要，避免整段堆栈污染单元失败信息。
+
+    取第一条错误的定位与消息（``field.loc: msg``），多于一条时附加字段计数。
+    """
+    errors = exc.errors()
+    if not errors:
+        return "unknown validation error"
+    first = errors[0]
+    loc = ".".join(str(part) for part in first.get("loc", ())) or "problem"
+    summary = f"{loc}: {first.get('msg', 'invalid')}"
+    if len(errors) > 1:
+        summary += f" (+{len(errors) - 1} more field(s))"
+    return summary
+
+
 def _resolve_execution_context(
     evaluation: Evaluation, session_factory: sessionmaker[Session]
 ) -> _EvalContext:
@@ -384,17 +421,28 @@ def _resolve_execution_context(
     store = ProblemStore(session_factory)
     problem_map: dict[str, DomainProblem] = {}
     missing: set[str] = set()
+    missing_reasons: dict[str, str] = {}
     for pid in evaluation.problem_ids:
         row = store.get_by_problem_id(pid)
         if row is None:
             missing.add(pid)
+            missing_reasons[pid] = "not found in problem store"
             continue
         try:
             problem_map[pid] = _to_domain_problem(row)
-        except ValidationError:
+        except ValidationError as exc:
             # 数据不完整/非法：按不可用题目处理，不 fail-fast，其单元后续单独失败。
+            # 原因与「查不到」区分下传，避免伪装成 not found（verify I-6）。
             missing.add(pid)
-    return _EvalContext(llm_config=llm_config, problem_map=problem_map, missing_problems=missing)
+            missing_reasons[pid] = (
+                f"invalid/incomplete problem data: {_validation_error_summary(exc)}"
+            )
+    return _EvalContext(
+        llm_config=llm_config,
+        problem_map=problem_map,
+        missing_problems=missing,
+        missing_reasons=missing_reasons,
+    )
 
 
 def _record_unit_result(db: Session, evaluation: Evaluation, unit: TaskUnit) -> float:
@@ -505,6 +553,7 @@ def _make_worker(
     strategy_configs: dict[str, StrategyConfig],
     runtimes: dict[str, tuple[Any, Any]],
     problem_map: dict[str, DomainProblem],
+    missing_reasons: dict[str, str] | None = None,
 ) -> Callable[[TaskUnit], ExecutionResult]:
     """返回真实执行一个 TaskUnit 的 worker 闭包。
 
@@ -520,19 +569,27 @@ def _make_worker(
         strategy_configs: ``{strategy_name: StrategyConfig}``。
         runtimes: ``{strategy_name: (strategy_instance, sandbox)}``。
         problem_map: ``{problem_id: Problem}``，题库命中的题目。
+        missing_reasons: ``{problem_id: 不可用原因}``；当单元题目不在 problem_map
+            时用它拼接真实原因（缺失 vs 非法）。缺省或无对应键时回退
+            ``"not found in problem store"``。
 
     Returns:
         ``worker(unit) -> ExecutionResult``。
 
     Raises:
-        ValueError: 单元对应的题目不在题库映射中（worker 调用时抛出）。
+        ValueError: 单元对应的题目不可用时（worker 调用时抛出），原因取自
+            ``missing_reasons``，区分「查不到」与「数据非法」。
     """
+    reasons = missing_reasons or {}
 
     def worker(unit: TaskUnit) -> ExecutionResult:
         """真实执行一个单元，并把真实 cost 写入 ``result.metadata``。"""
         problem = problem_map.get(unit.problem_id)
         if problem is None:
-            raise ValueError(f"Problem {unit.problem_id} not found in problem store")
+            raise ValueError(
+                f"Problem {unit.problem_id}: "
+                f"{reasons.get(unit.problem_id, 'not found in problem store')}"
+            )
         strategy_config = strategy_configs[unit.strategy]
         strategy, sandbox = runtimes[unit.strategy]
         result = harness._execute_problem(strategy_config, problem, strategy, sandbox)

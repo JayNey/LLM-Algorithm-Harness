@@ -651,6 +651,41 @@ class TestMakeWorker:
         with pytest.raises(ValueError, match="not found in problem store"):
             worker(make_unit(strategy="vanilla", problem_id="ghost"))
 
+    def test_worker_surfaces_invalid_row_reason(self, eval_ctx, harness_ctx, make_unit):
+        """I-6：非法行（ValidationError）的原因经 missing_reasons 下传，不再伪装成 not found。
+
+        修复前 ``_make_worker`` 无第 5 个参数 → 传 5 参抛 TypeError，本用例失败（RED）。
+        """
+        from src.tasks.evaluation import _make_worker
+
+        (harness, strategy_configs, runtimes), _prepare = harness_ctx
+        worker = _make_worker(
+            harness,
+            strategy_configs,
+            runtimes,
+            eval_ctx.problem_map,
+            {"p_bad": "invalid/incomplete problem data: description: String too short"},
+        )
+
+        with pytest.raises(ValueError, match="invalid/incomplete problem data"):
+            worker(make_unit(strategy="vanilla", problem_id="p_bad"))
+
+    def test_worker_missing_row_still_reports_not_found(self, eval_ctx, harness_ctx, make_unit):
+        """I-6 防回归：真缺失（row is None）单元仍报 not found in problem store。"""
+        from src.tasks.evaluation import _make_worker
+
+        (harness, strategy_configs, runtimes), _prepare = harness_ctx
+        worker = _make_worker(
+            harness,
+            strategy_configs,
+            runtimes,
+            eval_ctx.problem_map,
+            {"ghost": "not found in problem store"},
+        )
+
+        with pytest.raises(ValueError, match="not found in problem store"):
+            worker(make_unit(strategy="vanilla", problem_id="ghost"))
+
 
 # ---------------------------------------------------------------------------
 # Task 6: run_evaluation_task 真实执行集成测试（不触网、不起 docker、不 mock TaskService）
@@ -991,3 +1026,116 @@ class TestRunEvaluationTaskIntegration:
         assert result["status"] == "failed"
         assert result["completed_units"] == total_units
         assert result["total_units"] == total_units
+
+    def test_run_evaluation_task_detects_user_pause_cross_process(
+        self, integration_harness, auth_ok, monkeypatch, tmp_path
+    ):
+        """I-1 回归：用户经另一进程/连接写 paused，worker session 必须重新读库检出。
+
+        业务 session 配 expire_on_commit=False：identity map 缓存的 AsyncTask 实例不会
+        被后续 commit 过期，故 should_pause 的普通 ``.first()`` 命中缓存、不重新 SELECT，
+        另一连接（模拟 API 进程 pause_task）写入的 "paused" 对它不可见。本用例复刻该
+        session 配置，用**独立 engine/连接**在首单元完成后把 AsyncTask 改成 paused，
+        断言 should_pause 仍能跨连接检出、以 paused 收尾且仅首单元真实执行。
+
+        修复前（should_pause 无 populate_existing）：任务看不到外部 paused 写入 →
+        两单元全跑 → completed，本用例失败（RED）。
+        修复后（should_pause 加 populate_existing()）：强制重读 → iter2 检出 paused →
+        paused，仅首单元执行（GREEN）。
+        """
+        db_file = tmp_path / "app.db"
+        task_engine = create_engine(f"sqlite:///{db_file}")
+        Base.metadata.create_all(task_engine)
+        # 复刻生产业务 session：expire_on_commit=False，让 identity map 保持陈旧。
+        db = sessionmaker(bind=task_engine, expire_on_commit=False)()
+
+        evaluation_id = _seed_evaluation(
+            db,
+            problem_ids=["p1", "p2"],
+            strategy_names=["vanilla"],
+        )
+        # 第二个 engine == 第二条独立连接，模拟「另一进程」的 DB 写入。
+        ext_session_factory = sessionmaker(bind=create_engine(f"sqlite:///{db_file}"))
+
+        written = {"done": False}
+
+        def _write_pause() -> None:
+            ext = ext_session_factory()
+            try:
+                row = ext.query(AsyncTask).filter(AsyncTask.entity_id == evaluation_id).first()
+                row.status = "paused"
+                ext.commit()
+            finally:
+                ext.close()
+            written["done"] = True
+
+        calls = {"n": 0}
+
+        def fake_update_state(*_a, **_k):
+            # on_unit_finished 在 db.commit() 之后调用 update_state（主线程）：首单元
+            # 完成时由独立连接写入 paused，正好赶在下一轮 should_pause 检查之前。
+            calls["n"] += 1
+            if calls["n"] == 1:
+                _write_pause()
+
+        monkeypatch.setattr(run_evaluation_task, "update_state", fake_update_state)
+
+        with (
+            patch("src.tasks.evaluation.TaskManager"),
+            patch("src.tasks.evaluation.get_db_session", return_value=db),
+        ):
+            result = run_evaluation_task(evaluation_id)
+
+        assert written["done"], "外部 paused 写入未发生，测试无效"
+        ev = _reload(db, Evaluation, evaluation_id)
+        assert ev.status == "paused"
+        assert result["status"] == "paused"
+        # 严格在首单元边界停止：第二单元从未真实执行
+        assert len(integration_harness.execute_calls) == 1
+        db.close()
+
+    def test_run_evaluation_task_invalid_row_reports_invalid_not_missing(
+        self, db_session, integration_harness, auth_ok
+    ):
+        """I-6 集成：ORM 行存在但非法（ValidationError）→ 单元失败原因含 invalid/incomplete。
+
+        修复前该单元的 error_message 恒为 “not found in problem store”（非法与缺失不分），
+        使用户误以为需重复导入而不是修脏数据。修复后缺失原因随单元真实下传。
+        """
+        evaluation_id = _seed_evaluation(
+            db_session,
+            problem_ids=["p_exist", "p_bad"],
+            strategy_names=["vanilla"],
+            seed_problem_ids=["p_exist"],
+        )
+        # 额外 seed 一行“存在但非法”的 ORM Problem：description 短于 min_length=10
+        # → _to_domain_problem 抛 ValidationError（非 row is None）。
+        db_session.add(
+            ORMProblem(
+                id=str(uuid.uuid4()),
+                problem_id="p_bad",
+                title="Bad",
+                description="",  # 非法：短于 domain description 的 min_length=10
+                difficulty="easy",
+                tags=[],
+                constraints=None,
+                test_cases=[{"input": {"x": 1}, "expected_output": 1}],
+                source_platform=None,
+                source_url=None,
+            )
+        )
+        db_session.commit()
+
+        with (
+            patch("src.tasks.evaluation.TaskManager"),
+            patch("src.tasks.evaluation.get_db_session", return_value=db_session),
+        ):
+            run_evaluation_task(evaluation_id)
+
+        rows = {r.problem_id: r for r in db_session.query(EvaluationResult).all()}
+        bad_row = rows["p_bad"]
+        assert bad_row.status == "failed"
+        assert "invalid/incomplete problem data" in (bad_row.error_message or "")
+        assert "not found" not in (bad_row.error_message or "")
+        # 合法且命中的题目照常成功（部分非法不阻断其余单元）
+        assert rows["p_exist"].status == "success"
