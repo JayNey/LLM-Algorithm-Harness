@@ -17,23 +17,27 @@ from dataclasses import dataclass
 from typing import TYPE_CHECKING, Any
 
 from celery import Task
+from pydantic import ValidationError
 from redis.exceptions import ConnectionError as RedisConnectionError
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, sessionmaker
 
 from api.db.engine import business_database_url, make_engine, make_session_factory
-from api.db.models import AsyncTask, Evaluation, EvaluationResult
+from api.db.models import AsyncTask, Evaluation, EvaluationResult, utcnow
 from src.celery_app import celery_app
 from src.harness import AlgorithmHarness
-from src.models import ExecutionResult, HarnessConfig, SandboxConfig, StrategyConfig
+from src.models import (
+    ExecutionResult,
+    HarnessConfig,
+    SandboxConfig,
+    StrategyConfig,
+)
+from src.models import Problem as DomainProblem
 from src.task_manager import TaskManager
 from src.task_service import TaskService, TaskUnit
 
 if TYPE_CHECKING:
-    from sqlalchemy.orm import sessionmaker
-
     from api.db.models import Problem
     from src.models import LLMConfig
-    from src.models import Problem as DomainProblem
 
 
 def get_db_session() -> Session:
@@ -105,10 +109,24 @@ def run_evaluation_task(self: EvaluationTask, evaluation_id: str) -> dict[str, A
         if not evaluation.problem_ids:
             raise ValueError("problem_ids cannot be empty")
 
+        # 2b. 执行任何单元前 fail-fast 解析 model + 凭证 + 题目（Design Doc §5.4/§5.5）。
+        # 必须复用 db 同一 engine：sessionmaker(bind=db.get_bind()) 保证 ProblemStore 与
+        # evaluation 读写同一 DB（测试中 db 为内存 session，新建 engine 会破坏隔离且查不到
+        # 题目）。解析抛 ValueError（缺 model / 凭证不可解析）→ 落入既有 except 置 failed，
+        # 不发起任何单元、无 EvaluationResult 行。
+        session_factory = sessionmaker(bind=db.get_bind())
+        ctx = _resolve_execution_context(evaluation, session_factory)
+
         # 3. 更新状态为 running
         task_manager.update_task_status(async_task.id, "running")
         evaluation.status = "running"
         db.commit()
+
+        # 3b. 构造 harness 并为每策略预建一次 runtime（Design Doc §5.6）。
+        # _build_harness 抛 RuntimeError（sandbox preflight 失败）/ValueError（未知策略）
+        # → 落入既有 except 置 failed（RuntimeError 走通用 except Exception，不在
+        # autoretry_for=(RedisConnectionError, ConnectionError) 内，不会无限重试）。
+        harness, strategy_configs, runtimes = _build_harness(ctx, evaluation.strategy_names)
 
         # 4. 创建 TaskService 任务单元
         units = _create_task_units(evaluation.strategy_names, evaluation.problem_ids)
@@ -138,8 +156,16 @@ def run_evaluation_task(self: EvaluationTask, evaluation_id: str) -> dict[str, A
 
         # 6. 定义回调和检查函数
         def on_unit_finished(record: Any, unit: TaskUnit) -> None:
-            """单元完成回调，更新进度"""
-            evaluation.completed_count = record.completed_units
+            """单元完成回调（主线程，可触碰 db）：落库 + 累计成本 + 重算计数 + 报进度。
+
+            计数按 record.units 全量重算（不用 record.completed_units，它含 failed），
+            满足 completed_count + failed_count == 已完成单元数（Design Doc §5.11）。
+            _record_unit_result 自身不 commit，由此处统一 commit。
+            """
+            cost = _record_unit_result(db, evaluation, unit)
+            evaluation.spent_usd = (evaluation.spent_usd or 0.0) + cost
+            evaluation.completed_count = sum(1 for u in record.units if u.status == "completed")
+            evaluation.failed_count = sum(1 for u in record.units if u.status == "failed")
             db.commit()
 
             # 更新 Celery 进度
@@ -168,15 +194,10 @@ def run_evaluation_task(self: EvaluationTask, evaluation_id: str) -> dict[str, A
 
             return False
 
-        def worker(unit: TaskUnit) -> dict[str, Any]:
-            """占位 worker 函数，返回模拟结果"""
-            return {
-                "unit_id": unit.unit_id,
-                "strategy": unit.strategy,
-                "problem_id": unit.problem_id,
-                "success": True,
-                "mock": True,
-            }
+        # 真实 worker（Design Doc §5.7）：闭包捕获 harness/策略配置/预建 runtime/只读题目
+        # 映射，绝不引用 db（worker 跑在 executor 线程，跨线程触碰 session 会损坏连接）。
+        # worker 返回 ExecutionResult，由 TaskService._serialize_result 序列化入 unit.result。
+        worker = _make_worker(harness, strategy_configs, runtimes, ctx.problem_map)
 
         # 7. 执行 TaskService.run()
         final_record = task_service.run(
@@ -194,6 +215,8 @@ def run_evaluation_task(self: EvaluationTask, evaluation_id: str) -> dict[str, A
         if final_record.state == "completed":
             task_manager.update_task_status(async_task.id, "completed")
             evaluation.status = "completed"
+            if evaluation.completed_at is None:
+                evaluation.completed_at = utcnow()
         elif final_record.state == "paused":
             task_manager.update_task_status(async_task.id, "paused")
             evaluation.status = "paused"
@@ -275,8 +298,42 @@ class _EvalContext:
     """
 
     llm_config: LLMConfig
-    problem_map: dict[str, Problem]
+    problem_map: dict[str, DomainProblem]
     missing_problems: set[str]
+
+
+def _to_domain_problem(row: Problem) -> DomainProblem:
+    """把 ORM ``api.db.models.Problem`` 行转换成 domain ``src.models.Problem``。
+
+    ``ProblemStore.get_by_problem_id`` 返回 ORM 行，但 harness ``_execute_problem``
+    消费 domain Problem（需 ``model_copy``/``hidden_test_cases``/``unsupported_reason``
+    等 pydantic 成员）。ORM 列与 dataset 字段 1:1；domain 的
+    ``migrate_legacy_test_cases``(mode="before") validator 会把 ``test_cases`` 键归为
+    ``public_test_cases``（``hidden_test_cases`` 为空、
+    ``migration_status="legacy_test_cases_as_public"``）。所有字段均为 eagerly-loaded
+    列，``get_by_problem_id`` 的 session 关闭后读取仍安全（无 lazy 关系）。
+
+    Args:
+        row: ORM ``api.db.models.Problem`` 行。
+
+    Returns:
+        domain ``src.models.Problem``。
+
+    Raises:
+        pydantic.ValidationError: ORM 行数据不完整/非法（调用方按不可用并入 missing）。
+    """
+    data: dict[str, Any] = {
+        "problem_id": row.problem_id,
+        "title": row.title,
+        "description": row.description,
+        "difficulty": row.difficulty,
+        "tags": row.tags or [],
+        "constraints": row.constraints,
+        "test_cases": row.test_cases,
+        "source_platform": row.source_platform,
+        "source_url": row.source_url,
+    }
+    return DomainProblem(**data)
 
 
 def _resolve_execution_context(
@@ -315,13 +372,17 @@ def _resolve_execution_context(
         raise ValueError(f"Credential unavailable: {exc.detail}") from None
 
     store = ProblemStore(session_factory)
-    problem_map: dict[str, Problem] = {}
+    problem_map: dict[str, DomainProblem] = {}
     missing: set[str] = set()
     for pid in evaluation.problem_ids:
-        problem = store.get_by_problem_id(pid)
-        if problem is not None:
-            problem_map[pid] = problem
-        else:
+        row = store.get_by_problem_id(pid)
+        if row is None:
+            missing.add(pid)
+            continue
+        try:
+            problem_map[pid] = _to_domain_problem(row)
+        except ValidationError:
+            # 数据不完整/非法：按不可用题目处理，不 fail-fast，其单元后续单独失败。
             missing.add(pid)
     return _EvalContext(llm_config=llm_config, problem_map=problem_map, missing_problems=missing)
 

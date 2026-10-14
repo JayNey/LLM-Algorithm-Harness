@@ -13,8 +13,10 @@ from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 
 from api.db.models import AsyncTask, Base, Evaluation, EvaluationResult
+from api.db.models import Problem as ORMProblem
 from src.harness import AlgorithmHarness
 from src.models import ExecutionResult, LLMConfig, Problem
+from src.models import Problem as DomainProblem
 from src.task_service import TaskUnit
 from src.tasks.evaluation import run_evaluation_task
 
@@ -97,8 +99,16 @@ class TestRunEvaluationTask:
                 mock_task_service.get.side_effect = FileNotFoundError()
 
                 # Mock database session
-                with patch("src.tasks.evaluation.get_db_session") as mock_get_db:
+                with (
+                    patch("src.tasks.evaluation.get_db_session") as mock_get_db,
+                    patch("src.tasks.evaluation._resolve_execution_context") as mock_ctx,
+                    patch("src.tasks.evaluation._build_harness") as mock_build,
+                ):
                     mock_get_db.return_value = db_session
+                    # 这些用例聚焦编排 + 终态映射（TaskService 已 mock），短路真实
+                    # 凭证/题目解析与 harness 构造（避免触网 / 起 docker）。
+                    mock_ctx.return_value = Mock(problem_map={})
+                    mock_build.return_value = (Mock(), {}, {})
 
                     # When: 执行任务
                     result = run_evaluation_task(evaluation_id)
@@ -170,8 +180,16 @@ class TestRunEvaluationTask:
                 mock_task_service.run.return_value = mock_record
                 mock_task_service.get.side_effect = FileNotFoundError()
 
-                with patch("src.tasks.evaluation.get_db_session") as mock_get_db:
+                with (
+                    patch("src.tasks.evaluation.get_db_session") as mock_get_db,
+                    patch("src.tasks.evaluation._resolve_execution_context") as mock_ctx,
+                    patch("src.tasks.evaluation._build_harness") as mock_build,
+                ):
                     mock_get_db.return_value = db_session
+                    # 这些用例聚焦编排 + 终态映射（TaskService 已 mock），短路真实
+                    # 凭证/题目解析与 harness 构造（避免触网 / 起 docker）。
+                    mock_ctx.return_value = Mock(problem_map={})
+                    mock_build.return_value = (Mock(), {}, {})
 
                     # When: 执行任务
                     result = run_evaluation_task(evaluation_id)
@@ -206,8 +224,16 @@ class TestRunEvaluationTask:
                 completed_record.total_units = 2
                 mock_task_service.run.return_value = completed_record
 
-                with patch("src.tasks.evaluation.get_db_session") as mock_get_db:
+                with (
+                    patch("src.tasks.evaluation.get_db_session") as mock_get_db,
+                    patch("src.tasks.evaluation._resolve_execution_context") as mock_ctx,
+                    patch("src.tasks.evaluation._build_harness") as mock_build,
+                ):
                     mock_get_db.return_value = db_session
+                    # 这些用例聚焦编排 + 终态映射（TaskService 已 mock），短路真实
+                    # 凭证/题目解析与 harness 构造（避免触网 / 起 docker）。
+                    mock_ctx.return_value = Mock(problem_map={})
+                    mock_build.return_value = (Mock(), {}, {})
 
                     # When: 执行任务
                     result = run_evaluation_task(evaluation_id)
@@ -325,19 +351,30 @@ class TestResolveExecutionContext:
                 _resolve_execution_context(ev, session_factory)
 
     def test_missing_problem_recorded_not_fatal(self, make_evaluation, session_factory):
-        """题目缺失记入 missing_problems，不 fail-fast；存在的题目进入 problem_map。"""
+        """题目缺失记入 missing_problems；命中的 ORM 行转成 domain Problem 入 problem_map。"""
         from src.tasks.evaluation import _resolve_execution_context
 
         ev = make_evaluation(model="m", problem_ids=["p1", "missing"])
         sentinel_llm = object()
-        sentinel_problem = object()
+        orm_row = ORMProblem(
+            id="row-1",
+            problem_id="p1",
+            title="Two Sum",
+            description="Return indices of the two numbers that add up to the target.",
+            difficulty="easy",
+            tags=["array"],
+            constraints=None,
+            test_cases=[{"input": {"nums": [2, 7], "target": 9}, "expected_output": [0, 1]}],
+            source_platform="leetcode",
+            source_url=None,
+        )
 
         class _FakeStore:
             def __init__(self, _session_factory):
                 pass
 
             def get_by_problem_id(self, problem_id):
-                return sentinel_problem if problem_id == "p1" else None
+                return orm_row if problem_id == "p1" else None
 
         with (
             patch("api.auth.config.AuthSettings"),
@@ -350,7 +387,48 @@ class TestResolveExecutionContext:
         assert ctx.llm_config is sentinel_llm
         assert "missing" in ctx.missing_problems
         assert "p1" in ctx.problem_map
-        assert ctx.problem_map["p1"] is sentinel_problem
+        # ORM 行必须被转换成 domain src.models.Problem（供 _execute_problem 消费）
+        converted = ctx.problem_map["p1"]
+        assert isinstance(converted, DomainProblem)
+        assert converted.public_test_cases
+        assert converted.hidden_test_cases == []
+        assert converted.migration_status == "legacy_test_cases_as_public"
+
+    def test_invalid_problem_row_recorded_as_missing(self, make_evaluation, session_factory):
+        """ORM 行数据非法（description 短于 min_length=10）→ ValidationError → 并入 missing。"""
+        from src.tasks.evaluation import _resolve_execution_context
+
+        ev = make_evaluation(model="m", problem_ids=["bad"])
+        bad_row = ORMProblem(
+            id="row-2",
+            problem_id="bad",
+            title="Bad",
+            description="",  # 短于 domain Problem.description 的 min_length=10
+            difficulty="easy",
+            tags=[],
+            constraints=None,
+            test_cases=[{"input": {"x": 1}, "expected_output": 1}],
+            source_platform="legacy",
+            source_url=None,
+        )
+
+        class _FakeStore:
+            def __init__(self, _session_factory):
+                pass
+
+            def get_by_problem_id(self, problem_id):
+                return bad_row
+
+        with (
+            patch("api.auth.config.AuthSettings"),
+            patch("api.auth.service.AuthService") as MockAuth,
+        ):
+            MockAuth.return_value.llm_config.return_value = object()
+            with patch("api.db.problem_store.ProblemStore", _FakeStore):
+                ctx = _resolve_execution_context(ev, session_factory)
+
+        assert "bad" in ctx.missing_problems
+        assert "bad" not in ctx.problem_map
 
 
 @pytest.fixture
@@ -568,3 +646,233 @@ class TestMakeWorker:
 
         with pytest.raises(ValueError, match="not found in problem store"):
             worker(make_unit(strategy="vanilla", problem_id="ghost"))
+
+
+# ---------------------------------------------------------------------------
+# Task 6: run_evaluation_task 真实执行集成测试（不触网、不起 docker、不 mock TaskService）
+# ---------------------------------------------------------------------------
+
+
+class _HarnessControl:
+    """集成测试中对 harness 替身行为的可调控制。"""
+
+    def __init__(self):
+        self.cost = 0.01
+        self.cost_meta = {"unknown_usage": False, "unknown_pricing": False}
+        self.execute_status = "success"
+        self.execute_calls: list[tuple[str, str]] = []
+
+
+@pytest.fixture
+def integration_harness(monkeypatch, tmp_path):
+    """patch harness 执行/定价/runtime 与 celery update_state，并隔离 TaskService 文件写入。
+
+    TaskService 用相对 ``root=f"data/tasks/{id}"``，chdir 到 tmp_path 隔离产物；
+    worker 真实跑在 executor 线程但只读 problem_map/harness 替身，不触碰 db。
+    """
+    control = _HarnessControl()
+    monkeypatch.chdir(tmp_path)
+
+    def fake_prepare(self, strategy_config):
+        return (object(), object())
+
+    def fake_execute(self, strategy_config, problem, strategy, sandbox):
+        control.execute_calls.append((strategy_config.name, problem.problem_id))
+        return ExecutionResult(
+            problem_id=problem.problem_id,
+            strategy=strategy_config.name,
+            generated_code="def solution(**kw):\n    return 1",
+            status=control.execute_status,
+            total_tokens=10,
+            execution_time_seconds=0.5,
+            difficulty="easy",
+        )
+
+    def fake_estimate(self, results):
+        return (control.cost, control.cost_meta)
+
+    monkeypatch.setattr(AlgorithmHarness, "_prepare_strategy_runtime", fake_prepare)
+    monkeypatch.setattr(AlgorithmHarness, "_execute_problem", fake_execute)
+    monkeypatch.setattr(AlgorithmHarness, "_estimate_cost", fake_estimate)
+    monkeypatch.setattr(run_evaluation_task, "update_state", lambda *a, **k: None)
+    return control
+
+
+@pytest.fixture
+def auth_ok():
+    """patch AuthService 返回合法 LLMConfig（不触网、不解密真实凭证）。"""
+    llm = LLMConfig(provider="openai", api_key=SecretStr("sk-test"), model="test-model")
+    with (
+        patch("api.auth.config.AuthSettings"),
+        patch("api.auth.service.AuthService") as MockAuth,
+    ):
+        MockAuth.return_value.llm_config.return_value = llm
+        yield llm
+
+
+@pytest.fixture
+def auth_bad():
+    """patch AuthService.llm_config 抛 HTTPException（凭证不可解析）。"""
+    with (
+        patch("api.auth.config.AuthSettings"),
+        patch("api.auth.service.AuthService") as MockAuth,
+    ):
+        MockAuth.return_value.llm_config.side_effect = HTTPException(403, "nope")
+        yield
+
+
+def _seed_problem(db, problem_id):
+    """seed 一行真实 ORM Problem（让 _resolve_execution_context + 转换真实跑通）。"""
+    db.add(
+        ORMProblem(
+            id=str(uuid.uuid4()),
+            problem_id=problem_id,
+            title=f"Title {problem_id}",
+            description="Return indices of the two numbers that add up to the target.",
+            difficulty="easy",
+            tags=["array"],
+            constraints=None,
+            test_cases=[{"input": {"nums": [2, 7], "target": 9}, "expected_output": [0, 1]}],
+            source_platform="leetcode",
+            source_url=None,
+        )
+    )
+
+
+def _seed_evaluation(db, *, problem_ids, strategy_names, budget_cap_usd=None):
+    """seed Evaluation + AsyncTask + 对应 ORM Problem 行并 commit，返回 evaluation_id。"""
+    evaluation_id = str(uuid.uuid4())
+    async_task = AsyncTask(
+        id=str(uuid.uuid4()),
+        celery_task_id=f"celery-{evaluation_id}",
+        task_type="evaluation",
+        entity_id=evaluation_id,
+        user_id="test_user",
+        status="pending",
+    )
+    db.add(async_task)
+    db.add(
+        Evaluation(
+            id=evaluation_id,
+            user_id="test_user",
+            status="pending",
+            model="test-model",
+            api_key_id="key-1",
+            strategy_names=strategy_names,
+            problem_ids=problem_ids,
+            problem_count=len(problem_ids),
+            budget_cap_usd=budget_cap_usd,
+            async_task_id=async_task.id,
+        )
+    )
+    for pid in problem_ids:
+        _seed_problem(db, pid)
+    db.commit()
+    return evaluation_id
+
+
+def _reload(db, model, id_):
+    db.expunge_all()
+    return db.query(model).filter_by(id=id_).first()
+
+
+class TestRunEvaluationTaskIntegration:
+    """run_evaluation_task 经真实 TaskService 编排 + 真实 harness 执行路径的集成测试。"""
+
+    def test_run_evaluation_task_completes_all_units(
+        self, db_session, integration_harness, auth_ok
+    ):
+        """多单元全 success → completed、计数正确、每单元一行真实结果、spent_usd>0、无 mock。"""
+        evaluation_id = _seed_evaluation(
+            db_session,
+            problem_ids=["p1", "p2"],
+            strategy_names=["vanilla", "chain_of_thought"],
+        )
+        with (
+            patch("src.tasks.evaluation.TaskManager"),
+            patch("src.tasks.evaluation.get_db_session", return_value=db_session),
+        ):
+            result = run_evaluation_task(evaluation_id)
+
+        ev = _reload(db_session, Evaluation, evaluation_id)
+        assert ev.status == "completed"
+        assert ev.completed_count == 4
+        assert ev.failed_count == 0
+        assert db_session.query(EvaluationResult).count() == 4
+        assert ev.spent_usd > 0
+        assert result["status"] == "completed"
+        assert result["completed_units"] == 4
+        # 真实执行路径：4 个单元都经 harness._execute_problem
+        assert len(integration_harness.execute_calls) == 4
+        # 结果不含 mock，度量来自真实 ExecutionResult
+        for row in db_session.query(EvaluationResult).all():
+            assert row.status == "success"
+            assert row.metrics["total_tokens"] == 10
+            assert "mock" not in row.metrics
+
+    def test_run_evaluation_task_credential_failure_no_results(
+        self, db_session, integration_harness, auth_bad
+    ):
+        """凭证不可解析 → ValueError、evaluation.status=failed、无任何 EvaluationResult 行。"""
+        evaluation_id = _seed_evaluation(db_session, problem_ids=["p1"], strategy_names=["vanilla"])
+        with (
+            patch("src.tasks.evaluation.TaskManager"),
+            patch("src.tasks.evaluation.get_db_session", return_value=db_session),
+        ):
+            with pytest.raises(ValueError):
+                run_evaluation_task(evaluation_id)
+
+        ev = _reload(db_session, Evaluation, evaluation_id)
+        assert ev.status == "failed"
+        assert db_session.query(EvaluationResult).count() == 0
+        assert integration_harness.execute_calls == []
+
+    def test_run_evaluation_task_budget_pause(self, db_session, integration_harness, auth_ok):
+        """budget_cap_usd 小于首单元 cost → 首单元后触顶 paused、未开始单元不执行。"""
+        integration_harness.cost = 0.05
+        evaluation_id = _seed_evaluation(
+            db_session,
+            problem_ids=["p1", "p2"],
+            strategy_names=["vanilla"],
+            budget_cap_usd=0.03,
+        )
+        with (
+            patch("src.tasks.evaluation.TaskManager"),
+            patch("src.tasks.evaluation.get_db_session", return_value=db_session),
+        ):
+            result = run_evaluation_task(evaluation_id)
+
+        ev = _reload(db_session, Evaluation, evaluation_id)
+        assert ev.status == "paused"
+        assert ev.completed_count < 2
+        assert result["status"] == "paused"
+        # 严格在完成单元边界停止：仅首单元真实执行
+        assert len(integration_harness.execute_calls) == 1
+
+    def test_run_evaluation_task_unknown_pricing_honest(
+        self, db_session, integration_harness, auth_ok
+    ):
+        """成本无定价 → spent_usd 不伪造增长、不触发预算暂停、结果行 cost_unknown=True。"""
+        integration_harness.cost = 0.0
+        integration_harness.cost_meta = {"unknown_usage": True}
+        evaluation_id = _seed_evaluation(
+            db_session,
+            problem_ids=["p1", "p2"],
+            strategy_names=["vanilla"],
+            budget_cap_usd=0.01,  # 有 cap，但 cost 未知不伪造 → 不触发暂停
+        )
+        with (
+            patch("src.tasks.evaluation.TaskManager"),
+            patch("src.tasks.evaluation.get_db_session", return_value=db_session),
+        ):
+            result = run_evaluation_task(evaluation_id)
+
+        ev = _reload(db_session, Evaluation, evaluation_id)
+        assert ev.spent_usd == 0.0
+        assert ev.status == "completed"
+        assert result["status"] == "completed"
+        rows = db_session.query(EvaluationResult).all()
+        assert len(rows) == 2
+        for row in rows:
+            assert row.metrics["cost_unknown"] is True
+            assert row.metrics["cost_usd"] == 0.0
