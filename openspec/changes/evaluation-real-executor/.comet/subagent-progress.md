@@ -43,7 +43,17 @@
   - MINOR→Task6 必补：集成测试覆盖 `cost_unknown=True`（无定价→cost 0.0不伪造）诚实口径分支
   - MINOR：未知策略在 worker 报 KeyError（非 ValueError）；_build_harness 阶段已 fail-fast，正常路径不触
   - **tasks.md 2.3 未勾选**（集成验证随 Task 6）
-- Task 6（接入 run_evaluation_task 替换 mock worker + ORM→domain 转换）: implementing
-- Task 7（resume 去重）: pending
+- Task 6（接入 run_evaluation_task 替换 mock worker + ORM→domain 转换）: **done**（implementer commit 4bfd795；review-fix R1 commit 7bef2d8；scoped re-review PASS）
+  - 风险信号命中：跨模块 + 安全敏感面 + 并发共享状态 + diff>200（399）→ 已派发每任务 reviewer
+  - review BASE=4c65318 HEAD=4bfd795，package=.superpowers/sdd/2026-10-13-evaluation-real-executor/review-4c65318..4bfd795.diff
+  - **C1 CRITICAL（已修）**：`_to_domain_problem` 逐字传 `source_platform=None`；真实 data/problems.json 12/12 无该键→ORM NULL→domain `source_platform: str=Field("legacy")` 非 Optional→ValidationError→problem_map 恒空→评估全单元 failed（实测 0/12）
+    - 修复（commit 7bef2d8）：`DomainProblem(**{k: v for k, v in data.items() if v is not None})` — None 列省略让 domain 默认生效；必需无默认字段缺 None 仍报 field required→并入 missing（失败语义保留）；未改 src/models.py
+  - **I1 IMPORTANT（已修）**：集成测试 seed 硬编 `source_platform="leetcode"` 掩盖 C1 → 3 处 seed（orm_row/bad_row/_seed_problem）改为 `source_platform=None` 真实形状，并加断言 `converted.source_platform=="legacy"`/`source_url is None`
+  - **scoped re-review PASS（实测）**：真实 data/problems.json 形状端到端转换 12/12 成功；tests/test_celery_tasks.py 22 passed；fix diff 仅 src/tasks/evaluation.py(+11/-1)+tests/test_celery_tasks.py(+9/-3)，无夹带、未改 models.py、无新缺陷
+  - B 部分（接线）reviewer 逐项 Spec ✅（session_factory=db.get_bind()、on_unit_finished 计数口径、spent_usd、终态回写、worker 不引用 db、真跑 TaskService 不触网、越界干净）
+  - M1 started_at 未写（基线已有、非本次回归，§5.14 只要求 completed_at）；M2 data:dict[str,Any] 放宽；均 deferred
+  - fix agent 范围外观察（非阻塞，独立议题）：导入侧对 source_platform 仍落 NULL（若要让 domain 反映真实来源需改导入链路）
+  - **tasks.md 2.1/2.2/2.3/3.1 已勾选**（per Preflight checkoff 粒度 Ruling：集成测试全绿后一并勾选，已满足）
+- Task 7（resume 去重）: pending（下一步派发；BASE=7bef2d8 之后的 checkoff commit）
 - Task 8（边界测试）: pending
 - Task 9（CI 门禁）: pending
