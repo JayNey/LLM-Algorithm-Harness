@@ -9,6 +9,7 @@ class EvaluationCreateRequest(BaseModel):
     api_key_id: str = Field(
         ..., min_length=1, max_length=64, description="ID of your stored LLM API key"
     )
+    model: str = Field(..., min_length=1, description="Model name used to execute the evaluation")
     problem_ids: list[str] = Field(..., min_length=1, description="List of problem IDs to evaluate")
     strategy_names: list[str] = Field(
         ..., min_length=1, description="List of strategy names to use"
@@ -22,6 +23,7 @@ class EvaluationCreateRequest(BaseModel):
             "example": {
                 "problem_ids": ["1", "2", "3"],
                 "api_key_id": "your-stored-key-id",
+                "model": "gpt-4o-mini",
                 "strategy_names": ["vanilla", "chain_of_thought"],
                 "budget_cap_usd": 10.0,
                 "timeout_seconds": 300,

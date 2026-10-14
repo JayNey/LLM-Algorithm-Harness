@@ -140,6 +140,7 @@ class TestEvaluationPersistence:
                 headers=headers,
                 json={
                     "api_key_id": key_id,
+                    "model": "gpt-4o-mini",
                     "problem_ids": ["two-sum"],
                     "strategy_names": ["cot"],
                 },
@@ -159,7 +160,7 @@ class TestEvaluationPersistence:
         url = f"sqlite:///{tmp_path / 'business.sqlite3'}"
         service = EvaluationService(url)
         request = EvaluationCreateRequest(
-            api_key_id="k1", problem_ids=["p1"], strategy_names=["cot"]
+            api_key_id="k1", problem_ids=["p1"], strategy_names=["cot"], model="gpt-4o-mini"
         )
         created = service.create_evaluation(request, "alice")
         # 启动只入队：worker 接管前评估保持 pending
@@ -176,7 +177,7 @@ class TestEvaluationPersistence:
         url = f"sqlite:///{tmp_path / 'business.sqlite3'}"
         service = EvaluationService(url)
         request = EvaluationCreateRequest(
-            api_key_id="k1", problem_ids=["p1"], strategy_names=["cot"]
+            api_key_id="k1", problem_ids=["p1"], strategy_names=["cot"], model="gpt-4o-mini"
         )
         created = service.create_evaluation(request, "alice")
 
@@ -188,7 +189,7 @@ class TestEvaluationPersistence:
         url = f"sqlite:///{tmp_path / 'business.sqlite3'}"
         service = EvaluationService(url)
         request = EvaluationCreateRequest(
-            api_key_id="k1", problem_ids=["p1", "p2"], strategy_names=["cot"]
+            api_key_id="k1", problem_ids=["p1", "p2"], strategy_names=["cot"], model="gpt-4o-mini"
         )
         created = service.create_evaluation(request, "alice")
         with patch("src.task_manager.celery_app.send_task", return_value=Mock()):

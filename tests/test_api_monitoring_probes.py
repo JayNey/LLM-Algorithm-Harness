@@ -64,7 +64,10 @@ def test_sqlite_probe_checks_real_connection_and_tables(probes):
 def test_business_probe_reuses_engine_without_task_recovery_or_writes(probes):
     run = probes.evaluations.create_evaluation(
         EvaluationCreateRequest(
-            problem_ids=["p1"], strategy_names=["vanilla"], api_key_id="opaque-key"
+            problem_ids=["p1"],
+            strategy_names=["vanilla"],
+            api_key_id="opaque-key",
+            model="gpt-4o-mini",
         ),
         "operator",
     )

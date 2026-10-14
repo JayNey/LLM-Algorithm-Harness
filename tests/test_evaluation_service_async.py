@@ -7,6 +7,7 @@ import uuid
 from unittest.mock import Mock, patch
 
 import pytest
+from pydantic import ValidationError
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 
@@ -40,6 +41,7 @@ def create_request():
         problem_ids=["problem_1", "problem_2", "problem_3"],
         api_key_id="key-123",
         budget_cap_usd=100.0,
+        model="gpt-4o-mini",
     )
 
 
@@ -540,3 +542,71 @@ class TestErrorHandling:
         # When/Then: Get should fail for different user
         with pytest.raises(ValueError, match="not found"):
             service.get_evaluation_async(evaluation_with_task["evaluation_id"], "different-user")
+
+
+class TestEvaluationModelPersistence:
+    """Task 2: EvaluationCreateRequest.model 必填且两条创建路径均持久化。
+
+    使用真实 EvaluationService + 临时 SQLite（与生产一致的 expire_on_commit=False），
+    避免共享内存 session 在同步路径 close 后触发 DetachedInstanceError。
+    """
+
+    def _service(self, tmp_path):
+        from api.services.evaluation_service import EvaluationService
+
+        return EvaluationService(f"sqlite:///{tmp_path / 'biz.sqlite3'}")
+
+    def _request(self, **overrides):
+        payload = {
+            "strategy_names": ["vanilla"],
+            "problem_ids": ["p1"],
+            "api_key_id": "key-123",
+            "model": "gpt-4o-mini",
+        }
+        payload.update(overrides)
+        return EvaluationCreateRequest(**payload)
+
+    def test_create_evaluation_persists_model(self, tmp_path):
+        """同步 create_evaluation 回读 model 并落库 evaluations.model。"""
+        service = self._service(tmp_path)
+
+        response = service.create_evaluation(self._request(), "alice")
+
+        assert response.model == "gpt-4o-mini"
+        # 从 DB 回读确认真正持久化
+        fetched = service.get_evaluation(response.evaluation_id, "alice")
+        assert fetched.model == "gpt-4o-mini"
+
+    def test_create_evaluation_async_persists_model(self, tmp_path):
+        """异步 create_evaluation_async 回读 model 并落库 evaluations.model。"""
+        service = self._service(tmp_path)
+
+        with patch("src.task_manager.celery_app.send_task") as mock_send_task:
+            mock_result = Mock()
+            mock_result.id = "celery-task-123"
+            mock_send_task.return_value = mock_result
+
+            response = service.create_evaluation_async(self._request(), "alice")
+
+        assert response.model == "gpt-4o-mini"
+        fetched = service.get_evaluation_async(response.evaluation_id, "alice")
+        assert fetched.model == "gpt-4o-mini"
+
+    def test_create_evaluation_requires_model(self):
+        """缺少 model 的创建请求应触发 Pydantic 校验失败。"""
+        with pytest.raises(ValidationError):
+            EvaluationCreateRequest(
+                strategy_names=["vanilla"],
+                problem_ids=["p1"],
+                api_key_id="key-123",
+            )
+
+    def test_create_evaluation_rejects_empty_model(self):
+        """model 为空字符串应触发 min_length 校验失败。"""
+        with pytest.raises(ValidationError):
+            EvaluationCreateRequest(
+                strategy_names=["vanilla"],
+                problem_ids=["p1"],
+                api_key_id="key-123",
+                model="",
+            )
