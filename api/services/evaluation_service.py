@@ -31,12 +31,30 @@ def _iso(value: datetime) -> str:
     return value.isoformat() + "Z"
 
 
+def _compute_percentage(completed_count: int, problem_count: int, num_strategies: int) -> float:
+    """按总单元数（题目数 × 策略数）计算进度百分比，稳定落在 [0, 100]。
+
+    ``completed_count`` 是本 change §5.11 定义的单元数（策略 × 题目），而
+    ``problem_count`` 只是题目数；旧公式以 problem_count 为分母会在多策略全部
+    完成时算出 >100（如 2 策略 × 2 题目 → 200.0），触发 ProgressInfo.percentage
+    的 ``le=100`` 校验失败。因此分母必须是总单元数。边界（无题目或无策略）
+    保持既有除零语义返回 0；结果再 clamp 到 [0, 100] 兜底。
+    """
+    total_units = problem_count * num_strategies
+    if not total_units:
+        return 0
+    percentage = completed_count / total_units * 100
+    return min(100.0, max(0.0, percentage))
+
+
 def _to_response(task: Evaluation) -> EvaluationResponse:
     """Convert an evaluation row to the API response shape.
 
     Used for legacy in-memory task execution. For async tasks, use _to_response_async.
     """
-    percentage = (task.completed_count / task.problem_count * 100) if task.problem_count else 0
+    percentage = _compute_percentage(
+        task.completed_count, task.problem_count, len(task.strategy_names)
+    )
     return EvaluationResponse(
         evaluation_id=task.id,
         created_at=_iso(task.created_at),
@@ -88,11 +106,9 @@ def _to_response_async(evaluation: Evaluation, async_task: AsyncTask | None) -> 
         if async_task.error_message:
             error_message = async_task.error_message
 
-    # Compute percentage for backwards compatibility
-    percentage = (
-        (evaluation.completed_count / evaluation.problem_count * 100)
-        if evaluation.problem_count
-        else 0
+    # Compute percentage for backwards compatibility (denominator is total units)
+    percentage = _compute_percentage(
+        evaluation.completed_count, evaluation.problem_count, len(evaluation.strategy_names)
     )
 
     return EvaluationResponse(
@@ -480,8 +496,8 @@ class EvaluationService:
         """Get task execution progress."""
         with self._session() as session:
             task = self._owned_task(session, evaluation_id, owner_id)
-            percentage = (
-                (task.completed_count / task.problem_count * 100) if task.problem_count else 0
+            percentage = _compute_percentage(
+                task.completed_count, task.problem_count, len(task.strategy_names)
             )
             return ProgressInfo(
                 current=task.completed_count,
