@@ -745,8 +745,14 @@ def _seed_problem(db, problem_id):
     )
 
 
-def _seed_evaluation(db, *, problem_ids, strategy_names, budget_cap_usd=None):
-    """seed Evaluation + AsyncTask + 对应 ORM Problem 行并 commit，返回 evaluation_id。"""
+def _seed_evaluation(
+    db, *, problem_ids, strategy_names, budget_cap_usd=None, seed_problem_ids=None
+):
+    """seed Evaluation + AsyncTask + 对应 ORM Problem 行并 commit，返回 evaluation_id。
+
+    ``seed_problem_ids`` 默认与 ``problem_ids`` 相同；显式传入其子集可模拟「题库中
+    缺失部分题目」（评估声明了 problem_id，但库里没有对应 ORM 行）。
+    """
     evaluation_id = str(uuid.uuid4())
     async_task = AsyncTask(
         id=str(uuid.uuid4()),
@@ -771,7 +777,7 @@ def _seed_evaluation(db, *, problem_ids, strategy_names, budget_cap_usd=None):
             async_task_id=async_task.id,
         )
     )
-    for pid in problem_ids:
+    for pid in problem_ids if seed_problem_ids is None else seed_problem_ids:
         _seed_problem(db, pid)
     db.commit()
     return evaluation_id
@@ -883,9 +889,7 @@ class TestRunEvaluationTaskIntegration:
             assert row.metrics["cost_unknown"] is True
             assert row.metrics["cost_usd"] == 0.0
 
-    def test_resume_after_pause_runs_only_remaining(
-        self, db_session, integration_harness, auth_ok
-    ):
+    def test_resume_after_pause_runs_only_remaining(self, db_session, integration_harness, auth_ok):
         """预算触顶 paused 后提高预算 resume：只跑剩余单元、不重复已完成单元。
 
         断言终态 completed、计数覆盖全部单元、EvaluationResult 无重复行、
@@ -942,3 +946,48 @@ class TestRunEvaluationTaskIntegration:
         calls = integration_harness.execute_calls
         assert len(calls) == len(set(calls)) == total_units
         assert set(calls) == {("vanilla", "p1"), ("vanilla", "p2")}
+
+    def test_run_evaluation_task_missing_problem_fails_only_that_unit(
+        self, db_session, integration_harness, auth_ok
+    ):
+        """部分题目缺失（Design §8 #4）+ 聚合口径（§8 #10）：缺失单元 failed，其余继续。
+
+        评估声明 2 道题但只 seed 1 道：p_missing 经 ``_resolve_execution_context``
+        进入 ``missing_problems``，worker 执行时抛 ValueError → TaskService 标该单元
+        failed；p_exist 单元照常 success。执行不整体中止（其余单元照跑、结果全部落库），
+        终态因 TaskService 的「非全部 completed 即 failed」口径而为 failed。
+        """
+        evaluation_id = _seed_evaluation(
+            db_session,
+            problem_ids=["p_exist", "p_missing"],
+            strategy_names=["vanilla"],
+            seed_problem_ids=["p_exist"],  # p_missing 不在题库（模拟查不到）
+        )
+        total_units = 2  # 1 策略 × 2 题目
+        with (
+            patch("src.tasks.evaluation.TaskManager"),
+            patch("src.tasks.evaluation.get_db_session", return_value=db_session),
+        ):
+            result = run_evaluation_task(evaluation_id)
+
+        ev = _reload(db_session, Evaluation, evaluation_id)
+        # 聚合口径：completed + failed == 单元总数，不因部分失败而丢计数
+        assert ev.completed_count == 1
+        assert ev.failed_count == 1
+        assert ev.completed_count + ev.failed_count == total_units
+        # 每单元一行：缺失单元也落库并标 failed（不静默跳过）
+        rows = db_session.query(EvaluationResult).all()
+        assert len(rows) == total_units
+        missing_row = next(r for r in rows if r.problem_id == "p_missing")
+        ok_row = next(r for r in rows if r.problem_id == "p_exist")
+        assert missing_row.status == "failed"
+        assert "not found" in (missing_row.error_message or "")
+        assert ok_row.status == "success"
+        # 不整体中止：存在题目的单元仍然真实执行，且缺失单元不会阻断调度
+        assert integration_harness.execute_calls == [("vanilla", "p_exist")]
+        # 评估终态：TaskService 把「有单元未 completed」的 run 定为 failed（而非中止），
+        # 因此部分题目缺失的评估以 failed 收尾，但已完成单元的计数与结果行全部保留。
+        assert ev.status == "failed"
+        assert result["status"] == "failed"
+        assert result["completed_units"] == total_units
+        assert result["total_units"] == total_units

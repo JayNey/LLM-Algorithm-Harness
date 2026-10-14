@@ -6,7 +6,7 @@ from unittest.mock import Mock, patch
 import pytest
 from cryptography.fernet import Fernet
 from fastapi.testclient import TestClient
-from sqlalchemy import inspect
+from sqlalchemy import inspect, text
 
 from api.auth.config import AuthSettings
 from api.db import (
@@ -16,6 +16,7 @@ from api.db import (
     make_session_factory,
     offline_upgrade_sql,
     run_migrations,
+    upgrade,
 )
 from api.files.config import FileSettings
 from api.main import create_app
@@ -97,6 +98,61 @@ class TestMigrations:
         run_migrations(url)
         columns = {c["name"] for c in inspect(make_engine(url)).get_columns("evaluations")}
         assert "model" in columns
+
+    def test_legacy_evaluation_rows_survive_model_column_migration(self, tmp_path):
+        """evaluation-real-executor Task 8：非空库升级 head 不破坏历史行，新 model 列为 NULL。
+
+        ``3a568a0f1b04`` 是 model 列加入前的父 revision，此时 evaluations 还没有 model
+        列——历史行只能用 raw SQL 插入（ORM 会携带不存在的列）。对应 delta spec
+        database-schema「评估模型标识落库」的非空库子句。
+        """
+        url = f"sqlite:///{tmp_path / 'legacy_rows.sqlite3'}"
+        upgrade(url, "3a568a0f1b04")
+
+        legacy_engine = make_engine(url)
+        legacy_columns = {c["name"] for c in inspect(legacy_engine).get_columns("evaluations")}
+        assert "model" not in legacy_columns, f"父 revision 已有 model 列：{sorted(legacy_columns)}"
+
+        # 一行 model 不存在（即升级后为 NULL）的历史评估
+        with legacy_engine.begin() as conn:
+            conn.execute(
+                text(
+                    "INSERT INTO evaluations (id, user_id, status, strategy_names,"
+                    " problem_ids, problem_count, spent_usd, completed_count,"
+                    " failed_count, created_at, updated_at)"
+                    " VALUES ('legacy-evaluation-1', 'alice', 'completed',"
+                    " '[\"cot\"]', '[\"two-sum\"]', 1, 0.02, 1, 0,"
+                    " '2026-01-01 00:00:00', '2026-01-01 00:00:00')"
+                )
+            )
+        legacy_engine.dispose()
+
+        run_migrations(url)  # upgrade head：触发本次 change 的新迁移 evaluation_add_model_column
+
+        check_engine = make_engine(url)
+        with check_engine.connect() as conn:
+            columns = {c["name"]: c for c in inspect(check_engine).get_columns("evaluations")}
+            row = (
+                conn.execute(
+                    text(
+                        "SELECT id, user_id, status, spent_usd, model FROM evaluations"
+                        " WHERE id = 'legacy-evaluation-1'"
+                    )
+                )
+                .mappings()
+                .one()
+            )
+        check_engine.dispose()
+
+        # 新列存在且可空（不为历史行伪造值）
+        assert "model" in columns
+        assert columns["model"]["nullable"] is True
+        # 历史行仍在且字段未被改写
+        assert row["id"] == "legacy-evaluation-1"
+        assert row["user_id"] == "alice"
+        assert row["status"] == "completed"
+        assert row["spent_usd"] == pytest.approx(0.02)
+        assert row["model"] is None
 
 
 class TestProblemStore:
