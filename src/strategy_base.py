@@ -286,7 +286,7 @@ Your response should include the code in a ```python code block.
         """
         lines = []
         for i, tc in enumerate(problem.public_test_cases[:limit]):
-            lines.append(f"Test {i+1}:")
+            lines.append(f"Test {i + 1}:")
             lines.append(f"  Input: {tc.input}")
             lines.append(f"  Expected Output: {tc.expected_output}")
             lines.append("")

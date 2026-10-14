@@ -288,8 +288,7 @@ class FewShotLearningStrategy(StrategyBase):
 
                 if sandbox_result:
                     feedback = (
-                        f"All passed: {sandbox_result.all_passed}, "
-                        f"Status: {sandbox_result.status}"
+                        f"All passed: {sandbox_result.all_passed}, Status: {sandbox_result.status}"
                     )
                     if sandbox_result.error_message:
                         feedback += f", Error: {sandbox_result.error_message}"

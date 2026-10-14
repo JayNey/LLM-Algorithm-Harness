@@ -195,8 +195,7 @@ def apply_cli_overrides(config: HarnessConfig, args: argparse.Namespace) -> Harn
             )
         if config.budget_action == "auto_stop":
             raise ValueError(
-                "budget_allocation only supports the downgrade action; "
-                "drop --auto-stop-on-budget"
+                "budget_allocation only supports the downgrade action; drop --auto-stop-on-budget"
             )
     if config.difficulty_strategy:
         if args.strategy is not None:
@@ -204,7 +203,7 @@ def apply_cli_overrides(config: HarnessConfig, args: argparse.Namespace) -> Harn
         unknown = sorted(set(config.difficulty_strategy.values()) - set(SUPPORTED_STRATEGIES))
         if unknown:
             raise ValueError(
-                "Unknown strategy in difficulty-strategy mapping: " f"{', '.join(unknown)}"
+                f"Unknown strategy in difficulty-strategy mapping: {', '.join(unknown)}"
             )
 
     return config
@@ -1141,8 +1140,7 @@ def run_runs_command(args: argparse.Namespace) -> int:
                 "not counted toward cost"
             )
     print(
-        "\nResume a run with: harness --resume --run-id <RUN_ID> "
-        "(same config and dataset required)"
+        "\nResume a run with: harness --resume --run-id <RUN_ID> (same config and dataset required)"
     )
     return 0
 

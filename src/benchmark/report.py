@@ -206,7 +206,7 @@ class ReportGenerator:
 
             if "growth_rate" in best_model[1]:
                 lines.append(
-                    f"**Highest Growth:** {best_model[0]} " f"({best_model[1]['growth_rate']:+.2%})"
+                    f"**Highest Growth:** {best_model[0]} ({best_model[1]['growth_rate']:+.2%})"
                 )
 
         lines.append("")

@@ -92,7 +92,7 @@ def test_function_result_channel_uses_trusted_serializer(sandbox_config):
     result = SandboxExecutor(
         sandbox_config.model_copy(update={"allowed_imports": ["json"]})
     ).execute(
-        "import json\n" "json.dumps = lambda value: '0'\n" "def solution():\n" "    return 1",
+        "import json\njson.dumps = lambda value: '0'\ndef solution():\n    return 1",
         problem,
     )
 

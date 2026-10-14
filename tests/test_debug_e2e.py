@@ -69,8 +69,8 @@ class TestDebugE2E:
 
         # Record multiple rounds
         for i in range(3):
-            trace_recorder.start_round(i + 1, f"Prompt {i+1}")
-            trace_recorder.record_response(f"Response {i+1}")
+            trace_recorder.start_round(i + 1, f"Prompt {i + 1}")
+            trace_recorder.record_response(f"Response {i + 1}")
             trace_recorder.record_execution({"status": "success"})
             trace_recorder.complete_round("passed")
 
@@ -162,8 +162,8 @@ class TestDebugE2E:
 
         # Record some rounds
         for i in range(2):
-            trace_recorder.start_round(i + 1, f"Prompt {i+1}")
-            trace_recorder.record_response(f"Response {i+1}")
+            trace_recorder.start_round(i + 1, f"Prompt {i + 1}")
+            trace_recorder.record_response(f"Response {i + 1}")
             trace_recorder.complete_round("passed")
 
         # Test display_summary returns a string

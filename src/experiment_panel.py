@@ -207,7 +207,7 @@ def _render_panel(data: dict[str, Any]) -> str:
         f"<h1>模型对比分析面板 — {escape(data['name'] or data['experiment_id'])}</h1>\n"
         f"<p>实验：{escape(data['experiment_id'])} · 生成时间：{escape(data['generated_at'])}</p>\n"
         '<div id="offline-hint">图表库（Chart.js CDN）未加载：当前离线或 CDN 不可达，表格数据仍可阅读。</div>\n'
-        f"<p class=\"unknown\">成本未知模型：{escape('、'.join(data['cost_unknown_models'])) or '无'}"
+        f'<p class="unknown">成本未知模型：{escape("、".join(data["cost_unknown_models"])) or "无"}'
         "（不进入成本散点图与成本效益排名）</p>\n"
         '<div class="charts">\n'
         '<div><h2>能力雷达图</h2><div class="chart-box"><canvas id="radar"></canvas></div></div>\n'

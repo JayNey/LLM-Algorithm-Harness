@@ -38,7 +38,6 @@ def test_vanilla_strategy_calls_hooks(
         ) as mock_before_exec,
         patch.object(strategy, "_after_feedback", wraps=strategy._after_feedback) as mock_after_fb,
     ):
-
         # Execute the strategy
         result = strategy.execute(sample_problem)
 
@@ -70,7 +69,6 @@ def test_chain_of_thought_strategy_calls_hooks(
         ) as mock_before_exec,
         patch.object(strategy, "_after_feedback", wraps=strategy._after_feedback) as mock_after_fb,
     ):
-
         # Execute the strategy
         result = strategy.execute(sample_problem)
 
@@ -109,7 +107,6 @@ def test_debug_wrapper_intercepts_hooks(
             base_strategy, "_after_feedback", wraps=base_strategy._after_feedback
         ) as mock_fb,
     ):
-
         # Execute through wrapper
         result = wrapped_strategy.execute(sample_problem)
 

@@ -39,8 +39,7 @@ class CostAwareSelector:
         unknown_strategies = sorted(set(mapping.values()) - set(allowed_strategies))
         if unknown_strategies:
             raise ValueError(
-                "Unknown strategy in difficulty-strategy mapping: "
-                f"{', '.join(unknown_strategies)}"
+                f"Unknown strategy in difficulty-strategy mapping: {', '.join(unknown_strategies)}"
             )
         if not mapping:
             raise ValueError("difficulty-strategy mapping must not be empty")
@@ -51,7 +50,7 @@ class CostAwareSelector:
         strategy = self.mapping.get(difficulty or "")
         if strategy is None:
             raise ValueError(
-                f"Difficulty '{difficulty}' is not covered by the " "difficulty-strategy mapping"
+                f"Difficulty '{difficulty}' is not covered by the difficulty-strategy mapping"
             )
         return strategy
 

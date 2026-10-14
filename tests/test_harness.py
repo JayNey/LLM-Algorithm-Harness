@@ -598,7 +598,6 @@ def test_harness_run_full_execution(harness_config, tmp_path):
         patch("src.harness.SandboxExecutor"),
         patch.object(AlgorithmHarness, "_run_strategy") as mock_run_strategy,
     ):
-
         # Mock the report generation
         from src.models import StrategyReport
 
@@ -752,7 +751,6 @@ def test_harness_concurrent_strategy_execution(harness_config, tmp_path):
         patch("src.harness.SandboxExecutor"),
         patch.object(AlgorithmHarness, "_run_strategy") as mock_run_strategy,
     ):
-
         from src.models import StrategyReport
 
         mock_run_strategy.return_value = StrategyReport(
@@ -781,7 +779,6 @@ def test_harness_handles_strategy_failure(harness_config):
         patch("src.harness.SandboxExecutor"),
         patch.object(AlgorithmHarness, "_run_strategy") as mock_run_strategy,
     ):
-
         # First strategy succeeds, second fails
         from src.models import StrategyReport
 

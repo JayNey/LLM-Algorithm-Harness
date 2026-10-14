@@ -33,8 +33,8 @@ def generate_quality_section(quality_metrics: dict[str, Any] | None) -> str:
     if time_comp:
         html += '<div class="metric-card">\n'
         html += "<h3>⏱️ 时间复杂度</h3>\n"
-        html += f'<p>静态分析: {time_comp.get("static_analysis", "N/A")}</p>\n'
-        html += f'<p>循环嵌套深度: {time_comp.get("loop_nesting_depth", 0)}</p>\n'
+        html += f"<p>静态分析: {time_comp.get('static_analysis', 'N/A')}</p>\n"
+        html += f"<p>循环嵌套深度: {time_comp.get('loop_nesting_depth', 0)}</p>\n"
         score = time_comp.get("performance_score")
         if score is not None:
             html += f"<p>性能评分: {score:.1f}/100</p>\n"
@@ -79,7 +79,7 @@ def generate_quality_section(quality_metrics: dict[str, Any] | None) -> str:
         html += "<h3>🎨 代码风格</h3>\n"
         compliant = style.get("black_compliant")
         if compliant is not None:
-            html += f'<p>Black 格式: {"✅ 符合" if compliant else "❌ 不符合"}</p>\n'
+            html += f"<p>Black 格式: {'✅ 符合' if compliant else '❌ 不符合'}</p>\n"
         violations = style.get("style_violations", 0)
         html += f"<p>风格违规: {violations}</p>\n"
         score = style.get("style_score")
