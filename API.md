@@ -86,7 +86,7 @@ curl http://localhost:8000/api/v1/health
 POST /api/v1/evaluations
 ```
 
-**请求体** (`model` 为必填字段，缺失返回 422):
+**请求体** (`model` 为必填字段，缺失返回 400):
 
 ```json
 {
@@ -151,6 +151,7 @@ GET /api/v1/evaluations?status=running&limit=20&offset=0
         "updated_at": "2024-10-10T15:30:45Z",
         "status": "running",
         "strategy_names": ["vanilla"],
+        "model": "gpt-4o-mini",
         "problem_count": 3,
         "spent_usd": 2.5,
         "budget_cap_usd": 10.0,
@@ -260,6 +261,8 @@ GET /api/v1/evaluations/{evaluation_id}/progress
   "message": "Progress retrieved successfully"
 }
 ```
+
+**进度分母口径**：`progress.total` 仍为**题目数**（`problem_count`），而 `current`/`completed` 是**单元数**（题目数 × 策略数）；`percentage` 以单元总数为分母计算，并恒落在 [0, 100]。两者分母不同，因此多策略评估时 `current/total` 的比值不等于 `percentage`（2 策略 × 2 题目全完成时 `percentage=100`，而 `current=4`、`total=2`）。评估详情响应若带异步任务上报的 `progress`，其 `current`/`total` 均为单元数。
 
 #### 取消评估任务
 
@@ -412,7 +415,7 @@ curl http://localhost:8000/api/v1/evaluations/{eval_id}/progress -H "Authorizati
 1. **并发限制**: 默认最多 5 个并发任务，超出时排队等待
 2. **任务持久化**: #151 已将任务状态存入业务数据库，#179 已提供 Celery/Redis 与 AsyncTask 基础，#180 已增加实验、导入和基准 Celery 入口。现有 HTTP 路由没有因此自动切换队列。重启后记录仍可查询；旧评估启动恢复规则不代表异步队列恢复执行保障。当前 `/evaluations` 路由仍保留旧流程。异步评估 worker 现已改为经真实 `AlgorithmHarness` 执行（LLM 调用 + Docker 沙箱运行 + 成本统计），逐单元结果落库，不再返回模拟结果。
 3. **WebSocket 支持**: 当前不支持 WebSocket 实时推送，请使用轮询。后续版本计划支持
-4. **认证**: 用户、Token 撤销和加密密钥已实现；详见 [认证指南](docs/api-authentication.md)。队列基础与三类 Celery 任务实现已合并，但其端到端执行和真实 LLM 指标仍未接通或验证。真实评估 worker、密钥使用计量和安全结果发布仍需接入，#149 保持开放。
+4. **认证**: 用户、Token 撤销和加密密钥已实现；详见 [认证指南](docs/api-authentication.md)。队列基础与三类 Celery 任务（实验、导入、基准）实现已合并，但其端到端执行和真实 LLM 指标仍未接通或验证。异步评估 worker 现已改为经真实 `AlgorithmHarness` 执行（见第 2 条）；真实 LLM 调用的端到端执行与使用计量仍待生产环境验证（测试不发起在线调用），密钥使用计量和安全结果发布仍需接入，#149 保持开放。
 
 ## 路线图
 

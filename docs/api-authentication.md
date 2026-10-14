@@ -49,7 +49,7 @@ python -c 'from cryptography.fernet import Fernet; print("ENCRYPTION_KEY=" + Fer
 
 ## 评估任务与所有权
 
-全部 `/api/v1/evaluations` 路由需要认证。创建任务必须提供自己的密钥 ID 和 `model`（`model` 为必填，缺失返回 422）：
+全部 `/api/v1/evaluations` 路由需要认证。创建任务必须提供自己的密钥 ID 和 `model`（`model` 为必填，缺失返回 400）：
 
 ```json
 {

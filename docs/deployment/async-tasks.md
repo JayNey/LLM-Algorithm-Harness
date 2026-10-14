@@ -37,7 +37,7 @@
    - Celery worker 必须在仓库根目录启动，或确保 `data/tasks/` 相对于进程 CWD 可写，否则任务运行目录创建失败。下方 systemd 示例的 `WorkingDirectory=/opt/llm-harness` 与 supervisor 示例的 `directory=/opt/llm-harness` 必须指向包含 `data/tasks/` 的仓库根；如服务由其他路径拉起，请相应设置 `--workdir`/`WorkingDirectory=`/`directory=`。
 
 3. **凭证与 `model`**
-   - 创建评估请求必须携带必填 `model`，且 `api_key_id` 必须可解析为该用户的有效凭证；否则任务在执行前即置 `failed`（fail-fast，见 §5.4/§5.5）。缺失 `model` 的请求在 HTTP 层即返回 422。
+   - 创建评估请求必须携带必填 `model`，且 `api_key_id` 必须可解析为该用户的有效凭证；否则任务在执行前即置 `failed`（fail-fast，见 §5.4/§5.5）。缺失 `model` 的请求在 HTTP 层即返回 400（validation_error）。
 
 ## 环境变量配置
 

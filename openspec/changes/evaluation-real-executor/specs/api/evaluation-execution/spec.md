@@ -96,3 +96,36 @@
 
 - **WHEN** 评估的所有单元均成功执行且未触发预算暂停
 - **THEN** 评估状态置为 `completed`，`completed_at` 被记录
+
+### Requirement: 创建入口拒绝重复输入
+
+系统 SHALL 在创建评估请求的入口拒绝含重复项的 `strategy_names` 或 `problem_ids`，返回 HTTP 400（`validation_error`）且错误详情 SHALL 以对应字段名定位，SHALL NOT 创建任何评估记录或待执行单元。无重复的合法请求行为 SHALL 保持不变。
+
+#### Scenario: 重复的策略名被入口拒绝
+
+- **WHEN** 创建评估请求的 `strategy_names` 含重复值（如 `["vanilla", "vanilla"]`）而 `problem_ids` 无重复
+- **THEN** 响应为 HTTP 400、`error` 为 `validation_error`，`details` 以 `strategy_names` 为键给出原因，且库中没有任何新建的评估记录
+
+#### Scenario: 重复的题目 ID 被入口拒绝
+
+- **WHEN** 创建评估请求的 `problem_ids` 含重复值（如 `["p1", "p1"]`）
+- **THEN** 响应为 HTTP 400，`details` 以 `problem_ids` 为键给出原因，不创建评估记录也不产生任何单元
+
+#### Scenario: 无重复的合法请求不受影响
+
+- **WHEN** `strategy_names` 与 `problem_ids` 均不含重复项
+- **THEN** 评估按既有语义创建成功（201），单元数等于策略数 × 题目数
+
+### Requirement: 进度百分比以单元总数为分母
+
+系统 SHALL 以单元总数（题目数 × 策略数）作为进度 `percentage` 的分母，其值 SHALL 恒落在 [0, 100] 区间内。`progress.total` SHALL 保持题目数口径不变，因此 `current`/`total` 的比值与 `percentage` 的分母不同。
+
+#### Scenario: 多策略全部完成时百分比不溢出
+
+- **WHEN** 一个 2 策略 × 2 题目的评估完成了全部 4 个单元（`completed_count=4`、`problem_count=2`）
+- **THEN** `percentage` 等于 100 而非 200，列表与详情端点均正常返回 200，不因超出上界而校验失败
+
+#### Scenario: 部分完成时按单元占比
+
+- **WHEN** 上述评估已完成 2 个单元（共 4 个），通过进度接口查询
+- **THEN** `percentage` 为 50（以单元总数 4 为分母），而同一响应里的 `total` 仍为题目数 2、`current` 为已完成单元数 2——两个分母不同，因此 `current/total` 的比值不等于 `percentage`

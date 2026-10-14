@@ -44,6 +44,7 @@
 ### D5：结果落库以 (evaluation_id, problem_id, strategy_name) 为幂等键
 每单元结束 upsert 一条 `EvaluationResult`；`completed_count`/`failed_count`/`spent_usd` 在评估记录上按单元增量累计。
 - **理由**：resume 重跑时同一单元不产生重复行、计数不重置，满足 spec「恢复继续不重复已完成单元」。
+- **已回答**：入口拒绝重复 `strategy_names`/`problem_ids`（`EvaluationCreateRequest` 字段级校验器），HTTP 400（validation_error），不创建评估记录。
 
 ### D6：预算暂停复用 TaskService pause_when
 `should_pause` 在累计 `spent_usd >= budget_cap_usd` 时返回真，`TaskService` 停止调度后续单元并把终态置 `paused`。
@@ -56,7 +57,7 @@
 
 - [每单元跑完整 harness 可能重复创建沙箱/LLM 客户端，开销大] → Design Doc 评估复用单策略 harness 实例或直接调用 harness 内部执行方法；必要时在单元间复用沙箱与客户端。
 - [真实成本依赖 LLM usage trace，供应商定价/用量缺失时 `spent_usd` 可能为 0 或未知] → 复用 `result-recording` 的「未知定价显式标记」语义；预算暂停在成本未知时可能不触发，作为已知限制记录，不伪造成本。
-- [resume 去重依赖稳定单元身份] → 以 (evaluation_id, problem_id, strategy_name) 为幂等键，并复用 TaskService 检查点；重复策略名或重复题目 ID 的输入需在 Design Doc 明确处理口径。
+- [resume 去重依赖稳定单元身份] → 以 (evaluation_id, problem_id, strategy_name) 为幂等键，并复用 TaskService 检查点；重复策略名或重复题目 ID 的输入需在 Design Doc 明确处理口径（已回答：见 D5，入口拒绝重复 `strategy_names`/`problem_ids`，HTTP 400）。
 - [BREAKING：创建评估请求新增必填 `model`] → 迁移新增列对既有行可空以不破坏历史数据，API 请求层要求必填；在 proposal 与迁移说明中标注 BREAKING。
 - [`timeout_seconds`/`max_concurrency` 在请求中存在但未持久化] → 本次范围聚焦执行体，是否持久化并 honor 作为 Open Question 留待 Design Doc，不改变 spec 行为。
 
