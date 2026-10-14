@@ -7,6 +7,7 @@ import uuid
 from unittest.mock import Mock, patch
 
 import pytest
+from fastapi import HTTPException
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 
@@ -249,3 +250,100 @@ class TestCreateTaskUnits:
         assert problems.count("problem_1") == 2
         assert problems.count("problem_2") == 2
         assert problems.count("problem_3") == 2
+
+
+@pytest.fixture
+def session_factory():
+    """返回绑定内存库的 sessionmaker（ProblemStore 构造入参）。"""
+    engine = create_engine("sqlite:///:memory:")
+    return sessionmaker(bind=engine)
+
+
+@pytest.fixture
+def make_evaluation():
+    """构造未持久化的 Evaluation 实例，字段可覆盖。"""
+
+    def _make(**overrides):
+        params = {
+            "id": str(uuid.uuid4()),
+            "user_id": "test_user",
+            "model": "test-model",
+            "api_key_id": "key-1",
+            "problem_ids": ["p1"],
+            "strategy_names": ["strategy_a"],
+        }
+        params.update(overrides)
+        return Evaluation(**params)
+
+    return _make
+
+
+class TestResolveExecutionContext:
+    """测试 _resolve_execution_context fail-fast 解析（model + 凭证 + 题目）。
+
+    凭证与题目均通过 mock/fake 隔离，绝不发起在线调用或真实凭证解密。
+    """
+
+    def test_missing_model_fails_fast(self, make_evaluation, session_factory):
+        """model 缺失时立即抛 ValueError（含 'no model'）。"""
+        from src.tasks.evaluation import _resolve_execution_context
+
+        ev = make_evaluation(model=None)
+        with pytest.raises(ValueError, match="no model"):
+            _resolve_execution_context(ev, session_factory)
+
+    def test_missing_api_key_fails_fast(self, make_evaluation, session_factory):
+        """api_key_id 缺失时在解密前 fail-fast（含 'Credential unavailable'）。"""
+        from src.tasks.evaluation import _resolve_execution_context
+
+        ev = make_evaluation(model="m", api_key_id=None)
+        with (
+            patch("api.auth.config.AuthSettings"),
+            patch("api.auth.service.AuthService") as MockAuth,
+        ):
+            MockAuth.return_value.llm_config.side_effect = AssertionError(
+                "llm_config must not be reached without an api_key_id"
+            )
+            with pytest.raises(ValueError, match="Credential unavailable"):
+                _resolve_execution_context(ev, session_factory)
+
+    def test_credential_unresolvable_fails_fast(self, make_evaluation, session_factory):
+        """凭证不可解析时把 HTTPException 转成 ValueError（含 'Credential unavailable'）。"""
+        from src.tasks.evaluation import _resolve_execution_context
+
+        ev = make_evaluation(model="m", api_key_id="bad")
+        with (
+            patch("api.auth.config.AuthSettings"),
+            patch("api.auth.service.AuthService") as MockAuth,
+        ):
+            MockAuth.return_value.llm_config.side_effect = HTTPException(403, "nope")
+            with pytest.raises(ValueError, match="Credential unavailable"):
+                _resolve_execution_context(ev, session_factory)
+
+    def test_missing_problem_recorded_not_fatal(self, make_evaluation, session_factory):
+        """题目缺失记入 missing_problems，不 fail-fast；存在的题目进入 problem_map。"""
+        from src.tasks.evaluation import _resolve_execution_context
+
+        ev = make_evaluation(model="m", problem_ids=["p1", "missing"])
+        sentinel_llm = object()
+        sentinel_problem = object()
+
+        class _FakeStore:
+            def __init__(self, _session_factory):
+                pass
+
+            def get_by_problem_id(self, problem_id):
+                return sentinel_problem if problem_id == "p1" else None
+
+        with (
+            patch("api.auth.config.AuthSettings"),
+            patch("api.auth.service.AuthService") as MockAuth,
+        ):
+            MockAuth.return_value.llm_config.return_value = sentinel_llm
+            with patch("api.db.problem_store.ProblemStore", _FakeStore):
+                ctx = _resolve_execution_context(ev, session_factory)
+
+        assert ctx.llm_config is sentinel_llm
+        assert "missing" in ctx.missing_problems
+        assert "p1" in ctx.problem_map
+        assert ctx.problem_map["p1"] is sentinel_problem

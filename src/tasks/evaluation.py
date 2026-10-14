@@ -12,7 +12,8 @@ run_evaluation_task 是异步评估执行的核心任务，负责：
 from __future__ import annotations
 
 import uuid
-from typing import Any
+from dataclasses import dataclass
+from typing import TYPE_CHECKING, Any
 
 from celery import Task
 from redis.exceptions import ConnectionError as RedisConnectionError
@@ -23,6 +24,12 @@ from api.db.models import AsyncTask, Evaluation
 from src.celery_app import celery_app
 from src.task_manager import TaskManager
 from src.task_service import TaskService, TaskUnit
+
+if TYPE_CHECKING:
+    from sqlalchemy.orm import sessionmaker
+
+    from api.db.models import Problem
+    from src.models import LLMConfig
 
 
 def get_db_session() -> Session:
@@ -251,3 +258,65 @@ def _create_task_units(strategy_names: list[str], problem_ids: list[str]) -> lis
             )
             units.append(unit)
     return units
+
+
+@dataclass
+class _EvalContext:
+    """执行任何单元前解析出的运行时上下文。
+
+    Attributes:
+        llm_config: 已解析的模型凭证配置。
+        problem_map: 命中题库的题目，按 problem_id 索引。
+        missing_problems: 题库中缺失的 problem_id 集合（不 fail-fast）。
+    """
+
+    llm_config: LLMConfig
+    problem_map: dict[str, Problem]
+    missing_problems: set[str]
+
+
+def _resolve_execution_context(
+    evaluation: Evaluation, session_factory: sessionmaker[Session]
+) -> _EvalContext:
+    """在执行任何单元前 fail-fast 解析「model + 凭证 + 题目」。
+
+    解析顺序：先 model，后凭证，最后题目（Design Doc §5.4 / §5.5）。
+
+    - model 缺失 → 抛 ``ValueError``（含 "no model"）。
+    - api_key_id 缺失或凭证不可解析 → 抛 ``ValueError``（含 "Credential
+      unavailable"）；``AuthService.llm_config`` 抛出的 ``HTTPException`` 被转换并
+      抑制上下文，绝不让 ``HTTPException`` 逃逸进 Celery。
+    - 题目缺失 → 只记入 ``missing_problems``，不 fail-fast。
+
+    调用方在既有 ``except (ValueError, FileNotFoundError)`` 分支置 ``failed``。
+    """
+    model = evaluation.model
+    if not model:
+        raise ValueError(f"Evaluation {evaluation.id} has no model configured")
+
+    from fastapi import HTTPException
+
+    from api.auth.config import AuthSettings
+    from api.auth.service import AuthService
+    from api.db.problem_store import ProblemStore
+
+    api_key_id = evaluation.api_key_id
+    if not api_key_id:
+        raise ValueError(f"Credential unavailable: evaluation {evaluation.id} has no api_key_id")
+
+    auth = AuthService(AuthSettings())
+    try:
+        llm_config = auth.llm_config(api_key_id, evaluation.user_id, model)
+    except HTTPException as exc:
+        raise ValueError(f"Credential unavailable: {exc.detail}") from None
+
+    store = ProblemStore(session_factory)
+    problem_map: dict[str, Problem] = {}
+    missing: set[str] = set()
+    for pid in evaluation.problem_ids:
+        problem = store.get_by_problem_id(pid)
+        if problem is not None:
+            problem_map[pid] = problem
+        else:
+            missing.add(pid)
+    return _EvalContext(llm_config=llm_config, problem_map=problem_map, missing_problems=missing)
