@@ -1,14 +1,15 @@
 """API tests for cost tracking, budgets, alerts and pricing (issue #154)."""
 
 import secrets
-import time
-from unittest.mock import patch
+from unittest.mock import Mock, patch
 
 import pytest
 from cryptography.fernet import Fernet
 from fastapi.testclient import TestClient
+from sqlalchemy.orm import Session
 
 from api.auth.config import AuthSettings
+from api.db.models import Evaluation, utcnow
 from api.files.config import FileSettings
 from api.main import create_app
 
@@ -70,27 +71,42 @@ def _add_key(client, headers):
     ).json()["data"]["id"]
 
 
-def _completed_evaluation(client, headers, key_id):
+def _completed_evaluation(client, headers, key_id, app):
+    """创建并启动一次评估，然后按「队列 worker 完成后落库」的方式把行置为 completed。
+
+    CI 无 broker/worker（与本文件 test_benchmark_run_cost_via_task_endpoint 同因），
+    因此 stub send_task 后直接写回 worker 会产出的聚合状态。model 是 §5.2 起 create
+    请求的必填字段。cost 端点只读 Evaluation 行的 spent_usd/completed_count/strategy_names。
+    """
     created = client.post(
         "/api/v1/evaluations",
         headers=headers,
         json={
             "api_key_id": key_id,
+            "model": "gpt-4o-mini",
             "problem_ids": ["p1"],
             "strategy_names": ["vanilla"],
         },
     )
     assert created.status_code == 201, created.text
     task_id = created.json()["data"]["evaluation_id"]
-    started = client.post(f"/api/v1/evaluations/{task_id}/start", headers=headers)
+    with patch("src.task_manager.celery_app.send_task", return_value=Mock(id="fake-eval-task")):
+        started = client.post(f"/api/v1/evaluations/{task_id}/start", headers=headers)
     assert started.status_code == 202, started.text
-    deadline = time.monotonic() + 10
-    while time.monotonic() < deadline:
-        data = client.get(f"/api/v1/evaluations/{task_id}", headers=headers).json()["data"]
-        if data["status"] == "completed":
-            return task_id, data
-        time.sleep(0.05)
-    pytest.fail("evaluation did not complete in time")
+
+    service = app.state.evaluations
+    with Session(service.engine) as session, session.begin():
+        row = session.get(Evaluation, task_id)
+        assert row is not None
+        row.status = "completed"
+        row.completed_count = len(row.problem_ids or []) * len(row.strategy_names or [])
+        row.failed_count = 0
+        row.spent_usd = 0.2
+        row.updated_at = utcnow()
+
+    data = client.get(f"/api/v1/evaluations/{task_id}", headers=headers).json()["data"]
+    assert data["status"] == "completed", data
+    return task_id, data
 
 
 @pytest.fixture
@@ -107,8 +123,8 @@ def api(tmp_path):
 
 class TestCostQueries:
     def test_task_cost_summary_trends_and_breakdown(self, api):
-        client, headers, key_id, _ = api
-        task_id, view = _completed_evaluation(client, headers, key_id)
+        client, headers, key_id, app = api
+        task_id, view = _completed_evaluation(client, headers, key_id, app)
         assert view["spent_usd"] > 0
 
         task = client.get(f"/api/v1/costs/tasks/{task_id}", headers=headers)
@@ -165,17 +181,14 @@ class TestCostQueries:
         )
         assert inverted.status_code == 400
 
-        # a date-only `until` includes that entire day's spend
-        _completed_evaluation(client, headers, key_id) if False else None
-
     def test_unknown_task_is_404(self, api):
         client, headers, _, _ = api
         response = client.get("/api/v1/costs/tasks/does-not-exist", headers=headers)
         assert response.status_code == 404
 
     def test_task_cost_is_owner_scoped(self, api):
-        client, headers, key_id, _ = api
-        task_id, _ = _completed_evaluation(client, headers, key_id)
+        client, headers, key_id, app = api
+        task_id, _ = _completed_evaluation(client, headers, key_id, app)
         client.post(
             "/api/v1/auth/register",
             json={"username": "bob", "email": "bob@example.org", "password": PASSWORD},
@@ -192,10 +205,10 @@ class TestCostQueries:
 
 class TestBudgets:
     def test_upsert_get_and_usage(self, api):
-        client, headers, key_id, _ = api
+        client, headers, key_id, app = api
         assert client.get("/api/v1/budgets", headers=headers).json()["data"] == {}
 
-        _completed_evaluation(client, headers, key_id)
+        _completed_evaluation(client, headers, key_id, app)
         saved = client.post(
             "/api/v1/budgets",
             headers=headers,
@@ -416,8 +429,8 @@ class TestPricing:
 
 class TestReports:
     def test_task_report_and_optimization(self, api):
-        client, headers, key_id, _ = api
-        task_id, _ = _completed_evaluation(client, headers, key_id)
+        client, headers, key_id, app = api
+        task_id, _ = _completed_evaluation(client, headers, key_id, app)
 
         report = client.get(f"/api/v1/reports/cost/{task_id}", headers=headers)
         assert report.status_code == 200
