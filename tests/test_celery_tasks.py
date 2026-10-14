@@ -882,3 +882,63 @@ class TestRunEvaluationTaskIntegration:
         for row in rows:
             assert row.metrics["cost_unknown"] is True
             assert row.metrics["cost_usd"] == 0.0
+
+    def test_resume_after_pause_runs_only_remaining(
+        self, db_session, integration_harness, auth_ok
+    ):
+        """预算触顶 paused 后提高预算 resume：只跑剩余单元、不重复已完成单元。
+
+        断言终态 completed、计数覆盖全部单元、EvaluationResult 无重复行、
+        spent_usd 续增不重置，且每个单元经 harness 恰好真实执行一次。
+        """
+        # 首单元 cost=0.05 > budget_cap_usd=0.03 → 首单元后触顶 paused（仿 budget_pause）
+        integration_harness.cost = 0.05
+        evaluation_id = _seed_evaluation(
+            db_session,
+            problem_ids=["p1", "p2"],
+            strategy_names=["vanilla"],
+            budget_cap_usd=0.03,
+        )
+        total_units = 2  # 1 策略 × 2 题目
+
+        # 第一次执行：预算触顶 → paused，仅完成首单元
+        with (
+            patch("src.tasks.evaluation.TaskManager"),
+            patch("src.tasks.evaluation.get_db_session", return_value=db_session),
+        ):
+            first_result = run_evaluation_task(evaluation_id)
+
+        ev = _reload(db_session, Evaluation, evaluation_id)
+        assert ev.status == "paused"
+        assert first_result["status"] == "paused"
+        first_done = ev.completed_count
+        first_spent = ev.spent_usd
+        assert first_done < total_units
+        assert len(integration_harness.execute_calls) == 1  # 仅首单元真实执行
+
+        # 提高预算，使 resume 后剩余单元不再触顶
+        ev.budget_cap_usd = 10.0
+        db_session.commit()
+
+        # 第二次执行：resume（TaskService 保留 terminal 单元，只跑剩余 queued 单元）
+        with (
+            patch("src.tasks.evaluation.TaskManager"),
+            patch("src.tasks.evaluation.get_db_session", return_value=db_session),
+        ):
+            second_result = run_evaluation_task(evaluation_id)
+
+        ev = _reload(db_session, Evaluation, evaluation_id)
+        # 终态：正常路径应为 completed
+        assert ev.status in ("completed", "failed")
+        assert second_result["status"] == "completed"
+        # 计数覆盖全部单元（基于 record.units 全量重算，不重置）
+        assert ev.completed_count + ev.failed_count == total_units
+        assert ev.completed_count >= first_done
+        # 无重复行：每单元恰好一行 EvaluationResult（upsert 幂等）
+        assert db_session.query(EvaluationResult).count() == total_units
+        # spent_usd 续增不重置
+        assert ev.spent_usd >= first_spent
+        # resume 未重跑已完成单元：每单元经 harness 恰好真实执行一次
+        calls = integration_harness.execute_calls
+        assert len(calls) == len(set(calls)) == total_units
+        assert set(calls) == {("vanilla", "p1"), ("vanilla", "p2")}
