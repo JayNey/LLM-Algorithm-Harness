@@ -937,7 +937,7 @@ class TestRunEvaluationTaskIntegration:
         # 无重复行：每单元恰好一行 EvaluationResult（upsert 幂等）
         assert db_session.query(EvaluationResult).count() == total_units
         # spent_usd 续增不重置
-        assert ev.spent_usd >= first_spent
+        assert ev.spent_usd > first_spent
         # resume 未重跑已完成单元：每单元经 harness 恰好真实执行一次
         calls = integration_harness.execute_calls
         assert len(calls) == len(set(calls)) == total_units
