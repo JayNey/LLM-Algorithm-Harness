@@ -313,6 +313,14 @@ def _to_domain_problem(row: Problem) -> DomainProblem:
     ``migration_status="legacy_test_cases_as_public"``）。所有字段均为 eagerly-loaded
     列，``get_by_problem_id`` 的 session 关闭后读取仍安全（无 lazy 关系）。
 
+    值为 ``None`` 的 ORM 列**不传**给 domain：真实题库（``data/problems.json``）不含
+    ``source_platform``/``source_url`` 键，导入后列为 NULL，而 domain 的
+    ``source_platform: str = Field("legacy")`` 是非 Optional——显式传 ``None`` 会触发
+    ``ValidationError``，令全部真实题目被判为 missing。省略这些键让 domain 默认值生效
+    （``source_platform→"legacy"``、``source_url→None``、``constraints→None``）；必需且无
+    默认值的字段（``problem_id``/``title``/``description``/``difficulty``/``test_cases``）
+    为 ``None`` 时被省略后仍报 "field required"，失败语义原样保留（并入 missing）。
+
     Args:
         row: ORM ``api.db.models.Problem`` 行。
 
@@ -333,7 +341,9 @@ def _to_domain_problem(row: Problem) -> DomainProblem:
         "source_platform": row.source_platform,
         "source_url": row.source_url,
     }
-    return DomainProblem(**data)
+    # NULL 列省略而非显式传 None，使 domain 默认值生效（``tags`` 经 ``or []`` 兜底为
+    # ``[]``，不会被过滤）。
+    return DomainProblem(**{k: v for k, v in data.items() if v is not None})
 
 
 def _resolve_execution_context(

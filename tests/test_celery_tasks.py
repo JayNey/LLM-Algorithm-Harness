@@ -365,7 +365,8 @@ class TestResolveExecutionContext:
             tags=["array"],
             constraints=None,
             test_cases=[{"input": {"nums": [2, 7], "target": 9}, "expected_output": [0, 1]}],
-            source_platform="leetcode",
+            # 真实落库形状：data/problems.json 无 source_platform/source_url 键 → 列为 NULL
+            source_platform=None,
             source_url=None,
         )
 
@@ -393,6 +394,9 @@ class TestResolveExecutionContext:
         assert converted.public_test_cases
         assert converted.hidden_test_cases == []
         assert converted.migration_status == "legacy_test_cases_as_public"
+        # ORM 列为 NULL 时省略该键 → domain 默认值生效（非 Optional 字段不接受显式 None）
+        assert converted.source_platform == "legacy"
+        assert converted.source_url is None
 
     def test_invalid_problem_row_recorded_as_missing(self, make_evaluation, session_factory):
         """ORM 行数据非法（description 短于 min_length=10）→ ValidationError → 并入 missing。"""
@@ -408,7 +412,7 @@ class TestResolveExecutionContext:
             tags=[],
             constraints=None,
             test_cases=[{"input": {"x": 1}, "expected_output": 1}],
-            source_platform="legacy",
+            source_platform=None,
             source_url=None,
         )
 
@@ -733,7 +737,9 @@ def _seed_problem(db, problem_id):
             tags=["array"],
             constraints=None,
             test_cases=[{"input": {"nums": [2, 7], "target": 9}, "expected_output": [0, 1]}],
-            source_platform="leetcode",
+            # 真实导入形状：data/problems.json 的记录不含 source_platform/source_url
+            # 键，导入后 ORM 列为 NULL，seed 必须与之一致（否则掩盖转换缺陷）。
+            source_platform=None,
             source_url=None,
         )
     )
