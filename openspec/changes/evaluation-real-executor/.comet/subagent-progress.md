@@ -54,6 +54,12 @@
   - M1 started_at 未写（基线已有、非本次回归，§5.14 只要求 completed_at）；M2 data:dict[str,Any] 放宽；均 deferred
   - fix agent 范围外观察（非阻塞，独立议题）：导入侧对 source_platform 仍落 NULL（若要让 domain 反映真实来源需改导入链路）
   - **tasks.md 2.1/2.2/2.3/3.1 已勾选**（per Preflight checkoff 粒度 Ruling：集成测试全绿后一并勾选，已满足）
-- Task 7（resume 去重）: pending（下一步派发；BASE=7bef2d8 之后的 checkoff commit）
-- Task 8（边界测试）: pending
+- Task 7（resume 去重）: **done**（impl c72741b、review-fix R1 273c180）
+  - 前一个 implementer 遭平台配额错误 code 112 中断（已完成测试+人为注入 `if False and ...` 演示 RED）；重派收尾 agent 撤销注入后 GREEN。commit c72741b 仅含 tests (+60 行)，src 无 diff（注入仅为 RED 演示）
+  - 风险信号命中 DONE_WITH_CONCERNS → 已派每任务 reviewer：Spec ✅（四项 resume 要求均有断言），无 CRITICAL；**I1 IMPORTANT**：`spent_usd >= first_spent` 在同价 fixture下可被“累加改覆盖”绕过
+  - review-fix R1（273c180）：`>=` → `>`（与 reviewer 处方逐字一致，1 文件 +1/-1）；fix agent 提供 mutation-style 证据（注入 spent_usd=cost → 断言 FAIL 于 `0.05 > 0.05`；恢复 → PASS）
+  - **Ruling（协调者）**：单字机械断言收紧 + 与 reviewer 处方逐字一致 + fix agent 自带 mutation-style RED/GREEN 证据 + diff 仅 1 行——re-review 唯一信息量（无夹带）已由 `git diff --stat` + 全文 diff 确认；不重派 re-reviewer（走 "Rulings, not stalls"）。如后续任何非机械 fix/多行改动/新增文件，本例外不适用
+  - Reviewer 对 concern 3 裁定：「resume 失效→ValueError→failed 路径」已被 Task 6 `test_run_evaluation_task_credential_failure_no_results` 实证覆盖（同一 `except (ValueError, FileNotFoundError)` 分支），可 deferred → verify 阶段观察清单
+  - **tasks.md 3.2 已勾选**（见下）
+- Task 8（边界测试）: pending（下一步派发）
 - Task 9（CI 门禁）: pending

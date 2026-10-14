@@ -12,7 +12,7 @@
 ## 3. worker 接入与恢复
 
 - [x] 3.1 替换 `src/tasks/evaluation.py` 中 `run_evaluation_task` 的 mock `worker()`，改为驱动 2.1–2.3 的真实执行编排；保持既有状态机、入队时序与 `start/pause/resume/cancel` 语义不变，执行终态（completed/paused/failed）回写评估与关联 `AsyncTask` 一致。验证：`run_evaluation_task` 单测（mock harness/LLM/沙箱）断言三种终态回写正确、不再产生 `mock` 结果。
-- [ ] 3.2 对 `paused`/`failed` 评估重新发起执行时从未完成单元继续，已完成单元不重复执行、不产生重复 `EvaluationResult`，计数与 `spent_usd` 在既有基础上续增。验证：单测——预算暂停后提高预算再 resume，仅剩余单元执行、无重复结果行、`completed_count` 续增。
+- [x] 3.2 对 `paused`/`failed` 评估重新发起执行时从未完成单元继续，已完成单元不重复执行、不产生重复 `EvaluationResult`，计数与 `spent_usd` 在既有基础上续增。验证：单测——预算暂停后提高预算再 resume，仅剩余单元执行、无重复结果行、`completed_count` 续增。
 
 ## 4. 测试与质量门禁
 
