@@ -2,6 +2,8 @@
 comet_change: evaluation-real-executor
 role: technical-design
 canonical_spec: openspec
+archived-with: 2026-10-14-evaluation-real-executor
+status: final
 ---
 
 # 真实评估执行体 — 技术设计（Design Doc）

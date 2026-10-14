@@ -2,6 +2,7 @@
 change: evaluation-real-executor
 design-doc: docs/superpowers/specs/2026-10-13-evaluation-real-executor-design.md
 base-ref: b76aabbddf104e526b3ac59433c34dcf90f71f07
+archived-with: 2026-10-14-evaluation-real-executor
 ---
 
 # 真实评估执行体 Implementation Plan

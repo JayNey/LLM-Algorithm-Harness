@@ -78,3 +78,22 @@
   - 残留 ruff format --check 52 个违规（47 md + 5 py）均基线噪音，不属本 change 引入，不在真实 CI gate 范围
   - **tasks.md 4.2 已勾选** + 命令表已按 CI 权威定义重写（删 ruff format --check、补 pytest -m "not online"）
 
+## Verify 阶段集成审查 → verify-fail → 修复闭环（2026-10-14）
+
+整 change 集成审查返回 NOT ready（1 CRITICAL + 5 in-scope IMPORTANT + 1 out-of-scope），执行 `verify-fail`（verify_failures=1）回 build。协调者独立读源码核实 C-1/I-1/I-4/I-6 属实后分 4 批派发修复（TDD）：
+
+- **Fix-A（33eb88b）** C-1 + I-4：`_compute_percentage` helper 分母改 `problem_count × len(strategy_names)` 并 clamp[0,100]，三处调用点（L39/L92/L483）统一；`EvaluationCreateRequest` 加 model_validator 拒重复。协调者独立核实：worker `update_state` 仅写 current/total/message 无 percentage → 实时 async progress 不溢出（Fix-A 顾虑 2 证实不成立）。I-4 返回码 400（项目 errors.py 全局约定）非简报假设 422 → 接受。
+- **Fix-B（dbb2562）** I-1 + I-6：`should_pause` 加 `populate_existing()` 跨进程重读 paused；`_EvalContext` 加 `missing_reasons` dict + `_validation_error_summary`，worker 区分「not found」与「invalid/incomplete problem data」（第 5 参默认 None 向后兼容）。28 passed。
+- **Fix-C（2d51bc3）** I-3 + I-5：API.md/api-authentication.md 创建/响应示例补 model、改写「worker 返回模拟结果」行为性陈述（保留监控自述句=L441 I-2 out-of-scope）；async-tasks.md 加「真实评估运行前置」节。1662 passed。
+- **Fix-A/B/C scoped reviewer（整批 f531ef2..2d51bc3）**：无 Critical；C-1/I-4/I-1/I-6 四项运行时正确性经独立复现（I-1 同构 session 实测 plain→running / populate_existing→paused）判正确、向后兼容、无回归。返回 With fixes，列出文档/spec 验收欠账（Important 1-5）+ 一 Minor（I-4 校验器 details 键退化）。
+- **Fix-D（625d479 + 7e09d59）** 收尾 Important：I-4 校验器 model_validator→两 field_validator（details 键定位字段，测试断言收紧为结构化）；422→400 全量订正（文档+注释）；API.md L415 删除「真实评估 worker」对冲项；补 API.md 列表响应示例 + README L559 创建示例 model + README L496 改写；API.md:265 声明进度分母口径；delta spec 追加 2 Requirement（重复拒绝 400 不建记录 / percentage[0,100] 单元分母）5 Scenario + design.md D5 标「已回答」。openspec validate --strict valid。
+- **Fix-D scoped re-reviewer（2d51bc3..7e09d59）**：6 项 finding 全 ADDRESSED，无新增 Critical/Important，仅两处 Minor（README:501 段内残留「评估入口仍使用模拟 worker」对冲、spec Requirement total 口径措辞过宽）+ out-of-scope 观察（tasks.md:4 的 422、api-monitoring.md/api-files.md「worker 仍模拟」、API.md 轮询示例 completed==total 在新口径下死循环）。
+- **Fix-E（7178395，协调者直改·纯文本无取舍）**：README:501 架构组件项改真实执行；tasks.md:4 422→400；spec.md Requirement 加「进度接口与聚合回退口径」限定 + async_task.progress 例外注（不改代码语义）；API.md 轮询示例退出条件 completed==total → percentage>=100 并加注释。门禁全绿（ruff/black/encoding/openspec valid）。
+
+### Deferred / Follow-up（archive 后另行处理，不阻塞本 change）
+
+- **I-2**（out-of-scope）：monitoring 探针 `evaluation_worker_implementation=mock` 自述（`api/monitoring/probes.py:246`、`task_snapshots.py:106`、`routes/monitoring.py:143`）+ 4 处 monitoring 测试断言 `=="mock"` + 文档 `api-monitoring.md:3`/`api-files.md:116` 同类「worker 仍模拟」陈述 → 独立 capability，需单独 change 更新探针与相关测试与文档。API.md:441 监控自述句本轮刻意未改以与代码现状一致。
+- **worker 感知 cancelled 相邻缺口**：`should_pause` 只认 paused，API `cancel_task` 写 cancelled 不被 worker 感知、终态仍会覆盖 → follow-up。
+- Minor（非阻塞）：`missing_problems` 只写不读（与 missing_reasons.keys() 等价）字段合并；I-1 新测试 session `try/finally` 收尾；`populate_existing` docstring 前瞻注；`api/models.py` class-based `Config`→`ConfigDict`（Pydantic V3 弃用告警）；幂等键无 DB 级 UNIQUE；`_estimate_cost` 丢定价出处；逐 pid SELECT N 次。
+- 已消化：原 M-6（missing_problems 计算未消费）经 I-6 missing_reasons 部分消化，但 missing_problems 字段本身仍只写不读（归入上方 Minor）。
+
