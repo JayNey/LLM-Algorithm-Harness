@@ -497,6 +497,8 @@ git commit -m "test(eval): verify resume dedup and continued accumulation (evalu
 
 - [ ] **Step 1: 补「成本无定价」与「聚合口径」用例**
 
+> **Ruling（Task 1 review 遗留 Minor 的 owner）**：本 Task 额外补一条「既有库迁移不破坏历史行」用例（对应 delta spec database-schema 场景「评估模型标识落库」的非空库子句）：`upgrade(url, "3a568a0f1b04")` → 插入一行 Evaluation（model 为 NULL）→ `run_migrations(url)` → 断言该行仍在且 `model is None`。
+
 ```python
 def test_unknown_pricing_does_not_advance_spent(monkeypatch, run_task_env):
     monkeypatch.setattr(AlgorithmHarness, "_estimate_cost", lambda self, r: (0.0, {"unknown_usage": True}))

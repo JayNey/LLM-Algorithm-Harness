@@ -1,6 +1,6 @@
 ## 1. 数据模型与迁移（新增 model 字段）
 
-- [ ] 1.1 在 `api/db/models.py` 的 `Evaluation` 增加 `model` 列，并新增一条 Alembic 迁移（`upgrade` 增加对既有行可空的 `model` 列、`downgrade` 对称删除）。验证：空库上 `alembic upgrade head` → `downgrade base` → 再 `upgrade head` 往返无报错，`evaluations.model` 存在。
+- [x] 1.1 在 `api/db/models.py` 的 `Evaluation` 增加 `model` 列，并新增一条 Alembic 迁移（`upgrade` 增加对既有行可空的 `model` 列、`downgrade` 对称删除）。验证：空库上 `alembic upgrade head` → `downgrade base` → 再 `upgrade head` 往返无报错，`evaluations.model` 存在。
 - [ ] 1.2 `api/models.py` 的 `EvaluationCreateRequest` 增加必填 `model` 字段；`create_evaluation` 与 `create_evaluation_async` 持久化 `model` 到 `Evaluation`。验证：单测断言创建后 `evaluations.model` 等于请求值；缺少 `model` 的请求返回 422 校验失败。
 
 ## 2. 真实执行编排（service 层）
