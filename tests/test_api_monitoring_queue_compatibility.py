@@ -69,9 +69,11 @@ def create_queue_task(client, credentials, entity_id=None):
             },
         )
     assert response.status_code == 201, response.text
-    send.assert_called_once_with(
-        "src.tasks.evaluation.run_evaluation_task", args=(entity_id,), kwargs={}
-    )
+    send.assert_called_once()
+    assert send.call_args.args == ("src.tasks.evaluation.run_evaluation_task",)
+    assert send.call_args.kwargs["args"] == (entity_id,)
+    assert send.call_args.kwargs["kwargs"] == {}
+    assert send.call_args.kwargs["task_id"]
     return response.json()["data"]["id"]
 
 
