@@ -1,14 +1,16 @@
 """API tests for async task management endpoints."""
 
 import uuid
-from datetime import datetime, timezone
 from unittest.mock import Mock, patch
 
 import pytest
+from fastapi import HTTPException
 from sqlalchemy import create_engine
 from sqlalchemy.orm import Session, sessionmaker
 
-from api.db.models import AsyncTask, Base
+from api.auth.service import Principal
+from api.db.models import AsyncTask, Base, Evaluation
+from api.routes.tasks import resume_task as resume_task_route
 from src.task_manager import TaskManager
 
 
@@ -171,38 +173,78 @@ class TestResumeTaskEndpoint:
     """Tests for POST /api/v1/tasks/{task_id}/resume - Resume task endpoint"""
 
     def test_resume_paused_task_success(self, task_manager, db_session):
-        """Test successful resumption of a paused task."""
+        """Paused evaluation resumes as the same pending task."""
+        entity_id = str(uuid.uuid4())
         task = AsyncTask(
             id=str(uuid.uuid4()),
             celery_task_id=f"celery-{uuid.uuid4()}",
             task_type="evaluation",
+            entity_id=entity_id,
+            user_id="test-user-123",
+            status="paused",
+        )
+        db_session.add(task)
+        db_session.add(
+            Evaluation(
+                id=entity_id,
+                user_id=task.user_id,
+                status="paused",
+                strategy_names=["vanilla"],
+                problem_ids=["p1"],
+                problem_count=1,
+                async_task_id=task.id,
+            )
+        )
+        db_session.commit()
+        principal = Principal(user_id=task.user_id, session_id="session-1")
+
+        with patch("src.task_manager.celery_app.send_task", return_value=Mock()):
+            response = resume_task_route(task.id, principal, task_manager)
+
+        assert response.data.id == task.id
+        assert response.data.status == "pending"
+
+    def test_resume_running_task_fails(self, task_manager, db_session):
+        """Running tasks are rejected and no queue message is published."""
+        task = create_test_task(db_session, user_id="test-user-123")
+        task.status = "running"
+        db_session.commit()
+        principal = Principal(user_id=task.user_id, session_id="session-1")
+
+        with (
+            patch("src.task_manager.celery_app.AsyncResult"),
+            patch("src.task_manager.celery_app.send_task") as mock_send,
+            pytest.raises(HTTPException) as exc_info,
+        ):
+            resume_task_route(task.id, principal, task_manager)
+
+        assert exc_info.value.status_code == 400
+        mock_send.assert_not_called()
+        assert db_session.get(AsyncTask, task.id).status == "running"
+
+    def test_resume_non_evaluation_does_not_publish(self, task_manager, db_session):
+        """Paused non-evaluation tasks are rejected without publishing."""
+        task = AsyncTask(
+            id=str(uuid.uuid4()),
+            celery_task_id=f"celery-{uuid.uuid4()}",
+            task_type="import",
             entity_id=str(uuid.uuid4()),
             user_id="test-user-123",
             status="paused",
         )
         db_session.add(task)
         db_session.commit()
+        principal = Principal(user_id=task.user_id, session_id="session-1")
 
-        # Get task to update status
-        with patch("src.task_manager.celery_app.AsyncResult"):
-            retrieved_task = task_manager.get_task(task.id, user_id=task.user_id)
-            retrieved_task.status = "running"
-            retrieved_task.started_at = datetime.now(timezone.utc).replace(tzinfo=None)
-            db_session.commit()
+        with (
+            patch("src.task_manager.celery_app.send_task") as mock_send,
+            pytest.raises(HTTPException) as exc_info,
+        ):
+            resume_task_route(task.id, principal, task_manager)
 
-            result = task_manager.get_task(task.id, user_id=task.user_id)
-            assert result.status == "running"
-
-    def test_resume_running_task_fails(self, task_manager, db_session):
-        """Test resuming a running task (should fail)."""
-        task = create_test_task(db_session, user_id="test-user-123")
-        task.status = "running"
-        db_session.commit()
-
-        # Should not raise an error when getting a running task
-        with patch("src.task_manager.celery_app.AsyncResult"):
-            result = task_manager.get_task(task.id, user_id=task.user_id)
-            assert result.status == "running"
+        assert exc_info.value.status_code == 400
+        mock_send.assert_not_called()
+        assert db_session.get(AsyncTask, task.id).status == "paused"
 
 
 class TestListTasksEndpoint:
