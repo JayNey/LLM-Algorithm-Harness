@@ -34,6 +34,7 @@ from src.models import (
 from src.models import Problem as DomainProblem
 from src.task_manager import TaskManager
 from src.task_service import TaskService, TaskUnit
+from src.tasks.support import task_progress
 
 if TYPE_CHECKING:
     from api.db.models import Problem
@@ -155,6 +156,33 @@ def run_evaluation_task(self: EvaluationTask, evaluation_id: str) -> dict[str, A
             )
 
         # 6. 定义回调和检查函数
+        def report_progress(record: Any, unit: TaskUnit, finished: int) -> None:
+            """把即将执行或刚结束单元的进度写入任务记录和 Celery。
+
+            只在任务仍为 running 时写入，避免把已暂停的任务通过 PROGRESS 状态盖回去。
+            """
+            progress = task_progress(
+                finished,
+                record.total_units,
+                f"{unit.strategy}/{unit.problem_id}",
+            )
+            current_async_task = (
+                db.query(AsyncTask)
+                .populate_existing()
+                .filter(AsyncTask.id == async_task.id)
+                .first()
+            )
+            if current_async_task is None or current_async_task.status != "running":
+                return
+            current_async_task.progress = progress
+            db.commit()
+            self.update_state(state="PROGRESS", meta=progress)
+
+        def on_unit_started(record: Any, unit: TaskUnit) -> None:
+            """单元提交前上报：百分比是已完成比例，当前步骤是即将执行的单元。"""
+            finished = sum(1 for item in record.units if item.status in {"completed", "failed"})
+            report_progress(record, unit, finished)
+
         def on_unit_finished(record: Any, unit: TaskUnit) -> None:
             """单元完成回调（主线程，可触碰 db）：落库 + 累计成本 + 重算计数 + 报进度。
 
@@ -167,16 +195,7 @@ def run_evaluation_task(self: EvaluationTask, evaluation_id: str) -> dict[str, A
             evaluation.completed_count = sum(1 for u in record.units if u.status == "completed")
             evaluation.failed_count = sum(1 for u in record.units if u.status == "failed")
             db.commit()
-
-            # 更新 Celery 进度
-            self.update_state(
-                state="PROGRESS",
-                meta={
-                    "current": record.completed_units,
-                    "total": record.total_units,
-                    "message": f"Completed {record.completed_units}/{record.total_units} units",
-                },
-            )
+            report_progress(record, unit, record.completed_units)
 
         def should_pause(record: Any) -> bool:
             """检查是否应该暂停。
@@ -224,6 +243,7 @@ def run_evaluation_task(self: EvaluationTask, evaluation_id: str) -> dict[str, A
             dataset_fingerprint=dataset_fingerprint,
             resume=resume,
             pause_when=should_pause,
+            on_unit_started=on_unit_started,
             on_unit_finished=on_unit_finished,
         )
 
