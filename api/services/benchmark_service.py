@@ -230,7 +230,7 @@ class BenchmarkService:
             run_id = row.id
 
         with self._session() as session:
-            task = TaskManager(session).create_task(
+            task = TaskManager(session).enqueue_task(
                 task_type="benchmark",
                 entity_id=run_id,
                 user_id=owner_id,

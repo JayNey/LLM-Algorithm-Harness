@@ -73,7 +73,7 @@ def create_task(
     task_kwargs = request.celery_task_kwargs or {}
 
     task = call(
-        lambda: manager.create_task(
+        lambda: manager.enqueue_task(
             task_type=request.task_type,
             entity_id=request.entity_id,
             user_id=principal.user_id,

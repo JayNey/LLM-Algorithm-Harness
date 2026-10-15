@@ -178,7 +178,7 @@ class ExperimentService:
             if row.status != "pending":
                 raise ValueError(f"Cannot start experiment in {row.status} status")
             view = _job_view(row)
-            task = TaskManager(session).create_task(
+            task = TaskManager(session).enqueue_task(
                 task_type="experiment",
                 entity_id=experiment_id,
                 user_id=owner_id,
