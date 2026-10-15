@@ -85,6 +85,9 @@ class AlgorithmHarness:
         self.problems_by_id: dict[str, Problem] = {}
         self.task_record: TaskRecord | None = None
         self.should_pause: Callable[[], bool] | None = None
+        self.on_problem: Callable[[int, int, str, str], None] | None = None
+        self._progress_done = 0
+        self._progress_total = 0
         self.paused = False
         self._results_lock = threading.Lock()
 
@@ -138,6 +141,8 @@ class AlgorithmHarness:
         # Load problems
         problems = self._load_problems()
         self.problems_by_id = {problem.problem_id: problem for problem in problems}
+        self._progress_done = 0
+        self._progress_total = len(self.config.strategies) * len(problems)
         logger.info("problems_loaded", count=len(problems))
 
         # Run each strategy
@@ -625,6 +630,12 @@ class AlgorithmHarness:
 
         return problems
 
+    def _emit_problem_progress(self, strategy: str, problem_id: str, problem_count: int) -> None:
+        if self.on_problem is None:
+            return
+        total = self._progress_total or len(self.config.strategies) * problem_count
+        self.on_problem(self._progress_done, total, strategy, problem_id)
+
     def _pause_requested(self) -> bool:
         if self.paused:
             return True
@@ -653,6 +664,7 @@ class AlgorithmHarness:
         for i, problem in enumerate(problems):
             if self._pause_requested():
                 break
+            self._emit_problem_progress(strategy_config.name, problem.problem_id, len(problems))
             logger.info(
                 "executing_problem",
                 strategy=strategy_config.name,
@@ -687,6 +699,7 @@ class AlgorithmHarness:
                     )
                 )
             finally:
+                self._progress_done += 1
                 if self.budget_tracker is not None:
                     self.budget_tracker.finalize_problem()
 
