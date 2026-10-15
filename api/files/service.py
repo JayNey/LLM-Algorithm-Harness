@@ -218,11 +218,11 @@ class FileService:
             raise HTTPException(409, "Stored file integrity check failed")
         return self.metadata(record), data
 
-    def process_job(self, job_id: str, user_id: str) -> None:
+    def process_job(self, job_id: str, user_id: str, should_pause=None) -> None:
         with self.imports:
-            self._process_job(job_id, user_id)
+            self._process_job(job_id, user_id, should_pause=should_pause)
 
-    def _process_job(self, job_id: str, user_id: str) -> None:
+    def _process_job(self, job_id: str, user_id: str, should_pause=None) -> None:
         if not self.store.claim_job(job_id, user_id):
             return
         try:
@@ -240,6 +240,9 @@ class FileService:
             errors: list[dict[str, Any]] = []
             self.store.progress(job_id, 0, len(data))
             for index, item in enumerate(data):
+                if should_pause is not None and should_pause():
+                    self.store.pause_job(job_id)
+                    return
                 try:
                     problems.append(validate_problem(item, record["suffix"] == ".csv"))
                 except (ValueError, TypeError, ValidationError) as error:
@@ -248,6 +251,9 @@ class FileService:
                         errors.append(problem_error(index, error))
                 if (index + 1) % 100 == 0 or index + 1 == len(data):
                     self.store.progress(job_id, index + 1, len(data))
+            if should_pause is not None and should_pause():
+                self.store.pause_job(job_id)
+                return
             report = {
                 "total": len(data),
                 "valid": len(problems),

@@ -194,6 +194,13 @@ class FileStore:
                 (processed, total, int(time.time()), job_id),
             )
 
+    def pause_job(self, job_id: str) -> None:
+        with self.connection() as db:
+            db.execute(
+                "UPDATE api_file_jobs SET status='paused',updated_at=? WHERE id=? AND status='running'",
+                (int(time.time()), job_id),
+            )
+
     def fail_job(self, job_id: str, details: dict[str, Any]) -> None:
         with self.connection() as db:
             db.execute(

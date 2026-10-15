@@ -1031,3 +1031,24 @@ def test_csv_roundtrip_supports_large_valid_description_cells(api):
     assert response.status_code == 200, response.text
     actual = client.get("/api/v1/problems/export", headers=auth_headers(alice)).json()[0]
     assert actual["description"] == item["description"]
+
+
+def test_paused_import_does_not_write_remaining_problems(api):
+    client, alice, _, app, _, _ = api
+    uploaded = upload(client, alice, [problem("keep-me"), problem("skip-me")])
+    assert uploaded.status_code == 201, uploaded.text
+    file_id = uploaded.json()["data"]["file"]["id"]
+    owner = app.state.auth.store.find_user("alice")["id"]
+    job_id = app.state.files.store.create_job(
+        file_id, owner, "append", app.state.files.settings.FILE_MAX_ACTIVE_IMPORTS
+    )
+    checks = {"count": 0}
+
+    def should_pause() -> bool:
+        checks["count"] += 1
+        return checks["count"] > 1
+
+    app.state.files._process_job(job_id, owner, should_pause=should_pause)
+    dataset = app.state.files.store.dataset(owner)
+    assert "skip-me" not in {item["problem_id"] for item in dataset}
+    assert app.state.files.store.job(job_id, owner)["status"] == "paused"

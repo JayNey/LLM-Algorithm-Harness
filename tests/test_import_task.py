@@ -69,7 +69,7 @@ def test_execute_import_missing_job_does_not_process():
 def test_run_import_task_reports_progress_and_completes(db_session):
     job_id, user_id = _seed(db_session)
 
-    def finish(job_id: str, user_id: str, on_progress) -> dict:
+    def finish(job_id: str, user_id: str, on_progress, should_pause=None) -> dict:
         on_progress(2, 4)
         return {"status": "completed", "processed": 4, "total": 4, "result": None}
 
@@ -113,7 +113,7 @@ def test_run_import_task_missing_job_does_not_continue(db_session):
 def test_run_import_task_failure_records_result_detail(db_session):
     job_id, user_id = _seed(db_session)
 
-    def finish(job_id: str, user_id: str, on_progress) -> dict:
+    def finish(job_id: str, user_id: str, on_progress, should_pause=None) -> dict:
         return {"status": "failed", "result": {"detail": "row 3 is invalid"}}
 
     with (
@@ -127,4 +127,28 @@ def test_run_import_task_failure_records_result_detail(db_session):
     assert result["status"] == "failed"
     assert task.status == "failed"
     assert task.error_message == "row 3 is invalid"
+    check.close()
+
+
+def test_run_import_task_keeps_paused_status(db_session):
+    job_id, user_id = _seed(db_session)
+
+    def pause(job_id: str, user_id: str, on_progress, should_pause=None) -> dict:
+        other = _reload(db_session)
+        task = other.query(AsyncTask).filter_by(entity_id=job_id).one()
+        task.status = "paused"
+        other.commit()
+        other.close()
+        return {"status": "paused", "result": None}
+
+    with (
+        patch("src.tasks.imports.get_db_session", return_value=db_session),
+        patch("src.tasks.imports.execute_import", side_effect=pause),
+    ):
+        result = run_import_task(job_id, user_id)
+
+    check = _reload(db_session)
+    task = check.query(AsyncTask).filter_by(entity_id=job_id).one()
+    assert result["status"] == "paused"
+    assert task.status == "paused"
     check.close()
