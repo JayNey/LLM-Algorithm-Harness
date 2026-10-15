@@ -86,6 +86,9 @@ def test_run_import_task_reports_progress_and_completes(db_session):
     assert task.progress["current"] == 2
     assert task.progress["total"] == 4
     assert task.progress["percentage"] == 50
+    assert task.progress["current_step"] == "2"
+    assert 0 <= task.progress["percentage"] <= 100
+    assert "hidden problem body" not in str(task.progress)
     check.close()
 
 
