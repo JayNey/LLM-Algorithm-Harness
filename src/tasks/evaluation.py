@@ -22,8 +22,8 @@ from redis.exceptions import ConnectionError as RedisConnectionError
 from sqlalchemy.orm import Session, sessionmaker
 
 from api.db.engine import business_database_url, make_engine, make_session_factory
-from api.progress import publish_progress
 from api.db.models import AsyncTask, Evaluation, EvaluationResult, utcnow
+from api.progress import publish_progress
 from src.celery_app import celery_app
 from src.harness import AlgorithmHarness
 from src.models import (

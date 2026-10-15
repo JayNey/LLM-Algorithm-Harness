@@ -360,9 +360,8 @@ POST /api/v1/evaluations/{evaluation_id}/cancel
 | `task.started` / `task.progress` / `problem.completed` | worker 运行期事件（percentage、completed/failed/total、当前题目与策略、单题结果） |
 | `task.completed` / `task.failed` / `task.paused` / `task.cancelled` | 终态事件 |
 | `pong` | 心跳应答 |
-| `error` | 订阅目标不存在等错误（连接保留） |
 
-**约束**：令牌无效以 4401 关闭；订阅非本人任务以 4403 关闭（不存在与无权返回相同，不做存在性探测）；`problem.started`/`iteration.completed` 事件与日志流暂未提供。Redis 故障时进度推送中断但评估任务不受影响。
+**约束**：令牌无效以 4401 关闭；订阅非本人任务以 4403 关闭（不存在与无权返回相同，不做存在性探测）；`problem.started`/`iteration.completed` 事件与日志流暂未提供。`task.progress` 的 percentage 按 completed/total 计算，存在失败单元时可能达不到 100（终态事件携带原始计数）。Redis 故障时进度推送中断但评估任务不受影响。部署注意：token 经 query 参数传递（浏览器 WebSocket 无法自定义 header），生产环境应剥离访问日志中的 query 串或改用短时票证。
 
 ## 错误处理
 

@@ -11,7 +11,7 @@ from starlette.websockets import WebSocketDisconnect
 from api.auth.config import AuthSettings
 from api.files.config import FileSettings
 from api.main import create_app
-from api.progress import ProgressStream, channel_for
+from api.progress import ProgressStream, Subscription, channel_for
 
 PASSWORD = "a-long-test-password-!"
 KEY = "sk-private-unique-test-value"
@@ -26,12 +26,12 @@ class FakeProgressStream(ProgressStream):
     async def subscribe(self, channel):
         queue: asyncio.Queue = asyncio.Queue()
         self.queues.setdefault(channel, []).append(queue)
-        return queue
+        return Subscription(channel=channel, queue=queue)
 
-    async def unsubscribe(self, channel, queue):
-        queues = self.queues.get(channel, [])
-        if queue in queues:
-            queues.remove(queue)
+    async def unsubscribe(self, subscription):
+        queues = self.queues.get(subscription.channel, [])
+        if subscription.queue in queues:
+            queues.remove(subscription.queue)
 
     async def emit(self, channel, event):
         for queue in self.queues.get(channel, []):
@@ -163,7 +163,7 @@ class TestSubscription:
 
             ws.send_json({"action": "unsubscribe", "task_id": evaluation_id})
             assert ws.receive_json()["type"] == "unsubscribed"
-            assert stream.queues.get(channel) == []
+            assert stream.queues.get(channel) == []  # stream subscription released
 
             # events after unsubscribe are dropped by the stream, not queued
             asyncio.run(stream.emit(channel, {"type": "task.progress", "data": {}}))

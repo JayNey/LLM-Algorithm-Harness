@@ -11,6 +11,7 @@ from __future__ import annotations
 import asyncio
 import json
 import logging
+from dataclasses import dataclass
 from datetime import datetime, timezone
 from typing import Any
 
@@ -28,6 +29,25 @@ def _redis_url() -> str:
     from api.config import settings
 
     return settings.CELERY_BROKER_URL
+
+
+_publisher: Any = None
+
+
+def _publisher_client() -> Any:
+    """Shared publish client with short timeouts (redis-py is thread-safe).
+
+    Without tight timeouts a network black hole would stall every publish —
+    twice per finished unit — for the OS-level TCP timeout.
+    """
+    global _publisher
+    if _publisher is None:
+        import redis as redis_sync
+
+        _publisher = redis_sync.Redis.from_url(
+            _redis_url(), socket_connect_timeout=1.0, socket_timeout=1.0
+        )
+    return _publisher
 
 
 def publish_progress(
@@ -49,25 +69,31 @@ def publish_progress(
         "timestamp": datetime.now(timezone.utc).isoformat(),
     }
     try:
-        if redis_client is None:
-            import redis as redis_sync
-
-            redis_client = redis_sync.Redis.from_url(_redis_url())
-        redis_client.publish(channel_for(task_id), json.dumps(payload))
+        client = redis_client if redis_client is not None else _publisher_client()
+        client.publish(channel_for(task_id), json.dumps(payload))
         return True
     except Exception as exc:  # noqa: BLE001 - progress is best-effort
-        logger.debug("progress_publish_failed", extra={"task_id": task_id, "error": str(exc)})
+        logger.warning("progress_publish_failed", extra={"task_id": task_id, "error": str(exc)})
         return False
+
+
+@dataclass
+class Subscription:
+    """One active channel subscription: decoded events land in ``queue``."""
+
+    channel: str
+    queue: asyncio.Queue[Any]
+    pump_task: asyncio.Task | None = None
 
 
 class ProgressStream:
     """Subscription source for progress channels (one stream per consumer)."""
 
-    async def subscribe(self, channel: str) -> asyncio.Queue:
-        """Start listening to ``channel``; returns a queue of decoded events."""
+    async def subscribe(self, channel: str) -> Subscription:
+        """Start listening to ``channel``; returns a Subscription."""
         raise NotImplementedError
 
-    async def unsubscribe(self, channel: str, queue: asyncio.Queue) -> None:
+    async def unsubscribe(self, subscription: Subscription) -> None:
         """Stop listening and release resources for this subscription."""
         raise NotImplementedError
 
@@ -81,10 +107,12 @@ class RedisProgressStream(ProgressStream):
     def _url(self) -> str:
         return self._redis_url or _redis_url()
 
-    async def subscribe(self, channel: str) -> asyncio.Queue:
+    async def subscribe(self, channel: str) -> Subscription:
         import redis.asyncio as redis_async
 
-        queue: asyncio.Queue = asyncio.Queue()
+        # Bounded queue: progress events are superseded by later ones, so a
+        # stalled consumer drops the oldest instead of growing without bound.
+        queue: asyncio.Queue[Any] = asyncio.Queue(maxsize=200)
         client = redis_async.Redis.from_url(self._url())
         pubsub = client.pubsub()
         await pubsub.subscribe(channel)
@@ -94,21 +122,33 @@ class RedisProgressStream(ProgressStream):
                 async for message in pubsub.listen():
                     if message.get("type") != "message":
                         continue
-                    await queue.put(json.loads(message["data"]))
+                    try:
+                        event = json.loads(message["data"])
+                    except (ValueError, TypeError):
+                        continue
+                    if queue.full():
+                        try:
+                            queue.get_nowait()  # drop oldest
+                        except asyncio.QueueEmpty:
+                            pass
+                    queue.put_nowait(event)
             except asyncio.CancelledError:
                 pass
             finally:
-                await pubsub.aclose()  # type: ignore[no-untyped-call]
-                await client.aclose()
+                try:
+                    await pubsub.aclose()  # type: ignore[no-untyped-call]
+                    await client.aclose()
+                except Exception:  # noqa: BLE001 - cleanup is best-effort
+                    pass
 
-        queue.pump_task = asyncio.create_task(pump())  # type: ignore[attr-defined]
-        return queue
+        pump_task = asyncio.create_task(pump())
+        return Subscription(channel=channel, queue=queue, pump_task=pump_task)
 
-    async def unsubscribe(self, channel: str, queue: asyncio.Queue) -> None:
-        pump_task = getattr(queue, "pump_task", None)
-        if pump_task is not None:
-            pump_task.cancel()
+    async def unsubscribe(self, subscription: Subscription) -> None:
+        """Cancel the pump; its finally block closes the redis resources."""
+        if subscription.pump_task is not None:
+            subscription.pump_task.cancel()
             try:
-                await pump_task
+                await subscription.pump_task
             except asyncio.CancelledError:
                 pass

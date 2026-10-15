@@ -4,7 +4,7 @@ import asyncio
 
 from fastapi import APIRouter, WebSocket, WebSocketDisconnect
 
-from api.progress import channel_for
+from api.progress import Subscription, channel_for
 
 router = APIRouter(prefix="/api/v1")
 
@@ -37,14 +37,17 @@ async def ws_progress(websocket: WebSocket, token: str = "") -> None:
 
     await websocket.send_json({"type": "connected", "user_id": principal.user_id})
 
-    # task_id -> (event queue, forwarder task)
-    listeners: dict[str, tuple[asyncio.Queue, asyncio.Task]] = {}
+    # task_id -> (subscription, forwarder task)
+    listeners: dict[str, tuple[Subscription, asyncio.Task]] = {}
 
     async def forward(task_id: str, queue: asyncio.Queue) -> None:
         try:
             while True:
                 event = await queue.get()
-                await websocket.send_json(event)
+                try:
+                    await websocket.send_json(event)
+                except Exception:
+                    return  # client gone; cleanup happens in unsubscribe/finally
         except asyncio.CancelledError:
             pass
 
@@ -52,32 +55,47 @@ async def ws_progress(websocket: WebSocket, token: str = "") -> None:
         entry = listeners.pop(task_id, None)
         if entry is None:
             return
-        queue, task = entry
+        subscription, task = entry
         task.cancel()
         try:
             await task
         except asyncio.CancelledError:
             pass
-        await stream.unsubscribe(channel_for(task_id), queue)
+        await stream.unsubscribe(subscription)
 
     async def subscribe(task_id: str) -> None:
         if task_id in listeners:
             await websocket.send_json({"type": "subscribed", "task_id": task_id})
             return
+        # Subscribe before reading the snapshot so no event can slip
+        # between the DB read and the redis SUBSCRIBE confirmation; queued
+        # events are delivered right after the snapshot frame.
+        subscription = await stream.subscribe(channel_for(task_id))
         try:
             snapshot = evaluations.get_evaluation(task_id, principal.user_id).model_dump()
         except Exception:
+            await stream.unsubscribe(subscription)
             # Not owned or not found: same answer either way (no existence oracle).
             await websocket.close(code=CLOSE_FORBIDDEN, reason="task not available")
             raise WebSocketDisconnect(code=CLOSE_FORBIDDEN) from None
-        queue = await stream.subscribe(channel_for(task_id))
-        listeners[task_id] = (queue, asyncio.create_task(forward(task_id, queue)))
+        listeners[task_id] = (
+            subscription,
+            asyncio.create_task(forward(task_id, subscription.queue)),
+        )
         await websocket.send_json({"type": "task.snapshot", "task_id": task_id, "data": snapshot})
         await websocket.send_json({"type": "subscribed", "task_id": task_id})
 
     try:
         while True:
-            message = await websocket.receive_json()
+            try:
+                message = await websocket.receive_json()
+            except WebSocketDisconnect:
+                raise
+            except Exception:
+                # malformed (non-JSON) frame: ignore and keep the session
+                continue
+            if not isinstance(message, dict):
+                continue
             action = message.get("action")
             task_id = message.get("task_id")
             if action == "ping":
