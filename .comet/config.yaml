@@ -1,0 +1,24 @@
+# Comet 使用的配置格式版本，请勿修改此值。
+schema: comet.project.v1
+# `/comet` 默认进入的工作流；该值也必须出现在 workflows 中。
+default_workflow: classic
+# 此项目启用的工作流，可填写 native、classic 或同时启用两者。
+workflows:
+  - classic
+# 是否启用只读的环境感知恢复探针，同时作用于 Native 和 Classic；设为 false 可关闭自动工作流恢复。
+# ambient_resume: true | false
+ambient_resume: true
+# 当前项目的个人记忆自动学习与注入策略。
+memory:
+  learning: true
+  retrieval: true
+# 普通 Comet 任务使用的项目知识检索 Provider。
+knowledge:
+  provider: local
+# Classic 工作流配置，不会改变 Native 的状态或行为。
+classic:
+  artifact_layout: legacy
+  language: zh-CN
+  context_compression: off
+  review_mode: standard
+  auto_transition: true

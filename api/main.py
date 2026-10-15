@@ -23,6 +23,7 @@ from api.middleware.errors import setup_error_handlers
 from api.middleware.logging import setup_logging_middleware
 from api.monitoring.config import MonitorSettings
 from api.monitoring.service import MonitorService
+from api.progress import ProgressStream, RedisProgressStream
 from api.routes import evaluations_router, tasks_router
 from api.routes.ab_tests import router as ab_tests_router
 from api.routes.auth import router as auth_router
@@ -31,6 +32,7 @@ from api.routes.costs import router as costs_router
 from api.routes.experiments import router as experiments_router
 from api.routes.files import router as files_router
 from api.routes.monitoring import router as monitoring_router
+from api.routes.ws import router as ws_router
 from api.services import (
     ABTestService,
     BenchmarkService,
@@ -59,6 +61,7 @@ def create_app(
     ab_test_runner_factory: Any = None,
     *,
     monitor_settings: MonitorSettings | None = None,
+    progress_stream: ProgressStream | None = None,
 ) -> FastAPI:
     """Create and configure FastAPI application."""
 
@@ -97,6 +100,7 @@ def create_app(
             runner_factory=ab_test_runner_factory or ABTestRunner,
         )
         app.state.cost = CostService(database_url)
+        app.state.progress_stream = progress_stream or RedisProgressStream()
         app.state.files = FileService(app.state.auth, file_settings or FileSettings())
         app.state.monitor = MonitorService(
             app.state.auth,
@@ -159,6 +163,7 @@ def create_app(
     app.include_router(benchmarks_router)
     app.include_router(ab_tests_router)
     app.include_router(costs_router)
+    app.include_router(ws_router)
 
     @app.get("/api/v1/health")
     def health_check() -> dict[str, Any]:
