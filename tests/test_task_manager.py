@@ -13,6 +13,7 @@ from sqlalchemy.orm import sessionmaker
 
 from api.db.models import AsyncTask, Base, Evaluation
 from src.task_manager import TaskManager
+from src.task_service import TaskService, TaskUnit
 
 
 @pytest.fixture
@@ -407,6 +408,72 @@ class TestCancelTask:
 
             db_task = db_session.query(AsyncTask).filter_by(id=task_id).first()
             assert db_task.status == "cancelled"
+
+    def test_cancel_running_evaluation_requests_checkpoint_cancel(
+        self, task_manager, db_session, tmp_path, monkeypatch
+    ):
+        """运行中的评估取消会把同一检查点标为请求取消。"""
+        monkeypatch.chdir(tmp_path)
+        evaluation_id = str(uuid.uuid4())
+        task_id = str(uuid.uuid4())
+        user_id = "user123"
+        run_id = f"eval-{evaluation_id}"
+        task = AsyncTask(
+            id=task_id,
+            celery_task_id="celery-123",
+            task_type="evaluation",
+            entity_id=evaluation_id,
+            user_id=user_id,
+            status="running",
+        )
+        db_session.add(task)
+        db_session.commit()
+        service = TaskService(root=f"data/tasks/{evaluation_id}")
+        service.create(
+            units=[
+                TaskUnit(unit_id="u1", strategy="vanilla", problem_id="p1"),
+                TaskUnit(unit_id="u2", strategy="vanilla", problem_id="p2"),
+            ],
+            config_fingerprint="cfg",
+            dataset_fingerprint="data",
+            run_id=run_id,
+        )
+
+        with (
+            patch("src.task_manager.celery_app.control.revoke"),
+            patch.object(task_manager, "_sync_celery_state"),
+        ):
+            result = task_manager.cancel_task(task_id, user_id)
+
+        assert result.status == "cancelled"
+        assert service.get(run_id).cancel_requested is True
+
+    def test_cancel_evaluation_without_checkpoint_still_cancels(
+        self, task_manager, db_session, tmp_path, monkeypatch
+    ):
+        """检查点尚未生成时，取消仍 revoke 并把任务写成 cancelled。"""
+        monkeypatch.chdir(tmp_path)
+        task_id = str(uuid.uuid4())
+        user_id = "user123"
+        task = AsyncTask(
+            id=task_id,
+            celery_task_id="celery-456",
+            task_type="evaluation",
+            entity_id=str(uuid.uuid4()),
+            user_id=user_id,
+            status="pending",
+        )
+        db_session.add(task)
+        db_session.commit()
+
+        with (
+            patch("src.task_manager.celery_app.control.revoke") as mock_revoke,
+            patch.object(task_manager, "_sync_celery_state"),
+        ):
+            result = task_manager.cancel_task(task_id, user_id)
+
+        assert result.status == "cancelled"
+        mock_revoke.assert_called_once_with("celery-456", terminate=True)
 
     def test_cancel_task_already_completed(self, task_manager, db_session):
         """验证不能取消已完成的任务"""
