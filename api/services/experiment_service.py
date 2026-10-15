@@ -28,6 +28,7 @@ from src.experiment_panel import _build_panel_data
 from src.experiment_report import generate_comparison_report
 from src.models import ExperimentConfig
 from src.task_manager import TaskManager
+from src.tasks.support import task_progress
 
 _TERMINAL_STATUSES = ("completed", "failed", "cancelled")
 
@@ -224,6 +225,15 @@ class ExperimentService:
                 config = self._build_runner_config(row, owner_id)
                 runner = self._runner_factory(config)
                 runner.should_pause = lambda: self._async_task_paused(experiment_id, owner_id)
+                runner.on_combination = lambda current, total, model, strategy, repeat: (
+                    self._write_progress(
+                        experiment_id,
+                        owner_id,
+                        current,
+                        total,
+                        f"{model}/{strategy}/{repeat}",
+                    )
+                )
                 exp_dir = runner.run()
                 if getattr(runner, "paused", False):
                     with self._session() as session, session.begin():
@@ -242,6 +252,28 @@ class ExperimentService:
                     done.updated_at = utcnow()
             except Exception as e:  # noqa: BLE001 - reported on the row
                 self._fail(experiment_id, str(e))
+
+    def _write_progress(
+        self,
+        experiment_id: str,
+        owner_id: str,
+        current: int,
+        total: int,
+        current_step: str,
+    ) -> None:
+        with self._session() as session, session.begin():
+            task = (
+                session.query(AsyncTask)
+                .filter(
+                    AsyncTask.task_type == "experiment",
+                    AsyncTask.entity_id == experiment_id,
+                    AsyncTask.user_id == owner_id,
+                )
+                .first()
+            )
+            if task is None or task.status != "running":
+                return
+            task.progress = task_progress(current, total, current_step)
 
     def _async_task_paused(self, experiment_id: str, owner_id: str) -> bool:
         with self._session() as session:
