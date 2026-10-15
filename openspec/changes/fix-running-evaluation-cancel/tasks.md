@@ -6,4 +6,4 @@
 
 ## 2. 真实 worker 集成测试
 
-- [ ] 2.1 为完成用例增加测试专用 Celery 入口：导入真实应用后，在 worker 进程内替换凭证解析、策略 runtime 预检、题目执行和成本估算。种子评估写入 `model`、`api_key_id` 和可解析题目，断言任务与评估变为 `completed`，且 `completed_count` 等于题目数。验证：有 Redis 时 `python3 -m pytest tests/test_async_task_integration.py -q --no-cov -o addopts=` 通过；无 Redis 时该模块跳过且不报错。
+- [x] 2.1 为完成用例增加测试专用 Celery 入口：导入真实应用后，在 worker 进程内替换凭证解析、策略 runtime 预检、题目执行和成本估算。种子评估写入 `model`、`api_key_id` 和可解析题目，断言任务与评估变为 `completed`，且 `completed_count` 等于题目数。验证：有 Redis 时 `python3 -m pytest tests/test_async_task_integration.py -q --no-cov -o addopts=` 通过；无 Redis 时该模块跳过且不报错。
