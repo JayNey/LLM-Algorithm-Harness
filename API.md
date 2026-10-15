@@ -338,6 +338,32 @@ POST /api/v1/evaluations/{evaluation_id}/cancel
 
 预警规则的 webhook/邮件目标在响应中脱敏（保留协议与主机）。删除规则用 `DELETE`，成功返回 204。
 
+### 实时进度 WebSocket（#150）
+
+`GET /api/v1/ws/progress?token=<access_token>` — 建立后可订阅评估任务频道，实时接收进度事件；数据经 Redis Pub/Sub 从 worker 进程转发。
+
+**客户端帧**：
+
+```json
+{"action": "subscribe", "task_id": "<evaluation_id>"}
+{"action": "unsubscribe", "task_id": "<evaluation_id>"}
+{"action": "ping"}
+```
+
+**服务端帧**（均含 `type`）：
+
+| type | 时机 |
+|---|---|
+| `connected` | 握手成功 |
+| `task.snapshot` | 订阅成功后首帧：任务当前状态与计数（断线重连即重新获得最新状态） |
+| `subscribed` / `unsubscribed` | 订阅/退订确认 |
+| `task.started` / `task.progress` / `problem.completed` | worker 运行期事件（percentage、completed/failed/total、当前题目与策略、单题结果） |
+| `task.completed` / `task.failed` / `task.paused` / `task.cancelled` | 终态事件 |
+| `pong` | 心跳应答 |
+| `error` | 订阅目标不存在等错误（连接保留） |
+
+**约束**：令牌无效以 4401 关闭；订阅非本人任务以 4403 关闭（不存在与无权返回相同，不做存在性探测）；`problem.started`/`iteration.completed` 事件与日志流暂未提供。Redis 故障时进度推送中断但评估任务不受影响。
+
 ## 错误处理
 
 API 使用标准 HTTP 状态码：
