@@ -5,8 +5,9 @@ from __future__ import annotations
 from typing import Any
 
 from celery import Task
+from sqlalchemy.orm import Session
 
-from api.db.models import Experiment, utcnow
+from api.db.models import AsyncTask, Experiment, utcnow
 from src.celery_app import celery_app
 from src.task_manager import TaskManager
 from src.tasks.support import get_db_session, owned_async_task
@@ -17,6 +18,19 @@ def execute_experiment(experiment_id: str, user_id: str) -> None:
     from api.services.experiment_service import ExperimentService
 
     ExperimentService(recover=False)._execute(experiment_id, user_id)
+
+
+def _is_paused(db: Session, task_id: str) -> bool:
+    current = db.query(AsyncTask).populate_existing().filter(AsyncTask.id == task_id).first()
+    return current is not None and current.status == "paused"
+
+
+def _keep_paused(db: Session, experiment_id: str) -> None:
+    experiment = db.get(Experiment, experiment_id)
+    if experiment is not None and experiment.status == "running":
+        experiment.status = "paused"
+        experiment.updated_at = utcnow()
+        db.commit()
 
 
 class ExperimentTask(Task):  # type: ignore[misc]
@@ -54,11 +68,15 @@ def run_experiment_task(self: ExperimentTask, experiment_id: str, user_id: str) 
             execute_experiment(experiment_id, user_id)
         except Exception as exc:
             db.rollback()
+            if _is_paused(db, async_task.id):
+                _keep_paused(db, experiment_id)
+                return {"experiment_id": experiment_id, "status": "paused"}
             experiment = db.get(Experiment, experiment_id)
             if experiment is not None and experiment.status not in (
                 "completed",
                 "failed",
                 "cancelled",
+                "paused",
             ):
                 experiment.status = "failed"
                 experiment.error_message = str(exc)
@@ -73,6 +91,9 @@ def run_experiment_task(self: ExperimentTask, experiment_id: str, user_id: str) 
             message = f"Experiment {experiment_id} not found"
             manager.update_task_status(async_task.id, "failed", error_message=message)
             raise ValueError(message)
+        if _is_paused(db, async_task.id) or experiment.status == "paused":
+            _keep_paused(db, experiment_id)
+            return {"experiment_id": experiment_id, "status": "paused"}
         status = (
             experiment.status
             if experiment.status in ("completed", "failed", "cancelled")

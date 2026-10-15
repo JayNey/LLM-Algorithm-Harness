@@ -8,6 +8,7 @@ from typing import Any
 from celery import Task
 from fastapi import HTTPException
 
+from api.db.models import AsyncTask
 from src.celery_app import celery_app
 from src.task_manager import TaskManager
 from src.tasks.support import get_db_session, owned_async_task
@@ -17,6 +18,7 @@ def execute_import(
     job_id: str,
     user_id: str,
     on_progress: Callable[[int, int], None] | None = None,
+    should_pause: Callable[[], bool] | None = None,
 ) -> dict[str, Any]:
     """Run an existing import job and return its stored record."""
     from api.auth.config import AuthSettings
@@ -39,7 +41,7 @@ def execute_import(
             on_progress(processed, total)
 
         setattr(service.store, "progress", progress)
-    service.process_job(job_id, user_id)
+    service.process_job(job_id, user_id, should_pause=should_pause)
     return service.store.job(job_id, user_id)
 
 
@@ -73,13 +75,26 @@ def run_import_task(self: ImportTask, job_id: str, user_id: str) -> dict[str, An
             }
             db.commit()
 
+        def should_pause() -> bool:
+            current = (
+                db.query(AsyncTask)
+                .populate_existing()
+                .filter(AsyncTask.id == async_task.id)
+                .first()
+            )
+            return current is not None and current.status == "paused"
+
         try:
-            job = execute_import(job_id, user_id, on_progress)
+            job = execute_import(job_id, user_id, on_progress, should_pause=should_pause)
         except ValueError as exc:
+            if should_pause():
+                return {"job_id": job_id, "status": "paused"}
             manager.update_task_status(async_task.id, "failed", error_message=str(exc))
             raise
 
         status = str(job.get("status") or "failed")
+        if status == "paused" or should_pause():
+            return {"job_id": job_id, "status": "paused"}
         if status == "completed":
             manager.update_task_status(async_task.id, "completed")
         else:

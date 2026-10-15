@@ -177,3 +177,147 @@ def test_execute_experiment_disables_recovery():
 
     service_cls.assert_called_once_with(recover=False)
     service_cls.return_value._execute.assert_called_once_with("exp-1", "owner-1")
+
+
+def test_run_experiment_task_keeps_paused_status(db_session):
+    experiment_id, user_id = _seed(db_session)
+
+    def pause(experiment_id: str, user_id: str) -> None:
+        other = _reload(db_session)
+        row = other.get(Experiment, experiment_id)
+        task = other.query(AsyncTask).filter_by(entity_id=experiment_id).one()
+        assert row is not None and row.status == "running"
+        row.status = "paused"
+        task.status = "paused"
+        other.commit()
+        other.close()
+
+    with (
+        patch("src.tasks.experiment.get_db_session", return_value=db_session),
+        patch("src.tasks.experiment.execute_experiment", side_effect=pause),
+    ):
+        result = run_experiment_task(experiment_id, user_id)
+
+    check = _reload(db_session)
+    task = check.query(AsyncTask).filter_by(entity_id=experiment_id).one()
+    assert result["status"] == "paused"
+    assert task.status == "paused"
+    assert check.get(Experiment, experiment_id).status == "paused"
+    check.close()
+
+
+def test_runner_skips_later_combinations_after_pause(tmp_path):
+    from types import SimpleNamespace
+
+    from src.experiment import ExperimentRunner
+    from src.models import ExperimentConfig, LLMConfig, StrategyConfig
+
+    engine = create_engine(f"sqlite:///{tmp_path}/biz.sqlite3")
+    Base.metadata.create_all(engine)
+    session = sessionmaker(bind=engine)()
+    task = AsyncTask(
+        id=str(uuid.uuid4()),
+        celery_task_id="celery-pause",
+        task_type="experiment",
+        entity_id="exp-pause",
+        user_id="owner-1",
+        status="running",
+    )
+    session.add(task)
+    session.commit()
+    task_id = task.id
+    calls = []
+
+    def combo(_self, _exp_dir, _model, _strategy, repeat):
+        calls.append(repeat)
+        other = sessionmaker(bind=engine)()
+        row = other.get(AsyncTask, task_id)
+        assert row is not None
+        row.status = "paused"
+        other.commit()
+        other.close()
+        return {"repeat": repeat}
+
+    config = ExperimentConfig(
+        name="pause",
+        dataset_path="problems.json",
+        output_dir=str(tmp_path),
+        models=[LLMConfig(provider="openai", api_key="sk-test", model="demo")],
+        strategies=[StrategyConfig(name="vanilla")],
+        repeats=2,
+        execution="serial",
+    )
+    runner = ExperimentRunner(config)
+    runner.pricing_manager = SimpleNamespace(
+        get_pricing=lambda _model: SimpleNamespace(to_dict=lambda: {})
+    )
+
+    def paused() -> bool:
+        other = sessionmaker(bind=engine)()
+        try:
+            row = other.query(AsyncTask).populate_existing().filter_by(id=task_id).one()
+            return row.status == "paused"
+        finally:
+            other.close()
+
+    runner.should_pause = paused
+    with (
+        patch.object(ExperimentRunner, "_load_problems", return_value=[object()]),
+        patch.object(ExperimentRunner, "_create_experiment_dir", return_value=tmp_path),
+        patch.object(ExperimentRunner, "_dataset_fingerprint", return_value={}),
+        patch.object(ExperimentRunner, "_run_combo", autospec=True, side_effect=combo),
+    ):
+        runner.run()
+
+    assert calls == [1]
+    assert runner.paused is True
+    session.close()
+
+
+def test_execute_marks_experiment_paused_from_other_connection(tmp_path):
+    from api.services.experiment_service import ExperimentService
+
+    service = ExperimentService(f"sqlite:///{tmp_path}/biz.sqlite3", recover=False)
+    experiment_id = str(uuid.uuid4())
+    with service._session() as session:
+        session.add(
+            Experiment(
+                id=experiment_id,
+                user_id="owner-1",
+                name="budget",
+                status="running",
+                config={"name": "budget"},
+            )
+        )
+        session.add(
+            AsyncTask(
+                id=str(uuid.uuid4()),
+                celery_task_id="celery-pause",
+                task_type="experiment",
+                entity_id=experiment_id,
+                user_id="owner-1",
+                status="running",
+            )
+        )
+        session.commit()
+
+    class Runner:
+        def __init__(self):
+            self.should_pause = None
+            self.paused = False
+
+        def run(self):
+            other = sessionmaker(bind=service._engine)()
+            row = other.query(AsyncTask).one()
+            row.status = "paused"
+            other.commit()
+            other.close()
+            self.paused = bool(self.should_pause and self.should_pause())
+            return tmp_path
+
+    service._runner_factory = lambda _config: Runner()
+    with patch.object(service, "_build_runner_config", return_value=object()):
+        service._execute(experiment_id, "owner-1")
+
+    with service._session() as session:
+        assert session.get(Experiment, experiment_id).status == "paused"

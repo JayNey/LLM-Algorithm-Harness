@@ -1,5 +1,6 @@
 """Benchmark evaluation executor."""
 
+from collections.abc import Callable
 from pathlib import Path
 from typing import Any
 
@@ -31,6 +32,8 @@ class BenchmarkExecutor:
         self.suite = suite
         self.config = config
         self.problem_loader = ProblemLoader()
+        self.should_pause: Callable[[], bool] | None = None
+        self.paused = False
 
     def execute(self) -> dict[str, Any]:
         """
@@ -106,7 +109,9 @@ class BenchmarkExecutor:
         try:
             # Run evaluation using the harness
             harness = AlgorithmHarness(self.config)
+            harness.should_pause = self.should_pause
             reports = harness.run()
+            self.paused = harness.paused
 
             # Collect results
             results: dict[str, Any] = {

@@ -264,7 +264,16 @@ class BenchmarkService:
                     budget_cap_usd=config_dict.get("budget_cap_usd"),
                     problem_filters=config_dict.get("problem_filters"),
                 )
-                results = self._executor_factory(suite, harness_config).execute() or {}
+                executor = self._executor_factory(suite, harness_config)
+                executor.should_pause = lambda: self._async_task_paused(run_id, owner_id)
+                results = executor.execute() or {}
+                if getattr(executor, "paused", False):
+                    with self._session() as session, session.begin():
+                        paused = session.get(BenchmarkRun, run_id, with_for_update=True)
+                        if paused is not None and paused.status == "running":
+                            paused.status = "paused"
+                            paused.updated_at = utcnow()
+                    return
 
                 with self._session() as session, session.begin():
                     done = self._owned_run(session, run_id, owner_id)
@@ -285,10 +294,24 @@ class BenchmarkService:
             except Exception as e:  # noqa: BLE001 - reported on the row
                 self._fail(run_id, str(e))
 
+    def _async_task_paused(self, run_id: str, owner_id: str) -> bool:
+        with self._session() as session:
+            task = (
+                session.query(AsyncTask)
+                .populate_existing()
+                .filter(
+                    AsyncTask.task_type == "benchmark",
+                    AsyncTask.entity_id == run_id,
+                    AsyncTask.user_id == owner_id,
+                )
+                .first()
+            )
+            return task is not None and task.status == "paused"
+
     def _fail(self, run_id: str, message: str) -> None:
         with self._session() as session, session.begin():
             row = session.get(BenchmarkRun, run_id, with_for_update=True)
-            if row is None or row.status in _TERMINAL_STATUSES:
+            if row is None or row.status in (*_TERMINAL_STATUSES, "paused"):
                 return
             row.status = "failed"
             row.error_message = message
