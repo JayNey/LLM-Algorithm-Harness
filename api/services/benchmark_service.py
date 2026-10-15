@@ -32,6 +32,7 @@ from src.benchmark.executor import BenchmarkExecutor
 from src.benchmark.suite import BenchmarkSuite as SuiteSpec
 from src.models import HarnessConfig
 from src.task_manager import TaskManager
+from src.tasks.support import task_progress
 
 _TERMINAL_STATUSES = ("completed", "failed", "cancelled")
 
@@ -266,6 +267,15 @@ class BenchmarkService:
                 )
                 executor = self._executor_factory(suite, harness_config)
                 executor.should_pause = lambda: self._async_task_paused(run_id, owner_id)
+                executor.on_problem = lambda current, total, strategy, problem_id: (
+                    self._write_progress(
+                        run_id,
+                        owner_id,
+                        current,
+                        total,
+                        f"{strategy}/{problem_id}",
+                    )
+                )
                 results = executor.execute() or {}
                 if getattr(executor, "paused", False):
                     with self._session() as session, session.begin():
@@ -293,6 +303,28 @@ class BenchmarkService:
                     done.updated_at = utcnow()
             except Exception as e:  # noqa: BLE001 - reported on the row
                 self._fail(run_id, str(e))
+
+    def _write_progress(
+        self,
+        run_id: str,
+        owner_id: str,
+        current: int,
+        total: int,
+        current_step: str,
+    ) -> None:
+        with self._session() as session, session.begin():
+            task = (
+                session.query(AsyncTask)
+                .filter(
+                    AsyncTask.task_type == "benchmark",
+                    AsyncTask.entity_id == run_id,
+                    AsyncTask.user_id == owner_id,
+                )
+                .first()
+            )
+            if task is None or task.status != "running":
+                return
+            task.progress = task_progress(current, total, current_step)
 
     def _async_task_paused(self, run_id: str, owner_id: str) -> bool:
         with self._session() as session:

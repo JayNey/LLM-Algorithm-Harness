@@ -11,7 +11,7 @@ from fastapi import HTTPException
 from api.db.models import AsyncTask
 from src.celery_app import celery_app
 from src.task_manager import TaskManager
-from src.tasks.support import get_db_session, owned_async_task
+from src.tasks.support import get_db_session, owned_async_task, task_progress
 
 
 def execute_import(
@@ -68,9 +68,7 @@ def run_import_task(self: ImportTask, job_id: str, user_id: str) -> dict[str, An
             if row is None:
                 return
             row.progress = {
-                "current": processed,
-                "total": total,
-                "percentage": (processed / total * 100) if total else 0,
+                **task_progress(processed, total, str(processed)),
                 "message": f"Imported {processed}/{total}",
             }
             db.commit()

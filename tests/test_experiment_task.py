@@ -321,3 +321,85 @@ def test_execute_marks_experiment_paused_from_other_connection(tmp_path):
 
     with service._session() as session:
         assert session.get(Experiment, experiment_id).status == "paused"
+
+
+def test_execute_records_percentage_and_current_step(tmp_path):
+    from types import SimpleNamespace
+
+    from sqlalchemy.orm import sessionmaker
+
+    from api.services.experiment_service import ExperimentService
+    from src.experiment import ExperimentRunner
+    from src.models import ExperimentConfig, LLMConfig, StrategyConfig
+
+    service = ExperimentService(f"sqlite:///{tmp_path}/biz.sqlite3", recover=False)
+    experiment_id = str(uuid.uuid4())
+    with service._session() as session:
+        session.add(
+            Experiment(
+                id=experiment_id,
+                user_id="owner-1",
+                name="progress",
+                status="running",
+                config={"name": "progress"},
+            )
+        )
+        session.add(
+            AsyncTask(
+                id=str(uuid.uuid4()),
+                celery_task_id="celery-progress",
+                task_type="experiment",
+                entity_id=experiment_id,
+                user_id="owner-1",
+                status="running",
+            )
+        )
+        session.commit()
+
+    config = ExperimentConfig(
+        name="progress",
+        dataset_path="problems.json",
+        output_dir=str(tmp_path),
+        models=[LLMConfig(provider="openai", api_key="sk-test", model="demo-model")],
+        strategies=[StrategyConfig(name="vanilla")],
+        repeats=2,
+        execution="serial",
+    )
+    runner = ExperimentRunner(config)
+    runner.pricing_manager = SimpleNamespace(
+        get_pricing=lambda _model: SimpleNamespace(to_dict=lambda: {})
+    )
+    seen: list[dict] = []
+
+    def combo(_self, _exp_dir, _model, _strategy, _repeat):
+        other = sessionmaker(bind=service._engine)()
+        try:
+            seen.append(dict(other.query(AsyncTask).one().progress))
+        finally:
+            other.close()
+        return {"status": "ok"}
+
+    service._runner_factory = lambda _config: runner
+    with (
+        patch.object(service, "_build_runner_config", return_value=config),
+        patch.object(
+            ExperimentRunner,
+            "_load_problems",
+            return_value=[type("Problem", (), {"description": "hidden problem body"})()],
+        ),
+        patch.object(ExperimentRunner, "_create_experiment_dir", return_value=tmp_path),
+        patch.object(ExperimentRunner, "_dataset_fingerprint", return_value={}),
+        patch.object(ExperimentRunner, "_run_combo", autospec=True, side_effect=combo),
+        patch("src.experiment.generate_comparison_report"),
+        patch("src.experiment.generate_html_panel"),
+    ):
+        service._execute(experiment_id, "owner-1")
+
+    assert [item["current_step"] for item in seen] == [
+        "demo-model/vanilla/1",
+        "demo-model/vanilla/2",
+    ]
+    assert seen[0]["percentage"] == 0
+    assert seen[1]["percentage"] == 50
+    assert all(0 <= item["percentage"] <= 100 for item in seen)
+    assert all("hidden problem body" not in item["current_step"] for item in seen)

@@ -108,6 +108,57 @@ def test_harness_skips_later_problems_after_pause(harness_config):
     assert harness.paused is True
 
 
+def test_run_reports_current_step_before_each_problem(harness_config):
+    """Progress names the strategy and problem id before that problem runs."""
+    problems = [
+        Problem(
+            problem_id="first",
+            title="First",
+            description="hidden problem body",
+            difficulty="easy",
+            test_cases=[{"input": {"x": 1}, "expected_output": 1}],
+        ),
+        Problem(
+            problem_id="second",
+            title="Second",
+            description="hidden problem body",
+            difficulty="easy",
+            test_cases=[{"input": {"x": 1}, "expected_output": 1}],
+        ),
+    ]
+    harness = AlgorithmHarness(harness_config)
+    seen: list[tuple[int, int, str, str]] = []
+
+    def execute(_config, problem, _strategy, _sandbox):
+        return ExecutionResult(
+            problem_id=problem.problem_id,
+            strategy="vanilla",
+            generated_code="pass",
+            status="success",
+            iterations=[],
+        )
+
+    harness.on_problem = lambda current, total, strategy, problem_id: seen.append(
+        (current, total, strategy, problem_id)
+    )
+    with (
+        patch.object(AlgorithmHarness, "_load_problems", return_value=problems),
+        patch.object(
+            AlgorithmHarness, "_prepare_strategy_runtime", return_value=(MagicMock(), MagicMock())
+        ),
+        patch.object(
+            AlgorithmHarness,
+            "_execute_problem",
+            autospec=True,
+            side_effect=lambda self, *args: execute(*args),
+        ),
+    ):
+        harness.run()
+
+    assert seen == [(0, 2, "vanilla", "first"), (1, 2, "vanilla", "second")]
+    assert all("hidden problem body" not in step for _current, _total, _strategy, step in seen)
+
+
 def test_hidden_evaluation_runs_after_strategy_without_feedback_leak(harness_config, monkeypatch):
     """Hidden failures change the final result only after strategy execution ends."""
     public_problem = Problem(
