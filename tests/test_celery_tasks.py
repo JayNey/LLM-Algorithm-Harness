@@ -1027,6 +1027,101 @@ class TestRunEvaluationTaskIntegration:
         assert result["completed_units"] == total_units
         assert result["total_units"] == total_units
 
+    def test_run_evaluation_task_records_percentage_and_current_step(
+        self, integration_harness, auth_ok, monkeypatch, tmp_path
+    ):
+        """单元开始前写入百分比和当前步骤，执行中可从任务记录读到。"""
+        db_file = tmp_path / "progress.sqlite3"
+        engine = create_engine(f"sqlite:///{db_file}")
+        Base.metadata.create_all(engine)
+        db = sessionmaker(bind=engine, expire_on_commit=False)()
+        evaluation_id = _seed_evaluation(
+            db,
+            problem_ids=["p1", "p2"],
+            strategy_names=["vanilla"],
+        )
+        for row in db.query(ORMProblem).all():
+            row.description = "hidden problem body that must stay out of the step"
+        db.commit()
+
+        seen: list[dict] = []
+        metas: list[dict] = []
+        reader = sessionmaker(bind=create_engine(f"sqlite:///{db_file}"))
+
+        def fake_execute(self, strategy_config, problem, strategy, sandbox):
+            other = reader()
+            try:
+                task = other.query(AsyncTask).filter(AsyncTask.entity_id == evaluation_id).one()
+                seen.append(dict(task.progress))
+            finally:
+                other.close()
+            integration_harness.execute_calls.append((strategy_config.name, problem.problem_id))
+            return ExecutionResult(
+                problem_id=problem.problem_id,
+                strategy=strategy_config.name,
+                generated_code="def solution(**kw):\n    return 1",
+                status="success",
+                total_tokens=10,
+                execution_time_seconds=0.5,
+                difficulty="easy",
+            )
+
+        def fake_update_state(*_args, **kwargs):
+            meta = kwargs.get("meta")
+            if isinstance(meta, dict):
+                metas.append(dict(meta))
+
+        monkeypatch.setattr(AlgorithmHarness, "_execute_problem", fake_execute)
+        monkeypatch.setattr(run_evaluation_task, "update_state", fake_update_state)
+        with patch("src.tasks.evaluation.get_db_session", return_value=db):
+            run_evaluation_task(evaluation_id)
+
+        assert [item["current_step"] for item in seen] == ["vanilla/p1", "vanilla/p2"]
+        assert seen[0]["percentage"] == 0
+        assert seen[1]["percentage"] == 50
+        assert all(0 <= item["percentage"] <= 100 for item in seen)
+        assert all("hidden problem body" not in item["current_step"] for item in seen)
+        assert metas[0]["percentage"] == 0
+        assert metas[0]["current_step"] == "vanilla/p1"
+        db.close()
+
+    def test_run_evaluation_task_pause_keeps_progress(
+        self, integration_harness, auth_ok, monkeypatch, tmp_path
+    ):
+        """暂停后任务保持 paused，且最后一次进度仍在。"""
+        db_file = tmp_path / "pause-progress.sqlite3"
+        engine = create_engine(f"sqlite:///{db_file}")
+        Base.metadata.create_all(engine)
+        db = sessionmaker(bind=engine, expire_on_commit=False)()
+        evaluation_id = _seed_evaluation(
+            db,
+            problem_ids=["p1", "p2"],
+            strategy_names=["vanilla"],
+        )
+        ext = sessionmaker(bind=create_engine(f"sqlite:///{db_file}"))
+
+        def fake_update_state(*_args, **_kwargs):
+            other = ext()
+            try:
+                row = other.query(AsyncTask).filter(AsyncTask.entity_id == evaluation_id).one()
+                if row.status == "running":
+                    row.status = "paused"
+                    other.commit()
+            finally:
+                other.close()
+
+        monkeypatch.setattr(run_evaluation_task, "update_state", fake_update_state)
+        with patch("src.tasks.evaluation.get_db_session", return_value=db):
+            result = run_evaluation_task(evaluation_id)
+
+        task = db.query(AsyncTask).filter(AsyncTask.entity_id == evaluation_id).one()
+        assert result["status"] == "paused"
+        assert task.status == "paused"
+        assert task.progress["percentage"] == 0
+        assert task.progress["current_step"] == "vanilla/p1"
+        assert len(integration_harness.execute_calls) == 1
+        db.close()
+
     def test_run_evaluation_task_detects_user_pause_cross_process(
         self, integration_harness, auth_ok, monkeypatch, tmp_path
     ):
@@ -1054,6 +1149,11 @@ class TestRunEvaluationTaskIntegration:
             problem_ids=["p1", "p2"],
             strategy_names=["vanilla"],
         )
+        # TaskManager 被替换后不会把任务写成 running。进度只在 running 时上报，
+        # 这里直接把行标成 running，让跨连接暂停仍能挂在第一次进度上报上。
+        task = db.query(AsyncTask).filter(AsyncTask.entity_id == evaluation_id).one()
+        task.status = "running"
+        db.commit()
         # 第二个 engine == 第二条独立连接，模拟「另一进程」的 DB 写入。
         ext_session_factory = sessionmaker(bind=create_engine(f"sqlite:///{db_file}"))
 
@@ -1072,8 +1172,8 @@ class TestRunEvaluationTaskIntegration:
         calls = {"n": 0}
 
         def fake_update_state(*_a, **_k):
-            # on_unit_finished 在 db.commit() 之后调用 update_state（主线程）：首单元
-            # 完成时由独立连接写入 paused，正好赶在下一轮 should_pause 检查之前。
+            # 单元开始前的进度上报调用 update_state。此时该单元尚未执行，写入 paused
+            # 后它仍会被提交；下一轮 should_pause 必须能跨连接看到，并不再开始后续单元。
             calls["n"] += 1
             if calls["n"] == 1:
                 _write_pause()
