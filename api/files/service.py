@@ -12,6 +12,7 @@ import threading
 import time
 import uuid
 import zipfile
+from collections.abc import Callable
 from pathlib import Path
 from typing import Any, BinaryIO, cast
 
@@ -218,11 +219,21 @@ class FileService:
             raise HTTPException(409, "Stored file integrity check failed")
         return self.metadata(record), data
 
-    def process_job(self, job_id: str, user_id: str, should_pause=None) -> None:
+    def process_job(
+        self,
+        job_id: str,
+        user_id: str,
+        should_pause: Callable[[], bool] | None = None,
+    ) -> None:
         with self.imports:
             self._process_job(job_id, user_id, should_pause=should_pause)
 
-    def _process_job(self, job_id: str, user_id: str, should_pause=None) -> None:
+    def _process_job(
+        self,
+        job_id: str,
+        user_id: str,
+        should_pause: Callable[[], bool] | None = None,
+    ) -> None:
         if not self.store.claim_job(job_id, user_id):
             return
         try:

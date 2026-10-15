@@ -211,7 +211,7 @@ def test_import_worker_persisted_progress_and_status_keep_safe_snapshot_contract
     secret = "private-worker-failure-detail"
     add_async(engine, "task", task_type="import", entity_id="import-job", progress=None)
 
-    def finish(_job_id, _user_id, on_progress):
+    def finish(_job_id, _user_id, on_progress, should_pause=None):
         on_progress(2, 4)
         running = read_task_snapshot(engine, "running", task_source="async_task")
         assert running["counts"] == {"running": 1}

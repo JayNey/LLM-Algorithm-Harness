@@ -5,6 +5,7 @@ from __future__ import annotations
 from typing import Any
 
 from celery import Task
+from sqlalchemy.orm import Session
 
 from api.db.models import AsyncTask, BenchmarkRun, utcnow
 from src.celery_app import celery_app
@@ -19,12 +20,12 @@ def execute_benchmark(run_id: str, user_id: str) -> None:
     BenchmarkService(recover=False)._execute(run_id, user_id)
 
 
-def _is_paused(db, task_id: str) -> bool:
+def _is_paused(db: Session, task_id: str) -> bool:
     current = db.query(AsyncTask).populate_existing().filter(AsyncTask.id == task_id).first()
     return current is not None and current.status == "paused"
 
 
-def _keep_paused(db, run_id: str) -> None:
+def _keep_paused(db: Session, run_id: str) -> None:
     run = db.get(BenchmarkRun, run_id)
     if run is not None and run.status == "running":
         run.status = "paused"
