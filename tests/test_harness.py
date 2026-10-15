@@ -58,13 +58,54 @@ def harness_config(tmp_path):
     )
 
 
-def test_harness_initialization(harness_config):
-    """Test harness initialization."""
+def test_harness_skips_later_problems_after_pause(harness_config):
+    """A pause before the next problem leaves that problem unexecuted."""
+    problems = [
+        Problem(
+            problem_id="first",
+            title="First",
+            description="Run this problem.",
+            difficulty="easy",
+            test_cases=[{"input": {"x": 1}, "expected_output": 1}],
+        ),
+        Problem(
+            problem_id="second",
+            title="Second",
+            description="Do not run this problem.",
+            difficulty="easy",
+            test_cases=[{"input": {"x": 1}, "expected_output": 1}],
+        ),
+    ]
     harness = AlgorithmHarness(harness_config)
+    calls: list[str] = []
 
-    assert harness.config == harness_config
-    assert harness.problem_loader is not None
-    assert harness.results == {}
+    def execute(_config, problem, _strategy, _sandbox):
+        calls.append(problem.problem_id)
+        return ExecutionResult(
+            problem_id=problem.problem_id,
+            strategy="vanilla",
+            generated_code="pass",
+            status="success",
+            iterations=[],
+        )
+
+    harness.should_pause = lambda: bool(calls)
+    with (
+        patch.object(AlgorithmHarness, "_load_problems", return_value=problems),
+        patch.object(
+            AlgorithmHarness, "_prepare_strategy_runtime", return_value=(MagicMock(), MagicMock())
+        ),
+        patch.object(
+            AlgorithmHarness,
+            "_execute_problem",
+            autospec=True,
+            side_effect=lambda self, *args: execute(*args),
+        ),
+    ):
+        harness.run()
+
+    assert calls == ["first"]
+    assert harness.paused is True
 
 
 def test_hidden_evaluation_runs_after_strategy_without_feedback_leak(harness_config, monkeypatch):

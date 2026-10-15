@@ -6,7 +6,7 @@ from typing import Any
 
 from celery import Task
 
-from api.db.models import AsyncTask, BenchmarkRun
+from api.db.models import AsyncTask, BenchmarkRun, utcnow
 from src.celery_app import celery_app
 from src.task_manager import TaskManager
 from src.tasks.support import get_db_session, owned_async_task
@@ -17,6 +17,19 @@ def execute_benchmark(run_id: str, user_id: str) -> None:
     from api.services.benchmark_service import BenchmarkService
 
     BenchmarkService(recover=False)._execute(run_id, user_id)
+
+
+def _is_paused(db, task_id: str) -> bool:
+    current = db.query(AsyncTask).populate_existing().filter(AsyncTask.id == task_id).first()
+    return current is not None and current.status == "paused"
+
+
+def _keep_paused(db, run_id: str) -> None:
+    run = db.get(BenchmarkRun, run_id)
+    if run is not None and run.status == "running":
+        run.status = "paused"
+        run.updated_at = utcnow()
+        db.commit()
 
 
 class BenchmarkTask(Task):  # type: ignore[misc]
@@ -50,8 +63,11 @@ def run_benchmark_task(self: BenchmarkTask, run_id: str, user_id: str) -> dict[s
             execute_benchmark(run_id, user_id)
         except Exception as exc:
             db.rollback()
+            if _is_paused(db, async_task.id):
+                _keep_paused(db, run_id)
+                return {"run_id": run_id, "status": "paused"}
             run = db.get(BenchmarkRun, run_id)
-            if run is not None and run.status not in ("completed", "failed", "cancelled"):
+            if run is not None and run.status not in ("completed", "failed", "cancelled", "paused"):
                 run.status = "failed"
                 run.error_message = str(exc)
                 db.commit()
@@ -67,6 +83,9 @@ def run_benchmark_task(self: BenchmarkTask, run_id: str, user_id: str) -> dict[s
             if current_task.status != "cancelled":
                 manager.update_task_status(current_task.id, "cancelled")
             return {"run_id": run_id, "status": "cancelled"}
+        if _is_paused(db, async_task.id) or run.status == "paused":
+            _keep_paused(db, run_id)
+            return {"run_id": run_id, "status": "paused"}
         if run.status == "completed":
             manager.update_task_status(async_task.id, "completed")
             return {

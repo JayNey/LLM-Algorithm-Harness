@@ -3,6 +3,7 @@ Main Harness - Coordinates evaluation workflow.
 """
 
 import threading
+from collections.abc import Callable
 from pathlib import Path
 from typing import Any
 
@@ -83,6 +84,8 @@ class AlgorithmHarness:
         self.problem_totals: dict[str, int] = {}
         self.problems_by_id: dict[str, Problem] = {}
         self.task_record: TaskRecord | None = None
+        self.should_pause: Callable[[], bool] | None = None
+        self.paused = False
         self._results_lock = threading.Lock()
 
         # Initialize quality analyzer based on config
@@ -140,9 +143,13 @@ class AlgorithmHarness:
         # Run each strategy
         reports = {}
         for strategy_config in self.config.strategies:
+            if self.paused:
+                break
             logger.info("running_strategy", strategy=strategy_config.name)
             report = self._run_strategy(strategy_config, problems)
             reports[strategy_config.name] = report
+            if self.paused:
+                break
 
         logger.info("harness_run_completed", strategies=len(reports))
         return reports
@@ -618,6 +625,14 @@ class AlgorithmHarness:
 
         return problems
 
+    def _pause_requested(self) -> bool:
+        if self.paused:
+            return True
+        if self.should_pause is not None and self.should_pause():
+            self.paused = True
+            return True
+        return False
+
     def _run_strategy(
         self, strategy_config: StrategyConfig, problems: list[Problem]
     ) -> StrategyReport:
@@ -636,6 +651,8 @@ class AlgorithmHarness:
         # Execute on all problems
         results = []
         for i, problem in enumerate(problems):
+            if self._pause_requested():
+                break
             logger.info(
                 "executing_problem",
                 strategy=strategy_config.name,
