@@ -236,8 +236,8 @@ config_siliconflow.json
 /.codex/
 /.qoder/
 /.agents/
+/.cursor/
 /skills-lock.json
-
 # Alibaba DashScope config with API key
 config_dashscope.json
 
