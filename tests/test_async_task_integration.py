@@ -38,10 +38,12 @@ os.environ.setdefault("CELERY_BROKER_URL", "redis://localhost:6379/15")
 os.environ.setdefault("CELERY_RESULT_BACKEND", "redis://localhost:6379/15")
 
 import redis  # noqa: E402
+from cryptography.fernet import Fernet  # noqa: E402
 from sqlalchemy.orm import Session  # noqa: E402
 
 from api.db.engine import make_engine, make_session_factory  # noqa: E402
 from api.db.models import AsyncTask, Base, Evaluation, utcnow  # noqa: E402
+from api.db.models import Problem as ORMProblem  # noqa: E402
 from src.celery_app import celery_app  # noqa: E402
 
 pytestmark = pytest.mark.integration
@@ -93,6 +95,9 @@ def celery_worker(db, require_broker):
         "DATABASE_URL": db.url,
         "CELERY_BROKER_URL": BROKER_URL,
         "CELERY_RESULT_BACKEND": BACKEND_URL,
+        "SECRET_KEY": "x" * 32,
+        "ENCRYPTION_KEY": Fernet.generate_key().decode(),
+        "AUTH_DATABASE_PATH": str(log_path.parent / "auth.sqlite3"),
         "PYTHONUTF8": "1",
     }
     # Use the ``solo`` pool by default: it runs the real task in the worker
@@ -107,7 +112,7 @@ def celery_worker(db, require_broker):
             "-m",
             "celery",
             "-A",
-            "src.celery_app",
+            "tests.integration_worker_app",
             "worker",
             "--loglevel=info",
             *pool_args,
@@ -160,6 +165,26 @@ def _terminate(proc: subprocess.Popen) -> None:
         proc.wait(timeout=5)
 
 
+def _seed_problem(session: Session, problem_id: str) -> None:
+    """Insert one problem row the real executor can convert."""
+    session.add(
+        ORMProblem(
+            id=str(uuid.uuid4()),
+            problem_id=problem_id,
+            title=f"Title {problem_id}",
+            description="Return indices of the two numbers that add up to the target.",
+            difficulty="easy",
+            tags=["array"],
+            constraints=None,
+            test_cases=[{"input": {"nums": [2, 7], "target": 9}, "expected_output": [0, 1]}],
+            source_platform=None,
+            source_url=None,
+            created_at=utcnow(),
+            updated_at=utcnow(),
+        )
+    )
+
+
 def _seed_evaluation(session: Session, user_id: str, problem_count: int) -> tuple[str, str]:
     """Insert a linked Evaluation + AsyncTask pair and return (eval_id, task_id)."""
     eval_id = str(uuid.uuid4())
@@ -182,6 +207,8 @@ def _seed_evaluation(session: Session, user_id: str, problem_count: int) -> tupl
             strategy_names=["vanilla"],
             problem_ids=[f"p{i}" for i in range(problem_count)],
             problem_count=problem_count,
+            model="test-model",
+            api_key_id="key-1",
             spent_usd=0.0,
             completed_count=0,
             failed_count=0,
@@ -190,6 +217,8 @@ def _seed_evaluation(session: Session, user_id: str, problem_count: int) -> tupl
             updated_at=utcnow(),
         )
     )
+    for index in range(problem_count):
+        _seed_problem(session, f"p{index}")
     session.commit()
     return eval_id, task_id
 
@@ -231,14 +260,17 @@ class TestAsyncTaskQueueEndToEnd:
             session.commit()
 
         try:
-            task, session = _poll_status(db.session_factory, task_id, {"completed"}, timeout=60)
+            task, session = _poll_status(
+                db.session_factory, task_id, {"completed", "failed"}, timeout=60
+            )
+            evaluation = session.get(Evaluation, eval_id)
+            assert task.status == "completed", (task.error_message, evaluation.error_message)
             assert task.started_at is not None, "worker never marked the task started"
             assert task.completed_at is not None, "worker never marked the task completed"
 
             evaluation = session.get(Evaluation, eval_id)
             assert evaluation is not None
             assert evaluation.status == "completed"
-            # The mock executor runs the full 1 strategy x 3 problems grid.
             assert evaluation.completed_count == 3
         finally:
             import shutil

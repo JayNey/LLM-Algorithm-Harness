@@ -15,6 +15,20 @@ from src.celery_app import celery_app
 _EVALUATION_CELERY_TASK = "src.tasks.evaluation.run_evaluation_task"
 
 
+def _request_evaluation_cancel(evaluation_id: str) -> None:
+    """请求评估检查点在下一个单元边界停止。
+
+    检查点尚未创建时忽略缺失。worker 与这里使用同一相对目录和运行标识。
+    """
+    from src.task_service import TaskService
+
+    service = TaskService(root=f"data/tasks/{evaluation_id}")
+    try:
+        service.request_cancel(f"eval-{evaluation_id}")
+    except FileNotFoundError:
+        return
+
+
 class TaskManager:
     """异步任务管理器，提供任务创建、查询、更新、暂停和取消功能。"""
 
@@ -336,6 +350,9 @@ class TaskManager:
         # 调用 Celery revoke 终止任务
         if task.celery_task_id:
             celery_app.control.revoke(task.celery_task_id, terminate=True)
+
+        if task.task_type == "evaluation":
+            _request_evaluation_cancel(task.entity_id)
 
         task.status = "cancelled"
         if task.completed_at is None:

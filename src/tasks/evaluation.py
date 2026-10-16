@@ -104,6 +104,16 @@ def run_evaluation_task(self: EvaluationTask, evaluation_id: str) -> dict[str, A
         if async_task is None:
             raise ValueError(f"AsyncTask {evaluation.async_task_id} not found")
 
+        if async_task.status == "cancelled":
+            evaluation.status = "cancelled"
+            db.commit()
+            return {
+                "evaluation_id": evaluation_id,
+                "status": "cancelled",
+                "completed_units": 0,
+                "total_units": 0,
+            }
+
         # 2. 验证配置
         if not evaluation.strategy_names:
             raise ValueError("strategy_names cannot be empty")
@@ -247,7 +257,21 @@ def run_evaluation_task(self: EvaluationTask, evaluation_id: str) -> dict[str, A
             on_unit_finished=on_unit_finished,
         )
 
-        # 8. 更新最终状态
+        # 8. 更新最终状态。调用方可能已在另一个连接把任务写成 cancelled；
+        # 这里必须重新读取，避免用检查点的完成状态把它盖回去。
+        current_async_task = (
+            db.query(AsyncTask).populate_existing().filter(AsyncTask.id == async_task.id).first()
+        )
+        if current_async_task is not None and current_async_task.status == "cancelled":
+            evaluation.status = "cancelled"
+            db.commit()
+            return {
+                "evaluation_id": evaluation_id,
+                "status": "cancelled",
+                "completed_units": final_record.completed_units,
+                "total_units": final_record.total_units,
+            }
+
         if final_record.state == "completed":
             task_manager.update_task_status(async_task.id, "completed")
             evaluation.status = "completed"

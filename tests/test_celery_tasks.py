@@ -17,7 +17,7 @@ from api.db.models import Problem as ORMProblem
 from src.harness import AlgorithmHarness
 from src.models import ExecutionResult, LLMConfig, Problem
 from src.models import Problem as DomainProblem
-from src.task_service import TaskUnit
+from src.task_service import TaskService, TaskUnit
 from src.tasks.evaluation import run_evaluation_task
 
 
@@ -1239,3 +1239,65 @@ class TestRunEvaluationTaskIntegration:
         assert "not found" not in (bad_row.error_message or "")
         # 合法且命中的题目照常成功（部分非法不阻断其余单元）
         assert rows["p_exist"].status == "success"
+
+    def test_cancelled_evaluation_returns_without_execution(
+        self, db_session, integration_harness, auth_ok
+    ):
+        """任务在启动前已是 cancelled 时，不解析执行、不跑单元。"""
+        evaluation_id = _seed_evaluation(
+            db_session,
+            problem_ids=["p1", "p2"],
+            strategy_names=["vanilla"],
+        )
+        task = db_session.query(AsyncTask).filter(AsyncTask.entity_id == evaluation_id).one()
+        task.status = "cancelled"
+        db_session.commit()
+
+        with patch("src.tasks.evaluation.get_db_session", return_value=db_session):
+            result = run_evaluation_task(evaluation_id)
+
+        evaluation = _reload(db_session, Evaluation, evaluation_id)
+        assert result["status"] == "cancelled"
+        assert result["completed_units"] == 0
+        assert evaluation.status == "cancelled"
+        assert integration_harness.execute_calls == []
+
+    def test_cancel_during_run_stops_remaining_units(
+        self, integration_harness, auth_ok, monkeypatch, tmp_path
+    ):
+        """运行中取消后不再派发剩余单元，收尾保持 cancelled。"""
+        db_file = tmp_path / "cancel.sqlite3"
+        engine = create_engine(f"sqlite:///{db_file}")
+        Base.metadata.create_all(engine)
+        db = sessionmaker(bind=engine, expire_on_commit=False)()
+        evaluation_id = _seed_evaluation(
+            db,
+            problem_ids=["p1", "p2"],
+            strategy_names=["vanilla"],
+        )
+        ext = sessionmaker(bind=create_engine(f"sqlite:///{db_file}"))
+
+        def fake_update_state(*_args, **_kwargs):
+            other = ext()
+            try:
+                row = other.query(AsyncTask).filter(AsyncTask.entity_id == evaluation_id).one()
+                if row.status != "cancelled":
+                    row.status = "cancelled"
+                    other.commit()
+                    TaskService(root=f"data/tasks/{evaluation_id}").request_cancel(
+                        f"eval-{evaluation_id}"
+                    )
+            finally:
+                other.close()
+
+        monkeypatch.setattr(run_evaluation_task, "update_state", fake_update_state)
+        with patch("src.tasks.evaluation.get_db_session", return_value=db):
+            result = run_evaluation_task(evaluation_id)
+
+        task = db.query(AsyncTask).filter(AsyncTask.entity_id == evaluation_id).one()
+        evaluation = db.query(Evaluation).filter(Evaluation.id == evaluation_id).one()
+        assert result["status"] == "cancelled"
+        assert task.status == "cancelled"
+        assert evaluation.status == "cancelled"
+        assert len(integration_harness.execute_calls) < 2
+        db.close()
