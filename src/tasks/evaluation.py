@@ -23,6 +23,7 @@ from sqlalchemy.orm import Session, sessionmaker
 
 from api.db.engine import business_database_url, make_engine, make_session_factory
 from api.db.models import AsyncTask, Evaluation, EvaluationResult, utcnow
+from api.progress import publish_progress
 from src.celery_app import celery_app
 from src.harness import AlgorithmHarness
 from src.models import (
@@ -132,6 +133,14 @@ def run_evaluation_task(self: EvaluationTask, evaluation_id: str) -> dict[str, A
         task_manager.update_task_status(async_task.id, "running")
         evaluation.status = "running"
         db.commit()
+        publish_progress(
+            evaluation_id,
+            "task.started",
+            {
+                "status": "running",
+                "total_units": len(evaluation.problem_ids) * len(evaluation.strategy_names),
+            },
+        )
 
         # 3b. 构造 harness 并为每策略预建一次 runtime（Design Doc §5.6）。
         # _build_harness 抛 RuntimeError（sandbox preflight 失败）/ValueError（未知策略）
@@ -206,6 +215,31 @@ def run_evaluation_task(self: EvaluationTask, evaluation_id: str) -> dict[str, A
             evaluation.failed_count = sum(1 for u in record.units if u.status == "failed")
             db.commit()
             report_progress(record, unit, record.completed_units)
+
+            # WebSocket 实时进度（best-effort：Redis 故障只丢事件不伤任务）
+            total_units = record.total_units or 1
+            publish_progress(
+                evaluation.id,
+                "problem.completed",
+                {
+                    "problem_id": unit.problem_id,
+                    "strategy": unit.strategy,
+                    "status": unit.status,
+                    "cost_usd": cost,
+                },
+            )
+            publish_progress(
+                evaluation.id,
+                "task.progress",
+                {
+                    "completed": evaluation.completed_count,
+                    "failed": evaluation.failed_count,
+                    "total": total_units,
+                    "percentage": round(evaluation.completed_count / total_units * 100, 2),
+                    "current_problem": unit.problem_id,
+                    "current_strategy": unit.strategy,
+                },
+            )
 
         def should_pause(record: Any) -> bool:
             """检查是否应该暂停。
@@ -291,6 +325,26 @@ def run_evaluation_task(self: EvaluationTask, evaluation_id: str) -> dict[str, A
             evaluation.status = "cancelled"
 
         db.commit()
+
+        # 终态事件推送（best-effort）
+        terminal_event = {
+            "completed": "task.completed",
+            "paused": "task.paused",
+            "failed": "task.failed",
+            "cancelled": "task.cancelled",
+        }.get(final_record.state)
+        if terminal_event:
+            publish_progress(
+                evaluation_id,
+                terminal_event,
+                {
+                    "status": final_record.state,
+                    "completed": evaluation.completed_count,
+                    "failed": evaluation.failed_count,
+                    "total_units": final_record.total_units,
+                    "error_message": evaluation.error_message,
+                },
+            )
 
         # 9. 返回结果
         return {
