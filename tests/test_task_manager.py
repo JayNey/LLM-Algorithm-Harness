@@ -11,8 +11,9 @@ import pytest
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 
-from api.db.models import AsyncTask, Base
+from api.db.models import AsyncTask, Base, Evaluation
 from src.task_manager import TaskManager
+from src.task_service import TaskService, TaskUnit
 
 
 @pytest.fixture
@@ -408,6 +409,72 @@ class TestCancelTask:
             db_task = db_session.query(AsyncTask).filter_by(id=task_id).first()
             assert db_task.status == "cancelled"
 
+    def test_cancel_running_evaluation_requests_checkpoint_cancel(
+        self, task_manager, db_session, tmp_path, monkeypatch
+    ):
+        """运行中的评估取消会把同一检查点标为请求取消。"""
+        monkeypatch.chdir(tmp_path)
+        evaluation_id = str(uuid.uuid4())
+        task_id = str(uuid.uuid4())
+        user_id = "user123"
+        run_id = f"eval-{evaluation_id}"
+        task = AsyncTask(
+            id=task_id,
+            celery_task_id="celery-123",
+            task_type="evaluation",
+            entity_id=evaluation_id,
+            user_id=user_id,
+            status="running",
+        )
+        db_session.add(task)
+        db_session.commit()
+        service = TaskService(root=f"data/tasks/{evaluation_id}")
+        service.create(
+            units=[
+                TaskUnit(unit_id="u1", strategy="vanilla", problem_id="p1"),
+                TaskUnit(unit_id="u2", strategy="vanilla", problem_id="p2"),
+            ],
+            config_fingerprint="cfg",
+            dataset_fingerprint="data",
+            run_id=run_id,
+        )
+
+        with (
+            patch("src.task_manager.celery_app.control.revoke"),
+            patch.object(task_manager, "_sync_celery_state"),
+        ):
+            result = task_manager.cancel_task(task_id, user_id)
+
+        assert result.status == "cancelled"
+        assert service.get(run_id).cancel_requested is True
+
+    def test_cancel_evaluation_without_checkpoint_still_cancels(
+        self, task_manager, db_session, tmp_path, monkeypatch
+    ):
+        """检查点尚未生成时，取消仍 revoke 并把任务写成 cancelled。"""
+        monkeypatch.chdir(tmp_path)
+        task_id = str(uuid.uuid4())
+        user_id = "user123"
+        task = AsyncTask(
+            id=task_id,
+            celery_task_id="celery-456",
+            task_type="evaluation",
+            entity_id=str(uuid.uuid4()),
+            user_id=user_id,
+            status="pending",
+        )
+        db_session.add(task)
+        db_session.commit()
+
+        with (
+            patch("src.task_manager.celery_app.control.revoke") as mock_revoke,
+            patch.object(task_manager, "_sync_celery_state"),
+        ):
+            result = task_manager.cancel_task(task_id, user_id)
+
+        assert result.status == "cancelled"
+        mock_revoke.assert_called_once_with("celery-456", terminate=True)
+
     def test_cancel_task_already_completed(self, task_manager, db_session):
         """验证不能取消已完成的任务"""
         # Given: 数据库中存在一个已完成的任务
@@ -536,3 +603,149 @@ class TestListTasks:
         page1_ids = {t.id for t in page1_tasks}
         page2_ids = {t.id for t in page2_tasks}
         assert len(page1_ids & page2_ids) == 0
+
+
+def _paused_evaluation(db_session, user_id="user123", task_type="evaluation", status="paused"):
+    task_id = str(uuid.uuid4())
+    entity_id = str(uuid.uuid4())
+    task = AsyncTask(
+        id=task_id,
+        celery_task_id=f"celery-{task_id}",
+        task_type=task_type,
+        entity_id=entity_id,
+        user_id=user_id,
+        status=status,
+    )
+    db_session.add(task)
+    if task_type == "evaluation":
+        db_session.add(
+            Evaluation(
+                id=entity_id,
+                user_id=user_id,
+                status="paused",
+                strategy_names=["vanilla"],
+                problem_ids=["p1"],
+                problem_count=1,
+                async_task_id=task_id,
+            )
+        )
+    db_session.commit()
+    return task
+
+
+class TestResumeTask:
+    """测试恢复已暂停的评估任务。"""
+
+    def test_resume_paused_evaluation_requeues_same_task(self, task_manager, db_session):
+        task = _paused_evaluation(db_session)
+        original_celery_id = task.celery_task_id
+        published = {}
+
+        def send_side_effect(*args, **kwargs):
+            db_session.expire_all()
+            row = db_session.query(AsyncTask).filter_by(id=task.id).one()
+            published["status_before_send"] = row.status
+            published["celery_before_send"] = row.celery_task_id
+            return Mock()
+
+        with patch(
+            "src.task_manager.celery_app.send_task", side_effect=send_side_effect
+        ) as mock_send:
+            result = task_manager.resume_task(task.id, task.user_id)
+
+        assert result.id == task.id
+        assert result.status == "pending"
+        assert result.celery_task_id != original_celery_id
+        assert published["status_before_send"] == "pending"
+        assert published["celery_before_send"] == result.celery_task_id
+        mock_send.assert_called_once_with(
+            "src.tasks.evaluation.run_evaluation_task",
+            args=(task.entity_id,),
+            task_id=result.celery_task_id,
+        )
+        evaluation = db_session.query(Evaluation).filter_by(id=task.entity_id).one()
+        assert evaluation.status == "pending"
+        assert evaluation.async_task_id == task.id
+
+    def test_resume_marks_failed_when_publish_raises(self, task_manager, db_session):
+        task = _paused_evaluation(db_session)
+
+        with patch(
+            "src.task_manager.celery_app.send_task", side_effect=RuntimeError("broker down")
+        ):
+            with pytest.raises(RuntimeError, match="broker down"):
+                task_manager.resume_task(task.id, task.user_id)
+
+        db_session.expire_all()
+        row = db_session.query(AsyncTask).filter_by(id=task.id).one()
+        assert row.status == "failed"
+        assert row.error_message == "failed to publish task to broker"
+        assert row.completed_at is not None
+
+    @pytest.mark.parametrize("status", ["pending", "running", "completed", "failed", "cancelled"])
+    def test_resume_rejects_non_paused_without_publish(self, task_manager, db_session, status):
+        task = _paused_evaluation(db_session, status=status)
+        original_celery_id = task.celery_task_id
+
+        with (
+            patch("src.task_manager.celery_app.AsyncResult"),
+            patch("src.task_manager.celery_app.send_task") as mock_send,
+            pytest.raises(ValueError, match="Can only resume paused tasks"),
+        ):
+            task_manager.resume_task(task.id, task.user_id)
+
+        mock_send.assert_not_called()
+        db_session.expire_all()
+        row = db_session.query(AsyncTask).filter_by(id=task.id).one()
+        assert row.status == status
+        assert row.celery_task_id == original_celery_id
+
+    @pytest.mark.parametrize("task_type", ["experiment", "import", "benchmark", "unknown"])
+    def test_resume_rejects_non_evaluation_without_publish(
+        self, task_manager, db_session, task_type
+    ):
+        task = _paused_evaluation(db_session, task_type=task_type)
+        original_celery_id = task.celery_task_id
+
+        with (
+            patch("src.task_manager.celery_app.send_task") as mock_send,
+            pytest.raises(ValueError, match="Can only resume evaluation tasks"),
+        ):
+            task_manager.resume_task(task.id, task.user_id)
+
+        mock_send.assert_not_called()
+        db_session.expire_all()
+        row = db_session.query(AsyncTask).filter_by(id=task.id).one()
+        assert row.status == "paused"
+        assert row.celery_task_id == original_celery_id
+
+    def test_resume_rejects_other_users_task(self, task_manager, db_session):
+        task = _paused_evaluation(db_session, user_id="owner")
+
+        with (
+            patch("src.task_manager.celery_app.send_task") as mock_send,
+            pytest.raises(ValueError, match="not found or access denied"),
+        ):
+            task_manager.resume_task(task.id, "intruder")
+
+        mock_send.assert_not_called()
+        db_session.expire_all()
+        row = db_session.query(AsyncTask).filter_by(id=task.id).one()
+        assert row.status == "paused"
+
+    def test_resume_rejects_unlinked_evaluation_without_publish(self, task_manager, db_session):
+        task = _paused_evaluation(db_session)
+        evaluation = db_session.query(Evaluation).filter_by(id=task.entity_id).one()
+        evaluation.async_task_id = None
+        db_session.commit()
+
+        with (
+            patch("src.task_manager.celery_app.send_task") as mock_send,
+            pytest.raises(ValueError, match="not linked"),
+        ):
+            task_manager.resume_task(task.id, task.user_id)
+
+        mock_send.assert_not_called()
+        db_session.expire_all()
+        row = db_session.query(AsyncTask).filter_by(id=task.id).one()
+        assert row.status == "paused"

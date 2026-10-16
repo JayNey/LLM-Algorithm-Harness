@@ -177,7 +177,7 @@ class TestPauseAndResume:
 
         assert result.status == "paused"
 
-    def test_resume_paused_task(self, db_session, test_user_id):
+    def test_resume_paused_task(self, task_manager, db_session, test_user_id):
         """测试恢复暂停的任务."""
         async_task_id = str(uuid.uuid4())
         entity_id = str(uuid.uuid4())
@@ -191,14 +191,27 @@ class TestPauseAndResume:
             status="paused",
         )
         db_session.add(async_task)
+        db_session.add(
+            Evaluation(
+                id=entity_id,
+                user_id=test_user_id,
+                status="paused",
+                strategy_names=["vanilla"],
+                problem_ids=["p1"],
+                problem_count=1,
+                async_task_id=async_task_id,
+            )
+        )
         db_session.commit()
 
-        # Update to running
-        async_task.status = "running"
-        db_session.commit()
+        with patch("src.task_manager.celery_app.send_task", return_value=Mock()) as mock_send:
+            result = task_manager.resume_task(async_task_id, test_user_id)
 
+        assert result.id == async_task_id
+        assert result.status == "pending"
+        mock_send.assert_called_once()
         fetched = db_session.query(AsyncTask).filter_by(id=async_task_id).first()
-        assert fetched.status == "running"
+        assert fetched.status == "pending"
 
     def test_pause_pending_task_fails(self, task_manager, db_session, test_user_id):
         """测试暂停待执行任务失败."""
@@ -400,7 +413,7 @@ class TestErrorScenarios:
 class TestInvalidStatusTransitions:
     """测试无效的状态转换."""
 
-    def test_resume_running_task_fails(self, db_session, test_user_id):
+    def test_resume_running_task_fails(self, task_manager, db_session, test_user_id):
         """测试恢复运行中的任务失败."""
         async_task_id = str(uuid.uuid4())
 
@@ -415,7 +428,14 @@ class TestInvalidStatusTransitions:
         db_session.add(async_task)
         db_session.commit()
 
-        # Can't resume a running task
+        with (
+            patch("src.task_manager.celery_app.AsyncResult"),
+            patch("src.task_manager.celery_app.send_task") as mock_send,
+            pytest.raises(ValueError, match="Can only resume paused tasks"),
+        ):
+            task_manager.resume_task(async_task_id, test_user_id)
+
+        mock_send.assert_not_called()
         fetched = db_session.query(AsyncTask).filter_by(id=async_task_id).first()
         assert fetched.status == "running"
 

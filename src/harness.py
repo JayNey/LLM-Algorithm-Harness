@@ -3,6 +3,7 @@ Main Harness - Coordinates evaluation workflow.
 """
 
 import threading
+from collections.abc import Callable
 from pathlib import Path
 from typing import Any
 
@@ -83,6 +84,11 @@ class AlgorithmHarness:
         self.problem_totals: dict[str, int] = {}
         self.problems_by_id: dict[str, Problem] = {}
         self.task_record: TaskRecord | None = None
+        self.should_pause: Callable[[], bool] | None = None
+        self.on_problem: Callable[[int, int, str, str], None] | None = None
+        self._progress_done = 0
+        self._progress_total = 0
+        self.paused = False
         self._results_lock = threading.Lock()
 
         # Initialize quality analyzer based on config
@@ -135,14 +141,20 @@ class AlgorithmHarness:
         # Load problems
         problems = self._load_problems()
         self.problems_by_id = {problem.problem_id: problem for problem in problems}
+        self._progress_done = 0
+        self._progress_total = len(self.config.strategies) * len(problems)
         logger.info("problems_loaded", count=len(problems))
 
         # Run each strategy
         reports = {}
         for strategy_config in self.config.strategies:
+            if self.paused:
+                break
             logger.info("running_strategy", strategy=strategy_config.name)
             report = self._run_strategy(strategy_config, problems)
             reports[strategy_config.name] = report
+            if self.paused:
+                break
 
         logger.info("harness_run_completed", strategies=len(reports))
         return reports
@@ -618,6 +630,20 @@ class AlgorithmHarness:
 
         return problems
 
+    def _emit_problem_progress(self, strategy: str, problem_id: str, problem_count: int) -> None:
+        if self.on_problem is None:
+            return
+        total = self._progress_total or len(self.config.strategies) * problem_count
+        self.on_problem(self._progress_done, total, strategy, problem_id)
+
+    def _pause_requested(self) -> bool:
+        if self.paused:
+            return True
+        if self.should_pause is not None and self.should_pause():
+            self.paused = True
+            return True
+        return False
+
     def _run_strategy(
         self, strategy_config: StrategyConfig, problems: list[Problem]
     ) -> StrategyReport:
@@ -636,6 +662,9 @@ class AlgorithmHarness:
         # Execute on all problems
         results = []
         for i, problem in enumerate(problems):
+            if self._pause_requested():
+                break
+            self._emit_problem_progress(strategy_config.name, problem.problem_id, len(problems))
             logger.info(
                 "executing_problem",
                 strategy=strategy_config.name,
@@ -670,6 +699,7 @@ class AlgorithmHarness:
                     )
                 )
             finally:
+                self._progress_done += 1
                 if self.budget_tracker is not None:
                     self.budget_tracker.finalize_problem()
 

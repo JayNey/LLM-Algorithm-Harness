@@ -9,8 +9,24 @@ from datetime import datetime
 
 from sqlalchemy.orm import Session
 
-from api.db.models import AsyncTask
+from api.db.models import AsyncTask, Evaluation, utcnow
 from src.celery_app import celery_app
+
+_EVALUATION_CELERY_TASK = "src.tasks.evaluation.run_evaluation_task"
+
+
+def _request_evaluation_cancel(evaluation_id: str) -> None:
+    """请求评估检查点在下一个单元边界停止。
+
+    检查点尚未创建时忽略缺失。worker 与这里使用同一相对目录和运行标识。
+    """
+    from src.task_service import TaskService
+
+    service = TaskService(root=f"data/tasks/{evaluation_id}")
+    try:
+        service.request_cancel(f"eval-{evaluation_id}")
+    except FileNotFoundError:
+        return
 
 
 class TaskManager:
@@ -335,10 +351,66 @@ class TaskManager:
         if task.celery_task_id:
             celery_app.control.revoke(task.celery_task_id, terminate=True)
 
+        if task.task_type == "evaluation":
+            _request_evaluation_cancel(task.entity_id)
+
         task.status = "cancelled"
         if task.completed_at is None:
             task.completed_at = datetime.utcnow()
         self.db.commit()
+
+        return task
+
+    def resume_task(self, task_id: str, user_id: str) -> AsyncTask:
+        """重新入队一个已暂停的评估任务。
+
+        沿用同一条 AsyncTask。先把任务和关联评估写成 pending 并提交，再发布
+        Celery 消息。非暂停、非评估或不属于调用方的任务会被拒绝，且不改记录。
+
+        Args:
+            task_id: 任务 ID
+            user_id: 用户 ID
+
+        Returns:
+            更新后的同一条 AsyncTask
+
+        Raises:
+            ValueError: 任务不存在、访问被拒绝、状态不允许恢复，或评估未关联该任务
+        """
+        task = self.get_task(task_id, user_id)
+        if task.status != "paused":
+            raise ValueError("Can only resume paused tasks")
+        if task.task_type != "evaluation":
+            raise ValueError("Can only resume evaluation tasks")
+
+        evaluation = (
+            self.db.query(Evaluation)
+            .filter(Evaluation.id == task.entity_id, Evaluation.user_id == user_id)
+            .first()
+        )
+        if evaluation is None or evaluation.async_task_id != task.id:
+            raise ValueError("Evaluation is not linked to this task")
+
+        celery_task_id = str(uuid.uuid4())
+        task.celery_task_id = celery_task_id
+        task.status = "pending"
+        evaluation.status = "pending"
+        evaluation.updated_at = utcnow()
+        self.db.commit()
+
+        try:
+            celery_app.send_task(
+                _EVALUATION_CELERY_TASK,
+                args=(task.entity_id,),
+                task_id=celery_task_id,
+            )
+        except Exception:
+            task.status = "failed"
+            task.error_message = "failed to publish task to broker"
+            if task.completed_at is None:
+                task.completed_at = datetime.utcnow()
+            self.db.commit()
+            raise
 
         return task
 

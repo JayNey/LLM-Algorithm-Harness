@@ -282,6 +282,7 @@ class TaskService:
         dataset_fingerprint: str | None = None,
         resume: bool = False,
         pause_when: Callable[[TaskRecord], bool] | None = None,
+        on_unit_started: Callable[[TaskRecord, TaskUnit], None] | None = None,
         on_unit_finished: Callable[[TaskRecord, TaskUnit], None] | None = None,
     ) -> TaskRecord:
         """Execute queued units, or resume a compatible interrupted task."""
@@ -359,6 +360,8 @@ class TaskService:
                 ):
                     if self.store.load(run_id).cancel_requested:
                         break
+                    if on_unit_started is not None:
+                        on_unit_started(record, queue[0])
                     unit = queue.pop(0)
                     unit.status = "running"
                     unit.started_at = _now()

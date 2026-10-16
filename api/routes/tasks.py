@@ -73,7 +73,7 @@ def create_task(
     task_kwargs = request.celery_task_kwargs or {}
 
     task = call(
-        lambda: manager.create_task(
+        lambda: manager.enqueue_task(
             task_type=request.task_type,
             entity_id=request.entity_id,
             user_id=principal.user_id,
@@ -174,9 +174,9 @@ def resume_task(
     principal: Principal = Depends(current_user),
     manager: TaskManager = Depends(task_manager),
 ) -> ApiResponse[AsyncTaskResponse]:
-    """Resume a paused task.
+    """Resume a paused evaluation task.
 
-    Creates a new Celery task to resume execution of a paused task.
+    Re-queues the same task after its pending status is committed.
 
     Args:
         task_id: Task ID to resume
@@ -184,28 +184,12 @@ def resume_task(
         manager: TaskManager instance
 
     Returns:
-        ApiResponse with resumed task details
+        ApiResponse with the same task, now pending
     """
-    task = call(lambda: manager.get_task(task_id, principal.user_id))
-
-    if task.status != "paused":
-        raise HTTPException(400, "Can only resume paused tasks")
-
-    # Create new Celery task to resume execution
-
-    new_task = call(
-        lambda: manager.create_task(
-            task_type=task.task_type,
-            entity_id=task.entity_id,
-            user_id=principal.user_id,
-            celery_task_name=task.celery_task_name or "src.tasks.evaluation.run_evaluation_task",
-            celery_task_args=task.celery_task_args or (task.entity_id,),
-        )
-    )
-
+    task = call(lambda: manager.resume_task(task_id, principal.user_id))
     return ApiResponse(
         success=True,
-        data=task_to_response(new_task),
+        data=task_to_response(task),
         message="Task resumed successfully",
     )
 

@@ -32,6 +32,7 @@ from src.benchmark.executor import BenchmarkExecutor
 from src.benchmark.suite import BenchmarkSuite as SuiteSpec
 from src.models import HarnessConfig
 from src.task_manager import TaskManager
+from src.tasks.support import task_progress
 
 _TERMINAL_STATUSES = ("completed", "failed", "cancelled")
 
@@ -230,7 +231,7 @@ class BenchmarkService:
             run_id = row.id
 
         with self._session() as session:
-            task = TaskManager(session).create_task(
+            task = TaskManager(session).enqueue_task(
                 task_type="benchmark",
                 entity_id=run_id,
                 user_id=owner_id,
@@ -264,7 +265,25 @@ class BenchmarkService:
                     budget_cap_usd=config_dict.get("budget_cap_usd"),
                     problem_filters=config_dict.get("problem_filters"),
                 )
-                results = self._executor_factory(suite, harness_config).execute() or {}
+                executor = self._executor_factory(suite, harness_config)
+                executor.should_pause = lambda: self._async_task_paused(run_id, owner_id)
+                executor.on_problem = lambda current, total, strategy, problem_id: (
+                    self._write_progress(
+                        run_id,
+                        owner_id,
+                        current,
+                        total,
+                        f"{strategy}/{problem_id}",
+                    )
+                )
+                results = executor.execute() or {}
+                if getattr(executor, "paused", False):
+                    with self._session() as session, session.begin():
+                        paused = session.get(BenchmarkRun, run_id, with_for_update=True)
+                        if paused is not None and paused.status == "running":
+                            paused.status = "paused"
+                            paused.updated_at = utcnow()
+                    return
 
                 with self._session() as session, session.begin():
                     done = self._owned_run(session, run_id, owner_id)
@@ -285,10 +304,46 @@ class BenchmarkService:
             except Exception as e:  # noqa: BLE001 - reported on the row
                 self._fail(run_id, str(e))
 
+    def _write_progress(
+        self,
+        run_id: str,
+        owner_id: str,
+        current: int,
+        total: int,
+        current_step: str,
+    ) -> None:
+        with self._session() as session, session.begin():
+            task = (
+                session.query(AsyncTask)
+                .filter(
+                    AsyncTask.task_type == "benchmark",
+                    AsyncTask.entity_id == run_id,
+                    AsyncTask.user_id == owner_id,
+                )
+                .first()
+            )
+            if task is None or task.status != "running":
+                return
+            task.progress = task_progress(current, total, current_step)
+
+    def _async_task_paused(self, run_id: str, owner_id: str) -> bool:
+        with self._session() as session:
+            task = (
+                session.query(AsyncTask)
+                .populate_existing()
+                .filter(
+                    AsyncTask.task_type == "benchmark",
+                    AsyncTask.entity_id == run_id,
+                    AsyncTask.user_id == owner_id,
+                )
+                .first()
+            )
+            return task is not None and task.status == "paused"
+
     def _fail(self, run_id: str, message: str) -> None:
         with self._session() as session, session.begin():
             row = session.get(BenchmarkRun, run_id, with_for_update=True)
-            if row is None or row.status in _TERMINAL_STATUSES:
+            if row is None or row.status in (*_TERMINAL_STATUSES, "paused"):
                 return
             row.status = "failed"
             row.error_message = message

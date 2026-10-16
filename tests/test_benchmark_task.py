@@ -202,3 +202,202 @@ def test_execute_benchmark_disables_recovery():
 
     service_cls.assert_called_once_with(recover=False)
     service_cls.return_value._execute.assert_called_once_with("run-1", "owner-1")
+
+
+def test_run_benchmark_task_keeps_paused_status(db_session):
+    run_id, user_id = _seed(db_session)
+
+    def pause(run_id: str, user_id: str) -> None:
+        other = _reload(db_session)
+        run = other.get(BenchmarkRun, run_id)
+        task = other.query(AsyncTask).filter_by(entity_id=run_id).one()
+        assert run is not None
+        run.status = "paused"
+        task.status = "paused"
+        other.commit()
+        other.close()
+
+    with (
+        patch("src.tasks.benchmark.get_db_session", return_value=db_session),
+        patch("src.tasks.benchmark.execute_benchmark", side_effect=pause),
+    ):
+        result = run_benchmark_task(run_id, user_id)
+
+    check = _reload(db_session)
+    run = check.get(BenchmarkRun, run_id)
+    task = check.query(AsyncTask).filter_by(entity_id=run_id).one()
+    assert result["status"] == "paused"
+    assert run.status == "paused"
+    assert task.status == "paused"
+    check.close()
+
+
+def test_execute_marks_benchmark_paused_from_other_connection(tmp_path, monkeypatch):
+    from types import SimpleNamespace
+
+    from sqlalchemy.orm import sessionmaker
+
+    from api.services.benchmark_service import BenchmarkService
+    from src.models import LLMConfig
+
+    dataset = tmp_path / "problems.json"
+    dataset.write_text("[]", encoding="utf-8")
+    service = BenchmarkService(f"sqlite:///{tmp_path}/biz.sqlite3", recover=False)
+    run_id = str(uuid.uuid4())
+    suite_id = str(uuid.uuid4())
+    with service._session() as session:
+        session.add(
+            BenchmarkSuite(
+                id=suite_id,
+                user_id="owner-1",
+                name=f"suite-{suite_id[:8]}",
+                problems=["first", "second"],
+            )
+        )
+        session.flush()
+        session.add(
+            BenchmarkRun(
+                id=run_id,
+                suite_id=suite_id,
+                user_id="owner-1",
+                status="pending",
+                model="demo",
+                config={
+                    "api_key_id": "key-1",
+                    "model": "demo",
+                    "dataset_path": str(dataset),
+                    "strategies": [],
+                },
+            )
+        )
+        session.add(
+            AsyncTask(
+                id=str(uuid.uuid4()),
+                celery_task_id="celery-pause",
+                task_type="benchmark",
+                entity_id=run_id,
+                user_id="owner-1",
+                status="running",
+            )
+        )
+        session.commit()
+
+    calls: list[str] = []
+
+    class Executor:
+        def __init__(self, suite, config):
+            self.should_pause = None
+            self.paused = False
+
+        def execute(self):
+            other = sessionmaker(bind=service._engine)()
+            row = other.query(AsyncTask).one()
+            row.status = "paused"
+            other.commit()
+            other.close()
+            if not (self.should_pause and self.should_pause()):
+                calls.append("first")
+            calls.append("checked")
+            self.paused = bool(self.should_pause and self.should_pause())
+            return {}
+
+    service._auth = SimpleNamespace(
+        llm_config=lambda *_args, **_kwargs: LLMConfig(
+            provider="openai", api_key="sk-test", model="demo"
+        )
+    )
+    service._executor_factory = Executor
+    monkeypatch.setattr("api.services.benchmark_service.resolve_dataset_path", lambda raw: dataset)
+    service._execute(run_id, "owner-1")
+
+    assert calls == ["checked"]
+    with service._session() as session:
+        assert session.get(BenchmarkRun, run_id).status == "paused"
+
+
+def test_execute_records_percentage_and_current_step(tmp_path, monkeypatch):
+    from types import SimpleNamespace
+
+    from sqlalchemy.orm import sessionmaker
+
+    from api.services.benchmark_service import BenchmarkService
+    from src.models import LLMConfig
+
+    dataset = tmp_path / "problems.json"
+    dataset.write_text("[]", encoding="utf-8")
+    service = BenchmarkService(f"sqlite:///{tmp_path}/biz.sqlite3", recover=False)
+    run_id = str(uuid.uuid4())
+    suite_id = str(uuid.uuid4())
+    with service._session() as session:
+        session.add(
+            BenchmarkSuite(
+                id=suite_id,
+                user_id="owner-1",
+                name=f"suite-{suite_id[:8]}",
+                problems=["two-sum", "second"],
+            )
+        )
+        session.flush()
+        session.add(
+            BenchmarkRun(
+                id=run_id,
+                suite_id=suite_id,
+                user_id="owner-1",
+                status="pending",
+                model="demo",
+                config={
+                    "api_key_id": "key-1",
+                    "model": "demo",
+                    "dataset_path": str(dataset),
+                    "strategies": [{"name": "vanilla"}],
+                },
+            )
+        )
+        session.add(
+            AsyncTask(
+                id=str(uuid.uuid4()),
+                celery_task_id="celery-progress",
+                task_type="benchmark",
+                entity_id=run_id,
+                user_id="owner-1",
+                status="running",
+            )
+        )
+        session.commit()
+
+    seen: list[dict] = []
+
+    class Executor:
+        def __init__(self, suite, config):
+            self.should_pause = None
+            self.on_problem = None
+            self.paused = False
+
+        def execute(self):
+            assert self.on_problem is not None
+            self.on_problem(0, 2, "vanilla", "two-sum")
+            other = sessionmaker(bind=service._engine)()
+            try:
+                seen.append(dict(other.query(AsyncTask).one().progress))
+            finally:
+                other.close()
+            self.on_problem(1, 2, "vanilla", "second")
+            return {"accuracy": 1.0, "cost_usd": 0.0, "summary": {}}
+
+    service._auth = SimpleNamespace(
+        llm_config=lambda *_args, **_kwargs: LLMConfig(
+            provider="openai", api_key="sk-test", model="demo"
+        )
+    )
+    service._executor_factory = Executor
+    monkeypatch.setattr("api.services.benchmark_service.resolve_dataset_path", lambda raw: dataset)
+    service._execute(run_id, "owner-1")
+
+    with service._session() as session:
+        progress = dict(session.query(AsyncTask).one().progress)
+    assert seen[0]["current_step"] == "vanilla/two-sum"
+    assert seen[0]["percentage"] == 0
+    assert progress["current_step"] == "vanilla/second"
+    assert progress["percentage"] == 50
+    assert 0 <= progress["percentage"] <= 100
+    assert "hidden problem body" not in progress["current_step"]

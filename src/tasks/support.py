@@ -2,10 +2,29 @@
 
 from __future__ import annotations
 
+from typing import Any
+
 from sqlalchemy.orm import Session
 
 from api.db.engine import business_database_url, make_engine, make_session_factory
 from api.db.models import AsyncTask
+
+
+def progress_percentage(current: int, total: int) -> float:
+    """Return a completion percentage clamped to [0, 100]."""
+    if total <= 0:
+        return 0.0
+    return min(100.0, max(0.0, (current / total) * 100))
+
+
+def task_progress(current: int, total: int, current_step: str) -> dict[str, Any]:
+    """Progress JSON stored on an async task."""
+    return {
+        "current": current,
+        "total": total,
+        "percentage": progress_percentage(current, total),
+        "current_step": current_step,
+    }
 
 
 def get_db_session() -> Session:

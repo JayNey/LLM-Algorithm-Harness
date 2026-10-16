@@ -12,6 +12,7 @@ import hashlib
 import json
 import re
 import subprocess
+from collections.abc import Callable
 from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime
 from pathlib import Path
@@ -80,6 +81,27 @@ class ExperimentRunner:
     def __init__(self, config: ExperimentConfig, pricing_file: str | None = None):
         self.config = config
         self.pricing_manager = PricingManager(pricing_file)
+        self.should_pause: Callable[[], bool] | None = None
+        self.on_combination: Callable[[int, int, str, str, int], None] | None = None
+        self.paused = False
+
+    def _report_combination(
+        self,
+        completed: int,
+        total: int,
+        model: LLMConfig,
+        strategy: StrategyConfig,
+        repeat: int,
+    ) -> None:
+        if self.on_combination is None:
+            return
+        self.on_combination(completed, total, model.model, strategy.name, repeat)
+
+    def _pause_requested(self) -> bool:
+        if self.should_pause is None or not self.should_pause():
+            return False
+        self.paused = True
+        return True
 
     def run(self) -> Path:
         """Execute all combinations and return the experiment directory."""
@@ -119,18 +141,37 @@ class ExperimentRunner:
             logger.info("experiment_parallel_start", jobs=len(jobs), workers=workers)
             with ThreadPoolExecutor(max_workers=workers) as pool:
                 # Iterate futures in submission order so the recorded
-                # combination order stays identical to serial execution
-                futures = [
-                    pool.submit(self._run_combo, exp_dir, model, strategy, repeat)
-                    for model, strategy, repeat in jobs
-                ]
+                # combination order stays identical to serial execution.
+                # Combinations already submitted may finish; later ones do not start.
+                futures = []
+                for model, strategy, repeat in jobs:
+                    if self._pause_requested():
+                        break
+                    self._report_combination(
+                        len(metadata["combinations"]), len(jobs), model, strategy, repeat
+                    )
+                    futures.append(pool.submit(self._run_combo, exp_dir, model, strategy, repeat))
                 for future in futures:
                     metadata["combinations"].append(future.result())
         else:
             for model, strategy, repeat in jobs:
+                if self._pause_requested():
+                    break
+                self._report_combination(
+                    len(metadata["combinations"]), len(jobs), model, strategy, repeat
+                )
                 combo = self._run_combo(exp_dir, model, strategy, repeat)
                 metadata["combinations"].append(combo)
                 self._write_json(exp_dir / "experiment.json", metadata)
+
+        if self.paused:
+            self._write_json(exp_dir / "experiment.json", metadata)
+            logger.info(
+                "experiment_paused",
+                experiment_id=exp_dir.name,
+                combinations=len(metadata["combinations"]),
+            )
+            return exp_dir
 
         metadata["finished_at"] = datetime.now().isoformat()
         self._write_json(exp_dir / "experiment.json", metadata)
