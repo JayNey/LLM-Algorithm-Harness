@@ -136,7 +136,10 @@ def run_evaluation_task(self: EvaluationTask, evaluation_id: str) -> dict[str, A
         publish_progress(
             evaluation_id,
             "task.started",
-            {"status": "running", "total_units": len(evaluation.problem_ids) * len(evaluation.strategy_names)},
+            {
+                "status": "running",
+                "total_units": len(evaluation.problem_ids) * len(evaluation.strategy_names),
+            },
         )
 
         # 3b. 构造 harness 并为每策略预建一次 runtime（Design Doc §5.6）。
