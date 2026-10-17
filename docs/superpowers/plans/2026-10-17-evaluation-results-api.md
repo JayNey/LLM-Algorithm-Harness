@@ -2,6 +2,7 @@
 change: evaluation-results-api
 design-doc: docs/superpowers/specs/2026-10-17-evaluation-results-api-design.md
 base-ref: ddcb7ade01c2a4205c94a3331c4ccefc46c17fbe
+archived-with: 2026-10-17-evaluation-results-api
 ---
 
 # 评估结果查询 API Implementation Plan

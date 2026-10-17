@@ -2,6 +2,8 @@
 comet_change: evaluation-results-api
 role: technical-design
 canonical_spec: openspec
+archived-with: 2026-10-17-evaluation-results-api
+status: final
 ---
 
 # 评估结果查询与分析 API — 技术设计（Design Doc）
