@@ -7,7 +7,7 @@
 
 - [x] 2.1 `GET /api/v1/results/{run_id}`、`GET /api/v1/results`、`GET /api/v1/results/problems/{problem_id}`
 - [x] 2.2 成功率、token、迭代、耗时、失败模式统计端点，与详情聚合共用计算
-- [ ] 2.3 策略、模型、历史对比；A/B 对比复用现有结果服务
+- [x] 2.3 策略、模型、历史对比；A/B 对比复用现有结果服务
 
 ## 3. 可视化、失败分析与报告
 

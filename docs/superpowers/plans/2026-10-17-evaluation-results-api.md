@@ -476,7 +476,7 @@ git commit -m "feat: add evaluation analytics over stored rows"
 
 ### Task 5: 对比端点
 
-- [ ] Task 5: 对比端点
+- [x] Task 5: 对比端点
 
 对应 `tasks.md` 2.3。
 
