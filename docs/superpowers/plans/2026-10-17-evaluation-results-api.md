@@ -606,7 +606,7 @@ git commit -m "feat: return evaluation chart data from stored results"
 
 ### Task 7: 失败分析
 
-- [ ] Task 7: 失败分析
+- [x] Task 7: 失败分析
 
 对应 `tasks.md` 3.2。
 
