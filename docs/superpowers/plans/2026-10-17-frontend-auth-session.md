@@ -612,12 +612,12 @@ EOF
 **Files:**
 - Modify: 无，除非前序命令暴露出类型或格式问题。
 
-- [ ] **Task 10 Step 1: 运行全部检查**
+- [x] **Task 10 Step 1: 运行全部检查**
 
 Run: `cd frontend && npm test && npm run lint && npm run build`
 Expected: 三个命令都成功。测试输出包含回跳、存储选择和并发刷新。
 
-- [ ] **Task 10 Step 2: Commit**
+- [x] **Task 10 Step 2: Commit**
 
 只有 Step 1 修改了文件时才提交。不要把 `openspec/changes/frontend-account-settings/` 加进提交。
 
