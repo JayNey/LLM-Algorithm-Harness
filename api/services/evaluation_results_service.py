@@ -26,6 +26,7 @@ from api.db import (
 )
 from api.db.engine import business_database_url
 from api.db.migrate import SCRIPT_LOCATION
+from src.error_analysis import normalize_message
 from src.reporting.capability_profiler import (
     calculate_dimension_scores,
     format_dimension_scores_for_radar,
@@ -762,6 +763,69 @@ class EvaluationResultsService:
                 {"name": name, "data": values} for name, values in formatted["model_scores"].items()
             ],
             "problem_counts": get_dimension_problem_counts(problem_dicts),
+        }
+
+    def failure_summary(self, owner_id: str, run_id: str) -> dict:
+        """Count stored modes and categories. Cluster saved messages only."""
+        with self._session() as session:
+            evaluation = self._resolve(session, owner_id, run_id)
+            rows = self._units(session, evaluation.id)
+        modes: Counter[str] = Counter()
+        categories: Counter[str] = Counter()
+        clusters: Counter[str] = Counter()
+        for row in rows:
+            if row.status == "success":
+                continue
+            metrics = row.metrics or {}
+            modes[metrics.get("failure_mode") or "unknown"] += 1
+            categories[metrics.get("failure_category") or "unknown"] += 1
+            if row.error_message:
+                clusters[normalize_message(row.error_message)] += 1
+        return {
+            "modes": dict(modes),
+            "categories": dict(categories),
+            "clusters": [
+                {"pattern": pattern, "count": count}
+                for pattern, count in clusters.most_common()
+                if pattern
+            ],
+        }
+
+    def failures_by_tag(
+        self,
+        owner_id: str,
+        *,
+        run_id: str | None = None,
+        strategy: str | None = None,
+        difficulty: str | None = None,
+        tag: str | None = None,
+    ) -> dict:
+        """Success rate, solved, and total for each problem tag in scope."""
+        return self._analytics(
+            owner_id,
+            lambda pairs: {"tags": _group_rates(pairs, _tag_labels)},
+            run_id=run_id,
+            strategy=strategy,
+            difficulty=difficulty,
+            tag=tag,
+        )
+
+    def failure_cases(self, owner_id: str, run_id: str) -> dict:
+        """Non-success units for one run, with the stored error message."""
+        with self._session() as session:
+            evaluation = self._resolve(session, owner_id, run_id)
+            rows = self._units(session, evaluation.id)
+        return {
+            "items": [
+                {
+                    "problem_id": row.problem_id,
+                    "strategy": row.strategy_name,
+                    "status": row.status,
+                    "error_message": row.error_message,
+                }
+                for row in rows
+                if row.status != "success"
+            ]
         }
 
     def learning_curve(self, owner_id: str, suite_id: str | None = None) -> dict:

@@ -14,6 +14,7 @@ from api.db.engine import make_engine, make_session_factory
 from api.db.models import BenchmarkRun, BenchmarkSuite, Evaluation, EvaluationResult, Problem
 from api.files.config import FileSettings
 from api.main import create_app
+from src.error_analysis import normalize_message
 from src.reporting.capability_profiler import ALL_DIMENSIONS
 
 PASSWORD = "a-long-test-password-!"
@@ -96,8 +97,10 @@ def _seed(database_url: str, owner_id: str) -> None:
                         "cost_usd": 9.0,
                         "cost_unknown": True,
                         "difficulty": "easy",
+                        "failure_mode": "logic_error",
+                        "failure_category": "wrong_answer",
                     },
-                    error_message="boom",
+                    error_message="boom 42",
                 ),
                 EvaluationResult(
                     id=str(uuid.uuid4()),
@@ -784,6 +787,28 @@ def test_radar_and_empty_learning_curve(client, owner_headers):
         params={"run_id": "run-open-chart"},
     )
     assert draft_radar.json()["data"]["series"][0]["name"] == "gpt-draft"
+
+
+def test_failure_summary_keeps_stored_mode(client, owner_headers):
+    """Keep the stored mode and cluster the stored message with normalize_message."""
+    summary = client.get("/api/v1/failures/summary/run-own", headers=owner_headers)
+    assert summary.status_code == 200
+    data = summary.json()["data"]
+    assert data["modes"]["logic_error"] == 1
+    assert data["categories"]["wrong_answer"] == 1
+    assert data["clusters"][0]["pattern"] == normalize_message("boom 42")
+    cases = client.get("/api/v1/failures/cases/run-own", headers=owner_headers)
+    assert all(item["status"] != "success" for item in cases.json()["data"]["items"])
+    assert cases.json()["data"]["items"][0]["error_message"] == "boom 42"
+    tags = client.get(
+        "/api/v1/failures/by-tag", headers=owner_headers, params={"run_id": "run-own"}
+    )
+    assert "array" in tags.json()["data"]["tags"]
+    assert tags.json()["data"]["tags"]["array"] == {
+        "success_rate": 0.5,
+        "solved": 1,
+        "total": 2,
+    }
 
 
 def test_results_api_hides_other_users_and_paginates_problems(client, owner_headers):

@@ -223,6 +223,41 @@ def visualization_learning_curve(
     return ApiResponse(success=True, data=data, message="Learning curve retrieved")
 
 
+@router.get("/failures/by-tag")
+def failures_by_tag(
+    run_id: str | None = None,
+    strategy: str | None = None,
+    difficulty: str | None = None,
+    tag: str | None = None,
+    principal: Principal = Depends(current_user),
+    service: EvaluationResultsService = Depends(evaluation_results_service),
+) -> ApiResponse[dict]:
+    data = _analytics(
+        service, principal, service.failures_by_tag, run_id, strategy, difficulty, tag
+    )
+    return ApiResponse(success=True, data=data, message="Failures by tag retrieved")
+
+
+@router.get("/failures/summary/{run_id}")
+def failure_summary(
+    run_id: str,
+    principal: Principal = Depends(current_user),
+    service: EvaluationResultsService = Depends(evaluation_results_service),
+) -> ApiResponse[dict]:
+    data = call(lambda: service.failure_summary(principal.user_id, run_id))
+    return ApiResponse(success=True, data=data, message="Failure summary retrieved")
+
+
+@router.get("/failures/cases/{run_id}")
+def failure_cases(
+    run_id: str,
+    principal: Principal = Depends(current_user),
+    service: EvaluationResultsService = Depends(evaluation_results_service),
+) -> ApiResponse[dict]:
+    data = call(lambda: service.failure_cases(principal.user_id, run_id))
+    return ApiResponse(success=True, data=data, message="Failure cases retrieved")
+
+
 @router.get("/results/{run_id}")
 def get_result(
     run_id: str,
