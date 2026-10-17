@@ -157,6 +157,72 @@ def analytics_failure_modes(
     return ApiResponse(success=True, data=data, message="Failure modes retrieved")
 
 
+@router.get("/visualizations/success-rate-chart")
+def visualization_success_rate_chart(
+    run_id: str | None = None,
+    strategy: str | None = None,
+    difficulty: str | None = None,
+    tag: str | None = None,
+    principal: Principal = Depends(current_user),
+    service: EvaluationResultsService = Depends(evaluation_results_service),
+) -> ApiResponse[dict]:
+    data = _analytics(
+        service, principal, service.success_rate_chart, run_id, strategy, difficulty, tag
+    )
+    return ApiResponse(success=True, data=data, message="Success rate chart retrieved")
+
+
+@router.get("/visualizations/token-chart")
+def visualization_token_chart(
+    run_id: str | None = None,
+    strategy: str | None = None,
+    difficulty: str | None = None,
+    tag: str | None = None,
+    principal: Principal = Depends(current_user),
+    service: EvaluationResultsService = Depends(evaluation_results_service),
+) -> ApiResponse[dict]:
+    data = _analytics(service, principal, service.token_chart, run_id, strategy, difficulty, tag)
+    return ApiResponse(success=True, data=data, message="Token chart retrieved")
+
+
+@router.get("/visualizations/cost-accuracy")
+def visualization_cost_accuracy(
+    run_id: str | None = None,
+    strategy: str | None = None,
+    difficulty: str | None = None,
+    tag: str | None = None,
+    principal: Principal = Depends(current_user),
+    service: EvaluationResultsService = Depends(evaluation_results_service),
+) -> ApiResponse[dict]:
+    data = _analytics(service, principal, service.cost_accuracy, run_id, strategy, difficulty, tag)
+    return ApiResponse(success=True, data=data, message="Cost accuracy chart retrieved")
+
+
+@router.get("/visualizations/capability-radar")
+def visualization_capability_radar(
+    run_id: str | None = None,
+    strategy: str | None = None,
+    difficulty: str | None = None,
+    tag: str | None = None,
+    principal: Principal = Depends(current_user),
+    service: EvaluationResultsService = Depends(evaluation_results_service),
+) -> ApiResponse[dict]:
+    data = _analytics(
+        service, principal, service.capability_radar, run_id, strategy, difficulty, tag
+    )
+    return ApiResponse(success=True, data=data, message="Capability radar retrieved")
+
+
+@router.get("/visualizations/learning-curve")
+def visualization_learning_curve(
+    suite_id: str | None = None,
+    principal: Principal = Depends(current_user),
+    service: EvaluationResultsService = Depends(evaluation_results_service),
+) -> ApiResponse[dict]:
+    data = call(lambda: service.learning_curve(principal.user_id, suite_id=suite_id))
+    return ApiResponse(success=True, data=data, message="Learning curve retrieved")
+
+
 @router.get("/results/{run_id}")
 def get_result(
     run_id: str,

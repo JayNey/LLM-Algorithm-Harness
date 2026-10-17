@@ -16,6 +16,7 @@ from sqlalchemy.engine import Engine
 from sqlalchemy.orm import Session
 
 from api.db import (
+    BenchmarkRun,
     Evaluation,
     EvaluationResult,
     Problem,
@@ -25,6 +26,11 @@ from api.db import (
 )
 from api.db.engine import business_database_url
 from api.db.migrate import SCRIPT_LOCATION
+from src.reporting.capability_profiler import (
+    calculate_dimension_scores,
+    format_dimension_scores_for_radar,
+    get_dimension_problem_counts,
+)
 
 _SORT_COLUMNS = {
     "completed_at": Evaluation.completed_at,
@@ -590,3 +596,193 @@ class EvaluationResultsService:
                     }
                 )
             return {"series": series}
+
+    def _sorted_pairs(
+        self,
+        session: Session,
+        owner_id: str,
+        *,
+        run_id: str | None,
+        strategy: str | None,
+        difficulty: str | None,
+        tag: str | None,
+    ) -> list[tuple[EvaluationResult, Problem | None]]:
+        """Filtered units in the same order as a result detail."""
+        pairs = self._analytics_pairs(
+            session,
+            owner_id,
+            run_id=run_id,
+            strategy=strategy,
+            difficulty=difficulty,
+            tag=tag,
+        )
+        pairs.sort(key=lambda pair: (pair[0].created_at, pair[0].id))
+        return pairs
+
+    def _strategy_summaries(
+        self,
+        owner_id: str,
+        *,
+        run_id: str | None,
+        strategy: str | None,
+        difficulty: str | None,
+        tag: str | None,
+    ) -> list[dict]:
+        """Per-strategy aggregate shared with result detail."""
+        with self._session() as session:
+            pairs = self._sorted_pairs(
+                session,
+                owner_id,
+                run_id=run_id,
+                strategy=strategy,
+                difficulty=difficulty,
+                tag=tag,
+            )
+            return aggregate([row for row, _problem in pairs])
+
+    def success_rate_chart(
+        self,
+        owner_id: str,
+        *,
+        run_id: str | None = None,
+        strategy: str | None = None,
+        difficulty: str | None = None,
+        tag: str | None = None,
+    ) -> dict:
+        """One success-rate point per strategy, using the detail aggregate."""
+        summaries = self._strategy_summaries(
+            owner_id, run_id=run_id, strategy=strategy, difficulty=difficulty, tag=tag
+        )
+        return {
+            "points": [
+                {"name": item["name"], "success_rate": item["success_rate"]} for item in summaries
+            ]
+        }
+
+    def token_chart(
+        self,
+        owner_id: str,
+        *,
+        run_id: str | None = None,
+        strategy: str | None = None,
+        difficulty: str | None = None,
+        tag: str | None = None,
+    ) -> dict:
+        """One line per strategy. Each point is one problem's stored tokens."""
+        with self._session() as session:
+            pairs = self._sorted_pairs(
+                session,
+                owner_id,
+                run_id=run_id,
+                strategy=strategy,
+                difficulty=difficulty,
+                tag=tag,
+            )
+            grouped: dict[str, list[dict]] = {}
+            for row, _problem in pairs:
+                grouped.setdefault(row.strategy_name, []).append(
+                    {
+                        "problem_id": row.problem_id,
+                        "tokens": (row.metrics or {}).get("total_tokens"),
+                    }
+                )
+        return {"series": [{"name": name, "points": points} for name, points in grouped.items()]}
+
+    def cost_accuracy(
+        self,
+        owner_id: str,
+        *,
+        run_id: str | None = None,
+        strategy: str | None = None,
+        difficulty: str | None = None,
+        tag: str | None = None,
+    ) -> dict:
+        """One point per strategy: success rate and known estimated cost."""
+        summaries = self._strategy_summaries(
+            owner_id, run_id=run_id, strategy=strategy, difficulty=difficulty, tag=tag
+        )
+        return {
+            "points": [
+                {
+                    "name": item["name"],
+                    "success_rate": item["success_rate"],
+                    "estimated_cost_usd": item["estimated_cost_usd"],
+                }
+                for item in summaries
+            ]
+        }
+
+    def capability_radar(
+        self,
+        owner_id: str,
+        *,
+        run_id: str | None = None,
+        strategy: str | None = None,
+        difficulty: str | None = None,
+        tag: str | None = None,
+    ) -> dict:
+        """Radar series named by evaluations.model. Missing dimensions score 0."""
+        with self._session() as session:
+            pairs = self._sorted_pairs(
+                session,
+                owner_id,
+                run_id=run_id,
+                strategy=strategy,
+                difficulty=difficulty,
+                tag=tag,
+            )
+            evaluation_ids = {row.evaluation_id for row, _problem in pairs}
+            model_by_id: dict[str, str | None] = {}
+            if evaluation_ids:
+                evaluations = session.scalars(
+                    select(Evaluation).where(Evaluation.id.in_(evaluation_ids))
+                ).all()
+                model_by_id = {item.id: item.model for item in evaluations}
+            result_dicts = [
+                {
+                    "problem_id": row.problem_id,
+                    "model": model_by_id.get(row.evaluation_id),
+                    "status": row.status,
+                }
+                for row, _problem in pairs
+            ]
+            problem_dicts: list[dict] = []
+            seen: set[str] = set()
+            for row, problem in pairs:
+                if row.problem_id in seen:
+                    continue
+                seen.add(row.problem_id)
+                tags = list(problem.tags or []) if problem is not None else []
+                problem_dicts.append({"problem_id": row.problem_id, "tags": tags})
+        scores = calculate_dimension_scores(result_dicts, problem_dicts)
+        formatted = format_dimension_scores_for_radar(scores)
+        return {
+            "dimensions": formatted["dimension_names"],
+            "series": [
+                {"name": name, "data": values} for name, values in formatted["model_scores"].items()
+            ],
+            "problem_counts": get_dimension_problem_counts(problem_dicts),
+        }
+
+    def learning_curve(self, owner_id: str, suite_id: str | None = None) -> dict:
+        """Completed benchmark runs for this user, oldest completion first."""
+        with self._session() as session:
+            stmt = select(BenchmarkRun).where(
+                BenchmarkRun.user_id == owner_id,
+                BenchmarkRun.status == "completed",
+            )
+            if suite_id is not None:
+                stmt = stmt.where(BenchmarkRun.suite_id == suite_id)
+            rows = session.scalars(stmt.order_by(BenchmarkRun.completed_at, BenchmarkRun.id)).all()
+            return {
+                "series": [
+                    {
+                        "suite_id": row.suite_id,
+                        "timestamp": _iso(row.completed_at),
+                        "model": row.model,
+                        "accuracy": row.accuracy,
+                        "cost_usd": row.cost_usd,
+                    }
+                    for row in rows
+                ]
+            }

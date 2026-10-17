@@ -11,9 +11,10 @@ from sqlalchemy import select
 
 from api.auth.config import AuthSettings
 from api.db.engine import make_engine, make_session_factory
-from api.db.models import Evaluation, EvaluationResult, Problem
+from api.db.models import BenchmarkRun, BenchmarkSuite, Evaluation, EvaluationResult, Problem
 from api.files.config import FileSettings
 from api.main import create_app
+from src.reporting.capability_profiler import ALL_DIMENSIONS
 
 PASSWORD = "a-long-test-password-!"
 
@@ -515,6 +516,274 @@ def test_compare_matches_detail_and_empty_history(client, owner_headers):
         "run-own",
         "run-match-late",
     ]
+
+
+def _points_by_name(payload: dict) -> dict[str, dict]:
+    return {point["name"]: point for point in payload["points"]}
+
+
+def _install_learning_curve_rows(client) -> None:
+    """Completed benchmark runs for the owner, plus rows the curve must skip."""
+    session_factory = client.app.state.task_session_factory
+    with session_factory() as db:
+        owner = db.scalar(select(Evaluation).where(Evaluation.id == "eval-own"))
+        assert owner is not None
+        db.add_all(
+            [
+                BenchmarkSuite(
+                    id="suite-a",
+                    user_id=owner.user_id,
+                    name="suite-a",
+                    problems=["two-sum"],
+                ),
+                BenchmarkSuite(
+                    id="suite-b",
+                    user_id=owner.user_id,
+                    name="suite-b",
+                    problems=["two-sum"],
+                ),
+            ]
+        )
+        db.flush()
+        db.add_all(
+            [
+                BenchmarkRun(
+                    id="bench-late",
+                    suite_id="suite-a",
+                    user_id=owner.user_id,
+                    status="completed",
+                    model="gpt-test",
+                    accuracy=0.5,
+                    cost_usd=1.5,
+                    completed_at=datetime(2026, 10, 2),
+                ),
+                BenchmarkRun(
+                    id="bench-early",
+                    suite_id="suite-a",
+                    user_id=owner.user_id,
+                    status="completed",
+                    model="claude-test",
+                    accuracy=0.25,
+                    cost_usd=0.5,
+                    completed_at=datetime(2026, 9, 1),
+                ),
+                BenchmarkRun(
+                    id="bench-z",
+                    suite_id="suite-a",
+                    user_id=owner.user_id,
+                    status="completed",
+                    model="gpt-test",
+                    accuracy=0.75,
+                    cost_usd=0.75,
+                    completed_at=datetime(2026, 11, 1),
+                ),
+                BenchmarkRun(
+                    id="bench-a",
+                    suite_id="suite-a",
+                    user_id=owner.user_id,
+                    status="completed",
+                    model="gpt-test",
+                    accuracy=0.125,
+                    cost_usd=0.25,
+                    completed_at=datetime(2026, 11, 1),
+                ),
+                BenchmarkRun(
+                    id="bench-other-suite",
+                    suite_id="suite-b",
+                    user_id=owner.user_id,
+                    status="completed",
+                    model="gpt-test",
+                    accuracy=1.0,
+                    cost_usd=2.0,
+                    completed_at=datetime(2026, 8, 1),
+                ),
+                BenchmarkRun(
+                    id="bench-pending",
+                    suite_id="suite-a",
+                    user_id=owner.user_id,
+                    status="pending",
+                    model="hidden-pending",
+                    accuracy=0.9,
+                    cost_usd=9.0,
+                    completed_at=datetime(2026, 7, 1),
+                ),
+                BenchmarkRun(
+                    id="bench-other-user",
+                    suite_id="suite-a",
+                    user_id="other",
+                    status="completed",
+                    model="hidden-other",
+                    accuracy=1.0,
+                    cost_usd=3.0,
+                    completed_at=datetime(2026, 6, 1),
+                ),
+            ]
+        )
+        db.commit()
+
+
+def test_radar_and_empty_learning_curve(client, owner_headers):
+    detail = client.get("/api/v1/results/run-own", headers=owner_headers).json()["data"]
+    by_name = {item["name"]: item for item in detail["strategies"]}
+
+    radar = client.get(
+        "/api/v1/visualizations/capability-radar",
+        headers=owner_headers,
+        params={"run_id": "run-own"},
+    )
+    assert radar.status_code == 200
+    data = radar.json()["data"]
+    assert data["dimensions"] == ALL_DIMENSIONS
+    assert data["series"][0]["name"] == "gpt-test"
+    assert len(data["series"]) == 1
+    assert data["series"][0]["data"] == [50.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
+    assert all(0 <= score <= 100 for score in data["series"][0]["data"])
+    assert set(data["problem_counts"]) == set(ALL_DIMENSIONS)
+    assert data["problem_counts"] == {
+        "Array": 1,
+        "Graph": 0,
+        "Dynamic Programming": 0,
+        "Greedy": 0,
+        "Math": 0,
+        "String": 0,
+        "Other": 0,
+    }
+
+    success = client.get(
+        "/api/v1/visualizations/success-rate-chart",
+        headers=owner_headers,
+        params={"run_id": "run-own"},
+    )
+    assert success.status_code == 200
+    success_points = _points_by_name(success.json()["data"])
+    assert {name: point["success_rate"] for name, point in success_points.items()} == {
+        name: item["success_rate"] for name, item in by_name.items()
+    }
+    assert {name: point["success_rate"] for name, point in success_points.items()} == {
+        "vanilla": 1.0,
+        "retry": 0.0,
+    }
+
+    token = client.get(
+        "/api/v1/visualizations/token-chart",
+        headers=owner_headers,
+        params={"run_id": "run-own"},
+    )
+    assert token.status_code == 200
+    lines = {line["name"]: line["points"] for line in token.json()["data"]["series"]}
+    expected_lines: dict[str, list[dict]] = {}
+    for item in detail["problems"]["items"]:
+        expected_lines.setdefault(item["strategy"], []).append(
+            {"problem_id": item["problem_id"], "tokens": item["tokens"]}
+        )
+    assert lines == expected_lines
+    assert lines == {
+        "vanilla": [{"problem_id": "two-sum", "tokens": 10}],
+        "retry": [{"problem_id": "two-sum", "tokens": 30}],
+    }
+
+    cost = client.get(
+        "/api/v1/visualizations/cost-accuracy",
+        headers=owner_headers,
+        params={"run_id": "run-own"},
+    )
+    assert cost.status_code == 200
+    cost_points = _points_by_name(cost.json()["data"])
+    assert {name: point["estimated_cost_usd"] for name, point in cost_points.items()} == {
+        name: item["estimated_cost_usd"] for name, item in by_name.items()
+    }
+    assert {name: point["success_rate"] for name, point in cost_points.items()} == {
+        name: item["success_rate"] for name, item in by_name.items()
+    }
+    assert {name: point["estimated_cost_usd"] for name, point in cost_points.items()} == {
+        "vanilla": 0.2,
+        "retry": 0.0,
+    }
+
+    vanilla = client.get(
+        "/api/v1/visualizations/success-rate-chart",
+        headers=owner_headers,
+        params={"run_id": "run-own", "strategy": "vanilla"},
+    )
+    assert _points_by_name(vanilla.json()["data"]) == {
+        "vanilla": {"name": "vanilla", "success_rate": 1.0}
+    }
+    empty_tag = client.get(
+        "/api/v1/visualizations/success-rate-chart",
+        headers=owner_headers,
+        params={"run_id": "run-own", "tag": "graph"},
+    )
+    assert empty_tag.status_code == 200
+    assert empty_tag.json()["data"]["points"] == []
+    missing = client.get(
+        "/api/v1/visualizations/success-rate-chart",
+        headers=owner_headers,
+        params={"run_id": "run-other"},
+    )
+    assert missing.status_code == 404
+
+    curve = client.get("/api/v1/visualizations/learning-curve", headers=owner_headers)
+    assert curve.status_code == 200
+    assert curve.json()["data"]["series"] == []
+
+    _install_learning_curve_rows(client)
+    filled = client.get("/api/v1/visualizations/learning-curve", headers=owner_headers)
+    assert filled.status_code == 200
+    series = filled.json()["data"]["series"]
+    assert [(point["suite_id"], point["timestamp"], point["model"]) for point in series] == [
+        ("suite-b", "2026-08-01T00:00:00Z", "gpt-test"),
+        ("suite-a", "2026-09-01T00:00:00Z", "claude-test"),
+        ("suite-a", "2026-10-02T00:00:00Z", "gpt-test"),
+        ("suite-a", "2026-11-01T00:00:00Z", "gpt-test"),
+        ("suite-a", "2026-11-01T00:00:00Z", "gpt-test"),
+    ]
+    assert [(point["accuracy"], point["cost_usd"]) for point in series] == [
+        (1.0, 2.0),
+        (0.25, 0.5),
+        (0.5, 1.5),
+        (0.125, 0.25),
+        (0.75, 0.75),
+    ]
+    assert all(point["model"] not in {"hidden-pending", "hidden-other"} for point in series)
+    narrowed = client.get(
+        "/api/v1/visualizations/learning-curve",
+        headers=owner_headers,
+        params={"suite_id": "suite-a"},
+    )
+    assert [point["suite_id"] for point in narrowed.json()["data"]["series"]] == ["suite-a"] * 4
+    assert [point["accuracy"] for point in narrowed.json()["data"]["series"]] == [
+        0.25,
+        0.5,
+        0.125,
+        0.75,
+    ]
+
+    _insert_run(
+        client,
+        evaluation_id="eval-open-chart",
+        run_id="run-open-chart",
+        model="gpt-draft",
+        strategy_names=["draft"],
+        status="running",
+        completed_at=None,
+        units=[("draft", "success", _unit("success", 3.0))],
+    )
+    running = client.get(
+        "/api/v1/visualizations/success-rate-chart",
+        headers=owner_headers,
+        params={"run_id": "run-open-chart"},
+    )
+    assert _points_by_name(running.json()["data"]) == {
+        "draft": {"name": "draft", "success_rate": 1.0}
+    }
+    scoped = client.get("/api/v1/visualizations/success-rate-chart", headers=owner_headers)
+    assert set(_points_by_name(scoped.json()["data"])) == {"vanilla", "retry"}
+    draft_radar = client.get(
+        "/api/v1/visualizations/capability-radar",
+        headers=owner_headers,
+        params={"run_id": "run-open-chart"},
+    )
+    assert draft_radar.json()["data"]["series"][0]["name"] == "gpt-draft"
 
 
 def test_results_api_hides_other_users_and_paginates_problems(client, owner_headers):
