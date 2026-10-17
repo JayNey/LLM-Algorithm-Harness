@@ -26,3 +26,7 @@
 ## 6. 验证修复
 
 - [x] 6.1 登出请求带上当前 access token。access token 将过期或登出返回 401 时，先刷新一次再重试登出一次。登录、注册和刷新仍不带 token、也不刷新。状态码大于等于 500 时错误消息为「服务暂时不可用」。登录、登出和注册共用同一个 HTTP 客户端。用 Node 测试验证登出带 Bearer，并用类型检查和生产构建确认通过
+
+## 7. 请求地址
+
+- [ ] 7.1 认证和当前用户请求使用相对 `VITE_API_BASE_URL` 的路径，最终地址只含一段 `/api/v1`。登录、注册、刷新、登出和当前用户分别为 `/auth/login`、`/auth/register`、`/auth/refresh`、`/auth/logout`、`/users/me`。用 Node 测试和 `axios.getUri` 验证刷新与登录不会拼成 `/api/v1/api/v1`，并用类型检查和生产构建确认通过

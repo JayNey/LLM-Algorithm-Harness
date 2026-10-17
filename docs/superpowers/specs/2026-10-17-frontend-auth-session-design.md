@@ -52,6 +52,8 @@ canonical_spec: openspec
 
 ## 5. 数据流
 
+客户端把 `VITE_API_BASE_URL` 用作 axios `baseURL`。开发值是 `http://localhost:8000/api/v1`，生产值是 `/api/v1`。请求路径相对于这个根，不再重复 `/api/v1`。拼好后的地址仍是 `/api/v1/auth/login`、`/api/v1/auth/register`、`/api/v1/auth/refresh`、`/api/v1/auth/logout` 和 `/api/v1/users/me`。
+
 登录：表单调用 store。`POST /api/v1/auth/login` 不带 Bearer。成功后用 `expires_in` 计算 `expiresAt`，按记住我写入存储，再 `GET /api/v1/users/me`。资料成功后写入 `username` 并跳到回跳地址。注册成功只跳到 `/login` 并提示可以登录，不写 token。
 
 受保护请求：距过期不足 30 秒时先刷新，再设置 `Authorization: Bearer`。路径以 `/auth/login`、`/auth/register`、`/auth/refresh` 结尾的请求不刷新、不附带 access token。登出请求附带当前 access token。access token 将过期，或登出本身返回 401 时，先走同一次刷新，再用新 access token 重试登出一次，然后停止。刷新请求的 body 是 `{ "refresh_token": "..." }`。其他请求遇到 401 时走同一次刷新并重试一次。刷新失败则 `clearSession` 并进入登录页，回跳地址是当前站内路径。

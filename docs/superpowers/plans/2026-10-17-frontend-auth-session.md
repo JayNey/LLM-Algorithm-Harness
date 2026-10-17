@@ -25,6 +25,7 @@ base-ref: c4a019c0843a2e96c32c09eb67bc363c4a2012ee
 - 不提交 `openspec/changes/frontend-account-settings/`。
 - 纯模块不得 import `import.meta` 或 `@/`。
 - 登录、注册和刷新请求不附带 access token，也不进入自动刷新。登出请求附带当前 access token；access token 将过期或登出得到 401 时，先走同一次刷新再重试登出一次。
+- `VITE_API_BASE_URL` 已经包含 `/api/v1`。axios 的 `url` 使用相对该根的路径，最终地址只出现一次 `/api/v1`。
 
 ---
 
@@ -669,6 +670,53 @@ Expected: PASS
 git add frontend/src/auth/http.ts frontend/src/auth/http.test.ts frontend/src/store/auth.ts frontend/src/store/auth.test.ts frontend/src/pages/Auth/RegisterPage.tsx
 git commit -m "$(cat <<'EOF'
 登出时带上访问令牌并撤销服务端会话。
+
+EOF
+)"
+```
+
+### Task 12: 认证请求使用 API 根路径的相对地址
+
+对应 `tasks.md` 7.1。这是第二次验证退回后的修复。`VITE_API_BASE_URL` 在开发环境是 `http://localhost:8000/api/v1`，在生产环境是 `/api/v1`。axios 会把以 `/` 开头的 `url` 接到这个 `baseURL` 后面。现在登录、注册、刷新、登出和当前用户请求传入的是 `/api/v1/...`，实际地址变成 `/api/v1/api/v1/...`，到不了后端。
+
+**Files:**
+- Modify: `frontend/src/auth/http.ts`
+- Modify: `frontend/src/auth/http.test.ts`
+- Modify: `frontend/src/store/auth.ts`
+- Modify: `frontend/src/store/auth.test.ts`
+- Modify: `frontend/src/pages/Auth/RegisterPage.tsx`
+
+**Interfaces:**
+- Consumes: `createHttpClient` 的 `baseURL`
+- Produces: 相对路径 `/auth/login`、`/auth/register`、`/auth/refresh`、`/auth/logout`、`/users/me`
+
+- [ ] **Task 12 Step 1: Write the failing test**
+
+失败测试必须观察生产代码实际发出的 `url`，并用 `axios.getUri` 把它和 `baseURL` 拼起来。不要只拿测试自己传入的短路径调用 `getUri`。
+
+刷新：`baseURL` 为 `http://localhost:8000/api/v1` 时，客户端内部刷新请求的 `getUri` 结果是 `http://localhost:8000/api/v1/auth/refresh`。
+登录、当前用户和登出：store 发出的路径分别是 `/auth/login`、`/users/me`、`/auth/logout`。以 `baseURL` `/api/v1` 拼接后分别是 `/api/v1/auth/login`、`/api/v1/users/me`、`/api/v1/auth/logout`。
+
+- [ ] **Task 12 Step 2: Run test to verify it fails**
+
+Run: `cd frontend && node --experimental-strip-types --test src/auth/http.test.ts src/store/auth.test.ts`
+Expected: FAIL，刷新或登录地址含有两段 `/api/v1`
+
+- [ ] **Task 12 Step 3: Write minimal implementation**
+
+把上述五个调用改成相对 `baseURL` 的路径。`endsWith('/auth/login')` 这类判断保持可用。登录、注册和刷新仍然不带 token、不刷新。登出仍然带当前 access token。不要改 `.env` 里的 `VITE_API_BASE_URL`。
+
+- [ ] **Task 12 Step 4: Run test to verify it passes**
+
+Run: `cd frontend && npm test && npx tsc -b --pretty false && npm run build`
+Expected: PASS
+
+- [ ] **Task 12 Step 5: Commit**
+
+```bash
+git add frontend/src/auth/http.ts frontend/src/auth/http.test.ts frontend/src/store/auth.ts frontend/src/store/auth.test.ts frontend/src/pages/Auth/RegisterPage.tsx
+git commit -m "$(cat <<'EOF'
+让认证请求落在配置的 API 根路径上。
 
 EOF
 )"
