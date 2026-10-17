@@ -1,0 +1,5 @@
+#!/bin/sh
+set -e
+cd "$(dirname "$0")/.."
+# 只在 frontend 目录运行，匹配规则不包含仓库其他路径。
+npx lint-staged

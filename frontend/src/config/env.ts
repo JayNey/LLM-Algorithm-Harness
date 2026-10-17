@@ -35,9 +35,7 @@ export function parseEnvFile(text: string): Record<string, string> {
   return values
 }
 
-export function readAppEnv(
-  source: Record<string, string | undefined>,
-): AppEnv {
+export function readAppEnv(source: Record<string, string | undefined>): AppEnv {
   const missing = REQUIRED_ENV_KEYS.filter((key) => !source[key]?.trim())
   if (missing.length > 0) {
     throw new Error(`缺少环境变量: ${missing.join(', ')}`)
