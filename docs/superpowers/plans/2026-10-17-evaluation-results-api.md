@@ -135,7 +135,7 @@ git commit -m "feat: persist evaluation iteration counts"
 
 ### Task 2: 查询服务的归属、分页和过滤
 
-- [ ] Task 2: 查询服务的归属、分页和过滤
+- [x] Task 2: 查询服务的归属、分页和过滤
 
 对应 `tasks.md` 1.2。
 

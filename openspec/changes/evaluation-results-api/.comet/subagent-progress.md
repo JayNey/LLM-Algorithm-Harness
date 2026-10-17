@@ -1,12 +1,11 @@
 # Subagent progress
 
-- Plan task: Task 1: 写入迭代次数
-- OpenSpec task: 1.1 单元结果写入 `metrics.iterations`；已有行的统计在字段缺失时按未知处理，不回填伪造值
-- Stage: done
-- Model: composer-2.5-fast
+- Plan task: Task 2: 查询服务的归属、分页和过滤
+- OpenSpec task: 1.2 结果查询服务：按 owner 解析 evaluation id / run_id，分页列出结果，支持策略、难度、标签、状态过滤
+- Stage: implementing
+- Model: grok-4.7-high-fast
 - review_mode: standard
 - Review rounds: 0
-- Risk review: skipped, no risk signal (54-line diff, metrics integer only)
-- Commit: ae475f6 feat: persist evaluation iteration counts
-- RED: pytest tests/test_evaluation_result_iterations.py failed before the metrics field existed
-- GREEN: pytest tests/test_evaluation_result_iterations.py passed
+- Risk review: pending
+- Commit: none
+- RED/GREEN: pending
