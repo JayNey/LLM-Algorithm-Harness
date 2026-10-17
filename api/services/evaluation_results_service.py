@@ -383,7 +383,7 @@ def _generator_metrics(rows: list[EvaluationResult]) -> dict[str, dict]:
             "estimated_cost_usd": item["estimated_cost_usd"],
             "by_difficulty": item["by_difficulty"],
         }
-        if item["unknown_cost_count"]:
+        if item["unknown_cost_count"] and item["estimated_cost_usd"] == 0:
             payload["pricing_metadata"] = {"unknown_usage": True}
         metrics[str(item["name"])] = payload
     return metrics

@@ -908,3 +908,72 @@ def test_reports_match_json_and_blank_missing_csv_fields(client, owner_headers):
     foreign = client.get("/api/v1/reports/csv/eval-other", headers=owner_headers)
     assert foreign.status_code == 404
     assert "text/csv" not in foreign.headers.get("content-type", "")
+
+
+def _install_mixed_cost_rows(client) -> None:
+    """One strategy: a known 0.2 USD unit plus one cost_unknown unit.
+
+    Both rows share vanilla so the generator prints a single cost cell for
+    the known sum. The unknown unit's 9 USD must stay out of that sum.
+    """
+    session_factory = client.app.state.task_session_factory
+    with session_factory() as db:
+        stored = list(
+            db.scalars(
+                select(EvaluationResult).where(EvaluationResult.evaluation_id == "eval-own")
+            ).all()
+        )
+        for row in stored:
+            db.delete(row)
+        db.add_all(
+            [
+                EvaluationResult(
+                    id=str(uuid.uuid4()),
+                    evaluation_id="eval-own",
+                    problem_id="two-sum",
+                    strategy_name="vanilla",
+                    status="success",
+                    metrics={
+                        "success": True,
+                        "total_tokens": 10,
+                        "execution_time_seconds": 1.0,
+                        "cost_usd": 0.2,
+                        "cost_unknown": False,
+                        "difficulty": "easy",
+                        "iterations": 1,
+                    },
+                ),
+                EvaluationResult(
+                    id=str(uuid.uuid4()),
+                    evaluation_id="eval-own",
+                    problem_id="three-sum",
+                    strategy_name="vanilla",
+                    status="failed",
+                    metrics={
+                        "success": False,
+                        "total_tokens": 30,
+                        "execution_time_seconds": 3.0,
+                        "cost_usd": 9.0,
+                        "cost_unknown": True,
+                        "difficulty": "easy",
+                    },
+                    error_message="unknown price",
+                ),
+            ]
+        )
+        db.commit()
+
+
+def test_markdown_keeps_known_cost_when_another_unit_is_unknown(client, owner_headers):
+    """Known 0.2 USD stays on the strategy row when another unit is cost_unknown.
+
+    Breaks if _generator_metrics sets unknown_usage whenever unknown_cost_count
+    is non-zero: MarkdownGenerator then prints only 未知 and hides $0.2000.
+    """
+    _install_mixed_cost_rows(client)
+    markdown = client.get("/api/v1/reports/markdown/run-own", headers=owner_headers)
+    assert markdown.status_code == 200
+    row = next(line for line in markdown.text.splitlines() if line.startswith("| vanilla"))
+    cost_cell = [cell.strip() for cell in row.split("|") if cell.strip()][-1]
+    assert cost_cell == "$0.2000"
+    assert cost_cell != "未知"
