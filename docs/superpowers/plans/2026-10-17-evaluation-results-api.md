@@ -676,7 +676,7 @@ git commit -m "feat: summarize stored evaluation failures"
 
 ### Task 8: 报告导出
 
-- [ ] Task 8: 报告导出
+- [x] Task 8: 报告导出
 
 对应 `tasks.md` 3.3。
 
