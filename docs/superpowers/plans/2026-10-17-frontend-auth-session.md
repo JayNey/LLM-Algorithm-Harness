@@ -585,16 +585,16 @@ EOF
 - Consumes: `useAuthStore.session`、`useAuthStore.logout`
 - Produces: 导航中的用户名或「已登录」、登出按钮
 
-- [ ] **Task 9 Step 1: 写导航**
+- [x] **Task 9 Step 1: 写导航**
 
 `AppLayout` 在菜单按钮旁显示 `session.username || '已登录'` 和登出按钮。登出调用 `logout()` 后 `navigate('/login', { replace: true })`。窄屏沿用现有菜单按钮，登出按钮和六个链接都放在同一导航里。`AuthLayout` 在窄屏下仍显示登录和注册链接。配色按钮两套布局都保留。
 
-- [ ] **Task 9 Step 2: 类型检查和构建**
+- [x] **Task 9 Step 2: 类型检查和构建**
 
 Run: `cd frontend && npx tsc -b --pretty false && npm run build`
 Expected: PASS
 
-- [ ] **Task 9 Step 3: Commit**
+- [x] **Task 9 Step 3: Commit**
 
 ```bash
 git add frontend/src/layouts/AppLayout.tsx frontend/src/layouts/AuthLayout.tsx
