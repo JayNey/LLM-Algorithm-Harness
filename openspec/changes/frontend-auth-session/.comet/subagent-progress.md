@@ -1,22 +1,20 @@
 # Subagent progress
 
-## Task 3 complete
-
-- Plan task: Task 3: HTTP 客户端与过期前刷新
-- OpenSpec task: 2.1
-- Stage: done
-- Commit: cceb8b69070e0d4fab5e3fe82f7a35fa4b2ae563
-- RED: missing module, then write not called
-- GREEN: http 14/14, npm test 19/19
-- Review: 5a4ed05a-b056-4753-8b07-539b3d1b8393 approved
-- review_mode: thorough
-- Review rounds: 1 review, 0 fixes
-- Deferred: logout stays without Authorization; production baseURL waits for Task 5; details and fallback copy move to Task 4
-
-## Task 4 current
+## Task 4 complete
 
 - Plan task: Task 4: 单次刷新
-- OpenSpec task: 2.2 实现单次刷新：并发 401 共用一个刷新 Promise，成功后原请求重试一次，失败则清除本地会话。用 Node 测试验证只发出一次刷新请求
+- OpenSpec task: 2.2
+- Stage: done
+- Commits: 68fa16bfbdc283552832f9d8af7903d4aca865a5, 761f344f1151879bec222e7c322cec961c7c22a2
+- Review: 2e04f851-f7e8-4a97-a398-8c074d85a221 Needs fixes, then 34dcd514-79f1-47e6-9405-47e8bc16230f addressed
+- review_mode: thorough
+- Review rounds: 1 fix / 2
+- Deferred minor: adapter 成功 Promise 模拟 401，未覆盖 AxiosError 拒绝路径
+
+## Task 5 current
+
+- Plan task: Task 5: 认证 store
+- OpenSpec task: 2.3 增加认证 store：保存 token、过期时间、当前用户名，并提供登录、恢复和清除。登录成功后请求 `GET /api/v1/users/me`。用 Node 测试或 store 级测试验证清除后不再恢复会话
 - Stage: implementing
 - Model: grok-4.7-high-fast
 - review_mode: thorough

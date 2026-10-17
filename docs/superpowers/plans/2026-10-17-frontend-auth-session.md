@@ -338,7 +338,7 @@ EOF
 - Consumes: `createHttpClient`
 - Produces: `createRefreshCoordinator<T>(run: () => Promise<T>): { refresh(): Promise<T> }`
 
-- [ ] **Task 4 Step 1: Write the failing test**
+- [x] **Task 4 Step 1: Write the failing test**
 
 ```ts
 test('并发刷新只执行一次', async () => {
@@ -357,21 +357,21 @@ test('并发刷新只执行一次', async () => {
 
 在 `http.test.ts` 增加：两个并发请求都收到 401，adapter 对刷新地址返回新 token，对原请求第二次返回 200。断言刷新地址只出现一次，两个原请求最终成功。刷新失败时调用 `clear`。
 
-- [ ] **Task 4 Step 2: Run test to verify it fails**
+- [x] **Task 4 Step 2: Run test to verify it fails**
 
 Run: `cd frontend && node --experimental-strip-types --test src/auth/refreshCoordinator.test.ts src/auth/http.test.ts`
 Expected: FAIL，协调器不存在；HTTP 测试中两次 401 各自刷新
 
-- [ ] **Task 4 Step 3: Write minimal implementation**
+- [x] **Task 4 Step 3: Write minimal implementation**
 
 `createRefreshCoordinator` 保存一个 `inflight`。存在时返回它；`finally` 里清空。`http` 的 401 拦截器对非认证端点调用这个协调器，成功后用新 access token 重试原请求一次。用 `config.__retried` 防止第二次 401 再刷新。刷新失败调用 `clear` 并抛出 `ApiClientError`。
 
-- [ ] **Task 4 Step 4: Run test to verify it passes**
+- [x] **Task 4 Step 4: Run test to verify it passes**
 
 Run: `cd frontend && npm test`
 Expected: PASS
 
-- [ ] **Task 4 Step 5: Commit**
+- [x] **Task 4 Step 5: Commit**
 
 ```bash
 git add frontend/src/auth/refreshCoordinator.ts frontend/src/auth/refreshCoordinator.test.ts frontend/src/auth/http.ts frontend/src/auth/http.test.ts
