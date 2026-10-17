@@ -394,7 +394,7 @@ EOF
 - Consumes: `StoredSession`、`writeSession`、`readSession`、`clearSession`、`createHttpClient`
 - Produces: `useAuthStore`，含 `session`、`hydrate()`、`login(identity, password, remember)`、`logout()`、`clear()`
 
-- [ ] **Task 5 Step 1: Write the failing test**
+- [x] **Task 5 Step 1: Write the failing test**
 
 用注入的 client 替身，不创建真实 axios。`login` 依次调用 login 和 `/users/me`。`clear` 后 `readSession` 返回 null。
 
@@ -409,21 +409,21 @@ test('清除后不能恢复会话', () => {
 
 store 测试断言 `login` 收到 `{ access_token, refresh_token, expires_in: 30 }` 后，写入的 `expiresAt` 等于 `now + 30000`，并且随后读取了 `/users/me`。
 
-- [ ] **Task 5 Step 2: Run test to verify it fails**
+- [x] **Task 5 Step 2: Run test to verify it fails**
 
 Run: `cd frontend && node --experimental-strip-types --test src/store/auth.test.ts`
 Expected: FAIL，找不到 store
 
-- [ ] **Task 5 Step 3: Write minimal implementation**
+- [x] **Task 5 Step 3: Write minimal implementation**
 
 `hydrate` 调用 `readSession`。`login` 调 `POST /api/v1/auth/login`，写入 token，再 `GET /api/v1/users/me`；资料失败且不是 401 时保留 token 并把 `username` 留空。`logout` 用 try/finally 包住 `POST /api/v1/auth/logout`，finally 中 `clearSession` 并把 store 设为 null。测试通过可选依赖注入 client 和 storages。
 
-- [ ] **Task 5 Step 4: Run test to verify it passes**
+- [x] **Task 5 Step 4: Run test to verify it passes**
 
 Run: `cd frontend && npm test`
 Expected: PASS
 
-- [ ] **Task 5 Step 5: Commit**
+- [x] **Task 5 Step 5: Commit**
 
 ```bash
 git add frontend/src/store/auth.ts frontend/src/store/auth.test.ts
