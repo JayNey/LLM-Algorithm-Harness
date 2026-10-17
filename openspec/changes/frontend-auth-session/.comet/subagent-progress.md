@@ -1,21 +1,21 @@
 # Subagent progress
 
-## Task 6 complete
-
-- Plan task: Task 6: 注册页
-- OpenSpec task: 3.1
-- Stage: done
-- Commit: 1cc8ad7813af06c079583ffb8a5c7e0af3f8898a
-- Review: d81d8e6a-c0d7-4432-b2d7-0ca4d14ef27b approved
-- review_mode: thorough
-- Review rounds: 1 review, 0 fixes
-- Deferred minor: 邮箱下限和若干合法长度边界没有单独正向测试
-
-## Task 7 current
+## Task 7 complete
 
 - Plan task: Task 7: 登录页
-- OpenSpec task: 3.2 增加登录页：接受用户名或邮箱、密码和记住我，错误时留在登录页，成功后回到站内原地址或仪表盘。进行中的提交显示加载状态，回车可提交。用类型检查确认页面通过编译
+- OpenSpec task: 3.2
+- Stage: done
+- Commit: 7b6484453481b04301cd634707f6e589495a7a67
+- Review: beb3fbda-fe1b-4960-acab-1097cc7c6074 approved
+- review_mode: thorough
+- Review rounds: 1 review, 0 fixes
+- Deferred minors: remember 字段错误不展示；提交中注册链接仍可点
+
+## Task 8 current
+
+- Plan task: Task 8: 公开路由和会话守卫
+- OpenSpec task: 3.3 把 `/login` 和 `/register` 放到公开布局，六个既有页面放到会话守卫之后。未登录打开这些页面或未知路径时进入登录页；已登录打开登录或注册页时进入仪表盘。用生产构建确认新增路由被分割加载
 - Stage: implementing
-- Model: cursor-grok-4.6-high-fast
+- Model: grok-4.7-high-fast
 - review_mode: thorough
 - Review rounds: 0 / 2

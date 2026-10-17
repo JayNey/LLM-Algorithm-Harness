@@ -515,16 +515,16 @@ EOF
 - Consumes: `useAuthStore.login`、`sanitizeReturnPath`
 - Produces: 默认导出的登录页
 
-- [ ] **Task 7 Step 1: 写页面**
+- [x] **Task 7 Step 1: 写页面**
 
 页面包含身份、`Input.Password`、记住我和提交按钮。`onFinish` 调用 `login`。提交期间按钮 `loading`。错误是 `ApiClientError` 且 status 为 401 时显示「登录失败」。成功后读取 `location.state.from`，交给 `sanitizeReturnPath`，再 `navigate`。`location.state.registered` 为 true 时显示「可以登录」。表单使用 Ant Design `Form`，回车由 Form 提交。
 
-- [ ] **Task 7 Step 2: 类型检查**
+- [x] **Task 7 Step 2: 类型检查**
 
 Run: `cd frontend && npx tsc -b --pretty false`
 Expected: PASS
 
-- [ ] **Task 7 Step 3: Commit**
+- [x] **Task 7 Step 3: Commit**
 
 ```bash
 git add frontend/src/pages/Auth/LoginPage.tsx
