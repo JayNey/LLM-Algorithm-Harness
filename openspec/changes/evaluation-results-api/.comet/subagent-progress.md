@@ -1,11 +1,12 @@
 # Subagent progress
 
-- Plan task: Task 9: 覆盖率与 API 文档
-- OpenSpec task: 4.2 在 `API.md` 记录新增端点、查询参数和响应字段
-- Stage: build-exit
+- Plan task: Task 10: 统一标签匹配和难度归类
+- OpenSpec task: none (existing 1.2 and 2.2 already require this)
+- Stage: checkoff
 - Model: grok-4.7-high-fast
 - review_mode: standard
-- Review rounds: 0
-- Risk review: not required
-- Commit: 544c947
-- RED/GREEN: complete
+- Review rounds: 1
+- Risk review: approved, 0 critical, 0 important
+- Commit: 7cc9c85
+- RED/GREEN: RED 3 failed; GREEN 12 passed
+- Ruling: exact case-sensitive tag membership for list and analytics; difficulty buckets use metrics then problems. CSV redaction and ChartGenerator stay unchanged because the confirmed design forbids both.

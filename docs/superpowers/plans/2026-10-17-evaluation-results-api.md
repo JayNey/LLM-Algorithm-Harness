@@ -772,3 +772,19 @@ Expected: PASS，覆盖率大于 80%。
 git add API.md tests/test_api_evaluation_results.py tests/test_evaluation_result_iterations.py
 git commit -m "docs: describe the evaluation results API"
 ```
+
+### Task 10: 统一标签匹配和难度归类
+
+- [x] Task 10: 统一标签匹配和难度归类
+
+验证发现列表标签过滤与统计标签过滤不是同一谓词，详情难度分组也没有使用统计侧的难度回退。本任务只修这两处。不改 CSV 脱敏，不改图表生成器。
+
+**Files:**
+- Modify: `api/services/evaluation_results_service.py`
+- Test: `tests/test_api_evaluation_results.py`
+
+- [x] Task 10 Step 1: 为标签和难度写失败测试
+- [x] Task 10 Step 2: 确认测试失败
+- [x] Task 10 Step 3: 统一标签匹配和难度归类
+- [x] Task 10 Step 4: 确认测试通过
+- [x] Task 10 Step 5: 提交修复
