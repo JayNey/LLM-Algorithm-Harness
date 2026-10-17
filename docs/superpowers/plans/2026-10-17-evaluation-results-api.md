@@ -6,7 +6,7 @@ base-ref: ddcb7ade01c2a4205c94a3331c4ccefc46c17fbe
 
 # 评估结果查询 API Implementation Plan
 
-> **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
+> **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [x]`) syntax for tracking.
 
 **Goal:** 为已落库评估提供 issue #155 的查询、统计、对比、可视化、失败分析和报告 API。
 
@@ -46,7 +46,7 @@ base-ref: ddcb7ade01c2a4205c94a3331c4ccefc46c17fbe
 - Consumes: `unit.result["iterations"]` 列表
 - Produces: `EvaluationResult.metrics["iterations"]: int`
 
-- [ ] **Step 1: Write the failing test**
+- [x] **Step 1: Write the failing test**
 
 ```python
 import uuid
@@ -103,13 +103,13 @@ def test_record_unit_result_stores_iteration_count_only():
         assert "secret" not in str(row.metrics)
 ```
 
-- [ ] **Step 2: Run test to verify it fails**
+- [x] **Step 2: Run test to verify it fails**
 
 Run: `python3 -m pytest tests/test_evaluation_result_iterations.py -q --no-cov`
 
 Expected: FAIL，`metrics` 中没有 `iterations` 或断言失败。
 
-- [ ] **Step 3: Write minimal implementation**
+- [x] **Step 3: Write minimal implementation**
 
 在 `src/tasks/evaluation.py` 的 completed 分支 metrics 字典加入：
 
@@ -120,13 +120,13 @@ metrics["iterations"] = len(iterations) if isinstance(iterations, list) else 0
 
 不要把 `iterations` 或 `generated_code` 放进 metrics。
 
-- [ ] **Step 4: Run test to verify it passes**
+- [x] **Step 4: Run test to verify it passes**
 
 Run: `python3 -m pytest tests/test_evaluation_result_iterations.py -q --no-cov`
 
 Expected: PASS
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add tests/test_evaluation_result_iterations.py src/tasks/evaluation.py
@@ -152,7 +152,7 @@ git commit -m "feat: persist evaluation iteration counts"
   - `problem_history(owner_id: str, problem_id: str, *, status: str | None, limit: int, offset: int) -> tuple[list[dict], int]`
   - 内部 `aggregate(rows) -> dict`，供后续任务复用
 
-- [ ] **Step 1: Write the failing test**
+- [x] **Step 1: Write the failing test**
 
 ```python
 import uuid
@@ -252,13 +252,13 @@ def test_detail_scopes_to_owner_and_keeps_full_strategy_summary(tmp_path):
     assert runs[0]["run_id"] == "run-own"
 ```
 
-- [ ] **Step 2: Run test to verify it fails**
+- [x] **Step 2: Run test to verify it fails**
 
 Run: `python3 -m pytest tests/test_evaluation_results_service.py::test_detail_scopes_to_owner_and_keeps_full_strategy_summary -q --no-cov`
 
 Expected: FAIL，`EvaluationResultsService` 不存在。
 
-- [ ] **Step 3: Write minimal implementation**
+- [x] **Step 3: Write minimal implementation**
 
 服务构造与 `EvaluationService` 相同：`make_engine`、`run_migrations`、`make_session_factory`。`resolve` 在 `user_id == owner_id` 下先按 `Evaluation.id` 再按 `Evaluation.run_id` 查找，找不到抛 `ValueError("Evaluation not found")`。
 
@@ -318,13 +318,13 @@ def aggregate(rows: list[EvaluationResult]) -> list[dict]:
 
 `list_runs` 只返回该用户的评估。标签、策略、难度用 EXISTS 子查询保留至少一条匹配单元的运行。`status` 过滤 `Evaluation.status`。排序只接受 `completed_at` 与 `created_at`。
 
-- [ ] **Step 4: Run test to verify it passes**
+- [x] **Step 4: Run test to verify it passes**
 
 Run: `python3 -m pytest tests/test_evaluation_results_service.py -q --no-cov`
 
 Expected: PASS
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add api/services/evaluation_results_service.py tests/test_evaluation_results_service.py
@@ -346,7 +346,7 @@ git commit -m "feat: aggregate stored evaluation results for their owner"
 - Consumes: `EvaluationResultsService.detail`、`list_runs`、`problem_history`
 - Produces: `GET /api/v1/results`、`GET /api/v1/results/problems/{problem_id}`、`GET /api/v1/results/{run_id}`
 
-- [ ] **Step 1: Write the failing test**
+- [x] **Step 1: Write the failing test**
 
 按 `tests/test_api_experiment_benchmark.py` 的 `auth_config` 和注册登录方式创建 `TestClient`。在业务库插入 Task 2 的两条评估。断言：
 
@@ -369,13 +369,13 @@ def test_results_api_hides_other_users_and_paginates_problems(client, owner_head
     assert anon.status_code == 401
 ```
 
-- [ ] **Step 2: Run test to verify it fails**
+- [x] **Step 2: Run test to verify it fails**
 
 Run: `python3 -m pytest tests/test_api_evaluation_results.py::test_results_api_hides_other_users_and_paginates_problems -q --no-cov`
 
 Expected: FAIL，404 因为路由不存在，或不是预期的 401。
 
-- [ ] **Step 3: Write minimal implementation**
+- [x] **Step 3: Write minimal implementation**
 
 `create_app` 中 `app.state.evaluation_results = EvaluationResultsService(database_url)`。路由前缀 `/api/v1`。`limit` 不在 1–100 时用 20，`offset < 0` 时用 0。`not found` 的 `ValueError` 转 404。静态路径 `/results/problems/{problem_id}` 写在 `/results/{run_id}` 之前。
 
@@ -389,13 +389,13 @@ def problem_history(...) -> ApiResponse[PaginatedData[dict]]:
 
 详情和列表同样包 `ApiResponse`。
 
-- [ ] **Step 4: Run test to verify it passes**
+- [x] **Step 4: Run test to verify it passes**
 
 Run: `python3 -m pytest tests/test_api_evaluation_results.py::test_results_api_hides_other_users_and_paginates_problems -q --no-cov`
 
 Expected: PASS
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add api/routes/evaluation_results.py api/main.py api/routes/__init__.py api/services/__init__.py tests/test_api_evaluation_results.py
@@ -419,7 +419,7 @@ git commit -m "feat: expose owner-scoped evaluation result queries"
   - `iterations(...) -> dict`
   - `failure_modes(...) -> dict`
 
-- [ ] **Step 1: Write the failing test**
+- [x] **Step 1: Write the failing test**
 
 夹具使用 3 个成功单元和 1 个失败单元，其中一个成功单元 `cost_unknown=True` 且 `cost_usd=9`，另一个 `cost_usd=0.2`。一条历史行不写 `iterations`。
 
@@ -440,13 +440,13 @@ def test_analytics_match_stored_rows(client, owner_headers):
     assert all(item["iterations"] != 0 for item in payload["distribution"])
 ```
 
-- [ ] **Step 2: Run test to verify it fails**
+- [x] **Step 2: Run test to verify it fails**
 
 Run: `python3 -m pytest tests/test_api_evaluation_results.py::test_analytics_match_stored_rows -q --no-cov`
 
 Expected: FAIL，路由 404。
 
-- [ ] **Step 3: Write minimal implementation**
+- [x] **Step 3: Write minimal implementation**
 
 不传 `run_id` 时只取该用户 `status == "completed"` 的评估。传入时调用 `resolve`。`iterations` 返回：
 
@@ -461,13 +461,13 @@ Expected: FAIL，路由 404。
 
 `failure_modes` 对非成功行的 `metrics["failure_mode"]` 计数，键缺失时记为 `"unknown"`。`success_rate` 同时返回 `avg_execution_time`。四个路由共用过滤参数 `run_id`、`strategy`、`difficulty`、`tag`。
 
-- [ ] **Step 4: Run test to verify it passes**
+- [x] **Step 4: Run test to verify it passes**
 
 Run: `python3 -m pytest tests/test_api_evaluation_results.py::test_analytics_match_stored_rows -q --no-cov`
 
 Expected: PASS
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add api/services/evaluation_results_service.py api/routes/evaluation_results.py tests/test_api_evaluation_results.py
@@ -488,7 +488,7 @@ git commit -m "feat: add evaluation analytics over stored rows"
 - Consumes: `ABTestService.results(test_id, owner_id)`
 - Produces: `compare_strategies`、`compare_models`、`compare_history`
 
-- [ ] **Step 1: Write the failing test**
+- [x] **Step 1: Write the failing test**
 
 ```python
 def test_compare_matches_detail_and_empty_history(client, owner_headers):
@@ -509,23 +509,23 @@ def test_compare_matches_detail_and_empty_history(client, owner_headers):
 
 再插入第二个已完成评估，模型不同、策略集合相同，断言 `/compare/models` 分组后的成功率与各自详情一致。历史对比只在模型与 `strategy_names` 集合都相同且已完成时返回点，并排除当前 `run_id`。
 
-- [ ] **Step 2: Run test to verify it fails**
+- [x] **Step 2: Run test to verify it fails**
 
 Run: `python3 -m pytest tests/test_api_evaluation_results.py::test_compare_matches_detail_and_empty_history -q --no-cov`
 
 Expected: FAIL，路由 404。
 
-- [ ] **Step 3: Write minimal implementation**
+- [x] **Step 3: Write minimal implementation**
 
 `/compare/strategies` 没有 `run_id` 时返回 400。`/compare/ab-test/{test_id}` 调用已挂在 `app.state.ab_tests` 的 `results`，异常转换与 `api/routes/ab_tests.py` 的 `call` 相同。`compare_history` 没有其他运行时返回 `{"series": []}`，HTTP 200。
 
-- [ ] **Step 4: Run test to verify it passes**
+- [x] **Step 4: Run test to verify it passes**
 
 Run: `python3 -m pytest tests/test_api_evaluation_results.py::test_compare_matches_detail_and_empty_history -q --no-cov`
 
 Expected: PASS
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add api/services/evaluation_results_service.py api/routes/evaluation_results.py tests/test_api_evaluation_results.py
@@ -546,7 +546,7 @@ git commit -m "feat: compare stored evaluation strategies and models"
 - Consumes: `calculate_dimension_scores`、`format_dimension_scores_for_radar`、`get_dimension_problem_counts`、`BenchmarkRun`
 - Produces: 五个 `/api/v1/visualizations/*` 方法
 
-- [ ] **Step 1: Write the failing test**
+- [x] **Step 1: Write the failing test**
 
 ```python
 from src.reporting.capability_profiler import ALL_DIMENSIONS
@@ -567,13 +567,13 @@ def test_radar_and_empty_learning_curve(client, owner_headers):
 
 另断言 `success-rate-chart` 的策略成功率等于详情，`token-chart` 每条线的点是该策略各题 token，`cost-accuracy` 的成本等于 `estimated_cost_usd`。
 
-- [ ] **Step 2: Run test to verify it fails**
+- [x] **Step 2: Run test to verify it fails**
 
 Run: `python3 -m pytest tests/test_api_evaluation_results.py::test_radar_and_empty_learning_curve -q --no-cov`
 
 Expected: FAIL，路由 404。
 
-- [ ] **Step 3: Write minimal implementation**
+- [x] **Step 3: Write minimal implementation**
 
 雷达输入使用 dict，`model` 取评估的 `model`，`status` 取结果行。映射：
 
@@ -591,13 +591,13 @@ return {
 
 学习曲线查询 `BenchmarkRun.user_id == owner` 且 `status == "completed"`，按 `completed_at`、`id` 排序。点包含 `suite_id`、`timestamp`、`model`、`accuracy`、`cost_usd`。可选 `suite_id` 过滤。没有行时 `series` 为 `[]`。
 
-- [ ] **Step 4: Run test to verify it passes**
+- [x] **Step 4: Run test to verify it passes**
 
 Run: `python3 -m pytest tests/test_api_evaluation_results.py::test_radar_and_empty_learning_curve -q --no-cov`
 
 Expected: PASS
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add api/services/evaluation_results_service.py api/routes/evaluation_results.py tests/test_api_evaluation_results.py
@@ -618,7 +618,7 @@ git commit -m "feat: return evaluation chart data from stored results"
 - Consumes: `src.error_analysis.normalize_message`
 - Produces: `failure_summary`、`failures_by_tag`、`failure_cases`
 
-- [ ] **Step 1: Write the failing test**
+- [x] **Step 1: Write the failing test**
 
 ```python
 def test_failure_summary_keeps_stored_mode(client, owner_headers):
@@ -635,13 +635,13 @@ def test_failure_summary_keeps_stored_mode(client, owner_headers):
 
 夹具里的失败行 `failure_mode` 为 `logic_error`，`error_message` 为 `"boom 42"`。断言聚类 pattern 来自 `normalize_message("boom 42")`，且响应里的 mode 仍是 `logic_error`。
 
-- [ ] **Step 2: Run test to verify it fails**
+- [x] **Step 2: Run test to verify it fails**
 
 Run: `python3 -m pytest tests/test_api_evaluation_results.py::test_failure_summary_keeps_stored_mode -q --no-cov`
 
 Expected: FAIL，路由 404。
 
-- [ ] **Step 3: Write minimal implementation**
+- [x] **Step 3: Write minimal implementation**
 
 ```python
 from collections import Counter
@@ -661,13 +661,13 @@ clusters = Counter(
 
 `failures/by-tag` 按 `problems.tags` 计算每个标签的 `success_rate`、`solved`、`total`。不要调用 `classify_failure_mode` 或 `analyze_results`。
 
-- [ ] **Step 4: Run test to verify it passes**
+- [x] **Step 4: Run test to verify it passes**
 
 Run: `python3 -m pytest tests/test_api_evaluation_results.py::test_failure_summary_keeps_stored_mode -q --no-cov`
 
 Expected: PASS
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add api/services/evaluation_results_service.py api/routes/evaluation_results.py tests/test_api_evaluation_results.py
@@ -688,7 +688,7 @@ git commit -m "feat: summarize stored evaluation failures"
 - Consumes: `MarkdownGenerator.generate`、`HTMLGenerator.generate`
 - Produces: `report_markdown`、`report_csv`、`report_html`，返回 `str`
 
-- [ ] **Step 1: Write the failing test**
+- [x] **Step 1: Write the failing test**
 
 ```python
 def test_reports_match_json_and_blank_missing_csv_fields(client, owner_headers):
@@ -709,13 +709,13 @@ def test_reports_match_json_and_blank_missing_csv_fields(client, owner_headers):
     assert "text/csv" not in foreign.headers.get("content-type", "")
 ```
 
-- [ ] **Step 2: Run test to verify it fails**
+- [x] **Step 2: Run test to verify it fails**
 
 Run: `python3 -m pytest tests/test_api_evaluation_results.py::test_reports_match_json_and_blank_missing_csv_fields -q --no-cov`
 
 Expected: FAIL，路由 404。
 
-- [ ] **Step 3: Write minimal implementation**
+- [x] **Step 3: Write minimal implementation**
 
 内存构造 `ExecutionResult` 时 `generated_code=""`。已知迭代次数用同等数量的 `IterationResult` 占位，只提供构造函数必填字段的空值。缺失 `iterations` 的行不进入会把空轨迹当成 1 的导出器。
 
@@ -723,13 +723,13 @@ CSV 列名复制 `CSVExporter.export` 的 `fieldnames`。测试计数字段和�
 
 Markdown 与 HTML 把生成器返回的字符串作为响应体。生成器需要路径时写入 `tempfile.TemporaryDirectory`，读回返回值后删除目录。HTML 保持 `include_charts=True`。路由设置 `Content-Disposition: attachment`。
 
-- [ ] **Step 4: Run test to verify it passes**
+- [x] **Step 4: Run test to verify it passes**
 
 Run: `python3 -m pytest tests/test_api_evaluation_results.py::test_reports_match_json_and_blank_missing_csv_fields -q --no-cov`
 
 Expected: PASS
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add api/services/evaluation_results_service.py api/routes/evaluation_results.py tests/test_api_evaluation_results.py
@@ -746,7 +746,7 @@ git commit -m "feat: export evaluation reports from stored summaries"
 - Modify: `API.md`
 - Test: `tests/test_api_evaluation_results.py`、`tests/test_evaluation_result_iterations.py`
 
-- [ ] **Step 1: Write the failing coverage check**
+- [x] **Step 1: Write the failing coverage check**
 
 Run:
 
@@ -756,17 +756,17 @@ python3 -m pytest tests/test_api_evaluation_results.py tests/test_evaluation_res
 
 Expected: 若新增分支未覆盖则 FAIL。缺的断言只补本计划已列口径：空学习曲线、未知成本、缺失迭代、他人 CSV、详情分页。
 
-- [ ] **Step 2: Document the endpoints**
+- [x] **Step 2: Document the endpoints**
 
 在 `API.md` 增加一节，列出本计划全部路径、`ApiResponse` 外壳、分页、404 和报告的 Content-Type。写明统计与 CLI 的成功率、解出数、token、成本使用同一落库聚合；报告不含生成代码和沙箱轨迹。
 
-- [ ] **Step 3: Run the focused tests and coverage**
+- [x] **Step 3: Run the focused tests and coverage**
 
 Run the command in Step 1 again.
 
 Expected: PASS，覆盖率大于 80%。
 
-- [ ] **Step 4: Commit**
+- [x] **Step 4: Commit**
 
 ```bash
 git add API.md tests/test_api_evaluation_results.py tests/test_evaluation_result_iterations.py

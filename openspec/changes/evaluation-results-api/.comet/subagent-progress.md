@@ -1,11 +1,11 @@
 # Subagent progress
 
-- Plan task: Task 2: 查询服务的归属、分页和过滤
-- OpenSpec task: 1.2 结果查询服务：按 owner 解析 evaluation id / run_id，分页列出结果，支持策略、难度、标签、状态过滤
-- Stage: implementing
+- Plan task: Task 9: 覆盖率与 API 文档
+- OpenSpec task: 4.2 在 `API.md` 记录新增端点、查询参数和响应字段
+- Stage: build-exit
 - Model: grok-4.7-high-fast
 - review_mode: standard
 - Review rounds: 0
-- Risk review: pending
-- Commit: none
-- RED/GREEN: pending
+- Risk review: not required
+- Commit: 544c947
+- RED/GREEN: complete
