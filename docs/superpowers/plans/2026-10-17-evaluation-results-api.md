@@ -738,7 +738,7 @@ git commit -m "feat: export evaluation reports from stored summaries"
 
 ### Task 9: 覆盖率与 API 文档
 
-- [ ] Task 9: 覆盖率与 API 文档
+- [x] Task 9: 覆盖率与 API 文档
 
 对应 `tasks.md` 4.1 和 4.2。
 
