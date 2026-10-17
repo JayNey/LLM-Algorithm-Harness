@@ -147,6 +147,7 @@ function errorResponse(error: unknown): {
 }
 
 function failure(error: unknown): ApiClientError {
+  if (error instanceof ApiClientError) throw error
   const { status, data } = errorResponse(error)
   return new ApiClientError(
     messageFrom(data, unavailable),

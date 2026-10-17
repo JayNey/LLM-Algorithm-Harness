@@ -512,6 +512,33 @@ test('刷新请求在执行时读取当前 refresh token', async () => {
   assert.deepEqual(seen, [{ refresh_token: 'live' }])
 })
 
+test('窗口内刷新失败时保留服务器的 401 消息', async () => {
+  let cleared = 0
+  const client = createHttpClient({
+    baseURL: 'http://api.test',
+    now: () => 1_000,
+    read: () =>
+      session({
+        accessToken: 'old',
+        refreshToken: 'refresh',
+        expiresAt: 1_000 + 1_000,
+      }),
+    write: () => undefined,
+    clear: () => {
+      cleared += 1
+    },
+    adapter: (config) => {
+      assert.equal((config.url ?? '').endsWith('/auth/refresh'), true)
+      return resolveWith(config, 401, { detail: '刷新已失效' }, 'Unauthorized')
+    },
+  })
+  await assert.rejects(
+    () => client.get('/api/v1/users/me'),
+    (error: unknown) => assertApiError(error, '刷新已失效', 401),
+  )
+  assert.equal(cleared, 1)
+})
+
 test('刷新失败时清除会话并抛出 ApiClientError', async () => {
   let cleared = 0
   const client = createHttpClient({
