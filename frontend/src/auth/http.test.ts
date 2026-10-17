@@ -155,7 +155,6 @@ test('认证端点不刷新且不带 Authorization', async () => {
     '/api/v1/auth/login',
     '/api/v1/auth/register',
     '/api/v1/auth/refresh',
-    '/api/v1/auth/logout',
     '/api/v1/auth/login?next=/dashboard',
   ]
   for (const path of paths) {
@@ -702,6 +701,214 @@ test('ApiClientError.details 保留响应 details，缺失时为 undefined', asy
       assert.equal(error.details, undefined)
       return true
     },
+  )
+})
+
+test('登出请求带当前访问令牌', async () => {
+  let refreshed = false
+  const seen: string[] = []
+  const client = create({
+    refresh: async () => {
+      refreshed = true
+      return session({ accessToken: 'new' })
+    },
+    adapter: (config) => {
+      seen.push(headerOf(config))
+      return resolveWith(config, 204, '')
+    },
+  })
+  const result = await client.post('/api/v1/auth/logout')
+  assert.equal(result, undefined)
+  assert.equal(refreshed, false)
+  assert.deepEqual(seen, ['Bearer access'])
+})
+
+test('登出距过期不足 30 秒时先刷新再用新令牌', async () => {
+  const now = 1_000
+  let current = session({
+    accessToken: 'old',
+    refreshToken: 'refresh',
+    expiresAt: now + 29_999,
+    username: 'ada',
+  })
+  const refreshHeaders: string[] = []
+  const logoutHeaders: string[] = []
+  const client = createHttpClient({
+    baseURL: 'http://api.test',
+    now: () => now,
+    read: () => current,
+    write: (value) => {
+      current = value
+    },
+    clear: () => undefined,
+    adapter: (config) => {
+      const url = config.url ?? ''
+      if (url.endsWith('/auth/refresh')) {
+        refreshHeaders.push(headerOf(config))
+        return resolveWith(
+          config,
+          200,
+          envelope({
+            access_token: 'new',
+            refresh_token: 'next',
+            token_type: 'bearer',
+            expires_in: 60,
+          }),
+        )
+      }
+      logoutHeaders.push(headerOf(config))
+      return resolveWith(config, 204, '')
+    },
+  })
+  const result = await client.post('/api/v1/auth/logout')
+  assert.equal(result, undefined)
+  assert.deepEqual(refreshHeaders, [''])
+  assert.deepEqual(logoutHeaders, ['Bearer new'])
+  assert.equal(current.accessToken, 'new')
+})
+
+test('登出返回 401 时只刷新并重试一次', async () => {
+  const now = 5_000
+  let current = session({
+    accessToken: 'old',
+    refreshToken: 'refresh',
+    expiresAt: now + 60_000,
+    username: 'ada',
+  })
+  const refreshHeaders: string[] = []
+  const logoutHeaders: string[] = []
+  const client = createHttpClient({
+    baseURL: 'http://api.test',
+    now: () => now,
+    read: () => current,
+    write: (value) => {
+      current = value
+    },
+    clear: () => undefined,
+    adapter: (config) => {
+      const url = config.url ?? ''
+      if (url.endsWith('/auth/refresh')) {
+        refreshHeaders.push(headerOf(config))
+        return resolveWith(
+          config,
+          200,
+          envelope({
+            access_token: 'new-access',
+            refresh_token: 'new-refresh',
+            token_type: 'bearer',
+            expires_in: 60,
+          }),
+        )
+      }
+      logoutHeaders.push(headerOf(config))
+      return resolveWith(config, 401, { detail: '未授权' }, 'Unauthorized')
+    },
+  })
+  await assert.rejects(
+    () => client.post('/api/v1/auth/logout'),
+    (error: unknown) => assertApiError(error, '未授权', 401),
+  )
+  assert.deepEqual(refreshHeaders, [''])
+  assert.deepEqual(logoutHeaders, ['Bearer old', 'Bearer new-access'])
+})
+
+test('登出返回 401 后用新令牌重试成功', async () => {
+  const now = 5_000
+  let current = session({
+    accessToken: 'old',
+    refreshToken: 'refresh',
+    expiresAt: now + 60_000,
+    username: 'ada',
+  })
+  let refreshes = 0
+  const logoutHeaders: string[] = []
+  const client = createHttpClient({
+    baseURL: 'http://api.test',
+    now: () => now,
+    read: () => current,
+    write: (value) => {
+      current = value
+    },
+    clear: () => undefined,
+    adapter: (config) => {
+      const url = config.url ?? ''
+      if (url.endsWith('/auth/refresh')) {
+        refreshes += 1
+        return resolveWith(
+          config,
+          200,
+          envelope({
+            access_token: 'new-access',
+            refresh_token: 'new-refresh',
+            token_type: 'bearer',
+            expires_in: 60,
+          }),
+        )
+      }
+      logoutHeaders.push(headerOf(config))
+      if (!retried(config)) {
+        return resolveWith(config, 401, { detail: '未授权' }, 'Unauthorized')
+      }
+      return resolveWith(config, 204, '')
+    },
+  })
+  const result = await client.post('/api/v1/auth/logout')
+  assert.equal(result, undefined)
+  assert.equal(refreshes, 1)
+  assert.deepEqual(logoutHeaders, ['Bearer old', 'Bearer new-access'])
+})
+
+test('状态码大于等于 500 时忽略响应正文', async () => {
+  for (const status of [500, 503]) {
+    const client = create({
+      adapter: (config) =>
+        Promise.reject(
+          new AxiosError(
+            `Request failed with status code ${status}`,
+            AxiosError.ERR_BAD_RESPONSE,
+            config,
+            null,
+            {
+              status,
+              statusText: 'Server Error',
+              headers: {},
+              config,
+              data: {
+                detail: 'boom',
+                message: 'An unexpected error occurred',
+              },
+            },
+          ),
+        ),
+    })
+    await assert.rejects(
+      () => client.get('/api/v1/users/me'),
+      (error: unknown) => assertApiError(error, '服务暂时不可用', status),
+    )
+  }
+
+  const clientError = create({
+    adapter: (config) =>
+      Promise.reject(
+        new AxiosError(
+          'Request failed with status code 400',
+          AxiosError.ERR_BAD_REQUEST,
+          config,
+          null,
+          {
+            status: 400,
+            statusText: 'Bad Request',
+            headers: {},
+            config,
+            data: { message: 'An unexpected error occurred' },
+          },
+        ),
+      ),
+  })
+  await assert.rejects(
+    () => clientError.post('/api/v1/auth/login', {}),
+    (error: unknown) =>
+      assertApiError(error, 'An unexpected error occurred', 400),
   )
 })
 

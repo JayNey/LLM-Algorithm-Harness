@@ -235,6 +235,38 @@ test('恢复已保存的会话', () => {
   assert.deepEqual(store.getState().session, saved)
 })
 
+test('未注入客户端时登录和登出复用同一个实例', async () => {
+  const box = storages()
+  const store = createAuthStore()
+  const deps: AuthDeps = {
+    storages: box,
+    baseURL: 'http://api.test',
+    now: () => 1_000,
+  }
+  assert.equal(typeof store.getState().httpClient, 'function')
+  const client = store.getState().httpClient(deps)
+  assert.equal(store.getState().httpClient(deps), client)
+  const calls: string[] = []
+  client.post = async (url: string) => {
+    calls.push(url)
+    if (url === '/api/v1/auth/login') return tokens('shared')
+    return undefined
+  }
+  client.get = async (url: string) => {
+    calls.push(url)
+    return { username: 'ada' }
+  }
+  await store.getState().login('ada', 'secret', false, deps)
+  await store.getState().logout(deps)
+  assert.deepEqual(calls, [
+    '/api/v1/auth/login',
+    '/api/v1/users/me',
+    '/api/v1/auth/logout',
+  ])
+  assert.equal(readSession(box), null)
+  assert.equal(store.getState().session, null)
+})
+
 test('clear 后不能从存储恢复会话', () => {
   const box = storages()
   writeSession(true, saved, box)

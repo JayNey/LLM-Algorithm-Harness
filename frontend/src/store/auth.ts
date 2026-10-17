@@ -37,6 +37,7 @@ interface AuthState {
   ) => Promise<void>
   logout: (deps?: AuthDeps) => Promise<void>
   clear: (deps?: AuthDeps) => void
+  httpClient: (deps?: AuthDeps) => AuthClient
 }
 
 interface LoginPayload {
@@ -99,15 +100,18 @@ function asAuthClient(client: AuthClient): AuthClient {
 
 export function createAuthStore() {
   let remember = false
+  let shared: AuthClient | undefined
 
   return create<AuthState>((set) => {
     function storagesFrom(deps?: AuthDeps): SessionStorages {
       return deps?.storages ?? browserStorages()
     }
 
-    function clientFrom(deps: AuthDeps | undefined, box: SessionStorages) {
-      if (deps?.client) return deps.client
-      const options: HttpClientOptions = {
+    function clientOptions(
+      deps: AuthDeps | undefined,
+      box: SessionStorages,
+    ): HttpClientOptions {
+      return {
         baseURL: deps?.baseURL ?? readViteEnv().apiBaseUrl,
         now: deps?.now ?? Date.now,
         read: () => readSession(box),
@@ -120,8 +124,22 @@ export function createAuthStore() {
           set({ session: null })
         },
       }
-      if (deps?.createClient) return deps.createClient(options)
-      return asAuthClient(createHttpClient(options))
+    }
+
+    function sharedClient(
+      deps: AuthDeps | undefined,
+      box: SessionStorages,
+    ): AuthClient {
+      if (!shared) {
+        shared = asAuthClient(createHttpClient(clientOptions(deps, box)))
+      }
+      return shared
+    }
+
+    function clientFrom(deps: AuthDeps | undefined, box: SessionStorages) {
+      if (deps?.client) return deps.client
+      if (deps?.createClient) return deps.createClient(clientOptions(deps, box))
+      return sharedClient(deps, box)
     }
 
     return {
@@ -178,6 +196,9 @@ export function createAuthStore() {
         const box = storagesFrom(deps)
         clearSession(box)
         set({ session: null })
+      },
+      httpClient(deps) {
+        return sharedClient(deps, storagesFrom(deps))
       },
     }
   })

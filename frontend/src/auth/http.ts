@@ -10,16 +10,29 @@ import type { StoredSession } from './tokenStore.ts'
 const refreshWindowMs = 30_000
 const unavailable = '服务暂时不可用'
 
-const authSuffixes = [
+const tokenlessAuthSuffixes = [
   '/auth/login',
   '/auth/register',
   '/auth/refresh',
-  '/auth/logout',
 ] as const
 
+function requestPath(url: string): string {
+  return url.split('?')[0] ?? ''
+}
+
+function endsWithAny(path: string, suffixes: readonly string[]): boolean {
+  return suffixes.some((suffix) => path.endsWith(suffix))
+}
+
 export function isAuthEndpoint(url: string): boolean {
-  const path = url.split('?')[0] ?? ''
-  return authSuffixes.some((suffix) => path.endsWith(suffix))
+  const path = requestPath(url)
+  return (
+    endsWithAny(path, tokenlessAuthSuffixes) || path.endsWith('/auth/logout')
+  )
+}
+
+function skipsAccessToken(url: string): boolean {
+  return endsWithAny(requestPath(url), tokenlessAuthSuffixes)
 }
 
 export function shouldRefreshBeforeRequest(
@@ -70,6 +83,11 @@ function messageFrom(data: unknown, fallback: string): string {
     return body.message
   }
   return fallback
+}
+
+function errorMessage(data: unknown, status: number | undefined): string {
+  if (status !== undefined && status >= 500) return unavailable
+  return messageFrom(data, unavailable)
 }
 
 function detailsFrom(data: unknown): unknown {
@@ -150,7 +168,7 @@ function failure(error: unknown): ApiClientError {
   if (error instanceof ApiClientError) throw error
   const { status, data } = errorResponse(error)
   return new ApiClientError(
-    messageFrom(data, unavailable),
+    errorMessage(data, status),
     status,
     detailsFrom(data),
   )
@@ -158,7 +176,7 @@ function failure(error: unknown): ApiClientError {
 
 function httpError(data: unknown, status: number | undefined): ApiClientError {
   return new ApiClientError(
-    messageFrom(data, unavailable),
+    errorMessage(data, status),
     status,
     detailsFrom(data),
   )
@@ -214,7 +232,7 @@ export function createHttpClient(options: HttpClientOptions): AxiosInstance {
     if (
       !retryConfig ||
       retryConfig.__retried ||
-      isAuthEndpoint(retryConfig.url ?? '')
+      skipsAccessToken(retryConfig.url ?? '')
     ) {
       throw createError()
     }
@@ -227,7 +245,7 @@ export function createHttpClient(options: HttpClientOptions): AxiosInstance {
   }
 
   client.interceptors.request.use(async (config) => {
-    if (isAuthEndpoint(config.url ?? '')) {
+    if (skipsAccessToken(config.url ?? '')) {
       config.headers.delete('Authorization')
       return config
     }

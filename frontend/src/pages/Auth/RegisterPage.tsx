@@ -2,13 +2,13 @@ import { Alert, Button, Form, Input } from 'antd'
 import { useRef, useState } from 'react'
 import { Controller, useForm, useWatch } from 'react-hook-form'
 import { Link, useNavigate } from 'react-router-dom'
-import { ApiClientError, createHttpClient } from '@/auth/http.ts'
+import { ApiClientError } from '@/auth/http.ts'
 import {
   passwordStrength,
   validateRegistration,
   type RegistrationInput,
 } from '@/auth/registerForm.ts'
-import { readViteEnv } from '@/config/env.ts'
+import { useAuthStore } from '@/store/auth.ts'
 
 const strengthText = {
   short: '不足 12 位',
@@ -82,13 +82,7 @@ export default function RegisterPage() {
     pending.current = true
     setSubmitting(true)
     try {
-      const client = createHttpClient({
-        baseURL: readViteEnv().apiBaseUrl,
-        now: () => Date.now(),
-        read: () => null,
-        write: () => undefined,
-        clear: () => undefined,
-      })
+      const client = useAuthStore.getState().httpClient()
       await client.post('/api/v1/auth/register', {
         username: values.username,
         email: values.email,
