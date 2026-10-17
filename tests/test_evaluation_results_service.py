@@ -2,11 +2,15 @@ import uuid
 from datetime import datetime
 
 import pytest
-from sqlalchemy import create_engine
+from sqlalchemy import create_engine, select
+from sqlalchemy.dialects import postgresql
 from sqlalchemy.orm import Session
 
 from api.db.models import Base, Evaluation, EvaluationResult, Problem
-from api.services.evaluation_results_service import EvaluationResultsService
+from api.services.evaluation_results_service import (
+    EvaluationResultsService,
+    _json_array_contains,
+)
 
 
 def _seed(tmp_path):
@@ -130,3 +134,70 @@ def test_detail_scopes_to_owner_and_keeps_full_strategy_summary(tmp_path):
     )
     assert run_total == 1
     assert runs[0]["run_id"] == "run-own"
+
+
+def test_postgresql_tag_filter_binds_tag_without_bare_json_array_elements():
+    """PostgreSQL tag SQL is a bound @> or LATERAL predicate.
+
+    Breaks if the compiler calls json_array_elements on an outer row without
+    LATERAL, or writes the tag into the SQL text.
+    """
+    tag = "a\\b"
+    statement = select(Problem.id).where(_json_array_contains(Problem.tags, tag))
+    compiled = statement.compile(dialect=postgresql.dialect())
+    sql = " ".join(str(compiled).split())
+    assert "LATERAL" in sql or "@>" in sql
+    assert tag in compiled.params.values()
+    assert tag not in sql
+    assert "json_array_elements" not in sql or "LATERAL" in sql
+
+
+def _compiled_list_order(tmp_path, order: str) -> str:
+    service = EvaluationResultsService(_seed(tmp_path))
+    captured: list = []
+    factory = service._session_factory
+
+    def capturing_factory():
+        session = factory()
+        original_scalars = session.scalars
+
+        def scalars(statement, *args, **kwargs):
+            captured.append(statement)
+            return original_scalars(statement, *args, **kwargs)
+
+        session.scalars = scalars
+        return session
+
+    service._session_factory = capturing_factory
+    service.list_runs(
+        "owner",
+        strategy=None,
+        difficulty=None,
+        tag=None,
+        status=None,
+        limit=1,
+        offset=0,
+        sort="completed_at",
+        order=order,
+    )
+    return " ".join(str(captured[-1].compile(dialect=postgresql.dialect())).split())
+
+
+def test_list_runs_descending_completed_at_is_nulls_last(tmp_path):
+    """Descending completed_at puts nulls last on PostgreSQL.
+
+    Breaks if list_runs uses column.desc() alone: PostgreSQL then sorts null
+    completed_at ahead of real timestamps.
+    """
+    sql = _compiled_list_order(tmp_path, "desc").upper()
+    assert "NULLS LAST" in sql
+
+
+def test_list_runs_ascending_completed_at_is_nulls_first(tmp_path):
+    """Ascending completed_at puts nulls first on PostgreSQL.
+
+    Breaks if list_runs uses column.asc() alone: PostgreSQL then sorts null
+    completed_at after real timestamps.
+    """
+    sql = _compiled_list_order(tmp_path, "asc").upper()
+    assert "NULLS FIRST" in sql

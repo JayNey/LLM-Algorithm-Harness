@@ -138,8 +138,9 @@ def _problem_item(row: EvaluationResult) -> dict:
 class _JsonArrayContains(ColumnElement[bool]):
     """Case-sensitive membership of one decoded JSON array element.
 
-    The tag stays a bound parameter. SQLite reads json_each; PostgreSQL reads
-    json_array_elements. Neither compares a LIKE pattern against JSON text.
+    The tag stays a bound parameter. SQLite reads json_each. PostgreSQL uses
+    jsonb containment so a null or non-array value does not abort the query.
+    Neither compares a LIKE pattern against JSON text.
     """
 
     inherit_cache = True
@@ -171,11 +172,8 @@ def _compile_json_array_contains_sqlite(element, compiler, **kw) -> str:
 @compiles(_JsonArrayContains, "postgresql")
 def _compile_json_array_contains_postgresql(element, compiler, **kw) -> str:
     column = compiler.process(element.column, **kw)
-    return (
-        f"EXISTS (SELECT 1 FROM json_array_elements({column}) AS tag_element "
-        f"WHERE json_typeof(tag_element) = 'string' "
-        f"AND tag_element #>> '{{}}' = {_tag_bind(element, compiler, **kw)})"
-    )
+    # CAST(NULL AS jsonb) is null. null @> array is unknown and drops the row.
+    return f"(CAST({column} AS jsonb) @> jsonb_build_array({_tag_bind(element, compiler, **kw)}))"
 
 
 def _json_array_contains(column, value: str):
@@ -542,7 +540,7 @@ class EvaluationResultsService:
         offset = max(offset, 0)
         column = _SORT_COLUMNS.get(sort, Evaluation.completed_at)
         descending = str(order).lower() != "asc"
-        primary = column.desc() if descending else column.asc()
+        primary = column.desc().nulls_last() if descending else column.asc().nulls_first()
         tie = Evaluation.id.desc() if descending else Evaluation.id.asc()
         filters = [Evaluation.user_id == owner_id]
         if status is not None:

@@ -1121,3 +1121,46 @@ def test_markdown_keeps_known_cost_when_another_unit_is_unknown(client, owner_he
     cost_cell = [cell.strip() for cell in row.split("|") if cell.strip()][-1]
     assert cost_cell == "$0.2000"
     assert cost_cell != "未知"
+
+
+def test_capability_radar_unmapped_tag_returns_zero_dimensions(client, owner_headers):
+    """A run whose only tag is hash-table still has the seven profiler axes.
+
+    Breaks if capability_radar drops dimensions when no tag maps to a profiler
+    dimension: the chart then has an empty axis list instead of zeros.
+    """
+    _insert_problem_run(
+        client,
+        problem_id="hash-problem",
+        tags=["hash-table"],
+        difficulty="medium",
+        run_id="run-hash",
+        evaluation_id="eval-hash",
+        metrics={"success": True, "difficulty": "medium"},
+    )
+    radar = client.get(
+        "/api/v1/visualizations/capability-radar",
+        headers=owner_headers,
+        params={"run_id": "run-hash"},
+    )
+    assert radar.status_code == 200, radar.text
+    data = radar.json()["data"]
+    assert data["dimensions"] == [
+        "Array",
+        "Graph",
+        "Dynamic Programming",
+        "Greedy",
+        "Math",
+        "String",
+        "Other",
+    ]
+    assert data["series"] == [{"name": "gpt-test", "data": [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]}]
+    assert data["problem_counts"] == {
+        "Array": 0,
+        "Graph": 0,
+        "Dynamic Programming": 0,
+        "Greedy": 0,
+        "Math": 0,
+        "String": 0,
+        "Other": 0,
+    }
