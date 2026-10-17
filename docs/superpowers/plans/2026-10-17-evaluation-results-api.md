@@ -404,7 +404,7 @@ git commit -m "feat: expose owner-scoped evaluation result queries"
 
 ### Task 4: 统计端点
 
-- [ ] Task 4: 统计端点
+- [x] Task 4: 统计端点
 
 对应 `tasks.md` 2.2。
 
