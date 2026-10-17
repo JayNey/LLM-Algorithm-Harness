@@ -29,4 +29,4 @@
 
 ## 7. 请求地址
 
-- [ ] 7.1 认证和当前用户请求使用相对 `VITE_API_BASE_URL` 的路径，最终地址只含一段 `/api/v1`。登录、注册、刷新、登出和当前用户分别为 `/auth/login`、`/auth/register`、`/auth/refresh`、`/auth/logout`、`/users/me`。用 Node 测试和 `axios.getUri` 验证刷新与登录不会拼成 `/api/v1/api/v1`，并用类型检查和生产构建确认通过
+- [x] 7.1 认证和当前用户请求使用相对 `VITE_API_BASE_URL` 的路径，最终地址只含一段 `/api/v1`。登录、注册、刷新、登出和当前用户分别为 `/auth/login`、`/auth/register`、`/auth/refresh`、`/auth/logout`、`/users/me`。用 Node 测试和 `axios.getUri` 验证刷新与登录不会拼成 `/api/v1/api/v1`，并用类型检查和生产构建确认通过

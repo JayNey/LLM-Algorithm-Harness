@@ -690,28 +690,28 @@ EOF
 - Consumes: `createHttpClient` 的 `baseURL`
 - Produces: 相对路径 `/auth/login`、`/auth/register`、`/auth/refresh`、`/auth/logout`、`/users/me`
 
-- [ ] **Task 12 Step 1: Write the failing test**
+- [x] **Task 12 Step 1: Write the failing test**
 
 失败测试必须观察生产代码实际发出的 `url`，并用 `axios.getUri` 把它和 `baseURL` 拼起来。不要只拿测试自己传入的短路径调用 `getUri`。
 
 刷新：`baseURL` 为 `http://localhost:8000/api/v1` 时，客户端内部刷新请求的 `getUri` 结果是 `http://localhost:8000/api/v1/auth/refresh`。
 登录、当前用户和登出：store 发出的路径分别是 `/auth/login`、`/users/me`、`/auth/logout`。以 `baseURL` `/api/v1` 拼接后分别是 `/api/v1/auth/login`、`/api/v1/users/me`、`/api/v1/auth/logout`。
 
-- [ ] **Task 12 Step 2: Run test to verify it fails**
+- [x] **Task 12 Step 2: Run test to verify it fails**
 
 Run: `cd frontend && node --experimental-strip-types --test src/auth/http.test.ts src/store/auth.test.ts`
 Expected: FAIL，刷新或登录地址含有两段 `/api/v1`
 
-- [ ] **Task 12 Step 3: Write minimal implementation**
+- [x] **Task 12 Step 3: Write minimal implementation**
 
 把上述五个调用改成相对 `baseURL` 的路径。`endsWith('/auth/login')` 这类判断保持可用。登录、注册和刷新仍然不带 token、不刷新。登出仍然带当前 access token。不要改 `.env` 里的 `VITE_API_BASE_URL`。
 
-- [ ] **Task 12 Step 4: Run test to verify it passes**
+- [x] **Task 12 Step 4: Run test to verify it passes**
 
 Run: `cd frontend && npm test && npx tsc -b --pretty false && npm run build`
 Expected: PASS
 
-- [ ] **Task 12 Step 5: Commit**
+- [x] **Task 12 Step 5: Commit**
 
 ```bash
 git add frontend/src/auth/http.ts frontend/src/auth/http.test.ts frontend/src/store/auth.ts frontend/src/store/auth.test.ts frontend/src/pages/Auth/RegisterPage.tsx
