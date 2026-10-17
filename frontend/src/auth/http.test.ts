@@ -60,6 +60,15 @@ function headerOf(config: InternalAxiosRequestConfig): string {
   return typeof value === 'string' ? value : ''
 }
 
+function bodyOf(data: unknown): unknown {
+  if (typeof data === 'string') return JSON.parse(data) as unknown
+  return data
+}
+
+function retried(config: InternalAxiosRequestConfig): boolean {
+  return Boolean((config as { __retried?: boolean }).__retried)
+}
+
 function assertApiError(
   error: unknown,
   message: string,
@@ -337,4 +346,359 @@ test('shouldRefreshBeforeRequest 在不足 30 秒时为真', () => {
   assert.equal(shouldRefreshBeforeRequest(29_999, 0), true)
   assert.equal(shouldRefreshBeforeRequest(30_000, 0), false)
   assert.equal(shouldRefreshBeforeRequest(0, 1_000), true)
+})
+
+test('窗口内的两个请求只刷新一次', async () => {
+  let calls = 0
+  const client = create({
+    now: () => 1_000,
+    read: () => session({ accessToken: 'old', expiresAt: 1_000 + 1_000 }),
+    refresh: async () => {
+      calls += 1
+      await new Promise((resolve) => setTimeout(resolve, 20))
+      return session({ accessToken: 'new', expiresAt: 90_000 })
+    },
+    adapter: (config) => {
+      assert.equal(headerOf(config), 'Bearer new')
+      return resolveWith(config, 200, envelope({ ok: true }))
+    },
+  })
+  const [first, second] = await Promise.all([
+    client.get('/api/v1/users/me'),
+    client.get('/api/v1/reports'),
+  ])
+  assert.equal(calls, 1)
+  assert.deepEqual(first, { ok: true })
+  assert.deepEqual(second, { ok: true })
+})
+
+test('两个并发 401 只刷新一次并重试原请求', async () => {
+  const now = 5_000
+  let current = session({
+    accessToken: 'old',
+    refreshToken: 'refresh',
+    expiresAt: now + 60_000,
+    username: 'ada',
+  })
+  const written: StoredSession[] = []
+  const refreshCalls: Array<{ body: unknown; authorization: string }> = []
+  const client = createHttpClient({
+    baseURL: 'http://api.test',
+    now: () => now,
+    read: () => current,
+    write: (value) => {
+      written.push(value)
+      current = value
+    },
+    clear: () => undefined,
+    adapter: (config) => {
+      const url = config.url ?? ''
+      if (url.endsWith('/auth/refresh')) {
+        refreshCalls.push({
+          body: bodyOf(config.data),
+          authorization: headerOf(config),
+        })
+        return resolveWith(
+          config,
+          200,
+          envelope({
+            access_token: 'new-access',
+            refresh_token: 'new-refresh',
+            token_type: 'bearer',
+            expires_in: 30,
+          }),
+        )
+      }
+      if (!retried(config)) {
+        return resolveWith(config, 401, { detail: '未授权' }, 'Unauthorized')
+      }
+      assert.equal(headerOf(config), 'Bearer new-access')
+      return resolveWith(config, 200, envelope({ path: url }))
+    },
+  })
+  const [first, second] = await Promise.all([
+    client.get('/api/v1/users/me'),
+    client.get('/api/v1/reports'),
+  ])
+  assert.equal(refreshCalls.length, 1)
+  assert.deepEqual(refreshCalls[0], {
+    body: { refresh_token: 'refresh' },
+    authorization: '',
+  })
+  assert.deepEqual(written, [
+    {
+      accessToken: 'new-access',
+      refreshToken: 'new-refresh',
+      expiresAt: now + 30 * 1_000,
+      username: 'ada',
+    },
+  ])
+  assert.deepEqual(first, { path: '/api/v1/users/me' })
+  assert.deepEqual(second, { path: '/api/v1/reports' })
+})
+
+test('注入的 refresh 遇到 401 时只调用一次且不发刷新请求', async () => {
+  let calls = 0
+  const urls: string[] = []
+  let current = session({ accessToken: 'old', expiresAt: 60_000 })
+  const client = create({
+    read: () => current,
+    write: (value) => {
+      current = value
+    },
+    refresh: async () => {
+      calls += 1
+      await new Promise((resolve) => setTimeout(resolve, 20))
+      return session({ accessToken: 'new', expiresAt: 90_000 })
+    },
+    adapter: (config) => {
+      urls.push(config.url ?? '')
+      if (!retried(config)) {
+        return resolveWith(config, 401, { detail: '未授权' }, 'Unauthorized')
+      }
+      assert.equal(headerOf(config), 'Bearer new')
+      return resolveWith(config, 200, envelope({ ok: true }))
+    },
+  })
+  const [first, second] = await Promise.all([
+    client.get('/api/v1/users/me'),
+    client.get('/api/v1/reports'),
+  ])
+  assert.equal(calls, 1)
+  assert.equal(
+    urls.some((url) => url.endsWith('/auth/refresh')),
+    false,
+  )
+  assert.deepEqual(first, { ok: true })
+  assert.deepEqual(second, { ok: true })
+})
+
+test('刷新请求在执行时读取当前 refresh token', async () => {
+  let reads = 0
+  const seen: unknown[] = []
+  const client = createHttpClient({
+    baseURL: 'http://api.test',
+    now: () => 1_000,
+    read: () => {
+      reads += 1
+      return session({
+        accessToken: 'old',
+        refreshToken: reads < 2 ? 'early' : 'live',
+        expiresAt: 1_000,
+        username: 'ada',
+      })
+    },
+    write: () => undefined,
+    clear: () => undefined,
+    adapter: (config) => {
+      const url = config.url ?? ''
+      if (url.endsWith('/auth/refresh')) {
+        seen.push(bodyOf(config.data))
+        return resolveWith(
+          config,
+          200,
+          envelope({
+            access_token: 'new',
+            refresh_token: 'rotated',
+            token_type: 'bearer',
+            expires_in: 60,
+          }),
+        )
+      }
+      return resolveWith(config, 200, envelope({ ok: true }))
+    },
+  })
+  await client.get('/api/v1/users/me')
+  assert.deepEqual(seen, [{ refresh_token: 'live' }])
+})
+
+test('刷新失败时清除会话并抛出 ApiClientError', async () => {
+  let cleared = 0
+  const client = createHttpClient({
+    baseURL: 'http://api.test',
+    now: () => 0,
+    read: () => session({ expiresAt: 60_000 }),
+    write: () => undefined,
+    clear: () => {
+      cleared += 1
+    },
+    adapter: (config) => {
+      const url = config.url ?? ''
+      if (url.endsWith('/auth/refresh')) {
+        return resolveWith(
+          config,
+          401,
+          { detail: '刷新已失效' },
+          'Unauthorized',
+        )
+      }
+      return resolveWith(config, 401, { detail: '未授权' }, 'Unauthorized')
+    },
+  })
+  await assert.rejects(
+    () => client.get('/api/v1/users/me'),
+    (error: unknown) => assertApiError(error, '刷新已失效', 401),
+  )
+  assert.equal(cleared, 1)
+})
+
+test('重试仍返回 401 时不再刷新', async () => {
+  let refreshCount = 0
+  const client = createHttpClient({
+    baseURL: 'http://api.test',
+    now: () => 0,
+    read: () =>
+      session({
+        accessToken: 'old',
+        refreshToken: 'refresh',
+        expiresAt: 60_000,
+      }),
+    write: () => undefined,
+    clear: () => undefined,
+    adapter: (config) => {
+      const url = config.url ?? ''
+      if (url.endsWith('/auth/refresh')) {
+        refreshCount += 1
+        return resolveWith(
+          config,
+          200,
+          envelope({
+            access_token: 'new-access',
+            refresh_token: 'new-refresh',
+            token_type: 'bearer',
+            expires_in: 30,
+          }),
+        )
+      }
+      return resolveWith(config, 401, { detail: '仍未授权' }, 'Unauthorized')
+    },
+  })
+  await assert.rejects(
+    () => client.get('/api/v1/users/me'),
+    (error: unknown) => assertApiError(error, '仍未授权', 401),
+  )
+  assert.equal(refreshCount, 1)
+})
+
+test('刷新失败后的下一次请求可以再次刷新', async () => {
+  let refreshCount = 0
+  let failRefresh = true
+  let current = session({
+    accessToken: 'old',
+    refreshToken: 'refresh',
+    expiresAt: 60_000,
+  })
+  const client = createHttpClient({
+    baseURL: 'http://api.test',
+    now: () => 0,
+    read: () => current,
+    write: (value) => {
+      current = value
+    },
+    clear: () => undefined,
+    adapter: (config) => {
+      const url = config.url ?? ''
+      if (url.endsWith('/auth/refresh')) {
+        refreshCount += 1
+        if (failRefresh) {
+          return resolveWith(
+            config,
+            401,
+            { detail: '刷新已失效' },
+            'Unauthorized',
+          )
+        }
+        return resolveWith(
+          config,
+          200,
+          envelope({
+            access_token: 'new-access',
+            refresh_token: 'new-refresh',
+            token_type: 'bearer',
+            expires_in: 30,
+          }),
+        )
+      }
+      if (!retried(config)) {
+        return resolveWith(config, 401, { detail: '未授权' }, 'Unauthorized')
+      }
+      return resolveWith(config, 200, envelope({ ok: true }))
+    },
+  })
+  await assert.rejects(() => client.get('/api/v1/users/me'))
+  failRefresh = false
+  const result = await client.get('/api/v1/users/me')
+  assert.equal(refreshCount, 2)
+  assert.deepEqual(result, { ok: true })
+})
+
+test('ApiClientError.details 保留响应 details，缺失时为 undefined', async () => {
+  const withDetails = create({
+    adapter: (config) =>
+      Promise.reject(
+        new AxiosError(
+          'Request failed with status code 400',
+          AxiosError.ERR_BAD_REQUEST,
+          config,
+          null,
+          {
+            status: 400,
+            statusText: 'Bad Request',
+            headers: {},
+            config,
+            data: { message: '请求无效', details: { username: '必填' } },
+          },
+        ),
+      ),
+  })
+  await assert.rejects(
+    () => withDetails.post('/api/v1/auth/register', {}),
+    (error: unknown) => {
+      assert.ok(error instanceof ApiClientError)
+      if (!(error instanceof ApiClientError)) return false
+      assert.equal(error.message, '请求无效')
+      assert.deepEqual(error.details, { username: '必填' })
+      return true
+    },
+  )
+
+  const withoutDetails = create({
+    adapter: (config) =>
+      resolveWith(config, 401, { detail: '登录失败' }, 'Unauthorized'),
+  })
+  await assert.rejects(
+    () => withoutDetails.post('/api/v1/auth/login', {}),
+    (error: unknown) => {
+      assert.ok(error instanceof ApiClientError)
+      if (!(error instanceof ApiClientError)) return false
+      assert.equal(error.message, '登录失败')
+      assert.equal(error.details, undefined)
+      return true
+    },
+  )
+})
+
+test('detail 和 message 都缺失时提示服务暂时不可用', async () => {
+  const client = create({
+    adapter: (config) =>
+      Promise.reject(
+        new AxiosError(
+          'Request failed with status code 500',
+          AxiosError.ERR_BAD_RESPONSE,
+          config,
+          null,
+          {
+            status: 500,
+            statusText: 'Internal Server Error',
+            headers: {},
+            config,
+            data: {},
+          },
+        ),
+      ),
+  })
+  await assert.rejects(
+    () => client.get('/api/v1/users/me'),
+    (error: unknown) => assertApiError(error, '服务暂时不可用', 500),
+  )
 })
