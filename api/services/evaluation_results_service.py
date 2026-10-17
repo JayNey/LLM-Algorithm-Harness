@@ -6,6 +6,7 @@ unit in that run, and applies the list filters.
 
 from __future__ import annotations
 
+from collections import Counter
 from datetime import datetime
 
 from alembic import command
@@ -74,11 +75,7 @@ def aggregate(rows: list[EvaluationResult]) -> list[dict]:
     strategies = []
     for name, items in grouped.items():
         solved = sum(1 for row in items if row.status == "success")
-        known_cost = [
-            float((row.metrics or {}).get("cost_usd") or 0)
-            for row in items
-            if not (row.metrics or {}).get("cost_unknown")
-        ]
+        estimated_cost, unknown_cost = _known_cost(items)
         times = [
             value
             for row in items
@@ -94,10 +91,8 @@ def aggregate(rows: list[EvaluationResult]) -> list[dict]:
                 "total_problems": len(items),
                 "solved_problems": solved,
                 "avg_tokens": (sum(tokens) / len(tokens)) if tokens else 0.0,
-                "estimated_cost_usd": sum(known_cost),
-                "unknown_cost_count": sum(
-                    1 for row in items if (row.metrics or {}).get("cost_unknown")
-                ),
+                "estimated_cost_usd": estimated_cost,
+                "unknown_cost_count": unknown_cost,
                 "avg_execution_time": (sum(times) / len(times)) if times else 0.0,
                 "by_difficulty": _by_difficulty(items),
             }
@@ -124,6 +119,114 @@ def _json_array_contains(column, value: str):
     """Match a JSON string array element without interpolating the value into SQL."""
     escaped = value.replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_")
     return cast(column, Text).like(f'%"{escaped}"%', escape="\\")
+
+
+def _effective_difficulty(metrics: dict | None, problem: Problem | None) -> str | None:
+    """Prefer the difficulty saved on the unit, then the problem record."""
+    if metrics is not None and "difficulty" in metrics and metrics["difficulty"] is not None:
+        return str(metrics["difficulty"])
+    if problem is not None and problem.difficulty:
+        return str(problem.difficulty)
+    return None
+
+
+def _rate_bucket(rows: list[EvaluationResult]) -> dict[str, float | int]:
+    solved = sum(1 for row in rows if row.status == "success")
+    total = len(rows)
+    return {
+        "success_rate": (solved / total) if total else 0.0,
+        "solved": solved,
+        "total": total,
+    }
+
+
+def _group_rates(pairs: list[tuple[EvaluationResult, Problem | None]], labeler) -> dict:
+    """Count each unit once per label. Overall totals stay on the ungrouped rows."""
+    grouped: dict[str, list[EvaluationResult]] = {}
+    for row, problem in pairs:
+        seen: set[str] = set()
+        for label in labeler(row, problem):
+            if not label or label in seen:
+                continue
+            seen.add(label)
+            grouped.setdefault(label, []).append(row)
+    return {name: _rate_bucket(items) for name, items in grouped.items()}
+
+
+def _difficulty_labels(row: EvaluationResult, problem: Problem | None) -> list[str]:
+    difficulty = _effective_difficulty(row.metrics, problem)
+    return [difficulty] if difficulty else []
+
+
+def _tag_labels(_row: EvaluationResult, problem: Problem | None) -> list[str]:
+    if problem is None or not problem.tags:
+        return []
+    return [str(tag) for tag in problem.tags]
+
+
+def _known_cost(rows: list[EvaluationResult]) -> tuple[float, int]:
+    """Sum cost_usd, skipping units flagged cost_unknown. Same rule as aggregate()."""
+    known = [
+        float((row.metrics or {}).get("cost_usd") or 0)
+        for row in rows
+        if not (row.metrics or {}).get("cost_unknown")
+    ]
+    unknown = sum(1 for row in rows if (row.metrics or {}).get("cost_unknown"))
+    return sum(known), unknown
+
+
+def _success_payload(pairs: list[tuple[EvaluationResult, Problem | None]]) -> dict:
+    rows = [row for row, _problem in pairs]
+    times = [
+        value for row in rows if (value := _num(row.metrics, "execution_time_seconds")) is not None
+    ]
+    payload = _rate_bucket(rows)
+    payload["avg_execution_time"] = (sum(times) / len(times)) if times else 0.0
+    payload["by_difficulty"] = _group_rates(pairs, _difficulty_labels)
+    payload["by_tag"] = _group_rates(pairs, _tag_labels)
+    return payload
+
+
+def _tokens_payload(pairs: list[tuple[EvaluationResult, Problem | None]]) -> dict:
+    rows = [row for row, _problem in pairs]
+    tokens = [value for row in rows if (value := _num(row.metrics, "total_tokens")) is not None]
+    estimated, unknown = _known_cost(rows)
+    return {
+        "total_tokens": sum(tokens),
+        "avg_tokens": (sum(tokens) / len(tokens)) if tokens else 0.0,
+        "estimated_cost_usd": estimated,
+        "unknown_cost_count": unknown,
+    }
+
+
+def _iterations_payload(pairs: list[tuple[EvaluationResult, Problem | None]]) -> dict:
+    """Aggregate metrics.iterations. A missing key is unknown, not zero."""
+    known: list = []
+    unknown = 0
+    for row, _problem in pairs:
+        metrics = row.metrics
+        if metrics is None or "iterations" not in metrics or metrics["iterations"] is None:
+            unknown += 1
+            continue
+        known.append(metrics["iterations"])
+    return {
+        "known_count": len(known),
+        "unknown_count": unknown,
+        "average": (sum(known) / len(known)) if known else None,
+        "distribution": [
+            {"iterations": value, "count": count} for value, count in sorted(Counter(known).items())
+        ],
+    }
+
+
+def _failure_modes_payload(pairs: list[tuple[EvaluationResult, Problem | None]]) -> dict:
+    """Count saved failure_mode on non-success rows. A missing mode is unknown."""
+    counts: Counter[str] = Counter()
+    for row, _problem in pairs:
+        if row.status == "success":
+            continue
+        counts[(row.metrics or {}).get("failure_mode") or "unknown"] += 1
+    return dict(counts)
 
 
 def _matching_unit_exists(strategy: str | None, difficulty: str | None, tag: str | None):
@@ -300,3 +403,126 @@ class EvaluationResultsService:
                 item["run_id"] = evaluation.run_id
                 items.append(item)
         return items, int(total or 0)
+
+    def _analytics_pairs(
+        self,
+        session: Session,
+        owner_id: str,
+        *,
+        run_id: str | None,
+        strategy: str | None,
+        difficulty: str | None,
+        tag: str | None,
+    ) -> list[tuple[EvaluationResult, Problem | None]]:
+        """Units in scope. No run_id means this user's completed evaluations only."""
+        if run_id is not None:
+            evaluation_ids = [self._resolve(session, owner_id, run_id).id]
+        else:
+            evaluation_ids = list(
+                session.scalars(
+                    select(Evaluation.id).where(
+                        Evaluation.user_id == owner_id,
+                        Evaluation.status == "completed",
+                    )
+                ).all()
+            )
+        if not evaluation_ids:
+            return []
+        stmt = (
+            select(EvaluationResult, Problem)
+            .outerjoin(Problem, Problem.problem_id == EvaluationResult.problem_id)
+            .where(EvaluationResult.evaluation_id.in_(evaluation_ids))
+        )
+        if strategy is not None:
+            stmt = stmt.where(EvaluationResult.strategy_name == strategy)
+        selected: list[tuple[EvaluationResult, Problem | None]] = []
+        for row, problem in session.execute(stmt).all():
+            if difficulty is not None and _effective_difficulty(row.metrics, problem) != difficulty:
+                continue
+            if tag is not None:
+                tags = list(problem.tags or []) if problem is not None else []
+                if tag not in tags:
+                    continue
+            selected.append((row, problem))
+        return selected
+
+    def _analytics(self, owner_id: str, builder, **filters) -> dict:
+        with self._session() as session:
+            pairs = self._analytics_pairs(session, owner_id, **filters)
+            return builder(pairs)
+
+    def success_rate(
+        self,
+        owner_id: str,
+        *,
+        run_id: str | None = None,
+        strategy: str | None = None,
+        difficulty: str | None = None,
+        tag: str | None = None,
+    ) -> dict:
+        """Overall, per-difficulty, and per-tag success over the scoped units."""
+        return self._analytics(
+            owner_id,
+            _success_payload,
+            run_id=run_id,
+            strategy=strategy,
+            difficulty=difficulty,
+            tag=tag,
+        )
+
+    def tokens(
+        self,
+        owner_id: str,
+        *,
+        run_id: str | None = None,
+        strategy: str | None = None,
+        difficulty: str | None = None,
+        tag: str | None = None,
+    ) -> dict:
+        """Token totals and cost. cost_unknown units stay out of the USD sum."""
+        return self._analytics(
+            owner_id,
+            _tokens_payload,
+            run_id=run_id,
+            strategy=strategy,
+            difficulty=difficulty,
+            tag=tag,
+        )
+
+    def iterations(
+        self,
+        owner_id: str,
+        *,
+        run_id: str | None = None,
+        strategy: str | None = None,
+        difficulty: str | None = None,
+        tag: str | None = None,
+    ) -> dict:
+        """Known iteration counts, the unknown count, and the distribution."""
+        return self._analytics(
+            owner_id,
+            _iterations_payload,
+            run_id=run_id,
+            strategy=strategy,
+            difficulty=difficulty,
+            tag=tag,
+        )
+
+    def failure_modes(
+        self,
+        owner_id: str,
+        *,
+        run_id: str | None = None,
+        strategy: str | None = None,
+        difficulty: str | None = None,
+        tag: str | None = None,
+    ) -> dict:
+        """Saved failure_mode counts for units that did not succeed."""
+        return self._analytics(
+            owner_id,
+            _failure_modes_payload,
+            run_id=run_id,
+            strategy=strategy,
+            difficulty=difficulty,
+            tag=tag,
+        )

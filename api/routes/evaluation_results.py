@@ -25,6 +25,26 @@ def call(operation: Callable[[], T]) -> T:
         raise HTTPException(404 if "not found" in str(exc).lower() else 400, str(exc)) from None
 
 
+def _analytics(
+    service: EvaluationResultsService,
+    principal: Principal,
+    method: Callable[..., dict],
+    run_id: str | None,
+    strategy: str | None,
+    difficulty: str | None,
+    tag: str | None,
+) -> dict:
+    return call(
+        lambda: method(
+            principal.user_id,
+            run_id=run_id,
+            strategy=strategy,
+            difficulty=difficulty,
+            tag=tag,
+        )
+    )
+
+
 def _page(limit: int, offset: int) -> tuple[int, int]:
     return (limit if 1 <= limit <= 100 else 20, max(0, offset))
 
@@ -83,6 +103,58 @@ def list_results(
         items=items, total=total, limit=limit, offset=offset, has_more=offset + limit < total
     )
     return ApiResponse(success=True, data=data, message="Evaluation results retrieved")
+
+
+@router.get("/analytics/success-rate")
+def analytics_success_rate(
+    run_id: str | None = None,
+    strategy: str | None = None,
+    difficulty: str | None = None,
+    tag: str | None = None,
+    principal: Principal = Depends(current_user),
+    service: EvaluationResultsService = Depends(evaluation_results_service),
+) -> ApiResponse[dict]:
+    data = _analytics(service, principal, service.success_rate, run_id, strategy, difficulty, tag)
+    return ApiResponse(success=True, data=data, message="Success rate retrieved")
+
+
+@router.get("/analytics/tokens")
+def analytics_tokens(
+    run_id: str | None = None,
+    strategy: str | None = None,
+    difficulty: str | None = None,
+    tag: str | None = None,
+    principal: Principal = Depends(current_user),
+    service: EvaluationResultsService = Depends(evaluation_results_service),
+) -> ApiResponse[dict]:
+    data = _analytics(service, principal, service.tokens, run_id, strategy, difficulty, tag)
+    return ApiResponse(success=True, data=data, message="Token analytics retrieved")
+
+
+@router.get("/analytics/iterations")
+def analytics_iterations(
+    run_id: str | None = None,
+    strategy: str | None = None,
+    difficulty: str | None = None,
+    tag: str | None = None,
+    principal: Principal = Depends(current_user),
+    service: EvaluationResultsService = Depends(evaluation_results_service),
+) -> ApiResponse[dict]:
+    data = _analytics(service, principal, service.iterations, run_id, strategy, difficulty, tag)
+    return ApiResponse(success=True, data=data, message="Iteration analytics retrieved")
+
+
+@router.get("/analytics/failure-modes")
+def analytics_failure_modes(
+    run_id: str | None = None,
+    strategy: str | None = None,
+    difficulty: str | None = None,
+    tag: str | None = None,
+    principal: Principal = Depends(current_user),
+    service: EvaluationResultsService = Depends(evaluation_results_service),
+) -> ApiResponse[dict]:
+    data = _analytics(service, principal, service.failure_modes, run_id, strategy, difficulty, tag)
+    return ApiResponse(success=True, data=data, message="Failure modes retrieved")
 
 
 @router.get("/results/{run_id}")
