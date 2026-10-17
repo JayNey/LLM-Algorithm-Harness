@@ -1,5 +1,7 @@
 """API tests for owner-scoped evaluation result queries."""
 
+import csv
+import io
 import secrets
 import uuid
 from datetime import datetime
@@ -827,3 +829,82 @@ def test_results_api_hides_other_users_and_paginates_problems(client, owner_head
     assert listed.json()["data"]["items"][0]["run_id"] == "run-own"
     anon = client.get("/api/v1/results/run-own")
     assert anon.status_code == 401
+
+
+def _install_report_rows(client) -> None:
+    """Leave one success and one historical unit on the same strategy.
+
+    old-problem omits metrics.iterations. Sharing a strategy makes the JSON
+    success rate the rate MarkdownGenerator prints for that run.
+    """
+    session_factory = client.app.state.task_session_factory
+    with session_factory() as db:
+        stored = list(
+            db.scalars(
+                select(EvaluationResult).where(EvaluationResult.evaluation_id == "eval-own")
+            ).all()
+        )
+        for row in stored:
+            db.delete(row)
+        db.add_all(
+            [
+                EvaluationResult(
+                    id=str(uuid.uuid4()),
+                    evaluation_id="eval-own",
+                    problem_id="two-sum",
+                    strategy_name="vanilla",
+                    status="success",
+                    metrics={
+                        "success": True,
+                        "total_tokens": 10,
+                        "execution_time_seconds": 1.0,
+                        "cost_usd": 0.2,
+                        "cost_unknown": False,
+                        "difficulty": "easy",
+                        "iterations": 2,
+                    },
+                ),
+                EvaluationResult(
+                    id=str(uuid.uuid4()),
+                    evaluation_id="eval-own",
+                    problem_id="old-problem",
+                    strategy_name="vanilla",
+                    status="failed",
+                    metrics={
+                        "success": False,
+                        "difficulty": "easy",
+                        "failure_mode": "logic_error",
+                        "failure_category": "wrong_answer",
+                    },
+                    error_message="historical gap",
+                ),
+            ]
+        )
+        db.commit()
+
+
+def test_reports_match_json_and_blank_missing_csv_fields(client, owner_headers):
+    _install_report_rows(client)
+    stats = client.get(
+        "/api/v1/analytics/success-rate", headers=owner_headers, params={"run_id": "run-own"}
+    ).json()["data"]
+    markdown = client.get("/api/v1/reports/markdown/run-own", headers=owner_headers)
+    assert markdown.status_code == 200
+    assert "text/markdown" in markdown.headers["content-type"]
+    assert "attachment" in markdown.headers["content-disposition"]
+    assert f"{stats['success_rate'] * 100:.1f}%" in markdown.text
+    assert str(stats["solved"]) in markdown.text
+    html = client.get("/api/v1/reports/html/run-own", headers=owner_headers)
+    assert html.status_code == 200
+    assert "text/html" in html.headers["content-type"]
+    assert "attachment" in html.headers["content-disposition"]
+    csv_response = client.get("/api/v1/reports/csv/run-own", headers=owner_headers)
+    assert "text/csv" in csv_response.headers["content-type"]
+    assert "attachment" in csv_response.headers["content-disposition"]
+    rows = list(csv.DictReader(io.StringIO(csv_response.text.lstrip("\ufeff"))))
+    historical = next(row for row in rows if row["problem_id"] == "old-problem")
+    assert historical["iterations"] == ""
+    assert historical["total_tests"] == ""
+    foreign = client.get("/api/v1/reports/csv/eval-other", headers=owner_headers)
+    assert foreign.status_code == 404
+    assert "text/csv" not in foreign.headers.get("content-type", "")

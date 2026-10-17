@@ -2,8 +2,10 @@
 
 from collections.abc import Callable
 from typing import TypeVar, cast
+from urllib.parse import quote
 
 from fastapi import APIRouter, Depends, HTTPException, Request
+from fastapi.responses import Response
 
 from api.auth.dependencies import current_user
 from api.auth.service import Principal
@@ -318,3 +320,38 @@ def compare_ab_test(
     ab_tests = request.app.state.ab_tests
     data = call(lambda: ab_tests.results(test_id, principal.user_id))
     return ApiResponse(success=True, data=data, message="A/B comparison retrieved")
+
+
+def _download(body: str, media_type: str, filename: str) -> Response:
+    disposition = "attachment; filename*=UTF-8''" + quote(filename, safe="")
+    return Response(body, media_type=media_type, headers={"Content-Disposition": disposition})
+
+
+@router.get("/reports/markdown/{run_id}")
+def report_markdown(
+    run_id: str,
+    principal: Principal = Depends(current_user),
+    service: EvaluationResultsService = Depends(evaluation_results_service),
+) -> Response:
+    body = call(lambda: service.report_markdown(principal.user_id, run_id))
+    return _download(body, "text/markdown", f"{run_id}.md")
+
+
+@router.get("/reports/html/{run_id}")
+def report_html(
+    run_id: str,
+    principal: Principal = Depends(current_user),
+    service: EvaluationResultsService = Depends(evaluation_results_service),
+) -> Response:
+    body = call(lambda: service.report_html(principal.user_id, run_id))
+    return _download(body, "text/html", f"{run_id}.html")
+
+
+@router.get("/reports/csv/{run_id}")
+def report_csv(
+    run_id: str,
+    principal: Principal = Depends(current_user),
+    service: EvaluationResultsService = Depends(evaluation_results_service),
+) -> Response:
+    body = call(lambda: service.report_csv(principal.user_id, run_id))
+    return _download(body, "text/csv", f"{run_id}.csv")

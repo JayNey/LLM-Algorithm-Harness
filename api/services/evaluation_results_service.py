@@ -6,8 +6,12 @@ unit in that run, and applies the list filters.
 
 from __future__ import annotations
 
+import csv
+import io
+import tempfile
 from collections import Counter
 from datetime import datetime
+from pathlib import Path
 
 from alembic import command
 from alembic.config import Config
@@ -27,11 +31,14 @@ from api.db import (
 from api.db.engine import business_database_url
 from api.db.migrate import SCRIPT_LOCATION
 from src.error_analysis import normalize_message
+from src.models import ExecutionResult, IterationResult
 from src.reporting.capability_profiler import (
     calculate_dimension_scores,
     format_dimension_scores_for_radar,
     get_dimension_problem_counts,
 )
+from src.reporting.html_generator import HTMLGenerator
+from src.reporting.markdown_generator import MarkdownGenerator
 
 _SORT_COLUMNS = {
     "completed_at": Evaluation.completed_at,
@@ -274,6 +281,152 @@ def _stamp_create_all_schema(engine: Engine) -> None:
     with engine.begin() as connection:
         cfg.attributes["connection"] = connection
         command.stamp(cfg, "head")
+
+
+# Copied from CSVExporter.export. This service writes the rows itself.
+_CSV_FIELDNAMES = [
+    "problem_id",
+    "strategy",
+    "status",
+    "failure_category",
+    "passed",
+    "tokens",
+    "time",
+    "iterations",
+    "error_message",
+    "total_tests",
+    "passed_tests",
+    "failed_tests",
+    "formal_evaluable",
+    "formal_passed",
+    "sample_only",
+    "hidden_total_tests",
+    "hidden_passed_tests",
+    "hidden_failed_tests",
+]
+_FAILURE_CATEGORIES = frozenset(
+    {
+        "wrong_answer",
+        "code_extraction_failed",
+        "model_error",
+        "system_error",
+        "unsupported",
+        "budget_exhausted",
+    }
+)
+_FAILURE_MODES = frozenset(
+    {
+        "syntax_error",
+        "logic_error",
+        "timeout",
+        "boundary_condition",
+        "understanding_error",
+        "runtime_error",
+        "infrastructure_error",
+        "unknown",
+    }
+)
+_DIFFICULTIES = frozenset({"easy", "medium", "hard"})
+
+
+def _stored_iterations(metrics: dict | None) -> int | None:
+    """Return a saved iteration count. A missing key stays unknown."""
+    if metrics is None or "iterations" not in metrics or metrics["iterations"] is None:
+        return None
+    value = metrics["iterations"]
+    if isinstance(value, bool) or not isinstance(value, int | float):
+        return None
+    return int(value)
+
+
+def _allowed(metrics: dict, key: str, choices: frozenset[str]) -> str | None:
+    value = metrics.get(key)
+    if isinstance(value, str) and value in choices:
+        return value
+    return None
+
+
+def _execution_result(row: EvaluationResult) -> ExecutionResult:
+    """In-memory result for the report generators. Nothing here is persisted."""
+    metrics = row.metrics or {}
+    count = _stored_iterations(row.metrics)
+    iterations = (
+        [IterationResult(iteration=index) for index in range(1, count + 1)]
+        if count is not None and count > 0
+        else []
+    )
+    return ExecutionResult(
+        problem_id=row.problem_id,
+        strategy=row.strategy_name,
+        generated_code="",
+        status=row.status,
+        failure_category=_allowed(metrics, "failure_category", _FAILURE_CATEGORIES),  # type: ignore[arg-type]
+        failure_mode=_allowed(metrics, "failure_mode", _FAILURE_MODES),  # type: ignore[arg-type]
+        difficulty=_allowed(metrics, "difficulty", _DIFFICULTIES),  # type: ignore[arg-type]
+        iterations=iterations,
+        error_message=row.error_message,
+        total_tokens=int(metrics.get("total_tokens") or 0),
+        execution_time_seconds=float(metrics.get("execution_time_seconds") or 0.0),
+    )
+
+
+def _generator_metrics(rows: list[EvaluationResult]) -> dict[str, dict]:
+    """Strategy summaries in the shape MarkdownGenerator and HTMLGenerator read."""
+    metrics: dict[str, dict] = {}
+    for item in aggregate(rows):
+        payload = {
+            "success_rate": item["success_rate"],
+            "solved_problems": item["solved_problems"],
+            "total_problems": item["total_problems"],
+            "avg_tokens_per_problem": item["avg_tokens"],
+            "avg_time_per_problem": item["avg_execution_time"],
+            "estimated_cost_usd": item["estimated_cost_usd"],
+            "by_difficulty": item["by_difficulty"],
+        }
+        if item["unknown_cost_count"]:
+            payload["pricing_metadata"] = {"unknown_usage": True}
+        metrics[str(item["name"])] = payload
+    return metrics
+
+
+def _execution_results(rows: list[EvaluationResult]) -> dict[str, list[ExecutionResult]]:
+    grouped: dict[str, list[ExecutionResult]] = {}
+    for row in rows:
+        grouped.setdefault(row.strategy_name, []).append(_execution_result(row))
+    return grouped
+
+
+def _csv_text(rows: list[EvaluationResult]) -> str:
+    """UTF-8 BOM CSV. Unstored test counts and a missing iterations key stay blank."""
+    buffer = io.StringIO()
+    writer = csv.DictWriter(buffer, fieldnames=_CSV_FIELDNAMES)
+    writer.writeheader()
+    for row in rows:
+        metrics = row.metrics or {}
+        count = _stored_iterations(row.metrics)
+        tokens = metrics.get("total_tokens")
+        elapsed = metrics.get("execution_time_seconds")
+        record = {name: "" for name in _CSV_FIELDNAMES}
+        record.update(
+            {
+                "problem_id": row.problem_id,
+                "strategy": row.strategy_name,
+                "status": row.status,
+                "failure_category": metrics.get("failure_category") or "",
+                "passed": row.status == "success",
+                "tokens": "" if tokens is None else tokens,
+                "time": "" if elapsed is None else round(float(elapsed), 3),
+                "iterations": "" if count is None else count,
+                "error_message": row.error_message or "",
+            }
+        )
+        writer.writerow(record)
+    return "\ufeff" + buffer.getvalue()
+
+
+def _generated_text(write) -> str:
+    with tempfile.TemporaryDirectory() as directory:
+        return write(str(Path(directory) / "report"))
 
 
 class EvaluationResultsService:
@@ -850,3 +1003,34 @@ class EvaluationResultsService:
                     for row in rows
                 ]
             }
+
+    def _report_inputs(
+        self, owner_id: str, run_id: str
+    ) -> tuple[dict[str, dict], dict[str, list[ExecutionResult]], dict | None]:
+        with self._session() as session:
+            evaluation = self._resolve(session, owner_id, run_id)
+            rows = self._units(session, evaluation.id)
+            config = {"model": evaluation.model} if evaluation.model else None
+            return _generator_metrics(rows), _execution_results(rows), config
+
+    def report_markdown(self, owner_id: str, run_id: str) -> str:
+        """Markdown body from MarkdownGenerator. The temporary file is deleted."""
+        metrics, results, config = self._report_inputs(owner_id, run_id)
+        return _generated_text(
+            lambda path: MarkdownGenerator.generate(metrics, results, path, config=config)
+        )
+
+    def report_html(self, owner_id: str, run_id: str) -> str:
+        """HTML body from HTMLGenerator, including its existing charts."""
+        metrics, results, config = self._report_inputs(owner_id, run_id)
+        return _generated_text(
+            lambda path: HTMLGenerator.generate(
+                metrics, results, path, include_charts=True, config=config
+            )
+        )
+
+    def report_csv(self, owner_id: str, run_id: str) -> str:
+        """CSV text for one owned run. Does not call CSVExporter.export."""
+        with self._session() as session:
+            evaluation = self._resolve(session, owner_id, run_id)
+            return _csv_text(self._units(session, evaluation.id))
