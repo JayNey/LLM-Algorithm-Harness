@@ -645,25 +645,25 @@ EOF
 - Consumes: `createHttpClient`、`useAuthStore`
 - Produces: 模块内懒创建、登录登出和注册共用的一个 HTTP 客户端
 
-- [ ] **Task 11 Step 1: Write the failing test**
+- [x] **Task 11 Step 1: Write the failing test**
 
 登出请求带 `Authorization: Bearer`。access token 距过期不足 30 秒时，先刷新一次，再用新 token 发登出。登出返回 401 时只刷新并重试一次。登录、注册、刷新仍然不带 Bearer，也不刷新。状态码大于等于 500 且响应里有英文 `message` 时，错误消息仍是「服务暂时不可用」。
 
-- [ ] **Task 11 Step 2: Run test to verify it fails**
+- [x] **Task 11 Step 2: Run test to verify it fails**
 
 Run: `cd frontend && node --experimental-strip-types --test src/auth/http.test.ts`
 Expected: FAIL，登出目前不带 Bearer
 
-- [ ] **Task 11 Step 3: Write minimal implementation**
+- [x] **Task 11 Step 3: Write minimal implementation**
 
 把 `/auth/logout` 移出不刷新、不带 token 的端点。登录、注册、刷新保持原样。状态码大于等于 500 时忽略响应正文，使用「服务暂时不可用」。store 在未注入 client 时复用同一个客户端；注册页使用这个客户端，不再单独创建 `read` 恒为 null 的实例。
 
-- [ ] **Task 11 Step 4: Run test to verify it passes**
+- [x] **Task 11 Step 4: Run test to verify it passes**
 
 Run: `cd frontend && npm test && npx tsc -b --pretty false && npm run build`
 Expected: PASS
 
-- [ ] **Task 11 Step 5: Commit**
+- [x] **Task 11 Step 5: Commit**
 
 ```bash
 git add frontend/src/auth/http.ts frontend/src/auth/http.test.ts frontend/src/store/auth.ts frontend/src/store/auth.test.ts frontend/src/pages/Auth/RegisterPage.tsx
