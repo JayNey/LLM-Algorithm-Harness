@@ -5,6 +5,7 @@ Provides dimension classification, scoring, and analysis for model capabilities
 across different algorithm types.
 """
 
+from collections.abc import Sequence
 from typing import Any
 
 from src.models import ExecutionResult, Problem
@@ -196,7 +197,9 @@ def format_dimension_scores_for_radar(model_scores: dict[str, dict[str, float]])
     return {"dimension_names": dimension_names, "model_scores": radar_scores}
 
 
-def get_dimension_problem_counts(problems: list[Problem]) -> dict[str, int]:
+def get_dimension_problem_counts(
+    problems: Sequence[Problem | dict[str, Any]],
+) -> dict[str, int]:
     """
     Count the number of problems in each dimension.
 

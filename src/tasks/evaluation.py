@@ -563,6 +563,7 @@ def _record_unit_result(db: Session, evaluation: Evaluation, unit: TaskUnit) -> 
         data = unit.result
         meta = data.get("metadata") or {}
         status = data.get("status", "failed")
+        iterations = data.get("iterations")
         metrics = {
             "success": status == "success",
             "failure_category": data.get("failure_category"),
@@ -574,6 +575,7 @@ def _record_unit_result(db: Session, evaluation: Evaluation, unit: TaskUnit) -> 
             "cost_unknown": meta.get("cost_unknown", False),
             "formal_evaluable": data.get("formal_evaluable", False),
             "quality_metrics": data.get("quality_metrics"),
+            "iterations": len(iterations) if isinstance(iterations, list) else 0,
         }
         error_message = data.get("error_message")
         cost = float(meta.get("cost_usd", 0.0))
