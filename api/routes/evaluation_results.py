@@ -168,3 +168,52 @@ def get_result(
     limit, offset = _page(limit, offset)
     data = call(lambda: service.detail(principal.user_id, run_id, limit=limit, offset=offset))
     return ApiResponse(success=True, data=data, message="Evaluation result retrieved")
+
+
+def _require_run_id(run_id: str | None) -> str:
+    if not run_id:
+        raise HTTPException(400, "run_id is required")
+    return run_id
+
+
+@router.get("/compare/strategies")
+def compare_strategies(
+    run_id: str | None = None,
+    principal: Principal = Depends(current_user),
+    service: EvaluationResultsService = Depends(evaluation_results_service),
+) -> ApiResponse[dict]:
+    run_id = _require_run_id(run_id)
+    data = call(lambda: service.compare_strategies(principal.user_id, run_id))
+    return ApiResponse(success=True, data=data, message="Strategy comparison retrieved")
+
+
+@router.get("/compare/models")
+def compare_models(
+    principal: Principal = Depends(current_user),
+    service: EvaluationResultsService = Depends(evaluation_results_service),
+) -> ApiResponse[dict]:
+    data = call(lambda: service.compare_models(principal.user_id))
+    return ApiResponse(success=True, data=data, message="Model comparison retrieved")
+
+
+@router.get("/compare/history")
+def compare_history(
+    run_id: str | None = None,
+    principal: Principal = Depends(current_user),
+    service: EvaluationResultsService = Depends(evaluation_results_service),
+) -> ApiResponse[dict]:
+    run_id = _require_run_id(run_id)
+    data = call(lambda: service.compare_history(principal.user_id, run_id))
+    return ApiResponse(success=True, data=data, message="History comparison retrieved")
+
+
+@router.get("/compare/ab-test/{test_id}")
+def compare_ab_test(
+    test_id: str,
+    request: Request,
+    principal: Principal = Depends(current_user),
+) -> ApiResponse[dict]:
+    """Same ABTestService.results call as GET /ab-tests/{test_id}/results."""
+    ab_tests = request.app.state.ab_tests
+    data = call(lambda: ab_tests.results(test_id, principal.user_id))
+    return ApiResponse(success=True, data=data, message="A/B comparison retrieved")

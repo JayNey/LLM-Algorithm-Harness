@@ -526,3 +526,67 @@ class EvaluationResultsService:
             difficulty=difficulty,
             tag=tag,
         )
+
+    def _units(self, session: Session, evaluation_id: str) -> list[EvaluationResult]:
+        return list(
+            session.scalars(
+                select(EvaluationResult)
+                .where(EvaluationResult.evaluation_id == evaluation_id)
+                .order_by(EvaluationResult.created_at, EvaluationResult.id)
+            ).all()
+        )
+
+    def compare_strategies(self, owner_id: str, run_id: str) -> dict:
+        """Strategy totals for one run. Same aggregate as the result detail."""
+        with self._session() as session:
+            evaluation = self._resolve(session, owner_id, run_id)
+            return {"strategies": aggregate(self._units(session, evaluation.id))}
+
+    def compare_models(self, owner_id: str) -> dict:
+        """Group this user's completed runs by model, then aggregate each group."""
+        with self._session() as session:
+            evaluations = session.scalars(
+                select(Evaluation)
+                .where(Evaluation.user_id == owner_id, Evaluation.status == "completed")
+                .order_by(Evaluation.model, Evaluation.id)
+            ).all()
+            grouped: dict[str | None, list[EvaluationResult]] = {}
+            for evaluation in evaluations:
+                grouped.setdefault(evaluation.model, []).extend(self._units(session, evaluation.id))
+            return {
+                "models": [
+                    {"model": model, "strategies": aggregate(rows)}
+                    for model, rows in grouped.items()
+                ]
+            }
+
+    def compare_history(self, owner_id: str, run_id: str) -> dict:
+        """Other completed runs with the same model and strategy set.
+
+        The current run is excluded. Points follow completion time, then id.
+        """
+        with self._session() as session:
+            current = self._resolve(session, owner_id, run_id)
+            wanted = set(current.strategy_names or [])
+            candidates = session.scalars(
+                select(Evaluation)
+                .where(
+                    Evaluation.user_id == owner_id,
+                    Evaluation.status == "completed",
+                    Evaluation.id != current.id,
+                    Evaluation.model == current.model,
+                )
+                .order_by(Evaluation.completed_at, Evaluation.id)
+            ).all()
+            series = []
+            for evaluation in candidates:
+                if set(evaluation.strategy_names or []) != wanted:
+                    continue
+                series.append(
+                    {
+                        "run_id": evaluation.run_id,
+                        "completed_at": _iso(evaluation.completed_at),
+                        "strategies": aggregate(self._units(session, evaluation.id)),
+                    }
+                )
+            return {"series": series}

@@ -318,6 +318,205 @@ def test_analytics_match_stored_rows(client, owner_headers):
     assert payload["known_count"] == 3
 
 
+def _unit(status: str, cost: float, *, unknown: bool = False) -> dict:
+    """Hand-built unit metrics. cost_unknown rows must not enter the USD sum."""
+    return {
+        "success": status == "success",
+        "total_tokens": 10,
+        "execution_time_seconds": 1.0,
+        "cost_usd": cost,
+        "cost_unknown": unknown,
+        "difficulty": "easy",
+        "iterations": 1,
+    }
+
+
+def _insert_run(
+    client,
+    *,
+    evaluation_id: str,
+    run_id: str,
+    model: str,
+    strategy_names: list[str],
+    status: str,
+    completed_at: datetime | None,
+    units: list[tuple[str, str, dict]],
+) -> None:
+    """Insert one evaluation and its units for the seeded owner."""
+    session_factory = client.app.state.task_session_factory
+    with session_factory() as db:
+        owner = db.scalar(select(Evaluation).where(Evaluation.id == "eval-own"))
+        assert owner is not None
+        db.add(
+            Evaluation(
+                id=evaluation_id,
+                user_id=owner.user_id,
+                run_id=run_id,
+                status=status,
+                strategy_names=strategy_names,
+                problem_ids=["two-sum"],
+                model=model,
+                created_at=completed_at or datetime(2026, 10, 1),
+                completed_at=completed_at,
+            )
+        )
+        for strategy_name, unit_status, metrics in units:
+            db.add(
+                EvaluationResult(
+                    id=str(uuid.uuid4()),
+                    evaluation_id=evaluation_id,
+                    problem_id="two-sum",
+                    strategy_name=strategy_name,
+                    status=unit_status,
+                    metrics=metrics,
+                )
+            )
+        db.commit()
+
+
+def _strategy_numbers(items: list[dict]) -> dict[str, tuple]:
+    return {
+        item["name"]: (
+            item["success_rate"],
+            item["solved_problems"],
+            item["estimated_cost_usd"],
+        )
+        for item in items
+    }
+
+
+def test_compare_matches_detail_and_empty_history(client, owner_headers):
+    detail = client.get("/api/v1/results/run-own", headers=owner_headers).json()["data"]
+    compared = client.get(
+        "/api/v1/compare/strategies", headers=owner_headers, params={"run_id": "run-own"}
+    )
+    assert compared.status_code == 200
+    by_name = {item["name"]: item for item in detail["strategies"]}
+    for item in compared.json()["data"]["strategies"]:
+        assert item["success_rate"] == by_name[item["name"]]["success_rate"]
+        assert item["solved_problems"] == by_name[item["name"]]["solved_problems"]
+        assert item["estimated_cost_usd"] == by_name[item["name"]]["estimated_cost_usd"]
+    assert _strategy_numbers(compared.json()["data"]["strategies"]) == {
+        "vanilla": (1.0, 1, 0.2),
+        "retry": (0.0, 0, 0.0),
+    }
+    missing_run = client.get("/api/v1/compare/strategies", headers=owner_headers)
+    assert missing_run.status_code == 400
+    history = client.get(
+        "/api/v1/compare/history", headers=owner_headers, params={"run_id": "run-own"}
+    )
+    assert history.status_code == 200
+    assert history.json()["data"]["series"] == []
+    missing = client.get("/api/v1/compare/ab-test/missing", headers=owner_headers)
+    assert missing.status_code == 404
+
+    _insert_run(
+        client,
+        evaluation_id="eval-alt",
+        run_id="run-alt",
+        model="claude-test",
+        strategy_names=["retry", "vanilla"],
+        status="completed",
+        completed_at=datetime(2026, 10, 2, 0, 0, 0),
+        units=[
+            ("vanilla", "failed", _unit("failed", 1.0)),
+            ("retry", "success", _unit("success", 0.4)),
+        ],
+    )
+    models = client.get("/api/v1/compare/models", headers=owner_headers)
+    assert models.status_code == 200
+    grouped = {item["model"]: item["strategies"] for item in models.json()["data"]["models"]}
+    assert set(grouped) == {"gpt-test", "claude-test"}
+    own_detail = client.get("/api/v1/results/run-own", headers=owner_headers).json()["data"]
+    alt_detail = client.get("/api/v1/results/run-alt", headers=owner_headers).json()["data"]
+    assert _strategy_numbers(grouped["gpt-test"]) == _strategy_numbers(own_detail["strategies"])
+    assert _strategy_numbers(grouped["claude-test"]) == _strategy_numbers(alt_detail["strategies"])
+    assert _strategy_numbers(grouped["claude-test"]) == {
+        "vanilla": (0.0, 0, 1.0),
+        "retry": (1.0, 1, 0.4),
+    }
+    still_empty = client.get(
+        "/api/v1/compare/history", headers=owner_headers, params={"run_id": "run-own"}
+    )
+    assert still_empty.status_code == 200
+    assert still_empty.json()["data"]["series"] == []
+
+    _insert_run(
+        client,
+        evaluation_id="eval-early",
+        run_id="run-match-early",
+        model="gpt-test",
+        strategy_names=["retry", "vanilla"],
+        status="completed",
+        completed_at=datetime(2026, 9, 15),
+        units=[
+            ("vanilla", "success", _unit("success", 0.1)),
+            ("retry", "failed", _unit("failed", 8.0, unknown=True)),
+        ],
+    )
+    _insert_run(
+        client,
+        evaluation_id="eval-late",
+        run_id="run-match-late",
+        model="gpt-test",
+        strategy_names=["vanilla", "retry"],
+        status="completed",
+        completed_at=datetime(2026, 11, 2, 3, 0, 0),
+        units=[
+            ("vanilla", "failed", _unit("failed", 0.3)),
+            ("retry", "success", _unit("success", 0.7)),
+        ],
+    )
+    _insert_run(
+        client,
+        evaluation_id="eval-other-strategies",
+        run_id="run-other-strategies",
+        model="gpt-test",
+        strategy_names=["vanilla"],
+        status="completed",
+        completed_at=datetime(2026, 10, 15),
+        units=[("vanilla", "success", _unit("success", 2.0))],
+    )
+    _insert_run(
+        client,
+        evaluation_id="eval-running-same",
+        run_id="run-running-same",
+        model="gpt-test",
+        strategy_names=["vanilla", "retry"],
+        status="running",
+        completed_at=datetime(2026, 10, 20),
+        units=[
+            ("vanilla", "success", _unit("success", 4.0)),
+            ("retry", "success", _unit("success", 4.0)),
+        ],
+    )
+    series = client.get(
+        "/api/v1/compare/history", headers=owner_headers, params={"run_id": "run-own"}
+    )
+    assert series.status_code == 200
+    points = series.json()["data"]["series"]
+    assert [point["run_id"] for point in points] == ["run-match-early", "run-match-late"]
+    assert [point["completed_at"] for point in points] == [
+        "2026-09-15T00:00:00Z",
+        "2026-11-02T03:00:00Z",
+    ]
+    assert _strategy_numbers(points[0]["strategies"]) == {
+        "vanilla": (1.0, 1, 0.1),
+        "retry": (0.0, 0, 0.0),
+    }
+    assert _strategy_numbers(points[1]["strategies"]) == {
+        "vanilla": (0.0, 0, 0.3),
+        "retry": (1.0, 1, 0.7),
+    }
+    from_early = client.get(
+        "/api/v1/compare/history", headers=owner_headers, params={"run_id": "run-match-early"}
+    )
+    assert [point["run_id"] for point in from_early.json()["data"]["series"]] == [
+        "run-own",
+        "run-match-late",
+    ]
+
+
 def test_results_api_hides_other_users_and_paginates_problems(client, owner_headers):
     own = client.get("/api/v1/results/run-own", headers=owner_headers, params={"limit": 1})
     assert own.status_code == 200
