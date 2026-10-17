@@ -1,7 +1,7 @@
 ## 1. 工程骨架
 
 - [x] 1.1 在 `frontend/` 初始化 Vite + React 18 + TypeScript 工程，建立 issue 约定的目录骨架和 `@` 路径别名，并在根 `.gitignore` 忽略 `node_modules`。验证：`frontend/package.json`、`frontend/tsconfig.json`、`frontend/vite.config.ts` 和 `frontend/src/main.tsx` 存在，且 `node_modules` 被忽略。
-- [ ] 1.2 添加开发、测试、生产环境文件和类型化读取模块。必填变量缺失时抛出带变量名的错误。验证：读取模块对缺失 `VITE_API_BASE_URL` 失败，对三套环境文件能读到 API Base URL、WebSocket URL、应用名和功能开关。
+- [x] 1.2 添加开发、测试、生产环境文件和类型化读取模块。必填变量缺失时抛出带变量名的错误。验证：读取模块对缺失 `VITE_API_BASE_URL` 失败，对三套环境文件能读到 API Base URL、WebSocket URL、应用名和功能开关。
 
 ## 2. 构建与规范
 
