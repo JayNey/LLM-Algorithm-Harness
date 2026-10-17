@@ -5,7 +5,7 @@
 
 ## 2. 构建与规范
 
-- [ ] 2.1 配置开发服务器端口 3000、`/api` 到 `http://localhost:8000` 的代理（含 WebSocket），以及路由级懒加载。验证：配置中存在该代理，且六个页面入口使用懒加载。
+- [x] 2.1 配置开发服务器端口 3000、`/api` 到 `http://localhost:8000` 的代理（含 WebSocket），以及路由级懒加载。验证：配置中存在该代理，且六个页面入口使用懒加载。
 - [ ] 2.2 配置 ESLint、Prettier、EditorConfig，以及只检查 `frontend/` 暂存文件的 husky + lint-staged。验证：`npm run lint` 与格式校验在初始工程上成功退出，钩子脚本不扫描仓库其他目录。
 
 ## 3. 应用外壳
