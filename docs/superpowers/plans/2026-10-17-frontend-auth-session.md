@@ -449,7 +449,7 @@ EOF
   - `passwordStrength(password: string): 'short' | 'ok' | 'long'`
   - `validateRegistration(input): Record<string, string>`
 
-- [ ] **Task 6 Step 1: Write the failing test**
+- [x] **Task 6 Step 1: Write the failing test**
 
 ```ts
 test('密码不足 12 位不能提交', () => {
@@ -479,21 +479,21 @@ test('长度分档', () => {
 })
 ```
 
-- [ ] **Task 6 Step 2: Run test to verify it fails**
+- [x] **Task 6 Step 2: Run test to verify it fails**
 
 Run: `cd frontend && node --experimental-strip-types --test src/auth/registerForm.test.ts`
 Expected: FAIL
 
-- [ ] **Task 6 Step 3: Write minimal implementation**
+- [x] **Task 6 Step 3: Write minimal implementation**
 
 `validateRegistration` 检查用户名 `/^[A-Za-z0-9_.-]+$/` 且长度 3–64，邮箱含 `@` 和点且长度 3–254，密码长度 12–1024，确认密码相同。`RegisterPage` 使用 `Input.Password`、react-hook-form 和 Ant Design `Form`。有错误时不调用 `http.post('/api/v1/auth/register')`。201 后 `navigate('/login', { state: { registered: true } })`。409 显示「用户名或邮箱不可用」。
 
-- [ ] **Task 6 Step 4: Run test to verify it passes**
+- [x] **Task 6 Step 4: Run test to verify it passes**
 
 Run: `cd frontend && npm test && npm run build`
 Expected: 测试 PASS；`build` 在本任务结束前可能因路由尚未接入而仍需页面文件可编译。本步先要求 `npm test` PASS，并用 `cd frontend && npx tsc -b --pretty false` 确认新文件没有类型错误。
 
-- [ ] **Task 6 Step 5: Commit**
+- [x] **Task 6 Step 5: Commit**
 
 ```bash
 git add frontend/src/auth/registerForm.ts frontend/src/auth/registerForm.test.ts frontend/src/pages/Auth/RegisterPage.tsx
