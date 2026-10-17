@@ -24,7 +24,7 @@ base-ref: c4a019c0843a2e96c32c09eb67bc363c4a2012ee
 - 不实现资料编辑、API 密钥、改密码、头像和角色权限。
 - 不提交 `openspec/changes/frontend-account-settings/`。
 - 纯模块不得 import `import.meta` 或 `@/`。
-- 登录、注册、刷新、登出请求不附带 access token，也不进入自动刷新。
+- 登录、注册和刷新请求不附带 access token，也不进入自动刷新。登出请求附带当前 access token；access token 将过期或登出得到 401 时，先走同一次刷新再重试登出一次。
 
 ---
 
@@ -625,6 +625,50 @@ Expected: 三个命令都成功。测试输出包含回跳、存储选择和并�
 git add frontend
 git commit -m "$(cat <<'EOF'
 让前端会话测试、检查和构建一起通过。
+
+EOF
+)"
+```
+
+### Task 11: 登出带上访问令牌
+
+对应 `tasks.md` 6.1。这是验证退回后的修复。规格要求用当前 access token 撤销会话；后端 `POST /api/v1/auth/logout` 依赖该认证头。
+
+**Files:**
+- Modify: `frontend/src/auth/http.ts`
+- Modify: `frontend/src/auth/http.test.ts`
+- Modify: `frontend/src/store/auth.ts`
+- Modify: `frontend/src/store/auth.test.ts`
+- Modify: `frontend/src/pages/Auth/RegisterPage.tsx`
+
+**Interfaces:**
+- Consumes: `createHttpClient`、`useAuthStore`
+- Produces: 模块内懒创建、登录登出和注册共用的一个 HTTP 客户端
+
+- [ ] **Task 11 Step 1: Write the failing test**
+
+登出请求带 `Authorization: Bearer`。access token 距过期不足 30 秒时，先刷新一次，再用新 token 发登出。登出返回 401 时只刷新并重试一次。登录、注册、刷新仍然不带 Bearer，也不刷新。状态码大于等于 500 且响应里有英文 `message` 时，错误消息仍是「服务暂时不可用」。
+
+- [ ] **Task 11 Step 2: Run test to verify it fails**
+
+Run: `cd frontend && node --experimental-strip-types --test src/auth/http.test.ts`
+Expected: FAIL，登出目前不带 Bearer
+
+- [ ] **Task 11 Step 3: Write minimal implementation**
+
+把 `/auth/logout` 移出不刷新、不带 token 的端点。登录、注册、刷新保持原样。状态码大于等于 500 时忽略响应正文，使用「服务暂时不可用」。store 在未注入 client 时复用同一个客户端；注册页使用这个客户端，不再单独创建 `read` 恒为 null 的实例。
+
+- [ ] **Task 11 Step 4: Run test to verify it passes**
+
+Run: `cd frontend && npm test && npx tsc -b --pretty false && npm run build`
+Expected: PASS
+
+- [ ] **Task 11 Step 5: Commit**
+
+```bash
+git add frontend/src/auth/http.ts frontend/src/auth/http.test.ts frontend/src/store/auth.ts frontend/src/store/auth.test.ts frontend/src/pages/Auth/RegisterPage.tsx
+git commit -m "$(cat <<'EOF'
+登出时带上访问令牌并撤销服务端会话。
 
 EOF
 )"

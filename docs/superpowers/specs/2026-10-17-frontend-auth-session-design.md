@@ -54,9 +54,9 @@ canonical_spec: openspec
 
 登录：表单调用 store。`POST /api/v1/auth/login` 不带 Bearer。成功后用 `expires_in` 计算 `expiresAt`，按记住我写入存储，再 `GET /api/v1/users/me`。资料成功后写入 `username` 并跳到回跳地址。注册成功只跳到 `/login` 并提示可以登录，不写 token。
 
-受保护请求：距过期不足 30 秒时先刷新，再设置 `Authorization: Bearer`。路径以 `/auth/login`、`/auth/register`、`/auth/refresh`、`/auth/logout` 结尾的请求不刷新、不附带 access token。刷新请求的 body 是 `{ "refresh_token": "..." }`。其他请求遇到 401 时走同一次刷新并重试一次。刷新失败则 `clearSession` 并进入登录页，回跳地址是当前站内路径。
+受保护请求：距过期不足 30 秒时先刷新，再设置 `Authorization: Bearer`。路径以 `/auth/login`、`/auth/register`、`/auth/refresh` 结尾的请求不刷新、不附带 access token。登出请求附带当前 access token。access token 将过期，或登出本身返回 401 时，先走同一次刷新，再用新 access token 重试登出一次，然后停止。刷新请求的 body 是 `{ "refresh_token": "..." }`。其他请求遇到 401 时走同一次刷新并重试一次。刷新失败则 `clearSession` 并进入登录页，回跳地址是当前站内路径。
 
-登出：尽力 `POST /api/v1/auth/logout`。无论状态码如何都清除本地会话并进入登录页。204 没有 JSON，客户端不得把空响应当成解析失败。
+登出：尽力 `POST /api/v1/auth/logout`，并带上当前 access token。无论状态码如何都清除本地会话并进入登录页。204 没有 JSON，客户端不得把空响应当成解析失败。
 
 ## 6. 错误处理
 

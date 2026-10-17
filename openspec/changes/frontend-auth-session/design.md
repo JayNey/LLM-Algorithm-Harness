@@ -26,7 +26,7 @@
 
 ### 2. 单一 axios 实例，刷新合并为一次
 
-HTTP 客户端使用 `readViteEnv().apiBaseUrl`。请求拦截器在 access token 距过期不足 30 秒时先刷新，否则附上当前 Bearer。响应遇到 401 时，注册、登录、刷新和登出请求直接失败；其他请求共用同一个进行中的刷新 Promise，成功后重试一次。刷新请求在 body 中提交 `refresh_token`，不附带旧的 access token。
+HTTP 客户端使用 `readViteEnv().apiBaseUrl`。登录、登出和注册共用这一个实例。请求拦截器在 access token 距过期不足 30 秒时先刷新，否则附上当前 Bearer。响应遇到 401 时，注册、登录和刷新请求直接失败。登出请求带上当前 access token；它即将过期或返回 401 时，先走同一次刷新再重试登出一次。其他请求也共用同一个进行中的刷新 Promise，成功后重试一次。刷新请求在 body 中提交 `refresh_token`，不附带旧的 access token。状态码大于等于 500 时，客户端错误消息是「服务暂时不可用」。
 
 备选是每个 401 各自刷新。后端使旧 refresh token 失效，并发刷新会让后续请求失败。
 
