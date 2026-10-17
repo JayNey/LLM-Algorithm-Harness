@@ -549,7 +549,7 @@ EOF
 - Consumes: `useAuthStore`、`sanitizeReturnPath`、`useUiStore`
 - Produces: `AuthLayout`、`RequireSession`
 
-- [ ] **Task 8 Step 1: 写守卫和布局**
+- [x] **Task 8 Step 1: 写守卫和布局**
 
 `RequireSession` 在 `session` 为空时 `<Navigate to="/login" replace state={{ from: sanitizeReturnPath(pathname + search) }} />`，否则渲染 `<Outlet />`。`AuthLayout` 显示 `readViteEnv().appName`、配色切换，以及登录/注册链接。已登录时两个页面都 `<Navigate to="/" replace />`。
 
@@ -557,12 +557,12 @@ EOF
 
 `routes.tsx` 保持六个页面的 lazy import。登录和注册也使用 `lazy`。
 
-- [ ] **Task 8 Step 2: 生产构建**
+- [x] **Task 8 Step 2: 生产构建**
 
 Run: `cd frontend && npm run build`
 Expected: PASS，构建输出包含登录和注册的独立 chunk
 
-- [ ] **Task 8 Step 3: Commit**
+- [x] **Task 8 Step 3: Commit**
 
 ```bash
 git add frontend/src/layouts/AuthLayout.tsx frontend/src/components/Auth/RequireSession.tsx frontend/src/App.tsx frontend/src/routes.tsx frontend/src/pages/Auth/LoginPage.tsx frontend/src/pages/Auth/RegisterPage.tsx
