@@ -11,7 +11,7 @@
 ## 3. 应用外壳
 
 - [x] 3.1 安装 Ant Design、Zustand、React Router、Axios、socket.io-client、ECharts、TanStack Table、Monaco、React Hook Form 和 dayjs，并配置 Tailwind 的响应式断点与 class 深色模式。验证：这些依赖出现在 `frontend/package.json`，Tailwind 启用 `darkMode: "class"`。
-- [ ] 3.2 实现外壳导航和六个占位页：仪表盘、题目、评估、结果、实验、设置。未知路径回到仪表盘；深色开关在本次浏览中保持；窄屏仍可到达六个入口。验证：路由表包含这六个路径和未知路径回退，占位页不发起后端请求。
+- [x] 3.2 实现外壳导航和六个占位页：仪表盘、题目、评估、结果、实验、设置。未知路径回到仪表盘；深色开关在本次浏览中保持；窄屏仍可到达六个入口。验证：路由表包含这六个路径和未知路径回退，占位页不发起后端请求。
 
 ## 4. 集成验证
 

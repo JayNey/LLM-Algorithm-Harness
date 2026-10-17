@@ -1,3 +1,8 @@
 export default function ProblemsPage() {
-  return <h1>题目</h1>
+  return (
+    <section>
+      <h1>题目</h1>
+      <p>占位页，不请求后端数据。</p>
+    </section>
+  )
 }
