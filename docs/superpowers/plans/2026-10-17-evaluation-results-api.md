@@ -788,3 +788,19 @@ git commit -m "docs: describe the evaluation results API"
 - [x] Task 10 Step 3: 统一标签匹配和难度归类
 - [x] Task 10 Step 4: 确认测试通过
 - [x] Task 10 Step 5: 提交修复
+
+### Task 11: 修正 PostgreSQL 标签过滤
+
+- [x] Task 11: 修正 PostgreSQL 标签过滤
+
+列表标签过滤的 PostgreSQL SQL 在 FROM 中调用 `json_array_elements`，引用外层行且没有 `LATERAL`，生产库会报错。同时补上无画像维度时的雷达零分，以及完成时间排序的空值位置。
+
+**Files:**
+- Modify: `api/services/evaluation_results_service.py`
+- Test: `tests/test_api_evaluation_results.py`
+
+- [x] Task 11 Step 1: 为 PostgreSQL 标签 SQL、空雷达和空值排序写失败测试
+- [x] Task 11 Step 2: 确认测试失败
+- [x] Task 11 Step 3: 修正这三处
+- [x] Task 11 Step 4: 确认测试通过
+- [x] Task 11 Step 5: 提交修复
