@@ -24,7 +24,7 @@ from api.middleware.logging import setup_logging_middleware
 from api.monitoring.config import MonitorSettings
 from api.monitoring.service import MonitorService
 from api.progress import ProgressStream, RedisProgressStream
-from api.routes import evaluations_router, tasks_router
+from api.routes import evaluation_results_router, evaluations_router, tasks_router
 from api.routes.ab_tests import router as ab_tests_router
 from api.routes.auth import router as auth_router
 from api.routes.benchmarks import router as benchmarks_router
@@ -37,6 +37,7 @@ from api.services import (
     ABTestService,
     BenchmarkService,
     CostService,
+    EvaluationResultsService,
     EvaluationService,
     ExperimentService,
 )
@@ -84,6 +85,7 @@ def create_app(
 
         app.state.auth = AuthService(auth_settings or AuthSettings())
         app.state.evaluations = EvaluationService(database_url)
+        app.state.evaluation_results = EvaluationResultsService(database_url)
         app.state.experiments = ExperimentService(
             database_url,
             auth=app.state.auth,
@@ -155,6 +157,7 @@ def create_app(
 
     # Include routers
     app.include_router(evaluations_router)
+    app.include_router(evaluation_results_router)
     app.include_router(tasks_router)
     app.include_router(auth_router)
     app.include_router(files_router)
