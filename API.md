@@ -278,6 +278,41 @@ POST /api/v1/evaluations/{evaluation_id}/cancel
 - 404 Not Found: 任务不存在
 - 400 Bad Request: 任务状态不允许取消
 
+### 评估结果、统计与报告
+
+只读查询当前用户已经落库的评估结果，不重新运行评估，也不连接 LLM 或 Redis。JSON 成功响应使用统一的 `ApiResponse` 外壳（`success`、`data`、`message`）。列表，以及详情里的题目列表，使用现有分页结构：`items`、`total`、`limit`、`offset`、`has_more`。`limit` 默认 20，合法范围 1–100，越界回退 20；`offset` 小于 0 时按 0。运行列表的排序只接受 `completed_at` 和 `created_at`，默认 `completed_at` 降序。
+
+全部端点都要 Bearer 认证。未登录时返回现有认证错误。运行不存在、不属于当前用户，或他人的 `run_id`，返回 404。404 使用现有 JSON 错误（FastAPI `detail`），不附带报告正文。`compare/strategies` 和 `compare/history` 缺少 `run_id` 时返回 400。
+
+成功率、解出数、token 和成本使用落库聚合，与 CLI 写入时的同一套统计口径一致。未知成本不计入美元合计，响应里标出未知成本的数量。历史行没有 `iterations` 时，迭代统计把它算作未知，不用 0 或 1 代替。报告不含生成代码和沙箱轨迹。没有单独的 PNG 路径。
+
+| 端点 | 说明 |
+|---|---|
+| `GET /api/v1/results/{run_id}` | 单次运行：状态、时间、完整策略汇总，以及分页后的题目。题目分页不改变策略汇总 |
+| `GET /api/v1/results` | 当前用户的运行分页。`strategy`、`difficulty`、`tag` 只保留至少有一个匹配单元的运行；`status` 过滤评估状态 |
+| `GET /api/v1/results/problems/{problem_id}` | 当前用户在这道题上的单元分页。`status` 过滤单元状态 |
+| `GET /api/v1/analytics/success-rate` | 总体、按难度、按标签的成功率 |
+| `GET /api/v1/analytics/tokens` | token 合计与平均 |
+| `GET /api/v1/analytics/iterations` | 已知次数、未知数量、平均值，以及按次数的分布 |
+| `GET /api/v1/analytics/failure-modes` | 已保存 `failure_mode` 的计数，不按消息重写 |
+| `GET /api/v1/compare/strategies` | 要求 `run_id`。各策略数字与该次详情一致 |
+| `GET /api/v1/compare/models` | 按模型分组的同一聚合 |
+| `GET /api/v1/compare/history` | 用 `run_id` 确定模型与策略集合。同一用户、同一配置、已完成、按完成时间排列；没有其他运行时为空序列 |
+| `GET /api/v1/compare/ab-test/{test_id}` | 与 `GET /api/v1/ab-tests/{test_id}/results` 相同的 A/B 结果 |
+| `GET /api/v1/visualizations/success-rate-chart` | 每个策略一个成功率点 |
+| `GET /api/v1/visualizations/token-chart` | 每个策略一条折线，点是各题 token |
+| `GET /api/v1/visualizations/cost-accuracy` | 每个策略一点：成功率与 `estimated_cost_usd` |
+| `GET /api/v1/visualizations/capability-radar` | 能力雷达的维度、分数和 `problem_counts` |
+| `GET /api/v1/visualizations/learning-curve` | 该用户已完成的基准运行；可选 `suite_id`。没有记录时返回 200 和空序列。`GET /api/v1/benchmarks/learning-curve/{suite_id}` 保持原样 |
+| `GET /api/v1/failures/summary/{run_id}` | `failure_mode` 计数和错误聚类 |
+| `GET /api/v1/failures/by-tag` | 每个标签的成功率、解出数、总数 |
+| `GET /api/v1/failures/cases/{run_id}` | 非成功单元和已保存的 `error_message` |
+| `GET /api/v1/reports/markdown/{run_id}` | `Content-Type: text/markdown` 附件 |
+| `GET /api/v1/reports/csv/{run_id}` | `Content-Type: text/csv` 附件，正文带 UTF-8 BOM |
+| `GET /api/v1/reports/html/{run_id}` | `Content-Type: text/html` 附件 |
+
+统计、可视化和 `failures/by-tag` 接受可选查询参数 `run_id`、`strategy`、`difficulty`、`tag`。不传 `run_id` 时只统计该用户已完成的运行。传入 `run_id` 时只统计那一次运行，包括尚未完成的运行。三条报告在成功时返回文件正文和 `Content-Disposition`，不使用 `ApiResponse` 外壳；404 仍是 JSON，不附带文件。
+
 ### 实验与基准管理（#156）
 
 实验、基准 Suite、A/B 测试均 owner 作用域；请求永不携带明文密钥，`api_key_id` 在创建时校验归属、运行时经认证库解密注入；`dataset_path` 只允许 `DATA_ROOT`（默认 `data/`）内的路径。
