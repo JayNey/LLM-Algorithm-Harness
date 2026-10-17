@@ -964,6 +964,150 @@ def _install_mixed_cost_rows(client) -> None:
         db.commit()
 
 
+def _insert_problem_run(
+    client,
+    *,
+    problem_id: str,
+    tags: list[str],
+    difficulty: str,
+    run_id: str,
+    evaluation_id: str,
+    metrics: dict,
+) -> None:
+    """One owned completed run whose only unit points at a new problem."""
+    session_factory = client.app.state.task_session_factory
+    with session_factory() as db:
+        owner = db.scalar(select(Evaluation).where(Evaluation.id == "eval-own"))
+        assert owner is not None
+        db.add(
+            Problem(
+                id=problem_id,
+                problem_id=problem_id,
+                title=problem_id,
+                difficulty=difficulty,
+                tags=tags,
+            )
+        )
+        db.add(
+            Evaluation(
+                id=evaluation_id,
+                user_id=owner.user_id,
+                run_id=run_id,
+                status="completed",
+                strategy_names=["vanilla"],
+                problem_ids=[problem_id],
+                model="gpt-test",
+                created_at=datetime(2026, 10, 3, 0, 0, 0),
+                completed_at=datetime(2026, 10, 3, 0, 0, 0),
+            )
+        )
+        db.add(
+            EvaluationResult(
+                id=str(uuid.uuid4()),
+                evaluation_id=evaluation_id,
+                problem_id=problem_id,
+                strategy_name="vanilla",
+                status="success",
+                metrics=metrics,
+            )
+        )
+        db.commit()
+
+
+def _run_ids(response) -> list[str]:
+    assert response.status_code == 200, response.text
+    return [item["run_id"] for item in response.json()["data"]["items"]]
+
+
+def test_tag_filter_matches_exact_case_on_list_and_success_rate(client, owner_headers):
+    """graph does not select a Graph tag. List and success-rate agree.
+
+    Breaks if list matching uses SQLite LIKE, which folds ASCII case, while
+    success-rate keeps the decoded tag.
+    """
+    _insert_problem_run(
+        client,
+        problem_id="graph-problem",
+        tags=["Graph"],
+        difficulty="medium",
+        run_id="run-graph",
+        evaluation_id="eval-graph",
+        metrics={"success": True, "difficulty": "medium"},
+    )
+    assert (
+        _run_ids(client.get("/api/v1/results", headers=owner_headers, params={"tag": "graph"}))
+        == []
+    )
+    assert _run_ids(
+        client.get("/api/v1/results", headers=owner_headers, params={"tag": "Graph"})
+    ) == ["run-graph"]
+    matched = client.get(
+        "/api/v1/analytics/success-rate", headers=owner_headers, params={"tag": "Graph"}
+    )
+    assert matched.status_code == 200
+    assert matched.json()["data"]["total"] == 1
+    missed = client.get(
+        "/api/v1/analytics/success-rate", headers=owner_headers, params={"tag": "graph"}
+    )
+    assert missed.status_code == 200
+    assert missed.json()["data"]["total"] == 0
+
+
+def test_tag_filter_matches_backslash_literally(client, owner_headers):
+    """The tag a\\b matches that element and does not match the shorter tag a.
+
+    Breaks if the filter searches JSON text with LIKE: one backslash in the
+    query is not the escaped backslash stored in the JSON document.
+    """
+    _insert_problem_run(
+        client,
+        problem_id="slash-problem",
+        tags=["a\\b"],
+        difficulty="medium",
+        run_id="run-slash",
+        evaluation_id="eval-slash",
+        metrics={"success": True, "difficulty": "medium"},
+    )
+    assert _run_ids(
+        client.get("/api/v1/results", headers=owner_headers, params={"tag": "a\\b"})
+    ) == ["run-slash"]
+    assert _run_ids(client.get("/api/v1/results", headers=owner_headers, params={"tag": "a"})) == []
+    matched = client.get(
+        "/api/v1/analytics/success-rate", headers=owner_headers, params={"tag": "a\\b"}
+    )
+    assert matched.status_code == 200
+    assert matched.json()["data"]["total"] == 1
+    shorter = client.get(
+        "/api/v1/analytics/success-rate", headers=owner_headers, params={"tag": "a"}
+    )
+    assert shorter.status_code == 200
+    assert shorter.json()["data"]["total"] == 0
+
+
+def test_detail_counts_problem_difficulty_when_metrics_omit_it(client, owner_headers):
+    """A unit with no metrics.difficulty still fills the problem difficulty bucket.
+
+    Breaks if detail by_difficulty reads only metrics and drops the unit.
+    Success-rate already falls back to problems.difficulty.
+    """
+    _insert_problem_run(
+        client,
+        problem_id="hard-problem",
+        tags=["array"],
+        difficulty="hard",
+        run_id="run-hard",
+        evaluation_id="eval-hard",
+        metrics={"success": True},
+    )
+    detail = client.get("/api/v1/results/run-hard", headers=owner_headers)
+    assert detail.status_code == 200
+    bucket = detail.json()["data"]["strategies"][0]["by_difficulty"].get("hard", {})
+    assert bucket.get("total") == 1
+    rate = client.get("/api/v1/analytics/success-rate", headers=owner_headers)
+    assert rate.status_code == 200
+    assert rate.json()["data"]["by_difficulty"].get("hard", {}).get("total") == 1
+
+
 def test_markdown_keeps_known_cost_when_another_unit_is_unknown(client, owner_headers):
     """Known 0.2 USD stays on the strategy row when another unit is cost_unknown.
 

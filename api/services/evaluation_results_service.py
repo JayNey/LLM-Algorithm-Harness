@@ -15,9 +15,12 @@ from pathlib import Path
 
 from alembic import command
 from alembic.config import Config
-from sqlalchemy import Text, and_, cast, exists, func, inspect, or_, select
+from sqlalchemy import Boolean, String, and_, bindparam, exists, func, inspect, or_, select
 from sqlalchemy.engine import Engine
+from sqlalchemy.ext.compiler import compiles
 from sqlalchemy.orm import Session
+from sqlalchemy.sql.elements import ColumnElement
+from sqlalchemy.sql.visitors import InternalTraversal
 
 from api.db import (
     BenchmarkRun,
@@ -58,14 +61,16 @@ def _num(metrics: dict | None, key: str) -> float | None:
     return float(metrics[key])
 
 
-def _by_difficulty(items: list[EvaluationResult]) -> dict[str, dict[str, float | int]]:
-    """Group one strategy by the difficulty saved on each unit."""
+def _by_difficulty(
+    items: list[tuple[EvaluationResult, Problem | None]],
+) -> dict[str, dict[str, float | int]]:
+    """Group one strategy with the same difficulty rule as analytics."""
     grouped: dict[str, list[EvaluationResult]] = {}
-    for row in items:
-        difficulty = (row.metrics or {}).get("difficulty")
+    for row, problem in items:
+        difficulty = _effective_difficulty(row.metrics, problem)
         if not difficulty:
             continue
-        grouped.setdefault(str(difficulty), []).append(row)
+        grouped.setdefault(difficulty, []).append(row)
     summary: dict[str, dict[str, float | int]] = {}
     for name, rows in grouped.items():
         solved = sum(1 for row in rows if row.status == "success")
@@ -77,32 +82,33 @@ def _by_difficulty(items: list[EvaluationResult]) -> dict[str, dict[str, float |
     return summary
 
 
-def aggregate(rows: list[EvaluationResult]) -> list[dict]:
+def aggregate(pairs: list[tuple[EvaluationResult, Problem | None]]) -> list[dict]:
     """Summarize every unit of a run, grouped by strategy.
 
-    Later analytics and comparison reuse this so a detail page and a chart
-    cannot drift apart. Cost skips units flagged cost_unknown.
+    Difficulty comes from metrics when that value is present and not null,
+    otherwise from the joined problem. Later analytics and comparison reuse
+    this so a detail page and a chart cannot drift apart. Cost skips units
+    flagged cost_unknown.
     """
-    grouped: dict[str, list[EvaluationResult]] = {}
-    for row in rows:
-        grouped.setdefault(row.strategy_name, []).append(row)
+    grouped: dict[str, list[tuple[EvaluationResult, Problem | None]]] = {}
+    for pair in pairs:
+        grouped.setdefault(pair[0].strategy_name, []).append(pair)
     strategies = []
     for name, items in grouped.items():
-        solved = sum(1 for row in items if row.status == "success")
-        estimated_cost, unknown_cost = _known_cost(items)
+        rows = [row for row, _problem in items]
+        solved = sum(1 for row in rows if row.status == "success")
+        estimated_cost, unknown_cost = _known_cost(rows)
         times = [
             value
-            for row in items
+            for row in rows
             if (value := _num(row.metrics, "execution_time_seconds")) is not None
         ]
-        tokens = [
-            value for row in items if (value := _num(row.metrics, "total_tokens")) is not None
-        ]
+        tokens = [value for row in rows if (value := _num(row.metrics, "total_tokens")) is not None]
         strategies.append(
             {
                 "name": name,
-                "success_rate": solved / len(items) if items else 0.0,
-                "total_problems": len(items),
+                "success_rate": solved / len(rows) if rows else 0.0,
+                "total_problems": len(rows),
                 "solved_problems": solved,
                 "avg_tokens": (sum(tokens) / len(tokens)) if tokens else 0.0,
                 "estimated_cost_usd": estimated_cost,
@@ -129,10 +135,52 @@ def _problem_item(row: EvaluationResult) -> dict:
     }
 
 
+class _JsonArrayContains(ColumnElement[bool]):
+    """Case-sensitive membership of one decoded JSON array element.
+
+    The tag stays a bound parameter. SQLite reads json_each; PostgreSQL reads
+    json_array_elements. Neither compares a LIKE pattern against JSON text.
+    """
+
+    inherit_cache = True
+    type = Boolean()
+    _traverse_internals = [
+        ("column", InternalTraversal.dp_clauseelement),
+        ("value", InternalTraversal.dp_string),
+    ]
+
+    def __init__(self, column, value: str):
+        self.column = column
+        self.value = value
+
+
+def _tag_bind(element: _JsonArrayContains, compiler, **kw) -> str:
+    return compiler.process(bindparam(None, element.value, type_=String()), **kw)
+
+
+@compiles(_JsonArrayContains)
+def _compile_json_array_contains_sqlite(element, compiler, **kw) -> str:
+    column = compiler.process(element.column, **kw)
+    return (
+        f"EXISTS (SELECT 1 FROM json_each({column}) AS tag_element "
+        f"WHERE tag_element.value = {_tag_bind(element, compiler, **kw)} "
+        f"AND tag_element.type = 'text')"
+    )
+
+
+@compiles(_JsonArrayContains, "postgresql")
+def _compile_json_array_contains_postgresql(element, compiler, **kw) -> str:
+    column = compiler.process(element.column, **kw)
+    return (
+        f"EXISTS (SELECT 1 FROM json_array_elements({column}) AS tag_element "
+        f"WHERE json_typeof(tag_element) = 'string' "
+        f"AND tag_element #>> '{{}}' = {_tag_bind(element, compiler, **kw)})"
+    )
+
+
 def _json_array_contains(column, value: str):
-    """Match a JSON string array element without interpolating the value into SQL."""
-    escaped = value.replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_")
-    return cast(column, Text).like(f'%"{escaped}"%', escape="\\")
+    """Match one decoded JSON string. The tag is bound, not interpolated."""
+    return _JsonArrayContains(column, value)
 
 
 def _effective_difficulty(metrics: dict | None, problem: Problem | None) -> str | None:
@@ -370,10 +418,12 @@ def _execution_result(row: EvaluationResult) -> ExecutionResult:
     )
 
 
-def _generator_metrics(rows: list[EvaluationResult]) -> dict[str, dict]:
+def _generator_metrics(
+    pairs: list[tuple[EvaluationResult, Problem | None]],
+) -> dict[str, dict]:
     """Strategy summaries in the shape MarkdownGenerator and HTMLGenerator read."""
     metrics: dict[str, dict] = {}
-    for item in aggregate(rows):
+    for item in aggregate(pairs):
         payload = {
             "success_rate": item["success_rate"],
             "solved_problems": item["solved_problems"],
@@ -456,13 +506,8 @@ class EvaluationResultsService:
         offset = max(offset, 0)
         with self._session() as session:
             evaluation = self._resolve(session, owner_id, run_id)
-            rows = list(
-                session.scalars(
-                    select(EvaluationResult)
-                    .where(EvaluationResult.evaluation_id == evaluation.id)
-                    .order_by(EvaluationResult.created_at, EvaluationResult.id)
-                ).all()
-            )
+            pairs = self._unit_pairs(session, evaluation.id)
+            rows = [row for row, _problem in pairs]
             total = len(rows)
             page = rows[offset : offset + limit]
             return {
@@ -470,7 +515,7 @@ class EvaluationResultsService:
                 "status": evaluation.status,
                 "created_at": _iso(evaluation.created_at),
                 "completed_at": _iso(evaluation.completed_at),
-                "strategies": aggregate(rows),
+                "strategies": aggregate(pairs),
                 "problems": {
                     "items": [_problem_item(row) for row in page],
                     "total": total,
@@ -696,11 +741,24 @@ class EvaluationResultsService:
             ).all()
         )
 
+    def _unit_pairs(
+        self, session: Session, evaluation_id: str
+    ) -> list[tuple[EvaluationResult, Problem | None]]:
+        """Units for one evaluation, with the problem used for difficulty and tags."""
+        return list(
+            session.execute(
+                select(EvaluationResult, Problem)
+                .outerjoin(Problem, Problem.problem_id == EvaluationResult.problem_id)
+                .where(EvaluationResult.evaluation_id == evaluation_id)
+                .order_by(EvaluationResult.created_at, EvaluationResult.id)
+            ).all()
+        )
+
     def compare_strategies(self, owner_id: str, run_id: str) -> dict:
         """Strategy totals for one run. Same aggregate as the result detail."""
         with self._session() as session:
             evaluation = self._resolve(session, owner_id, run_id)
-            return {"strategies": aggregate(self._units(session, evaluation.id))}
+            return {"strategies": aggregate(self._unit_pairs(session, evaluation.id))}
 
     def compare_models(self, owner_id: str) -> dict:
         """Group this user's completed runs by model, then aggregate each group."""
@@ -710,13 +768,15 @@ class EvaluationResultsService:
                 .where(Evaluation.user_id == owner_id, Evaluation.status == "completed")
                 .order_by(Evaluation.model, Evaluation.id)
             ).all()
-            grouped: dict[str | None, list[EvaluationResult]] = {}
+            grouped: dict[str | None, list[tuple[EvaluationResult, Problem | None]]] = {}
             for evaluation in evaluations:
-                grouped.setdefault(evaluation.model, []).extend(self._units(session, evaluation.id))
+                grouped.setdefault(evaluation.model, []).extend(
+                    self._unit_pairs(session, evaluation.id)
+                )
             return {
                 "models": [
-                    {"model": model, "strategies": aggregate(rows)}
-                    for model, rows in grouped.items()
+                    {"model": model, "strategies": aggregate(pairs)}
+                    for model, pairs in grouped.items()
                 ]
             }
 
@@ -746,7 +806,7 @@ class EvaluationResultsService:
                     {
                         "run_id": evaluation.run_id,
                         "completed_at": _iso(evaluation.completed_at),
-                        "strategies": aggregate(self._units(session, evaluation.id)),
+                        "strategies": aggregate(self._unit_pairs(session, evaluation.id)),
                     }
                 )
             return {"series": series}
@@ -792,7 +852,7 @@ class EvaluationResultsService:
                 difficulty=difficulty,
                 tag=tag,
             )
-            return aggregate([row for row, _problem in pairs])
+            return aggregate(pairs)
 
     def success_rate_chart(
         self,
@@ -1009,9 +1069,10 @@ class EvaluationResultsService:
     ) -> tuple[dict[str, dict], dict[str, list[ExecutionResult]], dict | None]:
         with self._session() as session:
             evaluation = self._resolve(session, owner_id, run_id)
-            rows = self._units(session, evaluation.id)
+            pairs = self._unit_pairs(session, evaluation.id)
+            rows = [row for row, _problem in pairs]
             config = {"model": evaluation.model} if evaluation.model else None
-            return _generator_metrics(rows), _execution_results(rows), config
+            return _generator_metrics(pairs), _execution_results(rows), config
 
     def report_markdown(self, owner_id: str, run_id: str) -> str:
         """Markdown body from MarkdownGenerator. The temporary file is deleted."""
