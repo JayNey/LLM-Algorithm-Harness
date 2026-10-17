@@ -1,9 +1,9 @@
 import uuid
 
-from api.db.models import Base, Evaluation, EvaluationResult
 from sqlalchemy import create_engine
 from sqlalchemy.orm import Session
 
+from api.db.models import Base, Evaluation, EvaluationResult
 from src.tasks.evaluation import _record_unit_result
 
 

@@ -908,6 +908,8 @@ def test_reports_match_json_and_blank_missing_csv_fields(client, owner_headers):
     foreign = client.get("/api/v1/reports/csv/eval-other", headers=owner_headers)
     assert foreign.status_code == 404
     assert "text/csv" not in foreign.headers.get("content-type", "")
+    assert foreign.headers.get("content-disposition") is None
+    assert foreign.json()["detail"] == "Evaluation not found"
 
 
 def _install_mixed_cost_rows(client) -> None:

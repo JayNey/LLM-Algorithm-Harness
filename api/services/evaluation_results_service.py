@@ -10,8 +10,10 @@ import csv
 import io
 import tempfile
 from collections import Counter
+from collections.abc import Callable
 from datetime import datetime
 from pathlib import Path
+from typing import Any
 
 from alembic import command
 from alembic.config import Config
@@ -150,17 +152,20 @@ class _JsonArrayContains(ColumnElement[bool]):
         ("value", InternalTraversal.dp_string),
     ]
 
-    def __init__(self, column, value: str):
+    def __init__(self, column: ColumnElement[Any], value: str) -> None:
         self.column = column
         self.value = value
 
 
-def _tag_bind(element: _JsonArrayContains, compiler, **kw) -> str:
-    return compiler.process(bindparam(None, element.value, type_=String()), **kw)
+def _tag_bind(element: _JsonArrayContains, compiler: Any, **kw: Any) -> str:
+    rendered = compiler.process(bindparam(None, element.value, type_=String()), **kw)
+    return str(rendered)
 
 
 @compiles(_JsonArrayContains)
-def _compile_json_array_contains_sqlite(element, compiler, **kw) -> str:
+def _compile_json_array_contains_sqlite(
+    element: _JsonArrayContains, compiler: Any, **kw: Any
+) -> str:
     column = compiler.process(element.column, **kw)
     return (
         f"EXISTS (SELECT 1 FROM json_each({column}) AS tag_element "
@@ -170,13 +175,15 @@ def _compile_json_array_contains_sqlite(element, compiler, **kw) -> str:
 
 
 @compiles(_JsonArrayContains, "postgresql")
-def _compile_json_array_contains_postgresql(element, compiler, **kw) -> str:
+def _compile_json_array_contains_postgresql(
+    element: _JsonArrayContains, compiler: Any, **kw: Any
+) -> str:
     column = compiler.process(element.column, **kw)
     # CAST(NULL AS jsonb) is null. null @> array is unknown and drops the row.
     return f"(CAST({column} AS jsonb) @> jsonb_build_array({_tag_bind(element, compiler, **kw)}))"
 
 
-def _json_array_contains(column, value: str):
+def _json_array_contains(column: Any, value: str) -> _JsonArrayContains:
     """Match one decoded JSON string. The tag is bound, not interpolated."""
     return _JsonArrayContains(column, value)
 
@@ -200,7 +207,10 @@ def _rate_bucket(rows: list[EvaluationResult]) -> dict[str, float | int]:
     }
 
 
-def _group_rates(pairs: list[tuple[EvaluationResult, Problem | None]], labeler) -> dict:
+def _group_rates(
+    pairs: list[tuple[EvaluationResult, Problem | None]],
+    labeler: Callable[[EvaluationResult, Problem | None], list[str]],
+) -> dict[str, dict[str, float | int]]:
     """Count each unit once per label. Overall totals stay on the ungrouped rows."""
     grouped: dict[str, list[EvaluationResult]] = {}
     for row, problem in pairs:
@@ -235,12 +245,12 @@ def _known_cost(rows: list[EvaluationResult]) -> tuple[float, int]:
     return sum(known), unknown
 
 
-def _success_payload(pairs: list[tuple[EvaluationResult, Problem | None]]) -> dict:
+def _success_payload(pairs: list[tuple[EvaluationResult, Problem | None]]) -> dict[str, Any]:
     rows = [row for row, _problem in pairs]
     times = [
         value for row in rows if (value := _num(row.metrics, "execution_time_seconds")) is not None
     ]
-    payload = _rate_bucket(rows)
+    payload: dict[str, Any] = dict(_rate_bucket(rows))
     payload["avg_execution_time"] = (sum(times) / len(times)) if times else 0.0
     payload["by_difficulty"] = _group_rates(pairs, _difficulty_labels)
     payload["by_tag"] = _group_rates(pairs, _tag_labels)
@@ -289,7 +299,9 @@ def _failure_modes_payload(pairs: list[tuple[EvaluationResult, Problem | None]])
     return dict(counts)
 
 
-def _matching_unit_exists(strategy: str | None, difficulty: str | None, tag: str | None):
+def _matching_unit_exists(
+    strategy: str | None, difficulty: str | None, tag: str | None
+) -> ColumnElement[bool] | None:
     """Keep a run when at least one of its units matches the optional filters."""
     if strategy is None and difficulty is None and tag is None:
         return None
@@ -454,7 +466,7 @@ def _csv_text(rows: list[EvaluationResult]) -> str:
         count = _stored_iterations(row.metrics)
         tokens = metrics.get("total_tokens")
         elapsed = metrics.get("execution_time_seconds")
-        record = {name: "" for name in _CSV_FIELDNAMES}
+        record: dict[str, Any] = {name: "" for name in _CSV_FIELDNAMES}
         record.update(
             {
                 "problem_id": row.problem_id,
@@ -472,7 +484,7 @@ def _csv_text(rows: list[EvaluationResult]) -> str:
     return "\ufeff" + buffer.getvalue()
 
 
-def _generated_text(write) -> str:
+def _generated_text(write: Callable[[str], str]) -> str:
     with tempfile.TemporaryDirectory() as directory:
         return write(str(Path(directory) / "report"))
 
@@ -649,7 +661,12 @@ class EvaluationResultsService:
             selected.append((row, problem))
         return selected
 
-    def _analytics(self, owner_id: str, builder, **filters) -> dict:
+    def _analytics(
+        self,
+        owner_id: str,
+        builder: Callable[[list[tuple[EvaluationResult, Problem | None]]], dict[str, Any]],
+        **filters: Any,
+    ) -> dict[str, Any]:
         with self._session() as session:
             pairs = self._analytics_pairs(session, owner_id, **filters)
             return builder(pairs)
@@ -958,7 +975,7 @@ class EvaluationResultsService:
                 }
                 for row, _problem in pairs
             ]
-            problem_dicts: list[dict] = []
+            problem_dicts: list[dict[str, Any]] = []
             seen: set[str] = set()
             for row, problem in pairs:
                 if row.problem_id in seen:
