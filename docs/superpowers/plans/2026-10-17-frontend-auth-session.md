@@ -116,7 +116,7 @@ EOF
   - `readSession(storages?: SessionStorages): StoredSession | null`
   - `clearSession(storages?: SessionStorages): void`
 
-- [ ] **Task 2 Step 1: Write the failing test**
+- [x] **Task 2 Step 1: Write the failing test**
 
 ```ts
 import assert from 'node:assert/strict'
@@ -167,12 +167,12 @@ test('清除两边后不能恢复', () => {
 })
 ```
 
-- [ ] **Task 2 Step 2: Run test to verify it fails**
+- [x] **Task 2 Step 2: Run test to verify it fails**
 
 Run: `cd frontend && node --experimental-strip-types --test src/auth/tokenStore.test.ts`
 Expected: FAIL，找不到模块
 
-- [ ] **Task 2 Step 3: Write minimal implementation**
+- [x] **Task 2 Step 3: Write minimal implementation**
 
 ```ts
 const storageKey = 'llm-harness-session'
@@ -221,12 +221,12 @@ export function clearSession(storages: SessionStorages = browserStorages()): voi
 }
 ```
 
-- [ ] **Task 2 Step 4: Run test to verify it passes**
+- [x] **Task 2 Step 4: Run test to verify it passes**
 
 Run: `cd frontend && npm test`
 Expected: returnPath 与 tokenStore 测试 PASS
 
-- [ ] **Task 2 Step 5: Commit**
+- [x] **Task 2 Step 5: Commit**
 
 ```bash
 git add frontend/src/auth/tokenStore.ts frontend/src/auth/tokenStore.test.ts
