@@ -333,7 +333,7 @@ git commit -m "feat: aggregate stored evaluation results for their owner"
 
 ### Task 3: 结果查询路由
 
-- [ ] Task 3: 结果查询路由
+- [x] Task 3: 结果查询路由
 
 对应 `tasks.md` 2.1。
 
