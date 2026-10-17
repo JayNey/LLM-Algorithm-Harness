@@ -534,7 +534,7 @@ git commit -m "feat: compare stored evaluation strategies and models"
 
 ### Task 6: 可视化 JSON
 
-- [ ] Task 6: 可视化 JSON
+- [x] Task 6: 可视化 JSON
 
 对应 `tasks.md` 3.1。
 
