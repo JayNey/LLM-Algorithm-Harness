@@ -83,7 +83,7 @@ export default function RegisterPage() {
     setSubmitting(true)
     try {
       const client = useAuthStore.getState().httpClient()
-      await client.post('/api/v1/auth/register', {
+      await client.post('/auth/register', {
         username: values.username,
         email: values.email,
         password: values.password,

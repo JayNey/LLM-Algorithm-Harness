@@ -195,7 +195,7 @@ export function createHttpClient(options: HttpClientOptions): AxiosInstance {
       throw new ApiClientError(unavailable)
     }
     const payload: unknown = await client.post(
-      '/api/v1/auth/refresh',
+      '/auth/refresh',
       { refresh_token: current.refreshToken },
       { headers: { 'Content-Type': 'application/json' } },
     )

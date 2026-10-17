@@ -156,7 +156,7 @@ export function createAuthStore() {
         const client = clientFrom(deps, box)
         const now = deps?.now ?? Date.now
         const payload = loginPayload(
-          await client.post('/api/v1/auth/login', {
+          await client.post('/auth/login', {
             username: identity,
             password,
           }),
@@ -170,7 +170,7 @@ export function createAuthStore() {
         writeSession(remember, session, box)
         set({ session })
         try {
-          const profile: unknown = await client.get('/api/v1/users/me')
+          const profile: unknown = await client.get('/users/me')
           const next = { ...session, username: profileUsername(profile) }
           writeSession(remember, next, box)
           set({ session: next })
@@ -186,7 +186,7 @@ export function createAuthStore() {
         const box = storagesFrom(deps)
         try {
           const client = clientFrom(deps, box)
-          await client.post('/api/v1/auth/logout')
+          await client.post('/auth/logout')
         } finally {
           clearSession(box)
           set({ session: null })

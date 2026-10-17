@@ -1,5 +1,6 @@
 import assert from 'node:assert/strict'
 import { test } from 'node:test'
+import axios from 'axios'
 import { ApiClientError } from '../auth/http.ts'
 import {
   clearSession,
@@ -78,10 +79,10 @@ test('登录写入过期时间并读取当前用户', async () => {
   assert.deepEqual(calls, [
     {
       method: 'post',
-      url: '/api/v1/auth/login',
+      url: '/auth/login',
       body: { username: 'ada@example.com', password: 'secret' },
     },
-    { method: 'get', url: '/api/v1/users/me' },
+    { method: 'get', url: '/users/me' },
   ])
   assert.equal(box.session.length, 0)
   assert.deepEqual(store.getState().session, {
@@ -198,7 +199,7 @@ test('退出时撤销会话并清除本地会话', async () => {
       },
     },
   })
-  assert.equal(logoutUrl, '/api/v1/auth/logout')
+  assert.equal(logoutUrl, '/auth/logout')
   assert.equal(readSession(box), null)
   assert.equal(store.getState().session, null)
 })
@@ -249,7 +250,7 @@ test('未注入客户端时登录和登出复用同一个实例', async () => {
   const calls: string[] = []
   client.post = async (url: string) => {
     calls.push(url)
-    if (url === '/api/v1/auth/login') return tokens('shared')
+    if (url.endsWith('/auth/login')) return tokens('shared')
     return undefined
   }
   client.get = async (url: string) => {
@@ -258,13 +259,37 @@ test('未注入客户端时登录和登出复用同一个实例', async () => {
   }
   await store.getState().login('ada', 'secret', false, deps)
   await store.getState().logout(deps)
-  assert.deepEqual(calls, [
-    '/api/v1/auth/login',
-    '/api/v1/users/me',
-    '/api/v1/auth/logout',
-  ])
+  assert.deepEqual(calls, ['/auth/login', '/users/me', '/auth/logout'])
   assert.equal(readSession(box), null)
   assert.equal(store.getState().session, null)
+})
+
+test('登录、当前用户和登出落在配置的 API 根路径上', async () => {
+  const baseURL = '/api/v1'
+  const box = storages()
+  const store = createAuthStore()
+  const sent: string[] = []
+  const client = {
+    async post(url: string) {
+      sent.push(url)
+      return tokens()
+    },
+    async get(url: string) {
+      sent.push(url)
+      return { username: 'ada' }
+    },
+  }
+  await store.getState().login('ada', 'secret', true, {
+    storages: box,
+    now: () => 1_000,
+    baseURL,
+    client,
+  })
+  await store.getState().logout({ storages: box, client })
+  assert.deepEqual(
+    sent.map((url) => axios.getUri({ baseURL, url })),
+    ['/api/v1/auth/login', '/api/v1/users/me', '/api/v1/auth/logout'],
+  )
 })
 
 test('clear 后不能从存储恢复会话', () => {

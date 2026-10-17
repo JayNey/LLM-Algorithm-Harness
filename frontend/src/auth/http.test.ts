@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict'
 import { test } from 'node:test'
-import { AxiosError, type InternalAxiosRequestConfig } from 'axios'
+import axios, { AxiosError, type InternalAxiosRequestConfig } from 'axios'
 import type { StoredSession } from './tokenStore.ts'
 import {
   ApiClientError,
@@ -470,6 +470,44 @@ test('注入的 refresh 遇到 401 时只调用一次且不发刷新请求', asy
   )
   assert.deepEqual(first, { ok: true })
   assert.deepEqual(second, { ok: true })
+})
+
+test('内部刷新请求落在配置的 API 根路径上', async () => {
+  const baseURL = 'http://localhost:8000/api/v1'
+  let refreshUri = ''
+  const client = createHttpClient({
+    baseURL,
+    now: () => 1_000,
+    read: () =>
+      session({
+        accessToken: 'old',
+        refreshToken: 'refresh',
+        expiresAt: 1_000,
+      }),
+    write: () => undefined,
+    clear: () => undefined,
+    adapter: (config) => {
+      const url = config.url ?? ''
+      if (url.endsWith('/auth/refresh')) {
+        refreshUri = axios.getUri({
+          baseURL: config.baseURL,
+          url: config.url,
+        })
+        return resolveWith(
+          config,
+          200,
+          envelope({
+            access_token: 'new',
+            refresh_token: 'rotated',
+            expires_in: 60,
+          }),
+        )
+      }
+      return resolveWith(config, 200, envelope({ ok: true }))
+    },
+  })
+  await client.get('/api/v1/users/me')
+  assert.equal(refreshUri, 'http://localhost:8000/api/v1/auth/refresh')
 })
 
 test('刷新请求在执行时读取当前 refresh token', async () => {
