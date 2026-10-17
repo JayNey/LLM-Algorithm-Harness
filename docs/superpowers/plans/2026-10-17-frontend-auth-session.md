@@ -253,7 +253,7 @@ EOF
   - `ApiClientError`
   - `createHttpClient(options): AxiosInstance`
 
-- [ ] **Task 3 Step 1: Write the failing test**
+- [x] **Task 3 Step 1: Write the failing test**
 
 测试用 axios 的 `adapter` 记录请求，不访问网络。
 
@@ -299,21 +299,21 @@ test('登录请求不刷新', async () => {
 
 同样断言 `/auth/register`、`/auth/refresh`、`/auth/logout` 不调用 `refresh`，并且请求头没有 `Authorization`。再加一条：受保护请求的 `expiresAt` 距 `now` 不足 30 秒时，先调用 `refresh`，再用新 access token 发原请求。
 
-- [ ] **Task 3 Step 2: Run test to verify it fails**
+- [x] **Task 3 Step 2: Run test to verify it fails**
 
 Run: `cd frontend && node --experimental-strip-types --test src/auth/http.test.ts`
 Expected: FAIL，找不到 `createHttpClient`
 
-- [ ] **Task 3 Step 3: Write minimal implementation**
+- [x] **Task 3 Step 3: Write minimal implementation**
 
 `isAuthEndpoint` 在去掉 query 后判断路径是否以这四段结尾。`shouldRefreshBeforeRequest` 在 `expiresAt - now < 30_000` 时返回 true。请求拦截器对非认证端点、且会话将在 30 秒内过期时先 `refresh`，然后设置 Bearer。成功响应返回 `data` 字段。状态码不是 2xx 时抛出 `ApiClientError`，消息优先取 `detail`，其次 `message`。204 返回 `undefined`。
 
-- [ ] **Task 3 Step 4: Run test to verify it passes**
+- [x] **Task 3 Step 4: Run test to verify it passes**
 
 Run: `cd frontend && npm test`
 Expected: PASS
 
-- [ ] **Task 3 Step 5: Commit**
+- [x] **Task 3 Step 5: Commit**
 
 ```bash
 git add frontend/src/auth/http.ts frontend/src/auth/http.test.ts
