@@ -306,7 +306,7 @@ EOF
 
 对应 `tasks.md` 1.3。
 
-- [ ] Task 3: 修改用户名和邮箱
+- [x] Task 3: 修改用户名和邮箱
 
 **Files:**
 - Modify: `frontend/src/auth/registerForm.ts`
