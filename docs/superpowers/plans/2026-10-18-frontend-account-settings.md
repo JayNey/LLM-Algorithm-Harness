@@ -1180,7 +1180,7 @@ EOF
 
 对应 `tasks.md` 3.1。
 
-- [ ] Task 7: 整体验证
+- [x] Task 7: 整体验证
 
 **Files:**
 - Modify: `openspec/changes/frontend-account-settings/tasks.md`（仅把 1.1 到 3.1 勾选为完成，不改任务正文）
