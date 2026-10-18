@@ -17,7 +17,7 @@ from fastapi import HTTPException
 from pydantic import SecretStr
 
 from api.auth.config import AuthSettings
-from api.auth.models import KeyCreate, KeyUpdate, ProfileUpdate, RegisterInput
+from api.auth.models import KeyCreate, KeyUpdate, PasswordChange, ProfileUpdate, RegisterInput
 from api.auth.store import AuthStore
 from src.llm_client import LLMClient
 from src.models import CacheConfig, LLMConfig
@@ -188,6 +188,21 @@ class AuthService:
     def logout(self, principal: Principal) -> None:
         self.store.revoke(principal.session_id, principal.user_id)
         self.audit("logout", principal.user_id)
+
+    def change_password(self, principal: Principal, request: PasswordChange) -> None:
+        user = self.store.user(principal.user_id)
+        if user is None:
+            raise unauthorized()
+        current = request.current_password.get_secret_value()
+        try:
+            self.passwords.verify(user["password_hash"], current)
+        except (VerificationError, InvalidHashError):
+            self.audit("password_change_failed", principal.user_id)
+            raise HTTPException(400, "当前密码不正确") from None
+        self.store.update_password(
+            principal.user_id, self.passwords.hash(request.new_password.get_secret_value())
+        )
+        self.audit("password_change", principal.user_id)
 
     def update_user(self, principal: Principal, request: ProfileUpdate) -> dict[str, Any]:
         try:

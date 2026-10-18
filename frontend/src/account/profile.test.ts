@@ -1,6 +1,12 @@
 import assert from 'node:assert/strict'
 import { test } from 'node:test'
-import { formatUnixSeconds, readProfile, validateProfile } from './profile.ts'
+import {
+  formatUnixSeconds,
+  passwordChangePayload,
+  readProfile,
+  validateProfile,
+  wrongCurrentPassword,
+} from './profile.ts'
 
 test('无法识别的资料不被当成一份资料', () => {
   assert.equal(readProfile(null), null)
@@ -28,6 +34,39 @@ test('注册时间格式化为本地日期而不是裸整数', () => {
   const text = formatUnixSeconds(0)
   assert.notEqual(text, '0')
   assert.match(text, /^\d{4}-\d{2}-\d{2} \d{2}:\d{2}$/)
+})
+
+test('确认密码不一致时不生成修改密码请求', () => {
+  const input = {
+    currentPassword: 'current-password',
+    newPassword: 'long-enough-password',
+    confirmPassword: 'different-password',
+  }
+  assert.equal(passwordChangePayload(input), null)
+  assert.equal(
+    passwordChangePayload({
+      ...input,
+      confirmPassword: input.newPassword,
+      newPassword: 'short',
+    }),
+    null,
+  )
+})
+
+test('通过校验后只提交当前密码和新密码', () => {
+  assert.deepEqual(
+    passwordChangePayload({
+      currentPassword: 'current-password',
+      newPassword: 'long-enough-password',
+      confirmPassword: 'long-enough-password',
+    }),
+    {
+      current_password: 'current-password',
+      new_password: 'long-enough-password',
+    },
+  )
+  assert.equal(wrongCurrentPassword('当前密码不正确'), true)
+  assert.equal(wrongCurrentPassword('请求无效'), false)
 })
 
 test('含空格的用户名不合法', () => {

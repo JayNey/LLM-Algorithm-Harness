@@ -9,6 +9,7 @@ from api.auth.models import (
     KeyCreate,
     KeyUpdate,
     LoginInput,
+    PasswordChange,
     ProfileUpdate,
     RefreshInput,
     RegisterInput,
@@ -65,6 +66,16 @@ def me(
     return ApiResponse(
         success=True, data=service.public_user(principal.user_id), message="Current user"
     )
+
+
+@router.post("/users/me/password", status_code=204)
+def change_password(
+    request: PasswordChange,
+    principal: Principal = Depends(current_user),
+    service: AuthService = Depends(auth_service),
+) -> Response:
+    service.change_password(principal, request)
+    return Response(status_code=204)
 
 
 @router.patch("/users/me")

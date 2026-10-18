@@ -41,3 +41,41 @@ export function validateProfile(input: ProfileInput): Record<string, string> {
   if (email) errors.email = email
   return errors
 }
+
+export interface PasswordChangeInput {
+  currentPassword: string
+  newPassword: string
+  confirmPassword: string
+}
+
+export function validatePasswordChange(
+  input: PasswordChangeInput,
+): Record<string, string> {
+  const errors: Record<string, string> = {}
+  if (input.currentPassword.length === 0) {
+    errors.currentPassword = '请输入当前密码'
+  }
+  if (input.newPassword.length < 12) {
+    errors.newPassword = '至少 12 个字符'
+  } else if (input.newPassword.length > 1024) {
+    errors.newPassword = '密码不能超过 1024 个字符'
+  }
+  if (input.newPassword !== input.confirmPassword) {
+    errors.confirmPassword = '两次密码不一致'
+  }
+  return errors
+}
+
+export function passwordChangePayload(
+  input: PasswordChangeInput,
+): { current_password: string; new_password: string } | null {
+  if (Object.keys(validatePasswordChange(input)).length > 0) return null
+  return {
+    current_password: input.currentPassword,
+    new_password: input.newPassword,
+  }
+}
+
+export function wrongCurrentPassword(message: string): boolean {
+  return message === '当前密码不正确'
+}
