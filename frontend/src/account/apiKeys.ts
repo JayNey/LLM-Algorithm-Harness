@@ -75,3 +75,19 @@ export function groupApiKeys(keys: readonly ApiKeyRecord[]): ApiKeyGroup[] {
 export function lastUsedLabel(lastUsedAt: number | null): string | null {
   return lastUsedAt === null ? '尚未使用' : null
 }
+
+export function rejectApiKey(value: string): string | null {
+  if (
+    value.trim().length === 0 ||
+    value.toLowerCase().startsWith('env:') ||
+    value.startsWith('${')
+  ) {
+    return '需要真实密钥值'
+  }
+  return null
+}
+
+export function validateKeyName(name: string): string | null {
+  if (name.length < 1 || name.length > 100) return '名称需为 1–100 个字符'
+  return null
+}

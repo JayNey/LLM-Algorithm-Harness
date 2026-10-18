@@ -4,6 +4,7 @@ import {
   groupApiKeys,
   lastUsedLabel,
   readApiKeys,
+  rejectApiKey,
   type ApiKeyRecord,
 } from './apiKeys.ts'
 
@@ -42,6 +43,19 @@ test('没有最后使用时间时表示尚未使用且次数为 0', () => {
   assert.equal(item.usage_count, 0)
   assert.equal(lastUsedLabel(item.last_used_at), '尚未使用')
   assert.equal(lastUsedLabel(1), null)
+})
+
+test('拒绝空白和环境变量引用', () => {
+  for (const value of [
+    '',
+    '   ',
+    'env:OPENAI_API_KEY',
+    'ENV:TOKEN',
+    '${KEY}',
+  ]) {
+    assert.equal(rejectApiKey(value), '需要真实密钥值')
+  }
+  assert.equal(rejectApiKey('sk-live'), null)
 })
 
 test('解析结果不保留密钥字段', () => {
