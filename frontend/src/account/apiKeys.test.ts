@@ -3,6 +3,7 @@ import { test } from 'node:test'
 import {
   groupApiKeys,
   lastUsedLabel,
+  readApiKey,
   readApiKeys,
   rejectApiKey,
   type ApiKeyRecord,
@@ -56,6 +57,33 @@ test('拒绝空白和环境变量引用', () => {
     assert.equal(rejectApiKey(value), '需要真实密钥值')
   }
   assert.equal(rejectApiKey('sk-live'), null)
+})
+
+test('整数验证状态解析为布尔且不保留密钥字段', () => {
+  const unverified = readApiKey({
+    id: 'k1',
+    provider: 'openai',
+    key_name: 'primary',
+    created_at: 1,
+    last_used_at: null,
+    usage_count: 0,
+    verified: 0,
+    api_key: 'sk-secret',
+  })
+  assert.ok(unverified)
+  assert.equal(unverified.verified, false)
+  assert.equal(Object.hasOwn(unverified, 'api_key'), false)
+
+  const verified = readApiKey({
+    id: 'k2',
+    provider: 'anthropic',
+    key_name: 'claude',
+    created_at: 1,
+    last_used_at: null,
+    usage_count: 0,
+    verified: 1,
+  })
+  assert.equal(verified?.verified, true)
 })
 
 test('解析结果不保留密钥字段', () => {

@@ -48,6 +48,7 @@ export default function ApiKeysPage() {
     handleSubmit,
     reset,
     setError: setFieldError,
+    clearErrors,
     formState: { errors },
   } = useForm<AddInput>({
     defaultValues: { provider: 'openai', key_name: '', api_key: '' },
@@ -83,6 +84,7 @@ export default function ApiKeysPage() {
   }, [])
 
   async function onSubmit(values: AddInput) {
+    clearErrors()
     setFormMessage('')
     const nameError = validateKeyName(values.key_name)
     const keyError = rejectApiKey(values.api_key)

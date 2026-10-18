@@ -28,16 +28,24 @@ function isProvider(value: unknown): value is Provider {
   return providers.includes(value as Provider)
 }
 
+function readVerified(value: unknown): boolean | null {
+  if (typeof value === 'boolean') return value
+  if (value === 0) return false
+  if (value === 1) return true
+  return null
+}
+
 export function readApiKey(value: unknown): ApiKeyRecord | null {
   if (typeof value !== 'object' || value === null) return null
   const record = value as Record<string, unknown>
   const lastUsed = record.last_used_at
+  const verified = readVerified(record.verified)
   if (
     typeof record.id !== 'string' ||
     !isProvider(record.provider) ||
     typeof record.key_name !== 'string' ||
     typeof record.created_at !== 'number' ||
-    typeof record.verified !== 'boolean' ||
+    verified === null ||
     (lastUsed !== null && typeof lastUsed !== 'number')
   ) {
     return null
@@ -50,7 +58,7 @@ export function readApiKey(value: unknown): ApiKeyRecord | null {
     last_used_at: lastUsed,
     usage_count:
       typeof record.usage_count === 'number' ? record.usage_count : 0,
-    verified: record.verified,
+    verified,
   }
 }
 
