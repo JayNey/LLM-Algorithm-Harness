@@ -38,3 +38,16 @@ export const appPages: AppPage[] = [
     Component: lazy(() => import('@/pages/Settings/SettingsPage.tsx')),
   },
 ]
+
+export const authPages: AppPage[] = [
+  {
+    path: '/login',
+    label: '登录',
+    Component: lazy(() => import('@/pages/Auth/LoginPage.tsx')),
+  },
+  {
+    path: '/register',
+    label: '注册',
+    Component: lazy(() => import('@/pages/Auth/RegisterPage.tsx')),
+  },
+]

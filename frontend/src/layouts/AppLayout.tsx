@@ -1,16 +1,30 @@
 import { Button, ConfigProvider, theme } from 'antd'
 import { useState } from 'react'
-import { NavLink, Outlet } from 'react-router-dom'
+import { NavLink, Outlet, useNavigate } from 'react-router-dom'
 import { readViteEnv } from '@/config/env.ts'
 import { appPages } from '@/routes.tsx'
+import { useAuthStore } from '@/store/auth.ts'
 import { useUiStore } from '@/store/ui.ts'
 
 const appName = readViteEnv().appName
 
 export function AppLayout() {
+  const navigate = useNavigate()
+  const session = useAuthStore((state) => state.session)
+  const logout = useAuthStore((state) => state.logout)
   const colorScheme = useUiStore((state) => state.colorScheme)
   const toggleColorScheme = useUiStore((state) => state.toggleColorScheme)
   const [menuOpen, setMenuOpen] = useState(false)
+
+  async function signOut() {
+    try {
+      await logout()
+    } catch {
+      // logout 清除本地会话后会重新抛出，失败时仍离开业务页。
+    } finally {
+      navigate('/login', { replace: true })
+    }
+  }
 
   return (
     <ConfigProvider
@@ -24,6 +38,7 @@ export function AppLayout() {
           <div className="flex items-center justify-between gap-3">
             <strong>{appName}</strong>
             <div className="flex items-center gap-2">
+              <span>{session?.username || '已登录'}</span>
               <Button
                 className="md:hidden"
                 aria-expanded={menuOpen}
@@ -52,6 +67,7 @@ export function AppLayout() {
                 {page.label}
               </NavLink>
             ))}
+            <Button onClick={() => void signOut()}>登出</Button>
           </nav>
         </header>
         <main className="p-4">
