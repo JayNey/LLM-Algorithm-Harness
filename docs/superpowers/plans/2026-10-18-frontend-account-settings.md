@@ -133,7 +133,7 @@ EOF
   - `formatUnixSeconds(seconds: number): string`
   - `UserProfile` 含 `username: string`、`email: string`、`created_at: number`
 
-- [ ] **Step 1: Write the failing test**
+- [x] **Step 1: Write the failing test**
 
 `frontend/src/account/profile.test.ts`：
 
@@ -177,7 +177,7 @@ test('注册时间格式化为本地日期而不是裸整数', () => {
 "test": "node --experimental-strip-types --test src/auth/*.test.ts src/store/*.test.ts src/account/*.test.ts"
 ```
 
-- [ ] **Step 2: Run test to verify it fails**
+- [x] **Step 2: Run test to verify it fails**
 
 ```bash
 cd frontend && node --experimental-strip-types --test src/account/profile.test.ts
@@ -185,7 +185,7 @@ cd frontend && node --experimental-strip-types --test src/account/profile.test.t
 
 Expected: FAIL，因为 `./profile.ts` 不存在。
 
-- [ ] **Step 3: Write minimal implementation**
+- [x] **Step 3: Write minimal implementation**
 
 `frontend/src/account/profile.ts`：
 
@@ -283,7 +283,7 @@ export default function ProfilePage() {
 }
 ```
 
-- [ ] **Step 4: Run test to verify it passes**
+- [x] **Step 4: Run test to verify it passes**
 
 ```bash
 cd frontend && node --experimental-strip-types --test src/account/profile.test.ts && npx tsc -b --pretty false
@@ -291,7 +291,7 @@ cd frontend && node --experimental-strip-types --test src/account/profile.test.t
 
 Expected: 测试通过，类型检查成功退出。
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add frontend/src/account/profile.ts frontend/src/account/profile.test.ts frontend/package.json frontend/src/pages/Settings/ProfilePage.tsx
@@ -324,7 +324,7 @@ EOF
   - `AuthClient.patch(url: string, data?: unknown): Promise<unknown>`
   - `AuthClient.delete(url: string): Promise<unknown>`
 
-- [ ] **Step 1: Write the failing test**
+- [x] **Step 1: Write the failing test**
 
 在 `profile.test.ts` 追加：
 
@@ -346,7 +346,7 @@ test('含空格的用户名不合法', () => {
 
 在 `auth.test.ts` 追加一个测试：先 `writeSession(true, saved, box)` 并 `hydrate`，调用 `updateUsername('grace')` 后，`store.getState().session?.username` 和 `readSession(box)?.username` 都是 `grace`。
 
-- [ ] **Step 2: Run test to verify it fails**
+- [x] **Step 2: Run test to verify it fails**
 
 ```bash
 cd frontend && node --experimental-strip-types --test src/account/profile.test.ts src/store/auth.test.ts
@@ -354,7 +354,7 @@ cd frontend && node --experimental-strip-types --test src/account/profile.test.t
 
 Expected: FAIL，`validateProfile` 和 `updateUsername` 尚不存在。
 
-- [ ] **Step 3: Write minimal implementation**
+- [x] **Step 3: Write minimal implementation**
 
 在 `registerForm.ts` 抽出：
 
@@ -586,7 +586,7 @@ export default function ProfilePage() {
 }
 ```
 
-- [ ] **Step 4: Run test to verify it passes**
+- [x] **Step 4: Run test to verify it passes**
 
 ```bash
 cd frontend && node --experimental-strip-types --test src/account/profile.test.ts src/auth/registerForm.test.ts src/store/auth.test.ts && npx tsc -b --pretty false
@@ -594,7 +594,7 @@ cd frontend && node --experimental-strip-types --test src/account/profile.test.t
 
 Expected: 全部通过。
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add frontend/src/auth/registerForm.ts frontend/src/account/profile.ts frontend/src/account/profile.test.ts frontend/src/store/auth.ts frontend/src/store/auth.test.ts frontend/src/pages/Settings/ProfilePage.tsx
@@ -623,7 +623,7 @@ EOF
   - `groupApiKeys(keys: readonly ApiKeyRecord[]): ApiKeyGroup[]`
   - `lastUsedLabel(lastUsedAt: number | null): string | null`
 
-- [ ] **Step 1: Write the failing test**
+- [x] **Step 1: Write the failing test**
 
 ```ts
 import assert from 'node:assert/strict'
@@ -690,7 +690,7 @@ test('解析结果不保留密钥字段', () => {
 })
 ```
 
-- [ ] **Step 2: Run test to verify it fails**
+- [x] **Step 2: Run test to verify it fails**
 
 ```bash
 cd frontend && node --experimental-strip-types --test src/account/apiKeys.test.ts
@@ -698,7 +698,7 @@ cd frontend && node --experimental-strip-types --test src/account/apiKeys.test.t
 
 Expected: FAIL，模块不存在。
 
-- [ ] **Step 3: Write minimal implementation**
+- [x] **Step 3: Write minimal implementation**
 
 `frontend/src/account/apiKeys.ts`：
 
@@ -781,7 +781,7 @@ export function lastUsedLabel(lastUsedAt: number | null): string | null {
 }
 ```
 
-- [ ] **Step 4: Run test to verify it passes**
+- [x] **Step 4: Run test to verify it passes**
 
 ```bash
 cd frontend && node --experimental-strip-types --test src/account/apiKeys.test.ts
@@ -789,7 +789,7 @@ cd frontend && node --experimental-strip-types --test src/account/apiKeys.test.t
 
 Expected: PASS。
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add frontend/src/account/apiKeys.ts frontend/src/account/apiKeys.test.ts
@@ -817,7 +817,7 @@ EOF
   - `rejectApiKey(value: string): string | null`
   - `validateKeyName(name: string): string | null`
 
-- [ ] **Step 1: Write the failing test**
+- [x] **Step 1: Write the failing test**
 
 ```ts
 import { rejectApiKey } from './apiKeys.ts'
@@ -830,7 +830,7 @@ test('拒绝空白和环境变量引用', () => {
 })
 ```
 
-- [ ] **Step 2: Run test to verify it fails**
+- [x] **Step 2: Run test to verify it fails**
 
 ```bash
 cd frontend && node --experimental-strip-types --test src/account/apiKeys.test.ts
@@ -838,7 +838,7 @@ cd frontend && node --experimental-strip-types --test src/account/apiKeys.test.t
 
 Expected: FAIL，`rejectApiKey` 未导出。
 
-- [ ] **Step 3: Write minimal implementation**
+- [x] **Step 3: Write minimal implementation**
 
 ```ts
 export function rejectApiKey(value: string): string | null {
@@ -1048,7 +1048,7 @@ export default function ApiKeysPage() {
 }
 ```
 
-- [ ] **Step 4: Run test to verify it passes**
+- [x] **Step 4: Run test to verify it passes**
 
 ```bash
 cd frontend && node --experimental-strip-types --test src/account/apiKeys.test.ts && npx tsc -b --pretty false
@@ -1056,7 +1056,7 @@ cd frontend && node --experimental-strip-types --test src/account/apiKeys.test.t
 
 Expected: 测试通过，类型检查成功退出。
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add frontend/src/account/apiKeys.ts frontend/src/account/apiKeys.test.ts frontend/src/pages/Settings/ApiKeysPage.tsx
@@ -1084,7 +1084,7 @@ EOF
   - `renamePayload(keyName: string): { key_name: string }`
   - `verifyStatusText(ok: boolean): '验证成功' | '验证失败'`
 
-- [ ] **Step 1: Write the failing test**
+- [x] **Step 1: Write the failing test**
 
 ```ts
 import { renamePayload, verifyStatusText } from './apiKeys.ts'
@@ -1101,7 +1101,7 @@ test('验证文案只有成功或失败', () => {
 })
 ```
 
-- [ ] **Step 2: Run test to verify it fails**
+- [x] **Step 2: Run test to verify it fails**
 
 ```bash
 cd frontend && node --experimental-strip-types --test src/account/apiKeys.test.ts
@@ -1109,7 +1109,7 @@ cd frontend && node --experimental-strip-types --test src/account/apiKeys.test.t
 
 Expected: FAIL，两个函数未导出。
 
-- [ ] **Step 3: Write minimal implementation**
+- [x] **Step 3: Write minimal implementation**
 
 ```ts
 export function renamePayload(keyName: string): { key_name: string } {
@@ -1157,7 +1157,7 @@ await load()
 
 `setNotice` 显示在页面顶部。不要读取 `message`。捕获到 `ApiClientError` 且 status 为 429 时显示「请求过于频繁，请稍后再试」；其他失败显示「服务暂时不可用」。请求结束后从加载集合移除该 id。
 
-- [ ] **Step 4: Run test to verify it passes**
+- [x] **Step 4: Run test to verify it passes**
 
 ```bash
 cd frontend && node --experimental-strip-types --test src/account/apiKeys.test.ts && npx tsc -b --pretty false
@@ -1165,7 +1165,7 @@ cd frontend && node --experimental-strip-types --test src/account/apiKeys.test.t
 
 Expected: 测试通过，类型检查成功退出。
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add frontend/src/account/apiKeys.ts frontend/src/account/apiKeys.test.ts frontend/src/pages/Settings/ApiKeysPage.tsx
@@ -1185,7 +1185,7 @@ EOF
 **Files:**
 - Modify: `openspec/changes/frontend-account-settings/tasks.md`（仅把 1.1 到 3.1 勾选为完成，不改任务正文）
 
-- [ ] **Step 1: 运行前端检查**
+- [x] **Step 1: 运行前端检查**
 
 ```bash
 cd frontend && npx tsc -b --pretty false && npm run lint && npm test && npm run build
@@ -1193,7 +1193,7 @@ cd frontend && npx tsc -b --pretty false && npm run lint && npm test && npm run 
 
 Expected: 四条命令都成功退出。
 
-- [ ] **Step 2: 勾选任务并提交**
+- [x] **Step 2: 勾选任务并提交**
 
 确认 `tasks.md` 七个复选框都是 `[x]`。不要勾选本计划文件里的步骤来代替 `tasks.md`。
 
