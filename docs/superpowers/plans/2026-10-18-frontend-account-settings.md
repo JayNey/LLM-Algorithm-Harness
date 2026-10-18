@@ -609,7 +609,7 @@ EOF
 
 对应 `tasks.md` 2.1。
 
-- [ ] Task 4: 密钥分组
+- [x] Task 4: 密钥分组
 
 **Files:**
 - Create: `frontend/src/account/apiKeys.ts`
