@@ -1,4 +1,5 @@
 import dayjs from 'dayjs'
+import { validateEmail, validateUsername } from '../auth/registerForm.ts'
 
 export interface UserProfile {
   username: string
@@ -25,4 +26,18 @@ export function readProfile(value: unknown): UserProfile | null {
 
 export function formatUnixSeconds(seconds: number): string {
   return dayjs.unix(seconds).format('YYYY-MM-DD HH:mm')
+}
+
+export interface ProfileInput {
+  username: string
+  email: string
+}
+
+export function validateProfile(input: ProfileInput): Record<string, string> {
+  const errors: Record<string, string> = {}
+  const username = validateUsername(input.username)
+  const email = validateEmail(input.email)
+  if (username) errors.username = username
+  if (email) errors.email = email
+  return errors
 }

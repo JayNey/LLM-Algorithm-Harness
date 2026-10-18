@@ -16,6 +16,8 @@ import { readViteEnv } from '../config/env.ts'
 export interface AuthClient {
   post(url: string, data?: unknown): Promise<unknown>
   get(url: string): Promise<unknown>
+  patch(url: string, data?: unknown): Promise<unknown>
+  delete(url: string): Promise<unknown>
 }
 
 export interface AuthDeps {
@@ -37,6 +39,7 @@ interface AuthState {
   ) => Promise<void>
   logout: (deps?: AuthDeps) => Promise<void>
   clear: (deps?: AuthDeps) => void
+  updateUsername: (username: string, deps?: AuthDeps) => void
   httpClient: (deps?: AuthDeps) => AuthClient
 }
 
@@ -196,6 +199,14 @@ export function createAuthStore() {
         const box = storagesFrom(deps)
         clearSession(box)
         set({ session: null })
+      },
+      updateUsername(username, deps) {
+        const box = storagesFrom(deps)
+        const current = readSession(box)
+        if (!current) return
+        const next = { ...current, username }
+        writeSession(remember, next, box)
+        set({ session: next })
       },
       httpClient(deps) {
         return sharedClient(deps, storagesFrom(deps))
