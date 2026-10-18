@@ -8,6 +8,7 @@ import {
   readApiKeys,
   rejectApiKey,
   renamePayload,
+  requestFailureText,
   validateKeyName,
   verifyStatusText,
   type ApiKeyRecord,
@@ -23,23 +24,39 @@ interface AddInput {
   api_key: string
 }
 
+function failureText(error: unknown): string {
+  return requestFailureText(
+    error instanceof ApiClientError ? error.status : undefined,
+  )
+}
+
 function KeyRow({
   item,
   load,
   verifying,
   markVerifying,
   setNotice,
+  setLoadError,
 }: {
   item: ApiKeyRecord
   load: () => Promise<void>
   verifying: boolean
   markVerifying: (id: string, active: boolean) => void
   setNotice: (message: string) => void
+  setLoadError: (message: string) => void
 }) {
   const [editing, setEditing] = useState(false)
   const [name, setName] = useState(item.key_name)
   const [nameError, setNameError] = useState('')
   const [saving, setSaving] = useState(false)
+
+  async function reload() {
+    try {
+      await load()
+    } catch {
+      setLoadError('服务暂时不可用')
+    }
+  }
 
   async function saveName() {
     const invalid = validateKeyName(name)
@@ -54,17 +71,14 @@ function KeyRow({
         .getState()
         .httpClient()
         .patch('/api-keys/' + item.id, renamePayload(name))
-      await load()
-      setEditing(false)
     } catch (error) {
-      setNameError(
-        error instanceof ApiClientError && error.status === 429
-          ? '请求过于频繁，请稍后再试'
-          : '服务暂时不可用',
-      )
+      setNameError(failureText(error))
+      return
     } finally {
       setSaving(false)
     }
+    setEditing(false)
+    await reload()
   }
 
   function confirmDelete() {
@@ -73,11 +87,16 @@ function KeyRow({
       okText: '删除',
       cancelText: '取消',
       onOk: async () => {
-        await useAuthStore
-          .getState()
-          .httpClient()
-          .delete('/api-keys/' + item.id)
-        await load()
+        try {
+          await useAuthStore
+            .getState()
+            .httpClient()
+            .delete('/api-keys/' + item.id)
+        } catch (error) {
+          setNotice(failureText(error))
+          return
+        }
+        await reload()
       },
     })
   }
@@ -95,16 +114,13 @@ function KeyRow({
         'ok' in result &&
         result.ok === true
       setNotice(verifyStatusText(ok))
-      await load()
     } catch (error) {
-      setNotice(
-        error instanceof ApiClientError && error.status === 429
-          ? '请求过于频繁，请稍后再试'
-          : '服务暂时不可用',
-      )
+      setNotice(failureText(error))
+      return
     } finally {
       markVerifying(item.id, false)
     }
+    await reload()
   }
 
   return (
@@ -254,6 +270,13 @@ export default function ApiKeysPage() {
     return (
       <section>
         <h1>API 密钥</h1>
+        {notice ? (
+          <Alert
+            type={notice === '验证成功' ? 'success' : 'error'}
+            message={notice}
+            showIcon
+          />
+        ) : null}
         <Alert type="error" message={error} showIcon />
       </section>
     )
@@ -335,6 +358,7 @@ export default function ApiKeysPage() {
                 verifying={verifyingIds.has(item.id)}
                 markVerifying={markVerifying}
                 setNotice={setNotice}
+                setLoadError={setError}
               />
             ))}
           </ul>

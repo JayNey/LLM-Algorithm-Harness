@@ -107,3 +107,8 @@ export function renamePayload(keyName: string): { key_name: string } {
 export function verifyStatusText(ok: boolean): '验证成功' | '验证失败' {
   return ok ? '验证成功' : '验证失败'
 }
+
+export function requestFailureText(status: number | undefined): string {
+  if (status === 429) return '请求过于频繁，请稍后再试'
+  return '服务暂时不可用'
+}
