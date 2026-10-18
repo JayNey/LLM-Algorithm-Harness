@@ -649,3 +649,73 @@ def test_db_session_expiration_is_enforced_even_with_valid_jwt(api):
         ).status_code
         == 401
     )
+
+
+NEW_PASSWORD = "another-long-password!"
+
+
+def test_short_new_password_is_rejected_and_hash_stays(api):
+    client, tokens, app, _ = api
+    before = app.state.auth.store.find_user("alice")["password_hash"]
+    response = client.post(
+        "/api/v1/users/me/password",
+        headers=headers(tokens),
+        json={"current_password": PASSWORD, "new_password": "short"},
+    )
+    assert response.status_code == 400
+    assert PASSWORD not in response.text
+    assert "short" not in response.text
+    assert app.state.auth.store.find_user("alice")["password_hash"] == before
+    assert (
+        client.post(
+            "/api/v1/auth/login", json={"username": "alice", "password": PASSWORD}
+        ).status_code
+        == 200
+    )
+
+
+def test_change_password_returns_no_secret_and_keeps_session(api):
+    client, tokens, app, _ = api
+    response = client.post(
+        "/api/v1/users/me/password",
+        headers=headers(tokens),
+        json={"current_password": PASSWORD, "new_password": NEW_PASSWORD},
+    )
+    assert response.status_code == 204
+    assert response.content == b""
+    assert "password_hash" not in response.text
+    assert NEW_PASSWORD not in response.text
+    assert client.get("/api/v1/users/me", headers=headers(tokens)).status_code == 200
+    assert (
+        client.post(
+            "/api/v1/auth/login", json={"username": "alice", "password": NEW_PASSWORD}
+        ).status_code
+        == 200
+    )
+    assert app.state.auth.store.find_user("alice")["password_hash"] != PASSWORD
+
+
+def test_wrong_current_password_is_not_an_expired_session(api):
+    client, tokens, app, _ = api
+    before = app.state.auth.store.find_user("alice")["password_hash"]
+    response = client.post(
+        "/api/v1/users/me/password",
+        headers=headers(tokens),
+        json={"current_password": "not-the-current-password", "new_password": NEW_PASSWORD},
+    )
+    assert response.status_code == 400
+    assert response.json()["detail"] == "当前密码不正确"
+    assert app.state.auth.store.find_user("alice")["password_hash"] == before
+    assert client.get("/api/v1/users/me", headers=headers(tokens)).status_code == 200
+    assert (
+        client.post(
+            "/api/v1/auth/login", json={"username": "alice", "password": PASSWORD}
+        ).status_code
+        == 200
+    )
+    assert (
+        client.post(
+            "/api/v1/auth/login", json={"username": "alice", "password": NEW_PASSWORD}
+        ).status_code
+        == 401
+    )

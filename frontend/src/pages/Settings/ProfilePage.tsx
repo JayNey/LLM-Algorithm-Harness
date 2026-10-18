@@ -3,8 +3,12 @@ import { useEffect, useState } from 'react'
 import { Controller, useForm } from 'react-hook-form'
 import {
   formatUnixSeconds,
+  passwordChangePayload,
   readProfile,
+  validatePasswordChange,
   validateProfile,
+  wrongCurrentPassword,
+  type PasswordChangeInput,
   type ProfileInput,
 } from '@/account/profile.ts'
 import { ApiClientError } from '@/auth/http.ts'
@@ -26,6 +30,9 @@ export default function ProfilePage() {
   const [saved, setSaved] = useState(false)
   const [createdAt, setCreatedAt] = useState<number | null>(null)
   const [submitting, setSubmitting] = useState(false)
+  const [passwordMessage, setPasswordMessage] = useState('')
+  const [passwordSaved, setPasswordSaved] = useState(false)
+  const [changingPassword, setChangingPassword] = useState(false)
   const {
     control,
     handleSubmit,
@@ -35,6 +42,20 @@ export default function ProfilePage() {
     formState: { errors },
   } = useForm<ProfileInput>({
     defaultValues: { username: '', email: '' },
+  })
+  const {
+    control: passwordControl,
+    handleSubmit: handlePasswordSubmit,
+    setError: setPasswordError,
+    clearErrors: clearPasswordErrors,
+    reset: resetPassword,
+    formState: { errors: passwordErrors },
+  } = useForm<PasswordChangeInput>({
+    defaultValues: {
+      currentPassword: '',
+      newPassword: '',
+      confirmPassword: '',
+    },
   })
 
   useEffect(() => {
@@ -98,6 +119,45 @@ export default function ProfilePage() {
     }
   }
 
+  async function onPasswordSubmit(values: PasswordChangeInput) {
+    clearPasswordErrors()
+    setPasswordMessage('')
+    setPasswordSaved(false)
+    const clientErrors = validatePasswordChange(values)
+    for (const name of [
+      'currentPassword',
+      'newPassword',
+      'confirmPassword',
+    ] as const) {
+      const message = clientErrors[name]
+      if (message) setPasswordError(name, { type: 'validate', message })
+    }
+    const payload = passwordChangePayload(values)
+    if (!payload) return
+
+    setChangingPassword(true)
+    try {
+      await useAuthStore
+        .getState()
+        .httpClient()
+        .post('/users/me/password', payload)
+      resetPassword()
+      setPasswordSaved(true)
+    } catch (error) {
+      if (
+        error instanceof ApiClientError &&
+        wrongCurrentPassword(error.message)
+      ) {
+        resetPassword()
+        setPasswordMessage('当前密码不正确')
+        return
+      }
+      setPasswordMessage(failureText(error))
+    } finally {
+      setChangingPassword(false)
+    }
+  }
+
   if (loading) return <p>加载中</p>
   if (loadError || createdAt === null) {
     return (
@@ -149,6 +209,68 @@ export default function ProfilePage() {
         </Form.Item>
         <Button type="primary" htmlType="submit" loading={submitting}>
           保存
+        </Button>
+      </Form>
+      <h2 className="mb-4 mt-8 text-lg font-semibold">修改密码</h2>
+      {passwordSaved ? (
+        <Alert className="mb-4" type="success" message="已更新" showIcon />
+      ) : null}
+      {passwordMessage ? (
+        <Alert
+          className="mb-4"
+          type="error"
+          message={passwordMessage}
+          showIcon
+        />
+      ) : null}
+      <Form
+        layout="vertical"
+        noValidate
+        onFinish={() => {
+          void handlePasswordSubmit(onPasswordSubmit)()
+        }}
+      >
+        <Form.Item
+          label="当前密码"
+          validateStatus={passwordErrors.currentPassword ? 'error' : undefined}
+          help={passwordErrors.currentPassword?.message}
+        >
+          <Controller
+            name="currentPassword"
+            control={passwordControl}
+            render={({ field }) => (
+              <Input.Password autoComplete="current-password" {...field} />
+            )}
+          />
+        </Form.Item>
+        <Form.Item
+          label="新密码"
+          validateStatus={passwordErrors.newPassword ? 'error' : undefined}
+          help={passwordErrors.newPassword?.message}
+        >
+          <Controller
+            name="newPassword"
+            control={passwordControl}
+            render={({ field }) => (
+              <Input.Password autoComplete="new-password" {...field} />
+            )}
+          />
+        </Form.Item>
+        <Form.Item
+          label="确认密码"
+          validateStatus={passwordErrors.confirmPassword ? 'error' : undefined}
+          help={passwordErrors.confirmPassword?.message}
+        >
+          <Controller
+            name="confirmPassword"
+            control={passwordControl}
+            render={({ field }) => (
+              <Input.Password autoComplete="new-password" {...field} />
+            )}
+          />
+        </Form.Item>
+        <Button type="primary" htmlType="submit" loading={changingPassword}>
+          更新密码
         </Button>
       </Form>
     </section>

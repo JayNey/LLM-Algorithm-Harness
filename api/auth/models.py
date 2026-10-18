@@ -31,6 +31,11 @@ class RefreshInput(InputModel):
     refresh_token: SecretStr = Field(min_length=1, max_length=4096)
 
 
+class PasswordChange(InputModel):
+    current_password: SecretStr = Field(min_length=1, max_length=1024)
+    new_password: SecretStr = Field(min_length=12, max_length=1024)
+
+
 class KeyCreate(InputModel):
     provider: Literal["openai", "anthropic", "siliconflow"]
     key_name: str = Field(min_length=1, max_length=100)

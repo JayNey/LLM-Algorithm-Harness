@@ -82,6 +82,13 @@ class AuthStore:
                 (user_id, username.casefold(), email.casefold(), password_hash, int(time.time())),
             )
 
+    def update_password(self, user_id: str, password_hash: str) -> None:
+        with self.connection() as db:
+            db.execute(
+                "UPDATE auth_users SET password_hash=? WHERE id=?",
+                (password_hash, user_id),
+            )
+
     def update_user(self, user_id: str, username: str | None, email: str | None) -> None:
         with self.connection() as db:
             db.execute(
