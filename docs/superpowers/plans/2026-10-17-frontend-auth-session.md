@@ -2,6 +2,7 @@
 change: frontend-auth-session
 design-doc: docs/superpowers/specs/2026-10-17-frontend-auth-session-design.md
 base-ref: c4a019c0843a2e96c32c09eb67bc363c4a2012ee
+archived-with: 2026-10-18-frontend-auth-session
 ---
 
 # 前端登录会话 Implementation Plan

@@ -2,6 +2,8 @@
 comet_change: frontend-auth-session
 role: technical-design
 canonical_spec: openspec
+archived-with: 2026-10-18-frontend-auth-session
+status: final
 ---
 
 # 前端登录会话 — 技术设计（Design Doc）
