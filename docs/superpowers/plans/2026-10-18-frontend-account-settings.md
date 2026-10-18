@@ -42,7 +42,7 @@ base-ref: 4654f3c384b17d8ff73d80a581159d2724289e40
 - Consumes: 现有 `appPages` 与 `RequireSession`
 - Produces: `settingsPages`，路径为 `/settings/profile` 和 `/settings/api-keys`。顶栏仍只渲染 `appPages`。
 
-- [ ] **Step 1: 增加不进入顶栏的子路由**
+- [x] **Step 1: 增加不进入顶栏的子路由**
 
 把下面的导出加到 `frontend/src/routes.tsx` 的 `appPages` 之后。不要把这两项放进 `appPages`。
 
@@ -71,7 +71,7 @@ export default function Page() {
 }
 ```
 
-- [ ] **Step 2: 设置页只放两个链接**
+- [x] **Step 2: 设置页只放两个链接**
 
 用下面的内容替换 `frontend/src/pages/Settings/SettingsPage.tsx`。这个文件不得 import `@/auth/http.ts`、`@/store/auth.ts` 或 `@/account/`。
 
@@ -93,7 +93,7 @@ export default function SettingsPage() {
 }
 ```
 
-- [ ] **Step 3: 用类型检查确认设置页通过编译**
+- [x] **Step 3: 用类型检查确认设置页通过编译**
 
 运行：
 
@@ -103,7 +103,7 @@ cd frontend && npx tsc -b --pretty false
 
 Expected: 成功退出。占位页会在后续任务被替换。
 
-- [ ] **Step 4: Commit**
+- [x] **Step 4: Commit**
 
 ```bash
 git add frontend/src/routes.tsx frontend/src/App.tsx frontend/src/pages/Settings docs/superpowers/specs/2026-10-18-frontend-account-settings-design.md docs/superpowers/plans/2026-10-18-frontend-account-settings.md openspec/changes/frontend-account-settings
