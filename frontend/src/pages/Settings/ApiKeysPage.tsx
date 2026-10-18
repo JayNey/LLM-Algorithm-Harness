@@ -1,4 +1,4 @@
-import { Alert, Button, Form, Input, Select } from 'antd'
+import { Alert, Button, Form, Input, Modal, Select } from 'antd'
 import { useEffect, useState } from 'react'
 import { Controller, useForm } from 'react-hook-form'
 import {
@@ -7,11 +7,14 @@ import {
   providers,
   readApiKeys,
   rejectApiKey,
+  renamePayload,
   validateKeyName,
+  verifyStatusText,
   type ApiKeyRecord,
   type Provider,
 } from '@/account/apiKeys.ts'
 import { formatUnixSeconds } from '@/account/profile.ts'
+import { ApiClientError } from '@/auth/http.ts'
 import { useAuthStore } from '@/store/auth.ts'
 
 interface AddInput {
@@ -20,7 +23,90 @@ interface AddInput {
   api_key: string
 }
 
-function KeyRow({ item }: { item: ApiKeyRecord }) {
+function KeyRow({
+  item,
+  load,
+  verifying,
+  markVerifying,
+  setNotice,
+}: {
+  item: ApiKeyRecord
+  load: () => Promise<void>
+  verifying: boolean
+  markVerifying: (id: string, active: boolean) => void
+  setNotice: (message: string) => void
+}) {
+  const [editing, setEditing] = useState(false)
+  const [name, setName] = useState(item.key_name)
+  const [nameError, setNameError] = useState('')
+  const [saving, setSaving] = useState(false)
+
+  async function saveName() {
+    const invalid = validateKeyName(name)
+    if (invalid) {
+      setNameError(invalid)
+      return
+    }
+    setNameError('')
+    setSaving(true)
+    try {
+      await useAuthStore
+        .getState()
+        .httpClient()
+        .patch('/api-keys/' + item.id, renamePayload(name))
+      await load()
+      setEditing(false)
+    } catch (error) {
+      setNameError(
+        error instanceof ApiClientError && error.status === 429
+          ? '请求过于频繁，请稍后再试'
+          : '服务暂时不可用',
+      )
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  function confirmDelete() {
+    Modal.confirm({
+      title: '删除这条密钥？',
+      okText: '删除',
+      cancelText: '取消',
+      onOk: async () => {
+        await useAuthStore
+          .getState()
+          .httpClient()
+          .delete('/api-keys/' + item.id)
+        await load()
+      },
+    })
+  }
+
+  async function verify() {
+    markVerifying(item.id, true)
+    try {
+      const result: unknown = await useAuthStore
+        .getState()
+        .httpClient()
+        .post('/api-keys/' + item.id + '/verify')
+      const ok =
+        typeof result === 'object' &&
+        result !== null &&
+        'ok' in result &&
+        result.ok === true
+      setNotice(verifyStatusText(ok))
+      await load()
+    } catch (error) {
+      setNotice(
+        error instanceof ApiClientError && error.status === 429
+          ? '请求过于频繁，请稍后再试'
+          : '服务暂时不可用',
+      )
+    } finally {
+      markVerifying(item.id, false)
+    }
+  }
+
   return (
     <li>
       <p>{item.key_name}</p>
@@ -33,6 +119,47 @@ function KeyRow({ item }: { item: ApiKeyRecord }) {
           ? lastUsedLabel(null)
           : `最后使用：${formatUnixSeconds(item.last_used_at)}`}
       </p>
+      {editing ? (
+        <div>
+          <Input
+            value={name}
+            onChange={(event) => {
+              setName(event.target.value)
+            }}
+          />
+          {nameError ? <p>{nameError}</p> : null}
+          <Button
+            type="primary"
+            loading={saving}
+            onClick={() => {
+              void saveName()
+            }}
+          >
+            保存
+          </Button>
+        </div>
+      ) : (
+        <Button
+          onClick={() => {
+            setName(item.key_name)
+            setNameError('')
+            setEditing(true)
+          }}
+        >
+          改名
+        </Button>
+      )}
+      <Button danger onClick={confirmDelete}>
+        删除
+      </Button>
+      <Button
+        loading={verifying}
+        onClick={() => {
+          void verify()
+        }}
+      >
+        验证
+      </Button>
     </li>
   )
 }
@@ -43,6 +170,19 @@ export default function ApiKeysPage() {
   const [keys, setKeys] = useState<ApiKeyRecord[]>([])
   const [submitting, setSubmitting] = useState(false)
   const [formMessage, setFormMessage] = useState('')
+  const [notice, setNotice] = useState('')
+  const [verifyingIds, setVerifyingIds] = useState<ReadonlySet<string>>(
+    () => new Set(),
+  )
+
+  function markVerifying(id: string, active: boolean) {
+    setVerifyingIds((current) => {
+      const next = new Set(current)
+      if (active) next.add(id)
+      else next.delete(id)
+      return next
+    })
+  }
   const {
     control,
     handleSubmit,
@@ -123,6 +263,13 @@ export default function ApiKeysPage() {
   return (
     <section>
       <h1>API 密钥</h1>
+      {notice ? (
+        <Alert
+          type={notice === '验证成功' ? 'success' : 'error'}
+          message={notice}
+          showIcon
+        />
+      ) : null}
       <p>密钥保存后不再显示</p>
       {formMessage ? (
         <Alert type="error" message={formMessage} showIcon />
@@ -181,7 +328,14 @@ export default function ApiKeysPage() {
           <h2>{group.label}</h2>
           <ul>
             {group.keys.map((item) => (
-              <KeyRow key={item.id} item={item} />
+              <KeyRow
+                key={item.id}
+                item={item}
+                load={load}
+                verifying={verifyingIds.has(item.id)}
+                markVerifying={markVerifying}
+                setNotice={setNotice}
+              />
             ))}
           </ul>
         </section>

@@ -99,3 +99,11 @@ export function validateKeyName(name: string): string | null {
   if (name.length < 1 || name.length > 100) return '名称需为 1–100 个字符'
   return null
 }
+
+export function renamePayload(keyName: string): { key_name: string } {
+  return { key_name: keyName }
+}
+
+export function verifyStatusText(ok: boolean): '验证成功' | '验证失败' {
+  return ok ? '验证成功' : '验证失败'
+}

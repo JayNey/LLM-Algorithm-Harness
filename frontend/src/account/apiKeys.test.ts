@@ -6,6 +6,8 @@ import {
   readApiKey,
   readApiKeys,
   rejectApiKey,
+  renamePayload,
+  verifyStatusText,
   type ApiKeyRecord,
 } from './apiKeys.ts'
 
@@ -101,4 +103,15 @@ test('解析结果不保留密钥字段', () => {
   ])
   assert.equal(parsed?.[0] && Object.hasOwn(parsed[0], 'api_key'), false)
   assert.equal(readApiKeys({ data: [] }), null)
+})
+
+test('改名载荷只有 key_name', () => {
+  const payload = renamePayload('renamed')
+  assert.deepEqual(payload, { key_name: 'renamed' })
+  assert.equal(Object.hasOwn(payload, 'api_key'), false)
+})
+
+test('验证文案只有成功或失败', () => {
+  assert.equal(verifyStatusText(true), '验证成功')
+  assert.equal(verifyStatusText(false), '验证失败')
 })
