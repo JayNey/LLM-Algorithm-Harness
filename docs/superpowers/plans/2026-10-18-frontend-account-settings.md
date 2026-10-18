@@ -2,6 +2,7 @@
 change: frontend-account-settings
 design-doc: docs/superpowers/specs/2026-10-18-frontend-account-settings-design.md
 base-ref: 4654f3c384b17d8ff73d80a581159d2724289e40
+archived-with: 2026-10-18-frontend-account-settings
 ---
 
 # 前端账户设置 Implementation Plan

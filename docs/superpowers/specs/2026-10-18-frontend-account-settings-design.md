@@ -2,6 +2,8 @@
 comet_change: frontend-account-settings
 role: technical-design
 canonical_spec: openspec
+archived-with: 2026-10-18-frontend-account-settings
+status: final
 ---
 
 # 前端账户设置 — 技术设计（Design Doc）

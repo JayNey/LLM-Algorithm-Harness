@@ -1,7 +1,0 @@
-{
-  "openspec_proposal": "openspec/changes/frontend-account-settings/proposal.md",
-  "openspec_design": "openspec/changes/frontend-account-settings/design.md",
-  "openspec_tasks": "openspec/changes/frontend-account-settings/tasks.md",
-  "handoff_context": "openspec/changes/frontend-account-settings/.comet/handoff/design-context.json",
-  "handoff_markdown": "openspec/changes/frontend-account-settings/.comet/handoff/design-context.md"
-}
