@@ -804,7 +804,7 @@ EOF
 
 对应 `tasks.md` 2.2。
 
-- [ ] Task 5: 添加密钥
+- [x] Task 5: 添加密钥
 
 **Files:**
 - Modify: `frontend/src/account/apiKeys.ts`
