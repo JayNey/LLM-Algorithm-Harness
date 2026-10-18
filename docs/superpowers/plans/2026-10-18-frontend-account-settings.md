@@ -118,6 +118,8 @@ EOF
 
 对应 `tasks.md` 1.2。
 
+- [x] Task 2: 读取个人资料
+
 **Files:**
 - Create: `frontend/src/account/profile.ts`
 - Create: `frontend/src/account/profile.test.ts`
@@ -303,6 +305,8 @@ EOF
 ### Task 3: 修改用户名和邮箱
 
 对应 `tasks.md` 1.3。
+
+- [ ] Task 3: 修改用户名和邮箱
 
 **Files:**
 - Modify: `frontend/src/auth/registerForm.ts`
@@ -605,6 +609,8 @@ EOF
 
 对应 `tasks.md` 2.1。
 
+- [ ] Task 4: 密钥分组
+
 **Files:**
 - Create: `frontend/src/account/apiKeys.ts`
 - Create: `frontend/src/account/apiKeys.test.ts`
@@ -797,6 +803,8 @@ EOF
 ### Task 5: 添加密钥
 
 对应 `tasks.md` 2.2。
+
+- [ ] Task 5: 添加密钥
 
 **Files:**
 - Modify: `frontend/src/account/apiKeys.ts`
@@ -1063,6 +1071,8 @@ EOF
 
 对应 `tasks.md` 2.3。
 
+- [ ] Task 6: 改名、删除和验证
+
 **Files:**
 - Modify: `frontend/src/account/apiKeys.ts`
 - Modify: `frontend/src/account/apiKeys.test.ts`
@@ -1169,6 +1179,8 @@ EOF
 ### Task 7: 整体验证
 
 对应 `tasks.md` 3.1。
+
+- [ ] Task 7: 整体验证
 
 **Files:**
 - Modify: `openspec/changes/frontend-account-settings/tasks.md`（仅把 1.1 到 3.1 勾选为完成，不改任务正文）
