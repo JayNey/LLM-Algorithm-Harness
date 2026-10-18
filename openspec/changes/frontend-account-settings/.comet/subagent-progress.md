@@ -1,30 +1,26 @@
 # Subagent progress — frontend-account-settings
 
-- Plan task: ### Task 1: 设置入口
-- OpenSpec task: 1.1 把 `/settings` 改成个人资料和 API 密钥的入口，页面不请求这两类数据。用类型检查确认设置页通过编译
-- Stage: done
-- Review: approved by 9250acda-10c9-4ef6-9679-00662a19d5cf
-- Checkoff commit: c803b56
-- Ruling: lint/build/test belong to task 7; task 1 evidence is tsc RED TS2307 then GREEN exit 0.
+## Completed
 
-# Next
+- Task 1: 设置入口 — DONE — commit 71734f5 — review approved — checkoff c803b56
+- Task 2: 读取个人资料 — DONE — commit a76e5d0 — review approved — checkoff 11097b0
+- Task 3: 修改用户名和邮箱 — DONE — commit 03b0609 — review approved — checkoff 1d33aa0
+- Task 4: 按提供商分组 — DONE — commit 498e7db — review approved — checkoff 01b902c
+- Task 5: 添加密钥 — DONE — commits 043f73a, 6d96580 — review approved — checkoff 089ba11
+- Task 6: 改名、删除和验证 — DONE — commits 2c02d9f, 6b3699d — re-review approved b846192f — checkoff this commit
+  - RED: `requestFailureText` 未导出
+  - GREEN: apiKeys 测试 8 通过，`tsc -b` 退出码 0
+  - Review rounds: 1 / 2
+  - Findings addressed: delete `onOk` 显示 429 或「服务暂时不可用」且不重新抛出；后续 `load()` 失败不覆盖操作结果；错误页仍显示已有 notice
 
-- Plan task: ### Task 2: 读取个人资料
-- OpenSpec task: 1.2 增加受守卫保护的资料页，读取 `GET /api/v1/users/me`，用本地时间显示注册时间，并在失败时显示错误。用类型检查确认页面通过编译
+## Current
+
+- Plan task: ### Task 7: 整体验证
+- OpenSpec task: 3.1 运行前端类型检查、代码检查和生产构建，三者都成功退出。Node 测试覆盖分组、非法密钥值和改名载荷
 - Stage: implementing
 - Model: composer-2.5-fast
-- Base: c803b568482e633dde6bb1517220b559754bf5bb
-
-- Implementer: 0f4c4736-e928-48ac-9b61-6cbc08d99d1b
-- Commit: 71734f5 设置页改为资料和密钥入口。
-- RED/GREEN: tsc RED TS2307 missing pages, then GREEN exit 0
-- Files: frontend routes, App, Settings pages; design doc, plan, openspec change dir
-- Model: composer-2.5-fast
+- Base: 6b3699dfcf22acaf89f85d387ecd38a01e90784b
 - review_mode: thorough
 - tdd_mode: tdd
 - Review rounds: 0 / 2
-- Base: 4654f3c384b17d8ff73d80a581159d2724289e40
-- Commit: pending
-- RED/GREEN: pending
-- Files: pending
-- Review: pending
+- Ruling: implementer 只运行检查命令，不勾选 plan 或 tasks.md。勾选由主会话在审查通过后完成。

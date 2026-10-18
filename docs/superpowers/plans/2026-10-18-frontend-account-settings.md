@@ -1071,7 +1071,7 @@ EOF
 
 对应 `tasks.md` 2.3。
 
-- [ ] Task 6: 改名、删除和验证
+- [x] Task 6: 改名、删除和验证
 
 **Files:**
 - Modify: `frontend/src/account/apiKeys.ts`
