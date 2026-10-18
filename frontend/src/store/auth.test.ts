@@ -236,6 +236,32 @@ test('恢复已保存的会话', () => {
   assert.deepEqual(store.getState().session, saved)
 })
 
+test('修改用户名写回记住我的会话', () => {
+  const box = storages()
+  writeSession(true, saved, box)
+  const store = createAuthStore()
+  store.getState().hydrate({ storages: box })
+  store.getState().updateUsername('grace', { storages: box })
+  assert.equal(store.getState().session?.username, 'grace')
+  assert.equal(readSession(box)?.username, 'grace')
+  assert.equal(readSession(box)?.accessToken, saved.accessToken)
+  assert.equal(box.local.length, 1)
+  assert.equal(box.session.length, 0)
+})
+
+test('修改用户名沿用未记住我的会话存储', () => {
+  const box = storages()
+  writeSession(false, { ...saved, accessToken: 'tab' }, box)
+  const store = createAuthStore()
+  store.getState().hydrate({ storages: box })
+  store.getState().updateUsername('grace', { storages: box })
+  assert.equal(store.getState().session?.username, 'grace')
+  assert.equal(readSession(box)?.username, 'grace')
+  assert.equal(readSession(box)?.accessToken, 'tab')
+  assert.equal(box.local.length, 0)
+  assert.equal(box.session.length, 1)
+})
+
 test('未注入客户端时登录和登出复用同一个实例', async () => {
   const box = storages()
   const store = createAuthStore()

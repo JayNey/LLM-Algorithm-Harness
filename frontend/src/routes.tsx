@@ -39,6 +39,19 @@ export const appPages: AppPage[] = [
   },
 ]
 
+export const settingsPages: AppPage[] = [
+  {
+    path: '/settings/profile',
+    label: '个人资料',
+    Component: lazy(() => import('@/pages/Settings/ProfilePage.tsx')),
+  },
+  {
+    path: '/settings/api-keys',
+    label: 'API 密钥',
+    Component: lazy(() => import('@/pages/Settings/ApiKeysPage.tsx')),
+  },
+]
+
 export const authPages: AppPage[] = [
   {
     path: '/login',

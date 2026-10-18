@@ -7,27 +7,37 @@ export interface RegistrationInput {
 
 const usernamePattern = /^[A-Za-z0-9_.-]+$/
 
+export function validateUsername(username: string): string | undefined {
+  if (
+    username.length < 3 ||
+    username.length > 64 ||
+    !usernamePattern.test(username)
+  ) {
+    return '用户名需为 3–64 个字母、数字、下划线、点或连字符'
+  }
+  return undefined
+}
+
+export function validateEmail(email: string): string | undefined {
+  if (
+    email.length < 3 ||
+    email.length > 254 ||
+    !email.includes('@') ||
+    !email.includes('.')
+  ) {
+    return '请输入有效邮箱'
+  }
+  return undefined
+}
+
 export function validateRegistration(
   input: RegistrationInput,
 ): Record<string, string> {
   const errors: Record<string, string> = {}
-
-  if (
-    input.username.length < 3 ||
-    input.username.length > 64 ||
-    !usernamePattern.test(input.username)
-  ) {
-    errors.username = '用户名需为 3–64 个字母、数字、下划线、点或连字符'
-  }
-
-  if (
-    input.email.length < 3 ||
-    input.email.length > 254 ||
-    !input.email.includes('@') ||
-    !input.email.includes('.')
-  ) {
-    errors.email = '请输入有效邮箱'
-  }
+  const username = validateUsername(input.username)
+  const email = validateEmail(input.email)
+  if (username) errors.username = username
+  if (email) errors.email = email
 
   if (input.password.length < 12) {
     errors.password = '至少 12 个字符'
