@@ -3,6 +3,7 @@ import { useRef, useState } from 'react'
 import { Controller, useForm } from 'react-hook-form'
 import { Link, useLocation, useNavigate } from 'react-router-dom'
 import { ApiClientError } from '@/auth/http.ts'
+import { validateLogin } from '@/auth/loginForm.ts'
 import { sanitizeReturnPath } from '@/auth/returnPath.ts'
 import { useAuthStore } from '@/store/auth.ts'
 
@@ -79,6 +80,12 @@ export default function LoginPage() {
     if (pending.current) return
     clearErrors()
     setFormMessage('')
+    const clientErrors = validateLogin(values)
+    for (const name of ['identity', 'password'] as const) {
+      const message = clientErrors[name]
+      if (message) setError(name, { type: 'validate', message })
+    }
+    if (Object.keys(clientErrors).length > 0) return
 
     pending.current = true
     setSubmitting(true)
