@@ -256,12 +256,17 @@ export default function ApiKeysPage() {
         key_name: values.key_name,
         api_key: values.api_key,
       })
-      reset({ provider: 'openai', key_name: '', api_key: '' })
-      await load()
-    } catch {
-      setFormMessage('服务暂时不可用')
+    } catch (error) {
+      setFormMessage(failureText(error))
+      return
     } finally {
       setSubmitting(false)
+    }
+    reset({ provider: 'openai', key_name: '', api_key: '' })
+    try {
+      await load()
+    } catch {
+      setError('服务暂时不可用')
     }
   }
 

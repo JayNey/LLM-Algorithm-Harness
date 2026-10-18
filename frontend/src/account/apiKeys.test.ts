@@ -118,6 +118,7 @@ test('验证文案只有成功或失败', () => {
 })
 
 test('请求失败只区分过于频繁和其他失败', () => {
+  assert.equal(requestFailureText(400), '请求无效')
   assert.equal(requestFailureText(429), '请求过于频繁，请稍后再试')
   assert.equal(requestFailureText(500), '服务暂时不可用')
   assert.equal(requestFailureText(undefined), '服务暂时不可用')

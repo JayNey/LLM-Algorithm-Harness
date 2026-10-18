@@ -109,6 +109,7 @@ export function verifyStatusText(ok: boolean): '验证成功' | '验证失败' {
 }
 
 export function requestFailureText(status: number | undefined): string {
+  if (status === 400) return '请求无效'
   if (status === 429) return '请求过于频繁，请稍后再试'
   return '服务暂时不可用'
 }
