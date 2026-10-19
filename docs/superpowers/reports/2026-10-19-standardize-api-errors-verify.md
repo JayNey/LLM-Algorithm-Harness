@@ -26,6 +26,7 @@
 
 ## OpenSpec完整验证
 
+- verify_mode=full；重新读取proposal/design/tasks/delta，OpenSpec strict validate通过。verify阶段独立重跑tests/test_api_errors.py：30 passed、退出0（19.07秒）。
 - 完整性：3/3任务完成；4/4 Requirement实现；8/8 Scenario有验证。
 - 正确性：参数校验、HTTP/业务错误、凭证/令牌、限流/上传边界、内部异常、并发ID和OpenAPI八类Scenario（含被拒绝的CORS预检）分别由契约测试和文件回归覆盖。
 - 一致性：遵循design.md的中央构造、显式业务码、兼容字段和敏感信息保护决策。Tweak无独立Superpowers深度Design Doc或完整plan，使用本change design.md；非缺失产物。
