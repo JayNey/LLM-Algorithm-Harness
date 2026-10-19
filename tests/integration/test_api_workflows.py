@@ -179,7 +179,7 @@ def environment(tmp_path, monkeypatch):
         with ThreadPoolExecutor(max_workers=max_workers) as pool:
             list(pool.map(execute, messages))
 
-    return SimpleNamespace(open=open_app, drain=drain, queue=queue, generated=generated)
+    return SimpleNamespace(session=open_app, drain=drain, queue=queue, generated=generated)
 
 
 def create_evaluation(client, headers, key, ids=("p1",), **options):
@@ -208,7 +208,7 @@ def result(client, headers, evaluation):
 
 
 def test_register_login_create_task_and_query_results(environment):
-    with environment.open() as (client, app):
+    with environment.session() as (client, app):
         headers, key = account(client)
         ProblemStore(app.state.task_session_factory).upsert_import([problem("p1")])
         evaluation = create_evaluation(client, headers, key)
@@ -233,7 +233,7 @@ def test_register_login_create_task_and_query_results(environment):
 def test_upload_evaluate_wait_and_download_report(environment):
     import json
 
-    with environment.open() as (client, app):
+    with environment.session() as (client, app):
         headers, key = account(client)
         uploaded = data(
             client.post(
@@ -275,7 +275,7 @@ def test_create_run_experiment_and_compare_models(environment, tmp_path):
     import json
 
     (tmp_path / "dataset.json").write_text(json.dumps([problem("exp-p1")]), encoding="utf-8")
-    with environment.open() as (client, app):
+    with environment.session() as (client, app):
         headers, key = account(client)
         experiment = data(
             client.post(
@@ -311,7 +311,7 @@ def task_id(client, headers, evaluation):
 
 
 def test_concurrent_evaluation_creation_keeps_tasks_and_results_separate(environment, monkeypatch):
-    with environment.open() as (client, app):
+    with environment.session() as (client, app):
         headers, key = account(client)
         ProblemStore(app.state.task_session_factory).upsert_import([problem("p1"), problem("p2")])
         barrier = Barrier(2)
@@ -346,7 +346,7 @@ def test_concurrent_evaluation_creation_keeps_tasks_and_results_separate(environ
 def test_budget_stops_dispatch_and_resume_does_not_bypass_cap(environment, cap, expected_calls):
     from src.task_service import TaskService
 
-    with environment.open() as (client, app):
+    with environment.session() as (client, app):
         headers, key = account(client)
         ProblemStore(app.state.task_session_factory).upsert_import([problem("p1"), problem("p2")])
         evaluation = create_evaluation(client, headers, key, ids=("p1", "p2"), budget_cap_usd=cap)
@@ -373,7 +373,7 @@ def test_budget_stops_dispatch_and_resume_does_not_bypass_cap(environment, cap, 
 def test_pause_restart_resume_uses_checkpoint_without_repeating_work(environment, monkeypatch):
     from src.task_service import TaskService
 
-    with environment.open() as (client, app):
+    with environment.session() as (client, app):
         headers, key = account(client)
         ProblemStore(app.state.task_session_factory).upsert_import([problem("p1"), problem("p2")])
         evaluation = create_evaluation(client, headers, key, ids=("p1", "p2"))
@@ -398,7 +398,7 @@ def test_pause_restart_resume_uses_checkpoint_without_repeating_work(environment
         assert checkpoint.completed_units == 1
 
     # Close the original app and reopen the same databases, keys and checkpoint tree.
-    with environment.open() as (client, app):
+    with environment.session() as (client, app):
         persisted = data(client.get(f"/api/v1/evaluations/{evaluation}", headers=headers))
         assert persisted["status"] == "paused"
         resumed = data(client.post(f"/api/v1/tasks/{identity}/resume", headers=headers))
@@ -417,7 +417,7 @@ def test_pause_restart_resume_uses_checkpoint_without_repeating_work(environment
 def test_uploaded_problems_are_owner_scoped_and_override_shared_ids(environment, monkeypatch):
     import json
 
-    with environment.open() as (client, app):
+    with environment.session() as (client, app):
         alice, alice_key = account(client)
         bob, bob_key = account(client, "bob")
         # An owner's private version of a shared ID must take precedence;
