@@ -18,6 +18,7 @@ from api.monitoring.queue_probe import MAX_WORKERS, probe, validated_result, wor
 from src.tasks.monitoring import monitoring_snapshot
 from tests.test_api_monitoring import api as api
 from tests.test_api_monitoring import headers
+from tests.test_api_monitoring_queue_compatibility import create_queue_task
 
 BROKER = "redis://private-user:private-password@private-host:6379/9"
 REAL_POPEN = subprocess.Popen
@@ -275,6 +276,8 @@ def test_http_health_and_status_share_one_worker_observation(api, monkeypatch):
     client, admin, _, app, *_ = api
     app.state.monitor.settings.MONITOR_QUEUE_PROBES_ENABLED = True
     app.state.monitor.settings.MONITOR_QUEUE_CACHE_SECONDS = 0
+    task_id = create_queue_task(client, headers(admin))
+    before = app.state.monitor.task_snapshot(task_source="async_task")
     result = worker_snapshot([valid_reply(active=0)])
     program = (
         "import sys,json; r=json.load(sys.stdin); "
@@ -288,6 +291,9 @@ def test_http_health_and_status_share_one_worker_observation(api, monkeypatch):
     assert data["workers"]["status"] == "ok" and data["workers"]["active"] == 0
     assert data["workers"]["cluster_complete"] is False
     assert data["real_evaluation_available"] is None
+    assert data["async_task_counts"] == {"pending": 1}
+    after = app.state.monitor.task_snapshot(task_source="async_task")
+    assert after == before and after["items"][0]["task_id"] == task_id
     assert len(children) == 2  # One Redis and one worker probe, even with TTL=0.
     assert "private" not in response.text
     monkeypatch.setattr(app.state.monitor.probes, "sandbox", lambda: {"status": "ok"})

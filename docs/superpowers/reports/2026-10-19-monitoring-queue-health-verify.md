@@ -1,6 +1,6 @@
 # #157 队列健康与 worker 负载验证报告
 
-日期：2026-10-19（Asia/Shanghai）。基线 main：b6437098a55eddb40fd13a62e1328a8abbba16c5；分支 tweak/20261019/monitoring-queue-health。沿用用户指定的增量 Tweak，PR 使用 Refs #157。
+日期：2026-10-19（Asia/Shanghai）。初始基线 main：b6437098a55eddb40fd13a62e1328a8abbba16c5；最终追加基线：af4690a01d1a89dcea8b2c2bedefb002635062ad。分支 tweak/20261019/monitoring-queue-health。沿用用户指定的增量 Tweak，PR #204 使用 Refs #157。
 
 ## 行为
 
@@ -15,7 +15,7 @@
 
 - 监控相关首轮回归：174 passed；新增单元/HTTP 回归：40 passed，涵盖真实子进程超时与回收、并发取消、缓存年龄/过期、回复安全、认证和聚合复用。
 - 隔离真实链路：1 passed。临时 Redis 7 容器仅绑定随机本机端口；独立 solo Celery worker 只监听隔离测试队列。实际 Redis PING 与 monitoring_snapshot 返回 ok，worker_count=1、active=0、reserved=0、concurrency=1。没有提交业务任务或调用 LLM。
-- 最新全量离线：1789 passed、7 skipped，覆盖率 94.02%，原 90% 门禁不变，200.93 秒。命令：python -m pytest -m 'not online' --cov --cov-report=term --cov-report=xml -o faulthandler_timeout=60。原始日志：/private/tmp/monitoring-queue-health-full.log。真实链路需显式 MONITOR_QUEUE_TEST_BROKER；常规回归不要求外部 Redis。
+- 初始基线全量离线：1789 passed、7 skipped，原口径覆盖率 94.02%，200.93 秒。原始日志：/private/tmp/monitoring-queue-health-full.log。该口径包含测试文件，不能直接与后续 #201 的 src/API 口径比较。真实链路需显式 MONITOR_QUEUE_TEST_BROKER；常规回归不要求外部 Redis。
 - Bugbot 独立审查完整分支差异：无新增发现。审查者单独运行新增测试 40 passed，未修改文件。
 - Ruff、Black（310 文件）、显式编码扫描（0 处）、mypy src（97 文件）、监控/路由（12 文件）、OpenSpec strict：通过。SQLAlchemy 新版本需为已有 counts 局部变量补充 dict[str,int] 注解，未改变查询行为。
 
@@ -36,3 +36,15 @@ proposal、design、delta spec 与代码一致。Tweak 未创建完整 Classic �
 - concurrency 是池报告的执行单元数，未推导 CPU 利用率。LLM 延迟/成功率、跨 worker 缓存、broker 等待队列长度、容器资源和日/月配额仍待后续，#157 不关闭。
 - 真实链路为本机隔离 Redis/solo worker；生产集群、TLS 和多 worker 场景依靠部署验证及安全边界单测，未冒充本机生产实测。未发起在线提供商请求。
 - 本轮新增提交排除 .comet/.claude/.codex/.agents/skills-lock.json，保持应用 CI 规则。归档和合并按既定确认流程处理。
+
+## 最新主线追加验证
+
+发布前主线新增 #200 角色权限、#201 API 覆盖率门禁、#202 统一错误响应。已无冲突重放本轮提交，保留所有新规则。current_role 仍从服务端管理员 UUID 白名单派生，与监控授权一致；错误和 CORS 中间件仍在请求统计覆盖范围内。
+
+- 相关认证/监控/错误回归：177 passed。增强已有 status 集成用例，实际创建 pending 任务，在启用队列观测前后比较完整任务快照，验证不修改业务状态。
+- 最终完整离线：1821 passed、7 skipped，src/API 合计覆盖率 91.25%，217.47 秒。命令：python -m pytest -m 'not online' -o faulthandler_timeout=60。原始日志：/private/tmp/monitoring-queue-health-final-full.log。
+- 独立分项门禁：coverage report --include=src/* --fail-under=90，实际 90.45%；--include=api/* --fail-under=81，实际 92.85%，均退出 0。没有降低主线门禁。
+- Bugbot 对新增主线影响补查无新增发现，独立 HTTP 回归 83 passed。Ruff、Black（311 文件）通过。
+- PR #204 已创建为草稿，最终 Runtime 记录和当前头平台 CI 完成后转为可审查状态。
+
+Comet 0.4.1 的 build 阶段 state set 曾返回 tweak build configuration is incomplete；但 state check 和 doctor 对本 change 均报告有效，实际 Runtime compileall 检查也通过。保留该工具错误，不直接修改 Runtime 自有状态或伪记验证通过；最终守卫结果在交付前另行记录。
