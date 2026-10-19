@@ -1340,6 +1340,8 @@ MIT License
 
 API 支持注册、登录、Token 刷新/登出、用户范围的评估权限和 LLM 密钥加密管理。启动前必须配置签名和加密密钥；详见 [认证指南](docs/api-authentication.md) 和 [API 文档](API.md)。
 
+启动后可通过 `/docs`（Swagger UI）、`/redoc`（ReDoc）和 `/openapi.json` 阅读自动生成的完整端点文档，包含参数、请求/响应及 curl 示例、认证、限流和错误码说明。
+
 ### REST API 文件服务
 
 支持 JSON/CSV 私有题库上传与事务去重、JSON/YAML 配置验证脱敏、导入进度、结果和图表下载。详见 [文件服务指南](docs/api-files.md)。真实运行结果仍需 worker 绑定安全发布入口；模拟任务完成不会生成真实下载结果，不会把全局 CLI 目录公开为下载源。

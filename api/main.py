@@ -15,6 +15,7 @@ from api.auth.middleware import AuthBoundaryMiddleware
 from api.auth.service import AuthService
 from api.config import settings
 from api.db.engine import get_db
+from api.documentation import install_documentation
 from api.files.config import FileSettings
 from api.files.middleware import UploadBoundaryMiddleware
 from api.files.service import FileService
@@ -182,6 +183,7 @@ def create_app(
             "message": "Service is healthy",
         }
 
+    install_documentation(app)
     return app
 
 
