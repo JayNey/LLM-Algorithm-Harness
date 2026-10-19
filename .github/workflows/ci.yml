@@ -172,11 +172,29 @@ jobs:
         run: python -m pytest tests/test_utf8_io.py -q --no-cov
 
       - name: Run tests
-        run: |
-          pytest --cov --cov-report=xml --cov-report=term -m "not online"
+        run: python -m pytest -m "not online"
+
+      - name: Check src coverage (90%)
+        if: ${{ !cancelled() }}
+        run: python -m coverage report --include="src/*" --fail-under=90
+
+      - name: Check API coverage (81%)
+        if: ${{ !cancelled() }}
+        run: python -m coverage report --include="api/*" --fail-under=81
+
+      - name: Upload coverage reports
+        if: ${{ !cancelled() }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage-${{ matrix.os }}-py${{ matrix.python-version }}
+          path: |
+            coverage.xml
+            htmlcov/
+          if-no-files-found: error
+          retention-days: 14
 
       - name: Upload coverage to Codecov
-        if: matrix.os == 'ubuntu-latest' && matrix.python-version == '3.11'
+        if: ${{ !cancelled() && matrix.os == 'ubuntu-latest' && matrix.python-version == '3.11' }}
         uses: codecov/codecov-action@v4
         with:
           file: ./coverage.xml
