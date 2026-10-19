@@ -190,16 +190,16 @@ def test_health_sources_and_safe_admin_configuration(api, monkeypatch):
     health = client.get("/api/v1/system/health", headers=headers(admin)).json()["data"]
     assert health["status"] == "partial"
     assert health["checks"]["database"]["status"] == "ok"
-    assert health["pending_issues"] == [149]
+    assert health["pending_issues"] == [157]
     business = health["checks"]["database"]["business_database"]
     assert business["migration"]["revisions"] == business["migration"]["expected_heads"]
     assert "experiments" in business["required_tables"]
     assert health["checks"]["redis"]["status"] == "not_checked"
     assert health["checks"]["redis"]["infrastructure_available"] is True
-    assert health["checks"]["workers"]["dependency_issue"] == 149
+    assert health["checks"]["workers"]["execution_readiness"] == "not_checked"
     assert health["checks"]["workers"]["status"] == "not_checked"
-    assert health["checks"]["workers"]["evaluation_worker_implementation"] == "mock"
-    assert health["checks"]["workers"]["real_evaluation_available"] is False
+    assert health["checks"]["workers"]["evaluation_worker_implementation"] == "algorithm_harness"
+    assert health["checks"]["workers"]["real_evaluation_available"] is None
     assert health["checks"]["sandbox"]["status"] == "not_checked"
     assert (
         client.get("/api/v1/system/health?include_sandbox=true", headers=headers(admin)).json()[
@@ -497,7 +497,7 @@ def test_persistent_task_pages_have_accurate_full_counts_and_read_only_health(ap
     page = response.json()["data"]
     assert (
         page["source"] == "persisted_business_evaluations"
-        and page["execution_backend"] == "in_process_simulator"
+        and page["execution_backend"] == "unassigned_or_legacy"
     )
     assert page["total"] == 2 and page["counts"] == {"pending": 2} and len(page["items"]) == 1
     assert page["production_queue_configured"] is False

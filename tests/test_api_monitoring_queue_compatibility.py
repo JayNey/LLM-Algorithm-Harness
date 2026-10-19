@@ -152,8 +152,8 @@ def test_actual_task_and_legacy_routes_coexist_and_linked_tasks_are_not_double_c
     assert queue["task_source"] == "async_task"
     assert queue["total"] == 1 and queue["counts"] == {"pending": 1}
     assert [item["task_id"] for item in queue["items"]] == [async_id]
-    assert queue["evaluation_worker_implementation"] == "mock"
-    assert queue["real_evaluation_available"] is False
+    assert queue["evaluation_worker_implementation"] == "algorithm_harness"
+    assert queue["real_evaluation_available"] is None
     status = client.get("/api/v1/system/status", headers=admin).json()["data"]
     assert status["task_counts"] == {"pending": 1} and status["task_count"] == 1
     assert status["async_task_counts"] == {"pending": 1} and status["async_task_count"] == 1
@@ -197,7 +197,7 @@ def test_async_progress_is_safe_and_does_not_claim_real_worker_results(api):
     items = {item["task_id"]: item for item in data["items"]}
     assert items[valid_id]["completed"] == 1 and items[valid_id]["total"] == 2
     assert items[invalid_id]["completed"] is None and items[invalid_id]["total"] is None
-    assert data["real_evaluation_available"] is False
+    assert data["real_evaluation_available"] is None
     assert data["execution_backend"] == "celery"
     for forbidden in (PRIVATE_VALUE, "params", "error_message", "celery_task_id", "progress"):
         assert forbidden not in response.text

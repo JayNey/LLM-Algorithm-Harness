@@ -6,6 +6,7 @@ from sqlalchemy import Engine, String, and_, case, cast, func, select
 from sqlalchemy.sql.elements import ColumnElement
 
 from api.db.models import AsyncTask, Evaluation
+from api.monitoring.capabilities import evaluation_capability
 
 _STATUSES = ("pending", "running", "paused", "completed", "failed", "cancelled")
 _TASK_TYPES = ("evaluation", "experiment", "benchmark", "import")
@@ -65,8 +66,8 @@ def read_task_snapshot(
     """Count and page one persisted source within a single read snapshot.
 
     Linked evaluations are excluded from the legacy source; AsyncTask rows
-    describe queue lifecycle, whose current evaluation implementation is a
-    mock. Neither source is evidence of real LLM evaluation performance.
+    describe queue lifecycle. Neither source proves provider or sandbox
+    readiness, nor does it measure real LLM evaluation performance.
     """
     if (
         type(limit) is not int
@@ -92,7 +93,7 @@ def read_task_snapshot(
         condition = [Evaluation.async_task_id.is_(None)]
         metadata.update(
             source="persisted_business_evaluations",
-            execution_backend="in_process_simulator",
+            execution_backend="unassigned_or_legacy",
             production_queue_configured=False,
         )
     else:
@@ -102,8 +103,7 @@ def read_task_snapshot(
             source="persisted_async_tasks",
             execution_backend="celery",
             queue_infrastructure_available=True,
-            real_evaluation_available=False,
-            evaluation_worker_implementation="mock",
+            **evaluation_capability(),
         )
     if state is not None:
         condition.append(model.status == state)
@@ -151,7 +151,7 @@ def read_task_snapshot(
                 # transaction for SELECT, so explicitly pin both queries.
                 if backend == "sqlite":
                     connection.exec_driver_sql("BEGIN")
-                counts = dict(connection.execute(count_query).tuples().all())
+                counts: dict[str, int] = dict(connection.execute(count_query).tuples().all())
                 rows = connection.execute(page_query).mappings().all()
                 items = []
                 for row in rows:

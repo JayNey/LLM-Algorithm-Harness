@@ -493,7 +493,7 @@ harness benchmark --suite benchmark.example.json --compare --output reports/lear
 
 ## 异步任务队列
 
-#179 已提供 Celery + Redis、持久化 AsyncTask 和 `/api/v1/tasks` 控制接口，#180 已合入实验、导入和基准三类 Celery 任务实现，其端到端执行与真实 LLM 指标仍未接通或验证。现有 HTTP 路由没有因此自动切换队列：`/evaluations` 仍使用旧评估流程，文件导入仍使用 BackgroundTasks，实验和基准服务仍使用后台线程。异步评估 worker 现已改为经真实 `AlgorithmHarness` 执行（LLM 调用 + Docker 沙箱运行 + 成本统计）并逐单元落库，不再返回模拟结果；但端到端真实 LLM 指标与使用计量仍待生产环境验证（测试不发起在线调用），worker 监控指标尚未接通，#149 保持开放。
+#149 已接入 Celery/Redis、持久化 AsyncTask，以及评估、实验、导入和基准的产品入队流程。评估 worker 经 AlgorithmHarness 执行并保存结果；真实提供商在线验证与监控计量是独立事项。
 
 ### 架构组件
 
@@ -1344,10 +1344,10 @@ API 支持注册、登录、Token 刷新/登出、用户范围的评估权限和
 
 ### REST API 文件服务
 
-支持 JSON/CSV 私有题库上传与事务去重、JSON/YAML 配置验证脱敏、导入进度、结果和图表下载。详见 [文件服务指南](docs/api-files.md)。真实运行结果仍需 worker 绑定安全发布入口；模拟任务完成不会生成真实下载结果，不会把全局 CLI 目录公开为下载源。
+支持 JSON/CSV 私有题库上传与事务去重、JSON/YAML 配置验证脱敏、导入进度、结果和图表下载。详见 [文件服务指南](docs/api-files.md)。结果下载仍校验实际产物和所有者，worker 在线不代表已有可下载结果，不会把全局 CLI 目录公开为下载源。
 
 ### REST API 系统监控基础
 
 提供受管理员 UUID 白名单保护的数据库健康检查、Docker 预检、本机资源、持久化 API 请求统计、安全日志和离线配置目录。#151 的业务数据库已接入只读连接/schema 检查、按来源分页的旧评估和 AsyncTask 快照、各自的全量状态计数，以及当前评估 engine 的实际 SQL 查询统计。用户可查询自己的任务日志与已有配额；统计窗口不完整时标记 `retained_sample`，真实 worker/LLM 指标尚未采集时返回 `not_configured/null`。
 
-这是 #157 可独立运行的基础部分。#179 已合并 Celery/Redis 基础，#180 已增加实验/导入/基准入口；Redis/worker 本轮未联网探测，返回 `not_checked`。mock 标记只描述评估 worker，持久化 `pending` 记录不代表 Redis 队列长度。任务监控默认 `task_source=legacy_evaluation`，可选择 `async_task`；旧来源排除已关联异步任务的评估，监控只读，不同步或提交任务状态。两组计数分别读取，不合并为全局原子快照。SQL 指标只覆盖当前评估 engine 与 API 进程的 cursor 执行阶段，异步任务 engine 的查询未全部纳入。配置 `MONITOR_ADMIN_USER_IDS`、接口与完整性说明见 [监控指南](docs/api-monitoring.md)；真实评估和运行指标仍需后续接入，#157 保持开放。
+#157 已提供可显式启用的 Redis/Celery 健康和 worker 数值负载观测，带超时、缓存、管理员授权及安全字段过滤。任务快照分别读取无异步关联的评估与 AsyncTask；它们的 pending 数量不代表 broker 队列长度。真实执行代码已接入 AlgorithmHarness，监控不据此宣称提供商或沙箱就绪。SQL 指标仍限于评估 engine，后续性能、容器和配额能力见 [监控指南](docs/api-monitoring.md)。

@@ -171,7 +171,7 @@ def test_llm_stats_do_not_treat_verification_or_usage_hooks_as_measured_calls(mo
     stats = monitor.llm_stats()
     assert (
         stats["status"] == "not_configured"
-        and stats["source"] == "worker_instrumentation_pending_149"
+        and stats["source"] == "worker_instrumentation_pending_157"
     )
     assert stats["key_verification_count"] == 2 and stats["recorded_usage_hooks"] == 1
     assert (
@@ -206,7 +206,7 @@ def test_task_snapshot_reports_real_simulator_state_and_filter(monitoring):
         snapshot["source"] == "persisted_business_evaluations"
         and snapshot["production_queue_configured"] is False
     )
-    assert snapshot["execution_backend"] == "in_process_simulator"
+    assert snapshot["execution_backend"] == "unassigned_or_legacy"
     assert snapshot["total"] == 2
     assert snapshot["counts"] == {"completed": 1, "pending": 1}
     paged = monitor.task_snapshot(limit=1, offset=1)
