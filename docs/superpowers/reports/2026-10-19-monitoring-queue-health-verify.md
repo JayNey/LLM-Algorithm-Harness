@@ -60,3 +60,5 @@ Comet 0.4.1 在 build 阶段提前设置 verify 配置时曾返回 tweak build c
 - 分项覆盖率门禁保持不变：src 90.46%（门禁 90%），API 93.57%（门禁 81%），退出均为 0。
 - Bugbot 补审无新增发现，独立运行 6 项 system/status 单测通过。Ruff、Black（312 文件）、编码检查和 OpenSpec strict 均通过。
 - PR #204 已转为可审查状态，重放到上述最新主线后将发布新头重新运行平台 CI。此前头 bd68e707 的失败不作为新头结果。
+
+最新主线的 Runtime 实测编译通过（993b27ed-4ba4-431f-8d2b-a8a860b2f858.log），定向验证通过（735b1ff3-8ef7-442a-a920-51c07a1981d4.log）。build 守卫 14/14、verify 守卫 5/5 通过，状态为 archive/verify_result=pass，归档确认仍 pending。
