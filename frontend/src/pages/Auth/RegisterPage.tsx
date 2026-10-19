@@ -152,6 +152,7 @@ export default function RegisterPage() {
             render={({ field }) => (
               <Input
                 id="register-username"
+                autoFocus
                 autoComplete="username"
                 {...field}
               />
