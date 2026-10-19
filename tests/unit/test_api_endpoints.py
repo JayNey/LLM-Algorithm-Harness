@@ -750,8 +750,22 @@ CASES += [
         result=TASK,
         expected=TASK_DATA,
     ),
-    case("POST", "/pareto/analyze", body=dict(comparisons=[{}]), expected=None),
-    case("POST", "/optimize", body=dict(comparison={}), expected=None),
+    case(
+        "POST",
+        "/pareto/analyze",
+        "pareto_analysis",
+        ([{}],),
+        kwargs=dict(budgets=[], accuracy_metric="overall"),
+        body=dict(comparisons=[{}]),
+    ),
+    case(
+        "POST",
+        "/optimize",
+        "advisory",
+        ({},),
+        kwargs=dict(budget=None, min_accuracy=0.0, objective="best_value"),
+        body=dict(comparison={}),
+    ),
 ]
 
 
@@ -839,10 +853,21 @@ def api(monkeypatch, tmp_path, unit_app):
     app.dependency_overrides[get_db] = lambda: Mock(name="db-session")
     app.dependency_overrides[task_manager] = lambda: state.manager
     monkeypatch.setattr("api.routes.files.TaskManager", lambda db: state.manager)
-    monkeypatch.setattr(
-        "api.routes.ab_tests.build_pareto_analysis", Mock(return_value=VALUE.copy())
-    )
-    monkeypatch.setattr("api.routes.ab_tests.build_advisory", Mock(return_value=VALUE.copy()))
+    state.pareto_analysis = Mock(return_value=VALUE.copy())
+    state.advisory = Mock(return_value=VALUE.copy())
+    monkeypatch.setattr("api.routes.ab_tests.build_pareto_analysis", state.pareto_analysis)
+    monkeypatch.setattr("api.routes.ab_tests.build_advisory", state.advisory)
+
+    def unexpected_external_call(*args, **kwargs):
+        raise AssertionError("Route unit test attempted an external dependency")
+
+    for name in (
+        "api.db.engine.make_engine",
+        "src.llm_client.LLMClient.__init__",
+        "src.sandbox_executor.SandboxExecutor.__init__",
+        "socket.create_connection",
+    ):
+        monkeypatch.setattr(name, unexpected_external_call)
     # Deliberately no `with TestClient(...)`: startup would construct real services.
     state.client = TestClient(app)
     state.client.headers["Authorization"] = "Bearer unit-token"
@@ -860,6 +885,21 @@ def send(api, item, **overrides):
     return api.client.request(item.method, url(item), **options)
 
 
+def assert_submitted_fields(actual, expected):
+    if hasattr(actual, "get_secret_value"):
+        assert actual.get_secret_value() == expected
+    elif isinstance(expected, dict):
+        for key, value in expected.items():
+            nested = actual[key] if isinstance(actual, dict) else getattr(actual, key)
+            assert_submitted_fields(nested, value)
+    elif isinstance(expected, list):
+        assert len(actual) == len(expected)
+        for actual_value, expected_value in zip(actual, expected, strict=True):
+            assert_submitted_fields(actual_value, expected_value)
+    else:
+        assert actual == expected
+
+
 @pytest.mark.parametrize("item", CASES, ids=lambda item: item.id)
 def test_endpoint_happy_path(api, item):
     operation = target(api, item.target) if item.target else None
@@ -873,24 +913,10 @@ def test_endpoint_happy_path(api, item):
             assert operation.call_args_list == [call(), call(task_source="async_task")]
         else:
             operation.assert_called_once_with(*item.args, **item.kwargs)
-        # Verify request models actually receive submitted fields, not only ANY.
+        # Verify supplied fields recursively, including nested models and secrets.
         for arg in operation.call_args.args:
             if hasattr(arg, "model_dump") and item.body:
-                for key, value in item.body.items():
-                    actual = arg.model_dump(mode="json")[key]
-                    if key not in {
-                        "password",
-                        "current_password",
-                        "new_password",
-                        "api_key",
-                        "refresh_token",
-                        "models",
-                        "strategies",
-                        "model",
-                        "strategy",
-                        "prompt_variants",
-                    }:
-                        assert actual == value
+                assert_submitted_fields(arg, item.body)
     if item.status == 204:
         assert response.content == b""
     elif item.download:
@@ -986,3 +1012,345 @@ def test_websocket_snapshot_ping_and_cleanup(api):
     api.progress_stream.subscribe.assert_awaited_once_with("progress:eval-1")
     api.evaluations.get_evaluation.assert_called_once_with("eval-1", OWNER)
     api.progress_stream.unsubscribe.assert_awaited_once_with(subscription)
+
+
+def assert_error(response, status, code):
+    assert response.status_code == status, response.text
+    body = response.json()
+    assert body["success"] is False
+    assert body["error"]["code"] == code
+    assert body["error"]["request_id"] == response.headers["X-Request-ID"]
+    assert response.headers["Cache-Control"] == "no-store"
+
+
+@pytest.mark.parametrize(
+    "item", [item for item in CASES if not item.public], ids=lambda item: item.id
+)
+def test_invalid_token_never_reaches_protected_operation(api, item):
+    from api.auth.service import unauthorized
+    from api.middleware.errors import ErrorCode
+
+    api.auth.authenticate.side_effect = unauthorized(ErrorCode.INVALID_TOKEN)
+    response = send(api, item)
+    assert_error(response, 401, "INVALID_TOKEN")
+    if item.target:
+        target(api, item.target).assert_not_called()
+
+
+@pytest.mark.parametrize("item", [item for item in CASES if item.target], ids=lambda item: item.id)
+def test_service_http_errors_preserve_status_and_request_id(api, item):
+    from fastapi import HTTPException
+
+    operation = target(api, item.target)
+    operation.side_effect = HTTPException(404, "Resource not found")
+    response = send(api, item)
+    assert_error(response, 404, "RESOURCE_NOT_FOUND")
+    assert operation.call_count == 1
+
+
+@pytest.mark.parametrize("item", [item for item in CASES if item.target], ids=lambda item: item.id)
+def test_unexpected_dependency_failures_are_sanitized(api, item, caplog):
+    operation = target(api, item.target)
+    operation.side_effect = RuntimeError("private-provider-token-unit-test")
+    response = send(api, item)
+    assert_error(response, 500, "INTERNAL_ERROR")
+    assert "private-provider-token-unit-test" not in response.text + caplog.text
+    assert operation.call_count == 1
+
+
+# These operations explicitly translate domain ValueErrors to 400/404 at the route
+# boundary. Other services raise HTTPException themselves (covered above).
+VALUE_ERROR_PATHS = {
+    "/evaluations/{evaluation_id}",
+    "/evaluations/{evaluation_id}/start",
+    "/evaluations/{evaluation_id}/progress",
+    "/evaluations/{evaluation_id}/cancel",
+    "/experiments",
+    "/experiments/{experiment_id}",
+    "/experiments/{experiment_id}/run",
+    "/experiments/{experiment_id}/results",
+    "/experiments/{experiment_id}/comparison",
+    "/experiments/{experiment_id}/panel",
+    "/benchmarks/suites/{suite_id}",
+    "/benchmarks/suites/{suite_id}/run",
+    "/benchmarks/runs/{run_id}",
+    "/benchmarks/learning-curve/{suite_id}",
+    "/ab-tests/{test_id}",
+    "/ab-tests/{test_id}/run",
+    "/ab-tests/{test_id}/results",
+    "/tasks/{task_id}",
+    "/tasks/{task_id}/pause",
+    "/tasks/{task_id}/resume",
+    "/results/{run_id}",
+    "/compare/strategies",
+    "/compare/history",
+    "/compare/ab-test/{test_id}",
+    "/costs/tasks/{task_id}",
+    "/costs/summary",
+    "/costs/trends",
+    "/costs/breakdown",
+    "/reports/cost/{task_id}",
+    "/alerts/{rule_id}",
+}
+VALUE_ERROR_CASES = [
+    item
+    for item in CASES
+    if item.path in VALUE_ERROR_PATHS
+    and item.target
+    and not item.target.endswith(("list_experiments",))
+]
+
+
+@pytest.mark.parametrize("item", VALUE_ERROR_CASES, ids=lambda item: item.id)
+@pytest.mark.parametrize(
+    ("message", "status", "code"),
+    [
+        ("Resource not found or access denied", 404, "RESOURCE_NOT_FOUND"),
+        ("Operation not allowed in current state", 400, "INVALID_PARAMETER"),
+    ],
+)
+def test_domain_errors_map_to_client_responses(api, item, message, status, code):
+    target(api, item.target).side_effect = ValueError(message)
+    assert_error(send(api, item), status, code)
+
+
+INVALID_BODIES = [
+    ("POST", "/auth/register", {"username": "x"}),
+    ("POST", "/auth/login", {"username": ""}),
+    ("POST", "/auth/refresh", {"refresh_token": ""}),
+    ("PATCH", "/users/me", {"username": "x"}),
+    ("POST", "/users/me/password", {"current_password": "old", "new_password": "short"}),
+    ("POST", "/api-keys", {"provider": "unknown", "key_name": "key", "api_key": "fake"}),
+    ("PATCH", "/api-keys/{key_id}", {"api_key": "env:OPENAI_API_KEY"}),
+    ("POST", "/evaluations", {**EVAL_BODY, "problem_ids": []}),
+    ("POST", "/evaluations", {**EVAL_BODY, "strategy_names": ["vanilla", "vanilla"]}),
+    ("POST", "/evaluations", {**EVAL_BODY, "problem_ids": ["p1", "p1"]}),
+    ("POST", "/evaluations", {**EVAL_BODY, "timeout_seconds": 0}),
+    ("POST", "/evaluations", {**EVAL_BODY, "max_concurrency": 0}),
+    ("POST", "/evaluations", {**EVAL_BODY, "budget_cap_usd": -1}),
+    ("PATCH", "/evaluations/{evaluation_id}", {"timeout_seconds": 0}),
+    ("POST", "/experiments", {**EXPERIMENT_BODY, "models": []}),
+    ("POST", "/experiments", {**EXPERIMENT_BODY, "max_workers": 17}),
+    ("POST", "/benchmarks/suites", {**SUITE_BODY, "problems": []}),
+    ("PATCH", "/benchmarks/suites/{suite_id}", {"problems": []}),
+    ("POST", "/benchmarks/suites/{suite_id}/run", {**RUN_BODY, "budget_cap_usd": 0}),
+    ("POST", "/ab-tests", {**AB_BODY, "prompt_variants": [{"id": "a"}]}),
+    ("POST", "/ab-tests", {**AB_BODY, "prompt_variants": [{"id": "a"}, {"id": "b"}, {"id": "c"}]}),
+    ("POST", "/tasks", {**TASK_BODY, "task_type": ""}),
+    ("POST", "/tasks", {**TASK_BODY, "task_type": "x" * 33}),
+    ("POST", "/problems/import", {"file_id": "file-1", "mode": "invalid"}),
+    ("POST", "/budgets", {"global_cap_usd": 0}),
+    ("PATCH", "/budgets", {"difficulty_caps": {"easy": -1}}),
+    ("POST", "/alerts", {"threshold_pct": 0, "channel": "log"}),
+    ("PATCH", "/alerts/{rule_id}", {"threshold_pct": 101}),
+    ("POST", "/pricing/{model_id}", {"prompt_per_1k": 0, "completion_per_1k": 1}),
+    ("POST", "/pareto/analyze", {"comparisons": []}),
+    ("POST", "/optimize", {"comparison": {}, "min_accuracy": 1.01}),
+]
+
+
+@pytest.mark.parametrize(("method", "path", "body"), INVALID_BODIES)
+def test_invalid_body_is_rejected_before_business_operation(api, method, path, body):
+    item = next(item for item in CASES if item.method == method and item.path == path)
+    assert_error(send(api, item, json=body), 400, "INVALID_PARAMETER")
+    if item.target:
+        target(api, item.target).assert_not_called()
+
+
+@pytest.mark.parametrize(
+    "path",
+    [
+        "/evaluations",
+        "/experiments",
+        "/ab-tests",
+        "/tasks",
+        "/results",
+        "/results/problems/{problem_id}",
+    ],
+)
+@pytest.mark.parametrize(
+    ("limit", "offset", "expected_limit", "expected_offset"),
+    [
+        (0, -1, 20, 0),
+        (101, 0, 20, 0),
+        (1, 0, 1, 0),
+        (100, 2, 100, 2),
+    ],
+)
+def test_pagination_boundaries_and_empty_pages(
+    api, path, limit, offset, expected_limit, expected_offset
+):
+    item = next(item for item in CASES if item.method == "GET" and item.path == path)
+    operation = target(api, item.target)
+    operation.return_value = ([], 0)
+    response = send(api, item, params={"limit": limit, "offset": offset})
+    assert response.status_code == 200, response.text
+    assert response.json()["data"] == dict(
+        items=[], total=0, limit=expected_limit, offset=expected_offset, has_more=False
+    )
+    assert operation.call_args.kwargs["limit"] == expected_limit
+    assert operation.call_args.kwargs["offset"] == expected_offset
+
+
+@pytest.mark.parametrize(("limit", "expected"), [(0, 1), (1, 1), (200, 200), (201, 200)])
+def test_alert_history_limit_is_bounded(api, limit, expected):
+    api.cost.alert_history.return_value = []
+    assert api.client.get(PREFIX + "/alerts/history", params={"limit": limit}).status_code == 200
+    api.cost.alert_history.assert_called_once_with(OWNER, limit=expected)
+
+
+@pytest.mark.parametrize(
+    "query",
+    [
+        {"limit": 0},
+        {"limit": 1001},
+        {"offset": -1},
+        {"offset": 100001},
+        {"level": "unknown"},
+        {"search": "x" * 201},
+        {"start": "2026-10-19T00:00:00"},
+        {"start": "2026-10-20T00:00:00Z", "end": "2026-10-19T00:00:00Z"},
+    ],
+)
+def test_log_filter_boundaries(api, query):
+    assert_error(api.client.get(PREFIX + "/logs", params=query), 400, "INVALID_PARAMETER")
+    api.monitor.store.query_logs.assert_not_called()
+
+
+@pytest.mark.parametrize("path", ["/compare/strategies", "/compare/history"])
+def test_required_run_id_is_checked_before_service(api, path):
+    assert_error(api.client.get(PREFIX + path), 400, "INVALID_PARAMETER")
+    api.evaluation_results.compare_strategies.assert_not_called()
+    api.evaluation_results.compare_history.assert_not_called()
+
+
+@pytest.mark.parametrize("path", ["/files/upload", "/configs/upload", "/problems/upload"])
+def test_upload_requires_multipart_and_exactly_one_file(api, path):
+    assert_error(api.client.post(PREFIX + path, json={}), 415, "UNSUPPORTED_MEDIA_TYPE")
+    assert_error(
+        api.client.post(PREFIX + path, files={"wrong": ("fixture.json", b"[]")}),
+        400,
+        "INVALID_PARAMETER",
+    )
+    api.files.upload.assert_not_called()
+    assert api.files.transfers.acquire(blocking=False)
+    api.files.transfers.release()
+
+
+@pytest.mark.parametrize("form", [{"mode": "invalid"}, {"validate": "false"}])
+def test_problem_upload_rejects_unsafe_options_before_storage(api, form):
+    response = api.client.post(
+        PREFIX + "/problems/upload",
+        data=form,
+        files={"file": ("fixture.json", b"[]", "application/json")},
+    )
+    assert_error(response, 400, "INVALID_PARAMETER")
+    api.files.upload.assert_not_called()
+
+
+def test_failed_direct_import_removes_uploaded_file(api):
+    api.files.upload.return_value = {"file": {"id": "file-1"}}
+    api.files.store.job.return_value = dict(
+        status="failed", result={"status_code": 400, "detail": "Invalid rows"}
+    )
+    item = next(item for item in CASES if item.path == "/problems/upload")
+    assert_error(send(api, item), 400, "INVALID_PARAMETER")
+    api.files.delete_file.assert_called_once_with("file-1", OWNER)
+
+
+def test_evaluation_registration_failure_rolls_back_created_evaluation(api):
+    api.evaluations.create_evaluation.return_value = EVALUATION
+    api.files.store.register_run.side_effect = RuntimeError("storage unavailable")
+    assert_error(api.client.post(PREFIX + "/evaluations", json=EVAL_BODY), 500, "INTERNAL_ERROR")
+    api.evaluations.delete_evaluation.assert_called_once_with("eval-1", OWNER)
+    api.auth.audit.assert_not_called()
+
+
+def test_foreign_provider_key_prevents_evaluation_creation_and_start(api):
+    from fastapi import HTTPException
+
+    api.auth.owned_key.side_effect = HTTPException(404, "Key not found")
+    assert_error(
+        api.client.post(PREFIX + "/evaluations", json=EVAL_BODY), 404, "RESOURCE_NOT_FOUND"
+    )
+    assert_error(api.client.post(PREFIX + "/evaluations/eval-1/start"), 404, "RESOURCE_NOT_FOUND")
+    api.evaluations.create_evaluation.assert_not_called()
+    api.evaluations.start_evaluation.assert_not_called()
+    api.files.store.register_run.assert_not_called()
+
+
+def test_unknown_chart_is_rejected_without_export(api):
+    assert_error(
+        api.client.get(PREFIX + "/results/run-1/charts/unknown"), 404, "RESOURCE_NOT_FOUND"
+    )
+    api.files.export_results.assert_not_called()
+
+
+@pytest.mark.parametrize(
+    ("status", "total", "processed", "percentage"),
+    [
+        ("pending", 0, 0, 0),
+        ("running", 4, 1, 25),
+        ("completed", 0, 0, 100),
+    ],
+)
+def test_import_progress_handles_empty_and_partial_jobs(api, status, total, processed, percentage):
+    api.files.store.job.return_value = dict(
+        status=status, total=total, processed=processed, result={}
+    )
+    response = api.client.get(PREFIX + "/imports/job-1")
+    assert response.status_code == 200
+    assert response.json()["data"]["percentage"] == percentage
+
+
+def test_websocket_rejects_invalid_token_before_subscription(api):
+    from starlette.websockets import WebSocketDisconnect
+
+    api.auth.authenticate.side_effect = ValueError("Invalid token")
+    with api.client.websocket_connect(PREFIX + "/ws/progress?token=invalid") as ws:
+        with pytest.raises(WebSocketDisconnect) as exc:
+            ws.receive_json()
+    assert exc.value.code == 4401
+    api.progress_stream.subscribe.assert_not_awaited()
+
+
+def test_websocket_foreign_task_closes_and_releases_subscription(api):
+    from starlette.websockets import WebSocketDisconnect
+
+    subscription = Subscription(channel="progress:foreign", queue=asyncio.Queue())
+    api.progress_stream.subscribe.return_value = subscription
+    api.evaluations.get_evaluation.side_effect = ValueError("Task not found")
+    with api.client.websocket_connect(PREFIX + "/ws/progress?token=unit-token") as ws:
+        assert ws.receive_json()["type"] == "connected"
+        ws.send_json({"action": "subscribe", "task_id": "foreign"})
+        with pytest.raises(WebSocketDisconnect) as exc:
+            ws.receive_json()
+    assert exc.value.code == 4403
+    api.evaluations.get_evaluation.assert_called_once_with("foreign", OWNER)
+    api.progress_stream.unsubscribe.assert_awaited_once_with(subscription)
+
+
+@pytest.mark.parametrize("item", [item for item in CASES if item.public], ids=lambda item: item.id)
+def test_public_endpoints_do_not_require_credentials(api, item):
+    api.client.headers.pop("Authorization")
+    if item.target:
+        target(api, item.target).return_value = item.result
+    assert send(api, item).status_code == item.status
+    api.auth.authenticate.assert_not_called()
+
+
+@pytest.mark.parametrize("path", ["/pareto/analyze", "/optimize"])
+def test_analysis_rejects_invalid_business_payload(api, path):
+    item = next(item for item in CASES if item.path == path)
+    target(api, item.target).side_effect = ValueError("Invalid comparison")
+    assert_error(send(api, item), 400, "INVALID_PARAMETER")
+
+
+@pytest.mark.parametrize("path", ["/evaluations", "/tasks", "/experiments", "/auth/register"])
+def test_malformed_json_does_not_invoke_services(api, path):
+    item = next(item for item in CASES if item.path == path and item.method == "POST")
+    response = api.client.post(
+        PREFIX + path, content=b'{"unfinished":', headers={"Content-Type": "application/json"}
+    )
+    assert_error(response, 400, "INVALID_PARAMETER")
+    target(api, item.target).assert_not_called()
