@@ -4,7 +4,7 @@ from typing import Any
 
 from fastapi import APIRouter, Depends, Response
 
-from api.auth.dependencies import auth_attempt, auth_service, current_user
+from api.auth.dependencies import UserRole, auth_attempt, auth_service, current_role, current_user
 from api.auth.models import (
     KeyCreate,
     KeyUpdate,
@@ -61,10 +61,14 @@ def logout(
 
 @router.get("/users/me")
 def me(
-    principal: Principal = Depends(current_user), service: AuthService = Depends(auth_service)
+    principal: Principal = Depends(current_user),
+    service: AuthService = Depends(auth_service),
+    role: UserRole = Depends(current_role),
 ) -> ApiResponse[dict[str, Any]]:
     return ApiResponse(
-        success=True, data=service.public_user(principal.user_id), message="Current user"
+        success=True,
+        data={**service.public_user(principal.user_id), "role": role},
+        message="Current user",
     )
 
 

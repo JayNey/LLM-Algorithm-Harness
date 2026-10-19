@@ -5,10 +5,13 @@ import { readViteEnv } from '@/config/env.ts'
 import { appPages } from '@/routes.tsx'
 import { useAuthStore } from '@/store/auth.ts'
 import { useUiStore } from '@/store/ui.ts'
+import { useRole } from '@/auth/roleContext.ts'
+import { canAccess } from '@/auth/roles.ts'
 
 const appName = readViteEnv().appName
 
 export function AppLayout() {
+  const { state: roleState } = useRole()
   const navigate = useNavigate()
   const session = useAuthStore((state) => state.session)
   const logout = useAuthStore((state) => state.logout)
@@ -54,19 +57,21 @@ export function AppLayout() {
           <nav
             className={`${menuOpen ? 'flex' : 'hidden'} mt-3 flex-col gap-2 md:mt-3 md:flex md:flex-row md:flex-wrap`}
           >
-            {appPages.map((page) => (
-              <NavLink
-                key={page.path}
-                to={page.path}
-                end={page.path === '/'}
-                className={({ isActive }) =>
-                  isActive ? 'font-semibold underline' : undefined
-                }
-                onClick={() => setMenuOpen(false)}
-              >
-                {page.label}
-              </NavLink>
-            ))}
+            {appPages
+              .filter((page) => canAccess(roleState.role, page.allowedRoles))
+              .map((page) => (
+                <NavLink
+                  key={page.path}
+                  to={page.path}
+                  end={page.path === '/'}
+                  className={({ isActive }) =>
+                    isActive ? 'font-semibold underline' : undefined
+                  }
+                  onClick={() => setMenuOpen(false)}
+                >
+                  {page.label}
+                </NavLink>
+              ))}
             <Button onClick={() => void signOut()}>登出</Button>
           </nav>
         </header>

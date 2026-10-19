@@ -1,9 +1,11 @@
 import { lazy, type ComponentType, type LazyExoticComponent } from 'react'
+import type { UserRole } from '@/auth/roles.ts'
 
 export interface AppPage {
   path: string
   label: string
   Component: LazyExoticComponent<ComponentType>
+  allowedRoles?: readonly UserRole[]
 }
 
 export const appPages: AppPage[] = [
@@ -40,6 +42,12 @@ export const appPages: AppPage[] = [
 ]
 
 export const settingsPages: AppPage[] = [
+  {
+    path: '/settings/system',
+    label: '系统状态',
+    allowedRoles: ['admin'],
+    Component: lazy(() => import('@/pages/Settings/SystemPage.tsx')),
+  },
   {
     path: '/settings/profile',
     label: '个人资料',
