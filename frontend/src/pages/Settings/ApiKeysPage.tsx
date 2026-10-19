@@ -126,6 +126,7 @@ function KeyRow({
   return (
     <li>
       <p>{item.key_name}</p>
+      {item.masked_preview ? <p>{item.masked_preview}</p> : null}
       <p>{item.provider}</p>
       <p>创建时间：{formatUnixSeconds(item.created_at)}</p>
       <p>{item.verified ? '已验证' : '未验证'}</p>

@@ -21,6 +21,7 @@ function key(overrides: Partial<ApiKeyRecord>): ApiKeyRecord {
     last_used_at: null,
     usage_count: 0,
     verified: false,
+    masked_preview: null,
     ...overrides,
   }
 }
@@ -87,6 +88,22 @@ test('整数验证状态解析为布尔且不保留密钥字段', () => {
     verified: 1,
   })
   assert.equal(verified?.verified, true)
+})
+
+test('解析 masked_preview 且仍不保留 api_key 字段', () => {
+  const parsed = readApiKey({
+    id: 'k1',
+    provider: 'openai',
+    key_name: 'primary',
+    created_at: 1,
+    last_used_at: null,
+    usage_count: 0,
+    verified: false,
+    masked_preview: 'sk-live**************************',
+    api_key: 'sk-secret',
+  })
+  assert.equal(parsed?.masked_preview, 'sk-live**************************')
+  assert.equal(Object.hasOwn(parsed ?? {}, 'api_key'), false)
 })
 
 test('解析结果不保留密钥字段', () => {

@@ -17,6 +17,7 @@ from fastapi import HTTPException
 from pydantic import SecretStr
 
 from api.auth.config import AuthSettings
+from api.auth.key_preview import masked_preview_from_secret
 from api.auth.models import KeyCreate, KeyUpdate, PasswordChange, ProfileUpdate, RegisterInput
 from api.auth.store import AuthStore
 from src.llm_client import LLMClient
@@ -40,6 +41,7 @@ KEY_FIELDS = (
     "verification_count",
     "last_verified_at",
     "verified",
+    "masked_preview",
 )
 
 
@@ -224,21 +226,22 @@ class AuthService:
 
     def add_key(self, user_id: str, request: KeyCreate) -> dict[str, Any]:
         key_id = str(uuid.uuid4())
-        ciphertext = self._fernet.encrypt(
-            request.api_key.get_secret_value().encode("utf-8")
-        ).decode("ascii")
-        self.store.add_key(key_id, user_id, request.provider, request.key_name, ciphertext)
+        raw = request.api_key.get_secret_value()
+        ciphertext = self._fernet.encrypt(raw.encode("utf-8")).decode("ascii")
+        preview = masked_preview_from_secret(raw)
+        self.store.add_key(key_id, user_id, request.provider, request.key_name, ciphertext, preview)
         self.audit("key_create", user_id, key_id)
         return self.key_metadata(self.owned_key(key_id, user_id))
 
     def update_key(self, key_id: str, user_id: str, request: KeyUpdate) -> dict[str, Any]:
         self.owned_key(key_id, user_id)
-        ciphertext = (
-            self._fernet.encrypt(request.api_key.get_secret_value().encode("utf-8")).decode("ascii")
-            if request.api_key
-            else None
-        )
-        self.store.update_key(key_id, user_id, request.key_name, ciphertext)
+        ciphertext = None
+        preview = None
+        if request.api_key:
+            raw = request.api_key.get_secret_value()
+            ciphertext = self._fernet.encrypt(raw.encode("utf-8")).decode("ascii")
+            preview = masked_preview_from_secret(raw)
+        self.store.update_key(key_id, user_id, request.key_name, ciphertext, preview)
         self.audit("key_update", user_id, key_id)
         return self.key_metadata(self.owned_key(key_id, user_id))
 
