@@ -1,6 +1,8 @@
 import { Suspense } from 'react'
 import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom'
 import { RequireSession } from '@/components/Auth/RequireSession.tsx'
+import { RequireRole } from '@/components/Auth/RequireRole.tsx'
+import { RoleAccess } from '@/components/Auth/RoleAccess.tsx'
 import { AppLayout } from '@/layouts/AppLayout.tsx'
 import { AuthLayout } from '@/layouts/AuthLayout.tsx'
 import { appPages, authPages, settingsPages } from '@/routes.tsx'
@@ -26,30 +28,36 @@ export default function App() {
           ))}
         </Route>
         <Route element={<RequireSession />}>
-          <Route element={<AppLayout />}>
-            {appPages.map((page) => (
-              <Route
-                key={page.path}
-                path={page.path}
-                element={
-                  <Suspense fallback={<p>加载中</p>}>
-                    <page.Component />
-                  </Suspense>
-                }
-              />
-            ))}
-            {settingsPages.map((page) => (
-              <Route
-                key={page.path}
-                path={page.path}
-                element={
-                  <Suspense fallback={<p>加载中</p>}>
-                    <page.Component />
-                  </Suspense>
-                }
-              />
-            ))}
-            <Route path="*" element={<Navigate to="/" replace />} />
+          <Route element={<RoleAccess />}>
+            <Route element={<AppLayout />}>
+              {appPages.map((page) => (
+                <Route
+                  key={page.path}
+                  path={page.path}
+                  element={
+                    <Suspense fallback={<p>加载中</p>}>
+                      <RequireRole allowedRoles={page.allowedRoles}>
+                        <page.Component />
+                      </RequireRole>
+                    </Suspense>
+                  }
+                />
+              ))}
+              {settingsPages.map((page) => (
+                <Route
+                  key={page.path}
+                  path={page.path}
+                  element={
+                    <Suspense fallback={<p>加载中</p>}>
+                      <RequireRole allowedRoles={page.allowedRoles}>
+                        <page.Component />
+                      </RequireRole>
+                    </Suspense>
+                  }
+                />
+              ))}
+              <Route path="*" element={<Navigate to="/" replace />} />
+            </Route>
           </Route>
         </Route>
       </Routes>

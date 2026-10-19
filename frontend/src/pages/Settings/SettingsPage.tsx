@@ -1,15 +1,20 @@
 import { Link } from 'react-router-dom'
+import { settingsPages } from '@/routes.tsx'
+import { useRole } from '@/auth/roleContext.ts'
+import { canAccess } from '@/auth/roles.ts'
 
 export default function SettingsPage() {
+  const { state } = useRole()
   return (
     <section>
       <h1>设置</h1>
-      <p>
-        <Link to="/settings/profile">个人资料</Link>
-      </p>
-      <p>
-        <Link to="/settings/api-keys">API 密钥</Link>
-      </p>
+      {settingsPages
+        .filter((page) => canAccess(state.role, page.allowedRoles))
+        .map((page) => (
+          <p key={page.path}>
+            <Link to={page.path}>{page.label}</Link>
+          </p>
+        ))}
     </section>
   )
 }
