@@ -919,6 +919,12 @@ def test_interrupted_and_idle_upload_closes_disk_spool(api, monkeypatch):
             "server": ("testserver", 80),
         }
         await app(scope, receive, send)
+        body = json.loads(
+            b"".join(m.get("body", b"") for m in messages if m["type"] == "http.response.body")
+        )
+        assert body["error"]["code"] == ("INVALID_PARAMETER" if disconnect else "REQUEST_TIMEOUT")
+        headers = dict(next(m for m in messages if m["type"] == "http.response.start")["headers"])
+        assert headers[b"x-request-id"].decode() == body["error"]["request_id"]
         return [m["status"] for m in messages if m["type"] == "http.response.start"]
 
     assert asyncio.run(request(True)) == [400]

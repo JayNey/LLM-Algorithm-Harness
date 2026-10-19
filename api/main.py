@@ -7,7 +7,6 @@ from contextlib import asynccontextmanager, suppress
 from typing import Any, cast
 
 from fastapi import FastAPI, Request
-from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy.orm import Session, sessionmaker
 from starlette.concurrency import run_in_threadpool
 
@@ -19,7 +18,7 @@ from api.db.engine import get_db
 from api.files.config import FileSettings
 from api.files.middleware import UploadBoundaryMiddleware
 from api.files.service import FileService
-from api.middleware.errors import setup_error_handlers
+from api.middleware.errors import ErrorCORSMiddleware, error_responses, setup_error_handlers
 from api.middleware.logging import setup_logging_middleware
 from api.monitoring.config import MonitorSettings
 from api.monitoring.service import MonitorService
@@ -137,6 +136,7 @@ def create_app(
         title="LLM Algorithm Harness API",
         description="REST API for LLM algorithm evaluation harness",
         version="0.1.0",
+        responses=error_responses(),
         lifespan=lifespan,
     )
     app.dependency_overrides[get_db] = task_database
@@ -145,15 +145,15 @@ def create_app(
     # the upload boundary, including preflight and final 413 responses.
     app.add_middleware(UploadBoundaryMiddleware)
     app.add_middleware(AuthBoundaryMiddleware)
+    setup_error_handlers(app)
     app.add_middleware(
-        CORSMiddleware,
+        ErrorCORSMiddleware,
         allow_origins=settings.CORS_ORIGINS,
         allow_credentials=False,
         allow_methods=["*"],
         allow_headers=["*"],
     )
     setup_logging_middleware(app)
-    setup_error_handlers(app)
 
     # Include routers
     app.include_router(evaluations_router)

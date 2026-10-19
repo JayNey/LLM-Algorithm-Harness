@@ -701,6 +701,47 @@ problem_filters:
 
 ## 运行测试
 
+### HTTP 错误响应
+
+HTTP 错误统一返回 `success: false` 和结构化 `error`；成功响应和 WebSocket 协议保持原格式：
+
+```json
+{
+  "success": false,
+  "error": {
+    "code": "INVALID_PARAMETER",
+    "message": "Request validation failed",
+    "details": {"model": "Field required"},
+    "request_id": "req_0123456789abcdef0123456789abcdef"
+  },
+  "message": "Request validation failed",
+  "detail": "Request validation failed",
+  "details": {"model": "Field required"}
+}
+```
+
+`error.code` 是稳定的程序判断依据，`error.message` 供人阅读，`error.details` 包含附加信息（无附加信息时为 `{}`）。参数校验仍返回 HTTP 400，不使用 FastAPI 默认的 422 格式；`/openapi.json` 和 `/docs` 提供公共错误模型和错误码枚举。
+
+为兼容现有客户端，顶层 `message`、`details` 分别保留对应规范字段，`detail` 保留原 HTTP 异常的字符串或对象结构。旧的字符串 `error` 已改为结构化对象，读取它的客户端应迁移到 `error.code`。5xx 始终使用通用消息和空 details，不暴露内部异常；响应头 `X-Request-ID` 与 `error.request_id` 一致。ID 由服务端生成，不采用客户端同名头；请求日志也记录该 ID。认证的 `WWW-Authenticate`、限流的 `Retry-After` 和原有 CORS/私有缓存头继续保留。
+
+默认 HTTP 错误码：
+
+- 400 `INVALID_PARAMETER`；401 `UNAUTHORIZED`；403 `FORBIDDEN`；404 `RESOURCE_NOT_FOUND`。
+- 405 `METHOD_NOT_ALLOWED`；408 `REQUEST_TIMEOUT`；409 `DUPLICATE_RESOURCE`。
+- 413 `PAYLOAD_TOO_LARGE`；415 `UNSUPPORTED_MEDIA_TYPE`；429 `RATE_LIMIT_EXCEEDED`。
+- 500 `INTERNAL_ERROR`；503 `SERVICE_UNAVAILABLE`；其他 5xx 为 `INTERNAL_ERROR`，其他 4xx 为 `HTTP_ERROR`。
+- 缺少凭证或登录失败为 `UNAUTHORIZED`；无效、过期、已撤销的 access/refresh token 为 `INVALID_TOKEN`（401）。
+
+业务调用点可通过 `api.middleware.errors.ApiError` 显式指定 `BUDGET_EXCEEDED`（400）、`QUOTA_EXCEEDED`（400）、`TASK_ALREADY_RUNNING`（409）、`SANDBOX_UNAVAILABLE`（503）或 `DATABASE_ERROR`（500），并传入安全的 details。普通 `HTTPException` 仅按状态映射，不从英文消息猜测业务码；定义这些码不代表新增配额功能或改变既有路由的状态语义。
+
+```python
+from api.middleware.errors import ApiError, ErrorCode
+
+raise ApiError("Budget exceeded", ErrorCode.BUDGET_EXCEEDED, 400, details={"budget_usd": 1})
+```
+
+被拒绝的 CORS 预检也使用规范 JSON，来源/方法判断和策略头仍由原 CORS 实现决定。响应开始前的未处理异常由应用边界消费，避免服务器再次记录含私密信息的原始异常。错误消息暂沿用各接口现有语言，可选国际化不在本次范围。响应开始后的流式异常、生命周期失败和 WebSocket 关闭事件不能改写为该 JSON 格式。
+
 ### Prompt A/B 测试
 
 同一策略的两个 prompt 版本可以按难度和标签分层后进行 A/B 测试：

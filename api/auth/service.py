@@ -20,6 +20,7 @@ from api.auth.config import AuthSettings
 from api.auth.key_preview import masked_preview_from_secret
 from api.auth.models import KeyCreate, KeyUpdate, PasswordChange, ProfileUpdate, RegisterInput
 from api.auth.store import AuthStore
+from api.middleware.errors import ApiError, ErrorCode
 from src.llm_client import LLMClient
 from src.models import CacheConfig, LLMConfig
 
@@ -45,9 +46,9 @@ KEY_FIELDS = (
 )
 
 
-def unauthorized() -> HTTPException:
-    return HTTPException(
-        401, "Invalid or expired credentials", headers={"WWW-Authenticate": "Bearer"}
+def unauthorized(code: ErrorCode = ErrorCode.UNAUTHORIZED) -> HTTPException:
+    return ApiError(
+        "Invalid or expired credentials", code, 401, headers={"WWW-Authenticate": "Bearer"}
     )
 
 
@@ -146,7 +147,7 @@ class AuthService:
 
     def decode(self, token: str, kind: str) -> dict[str, Any]:
         if len(token) > 4096:
-            raise unauthorized()
+            raise unauthorized(ErrorCode.INVALID_TOKEN)
         try:
             claims = jwt.decode(
                 token,
@@ -161,29 +162,29 @@ class AuthService:
             if claims["type"] != kind or any(
                 not isinstance(claims[k], str) or not claims[k] for k in ["sub", "sid", "jti"]
             ):
-                raise unauthorized()
+                raise unauthorized(ErrorCode.INVALID_TOKEN)
             return claims
         except jwt.InvalidTokenError:
-            raise unauthorized() from None
+            raise unauthorized(ErrorCode.INVALID_TOKEN) from None
 
     def authenticate(self, token: str) -> Principal:
         claims = self.decode(token, "access")
         if not self.store.session(claims["sid"], claims["sub"]) or not self.store.user(
             claims["sub"]
         ):
-            raise unauthorized()
+            raise unauthorized(ErrorCode.INVALID_TOKEN)
         return Principal(claims["sub"], claims["sid"])
 
     def refresh(self, token: str) -> dict[str, Any]:
         claims = self.decode(token, "refresh")
         session = self.store.session(claims["sid"], claims["sub"])
         if not session or not self.store.user(claims["sub"]):
-            raise unauthorized()
+            raise unauthorized(ErrorCode.INVALID_TOKEN)
         tokens = self._tokens(claims["sub"], claims["sid"], session["expires_at"])
         if not self.store.rotate(
             claims["sid"], claims["sub"], digest(token), digest(tokens["refresh_token"])
         ):
-            raise unauthorized()
+            raise unauthorized(ErrorCode.INVALID_TOKEN)
         self.audit("refresh", claims["sub"])
         return tokens
 
