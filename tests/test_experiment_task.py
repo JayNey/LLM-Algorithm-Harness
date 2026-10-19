@@ -172,11 +172,17 @@ def test_run_experiment_task_rejects_non_pending(db_session):
 
 
 def test_execute_experiment_disables_recovery():
-    with patch("api.services.experiment_service.ExperimentService") as service_cls:
+    with (
+        patch("api.services.experiment_service.ExperimentService") as service_cls,
+        patch("api.auth.config.AuthSettings") as settings_cls,
+        patch("api.auth.service.AuthService") as auth_cls,
+    ):
         execute_experiment("exp-1", "owner-1")
 
-    service_cls.assert_called_once_with(recover=False)
+    auth_cls.assert_called_once_with(settings_cls.return_value)
+    service_cls.assert_called_once_with(auth=auth_cls.return_value, recover=False)
     service_cls.return_value._execute.assert_called_once_with("exp-1", "owner-1")
+    service_cls.return_value._engine.dispose.assert_called_once_with()
 
 
 def test_run_experiment_task_keeps_paused_status(db_session):

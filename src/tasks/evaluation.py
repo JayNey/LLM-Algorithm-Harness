@@ -505,6 +505,7 @@ def _resolve_execution_context(
     from api.auth.config import AuthSettings
     from api.auth.service import AuthService
     from api.db.problem_store import ProblemStore
+    from api.files.store import FileStore
 
     api_key_id = evaluation.api_key_id
     if not api_key_id:
@@ -517,10 +518,24 @@ def _resolve_execution_context(
         raise ValueError(f"Credential unavailable: {exc.detail}") from None
 
     store = ProblemStore(session_factory)
+    # Uploads are private to their owner and must never be copied into the
+    # shared problem table. Prefer the owner's version on ID collisions.
+    uploaded = {
+        item["problem_id"]: item for item in FileStore(auth.store).dataset(evaluation.user_id)
+    }
     problem_map: dict[str, DomainProblem] = {}
     missing: set[str] = set()
     missing_reasons: dict[str, str] = {}
     for pid in evaluation.problem_ids:
+        if pid in uploaded:
+            try:
+                problem_map[pid] = DomainProblem.model_validate(uploaded[pid])
+            except ValidationError as exc:
+                missing.add(pid)
+                missing_reasons[pid] = (
+                    f"invalid/incomplete problem data: {_validation_error_summary(exc)}"
+                )
+            continue
         row = store.get_by_problem_id(pid)
         if row is None:
             missing.add(pid)
