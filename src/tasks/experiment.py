@@ -15,9 +15,15 @@ from src.tasks.support import get_db_session, owned_async_task
 
 def execute_experiment(experiment_id: str, user_id: str) -> None:
     """Run an experiment that the caller has already marked running."""
+    from api.auth.config import AuthSettings
+    from api.auth.service import AuthService
     from api.services.experiment_service import ExperimentService
 
-    ExperimentService(recover=False)._execute(experiment_id, user_id)
+    service = ExperimentService(auth=AuthService(AuthSettings()), recover=False)
+    try:
+        service._execute(experiment_id, user_id)
+    finally:
+        service._engine.dispose()
 
 
 def _is_paused(db: Session, task_id: str) -> bool:

@@ -21,6 +21,13 @@ from src.task_service import TaskService, TaskUnit
 from src.tasks.evaluation import run_evaluation_task
 
 
+@pytest.fixture(autouse=True)
+def no_uploaded_problems():
+    """These unit tests mock auth storage; private uploads are covered by HTTP integration tests."""
+    with patch("api.files.store.FileStore.dataset", return_value=[]):
+        yield
+
+
 @pytest.fixture
 def db_session():
     """创建内存数据库会话用于测试。"""
