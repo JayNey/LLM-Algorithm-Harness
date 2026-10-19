@@ -1,534 +1,246 @@
 # LLM Algorithm Harness REST API
 
-## 概述
+API 基础地址为 `http://localhost:8000/api/v1`，当前应用版本为 `0.1.0`。
+所有已注册 HTTP 端点的参数、约束、认证要求、限流说明、请求/响应示例及 curl 命令，均从服务的 OpenAPI 文档读取：
 
-REST API 为 LLM 算法评估框架提供程序化接口，支持评估任务管理、题目查询、策略配置等功能。
+- [Swagger UI](http://localhost:8000/docs)：展开端点后点击 **Try it out** 发起请求。
+- [ReDoc](http://localhost:8000/redoc)：阅读端点、模型和 Shell 示例。
+- [OpenAPI JSON](http://localhost:8000/openapi.json)：导入客户端或保存用于离线阅读。
 
-**API 版本**: v1  
-**基础 URL**: `http://localhost:8000/api/v1`
+文档跟随当前路由和 Pydantic 模型自动生成；`api/documentation.py` 补充业务语义和示例。
+`/docs`、`/redoc`、`/openapi.json` 无需认证。Swagger UI 和 ReDoc 默认从 CDN 加载界面脚本，
+浏览器需能访问这些资源；JSON 规范本身不依赖 CDN。
 
-## 快速开始
+## 启动和保存规范
 
-### 1. 配置认证并启动 API 服务
-
-先按 [认证指南](docs/api-authentication.md) 设置 `SECRET_KEY` 和 `ENCRYPTION_KEY`；无有效密钥时服务拒绝启动。注册、登录、保存 LLM API 密钥后，全部评估请求必须带 `Authorization: Bearer <access_token>`。创建任务还需提供自己的 `api_key_id`。
-
-```bash
-./run_api.sh
-```
-
-或指定主机和端口：
+从仓库根目录安装依赖并生成本地开发密钥（生产环境按[认证指南](docs/api-authentication.md)管理密钥）：
 
 ```bash
-./run_api.sh --host 0.0.0.0 --port 8000
+python3 -m pip install -e '.[dev]'
+export SECRET_KEY="$(python3 -c 'import secrets; print(secrets.token_hex(32))')"
+export ENCRYPTION_KEY="$(python3 -c 'from cryptography.fernet import Fernet; print(Fernet.generate_key().decode())')"
+./run_api.sh --host localhost --port 8000
 ```
 
-### 2. 访问文档
-
-- **Swagger UI**: http://localhost:8000/docs
-- **OpenAPI Schema**: http://localhost:8000/openapi.json
-
-### 3. 健康检查
+在另一个终端保存最新 OpenAPI：
 
 ```bash
-curl http://localhost:8000/api/v1/health
+curl --fail http://localhost:8000/openapi.json --output openapi.json
 ```
 
-响应：
+生成规范不需要运行数据库、Redis 或 LLM 请求。正常启动服务仍需要有效签名/加密密钥，
+并会初始化本地数据存储。执行异步评估、实验、基准或导入任务还需要配置 Redis 和 Celery worker，
+参见[异步任务部署](docs/deployment/async-tasks.md)。
 
-```json
-{
-  "success": true,
-  "data": {
-    "status": "healthy",
-    "scope": "api_liveness_only",
-    "version": "0.1.0",
-    "service": "LLM Algorithm Harness API"
-  },
-  "message": "Service is healthy"
-}
+## 认证和访问权限
+
+- 公开端点：`GET /health`，`POST /auth/register`、`/auth/login`、`/auth/refresh`。
+- 其他 HTTP 端点要求 `Authorization: Bearer <access_token>`。Swagger UI 右上角 **Authorize** 中只填访问令牌，不要填提供商 API Key。
+- 评估、异步任务、实验、基准、A/B 测试、文件及日志按所有者隔离。不可访问的资源通常返回 404，避免泄露其他用户资源是否存在。
+- 系统监控、依赖健康、全局指标/日志及服务器配置目录要求管理员身份。
+  管理员由环境变量 `MONITOR_ADMIN_USER_IDS` 配置为用户 UUID 的 JSON 数组，不能通过注册请求或 token 自行声明。
+- `/users/me` 返回服务器解析的 `role`。`/auth/refresh` 轮换刷新令牌，旧刷新令牌不能再次使用。
+  `/auth/logout` 撤销当前会话；`/users/me/password` 修改密码后撤销所有会话。
+- LLM 提供商 Key 先通过 `/api-keys` 加密保存，再用返回的 `id` 作为 `api_key_id`。响应只包含 `masked_preview` 等元数据。
+
+[认证完整说明](docs/api-authentication.md)包含密钥配置、令牌生命周期和密码要求。
+
+## 速率限制与容量
+
+以下为默认值，部署可通过同名环境变量调整；每个端点的交互文档也显示适用限制：
+
+- 注册、登录、刷新按客户端 IP 共享 `AUTH_RATE_LIMIT=10` 次 / `AUTH_RATE_WINDOW_SECONDS=60` 秒。
+- 受保护接口按用户共享 `AUTH_PROTECTED_RATE_LIMIT=120` 次 / 同一认证窗口。
+- 三个上传端点额外按 IP 和用户分别应用 `FILE_UPLOAD_RATE_LIMIT=10` 次 / 同一认证窗口。
+- 文件上传、原始文件下载、题库导出，以及 `/results/` 下的路径还受每个 API 进程
+  `FILE_MAX_CONCURRENT_TRANSFERS=2` 的传输并发容量限制。它和请求次数限制是两个独立限制。
+- 限流或传输容量不足返回 `429/RATE_LIMIT_EXCEEDED`，按响应 `Retry-After` 秒数等待后重试。
+- 公开 `/health` 没有应用级请求限流；WebSocket 不经过上述 HTTP 请求次数限流。
+- 上传默认单文件最大 `FILE_UPLOAD_MAX_BYTES=104857600`（100 MiB），配置文件还受
+  `FILE_CONFIG_MAX_BYTES=1048576`（1 MiB）限制；用户存储默认 512 MiB。
+  导入题目数、导入并发和活跃任务数另有容量限制，参见[文件服务](docs/api-files.md)。
+- `/quotas` 和 `/quotas/usage` 查询自己的实际生效额度；未配置的日/月 API 配额显示 null。
+
+## 从注册到评估结果
+
+示例凭证均为虚构值。先运行注册，再登录；已经注册时可直接登录。
+所有资源 ID 必须从自己的前序响应中获取。示例题目须已导入业务题库，模型须受自己的提供商密钥支持。
+以下操作会创建账户、保存密钥或创建/执行评估，按需在本地开发服务使用。
+
+```bash
+export API_URL=http://localhost:8000/api/v1
+curl --fail-with-body -X POST "$API_URL/auth/register" \
+  -H 'Content-Type: application/json' \
+  --data '{"username":"demo","email":"demo@example.com","password":"Example-password-123!"}'
+
+curl --fail-with-body -X POST "$API_URL/auth/login" \
+  -H 'Content-Type: application/json' \
+  --data '{"username":"demo","password":"Example-password-123!"}'
+
+# 从登录响应 data.access_token 复制值。
+export ACCESS_TOKEN='REPLACE_WITH_ACCESS_TOKEN'
+
+curl --fail-with-body -X POST "$API_URL/api-keys" \
+  -H "Authorization: Bearer $ACCESS_TOKEN" \
+  -H 'Content-Type: application/json' \
+  --data '{"provider":"openai","key_name":"Demo key","api_key":"REPLACE_WITH_PROVIDER_KEY"}'
+
+# 用上一步 data.id 替换 api_key_id，使用自己的题目 ID。
+curl --fail-with-body -X POST "$API_URL/evaluations" \
+  -H "Authorization: Bearer $ACCESS_TOKEN" \
+  -H 'Content-Type: application/json' \
+  --data '{"api_key_id":"REPLACE_WITH_KEY_ID","model":"gpt-4o-mini","problem_ids":["two-sum"],"strategy_names":["vanilla"],"budget_cap_usd":1.0}'
+
+# 创建返回 201/pending；启动才提交后台运行。
+export EVALUATION_ID='REPLACE_WITH_EVALUATION_ID'
+curl --fail-with-body -X POST "$API_URL/evaluations/$EVALUATION_ID/start" \
+  -H "Authorization: Bearer $ACCESS_TOKEN"
+curl --fail-with-body "$API_URL/evaluations/$EVALUATION_ID/progress" \
+  -H "Authorization: Bearer $ACCESS_TOKEN"
+curl --fail-with-body "$API_URL/results/$EVALUATION_ID" \
+  -H "Authorization: Bearer $ACCESS_TOKEN"
+
+# 报告是附件，不是 ApiResponse；不要把 HTTP 头写入文件内容。
+curl --fail-with-body "$API_URL/reports/csv/$EVALUATION_ID" \
+  -H "Authorization: Bearer $ACCESS_TOKEN" --output results.csv
 ```
 
-该公开端点只检查 API 存活。数据库、Docker 和系统资源需使用受管理员保护的监控端点，详见 [监控指南](docs/api-monitoring.md)。
+`202` 表示后台操作已受理，不代表执行完成。轮询对应的评估、异步任务、实验或基准运行详情。
+预算、依赖和执行失败可能在后续状态中出现，启动请求的成功响应不保证评估成功。
 
-## 统一响应格式
+实验/基准请求的 `dataset_path` 在服务器 `DATA_ROOT` 内解析（默认 `data`）；
+例如磁盘上的 `data/problems.json` 在请求中写 `problems.json`，不能使用客户端磁盘路径。
+完整请求参数请展开对应操作的 **Schema**；所有 JSON 请求示例均使用当前请求模型。
 
-成功响应使用下列包装。参数校验和内部错误使用结构化错误；认证、权限和状态错误使用 FastAPI 的 `detail` 格式：
+## 上传、导入与导出
 
-### 成功响应
+上传请求为 `multipart/form-data`，每次恰好一个 `file` 字段；由 curl 自动设置包含 boundary 的 Content-Type。
 
-```json
-{
-  "success": true,
-  "data": { /* 端点特定数据 */ },
-  "message": "Operation successful"
-}
+```bash
+curl --fail-with-body -X POST "$API_URL/files/upload" \
+  -H "Authorization: Bearer $ACCESS_TOKEN" -F 'file=@problems.json'
+
+# 用上传返回的 data.file.id 提交异步导入。
+curl --fail-with-body -X POST "$API_URL/problems/import" \
+  -H "Authorization: Bearer $ACCESS_TOKEN" -H 'Content-Type: application/json' \
+  --data '{"file_id":"REPLACE_WITH_FILE_ID","mode":"append"}'
+curl --fail-with-body "$API_URL/imports/REPLACE_WITH_JOB_ID" \
+  -H "Authorization: Bearer $ACCESS_TOKEN"
+
+# 或直接上传并同步导入；validate 必须为 true/1。
+curl --fail-with-body -X POST "$API_URL/problems/upload" \
+  -H "Authorization: Bearer $ACCESS_TOKEN" \
+  -F 'file=@problems.json' -F 'mode=append' -F 'validate=true'
+
+curl --fail-with-body -X POST "$API_URL/configs/upload" \
+  -H "Authorization: Bearer $ACCESS_TOKEN" \
+  -F 'file=@config.yaml' -F 'config_type=harness'
+curl --fail-with-body "$API_URL/configs/templates/vanilla" \
+  -H "Authorization: Bearer $ACCESS_TOKEN"
+curl --fail-with-body "$API_URL/problems/export?format=json" \
+  -H "Authorization: Bearer $ACCESS_TOKEN" --output problems-export.json
 ```
 
-### 错误响应
+`mode=overwrite` 会替换自己的题库。配置模板名称从 `/configs/templates` 获取，响应的 `data.config`
+为配置对象。上传配置会移除凭证，返回 `credentials_removed`。
+
+题库导出支持 `json/csv`；运行结果 `/results/{run_id}/download` 与 `/export` 是同一处理器的别名，
+支持 `json/csv/md/markdown/html/png/zip`。仅已发布的运行附件可被这些文件导出接口读取；
+它们与 `/reports/*` 从业务结果库生成报告的接口使用不同的数据来源。
+
+原始文件下载按后缀返回 JSON、YAML、CSV、PNG、ZIP 或二进制媒体类型。
+报告接口分别返回 `text/markdown`、`text/html`、`text/csv`；日志下载返回包含 JSONL 的 `text/plain`。
+检查 `Content-Disposition` 获取文件名；日志下载还通过 `X-Retained-Log-Count`、
+`X-Exported-Log-Count`、`X-Log-Export-Truncated` 说明保留量、导出量和截断情况。
+
+## 响应和错误码
+
+JSON 成功响应为 `{ "success": true, "data": ..., "message": "..." }`。
+列表常使用 `data.items/total/limit/offset/has_more`；具体 data 结构见每个操作的成功示例。
+`204` 没有响应体（例如删除评估、退出登录），不要调用 JSON 解析。
+下载响应是附件，下载失败仍返回以下标准 JSON 错误。
 
 ```json
 {
   "success": false,
-  "error": "error-code",
-  "message": "Human-readable error message",
-  "details": { /* 可选的详细错误信息 */ }
-}
-```
-
-## 核心端点
-
-### 评估任务管理
-
-#### 创建评估任务
-
-```
-POST /api/v1/evaluations
-```
-
-**请求体** (`model` 为必填字段，缺失返回 400):
-
-```json
-{
-  "api_key_id": "your-stored-key-id",
-  "model": "gpt-4o-mini",
-  "problem_ids": ["1", "2", "3"],
-  "strategy_names": ["vanilla", "chain_of_thought"],
-  "budget_cap_usd": 10.0,
-  "timeout_seconds": 300,
-  "max_concurrency": 5
-}
-```
-
-**响应** (201 Created):
-
-```json
-{
-  "success": true,
-  "data": {
-    "evaluation_id": "550e8400-e29b-41d4-a716-446655440000",
-    "created_at": "2024-10-10T15:30:45Z",
-    "updated_at": "2024-10-10T15:30:45Z",
-    "status": "pending",
-    "strategy_names": ["vanilla", "chain_of_thought"],
-    "model": "gpt-4o-mini",
-    "problem_count": 3,
-    "spent_usd": 0.0,
-    "budget_cap_usd": 10.0,
-    "error_message": null,
-    "progress": {
-      "completed": 0,
-      "total": 3,
-      "percentage": 0.0
-    }
+  "error": {
+    "code": "INVALID_PARAMETER",
+    "message": "Request validation failed",
+    "details": {"problem_ids": "List should have at least 1 item after validation, not 0"},
+    "request_id": "req_example"
   },
-  "message": "Evaluation created successfully"
+  "message": "Request validation failed",
+  "detail": "Request validation failed",
+  "details": {"problem_ids": "List should have at least 1 item after validation, not 0"}
 }
 ```
 
-#### 列出评估任务
-
-```
-GET /api/v1/evaluations?status=running&limit=20&offset=0
-```
-
-**查询参数**:
-
-- `status` (optional): 按状态过滤 - `pending`, `running`, `completed`, `failed`, `cancelled`
-- `limit` (optional): 每页数量，默认 20，最大 100
-- `offset` (optional): 偏移数量，默认 0
-
-**响应** (200 OK):
-
-```json
-{
-  "success": true,
-  "data": {
-    "items": [
-      {
-        "evaluation_id": "550e8400-e29b-41d4-a716-446655440000",
-        "created_at": "2024-10-10T15:30:45Z",
-        "updated_at": "2024-10-10T15:30:45Z",
-        "status": "running",
-        "strategy_names": ["vanilla"],
-        "model": "gpt-4o-mini",
-        "problem_count": 3,
-        "spent_usd": 2.5,
-        "budget_cap_usd": 10.0,
-        "progress": {
-          "completed": 2,
-          "total": 3,
-          "percentage": 66.67
-        }
-      }
-    ],
-    "total": 1,
-    "limit": 20,
-    "offset": 0,
-    "has_more": false
-  },
-  "message": "Evaluations retrieved successfully"
-}
-```
-
-#### 获取单个评估任务
-
-```
-GET /api/v1/evaluations/{evaluation_id}
-```
-
-**响应** (200 OK): 返回评估任务详情（见上方示例）
-
-**错误** (404 Not Found): 任务不存在
-
-#### 更新评估任务配置
-
-```
-PATCH /api/v1/evaluations/{evaluation_id}
-```
-
-**请求体** (全部可选):
-
-```json
-{
-  "budget_cap_usd": 15.0,
-  "timeout_seconds": 600
-}
-```
-
-**限制**: 仅 `pending` 状态的任务可修改
-
-**响应** (200 OK): 返回更新后的任务信息
-
-**错误**:
-- 404 Not Found: 任务不存在
-- 400 Bad Request: 任务状态不允许修改
-
-#### 删除评估任务
-
-```
-DELETE /api/v1/evaluations/{evaluation_id}
-```
-
-**限制**: 仅 `pending` 或 `completed` 状态的任务可删除
-
-**响应** (204 No Content): 删除成功
-
-**错误**:
-- 404 Not Found: 任务不存在
-- 400 Bad Request: 任务状态不允许删除
-
-#### 启动评估任务
-
-```
-POST /api/v1/evaluations/{evaluation_id}/start
-```
-
-**响应** (202 Accepted): 任务已启动，在后台执行
-
-```json
-{
-  "success": true,
-  "data": {
-    "evaluation_id": "550e8400-e29b-41d4-a716-446655440000",
-    "status": "running",
-    ...
-  },
-  "message": "Evaluation started successfully"
-}
-```
-
-**错误**:
-- 404 Not Found: 任务不存在
-- 400 Bad Request: 任务已在运行或已完成
-
-#### 获取任务执行进度
-
-```
-GET /api/v1/evaluations/{evaluation_id}/progress
-```
-
-**响应** (200 OK):
-
-```json
-{
-  "success": true,
-  "data": {
-    "completed": 2,
-    "total": 3,
-    "percentage": 66.67
-  },
-  "message": "Progress retrieved successfully"
-}
-```
-
-**进度分母口径**：`progress.total` 仍为**题目数**（`problem_count`），而 `current`/`completed` 是**单元数**（题目数 × 策略数）；`percentage` 以单元总数为分母计算，并恒落在 [0, 100]。两者分母不同，因此多策略评估时 `current/total` 的比值不等于 `percentage`（2 策略 × 2 题目全完成时 `percentage=100`，而 `current=4`、`total=2`）。评估详情响应若带异步任务上报的 `progress`，其 `current`/`total` 均为单元数。
-
-#### 取消评估任务
-
-```
-POST /api/v1/evaluations/{evaluation_id}/cancel
-```
-
-**限制**: 仅 `running` 状态的任务可取消
-
-**响应** (200 OK): 返回更新后的任务信息（status 为 `cancelled`）
-
-**错误**:
-- 404 Not Found: 任务不存在
-- 400 Bad Request: 任务状态不允许取消
-
-### 评估结果、统计与报告
-
-只读查询当前用户已经落库的评估结果，不重新运行评估，也不连接 LLM 或 Redis。JSON 成功响应使用统一的 `ApiResponse` 外壳（`success`、`data`、`message`）。列表，以及详情里的题目列表，使用现有分页结构：`items`、`total`、`limit`、`offset`、`has_more`。`limit` 默认 20，合法范围 1–100，越界回退 20；`offset` 小于 0 时按 0。运行列表的排序只接受 `completed_at` 和 `created_at`，默认 `completed_at` 降序。
-
-全部端点都要 Bearer 认证。未登录时返回现有认证错误。运行不存在、不属于当前用户，或他人的 `run_id`，返回 404。404 使用现有 JSON 错误（FastAPI `detail`），不附带报告正文。`compare/strategies` 和 `compare/history` 缺少 `run_id` 时返回 400。
-
-成功率、解出数、token 和成本使用落库聚合，与 CLI 写入时的同一套统计口径一致。未知成本不计入美元合计，响应里标出未知成本的数量。历史行没有 `iterations` 时，迭代统计把它算作未知，不用 0 或 1 代替。报告不含生成代码和沙箱轨迹。没有单独的 PNG 路径。
-
-| 端点 | 说明 |
-|---|---|
-| `GET /api/v1/results/{run_id}` | 单次运行：状态、时间、完整策略汇总，以及分页后的题目。题目分页不改变策略汇总 |
-| `GET /api/v1/results` | 当前用户的运行分页。`strategy`、`difficulty`、`tag` 只保留至少有一个匹配单元的运行；`status` 过滤评估状态 |
-| `GET /api/v1/results/problems/{problem_id}` | 当前用户在这道题上的单元分页。`status` 过滤单元状态 |
-| `GET /api/v1/analytics/success-rate` | 总体、按难度、按标签的成功率 |
-| `GET /api/v1/analytics/tokens` | token 合计与平均 |
-| `GET /api/v1/analytics/iterations` | 已知次数、未知数量、平均值，以及按次数的分布 |
-| `GET /api/v1/analytics/failure-modes` | 已保存 `failure_mode` 的计数，不按消息重写 |
-| `GET /api/v1/compare/strategies` | 要求 `run_id`。各策略数字与该次详情一致 |
-| `GET /api/v1/compare/models` | 按模型分组的同一聚合 |
-| `GET /api/v1/compare/history` | 用 `run_id` 确定模型与策略集合。同一用户、同一配置、已完成、按完成时间排列；没有其他运行时为空序列 |
-| `GET /api/v1/compare/ab-test/{test_id}` | 与 `GET /api/v1/ab-tests/{test_id}/results` 相同的 A/B 结果 |
-| `GET /api/v1/visualizations/success-rate-chart` | 每个策略一个成功率点 |
-| `GET /api/v1/visualizations/token-chart` | 每个策略一条折线，点是各题 token |
-| `GET /api/v1/visualizations/cost-accuracy` | 每个策略一点：成功率与 `estimated_cost_usd` |
-| `GET /api/v1/visualizations/capability-radar` | 能力雷达的维度、分数和 `problem_counts` |
-| `GET /api/v1/visualizations/learning-curve` | 该用户已完成的基准运行；可选 `suite_id`。没有记录时返回 200 和空序列。`GET /api/v1/benchmarks/learning-curve/{suite_id}` 保持原样 |
-| `GET /api/v1/failures/summary/{run_id}` | `failure_mode` 计数和错误聚类 |
-| `GET /api/v1/failures/by-tag` | 每个标签的成功率、解出数、总数 |
-| `GET /api/v1/failures/cases/{run_id}` | 非成功单元和已保存的 `error_message` |
-| `GET /api/v1/reports/markdown/{run_id}` | `Content-Type: text/markdown` 附件 |
-| `GET /api/v1/reports/csv/{run_id}` | `Content-Type: text/csv` 附件，正文带 UTF-8 BOM |
-| `GET /api/v1/reports/html/{run_id}` | `Content-Type: text/html` 附件 |
-
-统计、可视化和 `failures/by-tag` 接受可选查询参数 `run_id`、`strategy`、`difficulty`、`tag`。不传 `run_id` 时只统计该用户已完成的运行。传入 `run_id` 时只统计那一次运行，包括尚未完成的运行。三条报告在成功时返回文件正文和 `Content-Disposition`，不使用 `ApiResponse` 外壳；404 仍是 JSON，不附带文件。
-
-### 实验与基准管理（#156）
-
-实验、基准 Suite、A/B 测试均 owner 作用域；请求永不携带明文密钥，`api_key_id` 在创建时校验归属、运行时经认证库解密注入；`dataset_path` 只允许 `DATA_ROOT`（默认 `data/`）内的路径。
-
-| 端点 | 说明 |
-|---|---|
-| `POST /api/v1/experiments` | 创建固定预算实验（校验密钥归属与数据集路径） |
-| `GET /api/v1/experiments` | 实验列表（`status`/`limit`/`offset`） |
-| `GET /api/v1/experiments/{id}` | 实验详情 |
-| `DELETE /api/v1/experiments/{id}` | 删除（运行中拒绝） |
-| `POST /api/v1/experiments/{id}/run` | 异步运行（`ExperimentRunner`） |
-| `GET /api/v1/experiments/{id}/results` | 结果摘要（需 completed） |
-| `GET /api/v1/experiments/{id}/comparison` | 模型×策略对比报告（含胜率矩阵/McNemar） |
-| `GET /api/v1/experiments/{id}/panel` | 交互面板数据 |
-| `POST /api/v1/pareto/analyze` | 成本-准确率帕累托分析（无状态，输入 comparisons） |
-| `POST /api/v1/optimize` | 成本优化建议（无状态，含性价比排名与预算方案） |
-| `GET /api/v1/benchmarks/suites` | Suite 列表 |
-| `POST /api/v1/benchmarks/suites` | 创建 Suite（默认 `frozen: false`） |
-| `GET /api/v1/benchmarks/suites/{id}` | Suite 详情 |
-| `PATCH /api/v1/benchmarks/suites/{id}` | 更新 Suite（frozen 拒绝，返回 400） |
-| `POST /api/v1/benchmarks/suites/{id}/run` | 异步运行基准（`BenchmarkExecutor`） |
-| `GET /api/v1/benchmarks/runs/{run_id}` | 运行结果（含 accuracy/cost 与原始 results） |
-| `GET /api/v1/benchmarks/learning-curve/{suite_id}` | 学习曲线（时间序列 + 趋势；空历史返回空序列） |
-| `POST /api/v1/ab-tests` | 创建 A/B 测试 |
-| `GET /api/v1/ab-tests` | A/B 列表 |
-| `GET /api/v1/ab-tests/{id}` | A/B 详情 |
-| `DELETE /api/v1/ab-tests/{id}` | 删除（运行中拒绝） |
-| `POST /api/v1/ab-tests/{id}/run` | 异步运行（`ABTestRunner`） |
-| `GET /api/v1/ab-tests/{id}/results` | A/B 结果（含显著性检验，来自产物 `ab_test.json`） |
-
-异步端点返回 `202`，随后通过详情端点轮询状态（`pending → running → completed/failed`）；服务重启会把中断的 `pending/running` 任务标记为 `failed`（`error_message: "interrupted by service restart"`）。
-
-### 成本追踪、预算与定价（#154）
-
-成本查询为只读聚合（数据来自评估任务与基准运行的持久化记录）；预算与预警规则为 owner 作用域的配置持久化。时间段参数（`since`/`until`）接受 ISO 8601，非法值返回 400；纯日期（如 `2026-01-31`）按当天全天计算。
-
-预算语义：`POST /api/v1/budgets` 为**全量替换**（未传字段重置：`action` 缺省为 `pause`、未传的上限清空）；`PATCH` 为部分更新（未传字段保持不变）。
-
-定价覆盖说明：自定义定价是**服务器全局数据**（影响所有用户的成本查询口径），任何认证用户可写——治理（管理员限制）随 #159 runner 接线一并落地；覆盖在 API 成本查询侧立即生效，runner 记账侧随 #159。
-
-| 端点 | 说明 |
-|---|---|
-| `GET /api/v1/costs/tasks/{task_id}` | 单任务成本（跨评估/实验/基准/A-B 四类任务解析） |
-| `GET /api/v1/costs/summary` | 用户成本汇总（`since`/`until`，按来源类型分列） |
-| `GET /api/v1/costs/trends` | 按日成本趋势序列 |
-| `GET /api/v1/costs/breakdown` | 成本分解（按来源/模型/策略） |
-| `GET /api/v1/budgets` · `POST /api/v1/budgets` | 读取 / 首次设置预算（全局上限 + 按难度分配 + `action: pause\|downgrade`） |
-| `PATCH /api/v1/budgets` | 部分更新预算（未传字段保持不变） |
-| `GET /api/v1/budgets/usage` | 使用情况：全局 used/remaining/percentage + 按难度（难度用量为比例估计，响应 `basis` 注明口径） |
-| `GET /api/v1/alerts` · `POST /api/v1/alerts` | 预警规则列表 / 创建（threshold_pct 1–100；channel: slack/webhook/smtp/log；webhook、smtp 必须带 target） |
-| `PATCH /api/v1/alerts/{id}` · `DELETE /api/v1/alerts/{id}` | 更新 / 删除规则 |
-| `GET /api/v1/alerts/history` | 触发历史（运行期触发接线随 #149 队列落地） |
-| `GET /api/v1/pricing` | 定价目录（内置 + pricing.json + 数据库覆盖，覆盖优先） |
-| `GET /api/v1/pricing/{model_id}/history` | 自定义定价版本历史（追加式，最新在前） |
-| `POST /api/v1/pricing/{model_id}` | 自定义定价覆盖（USD/1k tokens，仅 API 成本查询侧生效；runner 接线随 #159） |
-| `GET /api/v1/reports/cost/{task_id}` | 任务成本报告（含 percentage_used 与定价元数据） |
-| `GET /api/v1/reports/cost-optimization` | 从用户自己的 run 数据合成对比并生成优化建议（build_advisory） |
-
-预警规则的 webhook/邮件目标在响应中脱敏（保留协议与主机）。删除规则用 `DELETE`，成功返回 204。
-
-### 实时进度 WebSocket（#150）
-
-`GET /api/v1/ws/progress?token=<access_token>` — 建立后可订阅评估任务频道，实时接收进度事件；数据经 Redis Pub/Sub 从 worker 进程转发。
-
-**客户端帧**：
-
-```json
-{"action": "subscribe", "task_id": "<evaluation_id>"}
-{"action": "unsubscribe", "task_id": "<evaluation_id>"}
-{"action": "ping"}
-```
-
-**服务端帧**（均含 `type`）：
-
-| type | 时机 |
-|---|---|
-| `connected` | 握手成功 |
-| `task.snapshot` | 订阅成功后首帧：任务当前状态与计数（断线重连即重新获得最新状态） |
-| `subscribed` / `unsubscribed` | 订阅/退订确认 |
-| `task.started` / `task.progress` / `problem.completed` | worker 运行期事件（percentage、completed/failed/total、当前题目与策略、单题结果） |
-| `task.completed` / `task.failed` / `task.paused` / `task.cancelled` | 终态事件 |
-| `pong` | 心跳应答 |
-
-**约束**：令牌无效以 4401 关闭；订阅非本人任务以 4403 关闭（不存在与无权返回相同，不做存在性探测）；`problem.started`/`iteration.completed` 事件与日志流暂未提供。`task.progress` 的 percentage 按 completed/total 计算，存在失败单元时可能达不到 100（终态事件携带原始计数）。Redis 故障时进度推送中断但评估任务不受影响。部署注意：token 经 query 参数传递（浏览器 WebSocket 无法自定义 header），生产环境应剥离访问日志中的 query 串或改用短时票证。
-
-## 错误处理
-
-API 使用标准 HTTP 状态码：
-
-| 状态码 | 含义 | 示例 |
-|--------|------|------|
-| 200 | OK | 请求成功 |
-| 201 | Created | 资源创建成功 |
-| 202 | Accepted | 异步请求已接受 |
-| 204 | No Content | 删除成功 |
-| 400 | Bad Request | 参数验证失败、状态冲突 |
-| 404 | Not Found | 资源不存在 |
-| 500 | Internal Server Error | 服务器错误 |
-
-## 配置
-
-通过环境变量配置 API：
+`error.code` 用于程序判断，`message` 用于展示，`details` 包含结构化或字段级详情。
+顶层 `message/detail/details` 是兼容字段。`error.request_id` 与响应头 `X-Request-ID` 相同，
+可用于日志关联；请求 ID 由服务器生成。内部错误不暴露原始异常或凭证。
+
+普通 HTTP 错误的默认映射如下，OpenAPI 也包含各状态的错误模型与示例：
+
+- 400 `INVALID_PARAMETER`：请求校验或业务参数/状态错误。**参数校验不是 FastAPI 默认的 422。**
+- 401 `UNAUTHORIZED`：缺少凭证或登录凭证错误；`INVALID_TOKEN` 为显式令牌无效/过期错误。响应包含 `WWW-Authenticate: Bearer`。
+- 403 `FORBIDDEN`：例如调用者不是管理员。
+- 404 `RESOURCE_NOT_FOUND`：资源不存在或不可访问。
+- 405 `METHOD_NOT_ALLOWED`：路径不支持该 HTTP 方法。
+- 408 `REQUEST_TIMEOUT`：例如上传超时。
+- 409 `DUPLICATE_RESOURCE`：例如用户名/邮箱冲突；普通 HTTPException(409) 也使用此默认码。
+- 413 `PAYLOAD_TOO_LARGE`：请求体、上传或导出超限。
+- 415 `UNSUPPORTED_MEDIA_TYPE`：例如上传未使用 multipart。
+- 429 `RATE_LIMIT_EXCEEDED`：请求频率或传输容量超限，保留 `Retry-After`。
+- 500 `INTERNAL_ERROR`：通用内部错误，消息为 `An unexpected error occurred`。
+- 503 `SERVICE_UNAVAILABLE`：通用服务不可用，消息为 `Service is unavailable`。
+- 未单独映射的 HTTP 4xx 为 `HTTP_ERROR`，未单独映射的 5xx 为 `INTERNAL_ERROR`。
+
+错误枚举还包含显式业务码 `BUDGET_EXCEEDED`、`QUOTA_EXCEEDED`、`TASK_ALREADY_RUNNING`、
+`SANDBOX_UNAVAILABLE`、`DATABASE_ERROR`；只有调用点显式抛出对应 `ApiError` 时才使用这些码，
+不会根据英文消息或同一状态码推断。它们出现在枚举中不代表每个端点都可能返回。
+全局错误模型在每个操作下复用；具体触发条件以操作说明为准。
+
+## WebSocket 实时进度
+
+WebSocket 不属于 OpenAPI 的 HTTP paths。地址为
+`ws://localhost:8000/api/v1/ws/progress?token=ACCESS_TOKEN`（TLS 部署使用 `wss://`）。
+访问令牌通过查询参数传入，不是刷新令牌或 LLM 提供商 Key。
+
+可使用 curl 诊断 HTTP 升级握手（交互收发帧使用 WebSocket 客户端）：
 
 ```bash
-export API_HOST=0.0.0.0
-export API_PORT=8000
-export MAX_CONCURRENT_TASKS=5
-export TASK_TIMEOUT_SECONDS=3600
-export DATABASE_URL=sqlite:///data/business/business.sqlite3
+curl --http1.1 --no-buffer -i \
+  -H 'Connection: Upgrade' -H 'Upgrade: websocket' \
+  -H 'Sec-WebSocket-Version: 13' \
+  -H 'Sec-WebSocket-Key: dGhlIHNhbXBsZSBub25jZQ==' \
+  "http://localhost:8000/api/v1/ws/progress?token=$ACCESS_TOKEN"
 ```
 
-`DATABASE_URL` 指向业务数据库（评估任务、结果与题库）。默认使用本地 SQLite 文件
-`data/business/business.sqlite3`，schema 由 Alembic 迁移在启动时自动升级；生产环境可
-切换为 PostgreSQL 连接串（如 `postgresql+psycopg://user:pass@host/business`）。认证
-数据独立存储在 `AUTH_DATABASE_PATH`，与业务库物理隔离。
+浏览器客户端示例：
 
-或在 `.env` 文件中设置。
-
-## 使用示例
-
-### Python
-
-```python
-import requests
-
-BASE_URL = "http://localhost:8000/api/v1"
-
-# 先登录，再使用返回的访问 Token 和自己保存的密钥 ID
-ACCESS_TOKEN = "your-access-token"
-API_KEY_ID = "your-stored-key-id"
-session = requests.Session()
-session.headers["Authorization"] = f"Bearer {ACCESS_TOKEN}"
-
-# 创建评估任务
-response = session.post(
-    f"{BASE_URL}/evaluations",
-    json={
-        "api_key_id": API_KEY_ID,
-        "model": "gpt-4o-mini",
-        "problem_ids": ["1", "2", "3"],
-        "strategy_names": ["vanilla"],
-        "budget_cap_usd": 10.0,
-    }
-)
-evaluation = response.json()["data"]
-eval_id = evaluation["evaluation_id"]
-
-# 启动任务
-response = session.post(f"{BASE_URL}/evaluations/{eval_id}/start")
-assert response.status_code == 202
-
-# 轮询进度
-import time
-while True:
-    response = session.get(f"{BASE_URL}/evaluations/{eval_id}/progress")
-    progress = response.json()["data"]
-    # 多策略评估中 completed 为单元数、total 为题目数（分母不同），
-    # 因此以 percentage 或终态作为退出条件，而不是 completed == total。
-    print(f"Progress: {progress['percentage']}%")
-
-    if progress["percentage"] >= 100:
-        break
-    time.sleep(1)
+```javascript
+const socket = new WebSocket(
+  `ws://localhost:8000/api/v1/ws/progress?token=${encodeURIComponent(accessToken)}`
+);
+socket.onopen = () => socket.send(JSON.stringify({action: "subscribe", task_id: evaluationId}));
+socket.onmessage = event => console.log(JSON.parse(event.data));
+// 心跳：socket.send(JSON.stringify({action: "ping"}));
+// 取消订阅：socket.send(JSON.stringify({action: "unsubscribe", task_id: evaluationId}));
 ```
 
-### cURL
+`task_id` 使用自己评估的 ID。连接后收到 `connected`；订阅后收到 `task.snapshot` 和 `subscribed`，
+随后转发 `task.started/task.progress/problem.completed/task.completed` 等工作事件。
+取消订阅收到 `unsubscribed`，ping 收到 `pong`。无效令牌关闭码为 `4401`；
+任务不存在或不属于自己为 `4403`。WebSocket 不使用 HTTP 错误包装。
+
+## 文档维护和验证
+
+增加或修改路由时同步维护对应描述、参数语义和业务示例；自动模型保留实际校验约束和安全依赖。
+文档测试会检查所有当前 HTTP 操作的文档覆盖、JSON 样本、公共元数据字段、错误协议、附件媒体类型和公开入口：
 
 ```bash
-# 创建评估任务
-curl -X POST http://localhost:8000/api/v1/evaluations \
-  -H "Content-Type: application/json" \
-  -H "Authorization: Bearer $ACCESS_TOKEN" \
-  -d '{
-    "api_key_id": "your-stored-key-id",
-    "model": "gpt-4o-mini",
-    "problem_ids": ["1", "2", "3"],
-    "strategy_names": ["vanilla"],
-    "budget_cap_usd": 10.0
-  }'
-
-# 启动任务 (replace with actual ID)
-curl -X POST http://localhost:8000/api/v1/evaluations/{eval_id}/start -H "Authorization: Bearer $ACCESS_TOKEN"
-
-# 获取进度
-curl http://localhost:8000/api/v1/evaluations/{eval_id}/progress -H "Authorization: Bearer $ACCESS_TOKEN"
+pytest tests/test_api_documentation.py --no-cov
 ```
 
-## 限制和注意事项
-
-1. **并发限制**: 默认最多 5 个并发任务，超出时排队等待
-2. **任务持久化**: #151 已将任务状态存入业务数据库，#179 已提供 Celery/Redis 与 AsyncTask 基础，#180 已增加实验、导入和基准 Celery 入口。现有 HTTP 路由没有因此自动切换队列。重启后记录仍可查询；旧评估启动恢复规则不代表异步队列恢复执行保障。当前 `/evaluations` 路由仍保留旧流程。异步评估 worker 现已改为经真实 `AlgorithmHarness` 执行（LLM 调用 + Docker 沙箱运行 + 成本统计），逐单元结果落库，不再返回模拟结果。
-3. **WebSocket 支持**: 当前不支持 WebSocket 实时推送，请使用轮询。后续版本计划支持
-4. **认证**: 用户、Token 撤销和加密密钥已实现；详见 [认证指南](docs/api-authentication.md)。队列基础与三类 Celery 任务（实验、导入、基准）实现已合并，但其端到端执行和真实 LLM 指标仍未接通或验证。异步评估 worker 现已改为经真实 `AlgorithmHarness` 执行（见第 2 条）；真实 LLM 调用的端到端执行与使用计量仍待生产环境验证（测试不发起在线调用），密钥使用计量和安全结果发布仍需接入，#149 保持开放。
-
-## 路线图
-
-- 数据库持久化存储：#151 已实现
-- Phase 3: WebSocket 实时推送
-- 用户认证和授权：#152 已实现
-- 系统监控：#157 已提供健康、资源、日志、API 与业务 SQL 查询统计，并分别只读查询旧评估和异步任务；队列/worker 连通探测与真实 LLM 指标尚待接入
-- Phase 5: 完整的问题和策略端点
-
-## 反馈和支持
-
-如有问题或建议，请联系开发团队或提交 Issue。
-
-## 文件上传与下载
-
-支持私有题库/配置上传、JSON/CSV 批量导入、进度查询和结果多格式下载。接口、上传限制及 worker 接入见 [文件服务指南](docs/api-files.md)。所有接口复用 Bearer 认证和资源所有者校验。
-
-## 系统监控与安全日志
-
-本次 #157 基础能力提供 `/system/health`、`/health/database`、`/health/sandbox`、`/system/resources`、`/metrics/api-stats`、业务 SQL 查询统计和离线配置目录。系统级端点及全局 `/logs` 需要有效 Bearer 身份，并由部署者通过 `MONITOR_ADMIN_USER_IDS` UUID 白名单授权。
-
-用户可读取自己的 `/logs/tasks/{task_id}`、下载 `/logs/download/{task_id}`，以及查询 `/quotas/usage` 的既有存储、请求与导入限额。任务日志按所有者隔离，消息和上下文在存储前脱敏；不接受主机日志路径。
-
-`/health/database` 只读检查已配置的认证/文件 SQLite 和 #151 业务 engine 的连通性、所需表与迁移版本；不通过健康请求迁移数据库或重新创建任务服务。`/system/tasks/running` 与 `/system/tasks/queued` 支持 `task_source=legacy_evaluation`（默认）或 `async_task`，分别读取未关联异步任务的 Evaluation 或 AsyncTask，支持 `limit/offset` 分页并返回准确 `total/counts`。关联评估不再计入旧来源，避免双计；`queued` 表示数据库 `pending` 状态，不代表 Redis 队列长度。`/system/status` 分别提供两组全量状态计数，不能相加视作全局一致快照。监控不轮询 Celery 或提交任务状态，也不暴露原始参数、进度消息、错误详情及 Celery 任务 ID。
-
-API 与业务 SQL 指标提供 `window_complete` 与 `retained_sample`，窗口不完整时顶层累计值为 `null`。业务 SQL 统计仅覆盖当前评估 engine 与 API 进程的 cursor 执行阶段，未纳入异步任务独立 engine 的全部查询；重启后重建采集起点，不保存 SQL、参数或连接凭据。#179 的队列基础与 #180 的实验/导入/基准入口已存在，Redis/worker 本轮未联网探测，标记 `not_checked`；`evaluation_worker_implementation=mock` 只指评估 worker，真实评估与 LLM 延迟/成功率标记 `not_configured/null`。管理员配置、全部接口和后续接入边界见 [监控指南](docs/api-monitoring.md)，#157 保持开放。
+其他专题：[文件服务](docs/api-files.md)、[认证](docs/api-authentication.md)、
+[监控与配额](docs/api-monitoring.md)。
