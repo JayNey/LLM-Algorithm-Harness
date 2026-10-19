@@ -30,7 +30,7 @@ python -c 'from cryptography.fernet import Fernet; print("ENCRYPTION_KEY=" + Fer
 2. `POST /api/v1/auth/login`：`username` 可为用户名或邮箱，另提供 `password`。返回 `access_token`、`refresh_token`、`token_type`、`expires_in`。
 3. `POST /api/v1/auth/refresh`：提供 `refresh_token`，获得新的 Token 对。旧刷新 Token 单次使用；并发刷新仅一项成功。
 4. `POST /api/v1/auth/logout`：使用访问 Token，返回 204，撤销该登录会话的所有 Token。其他独立登录会话保持有效。
-5. `GET /api/v1/users/me`：查询自己的公开资料。
+5. `GET /api/v1/users/me`：查询自己的公开资料，返回 `id/username/email/created_at/role`。`role` 为 `user` 或 `admin`，按服务端 `MONITOR_ADMIN_USER_IDS` 白名单实时计算，与管理员监控接口使用同一规则。注册、资料修改或 JWT 中的角色声明不能提权。管理员身份不改变现有资源所有者隔离。
 6. `PATCH /api/v1/users/me`：更新用户名或邮箱，不接受角色和用户 ID。
 
 后续请求使用 `Authorization: Bearer <access_token>`。刷新 Token 不能用来访问资源，访问 Token 不能刷新。Token 不从 cookie 或 URL 参数读取，因此不会使用浏览器自动附带的 cookie 身份；前端自行管理 Bearer Token。所有 API 响应带 `Cache-Control: no-store`。无身份或无效 Token 返回 401；限流返回 429 和 `Retry-After`。认证、资料和密钥 JSON 请求最多 16 KiB，含分块传输，超出返回 413。

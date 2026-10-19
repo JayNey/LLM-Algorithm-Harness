@@ -1,11 +1,14 @@
 """Reusable identity dependency for evaluations, files and WebSocket consumers."""
 
-from typing import cast
+from typing import Literal, cast
 
 from fastapi import Depends, Request
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 
 from api.auth.service import AuthService, Principal, unauthorized
+from api.monitoring.config import MonitorSettings
+
+UserRole = Literal["user", "admin"]
 
 bearer = HTTPBearer(auto_error=False)
 
@@ -25,6 +28,12 @@ def current_user(
     request.state.monitor_user_id = principal.user_id
     service.limit("protected:" + principal.user_id, service.settings.AUTH_PROTECTED_RATE_LIMIT)
     return principal
+
+
+def current_role(request: Request, principal: Principal = Depends(current_user)) -> UserRole:
+    """Resolve roles from operator configuration, never client or token claims."""
+    settings = cast(MonitorSettings, request.app.state.monitor.settings)
+    return "admin" if settings.is_admin(principal.user_id) else "user"
 
 
 def auth_attempt(request: Request, service: AuthService = Depends(auth_service)) -> None:

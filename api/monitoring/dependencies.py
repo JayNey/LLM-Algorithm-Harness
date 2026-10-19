@@ -4,7 +4,7 @@ from typing import cast
 
 from fastapi import Depends, HTTPException, Request
 
-from api.auth.dependencies import current_user
+from api.auth.dependencies import UserRole, current_role, current_user
 from api.auth.service import Principal
 from api.monitoring.service import MonitorService
 
@@ -14,8 +14,8 @@ def monitor_service(request: Request) -> MonitorService:
 
 
 def administrator(
-    principal: Principal = Depends(current_user), monitor: MonitorService = Depends(monitor_service)
+    principal: Principal = Depends(current_user), role: UserRole = Depends(current_role)
 ) -> Principal:
-    if not monitor.settings.is_admin(principal.user_id):
+    if role != "admin":
         raise HTTPException(403, "Administrator permission required")
     return principal

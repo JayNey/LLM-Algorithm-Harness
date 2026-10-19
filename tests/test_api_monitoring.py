@@ -85,6 +85,30 @@ def api(tmp_path, monkeypatch):
         yield client, admin, user, app, auth, files, monitor
 
 
+def test_current_role_matches_live_operator_configuration(api):
+    client, admin, user, _, _, _, monitor = api
+    assert client.get("/api/v1/users/me").status_code == 401
+    assert client.get("/api/v1/users/me", headers=headers(user)).json()["data"]["role"] == "user"
+    response = client.get("/api/v1/users/me", headers=headers(admin))
+    assert response.status_code == 200
+    assert response.json()["data"]["role"] == "admin"
+    assert response.headers["cache-control"] == "no-store"
+    assert client.get("/api/v1/system/status", headers=headers(admin)).status_code == 200
+    monitor.MONITOR_ADMIN_USER_IDS = []
+    assert client.get("/api/v1/users/me", headers=headers(admin)).json()["data"]["role"] == "user"
+    assert client.get("/api/v1/system/status", headers=headers(admin)).status_code == 403
+
+
+def test_profile_update_cannot_grant_role(api):
+    client, _, user, *_ = api
+    response = client.patch(
+        "/api/v1/users/me", headers=headers(user), json={"username": "admin", "role": "admin"}
+    )
+    assert response.status_code == 400
+    assert client.get("/api/v1/users/me", headers=headers(user)).json()["data"]["role"] == "user"
+    assert client.get("/api/v1/system/status", headers=headers(user)).status_code == 403
+
+
 def make_task(client, tokens):
     key = client.post(
         "/api/v1/api-keys",
@@ -123,6 +147,12 @@ def test_operator_identity_is_not_username_or_token_role(api):
     )
     claims["role"] = "admin"
     forged = jwt.encode(claims, auth.SECRET_KEY.get_secret_value(), algorithm="HS256")
+    assert (
+        client.get("/api/v1/users/me", headers={"Authorization": "Bearer " + forged}).json()[
+            "data"
+        ]["role"]
+        == "user"
+    )
     assert client.get(
         "/api/v1/system/health", headers={"Authorization": "Bearer " + forged}
     ).status_code in {401, 403}
