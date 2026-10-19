@@ -47,4 +47,6 @@ proposal、design、delta spec 与代码一致。Tweak 未创建完整 Classic �
 - Bugbot 对新增主线影响补查无新增发现，独立 HTTP 回归 83 passed。Ruff、Black（311 文件）通过。
 - PR #204 已创建为草稿，最终 Runtime 记录和当前头平台 CI 完成后转为可审查状态。
 
-Comet 0.4.1 的 build 阶段 state set 曾返回 tweak build configuration is incomplete；但 state check 和 doctor 对本 change 均报告有效，实际 Runtime compileall 检查也通过。保留该工具错误，不直接修改 Runtime 自有状态或伪记验证通过；最终守卫结果在交付前另行记录。
+Comet 0.4.1 在 build 阶段提前设置 verify 配置时曾返回 tweak build configuration is incomplete；state check 和 doctor 对本 change 均报告有效。完成全部六项任务后，经公开 build 守卫推进到 verify，再设置 full 与报告路径成功。没有直接修改 Runtime 自有状态。
+
+最终实际 Runtime 编译检查成功，日志 c21457c1-e522-4d81-b4de-36164457f9d0.log；定向验证 92 项通过，日志 1e6fdb7c-e1bb-46a3-823e-900acad46acd.log。build 守卫 14/14、verify 守卫 5/5 通过，由守卫记录 verify_result=pass、phase=archive。保留 branch_status=pending 和 archive_confirmation=pending，未自动归档或合并。真实链路测试的隔离 worker 和 Redis 容器已清理。
