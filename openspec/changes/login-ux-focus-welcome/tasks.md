@@ -4,4 +4,4 @@
 
 ## 2. 验证
 
-- [ ] 2.1 运行 `cd frontend && npm test` 与 `cd frontend && npm run build`，并严格校验 OpenSpec change
+- [x] 2.1 运行 `cd frontend && npm test` 与 `cd frontend && npm run build`，并严格校验 OpenSpec change
