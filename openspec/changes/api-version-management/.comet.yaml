@@ -6,7 +6,7 @@ build_mode: direct
 build_pause: null
 subagent_dispatch: null
 tdd_mode: direct
-review_mode: off
+review_mode: standard
 isolation: branch
 verify_mode: light
 auto_transition: true
