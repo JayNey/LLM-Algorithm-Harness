@@ -64,6 +64,7 @@ ANNOTATIONS = {
     "x-codeSamples",
     "tags",
 }
+HTTP_METHODS = {"get", "post", "put", "patch", "delete", "options", "head", "trace"}
 
 
 def contract(value, *, names=False):
@@ -88,8 +89,16 @@ def assert_v1_compatible(baseline, current):
     for key in ("openapi", "security", "servers", "jsonSchemaDialect"):
         assert current.get(key) == baseline.get(key), f"Global contract changed: {key}"
     for path, methods in baseline["paths"].items():
+        current_path = current.get("paths", {}).get(path, {})
+        metadata = {key: value for key, value in methods.items() if key not in HTTP_METHODS}
+        current_metadata = {
+            key: value for key, value in current_path.items() if key not in HTTP_METHODS
+        }
+        assert current_metadata == metadata, f"Existing path configuration changed: {path}"
         for method, operation in methods.items():
-            actual = current.get("paths", {}).get(path, {}).get(method)
+            if method not in HTTP_METHODS:
+                continue
+            actual = current_path.get(method)
             assert actual == operation, f"Existing operation changed: {method.upper()} {path}"
     for category, members in baseline.get("components", {}).items():
         for name, component in members.items():
@@ -109,6 +118,19 @@ def test_existing_v1_http_contract_is_preserved(schema):
         (("paths", "/api/v1/health", "get"), None),
         (("paths", "/api/v1/health", "get", "responses", "200"), None),
         (("paths", "/api/v1/users/me", "get", "security"), []),
+        (
+            ("paths", "/api/v1/health", "parameters"),
+            [
+                {
+                    "name": "new_required",
+                    "in": "query",
+                    "required": True,
+                    "schema": {"type": "string"},
+                }
+            ],
+        ),
+        (("paths", "/api/v1/health", "servers"), [{"url": "https://changed.invalid"}]),
+        (("paths", "/api/v1/health", "$ref"), "#/components/pathItems/Replacement"),
         (("paths", "/api/v1/evaluations", "get", "parameters"), []),
         (("paths", "/api/v1/health", "get", "responses", "200", "content"), {}),
         (("components", "schemas", "ErrorCode", "enum"), ["INTERNAL_ERROR"]),
