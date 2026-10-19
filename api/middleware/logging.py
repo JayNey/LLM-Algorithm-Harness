@@ -11,6 +11,8 @@ from fastapi import FastAPI
 from starlette.concurrency import run_in_threadpool
 from starlette.types import ASGIApp, Message, Receive, Scope, Send
 
+from api.middleware.errors import request_id
+
 logger = logging.getLogger(__name__)
 
 
@@ -22,6 +24,7 @@ class LoggingMiddleware:
         if scope["type"] != "http":
             await self.app(scope, receive, send)
             return
+        identity = request_id(scope)
         start_time = time.monotonic()
         status_code: int | None = None
         response_elapsed_ms: float | None = None
@@ -30,6 +33,15 @@ class LoggingMiddleware:
             nonlocal status_code, response_elapsed_ms
             if message["type"] == "http.response.start":
                 status_code = message["status"]
+                headers = [
+                    (key, value)
+                    for key, value in message.get("headers", [])
+                    if key.lower() != b"x-request-id"
+                ]
+                message = {
+                    **message,
+                    "headers": [*headers, (b"x-request-id", identity.encode("ascii"))],
+                }
             await send(message)
             if message["type"] == "http.response.body" and not message.get("more_body", False):
                 response_elapsed_ms = (time.monotonic() - start_time) * 1000
@@ -50,7 +62,13 @@ class LoggingMiddleware:
             route = getattr(scope.get("route"), "path", "[unmatched]")
             if not isinstance(route, str):
                 route = "[unmatched]"
-            logger.info("Request completed: %s %s %s", scope["method"], route, status_code)
+            logger.info(
+                "Request completed: %s %s %s request_id=%s",
+                scope["method"],
+                route,
+                status_code,
+                identity,
+            )
             app = scope.get("app")
             monitor = getattr(getattr(app, "state", None), "monitor", None)
             store = getattr(monitor, "store", None)

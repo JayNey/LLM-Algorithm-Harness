@@ -1,7 +1,8 @@
 """Bound auth request bodies before parsing and avoid caching private responses."""
 
-from starlette.responses import JSONResponse
 from starlette.types import ASGIApp, Message, Receive, Scope, Send
+
+from api.middleware.errors import error_response
 
 
 class AuthBoundaryMiddleware:
@@ -40,9 +41,7 @@ class AuthBoundaryMiddleware:
                     return
                 size += len(message.get("body", b""))
                 if size > 16384:
-                    response = JSONResponse(
-                        {"success": False, "message": "Request body too large"}, status_code=413
-                    )
+                    response = error_response(scope, 413, "Request body too large")
                     await response(scope, receive, private_send)
                     return
                 chunks.append(message.get("body", b""))

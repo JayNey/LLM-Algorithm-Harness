@@ -1,0 +1,4 @@
+{"sequence":1,"timestamp":"2026-10-19T08:47:19.797Z","type":"run_started","runId":"21ec2ecb-e8a0-42b5-bdc8-aacde341ca3d","data":{"skill":"comet-classic","skillVersion":"1","skillHash":"9bd4ffab011ae18aef91dc0db336ffc12d454b513229178c15b8b75d50930ba1"}}
+{"sequence":2,"timestamp":"2026-10-19T08:47:19.797Z","type":"state_migrated","runId":"21ec2ecb-e8a0-42b5-bdc8-aacde341ca3d","data":{"kind":"classic","migrationVersion":1,"profile":"tweak","source":"pre-migration"}}
+{"sequence":3,"timestamp":"2026-10-19T08:47:19.885Z","type":"state_transitioned","runId":"21ec2ecb-e8a0-42b5-bdc8-aacde341ca3d","data":{"kind":"classic","fromStep":"tweak.open","toStep":"tweak.build.execute","event":"open-complete","phase":"open","source":"comet-guard"}}
+{"sequence":4,"timestamp":"2026-10-19T09:07:51.760Z","type":"command_check_recorded","runId":"21ec2ecb-e8a0-42b5-bdc8-aacde341ca3d","data":{"scope":"build","command":"python3 -m pytest -m \"not online\"","exitCode":0,"cwd":"."}}

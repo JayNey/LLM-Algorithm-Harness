@@ -6,8 +6,9 @@ import time
 from fastapi import HTTPException
 from starlette.concurrency import run_in_threadpool
 from starlette.formparsers import MultiPartException
-from starlette.responses import JSONResponse
 from starlette.types import ASGIApp, Message, Receive, Scope, Send
+
+from api.middleware.errors import ApiError, error_response
 
 UPLOAD_PATHS = {"/api/v1/files/upload", "/api/v1/problems/upload", "/api/v1/configs/upload"}
 
@@ -52,16 +53,20 @@ class UploadBoundaryMiddleware:
         try:
             await run_in_threadpool(check_identity)
         except HTTPException as error:
-            await JSONResponse(
-                {"detail": error.detail},
-                status_code=error.status_code,
+            await error_response(
+                scope,
+                error.status_code,
+                error.detail,
+                code=error.error_code if isinstance(error, ApiError) else None,
+                details=error.details if isinstance(error, ApiError) else None,
                 headers={**(error.headers or {}), "Cache-Control": "no-store"},
             )(scope, receive, send)
             return
         if not service.transfers.acquire(blocking=False):
-            await JSONResponse(
-                {"detail": "File transfer capacity reached"},
-                status_code=429,
+            await error_response(
+                scope,
+                429,
+                "File transfer capacity reached",
                 headers={"Retry-After": "1", "Cache-Control": "no-store"},
             )(scope, receive, send)
             return
@@ -79,14 +84,13 @@ class UploadBoundaryMiddleware:
                     if length < 0:
                         raise ValueError
                 except ValueError:
-                    await JSONResponse({"detail": "Invalid content length"}, status_code=400)(
-                        scope, receive, send
-                    )
+                    await error_response(scope, 400, "Invalid content length")(scope, receive, send)
                     return
                 if length > maximum:
-                    await JSONResponse(
-                        {"detail": "Maximum upload size exceeded"},
-                        status_code=413,
+                    await error_response(
+                        scope,
+                        413,
+                        "Maximum upload size exceeded",
                         headers={"Cache-Control": "no-store"},
                     )(scope, receive, send)
                     return
@@ -123,8 +127,8 @@ class UploadBoundaryMiddleware:
             await self.app(scope, bounded_receive, bounded_send)
             if rejection:
                 detail = "Upload timed out" if rejection == 408 else "Maximum upload size exceeded"
-                await JSONResponse(
-                    {"detail": detail}, status_code=rejection, headers={"Cache-Control": "no-store"}
+                await error_response(
+                    scope, rejection, detail, headers={"Cache-Control": "no-store"}
                 )(scope, receive, send)
         finally:
             service.transfers.release()
