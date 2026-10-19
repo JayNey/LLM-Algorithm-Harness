@@ -2,12 +2,13 @@ import assert from 'node:assert/strict'
 import { after, test } from 'node:test'
 import { createElement } from 'react'
 import { renderToStaticMarkup } from 'react-dom/server'
-import { MemoryRouter } from 'react-router-dom'
+import { StaticRouter } from 'react-router-dom'
 import { createServer } from 'vite'
 
 // Compile the real TSX components with the app's existing Vite configuration.
 const server = await createServer({
-  server: { middlewareMode: true, watch: null, hmr: false },
+  server: { middlewareMode: true, watch: null, hmr: false, ws: false },
+  optimizeDeps: { noDiscovery: true, include: [] },
   appType: 'custom',
 })
 after(() => server.close())
@@ -25,8 +26,8 @@ function render(
 ) {
   return renderToStaticMarkup(
     createElement(
-      MemoryRouter,
-      {},
+      StaticRouter,
+      { location: '/settings' },
       createElement(
         RoleContext.Provider,
         { value: { state, reload() {} } },
