@@ -745,9 +745,20 @@ pytest tests/test_models.py -v
 
 ### 查看覆盖率
 
+安装开发依赖后，使用与 CI 相同的完整测试和覆盖率检查命令：
+
 ```bash
-pytest --cov=src tests/
+python -m pip install -e ".[dev]"
+python -m pytest -m "not online"
+python -m coverage report --include="src/*" --fail-under=90
+python -m coverage report --include="api/*" --fail-under=81
 ```
+
+默认统计 `src/` 和 `api/` 的行覆盖率，包括未被测试导入的文件；按小数点后两位精度报告并检查。总覆盖率和 `src/` 各自至少 90%，`api/` 至少 81%（高于 80%）。两个模块分别检查，不能用其他模块的高覆盖率抵消不足。低于门槛或缺少覆盖率数据时，命令返回非零状态。
+
+每次完整测试生成终端缺失行摘要、`htmlcov/index.html` 和 `coverage.xml`。在浏览器中打开 HTML 报告可逐文件查看未覆盖行。CI 对每个操作系统和 Python 版本执行上述门禁，并上传 `coverage-<os>-py<version>` 报告附件，保留 14 天；测试或门禁失败时也上传可用报告。Codecov 上传作为辅助展示，检查是否通过由 CI 中的测试及覆盖率命令决定。
+
+运行单个测试文件时可加 `--no-cov`，避免局部测试触发完整项目的覆盖率门槛。真实 Redis/Celery 集成测试在服务不可达时会跳过；覆盖率报告和离线测试通过不代表这些外部服务流程已经执行。
 
 ### 离线端到端回归与真实 API 验证的区分
 
