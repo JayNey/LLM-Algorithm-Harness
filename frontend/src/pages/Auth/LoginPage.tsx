@@ -1,9 +1,10 @@
-import { Alert, Button, Checkbox, Form, Input } from 'antd'
+import { Alert, Button, Checkbox, Form, Input, message } from 'antd'
 import { useRef, useState } from 'react'
 import { Controller, useForm } from 'react-hook-form'
 import { Link, useLocation, useNavigate } from 'react-router-dom'
 import { ApiClientError } from '@/auth/http.ts'
 import { validateLogin } from '@/auth/loginForm.ts'
+import { loginWelcome } from '@/auth/loginWelcome.ts'
 import { sanitizeReturnPath } from '@/auth/returnPath.ts'
 import { useAuthStore } from '@/store/auth.ts'
 
@@ -93,6 +94,9 @@ export default function LoginPage() {
       await useAuthStore
         .getState()
         .login(values.identity, values.password, values.remember)
+      message.success(
+        loginWelcome(useAuthStore.getState().session?.username ?? null),
+      )
       navigate(sanitizeReturnPath(from))
     } catch (error) {
       if (!(error instanceof ApiClientError)) {
@@ -157,7 +161,12 @@ export default function LoginPage() {
             name="identity"
             control={control}
             render={({ field }) => (
-              <Input id="login-identity" autoComplete="username" {...field} />
+              <Input
+                id="login-identity"
+                autoFocus
+                autoComplete="username"
+                {...field}
+              />
             )}
           />
         </Form.Item>
