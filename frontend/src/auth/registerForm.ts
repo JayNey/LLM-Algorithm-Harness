@@ -6,6 +6,7 @@ export interface RegistrationInput {
 }
 
 const usernamePattern = /^[A-Za-z0-9_.-]+$/
+const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
 
 export function validateUsername(username: string): string | undefined {
   if (
@@ -19,12 +20,7 @@ export function validateUsername(username: string): string | undefined {
 }
 
 export function validateEmail(email: string): string | undefined {
-  if (
-    email.length < 3 ||
-    email.length > 254 ||
-    !email.includes('@') ||
-    !email.includes('.')
-  ) {
+  if (email.length < 3 || email.length > 254 || !emailPattern.test(email)) {
     return '请输入有效邮箱'
   }
   return undefined

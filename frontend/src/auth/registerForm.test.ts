@@ -71,6 +71,18 @@ test('用户名超过 64 个字符', () => {
   )
 })
 
+test('邮箱的点不在域名或含空白、多余 @', () => {
+  for (const email of ['a.b@c', 'a@b.', 'a @b.com', 'a@b@c.com']) {
+    const errors = validateRegistration({
+      username: 'ada',
+      email,
+      password: 'long-enough-password',
+      confirmPassword: 'long-enough-password',
+    })
+    assert.equal(errors.email, '请输入有效邮箱')
+  }
+})
+
 test('邮箱缺少 @ 或点', () => {
   const missingAt = validateRegistration({
     username: 'ada',
