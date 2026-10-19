@@ -1,6 +1,6 @@
 # #157 队列健康与 worker 负载验证报告
 
-日期：2026-10-19（Asia/Shanghai）。初始基线 main：b6437098a55eddb40fd13a62e1328a8abbba16c5；最终追加基线：af4690a01d1a89dcea8b2c2bedefb002635062ad。分支 tweak/20261019/monitoring-queue-health。沿用用户指定的增量 Tweak，PR #204 使用 Refs #157。
+日期：2026-10-19（Asia/Shanghai）。初始基线 main：b6437098a55eddb40fd13a62e1328a8abbba16c5；最终追加基线：a563631a322d3d96b24f77bcb85a8901237a0cbb。分支 tweak/20261019/monitoring-queue-health。沿用用户指定的增量 Tweak，PR #204 使用 Refs #157。
 
 ## 行为
 
@@ -50,3 +50,13 @@ proposal、design、delta spec 与代码一致。Tweak 未创建完整 Classic �
 Comet 0.4.1 在 build 阶段提前设置 verify 配置时曾返回 tweak build configuration is incomplete；state check 和 doctor 对本 change 均报告有效。完成全部六项任务后，经公开 build 守卫推进到 verify，再设置 full 与报告路径成功。没有直接修改 Runtime 自有状态。
 
 最终实际 Runtime 编译检查成功，日志 c21457c1-e522-4d81-b4de-36164457f9d0.log；定向验证 92 项通过，日志 1e6fdb7c-e1bb-46a3-823e-900acad46acd.log。build 守卫 14/14、verify 守卫 5/5 通过，由守卫记录 verify_result=pass、phase=archive。保留 branch_status=pending 和 archive_confirmation=pending，未自动归档或合并。真实链路测试的隔离 worker 和 Redis 容器已清理。
+
+## #203 合并后的最终回归
+
+主线新合并 #203 的 803 项 API 端点单测。GitHub 合并树 CI 暴露 `/system/status` 的旧夹具将 health 模拟为 `{}`，与真实 `health.checks.workers` 契约不符。已在最新 main 重现 500/KeyError，再仅修正单测夹具并增加断言，验证 status 复用 health 的 worker 观测、health 只调用一次且不直接再次探测；未修改生产探测逻辑。
+
+- 新主线端点与队列监控回归：843 passed。原始日志：/private/tmp/monitoring-queue-health-unit-compatibility.log。
+- 最终完整离线：2624 passed、7 skipped，217.94 秒；src/API 合计覆盖率 91.50%。原始日志：/private/tmp/monitoring-queue-health-current-main-full.log。
+- 分项覆盖率门禁保持不变：src 90.46%（门禁 90%），API 93.57%（门禁 81%），退出均为 0。
+- Bugbot 补审无新增发现，独立运行 6 项 system/status 单测通过。Ruff、Black（312 文件）、编码检查和 OpenSpec strict 均通过。
+- PR #204 已转为可审查状态，重放到上述最新主线后将发布新头重新运行平台 CI。此前头 bd68e707 的失败不作为新头结果。
