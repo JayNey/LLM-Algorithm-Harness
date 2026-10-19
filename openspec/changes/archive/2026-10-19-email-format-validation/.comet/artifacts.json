@@ -1,5 +1,6 @@
 {
   "openspec_proposal": "openspec/changes/email-format-validation/proposal.md",
   "openspec_design": "openspec/changes/email-format-validation/design.md",
-  "openspec_tasks": "openspec/changes/email-format-validation/tasks.md"
+  "openspec_tasks": "openspec/changes/email-format-validation/tasks.md",
+  "archive_directory": "openspec/changes/archive/2026-10-19-email-format-validation"
 }
