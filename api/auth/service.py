@@ -229,9 +229,7 @@ class AuthService:
         raw = request.api_key.get_secret_value()
         ciphertext = self._fernet.encrypt(raw.encode("utf-8")).decode("ascii")
         preview = masked_preview_from_secret(raw)
-        self.store.add_key(
-            key_id, user_id, request.provider, request.key_name, ciphertext, preview
-        )
+        self.store.add_key(key_id, user_id, request.provider, request.key_name, ciphertext, preview)
         self.audit("key_create", user_id, key_id)
         return self.key_metadata(self.owned_key(key_id, user_id))
 

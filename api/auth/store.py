@@ -50,9 +50,7 @@ class AuthStore:
                     bucket TEXT PRIMARY KEY, count INTEGER NOT NULL, expires_at INTEGER NOT NULL
                 );
             """)
-            columns = {
-                row[1] for row in db.execute("PRAGMA table_info(auth_keys)").fetchall()
-            }
+            columns = {row[1] for row in db.execute("PRAGMA table_info(auth_keys)").fetchall()}
             if "masked_preview" not in columns:
                 db.execute("ALTER TABLE auth_keys ADD COLUMN masked_preview TEXT")
 
