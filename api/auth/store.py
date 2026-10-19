@@ -50,6 +50,11 @@ class AuthStore:
                     bucket TEXT PRIMARY KEY, count INTEGER NOT NULL, expires_at INTEGER NOT NULL
                 );
             """)
+            columns = {
+                row[1] for row in db.execute("PRAGMA table_info(auth_keys)").fetchall()
+            }
+            if "masked_preview" not in columns:
+                db.execute("ALTER TABLE auth_keys ADD COLUMN masked_preview TEXT")
 
     @contextmanager
     def connection(self) -> Iterator[sqlite3.Connection]:
@@ -147,11 +152,27 @@ class AuthStore:
                 db.execute("INSERT INTO auth_rates VALUES (?, 1, ?)", (bucket, now + window))
         return True, 0
 
-    def add_key(self, key_id: str, user_id: str, provider: str, name: str, ciphertext: str) -> None:
+    def add_key(
+        self,
+        key_id: str,
+        user_id: str,
+        provider: str,
+        name: str,
+        ciphertext: str,
+        masked_preview: str,
+    ) -> None:
         with self.connection() as db:
             db.execute(
-                "INSERT INTO auth_keys(id,user_id,provider,key_name,ciphertext,created_at) VALUES (?,?,?,?,?,?)",
-                (key_id, user_id, provider, name, ciphertext, int(time.time())),
+                "INSERT INTO auth_keys(id,user_id,provider,key_name,ciphertext,created_at,masked_preview) VALUES (?,?,?,?,?,?,?)",
+                (
+                    key_id,
+                    user_id,
+                    provider,
+                    name,
+                    ciphertext,
+                    int(time.time()),
+                    masked_preview,
+                ),
             )
 
     def key(self, key_id: str, user_id: str) -> dict[str, Any] | None:
@@ -171,12 +192,17 @@ class AuthStore:
             ]
 
     def update_key(
-        self, key_id: str, user_id: str, name: str | None, ciphertext: str | None
+        self,
+        key_id: str,
+        user_id: str,
+        name: str | None,
+        ciphertext: str | None,
+        masked_preview: str | None = None,
     ) -> None:
         with self.connection() as db:
             db.execute(
-                "UPDATE auth_keys SET key_name=COALESCE(?,key_name), ciphertext=COALESCE(?,ciphertext), verified=CASE WHEN ? IS NULL THEN verified ELSE 0 END WHERE id=? AND user_id=?",
-                (name, ciphertext, ciphertext, key_id, user_id),
+                "UPDATE auth_keys SET key_name=COALESCE(?,key_name), ciphertext=COALESCE(?,ciphertext), masked_preview=COALESCE(?,masked_preview), verified=CASE WHEN ? IS NULL THEN verified ELSE 0 END WHERE id=? AND user_id=?",
+                (name, ciphertext, masked_preview, ciphertext, key_id, user_id),
             )
 
     def delete_key(self, key_id: str, user_id: str) -> None:

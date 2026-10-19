@@ -10,6 +10,7 @@ export interface ApiKeyRecord {
   last_used_at: number | null
   usage_count: number
   verified: boolean
+  masked_preview: string | null
 }
 
 export interface ApiKeyGroup {
@@ -40,6 +41,11 @@ export function readApiKey(value: unknown): ApiKeyRecord | null {
   const record = value as Record<string, unknown>
   const lastUsed = record.last_used_at
   const verified = readVerified(record.verified)
+  let maskedPreview: string | null = null
+  if (record.masked_preview !== undefined && record.masked_preview !== null) {
+    if (typeof record.masked_preview !== 'string') return null
+    maskedPreview = record.masked_preview
+  }
   if (
     typeof record.id !== 'string' ||
     !isProvider(record.provider) ||
@@ -59,6 +65,7 @@ export function readApiKey(value: unknown): ApiKeyRecord | null {
     usage_count:
       typeof record.usage_count === 'number' ? record.usage_count : 0,
     verified,
+    masked_preview: maskedPreview,
   }
 }
 

@@ -13,6 +13,7 @@ from fastapi.testclient import TestClient
 from pydantic import ValidationError
 
 from api.auth.config import AuthSettings
+from api.auth.key_preview import masked_preview_from_secret
 from api.auth.service import PROVIDER_URLS, AuthService
 from api.auth.store import AuthStore
 from api.files.config import FileSettings
@@ -283,6 +284,9 @@ def test_keys_encrypted_isolated_editable_and_survive_restart(api, caplog):
     assert KEY.encode() not in settings.AUTH_DATABASE_PATH.read_bytes()
     listed = client.get("/api/v1/api-keys", headers=headers(tokens))
     assert KEY not in listed.text and "ciphertext" not in listed.text
+    listed_row = listed.json()["data"][0]
+    assert listed_row["masked_preview"] == masked_preview_from_secret(KEY)
+    assert "api_key" not in listed_row
     assert client.get("/api/v1/api-keys", headers=headers(bob)).json()["data"] == []
     for method, suffix, body in [
         ("patch", "", {"key_name": "stolen"}),
