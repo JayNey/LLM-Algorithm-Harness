@@ -253,6 +253,42 @@ def test_jwt_tampering_rejected(api, mode):
     )
 
 
+def test_cookie_session_mutation_requires_csrf_token(api):
+    client, tokens, _, _ = api
+    client.cookies.clear()
+    login = client.post(
+        "/api/v1/auth/login",
+        json={"username": "alice", "password": PASSWORD, "remember": True},
+    )
+    assert login.status_code == 200, login.text
+    token = login.headers.get("x-csrf-token")
+    assert token
+    assert (
+        client.post("/api/v1/auth/refresh", json={"refresh_token": "not-a-token"}).status_code
+        == 401
+    )
+    assert client.post("/api/v1/auth/refresh", json={}).status_code == 403
+    refreshed = client.post("/api/v1/auth/refresh", json={}, headers={"X-CSRF-Token": token})
+    assert refreshed.status_code == 200, refreshed.text
+    token = refreshed.headers["x-csrf-token"]
+    rejected = client.post("/api/v1/auth/logout")
+    assert rejected.status_code == 403
+    assert tokens["access_token"] not in rejected.text
+    issued = "\n".join(login.headers.get_list("set-cookie"))
+    assert "harness_csrf=" in issued
+    assert "HttpOnly" not in next(
+        item for item in login.headers.get_list("set-cookie") if item.startswith("harness_csrf=")
+    )
+    assert client.post("/api/v1/auth/logout", headers={"X-CSRF-Token": token}).status_code == 204
+    assert (
+        client.post(
+            "/api/v1/auth/logout",
+            headers={**headers(tokens), "X-CSRF-Token": "not-the-token"},
+        ).status_code
+        == 204
+    )
+
+
 def test_login_sets_httponly_cookies_that_authenticate(api):
     client, tokens, _, _ = api
     client.cookies.clear()
@@ -274,7 +310,10 @@ def test_login_sets_httponly_cookies_that_authenticate(api):
         ).status_code
         == 401
     )
-    logged_out = client.post("/api/v1/auth/logout")
+    logged_out = client.post(
+        "/api/v1/auth/logout",
+        headers={"X-CSRF-Token": login.headers["x-csrf-token"]},
+    )
     assert logged_out.status_code == 204
     cleared = "\n".join(logged_out.headers.get_list("set-cookie"))
     assert 'harness_access_token=""' in cleared or "harness_access_token=;" in cleared
