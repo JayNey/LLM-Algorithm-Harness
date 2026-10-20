@@ -11,6 +11,7 @@ from sqlalchemy.orm import Session, sessionmaker
 from starlette.concurrency import run_in_threadpool
 
 from api.auth.config import AuthSettings
+from api.auth.csrf import CsrfMiddleware
 from api.auth.middleware import AuthBoundaryMiddleware
 from api.auth.service import AuthService
 from api.config import settings
@@ -148,6 +149,7 @@ def create_app(
     # the upload boundary, including preflight and final 413 responses.
     app.add_middleware(UploadBoundaryMiddleware)
     app.add_middleware(AuthBoundaryMiddleware)
+    app.add_middleware(CsrfMiddleware)
     setup_error_handlers(app)
     app.add_middleware(
         ErrorCORSMiddleware,
@@ -155,6 +157,7 @@ def create_app(
         allow_credentials=True,
         allow_methods=["*"],
         allow_headers=["*"],
+        expose_headers=["X-CSRF-Token"],
     )
     setup_logging_middleware(app)
 

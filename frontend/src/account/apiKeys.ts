@@ -104,6 +104,7 @@ export function rejectApiKey(value: string): string | null {
 
 export function validateKeyName(name: string): string | null {
   if (name.length < 1 || name.length > 100) return '名称需为 1–100 个字符'
+  if (/[<>&"']/.test(name)) return '名称不能包含 HTML 特殊字符'
   return null
 }
 

@@ -59,6 +59,11 @@ function headerOf(config: InternalAxiosRequestConfig): string {
   return typeof value === 'string' ? value : ''
 }
 
+function csrfOf(config: InternalAxiosRequestConfig): string {
+  const value = config.headers?.get?.('X-CSRF-Token')
+  return typeof value === 'string' ? value : ''
+}
+
 function bodyOf(data: unknown): unknown {
   if (typeof data === 'string') return JSON.parse(data) as unknown
   return data
@@ -79,6 +84,41 @@ function assertApiError(
   assert.equal(error.status, status)
   return true
 }
+
+test('变更请求附带 CSRF 令牌，刷新响应更新该令牌', async () => {
+  let current = session({ csrfToken: 'csrf-old', expiresAt: 1_000 })
+  const seen: string[] = []
+  const client = createHttpClient({
+    baseURL: 'http://api.test',
+    now: () => 0,
+    read: () => current,
+    write: (value) => {
+      current = value
+    },
+    clear: () => undefined,
+    adapter: (config) => {
+      const method = (config.method ?? '').toLowerCase()
+      seen.push(`${method} ${config.url ?? ''} ${csrfOf(config)}`)
+      if ((config.url ?? '').endsWith('/auth/refresh')) {
+        return Promise.resolve({
+          status: 200,
+          statusText: 'OK',
+          headers: { 'x-csrf-token': 'csrf-new' },
+          config,
+          data: { expires_in: 60 },
+        })
+      }
+      return resolveWith(config, 200, envelope({ ok: true }))
+    },
+  })
+  await client.post('/api-keys')
+  assert.deepEqual(seen, [
+    'post /auth/refresh csrf-old',
+    'post /api-keys csrf-new',
+  ])
+  assert.equal(current.csrfToken, 'csrf-new')
+  assert.equal(JSON.stringify(current).includes('accessToken'), false)
+})
 
 test('受保护请求携带 cookie 且不设置 Authorization', async () => {
   const seen: string[] = []
@@ -302,6 +342,23 @@ test('非 2xx 抛出 ApiClientError，消息优先 detail', async () => {
   await assert.rejects(
     () => client.post('/api/v1/auth/login', {}),
     (error: unknown) => assertApiError(error, '登录失败', 401),
+  )
+})
+
+test('接口错误文案转义 HTML', async () => {
+  const client = create({
+    adapter: (config) =>
+      resolveWith(
+        config,
+        400,
+        { detail: '<script>alert(1)</script>' },
+        'Bad Request',
+      ),
+  })
+  await assert.rejects(
+    () => client.post('/api/v1/auth/login', {}),
+    (error: unknown) =>
+      assertApiError(error, '&lt;script&gt;alert(1)&lt;&#47;script&gt;', 400),
   )
 })
 

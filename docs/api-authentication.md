@@ -27,18 +27,18 @@ python -c 'from cryptography.fernet import Fernet; print("ENCRYPTION_KEY=" + Fer
 所有请求使用 JSON，成功响应保留 `success/data/message` 包装。
 
 1. `POST /api/v1/auth/register`：`username`、`email`、`password`。用户名 3–64 字符，限字母、数字、`_.-`；密码 12–1024 字符。用户名和邮箱不区分大小写，重复返回 409。
-2. `POST /api/v1/auth/login`：`username` 可为用户名或邮箱，另提供 `password`。可选 `remember`（默认 `false`）。返回 `access_token`、`refresh_token`、`token_type`、`expires_in`，并设置 HttpOnly、SameSite=Lax 的 `harness_access_token` 与 `harness_refresh_token`。`remember` 为真时 cookie 带 Max-Age，否则为浏览器会话 cookie。
-3. `POST /api/v1/auth/refresh`：可在 JSON 中提供 `refresh_token`，或只发送刷新 cookie。获得新的 Token 对并更新 cookie。旧刷新 Token 单次使用；并发刷新仅一项成功。显式 JSON 优先于 cookie。
-4. `POST /api/v1/auth/logout`：使用访问 Token 或访问 cookie，返回 204，撤销该登录会话并清除认证 cookie。其他独立登录会话保持有效。
+2. `POST /api/v1/auth/login`：`username` 可为用户名或邮箱，另提供 `password`。可选 `remember`（默认 `false`）。返回 `access_token`、`refresh_token`、`token_type`、`expires_in`，并设置 HttpOnly、SameSite=Lax 的 `harness_access_token` 与 `harness_refresh_token`。同时设置非 HttpOnly 的 `harness_csrf`（Path=`/`，SameSite=Lax），并在响应头 `X-CSRF-Token` 给出相同令牌。`remember` 为真时这些 cookie 带 Max-Age，否则为浏览器会话 cookie。
+3. `POST /api/v1/auth/refresh`：可在 JSON 中提供 `refresh_token`，或只发送刷新 cookie。获得新的 Token 对并更新 cookie，同时轮换 `harness_csrf`。旧刷新 Token 单次使用；并发刷新仅一项成功。显式 JSON 优先于 cookie，此时不要求 CSRF 头。只靠刷新 cookie 时必须带与 `harness_csrf` 一致的 `X-CSRF-Token`。
+4. `POST /api/v1/auth/logout`：使用访问 Token 或访问 cookie，返回 204，撤销该登录会话并清除认证 cookie 和 `harness_csrf`。其他独立登录会话保持有效。只靠访问 cookie 时必须带匹配的 `X-CSRF-Token`。
 5. `GET /api/v1/users/me`：查询自己的公开资料，返回 `id/username/email/created_at/role`。`role` 为 `user` 或 `admin`，按服务端 `MONITOR_ADMIN_USER_IDS` 白名单实时计算，与管理员监控接口使用同一规则。注册、资料修改或 JWT 中的角色声明不能提权。管理员身份不改变现有资源所有者隔离。
 6. `PATCH /api/v1/users/me`：更新用户名或邮箱，不接受角色和用户 ID。
 
-后续请求可以使用 `Authorization: Bearer <access_token>`。没有该头时，服务端读取 HttpOnly cookie `harness_access_token`。请求一旦带有 Authorization 头，就只校验这个头，无效时不会改用 cookie。刷新 Token 不能用来访问资源，访问 Token 不能刷新。URL 查询参数中的 Token 不能认证。浏览器应使用 `credentials: include`，不要把令牌写入 Web Storage。所有 API 响应带 `Cache-Control: no-store`。无身份或无效 Token 返回 401；限流返回 429 和 `Retry-After`。认证、资料和密钥 JSON 请求最多 16 KiB，含分块传输，超出返回 413。
+后续请求可以使用 `Authorization: Bearer <access_token>`。没有该头时，服务端读取 HttpOnly cookie `harness_access_token`。请求一旦带有 Authorization 头，就只校验这个头，无效时不会改用 cookie，也不校验 CSRF。没有该头、但带有访问或刷新 cookie 的 POST、PUT、PATCH、DELETE 必须带匹配的 `X-CSRF-Token`，否则 403；登录和注册不消耗会话 cookie，因此例外。刷新 Token 不能用来访问资源，访问 Token 不能刷新。URL 查询参数中的 Token 不能认证。浏览器应使用 `credentials: include`，把 `X-CSRF-Token` 和会话标记一起保存，不要把访问令牌或刷新令牌写入 Web Storage。CORS 暴露 `X-CSRF-Token`。所有 API 响应带 `Cache-Control: no-store`。无身份或无效 Token 返回 401；限流返回 429 和 `Retry-After`。认证、资料和密钥 JSON 请求最多 16 KiB，含分块传输，超出返回 413。
 
 ## LLM API 密钥
 
 - `GET /api/v1/api-keys`：只列出当前用户的密钥元数据。
-- `POST /api/v1/api-keys`：`provider`、`key_name`、`api_key`；provider 支持 `openai`、`anthropic`、`siliconflow`。
+- `POST /api/v1/api-keys`：`provider`、`key_name`、`api_key`；provider 支持 `openai`、`anthropic`、`siliconflow`。`key_name` 为 1–100 个字符，且不能包含 `< > & " '`。
 - `PATCH /api/v1/api-keys/{id}`：更新名称或实际密钥；更新密钥清除已验证状态。
 - `DELETE /api/v1/api-keys/{id}`：删除密钥，返回 204。
 - `POST /api/v1/api-keys/{id}/verify`：调用现有 `LLMClient.check_connection()`，只访问固定提供商的模型列表，SDK 请求超时 5 秒、禁用重试，不发起生成。

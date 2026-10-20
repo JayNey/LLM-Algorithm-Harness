@@ -1,13 +1,21 @@
-"""HttpOnly session cookies. JSON tokens remain for non-browser clients."""
+"""Session cookies. Access and refresh tokens stay HttpOnly; the CSRF cookie does not."""
+
+import secrets
 
 from fastapi import Response
 
 ACCESS_COOKIE = "harness_access_token"
 REFRESH_COOKIE = "harness_refresh_token"
 PERSIST_COOKIE = "harness_persist"
+CSRF_COOKIE = "harness_csrf"
 ACCESS_PATH = "/api"
 REFRESH_PATH = "/api/v1/auth"
 PERSIST_PATH = "/api"
+CSRF_PATH = "/"
+
+
+def new_csrf_token() -> str:
+    return secrets.token_urlsafe(32)
 
 
 def set_auth_cookies(
@@ -55,6 +63,15 @@ def set_auth_cookies(
             samesite="lax",
             path=PERSIST_PATH,
         )
+    response.set_cookie(
+        CSRF_COOKIE,
+        new_csrf_token(),
+        max_age=refresh_age,
+        httponly=False,
+        secure=secure,
+        samesite="lax",
+        path=CSRF_PATH,
+    )
 
 
 def clear_auth_cookies(response: Response, *, secure: bool) -> None:
@@ -66,4 +83,7 @@ def clear_auth_cookies(response: Response, *, secure: bool) -> None:
     )
     response.delete_cookie(
         PERSIST_COOKIE, path=PERSIST_PATH, secure=secure, httponly=True, samesite="lax"
+    )
+    response.delete_cookie(
+        CSRF_COOKIE, path=CSRF_PATH, secure=secure, httponly=False, samesite="lax"
     )

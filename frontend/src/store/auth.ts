@@ -101,6 +101,7 @@ function asAuthClient(client: AuthClient): AuthClient {
 
 export function createAuthStore() {
   let remember = false
+  let csrfToken: string | null = null
   let shared: AuthClient | undefined
 
   return create<AuthState>((set) => {
@@ -115,6 +116,9 @@ export function createAuthStore() {
       return {
         baseURL: deps?.baseURL ?? readViteEnv().apiBaseUrl,
         now: deps?.now ?? Date.now,
+        onCsrf(token: string) {
+          csrfToken = token
+        },
         read: () => readSession(box),
         write: (session) => {
           writeSession(remember, session, box)
@@ -153,6 +157,7 @@ export function createAuthStore() {
       },
       async login(identity, password, nextRemember, deps) {
         remember = nextRemember
+        csrfToken = null
         const box = storagesFrom(deps)
         const client = clientFrom(deps, box)
         const now = deps?.now ?? Date.now
@@ -168,6 +173,7 @@ export function createAuthStore() {
           expiresAt: now() + payload.expires_in * 1000,
           username: null,
         }
+        if (csrfToken) session.csrfToken = csrfToken
         writeSession(remember, session, box)
         set({ session })
         try {

@@ -4,6 +4,7 @@ export interface StoredSession {
   marker: string
   expiresAt: number
   username: string | null
+  csrfToken?: string
 }
 
 export interface SessionStorages {
@@ -29,11 +30,15 @@ function parse(raw: string | null): StoredSession | null {
       value.refreshToken !== undefined
     )
       return null
-    return {
+    const session: StoredSession = {
       marker: value.marker,
       expiresAt: value.expiresAt,
       username: typeof value.username === 'string' ? value.username : null,
     }
+    if (typeof value.csrfToken === 'string' && value.csrfToken.length > 0) {
+      session.csrfToken = value.csrfToken
+    }
+    return session
   } catch {
     return null
   }

@@ -37,10 +37,21 @@ class PasswordChange(InputModel):
     new_password: SecretStr = Field(min_length=12, max_length=1024)
 
 
+def plain_key_name(value: str) -> str:
+    if any(char in value for char in "<>&\"'"):
+        raise ValueError("key name cannot contain HTML metacharacters")
+    return value
+
+
 class KeyCreate(InputModel):
     provider: Literal["openai", "anthropic", "siliconflow"]
     key_name: str = Field(min_length=1, max_length=100)
     api_key: SecretStr = Field(min_length=1, max_length=4096)
+
+    @field_validator("key_name")
+    @classmethod
+    def readable_name(cls, value: str) -> str:
+        return plain_key_name(value)
 
     @field_validator("api_key")
     @classmethod
@@ -59,6 +70,11 @@ class KeyCreate(InputModel):
 class KeyUpdate(InputModel):
     key_name: str | None = Field(None, min_length=1, max_length=100)
     api_key: SecretStr | None = Field(None, min_length=1, max_length=4096)
+
+    @field_validator("key_name")
+    @classmethod
+    def readable_name(cls, value: str | None) -> str | None:
+        return plain_key_name(value) if value is not None else None
 
     @field_validator("api_key")
     @classmethod
