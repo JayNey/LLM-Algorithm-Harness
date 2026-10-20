@@ -2,8 +2,14 @@
 
 from typing import Any
 
-from fastapi import APIRouter, Depends, Response
+from fastapi import APIRouter, Depends, Request, Response
 
+from api.auth.cookies import (
+    PERSIST_COOKIE,
+    REFRESH_COOKIE,
+    clear_auth_cookies,
+    set_auth_cookies,
+)
 from api.auth.dependencies import UserRole, auth_attempt, auth_service, current_role, current_user
 from api.auth.models import (
     KeyCreate,
@@ -14,7 +20,7 @@ from api.auth.models import (
     RefreshInput,
     RegisterInput,
 )
-from api.auth.service import AuthService, Principal
+from api.auth.service import AuthService, Principal, unauthorized
 from api.schemas import ApiResponse
 
 router = APIRouter(prefix="/api/v1", tags=["authentication"])
@@ -27,36 +33,80 @@ def register(
     return ApiResponse(success=True, data=service.register(request), message="User registered")
 
 
-@router.post("/auth/login", dependencies=[Depends(auth_attempt)])
-def login(
-    request: LoginInput, response: Response, service: AuthService = Depends(auth_service)
+def _secure(request: Request) -> bool:
+    return request.url.scheme == "https"
+
+
+def _issue(
+    request: Request,
+    response: Response,
+    service: AuthService,
+    tokens: dict[str, Any],
+    *,
+    persistent: bool,
+    message: str,
 ) -> ApiResponse[dict[str, Any]]:
     response.headers["Cache-Control"] = "no-store"
-    return ApiResponse(
-        success=True,
-        data=service.login(request.username, request.password.get_secret_value()),
-        message="Authenticated",
+    if (
+        isinstance(tokens.get("expires_in"), int)
+        and isinstance(tokens.get("access_token"), str)
+        and isinstance(tokens.get("refresh_token"), str)
+    ):
+        set_auth_cookies(
+            response,
+            tokens,
+            persistent=persistent,
+            secure=_secure(request),
+            refresh_max_age=service.settings.REFRESH_TOKEN_EXPIRE_DAYS * 86400,
+        )
+    return ApiResponse(success=True, data=tokens, message=message)
+
+
+@router.post("/auth/login", dependencies=[Depends(auth_attempt)])
+def login(
+    body: LoginInput,
+    request: Request,
+    response: Response,
+    service: AuthService = Depends(auth_service),
+) -> ApiResponse[dict[str, Any]]:
+    tokens = service.login(body.username, body.password.get_secret_value())
+    return _issue(
+        request, response, service, tokens, persistent=body.remember, message="Authenticated"
     )
 
 
 @router.post("/auth/refresh", dependencies=[Depends(auth_attempt)])
 def refresh(
-    request: RefreshInput, response: Response, service: AuthService = Depends(auth_service)
+    body: RefreshInput,
+    request: Request,
+    response: Response,
+    service: AuthService = Depends(auth_service),
 ) -> ApiResponse[dict[str, Any]]:
-    response.headers["Cache-Control"] = "no-store"
-    return ApiResponse(
-        success=True,
-        data=service.refresh(request.refresh_token.get_secret_value()),
+    supplied = body.refresh_token.get_secret_value() if body.refresh_token else None
+    token = supplied or request.cookies.get(REFRESH_COOKIE)
+    if not token:
+        raise unauthorized()
+    tokens = service.refresh(token)
+    return _issue(
+        request,
+        response,
+        service,
+        tokens,
+        persistent=request.cookies.get(PERSIST_COOKIE) == "1",
         message="Tokens refreshed",
     )
 
 
 @router.post("/auth/logout", status_code=204)
 def logout(
-    principal: Principal = Depends(current_user), service: AuthService = Depends(auth_service)
+    request: Request,
+    principal: Principal = Depends(current_user),
+    service: AuthService = Depends(auth_service),
 ) -> Response:
     service.logout(principal)
-    return Response(status_code=204)
+    response = Response(status_code=204)
+    clear_auth_cookies(response, secure=_secure(request))
+    return response
 
 
 @router.get("/users/me")

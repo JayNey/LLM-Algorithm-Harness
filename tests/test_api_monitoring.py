@@ -59,6 +59,7 @@ def signup(client, name):
     assert registered.status_code == 201, registered.text
     response = client.post("/api/v1/auth/login", json={"username": name, "password": PASSWORD})
     assert response.status_code == 200, response.text
+    client.cookies.clear()
     return response.json()["data"]
 
 

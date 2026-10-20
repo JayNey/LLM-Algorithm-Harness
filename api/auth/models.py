@@ -25,10 +25,11 @@ class RegisterInput(InputModel):
 class LoginInput(InputModel):
     username: str = Field(min_length=1, max_length=254)
     password: SecretStr = Field(min_length=1, max_length=1024)
+    remember: bool = False
 
 
 class RefreshInput(InputModel):
-    refresh_token: SecretStr = Field(min_length=1, max_length=4096)
+    refresh_token: SecretStr | None = Field(default=None, min_length=1, max_length=4096)
 
 
 class PasswordChange(InputModel):

@@ -44,8 +44,6 @@ interface AuthState {
 }
 
 interface LoginPayload {
-  access_token: string
-  refresh_token: string
   expires_in: number
 }
 
@@ -75,18 +73,18 @@ function loginPayload(value: unknown): LoginPayload {
     throw new ApiClientError('服务暂时不可用')
   }
   const record = value as Record<string, unknown>
-  if (
-    typeof record.access_token !== 'string' ||
-    typeof record.refresh_token !== 'string' ||
-    typeof record.expires_in !== 'number'
-  ) {
+  if (typeof record.expires_in !== 'number') {
     throw new ApiClientError('服务暂时不可用')
   }
-  return {
-    access_token: record.access_token,
-    refresh_token: record.refresh_token,
-    expires_in: record.expires_in,
+  return { expires_in: record.expires_in }
+}
+
+function sessionMarker(): string {
+  const cryptoRef = globalThis.crypto
+  if (cryptoRef && typeof cryptoRef.randomUUID === 'function') {
+    return cryptoRef.randomUUID()
   }
+  return `${Date.now()}-${Math.random()}`
 }
 
 function profileUsername(value: unknown): string | null {
@@ -162,11 +160,11 @@ export function createAuthStore() {
           await client.post('/auth/login', {
             username: identity,
             password,
+            remember: nextRemember,
           }),
         )
         const session: StoredSession = {
-          accessToken: payload.access_token,
-          refreshToken: payload.refresh_token,
+          marker: sessionMarker(),
           expiresAt: now() + payload.expires_in * 1000,
           username: null,
         }

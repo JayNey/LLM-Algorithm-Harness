@@ -4,6 +4,7 @@ import asyncio
 
 from fastapi import APIRouter, WebSocket, WebSocketDisconnect
 
+from api.auth.cookies import ACCESS_COOKIE
 from api.progress import Subscription, channel_for
 
 router = APIRouter(prefix="/api/v1")
@@ -30,7 +31,7 @@ async def ws_progress(websocket: WebSocket, token: str = "") -> None:
 
     await websocket.accept()
     try:
-        principal = auth.authenticate(token)
+        principal = auth.authenticate(token or websocket.cookies.get(ACCESS_COOKIE, ""))
     except Exception:
         await websocket.close(code=CLOSE_INVALID_TOKEN, reason="invalid token")
         return

@@ -12,8 +12,7 @@ import {
 
 function session(overrides: Partial<StoredSession> = {}): StoredSession {
   return {
-    accessToken: 'access',
-    refreshToken: 'refresh',
+    marker: 'marker',
     expiresAt: 60_000,
     username: 'ada',
     ...overrides,
@@ -81,14 +80,14 @@ function assertApiError(
   return true
 }
 
-test('受保护请求带 Bearer', async () => {
+test('受保护请求携带 cookie 且不设置 Authorization', async () => {
   const seen: string[] = []
+  let credentials = false
   const client = createHttpClient({
     baseURL: 'http://api.test',
     now: () => 0,
     read: () => ({
-      accessToken: 'access',
-      refreshToken: 'refresh',
+      marker: 'marker',
       expiresAt: 60_000,
       username: 'ada',
     }),
@@ -99,6 +98,7 @@ test('受保护请求带 Bearer', async () => {
     },
     adapter: (config) => {
       seen.push(headerOf(config))
+      credentials = config.withCredentials === true
       return Promise.resolve({
         status: 200,
         statusText: 'OK',
@@ -109,7 +109,8 @@ test('受保护请求带 Bearer', async () => {
     },
   })
   await client.get('/api/v1/users/me')
-  assert.equal(seen[0], 'Bearer access')
+  assert.equal(seen[0], '')
+  assert.equal(credentials, true)
 })
 
 test('登录请求不刷新', async () => {
@@ -186,7 +187,7 @@ test('查询里的认证路径不会把普通请求当成认证端点', async ()
     },
   })
   await client.get('/api/v1/users/me?next=/auth/login')
-  assert.equal(seen[0], 'Bearer access')
+  assert.equal(seen[0], '')
 })
 
 test('距过期不足 30 秒时先刷新再用新令牌', async () => {
@@ -204,7 +205,7 @@ test('距过期不足 30 秒时先刷新再用新令牌', async () => {
     },
   })
   const result = await client.get('/api/v1/users/me')
-  assert.deepEqual(order, ['refresh', 'Bearer new'])
+  assert.deepEqual(order, ['refresh', ''])
   assert.deepEqual(result, { ok: true })
 })
 
@@ -245,7 +246,7 @@ test('距过期恰好 30 秒时不刷新', async () => {
   })
   await client.get('/api/v1/users/me')
   assert.equal(refreshed, false)
-  assert.equal(seen[0], 'Bearer old')
+  assert.equal(seen[0], '')
 })
 
 test('没有会话时不刷新也不带 Authorization', async () => {
@@ -358,7 +359,7 @@ test('窗口内的两个请求只刷新一次', async () => {
       return session({ accessToken: 'new', expiresAt: 90_000 })
     },
     adapter: (config) => {
-      assert.equal(headerOf(config), 'Bearer new')
+      assert.equal(headerOf(config), '')
       return resolveWith(config, 200, envelope({ ok: true }))
     },
   })
@@ -411,7 +412,7 @@ test('两个并发 401 只刷新一次并重试原请求', async () => {
       if (!retried(config)) {
         return resolveWith(config, 401, { detail: '未授权' }, 'Unauthorized')
       }
-      assert.equal(headerOf(config), 'Bearer new-access')
+      assert.equal(headerOf(config), '')
       return resolveWith(config, 200, envelope({ path: url }))
     },
   })
@@ -421,13 +422,12 @@ test('两个并发 401 只刷新一次并重试原请求', async () => {
   ])
   assert.equal(refreshCalls.length, 1)
   assert.deepEqual(refreshCalls[0], {
-    body: { refresh_token: 'refresh' },
+    body: {},
     authorization: '',
   })
   assert.deepEqual(written, [
     {
-      accessToken: 'new-access',
-      refreshToken: 'new-refresh',
+      marker: 'marker',
       expiresAt: now + 30 * 1_000,
       username: 'ada',
     },
@@ -455,7 +455,7 @@ test('注入的 refresh 遇到 401 时只调用一次且不发刷新请求', asy
       if (!retried(config)) {
         return resolveWith(config, 401, { detail: '未授权' }, 'Unauthorized')
       }
-      assert.equal(headerOf(config), 'Bearer new')
+      assert.equal(headerOf(config), '')
       return resolveWith(config, 200, envelope({ ok: true }))
     },
   })
@@ -510,7 +510,7 @@ test('内部刷新请求落在配置的 API 根路径上', async () => {
   assert.equal(refreshUri, 'http://localhost:8000/api/v1/auth/refresh')
 })
 
-test('刷新请求在执行时读取当前 refresh token', async () => {
+test('刷新请求不在脚本中附带 refresh token', async () => {
   let reads = 0
   const seen: unknown[] = []
   const client = createHttpClient({
@@ -546,7 +546,7 @@ test('刷新请求在执行时读取当前 refresh token', async () => {
     },
   })
   await client.get('/api/v1/users/me')
-  assert.deepEqual(seen, [{ refresh_token: 'live' }])
+  assert.deepEqual(seen, [{}])
 })
 
 test('窗口内刷新失败时保留服务器的 401 消息', async () => {
@@ -742,7 +742,7 @@ test('ApiClientError.details 保留响应 details，缺失时为 undefined', asy
   )
 })
 
-test('登出请求带当前访问令牌', async () => {
+test('登出请求不由脚本设置 Authorization', async () => {
   let refreshed = false
   const seen: string[] = []
   const client = create({
@@ -758,7 +758,7 @@ test('登出请求带当前访问令牌', async () => {
   const result = await client.post('/api/v1/auth/logout')
   assert.equal(result, undefined)
   assert.equal(refreshed, false)
-  assert.deepEqual(seen, ['Bearer access'])
+  assert.deepEqual(seen, [''])
 })
 
 test('登出距过期不足 30 秒时先刷新再用新令牌', async () => {
@@ -801,8 +801,9 @@ test('登出距过期不足 30 秒时先刷新再用新令牌', async () => {
   const result = await client.post('/api/v1/auth/logout')
   assert.equal(result, undefined)
   assert.deepEqual(refreshHeaders, [''])
-  assert.deepEqual(logoutHeaders, ['Bearer new'])
-  assert.equal(current.accessToken, 'new')
+  assert.deepEqual(logoutHeaders, [''])
+  assert.equal(current.marker, 'marker')
+  assert.equal(current.expiresAt, now + 60 * 1_000)
 })
 
 test('登出返回 401 时只刷新并重试一次', async () => {
@@ -847,10 +848,10 @@ test('登出返回 401 时只刷新并重试一次', async () => {
     (error: unknown) => assertApiError(error, '未授权', 401),
   )
   assert.deepEqual(refreshHeaders, [''])
-  assert.deepEqual(logoutHeaders, ['Bearer old', 'Bearer new-access'])
+  assert.deepEqual(logoutHeaders, ['', ''])
 })
 
-test('登出返回 401 后用新令牌重试成功', async () => {
+test('登出返回 401 后重试成功', async () => {
   const now = 5_000
   let current = session({
     accessToken: 'old',
@@ -893,7 +894,7 @@ test('登出返回 401 后用新令牌重试成功', async () => {
   const result = await client.post('/api/v1/auth/logout')
   assert.equal(result, undefined)
   assert.equal(refreshes, 1)
-  assert.deepEqual(logoutHeaders, ['Bearer old', 'Bearer new-access'])
+  assert.deepEqual(logoutHeaders, ['', ''])
 })
 
 test('状态码大于等于 500 时忽略响应正文', async () => {
@@ -1026,15 +1027,9 @@ for (const trigger of ['window', '401'] as const) {
         )
         await started
         const expected =
-          replacement === 'cleared'
-            ? null
-            : session({
-                accessToken: 'other-access',
-                refreshToken: 'other-refresh',
-              })
+          replacement === 'cleared' ? null : session({ marker: 'other' })
         current = expected
-        if (outcome === 'success')
-          finish(session({ accessToken: 'late-access' }))
+        if (outcome === 'success') finish(session({ marker: 'late' }))
         else fail(new ApiClientError('旧刷新失败', 401))
         const actual = await result
         assert.equal(actual.rejected, true)

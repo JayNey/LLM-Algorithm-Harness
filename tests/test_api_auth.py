@@ -42,6 +42,7 @@ def signup(client, name="alice"):
     assert response.status_code == 201, response.text
     response = client.post("/api/v1/auth/login", json={"username": name, "password": PASSWORD})
     assert response.status_code == 200, response.text
+    client.cookies.clear()
     return response.json()["data"]
 
 
@@ -249,6 +250,37 @@ def test_jwt_tampering_rejected(api, mode):
     assert (
         client.get("/api/v1/users/me", headers={"Authorization": "Bearer " + token}).status_code
         == 401
+    )
+
+
+def test_login_sets_httponly_cookies_that_authenticate(api):
+    client, tokens, _, _ = api
+    client.cookies.clear()
+    login = client.post(
+        "/api/v1/auth/login",
+        json={"username": "alice", "password": PASSWORD, "remember": True},
+    )
+    assert login.status_code == 200, login.text
+    issued = login.headers.get_list("set-cookie")
+    access = next(item for item in issued if item.startswith("harness_access_token="))
+    refresh = next(item for item in issued if item.startswith("harness_refresh_token="))
+    assert "HttpOnly" in access and "HttpOnly" in refresh
+    assert "SameSite=lax" in access and "SameSite=lax" in refresh
+    assert client.get("/api/v1/users/me").status_code == 200
+    assert (
+        client.get(
+            "/api/v1/users/me",
+            headers={"Authorization": "Bearer not-a-token"},
+        ).status_code
+        == 401
+    )
+    logged_out = client.post("/api/v1/auth/logout")
+    assert logged_out.status_code == 204
+    cleared = "\n".join(logged_out.headers.get_list("set-cookie"))
+    assert 'harness_access_token=""' in cleared or "harness_access_token=;" in cleared
+    assert client.get("/api/v1/users/me").status_code == 401
+    assert (
+        client.get("/api/v1/users/me", params={"token": tokens["access_token"]}).status_code == 401
     )
 
 
