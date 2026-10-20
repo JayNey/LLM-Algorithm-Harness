@@ -19,6 +19,7 @@ from api.documentation import install_documentation
 from api.files.config import FileSettings
 from api.files.middleware import UploadBoundaryMiddleware
 from api.files.service import FileService
+from api.logging_config import configure_api_logging
 from api.middleware.errors import ErrorCORSMiddleware, error_responses, setup_error_handlers
 from api.middleware.logging import setup_logging_middleware
 from api.monitoring.config import MonitorSettings
@@ -65,6 +66,7 @@ def create_app(
     progress_stream: ProgressStream | None = None,
 ) -> FastAPI:
     """Create and configure FastAPI application."""
+    configure_api_logging()
 
     @asynccontextmanager
     async def lifespan(app: FastAPI) -> AsyncIterator[None]:

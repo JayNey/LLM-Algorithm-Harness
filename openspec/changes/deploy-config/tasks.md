@@ -2,9 +2,9 @@
 
 ## 1. 依赖与环境
 
-- [ ] 1.1 拆分依赖清单：`requirements.txt` 收敛为运行时清单，新增 `requirements-dev.txt`（对齐 pyproject dev extras），核对 ci.yml 安装命令不受影响
-- [ ] 1.2 扩容 `.env.example`：覆盖 `api/config.py` Settings 全部字段并按 API/数据库/Redis/Celery/存储/沙箱/认证/日志分组注释
-- [ ] 1.3 `api/config.py` 增加 `LOG_LEVEL` / `LOG_FORMAT` 字段；新增 `api/logging_config.py` 按 `LOG_FORMAT`（json|text）装配 structlog + uvicorn 日志（含单测）
+- [x] 1.1 拆分依赖清单：`requirements.txt` 收敛为运行时清单，新增 `requirements-dev.txt`（对齐 pyproject dev extras），核对 ci.yml 安装命令不受影响
+- [x] 1.2 扩容 `.env.example`：覆盖 `api/config.py` Settings 全部字段并按 API/数据库/Redis/Celery/存储/沙箱/认证/日志分组注释
+- [x] 1.3 `api/config.py` 增加 `LOG_LEVEL` / `LOG_FORMAT` 字段；新增 `api/logging_config.py` 按 `LOG_FORMAT`（json|text）装配 structlog + uvicorn 日志（含单测）
 
 ## 2. 容器化
 
