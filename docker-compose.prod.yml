@@ -1,0 +1,159 @@
+# 生产环境编排（issue #159）。
+#
+# 前置条件：
+#   1. 项目根目录存在 .env（由 .env.example 复制），其中 SECRET_KEY 与
+#      ENCRYPTION_KEY 必须已填写 —— 本文件 env_file 为必选项，缺失即失败。
+#   2. 构建镜像：docker compose -f docker-compose.prod.yml build
+#   3. 启动：    docker compose -f docker-compose.prod.yml up -d
+#
+# 与开发编排（docker-compose.yml）的差异：无源码绑定挂载、restart 策略、
+# 日志轮转（json-file max-size/max-file）、nginx 反向代理为唯一入口。
+services:
+  redis:
+    image: redis:7-alpine
+    restart: unless-stopped
+    command: ["redis-server", "--save", "", "--appendonly", "no"]
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    logging: &default_logging
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  postgres:
+    image: postgres:15-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: harness
+      POSTGRES_USER: harness
+      POSTGRES_PASSWORD: ${DATABASE_PASSWORD:?DATABASE_PASSWORD must be set in .env}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U harness -d harness"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    logging: *default_logging
+
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile.api
+    image: llm-harness-api:latest
+    restart: unless-stopped
+    env_file:
+      - .env
+    environment:
+      HOST: 0.0.0.0
+      PORT: "8000"
+      DATABASE_URL: postgresql+psycopg://harness:${DATABASE_PASSWORD}@postgres:5432/harness
+      CELERY_BROKER_URL: redis://redis:6379/0
+      CELERY_RESULT_BACKEND: redis://redis:6379/0
+      LOG_LEVEL: ${LOG_LEVEL:-INFO}
+      LOG_FORMAT: json
+      # compose 内网中 api 仅被 nginx 访问；信任代理头，使应用层限流/审计看到真实客户端 IP
+      FORWARDED_ALLOW_IPS: "*"
+    expose:
+      - "8000"
+    volumes:
+      - uploads_data:/app/uploads
+      - task_data:/app/data
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    logging: *default_logging
+
+  worker:
+    build:
+      context: .
+      dockerfile: Dockerfile.worker
+    image: llm-harness-worker:latest
+    restart: unless-stopped
+    env_file:
+      - .env
+    environment:
+      DATABASE_URL: postgresql+psycopg://harness:${DATABASE_PASSWORD}@postgres:5432/harness
+      CELERY_BROKER_URL: redis://redis:6379/0
+      CELERY_RESULT_BACKEND: redis://redis:6379/0
+      LOG_LEVEL: ${LOG_LEVEL:-INFO}
+      LOG_FORMAT: json
+    volumes:
+      - uploads_data:/app/uploads
+      - task_data:/app/data
+      # 沙箱以宿主 docker 运行不受信代码；确认安全边界后再启用
+      - /var/run/docker.sock:/var/run/docker.sock
+    # 宿主 socket 属主为 root:docker；GID 因主机而异，未设置则拒绝启动
+    group_add:
+      - "${DOCKER_GID:?DOCKER_GID must be set in .env to the host docker group id (stat -c %g /var/run/docker.sock)}"
+    healthcheck:
+      test: ["CMD-SHELL", "celery -A src.celery_app inspect ping -d worker@$$HOSTNAME --timeout=5"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 20s
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      # api 健康即迁移完成（迁移在 api lifespan 内执行），避免消费到缺表的任务
+      api:
+        condition: service_healthy
+    logging: *default_logging
+
+  beat:
+    build:
+      context: .
+      dockerfile: Dockerfile.worker
+    image: llm-harness-worker:latest
+    restart: unless-stopped
+    command: ["sh", "-c", "celery -A src.celery_app beat --loglevel=${LOG_LEVEL:-INFO}"]
+    environment:
+      CELERY_BROKER_URL: redis://redis:6379/0
+      CELERY_RESULT_BACKEND: redis://redis:6379/0
+      LOG_FORMAT: json
+    healthcheck:
+      test: ["CMD-SHELL", "pgrep -f '[c]elery.*beat'"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+    depends_on:
+      redis:
+        condition: service_healthy
+    logging: *default_logging
+
+  nginx:
+    image: nginx:alpine
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      # 启用 HTTPS（见 deploy/nginx/nginx.conf 注释模板）后放开：
+      # - "443:443"
+    volumes:
+      - ./deploy/nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+      # - ./deploy/nginx/certs:/etc/nginx/certs:ro
+    depends_on:
+      - api
+    healthcheck:
+      test: ["CMD-SHELL", "pidof nginx"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 5s
+    logging: *default_logging
+
+volumes:
+  redis_data:
+  postgres_data:
+  uploads_data:
+  task_data:

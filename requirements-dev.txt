@@ -1,0 +1,26 @@
+# Development and CI tooling — runtime dependencies live in requirements.txt.
+# Mirrors [project.optional-dependencies].dev in pyproject.toml, plus the
+# quality tools CI installs separately (pylint, flake8, radon) so a local
+# `pip install -r requirements-dev.txt` matches the CI environment.
+# Keep the two files in sync when bumping either side.
+
+# Test framework
+pytest>=7.4.0
+pytest-cov>=4.1.0
+pytest-mock>=3.11.0
+pytest-asyncio>=0.21.0
+coverage[toml]>=7.0
+httpx>=0.25.0
+
+# Type checking
+mypy>=1.5.0
+types-PyYAML>=6.0.12
+types-psutil>=5.9.5
+
+# Lint and formatting (CI: lint job)
+ruff>=0.1.0
+black>=23.9.0
+isort>=5.12.0
+pylint>=3.0.0
+flake8>=6.1.0
+radon>=6.0.0

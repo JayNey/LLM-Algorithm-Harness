@@ -1,0 +1,40 @@
+# syntax=docker/dockerfile:1
+# API 服务镜像（issue #159）：多阶段构建、非 root 运行、内置健康检查。
+# 构建：docker build -f Dockerfile.api -t llm-harness-api .
+
+FROM python:3.11-slim AS builder
+WORKDIR /build
+COPY requirements.txt ./
+RUN python -m venv /opt/venv \
+    && /opt/venv/bin/pip install --no-cache-dir --upgrade pip \
+    && /opt/venv/bin/pip install --no-cache-dir -r requirements.txt
+
+FROM python:3.11-slim AS runtime
+
+# 非 root 运行用户
+RUN groupadd --gid 1000 harness \
+    && useradd --uid 1000 --gid harness --create-home --shell /usr/sbin/nologin harness
+
+COPY --from=builder /opt/venv /opt/venv
+ENV PATH="/opt/venv/bin:$PATH" \
+    PYTHONUNBUFFERED=1 \
+    PYTHONDONTWRITEBYTECODE=1 \
+    HOST=0.0.0.0 \
+    PORT=8000 \
+    LOG_FORMAT=json
+
+WORKDIR /app
+COPY --chown=harness:harness api/ ./api/
+COPY --chown=harness:harness src/ ./src/
+
+# 运行期可写目录；容器部署时由 compose 卷挂载覆盖
+RUN mkdir -p data/business data/auth data/tasks uploads \
+    && chown -R harness:harness data uploads
+
+USER harness
+EXPOSE 8000
+
+HEALTHCHECK --interval=30s --timeout=10s --start-period=15s --retries=3 \
+    CMD python -c "import os,urllib.request; urllib.request.urlopen('http://127.0.0.1:%s/api/v1/health' % os.environ.get('PORT', '8000'), timeout=5)"
+
+CMD ["sh", "-c", "python -m uvicorn api.main:app --host \"${HOST:-0.0.0.0}\" --port \"${PORT:-8000}\""]

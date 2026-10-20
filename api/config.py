@@ -35,6 +35,10 @@ class Settings(BaseSettings):
     CELERY_BROKER_URL: str = "redis://localhost:6379/0"
     CELERY_RESULT_BACKEND: str = "redis://localhost:6379/0"
 
+    # 日志（issue #159）。LOG_FORMAT: text（人类可读）| json（生产结构化输出）
+    LOG_LEVEL: str = "INFO"
+    LOG_FORMAT: str = "text"
+
     # TaskService 存储路径
     TASK_SERVICE_ROOT: str = "./data/tasks"
 

@@ -1,11 +1,16 @@
-# Local services for running the async task queue and its integration tests.
+# 开发环境全栈编排（issue #159）。
 #
-#   docker compose up -d redis          # start the broker/backend
-#   bash scripts/run_integration_tests.sh   # run the @integration tests
-#   docker compose down                  # stop it again
+#   docker compose up -d redis              # 仅启动 broker（集成测试用法，保持不变）
+#   docker compose up -d                    # 启动完整开发栈（postgres/redis/api/worker/beat）
+#   docker compose down                     # 停止
 #
-# The integration tests talk to redis at CELERY_BROKER_URL
-# (default redis://localhost:6379/15) and skip automatically if it is not up.
+# 生产部署使用 docker-compose.prod.yml：
+#   docker compose -f docker-compose.prod.yml up -d
+#
+# 集成测试通过与 localhost:6379 上的 redis（CELERY_BROKER_URL，
+# 默认 redis://localhost:6379/15）通信，未启动时自动跳过。
+# 服务间连接串在下方 environment 显式给出，覆盖 .env 中的 localhost 值；
+# 密钥类配置（SECRET_KEY/ENCRYPTION_KEY）仍从 .env 读取。
 services:
   redis:
     image: redis:7-alpine
@@ -18,3 +23,103 @@ services:
       interval: 2s
       timeout: 2s
       retries: 10
+
+  postgres:
+    image: postgres:15-alpine
+    container_name: llm-harness-postgres
+    environment:
+      POSTGRES_DB: harness
+      POSTGRES_USER: harness
+      POSTGRES_PASSWORD: ${DATABASE_PASSWORD:-harness-dev-password}
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U harness -d harness"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile.api
+    image: llm-harness-api:dev
+    container_name: llm-harness-api
+    env_file:
+      - path: .env
+        required: false
+    environment:
+      HOST: 0.0.0.0
+      PORT: "8000"
+      DATABASE_URL: postgresql+psycopg://harness:${DATABASE_PASSWORD:-harness-dev-password}@postgres:5432/harness
+      CELERY_BROKER_URL: redis://redis:6379/0
+      CELERY_RESULT_BACKEND: redis://redis:6379/0
+      LOG_LEVEL: ${LOG_LEVEL:-INFO}
+      LOG_FORMAT: ${LOG_FORMAT:-json}
+      # 开发环境信任代理头以保留真实客户端 IP；8000 已发布到宿主机，
+      # 本机进程可伪造 X-Forwarded-For，生产拓扑由 docker-compose.prod.yml 单独收紧
+      FORWARDED_ALLOW_IPS: "*"
+    ports:
+      - "8000:8000"
+    volumes:
+      - uploads_data:/app/uploads
+      - task_data:/app/data
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+
+  worker:
+    build:
+      context: .
+      dockerfile: Dockerfile.worker
+    image: llm-harness-worker:dev
+    container_name: llm-harness-worker
+    env_file:
+      - path: .env
+        required: false
+    environment:
+      DATABASE_URL: postgresql+psycopg://harness:${DATABASE_PASSWORD:-harness-dev-password}@postgres:5432/harness
+      CELERY_BROKER_URL: redis://redis:6379/0
+      CELERY_RESULT_BACKEND: redis://redis:6379/0
+      LOG_LEVEL: ${LOG_LEVEL:-INFO}
+      LOG_FORMAT: ${LOG_FORMAT:-json}
+    volumes:
+      - uploads_data:/app/uploads
+      - task_data:/app/data
+      # 沙箱预检需要访问宿主 docker；仅在本机开发环境挂载
+      - /var/run/docker.sock:/var/run/docker.sock
+    # 宿主 socket 属主为 root:docker(GID 随主机而异)；用 `stat -c %g /var/run/docker.sock` 查询后覆盖
+    group_add:
+      - "${DOCKER_GID:-999}"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      # api 健康即迁移完成（迁移在 lifespan 内执行），worker 再开始消费任务
+      api:
+        condition: service_healthy
+
+  beat:
+    build:
+      context: .
+      dockerfile: Dockerfile.worker
+    image: llm-harness-worker:dev
+    container_name: llm-harness-beat
+    command: ["sh", "-c", "celery -A src.celery_app beat --loglevel=${LOG_LEVEL:-INFO}"]
+    environment:
+      CELERY_BROKER_URL: redis://redis:6379/0
+      CELERY_RESULT_BACKEND: redis://redis:6379/0
+      LOG_FORMAT: ${LOG_FORMAT:-json}
+    depends_on:
+      redis:
+        condition: service_healthy
+
+volumes:
+  postgres_data:
+  uploads_data:
+  task_data:

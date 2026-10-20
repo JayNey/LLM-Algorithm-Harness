@@ -19,6 +19,7 @@ from api.documentation import install_documentation
 from api.files.config import FileSettings
 from api.files.middleware import UploadBoundaryMiddleware
 from api.files.service import FileService
+from api.logging_config import configure_api_logging
 from api.middleware.errors import ErrorCORSMiddleware, error_responses, setup_error_handlers
 from api.middleware.logging import setup_logging_middleware
 from api.monitoring.config import MonitorSettings
@@ -65,6 +66,7 @@ def create_app(
     progress_stream: ProgressStream | None = None,
 ) -> FastAPI:
     """Create and configure FastAPI application."""
+    configure_api_logging()
 
     @asynccontextmanager
     async def lifespan(app: FastAPI) -> AsyncIterator[None]:
@@ -193,4 +195,8 @@ app = create_app()
 if __name__ == "__main__":
     import uvicorn
 
+    # 注意：日志装配（configure_api_logging）假定 uvicorn CLI 启动顺序
+    # （先装 handler 再导入应用）。此直接运行路径下 uvicorn.run 会重新安装
+    # 自己的 handler，LOG_FORMAT=json 时 uvicorn 自身日志保持纯文本；
+    # 部署请使用 `python -m uvicorn api.main:app`（见 Dockerfile.api 或仓库根 run_api.sh）。
     uvicorn.run(app, host=settings.HOST, port=settings.PORT)
