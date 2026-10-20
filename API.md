@@ -245,3 +245,15 @@ pytest tests/test_api_documentation.py --no-cov
 
 其他专题：[文件服务](docs/api-files.md)、[认证](docs/api-authentication.md)、
 [监控与配额](docs/api-monitoring.md)。
+
+## 队列健康与 worker 负载
+
+管理员可设置 `MONITOR_QUEUE_PROBES_ENABLED=true`，启用 `/health/redis`、
+`/health/workers` 及 `/system/health`、`/system/status` 中的 Redis/Celery 观测。
+升级后重启 worker，加载只返回安全数值的 `monitoring_snapshot` 命令。
+探测有超时、缓存和并发限制，未知或部分观测不伪造聚合值。
+
+worker 计数只覆盖截止时间内回复的节点，不能视作完整集群；数据库 `pending` 数量
+不是 broker 队列长度。主线已通过 AlgorithmHarness 执行评估，但健康检查不验证
+某个提供商、凭据或沙箱的运行就绪。真实 LLM 性能、容器资源及新增配额仍属
+#157 后续范围，完整配置和限制见[监控指南](docs/api-monitoring.md)。

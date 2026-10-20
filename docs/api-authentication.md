@@ -65,7 +65,7 @@ python -c 'from cryptography.fernet import Fernet; print("ENCRYPTION_KEY=" + Fer
 
 ## 与 #149 / #151 / #153 的接入边界
 
-- #148 评估接口已由 #151 接入持久化业务数据库。#179 已合并 Celery/Redis 与异步任务管理基础，#180 已合入实验、导入和基准三类 Celery 任务实现；其端到端执行与真实 LLM 指标仍未接通或验证，HTTP 也没有自动改为队列。当前 `/evaluations` 路由仍使用旧评估流程。异步评估 worker 现已改为经真实 `AlgorithmHarness` 执行（LLM 调用 + Docker 沙箱运行 + 成本统计），逐单元结果落库，不再返回模拟结果。身份和凭据引用绑定到任务；真实 LLM 调用的端到端执行与使用计量仍待生产环境验证（测试不发起在线调用），#149 保持开放。
+- #151 已提供业务持久化，#149 已接入产品任务入队和真实评估执行。监控需要独立的管理员 UUID 白名单；worker 在线与负载探测不会验证用户模型凭据，也不计为 LLM 生成调用。
 - #149 worker 应以可信任务的 `owner_id/api_key_id` 调用 `AuthService.llm_config(key_id, user_id, model)`，获得只在内存使用的配置；每次真实提供商请求后调用 `AuthStore.record_key_usage`。禁止将解密凭据写入 broker、任务 JSON 或结果文件。
 - #151 业务数据库已合并，但认证仍使用 `api/auth/store.py` 的独立、持久化 SQLite 适配器，包含 `auth_users/auth_sessions/auth_keys/auth_rates`。业务任务的 `user_id` 引用认证用户 ID，不使用跨库外键。后续替换认证 Repository 时需保留刷新条件更新、撤销、参数化查询、加密值和原子限流语义。不同实例必须共享同一认证数据库文件；不支持跨机器独立 SQLite 文件共享认证状态。
 - 评估与异步任务状态跨重启持久化；现有评估服务的启动恢复规则不能当成真实队列恢复执行保障。认证用户、密钥、会话和限流在同机共享文件的多进程及重启场景有效。

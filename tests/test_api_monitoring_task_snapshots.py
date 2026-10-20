@@ -69,7 +69,7 @@ def test_linked_evaluation_is_not_counted_as_legacy_task(engine):
     queue = read_task_snapshot(engine, task_source="async_task")
     assert legacy["task_source"] == "legacy_evaluation"
     assert legacy["source"] == "persisted_business_evaluations"
-    assert legacy["execution_backend"] == "in_process_simulator"
+    assert legacy["execution_backend"] == "unassigned_or_legacy"
     assert legacy["production_queue_configured"] is False
     assert legacy["total"] == 1 and legacy["counts"] == {"pending": 1}
     assert legacy["items"] == [
@@ -85,8 +85,8 @@ def test_linked_evaluation_is_not_counted_as_legacy_task(engine):
     assert queue["source"] == "persisted_async_tasks"
     assert queue["execution_backend"] == "celery"
     assert queue["queue_infrastructure_available"] is True
-    assert queue["real_evaluation_available"] is False
-    assert queue["evaluation_worker_implementation"] == "mock"
+    assert queue["real_evaluation_available"] is None
+    assert queue["evaluation_worker_implementation"] == "algorithm_harness"
     assert "production_queue_configured" not in queue
     assert queue["total"] == 1 and queue["counts"] == {"running": 1}
     assert queue["items"] == [

@@ -13,6 +13,7 @@ from starlette.types import Receive, Scope, Send
 
 from api.auth.dependencies import current_user
 from api.auth.service import Principal
+from api.monitoring.capabilities import evaluation_capability
 from api.monitoring.dependencies import administrator, monitor_service
 from api.monitoring.service import MonitorService
 from api.schemas import ApiResponse
@@ -128,6 +129,7 @@ def system_status(
 ) -> ApiResponse[Any]:
     snapshot = monitor.task_snapshot()
     async_snapshot = monitor.task_snapshot(task_source="async_task")
+    health = monitor.health()
     return answer(
         {
             "uptime_seconds": round(time.monotonic() - monitor.started, 3),
@@ -140,11 +142,10 @@ def system_status(
             "async_task_count": async_snapshot["total"],
             "async_task_status": async_snapshot["status"],
             "async_task_source": async_snapshot["source"],
-            "evaluation_worker_implementation": "mock",
-            "real_evaluation_available": False,
-            "health": monitor.health(),
+            **evaluation_capability(),
+            "health": health,
             "resources": monitor.probes.resources(),
-            "workers": monitor.probes.workers(),
+            "workers": health["checks"]["workers"],
             "containers": {
                 "status": "not_configured",
                 "detail": "Per-container resource instrumentation is not connected",

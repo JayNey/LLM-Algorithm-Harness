@@ -41,6 +41,7 @@ class MonitorService:
         self.cache: LLMResponseCache | None = None  # Bound explicitly by a real worker.
 
     def close(self) -> None:
+        self.probes.close()
         self.database_metrics.close()
 
     def known_secrets(self, user_id: str | None = None) -> list[str]:
@@ -123,13 +124,13 @@ class MonitorService:
         status = (
             "degraded"
             if any(item["status"] in {"unavailable", "unknown"} for item in checks.values())
-            else "partial"
+            else "healthy" if all(item["status"] == "ok" for item in checks.values()) else "partial"
         )
         return {
             "status": status,
             "scope": "configured_api_foundation",
             "checks": checks,
-            "pending_issues": [149],
+            "pending_issues": [157],
         }
 
     def performance(self) -> dict[str, Any]:
@@ -139,7 +140,7 @@ class MonitorService:
                 "status": "not_configured",
                 "avg_execution_time_seconds": None,
                 "success_rate": None,
-                "detail": "Real worker instrumentation awaits #149",
+                "detail": "Real execution is implemented; monitoring instrumentation awaits #157",
             },
             "database_queries": {
                 **self.database_metrics.stats(self.settings.MONITOR_API_WINDOW_SECONDS),
@@ -155,7 +156,7 @@ class MonitorService:
             ).fetchone()
         return {
             "status": "not_configured",
-            "source": "worker_instrumentation_pending_149",
+            "source": "worker_instrumentation_pending_157",
             "total_calls": None,
             "success_rate": None,
             "avg_latency_ms": None,

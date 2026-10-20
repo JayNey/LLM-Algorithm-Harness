@@ -843,9 +843,16 @@ def api(monkeypatch, tmp_path, unit_app):
     state.monitor.started = time.monotonic()
     state.files.store.connection.return_value = nullcontext(Mock())
     state.evaluations.credential_id.return_value = "key-1"
-    state.monitor.health.return_value = {}
+    worker_observation = {
+        "status": "ok",
+        "worker_count": 1,
+        "active": 0,
+        "reserved": 0,
+        "concurrency": 1,
+    }
+    state.monitor.health.return_value = {"checks": {"workers": worker_observation}}
     state.monitor.probes.resources.return_value = {}
-    state.monitor.probes.workers.return_value = {}
+    state.monitor.probes.workers.return_value = worker_observation
     state.progress_stream = SimpleNamespace(subscribe=AsyncMock(), unsubscribe=AsyncMock())
     for name in services:
         setattr(app.state, name, getattr(state, name))
@@ -933,6 +940,9 @@ def test_endpoint_happy_path(api, item):
             assert len(body["data"]["items"]) == 1
         elif item.path == "/system/status":
             assert body["data"]["async_task_count"] == 0
+            assert body["data"]["workers"] == body["data"]["health"]["checks"]["workers"]
+            api.monitor.health.assert_called_once_with()
+            api.monitor.probes.workers.assert_not_called()
         elif item.path == "/benchmarks/suites":
             assert body["data"]["items"] == [VALUE]
         else:

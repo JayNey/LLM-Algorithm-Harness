@@ -13,6 +13,9 @@ class MonitorSettings(BaseSettings):
     MONITOR_MAX_ROWS: int = Field(10000, ge=100, le=100000)
     MONITOR_API_WINDOW_SECONDS: int = Field(60, ge=1, le=86400)
     MONITOR_PROBE_CACHE_SECONDS: int = Field(5, ge=0, le=300)
+    MONITOR_QUEUE_PROBES_ENABLED: bool = False
+    MONITOR_QUEUE_TIMEOUT_SECONDS: float = Field(3.0, ge=0.5, le=10, allow_inf_nan=False)
+    MONITOR_QUEUE_CACHE_SECONDS: float = Field(5.0, ge=0, le=300, allow_inf_nan=False)
     MONITOR_SANDBOX_IMAGE: str = Field(
         "python:3.11-slim",
         min_length=1,

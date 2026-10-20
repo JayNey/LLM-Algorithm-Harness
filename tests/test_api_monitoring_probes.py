@@ -235,13 +235,13 @@ def test_disabled_probe_cache_does_not_reuse_results(probes):
 
 def test_future_dependencies_are_explicitly_unconfigured(probes):
     redis = probes.redis()
-    assert redis["status"] == "not_checked" and redis["dependency_issue"] == 149
+    assert redis["status"] == "not_checked" and redis["reason"] == "disabled"
     assert redis["infrastructure_available"] is True
     workers = probes.workers()
-    assert workers["status"] == "not_checked" and workers["dependency_issue"] == 149
+    assert workers["status"] == "not_checked" and workers["reason"] == "disabled"
     assert workers["infrastructure_available"] is True
-    assert workers["evaluation_worker_implementation"] == "mock"
-    assert workers["real_evaluation_available"] is False
+    assert workers["evaluation_worker_implementation"] == "algorithm_harness"
+    assert workers["real_evaluation_available"] is None
     assert probes.cache_stats() == {"status": "not_configured", "scope": "bound_cache_instance"}
 
 

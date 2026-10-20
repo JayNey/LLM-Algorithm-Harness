@@ -19,8 +19,10 @@ from api.db.migrate import SCRIPT_LOCATION
 from api.db.models import Base
 from api.files.service import FileService
 from api.monitoring.config import MonitorSettings
+from api.monitoring.queue_health import QueueProbes
 from api.services import EvaluationService
 from src.cache import LLMResponseCache
+from src.celery_app import celery_app
 from src.harness import AlgorithmHarness
 from src.models import LLMConfig, SandboxConfig, StrategyConfig
 from src.sandbox_executor import SandboxExecutor
@@ -57,6 +59,7 @@ class MonitorProbes:
         self.files = files
         self.settings = settings
         self.evaluations = evaluations
+        self.queue = QueueProbes(settings, celery_app.conf.broker_url)
         self._sandbox_lock = threading.Lock()
         self._sandbox_result: dict[str, Any] | None = None
         self._sandbox_checked_at = 0.0
@@ -228,25 +231,14 @@ class MonitorProbes:
             self._sandbox_checked_at = time.monotonic()
             return dict(result)
 
-    @staticmethod
-    def redis() -> dict[str, Any]:
-        return {
-            "status": "not_checked",
-            "infrastructure_available": True,
-            "dependency_issue": 149,
-            "detail": "Queue infrastructure is present; live Redis availability has not been probed",
-        }
+    def redis(self) -> dict[str, Any]:
+        return self.queue.read("redis")
 
-    @staticmethod
-    def workers() -> dict[str, Any]:
-        return {
-            "status": "not_checked",
-            "infrastructure_available": True,
-            "dependency_issue": 149,
-            "evaluation_worker_implementation": "mock",
-            "real_evaluation_available": False,
-            "detail": "Worker reachability and load have not been probed",
-        }
+    def workers(self) -> dict[str, Any]:
+        return self.queue.read("workers")
+
+    def close(self) -> None:
+        self.queue.close()
 
     @staticmethod
     def cache_stats(cache: LLMResponseCache | None = None) -> dict[str, Any]:
