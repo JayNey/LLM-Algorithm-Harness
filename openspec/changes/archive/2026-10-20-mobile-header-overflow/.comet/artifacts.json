@@ -1,5 +1,6 @@
 {
   "openspec_proposal": "openspec/changes/mobile-header-overflow/proposal.md",
   "openspec_design": "openspec/changes/mobile-header-overflow/design.md",
-  "openspec_tasks": "openspec/changes/mobile-header-overflow/tasks.md"
+  "openspec_tasks": "openspec/changes/mobile-header-overflow/tasks.md",
+  "archive_directory": "openspec/changes/archive/2026-10-20-mobile-header-overflow"
 }
