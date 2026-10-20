@@ -3,10 +3,13 @@ comet_change: frontend-auth-session
 role: technical-design
 canonical_spec: openspec
 archived-with: 2026-10-18-frontend-auth-session
-status: final
+status: superseded-by-main-spec
+superseded-by: openspec/specs/frontend/auth-session/spec.md
 ---
 
 # 前端登录会话 — 技术设计（Design Doc）
+
+> 2026-10-20 起，本文不再是认证会话的主规格。浏览器令牌改为 HttpOnly cookie 的要求以 `openspec/specs/frontend/auth-session/spec.md` 为准。
 
 > 本文深化 open 阶段 `openspec/changes/frontend-auth-session/design.md`。canonical 需求以 OpenSpec delta spec 为准：`openspec/changes/frontend-auth-session/specs/frontend/auth-session/spec.md` 和 `openspec/changes/frontend-auth-session/specs/frontend/app-shell/spec.md`。
 
