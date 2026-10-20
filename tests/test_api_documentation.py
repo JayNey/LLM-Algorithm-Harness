@@ -146,6 +146,28 @@ def test_documented_metadata_fields_match_public_views(schema):
     assert example == template("vanilla")
 
 
+@pytest.mark.parametrize("kind", ["redis", "workers"])
+def test_queue_examples_match_disabled_probe_contract(schema, kind):
+    from api.monitoring.config import MonitorSettings
+    from api.monitoring.queue_health import QueueProbes
+
+    queue = QueueProbes(
+        MonitorSettings(
+            _env_file=None,
+            MONITOR_QUEUE_PROBES_ENABLED=False,
+            MONITOR_QUEUE_TIMEOUT_SECONDS=3.0,
+        ),
+        "redis://unused:6379/0",
+    )
+    try:
+        operation = schema["paths"][f"/api/v1/health/{kind}"]["get"]
+        example = operation["responses"]["200"]["content"]["application/json"]["example"]
+        assert example["data"] == queue.read(kind)
+        assert "MONITOR_QUEUE_PROBES_ENABLED" in operation["description"]
+    finally:
+        queue.close()
+
+
 @pytest.mark.parametrize(
     ("path", "media_type"),
     [

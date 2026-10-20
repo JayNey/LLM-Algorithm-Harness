@@ -1,6 +1,6 @@
 # #157 队列健康与 worker 负载验证报告
 
-日期：2026-10-19（Asia/Shanghai）。初始基线 main：b6437098a55eddb40fd13a62e1328a8abbba16c5；最终追加基线：a563631a322d3d96b24f77bcb85a8901237a0cbb。分支 tweak/20261019/monitoring-queue-health。沿用用户指定的增量 Tweak，PR #204 使用 Refs #157。
+日期：2026-10-19（Asia/Shanghai）。初始基线 main：b6437098a55eddb40fd13a62e1328a8abbba16c5；最终追加基线：c4f003540bd89ad05fe1bf459903d61007523aad。分支 tweak/20261019/monitoring-queue-health。沿用用户指定的增量 Tweak，PR #204 使用 Refs #157。
 
 ## 行为
 
@@ -62,3 +62,17 @@ Comet 0.4.1 在 build 阶段提前设置 verify 配置时曾返回 tweak build c
 - PR #204 已转为可审查状态，重放到上述最新主线后将发布新头重新运行平台 CI。此前头 bd68e707 的失败不作为新头结果。
 
 最新主线的 Runtime 实测编译通过（993b27ed-4ba4-431f-8d2b-a8a860b2f858.log），定向验证通过（735b1ff3-8ef7-442a-a920-51c07a1981d4.log）。build 守卫 14/14、verify 守卫 5/5 通过，状态为 archive/verify_result=pass，归档确认仍 pending。
+
+## 2026-10-20 主线文档与版本策略集成
+
+历史头 4f974539e453a448d9eaad5872affea051e35fff 的 CI 39261154171 已完成全部 10 项作业，Ubuntu/macOS/Windows × Python 3.11/3.12 六组测试及分项覆盖率门禁全通过；Windows 耗时约 27/32 分钟，最新 main Windows 亦约 31 分钟。该结果只适用于历史头。
+
+随后 main 合并 #205 API 文档、#206 完整集成流程、#207 API v1 版本兼容策略及 #208/#209 前端修复。已重放本轮提交到 c4f0035。唯一 Git 冲突为 API.md：保留新版完整文档、WebSocket 说明和公共错误协议，补入本轮队列观测配置与范围，不恢复已过时的旧路线图。
+
+新引入的 OpenAPI 示例仍描述 mock worker 和不执行 Redis 探测。增加两项将示例与实际禁用态 QueueProbes 比较的测试，先重现 2 failed，再仅更新文档描述/样本为当前真实字段及启用条件；不修改网络探测行为，不改动 v1 契约基线或兼容检查。
+
+- 文档、v1 兼容性、集成工作流及监控定向回归：141 passed，8.94 秒。日志 /private/tmp/queue-health-new-main-focused.log。
+- Ruff、Black（316 文件）、显式编码（0 处）和 OpenSpec strict 通过。
+- 最新完整离线：2673 passed、7 skipped、185 warnings，237.65 秒；src/API 合计覆盖率 91.65%。日志 /private/tmp/queue-health-20261020-full.log。
+- 分项门禁未变：src 90.56%（要求 90%）、API 93.79%（要求 81%），均退出 0。
+- Bugbot 针对最新主线和 OpenAPI 同步补审无新增发现，审查者独立文档回归 18 passed，diff check 通过。
