@@ -93,6 +93,41 @@ test('登录写入过期时间并读取当前用户', async () => {
   assert.deepEqual(readSession(box), store.getState().session)
 })
 
+test('登录保存响应里的 CSRF 令牌，且不保存访问令牌', async () => {
+  const box = storages()
+  const store = createAuthStore()
+  await store.getState().login('ada', 'secret', true, {
+    storages: box,
+    now: () => 1_000,
+    baseURL: 'http://api.test',
+    createClient: (options) =>
+      createHttpClient({
+        ...options,
+        adapter: (config) => {
+          if (config.url === '/auth/login') {
+            return Promise.resolve({
+              config,
+              status: 200,
+              statusText: 'OK',
+              headers: { 'x-csrf-token': 'csrf-1' },
+              data: tokens(),
+            })
+          }
+          return Promise.resolve({
+            config,
+            status: 200,
+            statusText: 'OK',
+            headers: {},
+            data: { username: 'ada' },
+          })
+        },
+      }),
+  })
+  assert.equal(store.getState().session?.csrfToken, 'csrf-1')
+  assert.equal(readSession(box)?.csrfToken, 'csrf-1')
+  assert.equal(JSON.stringify(readSession(box)).includes('access'), false)
+})
+
 test('不记住我只写入 sessionStorage', async () => {
   const box = storages()
   const store = createAuthStore()

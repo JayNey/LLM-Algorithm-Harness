@@ -38,6 +38,23 @@ test('记住我只写入 localStorage，且不保存令牌', () => {
   )
 })
 
+test('CSRF 令牌可以恢复，访问令牌仍然不能恢复', () => {
+  const storages = { local: memoryStorage(), session: memoryStorage() }
+  writeSession(true, { ...session, csrfToken: 'csrf-1' }, storages)
+  assert.equal(readSession(storages)?.csrfToken, 'csrf-1')
+  storages.local.setItem(
+    'llm-harness-session',
+    JSON.stringify({
+      marker: 'marker',
+      expiresAt: 1,
+      username: null,
+      csrfToken: 'csrf-1',
+      accessToken: 'access',
+    }),
+  )
+  assert.equal(readSession(storages), null)
+})
+
 test('含令牌的旧会话不能恢复', () => {
   const storages = { local: memoryStorage(), session: memoryStorage() }
   storages.local.setItem(

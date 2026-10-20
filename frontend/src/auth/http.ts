@@ -61,6 +61,7 @@ export interface HttpClientOptions {
   write: (session: StoredSession) => void
   clear: () => void
   refresh?: () => Promise<StoredSession>
+  onCsrf?: (token: string) => void
   adapter?: AxiosAdapter
 }
 
@@ -124,6 +125,19 @@ interface RefreshPayload {
 
 type RetryConfig = InternalAxiosRequestConfig & { __retried?: boolean }
 
+const unsafeMethods = new Set(['post', 'put', 'patch', 'delete'])
+
+function csrfFrom(headers: unknown): string | null {
+  if (typeof headers !== 'object' || headers === null) return null
+  if ('get' in headers && typeof headers.get === 'function') {
+    const value = (headers.get as (name: string) => unknown)('x-csrf-token')
+    if (typeof value === 'string' && value.length > 0) return value
+  }
+  const record = headers as Record<string, unknown>
+  const value = record['x-csrf-token'] ?? record['X-CSRF-Token']
+  return typeof value === 'string' && value.length > 0 ? value : null
+}
+
 function isRefreshPayload(value: unknown): value is RefreshPayload {
   if (typeof value !== 'object' || value === null) return false
   const payload = value as Record<string, unknown>
@@ -177,6 +191,26 @@ function httpError(data: unknown, status: number | undefined): ApiClientError {
 }
 
 export function createHttpClient(options: HttpClientOptions): AxiosInstance {
+  let latestCsrf = options.read()?.csrfToken ?? null
+
+  function rememberCsrf(token: string) {
+    latestCsrf = token
+    options.onCsrf?.(token)
+    const current = options.read()
+    if (current && current.csrfToken !== token) {
+      options.write({ ...current, csrfToken: token })
+    }
+  }
+
+  function attachCsrf(config: InternalAxiosRequestConfig) {
+    const method = (config.method ?? 'get').toLowerCase()
+    if (!unsafeMethods.has(method)) return
+    const stored = options.read()?.csrfToken
+    if (stored) latestCsrf = stored
+    if (latestCsrf) config.headers.set('X-CSRF-Token', latestCsrf)
+    else config.headers.delete('X-CSRF-Token')
+  }
+
   const client = axios.create({
     baseURL: options.baseURL,
     adapter: options.adapter,
@@ -197,11 +231,14 @@ export function createHttpClient(options: HttpClientOptions): AxiosInstance {
     if (!isRefreshPayload(payload)) {
       throw new ApiClientError(unavailable)
     }
-    return {
+    const next: StoredSession = {
       marker: current.marker,
       expiresAt: options.now() + payload.expires_in * 1000,
       username: current.username,
     }
+    const token = latestCsrf ?? current.csrfToken
+    if (token) next.csrfToken = token
+    return next
   }
 
   const coordinator = createRefreshCoordinator(async () => {
@@ -250,6 +287,7 @@ export function createHttpClient(options: HttpClientOptions): AxiosInstance {
   }
 
   client.interceptors.request.use(async (config) => {
+    attachCsrf(config)
     if (skipsAccessToken(config.url ?? '')) {
       config.headers.delete('Authorization')
       return config
@@ -262,12 +300,15 @@ export function createHttpClient(options: HttpClientOptions): AxiosInstance {
     ) {
       await coordinator.refresh()
     }
+    attachCsrf(config)
     config.headers.delete('Authorization')
     return config
   })
 
   client.interceptors.response.use(
     (response) => {
+      const token = csrfFrom(response.headers)
+      if (token) rememberCsrf(token)
       if (response.status === 204) {
         return undefined as unknown as AxiosResponse
       }
