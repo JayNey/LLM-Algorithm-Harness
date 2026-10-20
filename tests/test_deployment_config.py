@@ -62,6 +62,22 @@ class TestDevCompose:
     def test_worker_builds_from_worker_dockerfile(self, dev_compose):
         assert dev_compose["services"]["worker"]["build"]["dockerfile"] == "Dockerfile.worker"
 
+    def test_build_services_have_distinct_image_tags(self, dev_compose, prod_compose):
+        """带 build 的服务共用 image 标签会让 `docker compose build` 报 already exists。"""
+        for compose in (dev_compose, prod_compose):
+            built_tags = [
+                service["image"] for service in compose["services"].values() if "build" in service
+            ]
+            assert len(built_tags) == len(set(built_tags)), built_tags
+
+    def test_beat_schedule_file_in_writable_volume(self, dev_compose, prod_compose):
+        """非 root 容器里 beat 必须把调度文件写到 /app/data，否则崩溃循环。"""
+        for compose in (dev_compose, prod_compose):
+            beat = compose["services"]["beat"]
+            command = " ".join(beat["command"])
+            assert "-s /app/data/celerybeat-schedule" in command
+            assert "task_data:/app/data" in beat.get("volumes", [])
+
 
 class TestProdCompose:
     def test_prod_stack_includes_nginx(self, prod_compose):
