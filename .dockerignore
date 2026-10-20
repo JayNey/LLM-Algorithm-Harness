@@ -1,0 +1,25 @@
+# 构建镜像与运行测试时忽略的本地内容
+.git
+.comet
+.claude
+.zcode
+.github
+openspec
+docs
+frontend
+node_modules
+.venv
+venv
+__pycache__
+*.pyc
+.pytest_cache
+.mypy_cache
+.ruff_cache
+data
+uploads
+results
+*.sqlite3
+.env
+.env.*
+!.env.example
+tests
