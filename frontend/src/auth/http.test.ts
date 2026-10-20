@@ -974,3 +974,76 @@ test('detail 和 message 都缺失时提示服务暂时不可用', async () => {
     (error: unknown) => assertApiError(error, '服务暂时不可用', 500),
   )
 })
+
+// Holding only the refresh reply makes the ordering deterministic: clear or
+// replace the session while a real client request is waiting for refresh.
+for (const trigger of ['window', '401'] as const) {
+  for (const replacement of ['cleared', 'new-session'] as const) {
+    for (const outcome of ['success', 'failure'] as const) {
+      test(`迟到刷新隔离：${trigger}/${replacement}/${outcome}`, async () => {
+        let current: StoredSession | null = session({
+          expiresAt: trigger === 'window' ? 1_000 : 60_000,
+        })
+        let notifyStarted!: () => void
+        const started = new Promise<void>((resolve) => {
+          notifyStarted = resolve
+        })
+        let finish!: (value: StoredSession) => void
+        let fail!: (reason: Error) => void
+        const reply = new Promise<StoredSession>((resolve, reject) => {
+          finish = resolve
+          fail = reject
+        })
+        const written: StoredSession[] = []
+        let cleared = 0
+        let protectedCalls = 0
+        const client = create({
+          read: () => current,
+          write: (value) => {
+            written.push(value)
+            current = value
+          },
+          clear: () => {
+            cleared += 1
+            current = null
+          },
+          refresh: () => {
+            notifyStarted()
+            return reply
+          },
+          adapter: (config) => {
+            protectedCalls += 1
+            return resolveWith(
+              config,
+              retried(config) ? 200 : 401,
+              envelope({ ok: true }),
+            )
+          },
+        })
+        const result = client.get('/users/me').then(
+          () => ({ rejected: false, error: undefined }),
+          (error: unknown) => ({ rejected: true, error }),
+        )
+        await started
+        const expected =
+          replacement === 'cleared'
+            ? null
+            : session({
+                accessToken: 'other-access',
+                refreshToken: 'other-refresh',
+              })
+        current = expected
+        if (outcome === 'success')
+          finish(session({ accessToken: 'late-access' }))
+        else fail(new ApiClientError('旧刷新失败', 401))
+        const actual = await result
+        assert.equal(actual.rejected, true)
+        assert.ok(actual.error instanceof ApiClientError)
+        assert.deepEqual(current, expected)
+        assert.deepEqual(written, [])
+        assert.equal(cleared, 0)
+        assert.equal(protectedCalls, trigger === 'window' ? 0 : 1)
+      })
+    }
+  }
+}
