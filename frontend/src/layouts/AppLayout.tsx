@@ -14,6 +14,7 @@ export function AppLayout() {
   const { state: roleState } = useRole()
   const navigate = useNavigate()
   const session = useAuthStore((state) => state.session)
+  const username = session?.username || '已登录'
   const logout = useAuthStore((state) => state.logout)
   const colorScheme = useUiStore((state) => state.colorScheme)
   const toggleColorScheme = useUiStore((state) => state.toggleColorScheme)
@@ -38,18 +39,23 @@ export function AppLayout() {
     >
       <div className="min-h-screen bg-white text-neutral-900 dark:bg-neutral-950 dark:text-neutral-100">
         <header className="border-b border-neutral-200 px-4 py-3 dark:border-neutral-800">
-          <div className="flex items-center justify-between gap-3">
-            <strong>{appName}</strong>
-            <div className="flex items-center gap-2">
-              <span>{session?.username || '已登录'}</span>
+          <div className="flex min-w-0 flex-col gap-3 md:flex-row md:items-center md:justify-between">
+            <strong className="min-w-0 truncate">{appName}</strong>
+            <div className="flex min-w-0 items-center gap-2">
+              <span
+                className="min-w-0 flex-1 truncate md:max-w-48 md:flex-initial"
+                title={username}
+              >
+                {username}
+              </span>
               <Button
-                className="md:hidden"
+                className="shrink-0 md:hidden"
                 aria-expanded={menuOpen}
                 onClick={() => setMenuOpen((open) => !open)}
               >
                 菜单
               </Button>
-              <Button onClick={toggleColorScheme}>
+              <Button className="shrink-0" onClick={toggleColorScheme}>
                 {colorScheme === 'dark' ? '浅色' : '深色'}
               </Button>
             </div>
