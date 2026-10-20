@@ -6,7 +6,22 @@ import './index.css'
 import App from './App.tsx'
 
 document.title = readViteEnv().appName
-applyColorScheme(useUiStore.getState().colorScheme)
+function applyAppearance() {
+  const { colorScheme, appearanceVariant } = useUiStore.getState()
+  applyColorScheme(colorScheme)
+  document.documentElement.dataset.design = appearanceVariant
+}
+applyAppearance()
+const unsubscribeAppearance = useUiStore.subscribe(applyAppearance)
+const media = matchMedia('(prefers-color-scheme: dark)')
+const updateSystemTheme = () =>
+  useUiStore.getState().setSystemDark(media.matches)
+media.addEventListener('change', updateSystemTheme)
+if (import.meta.hot)
+  import.meta.hot.dispose(() => {
+    unsubscribeAppearance()
+    media.removeEventListener('change', updateSystemTheme)
+  })
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>

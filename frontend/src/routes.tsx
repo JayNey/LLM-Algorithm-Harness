@@ -6,36 +6,73 @@ export interface AppPage {
   label: string
   Component: LazyExoticComponent<ComponentType>
   allowedRoles?: readonly UserRole[]
+  group?: string
+  icon?:
+    | 'grid'
+    | 'code'
+    | 'play'
+    | 'chart'
+    | 'flask'
+    | 'layers'
+    | 'pulse'
+    | 'settings'
+    | 'help'
 }
 
 export const appPages: AppPage[] = [
   {
     path: '/',
+    group: '评估工作台',
+    icon: 'grid',
     label: '仪表盘',
     Component: lazy(() => import('@/pages/Dashboard/DashboardPage.tsx')),
   },
   {
     path: '/problems',
-    label: '题目',
+    group: '评估工作台',
+    icon: 'code',
+    label: '题目库',
     Component: lazy(() => import('@/pages/Problems/ProblemsPage.tsx')),
   },
   {
     path: '/evaluations',
-    label: '评估',
+    group: '评估工作台',
+    icon: 'play',
+    label: '评估任务',
     Component: lazy(() => import('@/pages/Evaluations/EvaluationsPage.tsx')),
   },
   {
     path: '/results',
-    label: '结果',
+    group: '分析与对比',
+    icon: 'chart',
+    label: '评估结果',
     Component: lazy(() => import('@/pages/Results/ResultsPage.tsx')),
   },
   {
     path: '/experiments',
+    group: '分析与对比',
+    icon: 'flask',
     label: '实验',
     Component: lazy(() => import('@/pages/Experiments/ExperimentsPage.tsx')),
   },
   {
+    path: '/benchmarks',
+    label: '基准测试',
+    group: '分析与对比',
+    icon: 'layers',
+    Component: lazy(() => import('@/mock/BusinessPage.tsx')),
+  },
+  {
+    path: '/help',
+    label: '帮助文档',
+    group: '系统',
+    icon: 'help',
+    Component: lazy(() => import('@/mock/BusinessPage.tsx')),
+  },
+  {
     path: '/settings',
+    group: '系统',
+    icon: 'settings',
     label: '设置',
     Component: lazy(() => import('@/pages/Settings/SettingsPage.tsx')),
   },
@@ -44,6 +81,8 @@ export const appPages: AppPage[] = [
 export const settingsPages: AppPage[] = [
   {
     path: '/settings/system',
+    group: '系统',
+    icon: 'pulse',
     label: '系统状态',
     allowedRoles: ['admin'],
     Component: lazy(() => import('@/pages/Settings/SystemPage.tsx')),

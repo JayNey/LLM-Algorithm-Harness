@@ -30,6 +30,7 @@ const isTheme = (value: unknown): value is ThemePreference =>
 const resolve = (preference: ThemePreference, dark: boolean): ColorScheme =>
   preference === 'system' ? (dark ? 'dark' : 'light') : preference
 function browserStorage(): PreferenceStorage | undefined {
+  if (typeof window === 'undefined') return undefined
   try {
     return globalThis.localStorage
   } catch {
