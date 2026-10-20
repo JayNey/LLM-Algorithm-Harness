@@ -280,8 +280,7 @@ def test_login_sets_httponly_cookies_that_authenticate(api):
     assert 'harness_access_token=""' in cleared or "harness_access_token=;" in cleared
     assert client.get("/api/v1/users/me").status_code == 401
     assert (
-        client.get("/api/v1/users/me", params={"token": tokens["access_token"]}).status_code
-        == 401
+        client.get("/api/v1/users/me", params={"token": tokens["access_token"]}).status_code == 401
     )
 
 
