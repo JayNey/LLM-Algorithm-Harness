@@ -1,4 +1,5 @@
 import { Suspense } from 'react'
+import { Loading } from '@/components/common/Feedback.tsx'
 import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom'
 import { RequireSession } from '@/components/Auth/RequireSession.tsx'
 import { RequireRole } from '@/components/Auth/RequireRole.tsx'
@@ -20,7 +21,7 @@ export default function App() {
               key={page.path}
               path={page.path}
               element={
-                <Suspense fallback={<p>加载中</p>}>
+                <Suspense fallback={<Loading />}>
                   <page.Component />
                 </Suspense>
               }
@@ -35,7 +36,7 @@ export default function App() {
                   key={page.path}
                   path={page.path}
                   element={
-                    <Suspense fallback={<p>加载中</p>}>
+                    <Suspense fallback={<Loading />}>
                       <RequireRole allowedRoles={page.allowedRoles}>
                         <page.Component />
                       </RequireRole>
@@ -48,7 +49,7 @@ export default function App() {
                   key={page.path}
                   path={page.path}
                   element={
-                    <Suspense fallback={<p>加载中</p>}>
+                    <Suspense fallback={<Loading />}>
                       <RequireRole allowedRoles={page.allowedRoles}>
                         <page.Component />
                       </RequireRole>

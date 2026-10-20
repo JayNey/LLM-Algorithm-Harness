@@ -1,0 +1,36 @@
+# 工作台外壳验证说明
+
+记录日期：2026-10-20。本文件区分脚本的检查范围与已得到的验证证据，避免把待跑项目写成通过。
+
+## 当前证据
+
+已完成的浏览器根页面尺寸检查：Orbit / Precision / Studio × light / dark × 320 / 390 / 768 / 1024 / 1280 / 1440px，共 36 种组合，根页面未出现横向溢出。这只支持相应页面与视口下的溢出结论，不表示所有浮层、子路由、交互、浏览器或设备均已验收。
+
+最终执行 `scripts/verify-shell.mjs` 成功退出：47项浏览器检查通过，其中36项为布局组合。覆盖系统主题、偏好恢复、路由/输入节点/筛选/草稿/通知状态保持、加载/空/错误重试、通知分类与清空、手机导航与Esc焦点恢复、四类可关闭反馈、真实登出客户端、会话隔离、管理员入口及渲染异常边界恢复。主应用页面没有运行异常，也没有请求业务API。身份与登出响应使用浏览器fixture，不表示真实后端端到端已验收。结果见 `../superpowers/reports/assets/issue168/checks.json`。
+
+工程检查：121项前端测试通过；ESLint、Prettier、类型检查和生产构建通过。独立代码审查确认认证按钮对比度回归已修复；独立视觉复验确认字标、手机Mock提示、六套占位文字对比度修正已解决。
+
+## 自动化脚本
+
+脚本位于 `frontend/scripts/verify-shell.mjs`，从 `frontend/` 执行。它使用外部可用的 Playwright 包；仓库未因此增加 Playwright 依赖。先启动开发服务，默认地址为 `http://127.0.0.1:5180`：
+
+```sh
+cd frontend
+npm run dev -- --host 127.0.0.1 --port 5180
+```
+
+另一终端在 `frontend/` 中运行，`PLAYWRIGHT_MODULE` 指向可解析的外部 Playwright 模块或绝对包路径：
+
+```sh
+PLAYWRIGHT_MODULE=/absolute/path/to/node_modules/playwright node scripts/verify-shell.mjs
+```
+
+若环境已能解析 `playwright`，可省略 `PLAYWRIGHT_MODULE`。`CHROME_PATH` 可选，提供本机 Chrome 可执行文件路径；省略时使用 Playwright 自带的 Chromium。`SHELL_BASE_URL` 可覆盖服务地址，`SHELL_QA_DIR` 可覆盖截图与报告输出目录；默认产物目录为 `docs/superpowers/reports/assets/issue168/`（从仓库根看）。不要将其他开发者机器上的绝对路径写成项目要求。
+
+脚本拦截身份 API 以提供确定的浏览器测试身份，并检查业务 Mock 没有意外请求后端；这些 fixture 只属于验证脚本，不是应用中的角色切换功能。脚本覆盖范围由当前源文件定义，结果以成功退出及实际产物为准；运行失败或只生成了部分截图不能当作通过。
+
+## 工程检查与人工限制
+
+在 `frontend/` 运行 `npm test`、`npm run lint`、`npm run build`；各命令是否通过须查看当次输出。单元测试、构建与浏览器验证各自证明不同范围，不互相替代。
+
+尚不能由本轮证据确认的范围包括真实 iOS/Android 设备、Safari/Firefox 浏览器、屏幕阅读器、真实触摸与软键盘、真实后端登录/刷新/权限与登出全链路、跨设备通知、网络断线和实时消息。视口模拟与身份 fixture 不能替代这些验收。

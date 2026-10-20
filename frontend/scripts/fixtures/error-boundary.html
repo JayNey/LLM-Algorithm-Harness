@@ -1,0 +1,40 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <title>Page boundary regression fixture</title>
+  </head>
+  <body>
+    <div id="root"></div>
+    <script type="module">
+      import React from 'react'
+      import { createRoot } from 'react-dom/client'
+      import { ErrorBoundary } from '/src/components/common/Feedback.tsx'
+      let broken = true
+      function Content() {
+        if (broken) throw new Error('intentional-boundary-fixture')
+        return React.createElement('p', null, '页面已恢复')
+      }
+      createRoot(document.getElementById('root')).render(
+        React.createElement(
+          React.Fragment,
+          null,
+          React.createElement(
+            'button',
+            {
+              onClick: () => {
+                broken = false
+              },
+            },
+            '修复模拟异常',
+          ),
+          React.createElement(
+            ErrorBoundary,
+            null,
+            React.createElement(Content),
+          ),
+        ),
+      )
+    </script>
+  </body>
+</html>

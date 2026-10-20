@@ -1,3 +1,5 @@
+@import './layouts/shell.css';
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;

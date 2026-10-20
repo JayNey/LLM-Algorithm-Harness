@@ -1,91 +1,235 @@
-import { Button, ConfigProvider, theme } from 'antd'
-import { useState } from 'react'
-import { NavLink, Outlet, useNavigate } from 'react-router-dom'
-import { escapeHtml } from '@/auth/text.ts'
+import {
+  App as AntApp,
+  Button,
+  ConfigProvider,
+  Drawer,
+  Dropdown,
+  Tooltip,
+} from 'antd'
+import { useEffect, useRef, useState, useSyncExternalStore } from 'react'
+import { Outlet, useLocation, useNavigate } from 'react-router-dom'
 import { readViteEnv } from '@/config/env.ts'
-import { appPages } from '@/routes.tsx'
 import { useAuthStore } from '@/store/auth.ts'
-import { useUiStore } from '@/store/ui.ts'
-import { useRole } from '@/auth/roleContext.ts'
-import { canAccess } from '@/auth/roles.ts'
-
+import { appearanceVariants, useUiStore } from '@/store/ui.ts'
+import { ErrorBoundary } from '@/components/common/Feedback.tsx'
+import { MockActions } from '@/mock/MockActions.tsx'
+import { appearanceTheme } from './appearance.ts'
+import { Icon } from './components/Icon.tsx'
+import {
+  AppearanceControls,
+  Breadcrumb,
+  MobileNav,
+  Navigation,
+} from './components/Navigation.tsx'
+import { NotificationCenter } from './components/NotificationCenter.tsx'
 const appName = readViteEnv().appName
-
+const wordmark = appName === 'LLM Algorithm Harness' ? 'Harness' : appName
+function subscribeMotion(change: () => void) {
+  const media = window.matchMedia('(prefers-reduced-motion: reduce)')
+  media.addEventListener('change', change)
+  return () => media.removeEventListener('change', change)
+}
 export function AppLayout() {
-  const { state: roleState } = useRole()
+  const reducedMotion = useSyncExternalStore(
+    subscribeMotion,
+    () => window.matchMedia('(prefers-reduced-motion: reduce)').matches,
+    () => false,
+  )
+  const { appearanceVariant, colorScheme } = useUiStore()
+  return (
+    <ConfigProvider
+      theme={appearanceTheme(appearanceVariant, colorScheme, reducedMotion)}
+    >
+      <AntApp>
+        <Shell />
+      </AntApp>
+    </ConfigProvider>
+  )
+}
+function Shell() {
   const navigate = useNavigate()
+  const location = useLocation()
   const session = useAuthStore((state) => state.session)
-  const username = escapeHtml(session?.username || '已登录')
   const logout = useAuthStore((state) => state.logout)
-  const colorScheme = useUiStore((state) => state.colorScheme)
-  const toggleColorScheme = useUiStore((state) => state.toggleColorScheme)
-  const [menuOpen, setMenuOpen] = useState(false)
-
+  const ui = useUiStore()
+  const username = session?.username || '已登录'
+  const [openedAt, setOpenedAt] = useState<string | null>(null)
+  const [modal, setModal] = useState<'create' | 'import' | null>(null)
+  const main = useRef<HTMLElement>(null)
+  const menu = useRef<HTMLButtonElement>(null)
+  const drawerOpen = openedAt === location.key
+  useEffect(() => {
+    main.current?.focus()
+  }, [location.pathname])
   async function signOut() {
     try {
       await logout()
     } catch {
-      // logout 清除本地会话后会重新抛出，失败时仍离开业务页。
+      /* Existing logout always clears the local session. */
     } finally {
       navigate('/login', { replace: true })
     }
   }
-
+  function onCreate() {
+    setOpenedAt(null)
+    setModal('create')
+  }
+  function onImport() {
+    setOpenedAt(null)
+    setModal('import')
+  }
+  const actions = { onCreate, onImport }
   return (
-    <ConfigProvider
-      theme={{
-        algorithm:
-          colorScheme === 'dark' ? theme.darkAlgorithm : theme.defaultAlgorithm,
-      }}
-    >
-      <div className="min-h-screen bg-white text-neutral-900 dark:bg-neutral-950 dark:text-neutral-100">
-        <header className="border-b border-neutral-200 px-4 py-3 dark:border-neutral-800">
-          <div className="flex min-w-0 flex-col gap-3 md:flex-row md:items-center md:justify-between">
-            <strong className="min-w-0 truncate">{appName}</strong>
-            <div className="flex min-w-0 items-center gap-2">
-              <span
-                className="min-w-0 flex-1 truncate md:max-w-48 md:flex-initial"
-                title={username}
+    <>
+      <a
+        className="skip-link"
+        href="#main"
+        onClick={(e) => {
+          e.preventDefault()
+          main.current?.focus()
+        }}
+      >
+        跳至主内容
+      </a>
+      <div className={`app-shell ${ui.sidebarCollapsed ? 'collapsed' : ''}`}>
+        <aside className="sidebar">
+          <Navigation {...actions} collapsed={ui.sidebarCollapsed} />
+          <Tooltip title={ui.sidebarCollapsed ? '展开侧边栏' : '折叠侧边栏'}>
+            <button
+              className="collapse-button"
+              aria-label={ui.sidebarCollapsed ? '展开侧边栏' : '折叠侧边栏'}
+              aria-expanded={!ui.sidebarCollapsed}
+              onClick={ui.toggleSidebar}
+            >
+              <Icon name="collapse" />
+              <span>折叠侧边栏</span>
+            </button>
+          </Tooltip>
+        </aside>
+        <div className="workspace">
+          <header className="topbar">
+            <div className="topbar-left">
+              <Button
+                ref={menu}
+                className="mobile-menu"
+                type="text"
+                aria-label="打开导航菜单"
+                aria-expanded={drawerOpen}
+                onClick={() => setOpenedAt(location.key)}
+                icon={<Icon name="menu" />}
+              />
+              <span className="top-product">
+                <img
+                  src="/brand/harness-frontier.svg"
+                  alt=""
+                  width={24}
+                  height={24}
+                />
+                <span className="product-name" title={appName}>
+                  {wordmark}
+                </span>
+              </span>
+              <span className="workspace-label">
+                {appearanceVariants[ui.appearanceVariant].en} / 个人工作空间
+              </span>
+              <span className="preview-tag">业务 · Mock</span>
+            </div>
+            <div className="top-actions">
+              <Dropdown
+                trigger={['click']}
+                menu={{
+                  items: [
+                    { key: 'create', label: '创建评估' },
+                    { key: 'import', label: '导入题目' },
+                  ],
+                  onClick: ({ key }) =>
+                    key === 'create' ? onCreate() : onImport(),
+                }}
               >
+                <Button className="quick-actions" type="text">
+                  快速操作 <Icon name="chevron" size={14} />
+                </Button>
+              </Dropdown>
+              <Tooltip
+                title={ui.colorScheme === 'dark' ? '切换至浅色' : '切换至深色'}
+              >
+                <Button
+                  type="text"
+                  aria-label={
+                    ui.colorScheme === 'dark'
+                      ? '切换至浅色主题'
+                      : '切换至深色主题'
+                  }
+                  icon={
+                    <Icon name={ui.colorScheme === 'dark' ? 'sun' : 'moon'} />
+                  }
+                  onClick={ui.toggleColorScheme}
+                />
+              </Tooltip>
+              <NotificationCenter
+                key={session?.marker ?? 'anonymous'}
+                owner={session?.marker ?? 'anonymous'}
+              />
+              <span className="username-label" title={username}>
                 {username}
               </span>
-              <Button
-                className="shrink-0 md:hidden"
-                aria-expanded={menuOpen}
-                onClick={() => setMenuOpen((open) => !open)}
+              <Dropdown
+                trigger={['click']}
+                menu={{
+                  items: [
+                    { key: '/settings/profile', label: '个人资料' },
+                    { key: '/settings/api-keys', label: 'API 密钥管理' },
+                    { key: '/help', label: '帮助文档' },
+                    { type: 'divider' },
+                    { key: 'logout', label: '登出' },
+                  ],
+                  onClick: ({ key }) =>
+                    key === 'logout' ? void signOut() : navigate(key),
+                }}
               >
-                菜单
-              </Button>
-              <Button className="shrink-0" onClick={toggleColorScheme}>
-                {colorScheme === 'dark' ? '浅色' : '深色'}
-              </Button>
+                <button className="avatar" aria-label={`用户菜单：${username}`}>
+                  {username.slice(0, 1)}
+                </button>
+              </Dropdown>
             </div>
-          </div>
-          <nav
-            className={`${menuOpen ? 'flex' : 'hidden'} mt-3 flex-col gap-2 md:mt-3 md:flex md:flex-row md:flex-wrap`}
-          >
-            {appPages
-              .filter((page) => canAccess(roleState.role, page.allowedRoles))
-              .map((page) => (
-                <NavLink
-                  key={page.path}
-                  to={page.path}
-                  end={page.path === '/'}
-                  className={({ isActive }) =>
-                    isActive ? 'font-semibold underline' : undefined
-                  }
-                  onClick={() => setMenuOpen(false)}
-                >
-                  {page.label}
-                </NavLink>
-              ))}
-            <Button onClick={() => void signOut()}>登出</Button>
-          </nav>
-        </header>
-        <main className="p-4">
-          <Outlet />
-        </main>
+          </header>
+          <main className="sheet" id="main" ref={main} tabIndex={-1}>
+            <AppearanceControls />
+            <Breadcrumb />
+            <div className="route-content">
+              <ErrorBoundary key={location.pathname}>
+                <Outlet context={actions} />
+              </ErrorBoundary>
+            </div>
+            <footer className="workspace-footer">
+              <span>{appName}</span>
+              <span>
+                {appearanceVariants[ui.appearanceVariant].name} / 业务与通知 ·
+                Mock
+              </span>
+            </footer>
+          </main>
+        </div>
       </div>
-    </ConfigProvider>
+      <MobileNav />
+      <Drawer
+        title="工作台导航"
+        placement="left"
+        open={drawerOpen}
+        onClose={() => setOpenedAt(null)}
+        afterOpenChange={(open) => {
+          if (!open) menu.current?.focus()
+        }}
+        size={280}
+        className="navigation-drawer"
+      >
+        <Navigation {...actions} onNavigate={() => setOpenedAt(null)} />
+      </Drawer>
+      <MockActions
+        key={session?.marker ?? 'anonymous'}
+        mode={modal}
+        onClose={() => setModal(null)}
+      />
+    </>
   )
 }
