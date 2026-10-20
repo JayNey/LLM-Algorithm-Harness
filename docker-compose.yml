@@ -58,7 +58,8 @@ services:
       CELERY_RESULT_BACKEND: redis://redis:6379/0
       LOG_LEVEL: ${LOG_LEVEL:-INFO}
       LOG_FORMAT: ${LOG_FORMAT:-json}
-      # api 在 compose 网络内只被 nginx/本机访问，信任代理头以保留真实客户端 IP
+      # 开发环境信任代理头以保留真实客户端 IP；8000 已发布到宿主机，
+      # 本机进程可伪造 X-Forwarded-For，生产拓扑由 docker-compose.prod.yml 单独收紧
       FORWARDED_ALLOW_IPS: "*"
     ports:
       - "8000:8000"

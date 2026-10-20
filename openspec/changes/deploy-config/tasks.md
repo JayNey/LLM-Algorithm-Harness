@@ -25,5 +25,5 @@
 
 - [x] 5.1 新增 `tests/test_deployment_config.py`：YAML/文本断言校验 compose×2、Dockerfile×2、nginx、`.env.example` 与 Settings 字段一致性（不依赖 Docker 守护进程）
 - [x] 5.2 新增 `docs/deployment/deploy.md`：本地开发、Docker 部署（dev/prod）、环境变量表、数据库迁移与回滚步骤、种子数据、故障排查
-- [ ] 5.3 独立审查（general-purpose 只读子代理，`git show` 范围 + 已知豁免清单），修复后定点复审
+- [x] 5.3 独立审查（general-purpose 只读子代理，`git show` 范围 + 已知豁免清单），修复后定点复审
 - [ ] 5.4 三件套最终重验：`ruff check --fix .` + `black .` 后在最终状态重跑 `ruff check .`、`black --check .`、`python3 -m pytest -q --cov-fail-under=0`（覆盖率门禁豁免口径见验证记录）
