@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict'
 import { test } from 'node:test'
 import axios from 'axios'
-import { ApiClientError } from '../auth/http.ts'
+import { ApiClientError, createHttpClient } from '../auth/http.ts'
 import {
   clearSession,
   readSession,
@@ -436,4 +436,81 @@ async function captureRefreshWrite(
     session: number
   } = { during, local, session }
   return result
+}
+
+for (const remember of [false, true]) {
+  for (const action of ['clear', 'logout'] as const) {
+    test(`刷新晚于${action}返回时不恢复会话，remember=${remember}`, async () => {
+      const box = storages()
+      const store = createAuthStore()
+      let client!: ReturnType<typeof createHttpClient>
+      let notifyStarted!: () => void
+      const started = new Promise<void>((resolve) => {
+        notifyStarted = resolve
+      })
+      let finish!: (value: ReturnType<typeof tokens>) => void
+      const reply = new Promise<ReturnType<typeof tokens>>((resolve) => {
+        finish = resolve
+      })
+      let protectedCalls = 0
+      let logoutCalls = 0
+      await store.getState().login('ada', 'fake-password', remember, {
+        storages: box,
+        baseURL: 'http://api.test',
+        now: () => 0,
+        createClient: (options) => {
+          client = createHttpClient({
+            ...options,
+            adapter: async (config) => {
+              let status = 200
+              let data: unknown
+              if (config.url === '/auth/login') {
+                data = { ...tokens(), expires_in: 3600 }
+              } else if (config.url === '/users/me') {
+                data = { username: 'ada' }
+              } else if (config.url === '/auth/refresh') {
+                notifyStarted()
+                data = await reply
+              } else if (config.url === '/auth/logout') {
+                logoutCalls += 1
+                assert.equal(
+                  config.headers.get('Authorization'),
+                  'Bearer access',
+                )
+                status = 204
+              } else {
+                protectedCalls += 1
+                status = protectedCalls === 1 ? 401 : 200
+                data = { ok: true }
+              }
+              return { config, status, statusText: 'test', headers: {}, data }
+            },
+          })
+          return client
+        },
+      })
+      const result = client.get('/slow-protected').then(
+        () => false,
+        (error: unknown) => {
+          assert.ok(error instanceof ApiClientError)
+          return true
+        },
+      )
+      await started
+      if (action === 'logout') {
+        await store.getState().logout({ client, storages: box })
+      } else {
+        store.getState().clear({ storages: box })
+      }
+      assert.equal(store.getState().session, null)
+      assert.equal(readSession(box), null)
+      finish(tokens('late-access'))
+      assert.equal(await result, true)
+      assert.equal(store.getState().session, null)
+      assert.equal(box.local.length, 0)
+      assert.equal(box.session.length, 0)
+      assert.equal(protectedCalls, 1)
+      assert.equal(logoutCalls, action === 'logout' ? 1 : 0)
+    })
+  }
 }

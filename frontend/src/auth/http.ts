@@ -211,14 +211,28 @@ export function createHttpClient(options: HttpClientOptions): AxiosInstance {
   }
 
   const coordinator = createRefreshCoordinator(async () => {
+    const original = options.read()
+    const isCurrent = () => {
+      const current = options.read()
+      return (
+        original !== null &&
+        current !== null &&
+        current.accessToken === original.accessToken &&
+        current.refreshToken === original.refreshToken
+      )
+    }
     try {
+      if (!original) throw new ApiClientError('登录会话已失效', 401)
       const next = options.refresh
         ? await options.refresh()
         : await refreshSession()
+      // Logout or a new login owns the state now. Do not resurrect the old
+      // session or let its waiting requests retry with obsolete credentials.
+      if (!isCurrent()) throw new ApiClientError('登录会话已失效', 401)
       options.write(next)
       return next
     } catch (error) {
-      options.clear()
+      if (isCurrent()) options.clear()
       if (error instanceof ApiClientError) throw error
       throw new ApiClientError(unavailable)
     }
