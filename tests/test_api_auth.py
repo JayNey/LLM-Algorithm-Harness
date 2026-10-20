@@ -253,6 +253,18 @@ def test_jwt_tampering_rejected(api, mode):
     )
 
 
+def test_key_name_rejects_html_metacharacters(api):
+    client, tokens, _, _ = api
+    response = client.post(
+        "/api/v1/api-keys",
+        headers=headers(tokens),
+        json={"provider": "openai", "key_name": "<script>", "api_key": KEY},
+    )
+    assert response.status_code == 400
+    assert "<script>" not in response.text
+    assert client.get("/api/v1/api-keys", headers=headers(tokens)).json()["data"] == []
+
+
 def test_cookie_session_mutation_requires_csrf_token(api):
     client, tokens, _, _ = api
     client.cookies.clear()

@@ -3,6 +3,7 @@ import { useRef, useState } from 'react'
 import { Controller, useForm } from 'react-hook-form'
 import { Link, useLocation, useNavigate } from 'react-router-dom'
 import { ApiClientError } from '@/auth/http.ts'
+import { escapeHtml } from '@/auth/text.ts'
 import { validateLogin } from '@/auth/loginForm.ts'
 import { loginWelcome } from '@/auth/loginWelcome.ts'
 import { sanitizeReturnPath } from '@/auth/returnPath.ts'
@@ -51,7 +52,7 @@ function fieldMessages(details: unknown): Record<string, string> | null {
   const messages: Record<string, string> = {}
   for (const [key, value] of entries) {
     if (typeof value !== 'string') return null
-    messages[key] = value
+    messages[key] = escapeHtml(value)
   }
   return messages
 }

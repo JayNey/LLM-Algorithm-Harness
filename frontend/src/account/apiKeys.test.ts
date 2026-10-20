@@ -8,6 +8,7 @@ import {
   rejectApiKey,
   renamePayload,
   requestFailureText,
+  validateKeyName,
   verifyStatusText,
   type ApiKeyRecord,
 } from './apiKeys.ts'
@@ -121,6 +122,12 @@ test('解析结果不保留密钥字段', () => {
   ])
   assert.equal(parsed?.[0] && Object.hasOwn(parsed[0], 'api_key'), false)
   assert.equal(readApiKeys({ data: [] }), null)
+})
+
+test('密钥名称拒绝 HTML 元字符', () => {
+  assert.equal(typeof validateKeyName('<script>'), 'string')
+  assert.equal(typeof validateKeyName('a&b'), 'string')
+  assert.equal(validateKeyName('primary'), null)
 })
 
 test('改名载荷只有 key_name', () => {

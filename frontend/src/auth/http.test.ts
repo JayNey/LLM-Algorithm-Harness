@@ -345,6 +345,23 @@ test('非 2xx 抛出 ApiClientError，消息优先 detail', async () => {
   )
 })
 
+test('接口错误文案转义 HTML', async () => {
+  const client = create({
+    adapter: (config) =>
+      resolveWith(
+        config,
+        400,
+        { detail: '<script>alert(1)</script>' },
+        'Bad Request',
+      ),
+  })
+  await assert.rejects(
+    () => client.post('/api/v1/auth/login', {}),
+    (error: unknown) =>
+      assertApiError(error, '&lt;script&gt;alert(1)&lt;&#47;script&gt;', 400),
+  )
+})
+
 test('非 2xx 没有 detail 时使用 message', async () => {
   const client = create({
     adapter: (config) => {

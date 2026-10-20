@@ -3,6 +3,7 @@ import { useRef, useState } from 'react'
 import { Controller, useForm, useWatch } from 'react-hook-form'
 import { Link, useNavigate } from 'react-router-dom'
 import { ApiClientError } from '@/auth/http.ts'
+import { escapeHtml } from '@/auth/text.ts'
 import {
   passwordStrength,
   validateRegistration,
@@ -38,7 +39,7 @@ function fieldMessages(details: unknown): Record<string, string> | null {
   const messages: Record<string, string> = {}
   for (const [key, value] of entries) {
     if (typeof value !== 'string') return null
-    messages[key] = value
+    messages[key] = escapeHtml(value)
   }
   return messages
 }

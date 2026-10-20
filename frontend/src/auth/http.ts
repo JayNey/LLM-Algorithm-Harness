@@ -5,6 +5,7 @@ import axios, {
   type InternalAxiosRequestConfig,
 } from 'axios'
 import { createRefreshCoordinator } from './refreshCoordinator.ts'
+import { escapeHtml } from './text.ts'
 import type { StoredSession } from './tokenStore.ts'
 
 const refreshWindowMs = 30_000
@@ -78,10 +79,10 @@ function messageFrom(data: unknown, fallback: string): string {
   const body = bodyRecord(data)
   if (!body) return fallback
   if (typeof body.detail === 'string' && body.detail.length > 0) {
-    return body.detail
+    return escapeHtml(body.detail)
   }
   if (typeof body.message === 'string' && body.message.length > 0) {
-    return body.message
+    return escapeHtml(body.message)
   }
   return fallback
 }

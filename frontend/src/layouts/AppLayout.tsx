@@ -1,6 +1,7 @@
 import { Button, ConfigProvider, theme } from 'antd'
 import { useState } from 'react'
 import { NavLink, Outlet, useNavigate } from 'react-router-dom'
+import { escapeHtml } from '@/auth/text.ts'
 import { readViteEnv } from '@/config/env.ts'
 import { appPages } from '@/routes.tsx'
 import { useAuthStore } from '@/store/auth.ts'
@@ -14,7 +15,7 @@ export function AppLayout() {
   const { state: roleState } = useRole()
   const navigate = useNavigate()
   const session = useAuthStore((state) => state.session)
-  const username = session?.username || '已登录'
+  const username = escapeHtml(session?.username || '已登录')
   const logout = useAuthStore((state) => state.logout)
   const colorScheme = useUiStore((state) => state.colorScheme)
   const toggleColorScheme = useUiStore((state) => state.toggleColorScheme)

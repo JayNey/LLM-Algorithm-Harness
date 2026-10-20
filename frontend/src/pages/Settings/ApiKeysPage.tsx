@@ -16,6 +16,7 @@ import {
 } from '@/account/apiKeys.ts'
 import { formatUnixSeconds } from '@/account/profile.ts'
 import { ApiClientError } from '@/auth/http.ts'
+import { escapeHtml } from '@/auth/text.ts'
 import { useAuthStore } from '@/store/auth.ts'
 
 interface AddInput {
@@ -125,8 +126,8 @@ function KeyRow({
 
   return (
     <li>
-      <p>{item.key_name}</p>
-      {item.masked_preview ? <p>{item.masked_preview}</p> : null}
+      <p>{escapeHtml(item.key_name)}</p>
+      {item.masked_preview ? <p>{escapeHtml(item.masked_preview)}</p> : null}
       <p>{item.provider}</p>
       <p>创建时间：{formatUnixSeconds(item.created_at)}</p>
       <p>{item.verified ? '已验证' : '未验证'}</p>
