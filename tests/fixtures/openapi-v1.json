@@ -1176,6 +1176,10 @@
             "maxLength": 254,
             "minLength": 1,
             "type": "string"
+          },
+          "remember": {
+            "default": false,
+            "type": "boolean"
           }
         },
         "required": [
@@ -1587,16 +1591,20 @@
         "additionalProperties": false,
         "properties": {
           "refresh_token": {
-            "format": "password",
-            "maxLength": 4096,
-            "minLength": 1,
-            "type": "string",
-            "writeOnly": true
+            "anyOf": [
+              {
+                "format": "password",
+                "maxLength": 4096,
+                "minLength": 1,
+                "type": "string",
+                "writeOnly": true
+              },
+              {
+                "type": "null"
+              }
+            ]
           }
         },
-        "required": [
-          "refresh_token"
-        ],
         "type": "object"
       },
       "RegisterInput": {
