@@ -1,5 +1,6 @@
 {
   "openspec_proposal": "openspec/changes/auth-csrf-xss/proposal.md",
   "openspec_design": "openspec/changes/auth-csrf-xss/design.md",
-  "openspec_tasks": "openspec/changes/auth-csrf-xss/tasks.md"
+  "openspec_tasks": "openspec/changes/auth-csrf-xss/tasks.md",
+  "archive_directory": "openspec/changes/archive/2026-10-20-auth-csrf-xss"
 }
