@@ -112,10 +112,16 @@ class TestAuthentication:
         assert excinfo.value.code == 4401
 
     def test_missing_token_is_rejected(self, env):
+        env["client"].cookies.clear()
         with pytest.raises(WebSocketDisconnect) as excinfo:
             with env["client"].websocket_connect("/api/v1/ws/progress") as ws:
                 ws.receive_json()
         assert excinfo.value.code == 4401
+
+    def test_access_cookie_authenticates_without_query_token(self, env):
+        with env["client"].websocket_connect("/api/v1/ws/progress") as ws:
+            frame = ws.receive_json()
+        assert frame["type"] == "connected"
 
 
 class TestSubscription:

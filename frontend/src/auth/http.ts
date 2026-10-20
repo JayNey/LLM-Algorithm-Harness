@@ -119,8 +119,6 @@ function transformResponse(
 }
 
 interface RefreshPayload {
-  access_token: string
-  refresh_token: string
   expires_in: number
 }
 
@@ -129,11 +127,7 @@ type RetryConfig = InternalAxiosRequestConfig & { __retried?: boolean }
 function isRefreshPayload(value: unknown): value is RefreshPayload {
   if (typeof value !== 'object' || value === null) return false
   const payload = value as Record<string, unknown>
-  return (
-    typeof payload.access_token === 'string' &&
-    typeof payload.refresh_token === 'string' &&
-    typeof payload.expires_in === 'number'
-  )
+  return typeof payload.expires_in === 'number'
 }
 
 function errorResponse(error: unknown): {
@@ -187,24 +181,24 @@ export function createHttpClient(options: HttpClientOptions): AxiosInstance {
     baseURL: options.baseURL,
     adapter: options.adapter,
     transformResponse: [transformResponse],
+    withCredentials: true,
   })
 
   async function refreshSession(): Promise<StoredSession> {
     const current = options.read()
-    if (!current?.refreshToken) {
+    if (!current) {
       throw new ApiClientError(unavailable)
     }
     const payload: unknown = await client.post(
       '/auth/refresh',
-      { refresh_token: current.refreshToken },
+      {},
       { headers: { 'Content-Type': 'application/json' } },
     )
     if (!isRefreshPayload(payload)) {
       throw new ApiClientError(unavailable)
     }
     return {
-      accessToken: payload.access_token,
-      refreshToken: payload.refresh_token,
+      marker: current.marker,
       expiresAt: options.now() + payload.expires_in * 1000,
       username: current.username,
     }
@@ -217,8 +211,7 @@ export function createHttpClient(options: HttpClientOptions): AxiosInstance {
       return (
         original !== null &&
         current !== null &&
-        current.accessToken === original.accessToken &&
-        current.refreshToken === original.refreshToken
+        current.marker === original.marker
       )
     }
     try {
@@ -250,11 +243,9 @@ export function createHttpClient(options: HttpClientOptions): AxiosInstance {
     ) {
       throw createError()
     }
-    const next = await coordinator.refresh()
+    await coordinator.refresh()
     retryConfig.__retried = true
-    if (next.accessToken) {
-      retryConfig.headers.set('Authorization', `Bearer ${next.accessToken}`)
-    }
+    retryConfig.headers.delete('Authorization')
     return client.request(retryConfig)
   }
 
@@ -264,16 +255,14 @@ export function createHttpClient(options: HttpClientOptions): AxiosInstance {
       return config
     }
 
-    let current = options.read()
+    const current = options.read()
     if (
       current &&
       shouldRefreshBeforeRequest(current.expiresAt, options.now())
     ) {
-      current = await coordinator.refresh()
+      await coordinator.refresh()
     }
-    if (current?.accessToken) {
-      config.headers.set('Authorization', `Bearer ${current.accessToken}`)
-    }
+    config.headers.delete('Authorization')
     return config
   })
 

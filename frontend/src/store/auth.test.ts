@@ -29,8 +29,7 @@ function storages() {
 }
 
 const saved: StoredSession = {
-  accessToken: 'a',
-  refreshToken: 'r',
+  marker: 'saved',
   expiresAt: 10,
   username: 'ada',
 }
@@ -45,11 +44,7 @@ function tokens(accessToken = 'access') {
 
 test('清除后不能恢复会话', () => {
   const box = storages()
-  writeSession(
-    true,
-    { accessToken: 'a', refreshToken: 'r', expiresAt: 10, username: 'ada' },
-    box,
-  )
+  writeSession(true, saved, box)
   clearSession(box)
   assert.equal(readSession(box), null)
 })
@@ -69,8 +64,8 @@ test('登录写入过期时间并读取当前用户', async () => {
       async get(url) {
         calls.push({ method: 'get', url })
         assert.equal(readSession(box)?.expiresAt, 31_000)
-        assert.equal(readSession(box)?.accessToken, 'access')
         assert.equal(readSession(box)?.username, null)
+        assert.equal(JSON.stringify(readSession(box)).includes('access'), false)
         return { username: 'ada' }
       },
     },
@@ -80,17 +75,21 @@ test('登录写入过期时间并读取当前用户', async () => {
     {
       method: 'post',
       url: '/auth/login',
-      body: { username: 'ada@example.com', password: 'secret' },
+      body: {
+        username: 'ada@example.com',
+        password: 'secret',
+        remember: true,
+      },
     },
     { method: 'get', url: '/users/me' },
   ])
   assert.equal(box.session.length, 0)
-  assert.deepEqual(store.getState().session, {
-    accessToken: 'access',
-    refreshToken: 'refresh',
-    expiresAt: 31_000,
-    username: 'ada',
-  })
+  assert.equal(store.getState().session?.expiresAt, 31_000)
+  assert.equal(store.getState().session?.username, 'ada')
+  assert.equal(
+    JSON.stringify(store.getState().session).includes('access'),
+    false,
+  )
   assert.deepEqual(readSession(box), store.getState().session)
 })
 
@@ -110,7 +109,8 @@ test('不记住我只写入 sessionStorage', async () => {
     },
   })
   assert.equal(box.local.length, 0)
-  assert.equal(readSession(box)?.accessToken, 'tab')
+  assert.equal(typeof readSession(box)?.marker, 'string')
+  assert.equal(JSON.stringify(readSession(box)).includes('tab'), false)
 })
 
 test('登录失败不保存会话', async () => {
@@ -150,12 +150,12 @@ test('资料失败且不是 401 时保留令牌并留空用户名', async () => 
       },
     },
   })
-  assert.deepEqual(store.getState().session, {
-    accessToken: 'access',
-    refreshToken: 'refresh',
-    expiresAt: 31_000,
-    username: null,
-  })
+  assert.equal(store.getState().session?.expiresAt, 31_000)
+  assert.equal(store.getState().session?.username, null)
+  assert.equal(
+    JSON.stringify(store.getState().session).includes('access'),
+    false,
+  )
   assert.deepEqual(readSession(box), store.getState().session)
 })
 
@@ -244,20 +244,20 @@ test('修改用户名写回记住我的会话', () => {
   store.getState().updateUsername('grace', { storages: box })
   assert.equal(store.getState().session?.username, 'grace')
   assert.equal(readSession(box)?.username, 'grace')
-  assert.equal(readSession(box)?.accessToken, saved.accessToken)
+  assert.equal(readSession(box)?.marker, saved.marker)
   assert.equal(box.local.length, 1)
   assert.equal(box.session.length, 0)
 })
 
 test('修改用户名沿用未记住我的会话存储', () => {
   const box = storages()
-  writeSession(false, { ...saved, accessToken: 'tab' }, box)
+  writeSession(false, { ...saved, marker: 'tab' }, box)
   const store = createAuthStore()
   store.getState().hydrate({ storages: box })
   store.getState().updateUsername('grace', { storages: box })
   assert.equal(store.getState().session?.username, 'grace')
   assert.equal(readSession(box)?.username, 'grace')
-  assert.equal(readSession(box)?.accessToken, 'tab')
+  assert.equal(readSession(box)?.marker, 'tab')
   assert.equal(box.local.length, 0)
   assert.equal(box.session.length, 1)
 })
@@ -336,15 +336,15 @@ test('从 localStorage 恢复后写入回调仍记住我', async () => {
   const placed = await captureRefreshWrite(store, box)
   assert.equal(placed.local, 1)
   assert.equal(placed.session, 0)
-  assert.equal(placed.during?.accessToken, 'next')
+  assert.equal(placed.during?.marker, 'next')
 })
 
 test('从 sessionStorage 恢复后写入回调不记住我', async () => {
   const box = storages()
-  writeSession(false, { ...saved, accessToken: 'tab' }, box)
+  writeSession(false, { ...saved, marker: 'tab' }, box)
   const store = createAuthStore()
   store.getState().hydrate({ storages: box })
-  assert.equal(store.getState().session?.accessToken, 'tab')
+  assert.equal(store.getState().session?.marker, 'tab')
   const placed = await captureRefreshWrite(store, box)
   assert.equal(placed.local, 0)
   assert.equal(placed.session, 1)
@@ -388,15 +388,14 @@ test('刷新写入沿用最近一次登录的记住我', async () => {
     throw new Error('缺少写入回调')
   }
   refreshWrite({
-    accessToken: 'refreshed',
-    refreshToken: 'r3',
+    marker: 'refreshed',
     expiresAt: 50,
     username: 'ada',
   })
   assert.equal(box.local.length, 1)
   assert.equal(box.session.length, 0)
-  assert.equal(readSession(box)?.accessToken, 'refreshed')
-  assert.equal(store.getState().session?.accessToken, 'refreshed')
+  assert.equal(readSession(box)?.marker, 'refreshed')
+  assert.equal(store.getState().session?.marker, 'refreshed')
 })
 
 async function captureRefreshWrite(
@@ -411,8 +410,7 @@ async function captureRefreshWrite(
     baseURL: 'http://api.test',
     createClient(options) {
       options.write({
-        accessToken: 'next',
-        refreshToken: 'r',
+        marker: 'next',
         expiresAt: 10,
         username: 'ada',
       })
@@ -473,10 +471,8 @@ for (const remember of [false, true]) {
                 data = await reply
               } else if (config.url === '/auth/logout') {
                 logoutCalls += 1
-                assert.equal(
-                  config.headers.get('Authorization'),
-                  'Bearer access',
-                )
+                assert.equal(config.headers.get('Authorization'), undefined)
+                assert.equal(config.withCredentials, true)
                 status = 204
               } else {
                 protectedCalls += 1

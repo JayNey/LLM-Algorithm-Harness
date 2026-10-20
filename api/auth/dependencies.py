@@ -5,6 +5,7 @@ from typing import Literal, cast
 from fastapi import Depends, Request
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 
+from api.auth.cookies import ACCESS_COOKIE
 from api.auth.service import AuthService, Principal, unauthorized
 from api.monitoring.config import MonitorSettings
 
@@ -22,9 +23,18 @@ def current_user(
     service: AuthService = Depends(auth_service),
     credential: HTTPAuthorizationCredentials | None = Depends(bearer),
 ) -> Principal:
-    if credential is None or credential.scheme.lower() != "bearer":
-        raise unauthorized()
-    principal = service.authenticate(credential.credentials)
+    header = request.headers.get("authorization")
+    token: str
+    if header is not None:
+        if credential is None or credential.scheme.lower() != "bearer":
+            raise unauthorized()
+        token = credential.credentials
+    else:
+        cookie = request.cookies.get(ACCESS_COOKIE)
+        if cookie is None:
+            raise unauthorized()
+        token = cookie
+    principal = service.authenticate(token)
     request.state.monitor_user_id = principal.user_id
     service.limit("protected:" + principal.user_id, service.settings.AUTH_PROTECTED_RATE_LIMIT)
     return principal

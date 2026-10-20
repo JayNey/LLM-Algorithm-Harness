@@ -150,7 +150,7 @@ def create_app(
     app.add_middleware(
         ErrorCORSMiddleware,
         allow_origins=settings.CORS_ORIGINS,
-        allow_credentials=False,
+        allow_credentials=True,
         allow_methods=["*"],
         allow_headers=["*"],
     )

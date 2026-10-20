@@ -1,8 +1,7 @@
 const storageKey = 'llm-harness-session'
 
 export interface StoredSession {
-  accessToken: string
-  refreshToken: string
+  marker: string
   expiresAt: number
   username: string | null
 }
@@ -19,14 +18,22 @@ function browserStorages(): SessionStorages {
 function parse(raw: string | null): StoredSession | null {
   if (!raw) return null
   try {
-    const value = JSON.parse(raw) as StoredSession
+    const value = JSON.parse(raw) as StoredSession & {
+      accessToken?: unknown
+      refreshToken?: unknown
+    }
     if (
-      !value.accessToken ||
-      !value.refreshToken ||
-      typeof value.expiresAt !== 'number'
+      !value.marker ||
+      typeof value.expiresAt !== 'number' ||
+      value.accessToken !== undefined ||
+      value.refreshToken !== undefined
     )
       return null
-    return value
+    return {
+      marker: value.marker,
+      expiresAt: value.expiresAt,
+      username: typeof value.username === 'string' ? value.username : null,
+    }
   } catch {
     return null
   }

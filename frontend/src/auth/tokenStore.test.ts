@@ -22,24 +22,41 @@ function memoryStorage(): Storage {
 }
 
 const session: StoredSession = {
-  accessToken: 'access',
-  refreshToken: 'refresh',
+  marker: 'marker',
   expiresAt: 1_700_000_000_000,
   username: null,
 }
 
-test('记住我只写入 localStorage', () => {
+test('记住我只写入 localStorage，且不保存令牌', () => {
   const storages = { local: memoryStorage(), session: memoryStorage() }
   writeSession(true, session, storages)
-  assert.equal(readSession(storages)?.accessToken, 'access')
+  assert.equal(readSession(storages)?.marker, 'marker')
   assert.equal(storages.session.length, 0)
+  assert.equal(
+    storages.local.getItem('llm-harness-session')?.includes('accessToken'),
+    false,
+  )
+})
+
+test('含令牌的旧会话不能恢复', () => {
+  const storages = { local: memoryStorage(), session: memoryStorage() }
+  storages.local.setItem(
+    'llm-harness-session',
+    JSON.stringify({
+      accessToken: 'access',
+      refreshToken: 'refresh',
+      expiresAt: 1,
+      username: null,
+    }),
+  )
+  assert.equal(readSession(storages), null)
 })
 
 test('不记住我只写入 sessionStorage，恢复时不读旧的 localStorage', () => {
   const storages = { local: memoryStorage(), session: memoryStorage() }
   writeSession(true, session, storages)
-  writeSession(false, { ...session, accessToken: 'tab' }, storages)
-  assert.equal(readSession(storages)?.accessToken, 'tab')
+  writeSession(false, { ...session, marker: 'tab' }, storages)
+  assert.equal(readSession(storages)?.marker, 'tab')
   assert.equal(storages.local.length, 0)
 })
 

@@ -50,7 +50,9 @@ def signup(client, name):
     owner = response.json()["data"]["id"]
     login = client.post("/api/v1/auth/login", json={"username": name, "password": PASSWORD})
     assert login.status_code == 200, login.text
-    return owner, {"Authorization": "Bearer " + login.json()["data"]["access_token"]}
+    token = login.json()["data"]["access_token"]
+    client.cookies.clear()
+    return owner, {"Authorization": "Bearer " + token}
 
 
 def create_queue_task(client, credentials, entity_id=None):
