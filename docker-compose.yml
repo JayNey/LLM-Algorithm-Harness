@@ -58,6 +58,8 @@ services:
       CELERY_RESULT_BACKEND: redis://redis:6379/0
       LOG_LEVEL: ${LOG_LEVEL:-INFO}
       LOG_FORMAT: ${LOG_FORMAT:-json}
+      # api 在 compose 网络内只被 nginx/本机访问，信任代理头以保留真实客户端 IP
+      FORWARDED_ALLOW_IPS: "*"
     ports:
       - "8000:8000"
     volumes:
@@ -89,10 +91,16 @@ services:
       - task_data:/app/data
       # 沙箱预检需要访问宿主 docker；仅在本机开发环境挂载
       - /var/run/docker.sock:/var/run/docker.sock
+    # 宿主 socket 属主为 root:docker(GID 随主机而异)；用 `stat -c %g /var/run/docker.sock` 查询后覆盖
+    group_add:
+      - "${DOCKER_GID:-999}"
     depends_on:
       postgres:
         condition: service_healthy
       redis:
+        condition: service_healthy
+      # api 健康即迁移完成（迁移在 lifespan 内执行），worker 再开始消费任务
+      api:
         condition: service_healthy
 
   beat:

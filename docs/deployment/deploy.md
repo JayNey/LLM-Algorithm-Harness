@@ -55,6 +55,8 @@ docker compose down -v               # 停止并清空数据卷
 前置条件：项目根目录有从 `.env.example` 复制的 `.env`，其中
 `SECRET_KEY`（≥32 字节）与 `ENCRYPTION_KEY`（Fernet）**必须已填写**——生产编排的
 `env_file` 是必选项，且 `DATABASE_PASSWORD` 未设置时 compose 会直接报错拒绝启动。
+若启用沙箱（worker 挂载宿主 docker.sock），还需设置 `DOCKER_GID` 为宿主 docker
+组的 GID（查询：`stat -c %g /var/run/docker.sock`），未设置同样拒绝启动。
 
 ```bash
 cp .env.example .env
@@ -67,8 +69,11 @@ docker compose -f docker-compose.prod.yml up -d
 ```
 
 生产栈拓扑：`nginx:80 → api:8000`（内部端口不对外），postgres/redis 仅内网，
-worker 挂载宿主 `/var/run/docker.sock` 执行沙箱（**确认安全边界后再启用**），
-全部服务 `restart: unless-stopped`，日志经 json-file 驱动轮转（10 MiB × 3）。
+worker 挂载宿主 `/var/run/docker.sock` 执行沙箱（**确认安全边界后再启用**，
+并设置 `DOCKER_GID`），全部服务 `restart: unless-stopped`，日志经 json-file
+驱动轮转（10 MiB × 3）。api 服务设置了 `FORWARDED_ALLOW_IPS`，uvicorn 信任
+nginx 传来的 `X-Forwarded-For`，应用层限流与审计按真实客户端 IP 计数；
+若自行改变拓扑（如再叠加一层代理），需同步调整该值。
 
 HTTPS：按 `deploy/nginx/nginx.conf` 末尾的注释模板签发 Let's Encrypt 证书、
 挂载 `deploy/nginx/certs/`、放开 443 端口并添加 80→443 跳转。
@@ -87,8 +92,11 @@ environment 出发，不修改应用代码。
 
 ## 4. 数据库迁移与回滚
 
-迁移由 Alembic 管理，**API 启动时自动执行**（`api/db/migrate.py` 的
-`run_migrations`），无需手动步骤；迁移版本在 `api/db/migrations/versions/`。
+迁移由 Alembic 管理，**API 启动时自动执行**（lifespan 内
+`EvaluationResultsService` 构造时调用 `api/db/migrate.py` 的 `run_migrations`），
+无需手动步骤；迁移版本在 `api/db/migrations/versions/`。编排层面，worker 依赖
+`api: service_healthy`——api 健康即迁移完成，因此 worker 不会在缺表窗口消费任务；
+若绕开编排手动部署，先启动 API 并确认 `GET /api/v1/health` 返回 200 后再扩 worker。
 
 手动操作（危险操作前先备份）：
 
@@ -99,7 +107,7 @@ from api.db.migrate import upgrade, downgrade, offline_upgrade_sql
 print(offline_upgrade_sql(business_database_url()))   # 预览将执行的 SQL（不连库）
 engine = make_engine(business_database_url())
 upgrade(engine)        # 升级到最新
-# downgrade(engine, 'a0001')   # 回滚到指定版本（会丢弃其后版本的 schema 变更）
+# downgrade(engine, '0001')   # 回滚到指定版本（会丢弃其后版本的 schema 变更）
 "
 ```
 

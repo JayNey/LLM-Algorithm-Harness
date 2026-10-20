@@ -53,6 +53,19 @@ class TestConfigureApiLogging:
         with pytest.raises(ValueError, match="Unsupported LOG_FORMAT"):
             configure_api_logging(enabled=True, fmt="yaml")
 
+    def test_invalid_level_raises(self, restore_logging):
+        with pytest.raises(ValueError, match="Unsupported LOG_LEVEL"):
+            configure_api_logging(enabled=True, level="verbose")
+
+    def test_create_app_wires_logging_assembly(self, restore_logging, monkeypatch):
+        """create_app 必须接线日志装配，删除接线时此用例失败。"""
+        import api.main as main_module
+
+        calls = []
+        monkeypatch.setattr(main_module, "configure_api_logging", lambda *a, **k: calls.append(1))
+        main_module.create_app()
+        assert calls, "create_app 未调用 configure_api_logging"
+
     def test_text_mode_uses_console_renderer(self, restore_logging):
         configure_api_logging(enabled=True, level="warning", fmt="text")
         root = logging.getLogger()

@@ -58,6 +58,8 @@ services:
       CELERY_RESULT_BACKEND: redis://redis:6379/0
       LOG_LEVEL: ${LOG_LEVEL:-INFO}
       LOG_FORMAT: json
+      # compose 内网中 api 仅被 nginx 访问；信任代理头，使应用层限流/审计看到真实客户端 IP
+      FORWARDED_ALLOW_IPS: "*"
     expose:
       - "8000"
     volumes:
@@ -89,10 +91,22 @@ services:
       - task_data:/app/data
       # 沙箱以宿主 docker 运行不受信代码；确认安全边界后再启用
       - /var/run/docker.sock:/var/run/docker.sock
+    # 宿主 socket 属主为 root:docker；GID 因主机而异，未设置则拒绝启动
+    group_add:
+      - "${DOCKER_GID:?DOCKER_GID must be set in .env to the host docker group id (stat -c %g /var/run/docker.sock)}"
+    healthcheck:
+      test: ["CMD-SHELL", "celery -A src.celery_app inspect ping -d worker@$$HOSTNAME --timeout=5"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 20s
     depends_on:
       postgres:
         condition: service_healthy
       redis:
+        condition: service_healthy
+      # api 健康即迁移完成（迁移在 api lifespan 内执行），避免消费到缺表的任务
+      api:
         condition: service_healthy
     logging: *default_logging
 
@@ -107,6 +121,12 @@ services:
       CELERY_BROKER_URL: redis://redis:6379/0
       CELERY_RESULT_BACKEND: redis://redis:6379/0
       LOG_FORMAT: json
+    healthcheck:
+      test: ["CMD-SHELL", "pgrep -f '[c]elery.*beat'"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
     depends_on:
       redis:
         condition: service_healthy
@@ -124,6 +144,12 @@ services:
       # - ./deploy/nginx/certs:/etc/nginx/certs:ro
     depends_on:
       - api
+    healthcheck:
+      test: ["CMD-SHELL", "pidof nginx"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 5s
     logging: *default_logging
 
 volumes:

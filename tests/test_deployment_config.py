@@ -99,6 +99,30 @@ class TestProdCompose:
     def test_env_file_required_for_secrets(self, prod_compose):
         assert prod_compose["services"]["api"]["env_file"] == [".env"]
 
+    def test_all_services_have_healthchecks(self, prod_compose, dockerfile_api):
+        for name, service in prod_compose["services"].items():
+            if name == "api":
+                # api 的健康检查由镜像内置 HEALTHCHECK 提供
+                assert "HEALTHCHECK" in dockerfile_api
+            else:
+                assert "healthcheck" in service, f"{name} 缺少健康检查"
+
+    def test_worker_socket_access_requires_docker_gid(self, prod_compose, dev_compose):
+        """非 root worker 访问宿主 socket 需要补 docker 组；生产未设置 GID 必须拒绝启动。"""
+        prod_gid = prod_compose["services"]["worker"]["group_add"][0]
+        assert "${DOCKER_GID:?" in prod_gid
+        assert "${DOCKER_GID" in dev_compose["services"]["worker"]["group_add"][0]
+
+    def test_api_trusts_proxy_headers(self, prod_compose, dev_compose):
+        """反代后应用层限流/审计需要 FORWARDED_ALLOW_IPS 保留真实客户端 IP。"""
+        assert prod_compose["services"]["api"]["environment"]["FORWARDED_ALLOW_IPS"] == "*"
+        assert dev_compose["services"]["api"]["environment"]["FORWARDED_ALLOW_IPS"] == "*"
+
+    def test_worker_starts_after_migrations(self, prod_compose):
+        """api 健康即迁移完成，worker 不得在缺表窗口消费任务。"""
+        depends_on = prod_compose["services"]["worker"]["depends_on"]
+        assert depends_on["api"]["condition"] == "service_healthy"
+
 
 class TestDockerfiles:
     def test_api_is_multistage(self, dockerfile_api):

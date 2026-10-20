@@ -14,6 +14,7 @@ from datetime import datetime, timezone
 from typing import Any
 
 _LOG_FORMATS = ("text", "json")
+_LOG_LEVELS = ("DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL")
 
 
 class JsonLineFormatter(logging.Formatter):
@@ -65,6 +66,8 @@ def configure_api_logging(
     from src.utils.logging import setup_logging
 
     resolved_level = (level or settings.LOG_LEVEL).upper()
+    if resolved_level not in _LOG_LEVELS:
+        raise ValueError(f"Unsupported LOG_LEVEL: {settings.LOG_LEVEL}")
     resolved_fmt = (fmt or settings.LOG_FORMAT).lower()
     if resolved_fmt not in _LOG_FORMATS:
         raise ValueError(f"Unsupported LOG_FORMAT: {settings.LOG_FORMAT}")

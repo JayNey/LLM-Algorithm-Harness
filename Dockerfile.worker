@@ -16,6 +16,11 @@ FROM python:3.11-slim AS runtime
 # 静态链接的 docker CLI（来自官方 docker:cli 镜像），不含 daemon
 COPY --from=docker:cli /usr/local/bin/docker /usr/local/bin/docker
 
+# procps 供 beat 容器的 pgrep 健康检查使用
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends procps \
+    && rm -rf /var/lib/apt/lists/*
+
 RUN groupadd --gid 1000 harness \
     && useradd --uid 1000 --gid harness --create-home --shell /usr/sbin/nologin harness
 

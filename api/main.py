@@ -195,4 +195,8 @@ app = create_app()
 if __name__ == "__main__":
     import uvicorn
 
+    # 注意：日志装配（configure_api_logging）假定 uvicorn CLI 启动顺序
+    # （先装 handler 再导入应用）。此直接运行路径下 uvicorn.run 会重新安装
+    # 自己的 handler，LOG_FORMAT=json 时 uvicorn 自身日志保持纯文本；
+    # 部署请使用 `python -m uvicorn api.main:app`（见 Dockerfile.api / run_api.sh）。
     uvicorn.run(app, host=settings.HOST, port=settings.PORT)
