@@ -1265,7 +1265,14 @@ ERROR_MESSAGES = {
     503: "Service is unavailable",
 }
 
-OVERVIEW = """LLM Algorithm Harness API，版本 0.1.0。
+API_CONTRACT_VERSION = "1.0.0"
+
+OVERVIEW = """LLM Algorithm Harness API，HTTP 契约版本 1.0.0（API v1）。
+
+**版本策略**：URL 主版本 `/api/v1`；不使用 Header 版本协商。
+兼容扩展沿用 v1；破坏性变更使用新的 URL 主版本，并提供迁移说明、并行支持与退役公告。
+契约版本使用 MAJOR.MINOR.PATCH；健康检查的 `version` 是独立的应用发布版本。
+完整策略与兼容性检查流程见仓库 `docs/api-versioning.md`。
 
 自动生成的 OpenAPI 位于 `/openapi.json`，Swagger UI 位于 `/docs`，ReDoc 位于 `/redoc`。
 每个操作均包含参数、请求/响应示例、认证、速率限制及 curl 命令。
@@ -1491,7 +1498,7 @@ def _document_operation(path: str, method: str, operation: dict[str, Any]) -> No
     if name == "health_check":
         errors = "错误：此存活检查不执行认证、参数校验或依赖探测；下方错误模型为全局协议参考。"
     operation["description"] = (
-        f"{purpose}\n\n{auth}\n\n{_rate_limit(name, path)}\n\n{errors}\n\n使用示例（先创建自己的资源，替换示例 ID、令牌和文件）：\n\n```bash\n{_curl(path, method, operation, name)}\n```"
+        f"API v1（URL 主版本 `/api/v1`）。{purpose}\n\n{auth}\n\n{_rate_limit(name, path)}\n\n{errors}\n\n使用示例（先创建自己的资源，替换示例 ID、令牌和文件）：\n\n```bash\n{_curl(path, method, operation, name)}\n```"
     )
     operation["x-codeSamples"] = [
         {"lang": "Shell", "label": "curl", "source": _curl(path, method, operation, name)}
@@ -1507,6 +1514,7 @@ def install_documentation(app: FastAPI) -> None:
         if app.openapi_schema is not None:
             return app.openapi_schema
         schema = generate()
+        schema["info"]["version"] = API_CONTRACT_VERSION
         _describe_fields(schema)
         for path, methods in schema["paths"].items():
             for method, operation in methods.items():
