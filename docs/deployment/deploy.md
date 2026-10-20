@@ -1,0 +1,141 @@
+# 部署指南（issue #159）
+
+本指南覆盖本地开发、Docker 部署（开发/生产）、环境变量、数据库迁移与故障排查。
+部署资产清单：`Dockerfile.api`、`Dockerfile.worker`、`docker-compose.yml`（开发）、
+`docker-compose.prod.yml`（生产）、`deploy/nginx/nginx.conf`、`.env.example`、
+`scripts/seed_data.py`。
+
+## 1. 本地开发（不用 Docker）
+
+```bash
+python3 -m venv .venv && source .venv/bin/activate
+pip install -r requirements.txt            # 运行时依赖
+pip install -r requirements-dev.txt        # 开发/测试工具（CI 用 `pip install -e ".[dev]"`）
+cp .env.example .env                       # 填写 SECRET_KEY / ENCRYPTION_KEY 后再启动
+
+python3 -m uvicorn api.main:app --reload   # API，默认 http://localhost:8000
+celery -A src.celery_app worker --loglevel=INFO   # 异步评估 worker（可选）
+celery -A src.celery_app beat --loglevel=INFO     # 定时任务（可选）
+```
+
+不配置 `DATABASE_URL` 时业务库回退到本地 SQLite（`data/business/business.sqlite3`）；
+Celery 相关功能需要 Redis（`docker compose up -d redis` 或本地 Redis）。
+
+### 依赖锁定（可复现部署）
+
+仓库清单只含下限约束。需要精确锁定时用 pip-tools 在目标环境生成锁文件：
+
+```bash
+pip install pip-tools
+pip-compile requirements.txt      --output-file requirements.lock
+pip-compile requirements-dev.txt  --output-file requirements-dev.lock
+pip install -r requirements.lock
+```
+
+锁文件由各部署方自行保管，仓库不提交解析结果。`requirements.txt` /
+`requirements-dev.txt` 与 `pyproject.toml` 的依赖保持同步，改动任一处须同步其余。
+
+## 2. Docker 开发栈
+
+```bash
+docker compose up -d                 # postgres + redis + api + worker + beat
+docker compose logs -f api           # 跟踪 API 日志
+docker compose down                  # 停止（卷保留）
+docker compose down -v               # 停止并清空数据卷
+```
+
+- API 地址 `http://localhost:8000`，健康检查 `GET /api/v1/health`。
+- 只想跑集成测试时用法不变：`docker compose up -d redis` +
+  `bash scripts/run_integration_tests.sh`（redis 服务定义未改动）。
+- 镜像内以非 root 用户 `harness` 运行；数据落在命名卷
+  （`postgres_data` / `uploads_data` / `task_data`）。
+
+## 3. 生产部署
+
+前置条件：项目根目录有从 `.env.example` 复制的 `.env`，其中
+`SECRET_KEY`（≥32 字节）与 `ENCRYPTION_KEY`（Fernet）**必须已填写**——生产编排的
+`env_file` 是必选项，且 `DATABASE_PASSWORD` 未设置时 compose 会直接报错拒绝启动。
+
+```bash
+cp .env.example .env
+# 生成密钥：
+python3 -c "import secrets; print(secrets.token_urlsafe(48))"                              # SECRET_KEY
+python3 -c "from cryptography.fernet import Fernet; print(Fernet.generate_key().decode())" # ENCRYPTION_KEY
+
+docker compose -f docker-compose.prod.yml build
+docker compose -f docker-compose.prod.yml up -d
+```
+
+生产栈拓扑：`nginx:80 → api:8000`（内部端口不对外），postgres/redis 仅内网，
+worker 挂载宿主 `/var/run/docker.sock` 执行沙箱（**确认安全边界后再启用**），
+全部服务 `restart: unless-stopped`，日志经 json-file 驱动轮转（10 MiB × 3）。
+
+HTTPS：按 `deploy/nginx/nginx.conf` 末尾的注释模板签发 Let's Encrypt 证书、
+挂载 `deploy/nginx/certs/`、放开 443 端口并添加 80→443 跳转。
+
+限流对齐关系（nginx 与应用双层）：`/api/v1/auth/*` 10 req/min（`AUTH_RATE_LIMIT`），
+其余 API 120 req/min（`AUTH_PROTECTED_RATE_LIMIT`）；请求体上限 100 MiB
+（`FILE_UPLOAD_MAX_BYTES`）。调整任一侧时同步另一侧。
+
+### 日志
+
+`LOG_FORMAT=json`（生产默认）时应用与 uvicorn 日志均为 JSON 行；`LOG_LEVEL`
+控制级别。轮转由 compose 的 logging 驱动负责（见 prod 编排），
+集中采集接 docker logging driver 或 stdout 收集器。Sentry / Prometheus 为
+issue 标注的可选项，当前未接线，接入时从 `docker-compose.prod.yml` 的
+environment 出发，不修改应用代码。
+
+## 4. 数据库迁移与回滚
+
+迁移由 Alembic 管理，**API 启动时自动执行**（`api/db/migrate.py` 的
+`run_migrations`），无需手动步骤；迁移版本在 `api/db/migrations/versions/`。
+
+手动操作（危险操作前先备份）：
+
+```bash
+python3 -c "
+from api.db.engine import business_database_url, make_engine
+from api.db.migrate import upgrade, downgrade, offline_upgrade_sql
+print(offline_upgrade_sql(business_database_url()))   # 预览将执行的 SQL（不连库）
+engine = make_engine(business_database_url())
+upgrade(engine)        # 升级到最新
+# downgrade(engine, 'a0001')   # 回滚到指定版本（会丢弃其后版本的 schema 变更）
+"
+```
+
+- 回滚策略：优先用数据库快照/卷备份恢复（`docker volume` 备份 postgres_data），
+  Alembic downgrade 仅用于开发环境。
+- 种子数据（幂等，可重复执行）：
+
+```bash
+python3 scripts/seed_data.py                                # 使用 .env 的 DATABASE_URL
+python3 scripts/seed_data.py --database-url sqlite:///./data/business/seed-demo.sqlite3
+```
+
+## 5. 环境变量速查
+
+完整样例见 `.env.example`（与 Settings 字段一致性有测试保证）。关键项：
+
+| 变量 | 默认 | 说明 |
+| --- | --- | --- |
+| `HOST` / `PORT` | `localhost` / `8000` | API 监听地址（.env 按字段名匹配，compose 里可写 `API_HOST`） |
+| `DATABASE_URL` | 空 → SQLite | 业务库；生产用 `postgresql+psycopg://...` |
+| `SECRET_KEY` | 必填 | JWT 签名密钥，≥32 字节，缺失时启动失败 |
+| `ENCRYPTION_KEY` | 必填 | Fernet 密钥，用于 API Key 加密存储 |
+| `CELERY_BROKER_URL` / `CELERY_RESULT_BACKEND` | `redis://localhost:6379/0` | 队列与结果后端 |
+| `UPLOAD_DIR` / `FILE_UPLOAD_MAX_BYTES` | `uploads` / 100 MiB | 上传目录与上限（nginx `client_max_body_size` 需对齐） |
+| `DATA_ROOT` / `TASK_SERVICE_ROOT` | `data` / `./data/tasks` | 数据集与任务存储 |
+| `LOG_LEVEL` / `LOG_FORMAT` | `INFO` / `text` | 日志级别与格式（`json` 为生产推荐） |
+
+## 6. 故障排查
+
+| 现象 | 排查 |
+| --- | --- |
+| 启动报 `SECRET_KEY ... at least 32 bytes` / `ENCRYPTION_KEY must be a Fernet key` | `.env` 未填或格式错误的密钥；用第 3 节命令重新生成 |
+| 生产 `compose up` 报 `DATABASE_PASSWORD must be set` | `.env` 缺 `DATABASE_PASSWORD`（生产编排强制要求） |
+| API 容器反复重启 | `docker compose -f docker-compose.prod.yml logs api`；常见为 postgres 未就绪或迁移失败 |
+| worker 不消费任务 | 确认 `CELERY_BROKER_URL` 与 api 一致；`docker compose logs worker` 看队列名（`evaluations`、`default`） |
+| WebSocket 连不上 | 确认经 nginx 访问（`/api/v1/ws` 前缀带升级头）；直连时检查代理是否剥离 `Upgrade` 头 |
+| 上传 413 | nginx `client_max_body_size` 小于 `FILE_UPLOAD_MAX_BYTES`；两侧对齐 |
+| 集成测试全部 skip | redis 未启动：`docker compose up -d redis` |
+| 迁移失败 | 先 `offline_upgrade_sql` 预览 SQL；检查 `DATABASE_URL` 指向的库版本与迁移链 |
