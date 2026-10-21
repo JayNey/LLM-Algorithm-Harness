@@ -54,25 +54,39 @@ function SessionScope({
   useCommittedEffect(() => {
     navigation.update(location.pathname, navigate)
   }, [location.pathname, navigate, navigation])
-  const [session] = useState(() => {
+  const [scope] = useState(() => {
+    let active = true
     // Auth exposes a narrow interface; the runtime object is the same unwrapped Axios instance.
     const http = useAuthStore.getState().httpClient() as AxiosInstance
     const client = createEvaluationClient(http)
     const creationStore = createCreationStore({
       client,
-      readOwner: () => useAuthStore.getState().session?.marker ?? null,
+      readOwner: () =>
+        active ? (useAuthStore.getState().session?.marker ?? null) : null,
       onCreated: navigation.onCreated,
     })
-    return { owner, client, creationStore }
+    return {
+      session: { owner, client, creationStore },
+      activate() {
+        active = true
+      },
+      deactivate() {
+        // Revoke old actions immediately, including before the deferred reset runs.
+        active = false
+        queueMicrotask(() => {
+          // StrictMode reconnects this instance in the same commit. Do not erase
+          // its child effects' draft writes or publish a temporary null owner.
+          if (!active) creationStore.getState().reset(null)
+        })
+      },
+    }
   })
-  useEffect(() => {
-    // React StrictMode replays effect setup/cleanup. Restore the same owner on setup.
-    if (session.creationStore.getState().owner !== owner)
-      session.creationStore.getState().reset(owner)
-    return () => session.creationStore.getState().reset(null)
-  }, [owner, session])
+  useCommittedEffect(() => {
+    scope.activate()
+    return scope.deactivate
+  }, [scope])
   return (
-    <SessionContext.Provider value={session}>
+    <SessionContext.Provider value={scope.session}>
       {children}
     </SessionContext.Provider>
   )
