@@ -6,7 +6,12 @@ from fastapi import APIRouter, Depends, Query, Request, Response
 
 from api.auth.dependencies import current_user
 from api.auth.service import Principal
-from api.evaluation_options import EvaluationOptions, ProblemOption, ProblemSourceFilter
+from api.evaluation_options import (
+    EvaluationOptions,
+    ModelOptions,
+    ProblemOption,
+    ProblemSourceFilter,
+)
 from api.schemas import ApiResponse, PaginatedData
 from api.services.evaluation_options_service import EvaluationOptionsService
 
@@ -43,4 +48,19 @@ def problems(
         success=True,
         data=service.problems(principal.user_id, source, limit, offset),
         message="Evaluation problems",
+    )
+
+
+@router.get("/models")
+def models(
+    response: Response,
+    api_key_id: str = Query(..., min_length=1),
+    principal: Principal = Depends(current_user),
+    service: EvaluationOptionsService = Depends(evaluation_options_service),
+) -> ApiResponse[ModelOptions]:
+    response.headers["Cache-Control"] = "no-store"
+    return ApiResponse(
+        success=True,
+        data=service.models(principal.user_id, api_key_id),
+        message="Provider models",
     )

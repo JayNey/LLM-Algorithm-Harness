@@ -185,3 +185,241 @@ def test_invalid_pagination_and_source_are_rejected(api, query):
     _, client, users = api
     response = client.get(BASE + "/problems?" + query, headers=users["alice"][0])
     assert response.status_code == 400, response.text
+
+
+MODEL_SECRET = "sk-private-model-credential"
+
+
+def model_key(app, users, provider="openai"):
+    from api.auth.models import KeyCreate
+
+    return app.state.auth.add_key(
+        users["alice"][1],
+        KeyCreate(provider=provider, key_name="Models", api_key=MODEL_SECRET),
+    )["id"]
+
+
+class ModelPage:
+    def __init__(self, ids, following=None, error=None, elapsed=None):
+        from types import SimpleNamespace
+
+        self.data = [SimpleNamespace(id=value) for value in ids]
+        self.following = following
+        self.error = error
+        self.elapsed = elapsed
+        self._options = SimpleNamespace(timeout=5.0)
+        self.read_timeouts = []
+
+    def has_next_page(self):
+        return self.following is not None or self.error is not None
+
+    def get_next_page(self):
+        self.read_timeouts.append(self._options.timeout)
+        if self.error:
+            raise self.error
+        if self.elapsed:
+            self.elapsed()
+        return self.following
+
+
+def fake_models(monkeypatch, page, on_list=None):
+    from types import SimpleNamespace
+
+    class SDK:
+        closed = False
+
+        def __init__(self):
+            self.options = []
+            self.timeouts = []
+            self.models = SimpleNamespace(list=self.list)
+
+        def with_options(self, **kwargs):
+            self.options.append(kwargs)
+            return self
+
+        def list(self, *, timeout):
+            self.timeouts.append(timeout)
+            if on_list:
+                on_list()
+            if isinstance(page, Exception):
+                raise page
+            return page
+
+        def close(self):
+            self.closed = True
+
+    sdk = SDK()
+    configs = []
+
+    def construct(config):
+        configs.append(config)
+        return SimpleNamespace(client=sdk)
+
+    # Patch only the external client boundary; auth, storage and route stay real.
+    monkeypatch.setattr(
+        "api.services.evaluation_options_service.LLMClient", construct, raising=False
+    )
+    return sdk, configs
+
+
+@pytest.mark.parametrize("provider", ["openai", "anthropic", "siliconflow"])
+def test_models_reads_owned_provider_pages_safely(api, monkeypatch, provider):
+    from api.auth.service import PROVIDER_URLS
+
+    app, client, users = api
+    key_id = model_key(app, users, provider)
+    page = ModelPage(["model-a"], ModelPage(["model-b"]))
+    sdk, configs = fake_models(monkeypatch, page)
+    response = client.get(
+        BASE + "/models", params={"api_key_id": key_id}, headers=users["alice"][0]
+    )
+    assert response.status_code == 200, response.text
+    assert response.json()["data"] == {
+        "provider": provider,
+        "models": ["model-a", "model-b"],
+        "complete": True,
+    }
+    assert response.headers["cache-control"] == "no-store"
+    assert sdk.options == [{"timeout": 5.0, "max_retries": 0, "base_url": PROVIDER_URLS[provider]}]
+    assert 0 < sdk.timeouts[0] <= 5
+    assert sdk.closed is True
+    assert configs[0].api_key.get_secret_value() == MODEL_SECRET
+    assert configs[0].cache.enabled is False
+    key = app.state.auth.owned_key(key_id, users["alice"][1])
+    assert key["verified"] == key["verification_count"] == key["usage_count"] == 0
+
+
+@pytest.mark.parametrize("state", ["other", "deleted", "missing"])
+def test_models_rejects_unowned_or_missing_credentials_before_sdk(api, monkeypatch, state):
+    app, client, users = api
+    key_id = model_key(app, users)
+    sdk, configs = fake_models(monkeypatch, ModelPage(["private"]))
+    if state == "deleted":
+        app.state.auth.delete_key(key_id, users["alice"][1])
+    if state == "missing":
+        key_id = "missing"
+    who = "bob" if state == "other" else "alice"
+    response = client.get(BASE + "/models", params={"api_key_id": key_id}, headers=users[who][0])
+    assert response.status_code == 404
+    assert configs == []
+
+
+@pytest.mark.parametrize("state", ["replaced", "deleted"])
+def test_models_rechecks_credential_after_enumeration(api, monkeypatch, state):
+    from api.auth.models import KeyUpdate
+
+    app, client, users = api
+    key_id = model_key(app, users)
+
+    def change():
+        if state == "deleted":
+            app.state.auth.delete_key(key_id, users["alice"][1])
+        else:
+            app.state.auth.update_key(
+                key_id, users["alice"][1], KeyUpdate(api_key="replacement-secret")
+            )
+
+    sdk, _ = fake_models(monkeypatch, ModelPage(["private"]), change)
+    response = client.get(
+        BASE + "/models", params={"api_key_id": key_id}, headers=users["alice"][0]
+    )
+    assert response.status_code == 409, response.text
+    assert "private" not in response.text
+    assert sdk.closed is True
+
+
+@pytest.mark.parametrize("later", [False, True])
+def test_models_provider_failure_is_sanitized_and_closed(api, monkeypatch, caplog, later):
+    app, client, users = api
+    key_id = model_key(app, users)
+    failure = RuntimeError(MODEL_SECRET)
+    sdk, _ = fake_models(monkeypatch, ModelPage(["a"], error=failure) if later else failure)
+    response = client.get(
+        BASE + "/models", params={"api_key_id": key_id}, headers=users["alice"][0]
+    )
+    assert response.status_code == 503, response.text
+    assert MODEL_SECRET not in response.text + caplog.text
+    assert sdk.closed is True
+
+
+@pytest.mark.parametrize(
+    "count,more,complete",
+    [(499, False, True), (500, False, False), (500, True, False), (501, False, False)],
+)
+def test_models_caps_actual_ids_without_reading_extra_page(api, monkeypatch, count, more, complete):
+    app, client, users = api
+    key_id = model_key(app, users)
+    page = ModelPage([f"m{i}" for i in range(count)], ModelPage(["extra"]) if more else None)
+    sdk, _ = fake_models(monkeypatch, page)
+    response = client.get(
+        BASE + "/models", params={"api_key_id": key_id}, headers=users["alice"][0]
+    )
+    assert response.status_code == 200, response.text
+    data = response.json()["data"]
+    assert len(data["models"]) == min(count, 500)
+    assert data["models"][0] == "m0"
+    assert data["complete"] is complete
+    assert page.read_timeouts == []
+    assert sdk.closed is True
+
+
+def test_models_unknown_pagination_is_incomplete(api, monkeypatch):
+    from types import SimpleNamespace
+
+    app, client, users = api
+    key_id = model_key(app, users)
+    fake_models(monkeypatch, SimpleNamespace(data=[SimpleNamespace(id="actual-model")]))
+    response = client.get(
+        BASE + "/models", params={"api_key_id": key_id}, headers=users["alice"][0]
+    )
+    assert response.status_code == 200, response.text
+    assert response.json()["data"] == {
+        "provider": "openai",
+        "models": ["actual-model"],
+        "complete": False,
+    }
+
+
+@pytest.mark.parametrize(
+    "elapsed,expected,complete", [(8.0, ["a", "b"], True), (10.0, ["a"], False)]
+)
+def test_models_budget_stops_dispatch_and_tightens_next_timeout(
+    api, monkeypatch, elapsed, expected, complete
+):
+    from types import SimpleNamespace
+
+    app, client, users = api
+    key_id = model_key(app, users)
+    now = [0.0]
+    monkeypatch.setattr(
+        "api.services.evaluation_options_service.time",
+        SimpleNamespace(monotonic=lambda: now[0]),
+        raising=False,
+    )
+    page = ModelPage(["a"], ModelPage(["b"]))
+    sdk, _ = fake_models(monkeypatch, page, lambda: now.__setitem__(0, elapsed))
+    response = client.get(
+        BASE + "/models", params={"api_key_id": key_id}, headers=users["alice"][0]
+    )
+    assert response.status_code == 200, response.text
+    assert response.json()["data"]["models"] == expected
+    assert response.json()["data"]["complete"] is complete
+    assert page.read_timeouts == ([2.0] if elapsed == 8 else [])
+    assert sdk.closed is True
+
+
+def test_models_uses_separate_user_rate_bucket(api, monkeypatch):
+    app, client, users = api
+    key_id = model_key(app, users)
+    fake_models(monkeypatch, ModelPage(["a"]))
+    app.state.auth.settings.AUTH_RATE_LIMIT = 1
+    app.state.auth.limit("verify:" + users["alice"][1])
+    first = client.get(BASE + "/models", params={"api_key_id": key_id}, headers=users["alice"][0])
+    second = client.get(BASE + "/models", params={"api_key_id": key_id}, headers=users["alice"][0])
+    assert first.status_code == 200, first.text
+    assert second.status_code == 429, second.text
+
+
+def test_models_requires_identity(api):
+    _, client, _ = api
+    assert client.get(BASE + "/models?api_key_id=missing").status_code == 401

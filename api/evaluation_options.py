@@ -28,3 +28,9 @@ class ProblemOption(BaseModel):
 class EvaluationOptions(BaseModel):
     strategies: list[StrategyOption]
     sources: list[SourceOption]
+
+
+class ModelOptions(BaseModel):
+    provider: str
+    models: list[str]
+    complete: bool
