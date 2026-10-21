@@ -21,7 +21,7 @@ from api.db import Evaluation, make_engine, make_session_factory, run_migrations
 from api.db.engine import business_database_url
 from api.db.models import AsyncTask, utcnow
 from api.models import EvaluationCreateRequest, EvaluationUpdateRequest
-from api.schemas import EvaluationResponse, ProgressInfo
+from api.schemas import EvaluationResponse, ExecutionProgress, ProgressInfo
 from src.task_manager import TaskManager
 
 INTERRUPTED_BY_RESTART = "interrupted by service restart"
@@ -45,6 +45,17 @@ def _compute_percentage(completed_count: int, problem_count: int, num_strategies
         return 0
     percentage = completed_count / total_units * 100
     return min(100.0, max(0.0, percentage))
+
+
+def _execution_progress(evaluation: Evaluation) -> ExecutionProgress:
+    """成功和失败均计为完成单元，终态保留实际进度。"""
+    total_units = evaluation.problem_count * len(evaluation.strategy_names)
+    completed_units = min(total_units, max(0, evaluation.completed_count + evaluation.failed_count))
+    return ExecutionProgress(
+        completed_units=completed_units,
+        total_units=total_units,
+        percentage=completed_units / total_units * 100 if total_units else 0.0,
+    )
 
 
 def _operation_capabilities(
@@ -73,6 +84,7 @@ def _to_response(task: Evaluation, async_task: AsyncTask | None = None) -> Evalu
         updated_at=_iso(task.updated_at),
         status=task.status,
         **_operation_capabilities(task, async_task),
+        execution_progress=_execution_progress(task),
         strategy_names=list(task.strategy_names),
         model=task.model,
         problem_count=task.problem_count,
@@ -130,6 +142,7 @@ def _to_response_async(evaluation: Evaluation, async_task: AsyncTask | None) -> 
         updated_at=_iso(evaluation.updated_at),
         status=status,
         **_operation_capabilities(evaluation, async_task),
+        execution_progress=_execution_progress(evaluation),
         strategy_names=list(evaluation.strategy_names),
         model=evaluation.model,
         problem_count=evaluation.problem_count,

@@ -13,7 +13,7 @@ from sqlalchemy.orm import sessionmaker
 
 from api.db.models import AsyncTask, Base, Evaluation
 from api.models import EvaluationCreateRequest
-from api.schemas import EvaluationResponse, ProgressInfo
+from api.schemas import EvaluationResponse, ExecutionProgress, ProgressInfo
 
 
 @pytest.fixture
@@ -128,6 +128,9 @@ class TestEvaluationResponseSchema:
             status="running",
             can_start=False,
             can_cancel=True,
+            execution_progress=ExecutionProgress(
+                completed_units=5, total_units=10, percentage=50.0
+            ),
             strategy_names=["strategy_a"],
             problem_count=10,
             spent_usd=0.0,
@@ -147,6 +150,7 @@ class TestEvaluationResponseSchema:
             status="pending",
             can_start=True,
             can_cancel=False,
+            execution_progress=ExecutionProgress(completed_units=0, total_units=10, percentage=0.0),
             strategy_names=["strategy_a"],
             problem_count=10,
             spent_usd=0.0,

@@ -66,6 +66,11 @@ def set_state(service, evaluation_id, status, linked_status):
 
 def capabilities(response):
     data = response.model_dump()
+    assert data.get("execution_progress") == {
+        "completed_units": 0,
+        "total_units": 1,
+        "percentage": 0.0,
+    }
     return data.get("can_start"), data.get("can_cancel")
 
 
@@ -261,3 +266,76 @@ def test_start_preserves_initial_owner_and_status_errors(service, publisher):
         call(lambda: service.start_evaluation(evaluation_id, OWNER))
     assert error.value.status_code == 400
     assert publisher.call_count == 0
+
+
+# 遗漏失败单元、未钳制计数或根据终态强填 100% 都会破坏此公开响应契约。
+@pytest.mark.parametrize(
+    "status", ["pending", "running", "paused", "completed", "failed", "cancelled"]
+)
+@pytest.mark.parametrize(
+    "problem_count,strategies,completed,failed,want",
+    [
+        (2, ["vanilla", "cot"], 1, 1, {"completed_units": 2, "total_units": 4, "percentage": 50.0}),
+        (0, ["vanilla"], 0, 1, {"completed_units": 0, "total_units": 0, "percentage": 0.0}),
+        (2, [], 1, 1, {"completed_units": 0, "total_units": 0, "percentage": 0.0}),
+        (
+            2,
+            ["vanilla", "cot"],
+            1,
+            9,
+            {"completed_units": 4, "total_units": 4, "percentage": 100.0},
+        ),
+        (2, ["vanilla", "cot"], 1, -5, {"completed_units": 0, "total_units": 4, "percentage": 0.0}),
+    ],
+)
+def test_execution_progress_counts_finished_units_in_every_status(
+    service, status, problem_count, strategies, completed, failed, want
+):
+    evaluation_id = create(service).evaluation_id
+    with service._session() as session, session.begin():
+        row = session.get(Evaluation, evaluation_id)
+        row.status = status
+        row.problem_count = problem_count
+        row.strategy_names = strategies
+        row.completed_count = completed
+        row.failed_count = failed
+    detail = service.get_evaluation(evaluation_id, OWNER).model_dump()
+    assert detail.get("execution_progress") == want
+    assert (
+        service.get_evaluation_async(evaluation_id, OWNER).model_dump()["execution_progress"]
+        == want
+    )
+    items, _ = service.list_evaluations(OWNER)
+    assert items[0].model_dump()["execution_progress"] == want
+    if problem_count == 2 and strategies and failed == 1:
+        assert detail["progress"]["percentage"] == 25.0
+
+
+def test_execution_progress_preserves_async_task_progress(service):
+    evaluation_id = create(service).evaluation_id
+    set_state(service, evaluation_id, "running", "running")
+    with service._session() as session, session.begin():
+        row = session.get(Evaluation, evaluation_id)
+        row.problem_count = 2
+        row.strategy_names = ["vanilla", "cot"]
+        row.completed_count = 1
+        row.failed_count = 1
+        session.get(AsyncTask, row.async_task_id).progress = {
+            "current": 7,
+            "total": 10,
+            "percentage": 70.0,
+            "message": "worker 原值",
+        }
+    body = service.get_evaluation_async(evaluation_id, OWNER).model_dump()
+    assert body.get("execution_progress") == {
+        "completed_units": 2,
+        "total_units": 4,
+        "percentage": 50.0,
+    }
+    assert body["progress"] == {
+        "current": 7,
+        "total": 10,
+        "percentage": 70.0,
+        "message": "worker 原值",
+        "completed": None,
+    }

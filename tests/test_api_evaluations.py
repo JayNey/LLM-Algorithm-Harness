@@ -165,3 +165,55 @@ class TestDuplicateInputRejected:
             headers, key_id = _bootstrap_user(client)
             resp = self._post(client, headers, key_id, ["vanilla", "cot"], ["p1", "p2"])
             assert resp.status_code == 201, resp.text
+
+
+def test_execution_progress_http_create_update_list_and_detail(tmp_path):
+    app = create_app(
+        auth_config(tmp_path),
+        FileSettings(_env_file=None, UPLOAD_DIR=tmp_path / "uploads"),
+        database_url=f"sqlite:///{tmp_path / 'execution.sqlite3'}",
+    )
+    with TestClient(app) as client:
+        headers, key_id = _bootstrap_user(client)
+        created = client.post(
+            "/api/v1/evaluations",
+            headers=headers,
+            json={
+                "api_key_id": key_id,
+                "model": "test-model",
+                "problem_ids": ["p1", "p2"],
+                "strategy_names": ["vanilla", "cot"],
+            },
+        )
+        assert created.status_code == 201
+        body = created.json()["data"]
+        assert body.get("execution_progress") == {
+            "completed_units": 0,
+            "total_units": 4,
+            "percentage": 0.0,
+        }
+        evaluation_id = body["evaluation_id"]
+        with Session(app.state.evaluations.engine) as session, session.begin():
+            row = session.get(Evaluation, evaluation_id)
+            row.completed_count = 1
+            row.failed_count = 1
+        responses = [
+            client.patch(
+                f"/api/v1/evaluations/{evaluation_id}", headers=headers, json={"budget_cap_usd": 2}
+            ),
+            client.get(f"/api/v1/evaluations/{evaluation_id}", headers=headers),
+        ]
+        bodies = []
+        for response in responses:
+            assert response.status_code == 200, response.text
+            bodies.append(response.json()["data"])
+        listing = client.get("/api/v1/evaluations", headers=headers)
+        assert listing.status_code == 200
+        bodies.append(listing.json()["data"]["items"][0])
+        for body in bodies:
+            assert body["execution_progress"] == {
+                "completed_units": 2,
+                "total_units": 4,
+                "percentage": 50.0,
+            }
+            assert body["progress"]["percentage"] == 25.0

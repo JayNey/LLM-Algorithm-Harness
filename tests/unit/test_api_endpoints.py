@@ -27,7 +27,7 @@ from api.main import create_app
 from api.monitoring.service import MonitorService
 from api.progress import Subscription
 from api.routes.tasks import task_manager
-from api.schemas import EvaluationResponse, ProgressInfo
+from api.schemas import EvaluationResponse, ExecutionProgress, ProgressInfo
 from api.services import (
     ABTestService,
     BenchmarkService,
@@ -51,6 +51,7 @@ EVALUATION = EvaluationResponse(
     status="pending",
     can_start=True,
     can_cancel=False,
+    execution_progress=ExecutionProgress(completed_units=0, total_units=1, percentage=0.0),
     strategy_names=["vanilla"],
     problem_count=1,
     spent_usd=0,
