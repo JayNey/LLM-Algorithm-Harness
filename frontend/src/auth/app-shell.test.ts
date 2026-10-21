@@ -9,12 +9,32 @@ const server = await createServer({
   optimizeDeps: { noDiscovery: true, include: [] },
   appType: 'custom',
 })
-after(() => server.close())
+after(() => {
+  useAuthStore.setState({ httpClient: originalHttpClient })
+  return server.close()
+})
 const { AppLayout } = await server.ssrLoadModule('/src/layouts/AppLayout.tsx')
 const { RoleContext } = await server.ssrLoadModule('/src/auth/roleContext.ts')
 const { useUiStore } = await server.ssrLoadModule('/src/store/ui.ts')
+// Resolve through the same SSR graph as AppLayout's evaluation provider.
+// Server rendering must not depend on browser storage or perform HTTP I/O.
+const { useAuthStore } = await server.ssrLoadModule('/src/store/auth.ts')
+const originalHttpClient = useAuthStore.getState().httpClient
+const requests: string[] = []
+async function unexpectedRequest(url: string) {
+  requests.push(url)
+  throw new Error(`SSR unexpectedly requested ${url}`)
+}
+useAuthStore.setState({
+  httpClient: () => ({
+    get: unexpectedRequest,
+    post: unexpectedRequest,
+    patch: unexpectedRequest,
+    delete: unexpectedRequest,
+  }),
+})
 function render(role: string | null) {
-  return renderToStaticMarkup(
+  const html = renderToStaticMarkup(
     createElement(
       StaticRouter,
       { location: '/settings/profile' },
@@ -30,6 +50,8 @@ function render(role: string | null) {
       ),
     ),
   )
+  assert.deepEqual(requests, [], 'SSR 不得发出 HTTP 请求')
+  return html
 }
 test('真实外壳提供Frontier、共享分组导航、面包屑和风格控制', () => {
   const html = render('user')
