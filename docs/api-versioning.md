@@ -30,4 +30,6 @@ python3 -m pytest tests/test_api_versioning.py tests/test_api_documentation.py -
 
 失败时先检查 pytest 指出的操作或组件，再确认变更是误改、兼容扩展还是破坏性变更。误改应修复；兼容扩展需在 PR 中解释对现有客户端的影响，审查后才可更新基线；破坏性变更应保留 v1 并另建主版本，不能重录基线来放行。基线不得在测试或 CI 中自动更新；确需更新时，从审查过的 OpenAPI 生成同样去除文档注释的 JSON，并提交可读差异。新增操作允许通过门禁，但发布时应将它们加入基线，作为后续版本的保护对象。
 
+评估创建流程在 `EvaluationResponse` 中新增只读响应字段 `can_start`、`can_cancel` 和 `execution_progress`（含 `completed_units`、`total_units`、`percentage`）。本次基线仅同步这些新增字段及 `ExecutionProgress` 组件；原有字段、必填项和请求契约保持不变。现有客户端需忽略未知响应字段，新评估客户端已读取并校验这三个字段。新建评估可以启动、尚不可取消；入队后可能仍为 `pending`，应以操作能力字段判断是否可启动或取消。兼容性门禁继续严格比较既有结构，不自动重录基线。
+
 OpenAPI 门禁覆盖结构契约，不能验证业务语义、动态字典中的未声明字段、WebSocket 帧或外部依赖行为，需与已有 API 单元测试和集成测试一起运行。

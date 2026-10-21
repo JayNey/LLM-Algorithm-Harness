@@ -399,6 +399,7 @@ def test_models_anthropic_sdk_requires_explicit_end_metadata(api, monkeypatch, m
                 created_at="2026-01-01T00:00:00Z",
                 display_name="Actual model",
                 type="model",
+                lifecycle="active",
             )
         ],
         **metadata,
