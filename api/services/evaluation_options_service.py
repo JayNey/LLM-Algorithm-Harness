@@ -122,7 +122,11 @@ class EvaluationOptionsService:
                     if len(ids) >= 500:
                         break
                     if len(page.data) <= capacity and not more:
-                        complete = True
+                        # Anthropic also returns no next page when its cursor is
+                        # missing; only has_more=False proves its terminal page.
+                        complete = key["provider"] in ("openai", "siliconflow") or (
+                            getattr(page, "has_more", None) is False
+                        )
                         break
                     next_page = getattr(page, "get_next_page", None)
                     remaining = deadline - time.monotonic()

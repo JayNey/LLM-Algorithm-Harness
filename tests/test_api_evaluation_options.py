@@ -206,6 +206,7 @@ class ModelPage:
         self.data = [SimpleNamespace(id=value) for value in ids]
         self.following = following
         self.error = error
+        self.has_more = following is not None or error is not None
         self.elapsed = elapsed
         self._options = SimpleNamespace(timeout=5.0)
         self.read_timeouts = []
@@ -378,6 +379,66 @@ def test_models_unknown_pagination_is_incomplete(api, monkeypatch):
         "models": ["actual-model"],
         "complete": False,
     }
+
+
+@pytest.mark.parametrize(
+    "metadata,complete",
+    [({}, False), ({"has_more": True}, False), ({"has_more": False}, True)],
+)
+def test_models_anthropic_sdk_requires_explicit_end_metadata(api, monkeypatch, metadata, complete):
+    from anthropic._models import FinalRequestOptions
+    from anthropic.pagination import SyncPage
+    from anthropic.types import ModelInfo
+
+    app, client, users = api
+    key_id = model_key(app, users, "anthropic")
+    page = SyncPage[ModelInfo].model_construct(
+        data=[
+            ModelInfo(
+                id="actual-model",
+                created_at="2026-01-01T00:00:00Z",
+                display_name="Actual model",
+                type="model",
+            )
+        ],
+        **metadata,
+    )
+    page._options = FinalRequestOptions.construct(method="get", url="/v1/models", params={})
+    sdk, _ = fake_models(monkeypatch, page)
+    response = client.get(
+        BASE + "/models", params={"api_key_id": key_id}, headers=users["alice"][0]
+    )
+    assert response.status_code == 200, response.text
+    assert response.json()["data"] == {
+        "provider": "anthropic",
+        "models": ["actual-model"],
+        "complete": complete,
+    }
+    assert sdk.closed is True
+
+
+@pytest.mark.parametrize("provider", ["openai", "siliconflow"])
+def test_models_openai_sdk_nonpaginated_contract_is_complete(api, monkeypatch, provider):
+    from openai.pagination import SyncPage
+    from openai.types import Model
+
+    app, client, users = api
+    key_id = model_key(app, users, provider)
+    page = SyncPage[Model](
+        object="list",
+        data=[Model(id="actual-model", created=0, object="model", owned_by=provider)],
+    )
+    sdk, _ = fake_models(monkeypatch, page)
+    response = client.get(
+        BASE + "/models", params={"api_key_id": key_id}, headers=users["alice"][0]
+    )
+    assert response.status_code == 200, response.text
+    assert response.json()["data"] == {
+        "provider": provider,
+        "models": ["actual-model"],
+        "complete": True,
+    }
+    assert sdk.closed is True
 
 
 @pytest.mark.parametrize(
