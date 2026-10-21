@@ -36,6 +36,7 @@ from api.services import (
     EvaluationService,
     ExperimentService,
 )
+from api.services.evaluation_options_service import EvaluationOptionsService
 from src.task_manager import TaskManager
 
 pytestmark = pytest.mark.unit
@@ -48,6 +49,8 @@ EVALUATION = EvaluationResponse(
     created_at="2026-10-19T00:00:00Z",
     updated_at="2026-10-19T00:00:00Z",
     status="pending",
+    can_start=True,
+    can_cancel=False,
     strategy_names=["vanilla"],
     problem_count=1,
     spent_usd=0,
@@ -55,6 +58,18 @@ EVALUATION = EvaluationResponse(
 EVAL_BODY = dict(
     api_key_id="key-1", model="test-model", problem_ids=["p1"], strategy_names=["vanilla"]
 )
+EVAL_OPTIONS = dict(
+    strategies=[dict(name="vanilla")],
+    sources=[dict(id="shared", label="共享题库", problem_count=1)],
+)
+PROBLEM_OPTIONS = dict(
+    items=[dict(problem_id="p1", title="示例题目", difficulty="easy", source="shared")],
+    total=1,
+    limit=20,
+    offset=0,
+    has_more=False,
+)
+MODEL_OPTIONS = dict(provider="openai", models=["test-model"], complete=True)
 EXPERIMENT_BODY = dict(
     dataset_path="dataset.json",
     models=[{"model": "test-model"}],
@@ -170,6 +185,30 @@ CASES = [
     ),
     case("DELETE", "/api-keys/{key_id}", "auth.delete_key", ("key-1", OWNER), status=204),
     case("POST", "/api-keys/{key_id}/verify", "auth.verify_key", ("key-1", OWNER)),
+    case(
+        "GET",
+        "/evaluation-options",
+        "evaluation_options.options",
+        (OWNER,),
+        result=EVAL_OPTIONS,
+        expected=EVAL_OPTIONS,
+    ),
+    case(
+        "GET",
+        "/evaluation-options/problems",
+        "evaluation_options.problems",
+        (OWNER, "all", 20, 0),
+        result=PROBLEM_OPTIONS,
+        expected=PROBLEM_OPTIONS,
+    ),
+    case(
+        "GET",
+        "/evaluation-options/models",
+        "evaluation_options.models",
+        (OWNER, "key-1"),
+        result=MODEL_OPTIONS,
+        expected=MODEL_OPTIONS,
+    ),
     case(
         "POST",
         "/evaluations",
@@ -789,6 +828,7 @@ def url(item):
             chart_name="success-rate",
         )
         + ("?run_id=run-1" if item.path in {"/compare/strategies", "/compare/history"} else "")
+        + ("?api_key_id=key-1" if item.path == "/evaluation-options/models" else "")
     )
 
 
@@ -813,6 +853,7 @@ def api(monkeypatch, tmp_path, unit_app):
             auth=AuthService,
             files=FileService,
             evaluations=EvaluationService,
+            evaluation_options=EvaluationOptionsService,
             evaluation_results=EvaluationResultsService,
             experiments=ExperimentService,
             benchmarks=BenchmarkService,

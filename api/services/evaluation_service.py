@@ -47,7 +47,19 @@ def _compute_percentage(completed_count: int, problem_count: int, num_strategies
     return min(100.0, max(0.0, percentage))
 
 
-def _to_response(task: Evaluation) -> EvaluationResponse:
+def _operation_capabilities(
+    evaluation: Evaluation, async_task: AsyncTask | None = None
+) -> dict[str, bool]:
+    """仅根据持久化状态投影操作能力，不同步 broker，也不替代归属校验。"""
+    live_task = async_task is not None and async_task.status in ("pending", "running", "paused")
+    return {
+        "can_start": evaluation.status == "pending" and not live_task,
+        "can_cancel": evaluation.status in ("pending", "running", "paused")
+        and (live_task or (evaluation.async_task_id is None and evaluation.status == "running")),
+    }
+
+
+def _to_response(task: Evaluation, async_task: AsyncTask | None = None) -> EvaluationResponse:
     """Convert an evaluation row to the API response shape.
 
     Used for legacy in-memory task execution. For async tasks, use _to_response_async.
@@ -60,6 +72,7 @@ def _to_response(task: Evaluation) -> EvaluationResponse:
         created_at=_iso(task.created_at),
         updated_at=_iso(task.updated_at),
         status=task.status,
+        **_operation_capabilities(task, async_task),
         strategy_names=list(task.strategy_names),
         model=task.model,
         problem_count=task.problem_count,
@@ -116,6 +129,7 @@ def _to_response_async(evaluation: Evaluation, async_task: AsyncTask | None) -> 
         created_at=_iso(evaluation.created_at),
         updated_at=_iso(evaluation.updated_at),
         status=status,
+        **_operation_capabilities(evaluation, async_task),
         strategy_names=list(evaluation.strategy_names),
         model=evaluation.model,
         problem_count=evaluation.problem_count,
@@ -227,7 +241,8 @@ class EvaluationService:
         """Get evaluation task details."""
         with self._session() as session:
             task = self._owned_task(session, evaluation_id, owner_id)
-            return _to_response(task)
+            async_task = session.get(AsyncTask, task.async_task_id) if task.async_task_id else None
+            return _to_response(task, async_task)
 
     def list_evaluations(
         self, owner_id: str, status: str | None = None, limit: int = 20, offset: int = 0
@@ -238,10 +253,18 @@ class EvaluationService:
             if status:
                 query = query.where(Evaluation.status == status)
             tasks = session.scalars(query.order_by(Evaluation.created_at, Evaluation.id)).all()
-
-        total = len(tasks)
-        responses = [_to_response(task) for task in tasks[offset : offset + limit]]
-        return responses, total
+            page = tasks[offset : offset + limit]
+            task_ids = {task.async_task_id for task in page if task.async_task_id}
+            async_tasks = (
+                session.scalars(select(AsyncTask).where(AsyncTask.id.in_(task_ids))).all()
+                if task_ids
+                else []
+            )
+            linked_tasks = {task.id: task for task in async_tasks}
+            responses = [
+                _to_response(task, linked_tasks.get(task.async_task_id or "")) for task in page
+            ]
+            return responses, len(tasks)
 
     def update_evaluation(
         self, evaluation_id: str, request: EvaluationUpdateRequest, owner_id: str
@@ -254,7 +277,8 @@ class EvaluationService:
             if request.budget_cap_usd is not None:
                 task.budget_cap_usd = request.budget_cap_usd
             task.updated_at = utcnow()
-            return _to_response(task)
+            async_task = session.get(AsyncTask, task.async_task_id) if task.async_task_id else None
+            return _to_response(task, async_task)
 
     def delete_evaluation(
         self, evaluation_id: str, owner_id: str, cleanup: Callable[[], None] | None = None
@@ -456,10 +480,27 @@ class EvaluationService:
                 raise ValueError(f"Cannot start task in {evaluation.status} status")
             if self._is_enqueued(session, evaluation):
                 raise ValueError("Cannot start task already queued or running")
+            previous_async_task_id = evaluation.async_task_id
 
             def link(async_task: AsyncTask) -> None:
-                evaluation.async_task_id = async_task.id
-                evaluation.updated_at = utcnow()
+                # 与候选 AsyncTask 同一事务占位；失去竞争时回滚候选，禁止发布。
+                claimed = (
+                    session.query(Evaluation)
+                    .filter(
+                        Evaluation.id == evaluation_id,
+                        Evaluation.user_id == owner_id,
+                        Evaluation.status == "pending",
+                        Evaluation.async_task_id == previous_async_task_id,
+                    )
+                    .update(
+                        {Evaluation.async_task_id: async_task.id, Evaluation.updated_at: utcnow()},
+                        synchronize_session=False,
+                    )
+                )
+                if claimed != 1:
+                    session.rollback()
+                    raise ValueError("Cannot start task whose state or queue linkage has changed")
+                session.refresh(evaluation)
 
             async_task = task_manager.enqueue_task(
                 task_type="evaluation",

@@ -139,6 +139,8 @@ class TestSubscription:
             assert snapshot["type"] == "task.snapshot"
             assert snapshot["data"]["evaluation_id"] == evaluation_id
             assert snapshot["data"]["status"] == "pending"
+            assert snapshot["data"]["can_start"] is True
+            assert snapshot["data"]["can_cancel"] is False
             assert ws.receive_json()["type"] == "subscribed"
 
             channel = channel_for(evaluation_id)

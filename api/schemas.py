@@ -68,6 +68,8 @@ class EvaluationResponse(BaseModel):
     created_at: str = Field(..., description="ISO 8601 creation timestamp")
     updated_at: str = Field(..., description="ISO 8601 update timestamp")
     status: str = Field(..., description="Task status: pending|running|completed|failed|cancelled")
+    can_start: bool = Field(..., description="Whether this evaluation can be started")
+    can_cancel: bool = Field(..., description="Whether this evaluation can be cancelled")
     strategy_names: list[str] = Field(..., description="Strategies used in this evaluation")
     model: str | None = Field(None, description="Model name used to execute the evaluation")
     problem_count: int = Field(..., ge=0, description="Total number of problems")
