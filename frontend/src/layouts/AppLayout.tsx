@@ -12,6 +12,7 @@ import { readViteEnv } from '@/config/env.ts'
 import { useAuthStore } from '@/store/auth.ts'
 import { appearanceVariants, useUiStore } from '@/store/ui.ts'
 import { ErrorBoundary } from '@/components/common/Feedback.tsx'
+import { EvaluationSessionProvider } from '@/evaluations/session.tsx'
 import { MockActions } from '@/mock/MockActions.tsx'
 import { appearanceTheme } from './appearance.ts'
 import { Icon } from './components/Icon.tsx'
@@ -197,9 +198,11 @@ function Shell() {
             <AppearanceControls />
             <Breadcrumb />
             <div className="route-content">
-              <ErrorBoundary key={location.pathname}>
-                <Outlet context={actions} />
-              </ErrorBoundary>
+              <EvaluationSessionProvider>
+                <ErrorBoundary key={location.pathname}>
+                  <Outlet context={actions} />
+                </ErrorBoundary>
+              </EvaluationSessionProvider>
             </div>
             <footer className="workspace-footer">
               <span>{appName}</span>

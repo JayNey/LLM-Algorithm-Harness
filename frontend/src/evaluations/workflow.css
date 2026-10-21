@@ -1,0 +1,122 @@
+.evaluation-workflow {
+  min-width: 0;
+}
+.evaluation-panel {
+  padding: 24px;
+  margin-bottom: 20px;
+}
+.evaluation-panel h2 {
+  margin-bottom: 20px;
+}
+.evaluation-panel .ant-form-item {
+  min-width: 0;
+  margin-bottom: 16px;
+}
+.evaluation-panel .ant-select {
+  width: 100%;
+}
+.evaluation-panel .ant-form-item p {
+  margin-top: 8px;
+  color: var(--muted);
+  font-size: 13px;
+}
+.evaluation-section-heading,
+.evaluation-pagination,
+.evaluation-actions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+.evaluation-section-heading {
+  justify-content: space-between;
+  margin-bottom: 20px;
+}
+.evaluation-section-heading h2 {
+  margin: 0;
+}
+.evaluation-section-heading span,
+.evaluation-pagination span,
+.evaluation-actions > span {
+  color: var(--muted);
+}
+.evaluation-problem-list {
+  list-style: none;
+  padding: 0;
+  margin: 12px 0;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0 24px;
+}
+.evaluation-problem-list li {
+  border-top: 1px solid var(--line);
+  min-width: 0;
+}
+.evaluation-problem-list .ant-checkbox-wrapper {
+  width: 100%;
+  padding: 10px 0;
+  align-items: flex-start;
+}
+.evaluation-problem-list .ant-checkbox-label {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+.evaluation-problem-list small {
+  display: block;
+  color: var(--muted);
+  font-size: 12px;
+}
+.evaluation-pagination {
+  justify-content: flex-end;
+  margin-top: 16px;
+}
+.evaluation-pagination span {
+  margin-right: auto;
+}
+.evaluation-actions {
+  margin-top: 20px;
+}
+.evaluation-field-error {
+  color: var(--error);
+}
+.evaluation-receipt {
+  margin: 0 0 24px;
+}
+.evaluation-receipt dt {
+  color: var(--muted);
+}
+.evaluation-receipt dd {
+  margin: 8px 0 0;
+  overflow-wrap: anywhere;
+  font-family: monospace;
+}
+@media (max-width: 767px) {
+  .evaluation-panel {
+    padding: 16px;
+  }
+  .evaluation-problem-list {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .evaluation-workflow .form-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .evaluation-workflow .page-heading {
+    align-items: flex-start;
+  }
+  .evaluation-pagination .ant-btn,
+  .evaluation-actions .ant-btn {
+    min-height: 44px;
+  }
+}
+@media (max-width: 359px) {
+  .evaluation-pagination span {
+    flex-basis: 100%;
+    margin-right: 0;
+  }
+}
+.evaluation-workflow .evaluation-panel .ant-form-item-explain {
+  color: var(--muted);
+}
+.evaluation-workflow .evaluation-panel .ant-form-item-explain-error {
+  color: var(--error);
+}

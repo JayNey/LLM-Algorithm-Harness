@@ -6,9 +6,11 @@ import secrets
 import pytest
 from cryptography.fernet import Fernet
 from fastapi.testclient import TestClient
+from sqlalchemy.orm import Session
 from starlette.websockets import WebSocketDisconnect
 
 from api.auth.config import AuthSettings
+from api.db.models import Evaluation
 from api.files.config import FileSettings
 from api.main import create_app
 from api.progress import ProgressStream, Subscription, channel_for
@@ -54,6 +56,7 @@ def env(tmp_path):
         auth_config(tmp_path),
         FileSettings(_env_file=None, UPLOAD_DIR=tmp_path / "uploads"),
         progress_stream=stream,
+        database_url=f"sqlite:///{tmp_path / 'business.sqlite3'}",
     )
     with TestClient(app) as client:
         register = client.post(
@@ -93,6 +96,7 @@ def env(tmp_path):
 
         yield {
             "client": client,
+            "app": app,
             "token": tokens["access_token"],
             "bob_token": bob_tokens["access_token"],
             "evaluation_id": evaluation_id,
@@ -139,6 +143,8 @@ class TestSubscription:
             assert snapshot["type"] == "task.snapshot"
             assert snapshot["data"]["evaluation_id"] == evaluation_id
             assert snapshot["data"]["status"] == "pending"
+            assert snapshot["data"]["can_start"] is True
+            assert snapshot["data"]["can_cancel"] is False
             assert ws.receive_json()["type"] == "subscribed"
 
             channel = channel_for(evaluation_id)
@@ -211,3 +217,37 @@ class TestPublishHelper:
         assert captured["payload"]["type"] == "task.started"
         assert captured["payload"]["data"] == {"s": 1}
         assert "timestamp" in captured["payload"]
+
+
+def test_execution_progress_snapshot_matches_http_and_preserves_worker_event(env):
+    evaluation_id = env["evaluation_id"]
+    with Session(env["app"].state.evaluations.engine) as session, session.begin():
+        row = session.get(Evaluation, evaluation_id)
+        row.problem_count = 2
+        row.strategy_names = ["vanilla", "cot"]
+        row.completed_count = 1
+        row.failed_count = 1
+        row.status = "cancelled"
+    detail = (
+        env["client"]
+        .get(
+            f"/api/v1/evaluations/{evaluation_id}",
+            headers={"Authorization": "Bearer " + env["token"]},
+        )
+        .json()["data"]
+    )
+    with _connect(env["client"], env["token"]) as ws:
+        ws.receive_json()
+        ws.send_json({"action": "subscribe", "task_id": evaluation_id})
+        body = ws.receive_json()["data"]
+        assert body.get("execution_progress") == {
+            "completed_units": 2,
+            "total_units": 4,
+            "percentage": 50.0,
+        }
+        assert body["execution_progress"] == detail["execution_progress"]
+        assert body["progress"]["percentage"] == 25.0
+        assert ws.receive_json()["type"] == "subscribed"
+        event = {"type": "task.progress", "task_id": evaluation_id, "data": {"percentage": 25.0}}
+        asyncio.run(env["stream"].emit(channel_for(evaluation_id), event))
+        assert ws.receive_json() == event

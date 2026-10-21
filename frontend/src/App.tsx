@@ -6,7 +6,7 @@ import { RequireRole } from '@/components/Auth/RequireRole.tsx'
 import { RoleAccess } from '@/components/Auth/RoleAccess.tsx'
 import { AppLayout } from '@/layouts/AppLayout.tsx'
 import { AuthLayout } from '@/layouts/AuthLayout.tsx'
-import { appPages, authPages, settingsPages } from '@/routes.tsx'
+import { appPages, authPages, detailPages, settingsPages } from '@/routes.tsx'
 import { useAuthStore } from '@/store/auth.ts'
 
 useAuthStore.getState().hydrate()
@@ -44,7 +44,7 @@ export default function App() {
                   }
                 />
               ))}
-              {settingsPages.map((page) => (
+              {[...settingsPages, ...detailPages].map((page) => (
                 <Route
                   key={page.path}
                   path={page.path}

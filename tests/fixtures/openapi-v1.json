@@ -907,6 +907,12 @@
               }
             ]
           },
+          "can_cancel": {
+            "type": "boolean"
+          },
+          "can_start": {
+            "type": "boolean"
+          },
           "created_at": {
             "type": "string"
           },
@@ -922,6 +928,9 @@
           },
           "evaluation_id": {
             "type": "string"
+          },
+          "execution_progress": {
+            "$ref": "#/components/schemas/ExecutionProgress"
           },
           "model": {
             "anyOf": [
@@ -969,6 +978,9 @@
           "created_at",
           "updated_at",
           "status",
+          "can_start",
+          "can_cancel",
+          "execution_progress",
           "strategy_names",
           "problem_count",
           "spent_usd"
@@ -1000,6 +1012,29 @@
             ]
           }
         },
+        "type": "object"
+      },
+      "ExecutionProgress": {
+        "properties": {
+          "completed_units": {
+            "minimum": 0.0,
+            "type": "integer"
+          },
+          "percentage": {
+            "maximum": 100.0,
+            "minimum": 0.0,
+            "type": "number"
+          },
+          "total_units": {
+            "minimum": 0.0,
+            "type": "integer"
+          }
+        },
+        "required": [
+          "completed_units",
+          "total_units",
+          "percentage"
+        ],
         "type": "object"
       },
       "ExperimentCreateRequest": {

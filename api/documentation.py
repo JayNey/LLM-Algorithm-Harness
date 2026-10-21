@@ -36,6 +36,9 @@ EVALUATION = {
     "created_at": STAMP,
     "updated_at": STAMP,
     "status": "pending",
+    "can_start": True,
+    "can_cancel": False,
+    "execution_progress": {"completed_units": 0, "total_units": 1, "percentage": 0.0},
     "strategy_names": ["vanilla"],
     "model": "gpt-4o-mini",
     "problem_count": 1,
@@ -153,6 +156,32 @@ OPERATIONS: dict[str, tuple[str, Any]] = {
         "使用自己的已保存密钥进行提供商连接检查；不执行评估。",
         {"ok": True, "provider": "openai", "message": "Connection verified"},
     ),
+    "options": (
+        "查询执行器支持的策略和有效题目来源；本人导入的同 ID 题目覆盖共享题目，仅列出非空来源。",
+        {
+            "strategies": [{"name": "vanilla"}],
+            "sources": [{"id": "shared", "label": "共享题库", "problem_count": 1}],
+        },
+    ),
+    "problems": (
+        "按来源分页查询共享题库和本人导入的有效题目元数据；不返回题干、测试用例或他人题目。",
+        page(
+            [
+                {
+                    "problem_id": "two-sum",
+                    "title": "Two Sum",
+                    "difficulty": "easy",
+                    "source": "shared",
+                }
+            ]
+        ),
+    ),
+    "models": (
+        "使用自己的 api_key_id 查询提供商真实模型列表；最多返回 500 个 ID。"
+        "complete=false 表示列表可能不完整；单次请求最多等待 5 秒，总预算 10 秒，不自动重试。"
+        "查询期间密钥被修改返回 409，提供商调用失败返回脱敏的 503。",
+        {"provider": "openai", "models": ["gpt-4o-mini"], "complete": True},
+    ),
     "create_evaluation": (
         "创建待运行评估，引用自己的 api_key_id 和已存在的题目；随后调用 start。",
         EVALUATION,
@@ -163,7 +192,7 @@ OPERATIONS: dict[str, tuple[str, Any]] = {
     "delete_evaluation": ("删除自己的评估及关联文件；不允许删除仍在运行的评估。", None),
     "start_evaluation": (
         "提交评估到后台队列；202 表示已受理，不表示已完成。",
-        {**EVALUATION, "status": "running"},
+        {**EVALUATION, "can_start": False, "can_cancel": True},
     ),
     "get_evaluation_progress": (
         "查询评估当前完成数量、总量及进度百分比。",
@@ -171,7 +200,7 @@ OPERATIONS: dict[str, tuple[str, Any]] = {
     ),
     "cancel_evaluation": (
         "取消自己的评估，返回取消后的评估状态。",
-        {**EVALUATION, "status": "cancelled"},
+        {**EVALUATION, "status": "cancelled", "can_start": False},
     ),
     "create_task": (
         "创建通用异步任务并提交给 Celery；task_type 与处理器须匹配服务器支持的类型。",
@@ -1166,6 +1195,8 @@ PARAMETERS: dict[str, tuple[str, Any]] = {
     "test_id": ("自己的 A/B 测试 ID。", "test-demo"),
     "file_id": ("自己的已上传且未过期文件 ID。", "file-demo"),
     "key_id": ("自己保存的 LLM 提供商密钥 ID。", "key-demo"),
+    "api_key_id": ("自己保存的提供商密钥 ID，用于查询可用模型。", "key-demo"),
+    "source": ("有效题目来源：all 为全部，shared 为共享题库，personal 为本人导入。", "all"),
     "job_id": ("自己的题目导入任务 ID。", "job-demo"),
     "rule_id": ("自己的成本预警规则 ID。", "rule-demo"),
     "model_id": ("模型标识，用于价格查询或覆盖；作为单个 URL 路径段传入。", "gpt-4o-mini"),
@@ -1345,6 +1376,8 @@ def _rate_limit(name: str, path: str) -> str:
         or path.startswith("/api/v1/results/")
     ):
         text += " 此路径还受 FILE_MAX_CONCURRENT_TRANSFERS（每个 API 进程默认 2 个）并发容量限制。"
+    if name == "models":
+        text += " 模型查询还按用户使用独立限流桶：AUTH_RATE_LIMIT（默认 10 次）/ AUTH_RATE_WINDOW_SECONDS（默认 60 秒）。"
     if name == "alert_history":
         text += " limit 限制到 1–200，默认 50。"
     return text

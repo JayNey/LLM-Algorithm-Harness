@@ -87,6 +87,30 @@ def test_evaluation_response_example_validates(schema):
     TypeAdapter(ApiResponse[EvaluationResponse]).validate_python(example)
 
 
+@pytest.mark.parametrize(
+    "path,status,can_start,can_cancel",
+    [
+        ("/api/v1/evaluations", "201", True, False),
+        ("/api/v1/evaluations/{evaluation_id}/start", "202", False, True),
+        ("/api/v1/evaluations/{evaluation_id}/cancel", "200", False, False),
+    ],
+)
+def test_evaluation_examples_describe_lifecycle_capabilities(
+    schema, path, status, can_start, can_cancel
+):
+    example = schema["paths"][path]["post"]["responses"][status]["content"]["application/json"][
+        "example"
+    ]["data"]
+    assert example["can_start"] is can_start
+    assert example["can_cancel"] is can_cancel
+    assert example["status"] == ("cancelled" if path.endswith("/cancel") else "pending")
+    assert example["execution_progress"] == {
+        "completed_units": 0,
+        "total_units": 1,
+        "percentage": 0.0,
+    }
+
+
 def test_all_json_examples_validate_against_route_models(schema):
     def routes(router):
         for route in router.routes:

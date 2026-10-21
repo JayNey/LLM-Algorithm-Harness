@@ -111,3 +111,20 @@ export const authPages: AppPage[] = [
     Component: lazy(() => import('@/pages/Auth/RegisterPage.tsx')),
   },
 ]
+
+export const detailPages: AppPage[] = [
+  {
+    path: '/evaluations/new',
+    label: '创建评估',
+    Component: lazy(
+      () => import('@/pages/Evaluations/CreateEvaluationPage.tsx'),
+    ),
+  },
+  {
+    path: '/evaluations/:evaluationId',
+    label: '评估任务详情',
+    Component: lazy(
+      () => import('@/pages/Evaluations/EvaluationDetailPage.tsx'),
+    ),
+  },
+]

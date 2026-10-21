@@ -31,6 +31,7 @@ from api.routes.ab_tests import router as ab_tests_router
 from api.routes.auth import router as auth_router
 from api.routes.benchmarks import router as benchmarks_router
 from api.routes.costs import router as costs_router
+from api.routes.evaluation_options import router as evaluation_options_router
 from api.routes.experiments import router as experiments_router
 from api.routes.files import router as files_router
 from api.routes.monitoring import router as monitoring_router
@@ -43,6 +44,7 @@ from api.services import (
     EvaluationService,
     ExperimentService,
 )
+from api.services.evaluation_options_service import EvaluationOptionsService
 from src.ab_testing import ABTestRunner
 from src.benchmark.executor import BenchmarkExecutor
 from src.experiment import ExperimentRunner
@@ -107,6 +109,9 @@ def create_app(
         app.state.cost = CostService(database_url)
         app.state.progress_stream = progress_stream or RedisProgressStream()
         app.state.files = FileService(app.state.auth, file_settings or FileSettings())
+        app.state.evaluation_options = EvaluationOptionsService(
+            session_factory, app.state.files.store, app.state.auth
+        )
         app.state.monitor = MonitorService(
             app.state.auth,
             app.state.files,
@@ -163,6 +168,7 @@ def create_app(
 
     # Include routers
     app.include_router(evaluations_router)
+    app.include_router(evaluation_options_router)
     app.include_router(evaluation_results_router)
     app.include_router(tasks_router)
     app.include_router(auth_router)

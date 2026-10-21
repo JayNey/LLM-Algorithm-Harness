@@ -61,6 +61,14 @@ class ProgressInfo(BaseModel):
     )
 
 
+class ExecutionProgress(BaseModel):
+    """按题目与策略执行单元归一化的完成进度。"""
+
+    completed_units: int = Field(..., ge=0)
+    total_units: int = Field(..., ge=0)
+    percentage: float = Field(..., ge=0, le=100)
+
+
 class EvaluationResponse(BaseModel):
     """Evaluation task response model."""
 
@@ -68,6 +76,9 @@ class EvaluationResponse(BaseModel):
     created_at: str = Field(..., description="ISO 8601 creation timestamp")
     updated_at: str = Field(..., description="ISO 8601 update timestamp")
     status: str = Field(..., description="Task status: pending|running|completed|failed|cancelled")
+    can_start: bool = Field(..., description="Whether this evaluation can be started")
+    can_cancel: bool = Field(..., description="Whether this evaluation can be cancelled")
+    execution_progress: ExecutionProgress = Field(..., description="Finished execution units")
     strategy_names: list[str] = Field(..., description="Strategies used in this evaluation")
     model: str | None = Field(None, description="Model name used to execute the evaluation")
     problem_count: int = Field(..., ge=0, description="Total number of problems")
