@@ -140,3 +140,28 @@ test('URL分页先规范化，状态只接受受支持筛选值', () => {
     'limit=20&offset=0',
   )
 })
+
+test('刷新与历史导航可还原每个列表筛选和分页，不引入名称搜索参数', () => {
+  for (const status of [
+    undefined,
+    'pending',
+    'running',
+    'paused',
+    'completed',
+    'failed',
+    'cancelled',
+  ]) {
+    for (const offset of [0, 20, 40]) {
+      const query = { ...(status ? { status } : {}), limit: 20, offset }
+      const url = writeListQuery(query)
+      assert.deepEqual(
+        readListQuery(new URLSearchParams(url.toString())),
+        query,
+      )
+      assert.deepEqual(
+        [...url.keys()].sort(),
+        (status ? ['limit', 'offset', 'status'] : ['limit', 'offset']).sort(),
+      )
+    }
+  }
+})

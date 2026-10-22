@@ -98,7 +98,7 @@ const keys = ['a', 'b', 'slow'].map((id) => ({
   usage_count: 0,
   masked_preview: null,
 }))
-async function fixture(mode = 'start-error') {
+async function fixture(mode = 'start-error', entry = '/evaluations/new') {
   const context = await browser.newContext({
     viewport: { width: 1440, height: 1000 },
     reducedMotion: 'reduce',
@@ -106,6 +106,15 @@ async function fixture(mode = 'start-error') {
   const page = await context.newPage()
   const errors = []
   const calls = []
+  let releaseList
+  let releaseStale
+  let failList = mode === 'list-error'
+  const listGate = new Promise((resolve) => {
+    releaseList = resolve
+  })
+  const staleGate = new Promise((resolve) => {
+    releaseStale = resolve
+  })
   page.on('pageerror', (e) => errors.push(e.message))
   await context.addInitScript(() =>
     localStorage.setItem(
@@ -205,6 +214,49 @@ async function fixture(mode = 'start-error') {
         has_more: offset + limit < all.length,
       })
     }
+    if (method === 'GET' && path === '/evaluations') {
+      if (mode === 'list-loading') await listGate
+      if (mode === 'list-stale' && url.searchParams.get('status') === 'running')
+        await staleGate
+      if (failList)
+        return route.fulfill({
+          status: 503,
+          headers,
+          json: { message: 'unavailable' },
+        })
+      const limit = Number(url.searchParams.get('limit'))
+      const offset = Number(url.searchParams.get('offset'))
+      const status = url.searchParams.get('status')
+      let items = Array.from(
+        { length: mode === 'list-shrunk' ? 1 : 42 },
+        (_, i) => ({
+          ...evaluation,
+          evaluation_id: `owned-evaluation-${i + 1}`,
+          model: 'owned-model',
+          strategy_names: ['reflexion'],
+          status:
+            i === 0
+              ? 'future-state'
+              : ['pending', 'running', 'completed'][i % 3],
+          can_start: false,
+          spent_usd: 0.125,
+          execution_progress: {
+            completed_units: 3,
+            total_units: 8,
+            percentage: 37.5,
+          },
+        }),
+      )
+      if (mode === 'list-empty') items = []
+      if (status) items = items.filter((item) => item.status === status)
+      return send({
+        items: items.slice(offset, offset + limit),
+        total: items.length,
+        limit,
+        offset,
+        has_more: offset + limit < items.length,
+      })
+    }
     if (method === 'POST' && path === '/evaluations') {
       await new Promise((r) => setTimeout(r, 150))
       if (mode === 'unknown')
@@ -230,13 +282,25 @@ async function fixture(mode = 'start-error') {
       json: { message: `Unexpected API: ${method} ${path}` },
     })
   })
-  await page.goto(`${base}/evaluations/new`)
+  await page.goto(`${base}${entry}`)
   await page.locator('h1').waitFor()
-  check('创建地址显示真实创建表单', () =>
-    assert.equal(new URL(page.url()).pathname, '/evaluations/new'),
-  )
-  await page.getByRole('heading', { name: '创建评估', exact: true }).waitFor()
-  return { context, page, calls, errors }
+  if (entry === '/evaluations/new') {
+    check('创建地址显示真实创建表单', () =>
+      assert.equal(new URL(page.url()).pathname, '/evaluations/new'),
+    )
+    await page.getByRole('heading', { name: '创建评估', exact: true }).waitFor()
+  }
+  return {
+    context,
+    page,
+    calls,
+    errors,
+    releaseList,
+    releaseStale,
+    recoverList() {
+      failList = false
+    },
+  }
 }
 async function choose(page, label, text) {
   await page.getByRole('combobox', { name: label, exact: true }).click()
@@ -781,10 +845,189 @@ async function securityScenario() {
   await page.close()
 }
 
+async function listScenario() {
+  report.replaced.push('HTTP GET /api/v1/evaluations list/filter/page')
+  report.real.push('owned evaluation list page', 'useList lifecycle')
+  const loading = await fixture('list-loading', '/evaluations')
+  await loading.page
+    .getByText('正在加载评估任务…', { exact: true })
+    .waitFor({ timeout: 5000 })
+  check('加载不是空集或旧Mock行', () =>
+    assert.equal(
+      loading.calls.filter((c) => c.path === '/evaluations').length > 0,
+      true,
+    ),
+  )
+  assert.equal(
+    await loading.page.getByText('还没有评估任务', { exact: true }).count(),
+    0,
+  )
+  loading.releaseList()
+  const table = loading.page.getByRole('table', {
+    name: '评估任务列表',
+    exact: true,
+  })
+  await table
+    .getByRole('link', { name: 'owned-evaluation-1', exact: true })
+    .waitFor()
+  assert.equal(await table.getByRole('row').count(), 21)
+  assert.equal(
+    await table.getByText('owned-model', { exact: true }).count(),
+    20,
+  )
+  await table.getByText('未知状态（future-state）', { exact: true }).waitFor()
+  await table.getByText('已入队，等待执行', { exact: true }).first().waitFor()
+  assert.equal(await table.getByText('37.5%', { exact: false }).count(), 20)
+  check('20条真实任务和开放状态/服务端进度', () =>
+    assert.equal(
+      loading.calls.some(
+        (c) =>
+          c.path === '/evaluations' &&
+          c.query.includes('limit=20') &&
+          c.query.includes('offset=0'),
+      ),
+      true,
+    ),
+  )
+  assert.equal(
+    await table
+      .getByRole('link', { name: 'owned-evaluation-1', exact: true })
+      .getAttribute('href'),
+    '/evaluations/owned-evaluation-1',
+  )
+  await loading.page
+    .getByRole('button', { name: '下一页任务', exact: true })
+    .click()
+  await table
+    .getByRole('link', { name: 'owned-evaluation-21', exact: true })
+    .waitFor()
+  check('第二页URL和请求均为limit20/offset20', () => {
+    assert.equal(new URL(loading.page.url()).searchParams.get('offset'), '20')
+    assert.ok(
+      loading.calls.some(
+        (c) => c.path === '/evaluations' && c.query === '?limit=20&offset=20',
+      ),
+    )
+  })
+  await loading.page.reload()
+  await table
+    .getByRole('link', { name: 'owned-evaluation-21', exact: true })
+    .waitFor()
+  report.assertions.push({ name: '刷新保留分页', pass: true })
+  await choose(loading.page, '任务状态', '已完成')
+  await table
+    .getByRole('link', { name: 'owned-evaluation-3', exact: true })
+    .waitFor()
+  check('筛选写入URL并清零offset', () => {
+    const params = new URL(loading.page.url()).searchParams
+    assert.equal(params.get('status'), 'completed')
+    assert.equal(params.get('offset'), '0')
+    assert.ok(
+      loading.calls.some(
+        (c) => c.query === '?status=completed&limit=20&offset=0',
+      ),
+    )
+  })
+  await loading.page.goBack()
+  await table
+    .getByRole('link', { name: 'owned-evaluation-21', exact: true })
+    .waitFor()
+  report.assertions.push({ name: '浏览器后退恢复旧分页', pass: true })
+  for (const width of [390, 1440]) {
+    await loading.page.setViewportSize({ width, height: 1000 })
+    assert.ok(
+      await loading.page.evaluate(
+        () => document.documentElement.scrollWidth <= window.innerWidth,
+      ),
+      `${width}px page overflow`,
+    )
+    const file = `list-${width}.png`
+    await loading.page.screenshot({ path: resolve(out, file), fullPage: true })
+    report.screenshots.push(file)
+  }
+  check('列表浏览器无异常', () => assert.deepEqual(loading.errors, []))
+  await loading.context.close()
+
+  const error = await fixture(
+    'list-error',
+    '/evaluations?status=completed&limit=20&offset=0',
+  )
+  await error.page.getByRole('alert').waitFor()
+  assert.equal(
+    await error.page.getByText('还没有评估任务', { exact: true }).count(),
+    0,
+  )
+  error.recoverList()
+  await error.page.getByRole('button', { name: '重试', exact: true }).click()
+  await error.page
+    .getByRole('table', { name: '评估任务列表' })
+    .getByRole('link', { name: 'owned-evaluation-3', exact: true })
+    .waitFor()
+  check('503错误不伪装空集，重试保留筛选', () =>
+    assert.ok(
+      error.calls
+        .filter((c) => c.path === '/evaluations')
+        .every((c) => c.query === '?status=completed&limit=20&offset=0'),
+    ),
+  )
+  await error.context.close()
+
+  for (const mode of ['list-empty', 'list-shrunk']) {
+    const item = await fixture(mode, '/evaluations?limit=20&offset=80')
+    if (mode === 'list-empty') {
+      await item.page.getByText('还没有评估任务', { exact: true }).waitFor()
+      assert.equal(
+        await item.page
+          .getByRole('link', { name: '创建首个评估', exact: true })
+          .getAttribute('href'),
+        '/evaluations/new',
+      )
+    } else {
+      await item.page
+        .getByRole('table', { name: '评估任务列表' })
+        .getByRole('link', { name: 'owned-evaluation-1', exact: true })
+        .waitFor()
+    }
+    check(`${mode}超页回到有效offset`, () => {
+      assert.equal(new URL(item.page.url()).searchParams.get('offset'), '0')
+      assert.ok(
+        item.calls.some(
+          (c) => c.path === '/evaluations' && c.query === '?limit=20&offset=0',
+        ),
+      )
+    })
+    await item.context.close()
+  }
+  const stale = await fixture(
+    'list-stale',
+    '/evaluations?status=running&limit=20&offset=0',
+  )
+  await stale.page.getByText('正在加载评估任务…', { exact: true }).waitFor()
+  await choose(stale.page, '任务状态', '已完成')
+  const currentTable = stale.page.getByRole('table', { name: '评估任务列表' })
+  await currentTable
+    .getByRole('link', { name: 'owned-evaluation-3', exact: true })
+    .waitFor()
+  stale.releaseStale()
+  await stale.page.waitForTimeout(100)
+  assert.equal(
+    await currentTable.getByText('运行中', { exact: true }).count(),
+    0,
+  )
+  check('旧筛选迟到不覆盖新筛选', () =>
+    assert.equal(
+      new URL(stale.page.url()).searchParams.get('status'),
+      'completed',
+    ),
+  )
+  await stale.context.close()
+}
+
 try {
   if (scenario === 'all' || scenario === 'create') await createScenario()
   if (['all', 'create', 'security'].includes(scenario)) await securityScenario()
-  if (!['all', 'create', 'security'].includes(scenario))
+  if (scenario === 'all' || scenario === 'list') await listScenario()
+  if (!['all', 'create', 'security', 'list'].includes(scenario))
     throw new Error(`Scenario ${scenario} 尚未实现`)
   check('无未声明 API 请求', () => assert.deepEqual(report.unknown, []))
   report.pass = true
