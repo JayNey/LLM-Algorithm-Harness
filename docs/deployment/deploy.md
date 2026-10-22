@@ -37,6 +37,26 @@ pip install -r requirements.lock
 
 ## 2. Docker 开发栈
 
+完整栈启动前，在 **Docker daemon 所在的 Linux 宿主机**准备沙箱共享目录
+（仅启动 redis 时无需此步骤）：
+
+```bash
+# 镜像内 harness 用户固定为 UID/GID 1000；目录仅供该用户写入
+sudo install -d -m 0700 -o 1000 -g 1000 /tmp/llm-harness-sandbox
+docker pull python:3.11-slim           # 默认沙箱镜像，worker 镜像不包含它
+```
+
+开发与生产编排都将该目录按相同绝对路径挂入 worker，并将 `TMPDIR` 指向它。
+worker 经宿主 docker.sock 启动的是兄弟容器：Docker 的 bind source 在宿主解析，
+不能使用只存在于 worker 内的 `/tmp/llm-harness-sandbox-*` 路径。
+每个用例仍使用独立随机子目录；沙箱仅只读挂载该子目录，执行结束后自动清理。
+
+可在 `.env` 设置 `SANDBOX_WORKDIR=/srv/llm-harness/sandbox`，并对该路径执行同样的
+`install -d` 命令。必须使用宿主可见、UID 1000 可写的绝对路径；Compose 同步将其用于
+source、target 与 TMPDIR。只设置 worker 的 TMPDIR 或只改一侧挂载路径都不够。
+目录缺失时 Compose 拒绝自动创建，以免产生 root 属主的不可写目录；默认 `/tmp`
+可能随重启清空，重启后须重新准备，长期部署建议使用上述 `/srv` 路径。
+
 ```bash
 docker compose up -d                 # postgres + redis + api + worker + beat
 docker compose logs -f api           # 跟踪 API 日志
@@ -57,6 +77,8 @@ docker compose down -v               # 停止并清空数据卷
 `env_file` 是必选项，且 `DATABASE_PASSWORD` 未设置时 compose 会直接报错拒绝启动。
 若启用沙箱（worker 挂载宿主 docker.sock），还需设置 `DOCKER_GID` 为宿主 docker
 组的 GID（查询：`stat -c %g /var/run/docker.sock`），未设置同样拒绝启动。
+还需按第 2 节准备共享目录及沙箱镜像；可在 `.env` 设置 `SANDBOX_WORKDIR`
+指向持久目录。已有部署升级后须重建 worker，使 TMPDIR 与挂载配置生效。
 
 ```bash
 cp .env.example .env
@@ -66,6 +88,25 @@ python3 -c "from cryptography.fernet import Fernet; print(Fernet.generate_key().
 
 docker compose -f docker-compose.prod.yml build
 docker compose -f docker-compose.prod.yml up -d
+```
+
+启动后在 worker 内验证目录与真实沙箱执行链路（开发部署去掉 `-f` 参数）：
+
+```bash
+docker compose -f docker-compose.prod.yml exec -T worker python - <<'PY'
+import os
+import tempfile
+from pathlib import Path
+from src.models import SandboxConfig
+from src.sandbox_executor import SandboxExecutor
+
+root = Path(os.environ["TMPDIR"])
+assert root.is_absolute() and os.access(root, os.W_OK | os.X_OK), root
+assert Path(tempfile.gettempdir()) == root, "tempfile 回退到非共享目录，请检查权限"
+ok, detail = SandboxExecutor(SandboxConfig()).health_check()
+assert ok, detail
+print("sandbox preflight passed")
+PY
 ```
 
 生产栈拓扑：`nginx:80 → api:8000`（内部端口不对外），postgres/redis 仅内网，
@@ -144,6 +185,7 @@ python3 scripts/seed_data.py --database-url sqlite:///./data/business/seed-demo.
 | API 容器反复重启 | `docker compose -f docker-compose.prod.yml logs api`；常见为 postgres 未就绪或迁移失败 |
 | worker 不消费任务 | 确认 `CELERY_BROKER_URL` 与 api 一致；`docker compose logs worker` 看队列名（`evaluations`、`default`） |
 | worker 内 `docker` 命令 permission denied（Linux） | `DOCKER_GID` 与宿主 docker 组不一致：`stat -c %g /var/run/docker.sock` 后更新 `.env` 并重建 |
+| worker 启动报 bind source 不存在，或预检报 `bind source path does not exist` / runner 缺失 | 按第 2 节在 Docker 宿主创建 SANDBOX_WORKDIR 并赋予 UID/GID 1000 权限；确认 TMPDIR 与宿主挂载路径相同，再执行第 3 节真实预检 |
 | worker 内 `docker` 命令 permission denied（macOS Docker Desktop） | Desktop 的 socket 在 VM 内属 `root:root 660`，`group_add` 无法匹配；沙箱宿主 docker 调用仅支持 Linux 宿主机，Desktop 上验证部署时忽略该项 |
 | WebSocket 连不上 | 确认经 nginx 访问（`/api/v1/ws` 前缀带升级头）；直连时检查代理是否剥离 `Upgrade` 头 |
 | 上传 413 | nginx `client_max_body_size` 小于 `FILE_UPLOAD_MAX_BYTES`；两侧对齐 |

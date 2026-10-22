@@ -6,6 +6,9 @@ requiring a Docker daemon in CI.
 """
 
 import re
+import subprocess
+import sys
+import tempfile
 from pathlib import Path
 
 import pytest
@@ -14,6 +17,8 @@ import yaml
 from api.auth.config import AuthSettings
 from api.config import Settings
 from api.files.config import FileSettings
+from src.models import Problem, SandboxConfig
+from src.sandbox_executor import SandboxExecutor
 
 REPO = Path(__file__).resolve().parents[1]
 
@@ -93,7 +98,7 @@ class TestProdCompose:
         """生产编排不得把源码目录绑定进容器。"""
         for name, service in prod_compose["services"].items():
             for volume in service.get("volumes", []):
-                host_path = volume.split(":")[0]
+                host_path = volume["source"] if isinstance(volume, dict) else volume.split(":")[0]
                 assert not host_path.startswith(("./api", "./src")), (name, volume)
 
     def test_database_password_is_required(self, prod_compose):
@@ -138,6 +143,116 @@ class TestProdCompose:
         """api 健康即迁移完成，worker 不得在缺表窗口消费任务。"""
         depends_on = prod_compose["services"]["worker"]["depends_on"]
         assert depends_on["api"]["condition"] == "service_healthy"
+
+
+def _sandbox_directory(value, configured):
+    """Resolve the simple optional path interpolation used by both Compose files."""
+    return re.sub(
+        r"\$\{SANDBOX_WORKDIR:-([^}]+)\}",
+        lambda match: configured or match.group(1),
+        value,
+    )
+
+
+@pytest.mark.parametrize("compose_name", ["docker-compose.yml", "docker-compose.prod.yml"])
+@pytest.mark.parametrize("configured", [None, "/srv/harness/sandbox"])
+def test_worker_sandbox_tmpdir_is_a_host_bind(compose_name, configured):
+    """Docker resolves bind sources on the host, not in the worker filesystem."""
+    compose = yaml.safe_load((REPO / compose_name).read_text(encoding="utf-8"))
+    worker = compose["services"]["worker"]
+    tmpdir = _sandbox_directory(worker["environment"].get("TMPDIR", ""), configured)
+    assert Path(tmpdir).is_absolute(), "worker tempfile needs an explicit shared absolute path"
+    bindings = [
+        volume
+        for volume in worker["volumes"]
+        if isinstance(volume, dict)
+        and volume.get("type") == "bind"
+        and _sandbox_directory(volume["target"], configured) == tmpdir
+    ]
+    assert len(bindings) == 1, "worker TMPDIR must be backed by a host bind"
+    binding = bindings[0]
+    assert _sandbox_directory(binding["source"], configured) == tmpdir
+    assert not binding.get("read_only", False), "worker must be able to write runner.py"
+    assert binding["bind"]["create_host_path"] is False
+    for name, service in compose["services"].items():
+        if name != "worker":
+            assert binding not in service.get("volumes", []), name
+
+
+@pytest.mark.parametrize("compose_name", ["docker-compose.yml", "docker-compose.prod.yml"])
+@pytest.mark.parametrize("mode", ["function", "stdin_stdout"])
+def test_compose_sandbox_runner_is_visible_to_host_docker(
+    compose_name, mode, monkeypatch, tmp_path
+):
+    """Exercise real runner generation and cleanup with Docker's host path resolution."""
+    compose = yaml.safe_load((REPO / compose_name).read_text(encoding="utf-8"))
+    worker = compose["services"]["worker"]
+    shared = tmp_path / "shared"
+    shared.mkdir(mode=0o700)
+    tmpdir = _sandbox_directory(worker["environment"].get("TMPDIR", ""), str(shared))
+    assert tmpdir == str(shared), "worker must honor the shared sandbox directory"
+    monkeypatch.setenv("TMPDIR", tmpdir)
+    monkeypatch.setattr(tempfile, "tempdir", None)
+    executor = SandboxExecutor(SandboxConfig(backend="docker"))
+    monkeypatch.setattr(executor, "_docker_available", lambda: True)
+    real_run = subprocess.run
+    workspaces = []
+
+    def host_docker_run(command, **kwargs):
+        mount = command[command.index("--mount") + 1]
+        assert mount.endswith(",dst=/workspace,readonly")
+        source = Path(mount.split("src=", 1)[1].split(",", 1)[0])
+        assert source.parent == shared
+        binding = next(
+            volume
+            for volume in worker["volumes"]
+            if isinstance(volume, dict)
+            and _sandbox_directory(volume["target"], str(shared)) == str(shared)
+        )
+        host_source = Path(_sandbox_directory(binding["source"], str(shared))) / source.name
+        runner = host_source / Path(command[-1]).name
+        assert runner.is_file(), "host Docker must see the runner created inside worker"
+        assert source.stat().st_mode & 0o777 == 0o755
+        assert runner.stat().st_mode & 0o777 == 0o644
+        workspaces.append(host_source)
+        input_data = kwargs["input_data"]
+        return real_run(
+            [sys.executable, str(runner)],
+            input=input_data.decode("utf-8") if input_data is not None else None,
+            env=kwargs["env"],
+            capture_output=True,
+            text=True,
+            timeout=5,
+            encoding="utf-8",
+        )
+
+    def cleanup(command, **kwargs):
+        assert command[:3] == ["docker", "rm", "--force"]
+        return subprocess.CompletedProcess(command, 0, stdout="", stderr="")
+
+    monkeypatch.setattr(executor, "_run_command", host_docker_run)
+    monkeypatch.setattr("src.sandbox_executor.subprocess.run", cleanup)
+    if mode == "function":
+        code = "def solution(a, b): return a + b"
+        case = {"input": {"a": 1, "b": 2}, "expected_output": 3}
+    else:
+        code = "print(sum(map(int, input().split())))"
+        case = {"input": "1 2\n", "expected_output": "3\n"}
+    problem = Problem(
+        problem_id="compose-bind-regression",
+        title="Compose sandbox",
+        description="Run code using a shared worker/host workspace.",
+        difficulty="easy",
+        input_output_mode=mode,
+        test_cases=[case],
+    )
+    result = executor.execute(code, problem)
+    assert result.all_passed, result.model_dump()
+    # A second run also needs a new per-test workspace and must clean it up.
+    assert executor.execute(code, problem).all_passed
+    assert len(set(workspaces)) == 2
+    assert all(not path.exists() for path in workspaces)
+    assert list(shared.iterdir()) == []
 
 
 class TestDockerfiles:
