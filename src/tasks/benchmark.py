@@ -15,9 +15,15 @@ from src.tasks.support import get_db_session, owned_async_task
 
 def execute_benchmark(run_id: str, user_id: str) -> None:
     """Run a pending benchmark. The service records accuracy, cost and status."""
+    from api.auth.config import AuthSettings
+    from api.auth.service import AuthService
     from api.services.benchmark_service import BenchmarkService
 
-    BenchmarkService(recover=False)._execute(run_id, user_id)
+    service = BenchmarkService(auth=AuthService(AuthSettings()), recover=False)
+    try:
+        service._execute(run_id, user_id)
+    finally:
+        service._engine.dispose()
 
 
 def _is_paused(db: Session, task_id: str) -> bool:
