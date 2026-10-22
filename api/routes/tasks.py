@@ -16,6 +16,14 @@ from src.task_manager import TaskManager
 router = APIRouter(prefix="/api/v1", tags=["tasks"])
 T = TypeVar("T")
 
+# Public submission must not expose internal Celery workers (e.g. global cleanup).
+_PUBLIC_TASKS = {
+    "evaluation": "src.tasks.evaluation.run_evaluation_task",
+    "experiment": "src.tasks.experiment.run_experiment_task",
+    "import": "src.tasks.imports.run_import_task",
+    "benchmark": "src.tasks.benchmark.run_benchmark_task",
+}
+
 
 def task_manager(db: Session = Depends(get_db)) -> TaskManager:
     """Get TaskManager instance."""
@@ -69,6 +77,9 @@ def create_task(
     Returns:
         ApiResponse with created task details
     """
+    if _PUBLIC_TASKS.get(request.task_type) != request.celery_task_name:
+        raise HTTPException(403, "Task is not allowed for public submission")
+
     task_args = tuple(request.celery_task_args) if request.celery_task_args else ()
     task_kwargs = request.celery_task_kwargs or {}
 
