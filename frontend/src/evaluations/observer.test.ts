@@ -299,6 +299,56 @@ test('同一评估重复 start 幂等，切换评估收旧启新', async () => {
   assert.equal(last(world.calls).id, 'eval-2')
 })
 
+test('切换评估时有在途快照：旧请求作废且新评估首刷不被吞', async () => {
+  let release!: (value: Evaluation) => void
+  const gate = new Promise<Evaluation>((resolve) => {
+    release = resolve
+  })
+  const world = setup()
+  await world.goLive()
+  world.setRespond(async (call, index) => {
+    if (index === 2) return gate // 仅旧评估的第 3 个请求挂起
+    return evaluation('running', call.id)
+  })
+  world.observer.invalidate()
+  world.clock.advance(2_000)
+  await settle()
+  assert.equal(world.calls.length, 3, '旧评估的在途快照已挂起')
+  world.observer.start('eval-2')
+  await settle()
+  assert.equal(world.calls.length, 4, '新评估的立即刷新不被在途旧请求阻塞')
+  assert.equal(last(world.calls).id, 'eval-2')
+  release(evaluation('running', 'eval-1'))
+  await settle()
+  assert.equal(world.calls.length, 4, '作废结果不触发额外请求')
+  const delivered = last(world.snapshots())
+  assert.equal(delivered.evaluation.evaluation_id, 'eval-2')
+})
+
+test('手动 refresh 与自动管线共享非重叠约束', async () => {
+  let release!: (value: Evaluation) => void
+  const gate = new Promise<Evaluation>((resolve) => {
+    release = resolve
+  })
+  const world = setup()
+  await world.goLive()
+  const before = world.calls.length
+  world.setRespond(async () => gate)
+  world.observer.refresh()
+  await settle()
+  assert.equal(world.calls.length, before + 1)
+  world.observer.refresh()
+  await settle()
+  assert.equal(
+    world.calls.length,
+    before + 1,
+    '进行中重复 refresh 只置 pending',
+  )
+  release(evaluation('running'))
+  await settle()
+  assert.equal(world.calls.length, before + 2, '完成后补刷一次')
+})
+
 // ---------- 合并与非重叠 ----------
 
 test('live 下多事件在 2 秒窗口合并为一次刷新', async () => {
@@ -559,13 +609,11 @@ test('4401 走会话恢复，成功立即重连且不计入失败', async () => 
     },
   })
   await world.goLive()
+  const socketsBefore = world.sockets.length
   world.lastSocket().remoteClose(4401)
   await settle()
   assert.equal(recoveries, 1)
-  const socketsBefore = world.sockets.length
-  world.clock.advance(0) // 无退避等待也应立即重连
-  await settle()
-  assert.ok(world.sockets.length >= socketsBefore, '已重连')
+  assert.equal(world.sockets.length, socketsBefore + 1, '已立即重连')
   // 重连成功后再次失败，退避应从 3s 重新开始（未计 4401 失败）
   const socket = world.lastSocket()
   socket.open()

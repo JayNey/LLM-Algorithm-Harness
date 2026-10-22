@@ -172,6 +172,8 @@ export function createProgressObserver(deps: ObserverDeps): ProgressObserver {
   }
 
   function stopObserving(): void {
+    if (inFlight) inFlight.controller.abort()
+    pendingInvalidation = false
     clearTimers()
     teardownSocket()
   }
@@ -217,8 +219,14 @@ export function createProgressObserver(deps: ObserverDeps): ProgressObserver {
     void reason
     if (disposed || paused || evaluationId === null) return
     if (inFlight) {
-      if (inFlight.epoch === epoch) pendingInvalidation = true
-      return
+      if (inFlight.epoch !== epoch) {
+        // 旧纪元请求已作废：中止并丢弃，不阻塞新周期的刷新
+        inFlight.controller.abort()
+        inFlight = null
+      } else {
+        pendingInvalidation = true
+        return
+      }
     }
     const now = deps.clock.now()
     if (now < rateLimitUntil) {
@@ -398,6 +406,9 @@ export function createProgressObserver(deps: ObserverDeps): ProgressObserver {
     if (frame.type === 'subscribed') {
       if (!conn) return
       clearHandle(conn.subscribeTimer)
+      // 进入 live：清掉降级期遗留的轮询周期
+      clearHandle(pollTimer)
+      pollTimer = null
       conn.subscribed = true
       connectAttempts = 0
       pollFailures = 0
@@ -411,6 +422,9 @@ export function createProgressObserver(deps: ObserverDeps): ProgressObserver {
   function handleSocketFailure(reason: string): void {
     connectAttempts += 1
     setMode('degraded')
+    // 进入降级：清掉 live 期遗留的兜底定时器
+    clearHandle(staleTimer)
+    staleTimer = null
     if (connectAttempts >= timing.maxReconnects) {
       // 放弃 WS：保持降级轮询
       if (pollTimer === null) schedulePoll(timing.degradedPollMs)
