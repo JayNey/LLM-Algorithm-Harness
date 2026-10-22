@@ -52,3 +52,5 @@ PR 的 CI 与 Runtime 阶段检查在提交后补充；合并/关闭任务由实
 ## 交付
 
 已无冲突重放到最新 main 6365a64396dbbdb56eef071281efe5a12e6dcd3d；前端源码与已审查/已测实现一致。PR #240（base=main，Refs #223）已创建，平台 CI 仍需看对应头的实际结果。仓库当前 CI 工作流只自动执行后端检查，不把它当作前端 fixture 证明；前端检查的具体证据在上文独立列出。
+
+Runtime 已实际执行 `npm --prefix frontend run build`（31e66208-a7e9-4391-8f9a-9089a7c49b0f.log）和 `npm --prefix frontend test`（2ff5b21d-4448-4225-841a-93a2057dd82e.log，151 passed）；build 14/14、verify 5/5 守卫通过，verify_mode=full、verify_result=pass。归档确认保持 pending，未自动归档、合并或关闭任务。公开 list JSON 又在可追溯的分支提交 f3527d6（干净源码）实际复测，22 组通过；不是手工替换 JSON 中的来源提交。

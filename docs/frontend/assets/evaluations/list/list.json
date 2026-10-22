@@ -1,7 +1,7 @@
 {
   "scenario": "list",
   "source": {
-    "head": "b2e9bd09ae84a4e880f56ed4028dff63b2504e36",
+    "head": "f3527d66b7fc689fbed6d6d17b334b83818a3510",
     "dirty": ""
   },
   "layer": "browser-fixture (not backend E2E)",
