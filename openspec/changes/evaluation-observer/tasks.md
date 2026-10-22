@@ -7,13 +7,13 @@
 
 ## 2. 实现（issue Step 3）
 
-- [ ] 2.1 `resolveProgressWsUrl`：相对路径 http→ws / https→wss，绝对 ws(s) 直通
-- [ ] 2.2 `createProgressObserver` 生命周期核心：start 幂等、立即刷新、connectSocket、subscribe、5s 确认定时器、connected/subscribed/事件帧分发
-- [ ] 2.3 事件失效与刷新管线：2s 合并窗口、pending 一次失效、非重叠单周期、signal.aborted 与 epoch 守卫、HTTP 真值经 onChange('snapshot')
-- [ ] 2.4 降级与重连：WS 失败进 degraded 3s 轮询、3/6/12/30 退避、5 次上限后放弃 WS、成功清零、15s live 无事件兜底刷新、429 顺延
-- [ ] 2.5 终态与权限与会话：终态/paused 停止 + settled、4403/403/404 清数据停止、401/4401 走 recoverSession 成败两路
-- [ ] 2.6 暂停与清理：setVisible/setOnline 暂停恢复（恢复清零重连计数）、runMutation epoch、dispose 后无任何回调
-- [ ] 2.7 全量测试转绿；`npm run lint`（或 eslint 定向）与 prettier 检查通过
+- [x] 2.1 `resolveProgressWsUrl`：相对路径 http→ws / https→wss，绝对 ws(s) 直通
+- [x] 2.2 `createProgressObserver` 生命周期核心：start 幂等、立即刷新、connectSocket、subscribe、5s 确认定时器、connected/subscribed/事件帧分发
+- [x] 2.3 事件失效与刷新管线：2s 合并窗口、pending 一次失效、非重叠单周期、signal.aborted 与 epoch 守卫、HTTP 真值经 onChange('snapshot')
+- [x] 2.4 降级与重连：WS 失败进 degraded 3s 轮询、3/6/12/30 退避、5 次上限后放弃 WS、成功清零、15s live 无事件兜底刷新、429 顺延
+- [x] 2.5 终态与权限与会话：终态/paused 停止 + settled、4403/403/404 清数据停止、401/4401 走 recoverSession 成败两路
+- [x] 2.6 暂停与清理：setVisible/setOnline 暂停恢复（恢复清零重连计数）、runMutation epoch、dispose 后无任何回调
+- [x] 2.7 全量测试转绿；`npm run lint`（或 eslint 定向）与 prettier 检查通过
 
 ## 3. 验收记录（issue Step 5 的核心部分）
 

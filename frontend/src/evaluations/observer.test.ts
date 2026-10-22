@@ -27,7 +27,6 @@ interface FakeTimer {
 
 function fakeClock(start = 0) {
   let now = start
-  let nextId = 1
   const timers: FakeTimer[] = []
   const clock = {
     now: () => now,
@@ -37,6 +36,7 @@ function fakeClock(start = 0) {
       return timer
     },
     clearTimeout(handle: unknown): void {
+      if (handle === null || handle === undefined) return
       ;(handle as FakeTimer).cancelled = true
     },
     advance(ms: number): void {
@@ -53,12 +53,13 @@ function fakeClock(start = 0) {
       now = target
     },
     pendingDelays: () =>
-      timers.filter((t) => !t.cancelled).map((t) => t.at - now).sort((a, b) => a - b),
+      timers
+        .filter((t) => !t.cancelled)
+        .map((t) => t.at - now)
+        .sort((a, b) => a - b),
   }
   return clock
 }
-
-type Clock = ReturnType<typeof fakeClock>
 
 class FakeSocket implements SocketHandle {
   readonly sent: Array<Record<string, unknown>> = []
@@ -102,7 +103,13 @@ function evaluation(status = 'running', id = 'eval-1'): Evaluation {
     spent_usd: 0,
     budget_cap_usd: null,
     error_message: null,
-    progress: { current: 1, total: 2, message: null, completed: 1, percentage: 50 },
+    progress: {
+      current: 1,
+      total: 2,
+      message: null,
+      completed: 1,
+      percentage: 50,
+    },
   }
 }
 
@@ -121,8 +128,10 @@ function setup(overrides: Partial<ObserverDeps> = {}) {
   const events: ObserverEvent[] = []
   const sockets: FakeSocket[] = []
   const calls: SnapshotCall[] = []
-  let respond: (call: SnapshotCall, index: number) => Promise<Evaluation> = async () =>
-    evaluation('running')
+  let respond: (
+    call: SnapshotCall,
+    index: number,
+  ) => Promise<Evaluation> = async () => evaluation('running')
   const deps: ObserverDeps = {
     fetchSnapshot: async (id, signal) => {
       const call = { id, signal }
@@ -182,11 +191,17 @@ const last = <T>(items: T[]): T => items.at(-1) as T
 
 test('相对进度地址按页面协议与主机解析，绝对地址直通', () => {
   assert.equal(
-    resolveProgressWsUrl('/api/v1/ws/progress', { protocol: 'http:', host: 'h.example' }),
+    resolveProgressWsUrl('/api/v1/ws/progress', {
+      protocol: 'http:',
+      host: 'h.example',
+    }),
     'ws://h.example/api/v1/ws/progress',
   )
   assert.equal(
-    resolveProgressWsUrl('/api/v1/ws/progress', { protocol: 'https:', host: 'h.example' }),
+    resolveProgressWsUrl('/api/v1/ws/progress', {
+      protocol: 'https:',
+      host: 'h.example',
+    }),
     'wss://h.example/api/v1/ws/progress',
   )
   assert.equal(
@@ -204,7 +219,10 @@ test('相对进度地址按页面协议与主机解析，绝对地址直通', ()
     'ws://cdn.example/api/v1/ws/progress',
   )
   assert.match(
-    resolveProgressWsUrl('/api/v1/ws/progress?x=1', { protocol: 'https:', host: 'h.example' }),
+    resolveProgressWsUrl('/api/v1/ws/progress?x=1', {
+      protocol: 'https:',
+      host: 'h.example',
+    }),
     /\?x=1$/,
   )
 })
@@ -220,7 +238,10 @@ test('start 立即取快照、开连接并在 open 后发订阅帧', async () =>
   assert.equal(world.sockets.length, 1)
   world.lastSocket().open()
   await settle()
-  assert.deepEqual(last(world.lastSocket().sent), { action: 'subscribe', task_id: 'eval-1' })
+  assert.deepEqual(last(world.lastSocket().sent), {
+    action: 'subscribe',
+    task_id: 'eval-1',
+  })
   assert.ok(world.modes().includes('live') === false)
 })
 
@@ -313,10 +334,18 @@ test('进行中失效只补刷一次且绝不并发', async () => {
   socket.frame({ type: 'task.progress', task_id: 'eval-1' })
   world.clock.advance(2_000)
   await settle()
-  assert.equal(world.calls.length, inFlight + 1, '窗口到期但请求进行中：置 pending 不并发')
+  assert.equal(
+    world.calls.length,
+    inFlight + 1,
+    '窗口到期但请求进行中：置 pending 不并发',
+  )
   release(evaluation('running'))
   await settle()
-  assert.equal(world.calls.length, inFlight + 2, '完成后对 pending 失效补刷一次')
+  assert.equal(
+    world.calls.length,
+    inFlight + 2,
+    '完成后对 pending 失效补刷一次',
+  )
 })
 
 test('HTTP 真值原样交付且附带当前模式', async () => {
@@ -417,7 +446,10 @@ test('快照请求失败按退避顺延轮询，成功后复位为 3 秒', async
   const pollAt = (): number | undefined => world.clock.pendingDelays()[0]
   world.clock.advance(3_000) // 第一次轮询（失败）
   await settle()
-  assert.ok(world.events.some((e) => e.type === 'error'), '失败已回报')
+  assert.ok(
+    world.events.some((e) => e.type === 'error'),
+    '失败已回报',
+  )
   assert.equal(pollAt(), 6_000)
   world.clock.advance(6_000) // 第二次（失败）
   await settle()
@@ -507,7 +539,10 @@ test('HTTP 403/404 同样清数据停止', async () => {
     })
     world.observer.start('eval-1')
     await settle()
-    assert.ok(world.events.some((e) => e.type === 'forbidden'), `HTTP ${status} 视为 forbidden`)
+    assert.ok(
+      world.events.some((e) => e.type === 'forbidden'),
+      `HTTP ${status} 视为 forbidden`,
+    )
     const callsAfter = world.calls.length
     world.clock.advance(60_000)
     await settle()
@@ -517,7 +552,12 @@ test('HTTP 403/404 同样清数据停止', async () => {
 
 test('4401 走会话恢复，成功立即重连且不计入失败', async () => {
   let recoveries = 0
-  const world = setup({ recoverSession: async () => { recoveries += 1; return true } })
+  const world = setup({
+    recoverSession: async () => {
+      recoveries += 1
+      return true
+    },
+  })
   await world.goLive()
   world.lastSocket().remoteClose(4401)
   await settle()
@@ -552,10 +592,15 @@ test('4401 恢复失败发出 unauthorized 并停止', async () => {
 
 test('HTTP 401 先恢复会话：成功补刷，失败 unauthorized 停止', async () => {
   let recoveries = 0
-  let failing = true
-  const world = setup({ recoverSession: async () => { recoveries += 1; return true } })
+  let failures = 0
+  const world = setup({
+    recoverSession: async () => {
+      recoveries += 1
+      return true
+    },
+  })
   world.setRespond(async () => {
-    if (failing) throw { status: 401 }
+    if (failures++ === 0) throw { status: 401 }
     return evaluation('running')
   })
   world.observer.start('eval-1')
@@ -620,30 +665,29 @@ test('runMutation 递增纪元：在途快照作废，完成后补刷一次', as
   })
   const world = setup()
   await world.goLive()
-  const before = world.calls.length
   world.setRespond(async () => gate)
   world.observer.invalidate()
   world.clock.advance(2_000)
   await settle()
   const staleCall = last(world.calls)
+  assert.equal(staleCall.signal.aborted, false)
   let mutationDone = false
   const done = world.observer.runMutation(async () => {
     mutationDone = true
   })
   await settle()
   assert.equal(staleCall.signal.aborted, true, '旧周期请求已被中止')
-  release(evaluation('running'))
+  let released!: Evaluation
+  release((released = evaluation('running')))
   await settle()
-  const snapshotCount = world.snapshots().length
-  world.clock.advance(60_000)
-  await settle()
-  assert.equal(world.snapshots().length, snapshotCount, '被作废的结果不进入快照事件')
+  assert.equal(world.calls.length, 3, '被作废的请求不触发补刷')
   await done
   await settle()
   assert.equal(mutationDone, true)
   world.clock.advance(2_000)
   await settle()
-  assert.ok(world.calls.length > before, '变更完成后刷新新纪元')
+  assert.equal(world.calls.length, 4, '变更完成后刷新新纪元')
+  assert.equal(last(world.snapshots()).evaluation, released)
 })
 
 test('dispose 后无任何回调、请求与连接', async () => {
