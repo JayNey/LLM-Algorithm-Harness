@@ -2,9 +2,8 @@
 
 Tasks are persisted in the business database (issue #151): creating a task
 inserts a row, every status/progress transition is written back, and state
-survives restarts. Non-terminal tasks found at startup are marked failed so
-#149's task queue can take over scheduling later. The public interface and
-transitions match the original in-memory implementation.
+survives restarts. Startup preserves records with live async tasks owned by
+independent workers; only orphaned non-terminal records are marked failed.
 
 Enhanced with async task support (Task 5): create_evaluation now submits Celery
 tasks via TaskManager, and get_evaluation aggregates status from AsyncTask.
@@ -167,8 +166,8 @@ class EvaluationService:
     def __init__(self, database_url: str | None = None):
         """Initialize the service against the business database.
 
-        Runs pending migrations and flags tasks left non-terminal by a
-        previous process as failed, so recovery is observable via the API.
+        Runs pending migrations and flags orphaned non-terminal tasks as failed,
+        while preserving tasks that independent workers can still execute.
         """
         self._engine = make_engine(database_url or business_database_url())
         run_migrations(self._engine)
@@ -186,18 +185,17 @@ class EvaluationService:
         return self._session_factory()
 
     def _recover_interrupted(self) -> None:
-        """Flag non-terminal evaluations left by a previous process as failed.
+        """Flag orphaned non-terminal evaluations as failed.
 
-        Enqueued ``pending`` evaluations (those with a live AsyncTask) are
-        preserved so a worker can still pick them up after an API restart,
-        matching the experiment/benchmark recovery behaviour from #181.
+        A live AsyncTask can belong to an independent worker. API startup must
+        preserve both queued and running evaluations until that worker finishes.
         """
         with self._session() as session, session.begin():
             candidates = session.scalars(
                 select(Evaluation).where(Evaluation.status.in_(("pending", "running")))
             ).all()
             for task in candidates:
-                if task.status == "pending" and self._is_enqueued(session, task):
+                if self._is_enqueued(session, task):
                     continue
                 task.status = "failed"
                 task.error_message = INTERRUPTED_BY_RESTART
