@@ -146,10 +146,7 @@ def system_status(
             "health": health,
             "resources": monitor.probes.resources(),
             "workers": health["checks"]["workers"],
-            "containers": {
-                "status": "not_configured",
-                "detail": "Per-container resource instrumentation is not connected",
-            },
+            "containers": monitor.probes.containers(),
         }
     )
 

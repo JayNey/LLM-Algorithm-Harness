@@ -1350,4 +1350,4 @@ API 支持注册、登录、Token 刷新/登出、用户范围的评估权限和
 
 提供受管理员 UUID 白名单保护的数据库健康检查、Docker 预检、本机资源、持久化 API 请求统计、安全日志和离线配置目录。#151 的业务数据库已接入只读连接/schema 检查、按来源分页的旧评估和 AsyncTask 快照、各自的全量状态计数，以及当前评估 engine 的实际 SQL 查询统计。用户可查询自己的任务日志与已有配额；统计窗口不完整时标记 `retained_sample`，真实 worker/LLM 指标尚未采集时返回 `not_configured/null`。
 
-#157 已提供可显式启用的 Redis/Celery 健康和 worker 数值负载观测，带超时、缓存、管理员授权及安全字段过滤。任务快照分别读取无异步关联的评估与 AsyncTask；它们的 pending 数量不代表 broker 队列长度。真实执行代码已接入 AlgorithmHarness，监控不据此宣称提供商或沙箱就绪。SQL 指标仍限于评估 engine，后续性能、容器和配额能力见 [监控指南](docs/api-monitoring.md)。
+#157 已提供可显式启用的 Redis/Celery 健康和 worker 数值负载观测，带超时、缓存、管理员授权及安全字段过滤。任务快照分别读取无异步关联的评估与 AsyncTask；它们的 pending 数量不代表 broker 队列长度。真实执行代码已接入 AlgorithmHarness，监控不据此宣称提供商或沙箱就绪。SQL 指标仍限于评估 engine。可通过 MONITOR_CONTAINER_PROBES_ENABLED 启用有标签沙箱的只读容器资源观测，后续性能和配额能力见 [监控指南](docs/api-monitoring.md)。

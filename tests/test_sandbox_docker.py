@@ -95,6 +95,8 @@ def test_docker_command_has_isolation_and_resource_flags():
     assert "--pids-limit" in command and "8" in command
     assert "--env" in command
     assert "OPENAI_API_KEY" not in " ".join(command)
+    assert "--label" in command
+    assert "io.llm-algorithm-harness.sandbox=v1" in command
 
 
 def test_host_backend_output_limit_is_structured():
