@@ -2,8 +2,8 @@
 
 ## 1. 测试先行（issue Step 1–2）
 
-- [ ] 1.1 新增 `frontend/src/evaluations/observer.test.ts`：FakeClock/FakeSocket/调用记录基建 + 全边界用例（URL 解析、启动与 5s 订阅确认、2s 合并、非重叠单周期、15s live 兜底、3s 降级轮询、3/6/12/30 退避与 5 次上限、429≥30s、终态/paused 收敛、4403 清数据、401/4401 recoverSession、隐藏/离线暂停恢复、mutation epoch、dispose 清理），运行确认 RED
-- [ ] 1.2 运行 `node --experimental-strip-types --test src/evaluations/observer.test.ts` 并在 issue 记录 RED 证据（退出码、失败清单），不得靠真实 sleep 跑时间边界
+- [x] 1.1 新增 `frontend/src/evaluations/observer.test.ts`：FakeClock/FakeSocket/调用记录基建 + 全边界用例（URL 解析、启动与 5s 订阅确认、2s 合并、非重叠单周期、15s live 兜底、3s 降级轮询、3/6/12/30 退避与 5 次上限、429≥30s、终态/paused 收敛、4403 清数据、401/4401 recoverSession、隐藏/离线暂停恢复、mutation epoch、dispose 清理），运行确认 RED
+- [x] 1.2 运行 `node --experimental-strip-types --test src/evaluations/observer.test.ts` 并在 issue 记录 RED 证据（退出码、失败清单），不得靠真实 sleep 跑时间边界
 
 ## 2. 实现（issue Step 3）
 
