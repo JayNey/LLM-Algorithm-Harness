@@ -833,6 +833,92 @@ def _reload(db, model, id_):
 class TestRunEvaluationTaskIntegration:
     """run_evaluation_task 经真实 TaskService 编排 + 真实 harness 执行路径的集成测试。"""
 
+    def test_redelivery_resumes_running_checkpoint(
+        self, db_session, integration_harness, auth_ok, monkeypatch
+    ):
+        """Worker loss leaves running work on disk; redelivery keeps confirmed work."""
+        evaluation_id = _seed_evaluation(
+            db_session, problem_ids=["p1", "p2", "p3"], strategy_names=["vanilla"]
+        )
+        execute = AlgorithmHarness._execute_problem
+
+        def lose_worker(self, strategy_config, problem, strategy, sandbox):
+            if problem.problem_id == "p2":
+                raise SystemExit("worker lost")
+            return execute(self, strategy_config, problem, strategy, sandbox)
+
+        monkeypatch.setattr(AlgorithmHarness, "_execute_problem", lose_worker)
+        with patch("src.tasks.evaluation.get_db_session", return_value=db_session):
+            with pytest.raises(SystemExit, match="worker lost"):
+                run_evaluation_task.run(evaluation_id)
+
+        service = TaskService(root=f"data/tasks/{evaluation_id}")
+        run_id = f"eval-{evaluation_id}"
+        interrupted = service.get(run_id)
+        assert interrupted.state == "running"
+        assert [unit.status for unit in interrupted.units] == ["completed", "running", "queued"]
+        ev = _reload(db_session, Evaluation, evaluation_id)
+        assert ev.status == "running"
+        assert ev.completed_count == 1
+        assert ev.spent_usd == pytest.approx(integration_harness.cost)
+        assert db_session.query(EvaluationResult).count() == 1
+
+        monkeypatch.setattr(AlgorithmHarness, "_execute_problem", execute)
+        with patch("src.tasks.evaluation.get_db_session", return_value=db_session):
+            result = run_evaluation_task.run(evaluation_id)
+
+        ev = _reload(db_session, Evaluation, evaluation_id)
+        assert result["status"] == ev.status == "completed"
+        assert result["completed_units"] == ev.completed_count == 3
+        assert ev.failed_count == 0
+        assert ev.spent_usd == pytest.approx(3 * integration_harness.cost)
+        assert db_session.get(AsyncTask, ev.async_task_id).status == "completed"
+        assert db_session.query(EvaluationResult).count() == 3
+        assert integration_harness.execute_calls == [
+            ("vanilla", "p1"),
+            ("vanilla", "p2"),
+            ("vanilla", "p3"),
+        ]
+        resumed = service.get(run_id)
+        assert resumed.state == "completed"
+        assert [unit.unit_id for unit in resumed.units] == [
+            unit.unit_id for unit in interrupted.units
+        ]
+        assert resumed.units[0] == interrupted.units[0]
+        assert resumed.events[: len(interrupted.events)] == interrupted.events
+
+    @pytest.mark.parametrize("mismatch", ["config_fingerprint", "dataset_fingerprint"])
+    def test_redelivery_rejects_running_checkpoint_fingerprint_mismatch(
+        self, db_session, integration_harness, auth_ok, mismatch
+    ):
+        """Recovering running work must still validate both fingerprints."""
+        evaluation_id = _seed_evaluation(db_session, problem_ids=["p1"], strategy_names=["vanilla"])
+        service = TaskService(root=f"data/tasks/{evaluation_id}")
+        fingerprints = {
+            "config_fingerprint": TaskService.config_fingerprint({"evaluation_id": evaluation_id}),
+            "dataset_fingerprint": TaskService._hash_json(["p1"]),
+        }
+        fingerprints[mismatch] = "mismatched"
+        record = service.create(
+            run_id=f"eval-{evaluation_id}",
+            units=[TaskUnit(unit_id="u1", strategy="vanilla", problem_id="p1")],
+            **fingerprints,
+        )
+        record.state = "running"
+        service.store.save(record)
+        before = service.store.path_for(record.run_id).read_bytes()
+
+        with patch("src.tasks.evaluation.get_db_session", return_value=db_session):
+            with pytest.raises(ValueError, match="fingerprint does not match"):
+                run_evaluation_task.run(evaluation_id)
+
+        assert service.store.path_for(record.run_id).read_bytes() == before
+        assert integration_harness.execute_calls == []
+        assert db_session.query(EvaluationResult).count() == 0
+        ev = _reload(db_session, Evaluation, evaluation_id)
+        assert ev.status == "failed"
+        assert db_session.get(AsyncTask, ev.async_task_id).status == "failed"
+
     def test_run_evaluation_task_completes_all_units(
         self, db_session, integration_harness, auth_ok
     ):
