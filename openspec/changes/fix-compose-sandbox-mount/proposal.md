@@ -18,7 +18,7 @@
 
 ## 根因与复现
 
-`_execute_with_docker` 使用 `tempfile.TemporaryDirectory`，`_build_docker_command` 将其绝对路径原样传给 `docker run --mount type=bind`；现有两份 Compose 只共享 uploads/data/socket，没有覆盖临时目录。先新增配置与执行链路回归，记录 RED 后修复。
+`_run_in_docker` 使用 `tempfile.TemporaryDirectory`，`_build_docker_command` 将其绝对路径原样传给 `docker run --mount type=bind`；现有两份 Compose 只共享 uploads/data/socket，没有覆盖临时目录。先新增配置与执行链路回归，记录 RED 后修复。
 
 当前宿主 Docker daemon 未运行（docker info 报 socket 不存在），真实容器验证需在 Docker 宿主补跑；本轮自动化模拟宿主路径解析并实际运行生成 runner。
 

@@ -5,11 +5,12 @@ These checks parse the compose files, Dockerfiles, nginx config and
 requiring a Docker daemon in CI.
 """
 
+import os
 import re
 import subprocess
 import sys
 import tempfile
-from pathlib import Path
+from pathlib import Path, PurePosixPath
 
 import pytest
 import yaml
@@ -161,7 +162,9 @@ def test_worker_sandbox_tmpdir_is_a_host_bind(compose_name, configured):
     compose = yaml.safe_load((REPO / compose_name).read_text(encoding="utf-8"))
     worker = compose["services"]["worker"]
     tmpdir = _sandbox_directory(worker["environment"].get("TMPDIR", ""), configured)
-    assert Path(tmpdir).is_absolute(), "worker tempfile needs an explicit shared absolute path"
+    assert PurePosixPath(
+        tmpdir
+    ).is_absolute(), "worker tempfile needs an explicit shared absolute path"
     bindings = [
         volume
         for volume in worker["volumes"]
@@ -212,8 +215,9 @@ def test_compose_sandbox_runner_is_visible_to_host_docker(
         host_source = Path(_sandbox_directory(binding["source"], str(shared))) / source.name
         runner = host_source / Path(command[-1]).name
         assert runner.is_file(), "host Docker must see the runner created inside worker"
-        assert source.stat().st_mode & 0o777 == 0o755
-        assert runner.stat().st_mode & 0o777 == 0o644
+        if os.name != "nt":
+            assert source.stat().st_mode & 0o777 == 0o755
+            assert runner.stat().st_mode & 0o777 == 0o644
         workspaces.append(host_source)
         input_data = kwargs["input_data"]
         return real_run(
