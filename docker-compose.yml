@@ -87,11 +87,19 @@ services:
       CELERY_RESULT_BACKEND: redis://redis:6379/0
       LOG_LEVEL: ${LOG_LEVEL:-INFO}
       LOG_FORMAT: ${LOG_FORMAT:-json}
+      # tempfile 的路径也会作为宿主 docker 的 bind source，内外必须同路径
+      TMPDIR: ${SANDBOX_WORKDIR:-/tmp/llm-harness-sandbox}
     volumes:
       - uploads_data:/app/uploads
       - task_data:/app/data
       # 沙箱预检需要访问宿主 docker；仅在本机开发环境挂载
       - /var/run/docker.sock:/var/run/docker.sock
+      # 先按 docs/deployment/deploy.md 创建目录并赋予 UID 1000 写权限
+      - type: bind
+        source: ${SANDBOX_WORKDIR:-/tmp/llm-harness-sandbox}
+        target: ${SANDBOX_WORKDIR:-/tmp/llm-harness-sandbox}
+        bind:
+          create_host_path: false
     # 宿主 socket 属主为 root:docker(GID 随主机而异)；用 `stat -c %g /var/run/docker.sock` 查询后覆盖
     group_add:
       - "${DOCKER_GID:-999}"
