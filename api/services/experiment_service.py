@@ -75,12 +75,13 @@ class ExperimentService:
         return self._session_factory()
 
     def _recover_interrupted(self) -> None:
+        """Preserve queued and running records owned by independent workers."""
         with self._session() as session, session.begin():
-            queued = set(
+            live_tasks = set(
                 session.scalars(
                     select(AsyncTask.entity_id).where(
                         AsyncTask.task_type == "experiment",
-                        AsyncTask.status.in_(("pending", "running")),
+                        AsyncTask.status.in_(("pending", "running", "paused")),
                     )
                 )
             )
@@ -88,7 +89,7 @@ class ExperimentService:
                 select(Experiment).where(Experiment.status.in_(("pending", "running")))
             )
             for row in rows:
-                if row.status == "pending" and row.id in queued:
+                if row.id in live_tasks:
                     continue
                 row.status = "failed"
                 row.error_message = "interrupted by service restart"
