@@ -178,6 +178,8 @@ class SelfConsistencyStrategy(StrategyBase):
             llm_responses=valid_llm_responses,
             execution_time_seconds=execution_time,
         )
+        # The base helper uses the last iteration; voting may select an earlier one.
+        execution_result.generated_code = voting_result["selected_code"]
 
         # Add voting statistics as metadata
         voting_metadata = {
@@ -208,14 +210,14 @@ class SelfConsistencyStrategy(StrategyBase):
         """
         Vote on passing candidate solutions and select the most frequent one.
 
-        When all candidates fail, returns the first candidate's result as a fallback
+        When all candidates fail, returns the last candidate's code and result as a fallback
         to preserve error information for debugging.
 
         Args:
             iterations: List of iteration results
 
         Returns:
-            Dictionary with voting results and final sandbox result
+            Dictionary with voting results, selected code and final sandbox result
         """
         # Collect passing candidates
         passing_candidates = []
@@ -243,6 +245,7 @@ class SelfConsistencyStrategy(StrategyBase):
         if not passing_candidates:
             return {
                 "success": False,
+                "selected_code": (iterations[-1].code_extracted or "") if iterations else "",
                 "final_sandbox_result": (iterations[-1].sandbox_result if iterations else None),
                 "voting_stats": {},
                 "selected_frequency": 0,
@@ -268,6 +271,7 @@ class SelfConsistencyStrategy(StrategyBase):
 
         return {
             "success": True,
+            "selected_code": selected_candidate["code"],
             "final_sandbox_result": selected_candidate["sandbox_result"],
             "voting_stats": voting_stats,
             "selected_frequency": frequency,

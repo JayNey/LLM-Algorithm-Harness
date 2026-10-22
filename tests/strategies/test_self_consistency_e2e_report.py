@@ -220,6 +220,93 @@ def test_execution_result_serialization_with_voting_stats(
     print("\n✓ ExecutionResult with voting stats successfully serialized and deserialized")
 
 
+@pytest.mark.parametrize(
+    "candidates, selected_index, expected_code, expected_status, frequency",
+    [
+        (["print(5)", "print(5)", "print(2 + 3)"], 0, "print(5)", "success", 2),
+        (["print(5)", "print(5)", "print(-1)"], 0, "print(5)", "success", 2),
+        (["print(5)", "print(5)", ""], 0, "print(5)", "success", 2),
+        (["print(5)", "print(5)", None], 0, "print(5)", "success", 2),
+        (["print(2 + 3)", "print(5)"], 0, "print(2 + 3)", "success", 1),
+        (["print(-1)", "print(5)", "print(-1)"], 1, "print(5)", "success", 1),
+        (["print(5)"], 0, "print(5)", "success", 1),
+        (["print(-1)"], 0, "print(-1)", "failed", 0),
+        (["print(-1)", ""], 1, "", "failed", 0),
+        ([None, None], 1, "", "failed", 0),
+    ],
+    ids=[
+        "last-passing-candidate-loses-vote",
+        "last-candidate-fails-tests",
+        "last-response-has-no-code",
+        "last-model-call-fails",
+        "tie-selects-first-seen-code",
+        "only-middle-candidate-passes",
+        "single-passing-candidate",
+        "single-failing-candidate",
+        "all-fail-last-has-no-code",
+        "all-model-calls-fail",
+    ],
+)
+def test_generated_code_matches_selected_candidate(
+    simple_problem, candidates, selected_index, expected_code, expected_status, frequency
+):
+    """The returned code and test results must describe the same selected candidate."""
+    client = MagicMock()
+    client.generate.side_effect = [
+        (
+            RuntimeError("api down")
+            if code is None
+            else LLMResponse(
+                text=f"```python\n{code}\n```" if code else "No solution found.",
+                usage=TokenUsage(prompt_tokens=2, completion_tokens=1, total_tokens=3),
+                model="test-model",
+                finish_reason="stop",
+            )
+        )
+        for code in candidates
+    ]
+    sandbox = MagicMock()
+
+    def execute(code, problem):
+        passed = code != "print(-1)"
+        return SandboxResult(
+            status="success" if passed else "failed",
+            all_passed=passed,
+            test_results=[
+                TestCaseResult(
+                    test_case_index=0,
+                    expected_output="5",
+                    actual_output="5" if passed else "-1",
+                    passed=passed,
+                    status="passed" if passed else "wrong_answer",
+                )
+            ],
+        )
+
+    sandbox.execute.side_effect = execute
+    config = StrategyConfig(
+        name="self_consistency", custom_params={"num_candidates": len(candidates)}
+    )
+
+    result = SelfConsistencyStrategy(config, client, sandbox).execute(simple_problem)
+
+    assert result.generated_code == expected_code
+    assert result.status == expected_status
+    selected_result = result.iterations[selected_index].sandbox_result
+    assert result.final_result == selected_result
+    assert result.test_results == (selected_result.test_results if selected_result else [])
+    assert [iteration.code_extracted for iteration in result.iterations] == [
+        code or None for code in candidates
+    ]
+    assert [iteration.iteration for iteration in result.iterations] == list(
+        range(1, len(candidates) + 1)
+    )
+    assert result.total_tokens == 3 * sum(code is not None for code in candidates)
+    assert len(result.llm_traces) == len(candidates) + 1
+    assert result.llm_traces[-1]["selected_code_frequency"] == frequency
+    assert result.model_dump()["generated_code"] == expected_code
+
+
 def test_invalid_num_candidates_falls_back_to_five(simple_problem):
     config = StrategyConfig(
         name="self_consistency",
