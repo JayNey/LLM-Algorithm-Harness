@@ -37,6 +37,7 @@ def _seed(db_session):
             problems=["p1"],
         )
     )
+    db_session.flush()
     db_session.add(
         BenchmarkRun(
             id=run_id,
@@ -197,11 +198,89 @@ def test_run_benchmark_task_rejects_non_pending(db_session):
 
 
 def test_execute_benchmark_disables_recovery():
-    with patch("api.services.benchmark_service.BenchmarkService") as service_cls:
+    with (
+        patch("api.services.benchmark_service.BenchmarkService") as service_cls,
+        patch("api.auth.config.AuthSettings") as settings_cls,
+        patch("api.auth.service.AuthService") as auth_cls,
+    ):
         execute_benchmark("run-1", "owner-1")
 
-    service_cls.assert_called_once_with(recover=False)
+    auth_cls.assert_called_once_with(settings_cls.return_value)
+    service_cls.assert_called_once_with(auth=auth_cls.return_value, recover=False)
     service_cls.return_value._execute.assert_called_once_with("run-1", "owner-1")
+    service_cls.return_value._engine.dispose.assert_called_once_with()
+
+
+def test_execute_benchmark_disposes_engine_on_error():
+    with (
+        patch("api.services.benchmark_service.BenchmarkService") as service_cls,
+        patch("api.auth.config.AuthSettings"),
+        patch("api.auth.service.AuthService"),
+    ):
+        service_cls.return_value._execute.side_effect = RuntimeError("executor failed")
+        with pytest.raises(RuntimeError, match="executor failed"):
+            execute_benchmark("run-1", "owner-1")
+
+    service_cls.return_value._engine.dispose.assert_called_once_with()
+
+
+@pytest.mark.parametrize("key_owner", ["owner-1", "other-owner"])
+def test_real_benchmark_task_resolves_owned_credentials(tmp_path, monkeypatch, key_owner):
+    from cryptography.fernet import Fernet
+
+    from api.auth.config import AuthSettings
+    from api.auth.models import KeyCreate
+    from api.auth.service import AuthService
+    from api.config import settings
+    from api.services.benchmark_service import BenchmarkService
+
+    monkeypatch.setenv("SECRET_KEY", "benchmark-task-test-secret-at-least-32-bytes")
+    monkeypatch.setenv("ENCRYPTION_KEY", Fernet.generate_key().decode())
+    monkeypatch.setenv("AUTH_DATABASE_PATH", str(tmp_path / "auth.sqlite3"))
+    monkeypatch.setattr(settings, "DATA_ROOT", str(tmp_path))
+    dataset = tmp_path / "problems.json"
+    dataset.write_text("[]", encoding="utf-8")
+    auth = AuthService(AuthSettings())
+    auth.store.add_user(key_owner, key_owner, f"{key_owner}@example.com", "unused-test-hash")
+    key = auth.add_key(
+        key_owner,
+        KeyCreate(provider="openai", key_name="offline", api_key="sk-benchmark-offline"),
+    )
+    service = BenchmarkService(recover=False)
+    try:
+        with service._session() as session:
+            run_id, user_id = _seed(session)
+            session.get(BenchmarkRun, run_id).config = {
+                "api_key_id": key["id"],
+                "model": "demo",
+                "dataset_path": "problems.json",
+                "strategies": [],
+            }
+            session.commit()
+
+        with patch("src.benchmark.executor.BenchmarkExecutor.execute", autospec=True) as execute:
+            execute.return_value = {"accuracy": 0.75, "cost_usd": 1.25, "summary": {}}
+            result = run_benchmark_task(run_id, user_id)
+
+        with service._session() as session:
+            run = session.get(BenchmarkRun, run_id)
+            task = session.query(AsyncTask).filter_by(entity_id=run_id).one()
+            if key_owner == user_id:
+                assert result["status"] == run.status == task.status == "completed"
+                assert run.accuracy == 0.75
+                assert run.cost_usd == 1.25
+                execute.assert_called_once()
+                config = execute.call_args.args[0].config.llm_config
+                assert config.api_key.get_secret_value() == "sk-benchmark-offline"
+                assert config.provider == "openai"
+                assert config.model == "demo"
+            else:
+                assert result["status"] == run.status == task.status == "failed"
+                assert "API key not found" in run.error_message
+                assert task.error_message == run.error_message
+                execute.assert_not_called()
+    finally:
+        service._engine.dispose()
 
 
 def test_run_benchmark_task_keeps_paused_status(db_session):

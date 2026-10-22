@@ -1,0 +1,6 @@
+{
+  "openspec_proposal": "openspec/changes/fix-celery-benchmark-auth/proposal.md",
+  "openspec_design": "openspec/changes/fix-celery-benchmark-auth/design.md",
+  "openspec_tasks": "openspec/changes/fix-celery-benchmark-auth/tasks.md",
+  "archive_directory": "openspec/changes/archive/2026-10-22-fix-celery-benchmark-auth"
+}
