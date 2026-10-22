@@ -143,6 +143,8 @@ python3 scripts/seed_data.py --database-url sqlite:///./data/business/seed-demo.
 | 生产 `compose up` 报 `DATABASE_PASSWORD must be set` | `.env` 缺 `DATABASE_PASSWORD`（生产编排强制要求） |
 | API 容器反复重启 | `docker compose -f docker-compose.prod.yml logs api`；常见为 postgres 未就绪或迁移失败 |
 | worker 不消费任务 | 确认 `CELERY_BROKER_URL` 与 api 一致；`docker compose logs worker` 看队列名（`evaluations`、`default`） |
+| worker 内 `docker` 命令 permission denied（Linux） | `DOCKER_GID` 与宿主 docker 组不一致：`stat -c %g /var/run/docker.sock` 后更新 `.env` 并重建 |
+| worker 内 `docker` 命令 permission denied（macOS Docker Desktop） | Desktop 的 socket 在 VM 内属 `root:root 660`，`group_add` 无法匹配；沙箱宿主 docker 调用仅支持 Linux 宿主机，Desktop 上验证部署时忽略该项 |
 | WebSocket 连不上 | 确认经 nginx 访问（`/api/v1/ws` 前缀带升级头）；直连时检查代理是否剥离 `Upgrade` 头 |
 | 上传 413 | nginx `client_max_body_size` 小于 `FILE_UPLOAD_MAX_BYTES`；两侧对齐 |
 | 集成测试全部 skip | redis 未启动：`docker compose up -d redis` |

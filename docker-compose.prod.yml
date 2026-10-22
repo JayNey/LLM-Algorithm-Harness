@@ -114,13 +114,16 @@ services:
     build:
       context: .
       dockerfile: Dockerfile.worker
-    image: llm-harness-worker:latest
+    image: llm-harness-beat:latest
     restart: unless-stopped
-    command: ["sh", "-c", "celery -A src.celery_app beat --loglevel=${LOG_LEVEL:-INFO}"]
+    command: ["sh", "-c", "celery -A src.celery_app beat --loglevel=${LOG_LEVEL:-INFO} -s /app/data/celerybeat-schedule"]
     environment:
       CELERY_BROKER_URL: redis://redis:6379/0
       CELERY_RESULT_BACKEND: redis://redis:6379/0
       LOG_FORMAT: json
+    volumes:
+      # beat 调度文件落在 /app/data（非 root 可写），随卷持久化避免重建后调度漂移
+      - task_data:/app/data
     healthcheck:
       test: ["CMD-SHELL", "pgrep -f '[c]elery.*beat'"]
       interval: 30s
