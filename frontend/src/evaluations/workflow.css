@@ -1,6 +1,45 @@
 .evaluation-workflow {
   min-width: 0;
 }
+.evaluation-list-scroll {
+  max-width: 100%;
+  overflow-x: auto;
+}
+.evaluation-list-scroll:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+.evaluation-list-table {
+  width: 100%;
+  min-width: 760px;
+  border-collapse: collapse;
+  text-align: left;
+}
+.evaluation-list-table th,
+.evaluation-list-table td {
+  padding: 16px 12px;
+  border-bottom: 1px solid var(--line);
+  vertical-align: top;
+  overflow-wrap: anywhere;
+  max-width: 260px;
+}
+.evaluation-list-table th {
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 500;
+}
+.evaluation-list-table small {
+  display: block;
+  color: var(--muted);
+  margin-top: 6px;
+}
+.evaluation-workflow .evaluation-section-heading .ant-select {
+  width: 180px;
+}
+.evaluation-workflow .ant-empty a {
+  display: inline-block;
+  margin-left: 12px;
+}
 .evaluation-panel {
   padding: 24px;
   margin-bottom: 20px;
