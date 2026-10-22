@@ -59,7 +59,6 @@ const report = {
     'session provider',
     'creation store',
     'evaluation client',
-    'creation/detail pages',
   ],
 }
 function check(name, fn) {
@@ -228,7 +227,7 @@ async function fixture(mode = 'start-error', entry = '/evaluations/new') {
       const offset = Number(url.searchParams.get('offset'))
       const status = url.searchParams.get('status')
       let items = Array.from(
-        { length: mode === 'list-shrunk' ? 1 : 42 },
+        { length: mode === 'list-shrunk' ? 21 : 42 },
         (_, i) => ({
           ...evaluation,
           evaluation_id: `owned-evaluation-${i + 1}`,
@@ -317,6 +316,7 @@ async function configure(page) {
   await page.getByRole('checkbox', { name: '选择题目 p1', exact: true }).check()
 }
 async function createScenario() {
+  report.real.push('creation/detail pages')
   const { page, context, calls, errors } = await fixture()
   await choose(page, 'API 密钥', '密钥 A · openai')
   await page.getByText('模型列表未完整加载', { exact: false }).waitFor()
@@ -845,6 +845,175 @@ async function securityScenario() {
   await page.close()
 }
 
+async function listLifecycleScenario() {
+  report.replaced.push(
+    'list lifecycle only: isolated HTML and in-memory list loader (ignores AbortSignal)',
+  )
+  const page = await browser.newPage()
+  await page.route(`${base}/`, (route) =>
+    route.fulfill({
+      contentType: 'text/html',
+      body: `<div id="root"></div><script type="module">import RefreshRuntime from '/@react-refresh';RefreshRuntime.injectIntoGlobalHook(window);window.$RefreshReg$=()=>{};window.$RefreshSig$=()=>type=>type;window.__vite_plugin_react_preamble_installed__=true;window.ready=true;</script>`,
+    }),
+  )
+  await page.goto(`${base}/`)
+  await page.waitForFunction(() => window.ready)
+  const result = await page.evaluate(async () => {
+    const mainText = await (await fetch('/src/main.tsx')).text()
+    const sessionText = await (
+      await fetch('/src/evaluations/session.tsx')
+    ).text()
+    const dependency = (source, name) =>
+      source.match(
+        new RegExp('"(/node_modules/[^"]*/' + name + '\\.js[^"]*)"'),
+      )[1]
+    const { default: React } = await import(dependency(sessionText, 'react'))
+    const {
+      default: { createRoot },
+    } = await import(dependency(mainText, 'react-dom_client'))
+    const { useList } = await import('/src/evaluations/useList.ts')
+    const { ApiClientError } = await import('/src/auth/http.ts')
+    const requests = []
+    const snapshots = []
+    let reload
+    // Deliberately ignore cancellation: isolation must hold independently.
+    const load = (query, signal) =>
+      new Promise((resolve, reject) =>
+        requests.push({ query, signal, resolve, reject }),
+      )
+    function Harness({ owner, status }) {
+      const state = useList(load, { status, limit: 20, offset: 0 }, owner)
+      React.useLayoutEffect(() => {
+        reload = state.reload
+        snapshots.push({
+          owner,
+          query: status,
+          status: state.status,
+          rows: state.data?.items ?? null,
+          error: state.error,
+        })
+      })
+      return null
+    }
+    const root = createRoot(document.getElementById('root'))
+    const render = (owner, status) =>
+      root.render(
+        React.createElement(
+          React.StrictMode,
+          null,
+          React.createElement(Harness, { owner, status }),
+        ),
+      )
+    const waitFor = async (condition) => {
+      const deadline = Date.now() + 3000
+      while (!condition()) {
+        if (Date.now() > deadline)
+          throw new Error('List lifecycle did not settle')
+        await new Promise((resolve) => setTimeout(resolve, 10))
+      }
+    }
+    const tick = () => new Promise((resolve) => setTimeout(resolve, 40))
+    const response = (items) => ({
+      items,
+      total: items.length,
+      limit: 20,
+      offset: 0,
+      has_more: false,
+    })
+    const last = () => snapshots.at(-1)
+    render('owner-A', 'running')
+    await waitFor(() => requests.length >= 2)
+    const staleQueries = requests.slice()
+    render('owner-A', 'completed')
+    await waitFor(() =>
+      requests.some((request) => request.query.status === 'completed'),
+    )
+    requests.at(-1).resolve(response(['A-completed']))
+    await waitFor(() => last().rows?.[0] === 'A-completed')
+    for (const request of staleQueries) request.resolve(response(['A-running']))
+    await tick()
+    const afterStaleQuery = last()
+    let count = requests.length
+    reload()
+    await waitFor(() => requests.length > count)
+    const staleOwner = requests.at(-1)
+    render('owner-B', 'completed')
+    await waitFor(
+      () => last().owner === 'owner-B' && requests.at(-1) !== staleOwner,
+    )
+    const initialOwnerB = snapshots.find(
+      (snapshot) => snapshot.owner === 'owner-B',
+    )
+    requests.at(-1).resolve(response(['B-completed']))
+    await waitFor(() => last().rows?.[0] === 'B-completed')
+    staleOwner.resolve(response(['A-late']))
+    await tick()
+    const afterStaleOwner = last()
+    count = requests.length
+    reload()
+    await waitFor(() => requests.length > count)
+    requests.at(-1).reject(new ApiClientError(''))
+    await waitFor(() => last().status === 'error')
+    const error = last()
+    count = requests.length
+    reload()
+    await waitFor(() => requests.length > count)
+    requests.at(-1).resolve(response([]))
+    await waitFor(() => last().status === 'ready')
+    const empty = last()
+    count = requests.length
+    reload()
+    await waitFor(() => requests.length > count)
+    const unmounted = requests.at(-1)
+    root.unmount()
+    const commitsAtUnmount = snapshots.length
+    unmounted.resolve(response(['after-unmount']))
+    await tick()
+    return {
+      afterStaleQuery,
+      initialOwnerB,
+      afterStaleOwner,
+      error,
+      empty,
+      unmountAborted: unmounted.signal.aborted,
+      commitsAtUnmount,
+      commitsAfterUnmount: snapshots.length,
+      leaked: snapshots.some(
+        (snapshot) =>
+          (snapshot.owner === 'owner-B' &&
+            snapshot.rows?.some((row) => row.startsWith('A-'))) ||
+          (snapshot.query === 'completed' &&
+            snapshot.rows?.includes('A-running')),
+      ),
+    }
+  })
+  check('忽略AbortSignal的旧查询不能覆盖新查询', () =>
+    assert.deepEqual(result.afterStaleQuery.rows, ['A-completed']),
+  )
+  check('换owner首个提交立即隐藏旧数据', () =>
+    assert.deepEqual(
+      { status: result.initialOwnerB.status, rows: result.initialOwnerB.rows },
+      { status: 'loading', rows: null },
+    ),
+  )
+  check('旧owner迟到不写入新会话或短暂闪现', () => {
+    assert.deepEqual(result.afterStaleOwner.rows, ['B-completed'])
+    assert.equal(result.leaked, false)
+  })
+  check('失败不变空集，重试后可呈现合法空页', () => {
+    assert.equal(result.error.status, 'error')
+    assert.equal(result.error.rows, null)
+    assert.ok(result.error.error)
+    assert.equal(result.empty.status, 'ready')
+    assert.deepEqual(result.empty.rows, [])
+  })
+  check('卸载取消请求且迟到完成不再提交', () => {
+    assert.equal(result.unmountAborted, true)
+    assert.equal(result.commitsAfterUnmount, result.commitsAtUnmount)
+  })
+  await page.close()
+}
+
 async function listScenario() {
   report.replaced.push('HTTP GET /api/v1/evaluations list/filter/page')
   report.real.push('owned evaluation list page', 'useList lifecycle')
@@ -930,9 +1099,50 @@ async function listScenario() {
   })
   await loading.page.goBack()
   await table
-    .getByRole('link', { name: 'owned-evaluation-21', exact: true })
+    .getByRole('link', { name: 'owned-evaluation-40', exact: true })
     .waitFor()
   report.assertions.push({ name: '浏览器后退恢复旧分页', pass: true })
+  const beforeStyles = loading.calls.filter(
+    (call) => call.path === '/evaluations',
+  ).length
+  for (const variant of ['orbit', 'precision', 'studio']) {
+    await loading.page
+      .getByLabel('选择页面风格', { exact: true })
+      .selectOption(variant)
+    await table
+      .getByRole('link', { name: 'owned-evaluation-40', exact: true })
+      .waitFor()
+    check(`${variant}保留URL分页与已加载任务`, () => {
+      assert.equal(new URL(loading.page.url()).searchParams.get('offset'), '20')
+      assert.equal(
+        loading.calls.filter((call) => call.path === '/evaluations').length,
+        beforeStyles,
+      )
+    })
+  }
+  await loading.page
+    .getByRole('button', { name: '下一页任务', exact: true })
+    .click()
+  await table
+    .getByRole('link', { name: 'owned-evaluation-41', exact: true })
+    .waitFor()
+  assert.equal(await table.getByRole('row').count(), 3)
+  assert.equal(
+    await loading.page
+      .getByRole('button', { name: '下一页任务', exact: true })
+      .isDisabled(),
+    true,
+  )
+  await loading.page
+    .getByRole('button', { name: '上一页任务', exact: true })
+    .click()
+  await table
+    .getByRole('link', { name: 'owned-evaluation-40', exact: true })
+    .waitFor()
+  report.assertions.push({
+    name: '最后一页只显示剩余记录并禁用下一页，可返回上一页',
+    pass: true,
+  })
   for (const width of [390, 1440]) {
     await loading.page.setViewportSize({ width, height: 1000 })
     assert.ok(
@@ -958,7 +1168,7 @@ async function listScenario() {
     0,
   )
   error.recoverList()
-  await error.page.getByRole('button', { name: '重试', exact: true }).click()
+  await error.page.getByRole('button', { name: /^重\s*试$/ }).click()
   await error.page
     .getByRole('table', { name: '评估任务列表' })
     .getByRole('link', { name: 'owned-evaluation-3', exact: true })
@@ -985,19 +1195,46 @@ async function listScenario() {
     } else {
       await item.page
         .getByRole('table', { name: '评估任务列表' })
-        .getByRole('link', { name: 'owned-evaluation-1', exact: true })
+        .getByRole('link', { name: 'owned-evaluation-21', exact: true })
         .waitFor()
     }
     check(`${mode}超页回到有效offset`, () => {
-      assert.equal(new URL(item.page.url()).searchParams.get('offset'), '0')
+      const expectedOffset = mode === 'list-empty' ? '0' : '20'
+      assert.equal(
+        new URL(item.page.url()).searchParams.get('offset'),
+        expectedOffset,
+      )
       assert.ok(
         item.calls.some(
-          (c) => c.path === '/evaluations' && c.query === '?limit=20&offset=0',
+          (c) =>
+            c.path === '/evaluations' &&
+            c.query === `?limit=20&offset=${expectedOffset}`,
         ),
       )
     })
     await item.context.close()
   }
+  const filtered = await fixture(
+    'list',
+    '/evaluations?status=paused&limit=20&offset=0',
+  )
+  await filtered.page
+    .getByText('没有符合筛选的评估任务', { exact: true })
+    .waitFor()
+  await filtered.page
+    .getByRole('button', { name: '清除筛选', exact: true })
+    .click()
+  await filtered.page
+    .getByRole('table', { name: '评估任务列表' })
+    .getByRole('link', { name: 'owned-evaluation-1', exact: true })
+    .waitFor()
+  check('筛选空集可清除筛选，和账号空集区别显示', () =>
+    assert.equal(
+      new URL(filtered.page.url()).searchParams.has('status'),
+      false,
+    ),
+  )
+  await filtered.context.close()
   const stale = await fixture(
     'list-stale',
     '/evaluations?status=running&limit=20&offset=0',
@@ -1021,6 +1258,7 @@ async function listScenario() {
     ),
   )
   await stale.context.close()
+  await listLifecycleScenario()
 }
 
 try {
