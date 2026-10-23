@@ -1,6 +1,7 @@
 """API tests for cost tracking, budgets, alerts and pricing (issue #154)."""
 
 import secrets
+from datetime import datetime
 from unittest.mock import Mock, patch
 
 import pytest
@@ -9,7 +10,7 @@ from fastapi.testclient import TestClient
 from sqlalchemy.orm import Session
 
 from api.auth.config import AuthSettings
-from api.db.models import Evaluation, utcnow
+from api.db.models import BenchmarkRun, BenchmarkSuite, Evaluation, utcnow
 from api.files.config import FileSettings
 from api.main import create_app
 
@@ -122,6 +123,20 @@ def api(tmp_path):
 
 
 class TestCostQueries:
+    def test_breakdown_preserves_saved_models(self, model_costs):
+        client, headers = model_costs
+        response = client.get(
+            "/api/v1/costs/breakdown", headers=headers, params={"since": "2000-01-01"}
+        )
+        assert response.status_code == 200, response.text
+        breakdown = response.json()["data"]
+        assert breakdown["by_model"] == {
+            "gpt-4o-mini": 0.9,
+            "other-model": 0.7,
+            "evaluation-run": 0.24,
+        }
+        assert breakdown["by_source"] == {"evaluations": 1.44, "benchmarks": 0.4}
+
     def test_task_cost_summary_trends_and_breakdown(self, api):
         client, headers, key_id, app = api
         task_id, view = _completed_evaluation(client, headers, key_id, app)
@@ -428,6 +443,21 @@ class TestPricing:
 
 
 class TestReports:
+    def test_optimization_groups_by_saved_model_and_strategy(self, model_costs):
+        client, headers = model_costs
+        response = client.get("/api/v1/reports/cost-optimization", headers=headers)
+        assert response.status_code == 200, response.text
+        ranking = response.json()["data"]["ranking"]["ranking"]
+        rows = {(row["model"], row["strategy"]): row for row in ranking}
+        assert len(ranking) == len(rows) == 5
+        assert rows[("gpt-4o-mini", "vanilla")]["cost_usd"] == 0.5
+        assert rows[("gpt-4o-mini", "vanilla")]["accuracy"] == 0.5
+        assert rows[("other-model", "vanilla")]["cost_usd"] == 0.7
+        assert rows[("other-model", "vanilla")]["accuracy"] == 0
+        assert rows[("evaluation-run", "vanilla")]["cost_usd"] == 0.24
+        assert rows[("gpt-4o-mini", "benchmark")]["cost_usd"] == 0.4
+        assert rows[("old-model", "vanilla")]["cost_usd"] == 0.8
+
     def test_task_report_and_optimization(self, api):
         client, headers, key_id, app = api
         task_id, _ = _completed_evaluation(client, headers, key_id, app)
@@ -442,3 +472,67 @@ class TestReports:
         assert "ranking" in optimization
         ranked = optimization["ranking"]["ranking"]
         assert ranked and ranked[0]["cost_usd"] > 0
+
+
+@pytest.fixture
+def model_costs(api):
+    """Mix saved model names, legacy rows and benchmark spend without a worker."""
+    client, headers, key_id, app = api
+    task_id, _ = _completed_evaluation(client, headers, key_id, app)
+    with Session(app.state.evaluations.engine) as session, session.begin():
+        owner_id = session.get(Evaluation, task_id).user_id
+        session.add(BenchmarkSuite(id="cost-suite", name="Cost suite", user_id=owner_id))
+        session.flush()
+        for row_id, model, cost, completed in [
+            ("same-model", "gpt-4o-mini", 0.3, 0),
+            ("other-model", "other-model", 0.7, 0),
+            ("legacy-null", None, 0.11, 1),
+            ("legacy-empty", "", 0.13, 1),
+        ]:
+            session.add(
+                Evaluation(
+                    id=row_id,
+                    user_id=owner_id,
+                    model=model,
+                    status="completed",
+                    strategy_names=["vanilla"],
+                    problem_count=1,
+                    completed_count=completed,
+                    spent_usd=cost,
+                )
+            )
+        session.add_all(
+            [
+                BenchmarkRun(
+                    id="benchmark",
+                    suite_id="cost-suite",
+                    user_id=owner_id,
+                    model="gpt-4o-mini",
+                    status="completed",
+                    cost_usd=0.4,
+                    accuracy=0.8,
+                ),
+                Evaluation(
+                    id="foreign",
+                    user_id="another-owner",
+                    model="foreign-model",
+                    status="completed",
+                    strategy_names=["vanilla"],
+                    problem_count=1,
+                    completed_count=1,
+                    spent_usd=99,
+                ),
+                Evaluation(
+                    id="old",
+                    user_id=owner_id,
+                    model="old-model",
+                    status="completed",
+                    strategy_names=["vanilla"],
+                    problem_count=1,
+                    completed_count=1,
+                    spent_usd=0.8,
+                    created_at=datetime(1999, 1, 1),
+                ),
+            ]
+        )
+    return client, headers
