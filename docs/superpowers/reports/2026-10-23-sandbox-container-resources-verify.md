@@ -46,3 +46,5 @@
 运行期间 main 又新增 #241（worker running 检查点恢复），只涉及其他 worker 文件及测试，不与本轮文件冲突；本次完整回归的代码基线仍明确为8d8714f，不冒称对新主线已重跑全库。交付 PR 的 base 为 main，最新平台结果按 PR 头与检查记录核对。
 
 #157 的 LLM 性能、跨 worker 缓存和新增配额等仍未完成，保持开放。新提交显式排除 .comet/.claude/.codex/.agents/skills-lock.json，未自动归档或合并。
+
+PR #243 已创建，base=main，Refs #157；本轮功能、回归、真实 Docker 与复审证据已提交。平台 CI 的结论以最终头为准，创建 PR 不代表 CI 已完成。
