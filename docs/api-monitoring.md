@@ -196,3 +196,16 @@ ps 与 stats 分享0.5–10秒命令预算，各自接受的合计输出上限64
 `avg_execution_time_seconds` 是 completed/failed 且开始、结束时间均存在且顺序有效的任务的平均墙钟秒数，`duration_sample_count` 给出耗时样本数。耗时从首次执行开始到最终结束，排除首次排队等待，包含暂停及重试间隔，不表示 CPU 活跃执行时间。重复通知保留已有时间，失败后重新执行保留首次开始并清空旧结束时间。
 
 `completed`、`failed` 只计已记录开始时间的相应终态任务；`success_rate=completed/(completed+failed)`（0–1）表示任务正常完成率，不代表算法答题准确率。取消、等待、运行、暂停和未开始的发布失败不计入；时间缺失或逆序的已开始终态任务仍计入成功率，但不进入耗时样本。无样本时相应指标为 null，数据库不可用时 status=unavailable、计数及指标均为 null，不返回底层异常。
+
+
+## 真实队列长度
+
+启用 `MONITOR_QUEUE_PROBES_ENABLED=true` 后，`health/redis` 的 `broker_queue` 返回 `status/reason/waiting/queues`，`queues` 为 `{name, waiting}` 列表。队列来自实际 Celery `task_queues`（当前为 default、evaluations），每队列等待数覆盖所有 `priority_steps` 分桶，遵循 `sep` 和 `global_keyprefix`。只执行 PING 和 LLEN，不扫描键、不读取消息、不消费任务；没有配置的队列及 unacked 不计入。
+
+`system/status` 的 `queue_metrics` 分别展示：
+
+- `broker_queue.waiting`：Redis 中尚未交给 worker 的消息总数，附各队列计数和缓存年龄。
+- `database_pending.count`：持久化 AsyncTask 的 pending 记录数，保留数据库来源和状态。
+- `worker_reserved.count`：回复 worker 已接收且尚未执行的数量，`cluster_complete=false`，附缓存年龄。
+
+三项观测独立且非原子，不相加、不互相推算。Redis 正常空队列返回 0；关闭探测、配置非法、超时、连接/LLEN 失败或协议异常时等待数为 null。PING 状态与 `broker_queue.status` 独立：PING 成功不能证明 LLEN 权限或队列观测成功。现有 queued 任务列表仍只查询数据库 pending。

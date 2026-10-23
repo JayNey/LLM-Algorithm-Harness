@@ -23,6 +23,15 @@ class QueueProbes:
         *,
         clock: Callable[[], float] = time.monotonic,
     ):
+        from src.celery_app import celery_app
+
+        options = celery_app.conf.broker_transport_options or {}
+        self._queue_config = {
+            "queues": sorted(celery_app.amqp.queues),
+            "priority_steps": options.get("priority_steps", [0, 3, 6, 9]),
+            "sep": options.get("sep", "\x06\x16"),
+            "global_keyprefix": options.get("global_keyprefix", ""),
+        }
         self.settings = settings
         self._broker_url = broker_url
         self._lock = threading.Lock()
@@ -37,7 +46,11 @@ class QueueProbes:
             "infrastructure_available": True,
             "timeout_seconds": self.settings.MONITOR_QUEUE_TIMEOUT_SECONDS,
             **(
-                {"backend": "redis"}
+                {
+                    "backend": "redis",
+                    "queue_scope": "configured_business_queues",
+                    "queue_excludes": ["worker_reserved", "active", "unacked", "worker_scheduled"],
+                }
                 if kind == "redis"
                 else {
                     "cluster_complete": False,
@@ -96,7 +109,12 @@ class QueueProbes:
             self._processes[kind] = process
         timeout = self.settings.MONITOR_QUEUE_TIMEOUT_SECONDS
         payload = json.dumps(
-            {"kind": kind, "broker_url": self._broker_url, "timeout": min(1.0, timeout / 3)}
+            {
+                "kind": kind,
+                "broker_url": self._broker_url,
+                "timeout": min(1.0, timeout / 3),
+                "queue_config": self._queue_config if kind == "redis" else None,
+            }
         ).encode("utf-8")
         try:
             output, _ = process.communicate(

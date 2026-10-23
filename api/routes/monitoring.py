@@ -130,6 +130,7 @@ def system_status(
     snapshot = monitor.task_snapshot()
     async_snapshot = monitor.task_snapshot(task_source="async_task")
     health = monitor.health()
+    redis_observation = health["checks"].get("redis", {})
     return answer(
         {
             "uptime_seconds": round(time.monotonic() - monitor.started, 3),
@@ -146,6 +147,39 @@ def system_status(
             "health": health,
             "resources": monitor.probes.resources(),
             "workers": health["checks"]["workers"],
+            "queue_metrics": {
+                "broker_queue": {
+                    **redis_observation.get(
+                        "broker_queue",
+                        {
+                            "status": "unknown",
+                            "waiting": None,
+                            "queues": None,
+                        },
+                    ),
+                    "source": "redis_broker",
+                    "scope": "configured_business_queues",
+                    "cached": redis_observation.get("cached", False),
+                    "age_seconds": redis_observation.get("age_seconds"),
+                },
+                "database_pending": {
+                    "status": async_snapshot["status"],
+                    "source": async_snapshot["source"],
+                    "count": (
+                        async_snapshot["counts"].get("pending", 0)
+                        if async_snapshot["status"] == "ok"
+                        else None
+                    ),
+                },
+                "worker_reserved": {
+                    "status": health["checks"]["workers"]["status"],
+                    "source": "responding_celery_workers",
+                    "count": health["checks"]["workers"].get("reserved"),
+                    "cluster_complete": False,
+                    "cached": health["checks"]["workers"].get("cached", False),
+                    "age_seconds": health["checks"]["workers"].get("age_seconds"),
+                },
+            },
             "containers": monitor.probes.containers(),
         }
     )

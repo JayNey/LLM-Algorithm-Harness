@@ -556,7 +556,7 @@ OPERATIONS: dict[str, tuple[str, Any]] = {
         {"status": "ok", "business_database": {"status": "ok", "read_only": True}},
     ),
     "redis_health": (
-        "查询配置的 Redis broker；默认关闭，设置 MONITOR_QUEUE_PROBES_ENABLED=true 后执行有超时和缓存的 PING。",
+        "查询配置的 Redis broker；默认关闭，设置 MONITOR_QUEUE_PROBES_ENABLED=true 后执行有超时和缓存的 PING，并只读采集配置业务队列的等待数量。",
         {
             "status": "not_checked",
             "reason": "disabled",
@@ -564,6 +564,14 @@ OPERATIONS: dict[str, tuple[str, Any]] = {
             "infrastructure_available": True,
             "timeout_seconds": 3.0,
             "backend": "redis",
+            "queue_scope": "configured_business_queues",
+            "queue_excludes": ["worker_reserved", "active", "unacked", "worker_scheduled"],
+            "broker_queue": {
+                "status": "not_checked",
+                "reason": "disabled",
+                "waiting": None,
+                "queues": None,
+            },
             "latency_ms": None,
             "cached": False,
             "age_seconds": None,
