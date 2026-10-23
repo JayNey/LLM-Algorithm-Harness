@@ -168,9 +168,7 @@ class MonitorService:
         status = (
             "degraded"
             if any(item["status"] in {"unavailable", "unknown"} for item in checks.values())
-            else "healthy"
-            if all(item["status"] == "ok" for item in checks.values())
-            else "partial"
+            else "healthy" if all(item["status"] == "ok" for item in checks.values()) else "partial"
         )
         return {
             "status": status,

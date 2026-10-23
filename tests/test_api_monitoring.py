@@ -100,6 +100,21 @@ def test_current_role_matches_live_operator_configuration(api):
     assert client.get("/api/v1/system/status", headers=headers(admin)).status_code == 403
 
 
+def test_llm_statistics_are_real_and_admin_only(api):
+    client, admin, user, app, _, _, _ = api
+    app.state.monitor.store.record_llm_call(True, 100)
+    app.state.monitor.store.record_llm_call(False, 300)
+    assert client.get("/api/v1/metrics/llm-stats").status_code == 401
+    assert client.get("/api/v1/metrics/llm-stats", headers=headers(user)).status_code == 403
+    response = client.get("/api/v1/metrics/llm-stats", headers=headers(admin))
+    assert response.status_code == 200
+    stats = response.json()["data"]
+    assert stats["total_calls"] == 2
+    assert stats["successful_calls"] == stats["failed_calls"] == 1
+    assert stats["success_rate"] == 0.5 and stats["avg_latency_ms"] == 200
+    assert response.headers["cache-control"] == "no-store"
+
+
 def test_profile_update_cannot_grant_role(api):
     client, _, user, *_ = api
     response = client.patch(
