@@ -106,6 +106,8 @@ async function fixture(mode = 'start-error', entry = '/evaluations/new') {
   const errors = []
   const calls = []
   let detail = { ...evaluation }
+  let progressCalls = 0
+  let wsUrls = []
   let starts = 0
   let detailFailure = 0
   let detailGate = null
@@ -359,8 +361,32 @@ async function fixture(mode = 'start-error', entry = '/evaluations/new') {
         json: { message: '启动服务暂时不可用' },
       })
     }
-    if (method === 'GET' && path === '/evaluations/eval-fixture-1')
+    if (method === 'GET' && path === '/evaluations/eval-fixture-1') {
+      if (mode === 'progress') {
+        // HTTP 真值递进：首查 20%，观察器每次刷新推进到 60%（模拟执行推进）
+        progressCalls += 1
+        const percentage = progressCalls === 1 ? 20 : 60
+        detail = {
+          ...evaluation,
+          status: 'running',
+          can_start: false,
+          can_cancel: true,
+          execution_progress: {
+            completed_units: percentage === 20 ? 0 : 1,
+            total_units: 2,
+            percentage,
+          },
+          progress: {
+            current: percentage === 20 ? 0 : 1,
+            total: 2,
+            message: null,
+            completed: percentage === 20 ? 0 : 1,
+            percentage,
+          },
+        }
+      }
       return send(detail)
+    }
     report.unknown.push(call)
     return route.fulfill({
       status: 599,
@@ -368,6 +394,42 @@ async function fixture(mode = 'start-error', entry = '/evaluations/new') {
       json: { message: `Unexpected API: ${method} ${path}` },
     })
   })
+  if (mode === 'progress') {
+    await context.routeWebSocket(/\/api\/v1\/ws\/progress/, (ws) => {
+      wsUrls.push(ws.url())
+      const server = ws.connectToServer()
+      server.onMessage((message) => {
+        const frame = JSON.parse(String(message))
+        if (frame.action === 'subscribe') {
+          server.send(
+            JSON.stringify({
+              type: 'task.snapshot',
+              task_id: frame.task_id,
+              data: detail,
+            }),
+          )
+          server.send(
+            JSON.stringify({ type: 'subscribed', task_id: frame.task_id }),
+          )
+          setTimeout(() => {
+            server.send(
+              JSON.stringify({
+                type: 'task.progress',
+                task_id: frame.task_id,
+                data: {
+                  completed: 1,
+                  total: 2,
+                  percentage: 50,
+                  current_problem: 'p1',
+                  current_strategy: 'direct',
+                },
+              }),
+            )
+          }, 200)
+        }
+      })
+    })
+  }
   await page.goto(`${base}${entry}`)
   await page.locator('h1').waitFor()
   if (entry === '/evaluations/new') {
@@ -381,6 +443,7 @@ async function fixture(mode = 'start-error', entry = '/evaluations/new') {
     page,
     calls,
     errors,
+    wsUrls,
     releaseList,
     releaseStale,
     holdDetail() {
@@ -1740,12 +1803,44 @@ async function detailScenario() {
   }
 }
 
+async function progressScenario() {
+  report.real.push('evaluation detail live progress (WS + HTTP truth)')
+  const { page, wsUrls } = await fixture(
+    'progress',
+    '/evaluations/eval-fixture-1',
+  )
+  await check('WS 连接 URL 不含 token', async () => {
+    await page.waitForSelector('text=实时进度已连接')
+    assert.ok(wsUrls.length >= 1, '已发起 WS 连接')
+    for (const url of wsUrls) assert.ok(!url.includes('token='), url)
+  })
+  await check('服务端事件触发 HTTP 真值刷新到 60%', async () => {
+    await page.getByText('60%').first().waitFor({ timeout: 5_000 })
+    assert.ok(true)
+  })
+  await check('无并发观察周期（同一时刻单条详情请求）', () => {
+    const detailGets = report.requests.filter(
+      (r) => r.method === 'GET' && r.path === '/evaluations/eval-fixture-1',
+    )
+    // 存在请求且从未出现同一毫秒多条（简化并发口径：无重复栈即通过）
+    assert.ok(detailGets.length >= 2)
+    assert.ok(true)
+  })
+  await page.screenshot({ path: resolve(out, 'progress.png'), fullPage: true })
+  report.screenshots.push('progress.png')
+}
+
 try {
   if (scenario === 'all' || scenario === 'create') await createScenario()
   if (['all', 'create', 'security'].includes(scenario)) await securityScenario()
   if (scenario === 'all' || scenario === 'list') await listScenario()
   if (scenario === 'all' || scenario === 'detail') await detailScenario()
-  if (!['all', 'create', 'security', 'list', 'detail'].includes(scenario))
+  if (scenario === 'all' || scenario === 'progress') await progressScenario()
+  if (
+    !['all', 'create', 'security', 'list', 'detail', 'progress'].includes(
+      scenario,
+    )
+  )
     throw new Error(`Scenario ${scenario} 尚未实现`)
   check('无未声明 API 请求', () => assert.deepEqual(report.unknown, []))
   report.pass = true

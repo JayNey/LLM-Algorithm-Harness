@@ -18,3 +18,9 @@
 ## 3. 验收记录（issue Step 5 的核心部分）
 
 - [x] 3.1 在 #225 记录 Step 1–3 验收结果（测试命令、退出码、时序边界覆盖清单），声明 Step 4 等 #224；提交关联 PR
+
+## 4. Step 4 页面集成（#224 合入后补齐，2026-10-23 恢复）
+
+- [x] 4.1 `useEvaluation.ts` 增 `useEvaluationLive` 适配：原生 WS 桥接（resolveProgressWsUrl + Cookie 认证）、recoverSession 探测复用 HTTP 层刷新、可见性/网络映射暂停恢复、unauthorized 会话清除
+- [x] 4.2 `EvaluationDetailPage` 集成：非终态挂载观察器、live 数据渲染（EvaluationFacts 直接消费快照）、连接/降级状态提示、失效清会话回跳
+- [x] 4.3 `verify-evaluations.mjs --scenario progress`：WS 帧驱动 + HTTP 真值递进断言（URL 无 token、事件触发刷新到 60%）

@@ -13,39 +13,46 @@
 
 ```ts
 export const OBSERVER_TIMING = {
-  subscribeTimeoutMs: 5_000,     // subscribe 后 5s 未收到 subscribed 帧 → 失败
-  mergeWindowMs: 2_000,          // 事件合并窗口：窗口内多事件只触发一次刷新
-  staleLiveMs: 15_000,           // live 下 15s 无任何事件且非终态 → 主动刷新一次（丢事件/漏终态兜底）
-  degradedPollMs: 3_000,         // 非 live 模式的 HTTP 轮询间隔
-  reconnectBackoffMs: [3_000, 6_000, 12_000, 30_000],  // 第 n 次重连前等待，越界取末值
-  maxReconnects: 5,              // 超过后放弃 WS，保持降级轮询
-  rateLimitMs: 30_000,           // 429 后至少 30s 不发任何请求
-} as const
+  subscribeTimeoutMs: 5_000, // subscribe 后 5s 未收到 subscribed 帧 → 失败
+  mergeWindowMs: 2_000, // 事件合并窗口：窗口内多事件只触发一次刷新
+  staleLiveMs: 15_000, // live 下 15s 无任何事件且非终态 → 主动刷新一次（丢事件/漏终态兜底）
+  degradedPollMs: 3_000, // 非 live 模式的 HTTP 轮询间隔
+  reconnectBackoffMs: [3_000, 6_000, 12_000, 30_000], // 第 n 次重连前等待，越界取末值
+  maxReconnects: 5, // 超过后放弃 WS，保持降级轮询
+  rateLimitMs: 30_000, // 429 后至少 30s 不发任何请求
+} as const;
 
 interface ObserverDeps {
-  fetchSnapshot(id: string, signal: AbortSignal): Promise<Evaluation>  // HTTP 真值
-  connectSocket(handlers: SocketHandlers): SocketHandle                // 原生 WS 仅在 React 适配器创建
-  clock: { now(): number; setTimeout(fn: () => void, ms: number): unknown; clearTimeout(h: unknown): void }
-  onChange(event: ObserverEvent): void
-  recoverSession(): Promise<boolean>   // 4401/401 时复用既有刷新；true=可重试
+  fetchSnapshot(id: string, signal: AbortSignal): Promise<Evaluation>; // HTTP 真值
+  connectSocket(handlers: SocketHandlers): SocketHandle; // 原生 WS 仅在 React 适配器创建
+  clock: {
+    now(): number;
+    setTimeout(fn: () => void, ms: number): unknown;
+    clearTimeout(h: unknown): void;
+  };
+  onChange(event: ObserverEvent): void;
+  recoverSession(): Promise<boolean>; // 4401/401 时复用既有刷新；true=可重试
 }
 interface ProgressObserver {
-  start(evaluationId: string): void
-  refresh(): void                      // 手动刷新；与自动刷新共享非重叠约束
-  invalidate(): void                   // 外部失效（等价一个事件）
-  setVisible(visible: boolean): void
-  setOnline(online: boolean): void
-  runMutation(fn: () => Promise<void>): Promise<void>   // epoch++，包住启动/取消
-  dispose(): void
+  start(evaluationId: string): void;
+  refresh(): void; // 手动刷新；与自动刷新共享非重叠约束
+  invalidate(): void; // 外部失效（等价一个事件）
+  setVisible(visible: boolean): void;
+  setOnline(online: boolean): void;
+  runMutation(fn: () => Promise<void>): Promise<void>; // epoch++，包住启动/取消
+  dispose(): void;
 }
 type ObserverEvent =
-  | { type: 'snapshot'; evaluation: Evaluation; mode: ObserverMode }
-  | { type: 'mode'; mode: ObserverMode }               // live|degraded|stopped
-  | { type: 'error'; message: string; mode: ObserverMode }  // 瞬时失败（网络/5xx），观察继续
-  | { type: 'forbidden' }                              // 4403/403/404：清数据并停止
-  | { type: 'unauthorized' }                           // 401/4401 且恢复失败：停止，适配器负责回跳
-  | { type: 'settled'; evaluation: Evaluation }        // 终态/paused：自动观察已停止
-export function resolveProgressWsUrl(url: string, loc: { protocol: string }): string
+  | { type: "snapshot"; evaluation: Evaluation; mode: ObserverMode }
+  | { type: "mode"; mode: ObserverMode } // live|degraded|stopped
+  | { type: "error"; message: string; mode: ObserverMode } // 瞬时失败（网络/5xx），观察继续
+  | { type: "forbidden" } // 4403/403/404：清数据并停止
+  | { type: "unauthorized" } // 401/4401 且恢复失败：停止，适配器负责回跳
+  | { type: "settled"; evaluation: Evaluation }; // 终态/paused：自动观察已停止
+export function resolveProgressWsUrl(
+  url: string,
+  loc: { protocol: string },
+): string;
 ```
 
 ## 时序语义（测试与实现共守）
@@ -73,3 +80,9 @@ export function resolveProgressWsUrl(url: string, loc: { protocol: string }): st
 - 纯新增文件，不改任何既有模块；回退 = 删两文件。
 - 与 #224 的冲突面仅剩"未来集成 change"，本 change 不触碰。
 - 语义解释风险（如 15s 的确切含义）已在本文钉死；issue 原文未逐字定义的常数取上述解释，验收时以本 design 为契约，若维护者有异议按 PR 审查意见调整（常数集中一处，改动成本低）。
+
+## Step 4 集成设计（#224 合入后补齐）
+
+- `useEvaluationLive(client, evaluationId, owner, enabled)`：观察器的 React 适配。enabled = 详情数据处于非终态；原生 WebSocket 仅在此适配器创建（`resolveProgressWsUrl(readViteEnv().wsUrl, location)`，Cookie 认证无 token 参数）；`recoverSession` 以一次 `client.get` 探测（复用 HTTP 层 401 刷新重试），仍 401 返回 false → unauthorized → 页面清会话回跳。
+- `EvaluationDetailPage`：非终态挂载观察器；快照数据直接进 `EvaluationFacts`（HTTP 真值）；连接/降级状态以 role=status 提示。
+- 验证：`verify-evaluations.mjs --scenario progress`（routeWebSocket 假服务：snapshot+subscribed+task.progress；HTTP 真值递进 20%→60%；断言 WS URL 无 token、事件驱动刷新）。
