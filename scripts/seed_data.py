@@ -24,14 +24,15 @@ SEED_PROBLEMS: list[dict] = [
         "title": "Two Sum",
         "description": (
             "Given an array of integers nums and an integer target, return "
-            "indices of the two numbers such that they add up to target."
+            "indices of the two numbers such that they add up to target. "
+            "Implement solution(nums, target) and return the indices as a list."
         ),
         "difficulty": "easy",
         "tags": ["array", "hash-table"],
         "constraints": "2 <= len(nums) <= 10^4; exactly one valid answer exists.",
         "test_cases": [
-            {"input": "nums = [2,7,11,15], target = 9", "expected": "[0,1]"},
-            {"input": "nums = [3,2,4], target = 6", "expected": "[1,2]"},
+            {"input": {"nums": [2, 7, 11, 15], "target": 9}, "expected_output": [0, 1]},
+            {"input": {"nums": [3, 2, 4], "target": 6}, "expected_output": [1, 2]},
         ],
         "source_platform": "seed",
         "source_url": None,
@@ -41,14 +42,15 @@ SEED_PROBLEMS: list[dict] = [
         "title": "Valid Parentheses",
         "description": (
             "Given a string s containing just the characters '(', ')', '{', '}', "
-            "'[' and ']', determine if the input string is valid."
+            "'[' and ']', determine if the input string is valid. "
+            "Implement solution(s) and return a boolean."
         ),
         "difficulty": "easy",
         "tags": ["string", "stack"],
         "constraints": "1 <= len(s) <= 10^4; s consists of parentheses only.",
         "test_cases": [
-            {"input": 's = "()"', "expected": "true"},
-            {"input": 's = "(]"', "expected": "false"},
+            {"input": {"s": "()"}, "expected_output": True},
+            {"input": {"s": "(]"}, "expected_output": False},
         ],
         "source_platform": "seed",
         "source_url": None,
@@ -59,14 +61,15 @@ SEED_PROBLEMS: list[dict] = [
         "description": (
             "Given an array of integers nums which is sorted in ascending order, "
             "and an integer target, write a function to search target in nums. "
-            "If target exists, return its index; otherwise return -1."
+            "If target exists, return its index; otherwise return -1. "
+            "Implement solution(nums, target) and return an integer."
         ),
         "difficulty": "medium",
         "tags": ["array", "binary-search"],
         "constraints": "1 <= len(nums) <= 10^4; all values are unique.",
         "test_cases": [
-            {"input": "nums = [-1,0,3,5,9,12], target = 9", "expected": "4"},
-            {"input": "nums = [-1,0,3,5,9,12], target = 2", "expected": "-1"},
+            {"input": {"nums": [-1, 0, 3, 5, 9, 12], "target": 9}, "expected_output": 4},
+            {"input": {"nums": [-1, 0, 3, 5, 9, 12], "target": 2}, "expected_output": -1},
         ],
         "source_platform": "seed",
         "source_url": None,

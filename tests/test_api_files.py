@@ -20,6 +20,7 @@ from fastapi import HTTPException
 from fastapi.testclient import TestClient
 
 from api.auth.config import AuthSettings
+from api.auth.cookies import ACCESS_COOKIE
 from api.files.config import FileSettings
 from api.files.service import FileService
 from api.main import create_app
@@ -140,6 +141,69 @@ def api(tmp_path):
     with TestClient(app) as client:
         alice, bob = signup(client, "alice"), signup(client, "bob")
         yield client, alice, bob, app, auth, files
+
+
+@pytest.fixture
+def cookie_session(api):
+    client, *_ = api
+    login = client.post("/api/v1/auth/login", json={"username": "alice", "password": PASSWORD})
+    assert login.status_code == 200
+    return client, {"X-CSRF-Token": login.headers["x-csrf-token"]}
+
+
+@pytest.mark.parametrize(
+    "route,payload,fields,status",
+    [
+        ("/api/v1/files/upload", {"value": 1}, {}, 201),
+        ("/api/v1/problems/upload", [problem()], {}, 200),
+        ("/api/v1/configs/upload", None, {"config_type": "harness"}, 201),
+    ],
+)
+def test_cookie_session_uploads(api, cookie_session, route, payload, fields, status):
+    client, headers = cookie_session
+    if payload is None:
+        payload = client.get("/api/v1/configs/templates/vanilla").json()["data"]["config"]
+    response = client.post(
+        route,
+        headers=headers,
+        files={"file": ("session.json", json.dumps(payload).encode(), "application/json")},
+        data=fields,
+    )
+    assert response.status_code == status, response.text
+
+
+def test_cookie_session_downloads_and_ownership(api, cookie_session):
+    client, alice, bob, _, _, _ = api
+    own = upload(client, alice, [problem()]).json()["data"]["file"]["id"]
+    other = upload(client, bob, {}).json()["data"]["file"]["id"]
+    assert client.get(f"/api/v1/files/{own}/download").status_code == 200
+    assert client.get(f"/api/v1/files/{other}/download").status_code == 404
+    assert client.get("/api/v1/problems/export").status_code == 200
+    # A missing result must reach the route's 404 rather than the boundary's 401.
+    assert client.get("/api/v1/results/missing/download").status_code == 404
+
+
+@pytest.mark.parametrize("authorization", ["", "Basic abc", "Bearer invalid"])
+def test_file_boundary_explicit_header_does_not_fall_back_to_cookie(
+    api, cookie_session, authorization
+):
+    client, _ = cookie_session
+    response = client.get("/api/v1/problems/export", headers={"Authorization": authorization})
+    assert response.status_code == 401
+    assert response.headers["www-authenticate"] == "Bearer"
+
+
+def test_cookie_file_boundary_rejections(api, cookie_session):
+    client, headers = cookie_session
+    files = {"file": ("x.json", b"{}", "application/json")}
+    assert client.post("/api/v1/files/upload", files=files).status_code == 403
+    settings = api[-1]
+    settings.FILE_UPLOAD_MAX_BYTES = 1
+    assert client.post("/api/v1/files/upload", headers=headers, files=files).status_code == 413
+    client.cookies.clear()
+    client.cookies.set(ACCESS_COOKIE, "invalid")
+    assert client.get("/api/v1/problems/export").status_code == 401
+    assert client.post("/api/v1/files/upload", files=files).status_code == 403
 
 
 def test_unique_private_upload_metadata_download_and_deletion(api):

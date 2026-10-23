@@ -52,7 +52,8 @@ class IncrementalHistory:
 
         try:
             with open(path, encoding="utf-8") as f:
-                data = json.load(f)
+                with exclusive_lock(f):
+                    data = json.load(f)
 
             # Reconstruct RunRecord instances from dict
             runs = [RunRecord(**record) for record in data.get("runs", [])]
@@ -83,11 +84,15 @@ class IncrementalHistory:
         # Retry logic for file locking
         for attempt in range(max_retries):
             try:
-                with open(path, "w", encoding="utf-8") as f:
-                    # Acquire exclusive lock
+                # Opening must not truncate before the lock is acquired.
+                with open(path, "a+", encoding="utf-8") as f:
+                    f.seek(0)  # Anchor the Windows byte-range lock at byte zero.
                     with exclusive_lock(f):
+                        f.seek(0)
+                        f.truncate()
                         json.dump(data, f, indent=2)
                         f.write("\n")  # Trailing newline
+                        f.flush()  # Publish buffered data before releasing the lock.
                 logger.debug(f"Successfully saved history to {path}")
                 return
             except OSError as e:

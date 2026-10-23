@@ -59,7 +59,6 @@ const report = {
     'session provider',
     'creation store',
     'evaluation client',
-    'creation/detail pages',
   ],
 }
 function check(name, fn) {
@@ -98,7 +97,7 @@ const keys = ['a', 'b', 'slow'].map((id) => ({
   usage_count: 0,
   masked_preview: null,
 }))
-async function fixture(mode = 'start-error') {
+async function fixture(mode = 'start-error', entry = '/evaluations/new') {
   const context = await browser.newContext({
     viewport: { width: 1440, height: 1000 },
     reducedMotion: 'reduce',
@@ -106,6 +105,20 @@ async function fixture(mode = 'start-error') {
   const page = await context.newPage()
   const errors = []
   const calls = []
+  let detail = { ...evaluation }
+  let starts = 0
+  let detailFailure = 0
+  let detailGate = null
+  let releaseDetail = () => {}
+  let releaseList
+  let releaseStale
+  let failList = mode === 'list-error'
+  const listGate = new Promise((resolve) => {
+    releaseList = resolve
+  })
+  const staleGate = new Promise((resolve) => {
+    releaseStale = resolve
+  })
   page.on('pageerror', (e) => errors.push(e.message))
   await context.addInitScript(() =>
     localStorage.setItem(
@@ -205,6 +218,126 @@ async function fixture(mode = 'start-error') {
         has_more: offset + limit < all.length,
       })
     }
+    if (
+      mode.startsWith('detail-') &&
+      path.startsWith('/evaluations/eval-fixture-1')
+    ) {
+      if (method === 'GET') {
+        if (detailGate) await detailGate
+        if (detailFailure)
+          return route.fulfill({
+            status: detailFailure,
+            headers,
+            json: { message: '详情刷新失败' },
+          })
+        if (['detail-403', 'detail-404'].includes(mode))
+          return route.fulfill({
+            status: Number(mode.slice(7)),
+            headers,
+            json: { message: '任务不可访问' },
+          })
+        const status = mode.slice(7)
+        if (
+          !detail.changed &&
+          [
+            'running',
+            'paused',
+            'completed',
+            'failed',
+            'cancelled',
+            'future-state',
+          ].includes(status)
+        )
+          detail = {
+            ...evaluation,
+            status,
+            can_start: false,
+            can_cancel: ['running', 'paused'].includes(status),
+            error_message: ['paused', 'failed'].includes(status)
+              ? '预算或供应商失败原因'
+              : null,
+          }
+        if (mode === 'detail-queued')
+          detail = { ...evaluation, can_start: false }
+        return send(detail)
+      }
+      if (method === 'POST') {
+        await new Promise((r) => setTimeout(r, 150))
+        if (path.endsWith('/start')) {
+          if (mode === 'detail-start-error' && ++starts === 1)
+            return route.fulfill({
+              status: 503,
+              headers,
+              json: { message: '启动失败，请核对' },
+            })
+          detail = { ...evaluation, can_start: false, changed: true }
+        } else if (path.endsWith('/cancel')) {
+          if (mode === 'detail-cancel-error')
+            return route.fulfill({
+              status: 503,
+              headers,
+              json: { message: '取消失败，请核对' },
+            })
+          detail = {
+            ...evaluation,
+            status: mode === 'detail-race' ? 'completed' : 'cancelled',
+            can_start: false,
+            can_cancel: false,
+            changed: true,
+          }
+          if (mode === 'detail-race')
+            return route.fulfill({
+              status: 409,
+              headers,
+              json: { message: '任务已结束' },
+            })
+        } else throw new Error(`Unexpected detail mutation: ${path}`)
+        return send(detail)
+      }
+    }
+    if (method === 'GET' && path === '/evaluations') {
+      if (mode === 'list-loading') await listGate
+      if (mode === 'list-stale' && url.searchParams.get('status') === 'running')
+        await staleGate
+      if (failList)
+        return route.fulfill({
+          status: 503,
+          headers,
+          json: { message: 'unavailable' },
+        })
+      const limit = Number(url.searchParams.get('limit'))
+      const offset = Number(url.searchParams.get('offset'))
+      const status = url.searchParams.get('status')
+      let items = Array.from(
+        { length: mode === 'list-shrunk' ? 21 : 42 },
+        (_, i) => ({
+          ...evaluation,
+          evaluation_id: `owned-evaluation-${i + 1}`,
+          model: 'owned-model',
+          strategy_names: ['reflexion'],
+          status:
+            i === 0
+              ? 'future-state'
+              : ['pending', 'running', 'completed'][i % 3],
+          can_start: false,
+          spent_usd: 0.125,
+          execution_progress: {
+            completed_units: 3,
+            total_units: 8,
+            percentage: 37.5,
+          },
+        }),
+      )
+      if (mode === 'list-empty') items = []
+      if (status) items = items.filter((item) => item.status === status)
+      return send({
+        items: items.slice(offset, offset + limit),
+        total: items.length,
+        limit,
+        offset,
+        has_more: offset + limit < items.length,
+      })
+    }
     if (method === 'POST' && path === '/evaluations') {
       await new Promise((r) => setTimeout(r, 150))
       if (mode === 'unknown')
@@ -215,14 +348,19 @@ async function fixture(mode = 'start-error') {
         })
       return send(evaluation, 201)
     }
-    if (method === 'POST' && path === '/evaluations/eval-fixture-1/start')
+    if (method === 'POST' && path === '/evaluations/eval-fixture-1/start') {
+      if (mode === 'start-error' && ++starts > 1) {
+        detail = { ...evaluation, can_start: false }
+        return send(detail)
+      }
       return route.fulfill({
         status: 503,
         headers,
         json: { message: '启动服务暂时不可用' },
       })
+    }
     if (method === 'GET' && path === '/evaluations/eval-fixture-1')
-      return send(evaluation)
+      return send(detail)
     report.unknown.push(call)
     return route.fulfill({
       status: 599,
@@ -230,13 +368,36 @@ async function fixture(mode = 'start-error') {
       json: { message: `Unexpected API: ${method} ${path}` },
     })
   })
-  await page.goto(`${base}/evaluations/new`)
+  await page.goto(`${base}${entry}`)
   await page.locator('h1').waitFor()
-  check('创建地址显示真实创建表单', () =>
-    assert.equal(new URL(page.url()).pathname, '/evaluations/new'),
-  )
-  await page.getByRole('heading', { name: '创建评估', exact: true }).waitFor()
-  return { context, page, calls, errors }
+  if (entry === '/evaluations/new') {
+    check('创建地址显示真实创建表单', () =>
+      assert.equal(new URL(page.url()).pathname, '/evaluations/new'),
+    )
+    await page.getByRole('heading', { name: '创建评估', exact: true }).waitFor()
+  }
+  return {
+    context,
+    page,
+    calls,
+    errors,
+    releaseList,
+    releaseStale,
+    holdDetail() {
+      detailGate = new Promise((resolve) => {
+        releaseDetail = resolve
+      })
+    },
+    releaseDetail() {
+      releaseDetail()
+    },
+    failDetail(status) {
+      detailFailure = status
+    },
+    recoverList() {
+      failList = false
+    },
+  }
 }
 async function choose(page, label, text) {
   await page.getByRole('combobox', { name: label, exact: true }).click()
@@ -253,6 +414,7 @@ async function configure(page) {
   await page.getByRole('checkbox', { name: '选择题目 p1', exact: true }).check()
 }
 async function createScenario() {
+  report.real.push('creation/detail pages')
   const { page, context, calls, errors } = await fixture()
   await choose(page, 'API 密钥', '密钥 A · openai')
   await page.getByText('模型列表未完整加载', { exact: false }).waitFor()
@@ -462,6 +624,23 @@ async function createScenario() {
     fullPage: true,
   })
   report.screenshots.push('create-start-error.png')
+  await page.getByRole('button', { name: '启动任务', exact: true }).click()
+  await page
+    .getByRole('region', { name: '评估详情', exact: true })
+    .getByText('已入队，等待执行', { exact: true })
+    .waitFor()
+  check('创建后启动失败在详情重试只start、不再次create', () => {
+    assert.equal(
+      calls.filter((c) => c.method === 'POST' && c.path === '/evaluations')
+        .length,
+      1,
+    )
+    assert.equal(
+      calls.filter((c) => c.method === 'POST' && c.path.endsWith('/start'))
+        .length,
+      2,
+    )
+  })
   check('浏览器无运行异常', () => assert.deepEqual(errors, []))
   await context.close()
   const unknown = await fixture('unknown')
@@ -781,10 +960,792 @@ async function securityScenario() {
   await page.close()
 }
 
+async function listLifecycleScenario() {
+  report.replaced.push(
+    'list lifecycle only: isolated HTML and in-memory list loader (ignores AbortSignal)',
+  )
+  const page = await browser.newPage()
+  await page.route(`${base}/`, (route) =>
+    route.fulfill({
+      contentType: 'text/html',
+      body: `<div id="root"></div><script type="module">import RefreshRuntime from '/@react-refresh';RefreshRuntime.injectIntoGlobalHook(window);window.$RefreshReg$=()=>{};window.$RefreshSig$=()=>type=>type;window.__vite_plugin_react_preamble_installed__=true;window.ready=true;</script>`,
+    }),
+  )
+  await page.goto(`${base}/`)
+  await page.waitForFunction(() => window.ready)
+  const result = await page.evaluate(async () => {
+    const mainText = await (await fetch('/src/main.tsx')).text()
+    const sessionText = await (
+      await fetch('/src/evaluations/session.tsx')
+    ).text()
+    const dependency = (source, name) =>
+      source.match(
+        new RegExp('"(/node_modules/[^"]*/' + name + '\\.js[^"]*)"'),
+      )[1]
+    const { default: React } = await import(dependency(sessionText, 'react'))
+    const {
+      default: { createRoot },
+    } = await import(dependency(mainText, 'react-dom_client'))
+    const { useList } = await import('/src/evaluations/useList.ts')
+    const { ApiClientError } = await import('/src/auth/http.ts')
+    const requests = []
+    const snapshots = []
+    let reload
+    // Deliberately ignore cancellation: isolation must hold independently.
+    const load = (query, signal) =>
+      new Promise((resolve, reject) =>
+        requests.push({ query, signal, resolve, reject }),
+      )
+    function Harness({ owner, status }) {
+      const state = useList(load, { status, limit: 20, offset: 0 }, owner)
+      React.useLayoutEffect(() => {
+        reload = state.reload
+        snapshots.push({
+          owner,
+          query: status,
+          status: state.status,
+          rows: state.data?.items ?? null,
+          error: state.error,
+        })
+      })
+      return null
+    }
+    const root = createRoot(document.getElementById('root'))
+    const render = (owner, status) =>
+      root.render(
+        React.createElement(
+          React.StrictMode,
+          null,
+          React.createElement(Harness, { owner, status }),
+        ),
+      )
+    const waitFor = async (condition) => {
+      const deadline = Date.now() + 3000
+      while (!condition()) {
+        if (Date.now() > deadline)
+          throw new Error('List lifecycle did not settle')
+        await new Promise((resolve) => setTimeout(resolve, 10))
+      }
+    }
+    const tick = () => new Promise((resolve) => setTimeout(resolve, 40))
+    const response = (items) => ({
+      items,
+      total: items.length,
+      limit: 20,
+      offset: 0,
+      has_more: false,
+    })
+    const last = () => snapshots.at(-1)
+    render('owner-A', 'running')
+    await waitFor(() => requests.length >= 2)
+    const staleQueries = requests.slice()
+    render('owner-A', 'completed')
+    await waitFor(() =>
+      requests.some((request) => request.query.status === 'completed'),
+    )
+    requests.at(-1).resolve(response(['A-completed']))
+    await waitFor(() => last().rows?.[0] === 'A-completed')
+    for (const request of staleQueries) request.resolve(response(['A-running']))
+    await tick()
+    const afterStaleQuery = last()
+    let count = requests.length
+    reload()
+    await waitFor(() => requests.length > count)
+    const staleOwner = requests.at(-1)
+    render('owner-B', 'completed')
+    await waitFor(
+      () => last().owner === 'owner-B' && requests.at(-1) !== staleOwner,
+    )
+    const initialOwnerB = snapshots.find(
+      (snapshot) => snapshot.owner === 'owner-B',
+    )
+    requests.at(-1).resolve(response(['B-completed']))
+    await waitFor(() => last().rows?.[0] === 'B-completed')
+    staleOwner.resolve(response(['A-late']))
+    await tick()
+    const afterStaleOwner = last()
+    count = requests.length
+    reload()
+    await waitFor(() => requests.length > count)
+    requests.at(-1).reject(new ApiClientError(''))
+    await waitFor(() => last().status === 'error')
+    const error = last()
+    count = requests.length
+    reload()
+    await waitFor(() => requests.length > count)
+    requests.at(-1).resolve(response([]))
+    await waitFor(() => last().status === 'ready')
+    const empty = last()
+    count = requests.length
+    reload()
+    await waitFor(() => requests.length > count)
+    const unmounted = requests.at(-1)
+    root.unmount()
+    const commitsAtUnmount = snapshots.length
+    unmounted.resolve(response(['after-unmount']))
+    await tick()
+    return {
+      afterStaleQuery,
+      initialOwnerB,
+      afterStaleOwner,
+      error,
+      empty,
+      unmountAborted: unmounted.signal.aborted,
+      commitsAtUnmount,
+      commitsAfterUnmount: snapshots.length,
+      leaked: snapshots.some(
+        (snapshot) =>
+          (snapshot.owner === 'owner-B' &&
+            snapshot.rows?.some((row) => row.startsWith('A-'))) ||
+          (snapshot.query === 'completed' &&
+            snapshot.rows?.includes('A-running')),
+      ),
+    }
+  })
+  check('忽略AbortSignal的旧查询不能覆盖新查询', () =>
+    assert.deepEqual(result.afterStaleQuery.rows, ['A-completed']),
+  )
+  check('换owner首个提交立即隐藏旧数据', () =>
+    assert.deepEqual(
+      { status: result.initialOwnerB.status, rows: result.initialOwnerB.rows },
+      { status: 'loading', rows: null },
+    ),
+  )
+  check('旧owner迟到不写入新会话或短暂闪现', () => {
+    assert.deepEqual(result.afterStaleOwner.rows, ['B-completed'])
+    assert.equal(result.leaked, false)
+  })
+  check('失败不变空集，重试后可呈现合法空页', () => {
+    assert.equal(result.error.status, 'error')
+    assert.equal(result.error.rows, null)
+    assert.ok(result.error.error)
+    assert.equal(result.empty.status, 'ready')
+    assert.deepEqual(result.empty.rows, [])
+  })
+  check('卸载取消请求且迟到完成不再提交', () => {
+    assert.equal(result.unmountAborted, true)
+    assert.equal(result.commitsAfterUnmount, result.commitsAtUnmount)
+  })
+  await page.close()
+}
+
+async function listScenario() {
+  report.replaced.push('HTTP GET /api/v1/evaluations list/filter/page')
+  report.real.push('owned evaluation list page', 'useList lifecycle')
+  const loading = await fixture('list-loading', '/evaluations')
+  await loading.page
+    .getByText('正在加载评估任务…', { exact: true })
+    .waitFor({ timeout: 5000 })
+  check('加载不是空集或旧Mock行', () =>
+    assert.equal(
+      loading.calls.filter((c) => c.path === '/evaluations').length > 0,
+      true,
+    ),
+  )
+  assert.equal(
+    await loading.page.getByText('还没有评估任务', { exact: true }).count(),
+    0,
+  )
+  loading.releaseList()
+  const table = loading.page.getByRole('table', {
+    name: '评估任务列表',
+    exact: true,
+  })
+  await table
+    .getByRole('link', { name: 'owned-evaluation-1', exact: true })
+    .waitFor()
+  assert.equal(await table.getByRole('row').count(), 21)
+  assert.equal(
+    await table.getByText('owned-model', { exact: true }).count(),
+    20,
+  )
+  await table.getByText('未知状态（future-state）', { exact: true }).waitFor()
+  await table.getByText('已入队，等待执行', { exact: true }).first().waitFor()
+  assert.equal(await table.getByText('37.5%', { exact: false }).count(), 20)
+  check('20条真实任务和开放状态/服务端进度', () =>
+    assert.equal(
+      loading.calls.some(
+        (c) =>
+          c.path === '/evaluations' &&
+          c.query.includes('limit=20') &&
+          c.query.includes('offset=0'),
+      ),
+      true,
+    ),
+  )
+  assert.equal(
+    await table
+      .getByRole('link', { name: 'owned-evaluation-1', exact: true })
+      .getAttribute('href'),
+    '/evaluations/owned-evaluation-1',
+  )
+  await loading.page
+    .getByRole('button', { name: '下一页任务', exact: true })
+    .click()
+  await table
+    .getByRole('link', { name: 'owned-evaluation-21', exact: true })
+    .waitFor()
+  check('第二页URL和请求均为limit20/offset20', () => {
+    assert.equal(new URL(loading.page.url()).searchParams.get('offset'), '20')
+    assert.ok(
+      loading.calls.some(
+        (c) => c.path === '/evaluations' && c.query === '?limit=20&offset=20',
+      ),
+    )
+  })
+  await loading.page.reload()
+  await table
+    .getByRole('link', { name: 'owned-evaluation-21', exact: true })
+    .waitFor()
+  report.assertions.push({ name: '刷新保留分页', pass: true })
+  await choose(loading.page, '任务状态', '已完成')
+  await table
+    .getByRole('link', { name: 'owned-evaluation-3', exact: true })
+    .waitFor()
+  check('筛选写入URL并清零offset', () => {
+    const params = new URL(loading.page.url()).searchParams
+    assert.equal(params.get('status'), 'completed')
+    assert.equal(params.get('offset'), '0')
+    assert.ok(
+      loading.calls.some(
+        (c) => c.query === '?status=completed&limit=20&offset=0',
+      ),
+    )
+  })
+  await loading.page.goBack()
+  await table
+    .getByRole('link', { name: 'owned-evaluation-40', exact: true })
+    .waitFor()
+  report.assertions.push({ name: '浏览器后退恢复旧分页', pass: true })
+  const beforeStyles = loading.calls.filter(
+    (call) => call.path === '/evaluations',
+  ).length
+  for (const variant of ['orbit', 'precision', 'studio']) {
+    await loading.page
+      .getByLabel('选择页面风格', { exact: true })
+      .selectOption(variant)
+    await table
+      .getByRole('link', { name: 'owned-evaluation-40', exact: true })
+      .waitFor()
+    check(`${variant}保留URL分页与已加载任务`, () => {
+      assert.equal(new URL(loading.page.url()).searchParams.get('offset'), '20')
+      assert.equal(
+        loading.calls.filter((call) => call.path === '/evaluations').length,
+        beforeStyles,
+      )
+    })
+  }
+  await loading.page
+    .getByRole('button', { name: '下一页任务', exact: true })
+    .click()
+  await table
+    .getByRole('link', { name: 'owned-evaluation-41', exact: true })
+    .waitFor()
+  assert.equal(await table.getByRole('row').count(), 3)
+  assert.equal(
+    await loading.page
+      .getByRole('button', { name: '下一页任务', exact: true })
+      .isDisabled(),
+    true,
+  )
+  await loading.page
+    .getByRole('button', { name: '上一页任务', exact: true })
+    .click()
+  await table
+    .getByRole('link', { name: 'owned-evaluation-40', exact: true })
+    .waitFor()
+  report.assertions.push({
+    name: '最后一页只显示剩余记录并禁用下一页，可返回上一页',
+    pass: true,
+  })
+  for (const width of [390, 1440]) {
+    await loading.page.setViewportSize({ width, height: 1000 })
+    assert.ok(
+      await loading.page.evaluate(
+        () => document.documentElement.scrollWidth <= window.innerWidth,
+      ),
+      `${width}px page overflow`,
+    )
+    const file = `list-${width}.png`
+    await loading.page.screenshot({ path: resolve(out, file), fullPage: true })
+    report.screenshots.push(file)
+  }
+  check('列表浏览器无异常', () => assert.deepEqual(loading.errors, []))
+  await loading.context.close()
+
+  const error = await fixture(
+    'list-error',
+    '/evaluations?status=completed&limit=20&offset=0',
+  )
+  await error.page.getByRole('alert').waitFor()
+  assert.equal(
+    await error.page.getByText('还没有评估任务', { exact: true }).count(),
+    0,
+  )
+  error.recoverList()
+  await error.page.getByRole('button', { name: /^重\s*试$/ }).click()
+  await error.page
+    .getByRole('table', { name: '评估任务列表' })
+    .getByRole('link', { name: 'owned-evaluation-3', exact: true })
+    .waitFor()
+  check('503错误不伪装空集，重试保留筛选', () =>
+    assert.ok(
+      error.calls
+        .filter((c) => c.path === '/evaluations')
+        .every((c) => c.query === '?status=completed&limit=20&offset=0'),
+    ),
+  )
+  await error.context.close()
+
+  for (const mode of ['list-empty', 'list-shrunk']) {
+    const item = await fixture(mode, '/evaluations?limit=20&offset=80')
+    if (mode === 'list-empty') {
+      await item.page.getByText('还没有评估任务', { exact: true }).waitFor()
+      assert.equal(
+        await item.page
+          .getByRole('link', { name: '创建首个评估', exact: true })
+          .getAttribute('href'),
+        '/evaluations/new',
+      )
+    } else {
+      await item.page
+        .getByRole('table', { name: '评估任务列表' })
+        .getByRole('link', { name: 'owned-evaluation-21', exact: true })
+        .waitFor()
+    }
+    check(`${mode}超页回到有效offset`, () => {
+      const expectedOffset = mode === 'list-empty' ? '0' : '20'
+      assert.equal(
+        new URL(item.page.url()).searchParams.get('offset'),
+        expectedOffset,
+      )
+      assert.ok(
+        item.calls.some(
+          (c) =>
+            c.path === '/evaluations' &&
+            c.query === `?limit=20&offset=${expectedOffset}`,
+        ),
+      )
+    })
+    await item.context.close()
+  }
+  const filtered = await fixture(
+    'list',
+    '/evaluations?status=paused&limit=20&offset=0',
+  )
+  await filtered.page
+    .getByText('没有符合筛选的评估任务', { exact: true })
+    .waitFor()
+  await filtered.page
+    .getByRole('button', { name: '清除筛选', exact: true })
+    .click()
+  await filtered.page
+    .getByRole('table', { name: '评估任务列表' })
+    .getByRole('link', { name: 'owned-evaluation-1', exact: true })
+    .waitFor()
+  check('筛选空集可清除筛选，和账号空集区别显示', () =>
+    assert.equal(
+      new URL(filtered.page.url()).searchParams.has('status'),
+      false,
+    ),
+  )
+  await filtered.context.close()
+  const stale = await fixture(
+    'list-stale',
+    '/evaluations?status=running&limit=20&offset=0',
+  )
+  await stale.page.getByText('正在加载评估任务…', { exact: true }).waitFor()
+  await choose(stale.page, '任务状态', '已完成')
+  const currentTable = stale.page.getByRole('table', { name: '评估任务列表' })
+  await currentTable
+    .getByRole('link', { name: 'owned-evaluation-3', exact: true })
+    .waitFor()
+  stale.releaseStale()
+  await stale.page.waitForTimeout(100)
+  assert.equal(
+    await currentTable.getByText('运行中', { exact: true }).count(),
+    0,
+  )
+  check('旧筛选迟到不覆盖新筛选', () =>
+    assert.equal(
+      new URL(stale.page.url()).searchParams.get('status'),
+      'completed',
+    ),
+  )
+  await stale.context.close()
+  await listLifecycleScenario()
+}
+
+async function detailLifecycleScenario() {
+  const page = await browser.newPage()
+  await page.route(`${base}/`, (route) =>
+    route.fulfill({
+      contentType: 'text/html',
+      body: `<div id="root"></div><script type="module">import R from '/@react-refresh';R.injectIntoGlobalHook(window);window.$RefreshReg$=()=>{};window.$RefreshSig$=()=>type=>type;window.__vite_plugin_react_preamble_installed__=true;window.ready=true;</script>`,
+    }),
+  )
+  await page.goto(`${base}/`)
+  await page.waitForFunction(() => window.ready)
+  const result = await page.evaluate(async () => {
+    const main = await (await fetch('/src/main.tsx')).text()
+    const session = await (await fetch('/src/evaluations/session.tsx')).text()
+    const dependency = (source, name) =>
+      source.match(
+        new RegExp('"(/node_modules/[^"]*/' + name + '\\.js[^"]*)"'),
+      )[1]
+    const { default: React } = await import(dependency(session, 'react'))
+    const {
+      default: { createRoot },
+    } = await import(dependency(main, 'react-dom_client'))
+    const { useEvaluation } = await import('/src/evaluations/useEvaluation.ts')
+    const requests = [],
+      snapshots = []
+    let reload
+    const client = {
+      get: (id, signal) =>
+        new Promise((resolve, reject) =>
+          requests.push({ id, signal, resolve, reject }),
+        ),
+    }
+    function Harness({ id, owner }) {
+      const state = useEvaluation(client, id, owner)
+      React.useLayoutEffect(() => {
+        reload = state.reload
+        snapshots.push({
+          id,
+          owner,
+          data: state.data?.model,
+          loading: state.loading,
+          error: state.error,
+        })
+      })
+      return null
+    }
+    const root = createRoot(document.getElementById('root'))
+    const render = (id, owner) =>
+      root.render(
+        React.createElement(
+          React.StrictMode,
+          null,
+          React.createElement(Harness, { id, owner }),
+        ),
+      )
+    const waitFor = async (condition) => {
+      const deadline = Date.now() + 3000
+      while (!condition()) {
+        if (Date.now() > deadline)
+          throw new Error('Detail lifecycle did not settle')
+        await new Promise((r) => setTimeout(r, 10))
+      }
+    }
+    const tick = () => new Promise((r) => setTimeout(r, 40))
+    const last = () => snapshots.at(-1)
+    render('task-A', 'owner-A')
+    await waitFor(() => requests.length >= 2)
+    const staleRoute = [...requests]
+    render('task-B', 'owner-A')
+    await waitFor(() => requests.at(-1).id === 'task-B')
+    requests.at(-1).resolve({ model: 'B-current' })
+    await waitFor(() => last().data === 'B-current')
+    staleRoute.forEach((r) => r.resolve({ model: 'A-late' }))
+    await tick()
+    const route = last()
+    let count = requests.length
+    reload()
+    await waitFor(() => requests.length > count)
+    const staleRefresh = requests.at(-1)
+    count = requests.length
+    reload()
+    await waitFor(() => requests.length > count)
+    requests.at(-1).resolve({ model: 'B-newer' })
+    await waitFor(() => last().data === 'B-newer')
+    staleRefresh.resolve({ model: 'B-older' })
+    await tick()
+    const refresh = last()
+    count = requests.length
+    reload()
+    await waitFor(() => requests.length > count)
+    const staleOwner = requests.at(-1)
+    render('task-B', 'owner-B')
+    await waitFor(
+      () => requests.at(-1) !== staleOwner && last().owner === 'owner-B',
+    )
+    const firstOwner = snapshots.find((s) => s.owner === 'owner-B')
+    requests.at(-1).resolve({ model: 'owner-B-current' })
+    await waitFor(() => last().data === 'owner-B-current')
+    staleOwner.reject(new Error('owner-A-late-error'))
+    await tick()
+    const owner = last()
+    count = requests.length
+    reload()
+    await waitFor(() => requests.length > count)
+    const unmounted = requests.at(-1)
+    root.unmount()
+    const commits = snapshots.length
+    unmounted.resolve({ model: 'unmounted' })
+    await tick()
+    return {
+      route,
+      refresh,
+      firstOwner,
+      owner,
+      aborted: unmounted.signal.aborted,
+      commits,
+      finalCommits: snapshots.length,
+      leaked: snapshots.some(
+        (s) =>
+          s.data === 'A-late' ||
+          s.data === 'B-older' ||
+          s.error === 'owner-A-late-error',
+      ),
+    }
+  })
+  check('详情忽略旧路由与旧刷新响应，即使transport忽略AbortSignal', () => {
+    assert.equal(result.route.data, 'B-current')
+    assert.equal(result.refresh.data, 'B-newer')
+    assert.equal(result.leaked, false)
+  })
+  check('详情换owner立即隐藏旧快照，旧错误不污染新会话', () => {
+    assert.equal(result.firstOwner.data, undefined)
+    assert.equal(result.firstOwner.loading, true)
+    assert.equal(result.owner.data, 'owner-B-current')
+    assert.equal(result.owner.error, undefined)
+  })
+  check('详情卸载中止GET且迟到响应不再提交', () => {
+    assert.equal(result.aborted, true)
+    assert.equal(result.commits, result.finalCommits)
+  })
+  await page.close()
+}
+
+async function detailScenario() {
+  await detailLifecycleScenario()
+  report.real.push(
+    'evaluation detail page',
+    'useEvaluation',
+    'shared action coordinator',
+  )
+  report.replaced.push('HTTP evaluation detail/start/cancel responses')
+  for (const [mode, label] of [
+    ['pending', '待启动'],
+    ['queued', '已入队，等待执行'],
+    ['running', '运行中'],
+    ['paused', '已暂停'],
+    ['completed', '已完成'],
+    ['failed', '失败'],
+    ['cancelled', '已取消'],
+    ['future-state', '未知状态（future-state）'],
+  ]) {
+    const h = await fixture(`detail-${mode}`, '/evaluations/eval-fixture-1')
+    const region = h.page.getByRole('region', { name: '评估详情', exact: true })
+    await region.getByText(label, { exact: true }).waitFor({ timeout: 5000 })
+    for (const value of ['model-a', 'direct', '未设置上限'])
+      await region.getByText(value, { exact: true }).waitFor()
+    if (['paused', 'failed'].includes(mode))
+      await region.getByText('预算或供应商失败原因', { exact: true }).waitFor()
+    assert.equal(
+      await h.page
+        .getByRole('button', { name: '启动任务', exact: true })
+        .count(),
+      mode === 'pending' ? 1 : 0,
+    )
+    assert.equal(
+      await h.page
+        .getByRole('button', { name: '取消任务', exact: true })
+        .count(),
+      ['pending', 'queued', 'running', 'paused'].includes(mode) ? 1 : 0,
+    )
+    await h.page.reload()
+    await region.getByText(label, { exact: true }).waitFor()
+    await h.page.getByRole('button', { name: '刷新任务', exact: true }).click()
+    await region.getByText(label, { exact: true }).waitFor()
+    check(`${mode}直接访问、刷新与能力来自GET`, () => {
+      assert.equal(h.calls.filter((c) => c.method === 'POST').length, 0)
+      assert.ok(h.calls.some((c) => c.path === '/evaluations/eval-fixture-1'))
+    })
+    if (mode === 'running') {
+      for (const variant of ['orbit', 'precision', 'studio']) {
+        await h.page
+          .getByLabel('选择页面风格', { exact: true })
+          .selectOption(variant)
+        for (const theme of ['light', 'dark']) {
+          await h.page
+            .getByLabel('主题偏好', { exact: true })
+            .selectOption(theme)
+          for (const width of [320, 1440]) {
+            await h.page.setViewportSize({ width, height: 1000 })
+            assert.ok(
+              await h.page.evaluate(
+                () => document.documentElement.scrollWidth <= window.innerWidth,
+              ),
+            )
+            const file = `detail-${variant}-${theme}-${width}.png`
+            await h.page.screenshot({
+              path: resolve(out, file),
+              fullPage: true,
+            })
+            report.screenshots.push(file)
+          }
+        }
+      }
+      report.assertions.push({
+        name: '三风格浅深主题320/1440px无溢出',
+        pass: true,
+      })
+    }
+    assert.deepEqual(h.errors, [])
+    await h.context.close()
+  }
+  for (const action of ['启动任务', '取消任务']) {
+    const h = await fixture('detail-pending', '/evaluations/eval-fixture-1')
+    await h.page
+      .getByRole('region', { name: '评估详情' })
+      .getByText('待启动', { exact: true })
+      .waitFor()
+    h.holdDetail()
+    const count = h.calls.length
+    await h.page.getByRole('button', { name: action, exact: true }).click()
+    await h.page.waitForFunction(
+      () =>
+        document
+          .querySelector('[aria-label="评估详情"]')
+          .getAttribute('aria-busy') === 'true',
+    )
+    assert.ok(h.calls.length > count)
+    await h.page
+      .getByRole('link', { name: '返回任务列表', exact: true })
+      .click()
+    await h.page.getByRole('link', { name: '创建评估', exact: true }).waitFor()
+    h.releaseDetail()
+    await h.page.waitForTimeout(100)
+    check(`${action}预检时离页不继续POST`, () =>
+      assert.equal(h.calls.filter((c) => c.method === 'POST').length, 0),
+    )
+    await h.page.getByRole('link', { name: '创建评估', exact: true }).click()
+    await h.page
+      .getByRole('combobox', { name: 'API 密钥', exact: true })
+      .waitFor()
+    check(`${action}离页保留新建表单可用`, () => assert.deepEqual(h.errors, []))
+    await h.context.close()
+  }
+  const refresh = await fixture('detail-pending', '/evaluations/eval-fixture-1')
+  const region = refresh.page.getByRole('region', {
+    name: '评估详情',
+    exact: true,
+  })
+  await region.getByText('model-a', { exact: true }).waitFor()
+  refresh.failDetail(503)
+  await refresh.page
+    .getByRole('button', { name: '刷新任务', exact: true })
+    .click()
+  await refresh.page.getByRole('alert').waitFor()
+  await region.getByText('model-a', { exact: true }).waitFor()
+  assert.equal(
+    await refresh.page
+      .getByRole('button', { name: '启动任务', exact: true })
+      .isDisabled(),
+    true,
+  )
+  refresh.failDetail(403)
+  await refresh.page
+    .getByRole('button', { name: '刷新任务', exact: true })
+    .click()
+  await region
+    .getByText('model-a', { exact: true })
+    .waitFor({ state: 'hidden' })
+  refresh.failDetail(0)
+  await refresh.page
+    .getByRole('button', { name: '刷新任务', exact: true })
+    .click()
+  await region.getByText('model-a', { exact: true }).waitFor()
+  check('刷新503保留数据并禁操作，403清除数据，重试恢复', () =>
+    assert.equal(refresh.calls.filter((c) => c.method === 'POST').length, 0),
+  )
+  await refresh.context.close()
+  for (const status of [403, 404]) {
+    const h = await fixture(`detail-${status}`, '/evaluations/eval-fixture-1')
+    await h.page.getByRole('alert').waitFor()
+    assert.equal(
+      await h.page
+        .getByRole('button', { name: '启动任务', exact: true })
+        .count(),
+      0,
+    )
+    assert.equal(
+      await h.page
+        .getByRole('button', { name: '取消任务', exact: true })
+        .count(),
+      0,
+    )
+    check(`${status}显示错误且无动作`, () =>
+      assert.equal(h.calls.filter((c) => c.method === 'POST').length, 0),
+    )
+    await h.context.close()
+  }
+  for (const mode of ['pending', 'cancel-error', 'race', 'start-error']) {
+    const h = await fixture(`detail-${mode}`, '/evaluations/eval-fixture-1')
+    const region = h.page.getByRole('region', { name: '评估详情', exact: true })
+    await region.getByText('待启动', { exact: true }).waitFor()
+    const start = mode === 'start-error'
+    const button = h.page.getByRole('button', {
+      name: start ? '启动任务' : '取消任务',
+      exact: true,
+    })
+    await button.evaluate((element) => {
+      element.click()
+      element.click()
+    })
+    if (start || mode === 'cancel-error') {
+      await h.page.getByRole('alert').waitFor()
+      await region.getByText('待启动', { exact: true }).waitFor()
+      if (start) {
+        await button.click()
+        await region.getByText('已入队，等待执行', { exact: true }).waitFor()
+      }
+    } else
+      await region
+        .getByText(mode === 'race' ? '已完成' : '已取消', { exact: true })
+        .waitFor()
+    const mutations = h.calls.filter((c) => c.method === 'POST')
+    assert.equal(mutations.length, start ? 2 : 1)
+    assert.ok(
+      mutations.every(
+        (c) =>
+          c.path ===
+          `/evaluations/eval-fixture-1/${start ? 'start' : 'cancel'}`,
+      ),
+    )
+    check(`${mode}真实动作、失败、终态竞争及互斥`, () =>
+      assert.ok(
+        h.calls.filter(
+          (c) => c.method === 'GET' && c.path === '/evaluations/eval-fixture-1',
+        ).length >= 3,
+      ),
+    )
+    assert.deepEqual(h.errors, [])
+    if (mode === 'pending') {
+      await h.page
+        .getByRole('link', { name: '返回任务列表', exact: true })
+        .click()
+      await h.page.getByRole('link', { name: '创建评估', exact: true }).click()
+      await h.page
+        .getByRole('combobox', { name: 'API 密钥', exact: true })
+        .waitFor()
+      report.assertions.push({
+        name: '取消现有任务后同会话仍能创建新任务',
+        pass: true,
+      })
+    }
+    await h.context.close()
+  }
+}
+
 try {
   if (scenario === 'all' || scenario === 'create') await createScenario()
   if (['all', 'create', 'security'].includes(scenario)) await securityScenario()
-  if (!['all', 'create', 'security'].includes(scenario))
+  if (scenario === 'all' || scenario === 'list') await listScenario()
+  if (scenario === 'all' || scenario === 'detail') await detailScenario()
+  if (!['all', 'create', 'security', 'list', 'detail'].includes(scenario))
     throw new Error(`Scenario ${scenario} 尚未实现`)
   check('无未声明 API 请求', () => assert.deepEqual(report.unknown, []))
   report.pass = true

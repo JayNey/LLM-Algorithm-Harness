@@ -1,0 +1,512 @@
+{
+  "scenario": "create",
+  "source": {
+    "head": "fa60243e975debb1595d8d959d07ecc73430854f",
+    "dirty": "M scripts/verify-evaluations.mjs\n M src/auth/app-shell.test.ts\n M src/evaluations/components.tsx\n M src/evaluations/creation.test.ts\n M src/evaluations/creation.ts\n M src/evaluations/workflow.css\n M src/layouts/components/Navigation.tsx\n M src/pages/Evaluations/EvaluationDetailPage.tsx\n?? src/evaluations/useEvaluation.ts\n?? ../openspec/changes/evaluation-detail-actions/"
+  },
+  "layer": "browser-fixture (not backend E2E)",
+  "assertions": [
+    {
+      "name": "创建地址显示真实创建表单",
+      "pass": true
+    },
+    {
+      "name": "必填错误阻止请求",
+      "pass": true
+    },
+    {
+      "name": "来源切换清理旧选择，题目来自真实选项响应",
+      "pass": true
+    },
+    {
+      "name": "模型仅来自接口且不完整状态明确",
+      "pass": true
+    },
+    {
+      "name": "密钥切换立即清除模型",
+      "pass": true
+    },
+    {
+      "name": "迟到的旧密钥模型没有覆盖当前模型",
+      "pass": true
+    },
+    {
+      "name": "当前页全选与取消不影响其他页选择",
+      "pass": true
+    },
+    {
+      "name": "跨页已核实题目保留选择",
+      "pass": true
+    },
+    {
+      "name": "非法预算没有提交",
+      "pass": true
+    },
+    {
+      "name": "修改预算后清理过时字段错误",
+      "pass": true
+    },
+    {
+      "name": "320px 无横向溢出",
+      "pass": true
+    },
+    {
+      "name": "320px分页按钮同排可比较",
+      "pass": true
+    },
+    {
+      "name": "390px 无横向溢出",
+      "pass": true
+    },
+    {
+      "name": "768px 无横向溢出",
+      "pass": true
+    },
+    {
+      "name": "1440px 无横向溢出",
+      "pass": true
+    },
+    {
+      "name": "orbit/light 保留创建草稿",
+      "pass": true
+    },
+    {
+      "name": "orbit/light 预算帮助文字对比度",
+      "pass": true
+    },
+    {
+      "name": "orbit/dark 保留创建草稿",
+      "pass": true
+    },
+    {
+      "name": "orbit/dark 预算帮助文字对比度",
+      "pass": true
+    },
+    {
+      "name": "precision/light 保留创建草稿",
+      "pass": true
+    },
+    {
+      "name": "precision/light 预算帮助文字对比度",
+      "pass": true
+    },
+    {
+      "name": "precision/dark 保留创建草稿",
+      "pass": true
+    },
+    {
+      "name": "precision/dark 预算帮助文字对比度",
+      "pass": true
+    },
+    {
+      "name": "studio/light 保留创建草稿",
+      "pass": true
+    },
+    {
+      "name": "studio/light 预算帮助文字对比度",
+      "pass": true
+    },
+    {
+      "name": "studio/dark 保留创建草稿",
+      "pass": true
+    },
+    {
+      "name": "studio/dark 预算帮助文字对比度",
+      "pass": true
+    },
+    {
+      "name": "重复点击与回车只创建一次",
+      "pass": true
+    },
+    {
+      "name": "payload包含跨页选题且只含有效字段",
+      "pass": true
+    },
+    {
+      "name": "201后只启动确认的evaluation ID一次",
+      "pass": true
+    },
+    {
+      "name": "创建后启动失败在详情重试只start、不再次create",
+      "pass": true
+    },
+    {
+      "name": "浏览器无运行异常",
+      "pass": true
+    },
+    {
+      "name": "创建地址显示真实创建表单",
+      "pass": true
+    },
+    {
+      "name": "未知创建仅显式核对后开始新操作且不自动重发",
+      "pass": true
+    },
+    {
+      "name": "创建地址显示真实创建表单",
+      "pass": true
+    },
+    {
+      "name": "缺少选项禁提交并显示密钥管理入口",
+      "pass": true
+    },
+    {
+      "name": "真实 React StrictMode 重放、卸载和换 marker 拒绝旧 actions 与迟到201",
+      "pass": true,
+      "result": {
+        "strictReplay": {
+          "owner": "replay-session",
+          "model": "initialized-model",
+          "events": [
+            {
+              "event": "child-setup-before",
+              "owner": "replay-session"
+            },
+            {
+              "event": "state",
+              "owner": "replay-session",
+              "model": "initialized-model"
+            },
+            {
+              "event": "child-setup-after",
+              "model": "initialized-model"
+            },
+            {
+              "event": "child-setup-before",
+              "owner": "replay-session"
+            },
+            {
+              "event": "state",
+              "owner": "replay-session",
+              "model": "initialized-model"
+            },
+            {
+              "event": "child-setup-after",
+              "model": "initialized-model"
+            }
+          ],
+          "stores": 1
+        },
+        "unmountEditing": {
+          "immediatelyAfterUnmount": "initialized-model",
+          "immediatelyAfterSubmit": "editing",
+          "immediatelyAfterRetry": {
+            "phase": "editing",
+            "evaluationId": null
+          },
+          "owner": null,
+          "model": "",
+          "calls": []
+        },
+        "unmountPending": {
+          "calls": [
+            {
+              "method": "POST",
+              "url": "/evaluations",
+              "payload": {
+                "api_key_id": "key-1",
+                "model": "initialized-model",
+                "problem_ids": [
+                  "p-1"
+                ],
+                "strategy_names": [
+                  "direct"
+                ]
+              }
+            }
+          ],
+          "owner": null,
+          "model": "",
+          "evaluationId": null
+        },
+        "markerChange": {
+          "calls": [
+            {
+              "method": "POST",
+              "url": "/evaluations",
+              "payload": {
+                "api_key_id": "key-1",
+                "model": "initialized-model",
+                "problem_ids": [
+                  "p-1"
+                ],
+                "strategy_names": [
+                  "direct"
+                ]
+              }
+            }
+          ],
+          "distinct": true,
+          "oldOwner": null,
+          "oldModel": "",
+          "oldId": null,
+          "newOwner": "marker-new",
+          "newModel": "initialized-model"
+        }
+      }
+    },
+    {
+      "name": "无未声明 API 请求",
+      "pass": true
+    }
+  ],
+  "requests": [
+    {
+      "mode": "start-error",
+      "path": "/users/me",
+      "method": "GET",
+      "query": ""
+    },
+    {
+      "mode": "start-error",
+      "path": "/users/me",
+      "method": "GET",
+      "query": ""
+    },
+    {
+      "mode": "start-error",
+      "path": "/evaluation-options",
+      "method": "GET",
+      "query": ""
+    },
+    {
+      "mode": "start-error",
+      "path": "/api-keys",
+      "method": "GET",
+      "query": ""
+    },
+    {
+      "mode": "start-error",
+      "path": "/evaluation-options/problems",
+      "method": "GET",
+      "query": "?limit=20&offset=0&source=all"
+    },
+    {
+      "mode": "start-error",
+      "path": "/evaluation-options/models",
+      "method": "GET",
+      "query": "?api_key_id=key-a"
+    },
+    {
+      "mode": "start-error",
+      "path": "/evaluation-options/problems",
+      "method": "GET",
+      "query": "?limit=20&offset=0&source=personal"
+    },
+    {
+      "mode": "start-error",
+      "path": "/evaluation-options/problems",
+      "method": "GET",
+      "query": "?limit=20&offset=0&source=all"
+    },
+    {
+      "mode": "start-error",
+      "path": "/evaluation-options/models",
+      "method": "GET",
+      "query": "?api_key_id=key-b"
+    },
+    {
+      "mode": "start-error",
+      "path": "/evaluation-options/models",
+      "method": "GET",
+      "query": "?api_key_id=key-slow"
+    },
+    {
+      "mode": "start-error",
+      "path": "/evaluation-options/models",
+      "method": "GET",
+      "query": "?api_key_id=key-b"
+    },
+    {
+      "mode": "start-error",
+      "path": "/evaluation-options/models",
+      "method": "GET",
+      "query": "?api_key_id=key-a"
+    },
+    {
+      "mode": "start-error",
+      "path": "/evaluation-options/problems",
+      "method": "GET",
+      "query": "?limit=20&offset=20&source=all"
+    },
+    {
+      "mode": "start-error",
+      "path": "/evaluation-options/problems",
+      "method": "GET",
+      "query": "?limit=20&offset=0&source=all"
+    },
+    {
+      "mode": "start-error",
+      "path": "/evaluation-options/problems",
+      "method": "GET",
+      "query": "?limit=20&offset=20&source=all"
+    },
+    {
+      "mode": "start-error",
+      "path": "/evaluation-options/problems",
+      "method": "GET",
+      "query": "?limit=20&offset=0&source=all"
+    },
+    {
+      "mode": "start-error",
+      "path": "/evaluations",
+      "method": "POST",
+      "query": "",
+      "payload": {
+        "api_key_id": "key-a",
+        "model": "model-a",
+        "problem_ids": [
+          "p1",
+          "p21"
+        ],
+        "strategy_names": [
+          "direct"
+        ],
+        "budget_cap_usd": 0
+      }
+    },
+    {
+      "mode": "start-error",
+      "path": "/evaluations/eval-fixture-1/start",
+      "method": "POST",
+      "query": ""
+    },
+    {
+      "mode": "start-error",
+      "path": "/evaluations/eval-fixture-1",
+      "method": "GET",
+      "query": ""
+    },
+    {
+      "mode": "start-error",
+      "path": "/evaluations/eval-fixture-1",
+      "method": "GET",
+      "query": ""
+    },
+    {
+      "mode": "start-error",
+      "path": "/evaluations/eval-fixture-1/start",
+      "method": "POST",
+      "query": ""
+    },
+    {
+      "mode": "start-error",
+      "path": "/evaluations/eval-fixture-1",
+      "method": "GET",
+      "query": ""
+    },
+    {
+      "mode": "unknown",
+      "path": "/users/me",
+      "method": "GET",
+      "query": ""
+    },
+    {
+      "mode": "unknown",
+      "path": "/users/me",
+      "method": "GET",
+      "query": ""
+    },
+    {
+      "mode": "unknown",
+      "path": "/evaluation-options",
+      "method": "GET",
+      "query": ""
+    },
+    {
+      "mode": "unknown",
+      "path": "/api-keys",
+      "method": "GET",
+      "query": ""
+    },
+    {
+      "mode": "unknown",
+      "path": "/evaluation-options/problems",
+      "method": "GET",
+      "query": "?limit=20&offset=0&source=all"
+    },
+    {
+      "mode": "unknown",
+      "path": "/evaluation-options/models",
+      "method": "GET",
+      "query": "?api_key_id=key-a"
+    },
+    {
+      "mode": "unknown",
+      "path": "/evaluations",
+      "method": "POST",
+      "query": "",
+      "payload": {
+        "api_key_id": "key-a",
+        "model": "model-a",
+        "problem_ids": [
+          "p1"
+        ],
+        "strategy_names": [
+          "direct"
+        ]
+      }
+    },
+    {
+      "mode": "empty",
+      "path": "/users/me",
+      "method": "GET",
+      "query": ""
+    },
+    {
+      "mode": "empty",
+      "path": "/users/me",
+      "method": "GET",
+      "query": ""
+    },
+    {
+      "mode": "empty",
+      "path": "/evaluation-options",
+      "method": "GET",
+      "query": ""
+    },
+    {
+      "mode": "empty",
+      "path": "/api-keys",
+      "method": "GET",
+      "query": ""
+    },
+    {
+      "mode": "empty",
+      "path": "/evaluation-options/problems",
+      "method": "GET",
+      "query": "?limit=20&offset=0&source=all"
+    }
+  ],
+  "unknown": [],
+  "screenshots": [
+    "create-320.png",
+    "create-390.png",
+    "create-768.png",
+    "create-1440.png",
+    "create-orbit-light.png",
+    "create-orbit-dark.png",
+    "create-precision-light.png",
+    "create-precision-dark.png",
+    "create-studio-light.png",
+    "create-studio-dark.png",
+    "create-start-error.png"
+  ],
+  "replaced": [
+    "HTTP /api/v1/users/me",
+    "HTTP /api/v1/api-keys",
+    "HTTP /api/v1/evaluation-options and children",
+    "HTTP /api/v1/evaluations create/start/get",
+    "localStorage session marker (no credentials)",
+    "security only: isolated HTML and in-memory auth/HTTP transport"
+  ],
+  "real": [
+    "React StrictMode",
+    "router",
+    "session provider",
+    "creation store",
+    "evaluation client",
+    "creation/detail pages"
+  ],
+  "pass": true
+}

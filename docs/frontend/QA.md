@@ -34,3 +34,20 @@ PLAYWRIGHT_MODULE=/absolute/path/to/node_modules/playwright node scripts/verify-
 在 `frontend/` 运行 `npm test`、`npm run lint`、`npm run build`；各命令是否通过须查看当次输出。单元测试、构建与浏览器验证各自证明不同范围，不互相替代。
 
 尚不能由本轮证据确认的范围包括真实 iOS/Android 设备、Safari/Firefox 浏览器、屏幕阅读器、真实触摸与软键盘、真实后端登录/刷新/权限与登出全链路、跨设备通知、网络断线和实时消息。视口模拟与身份 fixture 不能替代这些验收。
+
+## 后续真实评估列表（#223）
+
+2026-10-22 的真实列表接入与独立验证见 [#223 验证报告](../superpowers/reports/2026-10-22-owned-evaluation-list-verify.md)。列表页面使用实际认证客户端；对应浏览器测试替换身份和列表响应，因此它证明前端行为，尚未证明真实后端端到端。公开 [fixture 结果](assets/evaluations/list/list.json) 包含 22 组断言及 390/1440px 截图索引。此前外壳证据仍只适用于其记录版本；全局入口/Mock 标记后续由 #228 处理，完整外观矩阵由 #229 处理。
+
+## 实验管理页验证（issue #166 第①步）
+
+```bash
+npm run dev -- --host 127.0.0.1 --port 5180
+# 另开终端：
+PLAYWRIGHT_MODULE=/absolute/path/to/node_modules/playwright \
+  node scripts/verify-experiments.mjs all
+```
+
+场景：`create`（创建→详情导航）、`list`（列表渲染与筛选）、`detail`（详情配置摘要与启动入口）、`all`。
+浏览器 fixture 层验证（不连真实后端）；报告与截图写入
+`docs/superpowers/reports/assets/experiments/fixture/`。

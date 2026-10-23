@@ -157,11 +157,11 @@ def run_evaluation_task(self: EvaluationTask, evaluation_id: str) -> dict[str, A
         task_service = TaskService(root=f"data/tasks/{evaluation_id}")
         run_id = f"eval-{evaluation_id}"
 
-        # 检查是否是恢复任务
+        # worker 丢失后重投递会留下 running 检查点，同样需要恢复中断单元。
         resume = False
         try:
             existing_record = task_service.get(run_id)
-            if existing_record.state in ("paused", "failed"):
+            if existing_record.state in ("running", "paused", "failed"):
                 resume = True
         except FileNotFoundError:
             pass

@@ -110,7 +110,7 @@ class CostService:
                         "cost_usd": row.spent_usd,
                         "source": "evaluations",
                         "task_id": row.id,
-                        "model": "evaluation-run",
+                        "model": row.model or "evaluation-run",
                         "strategies": list(row.strategy_names or []),
                         "problem_ids": list(row.problem_ids or []),
                         "completed": row.completed_count,
@@ -546,7 +546,7 @@ class CostService:
         by_model: dict[str, dict[str, Any]] = defaultdict(
             lambda: {"accuracy_sum": 0.0, "count": 0, "cost": 0.0}
         )
-        evaluations: dict[str, dict[str, Any]] = defaultdict(
+        evaluations: dict[tuple[str, str], dict[str, Any]] = defaultdict(
             lambda: {"accuracy_sum": 0.0, "count": 0, "cost": 0.0, "solved": 0}
         )
 
@@ -589,18 +589,18 @@ class CostService:
         for evaluation in rows:
             if not evaluation.strategy_names or evaluation.problem_count == 0:
                 continue
-            key = "+".join(evaluation.strategy_names)
+            key = (evaluation.model or "evaluation-run", "+".join(evaluation.strategy_names))
             bucket = evaluations[key]
             bucket["count"] += 1
             bucket["accuracy_sum"] += evaluation.completed_count / evaluation.problem_count
             bucket["cost"] += evaluation.spent_usd or 0.0
             bucket["solved"] += evaluation.completed_count
 
-        for strategy, bucket in evaluations.items():
+        for (model, strategy), bucket in evaluations.items():
             accuracy = bucket["accuracy_sum"] / bucket["count"] if bucket["count"] else None
             combos.append(
                 {
-                    "model": "evaluation-run",
+                    "model": model,
                     "strategy": strategy,
                     "solved": bucket["solved"],
                     "pass_rate_over_total": accuracy,

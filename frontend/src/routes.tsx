@@ -127,4 +127,18 @@ export const detailPages: AppPage[] = [
       () => import('@/pages/Evaluations/EvaluationDetailPage.tsx'),
     ),
   },
+  {
+    path: '/experiments/new',
+    label: '创建实验',
+    Component: lazy(
+      () => import('@/pages/Experiments/CreateExperimentPage.tsx'),
+    ),
+  },
+  {
+    path: '/experiments/:experimentId',
+    label: '实验详情',
+    Component: lazy(
+      () => import('@/pages/Experiments/ExperimentDetailPage.tsx'),
+    ),
+  },
 ]

@@ -74,3 +74,19 @@ test('三套风格共享同一个业务外壳与可访问主内容', () => {
     assert.match(html, /通知中心/)
   }
 })
+
+test('详情与创建路由面包屑使用真实页面标题', async () => {
+  const { Breadcrumb } = await server.ssrLoadModule(
+    '/src/layouts/components/Navigation.tsx',
+  )
+  for (const [location, label] of [
+    ['/evaluations/eval-123', '评估任务详情'],
+    ['/evaluations/new', '创建评估'],
+  ]) {
+    const html = renderToStaticMarkup(
+      createElement(StaticRouter, { location }, createElement(Breadcrumb)),
+    )
+    assert.match(html, new RegExp(`aria-current="page">${label}`))
+    assert.doesNotMatch(html, /页面未找到/)
+  }
+})
