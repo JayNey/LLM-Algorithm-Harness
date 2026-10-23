@@ -28,6 +28,7 @@ from api.experiment_models import (
     BenchmarkSuiteCreateRequest,
     BenchmarkSuiteUpdateRequest,
 )
+from api.monitoring.execution_logs import record_execution_event
 from src.benchmark.executor import BenchmarkExecutor
 from src.benchmark.suite import BenchmarkSuite as SuiteSpec
 from src.models import HarnessConfig
@@ -326,6 +327,8 @@ class BenchmarkService:
             if task is None or task.status != "running":
                 return
             task.progress = task_progress(current, total, current_step)
+            session.commit()
+            record_execution_event(task, "task.progress", task.progress)
 
     def _async_task_paused(self, run_id: str, owner_id: str) -> bool:
         with self._session() as session:

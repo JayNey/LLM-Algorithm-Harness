@@ -23,6 +23,7 @@ from sqlalchemy.orm import Session, sessionmaker
 
 from api.db.engine import business_database_url, make_engine, make_session_factory
 from api.db.models import AsyncTask, Evaluation, EvaluationResult, utcnow
+from api.monitoring.execution_logs import record_execution_event
 from api.progress import publish_progress
 from src.celery_app import celery_app
 from src.harness import AlgorithmHarness
@@ -195,12 +196,18 @@ def run_evaluation_task(self: EvaluationTask, evaluation_id: str) -> dict[str, A
                 return
             current_async_task.progress = progress
             db.commit()
+            record_execution_event(current_async_task, "task.progress", progress)
             self.update_state(state="PROGRESS", meta=progress)
 
         def on_unit_started(record: Any, unit: TaskUnit) -> None:
             """单元提交前上报：百分比是已完成比例，当前步骤是即将执行的单元。"""
             finished = sum(1 for item in record.units if item.status in {"completed", "failed"})
             report_progress(record, unit, finished)
+            record_execution_event(
+                async_task,
+                "unit.started",
+                {"problem_id": unit.problem_id, "strategy": unit.strategy},
+            )
 
         def on_unit_finished(record: Any, unit: TaskUnit) -> None:
             """单元完成回调（主线程，可触碰 db）：落库 + 累计成本 + 重算计数 + 报进度。
@@ -215,6 +222,11 @@ def run_evaluation_task(self: EvaluationTask, evaluation_id: str) -> dict[str, A
             evaluation.failed_count = sum(1 for u in record.units if u.status == "failed")
             db.commit()
             report_progress(record, unit, record.completed_units)
+            record_execution_event(
+                async_task,
+                "unit.failed" if unit.status == "failed" else "unit.completed",
+                {"problem_id": unit.problem_id, "strategy": unit.strategy, "status": unit.status},
+            )
 
             # WebSocket 实时进度（best-effort：Redis 故障只丢事件不伤任务）
             total_units = record.total_units or 1

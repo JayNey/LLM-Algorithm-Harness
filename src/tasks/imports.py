@@ -9,6 +9,7 @@ from celery import Task
 from fastapi import HTTPException
 
 from api.db.models import AsyncTask
+from api.monitoring.execution_logs import record_execution_event
 from src.celery_app import celery_app
 from src.task_manager import TaskManager
 from src.tasks.support import get_db_session, owned_async_task, task_progress
@@ -72,6 +73,7 @@ def run_import_task(self: ImportTask, job_id: str, user_id: str) -> dict[str, An
                 "message": f"Imported {processed}/{total}",
             }
             db.commit()
+            record_execution_event(row, "task.progress", row.progress)
 
         def should_pause() -> bool:
             current = (

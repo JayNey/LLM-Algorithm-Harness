@@ -747,7 +747,7 @@ OPERATIONS: dict[str, tuple[str, Any]] = {
         {"items": [], "total": 0, "limit": 100, "offset": 0},
     ),
     "task_logs": (
-        "查询自己拥有的运行任务日志；仅包含保留的生命周期及受信任任务事件。",
+        "查询自己的异步任务或评估运行日志；包含保留的生命周期、数值进度及逐单元执行事件。",
         {
             "task_id": "eval-demo",
             "items": [],
@@ -1429,7 +1429,10 @@ def _document_operation(path: str, method: str, operation: dict[str, Any]) -> No
         if name == "alert_history" and parameter["name"] == "limit":
             description, example = "最近预警条数；默认 50，服务端限制到 1–200。", 50
         if name in {"task_logs", "download_logs"} and parameter["name"] == "task_id":
-            description, example = "自己拥有的评估运行 ID，由创建评估返回。", "eval-demo"
+            description, example = (
+                "自己拥有的异步任务 ID 或有效关联评估 ID；兼容旧评估运行 ID。",
+                "eval-demo",
+            )
         parameter["description"] = description
         parameter["example"] = example
     for media_type, media in operation.get("requestBody", {}).get("content", {}).items():
