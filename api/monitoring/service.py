@@ -4,12 +4,14 @@ import time
 from typing import Any
 
 from fastapi import HTTPException
-from sqlalchemy import Engine
+from sqlalchemy import Engine, select
 
 from api.auth.service import AuthService, digest
+from api.db.models import AsyncTask, Evaluation
 from api.files.service import FileService
 from api.monitoring.config import MonitorSettings
 from api.monitoring.database_metrics import DatabaseQueryMetrics
+from api.monitoring.execution_logs import task_log_key
 from api.monitoring.probes import MonitorProbes
 from api.monitoring.store import MonitorStore
 from api.monitoring.task_snapshots import read_task_snapshot
@@ -96,6 +98,48 @@ class MonitorService:
             context=context,
             known_secrets=self.known_secrets(user_id),
         )
+
+    def owned_log_key(self, identifier: str, user_id: str) -> str:
+        """Resolve actual queue identity before the legacy run mapping, without polling."""
+        with self.task_engine.connect() as connection:
+            task = (
+                connection.execute(
+                    select(AsyncTask.id, AsyncTask.user_id).where(AsyncTask.id == identifier)
+                )
+                .mappings()
+                .first()
+            )
+            if task is not None:
+                if task["user_id"] != user_id:
+                    raise HTTPException(404, "Task not found")
+                return task_log_key(task["id"])
+            evaluation = (
+                connection.execute(
+                    select(Evaluation.id, Evaluation.user_id, Evaluation.async_task_id).where(
+                        Evaluation.id == identifier
+                    )
+                )
+                .mappings()
+                .first()
+            )
+            if evaluation is not None:
+                if evaluation["user_id"] != user_id:
+                    raise HTTPException(404, "Task not found")
+                if evaluation["async_task_id"]:
+                    linked = connection.execute(
+                        select(AsyncTask.id).where(
+                            AsyncTask.id == evaluation["async_task_id"],
+                            AsyncTask.user_id == user_id,
+                            AsyncTask.entity_id == identifier,
+                            AsyncTask.task_type == "evaluation",
+                        )
+                    ).scalar_one_or_none()
+                    if linked is None:
+                        raise HTTPException(404, "Task not found")
+                    return task_log_key(linked)
+        with self.files.store.connection() as db:
+            self.files.store.check_run(db, identifier, user_id)
+        return identifier
 
     def task_snapshot(
         self,

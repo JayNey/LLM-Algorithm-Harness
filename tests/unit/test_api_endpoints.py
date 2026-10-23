@@ -593,7 +593,7 @@ CASES += [
             limit=100,
             offset=0,
             user_id=OWNER,
-            run_id="task-1",
+            run_id="async:task-1",
         ),
         result=([VALUE], 1),
         expected=None,
@@ -603,7 +603,9 @@ CASES += [
         "/logs/download/{task_id}",
         "monitor.store.export_logs",
         (ANY,),
-        kwargs=dict(level=None, start=None, end=None, search=None, user_id=OWNER, run_id="task-1"),
+        kwargs=dict(
+            level=None, start=None, end=None, search=None, user_id=OWNER, run_id="async:task-1"
+        ),
         result=dict(total=0, exported=0, truncated=False),
         expected=b"",
         download=True,
@@ -881,6 +883,7 @@ def api(monkeypatch, tmp_path, unit_app):
     state.monitor.probes = Mock()
     state.monitor.store = Mock()
     state.monitor.files = state.files
+    state.monitor.owned_log_key.return_value = "async:task-1"
     state.monitor.cache = Mock()
     state.monitor.started = time.monotonic()
     state.files.store.connection.return_value = nullcontext(Mock())
@@ -994,7 +997,8 @@ def test_endpoint_happy_path(api, item):
         else:
             assert body["data"] == VALUE
     if item.path.startswith("/logs/"):
-        api.files.store.check_run.assert_called_once_with(ANY, "task-1", OWNER)
+        api.monitor.owned_log_key.assert_called_once_with("task-1", OWNER)
+        api.files.store.check_run.assert_not_called()
     if item.path == "/evaluations" and item.method == "POST":
         api.auth.owned_key.assert_called_once_with("key-1", OWNER)
         api.files.store.register_run.assert_called_once_with("eval-1", OWNER)
@@ -1410,3 +1414,14 @@ def test_malformed_json_does_not_invoke_services(api, path):
     )
     assert_error(response, 400, "INVALID_PARAMETER")
     target(api, item.target).assert_not_called()
+
+
+@pytest.mark.parametrize("path", ["/logs/tasks/task-1", "/logs/download/task-1"])
+def test_log_owner_resolution_failure_prevents_storage_access(api, path):
+    from fastapi import HTTPException
+
+    api.monitor.owned_log_key.side_effect = HTTPException(404, "Task not found")
+    assert_error(api.client.get(PREFIX + path), 404, "RESOURCE_NOT_FOUND")
+    api.monitor.owned_log_key.assert_called_once_with("task-1", OWNER)
+    api.monitor.store.query_logs.assert_not_called()
+    api.monitor.store.export_logs.assert_not_called()

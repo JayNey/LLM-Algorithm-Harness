@@ -253,8 +253,7 @@ def global_logs(
 def owned_logs(
     monitor: MonitorService, run_id: str, principal: Principal, filters: dict[str, Any]
 ) -> tuple[list[dict[str, Any]], int]:
-    with monitor.files.store.connection() as db:
-        monitor.files.store.check_run(db, run_id, principal.user_id)
+    run_id = monitor.owned_log_key(run_id, principal.user_id)
     return monitor.store.query_logs(**filters, user_id=principal.user_id, run_id=run_id)
 
 
@@ -287,15 +286,14 @@ def download_logs(
 ) -> Response:
     # The ID is first resolved through the owned run mapping; do not use it as
     # a path or raw Content-Disposition value.
-    with monitor.files.store.connection() as db:
-        monitor.files.store.check_run(db, task_id, principal.user_id)
+    run_id = monitor.owned_log_key(task_id, principal.user_id)
     stream = cast(BinaryIO, SpooledTemporaryFile(max_size=1024 * 1024, mode="w+b"))
     try:
         summary = monitor.store.export_logs(
             stream,
             **{key: value for key, value in filters.items() if key not in {"limit", "offset"}},
             user_id=principal.user_id,
-            run_id=task_id,
+            run_id=run_id,
         )
         stream.seek(0)
         return LogDownloadResponse(
