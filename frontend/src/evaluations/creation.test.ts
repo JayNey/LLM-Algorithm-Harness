@@ -418,3 +418,131 @@ test('provider匿名初始快照复用认证HTTP实例，直接渲染不自动st
     await server.close()
   }
 })
+
+test('取消核对能力后调用真实cancel，重复取消与启动共用锁', async () => {
+  const response = Promise.withResolvers<Evaluation>()
+  const cancels: string[] = []
+  const h = setup({
+    get: async () => evaluation({ can_cancel: true }),
+    cancel: (id) => {
+      cancels.push(id)
+      return response.promise
+    },
+  })
+  const first = h.store.getState().act('eval-1', 'cancel')
+  const second = h.store.getState().act('eval-1', 'cancel')
+  const start = h.store.getState().retryStart('eval-1')
+  assert.equal(first, second)
+  assert.equal(first, start)
+  await new Promise((r) => setTimeout(r, 0))
+  assert.deepEqual(cancels, ['eval-1'])
+  assert.deepEqual(h.starts, [])
+  response.resolve(
+    evaluation({ status: 'completed', can_start: false, can_cancel: false }),
+  )
+  await first
+  assert.equal(h.store.getState().action?.pending, false)
+  assert.equal(h.store.getState().evaluationId, null)
+})
+test('取消失败保留ID和错误，允许重新核对后重试', async () => {
+  let attempts = 0
+  const h = setup({
+    get: async () => evaluation({ can_cancel: true }),
+    cancel: async () => {
+      if (++attempts === 1) throw new ApiClientError('取消失败', 503)
+      return evaluation({ status: 'cancelled', can_cancel: false })
+    },
+  })
+  await h.store.getState().act('eval-1', 'cancel')
+  assert.equal(h.store.getState().action?.pending, false)
+  assert.equal(h.store.getState().evaluationId, null)
+  assert.equal(h.store.getState().action?.error?.message, '取消失败')
+  await h.store.getState().act('eval-1', 'cancel')
+  assert.equal(attempts, 2)
+  assert.equal(h.store.getState().action?.error, null)
+  assert.equal(h.payloads.length, 0)
+})
+test('终态不允许取消；换owner后迟到GET不发cancel', async () => {
+  let cancels = 0
+  const get = Promise.withResolvers<Evaluation>()
+  const h = setup({
+    get: () => get.promise,
+    cancel: async () => {
+      cancels++
+      return evaluation()
+    },
+  })
+  const task = h.store.getState().act('eval-1', 'cancel')
+  await Promise.resolve()
+  h.setOwner('other-session')
+  get.resolve(evaluation({ can_cancel: true }))
+  await task
+  assert.equal(cancels, 0)
+  const terminal = setup({
+    cancel: async () => {
+      cancels++
+      return evaluation()
+    },
+  })
+  await terminal.store.getState().act('eval-1', 'cancel')
+  assert.equal(cancels, 0)
+  assert.equal(terminal.store.getState().action?.pending, false)
+})
+
+test('详情离开或切ID使预检失效，不继续POST且释放共享锁', async () => {
+  for (const kind of ['start', 'cancel'] as const) {
+    const read = Promise.withResolvers<Evaluation>()
+    let posts = 0
+    const h = setup({
+      get: () => read.promise,
+      start: async () => {
+        posts++
+        return evaluation()
+      },
+      cancel: async () => {
+        posts++
+        return evaluation()
+      },
+    })
+    const controller = new AbortController()
+    const task = h.store.getState().act('eval-1', kind, controller.signal)
+    await Promise.resolve()
+    controller.abort()
+    read.resolve(evaluation({ can_cancel: true }))
+    await task
+    assert.equal(posts, 0)
+    assert.equal(h.store.getState().action?.pending, false)
+    assert.equal(h.store.getState().phase, 'editing')
+    assert.equal(h.store.getState().evaluationId, null)
+  }
+})
+test('创建未知时仍可操作已知任务，且不改变未知回执或重新create', async () => {
+  let posts = 0
+  const h = setup({
+    create: async () => {
+      throw new ApiClientError('创建超时')
+    },
+    get: async () => evaluation({ can_cancel: true }),
+    cancel: async () => {
+      posts++
+      return evaluation()
+    },
+  })
+  await h.store.getState().submit()
+  assert.equal(h.store.getState().phase, 'create-unknown')
+  await h.store.getState().act('known-id', 'cancel')
+  assert.equal(posts, 1)
+  assert.equal(h.store.getState().phase, 'create-unknown')
+  assert.equal(h.store.getState().evaluationId, null)
+  await h.store.getState().submit()
+  assert.equal(posts, 1)
+})
+test('现有任务动作保留创建草稿和editing，仍能提交新任务', async () => {
+  const h = setup({ get: async () => evaluation({ can_cancel: true }) })
+  await h.store.getState().act('existing-id', 'cancel')
+  assert.equal(h.store.getState().phase, 'editing')
+  assert.equal(h.store.getState().evaluationId, null)
+  assert.equal(h.store.getState().draft.model, 'model-1')
+  await h.store.getState().submit()
+  assert.equal(h.payloads.length, 1)
+})

@@ -1,0 +1,311 @@
+{
+  "scenario": "list",
+  "source": {
+    "head": "fa60243e975debb1595d8d959d07ecc73430854f",
+    "dirty": "M scripts/verify-evaluations.mjs\n M src/auth/app-shell.test.ts\n M src/evaluations/components.tsx\n M src/evaluations/creation.test.ts\n M src/evaluations/creation.ts\n M src/evaluations/workflow.css\n M src/layouts/components/Navigation.tsx\n M src/pages/Evaluations/EvaluationDetailPage.tsx\n?? src/evaluations/useEvaluation.ts\n?? ../openspec/changes/evaluation-detail-actions/"
+  },
+  "layer": "browser-fixture (not backend E2E)",
+  "assertions": [
+    {
+      "name": "加载不是空集或旧Mock行",
+      "pass": true
+    },
+    {
+      "name": "20条真实任务和开放状态/服务端进度",
+      "pass": true
+    },
+    {
+      "name": "第二页URL和请求均为limit20/offset20",
+      "pass": true
+    },
+    {
+      "name": "刷新保留分页",
+      "pass": true
+    },
+    {
+      "name": "筛选写入URL并清零offset",
+      "pass": true
+    },
+    {
+      "name": "浏览器后退恢复旧分页",
+      "pass": true
+    },
+    {
+      "name": "orbit保留URL分页与已加载任务",
+      "pass": true
+    },
+    {
+      "name": "precision保留URL分页与已加载任务",
+      "pass": true
+    },
+    {
+      "name": "studio保留URL分页与已加载任务",
+      "pass": true
+    },
+    {
+      "name": "最后一页只显示剩余记录并禁用下一页，可返回上一页",
+      "pass": true
+    },
+    {
+      "name": "列表浏览器无异常",
+      "pass": true
+    },
+    {
+      "name": "503错误不伪装空集，重试保留筛选",
+      "pass": true
+    },
+    {
+      "name": "list-empty超页回到有效offset",
+      "pass": true
+    },
+    {
+      "name": "list-shrunk超页回到有效offset",
+      "pass": true
+    },
+    {
+      "name": "筛选空集可清除筛选，和账号空集区别显示",
+      "pass": true
+    },
+    {
+      "name": "旧筛选迟到不覆盖新筛选",
+      "pass": true
+    },
+    {
+      "name": "忽略AbortSignal的旧查询不能覆盖新查询",
+      "pass": true
+    },
+    {
+      "name": "换owner首个提交立即隐藏旧数据",
+      "pass": true
+    },
+    {
+      "name": "旧owner迟到不写入新会话或短暂闪现",
+      "pass": true
+    },
+    {
+      "name": "失败不变空集，重试后可呈现合法空页",
+      "pass": true
+    },
+    {
+      "name": "卸载取消请求且迟到完成不再提交",
+      "pass": true
+    },
+    {
+      "name": "无未声明 API 请求",
+      "pass": true
+    }
+  ],
+  "requests": [
+    {
+      "mode": "list-loading",
+      "path": "/users/me",
+      "method": "GET",
+      "query": ""
+    },
+    {
+      "mode": "list-loading",
+      "path": "/users/me",
+      "method": "GET",
+      "query": ""
+    },
+    {
+      "mode": "list-loading",
+      "path": "/evaluations",
+      "method": "GET",
+      "query": "?limit=20&offset=0"
+    },
+    {
+      "mode": "list-loading",
+      "path": "/evaluations",
+      "method": "GET",
+      "query": "?limit=20&offset=20"
+    },
+    {
+      "mode": "list-loading",
+      "path": "/users/me",
+      "method": "GET",
+      "query": ""
+    },
+    {
+      "mode": "list-loading",
+      "path": "/users/me",
+      "method": "GET",
+      "query": ""
+    },
+    {
+      "mode": "list-loading",
+      "path": "/evaluations",
+      "method": "GET",
+      "query": "?limit=20&offset=20"
+    },
+    {
+      "mode": "list-loading",
+      "path": "/evaluations",
+      "method": "GET",
+      "query": "?status=completed&limit=20&offset=0"
+    },
+    {
+      "mode": "list-loading",
+      "path": "/evaluations",
+      "method": "GET",
+      "query": "?limit=20&offset=20"
+    },
+    {
+      "mode": "list-loading",
+      "path": "/evaluations",
+      "method": "GET",
+      "query": "?limit=20&offset=40"
+    },
+    {
+      "mode": "list-loading",
+      "path": "/evaluations",
+      "method": "GET",
+      "query": "?limit=20&offset=20"
+    },
+    {
+      "mode": "list-error",
+      "path": "/users/me",
+      "method": "GET",
+      "query": ""
+    },
+    {
+      "mode": "list-error",
+      "path": "/users/me",
+      "method": "GET",
+      "query": ""
+    },
+    {
+      "mode": "list-error",
+      "path": "/evaluations",
+      "method": "GET",
+      "query": "?status=completed&limit=20&offset=0"
+    },
+    {
+      "mode": "list-error",
+      "path": "/evaluations",
+      "method": "GET",
+      "query": "?status=completed&limit=20&offset=0"
+    },
+    {
+      "mode": "list-empty",
+      "path": "/users/me",
+      "method": "GET",
+      "query": ""
+    },
+    {
+      "mode": "list-empty",
+      "path": "/users/me",
+      "method": "GET",
+      "query": ""
+    },
+    {
+      "mode": "list-empty",
+      "path": "/evaluations",
+      "method": "GET",
+      "query": "?limit=20&offset=80"
+    },
+    {
+      "mode": "list-empty",
+      "path": "/evaluations",
+      "method": "GET",
+      "query": "?limit=20&offset=0"
+    },
+    {
+      "mode": "list-shrunk",
+      "path": "/users/me",
+      "method": "GET",
+      "query": ""
+    },
+    {
+      "mode": "list-shrunk",
+      "path": "/users/me",
+      "method": "GET",
+      "query": ""
+    },
+    {
+      "mode": "list-shrunk",
+      "path": "/evaluations",
+      "method": "GET",
+      "query": "?limit=20&offset=80"
+    },
+    {
+      "mode": "list-shrunk",
+      "path": "/evaluations",
+      "method": "GET",
+      "query": "?limit=20&offset=20"
+    },
+    {
+      "mode": "list",
+      "path": "/users/me",
+      "method": "GET",
+      "query": ""
+    },
+    {
+      "mode": "list",
+      "path": "/users/me",
+      "method": "GET",
+      "query": ""
+    },
+    {
+      "mode": "list",
+      "path": "/evaluations",
+      "method": "GET",
+      "query": "?status=paused&limit=20&offset=0"
+    },
+    {
+      "mode": "list",
+      "path": "/evaluations",
+      "method": "GET",
+      "query": "?limit=20&offset=0"
+    },
+    {
+      "mode": "list-stale",
+      "path": "/users/me",
+      "method": "GET",
+      "query": ""
+    },
+    {
+      "mode": "list-stale",
+      "path": "/users/me",
+      "method": "GET",
+      "query": ""
+    },
+    {
+      "mode": "list-stale",
+      "path": "/evaluations",
+      "method": "GET",
+      "query": "?status=running&limit=20&offset=0"
+    },
+    {
+      "mode": "list-stale",
+      "path": "/evaluations",
+      "method": "GET",
+      "query": "?status=completed&limit=20&offset=0"
+    }
+  ],
+  "unknown": [],
+  "screenshots": [
+    "list-390.png",
+    "list-1440.png"
+  ],
+  "replaced": [
+    "HTTP /api/v1/users/me",
+    "HTTP /api/v1/api-keys",
+    "HTTP /api/v1/evaluation-options and children",
+    "HTTP /api/v1/evaluations create/start/get",
+    "localStorage session marker (no credentials)",
+    "security only: isolated HTML and in-memory auth/HTTP transport",
+    "HTTP GET /api/v1/evaluations list/filter/page",
+    "list lifecycle only: isolated HTML and in-memory list loader (ignores AbortSignal)"
+  ],
+  "real": [
+    "React StrictMode",
+    "router",
+    "session provider",
+    "creation store",
+    "evaluation client",
+    "owned evaluation list page",
+    "useList lifecycle"
+  ],
+  "pass": true
+}

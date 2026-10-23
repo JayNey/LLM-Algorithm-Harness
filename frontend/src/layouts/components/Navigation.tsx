@@ -1,6 +1,6 @@
 import { Button, Tooltip } from 'antd'
-import { Link, NavLink, useLocation } from 'react-router-dom'
-import { appPages, settingsPages } from '@/routes.tsx'
+import { Link, NavLink, matchPath, useLocation } from 'react-router-dom'
+import { appPages, detailPages, settingsPages } from '@/routes.tsx'
 import { useRole } from '@/auth/roleContext.ts'
 import { canAccess } from '@/auth/roles.ts'
 import { readViteEnv } from '@/config/env.ts'
@@ -119,7 +119,9 @@ export function MobileNav() {
 }
 export function Breadcrumb() {
   const { pathname } = useLocation()
-  const page = [...appPages, ...settingsPages].find((p) => p.path === pathname)
+  const page = [...appPages, ...settingsPages, ...detailPages].find((p) =>
+    matchPath({ path: p.path, end: true }, pathname),
+  )
   return (
     <nav className="breadcrumbs" aria-label="面包屑">
       <Link to="/">工作台</Link>

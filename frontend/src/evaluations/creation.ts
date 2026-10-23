@@ -11,6 +11,7 @@ export type CreationPhase =
   | 'queued'
   | 'start-error'
   | 'create-unknown'
+
 export interface CreationState {
   owner: string | null
   draft: Draft
@@ -20,6 +21,17 @@ export interface CreationState {
   setDraft(patch: Partial<Draft>): void
   submit(): Promise<void>
   retryStart(evaluationId: string): Promise<void>
+  action: {
+    evaluationId: string
+    kind: 'start' | 'cancel'
+    pending: boolean
+    error: ApiClientError | null
+  } | null
+  act(
+    evaluationId: string,
+    kind: 'start' | 'cancel',
+    signal?: AbortSignal,
+  ): Promise<void>
   reset(owner: string | null): void
 }
 export interface CreationDeps {
@@ -59,7 +71,7 @@ export function createCreationStore(
     // Reserve before publishing state: even a synchronous subscriber shares this lock.
     function run(
       owner: string,
-      phase: CreationPhase,
+      phase: CreationPhase | null,
       action: (id: number) => Promise<void>,
     ): Promise<void> {
       const id = ++operation
@@ -72,7 +84,7 @@ export function createCreationStore(
         }
       })
       active = task
-      set({ phase, error: null })
+      if (phase) set({ phase, error: null })
       return task
     }
     async function start(owner: string, id: number, evaluationId: string) {
@@ -92,6 +104,7 @@ export function createCreationStore(
       owner: deps.readOwner(),
       draft: emptyDraft(),
       phase: 'editing',
+      action: null,
       evaluationId: null,
       error: null,
       setDraft(patch) {
@@ -180,11 +193,47 @@ export function createCreationStore(
           }
         })
       },
+      act(evaluationId, kind, signal) {
+        const { owner } = get()
+        if (!owns(owner) || signal?.aborted || !evaluationId.trim())
+          return Promise.resolve()
+        if (active) return active
+        const task = run(owner, null, async (id) => {
+          const valid = () => current(owner, id) && !signal?.aborted
+          try {
+            if (!valid()) return
+            const evaluation = await deps.client.get(evaluationId, signal)
+            if (!valid()) return
+            if (kind === 'start' ? evaluation.can_start : evaluation.can_cancel)
+              await deps.client[kind](evaluationId)
+          } catch (error) {
+            if (valid())
+              set({
+                action: {
+                  evaluationId,
+                  kind,
+                  pending: true,
+                  error: asError(error),
+                },
+              })
+          } finally {
+            if (current(owner, id))
+              set((state) => ({
+                action: state.action
+                  ? { ...state.action, pending: false }
+                  : null,
+              }))
+          }
+        })
+        set({ action: { evaluationId, kind, pending: true, error: null } })
+        return task
+      },
       reset(owner) {
         operation++
         active = null
         set({
           owner,
+          action: null,
           draft: emptyDraft(),
           phase: 'editing',
           evaluationId: null,

@@ -1,0 +1,837 @@
+{
+  "scenario": "detail",
+  "source": {
+    "head": "fa60243e975debb1595d8d959d07ecc73430854f",
+    "dirty": "M scripts/verify-evaluations.mjs\n M src/auth/app-shell.test.ts\n M src/evaluations/components.tsx\n M src/evaluations/creation.test.ts\n M src/evaluations/creation.ts\n M src/evaluations/workflow.css\n M src/layouts/components/Navigation.tsx\n M src/pages/Evaluations/EvaluationDetailPage.tsx\n?? src/evaluations/useEvaluation.ts\n?? ../openspec/changes/evaluation-detail-actions/"
+  },
+  "layer": "browser-fixture (not backend E2E)",
+  "assertions": [
+    {
+      "name": "详情忽略旧路由与旧刷新响应，即使transport忽略AbortSignal",
+      "pass": true
+    },
+    {
+      "name": "详情换owner立即隐藏旧快照，旧错误不污染新会话",
+      "pass": true
+    },
+    {
+      "name": "详情卸载中止GET且迟到响应不再提交",
+      "pass": true
+    },
+    {
+      "name": "pending直接访问、刷新与能力来自GET",
+      "pass": true
+    },
+    {
+      "name": "queued直接访问、刷新与能力来自GET",
+      "pass": true
+    },
+    {
+      "name": "running直接访问、刷新与能力来自GET",
+      "pass": true
+    },
+    {
+      "name": "三风格浅深主题320/1440px无溢出",
+      "pass": true
+    },
+    {
+      "name": "paused直接访问、刷新与能力来自GET",
+      "pass": true
+    },
+    {
+      "name": "completed直接访问、刷新与能力来自GET",
+      "pass": true
+    },
+    {
+      "name": "failed直接访问、刷新与能力来自GET",
+      "pass": true
+    },
+    {
+      "name": "cancelled直接访问、刷新与能力来自GET",
+      "pass": true
+    },
+    {
+      "name": "future-state直接访问、刷新与能力来自GET",
+      "pass": true
+    },
+    {
+      "name": "启动任务预检时离页不继续POST",
+      "pass": true
+    },
+    {
+      "name": "启动任务离页保留新建表单可用",
+      "pass": true
+    },
+    {
+      "name": "取消任务预检时离页不继续POST",
+      "pass": true
+    },
+    {
+      "name": "取消任务离页保留新建表单可用",
+      "pass": true
+    },
+    {
+      "name": "刷新503保留数据并禁操作，403清除数据，重试恢复",
+      "pass": true
+    },
+    {
+      "name": "403显示错误且无动作",
+      "pass": true
+    },
+    {
+      "name": "404显示错误且无动作",
+      "pass": true
+    },
+    {
+      "name": "pending真实动作、失败、终态竞争及互斥",
+      "pass": true
+    },
+    {
+      "name": "取消现有任务后同会话仍能创建新任务",
+      "pass": true
+    },
+    {
+      "name": "cancel-error真实动作、失败、终态竞争及互斥",
+      "pass": true
+    },
+    {
+      "name": "race真实动作、失败、终态竞争及互斥",
+      "pass": true
+    },
+    {
+      "name": "start-error真实动作、失败、终态竞争及互斥",
+      "pass": true
+    },
+    {
+      "name": "无未声明 API 请求",
+      "pass": true
+    }
+  ],
+  "requests": [
+    {
+      "mode": "detail-pending",
+      "path": "/users/me",
+      "method": "GET",
+      "query": ""
+    },
+    {
+      "mode": "detail-pending",
+      "path": "/users/me",
+      "method": "GET",
+      "query": ""
+    },
+    {
+      "mode": "detail-pending",
+      "path": "/evaluations/eval-fixture-1",
+      "method": "GET",
+      "query": ""
+    },
+    {
+      "mode": "detail-pending",
+      "path": "/users/me",
+      "method": "GET",
+      "query": ""
+    },
+    {
+      "mode": "detail-pending",
+      "path": "/users/me",
+      "method": "GET",
+      "query": ""
+    },
+    {
+      "mode": "detail-pending",
+      "path": "/evaluations/eval-fixture-1",
+      "method": "GET",
+      "query": ""
+    },
+    {
+      "mode": "detail-pending",
+      "path": "/evaluations/eval-fixture-1",
+      "method": "GET",
+      "query": ""
+    },
+    {
+      "mode": "detail-queued",
+      "path": "/users/me",
+      "method": "GET",
+      "query": ""
+    },
+    {
+      "mode": "detail-queued",
+      "path": "/users/me",
+      "method": "GET",
+      "query": ""
+    },
+    {
+      "mode": "detail-queued",
+      "path": "/evaluations/eval-fixture-1",
+      "method": "GET",
+      "query": ""
+    },
+    {
+      "mode": "detail-queued",
+      "path": "/users/me",
+      "method": "GET",
+      "query": ""
+    },
+    {
+      "mode": "detail-queued",
+      "path": "/users/me",
+      "method": "GET",
+      "query": ""
+    },
+    {
+      "mode": "detail-queued",
+      "path": "/evaluations/eval-fixture-1",
+      "method": "GET",
+      "query": ""
+    },
+    {
+      "mode": "detail-queued",
+      "path": "/evaluations/eval-fixture-1",
+      "method": "GET",
+      "query": ""
+    },
+    {
+      "mode": "detail-running",
+      "path": "/users/me",
+      "method": "GET",
+      "query": ""
+    },
+    {
+      "mode": "detail-running",
+      "path": "/users/me",
+      "method": "GET",
+      "query": ""
+    },
+    {
+      "mode": "detail-running",
+      "path": "/evaluations/eval-fixture-1",
+      "method": "GET",
+      "query": ""
+    },
+    {
+      "mode": "detail-running",
+      "path": "/users/me",
+      "method": "GET",
+      "query": ""
+    },
+    {
+      "mode": "detail-running",
+      "path": "/users/me",
+      "method": "GET",
+      "query": ""
+    },
+    {
+      "mode": "detail-running",
+      "path": "/evaluations/eval-fixture-1",
+      "method": "GET",
+      "query": ""
+    },
+    {
+      "mode": "detail-running",
+      "path": "/evaluations/eval-fixture-1",
+      "method": "GET",
+      "query": ""
+    },
+    {
+      "mode": "detail-paused",
+      "path": "/users/me",
+      "method": "GET",
+      "query": ""
+    },
+    {
+      "mode": "detail-paused",
+      "path": "/users/me",
+      "method": "GET",
+      "query": ""
+    },
+    {
+      "mode": "detail-paused",
+      "path": "/evaluations/eval-fixture-1",
+      "method": "GET",
+      "query": ""
+    },
+    {
+      "mode": "detail-paused",
+      "path": "/users/me",
+      "method": "GET",
+      "query": ""
+    },
+    {
+      "mode": "detail-paused",
+      "path": "/users/me",
+      "method": "GET",
+      "query": ""
+    },
+    {
+      "mode": "detail-paused",
+      "path": "/evaluations/eval-fixture-1",
+      "method": "GET",
+      "query": ""
+    },
+    {
+      "mode": "detail-paused",
+      "path": "/evaluations/eval-fixture-1",
+      "method": "GET",
+      "query": ""
+    },
+    {
+      "mode": "detail-completed",
+      "path": "/users/me",
+      "method": "GET",
+      "query": ""
+    },
+    {
+      "mode": "detail-completed",
+      "path": "/users/me",
+      "method": "GET",
+      "query": ""
+    },
+    {
+      "mode": "detail-completed",
+      "path": "/evaluations/eval-fixture-1",
+      "method": "GET",
+      "query": ""
+    },
+    {
+      "mode": "detail-completed",
+      "path": "/users/me",
+      "method": "GET",
+      "query": ""
+    },
+    {
+      "mode": "detail-completed",
+      "path": "/users/me",
+      "method": "GET",
+      "query": ""
+    },
+    {
+      "mode": "detail-completed",
+      "path": "/evaluations/eval-fixture-1",
+      "method": "GET",
+      "query": ""
+    },
+    {
+      "mode": "detail-completed",
+      "path": "/evaluations/eval-fixture-1",
+      "method": "GET",
+      "query": ""
+    },
+    {
+      "mode": "detail-failed",
+      "path": "/users/me",
+      "method": "GET",
+      "query": ""
+    },
+    {
+      "mode": "detail-failed",
+      "path": "/users/me",
+      "method": "GET",
+      "query": ""
+    },
+    {
+      "mode": "detail-failed",
+      "path": "/evaluations/eval-fixture-1",
+      "method": "GET",
+      "query": ""
+    },
+    {
+      "mode": "detail-failed",
+      "path": "/users/me",
+      "method": "GET",
+      "query": ""
+    },
+    {
+      "mode": "detail-failed",
+      "path": "/users/me",
+      "method": "GET",
+      "query": ""
+    },
+    {
+      "mode": "detail-failed",
+      "path": "/evaluations/eval-fixture-1",
+      "method": "GET",
+      "query": ""
+    },
+    {
+      "mode": "detail-failed",
+      "path": "/evaluations/eval-fixture-1",
+      "method": "GET",
+      "query": ""
+    },
+    {
+      "mode": "detail-cancelled",
+      "path": "/users/me",
+      "method": "GET",
+      "query": ""
+    },
+    {
+      "mode": "detail-cancelled",
+      "path": "/users/me",
+      "method": "GET",
+      "query": ""
+    },
+    {
+      "mode": "detail-cancelled",
+      "path": "/evaluations/eval-fixture-1",
+      "method": "GET",
+      "query": ""
+    },
+    {
+      "mode": "detail-cancelled",
+      "path": "/users/me",
+      "method": "GET",
+      "query": ""
+    },
+    {
+      "mode": "detail-cancelled",
+      "path": "/users/me",
+      "method": "GET",
+      "query": ""
+    },
+    {
+      "mode": "detail-cancelled",
+      "path": "/evaluations/eval-fixture-1",
+      "method": "GET",
+      "query": ""
+    },
+    {
+      "mode": "detail-cancelled",
+      "path": "/evaluations/eval-fixture-1",
+      "method": "GET",
+      "query": ""
+    },
+    {
+      "mode": "detail-future-state",
+      "path": "/users/me",
+      "method": "GET",
+      "query": ""
+    },
+    {
+      "mode": "detail-future-state",
+      "path": "/users/me",
+      "method": "GET",
+      "query": ""
+    },
+    {
+      "mode": "detail-future-state",
+      "path": "/evaluations/eval-fixture-1",
+      "method": "GET",
+      "query": ""
+    },
+    {
+      "mode": "detail-future-state",
+      "path": "/users/me",
+      "method": "GET",
+      "query": ""
+    },
+    {
+      "mode": "detail-future-state",
+      "path": "/users/me",
+      "method": "GET",
+      "query": ""
+    },
+    {
+      "mode": "detail-future-state",
+      "path": "/evaluations/eval-fixture-1",
+      "method": "GET",
+      "query": ""
+    },
+    {
+      "mode": "detail-future-state",
+      "path": "/evaluations/eval-fixture-1",
+      "method": "GET",
+      "query": ""
+    },
+    {
+      "mode": "detail-pending",
+      "path": "/users/me",
+      "method": "GET",
+      "query": ""
+    },
+    {
+      "mode": "detail-pending",
+      "path": "/users/me",
+      "method": "GET",
+      "query": ""
+    },
+    {
+      "mode": "detail-pending",
+      "path": "/evaluations/eval-fixture-1",
+      "method": "GET",
+      "query": ""
+    },
+    {
+      "mode": "detail-pending",
+      "path": "/evaluations/eval-fixture-1",
+      "method": "GET",
+      "query": ""
+    },
+    {
+      "mode": "detail-pending",
+      "path": "/evaluations",
+      "method": "GET",
+      "query": "?limit=20&offset=0"
+    },
+    {
+      "mode": "detail-pending",
+      "path": "/evaluation-options",
+      "method": "GET",
+      "query": ""
+    },
+    {
+      "mode": "detail-pending",
+      "path": "/api-keys",
+      "method": "GET",
+      "query": ""
+    },
+    {
+      "mode": "detail-pending",
+      "path": "/evaluation-options/problems",
+      "method": "GET",
+      "query": "?limit=20&offset=0&source=all"
+    },
+    {
+      "mode": "detail-pending",
+      "path": "/users/me",
+      "method": "GET",
+      "query": ""
+    },
+    {
+      "mode": "detail-pending",
+      "path": "/users/me",
+      "method": "GET",
+      "query": ""
+    },
+    {
+      "mode": "detail-pending",
+      "path": "/evaluations/eval-fixture-1",
+      "method": "GET",
+      "query": ""
+    },
+    {
+      "mode": "detail-pending",
+      "path": "/evaluations/eval-fixture-1",
+      "method": "GET",
+      "query": ""
+    },
+    {
+      "mode": "detail-pending",
+      "path": "/evaluations",
+      "method": "GET",
+      "query": "?limit=20&offset=0"
+    },
+    {
+      "mode": "detail-pending",
+      "path": "/evaluation-options",
+      "method": "GET",
+      "query": ""
+    },
+    {
+      "mode": "detail-pending",
+      "path": "/api-keys",
+      "method": "GET",
+      "query": ""
+    },
+    {
+      "mode": "detail-pending",
+      "path": "/evaluation-options/problems",
+      "method": "GET",
+      "query": "?limit=20&offset=0&source=all"
+    },
+    {
+      "mode": "detail-pending",
+      "path": "/users/me",
+      "method": "GET",
+      "query": ""
+    },
+    {
+      "mode": "detail-pending",
+      "path": "/users/me",
+      "method": "GET",
+      "query": ""
+    },
+    {
+      "mode": "detail-pending",
+      "path": "/evaluations/eval-fixture-1",
+      "method": "GET",
+      "query": ""
+    },
+    {
+      "mode": "detail-pending",
+      "path": "/evaluations/eval-fixture-1",
+      "method": "GET",
+      "query": ""
+    },
+    {
+      "mode": "detail-pending",
+      "path": "/evaluations/eval-fixture-1",
+      "method": "GET",
+      "query": ""
+    },
+    {
+      "mode": "detail-pending",
+      "path": "/evaluations/eval-fixture-1",
+      "method": "GET",
+      "query": ""
+    },
+    {
+      "mode": "detail-403",
+      "path": "/users/me",
+      "method": "GET",
+      "query": ""
+    },
+    {
+      "mode": "detail-403",
+      "path": "/users/me",
+      "method": "GET",
+      "query": ""
+    },
+    {
+      "mode": "detail-403",
+      "path": "/evaluations/eval-fixture-1",
+      "method": "GET",
+      "query": ""
+    },
+    {
+      "mode": "detail-404",
+      "path": "/users/me",
+      "method": "GET",
+      "query": ""
+    },
+    {
+      "mode": "detail-404",
+      "path": "/users/me",
+      "method": "GET",
+      "query": ""
+    },
+    {
+      "mode": "detail-404",
+      "path": "/evaluations/eval-fixture-1",
+      "method": "GET",
+      "query": ""
+    },
+    {
+      "mode": "detail-pending",
+      "path": "/users/me",
+      "method": "GET",
+      "query": ""
+    },
+    {
+      "mode": "detail-pending",
+      "path": "/users/me",
+      "method": "GET",
+      "query": ""
+    },
+    {
+      "mode": "detail-pending",
+      "path": "/evaluations/eval-fixture-1",
+      "method": "GET",
+      "query": ""
+    },
+    {
+      "mode": "detail-pending",
+      "path": "/evaluations/eval-fixture-1",
+      "method": "GET",
+      "query": ""
+    },
+    {
+      "mode": "detail-pending",
+      "path": "/evaluations/eval-fixture-1/cancel",
+      "method": "POST",
+      "query": ""
+    },
+    {
+      "mode": "detail-pending",
+      "path": "/evaluations/eval-fixture-1",
+      "method": "GET",
+      "query": ""
+    },
+    {
+      "mode": "detail-pending",
+      "path": "/evaluations",
+      "method": "GET",
+      "query": "?limit=20&offset=0"
+    },
+    {
+      "mode": "detail-pending",
+      "path": "/evaluation-options",
+      "method": "GET",
+      "query": ""
+    },
+    {
+      "mode": "detail-pending",
+      "path": "/api-keys",
+      "method": "GET",
+      "query": ""
+    },
+    {
+      "mode": "detail-pending",
+      "path": "/evaluation-options/problems",
+      "method": "GET",
+      "query": "?limit=20&offset=0&source=all"
+    },
+    {
+      "mode": "detail-cancel-error",
+      "path": "/users/me",
+      "method": "GET",
+      "query": ""
+    },
+    {
+      "mode": "detail-cancel-error",
+      "path": "/users/me",
+      "method": "GET",
+      "query": ""
+    },
+    {
+      "mode": "detail-cancel-error",
+      "path": "/evaluations/eval-fixture-1",
+      "method": "GET",
+      "query": ""
+    },
+    {
+      "mode": "detail-cancel-error",
+      "path": "/evaluations/eval-fixture-1",
+      "method": "GET",
+      "query": ""
+    },
+    {
+      "mode": "detail-cancel-error",
+      "path": "/evaluations/eval-fixture-1/cancel",
+      "method": "POST",
+      "query": ""
+    },
+    {
+      "mode": "detail-cancel-error",
+      "path": "/evaluations/eval-fixture-1",
+      "method": "GET",
+      "query": ""
+    },
+    {
+      "mode": "detail-race",
+      "path": "/users/me",
+      "method": "GET",
+      "query": ""
+    },
+    {
+      "mode": "detail-race",
+      "path": "/users/me",
+      "method": "GET",
+      "query": ""
+    },
+    {
+      "mode": "detail-race",
+      "path": "/evaluations/eval-fixture-1",
+      "method": "GET",
+      "query": ""
+    },
+    {
+      "mode": "detail-race",
+      "path": "/evaluations/eval-fixture-1",
+      "method": "GET",
+      "query": ""
+    },
+    {
+      "mode": "detail-race",
+      "path": "/evaluations/eval-fixture-1/cancel",
+      "method": "POST",
+      "query": ""
+    },
+    {
+      "mode": "detail-race",
+      "path": "/evaluations/eval-fixture-1",
+      "method": "GET",
+      "query": ""
+    },
+    {
+      "mode": "detail-start-error",
+      "path": "/users/me",
+      "method": "GET",
+      "query": ""
+    },
+    {
+      "mode": "detail-start-error",
+      "path": "/users/me",
+      "method": "GET",
+      "query": ""
+    },
+    {
+      "mode": "detail-start-error",
+      "path": "/evaluations/eval-fixture-1",
+      "method": "GET",
+      "query": ""
+    },
+    {
+      "mode": "detail-start-error",
+      "path": "/evaluations/eval-fixture-1",
+      "method": "GET",
+      "query": ""
+    },
+    {
+      "mode": "detail-start-error",
+      "path": "/evaluations/eval-fixture-1/start",
+      "method": "POST",
+      "query": ""
+    },
+    {
+      "mode": "detail-start-error",
+      "path": "/evaluations/eval-fixture-1",
+      "method": "GET",
+      "query": ""
+    },
+    {
+      "mode": "detail-start-error",
+      "path": "/evaluations/eval-fixture-1",
+      "method": "GET",
+      "query": ""
+    },
+    {
+      "mode": "detail-start-error",
+      "path": "/evaluations/eval-fixture-1/start",
+      "method": "POST",
+      "query": ""
+    },
+    {
+      "mode": "detail-start-error",
+      "path": "/evaluations/eval-fixture-1",
+      "method": "GET",
+      "query": ""
+    }
+  ],
+  "unknown": [],
+  "screenshots": [
+    "detail-orbit-light-320.png",
+    "detail-orbit-light-1440.png",
+    "detail-orbit-dark-320.png",
+    "detail-orbit-dark-1440.png",
+    "detail-precision-light-320.png",
+    "detail-precision-light-1440.png",
+    "detail-precision-dark-320.png",
+    "detail-precision-dark-1440.png",
+    "detail-studio-light-320.png",
+    "detail-studio-light-1440.png",
+    "detail-studio-dark-320.png",
+    "detail-studio-dark-1440.png"
+  ],
+  "replaced": [
+    "HTTP /api/v1/users/me",
+    "HTTP /api/v1/api-keys",
+    "HTTP /api/v1/evaluation-options and children",
+    "HTTP /api/v1/evaluations create/start/get",
+    "localStorage session marker (no credentials)",
+    "security only: isolated HTML and in-memory auth/HTTP transport",
+    "HTTP evaluation detail/start/cancel responses"
+  ],
+  "real": [
+    "React StrictMode",
+    "router",
+    "session provider",
+    "creation store",
+    "evaluation client",
+    "evaluation detail page",
+    "useEvaluation",
+    "shared action coordinator"
+  ],
+  "pass": true
+}
