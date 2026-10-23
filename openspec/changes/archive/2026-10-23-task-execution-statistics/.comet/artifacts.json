@@ -2,5 +2,6 @@
   "openspec_proposal": "openspec/changes/task-execution-statistics/proposal.md",
   "openspec_design": "openspec/changes/task-execution-statistics/design.md",
   "openspec_tasks": "openspec/changes/task-execution-statistics/tasks.md",
-  "openspec_delta_spec": "openspec/changes/task-execution-statistics/specs/async-task-queue/spec.md"
+  "openspec_delta_spec": "openspec/changes/task-execution-statistics/specs/async-task-queue/spec.md",
+  "archive_directory": "openspec/changes/archive/2026-10-23-task-execution-statistics"
 }
