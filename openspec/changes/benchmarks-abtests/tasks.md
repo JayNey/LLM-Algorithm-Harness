@@ -15,5 +15,5 @@
 
 - [ ] 3.1 routes.tsx 增量（/benchmarks 换真实页、/benchmarks/:suiteId、/ab-tests、/ab-tests/new、/ab-tests/:testId）+ AppLayout 增挂两 Provider + package.json glob
 - [ ] 3.2 `scripts/verify-benchmarks.mjs`（suite 列表/创建/学习曲线、ab 列表/详情场景）+ QA.md 说明
-- [ ] 3.3 全量前端测试/tsc/eslint/prettier 绿；在 #166 记录第②步验收并提交关联 PR
-- [ ] 3.4 独立审查两轮制 + 最后 commit 后三件套重验
+- [x] 3.3 全量前端测试/tsc/eslint/prettier 绿；在 #166 记录第②步验收并提交关联 PR
+- [x] 3.4 独立审查两轮制 + 最后 commit 后三件套重验
