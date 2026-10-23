@@ -10,3 +10,6 @@
 - `python3 -m black --check src/incremental/history.py tests/test_incremental_history.py`、`python3 -m ruff check src/incremental/history.py tests/test_incremental_history.py` 与 `git diff --check` 通过。
 - 构建：`python3 -m pip wheel . --no-deps --no-build-isolation --wheel-dir /tmp/history-hotfix-dist` 成功。最初 `python3 -m build` 因 build 模块缺失失败，改用已安装 pip 的 PEP 517 构建入口解决，无源码原因。
 - 根因消除：save 不再以 w 打开，seek(0) 后加锁、锁内截断和 flush；load 在锁内解析 JSON。
+
+## 归档交付
+用户于 2026-10-23 明确选择 C：归档、推送当前绑定分支并创建 PR。
