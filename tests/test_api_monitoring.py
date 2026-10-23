@@ -598,3 +598,35 @@ def test_database_config_positional_argument_and_metrics_lifecycle(tmp_path):
         assert connection.execute(text("SELECT 7")).scalar() == 7
     assert collector.stats()["retained_sample"]["query_count"] == before
     engine.dispose()
+
+
+def test_performance_returns_real_task_execution_metrics(api):
+    from datetime import datetime, timedelta
+
+    from sqlalchemy.orm import Session
+
+    from api.db.models import AsyncTask
+
+    client, admin, _, app, *_ = api
+    with Session(app.state.monitor.task_engine) as db:
+        db.add(
+            AsyncTask(
+                id="performance-http",
+                celery_task_id="performance-http",
+                task_type="evaluation",
+                entity_id="e",
+                user_id="u",
+                status="completed",
+                started_at=datetime(2026, 1, 1),
+                completed_at=datetime(2026, 1, 1) + timedelta(seconds=12.5),
+            )
+        )
+        db.commit()
+    response = client.get("/api/v1/metrics/performance", headers=headers(admin))
+    assert response.status_code == 200
+    for key in ("tasks", "evaluations"):
+        stats = response.json()["data"][key]
+        assert stats["status"] == "ok"
+        assert stats["avg_execution_time_seconds"] == pytest.approx(12.5, abs=0.0001)
+        assert stats["success_rate"] == 1.0
+        assert stats["duration_sample_count"] == 1

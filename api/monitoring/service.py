@@ -4,7 +4,7 @@ import time
 from typing import Any
 
 from fastapi import HTTPException
-from sqlalchemy import Engine, select
+from sqlalchemy import Engine, case, func, select
 
 from api.auth.service import AuthService, digest
 from api.db.models import AsyncTask, Evaluation
@@ -177,15 +177,91 @@ class MonitorService:
             "pending_issues": [157],
         }
 
+    def task_performance(self) -> dict[str, Any]:
+        """Aggregate persisted worker lifecycles without polling Celery."""
+        metadata = {
+            "source": "persisted_async_tasks",
+            "scope": "retained_business_tasks_all_time",
+            "duration_scope": "first_start_to_final_end_includes_pause_and_retry",
+            "success_rate_scope": "started_completed_over_started_completed_and_failed",
+        }
+        empty = {
+            "completed": 0,
+            "failed": 0,
+            "duration_sample_count": 0,
+            "avg_execution_time_seconds": None,
+            "success_rate": None,
+        }
+        try:
+            backend = self.task_engine.dialect.name
+            if backend == "sqlite":
+                seconds = (
+                    func.julianday(AsyncTask.completed_at) - func.julianday(AsyncTask.started_at)
+                ) * 86400.0
+            elif backend == "postgresql":
+                seconds = func.extract("epoch", AsyncTask.completed_at - AsyncTask.started_at)
+            else:
+                raise ValueError("Unsupported task metrics database")
+            valid = AsyncTask.completed_at.is_not(None) & (
+                AsyncTask.completed_at >= AsyncTask.started_at
+            )
+            query = (
+                select(
+                    AsyncTask.task_type,
+                    func.sum(case((AsyncTask.status == "completed", 1), else_=0)).label(
+                        "completed"
+                    ),
+                    func.sum(case((AsyncTask.status == "failed", 1), else_=0)).label("failed"),
+                    func.count(case((valid, 1))).label("samples"),
+                    func.sum(case((valid, seconds), else_=0.0)).label("seconds"),
+                )
+                .where(
+                    AsyncTask.task_type.in_(("evaluation", "experiment", "benchmark", "import")),
+                    AsyncTask.status.in_(("completed", "failed")),
+                    AsyncTask.started_at.is_not(None),
+                )
+                .group_by(AsyncTask.task_type)
+            )
+            with self.task_engine.connect() as connection:
+                rows = connection.execute(query).mappings().all()
+
+            def aggregate(selected: list[Any]) -> dict[str, Any]:
+                completed = sum(row["completed"] for row in selected)
+                failed = sum(row["failed"] for row in selected)
+                samples = sum(row["samples"] for row in selected)
+                return {
+                    **metadata,
+                    "status": "ok",
+                    "completed": completed,
+                    "failed": failed,
+                    "duration_sample_count": samples,
+                    "avg_execution_time_seconds": (
+                        float(sum(row["seconds"] for row in selected)) / samples
+                        if samples
+                        else None
+                    ),
+                    "success_rate": (
+                        completed / (completed + failed) if completed + failed else None
+                    ),
+                }
+
+            return {
+                "tasks": aggregate(rows),
+                "evaluations": aggregate([row for row in rows if row["task_type"] == "evaluation"]),
+            }
+        except Exception:
+            unavailable = {
+                **metadata,
+                **{key: None for key in empty},
+                "status": "unavailable",
+                "detail": "Task performance could not be collected",
+            }
+            return {"tasks": unavailable, "evaluations": dict(unavailable)}
+
     def performance(self) -> dict[str, Any]:
         return {
             "api": self.store.api_stats(self.settings.MONITOR_API_WINDOW_SECONDS),
-            "evaluations": {
-                "status": "not_configured",
-                "avg_execution_time_seconds": None,
-                "success_rate": None,
-                "detail": "Real execution is implemented; monitoring instrumentation awaits #157",
-            },
+            **self.task_performance(),
             "database_queries": {
                 **self.database_metrics.stats(self.settings.MONITOR_API_WINDOW_SECONDS),
                 "engine_role": "evaluation_service",

@@ -93,7 +93,7 @@ export MONITOR_QUEUE_CACHE_SECONDS=5
 ## 请求统计与完整性
 
 - `GET /api/v1/metrics/api-stats?window_seconds=60`：统计窗口支持 1–86400 秒，提供请求量、HTTP 4xx/5xx 数与错误率、平均响应时间、P95 和每秒请求数。`endpoints` 按 HTTP 方法与路由模板分组提供同样统计，窗口不完整时各组也只展示 `retained_sample`。
-- `GET /api/v1/metrics/performance`：API 请求统计、实际业务 SQL 查询统计，以及尚待接入的真实评估与 LLM 指标。
+- `GET /api/v1/metrics/performance`：API 请求统计、实际业务 SQL 查询统计、真实业务任务执行统计，以及尚待接入的 LLM 指标。
 - `GET /api/v1/metrics/llm-stats`：真实生成调用数、成功率、延迟目前为 `not_configured`，数值为 `null`。已有 `recorded_usage_hooks` 和 `key_verification_count` 分别展示使用登记与密钥连通验证计数，不计作真实生成调用总量或成功率。
 - `GET /api/v1/metrics/cache-stats`：默认 `not_configured`。仅在可信 worker 显式绑定实际 `LLMResponseCache` 后展示其白名单统计；命中、未命中等计数为实例创建以来的进程内计数，不代表所有 worker 的累计值。
 
@@ -188,3 +188,11 @@ ps 与 stats 分享0.5–10秒命令预算，各自接受的合计输出上限64
 每 API 进程最多一个采样，缓存0–300秒，失败也缓存；cached/age_seconds 描述完成后的缓存年龄。缓存过期且另一个采样在途时返回 unknown/refresh_in_progress，不把旧成功值当成新观测。缓存独立于 worker/Redis 观测。
 
 本功能仅完成 #157 的容器资源观测；LLM 生成性能、跨 worker 缓存和新增配额仍需后续实现。
+
+### 实际任务执行统计
+
+`GET /api/v1/metrics/performance` 的 `tasks` 从业务数据库持久化的 AsyncTask 聚合 evaluation、experiment、benchmark、import 四类任务；`evaluations` 使用相同口径但仅包含 evaluation。接口沿用管理员权限，查询不轮询 Celery、不读取结果正文。`scope=retained_business_tasks_all_time` 表示当前数据库保留记录的累计统计，不使用 API 请求窗口，也不包含旧的无 AsyncTask 评估。
+
+`avg_execution_time_seconds` 是 completed/failed 且开始、结束时间均存在且顺序有效的任务的平均墙钟秒数，`duration_sample_count` 给出耗时样本数。耗时从首次执行开始到最终结束，排除首次排队等待，包含暂停及重试间隔，不表示 CPU 活跃执行时间。重复通知保留已有时间，失败后重新执行保留首次开始并清空旧结束时间。
+
+`completed`、`failed` 只计已记录开始时间的相应终态任务；`success_rate=completed/(completed+failed)`（0–1）表示任务正常完成率，不代表算法答题准确率。取消、等待、运行、暂停和未开始的发布失败不计入；时间缺失或逆序的已开始终态任务仍计入成功率，但不进入耗时样本。无样本时相应指标为 null，数据库不可用时 status=unavailable、计数及指标均为 null，不返回底层异常。
