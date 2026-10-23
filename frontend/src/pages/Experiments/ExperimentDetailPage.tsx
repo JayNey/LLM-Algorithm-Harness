@@ -492,6 +492,7 @@ export default function ExperimentDetailPage() {
     setActionError(null)
     try {
       await client.cancelTask(activeTaskId)
+      setStarted(null)
       jobResource.retry()
       progress.reload()
       taskId.retry()

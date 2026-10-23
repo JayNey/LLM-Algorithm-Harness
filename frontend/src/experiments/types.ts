@@ -191,7 +191,7 @@ export interface ParetoResult {
   budget_recommendations: {
     budget_usd: number
     feasible: boolean
-    point_id: string
+    point_id: string | null
   }[]
 }
 

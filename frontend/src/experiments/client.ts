@@ -501,7 +501,11 @@ function pareto(value: unknown): ParetoResult {
         return {
           budget_usd: number(row.budget_usd, `${field}.budget_usd`),
           feasible: boolean(row.feasible, `${field}.feasible`),
-          point_id: text(row.point_id, `${field}.point_id`, true),
+          point_id: nullable(
+            row.point_id,
+            (value, field) => text(value, field, true),
+            `${field}.point_id`,
+          ),
         }
       },
       'pareto.budget_recommendations',
@@ -705,13 +709,22 @@ export function createExperimentClient(http: AxiosInstance): ExperimentClient {
       await http.delete(`/tasks/${pathId(taskId)}`, { timeout: 20_000 })
     },
     runningExperimentTasks: async (signal) => {
-      const value = await get(
-        '/tasks',
-        (value) => page(value, taskSnapshot, 'tasks'),
-        { task_type: 'experiment', status: 'running', limit: 100 },
-        signal,
+      // 后端 GET /tasks 只接受单个 status，running 与 paused 两次查询后按 id 去重；
+      // paused 任务同样可取消，避免列表/详情对暂停实验出现「找不到任务」死角。
+      const pages = await Promise.all(
+        (['running', 'paused'] as const).map((status) =>
+          get(
+            '/tasks',
+            (value) => page(value, taskSnapshot, 'tasks'),
+            { task_type: 'experiment', status, limit: 100 },
+            signal,
+          ),
+        ),
       )
-      return value.items
+      const seen = new Map<string, TaskSnapshot>()
+      for (const result of pages)
+        for (const item of result.items) seen.set(item.id, item)
+      return [...seen.values()]
     },
     pareto: async (experimentId, budgets, accuracyMetric, signal) => {
       // 后端帕累托校验依赖原始报告（数据集指纹/token 预算标志等），
