@@ -28,6 +28,12 @@ function boolean(value: unknown, field: string): boolean {
 function nullableNumber(value: unknown, field: string): number | null {
   return value === null ? null : number(value, field)
 }
+// 增长率可为负（准确率下滑/成本下降），不能走非负 number 校验。
+function nullableSigned(value: unknown, field: string): number | null {
+  if (value === null) return null
+  if (typeof value !== 'number' || !Number.isFinite(value)) protocol(field)
+  return value
+}
 function number(value: unknown, field: string, max = Infinity): number {
   if (
     typeof value !== 'number' ||
@@ -135,11 +141,11 @@ function learningCurve(value: unknown): LearningCurve {
       'learning-curve.data',
     ),
     trends: {
-      accuracy_growth_rate: nullableNumber(
+      accuracy_growth_rate: nullableSigned(
         trends.accuracy_growth_rate,
         'learning-curve.trends.accuracy_growth_rate',
       ),
-      cost_growth_rate: nullableNumber(
+      cost_growth_rate: nullableSigned(
         trends.cost_growth_rate,
         'learning-curve.trends.cost_growth_rate',
       ),

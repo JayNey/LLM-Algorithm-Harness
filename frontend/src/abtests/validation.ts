@@ -132,9 +132,3 @@ export function writeListQuery(query: ListQuery): URLSearchParams {
   search.set('offset', String(normalized.offset))
   return search
 }
-
-export function assertDraftValid(draft: ABTestDraft): void {
-  const errors = validateABTestDraft(draft)
-  if (Object.keys(errors).length)
-    throw new ApiClientError('AB 测试配置无效', undefined, errors)
-}

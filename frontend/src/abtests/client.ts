@@ -115,6 +115,14 @@ function job(value: unknown, field = 'abtest'): ABTestJob {
   }
 }
 
+function numberRecord(value: unknown, field: string): Record<string, number> {
+  return Object.fromEntries(
+    Object.entries(record(value, field)).map(([key, item]) => [
+      key,
+      number(item, `${field}.${key}`),
+    ]),
+  )
+}
 function signedNumber(value: unknown, field: string): number {
   if (typeof value !== 'number' || !Number.isFinite(value)) protocol(field)
   return value
@@ -176,19 +184,30 @@ function results(value: unknown): ABTestResults {
           'results.comparison.statistics.welch_t_p_value',
         ),
       },
-      elapsed_seconds: nullableNumber(
+      elapsed_seconds: numberRecord(
         comparison.elapsed_seconds,
         'results.comparison.elapsed_seconds',
       ),
+      tokens: numberRecord(comparison.tokens, 'results.comparison.tokens'),
       failure_categories: Object.fromEntries(
         Object.entries(
           record(
             comparison.failure_categories,
             'results.comparison.failure_categories',
           ),
-        ).map(([key, value]) => [
-          key,
-          count(value, `…failure_categories.${key}`),
+        ).map(([variant, categories]) => [
+          variant,
+          Object.fromEntries(
+            Object.entries(
+              record(
+                categories,
+                `results.comparison.failure_categories.${variant}`,
+              ),
+            ).map(([category, countValue]) => [
+              category,
+              count(countValue, `…failure_categories.${variant}.${category}`),
+            ]),
+          ),
         ]),
       ),
     },

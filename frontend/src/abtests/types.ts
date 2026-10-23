@@ -71,8 +71,12 @@ export interface ABTestResults {
       p_value: number | null
       welch_t_p_value: number | null
     }
-    elapsed_seconds: number | null
-    failure_categories: Record<string, number>
+    /** 按变体分组的总耗时（秒） */
+    elapsed_seconds: Record<string, number>
+    /** 按变体分组的总 token 数 */
+    tokens: Record<string, number>
+    /** 按变体分组的失败分类计数 */
+    failure_categories: Record<string, Record<string, number>>
   }
 }
 

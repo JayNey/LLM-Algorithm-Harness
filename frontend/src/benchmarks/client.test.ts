@@ -124,13 +124,13 @@ test('学习曲线解析多模型序列与 trends 可空', async () => {
           cost_usd: null,
         },
       ],
-      trends: { accuracy_growth_rate: 0.5, cost_growth_rate: null },
+      trends: { accuracy_growth_rate: -0.25, cost_growth_rate: null },
     },
   }))
   const curve = await client.learningCurve('suite-1')
   assert.equal(curve.data.length, 3)
   assert.equal(curve.data[2].accuracy, null)
-  assert.equal(curve.trends.accuracy_growth_rate, 0.5)
+  assert.equal(curve.trends.accuracy_growth_rate, -0.25, '负增长率合法')
   assert.equal(curve.trends.cost_growth_rate, null)
 })
 

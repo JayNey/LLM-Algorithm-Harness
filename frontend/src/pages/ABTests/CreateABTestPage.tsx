@@ -5,6 +5,7 @@ import { readApiKeys } from '@/account/apiKeys.ts'
 import { ApiClientError } from '@/auth/http.ts'
 import { useAuthStore } from '@/store/auth.ts'
 import { ExperimentFeedback } from '@/experiments/components.tsx'
+import { createPayload } from '@/abtests/validation.ts'
 import { useABTestSession } from '@/abtests/session.tsx'
 import type { ABTestDraft, DraftErrors } from '@/abtests/types.ts'
 import { validateABTestDraft } from '@/abtests/validation.ts'
@@ -177,36 +178,7 @@ export default function CreateABTestPage() {
     if (Object.keys(nextErrors).length) return
     setBusy(true)
     setActionError(null)
-    const payload = {
-      name: draft.name.trim(),
-      dataset_path: draft.dataset_path.trim(),
-      model: {
-        model: draft.model.trim(),
-        ...(draft.model_temperature.trim()
-          ? { temperature: Number(draft.model_temperature) }
-          : {}),
-      },
-      strategy: {
-        name: draft.strategy.trim(),
-        ...(draft.strategy_max_iterations.trim()
-          ? { max_iterations: Number(draft.strategy_max_iterations) }
-          : {}),
-      },
-      prompt_variants: draft.variants.map((variant) => ({
-        id: variant.id.trim(),
-        ...(variant.description.trim()
-          ? { description: variant.description.trim() }
-          : {}),
-        ...(variant.system_prompt.trim()
-          ? { system_prompt: variant.system_prompt }
-          : {}),
-        ...(variant.prefix.trim() ? { prefix: variant.prefix } : {}),
-        ...(variant.suffix.trim() ? { suffix: variant.suffix } : {}),
-      })),
-      seed: draft.seed.trim() ? Number(draft.seed) : 42,
-      max_workers: Number(draft.max_workers),
-      api_key_id: draft.api_key_id.trim(),
-    }
+    const payload = createPayload(draft)
     try {
       const created = await client.create(payload)
       void navigate(`/ab-tests/${encodeURIComponent(created.id)}`, {

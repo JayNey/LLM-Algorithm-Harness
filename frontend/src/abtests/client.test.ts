@@ -93,8 +93,9 @@ test('完成后统计报告解析：ci95 可空、检验三态、失败分类', 
           p_value: null,
           welch_t_p_value: null,
         },
-        elapsed_seconds: 12.5,
-        failure_categories: { wrong_answer: 1 },
+        elapsed_seconds: { baseline: 6.1, treatment: 6.4 },
+        tokens: { baseline: 600, treatment: 600 },
+        failure_categories: { baseline: {}, treatment: { wrong_answer: 1 } },
       },
     },
   }))
@@ -103,7 +104,14 @@ test('完成后统计报告解析：ci95 可空、检验三态、失败分类', 
   assert.equal(report.comparison.formal.ci95.difference, null)
   assert.equal(report.comparison.statistics.categorical_test, 'unavailable')
   assert.equal(report.comparison.statistics.p_value, null)
-  assert.deepEqual(report.comparison.failure_categories, { wrong_answer: 1 })
+  assert.deepEqual(report.comparison.failure_categories, {
+    baseline: {},
+    treatment: { wrong_answer: 1 },
+  })
+  assert.deepEqual(report.comparison.elapsed_seconds, {
+    baseline: 6.1,
+    treatment: 6.4,
+  })
 })
 
 test('缺字段或错类型明确拒绝', async () => {

@@ -60,7 +60,14 @@ export const appPages: AppPage[] = [
     label: '基准测试',
     group: '分析与对比',
     icon: 'layers',
-    Component: lazy(() => import('@/mock/BusinessPage.tsx')),
+    Component: lazy(() => import('@/pages/Benchmarks/BenchmarksPage.tsx')),
+  },
+  {
+    path: '/ab-tests',
+    label: 'A/B 测试',
+    group: '分析与对比',
+    icon: 'pulse',
+    Component: lazy(() => import('@/pages/ABTests/ABTestsPage.tsx')),
   },
   {
     path: '/help',

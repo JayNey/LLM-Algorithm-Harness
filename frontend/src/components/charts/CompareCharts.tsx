@@ -136,7 +136,9 @@ export function TrendLine({ series, metric }: TrendLineProps) {
           type: 'line',
           connectNulls: true,
           data: group.points
-            .filter((point) => point[metric] !== null)
+            .filter(
+              (point) => point.timestamp !== null && point[metric] !== null,
+            )
             .map((point) => [point.timestamp, point[metric]]),
         })),
       }}

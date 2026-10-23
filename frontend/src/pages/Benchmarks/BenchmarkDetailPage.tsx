@@ -85,6 +85,8 @@ function useApiKeys() {
   )
 }
 
+const TERMINAL = new Set(['completed', 'failed', 'cancelled'])
+
 export default function BenchmarkDetailPage() {
   const { suiteId } = useParams()
   const { client, owner } = useBenchmarkSession()
@@ -116,18 +118,22 @@ export default function BenchmarkDetailPage() {
     taskId: string
   } | null>(null)
 
+  const activeTaskId =
+    started && suite && started.suiteId === suite.id ? started.taskId : null
+  const progress = useTaskProgress(client, activeTaskId, owner)
+  const taskStatus = progress.task?.status ?? null
+  const runFinished = taskStatus !== null && TERMINAL.has(taskStatus)
+
   const loadCurve = useResource(
     useCallback(
       (signal: AbortSignal) => client.learningCurve(suiteId ?? '', signal),
-      [client, suiteId],
+      // 同上：终态触发学习曲线重取
+      [client, suiteId, runFinished],
     ),
   )
   const curve = loadCurve.data as LearningCurve | undefined
   const [metric, setMetric] = useState<'accuracy' | 'cost_usd'>('accuracy')
 
-  const activeTaskId =
-    started && suite && started.suiteId === suite.id ? started.taskId : null
-  const progress = useTaskProgress(client, activeTaskId, owner)
   const latestRun = useResource(
     useCallback(
       async (signal: AbortSignal): Promise<BenchmarkRun | null> => {
@@ -135,7 +141,8 @@ export default function BenchmarkDetailPage() {
         const task = await client.task(activeTaskId, signal)
         return client.run(task.entity_id, signal)
       },
-      [client, activeTaskId],
+      // runFinished 是刻意加入的重取触发器（任务终态后重取结果）
+      [client, activeTaskId, runFinished],
     ),
   )
   const latestRunData = latestRun.data as BenchmarkRun | null | undefined
@@ -370,18 +377,29 @@ export default function BenchmarkDetailPage() {
                     >
                       <thead>
                         <tr>
-                          {['状态', '模型', '准确率', '成本', '更新时间'].map(
-                            (name) => (
-                              <th key={name} scope="col">
-                                {name}
-                              </th>
-                            ),
-                          )}
+                          {[
+                            '状态 / 错误',
+                            '模型',
+                            '准确率',
+                            '成本',
+                            '更新时间',
+                          ].map((name) => (
+                            <th key={name} scope="col">
+                              {name}
+                            </th>
+                          ))}
                         </tr>
                       </thead>
                       <tbody>
                         <tr>
-                          <td>{runStatusLabel(latestRunData.status)}</td>
+                          <td>
+                            {runStatusLabel(latestRunData.status)}
+                            <small>
+                              {latestRunData.error_message ??
+                                progress.task?.error_message ??
+                                ''}
+                            </small>
+                          </td>
                           <td>{latestRunData.model ?? '—'}</td>
                           <td>{formatRate(latestRunData.accuracy)}</td>
                           <td>{formatUsd(latestRunData.cost_usd)}</td>

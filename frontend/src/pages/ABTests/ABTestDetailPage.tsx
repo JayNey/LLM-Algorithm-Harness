@@ -106,22 +106,50 @@ function ResultsTab({ testId }: { testId: string }) {
           ? '—'
           : data.comparison.statistics.welch_t_p_value}
       </p>
-      <h3>失败分类</h3>
-      {Object.keys(data.comparison.failure_categories).length ? (
-        <ul>
-          {Object.entries(data.comparison.failure_categories).map(
-            ([key, value]) => (
-              <li key={key}>
-                {key}: {value}
-              </li>
-            ),
-          )}
-        </ul>
+      <h3>按变体统计</h3>
+      {Object.keys(data.comparison.elapsed_seconds).length ||
+      Object.keys(data.comparison.failure_categories).length ? (
+        <table className="evaluation-list-table" aria-label="按变体统计">
+          <thead>
+            <tr>
+              {['变体', '总耗时（秒）', 'token 数', '失败分类'].map((name) => (
+                <th key={name} scope="col">
+                  {name}
+                </th>
+              ))}
+            </tr>
+          </thead>
+          <tbody>
+            {Object.keys(data.comparison.elapsed_seconds)
+              .concat(Object.keys(data.comparison.failure_categories))
+              .filter((variant, index, all) => all.indexOf(variant) === index)
+              .map((variant) => {
+                const categories =
+                  data.comparison.failure_categories[variant] ?? {}
+                const summary = Object.keys(categories).length
+                  ? Object.entries(categories)
+                      .map(
+                        ([category, countValue]) => `${category}×${countValue}`,
+                      )
+                      .join('、')
+                  : '无失败'
+                return (
+                  <tr key={variant}>
+                    <td>{variant}</td>
+                    <td>
+                      {data.comparison.elapsed_seconds[variant] !== undefined
+                        ? data.comparison.elapsed_seconds[variant].toFixed(1)
+                        : '—'}
+                    </td>
+                    <td>{data.comparison.tokens[variant] ?? '—'}</td>
+                    <td>{summary}</td>
+                  </tr>
+                )
+              })}
+          </tbody>
+        </table>
       ) : (
         <p>无失败记录</p>
-      )}
-      {data.comparison.elapsed_seconds !== null && (
-        <p>总耗时 {data.comparison.elapsed_seconds.toFixed(1)} 秒</p>
       )}
     </div>
   )
