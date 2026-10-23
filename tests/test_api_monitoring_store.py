@@ -29,6 +29,51 @@ def clock(monkeypatch):
     return value
 
 
+def test_llm_calls_persist_across_connections_without_request_payloads(tmp_path):
+    path = tmp_path / "auth.sqlite3"
+    writer = MonitorStore(AuthStore(path))
+    empty = writer.llm_stats()
+    assert empty["total_calls"] == 0
+    assert empty["success_rate"] is None and empty["avg_latency_ms"] is None
+    assert empty["started_at"] is None
+    writer.record_llm_call(True, 125.0)
+    MonitorStore(AuthStore(path)).record_llm_call(False, 375.0)
+    stats = MonitorStore(AuthStore(path)).llm_stats()
+    assert stats["total_calls"] == 2
+    assert stats["successful_calls"] == stats["failed_calls"] == 1
+    assert stats["success_rate"] == 0.5 and stats["avg_latency_ms"] == 250.0
+    assert stats["started_at"] > 0
+    assert stats["collection_mode"] == "best_effort"
+    assert stats["scope"] == "recorded_completed_attempts_shared_auth_database"
+    with writer.connection() as db:
+        rows = db.execute(
+            "SELECT key,value FROM api_monitor_meta WHERE key LIKE 'llm_%'"
+        ).fetchall()
+        assert len(rows) == 5
+        assert all(isinstance(row[1], (int, float)) for row in rows)
+        assert db.execute("SELECT COUNT(*) FROM api_monitor_logs").fetchone()[0] == 0
+
+
+def test_llm_concurrent_writers_do_not_lose_updates(tmp_path):
+    store = MonitorStore(AuthStore(tmp_path / "auth.sqlite3"))
+    with ThreadPoolExecutor(max_workers=4) as pool:
+        list(pool.map(lambda i: store.record_llm_call(i % 2 == 0, 10.0), range(40)))
+    stats = store.llm_stats()
+    assert stats["total_calls"] == 40
+    assert stats["successful_calls"] == stats["failed_calls"] == 20
+    assert stats["avg_latency_ms"] == 10.0
+
+
+@pytest.mark.parametrize("duration", [-1, float("nan"), float("inf"), True])
+def test_invalid_llm_measurement_does_not_change_counters(tmp_path, duration):
+    store = MonitorStore(AuthStore(tmp_path / "auth.sqlite3"))
+    with pytest.raises(ValueError):
+        store.record_llm_call(True, duration)
+    with pytest.raises(ValueError):
+        store.record_llm_call("success", 1.0)
+    assert store.llm_stats()["total_calls"] == 0
+
+
 def test_persistence_and_full_window_statistics(tmp_path, clock):
     auth = AuthStore(tmp_path / "auth.sqlite3")
     auth.add_user("u1", "alice", "alice@example.org", "irrelevant-hash")

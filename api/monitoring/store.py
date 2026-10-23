@@ -117,6 +117,58 @@ class MonitorStore:
     def connection(self) -> AbstractContextManager[sqlite3.Connection]:
         return self.auth_store.connection()
 
+    def record_llm_call(self, succeeded: bool, duration_ms: float) -> None:
+        """Atomically accumulate completed SDK attempts, without request data."""
+        if (
+            type(succeeded) is not bool
+            or isinstance(duration_ms, bool)
+            or not math.isfinite(duration_ms)
+            or duration_ms < 0
+        ):
+            raise ValueError("Invalid LLM monitoring measurement")
+        with self.connection() as db:
+            # Monitoring contention must not impose the normal auth DB wait.
+            db.execute("PRAGMA busy_timeout=100")
+            db.execute("BEGIN IMMEDIATE")
+            db.execute(
+                "INSERT OR IGNORE INTO api_monitor_meta(key,value) VALUES ('llm_started_at',?)",
+                (time.time(),),
+            )
+            db.executemany(
+                "INSERT INTO api_monitor_meta(key,value) VALUES (?,?) "
+                "ON CONFLICT(key) DO UPDATE SET value=value+excluded.value",
+                [
+                    ("llm_total_calls", 1),
+                    ("llm_successful_calls", int(succeeded)),
+                    ("llm_failed_calls", int(not succeeded)),
+                    ("llm_duration_ms", duration_ms),
+                ],
+            )
+
+    def llm_stats(self) -> dict[str, Any]:
+        """One SELECT provides a coherent snapshot across concurrent writers."""
+        with self.connection() as db:
+            meta = dict(db.execute("SELECT key,value FROM api_monitor_meta WHERE key LIKE 'llm_%'"))
+        count = int(meta.get("llm_total_calls", 0))
+        successes = int(meta.get("llm_successful_calls", 0))
+        return {
+            "status": "ok",
+            "source": "persisted_llm_attempts",
+            "scope": "recorded_completed_attempts_shared_auth_database",
+            "collection_mode": "best_effort",
+            "started_at": meta.get("llm_started_at"),
+            "total_calls": count,
+            "successful_calls": successes,
+            "failed_calls": int(meta.get("llm_failed_calls", 0)),
+            "success_rate": successes / count if count else None,
+            "avg_latency_ms": meta["llm_duration_ms"] / count if count else None,
+            "detail": (
+                "Recorded completed SDK generation attempts since started_at; retries count "
+                "separately. Excludes cache hits, verification, backoff and collection overhead. "
+                "Unconfigured clients, capture failures and interrupted requests may be absent."
+            ),
+        }
+
     def _prune(self, db: sqlite3.Connection, now: float) -> None:
         self._flush_capture_gap(db)
         # SQL identifiers come solely from these two literal table names.

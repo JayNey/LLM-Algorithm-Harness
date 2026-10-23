@@ -275,14 +275,9 @@ class MonitorService:
                 "SELECT COALESCE(SUM(usage_count),0),COALESCE(SUM(verification_count),0) FROM auth_keys"
             ).fetchone()
         return {
-            "status": "not_configured",
-            "source": "worker_instrumentation_pending_157",
-            "total_calls": None,
-            "success_rate": None,
-            "avg_latency_ms": None,
+            **self.store.llm_stats(),
             "recorded_usage_hooks": row[0],
             "key_verification_count": row[1],
-            "detail": "Verification requests are not generation calls; usage hooks do not include latency",
         }
 
     def quotas(self, user_id: str) -> dict[str, Any]:

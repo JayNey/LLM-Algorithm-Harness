@@ -419,7 +419,7 @@ class LLMClient:
         last_error: Exception | None = None
         for attempt in range(self.config.retry_max_attempts):
             try:
-                return operation()
+                return self._observe_operation(operation)
             except Exception as error:
                 last_error = error
                 if (
@@ -435,6 +435,30 @@ class LLMClient:
                     time.sleep(delay)
         assert last_error is not None
         raise last_error
+
+    @staticmethod
+    def _observe_operation(operation: Callable[[], Any]) -> Any:
+        """Measure only the SDK attempt; telemetry must never become a retry."""
+        try:
+            started = time.perf_counter()
+        except Exception:
+            started = None
+        succeeded = False
+        try:
+            response = operation()
+            succeeded = True
+            return response
+        finally:
+            try:
+                if started is not None:
+                    duration_ms = (time.perf_counter() - started) * 1000
+                    # CLI remains usable without server configuration/dependencies.
+                    from api.monitoring.llm_metrics import record_call
+
+                    record_call(succeeded, duration_ms)
+            except Exception:
+                # Do not persist/log payloads, settings errors or provider errors.
+                pass
 
     def _call_openai(self, prompt: str, effective: dict[str, Any]) -> LLMResponse:
         """

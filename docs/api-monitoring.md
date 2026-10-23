@@ -94,7 +94,11 @@ export MONITOR_QUEUE_CACHE_SECONDS=5
 
 - `GET /api/v1/metrics/api-stats?window_seconds=60`：统计窗口支持 1–86400 秒，提供请求量、HTTP 4xx/5xx 数与错误率、平均响应时间、P95 和每秒请求数。`endpoints` 按 HTTP 方法与路由模板分组提供同样统计，窗口不完整时各组也只展示 `retained_sample`。
 - `GET /api/v1/metrics/performance`：API 请求统计、实际业务 SQL 查询统计、真实业务任务执行统计，以及尚待接入的 LLM 指标。
-- `GET /api/v1/metrics/llm-stats`：真实生成调用数、成功率、延迟目前为 `not_configured`，数值为 `null`。已有 `recorded_usage_hooks` 和 `key_verification_count` 分别展示使用登记与密钥连通验证计数，不计作真实生成调用总量或成功率。
+- `GET /api/v1/metrics/llm-stats`：管理员可查询共享认证数据库中成功采集的真实生成请求统计。`total_calls`、`successful_calls`、`failed_calls` 分别为已结束的 SDK 请求尝试数及其成功/失败数，`success_rate` 为成功数/总数（0–1），`avg_latency_ms` 为全部已记录尝试的平均耗时。无样本时计数为零、成功率和平均耗时为 `null`；`started_at` 为首次成功采集的完成时间（Unix 秒），此前为 `null`。`recorded_usage_hooks` 和 `key_verification_count` 仍分别展示使用登记与密钥连通验证计数，不计作生成调用。
+
+LLM 采集位于 OpenAI、local、SiliconFlow 和 Anthropic 的实际 SDK 生成请求入口。每次重试分别计数；SDK 返回即为成功，生成的代码是否通过评测由评估指标表示。单调时钟耗时包含该次 SDK 请求的等待/超时，排除重试退避、响应本地解析和采集写入。缓存命中、模型列表、连接验证、沙箱预检和模拟任务均不计入。
+
+API 和 worker 必须使用相同的 `AUTH_DATABASE_PATH`（跨容器需挂载同一 SQLite 文件），并配置有效的 `SECRET_KEY`、`ENCRYPTION_KEY`；未配置服务端认证的 CLI 仍能正常请求模型，但不采集到此数据库。`source=persisted_llm_attempts`、`scope=recorded_completed_attempts_shared_auth_database`、`collection_mode=best_effort` 明确该口径：统计跨进程和重启累计，仅覆盖成功落库的已完成尝试，不代表全部署精确总账。采集前历史、未共享该数据库的客户端、被强杀/尚未结束的请求及写入失败样本可能缺失；`status=ok` 表示统计可读取，不保证所有 worker 配置正确。聚合使用现有监控元数据表中的固定数值键，不保存 prompt、响应、模型名、URL、凭证或异常正文，不受请求/日志样本的保留期和行数裁剪。采集写入锁等待上限为 100ms，故障不会改变模型结果或增加模型重试。
 - `GET /api/v1/metrics/cache-stats`：默认 `not_configured`。仅在可信 worker 显式绑定实际 `LLMResponseCache` 后展示其白名单统计；命中、未命中等计数为实例创建以来的进程内计数，不代表所有 worker 的累计值。
 
 请求统计记录实际 HTTP 方法、匹配路由模板、状态码与响应耗时；不保存请求 body、query、Authorization 或原始资源路径。监控轮询本身也属于 API 请求。

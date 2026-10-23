@@ -169,16 +169,24 @@ def test_llm_stats_do_not_treat_verification_or_usage_hooks_as_measured_calls(mo
         monitor.auth.store.record_verification(key_id, owner, record["ciphertext"], True)
     monitor.auth.store.record_key_usage(keys["alice"], owners["alice"])
     stats = monitor.llm_stats()
-    assert (
-        stats["status"] == "not_configured"
-        and stats["source"] == "worker_instrumentation_pending_157"
-    )
+    assert stats["status"] == "ok" and stats["source"] == "persisted_llm_attempts"
     assert stats["key_verification_count"] == 2 and stats["recorded_usage_hooks"] == 1
     assert (
-        stats["total_calls"] is None
+        stats["total_calls"] == 0
         and stats["success_rate"] is None
         and stats["avg_latency_ms"] is None
     )
+
+
+def test_llm_stats_include_recorded_generation_outcomes(monitoring):
+    monitor, _, _ = monitoring
+    monitor.store.record_llm_call(True, 100)
+    monitor.store.record_llm_call(False, 300)
+    stats = monitor.llm_stats()
+    assert stats["total_calls"] == 2
+    assert stats["successful_calls"] == stats["failed_calls"] == 1
+    assert stats["success_rate"] == 0.5 and stats["avg_latency_ms"] == 200
+    assert stats["recorded_usage_hooks"] == stats["key_verification_count"] == 0
 
 
 def test_task_snapshot_reports_real_simulator_state_and_filter(monitoring):
