@@ -86,3 +86,8 @@ export function resolveProgressWsUrl(
 - `useEvaluationLive(client, evaluationId, owner, enabled)`：观察器的 React 适配。enabled = 详情数据处于非终态；原生 WebSocket 仅在此适配器创建（`resolveProgressWsUrl(readViteEnv().wsUrl, location)`，Cookie 认证无 token 参数）；`recoverSession` 以一次 `client.get` 探测（复用 HTTP 层 401 刷新重试），仍 401 返回 false → unauthorized → 页面清会话回跳。
 - `EvaluationDetailPage`：非终态挂载观察器；快照数据直接进 `EvaluationFacts`（HTTP 真值）；连接/降级状态以 role=status 提示。
 - 验证：`verify-evaluations.mjs --scenario progress`（routeWebSocket 假服务：snapshot+subscribed+task.progress；HTTP 真值递进 20%→60%；断言 WS URL 无 token、事件驱动刷新）。
+
+## 已知限制（Step 4 验收备注）
+
+- **paused 自愈**：观察器把 paused 视为 settled（停止观察）。T9 界面当前无「恢复运行」入口；若后续接入 resume，恢复后需手动刷新或由页面在操作成功后重新挂载观察器。属产品语义边界，非缺陷。
+- **forbidden 静默停止**：4403 事件清数据并停止（无存在性 oracle），页面无独立提示，与后端「不区分不存在与无权限」口径一致。

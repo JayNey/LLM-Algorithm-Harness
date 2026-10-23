@@ -62,8 +62,21 @@ const report = {
   ],
 }
 function check(name, fn) {
-  fn()
-  report.assertions.push({ name, pass: true })
+  // 支持异步断言：失败时抛出，由场景外层 catch 置 report.pass=false
+  report.assertions.push({ name, pass: false })
+  const index = report.assertions.length - 1
+  return Promise.resolve()
+    .then(fn)
+    .then(
+      () => {
+        report.assertions[index].pass = true
+      },
+      (error) => {
+        report.assertions[index].pass = false
+        report.assertions[index].error = String(error)
+        throw error
+      },
+    )
 }
 const browser = await chromium.launch({
   headless: true,
@@ -106,7 +119,8 @@ async function fixture(mode = 'start-error', entry = '/evaluations/new') {
   const errors = []
   const calls = []
   let detail = { ...evaluation }
-  let progressCalls = 0
+  let progressSeen = false
+  const detailIntervals = []
   let wsUrls = []
   let starts = 0
   let detailFailure = 0
@@ -363,9 +377,13 @@ async function fixture(mode = 'start-error', entry = '/evaluations/new') {
     }
     if (method === 'GET' && path === '/evaluations/eval-fixture-1') {
       if (mode === 'progress') {
-        // HTTP 真值递进：首查 20%，观察器每次刷新推进到 60%（模拟执行推进）
-        progressCalls += 1
-        const percentage = progressCalls === 1 ? 20 : 60
+        // 人为拉长请求以暴露并发周期（场景断言请求区间不重叠）
+        await new Promise((resolve) => setTimeout(resolve, 120))
+        const intervalStart = Date.now() - 120
+        detailIntervals.push([intervalStart, intervalStart + 120])
+        // HTTP 真值递进：progress 帧投递前恒 20%，之后 60%——
+        // 锁定「事件触发刷新」而非 start 自身的首次 GET
+        const percentage = progressSeen ? 60 : 20
         detail = {
           ...evaluation,
           status: 'running',
@@ -412,6 +430,7 @@ async function fixture(mode = 'start-error', entry = '/evaluations/new') {
             JSON.stringify({ type: 'subscribed', task_id: frame.task_id }),
           )
           setTimeout(() => {
+            progressSeen = true
             server.send(
               JSON.stringify({
                 type: 'task.progress',
@@ -444,6 +463,7 @@ async function fixture(mode = 'start-error', entry = '/evaluations/new') {
     calls,
     errors,
     wsUrls,
+    detailIntervals,
     releaseList,
     releaseStale,
     holdDetail() {
@@ -1805,7 +1825,7 @@ async function detailScenario() {
 
 async function progressScenario() {
   report.real.push('evaluation detail live progress (WS + HTTP truth)')
-  const { page, wsUrls } = await fixture(
+  const { page, wsUrls, detailIntervals } = await fixture(
     'progress',
     '/evaluations/eval-fixture-1',
   )
@@ -1818,13 +1838,14 @@ async function progressScenario() {
     await page.getByText('60%').first().waitFor({ timeout: 5_000 })
     assert.ok(true)
   })
-  await check('无并发观察周期（同一时刻单条详情请求）', () => {
-    const detailGets = report.requests.filter(
-      (r) => r.method === 'GET' && r.path === '/evaluations/eval-fixture-1',
-    )
-    // 存在请求且从未出现同一毫秒多条（简化并发口径：无重复栈即通过）
-    assert.ok(detailGets.length >= 2)
-    assert.ok(true)
+  await check('详情请求区间两两不重叠（无并发观察周期）', () => {
+    assert.ok(detailIntervals.length >= 2, '已有多次详情请求')
+    for (let i = 1; i < detailIntervals.length; i += 1) {
+      assert.ok(
+        detailIntervals[i][0] >= detailIntervals[i - 1][1],
+        `第 ${i} 次请求与上一次重叠`,
+      )
+    }
   })
   await page.screenshot({ path: resolve(out, 'progress.png'), fullPage: true })
   report.screenshots.push('progress.png')

@@ -125,25 +125,39 @@ export function useEvaluationLive(
     const instance = createProgressObserver({
       fetchSnapshot: (id, signal) => client.get(id, signal),
       connectSocket: (handlers) => {
-        const env = readViteEnv()
-        const url = resolveProgressWsUrl(env.wsUrl, {
-          protocol: window.location.protocol,
-          host: window.location.host,
-        })
-        const ws = new WebSocket(url)
-        ws.onopen = () => handlers.onOpen()
-        ws.onmessage = (event) => {
-          try {
-            handlers.onMessage(JSON.parse(String(event.data)))
-          } catch {
-            // 非 JSON 帧忽略；服务端对畸形帧同样忽略
+        try {
+          const env = readViteEnv()
+          const url = resolveProgressWsUrl(env.wsUrl, {
+            protocol: window.location.protocol,
+            host: window.location.host,
+          })
+          const ws = new WebSocket(url)
+          ws.onopen = () => handlers.onOpen()
+          ws.onmessage = (event) => {
+            let frame: unknown
+            try {
+              frame = JSON.parse(String(event.data))
+            } catch {
+              return // 非 JSON 帧忽略；服务端对畸形帧同样忽略
+            }
+            // 解析与分发分离：处理器的异常不应被当作畸形帧吞掉
+            handlers.onMessage(
+              frame as Parameters<typeof handlers.onMessage>[0],
+            )
           }
-        }
-        ws.onclose = (event) => handlers.onClose(event.code)
-        ws.onerror = () => handlers.onError()
-        return {
-          send: (frame) => ws.send(JSON.stringify(frame)),
-          close: (code) => ws.close(code),
+          ws.onclose = (event) => handlers.onClose(event.code)
+          ws.onerror = () => handlers.onError()
+          return {
+            send: (frame) => ws.send(JSON.stringify(frame)),
+            close: (code) => ws.close(code),
+          }
+        } catch {
+          // URL 非法等同步构造失败：走观察器失败路径（降级轮询），不击穿页面
+          handlers.onError()
+          return {
+            send: () => undefined,
+            close: () => undefined,
+          }
         }
       },
       clock: {
@@ -153,18 +167,30 @@ export function useEvaluationLive(
           clearTimeout(handle as ReturnType<typeof setTimeout>),
       },
       onChange: (event) => {
+        // 关键：接受事件时必须以当前代身份盖章写入——snapshot 初始无身份，
+        // 只比对不盖章会让 aligned 守卫永久拦截所有事件（复审 P0 教训）。
         setSnapshot((previous) => {
-          if (previous.evaluationId !== evaluationId) return previous
+          const alignedPrevious =
+            previous.owner === owner && previous.evaluationId === evaluationId
+              ? previous
+              : {
+                  owner,
+                  evaluationId,
+                  evaluation: null,
+                  mode: 'idle',
+                  unauthorized: false,
+                }
           if (event.type === 'snapshot')
             return {
-              ...previous,
+              ...alignedPrevious,
               evaluation: event.evaluation,
               mode: event.mode,
             }
-          if (event.type === 'mode') return { ...previous, mode: event.mode }
+          if (event.type === 'mode')
+            return { ...alignedPrevious, mode: event.mode }
           if (event.type === 'unauthorized')
-            return { ...previous, unauthorized: true }
-          return previous
+            return { ...alignedPrevious, unauthorized: true }
+          return alignedPrevious
         })
       },
       recoverSession: async () => {
@@ -173,8 +199,8 @@ export function useEvaluationLive(
         try {
           await client.get(evaluationId)
           return true
-        } catch (error) {
-          return !(error instanceof ApiClientError && error.status === 401)
+        } catch {
+          return false
         }
       },
     })
