@@ -13,6 +13,7 @@ import { useAuthStore } from '@/store/auth.ts'
 import { appearanceVariants, useUiStore } from '@/store/ui.ts'
 import { ErrorBoundary } from '@/components/common/Feedback.tsx'
 import { EvaluationSessionProvider } from '@/evaluations/session.tsx'
+import { ExperimentSessionProvider } from '@/experiments/session.tsx'
 import { MockActions } from '@/mock/MockActions.tsx'
 import { appearanceTheme } from './appearance.ts'
 import { Icon } from './components/Icon.tsx'
@@ -199,9 +200,11 @@ function Shell() {
             <Breadcrumb />
             <div className="route-content">
               <EvaluationSessionProvider>
-                <ErrorBoundary key={location.pathname}>
-                  <Outlet context={actions} />
-                </ErrorBoundary>
+                <ExperimentSessionProvider>
+                  <ErrorBoundary key={location.pathname}>
+                    <Outlet context={actions} />
+                  </ErrorBoundary>
+                </ExperimentSessionProvider>
               </EvaluationSessionProvider>
             </div>
             <footer className="workspace-footer">
