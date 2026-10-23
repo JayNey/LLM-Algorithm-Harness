@@ -161,6 +161,11 @@ python3 scripts/seed_data.py                                # 使用 .env 的 DA
 python3 scripts/seed_data.py --database-url sqlite:///./data/business/seed-demo.sqlite3
 ```
 
+示例题按 function 协议执行，使用 `solution(nums, target)` 或 `solution(s)`；
+`test_cases` 中的 `input` 是参数字典，`expected_output` 保留数组、布尔和整数类型。
+已导入旧版示例的部署更新代码后，对同一业务数据库重新运行上述 seed 命令即可原位修复，
+无需删库或清空题库。示例用例属于公开样例，不提供独立隐藏评分。
+
 ## 5. 环境变量速查
 
 完整样例见 `.env.example`（与 Settings 字段一致性有测试保证）。关键项：
