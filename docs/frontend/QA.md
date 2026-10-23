@@ -38,3 +38,16 @@ PLAYWRIGHT_MODULE=/absolute/path/to/node_modules/playwright node scripts/verify-
 ## 后续真实评估列表（#223）
 
 2026-10-22 的真实列表接入与独立验证见 [#223 验证报告](../superpowers/reports/2026-10-22-owned-evaluation-list-verify.md)。列表页面使用实际认证客户端；对应浏览器测试替换身份和列表响应，因此它证明前端行为，尚未证明真实后端端到端。公开 [fixture 结果](assets/evaluations/list/list.json) 包含 22 组断言及 390/1440px 截图索引。此前外壳证据仍只适用于其记录版本；全局入口/Mock 标记后续由 #228 处理，完整外观矩阵由 #229 处理。
+
+## 实验管理页验证（issue #166 第①步）
+
+```bash
+npm run dev -- --host 127.0.0.1 --port 5180
+# 另开终端：
+PLAYWRIGHT_MODULE=/absolute/path/to/node_modules/playwright \
+  node scripts/verify-experiments.mjs all
+```
+
+场景：`create`（创建→详情导航）、`list`（列表渲染与筛选）、`detail`（详情配置摘要与启动入口）、`all`。
+浏览器 fixture 层验证（不连真实后端）；报告与截图写入
+`docs/superpowers/reports/assets/experiments/fixture/`。

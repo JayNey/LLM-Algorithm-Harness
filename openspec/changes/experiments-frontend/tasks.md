@@ -18,7 +18,7 @@
 ## 3. 路由与验证
 
 - [x] 3.1 `routes.tsx` 增量添加 `/experiments/new`、`/experiments/:experimentId`（detailPages）
-- [ ] 3.2 `scripts/verify-experiments.mjs`：create/list/detail 三场景（浏览器 fixture 层，route mock 按真实契约）+ QA.md 追加运行说明
+- [x] 3.2 `scripts/verify-experiments.mjs`：create/list/detail 三场景（浏览器 fixture 层，route mock 按真实契约）+ QA.md 追加运行说明
 - [ ] 3.3 全量前端测试/tsc/eslint/prettier 绿；在 #166 记录验收（命令、退出码、截图/报告路径）并提交关联 PR
 
 ## 4. 审查与重验（团队惯例，build 内完成）
