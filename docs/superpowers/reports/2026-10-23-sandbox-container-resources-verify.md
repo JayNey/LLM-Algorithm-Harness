@@ -48,3 +48,5 @@
 #157 的 LLM 性能、跨 worker 缓存和新增配额等仍未完成，保持开放。新提交显式排除 .comet/.claude/.codex/.agents/skills-lock.json，未自动归档或合并。
 
 PR #243 已创建，base=main，Refs #157；本轮功能、回归、真实 Docker 与复审证据已提交。平台 CI 的结论以最终头为准，创建 PR 不代表 CI 已完成。
+
+Runtime 实际编译检查成功（95f2b44b-b795-4289-a153-61db1e0a03a7.log），定向93 passed、2 skipped（f391af05-d3ef-44e5-a9b3-4d317e2696d5.log）。build 14/14、verify 5/5 守卫通过，由 Runtime 记录 verify_mode=full、verify_result=pass、phase=archive，归档确认保持 pending。
