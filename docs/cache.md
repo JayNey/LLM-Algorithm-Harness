@@ -6,7 +6,7 @@ LLM Response Cache 是一个本地磁盘缓存系统，用于存储 LLM API 响�
 
 ## 功能特性
 
-- **精确匹配缓存**：基于 model、prompt、temperature、max_tokens、problem_id 和 strategy_name 生成唯一缓存键
+- **精确匹配缓存**：基于 provider、有效端点、模型、提示、完整有效生成参数和问题/策略标识生成唯一缓存键
 - **本地磁盘存储**：缓存文件存储在 `.cache/llm_responses/` 目录，每个响应一个 JSON 文件
 - **TTL 失效策略**：支持配置缓存过期时间（默认 30 天）
 - **LRU 淘汰机制**：当缓存超过磁盘空间限制时，自动删除最久未访问的条目
@@ -131,14 +131,18 @@ harness cache clear --model gpt-4
 缓存键基于以下参数的 SHA256 哈希生成：
 
 - `model`: 模型标识符（如 `gpt-4`）
+- `provider` 和有效 API 端点：包括 SDK 默认值和环境变量配置
 - `prompt`: 用户 prompt
 - `system_prompt`: 系统 prompt（如果有）
 - `temperature`: 采样温度
 - `max_tokens`: 最大生成 token 数
 - `problem_id`: 问题标识符（可选）
 - `strategy_name`: 策略名称（可选）
+- 合并全局配置与调用覆盖后的生成参数：包括 `enable_thinking`、`top_p`、`seed`、`stop`、`extra_body`、`response_format` 等
 
-任一参数不同都会生成不同的缓存键。
+任一参数不同都会生成不同的缓存键。嵌套字典按键排序，字典插入顺序不会影响缓存；列表顺序保留。超时、重试设置及 API key 不参与缓存身份。
+
+缓存键使用版本 2，旧版键会自然失效，首次调用将重新生成响应。原始键材料不写入磁盘，文件名仅保存 SHA256 摘要。
 
 ## 缓存文件格式
 

@@ -8,6 +8,7 @@ import time
 from collections.abc import Callable
 from typing import Any
 
+from httpx import URL
 from pydantic import SecretStr
 
 from src.cache import CacheKey, LLMResponseCache
@@ -222,7 +223,17 @@ class LLMClient:
             custom_params=custom_params,
         )
 
-        # Generate cache key
+        # SDK base_url includes defaults and environment overrides, unlike config alone.
+        base_url = getattr(self.client, "base_url", None)
+        if not isinstance(base_url, (str, URL)):
+            base_url = self.config.base_url or {
+                "openai": "https://api.openai.com/v1",
+                "anthropic": "https://api.anthropic.com",
+                "siliconflow": "https://api.siliconflow.cn/v1",
+            }.get(self.config.provider, "")
+
+        # Hash raw effective values, never redacted metadata that could collapse
+        # distinct parameters. Timeout/retry settings do not change generation.
         cache_key = CacheKey.generate(
             model=self.config.model,
             prompt=prompt,
@@ -231,6 +242,9 @@ class LLMClient:
             problem_id=problem_id,
             strategy_name=strategy_name,
             system_prompt=effective.get("system_prompt"),
+            provider=self.config.provider,
+            base_url=str(base_url).rstrip("/"),
+            generation_params={key: value for key, value in effective.items() if key != "timeout"},
         )
 
         # Check cache if enabled

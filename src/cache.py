@@ -28,6 +28,9 @@ class CacheKey:
         problem_id: str | None = None,
         strategy_name: str | None = None,
         system_prompt: str | None = None,
+        provider: str | None = None,
+        base_url: str | None = None,
+        generation_params: dict[str, Any] | None = None,
     ) -> str:
         """
         Generate a SHA256-based cache key from request parameters.
@@ -40,12 +43,19 @@ class CacheKey:
             problem_id: Optional problem identifier
             strategy_name: Optional strategy name
             system_prompt: Optional system prompt
+            provider: Provider namespace
+            base_url: Effective API endpoint
+            generation_params: Merged generation parameters (excluding operational settings)
 
         Returns:
             Hexadecimal cache key string
         """
         # Build canonical parameter string
-        params = {
+        params: dict[str, Any] = {
+            "version": 2,
+            "provider": provider,
+            "base_url": base_url,
+            "generation_params": generation_params or {},
             "model": model,
             "prompt": prompt,
             "temperature": temperature,
