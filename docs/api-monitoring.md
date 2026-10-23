@@ -181,7 +181,7 @@ export MONITOR_CONTAINER_MAX_ITEMS=32
 
 响应只包含稳定摘要 `container_id`、CPU 百分比、内存显示值转换的字节/限额/百分比和 PIDs；不返回容器名称、原始 ID、镜像、命令、挂载、环境或 Docker 错误。数值来源为 `docker_cli_rounded_stats`，不是精确字节计数或 API 主机资源。[Docker stats 官方说明](https://docs.docker.com/reference/cli/docker/container/stats/) 中 Linux CLI 内存会扣除部分缓存，PIDs 包含线程；Windows daemon 部分列不提供，返回 null/partial，不能据此判定整个 daemon 不可用。Windows 主机连接 Linux daemon 时以 daemon 返回字段为准。
 
-`listed_count` 是成功枚举时的标签范围数量，`sampled_count` 是实际选取的数量；默认32，配置范围1–64。超过样本上限为 partial/sample_limit、truncated=true，不生成全局 CPU/内存汇总。容器在 ps 与 stats 之间退出或字段不可用时，该行 unknown/partial，缺测为 null；仅成功枚举为空才返回真实0和空数组。`snapshot_atomic=false`、`cluster_complete=false`，不能从一张快照证明整个集群为空或任务已终止。
+`listed_count` 是成功枚举时的标签范围数量，`sampled_count` 是实际选取的数量；默认32，配置范围1–64。超过样本上限为 partial/sample_limit、truncated=true，不生成全局 CPU/内存汇总。容器在 ps 与 stats 之间退出或字段不可用时，该行 unknown/partial，缺测为 null；stats 非零退出仍保留成功枚举和合法数值，总体 partial/stats_failed，不把正常 --rm 完成误报为整个 Docker 不可用；仅成功枚举为空才返回真实0和空数组。`snapshot_atomic=false`、`cluster_complete=false`，不能从一张快照证明整个集群为空或任务已终止。
 
 ps 与 stats 分享0.5–10秒命令预算，各自接受的合计输出上限64KiB，超限即终止命令进程树并返回固定 output_limit；错误、超时和无 Docker 时不泄露原始输出。复用既有进程工具，异常时两个 pipe join 各最多5秒，终止清理可能增加有界余量。服务关闭标记 closed、拒绝新采样，并最多等待当前预算加12秒清理余量；不会停止被观测的容器。
 

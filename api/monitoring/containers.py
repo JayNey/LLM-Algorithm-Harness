@@ -101,16 +101,16 @@ def collect_containers(
     runner = runner or run_bounded
     deadline = clock() + timeout
 
-    def run(command: list[str]) -> str:
+    def run(command: list[str], *, allow_nonzero: bool = False) -> tuple[str, bool]:
         remaining = deadline - clock()
         if remaining <= 0:
             raise ProcessTimeoutError("Container observation timed out")
         result = runner(command, timeout=remaining, max_output_bytes=MAX_OUTPUT_BYTES)
-        if result.returncode != 0:
+        if result.returncode != 0 and not allow_nonzero:
             raise OSError("Docker observation unavailable")
-        return result.stdout.decode("utf-8")
+        return result.stdout.decode("utf-8"), result.returncode != 0
 
-    inventory = run(
+    inventory, _ = run(
         [
             "docker",
             "ps",
@@ -128,9 +128,12 @@ def collect_containers(
         raise ValueError("Invalid inventory")
     selected = identities[:limit]
     readings: dict[str, dict[str, Any]] = {}
+    stats_failed = False
     if selected:
-        output = run(
-            ["docker", "stats", "--no-stream", "--no-trunc", "--format", STATS_FORMAT, *selected]
+        # A --rm sandbox may finish after ps; stats can still emit other valid rows.
+        output, stats_failed = run(
+            ["docker", "stats", "--no-stream", "--no-trunc", "--format", STATS_FORMAT, *selected],
+            allow_nonzero=True,
         )
         for line in output.splitlines():
             if not line.strip():
@@ -142,11 +145,17 @@ def collect_containers(
             readings[identity] = value
     rows = [_row(identity, readings.get(identity)) for identity in selected]
     truncated = len(identities) > limit
-    partial = truncated or any(row["status"] != "ok" for row in rows)
+    partial = truncated or stats_failed or any(row["status"] != "ok" for row in rows)
     return {
         "status": "partial" if partial else "ok",
         "reason": (
-            "sample_limit" if truncated else "partial_measurements" if partial else "observed"
+            "sample_limit"
+            if truncated
+            else (
+                "stats_failed"
+                if stats_failed
+                else "partial_measurements" if partial else "observed"
+            )
         ),
         "listed_count": len(identities),
         "sampled_count": len(selected),

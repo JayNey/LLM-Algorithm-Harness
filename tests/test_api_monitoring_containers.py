@@ -195,6 +195,24 @@ def test_nonzero_exit_is_unavailable_without_stderr_leak():
     assert data["status"] == "unavailable" and SECRET not in json.dumps(data)
 
 
+@pytest.mark.parametrize("stats", ["", raw()])
+def test_stats_nonzero_after_successful_inventory_preserves_partial_readings(stats):
+    def run(command, **kwargs):
+        if command[1] == "ps":
+            return result(ID + "\n" + OTHER)
+        return BoundedRunResult(1, stats.encode(), SECRET.encode())
+
+    data = ContainerProbes(
+        settings(), collector=lambda t, n: collect_containers(t, n, runner=run)
+    ).read()
+    assert data["status"] == "partial" and data["reason"] == "stats_failed"
+    assert data["listed_count"] == data["sampled_count"] == 2
+    assert data["containers"][1]["status"] == "unknown"
+    assert data["containers"][1]["cpu_percent"] is None
+    assert data["containers"][0]["status"] == ("ok" if stats else "unknown")
+    assert SECRET not in json.dumps(data)
+
+
 def test_cache_age_expiry_and_defensive_copy():
     clock = [10.0]
     collect = Mock(return_value={"status": "ok", "reason": "observed", "containers": []})

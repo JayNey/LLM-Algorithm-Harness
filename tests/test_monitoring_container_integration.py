@@ -9,9 +9,10 @@ import uuid
 import pytest
 
 from api.monitoring.config import MonitorSettings
-from api.monitoring.containers import ContainerProbes
+from api.monitoring.containers import ContainerProbes, collect_containers
 from src.models import SandboxConfig
 from src.sandbox_executor import SandboxExecutor
+from src.utils.process_manager import run_bounded
 
 
 @pytest.mark.skipif(
@@ -70,7 +71,38 @@ def test_real_docker_labeled_resources_exclude_unlabeled_container(tmp_path):
                 check=True,
             )
             assert running.stdout.strip() == "true"
-        print(json.dumps({"layer": "actual Docker, isolated test containers", "observation": data}))
+
+        def finish_our_sandbox(command, **kwargs):
+            if command[1] == "stats":
+                subprocess.run(
+                    ["docker", "rm", "--force", names[0]],
+                    capture_output=True,
+                    timeout=10,
+                    check=True,
+                )
+            return run_bounded(command, **kwargs)
+
+        churn_probe = ContainerProbes(
+            probe.settings,
+            collector=lambda t, n: collect_containers(t, n, runner=finish_our_sandbox),
+        )
+        try:
+            churn = churn_probe.read()
+            assert churn["status"] == "partial" and churn["reason"] == "stats_failed"
+            assert churn["listed_count"] >= 1
+            vanished = next(row for row in churn["containers"] if row["container_id"] == public[0])
+            assert vanished["cpu_percent"] is None
+        finally:
+            churn_probe.close()
+        print(
+            json.dumps(
+                {
+                    "layer": "actual Docker, isolated test containers",
+                    "observation": data,
+                    "sandbox_removed_between_ps_and_stats": churn,
+                }
+            )
+        )
     finally:
         probe.close()
         for name in names:
