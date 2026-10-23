@@ -827,6 +827,13 @@ def test_results_api_hides_other_users_and_paginates_problems(client, owner_head
     assert listed.status_code == 200
     assert listed.json()["data"]["total"] == 1
     assert listed.json()["data"]["items"][0]["run_id"] == "run-own"
+    # Login in results_api also sets session cookies, so omitting the Bearer
+    # header still authenticates. Clear cookies before checking anonymous access.
+    cookie_owner = client.get("/api/v1/results/run-own")
+    assert cookie_owner.status_code == 200
+    cookie_foreign = client.get("/api/v1/results/eval-other")
+    assert cookie_foreign.status_code == 404
+    client.cookies.clear()
     anon = client.get("/api/v1/results/run-own")
     assert anon.status_code == 401
 

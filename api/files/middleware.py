@@ -6,8 +6,11 @@ import time
 from fastapi import HTTPException
 from starlette.concurrency import run_in_threadpool
 from starlette.formparsers import MultiPartException
+from starlette.requests import HTTPConnection
 from starlette.types import ASGIApp, Message, Receive, Scope, Send
 
+from api.auth.cookies import ACCESS_COOKIE
+from api.auth.service import unauthorized
 from api.middleware.errors import ApiError, error_response
 
 UPLOAD_PATHS = {"/api/v1/files/upload", "/api/v1/problems/upload", "/api/v1/configs/upload"}
@@ -34,15 +37,22 @@ class UploadBoundaryMiddleware:
             return
         service = scope["app"].state.files
         headers = dict(scope.get("headers", []))
-        token = headers.get(b"authorization", b"").decode("latin-1")
+        connection = HTTPConnection(scope)
 
         def check_identity() -> None:
-            parts = token.split()
-            if len(parts) != 2 or parts[0].lower() != "bearer":
-                raise HTTPException(
-                    401, "Invalid or expired credentials", headers={"WWW-Authenticate": "Bearer"}
-                )
-            principal = service.auth.authenticate(parts[1])
+            # Match current_user: an explicit header always wins over cookies,
+            # including an empty, malformed or expired Authorization value.
+            header = connection.headers.get("authorization")
+            if header is not None:
+                parts = header.split()
+                if len(parts) != 2 or parts[0].lower() != "bearer":
+                    raise unauthorized()
+                token = parts[1]
+            else:
+                token = connection.cookies.get(ACCESS_COOKIE)
+                if token is None:
+                    raise unauthorized()
+            principal = service.auth.authenticate(token)
             if is_upload:
                 ip = scope["client"][0] if scope.get("client") else "unknown"
                 service.auth.limit("upload-ip:" + ip, service.settings.FILE_UPLOAD_RATE_LIMIT)
