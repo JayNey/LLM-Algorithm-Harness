@@ -51,3 +51,14 @@ PLAYWRIGHT_MODULE=/absolute/path/to/node_modules/playwright \
 场景：`create`（创建→详情导航）、`list`（列表渲染与筛选）、`detail`（详情配置摘要与启动入口）、`all`。
 浏览器 fixture 层验证（不连真实后端）；报告与截图写入
 `docs/superpowers/reports/assets/experiments/fixture/`。
+
+## 基准与 A/B 测试页验证（issue #166 第②步）
+
+```bash
+npm run dev -- --host 127.0.0.1 --port 5180
+PLAYWRIGHT_MODULE=/absolute/path/to/node_modules/playwright \
+  node scripts/verify-benchmarks.mjs all
+```
+
+场景：`suites`（套件列表）、`curve`（学习曲线趋势）、`abtests`（AB 列表）、`all`。
+报告与截图写入 `docs/superpowers/reports/assets/benchmarks/fixture/`。

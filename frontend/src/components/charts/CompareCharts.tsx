@@ -106,3 +106,40 @@ export function BarCompare({ labels, series, yName }: BarCompareProps) {
     />
   )
 }
+
+export interface TrendLineProps {
+  series: {
+    model: string
+    points: {
+      timestamp: string
+      accuracy: number | null
+      cost_usd: number | null
+    }[]
+  }[]
+  metric: 'accuracy' | 'cost_usd'
+}
+
+/** 学习曲线折线：按模型分组的准确率/成本序列（时间升序）。 */
+export function TrendLine({ series, metric }: TrendLineProps) {
+  const yName = metric === 'accuracy' ? '准确率' : '成本（USD）'
+  return (
+    <ReactECharts
+      style={{ height: 360 }}
+      notMerge
+      option={{
+        tooltip: { trigger: 'axis' },
+        legend: {},
+        xAxis: { type: 'time', name: '完成时间' },
+        yAxis: { type: 'value', name: yName },
+        series: series.map((group) => ({
+          name: group.model,
+          type: 'line',
+          connectNulls: true,
+          data: group.points
+            .filter((point) => point[metric] !== null)
+            .map((point) => [point.timestamp, point[metric]]),
+        })),
+      }}
+    />
+  )
+}

@@ -14,6 +14,8 @@ import { appearanceVariants, useUiStore } from '@/store/ui.ts'
 import { ErrorBoundary } from '@/components/common/Feedback.tsx'
 import { EvaluationSessionProvider } from '@/evaluations/session.tsx'
 import { ExperimentSessionProvider } from '@/experiments/session.tsx'
+import { BenchmarkSessionProvider } from '@/benchmarks/session.tsx'
+import { ABTestSessionProvider } from '@/abtests/session.tsx'
 import { MockActions } from '@/mock/MockActions.tsx'
 import { appearanceTheme } from './appearance.ts'
 import { Icon } from './components/Icon.tsx'
@@ -201,9 +203,13 @@ function Shell() {
             <div className="route-content">
               <EvaluationSessionProvider>
                 <ExperimentSessionProvider>
-                  <ErrorBoundary key={location.pathname}>
-                    <Outlet context={actions} />
-                  </ErrorBoundary>
+                  <BenchmarkSessionProvider>
+                    <ABTestSessionProvider>
+                      <ErrorBoundary key={location.pathname}>
+                        <Outlet context={actions} />
+                      </ErrorBoundary>
+                    </ABTestSessionProvider>
+                  </BenchmarkSessionProvider>
                 </ExperimentSessionProvider>
               </EvaluationSessionProvider>
             </div>

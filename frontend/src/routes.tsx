@@ -141,4 +141,19 @@ export const detailPages: AppPage[] = [
       () => import('@/pages/Experiments/ExperimentDetailPage.tsx'),
     ),
   },
+  {
+    path: '/benchmarks/:suiteId',
+    label: '基准套件详情',
+    Component: lazy(() => import('@/pages/Benchmarks/BenchmarkDetailPage.tsx')),
+  },
+  {
+    path: '/ab-tests/new',
+    label: '创建 A/B 测试',
+    Component: lazy(() => import('@/pages/ABTests/CreateABTestPage.tsx')),
+  },
+  {
+    path: '/ab-tests/:testId',
+    label: 'A/B 测试详情',
+    Component: lazy(() => import('@/pages/ABTests/ABTestDetailPage.tsx')),
+  },
 ]
