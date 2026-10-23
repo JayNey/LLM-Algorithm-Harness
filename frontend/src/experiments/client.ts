@@ -161,7 +161,6 @@ function experimentConfig(value: unknown, field: string): ExperimentConfig {
     budget,
     execution,
     max_workers: count(data.max_workers, `${field}.max_workers`),
-    api_key_id: text(data.api_key_id, `${field}.api_key_id`),
   }
 }
 
@@ -230,6 +229,10 @@ function combination(value: unknown, field: string) {
     model: text(data.model, `${field}.model`),
     strategy: text(data.strategy, `${field}.strategy`),
     repeat: count(data.repeat, `${field}.repeat`),
+    token_budget_unsupported: boolean(
+      data.token_budget_unsupported,
+      `${field}.token_budget_unsupported`,
+    ),
     denominator: {
       total: count(denominator.total, `${field}.denominator.total`),
       completed: count(denominator.completed, `${field}.denominator.completed`),
@@ -239,15 +242,14 @@ function combination(value: unknown, field: string) {
       ),
     },
     solved: count(data.solved, `${field}.solved`),
-    pass_rate_over_total: number(
+    pass_rate_over_total: nullableNumber(
       data.pass_rate_over_total,
       `${field}.pass_rate_over_total`,
-      1,
     ),
     formal: {
       evaluable: count(formal.evaluable, `${field}.formal.evaluable`),
       solved: count(formal.solved, `${field}.formal.solved`),
-      rate: number(formal.rate, `${field}.formal.rate`, 1),
+      rate: nullableNumber(formal.rate, `${field}.formal.rate`),
     },
     cost: {
       total_cost_usd: nullableNumber(
@@ -274,10 +276,9 @@ function winRateRow(value: unknown, field: string): WinRateRow {
             wins: count(row.wins, `${field}.against.${key}.wins`),
             ties: count(row.ties, `${field}.against.${key}.ties`),
             losses: count(row.losses, `${field}.against.${key}.losses`),
-            win_rate: number(
+            win_rate: nullableNumber(
               row.win_rate,
               `${field}.against.${key}.win_rate`,
-              1,
             ),
           },
         ]
@@ -467,7 +468,7 @@ function pareto(value: unknown): ParetoResult {
           repeats: count(row.repeats, `${field}.repeats`),
           mean_cost_usd: number(row.mean_cost_usd, `${field}.mean_cost_usd`),
           mean_accuracy: number(row.mean_accuracy, `${field}.mean_accuracy`, 1),
-          expected_solved_per_usd: number(
+          expected_solved_per_usd: nullableNumber(
             row.expected_solved_per_usd,
             `${field}.expected_solved_per_usd`,
           ),
@@ -485,7 +486,11 @@ function pareto(value: unknown): ParetoResult {
       const row = record(data.best_value, 'pareto.best_value')
       return {
         feasible: boolean(row.feasible, 'pareto.best_value.feasible'),
-        point_id: text(row.point_id, 'pareto.best_value.point_id', true),
+        point_id: nullable(
+          row.point_id,
+          (value, field) => text(value, field, true),
+          'pareto.best_value.point_id',
+        ),
         basis: text(row.basis, 'pareto.best_value.basis', true),
       }
     })(),
@@ -518,7 +523,42 @@ function advisory(value: unknown): OptimizeAdvisory {
           const row = record(data.budget_plan, 'advisory.budget_plan')
           return {
             budget: number(row.budget, 'advisory.budget_plan.budget'),
-            feasible: boolean(row.feasible, 'advisory.budget_plan.feasible'),
+            ...(row.min_accuracy !== undefined
+              ? {
+                  min_accuracy:
+                    nullableNumber(
+                      row.min_accuracy,
+                      'advisory.budget_plan.min_accuracy',
+                    ) ?? 0,
+                }
+              : {}),
+            ...(row.estimated_cost !== undefined
+              ? {
+                  estimated_cost:
+                    nullableNumber(
+                      row.estimated_cost,
+                      'advisory.budget_plan.estimated_cost',
+                    ) ?? 0,
+                }
+              : {}),
+            ...(row.estimated_accuracy !== undefined
+              ? {
+                  estimated_accuracy:
+                    nullableNumber(
+                      row.estimated_accuracy,
+                      'advisory.budget_plan.estimated_accuracy',
+                    ) ?? 0,
+                }
+              : {}),
+            ...(row.coverage !== undefined
+              ? {
+                  coverage:
+                    nullableNumber(
+                      row.coverage,
+                      'advisory.budget_plan.coverage',
+                    ) ?? 0,
+                }
+              : {}),
           }
         })()
   return {
@@ -542,7 +582,6 @@ function advisory(value: unknown): OptimizeAdvisory {
         },
         'advisory.ranking.ranking',
       ),
-      excluded: array(ranking.excluded, text, 'advisory.ranking.excluded'),
     },
     recommendations: Object.fromEntries(
       Object.entries(recommendations).map(([key, value]) => {
@@ -674,23 +713,34 @@ export function createExperimentClient(http: AxiosInstance): ExperimentClient {
       )
       return value.items
     },
-    pareto: (comparisons, budgets, accuracyMetric, signal) =>
-      post(
+    pareto: async (experimentId, budgets, accuracyMetric, signal) => {
+      // 后端帕累托校验依赖原始报告（数据集指纹/token 预算标志等），
+      // 因此这里取未解析的原始 comparison 作为 payload。
+      const raw = await http.get<unknown, unknown>(
+        `/experiments/${pathId(experimentId)}/comparison`,
+        { signal, timeout: 20_000 },
+      )
+      return post(
         '/pareto/analyze',
         pareto,
         {
-          comparisons,
+          comparisons: [raw],
           budgets,
           accuracy_metric: accuracyMetric,
         },
         signal,
-      ),
-    optimize: (comparison, options, signal) =>
-      post(
+      )
+    },
+    optimize: async (experimentId, options, signal) => {
+      const raw = await http.get<unknown, unknown>(
+        `/experiments/${pathId(experimentId)}/comparison`,
+        { signal, timeout: 20_000 },
+      )
+      return post(
         '/optimize',
         advisory,
         {
-          comparison,
+          comparison: raw,
           ...(options.budget !== undefined ? { budget: options.budget } : {}),
           ...(options.minAccuracy !== undefined
             ? { min_accuracy: options.minAccuracy }
@@ -698,6 +748,7 @@ export function createExperimentClient(http: AxiosInstance): ExperimentClient {
           objective: options.objective ?? 'best_value',
         },
         signal,
-      ),
+      )
+    },
   }
 }

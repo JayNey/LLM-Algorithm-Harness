@@ -17,7 +17,6 @@ const job: ExperimentJob = {
     budget: null,
     execution: 'serial',
     max_workers: 4,
-    api_key_id: 'k1',
   },
   error_message: null,
   created_at: '2026-10-22T00:00:00Z',

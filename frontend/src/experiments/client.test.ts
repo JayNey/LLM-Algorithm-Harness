@@ -16,7 +16,6 @@ const job: ExperimentJob = {
     budget: { max_calls: 10 },
     execution: 'serial',
     max_workers: 4,
-    api_key_id: 'k1',
   },
   error_message: null,
   created_at: '2026-10-22T00:00:00Z',
@@ -228,9 +227,11 @@ test('对比报告严格解析嵌套矩阵与显著性，p 值可空', async () 
   assert.equal(report.model_comparison.cost_effectiveness[0].solved_per_usd, 50)
 })
 
-test('帕累托与成本建议解析前沿点与三目标推荐', async () => {
-  const comparisonPayload = { marker: 'comparison' }
-  const { client, seen } = clientFor(({ url }) => {
+test('帕累托与成本建议经原始报告解析前沿点与三目标推荐', async () => {
+  const rawComparison = { marker: 'raw-comparison', combinations: [] }
+  const { client, seen } = clientFor(({ url, method }) => {
+    if (method === 'GET' && url === '/experiments/exp-1/comparison')
+      return { data: rawComparison }
     if (url === '/pareto/analyze')
       return {
         data: {
@@ -303,14 +304,86 @@ test('帕累托与成本建议解析前沿点与三目标推荐', async () => {
       }
     return undefined
   })
-  const pareto = await client.pareto([comparisonPayload], [0.05], 'overall')
+  const pareto = await client.pareto('exp-1', [0.05], 'overall')
   assert.deepEqual(pareto.frontier_ids, ['p1'])
   assert.equal(pareto.points[0].pareto_optimal, true)
-  const advisory = await client.optimize(comparisonPayload, {
+  const advisory = await client.optimize('exp-1', {
     minAccuracy: 0,
     objective: 'best_value',
   })
   assert.equal(advisory.recommendations.best_value.model, 'model-a')
   assert.equal(advisory.ranking.ranking[0].ratio, 25)
+  // 帕累托/优化必须上报原始报告（后端校验依赖数据集指纹等未解析字段）
+  const paretoCall = seen.find((c) => c.url === '/pareto/analyze')
+  assert.deepEqual(
+    (paretoCall!.body as { comparisons: unknown[] }).comparisons,
+    [rawComparison],
+  )
   assert.ok(seen.some((c) => c.url === '/optimize'))
+})
+
+test('真实后端形状：比率为 null、无顶层 api_key_id 时照常解析', async () => {
+  const { client } = clientFor(() => ({
+    data: {
+      generated_at: '2026-10-22T00:00:00Z',
+      experiment: { experiment_id: 'exp-1', name: 'X' },
+      combinations: [
+        {
+          combo_id: 'c2',
+          model: 'model-b',
+          strategy: 'direct',
+          repeat: 1,
+          token_budget_unsupported: true,
+          denominator: { total: 3, completed: 0, budget_exhausted: 0 },
+          solved: 0,
+          pass_rate_over_total: null,
+          pass_rate_over_completed: null,
+          formal: { evaluable: 0, solved: 0, rate: null },
+          sample_validation: { validated: 0, completed: 0, rate: null },
+          failure_categories: {},
+          fix_rate: { opportunities: 0, fixed: 0, rate: null },
+          actual_consumption: {
+            calls: 0,
+            prompt_tokens: 0,
+            completion_tokens: 0,
+            reasoning_tokens: 0,
+            total_tokens: 0,
+            elapsed_seconds: 0,
+            avg_calls_per_problem: null,
+            avg_tokens_per_problem: null,
+          },
+          cost: { total_cost_usd: null, known: false },
+          by_difficulty: {},
+          by_tags: {},
+        },
+      ],
+      model_comparison: {
+        strategies: {
+          direct: {
+            matrix: [
+              {
+                model: 'model-b',
+                solved: 0,
+                against: {
+                  'model-a': { wins: 0, ties: 0, losses: 0, win_rate: null },
+                },
+              },
+            ],
+            significance: [],
+          },
+        },
+        cost_effectiveness: [],
+      },
+    },
+  }))
+  const report = await client.comparison('exp-1')
+  const row = report.combinations[0]
+  assert.equal(row.pass_rate_over_total, null)
+  assert.equal(row.formal.rate, null)
+  assert.equal(row.token_budget_unsupported, true)
+  assert.equal(
+    report.model_comparison.strategies.direct.matrix[0].against['model-a']
+      .win_rate,
+    null,
+  )
 })

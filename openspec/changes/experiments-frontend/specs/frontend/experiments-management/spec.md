@@ -2,7 +2,7 @@
 
 ### Requirement: 实验创建与启动
 
-前端 SHALL 提供实验创建页：多模型与多策略动态表单、预算（max_calls/max_tokens/max_seconds 至多其一）、重复次数、serial|parallel 执行与 max_workers，字段校验 SHALL 与后端 schema 对齐（models/strategies ≥1、max_workers 1–16、温度 0–2、token 100–8000）；创建成功 SHALL 导航至详情页，启动 SHALL 经 `POST /experiments/{id}/run` 并以返回的 task_id 关联异步进度。校验不通过的草稿 SHALL 指出具体字段错误且不发起网络请求。
+前端 SHALL 提供实验创建页：多模型与多策略动态表单、预算（max_calls/max_tokens/max_seconds 至多其一）、重复次数、serial|parallel 执行与 max_workers，字段校验 SHALL 与后端 schema 对齐（models/strategies ≥1、max_workers 1–16、温度 0–2、重复次数 ≥1）；创建成功 SHALL 导航至详情页，启动 SHALL 经 `POST /experiments/{id}/run` 并以返回的 task_id 关联异步进度。校验不通过的草稿 SHALL 指出具体字段错误且不发起网络请求。
 
 #### Scenario: 非法草稿被本地拒绝
 

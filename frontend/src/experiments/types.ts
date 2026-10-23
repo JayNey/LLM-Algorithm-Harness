@@ -38,7 +38,6 @@ export interface ExperimentConfig {
   budget: ProblemBudget | null
   execution: 'serial' | 'parallel'
   max_workers: number
-  api_key_id: string
 }
 
 export interface ExperimentJob {
@@ -116,10 +115,11 @@ export interface CombinationRow {
   model: string
   strategy: string
   repeat: number
+  token_budget_unsupported: boolean
   denominator: { total: number; completed: number; budget_exhausted: number }
   solved: number
-  pass_rate_over_total: number
-  formal: { evaluable: number; solved: number; rate: number }
+  pass_rate_over_total: number | null
+  formal: { evaluable: number; solved: number; rate: number | null }
   cost: { total_cost_usd: number | null; known: boolean }
 }
 
@@ -128,7 +128,7 @@ export interface WinRateRow {
   solved: number
   against: Record<
     string,
-    { wins: number; ties: number; losses: number; win_rate: number }
+    { wins: number; ties: number; losses: number; win_rate: number | null }
   >
 }
 
@@ -182,12 +182,12 @@ export interface ParetoResult {
     repeats: number
     mean_cost_usd: number
     mean_accuracy: number
-    expected_solved_per_usd: number
+    expected_solved_per_usd: number | null
     pareto_optimal: boolean
     dominated_by: string[]
   }[]
   frontier_ids: string[]
-  best_value: { feasible: boolean; point_id: string; basis: string }
+  best_value: { feasible: boolean; point_id: string | null; basis: string }
   budget_recommendations: {
     budget_usd: number
     feasible: boolean
@@ -210,7 +210,6 @@ export interface OptimizeAdvisory {
       cost_usd: number | null
       ratio: number | null
     }[]
-    excluded: string[]
   }
   recommendations: Record<
     string,
@@ -226,7 +225,13 @@ export interface OptimizeAdvisory {
       ratio?: number
     }
   >
-  budget_plan?: { budget: number; feasible: boolean }
+  budget_plan?: {
+    budget: number
+    min_accuracy?: number
+    estimated_cost?: number
+    estimated_accuracy?: number
+    coverage?: number
+  }
 }
 
 export interface ExperimentClient {
@@ -244,13 +249,13 @@ export interface ExperimentClient {
   cancelTask(taskId: string): Promise<void>
   runningExperimentTasks(signal?: AbortSignal): Promise<TaskSnapshot[]>
   pareto(
-    comparisons: unknown[],
+    experimentId: string,
     budgets: number[],
     accuracyMetric: 'overall' | 'formal',
     signal?: AbortSignal,
   ): Promise<ParetoResult>
   optimize(
-    comparison: unknown,
+    experimentId: string,
     options: {
       budget?: number
       minAccuracy?: number

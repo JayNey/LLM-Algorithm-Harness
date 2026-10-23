@@ -16,7 +16,7 @@ export function WinRateHeatmap({ strategy, matrix }: WinRateHeatmapProps) {
   matrix.forEach((row, rowIndex) => {
     opponents.forEach((opponent, colIndex) => {
       const cell = row.against[opponent]
-      if (cell)
+      if (cell && cell.win_rate !== null)
         cells.push([colIndex, rowIndex, Math.round(cell.win_rate * 100)])
     })
   })

@@ -400,11 +400,22 @@ export default function CreateExperimentPage() {
             )}
 
             {phase === 'create-unknown' && (
-              <Alert
-                role="alert"
-                type="warning"
-                message="创建结果未知，请勿重复提交；可前往列表确认。"
-              />
+              <>
+                <Alert
+                  role="alert"
+                  type="warning"
+                  message="创建结果未知，请勿重复提交；可前往列表确认，或重置表单后重新创建。"
+                />
+                <Button
+                  aria-label="重置未知创建"
+                  onClick={() => {
+                    setErrors({})
+                    reset(useAuthStore.getState().session?.marker ?? null)
+                  }}
+                >
+                  重置表单
+                </Button>
+              </>
             )}
             <div className="evaluation-section-heading">
               <Button

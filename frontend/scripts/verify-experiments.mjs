@@ -1,10 +1,12 @@
-/* global document, localStorage, window, fetch, setTimeout */
-// 实验管理前端验证脚本（issue #166 第①步）——浏览器 fixture 层，
-// 不连接真实后端；运行方式见 docs/frontend/QA.md。
+/* global localStorage */
 import assert from 'node:assert/strict'
 import { createRequire } from 'node:module'
-import { execFileSync } from 'node:child_process'
 import { resolve } from 'node:path'
+import process from 'node:process'
+import { URL } from 'node:url'
+import console from 'node:console'
+// 实验管理前端验证脚本（issue #166 第①步）——浏览器 fixture 层，
+// 不连接真实后端；运行方式见 docs/frontend/QA.md。
 
 const require = createRequire(import.meta.url)
 const playwright = require(process.env.PLAYWRIGHT_MODULE || 'playwright')
@@ -57,7 +59,6 @@ const fixtureJob = {
     budget: { max_calls: 10 },
     execution: 'serial',
     max_workers: 4,
-    api_key_id: 'key-fixture-1',
   },
   error_message: null,
   created_at: '2026-10-22T00:00:00Z',

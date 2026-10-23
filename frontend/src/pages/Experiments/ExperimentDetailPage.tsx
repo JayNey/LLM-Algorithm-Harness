@@ -139,8 +139,16 @@ function ComparisonTab({ experimentId }: { experimentId: string }) {
               <td>
                 {row.denominator.completed} / {row.denominator.total}
               </td>
-              <td>{formatAccuracy(row.pass_rate_over_total)}</td>
-              <td>{formatAccuracy(row.formal.rate)}</td>
+              <td>
+                {row.pass_rate_over_total === null
+                  ? '—'
+                  : formatAccuracy(row.pass_rate_over_total)}
+              </td>
+              <td>
+                {row.formal.rate === null
+                  ? '—'
+                  : formatAccuracy(row.formal.rate)}
+              </td>
               <td>{formatUsd(row.cost.total_cost_usd)}</td>
             </tr>
           ))}
@@ -261,8 +269,7 @@ function ParetoTab({ experimentId }: { experimentId: string }) {
   )
   const load = useCallback(
     async (signal: AbortSignal): Promise<ParetoResult> => {
-      const base = await client.comparison(experimentId, signal)
-      return client.pareto([base], [], accuracyMetric, signal)
+      return client.pareto(experimentId, [], accuracyMetric, signal)
     },
     [client, experimentId, accuracyMetric],
   )
@@ -333,8 +340,7 @@ function OptimizeTab({ experimentId }: { experimentId: string }) {
   >('best_value')
   const load = useCallback(
     async (signal: AbortSignal): Promise<OptimizeAdvisory> => {
-      const base = await client.comparison(experimentId, signal)
-      return client.optimize(base, { objective }, signal)
+      return client.optimize(experimentId, { objective }, signal)
     },
     [client, experimentId, objective],
   )
@@ -454,7 +460,13 @@ export default function ExperimentDetailPage() {
       [client, job],
     ),
   )
-  const activeTaskId = taskId.data ?? null
+  const [started, setStarted] = useState<{ id: string; taskId: string } | null>(
+    null,
+  )
+  const activeTaskId =
+    (started && started.id === job?.id ? started.taskId : null) ??
+    taskId.data ??
+    null
   const progress = useTaskProgress(client, activeTaskId, owner)
 
   async function start() {
@@ -462,7 +474,8 @@ export default function ExperimentDetailPage() {
     setBusy(true)
     setActionError(null)
     try {
-      await client.run(job.id)
+      const startedJob = await client.run(job.id)
+      setStarted({ id: job.id, taskId: startedJob.task_id })
       jobResource.retry()
       taskId.retry()
     } catch (cause: unknown) {
