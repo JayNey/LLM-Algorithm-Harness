@@ -23,7 +23,7 @@ export interface SuiteCreateInput {
 }
 
 export interface SuiteUpdateInput {
-  name?: string
+  // 后端 BenchmarkSuiteUpdateRequest 无 name 字段，不支持重命名
   problems?: string[]
   version?: string
   description?: string | null
@@ -34,7 +34,7 @@ export interface BenchmarkRunRequestPayload {
   api_key_id: string
   dataset_path: string
   model: string
-  strategies?: string[]
+  strategies?: { name: string }[]
   budget_cap_usd?: number
 }
 
@@ -55,7 +55,7 @@ export interface BenchmarkRunStarted extends BenchmarkRun {
 }
 
 export interface LearningCurvePoint {
-  timestamp: string
+  timestamp: string | null
   model: string
   accuracy: number | null
   cost_usd: number | null

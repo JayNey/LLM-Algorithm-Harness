@@ -59,7 +59,10 @@ export function runPayload(draft: RunDraft): BenchmarkRunRequestPayload {
   const errors = validateRunDraft(draft)
   if (Object.keys(errors).length)
     throw new ApiClientError('基准运行配置无效', undefined, errors)
-  const strategies = lines(draft.strategies_text.replace(/[,，]/g, '\n'))
+  // 后端要求 StrategyConfig 对象数组，不是字符串数组
+  const strategies = lines(draft.strategies_text.replace(/[,，]/g, '\n')).map(
+    (name) => ({ name }),
+  )
   return {
     api_key_id: draft.api_key_id.trim(),
     dataset_path: draft.dataset_path.trim(),

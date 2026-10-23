@@ -176,9 +176,9 @@ function mockRoute(context) {
             p_value: 0.5,
             welch_t_p_value: 0.42,
           },
-          elapsed_seconds: 9.9,
-          tokens: 1200,
-          failure_categories: {},
+          elapsed_seconds: { baseline: 5.1, treatment: 4.8 },
+          tokens: { baseline: 600, treatment: 600 },
+          failure_categories: { baseline: {}, treatment: {} },
         },
       })
     report.unknown.push(`${method} ${path}`)

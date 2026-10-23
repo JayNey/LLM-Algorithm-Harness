@@ -156,7 +156,6 @@ export default function BenchmarkDetailPage() {
     setActionError(null)
     try {
       await client.updateSuite(suite.id, {
-        name: editDraft.name.trim(),
         problems: editDraft.problems_text
           .split(/\r?\n/)
           .map((line) => line.trim())
@@ -237,6 +236,7 @@ export default function BenchmarkDetailPage() {
           <SuiteForm
             draft={editDraft}
             errors={editErrors}
+            disableName
             onChange={(patch) =>
               setEditDraft((previous) => ({
                 ...(previous as SuiteDraft),

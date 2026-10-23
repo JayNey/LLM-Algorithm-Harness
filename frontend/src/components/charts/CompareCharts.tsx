@@ -111,7 +111,7 @@ export interface TrendLineProps {
   series: {
     model: string
     points: {
-      timestamp: string
+      timestamp: string | null
       accuracy: number | null
       cost_usd: number | null
     }[]

@@ -132,7 +132,7 @@ function learningCurve(value: unknown): LearningCurve {
       (value, field) => {
         const row = record(value, field)
         return {
-          timestamp: text(row.timestamp, `${field}.timestamp`),
+          timestamp: nullableText(row.timestamp, `${field}.timestamp`),
           model: text(row.model, `${field}.model`),
           accuracy: nullableNumber(row.accuracy, `${field}.accuracy`),
           cost_usd: nullableNumber(row.cost_usd, `${field}.cost_usd`),

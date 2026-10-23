@@ -12,7 +12,7 @@
 
 ## 关键决策
 
-1. **两个自包含簇**：`frontend/src/benchmarks/`（types/client/session/presentation）与 `frontend/src/abtests/`（types/validation/client/session/runCreation/presentation）。严格解析只解析 UI 消费字段；`results` 明细不解析（设计明确声明）。
+1. **两个自包含簇**：`frontend/src/benchmarks/`（types/client/session/validation/presentation）与 `frontend/src/abtests/`（types/validation/client/session/presentation）。AB 创建为页面内联受控状态（创建即导航，无独立启动相位），未引入 runCreation store。严格解析只解析 UI 消费字段；`results` 明细不解析（设计明确声明）。
 2. **进度通道**：基准 run 复用 `@/experiments/useTaskProgress`（跨簇复用已由 useList 先例）；AB 启动无 task_id → 详情页以 5s 间隔轮询 `GET /ab-tests/{id}` 状态至终态（同类快照派生模式，内联实现）。
 3. **页面形态**：BenchmarksPage 顶部内联「创建 Suite」折叠面板（字段少，不值得独立路由）+ 套件卡片列表（名称/版本/题目数/冻结态/编辑按钮）；BenchmarkDetailPage = 套件信息 + 编辑（PATCH）+ 启动 run 表单 + run 进度（task_id 锚定）+ 学习曲线 Tab（TrendLine 折线 + trends 数字）。ABTestsPage 同实验列表模式（useList 分页 + 状态筛选）；CreateABTestPage 动态双变体表单；ABTestDetailPage 状态轮询 + 完成后统计表（含 ci95 区间与检验方法三态）。
 4. **图表**：`TrendLine` 加入 CompareCharts.tsx——按 model 分组的准确率折线（y=accuracy）+ 可切换成本折线（y=cost_usd），trends 以文字呈现。

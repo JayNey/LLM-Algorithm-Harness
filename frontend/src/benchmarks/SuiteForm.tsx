@@ -9,6 +9,7 @@ export function SuiteForm({
   onCancel,
   busy,
   submitLabel,
+  disableName = false,
 }: {
   draft: SuiteDraft
   errors: SuiteDraftErrors
@@ -17,6 +18,8 @@ export function SuiteForm({
   onCancel: () => void
   busy: boolean
   submitLabel: string
+  /** 编辑态名称不可改：后端 PATCH 无 name 字段 */
+  disableName?: boolean
 }) {
   return (
     <div className="panel evaluation-panel">
@@ -26,6 +29,7 @@ export function SuiteForm({
           aria-label="套件名称"
           value={draft.name}
           maxLength={200}
+          disabled={disableName}
           onChange={(event) => onChange({ name: event.target.value })}
         />
         {errors.name && <small role="alert">{errors.name}</small>}
