@@ -41,7 +41,7 @@ export MONITOR_ADMIN_USER_IDS='["11111111-1111-4111-8111-111111111111"]'
 - `GET /api/v1/health/workers` 与 `/api/v1/system/workers`：通过只读 monitoring_snapshot 命令返回 worker_count、workers、active、reserved、concurrency。仅统计截止时间内回复的 worker，scope=responding_celery_workers、cluster_complete=false；worker_id 是节点名称的稳定 SHA-256 摘要，不返回主机名。reserved 排除 active，只表示已被这些 worker 接收的待执行任务，不是 broker 队列长度。concurrency 来自池报告的 num_processes；不据此推导 CPU 利用率。
 - `GET /api/v1/health/sandbox`：复用实际 `SandboxExecutor.health_check()` 执行 Docker 预检，失败为 `unavailable`。只使用 Docker；不可用时不回退 host，不返回异常中的主机路径或凭据。
 - `GET /api/v1/system/resources`：CPU、内存、上传目录所在文件系统的磁盘用量，以及已登记且未标记删除的文件数量/字节。
-- `GET /api/v1/system/status`：当前 API 进程运行时间、旧评估与异步任务各自的全量状态计数、基础健康与本机资源。旧来源保留 `task_counts/task_count/task_status/task_source`，来源值为 `persisted_business_evaluations`；异步来源新增 `async_task_counts/async_task_count/async_task_status/async_task_source`，来源值为 `persisted_async_tasks`。两组分别读取，不受分页限制，不提供相加后的全局原子快照；一组故障时只将该组计数标记为 `null`，状态为 `unavailable`。响应另含 `evaluation_worker_implementation=algorithm_harness`、`real_evaluation_available=null`。容器级资源采集返回 `not_configured`。
+- `GET /api/v1/system/status`：当前 API 进程运行时间、旧评估与异步任务各自的全量状态计数、基础健康与本机资源。旧来源保留 `task_counts/task_count/task_status/task_source`，来源值为 `persisted_business_evaluations`；异步来源新增 `async_task_counts/async_task_count/async_task_status/async_task_source`，来源值为 `persisted_async_tasks`。两组分别读取，不受分页限制，不提供相加后的全局原子快照；一组故障时只将该组计数标记为 `null`，状态为 `unavailable`。响应另含 `evaluation_worker_implementation=algorithm_harness`、`real_evaluation_available=null`。容器级资源采集默认 `not_configured/disabled`，可按下文显式启用，只观察当前 API Docker context 中带固定标签的运行沙箱。
 - `GET /api/v1/system/tasks/running` 和 `/api/v1/system/tasks/queued`：分别查询所选持久化来源中 `running` 和 `pending` 状态的任务；`queued` 只表示数据库记录的 `pending` 状态，不能当成 Redis 队列长度。
 
 任务查询支持 `task_source/limit/offset`：
@@ -165,3 +165,26 @@ curl http://localhost:8000/api/v1/logs/download/your-task-id \
 真实 worker 可用可信任务所有者调用 `app.state.monitor.record_task_event(event, user_id)`。入口会校验登记的任务归属和删除状态；HTTP 不开放指定所有者、写日志或绑定缓存的接口。现有异步 worker 尚未绑定此入口或实际 LLM 缓存；后续可将实际 LLM 客户端的缓存实例绑定到 `app.state.monitor.cache`，仍需明确其单实例口径。
 
 Redis 连通性和回复 worker 的数值负载已接入。broker 等待队列长度、真实任务执行时长/成功率、LLM 请求时延、跨 worker 缓存命中率、各容器 CPU/内存及新日/月配额仍需后续采集。数据库健康和绑定 engine 的查询时延已接入；健康探测不构成真实模型调用成功证明。#157 保持开放。
+
+## Docker 沙箱容器资源
+
+```bash
+export MONITOR_CONTAINER_PROBES_ENABLED=true
+export MONITOR_CONTAINER_TIMEOUT_SECONDS=3
+export MONITOR_CONTAINER_CACHE_SECONDS=5
+export MONITOR_CONTAINER_MAX_ITEMS=32
+```
+
+默认关闭；仅管理员 `system/status` 的 `containers` 字段按需采样，公开 `/health` 和 401/403 路径不访问 Docker。读取当前 API 进程 Docker CLI 配置所指向的 context，不代表所有 worker 的 Docker daemon。需部署者将 API 指向实际需要观测的 daemon；无需为只读观测启动业务任务。
+
+新版本 SandboxExecutor 创建容器时增加 `io.llm-algorithm-harness.sandbox=v1`。采样固定执行带该 label 过滤的 `docker ps`，再对选中的完整 ID 执行 `docker stats --no-stream`，不调用 run/stop/rm/exec/inspect。标签只是观测选择器，不是认证或用户归属证明；旧版未带标签的容器和其他无标签容器不计入范围。
+
+响应只包含稳定摘要 `container_id`、CPU 百分比、内存显示值转换的字节/限额/百分比和 PIDs；不返回容器名称、原始 ID、镜像、命令、挂载、环境或 Docker 错误。数值来源为 `docker_cli_rounded_stats`，不是精确字节计数或 API 主机资源。[Docker stats 官方说明](https://docs.docker.com/reference/cli/docker/container/stats/) 中 Linux CLI 内存会扣除部分缓存，PIDs 包含线程；Windows daemon 部分列不提供，返回 null/partial，不能据此判定整个 daemon 不可用。Windows 主机连接 Linux daemon 时以 daemon 返回字段为准。
+
+`listed_count` 是成功枚举时的标签范围数量，`sampled_count` 是实际选取的数量；默认32，配置范围1–64。超过样本上限为 partial/sample_limit、truncated=true，不生成全局 CPU/内存汇总。容器在 ps 与 stats 之间退出或字段不可用时，该行 unknown/partial，缺测为 null；stats 非零退出仍保留成功枚举和合法数值，总体 partial/stats_failed，不把正常 --rm 完成误报为整个 Docker 不可用；仅成功枚举为空才返回真实0和空数组。`snapshot_atomic=false`、`cluster_complete=false`，不能从一张快照证明整个集群为空或任务已终止。
+
+ps 与 stats 分享0.5–10秒命令预算，各自接受的合计输出上限64KiB，超限即终止命令进程树并返回固定 output_limit；错误、超时和无 Docker 时不泄露原始输出。复用既有进程工具，异常时两个 pipe join 各最多5秒，终止清理可能增加有界余量。服务关闭标记 closed、拒绝新采样，并最多等待当前预算加12秒清理余量；不会停止被观测的容器。
+
+每 API 进程最多一个采样，缓存0–300秒，失败也缓存；cached/age_seconds 描述完成后的缓存年龄。缓存过期且另一个采样在途时返回 unknown/refresh_in_progress，不把旧成功值当成新观测。缓存独立于 worker/Redis 观测。
+
+本功能仅完成 #157 的容器资源观测；LLM 生成性能、跨 worker 缓存和新增配额仍需后续实现。

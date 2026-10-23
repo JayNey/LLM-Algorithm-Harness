@@ -65,6 +65,27 @@ def test_authentication_and_errors_match_runtime_contract(schema):
     assert "422" not in paths["/api/v1/auth/register"]["post"]["responses"]
 
 
+def test_container_resources_example_matches_disabled_probe(schema):
+    from api.monitoring.config import MonitorSettings
+    from api.monitoring.containers import ContainerProbes
+
+    probe = ContainerProbes(
+        MonitorSettings(
+            _env_file=None,
+            MONITOR_CONTAINER_PROBES_ENABLED=False,
+            MONITOR_CONTAINER_TIMEOUT_SECONDS=3,
+            MONITOR_CONTAINER_MAX_ITEMS=32,
+        )
+    )
+    try:
+        example = schema["paths"]["/api/v1/system/status"]["get"]["responses"]["200"]["content"][
+            "application/json"
+        ]["example"]
+        assert example["data"]["containers"] == probe.read()
+    finally:
+        probe.close()
+
+
 @pytest.mark.parametrize(
     ("path", "model"),
     [

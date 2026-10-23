@@ -894,6 +894,10 @@ def api(monkeypatch, tmp_path, unit_app):
     }
     state.monitor.health.return_value = {"checks": {"workers": worker_observation}}
     state.monitor.probes.resources.return_value = {}
+    state.monitor.probes.containers.return_value = {
+        "status": "not_configured",
+        "reason": "disabled",
+    }
     state.monitor.probes.workers.return_value = worker_observation
     state.progress_stream = SimpleNamespace(subscribe=AsyncMock(), unsubscribe=AsyncMock())
     for name in services:

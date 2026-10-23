@@ -1,0 +1,63 @@
+{
+  "source": {
+    "head": "73c6f1c883f4f5ba920e2ccd10c0ab7ecafa6729",
+    "dirty": ""
+  },
+  "command": "MONITOR_CONTAINER_TESTS=1 .venv/bin/python -m pytest tests/test_monitoring_container_integration.py --no-cov -q -s",
+  "exit_code": 0,
+  "layer": "actual Docker, isolated test containers",
+  "observation": {
+    "scope": "api_process_docker_context_labeled_running_sandboxes",
+    "selector": "io.llm-algorithm-harness.sandbox=v1",
+    "cluster_complete": false,
+    "snapshot_atomic": false,
+    "metrics_source": "docker_cli_rounded_stats",
+    "timeout_seconds": 10.0,
+    "sample_limit": 64,
+    "cached": false,
+    "age_seconds": 0.0,
+    "status": "ok",
+    "reason": "observed",
+    "listed_count": 1,
+    "sampled_count": 1,
+    "truncated": false,
+    "containers": [
+      {
+        "container_id": "container-1b34def5b2557dd8ff2b8c3e",
+        "status": "ok",
+        "cpu_percent": 0.0,
+        "memory_usage_bytes": 4125097,
+        "memory_limit_bytes": 268435456,
+        "memory_percent": 1.54,
+        "pids": 1
+      }
+    ]
+  },
+  "sandbox_removed_between_ps_and_stats": {
+    "scope": "api_process_docker_context_labeled_running_sandboxes",
+    "selector": "io.llm-algorithm-harness.sandbox=v1",
+    "cluster_complete": false,
+    "snapshot_atomic": false,
+    "metrics_source": "docker_cli_rounded_stats",
+    "timeout_seconds": 10.0,
+    "sample_limit": 64,
+    "cached": false,
+    "age_seconds": 0.0,
+    "status": "partial",
+    "reason": "stats_failed",
+    "listed_count": 1,
+    "sampled_count": 1,
+    "truncated": false,
+    "containers": [
+      {
+        "container_id": "container-1b34def5b2557dd8ff2b8c3e",
+        "status": "unknown",
+        "cpu_percent": null,
+        "memory_usage_bytes": null,
+        "memory_limit_bytes": null,
+        "memory_percent": null,
+        "pids": null
+      }
+    ]
+  }
+}
