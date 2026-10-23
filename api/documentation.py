@@ -673,7 +673,7 @@ OPERATIONS: dict[str, tuple[str, Any]] = {
         {"api": {}, "evaluations": {}, "database_queries": {}, "llm": {}},
     ),
     "llm_stats": (
-        "查询共享认证数据库中已记录的真实生成请求次数、结果和耗时；重试分别计数，采集为 best-effort。",
+        "查询共享认证数据库中真实生成请求的次数、成功率和平均耗时；可选 window_seconds（1–86400）按完成时间聚合，省略时累计。窗口不完整时主指标为 null，retained_sample 提供已保留样本；重试分别计数，采集为 best-effort。",
         {
             "status": "ok",
             "source": "persisted_llm_attempts",
@@ -1252,7 +1252,7 @@ PARAMETERS: dict[str, tuple[str, Any]] = {
     ),
     "include_sandbox": ("是否执行额外的沙箱检查；默认 false。", False),
     "task_source": ("监控快照来源：legacy_evaluation 或 async_task。", "async_task"),
-    "window_seconds": ("聚合最近多少秒的 API 指标，范围 1–86400。", 60),
+    "window_seconds": ("聚合最近多少秒的指标，范围 1–86400；LLM 查询省略时返回累计统计。", 60),
     "level": ("日志级别，不区分大小写：DEBUG/INFO/WARNING/ERROR/CRITICAL。", "INFO"),
     "start": ("日志起始时间，ISO 8601，必须带时区且不早于 Unix epoch。", "2026-10-01T00:00:00Z"),
     "end": ("日志结束时间，必须带时区且不早于 start。", "2026-10-19T00:00:00Z"),

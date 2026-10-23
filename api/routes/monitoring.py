@@ -225,9 +225,13 @@ def performance(
 
 @router.get("/metrics/llm-stats")
 def llm_stats(
-    admin: Principal = Depends(administrator), monitor: MonitorService = Depends(monitor_service)
+    window_seconds: int | None = Query(None, ge=1, le=86400),
+    admin: Principal = Depends(administrator),
+    monitor: MonitorService = Depends(monitor_service),
 ) -> ApiResponse[Any]:
-    return answer(monitor.llm_stats())
+    return answer(
+        monitor.llm_stats() if window_seconds is None else monitor.llm_stats(window_seconds)
+    )
 
 
 @router.get("/metrics/cache-stats")

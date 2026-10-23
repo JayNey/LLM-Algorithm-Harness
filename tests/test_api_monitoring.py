@@ -645,3 +645,50 @@ def test_performance_returns_real_task_execution_metrics(api):
         assert stats["avg_execution_time_seconds"] == pytest.approx(12.5, abs=0.0001)
         assert stats["success_rate"] == 1.0
         assert stats["duration_sample_count"] == 1
+
+
+def test_llm_window_query_filters_real_records_and_keeps_cumulative_default(api, monkeypatch):
+    from types import SimpleNamespace
+
+    import api.monitoring.store as store_module
+
+    client, admin, user, app, *_ = api
+    clock = [time.time() + 1]
+    monkeypatch.setattr(store_module, "time", SimpleNamespace(time=lambda: clock[0]))
+    app.state.monitor.store.record_llm_call(True, 900)
+    clock[0] += 70
+    app.state.monitor.store.record_llm_call(True, 100)
+    app.state.monitor.store.record_llm_call(False, 300)
+    clock[0] += 1
+    path = "/api/v1/metrics/llm-stats?window_seconds=60"
+    assert client.get(path).status_code == 401
+    assert client.get(path, headers=headers(user)).status_code == 403
+    response = client.get(path, headers=headers(admin))
+    assert response.status_code == 200
+    stats = response.json()["data"]
+    assert stats["window_complete"] and stats["window_seconds"] == 60
+    assert stats["total_calls"] == 2 and stats["success_rate"] == 0.5
+    assert stats["avg_latency_ms"] == 200
+    assert stats["recorded_usage_hooks"] == stats["key_verification_count"] == 0
+    assert response.headers["cache-control"] == "no-store"
+    assert (
+        client.get("/api/v1/metrics/llm-stats", headers=headers(admin)).json()["data"][
+            "total_calls"
+        ]
+        == 3
+    )
+    for window in ("0", "-1", "86401", "1.5", "abc", ""):
+        invalid = client.get(
+            "/api/v1/metrics/llm-stats", params={"window_seconds": window}, headers=headers(admin)
+        )
+        assert invalid.status_code == 400, invalid.text
+    assert (
+        client.get("/api/v1/metrics/llm-stats?window_seconds=1", headers=headers(admin)).status_code
+        == 200
+    )
+    assert (
+        client.get(
+            "/api/v1/metrics/llm-stats?window_seconds=86400", headers=headers(admin)
+        ).status_code
+        == 200
+    )

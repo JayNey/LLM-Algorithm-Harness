@@ -30365,6 +30365,25 @@
           {
             "HTTPBearer": []
           }
+        ],
+        "parameters": [
+          {
+            "in": "query",
+            "name": "window_seconds",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "maximum": 86400,
+                  "minimum": 1,
+                  "type": "integer"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            }
+          }
         ]
       }
     },
