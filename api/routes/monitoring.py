@@ -130,6 +130,7 @@ def system_status(
     snapshot = monitor.task_snapshot()
     async_snapshot = monitor.task_snapshot(task_source="async_task")
     health = monitor.health()
+    redis_observation = health["checks"].get("redis", {})
     return answer(
         {
             "uptime_seconds": round(time.monotonic() - monitor.started, 3),
@@ -148,7 +149,7 @@ def system_status(
             "workers": health["checks"]["workers"],
             "queue_metrics": {
                 "broker_queue": {
-                    **health["checks"]["redis"].get(
+                    **redis_observation.get(
                         "broker_queue",
                         {
                             "status": "unknown",
@@ -158,8 +159,8 @@ def system_status(
                     ),
                     "source": "redis_broker",
                     "scope": "configured_business_queues",
-                    "cached": health["checks"]["redis"].get("cached", False),
-                    "age_seconds": health["checks"]["redis"].get("age_seconds"),
+                    "cached": redis_observation.get("cached", False),
+                    "age_seconds": redis_observation.get("age_seconds"),
                 },
                 "database_pending": {
                     "status": async_snapshot["status"],

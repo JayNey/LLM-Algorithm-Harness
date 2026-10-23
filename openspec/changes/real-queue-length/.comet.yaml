@@ -22,7 +22,7 @@ verified_at: null
 archive_confirmation: null
 archived: false
 bound_branch: tweak/20261023/real-queue-length
-direct_override: null
+direct_override: true
 handoff_context: null
 handoff_hash: null
 classic_profile: tweak
