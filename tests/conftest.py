@@ -76,6 +76,12 @@ def _increase_docker_timeout_on_windows(monkeypatch):
 
 
 @pytest.fixture(autouse=True)
+def _isolate_llm_monitoring_database(tmp_path, monkeypatch):
+    """Mocked provider calls must never update a developer's real auth DB."""
+    monkeypatch.setenv("AUTH_DATABASE_PATH", str(tmp_path / "llm-monitor.sqlite3"))
+
+
+@pytest.fixture(autouse=True)
 def _isolate_business_database(tmp_path, monkeypatch):
     """Point the API business database at a per-test SQLite file.
 
