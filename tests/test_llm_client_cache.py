@@ -349,3 +349,129 @@ class TestLLMClientCache:
             # Same prompt but different strategy_name should call API again
             client.generate("Test prompt", strategy_name="direct")
             assert mock_client.chat.completions.create.call_count == 2
+
+
+class TestRequestIdentityCache:
+    """Exercise cache reuse through generate with a shared disk directory."""
+
+    @pytest.fixture
+    def make_client(self, tmp_path):
+        from httpx import URL
+
+        from src.cache import LLMResponseCache
+
+        def make(*, endpoint="https://one.example/v1", **overrides):
+            config = LLMConfig(
+                **{
+                    "provider": "openai",
+                    "model": "shared-model",
+                    "api_key": "test-key",
+                    "base_url": endpoint,
+                    "cache": CacheConfig(enabled=True),
+                    **overrides,
+                }
+            )
+            sdk = MagicMock()
+            sdk.base_url = URL(endpoint or "https://api.openai.com/v1/")
+            sdk.chat.completions.create.return_value = {
+                "model": "shared-model",
+                "choices": [{"message": {"content": "generated"}, "finish_reason": "stop"}],
+                "usage": {"prompt_tokens": 1, "completion_tokens": 1, "total_tokens": 2},
+            }
+            with patch.object(LLMClient, "_initialize_client", return_value=sdk):
+                client = LLMClient(config)
+            client.cache = LLMResponseCache(cache_dir=str(tmp_path))
+            return client, sdk.chat.completions.create
+
+        return make
+
+    @pytest.mark.parametrize(
+        "changed",
+        [
+            {"endpoint": "https://two.example/v1"},
+            {"provider": "local"},
+            {"enable_thinking": True},
+            {"enable_thinking": False},
+        ],
+    )
+    def test_config_identity_does_not_reuse(self, make_client, changed):
+        first, _ = make_client()
+        first.generate("same prompt")
+        second, api = make_client(**changed)
+        second.generate("same prompt")
+        assert api.call_count == 1
+        second.generate("same prompt")
+        assert api.call_count == 1
+
+    @pytest.mark.parametrize(
+        "params",
+        [
+            {"top_p": 0.5},
+            {"seed": 42},
+            {"stop": ["END"]},
+            {"enable_thinking": True},
+            {"extra_body": {"thinking": {"budget": 100}}},
+            {"response_format": {"type": "json_object"}},
+        ],
+    )
+    def test_custom_generation_params_do_not_reuse(self, make_client, params):
+        client, api = make_client()
+        client.generate("same prompt")
+        client.generate("same prompt", custom_params=params)
+        assert api.call_count == 2
+        client.generate("same prompt", custom_params=params)
+        assert api.call_count == 2
+
+    def test_nested_order_and_effective_overrides_reuse(self, make_client):
+        client, api = make_client(enable_thinking=True)
+        client.generate(
+            "same prompt",
+            custom_params={"extra_body": {"a": 1, "b": {"x": 2, "y": 3}}},
+        )
+        client.generate(
+            "same prompt",
+            custom_params={"enable_thinking": True, "extra_body": {"b": {"y": 3, "x": 2}, "a": 1}},
+        )
+        assert api.call_count == 1
+
+    def test_operational_settings_reuse(self, make_client):
+        first, _ = make_client()
+        first.generate("same prompt")
+        second, api = make_client(timeout=60, retry_max_attempts=1, api_key="other-key")
+        second.generate("same prompt")
+        assert api.call_count == 0
+
+    def test_resolved_sdk_endpoint_separates_environment_defaults(self, make_client):
+        from httpx import URL
+
+        first, _ = make_client(endpoint=None)
+        first.generate("same prompt")
+        second, api = make_client(endpoint=None)
+        second.client.base_url = URL("https://env-configured.example/v1/")
+        second.generate("same prompt")
+        assert api.call_count == 1
+
+    def test_legacy_key_does_not_reuse(self, make_client):
+        import hashlib
+        import json
+
+        from src.models import LLMResponse, TokenUsage
+
+        client, api = make_client()
+        legacy = {
+            "model": client.config.model,
+            "prompt": "same prompt",
+            "temperature": client.config.temperature,
+            "max_tokens": client.config.max_tokens,
+        }
+        key = hashlib.sha256(json.dumps(legacy, sort_keys=True).encode()).hexdigest()
+        client.cache.set(
+            key,
+            LLMResponse(
+                text="legacy",
+                model="shared-model",
+                usage=TokenUsage(prompt_tokens=0, completion_tokens=0, total_tokens=0),
+            ),
+        )
+        assert client.generate("same prompt").text == "generated"
+        assert api.call_count == 1
