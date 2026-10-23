@@ -7,7 +7,7 @@ import threading
 import time
 from concurrent.futures import ThreadPoolExecutor
 from types import SimpleNamespace
-from unittest.mock import Mock, patch
+from unittest.mock import MagicMock, Mock, patch
 
 import pytest
 from pydantic import ValidationError
@@ -314,3 +314,122 @@ def test_http_queue_failure_degrades_health_without_false_zero_counts(api, monke
     assert data["checks"]["workers"]["worker_count"] is None
     assert data["checks"]["redis"]["latency_ms"] is None
     assert "private-password" not in response.text
+
+
+def queue_config(**changes):
+    return {
+        "queues": ["default", "evaluations"],
+        "priority_steps": [0, 3, 6, 9],
+        "sep": "\x06\x16",
+        "global_keyprefix": "tenant:",
+        **changes,
+    }
+
+
+def test_broker_waiting_counts_all_priority_buckets_without_consuming():
+    client = MagicMock()
+    client.connection_pool.connection_kwargs = {}
+    client.ping.return_value = True
+    pipe = client.pipeline.return_value.__enter__.return_value
+    pipe.execute.return_value = [1, 0, 2, 0, 0, 2, 0, 0]
+    with patch("redis.Redis.from_url", return_value=client):
+        result = probe("redis", BROKER, 0.2, queue_config())
+    assert result["broker_queue"] == {
+        "status": "ok",
+        "reason": "observed",
+        "waiting": 5,
+        "queues": [{"name": "default", "waiting": 3}, {"name": "evaluations", "waiting": 2}],
+    }
+    assert [call.args[0] for call in pipe.llen.call_args_list] == [
+        "tenant:default",
+        "tenant:default\x06\x163",
+        "tenant:default\x06\x166",
+        "tenant:default\x06\x169",
+        "tenant:evaluations",
+        "tenant:evaluations\x06\x163",
+        "tenant:evaluations\x06\x166",
+        "tenant:evaluations\x06\x169",
+    ]
+    assert client.pipeline.call_args.kwargs == {"transaction": False}
+    assert not client.lpop.called and not client.rpop.called and not client.lrange.called
+
+
+@pytest.mark.parametrize("sizes", [[0] * 8, [-1] * 8, [True] * 8, [0] * 7])
+def test_empty_or_invalid_broker_counts_never_invent_zero(sizes):
+    client = MagicMock()
+    client.connection_pool.connection_kwargs = {}
+    client.ping.return_value = True
+    client.pipeline.return_value.__enter__.return_value.execute.return_value = sizes
+    with patch("redis.Redis.from_url", return_value=client):
+        result = probe("redis", BROKER, 0.2, queue_config())
+    assert result["status"] == "ok"  # PING and waiting count have independent status.
+    assert result["broker_queue"]["waiting"] == (0 if sizes == [0] * 8 else None)
+
+
+def test_broker_count_failure_is_safe_and_ping_stays_observed():
+    client = MagicMock()
+    client.connection_pool.connection_kwargs = {}
+    client.ping.return_value = True
+    client.pipeline.side_effect = RuntimeError(BROKER)
+    with patch("redis.Redis.from_url", return_value=client):
+        result = probe("redis", BROKER, 0.2, queue_config())
+    assert result["status"] == "ok"
+    assert result["broker_queue"]["waiting"] is None
+    assert "private" not in json.dumps(result)
+    assert validated_result("redis", result) == result
+
+
+@pytest.mark.parametrize(
+    "changes",
+    [
+        {"priority_steps": []},
+        {"queues": ["default", "default"]},
+        {"priority_steps": [3, 0]},
+        {"queues": []},
+    ],
+)
+def test_invalid_queue_config_does_not_read_redis_keys(changes):
+    client = MagicMock()
+    client.connection_pool.connection_kwargs = {}
+    client.ping.return_value = True
+    with patch("redis.Redis.from_url", return_value=client):
+        result = probe("redis", BROKER, 0.2, queue_config(**changes))
+    assert result["broker_queue"]["waiting"] is None
+    client.pipeline.assert_not_called()
+
+
+def test_queue_disabled_and_protocol_cannot_forge_waiting_counts():
+    queue = QueueProbes(MonitorSettings(_env_file=None), BROKER)
+    assert queue.read("redis")["broker_queue"]["waiting"] is None
+    result = {
+        "status": "ok",
+        "latency_ms": 1,
+        "broker_queue": {
+            "status": "ok",
+            "reason": "observed",
+            "waiting": 9,
+            "queues": [{"name": "default", "waiting": 2}],
+        },
+    }
+    assert validated_result("redis", result)["broker_queue"]["waiting"] is None
+    queue.close()
+
+
+def test_status_separates_broker_pending_and_reserved(api, monkeypatch):
+    client, admin, _, app, *_ = api
+    app.state.monitor.settings.MONITOR_QUEUE_PROBES_ENABLED = True
+    create_queue_task(client, headers(admin))
+    before = app.state.monitor.task_snapshot(task_source="async_task")
+    program = (
+        "import sys,json; r=json.load(sys.stdin); "
+        f"print(json.dumps({worker_snapshot([valid_reply()])!r} if r['kind']=='workers' else "
+        "{'status':'ok','latency_ms':1,'broker_queue':{'status':'ok','reason':'observed','waiting':5,'queues':[{'name':'default','waiting':5}]}}))"
+    )
+    child(monkeypatch, program)
+    data = client.get("/api/v1/system/status", headers=headers(admin)).json()["data"]
+    metrics = data["queue_metrics"]
+    assert metrics["broker_queue"]["waiting"] == 5
+    assert metrics["database_pending"]["count"] == 1
+    assert metrics["worker_reserved"]["count"] == 2
+    assert data["health"]["checks"]["redis"]["broker_queue"]["waiting"] == 5
+    assert app.state.monitor.task_snapshot(task_source="async_task") == before
