@@ -139,7 +139,10 @@ def test_quotas_are_owned_and_count_actual_sql_utf8_bytes(monitoring):
     assert alice_quota["imports"]["per_process_concurrency"] == 2
     assert alice_quota["transfers"]["per_process_concurrency"] == 3
     for period in ("daily_api_calls", "monthly_api_calls"):
-        assert alice_quota[period] == {"status": "not_configured", "limit": None, "used": None}
+        assert alice_quota[period]["status"] == "metered"
+        assert alice_quota[period]["used"] == 0
+        assert alice_quota[period]["limit"] is None
+        assert alice_quota[period]["timezone"] == "UTC"
 
 
 def test_quota_view_matches_enforced_file_limit_and_expired_rates(monitoring):
@@ -487,3 +490,18 @@ def test_evaluation_quota_uses_separate_task_engine_and_propagates_db_failure(
             monitor.quotas(owners["alice"])
     finally:
         engine.dispose()
+
+
+def test_owned_generation_counts_reach_quotas(monitoring, monkeypatch):
+    from src.llm_client import LLMClient
+
+    monitor, owners, keys = monitoring
+    monkeypatch.setattr("api.monitoring.llm_metrics.record_call", lambda *args: None)
+    client = LLMClient.__new__(LLMClient)
+    client.config = monitor.auth.llm_config(keys["alice"], owners["alice"], "test")
+    assert client._call_with_retry(lambda: "response") == "response"
+    with pytest.raises(ValueError):
+        client._call_with_retry(lambda: (_ for _ in ()).throw(ValueError("failed")))
+    for period in ("daily_api_calls", "monthly_api_calls"):
+        assert monitor.quotas(owners["alice"])[period]["used"] == 2
+        assert monitor.quotas(owners["bob"])[period]["used"] == 0

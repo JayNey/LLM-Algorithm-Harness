@@ -261,7 +261,7 @@ class AuthService:
             KeyCreate.literal_key(SecretStr(raw))
         except (InvalidToken, UnicodeError, ValueError):
             raise HTTPException(503, "Stored credential is unavailable") from None
-        return LLMConfig(
+        config = LLMConfig(
             provider=key["provider"],
             api_key=SecretStr(raw),
             model=model,
@@ -269,6 +269,9 @@ class AuthService:
             retry_max_attempts=1,
             cache=CacheConfig(enabled=False),
         )
+
+        config._record_api_attempt = lambda: self.store.record_user_api_call(user_id)
+        return config
 
     def verify_key(self, key_id: str, user_id: str) -> dict[str, Any]:
         self.limit("verify:" + user_id)

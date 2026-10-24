@@ -403,7 +403,9 @@ def test_quotas_are_available_only_for_current_user_and_real_cache_is_opt_in(api
         "/api/v1/quotas/usage", params={"user_id": other_id}, headers=headers(admin)
     ).json()["data"]
     assert other["storage"]["used_bytes"] == 0
-    assert other["daily_api_calls"] == {"status": "not_configured", "limit": None, "used": None}
+    assert other["daily_api_calls"]["status"] == "metered"
+    assert other["daily_api_calls"]["used"] == 0
+    assert other["daily_api_calls"]["timezone"] == "UTC"
     pending = client.get("/api/v1/metrics/cache-stats", headers=headers(admin)).json()["data"]
     assert pending["status"] == "not_configured"
     cache = LLMResponseCache(str(files.UPLOAD_DIR.parent / "cache-private"))

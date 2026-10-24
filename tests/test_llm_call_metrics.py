@@ -73,6 +73,7 @@ def make_client(monkeypatch, provider="openai", **overrides):
 def test_generation_outcomes_at_provider_boundary(collected, monkeypatch, provider, succeeded):
     store, settings = collected
     client, _, operation = make_client(monkeypatch, provider)
+    client.config._record_api_attempt = lambda: store.auth_store.record_user_api_call("alice")
     if not succeeded:
         operation.side_effect = ValueError("private-test-credential private-error")
     ticks = iter([10.0, 10.25])
@@ -89,6 +90,7 @@ def test_generation_outcomes_at_provider_boundary(collected, monkeypatch, provid
     assert stats["successful_calls"] == int(succeeded)
     assert stats["failed_calls"] == int(not succeeded)
     assert stats["avg_latency_ms"] == 250.0
+    assert store.auth_store.user_api_calls("alice")["daily_api_calls"]["used"] == 1
     with sqlite3.connect(settings.AUTH_DATABASE_PATH) as db:
         persisted = str(db.execute("SELECT * FROM api_monitor_meta").fetchall())
         assert all(
@@ -122,6 +124,7 @@ def test_retries_count_attempts_and_exclude_backoff(collected, monkeypatch):
 def test_cache_and_model_list_do_not_count(collected, monkeypatch):
     store, _ = collected
     client, sdk, operation = make_client(monkeypatch, cache={"enabled": True})
+    client.config._record_api_attempt = lambda: store.auth_store.record_user_api_call("alice")
     # Isolate disk cache while exercising the real generate() cache branch.
     saved = []
     client.cache = SimpleNamespace(
@@ -134,6 +137,7 @@ def test_cache_and_model_list_do_not_count(collected, monkeypatch):
     assert client.list_models() == ["test-model"]
     assert client.check_connection()["ok"] is True
     assert store.llm_stats()["total_calls"] == 1
+    assert store.auth_store.user_api_calls("alice")["daily_api_calls"]["used"] == 1
     operation.assert_called_once()
 
 
@@ -231,7 +235,9 @@ def test_real_openai_sdk_transport_retry_is_observed(collected, monkeypatch):
                 retry_backoff_seconds=0,
             )
         )
+        client.config._record_api_attempt = lambda: store.auth_store.record_user_api_call("alice")
         assert client.generate("private-prompt").text == "sdk-response"
+        assert store.auth_store.user_api_calls("alice")["monthly_api_calls"]["used"] == 2
     assert len(attempts) == 2
     stats = store.llm_stats()
     assert stats["total_calls"] == 2
