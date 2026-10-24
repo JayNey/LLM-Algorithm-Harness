@@ -18,6 +18,14 @@ class AuthSettings(BaseSettings):
     AUTH_RATE_LIMIT: int = Field(10, ge=1, le=1000)
     AUTH_RATE_WINDOW_SECONDS: int = Field(60, ge=1, le=3600)
     AUTH_PROTECTED_RATE_LIMIT: int = Field(120, ge=1, le=10000)
+    USER_DAILY_API_CALL_LIMIT: int | None = Field(None, ge=0)
+    USER_MONTHLY_API_CALL_LIMIT: int | None = Field(None, ge=0)
+
+    @field_validator("USER_DAILY_API_CALL_LIMIT", "USER_MONTHLY_API_CALL_LIMIT", mode="before")
+    @classmethod
+    def empty_call_limit(cls, value: object) -> object:
+        """Blank dotenv examples preserve the unlimited default."""
+        return None if isinstance(value, str) and not value.strip() else value
 
     @field_validator("SECRET_KEY")
     @classmethod

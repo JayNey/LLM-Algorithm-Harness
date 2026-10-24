@@ -91,7 +91,39 @@ class AuthStore:
                 ],
             )
 
-    def user_api_calls(self, user_id: str) -> dict[str, Any]:
+    def reserve_user_api_call(
+        self, user_id: str, daily_limit: int | None, monthly_limit: int | None
+    ) -> tuple[str, int] | None:
+        """Atomically admit one SDK attempt, or return the exhausted period/reset.
+
+        IMMEDIATE serializes check-and-increment across processes. Compute the
+        calendar after acquiring the lock so a wait across midnight is safe.
+        """
+        limits = dict(zip(("daily_api_calls", "monthly_api_calls"), (daily_limit, monthly_limit)))
+        with self.connection() as db:
+            db.execute("BEGIN IMMEDIATE")
+            periods = self._api_call_periods(time.time())
+            for period, (start, end) in periods.items():
+                row = db.execute(
+                    "SELECT count FROM auth_user_api_calls WHERE user_id=? AND period=? AND period_start=?",
+                    (user_id, period, int(start.timestamp())),
+                ).fetchone()
+                limit = limits[period]
+                if limit is not None and (row[0] if row else 0) >= limit:
+                    return period, int(end.timestamp())
+            db.executemany(
+                "INSERT INTO auth_user_api_calls(user_id,period,period_start,count) VALUES (?,?,?,1) "
+                "ON CONFLICT(user_id,period,period_start) DO UPDATE SET count=count+1",
+                [
+                    (user_id, period, int(start.timestamp()))
+                    for period, (start, _) in periods.items()
+                ],
+            )
+        return None
+
+    def user_api_calls(
+        self, user_id: str, daily_limit: int | None = None, monthly_limit: int | None = None
+    ) -> dict[str, Any]:
         """Read a consistent snapshot of current UTC calendar buckets."""
         periods = self._api_call_periods(time.time())
         with self.connection() as db:
@@ -106,7 +138,7 @@ class AuthStore:
                 ),
             ).fetchall()
         counts = dict(rows)
-        return {
+        result = {
             period: {
                 "status": "metered",
                 "limit": None,
@@ -119,6 +151,14 @@ class AuthStore:
             }
             for period, (start, end) in periods.items()
         }
+        for period, limit in zip(periods, (daily_limit, monthly_limit)):
+            if daily_limit is not None or monthly_limit is not None:
+                result[period]["collection_mode"] = "atomic_before_sdk_attempt"
+            if limit is not None:
+                result[period].update(
+                    status="enforced", limit=limit, remaining=max(0, limit - counts.get(period, 0))
+                )
+        return result
 
     def attach_query_metrics(self, metrics: SQLiteQueryMetrics) -> None:
         with self._query_metrics_lock:
