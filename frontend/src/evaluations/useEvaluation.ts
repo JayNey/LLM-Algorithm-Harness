@@ -86,8 +86,11 @@ export interface EvaluationLive {
   mode: string
   /** 会话失效（401/4401 恢复失败）：页面应清会话回跳登录 */
   unauthorized: boolean
+  forbidden: boolean
+  error: string | null
   /** 手动触发一次观察器刷新（等价页面「刷新任务」） */
   refresh: () => void
+  runMutation: (fn: () => Promise<void>) => Promise<void>
 }
 
 /** 步骤 4（issue #225）：把进度观察器接入 React。
@@ -108,12 +111,16 @@ export function useEvaluationLive(
     evaluation: Evaluation | null
     mode: string
     unauthorized: boolean
+    forbidden: boolean
+    error: string | null
   }>({
     owner: null,
     evaluationId: '',
     evaluation: null,
     mode: 'idle',
     unauthorized: false,
+    forbidden: false,
+    error: null,
   })
   const observerRef = useRef<ProgressObserver | null>(null)
 
@@ -179,17 +186,30 @@ export function useEvaluationLive(
                   evaluation: null,
                   mode: 'idle',
                   unauthorized: false,
+                  forbidden: false,
+                  error: null,
                 }
           if (event.type === 'snapshot')
             return {
               ...alignedPrevious,
               evaluation: event.evaluation,
               mode: event.mode,
+              forbidden: false,
+              error: null,
             }
           if (event.type === 'mode')
             return { ...alignedPrevious, mode: event.mode }
+          if (event.type === 'forbidden')
+            return {
+              ...alignedPrevious,
+              evaluation: null,
+              forbidden: true,
+              error: null,
+            }
+          if (event.type === 'error')
+            return { ...alignedPrevious, error: '实时数据暂时无法更新，请重试' }
           if (event.type === 'unauthorized')
-            return { ...alignedPrevious, unauthorized: true }
+            return { ...alignedPrevious, evaluation: null, unauthorized: true }
           return alignedPrevious
         })
       },
@@ -236,10 +256,34 @@ export function useEvaluationLive(
     !!owner &&
     snapshot.owner === owner &&
     snapshot.evaluationId === evaluationId
+  useEffect(() => {
+    // A stopped observer may return an active HTTP snapshot after an explicit
+    // permission retry. Resume only after that successful read; paused/terminal
+    // snapshots and denied resources must stay stopped.
+    if (
+      aligned &&
+      enabled &&
+      snapshot.mode === 'stopped' &&
+      !snapshot.forbidden &&
+      !snapshot.unauthorized &&
+      snapshot.evaluation &&
+      ['pending', 'running'].includes(snapshot.evaluation.status)
+    )
+      observerRef.current?.start(evaluationId)
+  }, [aligned, enabled, evaluationId, snapshot])
+  const refresh = useCallback(() => observerRef.current?.refresh(), [])
+  const runMutation = useCallback(async (fn: () => Promise<void>) => {
+    const observer = observerRef.current
+    if (observer) await observer.runMutation(fn)
+    else await fn()
+  }, [])
   return {
-    evaluation: aligned ? snapshot.evaluation : null,
-    mode: aligned ? snapshot.mode : 'idle',
+    evaluation: aligned && enabled ? snapshot.evaluation : null,
+    mode: aligned && enabled ? snapshot.mode : 'idle',
     unauthorized: aligned ? snapshot.unauthorized : false,
-    refresh: () => observerRef.current?.refresh(),
+    forbidden: aligned && enabled ? snapshot.forbidden : false,
+    error: aligned && enabled ? snapshot.error : null,
+    refresh,
+    runMutation,
   }
 }
