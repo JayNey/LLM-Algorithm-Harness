@@ -450,7 +450,9 @@ class LLMClient:
             # Admission errors must propagate without retry or telemetry; only
             # real SDK attempts are observed and charged to the retry budget.
             if self.config._reserve_api_attempt is not None:
+                admission_started = time.monotonic()
                 self.config._reserve_api_attempt()
+                telemetry_seconds += max(0.0, time.monotonic() - admission_started)
             try:
                 return self._observe_operation(provider_attempt)
             except Exception as error:

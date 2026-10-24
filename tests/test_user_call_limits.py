@@ -178,3 +178,38 @@ print(sum(store.reserve_user_api_call('alice', 5, 10) is None for _ in range(10)
         admitted.append(int(out))
     assert sum(admitted) == 5
     assert service.store.user_api_calls("alice")["monthly_api_calls"]["used"] == 5
+
+
+def test_slow_admission_does_not_suppress_provider_retry(service, monkeypatch):
+    from src.models import LLMConfig
+
+    clock = [0.0]
+    monkeypatch.setattr("src.llm_client.time.monotonic", lambda: clock[0])
+    monkeypatch.setattr("api.monitoring.llm_metrics.record_call", lambda *args: None)
+    service.settings.USER_DAILY_API_CALL_LIMIT = 2
+    client = LLMClient.__new__(LLMClient)
+    client.config = LLMConfig(
+        provider="openai",
+        model="test",
+        api_key="test",
+        retry_max_attempts=2,
+        retry_max_elapsed_seconds=1,
+        retry_backoff_seconds=0,
+    )
+
+    def slow_admission():
+        clock[0] += 2
+        service.reserve_api_attempt("alice")
+
+    client.config._reserve_api_attempt = slow_admission
+    attempts = []
+
+    def provider():
+        attempts.append(1)
+        if len(attempts) == 1:
+            raise ConnectionError("retryable")
+        return "response"
+
+    assert client._call_with_retry(provider) == "response"
+    assert len(attempts) == 2
+    assert service.store.user_api_calls("alice")["daily_api_calls"]["used"] == 2
