@@ -7,6 +7,7 @@ import { resolve } from 'node:path'
 import process from 'node:process'
 import console from 'node:console'
 import { URL } from 'node:url'
+import { recordCheck } from './fixture-checks.mjs'
 const require = createRequire(import.meta.url)
 const { chromium } = require(process.env.PLAYWRIGHT_MODULE || 'playwright')
 const base = process.env.EVALUATION_BASE_URL || 'http://127.0.0.1:5180'
@@ -46,6 +47,7 @@ const report = {
   unknown: [],
   screenshots: [],
   replaced: [
+    'WebSocket progress: in-memory fixture (no real upstream connection)',
     'HTTP /api/v1/users/me',
     'HTTP /api/v1/api-keys',
     'HTTP /api/v1/evaluation-options and children',
@@ -62,21 +64,7 @@ const report = {
   ],
 }
 function check(name, fn) {
-  // 支持异步断言：失败时抛出，由场景外层 catch 置 report.pass=false
-  report.assertions.push({ name, pass: false })
-  const index = report.assertions.length - 1
-  return Promise.resolve()
-    .then(fn)
-    .then(
-      () => {
-        report.assertions[index].pass = true
-      },
-      (error) => {
-        report.assertions[index].pass = false
-        report.assertions[index].error = String(error)
-        throw error
-      },
-    )
+  return recordCheck(report.assertions, name, fn)
 }
 const browser = await chromium.launch({
   headless: true,
@@ -119,8 +107,16 @@ async function fixture(mode = 'start-error', entry = '/evaluations/new') {
   const errors = []
   const calls = []
   let detail = { ...evaluation }
-  let progressSeen = false
+  let progressPercentage = 20
+  let advanceProgress = () => {
+    throw new Error('Progress socket is not subscribed')
+  }
+  let denyProgress = () => {
+    throw new Error('Progress socket is not connected')
+  }
   const detailIntervals = []
+  const detailProgress = []
+  let subscriptionAt = 0
   let wsUrls = []
   let starts = 0
   let detailFailure = 0
@@ -377,13 +373,12 @@ async function fixture(mode = 'start-error', entry = '/evaluations/new') {
     }
     if (method === 'GET' && path === '/evaluations/eval-fixture-1') {
       if (mode === 'progress') {
+        const intervalStart = Date.now()
         // 人为拉长请求以暴露并发周期（场景断言请求区间不重叠）
         await new Promise((resolve) => setTimeout(resolve, 120))
-        const intervalStart = Date.now() - 120
-        detailIntervals.push([intervalStart, intervalStart + 120])
         // HTTP 真值递进：progress 帧投递前恒 20%，之后 60%——
         // 锁定「事件触发刷新」而非 start 自身的首次 GET
-        const percentage = progressSeen ? 60 : 20
+        const percentage = progressPercentage
         detail = {
           ...evaluation,
           status: 'running',
@@ -402,6 +397,10 @@ async function fixture(mode = 'start-error', entry = '/evaluations/new') {
             percentage,
           },
         }
+        const response = await send(detail)
+        detailIntervals.push([intervalStart, Date.now()])
+        detailProgress.push(percentage)
+        return response
       }
       return send(detail)
     }
@@ -412,43 +411,41 @@ async function fixture(mode = 'start-error', entry = '/evaluations/new') {
       json: { message: `Unexpected API: ${method} ${path}` },
     })
   })
-  if (mode === 'progress') {
-    await context.routeWebSocket(/\/api\/v1\/ws\/progress/, (ws) => {
-      wsUrls.push(ws.url())
-      const server = ws.connectToServer()
-      server.onMessage((message) => {
-        const frame = JSON.parse(String(message))
-        if (frame.action === 'subscribe') {
-          server.send(
+  await context.routeWebSocket(/\/api\/v1\/ws\/progress/, (ws) => {
+    wsUrls.push(ws.url())
+    denyProgress = () => ws.close({ code: 4403 })
+    ws.onMessage((message) => {
+      const frame = JSON.parse(String(message))
+      if (frame.action === 'subscribe') {
+        subscriptionAt = Date.now()
+        if (mode === 'progress')
+          ws.send(
             JSON.stringify({
               type: 'task.snapshot',
               task_id: frame.task_id,
               data: detail,
             }),
           )
-          server.send(
-            JSON.stringify({ type: 'subscribed', task_id: frame.task_id }),
+        ws.send(JSON.stringify({ type: 'subscribed', task_id: frame.task_id }))
+        advanceProgress = (percentage = 60) => {
+          progressPercentage = percentage
+          ws.send(
+            JSON.stringify({
+              type: 'task.progress',
+              task_id: frame.task_id,
+              data: {
+                completed: 1,
+                total: 2,
+                percentage: 50,
+                current_problem: 'p1',
+                current_strategy: 'direct',
+              },
+            }),
           )
-          setTimeout(() => {
-            progressSeen = true
-            server.send(
-              JSON.stringify({
-                type: 'task.progress',
-                task_id: frame.task_id,
-                data: {
-                  completed: 1,
-                  total: 2,
-                  percentage: 50,
-                  current_problem: 'p1',
-                  current_strategy: 'direct',
-                },
-              }),
-            )
-          }, 200)
         }
-      })
+      }
     })
-  }
+  })
   await page.goto(`${base}${entry}`)
   await page.locator('h1').waitFor()
   if (entry === '/evaluations/new') {
@@ -464,6 +461,19 @@ async function fixture(mode = 'start-error', entry = '/evaluations/new') {
     errors,
     wsUrls,
     detailIntervals,
+    detailProgress,
+    async waitForInitialProgressReconciliation() {
+      const deadline = Date.now() + 8000
+      while (
+        !detailIntervals.some(([started]) => started >= subscriptionAt + 1900)
+      ) {
+        if (Date.now() > deadline)
+          throw new Error('Initial snapshot reconciliation did not complete')
+        await new Promise((resolve) => setTimeout(resolve, 10))
+      }
+    },
+    advanceProgress: (percentage) => advanceProgress(percentage),
+    denyProgress: () => denyProgress(),
     releaseList,
     releaseStale,
     holdDetail() {
@@ -1741,6 +1751,12 @@ async function detailScenario() {
     .getByRole('button', { name: '刷新任务', exact: true })
     .click()
   await region.getByText('model-a', { exact: true }).waitFor()
+  await refresh.page
+    .getByText('实时进度已连接', { exact: true })
+    .waitFor({ timeout: 5000 })
+  check('HTTP403显式重试后恢复实时订阅', () =>
+    assert.ok(refresh.wsUrls.length >= 2),
+  )
   check('刷新503保留数据并禁操作，403清除数据，重试恢复', () =>
     assert.equal(refresh.calls.filter((c) => c.method === 'POST').length, 0),
   )
@@ -1825,19 +1841,41 @@ async function detailScenario() {
 
 async function progressScenario() {
   report.real.push('evaluation detail live progress (WS + HTTP truth)')
-  const { page, wsUrls, detailIntervals } = await fixture(
-    'progress',
-    '/evaluations/eval-fixture-1',
-  )
+  const {
+    page,
+    wsUrls,
+    detailIntervals,
+    detailProgress,
+    waitForInitialProgressReconciliation,
+    advanceProgress,
+    denyProgress,
+  } = await fixture('progress', '/evaluations/eval-fixture-1')
   await check('WS 连接 URL 不含 token', async () => {
     await page.waitForSelector('text=实时进度已连接')
     assert.ok(wsUrls.length >= 1, '已发起 WS 连接')
     for (const url of wsUrls) assert.ok(!url.includes('token='), url)
   })
+  await waitForInitialProgressReconciliation()
+  await page.getByText('20%').first().waitFor()
+  const initialRequests = detailIntervals.length
+  const eventSentAt = Date.now()
+  check('进度事件前呈现 HTTP 初始真值20%', () => assert.ok(true))
+  advanceProgress()
   await check('服务端事件触发 HTTP 真值刷新到 60%', async () => {
     await page.getByText('60%').first().waitFor({ timeout: 5_000 })
-    assert.ok(true)
+    assert.ok(detailIntervals.length > initialRequests)
+    assert.ok(detailIntervals.at(-1)[0] >= eventSentAt)
+    assert.equal(detailProgress.at(-1), 60)
   })
+  report.progress_evidence = {
+    event_percentage: 50,
+    initial_http_percentage: 20,
+    final_http_percentage: 60,
+    detail_intervals: detailIntervals,
+    socket_paths: wsUrls.map((url) => new URL(url, base).pathname),
+    http_values: detailProgress,
+    reconciliations_before_progress: initialRequests,
+  }
   await check('详情请求区间两两不重叠（无并发观察周期）', () => {
     assert.ok(detailIntervals.length >= 2, '已有多次详情请求')
     for (let i = 1; i < detailIntervals.length; i += 1) {
@@ -1849,6 +1887,35 @@ async function progressScenario() {
   })
   await page.screenshot({ path: resolve(out, 'progress.png'), fullPage: true })
   report.screenshots.push('progress.png')
+  await denyProgress()
+  await page
+    .getByRole('region', { name: '评估详情', exact: true })
+    .getByText('model-a', { exact: true })
+    .waitFor({ state: 'hidden', timeout: 5000 })
+  const remainingActions = await page
+    .getByRole('button', { name: '取消任务', exact: true })
+    .count()
+  check('WS4403清除已显示详情及动作', () => assert.equal(remainingActions, 0))
+  await page.screenshot({
+    path: resolve(out, 'progress-denied.png'),
+    fullPage: true,
+  })
+  report.screenshots.push('progress-denied.png')
+  await page.getByRole('button', { name: '刷新任务', exact: true }).click()
+  await page
+    .getByText('实时进度已连接', { exact: true })
+    .waitFor({ timeout: 5000 })
+  await waitForInitialProgressReconciliation()
+  const restoredRequests = detailIntervals.length
+  const restoredEventAt = Date.now()
+  advanceProgress(80)
+  await page.getByText('80%').first().waitFor({ timeout: 5000 })
+  check('WS4403显式重试恢复订阅且后续事件继续刷新HTTP真值', () => {
+    assert.ok(wsUrls.length >= 2)
+    assert.ok(detailIntervals.length > restoredRequests)
+    assert.ok(detailIntervals.at(-1)[0] >= restoredEventAt)
+    assert.equal(detailProgress.at(-1), 80)
+  })
 }
 
 try {
@@ -1864,6 +1931,10 @@ try {
   )
     throw new Error(`Scenario ${scenario} 尚未实现`)
   check('无未声明 API 请求', () => assert.deepEqual(report.unknown, []))
+  assert.ok(
+    report.assertions.every((entry) => entry.pass),
+    'Fixture contains failed or pending assertions',
+  )
   report.pass = true
 } catch (error) {
   report.pass = false

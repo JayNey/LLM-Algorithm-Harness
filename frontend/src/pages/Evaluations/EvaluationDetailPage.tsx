@@ -1,5 +1,5 @@
 import { Alert, Button } from 'antd'
-import { useEffect, useRef } from 'react'
+import { useCallback, useEffect, useRef } from 'react'
 import { Link, useParams } from 'react-router-dom'
 import { useStore } from 'zustand'
 import {
@@ -23,7 +23,13 @@ export default function EvaluationDetailPage() {
   // 非终态评估挂载进度观察器（WS 订阅 + HTTP 快照对账，issue #225 Step 4）
   const liveEnabled = !!detail.data && isLiveStatus(detail.data.status)
   const live = useEvaluationLive(client, evaluationId, owner, liveEnabled)
-  const current = live.evaluation ?? detail.data
+  const current =
+    live.forbidden || live.unauthorized
+      ? undefined
+      : (live.evaluation ?? detail.data)
+  const readError = live.forbidden
+    ? '任务不可访问，请刷新后重试'
+    : (live.error ?? detail.error)
   const authClear = useAuthStore((state) => state.clear)
   useEffect(() => {
     // WS/HTTP 双通道恢复失败 → 清会话，由 RequireSession 携返回路径回跳登录
@@ -43,11 +49,31 @@ export default function EvaluationDetailPage() {
   }, [evaluationId, owner])
   const previous = useRef(busy)
   const { reload } = detail
+  const { refresh: refreshLive, runMutation } = live
+  const refresh = useCallback(() => {
+    if (liveEnabled) refreshLive()
+    else reload()
+  }, [liveEnabled, refreshLive, reload])
   useEffect(() => {
     // Also refresh when the create page's automatic start finishes after navigation.
-    if (previous.current && !busy) reload()
+    if (
+      previous.current &&
+      !busy &&
+      receipt.action?.evaluationId !== evaluationId
+    )
+      refresh()
     previous.current = busy
-  }, [busy, reload])
+  }, [busy, refresh, receipt.action?.evaluationId, evaluationId])
+  async function act(kind: 'start' | 'cancel') {
+    const signal = actionScope.current?.signal
+    if (!signal) return
+    const operation = () => receipt.act(evaluationId, kind, signal)
+    if (liveEnabled) await runMutation(operation)
+    else {
+      await operation()
+      if (!signal.aborted) reload()
+    }
+  }
   const actionError =
     receipt.action?.evaluationId === evaluationId
       ? receipt.action.error
@@ -85,14 +111,14 @@ export default function EvaluationDetailPage() {
           />
         )}
         {detail.loading && <p role="status">正在加载评估详情…</p>}
-        {detail.error && (
+        {readError && (
           <EvaluationFeedback
             message={
-              detail.data
-                ? `${detail.error}；下方为上次读取的数据，请刷新后操作。`
-                : detail.error
+              current
+                ? `${readError}；下方为上次读取的数据，请刷新后操作。`
+                : readError
             }
-            retry={reload}
+            retry={refresh}
           />
         )}
         {current && <EvaluationFacts evaluation={current} />}
@@ -101,20 +127,15 @@ export default function EvaluationDetailPage() {
           <p role="status">实时通道不可用，已切换为轮询。</p>
         )}
         <div className="evaluation-actions">
-          <Button onClick={reload} disabled={detail.loading || busy}>
+          <Button onClick={refresh} disabled={detail.loading || busy}>
             刷新任务
           </Button>
           {current?.can_start && (
             <Button
               type="primary"
-              disabled={busy || detail.loading || !!detail.error}
+              disabled={busy || detail.loading || !!readError}
               onClick={() => {
-                if (actionScope.current)
-                  void receipt.act(
-                    evaluationId,
-                    'start',
-                    actionScope.current.signal,
-                  )
+                void act('start')
               }}
             >
               启动任务
@@ -123,14 +144,9 @@ export default function EvaluationDetailPage() {
           {current?.can_cancel && (
             <Button
               danger
-              disabled={busy || detail.loading || !!detail.error}
+              disabled={busy || detail.loading || !!readError}
               onClick={() => {
-                if (actionScope.current)
-                  void receipt.act(
-                    evaluationId,
-                    'cancel',
-                    actionScope.current.signal,
-                  )
+                void act('cancel')
               }}
             >
               取消任务
