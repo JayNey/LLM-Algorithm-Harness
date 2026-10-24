@@ -196,12 +196,22 @@ function importProgress(value: unknown): ImportJobProgress {
     if (status === 'completed') {
       result = validation(data.result)
     } else {
-      // 失败终态的 result 是 {status_code, detail}，不是导入报告
+      // 失败终态的 result 是 {status_code, detail}；detail 也可能是
+      // {message, errors} 字典（bad(...) 全部无效时），字符串才透传
       const failure = record(data.result, 'import-job.result')
-      failureDetail =
-        failure.detail === null || failure.detail === undefined
-          ? null
-          : text(String(failure.detail), 'import-job.result.detail', true)
+      if (typeof failure.detail === 'string') {
+        failureDetail = text(failure.detail, 'import-job.result.detail', true)
+      } else if (
+        typeof failure.detail === 'object' &&
+        failure.detail !== null &&
+        typeof (failure.detail as Record<string, unknown>).message === 'string'
+      ) {
+        failureDetail = text(
+          (failure.detail as Record<string, unknown>).message,
+          'import-job.result.detail.message',
+          true,
+        )
+      }
     }
   }
   return {

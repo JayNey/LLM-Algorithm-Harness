@@ -115,6 +115,7 @@ function ImportPanel({
 
   function submit() {
     if (!file || busy) return
+    pollFailures.current = 0
     const fileError = validateImportFile({ name: file.name, size: file.size })
     if (fileError) {
       setError(fileError)
