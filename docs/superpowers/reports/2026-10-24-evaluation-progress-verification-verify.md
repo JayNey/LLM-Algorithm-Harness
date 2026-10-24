@@ -41,4 +41,6 @@
 
 ## 交付
 
-独立Bugbot首轮发现1项P2：权限拒绝后手动重试未恢复自动订阅。新增浏览器回归先RED（等待实时连接5秒超时），修复后progress 7组、detail 26组通过。适配器只在成功HTTP返回pending/running后重启，paused/终态不重启。复审无剩余问题，审查者另执行观察器和助手29项测试全部通过。最终公开all复测90组通过（干净源码bd082ff）。[PR #259](https://github.com/JayNey/LLM-Algorithm-Harness/pull/259) 已创建，base=main，Refs #225。4/4任务完成，1/1 requirement及5/5场景已核对，无未完成实现或剩余审查问题。正式Runtime检查记录在本段补充。未自动合并或关闭其他任务；本轮作者提交排除.comet/.claude/.codex/.agents/skills-lock.json。
+独立Bugbot首轮发现1项P2：权限拒绝后手动重试未恢复自动订阅。新增浏览器回归先RED（等待实时连接5秒超时），修复后progress 7组、detail 26组通过。适配器只在成功HTTP返回pending/running后重启，paused/终态不重启。复审无剩余问题，审查者另执行观察器和助手29项测试全部通过。最终公开all复测90组通过（干净源码bd082ff）。[PR #259](https://github.com/JayNey/LLM-Algorithm-Harness/pull/259) 已创建，base=main，Refs #225。4/4任务完成，1/1 requirement及5/5场景已核对，无未完成实现或剩余审查问题。正式Runtime已实际执行 `npm --prefix frontend run build`（日志ID bfea3937-4055-4895-bd5a-82a143292f12）和 `npm --prefix frontend test`（日志ID 2fd5bd67-3562-40cf-b493-45d81f26c0dd，214/214通过）；输入前后指纹一致，build守卫14/14、verify守卫5/5通过，verify_mode=full、verify_result=pass。规模评估建议full，与实际模式一致。phase=archive，归档确认pending，未自动同步主规格或移动change。Runtime的review_mode=off不用于跳过本轮审查：用户既定流程要求的独立Bugbot已覆盖最终实现，结果见上。未另建技术Design Doc，局部设计位于change/design.md；该额外文档检查不适用。
+
+PR CI只自动执行仓库后端工作流，前端fixture与工程检查由上述独立证据证明。PR最新头的CI以GitHub当前检查为准，不把main或旧头通过当作最新头通过。未自动合并或关闭其他任务；本轮作者提交排除.comet/.claude/.codex/.agents/skills-lock.json。
