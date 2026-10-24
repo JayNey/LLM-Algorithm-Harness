@@ -1,6 +1,6 @@
 # #225 进度补验收与详情接线修复
 
-日期：2026-10-24（Asia/Shanghai）。受测 main 基线 `d0f275c4092a2b4c12a91e55c836a9bc80710d14`；应用修复和公开浏览器证据源码 `1c2414df8d645c9d9e3d7d7d8c1be77438fa0b20`（开始验证时工作树干净）。change：`evaluation-progress-verification`，Tweak，个人分支，PR base=main。
+日期：2026-10-24（Asia/Shanghai）。受测 main 基线 `d0f275c4092a2b4c12a91e55c836a9bc80710d14`；应用修复和公开浏览器证据源码 `bd082ff369e4c050676170cb2219efa26b7b8353`（开始验证时工作树干净）。change：`evaluation-progress-verification`，Tweak，个人分支，PR base=main。
 
 ## 前置状态
 
@@ -24,10 +24,10 @@
 - frontend `npm test`：214 passed、0 failed，含新增助手4例及既有观察器时序、权限、dispose、动作纪元测试。
 - `npm run lint`：0错误，保留未改动 BenchmarkDetailPage.tsx 的2条既有runFinished依赖警告。
 - `npm run format:check`：通过。`npm run build`：类型检查/构建通过，保留既有大于500kB的chunk提示。
-- `node scripts/verify-evaluations.mjs --scenario all`：88组通过。独立 detail 25、progress 6、create 38、list 22 组也执行通过；这些分组数包含部分共享断言，不能相加当all总数。
+- `node scripts/verify-evaluations.mjs --scenario all`：90组通过。独立 detail 26、progress 7、create 38、list 22 组也执行通过；这些分组数包含部分共享断言，不能相加当all总数。
 - OpenSpec strict、git diff --check：通过。Runtime build/verify的正式记录在交付段补充。
 
-[公开 JSON](../../frontend/assets/evaluations/progress-verification/all.json) 含源提交、所有断言、HTTP请求、真实/替换组件、截图及事件因果记录。HTTP值依次20/20/20/60，事件前已完成3次读取，最后一次是事件后的新请求。人工检查 [progress桌面](../../frontend/assets/evaluations/progress-verification/progress.png)、[Orbit深色320px](../../frontend/assets/evaluations/progress-verification/detail-orbit-dark-320.png)、[Studio浅色1440px](../../frontend/assets/evaluations/progress-verification/detail-studio-light-1440.png)：关键信息与动作可见，无根页面横向溢出；手机长页保留固定导航及页面滚动。其余截图由脚本保存，不宣称逐张人工检查。
+[公开 JSON](../../frontend/assets/evaluations/progress-verification/all.json) 含源提交、所有断言、HTTP请求、真实/替换组件、截图及事件因果记录。第一阶段HTTP值为20/20/20/60，事件前已完成3次读取，60%来自事件后的新请求；拒绝后恢复阶段HTTP依次60/60/60/80，最终80%同样来自后续事件的新请求。socket_paths在首阶段取值，重连由独立恢复断言核对。人工另检查 [权限拒绝截图](../../frontend/assets/evaluations/progress-verification/progress-denied.png)，旧详情和动作入口均已撤下；人工检查 [progress桌面](../../frontend/assets/evaluations/progress-verification/progress.png)、[Orbit深色320px](../../frontend/assets/evaluations/progress-verification/detail-orbit-dark-320.png)、[Studio浅色1440px](../../frontend/assets/evaluations/progress-verification/detail-studio-light-1440.png)：关键信息与动作可见，无根页面横向溢出；手机长页保留固定导航及页面滚动。其余截图由脚本保存，不宣称逐张人工检查。
 
 复现：frontend先`npm ci`，启动`npm run dev -- --host 127.0.0.1 --port 5180`，另终端设置可解析的外部`PLAYWRIGHT_MODULE`后执行上述脚本。可用`EVALUATION_BASE_URL`覆盖地址、`EVALUATION_QA_DIR`覆盖输出。仓库不因此增加Playwright依赖。
 
@@ -41,4 +41,4 @@
 
 ## 交付
 
-独立Bugbot首轮发现1项P2：权限拒绝后手动重试未恢复自动订阅。新增浏览器回归先RED（等待实时连接5秒超时），修复后progress 7组、detail 26组通过。适配器只在成功HTTP返回pending/running后重启，paused/终态不重启。复审无剩余问题，审查者另执行观察器和助手29项测试全部通过。正式Runtime检查及最终公开重跑记录在本段补充。未自动合并或关闭其他任务；本轮作者提交排除.comet/.claude/.codex/.agents/skills-lock.json。
+独立Bugbot首轮发现1项P2：权限拒绝后手动重试未恢复自动订阅。新增浏览器回归先RED（等待实时连接5秒超时），修复后progress 7组、detail 26组通过。适配器只在成功HTTP返回pending/running后重启，paused/终态不重启。复审无剩余问题，审查者另执行观察器和助手29项测试全部通过。最终公开all复测90组通过（干净源码bd082ff）。[PR #259](https://github.com/JayNey/LLM-Algorithm-Harness/pull/259) 已创建，base=main，Refs #225。4/4任务完成，1/1 requirement及5/5场景已核对，无未完成实现或剩余审查问题。正式Runtime检查记录在本段补充。未自动合并或关闭其他任务；本轮作者提交排除.comet/.claude/.codex/.agents/skills-lock.json。

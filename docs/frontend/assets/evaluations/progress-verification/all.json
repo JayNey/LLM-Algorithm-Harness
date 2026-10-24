@@ -1,7 +1,7 @@
 {
   "scenario": "all",
   "source": {
-    "head": "1c2414df8d645c9d9e3d7d7d8c1be77438fa0b20",
+    "head": "bd082ff369e4c050676170cb2219efa26b7b8353",
     "dirty": ""
   },
   "layer": "browser-fixture (not backend E2E)",
@@ -394,6 +394,10 @@
       "pass": true
     },
     {
+      "name": "HTTP403显式重试后恢复实时订阅",
+      "pass": true
+    },
+    {
       "name": "刷新503保留数据并禁操作，403清除数据，重试恢复",
       "pass": true
     },
@@ -443,6 +447,10 @@
     },
     {
       "name": "WS4403清除已显示详情及动作",
+      "pass": true
+    },
+    {
+      "name": "WS4403显式重试恢复订阅且后续事件继续刷新HTTP真值",
       "pass": true
     },
     {
@@ -1404,6 +1412,12 @@
       "query": ""
     },
     {
+      "mode": "detail-pending",
+      "path": "/evaluations/eval-fixture-1",
+      "method": "GET",
+      "query": ""
+    },
+    {
       "mode": "detail-403",
       "path": "/users/me",
       "method": "GET",
@@ -1672,6 +1686,30 @@
       "path": "/evaluations/eval-fixture-1",
       "method": "GET",
       "query": ""
+    },
+    {
+      "mode": "progress",
+      "path": "/evaluations/eval-fixture-1",
+      "method": "GET",
+      "query": ""
+    },
+    {
+      "mode": "progress",
+      "path": "/evaluations/eval-fixture-1",
+      "method": "GET",
+      "query": ""
+    },
+    {
+      "mode": "progress",
+      "path": "/evaluations/eval-fixture-1",
+      "method": "GET",
+      "query": ""
+    },
+    {
+      "mode": "progress",
+      "path": "/evaluations/eval-fixture-1",
+      "method": "GET",
+      "query": ""
     }
   ],
   "unknown": [],
@@ -1701,7 +1739,8 @@
     "detail-studio-light-1440.png",
     "detail-studio-dark-320.png",
     "detail-studio-dark-1440.png",
-    "progress.png"
+    "progress.png",
+    "progress-denied.png"
   ],
   "replaced": [
     "WebSocket progress: in-memory fixture (no real upstream connection)",
@@ -1735,20 +1774,36 @@
     "final_http_percentage": 60,
     "detail_intervals": [
       [
-        1792819397533,
-        1792819397656
+        1792819614572,
+        1792819614694
       ],
       [
-        1792819397660,
-        1792819397781
+        1792819614700,
+        1792819614821
       ],
       [
-        1792819399667,
-        1792819399789
+        1792819616706,
+        1792819616828
       ],
       [
-        1792819401808,
-        1792819401932
+        1792819618843,
+        1792819618967
+      ],
+      [
+        1792819619258,
+        1792819619380
+      ],
+      [
+        1792819619384,
+        1792819619508
+      ],
+      [
+        1792819621387,
+        1792819621510
+      ],
+      [
+        1792819623527,
+        1792819623651
       ]
     ],
     "socket_paths": [
@@ -1758,7 +1813,11 @@
       20,
       20,
       20,
-      60
+      60,
+      60,
+      60,
+      60,
+      80
     ],
     "reconciliations_before_progress": 3
   },
