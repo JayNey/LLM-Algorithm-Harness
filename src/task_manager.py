@@ -82,7 +82,7 @@ class TaskManager:
             else:
                 raise ValueError("Evaluation concurrency requires SQLite or PostgreSQL")
         self.db.flush()
-        active = self.db.scalar(
+        active = self.db.execute(
             select(func.count())
             .select_from(AsyncTask)
             .where(
@@ -90,7 +90,7 @@ class TaskManager:
                 AsyncTask.task_type == "evaluation",
                 AsyncTask.status.in_(("pending", "running")),
             )
-        )
+        ).scalar_one()
         if active >= settings.MAX_CONCURRENT_EVALUATIONS_PER_USER:
             raise EvaluationConcurrencyLimitExceeded("User evaluation concurrency limit reached")
 
