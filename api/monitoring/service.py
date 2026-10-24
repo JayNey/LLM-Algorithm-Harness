@@ -8,6 +8,7 @@ from fastapi import HTTPException
 from sqlalchemy import Engine, case, func, select
 
 from api.auth.service import AuthService, digest
+from api.config import settings as api_settings
 from api.db.models import AsyncTask, Evaluation
 from api.files.service import FileService
 from api.monitoring.config import MonitorSettings
@@ -335,6 +336,17 @@ class MonitorService:
         }
 
     def quotas(self, user_id: str) -> dict[str, Any]:
+        limit = api_settings.MAX_CONCURRENT_EVALUATIONS_PER_USER
+        with self.task_engine.connect() as connection:
+            used = connection.execute(
+                select(func.count())
+                .select_from(AsyncTask)
+                .where(
+                    AsyncTask.user_id == user_id,
+                    AsyncTask.task_type == "evaluation",
+                    AsyncTask.status.in_(("pending", "running")),
+                )
+            ).scalar_one()
         now = int(time.time())
         with self.auth.store.connection() as db:
             files = db.execute(
@@ -355,6 +367,11 @@ class MonitorService:
             ).fetchone()[0]
         return {
             "scope": "current_user_enforced_limits",
+            "evaluation_concurrency": {
+                "limit": limit,
+                "used": used,
+                "remaining": max(limit - used, 0),
+            },
             "storage": {
                 "used_bytes": files[0],
                 "file_count": files[1],

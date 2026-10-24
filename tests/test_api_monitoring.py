@@ -750,3 +750,52 @@ def test_database_sources_cover_independent_engines_and_shared_sqlite(api):
             str(app.state.auth.store.path),
         )
     )
+
+
+@pytest.mark.parametrize("path", ["/quotas", "/quotas/usage"])
+def test_evaluation_concurrency_quota_aliases_are_authenticated_and_owner_scoped(
+    api, monkeypatch, path
+):
+    from sqlalchemy.orm import Session
+
+    from api.db.models import AsyncTask
+    from src.task_manager import celery_app
+
+    client, admin, user, app, _, _, _ = api
+    owner = app.state.auth.store.find_user("admin")["id"]
+    monkeypatch.setattr(settings, "MAX_CONCURRENT_EVALUATIONS_PER_USER", 3)
+
+    def forbidden(*args, **kwargs):
+        pytest.fail("Quota reads must not poll or publish Celery tasks")
+
+    monkeypatch.setattr(celery_app, "AsyncResult", forbidden)
+    monkeypatch.setattr(celery_app, "send_task", forbidden)
+    with Session(app.state.task_engine) as db, db.begin():
+        db.add(
+            AsyncTask(
+                id="quota-active",
+                celery_task_id="quota-active",
+                entity_id="quota-active",
+                user_id=owner,
+                task_type="evaluation",
+                status="pending",
+            )
+        )
+    assert client.get("/api/v1" + path).status_code == 401
+    response = client.get(
+        "/api/v1" + path, headers=headers(user), params={"user_id": "foreign-user"}
+    )
+    assert response.status_code == 200
+    assert response.headers["cache-control"] == "no-store"
+    assert response.json()["data"]["evaluation_concurrency"] == {
+        "limit": 3,
+        "used": 1,
+        "remaining": 2,
+    }
+    other = client.get("/api/v1" + path, headers=headers(admin), params={"user_id": owner})
+    assert other.json()["data"]["evaluation_concurrency"] == {"limit": 3, "used": 0, "remaining": 3}
+    schema = client.get("/openapi.json").json()
+    example = schema["paths"]["/api/v1" + path]["get"]["responses"]["200"]["content"][
+        "application/json"
+    ]["example"]
+    assert example["data"]["evaluation_concurrency"] == {"limit": 5, "used": 0, "remaining": 5}
