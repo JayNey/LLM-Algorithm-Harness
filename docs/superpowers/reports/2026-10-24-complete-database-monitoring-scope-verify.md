@@ -30,3 +30,8 @@ Change：complete-database-monitoring-scope。工作分支：comet/complete-data
 
 ## 结论
 PASS。任务、规格场景、编译、相关与全量离线测试及隐私边界均通过，无 CRITICAL/IMPORTANT/WARNING/SUGGESTION 待处理项。归档后按用户原始指令推送当前绑定分支，不创建 PR。
+
+## PR #261 CI 类型检查修复
+CI 的 Type Check 唯一错误为 `MeasuredSQLiteCursor.connection` 的静态类型是标准 `sqlite3.Connection`，无法识别自定义 `query_collectors`。已通过 `cast(MeasuredSQLiteConnection, self.connection)` 标明由连接工厂保证的具体类型；不改变查询执行或采集行为。
+
+修复前使用 CI 命令复现该错误；本机默认环境另有两处基线类型错误，已在原始 main 快照复现。临时虚拟环境对齐 CI 的 mypy 2.4.0、types-PyYAML 6.0.12.20260906、redis 8.1.0 后，执行 `mypy src/ --ignore-missing-imports`：97 个源文件全部通过。监控与采集器回归 71 项通过；Ruff、Black 和 diff 检查通过。按用户确认仅在 PR 原分支修复，不关联其他活跃 change。

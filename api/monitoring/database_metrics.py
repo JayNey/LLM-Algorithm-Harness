@@ -13,7 +13,7 @@ import uuid
 import weakref
 from collections import deque
 from dataclasses import dataclass
-from typing import Any
+from typing import Any, cast
 
 from sqlalchemy import event
 from sqlalchemy.engine import Engine
@@ -345,7 +345,7 @@ class SQLiteQueryMetrics(DatabaseQueryMetrics):
 
 class MeasuredSQLiteCursor(sqlite3.Cursor):
     def _execute(self, method: Any, *args: Any) -> Any:
-        collectors = self.connection.query_collectors
+        collectors = cast(MeasuredSQLiteConnection, self.connection).query_collectors
         starts = []
         for collector in collectors:
             try:
