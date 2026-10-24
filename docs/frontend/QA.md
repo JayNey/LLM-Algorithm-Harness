@@ -62,3 +62,14 @@ PLAYWRIGHT_MODULE=/absolute/path/to/node_modules/playwright \
 
 场景：`suites`（套件列表）、`curve`（学习曲线趋势）、`abtests`（AB 列表）、`all`。
 报告与截图写入 `docs/superpowers/reports/assets/benchmarks/fixture/`。
+
+## 题目管理页验证（issue #163）
+
+```bash
+npm run dev -- --host 127.0.0.1 --port 5180
+PLAYWRIGHT_MODULE=/absolute/path/to/node_modules/playwright \
+  node scripts/verify-problems.mjs all
+```
+
+场景：`list`（列表与来源筛选）、`import`（同步导入报告）、`history`（评估历史抽屉）。
+报告与截图写入 `docs/superpowers/reports/assets/problems/fixture/`。
