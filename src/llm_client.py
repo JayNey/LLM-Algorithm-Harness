@@ -55,7 +55,18 @@ class LLMClient:
             enabled=config.cache.enabled,
         )
 
+        self._observe_cache()
+
         logger.info("llm_client_initialized", provider=config.provider, model=config.model)
+
+    def _observe_cache(self) -> None:
+        """Cache monitoring must never change generation or retry behavior."""
+        try:
+            from api.monitoring.llm_metrics import record_cache
+
+            record_cache(self.cache)
+        except Exception:
+            pass
 
     def _initialize_client(self) -> Any:
         """
@@ -250,6 +261,7 @@ class LLMClient:
         # Check cache if enabled
         if self.config.cache.enabled:
             cached_response = self.cache.get(cache_key)
+            self._observe_cache()
             if cached_response is not None:
                 logger.info(
                     "cache_hit",
@@ -286,6 +298,7 @@ class LLMClient:
             # Cache the response if enabled
             if self.config.cache.enabled:
                 self.cache.set(cache_key, response)
+                self._observe_cache()
                 logger.info(
                     "response_cached",
                     cache_key=cache_key[:16],

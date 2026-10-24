@@ -246,10 +246,18 @@ class MonitorProbes:
     def containers(self) -> dict[str, Any]:
         return self.container_resources.read()
 
-    @staticmethod
-    def cache_stats(cache: LLMResponseCache | None = None) -> dict[str, Any]:
+    def cache_stats(self, cache: LLMResponseCache | None = None) -> dict[str, Any]:
         if cache is None:
-            return {"status": "not_configured", "scope": "bound_cache_instance"}
+            try:
+                from api.monitoring.store import MonitorStore
+
+                return MonitorStore(
+                    self.auth.store,
+                    self.settings.MONITOR_RETENTION_SECONDS,
+                    self.settings.MONITOR_MAX_ROWS,
+                ).cache_stats()
+            except Exception:
+                return {**_unknown(), "scope": "shared_cache_observations"}
         try:
             stats = cache.stats()
             safe: dict[str, Any] = {}
