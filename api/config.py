@@ -2,6 +2,7 @@
 
 import os
 
+from pydantic import Field
 from pydantic_settings import BaseSettings
 
 
@@ -21,6 +22,7 @@ class Settings(BaseSettings):
 
     # Task configuration
     MAX_CONCURRENT_TASKS: int = int(os.getenv("MAX_CONCURRENT_TASKS", "5"))
+    MAX_CONCURRENT_EVALUATIONS_PER_USER: int = Field(5, ge=1)
     TASK_TIMEOUT_SECONDS: int = int(os.getenv("TASK_TIMEOUT_SECONDS", "3600"))
 
     # Business database (issue #151). None falls back to the local SQLite file

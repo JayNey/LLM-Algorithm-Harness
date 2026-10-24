@@ -9,9 +9,11 @@ from api.auth.dependencies import auth_service, current_user
 from api.auth.service import AuthService, Principal
 from api.files.dependencies import file_service
 from api.files.service import FileService
+from api.middleware.errors import ApiError, ErrorCode
 from api.models import EvaluationCreateRequest, EvaluationUpdateRequest
 from api.schemas import ApiResponse, EvaluationResponse, PaginatedData, ProgressInfo
 from api.services import EvaluationService
+from src.task_manager import EvaluationConcurrencyLimitExceeded
 
 router = APIRouter(prefix="/api/v1", tags=["evaluations"])
 T = TypeVar("T")
@@ -24,6 +26,8 @@ def evaluation_service(request: Request) -> EvaluationService:
 def call(operation: Callable[[], T]) -> T:
     try:
         return operation()
+    except EvaluationConcurrencyLimitExceeded as exc:
+        raise ApiError(str(exc), ErrorCode.QUOTA_EXCEEDED, 429) from None
     except ValueError as exc:
         # Service errors contain task state/IDs only, never provider credentials.
         raise HTTPException(404 if "not found" in str(exc).lower() else 400, str(exc)) from None

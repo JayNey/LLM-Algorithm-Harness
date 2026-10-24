@@ -3,17 +3,24 @@
 统一管理异步任务的生命周期，作为服务层与 Celery 的桥梁。
 """
 
+import hashlib
 import uuid
 from collections.abc import Callable
 from datetime import datetime
 
+from sqlalchemy import false, func, select, text, update
 from sqlalchemy.orm import Session
 
+from api.config import settings
 from api.db.models import AsyncTask, Evaluation, utcnow
 from api.monitoring.execution_logs import record_execution_event
 from src.celery_app import celery_app
 
 _EVALUATION_CELERY_TASK = "src.tasks.evaluation.run_evaluation_task"
+
+
+class EvaluationConcurrencyLimitExceeded(ValueError):
+    """The user has reserved all evaluation admission slots."""
 
 
 def _request_evaluation_cancel(evaluation_id: str) -> None:
@@ -40,6 +47,52 @@ class TaskManager:
             db_session: SQLAlchemy 数据库会话
         """
         self.db = db_session
+
+    def _check_evaluation_capacity(self, task_type: str, user_id: str) -> None:
+        """Serialize admission in the shared DB until task commit or rollback.
+
+        Pending messages reserve capacity before workers start them. No counter
+        needs repairing: completion, pause and cancellation release capacity by
+        changing the persisted task status. All submitters use the same limit.
+        """
+        if task_type != "evaluation":
+            return
+        with self.db.no_autoflush:
+            dialect = self.db.get_bind().dialect.name
+            if dialect == "sqlite":
+                # A zero-row UPDATE acquires SQLite's writer lock without
+                # changing any record, even when this is the first submission.
+                self.db.execute(
+                    update(AsyncTask)
+                    .where(false())
+                    .values(id=AsyncTask.id)
+                    .execution_options(synchronize_session=False)
+                )
+            elif dialect == "postgresql":
+                # Python hash() varies per process. Use a namespaced stable
+                # signed bigint for PostgreSQL's transaction-scoped lock.
+                key = int.from_bytes(
+                    hashlib.blake2b(
+                        ("evaluation-admission:" + user_id).encode(), digest_size=8
+                    ).digest(),
+                    "big",
+                    signed=True,
+                )
+                self.db.execute(text("SELECT pg_advisory_xact_lock(:key)"), {"key": key})
+            else:
+                raise ValueError("Evaluation concurrency requires SQLite or PostgreSQL")
+        self.db.flush()
+        active = self.db.scalar(
+            select(func.count())
+            .select_from(AsyncTask)
+            .where(
+                AsyncTask.user_id == user_id,
+                AsyncTask.task_type == "evaluation",
+                AsyncTask.status.in_(("pending", "running")),
+            )
+        )
+        if active >= settings.MAX_CONCURRENT_EVALUATIONS_PER_USER:
+            raise EvaluationConcurrencyLimitExceeded("User evaluation concurrency limit reached")
 
     def create_task(
         self,
@@ -72,6 +125,8 @@ class TaskManager:
         """
         if celery_task_kwargs is None:
             celery_task_kwargs = {}
+
+        self._check_evaluation_capacity(task_type, user_id)
 
         # 创建 AsyncTask 记录
         task = AsyncTask(
@@ -137,6 +192,8 @@ class TaskManager:
         """
         if celery_task_kwargs is None:
             celery_task_kwargs = {}
+
+        self._check_evaluation_capacity(task_type, user_id)
 
         # 预生成 celery_task_id，使记录可以在发布前落库
         celery_task_id = str(uuid.uuid4())
