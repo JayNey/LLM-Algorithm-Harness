@@ -63,6 +63,17 @@ PLAYWRIGHT_MODULE=/absolute/path/to/node_modules/playwright \
 场景：`suites`（套件列表）、`curve`（学习曲线趋势）、`abtests`（AB 列表）、`all`。
 报告与截图写入 `docs/superpowers/reports/assets/benchmarks/fixture/`。
 
+## 题目管理页验证（issue #163）
+
+```bash
+npm run dev -- --host 127.0.0.1 --port 5180
+PLAYWRIGHT_MODULE=/absolute/path/to/node_modules/playwright \
+  node scripts/verify-problems.mjs all
+```
+
+场景：`list`（列表与来源筛选）、`import`（同步导入报告）、`history`（评估历史抽屉）。
+报告与截图写入 `docs/superpowers/reports/assets/problems/fixture/`。
+
 ## 评估详情实时进度与权限清理（#225 补验收）
 
 2026-10-24 实际运行 `node scripts/verify-evaluations.mjs --scenario all`：90 组断言通过，覆盖 create/security/list/detail/progress。[公开 JSON](assets/evaluations/progress-verification/all.json) 保留干净源码头、请求记录、替换依赖、截图索引及进度时序。先等待初始 snapshot 对账结束，再投递 50% WS 事件，验证新 HTTP 请求返回的 60% 成为页面真值；同时覆盖 HTTP403 和 WS4403 后隐藏旧详情/动作。
