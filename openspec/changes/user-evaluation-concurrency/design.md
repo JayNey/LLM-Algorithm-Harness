@@ -1,14 +1,15 @@
 ## Context
 
-评估通过 TaskManager 的 create_task/enqueue_task 提交，API 启动和异步创建使用后者，恢复使用前者。业务库支持 SQLite 与 PostgreSQL，用户身份在独立认证库中。
+评估通过 TaskManager 的 create_task/enqueue_task 提交，API 启动和异步创建使用后者；本次将 EvaluationService 恢复也改用 enqueue_task 的事务关联回调，保证 worker 收到消息前新关联已提交。通用任务恢复入口使用 resume_task 原地重新入队。业务库支持 SQLite 与 PostgreSQL，用户身份在独立认证库中。
 
 ## Decisions
 
-- 在两种 TaskManager 提交入口、创建候选 AsyncTask 前统一执行评估准入。统计该 user_id 的 evaluation 类型 pending/running 行，草稿无 AsyncTask，不计入；暂停、失败、取消、完成后自动释放逻辑额度。计数包括未关联的已提交任务，避免遗漏正在恢复的任务。
+- 在两种 TaskManager 提交入口创建候选 AsyncTask 前，以及 resume_task 将既有任务重新写为 pending 前，统一执行评估准入。统计该 user_id 的 evaluation 类型 pending/running 行，草稿无 AsyncTask，不计入；暂停、失败、取消、完成后自动释放逻辑额度。计数包括未关联的已提交任务，避免遗漏正在恢复的任务。原地恢复获得用户锁后重新读取状态与关联，避免竞争恢复使用等待前的旧状态。
 - SQLite 在读取计数前执行无匹配行 UPDATE 获取数据库写锁；PostgreSQL 使用稳定用户标识哈希的事务级 advisory lock。锁与候选任务写入同一事务，提交/回滚自动释放；不依赖进程锁或 Redis 可用性。锁等待失败保持失败关闭，不发布消息。
 - `MAX_CONCURRENT_EVALUATIONS_PER_USER` 默认 5，必须为正整数；部署中的提交进程应共享业务库并使用一致配置。
 - 超限抛出专用 ValueError 子类；现有评估路由映射 HTTP 429。不新增端点或修改数据库结构。
 - 准入上限限制持久化 pending/running 评估任务数量，不改变既有暂停/取消的单元边界停止语义，亦不增加 worker 重投递去重协议。
+- EvaluationService 恢复关联使用旧关联 ID 的原子比较更新，防止并发恢复把同一评估重新入队两次。用户已在文件数决策点明确选择继续 tweak；业务、测试及部署说明共 8 个文件，仍保持单一 change。
 
 ## Risks / Trade-offs
 

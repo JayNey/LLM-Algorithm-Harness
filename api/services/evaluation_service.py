@@ -430,19 +430,38 @@ class EvaluationService:
                     f"Cannot resume evaluation in status '{old_task.status}'; only 'paused' or 'failed' tasks can resume"
                 )
 
-            # Create new task for resume
-            new_task = task_manager.create_task(
+            def link(async_task: AsyncTask) -> None:
+                claimed = (
+                    session.query(Evaluation)
+                    .filter(
+                        Evaluation.id == evaluation_id,
+                        Evaluation.user_id == owner_id,
+                        Evaluation.async_task_id == old_task.id,
+                    )
+                    .update(
+                        {
+                            Evaluation.async_task_id: async_task.id,
+                            Evaluation.status: "pending",
+                            Evaluation.updated_at: utcnow(),
+                        },
+                        synchronize_session=False,
+                    )
+                )
+                if claimed != 1:
+                    session.rollback()
+                    raise ValueError("Cannot resume evaluation whose queue linkage has changed")
+                session.refresh(evaluation)
+
+            # Reserve quota and commit the new linkage before workers receive
+            # the message; otherwise they can resurrect the old paused task.
+            new_task = task_manager.enqueue_task(
                 task_type="evaluation",
                 entity_id=evaluation.id,
                 user_id=owner_id,
                 celery_task_name="src.tasks.evaluation.run_evaluation_task",
                 celery_task_args=(evaluation.id,),
+                on_before_publish=link,
             )
-
-            # Update evaluation to link new task and set to pending
-            evaluation.async_task_id = new_task.id
-            evaluation.status = "pending"
-            session.commit()
 
             return _to_response_async(evaluation, new_task)
         finally:

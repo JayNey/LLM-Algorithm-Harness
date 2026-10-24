@@ -4,7 +4,9 @@ import json
 import os
 import subprocess
 import sys
+import threading
 import uuid
+from concurrent.futures import ThreadPoolExecutor
 from types import SimpleNamespace
 from unittest.mock import Mock
 
@@ -194,6 +196,104 @@ def test_http_start_reports_quota_and_preserves_draft(environment):
         service.close()
 
 
+def test_same_task_resume_rechecks_capacity_and_keeps_pause_on_rejection(environment):
+    engine, factory, publisher = environment
+    service = EvaluationService(str(engine.url))
+    try:
+        paused = service.create_evaluation_async(request(), "alice")
+        with factory() as session:
+            evaluation = session.get(Evaluation, paused.evaluation_id)
+            paused_task_id = evaluation.async_task_id
+            session.get(AsyncTask, paused_task_id).status = "paused"
+            evaluation.status = "paused"
+            session.commit()
+        active = service.create_evaluation_async(request(), "alice")
+        with factory() as session:
+            with pytest.raises(ValueError, match="concurren"):
+                TaskManager(session).resume_task(paused_task_id, "alice")
+            session.rollback()
+        with factory() as session:
+            assert session.get(AsyncTask, paused_task_id).status == "paused"
+            assert session.get(Evaluation, paused.evaluation_id).status == "paused"
+            running = session.get(Evaluation, active.evaluation_id)
+            session.get(AsyncTask, running.async_task_id).status = "completed"
+            session.commit()
+        with factory() as session:
+            assert TaskManager(session).resume_task(paused_task_id, "alice").status == "pending"
+        assert publisher.call_count == 3
+    finally:
+        service.close()
+
+
+def test_competing_resumes_do_not_republish_same_task(environment, monkeypatch):
+    engine, factory, publisher = environment
+    monkeypatch.setitem(settings.__dict__, "MAX_CONCURRENT_EVALUATIONS_PER_USER", 2)
+    service = EvaluationService(str(engine.url))
+    try:
+        paused = service.create_evaluation_async(request(), "alice")
+        with factory() as session:
+            evaluation = session.get(Evaluation, paused.evaluation_id)
+            task_id = evaluation.async_task_id
+            session.get(AsyncTask, task_id).status = "paused"
+            evaluation.status = "paused"
+            session.commit()
+        barrier = threading.Barrier(2, timeout=10)
+        original = TaskManager._check_evaluation_capacity
+
+        def overlap(manager, *args):
+            barrier.wait()
+            return original(manager, *args)
+
+        monkeypatch.setattr(TaskManager, "_check_evaluation_capacity", overlap)
+
+        def resume():
+            with factory() as session:
+                try:
+                    TaskManager(session).resume_task(task_id, "alice")
+                    return True
+                except ValueError:
+                    session.rollback()
+                    return False
+
+        with ThreadPoolExecutor(max_workers=2) as pool:
+            outcomes = list(pool.map(lambda _: resume(), range(2)))
+        assert outcomes.count(True) == 1
+        assert publisher.call_count == 2  # one original submission, one resume
+    finally:
+        service.close()
+
+
+def test_resumed_evaluation_is_linked_before_worker_can_receive_message(environment):
+    engine, factory, publisher = environment
+    service = EvaluationService(str(engine.url))
+    try:
+        paused = service.create_evaluation_async(request(), "alice")
+        with factory() as session:
+            evaluation = session.get(Evaluation, paused.evaluation_id)
+            old_id = evaluation.async_task_id
+            session.get(AsyncTask, old_id).status = "paused"
+            evaluation.status = "paused"
+            session.commit()
+        observed_links = []
+
+        def worker_receives(*_args, **_kwargs):
+            with factory() as worker:
+                row = worker.get(Evaluation, paused.evaluation_id)
+                observed_links.append(row.async_task_id)
+                assert worker.get(AsyncTask, row.async_task_id).status == "pending"
+            return SimpleNamespace(id=str(uuid.uuid4()))
+
+        publisher.side_effect = worker_receives
+        service.resume_evaluation(paused.evaluation_id, "alice")
+        with factory() as session:
+            new_id = session.get(Evaluation, paused.evaluation_id).async_task_id
+            assert observed_links == [new_id]
+            assert new_id != old_id
+            assert session.get(AsyncTask, old_id).status == "paused"
+    finally:
+        service.close()
+
+
 def test_postgresql_advisory_lock_is_bound_stable_and_precedes_count(environment):
     # No local PG server: exercise the branch through a real Session/connection
     # and intercept only the server-specific statement, retaining the real count.
@@ -271,6 +371,7 @@ engine.dispose()
                 stdout=subprocess.PIPE,
                 stderr=subprocess.PIPE,
                 text=True,
+                encoding="utf-8",
                 env=env,
             )
             children.append(child)

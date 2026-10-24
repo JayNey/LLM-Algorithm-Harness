@@ -461,6 +461,16 @@ class TaskManager:
         if evaluation is None or evaluation.async_task_id != task.id:
             raise ValueError("Evaluation is not linked to this task")
 
+        self._check_evaluation_capacity(task.task_type, user_id)
+        # A competing resume may have committed while admission waited. Reload
+        # under the same user lock before reserving this existing task again.
+        self.db.refresh(task)
+        self.db.refresh(evaluation)
+        if task.status != "paused" or task.user_id != user_id:
+            raise ValueError("Can only resume paused tasks owned by the user")
+        if evaluation.async_task_id != task.id or evaluation.user_id != user_id:
+            raise ValueError("Evaluation is not linked to this task")
+
         celery_task_id = str(uuid.uuid4())
         task.celery_task_id = celery_task_id
         task.status = "pending"

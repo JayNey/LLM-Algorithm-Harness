@@ -387,27 +387,7 @@ class TestResumeEvaluation:
         evaluation_with_task["async_task"].status = "paused"
         test_db_session.commit()
 
-        with patch("api.services.evaluation_service.TaskManager") as MockTaskManager:
-            mock_task_mgr = Mock()
-            MockTaskManager.return_value = mock_task_mgr
-
-            # Mock get_task and create_task
-            mock_task_mgr.get_task.return_value = evaluation_with_task["async_task"]
-
-            new_async_task = AsyncTask(
-                id=str(uuid.uuid4()),
-                celery_task_id="celery-task-new",
-                task_type="evaluation",
-                entity_id=evaluation_with_task["evaluation_id"],
-                user_id=test_user_id,
-                status="pending",
-            )
-            # Add the new task to the test session so it persists
-            test_db_session.add(new_async_task)
-            test_db_session.commit()
-
-            mock_task_mgr.create_task.return_value = new_async_task
-
+        with patch("src.task_manager.celery_app.send_task"):
             # When: Resume evaluation
             response = service.resume_evaluation(
                 evaluation_with_task["evaluation_id"], test_user_id
@@ -419,7 +399,11 @@ class TestResumeEvaluation:
             .filter_by(id=evaluation_with_task["evaluation_id"])
             .first()
         )
-        assert evaluation.async_task_id == new_async_task.id
+        assert evaluation.async_task_id != evaluation_with_task["async_task_id"]
+        new_async_task = test_db_session.get(AsyncTask, evaluation.async_task_id)
+        assert new_async_task.status == "pending"
+        assert new_async_task.user_id == test_user_id
+        assert new_async_task.entity_id == evaluation.id
 
     def test_resume_evaluation_updates_evaluation_status(
         self, test_db_session, test_user_id, evaluation_with_task
@@ -435,23 +419,7 @@ class TestResumeEvaluation:
         evaluation_with_task["evaluation"].status = "paused"
         test_db_session.commit()
 
-        with patch("api.services.evaluation_service.TaskManager") as MockTaskManager:
-            mock_task_mgr = Mock()
-            MockTaskManager.return_value = mock_task_mgr
-
-            # Mock get_task and create_task
-            mock_task_mgr.get_task.return_value = evaluation_with_task["async_task"]
-
-            new_async_task = AsyncTask(
-                id=str(uuid.uuid4()),
-                celery_task_id="celery-task-new",
-                task_type="evaluation",
-                entity_id=evaluation_with_task["evaluation_id"],
-                user_id=test_user_id,
-                status="pending",
-            )
-            mock_task_mgr.create_task.return_value = new_async_task
-
+        with patch("src.task_manager.celery_app.send_task"):
             # When: Resume evaluation
             response = service.resume_evaluation(
                 evaluation_with_task["evaluation_id"], test_user_id
