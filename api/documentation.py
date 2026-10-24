@@ -740,9 +740,10 @@ OPERATIONS: dict[str, tuple[str, Any]] = {
         },
     ),
     "quotas": (
-        "查询自己的已执行存储、请求、导入及传输限额；日/月 API 配额未配置时为 null。",
+        "查询自己的已执行存储、请求、导入及传输限额，以及评估并发上限、已用和剩余名额；评估仅计 pending/running 任务，日/月 API 配额未配置时为 null。",
         {
             "scope": "current_user_enforced_limits",
+            "evaluation_concurrency": {"limit": 5, "used": 0, "remaining": 5},
             "storage": {
                 "used_bytes": 0,
                 "file_count": 0,

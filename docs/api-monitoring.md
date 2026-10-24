@@ -161,6 +161,7 @@ curl http://localhost:8000/api/v1/logs/download/your-task-id \
 - 用户题库字节、条数与 `FILE_UPLOAD_MAX_BYTES/FILE_IMPORT_MAX_ITEMS`（默认 100 MiB / 10000 条）；题库与文件存储额度分别计算。
 - 当前受保护请求窗口用量、`AUTH_PROTECTED_RATE_LIMIT`（默认每 60 秒 120 次）及窗口重置时间。配额查询自己也消耗一次受保护请求额度。
 - 当前用户活跃导入数、共享 `FILE_MAX_ACTIVE_IMPORTS`（默认 8）、每进程导入并发（默认 2）和传输并发（默认 2）。
+- `evaluation_concurrency`：`limit` 为实际准入配置 `MAX_CONCURRENT_EVALUATIONS_PER_USER`（默认 5），`used` 为当前用户业务库中 `pending/running` 评估任务数量，`remaining=max(limit-used,0)`。草稿、暂停、终态及其他类型任务不计入；历史用量超过新上限时保留真实 `used`，剩余为 0。两个配额别名均使用认证主体，不能通过 `user_id` 参数查询他人。查询只读、不轮询 Celery、不预留名额；状态变化以再次查询时的已提交记录为准，数据库错误不会返回虚假的零用量。
 
 每日/每月 LLM API 调用额度为 `not_configured`，`limit/used` 为 `null`，需在真实请求计量接入后补齐。详细上传限额与清理规则见 [文件服务指南](api-files.md)。
 
