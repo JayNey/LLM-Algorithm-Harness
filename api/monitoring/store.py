@@ -129,6 +129,107 @@ class MonitorStore:
     def connection(self) -> AbstractContextManager[sqlite3.Connection]:
         return self.auth_store.connection()
 
+    def record_cache_snapshot(self, instance: str, directory: str, stats: dict[str, Any]) -> None:
+        """Replace a bounded numeric observation, never store cache contents or paths."""
+        import re
+
+        if not re.fullmatch(r"[0-9a-f]{32}", instance) or not re.fullmatch(
+            r"[0-9a-f]{64}", directory
+        ):
+            raise ValueError("Invalid cache identity")
+        fields = ("enabled", "hits", "misses", "total_entries", "disk_usage_mb")
+        values = {field: stats[field] for field in fields}
+        if type(values["enabled"]) is not bool:
+            raise ValueError("Invalid cache status")
+        for field in fields[1:]:
+            value = values[field]
+            if type(value) not in (int, float) or not math.isfinite(value) or value < 0:
+                raise ValueError("Invalid cache measurement")
+            if field != "disk_usage_mb" and type(value) is not int:
+                raise ValueError("Invalid cache count")
+        now = time.time()
+        prefix = f"cache:{instance}:{directory}:"
+        with self.connection() as db:
+            db.execute("BEGIN IMMEDIATE")
+            db.executemany(
+                "INSERT OR REPLACE INTO api_monitor_meta(key,value) VALUES (?,?)",
+                [
+                    (prefix + key, float(value))
+                    for key, value in {**values, "observed_at": now}.items()
+                ],
+            )
+            self._prune_cache_snapshots(db, now)
+
+    def _prune_cache_snapshots(self, db: sqlite3.Connection, now: float) -> None:
+        rows = db.execute(
+            "SELECT key FROM api_monitor_meta WHERE key GLOB 'cache:*:observed_at' "
+            "AND value>=? ORDER BY value DESC,key DESC LIMIT ?",
+            (now - self.retention_seconds, min(self.max_rows, 1024)),
+        ).fetchall()
+        keep = {row[0].rsplit(":", 1)[0] for row in rows}
+        obsolete = [
+            (row[0],)
+            for row in db.execute("SELECT key FROM api_monitor_meta WHERE key GLOB 'cache:*'")
+            if row[0].rsplit(":", 1)[0] not in keep
+        ]
+        db.executemany("DELETE FROM api_monitor_meta WHERE key=?", obsolete)
+
+    def cache_stats(self) -> dict[str, Any]:
+        """Aggregate retained instance counters and latest capacity per disk directory."""
+        now = time.time()
+        with self.connection() as db:
+            rows = db.execute(
+                "SELECT key,value FROM api_monitor_meta WHERE key GLOB 'cache:*'"
+            ).fetchall()
+        samples: dict[str, dict[str, float]] = {}
+        for key, value in rows:
+            prefix, field = key.rsplit(":", 1)
+            samples.setdefault(prefix, {})[field] = value
+        retained = {
+            key: value
+            for key, value in samples.items()
+            if now - self.retention_seconds <= value.get("observed_at", 0) <= now
+        }
+        if not retained:
+            return {"status": "not_configured", "scope": "bound_cache_instance"}
+        directories: dict[str, dict[str, float]] = {}
+        for key, value in retained.items():
+            if value["enabled"]:
+                directory = key.rsplit(":", 1)[1]
+                if (
+                    directory not in directories
+                    or value["observed_at"] >= directories[directory]["observed_at"]
+                ):
+                    directories[directory] = value
+        ages = [max(0.0, now - sample["observed_at"]) for sample in directories.values()]
+        fresh = all(age <= 300 for age in ages)
+        hits = int(sum(sample["hits"] for sample in retained.values()))
+        misses = int(sum(sample["misses"] for sample in retained.values()))
+        return {
+            "status": "ok" if fresh else "partial",
+            "scope": "shared_cache_observations",
+            "counters_scope": "retained_instance_lifetime_snapshots",
+            "capacity_scope": "latest_observation_per_host_directory",
+            "cluster_complete": False,
+            "observed_instances": len(retained),
+            "observed_directories": len(directories),
+            "capacity_max_age_seconds": max(ages) if ages else None,
+            "capacity_stale_after_seconds": 300,
+            "enabled": bool(directories),
+            "hits": hits,
+            "misses": misses,
+            "api_calls_saved": hits,
+            "hit_rate": hits / (hits + misses) if hits + misses else None,
+            "total_entries": (
+                int(sum(sample["total_entries"] for sample in directories.values()))
+                if fresh
+                else None
+            ),
+            "disk_usage_mb": (
+                sum(sample["disk_usage_mb"] for sample in directories.values()) if fresh else None
+            ),
+        }
+
     def record_llm_call(self, succeeded: bool, duration_ms: float) -> None:
         """Atomically record and accumulate completed SDK attempts without payloads."""
         if (

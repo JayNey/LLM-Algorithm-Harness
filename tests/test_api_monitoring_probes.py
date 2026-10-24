@@ -320,3 +320,160 @@ def test_providers_catalog_is_offline_and_config_view_has_no_secrets(probes):
     assert config["backend"] == "docker"
     assert config["timeout_seconds"] == probes.settings.MONITOR_SANDBOX_TIMEOUT_SECONDS
     assert "env" not in config and "path" not in json.dumps(config)
+
+
+def test_worker_cache_real_client_shared_collection(tmp_path, probes, monkeypatch):
+    from api.monitoring import llm_metrics
+    from api.monitoring.store import MonitorStore
+    from src.llm_client import LLMClient
+    from src.models import CacheConfig, LLMConfig
+
+    store = MonitorStore(probes.auth.store)
+    monkeypatch.setattr(llm_metrics, "_configured_writer", lambda *args: store)
+    monkeypatch.setattr(llm_metrics, "AuthSettings", lambda: probes.auth.settings)
+    monkeypatch.chdir(tmp_path)
+    config = LLMConfig(
+        provider="openai", model="test", api_key="private-key", cache=CacheConfig(enabled=True)
+    )
+    response = LLMResponse(
+        text="private-response",
+        model="test",
+        usage=TokenUsage(prompt_tokens=1, completion_tokens=1, total_tokens=2),
+    )
+    with (
+        patch.object(LLMClient, "_initialize_client"),
+        patch.object(LLMClient, "_call_openai", return_value=response) as sdk,
+    ):
+        client = LLMClient(config)
+        assert client.generate("private-prompt") == response
+        assert client.generate("private-prompt") == response
+        assert sdk.call_count == 1
+        data = probes.cache_stats()
+        assert data["hits"] == data["misses"] == 1
+        assert data["hit_rate"] == 0.5
+        assert data["total_entries"] == 1
+        assert data["disk_usage_mb"] > 0
+        # Another instance shares the directory: capacity must not double.
+        other = LLMClient(config)
+        other.generate("private-prompt")
+        data2 = probes.cache_stats()
+        assert data2["hits"] == 2 and data2["misses"] == 1
+        assert data2["total_entries"] == 1
+        assert data2["disk_usage_mb"] == data["disk_usage_mb"]
+        encoded = json.dumps(data2)
+        for secret in ("private-key", "private-prompt", "private-response", str(tmp_path)):
+            assert secret not in encoded
+        with probes.auth.store.connection() as db:
+            stored = str(
+                db.execute("SELECT * FROM api_monitor_meta WHERE key LIKE 'cache:%'").fetchall()
+            )
+        assert "private-" not in stored and str(tmp_path) not in stored
+        with patch.object(store, "record_cache_snapshot", side_effect=RuntimeError("private")):
+            assert client.generate("private-prompt") == response
+
+
+def test_worker_cache_snapshots_idempotent_bounded_and_stale(probes, monkeypatch):
+    from api.monitoring.store import MonitorStore
+
+    store = MonitorStore(probes.auth.store, retention_seconds=1000, max_rows=2)
+    sample = dict(enabled=True, hits=2, misses=1, total_entries=3, disk_usage_mb=0.5)
+    with patch("api.monitoring.store.time.time", return_value=1000):
+        store.record_cache_snapshot("a" * 32, "b" * 64, sample)
+        store.record_cache_snapshot("a" * 32, "b" * 64, sample)
+        store.record_cache_snapshot("c" * 32, "b" * 64, sample)
+        assert store.cache_stats()["hits"] == 4
+        assert store.cache_stats()["total_entries"] == 3
+    with patch("api.monitoring.store.time.time", return_value=1301):
+        data = store.cache_stats()
+        assert data["status"] == "partial" and data["disk_usage_mb"] is None
+        assert data["hits"] == 4
+    with patch("api.monitoring.store.time.time", return_value=1400):
+        store.record_cache_snapshot(
+            "d" * 32,
+            "e" * 64,
+            dict(enabled=False, hits=0, misses=0, total_entries=0, disk_usage_mb=0),
+        )
+        assert store.cache_stats()["observed_instances"] == 2
+    with patch("api.monitoring.store.time.time", return_value=3000):
+        assert store.cache_stats()["status"] == "not_configured"
+    with pytest.raises(ValueError):
+        store.record_cache_snapshot("x", "b" * 64, sample)
+
+
+def test_worker_cache_cross_process_disabled_and_read_failure(tmp_path, probes):
+    import subprocess
+    import sys
+
+    from api.monitoring.store import MonitorStore
+
+    # A real separate process writes to the same DB that the API probe reads.
+    script = """
+import sys
+from api.auth.store import AuthStore
+from api.monitoring.store import MonitorStore
+from pathlib import Path
+store = MonitorStore(AuthStore(Path(sys.argv[1])))
+store.record_cache_snapshot('a'*32, 'b'*64, dict(enabled=False, hits=0, misses=0, total_entries=0, disk_usage_mb=0))
+"""
+    subprocess.run(
+        [sys.executable, "-c", script, str(probes.auth.store.path)],
+        check=True,
+        capture_output=True,
+        timeout=30,
+    )
+    result = probes.cache_stats()
+    assert result["status"] == "ok" and result["enabled"] is False
+    assert result["hits"] == result["misses"] == 0
+    assert result["hit_rate"] is None
+    with patch.object(MonitorStore, "cache_stats", side_effect=RuntimeError(str(tmp_path))):
+        data = probes.cache_stats()
+        assert data["status"] == "unknown"
+        assert str(tmp_path) not in json.dumps(data)
+
+
+def test_worker_cache_expired_entry_is_miss(tmp_path, probes, monkeypatch):
+    from api.monitoring import llm_metrics
+    from api.monitoring.store import MonitorStore
+    from src.llm_client import LLMClient
+    from src.models import CacheConfig, LLMConfig
+
+    store = MonitorStore(probes.auth.store)
+    monkeypatch.setattr(llm_metrics, "_configured_writer", lambda *args: store)
+    monkeypatch.setattr(llm_metrics, "AuthSettings", lambda: probes.auth.settings)
+    monkeypatch.chdir(tmp_path)
+    response = LLMResponse(
+        text="answer",
+        model="test",
+        usage=TokenUsage(prompt_tokens=1, completion_tokens=1, total_tokens=2),
+    )
+    with (
+        patch.object(LLMClient, "_initialize_client"),
+        patch.object(LLMClient, "_call_openai", return_value=response) as sdk,
+    ):
+        client = LLMClient(
+            LLMConfig(
+                provider="openai", model="test", api_key="test-key", cache=CacheConfig(enabled=True)
+            )
+        )
+        client.generate("prompt")
+        client.cache.ttl_seconds = 0
+        client.generate("prompt")
+        assert sdk.call_count == 2
+        result = probes.cache_stats()
+        assert result["hits"] == 0 and result["misses"] == 2
+
+
+def test_worker_cache_fork_does_not_duplicate_parent_counts(tmp_path, probes, monkeypatch):
+    from api.monitoring import llm_metrics
+    from api.monitoring.store import MonitorStore
+
+    store = MonitorStore(probes.auth.store)
+    monkeypatch.setattr(llm_metrics, "_configured_writer", lambda *args: store)
+    monkeypatch.setattr(llm_metrics, "AuthSettings", lambda: probes.auth.settings)
+    cache = LLMResponseCache(str(tmp_path / "cache"))
+    cache.get("missing")
+    llm_metrics.record_cache(cache)
+    with patch.object(llm_metrics.os, "getpid", return_value=999999):
+        cache.get("child-missing")
+        llm_metrics.record_cache(cache)
+    assert store.cache_stats()["misses"] == 2
