@@ -118,6 +118,13 @@ def create_app(
             app.state.evaluations,
             monitor_settings or MonitorSettings(),
             task_engine=engine,
+            database_engines={
+                "evaluation_results": app.state.evaluation_results._engine,
+                "experiment": app.state.experiments._engine,
+                "benchmark": app.state.benchmarks._engine,
+                "ab_test": app.state.ab_tests._engine,
+                "cost": app.state.cost._engine,
+            },
         )
         app.state.auth.audit_sink = app.state.monitor.audit_event
         await run_in_threadpool(app.state.files.cleanup)

@@ -692,3 +692,61 @@ def test_llm_window_query_filters_real_records_and_keeps_cumulative_default(api,
         ).status_code
         == 200
     )
+
+
+def test_database_sources_cover_independent_engines_and_shared_sqlite(api):
+    import os
+    import sqlite3
+
+    client, admin, _, app, *_ = api
+    monitor = app.state.monitor
+    before = {s["source_id"]: s for s in monitor.database_sources()}
+    roles = {
+        "evaluation": app.state.evaluations.engine,
+        "evaluation_results": app.state.evaluation_results._engine,
+        "experiment": app.state.experiments._engine,
+        "benchmark": app.state.benchmarks._engine,
+        "ab_test": app.state.ab_tests._engine,
+        "cost": app.state.cost._engine,
+        "async_task": app.state.task_engine,
+    }
+    for role, engine in roles.items():
+        with engine.connect() as db:
+            db.execute(text("SELECT 9"))
+            with pytest.raises(Exception):
+                db.execute(text("SELECT * FROM missing_source_table"))
+        source = next(s for s in monitor.database_sources() if role in s["roles"])
+        assert (
+            source["retained_sample"]["query_count"]
+            == before[source["source_id"]]["retained_sample"]["query_count"] + 2
+        )
+        assert source["retained_sample"]["errors"] == 1
+        assert source["process_id"] == os.getpid()
+        assert source["scope"] == "bound_business_engine_current_process"
+    shared = next(s for s in monitor.database_sources() if "auth" in s["roles"])
+    start = shared["retained_sample"]["query_count"]
+    with app.state.files.store.connection() as db:
+        cursor = db.cursor()
+        cursor.execute("SELECT ?", ("private-query-value",)).fetchone()
+        cursor.executemany("INSERT INTO auth_rates VALUES (?,1,1)", [("scope-a",), ("scope-b",)])
+        with pytest.raises(sqlite3.OperationalError):
+            db.execute("SELECT * FROM private_missing_table")
+    shared = next(s for s in monitor.database_sources() if "auth" in s["roles"])
+    # Connection PRAGMA, cursor execute, executemany and failing execute, each once.
+    assert shared["retained_sample"]["query_count"] == start + 4
+    assert shared["retained_sample"]["errors"] == 1
+    assert set(shared["roles"]) == {"auth", "file", "monitoring"}
+    response = client.get("/api/v1/metrics/performance", headers=headers(admin)).json()["data"][
+        "database_queries"
+    ]
+    assert len(response["sources"]) == 8
+    assert response["coverage"]["other_processes_included"] is False
+    serialized = json.dumps(response)
+    assert all(
+        secret not in serialized
+        for secret in (
+            "private-query-value",
+            "private_missing_table",
+            str(app.state.auth.store.path),
+        )
+    )

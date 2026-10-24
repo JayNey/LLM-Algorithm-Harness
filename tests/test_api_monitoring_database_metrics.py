@@ -384,3 +384,83 @@ def test_invalid_window(engine):
     with pytest.raises(ValueError):
         metrics.stats(0)
     metrics.close()
+
+
+def test_sqlite_calls_preserve_transactions_and_isolate_capture_failure(
+    tmp_path, clock, monkeypatch
+):
+    import sqlite3
+
+    from api.auth.store import AuthStore
+    from api.monitoring.database_metrics import SQLiteQueryMetrics
+
+    store = AuthStore(tmp_path / "auth.db")
+    metrics = SQLiteQueryMetrics(max_rows=20)
+    store.attach_query_metrics(metrics)
+    with store.connection() as db:
+        db.executescript(
+            'CREATE TABLE sample (value TEXT UNIQUE); INSERT INTO sample VALUES ("a");'
+        )
+        cursor = db.cursor()
+        assert cursor.execute("SELECT value FROM sample").fetchone()[0] == "a"
+        cursor.executemany("INSERT INTO sample VALUES (?)", [("b",), ("c",)])
+    with pytest.raises(sqlite3.IntegrityError):
+        with store.connection() as db:
+            db.execute("INSERT INTO sample VALUES (?)", ("rollback",))
+            db.execute("INSERT INTO sample VALUES (?)", ("a",))
+    with store.connection() as db:
+        assert db.execute("SELECT COUNT(*) FROM sample").fetchone()[0] == 3
+    stats = metrics.stats(60)
+    assert stats["retained_sample"]["errors"] == 1
+    assert stats["retained_sample"]["query_count"] == 9
+    assert stats["query_count"] is None and not stats["window_complete"]
+    clock.wall, clock.monotonic = 160, 60
+    assert metrics.stats(60)["window_complete"]
+    with monkeypatch.context() as patcher:
+        patcher.setattr(metrics, "_record", lambda *args: (_ for _ in ()).throw(RuntimeError()))
+        with store.connection() as db:
+            assert db.execute("SELECT 7").fetchone()[0] == 7
+            with pytest.raises(sqlite3.OperationalError):
+                db.execute("SELECT * FROM nonexistent")
+    assert not metrics.stats(60)["window_complete"]
+    metrics.close()
+    store.detach_query_metrics(metrics)
+    before = metrics.stats()["retained_sample"]["query_count"]
+    with store.connection() as db:
+        db.execute("SELECT 1")
+    assert metrics.stats()["retained_sample"]["query_count"] == before
+    replacement = SQLiteQueryMetrics()
+    store.attach_query_metrics(replacement)
+    with store.connection() as db:
+        db.execute("SELECT 2")
+    assert replacement.stats()["retained_sample"]["query_count"] == 2
+    assert metrics.stats()["retained_sample"]["query_count"] == before
+
+
+def test_monitor_deduplicates_shared_engines(tmp_path):
+    from api.auth.store import AuthStore
+    from api.monitoring.config import MonitorSettings
+    from api.monitoring.service import MonitorService
+
+    store = AuthStore(tmp_path / "auth.db")
+    engine = create_engine("sqlite://")
+    settings = MonitorSettings(_env_file=None)
+    auth = SimpleNamespace(store=store)
+    files = SimpleNamespace(store=SimpleNamespace(auth_store=store))
+    monitor = MonitorService(
+        auth,
+        files,
+        SimpleNamespace(engine=engine),
+        settings,
+        task_engine=engine,
+        database_engines={"experiment": engine},
+    )
+    with engine.connect() as db:
+        db.execute(text("SELECT 1"))
+    sources = monitor.database_sources()
+    assert len(sources) == 2
+    assert sources[0]["roles"] == ["evaluation", "async_task", "experiment"]
+    assert sources[0]["retained_sample"]["query_count"] == 1
+    monitor.close()
+    assert all(not source["collection_active"] for source in monitor.database_sources())
+    engine.dispose()

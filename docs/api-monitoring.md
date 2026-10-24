@@ -111,13 +111,19 @@ API 和 worker 必须使用相同的 `AUTH_DATABASE_PATH`（跨容器需挂载�
 
 数据写入故障会记录通用警告并保留原 API 响应，同时标记采集缺口；数据库恢复后会持久化缺口水位。数据库完全不可写时，未落盘水位只能保留在当前进程中；若此时进程终止，后续重启不能恢复这段未落盘水位。当前存储不是确保每条事件入库的审计流水。
 
-## 业务 SQL 查询统计
+## 数据库查询统计
 
-`GET /api/v1/metrics/performance` 的 `database_queries` 从运行中的评估服务 SQLAlchemy engine 采集真实 cursor 执行完成与失败事件，`engine_role=evaluation_service`，提供 `query_count/successes/errors/error_rate/avg_latency_ms/p95_latency_ms/queries_per_second`。实验、基准、A/B 服务及异步任务会话工厂的独立 engine 尚未纳入这个口径；异步任务查询不会全部出现在此计数中。查询数以 cursor 执行事件为单位，不是返回行数；连接获取阶段的错误不计作已执行查询。它不保存 SQL 文本、绑定参数、连接 URL、异常详情或用户数据。绑定评估 engine 上的数据库健康检查和旧任务监控查询本身也会进入这个采集口径。
+`GET /api/v1/metrics/performance` 的 `database_queries` 保留原有评估服务顶层统计（`engine_role=evaluation_service`），并通过 `sources` 列出当前 API 实例的实际采集来源。各来源分别提供 `query_count/successes/errors/error_rate/avg_latency_ms/p95_latency_ms/queries_per_second`，不混算不同来源的平均值或 p95。
 
-`scope=bound_business_engine_current_process` 表示单 engine、单 API 进程；不包含认证/文件 SQLite、其他进程或数据库服务端的全局查询。每 engine 在启动时安装一个稳定转发监听，弱注册采集器；监控关闭后停止采集并解除采集器引用，此后 `collection_active=false`、`status=not_collecting`。空转发器随 engine 生命周期回收，关闭时不并发修改 SQLAlchemy 事件队列，以保护仍在执行的业务查询。统计仅保存在当前进程内，重启后重新建立采集起点，API 启动前已经完成的迁移和任务恢复查询不计入。
+- SQLAlchemy 来源：`evaluation`、`evaluation_results`、`experiment`、`benchmark`、`ab_test`、`cost`、`async_task`。分别绑定评估、结果读取、实验、基准、A/B、成本服务以及任务会话工厂的实际 engine；共享同一 engine 对象时合并 `roles`，执行只计一次。
+- `auth_file` 来源：绑定当前 AuthStore 的原生 SQLite 连接，`roles=[auth,file,monitoring]`。认证、会话、限流、文件元数据、导入作业及使用同一 store 的监控读写均纳入；它们共用数据库，不能解释为独立的认证或文件查询计数。
+- 每项包含固定 `source_id`、`roles`、`backend` 和 `process_id`。标识按绑定连接用途划分，同一数据库文件上的不同 engine 仍分别统计；不披露连接串、路径、SQL、参数或异常正文。
 
-统计使用 `MONITOR_API_WINDOW_SECONDS` 指定的窗口，保留时间和行数分别受 `MONITOR_RETENTION_SECONDS` 与 `MONITOR_MAX_ROWS` 限制。窗口尚未被完整采集、记录被淘汰或采集发生缺口时，`window_complete=false`、`source=retained_sample`，顶层统计为 `null`，`retained_sample` 仅展示实际保留样本；完整时 `source=captured_business_queries`。`started_at/pruned_through/capture_gap_through` 说明采集起点和覆盖缺口。`latency_scope=cursor_execution_excludes_pool_wait_and_fetch` 明确查询延迟衡量 cursor 执行阶段，不表示连接等待、事务完整耗时、结果处理时间或真实任务执行时长。
+`coverage.scope=bound_sources_current_api_process`、`other_processes_included=false` 与 `storage=bounded_process_memory` 明确所有来源均为当前 API 进程的有界内存统计。SQLAlchemy 的 `scope=bound_business_engine_current_process`，SQLite 的 `scope=bound_auth_file_store_current_process`；不包含 Celery worker、其他 API 进程、独立 CLI/SQLite 连接或数据库服务端全局流量。重启后重新建立采集起点，API 启动前已完成的迁移不计入。健康检查、任务快照及监控自身使用这些连接的读写也会进入相应来源。
+
+SQLAlchemy 查询数以 cursor 执行事件为单位；SQLite 覆盖连接及默认 cursor 的 `execute/executemany/executescript`，批量或脚本调用各计一次（脚本部分失败亦计失败一次），不是语句条数或返回行数。连接获取阶段错误不计作查询。SQLAlchemy 的 `latency_scope=cursor_execution_excludes_pool_wait_and_fetch`，SQLite 为 `sqlite_execution_call_excludes_connect_and_fetch`；均不代表事务完整耗时、结果处理时间或任务执行时间。
+
+每个来源分别使用 `MONITOR_API_WINDOW_SECONDS`、`MONITOR_RETENTION_SECONDS` 与 `MONITOR_MAX_ROWS`。窗口不完整、样本淘汰或采集缺口时，`window_complete=false`、`source=retained_sample`，顶层统计为 `null`；`retained_sample` 仅展示实际保留样本。完整时沿用 `source=captured_business_queries`，具体数据源以 `source_id/roles` 识别。关闭监控后所有采集器停止，`collection_active=false`、`status=not_collecting`。SQLAlchemy 使用稳定事件转发，SQLite 弱注册采集器；采集故障不改变查询结果、原异常或事务回滚语义。
 
 业务连接健康与查询样本完整性分别判断：没有完整统计窗口不等于数据库不可用。SQLite 路径已通过本地真实连接验证；PostgreSQL 的离线 SQL 和边界测试不能替代部署环境中实际 PostgreSQL 的连接与运行验证。
 

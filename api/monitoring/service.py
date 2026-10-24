@@ -1,5 +1,6 @@
 """Monitoring composition, trustworthy worker hooks and enforced quota views."""
 
+import os
 import time
 from typing import Any
 
@@ -10,7 +11,7 @@ from api.auth.service import AuthService, digest
 from api.db.models import AsyncTask, Evaluation
 from api.files.service import FileService
 from api.monitoring.config import MonitorSettings
-from api.monitoring.database_metrics import DatabaseQueryMetrics
+from api.monitoring.database_metrics import DatabaseQueryMetrics, SQLiteQueryMetrics
 from api.monitoring.execution_logs import task_log_key
 from api.monitoring.probes import MonitorProbes
 from api.monitoring.store import MonitorStore
@@ -29,6 +30,7 @@ class MonitorService:
         settings: MonitorSettings,
         *,
         task_engine: Engine | None = None,
+        database_engines: dict[str, Engine] | None = None,
     ):
         self.auth, self.files, self.evaluations, self.settings = auth, files, evaluations, settings
         self.store = MonitorStore(
@@ -36,15 +38,48 @@ class MonitorService:
         )
         self.task_engine = task_engine if task_engine is not None else evaluations.engine
         self.probes = MonitorProbes(auth, files, settings, evaluations)
-        self.database_metrics = DatabaseQueryMetrics(
-            evaluations.engine, settings.MONITOR_RETENTION_SECONDS, settings.MONITOR_MAX_ROWS
+        engines = {
+            "evaluation": evaluations.engine,
+            "async_task": self.task_engine,
+            **(database_engines or {}),
+        }
+        self._database_sources: list[dict[str, Any]] = []
+        by_engine: dict[Engine, dict[str, Any]] = {}
+        for role, engine in engines.items():
+            if engine in by_engine:
+                by_engine[engine]["roles"].append(role)
+                continue
+            source = {
+                "source_id": role,
+                "roles": [role],
+                "backend": engine.dialect.name,
+                "collector": DatabaseQueryMetrics(
+                    engine, settings.MONITOR_RETENTION_SECONDS, settings.MONITOR_MAX_ROWS
+                ),
+            }
+            by_engine[engine] = source
+            self._database_sources.append(source)
+        self.database_metrics = by_engine[evaluations.engine]["collector"]
+        self._sqlite_metrics = SQLiteQueryMetrics(
+            settings.MONITOR_RETENTION_SECONDS, settings.MONITOR_MAX_ROWS
+        )
+        auth.store.attach_query_metrics(self._sqlite_metrics)
+        self._database_sources.append(
+            {
+                "source_id": "auth_file",
+                "roles": ["auth", "file", "monitoring"],
+                "backend": "sqlite",
+                "collector": self._sqlite_metrics,
+            }
         )
         self.started = time.monotonic()
         self.cache: LLMResponseCache | None = None  # Bound explicitly by a real worker.
 
     def close(self) -> None:
         self.probes.close()
-        self.database_metrics.close()
+        for source in self._database_sources:
+            source["collector"].close()
+        self.auth.store.detach_query_metrics(self._sqlite_metrics)
 
     def known_secrets(self, user_id: str | None = None) -> list[str]:
         secrets = [
@@ -258,6 +293,18 @@ class MonitorService:
             }
             return {"tasks": unavailable, "evaluations": dict(unavailable)}
 
+    def database_sources(self) -> list[dict[str, Any]]:
+        return [
+            {
+                **source["collector"].stats(self.settings.MONITOR_API_WINDOW_SECONDS),
+                "source_id": source["source_id"],
+                "roles": list(source["roles"]),
+                "backend": source["backend"],
+                "process_id": os.getpid(),
+            }
+            for source in self._database_sources
+        ]
+
     def performance(self) -> dict[str, Any]:
         return {
             "api": self.store.api_stats(self.settings.MONITOR_API_WINDOW_SECONDS),
@@ -265,6 +312,13 @@ class MonitorService:
             "database_queries": {
                 **self.database_metrics.stats(self.settings.MONITOR_API_WINDOW_SECONDS),
                 "engine_role": "evaluation_service",
+                "sources": self.database_sources(),
+                "coverage": {
+                    "scope": "bound_sources_current_api_process",
+                    "other_processes_included": False,
+                    "storage": "bounded_process_memory",
+                    "top_level_source_id": "evaluation",
+                },
             },
             "llm": self.llm_stats(),
         }
