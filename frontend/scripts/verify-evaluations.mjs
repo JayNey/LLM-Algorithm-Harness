@@ -62,8 +62,21 @@ const report = {
   ],
 }
 function check(name, fn) {
-  fn()
-  report.assertions.push({ name, pass: true })
+  // 支持异步断言：失败时抛出，由场景外层 catch 置 report.pass=false
+  report.assertions.push({ name, pass: false })
+  const index = report.assertions.length - 1
+  return Promise.resolve()
+    .then(fn)
+    .then(
+      () => {
+        report.assertions[index].pass = true
+      },
+      (error) => {
+        report.assertions[index].pass = false
+        report.assertions[index].error = String(error)
+        throw error
+      },
+    )
 }
 const browser = await chromium.launch({
   headless: true,
@@ -106,6 +119,9 @@ async function fixture(mode = 'start-error', entry = '/evaluations/new') {
   const errors = []
   const calls = []
   let detail = { ...evaluation }
+  let progressSeen = false
+  const detailIntervals = []
+  let wsUrls = []
   let starts = 0
   let detailFailure = 0
   let detailGate = null
@@ -359,8 +375,36 @@ async function fixture(mode = 'start-error', entry = '/evaluations/new') {
         json: { message: '启动服务暂时不可用' },
       })
     }
-    if (method === 'GET' && path === '/evaluations/eval-fixture-1')
+    if (method === 'GET' && path === '/evaluations/eval-fixture-1') {
+      if (mode === 'progress') {
+        // 人为拉长请求以暴露并发周期（场景断言请求区间不重叠）
+        await new Promise((resolve) => setTimeout(resolve, 120))
+        const intervalStart = Date.now() - 120
+        detailIntervals.push([intervalStart, intervalStart + 120])
+        // HTTP 真值递进：progress 帧投递前恒 20%，之后 60%——
+        // 锁定「事件触发刷新」而非 start 自身的首次 GET
+        const percentage = progressSeen ? 60 : 20
+        detail = {
+          ...evaluation,
+          status: 'running',
+          can_start: false,
+          can_cancel: true,
+          execution_progress: {
+            completed_units: percentage === 20 ? 0 : 1,
+            total_units: 2,
+            percentage,
+          },
+          progress: {
+            current: percentage === 20 ? 0 : 1,
+            total: 2,
+            message: null,
+            completed: percentage === 20 ? 0 : 1,
+            percentage,
+          },
+        }
+      }
       return send(detail)
+    }
     report.unknown.push(call)
     return route.fulfill({
       status: 599,
@@ -368,6 +412,43 @@ async function fixture(mode = 'start-error', entry = '/evaluations/new') {
       json: { message: `Unexpected API: ${method} ${path}` },
     })
   })
+  if (mode === 'progress') {
+    await context.routeWebSocket(/\/api\/v1\/ws\/progress/, (ws) => {
+      wsUrls.push(ws.url())
+      const server = ws.connectToServer()
+      server.onMessage((message) => {
+        const frame = JSON.parse(String(message))
+        if (frame.action === 'subscribe') {
+          server.send(
+            JSON.stringify({
+              type: 'task.snapshot',
+              task_id: frame.task_id,
+              data: detail,
+            }),
+          )
+          server.send(
+            JSON.stringify({ type: 'subscribed', task_id: frame.task_id }),
+          )
+          setTimeout(() => {
+            progressSeen = true
+            server.send(
+              JSON.stringify({
+                type: 'task.progress',
+                task_id: frame.task_id,
+                data: {
+                  completed: 1,
+                  total: 2,
+                  percentage: 50,
+                  current_problem: 'p1',
+                  current_strategy: 'direct',
+                },
+              }),
+            )
+          }, 200)
+        }
+      })
+    })
+  }
   await page.goto(`${base}${entry}`)
   await page.locator('h1').waitFor()
   if (entry === '/evaluations/new') {
@@ -381,6 +462,8 @@ async function fixture(mode = 'start-error', entry = '/evaluations/new') {
     page,
     calls,
     errors,
+    wsUrls,
+    detailIntervals,
     releaseList,
     releaseStale,
     holdDetail() {
@@ -1740,12 +1823,45 @@ async function detailScenario() {
   }
 }
 
+async function progressScenario() {
+  report.real.push('evaluation detail live progress (WS + HTTP truth)')
+  const { page, wsUrls, detailIntervals } = await fixture(
+    'progress',
+    '/evaluations/eval-fixture-1',
+  )
+  await check('WS 连接 URL 不含 token', async () => {
+    await page.waitForSelector('text=实时进度已连接')
+    assert.ok(wsUrls.length >= 1, '已发起 WS 连接')
+    for (const url of wsUrls) assert.ok(!url.includes('token='), url)
+  })
+  await check('服务端事件触发 HTTP 真值刷新到 60%', async () => {
+    await page.getByText('60%').first().waitFor({ timeout: 5_000 })
+    assert.ok(true)
+  })
+  await check('详情请求区间两两不重叠（无并发观察周期）', () => {
+    assert.ok(detailIntervals.length >= 2, '已有多次详情请求')
+    for (let i = 1; i < detailIntervals.length; i += 1) {
+      assert.ok(
+        detailIntervals[i][0] >= detailIntervals[i - 1][1],
+        `第 ${i} 次请求与上一次重叠`,
+      )
+    }
+  })
+  await page.screenshot({ path: resolve(out, 'progress.png'), fullPage: true })
+  report.screenshots.push('progress.png')
+}
+
 try {
   if (scenario === 'all' || scenario === 'create') await createScenario()
   if (['all', 'create', 'security'].includes(scenario)) await securityScenario()
   if (scenario === 'all' || scenario === 'list') await listScenario()
   if (scenario === 'all' || scenario === 'detail') await detailScenario()
-  if (!['all', 'create', 'security', 'list', 'detail'].includes(scenario))
+  if (scenario === 'all' || scenario === 'progress') await progressScenario()
+  if (
+    !['all', 'create', 'security', 'list', 'detail', 'progress'].includes(
+      scenario,
+    )
+  )
     throw new Error(`Scenario ${scenario} 尚未实现`)
   check('无未声明 API 请求', () => assert.deepEqual(report.unknown, []))
   report.pass = true

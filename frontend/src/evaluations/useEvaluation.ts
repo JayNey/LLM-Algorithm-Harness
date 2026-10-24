@@ -1,5 +1,11 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { ApiClientError } from '../auth/http.ts'
+import { readViteEnv } from '../config/env.ts'
+import {
+  createProgressObserver,
+  resolveProgressWsUrl,
+  type ProgressObserver,
+} from './observer.ts'
 import type { Evaluation, EvaluationClient } from './types.ts'
 
 export function useEvaluation(
@@ -64,5 +70,176 @@ export function useEvaluation(
     error: current && !loading ? snapshot.error : undefined,
     loading,
     reload,
+  }
+}
+
+const LIVE_ACTIVE_STATUSES = new Set(['pending', 'running', 'paused'])
+
+export function isLiveStatus(status: string): boolean {
+  return LIVE_ACTIVE_STATUSES.has(status)
+}
+
+export interface EvaluationLive {
+  /** 观察器经 HTTP 真值刷新的最新评估（无快照时为 null，回退一次性抓取） */
+  evaluation: Evaluation | null
+  /** 观察器通道模式：live=WS 已订阅；degraded=降级轮询；connecting/stopped */
+  mode: string
+  /** 会话失效（401/4401 恢复失败）：页面应清会话回跳登录 */
+  unauthorized: boolean
+  /** 手动触发一次观察器刷新（等价页面「刷新任务」） */
+  refresh: () => void
+}
+
+/** 步骤 4（issue #225）：把进度观察器接入 React。
+ *
+ * enabled（评估处于非终态）时挂载观察器：原生 WebSocket 仅在此适配器创建
+ * （Cookie 认证，token 不进 URL）；HTTP 快照经 client.get 走既有 401 刷新。
+ * 页面可见性/网络状态变化映射为观察器的暂停/恢复。
+ */
+export function useEvaluationLive(
+  client: EvaluationClient,
+  evaluationId: string,
+  owner: string | null,
+  enabled: boolean,
+): EvaluationLive {
+  const [snapshot, setSnapshot] = useState<{
+    owner: string | null
+    evaluationId: string
+    evaluation: Evaluation | null
+    mode: string
+    unauthorized: boolean
+  }>({
+    owner: null,
+    evaluationId: '',
+    evaluation: null,
+    mode: 'idle',
+    unauthorized: false,
+  })
+  const observerRef = useRef<ProgressObserver | null>(null)
+
+  useEffect(() => {
+    // 观察器实例在 effect 内创建（含 readViteEnv 等非纯读取），render 保持纯函数；
+    // 换代时旧实例由 cleanup dispose，遗留 snapshot 由 aligned 派生守卫拦截。
+    observerRef.current = null
+    if (!enabled || !client) return
+    const instance = createProgressObserver({
+      fetchSnapshot: (id, signal) => client.get(id, signal),
+      connectSocket: (handlers) => {
+        try {
+          const env = readViteEnv()
+          const url = resolveProgressWsUrl(env.wsUrl, {
+            protocol: window.location.protocol,
+            host: window.location.host,
+          })
+          const ws = new WebSocket(url)
+          ws.onopen = () => handlers.onOpen()
+          ws.onmessage = (event) => {
+            let frame: unknown
+            try {
+              frame = JSON.parse(String(event.data))
+            } catch {
+              return // 非 JSON 帧忽略；服务端对畸形帧同样忽略
+            }
+            // 解析与分发分离：处理器的异常不应被当作畸形帧吞掉
+            handlers.onMessage(
+              frame as Parameters<typeof handlers.onMessage>[0],
+            )
+          }
+          ws.onclose = (event) => handlers.onClose(event.code)
+          ws.onerror = () => handlers.onError()
+          return {
+            send: (frame) => ws.send(JSON.stringify(frame)),
+            close: (code) => ws.close(code),
+          }
+        } catch {
+          // URL 非法等同步构造失败：走观察器失败路径（降级轮询），不击穿页面
+          handlers.onError()
+          return {
+            send: () => undefined,
+            close: () => undefined,
+          }
+        }
+      },
+      clock: {
+        now: () => Date.now(),
+        setTimeout: (fn, ms) => setTimeout(fn, ms),
+        clearTimeout: (handle) =>
+          clearTimeout(handle as ReturnType<typeof setTimeout>),
+      },
+      onChange: (event) => {
+        // 关键：接受事件时必须以当前代身份盖章写入——snapshot 初始无身份，
+        // 只比对不盖章会让 aligned 守卫永久拦截所有事件（复审 P0 教训）。
+        setSnapshot((previous) => {
+          const alignedPrevious =
+            previous.owner === owner && previous.evaluationId === evaluationId
+              ? previous
+              : {
+                  owner,
+                  evaluationId,
+                  evaluation: null,
+                  mode: 'idle',
+                  unauthorized: false,
+                }
+          if (event.type === 'snapshot')
+            return {
+              ...alignedPrevious,
+              evaluation: event.evaluation,
+              mode: event.mode,
+            }
+          if (event.type === 'mode')
+            return { ...alignedPrevious, mode: event.mode }
+          if (event.type === 'unauthorized')
+            return { ...alignedPrevious, unauthorized: true }
+          return alignedPrevious
+        })
+      },
+      recoverSession: async () => {
+        // 401 到达观察器时 HTTP 层已完成一次刷新重试；这里再探测一次：
+        // 成功说明会话仍有效，仍 401 则判定失效。
+        try {
+          await client.get(evaluationId)
+          return true
+        } catch {
+          return false
+        }
+      },
+    })
+    observerRef.current = instance
+    instance.start(evaluationId)
+    return () => {
+      instance.dispose()
+      observerRef.current = null
+    }
+  }, [client, evaluationId, owner, enabled])
+
+  // 页面可见性 / 网络状态 → 观察器暂停与恢复
+  useEffect(() => {
+    if (!enabled) return
+    const sync = () => {
+      const current = observerRef.current
+      if (!current) return
+      current.setVisible(document.visibilityState !== 'hidden')
+      current.setOnline(navigator.onLine)
+    }
+    document.addEventListener('visibilitychange', sync)
+    window.addEventListener('online', sync)
+    window.addEventListener('offline', sync)
+    sync()
+    return () => {
+      document.removeEventListener('visibilitychange', sync)
+      window.removeEventListener('online', sync)
+      window.removeEventListener('offline', sync)
+    }
+  }, [enabled, observerRef])
+
+  const aligned =
+    !!owner &&
+    snapshot.owner === owner &&
+    snapshot.evaluationId === evaluationId
+  return {
+    evaluation: aligned ? snapshot.evaluation : null,
+    mode: aligned ? snapshot.mode : 'idle',
+    unauthorized: aligned ? snapshot.unauthorized : false,
+    refresh: () => observerRef.current?.refresh(),
   }
 }

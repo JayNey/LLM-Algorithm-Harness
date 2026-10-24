@@ -6,8 +6,13 @@ import {
   EvaluationFeedback,
   EvaluationFacts,
 } from '@/evaluations/components.tsx'
+import { useAuthStore } from '@/store/auth.ts'
 import { useEvaluationSession } from '@/evaluations/session.tsx'
-import { useEvaluation } from '@/evaluations/useEvaluation.ts'
+import {
+  isLiveStatus,
+  useEvaluation,
+  useEvaluationLive,
+} from '@/evaluations/useEvaluation.ts'
 import '@/evaluations/workflow.css'
 
 export default function EvaluationDetailPage() {
@@ -15,6 +20,15 @@ export default function EvaluationDetailPage() {
   const { owner, client, creationStore } = useEvaluationSession()
   const receipt = useStore(creationStore)
   const detail = useEvaluation(client, evaluationId, owner)
+  // 非终态评估挂载进度观察器（WS 订阅 + HTTP 快照对账，issue #225 Step 4）
+  const liveEnabled = !!detail.data && isLiveStatus(detail.data.status)
+  const live = useEvaluationLive(client, evaluationId, owner, liveEnabled)
+  const current = live.evaluation ?? detail.data
+  const authClear = useAuthStore((state) => state.clear)
+  useEffect(() => {
+    // WS/HTTP 双通道恢复失败 → 清会话，由 RequireSession 携返回路径回跳登录
+    if (live.unauthorized) authClear()
+  }, [live.unauthorized, authClear])
   const busy =
     ['creating', 'created', 'starting'].includes(receipt.phase) ||
     !!receipt.action?.pending
@@ -81,12 +95,16 @@ export default function EvaluationDetailPage() {
             retry={reload}
           />
         )}
-        {detail.data && <EvaluationFacts evaluation={detail.data} />}
+        {current && <EvaluationFacts evaluation={current} />}
+        {live.mode === 'live' && <p role="status">实时进度已连接</p>}
+        {live.mode === 'degraded' && (
+          <p role="status">实时通道不可用，已切换为轮询。</p>
+        )}
         <div className="evaluation-actions">
           <Button onClick={reload} disabled={detail.loading || busy}>
             刷新任务
           </Button>
-          {detail.data?.can_start && (
+          {current?.can_start && (
             <Button
               type="primary"
               disabled={busy || detail.loading || !!detail.error}
@@ -102,7 +120,7 @@ export default function EvaluationDetailPage() {
               启动任务
             </Button>
           )}
-          {detail.data?.can_cancel && (
+          {current?.can_cancel && (
             <Button
               danger
               disabled={busy || detail.loading || !!detail.error}
