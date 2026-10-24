@@ -399,6 +399,5 @@ class MonitorService:
             "transfers": {
                 "per_process_concurrency": self.files.settings.FILE_MAX_CONCURRENT_TRANSFERS
             },
-            "daily_api_calls": {"status": "not_configured", "limit": None, "used": None},
-            "monthly_api_calls": {"status": "not_configured", "limit": None, "used": None},
+            **self.auth.store.user_api_calls(user_id),
         }

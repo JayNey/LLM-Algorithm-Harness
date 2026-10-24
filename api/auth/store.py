@@ -12,6 +12,7 @@ import time
 import weakref
 from collections.abc import Iterator
 from contextlib import contextmanager
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from typing import Any
 
@@ -52,6 +53,11 @@ class AuthStore:
                     last_verified_at INTEGER, verified INTEGER NOT NULL DEFAULT 0
                 );
                 CREATE INDEX IF NOT EXISTS auth_keys_owner ON auth_keys(user_id);
+                CREATE TABLE IF NOT EXISTS auth_user_api_calls (
+                    user_id TEXT NOT NULL, period TEXT NOT NULL,
+                    period_start INTEGER NOT NULL, count INTEGER NOT NULL,
+                    PRIMARY KEY(user_id, period, period_start)
+                );
                 CREATE TABLE IF NOT EXISTS auth_rates (
                     bucket TEXT PRIMARY KEY, count INTEGER NOT NULL, expires_at INTEGER NOT NULL
                 );
@@ -59,6 +65,60 @@ class AuthStore:
             columns = {row[1] for row in db.execute("PRAGMA table_info(auth_keys)").fetchall()}
             if "masked_preview" not in columns:
                 db.execute("ALTER TABLE auth_keys ADD COLUMN masked_preview TEXT")
+
+    @staticmethod
+    def _api_call_periods(now: float) -> dict[str, tuple[datetime, datetime]]:
+        day = datetime.fromtimestamp(now, timezone.utc).replace(
+            hour=0, minute=0, second=0, microsecond=0
+        )
+        month = day.replace(day=1)
+        next_month = (month.replace(day=28) + timedelta(days=4)).replace(day=1)
+        return {
+            "daily_api_calls": (day, day + timedelta(days=1)),
+            "monthly_api_calls": (month, next_month),
+        }
+
+    def record_user_api_call(self, user_id: str) -> None:
+        """Accumulate one completed generation attempt, atomically for both periods."""
+        periods = self._api_call_periods(time.time())
+        with self.connection() as db:
+            db.executemany(
+                "INSERT INTO auth_user_api_calls(user_id,period,period_start,count) VALUES (?,?,?,1) "
+                "ON CONFLICT(user_id,period,period_start) DO UPDATE SET count=count+1",
+                [
+                    (user_id, period, int(start.timestamp()))
+                    for period, (start, _) in periods.items()
+                ],
+            )
+
+    def user_api_calls(self, user_id: str) -> dict[str, Any]:
+        """Read a consistent snapshot of current UTC calendar buckets."""
+        periods = self._api_call_periods(time.time())
+        with self.connection() as db:
+            rows = db.execute(
+                "SELECT period,count FROM auth_user_api_calls WHERE user_id=? AND "
+                "((period='daily_api_calls' AND period_start=?) OR "
+                "(period='monthly_api_calls' AND period_start=?))",
+                (
+                    user_id,
+                    int(periods["daily_api_calls"][0].timestamp()),
+                    int(periods["monthly_api_calls"][0].timestamp()),
+                ),
+            ).fetchall()
+        counts = dict(rows)
+        return {
+            period: {
+                "status": "metered",
+                "limit": None,
+                "used": counts.get(period, 0),
+                "timezone": "UTC",
+                "period_start": start.isoformat(),
+                "resets_at": end.isoformat(),
+                "scope": "owned_generation_sdk_attempts",
+                "collection_mode": "best_effort_since_instrumentation",
+            }
+            for period, (start, end) in periods.items()
+        }
 
     def attach_query_metrics(self, metrics: SQLiteQueryMetrics) -> None:
         with self._query_metrics_lock:

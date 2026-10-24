@@ -163,7 +163,11 @@ curl http://localhost:8000/api/v1/logs/download/your-task-id \
 - 当前用户活跃导入数、共享 `FILE_MAX_ACTIVE_IMPORTS`（默认 8）、每进程导入并发（默认 2）和传输并发（默认 2）。
 - `evaluation_concurrency`：`limit` 为实际准入配置 `MAX_CONCURRENT_EVALUATIONS_PER_USER`（默认 5），`used` 为当前用户业务库中 `pending/running` 评估任务数量，`remaining=max(limit-used,0)`。草稿、暂停、终态及其他类型任务不计入；历史用量超过新上限时保留真实 `used`，剩余为 0。两个配额别名均使用认证主体，不能通过 `user_id` 参数查询他人。查询只读、不轮询 Celery、不预留名额；状态变化以再次查询时的已提交记录为准，数据库错误不会返回虚假的零用量。
 
-每日/每月 LLM API 调用额度为 `not_configured`，`limit/used` 为 `null`，需在真实请求计量接入后补齐。详细上传限额与清理规则见 [文件服务指南](api-files.md)。
+`daily_api_calls` / `monthly_api_calls` 按当前用户持久化统计真实 LLM **生成 SDK 尝试**：成功、失败及每次重试分别加一，缓存命中、模型列表、连接验证和无用户归属的 CLI 调用不计。归属来自服务端凭证解析，覆盖评估、实验、A/B 与 benchmark 的真实生成路径。
+
+响应 `status=metered`、`used` 为整数（无记录为 0），`limit=null` 表示尚未配置日/月硬限额。`timezone=UTC`，按请求完成时间划分自然日与自然月，周期为 `[period_start, resets_at)`：每天 UTC 00:00、每月 1 日 UTC 00:00 切换（北京时间 08:00）。无需定时清零，旧周期保留，跨进程写入与重启后计数仍在，监控明细清理不影响聚合值。
+
+`scope=owned_generation_sdk_attempts`，`collection_mode=best_effort_since_instrumentation`：只统计该功能启用后成功写入的尝试，旧全局数据无法按用户回填；持久化失败不改变原模型结果，但可能漏计。详细上传限额与清理规则见 [文件服务指南](api-files.md)。
 
 ## 离线配置目录与后续接入
 
