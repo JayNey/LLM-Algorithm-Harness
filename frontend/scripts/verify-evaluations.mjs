@@ -107,7 +107,7 @@ async function fixture(mode = 'start-error', entry = '/evaluations/new') {
   const errors = []
   const calls = []
   let detail = { ...evaluation }
-  let progressSeen = false
+  let progressPercentage = 20
   let advanceProgress = () => {
     throw new Error('Progress socket is not subscribed')
   }
@@ -378,7 +378,7 @@ async function fixture(mode = 'start-error', entry = '/evaluations/new') {
         await new Promise((resolve) => setTimeout(resolve, 120))
         // HTTP 真值递进：progress 帧投递前恒 20%，之后 60%——
         // 锁定「事件触发刷新」而非 start 自身的首次 GET
-        const percentage = progressSeen ? 60 : 20
+        const percentage = progressPercentage
         detail = {
           ...evaluation,
           status: 'running',
@@ -427,8 +427,8 @@ async function fixture(mode = 'start-error', entry = '/evaluations/new') {
             }),
           )
         ws.send(JSON.stringify({ type: 'subscribed', task_id: frame.task_id }))
-        advanceProgress = () => {
-          progressSeen = true
+        advanceProgress = (percentage = 60) => {
+          progressPercentage = percentage
           ws.send(
             JSON.stringify({
               type: 'task.progress',
@@ -472,7 +472,7 @@ async function fixture(mode = 'start-error', entry = '/evaluations/new') {
         await new Promise((resolve) => setTimeout(resolve, 10))
       }
     },
-    advanceProgress: () => advanceProgress(),
+    advanceProgress: (percentage) => advanceProgress(percentage),
     denyProgress: () => denyProgress(),
     releaseList,
     releaseStale,
@@ -1751,6 +1751,12 @@ async function detailScenario() {
     .getByRole('button', { name: '刷新任务', exact: true })
     .click()
   await region.getByText('model-a', { exact: true }).waitFor()
+  await refresh.page
+    .getByText('实时进度已连接', { exact: true })
+    .waitFor({ timeout: 5000 })
+  check('HTTP403显式重试后恢复实时订阅', () =>
+    assert.ok(refresh.wsUrls.length >= 2),
+  )
   check('刷新503保留数据并禁操作，403清除数据，重试恢复', () =>
     assert.equal(refresh.calls.filter((c) => c.method === 'POST').length, 0),
   )
@@ -1890,6 +1896,26 @@ async function progressScenario() {
     .getByRole('button', { name: '取消任务', exact: true })
     .count()
   check('WS4403清除已显示详情及动作', () => assert.equal(remainingActions, 0))
+  await page.screenshot({
+    path: resolve(out, 'progress-denied.png'),
+    fullPage: true,
+  })
+  report.screenshots.push('progress-denied.png')
+  await page.getByRole('button', { name: '刷新任务', exact: true }).click()
+  await page
+    .getByText('实时进度已连接', { exact: true })
+    .waitFor({ timeout: 5000 })
+  await waitForInitialProgressReconciliation()
+  const restoredRequests = detailIntervals.length
+  const restoredEventAt = Date.now()
+  advanceProgress(80)
+  await page.getByText('80%').first().waitFor({ timeout: 5000 })
+  check('WS4403显式重试恢复订阅且后续事件继续刷新HTTP真值', () => {
+    assert.ok(wsUrls.length >= 2)
+    assert.ok(detailIntervals.length > restoredRequests)
+    assert.ok(detailIntervals.at(-1)[0] >= restoredEventAt)
+    assert.equal(detailProgress.at(-1), 80)
+  })
 }
 
 try {

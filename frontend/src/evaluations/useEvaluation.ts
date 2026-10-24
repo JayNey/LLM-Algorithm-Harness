@@ -256,6 +256,21 @@ export function useEvaluationLive(
     !!owner &&
     snapshot.owner === owner &&
     snapshot.evaluationId === evaluationId
+  useEffect(() => {
+    // A stopped observer may return an active HTTP snapshot after an explicit
+    // permission retry. Resume only after that successful read; paused/terminal
+    // snapshots and denied resources must stay stopped.
+    if (
+      aligned &&
+      enabled &&
+      snapshot.mode === 'stopped' &&
+      !snapshot.forbidden &&
+      !snapshot.unauthorized &&
+      snapshot.evaluation &&
+      ['pending', 'running'].includes(snapshot.evaluation.status)
+    )
+      observerRef.current?.start(evaluationId)
+  }, [aligned, enabled, evaluationId, snapshot])
   const refresh = useCallback(() => observerRef.current?.refresh(), [])
   const runMutation = useCallback(async (fn: () => Promise<void>) => {
     const observer = observerRef.current

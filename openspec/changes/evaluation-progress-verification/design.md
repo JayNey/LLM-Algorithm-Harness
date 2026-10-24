@@ -15,3 +15,5 @@ progress fixture 错把 connectToServer 返回的 server 端当成模拟服务�
 ## 浏览器回归补充
 
 实际 detail 场景在加载后刷新403时仍显示 model-a：一次性读取已清空但 useEvaluationLive 返回旧快照，页面优先取live；适配器也未处理核心 forbidden/error 事件。修复React返回值的启用/权限门控并在拒绝时不回退旧bootstrap；活动页面手动刷新走同一观察器，启动/取消走runMutation纪元，保留现有协调器及终态/非活动一次性读取。补HTTP403和WS4403实际浏览器断言。
+
+独立审查发现权限拒绝后的显式刷新只能恢复快照、不会恢复订阅。React适配器仅在成功HTTP返回pending/running且通道stopped、未拒绝/未失效时重新start；paused/终态仍停止。浏览器先复现重试无连接，再验证HTTP403重试重新订阅及WS4403重试后的新事件驱动80%真值。
