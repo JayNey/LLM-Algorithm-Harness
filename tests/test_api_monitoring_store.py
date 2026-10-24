@@ -5,7 +5,7 @@ import io
 import json
 import multiprocessing
 import threading
-from concurrent.futures import ThreadPoolExecutor
+from concurrent.futures import ThreadPoolExecutor, TimeoutError
 from pathlib import Path
 from types import SimpleNamespace
 
@@ -73,6 +73,32 @@ def test_llm_concurrent_writers_do_not_lose_updates(tmp_path):
     assert stats["avg_latency_ms"] == 10.0
     sample = store.llm_stats(60)["retained_sample"]
     assert sample["total_calls"] == 40 and sample["successful_calls"] == 20
+
+
+def test_llm_store_waits_for_a_contended_write_transaction(tmp_path):
+    store = MonitorStore(AuthStore(tmp_path / "auth.sqlite3"))
+    started = threading.Event()
+
+    def record():
+        started.set()
+        store.record_llm_call(True, 25.0)
+
+    with ThreadPoolExecutor(max_workers=1) as pool:
+        with store.connection() as blocker:
+            blocker.execute("BEGIN IMMEDIATE")
+            future = pool.submit(record)
+            try:
+                assert started.wait(5)
+                # A direct store writer must tolerate contention beyond the
+                # best-effort SDK capture sink's 100 ms budget.
+                with pytest.raises(TimeoutError):
+                    future.result(timeout=0.3)
+            finally:
+                blocker.rollback()
+        future.result(timeout=5)
+
+    assert store.llm_stats()["total_calls"] == 1
+    assert store.llm_stats(60)["retained_sample"]["total_calls"] == 1
 
 
 @pytest.mark.parametrize("duration", [-1, float("nan"), float("inf"), True])

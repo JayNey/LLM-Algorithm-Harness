@@ -140,8 +140,8 @@ class MonitorStore:
             raise ValueError("Invalid LLM monitoring measurement")
         now = time.time()
         with self.connection() as db:
-            # Monitoring contention must not impose the normal auth DB wait.
-            db.execute("PRAGMA busy_timeout=100")
+            # Honor the connection's policy: normal stores wait for concurrent
+            # writers; the SDK capture sink supplies its own short timeout.
             db.execute("BEGIN IMMEDIATE")
             db.execute(
                 "INSERT OR IGNORE INTO api_monitor_meta(key,value) VALUES ('llm_started_at',?)",
