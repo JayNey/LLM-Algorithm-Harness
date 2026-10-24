@@ -2,8 +2,8 @@
 
 ## 1. 簇 A：监控面板（admin）
 
-- [ ] 1.1 `monitoring/types.ts` + `client.ts`（严格解析：system/status 全量、resources、api-stats(window)、llm-stats(window)、cache-stats、system/health）+ 单测（真实形状/拒绝路径/窗口参数）
-- [ ] 1.2 SystemPage 重写：健康卡片、CPU/内存/磁盘、队列 pending/reserved、任务计数、API 统计（QPS/avg/P95/错误率）、LLM 统计、缓存命中分区；30s 轮询（可关、隐藏暂停）；沙箱/策略/提供商只读 Tab（config/*）
+- [x] 1.1 `monitoring/types.ts` + `client.ts`（严格解析：system/status 全量、resources、api-stats(window)、llm-stats(window)、cache-stats、system/health）+ 单测（真实形状/拒绝路径/窗口参数）
+- [x] 1.2 SystemPage 重写：健康卡片、CPU/内存/磁盘、队列 pending/reserved、任务计数、API 统计（QPS/avg/P95/错误率）、LLM 统计、缓存命中分区；30s 轮询（可关、隐藏暂停）；沙箱/策略/提供商只读 Tab（config/*）
 
 ## 2. 簇 B：预算与预警（owner）
 
