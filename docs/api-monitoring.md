@@ -165,7 +165,7 @@ curl http://localhost:8000/api/v1/logs/download/your-task-id \
 
 `daily_api_calls` / `monthly_api_calls` 按当前用户持久化统计真实 LLM **生成 SDK 尝试**：成功、失败及每次重试分别加一，缓存命中、模型列表、连接验证和无用户归属的 CLI 调用不计。归属来自服务端凭证解析，覆盖评估、实验、A/B 与 benchmark 的真实生成路径。
 
-服务端环境变量 `USER_DAILY_API_CALL_LIMIT` / `USER_MONTHLY_API_CALL_LIMIT` 分别配置每用户每日/月 SDK 尝试额度；未设置为无限，`0` 禁止生成，负数配置启动失败。例如日额度 1000、月额度 20000。API 和所有 worker 必须加载相同配置并共享认证数据库；修改后重启进程。
+服务端环境变量 `USER_DAILY_API_CALL_LIMIT` / `USER_MONTHLY_API_CALL_LIMIT` 分别配置每用户每日/月 SDK 尝试额度；未设置或留空为无限，`0` 禁止生成，负数配置启动失败。例如日额度 1000、月额度 20000。API 和所有 worker 必须加载相同配置并共享认证数据库；修改后重启进程。
 
 `timezone=UTC`，自然日/月周期为 `[period_start, resets_at)`，每天 UTC 00:00、每月 1 日 UTC 00:00 切换（北京时间 08:00）。无需定时清零，旧周期保留，跨进程及重启持久化，监控明细清理不影响聚合值。
 

@@ -213,3 +213,16 @@ def test_slow_admission_does_not_suppress_provider_retry(service, monkeypatch):
     assert client._call_with_retry(provider) == "response"
     assert len(attempts) == 2
     assert service.store.user_api_calls("alice")["daily_api_calls"]["used"] == 2
+
+
+def test_empty_env_limits_keep_unlimited_default(service, monkeypatch):
+    monkeypatch.setenv("USER_DAILY_API_CALL_LIMIT", "")
+    monkeypatch.setenv("USER_MONTHLY_API_CALL_LIMIT", "")
+    settings = AuthSettings(
+        _env_file=None,
+        SECRET_KEY="x" * 48,
+        ENCRYPTION_KEY=Fernet.generate_key().decode(),
+        AUTH_DATABASE_PATH=service.store.path,
+    )
+    assert settings.USER_DAILY_API_CALL_LIMIT is None
+    assert settings.USER_MONTHLY_API_CALL_LIMIT is None
