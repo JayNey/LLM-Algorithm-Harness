@@ -14,5 +14,5 @@
 ## 3. 验证与收尾
 
 - [x] 3.1 package.json glob 追加 `src/problems`；`scripts/verify-problems.mjs`（list/import/history 场景）+ QA.md 说明
-- [ ] 3.2 全量测试/tsc/eslint/prettier 绿；#163 记录验收并提交关联 PR
-- [ ] 3.3 独立审查两轮制 + 最后 commit 后三件套重验
+- [x] 3.2 全量测试/tsc/eslint/prettier 绿；#163 记录验收并提交关联 PR
+- [x] 3.3 独立审查两轮制 + 最后 commit 后三件套重验
