@@ -120,9 +120,19 @@ test('同步直导解析完整 validation 报告与错误明细', async () => {
             total: 5,
             valid: 3,
             invalid: 2,
+            // api/files/parsing.py problem_error 真实形状
             errors: [
-              { index: 1, error: 'description: missing' },
-              { index: 3, error: 'test_cases: wrong type' },
+              {
+                index: 1,
+                errors: [
+                  { field: 'description', type: 'missing' },
+                  { field: 'tags', type: 'string_type' },
+                ],
+              },
+              {
+                index: 3,
+                errors: [{ field: 'problem', type: 'invalid_schema' }],
+              },
             ],
             errors_truncated: false,
             file_id: 'f1',
@@ -138,14 +148,27 @@ test('同步直导解析完整 validation 报告与错误明细', async () => {
   assert.equal(result.validation.imported, 3)
   assert.equal(result.validation.duplicates, 1)
   assert.equal(result.validation.errors[0].index, 1)
+  assert.deepEqual(result.validation.errors[0].errors, [
+    { field: 'description', type: 'missing' },
+    { field: 'tags', type: 'string_type' },
+  ])
   assert.ok(seen[0].body instanceof FormData)
 })
 
 test('异步导入链路：上传 → 触发 → 进度含终态报告', async () => {
   const { client, seen } = clientFor(({ method, url }) => {
     if (method === 'POST' && url === '/files/upload')
+      // 真实形状：data.file 元数据（service._persist）
       return {
-        data: { file_id: 'f9', filename: 'p.json', size_bytes: 1024 },
+        data: {
+          file: {
+            id: 'f9',
+            filename: 'p.json',
+            suffix: '.json',
+            size: 1024,
+          },
+          parsed: true,
+        },
       }
     if (method === 'POST' && url === '/problems/import')
       return { data: { job_id: 'j9', task_id: 't9', status: 'pending' } }
@@ -154,9 +177,10 @@ test('异步导入链路：上传 → 触发 → 进度含终态报告', async (
         data: {
           job_id: 'j9',
           status: 'completed',
-          processed: 3,
-          total: 3,
-          percentage: 100,
+          processed: 100,
+          total: 150,
+          // 真除法浮点进度（routes/files.py processed/total*100）
+          percentage: 66.66666666666667,
           result: {
             total: 3,
             valid: 3,
@@ -174,15 +198,41 @@ test('异步导入链路：上传 → 触发 → 进度含终态报告', async (
   })
   const uploaded = await client.uploadFile(new File(['[]'], 'p.json'))
   assert.equal(uploaded.file_id, 'f9')
+  assert.equal(uploaded.size_bytes, 1024)
   const started = await client.startImport('f9', 'append')
   assert.equal(started.task_id, 't9')
   const progress = await client.importJob('j9')
   assert.equal(progress.status, 'completed')
+  assert.equal(progress.percentage, 66.66666666666667)
   assert.equal(progress.result?.imported, 3)
   assert.deepEqual(
     seen.map((c) => c.url),
     ['/files/upload', '/problems/import', '/imports/j9'],
   )
+})
+
+test('失败终态的 result 是 {status_code,detail} 而非报告', async () => {
+  const { client } = clientFor(({ url }) => {
+    if (url === '/imports/j-bad')
+      return {
+        data: {
+          job_id: 'j-bad',
+          status: 'failed',
+          processed: 2,
+          total: 5,
+          percentage: 40,
+          result: {
+            status_code: 409,
+            detail: 'Import interrupted or timed out',
+          },
+        },
+      }
+    return undefined
+  })
+  const failed = await client.importJob('j-bad')
+  assert.equal(failed.status, 'failed')
+  assert.equal(failed.result, null)
+  assert.equal(failed.failureDetail, 'Import interrupted or timed out')
 })
 
 test('评估历史条目与可空指标解析', async () => {

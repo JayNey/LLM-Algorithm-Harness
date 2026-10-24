@@ -1,11 +1,13 @@
 # Design: problems-frontend
 
 > 范围：#163 真实契约子集。范围对齐声明见 issue #163 留言（2026-10-24）。基线 d0f275c。
+>
+> 流程确认（2026-10-24）：约 10 文件超 tweak 提示阈值；与前两步（#166 实验簇/基准簇，均为自包含前端簇且用户两次确认继续 tweak）完全同构，无跨模块架构协调、无后端改动。按既定先例继续 tweak。
 
 ## 契约盘点（upstream/main d0f275c，侦察已逐行核对）
 
 - **列表**：`GET /evaluation-options/problems?source=all|shared|personal&limit(1..100)&offset` → `PaginatedData[ProblemOption{problem_id,title,difficulty|null,source:shared|personal}]`（固定 problem_id 升序；个人覆盖共享同 ID；**刻意不下发 description/tags/test_cases/source_url**，测试有防泄漏断言）。`GET /evaluation-options` → strategies + sources[{id,label,problem_count}]。
-- **导入**：`POST /problems/upload`（multipart：file + mode=append|overwrite + validate=true，同步直导，响应 `data={file_id,job_id,validation:{total,valid,invalid,errors[{index,field?,error?}] 上限200,errors_truncated,file_id,duplicates,imported,dataset_total}}`，失败回删文件）；`POST /problems/import`（JSON：file_id + mode，202 → `{job_id,task_id,status:pending}`）；`GET /imports/{job_id}` → `{job_id,status,processed,total,percentage,result}`。上传前置 `POST /files/upload` 拿 file_id（异步通道）；限制：≤100MiB、.json/.yaml/.yml/.csv、速率 10 次/窗口。
+- **导入**：`POST /problems/upload`（multipart：file + mode=append|overwrite + validate=true，同步直导，响应 `data={file_id,job_id,validation:{total,valid,invalid,errors:[{index,errors:[{field,type}]}] 上限200条,errors_truncated,file_id,duplicates,imported,dataset_total}}`——错误明细形状见 api/files/parsing.py `problem_error`；失败回删文件）；`POST /problems/import`（JSON：file_id + mode，202 → `{job_id,task_id,status:pending}`）；`GET /imports/{job_id}` → `{job_id,status,processed,total,percentage(浮点，真除法),result}`——**completed 的 result 是 validation 报告，failed 的是 {status_code,detail}**（store.fail_job）。上传前置 `POST /files/upload`（响应 `data={file:{id,filename,size,...},parsed}`）拿 file_id（异步通道）；限制：≤100MiB、**导入管道仅 .json/.csv**（create_job 白名单；YAML 只在解析层存在）、速率 10 次/窗口。
 - **导出**：`GET /problems/export?format=json|csv`（仅个人题库，全量含测试用例）→ 文件流。
 - **历史**：`GET /results/problems/{problem_id}?status&limit&offset` → `PaginatedData[{problem_id,strategy,status,iterations|null,tokens|null,execution_time|null,run_id}]`（仅本人）。
 - **前端现状**：`/problems` 路由已注册指向 Mock；四簇模式齐备（严格解析/session/useList/表格样式）；antd Upload 可用；无 markdown/饼图依赖（本 change 不需要）。

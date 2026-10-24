@@ -126,24 +126,26 @@ function mockRoute(context) {
       })
     }
     if (method === 'POST' && path === '/problems/upload')
-      return reply(
-        {
+      return reply({
+        file_id: 'f-import-1',
+        job_id: 'j-import-1',
+        validation: {
+          total: 3,
+          valid: 2,
+          invalid: 1,
+          errors: [
+            {
+              index: 1,
+              errors: [{ field: 'description', type: 'missing' }],
+            },
+          ],
+          errors_truncated: false,
           file_id: 'f-import-1',
-          job_id: 'j-import-1',
-          validation: {
-            total: 3,
-            valid: 2,
-            invalid: 1,
-            errors: [{ index: 1, error: 'description: missing' }],
-            errors_truncated: false,
-            file_id: 'f-import-1',
-            duplicates: 1,
-            imported: 2,
-            dataset_total: 4,
-          },
+          duplicates: 1,
+          imported: 2,
+          dataset_total: 4,
         },
-        201,
-      )
+      })
     if (method === 'GET' && path.startsWith('/results/problems/'))
       return reply({
         items: [
@@ -214,6 +216,10 @@ async function importScenario(page) {
     assert.ok((await page.getByText('无效 1').count()) >= 1)
     assert.ok((await page.getByText('重复 1').count()) >= 1)
     assert.ok((await page.getByText('第 2 条').count()) >= 1)
+    assert.ok(
+      (await page.getByText('description（missing）').count()) >= 1,
+      '错误明细按 {field,type} 真实形状渲染',
+    )
   })
   await page.screenshot({ path: resolve(outDir, 'import.png'), fullPage: true })
   report.screenshots.push('import.png')

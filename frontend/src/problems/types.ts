@@ -43,7 +43,11 @@ export interface ImportValidation {
   total: number
   valid: number
   invalid: number
-  errors: { index: number; error: string }[]
+  /** api/files/parsing.py problem_error：{index, errors:[{field,type}]} */
+  errors: {
+    index: number
+    errors: { field: string; type: string }[]
+  }[]
   errors_truncated: boolean
   file_id: string | null
   duplicates: number
@@ -57,7 +61,7 @@ export interface DirectImportResult {
   validation: ImportValidation
 }
 
-/** 异步导入：上传文件元数据（POST /files/upload 的 data.file）。 */
+/** 异步导入：POST /files/upload 的 data.file（api/files/service.py _persist 形状）。 */
 export interface UploadedFile {
   file_id: string
   filename: string | null
@@ -70,7 +74,7 @@ export interface ImportJobStarted {
   status: string
 }
 
-/** GET /imports/{job_id} 进度。 */
+/** GET /imports/{job_id} 进度；失败终态的 result 是 {status_code,detail} 而非报告。 */
 export interface ImportJobProgress {
   job_id: string
   status: string
@@ -78,6 +82,8 @@ export interface ImportJobProgress {
   total: number
   percentage: number
   result: ImportValidation | null
+  /** 失败终态时从 result.detail 提取的错误说明 */
+  failureDetail: string | null
 }
 
 /** 单题评估历史条目（/results/problems/{id}）。 */

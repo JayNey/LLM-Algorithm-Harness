@@ -26,6 +26,10 @@ function text(value: unknown, field: string, allowEmpty = false): string {
     protocol(field)
   return value
 }
+function boolean(value: unknown, field: string): boolean {
+  if (typeof value !== 'boolean') protocol(field)
+  return value
+}
 function count(value: unknown, field: string): number {
   if (typeof value !== 'number' || !Number.isSafeInteger(value) || value < 0)
     protocol(field)
@@ -61,7 +65,7 @@ function page<T>(
     total: count(data.total, `${field}.total`),
     limit,
     offset: count(data.offset, `${field}.offset`),
-    has_more: data.has_more === true,
+    has_more: boolean(data.has_more, `${field}.has_more`),
   }
 }
 function problemSource(value: unknown, field: string) {
@@ -109,19 +113,29 @@ function validation(value: unknown): ImportValidation {
     errors: array(
       data.errors,
       (item, field) => {
+        // api/files/parsing.py problem_error：{index, errors:[{field,type}]}
         const row = record(item, field)
         return {
           index: count(row.index, `${field}.index`),
-          error: text(
-            row.error ?? row.message ?? row.detail,
-            `${field}.error`,
-            true,
+          errors: array(
+            row.errors,
+            (detail, detailField) => {
+              const cell = record(detail, detailField)
+              return {
+                field: text(cell.field, `${detailField}.field`, true),
+                type: text(cell.type, `${detailField}.type`, true),
+              }
+            },
+            `${field}.errors`,
           ),
         }
       },
       'validation.errors',
     ),
-    errors_truncated: data.errors_truncated === true,
+    errors_truncated: boolean(
+      data.errors_truncated,
+      'validation.errors_truncated',
+    ),
     file_id:
       data.file_id === null || data.file_id === undefined
         ? null
@@ -142,18 +156,16 @@ function directImportResult(value: unknown): DirectImportResult {
 }
 
 function uploadedFile(value: unknown): UploadedFile {
+  // /files/upload 的 data 形状：{file: {id, filename, size, ...}, parsed}
   const data = record(value, 'upload')
-  const filename: unknown = data.filename ?? data.original_filename
+  const file = record(data.file, 'upload.file')
   return {
-    file_id: text(data.file_id ?? data.id, 'upload.file_id'),
+    file_id: text(file.id, 'upload.file.id'),
     filename:
-      filename === null || filename === undefined
+      file.filename === null || file.filename === undefined
         ? null
-        : text(filename, 'upload.filename'),
-    size_bytes: nullableNumber(
-      data.size_bytes ?? data.size,
-      'upload.size_bytes',
-    ),
+        : text(file.filename, 'upload.file.filename'),
+    size_bytes: nullableNumber(file.size, 'upload.file.size'),
   }
 }
 
@@ -168,16 +180,38 @@ function importStarted(value: unknown): ImportJobStarted {
 
 function importProgress(value: unknown): ImportJobProgress {
   const data = record(value, 'import-job')
+  const status = text(data.status, 'import-job.status')
+  // percentage 是浮点（processed/total*100 真除法），不能走整数校验
+  const percentage = data.percentage
+  if (
+    typeof percentage !== 'number' ||
+    !Number.isFinite(percentage) ||
+    percentage < 0 ||
+    percentage > 100
+  )
+    protocol('import-job.percentage')
+  let result: ImportValidation | null = null
+  let failureDetail: string | null = null
+  if (data.result !== null && data.result !== undefined) {
+    if (status === 'completed') {
+      result = validation(data.result)
+    } else {
+      // 失败终态的 result 是 {status_code, detail}，不是导入报告
+      const failure = record(data.result, 'import-job.result')
+      failureDetail =
+        failure.detail === null || failure.detail === undefined
+          ? null
+          : text(String(failure.detail), 'import-job.result.detail', true)
+    }
+  }
   return {
     job_id: text(data.job_id, 'import-job.job_id'),
-    status: text(data.status, 'import-job.status'),
+    status,
     processed: count(data.processed, 'import-job.processed'),
     total: count(data.total, 'import-job.total'),
-    percentage: count(data.percentage, 'import-job.percentage'),
-    result:
-      data.result === null || data.result === undefined
-        ? null
-        : validation(data.result),
+    percentage,
+    result,
+    failureDetail,
   }
 }
 
@@ -200,7 +234,8 @@ function historyItem(value: unknown, field: string): ProblemHistoryItem {
   }
 }
 
-const ALLOWED_SUFFIXES = ['.json', '.yaml', '.yml', '.csv']
+// 导入管道（create_job）只接受 .json/.csv；YAML 仅存在于解析层，不走导入
+const ALLOWED_SUFFIXES = ['.json', '.csv']
 export const DIRECT_IMPORT_MAX_BYTES = 5 * 1024 * 1024
 
 // 注入 useAuthStore 提供的同一已解包实例，沿用 Cookie、CSRF 和共享刷新。

@@ -3,7 +3,7 @@
 ## 1. 数据层
 
 - [x] 1.1 `problems/types.ts` + `client.ts`：严格解析（options/problems 复用契约、uploadProblems multipart 同步、startImport/importJob 异步、problemHistory、exportUrl 构造）+ `session.tsx`；单测 client.test（各拒绝路径、validation 报告形状、导入作业形状）
-- [x] 1.2 `validation.ts`（文件必选、mode 白名单、格式 .json/.yaml/.yml/.csv、同步阈值 5MiB）+ `presentation.ts`（难度/来源/导入状态中文标签）；单测 validation.test
+- [x] 1.2 `validation.ts`（URL 来源白名单回填）+ `presentation.ts`（难度/来源/导入状态中文标签）；文件/mode 校验内联于 client.ts（validateImportFile），测试归并在 client.test（复审修正记录）
 
 ## 2. 页面
 

@@ -1,6 +1,6 @@
 import { Alert, Button, Drawer, Select, Skeleton, Upload } from 'antd'
 import type { UploadFile } from 'antd'
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import { ExperimentFeedback } from '@/experiments/components.tsx'
 import { useList } from '@/evaluations/useList.ts'
@@ -46,7 +46,10 @@ function ValidationReport({ report }: { report: ImportValidation }) {
           <ul>
             {report.errors.map((error, index) => (
               <li key={index}>
-                第 {error.index + 1} 条：{error.error || '格式无效'}
+                第 {error.index + 1} 条：
+                {error.errors
+                  .map((detail) => `${detail.field}（${detail.type}）`)
+                  .join('、') || '格式无效'}
               </li>
             ))}
           </ul>
@@ -57,7 +60,13 @@ function ValidationReport({ report }: { report: ImportValidation }) {
   )
 }
 
-function ImportPanel({ onImported }: { onImported: () => void }) {
+function ImportPanel({
+  onImported,
+  onClose,
+}: {
+  onImported: () => void
+  onClose: () => void
+}) {
   const { client } = useProblemSession()
   const [file, setFile] = useState<File | null>(null)
   const [mode, setMode] = useState<ImportMode>('append')
@@ -65,25 +74,37 @@ function ImportPanel({ onImported }: { onImported: () => void }) {
   const [error, setError] = useState<string | null>(null)
   const [report, setReport] = useState<ImportValidation | null>(null)
   const [progress, setProgress] = useState<ImportJobProgress | null>(null)
+  const pollFailures = useRef(0)
 
   useEffect(() => {
-    // 异步导入轮询：终态停止；终态处理并入轮询回调（外部系统回调内 setState）
+    // 异步导入轮询：终态停止；失败重试有上限（连续 3 次无进展则停并提示）
     if (!progress || IMPORT_TERMINAL.has(progress.status)) return
     const controller = new AbortController()
     const timer = setTimeout(() => {
       void client
         .importJob(progress.job_id, controller.signal)
         .then((next) => {
+          pollFailures.current = 0
           setProgress(next)
           if (next.status === 'completed' && next.result) {
             setReport(next.result)
             onImported()
           } else if (next.status === 'failed') {
-            setError('导入任务失败，请检查文件格式后重试。')
+            setError(
+              next.failureDetail
+                ? `导入任务失败：${next.failureDetail}`
+                : '导入任务失败，请检查文件格式后重试。',
+            )
           }
         })
         .catch(() => {
-          // 单次失败不中断，下一周期重试
+          pollFailures.current += 1
+          if (pollFailures.current >= 3) {
+            setError('进度查询连续失败，请稍后刷新页面查看导入结果。')
+            return
+          }
+          // 触发重排：同对象新引用让 effect 重新调度下一周期
+          setProgress({ ...progress })
         })
     }, IMPORT_POLL_MS)
     return () => {
@@ -133,6 +154,7 @@ function ImportPanel({ onImported }: { onImported: () => void }) {
             total: 0,
             percentage: 0,
             result: null,
+            failureDetail: null,
           }),
         )
         .catch((cause: unknown) =>
@@ -145,9 +167,7 @@ function ImportPanel({ onImported }: { onImported: () => void }) {
   return (
     <div className="panel evaluation-panel" aria-label="题目导入">
       <h3>导入题目（个人题库）</h3>
-      <p>
-        支持 JSON / CSV / YAML 文件；小于 5MiB 直接导入，大文件转入后台任务。
-      </p>
+      <p>支持 JSON / CSV 文件；小于 5MiB 直接导入，大文件转入后台任务。</p>
       {error && <Alert role="alert" type="error" message={error} />}
       <Upload
         aria-label="导入文件选择"
@@ -191,10 +211,14 @@ function ImportPanel({ onImported }: { onImported: () => void }) {
       >
         {busy ? '导入中…' : '开始导入'}
       </Button>
+      <Button aria-label="关闭导入面板" disabled={busy} onClick={onClose}>
+        收起
+      </Button>
       {progress && !IMPORT_TERMINAL.has(progress.status) && (
         <p role="status">
           {importStatusLabel(progress.status)} · {progress.processed} /{' '}
-          {progress.total || '…'}（{progress.percentage}%）
+          {progress.total || '…'}（{Math.round(progress.percentage)}%）
+          {progress.status === 'paused' && '（已暂停，可在任务列表恢复或取消）'}
         </p>
       )}
       {report && <ValidationReport report={report} />}
@@ -211,6 +235,7 @@ function HistoryDrawer({
 }) {
   const { client } = useProblemSession()
   const [offset, setOffset] = useState(0)
+  // 抽屉关闭（problem=null）时不发请求：短路 owner 阻止 useList 取数
   const load = useCallback(
     (query: { limit: number; offset: number }, signal: AbortSignal) =>
       client.problemHistory(problem?.problem_id ?? '', query, signal),
@@ -220,7 +245,7 @@ function HistoryDrawer({
     () => ({ source: 'all', limit: 20, offset }),
     [offset],
   )
-  const list = useList<ProblemHistoryItem>(load, query, 'owner-fixed')
+  const list = useList<ProblemHistoryItem>(load, query, problem ? 'owner' : '')
   const data = list.data as ApiPage<ProblemHistoryItem> | undefined
   const items = data?.items ?? []
   const passed = items.filter((item) => item.status === 'passed').length
@@ -386,7 +411,12 @@ export default function ProblemsPage() {
             <span role="status">共 {data.total} 道题目</span>
           )}
         </div>
-        {importOpen && <ImportPanel onImported={list.reload} />}
+        {importOpen && (
+          <ImportPanel
+            onImported={list.reload}
+            onClose={() => setImportOpen(false)}
+          />
+        )}
         {list.status === 'loading' ? (
           <div aria-busy="true">
             <p role="status">正在加载题目…</p>
