@@ -7,15 +7,21 @@ across restarts and multiple processes using the same database file.
 import hashlib
 import os
 import sqlite3
+import threading
 import time
+import weakref
 from collections.abc import Iterator
 from contextlib import contextmanager
 from pathlib import Path
 from typing import Any
 
+from api.monitoring.database_metrics import MeasuredSQLiteConnection, SQLiteQueryMetrics
+
 
 class AuthStore:
     def __init__(self, path: Path):
+        self._query_metrics: weakref.WeakSet[SQLiteQueryMetrics] = weakref.WeakSet()
+        self._query_metrics_lock = threading.Lock()
         self.path = path
         path.parent.mkdir(parents=True, exist_ok=True, mode=0o700)
         # Create with restrictive permissions before SQLite writes any secrets.
@@ -54,9 +60,19 @@ class AuthStore:
             if "masked_preview" not in columns:
                 db.execute("ALTER TABLE auth_keys ADD COLUMN masked_preview TEXT")
 
+    def attach_query_metrics(self, metrics: SQLiteQueryMetrics) -> None:
+        with self._query_metrics_lock:
+            self._query_metrics.add(metrics)
+
+    def detach_query_metrics(self, metrics: SQLiteQueryMetrics) -> None:
+        with self._query_metrics_lock:
+            self._query_metrics.discard(metrics)
+
     @contextmanager
     def connection(self) -> Iterator[sqlite3.Connection]:
-        db = sqlite3.connect(self.path, timeout=10)
+        db = sqlite3.connect(self.path, timeout=10, factory=MeasuredSQLiteConnection)
+        with self._query_metrics_lock:
+            db.query_collectors = tuple(self._query_metrics)
         db.row_factory = sqlite3.Row
         db.execute("PRAGMA foreign_keys=ON")
         try:

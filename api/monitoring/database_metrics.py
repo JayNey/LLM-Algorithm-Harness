@@ -1,4 +1,4 @@
-"""Bounded cursor execution metrics for one engine in the current process.
+"""Bounded execution metrics for bound database sources in the current process.
 
 These records are not durable or shared between workers. SQL text, parameters,
 connection URLs and exception messages are never copied into the samples. The
@@ -6,6 +6,7 @@ latency covers cursor execution, excluding connection acquisition and fetching.
 """
 
 import math
+import sqlite3
 import threading
 import time
 import uuid
@@ -138,7 +139,9 @@ def _bridge_for_engine(engine: Engine) -> _EngineBridge:
 
 
 class DatabaseQueryMetrics:
-    def __init__(self, engine: Engine, retention_seconds: int = 604800, max_rows: int = 10000):
+    def __init__(
+        self, engine: Engine | None, retention_seconds: int = 604800, max_rows: int = 10000
+    ):
         if retention_seconds < 1 or max_rows < 1:
             raise ValueError("Query metrics retention and row limit must be positive")
         self.engine = engine
@@ -157,7 +160,7 @@ class DatabaseQueryMetrics:
         # Separate collectors can observe the same engine without overwriting
         # each other's execution start values on the transient context.
         self._context_key = "_llm_query_monitor_" + uuid.uuid4().hex
-        self._bridge = _bridge_for_engine(engine)
+        self._bridge = _bridge_for_engine(engine) if engine is not None else _EngineBridge()
         self._bridge.add(self)
         with self._lock:
             # Only promise collection coverage once all listeners are bound.
@@ -324,3 +327,65 @@ class DatabaseQueryMetrics:
         # flag prevents any further capture. Never mutate SQLAlchemy's event
         # deques during a concurrent cursor execution.
         self._bridge.discard(self)
+
+
+class SQLiteQueryMetrics(DatabaseQueryMetrics):
+    """The same bounded window semantics for operation-scoped SQLite stores."""
+
+    def __init__(self, retention_seconds: int = 604800, max_rows: int = 10000):
+        super().__init__(None, retention_seconds, max_rows)
+
+    def stats(self, window_seconds: int = 60) -> dict[str, Any]:
+        return {
+            **super().stats(window_seconds),
+            "scope": "bound_auth_file_store_current_process",
+            "latency_scope": "sqlite_execution_call_excludes_connect_and_fetch",
+        }
+
+
+class MeasuredSQLiteCursor(sqlite3.Cursor):
+    def _execute(self, method: Any, *args: Any) -> Any:
+        collectors = self.connection.query_collectors
+        starts = []
+        for collector in collectors:
+            try:
+                starts.append((collector, time.perf_counter()))
+            except Exception:
+                collector._safe_gap()
+        succeeded = False
+        try:
+            result = method(*args)
+            succeeded = True
+            return result
+        finally:
+            for collector, started in starts:
+                try:
+                    collector._record((time.perf_counter() - started) * 1000, succeeded)
+                except Exception:
+                    collector._safe_gap()
+
+    def execute(self, *args: Any) -> Any:
+        return self._execute(super().execute, *args)
+
+    def executemany(self, *args: Any) -> Any:
+        return self._execute(super().executemany, *args)
+
+    def executescript(self, *args: Any) -> Any:
+        # One script call is one sample, including partially failed scripts.
+        return self._execute(super().executescript, *args)
+
+
+class MeasuredSQLiteConnection(sqlite3.Connection):
+    query_collectors: tuple[SQLiteQueryMetrics, ...] = ()
+
+    def cursor(self, factory: Any = MeasuredSQLiteCursor) -> Any:
+        return super().cursor(factory)
+
+    def execute(self, *args: Any) -> Any:
+        return self.cursor().execute(*args)
+
+    def executemany(self, *args: Any) -> Any:
+        return self.cursor().executemany(*args)
+
+    def executescript(self, *args: Any) -> Any:
+        return self.cursor().executescript(*args)
