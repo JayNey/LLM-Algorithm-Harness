@@ -552,6 +552,7 @@ class LLMConfig(BaseModel):
 
     # Bound only by trusted server credential resolution; never serialized.
     _record_api_attempt: Callable[[], None] | None = PrivateAttr(default=None)
+    _reserve_api_attempt: Callable[[], None] | None = PrivateAttr(default=None)
 
     provider: Literal["openai", "anthropic", "local", "siliconflow"] = Field(
         ..., description="Provider type"
