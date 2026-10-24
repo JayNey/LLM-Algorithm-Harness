@@ -5,4 +5,6 @@
 
 ## 2. 集成验证
 
-- [ ] 2.1 补充配置与部署说明，运行评估/TaskManager/API 回归、格式检查和编译，并记录最终验证证据。
+- [x] 2.1 补充配置与部署说明，运行评估/TaskManager/API 回归、格式检查和编译，并记录最终验证证据。
+
+构建证据：定向回归 163 passed；新增准入测试 18 passed；ruff、black、compileall 和 OpenSpec strict validate 通过。命令输出保存在 `/private/tmp/user-evaluation-concurrency-final-regression.log` 与 `/private/tmp/user-evaluation-concurrency-final-target.log`；验证阶段另行汇总完整套件结果和审查结论。
