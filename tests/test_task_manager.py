@@ -749,3 +749,39 @@ class TestResumeTask:
         db_session.expire_all()
         row = db_session.query(AsyncTask).filter_by(id=task.id).one()
         assert row.status == "paused"
+
+
+@pytest.mark.parametrize("progress", [False, True])
+def test_execution_timestamps_survive_duplicates_and_reset_end_on_retry(
+    db_session, task_manager, progress
+):
+    from datetime import datetime
+
+    task = AsyncTask(
+        id="timing", celery_task_id="timing", task_type="evaluation", entity_id="e", user_id="u"
+    )
+    db_session.add(task)
+    db_session.commit()
+
+    def transition(status):
+        if progress:
+            task_manager.update_task_progress(task.id, {"current": 0}, status)
+        else:
+            task_manager.update_task_status(task.id, status)
+
+    transition("running")
+    assert task.started_at is not None
+    first = datetime(2026, 1, 1)
+    task.started_at = first
+    db_session.commit()
+    transition("running")
+    assert task.started_at == first
+    transition("failed")
+    assert task.completed_at is not None
+    end = task.completed_at
+    transition("failed")
+    assert task.completed_at == end
+    transition("running")
+    assert task.started_at == first and task.completed_at is None
+    transition("completed")
+    assert task.completed_at is not None

@@ -5,7 +5,7 @@ import io
 import json
 import multiprocessing
 import threading
-from concurrent.futures import ThreadPoolExecutor
+from concurrent.futures import ThreadPoolExecutor, TimeoutError
 from pathlib import Path
 from types import SimpleNamespace
 
@@ -27,6 +27,88 @@ def clock(monkeypatch):
     value = [100.0]
     monkeypatch.setattr(store_module, "time", SimpleNamespace(time=lambda: value[0]))
     return value
+
+
+def test_llm_calls_persist_across_connections_without_request_payloads(tmp_path):
+    path = tmp_path / "auth.sqlite3"
+    writer = MonitorStore(AuthStore(path))
+    empty = writer.llm_stats()
+    assert empty["total_calls"] == 0
+    assert empty["success_rate"] is None and empty["avg_latency_ms"] is None
+    assert empty["started_at"] is None
+    writer.record_llm_call(True, 125.0)
+    MonitorStore(AuthStore(path)).record_llm_call(False, 375.0)
+    stats = MonitorStore(AuthStore(path)).llm_stats()
+    assert stats["total_calls"] == 2
+    assert stats["successful_calls"] == stats["failed_calls"] == 1
+    assert stats["success_rate"] == 0.5 and stats["avg_latency_ms"] == 250.0
+    assert stats["started_at"] > 0
+    assert stats["collection_mode"] == "best_effort"
+    assert stats["scope"] == "recorded_completed_attempts_shared_auth_database"
+    with writer.connection() as db:
+        rows = db.execute(
+            "SELECT key,value FROM api_monitor_meta WHERE key LIKE 'llm_%'"
+        ).fetchall()
+        assert {row[0] for row in rows} >= {
+            "llm_total_calls",
+            "llm_successful_calls",
+            "llm_failed_calls",
+            "llm_duration_ms",
+            "llm_started_at",
+        }
+        assert all(isinstance(row[1], (int, float)) for row in rows)
+        assert db.execute("SELECT COUNT(*) FROM api_monitor_logs").fetchone()[0] == 0
+        calls = db.execute("SELECT * FROM api_monitor_llm_calls").fetchall()
+        assert len(calls) == 2
+        assert all(isinstance(value, (int, float)) for call in calls for value in call)
+
+
+def test_llm_concurrent_writers_do_not_lose_updates(tmp_path):
+    store = MonitorStore(AuthStore(tmp_path / "auth.sqlite3"))
+    with ThreadPoolExecutor(max_workers=4) as pool:
+        list(pool.map(lambda i: store.record_llm_call(i % 2 == 0, 10.0), range(40)))
+    stats = store.llm_stats()
+    assert stats["total_calls"] == 40
+    assert stats["successful_calls"] == stats["failed_calls"] == 20
+    assert stats["avg_latency_ms"] == 10.0
+    sample = store.llm_stats(60)["retained_sample"]
+    assert sample["total_calls"] == 40 and sample["successful_calls"] == 20
+
+
+def test_llm_store_waits_for_a_contended_write_transaction(tmp_path):
+    store = MonitorStore(AuthStore(tmp_path / "auth.sqlite3"))
+    started = threading.Event()
+
+    def record():
+        started.set()
+        store.record_llm_call(True, 25.0)
+
+    with ThreadPoolExecutor(max_workers=1) as pool:
+        with store.connection() as blocker:
+            blocker.execute("BEGIN IMMEDIATE")
+            future = pool.submit(record)
+            try:
+                assert started.wait(5)
+                # A direct store writer must tolerate contention beyond the
+                # best-effort SDK capture sink's 100 ms budget.
+                with pytest.raises(TimeoutError):
+                    future.result(timeout=0.3)
+            finally:
+                blocker.rollback()
+        future.result(timeout=5)
+
+    assert store.llm_stats()["total_calls"] == 1
+    assert store.llm_stats(60)["retained_sample"]["total_calls"] == 1
+
+
+@pytest.mark.parametrize("duration", [-1, float("nan"), float("inf"), True])
+def test_invalid_llm_measurement_does_not_change_counters(tmp_path, duration):
+    store = MonitorStore(AuthStore(tmp_path / "auth.sqlite3"))
+    with pytest.raises(ValueError):
+        store.record_llm_call(True, duration)
+    with pytest.raises(ValueError):
+        store.record_llm_call("success", 1.0)
+    assert store.llm_stats()["total_calls"] == 0
 
 
 def test_persistence_and_full_window_statistics(tmp_path, clock):
@@ -111,6 +193,7 @@ def _write_from_process(path: str, index: int) -> None:
     for offset in range(4):
         store.record_request("GET", "/process", 200, index + offset)
         store.append_log("INFO", f"process-{index}-{offset}")
+        store.record_llm_call(True, 10)
 
 
 def test_spawned_processes_share_persistent_records(tmp_path):
@@ -129,6 +212,7 @@ def test_spawned_processes_share_persistent_records(tmp_path):
     store = MonitorStore(AuthStore(path))
     assert store.api_stats()["retained_sample"]["request_count"] == 12
     assert store.query_logs()[1] == 12
+    assert store.llm_stats(60)["retained_sample"]["total_calls"] == 12
 
 
 def test_log_filtering_pagination_and_literal_search(tmp_path, clock):
@@ -484,3 +568,82 @@ def test_endpoint_statistics_group_methods_and_preserve_incomplete_sample(tmp_pa
     for item in incomplete["endpoints"]:
         assert not item["window_complete"] and item["count"] is None and item["error_rate"] is None
         assert item["avg_response_time_ms"] is None and item["retained_sample"]["count"] > 0
+
+
+def test_llm_window_uses_completion_time_and_inclusive_boundaries(tmp_path, clock):
+    store = MonitorStore(AuthStore(tmp_path / "auth.sqlite3"))
+    for when, success, duration in [
+        (109, True, 999),
+        (110, True, 100),
+        (135, False, 300),
+        (170, True, 200),
+        (171, False, 999),
+    ]:
+        clock[0] = when
+        store.record_llm_call(success, duration)
+    clock[0] = 170
+    stats = MonitorStore(AuthStore(store.auth_store.path)).llm_stats(60)
+    assert stats["window_complete"] is True
+    assert stats["window_start"] == 110 and stats["window_end"] == 170
+    assert stats["window_seconds"] == 60
+    assert stats["total_calls"] == 3
+    assert stats["successful_calls"] == 2 and stats["failed_calls"] == 1
+    assert stats["success_rate"] == pytest.approx(2 / 3)
+    assert stats["avg_latency_ms"] == 200
+    assert store.llm_stats()["total_calls"] == 5
+
+
+def test_llm_window_empty_and_startup_do_not_invent_history(tmp_path, clock):
+    store = MonitorStore(AuthStore(tmp_path / "auth.sqlite3"))
+    startup = store.llm_stats(60)
+    assert not startup["window_complete"] and startup["total_calls"] is None
+    assert startup["retained_sample"]["total_calls"] == 0
+    clock[0] = 160
+    empty = store.llm_stats(60)
+    assert empty["window_complete"] and empty["total_calls"] == 0
+    assert empty["success_rate"] is None and empty["avg_latency_ms"] is None
+
+
+@pytest.mark.parametrize("limits", [{"max_rows": 2}, {"retention_seconds": 30}])
+def test_llm_window_pruning_survives_restart_without_losing_cumulative(tmp_path, clock, limits):
+    store = MonitorStore(AuthStore(tmp_path / "auth.sqlite3"), **limits)
+    for when in (110, 120, 121):
+        clock[0] = when
+        store.record_llm_call(True, 100)
+    clock[0] = 160
+    restarted = MonitorStore(AuthStore(store.auth_store.path), **limits)
+    stats = restarted.llm_stats(60)
+    assert not stats["window_complete"] and stats["total_calls"] is None
+    assert stats["pruned_through"] >= 110
+    assert stats["retained_sample"]["total_calls"] == (2 if "max_rows" in limits else 0)
+    assert restarted.llm_stats()["total_calls"] == 3
+    clock[0] = 182
+    assert restarted.llm_stats(60)["window_complete"]
+
+
+def test_llm_window_upgrade_preserves_cumulative_without_backfill(tmp_path, clock):
+    auth = AuthStore(tmp_path / "auth.sqlite3")
+    with auth.connection() as db:
+        db.execute("CREATE TABLE api_monitor_meta(key TEXT PRIMARY KEY, value REAL NOT NULL)")
+        db.executemany(
+            "INSERT INTO api_monitor_meta VALUES (?,?)",
+            [
+                ("llm_started_at", 1),
+                ("llm_total_calls", 2),
+                ("llm_successful_calls", 1),
+                ("llm_failed_calls", 1),
+                ("llm_duration_ms", 400),
+            ],
+        )
+    store = MonitorStore(auth)
+    assert store.llm_stats()["total_calls"] == 2
+    assert not store.llm_stats(60)["window_complete"]
+    clock[0] = 160
+    assert store.llm_stats(60)["total_calls"] == 0
+
+
+@pytest.mark.parametrize("window", [0, -1, 86401, True, 1.5, "60"])
+def test_llm_window_rejects_invalid_window(tmp_path, window):
+    store = MonitorStore(AuthStore(tmp_path / "auth.sqlite3"))
+    with pytest.raises(ValueError):
+        store.llm_stats(window)

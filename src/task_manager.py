@@ -10,6 +10,7 @@ from datetime import datetime
 from sqlalchemy.orm import Session
 
 from api.db.models import AsyncTask, Evaluation, utcnow
+from api.monitoring.execution_logs import record_execution_event
 from src.celery_app import celery_app
 
 _EVALUATION_CELERY_TASK = "src.tasks.evaluation.run_evaluation_task"
@@ -156,6 +157,7 @@ class TaskManager:
 
         # 先落库，确保 worker 取到消息时一定能解析到任务记录与关联
         self.db.commit()
+        record_execution_event(task, "task.queued")
 
         try:
             celery_app.send_task(
@@ -171,6 +173,7 @@ class TaskManager:
             if task.completed_at is None:
                 task.completed_at = datetime.utcnow()
             self.db.commit()
+            record_execution_event(task, "task.failed")
             raise
 
         return task
@@ -265,8 +268,10 @@ class TaskManager:
             raise ValueError("Task not found")
 
         task.progress = progress
+        self._record_execution_times(task, status)
         task.status = status
         self.db.commit()
+        record_execution_event(task, "task.progress", progress)
 
     def update_task_status(
         self,
@@ -292,15 +297,21 @@ class TaskManager:
         if error_message is not None:
             task.error_message = error_message
 
-        # 更新时间戳
-        if status in ("completed", "failed", "cancelled"):
-            if task.completed_at is None:
-                task.completed_at = datetime.utcnow()
-        elif status == "running":
-            if task.started_at is None:
-                task.started_at = datetime.utcnow()
+        self._record_execution_times(task, status)
 
         self.db.commit()
+        event = {"running": "task.started", "pending": "task.queued"}.get(status, "task." + status)
+        record_execution_event(task, event)
+
+    @staticmethod
+    def _record_execution_times(task: AsyncTask, status: str) -> None:
+        """Keep first execution start and the end of the latest execution."""
+        if status == "running":
+            if task.started_at is None:
+                task.started_at = datetime.utcnow()
+            task.completed_at = None
+        elif status in ("completed", "failed", "cancelled") and task.completed_at is None:
+            task.completed_at = datetime.utcnow()
 
     def pause_task(self, task_id: str, user_id: str) -> AsyncTask:
         """暂停任务。
@@ -324,6 +335,7 @@ class TaskManager:
 
         task.status = "paused"
         self.db.commit()
+        record_execution_event(task, "task.paused")
 
         return task
 
@@ -358,6 +370,7 @@ class TaskManager:
         if task.completed_at is None:
             task.completed_at = datetime.utcnow()
         self.db.commit()
+        record_execution_event(task, "task.cancelled")
 
         return task
 
@@ -397,6 +410,7 @@ class TaskManager:
         evaluation.status = "pending"
         evaluation.updated_at = utcnow()
         self.db.commit()
+        record_execution_event(task, "task.resumed")
 
         try:
             celery_app.send_task(
@@ -410,6 +424,7 @@ class TaskManager:
             if task.completed_at is None:
                 task.completed_at = datetime.utcnow()
             self.db.commit()
+            record_execution_event(task, "task.failed")
             raise
 
         return task

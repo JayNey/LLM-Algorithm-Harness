@@ -556,7 +556,7 @@ OPERATIONS: dict[str, tuple[str, Any]] = {
         {"status": "ok", "business_database": {"status": "ok", "read_only": True}},
     ),
     "redis_health": (
-        "查询配置的 Redis broker；默认关闭，设置 MONITOR_QUEUE_PROBES_ENABLED=true 后执行有超时和缓存的 PING。",
+        "查询配置的 Redis broker；默认关闭，设置 MONITOR_QUEUE_PROBES_ENABLED=true 后执行有超时和缓存的 PING，并只读采集配置业务队列的等待数量。",
         {
             "status": "not_checked",
             "reason": "disabled",
@@ -564,6 +564,14 @@ OPERATIONS: dict[str, tuple[str, Any]] = {
             "infrastructure_available": True,
             "timeout_seconds": 3.0,
             "backend": "redis",
+            "queue_scope": "configured_business_queues",
+            "queue_excludes": ["worker_reserved", "active", "unacked", "worker_scheduled"],
+            "broker_queue": {
+                "status": "not_checked",
+                "reason": "disabled",
+                "waiting": None,
+                "queues": None,
+            },
             "latency_ms": None,
             "cached": False,
             "age_seconds": None,
@@ -623,12 +631,29 @@ OPERATIONS: dict[str, tuple[str, Any]] = {
         },
     ),
     "system_status": (
-        "聚合当前 API 进程运行时间、任务计数、资源与依赖状态；不是集群全局统计。",
+        "聚合当前 API 进程运行时间、任务计数、资源与依赖状态；MONITOR_CONTAINER_PROBES_ENABLED 可显式启用有标签沙箱资源采样，不是集群全局统计。",
         {
             "scope": "current_api_process",
             "uptime_seconds": 1.0,
             "task_counts": {},
             "async_task_counts": {},
+            "containers": {
+                "scope": "api_process_docker_context_labeled_running_sandboxes",
+                "selector": "io.llm-algorithm-harness.sandbox=v1",
+                "cluster_complete": False,
+                "snapshot_atomic": False,
+                "metrics_source": "docker_cli_rounded_stats",
+                "timeout_seconds": 3.0,
+                "sample_limit": 32,
+                "cached": False,
+                "age_seconds": None,
+                "status": "not_configured",
+                "reason": "disabled",
+                "listed_count": None,
+                "sampled_count": None,
+                "truncated": None,
+                "containers": None,
+            },
         },
     ),
     "running_tasks": (
@@ -648,11 +673,16 @@ OPERATIONS: dict[str, tuple[str, Any]] = {
         {"api": {}, "evaluations": {}, "database_queries": {}, "llm": {}},
     ),
     "llm_stats": (
-        "查询保留的用量 hooks 及连接验证计数；这些不等于完整生成调用统计。",
+        "查询共享认证数据库中真实生成请求的次数、成功率和平均耗时；可选 window_seconds（1–86400）按完成时间聚合，省略时累计。窗口不完整时主指标为 null，retained_sample 提供已保留样本；重试分别计数，采集为 best-effort。",
         {
-            "status": "not_configured",
-            "source": "worker_instrumentation_pending_157",
-            "total_calls": None,
+            "status": "ok",
+            "source": "persisted_llm_attempts",
+            "scope": "recorded_completed_attempts_shared_auth_database",
+            "collection_mode": "best_effort",
+            "started_at": None,
+            "total_calls": 0,
+            "successful_calls": 0,
+            "failed_calls": 0,
             "success_rate": None,
             "avg_latency_ms": None,
             "recorded_usage_hooks": 0,
@@ -747,7 +777,7 @@ OPERATIONS: dict[str, tuple[str, Any]] = {
         {"items": [], "total": 0, "limit": 100, "offset": 0},
     ),
     "task_logs": (
-        "查询自己拥有的运行任务日志；仅包含保留的生命周期及受信任任务事件。",
+        "查询自己的异步任务或评估运行日志；包含保留的生命周期、数值进度及逐单元执行事件。",
         {
             "task_id": "eval-demo",
             "items": [],
@@ -1222,7 +1252,7 @@ PARAMETERS: dict[str, tuple[str, Any]] = {
     ),
     "include_sandbox": ("是否执行额外的沙箱检查；默认 false。", False),
     "task_source": ("监控快照来源：legacy_evaluation 或 async_task。", "async_task"),
-    "window_seconds": ("聚合最近多少秒的 API 指标，范围 1–86400。", 60),
+    "window_seconds": ("聚合最近多少秒的指标，范围 1–86400；LLM 查询省略时返回累计统计。", 60),
     "level": ("日志级别，不区分大小写：DEBUG/INFO/WARNING/ERROR/CRITICAL。", "INFO"),
     "start": ("日志起始时间，ISO 8601，必须带时区且不早于 Unix epoch。", "2026-10-01T00:00:00Z"),
     "end": ("日志结束时间，必须带时区且不早于 start。", "2026-10-19T00:00:00Z"),
@@ -1429,7 +1459,10 @@ def _document_operation(path: str, method: str, operation: dict[str, Any]) -> No
         if name == "alert_history" and parameter["name"] == "limit":
             description, example = "最近预警条数；默认 50，服务端限制到 1–200。", 50
         if name in {"task_logs", "download_logs"} and parameter["name"] == "task_id":
-            description, example = "自己拥有的评估运行 ID，由创建评估返回。", "eval-demo"
+            description, example = (
+                "自己拥有的异步任务 ID 或有效关联评估 ID；兼容旧评估运行 ID。",
+                "eval-demo",
+            )
         parameter["description"] = description
         parameter["example"] = example
     for media_type, media in operation.get("requestBody", {}).get("content", {}).items():

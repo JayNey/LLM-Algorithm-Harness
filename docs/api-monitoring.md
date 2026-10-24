@@ -41,7 +41,7 @@ export MONITOR_ADMIN_USER_IDS='["11111111-1111-4111-8111-111111111111"]'
 - `GET /api/v1/health/workers` 与 `/api/v1/system/workers`：通过只读 monitoring_snapshot 命令返回 worker_count、workers、active、reserved、concurrency。仅统计截止时间内回复的 worker，scope=responding_celery_workers、cluster_complete=false；worker_id 是节点名称的稳定 SHA-256 摘要，不返回主机名。reserved 排除 active，只表示已被这些 worker 接收的待执行任务，不是 broker 队列长度。concurrency 来自池报告的 num_processes；不据此推导 CPU 利用率。
 - `GET /api/v1/health/sandbox`：复用实际 `SandboxExecutor.health_check()` 执行 Docker 预检，失败为 `unavailable`。只使用 Docker；不可用时不回退 host，不返回异常中的主机路径或凭据。
 - `GET /api/v1/system/resources`：CPU、内存、上传目录所在文件系统的磁盘用量，以及已登记且未标记删除的文件数量/字节。
-- `GET /api/v1/system/status`：当前 API 进程运行时间、旧评估与异步任务各自的全量状态计数、基础健康与本机资源。旧来源保留 `task_counts/task_count/task_status/task_source`，来源值为 `persisted_business_evaluations`；异步来源新增 `async_task_counts/async_task_count/async_task_status/async_task_source`，来源值为 `persisted_async_tasks`。两组分别读取，不受分页限制，不提供相加后的全局原子快照；一组故障时只将该组计数标记为 `null`，状态为 `unavailable`。响应另含 `evaluation_worker_implementation=algorithm_harness`、`real_evaluation_available=null`。容器级资源采集返回 `not_configured`。
+- `GET /api/v1/system/status`：当前 API 进程运行时间、旧评估与异步任务各自的全量状态计数、基础健康与本机资源。旧来源保留 `task_counts/task_count/task_status/task_source`，来源值为 `persisted_business_evaluations`；异步来源新增 `async_task_counts/async_task_count/async_task_status/async_task_source`，来源值为 `persisted_async_tasks`。两组分别读取，不受分页限制，不提供相加后的全局原子快照；一组故障时只将该组计数标记为 `null`，状态为 `unavailable`。响应另含 `evaluation_worker_implementation=algorithm_harness`、`real_evaluation_available=null`。容器级资源采集默认 `not_configured/disabled`，可按下文显式启用，只观察当前 API Docker context 中带固定标签的运行沙箱。
 - `GET /api/v1/system/tasks/running` 和 `/api/v1/system/tasks/queued`：分别查询所选持久化来源中 `running` 和 `pending` 状态的任务；`queued` 只表示数据库记录的 `pending` 状态，不能当成 Redis 队列长度。
 
 任务查询支持 `task_source/limit/offset`：
@@ -93,8 +93,14 @@ export MONITOR_QUEUE_CACHE_SECONDS=5
 ## 请求统计与完整性
 
 - `GET /api/v1/metrics/api-stats?window_seconds=60`：统计窗口支持 1–86400 秒，提供请求量、HTTP 4xx/5xx 数与错误率、平均响应时间、P95 和每秒请求数。`endpoints` 按 HTTP 方法与路由模板分组提供同样统计，窗口不完整时各组也只展示 `retained_sample`。
-- `GET /api/v1/metrics/performance`：API 请求统计、实际业务 SQL 查询统计，以及尚待接入的真实评估与 LLM 指标。
-- `GET /api/v1/metrics/llm-stats`：真实生成调用数、成功率、延迟目前为 `not_configured`，数值为 `null`。已有 `recorded_usage_hooks` 和 `key_verification_count` 分别展示使用登记与密钥连通验证计数，不计作真实生成调用总量或成功率。
+- `GET /api/v1/metrics/performance`：API 请求统计、实际业务 SQL 查询统计、真实业务任务执行统计，以及尚待接入的 LLM 指标。
+- `GET /api/v1/metrics/llm-stats`：管理员可查询共享认证数据库中成功采集的真实生成请求统计。`total_calls`、`successful_calls`、`failed_calls` 分别为已结束的 SDK 请求尝试数及其成功/失败数，`success_rate` 为成功数/总数（0–1），`avg_latency_ms` 为全部已记录尝试的平均耗时。无样本时计数为零、成功率和平均耗时为 `null`；`started_at` 为首次成功采集的完成时间（Unix 秒），此前为 `null`。`recorded_usage_hooks` 和 `key_verification_count` 仍分别展示使用登记与密钥连通验证计数，不计作生成调用。
+
+LLM 采集位于 OpenAI、local、SiliconFlow 和 Anthropic 的实际 SDK 生成请求入口。每次重试分别计数；SDK 返回即为成功，生成的代码是否通过评测由评估指标表示。单调时钟耗时包含该次 SDK 请求的等待/超时，排除重试退避、响应本地解析和采集写入。缓存命中、模型列表、连接验证、沙箱预检和模拟任务均不计入。
+
+API 和 worker 必须使用相同的 `AUTH_DATABASE_PATH`（跨容器需挂载同一 SQLite 文件），并配置有效的 `SECRET_KEY`、`ENCRYPTION_KEY`；未配置服务端认证的 CLI 仍能正常请求模型，但不采集到此数据库。`source=persisted_llm_attempts`、`scope=recorded_completed_attempts_shared_auth_database`、`collection_mode=best_effort` 明确该口径：统计跨进程和重启累计，仅覆盖成功落库的已完成尝试，不代表全部署精确总账。采集前历史、未共享该数据库的客户端、被强杀/尚未结束的请求及写入失败样本可能缺失；`status=ok` 表示统计可读取，不保证所有 worker 配置正确。聚合使用现有监控元数据表中的固定数值键，不保存 prompt、响应、模型名、URL、凭证或异常正文，不受请求/日志样本的保留期和行数裁剪。采集写入锁等待上限为 100ms，故障不会改变模型结果或增加模型重试。
+- `GET /api/v1/metrics/llm-stats?window_seconds=60`：查询最近 60 秒；可选整数范围 1–86400，省略时保持上述累计口径。窗口按 SDK 尝试完成时间 `[window_start, window_end]`（Unix 秒，两端包含）过滤，返回 `total_calls`、`successful_calls`、`failed_calls`、`success_rate`（成功/全部，0–1）及 `avg_latency_ms`（全部尝试平均耗时，毫秒）。完整空窗口计数为零、成功率及平均耗时为 `null`；非法参数返回 400，权限仍限管理员。
+- 窗口数据遵循 `MONITOR_RETENTION_SECONDS` 和 `MONITOR_MAX_ROWS`，仅保存完成时间、成功标志和耗时数值。`window_complete` 表示采集与保留覆盖；若窗口早于 `started_at` 或包含 `pruned_through` 之前被删除的记录，主指标为 `null`，`source=retained_sample`，可读取 `retained_sample` 的剩余样本。best-effort 仍可能遗漏采集失败或未配置客户端，不保证所有实际请求均已采集。升级前的累计值不会回填窗口；API 与 worker 需统一升级，历史累计不受清理影响。`recorded_usage_hooks` 和 `key_verification_count` 始终为独立累计值。
 - `GET /api/v1/metrics/cache-stats`：默认 `not_configured`。仅在可信 worker 显式绑定实际 `LLMResponseCache` 后展示其白名单统计；命中、未命中等计数为实例创建以来的进程内计数，不代表所有 worker 的累计值。
 
 请求统计记录实际 HTTP 方法、匹配路由模板、状态码与响应耗时；不保存请求 body、query、Authorization 或原始资源路径。监控轮询本身也属于 API 请求。
@@ -165,3 +171,47 @@ curl http://localhost:8000/api/v1/logs/download/your-task-id \
 真实 worker 可用可信任务所有者调用 `app.state.monitor.record_task_event(event, user_id)`。入口会校验登记的任务归属和删除状态；HTTP 不开放指定所有者、写日志或绑定缓存的接口。现有异步 worker 尚未绑定此入口或实际 LLM 缓存；后续可将实际 LLM 客户端的缓存实例绑定到 `app.state.monitor.cache`，仍需明确其单实例口径。
 
 Redis 连通性和回复 worker 的数值负载已接入。broker 等待队列长度、真实任务执行时长/成功率、LLM 请求时延、跨 worker 缓存命中率、各容器 CPU/内存及新日/月配额仍需后续采集。数据库健康和绑定 engine 的查询时延已接入；健康探测不构成真实模型调用成功证明。#157 保持开放。
+
+## Docker 沙箱容器资源
+
+```bash
+export MONITOR_CONTAINER_PROBES_ENABLED=true
+export MONITOR_CONTAINER_TIMEOUT_SECONDS=3
+export MONITOR_CONTAINER_CACHE_SECONDS=5
+export MONITOR_CONTAINER_MAX_ITEMS=32
+```
+
+默认关闭；仅管理员 `system/status` 的 `containers` 字段按需采样，公开 `/health` 和 401/403 路径不访问 Docker。读取当前 API 进程 Docker CLI 配置所指向的 context，不代表所有 worker 的 Docker daemon。需部署者将 API 指向实际需要观测的 daemon；无需为只读观测启动业务任务。
+
+新版本 SandboxExecutor 创建容器时增加 `io.llm-algorithm-harness.sandbox=v1`。采样固定执行带该 label 过滤的 `docker ps`，再对选中的完整 ID 执行 `docker stats --no-stream`，不调用 run/stop/rm/exec/inspect。标签只是观测选择器，不是认证或用户归属证明；旧版未带标签的容器和其他无标签容器不计入范围。
+
+响应只包含稳定摘要 `container_id`、CPU 百分比、内存显示值转换的字节/限额/百分比和 PIDs；不返回容器名称、原始 ID、镜像、命令、挂载、环境或 Docker 错误。数值来源为 `docker_cli_rounded_stats`，不是精确字节计数或 API 主机资源。[Docker stats 官方说明](https://docs.docker.com/reference/cli/docker/container/stats/) 中 Linux CLI 内存会扣除部分缓存，PIDs 包含线程；Windows daemon 部分列不提供，返回 null/partial，不能据此判定整个 daemon 不可用。Windows 主机连接 Linux daemon 时以 daemon 返回字段为准。
+
+`listed_count` 是成功枚举时的标签范围数量，`sampled_count` 是实际选取的数量；默认32，配置范围1–64。超过样本上限为 partial/sample_limit、truncated=true，不生成全局 CPU/内存汇总。容器在 ps 与 stats 之间退出或字段不可用时，该行 unknown/partial，缺测为 null；stats 非零退出仍保留成功枚举和合法数值，总体 partial/stats_failed，不把正常 --rm 完成误报为整个 Docker 不可用；仅成功枚举为空才返回真实0和空数组。`snapshot_atomic=false`、`cluster_complete=false`，不能从一张快照证明整个集群为空或任务已终止。
+
+ps 与 stats 分享0.5–10秒命令预算，各自接受的合计输出上限64KiB，超限即终止命令进程树并返回固定 output_limit；错误、超时和无 Docker 时不泄露原始输出。复用既有进程工具，异常时两个 pipe join 各最多5秒，终止清理可能增加有界余量。服务关闭标记 closed、拒绝新采样，并最多等待当前预算加12秒清理余量；不会停止被观测的容器。
+
+每 API 进程最多一个采样，缓存0–300秒，失败也缓存；cached/age_seconds 描述完成后的缓存年龄。缓存过期且另一个采样在途时返回 unknown/refresh_in_progress，不把旧成功值当成新观测。缓存独立于 worker/Redis 观测。
+
+本功能仅完成 #157 的容器资源观测；LLM 生成性能、跨 worker 缓存和新增配额仍需后续实现。
+
+### 实际任务执行统计
+
+`GET /api/v1/metrics/performance` 的 `tasks` 从业务数据库持久化的 AsyncTask 聚合 evaluation、experiment、benchmark、import 四类任务；`evaluations` 使用相同口径但仅包含 evaluation。接口沿用管理员权限，查询不轮询 Celery、不读取结果正文。`scope=retained_business_tasks_all_time` 表示当前数据库保留记录的累计统计，不使用 API 请求窗口，也不包含旧的无 AsyncTask 评估。
+
+`avg_execution_time_seconds` 是 completed/failed 且开始、结束时间均存在且顺序有效的任务的平均墙钟秒数，`duration_sample_count` 给出耗时样本数。耗时从首次执行开始到最终结束，排除首次排队等待，包含暂停及重试间隔，不表示 CPU 活跃执行时间。重复通知保留已有时间，失败后重新执行保留首次开始并清空旧结束时间。
+
+`completed`、`failed` 只计已记录开始时间的相应终态任务；`success_rate=completed/(completed+failed)`（0–1）表示任务正常完成率，不代表算法答题准确率。取消、等待、运行、暂停和未开始的发布失败不计入；时间缺失或逆序的已开始终态任务仍计入成功率，但不进入耗时样本。无样本时相应指标为 null，数据库不可用时 status=unavailable、计数及指标均为 null，不返回底层异常。
+
+
+## 真实队列长度
+
+启用 `MONITOR_QUEUE_PROBES_ENABLED=true` 后，`health/redis` 的 `broker_queue` 返回 `status/reason/waiting/queues`，`queues` 为 `{name, waiting}` 列表。队列来自实际 Celery `task_queues`（当前为 default、evaluations），每队列等待数覆盖所有 `priority_steps` 分桶，遵循 `sep` 和 `global_keyprefix`。只执行 PING 和 LLEN，不扫描键、不读取消息、不消费任务；没有配置的队列及 unacked 不计入。
+
+`system/status` 的 `queue_metrics` 分别展示：
+
+- `broker_queue.waiting`：Redis 中尚未交给 worker 的消息总数，附各队列计数和缓存年龄。
+- `database_pending.count`：持久化 AsyncTask 的 pending 记录数，保留数据库来源和状态。
+- `worker_reserved.count`：回复 worker 已接收且尚未执行的数量，`cluster_complete=false`，附缓存年龄。
+
+三项观测独立且非原子，不相加、不互相推算。Redis 正常空队列返回 0；关闭探测、配置非法、超时、连接/LLEN 失败或协议异常时等待数为 null。PING 状态与 `broker_queue.status` 独立：PING 成功不能证明 LLEN 权限或队列观测成功。现有 queued 任务列表仍只查询数据库 pending。

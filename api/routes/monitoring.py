@@ -130,6 +130,7 @@ def system_status(
     snapshot = monitor.task_snapshot()
     async_snapshot = monitor.task_snapshot(task_source="async_task")
     health = monitor.health()
+    redis_observation = health["checks"].get("redis", {})
     return answer(
         {
             "uptime_seconds": round(time.monotonic() - monitor.started, 3),
@@ -146,10 +147,40 @@ def system_status(
             "health": health,
             "resources": monitor.probes.resources(),
             "workers": health["checks"]["workers"],
-            "containers": {
-                "status": "not_configured",
-                "detail": "Per-container resource instrumentation is not connected",
+            "queue_metrics": {
+                "broker_queue": {
+                    **redis_observation.get(
+                        "broker_queue",
+                        {
+                            "status": "unknown",
+                            "waiting": None,
+                            "queues": None,
+                        },
+                    ),
+                    "source": "redis_broker",
+                    "scope": "configured_business_queues",
+                    "cached": redis_observation.get("cached", False),
+                    "age_seconds": redis_observation.get("age_seconds"),
+                },
+                "database_pending": {
+                    "status": async_snapshot["status"],
+                    "source": async_snapshot["source"],
+                    "count": (
+                        async_snapshot["counts"].get("pending", 0)
+                        if async_snapshot["status"] == "ok"
+                        else None
+                    ),
+                },
+                "worker_reserved": {
+                    "status": health["checks"]["workers"]["status"],
+                    "source": "responding_celery_workers",
+                    "count": health["checks"]["workers"].get("reserved"),
+                    "cluster_complete": False,
+                    "cached": health["checks"]["workers"].get("cached", False),
+                    "age_seconds": health["checks"]["workers"].get("age_seconds"),
+                },
             },
+            "containers": monitor.probes.containers(),
         }
     )
 
@@ -194,9 +225,13 @@ def performance(
 
 @router.get("/metrics/llm-stats")
 def llm_stats(
-    admin: Principal = Depends(administrator), monitor: MonitorService = Depends(monitor_service)
+    window_seconds: int | None = Query(None, ge=1, le=86400),
+    admin: Principal = Depends(administrator),
+    monitor: MonitorService = Depends(monitor_service),
 ) -> ApiResponse[Any]:
-    return answer(monitor.llm_stats())
+    return answer(
+        monitor.llm_stats() if window_seconds is None else monitor.llm_stats(window_seconds)
+    )
 
 
 @router.get("/metrics/cache-stats")
@@ -256,8 +291,7 @@ def global_logs(
 def owned_logs(
     monitor: MonitorService, run_id: str, principal: Principal, filters: dict[str, Any]
 ) -> tuple[list[dict[str, Any]], int]:
-    with monitor.files.store.connection() as db:
-        monitor.files.store.check_run(db, run_id, principal.user_id)
+    run_id = monitor.owned_log_key(run_id, principal.user_id)
     return monitor.store.query_logs(**filters, user_id=principal.user_id, run_id=run_id)
 
 
@@ -290,15 +324,14 @@ def download_logs(
 ) -> Response:
     # The ID is first resolved through the owned run mapping; do not use it as
     # a path or raw Content-Disposition value.
-    with monitor.files.store.connection() as db:
-        monitor.files.store.check_run(db, task_id, principal.user_id)
+    run_id = monitor.owned_log_key(task_id, principal.user_id)
     stream = cast(BinaryIO, SpooledTemporaryFile(max_size=1024 * 1024, mode="w+b"))
     try:
         summary = monitor.store.export_logs(
             stream,
             **{key: value for key, value in filters.items() if key not in {"limit", "offset"}},
             user_id=principal.user_id,
-            run_id=task_id,
+            run_id=run_id,
         )
         stream.seek(0)
         return LogDownloadResponse(

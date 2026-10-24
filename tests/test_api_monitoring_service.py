@@ -169,16 +169,24 @@ def test_llm_stats_do_not_treat_verification_or_usage_hooks_as_measured_calls(mo
         monitor.auth.store.record_verification(key_id, owner, record["ciphertext"], True)
     monitor.auth.store.record_key_usage(keys["alice"], owners["alice"])
     stats = monitor.llm_stats()
-    assert (
-        stats["status"] == "not_configured"
-        and stats["source"] == "worker_instrumentation_pending_157"
-    )
+    assert stats["status"] == "ok" and stats["source"] == "persisted_llm_attempts"
     assert stats["key_verification_count"] == 2 and stats["recorded_usage_hooks"] == 1
     assert (
-        stats["total_calls"] is None
+        stats["total_calls"] == 0
         and stats["success_rate"] is None
         and stats["avg_latency_ms"] is None
     )
+
+
+def test_llm_stats_include_recorded_generation_outcomes(monitoring):
+    monitor, _, _ = monitoring
+    monitor.store.record_llm_call(True, 100)
+    monitor.store.record_llm_call(False, 300)
+    stats = monitor.llm_stats()
+    assert stats["total_calls"] == 2
+    assert stats["successful_calls"] == stats["failed_calls"] == 1
+    assert stats["success_rate"] == 0.5 and stats["avg_latency_ms"] == 200
+    assert stats["recorded_usage_hooks"] == stats["key_verification_count"] == 0
 
 
 def test_task_snapshot_reports_real_simulator_state_and_filter(monitoring):
@@ -280,3 +288,86 @@ def test_short_provider_key_keeps_audit_task_ownership(monitoring):
     rows, total = monitor.store.query_logs(user_id=owner, run_id=run)
     assert total == 1 and rows[0]["message"] == "[REDACTED]"
     assert rows[0]["run_id"] == run and rows[0]["user_id"] == owner
+
+
+def test_performance_aggregates_persisted_execution_times(monitoring):
+    from datetime import datetime, timedelta
+
+    from sqlalchemy.orm import Session
+
+    from api.db.models import AsyncTask
+
+    monitor, _, _ = monitoring
+    start = datetime(2026, 1, 1)
+    # No Celery polling or business result reads are needed.
+    with Session(monitor.task_engine) as db:
+        for i, (kind, status, seconds, began) in enumerate(
+            [
+                ("evaluation", "completed", 10.25, True),
+                ("evaluation", "failed", 30.75, True),
+                ("experiment", "completed", 20, True),
+                ("import", "cancelled", 900, True),
+                ("benchmark", "running", None, True),
+                ("evaluation", "failed", 40, False),
+                ("evaluation", "completed", -10, True),
+                ("evaluation", "completed", None, True),
+                ("cleanup", "completed", 999, True),
+            ]
+        ):
+            db.add(
+                AsyncTask(
+                    id=f"perf-{i}",
+                    celery_task_id=f"perf-{i}",
+                    task_type=kind,
+                    entity_id=f"e-{i}",
+                    user_id="u",
+                    status=status,
+                    started_at=start if began else None,
+                    completed_at=(
+                        start + timedelta(seconds=seconds) if seconds is not None else None
+                    ),
+                )
+            )
+        db.commit()
+    result = monitor.performance()
+    tasks = result["tasks"]
+    assert tasks["status"] == "ok"
+    assert tasks["duration_sample_count"] == 3
+    assert tasks["avg_execution_time_seconds"] == pytest.approx(61 / 3, abs=0.0001)
+    assert tasks["success_rate"] == pytest.approx(4 / 5)
+    assert tasks["completed"] == 4 and tasks["failed"] == 1
+    assert result["evaluations"]["avg_execution_time_seconds"] == pytest.approx(20.5, abs=0.0001)
+    assert result["evaluations"]["success_rate"] == pytest.approx(3 / 4)
+
+
+def test_performance_empty_and_unavailable(monitoring):
+    from unittest.mock import patch
+
+    monitor, _, _ = monitoring
+    empty = monitor.performance()["evaluations"]
+    assert empty["status"] == "ok"
+    assert empty["duration_sample_count"] == 0
+    assert empty["avg_execution_time_seconds"] is None and empty["success_rate"] is None
+    with patch.object(monitor.task_engine, "connect", side_effect=RuntimeError("private-url")):
+        result = monitor.performance()["tasks"]
+    assert result["status"] == "unavailable"
+    assert result["avg_execution_time_seconds"] is None and result["success_rate"] is None
+    assert "private-url" not in json.dumps(result)
+
+
+def test_task_performance_postgresql_query_compiles(monitoring):
+    from unittest.mock import MagicMock
+
+    from sqlalchemy.dialects import postgresql
+
+    monitor, _, _ = monitoring
+    engine = MagicMock()
+    engine.dialect.name = "postgresql"
+    connection = engine.connect.return_value.__enter__.return_value
+    connection.execute.return_value.mappings.return_value.all.return_value = []
+    monitor.task_engine = engine
+    assert monitor.task_performance()["tasks"]["status"] == "ok"
+    statement = connection.execute.call_args.args[0]
+    sql = str(statement.compile(dialect=postgresql.dialect()))
+    assert "EXTRACT(epoch FROM async_tasks.completed_at - async_tasks.started_at)" in sql
+    assert "julianday" not in sql

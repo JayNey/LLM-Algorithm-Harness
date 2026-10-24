@@ -23,6 +23,7 @@ from api.db import AsyncTask, Experiment, make_engine, make_session_factory, run
 from api.db.engine import business_database_url
 from api.db.models import utcnow
 from api.experiment_models import ExperimentCreateRequest, ModelSpec
+from api.monitoring.execution_logs import record_execution_event
 from src.experiment import ExperimentRunner
 from src.experiment_panel import _build_panel_data
 from src.experiment_report import generate_comparison_report
@@ -275,6 +276,8 @@ class ExperimentService:
             if task is None or task.status != "running":
                 return
             task.progress = task_progress(current, total, current_step)
+            session.commit()
+            record_execution_event(task, "task.progress", task.progress)
 
     def _async_task_paused(self, experiment_id: str, owner_id: str) -> bool:
         with self._session() as session:

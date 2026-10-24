@@ -17,10 +17,108 @@ MAX_OUTPUT_BYTES = 65536
 COUNTERS = ("active", "reserved", "concurrency")
 
 
+def unknown_queue(reason: str, status: str = "unknown") -> dict[str, Any]:
+    return {"status": status, "reason": reason, "waiting": None, "queues": None}
+
+
+def queue_keys(config: Any) -> tuple[list[str], list[str], int]:
+    """Match Kombu Redis priority keys without declaring or scanning queues."""
+    if not isinstance(config, dict):
+        raise ValueError("Invalid queue configuration")
+    queues = config.get("queues")
+    steps = config.get("priority_steps")
+    sep, prefix = config.get("sep"), config.get("global_keyprefix")
+    if (
+        not isinstance(queues, list)
+        or not 1 <= len(queues) <= 128
+        or any(not isinstance(q, str) or not 1 <= len(q) <= 256 for q in queues)
+        or len(set(queues)) != len(queues)
+        or not isinstance(steps, list)
+        or not 1 <= len(steps) <= 10
+        or any(type(p) is not int or not 0 <= p <= 9 for p in steps)
+        or steps != sorted(set(steps))
+        or not isinstance(sep, str)
+        or not 1 <= len(sep) <= 16
+        or not isinstance(prefix, str)
+        or len(prefix) > 256
+    ):
+        raise ValueError("Invalid queue configuration")
+    return (
+        queues,
+        [prefix + q + (f"{sep}{p}" if p else "") for q in queues for p in steps],
+        len(steps),
+    )
+
+
+def validated_queue(value: Any) -> dict[str, Any]:
+    """Only allow queue names and coherent, nonnegative integer counts."""
+    if not isinstance(value, dict):
+        return unknown_queue("invalid_reply")
+    if value.get("status") != "ok":
+        reason = value.get("reason")
+        if reason not in {"invalid_configuration", "probe_failed", "invalid_reply"}:
+            reason = "invalid_reply"
+        return unknown_queue(reason)
+    rows = value.get("queues")
+    if not isinstance(rows, list) or not 1 <= len(rows) <= 128:
+        return unknown_queue("invalid_reply")
+    safe = []
+    seen = set()
+    for row in rows:
+        if not isinstance(row, dict):
+            return unknown_queue("invalid_reply")
+        name, count = row.get("name"), row.get("waiting")
+        if (
+            not isinstance(name, str)
+            or not 1 <= len(name) <= 256
+            or name in seen
+            or type(count) is not int
+            or not 0 <= count <= 2**63 - 1
+        ):
+            return unknown_queue("invalid_reply")
+        seen.add(name)
+        safe.append({"name": name, "waiting": count})
+    total = value.get("waiting")
+    if type(total) is not int or total != sum(row["waiting"] for row in safe):
+        return unknown_queue("invalid_reply")
+    return {"status": "ok", "reason": "observed", "waiting": total, "queues": safe}
+
+
+def broker_queue(client: Any, config: Any) -> dict[str, Any]:
+    try:
+        queues, keys, width = queue_keys(config)
+    except ValueError:
+        return unknown_queue("invalid_configuration")
+    try:
+        with client.pipeline(transaction=False) as pipe:
+            for key in keys:
+                pipe.llen(key)
+            sizes = pipe.execute()
+        if (
+            not isinstance(sizes, list)
+            or len(sizes) != len(keys)
+            or any(type(n) is not int or not 0 <= n <= 2**63 - 1 for n in sizes)
+        ):
+            return unknown_queue("invalid_reply")
+        return validated_queue(
+            {
+                "status": "ok",
+                "waiting": sum(sizes),
+                "queues": [
+                    {"name": q, "waiting": sum(sizes[i * width : (i + 1) * width])}
+                    for i, q in enumerate(queues)
+                ],
+            }
+        )
+    except Exception:
+        return unknown_queue("probe_failed")
+
+
 def unknown(kind: str, reason: str, status: str = "unknown") -> dict[str, Any]:
     result: dict[str, Any] = {"status": status, "reason": reason}
     if kind == "redis":
         result["latency_ms"] = None
+        result["broker_queue"] = unknown_queue(reason, status)
     else:
         result.update(worker_count=None, workers=None, active=None, reserved=None, concurrency=None)
     return result
@@ -57,7 +155,12 @@ def validated_result(kind: str, value: Any) -> dict[str, Any]:
             or not 0 <= latency <= 60000
         ):
             raise ValueError("Invalid latency")
-        return {"status": "ok", "reason": "observed", "latency_ms": latency}
+        return {
+            "status": "ok",
+            "reason": "observed",
+            "latency_ms": latency,
+            "broker_queue": validated_queue(value.get("broker_queue")),
+        }
     rows = value.get("workers")
     if not isinstance(rows, list) or not 1 <= len(rows) <= MAX_WORKERS:
         raise ValueError("Invalid workers")
@@ -138,7 +241,7 @@ def worker_snapshot(replies: Any) -> dict[str, Any]:
     }
 
 
-def probe(kind: str, broker_url: str, timeout: float) -> dict[str, Any]:
+def probe(kind: str, broker_url: str, timeout: float, queue_config: Any = None) -> dict[str, Any]:
     if not isinstance(broker_url, str) or not broker_url or len(broker_url) > 8192:
         return unknown(kind, "invalid_configuration", "not_configured")
     if urlsplit(broker_url).scheme not in {"redis", "rediss"}:
@@ -167,6 +270,7 @@ def probe(kind: str, broker_url: str, timeout: float) -> dict[str, Any]:
                 "status": "ok",
                 "reason": "observed",
                 "latency_ms": round((time.monotonic() - started) * 1000, 3),
+                "broker_queue": broker_queue(client, queue_config),
             }
         finally:
             client.close()
@@ -209,7 +313,7 @@ def main() -> None:
     logging.disable(logging.CRITICAL)
     kind = "workers"
     try:
-        request = json.loads(sys.stdin.buffer.read(16385))
+        request = json.loads(sys.stdin.buffer.read(131073))
         kind = request["kind"]
         if kind not in {"redis", "workers"}:
             raise ValueError("Unknown probe")
@@ -221,7 +325,7 @@ def main() -> None:
             open(os.devnull, "w", encoding="utf-8") as discard,
             contextlib.redirect_stdout(discard),
         ):
-            result = probe(kind, request["broker_url"], timeout)
+            result = probe(kind, request["broker_url"], timeout, request.get("queue_config"))
     except Exception:
         result = unknown(kind, "probe_failed", "unavailable")
     encoded = json.dumps(result, allow_nan=False)

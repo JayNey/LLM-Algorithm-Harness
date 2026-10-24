@@ -1,21 +1,34 @@
 import { useEffect, useRef, useState } from 'react'
-import type { ExperimentClient, TaskSnapshot } from './types.ts'
 
 const TERMINAL = new Set(['completed', 'failed', 'cancelled'])
 const POLL_MS = 3_000
 const MAX_CONSECUTIVE_FAILURES = 3
 
-export interface TaskProgressState {
-  task: TaskSnapshot | null
+/** 结构化最小接口：任何提供 task() 查询的客户端都可复用本 Hook。 */
+export interface ProgressPollingClient {
+  task(taskId: string, signal?: AbortSignal): Promise<TaskProgressSnapshot>
+}
+export interface TaskProgressSnapshot {
+  status: string
+  progress: {
+    current: number
+    total: number
+    percentage: number
+    current_step: string
+  } | null
+  error_message: string | null
+}
+export interface TaskProgressState<T = TaskProgressSnapshot> {
+  task: T | null
   paused: boolean
   reload: () => void
 }
 
-interface ProgressSnapshot {
+interface ProgressSnapshot<T> {
   taskId: string | null
   owner: string | null
   attempt: number
-  task: TaskSnapshot | null
+  task: T | null
   paused: boolean
 }
 
@@ -25,13 +38,15 @@ interface ProgressSnapshot {
  * 连续失败达到上限暂停并提供手动重试；卸载或参数变化即中止在途请求。
  * 状态按 (taskId, owner, attempt) 快照派生，effect 内不做同步 setState。
  */
-export function useTaskProgress(
-  client: ExperimentClient,
+export function useTaskProgress<
+  T extends TaskProgressSnapshot = TaskProgressSnapshot,
+>(
+  client: { task(taskId: string, signal?: AbortSignal): Promise<T> },
   taskId: string | null,
   owner: string | null,
-): TaskProgressState {
+): TaskProgressState<T> {
   const [attempt, setAttempt] = useState(0)
-  const [snapshot, setSnapshot] = useState<ProgressSnapshot>({
+  const [snapshot, setSnapshot] = useState<ProgressSnapshot<T>>({
     taskId: null,
     owner: null,
     attempt: 0,
@@ -53,7 +68,7 @@ export function useTaskProgress(
         timer = null
       }
     }
-    const patch = (update: Partial<ProgressSnapshot>): void => {
+    const patch = (update: Partial<ProgressSnapshot<T>>): void => {
       if (controller.signal.aborted || operation !== generation.current) return
       setSnapshot((previous) => ({
         ...previous,

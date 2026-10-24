@@ -92,6 +92,13 @@ class MonitorStore:
                     ON api_monitor_requests(timestamp);
                 CREATE INDEX IF NOT EXISTS api_monitor_requests_owner
                     ON api_monitor_requests(user_id,timestamp);
+                CREATE TABLE IF NOT EXISTS api_monitor_llm_calls (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    timestamp REAL NOT NULL, succeeded INTEGER NOT NULL,
+                    duration_ms REAL NOT NULL
+                );
+                CREATE INDEX IF NOT EXISTS api_monitor_llm_calls_time
+                    ON api_monitor_llm_calls(timestamp);
                 CREATE TABLE IF NOT EXISTS api_monitor_logs (
                     id INTEGER PRIMARY KEY AUTOINCREMENT,
                     timestamp REAL NOT NULL, level TEXT NOT NULL, message TEXT NOT NULL,
@@ -112,10 +119,151 @@ class MonitorStore:
             db.execute(
                 "INSERT OR IGNORE INTO api_monitor_meta(key,value) VALUES ('capture_gap_through',0)"
             )
+            db.executemany(
+                "INSERT OR IGNORE INTO api_monitor_meta(key,value) VALUES (?,?)",
+                [("llm_window_started_at", time.time()), ("llm_window_pruned_through", 0)],
+            )
+            self._prune_llm_calls(db, time.time())
             self._prune(db, time.time())
 
     def connection(self) -> AbstractContextManager[sqlite3.Connection]:
         return self.auth_store.connection()
+
+    def record_llm_call(self, succeeded: bool, duration_ms: float) -> None:
+        """Atomically record and accumulate completed SDK attempts without payloads."""
+        if (
+            type(succeeded) is not bool
+            or isinstance(duration_ms, bool)
+            or not math.isfinite(duration_ms)
+            or duration_ms < 0
+        ):
+            raise ValueError("Invalid LLM monitoring measurement")
+        now = time.time()
+        with self.connection() as db:
+            # Honor the connection's policy: normal stores wait for concurrent
+            # writers; the SDK capture sink supplies its own short timeout.
+            db.execute("BEGIN IMMEDIATE")
+            db.execute(
+                "INSERT OR IGNORE INTO api_monitor_meta(key,value) VALUES ('llm_started_at',?)",
+                (now,),
+            )
+            db.execute(
+                "INSERT INTO api_monitor_llm_calls(timestamp,succeeded,duration_ms) VALUES (?,?,?)",
+                (now, int(succeeded), duration_ms),
+            )
+            db.executemany(
+                "INSERT INTO api_monitor_meta(key,value) VALUES (?,?) "
+                "ON CONFLICT(key) DO UPDATE SET value=value+excluded.value",
+                [
+                    ("llm_total_calls", 1),
+                    ("llm_successful_calls", int(succeeded)),
+                    ("llm_failed_calls", int(not succeeded)),
+                    ("llm_duration_ms", duration_ms),
+                ],
+            )
+            self._prune_llm_calls(db, now)
+
+    def llm_stats(self, window_seconds: int | None = None) -> dict[str, Any]:
+        """One SELECT provides a coherent snapshot across concurrent writers."""
+        if window_seconds is not None:
+            if type(window_seconds) is not int or not 1 <= window_seconds <= 86400:
+                raise ValueError("Invalid LLM statistics window")
+            return self._llm_window_stats(window_seconds)
+        with self.connection() as db:
+            meta = dict(db.execute("SELECT key,value FROM api_monitor_meta WHERE key LIKE 'llm_%'"))
+        count = int(meta.get("llm_total_calls", 0))
+        successes = int(meta.get("llm_successful_calls", 0))
+        return {
+            "status": "ok",
+            "source": "persisted_llm_attempts",
+            "scope": "recorded_completed_attempts_shared_auth_database",
+            "collection_mode": "best_effort",
+            "started_at": meta.get("llm_started_at"),
+            "total_calls": count,
+            "successful_calls": successes,
+            "failed_calls": int(meta.get("llm_failed_calls", 0)),
+            "success_rate": successes / count if count else None,
+            "avg_latency_ms": meta["llm_duration_ms"] / count if count else None,
+            "detail": (
+                "Recorded completed SDK generation attempts since started_at; retries count "
+                "separately. Excludes cache hits, verification, backoff and collection overhead. "
+                "Unconfigured clients, capture failures and interrupted requests may be absent."
+            ),
+        }
+
+    def _prune_llm_calls(self, db: sqlite3.Connection, now: float) -> None:
+        expired = db.execute(
+            "SELECT MAX(timestamp) FROM api_monitor_llm_calls WHERE timestamp<?",
+            (now - self.retention_seconds,),
+        ).fetchone()[0]
+        db.execute(
+            "DELETE FROM api_monitor_llm_calls WHERE timestamp<?",
+            (now - self.retention_seconds,),
+        )
+        overflow = db.execute(
+            "SELECT MAX(timestamp) FROM api_monitor_llm_calls WHERE id NOT IN "
+            "(SELECT id FROM api_monitor_llm_calls ORDER BY timestamp DESC,id DESC LIMIT ?)",
+            (self.max_rows,),
+        ).fetchone()[0]
+        if overflow is not None:
+            db.execute(
+                "DELETE FROM api_monitor_llm_calls WHERE id NOT IN "
+                "(SELECT id FROM api_monitor_llm_calls ORDER BY timestamp DESC,id DESC LIMIT ?)",
+                (self.max_rows,),
+            )
+        if expired is not None or overflow is not None:
+            db.execute(
+                "UPDATE api_monitor_meta SET value=MAX(value,?) "
+                "WHERE key='llm_window_pruned_through'",
+                (max(expired or 0, overflow or 0),),
+            )
+
+    def _llm_window_stats(self, window_seconds: int) -> dict[str, Any]:
+        now = time.time()
+        start = now - window_seconds
+        with self.connection() as db:
+            db.execute("BEGIN IMMEDIATE")
+            self._prune_llm_calls(db, now)
+            meta = dict(db.execute("SELECT key,value FROM api_monitor_meta WHERE key LIKE 'llm_%'"))
+            count, successes, duration = db.execute(
+                "SELECT COUNT(*),COALESCE(SUM(succeeded),0),COALESCE(SUM(duration_ms),0) "
+                "FROM api_monitor_llm_calls WHERE timestamp>=? AND timestamp<=?",
+                (start, now),
+            ).fetchone()
+        complete = (
+            start >= meta["llm_window_started_at"] and start > meta["llm_window_pruned_through"]
+        )
+        sample = {
+            "total_calls": count,
+            "successful_calls": successes,
+            "failed_calls": count - successes,
+            "success_rate": successes / count if count else None,
+            "avg_latency_ms": duration / count if count else None,
+        }
+        return {
+            **(sample if complete else {key: None for key in sample}),
+            "status": "ok",
+            "source": "persisted_llm_attempts" if complete else "retained_sample",
+            "scope": "recorded_completed_attempts_shared_auth_database",
+            "collection_mode": "best_effort",
+            "window_seconds": window_seconds,
+            "window_start": start,
+            "window_end": now,
+            "window_complete": complete,
+            "started_at": meta["llm_window_started_at"],
+            "pruned_through": meta["llm_window_pruned_through"] or None,
+            "retention_seconds": self.retention_seconds,
+            "max_rows": self.max_rows,
+            "retained_sample": sample,
+            "detail": (
+                "Recorded completed SDK generation attempts in the inclusive completion-time window. "
+                "Retries count separately; cache hits, verification and backoff are excluded. "
+                "Null totals indicate collection startup or pruned history; see retained_sample. "
+                "Completeness describes retained coverage, not guaranteed capture: unconfigured "
+                "clients, capture failures and interrupted requests may be absent. "
+                "All writers must support window recording; older cumulative history is not backfilled."
+            ),
+        }
 
     def _prune(self, db: sqlite3.Connection, now: float) -> None:
         self._flush_capture_gap(db)

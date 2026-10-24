@@ -60,7 +60,14 @@ export const appPages: AppPage[] = [
     label: '基准测试',
     group: '分析与对比',
     icon: 'layers',
-    Component: lazy(() => import('@/mock/BusinessPage.tsx')),
+    Component: lazy(() => import('@/pages/Benchmarks/BenchmarksPage.tsx')),
+  },
+  {
+    path: '/ab-tests',
+    label: 'A/B 测试',
+    group: '分析与对比',
+    icon: 'pulse',
+    Component: lazy(() => import('@/pages/ABTests/ABTestsPage.tsx')),
   },
   {
     path: '/help',
@@ -140,5 +147,20 @@ export const detailPages: AppPage[] = [
     Component: lazy(
       () => import('@/pages/Experiments/ExperimentDetailPage.tsx'),
     ),
+  },
+  {
+    path: '/benchmarks/:suiteId',
+    label: '基准套件详情',
+    Component: lazy(() => import('@/pages/Benchmarks/BenchmarkDetailPage.tsx')),
+  },
+  {
+    path: '/ab-tests/new',
+    label: '创建 A/B 测试',
+    Component: lazy(() => import('@/pages/ABTests/CreateABTestPage.tsx')),
+  },
+  {
+    path: '/ab-tests/:testId',
+    label: 'A/B 测试详情',
+    Component: lazy(() => import('@/pages/ABTests/ABTestDetailPage.tsx')),
   },
 ]

@@ -19,6 +19,7 @@ from api.db.migrate import SCRIPT_LOCATION
 from api.db.models import Base
 from api.files.service import FileService
 from api.monitoring.config import MonitorSettings
+from api.monitoring.containers import ContainerProbes
 from api.monitoring.queue_health import QueueProbes
 from api.services import EvaluationService
 from src.cache import LLMResponseCache
@@ -60,6 +61,7 @@ class MonitorProbes:
         self.settings = settings
         self.evaluations = evaluations
         self.queue = QueueProbes(settings, celery_app.conf.broker_url)
+        self.container_resources = ContainerProbes(settings)
         self._sandbox_lock = threading.Lock()
         self._sandbox_result: dict[str, Any] | None = None
         self._sandbox_checked_at = 0.0
@@ -239,6 +241,10 @@ class MonitorProbes:
 
     def close(self) -> None:
         self.queue.close()
+        self.container_resources.close()
+
+    def containers(self) -> dict[str, Any]:
+        return self.container_resources.read()
 
     @staticmethod
     def cache_stats(cache: LLMResponseCache | None = None) -> dict[str, Any]:

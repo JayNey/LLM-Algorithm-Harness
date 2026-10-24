@@ -34,6 +34,7 @@ from src.utils.process_manager import (
 logger = get_logger(__name__)
 
 FUNCTION_RESULT_MARKER = "__LLM_HARNESS_FUNCTION_RESULT__"
+SANDBOX_CONTAINER_LABEL = "io.llm-algorithm-harness.sandbox=v1"
 
 
 class SandboxExecutionError(RuntimeError):
@@ -280,6 +281,8 @@ class SandboxExecutor:
             "docker",
             "run",
             "--rm",
+            "--label",
+            SANDBOX_CONTAINER_LABEL,
             "--interactive",
             *(["--name", container_name] if container_name else []),
             "--network",

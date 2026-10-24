@@ -1,0 +1,7 @@
+{
+  "openspec_proposal": "openspec/changes/real-queue-length/proposal.md",
+  "openspec_design": "openspec/changes/real-queue-length/design.md",
+  "openspec_tasks": "openspec/changes/real-queue-length/tasks.md",
+  "openspec_delta_spec": "openspec/changes/real-queue-length/specs/async-task-queue/spec.md",
+  "archive_directory": "openspec/changes/archive/2026-10-23-real-queue-length"
+}
