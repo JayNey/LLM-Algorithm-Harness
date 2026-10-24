@@ -477,3 +477,78 @@ def test_worker_cache_fork_does_not_duplicate_parent_counts(tmp_path, probes, mo
         cache.get("child-missing")
         llm_metrics.record_cache(cache)
     assert store.cache_stats()["misses"] == 2
+
+
+def test_worker_cache_overall_rate_weights_cross_process_counts(probes):
+    """Averaging worker rates (45%) or summing repeated snapshots must fail."""
+    import subprocess
+    import sys
+
+    script = """
+import sys
+from pathlib import Path
+from api.auth.store import AuthStore
+from api.monitoring.store import MonitorStore
+
+store = MonitorStore(AuthStore(Path(sys.argv[1])))
+sample = dict(enabled=True, hits=int(sys.argv[3]), misses=int(sys.argv[4]),
+              total_entries=3, disk_usage_mb=0.5)
+for _ in range(2):
+    store.record_cache_snapshot(sys.argv[2] * 32, 'b' * 64, sample)
+"""
+    for instance, hits, misses in (("a", "9", "1"), ("c", "0", "90")):
+        subprocess.run(
+            [sys.executable, "-c", script, str(probes.auth.store.path), instance, hits, misses],
+            check=True,
+            capture_output=True,
+            timeout=30,
+        )
+    data = probes.cache_stats()
+    assert data["hits"] == data["api_calls_saved"] == 9
+    assert data["misses"] == 91
+    assert data["hit_rate"] == pytest.approx(0.09)
+    assert data["observed_instances"] == 2
+    assert data["total_entries"] == 3
+    assert data["disk_usage_mb"] == 0.5
+    assert data["counters_scope"] == "retained_instance_lifetime_snapshots"
+    assert data["cluster_complete"] is False
+
+
+def test_worker_cache_updated_snapshot_and_expiry_change_rate(probes):
+    """Replacing one snapshot must preserve other workers; expiry removes its counts."""
+    from api.monitoring.store import MonitorStore
+
+    store = MonitorStore(probes.auth.store, retention_seconds=1000)
+    sample = dict(enabled=True, hits=9, misses=1, total_entries=1, disk_usage_mb=0.5)
+    with patch("api.monitoring.store.time.time", return_value=1000):
+        store.record_cache_snapshot("a" * 32, "b" * 64, sample)
+    with patch("api.monitoring.store.time.time", return_value=1500):
+        store.record_cache_snapshot("c" * 32, "d" * 64, {**sample, "hits": 0, "misses": 90})
+        store.record_cache_snapshot("a" * 32, "b" * 64, {**sample, "hits": 19})
+        data = store.cache_stats()
+        assert data["hits"] == 19 and data["misses"] == 91
+        assert data["hit_rate"] == pytest.approx(19 / 110)
+    # Keep only worker c alive. Its lifetime misses remain, even if they
+    # occurred before the retention window; retention applies to snapshots.
+    with patch("api.monitoring.store.time.time", return_value=2400):
+        store.record_cache_snapshot("c" * 32, "d" * 64, {**sample, "hits": 0, "misses": 90})
+    with patch("api.monitoring.store.time.time", return_value=2501):
+        data = store.cache_stats()
+        assert data["observed_instances"] == 1
+        assert data["hits"] == 0 and data["misses"] == 90
+        assert data["hit_rate"] == 0.0
+
+
+@pytest.mark.parametrize("enabled", [True, False])
+def test_worker_cache_zero_queries_has_no_overall_rate(probes, enabled):
+    from api.monitoring.store import MonitorStore
+
+    MonitorStore(probes.auth.store).record_cache_snapshot(
+        "a" * 32,
+        "b" * 64,
+        dict(enabled=enabled, hits=0, misses=0, total_entries=0, disk_usage_mb=0),
+    )
+    data = probes.cache_stats()
+    assert data["enabled"] is enabled
+    assert data["hits"] == data["misses"] == data["api_calls_saved"] == 0
+    assert data["hit_rate"] is None

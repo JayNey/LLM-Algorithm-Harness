@@ -101,7 +101,7 @@ LLM 采集位于 OpenAI、local、SiliconFlow 和 Anthropic 的实际 SDK 生成
 API 和 worker 必须使用相同的 `AUTH_DATABASE_PATH`（跨容器需挂载同一 SQLite 文件），并配置有效的 `SECRET_KEY`、`ENCRYPTION_KEY`；未配置服务端认证的 CLI 仍能正常请求模型，但不采集到此数据库。`source=persisted_llm_attempts`、`scope=recorded_completed_attempts_shared_auth_database`、`collection_mode=best_effort` 明确该口径：统计跨进程和重启累计，仅覆盖成功落库的已完成尝试，不代表全部署精确总账。采集前历史、未共享该数据库的客户端、被强杀/尚未结束的请求及写入失败样本可能缺失；`status=ok` 表示统计可读取，不保证所有 worker 配置正确。聚合使用现有监控元数据表中的固定数值键，不保存 prompt、响应、模型名、URL、凭证或异常正文，不受请求/日志样本的保留期和行数裁剪。采集写入锁等待上限为 100ms，故障不会改变模型结果或增加模型重试。
 - `GET /api/v1/metrics/llm-stats?window_seconds=60`：查询最近 60 秒；可选整数范围 1–86400，省略时保持上述累计口径。窗口按 SDK 尝试完成时间 `[window_start, window_end]`（Unix 秒，两端包含）过滤，返回 `total_calls`、`successful_calls`、`failed_calls`、`success_rate`（成功/全部，0–1）及 `avg_latency_ms`（全部尝试平均耗时，毫秒）。完整空窗口计数为零、成功率及平均耗时为 `null`；非法参数返回 400，权限仍限管理员。
 - 窗口数据遵循 `MONITOR_RETENTION_SECONDS` 和 `MONITOR_MAX_ROWS`，仅保存完成时间、成功标志和耗时数值。`window_complete` 表示采集与保留覆盖；若窗口早于 `started_at` 或包含 `pruned_through` 之前被删除的记录，主指标为 `null`，`source=retained_sample`，可读取 `retained_sample` 的剩余样本。best-effort 仍可能遗漏采集失败或未配置客户端，不保证所有实际请求均已采集。升级前的累计值不会回填窗口；API 与 worker 需统一升级，历史累计不受清理影响。`recorded_usage_hooks` 和 `key_verification_count` 始终为独立累计值。
-- `GET /api/v1/metrics/cache-stats`：自动读取实际 `LLMClient` 上报到共享监控数据库的缓存快照；无观测为 `not_configured`。worker 与 API 必须共享 `AUTH_DATABASE_PATH` 对应的存储。命中、未命中及节省调用数按保留的客户端实例生命周期快照汇总，重复上报覆盖；不是整个群集累计（`cluster_complete=false`），无请求时命中率为 null。容量按同一主机的绝对缓存目录去重，取最新观测；包含磁盘上尚未删除的过期条目。`capacity_max_age_seconds` 表示最旧目录样本年龄，超过 300 秒返回 `partial` 且容量为 null。快照按监控保留期限和最多 min(MONITOR_MAX_ROWS,1024) 个实例限制。采集发生在客户端创建、读取及写入后，不是周期性磁盘扫描；采集失败不影响生成。仍兼容可信进程显式绑定单一缓存实例，此时保留原 `bound_cache_instance`/进程内口径。
+- `GET /api/v1/metrics/cache-stats`：自动读取实际 `LLMClient` 上报到共享监控数据库的缓存快照；无观测为 `not_configured`。worker 与 API 必须共享 `AUTH_DATABASE_PATH` 对应的存储。命中、未命中及节省调用数按保留的客户端实例生命周期快照汇总，重复上报覆盖；不是整个群集累计（`cluster_complete=false`）。整体命中率为 `sum(hits) / (sum(hits) + sum(misses))`，先汇总计数再相除，不对各 worker 的命中率取算术平均。例如两个 worker 分别为 9 hit / 1 miss 与 0 hit / 90 miss，整体为 9%，不是 45%。无缓存查询时命中率为 null；有查询且全部未命中时为 0；禁用缓存的模型调用不计入缓存查询分母。容量按同一主机的绝对缓存目录去重，取最新观测；包含磁盘上尚未删除的过期条目。`capacity_max_age_seconds` 表示最旧目录样本年龄，超过 300 秒返回 `partial` 且容量为 null。快照按监控保留期限和最多 min(MONITOR_MAX_ROWS,1024) 个实例限制。保留期限作用于快照更新时间，保留的每个快照包含该实例生命周期累计计数，并非该时间窗口内发生的请求数；重复上报覆盖该实例，实例快照到期或被数量上限淘汰后，其计数退出整体统计。成功采集的实例数由 `observed_instances` 表示，不等于 Celery worker 节点数，一个 worker 可创建多个客户端实例。采集发生在客户端创建、读取及写入后，不是周期性磁盘扫描；采集失败不影响生成。仍兼容可信进程显式绑定单一缓存实例，此时保留原 `bound_cache_instance`/进程内口径。
 
 请求统计记录实际 HTTP 方法、匹配路由模板、状态码与响应耗时；不保存请求 body、query、Authorization 或原始资源路径。监控轮询本身也属于 API 请求。
 
@@ -170,7 +170,7 @@ curl http://localhost:8000/api/v1/logs/download/your-task-id \
 
 真实 worker 可用可信任务所有者调用 `app.state.monitor.record_task_event(event, user_id)`。入口会校验登记的任务归属和删除状态；HTTP 不开放指定所有者、写日志或绑定缓存的接口。实际 LLM 缓存通过客户端自动上报共享快照，无需将 worker 对象直接绑定到 API 进程；`app.state.monitor.cache` 仅保留可信进程的单实例兼容入口。
 
-Redis 连通性和回复 worker 的数值负载已接入。broker 等待队列长度、真实任务执行时长/成功率、LLM 请求时延、跨 worker 缓存命中率、各容器 CPU/内存及新日/月配额仍需后续采集。数据库健康和绑定 engine 的查询时延已接入；健康探测不构成真实模型调用成功证明。#157 保持开放。
+Redis 连通性和回复 worker 的数值负载已接入。broker 等待队列长度、真实任务执行时长/成功率、LLM 请求时延、各容器 CPU/内存及新日/月配额仍需后续采集。数据库健康和绑定 engine 的查询时延已接入；健康探测不构成真实模型调用成功证明。#157 保持开放。
 
 ## Docker 沙箱容器资源
 
@@ -193,7 +193,7 @@ ps 与 stats 分享0.5–10秒命令预算，各自接受的合计输出上限64
 
 每 API 进程最多一个采样，缓存0–300秒，失败也缓存；cached/age_seconds 描述完成后的缓存年龄。缓存过期且另一个采样在途时返回 unknown/refresh_in_progress，不把旧成功值当成新观测。缓存独立于 worker/Redis 观测。
 
-本功能仅完成 #157 的容器资源观测；LLM 生成性能、跨 worker 缓存和新增配额仍需后续实现。
+本功能仅完成 #157 的容器资源观测；LLM 生成性能和新增配额仍需后续实现。跨 worker 缓存计数及整体命中率已通过共享快照提供，范围和公式见上文缓存统计接口。
 
 ### 实际任务执行统计
 
