@@ -269,13 +269,13 @@ class MonitorService:
             "llm": self.llm_stats(),
         }
 
-    def llm_stats(self) -> dict[str, Any]:
+    def llm_stats(self, window_seconds: int | None = None) -> dict[str, Any]:
         with self.auth.store.connection() as db:
             row = db.execute(
                 "SELECT COALESCE(SUM(usage_count),0),COALESCE(SUM(verification_count),0) FROM auth_keys"
             ).fetchone()
         return {
-            **self.store.llm_stats(),
+            **self.store.llm_stats(window_seconds),
             "recorded_usage_hooks": row[0],
             "key_verification_count": row[1],
         }
