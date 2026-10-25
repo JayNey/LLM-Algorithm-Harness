@@ -87,3 +87,14 @@ node scripts/verify-evaluations.mjs --scenario all
 ```
 
 这是 Chromium HTTP/WS fixture，真实 React/路由/会话适配器/观察器/客户端参与，身份、HTTP、WS 均被替换；没有连接真实 Redis/Celery、供应商或沙箱。详情 3 风格×2 主题×320/1440px 的截图保留，人工抽查 progress 桌面、Orbit 深色手机及 Studio 浅色桌面；不外推为真机或全流程外观验收。工程结果与独立审查详见 [补验收报告](../superpowers/reports/2026-10-24-evaluation-progress-verification-verify.md)。
+
+## 设置与系统管理页验证（issue #167）
+
+```bash
+npm run dev -- --host 127.0.0.1 --port 5180
+PLAYWRIGHT_MODULE=/absolute/path/to/node_modules/playwright \
+  node scripts/verify-settings.mjs all
+```
+
+场景：`monitor`（系统监控面板）、`budgets`（预算与预警）、`pricing`（定价目录）、`logs`（日志查询）。
+报告与截图写入 `docs/superpowers/reports/assets/settings/fixture/`。
