@@ -259,3 +259,25 @@ worker 计数只覆盖截止时间内回复的节点，不能视作完整集群�
 #157 后续范围，完整配置和限制见[监控指南](docs/api-monitoring.md)。
 
 管理员还可设置 `MONITOR_CONTAINER_PROBES_ENABLED=true`，在 `system/status.containers` 读取当前 Docker context 中带管理标签沙箱的匿名资源快照。默认关闭，旧版无标签容器不计入；存在超时、输出和样本限制，缺测返回 null。配置与语义见[监控指南](docs/api-monitoring.md#docker-沙箱容器资源)。
+
+## 统一脱敏配置查询
+
+管理员使用 `GET /api/v1/system/config` 查看当前 API 进程已经加载的配置：
+
+```bash
+curl --fail -i http://localhost:8000/api/v1/system/config \
+  -H "Authorization: Bearer $ACCESS_TOKEN"
+```
+
+返回标准 `{success, data, message}` 信封，`data.scope` 为 `api_process`。
+`data.api` 包含任务并发上限和超时；`data.auth` 包含令牌有效期、请求限流及日/月额度；
+`data.files` 包含上传、存储、导入和传输限额；`data.monitoring` 包含保留期、采样窗口、
+探测开关、超时和缓存时间。各字段沿用配置名，单位由 `_SECONDS`、`_MINUTES`、
+`_DAYS`、`_BYTES` 后缀标明；未配置的日/月额度为 `null`（不限额）。完整字段和示例见 OpenAPI。
+
+接口只读取显式白名单，新增字段默认不公开。凭据、数据库/Redis 连接串、主机地址、
+CORS 来源、管理员 UUID、本地路径和沙箱镜像均省略，不返回部分掩码。
+未登录返回 401，普通用户返回 403；管理员资格实时读取服务端配置。
+响应带 `Cache-Control: no-store`，不重新读取磁盘或环境变量、不触发外部健康探测。
+配置文件修改需按原有方式重启服务才能生效；多进程部署中响应仅代表处理请求的进程。
+单次评估的模型与沙箱参数、示例 provider 目录不属于此进程配置视图。
