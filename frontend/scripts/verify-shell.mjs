@@ -62,6 +62,74 @@ await context.route('**/api/v1/**', async (route) => {
     authCalls++
     return route.fulfill({ status: 204, headers })
   }
+  // 真实创建页的只读接口按仓库既有 fixture 契约应答；其余业务请求仍然报错。
+  if (route.request().method() === 'GET' && path.endsWith('/api-keys'))
+    return route.fulfill({
+      headers,
+      json: {
+        data: [
+          {
+            id: 'key-shell',
+            key_name: '密钥 S',
+            provider: 'openai',
+            created_at: 1792533600,
+            last_used_at: null,
+            verified: true,
+            usage_count: 0,
+            masked_preview: null,
+          },
+        ],
+      },
+    })
+  if (
+    route.request().method() === 'GET' &&
+    path.endsWith('/evaluation-options')
+  )
+    return route.fulfill({
+      headers,
+      json: {
+        data: {
+          strategies: [{ name: 'direct' }, { name: 'reflexion' }],
+          sources: [
+            { id: 'shared', label: '共享题目', problem_count: 21 },
+            { id: 'personal', label: '个人题目', problem_count: 1 },
+          ],
+        },
+      },
+    })
+  if (
+    route.request().method() === 'GET' &&
+    path.endsWith('/evaluation-options/models')
+  )
+    return route.fulfill({
+      headers,
+      json: {
+        data: { provider: 'openai', models: ['model-a'], complete: true },
+      },
+    })
+  if (
+    route.request().method() === 'GET' &&
+    path.endsWith('/evaluation-options/problems')
+  )
+    return route.fulfill({
+      headers,
+      json: {
+        data: {
+          items: [
+            {
+              problem_id: 'p1',
+              title: '算法题 1',
+              difficulty: 'easy',
+              source: 'shared',
+            },
+          ],
+          total: 1,
+          limit: 20,
+          offset: 0,
+          has_more: false,
+        },
+      },
+    })
   throw Error(`Unexpected business API: ${path}`)
 })
 async function signIn(marker = 'qa-session-a') {
@@ -215,7 +283,7 @@ try {
   )
   await page.getByRole('button', { name: '展开侧边栏', exact: true }).click()
   checks.push('collapse and appearance persist across reload')
-  await page.getByRole('link', { name: '评估任务', exact: true }).click()
+  // 示例仪表盘承载 Mock 列表交互；真实评估页业务由 verify-evaluations 覆盖。
   await page.getByLabel('搜索评估任务', { exact: true }).fill('Qwen')
   await chooseAntSelect('任务状态', '已完成')
   await page.waitForFunction(
@@ -243,7 +311,7 @@ try {
   })
   for (const variant of ['orbit', 'precision', 'studio']) {
     await page.getByLabel('选择页面风格', { exact: true }).selectOption(variant)
-    assert.equal(new URL(page.url()).pathname, '/evaluations')
+    assert.equal(new URL(page.url()).pathname, '/')
     assert.equal(
       await page.getByLabel('搜索评估任务', { exact: true }).inputValue(),
       'Qwen',
@@ -265,37 +333,28 @@ try {
       1,
     )
   }
-  await page
-    .getByRole('button', { name: '创建评估', exact: true })
-    .last()
-    .click()
-  await page.getByRole('dialog').waitFor()
-  await page
-    .getByPlaceholder('例如：HumanEval 基线对照', { exact: true })
-    .fill('持久化测试草稿')
-  await page
-    .getByRole('dialog')
-    .getByRole('button', { name: 'Close', exact: true })
-    .click()
-  await page.getByRole('dialog').waitFor({ state: 'hidden' })
-  await page.getByLabel('选择页面风格', { exact: true }).selectOption('orbit')
-  await page
-    .getByRole('button', { name: '创建评估', exact: true })
-    .last()
-    .click()
-  assert.equal(
-    await page
-      .getByPlaceholder('例如：HumanEval 基线对照', { exact: true })
-      .inputValue(),
-    '持久化测试草稿',
-  )
-  await page.getByRole('button', { name: '确认示例配置', exact: true }).click()
-  await page
-    .getByText('示例配置已确认，未提交真实任务', { exact: true })
-    .waitFor()
   checks.push(
-    'variant changes retain route, DOM, filter, draft and notification read state',
+    'variant changes retain route, DOM, filter and notification read state',
   )
+  // 统一创建入口：侧栏按钮与快速操作都落到真实创建页，不再弹出模拟表单。
+  await page
+    .locator('.side-bottom')
+    .getByRole('button', { name: '创建评估', exact: true })
+    .click()
+  await page.waitForURL('**/evaluations/new')
+  await page.getByRole('heading', { name: '创建评估', exact: true }).waitFor()
+  assert.equal(await page.getByText('确认示例配置', { exact: true }).count(), 0)
+  assert.equal(
+    await page.locator('.breadcrumbs [aria-current="page"]').innerText(),
+    '创建评估',
+  )
+  checks.push('sidebar create entry navigates to the real create page')
+  await page.getByRole('button', { name: '快速操作', exact: true }).click()
+  await page.getByRole('menuitem', { name: '创建评估', exact: true }).click()
+  await page.getByRole('heading', { name: '创建评估', exact: true }).waitFor()
+  checks.push('quick action create entry navigates to the real create page')
+  await page.goto(`${base}/`)
+  await page.getByRole('heading', { name: '仪表盘', exact: true }).waitFor()
   await chooseAntSelect('预览数据状态', '状态：错误')
   await page.getByRole('button', { name: '重新加载', exact: true }).click()
   await page.getByRole('status').filter({ hasText: '正在加载数据' }).waitFor()
@@ -303,13 +362,16 @@ try {
     .getByRole('table', { name: 'Mock 评估任务', exact: true })
     .waitFor()
   await chooseAntSelect('预览数据状态', '状态：空数据')
-  await page
-    .getByRole('button', { name: '创建首个评估', exact: true })
-    .waitFor()
-  await chooseAntSelect('预览数据状态', '状态：正常')
+  await page.getByRole('button', { name: '创建首个评估', exact: true }).click()
+  await page.waitForURL('**/evaluations/new')
+  await page.getByRole('heading', { name: '创建评估', exact: true }).waitFor()
+  checks.push('empty state create entry navigates to the real create page')
+  await page.goto(`${base}/`)
+  await page.getByRole('heading', { name: '仪表盘', exact: true }).waitFor()
   checks.push('loading, empty, error and retry work')
+  // goto 触发整页重载，通知 store 回到种子状态（2 条未读）。
   await page
-    .getByRole('button', { name: '通知中心，0 条未读', exact: true })
+    .getByRole('button', { name: '通知中心，2 条未读', exact: true })
     .click()
   await chooseAntSelect('通知分类', '预算预警')
   assert.equal(await page.locator('.notification-item').count(), 1)
@@ -322,8 +384,8 @@ try {
   await page.goto(base)
   await page.setViewportSize({ width: 320, height: 844 })
   await page.getByRole('button', { name: '打开导航菜单', exact: true }).click()
-  await page.getByRole('link', { name: '基准测试', exact: true }).last().click()
-  await page.getByRole('heading', { name: '基准测试', exact: true }).waitFor()
+  await page.getByRole('link', { name: '帮助文档', exact: true }).last().click()
+  await page.getByRole('heading', { name: '帮助文档', exact: true }).waitFor()
   await page
     .getByRole('navigation', { name: '常用页面', exact: true })
     .getByRole('link', { name: '仪表盘', exact: true })
@@ -413,9 +475,21 @@ try {
     }
   }
   assert.deepEqual(errors, [])
+  // 真实创建页的只读接口属于预期内业务请求；外壳自身不得发起其余业务请求。
+  const shellEndpoints = ['/users/me', '/auth/logout']
+  const createPageReads = [
+    '/api-keys',
+    '/evaluation-options',
+    '/evaluation-options/models',
+    '/evaluation-options/problems',
+  ]
   assert.equal(
     requests.some(
-      (r) => !r.path.endsWith('/users/me') && !r.path.endsWith('/auth/logout'),
+      (r) =>
+        !shellEndpoints.some((p) => r.path.endsWith(p)) &&
+        !(
+          r.method === 'GET' && createPageReads.some((p) => r.path.endsWith(p))
+        ),
     ),
     false,
   )

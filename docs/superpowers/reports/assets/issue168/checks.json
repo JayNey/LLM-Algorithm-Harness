@@ -220,7 +220,10 @@
     },
     "system theme follows media changes",
     "collapse and appearance persist across reload",
-    "variant changes retain route, DOM, filter, draft and notification read state",
+    "variant changes retain route, DOM, filter and notification read state",
+    "sidebar create entry navigates to the real create page",
+    "quick action create entry navigates to the real create page",
+    "empty state create entry navigates to the real create page",
     "loading, empty, error and retry work",
     "ordinary user cannot open admin route",
     "mobile drawer, bottom navigation and Escape focus restoration",
@@ -243,6 +246,46 @@
     },
     {
       "path": "/api/v1/users/me",
+      "method": "GET"
+    },
+    {
+      "path": "/api/v1/users/me",
+      "method": "GET"
+    },
+    {
+      "path": "/api/v1/users/me",
+      "method": "GET"
+    },
+    {
+      "path": "/api/v1/evaluation-options",
+      "method": "GET"
+    },
+    {
+      "path": "/api/v1/api-keys",
+      "method": "GET"
+    },
+    {
+      "path": "/api/v1/evaluation-options/problems",
+      "method": "GET"
+    },
+    {
+      "path": "/api/v1/users/me",
+      "method": "GET"
+    },
+    {
+      "path": "/api/v1/users/me",
+      "method": "GET"
+    },
+    {
+      "path": "/api/v1/evaluation-options",
+      "method": "GET"
+    },
+    {
+      "path": "/api/v1/api-keys",
+      "method": "GET"
+    },
+    {
+      "path": "/api/v1/evaluation-options/problems",
       "method": "GET"
     },
     {

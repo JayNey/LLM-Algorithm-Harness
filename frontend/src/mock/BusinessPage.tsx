@@ -14,22 +14,10 @@ import { DesignFocus } from './DesignFocus.tsx'
 import { metrics, runs, type MockRun } from './data.ts'
 import { RunList, Status } from './RunList.tsx'
 const examples: Record<string, { title: string; description: string }> = {
-  '/problems': {
-    title: 'HumanEval / 0 · has_close_elements',
-    description: '函数生成 · Python · 示例题目',
-  },
-  '/experiments': {
-    title: '推理策略消融',
-    description: 'Direct → Reflexion → Self-refine · 3 个对照组',
-  },
-  '/benchmarks': {
-    title: 'HumanEval',
-    description: '164 道 Python 函数题 · 代码生成能力评估',
-  },
   '/help': {
     title: '开始一次 LLM 算法评估',
     description:
-      '选择题目集 → 选择模型与策略 → 运行并比较结果。当前工作台的业务与通知使用 Mock，账号设置和认证沿用真实服务。',
+      '选择题目集 → 选择模型与策略 → 运行并比较结果。当前工作台的示例仪表盘与通知使用 Mock，账号设置和认证沿用真实服务。',
   },
 }
 export default function BusinessPage() {
@@ -221,33 +209,14 @@ export default function BusinessPage() {
         </div>
       </>
     )
-  else if (pathname === '/evaluations' || pathname === '/results')
-    content = (
-      <section className="panel">
-        <div className="section-head">
-          <div>
-            <h2>{label}</h2>
-            <p>用于验证工作台布局的 Mock 任务。</p>
-          </div>
-        </div>
-        {tools}
-        {list}
-      </section>
-    )
   else {
     const example = examples[pathname]
     content = (
       <section className="panel example-panel">
         <h2>{example?.title ?? label}</h2>
         <p>{example?.description}</p>
-        <Button
-          onClick={
-            pathname === '/problems' ? actions?.onImport : actions?.onCreate
-          }
-        >
-          {pathname === '/problems' ? '导入题目' : '创建示例评估'}
-        </Button>
-        <p className="sample-caption">布局示例 · 业务和通知为 Mock</p>
+        <Button onClick={actions?.onCreate}>创建评估</Button>
+        <p className="sample-caption">布局示例 · 示例内容与通知为 Mock</p>
         {pathname === '/help' && <ToastExamples />}
       </section>
     )

@@ -31,7 +31,7 @@ const seed: MockNotification[] = [
     id: 3,
     type: '系统通知',
     title: '欢迎使用工作台',
-    text: '业务与通知均为 Mock 数据',
+    text: '示例与通知均为 Mock 数据',
     time: '09:00',
     route: '/help',
     read: true,
