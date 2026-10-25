@@ -10,7 +10,7 @@
     "format": "prettier --write .",
     "format:check": "prettier --check .",
     "check:env": "node --experimental-strip-types scripts/check-env.ts",
-    "test": "node --experimental-strip-types --test src/auth/*.test.ts src/store/*.test.ts src/account/*.test.ts src/evaluations/*.test.ts src/experiments/*.test.ts src/benchmarks/*.test.ts src/abtests/*.test.ts src/problems/*.test.ts",
+    "test": "node --experimental-strip-types --test src/auth/*.test.ts src/store/*.test.ts src/account/*.test.ts src/evaluations/*.test.ts src/experiments/*.test.ts src/benchmarks/*.test.ts src/abtests/*.test.ts src/problems/*.test.ts src/monitoring/*.test.ts src/budgets/*.test.ts src/pricing/*.test.ts src/systemlogs/*.test.ts",
     "prepare": "cd .. && husky frontend/.husky",
     "preview": "vite preview"
   },
