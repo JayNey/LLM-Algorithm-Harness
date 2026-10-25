@@ -8,3 +8,6 @@
 
 ## 验证
 先补fixture并在Mock基线记录results RED，再实现。覆盖列表status/分页/URL、run_id=null直达刷新、跨页全量汇总、同题多策略、未知字段、错误/重试/权限/旧响应隔离及事件合并下任务+结果单周期。单测覆盖联合loader与表现规则；全量前端工程检查、已有detail/progress/create/list回归和独立Bugbot。HTTP/WS全部fixture，不宣称真实后端/供应商/沙箱端到端。
+
+## 审查修正
+并行读取可能跨越worker终态提交，task已完成但result仍running。联合loader对终态状态不一致进行一次有界有序补读，仍属于原观察周期；补读仍不一致时清除旧结果并保留独立错误/显式重试，不改写任务状态、不无限重读。该路径同时覆盖bootstrap与活动观察器。

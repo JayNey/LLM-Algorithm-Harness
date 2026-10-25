@@ -140,3 +140,46 @@ test('transport忽略AbortSignal时，旧联合结果仍不可交付', async () 
   late.resolve(result)
   await assert.rejects(pending, { name: 'AbortError' })
 })
+
+test('终态任务与旧结果跨版本时，同一周期补读后才交付完整结果', async () => {
+  const completed = { ...task, status: 'completed' }
+  const finalResult = {
+    ...result,
+    status: 'completed',
+    problems: { ...result.problems, total: 2 },
+  }
+  let reads = 0
+  const snapshot = await fetchEvaluationResult(
+    {
+      get: async () => completed,
+      result: async () => (++reads === 1 ? result : finalResult),
+    },
+    task.evaluation_id,
+    { limit: 20, offset: 0 },
+    new AbortController().signal,
+  )
+  assert.equal(reads, 2)
+  assert.equal(snapshot.status, 'completed')
+  assert.deepEqual(snapshot.result, finalResult)
+  assert.equal(snapshot.resultError, null)
+})
+
+test('补读后仍跨版本时显示独立错误，不将旧统计伪装终态结果或无限补读', async () => {
+  let reads = 0
+  const snapshot = await fetchEvaluationResult(
+    {
+      get: async () => ({ ...task, status: 'completed' }),
+      result: async () => {
+        reads += 1
+        return result
+      },
+    },
+    task.evaluation_id,
+    { limit: 20, offset: 0 },
+    new AbortController().signal,
+  )
+  assert.equal(reads, 2)
+  assert.equal(snapshot.status, 'completed')
+  assert.equal(snapshot.result, null)
+  assert.equal(snapshot.resultError, '结果快照与任务状态暂不一致，请重试')
+})

@@ -124,6 +124,11 @@ async function fixture(mode = 'start-error', entry = '/evaluations/new') {
   let resultFailure = 0
   let resultsListFailure = false
   const resultIntervals = []
+  let heldResultOffset = null
+  let resultGate = null
+  let releaseResult = () => {}
+  let resultHeld = Promise.resolve()
+  let markResultHeld = () => {}
   let detailGate = null
   let releaseDetail = () => {}
   let releaseList
@@ -196,6 +201,13 @@ async function fixture(mode = 'start-error', entry = '/evaluations/new') {
         })
       }
       if (path.startsWith('/results/')) {
+        if (
+          Number(url.searchParams.get('offset')) === heldResultOffset &&
+          resultGate
+        ) {
+          markResultHeld()
+          await resultGate
+        }
         const started = Date.now()
         await new Promise((resolve) => setTimeout(resolve, 180))
         if (resultFailure)
@@ -558,6 +570,21 @@ async function fixture(mode = 'start-error', entry = '/evaluations/new') {
     detailIntervals,
     detailProgress,
     resultIntervals,
+    holdResult(offset) {
+      heldResultOffset = offset
+      resultHeld = new Promise((resolve) => {
+        markResultHeld = resolve
+      })
+      resultGate = new Promise((resolve) => {
+        releaseResult = resolve
+      })
+    },
+    waitForHeldResult: () => resultHeld,
+    releaseResult() {
+      heldResultOffset = null
+      resultGate = null
+      releaseResult()
+    },
     failResult: (status) => {
       resultFailure = status
     },
@@ -2147,6 +2174,26 @@ async function resultsScenario() {
       ),
     )
   }
+  h.holdResult(0)
+  await h.page.getByRole('button', { name: '上一页单题', exact: true }).click()
+  await h.waitForHeldResult()
+  await h.page.goBack()
+  await units
+    .getByRole('cell', { name: 'result-problem-12', exact: true })
+    .first()
+    .waitFor()
+  h.releaseResult()
+  await h.page.waitForTimeout(250)
+  await check('迟到旧分页不能覆盖后退恢复的结果页', async () => {
+    assert.equal(new URL(h.page.url()).searchParams.get('offset'), '20')
+    assert.equal(await rows.count(), 4)
+    assert.equal(
+      await units
+        .getByRole('cell', { name: 'result-problem-1', exact: true })
+        .count(),
+      0,
+    )
+  })
   h.failResult(503)
   await h.page.getByRole('button', { name: '刷新结果', exact: true }).click()
   await h.page.getByRole('alert').waitFor()
