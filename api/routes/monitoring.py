@@ -18,7 +18,9 @@ from api.monitoring.capabilities import evaluation_capability
 from api.monitoring.config import public_system_config
 from api.monitoring.dependencies import administrator, monitor_service
 from api.monitoring.service import MonitorService
+from api.routes.evaluation_options import evaluation_options_service
 from api.schemas import ApiResponse
+from api.services.evaluation_options_service import EvaluationOptionsService
 
 router = APIRouter(prefix="/api/v1", tags=["monitoring"])
 
@@ -263,9 +265,25 @@ def strategies(
 
 @router.get("/config/providers")
 def providers(
-    admin: Principal = Depends(administrator), monitor: MonitorService = Depends(monitor_service)
+    response: Response,
+    api_key_id: str | None = Query(None, min_length=1),
+    admin: Principal = Depends(administrator),
+    monitor: MonitorService = Depends(monitor_service),
+    service: EvaluationOptionsService = Depends(evaluation_options_service),
 ) -> ApiResponse[Any]:
-    return answer(monitor.probes.providers())
+    response.headers["Cache-Control"] = "no-store"
+    if api_key_id is None:
+        return answer(monitor.probes.providers())
+    models = service.models(admin.user_id, api_key_id)
+    return answer(
+        {
+            "status": "ok",
+            "source": models.source,
+            "scope": models.scope,
+            "live_provider_availability_checked": True,
+            "providers": [models.model_dump(exclude={"source", "scope"})],
+        }
+    )
 
 
 @router.get("/config/sandbox")

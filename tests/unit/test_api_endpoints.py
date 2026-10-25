@@ -208,7 +208,11 @@ CASES = [
         "evaluation_options.models",
         (OWNER, "key-1"),
         result=MODEL_OPTIONS,
-        expected=MODEL_OPTIONS,
+        expected={
+            **MODEL_OPTIONS,
+            "source": "provider_api",
+            "scope": "user_api_key",
+        },
     ),
     case(
         "POST",

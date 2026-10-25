@@ -316,6 +316,7 @@ class MonitorProbes:
         return {
             "status": "ok" if available else "unknown",
             "scope": "offline_example_catalog",
+            "source": "static_examples",
             "live_provider_availability_checked": False,
             "providers": [
                 {"provider": provider, "models": sorted(catalog[provider])}
