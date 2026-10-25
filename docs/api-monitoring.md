@@ -221,17 +221,17 @@ curl http://localhost:8000/api/v1/logs/download/your-task-id \
 
 管理员可查询：
 
-- `GET /api/v1/system/config`：当前 API 进程已加载的 API、认证、文件与监控配置，以固定数值/布尔/可空额度白名单返回；不重新读取环境或文件、不执行探针，不返回凭据、URL、路径或管理员身份列表。
+- `GET /api/v1/system/config`：当前 API 进程已加载的 API、认证、文件与监控配置，以固定数值/布尔/可空额度白名单返回；不重新读取环境或文件、不执行探针，不返回凭据、URL、路径或管理员身份列表；`scope=api_process`，响应 `no-store`。
 
 - `GET /api/v1/config/strategies`：复用 `AlgorithmHarness.STRATEGY_MAP` 和 `StrategyConfig` 的默认资源参数。
-- `GET /api/v1/config/providers`：不传 `api_key_id` 时只读公开静态示例，`source=static_examples`、`scope=offline_example_catalog`，不代表完整模型支持清单。传入管理员本人的非空 `api_key_id` 时复用评测模型查询逻辑，返回 `source=provider_api`、`scope=user_api_key` 和该供应商的 `provider/models/complete`；枚举成功不保证推理可调用，失败不回退静态。两类响应均 no-store，不返回密钥或自定义 URL；管理员也不能使用他人密钥。CLI能力列表不扩大认证密钥接口的提供商白名单。
+- `GET /api/v1/config/providers`：不传 `api_key_id` 时只读公开静态示例，`source=static_examples`、`scope=offline_example_catalog`，不代表完整模型支持清单。传入管理员本人的非空 `api_key_id` 时复用评测模型查询逻辑，返回 `source=provider_api`、`scope=user_api_key` 和该供应商的 `provider/models/complete`；`complete=false` 表示截断或分页完整性未知。枚举成功不保证推理可调用，失败不回退静态。两类响应均 no-store，不返回密钥或自定义 URL；管理员也不能使用他人密钥。CLI能力列表不扩大认证密钥接口的提供商白名单。
 - `GET /api/v1/config/sandbox`：受控 Docker 镜像、执行超时、内存、进程、输出和允许导入配置，不返回主机目录或环境变量。
 
 #149 的异步任务执行与产品 HTTP 入队已合入。API 启动保留现有任务工厂和服务恢复策略，关闭时清理探测子进程及查询采集器。Redis/worker 探测须由部署者启用，并重启 worker 以加载新的只读 inspect 命令。探测不会调用 TaskManager.get_task、创建业务任务、撤销或恢复任务，也不会直接更新任务数据库。
 
-真实 worker 可用可信任务所有者调用 `app.state.monitor.record_task_event(event, user_id)`。入口会校验登记的任务归属和删除状态；HTTP 不开放指定所有者、写日志或绑定缓存的接口。实际 LLM 缓存通过客户端自动上报共享快照，无需将 worker 对象直接绑定到 API 进程；`app.state.monitor.cache` 仅保留可信进程的单实例兼容入口。
+异步任务生命周期与评估/导入进度已经通过 `api/monitoring/execution_logs.py` 写入保留日志（`source=async_task_execution`）；仅采集固定事件和白名单上下文，不保存模型正文或完整 stdout。API 与 worker 必须共享认证数据库及一致密钥，采集失败不改变任务结果。可信进程也可用任务所有者调用 `app.state.monitor.record_task_event(event, user_id)`。入口会校验登记的任务归属和删除状态；HTTP 不开放指定所有者、写日志或绑定缓存的接口。实际 LLM 缓存通过客户端自动上报共享快照，无需将 worker 对象直接绑定到 API 进程；`app.state.monitor.cache` 仅保留可信进程的单实例兼容入口。
 
-Redis 连通性、broker 等待队列长度、回复 worker 的数值负载、持久化任务执行统计、SDK 请求时延、带标签容器资源及日/月生成额度均已有实现。部署未配置或探测失败时，仍按实际状态返回 not_checked/unavailable/unknown/null；健康成功不构成真实模型调用或完整集群就绪证明。issue关闭以验收和人工合并决定，不由接口状态字段推断。
+Redis 连通性、broker 等待队列长度、回复 worker 的数值负载、持久化任务执行统计、SDK 请求时延、带标签容器资源及日/月生成额度均已有实现。部署未配置或探测失败时，仍按实际状态返回 not_checked/unavailable/unknown/null；健康成功不构成真实模型调用或完整集群就绪证明。issue关闭以验收和人工合并决定，不由接口状态字段推断。本 PR 的基线及实测边界见[同步验收记录](superpowers/reports/2026-10-25-sync-monitoring-docs-acceptance-verify.md)。
 
 ## Docker 沙箱容器资源
 
@@ -351,3 +351,15 @@ groups:
 无时间序列，防止监控失联静默。删除单个目标不一定触发 absent，目标清单仍需由部署配置
 管理。恢复后由规则自动解除；一分钟持续失败窗口用来减少短暂抖动，不能代替即时流量准入。
 配置语义参见 [blackbox exporter 官方配置](https://github.com/prometheus/blackbox_exporter/blob/master/CONFIGURATION.md)。
+
+## 与 issue #157 初稿的接口差异
+
+以下为当前实现契约；issue 初稿 JSON 是设计示意，不能直接作为客户端响应模型：
+
+- `/health` 是公开存活检查，综合诊断在管理员 `/system/health`；新增公开 `/health/ready` 只给基础数据库就绪的 200/503，直接返回 `status`，不包 `success/data/message`。其余监控 JSON 成功响应使用该包装，诊断组件故障通常仍为 HTTP 200，需检查 `data.status`。
+- `/system/status` 提供分来源的任务计数与 `queue_metrics`；资源详情在 `resources`，主机作用范围与 Docker context 容器样本分别标注，不是初稿的集群全局快照。
+- 日志列表返回 `items/total/limit/offset`，使用 `limit/offset` 分页；下载为 `text/plain` 的 JSONL 附件，固定文件名 `task-logs.jsonl`，不是任意任务 stdout 文件。
+- `/metrics/performance` 区分 API 窗口、保留任务累计、当前进程 SQL 与共享 LLM 观测；空样本、缺测及窗口不完整需按各指标的 null/retained_sample 解释，不能统一当作零。
+- `/system/config` 是已加载配置白名单；`/config/providers` 既有默认静态目录，也有本人密钥的动态枚举。用户日/月配额计量生成 SDK 尝试，不计所有 HTTP 请求。
+
+本轮同步只修改文档说明与示例；运行时字段、路由与权限不变。冻结兼容基线 `tests/fixtures/openapi-v1.json` 保持原样，当前完整 OpenAPI 由 `/openapi.json` 动态生成。

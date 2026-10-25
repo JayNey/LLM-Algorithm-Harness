@@ -65,6 +65,7 @@ docker compose down -v               # 停止并清空数据卷
 ```
 
 - API 地址 `http://localhost:8000`，存活检查 `GET /api/v1/health`；就绪检查 `GET /api/v1/health/ready`：仅 HTTP 200 表示基础 API 就绪，503 或超时表示不可准入。管理员诊断使用 `/api/v1/system/health`，需管理员身份，详见[健康接口契约](../api-monitoring.md#健康接口契约)。
+- 就绪检查无需认证，200 返回 `{"status":"ready"}`，503 返回 `{"status":"not_ready"}`；响应 `no-store`，1 秒响应预算和 1 秒进程内缓存。
 - 只想跑集成测试时用法不变：`docker compose up -d redis` +
   `bash scripts/run_integration_tests.sh`（redis 服务定义未改动）。
 - 镜像内以非 root 用户 `harness` 运行；数据落在命名卷
@@ -230,3 +231,26 @@ python3 scripts/seed_data.py --database-url sqlite:///./data/business/seed-demo.
 | 上传 413 | nginx `client_max_body_size` 小于 `FILE_UPLOAD_MAX_BYTES`；两侧对齐 |
 | 集成测试全部 skip | redis 未启动：`docker compose up -d redis` |
 | 迁移失败 | 先 `offline_upgrade_sql` 预览 SQL；检查 `DATABASE_URL` 指向的库版本与迁移链 |
+
+## 7. 监控部署与验收（#157）
+
+先配置 `MONITOR_ADMIN_USER_IDS` 并使用有效管理员 Bearer token。详细字段与边界见[监控指南](../api-monitoring.md)。
+
+- `MONITOR_QUEUE_PROBES_ENABLED=true` 启用 Redis PING、配置队列各优先级分桶 LLEN 与 worker 只读快照；升级后重启 worker。broker waiting、数据库 pending 和 worker reserved 是独立非原子观测，不能相加；禁用或失败时 null 不代表零负载。
+- `MONITOR_CONTAINER_PROBES_ENABLED=true` 启用当前 API Docker context 中带 `io.llm-algorithm-harness.sandbox=v1` 标签的运行容器资源采样。默认关闭，旧无标签容器不在范围；API 的 Docker context 不证明远程 worker 执行环境可用。
+- API 与 worker/CLI 需配置同一 `AUTH_DATABASE_PATH`、可共同访问的认证 SQLite 文件和一致的 `SECRET_KEY`/`ENCRYPTION_KEY`，才能共享事件、LLM 尝试、缓存快照及用户计量。`DATABASE_URL` 是独立业务数据库，单独共享它不足以共享监控。当前 Compose 不提供跨服务共享认证 SQLite 的专用命名卷，不能据默认栈宣称已完成跨容器采集；部署方须配置并验证共享存储。多主机 SQLite 共享的部署适用性需另行评估。
+- `USER_DAILY_API_CALL_LIMIT` / `USER_MONTHLY_API_CALL_LIMIT` 作用于用户生成 SDK 尝试，空值无限、0 禁止、负值无效；API 与所有 worker 加载相同设置。UTC 日/月周期在北京时间 08:00 切换。额度与 HTTP 请求限流独立；失败和重试也消耗次数。
+- `/system/config` 仅反映当前 API 进程白名单配置；`/config/providers` 默认静态目录，传入本人 `api_key_id` 才查动态目录，均要求管理员。模型枚举成功不保证生成成功。
+
+本次文档同步的[验收记录](../superpowers/reports/2026-10-25-sync-monitoring-docs-acceptance-verify.md)列出代码基线、检查命令及实际结果。部署验收时须在目标环境另行确认 PostgreSQL、Redis/Celery、目标队列消费者、worker 沙箱及真实供应商调用；离线测试或 `/health/ready` 的 200 不替代这些证据。
+
+在隔离环境复验已有可选集成检查：
+
+```bash
+# 指向隔离 Redis，预先启动本版本 worker；仅检查观测，不提交业务任务
+MONITOR_QUEUE_TEST_BROKER=redis://localhost:6379/0 python3 -m pytest tests/test_monitoring_queue_integration.py --no-cov -q
+# 需 Docker daemon 与已拉取的沙箱镜像；测试会创建并清理自身容器
+MONITOR_CONTAINER_TESTS=1 python3 -m pytest tests/test_monitoring_container_integration.py --no-cov -q
+```
+
+这两项仅验证相应观测，仍不构成真实模型评估全链路验收。
