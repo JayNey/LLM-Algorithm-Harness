@@ -57,12 +57,12 @@ def proxy(tmp_path):
         sock.bind(("127.0.0.1", 0))
         port = sock.getsockname()[1]
     (tmp_path / "logs").mkdir()
-    conf = (REPO / "deploy/nginx/nginx.conf").read_text()
+    conf = (REPO / "deploy/nginx/nginx.conf").read_text(encoding="utf-8")
     conf = conf.replace("include /etc/nginx/mime.types;", "")
     conf = conf.replace("server api:8000;", f"server 127.0.0.1:{upstream.server_port};")
     conf = conf.replace("listen 80;", f"listen 127.0.0.1:{port};")
     config = tmp_path / "nginx.conf"
-    config.write_text(conf)
+    config.write_text(conf, encoding="utf-8")
     process = subprocess.Popen(
         [NGINX, "-p", str(tmp_path), "-c", str(config), "-g", "daemon off;"],
         stdout=subprocess.PIPE,
