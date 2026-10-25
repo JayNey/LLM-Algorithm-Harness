@@ -18,6 +18,16 @@ export async function fetchEvaluationResult(
     client.result(id, page, signal),
   ])
   signal.throwIfAborted()
+  // Denial on either endpoint invalidates the whole resource, even if the
+  // other read failed transiently and would normally retain cached data.
+  for (const read of [task, firstResult]) {
+    if (
+      read.status === 'rejected' &&
+      read.reason instanceof ApiClientError &&
+      [403, 404].includes(read.reason.status ?? 0)
+    )
+      throw read.reason
+  }
   if (task.status === 'rejected') throw task.reason
   let result = firstResult
   // The concurrent reads can straddle the worker's terminal commit. Complete

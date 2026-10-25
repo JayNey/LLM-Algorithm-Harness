@@ -14,9 +14,25 @@ import {
 } from '@/evaluations/useEvaluation.ts'
 import { fetchEvaluationResult } from '@/evaluations/results.ts'
 import { readListQuery, writeListQuery } from '@/evaluations/validation.ts'
-import { resultStatusLabel } from '@/evaluations/presentation.ts'
+import {
+  resultAvailability,
+  resultStatusLabel,
+} from '@/evaluations/presentation.ts'
+import type { ResultAvailability } from '@/evaluations/types.ts'
 import { useAuthStore } from '@/store/auth.ts'
 import '@/evaluations/workflow.css'
+
+const availabilityLabels: Record<ResultAvailability['kind'], string> = {
+  waiting: '等待结果',
+  partial: '运行中部分结果',
+  paused: '任务已暂停',
+  failed: '任务失败',
+  cancelled: '任务已取消',
+  complete: '结果完整',
+  incomplete: '结果不完整',
+  empty: '已完成，无结果',
+  unknown: '结果未确认',
+}
 
 export default function ResultDetailPage() {
   const { evaluationId = '' } = useParams()
@@ -34,7 +50,14 @@ export default function ResultDetailPage() {
   )
   const bootstrap = useEvaluation(client, evaluationId, owner, load)
   const liveEnabled = !!bootstrap.data && isLiveStatus(bootstrap.data.status)
-  const live = useEvaluationLive(client, evaluationId, owner, liveEnabled, load)
+  const live = useEvaluationLive(
+    client,
+    evaluationId,
+    owner,
+    liveEnabled,
+    load,
+    bootstrap.discard,
+  )
   const current =
     live.forbidden || live.unauthorized
       ? undefined
@@ -43,6 +66,7 @@ export default function ResultDetailPage() {
     ? '任务不可访问，请刷新后重试'
     : (live.error ?? bootstrap.error)
   const result = current?.result
+  const availability = current ? resultAvailability(current, result) : undefined
   const outOfRange =
     !!result && page.offset > 0 && page.offset >= result.problems.total
   const clear = useAuthStore((state) => state.clear)
@@ -110,6 +134,28 @@ export default function ResultDetailPage() {
       </section>
       {!loading && current && (
         <section className="panel evaluation-panel" aria-label="评估结果">
+          <div role="status" aria-label="结果可用性">
+            <p>{availabilityLabels[availability?.kind ?? 'unknown']}</p>
+            <p>
+              已记录 {availability?.recorded_units ?? '未知'} / 预期{' '}
+              {availability?.expected_units ?? '未知'} 单元
+            </p>
+            {availability?.kind === 'partial' && (
+              <p>以下为当前已记录的部分结果，统计尚非最终结果。</p>
+            )}
+            {['paused', 'failed', 'cancelled'].includes(
+              availability?.kind ?? '',
+            ) && (
+              <p>
+                {availability?.recorded_units
+                  ? '保留部分结果，统计不代表完整评估。'
+                  : '尚无已记录结果。'}
+              </p>
+            )}
+            {availability?.kind === 'incomplete' && (
+              <p>任务已完成，但记录少于预期单元数。</p>
+            )}
+          </div>
           {current.resultError ? (
             <EvaluationFeedback message={current.resultError} retry={refresh} />
           ) : (

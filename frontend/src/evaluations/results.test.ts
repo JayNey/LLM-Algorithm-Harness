@@ -230,3 +230,23 @@ test('终态补读失败仍独立显示结果错误，权限拒绝则整体失�
     assert.equal(reads, 2)
   }
 })
+
+test('任务503不能掩盖并行结果403，任一权限拒绝优先清除整个缓存', async () => {
+  const denied = new ApiClientError('denied', 403)
+  await assert.rejects(
+    fetchEvaluationResult(
+      {
+        get: async () => {
+          throw new ApiClientError('unavailable', 503)
+        },
+        result: async () => {
+          throw denied
+        },
+      },
+      task.evaluation_id,
+      { limit: 20, offset: 0 },
+      new AbortController().signal,
+    ),
+    (e) => e === denied,
+  )
+})
