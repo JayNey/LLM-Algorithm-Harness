@@ -24,6 +24,7 @@ from api.files.config import FileSettings
 from api.files.service import FileService
 from api.files.templates import TEMPLATES, template
 from api.main import create_app
+from api.monitoring.readiness import ReadinessCheck
 from api.monitoring.service import MonitorService
 from api.progress import Subscription
 from api.routes.tasks import task_manager
@@ -128,6 +129,15 @@ CASES = [
             "version": "0.1.0",
             "service": "LLM Algorithm Harness API",
         },
+        public=True,
+    ),
+    case(
+        "GET",
+        "/health/ready",
+        "monitor.readiness.check",
+        kwargs={"deadline": ANY},
+        result=True,
+        expected={"status": "ready"},
         public=True,
     ),
     case(
@@ -892,6 +902,7 @@ def api(monkeypatch, tmp_path, unit_app):
     state.files.metadata.return_value = VALUE.copy()
     state.monitor.settings = SimpleNamespace(is_admin=lambda user_id: user_id == OWNER)
     state.monitor.probes = Mock()
+    state.monitor.readiness = Mock(spec=ReadinessCheck)
     state.monitor.store = Mock()
     state.monitor.files = state.files
     state.monitor.auth = state.auth
@@ -989,6 +1000,8 @@ def test_endpoint_happy_path(api, item):
                 assert_submitted_fields(arg, item.body)
     if item.status == 204:
         assert response.content == b""
+    elif item.path == "/health/ready":
+        assert response.json() == item.expected
     elif item.download:
         assert response.content == item.expected
         assert "attachment" in response.headers["Content-Disposition"]

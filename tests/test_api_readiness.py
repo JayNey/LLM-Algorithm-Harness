@@ -203,7 +203,7 @@ async def test_readiness_bypasses_saturated_business_threadpool():
 
     def occupy():
         entered.set()
-        release.wait(3)
+        release.wait()
 
     busy = asyncio.create_task(anyio.to_thread.run_sync(occupy))
     try:
@@ -212,7 +212,11 @@ async def test_readiness_bypasses_saturated_business_threadpool():
         async with httpx.AsyncClient(
             transport=httpx.ASGITransport(app=app), base_url="http://test"
         ) as client:
-            response = await asyncio.wait_for(client.get("/api/v1/health/ready"), 0.5)
+            # Completion while the token stays occupied proves independence.
+            # This guard only detects deadlock; the endpoint enforces its own
+            # one-second budget, including executor scheduling on busy CI hosts.
+            response = await asyncio.wait_for(client.get("/api/v1/health/ready"), 10)
+            assert not release.is_set()
             assert response.status_code == 200
             assert response.json() == {"status": "ready"}
     finally:
