@@ -4,6 +4,7 @@ import io
 import json
 import secrets
 import time
+from datetime import datetime
 from unittest.mock import patch
 from uuid import UUID
 
@@ -801,3 +802,53 @@ def test_evaluation_concurrency_quota_aliases_are_authenticated_and_owner_scoped
         "application/json"
     ]["example"]
     assert example["data"]["evaluation_concurrency"] == {"limit": 5, "used": 0, "remaining": 5}
+
+
+@pytest.mark.parametrize("path", ["/quotas", "/quotas/usage"])
+@pytest.mark.parametrize(
+    "daily,monthly,daily_remaining,monthly_remaining",
+    [
+        (None, None, None, None),
+        (4, 10, 2, 8),
+        (0, 0, 0, 0),
+        (1, 1, 0, 0),
+        (None, 10, None, 8),
+        (4, None, 2, None),
+    ],
+)
+def test_calendar_quota_fields_and_owner_isolation(
+    api, path, daily, monthly, daily_remaining, monthly_remaining
+):
+    client, admin, user, app, auth, _, _ = api
+    owner = app.state.auth.store.find_user("admin")["id"]
+    app.state.auth.store.record_user_api_call(owner)
+    app.state.auth.store.record_user_api_call(owner)
+    auth.USER_DAILY_API_CALL_LIMIT = daily
+    auth.USER_MONTHLY_API_CALL_LIMIT = monthly
+    assert client.get("/api/v1" + path).status_code == 401
+    response = client.get("/api/v1" + path, headers=headers(user))
+    assert response.status_code == 200
+    assert response.headers["cache-control"] == "no-store"
+    data = response.json()["data"]
+    for period, limit, remaining in [
+        ("daily_api_calls", daily, daily_remaining),
+        ("monthly_api_calls", monthly, monthly_remaining),
+    ]:
+        quota = data[period]
+        assert quota["limit"] == limit
+        assert quota["used"] == 2
+        assert quota["remaining"] == remaining
+        assert quota["timezone"] == "UTC"
+        assert quota["status"] == ("metered" if limit is None else "enforced")
+        assert datetime.fromisoformat(quota["period_start"]) < datetime.fromisoformat(
+            quota["resets_at"]
+        )
+    other = client.get("/api/v1" + path, headers=headers(admin), params={"user_id": owner}).json()[
+        "data"
+    ]
+    assert other["daily_api_calls"]["used"] == 0
+    assert other["monthly_api_calls"]["used"] == 0
+    # Reading either alias must never consume a generation call.
+    again = client.get("/api/v1" + path, headers=headers(user)).json()["data"]
+    assert again["daily_api_calls"]["used"] == 2
+    assert again["monthly_api_calls"]["used"] == 2

@@ -772,6 +772,7 @@ OPERATIONS: dict[str, tuple[str, Any]] = {
             "daily_api_calls": {
                 "status": "metered",
                 "limit": None,
+                "remaining": None,
                 "used": 0,
                 "timezone": "UTC",
                 "period_start": "2026-10-24T00:00:00+00:00",
@@ -782,6 +783,7 @@ OPERATIONS: dict[str, tuple[str, Any]] = {
             "monthly_api_calls": {
                 "status": "metered",
                 "limit": None,
+                "remaining": None,
                 "used": 0,
                 "timezone": "UTC",
                 "period_start": "2026-10-01T00:00:00+00:00",
