@@ -1,9 +1,9 @@
 {
   "source": {
-    "head": "5bf0a5ad843074697af0d767cdb17de3aab6da87",
+    "head": "5e7f19ed0127613ea555e74b38f59d1edafddc80",
     "dirty": ""
   },
-  "checked_at": "2026-10-25T07:43:06.663648+00:00",
+  "checked_at": "2026-10-25T08:11:29.351337+00:00",
   "layer": "isolated actual Docker / Redis / Celery + in-process HTTP and temporary SQLite",
   "real_provider_requests_submitted": 0,
   "docker_resources": {
@@ -25,12 +25,12 @@
       "truncated": false,
       "containers": [
         {
-          "container_id": "container-64eaa6232a56eb3ea082e6cd",
+          "container_id": "container-8fa9c9f46aea0b7d19a7c945",
           "status": "ok",
           "cpu_percent": 0.0,
-          "memory_usage_bytes": 13316915,
+          "memory_usage_bytes": 13254000,
           "memory_limit_bytes": 268435456,
-          "memory_percent": 4.96,
+          "memory_percent": 4.94,
           "pids": 1
         }
       ]
@@ -52,7 +52,7 @@
       "truncated": false,
       "containers": [
         {
-          "container_id": "container-64eaa6232a56eb3ea082e6cd",
+          "container_id": "container-8fa9c9f46aea0b7d19a7c945",
           "status": "unknown",
           "cpu_percent": null,
           "memory_usage_bytes": null,
@@ -97,7 +97,7 @@
             ],
             "read_only": true,
             "status": "ok",
-            "latency_ms": 5.505,
+            "latency_ms": 4.973,
             "migration": {
               "status": "ok",
               "revisions": [
@@ -123,7 +123,7 @@
           ],
           "status": "ok",
           "reason": "observed",
-          "latency_ms": 5.877,
+          "latency_ms": 3.642,
           "broker_queue": {
             "status": "ok",
             "reason": "observed",
@@ -210,7 +210,7 @@
       "source": "redis_broker",
       "scope": "configured_business_queues",
       "cached": true,
-      "age_seconds": 1.157
+      "age_seconds": 1.142
     },
     "workers": {
       "status": "ok",
@@ -272,6 +272,8 @@
   "cleanup": {
     "isolated_worker_stopped": true,
     "isolated_redis_removed": true,
-    "scope": "only resources created by this run"
+    "isolated_storage_removed": true,
+    "scope": "only resources created by this run",
+    "errors": []
   }
 }

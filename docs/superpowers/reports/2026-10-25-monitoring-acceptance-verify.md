@@ -14,7 +14,7 @@
 
 Ruff、Black、OpenSpec strict和diff检查已通过。HTTP监控/文档/版本兼容111项通过。首轮18文件520项定向回归为519通过、1失败：队列集成HTTP用例还断言旧pending=[157]。按新交付语义更新这一断言，保留其探针次数、只读性、权限和健康断言，52项队列回归全部通过。正式最终全簇结果另行记录，不把首轮失败称为全绿。
 
-私有验证脚本已在干净源码5bf0a5a实跑实际Docker容器资源（1项）、隔离Redis/solo worker（1项）和真实HTTP/临时SQLite smoke，全部成功；深度健康healthy，回复1个worker、active/reserved=0、并发1，CPU/内存/磁盘/文件状态ok，broker真实空队列0，CLI执行器与HTTP沙箱预检均成功。临时worker/Redis已清理。为使该证据可公开复现，将同一流程整理为仓库opt-in脚本，最终记录以仓库脚本的实际重跑为准。
+私有验证脚本已在干净源码5bf0a5a实跑实际Docker容器资源（1项）、隔离Redis/solo worker（1项）和真实HTTP/临时SQLite smoke，全部成功；深度健康healthy，回复1个worker、active/reserved=0、并发1，CPU/内存/磁盘/文件状态ok，broker真实空队列0，CLI执行器与HTTP沙箱预检均成功。临时worker/Redis已清理。仓库opt-in脚本也已在干净源码 `5e7f19ed0127613ea555e74b38f59d1edafddc80` 实跑成功，公开 [脱敏JSON](assets/monitoring-acceptance-2026-10-25/actual-dependencies.json)。API/worker使用同一临时存储及配置，worker、带本轮所有权标签的Redis和临时存储均已确认清理；cleanup.errors为空。原始诊断日志留在本机新建临时目录，不随证据发布。
 
 ## 证据层级
 
@@ -23,3 +23,14 @@ Ruff、Black、OpenSpec strict和diff检查已通过。HTTP监控/文档/版本�
 ## 规格与交付
 
 delta为1项requirement、2个场景：空pending保留未检查partial与依赖失败degraded。实现与design一致。正式Runtime验证、独立审查、资源清理及PR结果将在本段更新；本轮作者提交排除.comet/.claude/.codex/.agents/skills-lock.json，未自动合并或关闭issue。
+
+## 复现真实依赖
+
+在项目依赖已安装、Docker daemon可用且`python:3.11-slim`/`redis:7-alpine`镜像已缓存的环境执行：
+
+```bash
+.venv/bin/python scripts/verify_monitoring_acceptance.py --run-live \
+  --output docs/superpowers/reports/assets/monitoring-acceptance-2026-10-25/actual-dependencies.json
+```
+
+仓库脚本调用现有两个opt-in集成测试，再执行真实HTTP/临时SQLite健康与配置/配额检查。它只启动独立Redis与solo worker及自建沙箱容器，未提交业务任务、调用模型或访问其他部署的broker。宿主为macOS、Docker为Linux环境；worker广播只证明回复节点，空队列只证明当前隔离测试队列。没有将该结果外推为实际生产任务/提供商联调。
