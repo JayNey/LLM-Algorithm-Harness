@@ -54,6 +54,10 @@ dependencies = [
 ]
 
 [project.optional-dependencies]
+performance = [
+    "locust>=2.32,<3",
+    "httpx>=0.25.0",
+]
 dev = [
     "httpx>=0.25.0",
     "types-PyYAML>=6.0.12",
