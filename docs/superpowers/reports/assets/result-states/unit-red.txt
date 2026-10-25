@@ -1,0 +1,78 @@
+✔ 未启动和已入队的pending独立展示，未知状态保持中性原值 (1.28675ms)
+✔ 结果完整性使用全量记录数和规范化预期数，不依赖当前页或旧progress (0.8505ms)
+✔ 请求未得到结果、两接口状态不一致或未知状态不伪装空或最终结果 (0.160584ms)
+✔ null度量显示未知，零值与秒/USD单位保留，成功率转百分比 (0.224833ms)
+✔ 结果列表状态保持开放值，未知成本明确已知部分且不冒充免费 (0.198458ms)
+✖ 任务状态×记录存在性矩阵独立于当前页，只有completed可为最终结果 (1.035958ms)
+✔ 联合快照并发读取相同evaluation ID/分页/signal，结果前不结束周期，run_id可为空 (0.787167ms)
+✔ 结果503保留成功任务和独立错误，不伪装合法空结果 (0.109083ms)
+✔ 任务权限失败不发布同时读到的结果 (0.207584ms)
+✔ 结果401/429交还同一观察器恢复/退避，不被普通结果错误吞掉 (0.120166ms)
+✔ transport忽略AbortSignal时，旧联合结果仍不可交付 (0.114459ms)
+✔ 终态任务与旧结果跨版本时，同一周期补读后才交付完整结果 (0.092334ms)
+✔ 补读后仍跨版本时显示独立错误，不将旧统计伪装终态结果或无限补读 (0.082666ms)
+✖ 结果403/404也使整个任务资源失效，不保留task200缓存 (0.334708ms)
+✖ 终态补读失败仍独立显示结果错误，权限拒绝则整体失效 (0.1935ms)
+ℹ tests 15
+ℹ suites 0
+ℹ pass 12
+ℹ fail 3
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 215.856792
+
+✖ failing tests:
+
+test at frontend/src/evaluations/presentation.test.ts:140:1
+✖ 任务状态×记录存在性矩阵独立于当前页，只有completed可为最终结果 (1.035958ms)
+  AssertionError [ERR_ASSERTION]: pending/0
+  + actual - expected
+  
+    {
+      expected_units: 4,
+  +   kind: 'empty',
+  -   kind: 'waiting',
+      recorded_units: 0
+    }
+  
+      at TestContext.<anonymous> (file:///Users/charlesleclerc/LLM-Algorithm-Harness/frontend/src/evaluations/presentation.test.ts:151:12)
+      at Test.runInAsyncScope (node:async_hooks:226:14)
+      at Test.run (node:internal/test_runner/test:1402:25)
+      at Test.processPendingSubtests (node:internal/test_runner/test:974:18)
+      at Test.postRun (node:internal/test_runner/test:1542:19)
+      at Test.run (node:internal/test_runner/test:1467:12)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:974:7) {
+    generatedMessage: false,
+    code: 'ERR_ASSERTION',
+    actual: { kind: 'empty', recorded_units: 0, expected_units: 4 },
+    expected: { kind: 'waiting', recorded_units: 0, expected_units: 4 },
+    operator: 'deepStrictEqual',
+    diff: 'simple'
+  }
+
+test at frontend/src/evaluations/results.test.ts:187:1
+✖ 结果403/404也使整个任务资源失效，不保留task200缓存 (0.334708ms)
+  AssertionError [ERR_ASSERTION]: Missing expected rejection.
+      at async TestContext.<anonymous> (file:///Users/charlesleclerc/LLM-Algorithm-Harness/frontend/src/evaluations/results.test.ts:190:5)
+      at async Test.run (node:internal/test_runner/test:1409:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:974:7) {
+    generatedMessage: false,
+    code: 'ERR_ASSERTION',
+    actual: undefined,
+    operator: 'rejects',
+    diff: 'simple'
+  }
+
+test at frontend/src/evaluations/results.test.ts:197:1
+✖ 终态补读失败仍独立显示结果错误，权限拒绝则整体失效 (0.1935ms)
+  AssertionError [ERR_ASSERTION]: Missing expected rejection.
+      at async TestContext.<anonymous> (file:///Users/charlesleclerc/LLM-Algorithm-Harness/frontend/src/evaluations/results.test.ts:205:25)
+      at async Test.run (node:internal/test_runner/test:1409:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:974:7) {
+    generatedMessage: false,
+    code: 'ERR_ASSERTION',
+    actual: undefined,
+    operator: 'rejects',
+    diff: 'simple'
+  }

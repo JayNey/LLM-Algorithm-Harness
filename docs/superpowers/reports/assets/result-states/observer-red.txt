@@ -1,0 +1,54 @@
+✔ 相对进度地址按页面协议与主机解析，绝对地址直通 (0.575166ms)
+✔ start 立即取快照、开连接并在 open 后发订阅帧 (0.777292ms)
+✔ subscribed 之前的快照帧只触发失效，2 秒后刷一次 (0.245ms)
+✔ 5 秒未确认订阅按失败关闭，进入 3 秒退避与降级轮询 (0.256667ms)
+✔ 同一评估重复 start 幂等，切换评估收旧启新 (0.25675ms)
+✔ 切换评估时有在途快照：旧请求作废且新评估首刷不被吞 (0.283167ms)
+✔ 手动 refresh 与自动管线共享非重叠约束 (0.209959ms)
+✔ live 下多事件在 2 秒窗口合并为一次刷新 (0.152916ms)
+✔ 进行中失效只补刷一次且绝不并发 (0.204042ms)
+✔ HTTP 真值原样交付且附带当前模式 (0.128417ms)
+✔ live 兜底：15 秒无事件且非终态则主动刷新一次 (0.137416ms)
+✔ WS 失败按 3/6/12/30 秒退避重连，成功后清零 (0.38875ms)
+✔ 五次重连失败后放弃 WS，但保持 3 秒降级轮询 (0.681083ms)
+✔ 快照请求失败按退避顺延轮询，成功后复位为 3 秒 (0.280125ms)
+✔ 429 后至少 30 秒不发任何请求 (0.150292ms)
+✔ 终态经 HTTP 真值收敛：settled、先退订后关闭、停止一切 (0.115916ms)
+✔ paused 快照同样停止自动观察 (0.056875ms)
+✔ 4403 清数据并停止，不重试不重连 (0.088041ms)
+✔ HTTP 403/404 同样清数据停止 (0.084334ms)
+✔ 4401 走会话恢复，成功立即重连且不计入失败 (0.113375ms)
+✔ 4401 恢复失败发出 unauthorized 并停止 (0.071584ms)
+✔ HTTP 401 先恢复会话：成功补刷，失败 unauthorized 停止 (0.087208ms)
+✔ 隐藏或离线暂停一切，恢复立即刷新重连且退避清零 (0.212167ms)
+✔ runMutation 递增纪元：在途快照作废，完成后补刷一次 (0.116292ms)
+✔ dispose 后无任何回调、请求与连接 (0.074458ms)
+✔ 联合读取终态补读完成后观察器才settle，不开启额外周期 (0.131458ms)
+✖ 联合结果权限错误进入forbidden而不是发布带错误的task快照 (0.456ms)
+ℹ tests 27
+ℹ suites 0
+ℹ pass 26
+ℹ fail 1
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 174.996917
+
+✖ failing tests:
+
+test at frontend/src/evaluations/observer.test.ts:779:1
+✖ 联合结果权限错误进入forbidden而不是发布带错误的task快照 (0.456ms)
+  AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:
+  
+  1 !== 0
+  
+      at TestContext.<anonymous> (file:///Users/charlesleclerc/LLM-Algorithm-Harness/frontend/src/evaluations/observer.test.ts:786:10)
+      at async Test.run (node:internal/test_runner/test:1409:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:974:7) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: 1,
+    expected: 0,
+    operator: 'strictEqual',
+    diff: 'simple'
+  }
