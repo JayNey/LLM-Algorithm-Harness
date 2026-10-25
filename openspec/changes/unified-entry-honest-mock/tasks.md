@@ -6,5 +6,5 @@
 - [x] 4. 单测：`app-shell.test.ts` 补 `/results/:id` 面包屑与「无全局 Mock 标注」断言；`notifications.test.ts` 补种子路由边界；运行 app-shell/notifications 单测确认 GREEN。
 - [x] 5. 修复 `verify-shell.mjs` 过期业务段：改锚定示例仪表盘与真实创建页导航，业务 API 白名单按真实创建页只读接口调整；运行确认 GREEN。
 - [x] 6. 重跑 `entries` fixture 确认 GREEN；`npm run lint`、`npm test`、`npm run build` 全绿，记录命令与退出码。
-- [ ] 7. 两轮独立只读审查（general-purpose 子代理）：全量审查 → 修复 → 定点复审，记录结论。
-- [ ] 8. 撰写验证报告（docs/superpowers/reports/），记录 fixture/单测/构建证据与未验证层级。
+- [x] 7. 两轮独立只读审查（general-purpose 子代理）：全量审查 approves（P2×3：死 CSS 已清理、快速操作断言已补强、既有文案留待后续）→ 定点复审 approves，无遗留。
+- [x] 8. 撰写验证报告（docs/superpowers/reports/2026-10-25-unified-entry-honest-mock-verify.md），记录 fixture/单测/构建证据与未验证层级。

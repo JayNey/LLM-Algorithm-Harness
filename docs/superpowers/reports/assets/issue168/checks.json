@@ -297,6 +297,26 @@
       "method": "GET"
     },
     {
+      "path": "/api/v1/evaluation-options",
+      "method": "GET"
+    },
+    {
+      "path": "/api/v1/api-keys",
+      "method": "GET"
+    },
+    {
+      "path": "/api/v1/evaluation-options/problems",
+      "method": "GET"
+    },
+    {
+      "path": "/api/v1/users/me",
+      "method": "GET"
+    },
+    {
+      "path": "/api/v1/users/me",
+      "method": "GET"
+    },
+    {
       "path": "/api/v1/users/me",
       "method": "GET"
     },

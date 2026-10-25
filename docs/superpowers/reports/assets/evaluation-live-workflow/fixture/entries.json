@@ -1,8 +1,8 @@
 {
   "scenario": "entries",
   "source": {
-    "head": "2950180e73989f12c7d19814486889c19b1637f5",
-    "dirty": "M scripts/verify-evaluations.mjs\n M src/auth/app-shell.test.ts\n M src/layouts/AppLayout.tsx\n M src/layouts/components/Navigation.tsx\n M src/mock/BusinessPage.tsx\n M src/mock/MockActions.tsx\n M src/store/notifications.test.ts\n M src/store/notifications.ts\n?? ../docs/superpowers/reports/assets/evaluation-live-workflow/\n?? ../openspec/changes/unified-entry-honest-mock/"
+    "head": "13adc5776380e8a84645fbbeb2266762ddbda8d9",
+    "dirty": "M ../docs/superpowers/reports/assets/issue168/checks.json\n?? ../docs/superpowers/reports/2026-10-25-unified-entry-honest-mock-verify.md"
   },
   "layer": "browser-fixture (not backend E2E)",
   "assertions": [
