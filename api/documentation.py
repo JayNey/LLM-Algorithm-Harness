@@ -117,7 +117,7 @@ def page(items: list[Any]) -> dict[str, Any]:
 # Examples show representative data; empty aggregates mean no stored results.
 OPERATIONS: dict[str, tuple[str, Any]] = {
     "health_check": (
-        "检查 API 进程存活；不检查数据库、队列或执行器。",
+        "存活检查（liveness）：检查 API 能否响应；不检查数据库、队列或执行器，不代表服务就绪。就绪检查路径 /api/v1/health/ready 当前尚未实现（404）；管理员诊断使用 /api/v1/system/health。",
         {
             "status": "healthy",
             "scope": "api_liveness_only",
@@ -550,7 +550,7 @@ OPERATIONS: dict[str, tuple[str, Any]] = {
     ),
     "download_chart": ("下载自己的运行结果通过率 PNG；chart_name 仅支持 success-rate。", None),
     "detailed_health": (
-        "查询配置基础设施的综合健康信息；可选执行沙箱检查；未知状态不会伪装成健康。",
+        "管理员诊断：查询配置基础设施的综合健康信息；可选执行沙箱检查；未知状态不会伪装成健康。用于排障，不作为业务流量准入的就绪信号。存活检查使用 /api/v1/health；就绪检查路径 /api/v1/health/ready 当前尚未实现（404）。",
         {
             "status": "partial",
             "scope": "configured_api_foundation",
