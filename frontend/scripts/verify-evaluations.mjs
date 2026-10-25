@@ -52,6 +52,7 @@ const report = {
     'HTTP /api/v1/api-keys',
     'HTTP /api/v1/evaluation-options and children',
     'HTTP /api/v1/evaluations create/start/get',
+    'results scenario: HTTP /api/v1/results list/detail',
     'localStorage session marker (no credentials)',
     'security only: isolated HTML and in-memory auth/HTTP transport',
   ],
@@ -120,6 +121,9 @@ async function fixture(mode = 'start-error', entry = '/evaluations/new') {
   let wsUrls = []
   let starts = 0
   let detailFailure = 0
+  let resultFailure = 0
+  let resultsListFailure = false
+  const resultIntervals = []
   let detailGate = null
   let releaseDetail = () => {}
   let releaseList
@@ -161,6 +165,97 @@ async function fixture(mode = 'start-error', entry = '/evaluations/new') {
     }
     const send = (data, status = 200) =>
       route.fulfill({ status, headers, json: { data } })
+    if (mode.startsWith('results') && method === 'GET') {
+      if (path === '/results') {
+        if (resultsListFailure)
+          return route.fulfill({
+            status: 503,
+            headers,
+            json: { message: '结果列表暂不可用' },
+          })
+        const limit = Number(url.searchParams.get('limit'))
+        const offset = Number(url.searchParams.get('offset'))
+        let items = Array.from({ length: 21 }, (_, i) => ({
+          id: i === 0 ? 'eval-fixture-1' : `eval-result-${i + 1}`,
+          run_id: i === 0 ? null : `run-${i + 1}`,
+          status: i === 1 ? 'future-result' : i % 2 ? 'failed' : 'completed',
+          model: 'result-model',
+          strategy_names: ['direct', 'cot'],
+          created_at: evaluation.created_at,
+          completed_at: i === 0 ? null : evaluation.updated_at,
+        }))
+        if (mode === 'results-empty') items = []
+        const status = url.searchParams.get('status')
+        if (status) items = items.filter((item) => item.status === status)
+        return send({
+          items: items.slice(offset, offset + limit),
+          total: items.length,
+          limit,
+          offset,
+          has_more: offset + limit < items.length,
+        })
+      }
+      if (path.startsWith('/results/')) {
+        const started = Date.now()
+        await new Promise((resolve) => setTimeout(resolve, 180))
+        if (resultFailure)
+          return route.fulfill({
+            status: resultFailure,
+            headers,
+            json: { message: '结果读取失败' },
+          })
+        const limit = Number(url.searchParams.get('limit'))
+        const offset = Number(url.searchParams.get('offset'))
+        const units = Array.from({ length: 24 }, (_, i) => ({
+          problem_id: `result-problem-${Math.floor(i / 2) + 1}`,
+          strategy: i % 2 ? 'cot' : 'direct',
+          status: i === 2 ? 'timeout' : i === 3 ? 'future-unit' : 'success',
+          iterations: i === 0 ? null : 0,
+          tokens: i === 0 ? null : 0,
+          execution_time: i === 0 ? null : 1.25,
+        }))
+        const response = await send({
+          run_id: null,
+          status: mode === 'results-live' ? 'running' : 'completed',
+          created_at: evaluation.created_at,
+          completed_at: null,
+          strategies: ['direct', 'cot'].map((name, i) => ({
+            name,
+            success_rate: i ? 0.75 : 0.5,
+            total_problems: 12,
+            solved_problems: i ? 9 : 6,
+            avg_tokens:
+              mode === 'results-live' && progressPercentage > 20 ? 300 : 100,
+            estimated_cost_usd: i ? 0.12 : 0,
+            unknown_cost_count: i ? 1 : 2,
+            avg_execution_time: 1.25,
+            by_difficulty: { easy: { success_rate: 0.5, solved: 2, total: 4 } },
+          })),
+          problems: {
+            items: units.slice(offset, offset + limit),
+            total: units.length,
+            limit,
+            offset,
+            has_more: offset + limit < units.length,
+          },
+        })
+        resultIntervals.push([started, Date.now()])
+        return response
+      }
+      if (path === '/evaluations/eval-fixture-1' && detailFailure)
+        return route.fulfill({
+          status: detailFailure,
+          headers,
+          json: { message: '任务不可访问' },
+        })
+      if (path === '/evaluations/eval-fixture-1' && mode !== 'results-live')
+        return send({
+          ...evaluation,
+          status: 'completed',
+          can_start: false,
+          can_cancel: false,
+        })
+    }
     if (method === 'OPTIONS')
       return route.fulfill({
         status: 204,
@@ -372,7 +467,7 @@ async function fixture(mode = 'start-error', entry = '/evaluations/new') {
       })
     }
     if (method === 'GET' && path === '/evaluations/eval-fixture-1') {
-      if (mode === 'progress') {
+      if (mode === 'progress' || mode === 'results-live') {
         const intervalStart = Date.now()
         // 人为拉长请求以暴露并发周期（场景断言请求区间不重叠）
         await new Promise((resolve) => setTimeout(resolve, 120))
@@ -418,7 +513,7 @@ async function fixture(mode = 'start-error', entry = '/evaluations/new') {
       const frame = JSON.parse(String(message))
       if (frame.action === 'subscribe') {
         subscriptionAt = Date.now()
-        if (mode === 'progress')
+        if (mode === 'progress' || mode === 'results-live')
           ws.send(
             JSON.stringify({
               type: 'task.snapshot',
@@ -462,6 +557,13 @@ async function fixture(mode = 'start-error', entry = '/evaluations/new') {
     wsUrls,
     detailIntervals,
     detailProgress,
+    resultIntervals,
+    failResult: (status) => {
+      resultFailure = status
+    },
+    failResultsList: (failed) => {
+      resultsListFailure = failed
+    },
     async waitForInitialProgressReconciliation() {
       const deadline = Date.now() + 8000
       while (
@@ -1918,19 +2020,249 @@ async function progressScenario() {
   })
 }
 
+async function resultsScenario() {
+  report.real.push('results list/detail pages and joint task/result observer')
+  const h = await fixture('results', '/results')
+  await h.page
+    .getByRole('table', { name: '评估结果列表', exact: true })
+    .waitFor({ timeout: 5000 })
+  await check(
+    '真实结果列表首屏20行、run_id为空仍有evaluation链接、未知状态可读',
+    async () => {
+      assert.equal(
+        await h.page
+          .locator('table[aria-label="评估结果列表"] tbody tr')
+          .count(),
+        20,
+      )
+      assert.equal(
+        await h.page
+          .getByRole('link', { name: 'eval-fixture-1', exact: true })
+          .getAttribute('href'),
+        '/results/eval-fixture-1',
+      )
+      await h.page
+        .getByText('未知状态（future-result）', { exact: true })
+        .waitFor()
+    },
+  )
+  await h.page.getByRole('button', { name: '下一页结果', exact: true }).click()
+  await h.page
+    .getByRole('link', { name: 'eval-result-21', exact: true })
+    .waitFor()
+  await check('结果列表分页进入URL', () =>
+    assert.equal(new URL(h.page.url()).searchParams.get('offset'), '20'),
+  )
+  await choose(h.page, '结果状态', '已完成')
+  await h.page
+    .getByRole('link', { name: 'eval-fixture-1', exact: true })
+    .waitFor()
+  await check('结果状态筛选清零offset且服务端使用status', () => {
+    const query = new URL(h.page.url()).searchParams
+    assert.equal(query.get('status'), 'completed')
+    assert.equal(query.get('offset'), '0')
+    assert.ok(
+      h.calls.some(
+        (c) => c.path === '/results' && c.query.includes('status=completed'),
+      ),
+    )
+  })
+  await h.page.reload()
+  await h.page
+    .getByRole('link', { name: 'eval-fixture-1', exact: true })
+    .click()
+  await h.page
+    .getByRole('heading', { name: '评估结果详情', exact: true })
+    .waitFor()
+  await h.page.getByRole('table', { name: '策略汇总', exact: true }).waitFor()
+  const strategies = h.page.getByRole('table', {
+    name: '策略汇总',
+    exact: true,
+  })
+  const units = h.page.getByRole('table', { name: '单题结果', exact: true })
+  const summary = await strategies.innerText()
+  await check('全量策略汇总保留百分率、秒、未知成本和难度统计', () => {
+    for (const text of [
+      '50%',
+      '75%',
+      '1.25 秒',
+      '12',
+      '成本未知',
+      '0.12 USD',
+      'easy',
+    ])
+      assert.ok(summary.includes(text), text)
+  })
+  const rows = units.locator('tbody tr')
+  await check('单题真实状态与null/零指标、同题多策略均保留', async () => {
+    assert.equal(await rows.count(), 20)
+    assert.equal(
+      await units
+        .getByRole('cell', { name: 'result-problem-1', exact: true })
+        .count(),
+      2,
+    )
+    const first = await rows.first().innerText()
+    assert.ok(first.includes('未知'))
+    assert.ok(first.includes('success'))
+    assert.ok((await units.innerText()).includes('timeout'))
+    assert.ok((await units.innerText()).includes('future-unit'))
+    assert.ok((await rows.nth(1).innerText()).includes('1.25 秒'))
+  })
+  await h.page.getByRole('button', { name: '下一页单题', exact: true }).click()
+  await units
+    .getByRole('cell', { name: 'result-problem-12', exact: true })
+    .first()
+    .waitFor()
+  await check('单题分页不截断全量汇总且URL保留当前页', async () => {
+    assert.equal(await rows.count(), 4)
+    assert.equal(await strategies.innerText(), summary)
+    assert.equal(new URL(h.page.url()).searchParams.get('offset'), '20')
+  })
+  await h.page.reload()
+  await units
+    .getByRole('cell', { name: 'result-problem-12', exact: true })
+    .first()
+    .waitFor()
+  await check('run_id=null的详情可直接访问与刷新分页', () =>
+    assert.ok(
+      h.calls.some(
+        (c) =>
+          c.path === '/results/eval-fixture-1' && c.query.includes('offset=20'),
+      ),
+    ),
+  )
+  for (const width of [390, 1440]) {
+    await h.page.setViewportSize({ width, height: 1000 })
+    await h.page.screenshot({
+      path: resolve(out, `results-${width}.png`),
+      fullPage: true,
+    })
+    report.screenshots.push(`results-${width}.png`)
+    await check(`结果详情${width}px根页面不横向溢出`, async () =>
+      assert.ok(
+        await h.page.evaluate(
+          () => document.documentElement.scrollWidth <= window.innerWidth,
+        ),
+      ),
+    )
+  }
+  h.failResult(503)
+  await h.page.getByRole('button', { name: '刷新结果', exact: true }).click()
+  await h.page.getByRole('alert').waitFor()
+  await h.page
+    .getByRole('region', { name: '任务信息', exact: true })
+    .getByText('model-a', { exact: true })
+    .waitFor()
+  await check('结果失败保留任务事实而非伪造空结果', async () =>
+    assert.equal(await units.count(), 0),
+  )
+  h.failResult(0)
+  await h.page.getByRole('button', { name: '刷新结果', exact: true }).click()
+  await units.waitFor()
+  h.failDetail(403)
+  await h.page.getByRole('button', { name: '刷新结果', exact: true }).click()
+  await units.waitFor({ state: 'hidden' })
+  await check('任务权限拒绝清除旧结果', async () =>
+    assert.equal(await strategies.count(), 0),
+  )
+  await h.context.close()
+  const empty = await fixture('results-empty', '/results')
+  await empty.page.getByText('还没有评估结果', { exact: true }).waitFor()
+  await check('合法空列表区别于请求错误', () =>
+    assert.deepEqual(empty.errors, []),
+  )
+  empty.failResultsList(true)
+  await empty.page.reload()
+  await empty.page.getByRole('alert').waitFor()
+  empty.failResultsList(false)
+  await empty.page.getByRole('button', { name: /^重\s*试$/ }).click()
+  await empty.page.getByText('还没有评估结果', { exact: true }).waitFor()
+  await check('结果列表失败重试恢复', () => assert.deepEqual(empty.errors, []))
+  await empty.context.close()
+  const live = await fixture('results-live', '/results/eval-fixture-1')
+  await live.page.getByText('实时进度已连接', { exact: true }).waitFor()
+  await live.waitForInitialProgressReconciliation()
+  const settleDeadline = Date.now() + 5000
+  while (live.resultIntervals.length < live.detailIntervals.length) {
+    if (Date.now() > settleDeadline)
+      throw new Error('Initial joint result cycle did not finish')
+    await new Promise((resolve) => setTimeout(resolve, 10))
+  }
+  const baselineTask = live.detailIntervals.length,
+    baselineResult = live.resultIntervals.length
+  const sentAt = Date.now()
+  for (let i = 0; i < 3; i += 1) live.advanceProgress()
+  await live.page.getByText('60%').first().waitFor({ timeout: 5000 })
+  await live.page
+    .getByRole('table', { name: '策略汇总', exact: true })
+    .getByRole('cell', { name: '300', exact: true })
+    .first()
+    .waitFor()
+  report.results_evidence = {
+    task_intervals: live.detailIntervals,
+    result_intervals: live.resultIntervals,
+    event_sent_at: sentAt,
+    baseline_task: baselineTask,
+    baseline_result: baselineResult,
+  }
+  await check('事件合并后同周期并发读取任务与结果，周期不重叠', () => {
+    const tasks = live.detailIntervals.slice(baselineTask),
+      results = live.resultIntervals.slice(baselineResult)
+    assert.equal(tasks.length, 1)
+    assert.equal(results.length, 1)
+    assert.ok(tasks[0][0] >= sentAt)
+    assert.ok(results[0][0] >= sentAt)
+    assert.ok(
+      Math.max(tasks[0][0], results[0][0]) <
+        Math.min(tasks[0][1], results[0][1]),
+    )
+  })
+  report.results_evidence = {
+    task_intervals: live.detailIntervals,
+    result_intervals: live.resultIntervals,
+    event_sent_at: sentAt,
+  }
+  await live.denyProgress()
+  await live.page
+    .getByRole('table', { name: '策略汇总', exact: true })
+    .waitFor({ state: 'hidden' })
+  await live.page.getByRole('button', { name: '刷新结果', exact: true }).click()
+  await live.page.getByText('实时进度已连接', { exact: true }).waitFor()
+  await live.page
+    .getByRole('table', { name: '策略汇总', exact: true })
+    .waitFor()
+  await check('WS4403清除结果且显式重试恢复观察', () =>
+    assert.ok(live.wsUrls.length >= 2),
+  )
+  await check('结果页面无运行异常或写请求', () => {
+    assert.deepEqual(h.errors, [])
+    assert.deepEqual(live.errors, [])
+    assert.ok(!h.calls.some((c) => c.method === 'POST'))
+  })
+  await live.context.close()
+}
+
 try {
   if (scenario === 'all' || scenario === 'create') await createScenario()
   if (['all', 'create', 'security'].includes(scenario)) await securityScenario()
   if (scenario === 'all' || scenario === 'list') await listScenario()
   if (scenario === 'all' || scenario === 'detail') await detailScenario()
   if (scenario === 'all' || scenario === 'progress') await progressScenario()
+  if (scenario === 'all' || scenario === 'results') await resultsScenario()
   if (
-    !['all', 'create', 'security', 'list', 'detail', 'progress'].includes(
-      scenario,
-    )
+    ![
+      'all',
+      'create',
+      'security',
+      'list',
+      'detail',
+      'progress',
+      'results',
+    ].includes(scenario)
   )
     throw new Error(`Scenario ${scenario} 尚未实现`)
-  check('无未声明 API 请求', () => assert.deepEqual(report.unknown, []))
+  await check('无未声明 API 请求', () => assert.deepEqual(report.unknown, []))
   assert.ok(
     report.assertions.every((entry) => entry.pass),
     'Fixture contains failed or pending assertions',
