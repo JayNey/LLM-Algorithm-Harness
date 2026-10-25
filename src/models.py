@@ -5,6 +5,7 @@ This module defines all Pydantic data models used throughout the system.
 """
 
 import math
+from collections.abc import Callable
 from datetime import datetime
 from decimal import Decimal
 from typing import Any, Literal, Optional
@@ -13,6 +14,7 @@ from urllib.parse import urlparse
 from pydantic import (
     BaseModel,
     Field,
+    PrivateAttr,
     SecretStr,
     field_serializer,
     field_validator,
@@ -547,6 +549,10 @@ class CacheConfig(BaseModel):
 
 class LLMConfig(BaseModel):
     """LLM client configuration."""
+
+    # Bound only by trusted server credential resolution; never serialized.
+    _record_api_attempt: Callable[[], None] | None = PrivateAttr(default=None)
+    _reserve_api_attempt: Callable[[], None] | None = PrivateAttr(default=None)
 
     provider: Literal["openai", "anthropic", "local", "siliconflow"] = Field(
         ..., description="Provider type"

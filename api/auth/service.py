@@ -2,6 +2,7 @@
 
 import hashlib
 import logging
+import math
 import sqlite3
 import time
 import uuid
@@ -21,7 +22,7 @@ from api.auth.key_preview import masked_preview_from_secret
 from api.auth.models import KeyCreate, KeyUpdate, PasswordChange, ProfileUpdate, RegisterInput
 from api.auth.store import AuthStore
 from api.middleware.errors import ApiError, ErrorCode
-from src.llm_client import LLMClient
+from src.llm_client import LLMAdmissionError, LLMClient
 from src.models import CacheConfig, LLMConfig
 
 logger = logging.getLogger(__name__)
@@ -60,6 +61,10 @@ def digest(value: str) -> str:
 class Principal:
     user_id: str
     session_id: str
+
+
+class CallAdmissionError(ApiError, LLMAdmissionError):
+    """A trusted admission failure, safe to propagate through generation."""
 
 
 class AuthService:
@@ -261,7 +266,7 @@ class AuthService:
             KeyCreate.literal_key(SecretStr(raw))
         except (InvalidToken, UnicodeError, ValueError):
             raise HTTPException(503, "Stored credential is unavailable") from None
-        return LLMConfig(
+        config = LLMConfig(
             provider=key["provider"],
             api_key=SecretStr(raw),
             model=model,
@@ -269,6 +274,36 @@ class AuthService:
             retry_max_attempts=1,
             cache=CacheConfig(enabled=False),
         )
+
+        if (
+            self.settings.USER_DAILY_API_CALL_LIMIT is not None
+            or self.settings.USER_MONTHLY_API_CALL_LIMIT is not None
+        ):
+            config._reserve_api_attempt = lambda: self.reserve_api_attempt(user_id)
+        else:
+            config._record_api_attempt = lambda: self.store.record_user_api_call(user_id)
+        return config
+
+    def reserve_api_attempt(self, user_id: str) -> None:
+        try:
+            denied = self.store.reserve_user_api_call(
+                user_id,
+                self.settings.USER_DAILY_API_CALL_LIMIT,
+                self.settings.USER_MONTHLY_API_CALL_LIMIT,
+            )
+        except sqlite3.Error:
+            raise CallAdmissionError(
+                "Call quota storage unavailable", ErrorCode.SERVICE_UNAVAILABLE, 503
+            ) from None
+        if denied is not None:
+            period, resets_at = denied
+            raise CallAdmissionError(
+                "User call quota exceeded",
+                ErrorCode.QUOTA_EXCEEDED,
+                429,
+                details={"period": period, "resets_at": resets_at},
+                headers={"Retry-After": str(max(1, math.ceil(resets_at - time.time())))},
+            )
 
     def verify_key(self, key_id: str, user_id: str) -> dict[str, Any]:
         self.limit("verify:" + user_id)

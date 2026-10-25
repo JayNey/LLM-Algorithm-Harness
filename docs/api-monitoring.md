@@ -161,8 +161,17 @@ curl http://localhost:8000/api/v1/logs/download/your-task-id \
 - 用户题库字节、条数与 `FILE_UPLOAD_MAX_BYTES/FILE_IMPORT_MAX_ITEMS`（默认 100 MiB / 10000 条）；题库与文件存储额度分别计算。
 - 当前受保护请求窗口用量、`AUTH_PROTECTED_RATE_LIMIT`（默认每 60 秒 120 次）及窗口重置时间。配额查询自己也消耗一次受保护请求额度。
 - 当前用户活跃导入数、共享 `FILE_MAX_ACTIVE_IMPORTS`（默认 8）、每进程导入并发（默认 2）和传输并发（默认 2）。
+- `evaluation_concurrency`：`limit` 为实际准入配置 `MAX_CONCURRENT_EVALUATIONS_PER_USER`（默认 5），`used` 为当前用户业务库中 `pending/running` 评估任务数量，`remaining=max(limit-used,0)`。草稿、暂停、终态及其他类型任务不计入；历史用量超过新上限时保留真实 `used`，剩余为 0。两个配额别名均使用认证主体，不能通过 `user_id` 参数查询他人。查询只读、不轮询 Celery、不预留名额；状态变化以再次查询时的已提交记录为准，数据库错误不会返回虚假的零用量。
 
-每日/每月 LLM API 调用额度为 `not_configured`，`limit/used` 为 `null`，需在真实请求计量接入后补齐。详细上传限额与清理规则见 [文件服务指南](api-files.md)。
+`daily_api_calls` / `monthly_api_calls` 按当前用户持久化统计真实 LLM **生成 SDK 尝试**：成功、失败及每次重试分别加一，缓存命中、模型列表、连接验证和无用户归属的 CLI 调用不计。归属来自服务端凭证解析，覆盖评估、实验、A/B 与 benchmark 的真实生成路径。
+
+服务端环境变量 `USER_DAILY_API_CALL_LIMIT` / `USER_MONTHLY_API_CALL_LIMIT` 分别配置每用户每日/月 SDK 尝试额度；未设置或留空为无限，`0` 禁止生成，负数配置启动失败。例如日额度 1000、月额度 20000。API 和所有 worker 必须加载相同配置并共享认证数据库；修改后重启进程。
+
+`timezone=UTC`，自然日/月周期为 `[period_start, resets_at)`，每天 UTC 00:00、每月 1 日 UTC 00:00 切换（北京时间 08:00）。无需定时清零，旧周期保留，跨进程及重启持久化，监控明细清理不影响聚合值。
+
+有限周期返回 `status=enforced`、整数 `limit` 和 `remaining=max(limit-used,0)`；无限周期保持 `status=metered`、`limit=null`。任一额度启用时，每次真实 SDK 尝试前原子检查并同时占用日/月额度，按准入时间归属周期，`collection_mode=atomic_before_sdk_attempt`。任一周期耗尽则抛出 `QUOTA_EXCEEDED`（HTTP 429，含周期、重置时间和 `Retry-After`）；不发送 SDK 请求、不计数、不重试此次拒绝。已发出的失败和重试各消耗一次；数据库不可用时以 503 阻止调用。异步任务通过现有任务失败/结果通道报告，不保证入队时同步拒绝。已准入但进程意外退出的尝试不退还额度。
+
+两项均未设置时，保留完成后 `best_effort_since_instrumentation` 计量，写入失败不改变模型结果。统计范围 `scope=owned_generation_sdk_attempts`，旧全局数据不能按用户回填。缓存、模型列表、连接验证和无用户 CLI 不受生成额度影响，受保护 HTTP 请求速率限制保持独立。详细上传限额见 [文件服务指南](api-files.md)。
 
 ## 离线配置目录与后续接入
 

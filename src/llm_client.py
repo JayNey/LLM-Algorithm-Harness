@@ -33,6 +33,10 @@ logger = get_logger(__name__)
 _ENV_NAME = re.compile(r"^[A-Za-z_][A-Za-z0-9_]*$")
 
 
+class LLMAdmissionError(RuntimeError):
+    """Trusted server admission failure; no provider request was attempted."""
+
+
 class LLMClient:
     """LLM API client."""
 
@@ -307,6 +311,8 @@ class LLMClient:
 
             return response
 
+        except LLMAdmissionError:
+            raise
         except Exception as e:
             safe_error = self._safe_provider_error(e)
             logger.error("llm_api_error", provider=self.config.provider, error=str(safe_error))
@@ -429,11 +435,31 @@ class LLMClient:
     def _call_with_retry(self, operation: Callable[[], Any]) -> Any:
         """Run one provider operation with bounded retry and backoff."""
         started = time.monotonic()
+        attempt_finished = started
+        telemetry_seconds = 0.0
+
+        def provider_attempt() -> Any:
+            nonlocal attempt_finished
+            try:
+                return operation()
+            finally:
+                attempt_finished = time.monotonic()
+
         last_error: Exception | None = None
         for attempt in range(self.config.retry_max_attempts):
+            # Admission errors must propagate without retry or telemetry; only
+            # real SDK attempts are observed and charged to the retry budget.
+            if self.config._reserve_api_attempt is not None:
+                admission_started = time.monotonic()
+                self.config._reserve_api_attempt()
+                telemetry_seconds += max(0.0, time.monotonic() - admission_started)
             try:
-                return self._observe_operation(operation)
+                return self._observe_operation(provider_attempt)
             except Exception as error:
+                # Persistence and monitoring waits must not consume the provider
+                # retry budget, even when a telemetry write eventually fails.
+                now = time.monotonic()
+                telemetry_seconds += max(0.0, now - attempt_finished)
                 last_error = error
                 if (
                     not self._is_retryable_error(error)
@@ -441,7 +467,7 @@ class LLMClient:
                 ):
                     raise
                 delay = self.config.retry_backoff_seconds * (2**attempt)
-                elapsed = time.monotonic() - started
+                elapsed = now - started - telemetry_seconds
                 if self.config.retry_max_elapsed_seconds <= elapsed + delay:
                     raise
                 if delay:
@@ -449,8 +475,7 @@ class LLMClient:
         assert last_error is not None
         raise last_error
 
-    @staticmethod
-    def _observe_operation(operation: Callable[[], Any]) -> Any:
+    def _observe_operation(self, operation: Callable[[], Any]) -> Any:
         """Measure only the SDK attempt; telemetry must never become a retry."""
         try:
             started = time.perf_counter()
@@ -462,9 +487,21 @@ class LLMClient:
             succeeded = True
             return response
         finally:
+            duration_ms = None
             try:
                 if started is not None:
                     duration_ms = (time.perf_counter() - started) * 1000
+            except Exception:
+                pass
+            # Separate from latency/global telemetry so either sink can fail
+            # independently, including when the monotonic clock is unavailable.
+            try:
+                if self.config._record_api_attempt is not None:
+                    self.config._record_api_attempt()
+            except Exception:
+                pass
+            try:
+                if duration_ms is not None:
                     # CLI remains usable without server configuration/dependencies.
                     from api.monitoring.llm_metrics import record_call
 

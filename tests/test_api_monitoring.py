@@ -4,6 +4,7 @@ import io
 import json
 import secrets
 import time
+from datetime import datetime
 from unittest.mock import patch
 from uuid import UUID
 
@@ -403,7 +404,9 @@ def test_quotas_are_available_only_for_current_user_and_real_cache_is_opt_in(api
         "/api/v1/quotas/usage", params={"user_id": other_id}, headers=headers(admin)
     ).json()["data"]
     assert other["storage"]["used_bytes"] == 0
-    assert other["daily_api_calls"] == {"status": "not_configured", "limit": None, "used": None}
+    assert other["daily_api_calls"]["status"] == "metered"
+    assert other["daily_api_calls"]["used"] == 0
+    assert other["daily_api_calls"]["timezone"] == "UTC"
     pending = client.get("/api/v1/metrics/cache-stats", headers=headers(admin)).json()["data"]
     assert pending["status"] == "not_configured"
     cache = LLMResponseCache(str(files.UPLOAD_DIR.parent / "cache-private"))
@@ -750,3 +753,197 @@ def test_database_sources_cover_independent_engines_and_shared_sqlite(api):
             str(app.state.auth.store.path),
         )
     )
+
+
+@pytest.mark.parametrize("path", ["/quotas", "/quotas/usage"])
+def test_evaluation_concurrency_quota_aliases_are_authenticated_and_owner_scoped(
+    api, monkeypatch, path
+):
+    from sqlalchemy.orm import Session
+
+    from api.db.models import AsyncTask
+    from src.task_manager import celery_app
+
+    client, admin, user, app, _, _, _ = api
+    owner = app.state.auth.store.find_user("admin")["id"]
+    monkeypatch.setattr(settings, "MAX_CONCURRENT_EVALUATIONS_PER_USER", 3)
+
+    def forbidden(*args, **kwargs):
+        pytest.fail("Quota reads must not poll or publish Celery tasks")
+
+    monkeypatch.setattr(celery_app, "AsyncResult", forbidden)
+    monkeypatch.setattr(celery_app, "send_task", forbidden)
+    with Session(app.state.task_engine) as db, db.begin():
+        db.add(
+            AsyncTask(
+                id="quota-active",
+                celery_task_id="quota-active",
+                entity_id="quota-active",
+                user_id=owner,
+                task_type="evaluation",
+                status="pending",
+            )
+        )
+    assert client.get("/api/v1" + path).status_code == 401
+    response = client.get(
+        "/api/v1" + path, headers=headers(user), params={"user_id": "foreign-user"}
+    )
+    assert response.status_code == 200
+    assert response.headers["cache-control"] == "no-store"
+    assert response.json()["data"]["evaluation_concurrency"] == {
+        "limit": 3,
+        "used": 1,
+        "remaining": 2,
+    }
+    other = client.get("/api/v1" + path, headers=headers(admin), params={"user_id": owner})
+    assert other.json()["data"]["evaluation_concurrency"] == {"limit": 3, "used": 0, "remaining": 3}
+    schema = client.get("/openapi.json").json()
+    example = schema["paths"]["/api/v1" + path]["get"]["responses"]["200"]["content"][
+        "application/json"
+    ]["example"]
+    assert example["data"]["evaluation_concurrency"] == {"limit": 5, "used": 0, "remaining": 5}
+
+
+@pytest.mark.parametrize("path", ["/quotas", "/quotas/usage"])
+@pytest.mark.parametrize(
+    "daily,monthly,daily_remaining,monthly_remaining",
+    [
+        (None, None, None, None),
+        (4, 10, 2, 8),
+        (0, 0, 0, 0),
+        (1, 1, 0, 0),
+        (None, 10, None, 8),
+        (4, None, 2, None),
+    ],
+)
+def test_calendar_quota_fields_and_owner_isolation(
+    api, path, daily, monthly, daily_remaining, monthly_remaining
+):
+    client, admin, user, app, auth, _, _ = api
+    owner = app.state.auth.store.find_user("admin")["id"]
+    app.state.auth.store.record_user_api_call(owner)
+    app.state.auth.store.record_user_api_call(owner)
+    auth.USER_DAILY_API_CALL_LIMIT = daily
+    auth.USER_MONTHLY_API_CALL_LIMIT = monthly
+    assert client.get("/api/v1" + path).status_code == 401
+    response = client.get("/api/v1" + path, headers=headers(user))
+    assert response.status_code == 200
+    assert response.headers["cache-control"] == "no-store"
+    data = response.json()["data"]
+    for period, limit, remaining in [
+        ("daily_api_calls", daily, daily_remaining),
+        ("monthly_api_calls", monthly, monthly_remaining),
+    ]:
+        quota = data[period]
+        assert quota["limit"] == limit
+        assert quota["used"] == 2
+        assert quota["remaining"] == remaining
+        assert quota["timezone"] == "UTC"
+        assert quota["status"] == ("metered" if limit is None else "enforced")
+        assert datetime.fromisoformat(quota["period_start"]) < datetime.fromisoformat(
+            quota["resets_at"]
+        )
+    other = client.get("/api/v1" + path, headers=headers(admin), params={"user_id": owner}).json()[
+        "data"
+    ]
+    assert other["daily_api_calls"]["used"] == 0
+    assert other["monthly_api_calls"]["used"] == 0
+    # Reading either alias must never consume a generation call.
+    again = client.get("/api/v1" + path, headers=headers(user)).json()["data"]
+    assert again["daily_api_calls"]["used"] == 2
+    assert again["monthly_api_calls"]["used"] == 2
+
+
+def test_system_config_requires_live_administrator(api):
+    client, admin, user, _, _, _, monitor = api
+    path = "/api/v1/system/config"
+    assert client.get(path).status_code == 401
+    assert client.get(path, headers=headers(user)).status_code == 403
+    assert client.get(path, headers=headers(admin)).status_code == 200
+    monitor.MONITOR_ADMIN_USER_IDS = []
+    response = client.get(path, headers=headers(admin))
+    assert response.status_code == 403
+    assert "FILE_UPLOAD_MAX_BYTES" not in response.text
+
+
+def test_system_config_returns_loaded_values_without_probes(api, monkeypatch):
+    client, admin, _, app, auth, files, monitor = api
+    monkeypatch.setattr(settings, "MAX_CONCURRENT_EVALUATIONS_PER_USER", 13)
+    monkeypatch.setattr(auth, "USER_DAILY_API_CALL_LIMIT", 1234)
+    monkeypatch.setattr(files, "FILE_CONFIG_MAX_BYTES", 4321)
+    monkeypatch.setattr(monitor, "MONITOR_PROBE_CACHE_SECONDS", 17)
+    # A later environment edit must not replace the settings used by the services.
+    monkeypatch.setenv("FILE_CONFIG_MAX_BYTES", "99999")
+    monkeypatch.setenv("MAX_CONCURRENT_EVALUATIONS_PER_USER", "99")
+
+    def forbidden(*args, **kwargs):
+        raise AssertionError("Configuration lookup must not perform runtime probes")
+
+    monkeypatch.setattr(app.state.monitor.probes, "database", forbidden)
+    monkeypatch.setattr(app.state.monitor.probes.queue, "read", forbidden)
+    monkeypatch.setattr(app.state.monitor.probes.container_resources, "read", forbidden)
+    monkeypatch.setattr(app.state.monitor.probes, "sandbox", forbidden)
+    monkeypatch.setattr(app.state.monitor.probes, "providers", forbidden)
+    response = client.get("/api/v1/system/config", headers=headers(admin))
+    assert response.status_code == 200, response.text
+    assert response.headers["cache-control"] == "no-store"
+    payload = response.json()
+    assert payload["success"] is True
+    data = payload["data"]
+    assert set(data) == {"scope", "api", "auth", "files", "monitoring"}
+    assert data["scope"] == "api_process"
+    assert data["api"]["MAX_CONCURRENT_EVALUATIONS_PER_USER"] == 13
+    assert data["auth"]["USER_DAILY_API_CALL_LIMIT"] == 1234
+    assert data["auth"]["USER_MONTHLY_API_CALL_LIMIT"] is None
+    assert data["files"]["FILE_CONFIG_MAX_BYTES"] == 4321
+    assert data["monitoring"]["MONITOR_PROBE_CACHE_SECONDS"] == 17
+    assert data["monitoring"]["MONITOR_QUEUE_PROBES_ENABLED"] is False
+
+
+def test_system_config_excludes_sensitive_and_future_fields(api, monkeypatch):
+    client, admin, _, _, auth, files, monitor = api
+    private_url = "redis://private-user:private-password@internal.example/5"
+    private_path = "/private/deployment/data-sensitive"
+    monkeypatch.setattr(settings, "DATABASE_URL", private_url)
+    monkeypatch.setattr(settings, "CELERY_BROKER_URL", private_url)
+    monkeypatch.setattr(settings, "CELERY_RESULT_BACKEND", private_url)
+    monkeypatch.setattr(settings, "DATA_ROOT", private_path)
+    monkeypatch.setattr(settings, "TASK_SERVICE_ROOT", private_path)
+    # Simulate future fields without changing the declared settings schema.
+    for source in (settings, auth, files, monitor):
+        monkeypatch.setitem(source.__dict__, "FUTURE_SAFE_LOOKING_FIELD", "future-secret-value")
+    response = client.get("/api/v1/system/config", headers=headers(admin))
+    assert response.status_code == 200
+    for secret in (
+        private_url,
+        private_path,
+        str(files.UPLOAD_DIR),
+        str(auth.AUTH_DATABASE_PATH),
+        auth.SECRET_KEY.get_secret_value(),
+        auth.ENCRYPTION_KEY.get_secret_value(),
+        str(monitor.MONITOR_ADMIN_USER_IDS[0]),
+        "future-secret-value",
+    ):
+        assert secret not in response.text
+    forbidden_fields = {
+        "SECRET_KEY",
+        "ENCRYPTION_KEY",
+        "AUTH_DATABASE_PATH",
+        "UPLOAD_DIR",
+        "DATABASE_URL",
+        "CELERY_BROKER_URL",
+        "CELERY_RESULT_BACKEND",
+        "DATA_ROOT",
+        "TASK_SERVICE_ROOT",
+        "MONITOR_ADMIN_USER_IDS",
+        "CORS_ORIGINS",
+        "HOST",
+        "MONITOR_SANDBOX_IMAGE",
+        "FUTURE_SAFE_LOOKING_FIELD",
+    }
+    data = response.json()["data"]
+    for group in ("api", "auth", "files", "monitoring"):
+        assert not forbidden_fields.intersection(data[group])
+        assert all(
+            value is None or type(value) in (int, float, bool) for value in data[group].values()
+        )

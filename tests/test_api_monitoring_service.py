@@ -139,7 +139,10 @@ def test_quotas_are_owned_and_count_actual_sql_utf8_bytes(monitoring):
     assert alice_quota["imports"]["per_process_concurrency"] == 2
     assert alice_quota["transfers"]["per_process_concurrency"] == 3
     for period in ("daily_api_calls", "monthly_api_calls"):
-        assert alice_quota[period] == {"status": "not_configured", "limit": None, "used": None}
+        assert alice_quota[period]["status"] == "metered"
+        assert alice_quota[period]["used"] == 0
+        assert alice_quota[period]["limit"] is None
+        assert alice_quota[period]["timezone"] == "UTC"
 
 
 def test_quota_view_matches_enforced_file_limit_and_expired_rates(monitoring):
@@ -371,3 +374,156 @@ def test_task_performance_postgresql_query_compiles(monitoring):
     sql = str(statement.compile(dialect=postgresql.dialect()))
     assert "EXTRACT(epoch FROM async_tasks.completed_at - async_tasks.started_at)" in sql
     assert "julianday" not in sql
+
+
+def add_quota_task(engine, owner, identifier, status="pending", kind="evaluation"):
+    from sqlalchemy.orm import Session
+
+    from api.db.models import AsyncTask
+
+    with Session(engine) as db, db.begin():
+        db.add(
+            AsyncTask(
+                id=identifier,
+                celery_task_id=identifier,
+                entity_id=identifier,
+                user_id=owner,
+                task_type=kind,
+                status=status,
+            )
+        )
+
+
+@pytest.mark.parametrize("limit", [1, 2, 3])
+def test_evaluation_quota_counts_admitted_tasks_and_preserves_over_limit(
+    monitoring, monkeypatch, limit
+):
+    from api.config import settings
+
+    monitor, owners, _ = monitoring
+    alice, bob = owners["alice"], owners["bob"]
+    monkeypatch.setattr(settings, "MAX_CONCURRENT_EVALUATIONS_PER_USER", limit)
+    assert monitor.quotas(alice)["evaluation_concurrency"] == {
+        "limit": limit,
+        "used": 0,
+        "remaining": limit,
+    }
+    for status in ("pending", "running", "paused", "completed", "failed", "cancelled"):
+        add_quota_task(monitor.task_engine, alice, "alice-" + status, status)
+    for kind in ("experiment", "benchmark", "import"):
+        add_quota_task(monitor.task_engine, alice, kind, kind=kind)
+    add_quota_task(monitor.task_engine, bob, "bob")
+    with monitor.evaluations.engine.begin() as db:
+        db.execute(Evaluation.__table__.insert().values(id="draft", user_id=alice))
+    assert monitor.quotas(alice)["evaluation_concurrency"] == {
+        "limit": limit,
+        "used": 2,
+        "remaining": max(limit - 2, 0),
+    }
+    assert monitor.quotas(bob)["evaluation_concurrency"] == {
+        "limit": limit,
+        "used": 1,
+        "remaining": limit - 1,
+    }
+
+
+@pytest.mark.parametrize("released_status", ["paused", "completed", "failed", "cancelled"])
+def test_evaluation_quota_reflects_committed_status_changes_without_writes(
+    monitoring, monkeypatch, released_status
+):
+    from sqlalchemy import event
+
+    from api.config import settings
+    from api.db.models import AsyncTask
+
+    monitor, owners, _ = monitoring
+    owner = owners["alice"]
+    monkeypatch.setattr(settings, "MAX_CONCURRENT_EVALUATIONS_PER_USER", 3)
+    add_quota_task(monitor.task_engine, owner, "active")
+    statements = []
+
+    def record(conn, cursor, statement, parameters, context, executemany):
+        statements.append(statement)
+
+    event.listen(monitor.task_engine, "before_cursor_execute", record)
+    try:
+        assert monitor.quotas(owner)["evaluation_concurrency"] == {
+            "limit": 3,
+            "used": 1,
+            "remaining": 2,
+        }
+        assert len(statements) == 1 and statements[0].lstrip().upper().startswith("SELECT")
+    finally:
+        event.remove(monitor.task_engine, "before_cursor_execute", record)
+    with monitor.task_engine.begin() as db:
+        db.execute(update(AsyncTask).where(AsyncTask.id == "active").values(status=released_status))
+    assert monitor.quotas(owner)["evaluation_concurrency"]["used"] == 0
+    with monitor.task_engine.begin() as db:
+        db.execute(update(AsyncTask).where(AsyncTask.id == "active").values(status="pending"))
+    assert monitor.quotas(owner)["evaluation_concurrency"]["remaining"] == 2
+
+
+def test_evaluation_quota_uses_separate_task_engine_and_propagates_db_failure(
+    monitoring, tmp_path, monkeypatch
+):
+    from sqlalchemy.exc import OperationalError
+
+    from api.config import settings
+    from api.db import make_engine
+    from api.db.models import Base
+
+    monitor, owners, _ = monitoring
+    engine = make_engine(f"sqlite:///{tmp_path / 'quota-tasks.sqlite3'}")
+    Base.metadata.create_all(engine)
+    monkeypatch.setattr(monitor, "task_engine", engine)
+    monkeypatch.setattr(settings, "MAX_CONCURRENT_EVALUATIONS_PER_USER", 4)
+    try:
+        add_quota_task(engine, owners["alice"], "separate")
+        assert monitor.quotas(owners["alice"])["evaluation_concurrency"] == {
+            "limit": 4,
+            "used": 1,
+            "remaining": 3,
+        }
+        with engine.begin() as db:
+            db.exec_driver_sql("DROP TABLE async_tasks")
+        with pytest.raises(OperationalError):
+            monitor.quotas(owners["alice"])
+    finally:
+        engine.dispose()
+
+
+def test_owned_generation_counts_reach_quotas(monitoring, monkeypatch):
+    from src.llm_client import LLMClient
+
+    monitor, owners, keys = monitoring
+    monkeypatch.setattr("api.monitoring.llm_metrics.record_call", lambda *args: None)
+    client = LLMClient.__new__(LLMClient)
+    client.config = monitor.auth.llm_config(keys["alice"], owners["alice"], "test")
+    assert client._call_with_retry(lambda: "response") == "response"
+    with pytest.raises(ValueError):
+        client._call_with_retry(lambda: (_ for _ in ()).throw(ValueError("failed")))
+    for period in ("daily_api_calls", "monthly_api_calls"):
+        assert monitor.quotas(owners["alice"])[period]["used"] == 2
+        assert monitor.quotas(owners["bob"])[period]["used"] == 0
+
+
+def test_enforced_call_quota_view_and_bound_generation(monitoring, monkeypatch):
+    from api.middleware.errors import ApiError
+    from src.llm_client import LLMClient
+
+    monitor, owners, keys = monitoring
+    monitor.auth.settings.USER_DAILY_API_CALL_LIMIT = 1
+    monitor.auth.settings.USER_MONTHLY_API_CALL_LIMIT = 10
+    monkeypatch.setattr("api.monitoring.llm_metrics.record_call", lambda *args: None)
+    client = LLMClient.__new__(LLMClient)
+    client.config = monitor.auth.llm_config(keys["alice"], owners["alice"], "test")
+    assert client._call_with_retry(lambda: "response") == "response"
+    with pytest.raises(ApiError):
+        client._call_with_retry(lambda: pytest.fail("provider must not run"))
+    quotas = monitor.quotas(owners["alice"])
+    assert quotas["daily_api_calls"]["used"] == 1
+    assert quotas["daily_api_calls"]["limit"] == 1
+    assert quotas["daily_api_calls"]["remaining"] == 0
+    assert quotas["daily_api_calls"]["status"] == "enforced"
+    assert quotas["monthly_api_calls"]["remaining"] == 9
+    assert monitor.quotas(owners["bob"])["daily_api_calls"]["used"] == 0
