@@ -2,6 +2,7 @@
 
 - Change：sync-monitoring-docs-acceptance。
 - 分支：comet/sync-monitoring-docs-acceptance；基线 e700646797712357fb215e2630f8c6e03710caec。
+- 实现提交：fc5d325。
 - 结论：文档同步检查 PASS；目标部署环境验收未执行。
 - Issue 记录：https://github.com/JayNey/LLM-Algorithm-Harness/issues/157#issuecomment-6397989911
 
@@ -14,11 +15,15 @@
 5. 安全：仅文档更新，无新凭据、探针调用、授权路径或外部业务请求；issue 评论只含公开契约与验证结果。
 6. 集成检查：按状态 review_mode=off 跳过自动独立 code reviewer；主会话逐项对照 routes/monitoring.py、monitoring/service.py、probes.py、store.py、execution_logs.py、src/task_manager.py 与 Compose 审阅最终 diff，未发现正确性、安全或边界问题。没有声称完成独立审查。
 
+## Verify 阶段复核
+
+规模评估统计 16 文件（含 12 个 Comet/OpenSpec 元数据），实际交付仅三处文档/说明及一份验收报告、1 个任务、0 delta spec，因此按 comet-verify 覆盖机制采用 light 六项检查。复核 proposal/design/tasks 及最终提交 diff；verify 阶段重跑 compileall、black --check、ruff check、git diff --check 和 OpenSpec strict validate 全部通过。相关测试已在最终 Python diff 上执行，无新增行为或测试改动，无需重复跑同一测试集。issue 评论通过 GitHub API 回读，确认保存内容与结果一致。
+
 ## 工作区与流程说明
 
-入口工作区干净，用户选择新建分支。全部 diff 可归因于本 change，无用户既有改动。Tweak 无行为变更，使用精简 design.md，不需要 Superpowers Design Doc/plan。branch_status 保持 pending，归档与推送另待用户最终选择。
+入口工作区干净，用户选择新建分支。全部 diff 可归因于本 change，无用户既有改动。Tweak 无行为变更，使用精简 design.md，不需要 Superpowers Design Doc/plan。用户已确认选项 3：归档、创建本地归档提交、推送绑定分支并创建 PR。Comet 归档 6/6 步成功，归档目录为 openspec/changes/archive/2026-10-25-sync-monitoring-docs-acceptance；无 delta spec，主规格不变。branch_status=handled 记录该交付选择，远端执行结果以 GitHub PR 为准。
 
-comet task 上下文插件因全局 state.json.lock 权限返回 EPERM，按 skill 的“插件失败不阻断变更”继续；未使用或反馈任何记忆条目。首次创建分支因 Git 元数据写权限失败，经沙箱升级重试成功。OpenAPI 手动断言时 Matplotlib 无可写全局字体缓存，自动使用临时缓存后通过，不属于产品行为失败。历史报告仍保留其当时结论，本报告是当前基线的补充记录。
+comet task 上下文插件因全局 state.json.lock 权限返回 EPERM，按 skill 的“插件失败不阻断变更”继续；未使用或反馈任何记忆条目。结束时 comet task --complete 重试成功，返回空 context。首次创建分支因 Git 元数据写权限失败，经沙箱升级重试成功。OpenAPI 手动断言时 Matplotlib 无可写全局字体缓存，自动使用临时缓存后通过，不属于产品行为失败。历史报告仍保留其当时结论，本报告是当前基线的补充记录。
 
 ## 接口、证据与部署限制
 
