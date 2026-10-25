@@ -33,6 +33,10 @@ logger = get_logger(__name__)
 _ENV_NAME = re.compile(r"^[A-Za-z_][A-Za-z0-9_]*$")
 
 
+class LLMAdmissionError(RuntimeError):
+    """Trusted server admission failure; no provider request was attempted."""
+
+
 class LLMClient:
     """LLM API client."""
 
@@ -307,6 +311,8 @@ class LLMClient:
 
             return response
 
+        except LLMAdmissionError:
+            raise
         except Exception as e:
             safe_error = self._safe_provider_error(e)
             logger.error("llm_api_error", provider=self.config.provider, error=str(safe_error))
@@ -441,6 +447,12 @@ class LLMClient:
 
         last_error: Exception | None = None
         for attempt in range(self.config.retry_max_attempts):
+            # Admission errors must propagate without retry or telemetry; only
+            # real SDK attempts are observed and charged to the retry budget.
+            if self.config._reserve_api_attempt is not None:
+                admission_started = time.monotonic()
+                self.config._reserve_api_attempt()
+                telemetry_seconds += max(0.0, time.monotonic() - admission_started)
             try:
                 return self._observe_operation(provider_attempt)
             except Exception as error:

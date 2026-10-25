@@ -505,3 +505,25 @@ def test_owned_generation_counts_reach_quotas(monitoring, monkeypatch):
     for period in ("daily_api_calls", "monthly_api_calls"):
         assert monitor.quotas(owners["alice"])[period]["used"] == 2
         assert monitor.quotas(owners["bob"])[period]["used"] == 0
+
+
+def test_enforced_call_quota_view_and_bound_generation(monitoring, monkeypatch):
+    from api.middleware.errors import ApiError
+    from src.llm_client import LLMClient
+
+    monitor, owners, keys = monitoring
+    monitor.auth.settings.USER_DAILY_API_CALL_LIMIT = 1
+    monitor.auth.settings.USER_MONTHLY_API_CALL_LIMIT = 10
+    monkeypatch.setattr("api.monitoring.llm_metrics.record_call", lambda *args: None)
+    client = LLMClient.__new__(LLMClient)
+    client.config = monitor.auth.llm_config(keys["alice"], owners["alice"], "test")
+    assert client._call_with_retry(lambda: "response") == "response"
+    with pytest.raises(ApiError):
+        client._call_with_retry(lambda: pytest.fail("provider must not run"))
+    quotas = monitor.quotas(owners["alice"])
+    assert quotas["daily_api_calls"]["used"] == 1
+    assert quotas["daily_api_calls"]["limit"] == 1
+    assert quotas["daily_api_calls"]["remaining"] == 0
+    assert quotas["daily_api_calls"]["status"] == "enforced"
+    assert quotas["monthly_api_calls"]["remaining"] == 9
+    assert monitor.quotas(owners["bob"])["daily_api_calls"]["used"] == 0
