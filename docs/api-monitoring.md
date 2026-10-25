@@ -190,7 +190,7 @@ curl http://localhost:8000/api/v1/logs/download/your-task-id \
 - `GET /api/v1/system/config`：当前 API 进程已加载的 API、认证、文件与监控配置，以固定数值/布尔/可空额度白名单返回；不重新读取环境或文件、不执行探针，不返回凭据、URL、路径或管理员身份列表。
 
 - `GET /api/v1/config/strategies`：复用 `AlgorithmHarness.STRATEGY_MAP` 和 `StrategyConfig` 的默认资源参数。
-- `GET /api/v1/config/providers`：静态支持的提供商与固定示例配置中的模型名称，`scope=offline_example_catalog`。不访问远端模型列表，不验证当前可用性，不返回密钥或自定义 URL；CLI 提供商能力列表也不会扩大认证密钥接口的提供商白名单。
+- `GET /api/v1/config/providers`：不传 `api_key_id` 时只读公开静态示例，`source=static_examples`、`scope=offline_example_catalog`，不代表完整模型支持清单。传入管理员本人的非空 `api_key_id` 时复用评测模型查询逻辑，返回 `source=provider_api`、`scope=user_api_key` 和该供应商的 `provider/models/complete`；枚举成功不保证推理可调用，失败不回退静态。两类响应均 no-store，不返回密钥或自定义 URL；管理员也不能使用他人密钥。CLI能力列表不扩大认证密钥接口的提供商白名单。
 - `GET /api/v1/config/sandbox`：受控 Docker 镜像、执行超时、内存、进程、输出和允许导入配置，不返回主机目录或环境变量。
 
 #149 的异步任务执行与产品 HTTP 入队已合入。API 启动保留现有任务工厂和服务恢复策略，关闭时清理探测子进程及查询采集器。Redis/worker 探测须由部署者启用，并重启 worker 以加载新的只读 inspect 命令。探测不会调用 TaskManager.get_task、创建业务任务、撤销或恢复任务，也不会直接更新任务数据库。

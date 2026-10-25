@@ -1,6 +1,6 @@
 # #157 系统监控 API 逐项验收
 
-范围：原 [issue #157](https://github.com/JayNey/LLM-Algorithm-Harness/issues/157) 的44个复选条目。核对基线 main `0e795e4b4ac91e4d00b1f0f60a1e9d6f50d3090d`，已包含#269；本轮只修正旧交付状态标记、OpenAPI例子及文档。下列勾选表示代码能力/列明回归已覆盖，不表示所有生产环境、完整集群或真实提供商均已验证。当前执行证据与限制见 [本轮验证报告](superpowers/reports/2026-10-25-monitoring-acceptance-verify.md)。
+范围：原 [issue #157](https://github.com/JayNey/LLM-Algorithm-Harness/issues/157) 的44个复选条目。核对基线 main `0e795e4b4ac91e4d00b1f0f60a1e9d6f50d3090d`，已包含#269；本轮只修正旧交付状态标记、OpenAPI例子及文档；交付前已同步main2950180（含#268/#270/#271），保留HTTP1.1.0、模型目录整合和liveness/readiness/管理员诊断契约。下列勾选表示代码能力/列明回归已覆盖，不表示所有生产环境、完整集群或真实提供商均已验证。当前执行证据与限制见 [本轮验证报告](superpowers/reports/2026-10-25-monitoring-acceptance-verify.md)。
 
 ## 1. 系统健康检查（7项）
 
@@ -60,7 +60,7 @@
 
 - [x] 当前生效配置：`/system/config`读当前服务持有对象，固定数值/布尔/可空额度白名单，无探测/环境重读。`test_system_config_returns_loaded_values_without_probes`。
 - [x] 策略目录：复用实际STRATEGY_MAP和StrategyConfig默认资源参数，排除提示/自定义参数。`test_strategy_directory_reuses_registry_and_schema_defaults`。
-- [x] 提供商/模型：支持类型和固定公开示例目录，显式offline、不保证当前模型可用。`test_providers_catalog_is_offline_and_config_view_has_no_secrets`。
+- [x] 提供商/模型：默认公开静态示例；#270已加入本人密钥动态目录，与评测模型查询共享逻辑，完整性和枚举/推理就绪分开。`test_providers_catalog_is_offline_and_config_view_has_no_secrets`、`test_monitor_models_matches_owned_dynamic_listing`、`test_monitor_models_rejects_invalid_access_before_provider`、`test_monitor_models_errors_never_fall_back_to_static`。
 - [x] 沙箱配置：展示受控Docker配置的公开子集，不返回宿主路径/环境。`test_health_sources_and_safe_admin_configuration`。
 
 ## 7. 既有模块集成（4项）
@@ -87,7 +87,7 @@
 
 ## 交付与部署边界
 
-- 代码具备和运维部署就绪分开验收。`pending_issues=[]`仅清除旧代码交付标记；Redis/Docker默认禁用仍partial，数据库失败仍degraded，模型执行就绪仍null。
+- `/api/v1/health/ready`是预留但未实现的就绪契约（404），不属于原#157列明的健康/诊断接口交付，不可作为现有部署探针。代码具备和运维部署就绪分开验收。`pending_issues=[]`仅清除旧代码交付标记；Redis/Docker默认禁用仍partial，数据库失败仍degraded，模型执行就绪仍null。
 - API、worker需加载一致配置并共享对应认证/业务存储。数据库查询指标仅当前API；worker/cache/LLM只覆盖实际回复或成功采集范围；Docker只覆盖当前context的带标签容器。
 - 当前实跑层级：临时SQLite与HTTP、隔离Redis/Celery只读观测、实际Docker预检和自建容器资源。未验证生产集群、真实模型端到端、实际PostgreSQL部署或Windows Docker daemon；具体命令、退出码与资源清理见本轮报告。
 - 先审查并合入本收尾PR，再由维护者确认关闭#157。清单勾选不修改GitHub issue，也不替代PR最新头CI。

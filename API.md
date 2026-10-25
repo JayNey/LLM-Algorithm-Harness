@@ -1,6 +1,6 @@
 # LLM Algorithm Harness REST API
 
-API 基础地址为 `http://localhost:8000/api/v1`，当前 HTTP 契约版本为 `1.0.0`，应用发布版本为 `0.1.0`。
+API 基础地址为 `http://localhost:8000/api/v1`，当前 HTTP 契约版本为 `1.1.0`，应用发布版本为 `0.1.0`。
 采用 URL 主版本，不使用 Header 版本协商；演进与兼容性检查规则见 [API 版本管理](docs/api-versioning.md)。
 所有已注册 HTTP 端点的参数、约束、认证要求、限流说明、请求/响应示例及 curl 命令，均从服务的 OpenAPI 文档读取：
 
