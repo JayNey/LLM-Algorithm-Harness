@@ -2199,13 +2199,6 @@ async function resultsScenario() {
     .getByRole('cell', { name: '300', exact: true })
     .first()
     .waitFor()
-  report.results_evidence = {
-    task_intervals: live.detailIntervals,
-    result_intervals: live.resultIntervals,
-    event_sent_at: sentAt,
-    baseline_task: baselineTask,
-    baseline_result: baselineResult,
-  }
   await check('事件合并后同周期并发读取任务与结果，周期不重叠', () => {
     const tasks = live.detailIntervals.slice(baselineTask),
       results = live.resultIntervals.slice(baselineResult)
@@ -2219,9 +2212,14 @@ async function resultsScenario() {
     )
   })
   report.results_evidence = {
-    task_intervals: live.detailIntervals,
-    result_intervals: live.resultIntervals,
+    task_intervals: live.detailIntervals.map((pair) => [...pair]),
+    result_intervals: live.resultIntervals.map((pair) => [...pair]),
     event_sent_at: sentAt,
+    baseline_task: baselineTask,
+    baseline_result: baselineResult,
+    ws_burst_size: 3,
+    observed_http_percentage: 60,
+    observed_result_avg_tokens: 300,
   }
   await live.denyProgress()
   await live.page
