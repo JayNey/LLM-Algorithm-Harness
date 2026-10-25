@@ -7,3 +7,5 @@
 
 ## 验证
 监控全簇、worker日志/LLM采集、用户调用/并发额度及HTTP文档/版本兼容定向回归；Ruff/Black/构建、OpenSpec strict与独立Bugbot。报告区分离线HTTP/实际SQLite、真实Docker、真实Redis/Celery与未执行的真实提供商/生产集群/PostgreSQL/Windows Docker。验收只按可复现证据，平台CI只采用当前头结果。
+
+实际依赖验证提供仓库内显式opt-in脚本scripts/verify_monitoring_acceptance.py，输出仅脱敏JSON，私有日志留临时目录；临时Redis带本轮所有权标签，清理前验证，worker与存储依次清理。脚本错误/未确认清理均为失败。

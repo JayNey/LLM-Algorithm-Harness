@@ -91,3 +91,16 @@
 - API、worker需加载一致配置并共享对应认证/业务存储。数据库查询指标仅当前API；worker/cache/LLM只覆盖实际回复或成功采集范围；Docker只覆盖当前context的带标签容器。
 - 当前实跑层级：临时SQLite与HTTP、隔离Redis/Celery只读观测、实际Docker预检和自建容器资源。未验证生产集群、真实模型端到端、实际PostgreSQL部署或Windows Docker daemon；具体命令、退出码与资源清理见本轮报告。
 - 先审查并合入本收尾PR，再由维护者确认关闭#157。清单勾选不修改GitHub issue，也不替代PR最新头CI。
+
+## 一键复现当前真实依赖观测
+
+环境需提供Docker daemon和已缓存的`python:3.11-slim`、`redis:7-alpine`镜像，以及已安装项目依赖的Python。运行：
+
+```bash
+.venv/bin/python scripts/verify_monitoring_acceptance.py --run-live \
+  --output docs/superpowers/reports/assets/monitoring-acceptance-2026-10-25/actual-dependencies.json
+```
+
+脚本先运行现有带/不带标签容器资源集成测试，再创建仅绑定127.0.0.1随机端口的临时Redis、独立solo worker及临时API/SQLite。它注册临时测试身份、执行只读健康/资源/配额请求，不提交业务任务或调用提供商。Redis使用唯一名称和本轮所有权标签，清理前检查标签；私有日志保存在新建临时目录，`--output`只接收脱敏JSON。失败和清理未确认均退出非零并记录失败，不把未知状态写为通过。
+
+本轮在macOS主机的Linux Docker daemon实际执行；脚本和探针不因此被声明已在真实Windows Docker或生产环境通过。
