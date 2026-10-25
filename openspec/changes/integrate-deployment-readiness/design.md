@@ -5,4 +5,4 @@
 
 ## 验证
 部署配置回归验证各业务 location 继承准入、探针绕过、超时和无缓存；API 就绪测试验证数据库故障 503、存活仍 200 及恢复。提供 Prometheus blackbox exporter、scrape 和告警的可复制示例，包含探测失败与 exporter 抓取失败。
-本机 Docker daemon 未启动；若无 nginx，不声称已完成真实代理或生产联调。
+本机 Docker daemon 未启动；真实代理验证使用临时启动的本机 nginx，不启动系统服务，不声称已完成容器或生产联调。
