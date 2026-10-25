@@ -79,7 +79,14 @@ function mockRoute(context) {
           status: 'healthy',
           checks: {
             database: { status: 'ok' },
-            redis: { status: 'ok', waiting: 2, queues: ['default'] },
+            redis: {
+              status: 'ok',
+              broker_queue: {
+                status: 'ok',
+                waiting: 2,
+                queues: [{ name: 'default', waiting: 2 }],
+              },
+            },
             workers: { status: 'ok', worker_count: 2, active: 1, reserved: 0 },
             sandbox: { status: 'ok' },
           },
@@ -103,7 +110,11 @@ function mockRoute(context) {
         },
         workers: { status: 'ok', worker_count: 2, active: 1, reserved: 0 },
         queue_metrics: {
-          broker_queue: { status: 'ok', waiting: 2, queues: ['default'] },
+          broker_queue: {
+            status: 'ok',
+            waiting: 2,
+            queues: [{ name: 'default', waiting: 2 }],
+          },
           database_pending: { status: 'ok', count: 1 },
           worker_reserved: { status: 'ok', count: 0 },
         },
@@ -248,10 +259,13 @@ function mockRoute(context) {
       })
     if (method === 'GET' && path === '/config/providers')
       return reply({
-        available: true,
-        providers: {
-          openai: { models: ['gpt-4o-mini'], source: 'example_files' },
-        },
+        status: 'ok',
+        scope: 'offline_example_catalog',
+        live_provider_availability_checked: false,
+        providers: [
+          { provider: 'openai', models: ['gpt-4o-mini'] },
+          { provider: 'siliconflow', models: [] },
+        ],
       })
     report.unknown.push(`${method} ${path}`)
     return route.fulfill({
