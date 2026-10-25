@@ -128,7 +128,7 @@ function BudgetForm({ onSaved }: { onSaved: () => void }) {
     <div className="grid gap-3">
       {message && <Alert message={message} type="info" showIcon />}
       <label>
-        全局预算上限（USD，留空不限制）
+        全局预算上限（USD；留空提交表示保持现有上限——后端部分更新不清除，如需清空请联系管理员重置）
         <Input
           aria-label="全局预算上限"
           value={form.global_cap_usd}
@@ -148,7 +148,7 @@ function BudgetForm({ onSaved }: { onSaved: () => void }) {
             <Input
               aria-label={`${key} 难度预算上限`}
               value={form[key]}
-              placeholder="留空不限制"
+              placeholder="留空 = 保持现有值"
               onChange={(event) =>
                 setForm({ ...form, [key]: event.target.value })
               }
@@ -290,6 +290,8 @@ function AlertRulesSection({ onChanged }: { onChanged: () => void }) {
     try {
       await client.updateAlertRule(rule.id, { enabled: !rule.enabled })
       reload()
+    } catch (cause: unknown) {
+      setError(cause instanceof Error ? cause.message : '操作失败，请重试')
     } finally {
       setBusy(false)
     }
@@ -302,6 +304,8 @@ function AlertRulesSection({ onChanged }: { onChanged: () => void }) {
     try {
       await client.deleteAlertRule(rule.id)
       reload()
+    } catch (cause: unknown) {
+      setError(cause instanceof Error ? cause.message : '删除失败，请重试')
     } finally {
       setBusy(false)
     }

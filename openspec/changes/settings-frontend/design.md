@@ -27,3 +27,13 @@
 - #157 后续可能再改 monitoring 响应形状——严格解析会显式报错（预期行为）；本 PR 不依赖其未落地部分。
 - #262 若给 budgets/usage 加字段——增量字段解析器不拒（仅白名单读取所需字段），无冲突。
 - 回退：还原 SystemPage + 删三新目录 + 还原路由/glob 两处增量。
+
+
+## 复审备注（2026-10-24 真修记录）
+
+- 四处 P0 解析（providers 数组形状、broker_queue.queues 对象数组、llm-stats 窗口 null 形态、cache-stats not_configured/共享观测降级）全部按后端源码重写；system/status 降级（task_count/counts 可空）补齐。
+- SystemPage：autoRefresh 开关失效修复（schedule 检查 autoRefresh）、LLM 窗口回退 retained_sample 展示、任务计数降级文案、缓存 status 展示。
+- SystemLogsPage：403 判定改 ApiClientError.status；filters 竞态改提交时快照 committed query。
+- BudgetsPage：toggle/remove 补 catch；留空语义改为「保持现有值」（后端 partial 更新不清除，清空属后端缺口——design 留言已声明）。
+- R 残留：updateAlert 的 target 配对校验属增强（后端 400 兜底），未做。
+- 测试夹具与 verify mock 全部改为后端源码真实形状，新增 llm 窗口 null/cache not_configured/status 降级用例；241 测试全绿。

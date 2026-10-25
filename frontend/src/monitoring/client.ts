@@ -2,8 +2,10 @@ import type { AxiosInstance } from 'axios'
 import { ApiClientError } from '../auth/http.ts'
 import type {
   ApiStats,
+  BrokerQueue,
   CacheStats,
   LlmStats,
+  LlmStatsSample,
   MonitoringClient,
   ProvidersCatalog,
   QueueMetrics,
@@ -35,7 +37,7 @@ function count(value: unknown, field: string): number {
     protocol(field)
   return value
 }
-function nullableNumber(value: unknown, field: string): number | null {
+function nullableCount(value: unknown, field: string): number | null {
   return value === null || value === undefined ? null : count(value, field)
 }
 function nullableFloat(value: unknown, field: string): number | null {
@@ -46,6 +48,13 @@ function nullableFloat(value: unknown, field: string): number | null {
 }
 function boolean(value: unknown, field: string): boolean {
   if (typeof value !== 'boolean') protocol(field)
+  return value
+}
+function nullableBoolean(value: unknown, field: string): boolean | null {
+  return value === null || value === undefined ? null : boolean(value, field)
+}
+function array(value: unknown, field: string): unknown[] {
+  if (!Array.isArray(value)) protocol(field)
   return value
 }
 
@@ -59,14 +68,36 @@ function healthCheck(value: unknown, field: string) {
   }
 }
 
+function brokerQueue(value: unknown, field: string): BrokerQueue {
+  const row = record(value, field)
+  // queue_probe 真实形状：queues 为 [{name, waiting}]（未知时为 null）
+  return {
+    status: text(row.status, `${field}.status`, true),
+    waiting: nullableCount(row.waiting, `${field}.waiting`),
+    queues:
+      row.queues === null || row.queues === undefined
+        ? null
+        : array(row.queues, `${field}.queues`).map((item, index) => {
+            const entry = record(item, `${field}.queues.${index}`)
+            return {
+              name: text(entry.name, `${field}.queues.${index}.name`),
+              waiting: nullableCount(
+                entry.waiting,
+                `${field}.queues.${index}.waiting`,
+              ),
+            }
+          }),
+  }
+}
+
 function workersCheck(value: unknown, field: string) {
   const row = record(value, field)
   return {
     ...healthCheck(row, field),
-    worker_count: nullableNumber(row.worker_count, `${field}.worker_count`),
-    active: nullableNumber(row.active, `${field}.active`),
-    reserved: nullableNumber(row.reserved, `${field}.reserved`),
-    concurrency: nullableNumber(row.concurrency, `${field}.concurrency`),
+    worker_count: nullableCount(row.worker_count, `${field}.worker_count`),
+    active: nullableCount(row.active, `${field}.active`),
+    reserved: nullableCount(row.reserved, `${field}.reserved`),
+    concurrency: nullableCount(row.concurrency, `${field}.concurrency`),
   }
 }
 
@@ -96,13 +127,14 @@ function systemHealth(value: unknown): SystemHealth {
       },
       redis: {
         ...healthCheck(redis, 'health.checks.redis'),
-        waiting: nullableNumber(redis.waiting, 'health.checks.redis.waiting'),
-        queues:
-          redis.queues === undefined || redis.queues === null
-            ? null
-            : (redis.queues as unknown[]).map((item, index) =>
-                text(item, `health.checks.redis.queues.${index}`),
+        ...(redis.broker_queue !== undefined && redis.broker_queue !== null
+          ? {
+              broker_queue: brokerQueue(
+                redis.broker_queue,
+                'health.checks.redis.broker_queue',
               ),
+            }
+          : {}),
       },
       workers: workersCheck(checks.workers, 'health.checks.workers'),
       sandbox: healthCheck(sandbox, 'health.checks.sandbox'),
@@ -125,15 +157,15 @@ function resourceMeasure(value: unknown): ResourceMeasure {
     },
     memory: {
       status: text(memory.status, 'resources.memory.status', true),
-      total_bytes: nullableNumber(
+      total_bytes: nullableCount(
         memory.total_bytes,
         'resources.memory.total_bytes',
       ),
-      available_bytes: nullableNumber(
+      available_bytes: nullableCount(
         memory.available_bytes,
         'resources.memory.available_bytes',
       ),
-      used_bytes: nullableNumber(
+      used_bytes: nullableCount(
         memory.used_bytes,
         'resources.memory.used_bytes',
       ),
@@ -141,18 +173,22 @@ function resourceMeasure(value: unknown): ResourceMeasure {
     },
     disk: {
       status: text(disk.status, 'resources.disk.status', true),
-      total_bytes: nullableNumber(
+      total_bytes: nullableCount(
         disk.total_bytes,
         'resources.disk.total_bytes',
       ),
-      used_bytes: nullableNumber(disk.used_bytes, 'resources.disk.used_bytes'),
-      free_bytes: nullableNumber(disk.free_bytes, 'resources.disk.free_bytes'),
+      used_bytes: nullableCount(disk.used_bytes, 'resources.disk.used_bytes'),
+      free_bytes: nullableCount(disk.free_bytes, 'resources.disk.free_bytes'),
       percent: nullableFloat(disk.percent, 'resources.disk.percent'),
     },
   }
 }
 
-function countsMap(value: unknown, field: string): Record<string, number> {
+function nullableCountsMap(
+  value: unknown,
+  field: string,
+): Record<string, number> | null {
+  if (value === null || value === undefined) return null
   return Object.fromEntries(
     Object.entries(record(value, field)).map(([key, item]) => [
       key,
@@ -163,33 +199,20 @@ function countsMap(value: unknown, field: string): Record<string, number> {
 
 function queueMetrics(value: unknown): QueueMetrics {
   const data = record(value, 'queue_metrics')
-  const broker = record(data.broker_queue, 'queue_metrics.broker_queue')
   const pending = record(
     data.database_pending,
     'queue_metrics.database_pending',
   )
   const reserved = record(data.worker_reserved, 'queue_metrics.worker_reserved')
   return {
-    broker_queue: {
-      status: text(broker.status, 'queue_metrics.broker_queue.status', true),
-      waiting: nullableNumber(
-        broker.waiting,
-        'queue_metrics.broker_queue.waiting',
-      ),
-      queues:
-        broker.queues === undefined || broker.queues === null
-          ? null
-          : (broker.queues as unknown[]).map((item, index) =>
-              text(item, `queue_metrics.broker_queue.queues.${index}`),
-            ),
-    },
+    broker_queue: brokerQueue(data.broker_queue, 'queue_metrics.broker_queue'),
     database_pending: {
       status: text(
         pending.status,
         'queue_metrics.database_pending.status',
         true,
       ),
-      count: nullableNumber(
+      count: nullableCount(
         pending.count,
         'queue_metrics.database_pending.count',
       ),
@@ -200,7 +223,7 @@ function queueMetrics(value: unknown): QueueMetrics {
         'queue_metrics.worker_reserved.status',
         true,
       ),
-      count: nullableNumber(
+      count: nullableCount(
         reserved.count,
         'queue_metrics.worker_reserved.count',
       ),
@@ -213,13 +236,17 @@ function systemStatus(value: unknown): SystemStatus {
   return {
     uptime_seconds:
       nullableFloat(data.uptime_seconds, 'system-status.uptime_seconds') ?? 0,
-    task_count: count(data.task_count, 'system-status.task_count'),
-    async_task_count: count(
+    // 业务库不可用时 read_task_snapshot 返回 total/counts = None
+    task_count: nullableCount(data.task_count, 'system-status.task_count'),
+    async_task_count: nullableCount(
       data.async_task_count,
       'system-status.async_task_count',
     ),
-    task_counts: countsMap(data.task_counts, 'system-status.task_counts'),
-    async_task_counts: countsMap(
+    task_counts: nullableCountsMap(
+      data.task_counts,
+      'system-status.task_counts',
+    ),
+    async_task_counts: nullableCountsMap(
       data.async_task_counts,
       'system-status.async_task_counts',
     ),
@@ -233,11 +260,8 @@ function systemStatus(value: unknown): SystemStatus {
 function apiStats(value: unknown): ApiStats {
   const data = record(value, 'api-stats')
   return {
-    request_count: nullableNumber(
-      data.request_count,
-      'api-stats.request_count',
-    ),
-    errors: nullableNumber(data.errors, 'api-stats.errors'),
+    request_count: nullableCount(data.request_count, 'api-stats.request_count'),
+    errors: nullableCount(data.errors, 'api-stats.errors'),
     error_rate: nullableFloat(data.error_rate, 'api-stats.error_rate'),
     avg_response_time_ms: nullableFloat(
       data.avg_response_time_ms,
@@ -256,34 +280,72 @@ function apiStats(value: unknown): ApiStats {
   }
 }
 
-function llmStats(value: unknown): LlmStats {
-  const data = record(value, 'llm-stats')
+function llmSample(value: unknown, field: string): LlmStatsSample {
+  const data = record(value, field)
   return {
-    total_calls: count(data.total_calls, 'llm-stats.total_calls'),
-    successful_calls: count(
+    total_calls: nullableCount(data.total_calls, `${field}.total_calls`),
+    successful_calls: nullableCount(
       data.successful_calls,
-      'llm-stats.successful_calls',
+      `${field}.successful_calls`,
     ),
-    failed_calls: count(data.failed_calls, 'llm-stats.failed_calls'),
-    success_rate: nullableFloat(data.success_rate, 'llm-stats.success_rate'),
+    failed_calls: nullableCount(data.failed_calls, `${field}.failed_calls`),
+    success_rate: nullableFloat(data.success_rate, `${field}.success_rate`),
     avg_latency_ms: nullableFloat(
       data.avg_latency_ms,
-      'llm-stats.avg_latency_ms',
+      `${field}.avg_latency_ms`,
     ),
+  }
+}
+
+function llmStats(value: unknown): LlmStats {
+  const data = record(value, 'llm-stats')
+  // 全量模式：五字段必有值；窗口模式：不完整时全 null + retained_sample
+  const result = llmSample(value, 'llm-stats')
+  return {
+    ...result,
+    ...(data.window_complete !== undefined
+      ? {
+          window_complete: boolean(
+            data.window_complete,
+            'llm-stats.window_complete',
+          ),
+        }
+      : {}),
+    ...(data.retained_sample !== undefined && data.retained_sample !== null
+      ? {
+          retained_sample: llmSample(
+            data.retained_sample,
+            'llm-stats.retained_sample',
+          ),
+        }
+      : {}),
   }
 }
 
 function cacheStats(value: unknown): CacheStats {
   const data = record(value, 'cache-stats')
+  // not_configured / 共享观测降级：仅 status（+scope），数值字段可空
   return {
-    enabled: boolean(data.enabled, 'cache-stats.enabled'),
-    total_entries: count(data.total_entries, 'cache-stats.total_entries'),
-    disk_usage_mb:
-      nullableFloat(data.disk_usage_mb, 'cache-stats.disk_usage_mb') ?? 0,
+    status: text(data.status, 'cache-stats.status', true),
+    ...(data.scope !== undefined
+      ? { scope: text(data.scope, 'cache-stats.scope', true) }
+      : {}),
+    enabled: nullableBoolean(data.enabled, 'cache-stats.enabled'),
+    total_entries: nullableCount(
+      data.total_entries,
+      'cache-stats.total_entries',
+    ),
+    disk_usage_mb: nullableFloat(
+      data.disk_usage_mb,
+      'cache-stats.disk_usage_mb',
+    ),
     hit_rate: nullableFloat(data.hit_rate, 'cache-stats.hit_rate'),
-    hits: count(data.hits, 'cache-stats.hits'),
-    misses: count(data.misses, 'cache-stats.misses'),
-    api_calls_saved: count(data.api_calls_saved, 'cache-stats.api_calls_saved'),
+    hits: nullableCount(data.hits, 'cache-stats.hits'),
+    misses: nullableCount(data.misses, 'cache-stats.misses'),
+    api_calls_saved: nullableCount(
+      data.api_calls_saved,
+      'cache-stats.api_calls_saved',
+    ),
   }
 }
 
@@ -308,15 +370,16 @@ function sandboxConfig(value: unknown): SandboxConfigView {
     allowed_imports:
       data.allowed_imports === undefined || data.allowed_imports === null
         ? []
-        : (data.allowed_imports as unknown[]).map((item, index) =>
-            text(item, `sandbox-config.allowed_imports.${index}`),
+        : array(data.allowed_imports, 'sandbox-config.allowed_imports').map(
+            (item, index) =>
+              text(item, `sandbox-config.allowed_imports.${index}`),
           ),
   }
 }
 
 function strategies(value: unknown): StrategyInfo[] {
   const data = record(value, 'strategies-response')
-  return (data.strategies as unknown[]).map((item, index) => {
+  return array(data.strategies, 'strategies').map((item, index) => {
     const row = record(item, `strategies.${index}`)
     return {
       name: text(row.name, `strategies.${index}.name`),
@@ -327,25 +390,30 @@ function strategies(value: unknown): StrategyInfo[] {
 
 function providers(value: unknown): ProvidersCatalog {
   const data = record(value, 'providers')
-  const providersRow = record(data.providers, 'providers.providers')
+  // probes.providers 真实形状：status + providers 数组 [{provider, models}]
   return {
-    available: boolean(data.available, 'providers.available'),
-    providers: Object.fromEntries(
-      Object.entries(providersRow).map(([key, item]) => {
-        const row = record(item, `providers.providers.${key}`)
-        return [
-          key,
-          {
-            models:
-              row.models === undefined || row.models === null
-                ? []
-                : (row.models as unknown[]).map((model, index) =>
-                    text(model, `providers.providers.${key}.models.${index}`),
-                  ),
-            source: text(row.source, `providers.providers.${key}.source`, true),
-          },
-        ]
-      }),
+    status: text(data.status, 'providers.status', true),
+    live_provider_availability_checked: boolean(
+      data.live_provider_availability_checked,
+      'providers.live_provider_availability_checked',
+    ),
+    providers: array(data.providers, 'providers.providers').map(
+      (item, index) => {
+        const row = record(item, `providers.providers.${index}`)
+        return {
+          provider: text(row.provider, `providers.providers.${index}.provider`),
+          models:
+            row.models === undefined || row.models === null
+              ? []
+              : array(row.models, `providers.providers.${index}.models`).map(
+                  (model, modelIndex) =>
+                    text(
+                      model,
+                      `providers.providers.${index}.models.${modelIndex}`,
+                    ),
+                ),
+        }
+      },
     ),
   }
 }

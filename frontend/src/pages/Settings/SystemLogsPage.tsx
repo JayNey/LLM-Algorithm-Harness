@@ -1,9 +1,10 @@
 import { Alert, Button, Input, Select, Skeleton } from 'antd'
-import { useCallback, useEffect, useState } from 'react'
+import { useEffect, useState } from 'react'
+import { ApiClientError } from '@/auth/http.ts'
 import { Link } from 'react-router-dom'
 import { ExperimentFeedback } from '@/experiments/components.tsx'
 import { useSystemLogSession } from '@/systemlogs/session.tsx'
-import type { LogPage } from '@/systemlogs/types.ts'
+import type { LogPage, LogQuery } from '@/systemlogs/types.ts'
 import { readLogQuery } from '@/systemlogs/client.ts'
 
 const LEVEL_OPTIONS = [
@@ -35,41 +36,38 @@ export default function SystemLogsPage() {
   const [error, setError] = useState<string | null>(null)
   const [denied, setDenied] = useState(false)
 
-  const query = readLogQuery(filters)
-  const load = useCallback(
-    (signal: AbortSignal) => client.query({ ...query.query, offset }, signal),
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- 过滤器变化经提交按钮触发（attempt）
-    [client, offset, filters],
-  )
+  const [committed, setCommitted] = useState<LogQuery>({ limit: 50, offset: 0 })
   const [attempt, setAttempt] = useState(0)
 
   useEffect(() => {
     const controller = new AbortController()
     const operation = attempt
-    void load(controller.signal).then(
-      (data) => {
+    void client
+      .query({ ...committed, offset }, controller.signal)
+      .then((data) => {
         if (!controller.signal.aborted && operation === attempt) {
           setPage(data)
           setError(null)
         }
-      },
-      (cause: unknown) => {
+      })
+      .catch((cause: unknown) => {
         if (controller.signal.aborted || operation !== attempt) return
-        if (cause instanceof Error && cause.message.includes('403')) {
+        if (cause instanceof ApiClientError && cause.status === 403) {
           setDenied(true)
         } else {
           setError(cause instanceof Error ? cause.message : '查询失败，请重试')
         }
-      },
-    )
+      })
     return () => controller.abort()
-  }, [load, attempt])
+  }, [client, committed, offset, attempt])
 
   function submit() {
     const next = readLogQuery(filters)
     setErrors(next.errors)
     if (Object.keys(next.errors).length) return
     setOffset(0)
+    // 提交时固化查询快照（filters 引用不进 effect 依赖，防逐键请求竞态）
+    setCommitted(next.query)
     setAttempt((value) => value + 1)
   }
 

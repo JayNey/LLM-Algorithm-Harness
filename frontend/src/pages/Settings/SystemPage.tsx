@@ -143,6 +143,16 @@ function ResourcesSection({ status }: { status: SystemStatus }) {
 
 function QueueSection({ status }: { status: SystemStatus }) {
   const { queue_metrics, task_counts, async_task_counts } = status
+  const queueDetail =
+    queue_metrics.broker_queue.waiting === null
+      ? probeStatusLabel(queue_metrics.broker_queue.status)
+      : `${queue_metrics.broker_queue.waiting} 条${
+          queue_metrics.broker_queue.queues
+            ? `（${queue_metrics.broker_queue.queues
+                .map((queue) => `${queue.name} ${queue.waiting ?? '?'}`)
+                .join('、')}）`
+            : ''
+        }`
   return (
     <Descriptions
       column={1}
@@ -152,10 +162,7 @@ function QueueSection({ status }: { status: SystemStatus }) {
         {
           key: 'waiting',
           label: 'Broker 等待队列',
-          children:
-            queue_metrics.broker_queue.waiting === null
-              ? probeStatusLabel(queue_metrics.broker_queue.status)
-              : `${queue_metrics.broker_queue.waiting} 条`,
+          children: queueDetail,
         },
         {
           key: 'pending',
@@ -176,16 +183,22 @@ function QueueSection({ status }: { status: SystemStatus }) {
         {
           key: 'tasks',
           label: '评估任务计数',
-          children: Object.entries(task_counts)
-            .map(([key, value]) => `${key} ${value}`)
-            .join(' · '),
+          children:
+            task_counts === null
+              ? '业务库暂不可用'
+              : Object.entries(task_counts)
+                  .map(([key, value]) => `${key} ${value}`)
+                  .join(' · '),
         },
         {
           key: 'async',
           label: '异步任务计数',
-          children: Object.entries(async_task_counts)
-            .map(([key, value]) => `${key} ${value}`)
-            .join(' · '),
+          children:
+            async_task_counts === null
+              ? '业务库暂不可用'
+              : Object.entries(async_task_counts)
+                  .map(([key, value]) => `${key} ${value}`)
+                  .join(' · '),
         },
       ]}
     />
@@ -253,14 +266,31 @@ function StatsSection({
           {
             key: 'calls',
             label: '总调用 / 成功 / 失败',
-            children: llm
-              ? `${llm.total_calls} / ${llm.successful_calls} / ${llm.failed_calls}`
-              : '—',
+            children: (() => {
+              if (!llm) return '—'
+              // 窗口不完整时字段为 null——回退 retained_sample 并标注
+              const sample =
+                llm.total_calls === null && llm.retained_sample
+                  ? llm.retained_sample
+                  : llm
+              const suffix =
+                llm.total_calls === null && llm.retained_sample
+                  ? '（部分样本）'
+                  : ''
+              return `${sample.total_calls ?? '—'} / ${sample.successful_calls ?? '—'} / ${sample.failed_calls ?? '—'}${suffix}`
+            })(),
           },
           {
             key: 'success',
             label: '成功率 / 平均延迟',
-            children: `${formatPercent(llm?.success_rate ?? null)} · ${formatMs(llm?.avg_latency_ms ?? null)}`,
+            children: (() => {
+              if (!llm) return '— · —'
+              const sample =
+                llm.success_rate === null && llm.retained_sample
+                  ? llm.retained_sample
+                  : llm
+              return `${formatPercent(sample.success_rate)} · ${formatMs(sample.avg_latency_ms)}`
+            })(),
           },
         ]}
       />
@@ -273,20 +303,28 @@ function StatsSection({
           {
             key: 'cache-enabled',
             label: '状态',
-            children: cache ? (cache.enabled ? '已启用' : '未启用') : '—',
+            children: (() => {
+              if (!cache) return '—'
+              if (cache.enabled === null) return probeStatusLabel(cache.status)
+              return cache.enabled ? '已启用' : '未启用'
+            })(),
           },
           {
             key: 'cache-hits',
             label: '命中 / 未命中 / 命中率',
             children: cache
-              ? `${cache.hits} / ${cache.misses} · ${formatPercent(cache.hit_rate)}`
+              ? `${cache.hits ?? '—'} / ${cache.misses ?? '—'} · ${formatPercent(cache.hit_rate)}`
               : '—',
           },
           {
             key: 'cache-size',
             label: '条目 / 磁盘占用',
             children: cache
-              ? `${cache.total_entries} · ${formatBytes(Math.round(cache.disk_usage_mb * 1024 * 1024))}`
+              ? `${cache.total_entries ?? '—'} · ${
+                  cache.disk_usage_mb === null
+                    ? '—'
+                    : formatBytes(Math.round(cache.disk_usage_mb * 1024 * 1024))
+                }`
               : '—',
           },
         ]}
@@ -364,13 +402,10 @@ function ConfigSection() {
         <Skeleton active paragraph={{ rows: 3 }} />
       ) : providers.data ? (
         <ul>
-          {Object.entries(providers.data.providers).map(
-            ([name, entry]: [
-              string,
-              ProvidersCatalog['providers'][string],
-            ]) => (
-              <li key={name}>
-                {name}：{entry.models.join('、') || '无示例模型'}
+          {providers.data.providers.map(
+            (entry: ProvidersCatalog['providers'][number]) => (
+              <li key={entry.provider}>
+                {entry.provider}：{entry.models.join('、') || '无示例模型'}
               </li>
             ),
           )}
@@ -441,7 +476,8 @@ export default function SystemPage() {
     let timer: ReturnType<typeof setTimeout> | null = null
     let cancelled = false
     const schedule = () => {
-      if (cancelled) return
+      // P1 修复：关闭自动刷新后不再续排（此前开关无效）
+      if (cancelled || !autoRefresh) return
       if (document.visibilityState === 'hidden') {
         document.addEventListener('visibilitychange', onVisible, { once: true })
         return
@@ -451,17 +487,8 @@ export default function SystemPage() {
       }, REFRESH_MS)
     }
     const onVisible = () => schedule()
-    // 首刷与后续周期都经宏任务排程（effect 体内不做同步 setState 调用）
+    // 首刷经宏任务排程（effect 体内不做同步 setState 调用）
     timer = setTimeout(() => void refresh(controller.signal).then(schedule), 0)
-    if (!autoRefresh) {
-      // 仅手动模式：首刷后不再排程
-      return () => {
-        cancelled = true
-        controller.abort()
-        if (timer !== null) clearTimeout(timer)
-        document.removeEventListener('visibilitychange', onVisible)
-      }
-    }
     return () => {
       cancelled = true
       controller.abort()
@@ -534,7 +561,7 @@ export default function SystemPage() {
                       {
                         key: 'tasks',
                         label: '评估 / 异步任务总数',
-                        children: `${snapshot.task_count} / ${snapshot.async_task_count}`,
+                        children: `${snapshot.task_count ?? '不可用'} / ${snapshot.async_task_count ?? '不可用'}`,
                       },
                     ]}
                   />

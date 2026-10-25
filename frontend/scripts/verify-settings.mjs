@@ -122,11 +122,14 @@ function mockRoute(context) {
       })
     if (method === 'GET' && path === '/metrics/llm-stats')
       return reply({
+        status: 'ok',
         total_calls: 10,
         successful_calls: 9,
         failed_calls: 1,
         success_rate: 0.9,
         avg_latency_ms: 300,
+        window_seconds: Number(url.searchParams.get('window_seconds') ?? 3600),
+        window_complete: true,
       })
     if (method === 'GET' && path === '/metrics/cache-stats')
       return reply({
