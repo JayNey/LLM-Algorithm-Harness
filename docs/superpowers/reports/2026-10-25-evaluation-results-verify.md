@@ -25,11 +25,11 @@
 
 - frontend `npm test`：229 passed、0 failed。新增联合读取/部分失败/401与429传播/取消隔离/终态对账，以及结果状态与未知成本表现测试。
 - `npm run lint`：0错误、2条未改动BenchmarkDetailPage.tsx既有runFinished依赖警告。`npm run format:check`通过。
-- 初版`npm run build`类型/生产构建通过，保留既有chunk大于500kB提示；最终正式Runtime构建在交付段补记，不用初版结果代替最终构建。
+- 最终Runtime实际执行`npm --prefix frontend run build`，类型/生产构建通过，保留既有chunk大于500kB提示。
 - 最终浏览器all107组通过，包含results18组（其中全局未知请求检查共享），源码/fixture在开始时均干净；静态fixture的任务计数/策略/模型已校正为与结果记录一致。人工已检查[390px截图](../../frontend/assets/evaluations/results/results-390.png)和[1440px截图](../../frontend/assets/evaluations/results/results-1440.png)，表格可独立横向滚动，根页面不溢出；不把这两个Orbit/dark样例外推为完整外观矩阵。
 - OpenSpec strict、git diff --check通过。
 
-[公开JSON](../../frontend/assets/evaluations/results/all.json) 保存实际git HEAD/dirty、替换依赖、全部断言/请求/截图，以及results_evidence：初始两路请求结束后，三条WS事件合并成一个联合周期，两路HTTP并行、周期不重叠。HTTP任务显示60%，结果平均Token显示300，未直接应用WS中的50%载荷。
+[公开JSON](../../frontend/assets/evaluations/results/all.json) 保存实际git HEAD/dirty、替换依赖、全部断言/请求/截图，以及results_evidence：初始两路请求结束后，三条WS事件合并成一个联合周期，两路HTTP并行、周期不重叠。HTTP任务显示60%，结果平均Token显示300，未直接应用WS中的50%载荷。JSON最初两对区间是StrictMode已取消的bootstrap请求；活动周期断言从baseline_task/result计数之后开始，不能据此声称所有底层HTTP请求从未重叠或后端端到端已验收。
 
 ## 规格核对
 
@@ -50,4 +50,6 @@ fixture使用真实React StrictMode、路由、session provider、创建store、
 
 ## 交付与正式Runtime记录
 
-[PR #267](https://github.com/JayNey/LLM-Algorithm-Harness/pull/267) 已创建，base=main，Refs #226。最终正式build/verify守卫及平台CI状态将在此补记。未自动合并、关闭issue或归档；作者提交排除.comet/.claude/.codex/.agents/skills-lock.json。
+[PR #267](https://github.com/JayNey/LLM-Algorithm-Harness/pull/267) 已创建，base=main，Refs #226。正式Runtime实际执行 `npm --prefix frontend run build`（日志ID ee3ec951-d97f-4b11-b734-cadbe7d9da52）和 `npm --prefix frontend test`（日志ID 220542ac-bbf8-40f8-a298-8c58606f3fbc，229/229通过）；两次检查输入前后指纹一致。build守卫14/14、verify守卫5/5通过，模式full、verify_result=pass，归档确认pending、branch_status=pending。review_mode=off不用于跳过用户要求的独立审查：Bugbot最终复审已覆盖所有实现，之后仅调整fixture静态数据/证据和报告，未变更应用逻辑。
+
+PR平台CI只自动运行现有后端工作流；前端验证由本报告单独列证。最终提交的CI以GitHub Checks为准，不用main或旧头的绿色结果替代。未自动合并、关闭issue或归档；作者提交排除.comet/.claude/.codex/.agents/skills-lock.json。
