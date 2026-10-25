@@ -226,3 +226,54 @@ def test_empty_env_limits_keep_unlimited_default(service, monkeypatch):
     )
     assert settings.USER_DAILY_API_CALL_LIMIT is None
     assert settings.USER_MONTHLY_API_CALL_LIMIT is None
+
+
+@pytest.mark.parametrize(
+    "before,day_reset,month_reset,daily_after,monthly_after",
+    [
+        (
+            "2026-10-24T23:59:59+00:00",
+            "2026-10-25T00:00:00+00:00",
+            "2026-11-01T00:00:00+00:00",
+            0,
+            1,
+        ),
+        (
+            "2026-12-31T23:59:59+00:00",
+            "2027-01-01T00:00:00+00:00",
+            "2027-01-01T00:00:00+00:00",
+            0,
+            0,
+        ),
+        (
+            "2028-02-28T23:59:59+00:00",
+            "2028-02-29T00:00:00+00:00",
+            "2028-03-01T00:00:00+00:00",
+            0,
+            1,
+        ),
+        (
+            "2028-02-29T23:59:59+00:00",
+            "2028-03-01T00:00:00+00:00",
+            "2028-03-01T00:00:00+00:00",
+            0,
+            0,
+        ),
+    ],
+)
+def test_quota_query_resets_at_utc_calendar_boundary(
+    service, monkeypatch, before, day_reset, month_reset, daily_after, monthly_after
+):
+    now = [datetime.fromisoformat(before).timestamp()]
+    monkeypatch.setattr("api.auth.store.time.time", lambda: now[0])
+    service.store.record_user_api_call("alice")
+    quota = service.store.user_api_calls("alice", 3, 10)
+    assert quota["daily_api_calls"]["resets_at"] == day_reset
+    assert quota["monthly_api_calls"]["resets_at"] == month_reset
+    assert quota["daily_api_calls"]["used"] == quota["monthly_api_calls"]["used"] == 1
+    now[0] += 1
+    quota = service.store.user_api_calls("alice", 3, 10)
+    assert quota["daily_api_calls"]["used"] == daily_after
+    assert quota["monthly_api_calls"]["used"] == monthly_after
+    assert quota["daily_api_calls"]["remaining"] == 3 - daily_after
+    assert quota["monthly_api_calls"]["remaining"] == 10 - monthly_after

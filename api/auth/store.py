@@ -142,6 +142,7 @@ class AuthStore:
             period: {
                 "status": "metered",
                 "limit": None,
+                "remaining": None,
                 "used": counts.get(period, 0),
                 "timezone": "UTC",
                 "period_start": start.isoformat(),
