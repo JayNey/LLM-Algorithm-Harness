@@ -266,6 +266,15 @@ async function fixture(mode = 'start-error', entry = '/evaluations/new') {
           status: 'completed',
           can_start: false,
           can_cancel: false,
+          model: 'result-model',
+          strategy_names: ['direct', 'cot'],
+          problem_count: 12,
+          spent_usd: 0.12,
+          execution_progress: {
+            completed_units: 24,
+            total_units: 24,
+            percentage: 100,
+          },
         })
     }
     if (method === 'OPTIONS')
@@ -2199,7 +2208,7 @@ async function resultsScenario() {
   await h.page.getByRole('alert').waitFor()
   await h.page
     .getByRole('region', { name: '任务信息', exact: true })
-    .getByText('model-a', { exact: true })
+    .getByText('result-model', { exact: true })
     .waitFor()
   await check('结果失败保留任务事实而非伪造空结果', async () =>
     assert.equal(await units.count(), 0),
