@@ -1,4 +1,0 @@
-{"sequence":1,"timestamp":"2026-10-25T02:15:58.425Z","type":"run_started","runId":"5365fdc3-a395-42ea-9997-8eb50d6cfe5c","data":{"skill":"comet-classic","skillVersion":"1","skillHash":"9bd4ffab011ae18aef91dc0db336ffc12d454b513229178c15b8b75d50930ba1"}}
-{"sequence":2,"timestamp":"2026-10-25T02:15:58.425Z","type":"state_migrated","runId":"5365fdc3-a395-42ea-9997-8eb50d6cfe5c","data":{"kind":"classic","migrationVersion":1,"profile":"tweak","source":"pre-migration"}}
-{"sequence":3,"timestamp":"2026-10-25T02:16:13.478Z","type":"state_transitioned","runId":"5365fdc3-a395-42ea-9997-8eb50d6cfe5c","data":{"kind":"classic","fromStep":"tweak.open","toStep":"tweak.build.execute","event":"open-complete","phase":"open","source":"comet-guard"}}
-{"sequence":4,"timestamp":"2026-10-25T02:18:13.656Z","type":"command_check_recorded","runId":"5365fdc3-a395-42ea-9997-8eb50d6cfe5c","data":{"scope":"build","command":"python3 -m compileall -q api src","exitCode":0,"cwd":"."}}

@@ -85,7 +85,7 @@
 
 #### Scenario: 用量查询
 - **WHEN** 用户查询 quotas
-- **THEN** 返回自身 used、UTC 和起止时间；无限周期保留 metered/null limit，有限周期返回 enforced、limit 和非负 remaining，并标明准入计数语义
+- **THEN** 两个现有别名 GET /api/v1/quotas 和 GET /api/v1/quotas/usage 均只返回当前认证用户的 daily_api_calls 和 monthly_api_calls；两周期始终包含 limit、used、remaining、resets_at、timezone 和 period_start。无限周期保留 metered、null limit 和 null remaining；有限周期返回 enforced、limit 和 max(limit-used,0) 的 remaining。resets_at 为 UTC 次日零点或下月一日零点的 ISO 8601 时间，并标明准入计数语义
 
 #### Scenario: 故障及隐私
 - **WHEN** 存储故障或配置序列化
