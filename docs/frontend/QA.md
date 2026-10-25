@@ -98,3 +98,11 @@ PLAYWRIGHT_MODULE=/absolute/path/to/node_modules/playwright \
 
 场景：`monitor`（系统监控面板）、`budgets`（预算与预警）、`pricing`（定价目录）、`logs`（日志查询）。
 报告与截图写入 `docs/superpowers/reports/assets/settings/fixture/`。
+
+## 真实评估结果列表与详情（#226）
+
+结果列表使用 `client.results`，详情通过 evaluation ID 使用 `client.get` 与 `client.result` 联合读取，run_id=null不阻止访问。策略汇总来自服务端全量统计，单题独立分页；活动详情复用同一个ProgressObserver，不另起结果轮询。结果普通失败与任务失败分别展示，401/429交给既有会话恢复/限流处理。
+
+从frontend启动Vite，另终端运行 `PLAYWRIGHT_MODULE=/absolute/path/to/playwright node scripts/verify-evaluations.mjs --scenario results`；地址/输出用 `EVALUATION_BASE_URL`、`EVALUATION_QA_DIR` 覆盖。外部Playwright包由环境提供，不增加项目依赖。`all`也会运行results及既有创建、列表、详情、进度、安全回归。
+
+[验证报告](../superpowers/reports/2026-10-25-evaluation-results-verify.md) 与 [公开浏览器JSON](assets/evaluations/results/all.json) 记录实际源码、断言、请求时序和截图索引。fixture替换HTTP/WS/测试身份，不能代替真实Redis/Celery、供应商、沙箱或真实账号端到端；完整外观矩阵及真实联调由#229/#232跟踪。
