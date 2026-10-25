@@ -95,6 +95,13 @@ export const settingsPages: AppPage[] = [
     Component: lazy(() => import('@/pages/Settings/SystemPage.tsx')),
   },
   {
+    path: '/settings/logs',
+    group: '系统',
+    label: '系统日志',
+    allowedRoles: ['admin'],
+    Component: lazy(() => import('@/pages/Settings/SystemLogsPage.tsx')),
+  },
+  {
     path: '/settings/profile',
     label: '个人资料',
     Component: lazy(() => import('@/pages/Settings/ProfilePage.tsx')),
@@ -103,6 +110,16 @@ export const settingsPages: AppPage[] = [
     path: '/settings/api-keys',
     label: 'API 密钥',
     Component: lazy(() => import('@/pages/Settings/ApiKeysPage.tsx')),
+  },
+  {
+    path: '/settings/budgets',
+    label: '预算与预警',
+    Component: lazy(() => import('@/pages/Settings/BudgetsPage.tsx')),
+  },
+  {
+    path: '/settings/pricing',
+    label: '定价管理',
+    Component: lazy(() => import('@/pages/Settings/PricingPage.tsx')),
   },
 ]
 

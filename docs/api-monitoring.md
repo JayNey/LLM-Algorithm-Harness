@@ -31,7 +31,17 @@ export MONITOR_ADMIN_USER_IDS='["11111111-1111-4111-8111-111111111111"]'
 
 ## 健康与资源端点
 
-公开的 `GET /api/v1/health` 仅表示 API 存活，响应包含 `scope=api_liveness_only`。它不执行 Docker 探测，也不代表队列或业务数据库可用。
+### 健康接口契约
+
+下列路径均带 `/api/v1` 前缀；简写 `/health`、`/health/ready`、`/system/health` 时含义相同。
+
+- **存活检查（liveness）**：`GET /api/v1/health`，公开接口，仅表示 API 能响应请求。返回 200，响应包含 `scope=api_liveness_only`；不探测数据库、队列、worker 或 Docker，不代表服务已就绪或迁移完成。
+- **就绪检查（readiness）**：`GET /api/v1/health/ready`，职责是判断服务是否具备接收业务流量的条件。此路径为预留契约，**当前尚未实现，请求返回 404，不可配置为现有部署的就绪探针**；依赖集合、鉴权和成功/失败响应契约须在实现时明确。
+- **管理员诊断**：`GET /api/v1/system/health`，要求管理员身份，返回已配置组件的详细观测及降级原因，供排障使用。请求成功或组件状态为 healthy 均不能作为业务流量准入的就绪信号。
+
+存活检查供进程存活探针使用；管理员诊断供运维排障使用。部署时须分别确认迁移结果与业务所需依赖，不能用 `/health` 的 200 替代就绪检查。
+
+### 诊断与资源端点
 
 以下端点全部需要管理员身份，成功响应使用现有 `success/data/message` 包装：
 

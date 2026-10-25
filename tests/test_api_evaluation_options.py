@@ -276,6 +276,8 @@ def test_models_reads_owned_provider_pages_safely(api, monkeypatch, provider):
     )
     assert response.status_code == 200, response.text
     assert response.json()["data"] == {
+        "source": "provider_api",
+        "scope": "user_api_key",
         "provider": provider,
         "models": ["model-a", "model-b"],
         "complete": True,
@@ -375,6 +377,8 @@ def test_models_unknown_pagination_is_incomplete(api, monkeypatch):
     )
     assert response.status_code == 200, response.text
     assert response.json()["data"] == {
+        "source": "provider_api",
+        "scope": "user_api_key",
         "provider": "openai",
         "models": ["actual-model"],
         "complete": False,
@@ -411,6 +415,8 @@ def test_models_anthropic_sdk_requires_explicit_end_metadata(api, monkeypatch, m
     )
     assert response.status_code == 200, response.text
     assert response.json()["data"] == {
+        "source": "provider_api",
+        "scope": "user_api_key",
         "provider": "anthropic",
         "models": ["actual-model"],
         "complete": complete,
@@ -435,6 +441,8 @@ def test_models_openai_sdk_nonpaginated_contract_is_complete(api, monkeypatch, p
     )
     assert response.status_code == 200, response.text
     assert response.json()["data"] == {
+        "source": "provider_api",
+        "scope": "user_api_key",
         "provider": provider,
         "models": ["actual-model"],
         "complete": True,
@@ -485,3 +493,117 @@ def test_models_uses_separate_user_rate_bucket(api, monkeypatch):
 def test_models_requires_identity(api):
     _, client, _ = api
     assert client.get(BASE + "/models?api_key_id=missing").status_code == 401
+
+
+MONITOR_MODELS = "/api/v1/config/providers"
+
+
+def make_model_admin(app, users):
+    from uuid import UUID
+
+    app.state.monitor.settings.MONITOR_ADMIN_USER_IDS = [UUID(users["alice"][1])]
+
+
+def test_monitor_models_default_is_explicitly_static(api, monkeypatch):
+    app, client, users = api
+    make_model_admin(app, users)
+    sdk, configs = fake_models(monkeypatch, AssertionError("offline query called SDK"))
+    response = client.get(MONITOR_MODELS, headers=users["alice"][0])
+    assert response.status_code == 200, response.text
+    data = response.json()["data"]
+    assert data["source"] == "static_examples"
+    assert data["scope"] == "offline_example_catalog"
+    assert data["live_provider_availability_checked"] is False
+    assert {row["provider"] for row in data["providers"]} == {
+        "openai",
+        "anthropic",
+        "siliconflow",
+        "local",
+    }
+    assert configs == []
+    assert response.headers["cache-control"] == "no-store"
+
+
+@pytest.mark.parametrize("provider", ["openai", "anthropic", "siliconflow"])
+@pytest.mark.parametrize("count,complete", [(2, True), (500, False), (0, True)])
+def test_monitor_models_matches_owned_dynamic_listing(api, monkeypatch, provider, count, complete):
+    app, client, users = api
+    make_model_admin(app, users)
+    key_id = model_key(app, users, provider)
+    fake_models(monkeypatch, ModelPage([f"m{i}" for i in range(count)]))
+    query = {"api_key_id": key_id}
+    dynamic = client.get(BASE + "/models", params=query, headers=users["alice"][0])
+    response = client.get(MONITOR_MODELS, params=query, headers=users["alice"][0])
+    assert response.status_code == 200, response.text
+    data = response.json()["data"]
+    assert data == {
+        "status": "ok",
+        "source": "provider_api",
+        "scope": "user_api_key",
+        "live_provider_availability_checked": True,
+        "providers": [
+            {"provider": provider, "models": [f"m{i}" for i in range(count)], "complete": complete}
+        ],
+    }
+    assert dynamic.json()["data"]["source"] == data["source"]
+    assert dynamic.json()["data"]["scope"] == data["scope"]
+    assert response.headers["cache-control"] == "no-store"
+    assert key_id not in response.text and MODEL_SECRET not in response.text
+
+
+@pytest.mark.parametrize(
+    "state,status",
+    [
+        ("missing", 404),
+        ("other", 404),
+        ("deleted", 404),
+        ("anonymous", 401),
+        ("regular", 403),
+        ("empty", 400),
+    ],
+)
+def test_monitor_models_rejects_invalid_access_before_provider(api, monkeypatch, state, status):
+    app, client, users = api
+    make_model_admin(app, users)
+    key_id = model_key(app, users)
+    if state == "other":
+        from uuid import UUID
+
+        app.state.monitor.settings.MONITOR_ADMIN_USER_IDS = [UUID(users["bob"][1])]
+    if state == "deleted":
+        app.state.auth.delete_key(key_id, users["alice"][1])
+    sdk, configs = fake_models(monkeypatch, AssertionError("must not query"))
+    who = "bob" if state in ("other", "regular") else "alice"
+    auth = {} if state == "anonymous" else users[who][0]
+    query = {"api_key_id": "missing" if state == "missing" else "" if state == "empty" else key_id}
+    response = client.get(MONITOR_MODELS, params=query, headers=auth)
+    assert response.status_code == status, response.text
+    assert response.headers["cache-control"] == "no-store"
+    assert configs == []
+
+
+@pytest.mark.parametrize("state,status", [("provider", 503), ("changed", 409), ("limit", 429)])
+def test_monitor_models_errors_never_fall_back_to_static(api, monkeypatch, state, status):
+    app, client, users = api
+    make_model_admin(app, users)
+    key_id = model_key(app, users)
+
+    def changed():
+        if state == "changed":
+            app.state.auth.delete_key(key_id, users["alice"][1])
+
+    sdk, configs = fake_models(
+        monkeypatch,
+        RuntimeError(MODEL_SECRET) if state == "provider" else ModelPage(["private-model"]),
+        changed,
+    )
+    if state == "limit":
+        app.state.auth.settings.AUTH_RATE_LIMIT = 1
+        app.state.auth.limit("models:" + users["alice"][1])
+    response = client.get(MONITOR_MODELS, params={"api_key_id": key_id}, headers=users["alice"][0])
+    assert response.status_code == status, response.text
+    assert MODEL_SECRET not in response.text and "private-model" not in response.text
+    assert "static_examples" not in response.text
+    assert response.headers["cache-control"] == "no-store"
+    if state != "limit":
+        assert sdk.closed is True

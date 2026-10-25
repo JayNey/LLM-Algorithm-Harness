@@ -31,6 +31,8 @@ class EvaluationOptions(BaseModel):
 
 
 class ModelOptions(BaseModel):
+    source: Literal["provider_api"] = "provider_api"
+    scope: Literal["user_api_key"] = "user_api_key"
     provider: str
     models: list[str]
     complete: bool

@@ -17,6 +17,9 @@ import { ExperimentSessionProvider } from '@/experiments/session.tsx'
 import { BenchmarkSessionProvider } from '@/benchmarks/session.tsx'
 import { ABTestSessionProvider } from '@/abtests/session.tsx'
 import { ProblemSessionProvider } from '@/problems/session.tsx'
+import { BudgetSessionProvider } from '@/budgets/session.tsx'
+import { PricingSessionProvider } from '@/pricing/session.tsx'
+import { SystemLogSessionProvider } from '@/systemlogs/session.tsx'
 import { MockActions } from '@/mock/MockActions.tsx'
 import { appearanceTheme } from './appearance.ts'
 import { Icon } from './components/Icon.tsx'
@@ -207,9 +210,15 @@ function Shell() {
                   <BenchmarkSessionProvider>
                     <ABTestSessionProvider>
                       <ProblemSessionProvider>
-                        <ErrorBoundary key={location.pathname}>
-                          <Outlet context={actions} />
-                        </ErrorBoundary>
+                        <BudgetSessionProvider>
+                          <PricingSessionProvider>
+                            <SystemLogSessionProvider>
+                              <ErrorBoundary key={location.pathname}>
+                                <Outlet context={actions} />
+                              </ErrorBoundary>
+                            </SystemLogSessionProvider>
+                          </PricingSessionProvider>
+                        </BudgetSessionProvider>
                       </ProblemSessionProvider>
                     </ABTestSessionProvider>
                   </BenchmarkSessionProvider>

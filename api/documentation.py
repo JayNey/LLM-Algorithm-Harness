@@ -117,7 +117,7 @@ def page(items: list[Any]) -> dict[str, Any]:
 # Examples show representative data; empty aggregates mean no stored results.
 OPERATIONS: dict[str, tuple[str, Any]] = {
     "health_check": (
-        "检查 API 进程存活；不检查数据库、队列或执行器。",
+        "存活检查（liveness）：检查 API 能否响应；不检查数据库、队列或执行器，不代表服务就绪。就绪检查路径 /api/v1/health/ready 当前尚未实现（404）；管理员诊断使用 /api/v1/system/health。",
         {
             "status": "healthy",
             "scope": "api_liveness_only",
@@ -178,9 +178,16 @@ OPERATIONS: dict[str, tuple[str, Any]] = {
     ),
     "models": (
         "使用自己的 api_key_id 查询提供商真实模型列表；最多返回 500 个 ID。"
+        "来源固定为 source=provider_api、scope=user_api_key，与监控配置的动态查询一致。"
         "complete=false 表示列表可能不完整；单次请求最多等待 5 秒，总预算 10 秒，不自动重试。"
         "查询期间密钥被修改返回 409，提供商调用失败返回脱敏的 503。",
-        {"provider": "openai", "models": ["gpt-4o-mini"], "complete": True},
+        {
+            "provider": "openai",
+            "models": ["gpt-4o-mini"],
+            "complete": True,
+            "source": "provider_api",
+            "scope": "user_api_key",
+        },
     ),
     "create_evaluation": (
         "创建待运行评估，引用自己的 api_key_id 和已存在的题目；随后调用 start。",
@@ -543,7 +550,7 @@ OPERATIONS: dict[str, tuple[str, Any]] = {
     ),
     "download_chart": ("下载自己的运行结果通过率 PNG；chart_name 仅支持 success-rate。", None),
     "detailed_health": (
-        "查询配置基础设施的综合健康信息；可选执行沙箱检查；未知状态不会伪装成健康。",
+        "管理员诊断：查询配置基础设施的综合健康信息；可选执行沙箱检查；未知状态不会伪装成健康。用于排障，不作为业务流量准入的就绪信号。存活检查使用 /api/v1/health；就绪检查路径 /api/v1/health/ready 当前尚未实现（404）。",
         {
             "status": "partial",
             "scope": "configured_api_foundation",
@@ -710,10 +717,16 @@ OPERATIONS: dict[str, tuple[str, Any]] = {
         },
     ),
     "providers": (
-        "查询离线示例配置中的提供商目录；不代表已检查在线可用性。",
+        "查询模型目录。省略 api_key_id 时返回固定公开配置中的静态支持示例，"
+        "source=static_examples、scope=offline_example_catalog；示例并非完整模型支持清单。"
+        "传入本人非空 api_key_id 时，按密钥查询供应商模型，source=provider_api、"
+        "scope=user_api_key，providers 中返回 provider/models/complete，与评测模型查询复用同一逻辑。"
+        "complete=false 表示截断或无法确认分页完整性。枚举成功不保证推理可调用。"
+        "仍限管理员，不能使用他人密钥；失败返回脱敏错误，不回退静态目录。响应 no-store。",
         {
             "status": "ok",
             "scope": "offline_example_catalog",
+            "source": "static_examples",
             "live_provider_availability_checked": False,
             "providers": [],
         },
@@ -1416,9 +1429,9 @@ ERROR_MESSAGES = {
     503: "Service is unavailable",
 }
 
-API_CONTRACT_VERSION = "1.0.0"
+API_CONTRACT_VERSION = "1.1.0"
 
-OVERVIEW = """LLM Algorithm Harness API，HTTP 契约版本 1.0.0（API v1）。
+OVERVIEW = """LLM Algorithm Harness API，HTTP 契约版本 1.1.0（API v1）。
 
 **版本策略**：URL 主版本 `/api/v1`；不使用 Header 版本协商。
 兼容扩展沿用 v1；破坏性变更使用新的 URL 主版本，并提供迁移说明、并行支持与退役公告。

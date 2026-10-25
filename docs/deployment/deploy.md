@@ -64,7 +64,7 @@ docker compose down                  # 停止（卷保留）
 docker compose down -v               # 停止并清空数据卷
 ```
 
-- API 地址 `http://localhost:8000`，健康检查 `GET /api/v1/health`。
+- API 地址 `http://localhost:8000`，存活检查 `GET /api/v1/health`；就绪检查路径 `/api/v1/health/ready` 当前尚未实现，不可配置为就绪探针。管理员诊断使用 `/api/v1/system/health`，需管理员身份，详见[健康接口契约](../api-monitoring.md#健康接口契约)。
 - 只想跑集成测试时用法不变：`docker compose up -d redis` +
   `bash scripts/run_integration_tests.sh`（redis 服务定义未改动）。
 - 镜像内以非 root 用户 `harness` 运行；数据落在命名卷
@@ -136,8 +136,12 @@ environment 出发，不修改应用代码。
 迁移由 Alembic 管理，**API 启动时自动执行**（lifespan 内
 `EvaluationResultsService` 构造时调用 `api/db/migrate.py` 的 `run_migrations`），
 无需手动步骤；迁移版本在 `api/db/migrations/versions/`。编排层面，worker 依赖
-`api: service_healthy`——api 健康即迁移完成，因此 worker 不会在缺表窗口消费任务；
-若绕开编排手动部署，先启动 API 并确认 `GET /api/v1/health` 返回 200 后再扩 worker。
+`api: service_healthy`，当前探测路径是 `/api/v1/health`。启动阶段 API 在 lifespan
+完成后开始接收请求，因此首次探测成功位于该启动流程之后；这个顺序来自 lifespan，
+不是 `/health` 的依赖检查能力，也不保证数据库、队列或 worker 持续可用。
+若绕开编排手动部署，先确认 API 启动完成、迁移成功及所需数据库、broker 和 worker
+可用，再放行业务流量或扩 worker。`GET /api/v1/health` 返回 200 只证明 API 存活；
+`/api/v1/health/ready` 当前尚未实现，`/api/v1/system/health` 仅供管理员诊断。
 
 手动操作（危险操作前先备份）：
 

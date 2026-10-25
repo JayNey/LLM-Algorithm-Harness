@@ -1714,6 +1714,38 @@
           "name"
         ],
         "type": "object"
+      },
+      "ModelOptions": {
+        "properties": {
+          "complete": {
+            "type": "boolean"
+          },
+          "models": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "provider": {
+            "type": "string"
+          },
+          "scope": {
+            "const": "user_api_key",
+            "default": "user_api_key",
+            "type": "string"
+          },
+          "source": {
+            "const": "provider_api",
+            "default": "provider_api",
+            "type": "string"
+          }
+        },
+        "required": [
+          "provider",
+          "models",
+          "complete"
+        ],
+        "type": "object"
       }
     },
     "securitySchemes": {
@@ -15262,6 +15294,24 @@
         "security": [
           {
             "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "query",
+            "name": "api_key_id",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "minLength": 1,
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            }
           }
         ]
       }
