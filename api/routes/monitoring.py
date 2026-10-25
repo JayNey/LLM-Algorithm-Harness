@@ -13,6 +13,8 @@ from starlette.types import Receive, Scope, Send
 
 from api.auth.dependencies import current_user
 from api.auth.service import Principal
+from api.config import settings
+from api.monitoring.config import public_system_config
 from api.monitoring.capabilities import evaluation_capability
 from api.monitoring.dependencies import administrator, monitor_service
 from api.monitoring.service import MonitorService
@@ -239,6 +241,17 @@ def cache_stats(
     admin: Principal = Depends(administrator), monitor: MonitorService = Depends(monitor_service)
 ) -> ApiResponse[Any]:
     return answer(monitor.probes.cache_stats(monitor.cache))
+
+
+@router.get("/system/config")
+def system_config(
+    admin: Principal = Depends(administrator), monitor: MonitorService = Depends(monitor_service)
+) -> ApiResponse[Any]:
+    return answer(
+        public_system_config(
+            settings, monitor.auth.settings, monitor.files.settings, monitor.settings
+        )
+    )
 
 
 @router.get("/config/strategies")
