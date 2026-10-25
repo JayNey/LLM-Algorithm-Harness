@@ -718,6 +718,58 @@ OPERATIONS: dict[str, tuple[str, Any]] = {
             "providers": [],
         },
     ),
+    "system_config": (
+        "返回当前 API 进程已加载的配置：api/auth/files/monitoring 四组显式字段白名单。"
+        "仅输出数值、布尔或可空限额；凭据、连接串、主机地址、CORS 来源、管理员 ID、"
+        "敏感路径及未知字段完全省略。不会重新读取环境变量或配置文件，也不执行外部探测。"
+        "字段名保留原配置名，时间和容量单位见字段后缀。响应 Cache-Control: no-store。",
+        {
+            "scope": "api_process",
+            "api": {
+                "MAX_CONCURRENT_TASKS": 5,
+                "MAX_CONCURRENT_EVALUATIONS_PER_USER": 5,
+                "TASK_TIMEOUT_SECONDS": 3600,
+            },
+            "auth": {
+                "ACCESS_TOKEN_EXPIRE_MINUTES": 30,
+                "REFRESH_TOKEN_EXPIRE_DAYS": 7,
+                "AUTH_RATE_LIMIT": 10,
+                "AUTH_RATE_WINDOW_SECONDS": 60,
+                "AUTH_PROTECTED_RATE_LIMIT": 120,
+                "USER_DAILY_API_CALL_LIMIT": None,
+                "USER_MONTHLY_API_CALL_LIMIT": None,
+            },
+            "files": {
+                "FILE_UPLOAD_MAX_BYTES": 104857600,
+                "FILE_CONFIG_MAX_BYTES": 1048576,
+                "FILE_MAX_USER_BYTES": 536870912,
+                "FILE_TTL_SECONDS": 86400,
+                "FILE_CLEANUP_INTERVAL_SECONDS": 300,
+                "FILE_UPLOAD_RATE_LIMIT": 10,
+                "FILE_MAX_CONCURRENT_TRANSFERS": 2,
+                "FILE_UPLOAD_TIMEOUT_SECONDS": 120,
+                "FILE_UPLOAD_IDLE_SECONDS": 15,
+                "FILE_MAX_CONCURRENT_IMPORTS": 2,
+                "FILE_MAX_ACTIVE_IMPORTS": 8,
+                "FILE_IMPORT_MAX_ITEMS": 10000,
+                "FILE_IMPORT_TIMEOUT_SECONDS": 3600,
+            },
+            "monitoring": {
+                "MONITOR_RETENTION_SECONDS": 604800,
+                "MONITOR_MAX_ROWS": 10000,
+                "MONITOR_API_WINDOW_SECONDS": 60,
+                "MONITOR_PROBE_CACHE_SECONDS": 5,
+                "MONITOR_QUEUE_PROBES_ENABLED": False,
+                "MONITOR_QUEUE_TIMEOUT_SECONDS": 3.0,
+                "MONITOR_QUEUE_CACHE_SECONDS": 5.0,
+                "MONITOR_CONTAINER_PROBES_ENABLED": False,
+                "MONITOR_CONTAINER_TIMEOUT_SECONDS": 3.0,
+                "MONITOR_CONTAINER_CACHE_SECONDS": 5.0,
+                "MONITOR_CONTAINER_MAX_ITEMS": 32,
+                "MONITOR_SANDBOX_TIMEOUT_SECONDS": 5,
+            },
+        },
+    ),
     "sandbox_config": (
         "返回当前沙箱配置的公开设置。",
         {
@@ -1126,6 +1178,7 @@ ADMIN_OPERATIONS = {
     "strategies",
     "providers",
     "sandbox_config",
+    "system_config",
     "global_logs",
 }
 AUTH_OPERATIONS = {"register", "login", "refresh"}

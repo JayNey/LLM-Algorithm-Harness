@@ -558,6 +558,13 @@ for path in ["quotas", "quotas/usage"]:
 CASES += [
     case(
         "GET",
+        "/system/config",
+        "system_config",
+        (ANY, ANY, ANY, ANY),
+        admin=True,
+    ),
+    case(
+        "GET",
         "/config/strategies",
         "monitor.probes.strategies",
         result=[],
@@ -883,6 +890,7 @@ def api(monkeypatch, tmp_path, unit_app):
     state.monitor.probes = Mock()
     state.monitor.store = Mock()
     state.monitor.files = state.files
+    state.monitor.auth = state.auth
     state.monitor.owned_log_key.return_value = "async:task-1"
     state.monitor.cache = Mock()
     state.monitor.started = time.monotonic()
@@ -911,6 +919,8 @@ def api(monkeypatch, tmp_path, unit_app):
     monkeypatch.setattr("api.routes.files.TaskManager", lambda db: state.manager)
     state.pareto_analysis = Mock(return_value=VALUE.copy())
     state.advisory = Mock(return_value=VALUE.copy())
+    state.system_config = Mock(return_value=VALUE.copy())
+    monkeypatch.setattr("api.routes.monitoring.public_system_config", state.system_config)
     monkeypatch.setattr("api.routes.ab_tests.build_pareto_analysis", state.pareto_analysis)
     monkeypatch.setattr("api.routes.ab_tests.build_advisory", state.advisory)
 
