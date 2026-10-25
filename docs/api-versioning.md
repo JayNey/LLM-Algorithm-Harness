@@ -1,6 +1,6 @@
 # API 版本管理
 
-当前 HTTP 契约版本为 **1.0.0**，URL 主版本为 **v1**。业务接口均使用 `/api/v1/...`；公开文档入口仍是 `/docs`、`/redoc` 和 `/openapi.json`。OpenAPI `info.version` 显示契约版本，Swagger UI 和 ReDoc 读取同一份文档。
+当前 HTTP 契约版本为 **1.1.0**，URL 主版本为 **v1**。业务接口均使用 `/api/v1/...`；公开文档入口仍是 `/docs`、`/redoc` 和 `/openapi.json`。OpenAPI `info.version` 显示契约版本，Swagger UI 和 ReDoc 读取同一份文档。
 
 采用 URL 版本，而非 `API-Version`、`Accept-Version` 或自定义 Accept 媒体类型的 Header 协商：URL 在 curl、代理、日志和客户端中直接可见，不需要版本相关的 `Vary` 缓存规则。Header 不选择版本，例如 `/api/v1/health` 带 `API-Version: 2` 仍请求 v1；未实现的 `/api/v2/health` 返回 404。不要将 v2 静默降级到 v1。
 
@@ -33,3 +33,5 @@ python3 -m pytest tests/test_api_versioning.py tests/test_api_documentation.py -
 评估创建流程在 `EvaluationResponse` 中新增只读响应字段 `can_start`、`can_cancel` 和 `execution_progress`（含 `completed_units`、`total_units`、`percentage`）。本次基线仅同步这些新增字段及 `ExecutionProgress` 组件；原有字段、必填项和请求契约保持不变。现有客户端需忽略未知响应字段，新评估客户端已读取并校验这三个字段。新建评估可以启动、尚不可取消；入队后可能仍为 `pending`，应以操作能力字段判断是否可启动或取消。兼容性门禁继续严格比较既有结构，不自动重录基线。
 
 OpenAPI 门禁覆盖结构契约，不能验证业务语义、动态字典中的未声明字段、WebSocket 帧或外部依赖行为，需与已有 API 单元测试和集成测试一起运行。
+
+模型目录整合在 1.1.0 中扩展既有 `GET /api/v1/config/providers`：省略 `api_key_id` 仍返回静态示例，传入本人密钥时返回动态列表。静态 `source=static_examples`，动态 `source=provider_api`；评测模型响应增加 `source/scope`。已审查现有前端只读取 `provider/models/complete`、忽略未知字段，属于兼容扩展。本次仅定向更新该操作的可选查询参数和 `ModelOptions` 新属性，保持既有必填字段、鉴权、错误语义和兼容门禁不变。
