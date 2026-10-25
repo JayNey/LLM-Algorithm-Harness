@@ -98,6 +98,11 @@ export interface ResultDetail {
   strategies: StrategySummary[]
   problems: ApiPage<ProblemResult>
 }
+/** HTTP task truth with optional result data from the same observation cycle. */
+export interface EvaluationSnapshot extends Evaluation {
+  result?: ResultDetail | null
+  resultError?: string | null
+}
 export interface CreatePayload {
   api_key_id: string
   model: string

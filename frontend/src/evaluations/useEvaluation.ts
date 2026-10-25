@@ -6,13 +6,20 @@ import {
   resolveProgressWsUrl,
   type ProgressObserver,
 } from './observer.ts'
-import type { Evaluation, EvaluationClient } from './types.ts'
+import type { EvaluationSnapshot, EvaluationClient } from './types.ts'
+
+type SnapshotLoader = (
+  id: string,
+  signal: AbortSignal,
+) => Promise<EvaluationSnapshot>
 
 export function useEvaluation(
   client: EvaluationClient,
   evaluationId: string,
   owner: string | null,
+  fetchSnapshot?: SnapshotLoader,
 ) {
+  const load = fetchSnapshot ?? client.get
   const [attempt, setAttempt] = useState(0)
   const generation = useRef(0)
   const [snapshot, setSnapshot] = useState<{
@@ -20,7 +27,8 @@ export function useEvaluation(
     evaluationId: string
     owner: string
     attempt: number
-    data?: Evaluation
+    load: SnapshotLoader
+    data?: EvaluationSnapshot
     error?: string
   }>()
   const reload = useCallback(() => setAttempt((value) => value + 1), [])
@@ -28,8 +36,8 @@ export function useEvaluation(
     const controller = new AbortController()
     const operation = ++generation.current
     if (owner && evaluationId) {
-      const identity = { client, owner, evaluationId, attempt }
-      void client.get(evaluationId, controller.signal).then(
+      const identity = { client, load, owner, evaluationId, attempt }
+      void load(evaluationId, controller.signal).then(
         (data) => {
           if (!controller.signal.aborted && generation.current === operation)
             setSnapshot({ ...identity, data })
@@ -45,6 +53,7 @@ export function useEvaluation(
             data:
               !denied &&
               previous?.client === client &&
+              previous.load === load &&
               previous.owner === owner &&
               previous.evaluationId === evaluationId
                 ? previous.data
@@ -58,11 +67,12 @@ export function useEvaluation(
       )
     }
     return () => controller.abort()
-  }, [client, evaluationId, owner, attempt])
+  }, [client, load, evaluationId, owner, attempt])
   const current =
     !!owner &&
     snapshot?.owner === owner &&
     snapshot.client === client &&
+    snapshot.load === load &&
     snapshot.evaluationId === evaluationId
   const loading = !current || snapshot.attempt !== attempt
   return {
@@ -81,7 +91,7 @@ export function isLiveStatus(status: string): boolean {
 
 export interface EvaluationLive {
   /** 观察器经 HTTP 真值刷新的最新评估（无快照时为 null，回退一次性抓取） */
-  evaluation: Evaluation | null
+  evaluation: EvaluationSnapshot | null
   /** 观察器通道模式：live=WS 已订阅；degraded=降级轮询；connecting/stopped */
   mode: string
   /** 会话失效（401/4401 恢复失败）：页面应清会话回跳登录 */
@@ -104,16 +114,22 @@ export function useEvaluationLive(
   evaluationId: string,
   owner: string | null,
   enabled: boolean,
+  fetchSnapshot?: SnapshotLoader,
 ): EvaluationLive {
+  const load = fetchSnapshot ?? client.get
   const [snapshot, setSnapshot] = useState<{
+    client: EvaluationClient | null
+    load: SnapshotLoader | null
     owner: string | null
     evaluationId: string
-    evaluation: Evaluation | null
+    evaluation: EvaluationSnapshot | null
     mode: string
     unauthorized: boolean
     forbidden: boolean
     error: string | null
   }>({
+    client: null,
+    load: null,
     owner: null,
     evaluationId: '',
     evaluation: null,
@@ -130,7 +146,7 @@ export function useEvaluationLive(
     observerRef.current = null
     if (!enabled || !client) return
     const instance = createProgressObserver({
-      fetchSnapshot: (id, signal) => client.get(id, signal),
+      fetchSnapshot: load,
       connectSocket: (handlers) => {
         try {
           const env = readViteEnv()
@@ -178,9 +194,14 @@ export function useEvaluationLive(
         // 只比对不盖章会让 aligned 守卫永久拦截所有事件（复审 P0 教训）。
         setSnapshot((previous) => {
           const alignedPrevious =
-            previous.owner === owner && previous.evaluationId === evaluationId
+            previous.client === client &&
+            previous.load === load &&
+            previous.owner === owner &&
+            previous.evaluationId === evaluationId
               ? previous
               : {
+                  client,
+                  load,
                   owner,
                   evaluationId,
                   evaluation: null,
@@ -230,7 +251,7 @@ export function useEvaluationLive(
       instance.dispose()
       observerRef.current = null
     }
-  }, [client, evaluationId, owner, enabled])
+  }, [client, load, evaluationId, owner, enabled])
 
   // 页面可见性 / 网络状态 → 观察器暂停与恢复
   useEffect(() => {
@@ -254,6 +275,8 @@ export function useEvaluationLive(
 
   const aligned =
     !!owner &&
+    snapshot.client === client &&
+    snapshot.load === load &&
     snapshot.owner === owner &&
     snapshot.evaluationId === evaluationId
   useEffect(() => {

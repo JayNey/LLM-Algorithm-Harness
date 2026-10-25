@@ -1,4 +1,9 @@
-import type { Evaluation, ResultAvailability, ResultDetail } from './types.ts'
+import type {
+  Evaluation,
+  ResultAvailability,
+  ResultDetail,
+  StrategySummary,
+} from './types.ts'
 
 const labels: Record<string, string> = {
   running: '运行中',
@@ -51,4 +56,19 @@ export function metricLabel(value: number | null, unit = ''): string {
 export function successRateLabel(value: number | null): string {
   if (value === null || !Number.isFinite(value)) return '未知'
   return `${Number((value * 100).toFixed(2))}%`
+}
+
+export function resultStatusLabel(status: string): string {
+  if (status === 'pending') return '待执行'
+  return Object.hasOwn(labels, status)
+    ? labels[status]
+    : `未知状态（${status}）`
+}
+
+export function resultCostLabel(
+  strategy: Pick<StrategySummary, 'estimated_cost_usd' | 'unknown_cost_count'>,
+): string {
+  const cost = metricLabel(strategy.estimated_cost_usd, 'USD')
+  if (!strategy.unknown_cost_count) return cost
+  return `${strategy.estimated_cost_usd ? `已知估算 ${cost}；` : ''}${strategy.unknown_cost_count} 条成本未知`
 }
