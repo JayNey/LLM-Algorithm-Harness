@@ -175,8 +175,10 @@ def run_benchmark(rows=1000, samples=100, concurrency=4):
                 if response.status_code != 200 or response.json().get("success") is not True:
                     raise RuntimeError(f"unexpected status {response.status_code}")
                 if "items" in response.json()["data"]:
-                    assert response.json()["data"]["total"] == rows
-                    assert len(response.json()["data"]["items"]) == min(20, rows)
+                    if response.json()["data"]["total"] != rows or len(
+                        response.json()["data"]["items"]
+                    ) != min(20, rows):
+                        raise ValueError("unexpected fixture pagination")
 
             http = {
                 path: measure(lambda: request(path), samples, concurrency)
@@ -189,23 +191,30 @@ def run_benchmark(rows=1000, samples=100, concurrency=4):
             store = ProblemStore(app.state.task_session_factory)
 
             def lookup():
-                assert store.get_by_problem_id(f"perf-{rows // 2:08d}") is not None
+                if store.get_by_problem_id(f"perf-{rows // 2:08d}") is None:
+                    raise ValueError("seeded problem missing")
 
             def page():
-                assert len(store.list_problems(limit=20, offset=max(0, rows - 20))) == min(20, rows)
+                if len(store.list_problems(limit=20, offset=max(0, rows - 20))) != min(20, rows):
+                    raise ValueError("unexpected problem page size")
 
             def evaluations():
                 items, total = app.state.evaluations.list_evaluations(
                     app.state.perf_owner, limit=20
                 )
-                assert total == rows and len(items) == min(20, rows)
+                if total != rows or len(items) != min(20, rows):
+                    raise ValueError("unexpected evaluation page")
+
+            def count():
+                if store.count() != rows:
+                    raise ValueError("unexpected problem count")
 
             db = {
                 name: measure(op, samples)
                 for name, op in {
                     "problem_lookup": lookup,
                     "problem_deep_page": page,
-                    "problem_count": store.count,
+                    "problem_count": count,
                     "owned_evaluations_page": evaluations,
                 }.items()
             }

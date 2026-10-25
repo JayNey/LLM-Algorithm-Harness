@@ -13,8 +13,8 @@ auto_transition: true
 base_ref: efa373e88539f564d1e09e07614222776fd8f27a
 design_doc: null
 plan: null
-verify_result: pending
-verify_failures: 0
+verify_result: fail
+verify_failures: 1
 verification_report: null
 branch_status: pending
 created_at: 2026-10-25

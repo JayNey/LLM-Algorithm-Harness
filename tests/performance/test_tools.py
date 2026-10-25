@@ -115,7 +115,13 @@ for count, failures, latency, exit_code in [(0, 0, 0, 1), (2, 1, 1, 1), (2, 0, 1
     )
     result = subprocess.run(
         [sys.executable, "-c", script],
-        env={**os.environ, "PERF_PROFILE": profile, "PERF_USERS": "10", "PERF_STAGE_SECONDS": "60"},
+        env={
+            **os.environ,
+            "PERF_PROFILE": profile,
+            "PERF_USERS": "10",
+            "PERF_STAGE_SECONDS": "60",
+            "PERF_MAX_P95_MS": "1000",
+        },
         capture_output=True,
         text=True,
         encoding="utf-8",

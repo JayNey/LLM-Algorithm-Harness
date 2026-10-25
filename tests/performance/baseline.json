@@ -1,0 +1,259 @@
+{
+  "schema": "harness.performance.v1",
+  "timestamp_utc": "2026-10-25T14:00:12.967430+00:00",
+  "environment": {
+    "python": "3.11.16",
+    "platform": "macOS-26.6.2-arm64-arm-64bit",
+    "cpu_count": 8,
+    "fastapi": "0.143.0",
+    "sqlalchemy": "2.1.4",
+    "httpx": "0.28.1",
+    "python_optimized": false
+  },
+  "configuration": {
+    "mode": "in_process_testclient",
+    "database": "temporary_file_sqlite",
+    "rows_per_table": 1000,
+    "samples_per_operation": 100,
+    "http_concurrency": 4,
+    "db_concurrency": 1,
+    "warmup_per_operation": 3
+  },
+  "http": {
+    "/api/v1/health": {
+      "requests": 100,
+      "errors": 0,
+      "error_types": {},
+      "elapsed_s": 0.181715,
+      "throughput_per_s": 550.311,
+      "mean_ms": 6.926,
+      "p50_ms": 3.338,
+      "p95_ms": 17.73,
+      "p99_ms": 95.93
+    },
+    "/api/v1/evaluations?limit=20": {
+      "requests": 100,
+      "errors": 0,
+      "error_types": {},
+      "elapsed_s": 2.394003,
+      "throughput_per_s": 41.771,
+      "mean_ms": 95.356,
+      "p50_ms": 85.352,
+      "p95_ms": 174.399,
+      "p99_ms": 200.878
+    },
+    "/api/v1/tasks?limit=20": {
+      "requests": 100,
+      "errors": 0,
+      "error_types": {},
+      "elapsed_s": 0.42342,
+      "throughput_per_s": 236.172,
+      "mean_ms": 16.722,
+      "p50_ms": 11.107,
+      "p95_ms": 52.381,
+      "p99_ms": 73.284
+    }
+  },
+  "database": {
+    "problem_lookup": {
+      "requests": 100,
+      "errors": 0,
+      "error_types": {},
+      "elapsed_s": 0.014877,
+      "throughput_per_s": 6721.879,
+      "mean_ms": 0.143,
+      "p50_ms": 0.126,
+      "p95_ms": 0.212,
+      "p99_ms": 0.337
+    },
+    "problem_deep_page": {
+      "requests": 100,
+      "errors": 0,
+      "error_types": {},
+      "elapsed_s": 0.024432,
+      "throughput_per_s": 4092.944,
+      "mean_ms": 0.239,
+      "p50_ms": 0.232,
+      "p95_ms": 0.259,
+      "p99_ms": 0.302
+    },
+    "problem_count": {
+      "requests": 100,
+      "errors": 0,
+      "error_types": {},
+      "elapsed_s": 0.013931,
+      "throughput_per_s": 7178.085,
+      "mean_ms": 0.134,
+      "p50_ms": 0.136,
+      "p95_ms": 0.17,
+      "p99_ms": 0.181
+    },
+    "owned_evaluations_page": {
+      "requests": 100,
+      "errors": 0,
+      "error_types": {},
+      "elapsed_s": 1.113777,
+      "throughput_per_s": 89.785,
+      "mean_ms": 11.125,
+      "p50_ms": 6.919,
+      "p95_ms": 8.119,
+      "p99_ms": 90.968
+    }
+  },
+  "locust": {
+    "load": {
+      "base_users": 10,
+      "stage_seconds": 20,
+      "target_users": [
+        10
+      ],
+      "p95_threshold_ms": 1000,
+      "exit_code": 0,
+      "results": [
+        {
+          "Name": "/api/v1/evaluations?limit=20",
+          "Request Count": "276",
+          "Failure Count": "0",
+          "Requests/s": "13.77606344338353",
+          "50%": "13",
+          "95%": "98",
+          "99%": "150"
+        },
+        {
+          "Name": "/api/v1/health",
+          "Request Count": "97",
+          "Failure Count": "0",
+          "Requests/s": "4.841587514522472",
+          "50%": "2",
+          "95%": "24",
+          "99%": "160"
+        },
+        {
+          "Name": "/api/v1/tasks?limit=20",
+          "Request Count": "196",
+          "Failure Count": "0",
+          "Requests/s": "9.78300157573613",
+          "50%": "6",
+          "95%": "57",
+          "99%": "150"
+        },
+        {
+          "Name": "Aggregated",
+          "Request Count": "569",
+          "Failure Count": "0",
+          "Requests/s": "28.40065253364213",
+          "50%": "10",
+          "95%": "84",
+          "99%": "150"
+        }
+      ]
+    },
+    "stress": {
+      "base_users": 10,
+      "stage_seconds": 10,
+      "target_users": [
+        10,
+        20,
+        40,
+        80
+      ],
+      "p95_threshold_ms": 1000,
+      "exit_code": 1,
+      "results": [
+        {
+          "Name": "/api/v1/evaluations?limit=20",
+          "Request Count": "568",
+          "Failure Count": "0",
+          "Requests/s": "12.84918190935429",
+          "50%": "120",
+          "95%": "6500",
+          "99%": "7000"
+        },
+        {
+          "Name": "/api/v1/health",
+          "Request Count": "187",
+          "Failure Count": "0",
+          "Requests/s": "4.230276438466993",
+          "50%": "4",
+          "95%": "950",
+          "99%": "1300"
+        },
+        {
+          "Name": "/api/v1/tasks?limit=20",
+          "Request Count": "409",
+          "Failure Count": "0",
+          "Requests/s": "9.252315846700537",
+          "50%": "50",
+          "95%": "2600",
+          "99%": "3200"
+        },
+        {
+          "Name": "Aggregated",
+          "Request Count": "1164",
+          "Failure Count": "0",
+          "Requests/s": "26.33177419452182",
+          "50%": "47",
+          "95%": "5800",
+          "99%": "6900"
+        }
+      ],
+      "observed_peak_users": 80,
+      "outcome": "Expected overload diagnostic: zero HTTP failures, latency exceeds threshold; not a passing capacity claim."
+    },
+    "concurrency": {
+      "base_users": 10,
+      "stage_seconds": 20,
+      "target_users": [
+        10
+      ],
+      "p95_threshold_ms": 1000,
+      "exit_code": 0,
+      "results": [
+        {
+          "Name": "/api/v1/evaluations?limit=20",
+          "Request Count": "315",
+          "Failure Count": "0",
+          "Requests/s": "15.78717659550519",
+          "50%": "13",
+          "95%": "120",
+          "99%": "230"
+        },
+        {
+          "Name": "/api/v1/health",
+          "Request Count": "110",
+          "Failure Count": "0",
+          "Requests/s": "5.512982303192289",
+          "50%": "1",
+          "95%": "43",
+          "99%": "110"
+        },
+        {
+          "Name": "/api/v1/tasks?limit=20",
+          "Request Count": "201",
+          "Failure Count": "0",
+          "Requests/s": "10.073722208560456",
+          "50%": "5",
+          "95%": "59",
+          "99%": "170"
+        },
+        {
+          "Name": "Aggregated",
+          "Request Count": "626",
+          "Failure Count": "0",
+          "Requests/s": "31.373881107257937",
+          "50%": "10",
+          "95%": "96",
+          "99%": "200"
+        }
+      ]
+    }
+  },
+  "locust_version": "2.47.0",
+  "optimized_mode_check": {
+    "rows": 1000,
+    "samples_per_operation": 100,
+    "concurrency": 4,
+    "errors": 0,
+    "outcome": "All operations executed and validated successfully under python3 -O after review corrections."
+  }
+}
