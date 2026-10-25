@@ -24,4 +24,4 @@
 
 - [x] 5.1 routes.tsx（budgets/pricing 全员、logs admin）+ AppLayout 两 Provider + package.json glob
 - [x] 5.2 verify-settings.mjs（monitor/budgets/pricing/logs 场景）+ QA.md；全量测试/tsc/eslint/prettier 绿；#167 记录验收
-- [ ] 5.3 独立审查两轮制 + 最后 commit 后三件套重验
+- [x] 5.3 独立审查两轮制 + 最后 commit 后三件套重验
