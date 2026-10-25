@@ -50,3 +50,13 @@ main在验收期间新增#268设置/监控前端、#270静态与本人密钥动�
 第二轮Bugbot无待修复发现，实际运行222项监控、队列、模型目录、文档与版本测试全部通过；未重跑真实Docker，沿用已记录且对应实现未变的实际依赖证据。监控前端client定向8项测试通过，确认新主线解析逻辑保留。
 
 [PR #272](https://github.com/JayNey/LLM-Algorithm-Harness/pull/272) 已创建，base=main、Refs #157。5/5任务和1项requirement/2个场景已核对；正式Runtime构建与包含新模型目录的最终定向复验结果将在下文记录。清单勾选不自动关闭issue；以最终头CI与人工审查合并为准。
+
+## 最终正式验证
+
+- Runtime在同步main2950180后的干净源码 `b0989f87b82d06c8ca9b9c92784976910366033e` 实际执行 `.venv/bin/python -m compileall -q api scripts/verify_monitoring_acceptance.py`，退出0；构建日志ID `9a369281-67f5-416f-b0b5-26f023d93bef`。
+- Runtime实际执行19个文件的定向pytest，**579 passed、0 failed、0 skipped**，86.445秒，退出0。覆盖监控HTTP/service/store/probes/队列/容器/SQL/任务快照、worker日志、LLM采集、用户并发/日月用量与限额、沙箱、API文档/版本、日志配置、模型目录。具体文件及来源见 [回归JSON](assets/monitoring-acceptance-2026-10-25/regressions.json)，日志ID `57e394af-19fa-43fe-a87f-915253d0b214`。
+- 这是定向回归，使用--no-cov，不据此宣称全仓覆盖率；没有降低CI的src/API覆盖率或平台门禁。保留原有Pydantic、SQLAlchemy、datetime弃用及TestCase收集提示。
+- 两次Runtime检查输入前后指纹一致，build守卫14/14、verify守卫5/5通过，full/pass。1/1 requirement、2/2场景与5/5任务核对完成，无剩余审查发现；本轮Tweak设计在change/design.md，不额外建立完整Design Doc。
+- review_mode=off不用于跳过用户要求的独立审查：两轮Bugbot分别118/222测试和无发现结果已记录。当前phase=archive，归档确认pending、branch_status=pending；未自动归档、合并或关闭#157。
+
+PR最新提交的CI以GitHub Checks为准；不将main或旧头CI绿色当作当前头结果。合并验收建议：确认本PR最新头CI通过后，对照44项清单接受其已声明范围，再由维护者关闭#157。真实模型/生产部署/实际PostgreSQL与Windows Docker限制继续保留，未执行不标通过。
