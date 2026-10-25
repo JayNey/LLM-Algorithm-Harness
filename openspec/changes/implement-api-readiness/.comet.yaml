@@ -1,14 +1,14 @@
 workflow: tweak
 language: zh-CN
-phase: build
+phase: verify
 context_compression: off
 build_mode: direct
 build_pause: null
 subagent_dispatch: null
 tdd_mode: direct
-review_mode: off
+review_mode: standard
 isolation: branch
-verify_mode: light
+verify_mode: full
 auto_transition: true
 base_ref: 0104e3e30baebfec27e52d8caff7a3269ad981c5
 design_doc: null
