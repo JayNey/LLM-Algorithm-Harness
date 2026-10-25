@@ -50,3 +50,17 @@
 
 - 真实后端联调（离线 HTTP fixture 之外的层级）：真实 Redis/Celery、供应商与沙箱联调未执行——本变更不触碰创建页数据流与通知接口契约，相关层级由 #231/#232 的既有与后续验证覆盖。
 - WebSocket 实时进度未在本变更场景内新增断言（entries 场景不涉及 WS；observe 相关层级维持 #256 既有证据）。
+
+## Verify 阶段（full 模式，OpenSpec 原生验证）
+
+规模评估建议 full（8 任务 / 1 delta spec / 27 变更文件），与 `verify_mode=full` 一致；`openspec validate unified-entry-honest-mock` 通过（Change is valid）。
+
+| 维度 | 结论 |
+| --- | --- |
+| Completeness | tasks 8/8 `[x]`；delta spec 1 条 ADDED requirement、4 个 Scenario 全部有实现与测试锁定 |
+| Correctness | 4/4 Scenario 覆盖：①五类创建入口→真实创建页（entries 16 断言 + verify-shell 3 入口 + app-shell 面包屑单测）；②导入保持明确 Mock（entries 弹窗文案/无创建表单断言）；③通知与示例任务不指向虚构详情（entries 三类通知落点 + Mock 抽屉断言 + notifications 种子路由单测）；④全局标注收敛（entries 真实评估页无全局标注 + app-shell SSR doesNotMatch + 区域标注保留断言） |
+| Coherence | 实现与 design.md 决策一致（Shell 收敛、MockActions 收窄、BusinessPage 死分支清理、标记按区域）；无 `docs/superpowers/specs/` 独立 Design Doc（tweak 无 Design Doc 阶段），delta spec 与 design.md 无矛盾；代码风格 prettier/eslint 干净 |
+
+- 集成代码审查：`review_mode=off`（tweak 预设）按协议记录跳过原因——本变更已执行两轮独立只读审查（第一轮全量 b2e9407 approves、第二轮定点 13adc57 approves），最终提交 2f8f28f 仅含验证报告与证据，代码 diff 审查覆盖仍然有效。
+- 遗留 SUGGESTION：导入弹窗「查看题目库示例」措辞（改动前既有文案，审查建议后续改中性措辞），已在两轮审查中记录。
+- verify 证据：`comet check run unified-entry-honest-mock verify --local -- npm --prefix frontend test`（单测 250 通过，含新增边界断言）。
