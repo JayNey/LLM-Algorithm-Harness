@@ -222,11 +222,11 @@ try:
         _env_file=None,
         SECRET_KEY=auth_secret,
         ENCRYPTION_KEY=crypto,
-        AUTH_DATABASE_PATH=task_dir / "http-auth.sqlite3",
+        AUTH_DATABASE_PATH=task_dir / "auth.sqlite3",
         AUTH_RATE_LIMIT=1000,
         AUTH_PROTECTED_RATE_LIMIT=10000,
     )
-    files = FileSettings(_env_file=None, UPLOAD_DIR=task_dir / "http-uploads")
+    files = FileSettings(_env_file=None, UPLOAD_DIR=task_dir / "uploads")
     monitor = MonitorSettings(
         _env_file=None,
         MONITOR_QUEUE_PROBES_ENABLED=True,
