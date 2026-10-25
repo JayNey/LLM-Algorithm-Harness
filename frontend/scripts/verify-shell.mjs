@@ -349,8 +349,11 @@ try {
     '创建评估',
   )
   checks.push('sidebar create entry navigates to the real create page')
+  await page.goto(`${base}/`)
+  await page.getByRole('heading', { name: '仪表盘', exact: true }).waitFor()
   await page.getByRole('button', { name: '快速操作', exact: true }).click()
   await page.getByRole('menuitem', { name: '创建评估', exact: true }).click()
+  await page.waitForURL('**/evaluations/new')
   await page.getByRole('heading', { name: '创建评估', exact: true }).waitFor()
   checks.push('quick action create entry navigates to the real create page')
   await page.goto(`${base}/`)
