@@ -1,6 +1,6 @@
 # #226 真实结果列表与详情验证报告
 
-日期：2026-10-25（Asia/Shanghai）。分支 `tweak/20261025/evaluation-results`，change `evaluation-results`，base=main。基线 `7d88dc023924b8944a821026e6270e0d7b11f03f`；最终受测源码 `f4ffe7e538ae22d61b6b7d5d2cd0923719cef989`。用户沿用增量Tweak、个人任务分支、独立Bugbot审查及修复后交付PR的流程。
+日期：2026-10-25（Asia/Shanghai）。分支 `tweak/20261025/evaluation-results`，change `evaluation-results`，base=main。基线 `7d88dc023924b8944a821026e6270e0d7b11f03f`；最终受测源码 `cd4abd75ad1522779a5591b6bd6fb287bb4812bc`。用户沿用增量Tweak、个人任务分支、独立Bugbot审查及修复后交付PR的流程。
 
 ## 前置与实现范围
 
@@ -26,14 +26,14 @@
 - frontend `npm test`：229 passed、0 failed。新增联合读取/部分失败/401与429传播/取消隔离/终态对账，以及结果状态与未知成本表现测试。
 - `npm run lint`：0错误、2条未改动BenchmarkDetailPage.tsx既有runFinished依赖警告。`npm run format:check`通过。
 - 初版`npm run build`类型/生产构建通过，保留既有chunk大于500kB提示；最终正式Runtime构建在交付段补记，不用初版结果代替最终构建。
-- 最终浏览器all首轮107组通过，包含results18组（其中全局未知请求检查共享）；后续对静态fixture任务完成计数/策略/模型作一致性校正再复测。人工已检查390/1440px截图，表格可独立横向滚动，根页面不溢出；不把这两个Orbit/dark样例外推为完整外观矩阵。
+- 最终浏览器all107组通过，包含results18组（其中全局未知请求检查共享），源码/fixture在开始时均干净；静态fixture的任务计数/策略/模型已校正为与结果记录一致。人工已检查[390px截图](../../frontend/assets/evaluations/results/results-390.png)和[1440px截图](../../frontend/assets/evaluations/results/results-1440.png)，表格可独立横向滚动，根页面不溢出；不把这两个Orbit/dark样例外推为完整外观矩阵。
 - OpenSpec strict、git diff --check通过。
 
 [公开JSON](../../frontend/assets/evaluations/results/all.json) 保存实际git HEAD/dirty、替换依赖、全部断言/请求/截图，以及results_evidence：初始两路请求结束后，三条WS事件合并成一个联合周期，两路HTTP并行、周期不重叠。HTTP任务显示60%，结果平均Token显示300，未直接应用WS中的50%载荷。
 
 ## 规格核对
 
-完整性：3项requirement、8个场景；最终任务/交付状态在下文记录。
+完整性：5/5任务、3/3项requirement、8/8场景已核对；无剩余实现/审查问题。最终正式验证与交付状态在下文记录。
 
 - 当前用户列表：状态筛选/URL/翻页/刷新、run_id=null详情由results浏览器覆盖；身份/查询异步隔离复用useList及其实际React生命周期回归。
 - 全量策略汇总与单题分页：跨页汇总不变、同题多策略、秒/百分率、null与零、未知成本与未知状态由浏览器及presentation单测覆盖。服务端汇总不在前端重算。
@@ -50,4 +50,4 @@ fixture使用真实React StrictMode、路由、session provider、创建store、
 
 ## 交付与正式Runtime记录
 
-PR链接、最终正式build/verify守卫与平台CI状态将在此补记。未自动合并、关闭issue或归档；作者提交排除.comet/.claude/.codex/.agents/skills-lock.json。
+[PR #267](https://github.com/JayNey/LLM-Algorithm-Harness/pull/267) 已创建，base=main，Refs #226。最终正式build/verify守卫及平台CI状态将在此补记。未自动合并、关闭issue或归档；作者提交排除.comet/.claude/.codex/.agents/skills-lock.json。
