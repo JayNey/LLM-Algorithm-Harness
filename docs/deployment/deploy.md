@@ -64,7 +64,7 @@ docker compose down                  # 停止（卷保留）
 docker compose down -v               # 停止并清空数据卷
 ```
 
-- API 地址 `http://localhost:8000`，存活检查 `GET /api/v1/health`；就绪检查路径 `/api/v1/health/ready` 当前尚未实现，不可配置为就绪探针。管理员诊断使用 `/api/v1/system/health`，需管理员身份，详见[健康接口契约](../api-monitoring.md#健康接口契约)。
+- API 地址 `http://localhost:8000`，存活检查 `GET /api/v1/health`；就绪检查 `GET /api/v1/health/ready`：仅 HTTP 200 表示基础 API 就绪，503 或超时表示不可准入。管理员诊断使用 `/api/v1/system/health`，需管理员身份，详见[健康接口契约](../api-monitoring.md#健康接口契约)。
 - 只想跑集成测试时用法不变：`docker compose up -d redis` +
   `bash scripts/run_integration_tests.sh`（redis 服务定义未改动）。
 - 镜像内以非 root 用户 `harness` 运行；数据落在命名卷
@@ -136,12 +136,42 @@ environment 出发，不修改应用代码。
 迁移由 Alembic 管理，**API 启动时自动执行**（lifespan 内
 `EvaluationResultsService` 构造时调用 `api/db/migrate.py` 的 `run_migrations`），
 无需手动步骤；迁移版本在 `api/db/migrations/versions/`。编排层面，worker 依赖
-`api: service_healthy`，当前探测路径是 `/api/v1/health`。启动阶段 API 在 lifespan
-完成后开始接收请求，因此首次探测成功位于该启动流程之后；这个顺序来自 lifespan，
-不是 `/health` 的依赖检查能力，也不保证数据库、队列或 worker 持续可用。
-若绕开编排手动部署，先确认 API 启动完成、迁移成功及所需数据库、broker 和 worker
-可用，再放行业务流量或扩 worker。`GET /api/v1/health` 返回 200 只证明 API 存活；
-`/api/v1/health/ready` 当前尚未实现，`/api/v1/system/health` 仅供管理员诊断。
+`api: service_healthy`，镜像探测仍是 `/api/v1/health`，仅等待进程可响应。
+生产 nginx 在业务请求、认证请求与 WebSocket 握手前，以 GET 子请求访问
+`/api/v1/health/ready`；探测失败或超时则返回 503、不转发业务请求。
+就绪子请求不携带客户端请求体、查询参数或凭据，连接/读/写超时均为 2 秒，
+不开启代理缓存；API 自身仍使用 1 秒探测缓存，故恢复和失败判定存在该缓存窗口。
+健康接口和 `/api/v1/system/` 管理员诊断不经过准入或业务限流；管理员鉴权仍由 API 执行。
+开发栈直连 API 不包含 nginx，因此不具备该边缘准入。
+
+迁移失败或数据库不可用时，存活接口仍可能为 200，应以就绪接口决定是否放行业务流量。
+就绪恢复 200 后，后续请求自动重新准入；已建立的 WebSocket 不会因此主动断开。
+单实例 nginx 的子请求和业务请求指向同一 API；多副本部署应让负载均衡器按每个实例的
+就绪接口摘除未就绪实例，不能将随机副本的成功探测当成其他副本的准入依据。
+基础 API 就绪不保证 Redis 提交、worker、沙箱或模型提供商可用，启动/扩容 worker
+还需独立确认 broker 与实际执行环境。`/api/v1/system/health` 仅供管理员诊断。
+
+### 探针与故障验收
+
+- 镜像 `HEALTHCHECK` / 平台 liveness：`/api/v1/health`，保留原有配置。
+- 平台 readiness / 负载均衡器健康检查：`/api/v1/health/ready`，仅 200 成功；超时 3 秒、间隔 5 秒、连续 2 次失败摘除、连续 2 次成功恢复可作为初始配置。
+- 业务可用性告警：同一就绪 URL，503、其他状态、连接错误、超时均失败，不跟随重定向；参见[监控示例](../api-monitoring.md#部署可用性告警)。
+
+```bash
+# 在实际业务入口验证；地址替换为部署域名（HTTPS 模板须复制完整准入与豁免配置）。
+curl --max-time 3 -i http://localhost/api/v1/health
+curl --max-time 3 -i http://localhost/api/v1/health/ready
+```
+
+在隔离测试环境模拟数据库不可用或迁移版本不匹配，等待缓存过期：存活应仍为 200，
+就绪应为 503，业务入口及新 WebSocket 握手应为 503，管理员仍能访问诊断（需鉴权）。
+恢复数据库后，就绪变为 200，业务请求恢复正常鉴权/响应。另检查监控目标不可达与超时
+也会告警，不能仅模拟返回码。不对生产数据库直接执行破坏性故障注入。
+
+仓库回归 `python3 -m pytest tests/test_deployment_readiness.py -q --no-cov`
+使用本机 nginx 和受控 HTTP 上游验证准入、恢复、超时、原业务错误保留及探针限流豁免；
+需安装带 `http_auth_request_module` 的 nginx（`nginx -V` 可检查，官方 nginx 镜像包含此模块）。
+测试不启动系统 nginx 服务；缺少可执行文件时跳过，不能将跳过视为联调通过。
 
 手动操作（危险操作前先备份）：
 

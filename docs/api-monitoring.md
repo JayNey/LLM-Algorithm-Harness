@@ -43,7 +43,7 @@ export MONITOR_ADMIN_USER_IDS='["11111111-1111-4111-8111-111111111111"]'
 
 ### 就绪判定规则
 
-以下规则由 readiness 接口用于基础 API 就绪判定；**业务路由不会据此自动拦截请求**。必须区分基础 API、异步任务提交和后台执行能力；“基础 API 就绪”不承诺全部业务端点或完整评估链路可用。
+以下规则由 readiness 接口用于基础 API 就绪判定；**应用业务路由不会据此自动拦截请求；生产 nginx 在边缘执行就绪准入**。必须区分基础 API、异步任务提交和后台执行能力；“基础 API 就绪”不承诺全部业务端点或完整评估链路可用。
 
 #### 依赖与业务范围
 
@@ -276,3 +276,78 @@ ps 与 stats 分享0.5–10秒命令预算，各自接受的合计输出上限64
 - `worker_reserved.count`：回复 worker 已接收且尚未执行的数量，`cluster_complete=false`，附缓存年龄。
 
 三项观测独立且非原子，不相加、不互相推算。Redis 正常空队列返回 0；关闭探测、配置非法、超时、连接/LLEN 失败或协议异常时等待数为 null。PING 状态与 `broker_queue.status` 独立：PING 成功不能证明 LLEN 权限或队列观测成功。现有 queued 任务列表仍只查询数据库 pending。
+
+
+## 部署可用性告警
+
+存活告警继续检查 `/api/v1/health`。判断基础 API 能否接收业务流量的告警必须检查
+`/api/v1/health/ready`，仅 HTTP 200 成功；503、超时、连接失败及其他状态均失败。
+管理员诊断的 HTTP 200 或 healthy 不能替代此信号。该检查不证明异步执行能力。
+
+以下是接入现有 Prometheus/blackbox exporter 的配置示例，仓库不会自动部署这些服务，
+也未配置通知接收人。将 `https://harness.example.com` 替换为实际业务入口，
+`blackbox:9115` 替换为 Prometheus 可达的 exporter 地址；通知路由由现有 Alertmanager 配置。
+
+blackbox.yml（合并到 exporter 的配置）：
+
+```yaml
+modules:
+  harness_readiness:
+    prober: http
+    timeout: 3s
+    http:
+      method: GET
+      valid_status_codes: [200]
+      follow_redirects: false
+      preferred_ip_protocol: ip4
+```
+
+prometheus.yml（合并到现有配置；scrape 超时大于探测预算）：
+
+```yaml
+rule_files:
+  - harness-readiness.rules.yml
+scrape_configs:
+  - job_name: harness-readiness
+    metrics_path: /probe
+    scrape_interval: 15s
+    scrape_timeout: 5s
+    params:
+      module: [harness_readiness]
+    static_configs:
+      - targets: [https://harness.example.com/api/v1/health/ready]
+    relabel_configs:
+      - source_labels: [__address__]
+        target_label: __param_target
+      - source_labels: [__param_target]
+        target_label: instance
+      - target_label: __address__
+        replacement: blackbox:9115
+```
+
+harness-readiness.rules.yml：
+
+```yaml
+groups:
+  - name: harness-readiness
+    rules:
+      - alert: HarnessAPINotReady
+        expr: probe_success{job="harness-readiness"} == 0
+        for: 1m
+        labels:
+          severity: critical
+        annotations:
+          summary: "基础 API 未就绪：{{ $labels.instance }}"
+      - alert: HarnessReadinessMonitorUnavailable
+        expr: up{job="harness-readiness"} == 0 or absent(up{job="harness-readiness"})
+        for: 1m
+        labels:
+          severity: warning
+        annotations:
+          summary: "就绪探测采集不可用或目标配置缺失"
+```
+
+第一条覆盖目标返回非 200、连接失败和超时；第二条覆盖 exporter 抓取失败或整个 job
+无时间序列，防止监控失联静默。删除单个目标不一定触发 absent，目标清单仍需由部署配置
+管理。恢复后由规则自动解除；一分钟持续失败窗口用来减少短暂抖动，不能代替即时流量准入。
+配置语义参见 [blackbox exporter 官方配置](https://github.com/prometheus/blackbox_exporter/blob/master/CONFIGURATION.md)。
