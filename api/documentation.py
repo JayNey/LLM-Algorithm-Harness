@@ -116,8 +116,12 @@ def page(items: list[Any]) -> dict[str, Any]:
 # Handler name -> purpose, response data. Aliased paths share the same contract.
 # Examples show representative data; empty aggregates mean no stored results.
 OPERATIONS: dict[str, tuple[str, Any]] = {
+    "readiness": (
+        "基础 API 就绪检查：复用认证、文件及业务数据库与迁移探测；1 秒响应预算、1 秒进程内缓存，200/503 仅返回 status。队列、worker 与沙箱不参与。",
+        {"status": "ready"},
+    ),
     "health_check": (
-        "存活检查（liveness）：检查 API 能否响应；不检查数据库、队列或执行器，不代表服务就绪。就绪检查路径 /api/v1/health/ready 当前尚未实现（404）；管理员诊断使用 /api/v1/system/health。",
+        "存活检查（liveness）：检查 API 能否响应；不检查数据库、队列或执行器，不代表服务就绪。基础 API 就绪检查使用 /api/v1/health/ready（200/503）；管理员诊断使用 /api/v1/system/health。",
         {
             "status": "healthy",
             "scope": "api_liveness_only",
@@ -550,7 +554,7 @@ OPERATIONS: dict[str, tuple[str, Any]] = {
     ),
     "download_chart": ("下载自己的运行结果通过率 PNG；chart_name 仅支持 success-rate。", None),
     "detailed_health": (
-        "管理员诊断：查询配置基础设施的综合健康信息；可选执行沙箱检查；未知状态不会伪装成健康。用于排障，不作为业务流量准入的就绪信号。存活检查使用 /api/v1/health；就绪检查路径 /api/v1/health/ready 当前尚未实现（404）。",
+        "管理员诊断：查询配置基础设施的综合健康信息；可选执行沙箱检查；未知状态不会伪装成健康。用于排障，不作为业务流量准入的就绪信号。存活检查使用 /api/v1/health；基础 API 就绪检查使用 /api/v1/health/ready（200/503）。",
         {
             "status": "partial",
             "scope": "configured_api_foundation",
@@ -1479,8 +1483,8 @@ def _describe_fields(node: Any) -> None:
 
 
 def _rate_limit(name: str, path: str) -> str:
-    if name == "health_check":
-        return "速率限制：此公开存活接口未配置应用级限流。"
+    if name in {"health_check", "readiness"}:
+        return "速率限制：此公开健康接口未配置应用级限流。"
     if name in AUTH_OPERATIONS:
         return "速率限制：同一客户端 IP 共享 AUTH_RATE_LIMIT（默认 10 次）/ AUTH_RATE_WINDOW_SECONDS（默认 60 秒）；429 后按 Retry-After 重试。"
     text = "速率限制：同一用户共享 AUTH_PROTECTED_RATE_LIMIT（默认 120 次）/ AUTH_RATE_WINDOW_SECONDS（默认 60 秒）；429 后按 Retry-After 重试。"
@@ -1579,6 +1583,14 @@ def _document_operation(path: str, method: str, operation: dict[str, Any]) -> No
     # The application's RequestValidationError handler returns 400, never 422.
     responses.pop("422", None)
     for status, response in responses.items():
+        if name == "readiness" and status in {"200", "503"}:
+            response["description"] = (
+                "基础 API 就绪。" if status == "200" else "基础 API 未就绪或探测超时。"
+            )
+            media = response.setdefault("content", {}).setdefault("application/json", {})
+            media["example"] = {"status": "ready" if status == "200" else "not_ready"}
+            media["examples"] = {"readiness": {"value": deepcopy(media["example"])}}
+            continue
         if status.startswith("2"):
             if status == "204":
                 response["description"] = "操作成功；无响应体。"
