@@ -210,7 +210,7 @@ class MonitorService:
             "status": status,
             "scope": "configured_api_foundation",
             "checks": checks,
-            "pending_issues": [157],
+            "pending_issues": [],
         }
 
     def task_performance(self) -> dict[str, Any]:

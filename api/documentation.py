@@ -548,7 +548,7 @@ OPERATIONS: dict[str, tuple[str, Any]] = {
             "status": "partial",
             "scope": "configured_api_foundation",
             "checks": {},
-            "pending_issues": [157],
+            "pending_issues": [],
         },
     ),
     "database_health": (

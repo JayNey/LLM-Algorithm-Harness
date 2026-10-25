@@ -1,6 +1,6 @@
-# API 系统监控基础能力（#157）
+# API 系统监控、日志与配额（#157）
 
-系统提供管理员授权、本机资源和 Docker 预检、持久化请求统计、安全日志、配置及已有配额查询。#149 已完成异步执行接线，评估 worker 使用 AlgorithmHarness。队列监控可显式启用 Redis 连通性与 Celery worker 数值负载探测；真实 LLM 时延、任务执行指标、容器资源和新配额仍是 #157 后续范围。
+系统已提供管理员健康/资源观测、持久化请求与任务指标、安全日志、数据库查询/LLM/缓存统计、配置和用户配额查询。Redis/Celery及Docker资源探测由部署者显式启用；用户评估并发和日/月生成尝试额度已实际执行。各指标的来源、缓存、保留与部署边界见下文，逐项实现和验收证据见 [#157 验收清单](issue157-acceptance.md)。
 
 ## 配置管理员
 
@@ -12,7 +12,7 @@ export MONITOR_ADMIN_USER_IDS='["11111111-1111-4111-8111-111111111111"]'
 ./run_api.sh
 ```
 
-默认白名单为空。管理员仍需正常登录并传递 `Authorization: Bearer <access_token>`，会话撤销和受保护请求限流继续生效。没有有效身份返回 401；普通用户访问系统级端点返回 403。注册、资料更新和 Token 中的客户端角色声明不能赋予管理员权限。此配置只授予下述监控端点的权限，不提供通用角色管理接口。
+默认白名单为空。管理员仍需通过现有 Bearer 或 Cookie 会话正常认证，会话撤销和受保护请求限流继续生效。没有有效身份返回 401；普通用户访问系统级端点返回 403。注册、资料更新和 Token 中的客户端角色声明不能赋予管理员权限。此配置只授予下述监控端点的权限，不提供通用角色管理接口。
 
 可配置项及默认值：
 
@@ -35,7 +35,7 @@ export MONITOR_ADMIN_USER_IDS='["11111111-1111-4111-8111-111111111111"]'
 
 以下端点全部需要管理员身份，成功响应使用现有 `success/data/message` 包装：
 
-- `GET /api/v1/system/health`：已探测组件全部为 ok 时返回 healthy；存在 unavailable/unknown 时为 degraded；禁用、未检查或部分回复为 partial。默认不探测 Docker；include_sandbox=true 可加入预检。pending_issues=[157] 表示监控尚有后续能力，不再引用已完成的 #149。healthy 只覆盖本次探测和收到回复的 worker，不证明全部集群或提供商可用。
+- `GET /api/v1/system/health`：已探测组件全部为 ok 时返回 healthy；存在 unavailable/unknown 时为 degraded；禁用、未检查或部分回复为 partial。默认不探测 Docker；include_sandbox=true 可加入预检。`pending_issues=[]` 表示已不再列出待交付的代码能力；保留该兼容字段，不查询GitHub，也不表示当前部署健康。healthy 只覆盖本次探测和收到回复的 worker，不证明全部集群或提供商可用。
 - `GET /api/v1/health/database`：对实际认证/文件 SQLite 执行 `SELECT 1`，并验证所需表可查询；`business_database` 使用已绑定的评估服务 engine 检查实际连接、业务表与 Alembic revision，返回 `status/backend/required_tables/migration/read_only/latency_ms`。迁移检查按仓库 Alembic 元数据的 heads 比对数据库当前 heads，成功时通过 `migration.status/revisions/expected_heads` 说明版本一致；不一致时标记故障，不回显数据库中的任意版本文本。探测只读，不运行迁移、不创建评估服务，也不修改任务状态；不返回连接串、主机路径或凭据。任一已配置数据库检查失败时，总体状态为 `unavailable`。
 - `GET /api/v1/health/redis`：显式启用后对实际 Celery broker 执行 Redis PING，返回 status/latency_ms/reason/cached/age_seconds，scope=configured_celery_broker。支持 redis/rediss；其他 transport 为 unsupported。只检查 broker，未单独检查 result backend。
 - `GET /api/v1/health/workers` 与 `/api/v1/system/workers`：通过只读 monitoring_snapshot 命令返回 worker_count、workers、active、reserved、concurrency。仅统计截止时间内回复的 worker，scope=responding_celery_workers、cluster_complete=false；worker_id 是节点名称的稳定 SHA-256 摘要，不返回主机名。reserved 排除 active，只表示已被这些 worker 接收的待执行任务，不是 broker 队列长度。concurrency 来自池报告的 num_processes；不据此推导 CPU 利用率。
@@ -93,7 +93,7 @@ export MONITOR_QUEUE_CACHE_SECONDS=5
 ## 请求统计与完整性
 
 - `GET /api/v1/metrics/api-stats?window_seconds=60`：统计窗口支持 1–86400 秒，提供请求量、HTTP 4xx/5xx 数与错误率、平均响应时间、P95 和每秒请求数。`endpoints` 按 HTTP 方法与路由模板分组提供同样统计，窗口不完整时各组也只展示 `retained_sample`。
-- `GET /api/v1/metrics/performance`：API 请求统计、实际业务 SQL 查询统计、真实业务任务执行统计，以及尚待接入的 LLM 指标。
+- `GET /api/v1/metrics/performance`：API 请求统计、实际业务 SQL 查询统计、真实业务任务执行统计，以及已采集的真实 SDK 生成尝试指标。
 - `GET /api/v1/metrics/llm-stats`：管理员可查询共享认证数据库中成功采集的真实生成请求统计。`total_calls`、`successful_calls`、`failed_calls` 分别为已结束的 SDK 请求尝试数及其成功/失败数，`success_rate` 为成功数/总数（0–1），`avg_latency_ms` 为全部已记录尝试的平均耗时。无样本时计数为零、成功率和平均耗时为 `null`；`started_at` 为首次成功采集的完成时间（Unix 秒），此前为 `null`。`recorded_usage_hooks` 和 `key_verification_count` 仍分别展示使用登记与密钥连通验证计数，不计作生成调用。
 
 LLM 采集位于 OpenAI、local、SiliconFlow 和 Anthropic 的实际 SDK 生成请求入口。每次重试分别计数；SDK 返回即为成功，生成的代码是否通过评测由评估指标表示。单调时钟耗时包含该次 SDK 请求的等待/超时，排除重试退避、响应本地解析和采集写入。缓存命中、模型列表、连接验证、沙箱预检和模拟任务均不计入。
@@ -169,13 +169,15 @@ curl http://localhost:8000/api/v1/logs/download/your-task-id \
 
 `timezone=UTC`，自然日/月周期为 `[period_start, resets_at)`，每天 UTC 00:00、每月 1 日 UTC 00:00 切换（北京时间 08:00）。无需定时清零，旧周期保留，跨进程及重启持久化，监控明细清理不影响聚合值。
 
-有限周期返回 `status=enforced`、整数 `limit` 和 `remaining=max(limit-used,0)`；无限周期保持 `status=metered`、`limit=null`。任一额度启用时，每次真实 SDK 尝试前原子检查并同时占用日/月额度，按准入时间归属周期，`collection_mode=atomic_before_sdk_attempt`。任一周期耗尽则抛出 `QUOTA_EXCEEDED`（HTTP 429，含周期、重置时间和 `Retry-After`）；不发送 SDK 请求、不计数、不重试此次拒绝。已发出的失败和重试各消耗一次；数据库不可用时以 503 阻止调用。异步任务通过现有任务失败/结果通道报告，不保证入队时同步拒绝。已准入但进程意外退出的尝试不退还额度。
+有限周期返回 `status=enforced`、整数 `limit` 和 `remaining=max(limit-used,0)`；无限周期保持 `status=metered`、`limit=null`、`remaining=null`。任一额度启用时，每次真实 SDK 尝试前原子检查并同时占用日/月额度，按准入时间归属周期，`collection_mode=atomic_before_sdk_attempt`。任一周期耗尽则抛出 `QUOTA_EXCEEDED`（HTTP 429，含周期、重置时间和 `Retry-After`）；不发送 SDK 请求、不计数、不重试此次拒绝。已发出的失败和重试各消耗一次；数据库不可用时以 503 阻止调用。异步任务通过现有任务失败/结果通道报告，不保证入队时同步拒绝。已准入但进程意外退出的尝试不退还额度。
 
 两项均未设置时，保留完成后 `best_effort_since_instrumentation` 计量，写入失败不改变模型结果。统计范围 `scope=owned_generation_sdk_attempts`，旧全局数据不能按用户回填。缓存、模型列表、连接验证和无用户 CLI 不受生成额度影响，受保护 HTTP 请求速率限制保持独立。详细上传限额见 [文件服务指南](api-files.md)。
 
-## 离线配置目录与后续接入
+## 配置查询与运行边界
 
 管理员可查询：
+
+- `GET /api/v1/system/config`：当前 API 进程已加载的 API、认证、文件与监控配置，以固定数值/布尔/可空额度白名单返回；不重新读取环境或文件、不执行探针，不返回凭据、URL、路径或管理员身份列表。
 
 - `GET /api/v1/config/strategies`：复用 `AlgorithmHarness.STRATEGY_MAP` 和 `StrategyConfig` 的默认资源参数。
 - `GET /api/v1/config/providers`：静态支持的提供商与固定示例配置中的模型名称，`scope=offline_example_catalog`。不访问远端模型列表，不验证当前可用性，不返回密钥或自定义 URL；CLI 提供商能力列表也不会扩大认证密钥接口的提供商白名单。
@@ -185,7 +187,7 @@ curl http://localhost:8000/api/v1/logs/download/your-task-id \
 
 真实 worker 可用可信任务所有者调用 `app.state.monitor.record_task_event(event, user_id)`。入口会校验登记的任务归属和删除状态；HTTP 不开放指定所有者、写日志或绑定缓存的接口。实际 LLM 缓存通过客户端自动上报共享快照，无需将 worker 对象直接绑定到 API 进程；`app.state.monitor.cache` 仅保留可信进程的单实例兼容入口。
 
-Redis 连通性和回复 worker 的数值负载已接入。broker 等待队列长度、真实任务执行时长/成功率、LLM 请求时延、各容器 CPU/内存及新日/月配额仍需后续采集。数据库健康和绑定 engine 的查询时延已接入；健康探测不构成真实模型调用成功证明。#157 保持开放。
+Redis 连通性、broker 等待队列长度、回复 worker 的数值负载、持久化任务执行统计、SDK 请求时延、带标签容器资源及日/月生成额度均已有实现。部署未配置或探测失败时，仍按实际状态返回 not_checked/unavailable/unknown/null；健康成功不构成真实模型调用或完整集群就绪证明。issue关闭以验收和人工合并决定，不由接口状态字段推断。
 
 ## Docker 沙箱容器资源
 
@@ -208,7 +210,7 @@ ps 与 stats 分享0.5–10秒命令预算，各自接受的合计输出上限64
 
 每 API 进程最多一个采样，缓存0–300秒，失败也缓存；cached/age_seconds 描述完成后的缓存年龄。缓存过期且另一个采样在途时返回 unknown/refresh_in_progress，不把旧成功值当成新观测。缓存独立于 worker/Redis 观测。
 
-本功能仅完成 #157 的容器资源观测；LLM 生成性能和新增配额仍需后续实现。跨 worker 缓存计数及整体命中率已通过共享快照提供，范围和公式见上文缓存统计接口。
+容器观测、SDK性能及用户配额是独立能力；各自的配置和数据范围不能互相替代。跨 worker 缓存计数及整体命中率通过共享快照提供，范围和公式见上文缓存统计接口。
 
 ### 实际任务执行统计
 
