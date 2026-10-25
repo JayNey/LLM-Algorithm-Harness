@@ -33,7 +33,7 @@ export async function fetchEvaluationResult(
   if (result.status === 'rejected') {
     if (
       result.reason instanceof ApiClientError &&
-      [401, 429].includes(result.reason.status ?? 0)
+      [401, 403, 404, 429].includes(result.reason.status ?? 0)
     )
       throw result.reason
     return {

@@ -7,7 +7,9 @@
 
 import assert from 'node:assert/strict'
 import { test } from 'node:test'
-import type { Evaluation } from './types.ts'
+import type { Evaluation, ResultDetail } from './types.ts'
+import { fetchEvaluationResult } from './results.ts'
+import { ApiClientError } from '../auth/http.ts'
 import { createProgressObserver, resolveProgressWsUrl } from './observer.ts'
 import type {
   ObserverDeps,
@@ -755,4 +757,60 @@ test('dispose 后无任何回调、请求与连接', async () => {
   assert.equal(world.events.length, eventsAfter)
   assert.equal(world.calls.length, callsAfter)
   assert.equal(world.sockets.length, socketsAfter)
+})
+
+test('联合读取终态补读完成后观察器才settle，不开启额外周期', async () => {
+  const final = {
+    run_id: null,
+    status: 'completed',
+    created_at: '2026-10-25',
+    completed_at: null,
+    strategies: [],
+    problems: { items: [], total: 2, limit: 20, offset: 0, has_more: false },
+  } satisfies ResultDetail
+  let reads = 0
+  const world = setup({
+    fetchSnapshot: (id, signal) =>
+      fetchEvaluationResult(
+        {
+          get: async () => evaluation('completed'),
+          result: async () => ({
+            ...final,
+            status: ++reads === 1 ? 'running' : 'completed',
+          }),
+        },
+        id,
+        { limit: 20, offset: 0 },
+        signal,
+      ),
+  })
+  world.observer.start('eval-1')
+  await settle()
+  const done = world.events.find((e) => e.type === 'settled')
+  assert.ok(done && done.type === 'settled')
+  assert.equal(reads, 2)
+  world.clock.advance(60_000)
+  await settle()
+  assert.equal(reads, 2)
+})
+
+test('联合结果权限错误进入forbidden而不是发布带错误的task快照', async () => {
+  const world = setup({
+    fetchSnapshot: (id, signal) =>
+      fetchEvaluationResult(
+        {
+          get: async () => evaluation('running'),
+          result: async () => {
+            throw new ApiClientError('denied', 403)
+          },
+        },
+        id,
+        { limit: 20, offset: 0 },
+        signal,
+      ),
+  })
+  world.observer.start('eval-1')
+  await settle()
+  assert.equal(world.snapshots().length, 0)
+  assert.ok(world.events.some((e) => e.type === 'forbidden'))
 })

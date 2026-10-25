@@ -90,7 +90,7 @@ test('结果503保留成功任务和独立错误，不伪装合法空结果', as
 })
 
 test('任务权限失败不发布同时读到的结果', async () => {
-  const error = new ApiClientError('not found', 404)
+  const error = new ApiClientError('not found', 403)
   await assert.rejects(
     fetchEvaluationResult(
       {
@@ -182,4 +182,51 @@ test('补读后仍跨版本时显示独立错误，不将旧统计伪装终态�
   assert.equal(snapshot.status, 'completed')
   assert.equal(snapshot.result, null)
   assert.equal(snapshot.resultError, '结果快照与任务状态暂不一致，请重试')
+})
+
+test('结果403/404也使整个任务资源失效，不保留task200缓存', async () => {
+  for (const status of [403, 404]) {
+    const error = new ApiClientError('denied', status)
+    await assert.rejects(
+      fetchEvaluationResult(
+        {
+          get: async () => task,
+          result: async () => {
+            throw error
+          },
+        },
+        task.evaluation_id,
+        { limit: 20, offset: 0 },
+        new AbortController().signal,
+      ),
+      (e) => e === error,
+    )
+  }
+})
+
+test('终态补读失败仍独立显示结果错误，权限拒绝则整体失效', async () => {
+  for (const status of [503, 403]) {
+    let reads = 0
+    const error = new ApiClientError('upstream', status)
+    const pending = fetchEvaluationResult(
+      {
+        get: async () => ({ ...task, status: 'completed' }),
+        result: async () => {
+          if (++reads === 1) return result
+          throw error
+        },
+      },
+      task.evaluation_id,
+      { limit: 20, offset: 0 },
+      new AbortController().signal,
+    )
+    if (status === 403) await assert.rejects(pending, (e) => e === error)
+    else {
+      const snapshot = await pending
+      assert.equal(snapshot.result, null)
+      assert.ok(snapshot.resultError)
+      assert.equal(snapshot.status, 'completed')
+    }
+    assert.equal(reads, 2)
+  }
 })

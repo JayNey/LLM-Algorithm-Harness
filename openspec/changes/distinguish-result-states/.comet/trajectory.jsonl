@@ -1,0 +1,3 @@
+{"sequence":1,"timestamp":"2026-10-25T14:50:18.271Z","type":"run_started","runId":"8ec6d57b-4714-48d8-abd9-6fc1fc4be982","data":{"skill":"comet-classic","skillVersion":"1","skillHash":"9bd4ffab011ae18aef91dc0db336ffc12d454b513229178c15b8b75d50930ba1"}}
+{"sequence":2,"timestamp":"2026-10-25T14:50:18.271Z","type":"state_migrated","runId":"8ec6d57b-4714-48d8-abd9-6fc1fc4be982","data":{"kind":"classic","migrationVersion":1,"profile":"tweak","source":"pre-migration"}}
+{"sequence":3,"timestamp":"2026-10-25T14:50:18.367Z","type":"state_transitioned","runId":"8ec6d57b-4714-48d8-abd9-6fc1fc4be982","data":{"kind":"classic","fromStep":"tweak.open","toStep":"tweak.build.execute","event":"open-complete","phase":"open","source":"comet-guard"}}
