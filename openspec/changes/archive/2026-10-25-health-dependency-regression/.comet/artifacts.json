@@ -1,5 +1,6 @@
 {
   "openspec_proposal": "openspec/changes/health-dependency-regression/proposal.md",
   "openspec_design": "openspec/changes/health-dependency-regression/design.md",
-  "openspec_tasks": "openspec/changes/health-dependency-regression/tasks.md"
+  "openspec_tasks": "openspec/changes/health-dependency-regression/tasks.md",
+  "archive_directory": "openspec/changes/archive/2026-10-25-health-dependency-regression"
 }
