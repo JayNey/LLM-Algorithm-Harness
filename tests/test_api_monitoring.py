@@ -207,7 +207,7 @@ def test_health_sources_and_safe_admin_configuration(api, monkeypatch):
     health = client.get("/api/v1/system/health", headers=headers(admin)).json()["data"]
     assert health["status"] == "partial"
     assert health["checks"]["database"]["status"] == "ok"
-    assert health["pending_issues"] == [157]
+    assert health["pending_issues"] == []
     business = health["checks"]["database"]["business_database"]
     assert business["migration"]["revisions"] == business["migration"]["expected_heads"]
     assert "experiments" in business["required_tables"]
@@ -947,3 +947,21 @@ def test_system_config_excludes_sensitive_and_future_fields(api, monkeypatch):
         assert all(
             value is None or type(value) in (int, float, bool) for value in data[group].values()
         )
+
+
+@pytest.mark.parametrize(
+    "database_status,expected_health", [("ok", "partial"), ("unavailable", "degraded")]
+)
+def test_implemented_monitoring_does_not_report_deployment_failures_as_pending_issue(
+    api, monkeypatch, database_status, expected_health
+):
+    client, admin, _, app, _, _, _ = api
+    monkeypatch.setattr(app.state.monitor.probes, "database", lambda: {"status": database_status})
+    response = client.get("/api/v1/system/health", headers=headers(admin))
+    assert response.status_code == 200
+    health = response.json()["data"]
+    assert health["pending_issues"] == []
+    assert health["status"] == expected_health
+    assert health["checks"]["workers"]["status"] == "not_checked"
+    assert health["checks"]["workers"]["real_evaluation_available"] is None
+    assert health["checks"]["sandbox"]["status"] == "not_checked"

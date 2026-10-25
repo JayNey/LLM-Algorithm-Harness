@@ -113,7 +113,7 @@ services:
         condition: service_healthy
       redis:
         condition: service_healthy
-      # api 健康即迁移完成（迁移在 api lifespan 内执行），避免消费到缺表的任务
+      # 仅等待 API 存活；迁移在 lifespan 内执行。持续业务就绪由 nginx 检查 /health/ready。
       api:
         condition: service_healthy
     logging: *default_logging

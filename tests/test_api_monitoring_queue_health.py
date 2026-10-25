@@ -301,7 +301,7 @@ def test_http_health_and_status_share_one_worker_observation(api, monkeypatch):
         "/api/v1/system/health?include_sandbox=true", headers=headers(admin)
     ).json()["data"]
     assert health["status"] == "healthy"
-    assert health["pending_issues"] == [157]
+    assert health["pending_issues"] == []
 
 
 def test_http_queue_failure_degrades_health_without_false_zero_counts(api, monkeypatch):

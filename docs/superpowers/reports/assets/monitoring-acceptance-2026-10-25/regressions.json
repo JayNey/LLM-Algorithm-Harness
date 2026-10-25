@@ -1,0 +1,38 @@
+{
+  "source_head": "b0989f87b82d06c8ca9b9c92784976910366033e",
+  "layer": "local Python API/monitoring/quota/log/catalog/compatibility regressions",
+  "tests": 579,
+  "failures": 0,
+  "errors": 0,
+  "skipped": 0,
+  "duration_seconds": 86.445,
+  "test_files": [
+    "tests/test_api_monitoring.py",
+    "tests/test_api_monitoring_service.py",
+    "tests/test_api_monitoring_store.py",
+    "tests/test_api_monitoring_probes.py",
+    "tests/test_api_monitoring_queue_health.py",
+    "tests/test_api_monitoring_queue_compatibility.py",
+    "tests/test_api_monitoring_containers.py",
+    "tests/test_api_monitoring_database_metrics.py",
+    "tests/test_api_monitoring_task_snapshots.py",
+    "tests/test_execution_logs.py",
+    "tests/test_llm_call_metrics.py",
+    "tests/test_user_evaluation_concurrency.py",
+    "tests/test_user_call_limits.py",
+    "tests/test_user_call_metering.py",
+    "tests/test_sandbox_executor.py",
+    "tests/test_api_documentation.py",
+    "tests/test_api_versioning.py",
+    "tests/test_api_logging_config.py",
+    "tests/test_api_evaluation_options.py"
+  ],
+  "coverage": "not collected for targeted run (--no-cov); CI thresholds unchanged",
+  "runtime_log_id": "57e394af-19fa-43fe-a87f-915253d0b214.log",
+  "input_unchanged": true,
+  "independent_review": {
+    "findings": 0,
+    "updated_branch_tests_passed": 222
+  },
+  "frontend_monitoring_client_tests_passed": 8
+}

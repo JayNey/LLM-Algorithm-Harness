@@ -6,6 +6,19 @@
 - 结论：文档同步检查 PASS；目标部署环境验收未执行。
 - Issue 记录：https://github.com/JayNey/LLM-Algorithm-Harness/issues/157#issuecomment-6397989911
 
+## PR #277 合并冲突复验
+
+本节是合并 main `1624471a7cc74ef3cbf7654e1e39ca0c62f63612` 后的最新结果；下文初次验收记录仍对应 e700646 基线，不能用旧基线说明覆盖最新主线行为。
+
+- 两处文本冲突为 docs/api-monitoring.md 与 docs/deployment/deploy.md；以主线的 pending_issues=[]、逐项验收清单、生产 nginx readiness 准入和可用性告警为准，补入本 PR 的接口差异、采集边界与验收报告链接。
+- api/documentation.py 自动合并，保留主线 pending_issues=[] 示例及本 PR 指标说明。监控 service.py、nginx.conf、docker-compose.prod.yml 与本次合入的主线逐字节相同；无额外运行时行为修改。
+- 运行 `python3 -m pytest tests/test_api_documentation.py tests/test_api_versioning.py tests/test_api_monitoring*.py tests/test_api_readiness.py tests/test_deployment_config.py tests/test_deployment_readiness.py tests/test_execution_logs.py tests/test_llm_call_metrics.py tests/test_user_call_limits.py tests/test_user_call_metering.py tests/test_monitoring_queue_integration.py tests/test_monitoring_container_integration.py --no-cov -q -rs`：515 passed、2 skipped、98 warnings、14 setup errors，119.36 秒。14 项错误均位于 nginx 测试 fixture 的本地 socket.bind，原因是沙箱拒绝监听临时端口（PermissionError: Operation not permitted），不是断言失败。
+- 使用允许本地端口的环境运行 `python3 -m pytest tests/test_deployment_readiness.py --no-cov -q`：14 passed、1 warning，10.00 秒。相同代码上的上述 14 项环境错误已全部验证通过，无需产品修复；两次运行不重复合计，最终覆盖 529 项通过、2 项跳过。
+- 两个跳过项仍为未显式启用的真实 Redis/worker 和 Docker 观测；未新增真实供应商、PostgreSQL 或生产部署验收。
+- black --check、ruff check api/documentation.py、compileall api、git diff --check、文档本地链接及冲突标记检查通过。只读比较确认主线部署/监控运行时文件完整保留。
+
+## 初次验收（合并前）
+
 ## 六项检查
 
 1. 任务：1/1 完成；更新三个交付文件、当前报告及 issue 评论。

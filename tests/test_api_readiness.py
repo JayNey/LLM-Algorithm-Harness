@@ -26,6 +26,53 @@ def checker(probe, **kwargs):
     return ReadinessCheck(probe, **kwargs)
 
 
+def assert_health_status(client, *, ready):
+    assert client.get("/api/v1/health").status_code == 200
+    response = client.get("/api/v1/health/ready")
+    assert response.status_code == (200 if ready else 503)
+    assert response.json() == {"status": "ready" if ready else "not_ready"}
+    assert response.headers["cache-control"] == "no-store"
+
+
+def test_http_probe_exception_recovers_after_failure_cache_expires(monkeypatch):
+    import api.monitoring.readiness as readiness_module
+    import api.routes.monitoring as routes_module
+
+    # Replace only the two modules' clocks, leaving asyncio's timeout clock real.
+    now = time.monotonic()
+    clock = SimpleNamespace(monotonic=lambda: now)
+    monkeypatch.setattr(readiness_module, "time", clock)
+    monkeypatch.setattr(routes_module, "time", clock)
+    unavailable = False
+    calls = []
+
+    def probe():
+        calls.append(1)
+        if unavailable:
+            raise ConnectionError("password=private-database")
+        return healthy()
+
+    app = create_app()
+    app.state.monitor = SimpleNamespace(readiness=checker(probe))
+    client = TestClient(app)
+    assert_health_status(client, ready=True)
+    assert len(calls) == 1
+
+    unavailable = True
+    assert_health_status(client, ready=True)  # Success is cached for one second.
+    assert len(calls) == 1
+    now += 1.1
+    assert_health_status(client, ready=False)
+    assert len(calls) == 2
+
+    unavailable = False
+    assert_health_status(client, ready=False)  # Failure also remains cached.
+    assert len(calls) == 2
+    now += 1.1
+    assert_health_status(client, ready=True)
+    assert len(calls) == 3
+
+
 def test_public_http_minimal_contract():
     from api.monitoring.readiness import ReadinessCheck
 
@@ -160,7 +207,7 @@ def live_api(tmp_path):
 
 
 @pytest.mark.parametrize("failure", ["auth", "files", "business", "migration"])
-def test_real_database_schema_and_migration_failures(live_api, failure, monkeypatch):
+def test_real_database_schema_and_migration_failures_recover(live_api, failure, monkeypatch):
     from sqlalchemy import text
 
     client, app = live_api
@@ -170,21 +217,38 @@ def test_real_database_schema_and_migration_failures(live_api, failure, monkeypa
 
     for name in ("redis", "workers", "sandbox"):
         monkeypatch.setattr(app.state.monitor.probes, name, unwanted)
-    assert client.get("/api/v1/health/ready").status_code == 200
+    assert_health_status(client, ready=True)
     if failure in ("auth", "files"):
         table = "auth_users" if failure == "auth" else "api_file_objects"
         with app.state.auth.store.connection() as db:
-            db.execute(f"DROP TABLE {table}")
+            db.execute(f"ALTER TABLE {table} RENAME TO offline_dependency")
     else:
         with app.state.evaluations.engine.begin() as db:
             if failure == "migration":
+                revisions = (
+                    db.execute(text("SELECT version_num FROM alembic_version")).scalars().all()
+                )
                 db.execute(text("DELETE FROM alembic_version"))
             else:
-                db.execute(text("DROP TABLE evaluations"))
-    response = client.get("/api/v1/health/ready")
-    assert response.status_code == 503
-    assert response.json() == {"status": "not_ready"}
-    assert client.get("/api/v1/health").status_code == 200
+                db.execute(text("ALTER TABLE evaluations RENAME TO offline_dependency"))
+    try:
+        assert_health_status(client, ready=False)
+    finally:
+        if failure in ("auth", "files"):
+            with app.state.auth.store.connection() as db:
+                db.execute(f"ALTER TABLE offline_dependency RENAME TO {table}")
+        else:
+            with app.state.evaluations.engine.begin() as db:
+                if failure == "migration":
+                    for revision in revisions:
+                        db.execute(
+                            text("INSERT INTO alembic_version (version_num) VALUES (:revision)"),
+                            {"revision": revision},
+                        )
+                else:
+                    db.execute(text("ALTER TABLE offline_dependency RENAME TO evaluations"))
+    # The same application and checker must recover without restart or cache reset.
+    assert_health_status(client, ready=True)
 
 
 @pytest.mark.asyncio
