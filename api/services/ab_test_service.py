@@ -6,9 +6,9 @@ from collections.abc import Callable
 from datetime import datetime
 from pathlib import Path
 from threading import Semaphore
-from typing import Any
+from typing import Any, cast
 
-from sqlalchemy import delete, select, update
+from sqlalchemy import CursorResult, delete, select, update
 from sqlalchemy.orm import Session
 
 from api.auth.service import AuthService
@@ -196,24 +196,13 @@ class ABTestService:
             row = self._owned(session, test_id, owner_id)
             if row.status != "pending" or self._task(session, test_id, owner_id):
                 raise ValueError(f"Cannot start A/B test in {row.status} status or already queued")
-            try:
-                task = TaskManager(session).enqueue_task(
-                    task_type="ab_test",
-                    entity_id=test_id,
-                    user_id=owner_id,
-                    celery_task_name="src.tasks.ab_test.run_ab_test_task",
-                    celery_task_args=(test_id, owner_id),
-                )
-            except Exception:
-                session.rollback()
-                task = self._task(session, test_id, owner_id)
-                if task is not None and task.status == "failed":
-                    TaskManager(session).update_task_status(
-                        task.id,
-                        "failed",
-                        error_message=task.error_message,
-                    )
-                raise
+            task = TaskManager(session).enqueue_task(
+                task_type="ab_test",
+                entity_id=test_id,
+                user_id=owner_id,
+                celery_task_name="src.tasks.ab_test.run_ab_test_task",
+                celery_task_args=(test_id, owner_id),
+            )
             session.refresh(row)
             view = _job_view(row)
             view["task_id"] = task.id
@@ -221,7 +210,11 @@ class ABTestService:
 
     def _build_config(self, row: ABTest, owner_id: str) -> ABTestConfig:
         if self._auth is None:
-            raise ValueError("authentication service is not configured")
+            # Resolve credentials only after the worker has atomically claimed
+            # this delivery, so duplicate messages never initialize auth.
+            from api.auth.config import AuthSettings
+
+            self._auth = AuthService(AuthSettings())
         config = row.config
         spec = ModelSpec(**config["model"])
         llm = self._auth.llm_config(row.api_key_id or "", owner_id, spec.model)
@@ -250,6 +243,7 @@ class ABTestService:
         test_id: str,
         owner_id: str,
         celery_task_id: str | None = None,
+        execution_attempt: str | None = None,
     ) -> dict[str, Any]:
         with self._session() as session:
             row = self._owned(session, test_id, owner_id)
@@ -263,9 +257,14 @@ class ABTestService:
                     AsyncTask.id == task_id,
                     AsyncTask.status == "pending",
                 )
-                .values(status="running", started_at=utcnow(), completed_at=None)
+                .values(
+                    status="running",
+                    started_at=utcnow(),
+                    completed_at=None,
+                    progress={"execution_attempt": execution_attempt or str(uuid.uuid4())},
+                )
             )
-            if not claimed.rowcount:
+            if not cast(CursorResult[Any], claimed).rowcount:
                 session.refresh(task)
                 return {"test_id": test_id, "status": task.status}
             TaskManager(session).update_task_status(task_id, "running")
@@ -306,7 +305,7 @@ class ABTestService:
                 )
                 .values(status=status)
             )
-            if not claimed.rowcount:
+            if not cast(CursorResult[Any], claimed).rowcount:
                 session.rollback()
                 return
             task = session.get(AsyncTask, task_id)

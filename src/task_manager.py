@@ -7,8 +7,9 @@ import hashlib
 import uuid
 from collections.abc import Callable
 from datetime import datetime
+from typing import Any, cast
 
-from sqlalchemy import false, func, select, text, update
+from sqlalchemy import CursorResult, false, func, select, text, update
 from sqlalchemy.orm import Session
 
 from api.config import settings
@@ -242,13 +243,25 @@ class TaskManager:
                 task_id=celery_task_id,
             )
         except Exception:
-            # 发布失败：把已落库的任务标记为 failed，避免留下永远 pending 的孤儿
-            task.status = "failed"
-            task.error_message = "failed to publish task to broker"
-            if task.completed_at is None:
-                task.completed_at = datetime.utcnow()
-            self.db.commit()
-            record_execution_event(task, "task.failed")
+            # A publish timeout does not prove the message was never delivered.
+            # Do not overwrite a task already started, stopped or completed elsewhere.
+            self.db.rollback()
+            failed = self.db.execute(
+                update(AsyncTask)
+                .where(AsyncTask.id == task.id, AsyncTask.status == "pending")
+                .values(
+                    status="failed",
+                    error_message="failed to publish task to broker",
+                    completed_at=datetime.utcnow(),
+                )
+            )
+            if cast(CursorResult[Any], failed).rowcount:
+                self.db.refresh(task)
+                self._sync_ab_test(task)
+                self.db.commit()
+                record_execution_event(task, "task.failed")
+            else:
+                self.db.rollback()
             raise
 
         return task

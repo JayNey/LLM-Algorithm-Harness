@@ -8,7 +8,7 @@
 
 #### Scenario: 发布失败
 - **WHEN** broker 发布失败
-- **THEN** 任务和测试均为 failed，保存错误和完成时间，不遗留 pending 孤儿。
+- **THEN** 仍为 pending 的任务和测试均为 failed，保存错误和完成时间；并发已开始、取消或完成的状态不被覆盖。
 
 #### Scenario: 并发启动和重复投递
 - **WHEN** 同一测试被重复或并发启动，或消息被重复投递
@@ -33,3 +33,7 @@
 #### Scenario: 监控与日志
 - **WHEN** A/B worker 运行并结束
 - **THEN** 监控将类型显示为 ab_test，生命周期事件沿用现有所有者隔离日志。
+
+#### Scenario: worker 子进程丢失
+- **WHEN** Celery 父进程确认执行 A/B 的子进程丢失
+- **THEN** 未结束的任务和业务记录变为 failed，保存完成时间；消息不重新派发，已暂停或取消的状态不被覆盖。

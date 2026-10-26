@@ -246,7 +246,7 @@ export default function ABTestDetailPage() {
           </dd>
         </dl>
         <div className="evaluation-section-heading">
-          {job.status === 'pending' && (
+          {job.status === 'pending' && !job.task_id && (
             <Button
               type="primary"
               aria-label="启动 A/B 测试"
@@ -256,10 +256,23 @@ export default function ABTestDetailPage() {
               启动测试
             </Button>
           )}
+          {job.status === 'pending' && job.task_id && (
+            <span role="status">测试已排队，等待开始执行…</span>
+          )}
           {job.status === 'running' && (
             <span role="status">测试执行中，完成后自动展示结果…</span>
           )}
-          <Button danger disabled={busy} onClick={() => void remove()}>
+          <Button
+            danger
+            disabled={
+              busy ||
+              Boolean(
+                job.task_id &&
+                ['pending', 'running', 'paused'].includes(job.status),
+              )
+            }
+            onClick={() => void remove()}
+          >
             删除
           </Button>
         </div>

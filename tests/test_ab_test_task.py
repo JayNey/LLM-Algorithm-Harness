@@ -107,7 +107,9 @@ def test_worker_success_and_duplicate_delivery(service, tmp_path):
     view = enqueue(service)
     report = tmp_path / "report"
     report.mkdir()
-    (report / "ab_test.json").write_text(json.dumps({"significance": {"p_value": 0.5}}))
+    (report / "ab_test.json").write_text(
+        json.dumps({"significance": {"p_value": 0.5}}), encoding="utf-8"
+    )
     runner = SimpleNamespace(run=Mock(return_value=report))
     service._runner_factory = lambda _: runner
     with (
@@ -211,4 +213,218 @@ def test_worker_rejects_other_owner_without_changing_records(service):
     enqueue(service)
     with pytest.raises(ValueError, match="not found"):
         service._execute("ab-1", "other")
+    assert rows(service)[0].status == rows(service)[1][0].status == "pending"
+
+
+@pytest.mark.parametrize("terminal", ["cancelled", "completed"])
+def test_publish_timeout_preserves_concurrent_terminal_state(service, tmp_path, terminal):
+    captured = []
+
+    def publish(*args, **kwargs):
+        with (
+            service._session() as db,
+            patch("src.task_manager.celery_app.AsyncResult") as result,
+            patch("src.task_manager.celery_app.control.revoke"),
+        ):
+            result.return_value.state = "PENDING"
+            task = db.scalars(select(AsyncTask)).one()
+            manager = TaskManager(db)
+            if terminal == "cancelled":
+                manager.cancel_task(task.id, "owner")
+            else:
+                manager.update_task_status(task.id, "completed")
+            captured.append(task.completed_at)
+        raise RuntimeError("publish timeout")
+
+    with patch("src.task_manager.celery_app.send_task", side_effect=publish):
+        with pytest.raises(RuntimeError, match="publish timeout"):
+            service.start_test("ab-1", "owner")
+    row, tasks = rows(service)
+    assert row.status == tasks[0].status == terminal
+    assert row.completed_at == tasks[0].completed_at == captured[0]
+
+
+def test_worker_initialization_failure_is_persisted_by_celery_trace(service):
+    from src.tasks.ab_test import run_ab_test_task
+
+    enqueue(service)
+    task = rows(service)[1][0]
+    with patch("api.auth.config.AuthSettings", side_effect=RuntimeError("auth unavailable")):
+        result = run_ab_test_task.apply(
+            args=("ab-1", "owner"), task_id=task.celery_task_id, throw=False
+        )
+    row, tasks = rows(service)
+    assert result.result["status"] == "failed"
+    assert row.status == tasks[0].status == "failed"
+    assert row.completed_at is not None
+    assert row.error_message == tasks[0].error_message == "auth unavailable"
+
+
+def test_parent_worker_loss_terminalizes_without_requeue(service):
+    from billiard.einfo import ExceptionInfo
+    from billiard.exceptions import WorkerLostError
+
+    from src.celery_app import celery_app
+    from src.tasks.ab_test import ABTestRequest, run_ab_test_task
+
+    enqueue(service)
+    with service._session() as db:
+        task = db.scalars(select(AsyncTask)).one()
+        TaskManager(db).update_task_status(task.id, "running")
+        message = SimpleNamespace(
+            headers={"id": task.celery_task_id, "task": run_ab_test_task.name},
+            body=(("ab-1", "owner"), {}, {}),
+            delivery_info={},
+            properties={},
+        )
+    request = ABTestRequest(message, decoded=True, task=run_ab_test_task, app=celery_app)
+    with service._session() as db:
+        task = db.scalars(select(AsyncTask)).one()
+        task.progress = {"execution_attempt": request._request_dict["ab_execution_attempt"]}
+        db.commit()
+    try:
+        raise WorkerLostError("worker process exited")
+    except WorkerLostError:
+        failure = ExceptionInfo()
+    with (
+        patch.object(run_ab_test_task.backend, "mark_as_failure"),
+        patch("celery.worker.request.error"),
+    ):
+        request.on_failure(failure)
+    row, tasks = rows(service)
+    assert row.status == tasks[0].status == "failed"
+    assert row.completed_at is not None and tasks[0].completed_at is not None
+    assert request.acknowledged
+
+
+def test_nonmatching_publish_failure_does_not_write_stale_business_state(service):
+    """A PostgreSQL zero-match UPDATE does not lock a running task row."""
+    with service._session() as db:
+        manager = TaskManager(db)
+        execute = db.execute
+        refresh = db.refresh
+
+        def no_lock_for_unmatched_update(statement, *args, **kwargs):
+            if (
+                getattr(statement, "is_update", False)
+                and statement.compile().params.get("status") == "failed"
+            ):
+                return SimpleNamespace(rowcount=0)
+            return execute(statement, *args, **kwargs)
+
+        def finish_after_refresh(task, *args, **kwargs):
+            refresh(task, *args, **kwargs)
+            if isinstance(task, AsyncTask) and task.status == "running":
+                with service._session() as other:
+                    TaskManager(other).update_task_status(task.id, "completed")
+
+        def started_then_timeout(*args, **kwargs):
+            with service._session() as other:
+                task = other.scalars(select(AsyncTask)).one()
+                TaskManager(other).update_task_status(task.id, "running")
+            raise RuntimeError("publish timeout")
+
+        with (
+            patch.object(db, "execute", side_effect=no_lock_for_unmatched_update),
+            patch.object(db, "refresh", side_effect=finish_after_refresh),
+            patch("src.task_manager.celery_app.send_task", side_effect=started_then_timeout),
+        ):
+            with pytest.raises(RuntimeError):
+                manager.enqueue_task(
+                    task_type="ab_test",
+                    entity_id="ab-1",
+                    user_id="owner",
+                    celery_task_name="src.tasks.ab_test.run_ab_test_task",
+                )
+    row, tasks = rows(service)
+    assert row.status == tasks[0].status
+
+
+def test_lost_duplicate_child_does_not_stop_the_claim_holder(service):
+    from billiard.exceptions import WorkerLostError
+    from celery.signals import task_failure
+
+    from src.tasks.ab_test import run_ab_test_task
+
+    enqueue(service)
+    with service._session() as db:
+        task = db.scalars(select(AsyncTask)).one()
+        task.progress = {"execution_attempt": "claim-holder"}
+        TaskManager(db).update_task_status(task.id, "running")
+        celery_id = task.celery_task_id
+    task_failure.send(
+        sender=run_ab_test_task,
+        task_id=celery_id,
+        args=("ab-1", "owner"),
+        kwargs={},
+        exception=WorkerLostError("duplicate child exited"),
+        execution_attempt="unclaimed-duplicate",
+    )
+    row, tasks = rows(service)
+    assert row.status == tasks[0].status == "running"
+
+
+def test_request_context_carries_the_claim_attempt(service, tmp_path):
+    from src.celery_app import celery_app
+    from src.tasks.ab_test import ABTestRequest, run_ab_test_task
+
+    enqueue(service)
+    task = rows(service)[1][0]
+    message = SimpleNamespace(
+        headers={"id": task.celery_task_id, "task": run_ab_test_task.name, "ignore_result": True},
+        body=(("ab-1", "owner"), {}, {}),
+        delivery_info={},
+        properties={},
+    )
+    request = ABTestRequest(message, decoded=True, task=run_ab_test_task, app=celery_app)
+    seen = []
+
+    def run():
+        seen.append(rows(service)[1][0].progress["execution_attempt"])
+        return tmp_path
+
+    service._runner_factory = lambda _: SimpleNamespace(run=run)
+    with (
+        patch("api.services.ab_test_service.ABTestService", return_value=service),
+        patch.object(service, "_build_config", return_value=object()),
+    ):
+        result = request.execute()
+    assert result["status"] == "completed"
+    assert seen == [request._request_dict["ab_execution_attempt"]]
+    assert request.acknowledged
+
+
+def test_service_initialization_failure_is_persisted_by_trace(service):
+    from src.tasks.ab_test import run_ab_test_task
+
+    enqueue(service)
+    task = rows(service)[1][0]
+    with patch(
+        "api.services.ab_test_service.ABTestService",
+        side_effect=RuntimeError("service unavailable"),
+    ):
+        result = run_ab_test_task.apply(
+            args=("ab-1", "owner"), task_id=task.celery_task_id, throw=False
+        )
+    assert result.state == "FAILURE"
+    row, tasks = rows(service)
+    assert row.status == tasks[0].status == "failed"
+    assert row.error_message == tasks[0].error_message == "service unavailable"
+
+
+@pytest.mark.parametrize("owner,message_id", [("other", None), ("owner", "wrong-message")])
+def test_failure_signal_cannot_mutate_unmatched_task(service, owner, message_id):
+    from celery.signals import task_failure
+
+    from src.tasks.ab_test import run_ab_test_task
+
+    enqueue(service)
+    task = rows(service)[1][0]
+    task_failure.send(
+        sender=run_ab_test_task,
+        task_id=message_id or task.celery_task_id,
+        args=("ab-1", owner),
+        kwargs={},
+        exception=RuntimeError("unmatched"),
+    )
     assert rows(service)[0].status == rows(service)[1][0].status == "pending"
