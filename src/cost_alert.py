@@ -17,7 +17,7 @@ import threading
 from decimal import Decimal, InvalidOperation
 from email.message import EmailMessage
 from pathlib import Path
-from typing import Any
+from typing import Any, TypedDict
 from uuid import uuid4
 
 import requests
@@ -25,6 +25,10 @@ import requests
 from src.models import CostAlertConfig
 
 _STATE_VERSION = 1
+
+
+class _WebhookRequestOptions(TypedDict, total=False):
+    allow_redirects: bool
 
 
 def _amount(value: float | Decimal, name: str, *, positive: bool = False) -> Decimal:
@@ -72,7 +76,9 @@ class CostAlertSender:
             body = payload
         # CLI callers configure their own trusted endpoints. Web rules must
         # never redirect a credential-bearing POST to a different destination.
-        options = {} if self.follow_redirects else {"allow_redirects": False}
+        options: _WebhookRequestOptions = (
+            {} if self.follow_redirects else {"allow_redirects": False}
+        )
         response = requests.post(url, json=body, timeout=self.config.timeout_seconds, **options)
         if options and 300 <= response.status_code < 400:
             raise requests.HTTPError(response=response)

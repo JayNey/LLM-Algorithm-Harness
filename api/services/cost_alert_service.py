@@ -6,12 +6,13 @@ import logging
 from collections.abc import Callable
 from datetime import datetime, timedelta
 from decimal import Decimal
-from typing import Any
+from typing import Any, cast
 from uuid import NAMESPACE_URL, uuid5
 
 from pydantic import SecretStr
 from pydantic_settings import BaseSettings, SettingsConfigDict
 from sqlalchemy import delete, select, update
+from sqlalchemy.engine import CursorResult
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
@@ -53,8 +54,10 @@ class WebCostAlertDispatcher:
     @staticmethod
     def _config(rule: AlertRule) -> CostAlertConfig:
         if rule.channel in {"slack", "webhook"}:
-            key = "slack_webhook_url" if rule.channel == "slack" else "webhook_url"
-            return CostAlertConfig(**{key: rule.target})
+            endpoint = SecretStr(rule.target)
+            if rule.channel == "slack":
+                return CostAlertConfig(slack_webhook_url=endpoint)
+            return CostAlertConfig(webhook_url=endpoint)
         if rule.channel == "smtp":
             return CostAlertConfig(**WebAlertSettings().model_dump(), smtp_to=[rule.target])
         return CostAlertConfig()
@@ -89,12 +92,15 @@ class WebCostAlertDispatcher:
                     ):
                         return None
                     # Compare-and-delete prevents stealing a renewed lease.
-                    removed = db.execute(
-                        delete(AlertEvent).where(
-                            AlertEvent.id == existing.id,
-                            AlertEvent.channel == "pending",
-                            AlertEvent.created_at == existing.created_at,
-                        )
+                    removed = cast(
+                        CursorResult[Any],
+                        db.execute(
+                            delete(AlertEvent).where(
+                                AlertEvent.id == existing.id,
+                                AlertEvent.channel == "pending",
+                                AlertEvent.created_at == existing.created_at,
+                            )
+                        ),
                     )
                     if removed.rowcount != 1:
                         return None
