@@ -13,6 +13,7 @@
 - `comet classic openspec -- validate evaluation-live-evidence --strict`：通过；本次 change 仅文档，`.openspec.yaml` 声明 `skip_specs: true`。
 - Prettier 与 `git diff --check`：通过。
 - `npm run build`：通过，显示既有大 chunk 提示。
+- Comet `review_mode` 为 `off`，因为本 change 只更新文档、不改运行时行为；仍按项目工作流做了独立 Bugbot 审查，修正 Celery 证据范围后复审通过。
 - 未运行单元测试或浏览器 fixture：本 change 未改前端实现；现有 fixture 在 [`docs/frontend/EVALUATIONS_QA.md`](../../frontend/EVALUATIONS_QA.md) 单独列出，明确不代表 live。
 - 未进行真实登录、API/WS、Redis/Celery、sandbox 或 provider 调用；未生成 live 截图或结果 ID。
 
