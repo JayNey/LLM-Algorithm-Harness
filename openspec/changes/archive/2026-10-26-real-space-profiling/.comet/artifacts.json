@@ -1,5 +1,6 @@
 {
   "openspec_proposal": "openspec/changes/real-space-profiling/proposal.md",
   "openspec_design": "openspec/changes/real-space-profiling/design.md",
-  "openspec_tasks": "openspec/changes/real-space-profiling/tasks.md"
+  "openspec_tasks": "openspec/changes/real-space-profiling/tasks.md",
+  "archive_directory": "openspec/changes/archive/2026-10-26-real-space-profiling"
 }
