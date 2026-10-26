@@ -1,0 +1,1113 @@
+{
+  "scenario": "states",
+  "source": {
+    "head": "1048130e9098d52bb6d5e1e5f97eab206c6307cf",
+    "dirty": ""
+  },
+  "layer": "browser-fixture (not backend E2E)",
+  "assertions": [
+    {
+      "name": "pending/0: 状态、存在性和原因独立展示",
+      "pass": true
+    },
+    {
+      "name": "pending/12: 状态、存在性和原因独立展示",
+      "pass": true
+    },
+    {
+      "name": "running/0: 状态、存在性和原因独立展示",
+      "pass": true
+    },
+    {
+      "name": "running/12: 状态、存在性和原因独立展示",
+      "pass": true
+    },
+    {
+      "name": "paused/0: 状态、存在性和原因独立展示",
+      "pass": true
+    },
+    {
+      "name": "paused/12: 状态、存在性和原因独立展示",
+      "pass": true
+    },
+    {
+      "name": "failed/0: 状态、存在性和原因独立展示",
+      "pass": true
+    },
+    {
+      "name": "failed/12: 状态、存在性和原因独立展示",
+      "pass": true
+    },
+    {
+      "name": "cancelled/0: 状态、存在性和原因独立展示",
+      "pass": true
+    },
+    {
+      "name": "cancelled/12: 状态、存在性和原因独立展示",
+      "pass": true
+    },
+    {
+      "name": "completed/0: 状态、存在性和原因独立展示",
+      "pass": true
+    },
+    {
+      "name": "completed/12: 状态、存在性和原因独立展示",
+      "pass": true
+    },
+    {
+      "name": "状态说明在三风格浅深主题320/1440px无根溢出",
+      "pass": true
+    },
+    {
+      "name": "completed/24: 状态、存在性和原因独立展示",
+      "pass": true
+    },
+    {
+      "name": "task权限拒绝清除整个缓存，503不复活，成功重试恢复",
+      "pass": true
+    },
+    {
+      "name": "result权限拒绝清除整个缓存，503不复活，成功重试恢复",
+      "pass": true
+    },
+    {
+      "name": "socket权限拒绝清除整个缓存，503不复活，成功重试恢复",
+      "pass": true
+    },
+    {
+      "name": "task200/result503独立错误且手动重试恢复，错误不当作empty",
+      "pass": true
+    },
+    {
+      "name": "终态单次补读收敛",
+      "pass": true
+    },
+    {
+      "name": "终态单次补读未确认",
+      "pass": true
+    },
+    {
+      "name": "无未声明 API 请求",
+      "pass": true
+    }
+  ],
+  "requests": [
+    {
+      "mode": "results-states",
+      "path": "/users/me",
+      "method": "GET",
+      "query": ""
+    },
+    {
+      "mode": "results-states",
+      "path": "/users/me",
+      "method": "GET",
+      "query": ""
+    },
+    {
+      "mode": "results-states",
+      "path": "/evaluations/eval-fixture-1",
+      "method": "GET",
+      "query": ""
+    },
+    {
+      "mode": "results-states",
+      "path": "/results/eval-fixture-1",
+      "method": "GET",
+      "query": "?limit=20&offset=0"
+    },
+    {
+      "mode": "results-states",
+      "path": "/evaluations/eval-fixture-1",
+      "method": "GET",
+      "query": ""
+    },
+    {
+      "mode": "results-states",
+      "path": "/results/eval-fixture-1",
+      "method": "GET",
+      "query": "?limit=20&offset=0"
+    },
+    {
+      "mode": "results-states",
+      "path": "/evaluations/eval-fixture-1",
+      "method": "GET",
+      "query": ""
+    },
+    {
+      "mode": "results-states",
+      "path": "/results/eval-fixture-1",
+      "method": "GET",
+      "query": "?limit=20&offset=0"
+    },
+    {
+      "mode": "results-states",
+      "path": "/users/me",
+      "method": "GET",
+      "query": ""
+    },
+    {
+      "mode": "results-states",
+      "path": "/users/me",
+      "method": "GET",
+      "query": ""
+    },
+    {
+      "mode": "results-states",
+      "path": "/evaluations/eval-fixture-1",
+      "method": "GET",
+      "query": ""
+    },
+    {
+      "mode": "results-states",
+      "path": "/results/eval-fixture-1",
+      "method": "GET",
+      "query": "?limit=20&offset=0"
+    },
+    {
+      "mode": "results-states",
+      "path": "/evaluations/eval-fixture-1",
+      "method": "GET",
+      "query": ""
+    },
+    {
+      "mode": "results-states",
+      "path": "/results/eval-fixture-1",
+      "method": "GET",
+      "query": "?limit=20&offset=0"
+    },
+    {
+      "mode": "results-states",
+      "path": "/evaluations/eval-fixture-1",
+      "method": "GET",
+      "query": ""
+    },
+    {
+      "mode": "results-states",
+      "path": "/results/eval-fixture-1",
+      "method": "GET",
+      "query": "?limit=20&offset=0"
+    },
+    {
+      "mode": "results-states",
+      "path": "/users/me",
+      "method": "GET",
+      "query": ""
+    },
+    {
+      "mode": "results-states",
+      "path": "/users/me",
+      "method": "GET",
+      "query": ""
+    },
+    {
+      "mode": "results-states",
+      "path": "/evaluations/eval-fixture-1",
+      "method": "GET",
+      "query": ""
+    },
+    {
+      "mode": "results-states",
+      "path": "/results/eval-fixture-1",
+      "method": "GET",
+      "query": "?limit=20&offset=0"
+    },
+    {
+      "mode": "results-states",
+      "path": "/evaluations/eval-fixture-1",
+      "method": "GET",
+      "query": ""
+    },
+    {
+      "mode": "results-states",
+      "path": "/results/eval-fixture-1",
+      "method": "GET",
+      "query": "?limit=20&offset=0"
+    },
+    {
+      "mode": "results-states",
+      "path": "/evaluations/eval-fixture-1",
+      "method": "GET",
+      "query": ""
+    },
+    {
+      "mode": "results-states",
+      "path": "/results/eval-fixture-1",
+      "method": "GET",
+      "query": "?limit=20&offset=0"
+    },
+    {
+      "mode": "results-states",
+      "path": "/users/me",
+      "method": "GET",
+      "query": ""
+    },
+    {
+      "mode": "results-states",
+      "path": "/users/me",
+      "method": "GET",
+      "query": ""
+    },
+    {
+      "mode": "results-states",
+      "path": "/evaluations/eval-fixture-1",
+      "method": "GET",
+      "query": ""
+    },
+    {
+      "mode": "results-states",
+      "path": "/results/eval-fixture-1",
+      "method": "GET",
+      "query": "?limit=20&offset=0"
+    },
+    {
+      "mode": "results-states",
+      "path": "/evaluations/eval-fixture-1",
+      "method": "GET",
+      "query": ""
+    },
+    {
+      "mode": "results-states",
+      "path": "/results/eval-fixture-1",
+      "method": "GET",
+      "query": "?limit=20&offset=0"
+    },
+    {
+      "mode": "results-states",
+      "path": "/evaluations/eval-fixture-1",
+      "method": "GET",
+      "query": ""
+    },
+    {
+      "mode": "results-states",
+      "path": "/results/eval-fixture-1",
+      "method": "GET",
+      "query": "?limit=20&offset=0"
+    },
+    {
+      "mode": "results-states",
+      "path": "/users/me",
+      "method": "GET",
+      "query": ""
+    },
+    {
+      "mode": "results-states",
+      "path": "/users/me",
+      "method": "GET",
+      "query": ""
+    },
+    {
+      "mode": "results-states",
+      "path": "/evaluations/eval-fixture-1",
+      "method": "GET",
+      "query": ""
+    },
+    {
+      "mode": "results-states",
+      "path": "/results/eval-fixture-1",
+      "method": "GET",
+      "query": "?limit=20&offset=0"
+    },
+    {
+      "mode": "results-states",
+      "path": "/evaluations/eval-fixture-1",
+      "method": "GET",
+      "query": ""
+    },
+    {
+      "mode": "results-states",
+      "path": "/results/eval-fixture-1",
+      "method": "GET",
+      "query": "?limit=20&offset=0"
+    },
+    {
+      "mode": "results-states",
+      "path": "/evaluations/eval-fixture-1",
+      "method": "GET",
+      "query": ""
+    },
+    {
+      "mode": "results-states",
+      "path": "/results/eval-fixture-1",
+      "method": "GET",
+      "query": "?limit=20&offset=0"
+    },
+    {
+      "mode": "results-states",
+      "path": "/users/me",
+      "method": "GET",
+      "query": ""
+    },
+    {
+      "mode": "results-states",
+      "path": "/users/me",
+      "method": "GET",
+      "query": ""
+    },
+    {
+      "mode": "results-states",
+      "path": "/evaluations/eval-fixture-1",
+      "method": "GET",
+      "query": ""
+    },
+    {
+      "mode": "results-states",
+      "path": "/results/eval-fixture-1",
+      "method": "GET",
+      "query": "?limit=20&offset=0"
+    },
+    {
+      "mode": "results-states",
+      "path": "/evaluations/eval-fixture-1",
+      "method": "GET",
+      "query": ""
+    },
+    {
+      "mode": "results-states",
+      "path": "/results/eval-fixture-1",
+      "method": "GET",
+      "query": "?limit=20&offset=0"
+    },
+    {
+      "mode": "results-states",
+      "path": "/evaluations/eval-fixture-1",
+      "method": "GET",
+      "query": ""
+    },
+    {
+      "mode": "results-states",
+      "path": "/results/eval-fixture-1",
+      "method": "GET",
+      "query": "?limit=20&offset=0"
+    },
+    {
+      "mode": "results-states",
+      "path": "/users/me",
+      "method": "GET",
+      "query": ""
+    },
+    {
+      "mode": "results-states",
+      "path": "/users/me",
+      "method": "GET",
+      "query": ""
+    },
+    {
+      "mode": "results-states",
+      "path": "/evaluations/eval-fixture-1",
+      "method": "GET",
+      "query": ""
+    },
+    {
+      "mode": "results-states",
+      "path": "/results/eval-fixture-1",
+      "method": "GET",
+      "query": "?limit=20&offset=0"
+    },
+    {
+      "mode": "results-states",
+      "path": "/evaluations/eval-fixture-1",
+      "method": "GET",
+      "query": ""
+    },
+    {
+      "mode": "results-states",
+      "path": "/results/eval-fixture-1",
+      "method": "GET",
+      "query": "?limit=20&offset=0"
+    },
+    {
+      "mode": "results-states",
+      "path": "/users/me",
+      "method": "GET",
+      "query": ""
+    },
+    {
+      "mode": "results-states",
+      "path": "/users/me",
+      "method": "GET",
+      "query": ""
+    },
+    {
+      "mode": "results-states",
+      "path": "/evaluations/eval-fixture-1",
+      "method": "GET",
+      "query": ""
+    },
+    {
+      "mode": "results-states",
+      "path": "/results/eval-fixture-1",
+      "method": "GET",
+      "query": "?limit=20&offset=0"
+    },
+    {
+      "mode": "results-states",
+      "path": "/evaluations/eval-fixture-1",
+      "method": "GET",
+      "query": ""
+    },
+    {
+      "mode": "results-states",
+      "path": "/results/eval-fixture-1",
+      "method": "GET",
+      "query": "?limit=20&offset=0"
+    },
+    {
+      "mode": "results-states",
+      "path": "/users/me",
+      "method": "GET",
+      "query": ""
+    },
+    {
+      "mode": "results-states",
+      "path": "/users/me",
+      "method": "GET",
+      "query": ""
+    },
+    {
+      "mode": "results-states",
+      "path": "/evaluations/eval-fixture-1",
+      "method": "GET",
+      "query": ""
+    },
+    {
+      "mode": "results-states",
+      "path": "/results/eval-fixture-1",
+      "method": "GET",
+      "query": "?limit=20&offset=0"
+    },
+    {
+      "mode": "results-states",
+      "path": "/evaluations/eval-fixture-1",
+      "method": "GET",
+      "query": ""
+    },
+    {
+      "mode": "results-states",
+      "path": "/results/eval-fixture-1",
+      "method": "GET",
+      "query": "?limit=20&offset=0"
+    },
+    {
+      "mode": "results-states",
+      "path": "/users/me",
+      "method": "GET",
+      "query": ""
+    },
+    {
+      "mode": "results-states",
+      "path": "/users/me",
+      "method": "GET",
+      "query": ""
+    },
+    {
+      "mode": "results-states",
+      "path": "/evaluations/eval-fixture-1",
+      "method": "GET",
+      "query": ""
+    },
+    {
+      "mode": "results-states",
+      "path": "/results/eval-fixture-1",
+      "method": "GET",
+      "query": "?limit=20&offset=0"
+    },
+    {
+      "mode": "results-states",
+      "path": "/evaluations/eval-fixture-1",
+      "method": "GET",
+      "query": ""
+    },
+    {
+      "mode": "results-states",
+      "path": "/results/eval-fixture-1",
+      "method": "GET",
+      "query": "?limit=20&offset=0"
+    },
+    {
+      "mode": "results-states",
+      "path": "/users/me",
+      "method": "GET",
+      "query": ""
+    },
+    {
+      "mode": "results-states",
+      "path": "/users/me",
+      "method": "GET",
+      "query": ""
+    },
+    {
+      "mode": "results-states",
+      "path": "/evaluations/eval-fixture-1",
+      "method": "GET",
+      "query": ""
+    },
+    {
+      "mode": "results-states",
+      "path": "/results/eval-fixture-1",
+      "method": "GET",
+      "query": "?limit=20&offset=0"
+    },
+    {
+      "mode": "results-states",
+      "path": "/evaluations/eval-fixture-1",
+      "method": "GET",
+      "query": ""
+    },
+    {
+      "mode": "results-states",
+      "path": "/results/eval-fixture-1",
+      "method": "GET",
+      "query": "?limit=20&offset=0"
+    },
+    {
+      "mode": "results-states",
+      "path": "/users/me",
+      "method": "GET",
+      "query": ""
+    },
+    {
+      "mode": "results-states",
+      "path": "/users/me",
+      "method": "GET",
+      "query": ""
+    },
+    {
+      "mode": "results-states",
+      "path": "/evaluations/eval-fixture-1",
+      "method": "GET",
+      "query": ""
+    },
+    {
+      "mode": "results-states",
+      "path": "/results/eval-fixture-1",
+      "method": "GET",
+      "query": "?limit=20&offset=0"
+    },
+    {
+      "mode": "results-states",
+      "path": "/evaluations/eval-fixture-1",
+      "method": "GET",
+      "query": ""
+    },
+    {
+      "mode": "results-states",
+      "path": "/results/eval-fixture-1",
+      "method": "GET",
+      "query": "?limit=20&offset=0"
+    },
+    {
+      "mode": "results-states",
+      "path": "/users/me",
+      "method": "GET",
+      "query": ""
+    },
+    {
+      "mode": "results-states",
+      "path": "/users/me",
+      "method": "GET",
+      "query": ""
+    },
+    {
+      "mode": "results-states",
+      "path": "/evaluations/eval-fixture-1",
+      "method": "GET",
+      "query": ""
+    },
+    {
+      "mode": "results-states",
+      "path": "/results/eval-fixture-1",
+      "method": "GET",
+      "query": "?limit=20&offset=0"
+    },
+    {
+      "mode": "results-states",
+      "path": "/evaluations/eval-fixture-1",
+      "method": "GET",
+      "query": ""
+    },
+    {
+      "mode": "results-states",
+      "path": "/results/eval-fixture-1",
+      "method": "GET",
+      "query": "?limit=20&offset=0"
+    },
+    {
+      "mode": "results-states",
+      "path": "/users/me",
+      "method": "GET",
+      "query": ""
+    },
+    {
+      "mode": "results-states",
+      "path": "/users/me",
+      "method": "GET",
+      "query": ""
+    },
+    {
+      "mode": "results-states",
+      "path": "/evaluations/eval-fixture-1",
+      "method": "GET",
+      "query": ""
+    },
+    {
+      "mode": "results-states",
+      "path": "/results/eval-fixture-1",
+      "method": "GET",
+      "query": "?limit=20&offset=0"
+    },
+    {
+      "mode": "results-states",
+      "path": "/evaluations/eval-fixture-1",
+      "method": "GET",
+      "query": ""
+    },
+    {
+      "mode": "results-states",
+      "path": "/results/eval-fixture-1",
+      "method": "GET",
+      "query": "?limit=20&offset=0"
+    },
+    {
+      "mode": "results-states",
+      "path": "/evaluations/eval-fixture-1",
+      "method": "GET",
+      "query": ""
+    },
+    {
+      "mode": "results-states",
+      "path": "/results/eval-fixture-1",
+      "method": "GET",
+      "query": "?limit=20&offset=0"
+    },
+    {
+      "mode": "results-states",
+      "path": "/evaluations/eval-fixture-1",
+      "method": "GET",
+      "query": ""
+    },
+    {
+      "mode": "results-states",
+      "path": "/results/eval-fixture-1",
+      "method": "GET",
+      "query": "?limit=20&offset=0"
+    },
+    {
+      "mode": "results-states",
+      "path": "/evaluations/eval-fixture-1",
+      "method": "GET",
+      "query": ""
+    },
+    {
+      "mode": "results-states",
+      "path": "/results/eval-fixture-1",
+      "method": "GET",
+      "query": "?limit=20&offset=0"
+    },
+    {
+      "mode": "results-states",
+      "path": "/evaluations/eval-fixture-1",
+      "method": "GET",
+      "query": ""
+    },
+    {
+      "mode": "results-states",
+      "path": "/results/eval-fixture-1",
+      "method": "GET",
+      "query": "?limit=20&offset=0"
+    },
+    {
+      "mode": "results-states",
+      "path": "/evaluations/eval-fixture-1",
+      "method": "GET",
+      "query": ""
+    },
+    {
+      "mode": "results-states",
+      "path": "/results/eval-fixture-1",
+      "method": "GET",
+      "query": "?limit=20&offset=0"
+    },
+    {
+      "mode": "results-states",
+      "path": "/users/me",
+      "method": "GET",
+      "query": ""
+    },
+    {
+      "mode": "results-states",
+      "path": "/users/me",
+      "method": "GET",
+      "query": ""
+    },
+    {
+      "mode": "results-states",
+      "path": "/evaluations/eval-fixture-1",
+      "method": "GET",
+      "query": ""
+    },
+    {
+      "mode": "results-states",
+      "path": "/results/eval-fixture-1",
+      "method": "GET",
+      "query": "?limit=20&offset=0"
+    },
+    {
+      "mode": "results-states",
+      "path": "/evaluations/eval-fixture-1",
+      "method": "GET",
+      "query": ""
+    },
+    {
+      "mode": "results-states",
+      "path": "/results/eval-fixture-1",
+      "method": "GET",
+      "query": "?limit=20&offset=0"
+    },
+    {
+      "mode": "results-states",
+      "path": "/evaluations/eval-fixture-1",
+      "method": "GET",
+      "query": ""
+    },
+    {
+      "mode": "results-states",
+      "path": "/results/eval-fixture-1",
+      "method": "GET",
+      "query": "?limit=20&offset=0"
+    },
+    {
+      "mode": "results-states",
+      "path": "/evaluations/eval-fixture-1",
+      "method": "GET",
+      "query": ""
+    },
+    {
+      "mode": "results-states",
+      "path": "/results/eval-fixture-1",
+      "method": "GET",
+      "query": "?limit=20&offset=0"
+    },
+    {
+      "mode": "results-states",
+      "path": "/evaluations/eval-fixture-1",
+      "method": "GET",
+      "query": ""
+    },
+    {
+      "mode": "results-states",
+      "path": "/results/eval-fixture-1",
+      "method": "GET",
+      "query": "?limit=20&offset=0"
+    },
+    {
+      "mode": "results-states",
+      "path": "/evaluations/eval-fixture-1",
+      "method": "GET",
+      "query": ""
+    },
+    {
+      "mode": "results-states",
+      "path": "/results/eval-fixture-1",
+      "method": "GET",
+      "query": "?limit=20&offset=0"
+    },
+    {
+      "mode": "results-states",
+      "path": "/users/me",
+      "method": "GET",
+      "query": ""
+    },
+    {
+      "mode": "results-states",
+      "path": "/users/me",
+      "method": "GET",
+      "query": ""
+    },
+    {
+      "mode": "results-states",
+      "path": "/evaluations/eval-fixture-1",
+      "method": "GET",
+      "query": ""
+    },
+    {
+      "mode": "results-states",
+      "path": "/results/eval-fixture-1",
+      "method": "GET",
+      "query": "?limit=20&offset=0"
+    },
+    {
+      "mode": "results-states",
+      "path": "/evaluations/eval-fixture-1",
+      "method": "GET",
+      "query": ""
+    },
+    {
+      "mode": "results-states",
+      "path": "/results/eval-fixture-1",
+      "method": "GET",
+      "query": "?limit=20&offset=0"
+    },
+    {
+      "mode": "results-states",
+      "path": "/evaluations/eval-fixture-1",
+      "method": "GET",
+      "query": ""
+    },
+    {
+      "mode": "results-states",
+      "path": "/results/eval-fixture-1",
+      "method": "GET",
+      "query": "?limit=20&offset=0"
+    },
+    {
+      "mode": "results-states",
+      "path": "/evaluations/eval-fixture-1",
+      "method": "GET",
+      "query": ""
+    },
+    {
+      "mode": "results-states",
+      "path": "/results/eval-fixture-1",
+      "method": "GET",
+      "query": "?limit=20&offset=0"
+    },
+    {
+      "mode": "results-states",
+      "path": "/evaluations/eval-fixture-1",
+      "method": "GET",
+      "query": ""
+    },
+    {
+      "mode": "results-states",
+      "path": "/results/eval-fixture-1",
+      "method": "GET",
+      "query": "?limit=20&offset=0"
+    },
+    {
+      "mode": "results-states",
+      "path": "/evaluations/eval-fixture-1",
+      "method": "GET",
+      "query": ""
+    },
+    {
+      "mode": "results-states",
+      "path": "/results/eval-fixture-1",
+      "method": "GET",
+      "query": "?limit=20&offset=0"
+    },
+    {
+      "mode": "results-states",
+      "path": "/users/me",
+      "method": "GET",
+      "query": ""
+    },
+    {
+      "mode": "results-states",
+      "path": "/users/me",
+      "method": "GET",
+      "query": ""
+    },
+    {
+      "mode": "results-states",
+      "path": "/evaluations/eval-fixture-1",
+      "method": "GET",
+      "query": ""
+    },
+    {
+      "mode": "results-states",
+      "path": "/results/eval-fixture-1",
+      "method": "GET",
+      "query": "?limit=20&offset=0"
+    },
+    {
+      "mode": "results-states",
+      "path": "/evaluations/eval-fixture-1",
+      "method": "GET",
+      "query": ""
+    },
+    {
+      "mode": "results-states",
+      "path": "/results/eval-fixture-1",
+      "method": "GET",
+      "query": "?limit=20&offset=0"
+    },
+    {
+      "mode": "results-states",
+      "path": "/evaluations/eval-fixture-1",
+      "method": "GET",
+      "query": ""
+    },
+    {
+      "mode": "results-states",
+      "path": "/results/eval-fixture-1",
+      "method": "GET",
+      "query": "?limit=20&offset=0"
+    },
+    {
+      "mode": "results-states",
+      "path": "/evaluations/eval-fixture-1",
+      "method": "GET",
+      "query": ""
+    },
+    {
+      "mode": "results-states",
+      "path": "/results/eval-fixture-1",
+      "method": "GET",
+      "query": "?limit=20&offset=0"
+    },
+    {
+      "mode": "results-states",
+      "path": "/users/me",
+      "method": "GET",
+      "query": ""
+    },
+    {
+      "mode": "results-states",
+      "path": "/users/me",
+      "method": "GET",
+      "query": ""
+    },
+    {
+      "mode": "results-states",
+      "path": "/evaluations/eval-fixture-1",
+      "method": "GET",
+      "query": ""
+    },
+    {
+      "mode": "results-states",
+      "path": "/results/eval-fixture-1",
+      "method": "GET",
+      "query": "?limit=20&offset=0"
+    },
+    {
+      "mode": "results-states",
+      "path": "/evaluations/eval-fixture-1",
+      "method": "GET",
+      "query": ""
+    },
+    {
+      "mode": "results-states",
+      "path": "/results/eval-fixture-1",
+      "method": "GET",
+      "query": "?limit=20&offset=0"
+    },
+    {
+      "mode": "results-states",
+      "path": "/evaluations/eval-fixture-1",
+      "method": "GET",
+      "query": ""
+    },
+    {
+      "mode": "results-states",
+      "path": "/results/eval-fixture-1",
+      "method": "GET",
+      "query": "?limit=20&offset=0"
+    },
+    {
+      "mode": "results-states",
+      "path": "/results/eval-fixture-1",
+      "method": "GET",
+      "query": "?limit=20&offset=0"
+    },
+    {
+      "mode": "results-states",
+      "path": "/users/me",
+      "method": "GET",
+      "query": ""
+    },
+    {
+      "mode": "results-states",
+      "path": "/users/me",
+      "method": "GET",
+      "query": ""
+    },
+    {
+      "mode": "results-states",
+      "path": "/evaluations/eval-fixture-1",
+      "method": "GET",
+      "query": ""
+    },
+    {
+      "mode": "results-states",
+      "path": "/results/eval-fixture-1",
+      "method": "GET",
+      "query": "?limit=20&offset=0"
+    },
+    {
+      "mode": "results-states",
+      "path": "/evaluations/eval-fixture-1",
+      "method": "GET",
+      "query": ""
+    },
+    {
+      "mode": "results-states",
+      "path": "/results/eval-fixture-1",
+      "method": "GET",
+      "query": "?limit=20&offset=0"
+    },
+    {
+      "mode": "results-states",
+      "path": "/evaluations/eval-fixture-1",
+      "method": "GET",
+      "query": ""
+    },
+    {
+      "mode": "results-states",
+      "path": "/results/eval-fixture-1",
+      "method": "GET",
+      "query": "?limit=20&offset=0"
+    },
+    {
+      "mode": "results-states",
+      "path": "/results/eval-fixture-1",
+      "method": "GET",
+      "query": "?limit=20&offset=0"
+    },
+    {
+      "mode": "results-states",
+      "path": "/evaluations/eval-fixture-1",
+      "method": "GET",
+      "query": ""
+    },
+    {
+      "mode": "results-states",
+      "path": "/results/eval-fixture-1",
+      "method": "GET",
+      "query": "?limit=20&offset=0"
+    }
+  ],
+  "unknown": [],
+  "screenshots": [
+    "states-orbit-light-320.png",
+    "states-orbit-light-1440.png",
+    "states-orbit-dark-320.png",
+    "states-orbit-dark-1440.png",
+    "states-precision-light-320.png",
+    "states-precision-light-1440.png",
+    "states-precision-dark-320.png",
+    "states-precision-dark-1440.png",
+    "states-studio-light-320.png",
+    "states-studio-light-1440.png",
+    "states-studio-dark-320.png",
+    "states-studio-dark-1440.png"
+  ],
+  "replaced": [
+    "WebSocket progress: in-memory fixture (no real upstream connection)",
+    "HTTP /api/v1/users/me",
+    "HTTP /api/v1/api-keys",
+    "HTTP /api/v1/evaluation-options and children",
+    "HTTP /api/v1/evaluations create/start/get",
+    "results scenario: HTTP /api/v1/results list/detail",
+    "localStorage session marker (no credentials)",
+    "security only: isolated HTML and in-memory auth/HTTP transport"
+  ],
+  "real": [
+    "React StrictMode",
+    "router",
+    "session provider",
+    "creation store",
+    "evaluation client"
+  ],
+  "pass": true
+}

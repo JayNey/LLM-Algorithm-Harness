@@ -32,6 +32,20 @@ export function useEvaluation(
     error?: string
   }>()
   const reload = useCallback(() => setAttempt((value) => value + 1), [])
+  const discard = useCallback(() => {
+    // A live permission rejection invalidates bootstrap data too. Invalidate
+    // any older read so a transport ignoring AbortSignal cannot restore it.
+    generation.current += 1
+    if (owner)
+      setSnapshot({
+        client,
+        load,
+        owner,
+        evaluationId,
+        attempt,
+        error: '任务不可访问，请刷新后重试',
+      })
+  }, [client, load, owner, evaluationId, attempt])
   useEffect(() => {
     const controller = new AbortController()
     const operation = ++generation.current
@@ -80,6 +94,7 @@ export function useEvaluation(
     error: current && !loading ? snapshot.error : undefined,
     loading,
     reload,
+    discard,
   }
 }
 
@@ -115,6 +130,7 @@ export function useEvaluationLive(
   owner: string | null,
   enabled: boolean,
   fetchSnapshot?: SnapshotLoader,
+  onForbidden?: () => void,
 ): EvaluationLive {
   const load = fetchSnapshot ?? client.get
   const [snapshot, setSnapshot] = useState<{
@@ -190,6 +206,7 @@ export function useEvaluationLive(
           clearTimeout(handle as ReturnType<typeof setTimeout>),
       },
       onChange: (event) => {
+        if (event.type === 'forbidden') onForbidden?.()
         // 关键：接受事件时必须以当前代身份盖章写入——snapshot 初始无身份，
         // 只比对不盖章会让 aligned 守卫永久拦截所有事件（复审 P0 教训）。
         setSnapshot((previous) => {
@@ -251,7 +268,7 @@ export function useEvaluationLive(
       instance.dispose()
       observerRef.current = null
     }
-  }, [client, load, evaluationId, owner, enabled])
+  }, [client, load, evaluationId, owner, enabled, onForbidden])
 
   // 页面可见性 / 网络状态 → 观察器暂停与恢复
   useEffect(() => {

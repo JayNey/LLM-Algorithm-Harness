@@ -1,0 +1,177 @@
+{
+  "scenario": "progress",
+  "source": {
+    "head": "79cb39ac60cefe840fcd9c464d9a60c3621b9ba5",
+    "dirty": "M scripts/verify-evaluations.mjs\n M src/evaluations/results.test.ts\n M src/evaluations/results.ts\n M src/pages/Results/ResultDetailPage.tsx\n M ../openspec/changes/distinguish-result-states/tasks.md"
+  },
+  "layer": "browser-fixture (not backend E2E)",
+  "assertions": [
+    {
+      "name": "WS 连接 URL 不含 token",
+      "pass": true
+    },
+    {
+      "name": "进度事件前呈现 HTTP 初始真值20%",
+      "pass": true
+    },
+    {
+      "name": "服务端事件触发 HTTP 真值刷新到 60%",
+      "pass": true
+    },
+    {
+      "name": "详情请求区间两两不重叠（无并发观察周期）",
+      "pass": true
+    },
+    {
+      "name": "WS4403清除已显示详情及动作",
+      "pass": true
+    },
+    {
+      "name": "WS4403显式重试恢复订阅且后续事件继续刷新HTTP真值",
+      "pass": true
+    },
+    {
+      "name": "无未声明 API 请求",
+      "pass": true
+    }
+  ],
+  "requests": [
+    {
+      "mode": "progress",
+      "path": "/users/me",
+      "method": "GET",
+      "query": ""
+    },
+    {
+      "mode": "progress",
+      "path": "/users/me",
+      "method": "GET",
+      "query": ""
+    },
+    {
+      "mode": "progress",
+      "path": "/evaluations/eval-fixture-1",
+      "method": "GET",
+      "query": ""
+    },
+    {
+      "mode": "progress",
+      "path": "/evaluations/eval-fixture-1",
+      "method": "GET",
+      "query": ""
+    },
+    {
+      "mode": "progress",
+      "path": "/evaluations/eval-fixture-1",
+      "method": "GET",
+      "query": ""
+    },
+    {
+      "mode": "progress",
+      "path": "/evaluations/eval-fixture-1",
+      "method": "GET",
+      "query": ""
+    },
+    {
+      "mode": "progress",
+      "path": "/evaluations/eval-fixture-1",
+      "method": "GET",
+      "query": ""
+    },
+    {
+      "mode": "progress",
+      "path": "/evaluations/eval-fixture-1",
+      "method": "GET",
+      "query": ""
+    },
+    {
+      "mode": "progress",
+      "path": "/evaluations/eval-fixture-1",
+      "method": "GET",
+      "query": ""
+    },
+    {
+      "mode": "progress",
+      "path": "/evaluations/eval-fixture-1",
+      "method": "GET",
+      "query": ""
+    }
+  ],
+  "unknown": [],
+  "screenshots": [
+    "progress.png",
+    "progress-denied.png"
+  ],
+  "replaced": [
+    "WebSocket progress: in-memory fixture (no real upstream connection)",
+    "HTTP /api/v1/users/me",
+    "HTTP /api/v1/api-keys",
+    "HTTP /api/v1/evaluation-options and children",
+    "HTTP /api/v1/evaluations create/start/get",
+    "results scenario: HTTP /api/v1/results list/detail",
+    "localStorage session marker (no credentials)",
+    "security only: isolated HTML and in-memory auth/HTTP transport"
+  ],
+  "real": [
+    "React StrictMode",
+    "router",
+    "session provider",
+    "creation store",
+    "evaluation client",
+    "evaluation detail live progress (WS + HTTP truth)"
+  ],
+  "progress_evidence": {
+    "event_percentage": 50,
+    "initial_http_percentage": 20,
+    "final_http_percentage": 60,
+    "detail_intervals": [
+      [
+        1792940290221,
+        1792940290345
+      ],
+      [
+        1792940290350,
+        1792940290473
+      ],
+      [
+        1792940292357,
+        1792940292480
+      ],
+      [
+        1792940294494,
+        1792940294619
+      ],
+      [
+        1792940294943,
+        1792940295065
+      ],
+      [
+        1792940295069,
+        1792940295192
+      ],
+      [
+        1792940297075,
+        1792940297200
+      ],
+      [
+        1792940299218,
+        1792940299344
+      ]
+    ],
+    "socket_paths": [
+      "/api/v1/ws/progress"
+    ],
+    "http_values": [
+      20,
+      20,
+      20,
+      60,
+      60,
+      60,
+      60,
+      80
+    ],
+    "reconciliations_before_progress": 3
+  },
+  "pass": true
+}

@@ -1,0 +1,46 @@
+✔ 联合快照并发读取相同evaluation ID/分页/signal，结果前不结束周期，run_id可为空 (0.835625ms)
+✔ 结果503保留成功任务和独立错误，不伪装合法空结果 (0.110041ms)
+✔ 任务权限失败不发布同时读到的结果 (0.238125ms)
+✔ 结果401/429交还同一观察器恢复/退避，不被普通结果错误吞掉 (0.120792ms)
+✔ transport忽略AbortSignal时，旧联合结果仍不可交付 (0.114291ms)
+✔ 终态任务与旧结果跨版本时，同一周期补读后才交付完整结果 (0.087334ms)
+✔ 补读后仍跨版本时显示独立错误，不将旧统计伪装终态结果或无限补读 (0.089583ms)
+✔ 结果403/404也使整个任务资源失效，不保留task200缓存 (0.118666ms)
+✔ 终态补读失败仍独立显示结果错误，权限拒绝则整体失效 (0.1475ms)
+✖ 任务503不能掩盖并行结果403，任一权限拒绝优先清除整个缓存 (0.394917ms)
+ℹ tests 10
+ℹ suites 0
+ℹ pass 9
+ℹ fail 1
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 206.240959
+
+✖ failing tests:
+
+test at frontend/src/evaluations/results.test.ts:234:1
+✖ 任务503不能掩盖并行结果403，任一权限拒绝优先清除整个缓存 (0.394917ms)
+  AssertionError [ERR_ASSERTION]: The validation function is expected to return "true". Received false
+  
+  Caught error:
+  
+  ApiClientError: unavailable
+      at async TestContext.<anonymous> (file:///Users/charlesleclerc/LLM-Algorithm-Harness/frontend/src/evaluations/results.test.ts:236:3)
+      at async Test.run (node:internal/test_runner/test:1409:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:974:7) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: ApiClientError: unavailable
+        at Object.get (file:///Users/charlesleclerc/LLM-Algorithm-Harness/frontend/src/evaluations/results.test.ts:237:30)
+        at fetchEvaluationResult (file:///Users/charlesleclerc/LLM-Algorithm-Harness/frontend/src/evaluations/results.ts:17:12)
+        at TestContext.<anonymous> (file:///Users/charlesleclerc/LLM-Algorithm-Harness/frontend/src/evaluations/results.test.ts:236:24)
+        at Test.runInAsyncScope (node:async_hooks:226:14)
+        at Test.run (node:internal/test_runner/test:1402:25)
+        at Test.processPendingSubtests (node:internal/test_runner/test:974:18)
+        at Test.postRun (node:internal/test_runner/test:1542:19)
+        at Test.run (node:internal/test_runner/test:1467:12)
+        at async Test.processPendingSubtests (node:internal/test_runner/test:974:7),
+    operator: 'rejects',
+    diff: 'simple'
+  }
