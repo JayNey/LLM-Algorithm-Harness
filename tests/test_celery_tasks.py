@@ -1766,3 +1766,4 @@ def test_web_pricing_reprices_cache_without_changing_history(monkeypatch, usage_
     assert response.pricing_metadata["usage_known"] is not usage_missing
     assert cached.pricing_metadata["total_cost"] == 99
     assert response.model == "canonical"
+    assert response.pricing_metadata["model"] == response.model

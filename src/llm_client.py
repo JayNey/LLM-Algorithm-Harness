@@ -297,6 +297,7 @@ class LLMClient:
                         update={
                             "pricing_metadata": {
                                 **pricing.to_dict(),
+                                "model": cached_response.model,
                                 "usage_known": usage_known,
                                 "total_cost": cost,
                             }
