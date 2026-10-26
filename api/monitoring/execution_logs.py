@@ -74,6 +74,7 @@ def record_execution_event(task: AsyncTask, event: str, data: dict[str, Any] | N
             "experiment",
             "benchmark",
             "import",
+            "ab_test",
         }:
             return
         settings = AuthSettings()

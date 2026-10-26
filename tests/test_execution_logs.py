@@ -57,7 +57,9 @@ def logs(client, credentials, task_id, **params):
     return client.get(f"/api/v1/logs/tasks/{task_id}", headers=credentials, params=params)
 
 
-@pytest.mark.parametrize("task_type", ["evaluation", "experiment", "benchmark", "import"])
+@pytest.mark.parametrize(
+    "task_type", ["evaluation", "experiment", "benchmark", "import", "ab_test"]
+)
 def test_committed_worker_states_are_owned_and_downloadable(api, task_type):
     app, client, owner, headers, _, other = api
     task_id, entity_id = seed(app, owner, task_type)

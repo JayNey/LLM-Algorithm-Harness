@@ -991,11 +991,14 @@ OPERATIONS: dict[str, tuple[str, Any]] = {
         "分页查询自己的 A/B 测试，可按状态过滤。",
         page([{**JOB, "id": "test-demo"}]),
     ),
-    "get_ab_test": ("查询自己的 A/B 测试配置、状态及错误。", {**JOB, "id": "test-demo"}),
-    "delete_ab_test": ("删除自己的已停止 A/B 测试；运行中的测试不可删除。", None),
+    "get_ab_test": (
+        "查询自己的 A/B 测试配置、状态、错误及关联 task_id。",
+        {**JOB, "id": "test-demo", "task_id": "task-demo"},
+    ),
+    "delete_ab_test": ("删除自己的已停止 A/B 测试；排队、运行或暂停的测试不可删除。", None),
     "run_ab_test": (
-        "启动自己的 A/B 测试；202 为已受理，轮询测试详情。",
-        {**JOB, "id": "test-demo", "status": "running"},
+        "将自己的 A/B 测试提交到 Celery；202 返回 task_id，可查询统一任务接口，worker 开始前为 pending。",
+        {**JOB, "id": "test-demo", "status": "pending", "task_id": "task-demo"},
     ),
     "ab_test_results": (
         "读取自己的 A/B 测试统计；未完成时返回测试 ID 和当前状态。",
