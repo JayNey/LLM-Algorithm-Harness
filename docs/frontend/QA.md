@@ -106,3 +106,11 @@ PLAYWRIGHT_MODULE=/absolute/path/to/node_modules/playwright \
 从frontend启动Vite，另终端运行 `PLAYWRIGHT_MODULE=/absolute/path/to/playwright node scripts/verify-evaluations.mjs --scenario results`；地址/输出用 `EVALUATION_BASE_URL`、`EVALUATION_QA_DIR` 覆盖。外部Playwright包由环境提供，不增加项目依赖。`all`也会运行results及既有创建、列表、详情、进度、安全回归。
 
 [验证报告](../superpowers/reports/2026-10-25-evaluation-results-verify.md) 与 [公开浏览器JSON](assets/evaluations/results/all.json) 记录实际源码、断言、请求时序和截图索引。fixture替换HTTP/WS/测试身份，不能代替真实Redis/Celery、供应商、沙箱或真实账号端到端；完整外观矩阵及真实联调由#229/#232跟踪。
+
+## 真实评估外观矩阵（#229，页面验收部分）
+
+从 `frontend/` 运行 `node scripts/verify-evaluation-appearance.mjs`。脚本默认在 `127.0.0.1:5189` 启动并清理自己的 Vite 开发服务；设置 `PLAYWRIGHT_MODULE` 指向可用的 Playwright 包。也可用 `EVALUATION_APPEARANCE_BASE_URL` 指向已有的前端服务，并用 `EVALUATION_APPEARANCE_QA_DIR` 指定 JSON 与截图输出目录。
+
+场景覆盖 Orbit、Precision、Studio × light、dark × 320、390、768、1440px，共 24 种组合；每种组合依次验证真实创建表单与提交、任务筛选和详情、结果筛选和详情。断言检查创建草稿、筛选 URL、外观偏好在切换后保留，主要操作和表格滚动区域能用键盘到达，页面没有横向溢出。执行结果保存为 `appearance.json`，并附四张代表性截图；默认输出到仓库同级 `.monitoring/evaluation-appearance-229/`。
+
+2026-10-26 本地运行结果：**120 项断言通过**。覆盖的是 Chromium 视口模拟；登录身份及业务 HTTP 响应用 fixture 替换。未验证真实后端、Redis/Celery、供应商、沙箱、真机、Safari/Firefox 或屏幕阅读器。统一侧栏与示例页入口仍由 #228 管理；其 PR 合并到 main 前，本场景只验收各页面自身的外观和操作。
