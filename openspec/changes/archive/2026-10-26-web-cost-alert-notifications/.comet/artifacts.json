@@ -1,5 +1,6 @@
 {
   "openspec_proposal": "openspec/changes/web-cost-alert-notifications/proposal.md",
   "openspec_design": "openspec/changes/web-cost-alert-notifications/design.md",
-  "openspec_tasks": "openspec/changes/web-cost-alert-notifications/tasks.md"
+  "openspec_tasks": "openspec/changes/web-cost-alert-notifications/tasks.md",
+  "archive_directory": "openspec/changes/archive/2026-10-26-web-cost-alert-notifications"
 }
