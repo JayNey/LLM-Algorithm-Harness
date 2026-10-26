@@ -254,7 +254,9 @@ class MonitorService:
                     func.sum(case((valid, seconds), else_=0.0)).label("seconds"),
                 )
                 .where(
-                    AsyncTask.task_type.in_(("evaluation", "experiment", "benchmark", "import")),
+                    AsyncTask.task_type.in_(
+                        ("evaluation", "experiment", "benchmark", "import", "ab_test")
+                    ),
                     AsyncTask.status.in_(("completed", "failed")),
                     AsyncTask.started_at.is_not(None),
                 )

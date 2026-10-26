@@ -175,3 +175,40 @@ def test_broker_terminal_state_syncs_business_record(service, state):
     row, tasks = rows(service)
     assert row.status == tasks[0].status == ("failed" if state == "FAILURE" else "cancelled")
     assert row.completed_at is not None
+
+
+@pytest.mark.parametrize("state", ["paused", "cancelled", "completed", "failed", "running"])
+def test_duplicate_message_never_restarts_existing_task(service, state):
+    enqueue(service)
+    with service._session() as db:
+        task = db.scalars(select(AsyncTask)).one()
+        task.status = state
+        db.get(ABTest, "ab-1").status = state
+        db.commit()
+    with patch.object(service, "_build_config") as build:
+        result = service._execute("ab-1", "owner")
+    assert result["status"] == state
+    assert build.call_count == 0
+    assert rows(service)[0].status == state
+
+
+def test_stale_message_id_is_rejected(service):
+    enqueue(service)
+    with pytest.raises(ValueError, match="not found"):
+        service._execute("ab-1", "owner", celery_task_id="stale-message")
+    assert rows(service)[0].status == "pending"
+
+
+def test_broker_started_event_does_not_preempt_atomic_claim(service):
+    view = enqueue(service)
+    with service._session() as db, patch("src.task_manager.celery_app.AsyncResult") as result:
+        result.return_value.state = "STARTED"
+        TaskManager(db).get_task(view["task_id"], "owner")
+    assert rows(service)[1][0].status == "pending"
+
+
+def test_worker_rejects_other_owner_without_changing_records(service):
+    enqueue(service)
+    with pytest.raises(ValueError, match="not found"):
+        service._execute("ab-1", "other")
+    assert rows(service)[0].status == rows(service)[1][0].status == "pending"

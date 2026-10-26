@@ -919,10 +919,25 @@ class TestABTests:
 
         started = client.post(f"/api/v1/ab-tests/{test_id}/run", headers=headers)
         assert started.status_code == 202, started.text
-        data = _wait_status(
-            lambda: client.get(f"/api/v1/ab-tests/{test_id}", headers=headers).json()["data"],
-            {"completed"},
-        )
+        task_id = started.json()["data"]["task_id"]
+        assert started.json()["data"]["status"] == "pending"
+        detail = client.get(f"/api/v1/ab-tests/{test_id}", headers=headers).json()["data"]
+        assert detail["task_id"] == task_id
+        assert detail["status"] == "pending"
+        task = client.get(f"/api/v1/tasks/{task_id}", headers=headers).json()["data"]
+        assert task["status"] == "pending" and task["task_type"] == "ab_test"
+        from src.ab_testing import ABTestRunner
+        from src.tasks.ab_test import run_ab_test_task
+
+        with (
+            patch("api.auth.config.AuthSettings", return_value=client.app.state.auth.settings),
+            patch.object(ABTestRunner, "run", FakeABTestRunner.run),
+        ):
+            from api.db.models import AsyncTask
+
+            with client.app.state.ab_tests._session() as db:
+                owner = db.get(AsyncTask, task_id).user_id
+            assert run_ab_test_task(test_id, owner)["status"] == "completed"
         results = client.get(f"/api/v1/ab-tests/{test_id}/results", headers=headers)
         assert results.status_code == 200
         assert results.json()["data"]["variants"] == ["baseline", "treatment"]
