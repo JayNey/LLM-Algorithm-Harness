@@ -14,7 +14,7 @@ from pydantic import SecretStr
 from src.cache import CacheKey, LLMResponseCache
 from src.models import LLMConfig, LLMResponse, TokenUsage
 from src.utils.logging import get_logger
-from src.utils.pricing import PricingManager
+from src.utils.pricing import PricingInfo, PricingManager
 from src.utils.secrets import redact_sensitive_data, redact_sensitive_text
 
 # Optional imports for LLM providers (may not be installed)
@@ -273,6 +273,35 @@ class LLMClient:
                     model=self.config.model,
                     cache_key=cache_key[:16],
                 )
+                if (
+                    self.config.model in self.pricing_manager.overrides
+                    or cached_response.model in self.pricing_manager.overrides
+                ):
+                    pricing = self._response_pricing(cached_response.model)
+                    usage_known = not cached_response.usage_missing and (
+                        (cached_response.pricing_metadata or {}).get("usage_known") is not False
+                    )
+                    usage = cached_response.usage
+                    prompt_price = pricing.prompt_price
+                    completion_price = pricing.completion_price
+                    cost = (
+                        (
+                            usage.prompt_tokens * prompt_price
+                            + usage.completion_tokens * completion_price
+                        )
+                        / 1000
+                        if usage_known and prompt_price is not None and completion_price is not None
+                        else None
+                    )
+                    return cached_response.model_copy(
+                        update={
+                            "pricing_metadata": {
+                                **pricing.to_dict(),
+                                "usage_known": usage_known,
+                                "total_cost": cost,
+                            }
+                        }
+                    )
                 return cached_response
 
         logger.info(
@@ -510,6 +539,12 @@ class LLMClient:
                 # Do not persist/log payloads, settings errors or provider errors.
                 pass
 
+    def _response_pricing(self, model: str) -> PricingInfo:
+        # Providers may return a canonical model ID for the configured alias.
+        if self.config.model in self.pricing_manager.overrides:
+            return self.pricing_manager.get_pricing(self.config.model)
+        return self.pricing_manager.get_pricing(model)
+
     def _call_openai(self, prompt: str, effective: dict[str, Any]) -> LLMResponse:
         """
         Call OpenAI API.
@@ -557,7 +592,7 @@ class LLMClient:
 
         # Get pricing metadata for this model
         model = self._field(response, "model") or self.config.model
-        pricing_info = self.pricing_manager.get_pricing(model)
+        pricing_info = self._response_pricing(model)
         choices = self._field(response, "choices")
         choice = choices[0] if choices else None
         message = self._field(choice, "message") if choice is not None else None
@@ -630,7 +665,7 @@ class LLMClient:
 
         # Get pricing metadata for this model
         model = self._field(response, "model") or self.config.model
-        pricing_info = self.pricing_manager.get_pricing(model)
+        pricing_info = self._response_pricing(model)
 
         token_usage, usage_missing = self._anthropic_usage(self._field(response, "usage"))
 

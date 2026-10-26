@@ -293,6 +293,7 @@ class TestCreateTaskUnits:
 def session_factory():
     """返回绑定内存库的 sessionmaker（ProblemStore 构造入参）。"""
     engine = create_engine("sqlite:///:memory:")
+    Base.metadata.create_all(engine)
     return sessionmaker(bind=engine)
 
 
@@ -1636,3 +1637,132 @@ class TestPersonalBudgetExecution:
         with patch("src.tasks.evaluation.get_db_session", return_value=db_session):
             assert run_evaluation_task(evaluation_id)["status"] == "paused"
         assert integration_harness.execute_calls == [("chain_of_thought", "p1")]
+
+
+@pytest.mark.parametrize("unit_price,expected_status", [(0.1, "paused"), (0.0, "completed")])
+def test_web_pricing_drives_real_cost_and_budget(
+    db_session, auth_ok, monkeypatch, tmp_path, unit_price, expected_status
+):
+    """Use Web writes, real clients/traces/cost settlement and task budget boundaries."""
+    from types import SimpleNamespace
+
+    from api.services.cost_service import CostService
+    from src.llm_client import LLMClient
+    from src.sandbox_executor import SandboxExecutor
+
+    monkeypatch.chdir(tmp_path)
+    monkeypatch.setattr(SandboxExecutor, "health_check", lambda self: (True, "ok"))
+    monkeypatch.setattr(run_evaluation_task, "update_state", lambda *a, **k: None)
+    monkeypatch.setattr("src.llm_client.OpenAI", lambda **kwargs: Mock())
+
+    # No code means no sandbox execution; the provider call still incurs token cost.
+    def provider(self, effective_call):
+        return SimpleNamespace(
+            model="provider-canonical-model",
+            choices=[
+                SimpleNamespace(message=SimpleNamespace(content="No code"), finish_reason="stop")
+            ],
+            usage=SimpleNamespace(prompt_tokens=1000, completion_tokens=1000, total_tokens=2000),
+        )
+
+    monkeypatch.setattr(LLMClient, "_call_with_retry", provider)
+    monkeypatch.setattr("src.tasks.evaluation.get_db_session", lambda: db_session)
+    # CostService uses the very same database as the evaluation worker.
+    service = CostService.__new__(CostService)
+    service._session = sessionmaker(bind=db_session.get_bind(), expire_on_commit=False)
+
+    def request(value):
+        return SimpleNamespace(prompt_per_1k=value, completion_per_1k=value)
+
+    service.set_pricing_override("test-model", request(0.01), "editor")
+    service.set_pricing_override("test-model", request(unit_price), "editor")
+    evaluation_id = _seed_evaluation(
+        db_session, problem_ids=["p1", "p2"], strategy_names=["vanilla"], budget_cap_usd=0.15
+    )
+    result = run_evaluation_task.run(evaluation_id)
+    ev = _reload(db_session, Evaluation, evaluation_id)
+    assert result["status"] == ev.status == expected_status
+    count = 1 if expected_status == "paused" else 2
+    assert ev.completed_count == count
+    assert ev.spent_usd == pytest.approx(count * unit_price * 2)
+    rows = db_session.query(EvaluationResult).filter_by(evaluation_id=evaluation_id).all()
+    assert len(rows) == count
+    assert all(row.metrics["cost_unknown"] is False for row in rows)
+
+    if expected_status == "paused":
+        # Resume refreshes the snapshot and preserves the already settled first unit.
+        service.set_pricing_override("test-model", request(0.02), "editor")
+        ev.budget_cap_usd = 1.0
+        db_session.get(AsyncTask, ev.async_task_id).status = "running"
+        db_session.commit()
+        result = run_evaluation_task.run(evaluation_id)
+        ev = _reload(db_session, Evaluation, evaluation_id)
+        assert result["status"] == "completed"
+        assert ev.completed_count == 2
+        assert ev.spent_usd == pytest.approx(0.24)
+
+
+def test_web_pricing_snapshot_shared_by_all_and_late_runtimes(db_session, auth_ok, monkeypatch):
+    from types import SimpleNamespace
+
+    from api.services.cost_service import CostService
+    from src.models import StrategyConfig
+    from src.sandbox_executor import SandboxExecutor
+    from src.tasks.evaluation import _build_harness, _resolve_execution_context
+
+    monkeypatch.setattr(SandboxExecutor, "health_check", lambda self: (True, "ok"))
+    monkeypatch.setattr("src.llm_client.OpenAI", lambda **kwargs: Mock())
+    factory = sessionmaker(bind=db_session.get_bind(), expire_on_commit=False)
+    service = CostService.__new__(CostService)
+    service._session = factory
+    request = SimpleNamespace(prompt_per_1k=0.03, completion_per_1k=0.07)
+    service.set_pricing_override("test-model", request, "editor")
+    evaluation_id = _seed_evaluation(db_session, problem_ids=["p1"], strategy_names=["vanilla"])
+    ev = db_session.get(Evaluation, evaluation_id)
+    ctx = _resolve_execution_context(ev, factory)
+    request.prompt_per_1k = 0.99
+    service.set_pricing_override("test-model", request, "editor")
+    harness, _, runtimes = _build_harness(ctx, ["vanilla", "chain_of_thought"])
+    runtimes["late"] = harness._prepare_strategy_runtime(StrategyConfig(name="vanilla"))
+    for strategy, _ in runtimes.values():
+        info = strategy.llm_client.pricing_manager.get_pricing("test-model")
+        assert info.source == "override"
+        assert info.prompt_price == 0.03
+        assert info.as_of
+    fresh = _resolve_execution_context(ev, factory)
+    assert fresh.pricing_manager.get_pricing("test-model").prompt_price == 0.99
+    pm = ctx.pricing_manager
+    pm.custom_pricing["test-model"] = {"prompt": 100, "completion": 100}
+    assert pm.get_pricing("test-model").prompt_price == 0.03
+    assert pm.get_pricing("test-model-other").source == "custom"
+    assert pm.get_pricing("gpt-4").source == "builtin"
+    assert pm.get_pricing("unknown-model").pricing_known is False
+
+
+@pytest.mark.parametrize("usage_missing", [False, True])
+@pytest.mark.parametrize("provider", ["openai", "anthropic"])
+def test_web_pricing_reprices_cache_without_changing_history(monkeypatch, usage_missing, provider):
+    from src.llm_client import LLMClient
+    from src.models import LLMResponse, TokenUsage
+    from src.utils.pricing import PricingInfo
+
+    monkeypatch.setattr("src.llm_client.OpenAI", lambda **kwargs: Mock())
+    monkeypatch.setattr("src.llm_client.Anthropic", lambda **kwargs: Mock())
+    client = LLMClient(LLMConfig(provider=provider, api_key="test", model="alias"))
+    client.pricing_manager.overrides["alias"] = PricingInfo("alias", 0.1, 0.2, "override")
+    cached = LLMResponse(
+        text="cached",
+        model="canonical",
+        usage_missing=usage_missing,
+        usage=TokenUsage(prompt_tokens=1000, completion_tokens=1000, total_tokens=2000),
+        pricing_metadata={"source": "builtin", "total_cost": 99, "usage_known": not usage_missing},
+    )
+    client.cache.get = Mock(return_value=cached)
+    response = client.generate("prompt")
+    assert response.pricing_metadata["source"] == "override"
+    assert response.pricing_metadata["total_cost"] == (
+        None if usage_missing else pytest.approx(0.3)
+    )
+    assert response.pricing_metadata["usage_known"] is not usage_missing
+    assert cached.pricing_metadata["total_cost"] == 99
+    assert response.model == "canonical"

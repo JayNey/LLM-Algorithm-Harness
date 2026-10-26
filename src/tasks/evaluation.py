@@ -20,10 +20,11 @@ from typing import TYPE_CHECKING, Any
 from celery import Task
 from pydantic import ValidationError
 from redis.exceptions import ConnectionError as RedisConnectionError
+from sqlalchemy import select
 from sqlalchemy.orm import Session, sessionmaker
 
 from api.db.engine import business_database_url, make_engine, make_session_factory
-from api.db.models import AsyncTask, Evaluation, EvaluationResult, utcnow
+from api.db.models import AsyncTask, Evaluation, EvaluationResult, PricingOverride, utcnow
 from api.monitoring.execution_logs import record_execution_event
 from api.progress import publish_progress
 from api.services.cost_service import CostService
@@ -39,6 +40,7 @@ from src.models import Problem as DomainProblem
 from src.task_manager import TaskManager
 from src.task_service import TaskService, TaskUnit
 from src.tasks.support import task_progress
+from src.utils.pricing import PricingInfo, PricingManager
 
 if TYPE_CHECKING:
     from api.db.models import Problem
@@ -449,6 +451,7 @@ class _EvalContext:
 
     Attributes:
         llm_config: 已解析的模型凭证配置。
+        pricing_manager: 当前执行使用的文件、内置和 Web 覆盖定价快照。
         problem_map: 命中题库的题目，按 problem_id 索引。
         missing_problems: 题库中不可用（缺失或非法）的 problem_id 集合（不 fail-fast）。
         missing_reasons: ``problem_id -> 不可用原因文本``。区分「查不到」
@@ -461,6 +464,7 @@ class _EvalContext:
     problem_map: dict[str, DomainProblem]
     missing_problems: set[str]
     missing_reasons: dict[str, str] = field(default_factory=dict)
+    pricing_manager: PricingManager | None = None
 
 
 def _to_domain_problem(row: Problem) -> DomainProblem:
@@ -592,11 +596,23 @@ def _resolve_execution_context(
             missing_reasons[pid] = (
                 f"invalid/incomplete problem data: {_validation_error_summary(exc)}"
             )
+    pricing_manager = PricingManager()
+    with session_factory() as session:
+        rows = session.scalars(select(PricingOverride).order_by(PricingOverride.created_at)).all()
+        for row in rows:
+            pricing_manager.overrides[row.model] = PricingInfo(
+                model=row.model,
+                prompt_price=row.prompt_per_1k,
+                completion_price=row.completion_per_1k,
+                source="override",
+                as_of=row.created_at.isoformat(),
+            )
     return _EvalContext(
         llm_config=llm_config,
         problem_map=problem_map,
         missing_problems=missing,
         missing_reasons=missing_reasons,
+        pricing_manager=pricing_manager,
     )
 
 
@@ -700,6 +716,7 @@ def _build_harness(
         enable_quality_analysis=False,
     )
     harness = AlgorithmHarness(config)
+    harness.pricing_manager = ctx.pricing_manager
     runtimes = {
         name: harness._prepare_strategy_runtime(strategy_config)
         for name, strategy_config in strategy_configs.items()
