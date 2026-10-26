@@ -722,9 +722,10 @@ class AlgorithmHarness:
         preflight_ok, preflight_detail = sandbox.health_check()
         if not preflight_ok:
             raise RuntimeError(f"Sandbox preflight failed: {preflight_detail}")
-        llm_client: LLMClient | BudgetedLLMClient = LLMClient(self.config.llm_config)
+        base_client = LLMClient(self.config.llm_config)
         if self.pricing_manager is not None:
-            llm_client.pricing_manager = self.pricing_manager
+            base_client.pricing_manager = self.pricing_manager
+        llm_client: LLMClient | BudgetedLLMClient = base_client
         if self.budget_tracker is not None:
             llm_client = BudgetedLLMClient(llm_client, self.budget_tracker)
         strategy_class = self.STRATEGY_MAP.get(strategy_config.name)

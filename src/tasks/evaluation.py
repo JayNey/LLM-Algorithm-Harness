@@ -599,13 +599,13 @@ def _resolve_execution_context(
     pricing_manager = PricingManager()
     with session_factory() as session:
         rows = session.scalars(select(PricingOverride).order_by(PricingOverride.created_at)).all()
-        for row in rows:
-            pricing_manager.overrides[row.model] = PricingInfo(
-                model=row.model,
-                prompt_price=row.prompt_per_1k,
-                completion_price=row.completion_per_1k,
+        for pricing_row in rows:
+            pricing_manager.overrides[pricing_row.model] = PricingInfo(
+                model=pricing_row.model,
+                prompt_price=pricing_row.prompt_per_1k,
+                completion_price=pricing_row.completion_per_1k,
                 source="override",
-                as_of=row.created_at.isoformat(),
+                as_of=pricing_row.created_at.isoformat(),
             )
     return _EvalContext(
         llm_config=llm_config,
