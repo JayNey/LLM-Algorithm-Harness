@@ -591,6 +591,19 @@ def test_web_saved_budget_controls_worker(
         "/api/v1/budgets", headers=headers, json={"global_cap_usd": 0.01, "action": action}
     )
     assert saved.status_code in (200, 201), saved.text
+    rule = client.post(
+        "/api/v1/alerts",
+        headers=headers,
+        json={"threshold_pct": 100, "channel": "webhook", "target": WEBHOOK},
+    )
+    assert rule.status_code == 201, rule.text
+    deliveries = []
+
+    def post_alert(url, **kwargs):
+        deliveries.append((url, kwargs["json"]))
+        return Mock(raise_for_status=lambda: None)
+
+    monkeypatch.setattr("src.cost_alert.requests.post", post_alert)
     created = client.post(
         "/api/v1/evaluations",
         headers=headers,
@@ -618,3 +631,10 @@ def test_web_saved_budget_controls_worker(
         assert len(rows) == len(strategies)
     usage = client.get("/api/v1/budgets/usage", headers=headers).json()["data"]
     assert usage["global_budget"]["used_usd"] == pytest.approx(0.01 * len(strategies))
+
+    assert len(deliveries) == 1
+    assert deliveries[0][0] == WEBHOOK
+    assert deliveries[0][1]["accumulated_cost_usd"] == 0.01
+    history = client.get("/api/v1/alerts/history", headers=headers).json()["data"]
+    assert len(history) == 1
+    assert history[0]["rule_id"] == rule.json()["data"]["id"]

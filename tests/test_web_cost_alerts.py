@@ -163,3 +163,52 @@ def test_concurrent_workers_send_once(sessions, monkeypatch):
     assert len(sent) == 1
     with sessions() as db:
         assert db.query(AlertEvent).count() == 1
+
+
+def test_unknown_usage_is_reported_without_inventing_spend(sessions, monkeypatch):
+    from api.db.models import EvaluationResult
+
+    add_rule(sessions)
+    with sessions() as db, db.begin():
+        db.add(
+            EvaluationResult(
+                id="result",
+                evaluation_id="e",
+                problem_id="p",
+                strategy_name="vanilla",
+                status="success",
+                metrics={"cost_unknown": True, "cost_usd": 0},
+            )
+        )
+    sent = []
+
+    def post(*args, **kwargs):
+        sent.append(kwargs["json"])
+        return Mock(raise_for_status=lambda: None)
+
+    monkeypatch.setattr("src.cost_alert.requests.post", post)
+    dispatcher(sessions).process("alice")
+    assert sent[0]["unknown_usage_results"] == 1
+    assert sent[0]["accumulated_cost_usd"] == 1
+
+
+def test_new_budget_cap_rearms_and_disabled_rule_is_reloaded(sessions, monkeypatch):
+    add_rule(sessions)
+    sent = []
+
+    def post(*args, **kwargs):
+        sent.append(kwargs["json"])
+        return Mock(raise_for_status=lambda: None)
+
+    monkeypatch.setattr("src.cost_alert.requests.post", post)
+    worker = dispatcher(sessions)
+    worker.process("alice")
+    with sessions() as db, db.begin():
+        db.get(Budget, "b").global_cap_usd = 0.5
+        db.get(AlertRule, "rule").enabled = False
+    worker.process("alice")
+    assert len(sent) == 1
+    with sessions() as db, db.begin():
+        db.get(AlertRule, "rule").enabled = True
+    worker.process("alice")
+    assert [p["budget_cap_usd"] for p in sent] == [1, 0.5]

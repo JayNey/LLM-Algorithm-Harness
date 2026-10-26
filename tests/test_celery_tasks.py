@@ -4,6 +4,7 @@
 """
 
 import uuid
+from decimal import Decimal
 from unittest.mock import Mock, patch
 
 import pytest
@@ -1436,6 +1437,8 @@ class TestPersonalBudgetExecution:
         db_session.commit()
         snapshot = CostService.execution_budget(db_session, "test_user")
         assert snapshot == {
+            "global_cap_usd": 0.3,
+            "used_usd": Decimal("0.3"),
             "action": "pause",
             "global_reached": True,
             "exhausted_difficulties": ["easy"],

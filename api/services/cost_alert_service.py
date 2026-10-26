@@ -13,7 +13,7 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 from sqlalchemy import select, update
 from sqlalchemy.orm import Session
 
-from api.db.models import AlertEvent, AlertRule, Budget
+from api.db.models import AlertEvent, AlertRule, Budget, Evaluation, EvaluationResult
 from api.services.cost_service import CostService
 from src.cost_alert import CostAlertSender
 from src.models import CostAlertConfig
@@ -77,6 +77,19 @@ class WebCostAlertDispatcher:
                 .where(AlertRule.user_id == owner_id, AlertRule.enabled.is_(True))
                 .order_by(AlertRule.threshold_pct, AlertRule.id)
             ).all()
+            unknown_usage_results = (
+                sum(
+                    1
+                    for metrics in db.scalars(
+                        select(EvaluationResult.metrics)
+                        .join(Evaluation, Evaluation.id == EvaluationResult.evaluation_id)
+                        .where(Evaluation.user_id == owner_id)
+                    )
+                    if metrics and metrics.get("cost_unknown")
+                )
+                if rules
+                else 0
+            )
             for rule in rules:
                 if used * 100 < cap * rule.threshold_pct:
                     continue
@@ -106,7 +119,7 @@ class WebCostAlertDispatcher:
                         "accumulated_cost_usd": float(used),
                         "budget_cap_usd": float(cap),
                         "known_budget_percent": float(used * 100 / cap),
-                        "unknown_usage_results": 0,
+                        "unknown_usage_results": unknown_usage_results,
                         "cost_basis": "owner_known_pricing_usage",
                     }
                     success, attempts, error = sender.deliver(rule.channel, payload)
