@@ -114,3 +114,11 @@ PLAYWRIGHT_MODULE=/absolute/path/to/node_modules/playwright \
 场景覆盖 Orbit、Precision、Studio × light、dark × 320、390、768、1440px，共 24 种组合；每种组合依次验证真实创建表单与提交、任务筛选和详情、结果筛选和详情。断言检查创建草稿、筛选 URL、外观偏好在切换后保留，主要操作和表格滚动区域能用键盘到达，页面没有横向溢出。执行结果保存为 `appearance.json`，并附四张代表性截图；默认输出到仓库同级 `.monitoring/evaluation-appearance-229/`。
 
 2026-10-26 本地运行结果：**120 项断言通过**。覆盖的是 Chromium 视口模拟；登录身份及业务 HTTP 响应用 fixture 替换。未验证真实后端、Redis/Celery、供应商、沙箱、真机、Safari/Firefox 或屏幕阅读器。统一侧栏与示例页入口仍由 #228 管理；其 PR 合并到 main 前，本场景只验收各页面自身的外观和操作。
+
+### #229 验证记录
+
+- 源码：`4fd3ae4`，基于 `main` 的 `1eb6efa`；`node scripts/verify-evaluation-appearance.mjs` 退出码 0，120/120 断言通过，未发现未声明请求。
+- 前端检查：`npm test` 退出码 0（255 通过）；`npm run lint` 退出码 0（0 错误，BenchmarkDetailPage 有 2 条既有 hook 依赖警告）；`npm run build` 退出码 0，保留既有大 chunk 提示；`node --check scripts/verify-evaluation-appearance.mjs`、Prettier、`git diff --check` 均通过。
+- OpenSpec：`comet classic openspec -- validate evaluation-appearance --strict` 通过；独立 Bugbot 审查未发现问题。
+- 视觉抽查：创建页 320px、任务列表 390px、任务详情 768px、结果详情 1440px。报告 JSON 与四张 PNG 位于运行时输出目录；默认目录为仓库同级 `.monitoring/evaluation-appearance-229/`。
+- 未改工作流 CSS：全部视口的页面横向溢出、键盘到达和样式/主题/状态保留断言均通过。真实设备、非 Chromium 浏览器和真实后端未覆盖。
