@@ -97,6 +97,39 @@ class TestBenchmarkExecutor:
         leftovers = list(tmp_path.glob("tmp*.json"))
         assert leftovers == []
 
+    @pytest.mark.parametrize(
+        ("strategy_results", "accuracy", "cost_usd"),
+        [
+            ([("vanilla", 2, 1, 0.02)], 0.5, 0.02),
+            ([("vanilla", 2, 1, 0.02), ("self_refine", 1, 1, 0.05)], 0.75, 0.07),
+            ([("vanilla", 2, 0, 0.02)], 0.0, 0.02),
+            ([("vanilla", 2, 1, 0.0)], 0.5, 0.0),
+            ([("vanilla", 2, 0, 0.0)], 0.0, 0.0),
+            ([], None, 0.0),
+        ],
+        ids=["single", "multiple", "zero-accuracy", "zero-cost", "all-zero", "empty"],
+    )
+    def test_execute_exposes_run_metrics(self, tmp_path, strategy_results, accuracy, cost_usd):
+        executor = _setup(tmp_path)
+        reports = {
+            name: _report(name, total, solved).model_copy(update={"estimated_cost_usd": cost})
+            for name, total, solved, cost in strategy_results
+        }
+        with patch("src.benchmark.executor.AlgorithmHarness") as harness_cls:
+            harness_cls.return_value.run.return_value = reports
+            results = executor.execute()
+
+        if accuracy is None:
+            assert results["accuracy"] is None
+        else:
+            assert results["accuracy"] == pytest.approx(accuracy)
+        assert results["cost_usd"] == pytest.approx(cost_usd)
+        assert len(results["strategies"]) == len(strategy_results)
+        for name, total, solved, cost in strategy_results:
+            assert results["strategies"][name]["total"] == total
+            assert results["strategies"][name]["passed"] == solved
+            assert results["strategies"][name]["total_cost"] == pytest.approx(cost)
+
     def test_execute_restores_original_filters_when_harness_fails(self, tmp_path):
         executor = _setup(tmp_path)
         executor.config.problem_filters = {"difficulty": "easy"}
