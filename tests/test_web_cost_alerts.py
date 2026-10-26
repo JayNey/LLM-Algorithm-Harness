@@ -56,7 +56,7 @@ def test_delivers_100_percent_and_deduplicates_across_resume(sessions, monkeypat
 
     def post(url, **kwargs):
         sent.append((url, kwargs))
-        return Mock(raise_for_status=lambda: None)
+        return Mock(status_code=200, raise_for_status=lambda: None)
 
     monkeypatch.setattr("src.cost_alert.requests.post", post)
     dispatcher(sessions).process("alice")
@@ -108,7 +108,8 @@ def test_failed_delivery_is_bounded_safe_and_resume_retries(sessions, monkeypatc
     with sessions() as db:
         assert [r.rule_id for r in db.query(AlertEvent).all()] == ["log"]
     monkeypatch.setattr(
-        "src.cost_alert.requests.post", lambda *a, **k: Mock(raise_for_status=lambda: None)
+        "src.cost_alert.requests.post",
+        lambda *a, **k: Mock(status_code=200, raise_for_status=lambda: None),
     )
     dispatcher(sessions).process("alice")
     with sessions() as db:
@@ -132,7 +133,7 @@ def test_slack_and_email_use_rule_target(sessions, monkeypatch, channel):
 
         def post(url, **kwargs):
             sent.append((url, kwargs["json"]))
-            return Mock(raise_for_status=lambda: None)
+            return Mock(status_code=200, raise_for_status=lambda: None)
 
         monkeypatch.setattr("src.cost_alert.requests.post", post)
     dispatcher(sessions).process("alice")
@@ -155,7 +156,7 @@ def test_concurrent_workers_send_once(sessions, monkeypatch):
 
     def post(*args, **kwargs):
         sent.append(kwargs["json"])
-        return Mock(raise_for_status=lambda: None)
+        return Mock(status_code=200, raise_for_status=lambda: None)
 
     monkeypatch.setattr("src.cost_alert.requests.post", post)
     with ThreadPoolExecutor(max_workers=2) as pool:
@@ -184,7 +185,7 @@ def test_unknown_usage_is_reported_without_inventing_spend(sessions, monkeypatch
 
     def post(*args, **kwargs):
         sent.append(kwargs["json"])
-        return Mock(raise_for_status=lambda: None)
+        return Mock(status_code=200, raise_for_status=lambda: None)
 
     monkeypatch.setattr("src.cost_alert.requests.post", post)
     dispatcher(sessions).process("alice")
@@ -198,7 +199,7 @@ def test_new_budget_cap_rearms_and_disabled_rule_is_reloaded(sessions, monkeypat
 
     def post(*args, **kwargs):
         sent.append(kwargs["json"])
-        return Mock(raise_for_status=lambda: None)
+        return Mock(status_code=200, raise_for_status=lambda: None)
 
     monkeypatch.setattr("src.cost_alert.requests.post", post)
     worker = dispatcher(sessions)
@@ -212,3 +213,89 @@ def test_new_budget_cap_rearms_and_disabled_rule_is_reloaded(sessions, monkeypat
         db.get(AlertRule, "rule").enabled = True
     worker.process("alice")
     assert [p["budget_cap_usd"] for p in sent] == [1, 0.5]
+
+
+def test_slow_notification_does_not_lock_evaluation_settlement(sessions, monkeypatch):
+    from concurrent.futures import ThreadPoolExecutor
+    from threading import Event
+
+    add_rule(sessions)
+    sending, release = Event(), Event()
+
+    def post(*args, **kwargs):
+        sending.set()
+        assert release.wait(3)
+        return Mock(status_code=200, raise_for_status=lambda: None)
+
+    monkeypatch.setattr("src.cost_alert.requests.post", post)
+    with ThreadPoolExecutor(max_workers=1) as pool:
+        future = pool.submit(dispatcher(sessions).process, "alice")
+        assert sending.wait(3)
+        try:
+            with sessions() as db:
+                db.connection().exec_driver_sql("PRAGMA busy_timeout=50")
+                db.get(Evaluation, "e").spent_usd = 1.1
+                db.commit()
+        finally:
+            release.set()
+        future.result()
+    with sessions() as db:
+        assert db.get(Evaluation, "e").spent_usd == 1.1
+
+
+def test_web_redirect_is_failed_without_following(sessions, monkeypatch):
+    add_rule(sessions)
+    calls = []
+
+    def redirect(*args, **kwargs):
+        calls.append(kwargs)
+        response = requests.Response()
+        response.status_code = 307
+        response.headers["Location"] = "http://127.0.0.1/private"
+        return response
+
+    monkeypatch.setattr("src.cost_alert.requests.post", redirect)
+    dispatcher(sessions).process("alice")
+    assert len(calls) == 1
+    assert calls[0]["allow_redirects"] is False
+    with sessions() as db:
+        assert db.query(AlertEvent).count() == 0
+
+
+def test_live_lease_is_hidden_and_expired_lease_can_resume(sessions, monkeypatch):
+    from datetime import timedelta
+
+    from api.db.models import utcnow
+    from api.services.cost_service import CostService
+
+    add_rule(sessions)
+    with sessions() as db, db.begin():
+        db.add(
+            AlertEvent(
+                id="pending",
+                user_id="alice",
+                rule_id="rule",
+                threshold_pct=100,
+                used_usd=1,
+                cap_usd=1,
+                channel="pending",
+                created_at=utcnow(),
+            )
+        )
+    service = CostService.__new__(CostService)
+    service._session_factory = sessions
+    assert service.alert_history("alice") == []
+    sent = []
+
+    def post(*args, **kwargs):
+        sent.append(kwargs["json"])
+        return Mock(status_code=200, raise_for_status=lambda: None)
+
+    monkeypatch.setattr("src.cost_alert.requests.post", post)
+    dispatcher(sessions).process("alice")
+    assert sent == []
+    with sessions() as db, db.begin():
+        db.get(AlertEvent, "pending").created_at = utcnow() - timedelta(minutes=6)
+    dispatcher(sessions).process("alice")
+    assert len(sent) == 1
+    assert len(service.alert_history("alice")) == 1

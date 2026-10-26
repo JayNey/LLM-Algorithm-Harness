@@ -601,7 +601,7 @@ def test_web_saved_budget_controls_worker(
 
     def post_alert(url, **kwargs):
         deliveries.append((url, kwargs["json"]))
-        return Mock(raise_for_status=lambda: None)
+        return Mock(status_code=200, raise_for_status=lambda: None)
 
     monkeypatch.setattr("src.cost_alert.requests.post", post_alert)
     created = client.post(

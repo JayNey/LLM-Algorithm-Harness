@@ -42,9 +42,10 @@ def _amount(value: float | Decimal, name: str, *, positive: bool = False) -> Dec
 class CostAlertSender:
     """Shared bounded transports; persistence belongs to the calling runtime."""
 
-    def __init__(self, config: CostAlertConfig, run_id: str):
+    def __init__(self, config: CostAlertConfig, run_id: str, *, follow_redirects: bool = True):
         self.config = config
         self.run_id = run_id
+        self.follow_redirects = follow_redirects
 
     def deliver(self, channel: str, payload: dict[str, Any]) -> tuple[bool, int, str | None]:
         """Return success, attempt count and a credential-free error category."""
@@ -69,7 +70,12 @@ class CostAlertSender:
             }
         else:
             body = payload
-        response = requests.post(url, json=body, timeout=self.config.timeout_seconds)
+        # CLI callers configure their own trusted endpoints. Web rules must
+        # never redirect a credential-bearing POST to a different destination.
+        options = {} if self.follow_redirects else {"allow_redirects": False}
+        response = requests.post(url, json=body, timeout=self.config.timeout_seconds, **options)
+        if options and 300 <= response.status_code < 400:
+            raise requests.HTTPError(response=response)
         response.raise_for_status()
 
     def _send_smtp(self, payload: dict[str, Any]) -> None:
@@ -175,8 +181,7 @@ class CostAlertManager(CostAlertSender):
             or any(ord(char) < 32 or ord(char) == 127 for char in run_id)
         ):
             raise ValueError("Invalid run_id")
-        self.config = config
-        self.run_id = run_id
+        super().__init__(config, run_id)
         self.state_path = Path(state_path)
         self._lock = threading.RLock()
         self._attempted: set[tuple[int, str]] = set()

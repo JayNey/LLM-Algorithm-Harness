@@ -493,7 +493,7 @@ class CostService:
         with self._session() as session:
             rows = session.scalars(
                 select(AlertEvent)
-                .where(AlertEvent.user_id == owner_id)
+                .where(AlertEvent.user_id == owner_id, AlertEvent.channel != "pending")
                 .order_by(AlertEvent.created_at.desc())
                 .limit(limit)
             ).all()
