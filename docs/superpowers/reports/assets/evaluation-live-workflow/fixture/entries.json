@@ -1,0 +1,304 @@
+{
+  "scenario": "entries",
+  "source": {
+    "head": "13adc5776380e8a84645fbbeb2266762ddbda8d9",
+    "dirty": "M ../docs/superpowers/reports/assets/issue168/checks.json\n?? ../docs/superpowers/reports/2026-10-25-unified-entry-honest-mock-verify.md"
+  },
+  "layer": "browser-fixture (not backend E2E)",
+  "assertions": [
+    {
+      "name": "侧栏创建按钮 落到真实创建页",
+      "pass": true
+    },
+    {
+      "name": "快速操作创建项 落到真实创建页",
+      "pass": true
+    },
+    {
+      "name": "仪表盘页头创建按钮 落到真实创建页",
+      "pass": true
+    },
+    {
+      "name": "空状态创建按钮 落到真实创建页",
+      "pass": true
+    },
+    {
+      "name": "帮助页创建入口 落到真实创建页",
+      "pass": true
+    },
+    {
+      "name": "创建页无模拟弹窗残留",
+      "pass": true
+    },
+    {
+      "name": "导入保持明确 Mock 示例",
+      "pass": true
+    },
+    {
+      "name": "任务完成通知只进入真实列表页",
+      "pass": true
+    },
+    {
+      "name": "预算预警通知只进入真实列表页",
+      "pass": true
+    },
+    {
+      "name": "系统通知只进入真实帮助页",
+      "pass": true
+    },
+    {
+      "name": "真实评估页无全局 Mock 标注",
+      "pass": true
+    },
+    {
+      "name": "示例仪表盘保留区域 Mock 标注",
+      "pass": true
+    },
+    {
+      "name": "示例任务停留在 Mock 抽屉",
+      "pass": true
+    },
+    {
+      "name": "入口遍历未提交创建或启动请求",
+      "pass": true
+    },
+    {
+      "name": "entries 场景无页面异常",
+      "pass": true
+    },
+    {
+      "name": "无未声明 API 请求",
+      "pass": true
+    }
+  ],
+  "requests": [
+    {
+      "mode": "entries",
+      "path": "/users/me",
+      "method": "GET",
+      "query": ""
+    },
+    {
+      "mode": "entries",
+      "path": "/users/me",
+      "method": "GET",
+      "query": ""
+    },
+    {
+      "mode": "entries",
+      "path": "/evaluation-options",
+      "method": "GET",
+      "query": ""
+    },
+    {
+      "mode": "entries",
+      "path": "/api-keys",
+      "method": "GET",
+      "query": ""
+    },
+    {
+      "mode": "entries",
+      "path": "/evaluation-options/problems",
+      "method": "GET",
+      "query": "?limit=20&offset=0&source=all"
+    },
+    {
+      "mode": "entries",
+      "path": "/users/me",
+      "method": "GET",
+      "query": ""
+    },
+    {
+      "mode": "entries",
+      "path": "/users/me",
+      "method": "GET",
+      "query": ""
+    },
+    {
+      "mode": "entries",
+      "path": "/evaluation-options",
+      "method": "GET",
+      "query": ""
+    },
+    {
+      "mode": "entries",
+      "path": "/api-keys",
+      "method": "GET",
+      "query": ""
+    },
+    {
+      "mode": "entries",
+      "path": "/evaluation-options/problems",
+      "method": "GET",
+      "query": "?limit=20&offset=0&source=all"
+    },
+    {
+      "mode": "entries",
+      "path": "/users/me",
+      "method": "GET",
+      "query": ""
+    },
+    {
+      "mode": "entries",
+      "path": "/users/me",
+      "method": "GET",
+      "query": ""
+    },
+    {
+      "mode": "entries",
+      "path": "/evaluation-options",
+      "method": "GET",
+      "query": ""
+    },
+    {
+      "mode": "entries",
+      "path": "/api-keys",
+      "method": "GET",
+      "query": ""
+    },
+    {
+      "mode": "entries",
+      "path": "/evaluation-options/problems",
+      "method": "GET",
+      "query": "?limit=20&offset=0&source=all"
+    },
+    {
+      "mode": "entries",
+      "path": "/users/me",
+      "method": "GET",
+      "query": ""
+    },
+    {
+      "mode": "entries",
+      "path": "/users/me",
+      "method": "GET",
+      "query": ""
+    },
+    {
+      "mode": "entries",
+      "path": "/evaluation-options",
+      "method": "GET",
+      "query": ""
+    },
+    {
+      "mode": "entries",
+      "path": "/api-keys",
+      "method": "GET",
+      "query": ""
+    },
+    {
+      "mode": "entries",
+      "path": "/evaluation-options/problems",
+      "method": "GET",
+      "query": "?limit=20&offset=0&source=all"
+    },
+    {
+      "mode": "entries",
+      "path": "/users/me",
+      "method": "GET",
+      "query": ""
+    },
+    {
+      "mode": "entries",
+      "path": "/users/me",
+      "method": "GET",
+      "query": ""
+    },
+    {
+      "mode": "entries",
+      "path": "/evaluation-options",
+      "method": "GET",
+      "query": ""
+    },
+    {
+      "mode": "entries",
+      "path": "/api-keys",
+      "method": "GET",
+      "query": ""
+    },
+    {
+      "mode": "entries",
+      "path": "/evaluation-options/problems",
+      "method": "GET",
+      "query": "?limit=20&offset=0&source=all"
+    },
+    {
+      "mode": "entries",
+      "path": "/users/me",
+      "method": "GET",
+      "query": ""
+    },
+    {
+      "mode": "entries",
+      "path": "/users/me",
+      "method": "GET",
+      "query": ""
+    },
+    {
+      "mode": "entries",
+      "path": "/results",
+      "method": "GET",
+      "query": "?limit=20&offset=0"
+    },
+    {
+      "mode": "entries",
+      "path": "/evaluations",
+      "method": "GET",
+      "query": "?limit=20&offset=0"
+    },
+    {
+      "mode": "entries",
+      "path": "/users/me",
+      "method": "GET",
+      "query": ""
+    },
+    {
+      "mode": "entries",
+      "path": "/users/me",
+      "method": "GET",
+      "query": ""
+    },
+    {
+      "mode": "entries",
+      "path": "/evaluations",
+      "method": "GET",
+      "query": "?limit=20&offset=0"
+    },
+    {
+      "mode": "entries",
+      "path": "/users/me",
+      "method": "GET",
+      "query": ""
+    },
+    {
+      "mode": "entries",
+      "path": "/users/me",
+      "method": "GET",
+      "query": ""
+    }
+  ],
+  "unknown": [],
+  "screenshots": [
+    "entries-create-page.png"
+  ],
+  "replaced": [
+    "WebSocket progress: in-memory fixture (no real upstream connection)",
+    "HTTP /api/v1/users/me",
+    "HTTP /api/v1/api-keys",
+    "HTTP /api/v1/evaluation-options and children",
+    "HTTP /api/v1/evaluations create/start/get",
+    "results scenario: HTTP /api/v1/results list/detail",
+    "entries scenario: HTTP /api/v1/results list (empty fixture)",
+    "localStorage session marker (no credentials)",
+    "security only: isolated HTML and in-memory auth/HTTP transport"
+  ],
+  "real": [
+    "React StrictMode",
+    "router",
+    "session provider",
+    "creation store",
+    "evaluation client",
+    "unified create entries and honest mock markers"
+  ],
+  "pass": true
+}

@@ -61,6 +61,10 @@ test('真实外壳提供Frontier、共享分组导航、面包屑和风格控制
   assert.match(html, /选择页面风格/)
   assert.match(html, /面包屑/)
   assert.match(html, /常用页面/)
+  assert.match(html, /导入题目/)
+  assert.doesNotMatch(html, /业务 · Mock/)
+  assert.doesNotMatch(html, /业务与通知 · Mock/)
+  assert.doesNotMatch(html, /例如：HumanEval 基线对照/)
   assert.doesNotMatch(html, /href="\/settings\/system"/)
   assert.match(render('admin'), /href="\/settings\/system"/)
   assert.doesNotMatch(render(null), /href="\/settings\/system"/)
@@ -82,6 +86,7 @@ test('详情与创建路由面包屑使用真实页面标题', async () => {
   for (const [location, label] of [
     ['/evaluations/eval-123', '评估任务详情'],
     ['/evaluations/new', '创建评估'],
+    ['/results/eval-123', '评估结果详情'],
   ]) {
     const html = renderToStaticMarkup(
       createElement(StaticRouter, { location }, createElement(Breadcrumb)),

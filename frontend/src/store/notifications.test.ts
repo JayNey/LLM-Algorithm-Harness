@@ -19,3 +19,18 @@ test('通知按类型筛选，已读与清空只改变当前会话', () => {
   assert.equal(second.getState().notes.length, 3)
   assert.equal(second.getState().notes.filter((n) => !n.read).length, 2)
 })
+
+test('种子通知只指向真实列表或帮助页，不引用虚构详情路由', () => {
+  const store = createNotificationStore('session-routes')
+  const allowed = new Set(['/results', '/evaluations', '/help'])
+  for (const note of store.getState().notes) {
+    assert.ok(
+      allowed.has(note.route),
+      `通知路由必须是真实列表/帮助页：${note.route}`,
+    )
+  }
+  assert.equal(
+    store.getState().notes.some((n) => n.text === '示例与通知均为 Mock 数据'),
+    true,
+  )
+})
