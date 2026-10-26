@@ -5,7 +5,10 @@ import json
 import os
 import subprocess
 import sys
+from datetime import datetime
 from pathlib import Path
+
+import pytest
 
 from src.main import (
     run_benchmark_command,
@@ -107,6 +110,111 @@ class TestImportCommand:
 
 
 class TestBenchmarkCommand:
+    @pytest.fixture
+    def benchmark_run(self, tmp_path, monkeypatch):
+        monkeypatch.chdir(tmp_path)
+        (tmp_path / "benchmark.json").write_text(
+            json.dumps({"name": "历史基准", "problems": ["p1", "missing-p2"]}),
+            encoding="utf-8",
+        )
+        (tmp_path / "config.yaml").write_text(
+            json.dumps(
+                {
+                    "llm_config": {
+                        "provider": "local",
+                        "model": "org/test:model",
+                        "api_key": "test-only-key",
+                    },
+                    "dataset_path": "problems.json",
+                }
+            ),
+            encoding="utf-8",
+        )
+        results = {
+            "suite": {"name": "历史基准", "version": "1.0", "frozen": True},
+            "problems_evaluated": 1,
+            "problems_missing": 1,
+            "strategies": {
+                "vanilla": {
+                    "total": 1,
+                    "passed": 1,
+                    "failed": 0,
+                    "accuracy": 1.0,
+                    "avg_attempts": 1.0,
+                    "total_tokens": 100,
+                    "total_cost": 0.01,
+                },
+                "cot": {
+                    "total": 1,
+                    "passed": 0,
+                    "failed": 1,
+                    "accuracy": 0.0,
+                    "avg_attempts": 2.0,
+                    "total_tokens": 200,
+                    "total_cost": 0.02,
+                },
+            },
+            "accuracy": 0.5,
+            "cost_usd": 0.03,
+        }
+        monkeypatch.setattr(
+            "src.benchmark.executor.BenchmarkExecutor.execute", lambda self: results
+        )
+        args = argparse.Namespace(
+            list_suites=False,
+            suite="benchmark.json",
+            compare=False,
+            output=None,
+            log_format="console",
+        )
+        return args, results
+
+    def test_run_saves_complete_history(self, benchmark_run, tmp_path, capsys):
+        from src.benchmark.history import BenchmarkHistoryStorage
+
+        args, results = benchmark_run
+        before = datetime.now()
+        assert run_benchmark_command(args) == 0
+        after = datetime.now()
+        files = list((tmp_path / "results" / "benchmark").glob("*.json"))
+        assert len(files) == 1
+        saved = BenchmarkHistoryStorage().load_result(files[0])
+        assert saved["suite_name"] == "历史基准"
+        assert saved["model_id"] == "org/test:model"
+        assert before <= datetime.fromisoformat(saved["timestamp"]) <= after
+        assert saved["results"] == results
+        assert "test-only-key" not in files[0].read_text(encoding="utf-8")
+        assert str(files[0].relative_to(tmp_path)) in capsys.readouterr().out
+
+    def test_failed_evaluation_does_not_create_history(
+        self, benchmark_run, tmp_path, monkeypatch, capsys
+    ):
+        def fail(self):
+            raise ValueError("evaluation failed")
+
+        monkeypatch.setattr("src.benchmark.executor.BenchmarkExecutor.execute", fail)
+        assert run_benchmark_command(benchmark_run[0]) == 1
+        assert not (tmp_path / "results" / "benchmark").exists()
+        assert "evaluation failed" in capsys.readouterr().err
+
+    def test_history_directory_failure_returns_error(self, benchmark_run, tmp_path, capsys):
+        (tmp_path / "results").mkdir()
+        (tmp_path / "results" / "benchmark").write_text("blocked", encoding="utf-8")
+        assert run_benchmark_command(benchmark_run[0]) == 1
+        captured = capsys.readouterr()
+        assert "Error:" in captured.err
+        assert "Benchmark evaluation completed" not in captured.out
+
+    def test_history_write_failure_returns_error(self, benchmark_run, monkeypatch, capsys):
+        def fail(self, suite_name, model_id, results, timestamp=None):
+            raise OSError("history disk full")
+
+        monkeypatch.setattr("src.benchmark.history.BenchmarkHistoryStorage.save_result", fail)
+        assert run_benchmark_command(benchmark_run[0]) == 1
+        captured = capsys.readouterr()
+        assert "history disk full" in captured.err
+        assert "Benchmark evaluation completed" not in captured.out
+
     def test_list_suites_prints_files(self, tmp_path, monkeypatch, capsys):
         monkeypatch.chdir(tmp_path)
         (tmp_path / "benchmark.json").write_text(
@@ -118,6 +226,7 @@ class TestBenchmarkCommand:
         )
         assert run_benchmark_command(args) == 0
         assert "benchmark.json" in capsys.readouterr().out
+        assert not (tmp_path / "results" / "benchmark").exists()
 
     def test_list_suites_empty_dir(self, tmp_path, monkeypatch, capsys):
         monkeypatch.chdir(tmp_path)

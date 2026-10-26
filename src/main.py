@@ -1200,6 +1200,7 @@ def run_benchmark_command(args: argparse.Namespace) -> int:
     """Run benchmark evaluation for learning curve tracking."""
     from src.benchmark import BenchmarkManager
     from src.benchmark.executor import BenchmarkExecutor
+    from src.benchmark.history import BenchmarkHistoryStorage
     from src.utils.config import load_config
 
     try:
@@ -1241,6 +1242,9 @@ def run_benchmark_command(args: argparse.Namespace) -> int:
         executor = BenchmarkExecutor(suite, config)
         results = executor.execute()
 
+        storage = BenchmarkHistoryStorage()
+        history_path = storage.save_result(suite.name, config.llm_config.model, results)
+
         print("\n✓ Benchmark evaluation completed!")
         print(f"  Suite: {results['suite']['name']}")
         print(f"  Problems evaluated: {results['problems_evaluated']}")
@@ -1253,8 +1257,7 @@ def run_benchmark_command(args: argparse.Namespace) -> int:
             print(f"    - Accuracy: {strategy_results['accuracy']:.2%}")
             print(f"    - Passed: {strategy_results['passed']}/{strategy_results['total']}")
 
-        # TODO: Save results to history storage
-        print("\nNote: History storage coming in next task...")
+        print(f"\nHistory saved to: {history_path}")
 
         return 0
     except FileNotFoundError as exc:
