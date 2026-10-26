@@ -76,3 +76,27 @@ harness run --config config.local.yaml \
 - 各策略详细结果文件给尚未运行的题目写入 `cancelled` 占位记录；聚合报告的分母只包含已执行单元。查看通过率时应先检查任务是否为 `paused`，并结合截止报告查看原题集覆盖范围。
 
 通知与自动暂停仅适用于 `harness run` 的运行级预算；`harness experiment` 的逐题预算规则不受影响。
+
+## Web 预警规则与运行期通知
+
+Web「预算与预警」中保存的启用规则在 Celery 评估 worker 启动（含恢复）和每个单元成本提交后生效。先保存**个人全局预算**，再选择渠道、阈值（1–100%）和目标。规则使用当前用户全部评估已知累计成本及已完成基准运行成本，与个人预算执行口径一致；不是单任务预算，也不是按月重置的额度。未知用量不视作免费，通知单独列出已持久化评估结果中的未知计数。没有个人全局预算时不发通知，只有难度预算时也不触发全局规则。
+
+- Slack / Webhook：目标填完整 HTTPS URL，不含内嵌用户名或密码；Slack 使用 Incoming Webhook。Web 通道不跟随重定向，3xx 视为失败。通用 Webhook 的 JSON 增加 `rule_id`，`cost_basis` 为 `owner_known_pricing_usage`，`run_id` 是本次触发检查的 Web 评估 ID。
+- 邮件（SMTP）：规则目标填一个收件邮箱。SMTP 连接由 worker 的环境或 `.env` 提供，例如：
+
+```dotenv
+COST_ALERT_SMTP_HOST=smtp.example.com
+COST_ALERT_SMTP_PORT=587
+COST_ALERT_SMTP_FROM=notifier@example.com
+COST_ALERT_SMTP_USERNAME=notifier@example.com
+COST_ALERT_SMTP_PASSWORD=REPLACE_LOCALLY
+COST_ALERT_SMTP_USE_STARTTLS=true
+```
+
+无认证 SMTP 可以省略用户名和密码。认证必须使用 STARTTLS。修改环境后重启 worker；缺失或无效连接配置会产生脱敏失败日志，不会伪造成功通知。
+
+每次投递最多尝试 3 次，每次超时 5 秒；暂时性错误重试。每个 worker 执行实例对同一规则、阈值和预算上限只进行一组尝试，失败可在任务恢复后重试。失败不阻断其他规则，也不改变评估结果、预算暂停或降级。
+
+成功（或 log 渠道的本地触发）写入「预警历史」；失败仅记录不含目标或凭据的日志。相同规则、阈值、上限在后续单元、其他任务及恢复时不重复成功通知。更改上限或阈值后可再次通知；仅修改目标不重发，需重新创建规则。每次检查重新读取启用状态，禁用后不再投递。并发 worker 通过短事务占用投递记录，网络发送期间不持有数据库写锁。在途记录不显示为成功历史；进程中断后的记录保留 5 分钟，到期后由后续评估边界重试（无后台轮询，可能需稍后恢复）。发送超过租期仍可能重复；远端已接收而本地提交前进程退出时仍可能重复，Webhook 接收方可按 `rule_id`、`threshold_percent`、`budget_cap_usd` 去重。
+
+当前通知由 Web 评估的执行边界触发；仅保存规则或预算不会立即发送，没有运行中的评估时也不进行后台轮询。CLI 配置与 Web 规则分别生效。

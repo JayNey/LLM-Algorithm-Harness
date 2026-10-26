@@ -286,6 +286,8 @@ class CostService:
                         str(metrics.get("cost_usd") or 0)
                     )
         return {
+            "global_cap_usd": budget.global_cap_usd,
+            "used_usd": used,
             "action": budget.action,
             "global_reached": (
                 budget.global_cap_usd is not None and used >= Decimal(str(budget.global_cap_usd))
@@ -491,7 +493,7 @@ class CostService:
         with self._session() as session:
             rows = session.scalars(
                 select(AlertEvent)
-                .where(AlertEvent.user_id == owner_id)
+                .where(AlertEvent.user_id == owner_id, AlertEvent.channel != "pending")
                 .order_by(AlertEvent.created_at.desc())
                 .limit(limit)
             ).all()

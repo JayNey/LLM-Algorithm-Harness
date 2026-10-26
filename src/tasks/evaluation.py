@@ -27,6 +27,7 @@ from api.db.engine import business_database_url, make_engine, make_session_facto
 from api.db.models import AsyncTask, Evaluation, EvaluationResult, PricingOverride, utcnow
 from api.monitoring.execution_logs import record_execution_event
 from api.progress import publish_progress
+from api.services.cost_alert_service import WebCostAlertDispatcher
 from api.services.cost_service import CostService
 from src.celery_app import celery_app
 from src.harness import AlgorithmHarness
@@ -133,6 +134,7 @@ def run_evaluation_task(self: EvaluationTask, evaluation_id: str) -> dict[str, A
         # 不发起任何单元、无 EvaluationResult 行。
         session_factory = sessionmaker(bind=db.get_bind())
         ctx = _resolve_execution_context(evaluation, session_factory)
+        cost_alerts = WebCostAlertDispatcher(session_factory, evaluation_id)
 
         # 3. 更新状态为 running
         task_manager.update_task_status(async_task.id, "running")
@@ -233,6 +235,7 @@ def run_evaluation_task(self: EvaluationTask, evaluation_id: str) -> dict[str, A
             evaluation.completed_count = sum(1 for u in record.units if u.status == "completed")
             evaluation.failed_count = sum(1 for u in record.units if u.status == "failed")
             db.commit()
+            cost_alerts.process(evaluation.user_id)
             report_progress(record, unit, record.completed_units)
             record_execution_event(
                 async_task,
@@ -321,6 +324,10 @@ def run_evaluation_task(self: EvaluationTask, evaluation_id: str) -> dict[str, A
             ctx.missing_reasons,
             execution_strategies=execution_strategies,
         )
+
+        # Check committed spend on start/resume, including when budget pause
+        # prevents any further units from running.
+        cost_alerts.process(evaluation.user_id)
 
         # 7. 执行 TaskService.run()
         final_record = task_service.run(
