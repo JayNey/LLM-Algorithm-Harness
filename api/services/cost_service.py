@@ -9,6 +9,7 @@ import re
 import uuid
 from collections import defaultdict
 from datetime import date, datetime, timezone
+from decimal import Decimal
 from typing import Any
 
 from sqlalchemy import select
@@ -23,6 +24,7 @@ from api.db import (
     BenchmarkRun,
     Budget,
     Evaluation,
+    EvaluationResult,
     Experiment,
     PricingOverride,
     make_engine,
@@ -244,6 +246,54 @@ class CostService:
         }
 
     # -- budgets -------------------------------------------------------------
+
+    @staticmethod
+    def execution_budget(session: Session, owner_id: str) -> dict[str, Any] | None:
+        """Fresh personal limits at a dispatch boundary, using persisted known costs.
+
+        Global spend matches the cost API. Difficulty spend uses result costs,
+        rather than the proportional estimate exposed by ``budget_usage``.
+        The caller owns the session and must call this on its orchestration thread.
+        """
+        budget = session.scalar(
+            select(Budget)
+            .where(Budget.user_id == owner_id)
+            .execution_options(populate_existing=True)
+        )
+        if budget is None:
+            return None
+        evaluation_costs = session.scalars(
+            select(Evaluation.spent_usd).where(Evaluation.user_id == owner_id)
+        )
+        used = sum((Decimal(str(cost or 0)) for cost in evaluation_costs), Decimal(0))
+        benchmark_costs = session.scalars(
+            select(BenchmarkRun.cost_usd).where(
+                BenchmarkRun.user_id == owner_id, BenchmarkRun.status == "completed"
+            )
+        )
+        used += sum((Decimal(str(cost or 0)) for cost in benchmark_costs), Decimal(0))
+        difficulty_used: dict[str, Decimal] = defaultdict(Decimal)
+        caps = budget.difficulty_caps or {}
+        if caps:
+            metrics_rows = session.scalars(
+                select(EvaluationResult.metrics)
+                .join(Evaluation, Evaluation.id == EvaluationResult.evaluation_id)
+                .where(Evaluation.user_id == owner_id)
+            )
+            for metrics in metrics_rows:
+                if metrics and metrics.get("difficulty") in caps:
+                    difficulty_used[metrics["difficulty"]] += Decimal(
+                        str(metrics.get("cost_usd") or 0)
+                    )
+        return {
+            "action": budget.action,
+            "global_reached": (
+                budget.global_cap_usd is not None and used >= Decimal(str(budget.global_cap_usd))
+            ),
+            "exhausted_difficulties": [
+                name for name, cap in caps.items() if difficulty_used[name] >= Decimal(str(cap))
+            ],
+        }
 
     def _budget_row(self, session: Session, owner_id: str) -> Budget | None:
         return session.scalar(select(Budget).where(Budget.user_id == owner_id))
