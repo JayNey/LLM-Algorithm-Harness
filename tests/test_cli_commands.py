@@ -186,6 +186,31 @@ class TestBenchmarkCommand:
         assert "test-only-key" not in files[0].read_text(encoding="utf-8")
         assert str(files[0].relative_to(tmp_path)) in capsys.readouterr().out
 
+    def test_saved_history_supports_queries_and_trends(self, benchmark_run):
+        from src.benchmark.analysis import TrendAnalyzer
+        from src.benchmark.history import BenchmarkHistoryStorage
+
+        storage = BenchmarkHistoryStorage()
+        previous = {"strategies": {"vanilla": {"accuracy": 0.25}}}
+        storage.save_result("历史基准", "org/test:model", previous, datetime(2025, 1, 1))
+        storage.save_result("其他套件", "org/test:model", previous, datetime(2025, 1, 2))
+        storage.save_result("历史基准", "other-model", previous, datetime(2025, 1, 1))
+
+        assert run_benchmark_command(benchmark_run[0]) == 0
+
+        # Read with a fresh instance to verify persistence beyond the CLI invocation.
+        reader = BenchmarkHistoryStorage()
+        records = reader.list_results(model_id="org/test:model", suite_name="历史基准")
+        assert len(records) == 2
+        assert [record["accuracy"] for record in records] == [0.25, 0.5]
+        series = TrendAnalyzer(reader).extract_time_series(
+            model_id="org/test:model", suite_name="历史基准"
+        )
+        assert list(series) == ["org/test:model"]
+        assert [accuracy for _, accuracy in series["org/test:model"]] == [0.25, 0.5]
+        assert series["org/test:model"][0][0] == datetime(2025, 1, 1)
+        assert series["org/test:model"][0][0] < series["org/test:model"][1][0]
+
     def test_failed_evaluation_does_not_create_history(
         self, benchmark_run, tmp_path, monkeypatch, capsys
     ):
