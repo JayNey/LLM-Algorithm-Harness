@@ -15,6 +15,12 @@
 - `python3 -m pip wheel . --no-deps --no-build-isolation --no-index --wheel-dir /tmp/budget-execution-wheel`：成功构建 wheel。
 - `comet classic openspec -- validate budget-execution-control --strict`：通过。
 
+## Verify 阶段独立复核
+
+- `pytest tests/test_celery_tasks.py tests/test_api_cost.py -k 'PersonalBudgetExecution or web_saved' --no-cov -q`：16 passed、51 deselected；覆盖全部新增执行控制和 Web 接入场景。
+- `python3 -m compileall -q api src`：通过。
+- 再次执行 OpenSpec strict validate 与 git diff 检查：通过。当前未提交变更均为本阶段状态和验证报告，无实现变更。
+
 ## 正确性：场景映射
 
 - 全局触顶暂停：`test_personal_budget_controls_actual_dispatch[pause]`、`test_exhausted_history_stops_before_first_call`，下一单元不执行且数据库及检查点保留结果。
@@ -41,3 +47,7 @@
 控制发生在评估单元边界，不中断在途调用；并发评估不预留共享额度，因此不是跨任务硬金额限流。全局累计沿用评估与已完成 benchmark 口径；本次接入对象为 Web 评估 worker。分难度使用已持久化结果的实际已知成本，与页面保留的比例估计口径不同；缺少难度仅参与全局成本，未知费用不虚构。降级元数据保存在结果 metrics，不改造前端结果展示。
 
 未发现未解决的 CRITICAL、IMPORTANT 或规格漂移。
+
+## 归档交付选择
+
+用户于 2026-10-26 选择 C：确认归档、推送当前绑定分支并创建 PR。
