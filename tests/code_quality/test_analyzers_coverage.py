@@ -1,4 +1,4 @@
-"""Tests for code quality analyzers (current upstream placeholder behavior)."""
+"""Tests for code quality analyzers and unavailable execution context."""
 
 from unittest.mock import MagicMock
 
@@ -28,9 +28,8 @@ class TestSpaceAnalyzer:
         assert isinstance(score, SpaceComplexityScore)
         assert "Memory profiling requires sandbox executor" in score.analysis_notes
 
-    def test_sandbox_provided_returns_placeholder(self):
-        """Upstream defers real profiling (needs Problem context); the
-        analyzer returns an explicit placeholder instead of guessing."""
+    def test_sandbox_without_problem_returns_unavailable_context(self):
+        """Missing Problem context must not produce invented memory metrics."""
         sandbox = MagicMock()
         score = SpaceAnalyzer().analyze(SAMPLE_CODE, "1", sandbox_executor=sandbox)
         assert "Memory profiling not available without Problem context" in score.analysis_notes
