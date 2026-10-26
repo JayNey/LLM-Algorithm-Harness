@@ -286,6 +286,8 @@ class CostService:
                         str(metrics.get("cost_usd") or 0)
                     )
         return {
+            "global_cap_usd": budget.global_cap_usd,
+            "used_usd": used,
             "action": budget.action,
             "global_reached": (
                 budget.global_cap_usd is not None and used >= Decimal(str(budget.global_cap_usd))

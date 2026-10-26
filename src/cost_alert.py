@@ -39,7 +39,125 @@ def _amount(value: float | Decimal, name: str, *, positive: bool = False) -> Dec
     return amount
 
 
-class CostAlertManager:
+class CostAlertSender:
+    """Shared bounded transports; persistence belongs to the calling runtime."""
+
+    def __init__(self, config: CostAlertConfig, run_id: str):
+        self.config = config
+        self.run_id = run_id
+
+    def deliver(self, channel: str, payload: dict[str, Any]) -> tuple[bool, int, str | None]:
+        """Return success, attempt count and a credential-free error category."""
+        return self._deliver(channel, payload)
+
+    def _send_webhook(self, channel: str, payload: dict[str, Any]) -> None:
+        url_secret = (
+            self.config.slack_webhook_url if channel == "slack" else self.config.webhook_url
+        )
+        assert url_secret is not None
+        url = url_secret.get_secret_value()
+        if channel == "slack":
+            unknown = payload["unknown_usage_results"]
+            note = f"; {unknown} result(s) have unknown usage" if unknown else ""
+            body: dict[str, Any] = {
+                "text": (
+                    f"Cost alert for run {self.run_id}: known cost "
+                    f"${payload['accumulated_cost_usd']:.4f} reached the "
+                    f"{payload['threshold_percent']}% threshold of "
+                    f"${payload['budget_cap_usd']:.4f}{note}."
+                )
+            }
+        else:
+            body = payload
+        response = requests.post(url, json=body, timeout=self.config.timeout_seconds)
+        response.raise_for_status()
+
+    def _send_smtp(self, payload: dict[str, Any]) -> None:
+        assert self.config.smtp_host is not None
+        assert self.config.smtp_from is not None
+        message = EmailMessage()
+        message["From"] = self.config.smtp_from
+        message["To"] = ", ".join(self.config.smtp_to)
+        message["Subject"] = (
+            f"Cost alert: run {self.run_id} reached {payload['threshold_percent']}%"
+        )
+        unknown = payload["unknown_usage_results"]
+        message.set_content(
+            f"Run: {self.run_id}\n"
+            f"Known cost: ${payload['accumulated_cost_usd']:.4f}\n"
+            f"Budget cap: ${payload['budget_cap_usd']:.4f}\n"
+            f"Threshold: {payload['threshold_percent']}%\n"
+            f"Results with unknown usage: {unknown}\n"
+            "The known cost may be lower than actual spend when usage is unknown.\n"
+        )
+        with smtplib.SMTP(
+            self.config.smtp_host,
+            self.config.smtp_port,
+            timeout=self.config.timeout_seconds,
+        ) as smtp:
+            if self.config.smtp_use_starttls:
+                smtp.starttls(context=ssl.create_default_context())
+            if self.config.smtp_username:
+                password = (
+                    self.config.smtp_password.get_secret_value()
+                    if self.config.smtp_password is not None
+                    else ""
+                )
+                smtp.login(self.config.smtp_username, password)
+            smtp.send_message(message)
+
+    def _deliver(self, channel: str, payload: dict[str, Any]) -> tuple[bool, int, str | None]:
+        if channel == "log":
+            return True, 0, None
+        last_error: str | None = None
+        for attempt in range(1, self.config.max_retries + 2):
+            try:
+                if channel in {"slack", "webhook"}:
+                    self._send_webhook(channel, payload)
+                else:
+                    self._send_smtp(payload)
+                return True, attempt, None
+            except requests.HTTPError as exc:
+                status = exc.response.status_code if exc.response is not None else None
+                last_error = f"http_status_{status}" if status is not None else "http_error"
+                if status != 429 and (status is None or not 500 <= status <= 599):
+                    return False, attempt, last_error
+            except requests.exceptions.SSLError:
+                # A certificate/protocol failure needs a configuration fix.
+                last_error = "network_error"
+                return False, attempt, last_error
+            except (
+                requests.Timeout,
+                requests.ConnectionError,
+                requests.exceptions.ChunkedEncodingError,
+            ):
+                last_error = "network_error"
+            except requests.RequestException:
+                last_error = "request_error"
+                return False, attempt, last_error
+            except smtplib.SMTPResponseException as exc:
+                last_error = "smtp_error"
+                if not 400 <= exc.smtp_code <= 499:
+                    return False, attempt, last_error
+            except smtplib.SMTPServerDisconnected:
+                last_error = "smtp_error"
+            except smtplib.SMTPException:
+                last_error = "smtp_error"
+                return False, attempt, last_error
+            except ssl.SSLError:
+                last_error = "smtp_error"
+                return False, attempt, last_error
+            except OSError:
+                last_error = "smtp_error" if channel == "smtp" else "network_error"
+            except Exception:
+                # E.g. malformed SMTP headers; never surface an exception
+                # message that may include an endpoint or credential.
+                last_error = "delivery_error"
+                return False, attempt, last_error
+        return False, self.config.max_retries + 1, last_error
+
+
+class CostAlertManager(CostAlertSender):
     """Send each crossed threshold to configured channels at most once per run.
 
     ``state_path`` is a dedicated JSON file for this run, typically below the
@@ -148,112 +266,6 @@ class CostAlertManager:
             "unknown_usage_results": unknown_usage_results,
             "cost_basis": "known_pricing_usage",
         }
-
-    def _send_webhook(self, channel: str, payload: dict[str, Any]) -> None:
-        url_secret = (
-            self.config.slack_webhook_url if channel == "slack" else self.config.webhook_url
-        )
-        assert url_secret is not None
-        url = url_secret.get_secret_value()
-        if channel == "slack":
-            unknown = payload["unknown_usage_results"]
-            note = f"; {unknown} result(s) have unknown usage" if unknown else ""
-            body: dict[str, Any] = {
-                "text": (
-                    f"Cost alert for run {self.run_id}: known cost "
-                    f"${payload['accumulated_cost_usd']:.4f} reached the "
-                    f"{payload['threshold_percent']}% threshold of "
-                    f"${payload['budget_cap_usd']:.4f}{note}."
-                )
-            }
-        else:
-            body = payload
-        response = requests.post(url, json=body, timeout=self.config.timeout_seconds)
-        response.raise_for_status()
-
-    def _send_smtp(self, payload: dict[str, Any]) -> None:
-        assert self.config.smtp_host is not None
-        assert self.config.smtp_from is not None
-        message = EmailMessage()
-        message["From"] = self.config.smtp_from
-        message["To"] = ", ".join(self.config.smtp_to)
-        message["Subject"] = (
-            f"Cost alert: run {self.run_id} reached {payload['threshold_percent']}%"
-        )
-        unknown = payload["unknown_usage_results"]
-        message.set_content(
-            f"Run: {self.run_id}\n"
-            f"Known cost: ${payload['accumulated_cost_usd']:.4f}\n"
-            f"Budget cap: ${payload['budget_cap_usd']:.4f}\n"
-            f"Threshold: {payload['threshold_percent']}%\n"
-            f"Results with unknown usage: {unknown}\n"
-            "The known cost may be lower than actual spend when usage is unknown.\n"
-        )
-        with smtplib.SMTP(
-            self.config.smtp_host,
-            self.config.smtp_port,
-            timeout=self.config.timeout_seconds,
-        ) as smtp:
-            if self.config.smtp_use_starttls:
-                smtp.starttls(context=ssl.create_default_context())
-            if self.config.smtp_username:
-                password = (
-                    self.config.smtp_password.get_secret_value()
-                    if self.config.smtp_password is not None
-                    else ""
-                )
-                smtp.login(self.config.smtp_username, password)
-            smtp.send_message(message)
-
-    def _deliver(self, channel: str, payload: dict[str, Any]) -> tuple[bool, int, str | None]:
-        if channel == "log":
-            return True, 0, None
-        last_error: str | None = None
-        for attempt in range(1, self.config.max_retries + 2):
-            try:
-                if channel in {"slack", "webhook"}:
-                    self._send_webhook(channel, payload)
-                else:
-                    self._send_smtp(payload)
-                return True, attempt, None
-            except requests.HTTPError as exc:
-                status = exc.response.status_code if exc.response is not None else None
-                last_error = f"http_status_{status}" if status is not None else "http_error"
-                if status != 429 and (status is None or not 500 <= status <= 599):
-                    return False, attempt, last_error
-            except requests.exceptions.SSLError:
-                # A certificate/protocol failure needs a configuration fix.
-                last_error = "network_error"
-                return False, attempt, last_error
-            except (
-                requests.Timeout,
-                requests.ConnectionError,
-                requests.exceptions.ChunkedEncodingError,
-            ):
-                last_error = "network_error"
-            except requests.RequestException:
-                last_error = "request_error"
-                return False, attempt, last_error
-            except smtplib.SMTPResponseException as exc:
-                last_error = "smtp_error"
-                if not 400 <= exc.smtp_code <= 499:
-                    return False, attempt, last_error
-            except smtplib.SMTPServerDisconnected:
-                last_error = "smtp_error"
-            except smtplib.SMTPException:
-                last_error = "smtp_error"
-                return False, attempt, last_error
-            except ssl.SSLError:
-                last_error = "smtp_error"
-                return False, attempt, last_error
-            except OSError:
-                last_error = "smtp_error" if channel == "smtp" else "network_error"
-            except Exception:
-                # E.g. malformed SMTP headers; never surface an exception
-                # message that may include an endpoint or credential.
-                last_error = "delivery_error"
-                return False, attempt, last_error
-        return False, self.config.max_retries + 1, last_error
 
     def process(
         self,
