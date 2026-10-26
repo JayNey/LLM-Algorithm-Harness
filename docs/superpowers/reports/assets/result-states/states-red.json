@@ -1,0 +1,119 @@
+{
+  "scenario": "states",
+  "source": {
+    "head": "be54ba8ed44bf199e53a0a98aec3fee9294075a3",
+    "dirty": "M scripts/verify-evaluations.mjs\n M src/evaluations/observer.test.ts\n M src/evaluations/presentation.test.ts\n M src/evaluations/results.test.ts\n?? ../openspec/changes/distinguish-result-states/"
+  },
+  "layer": "browser-fixture (not backend E2E)",
+  "assertions": [],
+  "requests": [
+    {
+      "mode": "results-states",
+      "path": "/users/me",
+      "method": "GET",
+      "query": ""
+    },
+    {
+      "mode": "results-states",
+      "path": "/users/me",
+      "method": "GET",
+      "query": ""
+    },
+    {
+      "mode": "results-states",
+      "path": "/evaluations/eval-fixture-1",
+      "method": "GET",
+      "query": ""
+    },
+    {
+      "mode": "results-states",
+      "path": "/results/eval-fixture-1",
+      "method": "GET",
+      "query": "?limit=20&offset=0"
+    },
+    {
+      "mode": "results-states",
+      "path": "/evaluations/eval-fixture-1",
+      "method": "GET",
+      "query": ""
+    },
+    {
+      "mode": "results-states",
+      "path": "/results/eval-fixture-1",
+      "method": "GET",
+      "query": "?limit=20&offset=0"
+    },
+    {
+      "mode": "results-states",
+      "path": "/evaluations/eval-fixture-1",
+      "method": "GET",
+      "query": ""
+    },
+    {
+      "mode": "results-states",
+      "path": "/results/eval-fixture-1",
+      "method": "GET",
+      "query": "?limit=20&offset=0"
+    },
+    {
+      "mode": "results-states",
+      "path": "/evaluations/eval-fixture-1",
+      "method": "GET",
+      "query": ""
+    },
+    {
+      "mode": "results-states",
+      "path": "/results/eval-fixture-1",
+      "method": "GET",
+      "query": "?limit=20&offset=0"
+    },
+    {
+      "mode": "results-states",
+      "path": "/evaluations/eval-fixture-1",
+      "method": "GET",
+      "query": ""
+    },
+    {
+      "mode": "results-states",
+      "path": "/results/eval-fixture-1",
+      "method": "GET",
+      "query": "?limit=20&offset=0"
+    },
+    {
+      "mode": "results-states",
+      "path": "/evaluations/eval-fixture-1",
+      "method": "GET",
+      "query": ""
+    },
+    {
+      "mode": "results-states",
+      "path": "/results/eval-fixture-1",
+      "method": "GET",
+      "query": "?limit=20&offset=0"
+    }
+  ],
+  "unknown": [],
+  "screenshots": [],
+  "replaced": [
+    "WebSocket progress: in-memory fixture (no real upstream connection)",
+    "HTTP /api/v1/users/me",
+    "HTTP /api/v1/api-keys",
+    "HTTP /api/v1/evaluation-options and children",
+    "HTTP /api/v1/evaluations create/start/get",
+    "results scenario: HTTP /api/v1/results list/detail",
+    "localStorage session marker (no credentials)",
+    "security only: isolated HTML and in-memory auth/HTTP transport"
+  ],
+  "real": [
+    "React StrictMode",
+    "router",
+    "session provider",
+    "creation store",
+    "evaluation client"
+  ],
+  "pass": false,
+  "failure": {
+    "message": "locator.waitFor: Timeout 30000ms exceeded.\nCall log:\n\u001b[2m  - waiting for getByRole('region', { name: '评估结果', exact: true }).getByText('等待结果', { exact: true }) to be visible\u001b[22m\n",
+    "stack": "locator.waitFor: Timeout 30000ms exceeded.\nCall log:\n\u001b[2m  - waiting for getByRole('region', { name: '评估结果', exact: true }).getByText('等待结果', { exact: true }) to be visible\u001b[22m\n\n    at statesScenario (/Users/charlesleclerc/LLM-Algorithm-Harness/frontend/scripts/verify-evaluations.mjs:2319:52)\n    at async file:///Users/charlesleclerc/LLM-Algorithm-Harness/frontend/scripts/verify-evaluations.mjs:2388:52"
+  }
+}

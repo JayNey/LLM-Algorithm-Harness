@@ -40,10 +40,18 @@ export function resultAvailability(
       'cancelled',
     ].includes(evaluation.status)
   ) {
-    if (recorded_units === 0) kind = 'empty'
-    else if (evaluation.status !== 'completed') kind = 'partial'
-    else
-      kind = result.problems.total < expected_units ? 'incomplete' : 'complete'
+    if (evaluation.status === 'completed')
+      kind =
+        recorded_units === 0
+          ? 'empty'
+          : result.problems.total < expected_units
+            ? 'incomplete'
+            : 'complete'
+    else if (evaluation.status === 'pending' || evaluation.status === 'running')
+      kind = recorded_units === 0 ? 'waiting' : 'partial'
+    else if (evaluation.status === 'paused') kind = 'paused'
+    else if (evaluation.status === 'failed') kind = 'failed'
+    else if (evaluation.status === 'cancelled') kind = 'cancelled'
   }
   return { kind, recorded_units, expected_units }
 }

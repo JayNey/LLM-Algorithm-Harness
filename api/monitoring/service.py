@@ -15,6 +15,7 @@ from api.monitoring.config import MonitorSettings
 from api.monitoring.database_metrics import DatabaseQueryMetrics, SQLiteQueryMetrics
 from api.monitoring.execution_logs import task_log_key
 from api.monitoring.probes import MonitorProbes
+from api.monitoring.readiness import ReadinessCheck
 from api.monitoring.store import MonitorStore
 from api.monitoring.task_snapshots import read_task_snapshot
 from api.services import EvaluationService
@@ -39,6 +40,7 @@ class MonitorService:
         )
         self.task_engine = task_engine if task_engine is not None else evaluations.engine
         self.probes = MonitorProbes(auth, files, settings, evaluations)
+        self.readiness = ReadinessCheck(lambda: self.probes.database())
         engines = {
             "evaluation": evaluations.engine,
             "async_task": self.task_engine,
@@ -210,7 +212,7 @@ class MonitorService:
             "status": status,
             "scope": "configured_api_foundation",
             "checks": checks,
-            "pending_issues": [157],
+            "pending_issues": [],
         }
 
     def task_performance(self) -> dict[str, Any]:

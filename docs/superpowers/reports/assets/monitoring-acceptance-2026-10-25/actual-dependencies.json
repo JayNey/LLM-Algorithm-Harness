@@ -1,0 +1,279 @@
+{
+  "source": {
+    "head": "5e7f19ed0127613ea555e74b38f59d1edafddc80",
+    "dirty": ""
+  },
+  "checked_at": "2026-10-25T08:11:29.351337+00:00",
+  "layer": "isolated actual Docker / Redis / Celery + in-process HTTP and temporary SQLite",
+  "real_provider_requests_submitted": 0,
+  "docker_resources": {
+    "layer": "actual Docker, isolated test containers",
+    "observation": {
+      "scope": "api_process_docker_context_labeled_running_sandboxes",
+      "selector": "io.llm-algorithm-harness.sandbox=v1",
+      "cluster_complete": false,
+      "snapshot_atomic": false,
+      "metrics_source": "docker_cli_rounded_stats",
+      "timeout_seconds": 10.0,
+      "sample_limit": 64,
+      "cached": false,
+      "age_seconds": 0.0,
+      "status": "ok",
+      "reason": "observed",
+      "listed_count": 1,
+      "sampled_count": 1,
+      "truncated": false,
+      "containers": [
+        {
+          "container_id": "container-8fa9c9f46aea0b7d19a7c945",
+          "status": "ok",
+          "cpu_percent": 0.0,
+          "memory_usage_bytes": 13254000,
+          "memory_limit_bytes": 268435456,
+          "memory_percent": 4.94,
+          "pids": 1
+        }
+      ]
+    },
+    "sandbox_removed_between_ps_and_stats": {
+      "scope": "api_process_docker_context_labeled_running_sandboxes",
+      "selector": "io.llm-algorithm-harness.sandbox=v1",
+      "cluster_complete": false,
+      "snapshot_atomic": false,
+      "metrics_source": "docker_cli_rounded_stats",
+      "timeout_seconds": 10.0,
+      "sample_limit": 64,
+      "cached": false,
+      "age_seconds": 0.0,
+      "status": "partial",
+      "reason": "stats_failed",
+      "listed_count": 1,
+      "sampled_count": 1,
+      "truncated": false,
+      "containers": [
+        {
+          "container_id": "container-8fa9c9f46aea0b7d19a7c945",
+          "status": "unknown",
+          "cpu_percent": null,
+          "memory_usage_bytes": null,
+          "memory_limit_bytes": null,
+          "memory_percent": null,
+          "pids": null
+        }
+      ]
+    }
+  },
+  "http": {
+    "public_health_scope": "api_liveness_only",
+    "deep_health": {
+      "status": "healthy",
+      "scope": "configured_api_foundation",
+      "checks": {
+        "database": {
+          "status": "ok",
+          "authentication": {
+            "status": "ok",
+            "backend": "sqlite"
+          },
+          "files": {
+            "status": "ok",
+            "backend": "sqlite"
+          },
+          "business_database": {
+            "backend": "sqlite",
+            "required_tables": [
+              "ab_tests",
+              "alert_events",
+              "alert_rules",
+              "async_tasks",
+              "benchmark_runs",
+              "benchmark_suites",
+              "budgets",
+              "evaluation_results",
+              "evaluations",
+              "experiments",
+              "pricing_overrides",
+              "problems"
+            ],
+            "read_only": true,
+            "status": "ok",
+            "latency_ms": 4.973,
+            "migration": {
+              "status": "ok",
+              "revisions": [
+                "0004"
+              ],
+              "expected_heads": [
+                "0004"
+              ]
+            }
+          }
+        },
+        "redis": {
+          "scope": "configured_celery_broker",
+          "infrastructure_available": true,
+          "timeout_seconds": 5.0,
+          "backend": "redis",
+          "queue_scope": "configured_business_queues",
+          "queue_excludes": [
+            "worker_reserved",
+            "active",
+            "unacked",
+            "worker_scheduled"
+          ],
+          "status": "ok",
+          "reason": "observed",
+          "latency_ms": 3.642,
+          "broker_queue": {
+            "status": "ok",
+            "reason": "observed",
+            "waiting": 0,
+            "queues": [
+              {
+                "name": "default",
+                "waiting": 0
+              },
+              {
+                "name": "evaluations",
+                "waiting": 0
+              }
+            ]
+          },
+          "cached": false,
+          "age_seconds": 0.0
+        },
+        "workers": {
+          "scope": "responding_celery_workers",
+          "infrastructure_available": true,
+          "timeout_seconds": 5.0,
+          "cluster_complete": false,
+          "reserved_scope": "received_by_responding_workers_not_broker_queue_length",
+          "evaluation_worker_implementation": "algorithm_harness",
+          "real_evaluation_available": null,
+          "execution_readiness": "not_checked",
+          "status": "ok",
+          "reason": "observed",
+          "worker_count": 1,
+          "workers": [
+            {
+              "worker_id": "worker-1d079ecf7a31ff2953d0c6a2",
+              "status": "ok",
+              "active": 0,
+              "reserved": 0,
+              "concurrency": 1
+            }
+          ],
+          "active": 0,
+          "reserved": 0,
+          "concurrency": 1,
+          "cached": false,
+          "age_seconds": 0.0
+        },
+        "sandbox": {
+          "status": "ok",
+          "backend": "docker",
+          "scope": "docker_execution_preflight",
+          "cached": true,
+          "cache_seconds": 5
+        }
+      },
+      "pending_issues": []
+    },
+    "sandbox_executor_ok": true,
+    "sandbox_http": {
+      "status": "ok",
+      "backend": "docker",
+      "scope": "docker_execution_preflight",
+      "cached": false,
+      "cache_seconds": 5
+    },
+    "resource_components": {
+      "cpu": "ok",
+      "memory": "ok",
+      "disk": "ok",
+      "file_storage": "ok"
+    },
+    "broker_queue": {
+      "status": "ok",
+      "reason": "observed",
+      "waiting": 0,
+      "queues": [
+        {
+          "name": "default",
+          "waiting": 0
+        },
+        {
+          "name": "evaluations",
+          "waiting": 0
+        }
+      ],
+      "source": "redis_broker",
+      "scope": "configured_business_queues",
+      "cached": true,
+      "age_seconds": 1.142
+    },
+    "workers": {
+      "status": "ok",
+      "worker_count": 1,
+      "active": 0,
+      "reserved": 0,
+      "concurrency": 1,
+      "cluster_complete": false
+    },
+    "task_sources": {
+      "task_source": "persisted_business_evaluations",
+      "task_status": "ok",
+      "task_count": 0,
+      "async_task_source": "persisted_async_tasks",
+      "async_task_status": "ok",
+      "async_task_count": 0
+    },
+    "database_query_sources": [
+      "evaluation",
+      "async_task",
+      "evaluation_results",
+      "experiment",
+      "benchmark",
+      "ab_test",
+      "cost",
+      "auth_file"
+    ],
+    "quota_observation": {
+      "evaluation_concurrency": {
+        "limit": 5,
+        "used": 0,
+        "remaining": 5
+      },
+      "daily_api_calls": {
+        "status": "metered",
+        "limit": null,
+        "remaining": null,
+        "used": 0,
+        "timezone": "UTC",
+        "period_start": "2026-10-25T00:00:00+00:00",
+        "resets_at": "2026-10-26T00:00:00+00:00",
+        "scope": "owned_generation_sdk_attempts",
+        "collection_mode": "best_effort_since_instrumentation"
+      },
+      "monthly_api_calls": {
+        "status": "metered",
+        "limit": null,
+        "remaining": null,
+        "used": 0,
+        "timezone": "UTC",
+        "period_start": "2026-10-01T00:00:00+00:00",
+        "resets_at": "2026-11-01T00:00:00+00:00",
+        "scope": "owned_generation_sdk_attempts",
+        "collection_mode": "best_effort_since_instrumentation"
+      }
+    }
+  },
+  "result": "passed",
+  "cleanup": {
+    "isolated_worker_stopped": true,
+    "isolated_redis_removed": true,
+    "isolated_storage_removed": true,
+    "scope": "only resources created by this run",
+    "errors": []
+  }
+}

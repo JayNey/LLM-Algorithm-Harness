@@ -1,6 +1,6 @@
 # LLM Algorithm Harness REST API
 
-API 基础地址为 `http://localhost:8000/api/v1`，当前 HTTP 契约版本为 `1.0.0`，应用发布版本为 `0.1.0`。
+API 基础地址为 `http://localhost:8000/api/v1`，当前 HTTP 契约版本为 `1.1.0`，应用发布版本为 `0.1.0`。
 采用 URL 主版本，不使用 Header 版本协商；演进与兼容性检查规则见 [API 版本管理](docs/api-versioning.md)。
 所有已注册 HTTP 端点的参数、约束、认证要求、限流说明、请求/响应示例及 curl 命令，均从服务的 OpenAPI 文档读取：
 
@@ -255,8 +255,9 @@ pytest tests/test_api_documentation.py --no-cov
 
 worker 计数只覆盖截止时间内回复的节点，不能视作完整集群；数据库 `pending` 数量
 不是 broker 队列长度。主线已通过 AlgorithmHarness 执行评估，但健康检查不验证
-某个提供商、凭据或沙箱的运行就绪。真实 LLM 性能、容器资源及新增配额仍属
-#157 后续范围，完整配置和限制见[监控指南](docs/api-monitoring.md)。
+某个提供商、凭据或沙箱的运行就绪。真实 SDK 请求统计、容器资源、用户并发与日/月
+生成尝试额度已有实现；完整配置、限制和逐项验收见[监控指南](docs/api-monitoring.md)及
+[#157验收清单](docs/issue157-acceptance.md)。
 
 管理员还可设置 `MONITOR_CONTAINER_PROBES_ENABLED=true`，在 `system/status.containers` 读取当前 Docker context 中带管理标签沙箱的匿名资源快照。默认关闭，旧版无标签容器不计入；存在超时、输出和样本限制，缺测返回 null。配置与语义见[监控指南](docs/api-monitoring.md#docker-沙箱容器资源)。
 

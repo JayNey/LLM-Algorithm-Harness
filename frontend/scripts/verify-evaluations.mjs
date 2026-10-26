@@ -100,7 +100,13 @@ const keys = ['a', 'b', 'slow'].map((id) => ({
   usage_count: 0,
   masked_preview: null,
 }))
-async function fixture(mode = 'start-error', entry = '/evaluations/new') {
+async function fixture(
+  mode = 'start-error',
+  entry = '/evaluations/new',
+  state = {},
+) {
+  const resultState = { status: 'completed', total: 24, ...state }
+  let resultReads = 0
   const context = await browser.newContext({
     viewport: { width: 1440, height: 1000 },
     reducedMotion: 'reduce',
@@ -219,7 +225,7 @@ async function fixture(mode = 'start-error', entry = '/evaluations/new') {
           })
         const limit = Number(url.searchParams.get('limit'))
         const offset = Number(url.searchParams.get('offset'))
-        const units = Array.from({ length: 24 }, (_, i) => ({
+        const units = Array.from({ length: resultState.total }, (_, i) => ({
           problem_id: `result-problem-${Math.floor(i / 2) + 1}`,
           strategy: i % 2 ? 'cot' : 'direct',
           status: i === 2 ? 'timeout' : i === 3 ? 'future-unit' : 'success',
@@ -229,21 +235,30 @@ async function fixture(mode = 'start-error', entry = '/evaluations/new') {
         }))
         const response = await send({
           run_id: null,
-          status: mode === 'results-live' ? 'running' : 'completed',
+          status:
+            mode === 'results-live'
+              ? 'running'
+              : (resultState.resultStatuses?.[
+                  Math.min(resultReads++, resultState.resultStatuses.length - 1)
+                ] ?? resultState.status),
           created_at: evaluation.created_at,
           completed_at: null,
-          strategies: ['direct', 'cot'].map((name, i) => ({
-            name,
-            success_rate: i ? 0.75 : 0.5,
-            total_problems: 12,
-            solved_problems: i ? 9 : 6,
-            avg_tokens:
-              mode === 'results-live' && progressPercentage > 20 ? 300 : 100,
-            estimated_cost_usd: i ? 0.12 : 0,
-            unknown_cost_count: i ? 1 : 2,
-            avg_execution_time: 1.25,
-            by_difficulty: { easy: { success_rate: 0.5, solved: 2, total: 4 } },
-          })),
+          strategies: (resultState.total ? ['direct', 'cot'] : []).map(
+            (name, i) => ({
+              name,
+              success_rate: i ? 0.75 : 0.5,
+              total_problems: 12,
+              solved_problems: i ? 9 : 6,
+              avg_tokens:
+                mode === 'results-live' && progressPercentage > 20 ? 300 : 100,
+              estimated_cost_usd: i ? 0.12 : 0,
+              unknown_cost_count: i ? 1 : 2,
+              avg_execution_time: 1.25,
+              by_difficulty: {
+                easy: { success_rate: 0.5, solved: 2, total: 4 },
+              },
+            }),
+          ),
           problems: {
             items: units.slice(offset, offset + limit),
             total: units.length,
@@ -264,7 +279,8 @@ async function fixture(mode = 'start-error', entry = '/evaluations/new') {
       if (path === '/evaluations/eval-fixture-1' && mode !== 'results-live')
         return send({
           ...evaluation,
-          status: 'completed',
+          status: resultState.status,
+          error_message: resultState.reason ?? null,
           can_start: false,
           can_cancel: false,
           model: 'result-model',
@@ -602,6 +618,10 @@ async function fixture(mode = 'start-error', entry = '/evaluations/new') {
       heldResultOffset = null
       resultGate = null
       releaseResult()
+    },
+    setResultState: (state) => {
+      Object.assign(resultState, state)
+      resultReads = 0
     },
     failResult: (status) => {
       resultFailure = status
@@ -2439,6 +2459,167 @@ async function entriesScenario() {
   await check('entries 场景无页面异常', () => assert.deepEqual(errors, []))
 }
 
+async function statesScenario() {
+  const cases = [
+    ['pending', 0, '等待结果'],
+    ['pending', 12, '运行中部分结果'],
+    ['running', 0, '等待结果'],
+    ['running', 12, '运行中部分结果'],
+    ['paused', 0, '任务已暂停'],
+    ['paused', 12, '任务已暂停'],
+    ['failed', 0, '任务失败'],
+    ['failed', 12, '任务失败'],
+    ['cancelled', 0, '任务已取消'],
+    ['cancelled', 12, '任务已取消'],
+    ['completed', 0, '已完成，无结果'],
+    ['completed', 12, '结果不完整'],
+    ['completed', 24, '结果完整'],
+  ]
+  for (const [status, total, label] of cases) {
+    const h = await fixture('results-states', '/results/eval-fixture-1', {
+      status,
+      total,
+      reason: '任务详情提供的原因',
+    })
+    const region = h.page.getByRole('region', { name: '评估结果', exact: true })
+    await region.getByText(label, { exact: true }).waitFor()
+    await region
+      .getByText(`已记录 ${total} / 预期 24 单元`, { exact: true })
+      .waitFor()
+    await h.page.getByText('任务详情提供的原因', { exact: true }).waitFor()
+    check(`${status}/${total}: 状态、存在性和原因独立展示`, () => {
+      assert.deepEqual(h.errors, [])
+      assert.equal(h.calls.filter((c) => c.method === 'POST').length, 0)
+    })
+    if (status === 'completed' && total === 12) {
+      for (const variant of ['orbit', 'precision', 'studio']) {
+        await h.page
+          .getByLabel('选择页面风格', { exact: true })
+          .selectOption(variant)
+        for (const theme of ['light', 'dark']) {
+          await h.page
+            .getByLabel('主题偏好', { exact: true })
+            .selectOption(theme)
+          for (const width of [320, 1440]) {
+            await h.page.setViewportSize({ width, height: 1000 })
+            assert.ok(
+              await h.page.evaluate(
+                () => document.documentElement.scrollWidth <= window.innerWidth,
+              ),
+            )
+            const file = `states-${variant}-${theme}-${width}.png`
+            await h.page.screenshot({
+              path: resolve(out, file),
+              fullPage: true,
+            })
+            report.screenshots.push(file)
+          }
+        }
+      }
+      check('状态说明在三风格浅深主题320/1440px无根溢出', () =>
+        assert.deepEqual(h.errors, []),
+      )
+    }
+    await h.context.close()
+  }
+  // Refresh an active page with both bootstrap and observer caches populated.
+  for (const target of ['task', 'result', 'socket']) {
+    const h = await fixture('results-states', '/results/eval-fixture-1', {
+      status: 'running',
+    })
+    await h.page.getByText('实时进度已连接', { exact: true }).waitFor()
+    await h.page.getByRole('table', { name: '策略汇总', exact: true }).waitFor()
+    if (target === 'task') h.failDetail(403)
+    if (target === 'result') h.failResult(403)
+    if (target === 'socket') h.denyProgress()
+    else
+      await h.page
+        .getByRole('button', { name: '刷新结果', exact: true })
+        .click()
+    await h.page.getByRole('alert').waitFor()
+    await h.page
+      .getByText('result-model', { exact: true })
+      .waitFor({ state: 'hidden' })
+    assert.equal(
+      await h.page
+        .getByRole('region', { name: '评估结果', exact: true })
+        .count(),
+      0,
+    )
+    h.failDetail(503)
+    h.failResult(0)
+    await h.page.getByRole('button', { name: '刷新结果', exact: true }).click()
+    await h.page.getByRole('alert').waitFor()
+    assert.equal(
+      await h.page.getByText('result-model', { exact: true }).count(),
+      0,
+    )
+    h.failDetail(0)
+    await h.page.getByRole('button', { name: '刷新结果', exact: true }).click()
+    await h.page.getByRole('table', { name: '策略汇总', exact: true }).waitFor()
+    check(`${target}权限拒绝清除整个缓存，503不复活，成功重试恢复`, () =>
+      assert.deepEqual(h.errors, []),
+    )
+    await h.context.close()
+  }
+  const h = await fixture('results-states', '/results/eval-fixture-1')
+  await h.page.getByText('结果完整', { exact: true }).waitFor()
+  h.failResult(503)
+  await h.page.getByRole('button', { name: '刷新结果', exact: true }).click()
+  await h.page.getByRole('alert').waitFor()
+  await h.page.getByText('result-model', { exact: true }).waitFor()
+  assert.equal(
+    await h.page.getByText('已完成，无结果', { exact: true }).count(),
+    0,
+  )
+  assert.equal(
+    await h.page.getByRole('table', { name: '策略汇总', exact: true }).count(),
+    0,
+  )
+  h.failResult(0)
+  await h.page.getByRole('button', { name: '刷新结果', exact: true }).click()
+  await h.page.getByText('结果完整', { exact: true }).waitFor()
+  check('task200/result503独立错误且手动重试恢复，错误不当作empty', () =>
+    assert.deepEqual(h.errors, []),
+  )
+  await h.context.close()
+  for (const statuses of [['running', 'completed'], ['running']]) {
+    const h = await fixture('results-states', '/results/eval-fixture-1')
+    await h.page.getByText('结果完整', { exact: true }).waitFor()
+    const baseline = h.calls.length
+    h.setResultState({ resultStatuses: statuses })
+    await h.page.getByRole('button', { name: '刷新结果', exact: true }).click()
+    const converges = statuses.length === 2
+    await h.page
+      .getByText(
+        converges ? '结果完整' : '结果快照与任务状态暂不一致，请重试',
+        { exact: true },
+      )
+      .waitFor()
+    check(`终态单次补读${converges ? '收敛' : '未确认'}`, () => {
+      assert.equal(
+        h.calls.slice(baseline).filter((c) => c.path.startsWith('/results/'))
+          .length,
+        2,
+      )
+      assert.equal(
+        h.calls
+          .slice(baseline)
+          .filter((c) => c.path.startsWith('/evaluations/')).length,
+        1,
+      )
+    })
+    if (!converges) {
+      h.setResultState({ resultStatuses: ['completed'] })
+      await h.page
+        .getByRole('button', { name: '刷新结果', exact: true })
+        .click()
+      await h.page.getByText('结果完整', { exact: true }).waitFor()
+    }
+    await h.context.close()
+  }
+}
+
 try {
   if (scenario === 'all' || scenario === 'create') await createScenario()
   if (['all', 'create', 'security'].includes(scenario)) await securityScenario()
@@ -2447,6 +2628,7 @@ try {
   if (scenario === 'all' || scenario === 'progress') await progressScenario()
   if (scenario === 'all' || scenario === 'results') await resultsScenario()
   if (scenario === 'all' || scenario === 'entries') await entriesScenario()
+  if (scenario === 'all' || scenario === 'states') await statesScenario()
   if (
     ![
       'all',
@@ -2457,6 +2639,7 @@ try {
       'progress',
       'results',
       'entries',
+      'states',
     ].includes(scenario)
   )
     throw new Error(`Scenario ${scenario} 尚未实现`)

@@ -1,6 +1,6 @@
-# API 系统监控基础能力（#157）
+# API 系统监控、日志与配额（#157）
 
-系统提供管理员授权、本机资源和 Docker 预检、持久化请求统计、安全日志、配置及已有配额查询。#149 已完成异步执行接线，评估 worker 使用 AlgorithmHarness。队列监控可显式启用 Redis 连通性与 Celery worker 数值负载探测；真实 LLM 时延、任务执行指标、容器资源和新配额仍是 #157 后续范围。
+系统已提供管理员健康/资源观测、持久化请求与任务指标、安全日志、数据库查询/LLM/缓存统计、配置和用户配额查询。Redis/Celery及Docker资源探测由部署者显式启用；用户评估并发和日/月生成尝试额度已实际执行。各指标的来源、缓存、保留与部署边界见下文，逐项实现和验收证据见 [#157 验收清单](issue157-acceptance.md)。
 
 ## 配置管理员
 
@@ -12,7 +12,7 @@ export MONITOR_ADMIN_USER_IDS='["11111111-1111-4111-8111-111111111111"]'
 ./run_api.sh
 ```
 
-默认白名单为空。管理员仍需正常登录并传递 `Authorization: Bearer <access_token>`，会话撤销和受保护请求限流继续生效。没有有效身份返回 401；普通用户访问系统级端点返回 403。注册、资料更新和 Token 中的客户端角色声明不能赋予管理员权限。此配置只授予下述监控端点的权限，不提供通用角色管理接口。
+默认白名单为空。管理员仍需通过现有 Bearer 或 Cookie 会话正常认证，会话撤销和受保护请求限流继续生效。没有有效身份返回 401；普通用户访问系统级端点返回 403。注册、资料更新和 Token 中的客户端角色声明不能赋予管理员权限。此配置只授予下述监控端点的权限，不提供通用角色管理接口。
 
 可配置项及默认值：
 
@@ -36,16 +36,50 @@ export MONITOR_ADMIN_USER_IDS='["11111111-1111-4111-8111-111111111111"]'
 下列路径均带 `/api/v1` 前缀；简写 `/health`、`/health/ready`、`/system/health` 时含义相同。
 
 - **存活检查（liveness）**：`GET /api/v1/health`，公开接口，仅表示 API 能响应请求。返回 200，响应包含 `scope=api_liveness_only`；不探测数据库、队列、worker 或 Docker，不代表服务已就绪或迁移完成。
-- **就绪检查（readiness）**：`GET /api/v1/health/ready`，职责是判断服务是否具备接收业务流量的条件。此路径为预留契约，**当前尚未实现，请求返回 404，不可配置为现有部署的就绪探针**；依赖集合、鉴权和成功/失败响应契约须在实现时明确。
+- **就绪检查（readiness）**：`GET /api/v1/health/ready`，职责是判断服务是否具备接收业务流量的条件。无需认证；基础数据库和迁移通过时返回 **200**、`{"status":"ready"}`，失败、未知、异常或超时返回 **503**、`{"status":"not_ready"}`。不暴露组件详情。每次探测响应预算为 1 秒，成功和失败均缓存 1 秒（进程内单调时钟），HTTP 响应为 `Cache-Control: no-store`。同一实例最多一个在途探测；同步驱动阻塞不能被强制中断，超时后保持未就绪且不增开探测线程，迟到成功丢弃，须新一轮探测成功才恢复。可用于基础 API 就绪探针；不保证队列提交或后台执行。
 - **管理员诊断**：`GET /api/v1/system/health`，要求管理员身份，返回已配置组件的详细观测及降级原因，供排障使用。请求成功或组件状态为 healthy 均不能作为业务流量准入的就绪信号。
 
 存活检查供进程存活探针使用；管理员诊断供运维排障使用。部署时须分别确认迁移结果与业务所需依赖，不能用 `/health` 的 200 替代就绪检查。
+
+### 就绪判定规则
+
+以下规则由 readiness 接口用于基础 API 就绪判定；**应用业务路由不会据此自动拦截请求；生产 nginx 在边缘执行就绪准入**。必须区分基础 API、异步任务提交和后台执行能力；“基础 API 就绪”不承诺全部业务端点或完整评估链路可用。
+
+#### 依赖与业务范围
+
+- **数据库是基础 API 的必需依赖。** 当前 API 实际使用的认证、文件元数据与业务数据库必须全部通过连接及所需表可查询检查；业务库还必须通过 Alembic revision 与应用 heads 一致性检查。连接失败、缺表、迁移未完成或版本不匹配均判定基础 API 未就绪；单独 `SELECT 1` 成功不够。此时不应将该实例加入业务流量池，公开存活检查仍可正常响应。
+- **Redis broker 是异步任务提交的必需依赖，不是基础 API 的全局必需依赖。** 数据库通过而 broker 不可用时，认证、题目和已持久化结果等不依赖队列的请求仍具备基础就绪条件，但不能宣称异步提交能力就绪。提交接口不能在实际消息投递失败时报告“已成功入队”。Redis PING 成功仅证明配置的 Celery broker 连通，不保证投递成功，也不证明 result backend 可用；依赖独立 result backend 的操作还须另行确认该依赖。
+- **worker 不阻塞基础 API 就绪或可靠入队。** worker 暂时无回复或数量为 0 时，数据库和 broker 可用仍允许接受能可靠持久化并入队的异步请求，任务等待 worker 恢复，不承诺立即开始或完成；队列限流、容量与业务校验仍适用。worker 观测只覆盖截止时间内回复的节点；至少一个回复也不证明任务目标队列存在可用消费者，更不证明集群完整可用。
+- **沙箱不阻塞基础 API 就绪或异步入队，但影响实际代码执行。** 需要沙箱的任务执行前，必须在实际执行该任务的 worker 环境完成 Docker 预检；失败时不得宣称执行能力就绪，且不得回退 host。API 所在 Docker context 的预检成功不能证明远程 worker 的沙箱可用，沙箱失败也不应导致健康的 API 查询实例退出流量池。
+
+基础 API 就绪的判定式为：认证数据库通过 ∧ 文件元数据库通过 ∧ 业务数据库（含迁移）通过。异步提交能力另需配置的 broker 通过，且每次实际提交必须成功持久化并投递。完整后台执行能力还需面向目标队列的 worker 和该执行环境的沙箱证据；这些基础设施证据仍不保证模型供应商、用户密钥或具体任务一定成功。
+
+#### 未检查与不确定状态
+
+`not_checked`（包括监控禁用或未请求沙箱预检）、`unknown`、`unsupported`、超时、检查中、结果缺失或已过期，均不能视作 `ok`。未检查仅表示没有可用证据，不等于已确认服务故障；必须保留原始状态与原因，不能伪装成成功、零负载或零 worker。
+
+对于当前能力的必需依赖，只有检查成功且证据仍在其有效期和目标范围内才算通过；缺少证据时按“未证实就绪”处理，不予该能力的肯定准入结论。对于不属于当前能力必需集合的依赖，故障或未检查只影响对应能力说明，不阻塞基础 API 就绪。监控探测开关只控制诊断采集，不能通过关闭检查绕过必需依赖。缓存结果只有在既定 TTL 内且作用范围匹配时才能复用；后续实现需明确各项 TTL，不能无限复用过去的成功。
+
+管理员诊断的 `healthy`、`partial`、`degraded` 必须保持原有诊断含义，不直接映射为 readiness。默认沙箱未检查使诊断为 `partial`，不意味着数据库已通过的 API 不可接收基础业务流量；同理，仅本次已检查组件全部为 `ok` 也不证明完整任务执行链路已就绪。
+
+#### 验收示例
+
+以下结论区分基础 API 就绪、异步提交和后台执行；`/health/ready` 仅反映基础 API 就绪：
+
+1. 认证、文件、业务库及迁移全部通过，Redis/worker 检查禁用且沙箱未检查：基础 API 就绪；异步提交与后台执行未证实就绪，不能把禁用当作通过。
+2. 任一必需数据库连接失败、缺表或业务迁移不匹配，即使 Redis、worker、沙箱均通过：基础 API 未就绪。
+3. 数据库全部通过，broker 故障：基础 API 就绪；异步提交不可用，已持久化结果仍可查询。
+4. 数据库与 broker 通过，worker 为 0 或无回复：基础 API 就绪；满足业务校验并成功持久化、投递的请求可入队，后台执行未证实就绪。
+5. 数据库与 broker 通过，目标 worker 已回复，但其沙箱预检失败：基础 API 与可靠入队不受影响；需要沙箱的执行不可用，不回退 host。
+6. 必需数据库未检查、超时或只有过期的成功结果：基础 API 未证实就绪，不得准入；若仅 Redis 证据过期，则只阻止肯定异步提交能力就绪。
+7. API 本机沙箱通过且有 worker 回复，但未验证目标队列消费者或执行环境沙箱：不能据此宣称后台执行能力就绪。
+8. 数据库、迁移与 broker 通过，目标队列存在可用 worker，且该执行环境沙箱预检通过：基础 API 和异步提交能力就绪，后台执行具备上述基础设施条件；仍不保证具体模型调用或任务成功。
 
 ### 诊断与资源端点
 
 以下端点全部需要管理员身份，成功响应使用现有 `success/data/message` 包装：
 
-- `GET /api/v1/system/health`：已探测组件全部为 ok 时返回 healthy；存在 unavailable/unknown 时为 degraded；禁用、未检查或部分回复为 partial。默认不探测 Docker；include_sandbox=true 可加入预检。pending_issues=[157] 表示监控尚有后续能力，不再引用已完成的 #149。healthy 只覆盖本次探测和收到回复的 worker，不证明全部集群或提供商可用。
+- `GET /api/v1/system/health`：已探测组件全部为 ok 时返回 healthy；存在 unavailable/unknown 时为 degraded；禁用、未检查或部分回复为 partial。默认不探测 Docker；include_sandbox=true 可加入预检。`pending_issues=[]` 表示已不再列出待交付的代码能力；保留该兼容字段，不查询GitHub，也不表示当前部署健康。healthy 只覆盖本次探测和收到回复的 worker，不证明全部集群或提供商可用。
 - `GET /api/v1/health/database`：对实际认证/文件 SQLite 执行 `SELECT 1`，并验证所需表可查询；`business_database` 使用已绑定的评估服务 engine 检查实际连接、业务表与 Alembic revision，返回 `status/backend/required_tables/migration/read_only/latency_ms`。迁移检查按仓库 Alembic 元数据的 heads 比对数据库当前 heads，成功时通过 `migration.status/revisions/expected_heads` 说明版本一致；不一致时标记故障，不回显数据库中的任意版本文本。探测只读，不运行迁移、不创建评估服务，也不修改任务状态；不返回连接串、主机路径或凭据。任一已配置数据库检查失败时，总体状态为 `unavailable`。
 - `GET /api/v1/health/redis`：显式启用后对实际 Celery broker 执行 Redis PING，返回 status/latency_ms/reason/cached/age_seconds，scope=configured_celery_broker。支持 redis/rediss；其他 transport 为 unsupported。只检查 broker，未单独检查 result backend。
 - `GET /api/v1/health/workers` 与 `/api/v1/system/workers`：通过只读 monitoring_snapshot 命令返回 worker_count、workers、active、reserved、concurrency。仅统计截止时间内回复的 worker，scope=responding_celery_workers、cluster_complete=false；worker_id 是节点名称的稳定 SHA-256 摘要，不返回主机名。reserved 排除 active，只表示已被这些 worker 接收的待执行任务，不是 broker 队列长度。concurrency 来自池报告的 num_processes；不据此推导 CPU 利用率。
@@ -103,7 +137,7 @@ export MONITOR_QUEUE_CACHE_SECONDS=5
 ## 请求统计与完整性
 
 - `GET /api/v1/metrics/api-stats?window_seconds=60`：统计窗口支持 1–86400 秒，提供请求量、HTTP 4xx/5xx 数与错误率、平均响应时间、P95 和每秒请求数。`endpoints` 按 HTTP 方法与路由模板分组提供同样统计，窗口不完整时各组也只展示 `retained_sample`。
-- `GET /api/v1/metrics/performance`：API 请求统计、实际业务 SQL 查询统计、真实业务任务执行统计，以及尚待接入的 LLM 指标。
+- `GET /api/v1/metrics/performance`：API 请求统计、实际业务 SQL 查询统计、真实业务任务执行统计，以及已采集的真实 SDK 生成尝试指标。
 - `GET /api/v1/metrics/llm-stats`：管理员可查询共享认证数据库中成功采集的真实生成请求统计。`total_calls`、`successful_calls`、`failed_calls` 分别为已结束的 SDK 请求尝试数及其成功/失败数，`success_rate` 为成功数/总数（0–1），`avg_latency_ms` 为全部已记录尝试的平均耗时。无样本时计数为零、成功率和平均耗时为 `null`；`started_at` 为首次成功采集的完成时间（Unix 秒），此前为 `null`。`recorded_usage_hooks` 和 `key_verification_count` 仍分别展示使用登记与密钥连通验证计数，不计作生成调用。
 
 LLM 采集位于 OpenAI、local、SiliconFlow 和 Anthropic 的实际 SDK 生成请求入口。每次重试分别计数；SDK 返回即为成功，生成的代码是否通过评测由评估指标表示。单调时钟耗时包含该次 SDK 请求的等待/超时，排除重试退避、响应本地解析和采集写入。缓存命中、模型列表、连接验证、沙箱预检和模拟任务均不计入。
@@ -179,23 +213,25 @@ curl http://localhost:8000/api/v1/logs/download/your-task-id \
 
 `timezone=UTC`，自然日/月周期为 `[period_start, resets_at)`，每天 UTC 00:00、每月 1 日 UTC 00:00 切换（北京时间 08:00）。无需定时清零，旧周期保留，跨进程及重启持久化，监控明细清理不影响聚合值。
 
-有限周期返回 `status=enforced`、整数 `limit` 和 `remaining=max(limit-used,0)`；无限周期保持 `status=metered`、`limit=null`。任一额度启用时，每次真实 SDK 尝试前原子检查并同时占用日/月额度，按准入时间归属周期，`collection_mode=atomic_before_sdk_attempt`。任一周期耗尽则抛出 `QUOTA_EXCEEDED`（HTTP 429，含周期、重置时间和 `Retry-After`）；不发送 SDK 请求、不计数、不重试此次拒绝。已发出的失败和重试各消耗一次；数据库不可用时以 503 阻止调用。异步任务通过现有任务失败/结果通道报告，不保证入队时同步拒绝。已准入但进程意外退出的尝试不退还额度。
+有限周期返回 `status=enforced`、整数 `limit` 和 `remaining=max(limit-used,0)`；无限周期保持 `status=metered`、`limit=null`、`remaining=null`。任一额度启用时，每次真实 SDK 尝试前原子检查并同时占用日/月额度，按准入时间归属周期，`collection_mode=atomic_before_sdk_attempt`。任一周期耗尽则抛出 `QUOTA_EXCEEDED`（HTTP 429，含周期、重置时间和 `Retry-After`）；不发送 SDK 请求、不计数、不重试此次拒绝。已发出的失败和重试各消耗一次；数据库不可用时以 503 阻止调用。异步任务通过现有任务失败/结果通道报告，不保证入队时同步拒绝。已准入但进程意外退出的尝试不退还额度。
 
 两项均未设置时，保留完成后 `best_effort_since_instrumentation` 计量，写入失败不改变模型结果。统计范围 `scope=owned_generation_sdk_attempts`，旧全局数据不能按用户回填。缓存、模型列表、连接验证和无用户 CLI 不受生成额度影响，受保护 HTTP 请求速率限制保持独立。详细上传限额见 [文件服务指南](api-files.md)。
 
-## 离线配置目录与后续接入
+## 配置查询与运行边界
 
 管理员可查询：
 
+- `GET /api/v1/system/config`：当前 API 进程已加载的 API、认证、文件与监控配置，以固定数值/布尔/可空额度白名单返回；不重新读取环境或文件、不执行探针，不返回凭据、URL、路径或管理员身份列表；`scope=api_process`，响应 `no-store`。
+
 - `GET /api/v1/config/strategies`：复用 `AlgorithmHarness.STRATEGY_MAP` 和 `StrategyConfig` 的默认资源参数。
-- `GET /api/v1/config/providers`：静态支持的提供商与固定示例配置中的模型名称，`scope=offline_example_catalog`。不访问远端模型列表，不验证当前可用性，不返回密钥或自定义 URL；CLI 提供商能力列表也不会扩大认证密钥接口的提供商白名单。
+- `GET /api/v1/config/providers`：不传 `api_key_id` 时只读公开静态示例，`source=static_examples`、`scope=offline_example_catalog`，不代表完整模型支持清单。传入管理员本人的非空 `api_key_id` 时复用评测模型查询逻辑，返回 `source=provider_api`、`scope=user_api_key` 和该供应商的 `provider/models/complete`；`complete=false` 表示截断或分页完整性未知。枚举成功不保证推理可调用，失败不回退静态。两类响应均 no-store，不返回密钥或自定义 URL；管理员也不能使用他人密钥。CLI能力列表不扩大认证密钥接口的提供商白名单。
 - `GET /api/v1/config/sandbox`：受控 Docker 镜像、执行超时、内存、进程、输出和允许导入配置，不返回主机目录或环境变量。
 
 #149 的异步任务执行与产品 HTTP 入队已合入。API 启动保留现有任务工厂和服务恢复策略，关闭时清理探测子进程及查询采集器。Redis/worker 探测须由部署者启用，并重启 worker 以加载新的只读 inspect 命令。探测不会调用 TaskManager.get_task、创建业务任务、撤销或恢复任务，也不会直接更新任务数据库。
 
-真实 worker 可用可信任务所有者调用 `app.state.monitor.record_task_event(event, user_id)`。入口会校验登记的任务归属和删除状态；HTTP 不开放指定所有者、写日志或绑定缓存的接口。实际 LLM 缓存通过客户端自动上报共享快照，无需将 worker 对象直接绑定到 API 进程；`app.state.monitor.cache` 仅保留可信进程的单实例兼容入口。
+异步任务生命周期与评估/导入进度已经通过 `api/monitoring/execution_logs.py` 写入保留日志（`source=async_task_execution`）；仅采集固定事件和白名单上下文，不保存模型正文或完整 stdout。API 与 worker 必须共享认证数据库及一致密钥，采集失败不改变任务结果。可信进程也可用任务所有者调用 `app.state.monitor.record_task_event(event, user_id)`。入口会校验登记的任务归属和删除状态；HTTP 不开放指定所有者、写日志或绑定缓存的接口。实际 LLM 缓存通过客户端自动上报共享快照，无需将 worker 对象直接绑定到 API 进程；`app.state.monitor.cache` 仅保留可信进程的单实例兼容入口。
 
-Redis 连通性和回复 worker 的数值负载已接入。broker 等待队列长度、真实任务执行时长/成功率、LLM 请求时延、各容器 CPU/内存及新日/月配额仍需后续采集。数据库健康和绑定 engine 的查询时延已接入；健康探测不构成真实模型调用成功证明。#157 保持开放。
+Redis 连通性、broker 等待队列长度、回复 worker 的数值负载、持久化任务执行统计、SDK 请求时延、带标签容器资源及日/月生成额度均已有实现。部署未配置或探测失败时，仍按实际状态返回 not_checked/unavailable/unknown/null；健康成功不构成真实模型调用或完整集群就绪证明。issue关闭以验收和人工合并决定，不由接口状态字段推断。本 PR 的基线及实测边界见[同步验收记录](superpowers/reports/2026-10-25-sync-monitoring-docs-acceptance-verify.md)。
 
 ## Docker 沙箱容器资源
 
@@ -218,7 +254,7 @@ ps 与 stats 分享0.5–10秒命令预算，各自接受的合计输出上限64
 
 每 API 进程最多一个采样，缓存0–300秒，失败也缓存；cached/age_seconds 描述完成后的缓存年龄。缓存过期且另一个采样在途时返回 unknown/refresh_in_progress，不把旧成功值当成新观测。缓存独立于 worker/Redis 观测。
 
-本功能仅完成 #157 的容器资源观测；LLM 生成性能和新增配额仍需后续实现。跨 worker 缓存计数及整体命中率已通过共享快照提供，范围和公式见上文缓存统计接口。
+容器观测、SDK性能及用户配额是独立能力；各自的配置和数据范围不能互相替代。跨 worker 缓存计数及整体命中率通过共享快照提供，范围和公式见上文缓存统计接口。
 
 ### 实际任务执行统计
 
@@ -240,3 +276,90 @@ ps 与 stats 分享0.5–10秒命令预算，各自接受的合计输出上限64
 - `worker_reserved.count`：回复 worker 已接收且尚未执行的数量，`cluster_complete=false`，附缓存年龄。
 
 三项观测独立且非原子，不相加、不互相推算。Redis 正常空队列返回 0；关闭探测、配置非法、超时、连接/LLEN 失败或协议异常时等待数为 null。PING 状态与 `broker_queue.status` 独立：PING 成功不能证明 LLEN 权限或队列观测成功。现有 queued 任务列表仍只查询数据库 pending。
+
+
+## 部署可用性告警
+
+存活告警继续检查 `/api/v1/health`。判断基础 API 能否接收业务流量的告警必须检查
+`/api/v1/health/ready`，仅 HTTP 200 成功；503、超时、连接失败及其他状态均失败。
+管理员诊断的 HTTP 200 或 healthy 不能替代此信号。该检查不证明异步执行能力。
+
+以下是接入现有 Prometheus/blackbox exporter 的配置示例，仓库不会自动部署这些服务，
+也未配置通知接收人。将 `https://harness.example.com` 替换为实际业务入口，
+`blackbox:9115` 替换为 Prometheus 可达的 exporter 地址；通知路由由现有 Alertmanager 配置。
+
+blackbox.yml（合并到 exporter 的配置）：
+
+```yaml
+modules:
+  harness_readiness:
+    prober: http
+    timeout: 3s
+    http:
+      method: GET
+      valid_status_codes: [200]
+      follow_redirects: false
+      preferred_ip_protocol: ip4
+```
+
+prometheus.yml（合并到现有配置；scrape 超时大于探测预算）：
+
+```yaml
+rule_files:
+  - harness-readiness.rules.yml
+scrape_configs:
+  - job_name: harness-readiness
+    metrics_path: /probe
+    scrape_interval: 15s
+    scrape_timeout: 5s
+    params:
+      module: [harness_readiness]
+    static_configs:
+      - targets: [https://harness.example.com/api/v1/health/ready]
+    relabel_configs:
+      - source_labels: [__address__]
+        target_label: __param_target
+      - source_labels: [__param_target]
+        target_label: instance
+      - target_label: __address__
+        replacement: blackbox:9115
+```
+
+harness-readiness.rules.yml：
+
+```yaml
+groups:
+  - name: harness-readiness
+    rules:
+      - alert: HarnessAPINotReady
+        expr: probe_success{job="harness-readiness"} == 0
+        for: 1m
+        labels:
+          severity: critical
+        annotations:
+          summary: "基础 API 未就绪：{{ $labels.instance }}"
+      - alert: HarnessReadinessMonitorUnavailable
+        expr: up{job="harness-readiness"} == 0 or absent(up{job="harness-readiness"})
+        for: 1m
+        labels:
+          severity: warning
+        annotations:
+          summary: "就绪探测采集不可用或目标配置缺失"
+```
+
+第一条覆盖目标返回非 200、连接失败和超时；第二条覆盖 exporter 抓取失败或整个 job
+无时间序列，防止监控失联静默。删除单个目标不一定触发 absent，目标清单仍需由部署配置
+管理。恢复后由规则自动解除；一分钟持续失败窗口用来减少短暂抖动，不能代替即时流量准入。
+配置语义参见 [blackbox exporter 官方配置](https://github.com/prometheus/blackbox_exporter/blob/master/CONFIGURATION.md)。
+
+## 与 issue #157 初稿的接口差异
+
+以下为当前实现契约；issue 初稿 JSON 是设计示意，不能直接作为客户端响应模型：
+
+- `/health` 是公开存活检查，综合诊断在管理员 `/system/health`；新增公开 `/health/ready` 只给基础数据库就绪的 200/503，直接返回 `status`，不包 `success/data/message`。其余监控 JSON 成功响应使用该包装，诊断组件故障通常仍为 HTTP 200，需检查 `data.status`。
+- `/system/status` 提供分来源的任务计数与 `queue_metrics`；资源详情在 `resources`，主机作用范围与 Docker context 容器样本分别标注，不是初稿的集群全局快照。
+- 日志列表返回 `items/total/limit/offset`，使用 `limit/offset` 分页；下载为 `text/plain` 的 JSONL 附件，固定文件名 `task-logs.jsonl`，不是任意任务 stdout 文件。
+- `/metrics/performance` 区分 API 窗口、保留任务累计、当前进程 SQL 与共享 LLM 观测；空样本、缺测及窗口不完整需按各指标的 null/retained_sample 解释，不能统一当作零。
+- `/system/config` 是已加载配置白名单；`/config/providers` 既有默认静态目录，也有本人密钥的动态枚举。用户日/月配额计量生成 SDK 尝试，不计所有 HTTP 请求。
+
+本轮同步只修改文档说明与示例；运行时字段、路由与权限不变。冻结兼容基线 `tests/fixtures/openapi-v1.json` 保持原样，当前完整 OpenAPI 由 `/openapi.json` 动态生成。

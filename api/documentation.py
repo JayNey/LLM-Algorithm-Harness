@@ -116,8 +116,12 @@ def page(items: list[Any]) -> dict[str, Any]:
 # Handler name -> purpose, response data. Aliased paths share the same contract.
 # Examples show representative data; empty aggregates mean no stored results.
 OPERATIONS: dict[str, tuple[str, Any]] = {
+    "readiness": (
+        "基础 API 就绪检查：复用认证、文件及业务数据库与迁移探测；1 秒响应预算、1 秒进程内缓存，200/503 仅返回 status。队列、worker 与沙箱不参与。",
+        {"status": "ready"},
+    ),
     "health_check": (
-        "存活检查（liveness）：检查 API 能否响应；不检查数据库、队列或执行器，不代表服务就绪。就绪检查路径 /api/v1/health/ready 当前尚未实现（404）；管理员诊断使用 /api/v1/system/health。",
+        "存活检查（liveness）：检查 API 能否响应；不检查数据库、队列或执行器，不代表服务就绪。基础 API 就绪检查使用 /api/v1/health/ready（200/503）；管理员诊断使用 /api/v1/system/health。",
         {
             "status": "healthy",
             "scope": "api_liveness_only",
@@ -550,12 +554,12 @@ OPERATIONS: dict[str, tuple[str, Any]] = {
     ),
     "download_chart": ("下载自己的运行结果通过率 PNG；chart_name 仅支持 success-rate。", None),
     "detailed_health": (
-        "管理员诊断：查询配置基础设施的综合健康信息；可选执行沙箱检查；未知状态不会伪装成健康。用于排障，不作为业务流量准入的就绪信号。存活检查使用 /api/v1/health；就绪检查路径 /api/v1/health/ready 当前尚未实现（404）。",
+        "管理员诊断：查询配置基础设施的综合健康信息；可选执行沙箱检查；未知状态不会伪装成健康。用于排障，不作为业务流量准入的就绪信号。存活检查使用 /api/v1/health；基础 API 就绪检查使用 /api/v1/health/ready（200/503）。",
         {
             "status": "partial",
             "scope": "configured_api_foundation",
             "checks": {},
-            "pending_issues": [157],
+            "pending_issues": [],
         },
     ),
     "database_health": (
@@ -668,7 +672,7 @@ OPERATIONS: dict[str, tuple[str, Any]] = {
         {"status": "ok", "items": [], "total": 0, "limit": 100, "offset": 0},
     ),
     "queued_tasks": (
-        "分页查询选定来源的待运行任务快照。",
+        "分页查询选定持久化来源的 pending 任务；不是 broker 等待消息数。Redis 等待数、数据库 pending 与回复 worker 的 reserved 在 system/status.queue_metrics 独立展示，不相加。",
         {"status": "ok", "items": [], "total": 0, "limit": 100, "offset": 0},
     ),
     "api_stats": (
@@ -676,8 +680,8 @@ OPERATIONS: dict[str, tuple[str, Any]] = {
         {"window_seconds": 60, "total_requests": 0},
     ),
     "performance": (
-        "汇总 API、评估、数据库和 LLM 性能指标；未接入的指标保留未知状态。",
-        {"api": {}, "evaluations": {}, "database_queries": {}, "llm": {}},
+        "汇总 API 窗口、保留 AsyncTask 任务墙钟耗时/完成率、当前 API 进程绑定数据库来源及共享认证库 LLM 尝试统计。tasks 覆盖 evaluation/experiment/benchmark/import，evaluations 仅含 evaluation；耗时排除首次排队但包含暂停和重试间隔。不同作用范围不混算，缺测为 null。",
+        {"api": {}, "tasks": {}, "evaluations": {}, "database_queries": {}, "llm": {}},
     ),
     "llm_stats": (
         "查询共享认证数据库中真实生成请求的次数、成功率和平均耗时；可选 window_seconds（1–86400）按完成时间聚合，省略时累计。窗口不完整时主指标为 null，retained_sample 提供已保留样本；重试分别计数，采集为 best-effort。",
@@ -697,7 +701,7 @@ OPERATIONS: dict[str, tuple[str, Any]] = {
         },
     ),
     "cache_stats": (
-        "读取当前进程缓存后端统计；未配置后端时返回 not_configured。",
+        "默认读取共享认证数据库中的 worker/CLI 缓存实例快照：计数按保留实例聚合，容量按主机目录取最新值，hit_rate=hits/(hits+misses)，无请求时为 null。scope=shared_cache_observations，cluster_complete=false；容量超过 300 秒为 partial。无保留观测时返回 not_configured；可信进程显式绑定实例时沿用 bound_cache_instance。",
         {"status": "not_configured", "scope": "bound_cache_instance"},
     ),
     "strategies": (
@@ -805,7 +809,7 @@ OPERATIONS: dict[str, tuple[str, Any]] = {
         },
     ),
     "quotas": (
-        "查询自己的已执行存储、请求、导入及传输限额，以及评估并发上限、已用和剩余名额；评估仅计 pending/running 任务，日/月 API 配额未配置时为 null。",
+        "查询自己的已执行存储、请求、导入及传输限额，以及评估并发上限、已用和剩余名额；评估仅计 pending/running 任务，日/月生成 SDK 尝试额度使用 UTC 自然周期，返回 limit/used/remaining/period_start/resets_at/timezone；无限时 limit 与 remaining 为 null，有限额度耗尽时生成返回 429。缓存命中和模型枚举不计次，与 HTTP 速率限制独立。",
         {
             "scope": "current_user_enforced_limits",
             "evaluation_concurrency": {"limit": 5, "used": 0, "remaining": 5},
@@ -1479,8 +1483,8 @@ def _describe_fields(node: Any) -> None:
 
 
 def _rate_limit(name: str, path: str) -> str:
-    if name == "health_check":
-        return "速率限制：此公开存活接口未配置应用级限流。"
+    if name in {"health_check", "readiness"}:
+        return "速率限制：此公开健康接口未配置应用级限流。"
     if name in AUTH_OPERATIONS:
         return "速率限制：同一客户端 IP 共享 AUTH_RATE_LIMIT（默认 10 次）/ AUTH_RATE_WINDOW_SECONDS（默认 60 秒）；429 后按 Retry-After 重试。"
     text = "速率限制：同一用户共享 AUTH_PROTECTED_RATE_LIMIT（默认 120 次）/ AUTH_RATE_WINDOW_SECONDS（默认 60 秒）；429 后按 Retry-After 重试。"
@@ -1579,6 +1583,14 @@ def _document_operation(path: str, method: str, operation: dict[str, Any]) -> No
     # The application's RequestValidationError handler returns 400, never 422.
     responses.pop("422", None)
     for status, response in responses.items():
+        if name == "readiness" and status in {"200", "503"}:
+            response["description"] = (
+                "基础 API 就绪。" if status == "200" else "基础 API 未就绪或探测超时。"
+            )
+            media = response.setdefault("content", {}).setdefault("application/json", {})
+            media["example"] = {"status": "ready" if status == "200" else "not_ready"}
+            media["examples"] = {"readiness": {"value": deepcopy(media["example"])}}
+            continue
         if status.startswith("2"):
             if status == "204":
                 response["description"] = "操作成功；无响应体。"

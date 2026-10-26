@@ -70,7 +70,7 @@ test('结果完整性使用全量记录数和规范化预期数，不依赖当�
     ),
     { kind: 'incomplete', recorded_units: 2, expected_units: 4 },
   )
-  for (const status of ['running', 'paused', 'failed', 'cancelled']) {
+  for (const status of ['pending', 'running']) {
     assert.equal(
       resultAvailability({ ...evaluation, status }, { ...result, status }).kind,
       'partial',
@@ -134,4 +134,33 @@ test('结果列表状态保持开放值，未知成本明确已知部分且不�
     resultCostLabel({ estimated_cost_usd: 0.12, unknown_cost_count: 1 }),
     '已知估算 0.12 USD；1 条成本未知',
   )
+})
+
+// Catches non-final zero results mislabeled empty and stopped jobs mislabeled partial.
+test('任务状态×记录存在性矩阵独立于当前页，只有completed可为最终结果', () => {
+  const cases = [
+    ['pending', 0, 'waiting'],
+    ['pending', 2, 'partial'],
+    ['running', 0, 'waiting'],
+    ['running', 2, 'partial'],
+    ['paused', 0, 'paused'],
+    ['paused', 2, 'paused'],
+    ['failed', 0, 'failed'],
+    ['failed', 2, 'failed'],
+    ['cancelled', 0, 'cancelled'],
+    ['cancelled', 2, 'cancelled'],
+    ['completed', 0, 'empty'],
+    ['completed', 2, 'incomplete'],
+    ['completed', 4, 'complete'],
+  ] as const
+  for (const [status, total, kind] of cases) {
+    assert.deepEqual(
+      resultAvailability(
+        { ...evaluation, status },
+        { ...result, status, problems: { ...result.problems, total } },
+      ),
+      { kind, recorded_units: total, expected_units: 4 },
+      `${status}/${total}`,
+    )
+  }
 })

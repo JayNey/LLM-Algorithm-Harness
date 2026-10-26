@@ -155,7 +155,10 @@ def test_all_json_examples_validate_against_route_models(schema):
             for status, response in operation["responses"].items():
                 if not status.startswith("2"):
                     for example in response["content"]["application/json"]["examples"].values():
-                        ErrorResponse.model_validate(example["value"])
+                        response_model = route.responses.get(
+                            int(status) if status.isdecimal() else status, {}
+                        ).get("model", ErrorResponse)
+                        TypeAdapter(response_model).validate_python(example["value"])
 
 
 @pytest.mark.parametrize("path", ["pareto/analyze", "optimize"])

@@ -126,7 +126,16 @@ export interface DraftAvailable {
 }
 export type DraftErrors = Partial<Record<keyof Draft, string>>
 export interface ResultAvailability {
-  kind: 'empty' | 'partial' | 'incomplete' | 'complete' | 'unknown'
+  kind:
+    | 'waiting'
+    | 'partial'
+    | 'paused'
+    | 'failed'
+    | 'cancelled'
+    | 'complete'
+    | 'incomplete'
+    | 'empty'
+    | 'unknown'
   recorded_units: number | null
   expected_units: number
 }

@@ -1,5 +1,6 @@
 """Protected monitoring foundations and owner-scoped task logs/quotas."""
 
+import asyncio
 import math
 import time
 from collections.abc import Iterator
@@ -7,7 +8,8 @@ from datetime import datetime
 from tempfile import SpooledTemporaryFile
 from typing import Any, BinaryIO, Literal, cast
 
-from fastapi import APIRouter, Depends, HTTPException, Query, Response
+from fastapi import APIRouter, Depends, HTTPException, Query, Request, Response
+from pydantic import BaseModel
 from starlette.responses import StreamingResponse
 from starlette.types import Receive, Scope, Send
 
@@ -17,6 +19,7 @@ from api.config import settings
 from api.monitoring.capabilities import evaluation_capability
 from api.monitoring.config import public_system_config
 from api.monitoring.dependencies import administrator, monitor_service
+from api.monitoring.readiness import READINESS_TIMEOUT_SECONDS
 from api.monitoring.service import MonitorService
 from api.routes.evaluation_options import evaluation_options_service
 from api.schemas import ApiResponse
@@ -80,6 +83,33 @@ def log_filters(
         "limit": limit,
         "offset": offset,
     }
+
+
+class ReadinessResponse(BaseModel):
+    status: Literal["ready", "not_ready"]
+
+
+@router.get(
+    "/health/ready",
+    response_model=ReadinessResponse,
+    responses={
+        503: {"model": ReadinessResponse, "description": "Required databases are not ready"}
+    },
+)
+async def readiness(request: Request, response: Response) -> dict[str, str]:
+    """Public basic API readiness; excludes queue, workers and sandbox diagnostics."""
+    deadline = time.monotonic() + READINESS_TIMEOUT_SECONDS
+    monitor = cast(MonitorService, request.app.state.monitor)
+    try:
+        ready = await asyncio.wait_for(
+            asyncio.to_thread(monitor.readiness.check, deadline=deadline),
+            timeout=READINESS_TIMEOUT_SECONDS,
+        )
+    except asyncio.TimeoutError:
+        ready = False
+    response.status_code = 200 if ready else 503
+    response.headers["Cache-Control"] = "no-store"
+    return {"status": "ready" if ready else "not_ready"}
 
 
 @router.get("/system/health")
