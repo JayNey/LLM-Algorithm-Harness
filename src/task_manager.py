@@ -12,7 +12,7 @@ from sqlalchemy import false, func, select, text, update
 from sqlalchemy.orm import Session
 
 from api.config import settings
-from api.db.models import AsyncTask, Evaluation, utcnow
+from api.db.models import ABTest, AsyncTask, Evaluation, utcnow
 from api.monitoring.execution_logs import record_execution_event
 from src.celery_app import celery_app
 
@@ -47,6 +47,24 @@ class TaskManager:
             db_session: SQLAlchemy 数据库会话
         """
         self.db = db_session
+
+    def _lock_ab_test_task(self, task: AsyncTask) -> None:
+        if task.task_type == "ab_test":
+            self.db.execute(update(AsyncTask).where(AsyncTask.id == task.id).values(id=task.id))
+            self.db.refresh(task)
+
+    def _sync_ab_test(self, task: AsyncTask) -> None:
+        """Mirror A/B status in the same transaction as its task record."""
+        if task.task_type != "ab_test":
+            return
+        row = self.db.get(ABTest, task.entity_id)
+        if row is None or row.user_id != task.user_id:
+            return
+        row.status = task.status
+        row.error_message = task.error_message
+        row.started_at = task.started_at
+        row.completed_at = task.completed_at
+        row.updated_at = utcnow()
 
     def _check_evaluation_capacity(self, task_type: str, user_id: str) -> None:
         """Serialize admission in the shared DB until task commit or rollback.
@@ -283,6 +301,18 @@ class TaskManager:
         celery_result = celery_app.AsyncResult(task.celery_task_id)
         celery_state = celery_result.state
 
+        if task.task_type == "ab_test":
+            # Only our atomic worker claim may start an A/B task. STARTED is
+            # emitted by Celery before the worker body acquires that claim.
+            if celery_state in ("FAILURE", "REVOKED"):
+                self._lock_ab_test_task(task)
+                if task.status not in ("pending", "running"):
+                    return
+                status = "failed" if celery_state == "FAILURE" else "cancelled"
+                message = str(celery_result.info) if celery_state == "FAILURE" else None
+                self.update_task_status(task.id, status, error_message=message)
+            return
+
         # 映射 Celery 状态到数据库状态
         if celery_state == "STARTED":
             task.status = "running"
@@ -355,6 +385,7 @@ class TaskManager:
             task.error_message = error_message
 
         self._record_execution_times(task, status)
+        self._sync_ab_test(task)
 
         self.db.commit()
         event = {"running": "task.started", "pending": "task.queued"}.get(status, "task." + status)
@@ -387,10 +418,12 @@ class TaskManager:
         """
         task = self.get_task(task_id, user_id)
 
+        self._lock_ab_test_task(task)
         if task.status != "running":
             raise ValueError("Can only pause running tasks")
 
         task.status = "paused"
+        self._sync_ab_test(task)
         self.db.commit()
         record_execution_event(task, "task.paused")
 
@@ -413,6 +446,7 @@ class TaskManager:
         """
         task = self.get_task(task_id, user_id)
 
+        self._lock_ab_test_task(task)
         if task.status in ("completed", "failed"):
             raise ValueError("Cannot cancel completed or failed tasks")
 
@@ -426,6 +460,7 @@ class TaskManager:
         task.status = "cancelled"
         if task.completed_at is None:
             task.completed_at = datetime.utcnow()
+        self._sync_ab_test(task)
         self.db.commit()
         record_execution_event(task, "task.cancelled")
 
