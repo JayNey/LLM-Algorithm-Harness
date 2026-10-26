@@ -731,7 +731,7 @@ def integration_harness(monkeypatch, tmp_path):
             status=control.execute_status,
             total_tokens=10,
             execution_time_seconds=0.5,
-            difficulty="easy",
+            difficulty=problem.difficulty,
         )
 
     def fake_estimate(self, results):
@@ -1394,3 +1394,245 @@ class TestRunEvaluationTaskIntegration:
         assert evaluation.status == "cancelled"
         assert len(integration_harness.execute_calls) < 2
         db.close()
+
+
+class TestPersonalBudgetExecution:
+    """Removing the owner filter or ignoring personal actions must break these tests."""
+
+    @staticmethod
+    def save_budget(db, *, owner="test_user", cap=0.01, action="pause", difficulty_caps=None):
+        from api.db.models import Budget
+
+        row = Budget(
+            id=str(uuid.uuid4()),
+            user_id=owner,
+            global_cap_usd=cap,
+            action=action,
+            difficulty_caps=difficulty_caps,
+        )
+        db.add(row)
+        db.commit()
+        return row
+
+    def test_execution_snapshot_uses_actual_difficulty_and_owner(self, db_session):
+        from api.services.cost_service import CostService
+
+        self.save_budget(db_session, cap=0.3, difficulty_caps={"easy": 0.2, "hard": 0.1})
+        for owner, amount in [("test_user", 0.1), ("test_user", 0.2), ("other", 10)]:
+            row = Evaluation(id=str(uuid.uuid4()), user_id=owner, spent_usd=amount)
+            db_session.add(row)
+            db_session.flush()
+            db_session.add(
+                EvaluationResult(
+                    id=str(uuid.uuid4()),
+                    evaluation_id=row.id,
+                    problem_id="p",
+                    strategy_name="vanilla",
+                    status="success",
+                    metrics={"difficulty": "easy", "cost_usd": amount},
+                )
+            )
+        db_session.commit()
+        snapshot = CostService.execution_budget(db_session, "test_user")
+        assert snapshot == {
+            "action": "pause",
+            "global_reached": True,
+            "exhausted_difficulties": ["easy"],
+        }
+        assert CostService.execution_budget(db_session, "other") is None
+
+    @pytest.mark.parametrize(
+        "action,want_status,want_calls",
+        [
+            ("pause", "paused", [("chain_of_thought", "p1")]),
+            ("downgrade", "completed", [("chain_of_thought", "p1"), ("vanilla", "p2")]),
+        ],
+    )
+    def test_personal_budget_controls_actual_dispatch(
+        self, db_session, integration_harness, auth_ok, action, want_status, want_calls
+    ):
+        evaluation_id = _seed_evaluation(
+            db_session, problem_ids=["p1", "p2"], strategy_names=["chain_of_thought"]
+        )
+        self.save_budget(db_session, action=action)
+        with patch("src.tasks.evaluation.get_db_session", return_value=db_session):
+            result = run_evaluation_task(evaluation_id)
+        assert result["status"] == want_status
+        assert integration_harness.execute_calls == want_calls
+        rows = db_session.query(EvaluationResult).filter_by(evaluation_id=evaluation_id).all()
+        if action == "downgrade":
+            second = next(row for row in rows if row.problem_id == "p2")
+            assert second.strategy_name == "chain_of_thought"
+            assert second.metrics["executed_strategy"] == "vanilla"
+            assert second.metrics["cost_downgraded"] is True
+        else:
+            assert len(rows) == 1
+
+    def test_resume_rechecks_updated_budget_without_rebilling(
+        self, db_session, integration_harness, auth_ok
+    ):
+        evaluation_id = _seed_evaluation(
+            db_session, problem_ids=["p1", "p2"], strategy_names=["vanilla"]
+        )
+        budget = self.save_budget(db_session)
+        with patch("src.tasks.evaluation.get_db_session", return_value=db_session):
+            assert run_evaluation_task(evaluation_id)["status"] == "paused"
+            assert run_evaluation_task(evaluation_id)["status"] == "paused"
+            budget.global_cap_usd = 1
+            db_session.merge(budget)
+            db_session.commit()
+            assert run_evaluation_task(evaluation_id)["status"] == "completed"
+        assert integration_harness.execute_calls == [("vanilla", "p1"), ("vanilla", "p2")]
+        assert db_session.get(Evaluation, evaluation_id).spent_usd == pytest.approx(0.02)
+
+    @pytest.mark.parametrize("owner", ["test_user", "other"])
+    def test_task_cap_overrides_downgrade(self, db_session, integration_harness, auth_ok, owner):
+        evaluation_id = _seed_evaluation(
+            db_session,
+            problem_ids=["p1", "p2"],
+            strategy_names=["chain_of_thought"],
+            budget_cap_usd=0.01,
+        )
+        self.save_budget(db_session, owner=owner, action="downgrade")
+        with patch("src.tasks.evaluation.get_db_session", return_value=db_session):
+            assert run_evaluation_task(evaluation_id)["status"] == "paused"
+        assert integration_harness.execute_calls == [("chain_of_thought", "p1")]
+
+    @pytest.mark.parametrize(
+        "action,want_status,want_calls",
+        [
+            ("pause", "paused", [("chain_of_thought", "p1"), ("chain_of_thought", "p2")]),
+            (
+                "downgrade",
+                "completed",
+                [("chain_of_thought", "p1"), ("chain_of_thought", "p2"), ("vanilla", "p3")],
+            ),
+        ],
+    )
+    def test_difficulty_cap_only_affects_matching_units(
+        self, db_session, integration_harness, auth_ok, action, want_status, want_calls
+    ):
+        evaluation_id = _seed_evaluation(
+            db_session, problem_ids=["p1", "p2", "p3"], strategy_names=["chain_of_thought"]
+        )
+        db_session.query(ORMProblem).filter_by(problem_id="p2").update({"difficulty": "hard"})
+        db_session.commit()
+        self.save_budget(db_session, cap=None, action=action, difficulty_caps={"easy": 0.01})
+        with patch("src.tasks.evaluation.get_db_session", return_value=db_session):
+            assert run_evaluation_task(evaluation_id)["status"] == want_status
+        assert integration_harness.execute_calls == want_calls
+
+    def test_exhausted_history_stops_before_first_call(
+        self, db_session, integration_harness, auth_ok
+    ):
+        evaluation_id = _seed_evaluation(db_session, problem_ids=["p1"], strategy_names=["vanilla"])
+        db_session.add(Evaluation(id="history", user_id="test_user", spent_usd=0.1))
+        db_session.commit()
+        self.save_budget(db_session, cap=0.1)
+        with patch("src.tasks.evaluation.get_db_session", return_value=db_session):
+            assert run_evaluation_task(evaluation_id)["status"] == "paused"
+        assert integration_harness.execute_calls == []
+        assert db_session.query(EvaluationResult).count() == 0
+
+    def test_other_user_budget_and_spend_do_not_affect_execution(
+        self, db_session, integration_harness, auth_ok
+    ):
+        evaluation_id = _seed_evaluation(
+            db_session, problem_ids=["p1", "p2"], strategy_names=["chain_of_thought"]
+        )
+        self.save_budget(db_session, owner="other")
+        db_session.add(Evaluation(id="other-history", user_id="other", spent_usd=100))
+        db_session.commit()
+        with patch("src.tasks.evaluation.get_db_session", return_value=db_session):
+            assert run_evaluation_task(evaluation_id)["status"] == "completed"
+        assert integration_harness.execute_calls == [
+            ("chain_of_thought", "p1"),
+            ("chain_of_thought", "p2"),
+        ]
+
+    def test_multiple_strategies_keep_distinct_results_after_downgrade(
+        self, db_session, integration_harness, auth_ok
+    ):
+        evaluation_id = _seed_evaluation(
+            db_session,
+            problem_ids=["p1", "p2"],
+            strategy_names=["chain_of_thought", "multi_round_feedback"],
+        )
+        self.save_budget(db_session, action="downgrade")
+        with patch("src.tasks.evaluation.get_db_session", return_value=db_session):
+            assert run_evaluation_task(evaluation_id)["status"] == "completed"
+        assert integration_harness.execute_calls == [
+            ("chain_of_thought", "p1"),
+            ("vanilla", "p2"),
+            ("vanilla", "p1"),
+            ("vanilla", "p2"),
+        ]
+        rows = db_session.query(EvaluationResult).filter_by(evaluation_id=evaluation_id).all()
+        assert len(rows) == 4
+        assert {(row.problem_id, row.strategy_name) for row in rows} == {
+            ("p1", "chain_of_thought"),
+            ("p2", "chain_of_thought"),
+            ("p1", "multi_round_feedback"),
+            ("p2", "multi_round_feedback"),
+        }
+
+    def test_benchmark_history_counts_only_completed_owned_runs(self, db_session):
+        from api.db.models import BenchmarkRun, BenchmarkSuite
+        from api.services.cost_service import CostService
+
+        self.save_budget(db_session, cap=0.5)
+        db_session.add(BenchmarkSuite(id="suite", user_id="test_user", name="suite"))
+        db_session.flush()
+        for identity, owner, status, cost in [
+            ("a", "test_user", "completed", 0.5),
+            ("b", "test_user", "running", 100),
+            ("c", "other", "completed", 100),
+        ]:
+            db_session.add(
+                BenchmarkRun(
+                    id=identity,
+                    suite_id="suite",
+                    user_id=owner,
+                    status=status,
+                    model="m",
+                    cost_usd=cost,
+                )
+            )
+        db_session.commit()
+        assert CostService.execution_budget(db_session, "test_user")["global_reached"] is True
+        db_session.query(BenchmarkRun).filter_by(id="a").update({"cost_usd": 0.4})
+        db_session.commit()
+        assert CostService.execution_budget(db_session, "test_user")["global_reached"] is False
+
+    def test_decimal_boundary_does_not_dispatch_an_extra_unit(
+        self, db_session, integration_harness, auth_ok
+    ):
+        evaluation_id = _seed_evaluation(
+            db_session, problem_ids=[f"p{i}" for i in range(12)], strategy_names=["vanilla"]
+        )
+        self.save_budget(db_session, cap=0.1)
+        with patch("src.tasks.evaluation.get_db_session", return_value=db_session):
+            assert run_evaluation_task(evaluation_id)["status"] == "paused"
+        assert len(integration_harness.execute_calls) == 10
+        assert db_session.get(Evaluation, evaluation_id).spent_usd == 0.1
+
+    def test_manual_pause_wins_over_personal_downgrade(
+        self, db_session, integration_harness, auth_ok, monkeypatch
+    ):
+        evaluation_id = _seed_evaluation(
+            db_session, problem_ids=["p1", "p2"], strategy_names=["chain_of_thought"]
+        )
+        self.save_budget(db_session, action="downgrade")
+
+        def pause_after_first(*_args, **kwargs):
+            if kwargs.get("meta", {}).get("current") == 1:
+                task = db_session.get(
+                    AsyncTask, db_session.get(Evaluation, evaluation_id).async_task_id
+                )
+                task.status = "paused"
+                db_session.commit()
+
+        monkeypatch.setattr(run_evaluation_task, "update_state", pause_after_first)
+        with patch("src.tasks.evaluation.get_db_session", return_value=db_session):
+            assert run_evaluation_task(evaluation_id)["status"] == "paused"
+        assert integration_harness.execute_calls == [("chain_of_thought", "p1")]

@@ -536,3 +536,85 @@ def model_costs(api):
             ]
         )
     return client, headers
+
+
+@pytest.mark.parametrize(
+    "action,want_status,strategies",
+    [
+        ("pause", "paused", ["chain_of_thought"]),
+        ("downgrade", "completed", ["chain_of_thought", "vanilla"]),
+    ],
+)
+def test_web_saved_budget_controls_worker(
+    api, monkeypatch, tmp_path, action, want_status, strategies
+):
+    """The HTTP write must govern real TaskService dispatch, not just budget display."""
+    from api.db.models import EvaluationResult, Problem
+    from src.harness import AlgorithmHarness
+    from src.models import ExecutionResult
+    from src.tasks.evaluation import run_evaluation_task
+
+    client, headers, key_id, app = api
+    monkeypatch.chdir(tmp_path)
+    calls = []
+    monkeypatch.setattr(AlgorithmHarness, "_prepare_strategy_runtime", lambda *_: (None, None))
+
+    def execute(_self, config, problem, *_):
+        calls.append(config.name)
+        return ExecutionResult(
+            problem_id=problem.problem_id,
+            strategy=config.name,
+            generated_code="def solution(): return 1",
+            status="success",
+            difficulty=problem.difficulty,
+        )
+
+    monkeypatch.setattr(AlgorithmHarness, "_execute_problem", execute)
+    monkeypatch.setattr(AlgorithmHarness, "_estimate_cost", lambda *_: (0.01, {}))
+    monkeypatch.setattr("api.auth.config.AuthSettings", lambda: app.state.auth.settings)
+    monkeypatch.setattr(run_evaluation_task, "update_state", lambda **_: None)
+    monkeypatch.setattr("src.tasks.evaluation.publish_progress", lambda *_: True)
+    with app.state.evaluations._session() as db, db.begin():
+        for pid in ("budget-p1", "budget-p2"):
+            db.add(
+                Problem(
+                    id=pid,
+                    problem_id=pid,
+                    title=pid,
+                    description="Return the constant integer one.",
+                    difficulty="easy",
+                    tags=[],
+                    test_cases=[{"input": {}, "expected_output": 1}],
+                )
+            )
+    saved = client.post(
+        "/api/v1/budgets", headers=headers, json={"global_cap_usd": 0.01, "action": action}
+    )
+    assert saved.status_code in (200, 201), saved.text
+    created = client.post(
+        "/api/v1/evaluations",
+        headers=headers,
+        json={
+            "api_key_id": key_id,
+            "model": "test",
+            "strategy_names": ["chain_of_thought"],
+            "problem_ids": ["budget-p1", "budget-p2"],
+        },
+    )
+    assert created.status_code == 201, created.text
+    evaluation_id = created.json()["data"]["evaluation_id"]
+    with patch("src.task_manager.celery_app.send_task", return_value=Mock(id="budget-celery")):
+        assert (
+            client.post(f"/api/v1/evaluations/{evaluation_id}/start", headers=headers).status_code
+            == 202
+        )
+    monkeypatch.setattr("src.tasks.evaluation.get_db_session", app.state.evaluations._session)
+    assert run_evaluation_task(evaluation_id)["status"] == want_status
+    assert calls == strategies
+    view = client.get(f"/api/v1/evaluations/{evaluation_id}", headers=headers).json()["data"]
+    assert view["status"] == want_status
+    with app.state.evaluations._session() as db:
+        rows = db.query(EvaluationResult).filter_by(evaluation_id=evaluation_id).all()
+        assert len(rows) == len(strategies)
+    usage = client.get("/api/v1/budgets/usage", headers=headers).json()["data"]
+    assert usage["global_budget"]["used_usd"] == pytest.approx(0.01 * len(strategies))

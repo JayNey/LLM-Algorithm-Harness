@@ -14,6 +14,7 @@ from __future__ import annotations
 import uuid
 from collections.abc import Callable, Iterable
 from dataclasses import dataclass, field
+from decimal import Decimal
 from typing import TYPE_CHECKING, Any
 
 from celery import Task
@@ -25,6 +26,7 @@ from api.db.engine import business_database_url, make_engine, make_session_facto
 from api.db.models import AsyncTask, Evaluation, EvaluationResult, utcnow
 from api.monitoring.execution_logs import record_execution_event
 from api.progress import publish_progress
+from api.services.cost_service import CostService
 from src.celery_app import celery_app
 from src.harness import AlgorithmHarness
 from src.models import (
@@ -176,6 +178,8 @@ def run_evaluation_task(self: EvaluationTask, evaluation_id: str) -> dict[str, A
             )
 
         # 6. 定义回调和检查函数
+        execution_strategies: dict[str, str] = {}
+
         def report_progress(record: Any, unit: TaskUnit, finished: int) -> None:
             """把即将执行或刚结束单元的进度写入任务记录和 Celery。
 
@@ -201,6 +205,10 @@ def run_evaluation_task(self: EvaluationTask, evaluation_id: str) -> dict[str, A
 
         def on_unit_started(record: Any, unit: TaskUnit) -> None:
             """单元提交前上报：百分比是已完成比例，当前步骤是即将执行的单元。"""
+            selected = execution_strategies.get(unit.unit_id, unit.strategy)
+            if selected not in runtimes:
+                strategy_configs[selected] = StrategyConfig(name=selected)
+                runtimes[selected] = harness._prepare_strategy_runtime(strategy_configs[selected])
             finished = sum(1 for item in record.units if item.status in {"completed", "failed"})
             report_progress(record, unit, finished)
             record_execution_event(
@@ -217,7 +225,9 @@ def run_evaluation_task(self: EvaluationTask, evaluation_id: str) -> dict[str, A
             _record_unit_result 自身不 commit，由此处统一 commit。
             """
             cost = _record_unit_result(db, evaluation, unit)
-            evaluation.spent_usd = (evaluation.spent_usd or 0.0) + cost
+            evaluation.spent_usd = float(
+                Decimal(str(evaluation.spent_usd or 0)) + Decimal(str(cost))
+            )
             evaluation.completed_count = sum(1 for u in record.units if u.status == "completed")
             evaluation.failed_count = sum(1 for u in record.units if u.status == "failed")
             db.commit()
@@ -262,7 +272,7 @@ def run_evaluation_task(self: EvaluationTask, evaluation_id: str) -> dict[str, A
             命中缓存实例、不重新 SELECT，会永远看不到外部写入。故用
             ``populate_existing()`` 强制从 DB 重读并刷新该 AsyncTask 实例属性，绕过
             identity map 短路。**只**作用于被查询的 AsyncTask，不 refresh evaluation
-            等其他对象，以免丢弃主线程待提交状态。budget 分支保持不变。
+            等其他对象，以免丢弃主线程待提交状态。
             """
             # 检查用户请求暂停（强制重读，跨进程可见）
             current_async_task = (
@@ -281,13 +291,33 @@ def run_evaluation_task(self: EvaluationTask, evaluation_id: str) -> dict[str, A
             ):
                 return True
 
+            budget = CostService.execution_budget(db, evaluation.user_id)
+            queued = next((unit for unit in record.units if unit.status == "queued"), None)
+            if budget is None or queued is None:
+                if queued is not None:
+                    execution_strategies.pop(queued.unit_id, None)
+                return False
+            problem = ctx.problem_map.get(queued.problem_id)
+            reached = budget["global_reached"] or (
+                problem is not None and problem.difficulty in budget["exhausted_difficulties"]
+            )
+            if reached and budget["action"] == "pause":
+                return True
+            execution_strategies[queued.unit_id] = (
+                "vanilla" if reached and budget["action"] == "downgrade" else queued.strategy
+            )
             return False
 
         # 真实 worker（Design Doc §5.7）：闭包捕获 harness/策略配置/预建 runtime/只读题目
         # 映射，绝不引用 db（worker 跑在 executor 线程，跨线程触碰 session 会损坏连接）。
         # worker 返回 ExecutionResult，由 TaskService._serialize_result 序列化入 unit.result。
         worker = _make_worker(
-            harness, strategy_configs, runtimes, ctx.problem_map, ctx.missing_reasons
+            harness,
+            strategy_configs,
+            runtimes,
+            ctx.problem_map,
+            ctx.missing_reasons,
+            execution_strategies=execution_strategies,
         )
 
         # 7. 执行 TaskService.run()
@@ -600,6 +630,8 @@ def _record_unit_result(db: Session, evaluation: Evaluation, unit: TaskUnit) -> 
             "execution_time_seconds": data.get("execution_time_seconds", 0.0),
             "cost_usd": meta.get("cost_usd", 0.0),
             "cost_unknown": meta.get("cost_unknown", False),
+            "executed_strategy": meta.get("executed_strategy", unit.strategy),
+            "cost_downgraded": meta.get("cost_downgraded", False),
             "formal_evaluable": data.get("formal_evaluable", False),
             "quality_metrics": data.get("quality_metrics"),
             "iterations": len(iterations) if isinstance(iterations, list) else 0,
@@ -681,6 +713,8 @@ def _make_worker(
     runtimes: dict[str, tuple[Any, Any]],
     problem_map: dict[str, DomainProblem],
     missing_reasons: dict[str, str] | None = None,
+    *,
+    execution_strategies: dict[str, str] | None = None,
 ) -> Callable[[TaskUnit], ExecutionResult]:
     """返回真实执行一个 TaskUnit 的 worker 闭包。
 
@@ -717,9 +751,12 @@ def _make_worker(
                 f"Problem {unit.problem_id}: "
                 f"{reasons.get(unit.problem_id, 'not found in problem store')}"
             )
-        strategy_config = strategy_configs[unit.strategy]
-        strategy, sandbox = runtimes[unit.strategy]
+        selected = (execution_strategies or {}).get(unit.unit_id, unit.strategy)
+        strategy_config = strategy_configs[selected]
+        strategy, sandbox = runtimes[selected]
         result = harness._execute_problem(strategy_config, problem, strategy, sandbox)
+        result.metadata["executed_strategy"] = selected
+        result.metadata["cost_downgraded"] = selected != unit.strategy
         cost, pricing_metadata = harness._estimate_cost([result])
         result.metadata["cost_usd"] = cost
         result.metadata["cost_unknown"] = bool(
