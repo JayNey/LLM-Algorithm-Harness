@@ -408,7 +408,7 @@ function Dashboard() {
         <Metric
           title="累计调用费用"
           {...cost}
-          note="全部业务 · 已记录费用"
+          note="评估与已完成基准 · 已记录费用"
           currency
         />
       </div>
@@ -455,8 +455,8 @@ function Dashboard() {
             <div className="p-5 pt-0">
               <p>任务计数仅包含当前账号的评估。</p>
               <p>
-                累计费用来自费用汇总，包含评估、实验、基准和 A/B
-                的已记录调用费用；未记录成本不代表免费。
+                累计费用包含当前账号的评估与已完成基准运行的已记录费用，
+                未包含实验与 A/B；未记录成本不代表免费。
               </p>
             </div>
           </section>

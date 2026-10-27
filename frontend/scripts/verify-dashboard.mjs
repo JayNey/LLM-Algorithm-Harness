@@ -203,6 +203,14 @@ try {
         const { context, page, calls } = await setup({ variant, theme, width })
         await page.goto(base)
         await ready(page)
+        assert.match(
+          await page.locator('.metric-strip').textContent(),
+          /评估与已完成基准/,
+        )
+        assert.match(
+          await page.locator('.insights').textContent(),
+          /未包含实验与 A\/B/,
+        )
         const numbers = await page
           .locator('.metric-strip strong')
           .allTextContents()
