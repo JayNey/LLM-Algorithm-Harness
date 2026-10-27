@@ -1,4 +1,4 @@
-/* global document, fetch, setTimeout */
+/* global document, fetch, setTimeout, clearTimeout, WebSocket, location */
 import assert from 'node:assert/strict'
 import process from 'node:process'
 import console from 'node:console'
@@ -276,6 +276,56 @@ async function run() {
       ),
     }
     assert.ok(Object.values(report.authentication).every(Boolean))
+    phase = 'real-websocket-preflight'
+    assert.equal(
+      await page.evaluate(
+        () =>
+          new Promise((resolve) => {
+            const socket = new WebSocket(
+              location.origin.replace(/^http/, 'ws') + '/api/v1/ws/progress',
+            )
+            const timer = setTimeout(() => {
+              socket.close()
+              resolve(false)
+            }, 5000)
+            socket.onmessage = (event) => {
+              if (JSON.parse(event.data).type === 'connected') {
+                clearTimeout(timer)
+                socket.close()
+                resolve(true)
+              }
+            }
+            socket.onerror = () => {
+              clearTimeout(timer)
+              resolve(false)
+            }
+          }),
+      ),
+      true,
+      'Real cookie-authenticated WebSocket must work before paid generation',
+    )
+    if (process.argv.includes('--retry-completed')) {
+      phase = 'completed-retry-guard'
+      assert.ok(state.evaluationId && state.submissionAttempted)
+      const previous = await api('/evaluations/' + state.evaluationId)
+      assert.equal(previous.status, 'completed')
+      assert.ok(previous.spent_usd > 0 && previous.spent_usd < allowed)
+      assert.ok(
+        !state.previousEvaluation,
+        'Only one completed retry is allowed',
+      )
+      state.previousEvaluation = {
+        id: state.evaluationId,
+        spent_usd: previous.spent_usd,
+      }
+      delete state.evaluationId
+      state.submissionAttempted = false
+      await saveState()
+    }
+    report.previous_evaluation = state.previousEvaluation && {
+      id: publicId(state.previousEvaluation.id),
+      spent_usd: state.previousEvaluation.spent_usd,
+    }
     if (!state.keyId) {
       phase = 'save-owned-provider-key'
       await page.goto(origin + '/settings/api-keys')
@@ -324,7 +374,7 @@ async function run() {
         .slice(10),
     )
     const bound = budgetBound(
-      allowed,
+      allowed - (state.previousEvaluation?.spent_usd ?? 0),
       plan.prompt_bytes + 256,
       plan.output_tokens,
       plan.attempts,
@@ -334,6 +384,7 @@ async function run() {
       prompt_token_upper_bound: plan.prompt_bytes + 256,
       conservative_total_upper_bound_usd: bound,
       pricing_source: 'official peak cache-miss prices, 2026-10-27',
+      prior_spent_usd: state.previousEvaluation?.spent_usd ?? 0,
     }
     const resuming = Boolean(state.evaluationId)
     if (!state.submissionAttempted) {
@@ -409,7 +460,11 @@ async function run() {
     assert.equal(terminal?.status, 'completed')
     assert.equal(terminal.execution_progress.completed_units, 1)
     assert.equal(terminal.execution_progress.total_units, 1)
-    assert.ok(terminal.spent_usd > 0 && terminal.spent_usd <= allowed)
+    assert.ok(terminal.spent_usd > 0)
+    const cumulativeCost =
+      terminal.spent_usd + (state.previousEvaluation?.spent_usd ?? 0)
+    assert.ok(cumulativeCost <= allowed)
+    report.budget.cumulative_recorded_cost_usd = cumulativeCost
     const tasks = await api('/tasks?task_type=evaluation&limit=20')
     const task = tasks.items.find(
       (item) => item.entity_id === state.evaluationId,
@@ -450,13 +505,17 @@ async function run() {
     }
     assert.equal(report.page_errors.length, 0)
     assert.ok(
-      report.requests.some(
-        (r) => r.path.endsWith('/start') && r.status === 202,
-      ),
+      resuming ||
+        report.requests.some(
+          (r) => r.path.endsWith('/start') && r.status === 202,
+        ),
     )
     assert.ok(
       report.sockets.some(
-        (s) => !s.token_in_url && s.received_types.length > 0,
+        (s) =>
+          !s.token_in_url &&
+          s.received_types.includes('subscribed') &&
+          s.received_types.includes('task.snapshot'),
       ),
     )
     const masks = [
