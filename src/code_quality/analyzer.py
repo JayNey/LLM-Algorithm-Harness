@@ -83,7 +83,9 @@ class CodeQualityAnalyzer:
         space_result = None
         if self.enable_space and self.space_analyzer:
             try:
-                space_result = self.space_analyzer.analyze(code, sandbox_executor=sandbox_executor)
+                space_result = self.space_analyzer.analyze(
+                    code, sandbox_executor=sandbox_executor, problem=problem
+                )
             except Exception as e:
                 logger.warning("space_analysis_error", error=str(e))
                 errors.append(f"Space complexity analysis failed: {str(e)}")

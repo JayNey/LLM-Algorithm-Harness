@@ -9,7 +9,7 @@ from api.db.models import AsyncTask, Evaluation
 from api.monitoring.capabilities import evaluation_capability
 
 _STATUSES = ("pending", "running", "paused", "completed", "failed", "cancelled")
-_TASK_TYPES = ("evaluation", "experiment", "benchmark", "import")
+_TASK_TYPES = ("evaluation", "experiment", "benchmark", "import", "ab_test")
 _MAX_PROGRESS = 2**63 - 1
 _PROGRESS_TEXT_LIMIT = 20
 

@@ -62,7 +62,7 @@ function Shell() {
   const ui = useUiStore()
   const username = session?.username || '已登录'
   const [openedAt, setOpenedAt] = useState<string | null>(null)
-  const [modal, setModal] = useState<'create' | 'import' | null>(null)
+  const [modal, setModal] = useState<'import' | null>(null)
   const main = useRef<HTMLElement>(null)
   const menu = useRef<HTMLButtonElement>(null)
   const drawerOpen = openedAt === location.key
@@ -80,7 +80,7 @@ function Shell() {
   }
   function onCreate() {
     setOpenedAt(null)
-    setModal('create')
+    navigate('/evaluations/new')
   }
   function onImport() {
     setOpenedAt(null)
@@ -140,7 +140,6 @@ function Shell() {
               <span className="workspace-label">
                 {appearanceVariants[ui.appearanceVariant].en} / 个人工作空间
               </span>
-              <span className="preview-tag">业务 · Mock</span>
             </div>
             <div className="top-actions">
               <Dropdown
@@ -227,10 +226,7 @@ function Shell() {
             </div>
             <footer className="workspace-footer">
               <span>{appName}</span>
-              <span>
-                {appearanceVariants[ui.appearanceVariant].name} / 业务与通知 ·
-                Mock
-              </span>
+              <span>{appearanceVariants[ui.appearanceVariant].name}</span>
             </footer>
           </main>
         </div>

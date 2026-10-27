@@ -154,6 +154,7 @@ class ABTestRunner:
         self.config = config
         self.client_factory = client_factory
         self.sandbox_factory = sandbox_factory
+        self.should_stop: Callable[[], bool] = lambda: False
 
     def run(self) -> Path:
         problems = ProblemLoader().load(self.config.dataset_path)
@@ -178,6 +179,8 @@ class ABTestRunner:
                     variant, [p for p in problems if assignment[p.problem_id] == variant.id]
                 )
             )
+        if self.should_stop():
+            return output
         report = self._build_report(rows, assignments, output)
         (output / "ab_test.json").write_text(
             json.dumps(report, ensure_ascii=False, indent=2) + "\n", encoding="utf-8"
@@ -187,7 +190,9 @@ class ABTestRunner:
         return output
 
     def _run_variant(self, variant: PromptVariant, problems: list[Problem]) -> list[dict[str, Any]]:
-        def run(problem: Problem) -> dict[str, Any]:
+        def run(problem: Problem) -> dict[str, Any] | None:
+            if self.should_stop():
+                return None
             sandbox = self.sandbox_factory(self.config.sandbox_config)
             ok, detail = sandbox.health_check()
             if not ok:
@@ -224,9 +229,9 @@ class ABTestRunner:
             }
 
         if self.config.max_workers == 1 or len(problems) < 2:
-            return [run(problem) for problem in problems]
+            return [result for problem in problems if (result := run(problem)) is not None]
         with ThreadPoolExecutor(max_workers=min(self.config.max_workers, len(problems))) as pool:
-            return list(pool.map(run, problems))
+            return [result for result in pool.map(run, problems) if result is not None]
 
     def _build_report(
         self, rows: list[dict[str, Any]], assignments: dict[str, Any], output: Path

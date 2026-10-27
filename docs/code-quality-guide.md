@@ -102,8 +102,18 @@ print(f"Performance Score: {time_comp.performance_score}/100")
 ### 2. 空间复杂度分析
 
 **输出字段：**
-- `peak_memory_mb`: 峰值内存使用（MB）
-- `memory_efficiency_score`: 空间效率评分（0-100）
+- `peak_memory_bytes`: 公开测试中最大的 Python 分配峰值（字节）
+- `peak_memory_mb`: 峰值字节数 / 1,048,576（MiB，沿用字段名）
+- `memory_efficiency_score`: 内存预算余量评分（0-100）
+- `analysis_notes`: 采样范围、评分基准或无法采样的原因
+
+需要向 `CodeQualityAnalyzer.analyze(code, problem, sandbox_executor)` 提供题目与沙箱；直接使用 `SpaceAnalyzer` 时通过 `problem=problem` 传入。采样在候选代码实际运行的 host 子进程或 Docker 容器内使用 `tracemalloc`，覆盖代码加载、函数调用或 stdin/stdout 脚本执行，并捕获已经释放的临时分配峰值；不改变宿主进程的 tracemalloc 状态。默认仅执行原始公开测试，不访问隐藏测试。
+
+评分公式为 `max(0, min(100, 100 × (1 - peak_memory_bytes / budget_bytes)))`，保留两位小数；`budget_bytes = sandbox_executor.config.memory_limit_mb × 1,048,576`。同一预算下峰值越低得分越高。该评分表示相对于配置预算的余量，不代表实际内存与理论最优内存之比，也不推断 Big-O。host 后端的预算是评分基准，不表示其具备 Docker 的内存限制能力。
+
+采样包含少量 runner 开销，不包含解释器启动和 tracemalloc 无法追踪的原生库分配，因此不是整个进程 RSS。候选代码也应保持采样器完整；若关闭 tracing、缺少结果、执行报错、答案错误、超时、后端不可用或没有公开测试，指标保持 `None` 并附说明，不生成虚假的零内存或满分。
+
+`execute_with_memory_profiling` 的默认缩放为 `[1]`。可显式传入正整数 scales 对数字和列表做启发式放大；此类人工输入未必满足题目约束，放大后的输出不会与原始答案比较，不能用作正确性或渐进空间复杂度证明。
 
 ### 3. 可读性分析
 

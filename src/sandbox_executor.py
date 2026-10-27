@@ -509,6 +509,8 @@ class SandboxExecutor:
         code: str,
         test_input: Any,
         problem: Problem | None = None,
+        *,
+        _profile_memory: bool = False,
     ) -> Any:
         """
         Run code in subprocess for isolation.
@@ -558,6 +560,9 @@ if __name__ == "__main__":
 """
             input_data = None
 
+        if _profile_memory:
+            wrapper, memory_marker = self._memory_profile_wrapper(wrapper)
+
         # Write to temp file
         with tempfile.NamedTemporaryFile(
             mode="w", suffix=".py", delete=False, encoding="utf-8"
@@ -591,8 +596,18 @@ if __name__ == "__main__":
                 raise RuntimeError(f"Execution failed: {result.stderr}")
 
             if problem and problem.input_output_mode == "stdin_stdout":
-                return result.stdout
-            return self._parse_function_result(result.stderr, result.stdout, result_marker)
+                output = result.stdout
+            else:
+                output = self._parse_function_result(result.stderr, result.stdout, result_marker)
+            if _profile_memory:
+                if not any(line.startswith(memory_marker) for line in result.stderr.splitlines()):
+                    raise ValueError("Missing memory sample")
+                sample = self._parse_function_result(result.stderr, result_marker=memory_marker)
+                current, peak = sample["current_bytes"], sample["peak_bytes"]
+                if type(current) is not int or type(peak) is not int or not 0 <= current <= peak:
+                    raise ValueError("Invalid memory sample")
+                return output, sample
+            return output
 
         finally:
             # Cleanup
@@ -643,6 +658,8 @@ if __name__ == "__main__":
         code: str,
         test_input: Any,
         problem: Problem | None = None,
+        *,
+        _profile_memory: bool = False,
     ) -> Any:
         """Run one test in a network-disabled, resource-limited container."""
         if problem and problem.input_output_mode == "stdin_stdout":
@@ -675,6 +692,8 @@ else:
 _harness_write(_harness_fd, ({result_marker!r} + _harness_dumps(result) + "\\n").encode("utf-8"))
 """
             input_data = None
+        if _profile_memory:
+            wrapper, memory_marker = self._memory_profile_wrapper(wrapper)
         with tempfile.TemporaryDirectory(prefix="llm-harness-sandbox-") as workdir:
             os.chmod(workdir, 0o755)
             runner_path = Path(workdir) / "runner.py"
@@ -731,8 +750,18 @@ _harness_write(_harness_fd, ({result_marker!r} + _harness_dumps(result) + "\\n")
                     f"Docker execution failed: {result.stderr[-400:]}",
                 )
             if problem and problem.input_output_mode == "stdin_stdout":
-                return result.stdout
-            return self._parse_function_result(result.stderr, result.stdout, result_marker)
+                output = result.stdout
+            else:
+                output = self._parse_function_result(result.stderr, result.stdout, result_marker)
+            if _profile_memory:
+                if not any(line.startswith(memory_marker) for line in result.stderr.splitlines()):
+                    raise ValueError("Missing memory sample")
+                sample = self._parse_function_result(result.stderr, result_marker=memory_marker)
+                current, peak = sample["current_bytes"], sample["peak_bytes"]
+                if type(current) is not int or type(peak) is not int or not 0 <= current <= peak:
+                    raise ValueError("Invalid memory sample")
+                return output, sample
+            return output
 
     @staticmethod
     def _serialize_stdin_input(test_input: Any) -> bytes:
@@ -948,63 +977,102 @@ _harness_write(_harness_fd, ({result_marker!r} + _harness_dumps(result) + "\\n")
             # Keep other values unchanged
             return value
 
+    @staticmethod
+    def _memory_profile_wrapper(wrapper: str) -> tuple[str, str]:
+        """Measure Python allocations inside the runner, including transient peaks."""
+        marker = f"__LLM_HARNESS_MEMORY__:{uuid.uuid4().hex}:"
+        return (
+            f"""
+import json as _mp_json
+import os as _mp_os
+import tracemalloc as _mp_trace
+_mp_dumps = _mp_json.dumps
+_mp_write = _mp_os.write
+_mp_fd = _mp_os.dup(2)
+_mp_get = _mp_trace.get_traced_memory
+_mp_is_tracing = _mp_trace.is_tracing
+_mp_stop = _mp_trace.stop
+_mp_code = compile({wrapper!r}, "<memory-runner>", "exec")
+_mp_globals = {{"__name__": "__main__", "__file__": __file__, "__package__": None}}
+_mp_trace.start()
+try:
+    exec(_mp_code, _mp_globals, _mp_globals)
+except SystemExit as _mp_exit:
+    if _mp_exit.code not in (None, 0):
+        raise
+if not _mp_is_tracing():
+    raise RuntimeError("Memory tracing was disabled during execution")
+_mp_current, _mp_peak = _mp_get()
+_mp_stop()
+_mp_write(_mp_fd, ({marker!r} + _mp_dumps({{"current_bytes": _mp_current, "peak_bytes": _mp_peak}}) + "\\n").encode("utf-8"))
+""",
+            marker,
+        )
+
     def execute_with_memory_profiling(
         self, code: str, problem: Problem, scales: list[int] | None = None
     ) -> dict[int, dict[str, Any]]:
+        """Measure runner Python allocation peaks over public tests.
+
+        Defaults to original inputs only. Explicit scales are heuristic; expected
+        outputs are checked only at scale 1. Any failed run invalidates the
+        profile so partial successes cannot masquerade as a complete assessment.
         """
-        Execute code with memory profiling at different scales.
-
-        Args:
-            code: Python code to execute
-            problem: Problem definition
-            scales: List of scale multipliers (default: [1, 10, 100])
-
-        Returns:
-            Dict with memory usage statistics per scale
-        """
-        import tracemalloc
-
-        if scales is None:
-            scales = [1, 10, 100]
-
+        scales = [1] if scales is None else scales
+        if any(type(scale) is not int or scale < 1 for scale in scales):
+            raise ValueError("Memory profiling scales must be positive integers")
+        if not problem.public_test_cases or problem.unsupported_reason:
+            return {}
+        if not self._validate_code(code, problem):
+            return {}
+        if self.config.backend == "docker" and not self._docker_available():
+            return {}
         memory_results: dict[int, dict[str, Any]] = {}
-
-        if not problem.public_test_cases:
-            logger.warning("no_public_tests_for_memory_profiling", problem=problem.problem_id)
-            return memory_results
-
-        for scale in scales:
-            try:
-                # Create scaled test cases
-                scaled_problem = Problem(
-                    problem_id=problem.problem_id,
-                    title=problem.title,
-                    description=problem.description,
-                    difficulty=problem.difficulty,
-                    public_test_cases=self._scale_test_cases(problem.public_test_cases, scale),
-                )
-
-                tracemalloc.start()
-                result = self.execute(code, scaled_problem, stage="public")
-                current, peak = tracemalloc.get_traced_memory()
-                tracemalloc.stop()
-
-                if result.all_passed:
-                    memory_results[scale] = {
-                        "current_bytes": current,
-                        "peak_bytes": peak,
-                        "peak_mb": peak / (1024 * 1024),
-                    }
-                else:
-                    logger.warning(
-                        "scaled_memory_profiling_failed", scale=scale, status=result.status
+        try:
+            self._check_imports(code)
+            runner = (
+                self._run_in_docker if self.config.backend == "docker" else self._run_in_subprocess
+            )
+            for scale in scales:
+                samples = []
+                for test in problem.public_test_cases:
+                    test_input = (
+                        test.input if scale == 1 else self._scale_memory_input(test.input, scale)
                     )
-                    tracemalloc.stop()
-                    break
-            except Exception as e:
-                logger.warning("memory_profiling_failed", scale=scale, error=str(e))
-                if tracemalloc.is_tracing():
-                    tracemalloc.stop()
-                break
-
+                    start = time.monotonic()
+                    self._last_command_seconds = None
+                    output, sample = runner(code, test_input, problem, _profile_memory=True)
+                    elapsed = self._last_command_seconds
+                    if (
+                        elapsed if elapsed is not None else time.monotonic() - start
+                    ) > self.config.timeout_seconds:
+                        return {}
+                    is_text = problem.input_output_mode == "stdin_stdout"
+                    if is_text:
+                        output = self._parse_stdout_output(
+                            output, test.expected_output, problem.judge_config
+                        )
+                    if scale == 1 and not self._compare_outputs(
+                        output,
+                        test.expected_output,
+                        problem.judge_config,
+                        text_output=is_text and problem.judge_config.output_format != "json",
+                    ):
+                        return {}
+                    samples.append(sample)
+                peak = max(sample["peak_bytes"] for sample in samples)
+                memory_results[scale] = {
+                    "current_bytes": max(sample["current_bytes"] for sample in samples),
+                    "peak_bytes": peak,
+                    "peak_mb": peak / (1024 * 1024),
+                }
+        except Exception as exc:
+            logger.warning("memory_profiling_failed", error=str(exc))
+            return {}
         return memory_results
+
+    def _scale_memory_input(self, value: Any, scale: int) -> Any:
+        """Preserve argument mappings while scaling numeric/list payloads."""
+        if isinstance(value, dict):
+            return {key: self._scale_memory_input(item, scale) for key, item in value.items()}
+        return self._scale_value(value, scale)

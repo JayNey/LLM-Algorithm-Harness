@@ -47,6 +47,7 @@ from src.strategies.tree_of_thoughts import TreeOfThoughtsStrategy
 from src.strategies.vanilla import VanillaStrategy
 from src.task_service import TaskRecord, TaskService, TaskUnit
 from src.utils.logging import get_logger
+from src.utils.pricing import PricingManager
 from src.utils.secrets import redact_sensitive_text
 
 logger = get_logger(__name__)
@@ -76,6 +77,7 @@ class AlgorithmHarness:
         """
         self.config = config
         self.budget_tracker = budget_tracker
+        self.pricing_manager: PricingManager | None = None
         self.cost_monitor: RunCostMonitor | None = None
         self.budget_allocation_monitor: DifficultyBudgetMonitor | None = None
         self.cost_alert_manager: CostAlertManager | None = None
@@ -720,7 +722,10 @@ class AlgorithmHarness:
         preflight_ok, preflight_detail = sandbox.health_check()
         if not preflight_ok:
             raise RuntimeError(f"Sandbox preflight failed: {preflight_detail}")
-        llm_client: LLMClient | BudgetedLLMClient = LLMClient(self.config.llm_config)
+        base_client = LLMClient(self.config.llm_config)
+        if self.pricing_manager is not None:
+            base_client.pricing_manager = self.pricing_manager
+        llm_client: LLMClient | BudgetedLLMClient = base_client
         if self.budget_tracker is not None:
             llm_client = BudgetedLLMClient(llm_client, self.budget_tracker)
         strategy_class = self.STRATEGY_MAP.get(strategy_config.name)

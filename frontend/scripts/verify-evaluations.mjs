@@ -53,6 +53,7 @@ const report = {
     'HTTP /api/v1/evaluation-options and children',
     'HTTP /api/v1/evaluations create/start/get',
     'results scenario: HTTP /api/v1/results list/detail',
+    'entries scenario: HTTP /api/v1/results list (empty fixture)',
     'localStorage session marker (no credentials)',
     'security only: isolated HTML and in-memory auth/HTTP transport',
   ],
@@ -362,6 +363,14 @@ async function fixture(
         has_more: offset + limit < all.length,
       })
     }
+    if (mode === 'entries' && method === 'GET' && path === '/results')
+      return send({
+        items: [],
+        total: 0,
+        limit: Number(url.searchParams.get('limit')) || 20,
+        offset: Number(url.searchParams.get('offset')) || 0,
+        has_more: false,
+      })
     if (
       mode.startsWith('detail-') &&
       path.startsWith('/evaluations/eval-fixture-1')
@@ -2317,6 +2326,139 @@ async function resultsScenario() {
   await live.context.close()
 }
 
+async function entriesScenario() {
+  report.real.push('unified create entries and honest mock markers')
+  const { page, calls, errors } = await fixture('entries', '/')
+  await page.getByRole('heading', { name: '仪表盘', exact: true }).waitFor()
+  const toCreatePage = async (entryName) => {
+    await page.waitForURL('**/evaluations/new')
+    await page.getByRole('heading', { name: '创建评估', exact: true }).waitFor()
+    const pathname = new URL(page.url()).pathname
+    const crumb = await page
+      .locator('.breadcrumbs [aria-current="page"]')
+      .innerText()
+    check(`${entryName} 落到真实创建页`, () => {
+      assert.equal(pathname, '/evaluations/new')
+      assert.equal(crumb, '创建评估')
+    })
+  }
+  await page
+    .locator('.side-bottom')
+    .getByRole('button', { name: '创建评估', exact: true })
+    .click()
+  await toCreatePage('侧栏创建按钮')
+  await page.goto(`${base}/`)
+  await page.getByRole('heading', { name: '仪表盘', exact: true }).waitFor()
+  await page.getByRole('button', { name: '快速操作', exact: true }).click()
+  await page.getByRole('menuitem', { name: '创建评估', exact: true }).click()
+  await toCreatePage('快速操作创建项')
+  await page.goto(`${base}/`)
+  await page.getByRole('heading', { name: '仪表盘', exact: true }).waitFor()
+  await page
+    .locator('.page-actions')
+    .getByRole('button', { name: '创建评估', exact: true })
+    .click()
+  await toCreatePage('仪表盘页头创建按钮')
+  await page.goto(`${base}/`)
+  await page.getByRole('heading', { name: '仪表盘', exact: true }).waitFor()
+  await choose(page, '预览数据状态', '状态：空数据')
+  await page.getByRole('button', { name: '创建首个评估', exact: true }).click()
+  await toCreatePage('空状态创建按钮')
+  await page.goto(`${base}/help`)
+  await page.getByRole('heading', { name: '开始一次 LLM 算法评估' }).waitFor()
+  await page
+    .locator('.example-panel')
+    .getByRole('button', { name: '创建评估', exact: true })
+    .click()
+  await toCreatePage('帮助页创建入口')
+  await check('创建页无模拟弹窗残留', async () => {
+    assert.equal(
+      await page.getByPlaceholder('例如：HumanEval 基线对照').count(),
+      0,
+    )
+    assert.equal(
+      await page.getByText('确认示例配置', { exact: true }).count(),
+      0,
+    )
+  })
+  const file = 'entries-create-page.png'
+  await page.screenshot({ path: resolve(out, file), fullPage: true })
+  report.screenshots.push(file)
+  await page.goto(`${base}/`)
+  await page.getByRole('heading', { name: '仪表盘', exact: true }).waitFor()
+  await page.locator('.side-bottom .import-button').click()
+  await page.getByRole('dialog').waitFor()
+  await check('导入保持明确 Mock 示例', async () => {
+    await page
+      .getByText('题目导入的交互示例，不读取或上传文件。', { exact: true })
+      .waitFor()
+    assert.equal(
+      await page.getByPlaceholder('例如：HumanEval 基线对照').count(),
+      0,
+    )
+  })
+  await page.keyboard.press('Escape')
+  await page.getByRole('dialog').waitFor({ state: 'hidden' })
+  await page.getByRole('button', { name: '快速操作', exact: true }).click()
+  await page.getByRole('menuitem', { name: '导入题目', exact: true }).click()
+  await page
+    .getByText('题目导入的交互示例，不读取或上传文件。', { exact: true })
+    .waitFor()
+  await page.keyboard.press('Escape')
+  await page.getByRole('dialog').waitFor({ state: 'hidden' })
+  const stabilize = async () => {
+    // 真实列表页挂载后会重写查询参数并更换 location.key；
+    // 通知抽屉依赖 location.key 判定开合，需等 URL 稳定后再交互。
+    let previous = page.url()
+    for (let attempt = 0; attempt < 10; attempt++) {
+      await page.waitForTimeout(250)
+      if (page.url() === previous) return
+      previous = page.url()
+    }
+  }
+  const follow = async (item, path, entryName) => {
+    await page.getByRole('button', { name: /通知中心/ }).click()
+    await page.getByRole('button', { name: new RegExp(item) }).click()
+    await page.waitForURL(`**${path}`)
+    await stabilize()
+    check(`${entryName}只进入真实${path === '/help' ? '帮助' : '列表'}页`, () =>
+      assert.equal(new URL(page.url()).pathname, path),
+    )
+  }
+  await follow('代码生成基线已完成', '/results', '任务完成通知')
+  await follow('单任务预算使用达 80%', '/evaluations', '预算预警通知')
+  await follow('欢迎使用工作台', '/help', '系统通知')
+  await page.goto(`${base}/evaluations`)
+  await page.getByRole('heading', { name: '评估任务', exact: true }).waitFor()
+  await check('真实评估页无全局 Mock 标注', async () => {
+    assert.equal(
+      await page.getByText('业务 · Mock', { exact: true }).count(),
+      0,
+    )
+    assert.equal(
+      await page.getByText('业务与通知 · Mock', { exact: true }).count(),
+      0,
+    )
+  })
+  await page.goto(`${base}/`)
+  await page.getByRole('heading', { name: '仪表盘', exact: true }).waitFor()
+  await check('示例仪表盘保留区域 Mock 标注', async () => {
+    await page
+      .getByText('Mock 快照 · 2026-10-20 14:32 CST', { exact: true })
+      .waitFor()
+  })
+  await page.locator('.row-name').first().click()
+  await page.getByText('评估任务详情 · Mock', { exact: true }).waitFor()
+  await check('示例任务停留在 Mock 抽屉', () =>
+    assert.equal(new URL(page.url()).pathname, '/'),
+  )
+  await page.keyboard.press('Escape')
+  await check('入口遍历未提交创建或启动请求', () =>
+    assert.equal(calls.filter((call) => call.method === 'POST').length, 0),
+  )
+  await check('entries 场景无页面异常', () => assert.deepEqual(errors, []))
+}
+
 async function statesScenario() {
   const cases = [
     ['pending', 0, '等待结果'],
@@ -2485,6 +2627,7 @@ try {
   if (scenario === 'all' || scenario === 'detail') await detailScenario()
   if (scenario === 'all' || scenario === 'progress') await progressScenario()
   if (scenario === 'all' || scenario === 'results') await resultsScenario()
+  if (scenario === 'all' || scenario === 'entries') await entriesScenario()
   if (scenario === 'all' || scenario === 'states') await statesScenario()
   if (
     ![
@@ -2495,6 +2638,7 @@ try {
       'detail',
       'progress',
       'results',
+      'entries',
       'states',
     ].includes(scenario)
   )

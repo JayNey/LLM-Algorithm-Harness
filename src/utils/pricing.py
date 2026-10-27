@@ -15,7 +15,7 @@ from typing import Any, Literal
 
 logger = logging.getLogger(__name__)
 
-PricingSource = Literal["custom", "builtin", "unknown"]
+PricingSource = Literal["override", "custom", "builtin", "unknown"]
 
 
 class PricingInfo:
@@ -77,6 +77,8 @@ class PricingManager:
                          'pricing.json' in the current directory.
         """
         self.custom_pricing: dict[str, dict[str, Any]] = {}
+        # Evaluation-local snapshot; Web overrides match exact model IDs only.
+        self.overrides: dict[str, PricingInfo] = {}
         self.pricing_file = pricing_file or "pricing.json"
         self._load_custom_pricing()
 
@@ -145,11 +147,10 @@ class PricingManager:
         Get pricing information for a model.
 
         Implements fallback strategy:
-        1. Custom pricing (exact match)
-        2. Custom pricing (prefix match)
-        3. Built-in pricing (exact match)
-        4. Built-in pricing (prefix match)
-        5. Explicit "unknown" marking - never a fabricated default price
+        1. Evaluation-local Web override (exact match)
+        2. Custom pricing (exact match, then prefix match)
+        3. Built-in pricing (exact match, then prefix match)
+        4. Explicit "unknown" marking - never a fabricated default price
 
         Args:
             model: Model name (e.g., "gpt-4-0613", "claude-3-opus-20240229")
@@ -157,6 +158,9 @@ class PricingManager:
         Returns:
             PricingInfo object containing pricing, source, and as_of date
         """
+        if model in self.overrides:
+            return self.overrides[model]
+
         # Try exact match in custom pricing
         if model in self.custom_pricing:
             return self._pricing_from_entry(model, self.custom_pricing[model], "custom")

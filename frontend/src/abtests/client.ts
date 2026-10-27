@@ -104,6 +104,8 @@ function job(value: unknown, field = 'abtest'): ABTestJob {
     id: text(data.id, `${field}.id`),
     name: text(data.name, `${field}.name`, true),
     status: text(data.status, `${field}.status`),
+    task_id:
+      data.task_id == null ? null : text(data.task_id, `${field}.task_id`),
     config: configSubset(data.config, `${field}.config`),
     error_message: nullable(
       data.error_message,
