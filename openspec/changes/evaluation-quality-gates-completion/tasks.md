@@ -8,4 +8,4 @@
 
 ## 3. 审查与交付
 
-- [ ] 3.1 核对 diff、原始日志和全部验收条目，运行 git diff --check origin/main...HEAD 与 OpenSpec validate，记录审查结论、CI 证据或明确的未验证状态，再进入最终归档确认。
+- [x] 3.1 核对 diff、原始日志和全部验收条目，运行 git diff --check origin/main...HEAD 与 OpenSpec validate，记录审查结论、CI 证据或明确的未验证状态，再进入最终归档确认。

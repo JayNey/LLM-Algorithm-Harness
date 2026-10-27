@@ -4309,77 +4309,6 @@ exit_code: 0
 
 Implicit text encodings: 0
 
-===== diff-check-committed =====
-code_sha: 48ea717b5526cc8198f1b395e4285e58263f8564
-cwd: .
-command: git diff --check origin/main...HEAD
-started_at: 2026-10-27T04:13:13.696787+00:00
-finished_at: 2026-10-27T04:13:13.715163+00:00
-exit_code: 0
-
-
-
-===== diff-check-working =====
-code_sha: 48ea717b5526cc8198f1b395e4285e58263f8564
-cwd: .
-command: git diff --check
-started_at: 2026-10-27T04:13:13.715578+00:00
-finished_at: 2026-10-27T04:13:13.737662+00:00
-exit_code: 0
-
-
-
-===== source-matches-main =====
-code_sha: 48ea717b5526cc8198f1b395e4285e58263f8564
-cwd: .
-command: git diff --exit-code b86d65eff2d2a76fdd39f54fe7b2794b9e3dc955 HEAD -- api src tests frontend pyproject.toml .github/workflows
-started_at: 2026-10-27T04:13:13.738187+00:00
-finished_at: 2026-10-27T04:13:13.756102+00:00
-exit_code: 0
-
-
-
-===== inherited-browser-evidence =====
-code_sha: 48ea717b5526cc8198f1b395e4285e58263f8564
-cwd: .
-command: python3 -c 'import json
-from pathlib import Path
-base=Path('"'"'docs/superpowers/reports/assets/issue230'"'"')
-for rel,key in [('"'"'all/all.json'"'"','"'"'assertions'"'"'),('"'"'all/appearance/appearance.json'"'"','"'"'assertions'"'"'),('"'"'security/security.json'"'"','"'"'assertions'"'"'),('"'"'shell/checks.json'"'"','"'"'checks'"'"')]:
-    d=json.loads((base/rel).read_text())
-    values=d[key]
-    if key == '"'"'checks'"'"':
-        assert len(values) == 51
-        bad=[x for x in values if not ((isinstance(x,str) and bool(x)) or (isinstance(x,dict) and x.get('"'"'width'"'"') == x.get('"'"'scroll'"'"')))]
-    elif isinstance(values,dict):
-        bad=[k for k,v in values.items() if v is not True]
-    else:
-        bad=[x for x in values if x.get('"'"'pass'"'"') is not True]
-    unknown=d.get('"'"'unknown'"'"',d.get('"'"'unknownRequests'"'"',[]))
-    errors=d.get('"'"'pageErrors'"'"',[])
-    assert not bad and not unknown and not errors, (rel,bad,unknown,errors)
-    print(f'"'"'{rel}: {len(values)} passed; unknown=0; pageErrors={len(errors)}'"'"')
-'
-started_at: 2026-10-27T04:13:13.756593+00:00
-finished_at: 2026-10-27T04:13:13.789038+00:00
-exit_code: 0
-
-all/all.json: 149 passed; unknown=0; pageErrors=0
-all/appearance/appearance.json: 216 passed; unknown=0; pageErrors=0
-security/security.json: 8 passed; unknown=0; pageErrors=0
-shell/checks.json: 51 passed; unknown=0; pageErrors=0
-
-===== openspec-validate =====
-code_sha: 48ea717b5526cc8198f1b395e4285e58263f8564
-cwd: .
-command: comet classic openspec -- validate evaluation-quality-gates-completion --strict
-started_at: 2026-10-27T04:13:13.789443+00:00
-finished_at: 2026-10-27T04:13:14.348414+00:00
-exit_code: 0
-
-Change 'evaluation-quality-gates-completion' is valid
-ℹ [INFO] file: skip_specs is set in .openspec.yaml: change declares no spec-level behavior changes, zero deltas accepted
-
 ===== coverage-src =====
 code_sha: 48ea717b5526cc8198f1b395e4285e58263f8564
 cwd: .
@@ -4584,3 +4513,86 @@ api/services/evaluation_service.py                                   230     17 
 api/services/experiment_service.py                                   186     20  89.25%
 ---------------------------------------------------------------------------------------
 TOTAL                                                               6769    348  94.86%
+
+===== introduced-log-whitespace =====
+code_sha: 7f9d58d3cfa9297dd7af926613615b1bc0b9ad2b
+cwd: .
+command: git diff --check origin/main...e639932
+started_at: 2026-10-27T04:16:15.642645+00:00
+finished_at: 2026-10-27T04:16:15.663234+00:00
+exit_code: 2
+
+docs/frontend/assets/issue231/execution.txt:400: trailing whitespace.
++[plugin builtin:vite-reporter]
+docs/frontend/assets/issue231/execution.txt:4587: new blank line at EOF.
+
+===== diff-check-committed =====
+code_sha: 7f9d58d3cfa9297dd7af926613615b1bc0b9ad2b
+cwd: .
+command: git diff --check origin/main...HEAD
+started_at: 2026-10-27T04:16:15.663542+00:00
+finished_at: 2026-10-27T04:16:15.681359+00:00
+exit_code: 0
+
+
+
+===== diff-check-working =====
+code_sha: 7f9d58d3cfa9297dd7af926613615b1bc0b9ad2b
+cwd: .
+command: git diff --check
+started_at: 2026-10-27T04:16:15.681726+00:00
+finished_at: 2026-10-27T04:16:15.708933+00:00
+exit_code: 0
+
+
+
+===== source-matches-main =====
+code_sha: 7f9d58d3cfa9297dd7af926613615b1bc0b9ad2b
+cwd: .
+command: git diff --exit-code b86d65eff2d2a76fdd39f54fe7b2794b9e3dc955 HEAD -- api src tests frontend pyproject.toml .github/workflows
+started_at: 2026-10-27T04:16:15.709299+00:00
+finished_at: 2026-10-27T04:16:15.723027+00:00
+exit_code: 0
+
+
+
+===== inherited-browser-evidence =====
+code_sha: 7f9d58d3cfa9297dd7af926613615b1bc0b9ad2b
+cwd: .
+command: python3 -c 'import json
+from pathlib import Path
+base=Path('"'"'docs/superpowers/reports/assets/issue230'"'"')
+for rel,key in [('"'"'all/all.json'"'"','"'"'assertions'"'"'),('"'"'all/appearance/appearance.json'"'"','"'"'assertions'"'"'),('"'"'security/security.json'"'"','"'"'assertions'"'"'),('"'"'shell/checks.json'"'"','"'"'checks'"'"')]:
+    d=json.loads((base/rel).read_text())
+    values=d[key]
+    if key == '"'"'checks'"'"':
+        assert len(values) == 51
+        bad=[x for x in values if not ((isinstance(x,str) and bool(x)) or (isinstance(x,dict) and x.get('"'"'width'"'"') == x.get('"'"'scroll'"'"')))]
+    elif isinstance(values,dict):
+        bad=[k for k,v in values.items() if v is not True]
+    else:
+        bad=[x for x in values if x.get('"'"'pass'"'"') is not True]
+    unknown=d.get('"'"'unknown'"'"',d.get('"'"'unknownRequests'"'"',[]))
+    errors=d.get('"'"'pageErrors'"'"',[])
+    assert not bad and not unknown and not errors, (rel,bad,unknown,errors)
+    print(f'"'"'{rel}: {len(values)} passed; unknown=0; pageErrors={len(errors)}'"'"')
+'
+started_at: 2026-10-27T04:16:15.723371+00:00
+finished_at: 2026-10-27T04:16:15.750451+00:00
+exit_code: 0
+
+all/all.json: 149 passed; unknown=0; pageErrors=0
+all/appearance/appearance.json: 216 passed; unknown=0; pageErrors=0
+security/security.json: 8 passed; unknown=0; pageErrors=0
+shell/checks.json: 51 passed; unknown=0; pageErrors=0
+
+===== openspec-validate =====
+code_sha: 7f9d58d3cfa9297dd7af926613615b1bc0b9ad2b
+cwd: .
+command: comet classic openspec -- validate evaluation-quality-gates-completion --strict
+started_at: 2026-10-27T04:16:15.750743+00:00
+finished_at: 2026-10-27T04:16:16.301088+00:00
+exit_code: 0
+
+Change 'evaluation-quality-gates-completion' is valid
+ℹ [INFO] file: skip_specs is set in .openspec.yaml: change declares no spec-level behavior changes, zero deltas accepted

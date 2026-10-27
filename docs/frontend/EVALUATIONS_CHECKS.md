@@ -45,6 +45,7 @@ python3 -m mypy api/evaluation_options.py api/services/evaluation_options_servic
 - **原 PR 的 mypy 环境阻塞已解除。** 本轮直接执行 issue 原命令，3 个源文件通过，exit 0；没有使用 `--python-version=3.12`，也不再用 `mypy src/` 代替 API 专项检查。[旧报告](https://github.com/JayNey/LLM-Algorithm-Harness/blob/545d62d46ef5c237731d9e57c9fddb7159665a0d/docs/frontend/EVALUATIONS_CHECKS.md)保留为历史证据。
 - **本轮宿主 CI mypy 首次失败（exit 1，环境差异，已解除）。** 宿主缺少 `types-PyYAML`/`types-psutil`，且 mypy 2.3.1、SQLAlchemy 2.1.4、redis 6.4.0、Pydantic 2.13.5 与完整开发环境不同。5 个诊断为 `api/progress.py` 的 unused-ignore、`api/files/parsing.py` 的 SafeLoader/Any、成本服务的 2 个 var-annotated 和 1 个 generator 类型错误。保持源码与 pyproject 不变，在隔离 `.[dev]` 环境按同一 CI 命令复验，98 个源文件通过。该对照证明是环境依赖组合问题；不把每条错误未经单变量验证地归因于某一个包，也不把首次失败隐藏为通过。两轮输出均入库，无需代码豁免。
 - 前端 lint 有 2 条既有 `BenchmarkDetailPage.tsx:131/145` 的 react-hooks/exhaustive-deps warning；build 有大于 500 kB 的 chunk 提示；均 exit 0。未调整阈值。
+- 本轮证据文件引入的空白失败已修复：`git diff --check origin/main...e639932` 可复现日志一处尾随空格和末尾空行，exit 2。仅归一化日志格式、重算哈希后，对当前 HEAD 和工作区复验均 exit 0；该问题归类为本轮文档回归，不归为既有问题。
 - 定向 Python 测试有 5 条既有 Pydantic class-based Config 弃用警告；全量 warning/skip 明细如下，不能把 skip 算作已验证。
 
 全量合计 11 skips，按实际 SKIPPED 节点和 fixture 条件核对（完整节点名见日志）：
@@ -97,4 +98,4 @@ python3 -m mypy api/evaluation_options.py api/services/evaluation_options_servic
 - [x] Step 4：逐项核对前置 issue、代码和测试；本轮 git diff --check 与平台/skip/警告记录在证据中。
 - [x] Step 5（本地验证与材料）：失败分类及复验、代码 SHA、命令、退出码、覆盖范围及真实 CI 链接已记录；最终审查与远端交付状态如下。
 
-最终集成审查待全量检查与证据落盘后执行。GitHub issue/PR 尚未更新；#231 保持 OPEN，本地结果不自动等同远端交付。
+材料自检通过：全部命令对应日志块哈希一致，14 项本地必需门禁退出码为 0；两个已解除的失败保留原始结果；源码与测试相对 main 无差异。最终集成审查在 Comet verify 阶段执行。GitHub issue/PR 尚未更新；#231 保持 OPEN，本地结果不自动等同远端交付。

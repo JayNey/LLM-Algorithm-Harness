@@ -67,10 +67,10 @@
     ],
     "status": "in_progress",
     "url": "https://github.com/JayNey/LLM-Algorithm-Harness/actions/runs/40444425429",
-    "observed_at": "2026-10-27T04:15:45.501657+00:00"
+    "observed_at": "2026-10-27T04:14:01.688427+00:00"
   },
   "schema": "evaluation-quality-gates.v1",
-  "generated_at": "2026-10-27T04:15:45.501766+00:00",
+  "generated_at": "2026-10-27T04:16:16.349211+00:00",
   "code_sha": "48ea717b5526cc8198f1b395e4285e58263f8564",
   "main_sha": "b86d65eff2d2a76fdd39f54fe7b2794b9e3dc955",
   "pr286_sha": "545d62d46ef5c237731d9e57c9fddb7159665a0d",
@@ -698,86 +698,6 @@
       "environment": "isolated"
     },
     {
-      "id": "diff-check-committed",
-      "command": "git diff --check origin/main...HEAD",
-      "cwd": ".",
-      "code_sha": "48ea717b5526cc8198f1b395e4285e58263f8564",
-      "started_at": "2026-10-27T04:13:13.696787+00:00",
-      "finished_at": "2026-10-27T04:13:13.715163+00:00",
-      "exit_code": 0,
-      "log": {
-        "path": "execution.txt",
-        "start_line": 4312,
-        "end_line": 4321,
-        "sha256": "a5b320769ea4e842b31fd80b97b6d42206ae7838b92b3538bff88158bb67fa0f"
-      },
-      "environment": "host"
-    },
-    {
-      "id": "diff-check-working",
-      "command": "git diff --check",
-      "cwd": ".",
-      "code_sha": "48ea717b5526cc8198f1b395e4285e58263f8564",
-      "started_at": "2026-10-27T04:13:13.715578+00:00",
-      "finished_at": "2026-10-27T04:13:13.737662+00:00",
-      "exit_code": 0,
-      "log": {
-        "path": "execution.txt",
-        "start_line": 4322,
-        "end_line": 4331,
-        "sha256": "caaeebcf3c964f7ea15084a00068eb46906e41c5cf216c02e5b582db4169fbad"
-      },
-      "environment": "host"
-    },
-    {
-      "id": "source-matches-main",
-      "command": "git diff --exit-code b86d65eff2d2a76fdd39f54fe7b2794b9e3dc955 HEAD -- api src tests frontend pyproject.toml .github/workflows",
-      "cwd": ".",
-      "code_sha": "48ea717b5526cc8198f1b395e4285e58263f8564",
-      "started_at": "2026-10-27T04:13:13.738187+00:00",
-      "finished_at": "2026-10-27T04:13:13.756102+00:00",
-      "exit_code": 0,
-      "log": {
-        "path": "execution.txt",
-        "start_line": 4332,
-        "end_line": 4341,
-        "sha256": "5c0bb0cd09e1608c77287d68f9b594a2d725df242929b81b55d1a63ceb69f0ba"
-      },
-      "environment": "host"
-    },
-    {
-      "id": "inherited-browser-evidence",
-      "command": "python3 -c 'import json\nfrom pathlib import Path\nbase=Path('\"'\"'docs/superpowers/reports/assets/issue230'\"'\"')\nfor rel,key in [('\"'\"'all/all.json'\"'\"','\"'\"'assertions'\"'\"'),('\"'\"'all/appearance/appearance.json'\"'\"','\"'\"'assertions'\"'\"'),('\"'\"'security/security.json'\"'\"','\"'\"'assertions'\"'\"'),('\"'\"'shell/checks.json'\"'\"','\"'\"'checks'\"'\"')]:\n    d=json.loads((base/rel).read_text())\n    values=d[key]\n    if key == '\"'\"'checks'\"'\"':\n        assert len(values) == 51\n        bad=[x for x in values if not ((isinstance(x,str) and bool(x)) or (isinstance(x,dict) and x.get('\"'\"'width'\"'\"') == x.get('\"'\"'scroll'\"'\"')))]\n    elif isinstance(values,dict):\n        bad=[k for k,v in values.items() if v is not True]\n    else:\n        bad=[x for x in values if x.get('\"'\"'pass'\"'\"') is not True]\n    unknown=d.get('\"'\"'unknown'\"'\"',d.get('\"'\"'unknownRequests'\"'\"',[]))\n    errors=d.get('\"'\"'pageErrors'\"'\"',[])\n    assert not bad and not unknown and not errors, (rel,bad,unknown,errors)\n    print(f'\"'\"'{rel}: {len(values)} passed; unknown=0; pageErrors={len(errors)}'\"'\"')\n'",
-      "cwd": ".",
-      "code_sha": "48ea717b5526cc8198f1b395e4285e58263f8564",
-      "started_at": "2026-10-27T04:13:13.756593+00:00",
-      "finished_at": "2026-10-27T04:13:13.789038+00:00",
-      "exit_code": 0,
-      "log": {
-        "path": "execution.txt",
-        "start_line": 4342,
-        "end_line": 4371,
-        "sha256": "728439e06dde2be5e0c3afa265ec413bb20c0602077251fe3339a8b9609073a3"
-      },
-      "environment": "host"
-    },
-    {
-      "id": "openspec-validate",
-      "command": "comet classic openspec -- validate evaluation-quality-gates-completion --strict",
-      "cwd": ".",
-      "code_sha": "48ea717b5526cc8198f1b395e4285e58263f8564",
-      "started_at": "2026-10-27T04:13:13.789443+00:00",
-      "finished_at": "2026-10-27T04:13:14.348414+00:00",
-      "exit_code": 0,
-      "log": {
-        "path": "execution.txt",
-        "start_line": 4372,
-        "end_line": 4382,
-        "sha256": "f8e47dea89ce393c2930161046ecc7f09b1ce6e59ce72b9a4917d82aa8650021"
-      },
-      "environment": "host"
-    },
-    {
       "id": "coverage-src",
       "command": "python3 -m coverage report '--include=src/*' --fail-under=90",
       "cwd": ".",
@@ -787,8 +707,8 @@
       "exit_code": 0,
       "log": {
         "path": "execution.txt",
-        "start_line": 4383,
-        "end_line": 4493,
+        "start_line": 4312,
+        "end_line": 4422,
         "sha256": "8ef864f6b2301afd90d4348adfcc078a304d044e10346e5c29a5d6d7dbee5de3"
       },
       "environment": "isolated"
@@ -803,12 +723,108 @@
       "exit_code": 0,
       "log": {
         "path": "execution.txt",
-        "start_line": 4494,
-        "end_line": 4586,
-        "sha256": "fe07a1e701b216cf27d12992f83351135abd8f20a294e28f090c29254b281dfd"
+        "start_line": 4423,
+        "end_line": 4516,
+        "sha256": "25c02b502522f228ebff89e83b532a4a0c50b279acaf76891cc95a711a79b729"
       },
       "environment": "isolated"
+    },
+    {
+      "id": "introduced-log-whitespace",
+      "command": "git diff --check origin/main...e639932",
+      "cwd": ".",
+      "code_sha": "7f9d58d3cfa9297dd7af926613615b1bc0b9ad2b",
+      "started_at": "2026-10-27T04:16:15.642645+00:00",
+      "finished_at": "2026-10-27T04:16:15.663234+00:00",
+      "exit_code": 2,
+      "log": {
+        "path": "execution.txt",
+        "start_line": 4517,
+        "end_line": 4528,
+        "sha256": "7003ebd401cf39d93a7bfe397ef6b81fa0c839432d65d2926a50699805c7e50f"
+      },
+      "environment": "isolated"
+    },
+    {
+      "id": "diff-check-committed",
+      "command": "git diff --check origin/main...HEAD",
+      "cwd": ".",
+      "code_sha": "7f9d58d3cfa9297dd7af926613615b1bc0b9ad2b",
+      "started_at": "2026-10-27T04:16:15.663542+00:00",
+      "finished_at": "2026-10-27T04:16:15.681359+00:00",
+      "exit_code": 0,
+      "log": {
+        "path": "execution.txt",
+        "start_line": 4529,
+        "end_line": 4538,
+        "sha256": "9a0493bf462bbe8b7a9f66fff051ff7b5965ac5d1b613357f39a557d4f8df95c"
+      },
+      "environment": "host"
+    },
+    {
+      "id": "diff-check-working",
+      "command": "git diff --check",
+      "cwd": ".",
+      "code_sha": "7f9d58d3cfa9297dd7af926613615b1bc0b9ad2b",
+      "started_at": "2026-10-27T04:16:15.681726+00:00",
+      "finished_at": "2026-10-27T04:16:15.708933+00:00",
+      "exit_code": 0,
+      "log": {
+        "path": "execution.txt",
+        "start_line": 4539,
+        "end_line": 4548,
+        "sha256": "37855141ffb4c59c996e1bcda02413f9c681ff6f45af5b1e43ff65dfe511bcd5"
+      },
+      "environment": "host"
+    },
+    {
+      "id": "source-matches-main",
+      "command": "git diff --exit-code b86d65eff2d2a76fdd39f54fe7b2794b9e3dc955 HEAD -- api src tests frontend pyproject.toml .github/workflows",
+      "cwd": ".",
+      "code_sha": "7f9d58d3cfa9297dd7af926613615b1bc0b9ad2b",
+      "started_at": "2026-10-27T04:16:15.709299+00:00",
+      "finished_at": "2026-10-27T04:16:15.723027+00:00",
+      "exit_code": 0,
+      "log": {
+        "path": "execution.txt",
+        "start_line": 4549,
+        "end_line": 4558,
+        "sha256": "082112415817eb1c1bbec550c825949f7d5695cce33202cf09122dd74b970a72"
+      },
+      "environment": "host"
+    },
+    {
+      "id": "inherited-browser-evidence",
+      "command": "python3 -c 'import json\nfrom pathlib import Path\nbase=Path('\"'\"'docs/superpowers/reports/assets/issue230'\"'\"')\nfor rel,key in [('\"'\"'all/all.json'\"'\"','\"'\"'assertions'\"'\"'),('\"'\"'all/appearance/appearance.json'\"'\"','\"'\"'assertions'\"'\"'),('\"'\"'security/security.json'\"'\"','\"'\"'assertions'\"'\"'),('\"'\"'shell/checks.json'\"'\"','\"'\"'checks'\"'\"')]:\n    d=json.loads((base/rel).read_text())\n    values=d[key]\n    if key == '\"'\"'checks'\"'\"':\n        assert len(values) == 51\n        bad=[x for x in values if not ((isinstance(x,str) and bool(x)) or (isinstance(x,dict) and x.get('\"'\"'width'\"'\"') == x.get('\"'\"'scroll'\"'\"')))]\n    elif isinstance(values,dict):\n        bad=[k for k,v in values.items() if v is not True]\n    else:\n        bad=[x for x in values if x.get('\"'\"'pass'\"'\"') is not True]\n    unknown=d.get('\"'\"'unknown'\"'\"',d.get('\"'\"'unknownRequests'\"'\"',[]))\n    errors=d.get('\"'\"'pageErrors'\"'\"',[])\n    assert not bad and not unknown and not errors, (rel,bad,unknown,errors)\n    print(f'\"'\"'{rel}: {len(values)} passed; unknown=0; pageErrors={len(errors)}'\"'\"')\n'",
+      "cwd": ".",
+      "code_sha": "7f9d58d3cfa9297dd7af926613615b1bc0b9ad2b",
+      "started_at": "2026-10-27T04:16:15.723371+00:00",
+      "finished_at": "2026-10-27T04:16:15.750451+00:00",
+      "exit_code": 0,
+      "log": {
+        "path": "execution.txt",
+        "start_line": 4559,
+        "end_line": 4588,
+        "sha256": "e7e2a8f5e6f96d174dc506ce9ffc822d0be091233359d0fa32afcb50e42b6d22"
+      },
+      "environment": "host"
+    },
+    {
+      "id": "openspec-validate",
+      "command": "comet classic openspec -- validate evaluation-quality-gates-completion --strict",
+      "cwd": ".",
+      "code_sha": "7f9d58d3cfa9297dd7af926613615b1bc0b9ad2b",
+      "started_at": "2026-10-27T04:16:15.750743+00:00",
+      "finished_at": "2026-10-27T04:16:16.301088+00:00",
+      "exit_code": 0,
+      "log": {
+        "path": "execution.txt",
+        "start_line": 4589,
+        "end_line": 4598,
+        "sha256": "11359553e8a731f1e1216b8c30685f17532e0eafac53b54683b349d6446ac0ea"
+      },
+      "environment": "host"
     }
   ],
-  "execution_sha256": "33d0abcbc8bfdd05e6845ad67bb4566fb6d06ad65be8591eaa6360d935e65b49"
+  "execution_sha256": "32673b4fc7461fa7d283ff0589c3311a6ee398406fe4051e068a5d5121522451"
 }
