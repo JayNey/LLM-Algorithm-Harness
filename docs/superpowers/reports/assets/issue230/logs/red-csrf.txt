@@ -1,0 +1,60 @@
+F                                                                        [100%]
+=================================== FAILURES ===================================
+________ test_cookie_mutations_enforce_csrf_before_side_effects[wrong] _________
+
+environment = namespace(session=<function environment.<locals>.open_app at 0x111e2bce0>, drain=<function environment.<locals>.drain at 0x111e2bd80>, queue=deque([]), generated=[], revoked=[])
+invalid_csrf = 'wrong'
+
+    @pytest.mark.parametrize("invalid_csrf", [None, "wrong", "missing-cookie"])
+    def test_cookie_mutations_enforce_csrf_before_side_effects(environment, invalid_csrf):
+        with environment.session() as (client, app):
+            headers, key = cookie_account(client)
+            ProblemStore(app.state.task_session_factory).upsert_import([problem("p1")])
+            evaluation = create_evaluation(client, headers, key)
+            valid_csrf = headers["X-CSRF-Token"]
+            bad = {} if invalid_csrf is None else {"X-CSRF-Token": invalid_csrf}
+            if invalid_csrf == "missing-cookie":
+                client.cookies.delete("harness_csrf")
+                bad = headers
+            payload = {
+                "problem_ids": ["p1"],
+                "strategy_names": ["vanilla"],
+                "api_key_id": key,
+                "model": "gpt-4o-mini",
+            }
+>           assert client.post("/api/v1/evaluations", headers=bad, json=payload).status_code == 403
+E           AssertionError: assert 201 == 403
+E            +  where 201 = <Response [201 Created]>.status_code
+E            +    where <Response [201 Created]> = post('/api/v1/evaluations', headers={'X-CSRF-Token': 'wrong'}, json={'problem_ids': ['p1'], 'strategy_names': ['vanilla'], 'api_key_id': '216bc2e0-38e3-47aa-9d79-b5fbf0d7fefe', 'model': 'gpt-4o-mini'})
+E            +      where post = <starlette.testclient.TestClient object at 0x111e5a390>.post
+
+/Users/charlesleclerc/LLM-Algorithm-Harness/tests/integration/test_api_workflows.py:324: AssertionError
+=============================== warnings summary ===============================
+../../../opt/homebrew/lib/python3.11/site-packages/_pytest/config/__init__.py:1345
+  /opt/homebrew/lib/python3.11/site-packages/_pytest/config/__init__.py:1345: PytestAssertRewriteWarning: Module already imported so cannot be rewritten; anyio
+    self._mark_plugins_for_rewrite(hook, disable_autoload)
+
+api/config.py:9
+  /Users/charlesleclerc/LLM-Algorithm-Harness/api/config.py:9: PydanticDeprecatedSince20: Support for class-based `config` is deprecated, use ConfigDict instead. Deprecated in Pydantic V2.0 to be removed in V3.0. See Pydantic V2 Migration Guide at https://errors.pydantic.dev/2.13/migration/
+    class Settings(BaseSettings):
+
+api/models.py:6
+  /Users/charlesleclerc/LLM-Algorithm-Harness/api/models.py:6: PydanticDeprecatedSince20: Support for class-based `config` is deprecated, use ConfigDict instead. Deprecated in Pydantic V2.0 to be removed in V3.0. See Pydantic V2 Migration Guide at https://errors.pydantic.dev/2.13/migration/
+    class EvaluationCreateRequest(BaseModel):
+
+api/models.py:79
+  /Users/charlesleclerc/LLM-Algorithm-Harness/api/models.py:79: PydanticDeprecatedSince20: Support for class-based `config` is deprecated, use ConfigDict instead. Deprecated in Pydantic V2.0 to be removed in V3.0. See Pydantic V2 Migration Guide at https://errors.pydantic.dev/2.13/migration/
+    class AsyncTaskCreateRequest(BaseModel):
+
+api/schemas.py:10
+  /Users/charlesleclerc/LLM-Algorithm-Harness/api/schemas.py:10: PydanticDeprecatedSince20: Support for class-based `config` is deprecated, use ConfigDict instead. Deprecated in Pydantic V2.0 to be removed in V3.0. See Pydantic V2 Migration Guide at https://errors.pydantic.dev/2.13/migration/
+    class ApiResponse(BaseModel, Generic[T]):
+
+api/schemas.py:27
+  /Users/charlesleclerc/LLM-Algorithm-Harness/api/schemas.py:27: PydanticDeprecatedSince20: Support for class-based `config` is deprecated, use ConfigDict instead. Deprecated in Pydantic V2.0 to be removed in V3.0. See Pydantic V2 Migration Guide at https://errors.pydantic.dev/2.13/migration/
+    class PaginatedData(BaseModel, Generic[T]):
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+=========================== short test summary info ============================
+FAILED tests/integration/test_api_workflows.py::test_cookie_mutations_enforce_csrf_before_side_effects[wrong]
+1 failed, 15 deselected, 6 warnings in 19.07s

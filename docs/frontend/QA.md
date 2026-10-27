@@ -106,3 +106,37 @@ PLAYWRIGHT_MODULE=/absolute/path/to/node_modules/playwright \
 从frontend启动Vite，另终端运行 `PLAYWRIGHT_MODULE=/absolute/path/to/playwright node scripts/verify-evaluations.mjs --scenario results`；地址/输出用 `EVALUATION_BASE_URL`、`EVALUATION_QA_DIR` 覆盖。外部Playwright包由环境提供，不增加项目依赖。`all`也会运行results及既有创建、列表、详情、进度、安全回归。
 
 [验证报告](../superpowers/reports/2026-10-25-evaluation-results-verify.md) 与 [公开浏览器JSON](assets/evaluations/results/all.json) 记录实际源码、断言、请求时序和截图索引。fixture替换HTTP/WS/测试身份，不能代替真实Redis/Celery、供应商、沙箱或真实账号端到端；完整外观矩阵及真实联调由#229/#232跟踪。
+
+## 真实评估外观矩阵（#229）
+
+前置 #228 已通过 PR #278 合并。本轮在 PR #282 合并 `main`@`b8ff9fd` 后验收统一外壳及评估页面。先在 `frontend/` 启动 Vite，再运行：
+
+```bash
+PLAYWRIGHT_MODULE=/absolute/path/to/playwright \
+EVALUATION_BASE_URL=http://127.0.0.1:5180 \
+node scripts/verify-evaluations.mjs --scenario appearance
+```
+
+`PLAYWRIGHT_MODULE`、可选 `CHROME_PATH` 的含义与其他浏览器场景一致。`EVALUATION_QA_DIR` 可覆盖输出目录，默认保存到 `docs/frontend/assets/evaluations/appearance/`；统一 `all` 场景也执行完整外观矩阵：设置 `EVALUATION_QA_DIR` 时，矩阵报告放在其输出目录的 `appearance/` 子目录；未设置时仍保存到上述公开 assets 目录。`EVALUATION_APPEARANCE_QA_DIR` 的优先级最高，可单独覆盖矩阵输出路径。保留独立命令 `node scripts/verify-evaluation-appearance.mjs`，它可自动启动和清理自己的 Vite，也支持 `EVALUATION_APPEARANCE_BASE_URL` 指向已有服务。
+
+矩阵覆盖 Orbit、Precision、Studio × light、dark × 320、390、768、1440px，共 24 种组合。每种组合检查创建、任务列表/详情、结果列表/详情：
+
+- 创建页：两页题目选择、密钥/模型/策略/预算切换后保留，提交 payload 精确匹配两页选择及受支持字段，创建和启动各请求一次。
+- 列表：可见筛选值和完整 URL 保留，外观切换不触发额外列表请求。
+- 五类页面：主要按钮及表格滚动区域可由 Tab 到达，页面无横向溢出；表格容器允许自身滚动。
+- 全部宽度：通知抽屉可通过键盘打开、Esc 关闭，焦点返回触发按钮。320/390/768px 另验证移动抽屉的 Esc/焦点和真实创建入口；仅 320/390px 显示的底部导航另验键盘进入结果页，不将隐藏的平板底栏记作通过。
+
+### #229 验收证据与截图索引
+
+本轮完整矩阵 216 组检查通过（24 组合，0 失败、0 未声明 API）；统一 `all` 的 143 组主场景检查及前端 257 项单元测试通过。
+
+[公开矩阵 JSON](assets/evaluations/appearance/appearance.json) 记录实际源码提交、工作区状态、精确页面与组合、请求/提交 payload、检查结果和限制；[本轮验证报告](../superpowers/reports/2026-10-27-evaluation-appearance-verify.md) 记录命令、退出码和最终审查。
+
+代表性截图均由同一矩阵运行生成，并人工查看：
+
+- [创建页 · Orbit / light / 320px](assets/evaluations/appearance/create-orbit-light-320.png)
+- [任务列表 · Precision / dark / 390px](assets/evaluations/appearance/task-list-precision-dark-390.png)
+- [任务详情 · Studio / light / 768px](assets/evaluations/appearance/task-detail-studio-light-768.png)
+- [结果详情 · Studio / dark / 1440px](assets/evaluations/appearance/result-detail-studio-dark-1440.png)
+
+验证层级为 Chromium 的桌面浏览器视口模拟，真实 React 页面、路由、状态和 HTTP 客户端参与执行；身份及业务 HTTP 响应由 fixture 替换，通知使用外壳本地示例数据。未执行真实账号/Cookie/CSRF、用户隔离、离线 HTTP 服务端、Redis/Celery、供应商、沙箱、真机、Safari/Firefox 或屏幕阅读器验证。fixture 返回完成状态仅供前端显示与交互检查，不证明真实评估执行成功；真实联调由 #232 跟踪。

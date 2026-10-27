@@ -1,5 +1,5 @@
 import { Badge, Button, Drawer, Empty, Select } from 'antd'
-import { useRef, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useLocation, useNavigate } from 'react-router-dom'
 import { useStore } from 'zustand'
 import { createNotificationStore } from '@/store/notifications.ts'
@@ -17,6 +17,12 @@ export function NotificationCenter({ owner }: { owner: string }) {
     (n) => category === '全部' || n.type === category,
   )
   const open = openedAt === location.key
+  // Restore focus even when a rapid close skips the animation callback.
+  const wasOpen = useRef(false)
+  useEffect(() => {
+    if (wasOpen.current && !open) trigger.current?.focus()
+    wasOpen.current = open
+  }, [open])
   return (
     <>
       <Badge count={unread} size="small" offset={[-6, 6]}>
@@ -39,6 +45,7 @@ export function NotificationCenter({ owner }: { owner: string }) {
           </span>
         }
         open={open}
+        focusable={{ focusTriggerAfterClose: false }}
         onClose={() => setOpenedAt(null)}
         afterOpenChange={(value) => {
           if (!value) trigger.current?.focus()

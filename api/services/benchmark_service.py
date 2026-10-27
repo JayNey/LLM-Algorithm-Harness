@@ -294,12 +294,12 @@ class BenchmarkService:
                     summary = results.get("summary") if isinstance(results, dict) else None
                     summary = summary if isinstance(summary, dict) else {}
                     done.status = "completed"
-                    done.accuracy = (
-                        results.get("accuracy") if isinstance(results, dict) else None
-                    ) or summary.get("accuracy")
-                    done.cost_usd = (
-                        results.get("cost_usd") if isinstance(results, dict) else None
-                    ) or summary.get("cost_usd")
+                    done.accuracy = results.get("accuracy") if isinstance(results, dict) else None
+                    if done.accuracy is None:
+                        done.accuracy = summary.get("accuracy")
+                    done.cost_usd = results.get("cost_usd") if isinstance(results, dict) else None
+                    if done.cost_usd is None:
+                        done.cost_usd = summary.get("cost_usd")
                     done.results = results if isinstance(results, dict) else {"raw": results}
                     done.completed_at = utcnow()
                     done.updated_at = utcnow()

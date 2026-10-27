@@ -186,7 +186,9 @@ def test_unknown_type_and_status_are_not_raw_strings(engine):
     assert "secret-" not in json.dumps(snapshot)
 
 
-@pytest.mark.parametrize("task_type", ["evaluation", "experiment", "benchmark", "import"])
+@pytest.mark.parametrize(
+    "task_type", ["evaluation", "experiment", "benchmark", "import", "ab_test"]
+)
 def test_known_task_types_are_preserved(engine, task_type):
     add_async(engine, "task", task_type=task_type)
     assert (

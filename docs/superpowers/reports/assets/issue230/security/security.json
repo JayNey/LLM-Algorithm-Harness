@@ -1,0 +1,361 @@
+{
+  "scenario": "security",
+  "source": {
+    "head": "606fb25dffd01860e29dae9ce7e5ed1d9568d775",
+    "dirty": "M scripts/verify-evaluations.mjs\n M scripts/verify-shell.mjs\n M src/auth/http.ts\n M src/store/auth.ts\n M ../openspec/changes/evaluation-auth-integration/design.md\n?? ../docs/superpowers/reports/2026-10-27-evaluation-auth-integration-verify.md\n?? ../docs/superpowers/reports/assets/issue230/\n?? ../openspec/changes/evaluation-auth-integration/.comet/"
+  },
+  "layer": "browser-fixture (not backend E2E)",
+  "assertions": [
+    {
+      "name": "真实 React StrictMode 重放、卸载和换 marker 拒绝旧 actions 与迟到201",
+      "pass": true,
+      "result": {
+        "strictReplay": {
+          "owner": "replay-session",
+          "model": "initialized-model",
+          "events": [
+            {
+              "event": "child-setup-before",
+              "owner": "replay-session"
+            },
+            {
+              "event": "state",
+              "owner": "replay-session",
+              "model": "initialized-model"
+            },
+            {
+              "event": "child-setup-after",
+              "model": "initialized-model"
+            },
+            {
+              "event": "child-setup-before",
+              "owner": "replay-session"
+            },
+            {
+              "event": "state",
+              "owner": "replay-session",
+              "model": "initialized-model"
+            },
+            {
+              "event": "child-setup-after",
+              "model": "initialized-model"
+            }
+          ],
+          "stores": 1
+        },
+        "unmountEditing": {
+          "immediatelyAfterUnmount": "initialized-model",
+          "immediatelyAfterSubmit": "editing",
+          "immediatelyAfterRetry": {
+            "phase": "editing",
+            "evaluationId": null
+          },
+          "owner": null,
+          "model": "",
+          "calls": []
+        },
+        "unmountPending": {
+          "calls": [
+            {
+              "method": "POST",
+              "url": "/evaluations",
+              "payload": {
+                "api_key_id": "key-1",
+                "model": "initialized-model",
+                "problem_ids": [
+                  "p-1"
+                ],
+                "strategy_names": [
+                  "direct"
+                ]
+              }
+            }
+          ],
+          "owner": null,
+          "model": "",
+          "evaluationId": null
+        },
+        "markerChange": {
+          "calls": [
+            {
+              "method": "POST",
+              "url": "/evaluations",
+              "payload": {
+                "api_key_id": "key-1",
+                "model": "initialized-model",
+                "problem_ids": [
+                  "p-1"
+                ],
+                "strategy_names": [
+                  "direct"
+                ]
+              }
+            }
+          ],
+          "distinct": true,
+          "oldOwner": null,
+          "oldModel": "",
+          "oldId": null,
+          "newOwner": "marker-new",
+          "newModel": "initialized-model"
+        }
+      }
+    },
+    {
+      "name": "共享 HTTP 认证 success",
+      "pass": true,
+      "results": [
+        {
+          "status": "fulfilled"
+        },
+        {
+          "status": "fulfilled"
+        }
+      ],
+      "refreshes": 1,
+      "denied": 2
+    },
+    {
+      "name": "共享 HTTP 认证 failure",
+      "pass": true,
+      "results": [
+        {
+          "status": "rejected",
+          "code": 401
+        },
+        {
+          "status": "rejected",
+          "code": 401
+        }
+      ],
+      "refreshes": 1,
+      "denied": 2
+    },
+    {
+      "name": "共享 HTTP 认证 forbidden",
+      "pass": true,
+      "results": [
+        {
+          "status": "rejected",
+          "code": 403
+        },
+        {
+          "status": "rejected",
+          "code": 403
+        }
+      ],
+      "refreshes": 0,
+      "denied": 2
+    },
+    {
+      "name": "旧 identity 200 不回写或清除新会话",
+      "pass": true,
+      "refreshes": 0
+    },
+    {
+      "name": "旧 identity 401 不回写或清除新会话",
+      "pass": true,
+      "refreshes": 0
+    },
+    {
+      "name": "无未声明 API 请求",
+      "pass": true
+    },
+    {
+      "name": "无未处理页面异常",
+      "pass": true
+    }
+  ],
+  "requests": [
+    {
+      "mode": "auth-success",
+      "path": "/users/me",
+      "method": "GET",
+      "authorization": null
+    },
+    {
+      "mode": "auth-success",
+      "path": "/users/me",
+      "method": "GET",
+      "authorization": null
+    },
+    {
+      "mode": "auth-success",
+      "path": "/evaluations",
+      "method": "GET",
+      "authorization": null
+    },
+    {
+      "mode": "auth-success",
+      "path": "/api-keys",
+      "method": "GET",
+      "authorization": null
+    },
+    {
+      "mode": "auth-success",
+      "path": "/evaluation-options",
+      "method": "GET",
+      "authorization": null
+    },
+    {
+      "mode": "auth-success",
+      "path": "/auth/refresh",
+      "method": "POST",
+      "csrf": "csrf-before",
+      "authorization": null
+    },
+    {
+      "mode": "auth-success",
+      "path": "/api-keys",
+      "method": "GET",
+      "authorization": null
+    },
+    {
+      "mode": "auth-success",
+      "path": "/evaluation-options",
+      "method": "GET",
+      "authorization": null
+    },
+    {
+      "mode": "auth-success",
+      "path": "/evaluations",
+      "method": "POST",
+      "csrf": "csrf-after",
+      "authorization": null
+    },
+    {
+      "mode": "auth-failure",
+      "path": "/users/me",
+      "method": "GET",
+      "authorization": null
+    },
+    {
+      "mode": "auth-failure",
+      "path": "/users/me",
+      "method": "GET",
+      "authorization": null
+    },
+    {
+      "mode": "auth-failure",
+      "path": "/evaluations",
+      "method": "GET",
+      "authorization": null
+    },
+    {
+      "mode": "auth-failure",
+      "path": "/api-keys",
+      "method": "GET",
+      "authorization": null
+    },
+    {
+      "mode": "auth-failure",
+      "path": "/evaluation-options",
+      "method": "GET",
+      "authorization": null
+    },
+    {
+      "mode": "auth-failure",
+      "path": "/auth/refresh",
+      "method": "POST",
+      "csrf": "csrf-before",
+      "authorization": null
+    },
+    {
+      "mode": "auth-forbidden",
+      "path": "/users/me",
+      "method": "GET",
+      "authorization": null
+    },
+    {
+      "mode": "auth-forbidden",
+      "path": "/users/me",
+      "method": "GET",
+      "authorization": null
+    },
+    {
+      "mode": "auth-forbidden",
+      "path": "/evaluations",
+      "method": "GET",
+      "authorization": null
+    },
+    {
+      "mode": "auth-forbidden",
+      "path": "/api-keys",
+      "method": "GET",
+      "authorization": null
+    },
+    {
+      "mode": "auth-forbidden",
+      "path": "/evaluation-options",
+      "method": "GET",
+      "authorization": null
+    },
+    {
+      "mode": "late-identity-200",
+      "path": "/auth/login",
+      "method": "POST"
+    },
+    {
+      "mode": "late-identity-200",
+      "path": "/users/me",
+      "method": "GET"
+    },
+    {
+      "mode": "late-identity-200",
+      "path": "/auth/login",
+      "method": "POST"
+    },
+    {
+      "mode": "late-identity-200",
+      "path": "/users/me",
+      "method": "GET"
+    },
+    {
+      "mode": "late-identity-401",
+      "path": "/auth/login",
+      "method": "POST"
+    },
+    {
+      "mode": "late-identity-401",
+      "path": "/users/me",
+      "method": "GET"
+    },
+    {
+      "mode": "late-identity-401",
+      "path": "/auth/login",
+      "method": "POST"
+    },
+    {
+      "mode": "late-identity-401",
+      "path": "/users/me",
+      "method": "GET"
+    }
+  ],
+  "pageErrors": [],
+  "unknown": [],
+  "screenshots": [
+    "auth-success.png",
+    "auth-failure.png",
+    "auth-forbidden.png"
+  ],
+  "replaced": [
+    "WebSocket progress: in-memory fixture (no real upstream connection)",
+    "HTTP /api/v1/users/me",
+    "HTTP /api/v1/api-keys",
+    "HTTP /api/v1/evaluation-options and children",
+    "HTTP /api/v1/evaluations create/start/get",
+    "results scenario: HTTP /api/v1/results list/detail",
+    "entries scenario: HTTP /api/v1/results list (empty fixture)",
+    "localStorage session marker (no credentials)",
+    "security lifecycle only: isolated HTML and in-memory auth/HTTP transport",
+    "security HTTP: route-controlled Cookie/CSRF and auth API responses; real shared Axios client"
+  ],
+  "real": [
+    "React StrictMode",
+    "router",
+    "session provider",
+    "creation store",
+    "evaluation client"
+  ],
+  "pass": true
+}

@@ -1,0 +1,1 @@
+{"scenario":"security","pass":true,"assertions":8,"report":"/Users/charlesleclerc/LLM-Algorithm-Harness/docs/superpowers/reports/assets/issue230/security/security.json"}

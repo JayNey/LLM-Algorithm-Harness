@@ -41,7 +41,8 @@ class BenchmarkExecutor:
         Execute benchmark evaluation on the suite.
 
         Returns:
-            Dictionary containing evaluation results and metadata
+            Evaluation results and metadata, including mean strategy accuracy
+            and the sum of strategy costs as top-level accuracy/cost_usd.
         """
         logger.info(
             "benchmark_execution_started",
@@ -137,6 +138,16 @@ class BenchmarkExecutor:
                     "total_tokens": report.total_tokens,
                     "total_cost": report.estimated_cost_usd,
                 }
+
+            # Match the equal-weight accuracy used by benchmark history.
+            results["accuracy"] = (
+                sum(report.success_rate for report in reports.values()) / len(reports)
+                if reports
+                else None
+            )
+            results["cost_usd"] = sum(
+                (report.estimated_cost_usd for report in reports.values()), 0.0
+            )
 
             logger.info(
                 "benchmark_execution_completed",

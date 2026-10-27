@@ -1,0 +1,26 @@
+AssertionError [ERR_ASSERTION]: Late identity 200 changed the new session
++ actual - expected
+
+  {
++   csrfToken: 'csrf-old-user',
++   expiresAt: 1793072492632,
++   marker: 'f4577c55-a5ea-4d7a-ae03-35f4ab8320e2',
++   username: 'old-user'
+-   csrfToken: 'csrf-new-user',
+-   expiresAt: 1793072492635,
+-   marker: '4d2c4e77-700d-4553-a45d-56b6d87762a9',
+-   username: 'new-user'
+  }
+
+    at lateIdentityScenario (file:///Users/charlesleclerc/LLM-Algorithm-Harness/frontend/scripts/verify-evaluations.mjs:1423:14)
+    at runNextTicks (node:internal/process/task_queues:65:5)
+    at process.processImmediate (node:internal/timers:541:9)
+    at async file:///Users/charlesleclerc/LLM-Algorithm-Harness/frontend/scripts/verify-evaluations.mjs:2840:47 {
+  generatedMessage: false,
+  code: 'ERR_ASSERTION',
+  actual: [Object],
+  expected: [Object],
+  operator: 'deepStrictEqual',
+  diff: 'simple'
+}
+{"scenario":"security","pass":false,"assertions":4,"report":"/Users/charlesleclerc/LLM-Algorithm-Harness/docs/superpowers/reports/assets/issue230/red/security.json"}

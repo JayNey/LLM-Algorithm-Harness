@@ -1,12 +1,12 @@
-/* global document, localStorage, window, fetch, setTimeout, getComputedStyle */
+/* global document, localStorage, sessionStorage, window, fetch, setTimeout, getComputedStyle */
 import assert from 'node:assert/strict'
 import { createRequire } from 'node:module'
-import { execFileSync } from 'node:child_process'
+import { execFileSync, spawnSync } from 'node:child_process'
 import { mkdir, writeFile } from 'node:fs/promises'
 import { resolve } from 'node:path'
 import process from 'node:process'
 import console from 'node:console'
-import { URL } from 'node:url'
+import { URL, fileURLToPath } from 'node:url'
 import { recordCheck } from './fixture-checks.mjs'
 const require = createRequire(import.meta.url)
 const { chromium } = require(process.env.PLAYWRIGHT_MODULE || 'playwright')
@@ -30,6 +30,38 @@ const known = [
   'all',
 ]
 assert.ok(known.includes(scenario), `Unknown scenario: ${scenario}`)
+function appearanceScenario() {
+  const result = spawnSync(
+    process.execPath,
+    [
+      fileURLToPath(
+        new URL('./verify-evaluation-appearance.mjs', import.meta.url),
+      ),
+    ],
+    {
+      stdio: 'inherit',
+      env: {
+        ...process.env,
+        EVALUATION_APPEARANCE_BASE_URL: base,
+        EVALUATION_APPEARANCE_QA_DIR:
+          process.env.EVALUATION_APPEARANCE_QA_DIR ||
+          (process.env.EVALUATION_QA_DIR
+            ? resolve(out, scenario === 'all' ? 'appearance' : '.')
+            : resolve('../docs/frontend/assets/evaluations/appearance')),
+      },
+    },
+  )
+  if (result.error) throw result.error
+  assert.equal(
+    result.status,
+    0,
+    `Appearance fixture failed (${result.signal ?? result.status})`,
+  )
+}
+if (scenario === 'appearance') {
+  appearanceScenario()
+  process.exit(0)
+}
 await mkdir(out, { recursive: true })
 const report = {
   scenario,
@@ -44,6 +76,7 @@ const report = {
   layer: 'browser-fixture (not backend E2E)',
   assertions: [],
   requests: [],
+  pageErrors: [],
   unknown: [],
   screenshots: [],
   replaced: [
@@ -55,7 +88,8 @@ const report = {
     'results scenario: HTTP /api/v1/results list/detail',
     'entries scenario: HTTP /api/v1/results list (empty fixture)',
     'localStorage session marker (no credentials)',
-    'security only: isolated HTML and in-memory auth/HTTP transport',
+    'security lifecycle only: isolated HTML and in-memory auth/HTTP transport',
+    'security HTTP: route-controlled Cookie/CSRF and auth API responses; real shared Axios client',
   ],
   real: [
     'React StrictMode',
@@ -147,7 +181,10 @@ async function fixture(
   const staleGate = new Promise((resolve) => {
     releaseStale = resolve
   })
-  page.on('pageerror', (e) => errors.push(e.message))
+  page.on('pageerror', (e) => {
+    errors.push(e.message)
+    report.pageErrors.push(e.message)
+  })
   await context.addInitScript(() =>
     localStorage.setItem(
       'llm-harness-session',
@@ -1218,6 +1255,310 @@ async function securityScenario() {
     result,
   })
   await page.close()
+}
+
+async function authHttpScenario() {
+  // Network responses are fixtures; session store, refresh coordinator, Axios
+  // interceptors, protected router and local/session storage remain real.
+  for (const outcome of ['success', 'failure', 'forbidden']) {
+    const context = await browser.newContext({
+      viewport: { width: 1440, height: 1000 },
+    })
+    const page = await context.newPage()
+    const errors = []
+    page.on('pageerror', (error) => errors.push(error.message))
+    let armed = false
+    let refreshed = false
+    let denied = 0
+    let refreshes = 0
+    let releaseRefresh
+    const refreshGate = new Promise((resolve) => {
+      releaseRefresh = resolve
+    })
+    const calls = []
+    await context.addInitScript(() =>
+      localStorage.setItem(
+        'llm-harness-session',
+        JSON.stringify({
+          marker: 'auth-network',
+          expiresAt: Date.now() + 3600000,
+          username: 'browser-fixture',
+          csrfToken: 'csrf-before',
+        }),
+      ),
+    )
+    await context.route('**/api/v1/**', async (route) => {
+      const request = route.request()
+      const path = new URL(request.url()).pathname.replace('/api/v1', '')
+      const call = {
+        path,
+        method: request.method(),
+        csrf: request.headers()['x-csrf-token'],
+        authorization: request.headers().authorization ?? null,
+      }
+      calls.push(call)
+      report.requests.push({ mode: `auth-${outcome}`, ...call })
+      const send = (data, status = 200, headers = {}) =>
+        route.fulfill({ status, headers, json: { data } })
+      if (path === '/auth/refresh' && call.method === 'POST') {
+        refreshes++
+        await refreshGate
+        if (outcome === 'failure') return send({ message: '登录已失效' }, 401)
+        refreshed = true
+        return send({ expires_in: 3600 }, 200, { 'x-csrf-token': 'csrf-after' })
+      }
+      if (path === '/users/me')
+        return send({ username: 'browser-fixture', role: 'user' })
+      if (path === '/evaluations' && call.method === 'GET')
+        return send({
+          items: [],
+          total: 0,
+          limit: 20,
+          offset: 0,
+          has_more: false,
+        })
+      if (['/api-keys', '/evaluation-options'].includes(path)) {
+        if (armed && !refreshed) {
+          denied++
+          return send(
+            { message: '受保护资源' },
+            outcome === 'forbidden' ? 403 : 401,
+          )
+        }
+        return send(
+          path === '/api-keys' ? keys : { strategies: [], sources: [] },
+        )
+      }
+      if (path === '/evaluations' && call.method === 'POST')
+        return send(evaluation, 201)
+      report.unknown.push({ mode: `auth-${outcome}`, ...call })
+      return send({}, 500)
+    })
+    try {
+      await page.goto(`${base}/evaluations?status=running&limit=20&offset=0`)
+      await page
+        .getByRole('heading', { name: '评估任务', exact: true })
+        .waitFor()
+      armed = true
+      await page.evaluate(async () => {
+        const { useAuthStore } = await import('/src/store/auth.ts')
+        const client = useAuthStore.getState().httpClient()
+        window.authProbe = Promise.allSettled([
+          client.get('/api-keys'),
+          client.get('/evaluation-options'),
+        ]).then((results) =>
+          results.map((result) => ({
+            status: result.status,
+            ...(result.status === 'rejected'
+              ? { code: result.reason?.status }
+              : {}),
+          })),
+        )
+      })
+      // Both protected requests must have received 401 before releasing refresh.
+      const deadline = Date.now() + 5000
+      while (denied < 2 || (outcome !== 'forbidden' && refreshes < 1)) {
+        if (Date.now() > deadline)
+          throw new Error(`Auth overlap did not settle: ${outcome}`)
+        await new Promise((resolve) => setTimeout(resolve, 10))
+      }
+      assert.equal(refreshes, outcome === 'forbidden' ? 0 : 1)
+      releaseRefresh()
+      const results = await page.evaluate(() => window.authProbe)
+      if (outcome === 'success') {
+        assert.deepEqual(results, [
+          { status: 'fulfilled' },
+          { status: 'fulfilled' },
+        ])
+        await page.evaluate(async () => {
+          const { useAuthStore } = await import('/src/store/auth.ts')
+          await useAuthStore
+            .getState()
+            .httpClient()
+            .post('/evaluations', {
+              problem_ids: ['p1'],
+              strategy_names: ['direct'],
+              api_key_id: 'key-a',
+              model: 'model-a',
+            })
+        })
+        assert.equal(
+          calls.find((call) => call.path === '/auth/refresh').csrf,
+          'csrf-before',
+        )
+        assert.equal(
+          calls.find(
+            (call) => call.path === '/evaluations' && call.method === 'POST',
+          ).csrf,
+          'csrf-after',
+        )
+        assert.equal(
+          calls.filter((call) =>
+            ['/api-keys', '/evaluation-options'].includes(call.path),
+          ).length,
+          4,
+        )
+        assert.equal(new URL(page.url()).pathname, '/evaluations')
+      } else if (outcome === 'failure') {
+        assert.ok(results.every((result) => result.status === 'rejected'))
+        await page.waitForURL('**/login')
+        await page.getByRole('heading', { name: '登录', exact: true }).waitFor()
+        await page.locator('#login-identity').waitFor()
+        const state = await page.evaluate(() => ({
+          from: window.history.state.usr.from,
+          local: localStorage.getItem('llm-harness-session'),
+          session: sessionStorage.getItem('llm-harness-session'),
+        }))
+        assert.equal(
+          state.from,
+          '/evaluations?status=running&limit=20&offset=0',
+        )
+        assert.equal(state.local, null)
+        assert.equal(state.session, null)
+        assert.equal(
+          denied,
+          2,
+          'Refresh failure must not retry protected requests',
+        )
+      } else {
+        assert.deepEqual(results, [
+          { status: 'rejected', code: 403 },
+          { status: 'rejected', code: 403 },
+        ])
+        assert.equal(new URL(page.url()).pathname, '/evaluations')
+        assert.equal(
+          await page.evaluate(
+            async () =>
+              (await import('/src/store/auth.ts')).useAuthStore.getState()
+                .session.marker,
+          ),
+          'auth-network',
+        )
+      }
+      assert.ok(calls.every((call) => call.authorization === null))
+      assert.deepEqual(errors, [])
+      const screenshot = `auth-${outcome}.png`
+      await page.screenshot({ path: resolve(out, screenshot) })
+      report.screenshots.push(screenshot)
+      report.assertions.push({
+        name: `共享 HTTP 认证 ${outcome}`,
+        pass: true,
+        results,
+        refreshes,
+        denied,
+      })
+    } finally {
+      releaseRefresh()
+      report.pageErrors.push(...errors)
+      await context.close()
+    }
+  }
+}
+
+async function lateIdentityScenario() {
+  for (const status of [200, 401]) {
+    const context = await browser.newContext()
+    const page = await context.newPage()
+    const errors = []
+    page.on('pageerror', (error) => errors.push(error.message))
+    let identityReads = 0
+    let refreshes = 0
+    let releaseIdentity
+    const gate = new Promise((resolve) => {
+      releaseIdentity = resolve
+    })
+    await page.route(`${base}/identity-fixture`, (route) =>
+      route.fulfill({
+        contentType: 'text/html',
+        body: '<title>Identity HTTP fixture</title>',
+      }),
+    )
+    await context.route('**/api/v1/**', async (route) => {
+      const path = new URL(route.request().url()).pathname.replace(
+        '/api/v1',
+        '',
+      )
+      report.requests.push({
+        mode: `late-identity-${status}`,
+        path,
+        method: route.request().method(),
+      })
+      if (path === '/auth/login') {
+        const name = route.request().postDataJSON().username
+        return route.fulfill({
+          json: { data: { expires_in: 3600 } },
+          headers: { 'x-csrf-token': `csrf-${name}` },
+        })
+      }
+      if (path === '/users/me') {
+        const old = ++identityReads === 1
+        if (old) await gate
+        return route.fulfill({
+          status: old ? status : 200,
+          headers: { 'x-csrf-token': old ? 'csrf-old-user' : 'csrf-new-user' },
+          json: {
+            data: { username: old ? 'old-user' : 'new-user', role: 'user' },
+          },
+        })
+      }
+      if (path === '/auth/refresh') {
+        refreshes++
+        return route.fulfill({
+          status: 401,
+          json: { message: 'Old identity is no longer valid' },
+        })
+      }
+      report.unknown.push({ mode: 'late-identity', path })
+      return route.fulfill({ status: 500, json: {} })
+    })
+    try {
+      await page.goto(`${base}/identity-fixture`)
+      const identityRequest = page.waitForRequest('**/api/v1/users/me')
+      await page.evaluate(async () => {
+        const { createAuthStore } = await import('/src/store/auth.ts')
+        window.identityStore = createAuthStore()
+        window.oldIdentity = window.identityStore
+          .getState()
+          .login('old-user', 'fixture-password', true)
+          .then(
+            () => 'fulfilled',
+            () => 'rejected',
+          )
+      })
+      await identityRequest
+      const before = await page.evaluate(async () => {
+        const store = window.identityStore
+        store.getState().clear()
+        await store.getState().login('new-user', 'fixture-password', true)
+        return store.getState().session
+      })
+      releaseIdentity()
+      const after = await page.evaluate(async () => {
+        await window.oldIdentity
+        return {
+          session: window.identityStore.getState().session,
+          stored: JSON.parse(localStorage.getItem('llm-harness-session')),
+        }
+      })
+      assert.deepEqual(
+        after.session,
+        before,
+        `Late identity ${status} changed the new session`,
+      )
+      assert.deepEqual(after.stored, before)
+      assert.equal(refreshes, 0, 'An old 401 must not refresh the new session')
+      assert.deepEqual(errors, [])
+      report.assertions.push({
+        name: `旧 identity ${status} 不回写或清除新会话`,
+        pass: true,
+        refreshes,
+      })
+    } finally {
+      releaseIdentity()
+      report.pageErrors.push(...errors)
+      await context.close()
+    }
+  }
 }
 
 async function listLifecycleScenario() {
@@ -2623,11 +2964,14 @@ async function statesScenario() {
 try {
   if (scenario === 'all' || scenario === 'create') await createScenario()
   if (['all', 'create', 'security'].includes(scenario)) await securityScenario()
+  if (['all', 'security'].includes(scenario)) await authHttpScenario()
+  if (['all', 'security'].includes(scenario)) await lateIdentityScenario()
   if (scenario === 'all' || scenario === 'list') await listScenario()
   if (scenario === 'all' || scenario === 'detail') await detailScenario()
   if (scenario === 'all' || scenario === 'progress') await progressScenario()
   if (scenario === 'all' || scenario === 'results') await resultsScenario()
   if (scenario === 'all' || scenario === 'entries') await entriesScenario()
+  if (scenario === 'all') await check('完整外观矩阵', appearanceScenario)
   if (scenario === 'all' || scenario === 'states') await statesScenario()
   if (
     ![
@@ -2644,6 +2988,7 @@ try {
   )
     throw new Error(`Scenario ${scenario} 尚未实现`)
   await check('无未声明 API 请求', () => assert.deepEqual(report.unknown, []))
+  await check('无未处理页面异常', () => assert.deepEqual(report.pageErrors, []))
   assert.ok(
     report.assertions.every((entry) => entry.pass),
     'Fixture contains failed or pending assertions',

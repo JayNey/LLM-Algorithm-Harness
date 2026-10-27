@@ -13,9 +13,12 @@ from cryptography.fernet import Fernet
 from fastapi.testclient import TestClient
 
 from api.auth.config import AuthSettings
+from api.config import settings
 from api.db.models import BenchmarkRun, Experiment
 from api.files.config import FileSettings
 from api.main import create_app
+from src.benchmark.executor import BenchmarkExecutor
+from src.models import StrategyReport
 
 PASSWORD = "a-long-test-password-!"
 KEY = "sk-private-unique-test-value"
@@ -569,6 +572,176 @@ class TestBenchmarks:
         assert len(curve["data"]) == 2
         assert curve["trends"]["accuracy_growth_rate"] == 0.5
 
+    @pytest.mark.parametrize(
+        ("results", "accuracy", "cost_usd"),
+        [
+            ({"accuracy": 0.0, "cost_usd": 0.0}, 0.0, 0.0),
+            (
+                {"accuracy": 0.0, "cost_usd": 0.0, "summary": {"accuracy": 0.8, "cost_usd": 1.5}},
+                0.0,
+                0.0,
+            ),
+            (
+                {"accuracy": 0.0, "cost_usd": None, "summary": {"accuracy": 0.8, "cost_usd": 1.5}},
+                0.0,
+                1.5,
+            ),
+            (
+                {"accuracy": None, "cost_usd": 0.0, "summary": {"accuracy": 0.8, "cost_usd": 1.5}},
+                0.8,
+                0.0,
+            ),
+            ({"summary": {"accuracy": 0.0, "cost_usd": 0.0}}, 0.0, 0.0),
+            ({"summary": {"accuracy": 0.8, "cost_usd": 1.5}}, 0.8, 1.5),
+            (
+                {"accuracy": 0.8, "cost_usd": 1.5, "summary": {"accuracy": 0.0, "cost_usd": 0.0}},
+                0.8,
+                1.5,
+            ),
+            ({}, None, None),
+        ],
+        ids=[
+            "zero",
+            "zero-over-summary",
+            "cost-fallback",
+            "accuracy-fallback",
+            "summary-zero",
+            "summary",
+            "top-level",
+            "missing",
+        ],
+    )
+    def test_run_metrics_preserve_zero_and_summary_fallback(
+        self, api, monkeypatch, results, accuracy, cost_usd
+    ):
+        client, headers, key_id, app = api
+        monkeypatch.setattr(FakeBenchmarkExecutor, "execute", lambda self: results)
+        suite_id = client.post(
+            "/api/v1/benchmarks/suites", headers=headers, json=self._suite_payload()
+        ).json()["data"]["id"]
+        response = client.post(
+            f"/api/v1/benchmarks/suites/{suite_id}/run",
+            headers=headers,
+            json={"api_key_id": key_id, "dataset_path": "problems.json", "model": "gpt-test"},
+        )
+        assert response.status_code == 202, response.text
+        run_id = response.json()["data"]["id"]
+        _execute_benchmark(app, run_id)
+
+        detail = client.get(f"/api/v1/benchmarks/runs/{run_id}", headers=headers).json()["data"]
+        assert detail["status"] == "completed"
+        assert detail["accuracy"] == accuracy
+        assert detail["cost_usd"] == cost_usd
+        assert detail["results"] == results
+        with app.state.benchmarks._session() as session:
+            row = session.get(BenchmarkRun, run_id)
+            assert row.accuracy == accuracy
+            assert row.cost_usd == cost_usd
+
+        curve = client.get(f"/api/v1/benchmarks/learning-curve/{suite_id}", headers=headers).json()[
+            "data"
+        ]
+        assert len(curve["data"]) == 1
+        assert curve["data"][0]["accuracy"] == accuracy
+        assert curve["data"][0]["cost_usd"] == cost_usd
+
+    @pytest.mark.parametrize(
+        ("runs", "expected_metrics", "expected_trends"),
+        [
+            (
+                [[("vanilla", 0, 0.0)], [("vanilla", 2, 0.04)]],
+                [(0.0, 0.0), (1.0, 0.04)],
+                {"accuracy_growth_rate": None, "cost_growth_rate": None},
+            ),
+            (
+                [
+                    [("vanilla", 0, 0.0), ("self_refine", 2, 0.08)],
+                    [("vanilla", 1, 0.02), ("self_refine", 2, 0.02)],
+                ],
+                [(0.5, 0.08), (0.75, 0.04)],
+                {"accuracy_growth_rate": 0.5, "cost_growth_rate": -0.5},
+            ),
+        ],
+        ids=["single-strategy-zero", "multiple-strategies"],
+    )
+    def test_real_executor_metrics_reach_run_history(
+        self, api, tmp_path, monkeypatch, runs, expected_metrics, expected_trends
+    ):
+        client, headers, key_id, app = api
+        monkeypatch.setattr(settings, "DATA_ROOT", str(tmp_path))
+        (tmp_path / "problems.json").write_text(
+            json.dumps(
+                [
+                    {
+                        "problem_id": problem_id,
+                        "title": problem_id,
+                        "description": "A benchmark problem for metric recording",
+                        "difficulty": "easy",
+                        "tags": [],
+                        "test_cases": [{"input": {"x": 1}, "expected_output": 1}],
+                    }
+                    for problem_id in ["two-sum", "reverse"]
+                ]
+            ),
+            encoding="utf-8",
+        )
+        monkeypatch.setattr(app.state.benchmarks, "_executor_factory", BenchmarkExecutor)
+        suite_id = client.post(
+            "/api/v1/benchmarks/suites", headers=headers, json=self._suite_payload()
+        ).json()["data"]["id"]
+        for strategy_results, (accuracy, cost_usd) in zip(runs, expected_metrics):
+            reports = {
+                name: StrategyReport(
+                    strategy_name=name,
+                    total_problems=2,
+                    solved_problems=solved,
+                    failed_problems=2 - solved,
+                    success_rate=solved / 2,
+                    avg_attempts_per_problem=1.0,
+                    total_tokens=100,
+                    avg_tokens_per_problem=50.0,
+                    estimated_cost_usd=cost,
+                )
+                for name, solved, cost in strategy_results
+            }
+            started = client.post(
+                f"/api/v1/benchmarks/suites/{suite_id}/run",
+                headers=headers,
+                json={
+                    "api_key_id": key_id,
+                    "dataset_path": "problems.json",
+                    "model": "gpt-test",
+                    "strategies": [{"name": name} for name, _, _ in strategy_results],
+                },
+            )
+            assert started.status_code == 202, started.text
+            run_id = started.json()["data"]["id"]
+            with patch("src.benchmark.executor.AlgorithmHarness") as harness_cls:
+                harness_cls.return_value.run.return_value = reports
+                harness_cls.return_value.paused = False
+                _execute_benchmark(app, run_id)
+
+            detail = client.get(f"/api/v1/benchmarks/runs/{run_id}", headers=headers).json()["data"]
+            assert detail["status"] == "completed", detail
+            assert detail["accuracy"] == pytest.approx(accuracy)
+            assert detail["cost_usd"] == pytest.approx(cost_usd)
+            assert detail["results"]["accuracy"] == pytest.approx(accuracy)
+            assert detail["results"]["cost_usd"] == pytest.approx(cost_usd)
+            with app.state.benchmarks._session() as session:
+                row = session.get(BenchmarkRun, run_id)
+                assert row.accuracy == pytest.approx(accuracy)
+                assert row.cost_usd == pytest.approx(cost_usd)
+
+        curve = client.get(f"/api/v1/benchmarks/learning-curve/{suite_id}", headers=headers).json()[
+            "data"
+        ]
+        assert len(curve["data"]) == 2
+        assert [
+            (point["accuracy"], point["cost_usd"]) for point in curve["data"]
+        ] == expected_metrics
+        assert all(point["model"] == "gpt-test" and point["timestamp"] for point in curve["data"])
+        assert curve["trends"] == expected_trends
+
     def test_learning_curve_empty_history(self, api):
         client, headers, _, _ = api
         suite_id = client.post(
@@ -746,10 +919,25 @@ class TestABTests:
 
         started = client.post(f"/api/v1/ab-tests/{test_id}/run", headers=headers)
         assert started.status_code == 202, started.text
-        data = _wait_status(
-            lambda: client.get(f"/api/v1/ab-tests/{test_id}", headers=headers).json()["data"],
-            {"completed"},
-        )
+        task_id = started.json()["data"]["task_id"]
+        assert started.json()["data"]["status"] == "pending"
+        detail = client.get(f"/api/v1/ab-tests/{test_id}", headers=headers).json()["data"]
+        assert detail["task_id"] == task_id
+        assert detail["status"] == "pending"
+        task = client.get(f"/api/v1/tasks/{task_id}", headers=headers).json()["data"]
+        assert task["status"] == "pending" and task["task_type"] == "ab_test"
+        from src.ab_testing import ABTestRunner
+        from src.tasks.ab_test import run_ab_test_task
+
+        with (
+            patch("api.auth.config.AuthSettings", return_value=client.app.state.auth.settings),
+            patch.object(ABTestRunner, "run", FakeABTestRunner.run),
+        ):
+            from api.db.models import AsyncTask
+
+            with client.app.state.ab_tests._session() as db:
+                owner = db.get(AsyncTask, task_id).user_id
+            assert run_ab_test_task(test_id, owner)["status"] == "completed"
         results = client.get(f"/api/v1/ab-tests/{test_id}/results", headers=headers)
         assert results.status_code == 200
         assert results.json()["data"]["variants"] == ["baseline", "treatment"]

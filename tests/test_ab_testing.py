@@ -187,3 +187,21 @@ def test_ab_command_executes_with_config_and_output_override(monkeypatch, tmp_pa
     )
     assert result == 0
     assert "A/B test completed" in capsys.readouterr().out
+
+
+@pytest.mark.parametrize("workers", [1, 3])
+def test_runner_stops_before_starting_queued_problems(tmp_path, workers):
+    """A stop signal must prevent model/sandbox work and final report creation."""
+    config = _config(tmp_path, _dataset(tmp_path)).model_copy(update={"max_workers": workers})
+    calls = []
+
+    class StoppingClient(FixedClient):
+        def generate(self, prompt, **kwargs):
+            calls.append("started")
+            return super().generate(prompt, **kwargs)
+
+    runner = ABTestRunner(config, client_factory=StoppingClient)
+    runner.should_stop = lambda: True
+    output = runner.run()
+    assert calls == []
+    assert not (output / "ab_test.json").exists()
