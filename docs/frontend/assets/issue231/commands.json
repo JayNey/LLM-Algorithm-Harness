@@ -70,7 +70,7 @@
     "observed_at": "2026-10-27T04:14:01.688427+00:00"
   },
   "schema": "evaluation-quality-gates.v1",
-  "generated_at": "2026-10-27T04:16:16.349211+00:00",
+  "generated_at": "2026-10-27T04:21:16.455039+00:00",
   "code_sha": "48ea717b5526cc8198f1b395e4285e58263f8564",
   "main_sha": "b86d65eff2d2a76fdd39f54fe7b2794b9e3dc955",
   "pr286_sha": "545d62d46ef5c237731d9e57c9fddb7159665a0d",
@@ -820,11 +820,27 @@
       "log": {
         "path": "execution.txt",
         "start_line": 4589,
-        "end_line": 4598,
-        "sha256": "11359553e8a731f1e1216b8c30685f17532e0eafac53b54683b349d6446ac0ea"
+        "end_line": 4599,
+        "sha256": "10962a5d9b7050e0aa0af7eace7bfa5a58e59aca4cd7a6d7ea4d143218777542"
+      },
+      "environment": "host"
+    },
+    {
+      "id": "inherited-browser-evidence-v2",
+      "command": "python3 -c 'import json\nfrom pathlib import Path\nbase=Path('\"'\"'docs/superpowers/reports/assets/issue230'\"'\"')\nfor rel,key in [('\"'\"'all/all.json'\"'\"','\"'\"'assertions'\"'\"'),('\"'\"'all/appearance/appearance.json'\"'\"','\"'\"'assertions'\"'\"'),('\"'\"'security/security.json'\"'\"','\"'\"'assertions'\"'\"'),('\"'\"'shell/checks.json'\"'\"','\"'\"'checks'\"'\"')]:\n    d=json.loads((base/rel).read_text())\n    if key == '\"'\"'checks'\"'\"':\n        assert len(d[key]) == 51\n        assert all((isinstance(x,str) and bool(x)) or (isinstance(x,dict) and x['\"'\"'width'\"'\"']==x['\"'\"'scroll'\"'\"']) for x in d[key])\n    else:\n        assert d['\"'\"'pass'\"'\"'] is True\n        assert all(x['\"'\"'pass'\"'\"'] is True for x in d[key])\n    unknown_key='\"'\"'unknownRequests'\"'\"' if rel=='\"'\"'all/appearance/appearance.json'\"'\"' else '\"'\"'unknown'\"'\"'\n    assert d[unknown_key] == []\n    if '\"'\"'pageErrors'\"'\"' in d:\n        assert d['\"'\"'pageErrors'\"'\"'] == []\n        errors='\"'\"'0 (field present)'\"'\"'\n    else:\n        errors='\"'\"'not recorded (field absent)'\"'\"'\n    source=d.get('\"'\"'source'\"'\"')\n    print(f'\"'\"'{rel}: {len(d[key])} checks recorded; unknown=0; pageErrors={errors}; source={json.dumps(source,ensure_ascii=False) if source else \"not recorded\"}'\"'\"')\n'",
+      "cwd": ".",
+      "code_sha": "e7a9baab113572811b3008893c70e2669dc8b5cb",
+      "started_at": "2026-10-27T04:21:16.378400+00:00",
+      "finished_at": "2026-10-27T04:21:16.405193+00:00",
+      "exit_code": 0,
+      "log": {
+        "path": "execution.txt",
+        "start_line": 4600,
+        "end_line": 4631,
+        "sha256": "598b972a321e280ed45a420d0d268524fa7a87cab087fcb0b1b634f81c5b4580"
       },
       "environment": "host"
     }
   ],
-  "execution_sha256": "32673b4fc7461fa7d283ff0589c3311a6ee398406fe4051e068a5d5121522451"
+  "execution_sha256": "1f9de5286474ef61f3f78cf5327baaf749ae626cd6076ec8a2aeec331e39ea77"
 }

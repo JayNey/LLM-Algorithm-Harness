@@ -4596,3 +4596,36 @@ exit_code: 0
 
 Change 'evaluation-quality-gates-completion' is valid
 ℹ [INFO] file: skip_specs is set in .openspec.yaml: change declares no spec-level behavior changes, zero deltas accepted
+
+===== inherited-browser-evidence-v2 =====
+code_sha: e7a9baab113572811b3008893c70e2669dc8b5cb
+cwd: .
+command: python3 -c 'import json
+from pathlib import Path
+base=Path('"'"'docs/superpowers/reports/assets/issue230'"'"')
+for rel,key in [('"'"'all/all.json'"'"','"'"'assertions'"'"'),('"'"'all/appearance/appearance.json'"'"','"'"'assertions'"'"'),('"'"'security/security.json'"'"','"'"'assertions'"'"'),('"'"'shell/checks.json'"'"','"'"'checks'"'"')]:
+    d=json.loads((base/rel).read_text())
+    if key == '"'"'checks'"'"':
+        assert len(d[key]) == 51
+        assert all((isinstance(x,str) and bool(x)) or (isinstance(x,dict) and x['"'"'width'"'"']==x['"'"'scroll'"'"']) for x in d[key])
+    else:
+        assert d['"'"'pass'"'"'] is True
+        assert all(x['"'"'pass'"'"'] is True for x in d[key])
+    unknown_key='"'"'unknownRequests'"'"' if rel=='"'"'all/appearance/appearance.json'"'"' else '"'"'unknown'"'"'
+    assert d[unknown_key] == []
+    if '"'"'pageErrors'"'"' in d:
+        assert d['"'"'pageErrors'"'"'] == []
+        errors='"'"'0 (field present)'"'"'
+    else:
+        errors='"'"'not recorded (field absent)'"'"'
+    source=d.get('"'"'source'"'"')
+    print(f'"'"'{rel}: {len(d[key])} checks recorded; unknown=0; pageErrors={errors}; source={json.dumps(source,ensure_ascii=False) if source else "not recorded"}'"'"')
+'
+started_at: 2026-10-27T04:21:16.378400+00:00
+finished_at: 2026-10-27T04:21:16.405193+00:00
+exit_code: 0
+
+all/all.json: 149 checks recorded; unknown=0; pageErrors=0 (field present); source={"head": "45d910fa92dd737ee562973fd24342d02ea50db4", "dirty": "?? ../docs/superpowers/reports/2026-10-27-evaluation-auth-integration-verify.md\n?? ../docs/superpowers/reports/assets/issue230/\n?? ../openspec/changes/evaluation-auth-integration/.comet/"}
+all/appearance/appearance.json: 216 checks recorded; unknown=0; pageErrors=not recorded (field absent); source={"head": "45d910fa92dd737ee562973fd24342d02ea50db4", "dirty": "?? docs/superpowers/reports/2026-10-27-evaluation-auth-integration-verify.md\n?? docs/superpowers/reports/assets/issue230/\n?? openspec/changes/evaluation-auth-integration/.comet/"}
+security/security.json: 8 checks recorded; unknown=0; pageErrors=0 (field present); source={"head": "606fb25dffd01860e29dae9ce7e5ed1d9568d775", "dirty": "M scripts/verify-evaluations.mjs\n M scripts/verify-shell.mjs\n M src/auth/http.ts\n M src/store/auth.ts\n M ../openspec/changes/evaluation-auth-integration/design.md\n?? ../docs/superpowers/reports/2026-10-27-evaluation-auth-integration-verify.md\n?? ../docs/superpowers/reports/assets/issue230/\n?? ../openspec/changes/evaluation-auth-integration/.comet/"}
+shell/checks.json: 51 checks recorded; unknown=0; pageErrors=0 (field present); source=not recorded

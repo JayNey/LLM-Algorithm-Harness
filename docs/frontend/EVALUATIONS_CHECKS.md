@@ -80,7 +80,12 @@ python3 -m mypy api/evaluation_options.py api/services/evaluation_options_servic
 - [#229](https://github.com/JayNey/LLM-Algorithm-Harness/issues/229)：[PR #282](https://github.com/JayNey/LLM-Algorithm-Harness/pull/282) 已合并；[外观验收报告](../superpowers/reports/2026-10-27-evaluation-appearance-verify.md)及 #230 [appearance JSON](../superpowers/reports/assets/issue230/all/appearance/appearance.json) 记录 3 风格×2 主题×4 宽度、216 项断言及状态/键盘/无溢出检查。
 - [#230](https://github.com/JayNey/LLM-Algorithm-Harness/issues/230)：[PR #291](https://github.com/JayNey/LLM-Algorithm-Harness/pull/291) 已合并，本轮 main 含完整离线 Cookie create/start/running/results/cancel、CSRF、两用户 404、并发 401/refresh、403、迟到 identity 回归。其 [验收报告](../superpowers/reports/2026-10-27-evaluation-auth-integration-verify.md)记录 HTTP199、browser all149+appearance216、security8、shell51；本轮定向/全量 HTTP 和前端单测覆盖合并后的实现。
 
-上述 #234/#249/#256/#280/#278/#282/#291 的合并提交均已通过 `git merge-base --is-ancestor <merge_sha> HEAD` 核对为本轮基线祖先。#230 的 browser JSON 对应源码 `45d910fa92dd737ee562973fd24342d02ea50db4`；对应前端文件与本轮源码无改动，故作为继承证据引用，不冒充本轮执行。Browser all149、appearance216、security8 和 shell51 的 pass/断言及零未知请求/页面异常数据已再次读取核对。
+上述 #234/#249/#256/#280/#278/#282/#291 的合并提交均已通过 `git merge-base --is-ancestor <merge_sha> HEAD` 核对为本轮基线祖先。继承的浏览器产物分别核对如下，不统一推定来源 SHA：
+
+- 最终 all149 与 appearance216 的 `source.head` 为 `45d910fa92dd737ee562973fd24342d02ea50db4`，对应前端源码与本轮未变，dirty 记录仅为报告/证据/工作流文件。
+- 独立 security8 的 `source.head` 为 `606fb25dffd01860e29dae9ce7e5ed1d9568d775`，并记录了 auth/store 等源码 dirty，不能将其绑定到最终 all 的 SHA；shell51 未记录 source。两者按 #230 公开报告继承，本轮未重跑；最终 all 自身也包含并发401、403和迟到 identity 200/401 的通过断言。
+- 四个产物均有零未知请求记录；all/security/shell 的 `pageErrors` 字段存在且为空。appearance 没有 `pageErrors` 字段，因此该项为“未记录”，不能推断为零。
+- 原复核块 `inherited-browser-evidence` 将缺失字段默认空数组，相关输出的 appearance `pageErrors=0` 不作为零异常证据。保留旧输出，并新增 `inherited-browser-evidence-v2`，逐项记录字段存在性与各自 source。
 
 ## CI、检查范围与未验证层级
 
