@@ -2,7 +2,7 @@
 
 PR 标题：`test: cover evaluation workflow auth and integration`
 
-PR base：`main`。分支：`codex/issue-230-evaluation-auth-integration`。尚未推送或创建 PR。
+PR base：`main`。分支：`codex/issue-230-evaluation-auth-integration`。归档前草稿状态：尚未推送或创建 PR。用户已于 2026-10-27 明确选择 C：确认归档、立即推送并创建 PR，同时更新 Issue #230 验收结果。
 
 ## PR 正文
 

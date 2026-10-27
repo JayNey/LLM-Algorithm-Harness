@@ -84,3 +84,9 @@ node scripts/verify-shell.mjs
 完整性：build 任务 3/3 完成；所有要求均有对应测试或交付材料。正确性：上述命令均成功，实际 identity RED 修复后通过，CSRF mutation 能触发失败。设计一致性：复用现有离线 fixture，不引入新服务；无 delta spec，因此 skip_specs: true；tweak 预设不要求独立 Superpowers Design Doc/plan。独立集成审查通过，无需接受正确性或安全偏差。
 
 归档前工作区归因：全部源码已提交，剩余报告、截图/JSON、Comet 状态与交付草稿均属于本 change；未混入用户修改。远端推送、PR 和 Issue 更新尚未执行，不能将本地 PASS 视为 Issue 已交付。
+
+## Comet 完整验证
+
+规模评估选择 full（91 个变更文件主要为证据和流程产物），已按 openspec-verify-change 对照完整产物验证：3/3 build 任务完成，proposal 目标与 design 决策一致；无 delta spec，因现有行为回归使用 skip_specs，未产生规格漂移。tweak 预设明确跳过独立 Superpowers Design Doc/plan，该项不适用。
+
+源码集成审查及截图定点复审均通过，无 CRITICAL / IMPORTANT。`comet classic openspec -- validate evaluation-auth-integration --strict` 通过；全部浏览器 JSON、零未知请求/页面异常与证据 SHA-256 逐项校验通过。verify 阶段独立重跑 `npm run build` 成功（退出码 0），已记录 verify check，与 build 阶段证据分开保存。验证结论 PASS，分支状态保持 pending，等待归档前最终确认。
