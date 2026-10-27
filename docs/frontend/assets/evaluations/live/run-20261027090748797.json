@@ -1,0 +1,368 @@
+{
+  "layer": "real browser + FastAPI + SQLite + Redis/Celery + provider + Docker sandbox",
+  "replaced": [],
+  "started_at": "2026-10-27T09:07:48.797Z",
+  "source": {
+    "head": "def9eba6bac6f47043aa2d6ffd7c135b0fcd9579"
+  },
+  "authorization": {
+    "provider": "deepseek",
+    "model": "deepseek-flash",
+    "budget_usd": 0.1
+  },
+  "requests": [
+    {
+      "utc": "2026-10-27T09:07:51.273Z",
+      "method": "POST",
+      "path": "/api/v1/auth/register",
+      "status": 201
+    },
+    {
+      "utc": "2026-10-27T09:07:51.868Z",
+      "method": "POST",
+      "path": "/api/v1/auth/login",
+      "status": 200
+    },
+    {
+      "utc": "2026-10-27T09:07:51.881Z",
+      "method": "GET",
+      "path": "/api/v1/users/me",
+      "status": 200
+    },
+    {
+      "utc": "2026-10-27T09:07:51.980Z",
+      "method": "GET",
+      "path": "/api/v1/users/me",
+      "status": 200
+    },
+    {
+      "utc": "2026-10-27T09:07:51.980Z",
+      "method": "GET",
+      "path": "/api/v1/users/me",
+      "status": 200
+    },
+    {
+      "utc": "2026-10-27T09:07:52.000Z",
+      "method": "GET",
+      "path": "/api/v1/api-keys",
+      "status": 200
+    },
+    {
+      "utc": "2026-10-27T09:07:52.004Z",
+      "method": "GET",
+      "path": "/api/v1/api-keys",
+      "status": 200
+    },
+    {
+      "utc": "2026-10-27T09:07:52.551Z",
+      "method": "POST",
+      "path": "/api/v1/api-keys",
+      "status": 201
+    },
+    {
+      "utc": "2026-10-27T09:07:52.564Z",
+      "method": "GET",
+      "path": "/api/v1/api-keys",
+      "status": 200
+    },
+    {
+      "utc": "2026-10-27T09:07:52.608Z",
+      "method": "POST",
+      "path": "/api/v1/pricing/deepseek-flash",
+      "status": 201
+    },
+    {
+      "utc": "2026-10-27T09:07:55.130Z",
+      "method": "GET",
+      "path": "/api/v1/users/me",
+      "status": 200
+    },
+    {
+      "utc": "2026-10-27T09:07:55.135Z",
+      "method": "GET",
+      "path": "/api/v1/users/me",
+      "status": 200
+    },
+    {
+      "utc": "2026-10-27T09:07:55.198Z",
+      "method": "GET",
+      "path": "/api/v1/evaluation-options/problems",
+      "status": 200
+    },
+    {
+      "utc": "2026-10-27T09:07:55.199Z",
+      "method": "GET",
+      "path": "/api/v1/api-keys",
+      "status": 200
+    },
+    {
+      "utc": "2026-10-27T09:07:55.209Z",
+      "method": "GET",
+      "path": "/api/v1/evaluation-options",
+      "status": 200
+    },
+    {
+      "utc": "2026-10-27T09:07:56.138Z",
+      "method": "GET",
+      "path": "/api/v1/evaluation-options/models",
+      "status": 200
+    },
+    {
+      "utc": "2026-10-27T09:07:57.091Z",
+      "method": "POST",
+      "path": "/api/v1/evaluations",
+      "status": 201
+    },
+    {
+      "utc": "2026-10-27T09:07:57.116Z",
+      "method": "GET",
+      "path": "/api/v1/evaluations/sha256:3a96d406af0f82b8",
+      "status": 200
+    },
+    {
+      "utc": "2026-10-27T09:07:57.140Z",
+      "method": "GET",
+      "path": "/api/v1/evaluations/sha256:3a96d406af0f82b8",
+      "status": 200
+    },
+    {
+      "utc": "2026-10-27T09:07:57.161Z",
+      "method": "GET",
+      "path": "/api/v1/evaluations/sha256:3a96d406af0f82b8",
+      "status": 200
+    },
+    {
+      "utc": "2026-10-27T09:07:57.237Z",
+      "method": "POST",
+      "path": "/api/v1/evaluations/sha256:3a96d406af0f82b8/start",
+      "status": 202
+    },
+    {
+      "utc": "2026-10-27T09:07:57.243Z",
+      "method": "GET",
+      "path": "/api/v1/evaluations/sha256:3a96d406af0f82b8",
+      "status": 200
+    },
+    {
+      "utc": "2026-10-27T09:07:58.146Z",
+      "method": "GET",
+      "path": "/api/v1/evaluations/sha256:3a96d406af0f82b8",
+      "status": 200
+    },
+    {
+      "utc": "2026-10-27T09:07:59.162Z",
+      "method": "GET",
+      "path": "/api/v1/evaluations/sha256:3a96d406af0f82b8",
+      "status": 200
+    },
+    {
+      "utc": "2026-10-27T09:08:00.206Z",
+      "method": "GET",
+      "path": "/api/v1/evaluations/sha256:3a96d406af0f82b8",
+      "status": 200
+    },
+    {
+      "utc": "2026-10-27T09:08:00.258Z",
+      "method": "GET",
+      "path": "/api/v1/evaluations/sha256:3a96d406af0f82b8",
+      "status": 200
+    },
+    {
+      "utc": "2026-10-27T09:08:01.218Z",
+      "method": "GET",
+      "path": "/api/v1/evaluations/sha256:3a96d406af0f82b8",
+      "status": 200
+    },
+    {
+      "utc": "2026-10-27T09:08:02.256Z",
+      "method": "GET",
+      "path": "/api/v1/evaluations/sha256:3a96d406af0f82b8",
+      "status": 200
+    },
+    {
+      "utc": "2026-10-27T09:08:03.265Z",
+      "method": "GET",
+      "path": "/api/v1/evaluations/sha256:3a96d406af0f82b8",
+      "status": 200
+    },
+    {
+      "utc": "2026-10-27T09:08:03.269Z",
+      "method": "GET",
+      "path": "/api/v1/evaluations/sha256:3a96d406af0f82b8",
+      "status": 200
+    },
+    {
+      "utc": "2026-10-27T09:08:03.291Z",
+      "method": "GET",
+      "path": "/api/v1/tasks",
+      "status": 200
+    },
+    {
+      "utc": "2026-10-27T09:08:03.637Z",
+      "method": "GET",
+      "path": "/api/v1/users/me",
+      "status": 200
+    },
+    {
+      "utc": "2026-10-27T09:08:03.637Z",
+      "method": "GET",
+      "path": "/api/v1/users/me",
+      "status": 200
+    },
+    {
+      "utc": "2026-10-27T09:08:03.673Z",
+      "method": "GET",
+      "path": "/api/v1/evaluations/sha256:3a96d406af0f82b8",
+      "status": 200
+    },
+    {
+      "utc": "2026-10-27T09:08:03.686Z",
+      "method": "GET",
+      "path": "/api/v1/evaluations/sha256:3a96d406af0f82b8",
+      "status": 200
+    },
+    {
+      "utc": "2026-10-27T09:08:03.687Z",
+      "method": "GET",
+      "path": "/api/v1/results/sha256:3a96d406af0f82b8",
+      "status": 200
+    },
+    {
+      "utc": "2026-10-27T09:08:03.760Z",
+      "method": "GET",
+      "path": "/api/v1/results/sha256:3a96d406af0f82b8",
+      "status": 200
+    }
+  ],
+  "snapshots": [
+    {
+      "utc": "2026-10-27T09:07:57.120Z",
+      "status": "pending",
+      "progress": {
+        "completed_units": 0,
+        "total_units": 1,
+        "percentage": 0
+      },
+      "spent_usd": 0
+    },
+    {
+      "utc": "2026-10-27T09:07:58.146Z",
+      "status": "running",
+      "progress": {
+        "completed_units": 0,
+        "total_units": 1,
+        "percentage": 0
+      },
+      "spent_usd": 0
+    },
+    {
+      "utc": "2026-10-27T09:07:59.163Z",
+      "status": "running",
+      "progress": {
+        "completed_units": 0,
+        "total_units": 1,
+        "percentage": 0
+      },
+      "spent_usd": 0
+    },
+    {
+      "utc": "2026-10-27T09:08:00.208Z",
+      "status": "running",
+      "progress": {
+        "completed_units": 0,
+        "total_units": 1,
+        "percentage": 0
+      },
+      "spent_usd": 0
+    },
+    {
+      "utc": "2026-10-27T09:08:01.219Z",
+      "status": "running",
+      "progress": {
+        "completed_units": 0,
+        "total_units": 1,
+        "percentage": 0
+      },
+      "spent_usd": 0
+    },
+    {
+      "utc": "2026-10-27T09:08:02.257Z",
+      "status": "running",
+      "progress": {
+        "completed_units": 0,
+        "total_units": 1,
+        "percentage": 0
+      },
+      "spent_usd": 0
+    },
+    {
+      "utc": "2026-10-27T09:08:03.265Z",
+      "status": "completed",
+      "progress": {
+        "completed_units": 1,
+        "total_units": 1,
+        "percentage": 100
+      },
+      "spent_usd": 0.0000681
+    }
+  ],
+  "sockets": [
+    {
+      "path": "/api/v1/ws/progress",
+      "token_in_url": false,
+      "received_types": []
+    },
+    {
+      "path": "/api/v1/ws/progress",
+      "token_in_url": false,
+      "received_types": []
+    }
+  ],
+  "page_errors": [],
+  "pass": false,
+  "authentication": {
+    "access_http_only": true,
+    "refresh_http_only": true,
+    "csrf_present": true
+  },
+  "budget": {
+    "prompt_bytes": 616,
+    "output_tokens": 2000,
+    "attempts": 2,
+    "thinking": false,
+    "prompt_token_upper_bound": 872,
+    "conservative_total_upper_bound_usd": 0.0053232,
+    "pricing_source": "official peak cache-miss prices, 2026-10-27"
+  },
+  "models": {
+    "source": "provider_api",
+    "provider": "deepseek",
+    "configured_model_present": true,
+    "complete": true
+  },
+  "ids": {
+    "evaluation": "sha256:3a96d406af0f82b8",
+    "async_task": "sha256:01a703f215918015",
+    "celery_task": "sha256:98c797365ca16c7c",
+    "run": null
+  },
+  "worker": {
+    "status": "completed",
+    "started_at": "2026-10-27T09:07:57.346166",
+    "completed_at": "2026-10-27T09:08:03.146131",
+    "entity_link_matches": true
+  },
+  "result": {
+    "status": "completed",
+    "recorded_units": 1,
+    "solved_units": 1,
+    "average_tokens": 179,
+    "cost_usd": 0.0000681,
+    "model": "deepseek-flash"
+  },
+  "failure": {
+    "phase": "real-results-page",
+    "type": "AssertionError"
+  },
+  "finished_at": "2026-10-27T09:08:04.047Z"
+}

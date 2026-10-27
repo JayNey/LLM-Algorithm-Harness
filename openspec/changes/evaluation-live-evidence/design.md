@@ -25,3 +25,9 @@
 
 - [依赖启动或外网调用失败] → 记录原始层级和脱敏错误，先调查再修复；不将健康检查或 fixture 成功记作 live。
 - [供应商计费/额度不确定] → 已授权预算内只进行受限最小运行；不调用未授权凭证或追加预算。
+
+## 联调发现的必要修复
+
+新装 Uvicorn 不自带 WebSocket transport；真实模型/沙箱完成但 WS upgrade 返回 404。运行依赖增加 websockets，live 脚本在付费前验证真实 Cookie WebSocket。保留首次失败证据，最多一次受限 completed 重试并累计费用。新增 provider 输入枚举按兼容扩展定向更新 OpenAPI 基线，契约次版本为 1.2.0，不放宽门禁。
+
+最终审查将 live 通过条件加强为同一评估在同一个真实 socket 上收到 snapshot/subscribed 与 started/problem.completed/completed；帧按评估 ID 过滤，公开只保留哈希关联。该纯守卫的负例和历史证据离线复核不追加生成调用。

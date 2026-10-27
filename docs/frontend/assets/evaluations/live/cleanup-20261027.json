@@ -1,0 +1,6 @@
+{
+  "stopped": ["api", "worker", "frontend", "isolated redis:6380"],
+  "moved_owned_task_records": 2,
+  "private_runtime_retained_for_diagnostics": true,
+  "docker_app_left_running": true
+}
