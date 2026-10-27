@@ -14,7 +14,7 @@ const base =
   process.env.EVALUATION_APPEARANCE_BASE_URL || 'http://127.0.0.1:5189'
 const outputDir = resolve(
   process.env.EVALUATION_APPEARANCE_QA_DIR ||
-    resolve(repoRoot, '..', '.monitoring', 'evaluation-appearance-229'),
+    resolve(repoRoot, 'docs/frontend/assets/evaluations/appearance'),
 )
 const require = createRequire(import.meta.url)
 const { chromium } = require(process.env.PLAYWRIGHT_MODULE || 'playwright')
@@ -57,6 +57,10 @@ const problem = {
   difficulty: 'easy',
   source: 'shared',
 }
+const problems = Array.from({ length: 21 }, (_, index) => ({
+  ...problem,
+  problem_id: index === 0 ? problem.problem_id : `appearance-problem-${index}`,
+}))
 const resultSummary = {
   id: evaluationId,
   run_id: null,
@@ -134,20 +138,31 @@ const report = {
   limitations: [
     'Chromium viewport simulation only; no physical iOS/Android device testing.',
     'No Safari/Firefox, screen reader, real backend, Redis/Celery, sandbox or model-provider validation.',
-    'The #228 unified shell-entry scenario remains a separate prerequisite until its implementation is merged to main.',
+    'HTTP fixtures prove frontend interactions and payloads, not successful real-backend execution.',
   ],
   assertions: [],
   requests: [],
   screenshots: [],
   unknownRequests: [],
 }
+let activePage
+let activeCombination
 
 function record(name, run) {
+  const context = {
+    combination: activeCombination,
+    page: new URL(activePage.url()).pathname,
+  }
   return Promise.resolve()
     .then(run)
-    .then(() => report.assertions.push({ name, pass: true }))
+    .then(() => report.assertions.push({ name, ...context, pass: true }))
     .catch((error) => {
-      report.assertions.push({ name, pass: false, message: error.message })
+      report.assertions.push({
+        name,
+        ...context,
+        pass: false,
+        message: error.message,
+      })
       throw error
     })
 }
@@ -175,6 +190,7 @@ async function switchAppearance(page, variant, theme) {
       const state = JSON.parse(localStorage.getItem('llm-harness-ui') || 'null')
       return (
         document.documentElement.dataset.theme === expectedTheme &&
+        document.documentElement.dataset.design === expectedVariant &&
         state?.appearanceVariant === expectedVariant &&
         state?.themes?.[expectedVariant] === expectedTheme
       )
@@ -276,6 +292,8 @@ try {
           reducedMotion: 'reduce',
         })
         const page = await context.newPage()
+        activePage = page
+        activeCombination = { variant, theme, width }
         const calls = []
         const errors = []
         page.on('pageerror', (error) => errors.push(error.message))
@@ -345,7 +363,7 @@ try {
           if (method === 'GET' && path === '/evaluation-options')
             return send({
               strategies: [{ name: 'direct' }],
-              sources: [{ id: 'shared', label: '共享题目', problem_count: 1 }],
+              sources: [{ id: 'shared', label: '共享题目', problem_count: 21 }],
             })
           if (method === 'GET' && path === '/evaluation-options/models')
             return send({
@@ -353,14 +371,17 @@ try {
               models: ['model-a'],
               complete: true,
             })
-          if (method === 'GET' && path === '/evaluation-options/problems')
+          if (method === 'GET' && path === '/evaluation-options/problems') {
+            const offset = Number(url.searchParams.get('offset') ?? 0)
+            const limit = Number(url.searchParams.get('limit') ?? 20)
             return send({
-              items: [problem],
-              total: 1,
-              offset: 0,
-              limit: 20,
-              has_more: false,
+              items: problems.slice(offset, offset + limit),
+              total: problems.length,
+              offset,
+              limit,
+              has_more: offset + limit < problems.length,
             })
+          }
           if (method === 'POST' && path === '/evaluations')
             return send(task, 201)
           if (
@@ -425,8 +446,44 @@ try {
         await page
           .getByLabel('预算上限（USD，可选）', { exact: true })
           .fill('0.25')
+        await page
+          .getByRole('button', { name: '下一页题目', exact: true })
+          .click()
+        const secondProblem = page.getByRole('checkbox', {
+          name: '选择题目 appearance-problem-20',
+          exact: true,
+        })
+        await secondProblem.check()
         await switchAppearance(page, variant, theme)
         await record(`${combo} 创建草稿、选择与键盘操作保留`, async () => {
+          assert.equal(await secondProblem.isChecked(), true)
+          await page.getByText('已选 2 道题目', { exact: true }).waitFor()
+          for (const [label, selected] of [
+            ['API 密钥', '布局验收密钥 · openai'],
+            ['模型', 'model-a'],
+            ['策略', 'direct'],
+          ]) {
+            assert.ok(
+              (
+                await page
+                  .getByRole('combobox', { name: label, exact: true })
+                  .locator(
+                    'xpath=ancestor::div[contains(concat(" ", normalize-space(@class), " "), " ant-select ")][1]',
+                  )
+                  .textContent()
+              ).includes(selected),
+              `${combo} ${label} 保留`,
+            )
+          }
+          await page
+            .getByRole('button', { name: '上一页题目', exact: true })
+            .click()
+          await page
+            .getByRole('checkbox', {
+              name: '选择题目 appearance-problem',
+              exact: true,
+            })
+            .waitFor()
           assert.equal(
             await page.getByLabel('预算上限（USD，可选）').inputValue(),
             '0.25',
@@ -449,6 +506,7 @@ try {
         })
         if (variant === 'orbit' && theme === 'light' && width === 320) {
           const file = 'create-orbit-light-320.png'
+          await page.evaluate(() => window.scrollTo(0, 0))
           await page.screenshot({
             path: resolve(outputDir, file),
             fullPage: true,
@@ -462,12 +520,27 @@ try {
           .getByRole('heading', { name: '评估任务详情', exact: true })
           .waitFor({ timeout: 5000 })
         await page.getByText('已完成', { exact: true }).first().waitFor()
-        assert.equal(
-          calls.filter(
+        await record(`${combo} 创建及启动请求保留完整跨页配置`, () => {
+          const creates = calls.filter(
             (call) => call.method === 'POST' && call.path === '/evaluations',
-          ).length,
-          1,
-        )
+          )
+          assert.equal(creates.length, 1)
+          assert.deepEqual(creates[0].payload, {
+            api_key_id: 'appearance-key',
+            model: 'model-a',
+            strategy_names: ['direct'],
+            problem_ids: ['appearance-problem', 'appearance-problem-20'],
+            budget_cap_usd: 0.25,
+          })
+          assert.equal(
+            calls.filter(
+              (call) =>
+                call.method === 'POST' &&
+                call.path === `/evaluations/${evaluationId}/start`,
+            ).length,
+            1,
+          )
+        })
 
         await page.goto(`${base}/evaluations?limit=20&offset=0`)
         await page
@@ -490,8 +563,18 @@ try {
         const taskListCalls = calls.filter(
           (call) => call.path === '/evaluations',
         ).length
+        const taskUrl = page.url()
         await switchAppearance(page, variant, theme)
         await record(`${combo} 任务筛选、URL 与键盘入口保留`, async () => {
+          assert.equal(page.url(), taskUrl)
+          assert.equal(
+            await page
+              .getByRole('combobox', { name: '任务状态', exact: true })
+              .evaluate((element) =>
+                element.closest('.ant-select').textContent.trim(),
+              ),
+            '已完成',
+          )
           assert.equal(
             new URL(page.url()).searchParams.get('status'),
             'completed',
@@ -512,6 +595,7 @@ try {
         })
         if (variant === 'precision' && theme === 'dark' && width === 390) {
           const file = 'task-list-precision-dark-390.png'
+          await page.evaluate(() => window.scrollTo(0, 0))
           await page.screenshot({
             path: resolve(outputDir, file),
             fullPage: true,
@@ -535,6 +619,7 @@ try {
         })
         if (variant === 'studio' && theme === 'light' && width === 768) {
           const file = 'task-detail-studio-light-768.png'
+          await page.evaluate(() => window.scrollTo(0, 0))
           await page.screenshot({
             path: resolve(outputDir, file),
             fullPage: true,
@@ -561,8 +646,18 @@ try {
         const resultListCalls = calls.filter(
           (call) => call.path === '/results',
         ).length
+        const resultUrl = page.url()
         await switchAppearance(page, variant, theme)
         await record(`${combo} 结果筛选、URL 与键盘入口保留`, async () => {
+          assert.equal(page.url(), resultUrl)
+          assert.equal(
+            await page
+              .getByRole('combobox', { name: '结果状态', exact: true })
+              .evaluate((element) =>
+                element.closest('.ant-select').textContent.trim(),
+              ),
+            '已完成',
+          )
           assert.equal(
             new URL(page.url()).searchParams.get('status'),
             'completed',
@@ -607,11 +702,104 @@ try {
         )
         if (variant === 'studio' && theme === 'dark' && width === 1440) {
           const file = 'result-detail-studio-dark-1440.png'
+          await page.evaluate(() => window.scrollTo(0, 0))
           await page.screenshot({
             path: resolve(outputDir, file),
             fullPage: true,
           })
           report.screenshots.push(file)
+        }
+        await record(`${combo} 通知抽屉 Esc 关闭并恢复焦点`, async () => {
+          const trigger = page.getByRole('button', { name: /^通知中心，/ })
+          await assertKeyboardReachable(page, trigger, `${combo} 通知按钮`)
+          await page.keyboard.press('Enter')
+          await page
+            .locator('.notification-drawer')
+            .waitFor({ state: 'visible' })
+          await page.waitForFunction(
+            () =>
+              !!document.activeElement
+                ?.closest('.ant-drawer')
+                ?.querySelector('.notification-drawer'),
+          )
+          await page.keyboard.press('Escape')
+          await page
+            .locator('.notification-drawer')
+            .waitFor({ state: 'hidden' })
+          await page.waitForFunction(() =>
+            document.activeElement
+              ?.getAttribute('aria-label')
+              ?.startsWith('通知中心，'),
+          )
+          assert.equal(await trigger.getAttribute('aria-expanded'), 'false')
+        })
+        if (width <= 1023) {
+          await record(`${combo} 移动菜单 Esc 关闭并恢复焦点`, async () => {
+            const menu = page.getByRole('button', {
+              name: '打开导航菜单',
+              exact: true,
+            })
+            await assertKeyboardReachable(page, menu, `${combo} 移动导航按钮`)
+            await page.keyboard.press('Enter')
+            await page
+              .locator('.navigation-drawer')
+              .waitFor({ state: 'visible' })
+            assert.equal(await menu.getAttribute('aria-expanded'), 'true')
+            await page.waitForFunction(
+              () =>
+                !!document.activeElement
+                  ?.closest('.ant-drawer')
+                  ?.querySelector('.navigation-drawer'),
+            )
+            await page.keyboard.press('Escape')
+            await page
+              .locator('.navigation-drawer')
+              .waitFor({ state: 'hidden' })
+            await page.waitForFunction(
+              () =>
+                document.activeElement?.getAttribute('aria-label') ===
+                '打开导航菜单',
+            )
+            assert.equal(await menu.getAttribute('aria-expanded'), 'false')
+          })
+          await record(`${combo} 移动抽屉创建入口可用`, async () => {
+            await page
+              .getByRole('button', { name: '打开导航菜单', exact: true })
+              .click()
+            await page
+              .locator('.navigation-drawer')
+              .getByRole('button', { name: '创建评估', exact: true })
+              .click()
+            await page
+              .getByRole('heading', { name: '创建评估', exact: true })
+              .waitFor()
+            await page
+              .locator('.navigation-drawer')
+              .waitFor({ state: 'hidden' })
+          })
+        }
+        if (width <= 767) {
+          await record(`${combo} 底部导航可由键盘进入结果页`, async () => {
+            const bottom = page.getByRole('navigation', {
+              name: '常用页面',
+              exact: true,
+            })
+            const resultsLink = bottom.getByRole('link', {
+              name: '结果',
+              exact: true,
+            })
+            await assertKeyboardReachable(
+              page,
+              resultsLink,
+              `${combo} 底部结果入口`,
+            )
+            await page.keyboard.press('Enter')
+            await page
+              .getByRole('heading', { name: '评估结果', exact: true })
+              .waitFor()
+            assert.equal(new URL(page.url()).pathname, '/results')
+            await assertNoPageOverflow(page, `${combo} mobile navigation`)
+          })
         }
         assert.deepEqual(errors, [], `${combo} browser errors`)
         await context.close()
@@ -624,6 +812,12 @@ try {
 } catch (error) {
   report.pass = false
   report.failure = { message: error.message, stack: error.stack }
+  if (activePage && !activePage.isClosed()) {
+    report.failure.url = activePage.url()
+    report.failure.activeElement = await activePage.evaluate(
+      () => document.activeElement?.outerHTML,
+    )
+  }
   console.error(error)
   process.exitCode = 1
 } finally {

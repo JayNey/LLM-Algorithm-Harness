@@ -66,6 +66,12 @@ function Shell() {
   const main = useRef<HTMLElement>(null)
   const menu = useRef<HTMLButtonElement>(null)
   const drawerOpen = openedAt === location.key
+  // Rapid Escape can close the drawer before its animation callback runs.
+  const drawerWasOpen = useRef(false)
+  useEffect(() => {
+    if (drawerWasOpen.current && !drawerOpen) menu.current?.focus()
+    drawerWasOpen.current = drawerOpen
+  }, [drawerOpen])
   useEffect(() => {
     main.current?.focus()
   }, [location.pathname])
@@ -236,6 +242,7 @@ function Shell() {
         title="工作台导航"
         placement="left"
         open={drawerOpen}
+        focusTriggerAfterClose={false}
         onClose={() => setOpenedAt(null)}
         afterOpenChange={(open) => {
           if (!open) menu.current?.focus()
