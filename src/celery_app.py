@@ -28,6 +28,7 @@ def configure_celery() -> None:
             "src.tasks.cleanup.*": {"queue": "default"},
             "src.tasks.experiment.*": {"queue": "default"},
             "src.tasks.imports.*": {"queue": "default"},
+            "src.tasks.ab_test.*": {"queue": "default"},
             "src.tasks.benchmark.*": {"queue": "default"},
         },
         task_default_queue="default",
@@ -48,6 +49,7 @@ def configure_celery() -> None:
             "src.tasks.experiment",
             "src.tasks.imports",
             "src.tasks.benchmark",
+            "src.tasks.ab_test",
             "src.tasks.monitoring",
         ],
         beat_schedule={

@@ -4,6 +4,7 @@
 """
 
 import uuid
+from decimal import Decimal
 from unittest.mock import Mock, patch
 
 import pytest
@@ -293,6 +294,7 @@ class TestCreateTaskUnits:
 def session_factory():
     """返回绑定内存库的 sessionmaker（ProblemStore 构造入参）。"""
     engine = create_engine("sqlite:///:memory:")
+    Base.metadata.create_all(engine)
     return sessionmaker(bind=engine)
 
 
@@ -731,7 +733,7 @@ def integration_harness(monkeypatch, tmp_path):
             status=control.execute_status,
             total_tokens=10,
             execution_time_seconds=0.5,
-            difficulty="easy",
+            difficulty=problem.difficulty,
         )
 
     def fake_estimate(self, results):
@@ -1394,3 +1396,377 @@ class TestRunEvaluationTaskIntegration:
         assert evaluation.status == "cancelled"
         assert len(integration_harness.execute_calls) < 2
         db.close()
+
+
+class TestPersonalBudgetExecution:
+    """Removing the owner filter or ignoring personal actions must break these tests."""
+
+    @staticmethod
+    def save_budget(db, *, owner="test_user", cap=0.01, action="pause", difficulty_caps=None):
+        from api.db.models import Budget
+
+        row = Budget(
+            id=str(uuid.uuid4()),
+            user_id=owner,
+            global_cap_usd=cap,
+            action=action,
+            difficulty_caps=difficulty_caps,
+        )
+        db.add(row)
+        db.commit()
+        return row
+
+    def test_execution_snapshot_uses_actual_difficulty_and_owner(self, db_session):
+        from api.services.cost_service import CostService
+
+        self.save_budget(db_session, cap=0.3, difficulty_caps={"easy": 0.2, "hard": 0.1})
+        for owner, amount in [("test_user", 0.1), ("test_user", 0.2), ("other", 10)]:
+            row = Evaluation(id=str(uuid.uuid4()), user_id=owner, spent_usd=amount)
+            db_session.add(row)
+            db_session.flush()
+            db_session.add(
+                EvaluationResult(
+                    id=str(uuid.uuid4()),
+                    evaluation_id=row.id,
+                    problem_id="p",
+                    strategy_name="vanilla",
+                    status="success",
+                    metrics={"difficulty": "easy", "cost_usd": amount},
+                )
+            )
+        db_session.commit()
+        snapshot = CostService.execution_budget(db_session, "test_user")
+        assert snapshot == {
+            "global_cap_usd": 0.3,
+            "used_usd": Decimal("0.3"),
+            "action": "pause",
+            "global_reached": True,
+            "exhausted_difficulties": ["easy"],
+        }
+        assert CostService.execution_budget(db_session, "other") is None
+
+    @pytest.mark.parametrize(
+        "action,want_status,want_calls",
+        [
+            ("pause", "paused", [("chain_of_thought", "p1")]),
+            ("downgrade", "completed", [("chain_of_thought", "p1"), ("vanilla", "p2")]),
+        ],
+    )
+    def test_personal_budget_controls_actual_dispatch(
+        self, db_session, integration_harness, auth_ok, action, want_status, want_calls
+    ):
+        evaluation_id = _seed_evaluation(
+            db_session, problem_ids=["p1", "p2"], strategy_names=["chain_of_thought"]
+        )
+        self.save_budget(db_session, action=action)
+        with patch("src.tasks.evaluation.get_db_session", return_value=db_session):
+            result = run_evaluation_task(evaluation_id)
+        assert result["status"] == want_status
+        assert integration_harness.execute_calls == want_calls
+        rows = db_session.query(EvaluationResult).filter_by(evaluation_id=evaluation_id).all()
+        if action == "downgrade":
+            second = next(row for row in rows if row.problem_id == "p2")
+            assert second.strategy_name == "chain_of_thought"
+            assert second.metrics["executed_strategy"] == "vanilla"
+            assert second.metrics["cost_downgraded"] is True
+        else:
+            assert len(rows) == 1
+
+    def test_resume_rechecks_updated_budget_without_rebilling(
+        self, db_session, integration_harness, auth_ok
+    ):
+        evaluation_id = _seed_evaluation(
+            db_session, problem_ids=["p1", "p2"], strategy_names=["vanilla"]
+        )
+        budget = self.save_budget(db_session)
+        with patch("src.tasks.evaluation.get_db_session", return_value=db_session):
+            assert run_evaluation_task(evaluation_id)["status"] == "paused"
+            assert run_evaluation_task(evaluation_id)["status"] == "paused"
+            budget.global_cap_usd = 1
+            db_session.merge(budget)
+            db_session.commit()
+            assert run_evaluation_task(evaluation_id)["status"] == "completed"
+        assert integration_harness.execute_calls == [("vanilla", "p1"), ("vanilla", "p2")]
+        assert db_session.get(Evaluation, evaluation_id).spent_usd == pytest.approx(0.02)
+
+    @pytest.mark.parametrize("owner", ["test_user", "other"])
+    def test_task_cap_overrides_downgrade(self, db_session, integration_harness, auth_ok, owner):
+        evaluation_id = _seed_evaluation(
+            db_session,
+            problem_ids=["p1", "p2"],
+            strategy_names=["chain_of_thought"],
+            budget_cap_usd=0.01,
+        )
+        self.save_budget(db_session, owner=owner, action="downgrade")
+        with patch("src.tasks.evaluation.get_db_session", return_value=db_session):
+            assert run_evaluation_task(evaluation_id)["status"] == "paused"
+        assert integration_harness.execute_calls == [("chain_of_thought", "p1")]
+
+    @pytest.mark.parametrize(
+        "action,want_status,want_calls",
+        [
+            ("pause", "paused", [("chain_of_thought", "p1"), ("chain_of_thought", "p2")]),
+            (
+                "downgrade",
+                "completed",
+                [("chain_of_thought", "p1"), ("chain_of_thought", "p2"), ("vanilla", "p3")],
+            ),
+        ],
+    )
+    def test_difficulty_cap_only_affects_matching_units(
+        self, db_session, integration_harness, auth_ok, action, want_status, want_calls
+    ):
+        evaluation_id = _seed_evaluation(
+            db_session, problem_ids=["p1", "p2", "p3"], strategy_names=["chain_of_thought"]
+        )
+        db_session.query(ORMProblem).filter_by(problem_id="p2").update({"difficulty": "hard"})
+        db_session.commit()
+        self.save_budget(db_session, cap=None, action=action, difficulty_caps={"easy": 0.01})
+        with patch("src.tasks.evaluation.get_db_session", return_value=db_session):
+            assert run_evaluation_task(evaluation_id)["status"] == want_status
+        assert integration_harness.execute_calls == want_calls
+
+    def test_exhausted_history_stops_before_first_call(
+        self, db_session, integration_harness, auth_ok
+    ):
+        evaluation_id = _seed_evaluation(db_session, problem_ids=["p1"], strategy_names=["vanilla"])
+        db_session.add(Evaluation(id="history", user_id="test_user", spent_usd=0.1))
+        db_session.commit()
+        self.save_budget(db_session, cap=0.1)
+        with patch("src.tasks.evaluation.get_db_session", return_value=db_session):
+            assert run_evaluation_task(evaluation_id)["status"] == "paused"
+        assert integration_harness.execute_calls == []
+        assert db_session.query(EvaluationResult).count() == 0
+
+    def test_other_user_budget_and_spend_do_not_affect_execution(
+        self, db_session, integration_harness, auth_ok
+    ):
+        evaluation_id = _seed_evaluation(
+            db_session, problem_ids=["p1", "p2"], strategy_names=["chain_of_thought"]
+        )
+        self.save_budget(db_session, owner="other")
+        db_session.add(Evaluation(id="other-history", user_id="other", spent_usd=100))
+        db_session.commit()
+        with patch("src.tasks.evaluation.get_db_session", return_value=db_session):
+            assert run_evaluation_task(evaluation_id)["status"] == "completed"
+        assert integration_harness.execute_calls == [
+            ("chain_of_thought", "p1"),
+            ("chain_of_thought", "p2"),
+        ]
+
+    def test_multiple_strategies_keep_distinct_results_after_downgrade(
+        self, db_session, integration_harness, auth_ok
+    ):
+        evaluation_id = _seed_evaluation(
+            db_session,
+            problem_ids=["p1", "p2"],
+            strategy_names=["chain_of_thought", "multi_round_feedback"],
+        )
+        self.save_budget(db_session, action="downgrade")
+        with patch("src.tasks.evaluation.get_db_session", return_value=db_session):
+            assert run_evaluation_task(evaluation_id)["status"] == "completed"
+        assert integration_harness.execute_calls == [
+            ("chain_of_thought", "p1"),
+            ("vanilla", "p2"),
+            ("vanilla", "p1"),
+            ("vanilla", "p2"),
+        ]
+        rows = db_session.query(EvaluationResult).filter_by(evaluation_id=evaluation_id).all()
+        assert len(rows) == 4
+        assert {(row.problem_id, row.strategy_name) for row in rows} == {
+            ("p1", "chain_of_thought"),
+            ("p2", "chain_of_thought"),
+            ("p1", "multi_round_feedback"),
+            ("p2", "multi_round_feedback"),
+        }
+
+    def test_benchmark_history_counts_only_completed_owned_runs(self, db_session):
+        from api.db.models import BenchmarkRun, BenchmarkSuite
+        from api.services.cost_service import CostService
+
+        self.save_budget(db_session, cap=0.5)
+        db_session.add(BenchmarkSuite(id="suite", user_id="test_user", name="suite"))
+        db_session.flush()
+        for identity, owner, status, cost in [
+            ("a", "test_user", "completed", 0.5),
+            ("b", "test_user", "running", 100),
+            ("c", "other", "completed", 100),
+        ]:
+            db_session.add(
+                BenchmarkRun(
+                    id=identity,
+                    suite_id="suite",
+                    user_id=owner,
+                    status=status,
+                    model="m",
+                    cost_usd=cost,
+                )
+            )
+        db_session.commit()
+        assert CostService.execution_budget(db_session, "test_user")["global_reached"] is True
+        db_session.query(BenchmarkRun).filter_by(id="a").update({"cost_usd": 0.4})
+        db_session.commit()
+        assert CostService.execution_budget(db_session, "test_user")["global_reached"] is False
+
+    def test_decimal_boundary_does_not_dispatch_an_extra_unit(
+        self, db_session, integration_harness, auth_ok
+    ):
+        evaluation_id = _seed_evaluation(
+            db_session, problem_ids=[f"p{i}" for i in range(12)], strategy_names=["vanilla"]
+        )
+        self.save_budget(db_session, cap=0.1)
+        with patch("src.tasks.evaluation.get_db_session", return_value=db_session):
+            assert run_evaluation_task(evaluation_id)["status"] == "paused"
+        assert len(integration_harness.execute_calls) == 10
+        assert db_session.get(Evaluation, evaluation_id).spent_usd == 0.1
+
+    def test_manual_pause_wins_over_personal_downgrade(
+        self, db_session, integration_harness, auth_ok, monkeypatch
+    ):
+        evaluation_id = _seed_evaluation(
+            db_session, problem_ids=["p1", "p2"], strategy_names=["chain_of_thought"]
+        )
+        self.save_budget(db_session, action="downgrade")
+
+        def pause_after_first(*_args, **kwargs):
+            if kwargs.get("meta", {}).get("current") == 1:
+                task = db_session.get(
+                    AsyncTask, db_session.get(Evaluation, evaluation_id).async_task_id
+                )
+                task.status = "paused"
+                db_session.commit()
+
+        monkeypatch.setattr(run_evaluation_task, "update_state", pause_after_first)
+        with patch("src.tasks.evaluation.get_db_session", return_value=db_session):
+            assert run_evaluation_task(evaluation_id)["status"] == "paused"
+        assert integration_harness.execute_calls == [("chain_of_thought", "p1")]
+
+
+@pytest.mark.parametrize("unit_price,expected_status", [(0.1, "paused"), (0.0, "completed")])
+def test_web_pricing_drives_real_cost_and_budget(
+    db_session, auth_ok, monkeypatch, tmp_path, unit_price, expected_status
+):
+    """Use Web writes, real clients/traces/cost settlement and task budget boundaries."""
+    from types import SimpleNamespace
+
+    from api.services.cost_service import CostService
+    from src.llm_client import LLMClient
+    from src.sandbox_executor import SandboxExecutor
+
+    monkeypatch.chdir(tmp_path)
+    monkeypatch.setattr(SandboxExecutor, "health_check", lambda self: (True, "ok"))
+    monkeypatch.setattr(run_evaluation_task, "update_state", lambda *a, **k: None)
+    monkeypatch.setattr("src.llm_client.OpenAI", lambda **kwargs: Mock())
+
+    # No code means no sandbox execution; the provider call still incurs token cost.
+    def provider(self, effective_call):
+        return SimpleNamespace(
+            model="provider-canonical-model",
+            choices=[
+                SimpleNamespace(message=SimpleNamespace(content="No code"), finish_reason="stop")
+            ],
+            usage=SimpleNamespace(prompt_tokens=1000, completion_tokens=1000, total_tokens=2000),
+        )
+
+    monkeypatch.setattr(LLMClient, "_call_with_retry", provider)
+    monkeypatch.setattr("src.tasks.evaluation.get_db_session", lambda: db_session)
+    # CostService uses the very same database as the evaluation worker.
+    service = CostService.__new__(CostService)
+    service._session = sessionmaker(bind=db_session.get_bind(), expire_on_commit=False)
+
+    def request(value):
+        return SimpleNamespace(prompt_per_1k=value, completion_per_1k=value)
+
+    service.set_pricing_override("test-model", request(0.01), "editor")
+    service.set_pricing_override("test-model", request(unit_price), "editor")
+    evaluation_id = _seed_evaluation(
+        db_session, problem_ids=["p1", "p2"], strategy_names=["vanilla"], budget_cap_usd=0.15
+    )
+    result = run_evaluation_task.run(evaluation_id)
+    ev = _reload(db_session, Evaluation, evaluation_id)
+    assert result["status"] == ev.status == expected_status
+    count = 1 if expected_status == "paused" else 2
+    assert ev.completed_count == count
+    assert ev.spent_usd == pytest.approx(count * unit_price * 2)
+    rows = db_session.query(EvaluationResult).filter_by(evaluation_id=evaluation_id).all()
+    assert len(rows) == count
+    assert all(row.metrics["cost_unknown"] is False for row in rows)
+
+    if expected_status == "paused":
+        # Resume refreshes the snapshot and preserves the already settled first unit.
+        service.set_pricing_override("test-model", request(0.02), "editor")
+        ev.budget_cap_usd = 1.0
+        db_session.get(AsyncTask, ev.async_task_id).status = "running"
+        db_session.commit()
+        result = run_evaluation_task.run(evaluation_id)
+        ev = _reload(db_session, Evaluation, evaluation_id)
+        assert result["status"] == "completed"
+        assert ev.completed_count == 2
+        assert ev.spent_usd == pytest.approx(0.24)
+
+
+def test_web_pricing_snapshot_shared_by_all_and_late_runtimes(db_session, auth_ok, monkeypatch):
+    from types import SimpleNamespace
+
+    from api.services.cost_service import CostService
+    from src.models import StrategyConfig
+    from src.sandbox_executor import SandboxExecutor
+    from src.tasks.evaluation import _build_harness, _resolve_execution_context
+
+    monkeypatch.setattr(SandboxExecutor, "health_check", lambda self: (True, "ok"))
+    monkeypatch.setattr("src.llm_client.OpenAI", lambda **kwargs: Mock())
+    factory = sessionmaker(bind=db_session.get_bind(), expire_on_commit=False)
+    service = CostService.__new__(CostService)
+    service._session = factory
+    request = SimpleNamespace(prompt_per_1k=0.03, completion_per_1k=0.07)
+    service.set_pricing_override("test-model", request, "editor")
+    evaluation_id = _seed_evaluation(db_session, problem_ids=["p1"], strategy_names=["vanilla"])
+    ev = db_session.get(Evaluation, evaluation_id)
+    ctx = _resolve_execution_context(ev, factory)
+    request.prompt_per_1k = 0.99
+    service.set_pricing_override("test-model", request, "editor")
+    harness, _, runtimes = _build_harness(ctx, ["vanilla", "chain_of_thought"])
+    runtimes["late"] = harness._prepare_strategy_runtime(StrategyConfig(name="vanilla"))
+    for strategy, _ in runtimes.values():
+        info = strategy.llm_client.pricing_manager.get_pricing("test-model")
+        assert info.source == "override"
+        assert info.prompt_price == 0.03
+        assert info.as_of
+    fresh = _resolve_execution_context(ev, factory)
+    assert fresh.pricing_manager.get_pricing("test-model").prompt_price == 0.99
+    pm = ctx.pricing_manager
+    pm.custom_pricing["test-model"] = {"prompt": 100, "completion": 100}
+    assert pm.get_pricing("test-model").prompt_price == 0.03
+    assert pm.get_pricing("test-model-other").source == "custom"
+    assert pm.get_pricing("gpt-4").source == "builtin"
+    assert pm.get_pricing("unknown-model").pricing_known is False
+
+
+@pytest.mark.parametrize("usage_missing", [False, True])
+@pytest.mark.parametrize("provider", ["openai", "anthropic"])
+def test_web_pricing_reprices_cache_without_changing_history(monkeypatch, usage_missing, provider):
+    from src.llm_client import LLMClient
+    from src.models import LLMResponse, TokenUsage
+    from src.utils.pricing import PricingInfo
+
+    monkeypatch.setattr("src.llm_client.OpenAI", lambda **kwargs: Mock())
+    monkeypatch.setattr("src.llm_client.Anthropic", lambda **kwargs: Mock())
+    client = LLMClient(LLMConfig(provider=provider, api_key="test", model="alias"))
+    client.pricing_manager.overrides["alias"] = PricingInfo("alias", 0.1, 0.2, "override")
+    cached = LLMResponse(
+        text="cached",
+        model="canonical",
+        usage_missing=usage_missing,
+        usage=TokenUsage(prompt_tokens=1000, completion_tokens=1000, total_tokens=2000),
+        pricing_metadata={"source": "builtin", "total_cost": 99, "usage_known": not usage_missing},
+    )
+    client.cache.get = Mock(return_value=cached)
+    response = client.generate("prompt")
+    assert response.pricing_metadata["source"] == "override"
+    assert response.pricing_metadata["total_cost"] == (
+        None if usage_missing else pytest.approx(0.3)
+    )
+    assert response.pricing_metadata["usage_known"] is not usage_missing
+    assert cached.pricing_metadata["total_cost"] == 99
+    assert response.model == "canonical"
+    assert response.pricing_metadata["model"] == response.model

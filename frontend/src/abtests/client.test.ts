@@ -217,3 +217,11 @@ test('AB 列表查询白名单回填', () => {
   const bogus = readListQuery(new URLSearchParams({ status: 'nope' }))
   assert.equal(bogus.status, undefined)
 })
+
+test('排队任务保留 task_id，未提交配置兼容缺省字段', async () => {
+  const queued = { ...job, status: 'pending', task_id: 'task-ab-1' }
+  const { client } = clientFor(() => ({ data: queued }))
+  assert.equal((await client.get('ab-1')).task_id, 'task-ab-1')
+  const legacy = clientFor(() => ({ data: job })).client
+  assert.equal((await legacy.get('ab-1')).task_id, null)
+})

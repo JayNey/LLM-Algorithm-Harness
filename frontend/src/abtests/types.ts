@@ -1,13 +1,14 @@
 /** A/B 测试前端类型（issue #166 第②步）。
  * 字段与 api/services/ab_test_service.py 的 _job_view、
  * api/experiment_models.py 的 ABTestCreateRequest、src/ab_testing.py 的
- * 结果报告对齐。AB 为进程内线程执行：无 task_id、无进度，只能轮询状态。
+ * 结果报告对齐。A/B 经 Celery 执行，task_id 关联统一任务；详情继续轮询状态。
  */
 
 export interface ABTestJob {
   id: string
   name: string
   status: string
+  task_id?: string | null
   config: ABTestConfig
   error_message: string | null
   created_at: string

@@ -178,10 +178,12 @@ export function createAuthStore() {
         set({ session })
         try {
           const profile: unknown = await client.get('/users/me')
+          if (readSession(box)?.marker !== session.marker) return
           const next = { ...session, username: profileUsername(profile) }
           writeSession(remember, next, box)
           set({ session: next })
         } catch (error) {
+          if (readSession(box)?.marker !== session.marker) return
           if (error instanceof ApiClientError && error.status === 401) {
             clearSession(box)
             set({ session: null })

@@ -527,3 +527,31 @@ def test_enforced_call_quota_view_and_bound_generation(monitoring, monkeypatch):
     assert quotas["daily_api_calls"]["status"] == "enforced"
     assert quotas["monthly_api_calls"]["remaining"] == 9
     assert monitor.quotas(owners["bob"])["daily_api_calls"]["used"] == 0
+
+
+def test_ab_test_is_included_in_task_performance(monitoring):
+    from datetime import datetime, timedelta
+
+    from sqlalchemy.orm import Session
+
+    from api.db.models import AsyncTask
+
+    monitor, owners, _ = monitoring
+    with Session(monitor.task_engine) as db:
+        db.add(
+            AsyncTask(
+                id="ab-perf",
+                celery_task_id="ab-perf",
+                entity_id="ab-1",
+                user_id=owners["alice"],
+                task_type="ab_test",
+                status="completed",
+                started_at=datetime(2026, 1, 1),
+                completed_at=datetime(2026, 1, 1) + timedelta(seconds=10),
+            )
+        )
+        db.commit()
+    metrics = monitor.task_performance()
+    assert metrics["tasks"]["completed"] == 1
+    assert metrics["tasks"]["avg_execution_time_seconds"] == pytest.approx(10, abs=0.01)
+    assert metrics["evaluations"]["completed"] == 0

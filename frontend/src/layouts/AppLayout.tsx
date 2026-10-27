@@ -62,10 +62,16 @@ function Shell() {
   const ui = useUiStore()
   const username = session?.username || '已登录'
   const [openedAt, setOpenedAt] = useState<string | null>(null)
-  const [modal, setModal] = useState<'create' | 'import' | null>(null)
+  const [modal, setModal] = useState<'import' | null>(null)
   const main = useRef<HTMLElement>(null)
   const menu = useRef<HTMLButtonElement>(null)
   const drawerOpen = openedAt === location.key
+  // Rapid Escape can close the drawer before its animation callback runs.
+  const drawerWasOpen = useRef(false)
+  useEffect(() => {
+    if (drawerWasOpen.current && !drawerOpen) menu.current?.focus()
+    drawerWasOpen.current = drawerOpen
+  }, [drawerOpen])
   useEffect(() => {
     main.current?.focus()
   }, [location.pathname])
@@ -80,7 +86,7 @@ function Shell() {
   }
   function onCreate() {
     setOpenedAt(null)
-    setModal('create')
+    navigate('/evaluations/new')
   }
   function onImport() {
     setOpenedAt(null)
@@ -140,7 +146,6 @@ function Shell() {
               <span className="workspace-label">
                 {appearanceVariants[ui.appearanceVariant].en} / 个人工作空间
               </span>
-              <span className="preview-tag">业务 · Mock</span>
             </div>
             <div className="top-actions">
               <Dropdown
@@ -227,10 +232,7 @@ function Shell() {
             </div>
             <footer className="workspace-footer">
               <span>{appName}</span>
-              <span>
-                {appearanceVariants[ui.appearanceVariant].name} / 业务与通知 ·
-                Mock
-              </span>
+              <span>{appearanceVariants[ui.appearanceVariant].name}</span>
             </footer>
           </main>
         </div>
@@ -240,6 +242,7 @@ function Shell() {
         title="工作台导航"
         placement="left"
         open={drawerOpen}
+        focusable={{ focusTriggerAfterClose: false }}
         onClose={() => setOpenedAt(null)}
         afterOpenChange={(open) => {
           if (!open) menu.current?.focus()

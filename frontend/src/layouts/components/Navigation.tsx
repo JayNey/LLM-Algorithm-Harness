@@ -84,10 +84,6 @@ export function Navigation({
           <Icon name="upload" />
           <span>导入题目</span>
         </button>
-        <div className="mock-note">
-          <span className="scope-dot" />
-          业务与通知 · Mock
-        </div>
       </div>
     </>
   )
@@ -166,7 +162,6 @@ export function AppearanceControls() {
         <option value="dark">深色</option>
         <option value="system">跟随系统</option>
       </select>
-      <small className="mobile-mock">业务与通知 · Mock</small>
     </div>
   )
 }
