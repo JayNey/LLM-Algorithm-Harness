@@ -1,0 +1,813 @@
+{
+  "ci_main_snapshot": {
+    "conclusion": "",
+    "headSha": "b86d65eff2d2a76fdd39f54fe7b2794b9e3dc955",
+    "jobs": [
+      {
+        "name": "Security Check",
+        "status": "completed",
+        "conclusion": "success",
+        "url": "https://github.com/JayNey/LLM-Algorithm-Harness/actions/runs/40444425429/job/121992172024"
+      },
+      {
+        "name": "Type Check",
+        "status": "completed",
+        "conclusion": "success",
+        "url": "https://github.com/JayNey/LLM-Algorithm-Harness/actions/runs/40444425429/job/121992172312"
+      },
+      {
+        "name": "Test (Python 3.12, ubuntu-latest)",
+        "status": "completed",
+        "conclusion": "success",
+        "url": "https://github.com/JayNey/LLM-Algorithm-Harness/actions/runs/40444425429/job/121992172319"
+      },
+      {
+        "name": "Lint",
+        "status": "completed",
+        "conclusion": "success",
+        "url": "https://github.com/JayNey/LLM-Algorithm-Harness/actions/runs/40444425429/job/121992172324"
+      },
+      {
+        "name": "Test (Python 3.11, macos-latest)",
+        "status": "completed",
+        "conclusion": "success",
+        "url": "https://github.com/JayNey/LLM-Algorithm-Harness/actions/runs/40444425429/job/121992172335"
+      },
+      {
+        "name": "Test (Python 3.12, macos-latest)",
+        "status": "completed",
+        "conclusion": "success",
+        "url": "https://github.com/JayNey/LLM-Algorithm-Harness/actions/runs/40444425429/job/121992172338"
+      },
+      {
+        "name": "Test (Python 3.11, ubuntu-latest)",
+        "status": "completed",
+        "conclusion": "success",
+        "url": "https://github.com/JayNey/LLM-Algorithm-Harness/actions/runs/40444425429/job/121992172373"
+      },
+      {
+        "name": "Test (Python 3.11, windows-latest)",
+        "status": "in_progress",
+        "conclusion": "",
+        "url": "https://github.com/JayNey/LLM-Algorithm-Harness/actions/runs/40444425429/job/121992172434"
+      },
+      {
+        "name": "Test (Python 3.12, windows-latest)",
+        "status": "in_progress",
+        "conclusion": "",
+        "url": "https://github.com/JayNey/LLM-Algorithm-Harness/actions/runs/40444425429/job/121992172445"
+      },
+      {
+        "name": "Code Complexity",
+        "status": "completed",
+        "conclusion": "success",
+        "url": "https://github.com/JayNey/LLM-Algorithm-Harness/actions/runs/40444425429/job/121992172515"
+      }
+    ],
+    "status": "in_progress",
+    "url": "https://github.com/JayNey/LLM-Algorithm-Harness/actions/runs/40444425429",
+    "observed_at": "2026-10-27T04:14:26.229175+00:00"
+  },
+  "schema": "evaluation-quality-gates.v1",
+  "generated_at": "2026-10-27T04:14:26.229235+00:00",
+  "code_sha": "48ea717b5526cc8198f1b395e4285e58263f8564",
+  "main_sha": "b86d65eff2d2a76fdd39f54fe7b2794b9e3dc955",
+  "pr286_sha": "545d62d46ef5c237731d9e57c9fddb7159665a0d",
+  "environments": {
+    "host": {
+      "executable": "/opt/homebrew/opt/python@3.11/bin/python3.11",
+      "packages": {
+        "Mako": "1.4.3",
+        "MarkupSafe": "3.0.4",
+        "PyJWT": "2.15.1",
+        "PyYAML": "6.0.3",
+        "Pygments": "2.21.0",
+        "RestrictedPython": "8.5",
+        "SQLAlchemy": "2.1.4",
+        "alembic": "1.20.0",
+        "amqp": "5.4.1",
+        "annotated-doc": "0.0.5",
+        "annotated-types": "0.8.0",
+        "anthropic": "1.5.0",
+        "anyio": "4.15.1",
+        "argon2-cffi": "25.1.0",
+        "argon2-cffi-bindings": "26.1.0",
+        "ast_serialize": "0.11.2",
+        "beautifulsoup4": "4.15.0",
+        "billiard": "4.3.1",
+        "black": "26.5.1",
+        "celery": "5.6.3",
+        "certifi": "2026.7.22",
+        "cffi": "2.1.1",
+        "charset-normalizer": "3.5.1",
+        "click": "8.5.0",
+        "click-didyoumean": "0.3.1",
+        "click-plugins": "1.1.1.2",
+        "click-repl": "0.4.1",
+        "cloudpickle": "3.1.2",
+        "contourpy": "1.3.3",
+        "coverage": "7.16.1",
+        "cryptography": "50.0.2",
+        "cycler": "0.12.1",
+        "docstring_parser": "0.18.0",
+        "et_xmlfile": "2.0.0",
+        "fastapi": "0.143.0",
+        "flake8": "7.3.0",
+        "fonttools": "4.65.0",
+        "h11": "0.16.0",
+        "html2text": "2025.4.15",
+        "httpcore": "1.0.9",
+        "httpcore2": "2.13.0",
+        "httpx": "0.28.1",
+        "httpx2": "2.13.0",
+        "idna": "3.19",
+        "iniconfig": "2.3.0",
+        "isort": "9.0.1",
+        "jiter": "0.17.0",
+        "joblib": "1.6.0",
+        "kiwisolver": "1.5.1",
+        "kombu": "5.6.2",
+        "librt": "0.15.0",
+        "llm-algorithm-harness": "0.1.0",
+        "lxml": "6.1.3",
+        "markdown-it-py": "4.2.0",
+        "matplotlib": "3.11.1",
+        "mccabe": "0.7.0",
+        "mdurl": "0.1.2",
+        "mypy": "2.3.1",
+        "mypy_extensions": "1.1.0",
+        "narwhals": "2.26.0",
+        "numpy": "2.4.6",
+        "openai": "3.13.0",
+        "openpyxl": "3.1.5",
+        "opentelemetry-api": "1.45.1",
+        "packaging": "26.3",
+        "pandas": "3.0.5",
+        "pathspec": "1.1.1",
+        "pillow": "12.3.0",
+        "pip": "26.2.1",
+        "platformdirs": "4.11.8",
+        "pluggy": "1.6.0",
+        "prompt_toolkit": "3.0.53",
+        "psutil": "7.2.2",
+        "pycodestyle": "2.14.0",
+        "pycparser": "3.11",
+        "pycryptodome": "3.24.0",
+        "pydantic": "2.13.5",
+        "pydantic-settings": "2.15.0",
+        "pydantic_core": "2.46.5",
+        "pyflakes": "3.4.0",
+        "pymupdf": "1.28.2",
+        "pyparsing": "3.3.2",
+        "pypdf": "6.18.0",
+        "pytest": "9.1.1",
+        "pytest-asyncio": "1.4.0",
+        "pytest-cov": "7.1.0",
+        "pytest-mock": "3.15.1",
+        "python-dateutil": "2.9.0.post0",
+        "python-docx": "1.2.0",
+        "python-dotenv": "1.2.4",
+        "python-multipart": "0.0.32",
+        "pytokens": "0.4.1",
+        "redis": "6.4.0",
+        "requests": "2.34.2",
+        "rich": "15.0.0",
+        "ruff": "0.16.8",
+        "scikit-learn": "1.9.1",
+        "scipy": "1.17.1",
+        "setuptools": "84.0.0",
+        "six": "1.17.0",
+        "sniffio": "1.3.1",
+        "soupsieve": "2.9.2",
+        "starlette": "1.7.0",
+        "structlog": "26.1.0",
+        "threadpoolctl": "3.7.0",
+        "tqdm": "4.70.1",
+        "truststore": "0.10.4",
+        "typing-inspection": "0.4.4",
+        "typing_extensions": "4.16.0",
+        "tzdata": "2026.5",
+        "tzlocal": "5.4.4",
+        "urllib3": "2.7.0",
+        "uvicorn": "0.54.0",
+        "vine": "5.1.0",
+        "wcwidth": "0.9.2",
+        "wheel": "0.48.0"
+      },
+      "platform": "macOS-26.6.2-arm64-arm-64bit",
+      "python": "3.11.16 (main, Aug 12 2026, 23:03:19) [Clang 21.0.0 (clang-2100.1.1.101)]"
+    },
+    "isolated": {
+      "executable": "/private/tmp/issue231-py311/bin/python",
+      "packages": {
+        "Mako": "1.4.3",
+        "MarkupSafe": "3.0.4",
+        "PyJWT": "2.15.1",
+        "PyYAML": "6.0.3",
+        "Pygments": "2.21.0",
+        "RestrictedPython": "8.5",
+        "SQLAlchemy": "2.1.6",
+        "alembic": "1.20.1",
+        "amqp": "5.4.1",
+        "annotated-doc": "0.0.5",
+        "annotated-types": "0.8.0",
+        "anthropic": "2.3.0",
+        "anyio": "4.15.1",
+        "argon2-cffi": "25.1.0",
+        "argon2-cffi-bindings": "26.1.0",
+        "ast_serialize": "0.13.1",
+        "billiard": "4.3.1",
+        "black": "26.10.1",
+        "celery": "5.6.3",
+        "certifi": "2026.10.23",
+        "cffi": "2.1.1",
+        "charset-normalizer": "3.5.2",
+        "click": "8.5.0",
+        "click-didyoumean": "0.3.1",
+        "click-plugins": "1.1.1.2",
+        "click-repl": "0.4.1",
+        "cloudpickle": "3.1.2",
+        "contourpy": "1.3.3",
+        "coverage": "7.17.0",
+        "cryptography": "50.0.2",
+        "cycler": "0.12.1",
+        "docstring_parser": "0.18.0",
+        "fastapi": "0.162.0",
+        "fonttools": "4.67.0",
+        "h11": "0.16.0",
+        "httpcore": "1.0.9",
+        "httpcore2": "2.16.0",
+        "httpx": "0.28.1",
+        "httpx2": "2.16.0",
+        "idna": "3.20",
+        "iniconfig": "2.3.1",
+        "jiter": "0.18.0",
+        "joblib": "1.6.0",
+        "kiwisolver": "1.5.1",
+        "kombu": "5.6.2",
+        "librt": "0.16.0",
+        "llm-algorithm-harness": "0.1.0",
+        "markdown-it-py": "4.2.0",
+        "matplotlib": "3.11.2",
+        "mdurl": "0.1.2",
+        "mypy": "2.4.0",
+        "mypy_extensions": "1.1.0",
+        "narwhals": "2.27.1",
+        "numpy": "2.4.6",
+        "openai": "3.39.0",
+        "opentelemetry-api": "1.45.1",
+        "packaging": "26.3",
+        "pandas": "3.1.0",
+        "pathspec": "1.1.1",
+        "pillow": "13.0.0",
+        "platformdirs": "4.13.5",
+        "pluggy": "1.7.0",
+        "prompt_toolkit": "3.0.53",
+        "psutil": "7.2.2",
+        "psycopg": "3.3.6",
+        "psycopg-binary": "3.3.6",
+        "pycparser": "3.12",
+        "pydantic": "2.14.1",
+        "pydantic-settings": "2.16.1",
+        "pydantic_core": "2.50.1",
+        "pyparsing": "3.3.3",
+        "pytest": "9.1.1",
+        "pytest-asyncio": "1.4.1",
+        "pytest-cov": "7.1.0",
+        "python-dateutil": "3.0.0",
+        "python-dotenv": "1.2.4",
+        "python-multipart": "0.0.32",
+        "pytokens": "0.4.1",
+        "redis": "8.1.0",
+        "requests": "2.34.2",
+        "rich": "15.0.0",
+        "ruff": "0.17.3",
+        "scikit-learn": "1.9.1",
+        "scipy": "1.17.1",
+        "six": "1.17.0",
+        "sniffio": "1.3.1",
+        "starlette": "1.10.0",
+        "structlog": "26.1.0",
+        "threadpoolctl": "3.7.0",
+        "tqdm": "4.70.1",
+        "truststore": "0.10.5",
+        "types-PyYAML": "6.0.12.20260906",
+        "types-psutil": "7.2.2.20260906",
+        "typing-inspection": "0.4.4",
+        "typing_extensions": "4.16.0",
+        "tzdata": "2026.5",
+        "tzlocal": "5.4.5",
+        "urllib3": "2.8.0",
+        "uvicorn": "0.54.0",
+        "vine": "5.1.0",
+        "wcwidth": "0.9.4"
+      },
+      "platform": "macOS-26.6.2-arm64-arm-64bit",
+      "python": "3.11.16 (main, Aug 12 2026, 23:03:19) [Clang 21.0.0 (clang-2100.1.1.101)]"
+    },
+    "node": "v26.8.1",
+    "npm": "11.19.0",
+    "tree_ids": {
+      "api": "485d7ea523f0e34c16202814e6383dbb8a01c7de",
+      "src": "5f42c9b9668e69c6fd74513ebaadf2f97eadf8a2",
+      "tests": "7ef50158077fae05e1530650e7346e445d3346ed",
+      "frontend": "f026bd67a6a9af1d79e8e237e1772596f5267092",
+      ".github/workflows": "e79afae06990902e1ea3c69385f5d61752b7b448"
+    }
+  },
+  "dependencies": [
+    {
+      "number": 216,
+      "title": "[真实评估 T01 / 1.1] 只读策略、来源与分页题目",
+      "state": "CLOSED",
+      "url": "https://github.com/JayNey/LLM-Algorithm-Harness/issues/216"
+    },
+    {
+      "number": 217,
+      "title": "[真实评估 T02 / 1.2] 真实模型枚举",
+      "state": "CLOSED",
+      "url": "https://github.com/JayNey/LLM-Algorithm-Harness/issues/217"
+    },
+    {
+      "number": 218,
+      "title": "[真实评估 T03 / 2.1] 操作能力与同 ID 原子启动",
+      "state": "CLOSED",
+      "url": "https://github.com/JayNey/LLM-Algorithm-Harness/issues/218"
+    },
+    {
+      "number": 219,
+      "title": "[真实评估 T04 / 2.2] 兼容的执行单元进度",
+      "state": "CLOSED",
+      "url": "https://github.com/JayNey/LLM-Algorithm-Harness/issues/219"
+    },
+    {
+      "number": 220,
+      "title": "[真实评估 T05 / 3.1] 前端类型、客户端与校验",
+      "state": "CLOSED",
+      "url": "https://github.com/JayNey/LLM-Algorithm-Harness/issues/220"
+    },
+    {
+      "number": 221,
+      "title": "[真实评估 T06 / 3.2] 会话草稿与创建协调器",
+      "state": "CLOSED",
+      "url": "https://github.com/JayNey/LLM-Algorithm-Harness/issues/221"
+    },
+    {
+      "number": 222,
+      "title": "[真实评估 T07 / 4.1] 真实创建页面",
+      "state": "CLOSED",
+      "url": "https://github.com/JayNey/LLM-Algorithm-Harness/issues/222"
+    },
+    {
+      "number": 223,
+      "title": "[真实评估 T08 / 4.2] 真实评估列表",
+      "state": "CLOSED",
+      "url": "https://github.com/JayNey/LLM-Algorithm-Harness/issues/223"
+    },
+    {
+      "number": 224,
+      "title": "[真实评估 T09 / 5.1] 详情、真实启动与取消",
+      "state": "CLOSED",
+      "url": "https://github.com/JayNey/LLM-Algorithm-Harness/issues/224"
+    },
+    {
+      "number": 225,
+      "title": "[真实评估 T10 / 5.2] WebSocket 与 HTTP 观察生命周期",
+      "state": "CLOSED",
+      "url": "https://github.com/JayNey/LLM-Algorithm-Harness/issues/225"
+    },
+    {
+      "number": 226,
+      "title": "[真实评估 T11 / 6.1] 真实结果列表与详情",
+      "state": "CLOSED",
+      "url": "https://github.com/JayNey/LLM-Algorithm-Harness/issues/226"
+    },
+    {
+      "number": 227,
+      "title": "[真实评估 T12 / 6.2] 部分、失败与无结果语义",
+      "state": "CLOSED",
+      "url": "https://github.com/JayNey/LLM-Algorithm-Harness/issues/227"
+    },
+    {
+      "number": 228,
+      "title": "[真实评估 T13 / 7.1] 统一入口与诚实 Mock 标记",
+      "state": "CLOSED",
+      "url": "https://github.com/JayNey/LLM-Algorithm-Harness/issues/228"
+    },
+    {
+      "number": 229,
+      "title": "[真实评估 T14 / 7.2] 三风格、主题与移动验证",
+      "state": "CLOSED",
+      "url": "https://github.com/JayNey/LLM-Algorithm-Harness/issues/229"
+    },
+    {
+      "number": 230,
+      "title": "[真实评估 T15 / 8.1] 认证与完整离线集成",
+      "state": "CLOSED",
+      "url": "https://github.com/JayNey/LLM-Algorithm-Harness/issues/230"
+    }
+  ],
+  "commands": [
+    {
+      "id": "frontend-test",
+      "command": "npm test",
+      "cwd": "frontend",
+      "code_sha": "48ea717b5526cc8198f1b395e4285e58263f8564",
+      "started_at": "2026-10-27T04:03:47.038412+00:00",
+      "finished_at": "2026-10-27T04:03:49.605403+00:00",
+      "exit_code": 0,
+      "log": {
+        "path": "execution.txt",
+        "start_line": 1,
+        "end_line": 279,
+        "sha256": "5dc24d249433380ef0f5b38f002a61705c44971a46b5d3b2315c3f00a1d9ade3"
+      },
+      "environment": "host"
+    },
+    {
+      "id": "host-api-mypy",
+      "command": "python3 -m mypy api/evaluation_options.py api/services/evaluation_options_service.py api/routes/evaluation_options.py --follow-imports=silent --ignore-missing-imports",
+      "cwd": ".",
+      "code_sha": "48ea717b5526cc8198f1b395e4285e58263f8564",
+      "started_at": "2026-10-27T04:03:47.210483+00:00",
+      "finished_at": "2026-10-27T04:04:01.476738+00:00",
+      "exit_code": 0,
+      "log": {
+        "path": "execution.txt",
+        "start_line": 280,
+        "end_line": 289,
+        "sha256": "f938417725d2f9dbb74fca194e8b5f741d468d4985e7f207d05e5942ad81cce7"
+      },
+      "environment": "host"
+    },
+    {
+      "id": "frontend-lint",
+      "command": "npm run lint",
+      "cwd": "frontend",
+      "code_sha": "48ea717b5526cc8198f1b395e4285e58263f8564",
+      "started_at": "2026-10-27T04:03:49.607241+00:00",
+      "finished_at": "2026-10-27T04:03:53.413851+00:00",
+      "exit_code": 0,
+      "log": {
+        "path": "execution.txt",
+        "start_line": 290,
+        "end_line": 308,
+        "sha256": "0e85a285f99258c89f51f00b18c44e0b4870e8115ee041a91cbd5df5f9a9c193"
+      },
+      "environment": "host"
+    },
+    {
+      "id": "frontend-tsc",
+      "command": "npx tsc -b",
+      "cwd": "frontend",
+      "code_sha": "48ea717b5526cc8198f1b395e4285e58263f8564",
+      "started_at": "2026-10-27T04:03:53.414631+00:00",
+      "finished_at": "2026-10-27T04:03:56.171613+00:00",
+      "exit_code": 0,
+      "log": {
+        "path": "execution.txt",
+        "start_line": 309,
+        "end_line": 318,
+        "sha256": "9536d2791dbe9f08bf19a51ac321519d161ef4e4a6bbe97eafd40d8c6aa64372"
+      },
+      "environment": "host"
+    },
+    {
+      "id": "frontend-build",
+      "command": "npm run build",
+      "cwd": "frontend",
+      "code_sha": "48ea717b5526cc8198f1b395e4285e58263f8564",
+      "started_at": "2026-10-27T04:03:56.172358+00:00",
+      "finished_at": "2026-10-27T04:03:59.630897+00:00",
+      "exit_code": 0,
+      "log": {
+        "path": "execution.txt",
+        "start_line": 319,
+        "end_line": 406,
+        "sha256": "6c7f1b3aaf16d42fc1af834a00c03cebfe5654d943d64c5981914ece6b46f425"
+      },
+      "environment": "host"
+    },
+    {
+      "id": "host-ci-mypy",
+      "command": "python3 -m mypy src/ --ignore-missing-imports",
+      "cwd": ".",
+      "code_sha": "48ea717b5526cc8198f1b395e4285e58263f8564",
+      "started_at": "2026-10-27T04:04:01.477738+00:00",
+      "finished_at": "2026-10-27T04:04:12.700694+00:00",
+      "exit_code": 1,
+      "log": {
+        "path": "execution.txt",
+        "start_line": 407,
+        "end_line": 421,
+        "sha256": "7b8e533ca994046699e4145ca5ac749010c9a71c69f7f6965b5668283b24cc16"
+      },
+      "environment": "host"
+    },
+    {
+      "id": "host-issue-ruff",
+      "command": "python3 -m ruff check api/ tests/test_api_evaluation_options.py tests/test_evaluation_workflow_contract.py tests/integration/test_api_workflows.py",
+      "cwd": ".",
+      "code_sha": "48ea717b5526cc8198f1b395e4285e58263f8564",
+      "started_at": "2026-10-27T04:04:12.701317+00:00",
+      "finished_at": "2026-10-27T04:04:12.791598+00:00",
+      "exit_code": 0,
+      "log": {
+        "path": "execution.txt",
+        "start_line": 422,
+        "end_line": 431,
+        "sha256": "bd9f6556b8bc48cf30d754008f767ad368b2d317679d813d1c2fb4cf3979ebd0"
+      },
+      "environment": "host"
+    },
+    {
+      "id": "host-ci-ruff",
+      "command": "python3 -m ruff check .",
+      "cwd": ".",
+      "code_sha": "48ea717b5526cc8198f1b395e4285e58263f8564",
+      "started_at": "2026-10-27T04:04:12.791881+00:00",
+      "finished_at": "2026-10-27T04:04:12.851366+00:00",
+      "exit_code": 0,
+      "log": {
+        "path": "execution.txt",
+        "start_line": 432,
+        "end_line": 441,
+        "sha256": "ee5099ee2e9c3f8b6f8ab12e19029ff2026e8d3542521d3fc41de3e0ecc0a61f"
+      },
+      "environment": "host"
+    },
+    {
+      "id": "host-ci-black",
+      "command": "python3 -m black --check .",
+      "cwd": ".",
+      "code_sha": "48ea717b5526cc8198f1b395e4285e58263f8564",
+      "started_at": "2026-10-27T04:04:12.851658+00:00",
+      "finished_at": "2026-10-27T04:04:13.567830+00:00",
+      "exit_code": 0,
+      "log": {
+        "path": "execution.txt",
+        "start_line": 442,
+        "end_line": 452,
+        "sha256": "e6547fdfe21a9c9626bea912cf9ae7d9d1efcfbb8e5f55c6178f0913b210d33a"
+      },
+      "environment": "host"
+    },
+    {
+      "id": "host-encoding",
+      "command": "python3 scripts/find_missing_encoding.py",
+      "cwd": ".",
+      "code_sha": "48ea717b5526cc8198f1b395e4285e58263f8564",
+      "started_at": "2026-10-27T04:04:13.568299+00:00",
+      "finished_at": "2026-10-27T04:04:14.196189+00:00",
+      "exit_code": 0,
+      "log": {
+        "path": "execution.txt",
+        "start_line": 453,
+        "end_line": 462,
+        "sha256": "b5be83ce6b1a2e85fa2bc1699b8a5331bbccd0c5e02e8031b24db46375b8d2db"
+      },
+      "environment": "host"
+    },
+    {
+      "id": "host-targeted-pytest",
+      "command": "python3 -m pytest tests/test_api_evaluation_options.py tests/test_api_evaluations.py tests/test_api_evaluation_results.py tests/test_api_ws.py tests/test_api_auth.py tests/test_evaluation_service_async.py tests/test_evaluation_async_flow.py tests/test_evaluation_results_service.py tests/test_evaluation_result_iterations.py tests/test_evaluation_workflow_contract.py tests/test_celery_app.py tests/test_celery_tasks.py tests/test_config_celery.py tests/test_task_submission_authorization.py tests/test_user_evaluation_concurrency.py tests/integration/test_api_workflows.py --no-cov -q",
+      "cwd": ".",
+      "code_sha": "48ea717b5526cc8198f1b395e4285e58263f8564",
+      "started_at": "2026-10-27T04:04:14.196488+00:00",
+      "finished_at": "2026-10-27T04:05:27.226210+00:00",
+      "exit_code": 0,
+      "log": {
+        "path": "execution.txt",
+        "start_line": 463,
+        "end_line": 523,
+        "sha256": "f8d1f6024ec01568c7aef427101d70ad3776dbe7cb40c7b442d811263d6fcdf0"
+      },
+      "environment": "host"
+    },
+    {
+      "id": "api-mypy",
+      "command": "python3 -m mypy api/evaluation_options.py api/services/evaluation_options_service.py api/routes/evaluation_options.py --follow-imports=silent --ignore-missing-imports",
+      "cwd": ".",
+      "code_sha": "48ea717b5526cc8198f1b395e4285e58263f8564",
+      "started_at": "2026-10-27T04:05:54.299479+00:00",
+      "finished_at": "2026-10-27T04:06:04.568930+00:00",
+      "exit_code": 0,
+      "log": {
+        "path": "execution.txt",
+        "start_line": 524,
+        "end_line": 533,
+        "sha256": "3a456b291509140438cef258aa9d3e66b1990c044f46e881dfeecb30a6e34f60"
+      },
+      "environment": "isolated"
+    },
+    {
+      "id": "full-pytest",
+      "command": "python3 -m pytest -m 'not online'",
+      "cwd": ".",
+      "code_sha": "48ea717b5526cc8198f1b395e4285e58263f8564",
+      "started_at": "2026-10-27T04:05:54.419903+00:00",
+      "finished_at": "2026-10-27T04:13:39.204177+00:00",
+      "exit_code": 0,
+      "log": {
+        "path": "execution.txt",
+        "start_line": 534,
+        "end_line": 4260,
+        "sha256": "21214f1b4affc382c442c57b77735b9533ab76abdb5af55cfc8e3aae78940a67"
+      },
+      "environment": "isolated"
+    },
+    {
+      "id": "ci-mypy",
+      "command": "python3 -m mypy src/ --ignore-missing-imports",
+      "cwd": ".",
+      "code_sha": "48ea717b5526cc8198f1b395e4285e58263f8564",
+      "started_at": "2026-10-27T04:06:04.569632+00:00",
+      "finished_at": "2026-10-27T04:06:15.113069+00:00",
+      "exit_code": 0,
+      "log": {
+        "path": "execution.txt",
+        "start_line": 4261,
+        "end_line": 4270,
+        "sha256": "8652b265930e859cd110f7ea883a7fa7075660495ddd8b9dd21ba3aefb2d84a0"
+      },
+      "environment": "isolated"
+    },
+    {
+      "id": "issue-ruff",
+      "command": "python3 -m ruff check api/ tests/test_api_evaluation_options.py tests/test_evaluation_workflow_contract.py tests/integration/test_api_workflows.py",
+      "cwd": ".",
+      "code_sha": "48ea717b5526cc8198f1b395e4285e58263f8564",
+      "started_at": "2026-10-27T04:06:15.113825+00:00",
+      "finished_at": "2026-10-27T04:06:15.716154+00:00",
+      "exit_code": 0,
+      "log": {
+        "path": "execution.txt",
+        "start_line": 4271,
+        "end_line": 4280,
+        "sha256": "802b181a7964c7461af3898b3e95a817c815689ce8e4945ef912d7b6824e3336"
+      },
+      "environment": "isolated"
+    },
+    {
+      "id": "ci-ruff",
+      "command": "python3 -m ruff check .",
+      "cwd": ".",
+      "code_sha": "48ea717b5526cc8198f1b395e4285e58263f8564",
+      "started_at": "2026-10-27T04:06:15.716437+00:00",
+      "finished_at": "2026-10-27T04:06:15.787254+00:00",
+      "exit_code": 0,
+      "log": {
+        "path": "execution.txt",
+        "start_line": 4281,
+        "end_line": 4290,
+        "sha256": "978bd39b58a8b4728484a6c3cebd237a6541d689194e9de50cdf221df5b9c2a7"
+      },
+      "environment": "isolated"
+    },
+    {
+      "id": "ci-black",
+      "command": "python3 -m black --check .",
+      "cwd": ".",
+      "code_sha": "48ea717b5526cc8198f1b395e4285e58263f8564",
+      "started_at": "2026-10-27T04:06:15.787554+00:00",
+      "finished_at": "2026-10-27T04:06:21.607152+00:00",
+      "exit_code": 0,
+      "log": {
+        "path": "execution.txt",
+        "start_line": 4291,
+        "end_line": 4301,
+        "sha256": "d1755173c77fdff0d5ff8a751b5b5fbd8c870e48505ae3d039c463f85b0ebfdf"
+      },
+      "environment": "isolated"
+    },
+    {
+      "id": "encoding",
+      "command": "python3 scripts/find_missing_encoding.py",
+      "cwd": ".",
+      "code_sha": "48ea717b5526cc8198f1b395e4285e58263f8564",
+      "started_at": "2026-10-27T04:06:21.607684+00:00",
+      "finished_at": "2026-10-27T04:06:22.225897+00:00",
+      "exit_code": 0,
+      "log": {
+        "path": "execution.txt",
+        "start_line": 4302,
+        "end_line": 4311,
+        "sha256": "ebca39c4fba6ed539249854971d25644e005d6cff50f3a1b8331ef3cfda702d9"
+      },
+      "environment": "isolated"
+    },
+    {
+      "id": "diff-check-committed",
+      "command": "git diff --check origin/main...HEAD",
+      "cwd": ".",
+      "code_sha": "48ea717b5526cc8198f1b395e4285e58263f8564",
+      "started_at": "2026-10-27T04:13:13.696787+00:00",
+      "finished_at": "2026-10-27T04:13:13.715163+00:00",
+      "exit_code": 0,
+      "log": {
+        "path": "execution.txt",
+        "start_line": 4312,
+        "end_line": 4321,
+        "sha256": "a5b320769ea4e842b31fd80b97b6d42206ae7838b92b3538bff88158bb67fa0f"
+      },
+      "environment": "host"
+    },
+    {
+      "id": "diff-check-working",
+      "command": "git diff --check",
+      "cwd": ".",
+      "code_sha": "48ea717b5526cc8198f1b395e4285e58263f8564",
+      "started_at": "2026-10-27T04:13:13.715578+00:00",
+      "finished_at": "2026-10-27T04:13:13.737662+00:00",
+      "exit_code": 0,
+      "log": {
+        "path": "execution.txt",
+        "start_line": 4322,
+        "end_line": 4331,
+        "sha256": "caaeebcf3c964f7ea15084a00068eb46906e41c5cf216c02e5b582db4169fbad"
+      },
+      "environment": "host"
+    },
+    {
+      "id": "source-matches-main",
+      "command": "git diff --exit-code b86d65eff2d2a76fdd39f54fe7b2794b9e3dc955 HEAD -- api src tests frontend pyproject.toml .github/workflows",
+      "cwd": ".",
+      "code_sha": "48ea717b5526cc8198f1b395e4285e58263f8564",
+      "started_at": "2026-10-27T04:13:13.738187+00:00",
+      "finished_at": "2026-10-27T04:13:13.756102+00:00",
+      "exit_code": 0,
+      "log": {
+        "path": "execution.txt",
+        "start_line": 4332,
+        "end_line": 4341,
+        "sha256": "5c0bb0cd09e1608c77287d68f9b594a2d725df242929b81b55d1a63ceb69f0ba"
+      },
+      "environment": "host"
+    },
+    {
+      "id": "inherited-browser-evidence",
+      "command": "python3 -c 'import json\nfrom pathlib import Path\nbase=Path('\"'\"'docs/superpowers/reports/assets/issue230'\"'\"')\nfor rel,key in [('\"'\"'all/all.json'\"'\"','\"'\"'assertions'\"'\"'),('\"'\"'all/appearance/appearance.json'\"'\"','\"'\"'assertions'\"'\"'),('\"'\"'security/security.json'\"'\"','\"'\"'assertions'\"'\"'),('\"'\"'shell/checks.json'\"'\"','\"'\"'checks'\"'\"')]:\n    d=json.loads((base/rel).read_text())\n    values=d[key]\n    if key == '\"'\"'checks'\"'\"':\n        assert len(values) == 51\n        bad=[x for x in values if not ((isinstance(x,str) and bool(x)) or (isinstance(x,dict) and x.get('\"'\"'width'\"'\"') == x.get('\"'\"'scroll'\"'\"')))]\n    elif isinstance(values,dict):\n        bad=[k for k,v in values.items() if v is not True]\n    else:\n        bad=[x for x in values if x.get('\"'\"'pass'\"'\"') is not True]\n    unknown=d.get('\"'\"'unknown'\"'\"',d.get('\"'\"'unknownRequests'\"'\"',[]))\n    errors=d.get('\"'\"'pageErrors'\"'\"',[])\n    assert not bad and not unknown and not errors, (rel,bad,unknown,errors)\n    print(f'\"'\"'{rel}: {len(values)} passed; unknown=0; pageErrors={len(errors)}'\"'\"')\n'",
+      "cwd": ".",
+      "code_sha": "48ea717b5526cc8198f1b395e4285e58263f8564",
+      "started_at": "2026-10-27T04:13:13.756593+00:00",
+      "finished_at": "2026-10-27T04:13:13.789038+00:00",
+      "exit_code": 0,
+      "log": {
+        "path": "execution.txt",
+        "start_line": 4342,
+        "end_line": 4371,
+        "sha256": "728439e06dde2be5e0c3afa265ec413bb20c0602077251fe3339a8b9609073a3"
+      },
+      "environment": "host"
+    },
+    {
+      "id": "openspec-validate",
+      "command": "comet classic openspec -- validate evaluation-quality-gates-completion --strict",
+      "cwd": ".",
+      "code_sha": "48ea717b5526cc8198f1b395e4285e58263f8564",
+      "started_at": "2026-10-27T04:13:13.789443+00:00",
+      "finished_at": "2026-10-27T04:13:14.348414+00:00",
+      "exit_code": 0,
+      "log": {
+        "path": "execution.txt",
+        "start_line": 4372,
+        "end_line": 4382,
+        "sha256": "f8e47dea89ce393c2930161046ecc7f09b1ce6e59ce72b9a4917d82aa8650021"
+      },
+      "environment": "host"
+    },
+    {
+      "id": "coverage-src",
+      "command": "python3 -m coverage report '--include=src/*' --fail-under=90",
+      "cwd": ".",
+      "code_sha": "48ea717b5526cc8198f1b395e4285e58263f8564",
+      "started_at": "2026-10-27T04:13:39.205676+00:00",
+      "finished_at": "2026-10-27T04:13:39.818603+00:00",
+      "exit_code": 0,
+      "log": {
+        "path": "execution.txt",
+        "start_line": 4383,
+        "end_line": 4493,
+        "sha256": "8ef864f6b2301afd90d4348adfcc078a304d044e10346e5c29a5d6d7dbee5de3"
+      },
+      "environment": "isolated"
+    },
+    {
+      "id": "coverage-api",
+      "command": "python3 -m coverage report '--include=api/*' --fail-under=81",
+      "cwd": ".",
+      "code_sha": "48ea717b5526cc8198f1b395e4285e58263f8564",
+      "started_at": "2026-10-27T04:13:39.818987+00:00",
+      "finished_at": "2026-10-27T04:13:40.267554+00:00",
+      "exit_code": 0,
+      "log": {
+        "path": "execution.txt",
+        "start_line": 4494,
+        "end_line": 4587,
+        "sha256": "25c02b502522f228ebff89e83b532a4a0c50b279acaf76891cc95a711a79b729"
+      },
+      "environment": "isolated"
+    }
+  ],
+  "execution_sha256": "04b122d4fc0f62513c634f72b1cb35fb4e99bd96a1325eb846f3946b2d70041b"
+}
