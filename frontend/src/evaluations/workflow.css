@@ -183,3 +183,37 @@
     grid-template-columns: minmax(0, 1fr);
   }
 }
+
+/* Dashboard inherits each workbench variant; real identifiers can be long. */
+.dashboard-page .design-focus > *,
+.dashboard-page .design-focus .duel-models > * {
+  min-width: 0;
+}
+.dashboard-page .design-focus h2,
+.dashboard-page .design-focus p,
+.dashboard-page .method-list strong {
+  overflow-wrap: anywhere;
+}
+.dashboard-page .detail-list > div {
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 12px;
+}
+.dashboard-page .detail-list dd {
+  margin: 0;
+}
+.dashboard-page .metric-strip > div {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+.dashboard-page .metric-strip strong {
+  font-size: clamp(20px, 2.4vw, 30px);
+}
+.dashboard-page .page-actions {
+  flex-wrap: wrap;
+}
+.dashboard-page .detail-list {
+  display: block;
+  margin-top: 0;
+}
