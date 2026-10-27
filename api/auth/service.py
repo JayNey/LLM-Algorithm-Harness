@@ -32,6 +32,7 @@ PROVIDER_URLS = {
     "openai": "https://api.openai.com/v1",
     "anthropic": "https://api.anthropic.com",
     "siliconflow": "https://api.siliconflow.cn/v1",
+    "deepseek": "https://api.deepseek.com",
 }
 KEY_FIELDS = (
     "id",
@@ -270,7 +271,8 @@ class AuthService:
             provider=key["provider"],
             api_key=SecretStr(raw),
             model=model,
-            timeout=5,
+            timeout=30 if key["provider"] == "deepseek" else 5,
+            enable_thinking=False if key["provider"] == "deepseek" else None,
             retry_max_attempts=1,
             cache=CacheConfig(enabled=False),
         )

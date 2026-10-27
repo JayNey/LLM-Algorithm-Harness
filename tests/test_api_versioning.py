@@ -17,7 +17,7 @@ def schema():
 
 
 def test_api_contract_version_is_visible_in_public_documentation(schema):
-    assert schema["info"]["version"] == "1.1.0"
+    assert schema["info"]["version"] == "1.2.0"
     assert "/api/v1" in schema["info"]["description"]
     assert "Header" in schema["info"]["description"]
     for path, methods in schema["paths"].items():

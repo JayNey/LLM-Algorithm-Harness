@@ -263,7 +263,7 @@ def fake_models(monkeypatch, page, on_list=None):
     return sdk, configs
 
 
-@pytest.mark.parametrize("provider", ["openai", "anthropic", "siliconflow"])
+@pytest.mark.parametrize("provider", ["openai", "anthropic", "siliconflow", "deepseek"])
 def test_models_reads_owned_provider_pages_safely(api, monkeypatch, provider):
     from api.auth.service import PROVIDER_URLS
 
@@ -424,7 +424,7 @@ def test_models_anthropic_sdk_requires_explicit_end_metadata(api, monkeypatch, m
     assert sdk.closed is True
 
 
-@pytest.mark.parametrize("provider", ["openai", "siliconflow"])
+@pytest.mark.parametrize("provider", ["openai", "siliconflow", "deepseek"])
 def test_models_openai_sdk_nonpaginated_contract_is_complete(api, monkeypatch, provider):
     from openai.pagination import SyncPage
     from openai.types import Model
@@ -518,13 +518,14 @@ def test_monitor_models_default_is_explicitly_static(api, monkeypatch):
         "openai",
         "anthropic",
         "siliconflow",
+        "deepseek",
         "local",
     }
     assert configs == []
     assert response.headers["cache-control"] == "no-store"
 
 
-@pytest.mark.parametrize("provider", ["openai", "anthropic", "siliconflow"])
+@pytest.mark.parametrize("provider", ["openai", "anthropic", "siliconflow", "deepseek"])
 @pytest.mark.parametrize("count,complete", [(2, True), (500, False), (0, True)])
 def test_monitor_models_matches_owned_dynamic_listing(api, monkeypatch, provider, count, complete):
     app, client, users = api

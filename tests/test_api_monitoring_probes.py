@@ -310,6 +310,7 @@ def test_providers_catalog_is_offline_and_config_view_has_no_secrets(probes):
         "anthropic",
         "local",
         "siliconflow",
+        "deepseek",
     }
     assert "gpt-3.5-turbo" in next(
         item["models"] for item in result["providers"] if item["provider"] == "openai"

@@ -9,7 +9,7 @@ import pytest
 from pydantic import SecretStr
 
 from src.llm_client import LLMClient
-from src.models import LLMConfig, TokenUsage
+from src.models import CacheConfig, LLMConfig, TokenUsage
 
 
 @pytest.fixture
@@ -56,6 +56,59 @@ def test_initialize_anthropic_client(anthropic_config):
 
         mock_anthropic.assert_called_once_with(api_key="test-anthropic-key", max_retries=0)
         assert client.config.provider == "anthropic"
+
+
+def test_deepseek_uses_official_endpoint_and_dedicated_environment_key(monkeypatch):
+    monkeypatch.setenv("DEEPSEEK_API_KEY", "deepseek-test-secret")
+    monkeypatch.setenv("OPENAI_BASE_URL", "https://untrusted.example/v1")
+    config = LLMConfig(provider="deepseek", api_key="", model="deepseek-flash")
+    with patch("src.llm_client.OpenAI") as sdk:
+        client = LLMClient(config)
+    sdk.assert_called_once_with(
+        api_key="deepseek-test-secret", max_retries=0, base_url="https://api.deepseek.com"
+    )
+    assert "deepseek-test-secret" not in repr(client._resolved_api_key)
+
+
+def test_deepseek_rejects_nonofficial_endpoint():
+    config = LLMConfig(
+        provider="deepseek",
+        api_key="deepseek-test-secret",
+        model="deepseek-flash",
+        base_url="https://untrusted.example/v1",
+    )
+    with patch("src.llm_client.OpenAI") as sdk:
+        with pytest.raises(ValueError, match="official"):
+            LLMClient(config)
+    sdk.assert_not_called()
+
+
+def test_deepseek_generation_uses_openai_protocol():
+    config = LLMConfig(
+        provider="deepseek",
+        api_key="deepseek-test-secret",
+        model="deepseek-flash",
+        enable_thinking=False,
+        cache=CacheConfig(enabled=False),
+    )
+    with patch("src.llm_client.OpenAI") as sdk:
+        response = Mock()
+        response.choices = [Mock()]
+        response.choices[0].message.content = "def solution(a, b): return a + b"
+        response.choices[0].finish_reason = "stop"
+        response.usage.prompt_tokens = 20
+        response.usage.completion_tokens = 12
+        response.usage.total_tokens = 32
+        response.model = "deepseek-flash"
+        sdk.return_value.chat.completions.create.return_value = response
+        client = LLMClient(config)
+        result = client.generate("Add two integers")
+    assert result.text == "def solution(a, b): return a + b"
+    assert result.usage.total_tokens == 32
+    sdk.return_value.chat.completions.create.assert_called_once()
+    assert sdk.return_value.chat.completions.create.call_args.kwargs["extra_body"] == {
+        "thinking": {"type": "disabled"}
+    }
 
 
 def test_initialize_unsupported_provider():

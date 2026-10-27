@@ -1,0 +1,182 @@
+{
+  "generated_at": "2026-10-27T09:36:21.929175+00:00",
+  "final_script_sha": "2dd4188b35d56db35242851cd80b410ca13c4f25",
+  "live_runtime_sha": "9fab9b7efc7bc5819768877ff9a67a5fc7f1f12c",
+  "runtime_source_unchanged_after_live": true,
+  "latest_main_included": "7efbecb23d406b3cab9b496d6fee4a267a899d74",
+  "checks": [
+    {
+      "id": "full-pytest",
+      "command": "<private-runtime>/venv/bin/python -m pytest -m 'not online'",
+      "cwd": ".",
+      "code_sha": "9fab9b7efc7bc5819768877ff9a67a5fc7f1f12c",
+      "started_at": "2026-10-27T09:24:46.942618+00:00",
+      "finished_at": "2026-10-27T09:31:26.540665+00:00",
+      "exit_code": 0
+    },
+    {
+      "id": "coverage-src",
+      "command": "<private-runtime>/venv/bin/python -m coverage report '--include=src/*' --fail-under=90",
+      "cwd": ".",
+      "code_sha": "9fab9b7efc7bc5819768877ff9a67a5fc7f1f12c",
+      "started_at": "2026-10-27T09:31:26.552097+00:00",
+      "finished_at": "2026-10-27T09:31:27.124092+00:00",
+      "exit_code": 0
+    },
+    {
+      "id": "coverage-api",
+      "command": "<private-runtime>/venv/bin/python -m coverage report '--include=api/*' --fail-under=81",
+      "cwd": ".",
+      "code_sha": "9fab9b7efc7bc5819768877ff9a67a5fc7f1f12c",
+      "started_at": "2026-10-27T09:31:27.124860+00:00",
+      "finished_at": "2026-10-27T09:31:27.524609+00:00",
+      "exit_code": 0
+    },
+    {
+      "id": "ci-mypy",
+      "command": "<private-runtime>/venv/bin/python -m mypy src/ --ignore-missing-imports",
+      "cwd": ".",
+      "code_sha": "9fab9b7efc7bc5819768877ff9a67a5fc7f1f12c",
+      "started_at": "2026-10-27T09:31:27.525341+00:00",
+      "finished_at": "2026-10-27T09:31:28.530391+00:00",
+      "exit_code": 0
+    },
+    {
+      "id": "frontend-test",
+      "command": "npm test",
+      "cwd": "frontend",
+      "code_sha": "9fab9b7efc7bc5819768877ff9a67a5fc7f1f12c",
+      "started_at": "2026-10-27T09:21:23.667164+00:00",
+      "finished_at": "2026-10-27T09:21:25.845587+00:00",
+      "exit_code": 0
+    },
+    {
+      "id": "frontend-lint",
+      "command": "npm run lint",
+      "cwd": "frontend",
+      "code_sha": "9fab9b7efc7bc5819768877ff9a67a5fc7f1f12c",
+      "started_at": "2026-10-27T09:21:25.846529+00:00",
+      "finished_at": "2026-10-27T09:21:29.528823+00:00",
+      "exit_code": 0
+    },
+    {
+      "id": "frontend-tsc",
+      "command": "npx tsc -b",
+      "cwd": "frontend",
+      "code_sha": "9fab9b7efc7bc5819768877ff9a67a5fc7f1f12c",
+      "started_at": "2026-10-27T09:21:29.529660+00:00",
+      "finished_at": "2026-10-27T09:21:32.139862+00:00",
+      "exit_code": 0
+    },
+    {
+      "id": "frontend-build",
+      "command": "npm run build",
+      "cwd": "frontend",
+      "code_sha": "9fab9b7efc7bc5819768877ff9a67a5fc7f1f12c",
+      "started_at": "2026-10-27T09:21:32.140536+00:00",
+      "finished_at": "2026-10-27T09:21:35.516696+00:00",
+      "exit_code": 0
+    },
+    {
+      "id": "final-live-guards",
+      "command": "node scripts/verify-evaluations-live.mjs --self-test",
+      "cwd": "frontend",
+      "code_sha": "2dd4188b35d56db35242851cd80b410ca13c4f25",
+      "started_at": "2026-10-27T09:35:29.939334+00:00",
+      "finished_at": "2026-10-27T09:35:30.125118+00:00",
+      "exit_code": 0
+    },
+    {
+      "id": "final-live-eslint",
+      "command": "npx eslint scripts/verify-evaluations-live.mjs",
+      "cwd": "frontend",
+      "code_sha": "2dd4188b35d56db35242851cd80b410ca13c4f25",
+      "started_at": "2026-10-27T09:35:30.125567+00:00",
+      "finished_at": "2026-10-27T09:35:31.388346+00:00",
+      "exit_code": 0
+    },
+    {
+      "id": "ruff",
+      "command": "<private-runtime>/venv/bin/python -m ruff check api src tests/test_llm_client.py tests/test_api_auth.py tests/test_api_evaluation_options.py tests/test_api_monitoring_probes.py tests/test_api_versioning.py",
+      "cwd": ".",
+      "code_sha": "2dd4188b35d56db35242851cd80b410ca13c4f25",
+      "started_at": "2026-10-27T09:35:31.388714+00:00",
+      "finished_at": "2026-10-27T09:35:31.476523+00:00",
+      "exit_code": 0
+    },
+    {
+      "id": "black",
+      "command": "<private-runtime>/venv/bin/python -m black --check api/auth/models.py api/auth/service.py api/services/evaluation_options_service.py api/documentation.py src/models.py src/llm_client.py tests/test_llm_client.py tests/test_api_auth.py tests/test_api_evaluation_options.py tests/test_api_monitoring_probes.py tests/test_api_versioning.py",
+      "cwd": ".",
+      "code_sha": "2dd4188b35d56db35242851cd80b410ca13c4f25",
+      "started_at": "2026-10-27T09:35:31.476773+00:00",
+      "finished_at": "2026-10-27T09:35:32.018963+00:00",
+      "exit_code": 0
+    },
+    {
+      "id": "api-mypy",
+      "command": "<private-runtime>/venv/bin/python -m mypy api/auth/models.py api/auth/service.py api/services/evaluation_options_service.py --ignore-missing-imports",
+      "cwd": ".",
+      "code_sha": "2dd4188b35d56db35242851cd80b410ca13c4f25",
+      "started_at": "2026-10-27T09:35:32.019398+00:00",
+      "finished_at": "2026-10-27T09:35:33.183658+00:00",
+      "exit_code": 0
+    },
+    {
+      "id": "openspec",
+      "command": "comet classic openspec -- validate evaluation-live-evidence --strict",
+      "cwd": ".",
+      "code_sha": "2dd4188b35d56db35242851cd80b410ca13c4f25",
+      "started_at": "2026-10-27T09:35:33.183982+00:00",
+      "finished_at": "2026-10-27T09:35:33.625917+00:00",
+      "exit_code": 0
+    },
+    {
+      "id": "diff-check",
+      "command": "git diff --check",
+      "cwd": ".",
+      "code_sha": "2dd4188b35d56db35242851cd80b410ca13c4f25",
+      "started_at": "2026-10-27T09:35:33.626197+00:00",
+      "finished_at": "2026-10-27T09:35:33.648950+00:00",
+      "exit_code": 0
+    }
+  ],
+  "summary": {
+    "pytest_passed": 3376,
+    "pytest_skipped": 11,
+    "pytest_warnings": 128,
+    "coverage_total_percent": 92.67,
+    "coverage_src_percent": 91.35,
+    "coverage_api_percent": 94.86,
+    "frontend_tests": 258,
+    "browser_fixture_assertions": 149,
+    "appearance_fixture_assertions": 216,
+    "live_guard_assertions": 16
+  },
+  "recovered_environment_failure": {
+    "id": "full-pytest",
+    "command": "<private-runtime>/venv/bin/python -m pytest -m 'not online'",
+    "cwd": ".",
+    "code_sha": "9fab9b7efc7bc5819768877ff9a67a5fc7f1f12c",
+    "started_at": "2026-10-27T09:15:30.185412+00:00",
+    "finished_at": "2026-10-27T09:23:13.210893+00:00",
+    "exit_code": 1,
+    "reason": "14 nginx setup errors: sandbox denies local socket bind; rerun identical suite with localhost permission passed"
+  },
+  "regression_guard": {
+    "red_exit_code": 1,
+    "red_reason": "snapshot/subscribed-only socket was incorrectly accepted",
+    "green_exit_code": 0,
+    "historical_failure_accepted": false,
+    "historical_success_accepted": true,
+    "additional_provider_calls": 0
+  },
+  "independent_review": {
+    "status": "passed after targeted follow-up",
+    "reviewed_fix_sha": "2dd4188b35d56db35242851cd80b410ca13c4f25",
+    "critical_remaining": 0,
+    "important_remaining": 0,
+    "minor_remaining": 0
+  },
+  "log_policy": "Only command metadata and counts are exported; raw logs/credentials stay private. <private-runtime> denotes the isolated directory actually used."
+}

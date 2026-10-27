@@ -1,4 +1,9 @@
-export const providers = ['openai', 'anthropic', 'siliconflow'] as const
+export const providers = [
+  'openai',
+  'anthropic',
+  'siliconflow',
+  'deepseek',
+] as const
 
 export type Provider = (typeof providers)[number]
 
@@ -23,6 +28,7 @@ const labels: Record<Provider, string> = {
   openai: 'OpenAI',
   anthropic: 'Anthropic',
   siliconflow: 'SiliconFlow',
+  deepseek: 'DeepSeek',
 }
 
 function isProvider(value: unknown): value is Provider {
