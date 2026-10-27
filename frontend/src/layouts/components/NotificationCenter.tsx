@@ -45,7 +45,7 @@ export function NotificationCenter({ owner }: { owner: string }) {
           </span>
         }
         open={open}
-        focusTriggerAfterClose={false}
+        focusable={{ focusTriggerAfterClose: false }}
         onClose={() => setOpenedAt(null)}
         afterOpenChange={(value) => {
           if (!value) trigger.current?.focus()

@@ -242,7 +242,7 @@ function Shell() {
         title="工作台导航"
         placement="left"
         open={drawerOpen}
-        focusTriggerAfterClose={false}
+        focusable={{ focusTriggerAfterClose: false }}
         onClose={() => setOpenedAt(null)}
         afterOpenChange={(open) => {
           if (!open) menu.current?.focus()
