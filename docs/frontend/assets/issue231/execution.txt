@@ -397,7 +397,7 @@ dist/assets/button-BT8enb1R.js                  253.79 kB │ gzip:  86.22 kB
 dist/assets/index-DSifjFAg.js                   443.73 kB │ gzip: 142.67 kB
 dist/assets/useTaskProgress-Cc6ov_Jw.js       1,136.74 kB │ gzip: 377.86 kB
 
-[plugin builtin:vite-reporter] 
+[plugin builtin:vite-reporter]
 (!) Some chunks are larger than 500 kB after minification. Consider:
 - Using dynamic import() to code-split the application
 - Use build.rolldownOptions.output.codeSplitting to improve chunking: https://rolldown.rs/reference/OutputOptions.codeSplitting
@@ -4584,4 +4584,3 @@ api/services/evaluation_service.py                                   230     17 
 api/services/experiment_service.py                                   186     20  89.25%
 ---------------------------------------------------------------------------------------
 TOTAL                                                               6769    348  94.86%
-

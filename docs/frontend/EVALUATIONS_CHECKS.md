@@ -4,7 +4,7 @@
 
 执行日期：2026-10-27（Asia/Shanghai）。基于 [PR #286](https://github.com/JayNey/LLM-Algorithm-Harness/pull/286) 的提交 `545d62d46ef5c237731d9e57c9fddb7159665a0d` 创建分支 `codex/tweak/20261027/evaluation-quality-gates-completion`，合入当时最新 main `b86d65eff2d2a76fdd39f54fe7b2794b9e3dc955`，验证代码提交为 `48ea717b5526cc8198f1b395e4285e58263f8564`。
 
-本轮新增内容为检查记录、原始日志及工作流文档；`api/`、`src/`、`tests/`、`frontend/`、`pyproject.toml` 和 CI 配置相对上述 main 无差异。没有修改认证、资源隔离、评估行为、mypy 的 Python 3.10 目标或任何覆盖率门槛。源码树 ID、环境版本、命令起止时间、退出码及日志行号见 [commands.json](assets/issue231/commands.json)，完整输出见 [execution.txt](assets/issue231/execution.txt)。记录的代码 SHA 是实际执行时 HEAD；后续仅文档或 Comet 提交不冒充重新运行。
+本轮新增内容为检查记录、原始日志及工作流文档；`api/`、`src/`、`tests/`、`frontend/`、`pyproject.toml` 和 CI 配置相对上述 main 无差异。没有修改认证、资源隔离、评估行为、mypy 的 Python 3.10 目标或任何覆盖率门槛。源码树 ID、环境版本、命令起止时间、退出码及日志行号见 [commands.json](assets/issue231/commands.json)，完整输出（归档时仅去除 ANSI 色码、行尾空白及末尾空行）见 [execution.txt](assets/issue231/execution.txt)。记录的代码 SHA 是实际执行时 HEAD；后续仅文档或 Comet 提交不冒充重新运行。
 
 ## 环境与复现
 

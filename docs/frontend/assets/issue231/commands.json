@@ -1,4 +1,5 @@
 {
+  "log_normalization": "ANSI color escapes and trailing whitespace removed; exactly one final newline. Command output content otherwise preserved.",
   "ci_main_snapshot": {
     "conclusion": "",
     "headSha": "b86d65eff2d2a76fdd39f54fe7b2794b9e3dc955",
@@ -66,10 +67,10 @@
     ],
     "status": "in_progress",
     "url": "https://github.com/JayNey/LLM-Algorithm-Harness/actions/runs/40444425429",
-    "observed_at": "2026-10-27T04:14:26.229175+00:00"
+    "observed_at": "2026-10-27T04:15:45.501657+00:00"
   },
   "schema": "evaluation-quality-gates.v1",
-  "generated_at": "2026-10-27T04:14:26.229235+00:00",
+  "generated_at": "2026-10-27T04:15:45.501766+00:00",
   "code_sha": "48ea717b5526cc8198f1b395e4285e58263f8564",
   "main_sha": "b86d65eff2d2a76fdd39f54fe7b2794b9e3dc955",
   "pr286_sha": "545d62d46ef5c237731d9e57c9fddb7159665a0d",
@@ -484,7 +485,7 @@
         "path": "execution.txt",
         "start_line": 319,
         "end_line": 406,
-        "sha256": "6c7f1b3aaf16d42fc1af834a00c03cebfe5654d943d64c5981914ece6b46f425"
+        "sha256": "c04d4f6ddbb8964801036c191de78dde9852850cfda66cd03bf741c7b7638582"
       },
       "environment": "host"
     },
@@ -803,11 +804,11 @@
       "log": {
         "path": "execution.txt",
         "start_line": 4494,
-        "end_line": 4587,
-        "sha256": "25c02b502522f228ebff89e83b532a4a0c50b279acaf76891cc95a711a79b729"
+        "end_line": 4586,
+        "sha256": "fe07a1e701b216cf27d12992f83351135abd8f20a294e28f090c29254b281dfd"
       },
       "environment": "isolated"
     }
   ],
-  "execution_sha256": "04b122d4fc0f62513c634f72b1cb35fb4e99bd96a1325eb846f3946b2d70041b"
+  "execution_sha256": "33d0abcbc8bfdd05e6845ad67bb4566fb6d06ad65be8591eaa6360d935e65b49"
 }
