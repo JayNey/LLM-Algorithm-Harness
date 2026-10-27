@@ -1,0 +1,327 @@
+{
+  "scenario": "security",
+  "source": {
+    "head": "f507b568caf21abd7e325a88a7851afce5a37a03",
+    "dirty": "M scripts/verify-evaluations.mjs\n M ../tests/integration/test_api_workflows.py\n?? ../docs/superpowers/reports/assets/issue230/\n?? ../openspec/changes/evaluation-auth-integration/"
+  },
+  "layer": "browser-fixture (not backend E2E)",
+  "assertions": [
+    {
+      "name": "真实 React StrictMode 重放、卸载和换 marker 拒绝旧 actions 与迟到201",
+      "pass": true,
+      "result": {
+        "strictReplay": {
+          "owner": "replay-session",
+          "model": "initialized-model",
+          "events": [
+            {
+              "event": "child-setup-before",
+              "owner": "replay-session"
+            },
+            {
+              "event": "state",
+              "owner": "replay-session",
+              "model": "initialized-model"
+            },
+            {
+              "event": "child-setup-after",
+              "model": "initialized-model"
+            },
+            {
+              "event": "child-setup-before",
+              "owner": "replay-session"
+            },
+            {
+              "event": "state",
+              "owner": "replay-session",
+              "model": "initialized-model"
+            },
+            {
+              "event": "child-setup-after",
+              "model": "initialized-model"
+            }
+          ],
+          "stores": 1
+        },
+        "unmountEditing": {
+          "immediatelyAfterUnmount": "initialized-model",
+          "immediatelyAfterSubmit": "editing",
+          "immediatelyAfterRetry": {
+            "phase": "editing",
+            "evaluationId": null
+          },
+          "owner": null,
+          "model": "",
+          "calls": []
+        },
+        "unmountPending": {
+          "calls": [
+            {
+              "method": "POST",
+              "url": "/evaluations",
+              "payload": {
+                "api_key_id": "key-1",
+                "model": "initialized-model",
+                "problem_ids": [
+                  "p-1"
+                ],
+                "strategy_names": [
+                  "direct"
+                ]
+              }
+            }
+          ],
+          "owner": null,
+          "model": "",
+          "evaluationId": null
+        },
+        "markerChange": {
+          "calls": [
+            {
+              "method": "POST",
+              "url": "/evaluations",
+              "payload": {
+                "api_key_id": "key-1",
+                "model": "initialized-model",
+                "problem_ids": [
+                  "p-1"
+                ],
+                "strategy_names": [
+                  "direct"
+                ]
+              }
+            }
+          ],
+          "distinct": true,
+          "oldOwner": null,
+          "oldModel": "",
+          "oldId": null,
+          "newOwner": "marker-new",
+          "newModel": "initialized-model"
+        }
+      }
+    },
+    {
+      "name": "共享 HTTP 认证 success",
+      "pass": true,
+      "results": [
+        {
+          "status": "fulfilled"
+        },
+        {
+          "status": "fulfilled"
+        }
+      ],
+      "refreshes": 1,
+      "denied": 2
+    },
+    {
+      "name": "共享 HTTP 认证 failure",
+      "pass": true,
+      "results": [
+        {
+          "status": "rejected",
+          "code": 401
+        },
+        {
+          "status": "rejected",
+          "code": 401
+        }
+      ],
+      "refreshes": 1,
+      "denied": 2
+    },
+    {
+      "name": "共享 HTTP 认证 forbidden",
+      "pass": true,
+      "results": [
+        {
+          "status": "rejected",
+          "code": 403
+        },
+        {
+          "status": "rejected",
+          "code": 403
+        }
+      ],
+      "refreshes": 0,
+      "denied": 2
+    }
+  ],
+  "requests": [
+    {
+      "mode": "auth-success",
+      "path": "/users/me",
+      "method": "GET",
+      "authorization": null
+    },
+    {
+      "mode": "auth-success",
+      "path": "/users/me",
+      "method": "GET",
+      "authorization": null
+    },
+    {
+      "mode": "auth-success",
+      "path": "/evaluations",
+      "method": "GET",
+      "authorization": null
+    },
+    {
+      "mode": "auth-success",
+      "path": "/api-keys",
+      "method": "GET",
+      "authorization": null
+    },
+    {
+      "mode": "auth-success",
+      "path": "/evaluation-options",
+      "method": "GET",
+      "authorization": null
+    },
+    {
+      "mode": "auth-success",
+      "path": "/auth/refresh",
+      "method": "POST",
+      "csrf": "csrf-before",
+      "authorization": null
+    },
+    {
+      "mode": "auth-success",
+      "path": "/api-keys",
+      "method": "GET",
+      "authorization": null
+    },
+    {
+      "mode": "auth-success",
+      "path": "/evaluation-options",
+      "method": "GET",
+      "authorization": null
+    },
+    {
+      "mode": "auth-success",
+      "path": "/evaluations",
+      "method": "POST",
+      "csrf": "csrf-after",
+      "authorization": null
+    },
+    {
+      "mode": "auth-failure",
+      "path": "/users/me",
+      "method": "GET",
+      "authorization": null
+    },
+    {
+      "mode": "auth-failure",
+      "path": "/users/me",
+      "method": "GET",
+      "authorization": null
+    },
+    {
+      "mode": "auth-failure",
+      "path": "/evaluations",
+      "method": "GET",
+      "authorization": null
+    },
+    {
+      "mode": "auth-failure",
+      "path": "/api-keys",
+      "method": "GET",
+      "authorization": null
+    },
+    {
+      "mode": "auth-failure",
+      "path": "/evaluation-options",
+      "method": "GET",
+      "authorization": null
+    },
+    {
+      "mode": "auth-failure",
+      "path": "/auth/refresh",
+      "method": "POST",
+      "csrf": "csrf-before",
+      "authorization": null
+    },
+    {
+      "mode": "auth-forbidden",
+      "path": "/users/me",
+      "method": "GET",
+      "authorization": null
+    },
+    {
+      "mode": "auth-forbidden",
+      "path": "/users/me",
+      "method": "GET",
+      "authorization": null
+    },
+    {
+      "mode": "auth-forbidden",
+      "path": "/evaluations",
+      "method": "GET",
+      "authorization": null
+    },
+    {
+      "mode": "auth-forbidden",
+      "path": "/api-keys",
+      "method": "GET",
+      "authorization": null
+    },
+    {
+      "mode": "auth-forbidden",
+      "path": "/evaluation-options",
+      "method": "GET",
+      "authorization": null
+    },
+    {
+      "mode": "late-identity-200",
+      "path": "/auth/login",
+      "method": "POST"
+    },
+    {
+      "mode": "late-identity-200",
+      "path": "/users/me",
+      "method": "GET"
+    },
+    {
+      "mode": "late-identity-200",
+      "path": "/auth/login",
+      "method": "POST"
+    },
+    {
+      "mode": "late-identity-200",
+      "path": "/users/me",
+      "method": "GET"
+    }
+  ],
+  "pageErrors": [],
+  "unknown": [],
+  "screenshots": [
+    "auth-success.png",
+    "auth-failure.png",
+    "auth-forbidden.png"
+  ],
+  "replaced": [
+    "WebSocket progress: in-memory fixture (no real upstream connection)",
+    "HTTP /api/v1/users/me",
+    "HTTP /api/v1/api-keys",
+    "HTTP /api/v1/evaluation-options and children",
+    "HTTP /api/v1/evaluations create/start/get",
+    "results scenario: HTTP /api/v1/results list/detail",
+    "entries scenario: HTTP /api/v1/results list (empty fixture)",
+    "localStorage session marker (no credentials)",
+    "security lifecycle only: isolated HTML and in-memory auth/HTTP transport",
+    "security HTTP: route-controlled Cookie/CSRF and auth API responses; real shared Axios client"
+  ],
+  "real": [
+    "React StrictMode",
+    "router",
+    "session provider",
+    "creation store",
+    "evaluation client"
+  ],
+  "pass": false,
+  "failure": {
+    "message": "Late identity 200 changed the new session\n+ actual - expected\n\n  {\n+   csrfToken: 'csrf-old-user',\n+   expiresAt: 1793072492632,\n+   marker: 'f4577c55-a5ea-4d7a-ae03-35f4ab8320e2',\n+   username: 'old-user'\n-   csrfToken: 'csrf-new-user',\n-   expiresAt: 1793072492635,\n-   marker: '4d2c4e77-700d-4553-a45d-56b6d87762a9',\n-   username: 'new-user'\n  }\n",
+    "stack": "AssertionError [ERR_ASSERTION]: Late identity 200 changed the new session\n+ actual - expected\n\n  {\n+   csrfToken: 'csrf-old-user',\n+   expiresAt: 1793072492632,\n+   marker: 'f4577c55-a5ea-4d7a-ae03-35f4ab8320e2',\n+   username: 'old-user'\n-   csrfToken: 'csrf-new-user',\n-   expiresAt: 1793072492635,\n-   marker: '4d2c4e77-700d-4553-a45d-56b6d87762a9',\n-   username: 'new-user'\n  }\n\n    at lateIdentityScenario (file:///Users/charlesleclerc/LLM-Algorithm-Harness/frontend/scripts/verify-evaluations.mjs:1423:14)\n    at runNextTicks (node:internal/process/task_queues:65:5)\n    at process.processImmediate (node:internal/timers:541:9)\n    at async file:///Users/charlesleclerc/LLM-Algorithm-Harness/frontend/scripts/verify-evaluations.mjs:2840:47"
+  }
+}

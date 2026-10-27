@@ -1,0 +1,1 @@
+PASS: 51 browser checks; Mock regions make no business requests, real create reads are declared, no unknown requests or page errors. Evidence: /Users/charlesleclerc/LLM-Algorithm-Harness/docs/superpowers/reports/assets/issue230/shell

@@ -1,0 +1,166 @@
+{
+  "date": "2026-10-27",
+  "sourceHead": "45d910fa92dd737ee562973fd24342d02ea50db4",
+  "node": "v26.8.1",
+  "python": "3.11.16",
+  "checks": [
+    {
+      "layer": "offline-http",
+      "command": "python3 -m pytest tests/integration/test_api_workflows.py tests/test_api_evaluation_options.py tests/test_evaluation_workflow_contract.py tests/test_api_auth.py -o addopts= -q",
+      "exitCode": 0,
+      "result": "199 passed"
+    },
+    {
+      "layer": "frontend-unit",
+      "command": "npm test",
+      "exitCode": 0,
+      "result": "257 passed"
+    },
+    {
+      "layer": "frontend-build",
+      "command": "npm run build",
+      "exitCode": 0,
+      "result": "TypeScript and Vite build passed"
+    },
+    {
+      "layer": "lint",
+      "command": "npm run lint",
+      "exitCode": 0,
+      "result": "0 errors, 2 existing warnings"
+    },
+    {
+      "layer": "format",
+      "command": "npx prettier --check scripts/verify-evaluations.mjs scripts/verify-shell.mjs src/auth/http.ts src/store/auth.ts",
+      "exitCode": 0,
+      "result": "passed"
+    },
+    {
+      "layer": "python-format",
+      "command": "python3 -m black --check tests/integration/test_api_workflows.py",
+      "exitCode": 0,
+      "result": "passed"
+    },
+    {
+      "layer": "python-lint",
+      "command": "python3 -m ruff check tests/integration/test_api_workflows.py",
+      "exitCode": 0,
+      "result": "passed"
+    },
+    {
+      "layer": "wheel",
+      "command": "python3 -m pip wheel . --no-deps --no-build-isolation --wheel-dir /private/tmp/issue230-wheel",
+      "exitCode": 0,
+      "result": "built"
+    },
+    {
+      "layer": "browser-all",
+      "command": "node scripts/verify-evaluations.mjs --scenario all",
+      "exitCode": 0,
+      "result": "149 assertions plus appearance216"
+    },
+    {
+      "layer": "browser-security",
+      "command": "node scripts/verify-evaluations.mjs --scenario security",
+      "exitCode": 0,
+      "result": "8 assertions"
+    },
+    {
+      "layer": "browser-shell",
+      "command": "node scripts/verify-shell.mjs",
+      "exitCode": 0,
+      "result": "51 checks"
+    },
+    {
+      "layer": "red-identity",
+      "command": "security fixture before marker ownership fix",
+      "exitCode": 1,
+      "result": "Late identity200 changed new session"
+    },
+    {
+      "layer": "red-csrf",
+      "command": "Focused wrong-CSRF test with process-local csrf_matches always True",
+      "exitCode": 1,
+      "result": "Expected403, received201"
+    }
+  ],
+  "sha256": {
+    "all/all.json": "dbdf21f52216e30b884db5b62ec729066b2d1f807da3475355162e16e185b109",
+    "all/appearance/appearance.json": "714e2d79a3af48baf0eacf17ecbd300778b641cdb53d1cf38403c975635d8b13",
+    "all/appearance/create-orbit-light-320.png": "6c0620d3534adb30fa109ec7794e353e8f1a4a5e968237b494d1b392120d3c8b",
+    "all/appearance/result-detail-studio-dark-1440.png": "2bc76770a9ca94afe71a0df86b23104789292ad78b456e47ab063ec503301b3a",
+    "all/appearance/task-detail-studio-light-768.png": "2874efe39fc4b00a524a8c2228ef90d047862b46093d4165703e27c4a1f7b46f",
+    "all/appearance/task-list-precision-dark-390.png": "dae3241a5ef5a69d657a08bffc546c5ac6a31f39da10dc1eb94e481e4f2f890e",
+    "all/auth-failure.png": "0e3f7fb689d3a11b4ea72146a5a40114a20f260927478318fcc7afebae221b7b",
+    "all/auth-forbidden.png": "3db1347ce151e002e0a99702c694e52cd44dfeb623268f9eec550ad9b044cbac",
+    "all/auth-success.png": "3db1347ce151e002e0a99702c694e52cd44dfeb623268f9eec550ad9b044cbac",
+    "all/create-1440.png": "566e8568fa665d1fb8dfa95e1b62b85c272eeb13ac63f0975d43856a5149d7c0",
+    "all/create-320.png": "b782e502d72fcab5cc051e43918093b99e99ef4e626fc0330fbc3e4bf88652e0",
+    "all/create-390.png": "c6ba0e9fe47336b9b0f0677cb1cc0d7f00bf5ca7707d92e523db62a5b5fcf8d7",
+    "all/create-768.png": "28b2830513f11c5d0ed7ff84c30bcede8a86f6ad8d6b7329411d29adb204c10f",
+    "all/create-orbit-dark.png": "566e8568fa665d1fb8dfa95e1b62b85c272eeb13ac63f0975d43856a5149d7c0",
+    "all/create-orbit-light.png": "a117479dd4fc08aa5d4842ec21df08db27b27503b3b9d87059959b3f17d634a4",
+    "all/create-precision-dark.png": "1eb15fe6d3fb7a7ba84f5f457be0b55867a85fc35b94dfe4e7f91898fa090988",
+    "all/create-precision-light.png": "daa0a5c10f60e4199293cba3a916428f1eda671e9918ac768eddc92a50a8d3b3",
+    "all/create-start-error.png": "179b77f45a550784ed445b5b7bfbafdca73037d35a429675fe6b8e8ccdae0c00",
+    "all/create-studio-dark.png": "05a62d4b2bbee7f5871266b35bc2596eb20312a0ce7e7e24be99cd279538c230",
+    "all/create-studio-light.png": "f3b3aa3c382b77c4cffd184346b297577c0ef607d3ba2fbcbbda60ad4d70f1c2",
+    "all/detail-orbit-dark-1440.png": "bf258c0ca6f8d51b31e45fb09d21c87e3049d22fc0b6f1c225b82ee224617aae",
+    "all/detail-orbit-dark-320.png": "e8f02efb6bfd99acd7fb0e68c262c8afd94750397029aa33b67ac3f089972bb8",
+    "all/detail-orbit-light-1440.png": "99e03347a5d8f034454b5dfad9a81e7481f54210c7d57c1caf097fa7fe15267f",
+    "all/detail-orbit-light-320.png": "652a8f62a96ab6c41d6404625f5d1be68fbbfb2d444e0965b082809281837457",
+    "all/detail-precision-dark-1440.png": "3241264d882f1d8fb7c10c22bd9b4e0f43550612ece813ea07ceaa58950157ac",
+    "all/detail-precision-dark-320.png": "86cf400c4c3f98e5d65b34dbf14ffb37e4d0748490e0e9964acebc283e78448c",
+    "all/detail-precision-light-1440.png": "72b586dbc0eb1c729b7a15fc73f1387115491a2457b8b042abe261762c1c91f9",
+    "all/detail-precision-light-320.png": "e8584d651daa6e9ed0ff4420905e22981b77e7a011d7fe352af3475e9730c285",
+    "all/detail-studio-dark-1440.png": "9185722b8c8814de938020d937106c619d588246a706aa340b44eda30238b094",
+    "all/detail-studio-dark-320.png": "9a88588ea221663fc986f853cdbf036ee73c94a0aeff260f8af177de0a83a5f9",
+    "all/detail-studio-light-1440.png": "a72c9b38e7c2e141ff74becb568b7eb5f20c14dae77755cc38fa0c0750ed96b1",
+    "all/detail-studio-light-320.png": "9d727f492fdb6ac94a5f190bb81cd81172fecf0bd922b91b369db0822cb10982",
+    "all/entries-create-page.png": "3932db6deebf598d3e78d53c9bdea7a1b37f5b6d0825f9eaf081c85c9a3f0114",
+    "all/list-1440.png": "46388a309f46c2d011b4300a976e7b545683a0175ad5c3901b0e84655c3ed547",
+    "all/list-390.png": "607a94a723c70787f5df0bf7314f2584f6e3d68c1e4983e5305b67582127de05",
+    "all/progress-denied.png": "fe12d15b28189c8d9a23bb1e6dd6f1bee2cf98b582b7a1e0806b5aff87a4a4e3",
+    "all/progress.png": "6dc6eb83734042822974e6c98f97a648b09eabf121151d9d739a66f2e2a04ad5",
+    "all/results-1440.png": "0929e29b99452a360529773ac5aa385a96072b4679260b1d841ac27e68fadd39",
+    "all/results-390.png": "e0a775aaebf29a83eab1bcc014cf7ace1ce5b4f2ab317584cb58a3a05c09a58a",
+    "all/states-orbit-dark-1440.png": "ba84d0bd6dd9b4d64b04bcba21176756c2917066274384f1834042f297880a76",
+    "all/states-orbit-dark-320.png": "9ab80458c76968858f001842627e711331ab7ddf0d8e633f542e3a2a707bfc9e",
+    "all/states-orbit-light-1440.png": "f772bd4826f849f6aeff8f0e2c189f43ceb5c525d5dbc70bb35ea51bbc927391",
+    "all/states-orbit-light-320.png": "5597cc81045976b25092465f8ba1ce2e4e372475ab6a61c7a2f3e17d3d524520",
+    "all/states-precision-dark-1440.png": "18df14857e0d9edbc2c3171ba828a636dba197519d9dbc204c9e5a264d7e3e5e",
+    "all/states-precision-dark-320.png": "f4980dd73de2168864e2c272bb6a0132dded0e136da121ac6a799f6d4c42bc22",
+    "all/states-precision-light-1440.png": "c356c1d35b7b911636c1103842247358b682e4ea7f4969aab0cb220f0cc0c6d9",
+    "all/states-precision-light-320.png": "5523bb6885a4a199aedb934809d85791106e5eada50bcd51616e6547cb5ea7b4",
+    "all/states-studio-dark-1440.png": "45a53432d22ef91372801b4a32bb1f4cbda9a7ec1525e9af9f1bd12e8f77893b",
+    "all/states-studio-dark-320.png": "33d097d01d00c1add3d8ad0c9e476fad4fc8b16839bb6e61ca303d5d8dc50c6a",
+    "all/states-studio-light-1440.png": "5709e9994645230a15d6145f8c4451b5e4fe47472d121e6d7532caf9adec60d7",
+    "all/states-studio-light-320.png": "e8b42d7ff0af45f10ea629624db985b536832f87f42bbb6d6c2968755116305b",
+    "logs/all.txt": "8a7440c3f2e8d336ac83fdd2246def52fa9d73a51e864314e3ed581a07097d2e",
+    "logs/build.txt": "de6bcbb3ce96a83d5d95f5dc703d8abfa196443d396802edf15b6bb4e301cfe9",
+    "logs/cookie-refresh.txt": "a66319204a730f5d283bd8838adaee68501d2df462cab8bcc75ab03fa5077032",
+    "logs/format.txt": "17aa973d3f004560237d9a95171210b0671deff23d61628eecf7322ff5938f20",
+    "logs/frontend-tests.txt": "8304184b44f8eb8983ccccb54d8a8d539b02d3030b73c8c47f89a8499ebb07a6",
+    "logs/http-full.txt": "14339161f891eef37d601286d991f83df5d8d97f34dcbd083a94955fb7b6ff1b",
+    "logs/lint.txt": "ef1baacf6b97c223801af830b44103447d63ad15f27331a8bf180b2d99eef281",
+    "logs/red-csrf.txt": "816b432e21174ff7e11fec074163c10cc4b7efda3cd9ddcebbc1ede7c57d002d",
+    "logs/red.txt": "896c0d33eede5158928b464fdc113e8d5a20aafc162bf1e558b0ac3364faef4e",
+    "logs/security.txt": "31df4427dfae9853f9566dd0f073567660ec7b689d40ab4e60697c298a2032d6",
+    "logs/shell.txt": "9b0713c9b6f9082f30d944997ee6d5c0ebfdeefe8b23e1e553c89fbe7c787686",
+    "logs/wheel.txt": "5a491cb1e1e3aa3d73ac2845d83ead24107e15a1882b193aa02acd1e8ad5b431",
+    "red/security.json": "ec791f631a4e9356d9c7ec8db02c7c702a77de45a21561af20a00905dd02f8c9",
+    "security/auth-failure.png": "0e3f7fb689d3a11b4ea72146a5a40114a20f260927478318fcc7afebae221b7b",
+    "security/auth-forbidden.png": "3db1347ce151e002e0a99702c694e52cd44dfeb623268f9eec550ad9b044cbac",
+    "security/auth-success.png": "3db1347ce151e002e0a99702c694e52cd44dfeb623268f9eec550ad9b044cbac",
+    "security/security.json": "e9b2cb8815fca462de8be1ec59aa5b16195e88cfcfd90a8e6420800f90b62bea",
+    "shell/checks.json": "92d3baa84c53d0eb7c92b40ed5889f63129b8f6dc64bdae0c40b4469bcd3028e",
+    "shell/orbit-1440.png": "88a737c0f6e5c6bdb551b9722442048eb58ee8b4d625ea7fc8e33860c13724a3",
+    "shell/orbit-390-list.png": "74f287f920237b3a789e196f53b23d0be537f73efc17d2f88f6d9a0be07903ff",
+    "shell/orbit-390.png": "357d32d20f8a20bb004d628dc879e424997cb696141f7a00bfa4fd7e889aa9d6",
+    "shell/precision-1440.png": "6c5074ebad8c609f7d9199e04280b4fc61af3bfcb3217b7a79ca107fddfad45b",
+    "shell/precision-390-list.png": "8fdbcfc4ebc317048de65c4126607ef4b4446f80adc5442b2a1e1c1df7ea1ab3",
+    "shell/precision-390.png": "0af6ae27434232001feeeeefba14547e33459a1af8e5354598ccfd7533e0b169",
+    "shell/studio-1440.png": "5d039b3a72eee16fc420dadaab74b399a166a1978157f9440f7c896850651a30",
+    "shell/studio-390-list.png": "b1e5d889787a10e4be5d1e36381a8b9225e21335a59d02446a09cc4a487743be",
+    "shell/studio-390.png": "cb5bf93ff7cc4bd29f4392aa2421d2dc6ffdcbaddcc4a02d6f6ae267dcad7f3b"
+  }
+}
