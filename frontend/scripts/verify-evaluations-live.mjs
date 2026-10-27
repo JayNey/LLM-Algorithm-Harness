@@ -5,7 +5,7 @@ import console from 'node:console'
 import { createHash } from 'node:crypto'
 import { readFile, writeFile, mkdir, stat } from 'node:fs/promises'
 import { resolve, join } from 'node:path'
-import { pathToFileURL, URL } from 'node:url'
+import { fileURLToPath, pathToFileURL, URL } from 'node:url'
 import { execFileSync } from 'node:child_process'
 
 export function localOrigin(value) {
@@ -38,6 +38,29 @@ export function publicId(value) {
     : `sha256:${createHash('sha256').update(String(value)).digest('hex').slice(0, 16)}`
 }
 
+export function hasLiveLifecycle(sockets) {
+  const required = [
+    'task.snapshot',
+    'subscribed',
+    'task.started',
+    'problem.completed',
+    'task.completed',
+  ]
+  return sockets.some(
+    (socket) =>
+      !socket.token_in_url &&
+      required.every((type) => socket.received_types.includes(type)),
+  )
+}
+
+export function recordProgressFrame(socket, data, targetId) {
+  if (typeof data?.type !== 'string' || !/^[a-z_.]+$/.test(data.type)) return
+  if (data.type !== 'connected' && (!targetId || data.task_id !== targetId))
+    return
+  socket.received_types.push(data.type)
+  if (data.task_id) socket.evaluation = publicId(data.task_id)
+}
+
 function selfTest() {
   assert.equal(localOrigin('http://localhost:3000'), 'http://localhost:3000')
   assert.throws(() => localOrigin('https://example.org'))
@@ -50,7 +73,46 @@ function selfTest() {
   assert.equal(publicId('private-id'), publicId('private-id'))
   assert.equal(publicId(null), null)
   assert.ok(!publicId('private-id').includes('private-id'))
-  console.log('PASS: 11 live origin, budget and identifier guards')
+  const initial = {
+    token_in_url: false,
+    received_types: ['connected', 'task.snapshot', 'subscribed'],
+  }
+  assert.equal(hasLiveLifecycle([initial]), false)
+  const complete = {
+    token_in_url: false,
+    received_types: [
+      ...initial.received_types,
+      'task.started',
+      'problem.completed',
+      'task.completed',
+    ],
+  }
+  assert.equal(hasLiveLifecycle([complete]), true)
+  assert.equal(hasLiveLifecycle([{ ...complete, token_in_url: true }]), false)
+  assert.equal(
+    hasLiveLifecycle([
+      {
+        ...complete,
+        received_types: complete.received_types.filter(
+          (type) => type !== 'task.completed',
+        ),
+      },
+    ]),
+    false,
+  )
+  const filtered = { received_types: [] }
+  recordProgressFrame(
+    filtered,
+    { type: 'task.completed', task_id: 'other' },
+    'mine',
+  )
+  recordProgressFrame(
+    filtered,
+    { type: 'task.started', task_id: 'mine' },
+    'mine',
+  )
+  assert.deepEqual(filtered.received_types, ['task.started'])
+  console.log('PASS: 16 live origin, budget, identifier and lifecycle guards')
 }
 
 const promptPreflight = `
@@ -182,8 +244,7 @@ async function run() {
     socket.on('framereceived', (frame) => {
       try {
         const data = JSON.parse(String(frame.payload))
-        if (typeof data.type === 'string' && /^[a-z_.]+$/.test(data.type))
-          observed.received_types.push(data.type)
+        recordProgressFrame(observed, data, state.evaluationId)
       } catch {
         /* Binary or malformed payloads are not published. */
       }
@@ -511,12 +572,8 @@ async function run() {
         ),
     )
     assert.ok(
-      report.sockets.some(
-        (s) =>
-          !s.token_in_url &&
-          s.received_types.includes('subscribed') &&
-          s.received_types.includes('task.snapshot'),
-      ),
+      hasLiveLifecycle(report.sockets),
+      'Same evaluation must receive actual WebSocket lifecycle events',
     )
     const masks = [
       credentials.username,
@@ -564,7 +621,10 @@ async function run() {
 }
 
 if (process.argv.includes('--self-test')) selfTest()
-else
+else if (
+  process.argv[1] &&
+  resolve(process.argv[1]) === resolve(fileURLToPath(import.meta.url))
+)
   await run().catch((error) => {
     console.error(
       JSON.stringify({ pass: false, phase: 'configuration', type: error.name }),
