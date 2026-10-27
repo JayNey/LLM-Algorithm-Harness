@@ -4,7 +4,7 @@
 
 本轮根据用户选择继续 `evaluation-live-evidence` tweak，在 PR #284 原分支 `tweak/20261026/evaluation-live-evidence` 补齐真实依赖和实际浏览器运行。原 PR head 为 `8797d07`；包含 #231 的 main `7efbecb`。新增 DeepSeek 官方 provider、Web 密钥选择及必要 WebSocket 运行依赖，HTTP 契约兼容扩展至 1.2.0；没有新增路由或数据库 schema。
 
-用户明确授权现有 `config.json` 中供应商配置，本轮累计模型调用上限 US$0.10。真实运行使用代码 `9fab9b7`；后续提交 `2dd4188` 仅加强 live 脚本的 WS 生命周期/归属守卫；不改运行时 provider 代码。增强后的守卫通过纯自检及原始成功/失败 JSON 离线复核，未追加付费调用，历史真实证据源 SHA 保持原样。精简设计为 `openspec/changes/evaluation-live-evidence/design.md`，tweak 不要求独立 Superpowers Design Doc；两份 delta spec 采用完整验证。
+用户明确授权现有 `config.json` 中供应商配置，本轮累计模型调用上限 US$0.10。真实运行使用代码 `9fab9b7`；后续提交 `2dd4188` 仅加强 live 脚本的 WS 生命周期/归属守卫；不改运行时 provider 代码。增强后的守卫通过纯自检及原始成功/失败 JSON 离线复核，未追加付费调用，历史真实证据源 SHA 保持原样。精简设计为 `openspec/changes/archive/2026-10-27-evaluation-live-evidence/design.md`，tweak 不要求独立 Superpowers Design Doc；两份 delta spec 采用完整验证。
 
 ## 实际执行事实
 
