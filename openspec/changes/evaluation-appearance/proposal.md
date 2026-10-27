@@ -24,4 +24,6 @@
 - 新增独立浏览器脚本，避免与尚未合并的 #228 在 `verify-evaluations.mjs` 上冲突。
 - 可能修正 `frontend/src/evaluations/workflow.css` 中被矩阵证实的问题。
 - 更新 `docs/frontend/QA.md` 并保存当次验收报告及截图。
-- #228 的统一入口行为在合并后再纳入主线 `verify-evaluations.mjs`；本变更不以未合并代码作为验收通过依据。
+- #228 已通过 #278 合并；在 PR #282 同步 `main`@`b8ff9fd` 后，将外观矩阵接入 `verify-evaluations.mjs --scenario appearance` 及 `all`。
+- 补齐多页题目选择、创建字段和完整筛选 URL 保持，以及移动导航、Esc 关闭和焦点恢复检查。
+- 将 JSON 和代表性截图保存到仓库公开路径，在 QA 和验收报告中记录命令、退出码、代码基线及审查结论。

@@ -8,4 +8,8 @@
 
 ## 依赖边界
 
-本 change 先独立覆盖页面本身，不编辑 #228 正在修改的 `verify-evaluations.mjs`。#228 合并后，再判断是否将独立场景接入统一入口；在此之前不声称其入口验收完成。真实浏览器供应商调用、后端、Redis/Celery、真机和 Safari/Firefox 不由该 fixture 证明。
+#228 已通过 #278 合并，本轮在同步最新 main 后补齐其集成验收。统一脚本的 appearance 和 all 委托独立矩阵脚本执行，并传递服务地址、输出目录及失败退出码；不重复维护矩阵实现。
+
+题目 fixture 提供两页数据，检查跨页选题、密钥/模型/策略/预算在切换后保留并进入真实前端提交的 payload。列表检查完整 URL 和可见筛选值。窄屏检查导航抽屉的键盘入口、Esc 关闭/焦点恢复以及抽屉和底部导航的实际跳转。各页面、组合的检查结果和截图索引写入公开 JSON。
+
+验收产物保存到 `docs/frontend/assets/evaluations/appearance/`，报告存于 `docs/superpowers/reports/`。真实浏览器供应商调用、后端、Redis/Celery、真机和 Safari/Firefox 不由该 fixture 证明；不引入产品能力或修改现有 spec 契约。

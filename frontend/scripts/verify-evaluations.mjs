@@ -1,12 +1,12 @@
 /* global document, localStorage, window, fetch, setTimeout, getComputedStyle */
 import assert from 'node:assert/strict'
 import { createRequire } from 'node:module'
-import { execFileSync } from 'node:child_process'
+import { execFileSync, spawnSync } from 'node:child_process'
 import { mkdir, writeFile } from 'node:fs/promises'
 import { resolve } from 'node:path'
 import process from 'node:process'
 import console from 'node:console'
-import { URL } from 'node:url'
+import { URL, fileURLToPath } from 'node:url'
 import { recordCheck } from './fixture-checks.mjs'
 const require = createRequire(import.meta.url)
 const { chromium } = require(process.env.PLAYWRIGHT_MODULE || 'playwright')
@@ -30,6 +30,38 @@ const known = [
   'all',
 ]
 assert.ok(known.includes(scenario), `Unknown scenario: ${scenario}`)
+function appearanceScenario() {
+  const result = spawnSync(
+    process.execPath,
+    [
+      fileURLToPath(
+        new URL('./verify-evaluation-appearance.mjs', import.meta.url),
+      ),
+    ],
+    {
+      stdio: 'inherit',
+      env: {
+        ...process.env,
+        EVALUATION_APPEARANCE_BASE_URL: base,
+        EVALUATION_APPEARANCE_QA_DIR:
+          process.env.EVALUATION_APPEARANCE_QA_DIR ||
+          (process.env.EVALUATION_QA_DIR
+            ? resolve(out, scenario === 'all' ? 'appearance' : '.')
+            : resolve('../docs/frontend/assets/evaluations/appearance')),
+      },
+    },
+  )
+  if (result.error) throw result.error
+  assert.equal(
+    result.status,
+    0,
+    `Appearance fixture failed (${result.signal ?? result.status})`,
+  )
+}
+if (scenario === 'appearance') {
+  appearanceScenario()
+  process.exit(0)
+}
 await mkdir(out, { recursive: true })
 const report = {
   scenario,
@@ -2628,6 +2660,7 @@ try {
   if (scenario === 'all' || scenario === 'progress') await progressScenario()
   if (scenario === 'all' || scenario === 'results') await resultsScenario()
   if (scenario === 'all' || scenario === 'entries') await entriesScenario()
+  if (scenario === 'all') await check('完整外观矩阵', appearanceScenario)
   if (scenario === 'all' || scenario === 'states') await statesScenario()
   if (
     ![
