@@ -22,4 +22,4 @@
 
 - 新增 `docs/frontend/EVALUATIONS_QA.md`。
 - 不更改运行时代码，也不启动付费模型请求。
-- 正式 T17 联调仍须等 #231 完成并合入 main；真实运行还要求可用测试账号、本人配置的 provider key、可访问的 API/Redis/Celery/沙箱和用户确认的小额预算。
+- 前置 #231 已通过 PR #292 合入 main（`7efbecb`）；真实运行仍要求可用测试账号、本人配置的 provider key、可访问的 API/Redis/Celery/沙箱和用户确认的小额预算。
