@@ -38,7 +38,9 @@ verify 阶段独立执行 `python3 -m json.tool docs/frontend/assets/issue231/co
 
 ## 最终集成审查
 
-独立只读集成审查首轮：Critical 0、Important 0、Minor 3（各产物来源 SHA、appearance 缺失字段、环境版本比较范围）。已回到 build 完成三处修正并保留旧日志，新增准确复核；等待同一 reviewer 定点复审。
+独立只读集成审查首轮：Critical 0、Important 0、Minor 3（各产物来源 SHA、appearance 缺失字段、环境版本比较范围）。已回到 build 完成三处修正并保留旧日志，新增准确复核；同一 reviewer 对 `11c0035b14428c5b72119d47c66fc5ca9cef9a0f` 定点复审通过：**Ready: Yes（本地验收材料），未解决 Critical 0 / Important 0 / Minor 0**。独立复核了 27 个日志块与整体哈希、19 项当前门禁、两项历史失败、源码树、链接和 diff whitespace。没有接受任何正确性或安全偏差。
+
+验证结论：**本地验收材料 PASS**。远端交付、新分支 CI 和 #232 真实联调继续按下节限制处理，不将本地审查等同 GitHub 人工批准。
 
 ## 远端状态与归档
 
