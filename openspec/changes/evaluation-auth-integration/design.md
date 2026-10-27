@@ -19,3 +19,7 @@
 - 浏览器 fixture 不证明后端正确 → 分开运行真实 FastAPI Cookie/CSRF 测试。
 - 离线队列不证明 broker/revoke 网络正常 → 明确标记未验证层级。
 - 范围扩大 → 超过 tweak 阈值或需要架构协调时交用户决定。
+
+## Workflow Decision
+
+2026-10-27 用户明确选择「A. 继续 comet-tweak，完成当前测试、修复和验收」。本次 5 个源码/测试文件加上流程产物、JSON 与截图超过文件提示阈值；仍为单一 change，无新增 API、schema 或架构协调，按轻量流程继续。
