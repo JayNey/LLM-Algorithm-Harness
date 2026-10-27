@@ -4,7 +4,7 @@
 
 ## 2. 前端与验收矩阵
 
-- [ ] 2.1 执行 npm test/lint、tsc -b、build；逐项核对 #216–#230 和 issue #231 Step 1–5，更新 EVALUATIONS_CHECKS.md 与命令/日志证据；全部结论绑定实际执行提交和层级。
+- [x] 2.1 执行 npm test/lint、tsc -b、build；逐项核对 #216–#230 和 issue #231 Step 1–5，更新 EVALUATIONS_CHECKS.md 与命令/日志证据；全部结论绑定实际执行提交和层级。
 
 ## 3. 审查与交付
 
