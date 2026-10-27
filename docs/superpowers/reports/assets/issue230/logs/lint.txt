@@ -1,0 +1,11 @@
+
+> llm-harness-frontend@0.1.0 lint
+> eslint .
+
+
+/Users/charlesleclerc/LLM-Algorithm-Harness/frontend/src/pages/Benchmarks/BenchmarkDetailPage.tsx
+  131:7  warning  React Hook useCallback has an unnecessary dependency: 'runFinished'. Either exclude it or remove the dependency array  react-hooks/exhaustive-deps
+  145:7  warning  React Hook useCallback has an unnecessary dependency: 'runFinished'. Either exclude it or remove the dependency array  react-hooks/exhaustive-deps
+
+✖ 2 problems (0 errors, 2 warnings)
+

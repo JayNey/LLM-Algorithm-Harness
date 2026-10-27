@@ -1,0 +1,6990 @@
+{
+  "scenario": "appearance",
+  "layer": "Chromium browser fixture; HTTP identity and business responses replaced",
+  "source": {
+    "head": "45d910fa92dd737ee562973fd24342d02ea50db4",
+    "dirty": "?? docs/superpowers/reports/2026-10-27-evaluation-auth-integration-verify.md\n?? docs/superpowers/reports/assets/issue230/\n?? openspec/changes/evaluation-auth-integration/.comet/"
+  },
+  "matrix": {
+    "variants": [
+      "orbit",
+      "precision",
+      "studio"
+    ],
+    "themes": [
+      "light",
+      "dark"
+    ],
+    "widths": [
+      320,
+      390,
+      768,
+      1440
+    ]
+  },
+  "routes": [
+    "/evaluations/new",
+    "/evaluations",
+    "/evaluations/appearance-evaluation",
+    "/results",
+    "/results/appearance-evaluation"
+  ],
+  "replaced": [
+    "HTTP /api/v1/users/me and /api/v1/api-keys",
+    "HTTP evaluation options, creation, list and detail responses",
+    "HTTP results list and detail responses",
+    "localStorage test session; no credentials or provider calls"
+  ],
+  "limitations": [
+    "Chromium viewport simulation only; no physical iOS/Android device testing.",
+    "No Safari/Firefox, screen reader, real backend, Redis/Celery, sandbox or model-provider validation.",
+    "HTTP fixtures prove frontend interactions and payloads, not successful real-backend execution."
+  ],
+  "assertions": [
+    {
+      "name": "orbit/light/320px 创建草稿、选择与键盘操作保留",
+      "combination": {
+        "variant": "orbit",
+        "theme": "light",
+        "width": 320
+      },
+      "page": "/evaluations/new",
+      "pass": true
+    },
+    {
+      "name": "orbit/light/320px 创建及启动请求保留完整跨页配置",
+      "combination": {
+        "variant": "orbit",
+        "theme": "light",
+        "width": 320
+      },
+      "page": "/evaluations/appearance-evaluation",
+      "pass": true
+    },
+    {
+      "name": "orbit/light/320px 任务筛选、URL 与键盘入口保留",
+      "combination": {
+        "variant": "orbit",
+        "theme": "light",
+        "width": 320
+      },
+      "page": "/evaluations",
+      "pass": true
+    },
+    {
+      "name": "orbit/light/320px 任务详情入口与键盘可操作",
+      "combination": {
+        "variant": "orbit",
+        "theme": "light",
+        "width": 320
+      },
+      "page": "/evaluations/appearance-evaluation",
+      "pass": true
+    },
+    {
+      "name": "orbit/light/320px 结果筛选、URL 与键盘入口保留",
+      "combination": {
+        "variant": "orbit",
+        "theme": "light",
+        "width": 320
+      },
+      "page": "/results",
+      "pass": true
+    },
+    {
+      "name": "orbit/light/320px 结果详情与横向滚动表格可由键盘访问",
+      "combination": {
+        "variant": "orbit",
+        "theme": "light",
+        "width": 320
+      },
+      "page": "/results/appearance-evaluation",
+      "pass": true
+    },
+    {
+      "name": "orbit/light/320px 通知抽屉 Esc 关闭并恢复焦点",
+      "combination": {
+        "variant": "orbit",
+        "theme": "light",
+        "width": 320
+      },
+      "page": "/results/appearance-evaluation",
+      "pass": true
+    },
+    {
+      "name": "orbit/light/320px 移动菜单 Esc 关闭并恢复焦点",
+      "combination": {
+        "variant": "orbit",
+        "theme": "light",
+        "width": 320
+      },
+      "page": "/results/appearance-evaluation",
+      "pass": true
+    },
+    {
+      "name": "orbit/light/320px 移动抽屉创建入口可用",
+      "combination": {
+        "variant": "orbit",
+        "theme": "light",
+        "width": 320
+      },
+      "page": "/results/appearance-evaluation",
+      "pass": true
+    },
+    {
+      "name": "orbit/light/320px 底部导航可由键盘进入结果页",
+      "combination": {
+        "variant": "orbit",
+        "theme": "light",
+        "width": 320
+      },
+      "page": "/evaluations/new",
+      "pass": true
+    },
+    {
+      "name": "orbit/light/390px 创建草稿、选择与键盘操作保留",
+      "combination": {
+        "variant": "orbit",
+        "theme": "light",
+        "width": 390
+      },
+      "page": "/evaluations/new",
+      "pass": true
+    },
+    {
+      "name": "orbit/light/390px 创建及启动请求保留完整跨页配置",
+      "combination": {
+        "variant": "orbit",
+        "theme": "light",
+        "width": 390
+      },
+      "page": "/evaluations/appearance-evaluation",
+      "pass": true
+    },
+    {
+      "name": "orbit/light/390px 任务筛选、URL 与键盘入口保留",
+      "combination": {
+        "variant": "orbit",
+        "theme": "light",
+        "width": 390
+      },
+      "page": "/evaluations",
+      "pass": true
+    },
+    {
+      "name": "orbit/light/390px 任务详情入口与键盘可操作",
+      "combination": {
+        "variant": "orbit",
+        "theme": "light",
+        "width": 390
+      },
+      "page": "/evaluations/appearance-evaluation",
+      "pass": true
+    },
+    {
+      "name": "orbit/light/390px 结果筛选、URL 与键盘入口保留",
+      "combination": {
+        "variant": "orbit",
+        "theme": "light",
+        "width": 390
+      },
+      "page": "/results",
+      "pass": true
+    },
+    {
+      "name": "orbit/light/390px 结果详情与横向滚动表格可由键盘访问",
+      "combination": {
+        "variant": "orbit",
+        "theme": "light",
+        "width": 390
+      },
+      "page": "/results/appearance-evaluation",
+      "pass": true
+    },
+    {
+      "name": "orbit/light/390px 通知抽屉 Esc 关闭并恢复焦点",
+      "combination": {
+        "variant": "orbit",
+        "theme": "light",
+        "width": 390
+      },
+      "page": "/results/appearance-evaluation",
+      "pass": true
+    },
+    {
+      "name": "orbit/light/390px 移动菜单 Esc 关闭并恢复焦点",
+      "combination": {
+        "variant": "orbit",
+        "theme": "light",
+        "width": 390
+      },
+      "page": "/results/appearance-evaluation",
+      "pass": true
+    },
+    {
+      "name": "orbit/light/390px 移动抽屉创建入口可用",
+      "combination": {
+        "variant": "orbit",
+        "theme": "light",
+        "width": 390
+      },
+      "page": "/results/appearance-evaluation",
+      "pass": true
+    },
+    {
+      "name": "orbit/light/390px 底部导航可由键盘进入结果页",
+      "combination": {
+        "variant": "orbit",
+        "theme": "light",
+        "width": 390
+      },
+      "page": "/evaluations/new",
+      "pass": true
+    },
+    {
+      "name": "orbit/light/768px 创建草稿、选择与键盘操作保留",
+      "combination": {
+        "variant": "orbit",
+        "theme": "light",
+        "width": 768
+      },
+      "page": "/evaluations/new",
+      "pass": true
+    },
+    {
+      "name": "orbit/light/768px 创建及启动请求保留完整跨页配置",
+      "combination": {
+        "variant": "orbit",
+        "theme": "light",
+        "width": 768
+      },
+      "page": "/evaluations/appearance-evaluation",
+      "pass": true
+    },
+    {
+      "name": "orbit/light/768px 任务筛选、URL 与键盘入口保留",
+      "combination": {
+        "variant": "orbit",
+        "theme": "light",
+        "width": 768
+      },
+      "page": "/evaluations",
+      "pass": true
+    },
+    {
+      "name": "orbit/light/768px 任务详情入口与键盘可操作",
+      "combination": {
+        "variant": "orbit",
+        "theme": "light",
+        "width": 768
+      },
+      "page": "/evaluations/appearance-evaluation",
+      "pass": true
+    },
+    {
+      "name": "orbit/light/768px 结果筛选、URL 与键盘入口保留",
+      "combination": {
+        "variant": "orbit",
+        "theme": "light",
+        "width": 768
+      },
+      "page": "/results",
+      "pass": true
+    },
+    {
+      "name": "orbit/light/768px 结果详情与横向滚动表格可由键盘访问",
+      "combination": {
+        "variant": "orbit",
+        "theme": "light",
+        "width": 768
+      },
+      "page": "/results/appearance-evaluation",
+      "pass": true
+    },
+    {
+      "name": "orbit/light/768px 通知抽屉 Esc 关闭并恢复焦点",
+      "combination": {
+        "variant": "orbit",
+        "theme": "light",
+        "width": 768
+      },
+      "page": "/results/appearance-evaluation",
+      "pass": true
+    },
+    {
+      "name": "orbit/light/768px 移动菜单 Esc 关闭并恢复焦点",
+      "combination": {
+        "variant": "orbit",
+        "theme": "light",
+        "width": 768
+      },
+      "page": "/results/appearance-evaluation",
+      "pass": true
+    },
+    {
+      "name": "orbit/light/768px 移动抽屉创建入口可用",
+      "combination": {
+        "variant": "orbit",
+        "theme": "light",
+        "width": 768
+      },
+      "page": "/results/appearance-evaluation",
+      "pass": true
+    },
+    {
+      "name": "orbit/light/1440px 创建草稿、选择与键盘操作保留",
+      "combination": {
+        "variant": "orbit",
+        "theme": "light",
+        "width": 1440
+      },
+      "page": "/evaluations/new",
+      "pass": true
+    },
+    {
+      "name": "orbit/light/1440px 创建及启动请求保留完整跨页配置",
+      "combination": {
+        "variant": "orbit",
+        "theme": "light",
+        "width": 1440
+      },
+      "page": "/evaluations/appearance-evaluation",
+      "pass": true
+    },
+    {
+      "name": "orbit/light/1440px 任务筛选、URL 与键盘入口保留",
+      "combination": {
+        "variant": "orbit",
+        "theme": "light",
+        "width": 1440
+      },
+      "page": "/evaluations",
+      "pass": true
+    },
+    {
+      "name": "orbit/light/1440px 任务详情入口与键盘可操作",
+      "combination": {
+        "variant": "orbit",
+        "theme": "light",
+        "width": 1440
+      },
+      "page": "/evaluations/appearance-evaluation",
+      "pass": true
+    },
+    {
+      "name": "orbit/light/1440px 结果筛选、URL 与键盘入口保留",
+      "combination": {
+        "variant": "orbit",
+        "theme": "light",
+        "width": 1440
+      },
+      "page": "/results",
+      "pass": true
+    },
+    {
+      "name": "orbit/light/1440px 结果详情与横向滚动表格可由键盘访问",
+      "combination": {
+        "variant": "orbit",
+        "theme": "light",
+        "width": 1440
+      },
+      "page": "/results/appearance-evaluation",
+      "pass": true
+    },
+    {
+      "name": "orbit/light/1440px 通知抽屉 Esc 关闭并恢复焦点",
+      "combination": {
+        "variant": "orbit",
+        "theme": "light",
+        "width": 1440
+      },
+      "page": "/results/appearance-evaluation",
+      "pass": true
+    },
+    {
+      "name": "orbit/dark/320px 创建草稿、选择与键盘操作保留",
+      "combination": {
+        "variant": "orbit",
+        "theme": "dark",
+        "width": 320
+      },
+      "page": "/evaluations/new",
+      "pass": true
+    },
+    {
+      "name": "orbit/dark/320px 创建及启动请求保留完整跨页配置",
+      "combination": {
+        "variant": "orbit",
+        "theme": "dark",
+        "width": 320
+      },
+      "page": "/evaluations/appearance-evaluation",
+      "pass": true
+    },
+    {
+      "name": "orbit/dark/320px 任务筛选、URL 与键盘入口保留",
+      "combination": {
+        "variant": "orbit",
+        "theme": "dark",
+        "width": 320
+      },
+      "page": "/evaluations",
+      "pass": true
+    },
+    {
+      "name": "orbit/dark/320px 任务详情入口与键盘可操作",
+      "combination": {
+        "variant": "orbit",
+        "theme": "dark",
+        "width": 320
+      },
+      "page": "/evaluations/appearance-evaluation",
+      "pass": true
+    },
+    {
+      "name": "orbit/dark/320px 结果筛选、URL 与键盘入口保留",
+      "combination": {
+        "variant": "orbit",
+        "theme": "dark",
+        "width": 320
+      },
+      "page": "/results",
+      "pass": true
+    },
+    {
+      "name": "orbit/dark/320px 结果详情与横向滚动表格可由键盘访问",
+      "combination": {
+        "variant": "orbit",
+        "theme": "dark",
+        "width": 320
+      },
+      "page": "/results/appearance-evaluation",
+      "pass": true
+    },
+    {
+      "name": "orbit/dark/320px 通知抽屉 Esc 关闭并恢复焦点",
+      "combination": {
+        "variant": "orbit",
+        "theme": "dark",
+        "width": 320
+      },
+      "page": "/results/appearance-evaluation",
+      "pass": true
+    },
+    {
+      "name": "orbit/dark/320px 移动菜单 Esc 关闭并恢复焦点",
+      "combination": {
+        "variant": "orbit",
+        "theme": "dark",
+        "width": 320
+      },
+      "page": "/results/appearance-evaluation",
+      "pass": true
+    },
+    {
+      "name": "orbit/dark/320px 移动抽屉创建入口可用",
+      "combination": {
+        "variant": "orbit",
+        "theme": "dark",
+        "width": 320
+      },
+      "page": "/results/appearance-evaluation",
+      "pass": true
+    },
+    {
+      "name": "orbit/dark/320px 底部导航可由键盘进入结果页",
+      "combination": {
+        "variant": "orbit",
+        "theme": "dark",
+        "width": 320
+      },
+      "page": "/evaluations/new",
+      "pass": true
+    },
+    {
+      "name": "orbit/dark/390px 创建草稿、选择与键盘操作保留",
+      "combination": {
+        "variant": "orbit",
+        "theme": "dark",
+        "width": 390
+      },
+      "page": "/evaluations/new",
+      "pass": true
+    },
+    {
+      "name": "orbit/dark/390px 创建及启动请求保留完整跨页配置",
+      "combination": {
+        "variant": "orbit",
+        "theme": "dark",
+        "width": 390
+      },
+      "page": "/evaluations/appearance-evaluation",
+      "pass": true
+    },
+    {
+      "name": "orbit/dark/390px 任务筛选、URL 与键盘入口保留",
+      "combination": {
+        "variant": "orbit",
+        "theme": "dark",
+        "width": 390
+      },
+      "page": "/evaluations",
+      "pass": true
+    },
+    {
+      "name": "orbit/dark/390px 任务详情入口与键盘可操作",
+      "combination": {
+        "variant": "orbit",
+        "theme": "dark",
+        "width": 390
+      },
+      "page": "/evaluations/appearance-evaluation",
+      "pass": true
+    },
+    {
+      "name": "orbit/dark/390px 结果筛选、URL 与键盘入口保留",
+      "combination": {
+        "variant": "orbit",
+        "theme": "dark",
+        "width": 390
+      },
+      "page": "/results",
+      "pass": true
+    },
+    {
+      "name": "orbit/dark/390px 结果详情与横向滚动表格可由键盘访问",
+      "combination": {
+        "variant": "orbit",
+        "theme": "dark",
+        "width": 390
+      },
+      "page": "/results/appearance-evaluation",
+      "pass": true
+    },
+    {
+      "name": "orbit/dark/390px 通知抽屉 Esc 关闭并恢复焦点",
+      "combination": {
+        "variant": "orbit",
+        "theme": "dark",
+        "width": 390
+      },
+      "page": "/results/appearance-evaluation",
+      "pass": true
+    },
+    {
+      "name": "orbit/dark/390px 移动菜单 Esc 关闭并恢复焦点",
+      "combination": {
+        "variant": "orbit",
+        "theme": "dark",
+        "width": 390
+      },
+      "page": "/results/appearance-evaluation",
+      "pass": true
+    },
+    {
+      "name": "orbit/dark/390px 移动抽屉创建入口可用",
+      "combination": {
+        "variant": "orbit",
+        "theme": "dark",
+        "width": 390
+      },
+      "page": "/results/appearance-evaluation",
+      "pass": true
+    },
+    {
+      "name": "orbit/dark/390px 底部导航可由键盘进入结果页",
+      "combination": {
+        "variant": "orbit",
+        "theme": "dark",
+        "width": 390
+      },
+      "page": "/evaluations/new",
+      "pass": true
+    },
+    {
+      "name": "orbit/dark/768px 创建草稿、选择与键盘操作保留",
+      "combination": {
+        "variant": "orbit",
+        "theme": "dark",
+        "width": 768
+      },
+      "page": "/evaluations/new",
+      "pass": true
+    },
+    {
+      "name": "orbit/dark/768px 创建及启动请求保留完整跨页配置",
+      "combination": {
+        "variant": "orbit",
+        "theme": "dark",
+        "width": 768
+      },
+      "page": "/evaluations/appearance-evaluation",
+      "pass": true
+    },
+    {
+      "name": "orbit/dark/768px 任务筛选、URL 与键盘入口保留",
+      "combination": {
+        "variant": "orbit",
+        "theme": "dark",
+        "width": 768
+      },
+      "page": "/evaluations",
+      "pass": true
+    },
+    {
+      "name": "orbit/dark/768px 任务详情入口与键盘可操作",
+      "combination": {
+        "variant": "orbit",
+        "theme": "dark",
+        "width": 768
+      },
+      "page": "/evaluations/appearance-evaluation",
+      "pass": true
+    },
+    {
+      "name": "orbit/dark/768px 结果筛选、URL 与键盘入口保留",
+      "combination": {
+        "variant": "orbit",
+        "theme": "dark",
+        "width": 768
+      },
+      "page": "/results",
+      "pass": true
+    },
+    {
+      "name": "orbit/dark/768px 结果详情与横向滚动表格可由键盘访问",
+      "combination": {
+        "variant": "orbit",
+        "theme": "dark",
+        "width": 768
+      },
+      "page": "/results/appearance-evaluation",
+      "pass": true
+    },
+    {
+      "name": "orbit/dark/768px 通知抽屉 Esc 关闭并恢复焦点",
+      "combination": {
+        "variant": "orbit",
+        "theme": "dark",
+        "width": 768
+      },
+      "page": "/results/appearance-evaluation",
+      "pass": true
+    },
+    {
+      "name": "orbit/dark/768px 移动菜单 Esc 关闭并恢复焦点",
+      "combination": {
+        "variant": "orbit",
+        "theme": "dark",
+        "width": 768
+      },
+      "page": "/results/appearance-evaluation",
+      "pass": true
+    },
+    {
+      "name": "orbit/dark/768px 移动抽屉创建入口可用",
+      "combination": {
+        "variant": "orbit",
+        "theme": "dark",
+        "width": 768
+      },
+      "page": "/results/appearance-evaluation",
+      "pass": true
+    },
+    {
+      "name": "orbit/dark/1440px 创建草稿、选择与键盘操作保留",
+      "combination": {
+        "variant": "orbit",
+        "theme": "dark",
+        "width": 1440
+      },
+      "page": "/evaluations/new",
+      "pass": true
+    },
+    {
+      "name": "orbit/dark/1440px 创建及启动请求保留完整跨页配置",
+      "combination": {
+        "variant": "orbit",
+        "theme": "dark",
+        "width": 1440
+      },
+      "page": "/evaluations/appearance-evaluation",
+      "pass": true
+    },
+    {
+      "name": "orbit/dark/1440px 任务筛选、URL 与键盘入口保留",
+      "combination": {
+        "variant": "orbit",
+        "theme": "dark",
+        "width": 1440
+      },
+      "page": "/evaluations",
+      "pass": true
+    },
+    {
+      "name": "orbit/dark/1440px 任务详情入口与键盘可操作",
+      "combination": {
+        "variant": "orbit",
+        "theme": "dark",
+        "width": 1440
+      },
+      "page": "/evaluations/appearance-evaluation",
+      "pass": true
+    },
+    {
+      "name": "orbit/dark/1440px 结果筛选、URL 与键盘入口保留",
+      "combination": {
+        "variant": "orbit",
+        "theme": "dark",
+        "width": 1440
+      },
+      "page": "/results",
+      "pass": true
+    },
+    {
+      "name": "orbit/dark/1440px 结果详情与横向滚动表格可由键盘访问",
+      "combination": {
+        "variant": "orbit",
+        "theme": "dark",
+        "width": 1440
+      },
+      "page": "/results/appearance-evaluation",
+      "pass": true
+    },
+    {
+      "name": "orbit/dark/1440px 通知抽屉 Esc 关闭并恢复焦点",
+      "combination": {
+        "variant": "orbit",
+        "theme": "dark",
+        "width": 1440
+      },
+      "page": "/results/appearance-evaluation",
+      "pass": true
+    },
+    {
+      "name": "precision/light/320px 创建草稿、选择与键盘操作保留",
+      "combination": {
+        "variant": "precision",
+        "theme": "light",
+        "width": 320
+      },
+      "page": "/evaluations/new",
+      "pass": true
+    },
+    {
+      "name": "precision/light/320px 创建及启动请求保留完整跨页配置",
+      "combination": {
+        "variant": "precision",
+        "theme": "light",
+        "width": 320
+      },
+      "page": "/evaluations/appearance-evaluation",
+      "pass": true
+    },
+    {
+      "name": "precision/light/320px 任务筛选、URL 与键盘入口保留",
+      "combination": {
+        "variant": "precision",
+        "theme": "light",
+        "width": 320
+      },
+      "page": "/evaluations",
+      "pass": true
+    },
+    {
+      "name": "precision/light/320px 任务详情入口与键盘可操作",
+      "combination": {
+        "variant": "precision",
+        "theme": "light",
+        "width": 320
+      },
+      "page": "/evaluations/appearance-evaluation",
+      "pass": true
+    },
+    {
+      "name": "precision/light/320px 结果筛选、URL 与键盘入口保留",
+      "combination": {
+        "variant": "precision",
+        "theme": "light",
+        "width": 320
+      },
+      "page": "/results",
+      "pass": true
+    },
+    {
+      "name": "precision/light/320px 结果详情与横向滚动表格可由键盘访问",
+      "combination": {
+        "variant": "precision",
+        "theme": "light",
+        "width": 320
+      },
+      "page": "/results/appearance-evaluation",
+      "pass": true
+    },
+    {
+      "name": "precision/light/320px 通知抽屉 Esc 关闭并恢复焦点",
+      "combination": {
+        "variant": "precision",
+        "theme": "light",
+        "width": 320
+      },
+      "page": "/results/appearance-evaluation",
+      "pass": true
+    },
+    {
+      "name": "precision/light/320px 移动菜单 Esc 关闭并恢复焦点",
+      "combination": {
+        "variant": "precision",
+        "theme": "light",
+        "width": 320
+      },
+      "page": "/results/appearance-evaluation",
+      "pass": true
+    },
+    {
+      "name": "precision/light/320px 移动抽屉创建入口可用",
+      "combination": {
+        "variant": "precision",
+        "theme": "light",
+        "width": 320
+      },
+      "page": "/results/appearance-evaluation",
+      "pass": true
+    },
+    {
+      "name": "precision/light/320px 底部导航可由键盘进入结果页",
+      "combination": {
+        "variant": "precision",
+        "theme": "light",
+        "width": 320
+      },
+      "page": "/evaluations/new",
+      "pass": true
+    },
+    {
+      "name": "precision/light/390px 创建草稿、选择与键盘操作保留",
+      "combination": {
+        "variant": "precision",
+        "theme": "light",
+        "width": 390
+      },
+      "page": "/evaluations/new",
+      "pass": true
+    },
+    {
+      "name": "precision/light/390px 创建及启动请求保留完整跨页配置",
+      "combination": {
+        "variant": "precision",
+        "theme": "light",
+        "width": 390
+      },
+      "page": "/evaluations/appearance-evaluation",
+      "pass": true
+    },
+    {
+      "name": "precision/light/390px 任务筛选、URL 与键盘入口保留",
+      "combination": {
+        "variant": "precision",
+        "theme": "light",
+        "width": 390
+      },
+      "page": "/evaluations",
+      "pass": true
+    },
+    {
+      "name": "precision/light/390px 任务详情入口与键盘可操作",
+      "combination": {
+        "variant": "precision",
+        "theme": "light",
+        "width": 390
+      },
+      "page": "/evaluations/appearance-evaluation",
+      "pass": true
+    },
+    {
+      "name": "precision/light/390px 结果筛选、URL 与键盘入口保留",
+      "combination": {
+        "variant": "precision",
+        "theme": "light",
+        "width": 390
+      },
+      "page": "/results",
+      "pass": true
+    },
+    {
+      "name": "precision/light/390px 结果详情与横向滚动表格可由键盘访问",
+      "combination": {
+        "variant": "precision",
+        "theme": "light",
+        "width": 390
+      },
+      "page": "/results/appearance-evaluation",
+      "pass": true
+    },
+    {
+      "name": "precision/light/390px 通知抽屉 Esc 关闭并恢复焦点",
+      "combination": {
+        "variant": "precision",
+        "theme": "light",
+        "width": 390
+      },
+      "page": "/results/appearance-evaluation",
+      "pass": true
+    },
+    {
+      "name": "precision/light/390px 移动菜单 Esc 关闭并恢复焦点",
+      "combination": {
+        "variant": "precision",
+        "theme": "light",
+        "width": 390
+      },
+      "page": "/results/appearance-evaluation",
+      "pass": true
+    },
+    {
+      "name": "precision/light/390px 移动抽屉创建入口可用",
+      "combination": {
+        "variant": "precision",
+        "theme": "light",
+        "width": 390
+      },
+      "page": "/results/appearance-evaluation",
+      "pass": true
+    },
+    {
+      "name": "precision/light/390px 底部导航可由键盘进入结果页",
+      "combination": {
+        "variant": "precision",
+        "theme": "light",
+        "width": 390
+      },
+      "page": "/evaluations/new",
+      "pass": true
+    },
+    {
+      "name": "precision/light/768px 创建草稿、选择与键盘操作保留",
+      "combination": {
+        "variant": "precision",
+        "theme": "light",
+        "width": 768
+      },
+      "page": "/evaluations/new",
+      "pass": true
+    },
+    {
+      "name": "precision/light/768px 创建及启动请求保留完整跨页配置",
+      "combination": {
+        "variant": "precision",
+        "theme": "light",
+        "width": 768
+      },
+      "page": "/evaluations/appearance-evaluation",
+      "pass": true
+    },
+    {
+      "name": "precision/light/768px 任务筛选、URL 与键盘入口保留",
+      "combination": {
+        "variant": "precision",
+        "theme": "light",
+        "width": 768
+      },
+      "page": "/evaluations",
+      "pass": true
+    },
+    {
+      "name": "precision/light/768px 任务详情入口与键盘可操作",
+      "combination": {
+        "variant": "precision",
+        "theme": "light",
+        "width": 768
+      },
+      "page": "/evaluations/appearance-evaluation",
+      "pass": true
+    },
+    {
+      "name": "precision/light/768px 结果筛选、URL 与键盘入口保留",
+      "combination": {
+        "variant": "precision",
+        "theme": "light",
+        "width": 768
+      },
+      "page": "/results",
+      "pass": true
+    },
+    {
+      "name": "precision/light/768px 结果详情与横向滚动表格可由键盘访问",
+      "combination": {
+        "variant": "precision",
+        "theme": "light",
+        "width": 768
+      },
+      "page": "/results/appearance-evaluation",
+      "pass": true
+    },
+    {
+      "name": "precision/light/768px 通知抽屉 Esc 关闭并恢复焦点",
+      "combination": {
+        "variant": "precision",
+        "theme": "light",
+        "width": 768
+      },
+      "page": "/results/appearance-evaluation",
+      "pass": true
+    },
+    {
+      "name": "precision/light/768px 移动菜单 Esc 关闭并恢复焦点",
+      "combination": {
+        "variant": "precision",
+        "theme": "light",
+        "width": 768
+      },
+      "page": "/results/appearance-evaluation",
+      "pass": true
+    },
+    {
+      "name": "precision/light/768px 移动抽屉创建入口可用",
+      "combination": {
+        "variant": "precision",
+        "theme": "light",
+        "width": 768
+      },
+      "page": "/results/appearance-evaluation",
+      "pass": true
+    },
+    {
+      "name": "precision/light/1440px 创建草稿、选择与键盘操作保留",
+      "combination": {
+        "variant": "precision",
+        "theme": "light",
+        "width": 1440
+      },
+      "page": "/evaluations/new",
+      "pass": true
+    },
+    {
+      "name": "precision/light/1440px 创建及启动请求保留完整跨页配置",
+      "combination": {
+        "variant": "precision",
+        "theme": "light",
+        "width": 1440
+      },
+      "page": "/evaluations/appearance-evaluation",
+      "pass": true
+    },
+    {
+      "name": "precision/light/1440px 任务筛选、URL 与键盘入口保留",
+      "combination": {
+        "variant": "precision",
+        "theme": "light",
+        "width": 1440
+      },
+      "page": "/evaluations",
+      "pass": true
+    },
+    {
+      "name": "precision/light/1440px 任务详情入口与键盘可操作",
+      "combination": {
+        "variant": "precision",
+        "theme": "light",
+        "width": 1440
+      },
+      "page": "/evaluations/appearance-evaluation",
+      "pass": true
+    },
+    {
+      "name": "precision/light/1440px 结果筛选、URL 与键盘入口保留",
+      "combination": {
+        "variant": "precision",
+        "theme": "light",
+        "width": 1440
+      },
+      "page": "/results",
+      "pass": true
+    },
+    {
+      "name": "precision/light/1440px 结果详情与横向滚动表格可由键盘访问",
+      "combination": {
+        "variant": "precision",
+        "theme": "light",
+        "width": 1440
+      },
+      "page": "/results/appearance-evaluation",
+      "pass": true
+    },
+    {
+      "name": "precision/light/1440px 通知抽屉 Esc 关闭并恢复焦点",
+      "combination": {
+        "variant": "precision",
+        "theme": "light",
+        "width": 1440
+      },
+      "page": "/results/appearance-evaluation",
+      "pass": true
+    },
+    {
+      "name": "precision/dark/320px 创建草稿、选择与键盘操作保留",
+      "combination": {
+        "variant": "precision",
+        "theme": "dark",
+        "width": 320
+      },
+      "page": "/evaluations/new",
+      "pass": true
+    },
+    {
+      "name": "precision/dark/320px 创建及启动请求保留完整跨页配置",
+      "combination": {
+        "variant": "precision",
+        "theme": "dark",
+        "width": 320
+      },
+      "page": "/evaluations/appearance-evaluation",
+      "pass": true
+    },
+    {
+      "name": "precision/dark/320px 任务筛选、URL 与键盘入口保留",
+      "combination": {
+        "variant": "precision",
+        "theme": "dark",
+        "width": 320
+      },
+      "page": "/evaluations",
+      "pass": true
+    },
+    {
+      "name": "precision/dark/320px 任务详情入口与键盘可操作",
+      "combination": {
+        "variant": "precision",
+        "theme": "dark",
+        "width": 320
+      },
+      "page": "/evaluations/appearance-evaluation",
+      "pass": true
+    },
+    {
+      "name": "precision/dark/320px 结果筛选、URL 与键盘入口保留",
+      "combination": {
+        "variant": "precision",
+        "theme": "dark",
+        "width": 320
+      },
+      "page": "/results",
+      "pass": true
+    },
+    {
+      "name": "precision/dark/320px 结果详情与横向滚动表格可由键盘访问",
+      "combination": {
+        "variant": "precision",
+        "theme": "dark",
+        "width": 320
+      },
+      "page": "/results/appearance-evaluation",
+      "pass": true
+    },
+    {
+      "name": "precision/dark/320px 通知抽屉 Esc 关闭并恢复焦点",
+      "combination": {
+        "variant": "precision",
+        "theme": "dark",
+        "width": 320
+      },
+      "page": "/results/appearance-evaluation",
+      "pass": true
+    },
+    {
+      "name": "precision/dark/320px 移动菜单 Esc 关闭并恢复焦点",
+      "combination": {
+        "variant": "precision",
+        "theme": "dark",
+        "width": 320
+      },
+      "page": "/results/appearance-evaluation",
+      "pass": true
+    },
+    {
+      "name": "precision/dark/320px 移动抽屉创建入口可用",
+      "combination": {
+        "variant": "precision",
+        "theme": "dark",
+        "width": 320
+      },
+      "page": "/results/appearance-evaluation",
+      "pass": true
+    },
+    {
+      "name": "precision/dark/320px 底部导航可由键盘进入结果页",
+      "combination": {
+        "variant": "precision",
+        "theme": "dark",
+        "width": 320
+      },
+      "page": "/evaluations/new",
+      "pass": true
+    },
+    {
+      "name": "precision/dark/390px 创建草稿、选择与键盘操作保留",
+      "combination": {
+        "variant": "precision",
+        "theme": "dark",
+        "width": 390
+      },
+      "page": "/evaluations/new",
+      "pass": true
+    },
+    {
+      "name": "precision/dark/390px 创建及启动请求保留完整跨页配置",
+      "combination": {
+        "variant": "precision",
+        "theme": "dark",
+        "width": 390
+      },
+      "page": "/evaluations/appearance-evaluation",
+      "pass": true
+    },
+    {
+      "name": "precision/dark/390px 任务筛选、URL 与键盘入口保留",
+      "combination": {
+        "variant": "precision",
+        "theme": "dark",
+        "width": 390
+      },
+      "page": "/evaluations",
+      "pass": true
+    },
+    {
+      "name": "precision/dark/390px 任务详情入口与键盘可操作",
+      "combination": {
+        "variant": "precision",
+        "theme": "dark",
+        "width": 390
+      },
+      "page": "/evaluations/appearance-evaluation",
+      "pass": true
+    },
+    {
+      "name": "precision/dark/390px 结果筛选、URL 与键盘入口保留",
+      "combination": {
+        "variant": "precision",
+        "theme": "dark",
+        "width": 390
+      },
+      "page": "/results",
+      "pass": true
+    },
+    {
+      "name": "precision/dark/390px 结果详情与横向滚动表格可由键盘访问",
+      "combination": {
+        "variant": "precision",
+        "theme": "dark",
+        "width": 390
+      },
+      "page": "/results/appearance-evaluation",
+      "pass": true
+    },
+    {
+      "name": "precision/dark/390px 通知抽屉 Esc 关闭并恢复焦点",
+      "combination": {
+        "variant": "precision",
+        "theme": "dark",
+        "width": 390
+      },
+      "page": "/results/appearance-evaluation",
+      "pass": true
+    },
+    {
+      "name": "precision/dark/390px 移动菜单 Esc 关闭并恢复焦点",
+      "combination": {
+        "variant": "precision",
+        "theme": "dark",
+        "width": 390
+      },
+      "page": "/results/appearance-evaluation",
+      "pass": true
+    },
+    {
+      "name": "precision/dark/390px 移动抽屉创建入口可用",
+      "combination": {
+        "variant": "precision",
+        "theme": "dark",
+        "width": 390
+      },
+      "page": "/results/appearance-evaluation",
+      "pass": true
+    },
+    {
+      "name": "precision/dark/390px 底部导航可由键盘进入结果页",
+      "combination": {
+        "variant": "precision",
+        "theme": "dark",
+        "width": 390
+      },
+      "page": "/evaluations/new",
+      "pass": true
+    },
+    {
+      "name": "precision/dark/768px 创建草稿、选择与键盘操作保留",
+      "combination": {
+        "variant": "precision",
+        "theme": "dark",
+        "width": 768
+      },
+      "page": "/evaluations/new",
+      "pass": true
+    },
+    {
+      "name": "precision/dark/768px 创建及启动请求保留完整跨页配置",
+      "combination": {
+        "variant": "precision",
+        "theme": "dark",
+        "width": 768
+      },
+      "page": "/evaluations/appearance-evaluation",
+      "pass": true
+    },
+    {
+      "name": "precision/dark/768px 任务筛选、URL 与键盘入口保留",
+      "combination": {
+        "variant": "precision",
+        "theme": "dark",
+        "width": 768
+      },
+      "page": "/evaluations",
+      "pass": true
+    },
+    {
+      "name": "precision/dark/768px 任务详情入口与键盘可操作",
+      "combination": {
+        "variant": "precision",
+        "theme": "dark",
+        "width": 768
+      },
+      "page": "/evaluations/appearance-evaluation",
+      "pass": true
+    },
+    {
+      "name": "precision/dark/768px 结果筛选、URL 与键盘入口保留",
+      "combination": {
+        "variant": "precision",
+        "theme": "dark",
+        "width": 768
+      },
+      "page": "/results",
+      "pass": true
+    },
+    {
+      "name": "precision/dark/768px 结果详情与横向滚动表格可由键盘访问",
+      "combination": {
+        "variant": "precision",
+        "theme": "dark",
+        "width": 768
+      },
+      "page": "/results/appearance-evaluation",
+      "pass": true
+    },
+    {
+      "name": "precision/dark/768px 通知抽屉 Esc 关闭并恢复焦点",
+      "combination": {
+        "variant": "precision",
+        "theme": "dark",
+        "width": 768
+      },
+      "page": "/results/appearance-evaluation",
+      "pass": true
+    },
+    {
+      "name": "precision/dark/768px 移动菜单 Esc 关闭并恢复焦点",
+      "combination": {
+        "variant": "precision",
+        "theme": "dark",
+        "width": 768
+      },
+      "page": "/results/appearance-evaluation",
+      "pass": true
+    },
+    {
+      "name": "precision/dark/768px 移动抽屉创建入口可用",
+      "combination": {
+        "variant": "precision",
+        "theme": "dark",
+        "width": 768
+      },
+      "page": "/results/appearance-evaluation",
+      "pass": true
+    },
+    {
+      "name": "precision/dark/1440px 创建草稿、选择与键盘操作保留",
+      "combination": {
+        "variant": "precision",
+        "theme": "dark",
+        "width": 1440
+      },
+      "page": "/evaluations/new",
+      "pass": true
+    },
+    {
+      "name": "precision/dark/1440px 创建及启动请求保留完整跨页配置",
+      "combination": {
+        "variant": "precision",
+        "theme": "dark",
+        "width": 1440
+      },
+      "page": "/evaluations/appearance-evaluation",
+      "pass": true
+    },
+    {
+      "name": "precision/dark/1440px 任务筛选、URL 与键盘入口保留",
+      "combination": {
+        "variant": "precision",
+        "theme": "dark",
+        "width": 1440
+      },
+      "page": "/evaluations",
+      "pass": true
+    },
+    {
+      "name": "precision/dark/1440px 任务详情入口与键盘可操作",
+      "combination": {
+        "variant": "precision",
+        "theme": "dark",
+        "width": 1440
+      },
+      "page": "/evaluations/appearance-evaluation",
+      "pass": true
+    },
+    {
+      "name": "precision/dark/1440px 结果筛选、URL 与键盘入口保留",
+      "combination": {
+        "variant": "precision",
+        "theme": "dark",
+        "width": 1440
+      },
+      "page": "/results",
+      "pass": true
+    },
+    {
+      "name": "precision/dark/1440px 结果详情与横向滚动表格可由键盘访问",
+      "combination": {
+        "variant": "precision",
+        "theme": "dark",
+        "width": 1440
+      },
+      "page": "/results/appearance-evaluation",
+      "pass": true
+    },
+    {
+      "name": "precision/dark/1440px 通知抽屉 Esc 关闭并恢复焦点",
+      "combination": {
+        "variant": "precision",
+        "theme": "dark",
+        "width": 1440
+      },
+      "page": "/results/appearance-evaluation",
+      "pass": true
+    },
+    {
+      "name": "studio/light/320px 创建草稿、选择与键盘操作保留",
+      "combination": {
+        "variant": "studio",
+        "theme": "light",
+        "width": 320
+      },
+      "page": "/evaluations/new",
+      "pass": true
+    },
+    {
+      "name": "studio/light/320px 创建及启动请求保留完整跨页配置",
+      "combination": {
+        "variant": "studio",
+        "theme": "light",
+        "width": 320
+      },
+      "page": "/evaluations/appearance-evaluation",
+      "pass": true
+    },
+    {
+      "name": "studio/light/320px 任务筛选、URL 与键盘入口保留",
+      "combination": {
+        "variant": "studio",
+        "theme": "light",
+        "width": 320
+      },
+      "page": "/evaluations",
+      "pass": true
+    },
+    {
+      "name": "studio/light/320px 任务详情入口与键盘可操作",
+      "combination": {
+        "variant": "studio",
+        "theme": "light",
+        "width": 320
+      },
+      "page": "/evaluations/appearance-evaluation",
+      "pass": true
+    },
+    {
+      "name": "studio/light/320px 结果筛选、URL 与键盘入口保留",
+      "combination": {
+        "variant": "studio",
+        "theme": "light",
+        "width": 320
+      },
+      "page": "/results",
+      "pass": true
+    },
+    {
+      "name": "studio/light/320px 结果详情与横向滚动表格可由键盘访问",
+      "combination": {
+        "variant": "studio",
+        "theme": "light",
+        "width": 320
+      },
+      "page": "/results/appearance-evaluation",
+      "pass": true
+    },
+    {
+      "name": "studio/light/320px 通知抽屉 Esc 关闭并恢复焦点",
+      "combination": {
+        "variant": "studio",
+        "theme": "light",
+        "width": 320
+      },
+      "page": "/results/appearance-evaluation",
+      "pass": true
+    },
+    {
+      "name": "studio/light/320px 移动菜单 Esc 关闭并恢复焦点",
+      "combination": {
+        "variant": "studio",
+        "theme": "light",
+        "width": 320
+      },
+      "page": "/results/appearance-evaluation",
+      "pass": true
+    },
+    {
+      "name": "studio/light/320px 移动抽屉创建入口可用",
+      "combination": {
+        "variant": "studio",
+        "theme": "light",
+        "width": 320
+      },
+      "page": "/results/appearance-evaluation",
+      "pass": true
+    },
+    {
+      "name": "studio/light/320px 底部导航可由键盘进入结果页",
+      "combination": {
+        "variant": "studio",
+        "theme": "light",
+        "width": 320
+      },
+      "page": "/evaluations/new",
+      "pass": true
+    },
+    {
+      "name": "studio/light/390px 创建草稿、选择与键盘操作保留",
+      "combination": {
+        "variant": "studio",
+        "theme": "light",
+        "width": 390
+      },
+      "page": "/evaluations/new",
+      "pass": true
+    },
+    {
+      "name": "studio/light/390px 创建及启动请求保留完整跨页配置",
+      "combination": {
+        "variant": "studio",
+        "theme": "light",
+        "width": 390
+      },
+      "page": "/evaluations/appearance-evaluation",
+      "pass": true
+    },
+    {
+      "name": "studio/light/390px 任务筛选、URL 与键盘入口保留",
+      "combination": {
+        "variant": "studio",
+        "theme": "light",
+        "width": 390
+      },
+      "page": "/evaluations",
+      "pass": true
+    },
+    {
+      "name": "studio/light/390px 任务详情入口与键盘可操作",
+      "combination": {
+        "variant": "studio",
+        "theme": "light",
+        "width": 390
+      },
+      "page": "/evaluations/appearance-evaluation",
+      "pass": true
+    },
+    {
+      "name": "studio/light/390px 结果筛选、URL 与键盘入口保留",
+      "combination": {
+        "variant": "studio",
+        "theme": "light",
+        "width": 390
+      },
+      "page": "/results",
+      "pass": true
+    },
+    {
+      "name": "studio/light/390px 结果详情与横向滚动表格可由键盘访问",
+      "combination": {
+        "variant": "studio",
+        "theme": "light",
+        "width": 390
+      },
+      "page": "/results/appearance-evaluation",
+      "pass": true
+    },
+    {
+      "name": "studio/light/390px 通知抽屉 Esc 关闭并恢复焦点",
+      "combination": {
+        "variant": "studio",
+        "theme": "light",
+        "width": 390
+      },
+      "page": "/results/appearance-evaluation",
+      "pass": true
+    },
+    {
+      "name": "studio/light/390px 移动菜单 Esc 关闭并恢复焦点",
+      "combination": {
+        "variant": "studio",
+        "theme": "light",
+        "width": 390
+      },
+      "page": "/results/appearance-evaluation",
+      "pass": true
+    },
+    {
+      "name": "studio/light/390px 移动抽屉创建入口可用",
+      "combination": {
+        "variant": "studio",
+        "theme": "light",
+        "width": 390
+      },
+      "page": "/results/appearance-evaluation",
+      "pass": true
+    },
+    {
+      "name": "studio/light/390px 底部导航可由键盘进入结果页",
+      "combination": {
+        "variant": "studio",
+        "theme": "light",
+        "width": 390
+      },
+      "page": "/evaluations/new",
+      "pass": true
+    },
+    {
+      "name": "studio/light/768px 创建草稿、选择与键盘操作保留",
+      "combination": {
+        "variant": "studio",
+        "theme": "light",
+        "width": 768
+      },
+      "page": "/evaluations/new",
+      "pass": true
+    },
+    {
+      "name": "studio/light/768px 创建及启动请求保留完整跨页配置",
+      "combination": {
+        "variant": "studio",
+        "theme": "light",
+        "width": 768
+      },
+      "page": "/evaluations/appearance-evaluation",
+      "pass": true
+    },
+    {
+      "name": "studio/light/768px 任务筛选、URL 与键盘入口保留",
+      "combination": {
+        "variant": "studio",
+        "theme": "light",
+        "width": 768
+      },
+      "page": "/evaluations",
+      "pass": true
+    },
+    {
+      "name": "studio/light/768px 任务详情入口与键盘可操作",
+      "combination": {
+        "variant": "studio",
+        "theme": "light",
+        "width": 768
+      },
+      "page": "/evaluations/appearance-evaluation",
+      "pass": true
+    },
+    {
+      "name": "studio/light/768px 结果筛选、URL 与键盘入口保留",
+      "combination": {
+        "variant": "studio",
+        "theme": "light",
+        "width": 768
+      },
+      "page": "/results",
+      "pass": true
+    },
+    {
+      "name": "studio/light/768px 结果详情与横向滚动表格可由键盘访问",
+      "combination": {
+        "variant": "studio",
+        "theme": "light",
+        "width": 768
+      },
+      "page": "/results/appearance-evaluation",
+      "pass": true
+    },
+    {
+      "name": "studio/light/768px 通知抽屉 Esc 关闭并恢复焦点",
+      "combination": {
+        "variant": "studio",
+        "theme": "light",
+        "width": 768
+      },
+      "page": "/results/appearance-evaluation",
+      "pass": true
+    },
+    {
+      "name": "studio/light/768px 移动菜单 Esc 关闭并恢复焦点",
+      "combination": {
+        "variant": "studio",
+        "theme": "light",
+        "width": 768
+      },
+      "page": "/results/appearance-evaluation",
+      "pass": true
+    },
+    {
+      "name": "studio/light/768px 移动抽屉创建入口可用",
+      "combination": {
+        "variant": "studio",
+        "theme": "light",
+        "width": 768
+      },
+      "page": "/results/appearance-evaluation",
+      "pass": true
+    },
+    {
+      "name": "studio/light/1440px 创建草稿、选择与键盘操作保留",
+      "combination": {
+        "variant": "studio",
+        "theme": "light",
+        "width": 1440
+      },
+      "page": "/evaluations/new",
+      "pass": true
+    },
+    {
+      "name": "studio/light/1440px 创建及启动请求保留完整跨页配置",
+      "combination": {
+        "variant": "studio",
+        "theme": "light",
+        "width": 1440
+      },
+      "page": "/evaluations/appearance-evaluation",
+      "pass": true
+    },
+    {
+      "name": "studio/light/1440px 任务筛选、URL 与键盘入口保留",
+      "combination": {
+        "variant": "studio",
+        "theme": "light",
+        "width": 1440
+      },
+      "page": "/evaluations",
+      "pass": true
+    },
+    {
+      "name": "studio/light/1440px 任务详情入口与键盘可操作",
+      "combination": {
+        "variant": "studio",
+        "theme": "light",
+        "width": 1440
+      },
+      "page": "/evaluations/appearance-evaluation",
+      "pass": true
+    },
+    {
+      "name": "studio/light/1440px 结果筛选、URL 与键盘入口保留",
+      "combination": {
+        "variant": "studio",
+        "theme": "light",
+        "width": 1440
+      },
+      "page": "/results",
+      "pass": true
+    },
+    {
+      "name": "studio/light/1440px 结果详情与横向滚动表格可由键盘访问",
+      "combination": {
+        "variant": "studio",
+        "theme": "light",
+        "width": 1440
+      },
+      "page": "/results/appearance-evaluation",
+      "pass": true
+    },
+    {
+      "name": "studio/light/1440px 通知抽屉 Esc 关闭并恢复焦点",
+      "combination": {
+        "variant": "studio",
+        "theme": "light",
+        "width": 1440
+      },
+      "page": "/results/appearance-evaluation",
+      "pass": true
+    },
+    {
+      "name": "studio/dark/320px 创建草稿、选择与键盘操作保留",
+      "combination": {
+        "variant": "studio",
+        "theme": "dark",
+        "width": 320
+      },
+      "page": "/evaluations/new",
+      "pass": true
+    },
+    {
+      "name": "studio/dark/320px 创建及启动请求保留完整跨页配置",
+      "combination": {
+        "variant": "studio",
+        "theme": "dark",
+        "width": 320
+      },
+      "page": "/evaluations/appearance-evaluation",
+      "pass": true
+    },
+    {
+      "name": "studio/dark/320px 任务筛选、URL 与键盘入口保留",
+      "combination": {
+        "variant": "studio",
+        "theme": "dark",
+        "width": 320
+      },
+      "page": "/evaluations",
+      "pass": true
+    },
+    {
+      "name": "studio/dark/320px 任务详情入口与键盘可操作",
+      "combination": {
+        "variant": "studio",
+        "theme": "dark",
+        "width": 320
+      },
+      "page": "/evaluations/appearance-evaluation",
+      "pass": true
+    },
+    {
+      "name": "studio/dark/320px 结果筛选、URL 与键盘入口保留",
+      "combination": {
+        "variant": "studio",
+        "theme": "dark",
+        "width": 320
+      },
+      "page": "/results",
+      "pass": true
+    },
+    {
+      "name": "studio/dark/320px 结果详情与横向滚动表格可由键盘访问",
+      "combination": {
+        "variant": "studio",
+        "theme": "dark",
+        "width": 320
+      },
+      "page": "/results/appearance-evaluation",
+      "pass": true
+    },
+    {
+      "name": "studio/dark/320px 通知抽屉 Esc 关闭并恢复焦点",
+      "combination": {
+        "variant": "studio",
+        "theme": "dark",
+        "width": 320
+      },
+      "page": "/results/appearance-evaluation",
+      "pass": true
+    },
+    {
+      "name": "studio/dark/320px 移动菜单 Esc 关闭并恢复焦点",
+      "combination": {
+        "variant": "studio",
+        "theme": "dark",
+        "width": 320
+      },
+      "page": "/results/appearance-evaluation",
+      "pass": true
+    },
+    {
+      "name": "studio/dark/320px 移动抽屉创建入口可用",
+      "combination": {
+        "variant": "studio",
+        "theme": "dark",
+        "width": 320
+      },
+      "page": "/results/appearance-evaluation",
+      "pass": true
+    },
+    {
+      "name": "studio/dark/320px 底部导航可由键盘进入结果页",
+      "combination": {
+        "variant": "studio",
+        "theme": "dark",
+        "width": 320
+      },
+      "page": "/evaluations/new",
+      "pass": true
+    },
+    {
+      "name": "studio/dark/390px 创建草稿、选择与键盘操作保留",
+      "combination": {
+        "variant": "studio",
+        "theme": "dark",
+        "width": 390
+      },
+      "page": "/evaluations/new",
+      "pass": true
+    },
+    {
+      "name": "studio/dark/390px 创建及启动请求保留完整跨页配置",
+      "combination": {
+        "variant": "studio",
+        "theme": "dark",
+        "width": 390
+      },
+      "page": "/evaluations/appearance-evaluation",
+      "pass": true
+    },
+    {
+      "name": "studio/dark/390px 任务筛选、URL 与键盘入口保留",
+      "combination": {
+        "variant": "studio",
+        "theme": "dark",
+        "width": 390
+      },
+      "page": "/evaluations",
+      "pass": true
+    },
+    {
+      "name": "studio/dark/390px 任务详情入口与键盘可操作",
+      "combination": {
+        "variant": "studio",
+        "theme": "dark",
+        "width": 390
+      },
+      "page": "/evaluations/appearance-evaluation",
+      "pass": true
+    },
+    {
+      "name": "studio/dark/390px 结果筛选、URL 与键盘入口保留",
+      "combination": {
+        "variant": "studio",
+        "theme": "dark",
+        "width": 390
+      },
+      "page": "/results",
+      "pass": true
+    },
+    {
+      "name": "studio/dark/390px 结果详情与横向滚动表格可由键盘访问",
+      "combination": {
+        "variant": "studio",
+        "theme": "dark",
+        "width": 390
+      },
+      "page": "/results/appearance-evaluation",
+      "pass": true
+    },
+    {
+      "name": "studio/dark/390px 通知抽屉 Esc 关闭并恢复焦点",
+      "combination": {
+        "variant": "studio",
+        "theme": "dark",
+        "width": 390
+      },
+      "page": "/results/appearance-evaluation",
+      "pass": true
+    },
+    {
+      "name": "studio/dark/390px 移动菜单 Esc 关闭并恢复焦点",
+      "combination": {
+        "variant": "studio",
+        "theme": "dark",
+        "width": 390
+      },
+      "page": "/results/appearance-evaluation",
+      "pass": true
+    },
+    {
+      "name": "studio/dark/390px 移动抽屉创建入口可用",
+      "combination": {
+        "variant": "studio",
+        "theme": "dark",
+        "width": 390
+      },
+      "page": "/results/appearance-evaluation",
+      "pass": true
+    },
+    {
+      "name": "studio/dark/390px 底部导航可由键盘进入结果页",
+      "combination": {
+        "variant": "studio",
+        "theme": "dark",
+        "width": 390
+      },
+      "page": "/evaluations/new",
+      "pass": true
+    },
+    {
+      "name": "studio/dark/768px 创建草稿、选择与键盘操作保留",
+      "combination": {
+        "variant": "studio",
+        "theme": "dark",
+        "width": 768
+      },
+      "page": "/evaluations/new",
+      "pass": true
+    },
+    {
+      "name": "studio/dark/768px 创建及启动请求保留完整跨页配置",
+      "combination": {
+        "variant": "studio",
+        "theme": "dark",
+        "width": 768
+      },
+      "page": "/evaluations/appearance-evaluation",
+      "pass": true
+    },
+    {
+      "name": "studio/dark/768px 任务筛选、URL 与键盘入口保留",
+      "combination": {
+        "variant": "studio",
+        "theme": "dark",
+        "width": 768
+      },
+      "page": "/evaluations",
+      "pass": true
+    },
+    {
+      "name": "studio/dark/768px 任务详情入口与键盘可操作",
+      "combination": {
+        "variant": "studio",
+        "theme": "dark",
+        "width": 768
+      },
+      "page": "/evaluations/appearance-evaluation",
+      "pass": true
+    },
+    {
+      "name": "studio/dark/768px 结果筛选、URL 与键盘入口保留",
+      "combination": {
+        "variant": "studio",
+        "theme": "dark",
+        "width": 768
+      },
+      "page": "/results",
+      "pass": true
+    },
+    {
+      "name": "studio/dark/768px 结果详情与横向滚动表格可由键盘访问",
+      "combination": {
+        "variant": "studio",
+        "theme": "dark",
+        "width": 768
+      },
+      "page": "/results/appearance-evaluation",
+      "pass": true
+    },
+    {
+      "name": "studio/dark/768px 通知抽屉 Esc 关闭并恢复焦点",
+      "combination": {
+        "variant": "studio",
+        "theme": "dark",
+        "width": 768
+      },
+      "page": "/results/appearance-evaluation",
+      "pass": true
+    },
+    {
+      "name": "studio/dark/768px 移动菜单 Esc 关闭并恢复焦点",
+      "combination": {
+        "variant": "studio",
+        "theme": "dark",
+        "width": 768
+      },
+      "page": "/results/appearance-evaluation",
+      "pass": true
+    },
+    {
+      "name": "studio/dark/768px 移动抽屉创建入口可用",
+      "combination": {
+        "variant": "studio",
+        "theme": "dark",
+        "width": 768
+      },
+      "page": "/results/appearance-evaluation",
+      "pass": true
+    },
+    {
+      "name": "studio/dark/1440px 创建草稿、选择与键盘操作保留",
+      "combination": {
+        "variant": "studio",
+        "theme": "dark",
+        "width": 1440
+      },
+      "page": "/evaluations/new",
+      "pass": true
+    },
+    {
+      "name": "studio/dark/1440px 创建及启动请求保留完整跨页配置",
+      "combination": {
+        "variant": "studio",
+        "theme": "dark",
+        "width": 1440
+      },
+      "page": "/evaluations/appearance-evaluation",
+      "pass": true
+    },
+    {
+      "name": "studio/dark/1440px 任务筛选、URL 与键盘入口保留",
+      "combination": {
+        "variant": "studio",
+        "theme": "dark",
+        "width": 1440
+      },
+      "page": "/evaluations",
+      "pass": true
+    },
+    {
+      "name": "studio/dark/1440px 任务详情入口与键盘可操作",
+      "combination": {
+        "variant": "studio",
+        "theme": "dark",
+        "width": 1440
+      },
+      "page": "/evaluations/appearance-evaluation",
+      "pass": true
+    },
+    {
+      "name": "studio/dark/1440px 结果筛选、URL 与键盘入口保留",
+      "combination": {
+        "variant": "studio",
+        "theme": "dark",
+        "width": 1440
+      },
+      "page": "/results",
+      "pass": true
+    },
+    {
+      "name": "studio/dark/1440px 结果详情与横向滚动表格可由键盘访问",
+      "combination": {
+        "variant": "studio",
+        "theme": "dark",
+        "width": 1440
+      },
+      "page": "/results/appearance-evaluation",
+      "pass": true
+    },
+    {
+      "name": "studio/dark/1440px 通知抽屉 Esc 关闭并恢复焦点",
+      "combination": {
+        "variant": "studio",
+        "theme": "dark",
+        "width": 1440
+      },
+      "page": "/results/appearance-evaluation",
+      "pass": true
+    }
+  ],
+  "requests": [
+    {
+      "combo": "orbit/light/320px",
+      "at": 1793070027936,
+      "path": "/users/me",
+      "method": "GET",
+      "query": ""
+    },
+    {
+      "combo": "orbit/light/320px",
+      "at": 1793070027937,
+      "path": "/users/me",
+      "method": "GET",
+      "query": ""
+    },
+    {
+      "combo": "orbit/light/320px",
+      "at": 1793070028007,
+      "path": "/evaluation-options",
+      "method": "GET",
+      "query": ""
+    },
+    {
+      "combo": "orbit/light/320px",
+      "at": 1793070028007,
+      "path": "/api-keys",
+      "method": "GET",
+      "query": ""
+    },
+    {
+      "combo": "orbit/light/320px",
+      "at": 1793070028008,
+      "path": "/evaluation-options/problems",
+      "method": "GET",
+      "query": "?limit=20&offset=0&source=all"
+    },
+    {
+      "combo": "orbit/light/320px",
+      "at": 1793070028156,
+      "path": "/evaluation-options/models",
+      "method": "GET",
+      "query": "?api_key_id=appearance-key"
+    },
+    {
+      "combo": "orbit/light/320px",
+      "at": 1793070028419,
+      "path": "/evaluation-options/problems",
+      "method": "GET",
+      "query": "?limit=20&offset=20&source=all"
+    },
+    {
+      "combo": "orbit/light/320px",
+      "at": 1793070028617,
+      "path": "/evaluation-options/problems",
+      "method": "GET",
+      "query": "?limit=20&offset=0&source=all"
+    },
+    {
+      "combo": "orbit/light/320px",
+      "at": 1793070028771,
+      "path": "/evaluations",
+      "method": "POST",
+      "query": "",
+      "payload": {
+        "api_key_id": "appearance-key",
+        "model": "model-a",
+        "problem_ids": [
+          "appearance-problem",
+          "appearance-problem-20"
+        ],
+        "strategy_names": [
+          "direct"
+        ],
+        "budget_cap_usd": 0.25
+      }
+    },
+    {
+      "combo": "orbit/light/320px",
+      "at": 1793070028780,
+      "path": "/evaluations/appearance-evaluation/start",
+      "method": "POST",
+      "query": ""
+    },
+    {
+      "combo": "orbit/light/320px",
+      "at": 1793070028799,
+      "path": "/evaluations/appearance-evaluation",
+      "method": "GET",
+      "query": ""
+    },
+    {
+      "combo": "orbit/light/320px",
+      "at": 1793070029052,
+      "path": "/users/me",
+      "method": "GET",
+      "query": ""
+    },
+    {
+      "combo": "orbit/light/320px",
+      "at": 1793070029052,
+      "path": "/users/me",
+      "method": "GET",
+      "query": ""
+    },
+    {
+      "combo": "orbit/light/320px",
+      "at": 1793070029074,
+      "path": "/evaluations",
+      "method": "GET",
+      "query": "?limit=20&offset=0"
+    },
+    {
+      "combo": "orbit/light/320px",
+      "at": 1793070029186,
+      "path": "/evaluations",
+      "method": "GET",
+      "query": "?status=completed&limit=20&offset=0"
+    },
+    {
+      "combo": "orbit/light/320px",
+      "at": 1793070029371,
+      "path": "/evaluations/appearance-evaluation",
+      "method": "GET",
+      "query": ""
+    },
+    {
+      "combo": "orbit/light/320px",
+      "at": 1793070029598,
+      "path": "/users/me",
+      "method": "GET",
+      "query": ""
+    },
+    {
+      "combo": "orbit/light/320px",
+      "at": 1793070029599,
+      "path": "/users/me",
+      "method": "GET",
+      "query": ""
+    },
+    {
+      "combo": "orbit/light/320px",
+      "at": 1793070029627,
+      "path": "/results",
+      "method": "GET",
+      "query": "?limit=20&offset=0"
+    },
+    {
+      "combo": "orbit/light/320px",
+      "at": 1793070029719,
+      "path": "/results",
+      "method": "GET",
+      "query": "?status=completed&limit=20&offset=0"
+    },
+    {
+      "combo": "orbit/light/320px",
+      "at": 1793070029897,
+      "path": "/evaluations/appearance-evaluation",
+      "method": "GET",
+      "query": ""
+    },
+    {
+      "combo": "orbit/light/320px",
+      "at": 1793070029898,
+      "path": "/results/appearance-evaluation",
+      "method": "GET",
+      "query": "?limit=20&offset=0"
+    },
+    {
+      "combo": "orbit/light/320px",
+      "at": 1793070029900,
+      "path": "/evaluations/appearance-evaluation",
+      "method": "GET",
+      "query": ""
+    },
+    {
+      "combo": "orbit/light/320px",
+      "at": 1793070029900,
+      "path": "/results/appearance-evaluation",
+      "method": "GET",
+      "query": "?limit=20&offset=0"
+    },
+    {
+      "combo": "orbit/light/320px",
+      "at": 1793070030242,
+      "path": "/evaluation-options",
+      "method": "GET",
+      "query": ""
+    },
+    {
+      "combo": "orbit/light/320px",
+      "at": 1793070030243,
+      "path": "/api-keys",
+      "method": "GET",
+      "query": ""
+    },
+    {
+      "combo": "orbit/light/320px",
+      "at": 1793070030244,
+      "path": "/evaluation-options/problems",
+      "method": "GET",
+      "query": "?limit=20&offset=0&source=all"
+    },
+    {
+      "combo": "orbit/light/320px",
+      "at": 1793070030395,
+      "path": "/results",
+      "method": "GET",
+      "query": "?limit=20&offset=0"
+    },
+    {
+      "combo": "orbit/light/390px",
+      "at": 1793070030901,
+      "path": "/users/me",
+      "method": "GET",
+      "query": ""
+    },
+    {
+      "combo": "orbit/light/390px",
+      "at": 1793070030902,
+      "path": "/users/me",
+      "method": "GET",
+      "query": ""
+    },
+    {
+      "combo": "orbit/light/390px",
+      "at": 1793070030966,
+      "path": "/evaluation-options",
+      "method": "GET",
+      "query": ""
+    },
+    {
+      "combo": "orbit/light/390px",
+      "at": 1793070030966,
+      "path": "/api-keys",
+      "method": "GET",
+      "query": ""
+    },
+    {
+      "combo": "orbit/light/390px",
+      "at": 1793070030967,
+      "path": "/evaluation-options/problems",
+      "method": "GET",
+      "query": "?limit=20&offset=0&source=all"
+    },
+    {
+      "combo": "orbit/light/390px",
+      "at": 1793070031101,
+      "path": "/evaluation-options/models",
+      "method": "GET",
+      "query": "?api_key_id=appearance-key"
+    },
+    {
+      "combo": "orbit/light/390px",
+      "at": 1793070031357,
+      "path": "/evaluation-options/problems",
+      "method": "GET",
+      "query": "?limit=20&offset=20&source=all"
+    },
+    {
+      "combo": "orbit/light/390px",
+      "at": 1793070031555,
+      "path": "/evaluation-options/problems",
+      "method": "GET",
+      "query": "?limit=20&offset=0&source=all"
+    },
+    {
+      "combo": "orbit/light/390px",
+      "at": 1793070031625,
+      "path": "/evaluations",
+      "method": "POST",
+      "query": "",
+      "payload": {
+        "api_key_id": "appearance-key",
+        "model": "model-a",
+        "problem_ids": [
+          "appearance-problem",
+          "appearance-problem-20"
+        ],
+        "strategy_names": [
+          "direct"
+        ],
+        "budget_cap_usd": 0.25
+      }
+    },
+    {
+      "combo": "orbit/light/390px",
+      "at": 1793070031638,
+      "path": "/evaluations/appearance-evaluation/start",
+      "method": "POST",
+      "query": ""
+    },
+    {
+      "combo": "orbit/light/390px",
+      "at": 1793070031655,
+      "path": "/evaluations/appearance-evaluation",
+      "method": "GET",
+      "query": ""
+    },
+    {
+      "combo": "orbit/light/390px",
+      "at": 1793070031905,
+      "path": "/users/me",
+      "method": "GET",
+      "query": ""
+    },
+    {
+      "combo": "orbit/light/390px",
+      "at": 1793070031905,
+      "path": "/users/me",
+      "method": "GET",
+      "query": ""
+    },
+    {
+      "combo": "orbit/light/390px",
+      "at": 1793070031926,
+      "path": "/evaluations",
+      "method": "GET",
+      "query": "?limit=20&offset=0"
+    },
+    {
+      "combo": "orbit/light/390px",
+      "at": 1793070032040,
+      "path": "/evaluations",
+      "method": "GET",
+      "query": "?status=completed&limit=20&offset=0"
+    },
+    {
+      "combo": "orbit/light/390px",
+      "at": 1793070032225,
+      "path": "/evaluations/appearance-evaluation",
+      "method": "GET",
+      "query": ""
+    },
+    {
+      "combo": "orbit/light/390px",
+      "at": 1793070032481,
+      "path": "/users/me",
+      "method": "GET",
+      "query": ""
+    },
+    {
+      "combo": "orbit/light/390px",
+      "at": 1793070032481,
+      "path": "/users/me",
+      "method": "GET",
+      "query": ""
+    },
+    {
+      "combo": "orbit/light/390px",
+      "at": 1793070032503,
+      "path": "/results",
+      "method": "GET",
+      "query": "?limit=20&offset=0"
+    },
+    {
+      "combo": "orbit/light/390px",
+      "at": 1793070032608,
+      "path": "/results",
+      "method": "GET",
+      "query": "?status=completed&limit=20&offset=0"
+    },
+    {
+      "combo": "orbit/light/390px",
+      "at": 1793070032779,
+      "path": "/evaluations/appearance-evaluation",
+      "method": "GET",
+      "query": ""
+    },
+    {
+      "combo": "orbit/light/390px",
+      "at": 1793070032780,
+      "path": "/results/appearance-evaluation",
+      "method": "GET",
+      "query": "?limit=20&offset=0"
+    },
+    {
+      "combo": "orbit/light/390px",
+      "at": 1793070032783,
+      "path": "/evaluations/appearance-evaluation",
+      "method": "GET",
+      "query": ""
+    },
+    {
+      "combo": "orbit/light/390px",
+      "at": 1793070032784,
+      "path": "/results/appearance-evaluation",
+      "method": "GET",
+      "query": "?limit=20&offset=0"
+    },
+    {
+      "combo": "orbit/light/390px",
+      "at": 1793070033102,
+      "path": "/evaluation-options",
+      "method": "GET",
+      "query": ""
+    },
+    {
+      "combo": "orbit/light/390px",
+      "at": 1793070033102,
+      "path": "/api-keys",
+      "method": "GET",
+      "query": ""
+    },
+    {
+      "combo": "orbit/light/390px",
+      "at": 1793070033103,
+      "path": "/evaluation-options/problems",
+      "method": "GET",
+      "query": "?limit=20&offset=0&source=all"
+    },
+    {
+      "combo": "orbit/light/390px",
+      "at": 1793070033262,
+      "path": "/results",
+      "method": "GET",
+      "query": "?limit=20&offset=0"
+    },
+    {
+      "combo": "orbit/light/768px",
+      "at": 1793070033661,
+      "path": "/users/me",
+      "method": "GET",
+      "query": ""
+    },
+    {
+      "combo": "orbit/light/768px",
+      "at": 1793070033662,
+      "path": "/users/me",
+      "method": "GET",
+      "query": ""
+    },
+    {
+      "combo": "orbit/light/768px",
+      "at": 1793070033727,
+      "path": "/evaluation-options",
+      "method": "GET",
+      "query": ""
+    },
+    {
+      "combo": "orbit/light/768px",
+      "at": 1793070033728,
+      "path": "/api-keys",
+      "method": "GET",
+      "query": ""
+    },
+    {
+      "combo": "orbit/light/768px",
+      "at": 1793070033728,
+      "path": "/evaluation-options/problems",
+      "method": "GET",
+      "query": "?limit=20&offset=0&source=all"
+    },
+    {
+      "combo": "orbit/light/768px",
+      "at": 1793070033844,
+      "path": "/evaluation-options/models",
+      "method": "GET",
+      "query": "?api_key_id=appearance-key"
+    },
+    {
+      "combo": "orbit/light/768px",
+      "at": 1793070034096,
+      "path": "/evaluation-options/problems",
+      "method": "GET",
+      "query": "?limit=20&offset=20&source=all"
+    },
+    {
+      "combo": "orbit/light/768px",
+      "at": 1793070034313,
+      "path": "/evaluation-options/problems",
+      "method": "GET",
+      "query": "?limit=20&offset=0&source=all"
+    },
+    {
+      "combo": "orbit/light/768px",
+      "at": 1793070034381,
+      "path": "/evaluations",
+      "method": "POST",
+      "query": "",
+      "payload": {
+        "api_key_id": "appearance-key",
+        "model": "model-a",
+        "problem_ids": [
+          "appearance-problem",
+          "appearance-problem-20"
+        ],
+        "strategy_names": [
+          "direct"
+        ],
+        "budget_cap_usd": 0.25
+      }
+    },
+    {
+      "combo": "orbit/light/768px",
+      "at": 1793070034402,
+      "path": "/evaluations/appearance-evaluation/start",
+      "method": "POST",
+      "query": ""
+    },
+    {
+      "combo": "orbit/light/768px",
+      "at": 1793070034412,
+      "path": "/evaluations/appearance-evaluation",
+      "method": "GET",
+      "query": ""
+    },
+    {
+      "combo": "orbit/light/768px",
+      "at": 1793070034662,
+      "path": "/users/me",
+      "method": "GET",
+      "query": ""
+    },
+    {
+      "combo": "orbit/light/768px",
+      "at": 1793070034662,
+      "path": "/users/me",
+      "method": "GET",
+      "query": ""
+    },
+    {
+      "combo": "orbit/light/768px",
+      "at": 1793070034685,
+      "path": "/evaluations",
+      "method": "GET",
+      "query": "?limit=20&offset=0"
+    },
+    {
+      "combo": "orbit/light/768px",
+      "at": 1793070034798,
+      "path": "/evaluations",
+      "method": "GET",
+      "query": "?status=completed&limit=20&offset=0"
+    },
+    {
+      "combo": "orbit/light/768px",
+      "at": 1793070034999,
+      "path": "/evaluations/appearance-evaluation",
+      "method": "GET",
+      "query": ""
+    },
+    {
+      "combo": "orbit/light/768px",
+      "at": 1793070035242,
+      "path": "/users/me",
+      "method": "GET",
+      "query": ""
+    },
+    {
+      "combo": "orbit/light/768px",
+      "at": 1793070035242,
+      "path": "/users/me",
+      "method": "GET",
+      "query": ""
+    },
+    {
+      "combo": "orbit/light/768px",
+      "at": 1793070035267,
+      "path": "/results",
+      "method": "GET",
+      "query": "?limit=20&offset=0"
+    },
+    {
+      "combo": "orbit/light/768px",
+      "at": 1793070035384,
+      "path": "/results",
+      "method": "GET",
+      "query": "?status=completed&limit=20&offset=0"
+    },
+    {
+      "combo": "orbit/light/768px",
+      "at": 1793070035537,
+      "path": "/evaluations/appearance-evaluation",
+      "method": "GET",
+      "query": ""
+    },
+    {
+      "combo": "orbit/light/768px",
+      "at": 1793070035537,
+      "path": "/results/appearance-evaluation",
+      "method": "GET",
+      "query": "?limit=20&offset=0"
+    },
+    {
+      "combo": "orbit/light/768px",
+      "at": 1793070035539,
+      "path": "/evaluations/appearance-evaluation",
+      "method": "GET",
+      "query": ""
+    },
+    {
+      "combo": "orbit/light/768px",
+      "at": 1793070035539,
+      "path": "/results/appearance-evaluation",
+      "method": "GET",
+      "query": "?limit=20&offset=0"
+    },
+    {
+      "combo": "orbit/light/768px",
+      "at": 1793070035841,
+      "path": "/evaluation-options",
+      "method": "GET",
+      "query": ""
+    },
+    {
+      "combo": "orbit/light/768px",
+      "at": 1793070035841,
+      "path": "/api-keys",
+      "method": "GET",
+      "query": ""
+    },
+    {
+      "combo": "orbit/light/768px",
+      "at": 1793070035841,
+      "path": "/evaluation-options/problems",
+      "method": "GET",
+      "query": "?limit=20&offset=0&source=all"
+    },
+    {
+      "combo": "orbit/light/1440px",
+      "at": 1793070036253,
+      "path": "/users/me",
+      "method": "GET",
+      "query": ""
+    },
+    {
+      "combo": "orbit/light/1440px",
+      "at": 1793070036253,
+      "path": "/users/me",
+      "method": "GET",
+      "query": ""
+    },
+    {
+      "combo": "orbit/light/1440px",
+      "at": 1793070036316,
+      "path": "/evaluation-options",
+      "method": "GET",
+      "query": ""
+    },
+    {
+      "combo": "orbit/light/1440px",
+      "at": 1793070036317,
+      "path": "/api-keys",
+      "method": "GET",
+      "query": ""
+    },
+    {
+      "combo": "orbit/light/1440px",
+      "at": 1793070036317,
+      "path": "/evaluation-options/problems",
+      "method": "GET",
+      "query": "?limit=20&offset=0&source=all"
+    },
+    {
+      "combo": "orbit/light/1440px",
+      "at": 1793070036430,
+      "path": "/evaluation-options/models",
+      "method": "GET",
+      "query": "?api_key_id=appearance-key"
+    },
+    {
+      "combo": "orbit/light/1440px",
+      "at": 1793070036686,
+      "path": "/evaluation-options/problems",
+      "method": "GET",
+      "query": "?limit=20&offset=20&source=all"
+    },
+    {
+      "combo": "orbit/light/1440px",
+      "at": 1793070036883,
+      "path": "/evaluation-options/problems",
+      "method": "GET",
+      "query": "?limit=20&offset=0&source=all"
+    },
+    {
+      "combo": "orbit/light/1440px",
+      "at": 1793070036954,
+      "path": "/evaluations",
+      "method": "POST",
+      "query": "",
+      "payload": {
+        "api_key_id": "appearance-key",
+        "model": "model-a",
+        "problem_ids": [
+          "appearance-problem",
+          "appearance-problem-20"
+        ],
+        "strategy_names": [
+          "direct"
+        ],
+        "budget_cap_usd": 0.25
+      }
+    },
+    {
+      "combo": "orbit/light/1440px",
+      "at": 1793070036964,
+      "path": "/evaluations/appearance-evaluation/start",
+      "method": "POST",
+      "query": ""
+    },
+    {
+      "combo": "orbit/light/1440px",
+      "at": 1793070036982,
+      "path": "/evaluations/appearance-evaluation",
+      "method": "GET",
+      "query": ""
+    },
+    {
+      "combo": "orbit/light/1440px",
+      "at": 1793070037224,
+      "path": "/users/me",
+      "method": "GET",
+      "query": ""
+    },
+    {
+      "combo": "orbit/light/1440px",
+      "at": 1793070037224,
+      "path": "/users/me",
+      "method": "GET",
+      "query": ""
+    },
+    {
+      "combo": "orbit/light/1440px",
+      "at": 1793070037245,
+      "path": "/evaluations",
+      "method": "GET",
+      "query": "?limit=20&offset=0"
+    },
+    {
+      "combo": "orbit/light/1440px",
+      "at": 1793070037353,
+      "path": "/evaluations",
+      "method": "GET",
+      "query": "?status=completed&limit=20&offset=0"
+    },
+    {
+      "combo": "orbit/light/1440px",
+      "at": 1793070037580,
+      "path": "/evaluations/appearance-evaluation",
+      "method": "GET",
+      "query": ""
+    },
+    {
+      "combo": "orbit/light/1440px",
+      "at": 1793070037819,
+      "path": "/users/me",
+      "method": "GET",
+      "query": ""
+    },
+    {
+      "combo": "orbit/light/1440px",
+      "at": 1793070037819,
+      "path": "/users/me",
+      "method": "GET",
+      "query": ""
+    },
+    {
+      "combo": "orbit/light/1440px",
+      "at": 1793070037844,
+      "path": "/results",
+      "method": "GET",
+      "query": "?limit=20&offset=0"
+    },
+    {
+      "combo": "orbit/light/1440px",
+      "at": 1793070037953,
+      "path": "/results",
+      "method": "GET",
+      "query": "?status=completed&limit=20&offset=0"
+    },
+    {
+      "combo": "orbit/light/1440px",
+      "at": 1793070038143,
+      "path": "/evaluations/appearance-evaluation",
+      "method": "GET",
+      "query": ""
+    },
+    {
+      "combo": "orbit/light/1440px",
+      "at": 1793070038143,
+      "path": "/results/appearance-evaluation",
+      "method": "GET",
+      "query": "?limit=20&offset=0"
+    },
+    {
+      "combo": "orbit/light/1440px",
+      "at": 1793070038146,
+      "path": "/evaluations/appearance-evaluation",
+      "method": "GET",
+      "query": ""
+    },
+    {
+      "combo": "orbit/light/1440px",
+      "at": 1793070038147,
+      "path": "/results/appearance-evaluation",
+      "method": "GET",
+      "query": "?limit=20&offset=0"
+    },
+    {
+      "combo": "orbit/dark/320px",
+      "at": 1793070038657,
+      "path": "/users/me",
+      "method": "GET",
+      "query": ""
+    },
+    {
+      "combo": "orbit/dark/320px",
+      "at": 1793070038657,
+      "path": "/users/me",
+      "method": "GET",
+      "query": ""
+    },
+    {
+      "combo": "orbit/dark/320px",
+      "at": 1793070038722,
+      "path": "/evaluation-options",
+      "method": "GET",
+      "query": ""
+    },
+    {
+      "combo": "orbit/dark/320px",
+      "at": 1793070038724,
+      "path": "/api-keys",
+      "method": "GET",
+      "query": ""
+    },
+    {
+      "combo": "orbit/dark/320px",
+      "at": 1793070038724,
+      "path": "/evaluation-options/problems",
+      "method": "GET",
+      "query": "?limit=20&offset=0&source=all"
+    },
+    {
+      "combo": "orbit/dark/320px",
+      "at": 1793070038847,
+      "path": "/evaluation-options/models",
+      "method": "GET",
+      "query": "?api_key_id=appearance-key"
+    },
+    {
+      "combo": "orbit/dark/320px",
+      "at": 1793070039118,
+      "path": "/evaluation-options/problems",
+      "method": "GET",
+      "query": "?limit=20&offset=20&source=all"
+    },
+    {
+      "combo": "orbit/dark/320px",
+      "at": 1793070039316,
+      "path": "/evaluation-options/problems",
+      "method": "GET",
+      "query": "?limit=20&offset=0&source=all"
+    },
+    {
+      "combo": "orbit/dark/320px",
+      "at": 1793070039387,
+      "path": "/evaluations",
+      "method": "POST",
+      "query": "",
+      "payload": {
+        "api_key_id": "appearance-key",
+        "model": "model-a",
+        "problem_ids": [
+          "appearance-problem",
+          "appearance-problem-20"
+        ],
+        "strategy_names": [
+          "direct"
+        ],
+        "budget_cap_usd": 0.25
+      }
+    },
+    {
+      "combo": "orbit/dark/320px",
+      "at": 1793070039399,
+      "path": "/evaluations/appearance-evaluation/start",
+      "method": "POST",
+      "query": ""
+    },
+    {
+      "combo": "orbit/dark/320px",
+      "at": 1793070039417,
+      "path": "/evaluations/appearance-evaluation",
+      "method": "GET",
+      "query": ""
+    },
+    {
+      "combo": "orbit/dark/320px",
+      "at": 1793070039668,
+      "path": "/users/me",
+      "method": "GET",
+      "query": ""
+    },
+    {
+      "combo": "orbit/dark/320px",
+      "at": 1793070039669,
+      "path": "/users/me",
+      "method": "GET",
+      "query": ""
+    },
+    {
+      "combo": "orbit/dark/320px",
+      "at": 1793070039694,
+      "path": "/evaluations",
+      "method": "GET",
+      "query": "?limit=20&offset=0"
+    },
+    {
+      "combo": "orbit/dark/320px",
+      "at": 1793070039803,
+      "path": "/evaluations",
+      "method": "GET",
+      "query": "?status=completed&limit=20&offset=0"
+    },
+    {
+      "combo": "orbit/dark/320px",
+      "at": 1793070039988,
+      "path": "/evaluations/appearance-evaluation",
+      "method": "GET",
+      "query": ""
+    },
+    {
+      "combo": "orbit/dark/320px",
+      "at": 1793070040229,
+      "path": "/users/me",
+      "method": "GET",
+      "query": ""
+    },
+    {
+      "combo": "orbit/dark/320px",
+      "at": 1793070040229,
+      "path": "/users/me",
+      "method": "GET",
+      "query": ""
+    },
+    {
+      "combo": "orbit/dark/320px",
+      "at": 1793070040251,
+      "path": "/results",
+      "method": "GET",
+      "query": "?limit=20&offset=0"
+    },
+    {
+      "combo": "orbit/dark/320px",
+      "at": 1793070040353,
+      "path": "/results",
+      "method": "GET",
+      "query": "?status=completed&limit=20&offset=0"
+    },
+    {
+      "combo": "orbit/dark/320px",
+      "at": 1793070040509,
+      "path": "/evaluations/appearance-evaluation",
+      "method": "GET",
+      "query": ""
+    },
+    {
+      "combo": "orbit/dark/320px",
+      "at": 1793070040509,
+      "path": "/results/appearance-evaluation",
+      "method": "GET",
+      "query": "?limit=20&offset=0"
+    },
+    {
+      "combo": "orbit/dark/320px",
+      "at": 1793070040513,
+      "path": "/evaluations/appearance-evaluation",
+      "method": "GET",
+      "query": ""
+    },
+    {
+      "combo": "orbit/dark/320px",
+      "at": 1793070040513,
+      "path": "/results/appearance-evaluation",
+      "method": "GET",
+      "query": "?limit=20&offset=0"
+    },
+    {
+      "combo": "orbit/dark/320px",
+      "at": 1793070040799,
+      "path": "/evaluation-options",
+      "method": "GET",
+      "query": ""
+    },
+    {
+      "combo": "orbit/dark/320px",
+      "at": 1793070040799,
+      "path": "/api-keys",
+      "method": "GET",
+      "query": ""
+    },
+    {
+      "combo": "orbit/dark/320px",
+      "at": 1793070040799,
+      "path": "/evaluation-options/problems",
+      "method": "GET",
+      "query": "?limit=20&offset=0&source=all"
+    },
+    {
+      "combo": "orbit/dark/320px",
+      "at": 1793070040957,
+      "path": "/results",
+      "method": "GET",
+      "query": "?limit=20&offset=0"
+    },
+    {
+      "combo": "orbit/dark/390px",
+      "at": 1793070041372,
+      "path": "/users/me",
+      "method": "GET",
+      "query": ""
+    },
+    {
+      "combo": "orbit/dark/390px",
+      "at": 1793070041372,
+      "path": "/users/me",
+      "method": "GET",
+      "query": ""
+    },
+    {
+      "combo": "orbit/dark/390px",
+      "at": 1793070041440,
+      "path": "/evaluation-options",
+      "method": "GET",
+      "query": ""
+    },
+    {
+      "combo": "orbit/dark/390px",
+      "at": 1793070041440,
+      "path": "/api-keys",
+      "method": "GET",
+      "query": ""
+    },
+    {
+      "combo": "orbit/dark/390px",
+      "at": 1793070041441,
+      "path": "/evaluation-options/problems",
+      "method": "GET",
+      "query": "?limit=20&offset=0&source=all"
+    },
+    {
+      "combo": "orbit/dark/390px",
+      "at": 1793070041550,
+      "path": "/evaluation-options/models",
+      "method": "GET",
+      "query": "?api_key_id=appearance-key"
+    },
+    {
+      "combo": "orbit/dark/390px",
+      "at": 1793070041816,
+      "path": "/evaluation-options/problems",
+      "method": "GET",
+      "query": "?limit=20&offset=20&source=all"
+    },
+    {
+      "combo": "orbit/dark/390px",
+      "at": 1793070042015,
+      "path": "/evaluation-options/problems",
+      "method": "GET",
+      "query": "?limit=20&offset=0&source=all"
+    },
+    {
+      "combo": "orbit/dark/390px",
+      "at": 1793070042086,
+      "path": "/evaluations",
+      "method": "POST",
+      "query": "",
+      "payload": {
+        "api_key_id": "appearance-key",
+        "model": "model-a",
+        "problem_ids": [
+          "appearance-problem",
+          "appearance-problem-20"
+        ],
+        "strategy_names": [
+          "direct"
+        ],
+        "budget_cap_usd": 0.25
+      }
+    },
+    {
+      "combo": "orbit/dark/390px",
+      "at": 1793070042097,
+      "path": "/evaluations/appearance-evaluation/start",
+      "method": "POST",
+      "query": ""
+    },
+    {
+      "combo": "orbit/dark/390px",
+      "at": 1793070042117,
+      "path": "/evaluations/appearance-evaluation",
+      "method": "GET",
+      "query": ""
+    },
+    {
+      "combo": "orbit/dark/390px",
+      "at": 1793070042371,
+      "path": "/users/me",
+      "method": "GET",
+      "query": ""
+    },
+    {
+      "combo": "orbit/dark/390px",
+      "at": 1793070042372,
+      "path": "/users/me",
+      "method": "GET",
+      "query": ""
+    },
+    {
+      "combo": "orbit/dark/390px",
+      "at": 1793070042401,
+      "path": "/evaluations",
+      "method": "GET",
+      "query": "?limit=20&offset=0"
+    },
+    {
+      "combo": "orbit/dark/390px",
+      "at": 1793070042518,
+      "path": "/evaluations",
+      "method": "GET",
+      "query": "?status=completed&limit=20&offset=0"
+    },
+    {
+      "combo": "orbit/dark/390px",
+      "at": 1793070042719,
+      "path": "/evaluations/appearance-evaluation",
+      "method": "GET",
+      "query": ""
+    },
+    {
+      "combo": "orbit/dark/390px",
+      "at": 1793070042981,
+      "path": "/users/me",
+      "method": "GET",
+      "query": ""
+    },
+    {
+      "combo": "orbit/dark/390px",
+      "at": 1793070042981,
+      "path": "/users/me",
+      "method": "GET",
+      "query": ""
+    },
+    {
+      "combo": "orbit/dark/390px",
+      "at": 1793070043003,
+      "path": "/results",
+      "method": "GET",
+      "query": "?limit=20&offset=0"
+    },
+    {
+      "combo": "orbit/dark/390px",
+      "at": 1793070043101,
+      "path": "/results",
+      "method": "GET",
+      "query": "?status=completed&limit=20&offset=0"
+    },
+    {
+      "combo": "orbit/dark/390px",
+      "at": 1793070043282,
+      "path": "/evaluations/appearance-evaluation",
+      "method": "GET",
+      "query": ""
+    },
+    {
+      "combo": "orbit/dark/390px",
+      "at": 1793070043283,
+      "path": "/evaluations/appearance-evaluation",
+      "method": "GET",
+      "query": ""
+    },
+    {
+      "combo": "orbit/dark/390px",
+      "at": 1793070043284,
+      "path": "/results/appearance-evaluation",
+      "method": "GET",
+      "query": "?limit=20&offset=0"
+    },
+    {
+      "combo": "orbit/dark/390px",
+      "at": 1793070043632,
+      "path": "/evaluation-options",
+      "method": "GET",
+      "query": ""
+    },
+    {
+      "combo": "orbit/dark/390px",
+      "at": 1793070043632,
+      "path": "/api-keys",
+      "method": "GET",
+      "query": ""
+    },
+    {
+      "combo": "orbit/dark/390px",
+      "at": 1793070043633,
+      "path": "/evaluation-options/problems",
+      "method": "GET",
+      "query": "?limit=20&offset=0&source=all"
+    },
+    {
+      "combo": "orbit/dark/390px",
+      "at": 1793070043787,
+      "path": "/results",
+      "method": "GET",
+      "query": "?limit=20&offset=0"
+    },
+    {
+      "combo": "orbit/dark/768px",
+      "at": 1793070044257,
+      "path": "/users/me",
+      "method": "GET",
+      "query": ""
+    },
+    {
+      "combo": "orbit/dark/768px",
+      "at": 1793070044258,
+      "path": "/users/me",
+      "method": "GET",
+      "query": ""
+    },
+    {
+      "combo": "orbit/dark/768px",
+      "at": 1793070044331,
+      "path": "/evaluation-options",
+      "method": "GET",
+      "query": ""
+    },
+    {
+      "combo": "orbit/dark/768px",
+      "at": 1793070044331,
+      "path": "/api-keys",
+      "method": "GET",
+      "query": ""
+    },
+    {
+      "combo": "orbit/dark/768px",
+      "at": 1793070044331,
+      "path": "/evaluation-options/problems",
+      "method": "GET",
+      "query": "?limit=20&offset=0&source=all"
+    },
+    {
+      "combo": "orbit/dark/768px",
+      "at": 1793070044451,
+      "path": "/evaluation-options/models",
+      "method": "GET",
+      "query": "?api_key_id=appearance-key"
+    },
+    {
+      "combo": "orbit/dark/768px",
+      "at": 1793070044703,
+      "path": "/evaluation-options/problems",
+      "method": "GET",
+      "query": "?limit=20&offset=20&source=all"
+    },
+    {
+      "combo": "orbit/dark/768px",
+      "at": 1793070044902,
+      "path": "/evaluation-options/problems",
+      "method": "GET",
+      "query": "?limit=20&offset=0&source=all"
+    },
+    {
+      "combo": "orbit/dark/768px",
+      "at": 1793070044973,
+      "path": "/evaluations",
+      "method": "POST",
+      "query": "",
+      "payload": {
+        "api_key_id": "appearance-key",
+        "model": "model-a",
+        "problem_ids": [
+          "appearance-problem",
+          "appearance-problem-20"
+        ],
+        "strategy_names": [
+          "direct"
+        ],
+        "budget_cap_usd": 0.25
+      }
+    },
+    {
+      "combo": "orbit/dark/768px",
+      "at": 1793070044984,
+      "path": "/evaluations/appearance-evaluation/start",
+      "method": "POST",
+      "query": ""
+    },
+    {
+      "combo": "orbit/dark/768px",
+      "at": 1793070045003,
+      "path": "/evaluations/appearance-evaluation",
+      "method": "GET",
+      "query": ""
+    },
+    {
+      "combo": "orbit/dark/768px",
+      "at": 1793070045271,
+      "path": "/users/me",
+      "method": "GET",
+      "query": ""
+    },
+    {
+      "combo": "orbit/dark/768px",
+      "at": 1793070045272,
+      "path": "/users/me",
+      "method": "GET",
+      "query": ""
+    },
+    {
+      "combo": "orbit/dark/768px",
+      "at": 1793070045295,
+      "path": "/evaluations",
+      "method": "GET",
+      "query": "?limit=20&offset=0"
+    },
+    {
+      "combo": "orbit/dark/768px",
+      "at": 1793070045404,
+      "path": "/evaluations",
+      "method": "GET",
+      "query": "?status=completed&limit=20&offset=0"
+    },
+    {
+      "combo": "orbit/dark/768px",
+      "at": 1793070045607,
+      "path": "/evaluations/appearance-evaluation",
+      "method": "GET",
+      "query": ""
+    },
+    {
+      "combo": "orbit/dark/768px",
+      "at": 1793070045882,
+      "path": "/users/me",
+      "method": "GET",
+      "query": ""
+    },
+    {
+      "combo": "orbit/dark/768px",
+      "at": 1793070045882,
+      "path": "/users/me",
+      "method": "GET",
+      "query": ""
+    },
+    {
+      "combo": "orbit/dark/768px",
+      "at": 1793070045907,
+      "path": "/results",
+      "method": "GET",
+      "query": "?limit=20&offset=0"
+    },
+    {
+      "combo": "orbit/dark/768px",
+      "at": 1793070046005,
+      "path": "/results",
+      "method": "GET",
+      "query": "?status=completed&limit=20&offset=0"
+    },
+    {
+      "combo": "orbit/dark/768px",
+      "at": 1793070046176,
+      "path": "/evaluations/appearance-evaluation",
+      "method": "GET",
+      "query": ""
+    },
+    {
+      "combo": "orbit/dark/768px",
+      "at": 1793070046177,
+      "path": "/results/appearance-evaluation",
+      "method": "GET",
+      "query": "?limit=20&offset=0"
+    },
+    {
+      "combo": "orbit/dark/768px",
+      "at": 1793070046181,
+      "path": "/evaluations/appearance-evaluation",
+      "method": "GET",
+      "query": ""
+    },
+    {
+      "combo": "orbit/dark/768px",
+      "at": 1793070046181,
+      "path": "/results/appearance-evaluation",
+      "method": "GET",
+      "query": "?limit=20&offset=0"
+    },
+    {
+      "combo": "orbit/dark/768px",
+      "at": 1793070046484,
+      "path": "/evaluation-options",
+      "method": "GET",
+      "query": ""
+    },
+    {
+      "combo": "orbit/dark/768px",
+      "at": 1793070046485,
+      "path": "/api-keys",
+      "method": "GET",
+      "query": ""
+    },
+    {
+      "combo": "orbit/dark/768px",
+      "at": 1793070046487,
+      "path": "/evaluation-options/problems",
+      "method": "GET",
+      "query": "?limit=20&offset=0&source=all"
+    },
+    {
+      "combo": "orbit/dark/1440px",
+      "at": 1793070047060,
+      "path": "/users/me",
+      "method": "GET",
+      "query": ""
+    },
+    {
+      "combo": "orbit/dark/1440px",
+      "at": 1793070047061,
+      "path": "/users/me",
+      "method": "GET",
+      "query": ""
+    },
+    {
+      "combo": "orbit/dark/1440px",
+      "at": 1793070047130,
+      "path": "/evaluation-options",
+      "method": "GET",
+      "query": ""
+    },
+    {
+      "combo": "orbit/dark/1440px",
+      "at": 1793070047130,
+      "path": "/api-keys",
+      "method": "GET",
+      "query": ""
+    },
+    {
+      "combo": "orbit/dark/1440px",
+      "at": 1793070047131,
+      "path": "/evaluation-options/problems",
+      "method": "GET",
+      "query": "?limit=20&offset=0&source=all"
+    },
+    {
+      "combo": "orbit/dark/1440px",
+      "at": 1793070047235,
+      "path": "/evaluation-options/models",
+      "method": "GET",
+      "query": "?api_key_id=appearance-key"
+    },
+    {
+      "combo": "orbit/dark/1440px",
+      "at": 1793070047489,
+      "path": "/evaluation-options/problems",
+      "method": "GET",
+      "query": "?limit=20&offset=20&source=all"
+    },
+    {
+      "combo": "orbit/dark/1440px",
+      "at": 1793070047687,
+      "path": "/evaluation-options/problems",
+      "method": "GET",
+      "query": "?limit=20&offset=0&source=all"
+    },
+    {
+      "combo": "orbit/dark/1440px",
+      "at": 1793070047758,
+      "path": "/evaluations",
+      "method": "POST",
+      "query": "",
+      "payload": {
+        "api_key_id": "appearance-key",
+        "model": "model-a",
+        "problem_ids": [
+          "appearance-problem",
+          "appearance-problem-20"
+        ],
+        "strategy_names": [
+          "direct"
+        ],
+        "budget_cap_usd": 0.25
+      }
+    },
+    {
+      "combo": "orbit/dark/1440px",
+      "at": 1793070047770,
+      "path": "/evaluations/appearance-evaluation/start",
+      "method": "POST",
+      "query": ""
+    },
+    {
+      "combo": "orbit/dark/1440px",
+      "at": 1793070047788,
+      "path": "/evaluations/appearance-evaluation",
+      "method": "GET",
+      "query": ""
+    },
+    {
+      "combo": "orbit/dark/1440px",
+      "at": 1793070048031,
+      "path": "/users/me",
+      "method": "GET",
+      "query": ""
+    },
+    {
+      "combo": "orbit/dark/1440px",
+      "at": 1793070048031,
+      "path": "/users/me",
+      "method": "GET",
+      "query": ""
+    },
+    {
+      "combo": "orbit/dark/1440px",
+      "at": 1793070048055,
+      "path": "/evaluations",
+      "method": "GET",
+      "query": "?limit=20&offset=0"
+    },
+    {
+      "combo": "orbit/dark/1440px",
+      "at": 1793070048157,
+      "path": "/evaluations",
+      "method": "GET",
+      "query": "?status=completed&limit=20&offset=0"
+    },
+    {
+      "combo": "orbit/dark/1440px",
+      "at": 1793070048380,
+      "path": "/evaluations/appearance-evaluation",
+      "method": "GET",
+      "query": ""
+    },
+    {
+      "combo": "orbit/dark/1440px",
+      "at": 1793070048628,
+      "path": "/users/me",
+      "method": "GET",
+      "query": ""
+    },
+    {
+      "combo": "orbit/dark/1440px",
+      "at": 1793070048628,
+      "path": "/users/me",
+      "method": "GET",
+      "query": ""
+    },
+    {
+      "combo": "orbit/dark/1440px",
+      "at": 1793070048650,
+      "path": "/results",
+      "method": "GET",
+      "query": "?limit=20&offset=0"
+    },
+    {
+      "combo": "orbit/dark/1440px",
+      "at": 1793070048757,
+      "path": "/results",
+      "method": "GET",
+      "query": "?status=completed&limit=20&offset=0"
+    },
+    {
+      "combo": "orbit/dark/1440px",
+      "at": 1793070048946,
+      "path": "/evaluations/appearance-evaluation",
+      "method": "GET",
+      "query": ""
+    },
+    {
+      "combo": "orbit/dark/1440px",
+      "at": 1793070048946,
+      "path": "/results/appearance-evaluation",
+      "method": "GET",
+      "query": "?limit=20&offset=0"
+    },
+    {
+      "combo": "orbit/dark/1440px",
+      "at": 1793070048949,
+      "path": "/evaluations/appearance-evaluation",
+      "method": "GET",
+      "query": ""
+    },
+    {
+      "combo": "orbit/dark/1440px",
+      "at": 1793070048949,
+      "path": "/results/appearance-evaluation",
+      "method": "GET",
+      "query": "?limit=20&offset=0"
+    },
+    {
+      "combo": "precision/light/320px",
+      "at": 1793070049458,
+      "path": "/users/me",
+      "method": "GET",
+      "query": ""
+    },
+    {
+      "combo": "precision/light/320px",
+      "at": 1793070049458,
+      "path": "/users/me",
+      "method": "GET",
+      "query": ""
+    },
+    {
+      "combo": "precision/light/320px",
+      "at": 1793070049521,
+      "path": "/evaluation-options",
+      "method": "GET",
+      "query": ""
+    },
+    {
+      "combo": "precision/light/320px",
+      "at": 1793070049521,
+      "path": "/api-keys",
+      "method": "GET",
+      "query": ""
+    },
+    {
+      "combo": "precision/light/320px",
+      "at": 1793070049522,
+      "path": "/evaluation-options/problems",
+      "method": "GET",
+      "query": "?limit=20&offset=0&source=all"
+    },
+    {
+      "combo": "precision/light/320px",
+      "at": 1793070049643,
+      "path": "/evaluation-options/models",
+      "method": "GET",
+      "query": "?api_key_id=appearance-key"
+    },
+    {
+      "combo": "precision/light/320px",
+      "at": 1793070049894,
+      "path": "/evaluation-options/problems",
+      "method": "GET",
+      "query": "?limit=20&offset=20&source=all"
+    },
+    {
+      "combo": "precision/light/320px",
+      "at": 1793070050091,
+      "path": "/evaluation-options/problems",
+      "method": "GET",
+      "query": "?limit=20&offset=0&source=all"
+    },
+    {
+      "combo": "precision/light/320px",
+      "at": 1793070050163,
+      "path": "/evaluations",
+      "method": "POST",
+      "query": "",
+      "payload": {
+        "api_key_id": "appearance-key",
+        "model": "model-a",
+        "problem_ids": [
+          "appearance-problem",
+          "appearance-problem-20"
+        ],
+        "strategy_names": [
+          "direct"
+        ],
+        "budget_cap_usd": 0.25
+      }
+    },
+    {
+      "combo": "precision/light/320px",
+      "at": 1793070050172,
+      "path": "/evaluations/appearance-evaluation/start",
+      "method": "POST",
+      "query": ""
+    },
+    {
+      "combo": "precision/light/320px",
+      "at": 1793070050191,
+      "path": "/evaluations/appearance-evaluation",
+      "method": "GET",
+      "query": ""
+    },
+    {
+      "combo": "precision/light/320px",
+      "at": 1793070050429,
+      "path": "/users/me",
+      "method": "GET",
+      "query": ""
+    },
+    {
+      "combo": "precision/light/320px",
+      "at": 1793070050429,
+      "path": "/users/me",
+      "method": "GET",
+      "query": ""
+    },
+    {
+      "combo": "precision/light/320px",
+      "at": 1793070050454,
+      "path": "/evaluations",
+      "method": "GET",
+      "query": "?limit=20&offset=0"
+    },
+    {
+      "combo": "precision/light/320px",
+      "at": 1793070050579,
+      "path": "/evaluations",
+      "method": "GET",
+      "query": "?status=completed&limit=20&offset=0"
+    },
+    {
+      "combo": "precision/light/320px",
+      "at": 1793070050763,
+      "path": "/evaluations/appearance-evaluation",
+      "method": "GET",
+      "query": ""
+    },
+    {
+      "combo": "precision/light/320px",
+      "at": 1793070050999,
+      "path": "/users/me",
+      "method": "GET",
+      "query": ""
+    },
+    {
+      "combo": "precision/light/320px",
+      "at": 1793070051000,
+      "path": "/users/me",
+      "method": "GET",
+      "query": ""
+    },
+    {
+      "combo": "precision/light/320px",
+      "at": 1793070051022,
+      "path": "/results",
+      "method": "GET",
+      "query": "?limit=20&offset=0"
+    },
+    {
+      "combo": "precision/light/320px",
+      "at": 1793070051129,
+      "path": "/results",
+      "method": "GET",
+      "query": "?status=completed&limit=20&offset=0"
+    },
+    {
+      "combo": "precision/light/320px",
+      "at": 1793070051329,
+      "path": "/evaluations/appearance-evaluation",
+      "method": "GET",
+      "query": ""
+    },
+    {
+      "combo": "precision/light/320px",
+      "at": 1793070051330,
+      "path": "/results/appearance-evaluation",
+      "method": "GET",
+      "query": "?limit=20&offset=0"
+    },
+    {
+      "combo": "precision/light/320px",
+      "at": 1793070051334,
+      "path": "/evaluations/appearance-evaluation",
+      "method": "GET",
+      "query": ""
+    },
+    {
+      "combo": "precision/light/320px",
+      "at": 1793070051336,
+      "path": "/results/appearance-evaluation",
+      "method": "GET",
+      "query": "?limit=20&offset=0"
+    },
+    {
+      "combo": "precision/light/320px",
+      "at": 1793070051673,
+      "path": "/evaluation-options",
+      "method": "GET",
+      "query": ""
+    },
+    {
+      "combo": "precision/light/320px",
+      "at": 1793070051673,
+      "path": "/api-keys",
+      "method": "GET",
+      "query": ""
+    },
+    {
+      "combo": "precision/light/320px",
+      "at": 1793070051674,
+      "path": "/evaluation-options/problems",
+      "method": "GET",
+      "query": "?limit=20&offset=0&source=all"
+    },
+    {
+      "combo": "precision/light/320px",
+      "at": 1793070051832,
+      "path": "/results",
+      "method": "GET",
+      "query": "?limit=20&offset=0"
+    },
+    {
+      "combo": "precision/light/390px",
+      "at": 1793070052233,
+      "path": "/users/me",
+      "method": "GET",
+      "query": ""
+    },
+    {
+      "combo": "precision/light/390px",
+      "at": 1793070052234,
+      "path": "/users/me",
+      "method": "GET",
+      "query": ""
+    },
+    {
+      "combo": "precision/light/390px",
+      "at": 1793070052304,
+      "path": "/evaluation-options",
+      "method": "GET",
+      "query": ""
+    },
+    {
+      "combo": "precision/light/390px",
+      "at": 1793070052304,
+      "path": "/api-keys",
+      "method": "GET",
+      "query": ""
+    },
+    {
+      "combo": "precision/light/390px",
+      "at": 1793070052304,
+      "path": "/evaluation-options/problems",
+      "method": "GET",
+      "query": "?limit=20&offset=0&source=all"
+    },
+    {
+      "combo": "precision/light/390px",
+      "at": 1793070052422,
+      "path": "/evaluation-options/models",
+      "method": "GET",
+      "query": "?api_key_id=appearance-key"
+    },
+    {
+      "combo": "precision/light/390px",
+      "at": 1793070052655,
+      "path": "/evaluation-options/problems",
+      "method": "GET",
+      "query": "?limit=20&offset=20&source=all"
+    },
+    {
+      "combo": "precision/light/390px",
+      "at": 1793070052855,
+      "path": "/evaluation-options/problems",
+      "method": "GET",
+      "query": "?limit=20&offset=0&source=all"
+    },
+    {
+      "combo": "precision/light/390px",
+      "at": 1793070052926,
+      "path": "/evaluations",
+      "method": "POST",
+      "query": "",
+      "payload": {
+        "api_key_id": "appearance-key",
+        "model": "model-a",
+        "problem_ids": [
+          "appearance-problem",
+          "appearance-problem-20"
+        ],
+        "strategy_names": [
+          "direct"
+        ],
+        "budget_cap_usd": 0.25
+      }
+    },
+    {
+      "combo": "precision/light/390px",
+      "at": 1793070052936,
+      "path": "/evaluations/appearance-evaluation/start",
+      "method": "POST",
+      "query": ""
+    },
+    {
+      "combo": "precision/light/390px",
+      "at": 1793070052954,
+      "path": "/evaluations/appearance-evaluation",
+      "method": "GET",
+      "query": ""
+    },
+    {
+      "combo": "precision/light/390px",
+      "at": 1793070053183,
+      "path": "/users/me",
+      "method": "GET",
+      "query": ""
+    },
+    {
+      "combo": "precision/light/390px",
+      "at": 1793070053183,
+      "path": "/users/me",
+      "method": "GET",
+      "query": ""
+    },
+    {
+      "combo": "precision/light/390px",
+      "at": 1793070053207,
+      "path": "/evaluations",
+      "method": "GET",
+      "query": "?limit=20&offset=0"
+    },
+    {
+      "combo": "precision/light/390px",
+      "at": 1793070053325,
+      "path": "/evaluations",
+      "method": "GET",
+      "query": "?status=completed&limit=20&offset=0"
+    },
+    {
+      "combo": "precision/light/390px",
+      "at": 1793070053508,
+      "path": "/evaluations/appearance-evaluation",
+      "method": "GET",
+      "query": ""
+    },
+    {
+      "combo": "precision/light/390px",
+      "at": 1793070053760,
+      "path": "/users/me",
+      "method": "GET",
+      "query": ""
+    },
+    {
+      "combo": "precision/light/390px",
+      "at": 1793070053760,
+      "path": "/users/me",
+      "method": "GET",
+      "query": ""
+    },
+    {
+      "combo": "precision/light/390px",
+      "at": 1793070053784,
+      "path": "/results",
+      "method": "GET",
+      "query": "?limit=20&offset=0"
+    },
+    {
+      "combo": "precision/light/390px",
+      "at": 1793070053891,
+      "path": "/results",
+      "method": "GET",
+      "query": "?status=completed&limit=20&offset=0"
+    },
+    {
+      "combo": "precision/light/390px",
+      "at": 1793070054061,
+      "path": "/evaluations/appearance-evaluation",
+      "method": "GET",
+      "query": ""
+    },
+    {
+      "combo": "precision/light/390px",
+      "at": 1793070054062,
+      "path": "/results/appearance-evaluation",
+      "method": "GET",
+      "query": "?limit=20&offset=0"
+    },
+    {
+      "combo": "precision/light/390px",
+      "at": 1793070054065,
+      "path": "/evaluations/appearance-evaluation",
+      "method": "GET",
+      "query": ""
+    },
+    {
+      "combo": "precision/light/390px",
+      "at": 1793070054065,
+      "path": "/results/appearance-evaluation",
+      "method": "GET",
+      "query": "?limit=20&offset=0"
+    },
+    {
+      "combo": "precision/light/390px",
+      "at": 1793070054355,
+      "path": "/evaluation-options",
+      "method": "GET",
+      "query": ""
+    },
+    {
+      "combo": "precision/light/390px",
+      "at": 1793070054355,
+      "path": "/api-keys",
+      "method": "GET",
+      "query": ""
+    },
+    {
+      "combo": "precision/light/390px",
+      "at": 1793070054356,
+      "path": "/evaluation-options/problems",
+      "method": "GET",
+      "query": "?limit=20&offset=0&source=all"
+    },
+    {
+      "combo": "precision/light/390px",
+      "at": 1793070054511,
+      "path": "/results",
+      "method": "GET",
+      "query": "?limit=20&offset=0"
+    },
+    {
+      "combo": "precision/light/768px",
+      "at": 1793070054901,
+      "path": "/users/me",
+      "method": "GET",
+      "query": ""
+    },
+    {
+      "combo": "precision/light/768px",
+      "at": 1793070054901,
+      "path": "/users/me",
+      "method": "GET",
+      "query": ""
+    },
+    {
+      "combo": "precision/light/768px",
+      "at": 1793070054966,
+      "path": "/evaluation-options",
+      "method": "GET",
+      "query": ""
+    },
+    {
+      "combo": "precision/light/768px",
+      "at": 1793070054966,
+      "path": "/api-keys",
+      "method": "GET",
+      "query": ""
+    },
+    {
+      "combo": "precision/light/768px",
+      "at": 1793070054966,
+      "path": "/evaluation-options/problems",
+      "method": "GET",
+      "query": "?limit=20&offset=0&source=all"
+    },
+    {
+      "combo": "precision/light/768px",
+      "at": 1793070055082,
+      "path": "/evaluation-options/models",
+      "method": "GET",
+      "query": "?api_key_id=appearance-key"
+    },
+    {
+      "combo": "precision/light/768px",
+      "at": 1793070055337,
+      "path": "/evaluation-options/problems",
+      "method": "GET",
+      "query": "?limit=20&offset=20&source=all"
+    },
+    {
+      "combo": "precision/light/768px",
+      "at": 1793070055537,
+      "path": "/evaluation-options/problems",
+      "method": "GET",
+      "query": "?limit=20&offset=0&source=all"
+    },
+    {
+      "combo": "precision/light/768px",
+      "at": 1793070055606,
+      "path": "/evaluations",
+      "method": "POST",
+      "query": "",
+      "payload": {
+        "api_key_id": "appearance-key",
+        "model": "model-a",
+        "problem_ids": [
+          "appearance-problem",
+          "appearance-problem-20"
+        ],
+        "strategy_names": [
+          "direct"
+        ],
+        "budget_cap_usd": 0.25
+      }
+    },
+    {
+      "combo": "precision/light/768px",
+      "at": 1793070055616,
+      "path": "/evaluations/appearance-evaluation/start",
+      "method": "POST",
+      "query": ""
+    },
+    {
+      "combo": "precision/light/768px",
+      "at": 1793070055635,
+      "path": "/evaluations/appearance-evaluation",
+      "method": "GET",
+      "query": ""
+    },
+    {
+      "combo": "precision/light/768px",
+      "at": 1793070055863,
+      "path": "/users/me",
+      "method": "GET",
+      "query": ""
+    },
+    {
+      "combo": "precision/light/768px",
+      "at": 1793070055863,
+      "path": "/users/me",
+      "method": "GET",
+      "query": ""
+    },
+    {
+      "combo": "precision/light/768px",
+      "at": 1793070055891,
+      "path": "/evaluations",
+      "method": "GET",
+      "query": "?limit=20&offset=0"
+    },
+    {
+      "combo": "precision/light/768px",
+      "at": 1793070056005,
+      "path": "/evaluations",
+      "method": "GET",
+      "query": "?status=completed&limit=20&offset=0"
+    },
+    {
+      "combo": "precision/light/768px",
+      "at": 1793070056190,
+      "path": "/evaluations/appearance-evaluation",
+      "method": "GET",
+      "query": ""
+    },
+    {
+      "combo": "precision/light/768px",
+      "at": 1793070056432,
+      "path": "/users/me",
+      "method": "GET",
+      "query": ""
+    },
+    {
+      "combo": "precision/light/768px",
+      "at": 1793070056432,
+      "path": "/users/me",
+      "method": "GET",
+      "query": ""
+    },
+    {
+      "combo": "precision/light/768px",
+      "at": 1793070056458,
+      "path": "/results",
+      "method": "GET",
+      "query": "?limit=20&offset=0"
+    },
+    {
+      "combo": "precision/light/768px",
+      "at": 1793070056554,
+      "path": "/results",
+      "method": "GET",
+      "query": "?status=completed&limit=20&offset=0"
+    },
+    {
+      "combo": "precision/light/768px",
+      "at": 1793070056711,
+      "path": "/evaluations/appearance-evaluation",
+      "method": "GET",
+      "query": ""
+    },
+    {
+      "combo": "precision/light/768px",
+      "at": 1793070056711,
+      "path": "/results/appearance-evaluation",
+      "method": "GET",
+      "query": "?limit=20&offset=0"
+    },
+    {
+      "combo": "precision/light/768px",
+      "at": 1793070056715,
+      "path": "/evaluations/appearance-evaluation",
+      "method": "GET",
+      "query": ""
+    },
+    {
+      "combo": "precision/light/768px",
+      "at": 1793070056715,
+      "path": "/results/appearance-evaluation",
+      "method": "GET",
+      "query": "?limit=20&offset=0"
+    },
+    {
+      "combo": "precision/light/768px",
+      "at": 1793070057015,
+      "path": "/evaluation-options",
+      "method": "GET",
+      "query": ""
+    },
+    {
+      "combo": "precision/light/768px",
+      "at": 1793070057015,
+      "path": "/api-keys",
+      "method": "GET",
+      "query": ""
+    },
+    {
+      "combo": "precision/light/768px",
+      "at": 1793070057015,
+      "path": "/evaluation-options/problems",
+      "method": "GET",
+      "query": "?limit=20&offset=0&source=all"
+    },
+    {
+      "combo": "precision/light/1440px",
+      "at": 1793070057428,
+      "path": "/users/me",
+      "method": "GET",
+      "query": ""
+    },
+    {
+      "combo": "precision/light/1440px",
+      "at": 1793070057428,
+      "path": "/users/me",
+      "method": "GET",
+      "query": ""
+    },
+    {
+      "combo": "precision/light/1440px",
+      "at": 1793070057492,
+      "path": "/evaluation-options",
+      "method": "GET",
+      "query": ""
+    },
+    {
+      "combo": "precision/light/1440px",
+      "at": 1793070057492,
+      "path": "/api-keys",
+      "method": "GET",
+      "query": ""
+    },
+    {
+      "combo": "precision/light/1440px",
+      "at": 1793070057492,
+      "path": "/evaluation-options/problems",
+      "method": "GET",
+      "query": "?limit=20&offset=0&source=all"
+    },
+    {
+      "combo": "precision/light/1440px",
+      "at": 1793070057597,
+      "path": "/evaluation-options/models",
+      "method": "GET",
+      "query": "?api_key_id=appearance-key"
+    },
+    {
+      "combo": "precision/light/1440px",
+      "at": 1793070057853,
+      "path": "/evaluation-options/problems",
+      "method": "GET",
+      "query": "?limit=20&offset=20&source=all"
+    },
+    {
+      "combo": "precision/light/1440px",
+      "at": 1793070058049,
+      "path": "/evaluation-options/problems",
+      "method": "GET",
+      "query": "?limit=20&offset=0&source=all"
+    },
+    {
+      "combo": "precision/light/1440px",
+      "at": 1793070058122,
+      "path": "/evaluations",
+      "method": "POST",
+      "query": "",
+      "payload": {
+        "api_key_id": "appearance-key",
+        "model": "model-a",
+        "problem_ids": [
+          "appearance-problem",
+          "appearance-problem-20"
+        ],
+        "strategy_names": [
+          "direct"
+        ],
+        "budget_cap_usd": 0.25
+      }
+    },
+    {
+      "combo": "precision/light/1440px",
+      "at": 1793070058131,
+      "path": "/evaluations/appearance-evaluation/start",
+      "method": "POST",
+      "query": ""
+    },
+    {
+      "combo": "precision/light/1440px",
+      "at": 1793070058149,
+      "path": "/evaluations/appearance-evaluation",
+      "method": "GET",
+      "query": ""
+    },
+    {
+      "combo": "precision/light/1440px",
+      "at": 1793070058388,
+      "path": "/users/me",
+      "method": "GET",
+      "query": ""
+    },
+    {
+      "combo": "precision/light/1440px",
+      "at": 1793070058388,
+      "path": "/users/me",
+      "method": "GET",
+      "query": ""
+    },
+    {
+      "combo": "precision/light/1440px",
+      "at": 1793070058411,
+      "path": "/evaluations",
+      "method": "GET",
+      "query": "?limit=20&offset=0"
+    },
+    {
+      "combo": "precision/light/1440px",
+      "at": 1793070058520,
+      "path": "/evaluations",
+      "method": "GET",
+      "query": "?status=completed&limit=20&offset=0"
+    },
+    {
+      "combo": "precision/light/1440px",
+      "at": 1793070058755,
+      "path": "/evaluations/appearance-evaluation",
+      "method": "GET",
+      "query": ""
+    },
+    {
+      "combo": "precision/light/1440px",
+      "at": 1793070059018,
+      "path": "/users/me",
+      "method": "GET",
+      "query": ""
+    },
+    {
+      "combo": "precision/light/1440px",
+      "at": 1793070059018,
+      "path": "/users/me",
+      "method": "GET",
+      "query": ""
+    },
+    {
+      "combo": "precision/light/1440px",
+      "at": 1793070059044,
+      "path": "/results",
+      "method": "GET",
+      "query": "?limit=20&offset=0"
+    },
+    {
+      "combo": "precision/light/1440px",
+      "at": 1793070059154,
+      "path": "/results",
+      "method": "GET",
+      "query": "?status=completed&limit=20&offset=0"
+    },
+    {
+      "combo": "precision/light/1440px",
+      "at": 1793070059349,
+      "path": "/evaluations/appearance-evaluation",
+      "method": "GET",
+      "query": ""
+    },
+    {
+      "combo": "precision/light/1440px",
+      "at": 1793070059349,
+      "path": "/results/appearance-evaluation",
+      "method": "GET",
+      "query": "?limit=20&offset=0"
+    },
+    {
+      "combo": "precision/light/1440px",
+      "at": 1793070059352,
+      "path": "/evaluations/appearance-evaluation",
+      "method": "GET",
+      "query": ""
+    },
+    {
+      "combo": "precision/light/1440px",
+      "at": 1793070059353,
+      "path": "/results/appearance-evaluation",
+      "method": "GET",
+      "query": "?limit=20&offset=0"
+    },
+    {
+      "combo": "precision/dark/320px",
+      "at": 1793070059874,
+      "path": "/users/me",
+      "method": "GET",
+      "query": ""
+    },
+    {
+      "combo": "precision/dark/320px",
+      "at": 1793070059874,
+      "path": "/users/me",
+      "method": "GET",
+      "query": ""
+    },
+    {
+      "combo": "precision/dark/320px",
+      "at": 1793070059939,
+      "path": "/evaluation-options",
+      "method": "GET",
+      "query": ""
+    },
+    {
+      "combo": "precision/dark/320px",
+      "at": 1793070059939,
+      "path": "/api-keys",
+      "method": "GET",
+      "query": ""
+    },
+    {
+      "combo": "precision/dark/320px",
+      "at": 1793070059939,
+      "path": "/evaluation-options/problems",
+      "method": "GET",
+      "query": "?limit=20&offset=0&source=all"
+    },
+    {
+      "combo": "precision/dark/320px",
+      "at": 1793070060066,
+      "path": "/evaluation-options/models",
+      "method": "GET",
+      "query": "?api_key_id=appearance-key"
+    },
+    {
+      "combo": "precision/dark/320px",
+      "at": 1793070060317,
+      "path": "/evaluation-options/problems",
+      "method": "GET",
+      "query": "?limit=20&offset=20&source=all"
+    },
+    {
+      "combo": "precision/dark/320px",
+      "at": 1793070060514,
+      "path": "/evaluation-options/problems",
+      "method": "GET",
+      "query": "?limit=20&offset=0&source=all"
+    },
+    {
+      "combo": "precision/dark/320px",
+      "at": 1793070060584,
+      "path": "/evaluations",
+      "method": "POST",
+      "query": "",
+      "payload": {
+        "api_key_id": "appearance-key",
+        "model": "model-a",
+        "problem_ids": [
+          "appearance-problem",
+          "appearance-problem-20"
+        ],
+        "strategy_names": [
+          "direct"
+        ],
+        "budget_cap_usd": 0.25
+      }
+    },
+    {
+      "combo": "precision/dark/320px",
+      "at": 1793070060596,
+      "path": "/evaluations/appearance-evaluation/start",
+      "method": "POST",
+      "query": ""
+    },
+    {
+      "combo": "precision/dark/320px",
+      "at": 1793070060614,
+      "path": "/evaluations/appearance-evaluation",
+      "method": "GET",
+      "query": ""
+    },
+    {
+      "combo": "precision/dark/320px",
+      "at": 1793070060860,
+      "path": "/users/me",
+      "method": "GET",
+      "query": ""
+    },
+    {
+      "combo": "precision/dark/320px",
+      "at": 1793070060861,
+      "path": "/users/me",
+      "method": "GET",
+      "query": ""
+    },
+    {
+      "combo": "precision/dark/320px",
+      "at": 1793070060883,
+      "path": "/evaluations",
+      "method": "GET",
+      "query": "?limit=20&offset=0"
+    },
+    {
+      "combo": "precision/dark/320px",
+      "at": 1793070060985,
+      "path": "/evaluations",
+      "method": "GET",
+      "query": "?status=completed&limit=20&offset=0"
+    },
+    {
+      "combo": "precision/dark/320px",
+      "at": 1793070061170,
+      "path": "/evaluations/appearance-evaluation",
+      "method": "GET",
+      "query": ""
+    },
+    {
+      "combo": "precision/dark/320px",
+      "at": 1793070061405,
+      "path": "/users/me",
+      "method": "GET",
+      "query": ""
+    },
+    {
+      "combo": "precision/dark/320px",
+      "at": 1793070061406,
+      "path": "/users/me",
+      "method": "GET",
+      "query": ""
+    },
+    {
+      "combo": "precision/dark/320px",
+      "at": 1793070061427,
+      "path": "/results",
+      "method": "GET",
+      "query": "?limit=20&offset=0"
+    },
+    {
+      "combo": "precision/dark/320px",
+      "at": 1793070061534,
+      "path": "/results",
+      "method": "GET",
+      "query": "?status=completed&limit=20&offset=0"
+    },
+    {
+      "combo": "precision/dark/320px",
+      "at": 1793070061689,
+      "path": "/evaluations/appearance-evaluation",
+      "method": "GET",
+      "query": ""
+    },
+    {
+      "combo": "precision/dark/320px",
+      "at": 1793070061689,
+      "path": "/results/appearance-evaluation",
+      "method": "GET",
+      "query": "?limit=20&offset=0"
+    },
+    {
+      "combo": "precision/dark/320px",
+      "at": 1793070061693,
+      "path": "/evaluations/appearance-evaluation",
+      "method": "GET",
+      "query": ""
+    },
+    {
+      "combo": "precision/dark/320px",
+      "at": 1793070061694,
+      "path": "/results/appearance-evaluation",
+      "method": "GET",
+      "query": "?limit=20&offset=0"
+    },
+    {
+      "combo": "precision/dark/320px",
+      "at": 1793070061999,
+      "path": "/evaluation-options",
+      "method": "GET",
+      "query": ""
+    },
+    {
+      "combo": "precision/dark/320px",
+      "at": 1793070062000,
+      "path": "/api-keys",
+      "method": "GET",
+      "query": ""
+    },
+    {
+      "combo": "precision/dark/320px",
+      "at": 1793070062000,
+      "path": "/evaluation-options/problems",
+      "method": "GET",
+      "query": "?limit=20&offset=0&source=all"
+    },
+    {
+      "combo": "precision/dark/320px",
+      "at": 1793070062142,
+      "path": "/results",
+      "method": "GET",
+      "query": "?limit=20&offset=0"
+    },
+    {
+      "combo": "precision/dark/390px",
+      "at": 1793070062535,
+      "path": "/users/me",
+      "method": "GET",
+      "query": ""
+    },
+    {
+      "combo": "precision/dark/390px",
+      "at": 1793070062535,
+      "path": "/users/me",
+      "method": "GET",
+      "query": ""
+    },
+    {
+      "combo": "precision/dark/390px",
+      "at": 1793070062614,
+      "path": "/evaluation-options",
+      "method": "GET",
+      "query": ""
+    },
+    {
+      "combo": "precision/dark/390px",
+      "at": 1793070062614,
+      "path": "/api-keys",
+      "method": "GET",
+      "query": ""
+    },
+    {
+      "combo": "precision/dark/390px",
+      "at": 1793070062614,
+      "path": "/evaluation-options/problems",
+      "method": "GET",
+      "query": "?limit=20&offset=0&source=all"
+    },
+    {
+      "combo": "precision/dark/390px",
+      "at": 1793070062723,
+      "path": "/evaluation-options/models",
+      "method": "GET",
+      "query": "?api_key_id=appearance-key"
+    },
+    {
+      "combo": "precision/dark/390px",
+      "at": 1793070063004,
+      "path": "/evaluation-options/problems",
+      "method": "GET",
+      "query": "?limit=20&offset=20&source=all"
+    },
+    {
+      "combo": "precision/dark/390px",
+      "at": 1793070063202,
+      "path": "/evaluation-options/problems",
+      "method": "GET",
+      "query": "?limit=20&offset=0&source=all"
+    },
+    {
+      "combo": "precision/dark/390px",
+      "at": 1793070063272,
+      "path": "/evaluations",
+      "method": "POST",
+      "query": "",
+      "payload": {
+        "api_key_id": "appearance-key",
+        "model": "model-a",
+        "problem_ids": [
+          "appearance-problem",
+          "appearance-problem-20"
+        ],
+        "strategy_names": [
+          "direct"
+        ],
+        "budget_cap_usd": 0.25
+      }
+    },
+    {
+      "combo": "precision/dark/390px",
+      "at": 1793070063284,
+      "path": "/evaluations/appearance-evaluation/start",
+      "method": "POST",
+      "query": ""
+    },
+    {
+      "combo": "precision/dark/390px",
+      "at": 1793070063303,
+      "path": "/evaluations/appearance-evaluation",
+      "method": "GET",
+      "query": ""
+    },
+    {
+      "combo": "precision/dark/390px",
+      "at": 1793070063577,
+      "path": "/users/me",
+      "method": "GET",
+      "query": ""
+    },
+    {
+      "combo": "precision/dark/390px",
+      "at": 1793070063577,
+      "path": "/users/me",
+      "method": "GET",
+      "query": ""
+    },
+    {
+      "combo": "precision/dark/390px",
+      "at": 1793070063610,
+      "path": "/evaluations",
+      "method": "GET",
+      "query": "?limit=20&offset=0"
+    },
+    {
+      "combo": "precision/dark/390px",
+      "at": 1793070063737,
+      "path": "/evaluations",
+      "method": "GET",
+      "query": "?status=completed&limit=20&offset=0"
+    },
+    {
+      "combo": "precision/dark/390px",
+      "at": 1793070063971,
+      "path": "/evaluations/appearance-evaluation",
+      "method": "GET",
+      "query": ""
+    },
+    {
+      "combo": "precision/dark/390px",
+      "at": 1793070064226,
+      "path": "/users/me",
+      "method": "GET",
+      "query": ""
+    },
+    {
+      "combo": "precision/dark/390px",
+      "at": 1793070064226,
+      "path": "/users/me",
+      "method": "GET",
+      "query": ""
+    },
+    {
+      "combo": "precision/dark/390px",
+      "at": 1793070064251,
+      "path": "/results",
+      "method": "GET",
+      "query": "?limit=20&offset=0"
+    },
+    {
+      "combo": "precision/dark/390px",
+      "at": 1793070064355,
+      "path": "/results",
+      "method": "GET",
+      "query": "?status=completed&limit=20&offset=0"
+    },
+    {
+      "combo": "precision/dark/390px",
+      "at": 1793070064526,
+      "path": "/evaluations/appearance-evaluation",
+      "method": "GET",
+      "query": ""
+    },
+    {
+      "combo": "precision/dark/390px",
+      "at": 1793070064526,
+      "path": "/results/appearance-evaluation",
+      "method": "GET",
+      "query": "?limit=20&offset=0"
+    },
+    {
+      "combo": "precision/dark/390px",
+      "at": 1793070064529,
+      "path": "/evaluations/appearance-evaluation",
+      "method": "GET",
+      "query": ""
+    },
+    {
+      "combo": "precision/dark/390px",
+      "at": 1793070064530,
+      "path": "/results/appearance-evaluation",
+      "method": "GET",
+      "query": "?limit=20&offset=0"
+    },
+    {
+      "combo": "precision/dark/390px",
+      "at": 1793070064833,
+      "path": "/evaluation-options",
+      "method": "GET",
+      "query": ""
+    },
+    {
+      "combo": "precision/dark/390px",
+      "at": 1793070064833,
+      "path": "/api-keys",
+      "method": "GET",
+      "query": ""
+    },
+    {
+      "combo": "precision/dark/390px",
+      "at": 1793070064834,
+      "path": "/evaluation-options/problems",
+      "method": "GET",
+      "query": "?limit=20&offset=0&source=all"
+    },
+    {
+      "combo": "precision/dark/390px",
+      "at": 1793070064993,
+      "path": "/results",
+      "method": "GET",
+      "query": "?limit=20&offset=0"
+    },
+    {
+      "combo": "precision/dark/768px",
+      "at": 1793070065406,
+      "path": "/users/me",
+      "method": "GET",
+      "query": ""
+    },
+    {
+      "combo": "precision/dark/768px",
+      "at": 1793070065407,
+      "path": "/users/me",
+      "method": "GET",
+      "query": ""
+    },
+    {
+      "combo": "precision/dark/768px",
+      "at": 1793070065475,
+      "path": "/evaluation-options",
+      "method": "GET",
+      "query": ""
+    },
+    {
+      "combo": "precision/dark/768px",
+      "at": 1793070065475,
+      "path": "/api-keys",
+      "method": "GET",
+      "query": ""
+    },
+    {
+      "combo": "precision/dark/768px",
+      "at": 1793070065476,
+      "path": "/evaluation-options/problems",
+      "method": "GET",
+      "query": "?limit=20&offset=0&source=all"
+    },
+    {
+      "combo": "precision/dark/768px",
+      "at": 1793070065608,
+      "path": "/evaluation-options/models",
+      "method": "GET",
+      "query": "?api_key_id=appearance-key"
+    },
+    {
+      "combo": "precision/dark/768px",
+      "at": 1793070065870,
+      "path": "/evaluation-options/problems",
+      "method": "GET",
+      "query": "?limit=20&offset=20&source=all"
+    },
+    {
+      "combo": "precision/dark/768px",
+      "at": 1793070066066,
+      "path": "/evaluation-options/problems",
+      "method": "GET",
+      "query": "?limit=20&offset=0&source=all"
+    },
+    {
+      "combo": "precision/dark/768px",
+      "at": 1793070066137,
+      "path": "/evaluations",
+      "method": "POST",
+      "query": "",
+      "payload": {
+        "api_key_id": "appearance-key",
+        "model": "model-a",
+        "problem_ids": [
+          "appearance-problem",
+          "appearance-problem-20"
+        ],
+        "strategy_names": [
+          "direct"
+        ],
+        "budget_cap_usd": 0.25
+      }
+    },
+    {
+      "combo": "precision/dark/768px",
+      "at": 1793070066151,
+      "path": "/evaluations/appearance-evaluation/start",
+      "method": "POST",
+      "query": ""
+    },
+    {
+      "combo": "precision/dark/768px",
+      "at": 1793070066168,
+      "path": "/evaluations/appearance-evaluation",
+      "method": "GET",
+      "query": ""
+    },
+    {
+      "combo": "precision/dark/768px",
+      "at": 1793070066404,
+      "path": "/users/me",
+      "method": "GET",
+      "query": ""
+    },
+    {
+      "combo": "precision/dark/768px",
+      "at": 1793070066405,
+      "path": "/users/me",
+      "method": "GET",
+      "query": ""
+    },
+    {
+      "combo": "precision/dark/768px",
+      "at": 1793070066428,
+      "path": "/evaluations",
+      "method": "GET",
+      "query": "?limit=20&offset=0"
+    },
+    {
+      "combo": "precision/dark/768px",
+      "at": 1793070066537,
+      "path": "/evaluations",
+      "method": "GET",
+      "query": "?status=completed&limit=20&offset=0"
+    },
+    {
+      "combo": "precision/dark/768px",
+      "at": 1793070066739,
+      "path": "/evaluations/appearance-evaluation",
+      "method": "GET",
+      "query": ""
+    },
+    {
+      "combo": "precision/dark/768px",
+      "at": 1793070066991,
+      "path": "/users/me",
+      "method": "GET",
+      "query": ""
+    },
+    {
+      "combo": "precision/dark/768px",
+      "at": 1793070066991,
+      "path": "/users/me",
+      "method": "GET",
+      "query": ""
+    },
+    {
+      "combo": "precision/dark/768px",
+      "at": 1793070067013,
+      "path": "/results",
+      "method": "GET",
+      "query": "?limit=20&offset=0"
+    },
+    {
+      "combo": "precision/dark/768px",
+      "at": 1793070067120,
+      "path": "/results",
+      "method": "GET",
+      "query": "?status=completed&limit=20&offset=0"
+    },
+    {
+      "combo": "precision/dark/768px",
+      "at": 1793070067276,
+      "path": "/evaluations/appearance-evaluation",
+      "method": "GET",
+      "query": ""
+    },
+    {
+      "combo": "precision/dark/768px",
+      "at": 1793070067276,
+      "path": "/results/appearance-evaluation",
+      "method": "GET",
+      "query": "?limit=20&offset=0"
+    },
+    {
+      "combo": "precision/dark/768px",
+      "at": 1793070067280,
+      "path": "/evaluations/appearance-evaluation",
+      "method": "GET",
+      "query": ""
+    },
+    {
+      "combo": "precision/dark/768px",
+      "at": 1793070067281,
+      "path": "/results/appearance-evaluation",
+      "method": "GET",
+      "query": "?limit=20&offset=0"
+    },
+    {
+      "combo": "precision/dark/768px",
+      "at": 1793070067573,
+      "path": "/evaluation-options",
+      "method": "GET",
+      "query": ""
+    },
+    {
+      "combo": "precision/dark/768px",
+      "at": 1793070067574,
+      "path": "/api-keys",
+      "method": "GET",
+      "query": ""
+    },
+    {
+      "combo": "precision/dark/768px",
+      "at": 1793070067574,
+      "path": "/evaluation-options/problems",
+      "method": "GET",
+      "query": "?limit=20&offset=0&source=all"
+    },
+    {
+      "combo": "precision/dark/1440px",
+      "at": 1793070067995,
+      "path": "/users/me",
+      "method": "GET",
+      "query": ""
+    },
+    {
+      "combo": "precision/dark/1440px",
+      "at": 1793070067995,
+      "path": "/users/me",
+      "method": "GET",
+      "query": ""
+    },
+    {
+      "combo": "precision/dark/1440px",
+      "at": 1793070068059,
+      "path": "/evaluation-options",
+      "method": "GET",
+      "query": ""
+    },
+    {
+      "combo": "precision/dark/1440px",
+      "at": 1793070068060,
+      "path": "/api-keys",
+      "method": "GET",
+      "query": ""
+    },
+    {
+      "combo": "precision/dark/1440px",
+      "at": 1793070068060,
+      "path": "/evaluation-options/problems",
+      "method": "GET",
+      "query": "?limit=20&offset=0&source=all"
+    },
+    {
+      "combo": "precision/dark/1440px",
+      "at": 1793070068187,
+      "path": "/evaluation-options/models",
+      "method": "GET",
+      "query": "?api_key_id=appearance-key"
+    },
+    {
+      "combo": "precision/dark/1440px",
+      "at": 1793070068463,
+      "path": "/evaluation-options/problems",
+      "method": "GET",
+      "query": "?limit=20&offset=20&source=all"
+    },
+    {
+      "combo": "precision/dark/1440px",
+      "at": 1793070068676,
+      "path": "/evaluation-options/problems",
+      "method": "GET",
+      "query": "?limit=20&offset=0&source=all"
+    },
+    {
+      "combo": "precision/dark/1440px",
+      "at": 1793070068747,
+      "path": "/evaluations",
+      "method": "POST",
+      "query": "",
+      "payload": {
+        "api_key_id": "appearance-key",
+        "model": "model-a",
+        "problem_ids": [
+          "appearance-problem",
+          "appearance-problem-20"
+        ],
+        "strategy_names": [
+          "direct"
+        ],
+        "budget_cap_usd": 0.25
+      }
+    },
+    {
+      "combo": "precision/dark/1440px",
+      "at": 1793070068757,
+      "path": "/evaluations/appearance-evaluation/start",
+      "method": "POST",
+      "query": ""
+    },
+    {
+      "combo": "precision/dark/1440px",
+      "at": 1793070068778,
+      "path": "/evaluations/appearance-evaluation",
+      "method": "GET",
+      "query": ""
+    },
+    {
+      "combo": "precision/dark/1440px",
+      "at": 1793070069023,
+      "path": "/users/me",
+      "method": "GET",
+      "query": ""
+    },
+    {
+      "combo": "precision/dark/1440px",
+      "at": 1793070069024,
+      "path": "/users/me",
+      "method": "GET",
+      "query": ""
+    },
+    {
+      "combo": "precision/dark/1440px",
+      "at": 1793070069046,
+      "path": "/evaluations",
+      "method": "GET",
+      "query": "?limit=20&offset=0"
+    },
+    {
+      "combo": "precision/dark/1440px",
+      "at": 1793070069163,
+      "path": "/evaluations",
+      "method": "GET",
+      "query": "?status=completed&limit=20&offset=0"
+    },
+    {
+      "combo": "precision/dark/1440px",
+      "at": 1793070069381,
+      "path": "/evaluations/appearance-evaluation",
+      "method": "GET",
+      "query": ""
+    },
+    {
+      "combo": "precision/dark/1440px",
+      "at": 1793070069587,
+      "path": "/users/me",
+      "method": "GET",
+      "query": ""
+    },
+    {
+      "combo": "precision/dark/1440px",
+      "at": 1793070069587,
+      "path": "/users/me",
+      "method": "GET",
+      "query": ""
+    },
+    {
+      "combo": "precision/dark/1440px",
+      "at": 1793070069613,
+      "path": "/results",
+      "method": "GET",
+      "query": "?limit=20&offset=0"
+    },
+    {
+      "combo": "precision/dark/1440px",
+      "at": 1793070069713,
+      "path": "/results",
+      "method": "GET",
+      "query": "?status=completed&limit=20&offset=0"
+    },
+    {
+      "combo": "precision/dark/1440px",
+      "at": 1793070069900,
+      "path": "/evaluations/appearance-evaluation",
+      "method": "GET",
+      "query": ""
+    },
+    {
+      "combo": "precision/dark/1440px",
+      "at": 1793070069901,
+      "path": "/results/appearance-evaluation",
+      "method": "GET",
+      "query": "?limit=20&offset=0"
+    },
+    {
+      "combo": "precision/dark/1440px",
+      "at": 1793070069907,
+      "path": "/evaluations/appearance-evaluation",
+      "method": "GET",
+      "query": ""
+    },
+    {
+      "combo": "precision/dark/1440px",
+      "at": 1793070069908,
+      "path": "/results/appearance-evaluation",
+      "method": "GET",
+      "query": "?limit=20&offset=0"
+    },
+    {
+      "combo": "studio/light/320px",
+      "at": 1793070070392,
+      "path": "/users/me",
+      "method": "GET",
+      "query": ""
+    },
+    {
+      "combo": "studio/light/320px",
+      "at": 1793070070392,
+      "path": "/users/me",
+      "method": "GET",
+      "query": ""
+    },
+    {
+      "combo": "studio/light/320px",
+      "at": 1793070070457,
+      "path": "/evaluation-options",
+      "method": "GET",
+      "query": ""
+    },
+    {
+      "combo": "studio/light/320px",
+      "at": 1793070070457,
+      "path": "/api-keys",
+      "method": "GET",
+      "query": ""
+    },
+    {
+      "combo": "studio/light/320px",
+      "at": 1793070070457,
+      "path": "/evaluation-options/problems",
+      "method": "GET",
+      "query": "?limit=20&offset=0&source=all"
+    },
+    {
+      "combo": "studio/light/320px",
+      "at": 1793070070566,
+      "path": "/evaluation-options/models",
+      "method": "GET",
+      "query": "?api_key_id=appearance-key"
+    },
+    {
+      "combo": "studio/light/320px",
+      "at": 1793070070838,
+      "path": "/evaluation-options/problems",
+      "method": "GET",
+      "query": "?limit=20&offset=20&source=all"
+    },
+    {
+      "combo": "studio/light/320px",
+      "at": 1793070071034,
+      "path": "/evaluation-options/problems",
+      "method": "GET",
+      "query": "?limit=20&offset=0&source=all"
+    },
+    {
+      "combo": "studio/light/320px",
+      "at": 1793070071106,
+      "path": "/evaluations",
+      "method": "POST",
+      "query": "",
+      "payload": {
+        "api_key_id": "appearance-key",
+        "model": "model-a",
+        "problem_ids": [
+          "appearance-problem",
+          "appearance-problem-20"
+        ],
+        "strategy_names": [
+          "direct"
+        ],
+        "budget_cap_usd": 0.25
+      }
+    },
+    {
+      "combo": "studio/light/320px",
+      "at": 1793070071117,
+      "path": "/evaluations/appearance-evaluation/start",
+      "method": "POST",
+      "query": ""
+    },
+    {
+      "combo": "studio/light/320px",
+      "at": 1793070071136,
+      "path": "/evaluations/appearance-evaluation",
+      "method": "GET",
+      "query": ""
+    },
+    {
+      "combo": "studio/light/320px",
+      "at": 1793070071363,
+      "path": "/users/me",
+      "method": "GET",
+      "query": ""
+    },
+    {
+      "combo": "studio/light/320px",
+      "at": 1793070071364,
+      "path": "/users/me",
+      "method": "GET",
+      "query": ""
+    },
+    {
+      "combo": "studio/light/320px",
+      "at": 1793070071391,
+      "path": "/evaluations",
+      "method": "GET",
+      "query": "?limit=20&offset=0"
+    },
+    {
+      "combo": "studio/light/320px",
+      "at": 1793070071506,
+      "path": "/evaluations",
+      "method": "GET",
+      "query": "?status=completed&limit=20&offset=0"
+    },
+    {
+      "combo": "studio/light/320px",
+      "at": 1793070071673,
+      "path": "/evaluations/appearance-evaluation",
+      "method": "GET",
+      "query": ""
+    },
+    {
+      "combo": "studio/light/320px",
+      "at": 1793070071915,
+      "path": "/users/me",
+      "method": "GET",
+      "query": ""
+    },
+    {
+      "combo": "studio/light/320px",
+      "at": 1793070071915,
+      "path": "/users/me",
+      "method": "GET",
+      "query": ""
+    },
+    {
+      "combo": "studio/light/320px",
+      "at": 1793070071940,
+      "path": "/results",
+      "method": "GET",
+      "query": "?limit=20&offset=0"
+    },
+    {
+      "combo": "studio/light/320px",
+      "at": 1793070072038,
+      "path": "/results",
+      "method": "GET",
+      "query": "?status=completed&limit=20&offset=0"
+    },
+    {
+      "combo": "studio/light/320px",
+      "at": 1793070072194,
+      "path": "/evaluations/appearance-evaluation",
+      "method": "GET",
+      "query": ""
+    },
+    {
+      "combo": "studio/light/320px",
+      "at": 1793070072194,
+      "path": "/results/appearance-evaluation",
+      "method": "GET",
+      "query": "?limit=20&offset=0"
+    },
+    {
+      "combo": "studio/light/320px",
+      "at": 1793070072197,
+      "path": "/evaluations/appearance-evaluation",
+      "method": "GET",
+      "query": ""
+    },
+    {
+      "combo": "studio/light/320px",
+      "at": 1793070072197,
+      "path": "/results/appearance-evaluation",
+      "method": "GET",
+      "query": "?limit=20&offset=0"
+    },
+    {
+      "combo": "studio/light/320px",
+      "at": 1793070072502,
+      "path": "/evaluation-options",
+      "method": "GET",
+      "query": ""
+    },
+    {
+      "combo": "studio/light/320px",
+      "at": 1793070072503,
+      "path": "/api-keys",
+      "method": "GET",
+      "query": ""
+    },
+    {
+      "combo": "studio/light/320px",
+      "at": 1793070072503,
+      "path": "/evaluation-options/problems",
+      "method": "GET",
+      "query": "?limit=20&offset=0&source=all"
+    },
+    {
+      "combo": "studio/light/320px",
+      "at": 1793070072641,
+      "path": "/results",
+      "method": "GET",
+      "query": "?limit=20&offset=0"
+    },
+    {
+      "combo": "studio/light/390px",
+      "at": 1793070073027,
+      "path": "/users/me",
+      "method": "GET",
+      "query": ""
+    },
+    {
+      "combo": "studio/light/390px",
+      "at": 1793070073027,
+      "path": "/users/me",
+      "method": "GET",
+      "query": ""
+    },
+    {
+      "combo": "studio/light/390px",
+      "at": 1793070073090,
+      "path": "/evaluation-options",
+      "method": "GET",
+      "query": ""
+    },
+    {
+      "combo": "studio/light/390px",
+      "at": 1793070073091,
+      "path": "/api-keys",
+      "method": "GET",
+      "query": ""
+    },
+    {
+      "combo": "studio/light/390px",
+      "at": 1793070073091,
+      "path": "/evaluation-options/problems",
+      "method": "GET",
+      "query": "?limit=20&offset=0&source=all"
+    },
+    {
+      "combo": "studio/light/390px",
+      "at": 1793070073212,
+      "path": "/evaluation-options/models",
+      "method": "GET",
+      "query": "?api_key_id=appearance-key"
+    },
+    {
+      "combo": "studio/light/390px",
+      "at": 1793070073470,
+      "path": "/evaluation-options/problems",
+      "method": "GET",
+      "query": "?limit=20&offset=20&source=all"
+    },
+    {
+      "combo": "studio/light/390px",
+      "at": 1793070073666,
+      "path": "/evaluation-options/problems",
+      "method": "GET",
+      "query": "?limit=20&offset=0&source=all"
+    },
+    {
+      "combo": "studio/light/390px",
+      "at": 1793070073738,
+      "path": "/evaluations",
+      "method": "POST",
+      "query": "",
+      "payload": {
+        "api_key_id": "appearance-key",
+        "model": "model-a",
+        "problem_ids": [
+          "appearance-problem",
+          "appearance-problem-20"
+        ],
+        "strategy_names": [
+          "direct"
+        ],
+        "budget_cap_usd": 0.25
+      }
+    },
+    {
+      "combo": "studio/light/390px",
+      "at": 1793070073749,
+      "path": "/evaluations/appearance-evaluation/start",
+      "method": "POST",
+      "query": ""
+    },
+    {
+      "combo": "studio/light/390px",
+      "at": 1793070073768,
+      "path": "/evaluations/appearance-evaluation",
+      "method": "GET",
+      "query": ""
+    },
+    {
+      "combo": "studio/light/390px",
+      "at": 1793070073993,
+      "path": "/users/me",
+      "method": "GET",
+      "query": ""
+    },
+    {
+      "combo": "studio/light/390px",
+      "at": 1793070073993,
+      "path": "/users/me",
+      "method": "GET",
+      "query": ""
+    },
+    {
+      "combo": "studio/light/390px",
+      "at": 1793070074015,
+      "path": "/evaluations",
+      "method": "GET",
+      "query": "?limit=20&offset=0"
+    },
+    {
+      "combo": "studio/light/390px",
+      "at": 1793070074120,
+      "path": "/evaluations",
+      "method": "GET",
+      "query": "?status=completed&limit=20&offset=0"
+    },
+    {
+      "combo": "studio/light/390px",
+      "at": 1793070074306,
+      "path": "/evaluations/appearance-evaluation",
+      "method": "GET",
+      "query": ""
+    },
+    {
+      "combo": "studio/light/390px",
+      "at": 1793070074571,
+      "path": "/users/me",
+      "method": "GET",
+      "query": ""
+    },
+    {
+      "combo": "studio/light/390px",
+      "at": 1793070074571,
+      "path": "/users/me",
+      "method": "GET",
+      "query": ""
+    },
+    {
+      "combo": "studio/light/390px",
+      "at": 1793070074594,
+      "path": "/results",
+      "method": "GET",
+      "query": "?limit=20&offset=0"
+    },
+    {
+      "combo": "studio/light/390px",
+      "at": 1793070074702,
+      "path": "/results",
+      "method": "GET",
+      "query": "?status=completed&limit=20&offset=0"
+    },
+    {
+      "combo": "studio/light/390px",
+      "at": 1793070074879,
+      "path": "/evaluations/appearance-evaluation",
+      "method": "GET",
+      "query": ""
+    },
+    {
+      "combo": "studio/light/390px",
+      "at": 1793070074880,
+      "path": "/results/appearance-evaluation",
+      "method": "GET",
+      "query": "?limit=20&offset=0"
+    },
+    {
+      "combo": "studio/light/390px",
+      "at": 1793070074881,
+      "path": "/evaluations/appearance-evaluation",
+      "method": "GET",
+      "query": ""
+    },
+    {
+      "combo": "studio/light/390px",
+      "at": 1793070074882,
+      "path": "/results/appearance-evaluation",
+      "method": "GET",
+      "query": "?limit=20&offset=0"
+    },
+    {
+      "combo": "studio/light/390px",
+      "at": 1793070075183,
+      "path": "/evaluation-options",
+      "method": "GET",
+      "query": ""
+    },
+    {
+      "combo": "studio/light/390px",
+      "at": 1793070075183,
+      "path": "/api-keys",
+      "method": "GET",
+      "query": ""
+    },
+    {
+      "combo": "studio/light/390px",
+      "at": 1793070075183,
+      "path": "/evaluation-options/problems",
+      "method": "GET",
+      "query": "?limit=20&offset=0&source=all"
+    },
+    {
+      "combo": "studio/light/390px",
+      "at": 1793070075340,
+      "path": "/results",
+      "method": "GET",
+      "query": "?limit=20&offset=0"
+    },
+    {
+      "combo": "studio/light/768px",
+      "at": 1793070075730,
+      "path": "/users/me",
+      "method": "GET",
+      "query": ""
+    },
+    {
+      "combo": "studio/light/768px",
+      "at": 1793070075731,
+      "path": "/users/me",
+      "method": "GET",
+      "query": ""
+    },
+    {
+      "combo": "studio/light/768px",
+      "at": 1793070075796,
+      "path": "/evaluation-options",
+      "method": "GET",
+      "query": ""
+    },
+    {
+      "combo": "studio/light/768px",
+      "at": 1793070075797,
+      "path": "/api-keys",
+      "method": "GET",
+      "query": ""
+    },
+    {
+      "combo": "studio/light/768px",
+      "at": 1793070075797,
+      "path": "/evaluation-options/problems",
+      "method": "GET",
+      "query": "?limit=20&offset=0&source=all"
+    },
+    {
+      "combo": "studio/light/768px",
+      "at": 1793070075916,
+      "path": "/evaluation-options/models",
+      "method": "GET",
+      "query": "?api_key_id=appearance-key"
+    },
+    {
+      "combo": "studio/light/768px",
+      "at": 1793070076171,
+      "path": "/evaluation-options/problems",
+      "method": "GET",
+      "query": "?limit=20&offset=20&source=all"
+    },
+    {
+      "combo": "studio/light/768px",
+      "at": 1793070076368,
+      "path": "/evaluation-options/problems",
+      "method": "GET",
+      "query": "?limit=20&offset=0&source=all"
+    },
+    {
+      "combo": "studio/light/768px",
+      "at": 1793070076440,
+      "path": "/evaluations",
+      "method": "POST",
+      "query": "",
+      "payload": {
+        "api_key_id": "appearance-key",
+        "model": "model-a",
+        "problem_ids": [
+          "appearance-problem",
+          "appearance-problem-20"
+        ],
+        "strategy_names": [
+          "direct"
+        ],
+        "budget_cap_usd": 0.25
+      }
+    },
+    {
+      "combo": "studio/light/768px",
+      "at": 1793070076449,
+      "path": "/evaluations/appearance-evaluation/start",
+      "method": "POST",
+      "query": ""
+    },
+    {
+      "combo": "studio/light/768px",
+      "at": 1793070076468,
+      "path": "/evaluations/appearance-evaluation",
+      "method": "GET",
+      "query": ""
+    },
+    {
+      "combo": "studio/light/768px",
+      "at": 1793070076713,
+      "path": "/users/me",
+      "method": "GET",
+      "query": ""
+    },
+    {
+      "combo": "studio/light/768px",
+      "at": 1793070076713,
+      "path": "/users/me",
+      "method": "GET",
+      "query": ""
+    },
+    {
+      "combo": "studio/light/768px",
+      "at": 1793070076739,
+      "path": "/evaluations",
+      "method": "GET",
+      "query": "?limit=20&offset=0"
+    },
+    {
+      "combo": "studio/light/768px",
+      "at": 1793070076856,
+      "path": "/evaluations",
+      "method": "GET",
+      "query": "?status=completed&limit=20&offset=0"
+    },
+    {
+      "combo": "studio/light/768px",
+      "at": 1793070077041,
+      "path": "/evaluations/appearance-evaluation",
+      "method": "GET",
+      "query": ""
+    },
+    {
+      "combo": "studio/light/768px",
+      "at": 1793070077328,
+      "path": "/users/me",
+      "method": "GET",
+      "query": ""
+    },
+    {
+      "combo": "studio/light/768px",
+      "at": 1793070077329,
+      "path": "/users/me",
+      "method": "GET",
+      "query": ""
+    },
+    {
+      "combo": "studio/light/768px",
+      "at": 1793070077354,
+      "path": "/results",
+      "method": "GET",
+      "query": "?limit=20&offset=0"
+    },
+    {
+      "combo": "studio/light/768px",
+      "at": 1793070077455,
+      "path": "/results",
+      "method": "GET",
+      "query": "?status=completed&limit=20&offset=0"
+    },
+    {
+      "combo": "studio/light/768px",
+      "at": 1793070077611,
+      "path": "/evaluations/appearance-evaluation",
+      "method": "GET",
+      "query": ""
+    },
+    {
+      "combo": "studio/light/768px",
+      "at": 1793070077612,
+      "path": "/results/appearance-evaluation",
+      "method": "GET",
+      "query": "?limit=20&offset=0"
+    },
+    {
+      "combo": "studio/light/768px",
+      "at": 1793070077616,
+      "path": "/evaluations/appearance-evaluation",
+      "method": "GET",
+      "query": ""
+    },
+    {
+      "combo": "studio/light/768px",
+      "at": 1793070077616,
+      "path": "/results/appearance-evaluation",
+      "method": "GET",
+      "query": "?limit=20&offset=0"
+    },
+    {
+      "combo": "studio/light/768px",
+      "at": 1793070077902,
+      "path": "/evaluation-options",
+      "method": "GET",
+      "query": ""
+    },
+    {
+      "combo": "studio/light/768px",
+      "at": 1793070077903,
+      "path": "/api-keys",
+      "method": "GET",
+      "query": ""
+    },
+    {
+      "combo": "studio/light/768px",
+      "at": 1793070077903,
+      "path": "/evaluation-options/problems",
+      "method": "GET",
+      "query": "?limit=20&offset=0&source=all"
+    },
+    {
+      "combo": "studio/light/1440px",
+      "at": 1793070078294,
+      "path": "/users/me",
+      "method": "GET",
+      "query": ""
+    },
+    {
+      "combo": "studio/light/1440px",
+      "at": 1793070078295,
+      "path": "/users/me",
+      "method": "GET",
+      "query": ""
+    },
+    {
+      "combo": "studio/light/1440px",
+      "at": 1793070078361,
+      "path": "/evaluation-options",
+      "method": "GET",
+      "query": ""
+    },
+    {
+      "combo": "studio/light/1440px",
+      "at": 1793070078362,
+      "path": "/api-keys",
+      "method": "GET",
+      "query": ""
+    },
+    {
+      "combo": "studio/light/1440px",
+      "at": 1793070078362,
+      "path": "/evaluation-options/problems",
+      "method": "GET",
+      "query": "?limit=20&offset=0&source=all"
+    },
+    {
+      "combo": "studio/light/1440px",
+      "at": 1793070078480,
+      "path": "/evaluation-options/models",
+      "method": "GET",
+      "query": "?api_key_id=appearance-key"
+    },
+    {
+      "combo": "studio/light/1440px",
+      "at": 1793070078745,
+      "path": "/evaluation-options/problems",
+      "method": "GET",
+      "query": "?limit=20&offset=20&source=all"
+    },
+    {
+      "combo": "studio/light/1440px",
+      "at": 1793070078959,
+      "path": "/evaluation-options/problems",
+      "method": "GET",
+      "query": "?limit=20&offset=0&source=all"
+    },
+    {
+      "combo": "studio/light/1440px",
+      "at": 1793070079030,
+      "path": "/evaluations",
+      "method": "POST",
+      "query": "",
+      "payload": {
+        "api_key_id": "appearance-key",
+        "model": "model-a",
+        "problem_ids": [
+          "appearance-problem",
+          "appearance-problem-20"
+        ],
+        "strategy_names": [
+          "direct"
+        ],
+        "budget_cap_usd": 0.25
+      }
+    },
+    {
+      "combo": "studio/light/1440px",
+      "at": 1793070079040,
+      "path": "/evaluations/appearance-evaluation/start",
+      "method": "POST",
+      "query": ""
+    },
+    {
+      "combo": "studio/light/1440px",
+      "at": 1793070079060,
+      "path": "/evaluations/appearance-evaluation",
+      "method": "GET",
+      "query": ""
+    },
+    {
+      "combo": "studio/light/1440px",
+      "at": 1793070079295,
+      "path": "/users/me",
+      "method": "GET",
+      "query": ""
+    },
+    {
+      "combo": "studio/light/1440px",
+      "at": 1793070079295,
+      "path": "/users/me",
+      "method": "GET",
+      "query": ""
+    },
+    {
+      "combo": "studio/light/1440px",
+      "at": 1793070079317,
+      "path": "/evaluations",
+      "method": "GET",
+      "query": "?limit=20&offset=0"
+    },
+    {
+      "combo": "studio/light/1440px",
+      "at": 1793070079429,
+      "path": "/evaluations",
+      "method": "GET",
+      "query": "?status=completed&limit=20&offset=0"
+    },
+    {
+      "combo": "studio/light/1440px",
+      "at": 1793070079647,
+      "path": "/evaluations/appearance-evaluation",
+      "method": "GET",
+      "query": ""
+    },
+    {
+      "combo": "studio/light/1440px",
+      "at": 1793070079916,
+      "path": "/users/me",
+      "method": "GET",
+      "query": ""
+    },
+    {
+      "combo": "studio/light/1440px",
+      "at": 1793070079916,
+      "path": "/users/me",
+      "method": "GET",
+      "query": ""
+    },
+    {
+      "combo": "studio/light/1440px",
+      "at": 1793070079943,
+      "path": "/results",
+      "method": "GET",
+      "query": "?limit=20&offset=0"
+    },
+    {
+      "combo": "studio/light/1440px",
+      "at": 1793070080046,
+      "path": "/results",
+      "method": "GET",
+      "query": "?status=completed&limit=20&offset=0"
+    },
+    {
+      "combo": "studio/light/1440px",
+      "at": 1793070080238,
+      "path": "/evaluations/appearance-evaluation",
+      "method": "GET",
+      "query": ""
+    },
+    {
+      "combo": "studio/light/1440px",
+      "at": 1793070080238,
+      "path": "/results/appearance-evaluation",
+      "method": "GET",
+      "query": "?limit=20&offset=0"
+    },
+    {
+      "combo": "studio/light/1440px",
+      "at": 1793070080239,
+      "path": "/evaluations/appearance-evaluation",
+      "method": "GET",
+      "query": ""
+    },
+    {
+      "combo": "studio/light/1440px",
+      "at": 1793070080240,
+      "path": "/results/appearance-evaluation",
+      "method": "GET",
+      "query": "?limit=20&offset=0"
+    },
+    {
+      "combo": "studio/dark/320px",
+      "at": 1793070080751,
+      "path": "/users/me",
+      "method": "GET",
+      "query": ""
+    },
+    {
+      "combo": "studio/dark/320px",
+      "at": 1793070080751,
+      "path": "/users/me",
+      "method": "GET",
+      "query": ""
+    },
+    {
+      "combo": "studio/dark/320px",
+      "at": 1793070080816,
+      "path": "/evaluation-options",
+      "method": "GET",
+      "query": ""
+    },
+    {
+      "combo": "studio/dark/320px",
+      "at": 1793070080816,
+      "path": "/api-keys",
+      "method": "GET",
+      "query": ""
+    },
+    {
+      "combo": "studio/dark/320px",
+      "at": 1793070080816,
+      "path": "/evaluation-options/problems",
+      "method": "GET",
+      "query": "?limit=20&offset=0&source=all"
+    },
+    {
+      "combo": "studio/dark/320px",
+      "at": 1793070080932,
+      "path": "/evaluation-options/models",
+      "method": "GET",
+      "query": "?api_key_id=appearance-key"
+    },
+    {
+      "combo": "studio/dark/320px",
+      "at": 1793070081188,
+      "path": "/evaluation-options/problems",
+      "method": "GET",
+      "query": "?limit=20&offset=20&source=all"
+    },
+    {
+      "combo": "studio/dark/320px",
+      "at": 1793070081385,
+      "path": "/evaluation-options/problems",
+      "method": "GET",
+      "query": "?limit=20&offset=0&source=all"
+    },
+    {
+      "combo": "studio/dark/320px",
+      "at": 1793070081456,
+      "path": "/evaluations",
+      "method": "POST",
+      "query": "",
+      "payload": {
+        "api_key_id": "appearance-key",
+        "model": "model-a",
+        "problem_ids": [
+          "appearance-problem",
+          "appearance-problem-20"
+        ],
+        "strategy_names": [
+          "direct"
+        ],
+        "budget_cap_usd": 0.25
+      }
+    },
+    {
+      "combo": "studio/dark/320px",
+      "at": 1793070081468,
+      "path": "/evaluations/appearance-evaluation/start",
+      "method": "POST",
+      "query": ""
+    },
+    {
+      "combo": "studio/dark/320px",
+      "at": 1793070081489,
+      "path": "/evaluations/appearance-evaluation",
+      "method": "GET",
+      "query": ""
+    },
+    {
+      "combo": "studio/dark/320px",
+      "at": 1793070081717,
+      "path": "/users/me",
+      "method": "GET",
+      "query": ""
+    },
+    {
+      "combo": "studio/dark/320px",
+      "at": 1793070081717,
+      "path": "/users/me",
+      "method": "GET",
+      "query": ""
+    },
+    {
+      "combo": "studio/dark/320px",
+      "at": 1793070081739,
+      "path": "/evaluations",
+      "method": "GET",
+      "query": "?limit=20&offset=0"
+    },
+    {
+      "combo": "studio/dark/320px",
+      "at": 1793070081841,
+      "path": "/evaluations",
+      "method": "GET",
+      "query": "?status=completed&limit=20&offset=0"
+    },
+    {
+      "combo": "studio/dark/320px",
+      "at": 1793070082024,
+      "path": "/evaluations/appearance-evaluation",
+      "method": "GET",
+      "query": ""
+    },
+    {
+      "combo": "studio/dark/320px",
+      "at": 1793070082228,
+      "path": "/users/me",
+      "method": "GET",
+      "query": ""
+    },
+    {
+      "combo": "studio/dark/320px",
+      "at": 1793070082229,
+      "path": "/users/me",
+      "method": "GET",
+      "query": ""
+    },
+    {
+      "combo": "studio/dark/320px",
+      "at": 1793070082250,
+      "path": "/results",
+      "method": "GET",
+      "query": "?limit=20&offset=0"
+    },
+    {
+      "combo": "studio/dark/320px",
+      "at": 1793070082357,
+      "path": "/results",
+      "method": "GET",
+      "query": "?status=completed&limit=20&offset=0"
+    },
+    {
+      "combo": "studio/dark/320px",
+      "at": 1793070082529,
+      "path": "/evaluations/appearance-evaluation",
+      "method": "GET",
+      "query": ""
+    },
+    {
+      "combo": "studio/dark/320px",
+      "at": 1793070082529,
+      "path": "/results/appearance-evaluation",
+      "method": "GET",
+      "query": "?limit=20&offset=0"
+    },
+    {
+      "combo": "studio/dark/320px",
+      "at": 1793070082533,
+      "path": "/evaluations/appearance-evaluation",
+      "method": "GET",
+      "query": ""
+    },
+    {
+      "combo": "studio/dark/320px",
+      "at": 1793070082533,
+      "path": "/results/appearance-evaluation",
+      "method": "GET",
+      "query": "?limit=20&offset=0"
+    },
+    {
+      "combo": "studio/dark/320px",
+      "at": 1793070082819,
+      "path": "/evaluation-options",
+      "method": "GET",
+      "query": ""
+    },
+    {
+      "combo": "studio/dark/320px",
+      "at": 1793070082819,
+      "path": "/api-keys",
+      "method": "GET",
+      "query": ""
+    },
+    {
+      "combo": "studio/dark/320px",
+      "at": 1793070082819,
+      "path": "/evaluation-options/problems",
+      "method": "GET",
+      "query": "?limit=20&offset=0&source=all"
+    },
+    {
+      "combo": "studio/dark/320px",
+      "at": 1793070082977,
+      "path": "/results",
+      "method": "GET",
+      "query": "?limit=20&offset=0"
+    },
+    {
+      "combo": "studio/dark/390px",
+      "at": 1793070083363,
+      "path": "/users/me",
+      "method": "GET",
+      "query": ""
+    },
+    {
+      "combo": "studio/dark/390px",
+      "at": 1793070083363,
+      "path": "/users/me",
+      "method": "GET",
+      "query": ""
+    },
+    {
+      "combo": "studio/dark/390px",
+      "at": 1793070083435,
+      "path": "/evaluation-options",
+      "method": "GET",
+      "query": ""
+    },
+    {
+      "combo": "studio/dark/390px",
+      "at": 1793070083436,
+      "path": "/api-keys",
+      "method": "GET",
+      "query": ""
+    },
+    {
+      "combo": "studio/dark/390px",
+      "at": 1793070083436,
+      "path": "/evaluation-options/problems",
+      "method": "GET",
+      "query": "?limit=20&offset=0&source=all"
+    },
+    {
+      "combo": "studio/dark/390px",
+      "at": 1793070083541,
+      "path": "/evaluation-options/models",
+      "method": "GET",
+      "query": "?api_key_id=appearance-key"
+    },
+    {
+      "combo": "studio/dark/390px",
+      "at": 1793070083793,
+      "path": "/evaluation-options/problems",
+      "method": "GET",
+      "query": "?limit=20&offset=20&source=all"
+    },
+    {
+      "combo": "studio/dark/390px",
+      "at": 1793070083989,
+      "path": "/evaluation-options/problems",
+      "method": "GET",
+      "query": "?limit=20&offset=0&source=all"
+    },
+    {
+      "combo": "studio/dark/390px",
+      "at": 1793070084061,
+      "path": "/evaluations",
+      "method": "POST",
+      "query": "",
+      "payload": {
+        "api_key_id": "appearance-key",
+        "model": "model-a",
+        "problem_ids": [
+          "appearance-problem",
+          "appearance-problem-20"
+        ],
+        "strategy_names": [
+          "direct"
+        ],
+        "budget_cap_usd": 0.25
+      }
+    },
+    {
+      "combo": "studio/dark/390px",
+      "at": 1793070084073,
+      "path": "/evaluations/appearance-evaluation/start",
+      "method": "POST",
+      "query": ""
+    },
+    {
+      "combo": "studio/dark/390px",
+      "at": 1793070084091,
+      "path": "/evaluations/appearance-evaluation",
+      "method": "GET",
+      "query": ""
+    },
+    {
+      "combo": "studio/dark/390px",
+      "at": 1793070084322,
+      "path": "/users/me",
+      "method": "GET",
+      "query": ""
+    },
+    {
+      "combo": "studio/dark/390px",
+      "at": 1793070084322,
+      "path": "/users/me",
+      "method": "GET",
+      "query": ""
+    },
+    {
+      "combo": "studio/dark/390px",
+      "at": 1793070084343,
+      "path": "/evaluations",
+      "method": "GET",
+      "query": "?limit=20&offset=0"
+    },
+    {
+      "combo": "studio/dark/390px",
+      "at": 1793070084460,
+      "path": "/evaluations",
+      "method": "GET",
+      "query": "?status=completed&limit=20&offset=0"
+    },
+    {
+      "combo": "studio/dark/390px",
+      "at": 1793070084628,
+      "path": "/evaluations/appearance-evaluation",
+      "method": "GET",
+      "query": ""
+    },
+    {
+      "combo": "studio/dark/390px",
+      "at": 1793070084881,
+      "path": "/users/me",
+      "method": "GET",
+      "query": ""
+    },
+    {
+      "combo": "studio/dark/390px",
+      "at": 1793070084882,
+      "path": "/users/me",
+      "method": "GET",
+      "query": ""
+    },
+    {
+      "combo": "studio/dark/390px",
+      "at": 1793070084907,
+      "path": "/results",
+      "method": "GET",
+      "query": "?limit=20&offset=0"
+    },
+    {
+      "combo": "studio/dark/390px",
+      "at": 1793070085010,
+      "path": "/results",
+      "method": "GET",
+      "query": "?status=completed&limit=20&offset=0"
+    },
+    {
+      "combo": "studio/dark/390px",
+      "at": 1793070085182,
+      "path": "/evaluations/appearance-evaluation",
+      "method": "GET",
+      "query": ""
+    },
+    {
+      "combo": "studio/dark/390px",
+      "at": 1793070085182,
+      "path": "/results/appearance-evaluation",
+      "method": "GET",
+      "query": "?limit=20&offset=0"
+    },
+    {
+      "combo": "studio/dark/390px",
+      "at": 1793070085186,
+      "path": "/evaluations/appearance-evaluation",
+      "method": "GET",
+      "query": ""
+    },
+    {
+      "combo": "studio/dark/390px",
+      "at": 1793070085186,
+      "path": "/results/appearance-evaluation",
+      "method": "GET",
+      "query": "?limit=20&offset=0"
+    },
+    {
+      "combo": "studio/dark/390px",
+      "at": 1793070085488,
+      "path": "/evaluation-options",
+      "method": "GET",
+      "query": ""
+    },
+    {
+      "combo": "studio/dark/390px",
+      "at": 1793070085488,
+      "path": "/api-keys",
+      "method": "GET",
+      "query": ""
+    },
+    {
+      "combo": "studio/dark/390px",
+      "at": 1793070085489,
+      "path": "/evaluation-options/problems",
+      "method": "GET",
+      "query": "?limit=20&offset=0&source=all"
+    },
+    {
+      "combo": "studio/dark/390px",
+      "at": 1793070085646,
+      "path": "/results",
+      "method": "GET",
+      "query": "?limit=20&offset=0"
+    },
+    {
+      "combo": "studio/dark/768px",
+      "at": 1793070086036,
+      "path": "/users/me",
+      "method": "GET",
+      "query": ""
+    },
+    {
+      "combo": "studio/dark/768px",
+      "at": 1793070086036,
+      "path": "/users/me",
+      "method": "GET",
+      "query": ""
+    },
+    {
+      "combo": "studio/dark/768px",
+      "at": 1793070086107,
+      "path": "/evaluation-options",
+      "method": "GET",
+      "query": ""
+    },
+    {
+      "combo": "studio/dark/768px",
+      "at": 1793070086108,
+      "path": "/api-keys",
+      "method": "GET",
+      "query": ""
+    },
+    {
+      "combo": "studio/dark/768px",
+      "at": 1793070086108,
+      "path": "/evaluation-options/problems",
+      "method": "GET",
+      "query": "?limit=20&offset=0&source=all"
+    },
+    {
+      "combo": "studio/dark/768px",
+      "at": 1793070086214,
+      "path": "/evaluation-options/models",
+      "method": "GET",
+      "query": "?api_key_id=appearance-key"
+    },
+    {
+      "combo": "studio/dark/768px",
+      "at": 1793070086468,
+      "path": "/evaluation-options/problems",
+      "method": "GET",
+      "query": "?limit=20&offset=20&source=all"
+    },
+    {
+      "combo": "studio/dark/768px",
+      "at": 1793070086667,
+      "path": "/evaluation-options/problems",
+      "method": "GET",
+      "query": "?limit=20&offset=0&source=all"
+    },
+    {
+      "combo": "studio/dark/768px",
+      "at": 1793070086738,
+      "path": "/evaluations",
+      "method": "POST",
+      "query": "",
+      "payload": {
+        "api_key_id": "appearance-key",
+        "model": "model-a",
+        "problem_ids": [
+          "appearance-problem",
+          "appearance-problem-20"
+        ],
+        "strategy_names": [
+          "direct"
+        ],
+        "budget_cap_usd": 0.25
+      }
+    },
+    {
+      "combo": "studio/dark/768px",
+      "at": 1793070086748,
+      "path": "/evaluations/appearance-evaluation/start",
+      "method": "POST",
+      "query": ""
+    },
+    {
+      "combo": "studio/dark/768px",
+      "at": 1793070086767,
+      "path": "/evaluations/appearance-evaluation",
+      "method": "GET",
+      "query": ""
+    },
+    {
+      "combo": "studio/dark/768px",
+      "at": 1793070087034,
+      "path": "/users/me",
+      "method": "GET",
+      "query": ""
+    },
+    {
+      "combo": "studio/dark/768px",
+      "at": 1793070087034,
+      "path": "/users/me",
+      "method": "GET",
+      "query": ""
+    },
+    {
+      "combo": "studio/dark/768px",
+      "at": 1793070087056,
+      "path": "/evaluations",
+      "method": "GET",
+      "query": "?limit=20&offset=0"
+    },
+    {
+      "combo": "studio/dark/768px",
+      "at": 1793070087171,
+      "path": "/evaluations",
+      "method": "GET",
+      "query": "?status=completed&limit=20&offset=0"
+    },
+    {
+      "combo": "studio/dark/768px",
+      "at": 1793070087355,
+      "path": "/evaluations/appearance-evaluation",
+      "method": "GET",
+      "query": ""
+    },
+    {
+      "combo": "studio/dark/768px",
+      "at": 1793070087595,
+      "path": "/users/me",
+      "method": "GET",
+      "query": ""
+    },
+    {
+      "combo": "studio/dark/768px",
+      "at": 1793070087596,
+      "path": "/users/me",
+      "method": "GET",
+      "query": ""
+    },
+    {
+      "combo": "studio/dark/768px",
+      "at": 1793070087620,
+      "path": "/results",
+      "method": "GET",
+      "query": "?limit=20&offset=0"
+    },
+    {
+      "combo": "studio/dark/768px",
+      "at": 1793070087720,
+      "path": "/results",
+      "method": "GET",
+      "query": "?status=completed&limit=20&offset=0"
+    },
+    {
+      "combo": "studio/dark/768px",
+      "at": 1793070087892,
+      "path": "/evaluations/appearance-evaluation",
+      "method": "GET",
+      "query": ""
+    },
+    {
+      "combo": "studio/dark/768px",
+      "at": 1793070087893,
+      "path": "/results/appearance-evaluation",
+      "method": "GET",
+      "query": "?limit=20&offset=0"
+    },
+    {
+      "combo": "studio/dark/768px",
+      "at": 1793070087898,
+      "path": "/evaluations/appearance-evaluation",
+      "method": "GET",
+      "query": ""
+    },
+    {
+      "combo": "studio/dark/768px",
+      "at": 1793070087898,
+      "path": "/results/appearance-evaluation",
+      "method": "GET",
+      "query": "?limit=20&offset=0"
+    },
+    {
+      "combo": "studio/dark/768px",
+      "at": 1793070088166,
+      "path": "/evaluation-options",
+      "method": "GET",
+      "query": ""
+    },
+    {
+      "combo": "studio/dark/768px",
+      "at": 1793070088167,
+      "path": "/api-keys",
+      "method": "GET",
+      "query": ""
+    },
+    {
+      "combo": "studio/dark/768px",
+      "at": 1793070088167,
+      "path": "/evaluation-options/problems",
+      "method": "GET",
+      "query": "?limit=20&offset=0&source=all"
+    },
+    {
+      "combo": "studio/dark/1440px",
+      "at": 1793070088563,
+      "path": "/users/me",
+      "method": "GET",
+      "query": ""
+    },
+    {
+      "combo": "studio/dark/1440px",
+      "at": 1793070088563,
+      "path": "/users/me",
+      "method": "GET",
+      "query": ""
+    },
+    {
+      "combo": "studio/dark/1440px",
+      "at": 1793070088626,
+      "path": "/evaluation-options",
+      "method": "GET",
+      "query": ""
+    },
+    {
+      "combo": "studio/dark/1440px",
+      "at": 1793070088627,
+      "path": "/api-keys",
+      "method": "GET",
+      "query": ""
+    },
+    {
+      "combo": "studio/dark/1440px",
+      "at": 1793070088627,
+      "path": "/evaluation-options/problems",
+      "method": "GET",
+      "query": "?limit=20&offset=0&source=all"
+    },
+    {
+      "combo": "studio/dark/1440px",
+      "at": 1793070088746,
+      "path": "/evaluation-options/models",
+      "method": "GET",
+      "query": "?api_key_id=appearance-key"
+    },
+    {
+      "combo": "studio/dark/1440px",
+      "at": 1793070089002,
+      "path": "/evaluation-options/problems",
+      "method": "GET",
+      "query": "?limit=20&offset=20&source=all"
+    },
+    {
+      "combo": "studio/dark/1440px",
+      "at": 1793070089200,
+      "path": "/evaluation-options/problems",
+      "method": "GET",
+      "query": "?limit=20&offset=0&source=all"
+    },
+    {
+      "combo": "studio/dark/1440px",
+      "at": 1793070089271,
+      "path": "/evaluations",
+      "method": "POST",
+      "query": "",
+      "payload": {
+        "api_key_id": "appearance-key",
+        "model": "model-a",
+        "problem_ids": [
+          "appearance-problem",
+          "appearance-problem-20"
+        ],
+        "strategy_names": [
+          "direct"
+        ],
+        "budget_cap_usd": 0.25
+      }
+    },
+    {
+      "combo": "studio/dark/1440px",
+      "at": 1793070089281,
+      "path": "/evaluations/appearance-evaluation/start",
+      "method": "POST",
+      "query": ""
+    },
+    {
+      "combo": "studio/dark/1440px",
+      "at": 1793070089299,
+      "path": "/evaluations/appearance-evaluation",
+      "method": "GET",
+      "query": ""
+    },
+    {
+      "combo": "studio/dark/1440px",
+      "at": 1793070089533,
+      "path": "/users/me",
+      "method": "GET",
+      "query": ""
+    },
+    {
+      "combo": "studio/dark/1440px",
+      "at": 1793070089533,
+      "path": "/users/me",
+      "method": "GET",
+      "query": ""
+    },
+    {
+      "combo": "studio/dark/1440px",
+      "at": 1793070089556,
+      "path": "/evaluations",
+      "method": "GET",
+      "query": "?limit=20&offset=0"
+    },
+    {
+      "combo": "studio/dark/1440px",
+      "at": 1793070089671,
+      "path": "/evaluations",
+      "method": "GET",
+      "query": "?status=completed&limit=20&offset=0"
+    },
+    {
+      "combo": "studio/dark/1440px",
+      "at": 1793070089893,
+      "path": "/evaluations/appearance-evaluation",
+      "method": "GET",
+      "query": ""
+    },
+    {
+      "combo": "studio/dark/1440px",
+      "at": 1793070090139,
+      "path": "/users/me",
+      "method": "GET",
+      "query": ""
+    },
+    {
+      "combo": "studio/dark/1440px",
+      "at": 1793070090139,
+      "path": "/users/me",
+      "method": "GET",
+      "query": ""
+    },
+    {
+      "combo": "studio/dark/1440px",
+      "at": 1793070090161,
+      "path": "/results",
+      "method": "GET",
+      "query": "?limit=20&offset=0"
+    },
+    {
+      "combo": "studio/dark/1440px",
+      "at": 1793070090270,
+      "path": "/results",
+      "method": "GET",
+      "query": "?status=completed&limit=20&offset=0"
+    },
+    {
+      "combo": "studio/dark/1440px",
+      "at": 1793070090475,
+      "path": "/evaluations/appearance-evaluation",
+      "method": "GET",
+      "query": ""
+    },
+    {
+      "combo": "studio/dark/1440px",
+      "at": 1793070090476,
+      "path": "/results/appearance-evaluation",
+      "method": "GET",
+      "query": "?limit=20&offset=0"
+    },
+    {
+      "combo": "studio/dark/1440px",
+      "at": 1793070090479,
+      "path": "/evaluations/appearance-evaluation",
+      "method": "GET",
+      "query": ""
+    },
+    {
+      "combo": "studio/dark/1440px",
+      "at": 1793070090480,
+      "path": "/results/appearance-evaluation",
+      "method": "GET",
+      "query": "?limit=20&offset=0"
+    }
+  ],
+  "screenshots": [
+    "create-orbit-light-320.png",
+    "task-list-precision-dark-390.png",
+    "task-detail-studio-light-768.png",
+    "result-detail-studio-dark-1440.png"
+  ],
+  "unknownRequests": [],
+  "pass": true
+}

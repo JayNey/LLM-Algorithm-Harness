@@ -1,0 +1,10 @@
+WARNING: The directory '/Users/charlesleclerc/Library/Caches/pip' or its parent directory is not owned or is not writable by the current user. The cache has been disabled. Check the permissions and owner of that directory. If executing pip with sudo, you should use sudo's -H flag.
+Processing ./.
+  Preparing metadata (pyproject.toml): started
+  Preparing metadata (pyproject.toml): finished with status 'done'
+Building wheels for collected packages: llm-algorithm-harness
+  Building wheel for llm-algorithm-harness (pyproject.toml): started
+  Building wheel for llm-algorithm-harness (pyproject.toml): finished with status 'done'
+  Created wheel for llm-algorithm-harness: filename=llm_algorithm_harness-0.1.0-py3-none-any.whl size=500757 sha256=ab4b75f1e3048efdf8305620261ce02a0570ca84df8702aff5ad6cc9da8bf3a1
+  Stored in directory: /private/var/folders/hd/18z3z0s90l5gl_rqt9qy3szm0000gn/T/pip-ephem-wheel-cache-ggecvcef/wheels/53/32/18/652fef21c67357f6c9343f825c5261c0051fdb28dcb67eaf96
+Successfully built llm-algorithm-harness

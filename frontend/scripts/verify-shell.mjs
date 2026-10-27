@@ -24,6 +24,7 @@ const errors = []
 let role = 'user'
 let authCalls = 0
 const requests = []
+const unknown = []
 const context = await browser.newContext({
   viewport: { width: 1440, height: 1000 },
   reducedMotion: 'reduce',
@@ -32,7 +33,8 @@ const page = await context.newPage()
 page.on('pageerror', (error) => errors.push(error.message))
 await context.route('**/api/v1/**', async (route) => {
   const path = new URL(route.request().url()).pathname
-  requests.push({ path, method: route.request().method() })
+  const pagePath = new URL(route.request().frame().url()).pathname
+  requests.push({ path, method: route.request().method(), pagePath })
   const headers = {
     'access-control-allow-origin': base,
     'access-control-allow-credentials': 'true',
@@ -130,7 +132,12 @@ await context.route('**/api/v1/**', async (route) => {
         },
       },
     })
-  throw Error(`Unexpected business API: ${path}`)
+  unknown.push({ path, method: route.request().method(), pagePath })
+  return route.fulfill({
+    status: 500,
+    headers,
+    json: { message: `Unexpected business API: ${path}` },
+  })
 })
 async function signIn(marker = 'qa-session-a') {
   await page.goto(`${base}/login`)
@@ -486,6 +493,19 @@ try {
     '/evaluation-options/models',
     '/evaluation-options/problems',
   ]
+  const mockRequests = requests.filter((request) =>
+    ['/', '/help'].includes(request.pagePath),
+  )
+  assert.equal(
+    mockRequests.some(
+      (request) => !shellEndpoints.some((path) => request.path.endsWith(path)),
+    ),
+    false,
+  )
+  assert.deepEqual(unknown, [])
+  checks.push(
+    'Mock dashboard/help issue no business requests; real create page has declared read requests',
+  )
   assert.equal(
     requests.some(
       (r) =>
@@ -498,10 +518,27 @@ try {
   )
   await writeFile(
     `${out}/checks.json`,
-    JSON.stringify({ checks, requests, pageErrors: errors }, null, 2),
+    JSON.stringify(
+      {
+        layer: 'browser-fixture (not backend E2E)',
+        replaced: [
+          'identity/logout HTTP',
+          'creation option HTTP',
+          'dashboard/help business data',
+        ],
+        real: ['React shell', 'router', 'shared auth client', 'creation page'],
+        mockPagePaths: ['/', '/help'],
+        checks,
+        requests,
+        unknown,
+        pageErrors: errors,
+      },
+      null,
+      2,
+    ),
   )
   console.log(
-    `PASS: ${checks.length} browser checks; no business API requests or page errors. Evidence: ${out}`,
+    `PASS: ${checks.length} browser checks; Mock regions make no business requests, real create reads are declared, no unknown requests or page errors. Evidence: ${out}`,
   )
 } catch (error) {
   await page.screenshot({ path: `${out}/failure.png` })

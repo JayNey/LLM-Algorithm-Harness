@@ -118,12 +118,16 @@ def environment(tmp_path, monkeypatch):
     monkeypatch.setattr(settings, "DATA_ROOT", str(tmp_path))
     monkeypatch.setattr(settings, "DATABASE_URL", f"sqlite:///{tmp_path / 'business.sqlite3'}")
     queue = deque()
+    revoked = []
 
     def send_task(name, args=(), kwargs=None, **options):
         queue.append((name, args, kwargs or {}))
         return SimpleNamespace(id=str(uuid4()))
 
     monkeypatch.setattr(celery_app, "send_task", send_task)
+    monkeypatch.setattr(
+        celery_app.control, "revoke", lambda task_id, **options: revoked.append(task_id)
+    )
     monkeypatch.setattr(celery_app, "AsyncResult", lambda *a, **k: SimpleNamespace(state="PENDING"))
     monkeypatch.setattr(run_evaluation_task, "update_state", lambda **kwargs: None)
     monkeypatch.setattr("src.tasks.evaluation.publish_progress", lambda *a, **k: None)
@@ -179,7 +183,9 @@ def environment(tmp_path, monkeypatch):
         with ThreadPoolExecutor(max_workers=max_workers) as pool:
             list(pool.map(execute, messages))
 
-    return SimpleNamespace(session=open_app, drain=drain, queue=queue, generated=generated)
+    return SimpleNamespace(
+        session=open_app, drain=drain, queue=queue, generated=generated, revoked=revoked
+    )
 
 
 def create_evaluation(client, headers, key, ids=("p1",), **options):
@@ -197,6 +203,199 @@ def create_evaluation(client, headers, key, ids=("p1",), **options):
         ),
         201,
     )["evaluation_id"]
+
+
+def cookie_account(client, name="cookie-alice"):
+    """Real login cookies and server-issued CSRF; never send a Bearer header."""
+    data(
+        client.post(
+            "/api/v1/auth/register",
+            json={"username": name, "email": f"{name}@example.org", "password": PASSWORD},
+        ),
+        201,
+    )
+    login = client.post("/api/v1/auth/login", json={"username": name, "password": PASSWORD})
+    data(login)
+    csrf = login.headers["x-csrf-token"]
+    assert csrf and csrf == client.cookies["harness_csrf"]
+    headers = {"X-CSRF-Token": csrf}
+    key = data(
+        client.post(
+            "/api/v1/api-keys",
+            headers=headers,
+            json={"provider": "openai", "key_name": "cookie", "api_key": "sk-offline-only"},
+        ),
+        201,
+    )["id"]
+    return headers, key
+
+
+def test_cookie_create_start_observe_running_and_results(environment, monkeypatch):
+    """Deleting worker execution or breaking evaluation/task/run mapping fails here."""
+    with environment.session() as (client, app):
+        headers, key = cookie_account(client)
+        ProblemStore(app.state.task_session_factory).upsert_import([problem("cookie-p1")])
+        evaluation = create_evaluation(client, headers, key, ids=("cookie-p1",))
+        assert data(client.get(f"/api/v1/evaluations/{evaluation}"))["can_start"] is True
+        queued = start(client, headers, evaluation)
+        assert queued["evaluation_id"] == evaluation and queued["status"] == "pending"
+        identity = task_id(client, {}, evaluation)
+        assert identity != evaluation
+        observations = []
+
+        def observe_running(*args, **kwargs):
+            detail = data(client.get(f"/api/v1/evaluations/{evaluation}"))
+            task = data(client.get(f"/api/v1/tasks/{identity}"))
+            observations.append(detail["status"])
+            assert detail["status"] == task["status"] == "running"
+            assert task["entity_id"] == evaluation
+            assert detail["can_cancel"] is True
+            return SandboxResult(status="success", all_passed=True, execution_time=0.01)
+
+        monkeypatch.setattr(SandboxExecutor, "execute", observe_running)
+        environment.drain()
+        assert observations == ["running"]
+        finished = result(client, {}, evaluation)
+        assert finished["status"] == "completed"
+        # Web evaluations legitimately have no persisted Run ID. The worker's
+        # checkpoint key is not a public run_id and must not be substituted.
+        assert finished["run_id"] is None
+        assert client.get(f"/api/v1/results/{identity}").status_code == 404
+        from src.task_service import TaskService
+
+        checkpoint = TaskService(root=f"data/tasks/{evaluation}").get(f"eval-{evaluation}")
+        assert checkpoint.state == "completed"
+        assert finished["problems"]["items"][0]["problem_id"] == "cookie-p1"
+        task = data(client.get(f"/api/v1/tasks/{identity}"))
+        assert task["status"] == "completed" and task["progress"]["percentage"] == 100
+        assert environment.generated == ["gpt-4o-mini"]
+
+
+@pytest.mark.parametrize("cancel_at", ["queued", "running"])
+def test_cookie_cancel_does_not_turn_into_completed(environment, monkeypatch, cancel_at):
+    with environment.session() as (client, app):
+        headers, key = cookie_account(client)
+        ProblemStore(app.state.task_session_factory).upsert_import([problem("p1")])
+        evaluation = create_evaluation(client, headers, key)
+        start(client, headers, evaluation)
+        identity = task_id(client, {}, evaluation)
+
+        def cancel():
+            cancelled = data(
+                client.post(f"/api/v1/evaluations/{evaluation}/cancel", headers=headers)
+            )
+            assert cancelled["evaluation_id"] == evaluation
+            assert cancelled["status"] == "cancelled"
+            assert cancelled["can_start"] is cancelled["can_cancel"] is False
+
+        if cancel_at == "queued":
+            cancel()
+        else:
+
+            def sandbox(*args, **kwargs):
+                cancel()
+                return SandboxResult(status="success", all_passed=True)
+
+            monkeypatch.setattr(SandboxExecutor, "execute", sandbox)
+        environment.drain()
+        assert data(client.get(f"/api/v1/tasks/{identity}"))["status"] == "cancelled"
+        assert result(client, {}, evaluation)["status"] == "cancelled"
+        assert len(environment.revoked) == 1
+        assert len(environment.generated) == (0 if cancel_at == "queued" else 1)
+
+
+@pytest.mark.parametrize("invalid_csrf", [None, "wrong", "missing-cookie"])
+def test_cookie_mutations_enforce_csrf_before_side_effects(environment, invalid_csrf):
+    with environment.session() as (client, app):
+        headers, key = cookie_account(client)
+        ProblemStore(app.state.task_session_factory).upsert_import([problem("p1")])
+        evaluation = create_evaluation(client, headers, key)
+        valid_csrf = headers["X-CSRF-Token"]
+        bad = {} if invalid_csrf is None else {"X-CSRF-Token": invalid_csrf}
+        if invalid_csrf == "missing-cookie":
+            client.cookies.delete("harness_csrf")
+            bad = headers
+        payload = {
+            "problem_ids": ["p1"],
+            "strategy_names": ["vanilla"],
+            "api_key_id": key,
+            "model": "gpt-4o-mini",
+        }
+        assert client.post("/api/v1/evaluations", headers=bad, json=payload).status_code == 403
+        assert (
+            client.post(f"/api/v1/evaluations/{evaluation}/start", headers=bad).status_code == 403
+        )
+        assert environment.queue == deque()
+        # Identity GET is the supported bootstrap when an existing cookie session lacks CSRF.
+        bootstrap = client.get("/api/v1/users/me")
+        data(bootstrap)
+        valid_csrf = bootstrap.headers["x-csrf-token"]
+        headers = {"X-CSRF-Token": valid_csrf}
+        start(client, headers, evaluation)
+        if invalid_csrf == "missing-cookie":
+            client.cookies.delete("harness_csrf")
+        assert (
+            client.post(f"/api/v1/evaluations/{evaluation}/cancel", headers=bad).status_code == 403
+        )
+        assert client.post("/api/v1/auth/refresh", headers=bad, json={}).status_code == 403
+        assert client.post("/api/v1/auth/logout", headers=bad).status_code == 403
+        assert environment.revoked == []
+        csrf = client.get("/api/v1/users/me").headers["x-csrf-token"]
+        refreshed = client.post("/api/v1/auth/refresh", headers={"X-CSRF-Token": csrf}, json={})
+        data(refreshed)
+        assert refreshed.headers["x-csrf-token"] != csrf
+        rotated = {"X-CSRF-Token": refreshed.headers["x-csrf-token"]}
+        assert (
+            client.post(f"/api/v1/evaluations/{evaluation}/cancel", headers=rotated).status_code
+            == 200
+        )
+        assert client.post("/api/v1/auth/logout", headers=rotated).status_code == 204
+        assert client.get(f"/api/v1/evaluations/{evaluation}").status_code == 401
+
+
+def test_cookie_owner_isolation_and_forbidden_admin(environment):
+    with environment.session() as (alice, app):
+        alice_headers, key = cookie_account(alice)
+        ProblemStore(app.state.task_session_factory).upsert_import([problem("p1")])
+        evaluation = create_evaluation(alice, alice_headers, key)
+        start(alice, alice_headers, evaluation)
+        identity = task_id(alice, {}, evaluation)
+        environment.drain()
+        with TestClient(app) as bob:
+            headers, _ = cookie_account(bob, "cookie-bob")
+            assert data(bob.get("/api/v1/evaluations"))["total"] == 0
+            for path in (f"evaluations/{evaluation}", f"tasks/{identity}", f"results/{evaluation}"):
+                assert bob.get(f"/api/v1/{path}").status_code == 404
+            for action in ("start", "cancel"):
+                assert (
+                    bob.post(
+                        f"/api/v1/evaluations/{evaluation}/{action}", headers=headers
+                    ).status_code
+                    == 404
+                )
+            # An ordinary identity receives 403, not a successful static catalog.
+            assert bob.get("/api/v1/config/providers").status_code == 403
+        assert result(alice, {}, evaluation)["status"] == "completed"
+
+
+def test_cookie_refresh_recovers_access_and_rejects_revoked_session(environment):
+    from httpx import Cookies
+
+    with environment.session() as (client, app):
+        headers, _ = cookie_account(client)
+        client.cookies.delete("harness_access_token")
+        assert client.get("/api/v1/evaluations").status_code == 401
+        refreshed = client.post("/api/v1/auth/refresh", json={}, headers=headers)
+        data(refreshed)
+        csrf = refreshed.headers["x-csrf-token"]
+        assert csrf != headers["X-CSRF-Token"]
+        assert data(client.get("/api/v1/evaluations"))["total"] == 0
+        saved = Cookies(client.cookies)
+        headers = {"X-CSRF-Token": csrf}
+        assert client.post("/api/v1/auth/logout", headers=headers).status_code == 204
+        client.cookies.update(saved)
+        assert client.get("/api/v1/evaluations").status_code == 401
+        assert client.post("/api/v1/auth/refresh", json={}, headers=headers).status_code == 401
 
 
 def start(client, headers, evaluation):

@@ -124,7 +124,10 @@ interface RefreshPayload {
   expires_in: number
 }
 
-type RetryConfig = InternalAxiosRequestConfig & { __retried?: boolean }
+type RetryConfig = InternalAxiosRequestConfig & {
+  __retried?: boolean
+  __sessionMarker?: string | null
+}
 
 const unsafeMethods = new Set(['post', 'put', 'patch', 'delete'])
 
@@ -193,6 +196,15 @@ function httpError(data: unknown, status: number | undefined): ApiClientError {
 
 export function createHttpClient(options: HttpClientOptions): AxiosInstance {
   let latestCsrf = options.read()?.csrfToken ?? null
+
+  function assertCurrentSession(config: InternalAxiosRequestConfig) {
+    const scoped = config as RetryConfig
+    const path = requestPath(config.url ?? '')
+    if (path.endsWith('/auth/login') || path.endsWith('/auth/register')) return
+    if (scoped.__sessionMarker !== (options.read()?.marker ?? null)) {
+      throw new ApiClientError('登录会话已失效', 401)
+    }
+  }
 
   function rememberCsrf(token: string) {
     latestCsrf = token
@@ -288,6 +300,11 @@ export function createHttpClient(options: HttpClientOptions): AxiosInstance {
   }
 
   client.interceptors.request.use(async (config) => {
+    const scoped = config as RetryConfig
+    if (!('__sessionMarker' in scoped)) {
+      scoped.__sessionMarker = options.read()?.marker ?? null
+    }
+    assertCurrentSession(config)
     attachCsrf(config)
     if (skipsAccessToken(config.url ?? '')) {
       config.headers.delete('Authorization')
@@ -301,6 +318,7 @@ export function createHttpClient(options: HttpClientOptions): AxiosInstance {
     ) {
       await coordinator.refresh()
     }
+    assertCurrentSession(config)
     attachCsrf(config)
     config.headers.delete('Authorization')
     return config
@@ -308,6 +326,9 @@ export function createHttpClient(options: HttpClientOptions): AxiosInstance {
 
   client.interceptors.response.use(
     (response) => {
+      // Check ownership before accepting CSRF or starting a refresh. An old
+      // identity response must have no effects on a newer login.
+      assertCurrentSession(response.config)
       const token = csrfFrom(response.headers)
       if (token) rememberCsrf(token)
       if (response.status === 204) {
@@ -325,6 +346,7 @@ export function createHttpClient(options: HttpClientOptions): AxiosInstance {
     },
     (error: unknown) => {
       const { status, config } = errorResponse(error)
+      if (config) assertCurrentSession(config)
       if (status === 401) {
         return recover(config, () => failure(error))
       }

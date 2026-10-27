@@ -1,0 +1,465 @@
+{
+  "layer": "browser-fixture (not backend E2E)",
+  "replaced": [
+    "identity/logout HTTP",
+    "creation option HTTP",
+    "dashboard/help business data"
+  ],
+  "real": [
+    "React shell",
+    "router",
+    "shared auth client",
+    "creation page"
+  ],
+  "mockPagePaths": [
+    "/",
+    "/help"
+  ],
+  "checks": [
+    "anonymous route redirects to login",
+    "auth button contrast 5.19:1",
+    {
+      "width": 320,
+      "scroll": 320,
+      "design": "orbit",
+      "theme": "light"
+    },
+    {
+      "width": 390,
+      "scroll": 390,
+      "design": "orbit",
+      "theme": "light"
+    },
+    {
+      "width": 768,
+      "scroll": 768,
+      "design": "orbit",
+      "theme": "light"
+    },
+    {
+      "width": 1024,
+      "scroll": 1024,
+      "design": "orbit",
+      "theme": "light"
+    },
+    {
+      "width": 1280,
+      "scroll": 1280,
+      "design": "orbit",
+      "theme": "light"
+    },
+    {
+      "width": 1440,
+      "scroll": 1440,
+      "design": "orbit",
+      "theme": "light"
+    },
+    {
+      "width": 320,
+      "scroll": 320,
+      "design": "orbit",
+      "theme": "dark"
+    },
+    {
+      "width": 390,
+      "scroll": 390,
+      "design": "orbit",
+      "theme": "dark"
+    },
+    {
+      "width": 768,
+      "scroll": 768,
+      "design": "orbit",
+      "theme": "dark"
+    },
+    {
+      "width": 1024,
+      "scroll": 1024,
+      "design": "orbit",
+      "theme": "dark"
+    },
+    {
+      "width": 1280,
+      "scroll": 1280,
+      "design": "orbit",
+      "theme": "dark"
+    },
+    {
+      "width": 1440,
+      "scroll": 1440,
+      "design": "orbit",
+      "theme": "dark"
+    },
+    {
+      "width": 320,
+      "scroll": 320,
+      "design": "precision",
+      "theme": "light"
+    },
+    {
+      "width": 390,
+      "scroll": 390,
+      "design": "precision",
+      "theme": "light"
+    },
+    {
+      "width": 768,
+      "scroll": 768,
+      "design": "precision",
+      "theme": "light"
+    },
+    {
+      "width": 1024,
+      "scroll": 1024,
+      "design": "precision",
+      "theme": "light"
+    },
+    {
+      "width": 1280,
+      "scroll": 1280,
+      "design": "precision",
+      "theme": "light"
+    },
+    {
+      "width": 1440,
+      "scroll": 1440,
+      "design": "precision",
+      "theme": "light"
+    },
+    {
+      "width": 320,
+      "scroll": 320,
+      "design": "precision",
+      "theme": "dark"
+    },
+    {
+      "width": 390,
+      "scroll": 390,
+      "design": "precision",
+      "theme": "dark"
+    },
+    {
+      "width": 768,
+      "scroll": 768,
+      "design": "precision",
+      "theme": "dark"
+    },
+    {
+      "width": 1024,
+      "scroll": 1024,
+      "design": "precision",
+      "theme": "dark"
+    },
+    {
+      "width": 1280,
+      "scroll": 1280,
+      "design": "precision",
+      "theme": "dark"
+    },
+    {
+      "width": 1440,
+      "scroll": 1440,
+      "design": "precision",
+      "theme": "dark"
+    },
+    {
+      "width": 320,
+      "scroll": 320,
+      "design": "studio",
+      "theme": "light"
+    },
+    {
+      "width": 390,
+      "scroll": 390,
+      "design": "studio",
+      "theme": "light"
+    },
+    {
+      "width": 768,
+      "scroll": 768,
+      "design": "studio",
+      "theme": "light"
+    },
+    {
+      "width": 1024,
+      "scroll": 1024,
+      "design": "studio",
+      "theme": "light"
+    },
+    {
+      "width": 1280,
+      "scroll": 1280,
+      "design": "studio",
+      "theme": "light"
+    },
+    {
+      "width": 1440,
+      "scroll": 1440,
+      "design": "studio",
+      "theme": "light"
+    },
+    {
+      "width": 320,
+      "scroll": 320,
+      "design": "studio",
+      "theme": "dark"
+    },
+    {
+      "width": 390,
+      "scroll": 390,
+      "design": "studio",
+      "theme": "dark"
+    },
+    {
+      "width": 768,
+      "scroll": 768,
+      "design": "studio",
+      "theme": "dark"
+    },
+    {
+      "width": 1024,
+      "scroll": 1024,
+      "design": "studio",
+      "theme": "dark"
+    },
+    {
+      "width": 1280,
+      "scroll": 1280,
+      "design": "studio",
+      "theme": "dark"
+    },
+    {
+      "width": 1440,
+      "scroll": 1440,
+      "design": "studio",
+      "theme": "dark"
+    },
+    "system theme follows media changes",
+    "collapse and appearance persist across reload",
+    "variant changes retain route, DOM, filter and notification read state",
+    "sidebar create entry navigates to the real create page",
+    "quick action create entry navigates to the real create page",
+    "empty state create entry navigates to the real create page",
+    "loading, empty, error and retry work",
+    "ordinary user cannot open admin route",
+    "mobile drawer, bottom navigation and Escape focus restoration",
+    "four dismissible toasts, real logout client and session notification isolation",
+    "admin navigation uses server role",
+    "real render exception is caught and recovers after retry",
+    "Mock dashboard/help issue no business requests; real create page has declared read requests"
+  ],
+  "requests": [
+    {
+      "path": "/api/v1/users/me",
+      "method": "GET",
+      "pagePath": "/"
+    },
+    {
+      "path": "/api/v1/users/me",
+      "method": "GET",
+      "pagePath": "/"
+    },
+    {
+      "path": "/api/v1/users/me",
+      "method": "GET",
+      "pagePath": "/"
+    },
+    {
+      "path": "/api/v1/users/me",
+      "method": "GET",
+      "pagePath": "/"
+    },
+    {
+      "path": "/api/v1/users/me",
+      "method": "GET",
+      "pagePath": "/"
+    },
+    {
+      "path": "/api/v1/users/me",
+      "method": "GET",
+      "pagePath": "/"
+    },
+    {
+      "path": "/api/v1/evaluation-options",
+      "method": "GET",
+      "pagePath": "/evaluations/new"
+    },
+    {
+      "path": "/api/v1/api-keys",
+      "method": "GET",
+      "pagePath": "/evaluations/new"
+    },
+    {
+      "path": "/api/v1/evaluation-options/problems",
+      "method": "GET",
+      "pagePath": "/evaluations/new"
+    },
+    {
+      "path": "/api/v1/users/me",
+      "method": "GET",
+      "pagePath": "/"
+    },
+    {
+      "path": "/api/v1/users/me",
+      "method": "GET",
+      "pagePath": "/"
+    },
+    {
+      "path": "/api/v1/evaluation-options",
+      "method": "GET",
+      "pagePath": "/evaluations/new"
+    },
+    {
+      "path": "/api/v1/api-keys",
+      "method": "GET",
+      "pagePath": "/evaluations/new"
+    },
+    {
+      "path": "/api/v1/evaluation-options/problems",
+      "method": "GET",
+      "pagePath": "/evaluations/new"
+    },
+    {
+      "path": "/api/v1/users/me",
+      "method": "GET",
+      "pagePath": "/"
+    },
+    {
+      "path": "/api/v1/users/me",
+      "method": "GET",
+      "pagePath": "/"
+    },
+    {
+      "path": "/api/v1/evaluation-options",
+      "method": "GET",
+      "pagePath": "/evaluations/new"
+    },
+    {
+      "path": "/api/v1/api-keys",
+      "method": "GET",
+      "pagePath": "/evaluations/new"
+    },
+    {
+      "path": "/api/v1/evaluation-options/problems",
+      "method": "GET",
+      "pagePath": "/evaluations/new"
+    },
+    {
+      "path": "/api/v1/users/me",
+      "method": "GET",
+      "pagePath": "/"
+    },
+    {
+      "path": "/api/v1/users/me",
+      "method": "GET",
+      "pagePath": "/"
+    },
+    {
+      "path": "/api/v1/users/me",
+      "method": "GET",
+      "pagePath": "/settings/system"
+    },
+    {
+      "path": "/api/v1/users/me",
+      "method": "GET",
+      "pagePath": "/settings/system"
+    },
+    {
+      "path": "/api/v1/users/me",
+      "method": "GET",
+      "pagePath": "/"
+    },
+    {
+      "path": "/api/v1/users/me",
+      "method": "GET",
+      "pagePath": "/"
+    },
+    {
+      "path": "/api/v1/auth/logout",
+      "method": "POST",
+      "pagePath": "/help"
+    },
+    {
+      "path": "/api/v1/users/me",
+      "method": "GET",
+      "pagePath": "/"
+    },
+    {
+      "path": "/api/v1/users/me",
+      "method": "GET",
+      "pagePath": "/"
+    },
+    {
+      "path": "/api/v1/users/me",
+      "method": "GET",
+      "pagePath": "/"
+    },
+    {
+      "path": "/api/v1/users/me",
+      "method": "GET",
+      "pagePath": "/"
+    },
+    {
+      "path": "/api/v1/users/me",
+      "method": "GET",
+      "pagePath": "/"
+    },
+    {
+      "path": "/api/v1/users/me",
+      "method": "GET",
+      "pagePath": "/"
+    },
+    {
+      "path": "/api/v1/users/me",
+      "method": "GET",
+      "pagePath": "/"
+    },
+    {
+      "path": "/api/v1/users/me",
+      "method": "GET",
+      "pagePath": "/"
+    },
+    {
+      "path": "/api/v1/users/me",
+      "method": "GET",
+      "pagePath": "/"
+    },
+    {
+      "path": "/api/v1/users/me",
+      "method": "GET",
+      "pagePath": "/"
+    },
+    {
+      "path": "/api/v1/users/me",
+      "method": "GET",
+      "pagePath": "/"
+    },
+    {
+      "path": "/api/v1/users/me",
+      "method": "GET",
+      "pagePath": "/"
+    },
+    {
+      "path": "/api/v1/users/me",
+      "method": "GET",
+      "pagePath": "/"
+    },
+    {
+      "path": "/api/v1/users/me",
+      "method": "GET",
+      "pagePath": "/"
+    },
+    {
+      "path": "/api/v1/users/me",
+      "method": "GET",
+      "pagePath": "/"
+    },
+    {
+      "path": "/api/v1/users/me",
+      "method": "GET",
+      "pagePath": "/"
+    }
+  ],
+  "unknown": [],
+  "pageErrors": []
+}
