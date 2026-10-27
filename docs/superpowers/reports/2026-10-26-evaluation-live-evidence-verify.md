@@ -2,11 +2,11 @@
 
 ## 范围
 
-本 change 只交付依赖盘点、fixture/live 区分、恢复条件与安全步骤文档。真实端到端联调依赖 #231 和可用的目标环境；本次未启动模型请求，也不把 fixture 结果写成 live 通过。
+本 change 只交付依赖盘点、fixture/live 区分、恢复条件与安全步骤文档。#231 已通过 PR #292 合入 main；真实端到端联调仍依赖可用的目标环境。本次未启动模型请求，也不把 fixture 结果写成 live 通过。
 
 ## 环境盘点
 
-检查日期：2026-10-26。本地 API、PostgreSQL、Redis、Vite 默认端口 8000、5432、6379、3000 均未监听。Docker daemon 可访问（29.9.2），但没有运行中的 Harness 容器。没有可确认用于 T17 的测试账号、应用 API key 或小额预算；未读取 `.env` 内容或任何凭证。API/Celery/sandbox 和 provider 端到端因此未验证。
+检查日期：2026-10-27。本地 API、PostgreSQL、Redis、Vite 默认端口 8000、5432、6379、3000 均未监听。Docker daemon 可访问（29.9.2），但没有运行中的 Harness 容器。没有可确认用于 T17 的测试账号、应用 API key 或小额预算；未读取 `.env` 内容或任何凭证。API/Celery/sandbox 和 provider 端到端因此未验证。
 
 ## 检查结果
 
@@ -19,4 +19,4 @@
 
 ## 结论与恢复条件
 
-本地文档验收通过；真实端到端未进行。#231 仍为开放前置项，且本机没有可用 API/数据库/Redis/worker、本人测试身份或预算。待 #231 合入 main，并由用户提供目标环境、专用账号、应用内 provider key 和明确的小额预算后，按 EVALUATIONS_QA.md 的 live 步骤补跑。任何缺项都继续标记为未验证。
+本地文档验收通过；#231 已合入 main；真实端到端仍未进行。本机没有可用 API/数据库/Redis/worker、本人测试身份或预算。由用户提供目标环境、专用账号、应用内 provider key 和明确的小额预算后，按 EVALUATIONS_QA.md 的 live 步骤补跑。任何缺项都继续标记为未验证。
