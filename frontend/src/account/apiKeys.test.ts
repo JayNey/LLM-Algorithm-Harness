@@ -42,6 +42,19 @@ test('两个提供商分到对应组，空组不出现', () => {
   )
 })
 
+test('DeepSeek 密钥可解析并进入独立分组，不保留密钥值', () => {
+  const parsed = readApiKey({
+    ...key({}),
+    provider: 'deepseek',
+    api_key: 'deepseek-test-secret',
+  })
+  assert.ok(parsed)
+  const groups = groupApiKeys([parsed])
+  assert.equal(groups[0]?.provider, 'deepseek')
+  assert.equal(groups[0]?.label, 'DeepSeek')
+  assert.equal(Object.hasOwn(parsed, 'api_key'), false)
+})
+
 test('没有最后使用时间时表示尚未使用且次数为 0', () => {
   const [group] = groupApiKeys([key({ usage_count: 0, last_used_at: null })])
   const item = group?.keys[0]

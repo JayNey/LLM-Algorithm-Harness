@@ -1,21 +1,27 @@
 ## Context
 
-见 proposal。#231 已通过 PR #292 合入当前 main；真实评估页面和独立浏览器 fixture 已在主线。当前本机仍没有运行中的后端依赖，也没有可用于真实应用登录和模型调用的测试身份与预算。
+见 proposal。用户明确选择直接使用 PR #284 原分支 `tweak/20261026/evaluation-live-evidence`，并授权项目现有供应商配置、累计 US$0.10 模型调用预算。原 PR 无 Comet 状态文件，本轮已在原 change 补建并选择；不新建第二个 change。
 
 ## Goals / Non-Goals
 
-**Goals:** 保存可审查的环境盘点、fixture 与 live 的区别、真实运行清单和恢复步骤。
+**Goals:** 执行并记录真实浏览器→API→Redis/Celery→供应商→Docker 沙箱→结果链路，保留按层级的事实与失败证据。
 
-**Non-Goals:** 不构造 Mock 来代替真实 API/WS；不调用未知来源的 host token；不自动创建账号或 API key；不发起模型请求；不改变前端代码。
+**Non-Goals:** 不使用 Mock/route.fulfill/socket 替代，不取其他用户凭证，不扩大模型调用预算，不重设计前端或引入新 API。
+
+用户进一步明确选择继续 tweak：为现有 DeepSeek 凭证增加受控支持，再真实联调。该变更跨 provider 类型、SDK、Web 输入与前端分组及相关测试，作为同一 change 完成；按完整模式验证规格与集成，不另起 change。既有 API 路由保持不变，只扩展受支持的 provider 值。
 
 ## Decisions
 
-- 只用公开端口状态、Docker 容器清单及环境变量名称是否存在来盘点本机；不读取 `.env` 值，不输出任何凭证。
-- 缺少依赖时记录 `not available` 和恢复条件；fixture 的测试结果保持单独标记，不能作为 live 成功证据。
-- 当前无环境运行 live 脚本的安全前提，因此只新增 runbook，不增加一个未经真实环境验证的自动化脚本。
-- 真实运行前须使用专用测试用户和保存在应用自身设置中的 provider key，由执行者在 UI 输入明确的单次预算；证据只留状态、脱敏 ID、时间和页面结果。
+- 本地 API/worker 使用相同隔离认证库、业务 SQLite、SECRET_KEY/ENCRYPTION_KEY；测试账号、密码、供应商 key 只保存在权限 0600 的本地文件，不输出或提交。CLI 既有 config 只作已授权配置来源，通过应用自身保存接口建立测试用户的 key。
+- Redis 使用独立本地实例，Celery 使用真实消息与 worker；Docker daemon 和 python:3.11-slim 沙箱须完成实际运行预检。服务过程可复现，退出时仅清理本轮创建的资源。
+- 从真实浏览器登录起，读取实际选项、一个公开合成题目与 vanilla 策略，设置小预算；禁止 route.fulfill、替换 WebSocket 或 TestClient/in-process drain。记录真实 201/202、ID 关联、HTTP/WS 观察、结果与 worker/模型/沙箱证据。
+- 调用前核对模型价格、生成 token 上限与成本边界；单轮最小生成，累计不得超过 US$0.10；未知价格或无法限制时停止模型调用，明确阻塞，不自动扩大预算。
+- 输出只允许状态、脱敏标识、时间、数值成本及公共合成题目结果；截图前移除账号身份与凭证字段，脚本异常不输出请求体或响应正文中的秘密。
+- DeepSeek 使用独立 `deepseek` provider 和固定 `https://api.deepseek.com`，不把它伪装成 OpenAI；模型列表与验证复用现有归属、限时、禁 SDK 重试、关闭及脱敏逻辑。Web 不增加任意 base_url 输入；显式 DeepSeek provider 拒绝非官方 URL，既有 OpenAI 自定义地址行为保持。
+- Web DeepSeek 生成使用 30 秒 timeout、关闭 thinking，避免简单单题在默认思考模式中耗尽输出或超时；模型枚举/连接检查仍由 SDK with_options 强制 5 秒。CLI 的 enable_thinking 映射为官方 `thinking.type`；既有 SiliconFlow 开关保持不变。
+- 使用官方 2026-10-27 高峰 cache-miss 单价作保守上界：输入 $0.30/百万 token、输出 $1.20/百万 token。隔离账户每 UTC 日/月最多 2 次真实生成尝试，单次最多 2000 输出 token；调用前用实际 vanilla prompt UTF-8 字节数加协议余量计算输入上界，核对累计上界不超过授权预算。
 
 ## Risks / Trade-offs
 
-- [真实环境缺失] → 文档交付只完成准备与恢复步骤，不宣称真实端到端完成；待目标环境、测试身份、provider key 和预算就绪后按清单补跑。
-- [不同部署环境的地址和认证方式不同] → 不硬编码生产地址或账号；以目标环境部署文档和本人测试身份为准。
+- [依赖启动或外网调用失败] → 记录原始层级和脱敏错误，先调查再修复；不将健康检查或 fixture 成功记作 live。
+- [供应商计费/额度不确定] → 已授权预算内只进行受限最小运行；不调用未授权凭证或追加预算。

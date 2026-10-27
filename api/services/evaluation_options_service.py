@@ -124,7 +124,7 @@ class EvaluationOptionsService:
                     if len(page.data) <= capacity and not more:
                         # Anthropic also returns no next page when its cursor is
                         # missing; only has_more=False proves its terminal page.
-                        complete = key["provider"] in ("openai", "siliconflow") or (
+                        complete = key["provider"] in ("openai", "siliconflow", "deepseek") or (
                             getattr(page, "has_more", None) is False
                         )
                         break

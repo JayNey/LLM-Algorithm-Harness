@@ -1360,7 +1360,7 @@ FIELD_DESCRIPTIONS = {
     "refresh_token": "登录或上一次刷新取得的刷新令牌；轮换后旧令牌失效。",
     "current_password": "修改密码前校验的当前密码。",
     "new_password": "新密码，至少 12 个字符；修改后所有会话撤销。",
-    "provider": "LLM 提供商：openai、anthropic 或 siliconflow。",
+    "provider": "LLM 提供商：openai、anthropic、siliconflow 或 deepseek。",
     "key_name": "用户自定义密钥名称，不是提供商密钥本身。",
     "api_key": "提供商明文密钥；仅本次请求提交，服务器加密存储。",
     "api_key_id": "自己已保存的提供商密钥 ID；不会接受其他用户密钥。",

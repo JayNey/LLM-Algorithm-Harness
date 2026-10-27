@@ -1,25 +1,25 @@
 ## Why
 
-#232 要求把真实评估流程的 API、数据库、Redis/Celery、沙箱、模型提供方与浏览器联调证据分层记录。当前本地没有运行中的 Harness 服务，也没有可确认属于本人的测试账号、应用 API key 或明确预算；已有 Chromium fixture 不能证明真实端到端完成。
+#232 要求实际验证真实登录、创建、启动、进度和结果。PR #284 目前只交付了阻塞盘点；用户现要求在该原分支补齐真实端到端，并明确授权项目 config.json 中已有供应商配置，本轮累计模型调用预算上限 US$0.10。
 
 ## What Changes
 
-- 新增 `docs/frontend/EVALUATIONS_QA.md`，分别说明 fixture 验证与真实联调步骤。
-- 记录本次只读环境盘点、缺少的依赖、未执行层级和恢复条件。
-- 明确凭证与预算安全边界，防止 fixture、Codex 主机凭证或健康检查被写成真实模型成功证据。
+- 在独立本地目录准备真实 API、SQLite、Redis、Celery worker、Docker 沙箱和浏览器；生成隔离测试账号及认证密钥，不覆盖现有用户数据库。
+- 新增独立 live 验证脚本，真实登录和选项加载，使用一个最小题目、vanilla 策略和明确预算完成创建、启动、观察与结果；不拦截或替换业务 HTTP/WS、队列、模型或沙箱。
+- 更新 QA 和报告，保存可公开的状态、脱敏 ID、UTC 时间、成本与浏览器截图索引。凭证仅经执行环境/受限本地文件传递。
 
 ## Capabilities
 
 ### New Capabilities
 
-无。此次仅整理验收证据和恢复步骤，不改变产品行为。
+- `deepseek-provider`：明确 DeepSeek provider，固定官方 OpenAI 兼容地址，打通本人密钥管理、真实模型列表、生成和评估执行。
 
 ### Modified Capabilities
 
-无。本 change 只处理文档和验收记录。
+- `frontend/api-keys`：提供商选择、解析和分组增加 DeepSeek，保持密钥隐藏和既有身份边界。
 
 ## Impact
 
-- 新增 `docs/frontend/EVALUATIONS_QA.md`。
-- 不更改运行时代码，也不启动付费模型请求。
-- 前置 #231 已通过 PR #292 合入 main（`7efbecb`）；真实运行仍要求可用测试账号、本人配置的 provider key、可访问的 API/Redis/Celery/沙箱和用户确认的小额预算。
+- 修改 QA、验证报告，新增 live 脚本及脱敏证据。
+- 前置 #231 已通过 PR #292 合入 main（`7efbecb`），当前 PR #284 已包含该 main。
+- 若发现真实流程缺陷，先复现并按最小失败测试修复；超出本 change 或预算的事项明确报告，不以 fixture 替代。

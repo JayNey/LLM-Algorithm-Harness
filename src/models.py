@@ -554,7 +554,7 @@ class LLMConfig(BaseModel):
     _record_api_attempt: Callable[[], None] | None = PrivateAttr(default=None)
     _reserve_api_attempt: Callable[[], None] | None = PrivateAttr(default=None)
 
-    provider: Literal["openai", "anthropic", "local", "siliconflow"] = Field(
+    provider: Literal["openai", "anthropic", "local", "siliconflow", "deepseek"] = Field(
         ..., description="Provider type"
     )
     api_key: SecretStr = Field(..., description="API key or environment reference")

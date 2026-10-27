@@ -111,6 +111,21 @@ class LLMClient:
             except Exception as exc:
                 raise self._safe_provider_error(exc, api_key) from None
 
+        elif self.config.provider == "deepseek":
+            if OpenAI is None:
+                raise ImportError("openai package not installed. Run: pip install openai")
+            if self.config.base_url and self.config.base_url.rstrip("/") not in (
+                "https://api.deepseek.com",
+                "https://api.deepseek.com/v1",
+            ):
+                raise ValueError("DeepSeek requires its official API endpoint")
+            api_key = self._resolve_api_key("DEEPSEEK_API_KEY", "DeepSeek")
+            self._resolved_api_key = SecretStr(api_key)
+            try:
+                return OpenAI(api_key=api_key, max_retries=0, base_url="https://api.deepseek.com")
+            except Exception as exc:
+                raise self._safe_provider_error(exc, api_key) from None
+
         elif self.config.provider == "siliconflow":
             # SiliconFlow exposes an OpenAI-compatible API; reuse the SDK and
             # only inject the service preset (base_url + dedicated key source)
@@ -312,7 +327,7 @@ class LLMClient:
         start_time = time.time()
 
         try:
-            if self.config.provider in ("openai", "local", "siliconflow"):
+            if self.config.provider in ("openai", "local", "siliconflow", "deepseek"):
                 response = self._call_openai(prompt, effective)
             elif self.config.provider == "anthropic":
                 response = self._call_anthropic(prompt, effective)
@@ -573,7 +588,13 @@ class LLMClient:
         # Provider-specific switches can be supplied through custom_params.
         extra_body = effective.get("extra_body")
         if effective.get("enable_thinking") is not None:
-            extra_body = {**(extra_body or {}), "enable_thinking": effective["enable_thinking"]}
+            if self.config.provider == "deepseek":
+                extra_body = {
+                    **(extra_body or {}),
+                    "thinking": {"type": "enabled" if effective["enable_thinking"] else "disabled"},
+                }
+            else:
+                extra_body = {**(extra_body or {}), "enable_thinking": effective["enable_thinking"]}
         if extra_body:
             kwargs["extra_body"] = extra_body
         for key, value in effective.items():

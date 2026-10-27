@@ -44,7 +44,7 @@ def plain_key_name(value: str) -> str:
 
 
 class KeyCreate(InputModel):
-    provider: Literal["openai", "anthropic", "siliconflow"]
+    provider: Literal["openai", "anthropic", "siliconflow", "deepseek"]
     key_name: str = Field(min_length=1, max_length=100)
     api_key: SecretStr = Field(min_length=1, max_length=4096)
 

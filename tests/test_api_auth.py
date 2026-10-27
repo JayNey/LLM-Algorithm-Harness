@@ -425,7 +425,7 @@ def test_key_input_rejects_server_env_and_arbitrary_endpoints(api, payload):
     assert KEY not in response.text
 
 
-@pytest.mark.parametrize("provider", ["openai", "anthropic", "siliconflow"])
+@pytest.mark.parametrize("provider", ["openai", "anthropic", "siliconflow", "deepseek"])
 @pytest.mark.parametrize("ok", [True, False])
 def test_provider_check_is_bounded_sanitized_and_counted(api, monkeypatch, caplog, provider, ok):
     client, tokens, app, _ = api
@@ -446,7 +446,9 @@ def test_provider_check_is_bounded_sanitized_and_counted(api, monkeypatch, caplo
     assert KEY not in response.text and KEY not in caplog.text
     conf = captured[0]
     assert conf.provider == provider and conf.api_key.get_secret_value() == KEY
-    assert conf.base_url is None and conf.timeout == 5 and conf.retry_max_attempts == 1
+    assert conf.base_url is None and conf.timeout == (30 if provider == "deepseek" else 5)
+    assert conf.retry_max_attempts == 1
+    assert conf.enable_thinking is (False if provider == "deepseek" else None)
     assert conf.cache.enabled is False
     fake.client.with_options.assert_called_once_with(
         timeout=5.0, max_retries=0, base_url=PROVIDER_URLS[provider]
