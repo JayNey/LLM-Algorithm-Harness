@@ -237,12 +237,15 @@ async function run() {
       await page
         .locator('#register-confirm-password')
         .fill(credentials.password)
-      const response = page.waitForResponse(
-        (r) =>
-          r.url().endsWith('/auth/register') && r.request().method() === 'POST',
-      )
-      await page.getByRole('button', { name: '注册', exact: true }).click()
-      assert.equal((await response).status(), 201)
+      const [response] = await Promise.all([
+        page.waitForResponse(
+          (r) =>
+            r.url().endsWith('/auth/register') &&
+            r.request().method() === 'POST',
+        ),
+        page.getByRole('button', { name: /^注\s*册$/ }).click(),
+      ])
+      assert.equal(response.status(), 201)
       await page.waitForURL((url) => url.pathname === '/login')
       state.registered = true
       await saveState()
@@ -251,11 +254,14 @@ async function run() {
     await page.goto(origin + '/login')
     await page.locator('#login-identity').fill(credentials.username)
     await page.locator('#login-password').fill(credentials.password)
-    const loggedIn = page.waitForResponse(
-      (r) => r.url().endsWith('/auth/login') && r.request().method() === 'POST',
-    )
-    await page.getByRole('button', { name: '登录', exact: true }).click()
-    assert.equal((await loggedIn).status(), 200)
+    const [loggedIn] = await Promise.all([
+      page.waitForResponse(
+        (r) =>
+          r.url().endsWith('/auth/login') && r.request().method() === 'POST',
+      ),
+      page.getByRole('button', { name: /^登\s*录$/ }).click(),
+    ])
+    assert.equal(loggedIn.status(), 200)
     await page.waitForURL((url) => url.pathname === '/')
     const cookies = await context.cookies()
     report.authentication = {
@@ -286,11 +292,13 @@ async function run() {
         .locator('input[type="text"]:not([role="combobox"])')
         .fill('Live QA DeepSeek')
       await form.locator('input[type="password"]').fill(configured.api_key)
-      const added = page.waitForResponse(
-        (r) => r.url().endsWith('/api-keys') && r.request().method() === 'POST',
-      )
-      await form.getByRole('button', { name: '添加', exact: true }).click()
-      const response = await added
+      const [response] = await Promise.all([
+        page.waitForResponse(
+          (r) =>
+            r.url().endsWith('/api-keys') && r.request().method() === 'POST',
+        ),
+        form.getByRole('button', { name: /^添\s*加$/ }).click(),
+      ])
       assert.equal(response.status(), 201)
       state.keyId = (await response.json()).data.id
       await saveState()
@@ -334,11 +342,12 @@ async function run() {
       await page
         .getByRole('heading', { name: '创建评估', exact: true })
         .waitFor()
-      const models = page.waitForResponse((r) =>
-        r.url().includes('/evaluation-options/models'),
-      )
-      await choose('API 密钥', /^Live QA DeepSeek · deepseek$/)
-      const modelResponse = await models
+      const [modelResponse] = await Promise.all([
+        page.waitForResponse((r) =>
+          r.url().includes('/evaluation-options/models'),
+        ),
+        choose('API 密钥', /^Live QA DeepSeek · deepseek$/),
+      ])
       assert.equal(modelResponse.status(), 200)
       const listed = (await modelResponse.json()).data
       assert.equal(listed.provider, 'deepseek')
@@ -358,15 +367,14 @@ async function run() {
       state.submissionAttempted = true
       await saveState()
       phase = 'real-create-and-start'
-      const created = page.waitForResponse(
-        (r) =>
-          new URL(r.url()).pathname === '/api/v1/evaluations' &&
-          r.request().method() === 'POST',
-      )
-      await page
-        .getByRole('button', { name: '创建并启动', exact: true })
-        .click()
-      const response = await created
+      const [response] = await Promise.all([
+        page.waitForResponse(
+          (r) =>
+            new URL(r.url()).pathname === '/api/v1/evaluations' &&
+            r.request().method() === 'POST',
+        ),
+        page.getByRole('button', { name: '创建并启动', exact: true }).click(),
+      ])
       assert.equal(response.status(), 201)
       state.evaluationId = (await response.json()).data.evaluation_id
       await saveState()
