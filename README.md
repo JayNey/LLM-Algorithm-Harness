@@ -576,6 +576,8 @@ curl http://localhost:8000/api/v1/evaluations/{evaluation_id} \
 
 对已经由可信服务提交、属于当前用户的异步任务，可使用任务 ID 暂停和恢复；任务 ID 与评估 ID 不是同一资源：
 
+恢复支持 evaluation、experiment、benchmark、import 和 ab_test。后四类暂停后先等待当前单元保存并退出，查询任务的 `progress.stop_confirmed=true` 后再恢复；未确认停止返回 400。恢复沿用原任务和业务记录，并发恢复最多一次成功。实验跳过已保存组合，基准跳过已保存策略/题目，A/B 跳过已保存变体/题目，导入复用已校验条目；已保存结果与费用不会重复累计。取消、完成、失败及非本人的任务不能恢复。API 与 Worker 必须共享业务数据库、导入元数据及结果目录，详见 [异步任务部署文档](docs/deployment/async-tasks.md)。
+
 ```bash
 # 暂停
 curl -X POST http://localhost:8000/api/v1/tasks/{task_id}/pause \

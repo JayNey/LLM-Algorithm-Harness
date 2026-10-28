@@ -9,7 +9,6 @@ from celery import Task
 from fastapi import HTTPException
 
 from api.db.models import AsyncTask
-from api.monitoring.execution_logs import record_execution_event
 from src.celery_app import celery_app
 from src.task_manager import TaskManager
 from src.tasks.support import get_db_session, owned_async_task, task_progress
@@ -42,7 +41,7 @@ def execute_import(
             on_progress(processed, total)
 
         setattr(service.store, "progress", progress)
-    service.process_job(job_id, user_id, should_pause=should_pause)
+    service.process_job(job_id, user_id, should_pause=should_pause, claimed=True)
     return service.store.job(job_id, user_id)
 
 
@@ -59,21 +58,20 @@ class ImportTask(Task):  # type: ignore[misc]
 def run_import_task(self: ImportTask, job_id: str, user_id: str) -> dict[str, Any]:
     """Execute a pending import and copy progress plus the final status."""
     db = get_db_session()
+    claimed = False
+    manager = TaskManager(db, celery_task_id=self.request.id)
     try:
         async_task = owned_async_task(db, "import", job_id, user_id)
-        manager = TaskManager(db)
-        manager.update_task_status(async_task.id, "running")
+        claimed = manager.claim_task(async_task.id, self.request.id)
+        if not claimed:
+            return {"job_id": job_id, "status": async_task.status}
 
         def on_progress(processed: int, total: int) -> None:
-            row = db.get(type(async_task), async_task.id)
-            if row is None:
-                return
-            row.progress = {
+            progress = {
                 **task_progress(processed, total, str(processed)),
                 "message": f"Imported {processed}/{total}",
             }
-            db.commit()
-            record_execution_event(row, "task.progress", row.progress)
+            manager.update_task_progress(async_task.id, progress, "running")
 
         def should_pause() -> bool:
             current = (
@@ -82,11 +80,15 @@ def run_import_task(self: ImportTask, job_id: str, user_id: str) -> dict[str, An
                 .filter(AsyncTask.id == async_task.id)
                 .first()
             )
-            return current is not None and current.status == "paused"
+            return (
+                current is None
+                or current.status != "running"
+                or current.celery_task_id != manager.celery_task_id
+            )
 
         try:
             job = execute_import(job_id, user_id, on_progress, should_pause=should_pause)
-        except ValueError as exc:
+        except Exception as exc:
             if should_pause():
                 return {"job_id": job_id, "status": "paused"}
             manager.update_task_status(async_task.id, "failed", error_message=str(exc))
@@ -104,4 +106,6 @@ def run_import_task(self: ImportTask, job_id: str, user_id: str) -> dict[str, An
             manager.update_task_status(async_task.id, "failed", error_message=message)
         return {"job_id": job_id, "status": status}
     finally:
+        if claimed:
+            manager.confirm_stopped(async_task.id)
         db.close()

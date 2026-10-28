@@ -5,14 +5,26 @@ import sqlite3
 import time
 import uuid
 from contextlib import AbstractContextManager
+from pathlib import Path
 from typing import Any, cast
 
 from fastapi import HTTPException
+from pydantic_settings import BaseSettings, SettingsConfigDict
 
 from api.auth.store import AuthStore
 
 
+class _FileDatabaseSettings(BaseSettings):
+    model_config = SettingsConfigDict(env_file=".env", extra="ignore")
+    AUTH_DATABASE_PATH: Path = Path("data/auth/auth.sqlite3")
+
+
 class FileStore:
+    @classmethod
+    def from_environment(cls) -> "FileStore":
+        """Resolve the same metadata database in API and worker processes."""
+        return cls(AuthStore(_FileDatabaseSettings().AUTH_DATABASE_PATH))
+
     def __init__(self, auth_store: AuthStore):
         self.auth_store = auth_store
         with self.connection() as db:
@@ -190,7 +202,7 @@ class FileStore:
     def progress(self, job_id: str, processed: int, total: int) -> None:
         with self.connection() as db:
             db.execute(
-                "UPDATE api_file_jobs SET processed=?,total=?,updated_at=? WHERE id=? AND status='running'",
+                "UPDATE api_file_jobs SET processed=?,total=?,updated_at=? WHERE id=? AND status IN ('running','paused')",
                 (processed, total, int(time.time()), job_id),
             )
 
@@ -199,6 +211,29 @@ class FileStore:
             db.execute(
                 "UPDATE api_file_jobs SET status='paused',updated_at=? WHERE id=? AND status='running'",
                 (int(time.time()), job_id),
+            )
+
+    def sync_task_status(
+        self, job_id: str, user_id: str, status: str, expected_status: str | None = None
+    ) -> str | None:
+        """Mirror lifecycle without replacing validation checkpoints or results."""
+        with self.connection() as db:
+            db.execute("BEGIN IMMEDIATE")
+            db.execute(
+                "UPDATE api_file_jobs SET status=?,updated_at=? WHERE id=? AND user_id=? AND status NOT IN ('completed','failed','cancelled') AND (? IS NULL OR status=?)",
+                (status, int(time.time()), job_id, user_id, expected_status, expected_status),
+            )
+            row = db.execute(
+                "SELECT status FROM api_file_jobs WHERE id=? AND user_id=?", (job_id, user_id)
+            ).fetchone()
+            return row["status"] if row is not None else None
+
+    def restore_task_status(self, job_id: str, user_id: str, expected: str, previous: str) -> None:
+        """Compensate a failed business commit without touching a newer transition."""
+        with self.connection() as db:
+            db.execute(
+                "UPDATE api_file_jobs SET status=?,updated_at=? WHERE id=? AND user_id=? AND status=?",
+                (previous, int(time.time()), job_id, user_id, expected),
             )
 
     def fail_job(self, job_id: str, details: dict[str, Any]) -> None:

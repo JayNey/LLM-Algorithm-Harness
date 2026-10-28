@@ -1,0 +1,7 @@
+{
+  "openspec_proposal": "openspec/changes/resume-business-tasks/proposal.md",
+  "openspec_design": "openspec/changes/resume-business-tasks/design.md",
+  "openspec_tasks": "openspec/changes/resume-business-tasks/tasks.md",
+  "openspec_delta_spec": "openspec/changes/resume-business-tasks/specs/async-task-queue/spec.md",
+  "archive_directory": "openspec/changes/archive/2026-10-28-resume-business-tasks"
+}

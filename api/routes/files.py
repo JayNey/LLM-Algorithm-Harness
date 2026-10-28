@@ -143,7 +143,7 @@ def import_uploaded(
     job_id = service.store.create_job(
         request.file_id, principal.user_id, request.mode, service.settings.FILE_MAX_ACTIVE_IMPORTS
     )
-    task = TaskManager(db).enqueue_task(
+    task = TaskManager(db, file_store=service.store).enqueue_task(
         task_type="import",
         entity_id=job_id,
         user_id=principal.user_id,

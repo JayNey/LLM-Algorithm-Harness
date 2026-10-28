@@ -270,15 +270,21 @@ class ExperimentService:
         )
 
     def _execute(self, experiment_id: str, owner_id: str) -> None:
+        generation = None
         with self._concurrent_semaphore:
             try:
                 with self._session() as session:
                     row = self._owned(session, experiment_id, owner_id)
+                    task = self._task(session, experiment_id, owner_id)
+                    generation = task.celery_task_id if task is not None else None
                 if row.status != "running":
                     return
                 config = self._build_runner_config(row, owner_id)
                 runner = self._runner_factory(config)
-                runner.should_pause = lambda: self._async_task_stopped(experiment_id, owner_id)
+                runner.checkpoint_dir = Path(f"results/experiments/api/{experiment_id}/execution")
+                runner.should_pause = lambda: self._async_task_stopped(
+                    experiment_id, owner_id, generation
+                )
                 runner.on_combination = lambda current, total, model, strategy, repeat: (
                     self._write_progress(
                         experiment_id,
@@ -286,15 +292,28 @@ class ExperimentService:
                         current,
                         total,
                         f"{model}/{strategy}/{repeat}",
+                        generation,
                     )
                 )
                 exp_dir = runner.run()
                 if getattr(runner, "paused", False):
-                    self._finish(experiment_id, owner_id, "paused")
+                    self._finish(experiment_id, owner_id, "paused", celery_task_id=generation)
                     return
-                self._finish(experiment_id, owner_id, "completed", output_dir=str(exp_dir))
+                self._finish(
+                    experiment_id,
+                    owner_id,
+                    "completed",
+                    output_dir=str(exp_dir),
+                    celery_task_id=generation,
+                )
             except Exception as e:  # noqa: BLE001 - reported on the row
-                self._finish(experiment_id, owner_id, "failed", error_message=str(e))
+                self._finish(
+                    experiment_id,
+                    owner_id,
+                    "failed",
+                    error_message=str(e),
+                    celery_task_id=generation,
+                )
 
     def _finish(
         self,
@@ -304,6 +323,7 @@ class ExperimentService:
         *,
         output_dir: str | None = None,
         error_message: str | None = None,
+        celery_task_id: str | None = None,
     ) -> None:
         """Commit the result and task together, after any competing cancellation."""
         with self._session() as session:
@@ -314,9 +334,11 @@ class ExperimentService:
                     AsyncTask.user_id == owner_id,
                 )
             )
-            manager = TaskManager(session)
+            manager = TaskManager(session, celery_task_id=celery_task_id)
             if task is not None:
                 manager._lock_business_task(task)
+                if celery_task_id is not None and task.celery_task_id != celery_task_id:
+                    return
                 if task.status in _TERMINAL_STATUSES:
                     return
                 if task.status == "paused":
@@ -350,6 +372,7 @@ class ExperimentService:
         current: int,
         total: int,
         current_step: str,
+        celery_task_id: str | None = None,
     ) -> None:
         with self._session() as session, session.begin():
             task = (
@@ -363,11 +386,13 @@ class ExperimentService:
             )
             if task is None or task.status != "running":
                 return
-            TaskManager(session).update_task_progress(
+            TaskManager(session, celery_task_id=celery_task_id).update_task_progress(
                 task.id, task_progress(current, total, current_step), "running"
             )
 
-    def _async_task_stopped(self, experiment_id: str, owner_id: str) -> bool:
+    def _async_task_stopped(
+        self, experiment_id: str, owner_id: str, celery_task_id: str | None = None
+    ) -> bool:
         with self._session() as session:
             task = (
                 session.query(AsyncTask)
@@ -379,7 +404,10 @@ class ExperimentService:
                 )
                 .first()
             )
-            return task is not None and task.status in ("paused", "cancelled")
+            return task is not None and (
+                task.status != "running"
+                or (celery_task_id is not None and task.celery_task_id != celery_task_id)
+            )
 
     # -- results -------------------------------------------------------------
 

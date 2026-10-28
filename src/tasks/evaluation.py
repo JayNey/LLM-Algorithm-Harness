@@ -92,11 +92,12 @@ def run_evaluation_task(self: EvaluationTask, evaluation_id: str) -> dict[str, A
         FileNotFoundError: 必需资源不存在
     """
     db = get_db_session()
-    task_manager = TaskManager(db)
+    task_manager = TaskManager(db, celery_task_id=self.request.id)
 
     # 初始化变量，避免在异常处理中访问未定义的变量
     async_task = None
     evaluation = None
+    generation = None
 
     try:
         # 1. 加载 Evaluation 和 AsyncTask 记录
@@ -110,6 +111,19 @@ def run_evaluation_task(self: EvaluationTask, evaluation_id: str) -> dict[str, A
         async_task = db.query(AsyncTask).filter(AsyncTask.id == evaluation.async_task_id).first()
         if async_task is None:
             raise ValueError(f"AsyncTask {evaluation.async_task_id} not found")
+
+        generation = async_task.celery_task_id
+        if (
+            (self.request.id and self.request.id != generation)
+            or async_task.status in ("completed", "failed")
+            or (self.request.id and async_task.status == "paused")
+        ):
+            return {
+                "evaluation_id": evaluation_id,
+                "status": async_task.status,
+                "completed_units": evaluation.completed_count + evaluation.failed_count,
+                "total_units": len(evaluation.problem_ids) * len(evaluation.strategy_names),
+            }
 
         if async_task.status == "cancelled":
             evaluation.status = "cancelled"
@@ -137,8 +151,22 @@ def run_evaluation_task(self: EvaluationTask, evaluation_id: str) -> dict[str, A
         cost_alerts = WebCostAlertDispatcher(session_factory, evaluation_id)
 
         # 3. 更新状态为 running
-        task_manager.update_task_status(async_task.id, "running")
+        task_manager._lock_business_task(async_task)
+        if (
+            async_task.celery_task_id != generation
+            or async_task.status in ("completed", "failed", "cancelled")
+            or (self.request.id and async_task.status == "paused")
+        ):
+            db.commit()
+            return {
+                "evaluation_id": evaluation_id,
+                "status": async_task.status,
+                "completed_units": evaluation.completed_count + evaluation.failed_count,
+                "total_units": len(evaluation.problem_ids) * len(evaluation.strategy_names),
+            }
         evaluation.status = "running"
+        task_manager.update_task_status(async_task.id, "running")
+        task_manager.celery_task_id = generation
         db.commit()
         publish_progress(
             evaluation_id,
@@ -202,7 +230,14 @@ def run_evaluation_task(self: EvaluationTask, evaluation_id: str) -> dict[str, A
             )
             if current_async_task is None or current_async_task.status != "running":
                 return
-            current_async_task.progress = progress
+            task_manager._lock_business_task(current_async_task)
+            if (
+                current_async_task.celery_task_id != generation
+                or current_async_task.status != "running"
+            ):
+                db.commit()
+                return
+            current_async_task.progress = {**(current_async_task.progress or {}), **progress}
             db.commit()
             record_execution_event(current_async_task, "task.progress", progress)
             self.update_state(state="PROGRESS", meta=progress)
@@ -228,6 +263,11 @@ def run_evaluation_task(self: EvaluationTask, evaluation_id: str) -> dict[str, A
             满足 completed_count + failed_count == 已完成单元数（Design Doc §5.11）。
             _record_unit_result 自身不 commit，由此处统一 commit。
             """
+            task_manager._lock_business_task(async_task)
+            if async_task.celery_task_id != generation:
+                db.commit()
+                return
+            db.refresh(evaluation)
             cost = _record_unit_result(db, evaluation, unit)
             evaluation.spent_usd = float(
                 Decimal(str(evaluation.spent_usd or 0)) + Decimal(str(cost))
@@ -286,7 +326,10 @@ def run_evaluation_task(self: EvaluationTask, evaluation_id: str) -> dict[str, A
                 .filter(AsyncTask.id == async_task.id)
                 .first()
             )
-            if current_async_task and current_async_task.status == "paused":
+            if current_async_task and (
+                current_async_task.status in ("paused", "cancelled")
+                or current_async_task.celery_task_id != generation
+            ):
                 return True
 
             # 检查预算上限
@@ -347,6 +390,22 @@ def run_evaluation_task(self: EvaluationTask, evaluation_id: str) -> dict[str, A
         current_async_task = (
             db.query(AsyncTask).populate_existing().filter(AsyncTask.id == async_task.id).first()
         )
+        if current_async_task is not None:
+            task_manager._lock_business_task(current_async_task)
+            if current_async_task.celery_task_id != generation or current_async_task.status in (
+                "completed",
+                "failed",
+                "paused",
+            ):
+                if current_async_task.celery_task_id == generation:
+                    evaluation.status = current_async_task.status
+                db.commit()
+                return {
+                    "evaluation_id": evaluation_id,
+                    "status": current_async_task.status,
+                    "completed_units": final_record.completed_units,
+                    "total_units": final_record.total_units,
+                }
         if current_async_task is not None and current_async_task.status == "cancelled":
             evaluation.status = "cancelled"
             db.commit()
@@ -408,6 +467,15 @@ def run_evaluation_task(self: EvaluationTask, evaluation_id: str) -> dict[str, A
     except (ValueError, FileNotFoundError) as e:
         # 业务错误：不重试
         if async_task is not None:
+            db.rollback()
+            task_manager._lock_business_task(async_task)
+            if async_task.celery_task_id != generation or async_task.status in (
+                "paused",
+                "cancelled",
+                "completed",
+                "failed",
+            ):
+                raise
             task_manager.update_task_status(async_task.id, "failed", error_message=str(e))
         if evaluation is not None:
             evaluation.status = "failed"
@@ -418,6 +486,15 @@ def run_evaluation_task(self: EvaluationTask, evaluation_id: str) -> dict[str, A
     except Exception as e:
         # 其他错误：记录并传播（可能触发重试）
         if async_task is not None:
+            db.rollback()
+            task_manager._lock_business_task(async_task)
+            if async_task.celery_task_id != generation or async_task.status in (
+                "paused",
+                "cancelled",
+                "completed",
+                "failed",
+            ):
+                raise
             task_manager.update_task_status(async_task.id, "failed", error_message=str(e))
         if evaluation is not None:
             evaluation.status = "failed"

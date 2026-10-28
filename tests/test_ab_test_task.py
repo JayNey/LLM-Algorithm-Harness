@@ -139,6 +139,33 @@ def test_execute_failure_records_both_errors(service):
     assert row.completed_at is not None and tasks[0].completed_at is not None
 
 
+def test_pause_resume_keeps_generation_and_rejects_old_finish(service, tmp_path):
+    view = enqueue(service)
+    old = rows(service)[1][0].celery_task_id
+    calls = []
+
+    def run():
+        calls.append(1)
+        if len(calls) == 1:
+            with service._session() as db, patch("src.task_manager.celery_app.AsyncResult"):
+                TaskManager(db).pause_task(view["task_id"], "owner")
+        return tmp_path
+
+    runner = SimpleNamespace(run=run)
+    service._runner_factory = lambda _: runner
+    with patch.object(service, "_build_config", return_value=object()):
+        service._execute("ab-1", "owner", celery_task_id=old)
+        assert rows(service)[1][0].progress["stop_confirmed"] is True
+        with service._session() as db, patch("src.task_manager.celery_app.send_task"):
+            new = TaskManager(db).resume_task(view["task_id"], "owner").celery_task_id
+        service._finish(view["task_id"], "failed", celery_task_id=old, error_message="late")
+        assert rows(service)[0].status == "pending"
+        service._execute("ab-1", "owner", celery_task_id=new)
+    row, tasks = rows(service)
+    assert len(calls) == 2
+    assert row.status == tasks[0].status == "completed"
+
+
 @pytest.mark.parametrize("state", ["paused", "cancelled"])
 def test_stop_during_execution_preserves_both_states(service, tmp_path, state):
     view = enqueue(service)

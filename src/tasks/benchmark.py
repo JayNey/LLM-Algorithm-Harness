@@ -52,9 +52,15 @@ class BenchmarkTask(Task):  # type: ignore[misc]
 def run_benchmark_task(self: BenchmarkTask, run_id: str, user_id: str) -> dict[str, Any]:
     """Execute a pending benchmark run and mirror its terminal status."""
     db = get_db_session()
+    claimed = False
+    manager = TaskManager(db, celery_task_id=self.request.id)
     try:
         async_task = owned_async_task(db, "benchmark", run_id, user_id)
-        manager = TaskManager(db)
+        manager._lock_business_task(async_task)
+        if async_task.status != "pending" or (
+            self.request.id and async_task.celery_task_id != self.request.id
+        ):
+            return {"run_id": run_id, "status": async_task.status}
         run = db.get(BenchmarkRun, run_id)
         if run is None or run.user_id != user_id:
             message = f"Benchmark run {run_id} not found"
@@ -65,7 +71,9 @@ def run_benchmark_task(self: BenchmarkTask, run_id: str, user_id: str) -> dict[s
             manager.update_task_status(async_task.id, "failed", error_message=message)
             raise ValueError(message)
 
-        manager.update_task_status(async_task.id, "running")
+        claimed = manager.claim_task(async_task.id, self.request.id)
+        if not claimed:
+            return {"run_id": run_id, "status": async_task.status}
         try:
             execute_benchmark(run_id, user_id)
         except Exception as exc:
@@ -105,4 +113,6 @@ def run_benchmark_task(self: BenchmarkTask, run_id: str, user_id: str) -> dict[s
         manager.update_task_status(async_task.id, "failed", error_message=message)
         return {"run_id": run_id, "status": "failed"}
     finally:
+        if claimed:
+            manager.confirm_stopped(async_task.id)
         db.close()

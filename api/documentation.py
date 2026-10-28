@@ -224,11 +224,11 @@ OPERATIONS: dict[str, tuple[str, Any]] = {
         {**TASK, "status": "cancelled"},
     ),
     "pause_task": (
-        "请求暂停正在运行的任务；具体暂停能力由任务处理器决定。",
+        "请求暂停运行中的任务；experiment、benchmark、import、ab_test 在当前单元落盘并退出后设置 progress.stop_confirmed=true。确认前不可恢复。",
         {**TASK, "status": "paused"},
     ),
     "resume_task": (
-        "重新入队已暂停的 evaluation 任务，沿用同一个任务 ID；不支持的类型返回 400。",
+        "恢复自己的 paused evaluation、experiment、benchmark、import 或 ab_test，沿用任务与业务记录并保留检查点。四类业务须 progress.stop_confirmed=true；尚未停止、业务终态、未知类型或失效关联返回 400，越权返回 404。原子落库 pending 后再发布；发布失败使仍 pending 的任务与业务为 failed，已开始或终结的状态不被覆盖。",
         TASK,
     ),
     "problem_history": (
