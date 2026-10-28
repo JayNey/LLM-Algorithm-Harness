@@ -68,20 +68,72 @@ const keys = [
   },
 ]
 
+const abJobFixture = {
+  id: 'ab-fixture-1',
+  name: '提示词对比',
+  status: 'completed',
+  task_id: null,
+  config: {
+    name: '提示词对比',
+    dataset_path: 'datasets/demo.json',
+    model: { model: 'model-a' },
+    strategy: { name: 'direct' },
+    prompt_variants: [{ id: 'baseline' }, { id: 'treatment' }],
+    seed: 42,
+    max_workers: 4,
+    api_key_id: 'key-fixture-1',
+  },
+  error_message: null,
+  created_at: '2026-10-23T00:00:00Z',
+  updated_at: '2026-10-23T00:05:00Z',
+}
+
 function mockRoute(context) {
   context.route('**/api/v1/**', (route, request) => {
     const url = new URL(request.url())
     const path = url.pathname.replace('/api/v1', '')
     const method = request.method()
+    // 应用 dev 环境直连 :8000（跨源且 withCredentials），fulfill 响应必须
+    // 反射具体 origin 并携带 allow-credentials，'*' 会被浏览器拦截。
+    const cors = {
+      'access-control-allow-origin': request.headers()['origin'] ?? '*',
+      'access-control-allow-credentials': 'true',
+    }
+    if (method === 'OPTIONS')
+      return route.fulfill({
+        status: 204,
+        headers: {
+          ...cors,
+          'access-control-allow-headers': '*',
+          'access-control-allow-methods': 'GET,POST,PATCH,DELETE,OPTIONS',
+        },
+      })
     const reply = (data, status = 200) =>
       route.fulfill({
         status,
-        headers: { 'access-control-allow-origin': '*' },
+        headers: { ...cors },
         contentType: 'application/json',
         body: JSON.stringify({ success: true, data, message: '' }),
       })
     report.replaced.push(`${method} ${path}`)
+    if (method === 'GET' && path === '/users/me')
+      return reply({ id: 'user-fixture-1', username: 'fixture', role: 'user' })
     if (method === 'GET' && path === '/api-keys') return reply(keys)
+    if (method === 'GET' && path === '/evaluation-options')
+      return reply({
+        strategies: [{ name: 'vanilla' }, { name: 'chain_of_thought' }],
+        sources: [{ id: 'shared', label: '共享题库', problem_count: 2 }],
+      })
+    if (
+      method === 'GET' &&
+      path === '/evaluation-options/models' &&
+      url.searchParams.get('api_key_id')
+    )
+      return reply({
+        provider: 'siliconflow',
+        models: ['model-a', 'model-b'],
+        complete: true,
+      })
     if (method === 'GET' && path === '/benchmarks/suites')
       return reply({
         items: [suiteFixture],
@@ -90,6 +142,10 @@ function mockRoute(context) {
         offset: 0,
         has_more: false,
       })
+    if (method === 'GET' && path === '/benchmarks/suites/suite-fixture-1')
+      return reply(suiteFixture)
+    if (method === 'GET' && path === '/ab-tests/ab-fixture-1')
+      return reply(abJobFixture)
     if (method === 'POST' && path === '/benchmarks/suites')
       return reply({ ...suiteFixture, id: 'suite-fixture-new' }, 201)
     if (
@@ -125,26 +181,7 @@ function mockRoute(context) {
       })
     if (method === 'GET' && path === '/ab-tests')
       return reply({
-        items: [
-          {
-            id: 'ab-fixture-1',
-            name: '提示词对比',
-            status: 'completed',
-            config: {
-              name: '提示词对比',
-              dataset_path: 'datasets/demo.json',
-              model: { model: 'model-a' },
-              strategy: { name: 'direct' },
-              prompt_variants: [{ id: 'baseline' }, { id: 'treatment' }],
-              seed: 42,
-              max_workers: 4,
-              api_key_id: 'key-fixture-1',
-            },
-            error_message: null,
-            created_at: '2026-10-23T00:00:00Z',
-            updated_at: '2026-10-23T00:05:00Z',
-          },
-        ],
+        items: [abJobFixture],
         total: 1,
         limit: 20,
         offset: 0,
