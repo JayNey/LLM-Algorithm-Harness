@@ -1,3 +1,5 @@
+import { useTranslation } from 'react-i18next'
+import { t } from '../i18n/core.ts'
 import {
   App as AntApp,
   Button,
@@ -38,6 +40,8 @@ function subscribeMotion(change: () => void) {
   return () => media.removeEventListener('change', change)
 }
 export function AppLayout() {
+  useTranslation()
+
   const reducedMotion = useSyncExternalStore(
     subscribeMotion,
     () => window.matchMedia('(prefers-reduced-motion: reduce)').matches,
@@ -55,12 +59,14 @@ export function AppLayout() {
   )
 }
 function Shell() {
+  useTranslation()
+
   const navigate = useNavigate()
   const location = useLocation()
   const session = useAuthStore((state) => state.session)
   const logout = useAuthStore((state) => state.logout)
   const ui = useUiStore()
-  const username = session?.username || '已登录'
+  const username = session?.username || t('已登录')
   const [openedAt, setOpenedAt] = useState<string | null>(null)
   const [modal, setModal] = useState<'import' | null>(null)
   const main = useRef<HTMLElement>(null)
@@ -103,20 +109,24 @@ function Shell() {
           main.current?.focus()
         }}
       >
-        跳至主内容
+        {t('跳至主内容')}
       </a>
       <div className={`app-shell ${ui.sidebarCollapsed ? 'collapsed' : ''}`}>
         <aside className="sidebar">
           <Navigation {...actions} collapsed={ui.sidebarCollapsed} />
-          <Tooltip title={ui.sidebarCollapsed ? '展开侧边栏' : '折叠侧边栏'}>
+          <Tooltip
+            title={ui.sidebarCollapsed ? t('展开侧边栏') : t('折叠侧边栏')}
+          >
             <button
               className="collapse-button"
-              aria-label={ui.sidebarCollapsed ? '展开侧边栏' : '折叠侧边栏'}
+              aria-label={
+                ui.sidebarCollapsed ? t('展开侧边栏') : t('折叠侧边栏')
+              }
               aria-expanded={!ui.sidebarCollapsed}
               onClick={ui.toggleSidebar}
             >
               <Icon name="collapse" />
-              <span>折叠侧边栏</span>
+              <span>{t('折叠侧边栏')}</span>
             </button>
           </Tooltip>
         </aside>
@@ -127,7 +137,7 @@ function Shell() {
                 ref={menu}
                 className="mobile-menu"
                 type="text"
-                aria-label="打开导航菜单"
+                aria-label={t('打开导航菜单')}
                 aria-expanded={drawerOpen}
                 onClick={() => setOpenedAt(location.key)}
                 icon={<Icon name="menu" />}
@@ -144,7 +154,8 @@ function Shell() {
                 </span>
               </span>
               <span className="workspace-label">
-                {appearanceVariants[ui.appearanceVariant].en} / 个人工作空间
+                {appearanceVariants[ui.appearanceVariant].en}{' '}
+                {t(' / 个人工作空间')}
               </span>
             </div>
             <div className="top-actions">
@@ -152,26 +163,29 @@ function Shell() {
                 trigger={['click']}
                 menu={{
                   items: [
-                    { key: 'create', label: '创建评估' },
-                    { key: 'import', label: '导入题目' },
+                    { key: 'create', label: t('创建评估') },
+                    { key: 'import', label: t('导入题目') },
                   ],
                   onClick: ({ key }) =>
                     key === 'create' ? onCreate() : onImport(),
                 }}
               >
                 <Button className="quick-actions" type="text">
-                  快速操作 <Icon name="chevron" size={14} />
+                  {t('快速操作 ')}
+                  <Icon name="chevron" size={14} />
                 </Button>
               </Dropdown>
               <Tooltip
-                title={ui.colorScheme === 'dark' ? '切换至浅色' : '切换至深色'}
+                title={
+                  ui.colorScheme === 'dark' ? t('切换至浅色') : t('切换至深色')
+                }
               >
                 <Button
                   type="text"
                   aria-label={
                     ui.colorScheme === 'dark'
-                      ? '切换至浅色主题'
-                      : '切换至深色主题'
+                      ? t('切换至浅色主题')
+                      : t('切换至深色主题')
                   }
                   icon={
                     <Icon name={ui.colorScheme === 'dark' ? 'sun' : 'moon'} />
@@ -190,17 +204,20 @@ function Shell() {
                 trigger={['click']}
                 menu={{
                   items: [
-                    { key: '/settings/profile', label: '个人资料' },
-                    { key: '/settings/api-keys', label: 'API 密钥管理' },
-                    { key: '/help', label: '帮助文档' },
+                    { key: '/settings/profile', label: t('个人资料') },
+                    { key: '/settings/api-keys', label: t('API 密钥管理') },
+                    { key: '/help', label: t('帮助文档') },
                     { type: 'divider' },
-                    { key: 'logout', label: '登出' },
+                    { key: 'logout', label: t('登出') },
                   ],
                   onClick: ({ key }) =>
                     key === 'logout' ? void signOut() : navigate(key),
                 }}
               >
-                <button className="avatar" aria-label={`用户菜单：${username}`}>
+                <button
+                  className="avatar"
+                  aria-label={t('用户菜单：{{value1}}', { value1: username })}
+                >
                   {username.slice(0, 1)}
                 </button>
               </Dropdown>
@@ -239,7 +256,7 @@ function Shell() {
       </div>
       <MobileNav />
       <Drawer
-        title="工作台导航"
+        title={t('工作台导航')}
         placement="left"
         open={drawerOpen}
         focusable={{ focusTriggerAfterClose: false }}

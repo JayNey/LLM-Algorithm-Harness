@@ -1,3 +1,6 @@
+import { useTranslation } from 'react-i18next'
+import { t } from '../i18n/core.ts'
+import { LanguageSelect } from '@/i18n/LocaleProvider.tsx'
 import { Button, ConfigProvider, theme } from 'antd'
 import { Navigate, NavLink, Outlet } from 'react-router-dom'
 import { readViteEnv } from '@/config/env.ts'
@@ -8,6 +11,8 @@ import { useUiStore } from '@/store/ui.ts'
 const appName = readViteEnv().appName
 
 export function AuthLayout() {
+  useTranslation()
+
   const session = useAuthStore((state) => state.session)
   const colorScheme = useUiStore((state) => state.colorScheme)
   const toggleColorScheme = useUiStore((state) => state.toggleColorScheme)
@@ -25,10 +30,11 @@ export function AuthLayout() {
     >
       <div className="min-h-screen bg-white text-neutral-900 dark:bg-neutral-950 dark:text-neutral-100">
         <header className="border-b border-neutral-200 px-4 py-3 dark:border-neutral-800">
-          <div className="flex items-center justify-between gap-3">
+          <div className="flex flex-wrap items-center justify-between gap-3">
             <strong>{appName}</strong>
+            <LanguageSelect />
             <Button onClick={toggleColorScheme}>
-              {colorScheme === 'dark' ? '浅色' : '深色'}
+              {colorScheme === 'dark' ? t('浅色') : t('深色')}
             </Button>
           </div>
           <nav className="mt-3 flex flex-row flex-wrap gap-2">

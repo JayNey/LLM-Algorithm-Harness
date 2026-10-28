@@ -1,3 +1,5 @@
+import { useTranslation } from 'react-i18next'
+import { t } from '../../i18n/core.ts'
 import { Alert, Button, Form, Input, Modal, Select } from 'antd'
 import { useEffect, useState } from 'react'
 import { Controller, useForm } from 'react-hook-form'
@@ -46,6 +48,8 @@ function KeyRow({
   setNotice: (message: string) => void
   setLoadError: (message: string) => void
 }) {
+  useTranslation()
+
   const [editing, setEditing] = useState(false)
   const [name, setName] = useState(item.key_name)
   const [nameError, setNameError] = useState('')
@@ -84,9 +88,9 @@ function KeyRow({
 
   function confirmDelete() {
     Modal.confirm({
-      title: '删除这条密钥？',
-      okText: '删除',
-      cancelText: '取消',
+      title: t('删除这条密钥？'),
+      okText: t('删除'),
+      cancelText: t('取消'),
       onOk: async () => {
         try {
           await useAuthStore
@@ -129,13 +133,21 @@ function KeyRow({
       <p>{escapeHtml(item.key_name)}</p>
       {item.masked_preview ? <p>{escapeHtml(item.masked_preview)}</p> : null}
       <p>{item.provider}</p>
-      <p>创建时间：{formatUnixSeconds(item.created_at)}</p>
-      <p>{item.verified ? '已验证' : '未验证'}</p>
-      <p>使用次数：{item.usage_count}</p>
+      <p>
+        {t('创建时间：')}
+        {formatUnixSeconds(item.created_at)}
+      </p>
+      <p>{item.verified ? t('已验证') : t('未验证')}</p>
+      <p>
+        {t('使用次数：')}
+        {item.usage_count}
+      </p>
       <p>
         {item.last_used_at === null
-          ? lastUsedLabel(null)
-          : `最后使用：${formatUnixSeconds(item.last_used_at)}`}
+          ? t(lastUsedLabel(null))
+          : t('最后使用：{{value1}}', {
+              value1: formatUnixSeconds(item.last_used_at),
+            })}
       </p>
       {editing ? (
         <div>
@@ -145,7 +157,7 @@ function KeyRow({
               setName(event.target.value)
             }}
           />
-          {nameError ? <p>{nameError}</p> : null}
+          {nameError ? <p>{t(nameError)}</p> : null}
           <Button
             type="primary"
             loading={saving}
@@ -153,7 +165,7 @@ function KeyRow({
               void saveName()
             }}
           >
-            保存
+            {t('保存')}
           </Button>
         </div>
       ) : (
@@ -164,11 +176,11 @@ function KeyRow({
             setEditing(true)
           }}
         >
-          改名
+          {t('改名')}
         </Button>
       )}
       <Button danger onClick={confirmDelete}>
-        删除
+        {t('删除')}
       </Button>
       <Button
         loading={verifying}
@@ -176,13 +188,15 @@ function KeyRow({
           void verify()
         }}
       >
-        验证
+        {t('验证')}
       </Button>
     </li>
   )
 }
 
 export default function ApiKeysPage() {
+  useTranslation()
+
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
   const [keys, setKeys] = useState<ApiKeyRecord[]>([])
@@ -272,19 +286,19 @@ export default function ApiKeysPage() {
     }
   }
 
-  if (loading) return <p>加载中</p>
+  if (loading) return <p>{t('加载中')}</p>
   if (error) {
     return (
       <section>
-        <h1>API 密钥</h1>
+        <h1>{t('API 密钥')}</h1>
         {notice ? (
           <Alert
             type={notice === '验证成功' ? 'success' : 'error'}
-            message={notice}
+            message={t(notice)}
             showIcon
           />
         ) : null}
-        <Alert type="error" message={error} showIcon />
+        <Alert type="error" message={t(error)} showIcon />
       </section>
     )
   }
@@ -292,17 +306,17 @@ export default function ApiKeysPage() {
   const groups = groupApiKeys(keys)
   return (
     <section>
-      <h1>API 密钥</h1>
+      <h1>{t('API 密钥')}</h1>
       {notice ? (
         <Alert
           type={notice === '验证成功' ? 'success' : 'error'}
-          message={notice}
+          message={t(notice)}
           showIcon
         />
       ) : null}
-      <p>密钥保存后不再显示</p>
+      <p>{t('密钥保存后不再显示')}</p>
       {formMessage ? (
-        <Alert type="error" message={formMessage} showIcon />
+        <Alert type="error" message={t(formMessage)} showIcon />
       ) : null}
       <Form
         layout="vertical"
@@ -311,7 +325,7 @@ export default function ApiKeysPage() {
           void handleSubmit(onSubmit)()
         }}
       >
-        <Form.Item label="提供商">
+        <Form.Item label={t('提供商')}>
           <Controller
             name="provider"
             control={control}
@@ -327,9 +341,9 @@ export default function ApiKeysPage() {
           />
         </Form.Item>
         <Form.Item
-          label="名称"
+          label={t('名称')}
           validateStatus={errors.key_name ? 'error' : undefined}
-          help={errors.key_name?.message}
+          help={t(errors.key_name?.message)}
         >
           <Controller
             name="key_name"
@@ -338,9 +352,9 @@ export default function ApiKeysPage() {
           />
         </Form.Item>
         <Form.Item
-          label="密钥"
+          label={t('密钥')}
           validateStatus={errors.api_key ? 'error' : undefined}
-          help={errors.api_key?.message}
+          help={t(errors.api_key?.message)}
         >
           <Controller
             name="api_key"
@@ -349,10 +363,10 @@ export default function ApiKeysPage() {
           />
         </Form.Item>
         <Button type="primary" htmlType="submit" loading={submitting}>
-          添加
+          {t('添加')}
         </Button>
       </Form>
-      {groups.length === 0 ? <p>还没有 API 密钥</p> : null}
+      {groups.length === 0 ? <p>{t('还没有 API 密钥')}</p> : null}
       {groups.map((group) => (
         <section key={group.provider}>
           <h2>{group.label}</h2>

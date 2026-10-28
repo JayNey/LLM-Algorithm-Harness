@@ -1,3 +1,4 @@
+import { t } from './i18n/core.ts'
 import { lazy, type ComponentType, type LazyExoticComponent } from 'react'
 import type { UserRole } from '@/auth/roles.ts'
 
@@ -24,54 +25,70 @@ export const appPages: AppPage[] = [
     path: '/',
     group: '评估工作台',
     icon: 'grid',
-    label: '仪表盘',
+    get label() {
+      return t('仪表盘')
+    },
     Component: lazy(() => import('@/pages/Dashboard/DashboardPage.tsx')),
   },
   {
     path: '/problems',
     group: '评估工作台',
     icon: 'code',
-    label: '题目库',
+    get label() {
+      return t('题目库')
+    },
     Component: lazy(() => import('@/pages/Problems/ProblemsPage.tsx')),
   },
   {
     path: '/evaluations',
     group: '评估工作台',
     icon: 'play',
-    label: '评估任务',
+    get label() {
+      return t('评估任务')
+    },
     Component: lazy(() => import('@/pages/Evaluations/EvaluationsPage.tsx')),
   },
   {
     path: '/results',
     group: '分析与对比',
     icon: 'chart',
-    label: '评估结果',
+    get label() {
+      return t('评估结果')
+    },
     Component: lazy(() => import('@/pages/Results/ResultsPage.tsx')),
   },
   {
     path: '/experiments',
     group: '分析与对比',
     icon: 'flask',
-    label: '实验',
+    get label() {
+      return t('实验')
+    },
     Component: lazy(() => import('@/pages/Experiments/ExperimentsPage.tsx')),
   },
   {
     path: '/benchmarks',
-    label: '基准测试',
+    get label() {
+      return t('基准测试')
+    },
     group: '分析与对比',
     icon: 'layers',
     Component: lazy(() => import('@/pages/Benchmarks/BenchmarksPage.tsx')),
   },
   {
     path: '/ab-tests',
-    label: 'A/B 测试',
+    get label() {
+      return t('A/B 测试')
+    },
     group: '分析与对比',
     icon: 'pulse',
     Component: lazy(() => import('@/pages/ABTests/ABTestsPage.tsx')),
   },
   {
     path: '/help',
-    label: '帮助文档',
+    get label() {
+      return t('帮助文档')
+    },
     group: '系统',
     icon: 'help',
     Component: lazy(() => import('@/mock/BusinessPage.tsx')),
@@ -80,7 +97,9 @@ export const appPages: AppPage[] = [
     path: '/settings',
     group: '系统',
     icon: 'settings',
-    label: '设置',
+    get label() {
+      return t('设置')
+    },
     Component: lazy(() => import('@/pages/Settings/SettingsPage.tsx')),
   },
 ]
@@ -90,35 +109,47 @@ export const settingsPages: AppPage[] = [
     path: '/settings/system',
     group: '系统',
     icon: 'pulse',
-    label: '系统状态',
+    get label() {
+      return t('系统状态')
+    },
     allowedRoles: ['admin'],
     Component: lazy(() => import('@/pages/Settings/SystemPage.tsx')),
   },
   {
     path: '/settings/logs',
     group: '系统',
-    label: '系统日志',
+    get label() {
+      return t('系统日志')
+    },
     allowedRoles: ['admin'],
     Component: lazy(() => import('@/pages/Settings/SystemLogsPage.tsx')),
   },
   {
     path: '/settings/profile',
-    label: '个人资料',
+    get label() {
+      return t('个人资料')
+    },
     Component: lazy(() => import('@/pages/Settings/ProfilePage.tsx')),
   },
   {
     path: '/settings/api-keys',
-    label: 'API 密钥',
+    get label() {
+      return t('API 密钥')
+    },
     Component: lazy(() => import('@/pages/Settings/ApiKeysPage.tsx')),
   },
   {
     path: '/settings/budgets',
-    label: '预算与预警',
+    get label() {
+      return t('预算与预警')
+    },
     Component: lazy(() => import('@/pages/Settings/BudgetsPage.tsx')),
   },
   {
     path: '/settings/pricing',
-    label: '定价管理',
+    get label() {
+      return t('定价管理')
+    },
     Component: lazy(() => import('@/pages/Settings/PricingPage.tsx')),
   },
 ]
@@ -126,12 +157,16 @@ export const settingsPages: AppPage[] = [
 export const authPages: AppPage[] = [
   {
     path: '/login',
-    label: '登录',
+    get label() {
+      return t('登录')
+    },
     Component: lazy(() => import('@/pages/Auth/LoginPage.tsx')),
   },
   {
     path: '/register',
-    label: '注册',
+    get label() {
+      return t('注册')
+    },
     Component: lazy(() => import('@/pages/Auth/RegisterPage.tsx')),
   },
 ]
@@ -139,50 +174,66 @@ export const authPages: AppPage[] = [
 export const detailPages: AppPage[] = [
   {
     path: '/results/:evaluationId',
-    label: '评估结果详情',
+    get label() {
+      return t('评估结果详情')
+    },
     Component: lazy(() => import('@/pages/Results/ResultDetailPage.tsx')),
   },
   {
     path: '/evaluations/new',
-    label: '创建评估',
+    get label() {
+      return t('创建评估')
+    },
     Component: lazy(
       () => import('@/pages/Evaluations/CreateEvaluationPage.tsx'),
     ),
   },
   {
     path: '/evaluations/:evaluationId',
-    label: '评估任务详情',
+    get label() {
+      return t('评估任务详情')
+    },
     Component: lazy(
       () => import('@/pages/Evaluations/EvaluationDetailPage.tsx'),
     ),
   },
   {
     path: '/experiments/new',
-    label: '创建实验',
+    get label() {
+      return t('创建实验')
+    },
     Component: lazy(
       () => import('@/pages/Experiments/CreateExperimentPage.tsx'),
     ),
   },
   {
     path: '/experiments/:experimentId',
-    label: '实验详情',
+    get label() {
+      return t('实验详情')
+    },
     Component: lazy(
       () => import('@/pages/Experiments/ExperimentDetailPage.tsx'),
     ),
   },
   {
     path: '/benchmarks/:suiteId',
-    label: '基准套件详情',
+    get label() {
+      return t('基准套件详情')
+    },
     Component: lazy(() => import('@/pages/Benchmarks/BenchmarkDetailPage.tsx')),
   },
   {
     path: '/ab-tests/new',
-    label: '创建 A/B 测试',
+    get label() {
+      return t('创建 A/B 测试')
+    },
     Component: lazy(() => import('@/pages/ABTests/CreateABTestPage.tsx')),
   },
   {
     path: '/ab-tests/:testId',
-    label: 'A/B 测试详情',
+    get label() {
+      return t('A/B 测试详情')
+    },
     Component: lazy(() => import('@/pages/ABTests/ABTestDetailPage.tsx')),
   },
 ]

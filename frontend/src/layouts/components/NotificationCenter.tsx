@@ -1,3 +1,5 @@
+import { useTranslation } from 'react-i18next'
+import { t } from '../../i18n/core.ts'
 import { Badge, Button, Drawer, Empty, Select } from 'antd'
 import { useEffect, useRef, useState } from 'react'
 import { useLocation, useNavigate } from 'react-router-dom'
@@ -5,6 +7,8 @@ import { useStore } from 'zustand'
 import { createNotificationStore } from '@/store/notifications.ts'
 import { Icon } from './Icon.tsx'
 export function NotificationCenter({ owner }: { owner: string }) {
+  useTranslation()
+
   const [store] = useState(() => createNotificationStore(owner))
   const { notes, markRead, markAllRead, clear } = useStore(store)
   const [category, setCategory] = useState('全部')
@@ -29,7 +33,7 @@ export function NotificationCenter({ owner }: { owner: string }) {
         <Button
           ref={trigger}
           type="text"
-          aria-label={`通知中心，${unread} 条未读`}
+          aria-label={t('通知中心，{{value1}} 条未读', { value1: unread })}
           aria-expanded={open}
           onClick={() => setOpenedAt(location.key)}
           icon={<Icon name="bell" />}
@@ -38,9 +42,9 @@ export function NotificationCenter({ owner }: { owner: string }) {
       <Drawer
         title={
           <span>
-            通知中心{' '}
+            {t('通知中心')}{' '}
             <small className="muted" role="status">
-              {unread} 条未读
+              {unread} {t(' 条未读')}
             </small>
           </span>
         }
@@ -54,15 +58,15 @@ export function NotificationCenter({ owner }: { owner: string }) {
         className="notification-drawer"
       >
         <div className="notification-actions">
-          <Button onClick={markAllRead}>全部已读</Button>
-          <Button onClick={clear}>清空通知</Button>
+          <Button onClick={markAllRead}>{t('全部已读')}</Button>
+          <Button onClick={clear}>{t('清空通知')}</Button>
         </div>
         <Select
-          aria-label="通知分类"
+          aria-label={t('通知分类')}
           value={category}
           onChange={setCategory}
           options={['全部', '任务完成', '预算预警', '系统通知'].map(
-            (value) => ({ value, label: value }),
+            (value) => ({ value, label: t(value) }),
           )}
           style={{ width: '100%', marginBottom: 20 }}
         />
@@ -78,21 +82,24 @@ export function NotificationCenter({ owner }: { owner: string }) {
           >
             <div>
               <span className="note-category">
-                {n.type}
-                {!n.read ? ' · 未读' : ' · 已读'}
+                {t(n.type)}
+                {!n.read ? t(' · 未读') : t(' · 已读')}
               </span>
               <time>{n.time}</time>
             </div>
-            <strong>{n.title}</strong>
-            <p>{n.text}</p>
+            <strong>{t(n.title)}</strong>
+            <p>{t(n.text)}</p>
             <span className="note-link">
-              查看详情 <Icon name="arrow" size={14} />
+              {t('查看详情 ')}
+              <Icon name="arrow" size={14} />
             </span>
           </button>
         ))}
-        {visible.length === 0 && <Empty description="这里的通知已处理完毕" />}
+        {visible.length === 0 && (
+          <Empty description={t('这里的通知已处理完毕')} />
+        )}
         <p className="sample-caption">
-          Mock 通知 · 本次会话内保存，不会发送真实消息。
+          {t('Mock 通知 · 本次会话内保存，不会发送真实消息。')}
         </p>
       </Drawer>
     </>

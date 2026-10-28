@@ -1,3 +1,5 @@
+import { useTranslation } from 'react-i18next'
+import { t } from '../../i18n/core.ts'
 import { Alert, Button, Input, Select, Skeleton, Tabs } from 'antd'
 import { useCallback, useEffect, useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
@@ -88,6 +90,8 @@ function useApiKeys() {
 const TERMINAL = new Set(['completed', 'failed', 'cancelled'])
 
 export default function BenchmarkDetailPage() {
+  useTranslation()
+
   const { suiteId } = useParams()
   const { client, owner } = useBenchmarkSession()
   const suiteResource = useResource(
@@ -200,16 +204,18 @@ export default function BenchmarkDetailPage() {
     }
   }
 
-  if (!suiteId) return <Alert role="alert" type="error" message="缺少套件 ID" />
+  if (!suiteId)
+    return <Alert role="alert" type="error" message={t('缺少套件 ID')} />
   if (suiteResource.loading) return <Skeleton active paragraph={{ rows: 6 }} />
   if (suiteResource.error)
     return (
       <ExperimentFeedback
-        message={suiteResource.error}
+        message={t(suiteResource.error)}
         retry={suiteResource.retry}
       />
     )
-  if (!suite) return <Alert role="alert" type="error" message="套件不存在" />
+  if (!suite)
+    return <Alert role="alert" type="error" message={t('套件不存在')} />
 
   const runActive = !!activeTaskId && !progress.paused
   const progressTask = progress.task
@@ -222,16 +228,17 @@ export default function BenchmarkDetailPage() {
             {suite.name} <small>v{suite.version}</small>
           </h1>
           <p>
-            {suite.description ?? '固定题集基准套件'} · {suite.problems.length}{' '}
-            道题目 · {suite.frozen ? '已冻结' : '可编辑'}
+            {suite.description ?? t('固定题集基准套件')} ·{' '}
+            {suite.problems.length} {t('道题目 · ')}
+            {suite.frozen ? t('已冻结') : t('可编辑')}
           </p>
         </div>
         <Link className="evaluation-create-link" to="/benchmarks">
-          返回列表
+          {t('返回列表')}
         </Link>
       </header>
       <div className="panel evaluation-panel">
-        {actionError && <ExperimentFeedback message={actionError} />}
+        {actionError && <ExperimentFeedback message={t(actionError)} />}
         {editing && editDraft && (
           <SuiteForm
             draft={editDraft}
@@ -246,19 +253,19 @@ export default function BenchmarkDetailPage() {
             onSubmit={() => void saveEdit()}
             onCancel={() => setEditing(false)}
             busy={busy}
-            submitLabel="保存修改"
+            submitLabel={t('保存修改')}
           />
         )}
         {!editing && (
           <div className="evaluation-section-heading">
             <Button
-              aria-label="编辑套件"
+              aria-label={t('编辑套件')}
               onClick={() => {
                 setEditDraft(suiteToDraft(suite))
                 setEditing(true)
               }}
             >
-              编辑套件
+              {t('编辑套件')}
             </Button>
           </div>
         )}
@@ -266,16 +273,16 @@ export default function BenchmarkDetailPage() {
           items={[
             {
               key: 'run',
-              label: '运行',
+              label: t('运行'),
               children: (
                 <div>
-                  <h3>启动新 run</h3>
+                  <h3>{t('启动新 run')}</h3>
                   <label>
                     API Key
                     <Select
-                      aria-label="基准运行密钥"
+                      aria-label={t('基准运行密钥')}
                       value={runDraft.api_key_id || undefined}
-                      placeholder="选择可用密钥"
+                      placeholder={t('选择可用密钥')}
                       options={(keys.data ?? []).map((key) => ({
                         value: key.id,
                         label: key.key_name || key.id,
@@ -292,9 +299,9 @@ export default function BenchmarkDetailPage() {
                     )}
                   </label>
                   <label>
-                    数据集路径
+                    {t('数据集路径')}
                     <Input
-                      aria-label="基准运行数据集"
+                      aria-label={t('基准运行数据集')}
                       value={runDraft.dataset_path}
                       placeholder="datasets/demo.json"
                       onChange={(event) =>
@@ -309,9 +316,9 @@ export default function BenchmarkDetailPage() {
                     )}
                   </label>
                   <label>
-                    模型
+                    {t('模型')}
                     <Input
-                      aria-label="基准运行模型"
+                      aria-label={t('基准运行模型')}
                       value={runDraft.model}
                       onChange={(event) =>
                         setRunDraft((previous) => ({
@@ -325,9 +332,9 @@ export default function BenchmarkDetailPage() {
                     )}
                   </label>
                   <label>
-                    策略（逗号分隔，可选）
+                    {t('策略（逗号分隔，可选）')}
                     <Input
-                      aria-label="基准运行策略"
+                      aria-label={t('基准运行策略')}
                       value={runDraft.strategies_text}
                       placeholder="vanilla, chain_of_thought"
                       onChange={(event) =>
@@ -339,9 +346,9 @@ export default function BenchmarkDetailPage() {
                     />
                   </label>
                   <label>
-                    预算上限 USD（可选）
+                    {t('预算上限 USD（可选）')}
                     <Input
-                      aria-label="基准运行预算"
+                      aria-label={t('基准运行预算')}
                       value={runDraft.budget_cap_usd}
                       onChange={(event) =>
                         setRunDraft((previous) => ({
@@ -356,15 +363,15 @@ export default function BenchmarkDetailPage() {
                   </label>
                   <Button
                     type="primary"
-                    aria-label="启动基准运行"
+                    aria-label={t('启动基准运行')}
                     disabled={busy || runActive}
                     onClick={() => void launchRun()}
                   >
-                    {runActive ? '运行中…' : '启动运行'}
+                    {runActive ? t('运行中…') : t('启动运行')}
                   </Button>
                   {runActive && progressTask?.progress && (
                     <p role="status">
-                      {progressTask.progress.current_step || '执行中'} ·{' '}
+                      {progressTask.progress.current_step || t('执行中')} ·{' '}
                       {progressTask.progress.current} /{' '}
                       {progressTask.progress.total}（
                       {progressTask.progress.percentage}%）
@@ -373,16 +380,16 @@ export default function BenchmarkDetailPage() {
                   {latestRunData && (
                     <table
                       className="evaluation-list-table"
-                      aria-label="最近一次运行"
+                      aria-label={t('最近一次运行')}
                     >
                       <thead>
                         <tr>
                           {[
-                            '状态 / 错误',
-                            '模型',
-                            '准确率',
-                            '成本',
-                            '更新时间',
+                            t('状态 / 错误'),
+                            t('模型'),
+                            t('准确率'),
+                            t('成本'),
+                            t('更新时间'),
                           ].map((name) => (
                             <th key={name} scope="col">
                               {name}
@@ -413,17 +420,17 @@ export default function BenchmarkDetailPage() {
             },
             {
               key: 'curve',
-              label: '学习曲线',
+              label: t('学习曲线'),
               children: (
                 <div>
                   <label>
-                    指标
+                    {t('指标')}
                     <Select
-                      aria-label="学习曲线指标"
+                      aria-label={t('学习曲线指标')}
                       value={metric}
                       options={[
-                        { value: 'accuracy', label: '准确率' },
-                        { value: 'cost_usd', label: '成本（USD）' },
+                        { value: 'accuracy', label: t('准确率') },
+                        { value: 'cost_usd', label: t('成本（USD）') },
                       ]}
                       onChange={(value: 'accuracy' | 'cost_usd') =>
                         setMetric(value)
@@ -436,7 +443,7 @@ export default function BenchmarkDetailPage() {
                     <Alert
                       role="alert"
                       type="error"
-                      message={loadCurve.error}
+                      message={t(loadCurve.error)}
                     />
                   ) : curve && curve.data.length ? (
                     <>
@@ -452,15 +459,17 @@ export default function BenchmarkDetailPage() {
                         metric={metric}
                       />
                       <p role="status">
-                        准确率增长：
-                        {formatGrowth(curve.trends.accuracy_growth_rate)} ·
-                        成本增长：
+                        {t('准确率增长：')}
+                        {formatGrowth(curve.trends.accuracy_growth_rate)}{' '}
+                        {t(' · 成本增长：')}
                         {formatGrowth(curve.trends.cost_growth_rate)}
                       </p>
                     </>
                   ) : (
                     <p role="status">
-                      还没有已完成的 run，启动一次运行后即可看到学习曲线。
+                      {t(
+                        '还没有已完成的 run，启动一次运行后即可看到学习曲线。',
+                      )}
                     </p>
                   )}
                 </div>

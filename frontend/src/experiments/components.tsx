@@ -1,3 +1,5 @@
+import { useTranslation } from 'react-i18next'
+import { t } from '../i18n/core.ts'
 import { Alert, Button } from 'antd'
 
 export function ExperimentFeedback({
@@ -7,16 +9,18 @@ export function ExperimentFeedback({
   message: string
   retry?: () => void
 }) {
+  useTranslation()
+
   return (
     <Alert
       role="alert"
       type="error"
       showIcon
-      message={message}
+      message={t(message)}
       action={
         retry ? (
           <Button size="small" onClick={retry}>
-            重试
+            {t('重试')}
           </Button>
         ) : undefined
       }

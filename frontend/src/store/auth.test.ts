@@ -545,3 +545,28 @@ for (const remember of [false, true]) {
     })
   }
 }
+
+test('读取存储被拒绝时仍可完成启动并保持未登录', () => {
+  const boxes = [
+    {
+      local: {
+        ...memoryStorage(),
+        getItem() {
+          throw Error('blocked read')
+        },
+      },
+      session: memoryStorage(),
+    },
+    {
+      get local(): Storage {
+        throw Error('blocked property')
+      },
+      session: memoryStorage(),
+    },
+  ]
+  for (const box of boxes) {
+    const store = createAuthStore()
+    assert.doesNotThrow(() => store.getState().hydrate({ storages: box }))
+    assert.equal(store.getState().session, null)
+  }
+})

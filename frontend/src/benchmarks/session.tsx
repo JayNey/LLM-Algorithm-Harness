@@ -1,3 +1,5 @@
+import { useTranslation } from 'react-i18next'
+import { t } from '../i18n/core.ts'
 import type { AxiosInstance } from 'axios'
 import { createContext, useContext, useState, type ReactNode } from 'react'
 import { useAuthStore } from '../store/auth.ts'
@@ -15,6 +17,8 @@ export function BenchmarkSessionProvider({
 }: {
   children: ReactNode
 }) {
+  useTranslation()
+
   const owner = useAuthStore((state) => state.session?.marker ?? null)
   return (
     <SessionScope key={owner ?? 'anonymous'} owner={owner}>
@@ -29,6 +33,8 @@ function SessionScope({
   owner: string | null
   children: ReactNode
 }) {
+  useTranslation()
+
   const [session] = useState<BenchmarkSession>(() => {
     // Auth exposes a narrow interface; the runtime object is the same unwrapped Axios instance.
     const http = useAuthStore.getState().httpClient() as AxiosInstance
@@ -44,6 +50,6 @@ function SessionScope({
 // eslint-disable-next-line react-refresh/only-export-components
 export function useBenchmarkSession(): BenchmarkSession {
   const session = useContext(SessionContext)
-  if (!session) throw new Error('基准功能需要会话 provider')
+  if (!session) throw new Error(t('基准功能需要会话 provider'))
   return session
 }

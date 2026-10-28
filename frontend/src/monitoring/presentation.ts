@@ -1,24 +1,32 @@
+import { t } from '../i18n/core.ts'
 export function probeStatusLabel(status: string): string {
   const labels: Record<string, string> = {
-    ok: '正常',
-    unavailable: '不可用',
-    unknown: '未知',
-    partial: '部分可用',
-    degraded: '降级',
-    not_checked: '未检查',
-    not_configured: '未配置',
-    disabled: '已禁用',
+    ok: t('正常'),
+    unavailable: t('不可用'),
+    unknown: t('未知'),
+    partial: t('部分可用'),
+    degraded: t('降级'),
+    not_checked: t('未检查'),
+    not_configured: t('未配置'),
+    disabled: t('已禁用'),
   }
   return labels[status] ?? status
 }
 
 export function formatUptime(seconds: number): string {
-  if (seconds < 60) return `${Math.round(seconds)} 秒`
+  if (seconds < 60) return t('{{value1}} 秒', { value1: Math.round(seconds) })
   const minutes = Math.floor(seconds / 60)
-  if (minutes < 60) return `${minutes} 分钟`
+  if (minutes < 60) return t('{{value1}} 分钟', { value1: minutes })
   const hours = Math.floor(minutes / 60)
-  if (hours < 24) return `${hours} 小时 ${minutes % 60} 分`
-  return `${Math.floor(hours / 24)} 天 ${hours % 24} 小时`
+  if (hours < 24)
+    return t('{{value1}} 小时 {{value2}} 分', {
+      value1: hours,
+      value2: minutes % 60,
+    })
+  return t('{{value1}} 天 {{value2}} 小时', {
+    value1: Math.floor(hours / 24),
+    value2: hours % 24,
+  })
 }
 
 export function formatBytes(bytes: number | null): string {

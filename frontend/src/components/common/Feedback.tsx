@@ -1,48 +1,60 @@
+import { useTranslation } from 'react-i18next'
+import { t } from '../../i18n/core.ts'
 import { App, Button, Empty, Result, Skeleton } from 'antd'
 import { Component, type ReactNode } from 'react'
 export function Loading() {
+  useTranslation()
+
   return (
-    <div className="panel state-box" aria-busy="true" aria-label="正在加载页面">
-      <p role="status">正在加载数据…</p>
+    <div
+      className="panel state-box"
+      aria-busy="true"
+      aria-label={t('正在加载页面')}
+    >
+      <p role="status">{t('正在加载数据…')}</p>
       <Skeleton paragraph={{ rows: 6 }} />
     </div>
   )
 }
 export function EmptyState({ onCreate }: { onCreate: () => void }) {
+  useTranslation()
+
   return (
     <div className="panel state-box">
       <Empty
         description={
           <>
-            <h3>还没有评估任务</h3>
-            <p>选择模型与数据集，开始第一轮算法评估。</p>
+            <h3>{t('还没有评估任务')}</h3>
+            <p>{t('选择模型与数据集，开始第一轮算法评估。')}</p>
           </>
         }
       >
         <Button type="primary" onClick={onCreate}>
-          创建首个评估
+          {t('创建首个评估')}
         </Button>
       </Empty>
     </div>
   )
 }
 export function ErrorState({ onRetry }: { onRetry: () => void }) {
+  useTranslation()
+
   return (
     <div className="panel state-box" role="alert">
       <Result
         status="error"
-        title="评估数据暂时无法加载"
-        subTitle="连接超时（Mock）。你的配置已保留，可重试加载。"
+        title={t('评估数据暂时无法加载')}
+        subTitle={t('连接超时（Mock）。你的配置已保留，可重试加载。')}
         extra={
           <Button type="primary" onClick={onRetry}>
-            重新加载
+            {t('重新加载')}
           </Button>
         }
       />
     </div>
   )
 }
-export class ErrorBoundary extends Component<
+class PageErrorBoundary extends Component<
   { children: ReactNode },
   { failed: boolean }
 > {
@@ -55,11 +67,11 @@ export class ErrorBoundary extends Component<
       <div role="alert">
         <Result
           status="error"
-          title="页面暂时无法显示"
-          subTitle="发生了页面错误，请重试。"
+          title={t('页面暂时无法显示')}
+          subTitle={t('发生了页面错误，请重试。')}
           extra={
             <Button onClick={() => this.setState({ failed: false })}>
-              重试页面
+              {t('重试页面')}
             </Button>
           }
         />
@@ -70,6 +82,8 @@ export class ErrorBoundary extends Component<
   }
 }
 export function ToastExamples() {
+  useTranslation()
+
   const { message } = App.useApp()
   function show(type: 'success' | 'error' | 'warning' | 'info', label: string) {
     const key = `feedback-${type}`
@@ -83,10 +97,10 @@ export function ToastExamples() {
           <Button
             type="text"
             size="small"
-            aria-label={`关闭${label}`}
+            aria-label={t('关闭{{value1}}', { value1: label })}
             onClick={() => message.destroy(key)}
           >
-            关闭
+            {t('关闭')}
           </Button>
         </span>
       ),
@@ -96,10 +110,10 @@ export function ToastExamples() {
     <div className="notification-actions" style={{ flexWrap: 'wrap' }}>
       {(
         [
-          ['success', '成功提示'],
-          ['error', '错误提示'],
-          ['warning', '警告提示'],
-          ['info', '信息提示'],
+          ['success', t('成功提示')],
+          ['error', t('错误提示')],
+          ['warning', t('警告提示')],
+          ['info', t('信息提示')],
         ] as const
       ).map(([type, label]) => (
         <Button key={type} onClick={() => show(type, label)}>
@@ -108,4 +122,9 @@ export function ToastExamples() {
       ))}
     </div>
   )
+}
+
+export function ErrorBoundary({ children }: { children: ReactNode }) {
+  useTranslation()
+  return <PageErrorBoundary>{children}</PageErrorBoundary>
 }

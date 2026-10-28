@@ -2497,3 +2497,64 @@ input {
     overflow-wrap: anywhere;
   }
 }
+
+.language-control {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+.language-control select {
+  max-width: 100%;
+  min-height: 40px;
+  color: inherit;
+  background: var(--surface, transparent);
+  border: 1px solid var(--control, currentColor);
+  border-radius: 6px;
+  padding: 4px 8px;
+}
+@media (max-width: 767px) {
+  .language-control select {
+    min-height: 44px;
+  }
+  .design-chooser {
+    flex-wrap: wrap;
+  }
+  .nav-link span {
+    white-space: normal;
+  }
+  .bottom-nav a {
+    min-width: 0;
+    flex: 1;
+  }
+  .bottom-nav span {
+    white-space: normal;
+    overflow-wrap: anywhere;
+  }
+}
+
+.design-chooser {
+  justify-content: flex-end;
+  flex-wrap: wrap;
+  gap: 16px;
+}
+.design-chooser > label {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  margin-left: 0;
+}
+@media (max-width: 767px) {
+  .design-chooser {
+    gap: 8px;
+  }
+  .design-chooser > label {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 148px);
+    width: 100%;
+    gap: 12px;
+  }
+  .design-chooser > label select {
+    width: 100%;
+  }
+}

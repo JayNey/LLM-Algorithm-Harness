@@ -1,12 +1,25 @@
+import { currentLanguage, t } from '../i18n/core.ts'
 import type { ExperimentDraft, ExperimentStatus } from './types.ts'
 
 const statusLabels: Record<ExperimentStatus, string> = {
-  pending: '排队中',
-  running: '运行中',
-  paused: '已暂停',
-  completed: '已完成',
-  failed: '已失败',
-  cancelled: '已取消',
+  get pending() {
+    return t('排队中')
+  },
+  get running() {
+    return t('运行中')
+  },
+  get paused() {
+    return t('已暂停')
+  },
+  get completed() {
+    return t('已完成')
+  },
+  get failed() {
+    return t('已失败')
+  },
+  get cancelled() {
+    return t('已取消')
+  },
 }
 
 export function statusLabel(status: string): string {
@@ -14,19 +27,31 @@ export function statusLabel(status: string): string {
 }
 
 export const executionLabels: Record<string, string> = {
-  serial: '串行',
-  parallel: '并行',
+  get serial() {
+    return t('串行')
+  },
+  get parallel() {
+    return t('并行')
+  },
 }
 
 export const budgetKindLabels: Record<string, string> = {
-  none: '不限制',
-  max_calls: '调用次数',
-  max_tokens: 'token 数',
-  max_seconds: '时间（秒）',
+  get none() {
+    return t('不限制')
+  },
+  get max_calls() {
+    return t('调用次数')
+  },
+  get max_tokens() {
+    return t('token 数')
+  },
+  get max_seconds() {
+    return t('时间（秒）')
+  },
 }
 
 export function formatUsd(value: number | null): string {
-  if (value === null) return '成本未知'
+  if (value === null) return t('成本未知')
   return `${value.toFixed(4)} USD`
 }
 
@@ -37,14 +62,15 @@ export function formatAccuracy(rate: number): string {
 export function formatDateTime(value: string): string {
   const date = new Date(value)
   return Number.isNaN(date.getTime())
-    ? '时间未知'
-    : date.toLocaleString('zh-CN')
+    ? t('时间未知')
+    : date.toLocaleString(currentLanguage())
 }
 
 export function summarizeDraft(draft: ExperimentDraft): string {
   const parts: string[] = []
   if (draft.budget_kind !== 'none')
     parts.push(`${budgetKindLabels[draft.budget_kind]} ≤ ${draft.budget_value}`)
-  if (draft.execution === 'parallel') parts.push(`并行 ×${draft.max_workers}`)
+  if (draft.execution === 'parallel')
+    parts.push(t('并行 ×{{value1}}', { value1: draft.max_workers }))
   return parts.join(' · ')
 }

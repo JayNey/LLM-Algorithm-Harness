@@ -1,3 +1,5 @@
+import { useTranslation } from 'react-i18next'
+import { t } from '../../i18n/core.ts'
 import { Button, Empty, Select, Skeleton } from 'antd'
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { Link, useSearchParams } from 'react-router-dom'
@@ -9,13 +11,48 @@ import { useList } from '@/evaluations/useList.ts'
 import { readListQuery, writeListQuery } from '@/experiments/validation.ts'
 
 const statusOptions = [
-  { value: 'all', label: '全部状态' },
-  { value: 'pending', label: '排队中' },
-  { value: 'running', label: '运行中' },
-  { value: 'paused', label: '已暂停' },
-  { value: 'completed', label: '已完成' },
-  { value: 'failed', label: '已失败' },
-  { value: 'cancelled', label: '已取消' },
+  {
+    value: 'all',
+    get label() {
+      return t('全部状态')
+    },
+  },
+  {
+    value: 'pending',
+    get label() {
+      return t('排队中')
+    },
+  },
+  {
+    value: 'running',
+    get label() {
+      return t('运行中')
+    },
+  },
+  {
+    value: 'paused',
+    get label() {
+      return t('已暂停')
+    },
+  },
+  {
+    value: 'completed',
+    get label() {
+      return t('已完成')
+    },
+  },
+  {
+    value: 'failed',
+    get label() {
+      return t('已失败')
+    },
+  },
+  {
+    value: 'cancelled',
+    get label() {
+      return t('已取消')
+    },
+  },
 ]
 
 function ExperimentRow({
@@ -25,6 +62,8 @@ function ExperimentRow({
   job: ExperimentJob
   onSettled: () => void
 }) {
+  useTranslation()
+
   const { client } = useExperimentSession()
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -50,7 +89,12 @@ function ExperimentRow({
   }
   async function remove() {
     if (busy) return
-    if (!window.confirm(`确认删除实验「${job.name || job.id}」？`)) return
+    if (
+      !window.confirm(
+        t('确认删除实验「{{value1}}」？', { value1: job.name || job.id }),
+      )
+    )
+      return
     setBusy(true)
     setError(null)
     try {
@@ -66,22 +110,24 @@ function ExperimentRow({
     <tr>
       <td>
         <Link to={`/experiments/${encodeURIComponent(job.id)}`}>{job.id}</Link>
-        <small>{job.name || '未命名实验'}</small>
+        <small>{job.name || t('未命名实验')}</small>
       </td>
       <td>
-        {job.config.models.map((model) => model.model).join('、') || '模型未知'}
+        {job.config.models.map((model) => model.model).join('、') ||
+          t('模型未知')}
         <small>
           {job.config.strategies.map((strategy) => strategy.name).join('、') ||
-            '策略未知'}
+            t('策略未知')}
         </small>
       </td>
       <td>
         <span>{statusLabel(job.status)}</span>
         <small>
-          重复 {job.config.repeats} 次 ·{' '}
+          {t('重复 ')}
+          {job.config.repeats} {t(' 次 ·')}{' '}
           {job.config.execution === 'parallel'
-            ? `并行 ×${job.config.max_workers}`
-            : '串行'}
+            ? t('并行 ×{{value1}}', { value1: job.config.max_workers })
+            : t('串行')}
         </small>
       </td>
       <td>
@@ -91,7 +137,7 @@ function ExperimentRow({
       <td>
         {running && (
           <Button size="small" disabled={busy} onClick={() => void cancel()}>
-            取消运行
+            {t('取消运行')}
           </Button>
         )}
         {!running && (
@@ -101,12 +147,12 @@ function ExperimentRow({
             disabled={busy}
             onClick={() => void remove()}
           >
-            删除
+            {t('删除')}
           </Button>
         )}
         {error && (
           <small role="alert" style={{ color: '#cf1322' }}>
-            {error}
+            {t(error)}
           </small>
         )}
       </td>
@@ -115,6 +161,8 @@ function ExperimentRow({
 }
 
 export default function ExperimentsPage() {
+  useTranslation()
+
   const { client, owner } = useExperimentSession()
   const [search, setSearch] = useSearchParams()
   const rawSearch = search.toString()
@@ -147,19 +195,19 @@ export default function ExperimentsPage() {
     <section className="evaluation-workflow">
       <header className="page-heading">
         <div>
-          <h1>实验管理</h1>
-          <p>固定预算对比实验的创建、运行与对比分析。</p>
+          <h1>{t('实验管理')}</h1>
+          <p>{t('固定预算对比实验的创建、运行与对比分析。')}</p>
         </div>
         <Link className="evaluation-create-link" to="/experiments/new">
-          创建实验
+          {t('创建实验')}
         </Link>
       </header>
       <div className="panel evaluation-panel">
         <div className="evaluation-section-heading">
           <Select
-            aria-label="实验状态"
+            aria-label={t('实验状态')}
             value={query.status ?? 'all'}
-            options={statusOptions}
+            options={statusOptions.map((option) => ({ ...option }))}
             onChange={(status: string) =>
               setSearch(
                 writeListQuery({
@@ -171,35 +219,38 @@ export default function ExperimentsPage() {
             }
           />
           {data && !loading && (
-            <span role="status">共 {data.total} 个实验</span>
+            <span role="status">
+              {t('共 ')}
+              {data.total} {t(' 个实验')}
+            </span>
           )}
         </div>
         {loading ? (
           <div aria-busy="true">
-            <p role="status">正在加载实验…</p>
+            <p role="status">{t('正在加载实验…')}</p>
             <Skeleton active paragraph={{ rows: 4 }} />
           </div>
         ) : list.status === 'error' ? (
           <ExperimentFeedback
-            message={list.error ?? '加载失败，请重试'}
+            message={t(list.error ?? t('加载失败，请重试'))}
             retry={list.reload}
           />
         ) : data?.items.length ? (
           <div
             className="evaluation-list-scroll"
             role="region"
-            aria-label="可滚动的实验列表"
+            aria-label={t('可滚动的实验列表')}
             tabIndex={0}
           >
-            <table className="evaluation-list-table" aria-label="实验列表">
+            <table className="evaluation-list-table" aria-label={t('实验列表')}>
               <thead>
                 <tr>
                   {[
-                    '实验 ID / 名称',
-                    '模型 / 策略',
-                    '状态 / 执行',
-                    '创建时间',
-                    '操作',
+                    t('实验 ID / 名称'),
+                    t('模型 / 策略'),
+                    t('状态 / 执行'),
+                    t('创建时间'),
+                    t('操作'),
                   ].map((name) => (
                     <th key={name} scope="col">
                       {name}
@@ -220,7 +271,9 @@ export default function ExperimentsPage() {
           </div>
         ) : (
           <Empty
-            description={query.status ? '没有符合筛选的实验' : '还没有实验'}
+            description={
+              query.status ? t('没有符合筛选的实验') : t('还没有实验')
+            }
           >
             {query.status && (
               <Button
@@ -228,21 +281,21 @@ export default function ExperimentsPage() {
                   setSearch(writeListQuery({ limit: query.limit, offset: 0 }))
                 }
               >
-                清除筛选
+                {t('清除筛选')}
               </Button>
             )}
-            <Link to="/experiments/new">创建首个实验</Link>
+            <Link to="/experiments/new">{t('创建首个实验')}</Link>
           </Empty>
         )}
         {data && !loading && (
-          <nav className="evaluation-pagination" aria-label="实验分页">
+          <nav className="evaluation-pagination" aria-label={t('实验分页')}>
             <span>
               {data.total
                 ? `${data.offset + 1}–${data.offset + data.items.length} / ${data.total}`
                 : '0 / 0'}
             </span>
             <Button
-              aria-label="上一页实验"
+              aria-label={t('上一页实验')}
               disabled={query.offset === 0}
               onClick={() =>
                 setSearch(
@@ -253,10 +306,10 @@ export default function ExperimentsPage() {
                 )
               }
             >
-              上一页
+              {t('上一页')}
             </Button>
             <Button
-              aria-label="下一页实验"
+              aria-label={t('下一页实验')}
               disabled={!data.has_more}
               onClick={() =>
                 setSearch(
@@ -267,7 +320,7 @@ export default function ExperimentsPage() {
                 )
               }
             >
-              下一页
+              {t('下一页')}
             </Button>
           </nav>
         )}

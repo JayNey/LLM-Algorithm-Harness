@@ -1,3 +1,5 @@
+import { useTranslation } from 'react-i18next'
+import { t } from '../../i18n/core.ts'
 import { Alert, Button, Skeleton } from 'antd'
 import { useCallback, useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
@@ -66,6 +68,8 @@ function useSuites() {
 }
 
 export default function BenchmarksPage() {
+  useTranslation()
+
   const { client } = useBenchmarkSession()
   const suites = useSuites()
   const [creating, setCreating] = useState(false)
@@ -96,20 +100,22 @@ export default function BenchmarksPage() {
     <section className="evaluation-workflow">
       <header className="page-heading">
         <div>
-          <h1>基准测试</h1>
-          <p>固定题集套件：重复运行并追踪模型的学习曲线。</p>
+          <h1>{t('基准测试')}</h1>
+          <p>{t('固定题集套件：重复运行并追踪模型的学习曲线。')}</p>
         </div>
         {!creating && (
           <Button
             type="primary"
-            aria-label="新建套件"
+            aria-label={t('新建套件')}
             onClick={() => setCreating(true)}
           >
-            新建套件
+            {t('新建套件')}
           </Button>
         )}
       </header>
-      {actionError && <Alert role="alert" type="error" message={actionError} />}
+      {actionError && (
+        <Alert role="alert" type="error" message={t(actionError)} />
+      )}
       {creating && (
         <SuiteForm
           draft={draft}
@@ -123,31 +129,36 @@ export default function BenchmarksPage() {
             setErrors({})
           }}
           busy={busy}
-          submitLabel="创建套件"
+          submitLabel={t('创建套件')}
         />
       )}
       <div className="panel evaluation-panel">
         {suites.loading ? (
           <div aria-busy="true">
-            <p role="status">正在加载套件…</p>
+            <p role="status">{t('正在加载套件…')}</p>
             <Skeleton active paragraph={{ rows: 4 }} />
           </div>
         ) : suites.error ? (
           <Alert
             role="alert"
             type="error"
-            message={suites.error}
-            action={<Button onClick={suites.reload}>重试</Button>}
+            message={t(suites.error)}
+            action={<Button onClick={suites.reload}>{t('重试')}</Button>}
           />
         ) : suites.data?.length ? (
-          <table className="evaluation-list-table" aria-label="基准套件列表">
+          <table
+            className="evaluation-list-table"
+            aria-label={t('基准套件列表')}
+          >
             <thead>
               <tr>
-                {['名称 / 版本', '题目数', '状态', '更新时间'].map((name) => (
-                  <th key={name} scope="col">
-                    {name}
-                  </th>
-                ))}
+                {[t('名称 / 版本'), t('题目数'), t('状态'), t('更新时间')].map(
+                  (name) => (
+                    <th key={name} scope="col">
+                      {name}
+                    </th>
+                  ),
+                )}
               </tr>
             </thead>
             <tbody>
@@ -160,7 +171,7 @@ export default function BenchmarksPage() {
                     <small>v{suite.version}</small>
                   </td>
                   <td>{suite.problems.length}</td>
-                  <td>{suite.frozen ? '已冻结' : '可编辑'}</td>
+                  <td>{suite.frozen ? t('已冻结') : t('可编辑')}</td>
                   <td>
                     <time dateTime={suite.updated_at}>
                       {formatDateTime(suite.updated_at)}
@@ -171,7 +182,7 @@ export default function BenchmarksPage() {
             </tbody>
           </table>
         ) : (
-          <p role="status">还没有基准套件，点击「新建套件」开始。</p>
+          <p role="status">{t('还没有基准套件，点击「新建套件」开始。')}</p>
         )}
       </div>
     </section>
