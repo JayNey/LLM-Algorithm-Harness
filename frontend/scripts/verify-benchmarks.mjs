@@ -127,7 +127,7 @@ function mockRoute(context) {
     if (
       method === 'GET' &&
       path === '/evaluation-options/models' &&
-      url.searchParams.get('api_key_id')
+      url.searchParams.get('api_key_id') === 'key-fixture-1'
     )
       return reply({
         provider: 'siliconflow',

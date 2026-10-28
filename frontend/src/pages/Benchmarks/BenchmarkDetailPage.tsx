@@ -266,7 +266,7 @@ export default function BenchmarkDetailPage() {
                       }
                     />
                     {runErrors.api_key_id && (
-                      <small role="alert">{runErrors.api_key_id}</small>
+                      <small role="alert">{t(runErrors.api_key_id)}</small>
                     )}
                   </label>
                   <label>
@@ -283,7 +283,7 @@ export default function BenchmarkDetailPage() {
                       }
                     />
                     {runErrors.dataset_path && (
-                      <small role="alert">{runErrors.dataset_path}</small>
+                      <small role="alert">{t(runErrors.dataset_path)}</small>
                     )}
                   </label>
                   <label>
@@ -329,7 +329,7 @@ export default function BenchmarkDetailPage() {
                       }
                     />
                     {runErrors.budget_cap_usd && (
-                      <small role="alert">{runErrors.budget_cap_usd}</small>
+                      <small role="alert">{t(runErrors.budget_cap_usd)}</small>
                     )}
                   </label>
                   <Button

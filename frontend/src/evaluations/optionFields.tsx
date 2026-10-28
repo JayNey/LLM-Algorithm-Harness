@@ -59,10 +59,15 @@ export function ModelNameField({
         value={value}
         placeholder={t('模型名，如 model-a')}
         options={(models.data?.models ?? []).map((name) => ({ value: name }))}
-        notFoundContent={catalogNotFound(
-          models.loading || !apiKeyId.trim(),
-          t('目录为空，可手动输入'),
-        )}
+        notFoundContent={
+          models.loading ? (
+            <Spin size="small" />
+          ) : !apiKeyId.trim() ? (
+            <span>{t('请选择可用密钥')}</span>
+          ) : (
+            <span>{t('目录为空，可手动输入')}</span>
+          )
+        }
         onChange={(next) => onChange(next)}
         disabled={disabled}
       />
@@ -152,7 +157,7 @@ export function StrategyTagsField({
         <DirectoryHint
           message={t('策略目录加载失败，可手动输入')}
           onRetry={options.retry}
-          retryLabel="重试加载策略目录"
+          retryLabel={t('重试加载策略目录')}
         />
       )}
     </>

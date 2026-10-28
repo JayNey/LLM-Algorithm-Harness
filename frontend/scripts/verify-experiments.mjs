@@ -138,7 +138,8 @@ function mockRoute(context) {
         offset: 0,
         has_more: false,
       })
-    if (method === 'POST' && path === '/experiments')
+    if (method === 'POST' && path === '/experiments') {
+      report.experimentPost = JSON.parse(request.postData() ?? 'null')
       return reply(
         {
           ...fixtureJob,
@@ -147,6 +148,7 @@ function mockRoute(context) {
         },
         201,
       )
+    }
     if (method === 'GET' && path === '/experiments/exp-fixture-new')
       return reply({ ...fixtureJob, id: 'exp-fixture-new' })
     if (method === 'GET' && path === '/experiments/exp-fixture-1')
@@ -211,6 +213,12 @@ async function createScenario(page) {
   await check('创建成功后导航到详情', async () => {
     await page.waitForURL('**/experiments/exp-fixture-new', { timeout: 5_000 })
     assert.ok(page.url().includes('/experiments/exp-fixture-new'))
+  })
+  await check('手动输入的模型与策略进入提交负载', () => {
+    const body = report.experimentPost
+    assert.ok(body, '未捕获到 POST /experiments 请求体')
+    assert.equal(body.models?.[0]?.model, 'model-a')
+    assert.equal(body.strategies?.[0]?.name, 'direct')
   })
   await page.screenshot({ path: resolve(outDir, 'create.png'), fullPage: true })
   report.screenshots.push('create.png')
