@@ -19,11 +19,12 @@ from pydantic import BaseModel, Field, model_validator
 
 from src.checkpoints import UnitCheckpoint, write_checkpoint
 from src.harness import AlgorithmHarness
-from src.llm_client import LLMClient
+from src.llm_client import LLMClient, SpendObserver
 from src.models import HarnessConfig, LLMConfig, Problem, SandboxConfig, StrategyConfig
 from src.problem_loader import ProblemLoader
 from src.sandbox_executor import SandboxExecutor
 from src.task_service import TaskService
+from src.utils.pricing import PricingManager
 from src.utils.secrets import redact_sensitive_data
 
 
@@ -164,6 +165,9 @@ class ABTestRunner:
         self._completed = 0
         self._total = 0
         self._progress_lock = threading.Lock()
+        self.pricing_manager: PricingManager | None = None
+        self.on_spend: SpendObserver | None = None
+        self.before_generate: Callable[[], None] | None = None
 
     def run(self) -> Path:
         problems = ProblemLoader().load(self.config.dataset_path)
@@ -228,9 +232,27 @@ class ABTestRunner:
             ok, detail = sandbox.health_check()
             if not ok:
                 raise RuntimeError(f"Sandbox preflight failed: {detail}")
-            client = PromptVariantClient(self.client_factory(self.config.model), variant)
+            base_client = self.client_factory(self.config.model)
+            if self.pricing_manager is not None:
+                base_client.pricing_manager = self.pricing_manager
+            base_client.before_generate = self.before_generate
+            if self.on_spend is not None:
+                base_client.on_response = lambda event_id, response, cached: self.on_spend(
+                    event_id,
+                    response,
+                    cached,
+                    {
+                        "model": self.config.model.model,
+                        "strategy": self.config.strategy.name,
+                        "problem_id": problem.problem_id,
+                        "difficulty": problem.difficulty,
+                    },
+                )
+            client = PromptVariantClient(base_client, variant)
             strategy = AlgorithmHarness.STRATEGY_MAP[self.config.strategy.name](
-                self.config.strategy, client, sandbox  # type: ignore[arg-type, abstract]
+                self.config.strategy,
+                client,  # type: ignore[arg-type]
+                sandbox,  # type: ignore[abstract]
             )
             harness = AlgorithmHarness(
                 HarnessConfig(
