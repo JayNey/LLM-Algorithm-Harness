@@ -90,6 +90,7 @@ function mockRoute(context) {
         body: JSON.stringify({ success: true, data, message: '' }),
       })
     report.replaced.push(`${method} ${path}`)
+    if (method === 'GET' && path === '/datasets') return reply([])
     if (method === 'GET' && path === '/api-keys') return reply(fixtureKeys)
     if (
       method === 'GET' &&
@@ -140,7 +141,14 @@ async function createScenario(page) {
     ),
   )
   await page.getByLabel('实验名称').fill('对比实验')
-  await page.getByLabel('数据集路径').fill('datasets/demo.json')
+  await page.getByLabel('数据来源', { exact: true }).click()
+  await page
+    .locator('.ant-select-dropdown:visible')
+    .getByText('服务器数据集路径', { exact: true })
+    .click()
+  await page
+    .getByLabel('数据集路径', { exact: true })
+    .fill('datasets/demo.json')
   await page.getByLabel('实验 API Key').click()
   await page.getByRole('option', { name: '冒烟密钥' }).click()
   await page.getByLabel('模型 1 名称').fill('model-a')

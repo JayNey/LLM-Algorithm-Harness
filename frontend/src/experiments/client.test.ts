@@ -450,3 +450,15 @@ test('旧接口恢复完整 pending 分页并保留 running、paused 任务', as
     seen.some((query) => query.status === 'pending' && query.offset === 1),
   )
 })
+
+test('个人题库响应无需 dataset_path 即可读取与展示', async () => {
+  const { client } = clientFor(() => ({
+    data: {
+      ...job,
+      config: { ...job.config, dataset_path: null, dataset_id: 'mine' },
+    },
+  }))
+  const detail = await client.get('exp-1')
+  assert.equal(detail.config.dataset_id, 'mine')
+  assert.equal(detail.config.dataset_path, undefined)
+})

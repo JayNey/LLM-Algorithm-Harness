@@ -1,3 +1,4 @@
+import { readDatasetSource } from '../experiments/datasets.ts'
 import type { AxiosInstance } from 'axios'
 import { ApiClientError } from '../auth/http.ts'
 import type {
@@ -82,7 +83,7 @@ function configSubset(value: unknown, field: string) {
   const strategy = record(data.strategy, `${field}.strategy`)
   return {
     name: text(data.name, `${field}.name`, true),
-    dataset_path: text(data.dataset_path, `${field}.dataset_path`),
+    ...readDatasetSource(data),
     model: { model: text(model.model, `${field}.model.model`) },
     strategy: { name: text(strategy.name, `${field}.strategy.name`) },
     prompt_variants: array(

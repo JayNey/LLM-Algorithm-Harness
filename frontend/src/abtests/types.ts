@@ -17,7 +17,8 @@ export interface ABTestJob {
 
 export interface ABTestConfig {
   name: string
-  dataset_path: string
+  dataset_path?: string | null
+  dataset_id?: string
   model: { model: string; temperature?: number }
   strategy: { name: string; max_iterations?: number; temperature?: number }
   prompt_variants: { id: string; description?: string }[]
@@ -42,7 +43,8 @@ export interface ListQuery {
 
 export interface CreatePayload {
   name: string
-  dataset_path: string
+  dataset_path?: string | null
+  dataset_id?: string
   model: { model: string; temperature?: number }
   strategy: { name: string; max_iterations?: number; temperature?: number }
   prompt_variants: {
@@ -109,6 +111,7 @@ export interface PromptVariantDraft {
 }
 
 export interface ABTestDraft {
+  dataset_id?: string
   name: string
   dataset_path: string
   api_key_id: string
