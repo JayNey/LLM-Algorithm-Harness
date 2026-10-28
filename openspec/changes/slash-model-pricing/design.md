@@ -19,3 +19,6 @@
 - RED：`python3 -m pytest tests/test_api_cost.py -k full_model_id --no-cov -q`，2 failed；真实 HTTP 的含斜杠保存返回 404，未认证请求也被路由挡在认证前。
 - GREEN：改用 path 转换器并拒绝空 ID 后，`python3 -m pytest tests/test_api_cost.py -k Pricing --no-cov -q`，4 passed；覆盖普通模型、编码和字面斜杠、字面 %2F、中文特殊字符、history 后缀、200/201 字符边界、认证和价格校验。
 - 首次沙箱测试因禁止本机端口绑定失败；在允许绑定临时本机端口的环境重跑，确认上述业务 RED/GREEN。
+- 扩大回归发现两个测试辅助函数把含转换器的 route.path 当作公开模板；改用 route.path_format，保持端点枚举和示例验证完整，冻结 OpenAPI 基线不变。
+- 后端相关回归 906 passed；前端全量 275 passed，lint 无错误、修改文件格式检查通过、前端构建和 Python wheel 构建成功。前端既有两个 BenchmarkDetailPage hook lint 警告及打包体积提示不影响本次验证。
+- 实际实现与回归修改共 6 个文件（含上述两个辅助函数）；Comet 规划、状态与验证产物不计源码规模。未新增 capability、端点、schema 或跨层架构协调，无升级信号。

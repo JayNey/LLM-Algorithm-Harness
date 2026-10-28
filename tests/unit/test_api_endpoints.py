@@ -1046,7 +1046,7 @@ def registered_routes(router):
 def test_every_registered_endpoint_has_an_explicit_happy_path_case(api):
     routes = list(registered_routes(api.app))
     actual = {
-        (method, route.path)
+        (method, route.path_format)
         for route in routes
         if isinstance(route, APIRoute)
         for method in route.methods

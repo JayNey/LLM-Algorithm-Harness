@@ -98,6 +98,39 @@ test('目录来源未知明确拒绝', async () => {
   await assert.rejects(client.catalog(), /定价接口响应格式不兼容/)
 })
 
+test('保存和历史对完整模型 ID 仅编码一次', async () => {
+  const cases = [
+    ['gpt-4', 'gpt-4'],
+    ['Qwen/Qwen2.5-7B-Instruct', 'Qwen%2FQwen2.5-7B-Instruct'],
+    ['provider/history', 'provider%2Fhistory'],
+    ['provider/literal%2Fmodel', 'provider%2Fliteral%252Fmodel'],
+    ['模型 +?#%', '%E6%A8%A1%E5%9E%8B%20%2B%3F%23%25'],
+  ]
+  for (const [modelId, encoded] of cases) {
+    const { client, seen } = clientFor(({ method }) => ({
+      data:
+        method === 'POST'
+          ? { model: modelId, prompt_per_1k: 1, completion_per_1k: 2 }
+          : [],
+    }))
+    const saved = await client.addOverride({
+      modelId,
+      prompt_per_1k: 1,
+      completion_per_1k: 2,
+    })
+    assert.equal(saved.model, modelId)
+    assert.deepEqual(await client.history(modelId), [])
+    assert.deepEqual(seen, [
+      {
+        method: 'POST',
+        url: `/pricing/${encoded}`,
+        body: { prompt_per_1k: 1, completion_per_1k: 2 },
+      },
+      { method: 'GET', url: `/pricing/${encoded}/history` },
+    ])
+  }
+})
+
 test('表单校验（正数价格 + 模型必填）', () => {
   assert.deepEqual(
     validateOverrideInput({
