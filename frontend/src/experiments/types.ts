@@ -42,6 +42,8 @@ export interface ExperimentConfig {
 
 export interface ExperimentJob {
   id: string
+  /** undefined only for older servers; null means never submitted. */
+  task_id?: string | null
   name: string
   status: string
   config: ExperimentConfig
