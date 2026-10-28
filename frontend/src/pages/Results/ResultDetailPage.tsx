@@ -1,3 +1,5 @@
+import { useTranslation } from 'react-i18next'
+import { t } from '../../i18n/core.ts'
 import { Button } from 'antd'
 import { useCallback, useEffect, useMemo } from 'react'
 import { Link, useParams, useSearchParams } from 'react-router-dom'
@@ -23,18 +25,38 @@ import { useAuthStore } from '@/store/auth.ts'
 import '@/evaluations/workflow.css'
 
 const availabilityLabels: Record<ResultAvailability['kind'], string> = {
-  waiting: '等待结果',
-  partial: '运行中部分结果',
-  paused: '任务已暂停',
-  failed: '任务失败',
-  cancelled: '任务已取消',
-  complete: '结果完整',
-  incomplete: '结果不完整',
-  empty: '已完成，无结果',
-  unknown: '结果未确认',
+  get waiting() {
+    return t('等待结果')
+  },
+  get partial() {
+    return t('运行中部分结果')
+  },
+  get paused() {
+    return t('任务已暂停')
+  },
+  get failed() {
+    return t('任务失败')
+  },
+  get cancelled() {
+    return t('任务已取消')
+  },
+  get complete() {
+    return t('结果完整')
+  },
+  get incomplete() {
+    return t('结果不完整')
+  },
+  get empty() {
+    return t('已完成，无结果')
+  },
+  get unknown() {
+    return t('结果未确认')
+  },
 }
 
 export default function ResultDetailPage() {
+  useTranslation()
+
   const { evaluationId = '' } = useParams()
   const { client, owner } = useEvaluationSession()
   const [search, setSearch] = useSearchParams()
@@ -63,7 +85,7 @@ export default function ResultDetailPage() {
       ? undefined
       : (live.evaluation ?? bootstrap.data)
   const error = live.forbidden
-    ? '任务不可访问，请刷新后重试'
+    ? t('任务不可访问，请刷新后重试')
     : (live.error ?? bootstrap.error)
   const result = current?.result
   const availability = current ? resultAvailability(current, result) : undefined
@@ -97,87 +119,98 @@ export default function ResultDetailPage() {
     <section className="evaluation-workflow">
       <header className="page-heading">
         <div>
-          <h1>评估结果详情</h1>
-          <p>查看任务事实、全量策略统计与已记录的单题结果。</p>
+          <h1>{t('评估结果详情')}</h1>
+          <p>{t('查看任务事实、全量策略统计与已记录的单题结果。')}</p>
         </div>
-        <Link to="/results">返回结果列表</Link>
+        <Link to="/results">{t('返回结果列表')}</Link>
       </header>
       <section
         className="panel evaluation-panel"
-        aria-label="任务信息"
+        aria-label={t('任务信息')}
         aria-busy={loading}
       >
         <dl className="evaluation-receipt">
-          <dt>评估 ID</dt>
+          <dt>{t('评估 ID')}</dt>
           <dd>{evaluationId}</dd>
         </dl>
-        {loading && <p role="status">正在加载评估结果…</p>}
+        {loading && <p role="status">{t('正在加载评估结果…')}</p>}
         {error && (
           <EvaluationFeedback
-            message={current ? `${error}；下方为上次读取的数据。` : error}
+            message={t(
+              current
+                ? t('{{value1}}；下方为上次读取的数据。', { value1: error })
+                : error,
+            )}
             retry={refresh}
           />
         )}
         {current && <EvaluationFacts evaluation={current} />}
-        {live.mode === 'live' && <p role="status">实时进度已连接</p>}
+        {live.mode === 'live' && <p role="status">{t('实时进度已连接')}</p>}
         {live.mode === 'degraded' && (
-          <p role="status">实时通道不可用，已切换为轮询。</p>
+          <p role="status">{t('实时通道不可用，已切换为轮询。')}</p>
         )}
         <div className="evaluation-actions">
           <Button onClick={refresh} disabled={loading}>
-            刷新结果
+            {t('刷新结果')}
           </Button>
           <Link to={`/evaluations/${encodeURIComponent(evaluationId)}`}>
-            查看任务详情
+            {t('查看任务详情')}
           </Link>
         </div>
       </section>
       {!loading && current && (
-        <section className="panel evaluation-panel" aria-label="评估结果">
-          <div role="status" aria-label="结果可用性">
+        <section className="panel evaluation-panel" aria-label={t('评估结果')}>
+          <div role="status" aria-label={t('结果可用性')}>
             <p>{availabilityLabels[availability?.kind ?? 'unknown']}</p>
             <p>
-              已记录 {availability?.recorded_units ?? '未知'} / 预期{' '}
-              {availability?.expected_units ?? '未知'} 单元
+              {t('已记录 ')}
+              {availability?.recorded_units ?? t('未知')} {t(' / 预期')}{' '}
+              {availability?.expected_units ?? t('未知')} {t(' 单元')}
             </p>
             {availability?.kind === 'partial' && (
-              <p>以下为当前已记录的部分结果，统计尚非最终结果。</p>
+              <p>{t('以下为当前已记录的部分结果，统计尚非最终结果。')}</p>
             )}
             {['paused', 'failed', 'cancelled'].includes(
               availability?.kind ?? '',
             ) && (
               <p>
                 {availability?.recorded_units
-                  ? '保留部分结果，统计不代表完整评估。'
-                  : '尚无已记录结果。'}
+                  ? t('保留部分结果，统计不代表完整评估。')
+                  : t('尚无已记录结果。')}
               </p>
             )}
             {availability?.kind === 'incomplete' && (
-              <p>任务已完成，但记录少于预期单元数。</p>
+              <p>{t('任务已完成，但记录少于预期单元数。')}</p>
             )}
           </div>
           {current.resultError ? (
-            <EvaluationFeedback message={current.resultError} retry={refresh} />
+            <EvaluationFeedback
+              message={t(current.resultError)}
+              retry={refresh}
+            />
           ) : (
             result && (
               <>
                 <p>
-                  结果快照状态：{resultStatusLabel(result.status)}；运行记录：
-                  {result.run_id ?? '未关联'}
+                  {t('结果快照状态：')}
+                  {resultStatusLabel(result.status)}
+                  {t('；运行记录：')}
+                  {result.run_id ?? t('未关联')}
                 </p>
                 <ResultTables result={result} />
                 <nav
                   className="evaluation-pagination"
-                  aria-label="单题结果分页"
+                  aria-label={t('单题结果分页')}
                 >
                   <span>
-                    已记录 {result.problems.total} 个单元 ·{' '}
+                    {t('已记录 ')}
+                    {result.problems.total} {t(' 个单元 ·')}{' '}
                     {result.problems.total
                       ? `${result.problems.offset + 1}–${result.problems.offset + result.problems.items.length} / ${result.problems.total}`
                       : '0 / 0'}
                   </span>
                   <Button
-                    aria-label="上一页单题"
+                    aria-label={t('上一页单题')}
                     disabled={page.offset === 0}
                     onClick={() =>
                       setSearch(
@@ -188,10 +221,10 @@ export default function ResultDetailPage() {
                       )
                     }
                   >
-                    上一页
+                    {t('上一页')}
                   </Button>
                   <Button
-                    aria-label="下一页单题"
+                    aria-label={t('下一页单题')}
                     disabled={!result.problems.has_more}
                     onClick={() =>
                       setSearch(
@@ -202,7 +235,7 @@ export default function ResultDetailPage() {
                       )
                     }
                   >
-                    下一页
+                    {t('下一页')}
                   </Button>
                 </nav>
               </>

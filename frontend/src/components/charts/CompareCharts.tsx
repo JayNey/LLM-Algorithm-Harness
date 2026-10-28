@@ -1,3 +1,5 @@
+import { useTranslation } from 'react-i18next'
+import { t } from '../../i18n/core.ts'
 import ReactECharts from 'echarts-for-react'
 
 export interface ScatterPlotProps {
@@ -14,6 +16,8 @@ export function ScatterPlot({
   yName,
   highlightIds = [],
 }: ScatterPlotProps) {
+  useTranslation()
+
   const normal = points.filter((p) => !highlightIds.includes(p.label))
   const highlighted = points.filter((p) => highlightIds.includes(p.label))
   return (
@@ -34,7 +38,7 @@ export function ScatterPlot({
           ...(highlighted.length
             ? [
                 {
-                  name: `${yName}（前沿）`,
+                  name: t('{{value1}}（前沿）', { value1: yName }),
                   type: 'scatter',
                   symbolSize: 14,
                   data: highlighted.map((p) => ({
@@ -56,6 +60,8 @@ export interface RadarChartProps {
 }
 
 export function RadarChart({ labels, datasets }: RadarChartProps) {
+  useTranslation()
+
   return (
     <ReactECharts
       style={{ height: 320 }}
@@ -88,6 +94,8 @@ export interface BarCompareProps {
 }
 
 export function BarCompare({ labels, series, yName }: BarCompareProps) {
+  useTranslation()
+
   return (
     <ReactECharts
       style={{ height: 320 }}
@@ -121,7 +129,9 @@ export interface TrendLineProps {
 
 /** 学习曲线折线：按模型分组的准确率/成本序列（时间升序）。 */
 export function TrendLine({ series, metric }: TrendLineProps) {
-  const yName = metric === 'accuracy' ? '准确率' : '成本（USD）'
+  useTranslation()
+
+  const yName = metric === 'accuracy' ? t('准确率') : t('成本（USD）')
   return (
     <ReactECharts
       style={{ height: 360 }}
@@ -129,7 +139,7 @@ export function TrendLine({ series, metric }: TrendLineProps) {
       option={{
         tooltip: { trigger: 'axis' },
         legend: {},
-        xAxis: { type: 'time', name: '完成时间' },
+        xAxis: { type: 'time', name: t('完成时间') },
         yAxis: { type: 'value', name: yName },
         series: series.map((group) => ({
           name: group.model,

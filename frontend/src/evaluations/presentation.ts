@@ -1,3 +1,4 @@
+import { t } from '../i18n/core.ts'
 import type {
   Evaluation,
   ResultAvailability,
@@ -6,19 +7,29 @@ import type {
 } from './types.ts'
 
 const labels: Record<string, string> = {
-  running: '运行中',
-  paused: '已暂停',
-  completed: '已完成',
-  failed: '失败',
-  cancelled: '已取消',
+  get running() {
+    return t('运行中')
+  },
+  get paused() {
+    return t('已暂停')
+  },
+  get completed() {
+    return t('已完成')
+  },
+  get failed() {
+    return t('失败')
+  },
+  get cancelled() {
+    return t('已取消')
+  },
 }
 
 export function evaluationLabel(evaluation: Evaluation): string {
   if (evaluation.status === 'pending')
-    return evaluation.can_start ? '待启动' : '已入队，等待执行'
+    return evaluation.can_start ? t('待启动') : t('已入队，等待执行')
   return Object.hasOwn(labels, evaluation.status)
     ? labels[evaluation.status]
-    : `未知状态（${evaluation.status}）`
+    : t('未知状态（{{value1}}）', { value1: evaluation.status })
 }
 
 export function resultAvailability(
@@ -57,20 +68,20 @@ export function resultAvailability(
 }
 
 export function metricLabel(value: number | null, unit = ''): string {
-  if (value === null || !Number.isFinite(value)) return '未知'
+  if (value === null || !Number.isFinite(value)) return t('未知')
   return `${value}${unit ? ` ${unit}` : ''}`
 }
 
 export function successRateLabel(value: number | null): string {
-  if (value === null || !Number.isFinite(value)) return '未知'
+  if (value === null || !Number.isFinite(value)) return t('未知')
   return `${Number((value * 100).toFixed(2))}%`
 }
 
 export function resultStatusLabel(status: string): string {
-  if (status === 'pending') return '待执行'
+  if (status === 'pending') return t('待执行')
   return Object.hasOwn(labels, status)
     ? labels[status]
-    : `未知状态（${status}）`
+    : t('未知状态（{{value1}}）', { value1: status })
 }
 
 export function resultCostLabel(
@@ -78,5 +89,10 @@ export function resultCostLabel(
 ): string {
   const cost = metricLabel(strategy.estimated_cost_usd, 'USD')
   if (!strategy.unknown_cost_count) return cost
-  return `${strategy.estimated_cost_usd ? `已知估算 ${cost}；` : ''}${strategy.unknown_cost_count} 条成本未知`
+  return t('{{value1}}{{value2}} 条成本未知', {
+    value1: strategy.estimated_cost_usd
+      ? t('已知估算 {{value1}}；', { value1: cost })
+      : '',
+    value2: strategy.unknown_cost_count,
+  })
 }

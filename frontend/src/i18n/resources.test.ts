@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict'
 import { readdirSync, readFileSync } from 'node:fs'
 import { join } from 'node:path'
+import { fileURLToPath } from 'node:url'
 import { test } from 'node:test'
 import ts from 'typescript'
 import enUS from './en-US.ts'
@@ -54,5 +55,5 @@ test('catalogs cover referenced keys, preserve interpolation and contain transla
       visit(file)
     }
   }
-  inspect(new URL('..', import.meta.url).pathname)
+  inspect(fileURLToPath(new URL('..', import.meta.url)))
 })

@@ -1,3 +1,5 @@
+import { useTranslation } from 'react-i18next'
+import { currentLanguage, t } from '../../i18n/core.ts'
 import { Alert, Button, Drawer, Input, Skeleton } from 'antd'
 import { useCallback, useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
@@ -7,9 +9,15 @@ import type { PricingCatalog, PricingVersion } from '@/pricing/types.ts'
 import { validateOverrideInput } from '@/pricing/client.ts'
 
 const SOURCE_LABELS: Record<string, string> = {
-  builtin: '内置',
-  custom_file: '自定义文件',
-  override: '覆盖',
+  get builtin() {
+    return t('内置')
+  },
+  get custom_file() {
+    return t('自定义文件')
+  },
+  get override() {
+    return t('覆盖')
+  },
 }
 
 function useHistoryDrawer(
@@ -52,27 +60,29 @@ function useHistoryDrawer(
   }, [model, reload])
   const drawer = (
     <Drawer
-      title={model ? `${model} · 定价历史` : ''}
+      title={model ? t('{{value1}} · 定价历史', { value1: model }) : ''}
       open={model !== null}
       onClose={() => setModel(null)}
       width={480}
     >
       {error ? (
         <ExperimentFeedback
-          message={error}
+          message={t(error)}
           retry={() => model && reload(model)}
         />
       ) : versions === null ? (
         <Skeleton active paragraph={{ rows: 4 }} />
       ) : versions.length ? (
-        <table className="evaluation-list-table" aria-label="定价历史">
+        <table className="evaluation-list-table" aria-label={t('定价历史')}>
           <thead>
             <tr>
-              {['输入价/1k', '输出价/1k', '创建者', '时间'].map((name) => (
-                <th key={name} scope="col">
-                  {name}
-                </th>
-              ))}
+              {[t('输入价/1k'), t('输出价/1k'), t('创建者'), t('时间')].map(
+                (name) => (
+                  <th key={name} scope="col">
+                    {name}
+                  </th>
+                ),
+              )}
             </tr>
           </thead>
           <tbody>
@@ -81,13 +91,17 @@ function useHistoryDrawer(
                 <td>${version.prompt_per_1k}</td>
                 <td>${version.completion_per_1k}</td>
                 <td>{version.created_by}</td>
-                <td>{new Date(version.created_at).toLocaleString('zh-CN')}</td>
+                <td>
+                  {new Date(version.created_at).toLocaleString(
+                    currentLanguage(),
+                  )}
+                </td>
               </tr>
             ))}
           </tbody>
         </table>
       ) : (
-        <p role="status">该模型没有自定义定价历史。</p>
+        <p role="status">{t('该模型没有自定义定价历史。')}</p>
       )}
     </Drawer>
   )
@@ -95,6 +109,8 @@ function useHistoryDrawer(
 }
 
 export default function PricingPage() {
+  useTranslation()
+
   const { client } = usePricingSession()
   const [catalog, setCatalog] = useState<PricingCatalog | null>(null)
   const [error, setError] = useState<string | null>(null)
@@ -155,29 +171,34 @@ export default function PricingPage() {
     : []
   return (
     <section className="mx-auto w-full max-w-3xl">
-      <h1 className="mb-2 text-xl font-semibold">定价管理</h1>
+      <h1 className="mb-2 text-xl font-semibold">{t('定价管理')}</h1>
       <p className="mb-6 text-neutral-600 dark:text-neutral-400">
-        查看三源合并的模型定价（USD / 1k
-        tokens）；自定义定价为追加式，最新版本覆盖生效。
+        {t(
+          '查看三源合并的模型定价（USD / 1k tokens）；自定义定价为追加式，最新版本覆盖生效。',
+        )}
       </p>
       {message && (
-        <Alert message={message} type="info" showIcon className="mb-4" />
+        <Alert message={t(message)} type="info" showIcon className="mb-4" />
       )}
       {error ? (
-        <ExperimentFeedback message={error} retry={reload} />
+        <ExperimentFeedback message={t(error)} retry={reload} />
       ) : catalog === null ? (
         <Skeleton active paragraph={{ rows: 6 }} />
       ) : entries.length ? (
-        <table className="evaluation-list-table" aria-label="定价目录">
+        <table className="evaluation-list-table" aria-label={t('定价目录')}>
           <thead>
             <tr>
-              {['模型', '输入价/1k', '输出价/1k', '来源', '操作'].map(
-                (name) => (
-                  <th key={name} scope="col">
-                    {name}
-                  </th>
-                ),
-              )}
+              {[
+                t('模型'),
+                t('输入价/1k'),
+                t('输出价/1k'),
+                t('来源'),
+                t('操作'),
+              ].map((name) => (
+                <th key={name} scope="col">
+                  {name}
+                </th>
+              ))}
             </tr>
           </thead>
           <tbody>
@@ -189,7 +210,7 @@ export default function PricingPage() {
                 <td>{SOURCE_LABELS[entry.source] ?? entry.source}</td>
                 <td>
                   <Button size="small" onClick={() => history.open(model)}>
-                    历史
+                    {t('历史')}
                   </Button>
                 </td>
               </tr>
@@ -197,66 +218,66 @@ export default function PricingPage() {
           </tbody>
         </table>
       ) : (
-        <p role="status">目录为空。</p>
+        <p role="status">{t('目录为空。')}</p>
       )}
       <fieldset className="mt-6">
-        <legend>追加自定义定价</legend>
+        <legend>{t('追加自定义定价')}</legend>
         <div className="evaluation-section-heading">
           <label>
-            模型 ID
+            {t('模型 ID')}
             <Input
-              aria-label="模型 ID"
+              aria-label={t('模型 ID')}
               value={form.modelId}
-              placeholder="如 gpt-4o-mini"
+              placeholder={t('如 gpt-4o-mini')}
               onChange={(event) =>
                 setForm({ ...form, modelId: event.target.value })
               }
             />
             {formErrors.modelId && (
-              <small role="alert">{formErrors.modelId}</small>
+              <small role="alert">{t(formErrors.modelId)}</small>
             )}
           </label>
           <label>
-            输入价 / 1k tokens
+            {t('输入价 / 1k tokens')}
             <Input
-              aria-label="输入价"
+              aria-label={t('输入价')}
               value={form.prompt_per_1k}
-              placeholder="如 0.15"
+              placeholder={t('如 0.15')}
               onChange={(event) =>
                 setForm({ ...form, prompt_per_1k: event.target.value })
               }
             />
             {formErrors.prompt_per_1k && (
-              <small role="alert">{formErrors.prompt_per_1k}</small>
+              <small role="alert">{t(formErrors.prompt_per_1k)}</small>
             )}
           </label>
           <label>
-            输出价 / 1k tokens
+            {t('输出价 / 1k tokens')}
             <Input
-              aria-label="输出价"
+              aria-label={t('输出价')}
               value={form.completion_per_1k}
-              placeholder="如 0.6"
+              placeholder={t('如 0.6')}
               onChange={(event) =>
                 setForm({ ...form, completion_per_1k: event.target.value })
               }
             />
             {formErrors.completion_per_1k && (
-              <small role="alert">{formErrors.completion_per_1k}</small>
+              <small role="alert">{t(formErrors.completion_per_1k)}</small>
             )}
           </label>
           <Button
             type="primary"
-            aria-label="追加定价"
+            aria-label={t('追加定价')}
             disabled={busy}
             onClick={() => void submit()}
           >
-            {busy ? '追加中…' : '追加'}
+            {busy ? t('追加中…') : t('追加')}
           </Button>
         </div>
       </fieldset>
       {history.drawer}
       <p className="mt-6">
-        <Link to="/settings">返回设置</Link>
+        <Link to="/settings">{t('返回设置')}</Link>
       </p>
     </section>
   )

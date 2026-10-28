@@ -1,3 +1,5 @@
+import { useTranslation } from 'react-i18next'
+import { t } from '../i18n/core.ts'
 import type { AxiosInstance } from 'axios'
 import {
   createContext,
@@ -32,6 +34,8 @@ export function EvaluationSessionProvider({
 }: {
   children: ReactNode
 }) {
+  useTranslation()
+
   const owner = useAuthStore((state) => state.session?.marker ?? null)
   return (
     <SessionScope key={owner ?? 'anonymous'} owner={owner}>
@@ -46,6 +50,8 @@ function SessionScope({
   owner: string | null
   children: ReactNode
 }) {
+  useTranslation()
+
   const navigate = useNavigate()
   const location = useLocation()
   const [navigation] = useState(() =>
@@ -94,7 +100,7 @@ function SessionScope({
 // eslint-disable-next-line react-refresh/only-export-components
 export function useEvaluationSession(): EvaluationSession {
   const session = useContext(SessionContext)
-  if (!session) throw new Error('评估功能需要会话 provider')
+  if (!session) throw new Error(t('评估功能需要会话 provider'))
   return session
 }
 

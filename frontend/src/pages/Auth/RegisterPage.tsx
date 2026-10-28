@@ -1,3 +1,5 @@
+import { useTranslation } from 'react-i18next'
+import { t } from '../../i18n/core.ts'
 import { Alert, Button, Form, Input } from 'antd'
 import { useRef, useState } from 'react'
 import { Controller, useForm, useWatch } from 'react-hook-form'
@@ -12,9 +14,15 @@ import {
 import { useAuthStore } from '@/store/auth.ts'
 
 const strengthText = {
-  short: '不足 12 位',
-  ok: '已达到 12 位',
-  long: '16 位及以上',
+  get short() {
+    return t('不足 12 位')
+  },
+  get ok() {
+    return t('已达到 12 位')
+  },
+  get long() {
+    return t('16 位及以上')
+  },
 } as const
 
 function isRegistrationField(name: string): name is keyof RegistrationInput {
@@ -45,6 +53,8 @@ function fieldMessages(details: unknown): Record<string, string> | null {
 }
 
 export default function RegisterPage() {
+  useTranslation()
+
   const navigate = useNavigate()
   const pending = useRef(false)
   const [submitting, setSubmitting] = useState(false)
@@ -131,9 +141,14 @@ export default function RegisterPage() {
 
   return (
     <section className="mx-auto w-full max-w-md">
-      <h1 className="mb-4 text-xl font-semibold">注册</h1>
+      <h1 className="mb-4 text-xl font-semibold">{t('注册')}</h1>
       {formMessage ? (
-        <Alert className="mb-4" type="error" message={formMessage} showIcon />
+        <Alert
+          className="mb-4"
+          type="error"
+          message={t(formMessage)}
+          showIcon
+        />
       ) : null}
       <Form
         layout="vertical"
@@ -143,9 +158,9 @@ export default function RegisterPage() {
         }}
       >
         <Form.Item
-          label="用户名"
+          label={t('用户名')}
           validateStatus={errors.username ? 'error' : undefined}
-          help={errors.username?.message}
+          help={t(errors.username?.message)}
         >
           <Controller
             name="username"
@@ -161,9 +176,9 @@ export default function RegisterPage() {
           />
         </Form.Item>
         <Form.Item
-          label="邮箱"
+          label={t('邮箱')}
           validateStatus={errors.email ? 'error' : undefined}
-          help={errors.email?.message}
+          help={t(errors.email?.message)}
         >
           <Controller
             name="email"
@@ -179,9 +194,9 @@ export default function RegisterPage() {
           />
         </Form.Item>
         <Form.Item
-          label="密码"
+          label={t('密码')}
           validateStatus={errors.password ? 'error' : undefined}
-          help={errors.password?.message}
+          help={t(errors.password?.message)}
           extra={strengthText[passwordStrength(password)]}
         >
           <Controller
@@ -197,9 +212,9 @@ export default function RegisterPage() {
           />
         </Form.Item>
         <Form.Item
-          label="确认密码"
+          label={t('确认密码')}
           validateStatus={errors.confirmPassword ? 'error' : undefined}
-          help={errors.confirmPassword?.message}
+          help={t(errors.confirmPassword?.message)}
         >
           <Controller
             name="confirmPassword"
@@ -214,11 +229,11 @@ export default function RegisterPage() {
           />
         </Form.Item>
         <Button type="primary" htmlType="submit" loading={submitting} block>
-          注册
+          {t('注册')}
         </Button>
       </Form>
       <p className="mt-4">
-        <Link to="/login">登录</Link>
+        <Link to="/login">{t('登录')}</Link>
       </p>
     </section>
   )

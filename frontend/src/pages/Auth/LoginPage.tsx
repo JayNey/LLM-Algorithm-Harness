@@ -1,3 +1,5 @@
+import { useTranslation } from 'react-i18next'
+import { t } from '../../i18n/core.ts'
 import { Alert, Button, Checkbox, Form, Input, message } from 'antd'
 import { useRef, useState } from 'react'
 import { Controller, useForm } from 'react-hook-form'
@@ -58,6 +60,8 @@ function fieldMessages(details: unknown): Record<string, string> | null {
 }
 
 export default function LoginPage() {
+  useTranslation()
+
   const navigate = useNavigate()
   const location = useLocation()
   const { from, registered } = loginLocationState(location.state)
@@ -139,12 +143,22 @@ export default function LoginPage() {
 
   return (
     <section className="mx-auto w-full max-w-md">
-      <h1 className="mb-4 text-xl font-semibold">登录</h1>
+      <h1 className="mb-4 text-xl font-semibold">{t('登录')}</h1>
       {registered ? (
-        <Alert className="mb-4" type="success" message="可以登录" showIcon />
+        <Alert
+          className="mb-4"
+          type="success"
+          message={t('可以登录')}
+          showIcon
+        />
       ) : null}
       {formMessage ? (
-        <Alert className="mb-4" type="error" message={formMessage} showIcon />
+        <Alert
+          className="mb-4"
+          type="error"
+          message={t(formMessage)}
+          showIcon
+        />
       ) : null}
       <Form
         layout="vertical"
@@ -154,9 +168,9 @@ export default function LoginPage() {
         }}
       >
         <Form.Item
-          label="用户名或邮箱"
+          label={t('用户名或邮箱')}
           validateStatus={errors.identity ? 'error' : undefined}
-          help={errors.identity?.message}
+          help={t(errors.identity?.message)}
         >
           <Controller
             name="identity"
@@ -172,9 +186,9 @@ export default function LoginPage() {
           />
         </Form.Item>
         <Form.Item
-          label="密码"
+          label={t('密码')}
           validateStatus={errors.password ? 'error' : undefined}
-          help={errors.password?.message}
+          help={t(errors.password?.message)}
         >
           <Controller
             name="password"
@@ -198,17 +212,17 @@ export default function LoginPage() {
                 checked={field.value}
                 onChange={(event) => field.onChange(event.target.checked)}
               >
-                记住我
+                {t('记住我')}
               </Checkbox>
             )}
           />
         </Form.Item>
         <Button type="primary" htmlType="submit" loading={submitting} block>
-          登录
+          {t('登录')}
         </Button>
       </Form>
       <p className="mt-4">
-        <Link to="/register">注册</Link>
+        <Link to="/register">{t('注册')}</Link>
       </p>
     </section>
   )

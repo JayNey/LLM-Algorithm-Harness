@@ -1,3 +1,5 @@
+import { useTranslation } from 'react-i18next'
+import { t } from '../../i18n/core.ts'
 import { Alert, Button, Form, Input } from 'antd'
 import { useEffect, useState } from 'react'
 import { Controller, useForm } from 'react-hook-form'
@@ -23,6 +25,8 @@ function failureText(error: unknown): string {
 }
 
 export default function ProfilePage() {
+  useTranslation()
+
   const updateUsername = useAuthStore((state) => state.updateUsername)
   const [loading, setLoading] = useState(true)
   const [loadError, setLoadError] = useState('')
@@ -158,26 +162,38 @@ export default function ProfilePage() {
     }
   }
 
-  if (loading) return <p>加载中</p>
+  if (loading) return <p>{t('加载中')}</p>
   if (loadError || createdAt === null) {
     return (
       <section>
-        <h1>个人资料</h1>
-        <Alert type="error" message={loadError || '服务暂时不可用'} showIcon />
+        <h1>{t('个人资料')}</h1>
+        <Alert
+          type="error"
+          message={t(loadError || t('服务暂时不可用'))}
+          showIcon
+        />
       </section>
     )
   }
 
   return (
     <section className="mx-auto w-full max-w-md">
-      <h1 className="mb-4 text-xl font-semibold">个人资料</h1>
+      <h1 className="mb-4 text-xl font-semibold">{t('个人资料')}</h1>
       {saved ? (
-        <Alert className="mb-4" type="success" message="已保存" showIcon />
+        <Alert className="mb-4" type="success" message={t('已保存')} showIcon />
       ) : null}
       {formMessage ? (
-        <Alert className="mb-4" type="error" message={formMessage} showIcon />
+        <Alert
+          className="mb-4"
+          type="error"
+          message={t(formMessage)}
+          showIcon
+        />
       ) : null}
-      <p className="mb-4">注册时间：{formatUnixSeconds(createdAt)}</p>
+      <p className="mb-4">
+        {t('注册时间：')}
+        {formatUnixSeconds(createdAt)}
+      </p>
       <Form
         layout="vertical"
         noValidate
@@ -186,9 +202,9 @@ export default function ProfilePage() {
         }}
       >
         <Form.Item
-          label="用户名"
+          label={t('用户名')}
           validateStatus={errors.username ? 'error' : undefined}
-          help={errors.username?.message}
+          help={t(errors.username?.message)}
         >
           <Controller
             name="username"
@@ -197,9 +213,9 @@ export default function ProfilePage() {
           />
         </Form.Item>
         <Form.Item
-          label="邮箱"
+          label={t('邮箱')}
           validateStatus={errors.email ? 'error' : undefined}
-          help={errors.email?.message}
+          help={t(errors.email?.message)}
         >
           <Controller
             name="email"
@@ -208,18 +224,18 @@ export default function ProfilePage() {
           />
         </Form.Item>
         <Button type="primary" htmlType="submit" loading={submitting}>
-          保存
+          {t('保存')}
         </Button>
       </Form>
-      <h2 className="mb-4 mt-8 text-lg font-semibold">修改密码</h2>
+      <h2 className="mb-4 mt-8 text-lg font-semibold">{t('修改密码')}</h2>
       {passwordSaved ? (
-        <Alert className="mb-4" type="success" message="已更新" showIcon />
+        <Alert className="mb-4" type="success" message={t('已更新')} showIcon />
       ) : null}
       {passwordMessage ? (
         <Alert
           className="mb-4"
           type="error"
-          message={passwordMessage}
+          message={t(passwordMessage)}
           showIcon
         />
       ) : null}
@@ -231,9 +247,9 @@ export default function ProfilePage() {
         }}
       >
         <Form.Item
-          label="当前密码"
+          label={t('当前密码')}
           validateStatus={passwordErrors.currentPassword ? 'error' : undefined}
-          help={passwordErrors.currentPassword?.message}
+          help={t(passwordErrors.currentPassword?.message)}
         >
           <Controller
             name="currentPassword"
@@ -244,9 +260,9 @@ export default function ProfilePage() {
           />
         </Form.Item>
         <Form.Item
-          label="新密码"
+          label={t('新密码')}
           validateStatus={passwordErrors.newPassword ? 'error' : undefined}
-          help={passwordErrors.newPassword?.message}
+          help={t(passwordErrors.newPassword?.message)}
         >
           <Controller
             name="newPassword"
@@ -257,9 +273,9 @@ export default function ProfilePage() {
           />
         </Form.Item>
         <Form.Item
-          label="确认密码"
+          label={t('确认密码')}
           validateStatus={passwordErrors.confirmPassword ? 'error' : undefined}
-          help={passwordErrors.confirmPassword?.message}
+          help={t(passwordErrors.confirmPassword?.message)}
         >
           <Controller
             name="confirmPassword"
@@ -270,7 +286,7 @@ export default function ProfilePage() {
           />
         </Form.Item>
         <Button type="primary" htmlType="submit" loading={changingPassword}>
-          更新密码
+          {t('更新密码')}
         </Button>
       </Form>
     </section>

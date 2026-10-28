@@ -1,12 +1,37 @@
+import { t } from '../i18n/core.ts'
 import { create } from 'zustand'
 
 export type ColorScheme = 'light' | 'dark'
 export type ThemePreference = ColorScheme | 'system'
 export type AppearanceVariant = 'orbit' | 'precision' | 'studio'
 export const appearanceVariants = {
-  orbit: { name: '深空控制台', en: 'Orbit', desc: '运行、观测与恢复' },
-  precision: { name: '精密实验室', en: 'Precision', desc: '基准、度量与比较' },
-  studio: { name: '石墨工作室', en: 'Studio', desc: '实验、记录与迭代' },
+  orbit: {
+    get name() {
+      return t('深空控制台')
+    },
+    en: 'Orbit',
+    get desc() {
+      return t('运行、观测与恢复')
+    },
+  },
+  precision: {
+    get name() {
+      return t('精密实验室')
+    },
+    en: 'Precision',
+    get desc() {
+      return t('基准、度量与比较')
+    },
+  },
+  studio: {
+    get name() {
+      return t('石墨工作室')
+    },
+    en: 'Studio',
+    get desc() {
+      return t('实验、记录与迭代')
+    },
+  },
 }
 interface UiState {
   appearanceVariant: AppearanceVariant

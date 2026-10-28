@@ -150,10 +150,16 @@ export function createAuthStore() {
     return {
       session: null,
       hydrate(deps) {
-        const box = storagesFrom(deps)
-        remember =
-          readSession({ local: box.local, session: emptyStorage() }) !== null
-        set({ session: readSession(box) })
+        try {
+          const box = storagesFrom(deps)
+          remember =
+            readSession({ local: box.local, session: emptyStorage() }) !== null
+          set({ session: readSession(box) })
+        } catch {
+          // Restricted browser storage must not prevent the sign-in UI loading.
+          remember = false
+          set({ session: null })
+        }
       },
       async login(identity, password, nextRemember, deps) {
         remember = nextRemember

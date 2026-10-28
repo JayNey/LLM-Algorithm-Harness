@@ -1,3 +1,5 @@
+import { useTranslation } from 'react-i18next'
+import { t } from '../../i18n/core.ts'
 import { Alert, Button } from 'antd'
 import { useCallback, useEffect, useRef } from 'react'
 import { Link, useParams } from 'react-router-dom'
@@ -16,6 +18,8 @@ import {
 import '@/evaluations/workflow.css'
 
 export default function EvaluationDetailPage() {
+  useTranslation()
+
   const { evaluationId = '' } = useParams()
   const { owner, client, creationStore } = useEvaluationSession()
   const receipt = useStore(creationStore)
@@ -28,7 +32,7 @@ export default function EvaluationDetailPage() {
       ? undefined
       : (live.evaluation ?? detail.data)
   const readError = live.forbidden
-    ? '任务不可访问，请刷新后重试'
+    ? t('任务不可访问，请刷新后重试')
     : (live.error ?? detail.error)
   const authClear = useAuthStore((state) => state.clear)
   useEffect(() => {
@@ -84,18 +88,18 @@ export default function EvaluationDetailPage() {
     <section className="evaluation-workflow">
       <header className="page-heading">
         <div>
-          <h1>评估任务详情</h1>
-          <p>查看任务状态与费用，按当前支持的操作管理任务。</p>
+          <h1>{t('评估任务详情')}</h1>
+          <p>{t('查看任务状态与费用，按当前支持的操作管理任务。')}</p>
         </div>
-        <Link to="/evaluations">返回任务列表</Link>
+        <Link to="/evaluations">{t('返回任务列表')}</Link>
       </header>
       <section
         className="panel evaluation-panel"
-        aria-label="评估详情"
+        aria-label={t('评估详情')}
         aria-busy={detail.loading || busy}
       >
         <dl className="evaluation-receipt">
-          <dt>任务 ID</dt>
+          <dt>{t('任务 ID')}</dt>
           <dd>{evaluationId}</dd>
         </dl>
         {actionError && (
@@ -104,31 +108,35 @@ export default function EvaluationDetailPage() {
             type="warning"
             title={
               receipt.phase === 'start-error'
-                ? '任务已创建，启动尚未确认'
-                : '操作尚未确认'
+                ? t('任务已创建，启动尚未确认')
+                : t('操作尚未确认')
             }
-            description={`${actionError.message}。请核对最新任务状态后重试。`}
+            description={t('{{value1}}。请核对最新任务状态后重试。', {
+              value1: actionError.message,
+            })}
           />
         )}
-        {detail.loading && <p role="status">正在加载评估详情…</p>}
+        {detail.loading && <p role="status">{t('正在加载评估详情…')}</p>}
         {readError && (
           <EvaluationFeedback
-            message={
+            message={t(
               current
-                ? `${readError}；下方为上次读取的数据，请刷新后操作。`
-                : readError
-            }
+                ? t('{{value1}}；下方为上次读取的数据，请刷新后操作。', {
+                    value1: readError,
+                  })
+                : readError,
+            )}
             retry={refresh}
           />
         )}
         {current && <EvaluationFacts evaluation={current} />}
-        {live.mode === 'live' && <p role="status">实时进度已连接</p>}
+        {live.mode === 'live' && <p role="status">{t('实时进度已连接')}</p>}
         {live.mode === 'degraded' && (
-          <p role="status">实时通道不可用，已切换为轮询。</p>
+          <p role="status">{t('实时通道不可用，已切换为轮询。')}</p>
         )}
         <div className="evaluation-actions">
           <Button onClick={refresh} disabled={detail.loading || busy}>
-            刷新任务
+            {t('刷新任务')}
           </Button>
           {current?.can_start && (
             <Button
@@ -138,7 +146,7 @@ export default function EvaluationDetailPage() {
                 void act('start')
               }}
             >
-              启动任务
+              {t('启动任务')}
             </Button>
           )}
           {current?.can_cancel && (
@@ -149,10 +157,10 @@ export default function EvaluationDetailPage() {
                 void act('cancel')
               }}
             >
-              取消任务
+              {t('取消任务')}
             </Button>
           )}
-          {busy && <span role="status">正在等待操作响应…</span>}
+          {busy && <span role="status">{t('正在等待操作响应…')}</span>}
         </div>
       </section>
     </section>

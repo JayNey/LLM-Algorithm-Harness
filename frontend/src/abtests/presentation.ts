@@ -1,11 +1,12 @@
+import { currentLanguage, t } from '../i18n/core.ts'
 export function statusLabel(status: string): string {
   const labels: Record<string, string> = {
-    pending: '排队中',
-    running: '运行中',
-    paused: '已暂停',
-    completed: '已完成',
-    failed: '已失败',
-    cancelled: '已取消',
+    pending: t('排队中'),
+    running: t('运行中'),
+    paused: t('已暂停'),
+    completed: t('已完成'),
+    failed: t('已失败'),
+    cancelled: t('已取消'),
   }
   return labels[status] ?? status
 }
@@ -22,9 +23,9 @@ export function formatDiff(value: number | null): string {
 
 export function testMethodLabel(test: string): string {
   const labels: Record<string, string> = {
-    fisher_exact: 'Fisher 精确检验',
-    chi_square: '卡方检验',
-    unavailable: '样本不足，无法检验',
+    fisher_exact: t('Fisher 精确检验'),
+    chi_square: t('卡方检验'),
+    unavailable: t('样本不足，无法检验'),
   }
   return labels[test] ?? test
 }
@@ -32,6 +33,6 @@ export function testMethodLabel(test: string): string {
 export function formatDateTime(value: string): string {
   const date = new Date(value)
   return Number.isNaN(date.getTime())
-    ? '时间未知'
-    : date.toLocaleString('zh-CN')
+    ? t('时间未知')
+    : date.toLocaleString(currentLanguage())
 }

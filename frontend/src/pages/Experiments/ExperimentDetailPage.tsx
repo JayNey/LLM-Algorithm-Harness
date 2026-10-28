@@ -1,3 +1,5 @@
+import { useTranslation } from 'react-i18next'
+import { t } from '../../i18n/core.ts'
 import { Alert, Button, Select, Skeleton, Tabs } from 'antd'
 import { useCallback, useEffect, useState } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
@@ -62,33 +64,36 @@ function useResource<T>(load: (signal: AbortSignal) => Promise<T>) {
 }
 
 function ConfigSummary({ job }: { job: ExperimentJob }) {
+  useTranslation()
+
   const config = job.config
   return (
     <dl>
-      <dt>数据集</dt>
+      <dt>{t('数据集')}</dt>
       <dd>{config.dataset_path}</dd>
-      <dt>模型</dt>
+      <dt>{t('模型')}</dt>
       <dd>
         {config.models
           .map(
             (model) =>
-              `${model.model}${model.temperature !== undefined ? `（温度 ${model.temperature}）` : ''}`,
+              `${model.model}${model.temperature !== undefined ? t('（温度 {{value1}}）', { value1: model.temperature }) : ''}`,
           )
           .join('、')}
       </dd>
-      <dt>策略</dt>
+      <dt>{t('策略')}</dt>
       <dd>{config.strategies.map((strategy) => strategy.name).join('、')}</dd>
-      <dt>执行</dt>
+      <dt>{t('执行')}</dt>
       <dd>
         {config.execution === 'parallel'
-          ? `并行 ×${config.max_workers}`
-          : '串行'}{' '}
-        · 重复 {config.repeats} 次
+          ? t('并行 ×{{value1}}', { value1: config.max_workers })
+          : t('串行')}{' '}
+        {t('· 重复 ')}
+        {config.repeats} {t(' 次')}
       </dd>
-      <dt>预算</dt>
+      <dt>{t('预算')}</dt>
       <dd>
         {config.budget === null
-          ? '不限制'
+          ? t('不限制')
           : Object.entries(config.budget)
               .map(([kind, value]) => `${kind} ≤ ${value}`)
               .join('，')}
@@ -98,6 +103,8 @@ function ConfigSummary({ job }: { job: ExperimentJob }) {
 }
 
 function ComparisonTab({ experimentId }: { experimentId: string }) {
+  useTranslation()
+
   const { client } = useExperimentSession()
   const report = useResource(
     useCallback(
@@ -107,22 +114,22 @@ function ComparisonTab({ experimentId }: { experimentId: string }) {
   )
   if (report.loading) return <Skeleton active paragraph={{ rows: 5 }} />
   if (report.error)
-    return <Alert role="alert" type="error" message={report.error} />
+    return <Alert role="alert" type="error" message={t(report.error)} />
   const data = report.data as ComparisonReport
   return (
     <div>
-      <h3>组合指标</h3>
-      <table className="evaluation-list-table" aria-label="组合指标表">
+      <h3>{t('组合指标')}</h3>
+      <table className="evaluation-list-table" aria-label={t('组合指标表')}>
         <thead>
           <tr>
             {[
-              '组合',
-              '模型',
-              '策略',
-              '完成/总数',
-              '通过率',
-              '正式通过率',
-              '成本',
+              t('组合'),
+              t('模型'),
+              t('策略'),
+              t('完成/总数'),
+              t('通过率'),
+              t('正式通过率'),
+              t('成本'),
             ].map((name) => (
               <th key={name} scope="col">
                 {name}
@@ -157,18 +164,28 @@ function ComparisonTab({ experimentId }: { experimentId: string }) {
       {Object.entries(data.model_comparison.strategies).map(
         ([strategy, group]) => (
           <section key={strategy}>
-            <h3>胜率矩阵：{strategy}</h3>
+            <h3>
+              {t('胜率矩阵：')}
+              {strategy}
+            </h3>
             <WinRateHeatmap strategy={strategy} matrix={group.matrix} />
-            <table className="evaluation-list-table" aria-label="显著性检验">
+            <table
+              className="evaluation-list-table"
+              aria-label={t('显著性检验')}
+            >
               <thead>
                 <tr>
-                  {['对比', '不一致对数', 'p 值', '显著', '说明'].map(
-                    (name) => (
-                      <th key={name} scope="col">
-                        {name}
-                      </th>
-                    ),
-                  )}
+                  {[
+                    t('对比'),
+                    t('不一致对数'),
+                    t('p 值'),
+                    t('显著'),
+                    t('说明'),
+                  ].map((name) => (
+                    <th key={name} scope="col">
+                      {name}
+                    </th>
+                  ))}
                 </tr>
               </thead>
               <tbody>
@@ -181,8 +198,8 @@ function ComparisonTab({ experimentId }: { experimentId: string }) {
                       {row.significant === null
                         ? '—'
                         : row.significant
-                          ? '显著（p<0.05）'
-                          : '不显著'}
+                          ? t('显著（p<0.05）')
+                          : t('不显著')}
                     </td>
                     <td>{row.note}</td>
                   </tr>
@@ -192,15 +209,17 @@ function ComparisonTab({ experimentId }: { experimentId: string }) {
           </section>
         ),
       )}
-      <h3>成本效益</h3>
-      <table className="evaluation-list-table" aria-label="成本效益表">
+      <h3>{t('成本效益')}</h3>
+      <table className="evaluation-list-table" aria-label={t('成本效益表')}>
         <thead>
           <tr>
-            {['模型', '解决题数', '总成本', '每美元解决题数'].map((name) => (
-              <th key={name} scope="col">
-                {name}
-              </th>
-            ))}
+            {[t('模型'), t('解决题数'), t('总成本'), t('每美元解决题数')].map(
+              (name) => (
+                <th key={name} scope="col">
+                  {name}
+                </th>
+              ),
+            )}
           </tr>
         </thead>
         <tbody>
@@ -219,6 +238,8 @@ function ComparisonTab({ experimentId }: { experimentId: string }) {
 }
 
 function PanelTab({ experimentId }: { experimentId: string }) {
+  useTranslation()
+
   const { client } = useExperimentSession()
   const panel = useResource(
     useCallback(
@@ -228,34 +249,34 @@ function PanelTab({ experimentId }: { experimentId: string }) {
   )
   if (panel.loading) return <Skeleton active paragraph={{ rows: 5 }} />
   if (panel.error)
-    return <Alert role="alert" type="error" message={panel.error} />
+    return <Alert role="alert" type="error" message={t(panel.error)} />
   const data = panel.data as PanelData
   return (
     <div>
-      <h3>能力雷达</h3>
+      <h3>{t('能力雷达')}</h3>
       <RadarChart labels={data.radar.labels} datasets={data.radar.datasets} />
-      <h3>算法维度雷达</h3>
+      <h3>{t('算法维度雷达')}</h3>
       <RadarChart
         labels={data.algorithm_radar.labels}
         datasets={data.algorithm_radar.datasets}
       />
-      <h3>成本-通过率散点</h3>
+      <h3>{t('成本-通过率散点')}</h3>
       <ScatterPlot
         points={data.scatter.map((point) => ({
           label: point.label,
           x: point.x,
           y: point.y,
         }))}
-        xName="总成本（USD）"
-        yName="正式通过率"
+        xName={t('总成本（USD）')}
+        yName={t('正式通过率')}
       />
-      <h3>资源消耗</h3>
+      <h3>{t('资源消耗')}</h3>
       <BarCompare
         labels={data.bar.labels}
         series={[
-          { name: '调用次数', values: data.bar.calls },
-          { name: '耗时（秒）', values: data.bar.elapsed },
-          { name: 'token 数', values: data.bar.tokens },
+          { name: t('调用次数'), values: data.bar.calls },
+          { name: t('耗时（秒）'), values: data.bar.elapsed },
+          { name: t('token 数'), values: data.bar.tokens },
         ]}
       />
     </div>
@@ -263,6 +284,8 @@ function PanelTab({ experimentId }: { experimentId: string }) {
 }
 
 function ParetoTab({ experimentId }: { experimentId: string }) {
+  useTranslation()
+
   const { client } = useExperimentSession()
   const [accuracyMetric, setAccuracyMetric] = useState<'overall' | 'formal'>(
     'overall',
@@ -276,14 +299,14 @@ function ParetoTab({ experimentId }: { experimentId: string }) {
   const pareto = useResource(load)
   if (pareto.loading) return <Skeleton active paragraph={{ rows: 5 }} />
   if (pareto.error)
-    return <Alert role="alert" type="error" message={pareto.error} />
+    return <Alert role="alert" type="error" message={t(pareto.error)} />
   const data = pareto.data as ParetoResult
   return (
     <div>
       <label>
-        准确率口径
+        {t('准确率口径')}
         <Select
-          aria-label="帕累托准确率口径"
+          aria-label={t('帕累托准确率口径')}
           value={accuracyMetric}
           options={[
             { value: 'overall', label: 'overall' },
@@ -299,20 +322,20 @@ function ParetoTab({ experimentId }: { experimentId: string }) {
           y: point.mean_accuracy,
         }))}
         highlightIds={data.frontier_ids}
-        xName="平均成本（USD）"
-        yName="平均准确率"
+        xName={t('平均成本（USD）')}
+        yName={t('平均准确率')}
       />
       <p>
-        前沿组合：
+        {t('前沿组合：')}
         {data.points
           .filter((point) => data.frontier_ids.includes(point.id))
           .map((point) => `${point.model} × ${point.strategy}`)
-          .join('、') || '无'}
+          .join('、') || t('无')}
       </p>
-      <table className="evaluation-list-table" aria-label="帕累托预算建议">
+      <table className="evaluation-list-table" aria-label={t('帕累托预算建议')}>
         <thead>
           <tr>
-            {['预算（USD）', '可行', '推荐组合'].map((name) => (
+            {[t('预算（USD）'), t('可行'), t('推荐组合')].map((name) => (
               <th key={name} scope="col">
                 {name}
               </th>
@@ -323,7 +346,7 @@ function ParetoTab({ experimentId }: { experimentId: string }) {
           {data.budget_recommendations.map((row) => (
             <tr key={row.budget_usd}>
               <td>{row.budget_usd}</td>
-              <td>{row.feasible ? '可行' : '不可行'}</td>
+              <td>{row.feasible ? t('可行') : t('不可行')}</td>
               <td>{row.point_id || '—'}</td>
             </tr>
           ))}
@@ -334,6 +357,8 @@ function ParetoTab({ experimentId }: { experimentId: string }) {
 }
 
 function OptimizeTab({ experimentId }: { experimentId: string }) {
+  useTranslation()
+
   const { client } = useExperimentSession()
   const [objective, setObjective] = useState<
     'highest_accuracy' | 'best_value' | 'lowest_cost'
@@ -347,19 +372,19 @@ function OptimizeTab({ experimentId }: { experimentId: string }) {
   const advisory = useResource(load)
   if (advisory.loading) return <Skeleton active paragraph={{ rows: 5 }} />
   if (advisory.error)
-    return <Alert role="alert" type="error" message={advisory.error} />
+    return <Alert role="alert" type="error" message={t(advisory.error)} />
   const data = advisory.data as OptimizeAdvisory
   const names: Record<string, string> = {
-    highest_accuracy: '最高准确率',
-    best_value: '最佳性价比',
-    lowest_cost: '最低成本',
+    highest_accuracy: t('最高准确率'),
+    best_value: t('最佳性价比'),
+    lowest_cost: t('最低成本'),
   }
   return (
     <div>
       <label>
-        优化目标
+        {t('优化目标')}
         <Select
-          aria-label="成本优化目标"
+          aria-label={t('成本优化目标')}
           value={objective}
           options={Object.entries(names).map(([value, label]) => ({
             value,
@@ -370,14 +395,16 @@ function OptimizeTab({ experimentId }: { experimentId: string }) {
           ) => setObjective(value)}
         />
       </label>
-      <table className="evaluation-list-table" aria-label="优化建议">
+      <table className="evaluation-list-table" aria-label={t('优化建议')}>
         <thead>
           <tr>
-            {['目标', '可行', '推荐组合', '准确率', '成本'].map((name) => (
-              <th key={name} scope="col">
-                {name}
-              </th>
-            ))}
+            {[t('目标'), t('可行'), t('推荐组合'), t('准确率'), t('成本')].map(
+              (name) => (
+                <th key={name} scope="col">
+                  {name}
+                </th>
+              ),
+            )}
           </tr>
         </thead>
         <tbody>
@@ -386,7 +413,7 @@ function OptimizeTab({ experimentId }: { experimentId: string }) {
               <td>
                 {names[recommendation.objective] ?? recommendation.objective}
               </td>
-              <td>{recommendation.feasible ? '可行' : '不可行'}</td>
+              <td>{recommendation.feasible ? t('可行') : t('不可行')}</td>
               <td>
                 {recommendation.feasible
                   ? `${recommendation.model ?? '—'} × ${recommendation.strategy ?? '—'}`
@@ -406,11 +433,17 @@ function OptimizeTab({ experimentId }: { experimentId: string }) {
           ))}
         </tbody>
       </table>
-      <h3>组合排名</h3>
-      <table className="evaluation-list-table" aria-label="组合排名">
+      <h3>{t('组合排名')}</h3>
+      <table className="evaluation-list-table" aria-label={t('组合排名')}>
         <thead>
           <tr>
-            {['模型', '策略', '准确率', '成本', '每美元解决'].map((name) => (
+            {[
+              t('模型'),
+              t('策略'),
+              t('准确率'),
+              t('成本'),
+              t('每美元解决'),
+            ].map((name) => (
               <th key={name} scope="col">
                 {name}
               </th>
@@ -426,7 +459,9 @@ function OptimizeTab({ experimentId }: { experimentId: string }) {
                 {row.accuracy === null ? '—' : formatAccuracy(row.accuracy)}
               </td>
               <td>
-                {row.cost_usd === null ? '成本未知' : formatUsd(row.cost_usd)}
+                {row.cost_usd === null
+                  ? t('成本未知')
+                  : formatUsd(row.cost_usd)}
               </td>
               <td>{row.ratio === null ? '—' : row.ratio}</td>
             </tr>
@@ -438,6 +473,8 @@ function OptimizeTab({ experimentId }: { experimentId: string }) {
 }
 
 export default function ExperimentDetailPage() {
+  useTranslation()
+
   const { experimentId } = useParams()
   const { client, owner } = useExperimentSession()
   const navigate = useNavigate()
@@ -506,7 +543,12 @@ export default function ExperimentDetailPage() {
   }
   async function remove() {
     if (!job || busy) return
-    if (!window.confirm(`确认删除实验「${job.name || job.id}」？`)) return
+    if (
+      !window.confirm(
+        t('确认删除实验「{{value1}}」？', { value1: job.name || job.id }),
+      )
+    )
+      return
     setBusy(true)
     setActionError(null)
     try {
@@ -522,16 +564,16 @@ export default function ExperimentDetailPage() {
   }
 
   if (!experimentId)
-    return <Alert role="alert" type="error" message="缺少实验 ID" />
+    return <Alert role="alert" type="error" message={t('缺少实验 ID')} />
   if (jobResource.loading) return <Skeleton active paragraph={{ rows: 6 }} />
   if (jobResource.error)
     return (
       <ExperimentFeedback
-        message={jobResource.error}
+        message={t(jobResource.error)}
         retry={jobResource.retry}
       />
     )
-  if (!job) return <Alert role="alert" type="error" message="实验不存在" />
+  if (!job) return <Alert role="alert" type="error" message={t('实验不存在')} />
   const settled = TERMINAL.has(job.status)
   return (
     <section className="evaluation-workflow">
@@ -541,35 +583,36 @@ export default function ExperimentDetailPage() {
             {job.name || job.id} <small>{statusLabel(job.status)}</small>
           </h1>
           <p>
-            创建于 {formatDateTime(job.created_at)} · 更新于{' '}
+            {t('创建于 ')}
+            {formatDateTime(job.created_at)} {t(' · 更新于')}{' '}
             {formatDateTime(job.updated_at)}
           </p>
         </div>
         <Link className="evaluation-create-link" to="/experiments">
-          返回列表
+          {t('返回列表')}
         </Link>
       </header>
       <div className="panel evaluation-panel">
-        {actionError && <ExperimentFeedback message={actionError} />}
+        {actionError && <ExperimentFeedback message={t(actionError)} />}
         {job.error_message && (
           <Alert role="alert" type="error" message={job.error_message} />
         )}
         <ConfigSummary job={job} />
         {ACTIVE.has(job.status) && (
-          <div role="status" aria-label="实验进度">
+          <div role="status" aria-label={t('实验进度')}>
             {progress.task?.progress ? (
               <p>
-                {progress.task.progress.current_step || '执行中'} ·{' '}
+                {progress.task.progress.current_step || t('执行中')} ·{' '}
                 {progress.task.progress.current} /{' '}
                 {progress.task.progress.total}（
                 {progress.task.progress.percentage}%）
               </p>
             ) : (
-              <p>等待任务调度…</p>
+              <p>{t('等待任务调度…')}</p>
             )}
             {progress.paused && (
-              <Button aria-label="重试进度轮询" onClick={progress.reload}>
-                重试进度轮询
+              <Button aria-label={t('重试进度轮询')} onClick={progress.reload}>
+                {t('重试进度轮询')}
               </Button>
             )}
           </div>
@@ -578,24 +621,24 @@ export default function ExperimentDetailPage() {
           {job.status === 'pending' && !activeTaskId && (
             <Button
               type="primary"
-              aria-label="启动实验"
+              aria-label={t('启动实验')}
               disabled={busy}
               onClick={() => void start()}
             >
-              启动实验
+              {t('启动实验')}
             </Button>
           )}
           {activeTaskId && (
             <Button
-              aria-label="取消实验"
+              aria-label={t('取消实验')}
               disabled={busy}
               onClick={() => void cancel()}
             >
-              取消运行
+              {t('取消运行')}
             </Button>
           )}
           <Button danger disabled={busy} onClick={() => void remove()}>
-            删除
+            {t('删除')}
           </Button>
         </div>
         <Tabs
@@ -604,33 +647,35 @@ export default function ExperimentDetailPage() {
               ? [
                   {
                     key: 'comparison',
-                    label: '对比报告',
+                    label: t('对比报告'),
                     children: <ComparisonTab experimentId={job.id} />,
                   },
                   {
                     key: 'panel',
-                    label: '分析面板',
+                    label: t('分析面板'),
                     children: <PanelTab experimentId={job.id} />,
                   },
                   {
                     key: 'pareto',
-                    label: '帕累托',
+                    label: t('帕累托'),
                     children: <ParetoTab experimentId={job.id} />,
                   },
                   {
                     key: 'optimize',
-                    label: '成本建议',
+                    label: t('成本建议'),
                     children: <OptimizeTab experimentId={job.id} />,
                   },
                 ]
               : [
                   {
                     key: 'pending-note',
-                    label: '分析',
+                    label: t('分析'),
                     children: (
                       <Alert
                         type="info"
-                        message="实验完成后可查看对比报告、帕累托与成本建议。"
+                        message={t(
+                          '实验完成后可查看对比报告、帕累托与成本建议。',
+                        )}
                       />
                     ),
                   },

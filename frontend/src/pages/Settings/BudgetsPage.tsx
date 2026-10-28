@@ -1,3 +1,5 @@
+import { useTranslation } from 'react-i18next'
+import { t } from '../../i18n/core.ts'
 import { Alert, Button, Input, Select, Skeleton } from 'antd'
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { Link } from 'react-router-dom'
@@ -7,10 +9,20 @@ import type { AlertChannel, AlertRule, BudgetUsage } from '@/budgets/types.ts'
 import { validateAlertInput, validateBudgetInput } from '@/budgets/client.ts'
 
 const CHANNEL_OPTIONS: { value: AlertChannel; label: string }[] = [
-  { value: 'log', label: '日志（log）' },
+  {
+    value: 'log',
+    get label() {
+      return t('日志（log）')
+    },
+  },
   { value: 'webhook', label: 'Webhook' },
   { value: 'slack', label: 'Slack' },
-  { value: 'smtp', label: '邮件（SMTP）' },
+  {
+    value: 'smtp',
+    get label() {
+      return t('邮件（SMTP）')
+    },
+  },
 ]
 
 function formatUsd(value: number | null): string {
@@ -52,6 +64,8 @@ function useResource<T>(load: (signal: AbortSignal) => Promise<T>) {
 }
 
 function BudgetForm({ onSaved }: { onSaved: () => void }) {
+  useTranslation()
+
   const { client } = useBudgetSession()
   const [form, setForm] = useState({
     global_cap_usd: '',
@@ -126,47 +140,50 @@ function BudgetForm({ onSaved }: { onSaved: () => void }) {
 
   return (
     <div className="grid gap-3">
-      {message && <Alert message={message} type="info" showIcon />}
+      {message && <Alert message={t(message)} type="info" showIcon />}
       <label>
-        全局预算上限（USD；留空提交表示保持现有上限——后端部分更新不清除，如需清空请联系管理员重置）
+        {t(
+          '全局预算上限（USD；留空提交表示保持现有上限——后端部分更新不清除，如需清空请联系管理员重置）',
+        )}
         <Input
-          aria-label="全局预算上限"
+          aria-label={t('全局预算上限')}
           value={form.global_cap_usd}
-          placeholder="如 100"
+          placeholder={t('如 100')}
           onChange={(event) =>
             setForm({ ...form, global_cap_usd: event.target.value })
           }
         />
         {errors.global_cap_usd && (
-          <small role="alert">{errors.global_cap_usd}</small>
+          <small role="alert">{t(errors.global_cap_usd)}</small>
         )}
       </label>
       <div className="evaluation-section-heading">
         {(['easy', 'medium', 'hard'] as const).map((key) => (
           <label key={key}>
-            {{ easy: '简单', medium: '中等', hard: '困难' }[key]}上限
+            {{ easy: t('简单'), medium: t('中等'), hard: t('困难') }[key]}
+            {t('上限')}
             <Input
-              aria-label={`${key} 难度预算上限`}
+              aria-label={t('{{value1}} 难度预算上限', { value1: key })}
               value={form[key]}
-              placeholder="留空 = 保持现有值"
+              placeholder={t('留空 = 保持现有值')}
               onChange={(event) =>
                 setForm({ ...form, [key]: event.target.value })
               }
             />
-            {errors[key] && <small role="alert">{errors[key]}</small>}
+            {errors[key] && <small role="alert">{t(errors[key])}</small>}
           </label>
         ))}
       </div>
       <label>
-        超限动作
+        {t('超限动作')}
         <Select
-          aria-label="超限动作"
+          aria-label={t('超限动作')}
           value={form.action || undefined}
-          placeholder="不动作"
+          placeholder={t('不动作')}
           allowClear
           options={[
-            { value: 'pause', label: '暂停（pause）' },
-            { value: 'downgrade', label: '降级模型（downgrade）' },
+            { value: 'pause', label: t('暂停（pause）') },
+            { value: 'downgrade', label: t('降级模型（downgrade）') },
           ]}
           onChange={(value) =>
             setForm({ ...form, action: (value ?? '') as typeof form.action })
@@ -175,17 +192,19 @@ function BudgetForm({ onSaved }: { onSaved: () => void }) {
       </label>
       <Button
         type="primary"
-        aria-label="保存预算"
+        aria-label={t('保存预算')}
         disabled={busy}
         onClick={() => void save()}
       >
-        {busy ? '保存中…' : '保存预算'}
+        {busy ? t('保存中…') : t('保存预算')}
       </Button>
     </div>
   )
 }
 
 function UsageSection({ usage }: { usage: BudgetUsage }) {
+  useTranslation()
+
   type Row = {
     cap_usd: number | null
     used_usd: number
@@ -193,20 +212,22 @@ function UsageSection({ usage }: { usage: BudgetUsage }) {
     percentage_used: number | null
   }
   const rows: Array<[string, Row]> = [
-    ['全局', usage.global_budget],
-    ['简单', usage.by_difficulty.easy],
-    ['中等', usage.by_difficulty.medium],
-    ['困难', usage.by_difficulty.hard],
+    [t('全局'), usage.global_budget],
+    [t('简单'), usage.by_difficulty.easy],
+    [t('中等'), usage.by_difficulty.medium],
+    [t('困难'), usage.by_difficulty.hard],
   ]
   return (
-    <table className="evaluation-list-table" aria-label="预算使用量">
+    <table className="evaluation-list-table" aria-label={t('预算使用量')}>
       <thead>
         <tr>
-          {['口径', '上限', '已用', '剩余', '使用率'].map((name) => (
-            <th key={name} scope="col">
-              {name}
-            </th>
-          ))}
+          {[t('口径'), t('上限'), t('已用'), t('剩余'), t('使用率')].map(
+            (name) => (
+              <th key={name} scope="col">
+                {name}
+              </th>
+            ),
+          )}
         </tr>
       </thead>
       <tbody>
@@ -229,6 +250,8 @@ function UsageSection({ usage }: { usage: BudgetUsage }) {
 }
 
 function AlertRulesSection({ onChanged }: { onChanged: () => void }) {
+  useTranslation()
+
   const { client } = useBudgetSession()
   const [rules, setRules] = useState<AlertRule[] | null>(null)
   const [error, setError] = useState<string | null>(null)
@@ -299,7 +322,12 @@ function AlertRulesSection({ onChanged }: { onChanged: () => void }) {
 
   async function remove(rule: AlertRule) {
     if (busy) return
-    if (!window.confirm(`确认删除预警规则「${rule.name || rule.id}」？`)) return
+    if (
+      !window.confirm(
+        t('确认删除预警规则「{{value1}}」？', { value1: rule.name || rule.id }),
+      )
+    )
+      return
     setBusy(true)
     try {
       await client.deleteAlertRule(rule.id)
@@ -316,16 +344,25 @@ function AlertRulesSection({ onChanged }: { onChanged: () => void }) {
       <Alert
         type="warning"
         showIcon
-        message="通知投递后端尚未实现：规则会被保存，但不会实际发送 Slack/Webhook/邮件通知。"
+        message={t(
+          '通知投递后端尚未实现：规则会被保存，但不会实际发送 Slack/Webhook/邮件通知。',
+        )}
       />
-      {error && <ExperimentFeedback message={error} retry={reload} />}
+      {error && <ExperimentFeedback message={t(error)} retry={reload} />}
       {rules === null && !error ? (
         <Skeleton active paragraph={{ rows: 3 }} />
       ) : rules && rules.length ? (
-        <table className="evaluation-list-table" aria-label="预警规则">
+        <table className="evaluation-list-table" aria-label={t('预警规则')}>
           <thead>
             <tr>
-              {['名称', '阈值', '渠道', '目标', '状态', '操作'].map((name) => (
+              {[
+                t('名称'),
+                t('阈值'),
+                t('渠道'),
+                t('目标'),
+                t('状态'),
+                t('操作'),
+              ].map((name) => (
                 <th key={name} scope="col">
                   {name}
                 </th>
@@ -339,14 +376,14 @@ function AlertRulesSection({ onChanged }: { onChanged: () => void }) {
                 <td>{rule.threshold_pct}%</td>
                 <td>{rule.channel}</td>
                 <td>{rule.target || '—'}</td>
-                <td>{rule.enabled ? '启用' : '停用'}</td>
+                <td>{rule.enabled ? t('启用') : t('停用')}</td>
                 <td className="evaluation-section-heading">
                   <Button
                     size="small"
                     disabled={busy}
                     onClick={() => void toggle(rule)}
                   >
-                    {rule.enabled ? '停用' : '启用'}
+                    {rule.enabled ? t('停用') : t('启用')}
                   </Button>
                   <Button
                     size="small"
@@ -354,7 +391,7 @@ function AlertRulesSection({ onChanged }: { onChanged: () => void }) {
                     disabled={busy}
                     onClick={() => void remove(rule)}
                   >
-                    删除
+                    {t('删除')}
                   </Button>
                 </td>
               </tr>
@@ -362,42 +399,42 @@ function AlertRulesSection({ onChanged }: { onChanged: () => void }) {
           </tbody>
         </table>
       ) : (
-        <p role="status">还没有预警规则。</p>
+        <p role="status">{t('还没有预警规则。')}</p>
       )}
       <fieldset>
-        <legend>新增预警规则</legend>
+        <legend>{t('新增预警规则')}</legend>
         {draftError && <small role="alert">{draftError}</small>}
         <div className="evaluation-section-heading">
           <Input
-            aria-label="规则名称"
-            placeholder="名称（可选）"
+            aria-label={t('规则名称')}
+            placeholder={t('名称（可选）')}
             value={draft.name}
             onChange={(event) =>
               setDraft({ ...draft, name: event.target.value })
             }
           />
           <Input
-            aria-label="阈值百分比"
-            placeholder="阈值 %（1–100）"
+            aria-label={t('阈值百分比')}
+            placeholder={t('阈值 %（1–100）')}
             value={draft.threshold_pct}
             onChange={(event) =>
               setDraft({ ...draft, threshold_pct: event.target.value })
             }
           />
           <Select
-            aria-label="通知渠道"
+            aria-label={t('通知渠道')}
             value={draft.channel}
-            options={CHANNEL_OPTIONS}
+            options={CHANNEL_OPTIONS.map((option) => ({ ...option }))}
             onChange={(value: AlertChannel) =>
               setDraft({ ...draft, channel: value })
             }
           />
           <Input
-            aria-label="通知目标"
+            aria-label={t('通知目标')}
             placeholder={
               draft.channel === 'log'
-                ? 'log 渠道无需目标'
-                : 'Webhook/邮箱等目标'
+                ? t('log 渠道无需目标')
+                : t('Webhook/邮箱等目标')
             }
             value={draft.target}
             onChange={(event) =>
@@ -405,11 +442,11 @@ function AlertRulesSection({ onChanged }: { onChanged: () => void }) {
             }
           />
           <Button
-            aria-label="创建预警规则"
+            aria-label={t('创建预警规则')}
             disabled={busy}
             onClick={() => void create()}
           >
-            创建
+            {t('创建')}
           </Button>
         </div>
       </fieldset>
@@ -418,6 +455,8 @@ function AlertRulesSection({ onChanged }: { onChanged: () => void }) {
 }
 
 export default function BudgetsPage() {
+  useTranslation()
+
   const { client } = useBudgetSession()
   const usage = useResource(
     useCallback((signal: AbortSignal) => client.usage(signal), [client]),
@@ -425,32 +464,34 @@ export default function BudgetsPage() {
   const refreshUsage = usage.retry
   return (
     <section className="mx-auto w-full max-w-3xl">
-      <h1 className="mb-2 text-xl font-semibold">预算与预警</h1>
+      <h1 className="mb-2 text-xl font-semibold">{t('预算与预警')}</h1>
       <p className="mb-6 text-neutral-600 dark:text-neutral-400">
-        管理个人预算上限与成本预警规则；难度使用量为估算（按题目难度均摊）。
+        {t(
+          '管理个人预算上限与成本预警规则；难度使用量为估算（按题目难度均摊）。',
+        )}
       </p>
       <div className="grid gap-8">
         <div>
-          <h2 className="mb-3 text-lg font-semibold">预算配置</h2>
+          <h2 className="mb-3 text-lg font-semibold">{t('预算配置')}</h2>
           <BudgetForm onSaved={refreshUsage} />
         </div>
         <div>
-          <h2 className="mb-3 text-lg font-semibold">使用量</h2>
+          <h2 className="mb-3 text-lg font-semibold">{t('使用量')}</h2>
           {usage.loading ? (
             <Skeleton active paragraph={{ rows: 4 }} />
           ) : usage.error ? (
-            <ExperimentFeedback message={usage.error} retry={usage.retry} />
+            <ExperimentFeedback message={t(usage.error)} retry={usage.retry} />
           ) : usage.data ? (
             <UsageSection usage={usage.data} />
           ) : null}
         </div>
         <div>
-          <h2 className="mb-3 text-lg font-semibold">预警规则</h2>
+          <h2 className="mb-3 text-lg font-semibold">{t('预警规则')}</h2>
           <AlertRulesSection onChanged={refreshUsage} />
         </div>
       </div>
       <p className="mt-6">
-        <Link to="/settings">返回设置</Link>
+        <Link to="/settings">{t('返回设置')}</Link>
       </p>
     </section>
   )

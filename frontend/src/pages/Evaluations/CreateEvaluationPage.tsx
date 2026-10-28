@@ -1,3 +1,5 @@
+import { useTranslation } from 'react-i18next'
+import { t } from '../../i18n/core.ts'
 import { Alert, Button, Checkbox, Form, Input, Select, Skeleton } from 'antd'
 import type { AxiosInstance } from 'axios'
 import { useCallback, useEffect, useState } from 'react'
@@ -50,6 +52,8 @@ function useResource<T>(load: (signal: AbortSignal) => Promise<T>) {
 }
 
 export default function CreateEvaluationPage() {
+  useTranslation()
+
   const { client, creationStore, owner } = useEvaluationSession()
   const { draft, phase, evaluationId, error, setDraft, submit, reset } =
     useStore(creationStore)
@@ -75,7 +79,7 @@ export default function CreateEvaluationPage() {
           timeout: 10_000,
         }),
       )
-      if (!data) throw new ApiClientError('密钥列表响应无效，请重试')
+      if (!data) throw new ApiClientError(t('密钥列表响应无效，请重试'))
       return data
     }, []),
   )
@@ -143,36 +147,39 @@ export default function CreateEvaluationPage() {
     <section className="evaluation-workflow">
       <header className="page-heading">
         <div>
-          <h1>创建评估</h1>
-          <p>选择模型、题目与策略，创建后立即请求启动。</p>
+          <h1>{t('创建评估')}</h1>
+          <p>{t('选择模型、题目与策略，创建后立即请求启动。')}</p>
         </div>
-        <Link to="/evaluations">返回任务列表</Link>
+        <Link to="/evaluations">{t('返回任务列表')}</Link>
       </header>
       {phase === 'create-unknown' ? (
         <div className="panel evaluation-panel">
           <Alert
             type="warning"
             showIcon
-            title="创建结果尚未确认"
-            description="请求未返回明确结果，任务可能已经创建。请先查看任务列表并核对，避免重复创建。"
+            title={t('创建结果尚未确认')}
+            description={t(
+              '请求未返回明确结果，任务可能已经创建。请先查看任务列表并核对，避免重复创建。',
+            )}
           />
           <div className="evaluation-actions">
-            <Link to="/evaluations">查看任务列表</Link>
+            <Link to="/evaluations">{t('查看任务列表')}</Link>
             <Button
               onClick={() => {
                 reset(owner)
                 setErrors({})
               }}
             >
-              确认核对后开始新评估
+              {t('确认核对后开始新评估')}
             </Button>
           </div>
         </div>
       ) : evaluationId ? (
         <div className="panel evaluation-panel">
-          <p>任务已创建。</p>
+          <p>{t('任务已创建。')}</p>
           <Link to={`/evaluations/${encodeURIComponent(evaluationId)}`}>
-            查看任务 {evaluationId}
+            {t('查看任务 ')}
+            {evaluationId}
           </Link>
         </div>
       ) : (
@@ -183,19 +190,19 @@ export default function CreateEvaluationPage() {
           disabled={!editing}
         >
           <div className="panel evaluation-panel">
-            <h2>模型与策略</h2>
+            <h2>{t('模型与策略')}</h2>
             <div className="form-grid">
               <Form.Item
-                label="API 密钥"
+                label={t('API 密钥')}
                 htmlFor="evaluation-key"
                 required
                 validateStatus={errors.api_key_id ? 'error' : undefined}
-                help={errors.api_key_id}
+                help={t(errors.api_key_id)}
               >
                 <Select
                   id="evaluation-key"
-                  aria-label="API 密钥"
-                  placeholder="选择已保存的密钥"
+                  aria-label={t('API 密钥')}
+                  placeholder={t('选择已保存的密钥')}
                   value={draft.api_key_id || undefined}
                   loading={keys.loading}
                   options={keys.data?.map((key) => ({
@@ -208,28 +215,33 @@ export default function CreateEvaluationPage() {
                   }}
                 />
                 {keys.error ? (
-                  <EvaluationFeedback message={keys.error} retry={keys.retry} />
+                  <EvaluationFeedback
+                    message={t(keys.error)}
+                    retry={keys.retry}
+                  />
                 ) : null}
                 {keys.data?.length === 0 ? (
                   <p>
-                    还没有可用密钥，请先
-                    <Link to="/settings/api-keys">添加 API 密钥</Link>。
+                    {t('还没有可用密钥，请先')}
+                    <Link to="/settings/api-keys">{t('添加 API 密钥')}</Link>。
                   </p>
                 ) : (
-                  <Link to="/settings/api-keys">管理 API 密钥</Link>
+                  <Link to="/settings/api-keys">{t('管理 API 密钥')}</Link>
                 )}
               </Form.Item>
               <Form.Item
-                label="模型"
+                label={t('模型')}
                 htmlFor="evaluation-model"
                 required
                 validateStatus={errors.model ? 'error' : undefined}
-                help={errors.model}
+                help={t(errors.model)}
               >
                 <Select
                   id="evaluation-model"
-                  aria-label="模型"
-                  placeholder={draft.api_key_id ? '选择模型' : '请先选择密钥'}
+                  aria-label={t('模型')}
+                  placeholder={
+                    draft.api_key_id ? t('选择模型') : t('请先选择密钥')
+                  }
                   showSearch
                   optionFilterProp="label"
                   value={draft.model || undefined}
@@ -248,37 +260,37 @@ export default function CreateEvaluationPage() {
                 />
                 {models.error ? (
                   <EvaluationFeedback
-                    message={models.error}
+                    message={t(models.error)}
                     retry={models.retry}
                   />
                 ) : null}
                 {models.data && !models.data.complete ? (
                   <p role="status">
-                    模型列表未完整加载，仅可选择已返回的模型。
+                    {t('模型列表未完整加载，仅可选择已返回的模型。')}
                   </p>
                 ) : null}
                 {models.data?.models.length === 0 ? (
                   <p>
-                    该密钥未返回可用模型，请更换密钥或
+                    {t('该密钥未返回可用模型，请更换密钥或')}
                     <Button type="link" onClick={models.retry}>
-                      重新加载
+                      {t('重新加载')}
                     </Button>
                     。
                   </p>
                 ) : null}
               </Form.Item>
               <Form.Item
-                label="策略"
+                label={t('策略')}
                 htmlFor="evaluation-strategies"
                 required
                 validateStatus={errors.strategy_names ? 'error' : undefined}
-                help={errors.strategy_names}
+                help={t(errors.strategy_names)}
               >
                 <Select
                   id="evaluation-strategies"
-                  aria-label="策略"
+                  aria-label={t('策略')}
                   mode="multiple"
-                  placeholder="选择评估策略"
+                  placeholder={t('选择评估策略')}
                   value={draft.strategy_names}
                   loading={options.loading}
                   options={options.data?.strategies.map(({ name }) => ({
@@ -291,13 +303,13 @@ export default function CreateEvaluationPage() {
                 />
               </Form.Item>
               <Form.Item
-                label="预算上限（USD，可选）"
+                label={t('预算上限（USD，可选）')}
                 htmlFor="evaluation-budget"
                 validateStatus={errors.budget_cap_usd ? 'error' : undefined}
-                help={
+                help={t(
                   errors.budget_cap_usd ??
-                  '留空不设置上限；0 表示预算为 0 美元。'
-                }
+                    t('留空不设置上限；0 表示预算为 0 美元。'),
+                )}
               >
                 <Input
                   id="evaluation-budget"
@@ -315,28 +327,29 @@ export default function CreateEvaluationPage() {
             </div>
             {options.error ? (
               <EvaluationFeedback
-                message={options.error}
+                message={t(options.error)}
                 retry={options.retry}
               />
             ) : null}
             {options.data?.strategies.length === 0 ? (
-              <p>当前没有可用策略，暂时无法创建评估。</p>
+              <p>{t('当前没有可用策略，暂时无法创建评估。')}</p>
             ) : null}
           </div>
           <div className="panel evaluation-panel">
             <div className="evaluation-section-heading">
-              <h2>评估题目</h2>
+              <h2>{t('评估题目')}</h2>
               <span aria-live="polite">
-                已选 {draft.problem_ids.length} 道题目
+                {t('已选 ')}
+                {draft.problem_ids.length} {t(' 道题目')}
               </span>
             </div>
-            <Form.Item label="题目来源" htmlFor="evaluation-source">
+            <Form.Item label={t('题目来源')} htmlFor="evaluation-source">
               <Select
                 id="evaluation-source"
-                aria-label="题目来源"
+                aria-label={t('题目来源')}
                 value={query.source}
                 options={[
-                  { value: 'all', label: '全部来源' },
+                  { value: 'all', label: t('全部来源') },
                   ...(options.data?.sources.map((source) => ({
                     value: source.id,
                     label: `${source.label}（${source.problem_count}）`,
@@ -348,21 +361,21 @@ export default function CreateEvaluationPage() {
                   setErrors({})
                 }}
               />
-              <p>切换来源会清空已选题目。全选仅选择当前页。</p>
+              <p>{t('切换来源会清空已选题目。全选仅选择当前页。')}</p>
             </Form.Item>
             {options.data?.sources.length === 0 ? (
-              <p>当前没有可用题目来源。</p>
+              <p>{t('当前没有可用题目来源。')}</p>
             ) : null}
             {errors.problem_ids ? (
               <p role="alert" className="evaluation-field-error">
-                {errors.problem_ids}
+                {t(errors.problem_ids)}
               </p>
             ) : null}
             {problems.loading ? (
               <Skeleton active={false} paragraph={{ rows: 4 }} title={false} />
             ) : problems.error ? (
               <EvaluationFeedback
-                message={problems.error}
+                message={t(problems.error)}
                 retry={problems.retry}
               />
             ) : problems.data?.items.length ? (
@@ -383,13 +396,15 @@ export default function CreateEvaluationPage() {
                     })
                   }
                 >
-                  全选当前页
+                  {t('全选当前页')}
                 </Checkbox>
                 <ul className="evaluation-problem-list">
                   {problems.data.items.map((problem) => (
                     <li key={problem.problem_id}>
                       <Checkbox
-                        aria-label={`选择题目 ${problem.problem_id}`}
+                        aria-label={t('选择题目 {{value1}}', {
+                          value1: problem.problem_id,
+                        })}
                         disabled={!editing}
                         checked={draft.problem_ids.includes(problem.problem_id)}
                         onChange={(event) =>
@@ -402,8 +417,10 @@ export default function CreateEvaluationPage() {
                         <span>{problem.title || problem.problem_id}</span>
                         <small>
                           {problem.problem_id} ·{' '}
-                          {problem.source === 'personal' ? '个人' : '共享'} ·{' '}
-                          {problem.difficulty ?? '难度未知'}
+                          {problem.source === 'personal'
+                            ? t('个人')
+                            : t('共享')}{' '}
+                          · {problem.difficulty ?? t('难度未知')}
                         </small>
                       </Checkbox>
                     </li>
@@ -411,12 +428,15 @@ export default function CreateEvaluationPage() {
                 </ul>
               </>
             ) : (
-              <p>该来源还没有可用题目，请更换来源。</p>
+              <p>{t('该来源还没有可用题目，请更换来源。')}</p>
             )}
             <div className="evaluation-pagination">
-              <span>共 {problems.data?.total ?? '—'} 道题目</span>
+              <span>
+                {t('共 ')}
+                {problems.data?.total ?? '—'} {t(' 道题目')}
+              </span>
               <Button
-                aria-label="上一页题目"
+                aria-label={t('上一页题目')}
                 disabled={!editing || problems.loading || query.offset === 0}
                 onClick={() =>
                   setQuery({
@@ -425,10 +445,10 @@ export default function CreateEvaluationPage() {
                   })
                 }
               >
-                上一页
+                {t('上一页')}
               </Button>
               <Button
-                aria-label="下一页题目"
+                aria-label={t('下一页题目')}
                 disabled={
                   !editing || problems.loading || !problems.data?.has_more
                 }
@@ -436,11 +456,11 @@ export default function CreateEvaluationPage() {
                   setQuery({ ...query, offset: query.offset + query.limit })
                 }
               >
-                下一页
+                {t('下一页')}
               </Button>
             </div>
           </div>
-          {error ? <EvaluationFeedback message={error.message} /> : null}
+          {error ? <EvaluationFeedback message={t(error.message)} /> : null}
           <div className="evaluation-actions">
             <Button
               type="primary"
@@ -448,9 +468,11 @@ export default function CreateEvaluationPage() {
               loading={phase === 'creating'}
               disabled={locked}
             >
-              创建并启动
+              {t('创建并启动')}
             </Button>
-            {!ready ? <span>请先加载可用密钥、模型、策略与题目。</span> : null}
+            {!ready ? (
+              <span>{t('请先加载可用密钥、模型、策略与题目。')}</span>
+            ) : null}
           </div>
         </Form>
       )}

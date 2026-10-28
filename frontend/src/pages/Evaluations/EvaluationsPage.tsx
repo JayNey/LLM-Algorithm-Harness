@@ -1,3 +1,5 @@
+import { useTranslation } from 'react-i18next'
+import { currentLanguage, t } from '../../i18n/core.ts'
 import { Button, Empty, Select, Skeleton } from 'antd'
 import { useCallback, useEffect, useMemo } from 'react'
 import { Link, useSearchParams } from 'react-router-dom'
@@ -10,16 +12,53 @@ import { readListQuery, writeListQuery } from '@/evaluations/validation.ts'
 import '@/evaluations/workflow.css'
 
 const statusOptions = [
-  { value: 'all', label: '全部状态' },
-  { value: 'pending', label: '待执行' },
-  { value: 'running', label: '运行中' },
-  { value: 'paused', label: '已暂停' },
-  { value: 'completed', label: '已完成' },
-  { value: 'failed', label: '失败' },
-  { value: 'cancelled', label: '已取消' },
+  {
+    value: 'all',
+    get label() {
+      return t('全部状态')
+    },
+  },
+  {
+    value: 'pending',
+    get label() {
+      return t('待执行')
+    },
+  },
+  {
+    value: 'running',
+    get label() {
+      return t('运行中')
+    },
+  },
+  {
+    value: 'paused',
+    get label() {
+      return t('已暂停')
+    },
+  },
+  {
+    value: 'completed',
+    get label() {
+      return t('已完成')
+    },
+  },
+  {
+    value: 'failed',
+    get label() {
+      return t('失败')
+    },
+  },
+  {
+    value: 'cancelled',
+    get label() {
+      return t('已取消')
+    },
+  },
 ]
 
 function TaskRow({ task }: { task: Evaluation }) {
+  useTranslation()
+
   const progress = task.execution_progress
   const date = new Date(task.created_at)
   return (
@@ -28,16 +67,18 @@ function TaskRow({ task }: { task: Evaluation }) {
         <Link to={`/evaluations/${encodeURIComponent(task.evaluation_id)}`}>
           {task.evaluation_id}
         </Link>
-        <small>{task.model ?? '模型未知'}</small>
+        <small>{task.model ?? t('模型未知')}</small>
       </td>
       <td>
-        {task.strategy_names.join('、') || '策略未知'}
-        <small>{task.problem_count} 道题目</small>
+        {task.strategy_names.join('、') || t('策略未知')}
+        <small>
+          {task.problem_count} {t(' 道题目')}
+        </small>
       </td>
       <td>
         <span>{evaluationLabel(task)}</span>
         <small>
-          {progress.completed_units} / {progress.total_units} 单元 ·{' '}
+          {progress.completed_units} / {progress.total_units} {t(' 单元 ·')}{' '}
           {progress.percentage}%
         </small>
       </td>
@@ -45,15 +86,15 @@ function TaskRow({ task }: { task: Evaluation }) {
         {metricLabel(task.spent_usd, 'USD')}
         <small>
           {task.budget_cap_usd === null
-            ? '未设置预算上限'
-            : `上限 ${task.budget_cap_usd} USD`}
+            ? t('未设置预算上限')
+            : t('上限 {{value1}} USD', { value1: task.budget_cap_usd })}
         </small>
       </td>
       <td>
         <time dateTime={task.created_at}>
           {Number.isNaN(date.getTime())
-            ? '时间未知'
-            : date.toLocaleString('zh-CN')}
+            ? t('时间未知')
+            : date.toLocaleString(currentLanguage())}
         </time>
       </td>
     </tr>
@@ -61,6 +102,8 @@ function TaskRow({ task }: { task: Evaluation }) {
 }
 
 export default function EvaluationsPage() {
+  useTranslation()
+
   const { client, owner } = useEvaluationSession()
   const [search, setSearch] = useSearchParams()
   const rawSearch = search.toString()
@@ -93,19 +136,19 @@ export default function EvaluationsPage() {
     <section className="evaluation-workflow">
       <header className="page-heading">
         <div>
-          <h1>评估任务</h1>
-          <p>查看当前账号的评估任务与执行进度。</p>
+          <h1>{t('评估任务')}</h1>
+          <p>{t('查看当前账号的评估任务与执行进度。')}</p>
         </div>
         <Link className="evaluation-create-link" to="/evaluations/new">
-          创建评估
+          {t('创建评估')}
         </Link>
       </header>
       <div className="panel evaluation-panel">
         <div className="evaluation-section-heading">
           <Select
-            aria-label="任务状态"
+            aria-label={t('任务状态')}
             value={query.status ?? 'all'}
-            options={statusOptions}
+            options={statusOptions.map((option) => ({ ...option }))}
             onChange={(status: string) =>
               setSearch(
                 writeListQuery({
@@ -117,35 +160,41 @@ export default function EvaluationsPage() {
             }
           />
           {data && !loading && (
-            <span role="status">共 {data.total} 个任务</span>
+            <span role="status">
+              {t('共 ')}
+              {data.total} {t(' 个任务')}
+            </span>
           )}
         </div>
         {loading ? (
           <div aria-busy="true">
-            <p role="status">正在加载评估任务…</p>
+            <p role="status">{t('正在加载评估任务…')}</p>
             <Skeleton active paragraph={{ rows: 4 }} />
           </div>
         ) : list.status === 'error' ? (
           <EvaluationFeedback
-            message={list.error ?? '加载失败，请重试'}
+            message={t(list.error ?? t('加载失败，请重试'))}
             retry={list.reload}
           />
         ) : data?.items.length ? (
           <div
             className="evaluation-list-scroll"
             role="region"
-            aria-label="可滚动的评估任务列表"
+            aria-label={t('可滚动的评估任务列表')}
             tabIndex={0}
           >
-            <table className="evaluation-list-table" aria-label="评估任务列表">
+            <table
+              className="evaluation-list-table"
+              aria-label={t('评估任务列表')}
+            >
               <thead>
                 <tr>
                   {[
-                    '任务 ID / 模型',
-                    '策略 / 题目',
-                    '状态 / 执行进度',
-                    '费用',
-                    '创建时间',
+                    t('任务 ID / 模型'),
+                    t('策略 / 题目'),
+                    t('状态 / 执行进度'),
+                    t('费用'),
+                    t('创建时间'),
                   ].map((name) => (
                     <th key={name} scope="col">
                       {name}
@@ -163,7 +212,7 @@ export default function EvaluationsPage() {
         ) : (
           <Empty
             description={
-              query.status ? '没有符合筛选的评估任务' : '还没有评估任务'
+              query.status ? t('没有符合筛选的评估任务') : t('还没有评估任务')
             }
           >
             {query.status && (
@@ -172,21 +221,21 @@ export default function EvaluationsPage() {
                   setSearch(writeListQuery({ limit: query.limit, offset: 0 }))
                 }
               >
-                清除筛选
+                {t('清除筛选')}
               </Button>
             )}
-            <Link to="/evaluations/new">创建首个评估</Link>
+            <Link to="/evaluations/new">{t('创建首个评估')}</Link>
           </Empty>
         )}
         {data && !loading && (
-          <nav className="evaluation-pagination" aria-label="评估任务分页">
+          <nav className="evaluation-pagination" aria-label={t('评估任务分页')}>
             <span>
               {data.total
                 ? `${data.offset + 1}–${data.offset + data.items.length} / ${data.total}`
                 : '0 / 0'}
             </span>
             <Button
-              aria-label="上一页任务"
+              aria-label={t('上一页任务')}
               disabled={query.offset === 0}
               onClick={() =>
                 setSearch(
@@ -197,10 +246,10 @@ export default function EvaluationsPage() {
                 )
               }
             >
-              上一页
+              {t('上一页')}
             </Button>
             <Button
-              aria-label="下一页任务"
+              aria-label={t('下一页任务')}
               disabled={!data.has_more}
               onClick={() =>
                 setSearch(
@@ -211,7 +260,7 @@ export default function EvaluationsPage() {
                 )
               }
             >
-              下一页
+              {t('下一页')}
             </Button>
           </nav>
         )}
