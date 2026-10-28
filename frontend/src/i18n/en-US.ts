@@ -1193,8 +1193,8 @@ export default {
   '侧栏与快速操作中的「导入题目」目前仍是示例交互，不读取文件；真实导入请在题库页完成。':
     'The "Import problems" entry in the sidebar and quick actions is still a demo interaction and does not read files; use the Problems page for real imports.',
   打开: 'Open ',
-  '，依次选择密钥、模型（按密钥读取目录，也可手动输入）、策略与题目，创建后立即请求启动。':
-    ' and pick a key, a model (catalog loaded per key, manual entry allowed), strategies and problems; the task requests a start right after creation.',
+  '，依次选择密钥、模型（按密钥读取目录）、策略与题目，创建后立即请求启动。':
+    ', pick a key, a model from the catalog loaded for that key, strategies and problems; the task requests a start right after creation.',
   '查看任务状态与花费；详情页通过实时通道推送进度，连接不可用时自动切换为轮询。':
     ', check task status and spend. The detail page streams progress over a live channel and falls back to polling when the connection is unavailable.',
   '任务执行依赖后端的 Redis、Celery worker 与 Docker 沙箱镜像；缺少任一组件时启动会被拒绝或在预检阶段失败，错误原因会显示在任务页。':
@@ -1205,7 +1205,7 @@ export default {
     'Report downloads are not yet available in the result detail UI; the backend already serves Markdown, HTML and CSV reports through the API until the UI entry lands.',
   '、': ', ',
   与: ' and ',
-  '的数据集路径须填写 DATA_ROOT 下的相对路径（如 datasets/demo.json），而不是题库中的题目。':
+  '的数据集路径须填写 DATA_ROOT 下的相对路径（如 problems.json），而不是题库中的题目。':
     ' take a dataset path relative to DATA_ROOT (for example datasets/demo.json), not problems from the problem library.',
   '三处表单的模型与策略可直接从目录选择：策略来自评估选项，模型按所选密钥读取；目录加载失败或不完整时仍可手动输入。':
     'All three forms let you pick models and strategies from catalogs: strategies come from the evaluation options and models are loaded for the selected key; manual entry still works when a catalog fails or is incomplete.',
@@ -1221,4 +1221,5 @@ export default {
     ' is visible to administrators only: the deployer lists registered user UUIDs in the backend MONITOR_ADMIN_USER_IDS and restarts the API; there is no self-service promotion.',
   '本地运行方式与环境变量说明见仓库 docs/deployment/deploy.md；界面语言可在右上角切换，偏好会被保存。':
     'Local setup and environment variables are documented in docs/deployment/deploy.md in the repository; switch the UI language in the top-right corner and the preference is saved.',
+  '实验（复数）': 'Experiments',
 }

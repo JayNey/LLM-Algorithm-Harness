@@ -432,9 +432,7 @@ try {
   await page
     .getByRole('button', { name: '通知中心，2 条未读', exact: true })
     .waitFor()
-  checks.push(
-    'four dismissible toasts, real logout client and session notification isolation',
-  )
+  checks.push('real logout client and session notification isolation')
   role = 'admin'
   await page.reload()
   await page.getByRole('link', { name: '系统状态', exact: true }).waitFor()

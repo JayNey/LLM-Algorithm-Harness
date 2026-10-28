@@ -87,7 +87,7 @@ export default function HelpPage() {
               {t('打开')}
               <Link to="/evaluations/new">{t('创建评估')}</Link>
               {t(
-                '，依次选择密钥、模型（按密钥读取目录，也可手动输入）、策略与题目，创建后立即请求启动。',
+                '，依次选择密钥、模型（按密钥读取目录）、策略与题目，创建后立即请求启动。',
               )}
             </li>
             <li>
@@ -125,13 +125,13 @@ export default function HelpPage() {
           <h2 id="help-experiments-title">5. {t('实验、基准与 A/B 测试')}</h2>
           <ol>
             <li>
-              <Link to="/experiments/new">{t('实验')}</Link>
+              <Link to="/experiments/new">{t('实验（复数）')}</Link>
               {t('、')}
               <Link to="/benchmarks">{t('基准测试')}</Link>
               {t('与')}
               <Link to="/ab-tests/new">{t('A/B 测试')}</Link>
               {t(
-                '的数据集路径须填写 DATA_ROOT 下的相对路径（如 datasets/demo.json），而不是题库中的题目。',
+                '的数据集路径须填写 DATA_ROOT 下的相对路径（如 problems.json），而不是题库中的题目。',
               )}
             </li>
             <li>
