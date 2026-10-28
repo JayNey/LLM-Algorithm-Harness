@@ -11,9 +11,9 @@ from collections.abc import Callable
 from datetime import datetime
 from pathlib import Path
 from threading import Semaphore
-from typing import Any
+from typing import Any, cast
 
-from sqlalchemy import select
+from sqlalchemy import CursorResult, select, update
 from sqlalchemy.orm import Session
 
 from api.auth.service import AuthService
@@ -23,7 +23,6 @@ from api.db import AsyncTask, Experiment, make_engine, make_session_factory, run
 from api.db.engine import business_database_url
 from api.db.models import utcnow
 from api.experiment_models import ExperimentCreateRequest, ModelSpec
-from api.monitoring.execution_logs import record_execution_event
 from src.experiment import ExperimentRunner
 from src.experiment_panel import _build_panel_data
 from src.experiment_report import generate_comparison_report
@@ -226,7 +225,7 @@ class ExperimentService:
                     return
                 config = self._build_runner_config(row, owner_id)
                 runner = self._runner_factory(config)
-                runner.should_pause = lambda: self._async_task_paused(experiment_id, owner_id)
+                runner.should_pause = lambda: self._async_task_stopped(experiment_id, owner_id)
                 runner.on_combination = lambda current, total, model, strategy, repeat: (
                     self._write_progress(
                         experiment_id,
@@ -238,22 +237,58 @@ class ExperimentService:
                 )
                 exp_dir = runner.run()
                 if getattr(runner, "paused", False):
-                    with self._session() as session, session.begin():
-                        paused = session.get(Experiment, experiment_id, with_for_update=True)
-                        if paused is not None and paused.status == "running":
-                            paused.status = "paused"
-                            paused.updated_at = utcnow()
+                    self._finish(experiment_id, owner_id, "paused")
                     return
-                with self._session() as session, session.begin():
-                    done = session.get(Experiment, experiment_id, with_for_update=True)
-                    if done is None or done.status != "running":
-                        return
-                    done.status = "completed"
-                    done.output_dir = str(exp_dir)
-                    done.completed_at = utcnow()
-                    done.updated_at = utcnow()
+                self._finish(experiment_id, owner_id, "completed", output_dir=str(exp_dir))
             except Exception as e:  # noqa: BLE001 - reported on the row
-                self._fail(experiment_id, str(e))
+                self._finish(experiment_id, owner_id, "failed", error_message=str(e))
+
+    def _finish(
+        self,
+        experiment_id: str,
+        owner_id: str,
+        status: str,
+        *,
+        output_dir: str | None = None,
+        error_message: str | None = None,
+    ) -> None:
+        """Commit the result and task together, after any competing cancellation."""
+        with self._session() as session:
+            task = session.scalar(
+                select(AsyncTask).where(
+                    AsyncTask.task_type == "experiment",
+                    AsyncTask.entity_id == experiment_id,
+                    AsyncTask.user_id == owner_id,
+                )
+            )
+            manager = TaskManager(session)
+            if task is not None:
+                manager._lock_business_task(task)
+                if task.status in _TERMINAL_STATUSES:
+                    return
+                if task.status == "paused":
+                    status = "paused"
+            values: dict[str, Any] = {"status": status, "updated_at": utcnow()}
+            if status in _TERMINAL_STATUSES:
+                values["completed_at"] = utcnow()
+                values["error_message"] = error_message
+            if status == "completed":
+                values["output_dir"] = output_dir
+            changed = session.execute(
+                update(Experiment)
+                .where(
+                    Experiment.id == experiment_id,
+                    Experiment.user_id == owner_id,
+                    Experiment.status == "running",
+                )
+                .values(**values)
+            )
+            if not cast(CursorResult[Any], changed).rowcount:
+                return
+            if task is not None:
+                manager.update_task_status(task.id, status, error_message=error_message)
+            else:
+                session.commit()
 
     def _write_progress(
         self,
@@ -275,11 +310,11 @@ class ExperimentService:
             )
             if task is None or task.status != "running":
                 return
-            task.progress = task_progress(current, total, current_step)
-            session.commit()
-            record_execution_event(task, "task.progress", task.progress)
+            TaskManager(session).update_task_progress(
+                task.id, task_progress(current, total, current_step), "running"
+            )
 
-    def _async_task_paused(self, experiment_id: str, owner_id: str) -> bool:
+    def _async_task_stopped(self, experiment_id: str, owner_id: str) -> bool:
         with self._session() as session:
             task = (
                 session.query(AsyncTask)
@@ -291,16 +326,7 @@ class ExperimentService:
                 )
                 .first()
             )
-            return task is not None and task.status == "paused"
-
-    def _fail(self, experiment_id: str, message: str) -> None:
-        with self._session() as session, session.begin():
-            row = session.get(Experiment, experiment_id, with_for_update=True)
-            if row is None or row.status in (*_TERMINAL_STATUSES, "paused"):
-                return
-            row.status = "failed"
-            row.error_message = message
-            row.updated_at = utcnow()
+            return task is not None and task.status in ("paused", "cancelled")
 
     # -- results -------------------------------------------------------------
 
