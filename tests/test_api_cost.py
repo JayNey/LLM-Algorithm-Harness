@@ -423,9 +423,9 @@ def pricing_http(api):
         try:
             deadline = time.monotonic() + 10
             while not server.started:
-                assert (
-                    thread.is_alive() and time.monotonic() < deadline
-                ), "HTTP server did not start"
+                assert thread.is_alive() and time.monotonic() < deadline, (
+                    "HTTP server did not start"
+                )
                 time.sleep(0.01)
             with httpx.Client(base_url=f"http://127.0.0.1:{port}", trust_env=False) as client:
                 yield client, headers
@@ -726,3 +726,182 @@ def test_web_saved_budget_controls_worker(
     history = client.get("/api/v1/alerts/history", headers=headers).json()["data"]
     assert len(history) == 1
     assert history[0]["rule_id"] == rule.json()["data"]["id"]
+
+
+def test_experiment_ab_accounting_same_scope_across_all_cost_views(api):
+    """Call rows must flow through HTTP without double-counting tasks or old sources."""
+    from api.db.models import ABTest, Budget, Experiment, SpendRecord
+
+    client, headers, _key_id, app = api
+    owner = app.state.auth.authenticate(headers["Authorization"].split()[1]).user_id
+    with app.state.cost._session() as db, db.begin():
+        db.add_all(
+            [
+                Experiment(id="cost-exp", user_id=owner, status="paused", config={}),
+                ABTest(id="cost-ab", user_id=owner, status="failed", config={}),
+                Budget(
+                    id="budget",
+                    user_id=owner,
+                    global_cap_usd=10,
+                    difficulty_caps={"easy": 0.5},
+                    action="pause",
+                ),
+                Evaluation(
+                    id="cost-eval",
+                    user_id=owner,
+                    status="completed",
+                    spent_usd=0.4,
+                    created_at=datetime(2026, 10, 2),
+                ),
+            ]
+        )
+        db.add_all(
+            [
+                SpendRecord(
+                    id="exp-call1",
+                    source="experiments",
+                    task_id="cost-exp",
+                    user_id=owner,
+                    occurred_at=datetime(2026, 10, 2, 10),
+                    model="model-a",
+                    strategy="vanilla",
+                    cost_usd=0.2,
+                    difficulty="easy",
+                ),
+                SpendRecord(
+                    id="exp-call2",
+                    source="experiments",
+                    task_id="cost-exp",
+                    user_id=owner,
+                    occurred_at=datetime(2026, 10, 2, 23, 59, 59),
+                    model="model-a",
+                    strategy="vanilla",
+                    cost_usd=0.3,
+                    difficulty="easy",
+                ),
+                SpendRecord(
+                    id="ab-call",
+                    source="ab_tests",
+                    task_id="cost-ab",
+                    user_id=owner,
+                    occurred_at=datetime(2026, 10, 2, 12),
+                    model="model-b",
+                    strategy="reflexion",
+                    cost_usd=0.6,
+                ),
+                SpendRecord(
+                    id="next-day",
+                    source="ab_tests",
+                    task_id="cost-ab",
+                    user_id=owner,
+                    occurred_at=datetime(2026, 10, 3),
+                    model="model-b",
+                    strategy="reflexion",
+                    cost_usd=1,
+                ),
+                SpendRecord(
+                    id="foreign",
+                    source="experiments",
+                    task_id="cost-exp",
+                    user_id="other",
+                    occurred_at=datetime(2026, 10, 2),
+                    model="model-a",
+                    strategy="vanilla",
+                    cost_usd=99,
+                ),
+            ]
+        )
+
+    def get(path):
+        result = client.get("/api/v1/" + path, headers=headers)
+        assert result.status_code == 200, result.text
+        return result.json()["data"]
+
+    exp = get("costs/tasks/cost-exp")
+    assert exp["total_cost_usd"] == 0.5
+    assert exp["cost_complete"] is True
+    assert get("reports/cost/cost-exp")["total_cost_usd"] == 0.5
+    period = "?since=2026-10-02&until=2026-10-02"
+    summary = get("costs/summary" + period)
+    assert summary["total_cost_usd"] == 1.5
+    assert summary["task_count"] == 3
+    assert summary["by_source"]["experiments"]["task_count"] == 1
+    assert summary["by_source"]["ab_tests"]["cost_usd"] == 0.6
+    assert get("costs/trends" + period)["data"][0]["cost_usd"] == 1.5
+    assert sum(get("costs/breakdown" + period)["by_source"].values()) == pytest.approx(1.5)
+    assert get("costs/summary?since=2026-10-03T00:00:00%2B00:00")["total_cost_usd"] == 1
+    assert get("costs/summary")["total_cost_usd"] == 2.5
+    usage = get("budgets/usage")
+    assert usage["global_budget"]["used_usd"] == 2.5
+    assert usage["by_difficulty"]["easy"]["used_usd"] == 0.5
+    with app.state.cost._session() as db:
+        execution = app.state.cost.execution_budget(db, owner)
+        assert float(execution["used_usd"]) == 2.5
+        assert execution["exhausted_difficulties"] == ["easy"]
+
+
+def test_unknown_experiment_cost_is_partial_and_legacy_is_never_free(api):
+    from api.db.models import ABTest, Experiment, SpendRecord
+
+    client, headers, _key_id, app = api
+    owner = app.state.auth.authenticate(headers["Authorization"].split()[1]).user_id
+    with app.state.cost._session() as db, db.begin():
+        db.add_all(
+            [
+                Experiment(id="partial", user_id=owner, status="cancelled", config={}),
+                ABTest(
+                    id="legacy",
+                    user_id=owner,
+                    status="completed",
+                    config={},
+                    cost_tracking_complete=False,
+                ),
+                ABTest(id="unknown", user_id=owner, status="failed", config={}),
+            ]
+        )
+        db.add_all(
+            [
+                SpendRecord(
+                    id="known",
+                    source="experiments",
+                    task_id="partial",
+                    user_id=owner,
+                    model="m",
+                    strategy="s",
+                    cost_usd=0.2,
+                ),
+                SpendRecord(
+                    id="unpriced",
+                    source="experiments",
+                    task_id="partial",
+                    user_id=owner,
+                    model="m",
+                    strategy="s",
+                    cost_usd=None,
+                    unknown_reason="missing_pricing",
+                ),
+                SpendRecord(
+                    id="no-usage",
+                    source="ab_tests",
+                    task_id="unknown",
+                    user_id=owner,
+                    model="m",
+                    strategy="s",
+                    cost_usd=None,
+                    unknown_reason="missing_usage",
+                ),
+            ]
+        )
+    partial = client.get("/api/v1/costs/tasks/partial", headers=headers).json()["data"]
+    assert partial["total_cost_usd"] == 0.2
+    assert partial["known_cost_usd"] == 0.2
+    assert partial["cost_complete"] is False
+    assert partial["unknown_cost_count"] == 1
+    for job in ("legacy", "unknown"):
+        result = client.get(f"/api/v1/costs/tasks/{job}", headers=headers).json()["data"]
+        assert result["total_cost_usd"] is None
+        assert result["cost_complete"] is False
+    summary = client.get("/api/v1/costs/summary", headers=headers).json()["data"]
+    assert summary["total_cost_usd"] == 0.2
+    assert summary["unknown_cost_count"] == 3
+    assert set(summary["unknown_reasons"]) == {"historical_gap", "missing_usage", "missing_pricing"}
