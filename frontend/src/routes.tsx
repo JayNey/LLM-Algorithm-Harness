@@ -91,7 +91,7 @@ export const appPages: AppPage[] = [
     },
     group: '系统',
     icon: 'help',
-    Component: lazy(() => import('@/mock/BusinessPage.tsx')),
+    Component: lazy(() => import('@/pages/Help/HelpPage.tsx')),
   },
   {
     path: '/settings',
