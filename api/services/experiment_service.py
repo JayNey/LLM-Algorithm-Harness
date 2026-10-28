@@ -13,7 +13,7 @@ from pathlib import Path
 from threading import Semaphore
 from typing import Any, cast
 
-from sqlalchemy import CursorResult, select, update
+from sqlalchemy import CursorResult, Select, select, update
 from sqlalchemy.orm import Session
 
 from api.auth.service import AuthService
@@ -37,12 +37,13 @@ def _iso(value: datetime) -> str:
     return value.isoformat() + "Z"
 
 
-def _job_view(row: Experiment) -> dict[str, Any]:
+def _job_view(row: Experiment, task_id: str | None = None) -> dict[str, Any]:
     """API-safe view of a job row; internal paths stay server-side."""
     return {
         "id": row.id,
         "name": row.name,
         "status": row.status,
+        "task_id": task_id,
         "config": row.config,
         "error_message": row.error_message,
         "created_at": _iso(row.created_at),
@@ -152,7 +153,32 @@ class ExperimentService:
 
     def get_experiment(self, experiment_id: str, owner_id: str) -> dict[str, Any]:
         with self._session() as session:
-            return _job_view(self._owned(session, experiment_id, owner_id))
+            row = self._owned(session, experiment_id, owner_id)
+            task = session.scalar(self._tasks(experiment_id, owner_id))
+            return _job_view(row, task.id if task else None)
+
+    @staticmethod
+    def _tasks(experiment_id: str, owner_id: str) -> Select[tuple[AsyncTask]]:
+        return (
+            select(AsyncTask)
+            .where(
+                AsyncTask.task_type == "experiment",
+                AsyncTask.entity_id == experiment_id,
+                AsyncTask.user_id == owner_id,
+            )
+            .order_by(AsyncTask.created_at.desc(), AsyncTask.id.desc())
+        )
+
+    @staticmethod
+    def _lock_experiment(session: Session, experiment_id: str, owner_id: str) -> None:
+        # Acquire a database write lock BEFORE reading, including on SQLite.
+        # Submission and deletion must share this lock across API processes.
+        session.execute(
+            update(Experiment)
+            .where(Experiment.id == experiment_id, Experiment.user_id == owner_id)
+            .values(id=Experiment.id, updated_at=Experiment.updated_at)
+            .execution_options(synchronize_session=False)
+        )
 
     def list_experiments(
         self, owner_id: str, status: str | None = None, limit: int = 20, offset: int = 0
@@ -162,24 +188,50 @@ class ExperimentService:
             if status:
                 query = query.where(Experiment.status == status)
             rows = session.scalars(query.order_by(Experiment.created_at, Experiment.id)).all()
-        total = len(rows)
-        return [_job_view(row) for row in rows[offset : offset + limit]], total
+            total = len(rows)
+            page = rows[offset : offset + limit]
+            task_ids: dict[str, str] = {}
+            if page:
+                tasks = session.scalars(
+                    select(AsyncTask)
+                    .where(
+                        AsyncTask.task_type == "experiment",
+                        AsyncTask.user_id == owner_id,
+                        AsyncTask.entity_id.in_([row.id for row in page]),
+                    )
+                    .order_by(AsyncTask.created_at.desc(), AsyncTask.id.desc())
+                )
+                for task in tasks:
+                    task_ids.setdefault(task.entity_id, task.id)
+            return [_job_view(row, task_ids.get(row.id)) for row in page], total
 
     def delete_experiment(self, experiment_id: str, owner_id: str) -> None:
         with self._session() as session, session.begin():
+            self._lock_experiment(session, experiment_id, owner_id)
             row = self._owned(session, experiment_id, owner_id)
+            active_task = session.scalar(
+                self._tasks(experiment_id, owner_id).where(
+                    AsyncTask.status.in_(("pending", "running", "paused"))
+                )
+            )
             if row.status == "running":
                 raise ValueError("Cannot delete a running experiment; wait for it to finish")
+            if row.status == "paused" or active_task is not None:
+                raise ValueError(
+                    "Cannot delete an active experiment; cancel it or wait for it to finish"
+                )
             session.delete(row)
 
     # -- execution -----------------------------------------------------------
 
     def start_experiment(self, experiment_id: str, owner_id: str) -> dict[str, Any]:
         with self._session() as session:
+            self._lock_experiment(session, experiment_id, owner_id)
             row = self._owned(session, experiment_id, owner_id)
             if row.status != "pending":
                 raise ValueError(f"Cannot start experiment in {row.status} status")
-            view = _job_view(row)
+            if session.scalar(self._tasks(experiment_id, owner_id)) is not None:
+                raise ValueError("Cannot start experiment: already queued")
             task = TaskManager(session).enqueue_task(
                 task_type="experiment",
                 entity_id=experiment_id,
@@ -187,8 +239,8 @@ class ExperimentService:
                 celery_task_name="src.tasks.experiment.run_experiment_task",
                 celery_task_args=(experiment_id, owner_id),
             )
-            view["task_id"] = task.id
-            return view
+            session.refresh(row)
+            return _job_view(row, task.id)
 
     def _build_runner_config(self, row: Experiment, owner_id: str) -> ExperimentConfig:
         if self._auth is None:
