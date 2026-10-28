@@ -3,7 +3,7 @@
 from collections.abc import Callable
 from typing import TypeVar
 
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Request
 from sqlalchemy.orm import Session
 
 from api.auth.dependencies import current_user
@@ -25,9 +25,10 @@ _PUBLIC_TASKS = {
 }
 
 
-def task_manager(db: Session = Depends(get_db)) -> TaskManager:
+def task_manager(request: Request, db: Session = Depends(get_db)) -> TaskManager:
     """Get TaskManager instance."""
-    return TaskManager(db)
+    files = getattr(request.app.state, "files", None)
+    return TaskManager(db, file_store=files.store if files is not None else None)
 
 
 def call(operation: Callable[[], T]) -> T:
@@ -185,9 +186,10 @@ def resume_task(
     principal: Principal = Depends(current_user),
     manager: TaskManager = Depends(task_manager),
 ) -> ApiResponse[AsyncTaskResponse]:
-    """Resume a paused evaluation task.
+    """Resume a paused evaluation, experiment, benchmark, import or A/B task.
 
-    Re-queues the same task after its pending status is committed.
+    Re-queues the same task after committing its pending business status.
+    Business workers must confirm stopping before resume is accepted.
 
     Args:
         task_id: Task ID to resume

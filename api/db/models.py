@@ -118,6 +118,7 @@ class Experiment(Base):
     status: Mapped[str] = mapped_column(String(16), default="pending", index=True)
     config: Mapped[dict] = mapped_column(JSON, default=dict)
     api_key_id: Mapped[str | None] = mapped_column(String(64))
+    cost_tracking_complete: Mapped[bool] = mapped_column(Boolean, default=True, server_default="0")
     output_dir: Mapped[str | None] = mapped_column(String(500))
     error_message: Mapped[str | None] = mapped_column(Text)
     created_at: Mapped[datetime] = mapped_column(DateTime, default=utcnow)
@@ -176,12 +177,34 @@ class ABTest(Base):
     status: Mapped[str] = mapped_column(String(16), default="pending", index=True)
     config: Mapped[dict] = mapped_column(JSON, default=dict)
     api_key_id: Mapped[str | None] = mapped_column(String(64))
+    cost_tracking_complete: Mapped[bool] = mapped_column(Boolean, default=True, server_default="0")
     output_dir: Mapped[str | None] = mapped_column(String(500))
     error_message: Mapped[str | None] = mapped_column(Text)
     created_at: Mapped[datetime] = mapped_column(DateTime, default=utcnow)
     updated_at: Mapped[datetime] = mapped_column(DateTime, default=utcnow, onupdate=utcnow)
     started_at: Mapped[datetime | None] = mapped_column(DateTime)
     completed_at: Mapped[datetime | None] = mapped_column(DateTime)
+
+
+class SpendRecord(Base):
+    """Immutable call spend, retained independently of business task deletion."""
+
+    __tablename__ = "spend_records"
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True)
+    user_id: Mapped[str] = mapped_column(String(64), index=True)
+    source: Mapped[str] = mapped_column(String(32), index=True)
+    task_id: Mapped[str] = mapped_column(String(36), index=True)
+    occurred_at: Mapped[datetime] = mapped_column(DateTime, default=utcnow, index=True)
+    model: Mapped[str] = mapped_column(String(200))
+    strategy: Mapped[str] = mapped_column(String(100))
+    problem_id: Mapped[str | None] = mapped_column(String(200))
+    difficulty: Mapped[str | None] = mapped_column(String(16))
+    cost_usd: Mapped[float | None] = mapped_column(Float)
+    unknown_reason: Mapped[str | None] = mapped_column(String(64))
+    cached: Mapped[bool] = mapped_column(Boolean, default=False)
+    usage: Mapped[dict | None] = mapped_column(JSON)
+    pricing: Mapped[dict | None] = mapped_column(JSON)
 
 
 class Budget(Base):

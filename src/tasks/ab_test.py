@@ -129,7 +129,9 @@ def record_ab_test_failure(
         )
         if cast(CursorResult[Any], changed).rowcount:
             task = db.query(AsyncTask).filter(AsyncTask.celery_task_id == task_id).one()
-            TaskManager(db).update_task_status(task.id, "failed", error_message=str(exception))
+            manager = TaskManager(db, celery_task_id=task_id)
+            manager._sync_business(task)
+            db.commit()
         else:
             db.rollback()
     except Exception:

@@ -11,9 +11,9 @@ from collections.abc import Callable
 from datetime import datetime
 from pathlib import Path
 from threading import Semaphore
-from typing import Any
+from typing import Any, cast
 
-from sqlalchemy import select
+from sqlalchemy import CursorResult, select, update
 from sqlalchemy.orm import Session
 
 from api.auth.service import AuthService
@@ -23,7 +23,6 @@ from api.db import AsyncTask, Experiment, make_engine, make_session_factory, run
 from api.db.engine import business_database_url
 from api.db.models import utcnow
 from api.experiment_models import ExperimentCreateRequest, ModelSpec
-from api.monitoring.execution_logs import record_execution_event
 from src.experiment import ExperimentRunner
 from src.experiment_panel import _build_panel_data
 from src.experiment_report import generate_comparison_report
@@ -38,12 +37,13 @@ def _iso(value: datetime) -> str:
     return value.isoformat() + "Z"
 
 
-def _job_view(row: Experiment) -> dict[str, Any]:
+def _job_view(row: Experiment, task_id: str | None = None) -> dict[str, Any]:
     """API-safe view of a job row; internal paths stay server-side."""
     return {
         "id": row.id,
         "name": row.name,
         "status": row.status,
+        "task_id": task_id,
         "config": row.config,
         "error_message": row.error_message,
         "created_at": _iso(row.created_at),
@@ -153,7 +153,37 @@ class ExperimentService:
 
     def get_experiment(self, experiment_id: str, owner_id: str) -> dict[str, Any]:
         with self._session() as session:
-            return _job_view(self._owned(session, experiment_id, owner_id))
+            row = self._owned(session, experiment_id, owner_id)
+            task = self._task(session, experiment_id, owner_id)
+            return _job_view(row, task.id if task else None)
+
+    @staticmethod
+    def _task(
+        session: Session, experiment_id: str, owner_id: str, *, active_only: bool = False
+    ) -> AsyncTask | None:
+        query = (
+            select(AsyncTask)
+            .where(
+                AsyncTask.task_type == "experiment",
+                AsyncTask.entity_id == experiment_id,
+                AsyncTask.user_id == owner_id,
+            )
+            .order_by(AsyncTask.created_at.desc(), AsyncTask.id.desc())
+        )
+        if active_only:
+            query = query.where(AsyncTask.status.in_(("pending", "running", "paused")))
+        return session.scalar(query)
+
+    @staticmethod
+    def _lock_experiment(session: Session, experiment_id: str, owner_id: str) -> None:
+        # Acquire a database write lock BEFORE reading, including on SQLite.
+        # Submission and deletion must share this lock across API processes.
+        session.execute(
+            update(Experiment)
+            .where(Experiment.id == experiment_id, Experiment.user_id == owner_id)
+            .values(id=Experiment.id, updated_at=Experiment.updated_at)
+            .execution_options(synchronize_session=False)
+        )
 
     def list_experiments(
         self, owner_id: str, status: str | None = None, limit: int = 20, offset: int = 0
@@ -163,24 +193,46 @@ class ExperimentService:
             if status:
                 query = query.where(Experiment.status == status)
             rows = session.scalars(query.order_by(Experiment.created_at, Experiment.id)).all()
-        total = len(rows)
-        return [_job_view(row) for row in rows[offset : offset + limit]], total
+            total = len(rows)
+            page = rows[offset : offset + limit]
+            task_ids: dict[str, str] = {}
+            if page:
+                tasks = session.scalars(
+                    select(AsyncTask)
+                    .where(
+                        AsyncTask.task_type == "experiment",
+                        AsyncTask.user_id == owner_id,
+                        AsyncTask.entity_id.in_([row.id for row in page]),
+                    )
+                    .order_by(AsyncTask.created_at.desc(), AsyncTask.id.desc())
+                )
+                for task in tasks:
+                    task_ids.setdefault(task.entity_id, task.id)
+            return [_job_view(row, task_ids.get(row.id)) for row in page], total
 
     def delete_experiment(self, experiment_id: str, owner_id: str) -> None:
         with self._session() as session, session.begin():
+            self._lock_experiment(session, experiment_id, owner_id)
             row = self._owned(session, experiment_id, owner_id)
+            active_task = self._task(session, experiment_id, owner_id, active_only=True)
             if row.status == "running":
                 raise ValueError("Cannot delete a running experiment; wait for it to finish")
+            if row.status == "paused" or active_task is not None:
+                raise ValueError(
+                    "Cannot delete an active experiment; cancel it or wait for it to finish"
+                )
             session.delete(row)
 
     # -- execution -----------------------------------------------------------
 
     def start_experiment(self, experiment_id: str, owner_id: str) -> dict[str, Any]:
         with self._session() as session:
+            self._lock_experiment(session, experiment_id, owner_id)
             row = self._owned(session, experiment_id, owner_id)
             if row.status != "pending":
                 raise ValueError(f"Cannot start experiment in {row.status} status")
-            view = _job_view(row)
+            if self._task(session, experiment_id, owner_id) is not None:
+                raise ValueError("Cannot start experiment: already queued")
             task = TaskManager(session).enqueue_task(
                 task_type="experiment",
                 entity_id=experiment_id,
@@ -188,8 +240,8 @@ class ExperimentService:
                 celery_task_name="src.tasks.experiment.run_experiment_task",
                 celery_task_args=(experiment_id, owner_id),
             )
-            view["task_id"] = task.id
-            return view
+            session.refresh(row)
+            return _job_view(row, task.id)
 
     def _build_runner_config(self, row: Experiment, owner_id: str) -> ExperimentConfig:
         if self._auth is None:
@@ -218,15 +270,29 @@ class ExperimentService:
         )
 
     def _execute(self, experiment_id: str, owner_id: str) -> None:
+        generation = None
         with self._concurrent_semaphore:
             try:
                 with self._session() as session:
                     row = self._owned(session, experiment_id, owner_id)
+                    task = self._task(session, experiment_id, owner_id)
+                    generation = task.celery_task_id if task is not None else None
                 if row.status != "running":
                     return
                 config = self._build_runner_config(row, owner_id)
                 runner = self._runner_factory(config)
-                runner.should_pause = lambda: self._async_task_paused(experiment_id, owner_id)
+                from api.services.spend_records import SpendRecorder, pricing_snapshot
+
+                recorder = SpendRecorder(self._session, "experiments", experiment_id, owner_id)
+                runner.pricing_manager = pricing_snapshot(self._session)
+                runner.on_spend = lambda eid, response, cached, context: recorder.callback(
+                    **context
+                )(eid, response, cached)
+                runner.before_generate = recorder.check
+                runner.checkpoint_dir = Path(f"results/experiments/api/{experiment_id}/execution")
+                runner.should_pause = lambda: self._async_task_stopped(
+                    experiment_id, owner_id, generation
+                )
                 runner.on_combination = lambda current, total, model, strategy, repeat: (
                     self._write_progress(
                         experiment_id,
@@ -234,26 +300,79 @@ class ExperimentService:
                         current,
                         total,
                         f"{model}/{strategy}/{repeat}",
+                        generation,
                     )
                 )
                 exp_dir = runner.run()
+                recorder.check()
                 if getattr(runner, "paused", False):
-                    with self._session() as session, session.begin():
-                        paused = session.get(Experiment, experiment_id, with_for_update=True)
-                        if paused is not None and paused.status == "running":
-                            paused.status = "paused"
-                            paused.updated_at = utcnow()
+                    self._finish(experiment_id, owner_id, "paused", celery_task_id=generation)
                     return
-                with self._session() as session, session.begin():
-                    done = session.get(Experiment, experiment_id, with_for_update=True)
-                    if done is None or done.status != "running":
-                        return
-                    done.status = "completed"
-                    done.output_dir = str(exp_dir)
-                    done.completed_at = utcnow()
-                    done.updated_at = utcnow()
+                self._finish(
+                    experiment_id,
+                    owner_id,
+                    "completed",
+                    output_dir=str(exp_dir),
+                    celery_task_id=generation,
+                )
             except Exception as e:  # noqa: BLE001 - reported on the row
-                self._fail(experiment_id, str(e))
+                self._finish(
+                    experiment_id,
+                    owner_id,
+                    "failed",
+                    error_message=str(e),
+                    celery_task_id=generation,
+                )
+
+    def _finish(
+        self,
+        experiment_id: str,
+        owner_id: str,
+        status: str,
+        *,
+        output_dir: str | None = None,
+        error_message: str | None = None,
+        celery_task_id: str | None = None,
+    ) -> None:
+        """Commit the result and task together, after any competing cancellation."""
+        with self._session() as session:
+            task = session.scalar(
+                select(AsyncTask).where(
+                    AsyncTask.task_type == "experiment",
+                    AsyncTask.entity_id == experiment_id,
+                    AsyncTask.user_id == owner_id,
+                )
+            )
+            manager = TaskManager(session, celery_task_id=celery_task_id)
+            if task is not None:
+                manager._lock_business_task(task)
+                if celery_task_id is not None and task.celery_task_id != celery_task_id:
+                    return
+                if task.status in _TERMINAL_STATUSES:
+                    return
+                if task.status == "paused":
+                    status = "paused"
+            values: dict[str, Any] = {"status": status, "updated_at": utcnow()}
+            if status in _TERMINAL_STATUSES:
+                values["completed_at"] = utcnow()
+                values["error_message"] = error_message
+            if status == "completed":
+                values["output_dir"] = output_dir
+            changed = session.execute(
+                update(Experiment)
+                .where(
+                    Experiment.id == experiment_id,
+                    Experiment.user_id == owner_id,
+                    Experiment.status == "running",
+                )
+                .values(**values)
+            )
+            if not cast(CursorResult[Any], changed).rowcount:
+                return
+            if task is not None:
+                manager.update_task_status(task.id, status, error_message=error_message)
+            else:
+                session.commit()
 
     def _write_progress(
         self,
@@ -262,6 +381,7 @@ class ExperimentService:
         current: int,
         total: int,
         current_step: str,
+        celery_task_id: str | None = None,
     ) -> None:
         with self._session() as session, session.begin():
             task = (
@@ -275,11 +395,13 @@ class ExperimentService:
             )
             if task is None or task.status != "running":
                 return
-            task.progress = task_progress(current, total, current_step)
-            session.commit()
-            record_execution_event(task, "task.progress", task.progress)
+            TaskManager(session, celery_task_id=celery_task_id).update_task_progress(
+                task.id, task_progress(current, total, current_step), "running"
+            )
 
-    def _async_task_paused(self, experiment_id: str, owner_id: str) -> bool:
+    def _async_task_stopped(
+        self, experiment_id: str, owner_id: str, celery_task_id: str | None = None
+    ) -> bool:
         with self._session() as session:
             task = (
                 session.query(AsyncTask)
@@ -291,16 +413,10 @@ class ExperimentService:
                 )
                 .first()
             )
-            return task is not None and task.status == "paused"
-
-    def _fail(self, experiment_id: str, message: str) -> None:
-        with self._session() as session, session.begin():
-            row = session.get(Experiment, experiment_id, with_for_update=True)
-            if row is None or row.status in (*_TERMINAL_STATUSES, "paused"):
-                return
-            row.status = "failed"
-            row.error_message = message
-            row.updated_at = utcnow()
+            return task is not None and (
+                task.status != "running"
+                or (celery_task_id is not None and task.celery_task_id != celery_task_id)
+            )
 
     # -- results -------------------------------------------------------------
 

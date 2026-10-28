@@ -5,9 +5,8 @@ from __future__ import annotations
 from typing import Any
 
 from celery import Task
-from sqlalchemy.orm import Session
 
-from api.db.models import AsyncTask, Experiment, utcnow
+from api.db.models import Experiment
 from src.celery_app import celery_app
 from src.task_manager import TaskManager
 from src.tasks.support import get_db_session, owned_async_task
@@ -26,19 +25,6 @@ def execute_experiment(experiment_id: str, user_id: str) -> None:
         service._engine.dispose()
 
 
-def _is_paused(db: Session, task_id: str) -> bool:
-    current = db.query(AsyncTask).populate_existing().filter(AsyncTask.id == task_id).first()
-    return current is not None and current.status == "paused"
-
-
-def _keep_paused(db: Session, experiment_id: str) -> None:
-    experiment = db.get(Experiment, experiment_id)
-    if experiment is not None and experiment.status == "running":
-        experiment.status = "paused"
-        experiment.updated_at = utcnow()
-        db.commit()
-
-
 class ExperimentTask(Task):  # type: ignore[misc]
     """Experiment task base used to keep the Celery class typed."""
 
@@ -52,10 +38,16 @@ class ExperimentTask(Task):  # type: ignore[misc]
 def run_experiment_task(self: ExperimentTask, experiment_id: str, user_id: str) -> dict[str, Any]:
     """Execute a pending experiment and mirror its final status onto the async task."""
     db = get_db_session()
+    claimed = False
+    manager = TaskManager(db, celery_task_id=self.request.id)
     try:
         async_task = owned_async_task(db, "experiment", experiment_id, user_id)
-        manager = TaskManager(db)
-        experiment = db.get(Experiment, experiment_id)
+        manager._lock_business_task(async_task)
+        if async_task.status != "pending" or (
+            self.request.id and async_task.celery_task_id != self.request.id
+        ):
+            return {"experiment_id": experiment_id, "status": async_task.status}
+        experiment = db.get(Experiment, experiment_id, populate_existing=True)
         if experiment is None or experiment.user_id != user_id:
             message = f"Experiment {experiment_id} not found"
             manager.update_task_status(async_task.id, "failed", error_message=message)
@@ -65,44 +57,31 @@ def run_experiment_task(self: ExperimentTask, experiment_id: str, user_id: str) 
             manager.update_task_status(async_task.id, "failed", error_message=message)
             raise ValueError(message)
 
-        experiment.status = "running"
-        experiment.started_at = utcnow()
-        experiment.updated_at = utcnow()
-        db.commit()
-        manager.update_task_status(async_task.id, "running")
+        claimed = manager.claim_task(async_task.id, self.request.id)
+        if not claimed:
+            return {"experiment_id": experiment_id, "status": async_task.status}
         try:
             execute_experiment(experiment_id, user_id)
         except Exception as exc:
             db.rollback()
-            if _is_paused(db, async_task.id):
-                _keep_paused(db, experiment_id)
-                return {"experiment_id": experiment_id, "status": "paused"}
-            experiment = db.get(Experiment, experiment_id)
-            if experiment is not None and experiment.status not in (
-                "completed",
-                "failed",
-                "cancelled",
-                "paused",
-            ):
-                experiment.status = "failed"
-                experiment.error_message = str(exc)
-                experiment.updated_at = utcnow()
-                db.commit()
             manager.update_task_status(async_task.id, "failed", error_message=str(exc))
+            db.refresh(async_task)
+            if async_task.status in ("paused", "cancelled", "completed"):
+                return {"experiment_id": experiment_id, "status": async_task.status}
             raise
 
         db.expire_all()
-        experiment = db.get(Experiment, experiment_id)
-        if experiment is None:
+        manager._lock_business_task(async_task)
+        if async_task.status in ("paused", "cancelled", "completed", "failed"):
+            return {"experiment_id": experiment_id, "status": async_task.status}
+        experiment = db.get(Experiment, experiment_id, populate_existing=True)
+        if experiment is None or experiment.user_id != user_id:
             message = f"Experiment {experiment_id} not found"
             manager.update_task_status(async_task.id, "failed", error_message=message)
             raise ValueError(message)
-        if _is_paused(db, async_task.id) or experiment.status == "paused":
-            _keep_paused(db, experiment_id)
-            return {"experiment_id": experiment_id, "status": "paused"}
         status = (
             experiment.status
-            if experiment.status in ("completed", "failed", "cancelled")
+            if experiment.status in ("completed", "failed", "cancelled", "paused")
             else "failed"
         )
         manager.update_task_status(
@@ -110,6 +89,9 @@ def run_experiment_task(self: ExperimentTask, experiment_id: str, user_id: str) 
             status,
             error_message=experiment.error_message,
         )
-        return {"experiment_id": experiment_id, "status": status}
+        db.refresh(async_task)
+        return {"experiment_id": experiment_id, "status": async_task.status}
     finally:
+        if claimed:
+            manager.confirm_stopped(async_task.id)
         db.close()

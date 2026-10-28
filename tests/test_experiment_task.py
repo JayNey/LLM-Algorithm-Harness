@@ -383,7 +383,13 @@ def test_execute_records_percentage_and_current_step(tmp_path):
             seen.append(dict(other.query(AsyncTask).one().progress))
         finally:
             other.close()
-        return {"status": "ok"}
+        return {
+            "combo_id": f"combo-{_repeat}",
+            "combo_dir": f"combo-{_repeat}",
+            "model": _model.model,
+            "strategy": _strategy.name,
+            "repeat": _repeat,
+        }
 
     service._runner_factory = lambda _config: runner
     with (

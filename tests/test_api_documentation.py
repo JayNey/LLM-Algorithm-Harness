@@ -142,7 +142,7 @@ def test_all_json_examples_validate_against_route_models(schema):
 
     for route in routes(create_app()):
         for method in route.methods:
-            operation = schema["paths"][route.path][method.lower()]
+            operation = schema["paths"][route.path_format][method.lower()]
             if route.body_field is not None:
                 example = operation["requestBody"]["content"]["application/json"]["example"]
                 TypeAdapter(route.body_field.field_info.annotation).validate_python(example)

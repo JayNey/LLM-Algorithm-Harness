@@ -7,7 +7,7 @@
 
 ### Requirement: 实验可以作为异步任务执行
 
-系统 SHALL 通过实验运行接口接受一次处于 `pending` 的已有实验的异步执行请求，立即返回任务标识，且实验记录保持 `pending`，直到 worker 开始执行。入队 SHALL 在提交队列消息之前先把任务记录落库，且发布使用的队列任务标识与已落库记录一致。发布失败时 SHALL 把该任务标为 `failed` 并保存错误信息。执行期间状态 SHALL 保持在 `pending`、`running`、`paused`、`completed`、`failed` 或 `cancelled` 之一。执行期间系统 SHALL 在任务进度中报告完成百分比和当前步骤。百分比 SHALL 由已完成组合数与组合总数算出，并落在 0 到 100；组合总数为 0 时百分比 SHALL 为 0。当前步骤 SHALL 标识当前组合的模型、策略和重复序号，且不得包含题目正文。任务完成后，实验记录 SHALL 反映最终状态；失败时 SHALL 保存错误信息。调用方暂停一个正在执行的实验后，worker SHALL 在下一个组合开始前停止继续派发，任务和实验记录都保持 `paused`，且不得再被写成 `completed` 或 `failed`。已经开始的组合可以做完。暂停后 SHALL 保留最后一次进度。API 进程重启 SHALL NOT 把关联活跃 AsyncTask（`pending`、`running` 或 `paused`）的 `pending` 或 `running` 实验标成失败。
+系统 SHALL 通过实验运行接口接受一次处于 `pending` 的已有实验的异步执行请求，立即返回任务标识，且实验记录保持 `pending`，直到 worker 开始执行。入队 SHALL 在提交队列消息之前先把任务记录落库，且发布使用的队列任务标识与已落库记录一致。发布失败时 SHALL 把该任务标为 `failed` 并保存错误信息。执行期间状态 SHALL 保持在 `pending`、`running`、`paused`、`completed`、`failed` 或 `cancelled` 之一。执行期间系统 SHALL 在任务进度中报告完成百分比和当前步骤。百分比 SHALL 由已完成组合数与组合总数算出，并落在 0 到 100；组合总数为 0 时百分比 SHALL 为 0。当前步骤 SHALL 标识当前组合的模型、策略和重复序号，且不得包含题目正文。任务完成后，实验记录 SHALL 反映最终状态；失败时 SHALL 保存错误信息。调用方暂停一个正在执行的实验后，worker SHALL 在下一个组合开始前停止继续派发，任务和实验记录都保持 `paused`，且不得再被写成 `completed` 或 `failed`。已经开始的组合可以做完。暂停后 SHALL 保留最后一次进度。取消实验 SHALL 原子同步任务与实验的 cancelled 状态和结束时间，保持所有者隔离；晚到状态写入 SHALL NOT 覆盖 cancelled，已完成或失败的实验 SHALL 拒绝取消。取消后 worker SHALL 在下一组合前停止派发。API 进程重启 SHALL NOT 把关联活跃 AsyncTask（`pending`、`running` 或 `paused`）的 `pending` 或 `running` 实验标成失败。
 
 #### Scenario: 成功提交实验任务
 
@@ -36,7 +36,7 @@
 
 #### Scenario: 实验执行失败时留下错误
 
-- **WHEN** 实验执行过程中发生业务错误或运行失败，且该任务没有被暂停
+- **WHEN** 实验执行过程中发生业务错误或运行失败，且该任务没有被暂停或取消
 - **THEN** 任务状态为 `failed`，且错误信息可从任务记录读出
 
 #### Scenario: 重启保留已入队实验
@@ -48,6 +48,26 @@
 
 - **WHEN** 实验已为 `running`，关联活跃 AsyncTask，独立 worker 仍在执行，此时 API 进程重启
 - **THEN** 实验与任务仍为 `running`；worker 随后正常完成，实验关联产物目录与完成时间，且结果可查询。
+
+#### Scenario: 取消实验后刷新与删除
+
+- **WHEN** 所有者取消 pending、running 或 paused 的实验任务
+- **THEN** 任务和实验在同一事务中成为 cancelled，保留首次开始时间并同步取消完成时间；重新查询仍为 cancelled，按现有删除规则可以删除实验。
+
+#### Scenario: 取消先于晚到写入
+
+- **WHEN** 取消已提交，随后 Worker 启动、进度、成功、异常或 Celery 状态回填到达
+- **THEN** 两层均保持 cancelled，取消时间与最后进度不变，不再启动后续组合；实验已删除时也不重建记录或把任务改成 failed。
+
+#### Scenario: 完成先于取消
+
+- **WHEN** Worker 已提交 completed 或 failed，随后取消请求到达（包括使用较早读取的 running 对象）
+- **THEN** 拒绝取消，保留任务与实验终态、结果和结束时间。
+
+#### Scenario: 取消所有权隔离
+
+- **WHEN** 调用方取消他人的任务，或自己的任务引用他人的实验
+- **THEN** 他人的任务与实验状态均不被修改；跨用户任务请求被拒绝。
 
 ### Requirement: 题目导入可以作为异步任务执行
 
@@ -178,27 +198,27 @@
 
 ### Requirement: 暂停的评估任务可以恢复
 
-系统 SHALL 通过任务恢复接口接受调用方对自己名下、状态为 `paused` 的评估任务的恢复请求。恢复 SHALL 沿用原来的任务标识，把该任务状态置为 `pending`，并在发布队列消息之前完成落库。关联评估记录 SHALL 保持指向同一任务，且其状态变为 `pending`。非暂停任务、不属于调用方的任务，以及 `task_type` 不是评估的任务，SHALL 被拒绝，且不发布新的队列消息、不修改原任务记录。
+系统 SHALL 通过任务恢复接口接受调用方对自己名下、状态为 paused 的评估任务的恢复请求。恢复 SHALL 沿用原任务标识，保持关联评估指向同一任务，在发布队列消息之前将任务与评估原子写为 pending。非暂停、不属于调用方、关联失效或业务已终结的任务 SHALL 被拒绝，不发布消息、不修改原记录。experiment、benchmark、import、ab_test 的恢复 SHALL 遵循多业务任务安全恢复要求，未知类型 SHALL 被拒绝。评估现有容量限制与检查点续跑 SHALL 保留。
 
 #### Scenario: 恢复暂停的评估任务
+- **WHEN** 调用方恢复自己的 paused 评估
+- **THEN** 保留原任务关联并先落库 pending 后发布，原有检查点继续使用
 
-- **WHEN** 调用方恢复一个属于自己、状态为 `paused` 的评估任务
-- **THEN** 系统返回原来的任务标识，该任务状态为 `pending`，关联评估仍指向该任务且状态为 `pending`，队列消息在该状态落库之后发布
+#### Scenario: 拒绝非法恢复
+- **WHEN** 恢复非暂停、他人、未知类型、关联失效或业务终态任务
+- **THEN** 拒绝恢复且不发布消息
 
 #### Scenario: 拒绝恢复非暂停任务
-
-- **WHEN** 调用方恢复一个属于自己、状态不是 `paused` 的任务
-- **THEN** 系统拒绝该请求，原任务记录保持不变，且不发布新的队列消息
+- **WHEN** 调用方恢复属于自己但状态不是 paused 的任务
+- **THEN** 拒绝请求，保持原记录且不发布消息
 
 #### Scenario: 拒绝恢复非评估任务
-
-- **WHEN** 调用方恢复一个属于自己、状态为 `paused`、但类型不是评估的任务
-- **THEN** 系统拒绝该请求，原任务记录保持不变，且不发布新的队列消息
+- **WHEN** 调用方恢复自己的 paused 非评估任务
+- **THEN** experiment、benchmark、import、ab_test 按多业务安全恢复要求处理；其余未知类型拒绝请求，保持原记录且不发布消息
 
 #### Scenario: 拒绝恢复他人的任务
-
-- **WHEN** 调用方恢复一个不属于自己的暂停任务
-- **THEN** 系统拒绝该请求，且不发布新的队列消息
+- **WHEN** 调用方恢复不属于自己的暂停任务
+- **THEN** 拒绝请求且不发布消息
 
 ### Requirement: 通用任务创建先落库后发布
 
@@ -323,3 +343,27 @@
 #### Scenario: worker 子进程丢失
 - **WHEN** Celery 父进程确认执行 A/B 的子进程丢失
 - **THEN** 未结束的任务和业务记录变为 failed，保存完成时间；消息不重新派发，已暂停或取消的状态不被覆盖。
+
+### Requirement: 多业务任务可安全恢复
+
+系统 SHALL 允许所有者恢复已确认停止且为 paused 的 experiment、benchmark、import 和 ab_test 任务，保留同一 AsyncTask、业务实体、历史进度与检查点。实验以组合、基准以策略/题目、A/B 以变体/题目、导入以已校验条目为持久化单元；已落盘单元 SHALL 跳过，未落盘的中断单元可重试。已保存结果及费用 SHALL 不重复累计。
+
+#### Scenario: 四类任务完成暂停恢复循环
+- **WHEN** 四类运行任务被暂停，当前单元已落盘且 Worker 确认停止，所有者恢复
+- **THEN** 任务与业务记录先同步 pending 再发布新消息，执行保留的剩余单元后均成为 completed，标识与历史结果不变
+
+#### Scenario: 暂停尚未确认
+- **WHEN** 当前 Worker 仍在完成并持久化中断边界的单元
+- **THEN** 恢复被拒绝，不产生并行执行；Worker 退出后可恢复
+
+#### Scenario: 重复恢复与旧执行
+- **WHEN** 同一任务并发恢复、消息重复投递或旧执行回调到达
+- **THEN** 最多一条有效执行，旧消息及回调不覆盖当前状态、结果和进度
+
+#### Scenario: 所有权与终态
+- **WHEN** 用户恢复他人、非 paused、业务终态或失效关联任务
+- **THEN** 拒绝恢复，不发布消息、不改变业务记录；取消与恢复竞争按原子状态决定，取消后不能再执行
+
+#### Scenario: 发布失败
+- **WHEN** 恢复消息发布失败且同代任务仍 pending
+- **THEN** 任务及业务记录或导入 job 成为 failed，保存错误；已开始、已取消、已结束或另一执行代际不被覆盖

@@ -10,10 +10,12 @@ from sqlalchemy import create_engine, select
 from sqlalchemy.orm import sessionmaker
 
 from api.auth.service import Principal
+from api.auth.store import AuthStore
 from api.db.engine import make_engine
 from api.db.migrate import run_migrations
 from api.db.models import AsyncTask, Base, BenchmarkRun, BenchmarkSuite, Experiment
 from api.experiment_models import BenchmarkRunRequest
+from api.files.store import FileStore
 from api.models import AsyncTaskCreateRequest
 from api.routes.files import ImportRequest, import_uploaded
 from api.routes.tasks import create_task as create_task_route
@@ -307,8 +309,14 @@ def test_import_route_marks_failed_when_publish_raises(tmp_path):
     engine = make_engine(f"sqlite:///{tmp_path}/biz.sqlite3")
     run_migrations(engine)
     session = sessionmaker(bind=engine, future=True)()
+    store = FileStore(AuthStore(tmp_path / "auth.sqlite3"))
+    with store.connection() as connection:
+        connection.execute(
+            "INSERT INTO api_file_jobs(id,user_id,file_id,mode,status,created_at,updated_at) VALUES ('job-1','owner-1','file-1','append','pending',0,0)"
+        )
+    store.create_job = Mock(return_value="job-1")
     service = SimpleNamespace(
-        store=SimpleNamespace(create_job=lambda *args, **kwargs: "job-1"),
+        store=store,
         settings=SimpleNamespace(FILE_MAX_ACTIVE_IMPORTS=4),
     )
     principal = Principal(user_id="owner-1", session_id="session-1")
@@ -327,6 +335,7 @@ def test_import_route_marks_failed_when_publish_raises(tmp_path):
         stored.close()
     assert task.status == "failed"
     assert task.error_message == "failed to publish task to broker"
+    assert store.job("job-1", "owner-1")["status"] == "failed"
 
 
 def test_generic_create_route_commits_before_publish(tmp_path):

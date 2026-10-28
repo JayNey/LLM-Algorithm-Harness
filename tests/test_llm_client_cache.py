@@ -110,21 +110,11 @@ class TestLLMClientCache:
 
         # Patch cache to use temp directory
         from src.cache import LLMResponseCache
-        from src.utils.pricing import PricingManager
 
-        def patched_init(self, config):
-            self.config = config
-            self._resolved_api_key = None
-            self.client = mock_client
-            self.pricing_manager = PricingManager()
-            self.cache = LLMResponseCache(
-                cache_dir=temp_cache_dir,
-                ttl_days=config.cache.ttl_days,
-                max_size_mb=config.cache.max_size_mb,
-                enabled=config.cache.enabled,
-            )
-
-        with patch.object(LLMClient, "__init__", patched_init):
+        with patch(
+            "src.llm_client.LLMResponseCache",
+            side_effect=lambda **kwargs: LLMResponseCache(cache_dir=temp_cache_dir, **kwargs),
+        ):
             client = LLMClient(llm_config)
 
             # First call should hit API
@@ -170,24 +160,10 @@ class TestLLMClientCache:
         # Patch cache initialization to use temp directory
         from src.cache import LLMResponseCache
 
-        original_init = LLMClient.__init__
-
-        def patched_init(self, config):
-            self.config = config
-            self._resolved_api_key = None
-            self.client = mock_client
-            from src.utils.pricing import PricingManager
-
-            self.pricing_manager = PricingManager()
-            # Use temp_cache_dir instead of default
-            self.cache = LLMResponseCache(
-                cache_dir=temp_cache_dir,
-                ttl_days=config.cache.ttl_days,
-                max_size_mb=config.cache.max_size_mb,
-                enabled=config.cache.enabled,
-            )
-
-        with patch.object(LLMClient, "__init__", patched_init):
+        with patch(
+            "src.llm_client.LLMResponseCache",
+            side_effect=lambda **kwargs: LLMResponseCache(cache_dir=temp_cache_dir, **kwargs),
+        ):
             client = LLMClient(llm_config)
 
             # First call should hit API
@@ -265,21 +241,11 @@ class TestLLMClientCache:
 
         # Patch cache to use temp directory
         from src.cache import LLMResponseCache
-        from src.utils.pricing import PricingManager
 
-        def patched_init(self, config):
-            self.config = config
-            self._resolved_api_key = None
-            self.client = mock_client
-            self.pricing_manager = PricingManager()
-            self.cache = LLMResponseCache(
-                cache_dir=temp_cache_dir,
-                ttl_days=config.cache.ttl_days,
-                max_size_mb=config.cache.max_size_mb,
-                enabled=config.cache.enabled,
-            )
-
-        with patch.object(LLMClient, "__init__", patched_init):
+        with patch(
+            "src.llm_client.LLMResponseCache",
+            side_effect=lambda **kwargs: LLMResponseCache(cache_dir=temp_cache_dir, **kwargs),
+        ):
             client = LLMClient(llm_config)
 
             # Call with problem_id="problem1"
@@ -325,21 +291,11 @@ class TestLLMClientCache:
 
         # Patch cache to use temp directory
         from src.cache import LLMResponseCache
-        from src.utils.pricing import PricingManager
 
-        def patched_init(self, config):
-            self.config = config
-            self._resolved_api_key = None
-            self.client = mock_client
-            self.pricing_manager = PricingManager()
-            self.cache = LLMResponseCache(
-                cache_dir=temp_cache_dir,
-                ttl_days=config.cache.ttl_days,
-                max_size_mb=config.cache.max_size_mb,
-                enabled=config.cache.enabled,
-            )
-
-        with patch.object(LLMClient, "__init__", patched_init):
+        with patch(
+            "src.llm_client.LLMResponseCache",
+            side_effect=lambda **kwargs: LLMResponseCache(cache_dir=temp_cache_dir, **kwargs),
+        ):
             client = LLMClient(llm_config)
 
             # Call with strategy_name="cot"

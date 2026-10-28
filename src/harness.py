@@ -17,6 +17,7 @@ from rich.progress import (
 )
 
 from src.budget import BudgetedLLMClient, BudgetExhausted, BudgetTracker
+from src.checkpoints import UnitCheckpoint
 from src.code_quality.analyzer import CodeQualityAnalyzer
 from src.cost_alert import CostAlertManager
 from src.cost_strategy import (
@@ -26,7 +27,7 @@ from src.cost_strategy import (
     result_cost,
 )
 from src.failure_classifier import classify_failure_mode
-from src.llm_client import LLMClient
+from src.llm_client import LLMClient, SpendCallback
 from src.models import (
     CostAlertConfig,
     ExecutionResult,
@@ -78,6 +79,8 @@ class AlgorithmHarness:
         self.config = config
         self.budget_tracker = budget_tracker
         self.pricing_manager: PricingManager | None = None
+        self.on_response: SpendCallback | None = None
+        self.before_generate: Callable[[], None] | None = None
         self.cost_monitor: RunCostMonitor | None = None
         self.budget_allocation_monitor: DifficultyBudgetMonitor | None = None
         self.cost_alert_manager: CostAlertManager | None = None
@@ -87,6 +90,8 @@ class AlgorithmHarness:
         self.problems_by_id: dict[str, Problem] = {}
         self.task_record: TaskRecord | None = None
         self.should_pause: Callable[[], bool] | None = None
+        self.checkpoint_dir: Path | None = None
+        self._unit_checkpoint: UnitCheckpoint | None = None
         self.on_problem: Callable[[int, int, str, str], None] | None = None
         self._progress_done = 0
         self._progress_total = 0
@@ -143,6 +148,19 @@ class AlgorithmHarness:
         # Load problems
         problems = self._load_problems()
         self.problems_by_id = {problem.problem_id: problem for problem in problems}
+        if self.checkpoint_dir is not None:
+            snapshot = self.config.redacted_dict()
+            # Benchmark uses a fresh temporary file containing these same problems.
+            snapshot.pop("dataset_path", None)
+            self._unit_checkpoint = UnitCheckpoint(
+                self.checkpoint_dir,
+                TaskService.config_fingerprint(
+                    {
+                        "config": snapshot,
+                        "problems": [problem.model_dump(mode="json") for problem in problems],
+                    }
+                ),
+            )
         self._progress_done = 0
         self._progress_total = len(self.config.strategies) * len(problems)
         logger.info("problems_loaded", count=len(problems))
@@ -664,6 +682,12 @@ class AlgorithmHarness:
         # Execute on all problems
         results = []
         for i, problem in enumerate(problems):
+            key = f"{TaskService.config_fingerprint(strategy_config)}:{problem.problem_id}"
+            saved = self._unit_checkpoint.get(key) if self._unit_checkpoint is not None else None
+            if saved is not None:
+                results.append(ExecutionResult.model_validate(saved))
+                self._progress_done += 1
+                continue
             if self._pause_requested():
                 break
             self._emit_problem_progress(strategy_config.name, problem.problem_id, len(problems))
@@ -704,6 +728,8 @@ class AlgorithmHarness:
                 self._progress_done += 1
                 if self.budget_tracker is not None:
                     self.budget_tracker.finalize_problem()
+            if self._unit_checkpoint is not None:
+                self._unit_checkpoint.put(key, results[-1].model_dump(mode="json"))
 
         # Generate report
         report = self._generate_report(strategy_config, results, problems)
@@ -723,6 +749,8 @@ class AlgorithmHarness:
         if not preflight_ok:
             raise RuntimeError(f"Sandbox preflight failed: {preflight_detail}")
         base_client = LLMClient(self.config.llm_config)
+        base_client.on_response = self.on_response
+        base_client.before_generate = self.before_generate
         if self.pricing_manager is not None:
             base_client.pricing_manager = self.pricing_manager
         llm_client: LLMClient | BudgetedLLMClient = base_client

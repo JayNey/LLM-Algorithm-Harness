@@ -67,19 +67,25 @@ function ExperimentRow({
   const { client } = useExperimentSession()
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string | null>(null)
-  const running = job.status === 'running' || job.status === 'paused'
+  const running =
+    job.status === 'running' ||
+    job.status === 'paused' ||
+    (job.status === 'pending' && !!job.task_id)
   async function cancel() {
     if (busy) return
     setBusy(true)
     setError(null)
     try {
-      const tasks = await client.runningExperimentTasks()
-      const task = tasks.find((item) => item.entity_id === job.id)
-      if (!task) {
+      let taskId = job.task_id
+      if (!taskId) {
+        const tasks = await client.runningExperimentTasks()
+        taskId = tasks.find((item) => item.entity_id === job.id)?.id
+      }
+      if (!taskId) {
         setError('未找到该实验的运行任务')
         return
       }
-      await client.cancelTask(task.id)
+      await client.cancelTask(taskId)
       onSettled()
     } catch (cause: unknown) {
       setError(cause instanceof Error ? cause.message : '取消失败，请重试')

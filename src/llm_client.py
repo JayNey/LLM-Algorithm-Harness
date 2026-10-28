@@ -5,6 +5,7 @@ LLM Client - Interface for calling LLM APIs.
 import os
 import re
 import time
+import uuid
 from collections.abc import Callable
 from typing import Any
 
@@ -31,14 +32,23 @@ except ImportError:
 logger = get_logger(__name__)
 
 _ENV_NAME = re.compile(r"^[A-Za-z_][A-Za-z0-9_]*$")
+SpendCallback = Callable[[str, LLMResponse | None, bool], None]
+SpendObserver = Callable[[str, LLMResponse | None, bool, dict[str, Any]], None]
 
 
 class LLMAdmissionError(RuntimeError):
     """Trusted server admission failure; no provider request was attempted."""
 
 
+class LLMAccountingError(RuntimeError):
+    """An accounting failure must never become another provider attempt."""
+
+
 class LLMClient:
     """LLM API client."""
+
+    on_response: SpendCallback | None = None
+    before_generate: Callable[[], None] | None = None
 
     def __init__(self, config: LLMConfig):
         """
@@ -246,6 +256,9 @@ class LLMClient:
         Raises:
             Exception: If API call fails
         """
+        if self.before_generate is not None:
+            self.before_generate()
+        event_id = str(uuid.uuid4())
         effective = self._effective_params(
             system_prompt=system_prompt,
             temperature=temperature,
@@ -308,7 +321,7 @@ class LLMClient:
                         if usage_known and prompt_price is not None and completion_price is not None
                         else None
                     )
-                    return cached_response.model_copy(
+                    cached_response = cached_response.model_copy(
                         update={
                             "pricing_metadata": {
                                 **pricing.to_dict(),
@@ -318,6 +331,8 @@ class LLMClient:
                             }
                         }
                     )
+                if self.on_response is not None:
+                    self.on_response(event_id, cached_response, True)
                 return cached_response
 
         logger.info(
@@ -344,6 +359,19 @@ class LLMClient:
                 time=response_time,
             )
 
+        except (LLMAdmissionError, LLMAccountingError):
+            raise
+        except Exception as e:
+            if self.on_response is not None:
+                self.on_response(event_id, None, False)
+            safe_error = self._safe_provider_error(e)
+            logger.error("llm_api_error", provider=self.config.provider, error=str(safe_error))
+            raise safe_error from None
+
+        # Accounting is outside provider error handling and precedes cache/report writes.
+        if self.on_response is not None:
+            self.on_response(event_id, response, False)
+        try:
             # Cache the response if enabled
             if self.config.cache.enabled:
                 self.cache.set(cache_key, response)
@@ -356,8 +384,6 @@ class LLMClient:
 
             return response
 
-        except LLMAdmissionError:
-            raise
         except Exception as e:
             safe_error = self._safe_provider_error(e)
             logger.error("llm_api_error", provider=self.config.provider, error=str(safe_error))
@@ -515,6 +541,16 @@ class LLMClient:
                 elapsed = now - started - telemetry_seconds
                 if self.config.retry_max_elapsed_seconds <= elapsed + delay:
                     raise
+                # A timeout may have consumed tokens even if a later attempt
+                # succeeds. Keep that attempt explicitly unknown. The final
+                # failure is recorded by generate, alongside normal successes.
+                if self.on_response is not None:
+                    accounting_started = time.monotonic()
+                    try:
+                        self.on_response(str(uuid.uuid4()), None, False)
+                    except Exception:
+                        raise LLMAccountingError("spend persistence unavailable") from None
+                    telemetry_seconds += max(0.0, time.monotonic() - accounting_started)
                 if delay:
                     time.sleep(delay)
         assert last_error is not None

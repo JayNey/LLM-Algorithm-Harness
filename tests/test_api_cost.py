@@ -1,10 +1,16 @@
 """API tests for cost tracking, budgets, alerts and pricing (issue #154)."""
 
 import secrets
+import socket
+import threading
+import time
 from datetime import datetime
 from unittest.mock import Mock, patch
+from urllib.parse import quote
 
+import httpx
 import pytest
+import uvicorn
 from cryptography.fernet import Fernet
 from fastapi.testclient import TestClient
 from sqlalchemy.orm import Session
@@ -404,7 +410,89 @@ class TestAlertRules:
         assert response.status_code == 404
 
 
+@pytest.fixture
+def pricing_http(api):
+    """Use a real ASGI server: TestClient can decode percent escapes twice."""
+    _, headers, _, app = api
+    server = uvicorn.Server(uvicorn.Config(app, lifespan="off", log_level="error", ws="none"))
+    with socket.socket() as listener:
+        listener.bind(("127.0.0.1", 0))
+        port = listener.getsockname()[1]
+        thread = threading.Thread(target=server.run, kwargs={"sockets": [listener]}, daemon=True)
+        thread.start()
+        try:
+            deadline = time.monotonic() + 10
+            while not server.started:
+                assert (
+                    thread.is_alive() and time.monotonic() < deadline
+                ), "HTTP server did not start"
+                time.sleep(0.01)
+            with httpx.Client(base_url=f"http://127.0.0.1:{port}", trust_env=False) as client:
+                yield client, headers
+        finally:
+            server.should_exit = True
+            thread.join(timeout=10)
+            assert not thread.is_alive(), "HTTP server did not stop"
+
+
 class TestPricing:
+    def test_full_model_ids_round_trip_over_http(self, pricing_http):
+        client, headers = pricing_http
+        models = [
+            "gpt-4",
+            "Qwen/Qwen2.5-7B-Instruct",
+            "provider/team/model",
+            "provider/history",
+            "provider/history/history",
+            "provider/literal%2Fmodel",
+            "provider/literal/model",
+            "provider/模型 +?#%",
+            "a/" + "b" * 198,
+        ]
+        for index, model in enumerate(models, start=1):
+            path = "/api/v1/pricing/" + quote(model, safe="")
+            for price in (index, index + 0.5):
+                response = client.post(
+                    path,
+                    headers=headers,
+                    json={"prompt_per_1k": price, "completion_per_1k": price * 2},
+                )
+                assert response.status_code == 201, response.text
+                assert response.json()["data"]["model"] == model
+
+        catalog = client.get("/api/v1/pricing", headers=headers).json()["data"]["models"]
+        for index, model in enumerate(models, start=1):
+            assert catalog[model]["prompt_per_1k"] == index + 0.5
+            assert catalog[model]["source"] == "override"
+            # Both encoded and literal slashes must select exactly this model's history.
+            for safe in ("", "/"):
+                response = client.get(
+                    "/api/v1/pricing/" + quote(model, safe=safe) + "/history", headers=headers
+                )
+                assert response.status_code == 200, response.text
+                rows = response.json()["data"]
+                assert [row["prompt_per_1k"] for row in rows] == [index + 0.5, index]
+                assert all(row["created_by"] for row in rows)
+
+    def test_full_model_id_auth_and_validation_over_http(self, pricing_http):
+        client, headers = pricing_http
+        path = "/api/v1/pricing/Qwen%2FQwen2.5-7B-Instruct"
+        prices = {"prompt_per_1k": 1, "completion_per_1k": 2}
+        assert client.post(path, json=prices).status_code == 401
+        assert client.get(path + "/history").status_code == 401
+        for model in ("a/" + "b" * 199, ""):
+            invalid_path = "/api/v1/pricing/" + quote(model, safe="")
+            assert client.post(invalid_path, headers=headers, json=prices).status_code == 400
+            assert client.get(invalid_path + "/history", headers=headers).status_code == 400
+        for price in (0, -1):
+            assert (
+                client.post(
+                    path, headers=headers, json={**prices, "prompt_per_1k": price}
+                ).status_code
+                == 400
+            )
+        assert client.get(path + "/history", headers=headers).json()["data"] == []
+
     def test_catalog_override_and_history(self, api):
         client, headers, _, _ = api
         catalog = client.get("/api/v1/pricing", headers=headers).json()["data"]
@@ -638,3 +726,367 @@ def test_web_saved_budget_controls_worker(
     history = client.get("/api/v1/alerts/history", headers=headers).json()["data"]
     assert len(history) == 1
     assert history[0]["rule_id"] == rule.json()["data"]["id"]
+
+
+def test_experiment_ab_accounting_same_scope_across_all_cost_views(api):
+    """Call rows must flow through HTTP without double-counting tasks or old sources."""
+    from api.db.models import ABTest, Budget, Experiment, SpendRecord
+
+    client, headers, _key_id, app = api
+    owner = app.state.auth.authenticate(headers["Authorization"].split()[1]).user_id
+    with app.state.cost._session() as db, db.begin():
+        db.add_all(
+            [
+                Experiment(id="cost-exp", user_id=owner, status="paused", config={}),
+                ABTest(id="cost-ab", user_id=owner, status="failed", config={}),
+                Budget(
+                    id="budget",
+                    user_id=owner,
+                    global_cap_usd=10,
+                    difficulty_caps={"easy": 0.5},
+                    action="pause",
+                ),
+                Evaluation(
+                    id="cost-eval",
+                    user_id=owner,
+                    status="completed",
+                    spent_usd=0.4,
+                    created_at=datetime(2026, 10, 2),
+                ),
+            ]
+        )
+        db.add_all(
+            [
+                SpendRecord(
+                    id="exp-call1",
+                    source="experiments",
+                    task_id="cost-exp",
+                    user_id=owner,
+                    occurred_at=datetime(2026, 10, 2, 10),
+                    model="model-a",
+                    strategy="vanilla",
+                    cost_usd=0.2,
+                    difficulty="easy",
+                ),
+                SpendRecord(
+                    id="exp-call2",
+                    source="experiments",
+                    task_id="cost-exp",
+                    user_id=owner,
+                    occurred_at=datetime(2026, 10, 2, 23, 59, 59),
+                    model="model-a",
+                    strategy="vanilla",
+                    cost_usd=0.3,
+                    difficulty="easy",
+                ),
+                SpendRecord(
+                    id="ab-call",
+                    source="ab_tests",
+                    task_id="cost-ab",
+                    user_id=owner,
+                    occurred_at=datetime(2026, 10, 2, 12),
+                    model="model-b",
+                    strategy="reflexion",
+                    cost_usd=0.6,
+                ),
+                SpendRecord(
+                    id="next-day",
+                    source="ab_tests",
+                    task_id="cost-ab",
+                    user_id=owner,
+                    occurred_at=datetime(2026, 10, 3),
+                    model="model-b",
+                    strategy="reflexion",
+                    cost_usd=1,
+                ),
+                SpendRecord(
+                    id="foreign",
+                    source="experiments",
+                    task_id="cost-exp",
+                    user_id="other",
+                    occurred_at=datetime(2026, 10, 2),
+                    model="model-a",
+                    strategy="vanilla",
+                    cost_usd=99,
+                ),
+            ]
+        )
+
+    def get(path):
+        result = client.get("/api/v1/" + path, headers=headers)
+        assert result.status_code == 200, result.text
+        return result.json()["data"]
+
+    exp = get("costs/tasks/cost-exp")
+    assert exp["total_cost_usd"] == 0.5
+    assert exp["cost_complete"] is True
+    assert get("reports/cost/cost-exp")["total_cost_usd"] == 0.5
+    period = "?since=2026-10-02&until=2026-10-02"
+    summary = get("costs/summary" + period)
+    assert summary["total_cost_usd"] == 1.5
+    assert summary["task_count"] == 3
+    assert summary["by_source"]["experiments"]["task_count"] == 1
+    assert summary["by_source"]["ab_tests"]["cost_usd"] == 0.6
+    assert get("costs/trends" + period)["data"][0]["cost_usd"] == 1.5
+    assert sum(get("costs/breakdown" + period)["by_source"].values()) == pytest.approx(1.5)
+    assert get("costs/summary?since=2026-10-03T00:00:00%2B00:00")["total_cost_usd"] == 1
+    assert get("costs/summary")["total_cost_usd"] == 2.5
+    usage = get("budgets/usage")
+    assert usage["global_budget"]["used_usd"] == 2.5
+    assert usage["by_difficulty"]["easy"]["used_usd"] == 0.5
+    with app.state.cost._session() as db:
+        execution = app.state.cost.execution_budget(db, owner)
+        assert float(execution["used_usd"]) == 2.5
+        assert execution["exhausted_difficulties"] == ["easy"]
+
+
+def test_unknown_experiment_cost_is_partial_and_legacy_is_never_free(api):
+    from api.db.models import ABTest, Experiment, SpendRecord
+
+    client, headers, _key_id, app = api
+    owner = app.state.auth.authenticate(headers["Authorization"].split()[1]).user_id
+    with app.state.cost._session() as db, db.begin():
+        db.add_all(
+            [
+                Experiment(id="partial", user_id=owner, status="cancelled", config={}),
+                ABTest(
+                    id="legacy",
+                    user_id=owner,
+                    status="completed",
+                    config={},
+                    cost_tracking_complete=False,
+                ),
+                ABTest(id="unknown", user_id=owner, status="failed", config={}),
+            ]
+        )
+        db.add_all(
+            [
+                SpendRecord(
+                    id="known",
+                    source="experiments",
+                    task_id="partial",
+                    user_id=owner,
+                    model="m",
+                    strategy="s",
+                    cost_usd=0.2,
+                ),
+                SpendRecord(
+                    id="unpriced",
+                    source="experiments",
+                    task_id="partial",
+                    user_id=owner,
+                    model="m",
+                    strategy="s",
+                    cost_usd=None,
+                    unknown_reason="missing_pricing",
+                ),
+                SpendRecord(
+                    id="no-usage",
+                    source="ab_tests",
+                    task_id="unknown",
+                    user_id=owner,
+                    model="m",
+                    strategy="s",
+                    cost_usd=None,
+                    unknown_reason="missing_usage",
+                ),
+            ]
+        )
+    partial = client.get("/api/v1/costs/tasks/partial", headers=headers).json()["data"]
+    assert partial["total_cost_usd"] == 0.2
+    assert partial["known_cost_usd"] == 0.2
+    assert partial["cost_complete"] is False
+    assert partial["unknown_cost_count"] == 1
+    for job in ("legacy", "unknown"):
+        result = client.get(f"/api/v1/costs/tasks/{job}", headers=headers).json()["data"]
+        assert result["total_cost_usd"] is None
+        assert result["cost_complete"] is False
+    summary = client.get("/api/v1/costs/summary", headers=headers).json()["data"]
+    assert summary["total_cost_usd"] == 0.2
+    assert summary["unknown_cost_count"] == 3
+    assert set(summary["unknown_reasons"]) == {"historical_gap", "missing_usage", "missing_pricing"}
+
+
+@pytest.mark.parametrize("kind", ["experiment", "ab"])
+def test_real_worker_spend_reaches_http_during_pause_resume_and_duplicate_delivery(
+    api, pricing_http, tmp_path, monkeypatch, kind
+):
+    """Only provider SDK/broker replaced; real runners, database and HTTP."""
+    import json
+    from types import SimpleNamespace
+
+    from api.config import settings
+    from api.db.models import AsyncTask
+    from src.ab_testing import ABTestRunner
+    from src.experiment import ExperimentRunner
+    from src.llm_client import LLMClient
+    from src.models import SandboxConfig
+    from src.tasks.ab_test import run_ab_test_task
+    from src.tasks.experiment import run_experiment_task
+
+    _, headers, key_id, app = api
+    http, _ = pricing_http
+    monkeypatch.chdir(tmp_path)
+    monkeypatch.setattr(settings, "DATA_ROOT", str(tmp_path))
+    (tmp_path / "problems.json").write_text(
+        json.dumps(
+            [
+                {
+                    "problem_id": f"p{i}",
+                    "title": "Plus one",
+                    "description": "Return the input integer plus one.",
+                    "difficulty": "easy",
+                    "tags": [],
+                    "test_cases": [{"input": {"x": 1}, "expected_output": 2}],
+                }
+                for i in range(2)
+            ]
+        ),
+        encoding="utf-8",
+    )
+
+    def create(**_kwargs):
+        return SimpleNamespace(
+            model="priced/model",
+            usage=SimpleNamespace(prompt_tokens=100, completion_tokens=50, total_tokens=150),
+            choices=[
+                SimpleNamespace(
+                    message=SimpleNamespace(
+                        content="```python\ndef solution(x): return x + 1\n```"
+                    ),
+                    finish_reason="stop",
+                )
+            ],
+        )
+
+    monkeypatch.setattr(
+        LLMClient,
+        "_initialize_client",
+        lambda _: SimpleNamespace(
+            chat=SimpleNamespace(completions=SimpleNamespace(create=create)),
+            base_url="https://provider.invalid/v1",
+        ),
+    )
+    price = http.post(
+        "/api/v1/pricing/priced%2Fmodel",
+        headers=headers,
+        json={"prompt_per_1k": 1, "completion_per_1k": 4},
+    )
+    assert price.status_code == 201, price.text
+    paused_once, observed = [], []
+    job_id = task_id = None
+
+    def pause_after_unit():
+        if paused_once:
+            return
+        paused_once.append(True)
+        result = http.get(f"/api/v1/costs/tasks/{job_id}", headers=headers).json()["data"]
+        observed.append(result["total_cost_usd"])
+        with patch("src.task_manager.TaskManager._sync_celery_state"):
+            paused = http.post(f"/api/v1/tasks/{task_id}/pause", headers=headers)
+        assert paused.status_code == 200, paused.text
+
+    class PausingExperiment(ExperimentRunner):
+        def run(self):
+            original = self.on_combination
+
+            def progress(current, *args):
+                if current == 1:
+                    pause_after_unit()
+                if original is not None:
+                    original(current, *args)
+
+            self.on_combination = progress
+            return super().run()
+
+    class PausingAB(ABTestRunner):
+        def run(self):
+            original = self.on_problem
+
+            def progress(current, *args):
+                if current == 1:
+                    pause_after_unit()
+                if original is not None:
+                    original(current, *args)
+
+            self.on_problem = progress
+            return super().run()
+
+    if kind == "experiment":
+        service = app.state.experiments
+
+        def factory(config):
+            config.sandbox_config = SandboxConfig(backend="host")
+            config.models = [
+                m.model_copy(update={"cache": m.cache.model_copy(update={"enabled": False})})
+                for m in config.models
+            ]
+            return PausingExperiment(config)
+
+        service._runner_factory = factory
+        monkeypatch.setattr("src.experiment.generate_comparison_report", lambda _: None)
+        monkeypatch.setattr("src.experiment.generate_html_panel", lambda _: None)
+        monkeypatch.setattr("src.tasks.experiment.get_db_session", service._session)
+        monkeypatch.setattr("src.tasks.experiment.execute_experiment", service._execute)
+        worker = run_experiment_task
+        path = "experiments"
+        payload = {
+            "dataset_path": "problems.json",
+            "api_key_id": key_id,
+            "models": [{"model": "priced/model"}],
+            "strategies": [{"name": "vanilla"}],
+            "repeats": 2,
+        }
+        partial_cost, final_cost = 0.6, 1.2
+    else:
+        service = app.state.ab_tests
+
+        def factory(config):
+            config.sandbox_config = SandboxConfig(backend="host")
+            config.model = config.model.model_copy(
+                update={"cache": config.model.cache.model_copy(update={"enabled": False})}
+            )
+            return PausingAB(config)
+
+        service._runner_factory = factory
+        monkeypatch.setattr("api.services.ab_test_service.ABTestService", lambda **_: service)
+        worker = run_ab_test_task
+        path = "ab-tests"
+        payload = {
+            "dataset_path": "problems.json",
+            "api_key_id": key_id,
+            "model": {"model": "priced/model"},
+            "strategy": {"name": "vanilla"},
+            "prompt_variants": [{"id": "a"}, {"id": "b"}],
+        }
+        partial_cost, final_cost = 0.3, 0.6
+    created = http.post(f"/api/v1/{path}", headers=headers, json=payload)
+    assert created.status_code == 201, created.text
+    job_id = created.json()["data"]["id"]
+    with patch("src.task_manager.celery_app.send_task"):
+        started = http.post(f"/api/v1/{path}/{job_id}/run", headers=headers)
+    assert started.status_code == 202, started.text
+    task_id = started.json()["data"]["task_id"]
+    owner = app.state.auth.authenticate(headers["Authorization"].split()[1]).user_id
+    assert worker(job_id, owner)["status"] == "paused"
+    assert observed == [partial_cost]
+    result = http.get(f"/api/v1/reports/cost/{job_id}", headers=headers).json()["data"]
+    assert result["status"] == "paused"
+    assert result["total_cost_usd"] == partial_cost
+    assert result["cost_complete"] is True
+    with patch("src.task_manager.celery_app.send_task"):
+        resumed = http.post(f"/api/v1/tasks/{task_id}/resume", headers=headers)
+    assert resumed.status_code == 200, resumed.text
+    assert worker(job_id, owner)["status"] == "completed"
+    assert worker(job_id, owner)["status"] == "completed"
+    summary = http.get("/api/v1/costs/summary", headers=headers).json()["data"]
+    assert summary["total_cost_usd"] == final_cost
+    assert summary["task_count"] == 1
+    assert (
+        http.get("/api/v1/budgets/usage", headers=headers).json()["data"]["global_budget"][
+            "used_usd"
+        ]
+        == final_cost
+    )
+    with service._session() as db:
+        assert db.get(AsyncTask, task_id).status == "completed"
