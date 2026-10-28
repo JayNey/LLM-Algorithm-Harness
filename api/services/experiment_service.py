@@ -8,6 +8,7 @@ analysis from the experiment artifact directory.
 import json
 import uuid
 from collections.abc import Callable
+from contextlib import ExitStack
 from datetime import datetime
 from pathlib import Path
 from threading import Semaphore
@@ -18,7 +19,12 @@ from sqlalchemy.orm import Session
 
 from api.auth.service import AuthService
 from api.config import settings
-from api.datasets import resolve_dataset_path
+from api.datasets import (
+    execution_dataset,
+    freeze_dataset,
+    public_dataset_config,
+    resolve_dataset_path,
+)
 from api.db import AsyncTask, Experiment, make_engine, make_session_factory, run_migrations
 from api.db.engine import business_database_url
 from api.db.models import utcnow
@@ -44,7 +50,7 @@ def _job_view(row: Experiment, task_id: str | None = None) -> dict[str, Any]:
         "name": row.name,
         "status": row.status,
         "task_id": task_id,
-        "config": row.config,
+        "config": public_dataset_config(row.config),
         "error_message": row.error_message,
         "created_at": _iso(row.created_at),
         "updated_at": _iso(row.updated_at),
@@ -105,22 +111,26 @@ class ExperimentService:
     def _key_id_for(self, request: ExperimentCreateRequest, spec: ModelSpec) -> str:
         return spec.api_key_id or request.api_key_id
 
-    def _validate_request(self, request: ExperimentCreateRequest, owner_id: str) -> None:
+    def _validate_request(self, request: ExperimentCreateRequest, owner_id: str) -> AuthService:
         """Fail fast on key ownership and dataset placement before persisting."""
         if self._auth is None:
             raise ValueError("authentication service is not configured")
         for spec in request.models:
             self._auth.owned_key(self._key_id_for(request, spec), owner_id)
-        resolve_dataset_path(request.dataset_path)
+        return self._auth
 
     # -- CRUD ----------------------------------------------------------------
 
     def create_experiment(self, request: ExperimentCreateRequest, owner_id: str) -> dict[str, Any]:
         """Validate and persist a new experiment configuration."""
-        self._validate_request(request, owner_id)
+        auth = self._validate_request(request, owner_id)
         config: dict[str, Any] = {
             "name": request.name,
             "dataset_path": request.dataset_path,
+            "dataset_id": request.dataset_id,
+            "dataset_snapshot": freeze_dataset(
+                request.dataset_id, request.dataset_path, owner_id, auth
+            ),
             "models": [
                 {
                     "model": spec.model,
@@ -243,10 +253,18 @@ class ExperimentService:
             session.refresh(row)
             return _job_view(row, task.id)
 
-    def _build_runner_config(self, row: Experiment, owner_id: str) -> ExperimentConfig:
+    def _build_runner_config(
+        self, row: Experiment, owner_id: str, dataset_files: ExitStack | None = None
+    ) -> ExperimentConfig:
         if self._auth is None:
             raise ValueError("authentication service is not configured")
         config = row.config
+        if config.get("dataset_snapshot") is not None or config.get("dataset_id"):
+            if dataset_files is None:
+                raise ValueError("Dataset snapshot requires an execution scope")
+            dataset_path = dataset_files.enter_context(execution_dataset(config, owner_id))
+        else:
+            dataset_path = str(resolve_dataset_path(config["dataset_path"]))
         models: list[Any] = []
         for spec in config["models"]:
             llm = self._auth.llm_config(spec["api_key_id"], owner_id, spec["model"])
@@ -258,7 +276,7 @@ class ExperimentService:
             models.append(llm.model_copy(update=update) if update else llm)
         return ExperimentConfig(
             name=config["name"] or f"api-{row.id[:8]}",
-            dataset_path=str(resolve_dataset_path(config["dataset_path"])),
+            dataset_path=dataset_path,
             output_dir=f"results/experiments/api/{row.id}",
             models=models,
             strategies=config["strategies"],
@@ -271,7 +289,7 @@ class ExperimentService:
 
     def _execute(self, experiment_id: str, owner_id: str) -> None:
         generation = None
-        with self._concurrent_semaphore:
+        with self._concurrent_semaphore, ExitStack() as dataset_files:
             try:
                 with self._session() as session:
                     row = self._owned(session, experiment_id, owner_id)
@@ -279,7 +297,7 @@ class ExperimentService:
                     generation = task.celery_task_id if task is not None else None
                 if row.status != "running":
                     return
-                config = self._build_runner_config(row, owner_id)
+                config = self._build_runner_config(row, owner_id, dataset_files)
                 runner = self._runner_factory(config)
                 from api.services.spend_records import SpendRecorder, pricing_snapshot
 

@@ -2,7 +2,8 @@
 
 from typing import Any
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, field_validator, model_validator
+from typing_extensions import Self
 
 from src.ab_testing import PromptVariant
 from src.models import ProblemBudget, StrategyConfig
@@ -19,11 +20,30 @@ class ModelSpec(BaseModel):
     )
 
 
-class ExperimentCreateRequest(BaseModel):
+class DatasetRequest(BaseModel):
+    """Exactly one owner-scoped collection or server-constrained legacy path."""
+
+    dataset_id: str | None = Field(None, min_length=1, max_length=128)
+    dataset_path: str | None = Field(None, min_length=1)
+
+    @field_validator("dataset_id", "dataset_path")
+    @classmethod
+    def nonblank_source(cls, value: str | None) -> str | None:
+        if value is not None and not value.strip():
+            raise ValueError("Dataset source must not be blank")
+        return value
+
+    @model_validator(mode="after")
+    def exclusive_source(self) -> Self:
+        if (self.dataset_id is None) == (self.dataset_path is None):
+            raise ValueError("Provide exactly one of dataset_id or dataset_path")
+        return self
+
+
+class ExperimentCreateRequest(DatasetRequest):
     """Create a fixed-budget experiment."""
 
     name: str = Field("", max_length=200)
-    dataset_path: str = Field(..., min_length=1)
     models: list[ModelSpec] = Field(..., min_length=1)
     strategies: list[StrategyConfig] = Field(..., min_length=1)
     repeats: int = Field(1, ge=1)
@@ -53,22 +73,20 @@ class BenchmarkSuiteUpdateRequest(BaseModel):
     frozen: bool | None = None
 
 
-class BenchmarkRunRequest(BaseModel):
+class BenchmarkRunRequest(DatasetRequest):
     """Run a benchmark suite once."""
 
     api_key_id: str = Field(..., min_length=1)
-    dataset_path: str = Field(..., min_length=1)
     model: str = Field(..., min_length=1)
     strategies: list[StrategyConfig] = Field(default_factory=list)
     budget_cap_usd: float | None = Field(None, gt=0)
     problem_filters: dict[str, Any] | None = None
 
 
-class ABTestCreateRequest(BaseModel):
+class ABTestCreateRequest(DatasetRequest):
     """Create an A/B prompt test."""
 
     name: str = Field("", max_length=200)
-    dataset_path: str = Field(..., min_length=1)
     model: ModelSpec
     strategy: StrategyConfig
     prompt_variants: list[PromptVariant] = Field(..., min_length=2, max_length=2)
