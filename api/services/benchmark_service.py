@@ -3,6 +3,7 @@
 import uuid
 from collections.abc import Callable
 from datetime import datetime
+from pathlib import Path
 from threading import Semaphore
 from typing import Any
 
@@ -28,7 +29,6 @@ from api.experiment_models import (
     BenchmarkSuiteCreateRequest,
     BenchmarkSuiteUpdateRequest,
 )
-from api.monitoring.execution_logs import record_execution_event
 from src.benchmark.executor import BenchmarkExecutor
 from src.benchmark.suite import BenchmarkSuite as SuiteSpec
 from src.models import HarnessConfig
@@ -244,19 +244,36 @@ class BenchmarkService:
             return view
 
     def _execute(self, run_id: str, owner_id: str) -> None:
+        generation = None
         with self._concurrent_semaphore:
             try:
                 if self._auth is None:
                     raise ValueError("authentication service is not configured")
-                with self._session() as session, session.begin():
+                with self._session() as session:
                     row = self._owned_run(session, run_id, owner_id)
-                    if row.status != "pending":
+                    task = session.scalar(
+                        select(AsyncTask).where(
+                            AsyncTask.task_type == "benchmark",
+                            AsyncTask.entity_id == run_id,
+                            AsyncTask.user_id == owner_id,
+                        )
+                    )
+                    if task is not None:
+                        manager = TaskManager(session)
+                        manager._lock_business_task(task)
+                        if task.status == "pending":
+                            manager.claim_task(task.id, task.celery_task_id)
+                        generation = task.celery_task_id
+                        if task.status != "running":
+                            return
+                    if row.status not in ("pending", "running"):
                         return
                     row.status = "running"
-                    row.started_at = utcnow()
+                    row.started_at = row.started_at or utcnow()
                     suite_row = self._owned_suite(session, row.suite_id, owner_id)
                     suite = _suite_obj(suite_row)
                     config_dict = dict(row.config)
+                    session.commit()
 
                 harness_config = HarnessConfig(
                     llm_config=self._auth.llm_config(
@@ -268,7 +285,10 @@ class BenchmarkService:
                     problem_filters=config_dict.get("problem_filters"),
                 )
                 executor = self._executor_factory(suite, harness_config)
-                executor.should_pause = lambda: self._async_task_paused(run_id, owner_id)
+                executor.checkpoint_dir = Path("results/benchmarks/api") / run_id / "units"
+                executor.should_pause = lambda: self._async_task_paused(
+                    run_id, owner_id, generation
+                )
                 executor.on_problem = lambda current, total, strategy, problem_id: (
                     self._write_progress(
                         run_id,
@@ -276,6 +296,7 @@ class BenchmarkService:
                         current,
                         total,
                         f"{strategy}/{problem_id}",
+                        generation,
                     )
                 )
                 results = executor.execute() or {}
@@ -288,6 +309,17 @@ class BenchmarkService:
                     return
 
                 with self._session() as session, session.begin():
+                    task = session.scalar(
+                        select(AsyncTask).where(
+                            AsyncTask.task_type == "benchmark",
+                            AsyncTask.entity_id == run_id,
+                            AsyncTask.user_id == owner_id,
+                        )
+                    )
+                    if task is not None:
+                        TaskManager(session)._lock_business_task(task)
+                        if task.status != "running" or task.celery_task_id != generation:
+                            return
                     done = self._owned_run(session, run_id, owner_id)
                     if done.status != "running":
                         return
@@ -303,8 +335,12 @@ class BenchmarkService:
                     done.results = results if isinstance(results, dict) else {"raw": results}
                     done.completed_at = utcnow()
                     done.updated_at = utcnow()
+                    if task is not None:
+                        TaskManager(session, celery_task_id=generation).update_task_status(
+                            task.id, "completed"
+                        )
             except Exception as e:  # noqa: BLE001 - reported on the row
-                self._fail(run_id, str(e))
+                self._fail(run_id, str(e), generation)
 
     def _write_progress(
         self,
@@ -313,6 +349,7 @@ class BenchmarkService:
         current: int,
         total: int,
         current_step: str,
+        celery_task_id: str | None = None,
     ) -> None:
         with self._session() as session, session.begin():
             task = (
@@ -326,11 +363,13 @@ class BenchmarkService:
             )
             if task is None or task.status != "running":
                 return
-            task.progress = task_progress(current, total, current_step)
-            session.commit()
-            record_execution_event(task, "task.progress", task.progress)
+            TaskManager(session, celery_task_id=celery_task_id).update_task_progress(
+                task.id, task_progress(current, total, current_step), "running"
+            )
 
-    def _async_task_paused(self, run_id: str, owner_id: str) -> bool:
+    def _async_task_paused(
+        self, run_id: str, owner_id: str, celery_task_id: str | None = None
+    ) -> bool:
         with self._session() as session:
             task = (
                 session.query(AsyncTask)
@@ -342,10 +381,27 @@ class BenchmarkService:
                 )
                 .first()
             )
-            return task is not None and task.status == "paused"
+            return task is not None and (
+                task.status != "running"
+                or (celery_task_id is not None and task.celery_task_id != celery_task_id)
+            )
 
-    def _fail(self, run_id: str, message: str) -> None:
+    def _fail(self, run_id: str, message: str, celery_task_id: str | None = None) -> None:
         with self._session() as session, session.begin():
+            task = session.scalar(
+                select(AsyncTask).where(
+                    AsyncTask.task_type == "benchmark", AsyncTask.entity_id == run_id
+                )
+            )
+            if task is not None:
+                manager = TaskManager(session, celery_task_id=celery_task_id)
+                manager._lock_business_task(task)
+                if task.status != "running" or (
+                    celery_task_id is not None and task.celery_task_id != celery_task_id
+                ):
+                    return
+                manager.update_task_status(task.id, "failed", error_message=message)
+                return
             row = session.get(BenchmarkRun, run_id, with_for_update=True)
             if row is None or row.status in (*_TERMINAL_STATUSES, "paused"):
                 return

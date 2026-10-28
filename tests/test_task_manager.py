@@ -700,7 +700,9 @@ class TestResumeTask:
         assert row.status == status
         assert row.celery_task_id == original_celery_id
 
-    @pytest.mark.parametrize("task_type", ["experiment", "import", "benchmark", "unknown"])
+    @pytest.mark.parametrize(
+        "task_type", ["experiment", "import", "benchmark", "ab_test", "unknown"]
+    )
     def test_resume_rejects_non_evaluation_without_publish(
         self, task_manager, db_session, task_type
     ):
@@ -709,7 +711,7 @@ class TestResumeTask:
 
         with (
             patch("src.task_manager.celery_app.send_task") as mock_send,
-            pytest.raises(ValueError, match="Can only resume evaluation tasks"),
+            pytest.raises(ValueError, match="not linked|Unsupported"),
         ):
             task_manager.resume_task(task.id, task.user_id)
 

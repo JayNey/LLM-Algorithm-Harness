@@ -32,6 +32,7 @@ from api.files.parsing import (
     validate_problem,
 )
 from api.files.store import FileStore
+from src.checkpoints import write_checkpoint
 from src.models import ExecutionResult, Problem
 from src.reporting.chart_generator import ChartGenerator
 from src.reporting.csv_exporter import CSVExporter
@@ -224,17 +225,19 @@ class FileService:
         job_id: str,
         user_id: str,
         should_pause: Callable[[], bool] | None = None,
+        claimed: bool = False,
     ) -> None:
         with self.imports:
-            self._process_job(job_id, user_id, should_pause=should_pause)
+            self._process_job(job_id, user_id, should_pause=should_pause, claimed=claimed)
 
     def _process_job(
         self,
         job_id: str,
         user_id: str,
         should_pause: Callable[[], bool] | None = None,
+        claimed: bool = False,
     ) -> None:
-        if not self.store.claim_job(job_id, user_id):
+        if not claimed and not self.store.claim_job(job_id, user_id):
             return
         try:
             job = self.store.job(job_id, user_id)
@@ -247,11 +250,37 @@ class FileService:
                 raise bad("Dataset must be a non-empty array")
             if len(data) > self.settings.FILE_IMPORT_MAX_ITEMS:
                 raise HTTPException(413, "Too many problems")
-            problems: list[Any] = []
-            errors: list[dict[str, Any]] = []
-            self.store.progress(job_id, 0, len(data))
-            for index, item in enumerate(data):
+            checkpoint_path = self.path(
+                f"users/{user_id}/imports/{job_id}.checkpoint.json", user_id
+            )
+            saved = (
+                json.loads(checkpoint_path.read_text(encoding="utf-8"))
+                if checkpoint_path.exists()
+                else {}
+            )
+            if saved and saved.get("sha256") != record["sha256"]:
+                raise bad("Import checkpoint inputs changed")
+            problems = [Problem.model_validate(value) for value in saved.get("problems", [])]
+            errors: list[dict[str, Any]] = saved.get("errors", [])
+            processed = int(saved.get("processed", 0))
+
+            def checkpoint() -> None:
+                write_checkpoint(
+                    checkpoint_path,
+                    {
+                        "sha256": record["sha256"],
+                        "processed": processed,
+                        "problems": [p.model_dump(mode="json") for p in problems],
+                        "errors": errors,
+                    },
+                )
+                self.store.progress(job_id, processed, len(data))
+
+            self.store.progress(job_id, processed, len(data))
+            for index in range(processed, len(data)):
+                item = data[index]
                 if should_pause is not None and should_pause():
+                    checkpoint()
                     self.store.pause_job(job_id)
                     return
                 try:
@@ -260,9 +289,11 @@ class FileService:
                     # Store only field/type diagnostics, never raw record values.
                     if len(errors) < 200:
                         errors.append(problem_error(index, error))
+                processed = index + 1
                 if (index + 1) % 100 == 0 or index + 1 == len(data):
-                    self.store.progress(job_id, index + 1, len(data))
+                    checkpoint()
             if should_pause is not None and should_pause():
+                checkpoint()
                 self.store.pause_job(job_id)
                 return
             report = {

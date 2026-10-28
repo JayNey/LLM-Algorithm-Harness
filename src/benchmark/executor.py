@@ -35,6 +35,7 @@ class BenchmarkExecutor:
         self.should_pause: Callable[[], bool] | None = None
         self.on_problem: Callable[[int, int, str, str], None] | None = None
         self.paused = False
+        self.checkpoint_dir: Path | None = None
 
     def execute(self) -> dict[str, Any]:
         """
@@ -111,6 +112,7 @@ class BenchmarkExecutor:
         try:
             # Run evaluation using the harness
             harness = AlgorithmHarness(self.config)
+            harness.checkpoint_dir = self.checkpoint_dir
             harness.should_pause = self.should_pause
             harness.on_problem = self.on_problem
             reports = harness.run()

@@ -13,11 +13,25 @@ from sqlalchemy import CursorResult, false, func, select, text, update
 from sqlalchemy.orm import Session
 
 from api.config import settings
-from api.db.models import ABTest, AsyncTask, Evaluation, Experiment, utcnow
+from api.db.models import ABTest, AsyncTask, BenchmarkRun, Evaluation, Experiment, utcnow
+from api.files.store import FileStore
 from api.monitoring.execution_logs import record_execution_event
 from src.celery_app import celery_app
 
 _EVALUATION_CELERY_TASK = "src.tasks.evaluation.run_evaluation_task"
+_BUSINESS_TYPES = ("experiment", "benchmark", "import", "ab_test")
+_BUSINESS_MODELS: dict[str, type[Experiment] | type[BenchmarkRun] | type[ABTest]] = {
+    "experiment": Experiment,
+    "benchmark": BenchmarkRun,
+    "ab_test": ABTest,
+}
+_RESUME_WORKERS = {
+    "evaluation": _EVALUATION_CELERY_TASK,
+    "experiment": "src.tasks.experiment.run_experiment_task",
+    "benchmark": "src.tasks.benchmark.run_benchmark_task",
+    "import": "src.tasks.imports.run_import_task",
+    "ab_test": "src.tasks.ab_test.run_ab_test_task",
+}
 
 
 class EvaluationConcurrencyLimitExceeded(ValueError):
@@ -41,17 +55,42 @@ def _request_evaluation_cancel(evaluation_id: str) -> None:
 class TaskManager:
     """异步任务管理器，提供任务创建、查询、更新、暂停和取消功能。"""
 
-    def __init__(self, db_session: Session):
+    def __init__(
+        self,
+        db_session: Session,
+        celery_task_id: str | None = None,
+        file_store: FileStore | None = None,
+    ):
         """初始化 TaskManager。
 
         Args:
             db_session: SQLAlchemy 数据库会话
         """
         self.db = db_session
+        self.celery_task_id = celery_task_id
+        self._file_store = file_store
+        self._import_transitions: list[tuple[str, str, str, str]] = []
+
+    def _import_store(self) -> FileStore:
+        if self._file_store is None:
+            self._file_store = FileStore.from_environment()
+        return self._file_store
+
+    def _commit(self) -> None:
+        """Compensate import metadata if the business transaction cannot commit."""
+        try:
+            self.db.commit()
+        except Exception:
+            self.db.rollback()
+            for job_id, owner, expected, previous in reversed(self._import_transitions):
+                self._import_store().restore_task_status(job_id, owner, expected, previous)
+            self._import_transitions.clear()
+            raise
+        self._import_transitions.clear()
 
     def _lock_business_task(self, task: AsyncTask) -> None:
         """Serialize paired state writes on SQLite as well as PostgreSQL."""
-        if task.task_type in ("ab_test", "experiment"):
+        if task.task_type in _RESUME_WORKERS:
             with self.db.no_autoflush:
                 self.db.execute(
                     update(AsyncTask)
@@ -63,11 +102,36 @@ class TaskManager:
 
     def _sync_business(self, task: AsyncTask) -> None:
         """Mirror owned business state in the same transaction as its task."""
-        row: ABTest | Experiment | None
+        row: ABTest | Experiment | BenchmarkRun | Evaluation | None
         if task.task_type == "ab_test":
             row = self.db.get(ABTest, task.entity_id)
         elif task.task_type == "experiment":
             row = self.db.get(Experiment, task.entity_id, populate_existing=True)
+        elif task.task_type == "benchmark":
+            row = self.db.get(BenchmarkRun, task.entity_id, populate_existing=True)
+        elif task.task_type == "evaluation":
+            row = self.db.get(Evaluation, task.entity_id, populate_existing=True)
+            if row is not None and row.async_task_id != task.id:
+                return
+        elif task.task_type == "import":
+            from fastapi import HTTPException
+
+            try:
+                previous = self._import_store().job(task.entity_id, task.user_id)["status"]
+            except HTTPException as exc:
+                if exc.status_code == 404:
+                    return
+                raise
+            requested = task.status
+            actual = self._import_store().sync_task_status(
+                task.entity_id, task.user_id, requested, expected_status=previous
+            )
+            if actual == requested and actual != previous:
+                self._import_transitions.append((task.entity_id, task.user_id, actual, previous))
+            if actual in ("completed", "failed", "cancelled"):
+                task.status = actual
+                self._record_execution_times(task, actual)
+            return
         else:
             return
         if row is None or row.user_id != task.user_id:
@@ -79,9 +143,11 @@ class TaskManager:
         row.updated_at = utcnow()
 
     def _experiment_transition_blocked(self, task: AsyncTask, status: str) -> bool:
-        if task.task_type != "experiment":
+        if task.task_type not in _BUSINESS_TYPES and self.celery_task_id is None:
             return False
         self._lock_business_task(task)
+        if self.celery_task_id is not None and task.celery_task_id != self.celery_task_id:
+            return True
         return task.status in ("completed", "failed", "cancelled") or (
             task.status == "paused" and status != "cancelled"
         )
@@ -191,7 +257,7 @@ class TaskManager:
         task.celery_task_id = celery_result.id
 
         # 提交到数据库
-        self.db.commit()
+        self._commit()
 
         return task
 
@@ -251,7 +317,7 @@ class TaskManager:
             on_before_publish(task)
 
         # 先落库，确保 worker 取到消息时一定能解析到任务记录与关联
-        self.db.commit()
+        self._commit()
         record_execution_event(task, "task.queued")
 
         try:
@@ -277,7 +343,7 @@ class TaskManager:
             if cast(CursorResult[Any], failed).rowcount:
                 self.db.refresh(task)
                 self._sync_business(task)
-                self.db.commit()
+                self._commit()
                 record_execution_event(task, "task.failed")
             else:
                 self.db.rollback()
@@ -330,10 +396,15 @@ class TaskManager:
             task: AsyncTask 实例
         """
         # 获取 Celery 任务状态
-        celery_result = celery_app.AsyncResult(task.celery_task_id)
+        generation = task.celery_task_id
+        celery_result = celery_app.AsyncResult(generation)
         celery_state = celery_result.state
+        self._lock_business_task(task)
+        if task.celery_task_id != generation or task.status not in ("pending", "running"):
+            self._commit()
+            return
 
-        if task.task_type in ("ab_test", "experiment"):
+        if task.task_type in _BUSINESS_TYPES:
             # Only the business worker may start these tasks. STARTED is
             # emitted by Celery before the worker body acquires that claim.
             if celery_state in ("FAILURE", "REVOKED"):
@@ -350,21 +421,21 @@ class TaskManager:
             task.status = "running"
             if task.started_at is None:
                 task.started_at = datetime.utcnow()
-            self.db.commit()
+            self._commit()
 
         elif celery_state == "PROGRESS":
             task.status = "running"
             # 更新进度信息
             if celery_result.info and isinstance(celery_result.info, dict):
                 task.progress = celery_result.info
-            self.db.commit()
+            self._commit()
 
         elif celery_state == "FAILURE":
             task.status = "failed"
             task.error_message = str(celery_result.info) if celery_result.info else "Task failed"
             if task.completed_at is None:
                 task.completed_at = datetime.utcnow()
-            self.db.commit()
+            self._commit()
 
     def update_task_progress(
         self,
@@ -387,14 +458,14 @@ class TaskManager:
             raise ValueError("Task not found")
 
         if self._experiment_transition_blocked(task, status):
-            self.db.commit()
+            self._commit()
             return
-        task.progress = progress
+        task.progress = {**(task.progress or {}), **progress}
         self._record_execution_times(task, status)
         task.status = status
-        if task.task_type == "experiment":
+        if task.task_type in _BUSINESS_TYPES:
             self._sync_business(task)
-        self.db.commit()
+        self._commit()
         record_execution_event(task, "task.progress", progress)
 
     def update_task_status(
@@ -418,7 +489,7 @@ class TaskManager:
             raise ValueError("Task not found")
 
         if self._experiment_transition_blocked(task, status):
-            self.db.commit()
+            self._commit()
             return
         task.status = status
         if error_message is not None:
@@ -427,7 +498,7 @@ class TaskManager:
         self._record_execution_times(task, status)
         self._sync_business(task)
 
-        self.db.commit()
+        self._commit()
         event = {"running": "task.started", "pending": "task.queued"}.get(status, "task." + status)
         record_execution_event(task, event)
 
@@ -440,6 +511,43 @@ class TaskManager:
             task.completed_at = None
         elif status in ("completed", "failed", "cancelled") and task.completed_at is None:
             task.completed_at = datetime.utcnow()
+
+    def claim_task(
+        self, task_id: str, celery_task_id: str | None, execution_attempt: str | None = None
+    ) -> bool:
+        """Allow exactly one delivery of the current pending generation to run."""
+        task = self.db.get(AsyncTask, task_id)
+        if task is None:
+            return False
+        self._lock_business_task(task)
+        if task.status != "pending" or (celery_task_id and task.celery_task_id != celery_task_id):
+            self._commit()
+            return False
+        self.celery_task_id = task.celery_task_id
+        task.progress = {
+            **(task.progress or {}),
+            "execution_attempt": execution_attempt or str(uuid.uuid4()),
+            "stop_confirmed": False,
+        }
+        task.status = "running"
+        self._record_execution_times(task, "running")
+        self._sync_business(task)
+        self._commit()
+        if task.status != "running":
+            return False
+        record_execution_event(task, "task.started")
+        return True
+
+    def confirm_stopped(self, task_id: str) -> None:
+        """Called only by the claiming worker after all unit writes have finished."""
+        self.db.rollback()
+        task = self.db.get(AsyncTask, task_id)
+        if task is None:
+            return
+        self._lock_business_task(task)
+        if task.status == "paused" and task.celery_task_id == self.celery_task_id:
+            task.progress = {**(task.progress or {}), "stop_confirmed": True}
+        self._commit()
 
     def pause_task(self, task_id: str, user_id: str) -> AsyncTask:
         """暂停任务。
@@ -461,10 +569,13 @@ class TaskManager:
         self._lock_business_task(task)
         if task.status != "running":
             raise ValueError("Can only pause running tasks")
+        self._reject_finished_business(task, "pause")
 
         task.status = "paused"
+        if task.task_type in _BUSINESS_TYPES:
+            task.progress = {**(task.progress or {}), "stop_confirmed": False}
         self._sync_business(task)
-        self.db.commit()
+        self._commit()
         record_execution_event(task, "task.paused")
 
         return task
@@ -489,6 +600,10 @@ class TaskManager:
         self._lock_business_task(task)
         if task.status in ("completed", "failed"):
             raise ValueError("Cannot cancel completed or failed tasks")
+        if task.status == "cancelled":
+            self._commit()
+            return task
+        self._reject_finished_business(task, "cancel")
 
         if task.task_type == "experiment":
             experiment = self.db.get(
@@ -502,7 +617,7 @@ class TaskManager:
                 raise ValueError("Cannot cancel completed or failed experiments")
 
         if task.task_type == "experiment" and task.status == "cancelled":
-            self.db.commit()
+            self._commit()
             return task
 
         # 调用 Celery revoke 终止任务
@@ -516,74 +631,113 @@ class TaskManager:
         if task.completed_at is None:
             task.completed_at = datetime.utcnow()
         self._sync_business(task)
-        self.db.commit()
+        self._commit()
         record_execution_event(task, "task.cancelled")
 
         return task
 
+    def _reject_finished_business(self, task: AsyncTask, operation: str) -> None:
+        if task.task_type == "import":
+            try:
+                status = self._import_store().job(task.entity_id, task.user_id)["status"]
+            except Exception:
+                return
+        else:
+            model = _BUSINESS_MODELS.get(task.task_type)
+            if model is None:
+                return
+            row = cast(
+                Experiment | BenchmarkRun | ABTest | None,
+                self.db.get(model, task.entity_id, populate_existing=True),
+            )
+            status = row.status if row is not None and row.user_id == task.user_id else None
+        if status in ("completed", "failed", "cancelled"):
+            raise ValueError(f"Cannot {operation} completed, failed or cancelled business records")
+
     def resume_task(self, task_id: str, user_id: str) -> AsyncTask:
-        """重新入队一个已暂停的评估任务。
-
-        沿用同一条 AsyncTask。先把任务和关联评估写成 pending 并提交，再发布
-        Celery 消息。非暂停、非评估或不属于调用方的任务会被拒绝，且不改记录。
-
-        Args:
-            task_id: 任务 ID
-            user_id: 用户 ID
-
-        Returns:
-            更新后的同一条 AsyncTask
-
-        Raises:
-            ValueError: 任务不存在、访问被拒绝、状态不允许恢复，或评估未关联该任务
-        """
-        task = self.get_task(task_id, user_id)
-        if task.status != "paused":
-            raise ValueError("Can only resume paused tasks")
-        if task.task_type != "evaluation":
-            raise ValueError("Can only resume evaluation tasks")
-
-        evaluation = (
-            self.db.query(Evaluation)
-            .filter(Evaluation.id == task.entity_id, Evaluation.user_id == user_id)
-            .first()
-        )
-        if evaluation is None or evaluation.async_task_id != task.id:
-            raise ValueError("Evaluation is not linked to this task")
-
-        self._check_evaluation_capacity(task.task_type, user_id)
-        # A competing resume may have committed while admission waited. Reload
-        # under the same user lock before reserving this existing task again.
-        self.db.refresh(task)
-        self.db.refresh(evaluation)
-        if task.status != "paused" or task.user_id != user_id:
-            raise ValueError("Can only resume paused tasks owned by the user")
-        if evaluation.async_task_id != task.id or evaluation.user_id != user_id:
-            raise ValueError("Evaluation is not linked to this task")
-
-        celery_task_id = str(uuid.uuid4())
-        task.celery_task_id = celery_task_id
-        task.status = "pending"
-        evaluation.status = "pending"
-        evaluation.updated_at = utcnow()
-        self.db.commit()
+        """Atomically reserve one continuation of an owned, stopped task."""
+        task = self.db.query(AsyncTask).filter_by(id=task_id, user_id=user_id).first()
+        if task is None:
+            raise ValueError("Task not found or access denied")
+        if task.task_type not in _RESUME_WORKERS:
+            raise ValueError("Unsupported task type for resume")
+        try:
+            # All admission operations acquire the per-user lock before the task lock.
+            self._check_evaluation_capacity(task.task_type, user_id)
+            self._lock_business_task(task)
+            if task.status != "paused" or task.user_id != user_id:
+                raise ValueError("Can only resume paused tasks owned by the user")
+            row: Evaluation | Experiment | BenchmarkRun | ABTest | None
+            if task.task_type == "evaluation":
+                row = self.db.get(Evaluation, task.entity_id, populate_existing=True)
+                if row is None or row.user_id != user_id or row.async_task_id != task.id:
+                    raise ValueError("Evaluation is not linked to this task")
+            elif task.task_type == "import":
+                try:
+                    job = self._import_store().job(task.entity_id, user_id)
+                except Exception as exc:
+                    raise ValueError("Import job is not linked to this task") from exc
+                row = None
+                if job["status"] != "paused":
+                    raise ValueError("Import job is not paused")
+            else:
+                model = _BUSINESS_MODELS[task.task_type]
+                row = cast(
+                    Experiment | BenchmarkRun | ABTest | None,
+                    self.db.get(model, task.entity_id, populate_existing=True),
+                )
+                if row is None or row.user_id != user_id:
+                    raise ValueError("Business record is not linked to this task")
+            if row is not None and row.status != "paused":
+                raise ValueError("Business record is not paused")
+            if task.task_type in _BUSINESS_TYPES and not (task.progress or {}).get(
+                "stop_confirmed"
+            ):
+                raise ValueError("Worker has not confirmed stopping; retry after it stops")
+            celery_task_id = str(uuid.uuid4())
+            task.celery_task_id = celery_task_id
+            task.status = "pending"
+            task.error_message = None
+            task.completed_at = None
+            self._sync_business(task)
+            self._commit()
+        except Exception:
+            self.db.rollback()
+            raise
         record_execution_event(task, "task.resumed")
-
         try:
             celery_app.send_task(
-                _EVALUATION_CELERY_TASK,
-                args=(task.entity_id,),
+                _RESUME_WORKERS[task.task_type],
+                args=(
+                    (task.entity_id,)
+                    if task.task_type == "evaluation"
+                    else (task.entity_id, user_id)
+                ),
                 task_id=celery_task_id,
             )
         except Exception:
-            task.status = "failed"
-            task.error_message = "failed to publish task to broker"
-            if task.completed_at is None:
-                task.completed_at = datetime.utcnow()
-            self.db.commit()
-            record_execution_event(task, "task.failed")
+            self.db.rollback()
+            changed = self.db.execute(
+                update(AsyncTask)
+                .where(
+                    AsyncTask.id == task_id,
+                    AsyncTask.celery_task_id == celery_task_id,
+                    AsyncTask.status == "pending",
+                )
+                .values(
+                    status="failed",
+                    error_message="failed to publish task to broker",
+                    completed_at=datetime.utcnow(),
+                )
+            )
+            if cast(CursorResult[Any], changed).rowcount:
+                self.db.refresh(task)
+                self._sync_business(task)
+                self._commit()
+                record_execution_event(task, "task.failed")
+            else:
+                self.db.rollback()
             raise
-
         return task
 
     def list_tasks(

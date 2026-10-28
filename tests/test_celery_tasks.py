@@ -82,6 +82,39 @@ def evaluation_setup(db_session):
 class TestRunEvaluationTask:
     """测试 run_evaluation_task 核心功能"""
 
+    @pytest.mark.parametrize("status", ["paused", "cancelled", "completed", "failed"])
+    def test_delivery_cannot_restart_stopped_or_terminal_task(
+        self, db_session, evaluation_setup, status
+    ):
+        task = evaluation_setup["async_task"]
+        task.status = status
+        evaluation_setup["evaluation"].status = status
+        db_session.commit()
+        run_evaluation_task.push_request(id=task.celery_task_id)
+        try:
+            with (
+                patch("src.tasks.evaluation.get_db_session", return_value=db_session),
+                patch("src.tasks.evaluation._resolve_execution_context") as resolve,
+            ):
+                result = run_evaluation_task.run(evaluation_setup["evaluation_id"])
+            assert result["status"] == status
+            resolve.assert_not_called()
+        finally:
+            run_evaluation_task.pop_request()
+
+    def test_old_delivery_cannot_start_new_pending_generation(self, db_session, evaluation_setup):
+        run_evaluation_task.push_request(id="old-message")
+        try:
+            with (
+                patch("src.tasks.evaluation.get_db_session", return_value=db_session),
+                patch("src.tasks.evaluation._resolve_execution_context") as resolve,
+            ):
+                result = run_evaluation_task.run(evaluation_setup["evaluation_id"])
+            assert result["status"] == "pending"
+            resolve.assert_not_called()
+        finally:
+            run_evaluation_task.pop_request()
+
     def test_run_evaluation_task_success(self, db_session, evaluation_setup):
         """验证任务成功执行完整流程"""
         evaluation_id = evaluation_setup["evaluation_id"]
