@@ -1,5 +1,6 @@
 {
   "openspec_proposal": "openspec/changes/experiment-queue-safety/proposal.md",
   "openspec_design": "openspec/changes/experiment-queue-safety/design.md",
-  "openspec_tasks": "openspec/changes/experiment-queue-safety/tasks.md"
+  "openspec_tasks": "openspec/changes/experiment-queue-safety/tasks.md",
+  "archive_directory": "openspec/changes/archive/2026-10-28-experiment-queue-safety"
 }
