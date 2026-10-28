@@ -1,0 +1,22 @@
+{
+  "layer": "Chromium + HTTP fixtures, no live backend",
+  "checks": [
+    "Retained evaluation/result snapshots: composed refresh errors translate in both directions",
+    "Authentication: live labels and errors, DOM identity, form values, route, refresh persistence and both languages",
+    "Blocked localStorage: Chinese default and in-memory English switching",
+    "orbit/320: live shell/profile, unsaved CJK input, no remount/refetch, cached option labels, refresh, no overflow",
+    "orbit/1440: live shell/profile, unsaved CJK input, no remount/refetch, cached option labels, refresh, no overflow",
+    "precision/320: live shell/profile, unsaved CJK input, no remount/refetch, cached option labels, refresh, no overflow",
+    "precision/1440: live shell/profile, unsaved CJK input, no remount/refetch, cached option labels, refresh, no overflow",
+    "studio/320: live shell/profile, unsaved CJK input, no remount/refetch, cached option labels, refresh, no overflow",
+    "studio/1440: live shell/profile, unsaved CJK input, no remount/refetch, cached option labels, refresh, no overflow",
+    "API keys: success severity stays successful in both languages; last-used label translates; key names stay original",
+    "Stored resource error: English load switches back to Chinese without refetching"
+  ],
+  "errors": [],
+  "screenshots": [
+    "auth-zh.png",
+    "orbit-320-en.png",
+    "precision-1440-en.png"
+  ]
+}
