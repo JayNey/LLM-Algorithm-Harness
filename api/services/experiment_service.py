@@ -281,6 +281,14 @@ class ExperimentService:
                     return
                 config = self._build_runner_config(row, owner_id)
                 runner = self._runner_factory(config)
+                from api.services.spend_records import SpendRecorder, pricing_snapshot
+
+                recorder = SpendRecorder(self._session, "experiments", experiment_id, owner_id)
+                runner.pricing_manager = pricing_snapshot(self._session)
+                runner.on_spend = lambda eid, response, cached, context: recorder.callback(
+                    **context
+                )(eid, response, cached)
+                runner.before_generate = recorder.check
                 runner.checkpoint_dir = Path(f"results/experiments/api/{experiment_id}/execution")
                 runner.should_pause = lambda: self._async_task_stopped(
                     experiment_id, owner_id, generation
@@ -296,6 +304,7 @@ class ExperimentService:
                     )
                 )
                 exp_dir = runner.run()
+                recorder.check()
                 if getattr(runner, "paused", False):
                     self._finish(experiment_id, owner_id, "paused", celery_task_id=generation)
                     return

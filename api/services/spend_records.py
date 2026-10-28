@@ -11,8 +11,8 @@ import json
 import math
 import uuid
 from collections.abc import Callable
-from functools import partial
 from pathlib import Path
+from threading import Event
 from typing import Any
 
 from sqlalchemy import select
@@ -68,6 +68,12 @@ class SpendRecorder:
         self.source = source
         self.task_id = task_id
         self.owner_id = owner_id
+        self._failed = Event()
+
+    def check(self) -> None:
+        """Prevent new provider requests after an accounting write failed."""
+        if self._failed.is_set():
+            raise RuntimeError("spend persistence unavailable; execution stopped")
 
     def callback(
         self,
@@ -77,13 +83,30 @@ class SpendRecorder:
         problem_id: str | None = None,
         difficulty: str | None = None,
     ) -> SpendCallback:
-        return partial(
-            self.record,
-            model=model,
-            strategy=strategy,
-            problem_id=problem_id,
-            difficulty=difficulty,
-        )
+        def save(event_id: str, response: LLMResponse | None, cached: bool) -> None:
+            try:
+                self.record(
+                    event_id,
+                    response,
+                    cached,
+                    model=model,
+                    strategy=strategy,
+                    problem_id=problem_id,
+                    difficulty=difficulty,
+                )
+            except Exception:
+                self._failed.set()
+                # Best effort: if the database recovers, never advertise full coverage.
+                try:
+                    with self.session_factory() as session, session.begin():
+                        row = session.get(_SOURCES[self.source], self.task_id)
+                        if row is not None and row.user_id == self.owner_id:
+                            row.cost_tracking_complete = False
+                except Exception:
+                    pass
+                raise
+
+        return save
 
     def record(
         self,

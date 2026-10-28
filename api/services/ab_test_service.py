@@ -261,12 +261,21 @@ class ABTestService:
             try:
                 config = self._build_config(row, owner_id)
                 runner = self._runner_factory(config)
+                from api.services.spend_records import SpendRecorder, pricing_snapshot
+
+                recorder = SpendRecorder(self._session, "ab_tests", test_id, owner_id)
+                runner.pricing_manager = pricing_snapshot(self._session)
+                runner.on_spend = lambda eid, response, cached, context: recorder.callback(
+                    **context
+                )(eid, response, cached)
+                runner.before_generate = recorder.check
                 runner.checkpoint_dir = Path(f"results/ab-tests/api/{test_id}/execution")
                 runner.should_stop = lambda: self._should_stop(task_id, generation)
                 runner.on_problem = lambda current, total, step: self._progress(
                     task_id, generation, current, total, step
                 )
                 output_dir = runner.run()
+                recorder.check()
                 self._finish(
                     task_id, "completed", output_dir=str(output_dir), celery_task_id=generation
                 )

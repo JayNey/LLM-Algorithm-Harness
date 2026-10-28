@@ -27,7 +27,7 @@ from src.cost_strategy import (
     result_cost,
 )
 from src.failure_classifier import classify_failure_mode
-from src.llm_client import LLMClient
+from src.llm_client import LLMClient, SpendCallback
 from src.models import (
     CostAlertConfig,
     ExecutionResult,
@@ -79,6 +79,8 @@ class AlgorithmHarness:
         self.config = config
         self.budget_tracker = budget_tracker
         self.pricing_manager: PricingManager | None = None
+        self.on_response: SpendCallback | None = None
+        self.before_generate: Callable[[], None] | None = None
         self.cost_monitor: RunCostMonitor | None = None
         self.budget_allocation_monitor: DifficultyBudgetMonitor | None = None
         self.cost_alert_manager: CostAlertManager | None = None
@@ -747,6 +749,8 @@ class AlgorithmHarness:
         if not preflight_ok:
             raise RuntimeError(f"Sandbox preflight failed: {preflight_detail}")
         base_client = LLMClient(self.config.llm_config)
+        base_client.on_response = self.on_response
+        base_client.before_generate = self.before_generate
         if self.pricing_manager is not None:
             base_client.pricing_manager = self.pricing_manager
         llm_client: LLMClient | BudgetedLLMClient = base_client

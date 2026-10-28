@@ -23,6 +23,7 @@ from src.checkpoints import UnitCheckpoint, write_checkpoint
 from src.experiment_panel import generate_html_panel
 from src.experiment_report import generate_comparison_report
 from src.harness import AlgorithmHarness
+from src.llm_client import SpendObserver
 from src.models import ExperimentConfig, HarnessConfig, LLMConfig, Problem, StrategyConfig
 from src.problem_loader import ProblemLoader
 from src.task_service import TaskService
@@ -87,6 +88,8 @@ class ExperimentRunner:
         self.on_combination: Callable[[int, int, str, str, int], None] | None = None
         self.paused = False
         self.checkpoint_dir: Path | None = None
+        self.on_spend: SpendObserver | None = None
+        self.before_generate: Callable[[], None] | None = None
 
     def _report_combination(
         self,
@@ -305,6 +308,26 @@ class ExperimentRunner:
         )
         tracker = BudgetTracker(self.config.budget)
         harness = AlgorithmHarness(harness_config, budget_tracker=tracker)
+        harness.pricing_manager = self.pricing_manager
+        harness.before_generate = self.before_generate
+        if self.on_spend is not None:
+
+            def record(event_id: str, response: Any, cached: bool) -> None:
+                problem_id = tracker.current_problem
+                problem = harness.problems_by_id.get(problem_id or "")
+                self.on_spend(
+                    event_id,
+                    response,
+                    cached,
+                    {
+                        "model": model.model,
+                        "strategy": strategy.name,
+                        "problem_id": problem_id,
+                        "difficulty": problem.difficulty if problem is not None else None,
+                    },
+                )
+
+            harness.on_response = record
         reports = harness.run()
 
         summary = redact_sensitive_data(
