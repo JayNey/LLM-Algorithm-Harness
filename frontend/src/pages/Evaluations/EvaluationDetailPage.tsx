@@ -112,7 +112,7 @@ export default function EvaluationDetailPage() {
                 : t('操作尚未确认')
             }
             description={t('{{value1}}。请核对最新任务状态后重试。', {
-              value1: actionError.message,
+              value1: t(actionError.message),
             })}
           />
         )}
@@ -122,7 +122,7 @@ export default function EvaluationDetailPage() {
             message={t(
               current
                 ? t('{{value1}}；下方为上次读取的数据，请刷新后操作。', {
-                    value1: readError,
+                    value1: t(readError),
                   })
                 : readError,
             )}

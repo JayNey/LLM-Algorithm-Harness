@@ -403,7 +403,7 @@ function AlertRulesSection({ onChanged }: { onChanged: () => void }) {
       )}
       <fieldset>
         <legend>{t('新增预警规则')}</legend>
-        {draftError && <small role="alert">{draftError}</small>}
+        {draftError && <small role="alert">{t(draftError)}</small>}
         <div className="evaluation-section-heading">
           <Input
             aria-label={t('规则名称')}

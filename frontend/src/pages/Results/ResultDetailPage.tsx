@@ -138,7 +138,7 @@ export default function ResultDetailPage() {
           <EvaluationFeedback
             message={t(
               current
-                ? t('{{value1}}；下方为上次读取的数据。', { value1: error })
+                ? t('{{value1}}；下方为上次读取的数据。', { value1: t(error) })
                 : error,
             )}
             retry={refresh}

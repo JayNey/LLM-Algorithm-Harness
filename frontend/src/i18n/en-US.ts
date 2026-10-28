@@ -1163,4 +1163,11 @@ export default {
   ' 单元': ' units',
   ' 个单元 ·': ' units ·',
   ' 个结果': ' results',
+  '渠道 slack 需要填写通知目标':
+    'Enter a notification target for the slack channel',
+  '渠道 webhook 需要填写通知目标':
+    'Enter a notification target for the webhook channel',
+  '渠道 smtp 需要填写通知目标':
+    'Enter a notification target for the smtp channel',
+  '仅支持 .json / .csv 格式': 'Only .json / .csv formats are supported',
 }

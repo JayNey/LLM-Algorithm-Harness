@@ -79,7 +79,7 @@ function useApiKeys() {
             timeout: 10_000,
           }),
         )
-        if (!data) throw new Error(t('密钥列表响应无效，请重试'))
+        if (!data) throw new Error('密钥列表响应无效，请重试')
         return data
       },
       [http],

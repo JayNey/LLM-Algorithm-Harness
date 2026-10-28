@@ -79,7 +79,7 @@ export default function CreateEvaluationPage() {
           timeout: 10_000,
         }),
       )
-      if (!data) throw new ApiClientError(t('密钥列表响应无效，请重试'))
+      if (!data) throw new ApiClientError('密钥列表响应无效，请重试')
       return data
     }, []),
   )

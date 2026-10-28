@@ -33,6 +33,7 @@ async function contextFor({
   variant = 'orbit',
   theme = 'dark',
   blocked = false,
+  malformedKeys = false,
 } = {}) {
   const context = await browser.newContext({
     viewport: { width, height: 1000 },
@@ -67,13 +68,74 @@ async function contextFor({
     { auth, variant, theme, blocked },
   )
   const calls = []
+  const state = { failReads: false }
   await context.route('**/api/v1/**', async (route) => {
     const url = new URL(route.request().url()),
       path = url.pathname.replace('/api/v1', '')
     calls.push(path)
     let data
-    if (path === '/users/me') data = profile
-    else if (path === '/api-keys') data = []
+    if (
+      state.failReads &&
+      ['/evaluations/eval-fixture', '/results/eval-fixture'].includes(path)
+    )
+      return route.fulfill({
+        status: 503,
+        contentType: 'application/json',
+        body: JSON.stringify({ detail: 'offline' }),
+      })
+    if (path === '/evaluations/eval-fixture')
+      data = {
+        evaluation_id: 'eval-fixture',
+        created_at: '2026-10-21T00:00:00Z',
+        updated_at: '2026-10-21T00:00:00Z',
+        status: 'completed',
+        can_start: false,
+        can_cancel: false,
+        execution_progress: {
+          completed_units: 2,
+          total_units: 2,
+          percentage: 100,
+        },
+        strategy_names: ['direct'],
+        model: 'model-a',
+        problem_count: 2,
+        spent_usd: 0,
+        budget_cap_usd: null,
+        error_message: null,
+        progress: null,
+      }
+    else if (path === '/results/eval-fixture')
+      data = {
+        run_id: null,
+        status: 'completed',
+        created_at: '2026-10-21T00:00:00Z',
+        completed_at: '2026-10-21T00:01:00Z',
+        strategies: [],
+        problems: {
+          items: [],
+          total: 0,
+          limit: 20,
+          offset: 0,
+          has_more: false,
+        },
+      }
+    else if (path === '/users/me') data = profile
+    else if (path === '/api-keys')
+      data = malformedKeys
+        ? { invalid: true }
+        : [
+            {
+              id: 'key-fixture',
+              provider: 'openai',
+              key_name: '中文密钥名',
+              created_at: 1700000000,
+              last_used_at: null,
+              usage_count: 0,
+              verified: true,
+              masked_preview: null,
+            },
+          ]
+    else if (path === '/api-keys/key-fixture/verify') data = { ok: true }
     else if (['/evaluations', '/experiments', '/ab-tests'].includes(path))
       data = {
         items: [],
@@ -104,9 +166,45 @@ async function contextFor({
   const page = await context.newPage()
   page.setDefaultTimeout(10000)
   page.on('pageerror', (e) => errors.push(e.message))
-  return { context, page, calls }
+  return { context, page, calls, state }
 }
 try {
+  {
+    const { context, page, state } = await contextFor({ auth: true })
+    await page.goto(base + '/settings')
+    await page.getByRole('combobox', { name: '界面语言' }).selectOption('en-US')
+    for (const [path, refresh] of [
+      ['/evaluations/eval-fixture', 'Refresh task'],
+      ['/results/eval-fixture', 'Refresh results'],
+    ]) {
+      state.failReads = false
+      await page.goto(base + path)
+      await expectText(page, 'model-a')
+      state.failReads = true
+      await page.getByRole('button', { name: refresh, exact: true }).click()
+      await page.getByRole('alert').first().waitFor()
+      const text = await page.getByRole('alert').first().innerText()
+      assert.ok(
+        !/\p{Script=Han}/u.test(text),
+        'Composed error must translate its source: ' + text,
+      )
+      assert.match(text, /Service is temporarily unavailable/)
+      await page
+        .getByRole('combobox', { name: 'Interface language' })
+        .selectOption('zh-CN')
+      await page
+        .getByText(/服务暂时不可用/)
+        .first()
+        .waitFor()
+      await page
+        .getByRole('combobox', { name: '界面语言' })
+        .selectOption('en-US')
+    }
+    checks.push(
+      'Retained evaluation/result snapshots: composed refresh errors translate in both directions',
+    )
+    await context.close()
+  }
   {
     const { context, page } = await contextFor()
     await page.goto(base + '/login')
@@ -233,6 +331,50 @@ try {
       )
       await context.close()
     }
+  {
+    const { context, page } = await contextFor({ auth: true })
+    await page.goto(base + '/settings/api-keys')
+    await page.getByRole('combobox', { name: '界面语言' }).selectOption('en-US')
+    await expectText(page, '中文密钥名')
+    await page.getByRole('button', { name: 'Validate', exact: true }).click()
+    await page
+      .locator('.ant-alert-success')
+      .filter({ hasText: 'Validation succeeded' })
+      .waitFor()
+    await expectText(page, 'Never used')
+    await page
+      .getByRole('combobox', { name: 'Interface language' })
+      .selectOption('zh-CN')
+    await page
+      .locator('.ant-alert-success')
+      .filter({ hasText: '验证成功' })
+      .waitFor()
+    await expectText(page, '尚未使用')
+    checks.push(
+      'API keys: success severity stays successful in both languages; last-used label translates; key names stay original',
+    )
+    await context.close()
+  }
+  {
+    const { context, page, calls } = await contextFor({
+      auth: true,
+      malformedKeys: true,
+    })
+    await page.goto(base + '/settings')
+    await page.getByRole('combobox', { name: '界面语言' }).selectOption('en-US')
+    await page.goto(base + '/evaluations/new')
+    await expectText(page, 'Invalid key list response. Try again')
+    const before = calls.length
+    await page
+      .getByRole('combobox', { name: 'Interface language' })
+      .selectOption('zh-CN')
+    await expectText(page, '密钥列表响应无效，请重试')
+    assert.equal(calls.length, before)
+    checks.push(
+      'Stored resource error: English load switches back to Chinese without refetching',
+    )
+    await context.close()
+  }
   assert.deepEqual(errors, [])
   await writeFile(
     resolve(output, 'report.json'),

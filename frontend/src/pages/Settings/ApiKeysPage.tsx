@@ -144,7 +144,7 @@ function KeyRow({
       </p>
       <p>
         {item.last_used_at === null
-          ? lastUsedLabel(null)
+          ? t(lastUsedLabel(null))
           : t('最后使用：{{value1}}', {
               value1: formatUnixSeconds(item.last_used_at),
             })}
@@ -293,7 +293,7 @@ export default function ApiKeysPage() {
         <h1>{t('API 密钥')}</h1>
         {notice ? (
           <Alert
-            type={notice === t('验证成功') ? 'success' : 'error'}
+            type={notice === '验证成功' ? 'success' : 'error'}
             message={t(notice)}
             showIcon
           />
@@ -309,7 +309,7 @@ export default function ApiKeysPage() {
       <h1>{t('API 密钥')}</h1>
       {notice ? (
         <Alert
-          type={notice === t('验证成功') ? 'success' : 'error'}
+          type={notice === '验证成功' ? 'success' : 'error'}
           message={t(notice)}
           showIcon
         />
