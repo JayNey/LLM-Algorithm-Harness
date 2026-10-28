@@ -342,7 +342,10 @@ class TaskManager:
             )
             if cast(CursorResult[Any], failed).rowcount:
                 self.db.refresh(task)
-                self._sync_business(task)
+                # A never-started evaluation remains a retryable draft. The
+                # resume path below has a separate, paired failure transition.
+                if task.task_type != "evaluation":
+                    self._sync_business(task)
                 self._commit()
                 record_execution_event(task, "task.failed")
             else:

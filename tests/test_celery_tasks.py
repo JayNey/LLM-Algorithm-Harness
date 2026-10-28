@@ -115,6 +115,36 @@ class TestRunEvaluationTask:
         finally:
             run_evaluation_task.pop_request()
 
+    @pytest.mark.parametrize("raises", [False, True])
+    def test_old_execution_cannot_finish_new_generation(self, db_session, evaluation_setup, raises):
+        def resume_elsewhere(**kwargs):
+            task = db_session.get(AsyncTask, evaluation_setup["async_task_id"])
+            task.celery_task_id = "new-message"
+            task.status = "pending"
+            db_session.get(Evaluation, evaluation_setup["evaluation_id"]).status = "pending"
+            db_session.commit()
+            if raises:
+                raise RuntimeError("late old failure")
+            return Mock(state="completed", completed_units=0, total_units=1)
+
+        with (
+            patch("src.tasks.evaluation.get_db_session", return_value=db_session),
+            patch("src.tasks.evaluation._resolve_execution_context"),
+            patch("src.tasks.evaluation._build_harness", return_value=(Mock(), {}, {})),
+            patch("src.tasks.evaluation.TaskService") as service,
+        ):
+            service.return_value.get.side_effect = FileNotFoundError()
+            service.return_value.run.side_effect = resume_elsewhere
+            if raises:
+                with pytest.raises(RuntimeError, match="late old failure"):
+                    run_evaluation_task(evaluation_setup["evaluation_id"])
+            else:
+                assert run_evaluation_task(evaluation_setup["evaluation_id"])["status"] == "pending"
+        task = db_session.get(AsyncTask, evaluation_setup["async_task_id"])
+        assert task.status == "pending"
+        assert task.celery_task_id == "new-message"
+        assert db_session.get(Evaluation, evaluation_setup["evaluation_id"]).status == "pending"
+
     def test_run_evaluation_task_success(self, db_session, evaluation_setup):
         """验证任务成功执行完整流程"""
         evaluation_id = evaluation_setup["evaluation_id"]

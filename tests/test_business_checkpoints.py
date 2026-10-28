@@ -78,7 +78,7 @@ def test_experiment_resumes_same_directory_and_skips_saved_combinations(tmp_path
         second = runner()
         assert second.run() == output
     assert calls == [1, 2, 3]
-    saved = json.loads((output / "experiment.json").read_text())
+    saved = json.loads((output / "experiment.json").read_text(encoding="utf-8"))
     assert len(saved["combinations"]) == 3
 
 
@@ -163,7 +163,7 @@ def test_ab_resume_keeps_assignment_and_completed_problem_rows(tmp_path, dataset
         output = first.run()
         assert runner().run() == output
     assert len(calls) == len(set(calls)) == 4
-    report = json.loads((output / "ab_test.json").read_text())
+    report = json.loads((output / "ab_test.json").read_text(encoding="utf-8"))
     assert len(report["rows"]) == 4
     assert sum(report["comparison"]["tokens"].values()) == 40
 

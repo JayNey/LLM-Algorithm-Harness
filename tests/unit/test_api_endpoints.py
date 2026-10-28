@@ -931,7 +931,12 @@ def api(monkeypatch, tmp_path, unit_app):
     app.state.progress_stream = state.progress_stream
     app.dependency_overrides[get_db] = lambda: Mock(name="db-session")
     app.dependency_overrides[task_manager] = lambda: state.manager
-    monkeypatch.setattr("api.routes.files.TaskManager", lambda db: state.manager)
+
+    def file_task_manager(db, *, file_store):
+        assert file_store is state.files.store
+        return state.manager
+
+    monkeypatch.setattr("api.routes.files.TaskManager", file_task_manager)
     state.pareto_analysis = Mock(return_value=VALUE.copy())
     state.advisory = Mock(return_value=VALUE.copy())
     state.system_config = Mock(return_value=VALUE.copy())

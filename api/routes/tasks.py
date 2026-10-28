@@ -27,7 +27,8 @@ _PUBLIC_TASKS = {
 
 def task_manager(request: Request, db: Session = Depends(get_db)) -> TaskManager:
     """Get TaskManager instance."""
-    return TaskManager(db, file_store=request.app.state.files.store)
+    files = getattr(request.app.state, "files", None)
+    return TaskManager(db, file_store=files.store if files is not None else None)
 
 
 def call(operation: Callable[[], T]) -> T:
