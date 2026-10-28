@@ -1,3 +1,4 @@
+import { LocaleProvider } from '@/i18n/LocaleProvider.tsx'
 import { StrictMode } from 'react'
 import { createRoot } from 'react-dom/client'
 import { readViteEnv } from '@/config/env.ts'
@@ -25,6 +26,8 @@ if (import.meta.hot)
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
-    <App />
+    <LocaleProvider>
+      <App />
+    </LocaleProvider>
   </StrictMode>,
 )
