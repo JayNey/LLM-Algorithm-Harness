@@ -6,7 +6,7 @@
 
 实现与 #308 验收项、proposal、design 和两条新增需求/四个场景一致。相关后端 225 项、前端 281 项测试通过，5 个浏览器场景通过；前端生产构建成功。没有未解决的本次变更正确性、安全或边界问题。
 
-用户已明确选择继续 tweak 和独立分支（1A2B），覆盖已说明的跨服务 API/前端范围。无需数据库迁移、新依赖或公共题库写入。归档/推送/PR 尚未授权，等待最终归档选择。
+用户已明确选择继续 tweak 和独立分支（1A2B），覆盖已说明的跨服务 API/前端范围。无需数据库迁移、新依赖或公共题库写入。用户在归档前最终确认中选择 C：确认归档、推送当前绑定分支并创建 PR。
 
 ## 可重现证据
 
@@ -42,3 +42,7 @@ review_mode=off（tweak 预设），按 comet-verify 跳过自动独立代码审
 ## 验证范围与运行条件
 
 使用真实认证/导入/业务数据库和 Celery 任务管理状态；队列发布与模型调用使用离线替身。浏览器使用模拟 HTTP 数据验证表单，不宣称对真实模型或线上多主机队列做端到端验收。多主机需共享业务数据库；升级前已存在且没有快照的任务沿用原文件要求。被操作系统强杀的 Worker 可能遗留系统临时目录，由部署 tmp 清理策略处理。
+
+## Verify 阶段独立复核
+
+构建提交后重新运行 `python3 -m pytest tests/test_dataset_references.py tests/test_api_experiment_benchmark.py --no-cov -q`：61 passed；重新运行 frontend 的 npm test（281 passed）、npm run lint（0 errors）、npm run build（成功）、修改文件 prettier 检查和后端 black/ruff 检查均通过。OpenSpec strict validate 再次通过。验证阶段未修改实现或测试，仅追加本报告及 Comet 状态证据。
