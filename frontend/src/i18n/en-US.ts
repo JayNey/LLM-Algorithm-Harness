@@ -412,6 +412,15 @@ export default {
   '前缀（可选）': 'Prefix (optional)',
   '后缀（可选）': 'Suffix (optional)',
   '密钥列表响应无效，请重试': 'Invalid key list response. Try again',
+  '模型目录加载失败，可手动输入':
+    'Model catalog failed to load; manual entry still works',
+  重试加载模型目录: 'Retry model catalog',
+  '模型目录可能不完整，可手动输入':
+    'Model catalog may be incomplete; manual entry still works',
+  '目录为空，可手动输入': 'Catalog is empty; manual entry still works',
+  '策略目录加载失败，可手动输入':
+    'Strategy catalog failed to load; manual entry still works',
+  重试加载策略目录: 'Retry strategy catalog',
   '创建失败，请重试': 'Failed to create. Try again',
   '创建 A/B 测试': 'Create A/B test',
   '同一模型与策略下，对比两个提示词变体的通过率差异。':

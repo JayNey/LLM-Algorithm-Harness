@@ -2,7 +2,7 @@ import { useTranslation } from 'react-i18next'
 import { t } from '../../i18n/core.ts'
 import { Alert, Button, Checkbox, Form, Input, Select, Skeleton } from 'antd'
 import type { AxiosInstance } from 'axios'
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { useStore } from 'zustand'
 import { readApiKeys } from '@/account/apiKeys.ts'
@@ -12,44 +12,8 @@ import { useEvaluationSession } from '@/evaluations/session.tsx'
 import type { DraftErrors, ProblemQuery } from '@/evaluations/types.ts'
 import { validateDraft } from '@/evaluations/validation.ts'
 import { useAuthStore } from '@/store/auth.ts'
+import { useResource } from '@/hooks/useResource.ts'
 import '@/evaluations/workflow.css'
-
-function useResource<T>(load: (signal: AbortSignal) => Promise<T>) {
-  const [attempt, setAttempt] = useState(0)
-  const [state, setState] = useState<{
-    load: typeof load
-    attempt: number
-    data?: T
-    error?: string
-  }>()
-  useEffect(() => {
-    const controller = new AbortController()
-    void load(controller.signal).then(
-      (data) => {
-        if (!controller.signal.aborted) setState({ load, attempt, data })
-      },
-      (error: unknown) => {
-        if (!controller.signal.aborted)
-          setState({
-            load,
-            attempt,
-            error:
-              error instanceof ApiClientError
-                ? error.message
-                : '加载失败，请重试',
-          })
-      },
-    )
-    return () => controller.abort()
-  }, [load, attempt])
-  const current = state?.load === load && state.attempt === attempt
-  return {
-    data: current ? state.data : undefined,
-    error: current ? state.error : undefined,
-    loading: !current,
-    retry: () => setAttempt((value) => value + 1),
-  }
-}
 
 export default function CreateEvaluationPage() {
   useTranslation()
