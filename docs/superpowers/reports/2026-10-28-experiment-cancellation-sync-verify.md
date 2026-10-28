@@ -1,6 +1,6 @@
 # 实验取消状态同步验证报告
 
-结论：实现及独立验证 PASS（Comet 阶段守卫结果将在通过后补记）。change `experiment-cancellation-sync`，关联 Issue #295，分支 `comet/experiment-cancellation-sync`，基线 `831e5fe624ecf54d36f4c88c952615725a97e380`。
+结论：PASS。2/2 任务完成，1 项 delta requirement 的 12 个场景均有实现和回归证据，设计与规格一致。change `experiment-cancellation-sync`，关联 Issue #295，分支 `comet/experiment-cancellation-sync`，基线 `831e5fe624ecf54d36f4c88c952615725a97e380`。
 
 ## 最终行为与设计一致性
 
@@ -44,6 +44,13 @@
 - 全量错误用例：test_nginx_runtime_pid_is_isolated；test_unready_blocks_business_and_recovers 的 evaluations/auth-login/ws-progress 三种路径；test_probe_error_and_timeout_fail_closed 的 401/403/500/timeout；test_probe_is_get_without_client_credentials_body_or_query；test_business_errors_are_preserved 的 401/403/500；test_probe_requests_do_not_hit_business_rate_limit；test_websocket_upgrade_headers_survive_admission。上述 14 项均已补跑通过。
 - Comet CLI 0.4.0 的 preset resolver 在 build 仅接受 verify_mode=light，因此提前执行 scale/set full 会报告配置不完整；保留初始化的 light，通过 build guard 后再在 verify 阶段设置 full，遵循同一公开 CLI 和原 workflow，不修改 Runtime 或伪造状态。
 
+## 最终验证阶段
+
+- 最终定向复测：`python3 -m pytest tests/test_experiment_cancellation.py tests/test_experiment_task.py tests/test_task_manager.py tests/test_api_experiment_benchmark.py -q --no-cov`，110 passed。
+- 验证阶段重新构建 wheel 并执行 OpenSpec strict validation 和基线到当前 diff 的 whitespace 检查，均通过。
+- review_mode=off 按 tweak 配置跳过自动独立审查。完整验证对照已完成：任务 2/2；规格场景 12/12；proposal 目标、所有者检查、终态保护、一致锁顺序、异常分支及 design 一致性符合要求。无需为 tweak 增补完整 Design Doc/plan。
+- CRITICAL/IMPORTANT：无本次变更遗留问题。全量类型错误已在原基线复现，并明确列于下文。
+
 ## 已有问题与验证边界
 
 全量 `python3 -m mypy src/ --ignore-missing-imports` 报告 5 个错误。在基线 commit 的独立临时副本运行同一命令复现完全相同结果，未新增类型错误：
@@ -57,3 +64,11 @@
 broker 与模型调用使用替身，数据库、服务和 HTTP 接口使用真实实现。并发实测使用 SQLite；PostgreSQL 根据 SQL 和一致锁顺序检查，未连接 PostgreSQL 实例。没有前端代码变更，页面读取的任务/实验接口已通过刷新与删除回归；未将 HTTP 测试表述为浏览器实测。
 
 review_mode 为 tweak 初始化的 off，按流程跳过自动独立代码审查；仍核对最终 diff 的所有者过滤、终态条件、锁顺序与异常分支。未发现新增安全问题或规格/设计漂移。
+
+## Comet 阶段结果
+
+build guard 13/13、verify guard 5/5 均通过。实现提交为 235d007 和 e62c5bf。
+
+用户明确选择 C：归档、推送当前绑定分支并创建 PR。Comet 归档 6/6 步成功，delta 已按语义合并到 async-task-queue 主规格，主规格 strict 校验通过，change 已移动到 openspec/changes/archive/2026-10-28-experiment-cancellation-sync。归档状态 archived=true、branch_status=handled 已记录，最终 archive guard 6/6 通过。handled 表示已确认交付方式；推送和 PR 的实际结果以聊天最终链接为准。
+
+归档提交仅包含本 change 的目录移动、主规格更新、状态证据及本报告；未包含无关工作区改动。
