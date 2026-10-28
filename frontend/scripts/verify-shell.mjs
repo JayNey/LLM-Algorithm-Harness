@@ -412,10 +412,12 @@ try {
   checks.push('mobile drawer, bottom navigation and Escape focus restoration')
   await page.setViewportSize({ width: 1440, height: 1000 })
   await page.getByRole('link', { name: '帮助文档', exact: true }).click()
-  for (const name of ['成功提示', '错误提示', '警告提示', '信息提示']) {
-    await page.getByRole('button', { name, exact: true }).click()
-    await page.getByRole('button', { name: `关闭${name}`, exact: true }).click()
-  }
+  await page.getByRole('heading', { name: '帮助文档', exact: true }).waitFor()
+  assert.ok(
+    (await page.getByRole('link', { name: '设置 → API 密钥' }).count()) >= 1,
+  )
+  assert.equal(await page.getByText('布局示例').count(), 0)
+  checks.push('help page renders the real guide without mock examples')
   await page
     .getByRole('button', { name: '用户菜单：browser-fixture', exact: true })
     .click()
