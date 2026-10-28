@@ -1,7 +1,28 @@
 import assert from 'node:assert/strict'
 import test from 'node:test'
 import { reportFilename, createReportClient } from './reports.ts'
-import { createHttpClient } from '../auth/http.ts'
+import { ApiClientError, createHttpClient } from '../auth/http.ts'
+
+test('权限失败保留状态码，不当成文件成功响应', async () => {
+  const http = createHttpClient({
+    baseURL: 'https://api.example.test/api/v1',
+    now: () => 0,
+    read: () => ({ marker: 'owner', expiresAt: 100000, username: 'test' }),
+    write: () => {},
+    clear: () => {},
+    adapter: async (config) => ({
+      config,
+      status: 403,
+      statusText: 'Forbidden',
+      headers: {},
+      data: new Blob(['denied']),
+    }),
+  })
+  await assert.rejects(
+    () => createReportClient(http).download('run', 'html'),
+    (error: unknown) => error instanceof ApiClientError && error.status === 403,
+  )
+})
 
 test('文件响应沿用共享客户端的会话刷新和配置地址', async () => {
   let calls = 0
