@@ -1,10 +1,16 @@
 """API tests for cost tracking, budgets, alerts and pricing (issue #154)."""
 
 import secrets
+import socket
+import threading
+import time
 from datetime import datetime
 from unittest.mock import Mock, patch
+from urllib.parse import quote
 
+import httpx
 import pytest
+import uvicorn
 from cryptography.fernet import Fernet
 from fastapi.testclient import TestClient
 from sqlalchemy.orm import Session
@@ -404,7 +410,89 @@ class TestAlertRules:
         assert response.status_code == 404
 
 
+@pytest.fixture
+def pricing_http(api):
+    """Use a real ASGI server: TestClient can decode percent escapes twice."""
+    _, headers, _, app = api
+    server = uvicorn.Server(uvicorn.Config(app, lifespan="off", log_level="error", ws="none"))
+    with socket.socket() as listener:
+        listener.bind(("127.0.0.1", 0))
+        port = listener.getsockname()[1]
+        thread = threading.Thread(target=server.run, kwargs={"sockets": [listener]}, daemon=True)
+        thread.start()
+        try:
+            deadline = time.monotonic() + 10
+            while not server.started:
+                assert (
+                    thread.is_alive() and time.monotonic() < deadline
+                ), "HTTP server did not start"
+                time.sleep(0.01)
+            with httpx.Client(base_url=f"http://127.0.0.1:{port}", trust_env=False) as client:
+                yield client, headers
+        finally:
+            server.should_exit = True
+            thread.join(timeout=10)
+            assert not thread.is_alive(), "HTTP server did not stop"
+
+
 class TestPricing:
+    def test_full_model_ids_round_trip_over_http(self, pricing_http):
+        client, headers = pricing_http
+        models = [
+            "gpt-4",
+            "Qwen/Qwen2.5-7B-Instruct",
+            "provider/team/model",
+            "provider/history",
+            "provider/history/history",
+            "provider/literal%2Fmodel",
+            "provider/literal/model",
+            "provider/模型 +?#%",
+            "a/" + "b" * 198,
+        ]
+        for index, model in enumerate(models, start=1):
+            path = "/api/v1/pricing/" + quote(model, safe="")
+            for price in (index, index + 0.5):
+                response = client.post(
+                    path,
+                    headers=headers,
+                    json={"prompt_per_1k": price, "completion_per_1k": price * 2},
+                )
+                assert response.status_code == 201, response.text
+                assert response.json()["data"]["model"] == model
+
+        catalog = client.get("/api/v1/pricing", headers=headers).json()["data"]["models"]
+        for index, model in enumerate(models, start=1):
+            assert catalog[model]["prompt_per_1k"] == index + 0.5
+            assert catalog[model]["source"] == "override"
+            # Both encoded and literal slashes must select exactly this model's history.
+            for safe in ("", "/"):
+                response = client.get(
+                    "/api/v1/pricing/" + quote(model, safe=safe) + "/history", headers=headers
+                )
+                assert response.status_code == 200, response.text
+                rows = response.json()["data"]
+                assert [row["prompt_per_1k"] for row in rows] == [index + 0.5, index]
+                assert all(row["created_by"] for row in rows)
+
+    def test_full_model_id_auth_and_validation_over_http(self, pricing_http):
+        client, headers = pricing_http
+        path = "/api/v1/pricing/Qwen%2FQwen2.5-7B-Instruct"
+        prices = {"prompt_per_1k": 1, "completion_per_1k": 2}
+        assert client.post(path, json=prices).status_code == 401
+        assert client.get(path + "/history").status_code == 401
+        for model in ("a/" + "b" * 199, ""):
+            invalid_path = "/api/v1/pricing/" + quote(model, safe="")
+            assert client.post(invalid_path, headers=headers, json=prices).status_code == 400
+            assert client.get(invalid_path + "/history", headers=headers).status_code == 400
+        for price in (0, -1):
+            assert (
+                client.post(
+                    path, headers=headers, json={**prices, "prompt_per_1k": price}
+                ).status_code
+                == 400
+            )
+        assert client.get(path + "/history", headers=headers).json()["data"] == []
+
     def test_catalog_override_and_history(self, api):
         client, headers, _, _ = api
         catalog = client.get("/api/v1/pricing", headers=headers).json()["data"]

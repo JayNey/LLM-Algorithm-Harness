@@ -90,6 +90,11 @@ export function validateOverrideInput(input: {
   return errors
 }
 
+function modelPath(modelId: string): string {
+  // Encode the complete ID once, including literal '%' and '/'. The API decodes once.
+  return `/pricing/${encodeURIComponent(modelId)}`
+}
+
 // 注入 useAuthStore 提供的同一已解包实例，沿用 Cookie、CSRF 和共享刷新。
 export function createPricingClient(http: AxiosInstance): PricingClient {
   async function get<T>(
@@ -104,7 +109,7 @@ export function createPricingClient(http: AxiosInstance): PricingClient {
   return {
     catalog: async (signal) => get('/pricing', catalog, signal),
     history: async (modelId, signal) =>
-      get(`/pricing/${encodeURIComponent(modelId)}/history`, history, signal),
+      get(`${modelPath(modelId)}/history`, history, signal),
     addOverride: async (input) => {
       const errors = validateOverrideInput({
         modelId: input.modelId,
@@ -114,7 +119,7 @@ export function createPricingClient(http: AxiosInstance): PricingClient {
       if (Object.keys(errors).length)
         throw new ApiClientError('定价配置无效', undefined, errors)
       const data = await http.post<unknown, unknown>(
-        `/pricing/${encodeURIComponent(input.modelId)}`,
+        modelPath(input.modelId),
         {
           prompt_per_1k: input.prompt_per_1k,
           completion_per_1k: input.completion_per_1k,

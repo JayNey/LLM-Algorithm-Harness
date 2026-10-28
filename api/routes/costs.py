@@ -173,6 +173,14 @@ def alert_history(
 
 # -- pricing -----------------------------------------------------------------
 
+PRICING_MODEL_ID_DESCRIPTION = (
+    "完整模型 ID（非空，最多 200 字符），支持 Qwen/Qwen2.5-7B-Instruct 等含斜杠名称。"
+    "客户端用 encodeURIComponent 对完整 ID 编码一次：保存地址为 "
+    "/api/v1/pricing/Qwen%2FQwen2.5-7B-Instruct，查询历史在该地址后追加 /history。"
+    "字面 %2F 须编码为 %252F；服务器仅解码一次，保存响应和目录键保留原值。"
+    "反向代理须原样转发编码路径；gpt-4 等普通模型地址保持兼容。"
+)
+
 
 @router.get("/pricing")
 def pricing_catalog(
@@ -183,23 +191,29 @@ def pricing_catalog(
     return ApiResponse(success=True, data=result, message="Pricing catalog retrieved successfully")
 
 
-@router.get("/pricing/{model_id}/history")
+# Keep the history suffix explicit before the catch-all model path.
+# ASGI has already decoded the path; do not unquote model_id again.
+@router.get("/pricing/{model_id:path}/history")
 def pricing_history(
     principal: Principal = Depends(current_user),
     service: CostService = Depends(cost_service),
-    model_id: str = PathParam(..., max_length=200),
+    model_id: str = PathParam(..., max_length=200, description=PRICING_MODEL_ID_DESCRIPTION),
 ) -> ApiResponse[list[dict]]:
+    if not model_id:
+        raise HTTPException(400, "Model ID must not be empty")
     result = service.pricing_history(model_id)
     return ApiResponse(success=True, data=result, message="Pricing history retrieved successfully")
 
 
-@router.post("/pricing/{model_id}", status_code=201)
+@router.post("/pricing/{model_id:path}", status_code=201)
 def set_pricing_override(
     request: PricingOverrideRequest,
     principal: Principal = Depends(current_user),
     service: CostService = Depends(cost_service),
-    model_id: str = PathParam(..., max_length=200),
+    model_id: str = PathParam(..., max_length=200, description=PRICING_MODEL_ID_DESCRIPTION),
 ) -> ApiResponse[dict]:
+    if not model_id:
+        raise HTTPException(400, "Model ID must not be empty")
     result = service.set_pricing_override(model_id, request, principal.user_id)
     return ApiResponse(success=True, data=result, message="Pricing override saved successfully")
 
