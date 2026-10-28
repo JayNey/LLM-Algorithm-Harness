@@ -99,7 +99,7 @@ def test_import_reference_snapshot_execution_and_recovery(api, kind):  # noqa: F
         config = dict(row.config)
     for _ in range(2):
         with execution_dataset(config, owner) as path:
-            data = json.loads(Path(path).read_text())
+            data = json.loads(Path(path).read_text(encoding="utf-8"))
             assert data[0]["problem_id"] == "private-1"
             assert data[0]["tags"] == ["array"]
             assert data[0]["difficulty"] == "easy"
@@ -126,14 +126,14 @@ def test_import_reference_snapshot_execution_and_recovery(api, kind):  # noqa: F
             self.config = args[-1]
 
         def run(self):
-            seen.append(json.loads(Path(self.config.dataset_path).read_text()))
+            seen.append(json.loads(Path(self.config.dataset_path).read_text(encoding="utf-8")))
             paths.append(self.config.dataset_path)
             pause_first_attempt()
             self.paused = len(seen) == 1
             return Path(self.config.output_dir)
 
         def execute(self):
-            seen.append(json.loads(Path(self.config.dataset_path).read_text()))
+            seen.append(json.loads(Path(self.config.dataset_path).read_text(encoding="utf-8")))
             paths.append(self.config.dataset_path)
             pause_first_attempt()
             self.paused = len(seen) == 1
@@ -235,7 +235,7 @@ def test_legacy_path_snapshot_survives_source_removal(
     client, headers, key, app = api
     monkeypatch.setattr(settings, "DATA_ROOT", str(tmp_path))
     source = tmp_path / "legacy.json"
-    source.write_text(json.dumps([problem("legacy-1")]))
+    source.write_text(json.dumps([problem("legacy-1")]), encoding="utf-8")
     response = create(client, headers, key, kind, {"dataset_path": "legacy.json"})
     assert response.status_code in (201, 202), response.text
     service, model = {
@@ -248,7 +248,7 @@ def test_legacy_path_snapshot_survives_source_removal(
         config, owner = dict(row.config), row.user_id
     source.unlink()
     with execution_dataset(config, owner) as path:
-        assert json.loads(Path(path).read_text())[0]["problem_id"] == "legacy-1"
+        assert json.loads(Path(path).read_text(encoding="utf-8"))[0]["problem_id"] == "legacy-1"
     assert create(client, headers, key, kind, {"dataset_path": "../secret.json"}).status_code == 400
 
 
