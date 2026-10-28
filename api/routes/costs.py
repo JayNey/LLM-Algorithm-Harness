@@ -183,23 +183,29 @@ def pricing_catalog(
     return ApiResponse(success=True, data=result, message="Pricing catalog retrieved successfully")
 
 
-@router.get("/pricing/{model_id}/history")
+# Keep the history suffix explicit before the catch-all model path.
+# ASGI has already decoded the path; do not unquote model_id again.
+@router.get("/pricing/{model_id:path}/history")
 def pricing_history(
     principal: Principal = Depends(current_user),
     service: CostService = Depends(cost_service),
     model_id: str = PathParam(..., max_length=200),
 ) -> ApiResponse[list[dict]]:
+    if not model_id:
+        raise HTTPException(400, "Model ID must not be empty")
     result = service.pricing_history(model_id)
     return ApiResponse(success=True, data=result, message="Pricing history retrieved successfully")
 
 
-@router.post("/pricing/{model_id}", status_code=201)
+@router.post("/pricing/{model_id:path}", status_code=201)
 def set_pricing_override(
     request: PricingOverrideRequest,
     principal: Principal = Depends(current_user),
     service: CostService = Depends(cost_service),
     model_id: str = PathParam(..., max_length=200),
 ) -> ApiResponse[dict]:
+    if not model_id:
+        raise HTTPException(400, "Model ID must not be empty")
     result = service.set_pricing_override(model_id, request, principal.user_id)
     return ApiResponse(success=True, data=result, message="Pricing override saved successfully")
 
