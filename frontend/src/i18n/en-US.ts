@@ -1206,7 +1206,7 @@ export default {
   '、': ', ',
   与: ' and ',
   '的数据集路径须填写 DATA_ROOT 下的相对路径（如 problems.json），而不是题库中的题目。':
-    ' take a dataset path relative to DATA_ROOT (for example datasets/demo.json), not problems from the problem library.',
+    ' take a dataset path relative to DATA_ROOT (for example problems.json), not problems from the problem library.',
   '三处表单的模型与策略可直接从目录选择：策略来自评估选项，模型按所选密钥读取；目录加载失败或不完整时仍可手动输入。':
     'All three forms let you pick models and strategies from catalogs: strategies come from the evaluation options and models are loaded for the selected key; manual entry still works when a catalog fails or is incomplete.',
   '设置 → 预算与预警': 'Settings → Budgets and alerts',
