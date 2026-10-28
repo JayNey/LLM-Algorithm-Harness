@@ -47,6 +47,9 @@ class LLMAccountingError(RuntimeError):
 class LLMClient:
     """LLM API client."""
 
+    on_response: SpendCallback | None = None
+    before_generate: Callable[[], None] | None = None
+
     def __init__(self, config: LLMConfig):
         """
         Initialize LLM client.
@@ -58,8 +61,6 @@ class LLMClient:
         self._resolved_api_key: SecretStr | None = None
         self.client = self._initialize_client()
         self.pricing_manager = PricingManager()
-        self.on_response: SpendCallback | None = None
-        self.before_generate: Callable[[], None] | None = None
 
         # Initialize cache
         self.cache = LLMResponseCache(
