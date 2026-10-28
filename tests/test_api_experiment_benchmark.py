@@ -14,7 +14,7 @@ from fastapi.testclient import TestClient
 
 from api.auth.config import AuthSettings
 from api.config import settings
-from api.db.models import BenchmarkRun, Experiment
+from api.db.models import AsyncTask, BenchmarkRun, Experiment
 from api.files.config import FileSettings
 from api.main import create_app
 from src.benchmark.executor import BenchmarkExecutor
@@ -203,6 +203,74 @@ def _experiment_payload(key_id):
 
 
 class TestExperiments:
+    @pytest.mark.parametrize("status", ["running", "paused"])
+    def test_cancel_refresh_and_delete(self, api, status):
+        from src.task_manager import TaskManager
+
+        client, headers, key_id, app = api
+        experiment_id = client.post(
+            "/api/v1/experiments", headers=headers, json=_experiment_payload(key_id)
+        ).json()["data"]["id"]
+        task_id = client.post(f"/api/v1/experiments/{experiment_id}/run", headers=headers).json()[
+            "data"
+        ]["task_id"]
+        with app.state.experiments._session() as db:
+            TaskManager(db).update_task_status(task_id, "running")
+        if status == "paused":
+            paused = client.post(f"/api/v1/tasks/{task_id}/pause", headers=headers)
+            assert paused.status_code == 200, paused.text
+        with patch("src.task_manager.celery_app.control.revoke"):
+            cancelled = client.delete(f"/api/v1/tasks/{task_id}", headers=headers)
+        assert cancelled.status_code == 200, cancelled.text
+        assert cancelled.json()["data"]["status"] == "cancelled"
+        assert cancelled.json()["data"]["completed_at"] is not None
+        task = client.get(f"/api/v1/tasks/{task_id}", headers=headers)
+        experiment = client.get(f"/api/v1/experiments/{experiment_id}", headers=headers)
+        assert task.json()["data"]["status"] == experiment.json()["data"]["status"] == "cancelled"
+        with app.state.experiments._session() as db:
+            task_row = db.get(AsyncTask, task_id)
+            row = db.get(Experiment, experiment_id)
+            assert row.started_at == task_row.started_at
+            assert row.completed_at == task_row.completed_at
+        assert (
+            client.post(f"/api/v1/experiments/{experiment_id}/run", headers=headers).status_code
+            == 400
+        )
+        assert (
+            client.delete(f"/api/v1/experiments/{experiment_id}", headers=headers).status_code
+            == 204
+        )
+        assert (
+            client.get(f"/api/v1/experiments/{experiment_id}", headers=headers).status_code == 404
+        )
+
+    def test_other_user_cannot_cancel_experiment_task(self, api):
+        client, headers, key_id, app = api
+        experiment_id = client.post(
+            "/api/v1/experiments", headers=headers, json=_experiment_payload(key_id)
+        ).json()["data"]["id"]
+        task_id = client.post(f"/api/v1/experiments/{experiment_id}/run", headers=headers).json()[
+            "data"
+        ]["task_id"]
+        registered = client.post(
+            "/api/v1/auth/register",
+            json={"username": "intruder", "email": "intruder@example.org", "password": PASSWORD},
+        )
+        assert registered.status_code == 201, registered.text
+        token = client.post(
+            "/api/v1/auth/login", json={"username": "intruder", "password": PASSWORD}
+        ).json()["data"]["access_token"]
+        other_headers = {"Authorization": "Bearer " + token}
+        denied = client.delete(f"/api/v1/tasks/{task_id}", headers=other_headers)
+        assert denied.status_code == 404, denied.text
+        assert (
+            client.get(f"/api/v1/experiments/{experiment_id}", headers=other_headers).status_code
+            == 404
+        )
+        with app.state.experiments._session() as db:
+            assert db.get(AsyncTask, task_id).status == "pending"
+            assert db.get(Experiment, experiment_id).status == "pending"
+
     def test_full_lifecycle(self, api):
         client, headers, key_id, app = api
         created = client.post(
