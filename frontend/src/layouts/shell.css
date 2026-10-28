@@ -1153,7 +1153,8 @@ p {
     border-top: 1px solid var(--line);
     padding: 4px 8px calc(6px + env(safe-area-inset-bottom));
   }
-  .bottom-nav a {
+  .bottom-nav a,
+  .bottom-nav button {
     flex: 1;
     display: flex;
     align-items: center;
@@ -1165,12 +1166,24 @@ p {
     color: var(--muted);
     border-radius: 4px;
   }
+  .bottom-nav button {
+    border: 0;
+    background: transparent;
+    cursor: pointer;
+    font: inherit;
+    font-size: 12px;
+  }
   .bottom-nav a.active {
     color: var(--accent);
     background: var(--accent-soft);
   }
-  .bottom-nav a:hover {
+  .bottom-nav a:hover,
+  .bottom-nav button:hover {
     background: var(--surface);
+  }
+  .bottom-nav button:focus-visible {
+    outline: 2px solid var(--accent);
+    outline-offset: -2px;
   }
   .settings-layout {
     grid-template-columns: 1fr;
@@ -2523,7 +2536,8 @@ input {
   .nav-link span {
     white-space: normal;
   }
-  .bottom-nav a {
+  .bottom-nav a,
+  .bottom-nav button {
     min-width: 0;
     flex: 1;
   }

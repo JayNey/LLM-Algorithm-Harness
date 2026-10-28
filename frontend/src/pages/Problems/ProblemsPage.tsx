@@ -28,11 +28,18 @@ import {
   DIRECT_IMPORT_MAX_BYTES,
   validateImportFile,
 } from '@/problems/client.ts'
-import { readListQuery, writeListQuery } from '@/problems/validation.ts'
+import {
+  canSubmitImport,
+  isImportTerminalStatus,
+} from '@/problems/importSubmission.ts'
+import {
+  readListQuery,
+  setProblemImportIntent,
+  writeProblemListQuery,
+} from '@/problems/validation.ts'
 import '@/evaluations/workflow.css'
 
 const IMPORT_POLL_MS = 3_000
-const IMPORT_TERMINAL = new Set(['completed', 'failed', 'cancelled'])
 
 function ValidationReport({ report }: { report: ImportValidation }) {
   useTranslation()
@@ -84,11 +91,12 @@ function ImportPanel({
   const [error, setError] = useState<string | null>(null)
   const [report, setReport] = useState<ImportValidation | null>(null)
   const [progress, setProgress] = useState<ImportJobProgress | null>(null)
+  const submitLock = useRef(false)
   const pollFailures = useRef(0)
 
   useEffect(() => {
     // 异步导入轮询：终态停止；失败重试有上限（连续 3 次无进展则停并提示）
-    if (!progress || IMPORT_TERMINAL.has(progress.status)) return
+    if (!progress || isImportTerminalStatus(progress.status)) return
     const controller = new AbortController()
     const timer = setTimeout(() => {
       void client
@@ -96,6 +104,7 @@ function ImportPanel({
         .then((next) => {
           pollFailures.current = 0
           setProgress(next)
+          if (isImportTerminalStatus(next.status)) submitLock.current = false
           if (next.status === 'completed' && next.result) {
             setReport(next.result)
             onImported()
@@ -124,9 +133,17 @@ function ImportPanel({
   }, [client, progress, onImported])
 
   function submit() {
-    if (!file || busy) return
+    const selectedFile = file
+    if (
+      !selectedFile ||
+      !canSubmitImport(true, busy, progress?.status ?? null, submitLock.current)
+    )
+      return
     pollFailures.current = 0
-    const fileError = validateImportFile({ name: file.name, size: file.size })
+    const fileError = validateImportFile({
+      name: selectedFile.name,
+      size: selectedFile.size,
+    })
     if (fileError) {
       setError(fileError)
       return
@@ -137,14 +154,18 @@ function ImportPanel({
     ) {
       return
     }
+    submitLock.current = true
     setBusy(true)
     setError(null)
     setReport(null)
     setProgress(null)
-    const finish = () => setBusy(false)
-    if (file.size <= DIRECT_IMPORT_MAX_BYTES) {
+    const finish = () => {
+      submitLock.current = false
+      setBusy(false)
+    }
+    if (selectedFile.size <= DIRECT_IMPORT_MAX_BYTES) {
       client
-        .directImport(file, mode)
+        .directImport(selectedFile, mode)
         .then((result: DirectImportResult) => {
           setReport(result.validation)
           onImported()
@@ -154,10 +175,12 @@ function ImportPanel({
         )
         .finally(finish)
     } else {
+      let awaitingTerminal = false
       client
-        .uploadFile(file)
+        .uploadFile(selectedFile)
         .then((uploaded) => client.startImport(uploaded.file_id, mode))
-        .then((started) =>
+        .then((started) => {
+          awaitingTerminal = !isImportTerminalStatus(started.status)
           setProgress({
             job_id: started.job_id,
             status: started.status,
@@ -166,12 +189,16 @@ function ImportPanel({
             percentage: 0,
             result: null,
             failureDetail: null,
-          }),
-        )
+          })
+          if (!awaitingTerminal) submitLock.current = false
+        })
         .catch((cause: unknown) =>
           setError(cause instanceof Error ? cause.message : '导入失败，请重试'),
         )
-        .finally(finish)
+        .finally(() => {
+          if (!awaitingTerminal) submitLock.current = false
+          setBusy(false)
+        })
     }
   }
 
@@ -219,7 +246,9 @@ function ImportPanel({
       <Button
         type="primary"
         aria-label={t('开始导入')}
-        disabled={!file || busy}
+        disabled={
+          !canSubmitImport(file !== null, busy, progress?.status ?? null)
+        }
         onClick={submit}
       >
         {busy ? t('导入中…') : t('开始导入')}
@@ -227,12 +256,15 @@ function ImportPanel({
       <Button aria-label={t('关闭导入面板')} disabled={busy} onClick={onClose}>
         {t('收起')}
       </Button>
-      {progress && !IMPORT_TERMINAL.has(progress.status) && (
+      {progress && !isImportTerminalStatus(progress.status) && (
         <p role="status">
           {importStatusLabel(progress.status)} · {progress.processed} /{' '}
           {progress.total || '…'}（{Math.round(progress.percentage)}%）
           {progress.status === 'paused' &&
-            t('（已暂停，可在任务列表恢复或取消）')}
+            t(
+              '导入已暂停；此页面不支持恢复或取消。请勿重复提交，持续暂停时联系管理员并提供导入任务 ID：{{jobId}}。',
+              { jobId: progress.job_id },
+            )}
         </p>
       )}
       {report && <ValidationReport report={report} />}
@@ -350,11 +382,14 @@ export default function ProblemsPage() {
   const { client, owner } = useProblemSession()
   const [search, setSearch] = useSearchParams()
   const rawSearch = search.toString()
+  const listSearch = new URLSearchParams(rawSearch)
+  listSearch.delete('import')
+  const rawListSearch = listSearch.toString()
   const query = useMemo(
-    () => readListQuery(new URLSearchParams(rawSearch)),
-    [rawSearch],
+    () => readListQuery(new URLSearchParams(rawListSearch)),
+    [rawListSearch],
   )
-  const [importOpen, setImportOpen] = useState(false)
+  const importOpen = search.get('import') === '1'
   const [historyProblem, setHistoryProblem] = useState<ProblemOption | null>(
     null,
   )
@@ -412,7 +447,7 @@ export default function ProblemsPage() {
           <Button
             type="primary"
             aria-label={t('导入题目')}
-            onClick={() => setImportOpen(true)}
+            onClick={() => setSearch(setProblemImportIntent(search, true))}
           >
             {t('导入题目')}
           </Button>
@@ -432,11 +467,14 @@ export default function ProblemsPage() {
             ]}
             onChange={(source: string) =>
               setSearch(
-                writeListQuery({
-                  source: source as ProblemListQuery['source'],
-                  limit: query.limit,
-                  offset: 0,
-                }),
+                writeProblemListQuery(
+                  {
+                    source: source as ProblemListQuery['source'],
+                    limit: query.limit,
+                    offset: 0,
+                  },
+                  search,
+                ),
               )
             }
           />
@@ -447,12 +485,16 @@ export default function ProblemsPage() {
             </span>
           )}
         </div>
-        {importOpen && (
+        <div hidden={!importOpen}>
           <ImportPanel
             onImported={list.reload}
-            onClose={() => setImportOpen(false)}
+            onClose={() =>
+              setSearch(setProblemImportIntent(search, false), {
+                replace: true,
+              })
+            }
           />
-        )}
+        </div>
         {list.status === 'loading' ? (
           <div aria-busy="true">
             <p role="status">{t('正在加载题目…')}</p>
@@ -512,10 +554,13 @@ export default function ProblemsPage() {
               disabled={query.offset === 0}
               onClick={() =>
                 setSearch(
-                  writeListQuery({
-                    ...query,
-                    offset: Math.max(0, query.offset - query.limit),
-                  }),
+                  writeProblemListQuery(
+                    {
+                      ...query,
+                      offset: Math.max(0, query.offset - query.limit),
+                    },
+                    search,
+                  ),
                 )
               }
             >
@@ -526,10 +571,10 @@ export default function ProblemsPage() {
               disabled={!data.has_more}
               onClick={() =>
                 setSearch(
-                  writeListQuery({
-                    ...query,
-                    offset: query.offset + query.limit,
-                  }),
+                  writeProblemListQuery(
+                    { ...query, offset: query.offset + query.limit },
+                    search,
+                  ),
                 )
               }
             >

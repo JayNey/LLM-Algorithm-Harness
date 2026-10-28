@@ -15,6 +15,7 @@ import {
   isLiveStatus,
 } from '@/evaluations/useEvaluation.ts'
 import { fetchEvaluationResult } from '@/evaluations/results.ts'
+import { ReportDownloads } from '@/evaluations/ReportDownloads.tsx'
 import { readListQuery, writeListQuery } from '@/evaluations/validation.ts'
 import {
   resultAvailability,
@@ -198,6 +199,15 @@ export default function ResultDetailPage() {
                   {result.run_id ?? t('未关联')}
                 </p>
                 <ResultTables result={result} />
+                {result.run_id ? (
+                  <ReportDownloads
+                    key={String(owner) + ':' + result.run_id}
+                    runId={result.run_id}
+                    complete={availability?.kind === 'complete'}
+                  />
+                ) : (
+                  <p>{t('运行记录未关联，暂不可下载报告。')}</p>
+                )}
                 <nav
                   className="evaluation-pagination"
                   aria-label={t('单题结果分页')}

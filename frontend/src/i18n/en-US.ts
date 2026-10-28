@@ -191,6 +191,7 @@ export default {
   '/ 个人工作空间': '/ Personal workspace',
   创建评估: 'Create evaluation',
   导入题目: 'Import problems',
+  导入: 'Import',
   快速操作: 'Quick actions',
   切换至浅色: 'Switch to light',
   切换至深色: 'Switch to dark',
@@ -323,10 +324,6 @@ export default {
   '2 个已完成': '2 completed',
   '1 个运行中': '1 running',
   '1 个待检查': '1 needs review',
-  '导入题目 · Mock': 'Import problems · Mock',
-  '题目导入的交互示例，不读取或上传文件。':
-    'Problem import interaction example. No files are read or uploaded.',
-  后续接入项目的文件导入服务: "Connect the project's file import service later",
   已打开题目库示例: 'Problem library example opened',
   查看题目库示例: 'View problem library example',
   没有匹配的评估任务: 'No matching evaluations',
@@ -1170,4 +1167,19 @@ export default {
   '渠道 smtp 需要填写通知目标':
     'Enter a notification target for the smtp channel',
   '仅支持 .json / .csv 格式': 'Only .json / .csv formats are supported',
+  下载报告: 'Download report',
+  '报告仅包含当前已记录的结果，不代表完整评估。':
+    'The report contains currently recorded results and does not represent a complete evaluation.',
+  报告响应格式不兼容: 'The report response format is incompatible',
+  '报告下载失败，请重试': 'Report download failed. Please try again',
+  '运行记录未关联，暂不可下载报告。':
+    'No run is linked yet. Reports are unavailable.',
+  报告运行标识不可用: 'The report run identifier is unavailable',
+  报告格式不可用: 'The report format is unavailable',
+  '预警由 Web 评估 worker 在启动、恢复和成本结算时检查，需要个人全局预算及启用的规则。保存规则不会立即发送，也不代表投递成功；其他任务类型不会独立触发检查。Slack/Webhook 使用规则中的 HTTPS 目标；邮件需要部署方配置 worker 的 COST_ALERT_SMTP_*。站内通知中心仍为 Mock。':
+    'Alerts are checked by the Web evaluation worker at startup, resume and cost settlement, using a personal global budget and enabled rules. Saving rules does not send immediately or prove delivery; other task types do not trigger checks independently. Slack/Webhook use the rule HTTPS target; email requires deployment configuration of worker COST_ALERT_SMTP_*. The in-app notification center remains Mock.',
+  '导入已暂停；此页面不支持恢复或取消。请勿重复提交，持续暂停时联系管理员并提供导入任务 ID：{{jobId}}。':
+    'Import paused. This page cannot resume or cancel it. Do not submit again; if it remains paused, contact an administrator with import job ID: {{jobId}}.',
+  '报告不可访问，请确认当前账号和运行记录。':
+    'The report is inaccessible. Check the current account and run.',
 }

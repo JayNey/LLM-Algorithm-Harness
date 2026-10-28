@@ -85,6 +85,44 @@ function assertApiError(
   return true
 }
 
+test('切换会话后迟到的导入进度响应被拒绝', async () => {
+  let current: StoredSession | null = session()
+  let notifyStarted!: () => void
+  const started = new Promise<void>((resolve) => {
+    notifyStarted = resolve
+  })
+  let release!: () => void
+  const client = create({
+    read: () => current,
+    adapter: (config) =>
+      new Promise((resolve) => {
+        notifyStarted()
+        release = () => {
+          resolve({
+            status: 200,
+            statusText: 'OK',
+            headers: {},
+            config,
+            data: envelope({ job_id: 'old-job', status: 'completed' }),
+          })
+        }
+      }),
+  })
+
+  const request = client.get('/imports/old-job').then(
+    () => ({ rejected: false, error: undefined }),
+    (error: unknown) => ({ rejected: true, error }),
+  )
+  await started
+  current = session({ marker: 'new-session', username: 'grace' })
+  release()
+
+  const result = await request
+  assert.equal(result.rejected, true)
+  assert.ok(result.error instanceof ApiClientError)
+  assert.equal((result.error as ApiClientError).status, 401)
+})
+
 test('变更请求附带 CSRF 令牌，刷新响应更新该令牌', async () => {
   let current = session({ csrfToken: 'csrf-old', expiresAt: 1_000 })
   const seen: string[] = []

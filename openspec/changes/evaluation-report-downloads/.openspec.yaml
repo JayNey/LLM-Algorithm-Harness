@@ -1,0 +1,4 @@
+schema: spec-driven
+created: 2026-10-28
+goal: Let users download accurate per-run reports with clear partial-result,
+  authorization, and failure behavior.

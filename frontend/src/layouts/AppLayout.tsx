@@ -22,7 +22,7 @@ import { ProblemSessionProvider } from '@/problems/session.tsx'
 import { BudgetSessionProvider } from '@/budgets/session.tsx'
 import { PricingSessionProvider } from '@/pricing/session.tsx'
 import { SystemLogSessionProvider } from '@/systemlogs/session.tsx'
-import { MockActions } from '@/mock/MockActions.tsx'
+import { buildProblemImportLocation } from '@/problems/validation.ts'
 import { appearanceTheme } from './appearance.ts'
 import { Icon } from './components/Icon.tsx'
 import {
@@ -68,7 +68,6 @@ function Shell() {
   const ui = useUiStore()
   const username = session?.username || t('已登录')
   const [openedAt, setOpenedAt] = useState<string | null>(null)
-  const [modal, setModal] = useState<'import' | null>(null)
   const main = useRef<HTMLElement>(null)
   const menu = useRef<HTMLButtonElement>(null)
   const drawerOpen = openedAt === location.key
@@ -96,7 +95,7 @@ function Shell() {
   }
   function onImport() {
     setOpenedAt(null)
-    setModal('import')
+    navigate(buildProblemImportLocation(location.pathname, location.search))
   }
   const actions = { onCreate, onImport }
   return (
@@ -254,7 +253,7 @@ function Shell() {
           </main>
         </div>
       </div>
-      <MobileNav />
+      <MobileNav onImport={onImport} />
       <Drawer
         title={t('工作台导航')}
         placement="left"
@@ -269,11 +268,6 @@ function Shell() {
       >
         <Navigation {...actions} onNavigate={() => setOpenedAt(null)} />
       </Drawer>
-      <MockActions
-        key={session?.marker ?? 'anonymous'}
-        mode={modal}
-        onClose={() => setModal(null)}
-      />
     </>
   )
 }

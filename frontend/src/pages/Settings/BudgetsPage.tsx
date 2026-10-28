@@ -345,7 +345,7 @@ function AlertRulesSection({ onChanged }: { onChanged: () => void }) {
         type="warning"
         showIcon
         message={t(
-          '通知投递后端尚未实现：规则会被保存，但不会实际发送 Slack/Webhook/邮件通知。',
+          '预警由 Web 评估 worker 在启动、恢复和成本结算时检查，需要个人全局预算及启用的规则。保存规则不会立即发送，也不代表投递成功；其他任务类型不会独立触发检查。Slack/Webhook 使用规则中的 HTTPS 目标；邮件需要部署方配置 worker 的 COST_ALERT_SMTP_*。站内通知中心仍为 Mock。',
         )}
       />
       {error && <ExperimentFeedback message={t(error)} retry={reload} />}

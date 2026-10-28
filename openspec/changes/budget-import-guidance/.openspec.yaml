@@ -1,0 +1,4 @@
+schema: spec-driven
+created: 2026-10-28
+goal: Ensure users are told accurately which notification channels and import
+  recovery actions are available, with consistent Chinese and English copy.
