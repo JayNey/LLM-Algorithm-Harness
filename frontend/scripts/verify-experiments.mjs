@@ -77,21 +77,56 @@ const fixtureKeys = [
   },
 ]
 
+const fixtureOptions = {
+  strategies: [{ name: 'direct' }, { name: 'chain_of_thought' }],
+  sources: [{ id: 'shared', label: '共享题库', problem_count: 2 }],
+}
+const fixtureModels = {
+  provider: 'siliconflow',
+  models: ['model-a', 'model-b'],
+  complete: true,
+}
+
 function mockRoute(context) {
   context.route('**/api/v1/**', (route, request) => {
     const url = new URL(request.url())
     const path = url.pathname.replace('/api/v1', '')
     const method = request.method()
+    // 应用 dev 环境直连 :8000（跨源且 withCredentials），fulfill 响应必须
+    // 反射具体 origin 并携带 allow-credentials，'*' 会被浏览器拦截。
+    const cors = {
+      'access-control-allow-origin': request.headers()['origin'] ?? '*',
+      'access-control-allow-credentials': 'true',
+    }
+    if (method === 'OPTIONS')
+      return route.fulfill({
+        status: 204,
+        headers: {
+          ...cors,
+          'access-control-allow-headers': '*',
+          'access-control-allow-methods': 'GET,POST,PATCH,DELETE,OPTIONS',
+        },
+      })
     const reply = (data, status = 200) =>
       route.fulfill({
         status,
-        headers: { 'access-control-allow-origin': '*' },
+        headers: { ...cors },
         contentType: 'application/json',
         body: JSON.stringify({ success: true, data, message: '' }),
       })
     report.replaced.push(`${method} ${path}`)
     if (method === 'GET' && path === '/datasets') return reply([])
+    if (method === 'GET' && path === '/users/me')
+      return reply({ id: 'user-fixture-1', username: 'fixture', role: 'user' })
     if (method === 'GET' && path === '/api-keys') return reply(fixtureKeys)
+    if (method === 'GET' && path === '/evaluation-options')
+      return reply(fixtureOptions)
+    if (
+      method === 'GET' &&
+      path === '/evaluation-options/models' &&
+      url.searchParams.get('api_key_id') === 'key-fixture-1'
+    )
+      return reply(fixtureModels)
     if (
       method === 'GET' &&
       path === '/experiments' &&
@@ -104,7 +139,8 @@ function mockRoute(context) {
         offset: 0,
         has_more: false,
       })
-    if (method === 'POST' && path === '/experiments')
+    if (method === 'POST' && path === '/experiments') {
+      report.experimentPost = JSON.parse(request.postData() ?? 'null')
       return reply(
         {
           ...fixtureJob,
@@ -113,8 +149,11 @@ function mockRoute(context) {
         },
         201,
       )
+    }
     if (method === 'GET' && path === '/experiments/exp-fixture-new')
       return reply({ ...fixtureJob, id: 'exp-fixture-new' })
+    if (method === 'GET' && path === '/experiments/exp-fixture-1')
+      return reply(fixtureJob)
     if (method === 'GET' && path === '/tasks')
       return reply({
         items: [],
@@ -134,12 +173,13 @@ function mockRoute(context) {
 
 async function createScenario(page) {
   await page.goto(`${base}/experiments/new`)
-  await check('创建页渲染标题', async () =>
+  await check('创建页渲染标题', async () => {
+    await page.getByRole('heading', { name: '创建实验' }).waitFor()
     assert.equal(
       await page.getByRole('heading', { name: '创建实验' }).count(),
       1,
-    ),
-  )
+    )
+  })
   await page.getByLabel('实验名称').fill('对比实验')
   await page.getByLabel('数据来源', { exact: true }).click()
   await page
@@ -150,13 +190,43 @@ async function createScenario(page) {
     .getByLabel('数据集路径', { exact: true })
     .fill('datasets/demo.json')
   await page.getByLabel('实验 API Key').click()
-  await page.getByRole('option', { name: '冒烟密钥' }).click()
+  // antd 虚拟列表在并发目录请求落地的重渲染下可能把选项测成 0 宽，
+  // 点击式选option不稳定，改用键盘选择。
+  await page.keyboard.press('ArrowDown')
+  await page.keyboard.press('Enter')
+  // rc-select 的无障碍 listbox 只渲染激活项附近的窄窗口，getByRole('option')
+  // 会漏掉非激活项；目录断言按可视选项节点定位，并用输入触发下拉（点击开合
+  // 在连续交互下不稳定）。
+  const catalogOption = (name) =>
+    page.locator('.ant-select-item-option', { hasText: name })
+  await check('模型字段提供密钥对应的真实目录', async () => {
+    await page.getByLabel('模型 1 名称').fill('model-')
+    await catalogOption('model-b').waitFor({ state: 'attached' })
+  })
   await page.getByLabel('模型 1 名称').fill('model-a')
+  await page.keyboard.press('Escape')
+  await check('策略字段提供评估选项目录', async () => {
+    await page.getByLabel('策略 1 名称').fill('chain')
+    await catalogOption('chain_of_thought').waitFor({ state: 'attached' })
+  })
+  await check('目录外仍可手动输入', async () => {
+    await page.getByLabel('策略 1 名称').fill('custom-strategy')
+    assert.equal(
+      await page.getByLabel('策略 1 名称').inputValue(),
+      'custom-strategy',
+    )
+  })
   await page.getByLabel('策略 1 名称').fill('direct')
   await page.getByLabel('提交实验').click()
   await check('创建成功后导航到详情', async () => {
     await page.waitForURL('**/experiments/exp-fixture-new', { timeout: 5_000 })
     assert.ok(page.url().includes('/experiments/exp-fixture-new'))
+  })
+  await check('手动输入的模型与策略进入提交负载', () => {
+    const body = report.experimentPost
+    assert.ok(body, '未捕获到 POST /experiments 请求体')
+    assert.equal(body.models?.[0]?.model, 'model-a')
+    assert.equal(body.strategies?.[0]?.name, 'direct')
   })
   await page.screenshot({ path: resolve(outDir, 'create.png'), fullPage: true })
   report.screenshots.push('create.png')

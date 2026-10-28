@@ -54,3 +54,5 @@ review_mode=off（tweak 预设），按 comet-verify 跳过自动独立代码审
 修复将检查点指纹建立在配置与题目内容之上，排除临时输入路径；回归验证同内容换路径可恢复且不重复费用，内容变化仍拒绝。数据集列表通过 FileService 接入统一端点测试；OpenAPI 补齐认证、限流、错误、curl 和个人数据源请求示例。契约按既有版本策略递增为 1.3.0，只定向更新三个已审查的请求模型和新增 /datasets 操作，旧路径约束及兼容性门禁的严格比较规则保留。
 
 本地验证：相关 API 文档/版本/端点/数据集/真实执行器及实验/A-B 回归 964 passed；费用 API 完整集成 24 passed（含真实 HTTP 及 Worker 暂停恢复）；UTF-8 与数据集原回归 40 passed。全仓库 Ruff、Black 和显式编码扫描通过。远端新一轮完整测试矩阵将在该修复推送后运行。
+
+主分支在 CI 修复期间合入 #312 的模型/策略目录功能，造成 PR 合并冲突并阻止新 CI。合并 origin/main（5bda499）后，保留新的 ModelNameField/StrategyNameField 与个人 DatasetPicker；浏览器 fixture 同时提供两类接口。前端 284 passed，lint 无错误、生产构建通过；main 的创建表单目录用例 7 项通过。

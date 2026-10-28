@@ -2,7 +2,7 @@ import DatasetPicker from '@/experiments/DatasetPicker.tsx'
 import { useTranslation } from 'react-i18next'
 import { t } from '../../i18n/core.ts'
 import { Alert, Button, Input, Select, Skeleton, Tabs } from 'antd'
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
 import type { RunDraftErrors, SuiteDraftErrors } from '@/benchmarks/types.ts'
 import { TrendLine } from '@/components/charts/CompareCharts.tsx'
@@ -34,40 +34,11 @@ import {
 import { readApiKeys } from '@/account/apiKeys.ts'
 import { useAuthStore } from '@/store/auth.ts'
 import type { AxiosInstance } from 'axios'
-
-function useResource<T>(load: (signal: AbortSignal) => Promise<T>) {
-  const [attempt, setAttempt] = useState(0)
-  const [state, setState] = useState<{
-    load: typeof load
-    attempt: number
-    data?: T
-    error?: string
-  }>()
-  useEffect(() => {
-    const controller = new AbortController()
-    void load(controller.signal).then(
-      (data) => {
-        if (!controller.signal.aborted) setState({ load, attempt, data })
-      },
-      (error: unknown) => {
-        if (!controller.signal.aborted)
-          setState({
-            load,
-            attempt,
-            error: error instanceof Error ? error.message : '加载失败，请重试',
-          })
-      },
-    )
-    return () => controller.abort()
-  }, [load, attempt])
-  const current = state?.load === load && state.attempt === attempt
-  return {
-    data: current ? state.data : undefined,
-    error: current ? state.error : undefined,
-    loading: !current,
-    retry: () => setAttempt((value) => value + 1),
-  }
-}
+import {
+  ModelNameField,
+  StrategyTagsField,
+} from '@/evaluations/optionFields.tsx'
+import { useResource } from '@/hooks/useResource.ts'
 
 function useApiKeys() {
   const http = useAuthStore.getState().httpClient() as AxiosInstance
@@ -296,7 +267,7 @@ export default function BenchmarkDetailPage() {
                       }
                     />
                     {runErrors.api_key_id && (
-                      <small role="alert">{runErrors.api_key_id}</small>
+                      <small role="alert">{t(runErrors.api_key_id)}</small>
                     )}
                   </label>
                   <DatasetPicker
@@ -308,32 +279,33 @@ export default function BenchmarkDetailPage() {
                     disabled={busy}
                     error={runErrors.dataset_path}
                   />
+
                   <label>
                     {t('模型')}
-                    <Input
-                      aria-label={t('基准运行模型')}
+                    <ModelNameField
+                      ariaLabel={t('基准运行模型')}
                       value={runDraft.model}
-                      onChange={(event) =>
+                      apiKeyId={runDraft.api_key_id}
+                      onChange={(value) =>
                         setRunDraft((previous) => ({
                           ...previous,
-                          model: event.target.value,
+                          model: value,
                         }))
                       }
                     />
                     {runErrors.model && (
-                      <small role="alert">{runErrors.model}</small>
+                      <small role="alert">{t(runErrors.model)}</small>
                     )}
                   </label>
                   <label>
                     {t('策略（逗号分隔，可选）')}
-                    <Input
-                      aria-label={t('基准运行策略')}
+                    <StrategyTagsField
+                      ariaLabel={t('基准运行策略')}
                       value={runDraft.strategies_text}
-                      placeholder="vanilla, chain_of_thought"
-                      onChange={(event) =>
+                      onChange={(value) =>
                         setRunDraft((previous) => ({
                           ...previous,
-                          strategies_text: event.target.value,
+                          strategies_text: value,
                         }))
                       }
                     />
@@ -351,7 +323,7 @@ export default function BenchmarkDetailPage() {
                       }
                     />
                     {runErrors.budget_cap_usd && (
-                      <small role="alert">{runErrors.budget_cap_usd}</small>
+                      <small role="alert">{t(runErrors.budget_cap_usd)}</small>
                     )}
                   </label>
                   <Button

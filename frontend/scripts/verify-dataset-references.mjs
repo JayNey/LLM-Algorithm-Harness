@@ -87,6 +87,18 @@ try {
       )
     }
     if (path === '/api-keys') return reply(keys)
+    if (path === '/users/me')
+      return reply({ id: 'fixture-user', username: 'fixture', role: 'user' })
+    if (path === '/evaluation-options')
+      return reply({ strategies: [{ name: 'vanilla' }], sources: [] })
+    if (path === '/evaluation-options/models')
+      return reply({
+        provider: 'openai',
+        models: ['model-test'],
+        complete: true,
+        source: 'provider_api',
+        scope: 'evaluation',
+      })
     if (path === '/benchmarks/suites/suite') return reply(suite)
     if (path === '/benchmarks/learning-curve/suite')
       return reply({
@@ -195,6 +207,7 @@ try {
     await page.getByRole('heading', { level: 1 }).click()
     await page
       .locator('.ant-select-dropdown:visible')
+      .first()
       .waitFor({ state: 'hidden' })
     await page.screenshot({
       path: resolve(out, `${family}-desktop.png`),
