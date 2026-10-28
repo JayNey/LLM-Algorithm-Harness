@@ -114,13 +114,17 @@ class ExperimentRunner:
         started_at = datetime.now().isoformat()
         problems = self._load_problems()
         exp_dir = self._create_experiment_dir()
+        checkpoint_config = self.config.redacted_dict()
+        checkpoint_config.pop("dataset_path", None)
+        checkpoint_dataset = self._dataset_fingerprint(problems)
+        checkpoint_dataset.pop("path", None)
         checkpoint = (
             UnitCheckpoint(
                 exp_dir / "units",
                 TaskService.config_fingerprint(
                     {
-                        "config": self.config.redacted_dict(),
-                        "dataset": self._dataset_fingerprint(problems),
+                        "config": checkpoint_config,
+                        "dataset": checkpoint_dataset,
                     }
                 ),
             )

@@ -120,6 +120,7 @@ def case(method, path, target=None, args=(), **kwargs):
 
 
 CASES = [
+    case("GET", "/datasets", "files.datasets", (OWNER,), result=[], expected=[]),
     case(
         "GET",
         "/health",

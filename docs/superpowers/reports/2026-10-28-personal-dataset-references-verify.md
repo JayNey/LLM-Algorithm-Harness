@@ -46,3 +46,11 @@ review_mode=off（tweak 预设），按 comet-verify 跳过自动独立代码审
 ## Verify 阶段独立复核
 
 构建提交后重新运行 `python3 -m pytest tests/test_dataset_references.py tests/test_api_experiment_benchmark.py --no-cov -q`：61 passed；重新运行 frontend 的 npm test（281 passed）、npm run lint（0 errors）、npm run build（成功）、修改文件 prettier 检查和后端 black/ruff 检查均通过。OpenSpec strict validate 再次通过。验证阶段未修改实现或测试，仅追加本报告及 Comet 状态证据。
+
+## PR #314 CI 修复复核
+
+首轮 CI 的 Lint 和六个测试矩阵均因 tests/test_dataset_references.py 五处隐式编码失败，补齐 UTF-8 后编码门禁通过。完整测试随后发现新增端点未加入统一 API 文档、HTTP 端点覆盖表与兼容性基线，以及真实实验/A-B 恢复时临时文件路径导致检查点指纹变化。覆盖率检查本身通过。
+
+修复将检查点指纹建立在配置与题目内容之上，排除临时输入路径；回归验证同内容换路径可恢复且不重复费用，内容变化仍拒绝。数据集列表通过 FileService 接入统一端点测试；OpenAPI 补齐认证、限流、错误、curl 和个人数据源请求示例。契约按既有版本策略递增为 1.3.0，只定向更新三个已审查的请求模型和新增 /datasets 操作，旧路径约束及兼容性门禁的严格比较规则保留。
+
+本地验证：相关 API 文档/版本/端点/数据集/真实执行器及实验/A-B 回归 964 passed；费用 API 完整集成 24 passed（含真实 HTTP 及 Worker 暂停恢复）；UTF-8 与数据集原回归 40 passed。全仓库 Ruff、Black 和显式编码扫描通过。远端新一轮完整测试矩阵将在该修复推送后运行。

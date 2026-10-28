@@ -12,7 +12,6 @@ from starlette.datastructures import FormData, UploadFile
 
 from api.auth.dependencies import current_user
 from api.auth.service import Principal
-from api.datasets import list_datasets
 from api.db.engine import get_db
 from api.files.dependencies import file_service
 from api.files.service import FileService
@@ -292,7 +291,7 @@ def datasets(
     service: FileService = Depends(file_service),
 ) -> ApiResponse[list[dict[str, Any]]]:
     try:
-        data = list_datasets(service.store, principal.user_id)
+        data = service.datasets(principal.user_id)
     except ValueError as exc:
         raise HTTPException(400, str(exc)) from None
     return ApiResponse(success=True, data=data, message="Datasets retrieved")

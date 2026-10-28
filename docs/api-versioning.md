@@ -1,6 +1,6 @@
 # API 版本管理
 
-当前 HTTP 契约版本为 **1.2.0**，URL 主版本为 **v1**。业务接口均使用 `/api/v1/...`；公开文档入口仍是 `/docs`、`/redoc` 和 `/openapi.json`。OpenAPI `info.version` 显示契约版本，Swagger UI 和 ReDoc 读取同一份文档。
+当前 HTTP 契约版本为 **1.3.0**，URL 主版本为 **v1**。业务接口均使用 `/api/v1/...`；公开文档入口仍是 `/docs`、`/redoc` 和 `/openapi.json`。OpenAPI `info.version` 显示契约版本，Swagger UI 和 ReDoc 读取同一份文档。
 
 采用 URL 版本，而非 `API-Version`、`Accept-Version` 或自定义 Accept 媒体类型的 Header 协商：URL 在 curl、代理、日志和客户端中直接可见，不需要版本相关的 `Vary` 缓存规则。Header 不选择版本，例如 `/api/v1/health` 带 `API-Version: 2` 仍请求 v1；未实现的 `/api/v2/health` 返回 404。不要将 v2 静默降级到 v1。
 
@@ -37,3 +37,5 @@ OpenAPI 门禁覆盖结构契约，不能验证业务语义、动态字典中的
 1.2.0 为 `KeyCreate.provider` 增加可接受的输入值 `deepseek`。原有三个值、请求字段和响应契约保持；既有前端解析器同步接受新 provider。基线只定向增加该输入枚举值，不重新生成其他组件，也不放宽兼容性门禁。
 
 模型目录整合在 1.1.0 中扩展既有 `GET /api/v1/config/providers`：省略 `api_key_id` 仍返回静态示例，传入本人密钥时返回动态列表。静态 `source=static_examples`，动态 `source=provider_api`；评测模型响应增加 `source/scope`。已审查现有前端只读取 `provider/models/complete`、忽略未知字段，属于兼容扩展。本次仅定向更新该操作的可选查询参数和 `ModelOptions` 新属性，保持既有必填字段、鉴权、错误语义和兼容门禁不变。
+
+1.3.0 增加 `GET /api/v1/datasets` 和三类创建/运行请求的可选 `dataset_id`。原 `dataset_path` 的字符串校验保持，必填约束改为与 `dataset_id` 恰好提供一个，属于接受更多合法输入的兼容扩展；已有合法路径请求继续通过。主版本、操作路径、响应模型、认证与状态码保持。已核对实际 schema 差异，仅定向同步 ExperimentCreateRequest、BenchmarkRunRequest、ABTestCreateRequest 三个请求组件，并保护新增的数据集列表操作，不放宽门禁比较规则。OpenAPI 同时提供旧路径与个人集合的可验证请求示例。

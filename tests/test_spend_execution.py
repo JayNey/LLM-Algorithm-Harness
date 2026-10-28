@@ -146,9 +146,19 @@ def test_real_runners_persist_before_finish_and_skip_checkpoints_on_resume(
         assert sum(r.cost_usd for r in rows) == pytest.approx(0.6)
         assert {r.problem_id for r in rows} == {"p0", "p1"}
         assert all(r.difficulty == "easy" and r.pricing["source"] == "override" for r in rows)
+    # Workers materialize the same immutable input at a fresh local path.
+    rematerialized = tmp_path / "resumed-input.json"
+    rematerialized.write_bytes(data.read_bytes())
+    runner.config.dataset_path = str(rematerialized)
     runner.run()
     with execution() as db:
         assert len(db.scalars(select(SpendRecord)).all()) == 2
+    # Moving a file is safe, changing its content must still invalidate input.
+    changed = json.loads(rematerialized.read_text(encoding="utf-8"))
+    changed[0]["description"] = "A different description changes the frozen input."
+    rematerialized.write_text(json.dumps(changed), encoding="utf-8")
+    with pytest.raises(ValueError, match="Checkpoint inputs changed"):
+        runner.run()
 
 
 def test_client_cache_zero_increment_and_storage_failure_does_not_retry_provider(
