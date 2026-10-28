@@ -1184,5 +1184,5 @@ export default {
     '仅管理员可见：由部署者在后端 MONITOR_ADMIN_USER_IDS 中配置已注册用户的 UUID 并重启 API，没有自助提权入口。',
   '本地运行方式与环境变量说明见仓库 docs/deployment/deploy.md；界面语言可在右上角切换，偏好会被保存。':
     '本地运行方式与环境变量说明见仓库 docs/deployment/deploy.md；界面语言可在右上角切换，偏好会被保存。',
-  '实验（复数）': '实验（复数）',
+  '实验（复数）': '实验',
 }
