@@ -17,7 +17,7 @@ const examples: Record<string, { title: string; description: string }> = {
   '/help': {
     title: '开始一次 LLM 算法评估',
     description:
-      '选择题目集 → 选择模型与策略 → 运行并比较结果。当前工作台的示例仪表盘与通知使用 Mock，账号设置和认证沿用真实服务。',
+      '选择题目集 → 选择模型与策略 → 运行并比较结果。仪表盘展示当前账号的真实统计与最近任务；通知仍为 Mock 示例。',
   },
 }
 export default function BusinessPage() {
