@@ -38,6 +38,7 @@ const scenarios = [
   'legacy-error',
   'legacy-loading',
   'terminal',
+  'publish-uncertain',
 ]
 const failures = []
 try {
@@ -67,7 +68,11 @@ try {
           body: JSON.stringify({ success: true, data, message: '' }),
         })
       const row = { ...job, status }
-      if (scenario === 'unqueued') row.task_id = null
+      if (
+        scenario === 'unqueued' ||
+        (scenario === 'publish-uncertain' && starts === 0)
+      )
+        row.task_id = null
       if (scenario.startsWith('legacy')) delete row.task_id
       if (path === '/experiments/queued-exp' && request.method() === 'GET')
         return reply(row)
@@ -81,6 +86,8 @@ try {
         })
       if (path === '/experiments/queued-exp/run') {
         starts++
+        if (scenario === 'publish-uncertain')
+          return route.fulfill({ status: 503, body: '{}' })
         return reply(row)
       }
       if (path === '/tasks/queued-task') {
@@ -162,6 +169,13 @@ try {
             .count(),
           0,
         )
+      } else if (scenario === 'publish-uncertain') {
+        await start.waitFor()
+        await start.click()
+        await page.getByRole('button', { name: '取消实验' }).waitFor()
+        assert.equal(await start.count(), 0)
+        assert.ok(await remove.isDisabled())
+        assert.equal(starts, 1)
       } else if (scenario === 'unqueued') {
         await start.waitFor()
         assert.ok(await start.isEnabled())

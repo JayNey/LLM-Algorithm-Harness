@@ -13,7 +13,7 @@ from pathlib import Path
 from threading import Semaphore
 from typing import Any, cast
 
-from sqlalchemy import CursorResult, Select, select, update
+from sqlalchemy import CursorResult, select, update
 from sqlalchemy.orm import Session
 
 from api.auth.service import AuthService
@@ -154,12 +154,14 @@ class ExperimentService:
     def get_experiment(self, experiment_id: str, owner_id: str) -> dict[str, Any]:
         with self._session() as session:
             row = self._owned(session, experiment_id, owner_id)
-            task = session.scalar(self._tasks(experiment_id, owner_id))
+            task = self._task(session, experiment_id, owner_id)
             return _job_view(row, task.id if task else None)
 
     @staticmethod
-    def _tasks(experiment_id: str, owner_id: str) -> Select[tuple[AsyncTask]]:
-        return (
+    def _task(
+        session: Session, experiment_id: str, owner_id: str, *, active_only: bool = False
+    ) -> AsyncTask | None:
+        query = (
             select(AsyncTask)
             .where(
                 AsyncTask.task_type == "experiment",
@@ -168,6 +170,9 @@ class ExperimentService:
             )
             .order_by(AsyncTask.created_at.desc(), AsyncTask.id.desc())
         )
+        if active_only:
+            query = query.where(AsyncTask.status.in_(("pending", "running", "paused")))
+        return session.scalar(query)
 
     @staticmethod
     def _lock_experiment(session: Session, experiment_id: str, owner_id: str) -> None:
@@ -209,11 +214,7 @@ class ExperimentService:
         with self._session() as session, session.begin():
             self._lock_experiment(session, experiment_id, owner_id)
             row = self._owned(session, experiment_id, owner_id)
-            active_task = session.scalar(
-                self._tasks(experiment_id, owner_id).where(
-                    AsyncTask.status.in_(("pending", "running", "paused"))
-                )
-            )
+            active_task = self._task(session, experiment_id, owner_id, active_only=True)
             if row.status == "running":
                 raise ValueError("Cannot delete a running experiment; wait for it to finish")
             if row.status == "paused" or active_task is not None:
@@ -230,7 +231,7 @@ class ExperimentService:
             row = self._owned(session, experiment_id, owner_id)
             if row.status != "pending":
                 raise ValueError(f"Cannot start experiment in {row.status} status")
-            if session.scalar(self._tasks(experiment_id, owner_id)) is not None:
+            if self._task(session, experiment_id, owner_id) is not None:
                 raise ValueError("Cannot start experiment: already queued")
             task = TaskManager(session).enqueue_task(
                 task_type="experiment",

@@ -521,6 +521,10 @@ export default function ExperimentDetailPage() {
       setActionError(
         cause instanceof Error ? cause.message : '启动失败，请重试',
       )
+      // A timeout may follow successful publication; reload persisted state
+      // before offering another start or delete action.
+      jobResource.retry()
+      taskId.retry()
     } finally {
       setBusy(false)
     }

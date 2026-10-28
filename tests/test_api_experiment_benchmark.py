@@ -203,7 +203,27 @@ def _experiment_payload(key_id):
 
 
 class TestExperiments:
-    @pytest.mark.parametrize("status", ["running", "paused"])
+    def test_queued_experiment_rejects_duplicate_run_and_delete(self, api):
+        client, headers, key_id, app = api
+        experiment_id = client.post(
+            "/api/v1/experiments", headers=headers, json=_experiment_payload(key_id)
+        ).json()["data"]["id"]
+        url = f"/api/v1/experiments/{experiment_id}"
+        with patch("src.task_manager.celery_app.send_task") as publish:
+            started = client.post(f"{url}/run", headers=headers)
+            assert started.status_code == 202
+            task_id = started.json()["data"]["task_id"]
+            duplicate = client.post(f"{url}/run", headers=headers)
+            assert duplicate.status_code == 400
+            assert "already queued" in duplicate.json()["detail"]
+            assert publish.call_count == 1
+        assert client.get(url, headers=headers).json()["data"]["task_id"] == task_id
+        listed = client.get("/api/v1/experiments", headers=headers).json()["data"]
+        assert listed["items"][0]["task_id"] == task_id
+        assert client.delete(url, headers=headers).status_code == 400
+        assert client.get(url, headers=headers).json()["data"]["status"] == "pending"
+
+    @pytest.mark.parametrize("status", ["pending", "running", "paused"])
     def test_cancel_refresh_and_delete(self, api, status):
         from src.task_manager import TaskManager
 
@@ -214,8 +234,9 @@ class TestExperiments:
         task_id = client.post(f"/api/v1/experiments/{experiment_id}/run", headers=headers).json()[
             "data"
         ]["task_id"]
-        with app.state.experiments._session() as db:
-            TaskManager(db).update_task_status(task_id, "running")
+        if status != "pending":
+            with app.state.experiments._session() as db:
+                TaskManager(db).update_task_status(task_id, "running")
         if status == "paused":
             paused = client.post(f"/api/v1/tasks/{task_id}/pause", headers=headers)
             assert paused.status_code == 200, paused.text
