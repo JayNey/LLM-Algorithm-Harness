@@ -1502,6 +1502,10 @@ class TestPersonalBudgetExecution:
         assert snapshot == {
             "global_cap_usd": 0.3,
             "used_usd": Decimal("0.3"),
+            "known_cost_usd": 0.3,
+            "cost_complete": True,
+            "unknown_cost_count": 0,
+            "unknown_reasons": {},
             "action": "pause",
             "global_reached": True,
             "exhausted_difficulties": ["easy"],

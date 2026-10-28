@@ -7,9 +7,10 @@ experiment/A-B call records. Reads never reprice historical consumption.
 import re
 import uuid
 from collections import Counter, defaultdict
+from collections.abc import Iterable, Sequence
 from datetime import date, datetime, timezone
 from decimal import Decimal
-from typing import Any
+from typing import Any, cast
 
 from sqlalchemy import select
 from sqlalchemy.exc import IntegrityError
@@ -167,12 +168,19 @@ class CostService:
                     "unknown_reason": record.unknown_reason,
                 }
             )
-        for source, model in (("experiments", Experiment), ("ab_tests", ABTest)):
-            legacy = session.scalars(
-                select(model).where(
-                    model.user_id == owner_id, model.cost_tracking_complete.is_(False)
-                )
-            ).all()
+        models: dict[str, type[Experiment] | type[ABTest]] = {
+            "experiments": Experiment,
+            "ab_tests": ABTest,
+        }
+        for source, model in models.items():
+            legacy = cast(
+                Sequence[Experiment | ABTest],
+                session.scalars(
+                    select(model).where(
+                        model.user_id == owner_id, model.cost_tracking_complete.is_(False)
+                    )
+                ).all(),
+            )
             for job in legacy:
                 if job.status == "pending" and job.started_at is None:
                     continue
@@ -242,9 +250,12 @@ class CostService:
                     "task_id": task_id,
                     "source": "experiments",
                     "status": experiment.status,
-                    "total_cost_usd": coverage["known_cost_usd"]
-                    if coverage["cost_complete"] or any(row["cost_usd"] is not None for row in rows)
-                    else None,
+                    "total_cost_usd": (
+                        coverage["known_cost_usd"]
+                        if coverage["cost_complete"]
+                        or any(row["cost_usd"] is not None for row in rows)
+                        else None
+                    ),
                     "budget_cap_usd": None,
                     **coverage,
                 }
@@ -260,9 +271,12 @@ class CostService:
                     "task_id": task_id,
                     "source": "ab_tests",
                     "status": ab_test.status,
-                    "total_cost_usd": coverage["known_cost_usd"]
-                    if coverage["cost_complete"] or any(row["cost_usd"] is not None for row in rows)
-                    else None,
+                    "total_cost_usd": (
+                        coverage["known_cost_usd"]
+                        if coverage["cost_complete"]
+                        or any(row["cost_usd"] is not None for row in rows)
+                        else None
+                    ),
                     "budget_cap_usd": None,
                     **coverage,
                 }
@@ -361,7 +375,7 @@ class CostService:
             for row in spend:
                 if row.get("difficulty") in caps:
                     difficulty_used[row["difficulty"]] += Decimal(str(row["cost_usd"] or 0))
-            metrics_rows = session.scalars(
+            metrics_rows: Iterable[dict[str, Any] | None] = session.scalars(
                 select(EvaluationResult.metrics)
                 .join(Evaluation, Evaluation.id == EvaluationResult.evaluation_id)
                 .where(Evaluation.user_id == owner_id)

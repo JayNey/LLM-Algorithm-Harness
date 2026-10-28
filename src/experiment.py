@@ -311,11 +311,12 @@ class ExperimentRunner:
         harness.pricing_manager = self.pricing_manager
         harness.before_generate = self.before_generate
         if self.on_spend is not None:
+            on_spend = self.on_spend
 
             def record(event_id: str, response: Any, cached: bool) -> None:
                 problem_id = tracker.current_problem
                 problem = harness.problems_by_id.get(problem_id or "")
-                self.on_spend(
+                on_spend(
                     event_id,
                     response,
                     cached,

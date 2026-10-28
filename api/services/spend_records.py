@@ -13,7 +13,7 @@ import uuid
 from collections.abc import Callable
 from pathlib import Path
 from threading import Event
-from typing import Any
+from typing import Any, cast
 
 from sqlalchemy import select
 from sqlalchemy.exc import IntegrityError
@@ -24,7 +24,10 @@ from src.models import LLMResponse
 from src.utils.pricing import PricingInfo, PricingManager
 
 SpendCallback = Callable[[str, LLMResponse | None, bool], None]
-_SOURCES = {"experiments": Experiment, "ab_tests": ABTest}
+_SOURCES: dict[str, type[Experiment] | type[ABTest]] = {
+    "experiments": Experiment,
+    "ab_tests": ABTest,
+}
 _PRICING_FIELDS = (
     "model",
     "source",
@@ -99,7 +102,10 @@ class SpendRecorder:
                 # Best effort: if the database recovers, never advertise full coverage.
                 try:
                     with self.session_factory() as session, session.begin():
-                        row = session.get(_SOURCES[self.source], self.task_id)
+                        row = cast(
+                            Experiment | ABTest | None,
+                            session.get(_SOURCES[self.source], self.task_id),
+                        )
                         if row is not None and row.user_id == self.owner_id:
                             row.cost_tracking_complete = False
                 except Exception:
@@ -150,7 +156,9 @@ class SpendRecorder:
             pricing={key: pricing[key] for key in _PRICING_FIELDS if key in pricing},
         )
         with self.session_factory() as session:
-            task = session.get(_SOURCES[self.source], self.task_id)
+            task = cast(
+                Experiment | ABTest | None, session.get(_SOURCES[self.source], self.task_id)
+            )
             if task is None or task.user_id != self.owner_id:
                 raise ValueError("spend task not found")
             session.add(row)
@@ -198,16 +206,30 @@ def backfill_spend(
                 continue
             root = Path(job.output_dir).resolve()
             try:
+                evidence_found = False
                 metadata = json.loads((root / "experiment.json").read_text(encoding="utf-8"))
+                if not isinstance(metadata, dict) or not isinstance(
+                    metadata.get("combinations"), list
+                ):
+                    raise ValueError("invalid combination metadata")
                 for combo in metadata["combinations"]:
+                    if not isinstance(combo, dict):
+                        raise ValueError("invalid combination")
                     directory = (root / combo["combo_dir"]).resolve()
                     if not directory.is_relative_to(root):
                         raise ValueError("combination outside artifact root")
                     summary = json.loads((directory / "summary.json").read_text(encoding="utf-8"))
+                    if not isinstance(summary, dict) or not isinstance(
+                        summary.get(combo["strategy"]), dict
+                    ):
+                        raise ValueError("invalid strategy summary")
                     pricing = summary[combo["strategy"]].get("pricing_metadata") or {}
+                    if not isinstance(pricing, dict):
+                        raise ValueError("invalid pricing snapshot")
                     cost = _amount(pricing.get("total_cost"))
                     if not pricing.get("has_actual_pricing") or cost is None:
                         continue
+                    evidence_found = True
                     event_id = str(
                         uuid.uuid5(
                             uuid.NAMESPACE_URL, f"spend:experiments:{job.id}:{combo['combo_id']}"
@@ -229,9 +251,12 @@ def backfill_spend(
                                 strategy=combo["strategy"],
                                 cost_usd=cost,
                                 cached=False,
-                                unknown_reason="historical_partial"
-                                if pricing.get("unknown_usage") or pricing.get("unknown_pricing")
-                                else None,
+                                unknown_reason=(
+                                    "historical_partial"
+                                    if pricing.get("unknown_usage")
+                                    or pricing.get("unknown_pricing")
+                                    else None
+                                ),
                                 pricing={
                                     "origin": "historical_snapshot",
                                     "timestamp_basis": basis,
@@ -242,6 +267,8 @@ def backfill_spend(
                         )
                         session.flush()
                     inserted += 1
+                if not evidence_found:
+                    skipped[job.id] = "no_verifiable_cost"
             except (OSError, ValueError, KeyError, TypeError):
                 skipped[job.id] = "unverifiable_artifacts"
         return {"inserted": inserted, "skipped": skipped, "dry_run": dry_run}

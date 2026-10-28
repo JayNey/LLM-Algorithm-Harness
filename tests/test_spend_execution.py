@@ -30,7 +30,8 @@ def dataset(tmp_path, count=2):
                 }
                 for i in range(count)
             ]
-        )
+        ),
+        encoding="utf-8",
     )
     return path
 
@@ -278,3 +279,63 @@ def test_recorded_spend_survives_partial_runner_stop(
         assert len(rows) == 1
         assert rows[0].cost_usd == pytest.approx(0.3)
         assert db.get(table, job).status == ending
+
+
+def test_retried_timeout_keeps_unknown_attempt_alongside_success(execution, monkeypatch, tmp_path):
+    from api.services.cost_service import CostService
+
+    provider_client(monkeypatch)
+    config = config_model().model_copy(update={"retry_max_attempts": 2, "retry_backoff_seconds": 0})
+    client = LLMClient(config)
+    client.pricing_manager = pricing_snapshot(execution)
+    client.on_response = SpendRecorder(execution, "ab_tests", "ab", "alice").callback(
+        model="priced/model", strategy="vanilla"
+    )
+    succeed = client.client.chat.completions.create
+    attempts = []
+
+    def retry(**kwargs):
+        attempts.append(1)
+        if len(attempts) == 1:
+            raise TimeoutError("uncertain provider response")
+        return succeed(**kwargs)
+
+    client.client.chat.completions.create = retry
+    client.generate("retry this prompt")
+    with execution() as db:
+        rows = db.scalars(select(SpendRecord)).all()
+        assert len(rows) == 2
+        assert sum(r.cost_usd or 0 for r in rows) == pytest.approx(0.3)
+        assert sum(r.unknown_reason == "missing_response" for r in rows) == 1
+    assert len(attempts) == 2
+    service = CostService(f"sqlite:///{tmp_path}/spend.sqlite3")
+    try:
+        result = service.task_cost("ab", "alice")
+        assert result["known_cost_usd"] == 0.3
+        assert result["cost_complete"] is False
+        assert result["unknown_cost_count"] == 1
+    finally:
+        service._engine.dispose()
+
+
+def test_retry_accounting_failure_prevents_another_sdk_attempt(execution, monkeypatch):
+    provider_client(monkeypatch)
+    config = config_model().model_copy(update={"retry_max_attempts": 2, "retry_backoff_seconds": 0})
+    client = LLMClient(config)
+    attempts = []
+
+    def timeout(**_):
+        attempts.append(1)
+        raise TimeoutError("uncertain provider response")
+
+    client.client.chat.completions.create = timeout
+    recorder = SpendRecorder(execution, "ab_tests", "ab", "alice")
+
+    def fail_write(*_args, **_kwargs):
+        raise RuntimeError("database unavailable")
+
+    monkeypatch.setattr(recorder, "record", fail_write)
+    client.on_response = recorder.callback(model="priced/model", strategy="vanilla")
+    with pytest.raises(RuntimeError, match="spend persistence"):
+        client.generate("retry accounting")
+    assert len(attempts) == 1

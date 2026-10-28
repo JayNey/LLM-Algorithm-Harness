@@ -251,8 +251,8 @@ class ABTestRunner:
             client = PromptVariantClient(base_client, variant)
             strategy = AlgorithmHarness.STRATEGY_MAP[self.config.strategy.name](
                 self.config.strategy,
-                client,
-                sandbox,  # type: ignore[arg-type, abstract]
+                client,  # type: ignore[arg-type]
+                sandbox,  # type: ignore[abstract]
             )
             harness = AlgorithmHarness(
                 HarnessConfig(

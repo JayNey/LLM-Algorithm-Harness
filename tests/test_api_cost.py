@@ -423,9 +423,9 @@ def pricing_http(api):
         try:
             deadline = time.monotonic() + 10
             while not server.started:
-                assert thread.is_alive() and time.monotonic() < deadline, (
-                    "HTTP server did not start"
-                )
+                assert (
+                    thread.is_alive() and time.monotonic() < deadline
+                ), "HTTP server did not start"
                 time.sleep(0.01)
             with httpx.Client(base_url=f"http://127.0.0.1:{port}", trust_env=False) as client:
                 yield client, headers
@@ -905,3 +905,188 @@ def test_unknown_experiment_cost_is_partial_and_legacy_is_never_free(api):
     assert summary["total_cost_usd"] == 0.2
     assert summary["unknown_cost_count"] == 3
     assert set(summary["unknown_reasons"]) == {"historical_gap", "missing_usage", "missing_pricing"}
+
+
+@pytest.mark.parametrize("kind", ["experiment", "ab"])
+def test_real_worker_spend_reaches_http_during_pause_resume_and_duplicate_delivery(
+    api, pricing_http, tmp_path, monkeypatch, kind
+):
+    """Only provider SDK/broker replaced; real runners, database and HTTP."""
+    import json
+    from types import SimpleNamespace
+
+    from api.config import settings
+    from api.db.models import AsyncTask
+    from src.ab_testing import ABTestRunner
+    from src.experiment import ExperimentRunner
+    from src.llm_client import LLMClient
+    from src.models import SandboxConfig
+    from src.tasks.ab_test import run_ab_test_task
+    from src.tasks.experiment import run_experiment_task
+
+    _, headers, key_id, app = api
+    http, _ = pricing_http
+    monkeypatch.chdir(tmp_path)
+    monkeypatch.setattr(settings, "DATA_ROOT", str(tmp_path))
+    (tmp_path / "problems.json").write_text(
+        json.dumps(
+            [
+                {
+                    "problem_id": f"p{i}",
+                    "title": "Plus one",
+                    "description": "Return the input integer plus one.",
+                    "difficulty": "easy",
+                    "tags": [],
+                    "test_cases": [{"input": {"x": 1}, "expected_output": 2}],
+                }
+                for i in range(2)
+            ]
+        ),
+        encoding="utf-8",
+    )
+
+    def create(**_kwargs):
+        return SimpleNamespace(
+            model="priced/model",
+            usage=SimpleNamespace(prompt_tokens=100, completion_tokens=50, total_tokens=150),
+            choices=[
+                SimpleNamespace(
+                    message=SimpleNamespace(
+                        content="```python\ndef solution(x): return x + 1\n```"
+                    ),
+                    finish_reason="stop",
+                )
+            ],
+        )
+
+    monkeypatch.setattr(
+        LLMClient,
+        "_initialize_client",
+        lambda _: SimpleNamespace(
+            chat=SimpleNamespace(completions=SimpleNamespace(create=create)),
+            base_url="https://provider.invalid/v1",
+        ),
+    )
+    price = http.post(
+        "/api/v1/pricing/priced%2Fmodel",
+        headers=headers,
+        json={"prompt_per_1k": 1, "completion_per_1k": 4},
+    )
+    assert price.status_code == 201, price.text
+    paused_once, observed = [], []
+    job_id = task_id = None
+
+    def pause_after_unit():
+        if paused_once:
+            return
+        paused_once.append(True)
+        result = http.get(f"/api/v1/costs/tasks/{job_id}", headers=headers).json()["data"]
+        observed.append(result["total_cost_usd"])
+        with patch("src.task_manager.TaskManager._sync_celery_state"):
+            paused = http.post(f"/api/v1/tasks/{task_id}/pause", headers=headers)
+        assert paused.status_code == 200, paused.text
+
+    class PausingExperiment(ExperimentRunner):
+        def run(self):
+            original = self.on_combination
+
+            def progress(current, *args):
+                if current == 1:
+                    pause_after_unit()
+                if original is not None:
+                    original(current, *args)
+
+            self.on_combination = progress
+            return super().run()
+
+    class PausingAB(ABTestRunner):
+        def run(self):
+            original = self.on_problem
+
+            def progress(current, *args):
+                if current == 1:
+                    pause_after_unit()
+                if original is not None:
+                    original(current, *args)
+
+            self.on_problem = progress
+            return super().run()
+
+    if kind == "experiment":
+        service = app.state.experiments
+
+        def factory(config):
+            config.sandbox_config = SandboxConfig(backend="host")
+            config.models = [
+                m.model_copy(update={"cache": m.cache.model_copy(update={"enabled": False})})
+                for m in config.models
+            ]
+            return PausingExperiment(config)
+
+        service._runner_factory = factory
+        monkeypatch.setattr("src.experiment.generate_comparison_report", lambda _: None)
+        monkeypatch.setattr("src.experiment.generate_html_panel", lambda _: None)
+        monkeypatch.setattr("src.tasks.experiment.get_db_session", service._session)
+        monkeypatch.setattr("src.tasks.experiment.execute_experiment", service._execute)
+        worker = run_experiment_task
+        path = "experiments"
+        payload = {
+            "dataset_path": "problems.json",
+            "api_key_id": key_id,
+            "models": [{"model": "priced/model"}],
+            "strategies": [{"name": "vanilla"}],
+            "repeats": 2,
+        }
+        partial_cost, final_cost = 0.6, 1.2
+    else:
+        service = app.state.ab_tests
+
+        def factory(config):
+            config.sandbox_config = SandboxConfig(backend="host")
+            config.model = config.model.model_copy(
+                update={"cache": config.model.cache.model_copy(update={"enabled": False})}
+            )
+            return PausingAB(config)
+
+        service._runner_factory = factory
+        monkeypatch.setattr("api.services.ab_test_service.ABTestService", lambda **_: service)
+        worker = run_ab_test_task
+        path = "ab-tests"
+        payload = {
+            "dataset_path": "problems.json",
+            "api_key_id": key_id,
+            "model": {"model": "priced/model"},
+            "strategy": {"name": "vanilla"},
+            "prompt_variants": [{"id": "a"}, {"id": "b"}],
+        }
+        partial_cost, final_cost = 0.3, 0.6
+    created = http.post(f"/api/v1/{path}", headers=headers, json=payload)
+    assert created.status_code == 201, created.text
+    job_id = created.json()["data"]["id"]
+    with patch("src.task_manager.celery_app.send_task"):
+        started = http.post(f"/api/v1/{path}/{job_id}/run", headers=headers)
+    assert started.status_code == 202, started.text
+    task_id = started.json()["data"]["task_id"]
+    owner = app.state.auth.authenticate(headers["Authorization"].split()[1]).user_id
+    assert worker(job_id, owner)["status"] == "paused"
+    assert observed == [partial_cost]
+    result = http.get(f"/api/v1/reports/cost/{job_id}", headers=headers).json()["data"]
+    assert result["status"] == "paused"
+    assert result["total_cost_usd"] == partial_cost
+    assert result["cost_complete"] is True
+    with patch("src.task_manager.celery_app.send_task"):
+        resumed = http.post(f"/api/v1/tasks/{task_id}/resume", headers=headers)
+    assert resumed.status_code == 200, resumed.text
+    assert worker(job_id, owner)["status"] == "completed"
+    assert worker(job_id, owner)["status"] == "completed"
+    summary = http.get("/api/v1/costs/summary", headers=headers).json()["data"]
+    assert summary["total_cost_usd"] == final_cost
+    assert summary["task_count"] == 1
+    assert (
+        http.get("/api/v1/budgets/usage", headers=headers).json()["data"]["global_budget"][
+            "used_usd"
+        ]
+        == final_cost
+    )
+    with service._session() as db:
+        assert db.get(AsyncTask, task_id).status == "completed"

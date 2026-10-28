@@ -40,6 +40,10 @@ class LLMAdmissionError(RuntimeError):
     """Trusted server admission failure; no provider request was attempted."""
 
 
+class LLMAccountingError(RuntimeError):
+    """An accounting failure must never become another provider attempt."""
+
+
 class LLMClient:
     """LLM API client."""
 
@@ -354,7 +358,7 @@ class LLMClient:
                 time=response_time,
             )
 
-        except LLMAdmissionError:
+        except (LLMAdmissionError, LLMAccountingError):
             raise
         except Exception as e:
             if self.on_response is not None:
@@ -536,6 +540,16 @@ class LLMClient:
                 elapsed = now - started - telemetry_seconds
                 if self.config.retry_max_elapsed_seconds <= elapsed + delay:
                     raise
+                # A timeout may have consumed tokens even if a later attempt
+                # succeeds. Keep that attempt explicitly unknown. The final
+                # failure is recorded by generate, alongside normal successes.
+                if self.on_response is not None:
+                    accounting_started = time.monotonic()
+                    try:
+                        self.on_response(str(uuid.uuid4()), None, False)
+                    except Exception:
+                        raise LLMAccountingError("spend persistence unavailable") from None
+                    telemetry_seconds += max(0.0, time.monotonic() - accounting_started)
                 if delay:
                     time.sleep(delay)
         assert last_error is not None

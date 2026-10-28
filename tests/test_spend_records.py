@@ -143,7 +143,8 @@ def test_backfill_only_explicit_snapshots_and_repeated_runs_do_not_double_count(
                     }
                 ]
             }
-        )
+        ),
+        encoding="utf-8",
     )
     (combo / "summary.json").write_text(
         json.dumps(
@@ -157,7 +158,8 @@ def test_backfill_only_explicit_snapshots_and_repeated_runs_do_not_double_count(
                     }
                 }
             }
-        )
+        ),
+        encoding="utf-8",
     )
     with store() as db, db.begin():
         row = db.get(Experiment, "experiment")
@@ -181,3 +183,67 @@ def test_backfill_only_explicit_snapshots_and_repeated_runs_do_not_double_count(
         assert rows[0].occurred_at == datetime(2026, 10, 1, 10)
         assert rows[0].pricing["timestamp_basis"] == "legacy_completed_at"
         assert db.get(Experiment, "experiment").cost_tracking_complete is False
+
+
+def test_concurrent_replays_commit_one_consumption(store):
+    from concurrent.futures import ThreadPoolExecutor
+
+    from api.db.models import SpendRecord
+    from api.services.spend_records import SpendRecorder
+
+    record = SpendRecorder(store, "experiments", "experiment", "alice").callback(
+        model="demo", strategy="vanilla"
+    )
+    with ThreadPoolExecutor(max_workers=4) as pool:
+        list(pool.map(lambda _: record("shared-event", response(), False), range(8)))
+    with store() as db:
+        assert len(db.scalars(select(SpendRecord)).all()) == 1
+        assert db.get(SpendRecord, "shared-event").cost_usd == 0.3
+
+
+@pytest.mark.parametrize("metadata", [[], {"combinations": [None]}, {"combinations": []}])
+def test_backfill_reports_malformed_or_evidence_free_artifacts(store, tmp_path, metadata):
+    from api.services.spend_records import backfill_spend
+
+    output = tmp_path / "invalid"
+    output.mkdir()
+    (output / "experiment.json").write_text(json.dumps(metadata), encoding="utf-8")
+    with store() as db, db.begin():
+        row = db.get(Experiment, "experiment")
+        row.cost_tracking_complete = False
+        row.output_dir = str(output)
+        row.status = "completed"
+    result = backfill_spend(store)
+    assert result["inserted"] == 0
+    assert "experiment" in result["skipped"]
+
+
+@pytest.mark.parametrize("summary", [{"vanilla": []}, {"vanilla": {"pricing_metadata": [1]}}])
+def test_backfill_skips_malformed_nested_evidence(store, tmp_path, summary):
+    from api.services.spend_records import backfill_spend
+
+    output = tmp_path / "malformed"
+    (output / "combo").mkdir(parents=True)
+    (output / "experiment.json").write_text(
+        json.dumps(
+            {
+                "combinations": [
+                    {
+                        "combo_id": "combo",
+                        "combo_dir": "combo",
+                        "model": "demo",
+                        "strategy": "vanilla",
+                    }
+                ]
+            }
+        ),
+        encoding="utf-8",
+    )
+    (output / "combo/summary.json").write_text(json.dumps(summary), encoding="utf-8")
+    with store() as db, db.begin():
+        job = db.get(Experiment, "experiment")
+        job.cost_tracking_complete = False
+        job.output_dir = str(output)
+    result = backfill_spend(store)
+    assert result["inserted"] == 0
+    assert result["skipped"]["experiment"] == "unverifiable_artifacts"
