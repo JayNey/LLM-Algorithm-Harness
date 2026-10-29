@@ -1,6 +1,6 @@
 # API 版本管理
 
-当前 HTTP 契约版本为 **1.3.0**，URL 主版本为 **v1**。业务接口均使用 `/api/v1/...`；公开文档入口仍是 `/docs`、`/redoc` 和 `/openapi.json`。OpenAPI `info.version` 显示契约版本，Swagger UI 和 ReDoc 读取同一份文档。
+当前 HTTP 契约版本为 **1.4.0**，URL 主版本为 **v1**。业务接口均使用 `/api/v1/...`；公开文档入口仍是 `/docs`、`/redoc` 和 `/openapi.json`。OpenAPI `info.version` 显示契约版本，Swagger UI 和 ReDoc 读取同一份文档。
 
 采用 URL 版本，而非 `API-Version`、`Accept-Version` 或自定义 Accept 媒体类型的 Header 协商：URL 在 curl、代理、日志和客户端中直接可见，不需要版本相关的 `Vary` 缓存规则。Header 不选择版本，例如 `/api/v1/health` 带 `API-Version: 2` 仍请求 v1；未实现的 `/api/v2/health` 返回 404。不要将 v2 静默降级到 v1。
 
@@ -24,7 +24,7 @@ WebSocket `/api/v1/ws/progress` 沿用 URL 主版本。其消息格式和关闭�
 python3 -m pytest tests/test_api_versioning.py tests/test_api_documentation.py -q --no-cov
 ```
 
-`tests/fixtures/openapi-v1.json` 冻结本次变更前的全部 126 个 HTTP 操作及组件契约。测试直接调用实际应用的 OpenAPI 生成器，不启动 lifespan，不访问数据库、Redis、Docker 或 LLM。现有 GitHub Actions 测试矩阵执行整个 pytest 套件，自动包含此门禁。
+`tests/fixtures/openapi-v1.json` 冻结已纳入保护的 HTTP 操作及组件契约。测试直接调用实际应用的 OpenAPI 生成器，不启动 lifespan，不访问数据库、Redis、Docker 或 LLM。现有 GitHub Actions 测试矩阵执行整个 pytest 套件，自动包含此门禁。
 
 门禁允许新增路径、方法和组件，忽略描述、示例、标题等文档注释；既有操作、请求/响应结构、认证、安全方案、约束和全局协议配置发生变化时失败。字段名恰好为 `description` 或 `example` 时仍受保护。这是保守的契约回归检查，可能拦截兼容的 schema 扩展，也可能因 FastAPI/Pydantic 升级引起结构变化而失败。
 
@@ -39,3 +39,5 @@ OpenAPI 门禁覆盖结构契约，不能验证业务语义、动态字典中的
 模型目录整合在 1.1.0 中扩展既有 `GET /api/v1/config/providers`：省略 `api_key_id` 仍返回静态示例，传入本人密钥时返回动态列表。静态 `source=static_examples`，动态 `source=provider_api`；评测模型响应增加 `source/scope`。已审查现有前端只读取 `provider/models/complete`、忽略未知字段，属于兼容扩展。本次仅定向更新该操作的可选查询参数和 `ModelOptions` 新属性，保持既有必填字段、鉴权、错误语义和兼容门禁不变。
 
 1.3.0 增加 `GET /api/v1/datasets` 和三类创建/运行请求的可选 `dataset_id`。原 `dataset_path` 的字符串校验保持，必填约束改为与 `dataset_id` 恰好提供一个，属于接受更多合法输入的兼容扩展；已有合法路径请求继续通过。主版本、操作路径、响应模型、认证与状态码保持。已核对实际 schema 差异，仅定向同步 ExperimentCreateRequest、BenchmarkRunRequest、ABTestCreateRequest 三个请求组件，并保护新增的数据集列表操作，不放宽门禁比较规则。OpenAPI 同时提供旧路径与个人集合的可验证请求示例。
+
+1.4.0 增加 `GET /api/v1/benchmarks/suites/{suite_id}/runs`，支持单一状态筛选和稳定分页；运行详情兼容增加 task_id/started_at/completed_at，学习曲线点兼容增加 run_id。既有前端解析器只提取消费字段、忽略新增字段，现有指标、completed-only 统计、请求与错误规范保持；运行及关联任务增加所有者防御校验。基线只追加新历史操作及其引用的新响应组件，既有操作和组件保持原样，不重新生成全量基线。完整契约及空值语义见 [学习曲线指南](learning-curve-tracking.md#http-run-history)。

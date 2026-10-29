@@ -3,12 +3,14 @@
 from collections.abc import Callable
 from typing import TypeVar, cast
 
-from fastapi import APIRouter, Depends, HTTPException, Request
+from fastapi import APIRouter, Depends, HTTPException, Query, Request
 
 from api.auth.dependencies import auth_service, current_user
 from api.auth.service import AuthService, Principal
 from api.experiment_models import (
     BenchmarkRunRequest,
+    BenchmarkRunResponse,
+    BenchmarkRunStatus,
     BenchmarkSuiteCreateRequest,
     BenchmarkSuiteUpdateRequest,
 )
@@ -86,6 +88,25 @@ def run_suite(
     result = call(lambda: service.start_run(suite_id, request, principal.user_id))
     auth.audit("benchmark_run", principal.user_id, result["id"])
     return ApiResponse(success=True, data=result, message="Benchmark run started successfully")
+
+
+@router.get("/benchmarks/suites/{suite_id}/runs")
+def list_runs(
+    suite_id: str,
+    status: BenchmarkRunStatus | None = Query(None, description="Filter by one run status"),
+    limit: int = Query(20, ge=1, le=100),
+    offset: int = Query(0, ge=0),
+    principal: Principal = Depends(current_user),
+    service: BenchmarkService = Depends(benchmark_service),
+) -> ApiResponse[PaginatedData[BenchmarkRunResponse]]:
+    """List owned runs, newest first by created_at then id, filtering before pagination."""
+    results, total = call(
+        lambda: service.list_runs(suite_id, principal.user_id, status, limit, offset)
+    )
+    data = PaginatedData[BenchmarkRunResponse](
+        items=results, total=total, limit=limit, offset=offset, has_more=offset + limit < total
+    )
+    return ApiResponse(success=True, data=data, message="Benchmark runs retrieved successfully")
 
 
 @router.get("/benchmarks/runs/{run_id}")
