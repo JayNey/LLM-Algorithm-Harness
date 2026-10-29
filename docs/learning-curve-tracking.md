@@ -169,6 +169,84 @@ See `benchmark.example.json` for a sample benchmark suite configuration.
 
 ## API Reference
 
+### HTTP run history
+
+Authenticated API runs are stored in the business database, separately from CLI
+JSON history. Send `Authorization: Bearer <access_token>` to:
+
+```http
+GET /api/v1/benchmarks/suites/{suite_id}/runs?status=running&limit=20&offset=0
+```
+
+`status` is optional and accepts exactly one of `pending`, `running`, `paused`,
+`completed`, `failed`, or `cancelled`. Omit it to include all statuses. Filtering
+happens before pagination and counting. `limit` defaults to 20 and must be 1–100;
+`offset` defaults to 0 and must be nonnegative. Invalid parameters return the
+standard 400 validation error response.
+
+Runs are ordered by `created_at DESC, id DESC`, including an ID tie-breaker when
+timestamps match. This gives stable pages for unchanged data; concurrent inserts
+can shift offset-based page boundaries.
+
+```json
+{
+  "success": true,
+  "data": {
+    "items": [
+      {
+        "id": "run-id",
+        "suite_id": "suite-id",
+        "task_id": "task-id",
+        "status": "running",
+        "model": "gpt-test",
+        "dataset_snapshot": null,
+        "accuracy": null,
+        "cost_usd": null,
+        "error_message": null,
+        "created_at": "2026-10-28T12:00:00Z",
+        "updated_at": "2026-10-28T12:01:00Z",
+        "started_at": "2026-10-28T12:01:00Z",
+        "completed_at": null
+      }
+    ],
+    "total": 1,
+    "limit": 20,
+    "offset": 0,
+    "has_more": false
+  },
+  "message": "Benchmark runs retrieved successfully"
+}
+```
+
+`total` counts all matching owned runs, independent of the requested page.
+`has_more` is true when `offset + limit < total`. Empty suites return a valid
+empty page with `total: 0`; an offset beyond the end also returns `items: []`.
+Unavailable metrics, lifecycle timestamps, dataset summaries and task associations
+remain `null`; a measured zero remains `0`.
+
+Use an item's `id` with `GET /api/v1/benchmarks/runs/{run_id}` to retrieve results.
+The detail response retains existing fields and also includes `task_id`,
+`started_at` and `completed_at`. When `task_id` is non-null, use
+`GET /api/v1/tasks/{task_id}` for progress. An association must match the run ID,
+the current owner and task type `benchmark`; if multiple records exist, the newest
+by `created_at DESC, id DESC` is returned. Missing associations remain `null`.
+Suite, run and task ownership are checked independently. Foreign runs are excluded
+even if they reference an owned suite; missing or foreign suite/run resources
+return 404, and unauthenticated requests return 401.
+
+### HTTP learning curve
+
+`GET /api/v1/benchmarks/learning-curve/{suite_id}` retains its `suite_id`,
+`suite_name`, `data` and `trends` shape. Each point now also contains `run_id`,
+matching the history item's `id` and the existing detail route. Existing
+`timestamp`, `model`, `accuracy` and `cost_usd` fields and trend calculations are
+unchanged. Only the current user's `completed` runs contribute, ordered by
+`completed_at, id` ascending; active, failed, cancelled and foreign runs do not
+affect the curve. A suite without completed runs returns `data: []` and null
+growth rates. Clients can ignore the additive `run_id` field.
+
+### Python modules
+
 For programmatic access, see:
 - `src/benchmark/suite.py` - Suite management
 - `src/benchmark/history.py` - Results storage

@@ -79,6 +79,21 @@ SUITE = {
     "created_at": STAMP,
     "updated_at": STAMP,
 }
+BENCHMARK_RUN = {
+    "id": "run-demo",
+    "suite_id": "suite-demo",
+    "task_id": "task-demo",
+    "status": "pending",
+    "model": "gpt-4o-mini",
+    "dataset_snapshot": None,
+    "accuracy": None,
+    "cost_usd": None,
+    "error_message": None,
+    "created_at": STAMP,
+    "updated_at": STAMP,
+    "started_at": None,
+    "completed_at": None,
+}
 BUDGET = {
     "global_cap_usd": 10.0,
     "difficulty_caps": {"easy": 2.0},
@@ -957,40 +972,31 @@ OPERATIONS: dict[str, tuple[str, Any]] = {
     "get_suite": ("读取自己基准套件的题目、版本和冻结状态。", SUITE),
     "update_suite": ("更新自己的未冻结套件；冻结套件拒绝修改。", SUITE),
     "run_suite": (
-        "使用数据集、模型及密钥提交一次基准运行；202 表示受理。",
-        {
-            "id": "run-demo",
-            "suite_id": "suite-demo",
-            "status": "pending",
-            "model": "gpt-4o-mini",
-            "accuracy": None,
-            "cost_usd": None,
-            "error_message": None,
-            "created_at": STAMP,
-            "updated_at": STAMP,
-        },
+        "使用数据集、模型及密钥提交一次基准运行；202 表示受理，返回 run id 与 task_id。",
+        BENCHMARK_RUN,
+    ),
+    "list_runs": (
+        "分页查询自己套件的运行历史，支持单一状态 pending/running/paused/completed/failed/cancelled；先筛选再分页，按 created_at DESC、id DESC 稳定排序（并发新增可移动 offset 边界）。total 为筛选后总数，空套件返回空页。id 可查询运行详情，task_id 可查询统一任务进度；仅关联同用户的 benchmark 任务，多条时按 created_at DESC、id DESC 取最新，缺失为 null；指标及生命周期时间未知为 null，实测零值保留为 0。套件及运行归属独立校验，缺失或越权为 404。",
+        page([BENCHMARK_RUN]),
     ),
     "get_run": (
-        "查询自己的基准运行状态及结果。",
-        {
-            "id": "run-demo",
-            "suite_id": "suite-demo",
-            "status": "pending",
-            "model": "gpt-4o-mini",
-            "accuracy": None,
-            "cost_usd": None,
-            "results": {},
-            "error_message": None,
-            "created_at": STAMP,
-            "updated_at": STAMP,
-        },
+        "查询自己的基准运行状态、结果及同用户 benchmark 任务 task_id；同时校验套件所有者，缺失或越权返回 404。",
+        {**BENCHMARK_RUN, "results": {}},
     ),
     "learning_curve": (
-        "查询自己套件已完成运行的准确率/成本变化和趋势摘要。",
+        "查询自己套件中属于自己的 completed 运行，按 completed_at、id 升序返回准确率/成本变化和趋势摘要；兼容增加 run_id，可跳转现有运行详情，历史指标与趋势规则保持不变。",
         {
             "suite_id": "suite-demo",
             "suite_name": "Demo suite",
-            "data": [],
+            "data": [
+                {
+                    "run_id": "run-demo",
+                    "timestamp": STAMP,
+                    "model": "gpt-4o-mini",
+                    "accuracy": 0.75,
+                    "cost_usd": 0.05,
+                }
+            ],
             "trends": {"accuracy_growth_rate": None, "cost_growth_rate": None},
         },
     ),
@@ -1447,9 +1453,9 @@ ERROR_MESSAGES = {
     503: "Service is unavailable",
 }
 
-API_CONTRACT_VERSION = "1.3.0"
+API_CONTRACT_VERSION = "1.4.0"
 
-OVERVIEW = """LLM Algorithm Harness API，HTTP 契约版本 1.3.0（API v1）。
+OVERVIEW = """LLM Algorithm Harness API，HTTP 契约版本 1.4.0（API v1）。
 
 **版本策略**：URL 主版本 `/api/v1`；不使用 Header 版本协商。
 兼容扩展沿用 v1；破坏性变更使用新的 URL 主版本，并提供迁移说明、并行支持与退役公告。
@@ -1561,6 +1567,16 @@ def _document_operation(path: str, method: str, operation: dict[str, Any]) -> No
     operation["summary"] = purpose.split("；")[0].split("。")[0]
     for parameter in operation.get("parameters", []):
         description, example = PARAMETERS[parameter["name"]]
+        if name == "list_runs":
+            description, example = {
+                "suite_id": ("自己的基准套件 ID；缺失或越权返回 404。", "suite-demo"),
+                "status": (
+                    "可选单一状态 pending/running/paused/completed/failed/cancelled，省略则全部；非法值返回 400。",
+                    "pending",
+                ),
+                "limit": ("每页条数，默认 20，范围 1–100；越界返回 400。", 20),
+                "offset": ("从零开始的偏移，默认 0；负值返回 400。", 0),
+            }[parameter["name"]]
         if name == "alert_history" and parameter["name"] == "limit":
             description, example = "最近预警条数；默认 50，服务端限制到 1–200。", 50
         if name in {"task_logs", "download_logs"} and parameter["name"] == "task_id":

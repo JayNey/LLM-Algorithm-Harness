@@ -357,6 +357,14 @@ CASES = [
         body=RUN_BODY,
         status=202,
     ),
+    case(
+        "GET",
+        "/benchmarks/suites/{suite_id}/runs",
+        "benchmarks.list_runs",
+        ("suite-1", OWNER, None, 20, 0),
+        result=([], 0),
+        expected=dict(items=[], total=0, limit=20, offset=0, has_more=False),
+    ),
     case("GET", "/benchmarks/runs/{run_id}", "benchmarks.get_run", ("run-1", OWNER)),
     case(
         "GET",
@@ -1166,6 +1174,7 @@ VALUE_ERROR_PATHS = {
     "/experiments/{experiment_id}/panel",
     "/benchmarks/suites/{suite_id}",
     "/benchmarks/suites/{suite_id}/run",
+    "/benchmarks/suites/{suite_id}/runs",
     "/benchmarks/runs/{run_id}",
     "/benchmarks/learning-curve/{suite_id}",
     "/ab-tests/{test_id}",
