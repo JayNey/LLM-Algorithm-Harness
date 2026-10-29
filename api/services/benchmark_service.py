@@ -459,6 +459,8 @@ class BenchmarkService:
             if status is not None:
                 query = query.where(BenchmarkRun.status == status)
             total = session.scalar(select(func.count()).select_from(query.subquery())) or 0
+            if offset >= total:
+                return [], total
             rows = session.scalars(
                 query.order_by(BenchmarkRun.created_at.desc(), BenchmarkRun.id.desc())
                 .limit(limit)

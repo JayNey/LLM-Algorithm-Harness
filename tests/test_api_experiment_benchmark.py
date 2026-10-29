@@ -1024,7 +1024,8 @@ class TestBenchmarkRunHistory:
         assert response.status_code == 200, response.text
         return response.json()["data"]
 
-    def test_empty_and_out_of_range_pages(self, history):
+    @pytest.mark.parametrize("offset", [10, 9223372036854775808])
+    def test_empty_and_out_of_range_pages(self, history, offset):
         assert self._page(history) == {
             "items": [],
             "total": 0,
@@ -1033,11 +1034,11 @@ class TestBenchmarkRunHistory:
             "has_more": False,
         }
         self._seed(history)
-        assert self._page(history, limit=100, offset=10) == {
+        assert self._page(history, limit=100, offset=offset) == {
             "items": [],
             "total": 1,
             "limit": 100,
-            "offset": 10,
+            "offset": offset,
             "has_more": False,
         }
 
