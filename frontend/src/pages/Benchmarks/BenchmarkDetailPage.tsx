@@ -1,3 +1,4 @@
+import DatasetPicker from '@/experiments/DatasetPicker.tsx'
 import { useTranslation } from 'react-i18next'
 import { t } from '../../i18n/core.ts'
 import { Alert, Button, Input, Select, Skeleton, Tabs } from 'antd'
@@ -269,23 +270,16 @@ export default function BenchmarkDetailPage() {
                       <small role="alert">{t(runErrors.api_key_id)}</small>
                     )}
                   </label>
-                  <label>
-                    {t('数据集路径')}
-                    <Input
-                      aria-label={t('基准运行数据集')}
-                      value={runDraft.dataset_path}
-                      placeholder="datasets/demo.json"
-                      onChange={(event) =>
-                        setRunDraft((previous) => ({
-                          ...previous,
-                          dataset_path: event.target.value,
-                        }))
-                      }
-                    />
-                    {runErrors.dataset_path && (
-                      <small role="alert">{t(runErrors.dataset_path)}</small>
-                    )}
-                  </label>
+                  <DatasetPicker
+                    datasetId={runDraft.dataset_id}
+                    datasetPath={runDraft.dataset_path}
+                    onChange={(source) =>
+                      setRunDraft((previous) => ({ ...previous, ...source }))
+                    }
+                    disabled={busy}
+                    error={runErrors.dataset_path}
+                  />
+
                   <label>
                     {t('模型')}
                     <ModelNameField

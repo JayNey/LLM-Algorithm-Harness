@@ -1179,4 +1179,21 @@ export default {
   '渠道 smtp 需要填写通知目标':
     'Enter a notification target for the smtp channel',
   '仅支持 .json / .csv 格式': 'Only .json / .csv formats are supported',
+  数据来源: 'Data source',
+  个人题库: 'Personal library',
+  服务器数据集路径: 'Server dataset path',
+  加载个人题库: 'Loading personal library',
+  选择个人题库: 'Select personal library',
+  '尚无可用个人题目，请先导入题库。':
+    'No personal problems are available. Import a dataset first.',
+  前往题库: 'Open problem library',
+  '创建时保存题目快照，后续导入不会改变本次执行数据。':
+    'A problem snapshot is saved on creation. Later imports will not change this run.',
+  数据集加载失败: 'Could not load datasets',
+  数据集列表格式不兼容: 'Dataset list format is incompatible',
+  数据集引用格式不兼容: 'Dataset reference format is incompatible',
+  '请选择一种数据源，不能同时提供个人题库和服务器路径':
+    'Choose one data source: a personal library or a server path',
+  请选择个人题库或填写服务器数据集路径:
+    'Select a personal library or enter a server dataset path',
 }

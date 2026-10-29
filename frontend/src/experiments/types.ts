@@ -31,7 +31,8 @@ export interface ProblemBudget {
 
 export interface ExperimentConfig {
   name: string
-  dataset_path: string
+  dataset_path?: string | null
+  dataset_id?: string
   models: ModelSpec[]
   strategies: StrategyConfig[]
   repeats: number
@@ -72,7 +73,8 @@ export interface ListQuery {
 
 export interface CreatePayload {
   name: string
-  dataset_path: string
+  dataset_path?: string | null
+  dataset_id?: string
   models: ModelSpec[]
   strategies: StrategyConfig[]
   repeats: number
@@ -269,6 +271,7 @@ export interface ExperimentClient {
 
 /** 创建表单草稿（字符串态，提交前经 validation 归一）。 */
 export interface ExperimentDraft {
+  dataset_id?: string
   name: string
   dataset_path: string
   api_key_id: string

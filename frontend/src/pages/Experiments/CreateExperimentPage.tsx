@@ -1,3 +1,4 @@
+import DatasetPicker from '@/experiments/DatasetPicker.tsx'
 import { useTranslation } from 'react-i18next'
 import { t } from '../../i18n/core.ts'
 import { Alert, Button, Input, Select, Skeleton } from 'antd'
@@ -130,21 +131,13 @@ export default function CreateExperimentPage() {
                 disabled={!editing}
               />
             </label>
-            <label>
-              {t('数据集路径（DATA_ROOT 下的相对路径）')}
-              <Input
-                aria-label={t('数据集路径')}
-                value={draft.dataset_path}
-                placeholder="datasets/demo.json"
-                onChange={(event) =>
-                  update({ dataset_path: event.target.value })
-                }
-                disabled={!editing}
-              />
-              {errors.dataset_path && (
-                <small role="alert">{t(errors.dataset_path)}</small>
-              )}
-            </label>
+            <DatasetPicker
+              datasetId={draft.dataset_id}
+              datasetPath={draft.dataset_path}
+              onChange={update}
+              disabled={!editing}
+              error={errors.dataset_path}
+            />
             <label>
               API Key
               <Select

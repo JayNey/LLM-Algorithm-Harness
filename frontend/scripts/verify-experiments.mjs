@@ -115,6 +115,7 @@ function mockRoute(context) {
         body: JSON.stringify({ success: true, data, message: '' }),
       })
     report.replaced.push(`${method} ${path}`)
+    if (method === 'GET' && path === '/datasets') return reply([])
     if (method === 'GET' && path === '/users/me')
       return reply({ id: 'user-fixture-1', username: 'fixture', role: 'user' })
     if (method === 'GET' && path === '/api-keys') return reply(fixtureKeys)
@@ -180,7 +181,14 @@ async function createScenario(page) {
     )
   })
   await page.getByLabel('实验名称').fill('对比实验')
-  await page.getByLabel('数据集路径').fill('datasets/demo.json')
+  await page.getByLabel('数据来源', { exact: true }).click()
+  await page
+    .locator('.ant-select-dropdown:visible')
+    .getByText('服务器数据集路径', { exact: true })
+    .click()
+  await page
+    .getByLabel('数据集路径', { exact: true })
+    .fill('datasets/demo.json')
   await page.getByLabel('实验 API Key').click()
   // antd 虚拟列表在并发目录请求落地的重渲染下可能把选项测成 0 宽，
   // 点击式选option不稳定，改用键盘选择。

@@ -1,3 +1,4 @@
+import { readDatasetSource } from '../experiments/datasets.ts'
 import type { AxiosInstance } from 'axios'
 import { ApiClientError } from '../auth/http.ts'
 import type {
@@ -125,7 +126,7 @@ function experimentConfig(value: unknown, field: string): ExperimentConfig {
         })()
   return {
     name: text(data.name, `${field}.name`, true),
-    dataset_path: text(data.dataset_path, `${field}.dataset_path`),
+    ...readDatasetSource(data),
     models: array(
       data.models,
       (value, field) => {

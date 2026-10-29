@@ -70,7 +70,7 @@ function ConfigSummary({ job }: { job: ExperimentJob }) {
   return (
     <dl>
       <dt>{t('数据集')}</dt>
-      <dd>{config.dataset_path}</dd>
+      <dd>{config.dataset_id ? t('个人题库') : config.dataset_path}</dd>
       <dt>{t('模型')}</dt>
       <dd>
         {config.models

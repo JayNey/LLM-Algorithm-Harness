@@ -1,3 +1,4 @@
+import DatasetPicker from '@/experiments/DatasetPicker.tsx'
 import { useTranslation } from 'react-i18next'
 import { t } from '../../i18n/core.ts'
 import { Button, Input, Select, Skeleton } from 'antd'
@@ -200,20 +201,13 @@ export default function CreateABTestPage() {
               />
               {errors.name && <small role="alert">{t(errors.name)}</small>}
             </label>
-            <label>
-              {t('数据集路径')}
-              <Input
-                aria-label={t('A/B 数据集路径')}
-                value={draft.dataset_path}
-                placeholder="datasets/demo.json"
-                onChange={(event) =>
-                  update({ dataset_path: event.target.value })
-                }
-              />
-              {errors.dataset_path && (
-                <small role="alert">{t(errors.dataset_path)}</small>
-              )}
-            </label>
+            <DatasetPicker
+              datasetId={draft.dataset_id}
+              datasetPath={draft.dataset_path}
+              onChange={update}
+              disabled={busy}
+              error={errors.dataset_path}
+            />
             <label>
               API Key
               <Select

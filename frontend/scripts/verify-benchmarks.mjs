@@ -118,6 +118,7 @@ function mockRoute(context) {
     report.replaced.push(`${method} ${path}`)
     if (method === 'GET' && path === '/users/me')
       return reply({ id: 'user-fixture-1', username: 'fixture', role: 'user' })
+    if (method === 'GET' && path === '/datasets') return reply([])
     if (method === 'GET' && path === '/api-keys') return reply(keys)
     if (method === 'GET' && path === '/evaluation-options')
       return reply({

@@ -2,6 +2,7 @@
 
 import uuid
 from collections.abc import Callable
+from contextlib import ExitStack
 from datetime import datetime
 from pathlib import Path
 from threading import Semaphore
@@ -13,7 +14,7 @@ from sqlalchemy.orm import Session
 
 from api.auth.service import AuthService
 from api.config import settings
-from api.datasets import resolve_dataset_path
+from api.datasets import execution_dataset, freeze_dataset, resolve_dataset_path, snapshot_summary
 from api.db import (
     AsyncTask,
     BenchmarkRun,
@@ -71,6 +72,7 @@ def _run_view(row: BenchmarkRun, *, include_results: bool = False) -> dict[str, 
         "suite_id": row.suite_id,
         "status": row.status,
         "model": row.model,
+        "dataset_snapshot": snapshot_summary(row.config),
         "accuracy": row.accuracy,
         "cost_usd": row.cost_usd,
         "error_message": row.error_message,
@@ -208,7 +210,6 @@ class BenchmarkService:
         if self._auth is None:
             raise ValueError("authentication service is not configured")
         self._auth.owned_key(request.api_key_id, owner_id)
-        resolve_dataset_path(request.dataset_path)
         with self._session() as session, session.begin():
             suite = self._owned_suite(session, suite_id, owner_id)
             row = BenchmarkRun(
@@ -220,6 +221,10 @@ class BenchmarkService:
                 config={
                     "model": request.model,
                     "dataset_path": request.dataset_path,
+                    "dataset_id": request.dataset_id,
+                    "dataset_snapshot": freeze_dataset(
+                        request.dataset_id, request.dataset_path, owner_id, self._auth
+                    ),
                     "strategies": [s.model_dump(mode="json") for s in request.strategies],
                     "budget_cap_usd": request.budget_cap_usd,
                     "problem_filters": request.problem_filters,
@@ -245,7 +250,7 @@ class BenchmarkService:
 
     def _execute(self, run_id: str, owner_id: str) -> None:
         generation = None
-        with self._concurrent_semaphore:
+        with self._concurrent_semaphore, ExitStack() as dataset_files:
             try:
                 if self._auth is None:
                     raise ValueError("authentication service is not configured")
@@ -275,11 +280,17 @@ class BenchmarkService:
                     config_dict = dict(row.config)
                     session.commit()
 
+                dataset_path = (
+                    dataset_files.enter_context(execution_dataset(config_dict, owner_id))
+                    if config_dict.get("dataset_snapshot") is not None
+                    or config_dict.get("dataset_id")
+                    else str(resolve_dataset_path(config_dict["dataset_path"]))
+                )
                 harness_config = HarnessConfig(
                     llm_config=self._auth.llm_config(
                         config_dict["api_key_id"], owner_id, config_dict["model"]
                     ),
-                    dataset_path=str(resolve_dataset_path(config_dict["dataset_path"])),
+                    dataset_path=dataset_path,
                     strategies=config_dict.get("strategies") or [],
                     budget_cap_usd=config_dict.get("budget_cap_usd"),
                     problem_filters=config_dict.get("problem_filters"),
