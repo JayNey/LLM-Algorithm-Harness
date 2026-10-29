@@ -1,3 +1,4 @@
+import { datasetConflict, datasetPayload } from '../experiments/datasets.ts'
 import { ApiClientError } from '../auth/http.ts'
 import type {
   ABTestDraft,
@@ -18,7 +19,10 @@ const statuses = new Set([
 export function validateABTestDraft(draft: ABTestDraft): DraftErrors {
   const errors: DraftErrors = {}
   if (draft.name.trim().length > 200) errors.name = '名称不超过 200 字'
-  if (!draft.dataset_path.trim()) errors.dataset_path = '请填写数据集路径'
+  if (!draft.dataset_id?.trim() && !draft.dataset_path.trim())
+    errors.dataset_path = '请选择个人题库或填写服务器数据集路径'
+  if (datasetConflict(draft))
+    errors.dataset_path = '请选择一种数据源，不能同时提供个人题库和服务器路径'
   if (!draft.api_key_id.trim()) errors.api_key_id = '请选择可用密钥'
   if (!draft.model.trim()) errors.model = '请填写模型名'
   if (
@@ -55,7 +59,7 @@ export function createPayload(draft: ABTestDraft): CreatePayload {
     throw new ApiClientError('AB 测试配置无效', undefined, errors)
   return {
     name: draft.name.trim(),
-    dataset_path: draft.dataset_path.trim(),
+    ...datasetPayload(draft),
     model: {
       model: draft.model.trim(),
       ...(draft.model_temperature.trim()

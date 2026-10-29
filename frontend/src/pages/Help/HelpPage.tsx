@@ -131,7 +131,7 @@ export default function HelpPage() {
               {t('与')}
               <Link to="/ab-tests/new">{t('A/B 测试')}</Link>
               {t(
-                '的数据集路径须填写 DATA_ROOT 下的相对路径（如 problems.json），而不是题库中的题目。',
+                '的数据来源可选「个人题库」（使用已导入题目的快照，创建时固定）或「服务器数据集路径」（DATA_ROOT 下的相对路径，如 problems.json）；尚无题目时请先在题库页导入。',
               )}
             </li>
             <li>
@@ -148,7 +148,7 @@ export default function HelpPage() {
               {t('在')}
               <Link to="/settings/budgets">{t('设置 → 预算与预警')}</Link>
               {t(
-                '设置个人预算；预算用于控制评估任务的暂停与策略降级，实验、基准与 A/B 任务不受其约束。',
+                '设置个人预算。预算的暂停与策略降级只作用于评估任务；实验、基准与 A/B 测试的费用计入统一费用统计和预算用量，但这些任务不会因预算被暂停。',
               )}
             </li>
             <li>

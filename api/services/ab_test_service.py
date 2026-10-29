@@ -3,17 +3,23 @@
 import json
 import uuid
 from collections.abc import Callable
+from contextlib import ExitStack
 from datetime import datetime
 from pathlib import Path
 from threading import Semaphore
-from typing import Any, cast
+from typing import Any
 
-from sqlalchemy import CursorResult, delete, select, update
+from sqlalchemy import delete, select, update
 from sqlalchemy.orm import Session
 
 from api.auth.service import AuthService
 from api.config import settings
-from api.datasets import resolve_dataset_path
+from api.datasets import (
+    execution_dataset,
+    freeze_dataset,
+    public_dataset_config,
+    resolve_dataset_path,
+)
 from api.db import ABTest, AsyncTask, make_engine, make_session_factory, run_migrations
 from api.db.engine import business_database_url
 from api.db.models import utcnow
@@ -33,7 +39,7 @@ def _job_view(row: ABTest) -> dict[str, Any]:
         "id": row.id,
         "name": row.name,
         "status": row.status,
-        "config": row.config,
+        "config": public_dataset_config(row.config),
         "error_message": row.error_message,
         "created_at": _iso(row.created_at),
         "updated_at": _iso(row.updated_at),
@@ -102,13 +108,16 @@ class ABTestService:
         if self._auth is None:
             raise ValueError("authentication service is not configured")
         self._auth.owned_key(request.api_key_id, owner_id)
-        resolve_dataset_path(request.dataset_path)
         ids = [variant.id for variant in request.prompt_variants]
         if len(set(ids)) != len(ids):
             raise ValueError("prompt_variants must contain unique IDs")
         config: dict[str, Any] = {
             "name": request.name,
             "dataset_path": request.dataset_path,
+            "dataset_id": request.dataset_id,
+            "dataset_snapshot": freeze_dataset(
+                request.dataset_id, request.dataset_path, owner_id, self._auth
+            ),
             "model": {
                 "model": request.model.model,
                 "base_url": request.model.base_url,
@@ -208,7 +217,9 @@ class ABTestService:
             view["task_id"] = task.id
             return view
 
-    def _build_config(self, row: ABTest, owner_id: str) -> ABTestConfig:
+    def _build_config(
+        self, row: ABTest, owner_id: str, dataset_files: ExitStack | None = None
+    ) -> ABTestConfig:
         if self._auth is None:
             # Resolve credentials only after the worker has atomically claimed
             # this delivery, so duplicate messages never initialize auth.
@@ -216,6 +227,12 @@ class ABTestService:
 
             self._auth = AuthService(AuthSettings())
         config = row.config
+        if config.get("dataset_snapshot") is not None or config.get("dataset_id"):
+            if dataset_files is None:
+                raise ValueError("Dataset snapshot requires an execution scope")
+            dataset_path = dataset_files.enter_context(execution_dataset(config, owner_id))
+        else:
+            dataset_path = str(resolve_dataset_path(config["dataset_path"]))
         spec = ModelSpec(**config["model"])
         llm = self._auth.llm_config(row.api_key_id or "", owner_id, spec.model)
         update: dict[str, Any] = {}
@@ -227,7 +244,7 @@ class ABTestService:
             llm = llm.model_copy(update=update)
         return ABTestConfig(
             name=config["name"] or f"api-{row.id[:8]}",
-            dataset_path=str(resolve_dataset_path(config["dataset_path"])),
+            dataset_path=dataset_path,
             output_dir=f"results/ab-tests/api/{row.id}",
             model=llm,
             strategy=config["strategy"],
@@ -251,41 +268,61 @@ class ABTestService:
             if task is None or (celery_task_id and task.celery_task_id != celery_task_id):
                 raise ValueError(f"A/B task for {test_id} not found")
             task_id = task.id
-            claimed = session.execute(
-                update(AsyncTask)
-                .where(
-                    AsyncTask.id == task_id,
-                    AsyncTask.status == "pending",
-                )
-                .values(
-                    status="running",
-                    started_at=utcnow(),
-                    completed_at=None,
-                    progress={"execution_attempt": execution_attempt or str(uuid.uuid4())},
-                )
-            )
-            if not cast(CursorResult[Any], claimed).rowcount:
+            manager = TaskManager(session, celery_task_id=celery_task_id)
+            if not manager.claim_task(task_id, celery_task_id, execution_attempt):
                 session.refresh(task)
                 return {"test_id": test_id, "status": task.status}
-            TaskManager(session).update_task_status(task_id, "running")
+            generation = manager.celery_task_id
 
-        with self._concurrent_semaphore:
+        with self._concurrent_semaphore, ExitStack() as dataset_files:
             try:
-                config = self._build_config(row, owner_id)
+                config = self._build_config(row, owner_id, dataset_files)
                 runner = self._runner_factory(config)
-                runner.should_stop = lambda: self._should_stop(task_id)
+                from api.services.spend_records import SpendRecorder, pricing_snapshot
+
+                recorder = SpendRecorder(self._session, "ab_tests", test_id, owner_id)
+                runner.pricing_manager = pricing_snapshot(self._session)
+                runner.on_spend = lambda eid, response, cached, context: recorder.callback(
+                    **context
+                )(eid, response, cached)
+                runner.before_generate = recorder.check
+                runner.checkpoint_dir = Path(f"results/ab-tests/api/{test_id}/execution")
+                runner.should_stop = lambda: self._should_stop(task_id, generation)
+                runner.on_problem = lambda current, total, step: self._progress(
+                    task_id, generation, current, total, step
+                )
                 output_dir = runner.run()
-                self._finish(task_id, "completed", output_dir=str(output_dir))
+                recorder.check()
+                self._finish(
+                    task_id, "completed", output_dir=str(output_dir), celery_task_id=generation
+                )
             except Exception as exc:  # noqa: BLE001 - persisted on both records
-                self._finish(task_id, "failed", error_message=str(exc))
+                self._finish(task_id, "failed", error_message=str(exc), celery_task_id=generation)
+            finally:
+                with self._session() as session:
+                    TaskManager(session, celery_task_id=generation).confirm_stopped(task_id)
         with self._session() as session:
             task = session.get(AsyncTask, task_id)
             return {"test_id": test_id, "status": task.status if task else "cancelled"}
 
-    def _should_stop(self, task_id: str) -> bool:
+    def _should_stop(self, task_id: str, celery_task_id: str | None = None) -> bool:
         with self._session() as session:
             task = session.get(AsyncTask, task_id)
-            return task is None or task.status != "running"
+            return (
+                task is None
+                or task.status != "running"
+                or (celery_task_id is not None and task.celery_task_id != celery_task_id)
+            )
+
+    def _progress(
+        self, task_id: str, generation: str | None, current: int, total: int, step: str
+    ) -> None:
+        from src.tasks.support import task_progress
+
+        with self._session() as session:
+            TaskManager(session, celery_task_id=generation).update_task_progress(
+                task_id, task_progress(current, total, step), "running"
+            )
 
     def _finish(
         self,
@@ -294,27 +331,22 @@ class ABTestService:
         *,
         output_dir: str | None = None,
         error_message: str | None = None,
+        celery_task_id: str | None = None,
     ) -> None:
         with self._session() as session:
-            # Conditional write serializes completion against cancellation/pause.
-            claimed = session.execute(
-                update(AsyncTask)
-                .where(
-                    AsyncTask.id == task_id,
-                    AsyncTask.status == "running",
-                )
-                .values(status=status)
-            )
-            if not cast(CursorResult[Any], claimed).rowcount:
-                session.rollback()
-                return
             task = session.get(AsyncTask, task_id)
             if task is None:
+                return
+            manager = TaskManager(session, celery_task_id=celery_task_id)
+            manager._lock_business_task(task)
+            if task.status != "running" or (
+                celery_task_id is not None and task.celery_task_id != celery_task_id
+            ):
                 return
             row = self._owned(session, task.entity_id, task.user_id)
             if output_dir is not None:
                 row.output_dir = output_dir
-            TaskManager(session).update_task_status(task_id, status, error_message=error_message)
+            manager.update_task_status(task_id, status, error_message=error_message)
 
     # -- results -------------------------------------------------------------
 

@@ -82,6 +82,69 @@ def evaluation_setup(db_session):
 class TestRunEvaluationTask:
     """测试 run_evaluation_task 核心功能"""
 
+    @pytest.mark.parametrize("status", ["paused", "cancelled", "completed", "failed"])
+    def test_delivery_cannot_restart_stopped_or_terminal_task(
+        self, db_session, evaluation_setup, status
+    ):
+        task = evaluation_setup["async_task"]
+        task.status = status
+        evaluation_setup["evaluation"].status = status
+        db_session.commit()
+        run_evaluation_task.push_request(id=task.celery_task_id)
+        try:
+            with (
+                patch("src.tasks.evaluation.get_db_session", return_value=db_session),
+                patch("src.tasks.evaluation._resolve_execution_context") as resolve,
+            ):
+                result = run_evaluation_task.run(evaluation_setup["evaluation_id"])
+            assert result["status"] == status
+            resolve.assert_not_called()
+        finally:
+            run_evaluation_task.pop_request()
+
+    def test_old_delivery_cannot_start_new_pending_generation(self, db_session, evaluation_setup):
+        run_evaluation_task.push_request(id="old-message")
+        try:
+            with (
+                patch("src.tasks.evaluation.get_db_session", return_value=db_session),
+                patch("src.tasks.evaluation._resolve_execution_context") as resolve,
+            ):
+                result = run_evaluation_task.run(evaluation_setup["evaluation_id"])
+            assert result["status"] == "pending"
+            resolve.assert_not_called()
+        finally:
+            run_evaluation_task.pop_request()
+
+    @pytest.mark.parametrize("raises", [False, True])
+    def test_old_execution_cannot_finish_new_generation(self, db_session, evaluation_setup, raises):
+        def resume_elsewhere(**kwargs):
+            task = db_session.get(AsyncTask, evaluation_setup["async_task_id"])
+            task.celery_task_id = "new-message"
+            task.status = "pending"
+            db_session.get(Evaluation, evaluation_setup["evaluation_id"]).status = "pending"
+            db_session.commit()
+            if raises:
+                raise RuntimeError("late old failure")
+            return Mock(state="completed", completed_units=0, total_units=1)
+
+        with (
+            patch("src.tasks.evaluation.get_db_session", return_value=db_session),
+            patch("src.tasks.evaluation._resolve_execution_context"),
+            patch("src.tasks.evaluation._build_harness", return_value=(Mock(), {}, {})),
+            patch("src.tasks.evaluation.TaskService") as service,
+        ):
+            service.return_value.get.side_effect = FileNotFoundError()
+            service.return_value.run.side_effect = resume_elsewhere
+            if raises:
+                with pytest.raises(RuntimeError, match="late old failure"):
+                    run_evaluation_task(evaluation_setup["evaluation_id"])
+            else:
+                assert run_evaluation_task(evaluation_setup["evaluation_id"])["status"] == "pending"
+        task = db_session.get(AsyncTask, evaluation_setup["async_task_id"])
+        assert task.status == "pending"
+        assert task.celery_task_id == "new-message"
+        assert db_session.get(Evaluation, evaluation_setup["evaluation_id"]).status == "pending"
+
     def test_run_evaluation_task_success(self, db_session, evaluation_setup):
         """验证任务成功执行完整流程"""
         evaluation_id = evaluation_setup["evaluation_id"]
@@ -1439,6 +1502,10 @@ class TestPersonalBudgetExecution:
         assert snapshot == {
             "global_cap_usd": 0.3,
             "used_usd": Decimal("0.3"),
+            "known_cost_usd": 0.3,
+            "cost_complete": True,
+            "unknown_cost_count": 0,
+            "unknown_reasons": {},
             "action": "pause",
             "global_reached": True,
             "exhausted_difficulties": ["easy"],

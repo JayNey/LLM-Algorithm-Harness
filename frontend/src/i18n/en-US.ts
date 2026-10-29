@@ -412,6 +412,15 @@ export default {
   '前缀（可选）': 'Prefix (optional)',
   '后缀（可选）': 'Suffix (optional)',
   '密钥列表响应无效，请重试': 'Invalid key list response. Try again',
+  '模型目录加载失败，可手动输入':
+    'Model catalog failed to load; manual entry still works',
+  重试加载模型目录: 'Retry model catalog',
+  '模型目录可能不完整，可手动输入':
+    'Model catalog may be incomplete; manual entry still works',
+  '目录为空，可手动输入': 'Catalog is empty; manual entry still works',
+  '策略目录加载失败，可手动输入':
+    'Strategy catalog failed to load; manual entry still works',
+  重试加载策略目录: 'Retry strategy catalog',
   '创建失败，请重试': 'Failed to create. Try again',
   '创建 A/B 测试': 'Create A/B test',
   '同一模型与策略下，对比两个提示词变体的通过率差异。':
@@ -1205,13 +1214,13 @@ export default {
     'Report downloads are not yet available in the result detail UI; the backend already serves Markdown, HTML and CSV reports through the API until the UI entry lands.',
   '、': ', ',
   与: ' and ',
-  '的数据集路径须填写 DATA_ROOT 下的相对路径（如 problems.json），而不是题库中的题目。':
-    ' take a dataset path relative to DATA_ROOT (for example problems.json), not problems from the problem library.',
+  '的数据来源可选「个人题库」（使用已导入题目的快照，创建时固定）或「服务器数据集路径」（DATA_ROOT 下的相对路径，如 problems.json）；尚无题目时请先在题库页导入。':
+    ' can use either "Personal library" (a snapshot of your imported problems, fixed at creation time) or "Server dataset path" (relative to DATA_ROOT, for example problems.json); import problems first if your library is empty.',
   '三处表单的模型与策略可直接从目录选择：策略来自评估选项，模型按所选密钥读取；目录加载失败或不完整时仍可手动输入。':
     'All three forms let you pick models and strategies from catalogs: strategies come from the evaluation options and models are loaded for the selected key; manual entry still works when a catalog fails or is incomplete.',
   '设置 → 预算与预警': 'Settings → Budgets and alerts',
-  '设置个人预算；预算用于控制评估任务的暂停与策略降级，实验、基准与 A/B 任务不受其约束。':
-    ', set your personal budget. Budgets pause evaluation tasks or downgrade their strategy; experiments, benchmarks and A/B tests are not constrained by them.',
+  '设置个人预算。预算的暂停与策略降级只作用于评估任务；实验、基准与 A/B 测试的费用计入统一费用统计和预算用量，但这些任务不会因预算被暂停。':
+    ', set your personal budget. Budget pauses and strategy downgrades apply to evaluation tasks only; experiment, benchmark and A/B spend counts toward unified cost statistics and budget usage, but those tasks are not paused by the budget.',
   '预警投递支持 Slack、Webhook 与 SMTP 邮件，依赖部署时的渠道配置；保存规则不等于投递成功。':
     'Alert delivery supports Slack, webhooks and SMTP email and depends on channel configuration at deployment time; saving a rule does not mean a delivery succeeded.',
   '顶部通知中心的内容仍为示例数据，不反映真实任务事件。':
@@ -1222,4 +1231,21 @@ export default {
   '本地运行方式与环境变量说明见仓库 docs/deployment/deploy.md；界面语言可在右上角切换，偏好会被保存。':
     'Local setup and environment variables are documented in docs/deployment/deploy.md in the repository; switch the UI language in the top-right corner and the preference is saved.',
   '实验（复数）': 'Experiments',
+  数据来源: 'Data source',
+  个人题库: 'Personal library',
+  服务器数据集路径: 'Server dataset path',
+  加载个人题库: 'Loading personal library',
+  选择个人题库: 'Select personal library',
+  '尚无可用个人题目，请先导入题库。':
+    'No personal problems are available. Import a dataset first.',
+  前往题库: 'Open problem library',
+  '创建时保存题目快照，后续导入不会改变本次执行数据。':
+    'A problem snapshot is saved on creation. Later imports will not change this run.',
+  数据集加载失败: 'Could not load datasets',
+  数据集列表格式不兼容: 'Dataset list format is incompatible',
+  数据集引用格式不兼容: 'Dataset reference format is incompatible',
+  '请选择一种数据源，不能同时提供个人题库和服务器路径':
+    'Choose one data source: a personal library or a server path',
+  请选择个人题库或填写服务器数据集路径:
+    'Select a personal library or enter a server dataset path',
 }

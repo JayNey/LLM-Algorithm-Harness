@@ -1,16 +1,16 @@
 """Cost tracking, budget and pricing service (issue #154).
 
-Cost figures are read-only aggregations over the existing job tables —
-this service never writes spend records. Budgets, alert rules, alert
-events and pricing overrides are new owner-scoped tables.
+Cost figures combine legacy evaluation/benchmark totals with immutable
+experiment/A-B call records. Reads never reprice historical consumption.
 """
 
 import re
 import uuid
-from collections import defaultdict
+from collections import Counter, defaultdict
+from collections.abc import Iterable, Sequence
 from datetime import date, datetime, timezone
 from decimal import Decimal
-from typing import Any
+from typing import Any, cast
 
 from sqlalchemy import select
 from sqlalchemy.exc import IntegrityError
@@ -32,7 +32,7 @@ from api.db import (
     run_migrations,
 )
 from api.db.engine import business_database_url
-from api.db.models import utcnow
+from api.db.models import SpendRecord, utcnow
 from src.cost_optimizer import build_advisory
 from src.utils.pricing import PricingManager
 
@@ -97,46 +97,104 @@ class CostService:
     def _spend_rows(
         self, owner_id: str, start: datetime | None, end: datetime | None
     ) -> list[dict[str, Any]]:
-        """Unified spend records from evaluations and benchmark runs."""
-        rows: list[dict[str, Any]] = []
         with self._session() as session:
-            evaluations = session.scalars(
-                select(Evaluation).where(Evaluation.user_id == owner_id)
-            ).all()
-            for row in evaluations:
-                if not row.spent_usd:
+            return self._collect_spend_rows(session, owner_id, start, end)
+
+    @staticmethod
+    def _collect_spend_rows(
+        session: Session,
+        owner_id: str,
+        start: datetime | None = None,
+        end: datetime | None = None,
+    ) -> list[dict[str, Any]]:
+        """Single accounting scope for HTTP queries and worker budget reads."""
+        rows: list[dict[str, Any]] = []
+        evaluations = session.scalars(
+            select(Evaluation).where(Evaluation.user_id == owner_id)
+        ).all()
+        for row in evaluations:
+            if not row.spent_usd:
+                continue
+            rows.append(
+                {
+                    "timestamp": row.created_at,
+                    "cost_usd": row.spent_usd,
+                    "source": "evaluations",
+                    "task_id": row.id,
+                    "model": row.model or "evaluation-run",
+                    "strategies": list(row.strategy_names or []),
+                    "problem_ids": list(row.problem_ids or []),
+                    "completed": row.completed_count,
+                }
+            )
+        runs = session.scalars(
+            select(BenchmarkRun).where(
+                BenchmarkRun.user_id == owner_id,
+                BenchmarkRun.status == "completed",
+            )
+        ).all()
+        for run in runs:
+            rows.append(
+                {
+                    "timestamp": run.completed_at or run.created_at,
+                    "cost_usd": run.cost_usd,
+                    "source": "benchmarks",
+                    "task_id": run.id,
+                    "model": run.model,
+                    "strategies": [],
+                    "problem_ids": [],
+                    "completed": 0,
+                    "unknown_reason": "missing_cost" if run.cost_usd is None else None,
+                }
+            )
+        records = session.scalars(
+            select(SpendRecord).where(
+                SpendRecord.user_id == owner_id,
+                SpendRecord.source.in_(("experiments", "ab_tests")),
+            )
+        ).all()
+        for record in records:
+            rows.append(
+                {
+                    "timestamp": record.occurred_at,
+                    "cost_usd": record.cost_usd,
+                    "source": record.source,
+                    "task_id": record.task_id,
+                    "model": record.model,
+                    "strategies": [record.strategy],
+                    "problem_ids": [record.problem_id] if record.problem_id else [],
+                    "difficulty": record.difficulty,
+                    "completed": 0,
+                    "unknown_reason": record.unknown_reason,
+                }
+            )
+        models: dict[str, type[Experiment] | type[ABTest]] = {
+            "experiments": Experiment,
+            "ab_tests": ABTest,
+        }
+        for source, model in models.items():
+            legacy = cast(
+                Sequence[Experiment | ABTest],
+                session.scalars(
+                    select(model).where(
+                        model.user_id == owner_id, model.cost_tracking_complete.is_(False)
+                    )
+                ).all(),
+            )
+            for job in legacy:
+                if job.status == "pending" and job.started_at is None:
                     continue
                 rows.append(
                     {
-                        "timestamp": row.created_at,
-                        "cost_usd": row.spent_usd,
-                        "source": "evaluations",
-                        "task_id": row.id,
-                        "model": row.model or "evaluation-run",
-                        "strategies": list(row.strategy_names or []),
-                        "problem_ids": list(row.problem_ids or []),
-                        "completed": row.completed_count,
-                    }
-                )
-            runs = session.scalars(
-                select(BenchmarkRun).where(
-                    BenchmarkRun.user_id == owner_id,
-                    BenchmarkRun.status == "completed",
-                )
-            ).all()
-            for run in runs:
-                if run.cost_usd is None:
-                    continue
-                rows.append(
-                    {
-                        "timestamp": run.completed_at or run.created_at,
-                        "cost_usd": run.cost_usd,
-                        "source": "benchmarks",
-                        "task_id": run.id,
-                        "model": run.model,
+                        "timestamp": job.started_at or job.created_at,
+                        "cost_usd": None,
+                        "source": source,
+                        "task_id": job.id,
+                        "model": "unknown",
                         "strategies": [],
                         "problem_ids": [],
                         "completed": 0,
+                        "unknown_reason": "historical_gap",
                     }
                 )
         if start:
@@ -144,6 +202,16 @@ class CostService:
         if end:
             rows = [r for r in rows if r["timestamp"] and r["timestamp"] <= end]
         return rows
+
+    @staticmethod
+    def _completeness(rows: list[dict[str, Any]]) -> dict[str, Any]:
+        reasons = Counter(row.get("unknown_reason") for row in rows if row.get("unknown_reason"))
+        return {
+            "known_cost_usd": round(sum(row["cost_usd"] or 0.0 for row in rows), 6),
+            "cost_complete": not bool(reasons),
+            "unknown_cost_count": sum(reasons.values()),
+            "unknown_reasons": dict(sorted(reasons.items())),
+        }
 
     # -- task cost -----------------------------------------------------------
 
@@ -172,21 +240,45 @@ class CostService:
                 }
             experiment = session.get(Experiment, task_id)
             if experiment and experiment.user_id == owner_id:
+                rows = [
+                    row
+                    for row in self._collect_spend_rows(session, owner_id)
+                    if row["source"] == "experiments" and row["task_id"] == task_id
+                ]
+                coverage = self._completeness(rows)
                 return {
                     "task_id": task_id,
                     "source": "experiments",
                     "status": experiment.status,
-                    "total_cost_usd": None,
+                    "total_cost_usd": (
+                        coverage["known_cost_usd"]
+                        if coverage["cost_complete"]
+                        or any(row["cost_usd"] is not None for row in rows)
+                        else None
+                    ),
                     "budget_cap_usd": None,
+                    **coverage,
                 }
             ab_test = session.get(ABTest, task_id)
             if ab_test and ab_test.user_id == owner_id:
+                rows = [
+                    row
+                    for row in self._collect_spend_rows(session, owner_id)
+                    if row["source"] == "ab_tests" and row["task_id"] == task_id
+                ]
+                coverage = self._completeness(rows)
                 return {
                     "task_id": task_id,
                     "source": "ab_tests",
                     "status": ab_test.status,
-                    "total_cost_usd": None,
+                    "total_cost_usd": (
+                        coverage["known_cost_usd"]
+                        if coverage["cost_complete"]
+                        or any(row["cost_usd"] is not None for row in rows)
+                        else None
+                    ),
                     "budget_cap_usd": None,
+                    **coverage,
                 }
         raise ValueError(f"Task {task_id} not found")
 
@@ -196,19 +288,24 @@ class CostService:
         start, end = self._period(since, until)
         rows = self._spend_rows(owner_id, start, end)
         by_source: dict[str, float] = defaultdict(float)
-        counts: dict[str, int] = defaultdict(int)
+        tasks: dict[str, set[str]] = defaultdict(set)
         total = 0.0
         for row in rows:
-            by_source[row["source"]] += row["cost_usd"]
-            counts[row["source"]] += 1
-            total += row["cost_usd"]
+            by_source[row["source"]] += row["cost_usd"] or 0.0
+            tasks[row["source"]].add(row["task_id"])
+            total += row["cost_usd"] or 0.0
         return {
             "since": since,
             "until": until,
             "total_cost_usd": round(total, 6),
-            "task_count": len(rows),
+            "task_count": sum(len(ids) for ids in tasks.values()),
+            **self._completeness(rows),
             "by_source": {
-                source: {"cost_usd": round(amount, 6), "task_count": counts[source]}
+                source: {
+                    "cost_usd": round(amount, 6),
+                    "task_count": len(tasks[source]),
+                    **self._completeness([row for row in rows if row["source"] == source]),
+                }
                 for source, amount in by_source.items()
             },
         }
@@ -216,13 +313,20 @@ class CostService:
     def trends(self, owner_id: str, since: str | None, until: str | None) -> dict[str, Any]:
         start, end = self._period(since, until)
         rows = self._spend_rows(owner_id, start, end)
-        daily: dict[str, float] = defaultdict(float)
+        daily: dict[str, list[dict[str, Any]]] = defaultdict(list)
         for row in rows:
             if row["timestamp"]:
                 day = row["timestamp"].date().isoformat()
-                daily[day] += row["cost_usd"]
-        series = [{"date": day, "cost_usd": round(daily[day], 6)} for day in sorted(daily)]
-        return {"since": since, "until": until, "data": series}
+                daily[day].append(row)
+        series = [
+            {
+                "date": day,
+                "cost_usd": self._completeness(daily[day])["known_cost_usd"],
+                **self._completeness(daily[day]),
+            }
+            for day in sorted(daily)
+        ]
+        return {"since": since, "until": until, "data": series, **self._completeness(rows)}
 
     def breakdown(self, owner_id: str, since: str | None, until: str | None) -> dict[str, Any]:
         start, end = self._period(since, until)
@@ -231,15 +335,16 @@ class CostService:
         by_model: dict[str, float] = defaultdict(float)
         by_strategy: dict[str, float] = defaultdict(float)
         for row in rows:
-            by_source[row["source"]] += row["cost_usd"]
-            by_model[row["model"]] += row["cost_usd"]
+            by_source[row["source"]] += row["cost_usd"] or 0.0
+            by_model[row["model"]] += row["cost_usd"] or 0.0
             strategies = row["strategies"] or ["unknown"]
-            share = row["cost_usd"] / len(strategies)
+            share = (row["cost_usd"] or 0.0) / len(strategies)
             for strategy in strategies:
                 by_strategy[strategy] += share
         return {
             "since": since,
             "until": until,
+            **self._completeness(rows),
             "by_source": {k: round(v, 6) for k, v in by_source.items()},
             "by_model": {k: round(v, 6) for k, v in by_model.items()},
             "by_strategy": {k: round(v, 6) for k, v in by_strategy.items()},
@@ -262,20 +367,15 @@ class CostService:
         )
         if budget is None:
             return None
-        evaluation_costs = session.scalars(
-            select(Evaluation.spent_usd).where(Evaluation.user_id == owner_id)
-        )
-        used = sum((Decimal(str(cost or 0)) for cost in evaluation_costs), Decimal(0))
-        benchmark_costs = session.scalars(
-            select(BenchmarkRun.cost_usd).where(
-                BenchmarkRun.user_id == owner_id, BenchmarkRun.status == "completed"
-            )
-        )
-        used += sum((Decimal(str(cost or 0)) for cost in benchmark_costs), Decimal(0))
+        spend = CostService._collect_spend_rows(session, owner_id)
+        used = sum((Decimal(str(row["cost_usd"] or 0)) for row in spend), Decimal(0))
         difficulty_used: dict[str, Decimal] = defaultdict(Decimal)
         caps = budget.difficulty_caps or {}
         if caps:
-            metrics_rows = session.scalars(
+            for row in spend:
+                if row.get("difficulty") in caps:
+                    difficulty_used[row["difficulty"]] += Decimal(str(row["cost_usd"] or 0))
+            metrics_rows: Iterable[dict[str, Any] | None] = session.scalars(
                 select(EvaluationResult.metrics)
                 .join(Evaluation, Evaluation.id == EvaluationResult.evaluation_id)
                 .where(Evaluation.user_id == owner_id)
@@ -288,6 +388,7 @@ class CostService:
         return {
             "global_cap_usd": budget.global_cap_usd,
             "used_usd": used,
+            **CostService._completeness(spend),
             "action": budget.action,
             "global_reached": (
                 budget.global_cap_usd is not None and used >= Decimal(str(budget.global_cap_usd))
@@ -347,13 +448,14 @@ class CostService:
 
     def budget_usage(self, owner_id: str) -> dict[str, Any]:
         rows = self._spend_rows(owner_id, None, None)
-        used = sum(row["cost_usd"] for row in rows)
+        used = sum(row["cost_usd"] or 0.0 for row in rows)
 
         with self._session() as session:
             budget = self._budget_row(session, owner_id)
         global_section: dict[str, Any] = {
             "cap_usd": budget.global_cap_usd if budget else None,
             "used_usd": round(used, 6),
+            **self._completeness(rows),
             "remaining_usd": (
                 round(budget.global_cap_usd - used, 6)
                 if budget and budget.global_cap_usd is not None
@@ -377,6 +479,8 @@ class CostService:
             }
         difficulty_used: dict[str, float] = defaultdict(float)
         for row in rows:
+            if row.get("difficulty"):
+                difficulty_used[row["difficulty"]] += row["cost_usd"] or 0.0
             if row["source"] != "evaluations" or not row["problem_ids"]:
                 continue
             difficulties = [
@@ -403,10 +507,12 @@ class CostService:
         }
         return {
             "global_budget": global_section,
+            **self._completeness(rows),
             "by_difficulty": by_difficulty,
             "basis": (
                 "per-difficulty used is an estimate: evaluation spend is spread "
-                "evenly across difficulties of its known problem ids"
+                "evenly across difficulties of its known problem ids; experiment and A/B "
+                "spend with recorded difficulty uses actual known call costs"
             ),
         }
 

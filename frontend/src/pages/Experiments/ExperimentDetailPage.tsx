@@ -70,7 +70,7 @@ function ConfigSummary({ job }: { job: ExperimentJob }) {
   return (
     <dl>
       <dt>{t('数据集')}</dt>
-      <dd>{config.dataset_path}</dd>
+      <dd>{config.dataset_id ? t('个人题库') : config.dataset_path}</dd>
       <dt>{t('模型')}</dt>
       <dd>
         {config.models
@@ -490,6 +490,7 @@ export default function ExperimentDetailPage() {
     useCallback(
       async (signal: AbortSignal): Promise<string | null> => {
         if (!job || !ACTIVE.has(job.status)) return null
+        if (job.task_id !== undefined) return job.task_id
         const running = await client.runningExperimentTasks(signal)
         const match = running.find((task) => task.entity_id === job.id)
         return match ? match.id : null
@@ -502,6 +503,7 @@ export default function ExperimentDetailPage() {
   )
   const activeTaskId =
     (started && started.id === job?.id ? started.taskId : null) ??
+    job?.task_id ??
     taskId.data ??
     null
   const progress = useTaskProgress(client, activeTaskId, owner)
@@ -519,6 +521,10 @@ export default function ExperimentDetailPage() {
       setActionError(
         cause instanceof Error ? cause.message : '启动失败，请重试',
       )
+      // A timeout may follow successful publication; reload persisted state
+      // before offering another start or delete action.
+      jobResource.retry()
+      taskId.retry()
     } finally {
       setBusy(false)
     }
@@ -574,13 +580,16 @@ export default function ExperimentDetailPage() {
       />
     )
   if (!job) return <Alert role="alert" type="error" message={t('实验不存在')} />
-  const settled = TERMINAL.has(job.status)
+  const status = progress.task?.status ?? job.status
+  const settled = TERMINAL.has(status)
+  const resolvingTask = ACTIVE.has(status) && (taskId.loading || !!taskId.error)
+  const active = ACTIVE.has(status) && !!activeTaskId
   return (
     <section className="evaluation-workflow">
       <header className="page-heading">
         <div>
           <h1>
-            {job.name || job.id} <small>{statusLabel(job.status)}</small>
+            {job.name || job.id} <small>{statusLabel(status)}</small>
           </h1>
           <p>
             {t('创建于 ')}
@@ -594,11 +603,14 @@ export default function ExperimentDetailPage() {
       </header>
       <div className="panel evaluation-panel">
         {actionError && <ExperimentFeedback message={t(actionError)} />}
+        {taskId.error && (
+          <ExperimentFeedback message={t(taskId.error)} retry={taskId.retry} />
+        )}
         {job.error_message && (
           <Alert role="alert" type="error" message={job.error_message} />
         )}
         <ConfigSummary job={job} />
-        {ACTIVE.has(job.status) && (
+        {active && (
           <div role="status" aria-label={t('实验进度')}>
             {progress.task?.progress ? (
               <p>
@@ -618,7 +630,7 @@ export default function ExperimentDetailPage() {
           </div>
         )}
         <div className="evaluation-section-heading">
-          {job.status === 'pending' && !activeTaskId && (
+          {status === 'pending' && !activeTaskId && !resolvingTask && (
             <Button
               type="primary"
               aria-label={t('启动实验')}
@@ -628,7 +640,7 @@ export default function ExperimentDetailPage() {
               {t('启动实验')}
             </Button>
           )}
-          {activeTaskId && (
+          {active && (
             <Button
               aria-label={t('取消实验')}
               disabled={busy}
@@ -637,7 +649,17 @@ export default function ExperimentDetailPage() {
               {t('取消运行')}
             </Button>
           )}
-          <Button danger disabled={busy} onClick={() => void remove()}>
+          <Button
+            danger
+            disabled={
+              busy ||
+              active ||
+              resolvingTask ||
+              status === 'running' ||
+              status === 'paused'
+            }
+            onClick={() => void remove()}
+          >
             {t('删除')}
           </Button>
         </div>

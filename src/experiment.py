@@ -19,11 +19,14 @@ from pathlib import Path
 from typing import Any
 
 from src.budget import BudgetTracker
+from src.checkpoints import UnitCheckpoint, write_checkpoint
 from src.experiment_panel import generate_html_panel
 from src.experiment_report import generate_comparison_report
 from src.harness import AlgorithmHarness
+from src.llm_client import SpendObserver
 from src.models import ExperimentConfig, HarnessConfig, LLMConfig, Problem, StrategyConfig
 from src.problem_loader import ProblemLoader
+from src.task_service import TaskService
 from src.utils.logging import get_logger
 from src.utils.pricing import PricingManager
 from src.utils.secrets import redact_sensitive_data
@@ -84,6 +87,9 @@ class ExperimentRunner:
         self.should_pause: Callable[[], bool] | None = None
         self.on_combination: Callable[[int, int, str, str, int], None] | None = None
         self.paused = False
+        self.checkpoint_dir: Path | None = None
+        self.on_spend: SpendObserver | None = None
+        self.before_generate: Callable[[], None] | None = None
 
     def _report_combination(
         self,
@@ -108,6 +114,23 @@ class ExperimentRunner:
         started_at = datetime.now().isoformat()
         problems = self._load_problems()
         exp_dir = self._create_experiment_dir()
+        checkpoint_config = self.config.redacted_dict()
+        checkpoint_config.pop("dataset_path", None)
+        checkpoint_dataset = self._dataset_fingerprint(problems)
+        checkpoint_dataset.pop("path", None)
+        checkpoint = (
+            UnitCheckpoint(
+                exp_dir / "units",
+                TaskService.config_fingerprint(
+                    {
+                        "config": checkpoint_config,
+                        "dataset": checkpoint_dataset,
+                    }
+                ),
+            )
+            if self.checkpoint_dir is not None
+            else None
+        )
 
         metadata: dict[str, Any] = {
             "schema_version": "1.0",
@@ -128,14 +151,47 @@ class ExperimentRunner:
             },
             "combinations": [],
         }
+        if checkpoint is not None and (exp_dir / "experiment.json").exists():
+            metadata = json.loads((exp_dir / "experiment.json").read_text(encoding="utf-8"))
         self._write_json(exp_dir / "experiment.json", metadata)
 
-        jobs = [
+        all_jobs = [
             (model, strategy, repeat)
             for model in self.config.models
             for strategy in self.config.strategies
             for repeat in range(1, self.config.repeats + 1)
         ]
+        completed = {combo.get("unit_id") for combo in metadata["combinations"]}
+        total = len(all_jobs)
+        remaining = []
+        for index, (model, strategy, repeat) in enumerate(all_jobs):
+            key = str(index)
+            if checkpoint is not None and key in completed:
+                continue
+            saved = checkpoint.get(key) if checkpoint is not None else None
+            if saved is not None:
+                metadata["combinations"].append(saved)
+            else:
+                remaining.append((key, model, strategy, repeat))
+
+        def run_combo(
+            key: str, model: LLMConfig, strategy: StrategyConfig, repeat: int
+        ) -> dict[str, Any] | None:
+            if self._pause_requested():
+                return None
+            unit_dir = exp_dir / f"unit-{key}" if checkpoint is not None else exp_dir
+            combo = self._run_combo(unit_dir, model, strategy, repeat)
+            if checkpoint is not None:
+                combo = {
+                    **combo,
+                    "unit_id": key,
+                    "combo_id": f"unit-{key}__{combo['combo_id']}",
+                    "combo_dir": f"unit-{key}/{combo['combo_dir']}",
+                }
+                checkpoint.put(key, combo)
+            return combo
+
+        jobs = remaining
         if self.config.execution == "parallel" and len(jobs) > 1:
             workers = min(self.config.max_workers, len(jobs))
             logger.info("experiment_parallel_start", jobs=len(jobs), workers=workers)
@@ -144,24 +200,28 @@ class ExperimentRunner:
                 # combination order stays identical to serial execution.
                 # Combinations already submitted may finish; later ones do not start.
                 futures = []
-                for model, strategy, repeat in jobs:
+                for key, model, strategy, repeat in jobs:
                     if self._pause_requested():
                         break
                     self._report_combination(
-                        len(metadata["combinations"]), len(jobs), model, strategy, repeat
+                        len(metadata["combinations"]), total, model, strategy, repeat
                     )
-                    futures.append(pool.submit(self._run_combo, exp_dir, model, strategy, repeat))
+                    futures.append(pool.submit(run_combo, key, model, strategy, repeat))
                 for future in futures:
-                    metadata["combinations"].append(future.result())
+                    combo = future.result()
+                    if combo is not None:
+                        metadata["combinations"].append(combo)
+                    self._write_json(exp_dir / "experiment.json", metadata)
         else:
-            for model, strategy, repeat in jobs:
+            for key, model, strategy, repeat in jobs:
                 if self._pause_requested():
                     break
                 self._report_combination(
-                    len(metadata["combinations"]), len(jobs), model, strategy, repeat
+                    len(metadata["combinations"]), total, model, strategy, repeat
                 )
-                combo = self._run_combo(exp_dir, model, strategy, repeat)
-                metadata["combinations"].append(combo)
+                combo = run_combo(key, model, strategy, repeat)
+                if combo is not None:
+                    metadata["combinations"].append(combo)
                 self._write_json(exp_dir / "experiment.json", metadata)
 
         if self.paused:
@@ -211,6 +271,9 @@ class ExperimentRunner:
         }
 
     def _create_experiment_dir(self) -> Path:
+        if self.checkpoint_dir is not None:
+            self.checkpoint_dir.mkdir(parents=True, exist_ok=True)
+            return self.checkpoint_dir
         base = Path(self.config.output_dir)
         timestamp = datetime.now().strftime("exp-%Y%m%d-%H%M%S")
         exp_dir = base / timestamp
@@ -249,6 +312,27 @@ class ExperimentRunner:
         )
         tracker = BudgetTracker(self.config.budget)
         harness = AlgorithmHarness(harness_config, budget_tracker=tracker)
+        harness.pricing_manager = self.pricing_manager
+        harness.before_generate = self.before_generate
+        if self.on_spend is not None:
+            on_spend = self.on_spend
+
+            def record(event_id: str, response: Any, cached: bool) -> None:
+                problem_id = tracker.current_problem
+                problem = harness.problems_by_id.get(problem_id or "")
+                on_spend(
+                    event_id,
+                    response,
+                    cached,
+                    {
+                        "model": model.model,
+                        "strategy": strategy.name,
+                        "problem_id": problem_id,
+                        "difficulty": problem.difficulty if problem is not None else None,
+                    },
+                )
+
+            harness.on_response = record
         reports = harness.run()
 
         summary = redact_sensitive_data(
@@ -278,6 +362,4 @@ class ExperimentRunner:
 
     @staticmethod
     def _write_json(path: Path, payload: Any) -> None:
-        with open(path, "w", encoding="utf-8") as f:
-            json.dump(payload, f, indent=2, ensure_ascii=False)
-            f.write("\n")
+        write_checkpoint(path, payload)

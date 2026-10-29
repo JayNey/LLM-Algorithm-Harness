@@ -387,3 +387,78 @@ test('真实后端形状：比率为 null、无顶层 api_key_id 时照常解析
     null,
   )
 })
+
+test('详情与列表保留排队 task_id，未入队返回 null，兼容旧响应', async () => {
+  for (const task_id of ['queued-task', null, undefined]) {
+    const row = { ...job, ...(task_id === undefined ? {} : { task_id }) }
+    const { client } = clientFor(({ url }) => ({
+      data:
+        url === '/experiments'
+          ? { items: [row], total: 1, limit: 20, offset: 0, has_more: false }
+          : row,
+    }))
+    assert.equal((await client.get('exp-1')).task_id, task_id)
+    assert.equal(
+      (await client.list({ limit: 20, offset: 0 })).items[0].task_id,
+      task_id,
+    )
+  }
+})
+
+test('错误 task_id 不能被当成未启动的实验', async () => {
+  const { client } = clientFor(() => ({ data: { ...job, task_id: 123 } }))
+  await assert.rejects(client.get('exp-1'), /实验接口响应格式不兼容/)
+})
+
+test('旧接口恢复完整 pending 分页并保留 running、paused 任务', async () => {
+  const seen: Array<{ status: string; offset: number }> = []
+  const client = createExperimentClient({
+    get: async (
+      _url: string,
+      { params }: { params: { status: string; offset: number } },
+    ) => {
+      seen.push(params)
+      const offset = params.offset ?? 0
+      return {
+        items: [
+          {
+            id: `${params.status}-${offset}`,
+            task_type: 'experiment',
+            entity_id: `exp-${offset}`,
+            status: params.status,
+            progress: null,
+            error_message: null,
+            created_at: job.created_at,
+            updated_at: job.updated_at,
+          },
+        ],
+        total: params.status === 'pending' ? 2 : 1,
+        limit: 1,
+        offset,
+        has_more: params.status === 'pending' && offset === 0,
+      }
+    },
+  } as never)
+  const tasks = await client.runningExperimentTasks()
+  assert.deepEqual(tasks.map((task) => task.id).sort(), [
+    'paused-0',
+    'pending-0',
+    'pending-1',
+    'running-0',
+  ])
+  assert.ok(
+    seen.some((query) => query.status === 'pending' && query.offset === 1),
+  )
+})
+
+test('个人题库响应无需 dataset_path 即可读取与展示', async () => {
+  const { client } = clientFor(() => ({
+    data: {
+      ...job,
+      config: { ...job.config, dataset_path: null, dataset_id: 'mine' },
+    },
+  }))
+  const detail = await client.get('exp-1')
+  assert.equal(detail.config.dataset_id, 'mine')
+  assert.equal(detail.config.dataset_path, undefined)
+})

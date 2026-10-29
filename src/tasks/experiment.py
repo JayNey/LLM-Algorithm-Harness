@@ -38,11 +38,14 @@ class ExperimentTask(Task):  # type: ignore[misc]
 def run_experiment_task(self: ExperimentTask, experiment_id: str, user_id: str) -> dict[str, Any]:
     """Execute a pending experiment and mirror its final status onto the async task."""
     db = get_db_session()
+    claimed = False
+    manager = TaskManager(db, celery_task_id=self.request.id)
     try:
         async_task = owned_async_task(db, "experiment", experiment_id, user_id)
-        manager = TaskManager(db)
         manager._lock_business_task(async_task)
-        if async_task.status in ("paused", "cancelled", "completed", "failed"):
+        if async_task.status != "pending" or (
+            self.request.id and async_task.celery_task_id != self.request.id
+        ):
             return {"experiment_id": experiment_id, "status": async_task.status}
         experiment = db.get(Experiment, experiment_id, populate_existing=True)
         if experiment is None or experiment.user_id != user_id:
@@ -54,7 +57,9 @@ def run_experiment_task(self: ExperimentTask, experiment_id: str, user_id: str) 
             manager.update_task_status(async_task.id, "failed", error_message=message)
             raise ValueError(message)
 
-        manager.update_task_status(async_task.id, "running")
+        claimed = manager.claim_task(async_task.id, self.request.id)
+        if not claimed:
+            return {"experiment_id": experiment_id, "status": async_task.status}
         try:
             execute_experiment(experiment_id, user_id)
         except Exception as exc:
@@ -87,4 +92,6 @@ def run_experiment_task(self: ExperimentTask, experiment_id: str, user_id: str) 
         db.refresh(async_task)
         return {"experiment_id": experiment_id, "status": async_task.status}
     finally:
+        if claimed:
+            manager.confirm_stopped(async_task.id)
         db.close()

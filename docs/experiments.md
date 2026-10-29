@@ -130,3 +130,43 @@ harness optimize --experiment results/experiments/exp-YYYYMMDD-HHMMSS \
 - `vanilla`：单次直接生成。
 - `chain_of_thought`：单次逐步推理生成。
 - `multi_round_feedback`：基于可见测试反馈的多轮修复。
+
+## 使用个人题库（API 与网页）
+
+在题库页导入 JSON/CSV，导入完成后，在创建实验、创建 A/B 或基准详情的运行表单中，将数据来源选为“个人题库”，再选择集合。无需服务器路径。个人集合尚未导入或为空时，表单会提供题库入口；数据集加载失败时可以重试。模型、策略和 API Key 的配置方式不变。
+
+`GET /api/v1/datasets` 需要登录，只返回当前用户已导入的个人集合：
+
+```json
+{
+  "success": true,
+  "data": [{"id": "<dataset_id>", "name": "Personal problem collection", "problem_count": 12, "updated_at": 1793190000}],
+  "message": "Datasets retrieved"
+}
+```
+
+当前每个用户有一个合并后的个人集合；append/overwrite 沿用题库页的语义。`dataset_id` 是集合引用，上传的 `file_id` 和导入的 `job_id` 不能代替它。引用不是授权凭证：创建与 Worker 执行仍分别检查当前用户与业务记录/快照所有权。
+
+以下三类请求恰好提供 `dataset_id` 或 `dataset_path` 之一，其余参数保持原契约：
+
+- `POST /api/v1/experiments`：`{"dataset_id":"<id>","models":[{"model":"<model>"}],"strategies":[{"name":"vanilla"}],"api_key_id":"<key>"}`，创建后使用已有 `/experiments/{id}/run` 启动。
+- `POST /api/v1/benchmarks/suites/{suite_id}/run`：`{"dataset_id":"<id>","model":"<model>","api_key_id":"<key>"}`。Suite 的题目 ID 应存在于所选集合。
+- `POST /api/v1/ab-tests`：`{"dataset_id":"<id>","model":{"model":"<model>"},"strategy":{"name":"vanilla"},"prompt_variants":[{"id":"a"},{"id":"b"}],"api_key_id":"<key>"}`，创建后使用已有 `/ab-tests/{id}/run` 启动。
+
+两个来源同时提供、同时缺失或空白字符串返回 400；不存在或属于他人的集合返回 404（不泄露其存在性）；空集合或数据不可解析返回明确的 400。原有合法 `dataset_path` 请求继续可用，仍受 `DATA_ROOT` 路径约束，网页可切换到“服务器数据集路径”。
+
+### 快照边界、元数据与部署
+
+实验与 A/B 在**创建时**冻结数据，基准在**创建 run 时**冻结。快照包含完整题目模型（包括 tags、difficulty、judge_config、entry_point、测试用例及 source_* 元数据），并与业务 config 一起持久化。后续覆盖个人集合、上传过期/删除或修改原路径文件，都不影响已创建业务；要使用新数据，应创建新的实验/A-B/run。
+
+实验/A-B 的 config 及基准 run 视图中的 `dataset_snapshot` 提供 `schema_version`、`dataset_id`/`dataset_path`、`created_at`、`sha256`、`problem_count` 追溯摘要；API 列表和详情不重复返回完整题目正文。完整元数据保存在对应业务记录的 `config.dataset_snapshot.problems`，可用于后续个人标签分析。
+
+API 与 Worker 需连接同一业务数据库。快照存于业务记录，Worker 在本机私有临时目录生成输入 JSON，执行结束、暂停或异常退出均清理临时目录；恢复时重新生成同一快照。**快照不要求 API/Worker 共享 DATA_ROOT 或 UPLOAD_DIR**，不受上传 TTL 清理影响。快照随业务记录保留，删除业务记录时一起删除；没有独立快照文件或 TTL。Worker 被操作系统强杀时可能遗留系统临时目录，应使用部署环境的系统临时目录清理策略，不要清理仍在执行中的任务目录。
+
+新创建的合法旧路径请求也保存快照；升级前已存在且没有快照的历史任务继续使用原路径解析，恢复时仍需要其原始文件可用。CLI 本地执行契约保持不变。
+
+### 验证命令
+
+后端定向集成验证：`python3 -m pytest tests/test_dataset_references.py --no-cov -q`。测试通过真实导入 API 创建三类任务，覆盖用户隔离、空/不可用集合、排他参数、完整元数据、源删除、暂停恢复、新 Worker 服务实例和临时目录清理。
+
+前端可运行 `cd frontend && npm test && npm run lint && npm run build`。浏览器表单验证先启动 Vite（`npm run dev -- --port 5180`），再运行 `PLAYWRIGHT_MODULE=<playwright模块绝对路径> CHROME_PATH=<本机Chrome可执行文件路径> node scripts/verify-dataset-references.mjs`。输出默认位于系统临时目录下的 `issue-308-browser`，可用 `DATASET_QA_DIR` 和 `DATASET_BASE_URL` 覆盖。该脚本使用模拟 API 检查真实 React 表单的请求、空态/错误重试和 390/1280 像素布局；后端执行行为由集成测试验证，测试不会调用真实模型。

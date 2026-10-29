@@ -142,7 +142,7 @@ def test_all_json_examples_validate_against_route_models(schema):
 
     for route in routes(create_app()):
         for method in route.methods:
-            operation = schema["paths"][route.path][method.lower()]
+            operation = schema["paths"][route.path_format][method.lower()]
             if route.body_field is not None:
                 example = operation["requestBody"]["content"]["application/json"]["example"]
                 TypeAdapter(route.body_field.field_info.annotation).validate_python(example)
@@ -240,3 +240,23 @@ def test_docs_pages_and_schema_are_public_without_startup_secrets():
     assert "WebSocket" in schema["info"]["description"]
     assert "/api/v1/ws/progress" not in schema["paths"]
     assert json.loads(json.dumps(schema)) == schema
+
+
+@pytest.mark.parametrize("path", ["experiments", "ab-tests", "benchmarks/suites/{suite_id}/run"])
+def test_personal_dataset_request_examples_validate(schema, path):
+    from api.experiment_models import (
+        ABTestCreateRequest,
+        BenchmarkRunRequest,
+        ExperimentCreateRequest,
+    )
+
+    models = {
+        "experiments": ExperimentCreateRequest,
+        "ab-tests": ABTestCreateRequest,
+        "benchmarks/suites/{suite_id}/run": BenchmarkRunRequest,
+    }
+    media = schema["paths"][f"/api/v1/{path}"]["post"]["requestBody"]["content"]["application/json"]
+    for name, example in media["examples"].items():
+        parsed = models[path].model_validate(example["value"])
+        assert bool(parsed.dataset_id) != bool(parsed.dataset_path)
+        assert bool(parsed.dataset_id) is (name == "personal_dataset")

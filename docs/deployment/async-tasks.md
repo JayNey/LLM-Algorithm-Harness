@@ -4,6 +4,21 @@
 
 本指南详细说明如何在生产环境中部署和配置异步任务队列系统。异步任务队列采用 Celery + Redis 架构，用于处理长时间运行的评估任务。
 
+## 多业务暂停与恢复
+
+`POST /api/v1/tasks/{task_id}/resume` 支持自己的 paused evaluation、experiment、benchmark、import、ab_test，返回同一任务 ID。后四类暂停会立即同步业务状态，但须等待 Worker 完成当前单元并退出；查询 `GET /api/v1/tasks/{task_id}`，等 `progress.stop_confirmed=true` 后再恢复。提前恢复返回 400，重复/并发恢复只有一次可以成功。取消、完成、失败、未知类型或失效业务关联均不可恢复；他人任务返回 404。
+
+恢复先提交任务与业务记录的 pending 状态再发布新消息。发布失败时，仅同代且仍 pending 的任务及业务成为 failed；已运行、取消或结束的执行不受晚到发布异常影响。导入元数据独立存储，业务提交异常会条件补偿其状态；这不构成跨数据库的崩溃原子事务。
+
+API 与全部 Worker 必须使用相同业务数据库、`AUTH_DATABASE_PATH`、`UPLOAD_DIR` 及可共享的结果卷，并从同一工作目录启动。检查点位置：
+
+- 实验：`results/experiments/api/{experiment_id}/execution/`，每个模型/策略/重复组合独立保存，已开始组合可完成，排队组合在启动前检查暂停。
+- 基准：`results/benchmarks/api/{run_id}/units/`，按完整策略配置及题目保存，费用从保留结果汇总一次。
+- A/B：`results/ab-tests/api/{test_id}/execution/`，保留确定性分组及每个变体/题目结果。
+- 导入：`UPLOAD_DIR/users/{user_id}/imports/{job_id}.checkpoint.json`，保留已校验条目与诊断，全部校验完毕后才以单事务合并数据集与完成 job。
+
+未落盘的中断单元可重试；已保存单元正常恢复时跳过。输入指纹变化会拒绝续跑。停止确认表示协作退出已完成；Worker 被强杀、失联或旧版任务缺少停止确认时，不能仅凭 paused 证明安全退出，应先取消并排查执行进程，不能伪造确认标志。恢复不会保证外部模型调用在进程崩溃时恰好发生一次。
+
 ## 前置要求
 
 1. **Redis** ≥ 6.0

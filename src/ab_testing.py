@@ -6,6 +6,7 @@ import csv
 import json
 import math
 import random
+import threading
 import time
 from collections import defaultdict
 from collections.abc import Callable
@@ -16,11 +17,14 @@ from typing import Any
 
 from pydantic import BaseModel, Field, model_validator
 
+from src.checkpoints import UnitCheckpoint, write_checkpoint
 from src.harness import AlgorithmHarness
-from src.llm_client import LLMClient
+from src.llm_client import LLMClient, SpendObserver
 from src.models import HarnessConfig, LLMConfig, Problem, SandboxConfig, StrategyConfig
 from src.problem_loader import ProblemLoader
 from src.sandbox_executor import SandboxExecutor
+from src.task_service import TaskService
+from src.utils.pricing import PricingManager
 from src.utils.secrets import redact_sensitive_data
 
 
@@ -137,7 +141,7 @@ def _statistical_tests(success_a: list[int], success_b: list[int]) -> dict[str, 
         return {
             "categorical_test": test,
             "p_value": float(p_value),
-            "welch_t_p_value": float(welch_p),
+            "welch_t_p_value": float(welch_p) if math.isfinite(float(welch_p)) else None,
         }
     except (ImportError, ValueError, ZeroDivisionError):
         return {"categorical_test": "unavailable", "p_value": None, "welch_t_p_value": None}
@@ -155,6 +159,15 @@ class ABTestRunner:
         self.client_factory = client_factory
         self.sandbox_factory = sandbox_factory
         self.should_stop: Callable[[], bool] = lambda: False
+        self.checkpoint_dir: Path | None = None
+        self._checkpoint: UnitCheckpoint | None = None
+        self.on_problem: Callable[[int, int, str], None] | None = None
+        self._completed = 0
+        self._total = 0
+        self._progress_lock = threading.Lock()
+        self.pricing_manager: PricingManager | None = None
+        self.on_spend: SpendObserver | None = None
+        self.before_generate: Callable[[], None] | None = None
 
     def run(self) -> Path:
         problems = ProblemLoader().load(self.config.dataset_path)
@@ -164,6 +177,19 @@ class ABTestRunner:
             raise ValueError("A/B test requires at least one problem")
         assignment = stratified_assign(problems, self.config.prompt_variants, self.config.seed)
         output = self._create_output_dir()
+        if self.checkpoint_dir is not None:
+            checkpoint_config = self.config.redacted_dict()
+            checkpoint_config.pop("dataset_path", None)
+            self._checkpoint = UnitCheckpoint(
+                output / "units",
+                TaskService.config_fingerprint(
+                    {
+                        "config": checkpoint_config,
+                        "problems": [problem.model_dump(mode="json") for problem in problems],
+                    }
+                ),
+            )
+        self._total = len(problems)
         assignments = {
             problem.problem_id: {
                 "variant": assignment[problem.problem_id],
@@ -172,6 +198,15 @@ class ABTestRunner:
             }
             for problem in problems
         }
+        self._completed = (
+            sum(
+                self._checkpoint.get(json.dumps([assignment[p.problem_id], p.problem_id]))
+                is not None
+                for p in problems
+            )
+            if self._checkpoint is not None
+            else 0
+        )
         rows = []
         for variant in self.config.prompt_variants:
             rows.extend(
@@ -182,24 +217,44 @@ class ABTestRunner:
         if self.should_stop():
             return output
         report = self._build_report(rows, assignments, output)
-        (output / "ab_test.json").write_text(
-            json.dumps(report, ensure_ascii=False, indent=2) + "\n", encoding="utf-8"
-        )
+        write_checkpoint(output / "ab_test.json", report)
         self._write_csv(output / "results.csv", rows)
         (output / "REPORT.md").write_text(self._markdown(report), encoding="utf-8")
         return output
 
     def _run_variant(self, variant: PromptVariant, problems: list[Problem]) -> list[dict[str, Any]]:
         def run(problem: Problem) -> dict[str, Any] | None:
+            key = json.dumps([variant.id, problem.problem_id])
+            saved = self._checkpoint.get(key) if self._checkpoint is not None else None
+            if saved is not None:
+                return saved
             if self.should_stop():
                 return None
             sandbox = self.sandbox_factory(self.config.sandbox_config)
             ok, detail = sandbox.health_check()
             if not ok:
                 raise RuntimeError(f"Sandbox preflight failed: {detail}")
-            client = PromptVariantClient(self.client_factory(self.config.model), variant)
+            base_client = self.client_factory(self.config.model)
+            if self.pricing_manager is not None:
+                base_client.pricing_manager = self.pricing_manager
+            base_client.before_generate = self.before_generate
+            if self.on_spend is not None:
+                base_client.on_response = lambda event_id, response, cached: self.on_spend(
+                    event_id,
+                    response,
+                    cached,
+                    {
+                        "model": self.config.model.model,
+                        "strategy": self.config.strategy.name,
+                        "problem_id": problem.problem_id,
+                        "difficulty": problem.difficulty,
+                    },
+                )
+            client = PromptVariantClient(base_client, variant)
             strategy = AlgorithmHarness.STRATEGY_MAP[self.config.strategy.name](
-                self.config.strategy, client, sandbox  # type: ignore[arg-type, abstract]
+                self.config.strategy,
+                client,  # type: ignore[arg-type]
+                sandbox,  # type: ignore[abstract]
             )
             harness = AlgorithmHarness(
                 HarnessConfig(
@@ -211,7 +266,7 @@ class ABTestRunner:
             )
             started = time.perf_counter()
             result = harness._execute_problem(self.config.strategy, problem, strategy, sandbox)
-            return {
+            row = {
                 "variant": variant.id,
                 "problem_id": problem.problem_id,
                 "difficulty": problem.difficulty,
@@ -227,11 +282,21 @@ class ABTestRunner:
                 "iterations": len(result.iterations),
                 "error_message": result.error_message,
             }
+            if self._checkpoint is not None:
+                self._checkpoint.put(key, redact_sensitive_data(row))
+            self._report_problem(variant.id, problem.problem_id)
+            return row
 
         if self.config.max_workers == 1 or len(problems) < 2:
             return [result for problem in problems if (result := run(problem)) is not None]
         with ThreadPoolExecutor(max_workers=min(self.config.max_workers, len(problems))) as pool:
             return [result for result in pool.map(run, problems) if result is not None]
+
+    def _report_problem(self, variant: str, problem_id: str) -> None:
+        with self._progress_lock:
+            self._completed += 1
+            if self.on_problem is not None:
+                self.on_problem(self._completed, self._total, f"{variant}/{problem_id}")
 
     def _build_report(
         self, rows: list[dict[str, Any]], assignments: dict[str, Any], output: Path
@@ -399,9 +464,10 @@ class ABTestRunner:
         ]
         for variant in report["variants"]:
             variant_id = variant["id"]
+            role = "baseline" if variant_id == report["baseline_id"] else "treatment"
             lines.append(
-                f"| {variant_id} | {comparison['sample'][variant_id]} | "
-                f"{comparison['formal'][variant_id]} | {comparison['tokens'][variant_id]} | "
+                f"| {variant_id} | {comparison['sample'][role]} | "
+                f"{comparison['formal'][role]} | {comparison['tokens'][variant_id]} | "
                 f"{comparison['elapsed_seconds'][variant_id]:.3f} |"
             )
         lines.extend(
@@ -416,6 +482,9 @@ class ABTestRunner:
         return "\n".join(lines)
 
     def _create_output_dir(self) -> Path:
+        if self.checkpoint_dir is not None:
+            self.checkpoint_dir.mkdir(parents=True, exist_ok=True)
+            return self.checkpoint_dir
         base = Path(self.config.output_dir)
         name = f"ab-{datetime.now().strftime('%Y%m%d-%H%M%S')}"
         output = base / name

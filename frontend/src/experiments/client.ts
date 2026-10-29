@@ -1,3 +1,4 @@
+import { readDatasetSource } from '../experiments/datasets.ts'
 import type { AxiosInstance } from 'axios'
 import { ApiClientError } from '../auth/http.ts'
 import type {
@@ -125,7 +126,7 @@ function experimentConfig(value: unknown, field: string): ExperimentConfig {
         })()
   return {
     name: text(data.name, `${field}.name`, true),
-    dataset_path: text(data.dataset_path, `${field}.dataset_path`),
+    ...readDatasetSource(data),
     models: array(
       data.models,
       (value, field) => {
@@ -168,6 +169,9 @@ function job(value: unknown, field = 'experiment'): ExperimentJob {
   const data = record(value, field)
   return {
     id: text(data.id, `${field}.id`),
+    ...(data.task_id === undefined
+      ? {}
+      : { task_id: nullable(data.task_id, text, `${field}.task_id`) }),
     name: text(data.name, `${field}.name`, true),
     status: text(data.status, `${field}.status`),
     config: experimentConfig(data.config, `${field}.config`),
@@ -709,21 +713,30 @@ export function createExperimentClient(http: AxiosInstance): ExperimentClient {
       await http.delete(`/tasks/${pathId(taskId)}`, { timeout: 20_000 })
     },
     runningExperimentTasks: async (signal) => {
-      // 后端 GET /tasks 只接受单个 status，running 与 paused 两次查询后按 id 去重；
-      // paused 任务同样可取消，避免列表/详情对暂停实验出现「找不到任务」死角。
+      // Compatibility for servers without task_id: include queued tasks and
+      // every page, then deduplicate tasks that moved between states mid-scan.
       const pages = await Promise.all(
-        (['running', 'paused'] as const).map((status) =>
-          get(
-            '/tasks',
-            (value) => page(value, taskSnapshot, 'tasks'),
-            { task_type: 'experiment', status, limit: 100 },
-            signal,
-          ),
-        ),
+        (['pending', 'running', 'paused'] as const).map(async (status) => {
+          const items: TaskSnapshot[] = []
+          let offset = 0
+          while (true) {
+            const result = await get(
+              '/tasks',
+              (value) => page(value, taskSnapshot, 'tasks'),
+              { task_type: 'experiment', status, limit: 100, offset },
+              signal,
+            )
+            items.push(...result.items)
+            if (!result.has_more) return items
+            if (result.limit <= 0 || result.items.length === 0)
+              protocol('tasks.pagination')
+            offset += result.limit
+          }
+        }),
       )
       const seen = new Map<string, TaskSnapshot>()
       for (const result of pages)
-        for (const item of result.items) seen.set(item.id, item)
+        for (const item of result) seen.set(item.id, item)
       return [...seen.values()]
     },
     pareto: async (experimentId, budgets, accuracyMetric, signal) => {

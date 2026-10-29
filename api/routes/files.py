@@ -143,7 +143,7 @@ def import_uploaded(
     job_id = service.store.create_job(
         request.file_id, principal.user_id, request.mode, service.settings.FILE_MAX_ACTIVE_IMPORTS
     )
-    task = TaskManager(db).enqueue_task(
+    task = TaskManager(db, file_store=service.store).enqueue_task(
         task_type="import",
         entity_id=job_id,
         user_id=principal.user_id,
@@ -283,3 +283,15 @@ def download_chart(
     if chart_name != "success-rate":
         raise HTTPException(404, "Chart not found")
     return download(*service.export_results(run_id, principal.user_id, "png"))
+
+
+@router.get("/datasets")
+def datasets(
+    principal: Principal = Depends(current_user),
+    service: FileService = Depends(file_service),
+) -> ApiResponse[list[dict[str, Any]]]:
+    try:
+        data = service.datasets(principal.user_id)
+    except ValueError as exc:
+        raise HTTPException(400, str(exc)) from None
+    return ApiResponse(success=True, data=data, message="Datasets retrieved")

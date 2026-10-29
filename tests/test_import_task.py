@@ -109,7 +109,7 @@ def test_run_import_task_missing_job_does_not_continue(db_session):
     check = _reload(db_session)
     task = check.query(AsyncTask).filter_by(entity_id=job_id).one()
     assert task.status == "failed"
-    assert task.progress is None
+    assert "current" not in task.progress
     check.close()
 
 

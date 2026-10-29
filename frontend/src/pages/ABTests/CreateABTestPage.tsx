@@ -1,7 +1,8 @@
+import DatasetPicker from '@/experiments/DatasetPicker.tsx'
 import { useTranslation } from 'react-i18next'
 import { t } from '../../i18n/core.ts'
 import { Button, Input, Select, Skeleton } from 'antd'
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { readApiKeys } from '@/account/apiKeys.ts'
 import { ApiClientError } from '@/auth/http.ts'
@@ -12,43 +13,11 @@ import { useABTestSession } from '@/abtests/session.tsx'
 import type { ABTestDraft, DraftErrors } from '@/abtests/types.ts'
 import { validateABTestDraft } from '@/abtests/validation.ts'
 import type { AxiosInstance } from 'axios'
-
-function useResource<T>(load: (signal: AbortSignal) => Promise<T>) {
-  const [attempt, setAttempt] = useState(0)
-  const [state, setState] = useState<{
-    load: typeof load
-    attempt: number
-    data?: T
-    error?: string
-  }>()
-  useEffect(() => {
-    const controller = new AbortController()
-    void load(controller.signal).then(
-      (data) => {
-        if (!controller.signal.aborted) setState({ load, attempt, data })
-      },
-      (error: unknown) => {
-        if (!controller.signal.aborted)
-          setState({
-            load,
-            attempt,
-            error:
-              error instanceof ApiClientError
-                ? error.message
-                : '加载失败，请重试',
-          })
-      },
-    )
-    return () => controller.abort()
-  }, [load, attempt])
-  const current = state?.load === load && state.attempt === attempt
-  return {
-    data: current ? state.data : undefined,
-    error: current ? state.error : undefined,
-    loading: !current,
-    retry: () => setAttempt((value) => value + 1),
-  }
-}
+import {
+  ModelNameField,
+  StrategyNameField,
+} from '@/evaluations/optionFields.tsx'
+import { useResource } from '@/hooks/useResource.ts'
 
 function VariantFields({
   index,
@@ -232,20 +201,13 @@ export default function CreateABTestPage() {
               />
               {errors.name && <small role="alert">{t(errors.name)}</small>}
             </label>
-            <label>
-              {t('数据集路径')}
-              <Input
-                aria-label={t('A/B 数据集路径')}
-                value={draft.dataset_path}
-                placeholder="datasets/demo.json"
-                onChange={(event) =>
-                  update({ dataset_path: event.target.value })
-                }
-              />
-              {errors.dataset_path && (
-                <small role="alert">{t(errors.dataset_path)}</small>
-              )}
-            </label>
+            <DatasetPicker
+              datasetId={draft.dataset_id}
+              datasetPath={draft.dataset_path}
+              onChange={update}
+              disabled={busy}
+              error={errors.dataset_path}
+            />
             <label>
               API Key
               <Select
@@ -264,11 +226,11 @@ export default function CreateABTestPage() {
             </label>
             <label>
               {t('模型')}
-              <Input
-                aria-label={t('A/B 模型')}
+              <ModelNameField
+                ariaLabel={t('A/B 模型')}
                 value={draft.model}
-                placeholder={t('模型名，如 model-a')}
-                onChange={(event) => update({ model: event.target.value })}
+                apiKeyId={draft.api_key_id}
+                onChange={(value) => update({ model: value })}
               />
               {errors.model && <small role="alert">{t(errors.model)}</small>}
             </label>
@@ -285,10 +247,10 @@ export default function CreateABTestPage() {
             </label>
             <label>
               {t('策略')}
-              <Input
-                aria-label={t('A/B 策略')}
+              <StrategyNameField
+                ariaLabel={t('A/B 策略')}
                 value={draft.strategy}
-                onChange={(event) => update({ strategy: event.target.value })}
+                onChange={(value) => update({ strategy: value })}
               />
               {errors.strategy && (
                 <small role="alert">{t(errors.strategy)}</small>

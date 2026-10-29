@@ -116,6 +116,17 @@ def page(items: list[Any]) -> dict[str, Any]:
 # Handler name -> purpose, response data. Aliased paths share the same contract.
 # Examples show representative data; empty aggregates mean no stored results.
 OPERATIONS: dict[str, tuple[str, Any]] = {
+    "datasets": (
+        "列出自己已导入的个人题库集合。dataset_id 可用于实验、基准运行及 A/B 创建；与 dataset_path 恰好提供一个。创建业务时冻结完整题目快照，源上传过期、题库覆盖及恢复不会改变执行内容；不存在或属于他人的集合返回 404，空或不可用集合返回 400。",
+        [
+            {
+                "id": "dataset-demo",
+                "name": "Personal problem collection",
+                "problem_count": 12,
+                "updated_at": 1793190000,
+            }
+        ],
+    ),
     "readiness": (
         "基础 API 就绪检查：复用认证、文件及业务数据库与迁移探测；1 秒响应预算、1 秒进程内缓存，200/503 仅返回 status。队列、worker 与沙箱不参与。",
         {"status": "ready"},
@@ -224,11 +235,11 @@ OPERATIONS: dict[str, tuple[str, Any]] = {
         {**TASK, "status": "cancelled"},
     ),
     "pause_task": (
-        "请求暂停正在运行的任务；具体暂停能力由任务处理器决定。",
+        "请求暂停运行中的任务；experiment、benchmark、import、ab_test 在当前单元落盘并退出后设置 progress.stop_confirmed=true。确认前不可恢复。",
         {**TASK, "status": "paused"},
     ),
     "resume_task": (
-        "重新入队已暂停的 evaluation 任务，沿用同一个任务 ID；不支持的类型返回 400。",
+        "恢复自己的 paused evaluation、experiment、benchmark、import 或 ab_test，沿用任务与业务记录并保留检查点。四类业务须 progress.stop_confirmed=true；尚未停止、业务终态、未知类型或失效关联返回 400，越权返回 404。原子落库 pending 后再发布；发布失败使仍 pending 的任务与业务为 failed，已开始或终结的状态不被覆盖。",
         TASK,
     ),
     "problem_history": (
@@ -1436,9 +1447,9 @@ ERROR_MESSAGES = {
     503: "Service is unavailable",
 }
 
-API_CONTRACT_VERSION = "1.2.0"
+API_CONTRACT_VERSION = "1.3.0"
 
-OVERVIEW = """LLM Algorithm Harness API，HTTP 契约版本 1.2.0（API v1）。
+OVERVIEW = """LLM Algorithm Harness API，HTTP 契约版本 1.3.0（API v1）。
 
 **版本策略**：URL 主版本 `/api/v1`；不使用 Header 版本协商。
 兼容扩展沿用 v1；破坏性变更使用新的 URL 主版本，并提供迁移说明、并行支持与退役公告。
@@ -1563,6 +1574,18 @@ def _document_operation(path: str, method: str, operation: dict[str, Any]) -> No
         if media_type == "application/json":
             model_name = media["schema"]["$ref"].rsplit("/", 1)[-1]
             media["example"] = deepcopy(REQUEST_EXAMPLES[model_name])
+            if model_name in {
+                "ExperimentCreateRequest",
+                "BenchmarkRunRequest",
+                "ABTestCreateRequest",
+            }:
+                personal = deepcopy(media["example"])
+                personal.pop("dataset_path", None)
+                personal["dataset_id"] = "dataset-demo"
+                media["examples"] = {
+                    "server_path": {"value": deepcopy(media["example"])},
+                    "personal_dataset": {"value": personal},
+                }
         else:
             media["example"] = {
                 "file": "(binary file)",
