@@ -8,7 +8,7 @@ from pathlib import Path
 from threading import Semaphore
 from typing import Any
 
-from sqlalchemy import select
+from sqlalchemy import func, select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
@@ -66,10 +66,13 @@ def _suite_view(row: BenchmarkSuite) -> dict[str, Any]:
     }
 
 
-def _run_view(row: BenchmarkRun, *, include_results: bool = False) -> dict[str, Any]:
+def _run_view(
+    row: BenchmarkRun, *, task_id: str | None = None, include_results: bool = False
+) -> dict[str, Any]:
     payload: dict[str, Any] = {
         "id": row.id,
         "suite_id": row.suite_id,
+        "task_id": task_id,
         "status": row.status,
         "model": row.model,
         "dataset_snapshot": snapshot_summary(row.config),
@@ -78,6 +81,8 @@ def _run_view(row: BenchmarkRun, *, include_results: bool = False) -> dict[str, 
         "error_message": row.error_message,
         "created_at": _iso(row.created_at),
         "updated_at": _iso(row.updated_at),
+        "started_at": _iso(row.started_at) if row.started_at else None,
+        "completed_at": _iso(row.completed_at) if row.completed_at else None,
     }
     if include_results:
         payload["results"] = row.results if row.results is not None else {}
@@ -420,9 +425,54 @@ class BenchmarkService:
             row.error_message = message
             row.updated_at = utcnow()
 
+    @staticmethod
+    def _run_task_ids(session: Session, run_ids: list[str], owner_id: str) -> dict[str, str]:
+        if not run_ids:
+            return {}
+        tasks = session.scalars(
+            select(AsyncTask)
+            .where(
+                AsyncTask.task_type == "benchmark",
+                AsyncTask.user_id == owner_id,
+                AsyncTask.entity_id.in_(run_ids),
+            )
+            .order_by(AsyncTask.created_at.desc(), AsyncTask.id.desc())
+        )
+        task_ids: dict[str, str] = {}
+        for task in tasks:
+            task_ids.setdefault(task.entity_id, task.id)
+        return task_ids
+
+    def list_runs(
+        self,
+        suite_id: str,
+        owner_id: str,
+        status: str | None = None,
+        limit: int = 20,
+        offset: int = 0,
+    ) -> tuple[list[dict[str, Any]], int]:
+        with self._session() as session:
+            self._owned_suite(session, suite_id, owner_id)
+            query = select(BenchmarkRun).where(
+                BenchmarkRun.suite_id == suite_id, BenchmarkRun.user_id == owner_id
+            )
+            if status is not None:
+                query = query.where(BenchmarkRun.status == status)
+            total = session.scalar(select(func.count()).select_from(query.subquery())) or 0
+            rows = session.scalars(
+                query.order_by(BenchmarkRun.created_at.desc(), BenchmarkRun.id.desc())
+                .limit(limit)
+                .offset(offset)
+            ).all()
+            task_ids = self._run_task_ids(session, [row.id for row in rows], owner_id)
+            return [_run_view(row, task_id=task_ids.get(row.id)) for row in rows], total
+
     def get_run(self, run_id: str, owner_id: str) -> dict[str, Any]:
         with self._session() as session:
-            return _run_view(self._owned_run(session, run_id, owner_id), include_results=True)
+            row = self._owned_run(session, run_id, owner_id)
+            self._owned_suite(session, row.suite_id, owner_id)
+            task_ids = self._run_task_ids(session, [run_id], owner_id)
+            return _run_view(row, task_id=task_ids.get(run_id), include_results=True)
 
     # -- learning curve ------------------------------------------------------
 
@@ -433,6 +483,7 @@ class BenchmarkService:
                 select(BenchmarkRun)
                 .where(
                     BenchmarkRun.suite_id == suite_id,
+                    BenchmarkRun.user_id == owner_id,
                     BenchmarkRun.status == "completed",
                 )
                 .order_by(BenchmarkRun.completed_at, BenchmarkRun.id)
@@ -440,6 +491,7 @@ class BenchmarkService:
 
         data = [
             {
+                "run_id": row.id,
                 "timestamp": _iso(row.completed_at) if row.completed_at else None,
                 "model": row.model,
                 "accuracy": row.accuracy,

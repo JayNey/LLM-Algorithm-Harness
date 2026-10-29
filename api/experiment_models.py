@@ -1,6 +1,6 @@
 """Request models for experiment, benchmark and A/B test APIs (issue #156)."""
 
-from typing import Any
+from typing import Any, Literal
 
 from pydantic import BaseModel, Field, field_validator, model_validator
 from typing_extensions import Self
@@ -81,6 +81,27 @@ class BenchmarkRunRequest(DatasetRequest):
     strategies: list[StrategyConfig] = Field(default_factory=list)
     budget_cap_usd: float | None = Field(None, gt=0)
     problem_filters: dict[str, Any] | None = None
+
+
+BenchmarkRunStatus = Literal["pending", "running", "paused", "completed", "failed", "cancelled"]
+
+
+class BenchmarkRunResponse(BaseModel):
+    """Owner-scoped run history entry; unavailable values remain null."""
+
+    id: str
+    suite_id: str
+    task_id: str | None
+    status: BenchmarkRunStatus
+    model: str
+    dataset_snapshot: dict[str, Any] | None
+    accuracy: float | None
+    cost_usd: float | None
+    error_message: str | None
+    created_at: str
+    updated_at: str
+    started_at: str | None
+    completed_at: str | None
 
 
 class ABTestCreateRequest(DatasetRequest):

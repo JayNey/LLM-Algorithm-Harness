@@ -5,6 +5,7 @@ import secrets
 import threading
 import time
 import uuid
+from datetime import datetime, timedelta
 from pathlib import Path
 from unittest.mock import Mock, patch
 
@@ -14,7 +15,7 @@ from fastapi.testclient import TestClient
 
 from api.auth.config import AuthSettings
 from api.config import settings
-from api.db.models import AsyncTask, BenchmarkRun, Experiment
+from api.db.models import AsyncTask, BenchmarkRun, BenchmarkSuite, Experiment
 from api.files.config import FileSettings
 from api.main import create_app
 from src.benchmark.executor import BenchmarkExecutor
@@ -984,6 +985,273 @@ class TestBenchmarks:
             },
         )
         assert response.status_code == 404
+
+
+class TestBenchmarkRunHistory:
+    @pytest.fixture
+    def history(self, api):
+        client, headers, _, app = api
+        suite_id = client.post(
+            "/api/v1/benchmarks/suites",
+            headers=headers,
+            json={"name": "history", "problems": ["two-sum"]},
+        ).json()["data"]["id"]
+        with app.state.benchmarks._session() as db:
+            owner_id = db.get(BenchmarkSuite, suite_id).user_id
+        return client, headers, app, suite_id, owner_id
+
+    def _seed(self, history, **overrides):
+        _, _, app, suite_id, owner_id = history
+        values = {
+            "id": "run-01",
+            "suite_id": suite_id,
+            "user_id": owner_id,
+            "status": "pending",
+            "model": "gpt-history",
+            "config": {"api_key_id": "private-key-reference"},
+            "created_at": datetime(2026, 10, 28, 12),
+            "updated_at": datetime(2026, 10, 28, 12),
+        }
+        values.update(overrides)
+        with app.state.benchmarks._session() as db, db.begin():
+            db.add(BenchmarkRun(**values))
+
+    def _page(self, history, **params):
+        client, headers, _, suite_id, _ = history
+        response = client.get(
+            f"/api/v1/benchmarks/suites/{suite_id}/runs", headers=headers, params=params
+        )
+        assert response.status_code == 200, response.text
+        return response.json()["data"]
+
+    def test_empty_and_out_of_range_pages(self, history):
+        assert self._page(history) == {
+            "items": [],
+            "total": 0,
+            "limit": 20,
+            "offset": 0,
+            "has_more": False,
+        }
+        self._seed(history)
+        assert self._page(history, limit=100, offset=10) == {
+            "items": [],
+            "total": 1,
+            "limit": 100,
+            "offset": 10,
+            "has_more": False,
+        }
+
+    def test_all_statuses_stable_pagination_and_nullable_fields(self, history):
+        for index, status in enumerate(
+            ["pending", "running", "paused", "completed", "failed", "cancelled"], 1
+        ):
+            self._seed(history, id=f"run-0{index}", status=status)
+        # A larger ID must not override the primary timestamp order.
+        self._seed(history, id="run-99", created_at=datetime(2026, 10, 27))
+        first = self._page(history, limit=2)
+        assert [row["id"] for row in first["items"]] == ["run-06", "run-05"]
+        assert (first["total"], first["limit"], first["offset"], first["has_more"]) == (
+            7,
+            2,
+            0,
+            True,
+        )
+        second = self._page(history, limit=2, offset=2)
+        assert [row["id"] for row in second["items"]] == ["run-04", "run-03"]
+        assert second == self._page(history, limit=2, offset=2)
+        last = self._page(history, limit=3, offset=4)
+        assert [row["id"] for row in last["items"]] == ["run-02", "run-01", "run-99"]
+        assert last["total"] == 7 and last["has_more"] is False
+        item = first["items"][0]
+        assert item["suite_id"] == history[3]
+        assert item["model"] == "gpt-history"
+        assert item["created_at"] == item["updated_at"] == "2026-10-28T12:00:00Z"
+        for field in (
+            "task_id",
+            "started_at",
+            "completed_at",
+            "accuracy",
+            "cost_usd",
+            "error_message",
+            "dataset_snapshot",
+        ):
+            assert item[field] is None
+        assert "config" not in item and "results" not in item
+        assert "private-key-reference" not in str(first)
+
+    @pytest.mark.parametrize(
+        "status", ["pending", "running", "paused", "completed", "failed", "cancelled"]
+    )
+    def test_filter_precedes_pagination(self, history, status):
+        for index in range(1, 4):
+            self._seed(history, id=f"run-0{index}", status=status)
+        self._seed(history, id="run-99", status="failed" if status != "failed" else "pending")
+        page = self._page(history, status=status, limit=1, offset=1)
+        assert [row["id"] for row in page["items"]] == ["run-02"]
+        assert page["items"][0]["status"] == status
+        assert (page["total"], page["has_more"]) == (3, True)
+        assert self._page(history, status=status, offset=3)["has_more"] is False
+
+    @pytest.mark.parametrize(
+        "params",
+        [
+            {"status": "unknown"},
+            {"status": ""},
+            {"status": "pending,running"},
+            {"limit": 0},
+            {"limit": 101},
+            {"limit": "bad"},
+            {"offset": -1},
+        ],
+    )
+    def test_invalid_filters_and_pagination(self, history, params):
+        client, headers, _, suite_id, _ = history
+        response = client.get(
+            f"/api/v1/benchmarks/suites/{suite_id}/runs", headers=headers, params=params
+        )
+        assert response.status_code == 400, response.text
+        assert response.json()["error"]["code"] == "INVALID_PARAMETER"
+
+    def test_started_run_navigation_and_curve_identifiers(self, history, api):
+        client, headers, app, suite_id, _ = history
+        started = client.post(
+            f"/api/v1/benchmarks/suites/{suite_id}/run",
+            headers=headers,
+            json={"api_key_id": api[2], "dataset_path": "problems.json", "model": "gpt-test"},
+        ).json()["data"]
+        item = self._page(history)["items"][0]
+        assert item["id"] == started["id"] and item["task_id"] == started["task_id"]
+        detail_url = f"/api/v1/benchmarks/runs/{item['id']}"
+        assert client.get(detail_url, headers=headers).json()["data"]["task_id"] == item["task_id"]
+        progress = client.get(f"/api/v1/tasks/{item['task_id']}", headers=headers)
+        assert progress.status_code == 200
+        assert progress.json()["data"]["status"] == "pending"
+        assert self._page(history, status="completed")["total"] == 0
+        _execute_benchmark(app, item["id"])
+        curve = client.get(f"/api/v1/benchmarks/learning-curve/{suite_id}", headers=headers).json()[
+            "data"
+        ]
+        detail = client.get(detail_url, headers=headers).json()["data"]
+        completed = self._page(history, status="completed")["items"][0]
+        assert curve["data"][0]["run_id"] == completed["id"] == detail["id"]
+        assert curve["data"][0]["accuracy"] == detail["accuracy"] == completed["accuracy"]
+        assert completed["started_at"] == detail["started_at"] and completed["started_at"]
+        assert completed["completed_at"] == detail["completed_at"] and completed["completed_at"]
+
+    def test_run_and_suite_ownership_and_completed_only_curve(self, history):
+        client, headers, app, suite_id, owner_id = history
+        client.post(
+            "/api/v1/auth/register",
+            json={
+                "username": "history-bob",
+                "email": "history-bob@example.org",
+                "password": PASSWORD,
+            },
+        )
+        bob = client.post(
+            "/api/v1/auth/login", json={"username": "history-bob", "password": PASSWORD}
+        ).json()["data"]
+        bob_headers = {"Authorization": "Bearer " + bob["access_token"]}
+        bob_suite = client.post(
+            "/api/v1/benchmarks/suites",
+            headers=bob_headers,
+            json={"name": "bob-history", "problems": ["two-sum"]},
+        ).json()["data"]["id"]
+        with app.state.benchmarks._session() as db:
+            bob_id = db.get(BenchmarkSuite, bob_suite).user_id
+        self._seed(
+            history,
+            status="completed",
+            accuracy=0.0,
+            cost_usd=0.0,
+            completed_at=datetime(2026, 10, 28, 13),
+        )
+        self._seed(
+            history,
+            id="foreign-run",
+            user_id=bob_id,
+            status="completed",
+            accuracy=1.0,
+            cost_usd=9.0,
+        )
+        self._seed(history, id="foreign-suite-run", suite_id=bob_suite, user_id=owner_id)
+        self._seed(history, id="paused-run", status="paused")
+        curve = client.get(f"/api/v1/benchmarks/learning-curve/{suite_id}", headers=headers).json()[
+            "data"
+        ]
+        assert curve["data"] == [
+            {
+                "run_id": "run-01",
+                "timestamp": "2026-10-28T13:00:00Z",
+                "model": "gpt-history",
+                "accuracy": 0.0,
+                "cost_usd": 0.0,
+            }
+        ]
+        assert curve["trends"] == {"accuracy_growth_rate": None, "cost_growth_rate": None}
+        assert self._page(history)["total"] == 2
+        for resource in (suite_id, "missing"):
+            assert (
+                client.get(
+                    f"/api/v1/benchmarks/suites/{resource}/runs", headers=bob_headers
+                ).status_code
+                == 404
+            )
+        for run_id, request_headers in [
+            ("foreign-run", headers),
+            ("foreign-suite-run", headers),
+            ("run-01", bob_headers),
+            ("missing", headers),
+        ]:
+            assert (
+                client.get(f"/api/v1/benchmarks/runs/{run_id}", headers=request_headers).status_code
+                == 404
+            )
+        assert (
+            client.get(
+                f"/api/v1/benchmarks/learning-curve/{suite_id}", headers=bob_headers
+            ).status_code
+            == 404
+        )
+        client.cookies.clear()
+        assert client.get(f"/api/v1/benchmarks/suites/{suite_id}/runs").status_code == 401
+        assert self._page(history, status="completed")["items"][0]["accuracy"] == 0.0
+        assert self._page(history, status="completed")["items"][0]["cost_usd"] == 0.0
+
+    def test_only_latest_owned_benchmark_task_is_linked(self, history):
+        client, headers, app, _, owner_id = history
+        self._seed(history)
+        self._seed(history, id="run-02")
+        now = datetime(2026, 10, 28, 12)
+        with app.state.benchmarks._session() as db, db.begin():
+            for task_id, entity_id, user_id, kind, created in [
+                ("task-01", "run-01", owner_id, "benchmark", now),
+                ("task-02", "run-01", owner_id, "benchmark", now),
+                ("task-99", "run-01", owner_id, "benchmark", now - timedelta(days=1)),
+                ("foreign-task", "run-01", "other-user", "benchmark", now + timedelta(days=1)),
+                ("foreign-only", "run-02", "other-user", "benchmark", now),
+                ("wrong-type", "run-02", owner_id, "experiment", now),
+                ("wrong-entity", "another-run", owner_id, "benchmark", now),
+            ]:
+                db.add(
+                    AsyncTask(
+                        id=task_id,
+                        celery_task_id=str(uuid.uuid4()),
+                        entity_id=entity_id,
+                        user_id=user_id,
+                        task_type=kind,
+                        status="pending",
+                        created_at=created,
+                    )
+                )
+        for run_id, task_id in [("run-01", "task-02"), ("run-02", None)]:
+            detail = client.get(f"/api/v1/benchmarks/runs/{run_id}", headers=headers).json()["data"]
+            assert detail["task_id"] == task_id
+        items = self._page(history)["items"]
+        assert [(row["id"], row["task_id"]) for row in items] == [
+            ("run-02", None),
+            ("run-01", "task-02"),
+        ]
 
 
 class TestABTests:
