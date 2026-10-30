@@ -40,6 +40,7 @@ class TaskUnit(BaseModel):
     status: TaskState = "queued"
     uncertain: bool = False
     result: dict[str, Any] | None = None
+    problem_snapshot: dict[str, Any] | None = None
     error: str | None = None
     started_at: str | None = None
     finished_at: str | None = None

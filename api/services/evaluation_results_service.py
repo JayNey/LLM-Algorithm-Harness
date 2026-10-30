@@ -8,6 +8,7 @@ from __future__ import annotations
 
 import csv
 import io
+import json
 import tempfile
 from collections import Counter
 from collections.abc import Callable
@@ -190,6 +191,9 @@ def _json_array_contains(column: Any, value: str) -> _JsonArrayContains:
 
 def _effective_difficulty(metrics: dict | None, problem: Problem | None) -> str | None:
     """Prefer the difficulty saved on the unit, then the problem record."""
+    snapshot = (metrics or {}).get("problem_snapshot")
+    if isinstance(snapshot, dict):
+        return snapshot.get("difficulty")
     if metrics is not None and "difficulty" in metrics and metrics["difficulty"] is not None:
         return str(metrics["difficulty"])
     if problem is not None and problem.difficulty:
@@ -228,7 +232,10 @@ def _difficulty_labels(row: EvaluationResult, problem: Problem | None) -> list[s
     return [difficulty] if difficulty else []
 
 
-def _tag_labels(_row: EvaluationResult, problem: Problem | None) -> list[str]:
+def _tag_labels(row: EvaluationResult, problem: Problem | None) -> list[str]:
+    snapshot = (row.metrics or {}).get("problem_snapshot")
+    if isinstance(snapshot, dict):
+        return list(dict.fromkeys(snapshot.get("tags") or []))
     if problem is None or not problem.tags:
         return []
     return [str(tag) for tag in problem.tags]
@@ -310,16 +317,29 @@ def _matching_unit_exists(
         stmt = stmt.where(EvaluationResult.strategy_name == strategy)
     if difficulty is not None or tag is not None:
         stmt = stmt.outerjoin(Problem, Problem.problem_id == EvaluationResult.problem_id)
+    snapshot = EvaluationResult.metrics["problem_snapshot"]
+    has_snapshot = snapshot["schema_version"].as_integer().is_not(None)
     if difficulty is not None:
         stored = EvaluationResult.metrics["difficulty"].as_string()
         stmt = stmt.where(
             or_(
-                stored == difficulty,
-                and_(stored.is_(None), Problem.difficulty == difficulty),
+                and_(has_snapshot, snapshot["difficulty"].as_string() == difficulty),
+                and_(
+                    ~has_snapshot,
+                    or_(
+                        stored == difficulty,
+                        and_(stored.is_(None), Problem.difficulty == difficulty),
+                    ),
+                ),
             )
         )
     if tag is not None:
-        stmt = stmt.where(_json_array_contains(Problem.tags, tag))
+        stmt = stmt.where(
+            or_(
+                and_(has_snapshot, _json_array_contains(snapshot["tags"], tag)),
+                and_(~has_snapshot, _json_array_contains(Problem.tags, tag)),
+            )
+        )
     return exists(stmt)
 
 
@@ -655,7 +675,7 @@ class EvaluationResultsService:
             if difficulty is not None and _effective_difficulty(row.metrics, problem) != difficulty:
                 continue
             if tag is not None:
-                tags = list(problem.tags or []) if problem is not None else []
+                tags = _tag_labels(row, problem)
                 if tag not in tags:
                     continue
             selected.append((row, problem))
@@ -967,22 +987,24 @@ class EvaluationResultsService:
                     select(Evaluation).where(Evaluation.id.in_(evaluation_ids))
                 ).all()
                 model_by_id = {item.id: item.model for item in evaluations}
-            result_dicts = [
-                {
-                    "problem_id": row.problem_id,
-                    "model": model_by_id.get(row.evaluation_id),
-                    "status": row.status,
-                }
-                for row, _problem in pairs
-            ]
+            result_dicts: list[dict[str, Any]] = []
             problem_dicts: list[dict[str, Any]] = []
             seen: set[str] = set()
             for row, problem in pairs:
-                if row.problem_id in seen:
-                    continue
-                seen.add(row.problem_id)
-                tags = list(problem.tags or []) if problem is not None else []
-                problem_dicts.append({"problem_id": row.problem_id, "tags": tags})
+                tags = sorted(set(_tag_labels(row, problem)))
+                # The same ID can have different historical versions even within
+                # one owner's runs. Join profiler inputs by version, not bare ID.
+                version_id = json.dumps([row.problem_id, tags], ensure_ascii=False)
+                result_dicts.append(
+                    {
+                        "problem_id": version_id,
+                        "model": model_by_id.get(row.evaluation_id),
+                        "status": row.status,
+                    }
+                )
+                if version_id not in seen:
+                    seen.add(version_id)
+                    problem_dicts.append({"problem_id": version_id, "tags": tags})
         scores = calculate_dimension_scores(result_dicts, problem_dicts)
         formatted = format_dimension_scores_for_radar(scores)
         return {

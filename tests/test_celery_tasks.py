@@ -1837,3 +1837,127 @@ def test_web_pricing_reprices_cache_without_changing_history(monkeypatch, usage_
     assert cached.pricing_metadata["total_cost"] == 99
     assert response.model == "canonical"
     assert response.pricing_metadata["model"] == response.model
+
+
+def test_personal_snapshot_survives_pause_and_source_removal(
+    db_session, integration_harness, auth_ok
+):
+    """Resume must execute frozen private versions for every strategy, including empty tags."""
+    evaluation_id = _seed_evaluation(
+        db_session,
+        problem_ids=["p1", "p2"],
+        strategy_names=["vanilla", "retry"],
+        budget_cap_usd=0.01,
+    )
+    private = [
+        DomainProblem(
+            problem_id=pid,
+            title=pid,
+            description="Return the input unchanged.",
+            difficulty="hard",
+            tags=["graph"] if pid == "p1" else [],
+            source_platform="leetcode",
+            source_problem_id="42",
+            source_metadata={"batch": "original"},
+            test_cases=[{"input": {"x": 1}, "expected_output": 1}],
+        ).model_dump(mode="json")
+        for pid in ["p1", "p2"]
+    ]
+    with (
+        patch("api.files.store.FileStore.dataset", return_value=private),
+        patch("src.tasks.evaluation.get_db_session", return_value=db_session),
+        patch.object(db_session, "close"),
+    ):
+        first = run_evaluation_task.run(evaluation_id)
+    assert first["status"] == "paused"
+    checkpoint = TaskService(root=f"data/tasks/{evaluation_id}").get(f"eval-{evaluation_id}")
+    assert checkpoint.units[-1].problem_snapshot["problem"]["tags"] == []
+    ev = db_session.get(Evaluation, evaluation_id)
+    ev.budget_cap_usd = None
+    db_session.commit()
+    with (
+        patch("src.tasks.evaluation.get_db_session", return_value=db_session),
+        patch.object(db_session, "close"),
+    ):
+        assert run_evaluation_task.run(evaluation_id)["status"] == "completed"
+    rows = db_session.query(EvaluationResult).filter_by(evaluation_id=evaluation_id).all()
+    assert len(rows) == 4
+    for row in rows:
+        snapshot = row.metrics["problem_snapshot"]
+        assert snapshot["tags"] == (["graph"] if row.problem_id == "p1" else [])
+        assert snapshot["difficulty"] == "hard"
+        assert snapshot["origin"] == "personal"
+        assert snapshot["source_metadata"] == {"batch": "original"}
+    assert db_session.query(ORMProblem).filter_by(problem_id="p1").one().tags == ["array"]
+
+
+def test_failed_unit_preserves_snapshot_on_repeated_writes(db_session):
+    """Exceptions before an ExecutionResult still retain frozen metadata on upsert."""
+    from src.tasks.evaluation import _record_unit_result
+
+    evaluation_id = _seed_evaluation(
+        db_session, problem_ids=["missing"], strategy_names=["vanilla"], seed_problem_ids=[]
+    )
+    ev = db_session.get(Evaluation, evaluation_id)
+    unit = TaskUnit(
+        unit_id="failed",
+        strategy="vanilla",
+        problem_id="missing",
+        status="failed",
+        error="missing problem",
+        problem_snapshot={"schema_version": 1, "origin": "unavailable", "problem": None},
+    )
+    _record_unit_result(db_session, ev, unit)
+    db_session.commit()
+    first = db_session.query(EvaluationResult).filter_by(evaluation_id=evaluation_id).one()
+    assert first.metrics["problem_snapshot"]["tags"] == []
+    assert first.metrics["problem_snapshot"]["difficulty"] is None
+    unit.problem_snapshot = {
+        "schema_version": 1,
+        "origin": "public",
+        "problem": {"tags": ["array"], "difficulty": "easy"},
+    }
+    _record_unit_result(db_session, ev, unit)
+    db_session.commit()
+    rows = db_session.query(EvaluationResult).filter_by(evaluation_id=evaluation_id).all()
+    assert len(rows) == 1
+    assert rows[0].metrics["problem_snapshot"]["origin"] == "unavailable"
+    assert rows[0].metrics["problem_snapshot"]["tags"] == []
+
+
+@pytest.mark.parametrize(
+    "action,want_status,want_calls",
+    [
+        ("pause", "paused", [("chain_of_thought", "p1")]),
+        ("downgrade", "completed", [("chain_of_thought", "p1"), ("vanilla", "p2")]),
+    ],
+)
+def test_resume_budget_uses_frozen_difficulty(
+    db_session, integration_harness, auth_ok, action, want_status, want_calls
+):
+    """Changing source difficulty during a pause cannot bypass the frozen difficulty budget."""
+    evaluation_id = _seed_evaluation(
+        db_session,
+        problem_ids=["p1", "p2"],
+        strategy_names=["chain_of_thought"],
+        budget_cap_usd=0.01,
+    )
+    db_session.query(ORMProblem).update({"difficulty": "hard"})
+    db_session.commit()
+    with (
+        patch("src.tasks.evaluation.get_db_session", return_value=db_session),
+        patch.object(db_session, "close"),
+    ):
+        assert run_evaluation_task.run(evaluation_id)["status"] == "paused"
+    db_session.get(Evaluation, evaluation_id).budget_cap_usd = None
+    db_session.query(ORMProblem).update({"difficulty": "easy"})
+    TestPersonalBudgetExecution.save_budget(
+        db_session, cap=None, action=action, difficulty_caps={"hard": 0.01}
+    )
+    db_session.commit()
+    with (
+        patch("src.tasks.evaluation.get_db_session", return_value=db_session),
+        patch.object(db_session, "close"),
+    ):
+        assert run_evaluation_task.run(evaluation_id)["status"] == want_status
+    assert integration_harness.execute_calls == want_calls

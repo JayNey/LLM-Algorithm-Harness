@@ -185,6 +185,8 @@ def run_evaluation_task(self: EvaluationTask, evaluation_id: str) -> dict[str, A
 
         # 4. 创建 TaskService 任务单元
         units = _create_task_units(evaluation.strategy_names, evaluation.problem_ids)
+        for unit in units:
+            unit.problem_snapshot = _freeze_problem(ctx, unit.problem_id)
         config_fingerprint = TaskService.config_fingerprint({"evaluation_id": evaluation_id})
         dataset_fingerprint = TaskService._hash_json(evaluation.problem_ids)
 
@@ -244,6 +246,10 @@ def run_evaluation_task(self: EvaluationTask, evaluation_id: str) -> dict[str, A
 
         def on_unit_started(record: Any, unit: TaskUnit) -> None:
             """单元提交前上报：百分比是已完成比例，当前步骤是即将执行的单元。"""
+            # Older checkpoints acquire a snapshot before dispatch; new checkpoints
+            # already contain all queued problems, including across a pause.
+            if unit.problem_snapshot is None:
+                unit.problem_snapshot = _freeze_problem(ctx, unit.problem_id)
             selected = execution_strategies.get(unit.unit_id, unit.strategy)
             if selected not in runtimes:
                 strategy_configs[selected] = StrategyConfig(name=selected)
@@ -345,10 +351,12 @@ def run_evaluation_task(self: EvaluationTask, evaluation_id: str) -> dict[str, A
                 if queued is not None:
                     execution_strategies.pop(queued.unit_id, None)
                 return False
-            problem = ctx.problem_map.get(queued.problem_id)
-            reached = budget["global_reached"] or (
-                problem is not None and problem.difficulty in budget["exhausted_difficulties"]
-            )
+            if queued.problem_snapshot is not None:
+                difficulty = (queued.problem_snapshot.get("problem") or {}).get("difficulty")
+            else:
+                problem = ctx.problem_map.get(queued.problem_id)
+                difficulty = problem.difficulty if problem is not None else None
+            reached = budget["global_reached"] or difficulty in budget["exhausted_difficulties"]
             if reached and budget["action"] == "pause":
                 return True
             execution_strategies[queued.unit_id] = (
@@ -549,6 +557,39 @@ class _EvalContext:
     missing_problems: set[str]
     missing_reasons: dict[str, str] = field(default_factory=dict)
     pricing_manager: PricingManager | None = None
+    problem_sources: dict[str, str] = field(default_factory=dict)
+
+
+def _freeze_problem(ctx: _EvalContext, problem_id: str) -> dict[str, Any]:
+    """Freeze the resolved version before checkpoint creation or legacy dispatch."""
+    problem = ctx.problem_map.get(problem_id)
+    return {
+        "schema_version": 1,
+        "origin": ctx.problem_sources.get(problem_id, "public") if problem else "unavailable",
+        "problem": problem.model_dump(mode="json") if problem else None,
+        "error": ctx.missing_reasons.get(problem_id),
+    }
+
+
+def _problem_metadata(snapshot: dict[str, Any]) -> dict[str, Any]:
+    """Keep provenance in results without exposing code, prompts or test cases."""
+    problem = snapshot.get("problem") or {}
+    return {
+        "schema_version": 1,
+        "origin": snapshot["origin"],
+        "tags": list(problem.get("tags", [])),
+        "difficulty": problem.get("difficulty"),
+        **{
+            key: problem.get(key)
+            for key in (
+                "source_platform",
+                "source_problem_id",
+                "source_url",
+                "source_version",
+                "source_metadata",
+            )
+        },
+    }
 
 
 def _to_domain_problem(row: Problem) -> DomainProblem:
@@ -697,6 +738,7 @@ def _resolve_execution_context(
         missing_problems=missing,
         missing_reasons=missing_reasons,
         pricing_manager=pricing_manager,
+        problem_sources={pid: "personal" if pid in uploaded else "public" for pid in problem_map},
     )
 
 
@@ -758,6 +800,20 @@ def _record_unit_result(db: Session, evaluation: Evaluation, unit: TaskUnit) -> 
             strategy_name=unit.strategy,
         )
         db.add(row)
+    snapshot = (row.metrics or {}).get("problem_snapshot")
+    if snapshot is None:
+        checkpoint = getattr(unit, "problem_snapshot", None)
+        snapshot = (
+            _problem_metadata(checkpoint)
+            if checkpoint
+            else (((unit.result or {}).get("metadata") or {}).get("problem_snapshot"))
+        )
+    if snapshot is not None:
+        metrics = {
+            **(metrics or {}),
+            "problem_snapshot": snapshot,
+            "difficulty": snapshot.get("difficulty"),
+        }
     row.status = status
     row.metrics = metrics
     row.error_message = error_message
@@ -846,16 +902,23 @@ def _make_worker(
 
     def worker(unit: TaskUnit) -> ExecutionResult:
         """真实执行一个单元，并把真实 cost 写入 ``result.metadata``。"""
-        problem = problem_map.get(unit.problem_id)
+        frozen = unit.problem_snapshot
+        problem = (
+            (DomainProblem.model_validate(frozen["problem"]) if frozen.get("problem") else None)
+            if frozen is not None
+            else problem_map.get(unit.problem_id)
+        )
         if problem is None:
             raise ValueError(
                 f"Problem {unit.problem_id}: "
-                f"{reasons.get(unit.problem_id, 'not found in problem store')}"
+                f"{(frozen or {}).get('error') or reasons.get(unit.problem_id, 'not found in problem store')}"
             )
         selected = (execution_strategies or {}).get(unit.unit_id, unit.strategy)
         strategy_config = strategy_configs[selected]
         strategy, sandbox = runtimes[selected]
         result = harness._execute_problem(strategy_config, problem, strategy, sandbox)
+        if frozen is not None:
+            result.metadata["problem_snapshot"] = _problem_metadata(frozen)
         result.metadata["executed_strategy"] = selected
         result.metadata["cost_downgraded"] = selected != unit.strategy
         cost, pricing_metadata = harness._estimate_cost([result])
