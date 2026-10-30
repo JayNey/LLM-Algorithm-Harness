@@ -11,8 +11,8 @@ function clientFor(
 ) {
   const seen: Array<Record<string, unknown>> = []
   const client = createBudgetClient({
-    get: async (url: string) => {
-      seen.push({ method: 'GET', url })
+    get: async (url: string, config?: { params?: unknown }) => {
+      seen.push({ method: 'GET', url, params: config?.params })
       return (reply({ method: 'GET', url }) as { data: unknown }).data
     },
     post: async (url: string, body?: unknown) => {
@@ -60,6 +60,10 @@ test('预算读取（含未设置键的 null）与保存（空 cap 省略）', a
             used_usd: 40.25,
             remaining_usd: 60.25,
             percentage_used: 40.05,
+            known_cost_usd: 40.25,
+            cost_complete: true,
+            unknown_cost_count: 0,
+            unknown_reasons: {},
           },
           by_difficulty: {
             easy: { cap_usd: 30, used_usd: 10, percentage_used: 33.33 },
@@ -186,4 +190,136 @@ test('预算表单校验（正数或留空）', () => {
     }),
     {},
   )
+})
+
+test('费用概览解析完整性字段并携带 since/until 查询参数', async () => {
+  const { client, seen } = clientFor(({ url }) => {
+    if (url.includes('/costs/summary')) {
+      return {
+        data: {
+          since: '2026-10-01',
+          until: null,
+          total_cost_usd: 1.25,
+          task_count: 3,
+          by_source: {
+            evaluations: {
+              cost_usd: 1.0,
+              task_count: 2,
+              known_cost_usd: 1.0,
+              cost_complete: true,
+              unknown_cost_count: 0,
+              unknown_reasons: {},
+            },
+            experiments: {
+              cost_usd: 0.25,
+              task_count: 1,
+              known_cost_usd: 0.25,
+              cost_complete: false,
+              unknown_cost_count: 2,
+              unknown_reasons: { no_usage: 2 },
+            },
+          },
+          known_cost_usd: 1.25,
+          cost_complete: false,
+          unknown_cost_count: 2,
+          unknown_reasons: { no_usage: 2 },
+        },
+      }
+    }
+    return { data: {} }
+  })
+  const summary = await client.costSummary(
+    { since: '2026-10-01', until: null },
+    undefined,
+  )
+  assert.equal(summary.total_cost_usd, 1.25)
+  assert.equal(summary.cost_complete, false)
+  assert.equal(summary.unknown_cost_count, 2)
+  assert.deepEqual(summary.unknown_reasons, { no_usage: 2 })
+  assert.equal(summary.by_source.experiments.cost_usd, 0.25)
+  assert.equal(summary.by_source.experiments.cost_complete, false)
+  assert.equal(summary.by_source.evaluations.task_count, 2)
+  const costCall = seen.find((row) =>
+    String(row.url).includes('/costs/summary'),
+  )
+  assert.deepEqual(costCall?.params, { since: '2026-10-01' })
+})
+
+test('趋势与分项解析（空数据与按来源分项）', async () => {
+  const { client } = clientFor(({ url }) => {
+    if (url.includes('/costs/trends')) {
+      return {
+        data: {
+          since: null,
+          until: null,
+          data: [
+            {
+              date: '2026-10-28',
+              cost_usd: 0.6,
+              known_cost_usd: 0.6,
+              cost_complete: true,
+              unknown_cost_count: 0,
+              unknown_reasons: {},
+            },
+          ],
+          cost_complete: true,
+          unknown_cost_count: 0,
+          unknown_reasons: {},
+        },
+      }
+    }
+    return {
+      data: {
+        by_source: { evaluations: 1.2 },
+        by_model: { 'priced/model': 1.2 },
+        by_strategy: { vanilla: 1.2 },
+        cost_complete: true,
+        unknown_cost_count: 0,
+        unknown_reasons: {},
+      },
+    }
+  })
+  const trends = await client.costTrends({ since: null, until: null })
+  assert.equal(trends.data.length, 1)
+  assert.equal(trends.data[0].date, '2026-10-28')
+  assert.equal(trends.cost_complete, true)
+  const breakdown = await client.costBreakdown({ since: null, until: null })
+  assert.equal(breakdown.by_model['priced/model'], 1.2)
+})
+
+test('预警历史解析与 limit 参数', async () => {
+  const { client, seen } = clientFor(({ url }) => {
+    if (url.includes('/alerts/history')) {
+      return {
+        data: [
+          {
+            id: 'event-deleted',
+            rule_id: null,
+            threshold_pct: 80,
+            used_usd: 0.5,
+            cap_usd: 0.6,
+            channel: 'log',
+            triggered_at: '2026-10-27T00:00:00Z',
+          },
+          {
+            id: 'event-1',
+            rule_id: 'rule-1',
+            threshold_pct: 50,
+            used_usd: 0.3,
+            cap_usd: 0.6,
+            channel: 'log',
+            triggered_at: '2026-10-28T00:00:00Z',
+          },
+        ],
+      }
+    }
+    return { data: [] }
+  })
+  const history = await client.alertHistory(undefined, 10)
+  assert.equal(history.length, 2)
+  assert.equal(history[1].channel, 'log')
+  assert.equal(history[1].used_usd, 0.3)
+  assert.equal(history[0].rule_id, null)
+  const call = seen.find((row) => String(row.url).includes('/alerts/history'))
+  assert.deepEqual(call?.params, { limit: 10 })
 })
