@@ -301,6 +301,7 @@ class ExperimentService:
                 runner = self._runner_factory(config)
                 from api.services.cost_alert_service import WebCostAlertDispatcher
                 from api.services.spend_records import SpendRecorder, pricing_snapshot
+                from src.models import LLMResponse
                 from src.tasks.budget_guard import BudgetGuard
 
                 recorder = SpendRecorder(self._session, "experiments", experiment_id, owner_id)
@@ -308,7 +309,12 @@ class ExperimentService:
                 cost_alerts = WebCostAlertDispatcher(self._session, experiment_id)
                 runner.pricing_manager = pricing_snapshot(self._session)
 
-                def on_spend(event_id, response, cached, context):
+                def on_spend(
+                    event_id: str,
+                    response: LLMResponse | None,
+                    cached: bool,
+                    context: dict[str, Any],
+                ) -> None:
                     recorder.callback(**context)(event_id, response, cached)
                     # 费用提交后再做预警检查（与评估 Worker 的单元边界一致）。
                     cost_alerts.process(owner_id)

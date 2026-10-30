@@ -312,7 +312,8 @@ class BenchmarkService:
                     or budget.should_pause()
                 )
                 cost_alerts.process(owner_id)
-                executor.on_problem = lambda current, total, strategy, problem_id: (
+
+                def on_problem(current: int, total: int, strategy: str, problem_id: str) -> None:
                     self._write_progress(
                         run_id,
                         owner_id,
@@ -320,9 +321,10 @@ class BenchmarkService:
                         total,
                         f"{strategy}/{problem_id}",
                         generation,
-                    ),
-                    cost_alerts.process(owner_id),
-                )
+                    )
+                    cost_alerts.process(owner_id)
+
+                executor.on_problem = on_problem
                 results = executor.execute() or {}
                 if getattr(executor, "paused", False):
                     # 先锁 AsyncTask 再锁 run，与 TaskManager.cancel_task 的加锁顺序
