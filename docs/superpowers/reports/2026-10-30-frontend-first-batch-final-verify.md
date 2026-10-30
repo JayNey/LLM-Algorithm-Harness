@@ -53,3 +53,5 @@ Python 使用项目 Python 依赖；frontend 需已安装 npm 依赖；PATH 需�
 用户最终选择 B：归档并推送到既有 PR #313。三个 change 已分别成功归档（7/7、6/6、6/6 步），主 spec 已按 delta 合并。归档时发现新 result-reports 主 spec 的 Purpose 短于 strict 校验要求，已扩写目的说明并同步归档 delta；同时将 app-shell 中遗留的“帮助页为 Mock”说明与已合入的真实帮助页保持一致，未改动产品代码。远端推送结果以 PR 实际 head 为准。
 
 归档后对四份受影响主 spec 逐项 strict 校验，并补齐 problems-management 与 budget-alerts 的既有 Purpose 占位文字。最终三个 archive guard 均为 6/6 PASS；正式归档已完成，待推送归档提交到现有 PR。
+
+推送后 CI 的 Lint job 捕获新增联调脚本日志 `.open("w")` 未显式指定编码；本地使用相同的 `python3 scripts/find_missing_encoding.py` 复现为 1 个问题后，修正为 `encoding="utf-8"`。重跑为 0 个问题、退出 0；`ruff check .` 和 `black --check .` 均通过。本次补丁仅明确日志文本编码，不改变验证场景或产品行为。

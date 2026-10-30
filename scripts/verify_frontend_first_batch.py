@@ -86,7 +86,7 @@ def run() -> None:
     with ExitStack() as stack:
 
         def launch(name: str, args: list[str], cwd: Path = runtime) -> subprocess.Popen:
-            log = stack.enter_context((runtime / f"{name}.log").open("w"))
+            log = stack.enter_context((runtime / f"{name}.log").open("w", encoding="utf-8"))
             process = subprocess.Popen(args, cwd=cwd, env=env, stdout=log, stderr=log)
             stack.callback(stop, process)
             return process
