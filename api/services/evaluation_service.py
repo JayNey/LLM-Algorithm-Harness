@@ -59,10 +59,27 @@ def _execution_progress(evaluation: Evaluation) -> ExecutionProgress:
 
 def _operation_capabilities(
     evaluation: Evaluation, async_task: AsyncTask | None = None
-) -> dict[str, bool]:
+) -> dict[str, bool | str | None]:
     """仅根据持久化状态投影操作能力，不同步 broker，也不替代归属校验。"""
+    if async_task is not None and (
+        async_task.id != evaluation.async_task_id
+        or async_task.entity_id != evaluation.id
+        or async_task.task_type != "evaluation"
+        or async_task.user_id != evaluation.user_id
+    ):
+        async_task = None
     live_task = async_task is not None and async_task.status in ("pending", "running", "paused")
     return {
+        "async_task_id": async_task.id if async_task is not None else None,
+        "can_pause": evaluation.status in ("pending", "running")
+        and async_task is not None
+        and async_task.status == "running",
+        "can_resume": evaluation.status == "paused"
+        and async_task is not None
+        and async_task.status == "paused"
+        and (async_task.progress or {}).get("stop_confirmed") is True,
+        "can_update": evaluation.status == "pending",
+        "can_delete": evaluation.status in ("pending", "completed", "cancelled"),
         "can_start": evaluation.status == "pending" and not live_task,
         "can_cancel": evaluation.status in ("pending", "running", "paused")
         and (live_task or (evaluation.async_task_id is None and evaluation.status == "running")),

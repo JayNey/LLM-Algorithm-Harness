@@ -339,3 +339,40 @@ def test_execution_progress_preserves_async_task_progress(service):
         "message": "worker 原值",
         "completed": None,
     }
+
+
+@pytest.mark.parametrize(
+    "status,linked,stopped,want",
+    [
+        ("pending", None, False, (False, False, True, True)),
+        ("running", "running", False, (True, False, False, False)),
+        ("paused", "paused", False, (False, False, False, False)),
+        ("paused", "paused", True, (False, True, False, False)),
+        ("completed", "running", True, (False, False, False, True)),
+        ("failed", "failed", True, (False, False, False, False)),
+        ("cancelled", "cancelled", True, (False, False, False, True)),
+    ],
+)
+def test_management_capabilities(service, status, linked, stopped, want):
+    eid = create(service).evaluation_id
+    set_state(service, eid, status, linked)
+    if linked:
+        with service._session() as session, session.begin():
+            session.get(AsyncTask, f"linked-{eid}").progress = {"stop_confirmed": stopped}
+    for response in (service.get_evaluation(eid, OWNER), service.list_evaluations(OWNER)[0][0]):
+        data = response.model_dump()
+        assert (
+            tuple(data.get(k) for k in ("can_pause", "can_resume", "can_update", "can_delete"))
+            == want
+        )
+        assert data["async_task_id"] == (f"linked-{eid}" if linked else None)
+
+
+def test_management_rejects_unrelated_task_link(service):
+    eid = create(service).evaluation_id
+    set_state(service, eid, "running", "running")
+    with service._session() as session, session.begin():
+        session.get(AsyncTask, f"linked-{eid}").user_id = "another-owner"
+    data = service.get_evaluation(eid, OWNER).model_dump()
+    assert data.get("async_task_id") is None
+    assert data.get("can_pause") is False
