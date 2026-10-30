@@ -75,7 +75,7 @@ export default function HelpPage() {
             </li>
             <li>
               {t(
-                '侧栏与快速操作中的「导入题目」目前仍是示例交互，不读取文件；真实导入请在题库页完成。',
+                '侧栏、顶部快速操作与移动导航中的「导入题目」会直接打开题库的真实导入面板。',
               )}
             </li>
           </ol>
@@ -116,7 +116,7 @@ export default function HelpPage() {
             </li>
             <li>
               {t(
-                '结果详情的报告下载入口尚未提供；后端已支持 Markdown、HTML 与 CSV 即时报告接口，可在界面接入前通过 API 获取。',
+                '结果详情可下载 Markdown、HTML 与 CSV 即时报告；未完成运行的报告仅包含已记录的部分结果。',
               )}
             </li>
           </ol>

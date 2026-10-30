@@ -191,6 +191,7 @@ export default {
   '/ 个人工作空间': '/ Personal workspace',
   创建评估: 'Create evaluation',
   导入题目: 'Import problems',
+  导入: 'Import',
   快速操作: 'Quick actions',
   切换至浅色: 'Switch to light',
   切换至深色: 'Switch to dark',
@@ -323,10 +324,6 @@ export default {
   '2 个已完成': '2 completed',
   '1 个运行中': '1 running',
   '1 个待检查': '1 needs review',
-  '导入题目 · Mock': 'Import problems · Mock',
-  '题目导入的交互示例，不读取或上传文件。':
-    'Problem import interaction example. No files are read or uploaded.',
-  后续接入项目的文件导入服务: "Connect the project's file import service later",
   已打开题目库示例: 'Problem library example opened',
   查看题目库示例: 'View problem library example',
   没有匹配的评估任务: 'No matching evaluations',
@@ -1179,6 +1176,21 @@ export default {
   '渠道 smtp 需要填写通知目标':
     'Enter a notification target for the smtp channel',
   '仅支持 .json / .csv 格式': 'Only .json / .csv formats are supported',
+  下载报告: 'Download report',
+  '报告仅包含当前已记录的结果，不代表完整评估。':
+    'The report contains currently recorded results and does not represent a complete evaluation.',
+  报告响应格式不兼容: 'The report response format is incompatible',
+  '报告下载失败，请重试': 'Report download failed. Please try again',
+  '运行记录未关联，暂不可下载报告。':
+    'No run is linked yet. Reports are unavailable.',
+  报告运行标识不可用: 'The report run identifier is unavailable',
+  报告格式不可用: 'The report format is unavailable',
+  '预警由 Web 评估 worker 在启动、恢复和成本结算时检查，需要个人全局预算及启用的规则。保存规则不会立即发送，也不代表投递成功；其他任务类型不会独立触发检查。Slack/Webhook 使用规则中的 HTTPS 目标；邮件需要部署方配置 worker 的 COST_ALERT_SMTP_*。站内通知中心仍为 Mock。':
+    'Alerts are checked by the Web evaluation worker at startup, resume and cost settlement, using a personal global budget and enabled rules. Saving rules does not send immediately or prove delivery; other task types do not trigger checks independently. Slack/Webhook use the rule HTTPS target; email requires deployment configuration of worker COST_ALERT_SMTP_*. The in-app notification center remains Mock.',
+  '导入已暂停；此页面不支持恢复或取消。请勿重复提交，持续暂停时联系管理员并提供导入任务 ID：{{jobId}}。':
+    'Import paused. This page cannot resume or cancel it. Do not submit again; if it remains paused, contact an administrator with import job ID: {{jobId}}.',
+  '报告不可访问，请确认当前账号和运行记录。':
+    'The report is inaccessible. Check the current account and run.',
   密钥配置: 'Key setup',
   题库导入: 'Problem import',
   创建与启动评估: 'Create and start an evaluation',
@@ -1199,8 +1211,8 @@ export default {
   进入: 'Open ',
   '，选择题目文件后导入：小文件同步直导，大文件后台异步导入并显示进度与校验报告；可选择追加或覆盖。':
     ' and import a problem file: small files import synchronously, large files run in the background with progress and a validation report; choose append or overwrite.',
-  '侧栏与快速操作中的「导入题目」目前仍是示例交互，不读取文件；真实导入请在题库页完成。':
-    'The "Import problems" entry in the sidebar and quick actions is still a demo interaction and does not read files; use the Problems page for real imports.',
+  '侧栏、顶部快速操作与移动导航中的「导入题目」会直接打开题库的真实导入面板。':
+    'The "Import problems" entries in the sidebar, top quick actions and mobile navigation open the real problem import panel directly.',
   打开: 'Open ',
   '，依次选择密钥、模型（按密钥读取目录）、策略与题目，创建后立即请求启动。':
     ', pick a key, a model from the catalog loaded for that key, strategies and problems; the task requests a start right after creation.',
@@ -1210,8 +1222,8 @@ export default {
     'Execution depends on the backend Redis, Celery worker and Docker sandbox image; if any is missing the start is rejected or fails in preflight, and the reason is shown on the task page.',
   '查看策略汇总与单题结果；结果页区分等待结果、部分缺失、失败与完整等状态，不把部分记录当作完整评估。':
     ', review per-strategy summaries and per-problem results. The page distinguishes waiting, partially missing, failed and complete states instead of presenting partial records as a complete evaluation.',
-  '结果详情的报告下载入口尚未提供；后端已支持 Markdown、HTML 与 CSV 即时报告接口，可在界面接入前通过 API 获取。':
-    'Report downloads are not yet available in the result detail UI; the backend already serves Markdown, HTML and CSV reports through the API until the UI entry lands.',
+  '结果详情可下载 Markdown、HTML 与 CSV 即时报告；未完成运行的报告仅包含已记录的部分结果。':
+    'Download Markdown, HTML and CSV reports from result details. Reports for incomplete runs contain only the results recorded so far.',
   '、': ', ',
   与: ' and ',
   '的数据来源可选「个人题库」（使用已导入题目的快照，创建时固定）或「服务器数据集路径」（DATA_ROOT 下的相对路径，如 problems.json）；尚无题目时请先在题库页导入。':

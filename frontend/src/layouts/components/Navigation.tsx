@@ -93,7 +93,7 @@ export function Navigation({
     </>
   )
 }
-export function MobileNav() {
+export function MobileNav({ onImport }: { onImport: () => void }) {
   useTranslation()
 
   return (
@@ -117,6 +117,15 @@ export function MobileNav() {
             </span>
           </NavLink>
         ))}
+      <button
+        type="button"
+        className="mobile-import-action"
+        aria-label={t('导入题目')}
+        onClick={onImport}
+      >
+        <Icon name="upload" />
+        <span>{t('导入')}</span>
+      </button>
     </nav>
   )
 }

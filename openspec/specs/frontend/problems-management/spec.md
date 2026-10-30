@@ -1,7 +1,7 @@
 # frontend/problems-management Specification
 
 ## Purpose
-TBD - created by archiving change problems-frontend. Update Purpose after archive.
+为已登录用户提供真实题库元数据浏览、个人题库文件导入与导出及本人评估历史查询，保留可恢复的列表筛选和真实导入进度，并准确呈现校验结果、暂停状态、会话边界和操作限制。
 
 ## Requirements
 
@@ -21,7 +21,7 @@ TBD - created by archiving change problems-frontend. Update Purpose after archiv
 
 ### Requirement: 个人题库导入
 
-前端 SHALL 提供文件导入（JSON/CSV/YAML）：小文件走同步直导并展示完整 validation 报告（总数/有效/无效/重复/导入数/库存量与错误明细，错误列表截断时如实提示）；大文件走异步导入（上传 → 触发 → 轮询作业进度至终态）。overwrite 模式 SHALL 要求二次确认并说明整库替换后果。后端拒绝（格式/大小/速率）SHALL 如实展示错误。
+前端 SHALL 提供文件导入（JSON/CSV/YAML）：小文件走同步直导并展示完整 validation 报告（总数/有效/无效/重复/导入数/库存量与错误明细，错误列表截断时如实提示）；大文件走异步导入（上传 → 触发 → 轮询作业进度至终态）。overwrite 模式 SHALL 要求二次确认并说明整库替换后果。后端拒绝（格式/大小/速率）SHALL 如实展示错误。取消文件选择或在提交前收起面板 MUST NOT 发起上传或导入请求。一次导入请求进行中或异步作业未达终态时，重复操作 MUST NOT 创建额外请求或异步作业。会话变化后，旧会话的迟到响应 MUST NOT 更新新会话的导入状态或以新会话身份重试。
 
 #### Scenario: 同步导入报告呈现
 
@@ -32,6 +32,21 @@ TBD - created by archiving change problems-frontend. Update Purpose after archiv
 
 - **WHEN** 用户选择 overwrite 模式并提交
 - **THEN** 先弹出整库替换后果确认，确认后才发起请求
+
+#### Scenario: 取消文件选择不发起请求
+
+- **WHEN** 用户取消文件选择，或选择文件后在提交前收起导入面板
+- **THEN** 前端不上传文件且不创建导入任务
+
+#### Scenario: 重复操作只提交一次
+
+- **WHEN** 用户重复或快速点击开始导入，且该次提交仍在处理或异步任务尚未终态
+- **THEN** 该次选择最多发起一个直导请求或创建一个异步导入任务
+
+#### Scenario: 会话变化隔离旧导入响应
+
+- **WHEN** 导入请求发出后用户切换登录会话，旧请求随后返回
+- **THEN** 旧响应不覆盖新会话的页面状态，且不以新会话身份自动重试
 
 ### Requirement: 题库导出与评估历史
 
@@ -46,3 +61,12 @@ TBD - created by archiving change problems-frontend. Update Purpose after archiv
 
 - **WHEN** 用户打开某题的评估历史
 - **THEN** 展示该题历次执行记录与聚合的次数/通过率，无记录时如实提示
+
+### Requirement: 暂停导入状态说明
+
+题库导入页在异步导入状态为 paused 时 SHALL 说明当前页面不提供该导入任务的恢复或取消操作；SHALL NOT 引导用户前往不存在的通用任务管理页面。界面 SHALL 提供避免重复提交的安全建议；任务持续暂停时，提示用户联系管理员并提供当前导入任务标识。
+
+#### Scenario: 题库导入暂停
+
+- **WHEN** 题库导入进度为 paused
+- **THEN** 页面说明无法在此恢复或取消、避免重复提交，并显示供管理员排查的任务标识

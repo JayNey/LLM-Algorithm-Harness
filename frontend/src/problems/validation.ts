@@ -40,3 +40,33 @@ export function writeListQuery(query: ProblemListQuery): URLSearchParams {
   search.set('offset', String(normalized.offset))
   return search
 }
+
+export function setProblemImportIntent(
+  search: URLSearchParams,
+  open: boolean,
+): URLSearchParams {
+  const next = new URLSearchParams(search)
+  if (open) next.set('import', '1')
+  else next.delete('import')
+  return next
+}
+
+export function buildProblemImportLocation(
+  pathname: string,
+  currentSearch: string,
+): string {
+  const currentPath = pathname.replace(/\/+$/, '') || '/'
+  const search = new URLSearchParams(
+    currentPath === '/problems' ? currentSearch : '',
+  )
+  return `/problems?${setProblemImportIntent(search, true).toString()}`
+}
+
+export function writeProblemListQuery(
+  query: ProblemListQuery,
+  currentSearch: URLSearchParams,
+): URLSearchParams {
+  const next = writeListQuery(query)
+  if (currentSearch.get('import') === '1') next.set('import', '1')
+  return next
+}
