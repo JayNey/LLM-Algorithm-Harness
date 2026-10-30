@@ -1,4 +1,18 @@
 export default {
+  预算须为非负有限数值: 'Budget must be a finite non-negative number',
+  '任务状态已变化，请核对最新状态。':
+    'Task state changed. Check the latest state.',
+  '操作结果未确认，请核对最新状态后再操作。':
+    'The operation result is unconfirmed. Check the latest state before trying again.',
+  '操作已完成，已读取最新状态。':
+    'Operation completed. Latest state retrieved.',
+  '预算上限（USD）': 'Budget cap (USD)',
+  暂停任务: 'Pause task',
+  恢复任务: 'Resume task',
+  删除评估: 'Delete evaluation',
+  确认删除: 'Confirm deletion',
+  '删除后无法恢复此评估及其关联文件。确认删除？':
+    'This permanently deletes the evaluation and its associated files. Delete it?',
   '欢迎回来，{{name}}': 'Welcome back, {{name}}',
   'AB 测试接口响应格式不兼容': 'A/B test response format is incompatible',
   '缺少资源 ID': 'Resource ID is missing',

@@ -217,3 +217,24 @@
   display: block;
   margin-top: 0;
 }
+
+.evaluation-budget-form {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px;
+  margin-block: 24px;
+}
+.evaluation-budget-form label {
+  flex-basis: 100%;
+}
+.evaluation-budget-form .ant-input-number {
+  width: 180px;
+  max-width: 100%;
+}
+@media (max-width: 767px) {
+  .evaluation-budget-form .ant-btn,
+  .evaluation-budget-form input {
+    min-height: 44px;
+  }
+}

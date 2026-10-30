@@ -73,6 +73,11 @@ class EvaluationResponse(BaseModel):
     """Evaluation task response model."""
 
     evaluation_id: str = Field(..., description="Unique evaluation ID")
+    async_task_id: str | None = Field(None, description="Current owned AsyncTask ID, not Celery ID")
+    can_pause: bool = False
+    can_resume: bool = False
+    can_update: bool = False
+    can_delete: bool = False
     created_at: str = Field(..., description="ISO 8601 creation timestamp")
     updated_at: str = Field(..., description="ISO 8601 update timestamp")
     status: str = Field(..., description="Task status: pending|running|completed|failed|cancelled")
