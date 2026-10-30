@@ -1923,3 +1923,41 @@ def test_failed_unit_preserves_snapshot_on_repeated_writes(db_session):
     assert len(rows) == 1
     assert rows[0].metrics["problem_snapshot"]["origin"] == "unavailable"
     assert rows[0].metrics["problem_snapshot"]["tags"] == []
+
+
+@pytest.mark.parametrize(
+    "action,want_status,want_calls",
+    [
+        ("pause", "paused", [("chain_of_thought", "p1")]),
+        ("downgrade", "completed", [("chain_of_thought", "p1"), ("vanilla", "p2")]),
+    ],
+)
+def test_resume_budget_uses_frozen_difficulty(
+    db_session, integration_harness, auth_ok, action, want_status, want_calls
+):
+    """Changing source difficulty during a pause cannot bypass the frozen difficulty budget."""
+    evaluation_id = _seed_evaluation(
+        db_session,
+        problem_ids=["p1", "p2"],
+        strategy_names=["chain_of_thought"],
+        budget_cap_usd=0.01,
+    )
+    db_session.query(ORMProblem).update({"difficulty": "hard"})
+    db_session.commit()
+    with (
+        patch("src.tasks.evaluation.get_db_session", return_value=db_session),
+        patch.object(db_session, "close"),
+    ):
+        assert run_evaluation_task.run(evaluation_id)["status"] == "paused"
+    db_session.get(Evaluation, evaluation_id).budget_cap_usd = None
+    db_session.query(ORMProblem).update({"difficulty": "easy"})
+    TestPersonalBudgetExecution.save_budget(
+        db_session, cap=None, action=action, difficulty_caps={"hard": 0.01}
+    )
+    db_session.commit()
+    with (
+        patch("src.tasks.evaluation.get_db_session", return_value=db_session),
+        patch.object(db_session, "close"),
+    ):
+        assert run_evaluation_task.run(evaluation_id)["status"] == want_status
+    assert integration_harness.execute_calls == want_calls

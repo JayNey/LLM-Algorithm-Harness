@@ -282,3 +282,19 @@ CORS 来源、管理员 UUID、本地路径和沙箱镜像均省略，不返回�
 响应带 `Cache-Control: no-store`，不重新读取磁盘或环境变量、不触发外部健康探测。
 配置文件修改需按原有方式重启服务才能生效；多进程部署中响应仅代表处理请求的进程。
 单次评估的模型与沙箱参数、示例 provider 目录不属于此进程配置视图。
+
+### 普通评估的执行元数据与分析（#318）
+
+Worker 首次创建检查点时冻结该评估各题目的实际执行版本，优先当前所有者的个人题，再读取公共题；不将个人题复制到公共题库。检查点的 `TaskUnit.problem_snapshot` 保存 `schema_version: 1`、`origin` 和完整 `problem`（与数据集引用快照沿用 Problem 的 `source_*` 字段约定）。暂停、重投递、多策略及分难度预算判断继续使用被冻结的版本；旧检查点仅在待执行单元首次调度前补齐快照，不声称恢复了此前丢失的历史版本。
+
+每个单元的结果在 `EvaluationResult.metrics.problem_snapshot` 保存精简元数据：
+
+```json
+{"schema_version":1,"origin":"personal","tags":["graph"],"difficulty":"hard","source_platform":"leetcode","source_problem_id":"42","source_url":null,"source_version":null,"source_metadata":{}}
+```
+
+`origin` 为 `personal`、`public` 或 `unavailable`；解析失败/缺失题目的快照标签为 `[]`、难度为 `null`。执行异常同样保留快照；重复写入沿用原快照。公共库未存储的来源细节保持默认值，不补造历史信息。结果元数据不含完整题面、测试用例或生成代码。
+
+`GET /api/v1/results` 的 `tag`/`difficulty` 筛选、`/analytics/*`、`/failures/by-tag`、`/visualizations/*` 的统计统一优先上述快照。显式空标签和空难度不回退到公共题。雷达按题目 ID 与标签版本区分历史题目，同一版本的多策略结果分别参与成功率，题目数量去重。用户所有权校验与现有响应结构不变。
+
+**旧结果兼容与不完整性**：没有 `problem_snapshot` 的历史结果沿用当前公共题库标签，难度优先原 `metrics.difficulty`、再回退当前公共题库。该路径属于尽力兼容，不能保证历史准确性；同 ID 的个人覆盖关系无法恢复，公共库缺失时不计入标签分组或雷达维度，但仍计入整体结果总数。系统不读取当前个人题为旧结果补写标签，也不自动回填快照。有快照且标签为空与旧记录没有快照具有不同语义。

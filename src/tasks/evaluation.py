@@ -351,10 +351,12 @@ def run_evaluation_task(self: EvaluationTask, evaluation_id: str) -> dict[str, A
                 if queued is not None:
                     execution_strategies.pop(queued.unit_id, None)
                 return False
-            problem = ctx.problem_map.get(queued.problem_id)
-            reached = budget["global_reached"] or (
-                problem is not None and problem.difficulty in budget["exhausted_difficulties"]
-            )
+            if queued.problem_snapshot is not None:
+                difficulty = (queued.problem_snapshot.get("problem") or {}).get("difficulty")
+            else:
+                problem = ctx.problem_map.get(queued.problem_id)
+                difficulty = problem.difficulty if problem is not None else None
+            reached = budget["global_reached"] or difficulty in budget["exhausted_difficulties"]
             if reached and budget["action"] == "pause":
                 return True
             execution_strategies[queued.unit_id] = (
