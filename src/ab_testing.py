@@ -159,6 +159,7 @@ class ABTestRunner:
         self.client_factory = client_factory
         self.sandbox_factory = sandbox_factory
         self.should_stop: Callable[[], bool] = lambda: False
+        self.paused = False
         self.checkpoint_dir: Path | None = None
         self._checkpoint: UnitCheckpoint | None = None
         self.on_problem: Callable[[int, int, str], None] | None = None

@@ -325,22 +325,25 @@ class BenchmarkService:
                 )
                 results = executor.execute() or {}
                 if getattr(executor, "paused", False):
+                    # 先锁 AsyncTask 再锁 run，与 TaskManager.cancel_task 的加锁顺序
+                    # 一致，避免用户取消与预算暂停在 PostgreSQL 上 AB-BA 死锁。
                     with self._session() as session, session.begin():
-                        paused = session.get(BenchmarkRun, run_id, with_for_update=True)
-                        if paused is not None and paused.status == "running":
-                            paused.status = "paused"
-                            paused.updated_at = utcnow()
-                        # 预算暂停没有 API 侧写入 AsyncTask，这里把运行中的任务一并置为暂停。
                         task_row = session.scalars(
-                            select(AsyncTask).where(
+                            select(AsyncTask)
+                            .where(
                                 AsyncTask.task_type == "benchmark",
                                 AsyncTask.entity_id == run_id,
                                 AsyncTask.status == "running",
                             )
+                            .with_for_update()
                         ).first()
                         if task_row is not None:
                             task_row.status = "paused"
                             task_row.updated_at = utcnow()
+                        paused = session.get(BenchmarkRun, run_id, with_for_update=True)
+                        if paused is not None and paused.status == "running":
+                            paused.status = "paused"
+                            paused.updated_at = utcnow()
                     return
 
                 with self._session() as session, session.begin():

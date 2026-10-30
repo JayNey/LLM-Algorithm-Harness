@@ -149,8 +149,11 @@ def _alert_events(app, owner_id, rule_id=None):
 
 
 class _RaisingSender:
-    @staticmethod
-    def deliver(*_a, **_k):
+    def __init__(self, calls):
+        self._calls = calls
+
+    def deliver(self, *_a, **_k):
+        self._calls.append(1)
         raise RuntimeError("smtp down")
 
 
@@ -230,41 +233,31 @@ def test_experiment_budget_pauses_records_alert_once_and_resumes(api, monkeypatc
     assert experiment_status() == "paused"
 
     # 预警按规则触发一次（log 渠道成功落历史），跨恢复不重复。
-    from api.services.cost_service import CostService as _CS
-
-    with app.state.experiments._session() as session:
-        print("DBG budget:", _CS.execution_budget(session, owner))
-    print("DBG events:", _alert_events(app, owner), "| rules:", end=" ")
-    with app.state.experiments._session() as session:
-        from api.db.models import AlertRule as _R
-
-        print(
-            [
-                (r.id[:8], r.threshold_pct, r.channel, r.enabled, r.user_id == owner)
-                for r in session.query(_R).all()
-            ]
-        )
     events = _alert_events(app, owner, rule_id)
     assert len(events) == 1, events
     assert events[0].channel == "log"
 
-    # 通知失败不得破坏任务状态：投递必炸时恢复仍走到暂停（而非 failed）。
+    # 通知失败不得破坏任务状态：新增一条已达阈值的新规则并让投递必炸，
+    # 恢复后 worker 仍走到暂停（而非 failed），且不留下成功投递记录。
+    second = client.post(
+        "/api/v1/alerts",
+        headers=headers,
+        json={"name": "ten", "threshold_pct": 10, "channel": "log", "target": ""},
+    )
+    assert second.status_code == 201, second.text
+    second_rule_id = second.json()["data"]["id"]
+    sender_calls = []
     monkeypatch.setattr(
         "api.services.cost_alert_service.CostAlertSender",
-        lambda *_a, **_k: _RaisingSender(),
+        lambda *_a, **_k: _RaisingSender(sender_calls),
     )
     with patch("src.task_manager.celery_app.send_task"):
         resumed = client.post(f"/api/v1/tasks/{task_id}/resume", headers=headers)
     assert resumed.status_code == 200, resumed.text
-    _result = run_experiment_task(job_id, owner)
-    if _result["status"] != "paused":
-        with app.state.experiments._session() as session:
-            from api.db.models import AsyncTask as _T
-
-            t = session.get(_T, task_id)
-            print("EXP-DEBUG error:", t.error_message if t else None)
-    assert _result["status"] == "paused"
+    assert run_experiment_task(job_id, owner)["status"] == "paused"
     assert experiment_status() == "paused"
+    assert len(sender_calls) >= 1, "投递必炸替身未被触达，失败隔离场景未生效"
+    assert _alert_events(app, owner, second_rule_id) == []
 
     # 调整预算后恢复原任务：已完成单元与费用不重复累计，任务完成。
     assert (
@@ -331,31 +324,7 @@ def test_ab_budget_downgrade_action_pauses_then_completes(api, monkeypatch, tmp_
     app.state.ab_tests._runner_factory = _runner_factory(ABTestRunner)
 
     owner = app.state.auth.authenticate(headers["Authorization"].split()[1]).user_id
-
-    _orig_finish = app.state.ab_tests._finish
-
-    def _finish_spy(task_id, status, **kw):
-        if status == "failed":
-            print("AB-FAIL:", kw.get("error_message"))
-        return _orig_finish(task_id, status, **kw)
-
-    app.state.ab_tests._finish = _finish_spy
-    _result = run_ab_test_task(test_id, owner)
-    if _result["status"] != "paused":
-        with app.state.ab_tests._session() as session:
-            from api.db.models import AsyncTask as _T
-
-            t = session.get(_T, task_id)
-            rows = [(r.id[:8], r.task_type, r.status) for r in session.query(_T).all()]
-            print(
-                "AB-DEBUG task_id:",
-                task_id[:8],
-                "rows:",
-                rows,
-                "err:",
-                t.error_message if t else None,
-            )
-    assert _result["status"] == "paused"
+    assert run_ab_test_task(test_id, owner)["status"] == "paused"
 
     assert (
         client.patch("/api/v1/budgets", headers=headers, json={"global_cap_usd": 10}).status_code

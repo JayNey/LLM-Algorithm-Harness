@@ -286,11 +286,13 @@ class ABTestService:
                 budget = BudgetGuard(self._session, owner_id)
                 cost_alerts = WebCostAlertDispatcher(self._session, test_id)
                 runner.pricing_manager = pricing_snapshot(self._session)
-                runner.on_spend = lambda eid, response, cached, context: (
-                    recorder.callback(**context)(eid, response, cached),
+
+                def on_spend(event_id, response, cached, context):
+                    recorder.callback(**context)(event_id, response, cached)
                     # 费用提交后再做预警检查（与评估 Worker 的单元边界一致）。
-                    cost_alerts.process(owner_id),
-                )
+                    cost_alerts.process(owner_id)
+
+                runner.on_spend = on_spend
                 runner.before_generate = recorder.check
                 runner.checkpoint_dir = Path(f"results/ab-tests/api/{test_id}/execution")
                 runner.should_stop = (
@@ -306,7 +308,13 @@ class ABTestService:
                         output_dir=str(output_dir),
                         celery_task_id=generation,
                     )
-                    return {"test_id": test_id, "status": "paused"}
+                    # 与取消竞争时 _finish 可能不落暂停，回读真实终态。
+                    with self._session() as session:
+                        task = session.get(AsyncTask, task_id)
+                        return {
+                            "test_id": test_id,
+                            "status": task.status if task else "paused",
+                        }
                 self._finish(
                     task_id, "completed", output_dir=str(output_dir), celery_task_id=generation
                 )
