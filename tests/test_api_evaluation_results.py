@@ -1173,3 +1173,242 @@ def test_capability_radar_unmapped_tag_returns_zero_dimensions(client, owner_hea
         "String": 0,
         "Other": 0,
     }
+
+
+@pytest.mark.parametrize("tags", [["graph", "graph"], []])
+def test_execution_snapshot_controls_http_filters_and_analytics(client, owner_headers, tags):
+    """Public ID collisions and explicit empty tags must not change snapshot analysis."""
+    from src.task_service import TaskUnit
+    from src.tasks.evaluation import _record_unit_result
+
+    with client.app.state.task_session_factory() as db:
+        evaluation = db.get(Evaluation, "eval-own")
+        for row in db.scalars(
+            select(EvaluationResult).where(EvaluationResult.evaluation_id == evaluation.id)
+        ):
+            db.delete(row)
+        db.flush()
+        unit = TaskUnit(
+            unit_id="snapshot",
+            strategy="vanilla",
+            problem_id="two-sum",
+            status="completed",
+            result={
+                "status": "success",
+                "metadata": {
+                    "problem_snapshot": {
+                        "schema_version": 1,
+                        "origin": "personal",
+                        "tags": tags,
+                        "difficulty": "hard",
+                        "source_platform": "leetcode",
+                    }
+                },
+            },
+        )
+        _record_unit_result(db, evaluation, unit)
+        _record_unit_result(db, evaluation, unit)
+        db.commit()
+    rate = client.get(
+        "/api/v1/analytics/success-rate", headers=owner_headers, params={"run_id": "run-own"}
+    ).json()["data"]
+    assert rate["by_tag"] == (
+        {"graph": {"solved": 1, "total": 1, "success_rate": 1.0}} if tags else {}
+    )
+    assert rate["by_difficulty"]["hard"]["total"] == 1
+    for tag, total in [("graph", int(bool(tags))), ("array", 0)]:
+        filtered = client.get(
+            "/api/v1/analytics/success-rate",
+            headers=owner_headers,
+            params={"tag": tag, "run_id": "run-own"},
+        ).json()["data"]
+        assert filtered["total"] == total
+        runs = client.get("/api/v1/results", headers=owner_headers, params={"tag": tag})
+        assert runs.status_code == 200, runs.text
+        assert runs.json()["data"]["total"] == total
+    radar = client.get(
+        "/api/v1/visualizations/capability-radar",
+        headers=owner_headers,
+        params={"run_id": "run-own"},
+    ).json()["data"]
+    assert radar["problem_counts"]["Graph"] == int(bool(tags))
+    assert radar["problem_counts"]["Array"] == 0
+
+
+def test_worker_private_metadata_reaches_analysis_http(
+    client, owner_headers, monkeypatch, tmp_path
+):
+    """Real resolver/TaskService/persistence/HTTP chain, isolating only LLM and sandbox."""
+    import json
+
+    from pydantic import SecretStr
+
+    from api.db.models import AsyncTask
+    from src.harness import AlgorithmHarness
+    from src.models import ExecutionResult, LLMConfig
+    from src.models import Problem as DomainProblem
+    from src.tasks.evaluation import run_evaluation_task
+
+    factory = client.app.state.task_session_factory
+    with factory() as db:
+        owner = db.get(Evaluation, "eval-own").user_id
+        db.add(
+            AsyncTask(
+                id="snapshot-task",
+                celery_task_id="snapshot-celery",
+                task_type="evaluation",
+                entity_id="snapshot-eval",
+                user_id=owner,
+            )
+        )
+        db.add(
+            Evaluation(
+                id="snapshot-eval",
+                run_id="snapshot-run",
+                user_id=owner,
+                model="gpt-private",
+                api_key_id="private-key",
+                async_task_id="snapshot-task",
+                strategy_names=["vanilla", "retry"],
+                problem_ids=["private-only", "two-sum"],
+            )
+        )
+        db.commit()
+    problems = [
+        DomainProblem(
+            problem_id=pid,
+            title=pid,
+            description="Return the input unchanged.",
+            difficulty="hard",
+            tags=["graph"],
+            source_platform="leetcode",
+            source_metadata={"batch": "private"},
+            test_cases=[{"input": {"x": 1}, "expected_output": 1}],
+        ).model_dump(mode="json")
+        for pid in ["private-only", "two-sum"]
+    ]
+    with client.app.state.files.store.connection() as db:
+        db.execute(
+            "INSERT INTO api_file_datasets(user_id,payload,updated_at) VALUES (?,?,?)",
+            (owner, json.dumps(problems), 1),
+        )
+    monkeypatch.chdir(tmp_path)
+    auth = client.app.state.auth
+    monkeypatch.setattr("api.auth.config.AuthSettings", lambda: auth.settings)
+    monkeypatch.setattr(
+        auth,
+        "llm_config",
+        lambda *a: LLMConfig(provider="openai", model="gpt-private", api_key=SecretStr("fake")),
+    )
+    monkeypatch.setattr("api.auth.service.AuthService", lambda *a: auth)
+    monkeypatch.setattr(AlgorithmHarness, "_prepare_strategy_runtime", lambda *a: (None, None))
+
+    def execute(self, config, problem, *args):
+        return ExecutionResult(
+            problem_id=problem.problem_id,
+            strategy=config.name,
+            generated_code="",
+            status="failed" if config.name == "retry" else "success",
+            difficulty=problem.difficulty,
+        )
+
+    monkeypatch.setattr(AlgorithmHarness, "_execute_problem", execute)
+    monkeypatch.setattr(AlgorithmHarness, "_estimate_cost", lambda *a: (0.0, {}))
+    monkeypatch.setattr("src.tasks.evaluation.get_db_session", factory)
+    monkeypatch.setattr(run_evaluation_task, "update_state", lambda **k: None)
+    assert run_evaluation_task.run("snapshot-eval")["status"] == "completed"
+    with factory() as db:
+        # Changing both namespaces must not alter saved analysis.
+        public = db.scalar(select(Problem).where(Problem.problem_id == "two-sum"))
+        public.tags = ["math"]
+        public.difficulty = "easy"
+        rows = db.scalars(
+            select(EvaluationResult).where(EvaluationResult.evaluation_id == "snapshot-eval")
+        ).all()
+        assert len(rows) == 4
+        assert all(
+            row.metrics["problem_snapshot"]["source_metadata"] == {"batch": "private"}
+            for row in rows
+        )
+        assert db.scalar(select(Problem).where(Problem.problem_id == "private-only")) is None
+        db.commit()
+    with client.app.state.files.store.connection() as db:
+        db.execute("DELETE FROM api_file_datasets WHERE user_id=?", (owner,))
+    params = {"run_id": "snapshot-run", "tag": "graph", "difficulty": "hard"}
+    rate = client.get(
+        "/api/v1/analytics/success-rate", headers=owner_headers, params=params
+    ).json()["data"]
+    assert rate["total"] == 4 and rate["solved"] == 2
+    tags = client.get("/api/v1/failures/by-tag", headers=owner_headers, params=params).json()[
+        "data"
+    ]["tags"]
+    assert tags["graph"] == {"total": 4, "solved": 2, "success_rate": 0.5}
+    radar = client.get(
+        "/api/v1/visualizations/capability-radar", headers=owner_headers, params=params
+    ).json()["data"]
+    assert radar["problem_counts"]["Graph"] == 2
+    assert radar["series"][0]["data"][radar["dimensions"].index("Graph")] == 50.0
+    assert (
+        client.get(
+            "/api/v1/analytics/success-rate", headers=owner_headers, params={"run_id": "run-other"}
+        ).status_code
+        == 404
+    )
+
+
+def test_radar_keeps_same_id_historical_versions_and_legacy_unknown(client, owner_headers):
+    """A newer version must not reclassify older same-ID results; missing legacy tags stay unknown."""
+    with client.app.state.task_session_factory() as db:
+        owner = db.get(Evaluation, "eval-own").user_id
+        db.add(
+            Evaluation(
+                id="new-version",
+                run_id="new-version",
+                user_id=owner,
+                status="completed",
+                model="gpt-test",
+                problem_ids=["two-sum"],
+                strategy_names=["vanilla"],
+            )
+        )
+        db.add_all(
+            [
+                EvaluationResult(
+                    id="new-version",
+                    evaluation_id="new-version",
+                    problem_id="two-sum",
+                    strategy_name="vanilla",
+                    status="failed",
+                    metrics={
+                        "problem_snapshot": {
+                            "schema_version": 1,
+                            "origin": "personal",
+                            "tags": ["graph"],
+                            "difficulty": "hard",
+                        }
+                    },
+                ),
+                EvaluationResult(
+                    id="legacy-private",
+                    evaluation_id="new-version",
+                    problem_id="missing-legacy",
+                    strategy_name="vanilla",
+                    status="failed",
+                    metrics=None,
+                ),
+            ]
+        )
+        db.commit()
+    radar = client.get("/api/v1/visualizations/capability-radar", headers=owner_headers).json()[
+        "data"
+    ]
+    assert radar["problem_counts"]["Array"] == 1
+    assert radar["problem_counts"]["Graph"] == 1
+    scores = radar["series"][0]["data"]
+    assert scores[radar["dimensions"].index("Array")] == 50.0
+    assert scores[radar["dimensions"].index("Graph")] == 0.0
+    rate = client.get(
+        "/api/v1/analytics/success-rate", headers=owner_headers, params={"run_id": "new-version"}
+    ).json()["data"]
+    assert rate["total"] == 2
+    assert rate["by_tag"] == {"graph": {"total": 1, "solved": 0, "success_rate": 0.0}}
