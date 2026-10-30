@@ -2,10 +2,15 @@ import type { AxiosInstance } from 'axios'
 import { ApiClientError } from '../auth/http.ts'
 import type {
   AlertChannel,
+  AlertEventRecord,
   AlertRule,
   BudgetClient,
   BudgetConfig,
   BudgetUsage,
+  CostBreakdown,
+  CostRange,
+  CostSummary,
+  CostTrends,
 } from './types.ts'
 
 function protocol(field: string): never {
@@ -164,6 +169,109 @@ export function validateBudgetInput(input: {
 }
 
 // 注入 useAuthStore 提供的同一已解包实例，沿用 Cookie、CSRF 和共享刷新。
+
+function completeness(value: Record<string, unknown>, field: string) {
+  return {
+    known_cost_usd:
+      nullableFloat(value.known_cost_usd, `${field}.known_cost_usd`) ?? 0,
+    cost_complete: boolean(value.cost_complete, `${field}.cost_complete`),
+    unknown_cost_count: count(
+      value.unknown_cost_count,
+      `${field}.unknown_cost_count`,
+    ),
+    unknown_reasons: record(
+      value.unknown_reasons ?? {},
+      `${field}.unknown_reasons`,
+    ) as Record<string, number>,
+  }
+}
+
+function costSummary(value: unknown): CostSummary {
+  const data = record(value, 'cost_summary')
+  return {
+    since: data.since == null ? null : text(data.since, 'cost_summary.since'),
+    until: data.until == null ? null : text(data.until, 'cost_summary.until'),
+    total_cost_usd:
+      nullableFloat(data.total_cost_usd, 'cost_summary.total_cost_usd') ?? 0,
+    task_count: count(data.task_count, 'cost_summary.task_count'),
+    by_source: record(data.by_source ?? {}, 'cost_summary.by_source') as Record<
+      string,
+      number
+    >,
+    ...completeness(data, 'cost_summary'),
+  }
+}
+
+function costTrends(value: unknown): CostTrends {
+  const data = record(value, 'cost_trends')
+  const points = Array.isArray(data.data) ? data.data : []
+  return {
+    since: data.since == null ? null : text(data.since, 'cost_trends.since'),
+    until: data.until == null ? null : text(data.until, 'cost_trends.until'),
+    data: points.map((row, index) => {
+      const item = record(row, `cost_trends.data.${index}`)
+      return {
+        date: text(item.date, `cost_trends.data.${index}.date`),
+        cost_usd:
+          nullableFloat(item.cost_usd, `cost_trends.data.${index}.cost_usd`) ??
+          0,
+        known_cost_usd:
+          nullableFloat(
+            item.known_cost_usd,
+            `cost_trends.data.${index}.known_cost_usd`,
+          ) ?? 0,
+        cost_complete: boolean(
+          item.cost_complete,
+          `cost_trends.data.${index}.cost_complete`,
+        ),
+        unknown_cost_count: count(
+          item.unknown_cost_count,
+          `cost_trends.data.${index}.unknown_cost_count`,
+        ),
+        unknown_reasons: record(
+          item.unknown_reasons ?? {},
+          `cost_trends.data.${index}.unknown_reasons`,
+        ) as Record<string, number>,
+      }
+    }),
+    ...completeness(data, 'cost_trends'),
+  }
+}
+
+function costBreakdown(value: unknown): CostBreakdown {
+  const data = record(value, 'cost_breakdown')
+  const numbersRecord = (key: string) =>
+    record(data[key] ?? {}, `cost_breakdown.${key}`) as Record<string, number>
+  return {
+    since: data.since == null ? null : text(data.since, 'cost_breakdown.since'),
+    until: data.until == null ? null : text(data.until, 'cost_breakdown.until'),
+    by_source: numbersRecord('by_source'),
+    by_model: numbersRecord('by_model'),
+    by_strategy: numbersRecord('by_strategy'),
+    ...completeness(data, 'cost_breakdown'),
+  }
+}
+
+function alertEvent(value: unknown, field: string): AlertEventRecord {
+  const data = record(value, field)
+  return {
+    id: text(data.id, `${field}.id`),
+    rule_id: text(data.rule_id, `${field}.rule_id`),
+    threshold_pct: count(data.threshold_pct, `${field}.threshold_pct`),
+    used_usd: nullableFloat(data.used_usd, `${field}.used_usd`) ?? 0,
+    cap_usd: nullableFloat(data.cap_usd, `${field}.cap_usd`) ?? 0,
+    channel: text(data.channel, `${field}.channel`),
+    triggered_at: text(data.triggered_at, `${field}.triggered_at`),
+  }
+}
+
+function rangeParams(range: CostRange | undefined) {
+  const params: Record<string, string> = {}
+  if (range?.since) params.since = range.since
+  if (range?.until) params.until = range.until
+  return params
+}
+
 export function createBudgetClient(http: AxiosInstance): BudgetClient {
   async function get<T>(
     url: string,
@@ -241,6 +349,42 @@ export function createBudgetClient(http: AxiosInstance): BudgetClient {
       await http.delete(`/alerts/${encodeURIComponent(ruleId)}`, {
         timeout: 20_000,
       })
+    },
+    alertHistory: async (signal, limit = 50) => {
+      const data = await http.get<unknown, unknown>('/alerts/history', {
+        signal,
+        timeout: 10_000,
+        params: { limit },
+      })
+      const rows = data as unknown[]
+      if (!Array.isArray(rows)) protocol('alerts_history')
+      return rows.map((row, index) =>
+        alertEvent(row, `alerts_history.${index}`),
+      )
+    },
+    costSummary: async (range, signal) => {
+      const data = await http.get<unknown, unknown>('/costs/summary', {
+        signal,
+        timeout: 10_000,
+        params: rangeParams(range),
+      })
+      return costSummary(data as unknown)
+    },
+    costTrends: async (range, signal) => {
+      const data = await http.get<unknown, unknown>('/costs/trends', {
+        signal,
+        timeout: 10_000,
+        params: rangeParams(range),
+      })
+      return costTrends(data as unknown)
+    },
+    costBreakdown: async (range, signal) => {
+      const data = await http.get<unknown, unknown>('/costs/breakdown', {
+        signal,
+        timeout: 10_000,
+        params: rangeParams(range),
+      })
+      return costBreakdown(data as unknown)
     },
   }
 }

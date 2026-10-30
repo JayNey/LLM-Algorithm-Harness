@@ -5,7 +5,12 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { ExperimentFeedback } from '@/experiments/components.tsx'
 import { useBudgetSession } from '@/budgets/session.tsx'
-import type { AlertChannel, AlertRule, BudgetUsage } from '@/budgets/types.ts'
+import type {
+  AlertChannel,
+  AlertRule,
+  BudgetUsage,
+  CostRange,
+} from '@/budgets/types.ts'
 import { validateAlertInput, validateBudgetInput } from '@/budgets/client.ts'
 
 const CHANNEL_OPTIONS: { value: AlertChannel; label: string }[] = [
@@ -263,6 +268,41 @@ function AlertRulesSection({ onChanged }: { onChanged: () => void }) {
   })
   const [draftError, setDraftError] = useState<string | null>(null)
   const [busy, setBusy] = useState(false)
+  const [editing, setEditing] = useState<AlertRule | null>(null)
+  const [editDraft, setEditDraft] = useState({
+    name: '',
+    threshold_pct: '80',
+    channel: 'log' as AlertChannel,
+    target: '',
+    enabled: true,
+  })
+
+  async function saveEdit() {
+    if (!editing || busy) return
+    const input = {
+      name: editDraft.name.trim(),
+      threshold_pct: Number(editDraft.threshold_pct),
+      channel: editDraft.channel,
+      target: editDraft.target.trim(),
+      enabled: editDraft.enabled,
+    }
+    const invalid = validateAlertInput(input)
+    if (invalid) {
+      setError(invalid)
+      return
+    }
+    setBusy(true)
+    try {
+      await client.updateAlertRule(editing.id, input)
+      setEditing(null)
+      reload()
+      onChanged()
+    } catch (cause: unknown) {
+      setError(cause instanceof Error ? cause.message : '保存失败，请重试')
+    } finally {
+      setBusy(false)
+    }
+  }
 
   const reload = useCallback(() => {
     const controller = new AbortController()
@@ -370,32 +410,114 @@ function AlertRulesSection({ onChanged }: { onChanged: () => void }) {
             </tr>
           </thead>
           <tbody>
-            {rules.map((rule) => (
-              <tr key={rule.id}>
-                <td>{rule.name || rule.id}</td>
-                <td>{rule.threshold_pct}%</td>
-                <td>{rule.channel}</td>
-                <td>{rule.target || '—'}</td>
-                <td>{rule.enabled ? t('启用') : t('停用')}</td>
-                <td className="evaluation-section-heading">
-                  <Button
-                    size="small"
-                    disabled={busy}
-                    onClick={() => void toggle(rule)}
-                  >
-                    {rule.enabled ? t('停用') : t('启用')}
-                  </Button>
-                  <Button
-                    size="small"
-                    danger
-                    disabled={busy}
-                    onClick={() => void remove(rule)}
-                  >
-                    {t('删除')}
-                  </Button>
-                </td>
-              </tr>
-            ))}
+            {rules.map((rule) =>
+              editing?.id === rule.id ? (
+                <tr key={rule.id}>
+                  <td>
+                    <Input
+                      aria-label={t('编辑规则名称')}
+                      value={editDraft.name}
+                      onChange={(event) =>
+                        setEditDraft({ ...editDraft, name: event.target.value })
+                      }
+                    />
+                  </td>
+                  <td>
+                    <Input
+                      aria-label={t('编辑阈值百分比')}
+                      value={editDraft.threshold_pct}
+                      onChange={(event) =>
+                        setEditDraft({
+                          ...editDraft,
+                          threshold_pct: event.target.value,
+                        })
+                      }
+                    />
+                  </td>
+                  <td>
+                    <Select
+                      aria-label={t('编辑通知渠道')}
+                      value={editDraft.channel}
+                      options={CHANNEL_OPTIONS.map((option) => ({ ...option }))}
+                      onChange={(value: AlertChannel) =>
+                        setEditDraft({ ...editDraft, channel: value })
+                      }
+                    />
+                  </td>
+                  <td>
+                    <Input
+                      aria-label={t('编辑通知目标')}
+                      value={editDraft.target}
+                      onChange={(event) =>
+                        setEditDraft({
+                          ...editDraft,
+                          target: event.target.value,
+                        })
+                      }
+                    />
+                  </td>
+                  <td>{editDraft.enabled ? t('启用') : t('停用')}</td>
+                  <td className="evaluation-section-heading">
+                    <Button
+                      size="small"
+                      type="primary"
+                      disabled={busy}
+                      onClick={() => void saveEdit()}
+                    >
+                      {t('保存')}
+                    </Button>
+                    <Button
+                      size="small"
+                      disabled={busy}
+                      onClick={() => setEditing(null)}
+                    >
+                      {t('取消')}
+                    </Button>
+                  </td>
+                </tr>
+              ) : (
+                <tr key={rule.id}>
+                  <td>{rule.name || rule.id}</td>
+                  <td>{rule.threshold_pct}%</td>
+                  <td>{rule.channel}</td>
+                  <td>{rule.target || '—'}</td>
+                  <td>{rule.enabled ? t('启用') : t('停用')}</td>
+                  <td className="evaluation-section-heading">
+                    <Button
+                      size="small"
+                      disabled={busy}
+                      onClick={() => {
+                        setEditing(rule)
+                        setEditDraft({
+                          name: rule.name,
+                          threshold_pct: String(rule.threshold_pct),
+                          channel: rule.channel as AlertChannel,
+                          target: rule.target,
+                          enabled: rule.enabled,
+                        })
+                      }}
+                    >
+                      {t('编辑')}
+                    </Button>
+                    <Button
+                      size="small"
+                      disabled={busy}
+                      onClick={() => void toggle(rule)}
+                    >
+                      {rule.enabled ? t('停用') : t('启用')}
+                    </Button>
+                    <Button
+                      size="small"
+                      danger
+                      disabled={busy}
+                      onClick={() => void remove(rule)}
+                    >
+                      {t('删除')}
+                    </Button>
+                  </td>
+                </tr>
+              ),
+            )}
           </tbody>
         </table>
       ) : (
@@ -454,6 +576,242 @@ function AlertRulesSection({ onChanged }: { onChanged: () => void }) {
   )
 }
 
+function CostOverviewSection() {
+  useTranslation()
+
+  const { client } = useBudgetSession()
+  const [rangeKey, setRangeKey] = useState<'7' | '30' | 'all'>('30')
+  const load = useCallback(
+    (signal: AbortSignal) => {
+      const range: CostRange =
+        rangeKey === 'all'
+          ? { since: null, until: null }
+          : {
+              since: new Date(
+                Date.now() - (rangeKey === '7' ? 7 : 30) * 86_400_000,
+              )
+                .toISOString()
+                .slice(0, 10),
+              until: null,
+            }
+      return Promise.all([
+        client.costSummary(range, signal),
+        client.costTrends(range, signal),
+        client.costBreakdown(range, signal),
+      ])
+    },
+    [client, rangeKey],
+  )
+  const state = useResource(load)
+  const [summary, trends, breakdown] = state.data ?? []
+
+  const unknownNote = (count: number, reasons: Record<string, number>) =>
+    count > 0
+      ? t(
+          '统计含 {{value1}} 条未知费用记录（{{value2}}）；已知费用合计为下限，不是精确总额。',
+          {
+            value1: count,
+            value2:
+              Object.entries(reasons)
+                .map(([key, value]) => `${key}×${value}`)
+                .join(', ') || '—',
+          },
+        )
+      : null
+
+  return (
+    <div className="grid gap-3">
+      <label className="flex items-center gap-2">
+        {t('时间范围')}
+        <Select
+          aria-label={t('费用时间范围')}
+          value={rangeKey}
+          onChange={(value: '7' | '30' | 'all') => setRangeKey(value)}
+          options={[
+            { value: '7', label: t('近 7 天') },
+            { value: '30', label: t('近 30 天') },
+            { value: 'all', label: t('全部') },
+          ]}
+          style={{ width: 160 }}
+        />
+      </label>
+      {state.loading ? (
+        <Skeleton active paragraph={{ rows: 4 }} />
+      ) : state.error ? (
+        <ExperimentFeedback message={t(state.error)} retry={state.retry} />
+      ) : summary && trends && breakdown ? (
+        <>
+          {!summary.cost_complete && (
+            <Alert
+              type="warning"
+              showIcon
+              message={t('部分调用缺少定价或用量，费用统计不完整。')}
+              description={unknownNote(
+                summary.unknown_cost_count,
+                summary.unknown_reasons,
+              )}
+            />
+          )}
+          <table className="evaluation-list-table" aria-label={t('费用汇总')}>
+            <tbody>
+              <tr>
+                <th scope="row">{t('已知费用合计')}</th>
+                <td>{formatUsd(summary.known_cost_usd ?? null)}</td>
+              </tr>
+              <tr>
+                <th scope="row">{t('任务数')}</th>
+                <td>{summary.task_count}</td>
+              </tr>
+            </tbody>
+          </table>
+          <h3 className="mt-2 font-medium">{t('每日费用趋势')}</h3>
+          <table
+            className="evaluation-list-table"
+            aria-label={t('每日费用趋势')}
+          >
+            <thead>
+              <tr>
+                {[t('日期'), t('已知费用（USD）'), t('未知费用条数')].map(
+                  (name) => (
+                    <th key={name} scope="col">
+                      {name}
+                    </th>
+                  ),
+                )}
+              </tr>
+            </thead>
+            <tbody>
+              {trends.data.length ? (
+                [...trends.data].reverse().map((point) => (
+                  <tr key={point.date}>
+                    <td>{point.date}</td>
+                    <td>{formatUsd(point.known_cost_usd)}</td>
+                    <td>{point.unknown_cost_count}</td>
+                  </tr>
+                ))
+              ) : (
+                <tr>
+                  <td colSpan={3}>{t('所选范围内暂无费用记录')}</td>
+                </tr>
+              )}
+            </tbody>
+          </table>
+          <h3 className="mt-2 font-medium">{t('费用分项')}</h3>
+          {(
+            [
+              [t('按来源'), breakdown.by_source],
+              [t('按模型'), breakdown.by_model],
+              [t('按策略'), breakdown.by_strategy],
+            ] as const
+          ).map(([label, rows]) => (
+            <table
+              key={label}
+              className="evaluation-list-table"
+              aria-label={label}
+            >
+              <caption className="text-left">{label}</caption>
+              <thead>
+                <tr>
+                  {[t('条目'), t('已知费用（USD）')].map((name) => (
+                    <th key={name} scope="col">
+                      {name}
+                    </th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody>
+                {Object.entries(rows).length ? (
+                  Object.entries(rows).map(([key, value]) => (
+                    <tr key={key}>
+                      <td>{key}</td>
+                      <td>{formatUsd(value)}</td>
+                    </tr>
+                  ))
+                ) : (
+                  <tr>
+                    <td colSpan={2}>{t('暂无数据')}</td>
+                  </tr>
+                )}
+              </tbody>
+            </table>
+          ))}
+          {unknownNote(
+            breakdown.unknown_cost_count,
+            breakdown.unknown_reasons,
+          ) && (
+            <p className="text-neutral-600 dark:text-neutral-400">
+              {unknownNote(
+                breakdown.unknown_cost_count,
+                breakdown.unknown_reasons,
+              )}
+            </p>
+          )}
+        </>
+      ) : null}
+    </div>
+  )
+}
+
+function AlertHistorySection() {
+  useTranslation()
+
+  const { client } = useBudgetSession()
+  const load = useCallback(
+    (signal: AbortSignal) =>
+      Promise.all([client.alertHistory(signal), client.alertRules(signal)]),
+    [client],
+  )
+  const state = useResource(load)
+  const [history, rules] = state.data ?? [null, null]
+  const ruleName = (ruleId: string) =>
+    rules?.find((rule) => rule.id === ruleId)?.name || ruleId.slice(0, 8)
+
+  return (
+    <div className="grid gap-3">
+      {state.loading ? (
+        <Skeleton active paragraph={{ rows: 3 }} />
+      ) : state.error ? (
+        <ExperimentFeedback message={t(state.error)} retry={state.retry} />
+      ) : history && history.length ? (
+        <table className="evaluation-list-table" aria-label={t('预警投递历史')}>
+          <thead>
+            <tr>
+              {[
+                t('触发时间'),
+                t('规则'),
+                t('阈值'),
+                t('已用 / 上限（USD）'),
+                t('渠道'),
+              ].map((name) => (
+                <th key={name} scope="col">
+                  {name}
+                </th>
+              ))}
+            </tr>
+          </thead>
+          <tbody>
+            {history.map((event) => (
+              <tr key={event.id}>
+                <td>{event.triggered_at}</td>
+                <td>{ruleName(event.rule_id)}</td>
+                <td>{event.threshold_pct}%</td>
+                <td>
+                  {formatUsd(event.used_usd)} / {formatUsd(event.cap_usd)}
+                </td>
+                <td>{event.channel}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      ) : (
+        <p className="text-neutral-600 dark:text-neutral-400">
+          {t('暂无预警投递历史；已配置规则只会在真实预算检查越过阈值时记录。')}
+        </p>
+      )}
+    </div>
+  )
+}
+
 export default function BudgetsPage() {
   useTranslation()
 
@@ -488,6 +846,14 @@ export default function BudgetsPage() {
         <div>
           <h2 className="mb-3 text-lg font-semibold">{t('预警规则')}</h2>
           <AlertRulesSection onChanged={refreshUsage} />
+        </div>
+        <div>
+          <h2 className="mb-3 text-lg font-semibold">{t('费用概览')}</h2>
+          <CostOverviewSection />
+        </div>
+        <div>
+          <h2 className="mb-3 text-lg font-semibold">{t('预警投递历史')}</h2>
+          <AlertHistorySection />
         </div>
       </div>
       <p className="mt-6">

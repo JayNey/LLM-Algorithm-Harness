@@ -49,10 +49,25 @@ function mockRoute(context) {
     const url = new URL(request.url())
     const path = url.pathname.replace('/api/v1', '')
     const method = request.method()
+    // 应用 dev 环境直连 :8000（跨源且 withCredentials），fulfill 响应必须
+    // 反射具体 origin 并携带 allow-credentials，'*' 会被浏览器拦截。
+    const cors = {
+      'access-control-allow-origin': request.headers()['origin'] ?? '*',
+      'access-control-allow-credentials': 'true',
+    }
+    if (method === 'OPTIONS')
+      return route.fulfill({
+        status: 204,
+        headers: {
+          ...cors,
+          'access-control-allow-headers': '*',
+          'access-control-allow-methods': 'GET,POST,PATCH,DELETE,OPTIONS',
+        },
+      })
     const reply = (data, status = 200) =>
       route.fulfill({
         status,
-        headers: { 'access-control-allow-origin': '*' },
+        headers: { ...cors },
         contentType: 'application/json',
         body: JSON.stringify({ success: true, data, message: '' }),
       })
@@ -192,6 +207,61 @@ function mockRoute(context) {
           updated_at: '2026-10-24T00:00:00Z',
         },
       ])
+    if (method === 'GET' && path === '/alerts/history')
+      return reply([
+        {
+          id: 'event-1',
+          rule_id: 'rule-1',
+          threshold_pct: 80,
+          used_usd: 40,
+          cap_usd: 100,
+          channel: 'webhook',
+          triggered_at: '2026-10-28T00:00:00Z',
+        },
+      ])
+    if (method === 'GET' && path === '/costs/summary')
+      return reply({
+        since: null,
+        until: null,
+        total_cost_usd: 1.25,
+        task_count: 2,
+        by_source: { evaluations: 1.0, benchmarks: 0.25 },
+        known_cost_usd: 1.25,
+        cost_complete: true,
+        unknown_cost_count: 0,
+        unknown_reasons: {},
+      })
+    if (method === 'GET' && path === '/costs/trends')
+      return reply({
+        since: null,
+        until: null,
+        data: [
+          {
+            date: '2026-10-28',
+            cost_usd: 1.25,
+            known_cost_usd: 1.25,
+            cost_complete: true,
+            unknown_cost_count: 0,
+            unknown_reasons: {},
+          },
+        ],
+        known_cost_usd: 1.25,
+        cost_complete: true,
+        unknown_cost_count: 0,
+        unknown_reasons: {},
+      })
+    if (method === 'GET' && path === '/costs/breakdown')
+      return reply({
+        since: null,
+        until: null,
+        by_source: { evaluations: 1.0, benchmarks: 0.25 },
+        by_model: { 'model-x': 1.25 },
+        by_strategy: { vanilla: 1.25 },
+        known_cost_usd: 1.25,
+        cost_complete: true,
+        unknown_cost_count: 0,
+        unknown_reasons: {},
+      })
     if (method === 'GET' && path === '/pricing')
       return reply({
         models: {
@@ -294,11 +364,32 @@ async function monitorScenario(page) {
 
 async function budgetsScenario(page) {
   await page.goto(`${base}/settings/budgets`)
-  await check('预算使用量与预警规则渲染（含投递未实现提示）', async () => {
+  await check('预算使用量与预警规则渲染', async () => {
     await page.getByText('预算使用量').waitFor()
     assert.ok((await page.getByText('40%').count()) >= 1)
     assert.ok((await page.getByText('预算预警').count()) >= 1)
-    assert.ok((await page.getByText('通知投递后端尚未实现').count()) >= 1)
+  })
+  await check('费用概览渲染汇总与每日趋势', async () => {
+    await page.getByText('费用概览').waitFor()
+    await page.getByText('已知费用合计').waitFor()
+    assert.ok((await page.getByText('$1.25').count()) >= 1)
+    await page
+      .getByRole('table', { name: '每日费用趋势' })
+      .getByText('2026-10-28')
+      .waitFor()
+  })
+  await check('预警投递历史渲染真实记录', async () => {
+    await page
+      .getByRole('table', { name: '预警投递历史' })
+      .getByText('预算预警')
+      .waitFor()
+  })
+  await page.screenshot({ path: resolve(outDir, 'budgets-mid.png'), fullPage: true })
+  await check('预警规则提供全字段编辑入口', async () => {
+    // antd 会对两字按钮名插入空格（编 辑），用正则匹配可访问名。
+    assert.ok(
+      (await page.getByRole('button', { name: /编\s*辑/ }).count()) >= 1,
+    )
   })
   await page.screenshot({
     path: resolve(outDir, 'budgets.png'),
