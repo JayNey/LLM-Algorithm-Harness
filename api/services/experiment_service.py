@@ -299,18 +299,26 @@ class ExperimentService:
                     return
                 config = self._build_runner_config(row, owner_id, dataset_files)
                 runner = self._runner_factory(config)
+                from api.services.cost_alert_service import WebCostAlertDispatcher
                 from api.services.spend_records import SpendRecorder, pricing_snapshot
+                from src.tasks.budget_guard import BudgetGuard
 
                 recorder = SpendRecorder(self._session, "experiments", experiment_id, owner_id)
+                budget = BudgetGuard(self._session, owner_id)
+                cost_alerts = WebCostAlertDispatcher(self._session, experiment_id)
                 runner.pricing_manager = pricing_snapshot(self._session)
-                runner.on_spend = lambda eid, response, cached, context: recorder.callback(
-                    **context
-                )(eid, response, cached)
+                runner.on_spend = lambda eid, response, cached, context: (
+                    recorder.callback(**context)(eid, response, cached),
+                    # 费用提交后再做预警检查（与评估 Worker 的单元边界一致）。
+                    cost_alerts.process(owner_id),
+                )
                 runner.before_generate = recorder.check
                 runner.checkpoint_dir = Path(f"results/experiments/api/{experiment_id}/execution")
-                runner.should_pause = lambda: self._async_task_stopped(
-                    experiment_id, owner_id, generation
+                runner.should_pause = lambda: (
+                    self._async_task_stopped(experiment_id, owner_id, generation)
+                    or budget.should_pause()
                 )
+                cost_alerts.process(owner_id)
                 runner.on_combination = lambda current, total, model, strategy, repeat: (
                     self._write_progress(
                         experiment_id,

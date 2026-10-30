@@ -300,11 +300,18 @@ class BenchmarkService:
                     budget_cap_usd=config_dict.get("budget_cap_usd"),
                     problem_filters=config_dict.get("problem_filters"),
                 )
+                from api.services.cost_alert_service import WebCostAlertDispatcher
+                from src.tasks.budget_guard import BudgetGuard
+
                 executor = self._executor_factory(suite, harness_config)
                 executor.checkpoint_dir = Path("results/benchmarks/api") / run_id / "units"
-                executor.should_pause = lambda: self._async_task_paused(
-                    run_id, owner_id, generation
+                budget = BudgetGuard(self._session, owner_id)
+                cost_alerts = WebCostAlertDispatcher(self._session, run_id)
+                executor.should_pause = (
+                    lambda: self._async_task_paused(run_id, owner_id, generation)
+                    or budget.should_pause()
                 )
+                cost_alerts.process(owner_id)
                 executor.on_problem = lambda current, total, strategy, problem_id: (
                     self._write_progress(
                         run_id,
@@ -313,7 +320,8 @@ class BenchmarkService:
                         total,
                         f"{strategy}/{problem_id}",
                         generation,
-                    )
+                    ),
+                    cost_alerts.process(owner_id),
                 )
                 results = executor.execute() or {}
                 if getattr(executor, "paused", False):
@@ -322,6 +330,17 @@ class BenchmarkService:
                         if paused is not None and paused.status == "running":
                             paused.status = "paused"
                             paused.updated_at = utcnow()
+                        # 预算暂停没有 API 侧写入 AsyncTask，这里把运行中的任务一并置为暂停。
+                        task_row = session.scalars(
+                            select(AsyncTask).where(
+                                AsyncTask.task_type == "benchmark",
+                                AsyncTask.entity_id == run_id,
+                                AsyncTask.status == "running",
+                            )
+                        ).first()
+                        if task_row is not None:
+                            task_row.status = "paused"
+                            task_row.updated_at = utcnow()
                     return
 
                 with self._session() as session, session.begin():

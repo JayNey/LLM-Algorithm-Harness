@@ -215,6 +215,7 @@ class ABTestRunner:
                 )
             )
         if self.should_stop():
+            self.paused = True
             return output
         report = self._build_report(rows, assignments, output)
         write_checkpoint(output / "ab_test.json", report)
@@ -229,6 +230,7 @@ class ABTestRunner:
             if saved is not None:
                 return saved
             if self.should_stop():
+                self.paused = True
                 return None
             sandbox = self.sandbox_factory(self.config.sandbox_config)
             ok, detail = sandbox.health_check()
