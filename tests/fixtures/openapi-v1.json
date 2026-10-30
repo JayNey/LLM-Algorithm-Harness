@@ -932,6 +932,16 @@
       },
       "EvaluationResponse": {
         "properties": {
+          "async_task_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
           "budget_cap_usd": {
             "anyOf": [
               {
@@ -946,7 +956,23 @@
           "can_cancel": {
             "type": "boolean"
           },
+          "can_delete": {
+            "default": false,
+            "type": "boolean"
+          },
+          "can_pause": {
+            "default": false,
+            "type": "boolean"
+          },
+          "can_resume": {
+            "default": false,
+            "type": "boolean"
+          },
           "can_start": {
+            "type": "boolean"
+          },
+          "can_update": {
+            "default": false,
             "type": "boolean"
           },
           "created_at": {

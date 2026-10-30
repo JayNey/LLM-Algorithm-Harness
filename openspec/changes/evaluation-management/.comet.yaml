@@ -14,8 +14,8 @@ base_ref: 7f3d86a2fabcab8df5f3368c06f31f1bfdbc528d
 design_doc: null
 plan: null
 verify_result: pending
-verify_failures: 0
-verification_report: null
+verify_failures: 1
+verification_report: docs/superpowers/reports/2026-10-30-evaluation-management-verify.md
 branch_status: pending
 created_at: 2026-10-30
 verified_at: null

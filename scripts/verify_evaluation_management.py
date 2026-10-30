@@ -41,7 +41,7 @@ def run():
     with ExitStack() as stack:
 
         def launch(name, command):
-            log = stack.enter_context((runtime / f"{name}.log").open("w"))
+            log = stack.enter_context((runtime / f"{name}.log").open("w", encoding="utf-8"))
             proc = subprocess.Popen(command, cwd=runtime, env=env, stdout=log, stderr=log)
             stack.callback(stop, proc)
             return proc
@@ -175,7 +175,7 @@ def run():
                 "list refreshed",
             ],
         }
-        (runtime / "result.json").write_text(json.dumps(result, indent=2))
+        (runtime / "result.json").write_text(json.dumps(result, indent=2), encoding="utf-8")
         print(json.dumps(result))
         print("Evidence:", runtime / "result.json")
 
