@@ -45,3 +45,11 @@ Python 使用项目 Python 依赖；frontend 需已安装 npm 依赖；PATH 需�
 ## 生命周期状态
 
 三个 change 的构建与验证证据独立记录，验证报告共用本文。归档前保持 `branch_status: pending`；仅在公开阶段守卫成功后记录通过，不绕过守卫。正式归档、主 spec 同步和远端交付在最终归档决策后执行，本文不提前宣称已归档或已推送。
+
+最终状态实测：三个 change 的 build guard 均为 13/13 PASS，verify guard 均为 5/5 PASS，公开状态机已推进至 `phase: archive`、`verify_result: pass`、`archive_confirmation: pending`。归档预演分别为 6/6、5/5、5/5 可执行。当前分支已创建合并提交 `48662a1` 与联调提交 `fce28cb`；正式归档确认前尚未推送，远端 PR 状态仍以旧 head 为准。
+
+## 归档执行结果
+
+用户最终选择 B：归档并推送到既有 PR #313。三个 change 已分别成功归档（7/7、6/6、6/6 步），主 spec 已按 delta 合并。归档时发现新 result-reports 主 spec 的 Purpose 短于 strict 校验要求，已扩写目的说明并同步归档 delta；同时将 app-shell 中遗留的“帮助页为 Mock”说明与已合入的真实帮助页保持一致，未改动产品代码。远端推送结果以 PR 实际 head 为准。
+
+归档后对四份受影响主 spec 逐项 strict 校验，并补齐 problems-management 与 budget-alerts 的既有 Purpose 占位文字。最终三个 archive guard 均为 6/6 PASS；正式归档已完成，待推送归档提交到现有 PR。

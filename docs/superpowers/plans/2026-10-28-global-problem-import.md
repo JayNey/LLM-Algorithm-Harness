@@ -2,6 +2,7 @@
 change: global-problem-import
 design-doc: openspec/changes/global-problem-import/design.md
 base-ref: 831e5fe624ecf54d36f4c88c952615725a97e380
+archived-with: 2026-10-30-global-problem-import
 ---
 
 <!-- comet-task-authority: openspec/changes/global-problem-import/tasks.md -->
