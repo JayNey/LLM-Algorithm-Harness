@@ -300,12 +300,20 @@ class BenchmarkService:
                     budget_cap_usd=config_dict.get("budget_cap_usd"),
                     problem_filters=config_dict.get("problem_filters"),
                 )
+                from api.services.cost_alert_service import WebCostAlertDispatcher
+                from src.tasks.budget_guard import BudgetGuard
+
                 executor = self._executor_factory(suite, harness_config)
                 executor.checkpoint_dir = Path("results/benchmarks/api") / run_id / "units"
-                executor.should_pause = lambda: self._async_task_paused(
-                    run_id, owner_id, generation
+                budget = BudgetGuard(self._session, owner_id)
+                cost_alerts = WebCostAlertDispatcher(self._session, run_id)
+                executor.should_pause = (
+                    lambda: self._async_task_paused(run_id, owner_id, generation)
+                    or budget.should_pause()
                 )
-                executor.on_problem = lambda current, total, strategy, problem_id: (
+                cost_alerts.process(owner_id)
+
+                def on_problem(current: int, total: int, strategy: str, problem_id: str) -> None:
                     self._write_progress(
                         run_id,
                         owner_id,
@@ -314,10 +322,26 @@ class BenchmarkService:
                         f"{strategy}/{problem_id}",
                         generation,
                     )
-                )
+                    cost_alerts.process(owner_id)
+
+                executor.on_problem = on_problem
                 results = executor.execute() or {}
                 if getattr(executor, "paused", False):
+                    # 先锁 AsyncTask 再锁 run，与 TaskManager.cancel_task 的加锁顺序
+                    # 一致，避免用户取消与预算暂停在 PostgreSQL 上 AB-BA 死锁。
                     with self._session() as session, session.begin():
+                        task_row = session.scalars(
+                            select(AsyncTask)
+                            .where(
+                                AsyncTask.task_type == "benchmark",
+                                AsyncTask.entity_id == run_id,
+                                AsyncTask.status == "running",
+                            )
+                            .with_for_update()
+                        ).first()
+                        if task_row is not None:
+                            task_row.status = "paused"
+                            task_row.updated_at = utcnow()
                         paused = session.get(BenchmarkRun, run_id, with_for_update=True)
                         if paused is not None and paused.status == "running":
                             paused.status = "paused"

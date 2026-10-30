@@ -278,21 +278,49 @@ class ABTestService:
             try:
                 config = self._build_config(row, owner_id, dataset_files)
                 runner = self._runner_factory(config)
+                from api.services.cost_alert_service import WebCostAlertDispatcher
                 from api.services.spend_records import SpendRecorder, pricing_snapshot
+                from src.models import LLMResponse
+                from src.tasks.budget_guard import BudgetGuard
 
                 recorder = SpendRecorder(self._session, "ab_tests", test_id, owner_id)
+                budget = BudgetGuard(self._session, owner_id)
+                cost_alerts = WebCostAlertDispatcher(self._session, test_id)
                 runner.pricing_manager = pricing_snapshot(self._session)
-                runner.on_spend = lambda eid, response, cached, context: recorder.callback(
-                    **context
-                )(eid, response, cached)
+
+                def on_spend(
+                    event_id: str,
+                    response: LLMResponse | None,
+                    cached: bool,
+                    context: dict[str, Any],
+                ) -> None:
+                    recorder.callback(**context)(event_id, response, cached)
+                    # 费用提交后再做预警检查（与评估 Worker 的单元边界一致）。
+                    cost_alerts.process(owner_id)
+
+                runner.on_spend = on_spend
                 runner.before_generate = recorder.check
                 runner.checkpoint_dir = Path(f"results/ab-tests/api/{test_id}/execution")
-                runner.should_stop = lambda: self._should_stop(task_id, generation)
-                runner.on_problem = lambda current, total, step: self._progress(
-                    task_id, generation, current, total, step
+                runner.should_stop = (
+                    lambda: self._should_stop(task_id, generation) or budget.should_pause()
                 )
+                cost_alerts.process(owner_id)
                 output_dir = runner.run()
                 recorder.check()
+                if getattr(runner, "paused", False):
+                    self._finish(
+                        task_id,
+                        "paused",
+                        output_dir=str(output_dir),
+                        celery_task_id=generation,
+                    )
+                    # 与取消竞争时 _finish 可能不落暂停，回读真实终态。
+                    with self._session() as session:
+                        task = session.get(AsyncTask, task_id)
+                        return {
+                            "test_id": test_id,
+                            "status": task.status if task else "paused",
+                        }
                 self._finish(
                     task_id, "completed", output_dir=str(output_dir), celery_task_id=generation
                 )

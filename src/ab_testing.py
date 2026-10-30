@@ -159,6 +159,7 @@ class ABTestRunner:
         self.client_factory = client_factory
         self.sandbox_factory = sandbox_factory
         self.should_stop: Callable[[], bool] = lambda: False
+        self.paused = False
         self.checkpoint_dir: Path | None = None
         self._checkpoint: UnitCheckpoint | None = None
         self.on_problem: Callable[[int, int, str], None] | None = None
@@ -215,6 +216,7 @@ class ABTestRunner:
                 )
             )
         if self.should_stop():
+            self.paused = True
             return output
         report = self._build_report(rows, assignments, output)
         write_checkpoint(output / "ab_test.json", report)
@@ -229,6 +231,7 @@ class ABTestRunner:
             if saved is not None:
                 return saved
             if self.should_stop():
+                self.paused = True
                 return None
             sandbox = self.sandbox_factory(self.config.sandbox_config)
             ok, detail = sandbox.health_check()
