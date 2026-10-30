@@ -1,0 +1,299 @@
+{
+  "layer": "real-local-api-redis-celery-browser",
+  "passed": true,
+  "checks": [
+    "real cookie login",
+    "desktop sidebar and quick action",
+    "direct import, double click, close before submit, URL refresh and filters",
+    "real large-file upload, Redis enqueue, Celery processing and terminal progress",
+    "overwrite cancel and confirm with real storage",
+    "320px mobile entry and no overflow",
+    "six real report downloads, run IDs, filenames, bytes and partial warning",
+    "real owner isolation",
+    "Chinese and English budget guidance on real page",
+    "help agrees with real import and report capabilities"
+  ],
+  "errors": [],
+  "requests": [
+    {
+      "method": "POST",
+      "path": "/api/v1/auth/login"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/users/me"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/users/me"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/users/me"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/evaluations"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/evaluations"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/evaluations"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/costs/summary"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/evaluation-options"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/evaluation-options/problems"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/users/me"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/users/me"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/evaluations"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/evaluations"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/evaluations"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/costs/summary"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/users/me"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/users/me"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/evaluation-options"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/evaluation-options/problems"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/users/me"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/users/me"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/evaluation-options"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/evaluation-options/problems"
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/problems/upload"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/evaluation-options/problems"
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/files/upload"
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/problems/import"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/imports/2b09d18a-9f6b-4658-833a-8979733ff5fb"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/evaluation-options/problems"
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/problems/upload"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/evaluation-options/problems"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/users/me"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/users/me"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/evaluations"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/evaluations"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/evaluations"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/costs/summary"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/evaluation-options"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/evaluation-options/problems"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/users/me"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/users/me"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/evaluations/pr313-complete"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/results/pr313-complete"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/evaluations/pr313-complete"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/results/pr313-complete"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/reports/markdown/pr313-run-complete"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/reports/html/pr313-run-complete"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/reports/csv/pr313-run-complete"
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/auth/refresh"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/reports/csv/pr313-run-complete"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/users/me"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/users/me"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/evaluations/pr313-partial"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/results/pr313-partial"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/evaluations/pr313-partial"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/results/pr313-partial"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/reports/markdown/pr313-run-partial"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/reports/html/pr313-run-partial"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/reports/csv/pr313-run-partial"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/users/me"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/users/me"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/alerts"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/budgets/usage"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/users/me"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/users/me"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/alerts"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/budgets/usage"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/users/me"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/users/me"
+    }
+  ]
+}

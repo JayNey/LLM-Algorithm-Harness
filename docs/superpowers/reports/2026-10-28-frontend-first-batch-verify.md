@@ -29,3 +29,7 @@
 ## 工作流记录
 
 Comet 的产品任务为 8/8 完成。正式 phase 守卫仍因 Runtime step 与 Classic phase 的投影不一致拒绝 build evidence；期间的构建命令均退出 0。未手改状态、未宣称 Guard/Archive 已通过。保留该流程记录，联合 PR 可先供 CI 和人工审查。
+
+## 2026-10-30 后续收尾
+
+原验证记录保留为历史证据。真实本地 API/Redis/Celery/Chrome 联调、最新 main 合并和当前 Comet 守卫的验证见 `2026-10-30-frontend-first-batch-final-verify.md`。
