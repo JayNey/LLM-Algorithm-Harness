@@ -1308,4 +1308,7 @@ export default {
   '暂无预警投递历史；已配置规则只会在真实预算检查越过阈值时记录。':
     'No alert delivery history yet; configured rules are recorded only when a real budget check crosses their threshold.',
   费用概览: 'Cost overview',
+  已删除规则: 'Deleted rule',
+  '渠道 {{value1}} 需要填写通知目标':
+    'Channel {{value1}} requires a notification target',
 }

@@ -60,6 +60,10 @@ test('预算读取（含未设置键的 null）与保存（空 cap 省略）', a
             used_usd: 40.25,
             remaining_usd: 60.25,
             percentage_used: 40.05,
+            known_cost_usd: 40.25,
+            cost_complete: true,
+            unknown_cost_count: 0,
+            unknown_reasons: {},
           },
           by_difficulty: {
             easy: { cap_usd: 30, used_usd: 10, percentage_used: 33.33 },
@@ -197,7 +201,24 @@ test('费用概览解析完整性字段并携带 since/until 查询参数', asyn
           until: null,
           total_cost_usd: 1.25,
           task_count: 3,
-          by_source: { evaluations: 1.0, experiments: 0.25 },
+          by_source: {
+            evaluations: {
+              cost_usd: 1.0,
+              task_count: 2,
+              known_cost_usd: 1.0,
+              cost_complete: true,
+              unknown_cost_count: 0,
+              unknown_reasons: {},
+            },
+            experiments: {
+              cost_usd: 0.25,
+              task_count: 1,
+              known_cost_usd: 0.25,
+              cost_complete: false,
+              unknown_cost_count: 2,
+              unknown_reasons: { no_usage: 2 },
+            },
+          },
           known_cost_usd: 1.25,
           cost_complete: false,
           unknown_cost_count: 2,
@@ -215,7 +236,9 @@ test('费用概览解析完整性字段并携带 since/until 查询参数', asyn
   assert.equal(summary.cost_complete, false)
   assert.equal(summary.unknown_cost_count, 2)
   assert.deepEqual(summary.unknown_reasons, { no_usage: 2 })
-  assert.equal(summary.by_source.experiments, 0.25)
+  assert.equal(summary.by_source.experiments.cost_usd, 0.25)
+  assert.equal(summary.by_source.experiments.cost_complete, false)
+  assert.equal(summary.by_source.evaluations.task_count, 2)
   const costCall = seen.find((row) =>
     String(row.url).includes('/costs/summary'),
   )
@@ -270,6 +293,15 @@ test('预警历史解析与 limit 参数', async () => {
       return {
         data: [
           {
+            id: 'event-deleted',
+            rule_id: null,
+            threshold_pct: 80,
+            used_usd: 0.5,
+            cap_usd: 0.6,
+            channel: 'log',
+            triggered_at: '2026-10-27T00:00:00Z',
+          },
+          {
             id: 'event-1',
             rule_id: 'rule-1',
             threshold_pct: 50,
@@ -284,9 +316,10 @@ test('预警历史解析与 limit 参数', async () => {
     return { data: [] }
   })
   const history = await client.alertHistory(undefined, 10)
-  assert.equal(history.length, 1)
-  assert.equal(history[0].channel, 'log')
-  assert.equal(history[0].used_usd, 0.3)
+  assert.equal(history.length, 2)
+  assert.equal(history[1].channel, 'log')
+  assert.equal(history[1].used_usd, 0.3)
+  assert.equal(history[0].rule_id, null)
   const call = seen.find((row) => String(row.url).includes('/alerts/history'))
   assert.deepEqual(call?.params, { limit: 10 })
 })

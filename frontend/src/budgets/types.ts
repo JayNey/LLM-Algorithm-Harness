@@ -55,7 +55,7 @@ export interface CostSummary extends CostCompleteness {
   until: string | null
   total_cost_usd: number
   task_count: number
-  by_source: Record<string, number>
+  by_source: Record<string, CostSummarySourceEntry>
 }
 
 export interface CostTrendPoint {
@@ -81,9 +81,18 @@ export interface CostBreakdown extends CostCompleteness {
   by_strategy: Record<string, number>
 }
 
+export interface CostSummarySourceEntry {
+  cost_usd: number
+  task_count: number
+  known_cost_usd?: number
+  cost_complete?: boolean
+  unknown_cost_count?: number
+  unknown_reasons?: Record<string, number>
+}
+
 export interface AlertEventRecord {
   id: string
-  rule_id: string
+  rule_id: string | null
   threshold_pct: number
   used_usd: number
   cap_usd: number

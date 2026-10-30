@@ -222,35 +222,52 @@ function UsageSection({ usage }: { usage: BudgetUsage }) {
     [t('中等'), usage.by_difficulty.medium],
     [t('困难'), usage.by_difficulty.hard],
   ]
+  const global = usage.global_budget
   return (
-    <table className="evaluation-list-table" aria-label={t('预算使用量')}>
-      <thead>
-        <tr>
-          {[t('口径'), t('上限'), t('已用'), t('剩余'), t('使用率')].map(
-            (name) => (
-              <th key={name} scope="col">
-                {name}
-              </th>
-            ),
+    <div className="grid gap-2">
+      {!global.cost_complete && (
+        <p className="text-neutral-600 dark:text-neutral-400" role="note">
+          {t(
+            '统计含 {{value1}} 条未知费用记录（{{value2}}）；已知费用合计为下限，不是精确总额。',
+            {
+              value1: global.unknown_cost_count ?? 0,
+              value2:
+                Object.entries(global.unknown_reasons ?? {})
+                  .map(([key, value]) => `${key}×${value}`)
+                  .join(', ') || '—',
+            },
           )}
-        </tr>
-      </thead>
-      <tbody>
-        {rows.map(([name, section]) => (
-          <tr key={name}>
-            <td>{name}</td>
-            <td>{formatUsd(section.cap_usd)}</td>
-            <td>{formatUsd(section.used_usd)}</td>
-            <td>{formatUsd(section.remaining_usd ?? null)}</td>
-            <td>
-              {section.percentage_used === null
-                ? '—'
-                : `${section.percentage_used}%`}
-            </td>
+        </p>
+      )}
+      <table className="evaluation-list-table" aria-label={t('预算使用量')}>
+        <thead>
+          <tr>
+            {[t('口径'), t('上限'), t('已用'), t('剩余'), t('使用率')].map(
+              (name) => (
+                <th key={name} scope="col">
+                  {name}
+                </th>
+              ),
+            )}
           </tr>
-        ))}
-      </tbody>
-    </table>
+        </thead>
+        <tbody>
+          {rows.map(([name, section]) => (
+            <tr key={name}>
+              <td>{name}</td>
+              <td>{formatUsd(section.cap_usd)}</td>
+              <td>{formatUsd(section.used_usd)}</td>
+              <td>{formatUsd(section.remaining_usd ?? null)}</td>
+              <td>
+                {section.percentage_used === null
+                  ? '—'
+                  : `${section.percentage_used}%`}
+              </td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
   )
 }
 
@@ -269,6 +286,7 @@ function AlertRulesSection({ onChanged }: { onChanged: () => void }) {
   const [draftError, setDraftError] = useState<string | null>(null)
   const [busy, setBusy] = useState(false)
   const [editing, setEditing] = useState<AlertRule | null>(null)
+  const [saveError, setSaveError] = useState<string | null>(null)
   const [editDraft, setEditDraft] = useState({
     name: '',
     threshold_pct: '80',
@@ -288,17 +306,18 @@ function AlertRulesSection({ onChanged }: { onChanged: () => void }) {
     }
     const invalid = validateAlertInput(input)
     if (invalid) {
-      setError(invalid)
+      setSaveError(invalid)
       return
     }
     setBusy(true)
     try {
       await client.updateAlertRule(editing.id, input)
       setEditing(null)
+      setSaveError(null)
       reload()
       onChanged()
     } catch (cause: unknown) {
-      setError(cause instanceof Error ? cause.message : '保存失败，请重试')
+      setSaveError(cause instanceof Error ? cause.message : '保存失败，请重试')
     } finally {
       setBusy(false)
     }
@@ -389,6 +408,15 @@ function AlertRulesSection({ onChanged }: { onChanged: () => void }) {
         )}
       />
       {error && <ExperimentFeedback message={t(error)} retry={reload} />}
+      {saveError && (
+        <Alert
+          type="error"
+          showIcon
+          message={t(saveError)}
+          closable
+          onClose={() => setSaveError(null)}
+        />
+      )}
       {rules === null && !error ? (
         <Skeleton active paragraph={{ rows: 3 }} />
       ) : rules && rules.length ? (
@@ -763,8 +791,10 @@ function AlertHistorySection() {
   )
   const state = useResource(load)
   const [history, rules] = state.data ?? [null, null]
-  const ruleName = (ruleId: string) =>
-    rules?.find((rule) => rule.id === ruleId)?.name || ruleId.slice(0, 8)
+  const ruleName = (ruleId: string | null) => {
+    if (ruleId === null) return t('已删除规则')
+    return rules?.find((rule) => rule.id === ruleId)?.name || ruleId.slice(0, 8)
+  }
 
   return (
     <div className="grid gap-3">

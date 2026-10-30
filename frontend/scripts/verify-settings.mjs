@@ -186,6 +186,10 @@ function mockRoute(context) {
           used_usd: 40,
           remaining_usd: 60,
           percentage_used: 40,
+          known_cost_usd: 40,
+          cost_complete: true,
+          unknown_cost_count: 0,
+          unknown_reasons: {},
         },
         by_difficulty: {
           easy: { cap_usd: 30, used_usd: 10, percentage_used: 33.33 },
@@ -210,6 +214,15 @@ function mockRoute(context) {
     if (method === 'GET' && path === '/alerts/history')
       return reply([
         {
+          id: 'event-deleted',
+          rule_id: null,
+          threshold_pct: 80,
+          used_usd: 12,
+          cap_usd: 100,
+          channel: 'log',
+          triggered_at: '2026-10-27T00:00:00Z',
+        },
+        {
           id: 'event-1',
           rule_id: 'rule-1',
           threshold_pct: 80,
@@ -225,7 +238,24 @@ function mockRoute(context) {
         until: null,
         total_cost_usd: 1.25,
         task_count: 2,
-        by_source: { evaluations: 1.0, benchmarks: 0.25 },
+        by_source: {
+          evaluations: {
+            cost_usd: 1.0,
+            task_count: 1,
+            known_cost_usd: 1.0,
+            cost_complete: true,
+            unknown_cost_count: 0,
+            unknown_reasons: {},
+          },
+          benchmarks: {
+            cost_usd: 0.25,
+            task_count: 1,
+            known_cost_usd: 0.25,
+            cost_complete: true,
+            unknown_cost_count: 0,
+            unknown_reasons: {},
+          },
+        },
         known_cost_usd: 1.25,
         cost_complete: true,
         unknown_cost_count: 0,
@@ -378,11 +408,10 @@ async function budgetsScenario(page) {
       .getByText('2026-10-28')
       .waitFor()
   })
-  await check('预警投递历史渲染真实记录', async () => {
-    await page
-      .getByRole('table', { name: '预警投递历史' })
-      .getByText('预算预警')
-      .waitFor()
+  await check('预警投递历史渲染真实记录（含已删除规则回退）', async () => {
+    const table = page.getByRole('table', { name: '预警投递历史' })
+    await table.getByText('预算预警').waitFor()
+    await table.getByText('已删除规则').waitFor()
   })
   await page.screenshot({ path: resolve(outDir, 'budgets-mid.png'), fullPage: true })
   await check('预警规则提供全字段编辑入口', async () => {

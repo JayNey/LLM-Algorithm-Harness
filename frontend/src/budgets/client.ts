@@ -91,6 +91,17 @@ function usageSection(
       data.percentage_used,
       `${field}.percentage_used`,
     ),
+    known_cost_usd:
+      nullableFloat(data.known_cost_usd, `${field}.known_cost_usd`) ?? 0,
+    cost_complete: boolean(data.cost_complete, `${field}.cost_complete`),
+    unknown_cost_count: count(
+      data.unknown_cost_count,
+      `${field}.unknown_cost_count`,
+    ),
+    unknown_reasons: record(
+      data.unknown_reasons ?? {},
+      `${field}.unknown_reasons`,
+    ) as Record<string, number>,
   }
 }
 
@@ -188,16 +199,35 @@ function completeness(value: Record<string, unknown>, field: string) {
 
 function costSummary(value: unknown): CostSummary {
   const data = record(value, 'cost_summary')
+  const by_source = record(data.by_source ?? {}, 'cost_summary.by_source')
   return {
     since: data.since == null ? null : text(data.since, 'cost_summary.since'),
     until: data.until == null ? null : text(data.until, 'cost_summary.until'),
     total_cost_usd:
       nullableFloat(data.total_cost_usd, 'cost_summary.total_cost_usd') ?? 0,
     task_count: count(data.task_count, 'cost_summary.task_count'),
-    by_source: record(data.by_source ?? {}, 'cost_summary.by_source') as Record<
-      string,
-      number
-    >,
+    // 后端 by_source 的值是 {cost_usd, task_count, 完整性} 嵌套对象（与
+    // breakdown 的扁平数字不同）。
+    by_source: Object.fromEntries(
+      Object.entries(by_source).map(([key, row]) => {
+        const item = record(row, `cost_summary.by_source.${key}`)
+        return [
+          key,
+          {
+            cost_usd:
+              nullableFloat(
+                item.cost_usd,
+                `cost_summary.by_source.${key}.cost_usd`,
+              ) ?? 0,
+            task_count: count(
+              item.task_count,
+              `cost_summary.by_source.${key}.task_count`,
+            ),
+            ...completeness(item, `cost_summary.by_source.${key}`),
+          },
+        ]
+      }),
+    ),
     ...completeness(data, 'cost_summary'),
   }
 }
@@ -256,7 +286,9 @@ function alertEvent(value: unknown, field: string): AlertEventRecord {
   const data = record(value, field)
   return {
     id: text(data.id, `${field}.id`),
-    rule_id: text(data.rule_id, `${field}.rule_id`),
+    // 规则删除后 ondelete=SET NULL 会把 rule_id 置空（历史仍需展示）。
+    rule_id:
+      data.rule_id == null ? null : text(data.rule_id, `${field}.rule_id`),
     threshold_pct: count(data.threshold_pct, `${field}.threshold_pct`),
     used_usd: nullableFloat(data.used_usd, `${field}.used_usd`) ?? 0,
     cap_usd: nullableFloat(data.cap_usd, `${field}.cap_usd`) ?? 0,
