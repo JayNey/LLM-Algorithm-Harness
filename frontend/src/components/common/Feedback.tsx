@@ -1,6 +1,6 @@
 import { useTranslation } from 'react-i18next'
 import { t } from '../../i18n/core.ts'
-import { App, Button, Empty, Result, Skeleton } from 'antd'
+import { Button, Empty, Result, Skeleton } from 'antd'
 import { Component, type ReactNode } from 'react'
 export function Loading() {
   useTranslation()
@@ -81,49 +81,6 @@ class PageErrorBoundary extends Component<
     )
   }
 }
-export function ToastExamples() {
-  useTranslation()
-
-  const { message } = App.useApp()
-  function show(type: 'success' | 'error' | 'warning' | 'info', label: string) {
-    const key = `feedback-${type}`
-    void message.open({
-      key,
-      type,
-      duration: 4,
-      content: (
-        <span>
-          {label} · Mock{' '}
-          <Button
-            type="text"
-            size="small"
-            aria-label={t('关闭{{value1}}', { value1: label })}
-            onClick={() => message.destroy(key)}
-          >
-            {t('关闭')}
-          </Button>
-        </span>
-      ),
-    })
-  }
-  return (
-    <div className="notification-actions" style={{ flexWrap: 'wrap' }}>
-      {(
-        [
-          ['success', t('成功提示')],
-          ['error', t('错误提示')],
-          ['warning', t('警告提示')],
-          ['info', t('信息提示')],
-        ] as const
-      ).map(([type, label]) => (
-        <Button key={type} onClick={() => show(type, label)}>
-          {label}
-        </Button>
-      ))}
-    </div>
-  )
-}
-
 export function ErrorBoundary({ children }: { children: ReactNode }) {
   useTranslation()
   return <PageErrorBoundary>{children}</PageErrorBoundary>

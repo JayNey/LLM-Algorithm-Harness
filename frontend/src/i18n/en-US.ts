@@ -409,6 +409,15 @@ export default {
   '前缀（可选）': 'Prefix (optional)',
   '后缀（可选）': 'Suffix (optional)',
   '密钥列表响应无效，请重试': 'Invalid key list response. Try again',
+  '模型目录加载失败，可手动输入':
+    'Model catalog failed to load; manual entry still works',
+  重试加载模型目录: 'Retry model catalog',
+  '模型目录可能不完整，可手动输入':
+    'Model catalog may be incomplete; manual entry still works',
+  '目录为空，可手动输入': 'Catalog is empty; manual entry still works',
+  '策略目录加载失败，可手动输入':
+    'Strategy catalog failed to load; manual entry still works',
+  重试加载策略目录: 'Retry strategy catalog',
   '创建失败，请重试': 'Failed to create. Try again',
   '创建 A/B 测试': 'Create A/B test',
   '同一模型与策略下，对比两个提示词变体的通过率差异。':
@@ -1182,4 +1191,73 @@ export default {
     'Import paused. This page cannot resume or cancel it. Do not submit again; if it remains paused, contact an administrator with import job ID: {{jobId}}.',
   '报告不可访问，请确认当前账号和运行记录。':
     'The report is inaccessible. Check the current account and run.',
+  密钥配置: 'Key setup',
+  题库导入: 'Problem import',
+  创建与启动评估: 'Create and start an evaluation',
+  查看结果与报告: 'Results and reports',
+  '实验、基准与 A/B 测试': 'Experiments, benchmarks and A/B tests',
+  预算与通知: 'Budgets and notifications',
+  管理员与运行环境: 'Administrators and runtime',
+  '按真实流程完成一次评估：配置密钥、导入题目、创建并启动任务、查看结果。':
+    'Walk through a real evaluation: configure a key, import problems, create and start a task, then review the results.',
+  帮助目录: 'Help contents',
+  在: 'In ',
+  '设置 → API 密钥': 'Settings → API keys',
+  '添加模型提供商的密钥。密钥加密存储，界面只显示脱敏预览；创建评估时按密钥读取可用模型目录。':
+    ', add your model provider key. Keys are stored encrypted and only a masked preview is shown; the create-evaluation form reads the available model catalog per key.',
+  '设置 → 定价管理': 'Settings → Pricing',
+  '为使用的模型配置每 1k tokens 的输入/输出单价；未配置定价的模型成本按未知处理，不计入费用统计。':
+    ', set input/output prices per 1k tokens for the models you use. Models without pricing report an unknown cost and are not counted in spend.',
+  进入: 'Open ',
+  '，选择题目文件后导入：小文件同步直导，大文件后台异步导入并显示进度与校验报告；可选择追加或覆盖。':
+    ' and import a problem file: small files import synchronously, large files run in the background with progress and a validation report; choose append or overwrite.',
+  '侧栏、顶部快速操作与移动导航中的「导入题目」会直接打开题库的真实导入面板。':
+    'The "Import problems" entries in the sidebar, top quick actions and mobile navigation open the real problem import panel directly.',
+  打开: 'Open ',
+  '，依次选择密钥、模型（按密钥读取目录）、策略与题目，创建后立即请求启动。':
+    ', pick a key, a model from the catalog loaded for that key, strategies and problems; the task requests a start right after creation.',
+  '查看任务状态与花费；详情页通过实时通道推送进度，连接不可用时自动切换为轮询。':
+    ', check task status and spend. The detail page streams progress over a live channel and falls back to polling when the connection is unavailable.',
+  '任务执行依赖后端的 Redis、Celery worker 与 Docker 沙箱镜像；缺少任一组件时启动会被拒绝或在预检阶段失败，错误原因会显示在任务页。':
+    'Execution depends on the backend Redis, Celery worker and Docker sandbox image; if any is missing the start is rejected or fails in preflight, and the reason is shown on the task page.',
+  '查看策略汇总与单题结果；结果页区分等待结果、部分缺失、失败与完整等状态，不把部分记录当作完整评估。':
+    ', review per-strategy summaries and per-problem results. The page distinguishes waiting, partially missing, failed and complete states instead of presenting partial records as a complete evaluation.',
+  '结果详情可下载 Markdown、HTML 与 CSV 即时报告；未完成运行的报告仅包含已记录的部分结果。':
+    'Download Markdown, HTML and CSV reports from result details. Reports for incomplete runs contain only the results recorded so far.',
+  '、': ', ',
+  与: ' and ',
+  '的数据来源可选「个人题库」（使用已导入题目的快照，创建时固定）或「服务器数据集路径」（DATA_ROOT 下的相对路径，如 problems.json）；尚无题目时请先在题库页导入。':
+    ' can use either "Personal library" (a snapshot of your imported problems, fixed at creation time) or "Server dataset path" (relative to DATA_ROOT, for example problems.json); import problems first if your library is empty.',
+  '三处表单的模型与策略可直接从目录选择：策略来自评估选项，模型按所选密钥读取；目录加载失败或不完整时仍可手动输入。':
+    'All three forms let you pick models and strategies from catalogs: strategies come from the evaluation options and models are loaded for the selected key; manual entry still works when a catalog fails or is incomplete.',
+  '设置 → 预算与预警': 'Settings → Budgets and alerts',
+  '设置个人预算。预算的暂停与策略降级只作用于评估任务；实验、基准与 A/B 测试的费用计入统一费用统计和预算用量，但这些任务不会因预算被暂停。':
+    ', set your personal budget. Budget pauses and strategy downgrades apply to evaluation tasks only; experiment, benchmark and A/B spend counts toward unified cost statistics and budget usage, but those tasks are not paused by the budget.',
+  '预警投递支持 Slack、Webhook 与 SMTP 邮件，依赖部署时的渠道配置；保存规则不等于投递成功。':
+    'Alert delivery supports Slack, webhooks and SMTP email and depends on channel configuration at deployment time; saving a rule does not mean a delivery succeeded.',
+  '顶部通知中心的内容仍为示例数据，不反映真实任务事件。':
+    'The notification center in the header still shows sample data and does not reflect real task events.',
+  '设置 → 系统状态': 'Settings → System status',
+  '仅管理员可见：由部署者在后端 MONITOR_ADMIN_USER_IDS 中配置已注册用户的 UUID 并重启 API，没有自助提权入口。':
+    ' is visible to administrators only: the deployer lists registered user UUIDs in the backend MONITOR_ADMIN_USER_IDS and restarts the API; there is no self-service promotion.',
+  '本地运行方式与环境变量说明见仓库 docs/deployment/deploy.md；界面语言可在右上角切换，偏好会被保存。':
+    'Local setup and environment variables are documented in docs/deployment/deploy.md in the repository; switch the UI language in the top-right corner and the preference is saved.',
+  '实验（复数）': 'Experiments',
+  数据来源: 'Data source',
+  个人题库: 'Personal library',
+  服务器数据集路径: 'Server dataset path',
+  加载个人题库: 'Loading personal library',
+  选择个人题库: 'Select personal library',
+  '尚无可用个人题目，请先导入题库。':
+    'No personal problems are available. Import a dataset first.',
+  前往题库: 'Open problem library',
+  '创建时保存题目快照，后续导入不会改变本次执行数据。':
+    'A problem snapshot is saved on creation. Later imports will not change this run.',
+  数据集加载失败: 'Could not load datasets',
+  数据集列表格式不兼容: 'Dataset list format is incompatible',
+  数据集引用格式不兼容: 'Dataset reference format is incompatible',
+  '请选择一种数据源，不能同时提供个人题库和服务器路径':
+    'Choose one data source: a personal library or a server path',
+  请选择个人题库或填写服务器数据集路径:
+    'Select a personal library or enter a server dataset path',
 }

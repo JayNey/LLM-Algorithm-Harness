@@ -251,7 +251,9 @@ export default function ABTestDetailPage() {
         )}
         <dl>
           <dt>{t('数据集')}</dt>
-          <dd>{job.config.dataset_path}</dd>
+          <dd>
+            {job.config.dataset_id ? t('个人题库') : job.config.dataset_path}
+          </dd>
           <dt>{t('模型 / 策略')}</dt>
           <dd>
             {job.config.model.model} × {job.config.strategy.name}（seed{' '}

@@ -3,6 +3,7 @@
 import json
 import uuid
 from collections.abc import Callable
+from contextlib import ExitStack
 from datetime import datetime
 from pathlib import Path
 from threading import Semaphore
@@ -13,7 +14,12 @@ from sqlalchemy.orm import Session
 
 from api.auth.service import AuthService
 from api.config import settings
-from api.datasets import resolve_dataset_path
+from api.datasets import (
+    execution_dataset,
+    freeze_dataset,
+    public_dataset_config,
+    resolve_dataset_path,
+)
 from api.db import ABTest, AsyncTask, make_engine, make_session_factory, run_migrations
 from api.db.engine import business_database_url
 from api.db.models import utcnow
@@ -33,7 +39,7 @@ def _job_view(row: ABTest) -> dict[str, Any]:
         "id": row.id,
         "name": row.name,
         "status": row.status,
-        "config": row.config,
+        "config": public_dataset_config(row.config),
         "error_message": row.error_message,
         "created_at": _iso(row.created_at),
         "updated_at": _iso(row.updated_at),
@@ -102,13 +108,16 @@ class ABTestService:
         if self._auth is None:
             raise ValueError("authentication service is not configured")
         self._auth.owned_key(request.api_key_id, owner_id)
-        resolve_dataset_path(request.dataset_path)
         ids = [variant.id for variant in request.prompt_variants]
         if len(set(ids)) != len(ids):
             raise ValueError("prompt_variants must contain unique IDs")
         config: dict[str, Any] = {
             "name": request.name,
             "dataset_path": request.dataset_path,
+            "dataset_id": request.dataset_id,
+            "dataset_snapshot": freeze_dataset(
+                request.dataset_id, request.dataset_path, owner_id, self._auth
+            ),
             "model": {
                 "model": request.model.model,
                 "base_url": request.model.base_url,
@@ -208,7 +217,9 @@ class ABTestService:
             view["task_id"] = task.id
             return view
 
-    def _build_config(self, row: ABTest, owner_id: str) -> ABTestConfig:
+    def _build_config(
+        self, row: ABTest, owner_id: str, dataset_files: ExitStack | None = None
+    ) -> ABTestConfig:
         if self._auth is None:
             # Resolve credentials only after the worker has atomically claimed
             # this delivery, so duplicate messages never initialize auth.
@@ -216,6 +227,12 @@ class ABTestService:
 
             self._auth = AuthService(AuthSettings())
         config = row.config
+        if config.get("dataset_snapshot") is not None or config.get("dataset_id"):
+            if dataset_files is None:
+                raise ValueError("Dataset snapshot requires an execution scope")
+            dataset_path = dataset_files.enter_context(execution_dataset(config, owner_id))
+        else:
+            dataset_path = str(resolve_dataset_path(config["dataset_path"]))
         spec = ModelSpec(**config["model"])
         llm = self._auth.llm_config(row.api_key_id or "", owner_id, spec.model)
         update: dict[str, Any] = {}
@@ -227,7 +244,7 @@ class ABTestService:
             llm = llm.model_copy(update=update)
         return ABTestConfig(
             name=config["name"] or f"api-{row.id[:8]}",
-            dataset_path=str(resolve_dataset_path(config["dataset_path"])),
+            dataset_path=dataset_path,
             output_dir=f"results/ab-tests/api/{row.id}",
             model=llm,
             strategy=config["strategy"],
@@ -257,9 +274,9 @@ class ABTestService:
                 return {"test_id": test_id, "status": task.status}
             generation = manager.celery_task_id
 
-        with self._concurrent_semaphore:
+        with self._concurrent_semaphore, ExitStack() as dataset_files:
             try:
-                config = self._build_config(row, owner_id)
+                config = self._build_config(row, owner_id, dataset_files)
                 runner = self._runner_factory(config)
                 from api.services.spend_records import SpendRecorder, pricing_snapshot
 

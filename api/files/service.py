@@ -323,6 +323,12 @@ class FileService:
             self.store.fail_job(job_id, {"status_code": 500, "detail": "Import failed"})
             logger.warning("file_import_failed job_id=%s", job_id)
 
+    def datasets(self, user_id: str) -> list[dict[str, Any]]:
+        """List only the authenticated user's imported collection."""
+        from api.datasets import list_datasets
+
+        return list_datasets(self.store, user_id)
+
     def export_dataset(self, user_id: str, format_name: str) -> tuple[str, str, bytes]:
         data = self.store.dataset(user_id)
         if format_name == "json":

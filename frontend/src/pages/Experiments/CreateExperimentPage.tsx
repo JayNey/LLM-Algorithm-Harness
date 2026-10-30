@@ -1,3 +1,4 @@
+import DatasetPicker from '@/experiments/DatasetPicker.tsx'
 import { useTranslation } from 'react-i18next'
 import { t } from '../../i18n/core.ts'
 import { Alert, Button, Input, Select, Skeleton } from 'antd'
@@ -5,7 +6,6 @@ import { useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { useStore } from 'zustand'
 import { readApiKeys } from '@/account/apiKeys.ts'
-import { ApiClientError } from '@/auth/http.ts'
 import { ExperimentFeedback } from '@/experiments/components.tsx'
 import {
   budgetKindLabels,
@@ -16,45 +16,14 @@ import type { DraftErrors, ExperimentDraft } from '@/experiments/types.ts'
 import { validateExperimentDraft } from '@/experiments/validation.ts'
 import { useAuthStore } from '@/store/auth.ts'
 import type { AxiosInstance } from 'axios'
-import { useCallback, useEffect } from 'react'
+import { useCallback } from 'react'
+import {
+  ModelNameField,
+  StrategyNameField,
+} from '@/evaluations/optionFields.tsx'
+import { effectiveApiKey } from '@/evaluations/optionCatalog.ts'
+import { useResource } from '@/hooks/useResource.ts'
 import '@/evaluations/workflow.css'
-
-function useResource<T>(load: (signal: AbortSignal) => Promise<T>) {
-  const [attempt, setAttempt] = useState(0)
-  const [state, setState] = useState<{
-    load: typeof load
-    attempt: number
-    data?: T
-    error?: string
-  }>()
-  useEffect(() => {
-    const controller = new AbortController()
-    void load(controller.signal).then(
-      (data) => {
-        if (!controller.signal.aborted) setState({ load, attempt, data })
-      },
-      (error: unknown) => {
-        if (!controller.signal.aborted)
-          setState({
-            load,
-            attempt,
-            error:
-              error instanceof ApiClientError
-                ? error.message
-                : '加载失败，请重试',
-          })
-      },
-    )
-    return () => controller.abort()
-  }, [load, attempt])
-  const current = state?.load === load && state.attempt === attempt
-  return {
-    data: current ? state.data : undefined,
-    error: current ? state.error : undefined,
-    loading: !current,
-    retry: () => setAttempt((value) => value + 1),
-  }
-}
 
 export default function CreateExperimentPage() {
   useTranslation()
@@ -162,21 +131,13 @@ export default function CreateExperimentPage() {
                 disabled={!editing}
               />
             </label>
-            <label>
-              {t('数据集路径（DATA_ROOT 下的相对路径）')}
-              <Input
-                aria-label={t('数据集路径')}
-                value={draft.dataset_path}
-                placeholder="datasets/demo.json"
-                onChange={(event) =>
-                  update({ dataset_path: event.target.value })
-                }
-                disabled={!editing}
-              />
-              {errors.dataset_path && (
-                <small role="alert">{t(errors.dataset_path)}</small>
-              )}
-            </label>
+            <DatasetPicker
+              datasetId={draft.dataset_id}
+              datasetPath={draft.dataset_path}
+              onChange={update}
+              disabled={!editing}
+              error={errors.dataset_path}
+            />
             <label>
               API Key
               <Select
@@ -199,15 +160,16 @@ export default function CreateExperimentPage() {
               <legend>{t('模型（至少一个）')}</legend>
               {draft.models.map((model, index) => (
                 <div key={index} className="evaluation-section-heading">
-                  <Input
-                    aria-label={t('模型 {{value1}} 名称', {
+                  <ModelNameField
+                    ariaLabel={t('模型 {{value1}} 名称', {
                       value1: index + 1,
                     })}
-                    placeholder={t('模型名，如 model-a')}
                     value={model.model}
-                    onChange={(event) =>
-                      updateModel(index, { model: event.target.value })
-                    }
+                    apiKeyId={effectiveApiKey(
+                      model.api_key_id,
+                      draft.api_key_id,
+                    )}
+                    onChange={(value) => updateModel(index, { model: value })}
                     disabled={!editing}
                   />
                   <Input
@@ -221,14 +183,19 @@ export default function CreateExperimentPage() {
                     }
                     disabled={!editing}
                   />
-                  <Input
+                  <Select
                     aria-label={t('模型 {{value1}} 专用密钥', {
                       value1: index + 1,
                     })}
                     placeholder={t('专用密钥 ID（可选）')}
-                    value={model.api_key_id}
-                    onChange={(event) =>
-                      updateModel(index, { api_key_id: event.target.value })
+                    allowClear
+                    value={model.api_key_id || undefined}
+                    options={(keys.data ?? []).map((key) => ({
+                      value: key.id,
+                      label: key.key_name || key.id,
+                    }))}
+                    onChange={(value: string | undefined) =>
+                      updateModel(index, { api_key_id: value ?? '' })
                     }
                     disabled={!editing}
                   />
@@ -270,15 +237,12 @@ export default function CreateExperimentPage() {
               <legend>{t('策略（至少一个）')}</legend>
               {draft.strategies.map((strategy, index) => (
                 <div key={index} className="evaluation-section-heading">
-                  <Input
-                    aria-label={t('策略 {{value1}} 名称', {
+                  <StrategyNameField
+                    ariaLabel={t('策略 {{value1}} 名称', {
                       value1: index + 1,
                     })}
-                    placeholder={t('策略名，如 vanilla')}
                     value={strategy.name}
-                    onChange={(event) =>
-                      updateStrategy(index, { name: event.target.value })
-                    }
+                    onChange={(value) => updateStrategy(index, { name: value })}
                     disabled={!editing}
                   />
                   <Input

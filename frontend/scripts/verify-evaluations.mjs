@@ -87,6 +87,7 @@ const report = {
     'HTTP /api/v1/evaluations create/start/get',
     'results scenario: HTTP /api/v1/results list/detail',
     'entries scenario: HTTP /api/v1/results list (empty fixture)',
+    'entries scenario: HTTP /api/v1/costs/summary (zero fixture for real dashboard)',
     'localStorage session marker (no credentials)',
     'security lifecycle only: isolated HTML and in-memory auth/HTTP transport',
     'security HTTP: route-controlled Cookie/CSRF and auth API responses; real shared Axios client',
@@ -408,6 +409,8 @@ async function fixture(
         offset: Number(url.searchParams.get('offset')) || 0,
         has_more: false,
       })
+    if (mode === 'entries' && method === 'GET' && path === '/costs/summary')
+      return send({ total_cost_usd: 0 })
     if (
       mode.startsWith('detail-') &&
       path.startsWith('/evaluations/eval-fixture-1')
@@ -2700,15 +2703,21 @@ async function entriesScenario() {
     .getByRole('button', { name: '创建评估', exact: true })
     .click()
   await toCreatePage('仪表盘页头创建按钮')
-  await page.goto(`${base}/`)
-  await page.getByRole('heading', { name: '仪表盘', exact: true }).waitFor()
-  await choose(page, '预览数据状态', '状态：空数据')
-  await page.getByRole('button', { name: '创建首个评估', exact: true }).click()
-  await toCreatePage('空状态创建按钮')
   await page.goto(`${base}/help`)
-  await page.getByRole('heading', { name: '开始一次 LLM 算法评估' }).waitFor()
+  await page.getByRole('heading', { name: '帮助文档', exact: true }).waitFor()
+  await check('帮助页为真实指南且无 Mock 示例', async () => {
+    assert.ok(
+      (await page.getByRole('link', { name: '设置 → API 密钥' }).count()) >= 1,
+    )
+    assert.ok(
+      (await page.getByRole('navigation', { name: '帮助目录' }).count()) >= 1,
+    )
+    assert.equal(await page.getByText('布局示例').count(), 0)
+    assert.equal(await page.getByText('模拟恢复评估').count(), 0)
+    assert.equal(await page.getByText('Mock 快照').count(), 0)
+  })
   await page
-    .locator('.example-panel')
+    .locator('.help-guide .page-actions')
     .getByRole('button', { name: '创建评估', exact: true })
     .click()
   await toCreatePage('帮助页创建入口')
@@ -2783,17 +2792,17 @@ async function entriesScenario() {
   })
   await page.goto(`${base}/`)
   await page.getByRole('heading', { name: '仪表盘', exact: true }).waitFor()
-  await check('示例仪表盘保留区域 Mock 标注', async () => {
-    await page
-      .getByText('Mock 快照 · 2026-10-20 14:32 CST', { exact: true })
-      .waitFor()
+  await check('真实仪表盘无 Mock 标注与示例抽屉', async () => {
+    assert.equal(await page.getByText('Mock 快照').count(), 0)
+    assert.equal(
+      await page.getByText('业务 · Mock', { exact: true }).count(),
+      0,
+    )
+    assert.equal(
+      await page.getByText('评估任务详情 · Mock', { exact: true }).count(),
+      0,
+    )
   })
-  await page.locator('.row-name').first().click()
-  await page.getByText('评估任务详情 · Mock', { exact: true }).waitFor()
-  await check('示例任务停留在 Mock 抽屉', () =>
-    assert.equal(new URL(page.url()).pathname, '/'),
-  )
-  await page.keyboard.press('Escape')
   await check('入口遍历未提交创建或启动请求', () =>
     assert.equal(calls.filter((call) => call.method === 'POST').length, 0),
   )

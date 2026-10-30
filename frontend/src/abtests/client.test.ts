@@ -225,3 +225,15 @@ test('排队任务保留 task_id，未提交配置兼容缺省字段', async () 
   const legacy = clientFor(() => ({ data: job })).client
   assert.equal((await legacy.get('ab-1')).task_id, null)
 })
+
+test('个人题库 A/B 详情解析保留引用，无需路径', async () => {
+  const { client } = clientFor(() => ({
+    data: {
+      ...job,
+      config: { ...job.config, dataset_path: null, dataset_id: 'mine' },
+    },
+  }))
+  const detail = await client.get('ab-1')
+  assert.equal(detail.config.dataset_id, 'mine')
+  assert.equal(detail.config.dataset_path, undefined)
+})

@@ -1,0 +1,66 @@
+{
+  "layer": "browser fixtures; backend integration in pytest",
+  "assertions": [
+    "experiment: selected personal collection, submitted dataset_id without path, desktop/mobile render",
+    "ab: selected personal collection, submitted dataset_id without path, desktop/mobile render",
+    "benchmark: selected personal collection, submitted dataset_id without path, desktop/mobile render",
+    "empty collection guidance and mutually exclusive path switching",
+    "dataset loading failure recovers through retry"
+  ],
+  "submitted": [
+    {
+      "path": "/experiments",
+      "body": {
+        "name": "",
+        "dataset_id": "mine",
+        "models": [
+          {
+            "model": "model-test"
+          }
+        ],
+        "strategies": [
+          {
+            "name": "vanilla"
+          }
+        ],
+        "repeats": 1,
+        "budget": null,
+        "execution": "serial",
+        "max_workers": 4,
+        "api_key_id": "key"
+      }
+    },
+    {
+      "path": "/ab-tests",
+      "body": {
+        "name": "",
+        "dataset_id": "mine",
+        "model": {
+          "model": "model-test"
+        },
+        "strategy": {
+          "name": "direct"
+        },
+        "prompt_variants": [
+          {
+            "id": "baseline"
+          },
+          {
+            "id": "treatment"
+          }
+        ],
+        "seed": 42,
+        "max_workers": 4,
+        "api_key_id": "key"
+      }
+    },
+    {
+      "path": "/benchmarks/suites/suite/run",
+      "body": {
+        "api_key_id": "key",
+        "dataset_id": "mine",
+        "model": "model-test"
+      }
+    }
+  ]
+}

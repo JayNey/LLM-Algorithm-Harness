@@ -178,11 +178,13 @@ class ABTestRunner:
         assignment = stratified_assign(problems, self.config.prompt_variants, self.config.seed)
         output = self._create_output_dir()
         if self.checkpoint_dir is not None:
+            checkpoint_config = self.config.redacted_dict()
+            checkpoint_config.pop("dataset_path", None)
             self._checkpoint = UnitCheckpoint(
                 output / "units",
                 TaskService.config_fingerprint(
                     {
-                        "config": self.config.redacted_dict(),
+                        "config": checkpoint_config,
                         "problems": [problem.model_dump(mode="json") for problem in problems],
                     }
                 ),

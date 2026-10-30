@@ -32,7 +32,8 @@ export interface SuiteUpdateInput {
 
 export interface BenchmarkRunRequestPayload {
   api_key_id: string
-  dataset_path: string
+  dataset_path?: string | null
+  dataset_id?: string
   model: string
   strategies?: { name: string }[]
   budget_cap_usd?: number
@@ -116,6 +117,7 @@ export interface SuiteDraftErrors {
 
 /** Run 启动草稿。 */
 export interface RunDraft {
+  dataset_id?: string
   api_key_id: string
   dataset_path: string
   model: string

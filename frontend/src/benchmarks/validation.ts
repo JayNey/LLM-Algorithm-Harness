@@ -1,3 +1,4 @@
+import { datasetConflict, datasetPayload } from '../experiments/datasets.ts'
 import { ApiClientError } from '../auth/http.ts'
 import type {
   BenchmarkRunRequestPayload,
@@ -47,7 +48,10 @@ export function suiteCreateInput(draft: SuiteDraft): SuiteCreateInput {
 export function validateRunDraft(draft: RunDraft): RunDraftErrors {
   const errors: RunDraftErrors = {}
   if (!draft.api_key_id.trim()) errors.api_key_id = '请选择可用密钥'
-  if (!draft.dataset_path.trim()) errors.dataset_path = '请填写数据集路径'
+  if (!draft.dataset_id?.trim() && !draft.dataset_path.trim())
+    errors.dataset_path = '请选择个人题库或填写服务器数据集路径'
+  if (datasetConflict(draft))
+    errors.dataset_path = '请选择一种数据源，不能同时提供个人题库和服务器路径'
   if (!draft.model.trim()) errors.model = '请填写模型名'
   const budget = draft.budget_cap_usd.trim()
   if (budget && (!Number.isFinite(Number(budget)) || Number(budget) <= 0))
@@ -65,7 +69,7 @@ export function runPayload(draft: RunDraft): BenchmarkRunRequestPayload {
   )
   return {
     api_key_id: draft.api_key_id.trim(),
-    dataset_path: draft.dataset_path.trim(),
+    ...datasetPayload(draft),
     model: draft.model.trim(),
     ...(strategies.length ? { strategies } : {}),
     ...(draft.budget_cap_usd.trim()

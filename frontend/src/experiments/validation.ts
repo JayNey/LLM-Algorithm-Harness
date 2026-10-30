@@ -1,3 +1,4 @@
+import { datasetConflict, datasetPayload } from '../experiments/datasets.ts'
 import { ApiClientError } from '../auth/http.ts'
 import type {
   CreatePayload,
@@ -21,8 +22,10 @@ function trimmed(value: string): string {
 
 export function validateExperimentDraft(draft: ExperimentDraft): DraftErrors {
   const errors: DraftErrors = {}
-  if (!trimmed(draft.dataset_path))
-    errors.dataset_path = '请填写数据集路径（DATA_ROOT 下的相对路径）'
+  if (!draft.dataset_id?.trim() && !trimmed(draft.dataset_path))
+    errors.dataset_path = '请选择个人题库或填写服务器数据集路径'
+  if (datasetConflict(draft))
+    errors.dataset_path = '请选择一种数据源，不能同时提供个人题库和服务器路径'
   if (!trimmed(draft.api_key_id)) errors.api_key_id = '请选择可用密钥'
   const models = draft.models.filter((model) => trimmed(model.model))
   if (!models.length) errors.models = '至少配置一个模型'
@@ -72,7 +75,7 @@ export function createExperimentPayload(draft: ExperimentDraft): CreatePayload {
         }
   return {
     name: trimmed(draft.name),
-    dataset_path: trimmed(draft.dataset_path),
+    ...datasetPayload(draft),
     models: draft.models
       .filter((model) => trimmed(model.model))
       .map((model) => ({
