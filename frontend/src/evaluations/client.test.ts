@@ -363,3 +363,48 @@ test('空ID和无效创建输入在网络前拒绝', async () => {
   )
   assert.equal(seen.length, 0)
 })
+
+test('管理接口使用 AsyncTask ID、PATCH 白名单与 DELETE 204', async () => {
+  const seen: InternalAxiosRequestConfig[] = []
+  const client = clientFor(
+    (config) =>
+      config.url?.startsWith('/tasks/')
+        ? { id: 'task/id', entity_id: 'eval1', status: 'paused' }
+        : {
+            ...evaluation,
+            async_task_id: 'task/id',
+            can_pause: true,
+            can_resume: false,
+            can_update: true,
+            can_delete: true,
+          },
+    seen,
+  )
+  const signal = new AbortController().signal
+  const parsed = await client.get('eval1')
+  assert.equal(parsed.async_task_id, 'task/id')
+  assert.equal(parsed.can_pause, true)
+  await client.pause('task/id', signal)
+  await client.resume('task/id', signal)
+  await client.update(
+    'eval1',
+    { budget_cap_usd: 0, timeout_seconds: 12 } as never,
+    signal,
+  )
+  await client.delete('eval1', signal)
+  assert.deepEqual(
+    seen.slice(1).map((c) => [c.method, c.url]),
+    [
+      ['post', '/tasks/task%2Fid/pause'],
+      ['post', '/tasks/task%2Fid/resume'],
+      ['patch', '/evaluations/eval1'],
+      ['delete', '/evaluations/eval1'],
+    ],
+  )
+  assert.deepEqual(JSON.parse(seen[3]!.data as string), { budget_cap_usd: 0 })
+  for (const config of seen.slice(1)) assert.equal(config.signal, signal)
+  for (const budget of [-1, NaN, Infinity])
+    await assert.rejects(() =>
+      client.update('eval1', { budget_cap_usd: budget }),
+    )
+})

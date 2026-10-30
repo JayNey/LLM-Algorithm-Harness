@@ -33,6 +33,11 @@ export interface Evaluation {
   created_at: string
   updated_at: string
   status: string
+  async_task_id?: string | null
+  can_pause?: boolean
+  can_resume?: boolean
+  can_update?: boolean
+  can_delete?: boolean
   can_start: boolean
   can_cancel: boolean
   execution_progress: ExecutionProgress
@@ -151,6 +156,14 @@ export interface EvaluationClient {
   create(payload: CreatePayload): Promise<Evaluation>
   start(evaluationId: string): Promise<Evaluation>
   cancel(evaluationId: string): Promise<Evaluation>
+  pause(taskId: string, signal?: AbortSignal): Promise<void>
+  resume(taskId: string, signal?: AbortSignal): Promise<void>
+  update(
+    evaluationId: string,
+    input: { budget_cap_usd: number },
+    signal?: AbortSignal,
+  ): Promise<Evaluation>
+  delete(evaluationId: string, signal?: AbortSignal): Promise<void>
   results(
     query: ListQuery,
     signal?: AbortSignal,

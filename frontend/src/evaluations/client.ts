@@ -126,6 +126,20 @@ function evaluation(value: unknown, field = 'evaluation'): Evaluation {
     created_at: text(data.created_at, `${field}.created_at`),
     updated_at: text(data.updated_at, `${field}.updated_at`),
     status: text(data.status, `${field}.status`),
+    ...('async_task_id' in data
+      ? {
+          async_task_id: nullable(
+            data.async_task_id,
+            text,
+            `${field}.async_task_id`,
+          ),
+        }
+      : {}),
+    ...Object.fromEntries(
+      ['can_pause', 'can_resume', 'can_update', 'can_delete']
+        .filter((key) => key in data)
+        .map((key) => [key, boolean(data[key], `${field}.${key}`)]),
+    ),
     can_start: boolean(data.can_start, `${field}.can_start`),
     can_cancel: boolean(data.can_cancel, `${field}.can_cancel`),
     execution_progress: executionProgress(
@@ -346,6 +360,38 @@ export function createEvaluationClient(http: AxiosInstance): EvaluationClient {
     create: async (input) => mutate('/evaluations', payload(input)),
     start: async (id) => mutate(`/evaluations/${pathId(id)}/start`),
     cancel: async (id) => mutate(`/evaluations/${pathId(id)}/cancel`),
+    pause: async (id, signal) => {
+      await http.post(
+        `/tasks/${pathId(id)}/pause`,
+        {},
+        { signal, timeout: 20_000 },
+      )
+    },
+    resume: async (id, signal) => {
+      await http.post(
+        `/tasks/${pathId(id)}/resume`,
+        {},
+        { signal, timeout: 20_000 },
+      )
+    },
+    update: async (id, input, signal) => {
+      const budget = input.budget_cap_usd
+      if (!Number.isFinite(budget) || budget < 0)
+        throw new ApiClientError('预算须为非负有限数值')
+      return evaluation(
+        await http.patch(
+          `/evaluations/${pathId(id)}`,
+          { budget_cap_usd: budget },
+          { signal, timeout: 20_000 },
+        ),
+      )
+    },
+    delete: async (id, signal) => {
+      await http.delete(`/evaluations/${pathId(id)}`, {
+        signal,
+        timeout: 20_000,
+      })
+    },
     results: (query, signal) =>
       get(
         '/results',

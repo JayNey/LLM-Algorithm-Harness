@@ -12,6 +12,7 @@ tasks via TaskManager, and get_evaluation aggregates status from AsyncTask.
 import uuid
 from collections.abc import Callable
 from datetime import datetime
+from typing import TypedDict
 
 from sqlalchemy import Engine, select
 from sqlalchemy.orm import Session
@@ -57,9 +58,19 @@ def _execution_progress(evaluation: Evaluation) -> ExecutionProgress:
     )
 
 
+class _OperationCapabilities(TypedDict):
+    async_task_id: str | None
+    can_pause: bool
+    can_resume: bool
+    can_update: bool
+    can_delete: bool
+    can_start: bool
+    can_cancel: bool
+
+
 def _operation_capabilities(
     evaluation: Evaluation, async_task: AsyncTask | None = None
-) -> dict[str, bool | str | None]:
+) -> _OperationCapabilities:
     """仅根据持久化状态投影操作能力，不同步 broker，也不替代归属校验。"""
     if async_task is not None and (
         async_task.id != evaluation.async_task_id
@@ -76,8 +87,7 @@ def _operation_capabilities(
         and async_task.status == "running",
         "can_resume": evaluation.status == "paused"
         and async_task is not None
-        and async_task.status == "paused"
-        and (async_task.progress or {}).get("stop_confirmed") is True,
+        and async_task.status == "paused",
         "can_update": evaluation.status == "pending",
         "can_delete": evaluation.status in ("pending", "completed", "cancelled"),
         "can_start": evaluation.status == "pending" and not live_task,

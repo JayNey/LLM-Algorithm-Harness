@@ -346,7 +346,7 @@ def test_execution_progress_preserves_async_task_progress(service):
     [
         ("pending", None, False, (False, False, True, True)),
         ("running", "running", False, (True, False, False, False)),
-        ("paused", "paused", False, (False, False, False, False)),
+        ("paused", "paused", False, (False, True, False, False)),
         ("paused", "paused", True, (False, True, False, False)),
         ("completed", "running", True, (False, False, False, True)),
         ("failed", "failed", True, (False, False, False, False)),
@@ -368,11 +368,19 @@ def test_management_capabilities(service, status, linked, stopped, want):
         assert data["async_task_id"] == (f"linked-{eid}" if linked else None)
 
 
-def test_management_rejects_unrelated_task_link(service):
+@pytest.mark.parametrize(
+    "field,value",
+    [
+        ("user_id", "another-owner"),
+        ("entity_id", "another-evaluation"),
+        ("task_type", "experiment"),
+    ],
+)
+def test_management_rejects_unrelated_task_link(service, field, value):
     eid = create(service).evaluation_id
     set_state(service, eid, "running", "running")
     with service._session() as session, session.begin():
-        session.get(AsyncTask, f"linked-{eid}").user_id = "another-owner"
+        setattr(session.get(AsyncTask, f"linked-{eid}"), field, value)
     data = service.get_evaluation(eid, OWNER).model_dump()
     assert data.get("async_task_id") is None
     assert data.get("can_pause") is False
