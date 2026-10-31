@@ -135,6 +135,14 @@ function mockRoute(context) {
         models: ['model-a', 'model-b'],
         complete: true,
       })
+    if (method === 'GET' && path === '/benchmarks/suites/suite-fixture-1/runs')
+      return reply({
+        items: [],
+        total: 0,
+        limit: Number(url.searchParams.get('limit') || 20),
+        offset: Number(url.searchParams.get('offset') || 0),
+        has_more: false,
+      })
     if (method === 'GET' && path === '/benchmarks/suites')
       return reply({
         items: [suiteFixture],

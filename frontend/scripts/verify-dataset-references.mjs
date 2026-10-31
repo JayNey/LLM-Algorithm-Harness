@@ -60,9 +60,19 @@ try {
   await context.route('**/api/v1/**', async (route, request) => {
     const path = new URL(request.url()).pathname.replace('/api/v1', '')
     const method = request.method()
+    const cors = {
+      'access-control-allow-origin': new URL(base).origin,
+      'access-control-allow-credentials': 'true',
+      'access-control-allow-headers':
+        'content-type,x-csrf-token,x-requested-with',
+      'access-control-allow-methods': 'GET,POST,PATCH,OPTIONS',
+    }
+    if (method === 'OPTIONS')
+      return route.fulfill({ status: 204, headers: cors })
     const reply = (data, status = 200) =>
       route.fulfill({
         status,
+        headers: cors,
         contentType: 'application/json',
         body: JSON.stringify({ success: true, data, message: '' }),
       })
@@ -99,6 +109,24 @@ try {
         source: 'provider_api',
         scope: 'evaluation',
       })
+    if (path === '/benchmarks/suites/suite/runs') {
+      const query = new URL(request.url()).searchParams,
+        limit = Number(query.get('limit') || 20),
+        offset = Number(query.get('offset') || 0)
+      const rows = jobs.has('/benchmarks/runs/run')
+        ? [jobs.get('/benchmarks/runs/run')]
+        : []
+      const selected = query.get('status')
+        ? rows.filter((r) => r.status === query.get('status'))
+        : rows
+      return reply({
+        items: selected.slice(offset, offset + limit),
+        total: selected.length,
+        limit,
+        offset,
+        has_more: offset + limit < selected.length,
+      })
+    }
     if (path === '/benchmarks/suites/suite') return reply(suite)
     if (path === '/benchmarks/learning-curve/suite')
       return reply({
@@ -129,7 +157,21 @@ try {
         path === '/ab-tests' ? '/ab-tests/ab-new' : '/experiments/exp-new',
         job,
       )
-      if (path.includes('/benchmarks/'))
+      if (path.includes('/benchmarks/')) {
+        const runRow = {
+          id: 'run',
+          suite_id: 'suite',
+          status: 'pending',
+          model: body.model,
+          accuracy: null,
+          cost_usd: null,
+          error_message: null,
+          task_id: 'task',
+          created_at: job.created_at,
+          updated_at: job.updated_at,
+          results: {},
+        }
+        jobs.set('/benchmarks/runs/run', runRow)
         return reply(
           {
             id: 'run',
@@ -145,6 +187,7 @@ try {
           },
           202,
         )
+      }
       return reply(job, 201)
     }
     if (jobs.has(path)) return reply(jobs.get(path))

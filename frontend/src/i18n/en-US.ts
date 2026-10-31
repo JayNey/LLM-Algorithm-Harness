@@ -1311,4 +1311,28 @@ export default {
   已删除规则: 'Deleted rule',
   '渠道 {{value1}} 需要填写通知目标':
     'Channel {{value1}} requires a notification target',
+  运行历史: 'Run history',
+  历史状态筛选: 'Run status filter',
+  刷新历史: 'Refresh history',
+  '共 {{total}} 次运行': '{{total}} runs',
+  '运行 ID': 'Run ID',
+  没有符合条件的运行: 'No matching runs',
+  活动运行: 'Active runs',
+  查看更多活动运行: 'More active runs',
+  '运行链接无效，请重新选择': 'Invalid run link. Select a run again.',
+  请选择运行以查看结果与进度: 'Select a run to view results and progress.',
+  选中运行: 'Selected run',
+  刷新运行: 'Refresh run',
+  '任务已暂停，可手动刷新运行状态':
+    'Task paused. Refresh the run to check its current state.',
+  '此运行没有关联任务，无法查询进度':
+    'This run has no associated task. Progress is unavailable.',
+  '进度查询已中断，请刷新运行重试':
+    'Progress updates stopped. Refresh the run to retry.',
+  运行结果: 'Run results',
+  曲线运行导航: 'Curve run navigation',
+  '运行关联不匹配，请重新选择':
+    'Run association mismatch. Select the run again.',
+  '任务关联不匹配，已停止进度查询':
+    'Task association mismatch. Progress updates stopped.',
 }

@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
+import { ApiClientError } from '../auth/http.ts'
 
 const TERMINAL = new Set(['completed', 'failed', 'cancelled'])
 const POLL_MS = 3_000
@@ -21,6 +22,7 @@ export interface TaskProgressSnapshot {
 export interface TaskProgressState<T = TaskProgressSnapshot> {
   task: T | null
   paused: boolean
+  error: string | null
   reload: () => void
 }
 
@@ -30,6 +32,7 @@ interface ProgressSnapshot<T> {
   attempt: number
   task: T | null
   paused: boolean
+  error: string | null
 }
 
 /** 轮询实验异步任务进度（实验/基准无 WebSocket，契约见 api/routes/tasks.py）。
@@ -52,6 +55,7 @@ export function useTaskProgress<
     attempt: 0,
     task: null,
     paused: false,
+    error: null,
   })
   const failures = useRef(0)
   const generation = useRef(0)
@@ -85,20 +89,30 @@ export function useTaskProgress<
         if (controller.signal.aborted || operation !== generation.current)
           return
         failures.current = 0
-        patch({ task })
+        patch({ task, error: null, paused: false })
         if (TERMINAL.has(task.status) || task.status === 'paused') {
           clearTimer()
           patch({ paused: true })
           return
         }
         timer = setTimeout(() => void tick(), POLL_MS)
-      } catch {
+      } catch (cause) {
         if (controller.signal.aborted || operation !== generation.current)
           return
         failures.current += 1
-        if (failures.current >= MAX_CONSECUTIVE_FAILURES) {
+        const nonRetryable =
+          cause instanceof ApiClientError &&
+          ([403, 404].includes(cause.status ?? 0) ||
+            (typeof cause.details === 'object' &&
+              cause.details !== null &&
+              'stopPolling' in cause.details &&
+              cause.details.stopPolling === true))
+        if (nonRetryable || failures.current >= MAX_CONSECUTIVE_FAILURES) {
           clearTimer()
-          patch({ paused: true })
+          patch({
+            paused: true,
+            error: cause instanceof Error ? cause.message : null,
+          })
           return
         }
         timer = setTimeout(() => void tick(), POLL_MS)
@@ -117,6 +131,7 @@ export function useTaskProgress<
   return {
     task: current ? snapshot.task : null,
     paused: current ? snapshot.paused : false,
+    error: current ? snapshot.error : null,
     reload: () => {
       failures.current = 0
       setAttempt((value) => value + 1)

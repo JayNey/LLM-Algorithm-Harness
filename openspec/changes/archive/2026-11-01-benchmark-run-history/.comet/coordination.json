@@ -1,0 +1,24 @@
+{
+  "schemaVersion": 1,
+  "taskIds": [
+    "e603f607-7f82-4817-9788-63cb2f4a2e4c",
+    "148b7e48-34e7-41f9-bb25-f4c5077e8e59",
+    "7d69df2b-10fe-4e86-8d1a-c8a54d5c3891"
+  ],
+  "revision": "a664705ec1093bd15d925a0a924ffb4e8a01432554af634c5b200800857cca29",
+  "stage": "task-review",
+  "sessionId": "/root/review_322_contracts",
+  "evidence": [
+    "/tmp/322-red-contract.log",
+    "/tmp/322-green-contract.log",
+    "/tmp/322-red-page.log",
+    "/tmp/322-red-association.log",
+    "/tmp/322-browser.log",
+    "/tmp/322-red-resume.log",
+    "/tmp/322-red-masked.log",
+    "/tmp/322-red-launch-url.log",
+    "/tmp/322-browser.log"
+  ],
+  "unresolved": [],
+  "reviewRounds": 1
+}
