@@ -1,3 +1,9 @@
+---
+comet_change: benchmark-run-history
+role: technical-design
+canonical_spec: openspec
+---
+
 ## Context
 
 动机见 proposal.md。基线 main@8a6ab91 的后端已提供带 total/limit/offset/has_more 的套件运行历史、单次详情中的 task_id 和曲线点 run_id。前端丢弃部分字段，并仅在组件中记录刚启动的 taskId；useTaskProgress 已支持终态/暂停停止和 AbortSignal，BenchmarkSessionProvider 按账号会话 marker 重建。

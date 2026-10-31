@@ -80,6 +80,7 @@ function run(value: unknown, field = 'run'): BenchmarkRun {
   return {
     id: text(data.id, `${field}.id`),
     suite_id: text(data.suite_id, `${field}.suite_id`),
+    task_id: nullableText(data.task_id, `${field}.task_id`),
     status: text(data.status, `${field}.status`),
     model: nullableText(data.model, `${field}.model`),
     accuracy: nullableNumber(data.accuracy, `${field}.accuracy`),
@@ -87,6 +88,9 @@ function run(value: unknown, field = 'run'): BenchmarkRun {
     error_message: nullableText(data.error_message, `${field}.error_message`),
     created_at: text(data.created_at, `${field}.created_at`),
     updated_at: text(data.updated_at, `${field}.updated_at`),
+    ...(data.results === undefined
+      ? {}
+      : { results: record(data.results, `${field}.results`) }),
   }
 }
 
@@ -114,6 +118,7 @@ function taskSnapshot(value: unknown, field = 'task'): TaskSnapshot {
         })()
   return {
     id: text(data.id, `${field}.id`),
+    task_type: text(data.task_type, `${field}.task_type`),
     entity_id: text(data.entity_id, `${field}.entity_id`),
     status: text(data.status, `${field}.status`),
     progress,
@@ -132,6 +137,7 @@ function learningCurve(value: unknown): LearningCurve {
       (value, field) => {
         const row = record(value, field)
         return {
+          run_id: nullableText(row.run_id, `${field}.run_id`),
           timestamp: nullableText(row.timestamp, `${field}.timestamp`),
           model: text(row.model, `${field}.model`),
           accuracy: nullableNumber(row.accuracy, `${field}.accuracy`),
@@ -169,6 +175,25 @@ export function createBenchmarkClient(http: AxiosInstance): BenchmarkClient {
     return read(await http.get<unknown, unknown>(url, { signal, timeout }))
   }
   return {
+    runs: async (suiteId, query, signal) => {
+      const data = record(
+        await http.get<unknown, unknown>(
+          `/benchmarks/suites/${pathId(suiteId)}/runs`,
+          { params: query, signal, timeout: 10_000 },
+        ),
+        'runs',
+      )
+      const total = number(data.total, 'runs.total')
+      const limit = number(data.limit, 'runs.limit', 100)
+      const offset = number(data.offset, 'runs.offset')
+      if (![total, limit, offset].every(Number.isSafeInteger) || limit < 1)
+        protocol('runs.pagination')
+      const items = array(data.items, run, 'runs.items')
+      const has_more = boolean(data.has_more, 'runs.has_more')
+      if (items.length > limit || has_more !== offset + limit < total)
+        protocol('runs.pagination')
+      return { items, total, limit, offset, has_more }
+    },
     suites: async (signal) =>
       get(
         '/benchmarks/suites',
