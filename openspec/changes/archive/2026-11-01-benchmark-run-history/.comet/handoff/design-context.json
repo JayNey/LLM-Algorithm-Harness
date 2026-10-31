@@ -1,0 +1,16 @@
+{
+  "change": "benchmark-run-history",
+  "phase": "design",
+  "mode": "compact",
+  "canonical_spec": "openspec",
+  "task_hash_policy": "task-content-v1",
+  "generated_by": "comet-handoff.sh",
+  "context_hash": "3aa10396e84df899f5bc34ac42d7e124bfa9a40007db47d5dd7b80e3525f92f6",
+  "files": [
+    { "path": "openspec/changes/benchmark-run-history/proposal.md", "sha256": "85417a3d854c2761a59c6a57d03b2f4f5834e3143b4eabc48d62206aa27297fb" },
+    { "path": "openspec/changes/benchmark-run-history/design.md", "sha256": "f6ec7a0bd1a97af1d8c7e2925d972b13515fbf8c4b51dd4a021e9ee0f30b634f" },
+    { "path": "openspec/changes/benchmark-run-history/tasks.md", "sha256": "0aab104d0811f0585ed7f2f3e0c464e040c925403d68e94d878e0ecc9b621872" },
+    { "path": "openspec/changes/benchmark-run-history/.openspec.yaml", "sha256": "108f7b3dae33488206672f31b510275110c0194c93062eb1970e19ca60c08722" },
+    { "path": "openspec/changes/benchmark-run-history/specs/frontend/benchmark-management/spec.md", "sha256": "df380b203da26c4b333c3815b138cab53f3bd0a3d34007fa74021d6971cb4375" }
+  ]
+}

@@ -2,6 +2,7 @@
 change: benchmark-run-history
 design-doc: openspec/changes/benchmark-run-history/design.md
 base-ref: d888e0390c0d49d9119a30a7aa068fd963affeae
+archived-with: 2026-11-01-benchmark-run-history
 ---
 
 # 实施计划
