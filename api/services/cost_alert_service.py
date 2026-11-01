@@ -18,6 +18,7 @@ from sqlalchemy.orm import Session
 
 from api.db.models import AlertEvent, AlertRule, Evaluation, EvaluationResult, utcnow
 from api.services.cost_service import CostService
+from api.services.in_app_notification_service import budget_event_key, stage_notification
 from src.cost_alert import CostAlertSender
 from src.models import CostAlertConfig
 
@@ -115,6 +116,21 @@ class WebCostAlertDispatcher:
                         channel="pending",
                         created_at=now,
                     )
+                )
+                stage_notification(
+                    db,
+                    user_id=owner_id,
+                    kind="budget_alert",
+                    event_key=budget_event_key(rule.id, rule.threshold_pct, cap),
+                    title_key="预算达到阈值",
+                    body_key="已知费用达到预算的 {{threshold_pct}}%",
+                    params={
+                        "threshold_pct": rule.threshold_pct,
+                        "used_usd": float(used),
+                        "cap_usd": float(cap),
+                    },
+                    resource_kind="budget",
+                    href="/settings/budgets",
                 )
             return event_id, now
         except IntegrityError:
