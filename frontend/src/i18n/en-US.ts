@@ -253,6 +253,16 @@ export default {
   ' · 已读': ' · Read',
   查看详情: 'View details',
   这里的通知已处理完毕: 'All notifications have been handled',
+  正在加载通知: 'Loading notifications',
+  通知暂时无法加载: 'Notifications could not be loaded',
+  加载更多: 'Load more',
+  无法打开该资源: 'This resource cannot be opened',
+  任务已完成: 'Task completed',
+  '已完成 {{completed_count}} / {{total_count}}':
+    '{{completed_count}} / {{total_count}} completed',
+  预算达到阈值: 'Budget threshold reached',
+  '已知费用达到预算的 {{threshold_pct}}%':
+    'Known spend reached {{threshold_pct}}% of the budget',
   'Mock 通知 · 本次会话内保存，不会发送真实消息。':
     'Mock notifications · Saved only in this session. No real messages are sent.',
   '开始一次 LLM 算法评估': 'Start an LLM algorithm evaluation',
