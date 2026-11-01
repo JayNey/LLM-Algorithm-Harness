@@ -19,4 +19,4 @@
 
 ## 5. 变更验收
 
-- [ ] 5.1 运行通知相关的后端测试、前端通知测试和 `comet classic openspec -- validate persistent-in-app-notifications --type change --strict --no-interactive`。验证：这些命令通过，且通知中心不再展示固定示例。
+- [x] 5.1 运行通知相关的后端测试、前端通知测试和 `comet classic openspec -- validate persistent-in-app-notifications --type change --strict --no-interactive`。验证：这些命令通过，且通知中心不再展示固定示例。
