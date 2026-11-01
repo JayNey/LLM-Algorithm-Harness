@@ -1,11 +1,15 @@
 """In-app notification storage, delivery and API (issue #328)."""
 
+import secrets
 from datetime import datetime
 
 import pytest
+from cryptography.fernet import Fernet
+from fastapi.testclient import TestClient
 from sqlalchemy import func, inspect, select
 from sqlalchemy.exc import IntegrityError
 
+from api.auth.config import AuthSettings
 from api.db import (
     Evaluation,
     InAppNotification,
@@ -15,7 +19,11 @@ from api.db import (
     offline_upgrade_sql,
     run_migrations,
 )
+from api.files.config import FileSettings
+from api.main import create_app
 from api.services.in_app_notification_service import NotificationNotFound, NotificationService
+
+PASSWORD = "a-long-test-password-!"
 
 
 def _row(
@@ -239,3 +247,91 @@ def test_mark_all_read_stops_at_cutoff(tmp_path):
         item["id"]: item["read"] for item in service.list_notifications("alice", now=now)["items"]
     }
     assert rows == {later_id: False, earlier_id: True}
+
+
+def _login(client: TestClient, username: str) -> tuple[dict[str, str], str]:
+    client.post(
+        "/api/v1/auth/register",
+        json={
+            "username": username,
+            "email": f"{username}@example.org",
+            "password": PASSWORD,
+        },
+    )
+    token = client.post(
+        "/api/v1/auth/login", json={"username": username, "password": PASSWORD}
+    ).json()["data"]["access_token"]
+    headers = {"Authorization": f"Bearer {token}"}
+    user_id = client.get("/api/v1/users/me", headers=headers).json()["data"]["id"]
+    return headers, user_id
+
+
+def test_notification_routes_return_only_the_current_user(tmp_path):
+    app = create_app(
+        auth_settings=AuthSettings(
+            _env_file=None,
+            SECRET_KEY=secrets.token_urlsafe(48),
+            ENCRYPTION_KEY=Fernet.generate_key().decode(),
+            AUTH_DATABASE_PATH=tmp_path / "auth.sqlite3",
+        ),
+        file_settings=FileSettings(UPLOAD_DIR=tmp_path / "uploads"),
+    )
+    with TestClient(app) as client:
+        alice, alice_id = _login(client, "alice")
+        bob, _bob_id = _login(client, "bob")
+        with app.state.notifications._sessions() as db, db.begin():
+            db.add(Evaluation(id="ev-1", user_id=alice_id))
+            note = app.state.notifications.stage(
+                db,
+                user_id=alice_id,
+                kind="task_completed",
+                event_key="task-completed/evaluation/ev-1",
+                title_key="任务已完成",
+                body_key="已完成 {{completed_count}} / {{total_count}}",
+                params={"entity_id": "ev-1", "completed_count": 1, "total_count": 1},
+                resource_kind="evaluation",
+                resource_id="ev-1",
+                href="/evaluations/ev-1",
+            )
+            note_id = note.id
+        listed = client.get("/api/v1/notifications", headers=alice)
+        assert listed.status_code == 200, listed.text
+        body = listed.json()["data"]
+        assert body["unread_count"] == 1
+        assert body["items"][0]["id"] == note_id
+        assert body["items"][0]["href"] == "/evaluations/ev-1"
+        counted = client.get("/api/v1/notifications/unread-count", headers=alice)
+        assert counted.json()["data"]["unread_count"] == 1
+        assert client.get("/api/v1/notifications", headers=bob).json()["data"]["items"] == []
+        missing = client.post(f"/api/v1/notifications/{note_id}/read", headers=bob)
+        assert missing.status_code == 404
+        read = client.post(f"/api/v1/notifications/{note_id}/read", headers=alice)
+        assert read.status_code == 200
+        assert read.json()["data"]["read"] is True
+        assert (
+            client.get("/api/v1/notifications/unread-count", headers=alice).json()["data"][
+                "unread_count"
+            ]
+            == 0
+        )
+
+
+def test_notification_operations_are_documented():
+    schema = create_app().openapi()
+    assert schema["info"]["version"] == "1.5.0"
+    paths = schema["paths"]
+    for path in (
+        "/api/v1/notifications",
+        "/api/v1/notifications/unread-count",
+        "/api/v1/notifications/read-all",
+        "/api/v1/notifications/clear",
+        "/api/v1/notifications/{notification_id}/read",
+    ):
+        operation = next(iter(paths[path].values()))
+        assert "认证" in operation["description"], path
+        assert "未读" in operation["description"] or "通知" in operation["description"]
+    example = paths["/api/v1/notifications"]["get"]["responses"]["200"]["content"][
+        "application/json"
+    ]["example"]["data"]
+    assert example["unread_count"] == 1
+    assert example["items"][0]["kind"] == "task_completed"
