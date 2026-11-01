@@ -15,6 +15,8 @@ from sqlalchemy.orm import Session
 
 from api.db import (
     ABTest,
+    AsyncTask,
+    BenchmarkRun,
     BenchmarkSuite,
     Evaluation,
     Experiment,
@@ -73,6 +75,72 @@ class NotificationNotFound(LookupError):
     """The notification is not visible to this user."""
 
 
+def stage_notification(
+    session: Session,
+    *,
+    user_id: str,
+    kind: str,
+    event_key: str,
+    title_key: str,
+    body_key: str,
+    params: dict[str, Any] | None = None,
+    resource_kind: str | None = None,
+    resource_id: str | None = None,
+    href: str | None = None,
+    created_at: datetime | None = None,
+) -> InAppNotification:
+    """Insert inside the caller's transaction. An existing event is left unchanged."""
+
+    if kind not in KINDS:
+        raise ValueError(f"unsupported notification kind: {kind}")
+    existing = NotificationService._by_event(session, user_id, event_key)
+    if existing is not None:
+        return existing
+    row = InAppNotification(
+        id=str(uuid4()),
+        user_id=user_id,
+        kind=kind,
+        event_key=event_key,
+        title_key=title_key,
+        body_key=body_key,
+        params=sanitize_params(params),
+        created_at=_naive(created_at) if created_at is not None else utcnow(),
+        resource_kind=resource_kind,
+        resource_id=resource_id,
+        href=href,
+    )
+    try:
+        with session.begin_nested():
+            session.add(row)
+            session.flush()
+    except IntegrityError:
+        raced = NotificationService._by_event(session, user_id, event_key)
+        if raced is None:
+            raise
+        return raced
+    return row
+
+
+def record_task_completed(session: Session, task: AsyncTask) -> None:
+    """Record one completion notification for a task that is transitioning now."""
+
+    target = _completion_target(session, task)
+    if target is None:
+        return
+    stage_notification(
+        session,
+        user_id=task.user_id,
+        kind="task_completed",
+        event_key=task_event_key(task.task_type, task.entity_id),
+        title_key="任务已完成",
+        body_key="已完成 {{completed_count}} / {{total_count}}",
+        params=target["params"],
+        resource_kind=target["resource_kind"],
+        resource_id=target["resource_id"],
+        href=target["href"],
+    )
+
+
 class NotificationService:
     """List and update one user's notifications. Event rows are never deleted."""
 
@@ -98,34 +166,19 @@ class NotificationService:
     ) -> InAppNotification:
         """Insert inside the caller's transaction. An existing event is left unchanged."""
 
-        if kind not in KINDS:
-            raise ValueError(f"unsupported notification kind: {kind}")
-        existing = self._by_event(session, user_id, event_key)
-        if existing is not None:
-            return existing
-        row = InAppNotification(
-            id=str(uuid4()),
+        return stage_notification(
+            session,
             user_id=user_id,
             kind=kind,
             event_key=event_key,
             title_key=title_key,
             body_key=body_key,
-            params=sanitize_params(params),
-            created_at=_naive(created_at) if created_at is not None else utcnow(),
+            params=params,
             resource_kind=resource_kind,
             resource_id=resource_id,
             href=href,
+            created_at=created_at,
         )
-        try:
-            with session.begin_nested():
-                session.add(row)
-                session.flush()
-        except IntegrityError:
-            raced = self._by_event(session, user_id, event_key)
-            if raced is None:
-                raise
-            return raced
-        return row
 
     def list_notifications(
         self,
@@ -284,6 +337,54 @@ class NotificationService:
             "resource_available": available,
             "unavailable_reason": None if available else "resource_unavailable",
         }
+
+
+def _completion_target(session: Session, task: AsyncTask) -> dict[str, Any] | None:
+    if task.task_type == "evaluation":
+        row = session.get(Evaluation, task.entity_id)
+        if row is None or row.user_id != task.user_id:
+            return None
+        return {
+            "resource_kind": "evaluation",
+            "resource_id": row.id,
+            "href": f"/evaluations/{row.id}",
+            "params": {
+                "entity_id": row.id,
+                "completed_count": row.completed_count,
+                "total_count": row.problem_count,
+            },
+        }
+    if task.task_type == "experiment":
+        row = session.get(Experiment, task.entity_id)
+        if row is None or row.user_id != task.user_id:
+            return None
+        return {
+            "resource_kind": "experiment",
+            "resource_id": row.id,
+            "href": f"/experiments/{row.id}",
+            "params": {"entity_id": row.id, "completed_count": 1, "total_count": 1},
+        }
+    if task.task_type == "benchmark":
+        row = session.get(BenchmarkRun, task.entity_id)
+        if row is None or row.user_id != task.user_id:
+            return None
+        return {
+            "resource_kind": "benchmark",
+            "resource_id": row.suite_id,
+            "href": f"/benchmarks/{row.suite_id}",
+            "params": {"entity_id": row.id, "completed_count": 1, "total_count": 1},
+        }
+    if task.task_type == "ab_test":
+        row = session.get(ABTest, task.entity_id)
+        if row is None or row.user_id != task.user_id:
+            return None
+        return {
+            "resource_kind": "ab_test",
+            "resource_id": row.id,
+            "href": f"/ab-tests/{row.id}",
+            "params": {"entity_id": row.id, "completed_count": 1, "total_count": 1},
+        }
+    return None
 
 
 def _resource(db: Session, user_id: str, row: InAppNotification) -> tuple[bool, str | None]:

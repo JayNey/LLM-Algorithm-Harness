@@ -1,7 +1,9 @@
 """In-app notification storage, delivery and API (issue #328)."""
 
 import secrets
+import uuid
 from datetime import datetime
+from unittest.mock import patch
 
 import pytest
 from cryptography.fernet import Fernet
@@ -11,7 +13,12 @@ from sqlalchemy.exc import IntegrityError
 
 from api.auth.config import AuthSettings
 from api.db import (
+    ABTest,
+    AsyncTask,
+    BenchmarkRun,
+    BenchmarkSuite,
     Evaluation,
+    Experiment,
     InAppNotification,
     downgrade,
     make_engine,
@@ -335,3 +342,96 @@ def test_notification_operations_are_documented():
     ]["example"]["data"]
     assert example["unread_count"] == 1
     assert example["items"][0]["kind"] == "task_completed"
+
+
+def _running_task(task_type: str, entity_id: str) -> AsyncTask:
+    return AsyncTask(
+        id=str(uuid.uuid4()),
+        celery_task_id=str(uuid.uuid4()),
+        task_type=task_type,
+        entity_id=entity_id,
+        user_id="alice",
+        status="running",
+    )
+
+
+def test_completion_notifies_each_task_once_and_skips_history(tmp_path):
+    from src.task_manager import TaskManager
+
+    url = f"sqlite:///{tmp_path}/completion.sqlite3"
+    run_migrations(url)
+    factory = make_session_factory(make_engine(url))
+    with factory() as db, db.begin():
+        db.add(BenchmarkSuite(id="suite", user_id="alice", name="suite"))
+        db.flush()
+        db.add(Evaluation(id="ev", user_id="alice", completed_count=2, problem_count=4))
+        db.add(Experiment(id="exp", user_id="alice", config={}))
+        db.add(BenchmarkRun(id="run", suite_id="suite", user_id="alice", model="m", config={}))
+        db.add(ABTest(id="ab", user_id="alice", config={}))
+        db.add(Evaluation(id="old", user_id="alice", status="completed", problem_count=1))
+        tasks = [
+            _running_task("evaluation", "ev"),
+            _running_task("experiment", "exp"),
+            _running_task("benchmark", "run"),
+            _running_task("ab_test", "ab"),
+        ]
+        old = _running_task("evaluation", "old")
+        old.status = "completed"
+        db.add_all([*tasks, old])
+        task_ids = [task.id for task in tasks]
+        old_id = old.id
+    with factory() as db:
+        manager = TaskManager(db)
+        for task_id in task_ids:
+            manager.update_task_status(task_id, "completed")
+        manager.update_task_status(old_id, "completed")
+    service = NotificationService(url)
+    page = service.list_notifications("alice")
+    assert sorted(item["href"] for item in page["items"]) == [
+        "/ab-tests/ab",
+        "/benchmarks/suite",
+        "/evaluations/ev",
+        "/experiments/exp",
+    ]
+    assert page["unread_count"] == 4
+    evaluation = next(item for item in page["items"] if item["href"] == "/evaluations/ev")
+    assert evaluation["params"]["completed_count"] == 2
+    assert evaluation["params"]["total_count"] == 4
+    service.mark_read("alice", evaluation["id"])
+    with factory() as db:
+        TaskManager(db).update_task_status(task_ids[0], "completed")
+    again = service.list_notifications("alice", limit=10)
+    assert len(again["items"]) == 4
+    assert next(item for item in again["items"] if item["id"] == evaluation["id"])["read"] is True
+    assert service.unread_count("alice") == 3
+
+
+def test_interrupted_completion_retry_creates_one_notification(tmp_path):
+    from src.task_manager import TaskManager
+
+    url = f"sqlite:///{tmp_path}/retry.sqlite3"
+    run_migrations(url)
+    factory = make_session_factory(make_engine(url))
+    with factory() as db, db.begin():
+        db.add(Evaluation(id="ev", user_id="alice", completed_count=1, problem_count=1))
+        task = _running_task("evaluation", "ev")
+        db.add(task)
+        task_id = task.id
+    real_commit = TaskManager._commit
+
+    def fail_once(self):
+        if not getattr(fail_once, "used", False):
+            fail_once.used = True
+            self.db.rollback()
+            raise RuntimeError("interrupted")
+        return real_commit(self)
+
+    with factory() as db, pytest.raises(RuntimeError, match="interrupted"):
+        with patch.object(TaskManager, "_commit", fail_once):
+            TaskManager(db).update_task_status(task_id, "completed")
+    with factory() as db:
+        assert db.get(Evaluation, "ev").status != "completed"
+        TaskManager(db).update_task_status(task_id, "completed")
+    notes = NotificationService(url).list_notifications("alice")
+    assert len(notes["items"]) == 1
+    assert notes["items"][0]["href"] == "/evaluations/ev"
