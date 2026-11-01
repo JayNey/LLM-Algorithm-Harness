@@ -19,6 +19,7 @@ from api.db.models import (
     Evaluation,
     EvaluationResult,
     Experiment,
+    InAppNotification,
     PricingOverride,
     Problem,
 )
@@ -36,6 +37,7 @@ __all__ = [
     "Evaluation",
     "EvaluationResult",
     "Experiment",
+    "InAppNotification",
     "PricingOverride",
     "Problem",
     "ProblemStore",

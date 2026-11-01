@@ -10,7 +10,17 @@ from __future__ import annotations
 
 from datetime import datetime, timezone
 
-from sqlalchemy import JSON, Boolean, DateTime, Float, ForeignKey, Integer, String, Text
+from sqlalchemy import (
+    JSON,
+    Boolean,
+    DateTime,
+    Float,
+    ForeignKey,
+    Integer,
+    String,
+    Text,
+    UniqueConstraint,
+)
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column
 
 
@@ -252,6 +262,29 @@ class AlertEvent(Base):
     cap_usd: Mapped[float] = mapped_column(Float)
     channel: Mapped[str] = mapped_column(String(16), default="log")
     created_at: Mapped[datetime] = mapped_column(DateTime, default=utcnow)
+
+
+class InAppNotification(Base):
+    """A persisted in-app notification owned by one authenticated user."""
+
+    __tablename__ = "in_app_notifications"
+    __table_args__ = (
+        UniqueConstraint("user_id", "event_key", name="uq_in_app_notifications_user_event"),
+    )
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True)
+    user_id: Mapped[str] = mapped_column(String(64), index=True)
+    kind: Mapped[str] = mapped_column(String(32))
+    event_key: Mapped[str] = mapped_column(String(255))
+    title_key: Mapped[str] = mapped_column(String(200))
+    body_key: Mapped[str] = mapped_column(String(200))
+    params: Mapped[dict | None] = mapped_column(JSON)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=utcnow, index=True)
+    read_at: Mapped[datetime | None] = mapped_column(DateTime)
+    cleared_at: Mapped[datetime | None] = mapped_column(DateTime)
+    resource_kind: Mapped[str | None] = mapped_column(String(32))
+    resource_id: Mapped[str | None] = mapped_column(String(64))
+    href: Mapped[str | None] = mapped_column(String(300))
 
 
 class PricingOverride(Base):
