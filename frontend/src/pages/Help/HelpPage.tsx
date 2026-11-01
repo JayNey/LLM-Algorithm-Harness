@@ -156,7 +156,11 @@ export default function HelpPage() {
                 '预警投递支持 Slack、Webhook 与 SMTP 邮件，依赖部署时的渠道配置；保存规则不等于投递成功。',
               )}
             </li>
-            <li>{t('顶部通知中心的内容仍为示例数据，不反映真实任务事件。')}</li>
+            <li>
+              {t(
+                '顶部通知中心保存当前账号的任务完成和预算阈值预警，刷新或重新登录后仍然可见。',
+              )}
+            </li>
           </ol>
         </section>
         <section id="help-admin" aria-labelledby="help-admin-title">
