@@ -253,11 +253,19 @@ export default {
   ' · 已读': ' · Read',
   查看详情: 'View details',
   这里的通知已处理完毕: 'All notifications have been handled',
-  'Mock 通知 · 本次会话内保存，不会发送真实消息。':
-    'Mock notifications · Saved only in this session. No real messages are sent.',
+  正在加载通知: 'Loading notifications',
+  通知暂时无法加载: 'Notifications could not be loaded',
+  加载更多: 'Load more',
+  无法打开该资源: 'This resource cannot be opened',
+  任务已完成: 'Task completed',
+  '已完成 {{completed_count}} / {{total_count}}':
+    '{{completed_count}} / {{total_count}} completed',
+  预算达到阈值: 'Budget threshold reached',
+  '已知费用达到预算的 {{threshold_pct}}%':
+    'Known spend reached {{threshold_pct}}% of the budget',
   '开始一次 LLM 算法评估': 'Start an LLM algorithm evaluation',
-  '选择题目集 → 选择模型与策略 → 运行并比较结果。仪表盘展示当前账号的真实统计与最近任务；通知仍为 Mock 示例。':
-    'Choose problems → Choose a model and strategy → Run and compare results. The dashboard shows your actual statistics and recent tasks; notifications remain Mock examples.',
+  '选择题目集 → 选择模型与策略 → 运行并比较结果。仪表盘展示当前账号的真实统计与最近任务，通知中心展示已保存的通知。':
+    'Choose problems → Choose a model and strategy → Run and compare results. The dashboard shows your actual statistics and recent tasks, and the notification center shows saved notifications.',
   仪表盘: 'Dashboard',
   'Mock 数据已重新加载': 'Mock data reloaded',
   搜索评估任务: 'Search evaluations',
@@ -1199,8 +1207,8 @@ export default {
     'No run is linked yet. Reports are unavailable.',
   报告运行标识不可用: 'The report run identifier is unavailable',
   报告格式不可用: 'The report format is unavailable',
-  '预警由 Web 评估 worker 在启动、恢复和成本结算时检查，需要个人全局预算及启用的规则。保存规则不会立即发送，也不代表投递成功；其他任务类型不会独立触发检查。Slack/Webhook 使用规则中的 HTTPS 目标；邮件需要部署方配置 worker 的 COST_ALERT_SMTP_*。站内通知中心仍为 Mock。':
-    'Alerts are checked by the Web evaluation worker at startup, resume and cost settlement, using a personal global budget and enabled rules. Saving rules does not send immediately or prove delivery; other task types do not trigger checks independently. Slack/Webhook use the rule HTTPS target; email requires deployment configuration of worker COST_ALERT_SMTP_*. The in-app notification center remains Mock.',
+  '预警由 Web 评估 worker 在启动、恢复和成本结算时检查，需要个人全局预算及启用的规则。保存规则不会立即发送，也不代表投递成功；其他任务类型不会独立触发检查。Slack/Webhook 使用规则中的 HTTPS 目标；邮件需要部署方配置 worker 的 COST_ALERT_SMTP_*。达到阈值时站内通知单独记录，外部渠道发送成功或失败不改变这条站内预警。':
+    'Alerts are checked by the Web evaluation worker at startup, resume and cost settlement, using a personal global budget and enabled rules. Saving rules does not send immediately or prove delivery; other task types do not trigger checks independently. Slack/Webhook use the rule HTTPS target; email requires deployment configuration of worker COST_ALERT_SMTP_*. Reaching a threshold records a separate in-app notification, and external delivery success or failure does not change that alert.',
   '导入已暂停；此页面不支持恢复或取消。请勿重复提交，持续暂停时联系管理员并提供导入任务 ID：{{jobId}}。':
     'Import paused. This page cannot resume or cancel it. Do not submit again; if it remains paused, contact an administrator with import job ID: {{jobId}}.',
   '报告不可访问，请确认当前账号和运行记录。':
@@ -1249,8 +1257,8 @@ export default {
     ', set your personal budget. Budget pauses and strategy downgrades apply to evaluation tasks only; experiment, benchmark and A/B spend counts toward unified cost statistics and budget usage, but those tasks are not paused by the budget.',
   '预警投递支持 Slack、Webhook 与 SMTP 邮件，依赖部署时的渠道配置；保存规则不等于投递成功。':
     'Alert delivery supports Slack, webhooks and SMTP email and depends on channel configuration at deployment time; saving a rule does not mean a delivery succeeded.',
-  '顶部通知中心的内容仍为示例数据，不反映真实任务事件。':
-    'The notification center in the header still shows sample data and does not reflect real task events.',
+  '顶部通知中心保存当前账号的任务完成和预算阈值预警，刷新或重新登录后仍然可见。':
+    'The notification center in the header keeps task-completion and budget-threshold alerts for the current account, and they remain after a refresh or signing in again.',
   '设置 → 系统状态': 'Settings → System status',
   '仅管理员可见：由部署者在后端 MONITOR_ADMIN_USER_IDS 中配置已注册用户的 UUID 并重启 API，没有自助提权入口。':
     ' is visible to administrators only: the deployer lists registered user UUIDs in the backend MONITOR_ADMIN_USER_IDS and restarts the API; there is no self-service promotion.',

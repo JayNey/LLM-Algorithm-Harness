@@ -1125,6 +1125,52 @@ OPERATIONS: dict[str, tuple[str, Any]] = {
     "update_alert_rule": ("局部更新自己的成本预警规则。", RULE),
     "delete_alert_rule": ("删除自己的成本预警规则。", None),
     "alert_history": ("读取自己的最近预警历史，最多返回 200 条。", []),
+    "list_notifications": (
+        "分页读取自己的站内通知，可按类型和已读筛选；未读总数覆盖全部可见通知，不是当前页。",
+        {
+            "items": [
+                {
+                    "id": "note-demo",
+                    "kind": "task_completed",
+                    "title_key": "任务已完成",
+                    "body_key": "已完成 {{completed_count}} / {{total_count}}",
+                    "params": {"entity_id": "eval-demo", "completed_count": 1, "total_count": 1},
+                    "created_at": STAMP,
+                    "read": False,
+                    "href": "/evaluations/eval-demo",
+                    "resource_available": True,
+                    "unavailable_reason": None,
+                }
+            ],
+            "next_cursor": None,
+            "unread_count": 1,
+            "server_time": STAMP,
+        },
+    ),
+    "notification_unread_count": ("读取自己全部可见站内通知的未读数。", {"unread_count": 1}),
+    "mark_notification_read": (
+        "把自己的一条站内通知标为已读；不属于自己时返回 404。",
+        {
+            "id": "note-demo",
+            "kind": "task_completed",
+            "title_key": "任务已完成",
+            "body_key": "已完成 {{completed_count}} / {{total_count}}",
+            "params": {"entity_id": "eval-demo", "completed_count": 1, "total_count": 1},
+            "created_at": STAMP,
+            "read": True,
+            "href": "/evaluations/eval-demo",
+            "resource_available": True,
+            "unavailable_reason": None,
+        },
+    ),
+    "mark_all_notifications_read": (
+        "按不晚于请求开始的截止时间，把自己的可见通知全部标为已读。",
+        {"updated": 1, "cutoff": STAMP, "unread_count": 0},
+    ),
+    "clear_notifications": (
+        "按不晚于请求开始的截止时间清空自己的可见通知；之后的新通知保留。",
+        {"updated": 1, "cutoff": STAMP, "unread_count": 0},
+    ),
     "pricing_catalog": (
         "查询内置价格及自定义覆盖目录；金额为每千 token 的 USD 单价。",
         {
@@ -1340,6 +1386,11 @@ PARAMETERS: dict[str, tuple[str, Any]] = {
     "source": ("有效题目来源：all 为全部，shared 为共享题库，personal 为本人导入。", "all"),
     "job_id": ("自己的题目导入任务 ID。", "job-demo"),
     "rule_id": ("自己的成本预警规则 ID。", "rule-demo"),
+    "notification_id": ("自己的站内通知 ID；其他用户或不存在时返回 404。", "note-demo"),
+    "cursor": ("上一页返回的 next_cursor。非法值返回 400。", "cursor-demo"),
+    "kind": ("站内通知类型：task_completed、budget_alert 或 system。", "task_completed"),
+    "unread": ("为 true 只返回未读，为 false 只返回已读；省略则返回全部可见通知。", True),
+    "before": ("批量已读或清空的截止时间，ISO 8601，晚于请求开始时刻时会被截断到请求开始。", STAMP),
     "model_id": ("模型标识，用于价格查询或覆盖；作为单个 URL 路径段传入。", "gpt-4o-mini"),
     "chart_name": ("图表名称；目前仅支持 success-rate。", "success-rate"),
     "name": ("配置模板名称，从 GET /api/v1/configs/templates 获取。", "vanilla"),
@@ -1453,9 +1504,9 @@ ERROR_MESSAGES = {
     503: "Service is unavailable",
 }
 
-API_CONTRACT_VERSION = "1.4.0"
+API_CONTRACT_VERSION = "1.5.0"
 
-OVERVIEW = """LLM Algorithm Harness API，HTTP 契约版本 1.4.0（API v1）。
+OVERVIEW = """LLM Algorithm Harness API，HTTP 契约版本 1.5.0（API v1）。
 
 **版本策略**：URL 主版本 `/api/v1`；不使用 Header 版本协商。
 兼容扩展沿用 v1；破坏性变更使用新的 URL 主版本，并提供迁移说明、并行支持与退役公告。
@@ -1579,6 +1630,8 @@ def _document_operation(path: str, method: str, operation: dict[str, Any]) -> No
             }[parameter["name"]]
         if name == "alert_history" and parameter["name"] == "limit":
             description, example = "最近预警条数；默认 50，服务端限制到 1–200。", 50
+        if name == "list_notifications" and parameter["name"] == "limit":
+            description, example = "每页条数，默认 20，范围 1–50；越界返回 400。", 20
         if name in {"task_logs", "download_logs"} and parameter["name"] == "task_id":
             description, example = (
                 "自己拥有的异步任务 ID 或有效关联评估 ID；兼容旧评估运行 ID。",

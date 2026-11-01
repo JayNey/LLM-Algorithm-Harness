@@ -404,7 +404,7 @@ function AlertRulesSection({ onChanged }: { onChanged: () => void }) {
         type="warning"
         showIcon
         message={t(
-          '预警由 Web 评估 worker 在启动、恢复和成本结算时检查，需要个人全局预算及启用的规则。保存规则不会立即发送，也不代表投递成功；其他任务类型不会独立触发检查。Slack/Webhook 使用规则中的 HTTPS 目标；邮件需要部署方配置 worker 的 COST_ALERT_SMTP_*。站内通知中心仍为 Mock。',
+          '预警由 Web 评估 worker 在启动、恢复和成本结算时检查，需要个人全局预算及启用的规则。保存规则不会立即发送，也不代表投递成功；其他任务类型不会独立触发检查。Slack/Webhook 使用规则中的 HTTPS 目标；邮件需要部署方配置 worker 的 COST_ALERT_SMTP_*。达到阈值时站内通知单独记录，外部渠道发送成功或失败不改变这条站内预警。',
         )}
       />
       {error && <ExperimentFeedback message={t(error)} retry={reload} />}
