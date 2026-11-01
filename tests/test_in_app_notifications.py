@@ -8,7 +8,7 @@ from unittest.mock import patch
 import pytest
 from cryptography.fernet import Fernet
 from fastapi.testclient import TestClient
-from sqlalchemy import func, inspect, select
+from sqlalchemy import event, func, inspect, select
 from sqlalchemy.exc import IntegrityError
 
 from api.auth.config import AuthSettings
@@ -286,21 +286,17 @@ def test_notification_routes_return_only_the_current_user(tmp_path):
     with TestClient(app) as client:
         alice, alice_id = _login(client, "alice")
         bob, _bob_id = _login(client, "bob")
+        from src.task_manager import TaskManager
+
         with app.state.notifications._sessions() as db, db.begin():
-            db.add(Evaluation(id="ev-1", user_id=alice_id))
-            note = app.state.notifications.stage(
-                db,
-                user_id=alice_id,
-                kind="task_completed",
-                event_key="task-completed/evaluation/ev-1",
-                title_key="任务已完成",
-                body_key="已完成 {{completed_count}} / {{total_count}}",
-                params={"entity_id": "ev-1", "completed_count": 1, "total_count": 1},
-                resource_kind="evaluation",
-                resource_id="ev-1",
-                href="/evaluations/ev-1",
-            )
-            note_id = note.id
+            task = _running_task("evaluation", "ev-1")
+            task.user_id = alice_id
+            db.add(Evaluation(id="ev-1", user_id=alice_id, async_task_id=task.id))
+            db.add(task)
+            task_id = task.id
+        with app.state.notifications._sessions() as db:
+            TaskManager(db).update_task_status(task_id, "completed")
+        note_id = app.state.notifications.list_notifications(alice_id)["items"][0]["id"]
         listed = client.get("/api/v1/notifications", headers=alice)
         assert listed.status_code == 200, listed.text
         body = listed.json()["data"]
@@ -320,6 +316,22 @@ def test_notification_routes_return_only_the_current_user(tmp_path):
                 "unread_count"
             ]
             == 0
+        )
+        # A fresh login observes the persisted read and clear state.
+        alice_again, _ = _login(client, "alice")
+        assert (
+            client.get("/api/v1/notifications", headers=alice_again).json()["data"]["items"][0][
+                "read"
+            ]
+            is True
+        )
+        cleared = client.post("/api/v1/notifications/clear", headers=alice_again)
+        assert cleared.json()["data"]["updated"] == 1
+        assert client.get("/api/v1/notifications", headers=alice).json()["data"]["items"] == []
+        with app.state.notifications._sessions() as db:
+            TaskManager(db).update_task_status(task_id, "completed")
+        assert (
+            client.get("/api/v1/notifications", headers=alice_again).json()["data"]["items"] == []
         )
 
 
@@ -413,8 +425,12 @@ def test_interrupted_completion_retry_creates_one_notification(tmp_path):
     run_migrations(url)
     factory = make_session_factory(make_engine(url))
     with factory() as db, db.begin():
-        db.add(Evaluation(id="ev", user_id="alice", completed_count=1, problem_count=1))
         task = _running_task("evaluation", "ev")
+        db.add(
+            Evaluation(
+                id="ev", user_id="alice", async_task_id=task.id, completed_count=1, problem_count=1
+            )
+        )
         db.add(task)
         task_id = task.id
     real_commit = TaskManager._commit
@@ -431,7 +447,145 @@ def test_interrupted_completion_retry_creates_one_notification(tmp_path):
             TaskManager(db).update_task_status(task_id, "completed")
     with factory() as db:
         assert db.get(Evaluation, "ev").status != "completed"
+        assert db.get(AsyncTask, task_id).status == "running"
+        assert db.scalar(select(func.count()).select_from(InAppNotification)) == 0
         TaskManager(db).update_task_status(task_id, "completed")
+    with factory() as db:
+        assert db.get(Evaluation, "ev").status == "completed"
+        assert db.get(AsyncTask, task_id).status == "completed"
     notes = NotificationService(url).list_notifications("alice")
     assert len(notes["items"]) == 1
     assert notes["items"][0]["href"] == "/evaluations/ev"
+
+
+def test_pagination_preserves_subsecond_cursor_order(tmp_path):
+    service = NotificationService(f"sqlite:///{tmp_path}/cursor.sqlite3")
+    now = datetime(2026, 11, 1, 12, 0, 0, 900000)
+    with service._sessions() as db, db.begin():
+        for index, micros in enumerate((100000, 200000, 200000)):
+            _stage(
+                service,
+                db,
+                event_key=f"event/{index}",
+                created_at=datetime(2026, 11, 1, 12, 0, 0, micros),
+            )
+    seen = []
+    cursor = None
+    while True:
+        page = service.list_notifications("alice", limit=1, cursor=cursor, now=now)
+        seen.extend(item["id"] for item in page["items"])
+        cursor = page["next_cursor"]
+        if cursor is None:
+            break
+    assert len(seen) == len(set(seen)) == 3
+
+
+@pytest.mark.parametrize("operation", ["clear", "mark_all_read"])
+def test_batch_uses_precise_list_snapshot_cutoff(tmp_path, operation):
+    service = NotificationService(f"sqlite:///{tmp_path}/cutoff.sqlite3")
+    snapshot = datetime(2026, 11, 1, 12, 0, 0, 500000)
+    with service._sessions() as db, db.begin():
+        old = _stage(service, db, created_at=datetime(2026, 11, 1, 12, 0, 0, 100000))
+        old_id = old.id
+    page = service.list_notifications("alice", now=snapshot)
+    with service._sessions() as db, db.begin():
+        new = _stage(
+            service, db, event_key="event/new", created_at=datetime(2026, 11, 1, 12, 0, 0, 600000)
+        )
+        new_id = new.id
+    result = getattr(service, operation)(
+        "alice",
+        before=datetime.fromisoformat(page["server_time"]),
+        now=datetime(2026, 11, 1, 12, 0, 1),
+    )
+    assert result["updated"] == 1
+    remaining = {
+        item["id"]: item for item in service.list_notifications("alice", now=snapshot)["items"]
+    }
+    assert remaining[new_id]["read"] is False
+    if operation == "clear":
+        assert old_id not in remaining
+    else:
+        assert remaining[old_id]["read"] is True
+
+
+def test_concurrent_delivery_preserves_one_event_and_clear_tombstone(tmp_path):
+    from concurrent.futures import ThreadPoolExecutor
+    from threading import Barrier
+
+    service = NotificationService(f"sqlite:///{tmp_path}/concurrent.sqlite3")
+    barrier = Barrier(2)
+
+    def deliver():
+        barrier.wait(timeout=5)
+        with service._sessions() as db, db.begin():
+            return _stage(service, db).id
+
+    with ThreadPoolExecutor(max_workers=2) as pool:
+        ids = list(pool.map(lambda _: deliver(), range(2)))
+    assert ids[0] == ids[1]
+    now = datetime(2026, 11, 1, 12)
+    assert service.list_notifications("alice", now=now)["unread_count"] == 1
+    service.clear("alice", now=now)
+    barrier.reset()
+    with ThreadPoolExecutor(max_workers=2) as pool:
+        assert list(pool.map(lambda _: deliver(), range(2))) == ids
+    assert service.list_notifications("alice", now=now)["items"] == []
+
+
+@pytest.mark.parametrize("operation", ["clear", "mark_all_read"])
+def test_batch_excludes_notification_committed_by_another_worker(tmp_path, operation):
+    from concurrent.futures import ThreadPoolExecutor
+    from threading import Event
+
+    service = NotificationService(f"sqlite:///{tmp_path}/batch-race.sqlite3")
+    snapshot = datetime(2026, 11, 1, 12, 0, 0, 500000)
+    with service._sessions() as db, db.begin():
+        _stage(service, db)
+    page = service.list_notifications("alice", now=snapshot)
+    inserted, updating, release = Event(), Event(), Event()
+
+    def observe_update(connection, cursor, statement, parameters, context, executemany):
+        if statement.startswith("UPDATE in_app_notifications"):
+            updating.set()
+
+    event.listen(service._engine, "before_cursor_execute", observe_update)
+
+    def deliver():
+        with service._sessions() as db, db.begin():
+            row = _stage(
+                service,
+                db,
+                event_key="event/new",
+                created_at=datetime(2026, 11, 1, 12, 0, 0, 600000),
+            )
+            inserted.set()
+            assert release.wait(5)
+            return row.id
+
+    with ThreadPoolExecutor(max_workers=2) as pool:
+        future = pool.submit(deliver)
+        assert inserted.wait(5)
+        try:
+            batch = pool.submit(
+                getattr(service, operation),
+                "alice",
+                before=datetime.fromisoformat(page["server_time"]),
+                now=datetime(2026, 11, 1, 12, 0, 1),
+            )
+            assert updating.wait(5)
+        finally:
+            release.set()
+        new_id = future.result()
+        assert batch.result()["updated"] == 1
+    notes = service.list_notifications("alice", now=datetime(2026, 11, 1, 12, 0, 1))["items"]
+    assert next(item for item in notes if item["id"] == new_id)["read"] is False
+
+
+def test_notification_insert_rolls_back_with_outer_transaction(tmp_path):
+    service = NotificationService(f"sqlite:///{tmp_path}/rollback.sqlite3")
+    with pytest.raises(RuntimeError, match="interrupted"):
+        with service._sessions() as db, db.begin():
+            _stage(service, db)
+            raise RuntimeError("interrupted")
+    assert service.list_notifications("alice", now=datetime(2026, 11, 1, 12))["items"] == []

@@ -4,14 +4,17 @@ from __future__ import annotations
 
 import base64
 import re
+import sqlite3
 from datetime import datetime, timedelta, timezone
 from decimal import Decimal
-from typing import Any
+from typing import Any, cast
 from uuid import uuid4
 
-from sqlalchemy import and_, func, or_, select, update
+from sqlalchemy import Select, and_, func, or_, select, update
+from sqlalchemy.engine import CursorResult
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
+from sqlalchemy.sql.elements import ColumnElement
 
 from api.db import (
     ABTest,
@@ -109,6 +112,13 @@ def stage_notification(
         resource_id=resource_id,
         href=href,
     )
+    # sqlite3 legacy transaction control does not start a transaction for SELECT
+    # or SAVEPOINT. Ensure RELEASE cannot commit independently of the caller.
+    connection = session.connection()
+    if connection.dialect.name == "sqlite":
+        driver = cast(sqlite3.Connection, connection.connection.driver_connection)
+        if not driver.in_transaction:
+            connection.exec_driver_sql("BEGIN")
     try:
         with session.begin_nested():
             session.add(row)
@@ -266,23 +276,23 @@ class NotificationService:
         cutoff = moment if before is None else min(_naive(before), moment)
         floor = moment - RETENTION
         with self._sessions() as db, db.begin():
-            conditions = (
+            conditions: list[ColumnElement[bool]] = [
                 InAppNotification.user_id == user_id,
                 InAppNotification.cleared_at.is_(None),
                 InAppNotification.created_at <= cutoff,
                 InAppNotification.created_at >= floor,
-            )
+            ]
             if clear:
                 values = {"cleared_at": moment}
             else:
-                conditions = (*conditions, InAppNotification.read_at.is_(None))
+                conditions.append(InAppNotification.read_at.is_(None))
                 values = {"read_at": moment}
             result = db.execute(update(InAppNotification).where(*conditions).values(**values))
-            updated = int(result.rowcount or 0)
+            updated = int(cast(CursorResult[Any], result).rowcount or 0)
             unread = self._count_unread(db, user_id, moment)
         return {"updated": updated, "cutoff": _iso(cutoff), "unread_count": unread}
 
-    def _visible(self, user_id: str, moment: datetime):
+    def _visible(self, user_id: str, moment: datetime) -> Select[InAppNotification]:
         return select(InAppNotification).where(
             InAppNotification.user_id == user_id,
             InAppNotification.cleared_at.is_(None),
@@ -355,34 +365,34 @@ def _completion_target(session: Session, task: AsyncTask) -> dict[str, Any] | No
             },
         }
     if task.task_type == "experiment":
-        row = session.get(Experiment, task.entity_id)
-        if row is None or row.user_id != task.user_id:
+        experiment = session.get(Experiment, task.entity_id)
+        if experiment is None or experiment.user_id != task.user_id:
             return None
         return {
             "resource_kind": "experiment",
-            "resource_id": row.id,
-            "href": f"/experiments/{row.id}",
-            "params": {"entity_id": row.id, "completed_count": 1, "total_count": 1},
+            "resource_id": experiment.id,
+            "href": f"/experiments/{experiment.id}",
+            "params": {"entity_id": experiment.id, "completed_count": 1, "total_count": 1},
         }
     if task.task_type == "benchmark":
-        row = session.get(BenchmarkRun, task.entity_id)
-        if row is None or row.user_id != task.user_id:
+        run = session.get(BenchmarkRun, task.entity_id)
+        if run is None or run.user_id != task.user_id:
             return None
         return {
             "resource_kind": "benchmark",
-            "resource_id": row.suite_id,
-            "href": f"/benchmarks/{row.suite_id}",
-            "params": {"entity_id": row.id, "completed_count": 1, "total_count": 1},
+            "resource_id": run.suite_id,
+            "href": f"/benchmarks/{run.suite_id}",
+            "params": {"entity_id": run.id, "completed_count": 1, "total_count": 1},
         }
     if task.task_type == "ab_test":
-        row = session.get(ABTest, task.entity_id)
-        if row is None or row.user_id != task.user_id:
+        ab_test = session.get(ABTest, task.entity_id)
+        if ab_test is None or ab_test.user_id != task.user_id:
             return None
         return {
             "resource_kind": "ab_test",
-            "resource_id": row.id,
-            "href": f"/ab-tests/{row.id}",
-            "params": {"entity_id": row.id, "completed_count": 1, "total_count": 1},
+            "resource_id": ab_test.id,
+            "href": f"/ab-tests/{ab_test.id}",
+            "params": {"entity_id": ab_test.id, "completed_count": 1, "total_count": 1},
         }
     return None
 
@@ -390,15 +400,18 @@ def _completion_target(session: Session, task: AsyncTask) -> dict[str, Any] | No
 def _resource(db: Session, user_id: str, row: InAppNotification) -> tuple[bool, str | None]:
     if row.resource_kind == "budget":
         return True, row.href or "/settings/budgets"
-    model = {
+    models: dict[str, type[Evaluation] | type[Experiment] | type[BenchmarkSuite] | type[ABTest]] = {
         "evaluation": Evaluation,
         "experiment": Experiment,
         "benchmark": BenchmarkSuite,
         "ab_test": ABTest,
-    }.get(row.resource_kind or "")
+    }
+    model = models.get(row.resource_kind or "")
     if model is None or not row.resource_id:
         return False, None
-    owned = db.get(model, row.resource_id)
+    owned = cast(
+        Evaluation | Experiment | BenchmarkSuite | ABTest | None, db.get(model, row.resource_id)
+    )
     if owned is None or owned.user_id != user_id:
         return False, None
     return True, row.href
@@ -418,7 +431,7 @@ def _naive(value: datetime) -> datetime:
 
 
 def _iso(value: datetime) -> str:
-    return _naive(value).isoformat(timespec="seconds")
+    return _naive(value).isoformat()
 
 
 def _encode_cursor(row: InAppNotification) -> str:
