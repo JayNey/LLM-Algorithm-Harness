@@ -1,0 +1,8 @@
+{
+  "choice": "B",
+  "confirmedBy": "user",
+  "action": "archive-and-push-existing-branch",
+  "branch": "feat/322-benchmark-run-history",
+  "pullRequest": 327,
+  "createPullRequest": false
+}

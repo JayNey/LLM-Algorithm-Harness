@@ -2,23 +2,23 @@ import DatasetPicker from '@/experiments/DatasetPicker.tsx'
 import { useTranslation } from 'react-i18next'
 import { t } from '../../i18n/core.ts'
 import { Alert, Button, Input, Select, Skeleton, Tabs } from 'antd'
-import { useCallback, useState } from 'react'
-import { Link, useParams } from 'react-router-dom'
+import {
+  useCallback,
+  useEffect,
+  useLayoutEffect,
+  useRef,
+  useState,
+} from 'react'
+import { Link, useParams, useSearchParams } from 'react-router-dom'
 import type { RunDraftErrors, SuiteDraftErrors } from '@/benchmarks/types.ts'
 import { TrendLine } from '@/components/charts/CompareCharts.tsx'
 import { ExperimentFeedback } from '@/experiments/components.tsx'
-import { useTaskProgress } from '@/experiments/useTaskProgress.ts'
-import {
-  formatDateTime,
-  formatGrowth,
-  formatRate,
-  formatUsd,
-  runStatusLabel,
-} from '@/benchmarks/presentation.ts'
+import RunHistory from '@/benchmarks/RunHistory.tsx'
+import { historySearch } from '@/benchmarks/history.ts'
+import { formatGrowth } from '@/benchmarks/presentation.ts'
 import { SuiteForm } from '@/benchmarks/SuiteForm.tsx'
 import { useBenchmarkSession } from '@/benchmarks/session.tsx'
 import type {
-  BenchmarkRun,
   BenchmarkRunStarted,
   BenchmarkSuite,
   LearningCurve,
@@ -59,9 +59,7 @@ function useApiKeys() {
   )
 }
 
-const TERMINAL = new Set(['completed', 'failed', 'cancelled'])
-
-export default function BenchmarkDetailPage() {
+function BenchmarkDetailContent() {
   useTranslation()
 
   const { suiteId } = useParams()
@@ -89,45 +87,36 @@ export default function BenchmarkDetailPage() {
     budget_cap_usd: '',
   })
   const [runErrors, setRunErrors] = useState<RunDraftErrors>({})
-  const [started, setStarted] = useState<{
-    suiteId: string
-    taskId: string
-  } | null>(null)
-
-  const activeTaskId =
-    started && suite && started.suiteId === suite.id ? started.taskId : null
-  const progress = useTaskProgress(client, activeTaskId, owner)
-  const taskStatus = progress.task?.status ?? null
-  const runFinished = taskStatus !== null && TERMINAL.has(taskStatus)
+  const [search, setSearch] = useSearchParams()
+  const committedSearch = useRef(search)
+  useLayoutEffect(() => {
+    committedSearch.current = search
+  }, [search])
+  const [historyRevision, setHistoryRevision] = useState(0)
+  const submission = useRef(false)
+  const mounted = useRef(true)
+  useEffect(() => {
+    mounted.current = true
+    return () => {
+      mounted.current = false
+    }
+  }, [])
 
   const loadCurve = useResource(
     useCallback(
       (signal: AbortSignal) => client.learningCurve(suiteId ?? '', signal),
-      // 同上：终态触发学习曲线重取
-      [client, suiteId, runFinished],
+      [client, suiteId],
     ),
   )
   const curve = loadCurve.data as LearningCurve | undefined
   const [metric, setMetric] = useState<'accuracy' | 'cost_usd'>('accuracy')
 
-  const latestRun = useResource(
-    useCallback(
-      async (signal: AbortSignal): Promise<BenchmarkRun | null> => {
-        if (!activeTaskId) return null
-        const task = await client.task(activeTaskId, signal)
-        return client.run(task.entity_id, signal)
-      },
-      // runFinished 是刻意加入的重取触发器（任务终态后重取结果）
-      [client, activeTaskId, runFinished],
-    ),
-  )
-  const latestRunData = latestRun.data as BenchmarkRun | null | undefined
-
   async function saveEdit() {
-    if (!suite || !editDraft || busy) return
+    if (!suite || !editDraft || submission.current) return
     const nextErrors = validateSuiteDraft(editDraft)
     setEditErrors(nextErrors)
     if (Object.keys(nextErrors).length) return
+    submission.current = true
     setBusy(true)
     setActionError(null)
     try {
@@ -142,6 +131,7 @@ export default function BenchmarkDetailPage() {
         description: editDraft.description.trim() || null,
         frozen: editDraft.frozen,
       })
+      if (!mounted.current) return
       setEditing(false)
       suiteResource.retry()
       loadCurve.retry()
@@ -150,15 +140,17 @@ export default function BenchmarkDetailPage() {
         cause instanceof Error ? cause.message : '保存失败，请重试',
       )
     } finally {
-      setBusy(false)
+      submission.current = false
+      if (mounted.current) setBusy(false)
     }
   }
 
   async function launchRun() {
-    if (!suite || busy) return
+    if (!suite || submission.current) return
     const nextErrors = validateRunDraft(runDraft)
     setRunErrors(nextErrors)
     if (Object.keys(nextErrors).length) return
+    submission.current = true
     setBusy(true)
     setActionError(null)
     try {
@@ -166,13 +158,18 @@ export default function BenchmarkDetailPage() {
         suite.id,
         runPayload(runDraft),
       )
-      setStarted({ suiteId: suite.id, taskId: startedRun.task_id })
+      if (!mounted.current) return
+      setSearch(
+        historySearch(committedSearch.current, { runId: startedRun.id }),
+      )
+      setHistoryRevision((v) => v + 1)
     } catch (cause: unknown) {
       setActionError(
         cause instanceof Error ? cause.message : '启动失败，请重试',
       )
     } finally {
-      setBusy(false)
+      submission.current = false
+      if (mounted.current) setBusy(false)
     }
   }
 
@@ -188,9 +185,6 @@ export default function BenchmarkDetailPage() {
     )
   if (!suite)
     return <Alert role="alert" type="error" message={t('套件不存在')} />
-
-  const runActive = !!activeTaskId && !progress.paused
-  const progressTask = progress.task
 
   return (
     <section className="evaluation-workflow">
@@ -241,6 +235,16 @@ export default function BenchmarkDetailPage() {
             </Button>
           </div>
         )}
+        <RunHistory
+          client={client}
+          owner={owner}
+          suiteId={suite.id}
+          revision={historyRevision}
+          onSettled={() => {
+            loadCurve.retry()
+            setHistoryRevision((v) => v + 1)
+          }}
+        />
         <Tabs
           items={[
             {
@@ -329,57 +333,11 @@ export default function BenchmarkDetailPage() {
                   <Button
                     type="primary"
                     aria-label={t('启动基准运行')}
-                    disabled={busy || runActive}
+                    disabled={busy}
                     onClick={() => void launchRun()}
                   >
-                    {runActive ? t('运行中…') : t('启动运行')}
+                    {t('启动运行')}
                   </Button>
-                  {runActive && progressTask?.progress && (
-                    <p role="status">
-                      {progressTask.progress.current_step || t('执行中')} ·{' '}
-                      {progressTask.progress.current} /{' '}
-                      {progressTask.progress.total}（
-                      {progressTask.progress.percentage}%）
-                    </p>
-                  )}
-                  {latestRunData && (
-                    <table
-                      className="evaluation-list-table"
-                      aria-label={t('最近一次运行')}
-                    >
-                      <thead>
-                        <tr>
-                          {[
-                            t('状态 / 错误'),
-                            t('模型'),
-                            t('准确率'),
-                            t('成本'),
-                            t('更新时间'),
-                          ].map((name) => (
-                            <th key={name} scope="col">
-                              {name}
-                            </th>
-                          ))}
-                        </tr>
-                      </thead>
-                      <tbody>
-                        <tr>
-                          <td>
-                            {runStatusLabel(latestRunData.status)}
-                            <small>
-                              {latestRunData.error_message ??
-                                progress.task?.error_message ??
-                                ''}
-                            </small>
-                          </td>
-                          <td>{latestRunData.model ?? '—'}</td>
-                          <td>{formatRate(latestRunData.accuracy)}</td>
-                          <td>{formatUsd(latestRunData.cost_usd)}</td>
-                          <td>{formatDateTime(latestRunData.updated_at)}</td>
-                        </tr>
-                      </tbody>
-                    </table>
-                  )}
                 </div>
               ),
             },
@@ -413,6 +371,11 @@ export default function BenchmarkDetailPage() {
                   ) : curve && curve.data.length ? (
                     <>
                       <TrendLine
+                        onSelectRun={(id) =>
+                          setSearch((previous) =>
+                            historySearch(previous, { runId: id }),
+                          )
+                        }
                         series={Object.entries(
                           curve.data.reduce<
                             Record<string, LearningCurve['data']>
@@ -423,6 +386,21 @@ export default function BenchmarkDetailPage() {
                         ).map(([model, points]) => ({ model, points }))}
                         metric={metric}
                       />
+                      <ul aria-label={t('曲线运行导航')}>
+                        {curve.data
+                          .filter((point) => point.run_id)
+                          .map((point) => (
+                            <li key={point.run_id}>
+                              <Link
+                                to={{
+                                  search: `?${historySearch(search, { runId: point.run_id as string })}`,
+                                }}
+                              >
+                                {point.model} · {point.run_id}
+                              </Link>
+                            </li>
+                          ))}
+                      </ul>
                       <p role="status">
                         {t('准确率增长：')}
                         {formatGrowth(curve.trends.accuracy_growth_rate)}{' '}
@@ -445,4 +423,10 @@ export default function BenchmarkDetailPage() {
       </div>
     </section>
   )
+}
+
+export default function BenchmarkDetailPage() {
+  const { suiteId } = useParams()
+  const { owner } = useBenchmarkSession()
+  return <BenchmarkDetailContent key={`${owner}:${suiteId}`} />
 }

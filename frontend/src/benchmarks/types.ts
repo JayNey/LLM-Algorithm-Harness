@@ -42,6 +42,7 @@ export interface BenchmarkRunRequestPayload {
 export interface BenchmarkRun {
   id: string
   suite_id: string
+  task_id: string | null
   status: string
   model: string | null
   accuracy: number | null
@@ -49,6 +50,17 @@ export interface BenchmarkRun {
   error_message: string | null
   created_at: string
   updated_at: string
+  results?: Record<string, unknown>
+}
+
+export type RunStatus =
+  'pending' | 'running' | 'paused' | 'completed' | 'failed' | 'cancelled'
+export interface RunPage {
+  items: BenchmarkRun[]
+  total: number
+  limit: number
+  offset: number
+  has_more: boolean
 }
 
 export interface BenchmarkRunStarted extends BenchmarkRun {
@@ -56,6 +68,7 @@ export interface BenchmarkRunStarted extends BenchmarkRun {
 }
 
 export interface LearningCurvePoint {
+  run_id: string | null
   timestamp: string | null
   model: string
   accuracy: number | null
@@ -75,6 +88,7 @@ export interface LearningCurve {
 /** 任务快照（GET /tasks/{id} 的消费子集，形状同实验簇）。 */
 export interface TaskSnapshot {
   id: string
+  task_type: string
   entity_id: string
   status: string
   progress: {
@@ -87,6 +101,11 @@ export interface TaskSnapshot {
 }
 
 export interface BenchmarkClient {
+  runs(
+    suiteId: string,
+    query: { status?: RunStatus; limit: number; offset: number },
+    signal?: AbortSignal,
+  ): Promise<RunPage>
   suites(signal?: AbortSignal): Promise<BenchmarkSuite[]>
   getSuite(suiteId: string, signal?: AbortSignal): Promise<BenchmarkSuite>
   createSuite(input: SuiteCreateInput): Promise<BenchmarkSuite>
