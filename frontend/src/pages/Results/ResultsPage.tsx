@@ -1,8 +1,9 @@
 import { useTranslation } from 'react-i18next'
 import { t } from '../../i18n/core.ts'
 import { Button, Empty, Select, Skeleton } from 'antd'
-import { useCallback, useEffect, useMemo } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import { Link, useSearchParams } from 'react-router-dom'
+import { AnalysisSection } from '@/evaluations/analysis.tsx'
 import { EvaluationFeedback } from '@/evaluations/components.tsx'
 import { resultStatusLabel } from '@/evaluations/presentation.ts'
 import { useEvaluationSession } from '@/evaluations/session.tsx'
@@ -108,6 +109,8 @@ export default function ResultsPage() {
     if (next.toString() !== rawSearch) setSearch(next, { replace: true })
   }, [query, rawSearch, setSearch, data, outOfRange])
   const loading = list.status === 'loading' || outOfRange
+  // 全账号分析按需展开，默认不发任何分析请求。
+  const [showAnalysis, setShowAnalysis] = useState(false)
   return (
     <section className="evaluation-workflow">
       <header className="page-heading">
@@ -241,6 +244,25 @@ export default function ResultsPage() {
           </nav>
         )}
       </div>
+      <section className="panel evaluation-panel" aria-label={t('全账号分析')}>
+        <div className="evaluation-section-heading">
+          <h2>{t('全账号分析')}</h2>
+          <Button
+            aria-expanded={showAnalysis}
+            onClick={() => setShowAnalysis((value) => !value)}
+          >
+            {showAnalysis ? t('收起全账号分析') : t('查看全账号分析')}
+          </Button>
+        </div>
+        <p>
+          {t(
+            '只统计当前账号已完成的运行，由服务端全量聚合，与上方列表的状态筛选和分页无关；展开后才会请求分析接口。',
+          )}
+        </p>
+        {showAnalysis && (
+          <AnalysisSection key={String(owner)} scope={{ kind: 'account' }} />
+        )}
+      </section>
     </section>
   )
 }

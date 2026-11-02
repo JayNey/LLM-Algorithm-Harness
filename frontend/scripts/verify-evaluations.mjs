@@ -23,6 +23,7 @@ const known = [
   'detail',
   'progress',
   'results',
+  'analytics',
   'states',
   'entries',
   'appearance',
@@ -82,10 +83,12 @@ const report = {
   replaced: [
     'WebSocket progress: in-memory fixture (no real upstream connection)',
     'HTTP /api/v1/users/me',
+    'HTTP /api/v1/notifications (empty persisted page since #330)',
     'HTTP /api/v1/api-keys',
     'HTTP /api/v1/evaluation-options and children',
     'HTTP /api/v1/evaluations create/start/get',
     'results scenario: HTTP /api/v1/results list/detail',
+    'analytics scenario: HTTP /api/v1/analytics, /visualizations, /failures and /compare (filter-aware fixture)',
     'entries scenario: HTTP /api/v1/results list (empty fixture)',
     'entries scenario: HTTP /api/v1/costs/summary (zero fixture for real dashboard)',
     'localStorage session marker (no credentials)',
@@ -135,6 +138,179 @@ const keys = ['a', 'b', 'slow'].map((id) => ({
   usage_count: 0,
   masked_preview: null,
 }))
+const analyticsRunId = 'run-fixture-1'
+const radarDimensions = [
+  'Array',
+  'Graph',
+  'Dynamic Programming',
+  'Greedy',
+  'Math',
+  'String',
+  'Other',
+]
+function analyticsStrategy(name, total) {
+  const solved = Math.floor(total / 2)
+  return {
+    name,
+    success_rate: total ? solved / total : 0,
+    total_problems: total,
+    solved_problems: solved,
+    avg_tokens: 100,
+    estimated_cost_usd: name === 'cot' ? 0.12 : 0,
+    unknown_cost_count: name === 'cot' ? 1 : 2,
+    avg_execution_time: 1.25,
+    by_difficulty: { easy: { success_rate: 0.5, solved: 2, total: 4 } },
+  }
+}
+// 筛选感知的分析 fixture：不同范围/筛选返回可区分的单元数，供断言旧响应被丢弃。
+function analyticsReply(path, url) {
+  const scoped = url.searchParams.has('run_id')
+  const strategy = url.searchParams.get('strategy')
+  const tag = url.searchParams.get('tag')
+  const difficulty = url.searchParams.get('difficulty')
+  let total = scoped ? 24 : 48
+  if (strategy === 'direct') total = 12
+  else if (strategy === 'cot') total = 11
+  else if (strategy) total = 0
+  if (tag) total = Math.min(total, 6)
+  if (difficulty) total = Math.min(total, 8)
+  const solved = Math.floor(total / 2)
+  const bucket = { success_rate: total ? solved / total : 0, solved, total }
+  const names = strategy ? [strategy] : ['direct', 'cot']
+  const strategies = names.map((name) => analyticsStrategy(name, total))
+  switch (path) {
+    case '/analytics/success-rate':
+      return {
+        ...bucket,
+        avg_execution_time: 1.25,
+        by_difficulty: total ? { easy: bucket } : {},
+        by_tag: total
+          ? tag
+            ? { [tag]: bucket }
+            : { graph: bucket, 'dynamic-programming': bucket }
+          : {},
+      }
+    case '/analytics/tokens':
+      return {
+        total_tokens: total * 100,
+        avg_tokens: total ? 100 : 0,
+        estimated_cost_usd: 0.12,
+        unknown_cost_count: 2,
+      }
+    case '/analytics/iterations':
+      return {
+        known_count: Math.max(0, total - 1),
+        unknown_count: total ? 1 : 0,
+        average: total ? 2 : null,
+        distribution: total ? [{ iterations: 2, count: total - 1 }] : [],
+      }
+    case '/analytics/failure-modes':
+      return total ? { logic_error: 2, unknown: 1 } : {}
+    case '/visualizations/success-rate-chart':
+      return {
+        points: strategies.map((item) => ({
+          name: item.name,
+          success_rate: item.success_rate,
+        })),
+      }
+    case '/visualizations/token-chart':
+      return {
+        series: strategies.map((item) => ({
+          name: item.name,
+          points: [
+            { problem_id: 'result-problem-1', tokens: 120 },
+            { problem_id: 'result-problem-2', tokens: null },
+            { problem_id: 'result-problem-3', tokens: 80 },
+          ],
+        })),
+      }
+    case '/visualizations/cost-accuracy':
+      return {
+        points: strategies.map((item) => ({
+          name: item.name,
+          success_rate: item.success_rate,
+          estimated_cost_usd: item.estimated_cost_usd,
+        })),
+      }
+    case '/visualizations/capability-radar':
+      return {
+        dimensions: radarDimensions,
+        series: [
+          { name: 'result-model', data: [50, 0, 0, 0, 0, 0, 0] },
+          { name: null, data: [0, 0, 0, 0, 0, 0, 100] },
+        ],
+        problem_counts: Object.fromEntries(
+          radarDimensions.map((name, index) => [
+            name,
+            index === 0 ? 2 : index === 6 ? 1 : 0,
+          ]),
+        ),
+      }
+    case '/failures/by-tag':
+      return {
+        tags: total ? (tag ? { [tag]: bucket } : { graph: bucket }) : {},
+      }
+    case `/failures/summary/${analyticsRunId}`:
+      return {
+        modes: { logic_error: 2 },
+        categories: { wrong_answer: 2 },
+        clusters: [{ pattern: 'boom N', count: 2 }],
+      }
+    case `/failures/cases/${analyticsRunId}`:
+      return {
+        items: [
+          {
+            problem_id: 'result-problem-2',
+            strategy: 'direct',
+            status: 'failed',
+            error_message: 'boom 42',
+          },
+          {
+            problem_id: 'result-problem-2',
+            strategy: 'cot',
+            status: 'timeout',
+            error_message: null,
+          },
+          {
+            problem_id: 'result-problem-5',
+            strategy: 'direct',
+            status: 'failed',
+            error_message: 'boom 7',
+          },
+        ],
+      }
+    case '/compare/strategies':
+      return scoped
+        ? { strategies: ['direct', 'cot'].map((n) => analyticsStrategy(n, 24)) }
+        : null
+    case '/compare/models':
+      return {
+        models: [
+          {
+            model: 'result-model',
+            strategies: ['direct', 'cot'].map((n) => analyticsStrategy(n, 48)),
+          },
+          { model: null, strategies: [] },
+        ],
+      }
+    case '/compare/history':
+      return scoped
+        ? {
+            series: [
+              {
+                run_id: 'run-history-1',
+                completed_at: '2026-10-20T00:00:00Z',
+                strategies: ['direct', 'cot'].map((n) =>
+                  analyticsStrategy(n, 20),
+                ),
+              },
+            ],
+          }
+        : null
+    default:
+      return undefined
+  }
+}
 async function fixture(
   mode = 'start-error',
   entry = '/evaluations/new',
@@ -176,6 +352,11 @@ async function fixture(
   let releaseList
   let releaseStale
   let failList = mode === 'list-error'
+  const analyticsFailures = new Map()
+  let analyticsHold = null
+  let releaseAnalytics = () => {}
+  let analyticsHeld = Promise.resolve()
+  let markAnalyticsHeld = () => {}
   const listGate = new Promise((resolve) => {
     releaseList = resolve
   })
@@ -216,6 +397,29 @@ async function fixture(
     const send = (data, status = 200) =>
       route.fulfill({ status, headers, json: { data } })
     if (mode.startsWith('results') && method === 'GET') {
+      if (mode === 'results-analytics') {
+        const reply = analyticsReply(path, url)
+        if (reply !== undefined) {
+          if (reply === null)
+            return route.fulfill({
+              status: 400,
+              headers,
+              json: { message: 'run_id is required' },
+            })
+          if (analyticsHold && analyticsHold.matches(path, url)) {
+            markAnalyticsHeld()
+            await analyticsHold.gate
+          }
+          const failure = analyticsFailures.get(path)
+          if (failure)
+            return route.fulfill({
+              status: failure,
+              headers,
+              json: { message: '分析接口暂不可用' },
+            })
+          return send(reply)
+        }
+      }
       if (path === '/results') {
         if (resultsListFailure)
           return route.fulfill({
@@ -272,7 +476,7 @@ async function fixture(
           execution_time: i === 0 ? null : 1.25,
         }))
         const response = await send({
-          run_id: null,
+          run_id: mode === 'results-analytics' ? analyticsRunId : null,
           status:
             mode === 'results-live'
               ? 'running'
@@ -347,6 +551,14 @@ async function fixture(
         role: 'user',
         email: 'fixture@example.com',
         created_at: '2026-10-21',
+      })
+    // #330 起通知中心在布局挂载时读取持久化通知；fixture 返回空页。
+    if (method === 'GET' && path === '/notifications')
+      return send({
+        items: [],
+        next_cursor: null,
+        unread_count: 0,
+        server_time: new Date().toISOString(),
       })
     if (method === 'GET' && path === '/api-keys')
       return send(mode === 'empty' ? [] : keys)
@@ -696,6 +908,28 @@ async function fixture(
     },
     recoverList() {
       failList = false
+    },
+    holdAnalytics(path, matchQuery = () => true) {
+      analyticsHeld = new Promise((resolve) => {
+        markAnalyticsHeld = resolve
+      })
+      const gate = new Promise((resolve) => {
+        releaseAnalytics = resolve
+      })
+      analyticsHold = {
+        gate,
+        matches: (requestPath, url) =>
+          requestPath === path && matchQuery(url.searchParams),
+      }
+    },
+    waitForHeldAnalytics: () => analyticsHeld,
+    releaseAnalytics() {
+      analyticsHold = null
+      releaseAnalytics()
+    },
+    failAnalytics(path, status) {
+      if (status) analyticsFailures.set(path, status)
+      else analyticsFailures.delete(path)
     },
   }
 }
@@ -1312,6 +1546,13 @@ async function authHttpScenario() {
       }
       if (path === '/users/me')
         return send({ username: 'browser-fixture', role: 'user' })
+      if (path === '/notifications' && call.method === 'GET')
+        return send({
+          items: [],
+          next_cursor: null,
+          unread_count: 0,
+          server_time: new Date().toISOString(),
+        })
       if (path === '/evaluations' && call.method === 'GET')
         return send({
           items: [],
@@ -1511,6 +1752,17 @@ async function lateIdentityScenario() {
           json: { message: 'Old identity is no longer valid' },
         })
       }
+      if (path === '/notifications')
+        return route.fulfill({
+          json: {
+            data: {
+              items: [],
+              next_cursor: null,
+              unread_count: 0,
+              server_time: new Date().toISOString(),
+            },
+          },
+        })
       report.unknown.push({ mode: 'late-identity', path })
       return route.fulfill({ status: 500, json: {} })
     })
@@ -2670,6 +2922,315 @@ async function resultsScenario() {
   await live.context.close()
 }
 
+const analyticsPath = (call) =>
+  /^\/(analytics|visualizations|failures|compare)\//.test(call.path)
+async function analyticsScenario() {
+  report.real.push(
+    'results analysis section: scoped panels, filter routing, stale discard and panel isolation',
+  )
+  const h = await fixture('results-analytics', '/results/eval-fixture-1')
+  const page = h.page
+  await page
+    .getByRole('heading', { name: '评估结果详情', exact: true })
+    .waitFor()
+  const section = page.getByRole('region', { name: '结果分析', exact: true })
+  const stats = section.getByRole('region', { name: '成功率统计', exact: true })
+  const tokens = section.getByRole('region', {
+    name: 'Token 与费用',
+    exact: true,
+  })
+  const analytics = () => h.calls.filter(analyticsPath)
+  await stats.getByText(/成功 12 \/ 24/).waitFor({ timeout: 5000 })
+  await check('详情页统计分区以 run_id 为范围且首屏只请求激活分区', () => {
+    const calls = analytics()
+    assert.deepEqual([...new Set(calls.map((c) => c.path))].sort(), [
+      '/analytics/failure-modes',
+      '/analytics/iterations',
+      '/analytics/success-rate',
+      '/analytics/tokens',
+    ])
+    for (const c of calls) {
+      assert.ok(c.query.includes('run_id=run-fixture-1'), c.path + c.query)
+      assert.ok(!/strategy=|difficulty=|tag=/.test(c.query), c.query)
+    }
+  })
+  await check(
+    '面板标注本次运行与未设置筛选，分区说明引用运行记录',
+    async () => {
+      const note = await stats.getByRole('note').innerText()
+      assert.ok(note.includes('范围：本次运行'), note)
+      assert.ok(note.includes('未设置筛选'), note)
+      await section
+        .getByText(/以下统计以运行记录 run-fixture-1 为范围/)
+        .waitFor()
+    },
+  )
+  await check('未知费用表述为下限而不是零', async () => {
+    const text = await tokens.innerText()
+    assert.ok(text.includes('2 条成本未知'), text)
+    assert.ok(text.includes('下限'), text)
+  })
+  const beforePaging = analytics().length
+  const statsText = await stats.innerText()
+  await page.getByRole('button', { name: '下一页单题', exact: true }).click()
+  await page
+    .getByRole('table', { name: '单题结果', exact: true })
+    .getByRole('cell', { name: 'result-problem-12', exact: true })
+    .first()
+    .waitFor()
+  await check('单题翻页不触发分析请求且统计面板不变', async () => {
+    assert.equal(analytics().length, beforePaging)
+    assert.equal(await stats.innerText(), statsText)
+  })
+  await page.getByRole('tab', { name: '对比', exact: true }).click()
+  const compare = section.getByRole('region', { name: '策略对比', exact: true })
+  const history = section.getByRole('region', { name: '历史对比', exact: true })
+  await compare.getByRole('table', { name: '策略对比', exact: true }).waitFor()
+  await history.getByText('run-history-1', { exact: true }).waitFor()
+  await check('对比分区按需请求、只带 run_id 并标注不支持筛选', async () => {
+    const calls = analytics().filter((c) => c.path.startsWith('/compare/'))
+    assert.deepEqual(calls.map((c) => c.path).sort(), [
+      '/compare/history',
+      '/compare/strategies',
+    ])
+    for (const c of calls) assert.equal(c.query, '?run_id=run-fixture-1')
+    assert.ok(
+      (await compare.getByRole('note').innerText()).includes('不支持筛选'),
+    )
+    assert.ok(
+      (await history.getByRole('note').innerText()).includes(
+        '同模型且策略集合相同',
+      ),
+    )
+  })
+  await page.getByRole('tab', { name: '统计', exact: true }).click()
+  const compareBefore = analytics().filter((c) =>
+    c.path.startsWith('/compare/'),
+  ).length
+  const strategyFilter = page.getByRole('combobox', {
+    name: '策略筛选',
+    exact: true,
+  })
+  const apply = page.getByRole('button', { name: '应用筛选', exact: true })
+  await strategyFilter.fill('cot')
+  await apply.click()
+  await stats.getByText(/成功 5 \/ 11/).waitFor()
+  await check('筛选只传给支持筛选的接口并标注已应用筛选', async () => {
+    const latest = analytics()
+      .filter((c) => c.path === '/analytics/success-rate')
+      .at(-1)
+    assert.ok(latest.query.includes('strategy=cot'), latest.query)
+    assert.ok(latest.query.includes('run_id=run-fixture-1'), latest.query)
+    assert.equal(
+      analytics().filter((c) => c.path.startsWith('/compare/')).length,
+      compareBefore,
+    )
+    assert.ok(
+      (await stats.getByRole('note').innerText()).includes('已应用筛选'),
+    )
+  })
+  h.holdAnalytics(
+    '/analytics/success-rate',
+    (query) => query.get('strategy') === 'direct',
+  )
+  await strategyFilter.fill('direct')
+  await apply.click()
+  await h.waitForHeldAnalytics()
+  await strategyFilter.fill('cot')
+  await apply.click()
+  await stats.getByText(/成功 5 \/ 11/).waitFor()
+  h.releaseAnalytics()
+  await page.waitForTimeout(300)
+  await check('迟到的旧筛选响应不覆盖当前筛选的数据', async () => {
+    const text = await stats.innerText()
+    assert.ok(text.includes('成功 5 / 11'), text)
+    assert.ok(!text.includes('成功 6 / 12'), text)
+  })
+  h.failAnalytics('/analytics/tokens', 503)
+  await page
+    .getByRole('textbox', { name: '标签筛选', exact: true })
+    .fill('graph')
+  await apply.click()
+  await stats.getByText(/成功 3 \/ 6/).waitFor()
+  await tokens.getByRole('alert').waitFor()
+  await check('单面板失败只影响自身，其他面板与结果表继续可用', async () => {
+    assert.ok((await stats.innerText()).includes('成功 3 / 6'))
+    assert.equal(
+      await page.getByRole('table', { name: '策略汇总', exact: true }).count(),
+      1,
+    )
+    const latest = analytics()
+      .filter((c) => c.path === '/analytics/success-rate')
+      .at(-1)
+    assert.ok(latest.query.includes('tag=graph'), latest.query)
+  })
+  h.failAnalytics('/analytics/tokens', 0)
+  await tokens.getByRole('button', { name: /^重\s*试$/ }).click()
+  await tokens.getByText(/条成本未知/).waitFor()
+  await check('失败面板重试后恢复', async () =>
+    assert.equal(await tokens.getByRole('alert').count(), 0),
+  )
+  await page.getByRole('tab', { name: '失败分析', exact: true }).click()
+  const cases = section.getByRole('region', { name: '失败案例', exact: true })
+  await cases.getByText('共 3 条非成功单元。', { exact: true }).waitFor()
+  await check(
+    '失败案例与摘要可核对；按标签失败率受筛选而摘要不受',
+    async () => {
+      const byTag = analytics()
+        .filter((c) => c.path === '/failures/by-tag')
+        .at(-1)
+      assert.ok(byTag.query.includes('tag=graph'), byTag.query)
+      assert.ok(byTag.query.includes('strategy=cot'), byTag.query)
+      const summary = analytics().find(
+        (c) => c.path === '/failures/summary/run-fixture-1',
+      )
+      assert.equal(summary.query, '')
+      const text = await cases.innerText()
+      assert.ok(text.includes('boom 42'), text)
+      assert.ok(text.includes('未记录'), text)
+      assert.ok(
+        (
+          await section
+            .getByRole('region', { name: '失败摘要', exact: true })
+            .innerText()
+        ).includes('boom N'),
+      )
+    },
+  )
+  await page.getByRole('tab', { name: '图表', exact: true }).click()
+  const radar = section.getByRole('region', { name: '能力雷达', exact: true })
+  await radar.getByRole('table', { name: '能力雷达', exact: true }).waitFor()
+  await check(
+    '雷达表列出 7 个维度与未标注模型；成本散点标注未知费用条数',
+    async () => {
+      assert.equal(await radar.locator('table tbody tr').count(), 7)
+      assert.ok((await radar.innerText()).includes('未标注模型'))
+      await section
+        .getByRole('region', { name: '成本与准确率', exact: true })
+        .getByText(/统计含 2 条成本未知单元/)
+        .waitFor()
+    },
+  )
+  for (const width of [390, 1440]) {
+    await page.setViewportSize({ width, height: 1000 })
+    await page.screenshot({
+      path: resolve(out, `analytics-${width}.png`),
+      fullPage: true,
+    })
+    report.screenshots.push(`analytics-${width}.png`)
+    await check(`结果分析${width}px根页面不横向溢出`, async () =>
+      assert.ok(
+        await page.evaluate(
+          () => document.documentElement.scrollWidth <= window.innerWidth,
+        ),
+      ),
+    )
+  }
+  const beforeRefresh = analytics().length
+  await page.getByRole('tab', { name: /统计$/ }).click()
+  await section.getByRole('button', { name: '刷新分析', exact: true }).click()
+  await stats.getByText(/成功 3 \/ 6/).waitFor()
+  await page.waitForTimeout(300)
+  await check('刷新分析按钮重新读取已挂载面板并保留各自的筛选口径', () => {
+    const fresh = analytics().slice(beforeRefresh)
+    assert.ok(fresh.length >= 4, String(fresh.length))
+    for (const c of fresh) {
+      const filterable =
+        /^\/(analytics|visualizations)\//.test(c.path) ||
+        c.path === '/failures/by-tag'
+      assert.equal(c.query.includes('tag=graph'), filterable, c.path + c.query)
+    }
+  })
+  h.failDetail(403)
+  await page.getByRole('button', { name: '刷新结果', exact: true }).click()
+  await section.waitFor({ state: 'hidden' })
+  await check('任务不可访问后分析分区随之消失，不再展示旧运行', async () => {
+    assert.equal(await section.count(), 0)
+    await page.getByRole('alert').first().waitFor()
+  })
+  await h.context.close()
+  const missing = await fixture('results', '/results/eval-fixture-1')
+  await missing.page
+    .getByText(
+      '运行记录未关联，暂不可分析；不会以评估 ID 代替运行记录发起请求。',
+      { exact: true },
+    )
+    .waitFor()
+  await check('run_id 缺失时分析不可用且不发分析请求', () =>
+    assert.equal(missing.calls.filter(analyticsPath).length, 0),
+  )
+  await missing.context.close()
+  const list = await fixture('results-analytics', '/results')
+  await list.page
+    .getByRole('table', { name: '评估结果列表', exact: true })
+    .waitFor()
+  await check('结果列表默认不请求分析接口', () =>
+    assert.equal(list.calls.filter(analyticsPath).length, 0),
+  )
+  await list.page
+    .getByRole('button', { name: '查看全账号分析', exact: true })
+    .click()
+  const account = list.page.getByRole('region', {
+    name: '全账号分析',
+    exact: true,
+  })
+  await account.getByText(/成功 24 \/ 48/).waitFor()
+  await check('全账号分析不带 run_id 并标注仅已完成运行', async () => {
+    for (const c of list.calls.filter(analyticsPath))
+      assert.ok(!c.query.includes('run_id'), c.query)
+    await account
+      .getByText('全账号统计只包含已完成的运行，不会按当前任务筛选。', {
+        exact: true,
+      })
+      .waitFor()
+    assert.ok(
+      (
+        await account
+          .getByRole('region', { name: '成功率统计', exact: true })
+          .getByRole('note')
+          .innerText()
+      ).includes('全账号 · 仅已完成运行'),
+    )
+  })
+  await list.page.getByRole('tab', { name: '模型对比', exact: true }).click()
+  const models = account.getByRole('region', { name: '模型对比', exact: true })
+  await models.getByRole('table', { name: '模型对比', exact: true }).waitFor()
+  await list.page
+    .getByRole('textbox', { name: '标签筛选', exact: true })
+    .fill('Graph')
+  await list.page.getByRole('button', { name: '应用筛选', exact: true }).click()
+  await list.page.waitForTimeout(300)
+  await check('模型对比不受筛选影响且不显示为已筛选', async () => {
+    const calls = list.calls.filter((c) => c.path === '/compare/models')
+    assert.equal(calls.length, 1)
+    assert.equal(calls[0].query, '')
+    assert.ok(
+      (await models.getByRole('note').innerText()).includes('不支持筛选'),
+    )
+    assert.ok((await models.innerText()).includes('未标注模型'))
+  })
+  // 统计分区在非激活标签页内不可见，切回后确认筛选已传给支持的接口。
+  await list.page.getByRole('tab', { name: '统计', exact: true }).click()
+  await account
+    .getByRole('region', { name: '成功率统计', exact: true })
+    .getByText(/成功 3 \/ 6/)
+    .waitFor()
+  await check('全账号筛选只传给支持筛选的接口', () => {
+    const latest = list.calls
+      .filter((c) => c.path === '/analytics/success-rate')
+      .at(-1)
+    assert.ok(latest.query.includes('tag=Graph'), latest.query)
+    assert.ok(!latest.query.includes('run_id'), latest.query)
+  })
+  await check('分析场景无运行异常或写请求', () => {
+    assert.deepEqual(h.errors, [])
+    assert.deepEqual(missing.errors, [])
+    assert.deepEqual(list.errors, [])
+    assert.ok(![...h.calls, ...list.calls].some((c) => c.method === 'POST'))
+  })
+  await list.context.close()
+}
+
 async function entriesScenario() {
   report.real.push('unified create entries and honest mock markers')
   const { page, calls, errors } = await fixture('entries', '/')
@@ -2979,6 +3540,7 @@ try {
   if (scenario === 'all' || scenario === 'detail') await detailScenario()
   if (scenario === 'all' || scenario === 'progress') await progressScenario()
   if (scenario === 'all' || scenario === 'results') await resultsScenario()
+  if (scenario === 'all' || scenario === 'analytics') await analyticsScenario()
   if (scenario === 'all' || scenario === 'entries') await entriesScenario()
   if (scenario === 'all') await check('完整外观矩阵', appearanceScenario)
   if (scenario === 'all' || scenario === 'states') await statesScenario()
@@ -2991,6 +3553,7 @@ try {
       'detail',
       'progress',
       'results',
+      'analytics',
       'entries',
       'states',
     ].includes(scenario)
