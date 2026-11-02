@@ -41,3 +41,17 @@ TBD - created by archiving change database-schema. Update Purpose after archive.
 
 - **WHEN** 以 PostgreSQL 方言离线生成迁移 SQL（`alembic upgrade --sql`）
 - **THEN** 生成成功且不含 SQLite 专属构造；默认 SQLite 路径下应用照常启动
+
+### Requirement: 站内通知持久化
+
+系统 SHALL 用 Alembic 在业务库增加站内通知表。每条记录 SHALL 保存所属用户、类型、稳定事件标识、创建时间、已读时间、清空时间和站内资源引用。`user_id` SHALL 只作为认证用户的不透明字符串，不建跨库外键。同一用户与同一事件标识 SHALL 有唯一约束。清空和超过保留期 SHALL NOT 删除事件标识，以免旧事件重放重新插入。
+
+#### Scenario: 迁移可从空库复现
+
+- **WHEN** 在空业务库上执行到最新迁移、回退再升级
+- **THEN** 站内通知表与唯一约束可重复创建且不破坏既有业务表
+
+#### Scenario: 重复事件不能插入第二行
+
+- **WHEN** 同一用户和同一事件标识被并发写入
+- **THEN** 只保留一行，后写的一方不覆盖已清空或已读状态

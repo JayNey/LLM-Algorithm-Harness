@@ -140,3 +140,95 @@ test('缺字段或错类型明确拒绝', async () => {
   }))
   await assert.rejects(client.getSuite('suite-1'), /基准接口响应格式不兼容/)
 })
+
+const historyRun = {
+  id: 'older-run',
+  suite_id: 'suite-1',
+  task_id: 'task-7',
+  status: 'paused',
+  model: 'model-a',
+  accuracy: null,
+  cost_usd: null,
+  error_message: null,
+  created_at: '2026-10-23T00:00:00Z',
+  updated_at: '2026-10-23T00:05:00Z',
+  results: { actual: { unknown_cost_count: 1 } },
+}
+
+test('history sends server pagination/filter and keeps exact total and task association', async () => {
+  const seen: unknown[] = []
+  const client = createBenchmarkClient({
+    get: async (url: string, config: unknown) => {
+      seen.push({ url, config })
+      return {
+        items: [historyRun],
+        total: 47,
+        limit: 20,
+        offset: 20,
+        has_more: true,
+      }
+    },
+  } as never)
+  const abort = new AbortController()
+  const page = await client.runs(
+    'suite/a',
+    { status: 'paused', limit: 20, offset: 20 },
+    abort.signal,
+  )
+  assert.equal(page.total, 47)
+  assert.equal(page.items[0].task_id, 'task-7')
+  assert.deepEqual(seen, [
+    {
+      url: '/benchmarks/suites/suite%2Fa/runs',
+      config: {
+        params: { status: 'paused', limit: 20, offset: 20 },
+        signal: abort.signal,
+        timeout: 10000,
+      },
+    },
+  ])
+})
+
+test('detail and curve retain backend run identity and actual result payload', async () => {
+  const { client } = clientFor(({ url }) => ({
+    data: url.includes('learning-curve')
+      ? {
+          suite_id: 'suite-1',
+          suite_name: 'S',
+          data: [
+            {
+              run_id: 'older-run',
+              timestamp: null,
+              model: 'm',
+              accuracy: null,
+              cost_usd: null,
+            },
+          ],
+          trends: { accuracy_growth_rate: null, cost_growth_rate: null },
+        }
+      : historyRun,
+  }))
+  const run = await client.run('older-run')
+  assert.equal(run.task_id, 'task-7')
+  assert.deepEqual(run.results, historyRun.results)
+  assert.equal(
+    (await client.learningCurve('suite-1')).data[0].run_id,
+    'older-run',
+  )
+})
+
+test('history validates pagination and status instead of silently treating errors as empty', async () => {
+  const client = createBenchmarkClient({
+    get: async () => ({
+      items: [],
+      total: -1,
+      limit: 20,
+      offset: 0,
+      has_more: false,
+    }),
+  } as never)
+  await assert.rejects(
+    client.runs('suite-1', { limit: 20, offset: 0 }),
+    /基准接口响应格式不兼容/,
+  )
+})

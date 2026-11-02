@@ -6,7 +6,7 @@ import pytest
 import requests
 
 from api.db import make_engine, make_session_factory, run_migrations
-from api.db.models import AlertEvent, AlertRule, Budget, Evaluation
+from api.db.models import AlertEvent, AlertRule, Budget, Evaluation, InAppNotification
 
 
 @pytest.fixture
@@ -87,6 +87,28 @@ def test_disabled_foreign_below_threshold_and_no_cap_are_ignored(sessions, monke
     dispatcher(sessions).process("alice")
     dispatcher(sessions).process("bob")
     with sessions() as db:
+        assert db.query(AlertEvent).count() == 0
+
+
+def test_in_app_alert_is_independent_of_delivery_and_rule_save(sessions, monkeypatch):
+    add_rule(sessions)
+    with sessions() as db:
+        assert db.query(InAppNotification).count() == 0
+
+    def fail(*args, **kwargs):
+        raise requests.Timeout("https://example.org/secret")
+
+    monkeypatch.setattr("src.cost_alert.requests.post", fail)
+    dispatcher(sessions).process("alice")
+    dispatcher(sessions).process("alice")
+    with sessions() as db:
+        notes = db.query(InAppNotification).all()
+        assert len(notes) == 1
+        assert notes[0].kind == "budget_alert"
+        assert notes[0].user_id == "alice"
+        assert notes[0].href == "/settings/budgets"
+        assert notes[0].params["threshold_pct"] == 100
+        assert "secret" not in str(notes[0].params)
         assert db.query(AlertEvent).count() == 0
 
 

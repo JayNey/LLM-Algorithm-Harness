@@ -541,12 +541,22 @@ class TaskManager:
         if self._experiment_transition_blocked(task, status):
             self._commit()
             return
+        became_completed = status == "completed" and task.status != "completed"
         task.status = status
         if error_message is not None:
             task.error_message = error_message
 
         self._record_execution_times(task, status)
         self._sync_business(task)
+        if became_completed and task.task_type in {
+            "evaluation",
+            "experiment",
+            "benchmark",
+            "ab_test",
+        }:
+            from api.services.in_app_notification_service import record_task_completed
+
+            record_task_completed(self.db, task)
 
         self._commit()
         event = {"running": "task.started", "pending": "task.queued"}.get(status, "task." + status)

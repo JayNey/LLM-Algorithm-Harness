@@ -35,6 +35,7 @@ from api.routes.evaluation_options import router as evaluation_options_router
 from api.routes.experiments import router as experiments_router
 from api.routes.files import router as files_router
 from api.routes.monitoring import router as monitoring_router
+from api.routes.notifications import router as notifications_router
 from api.routes.ws import router as ws_router
 from api.services import (
     ABTestService,
@@ -43,6 +44,7 @@ from api.services import (
     EvaluationResultsService,
     EvaluationService,
     ExperimentService,
+    NotificationService,
 )
 from api.services.evaluation_options_service import EvaluationOptionsService
 from src.ab_testing import ABTestRunner
@@ -107,6 +109,7 @@ def create_app(
             runner_factory=ab_test_runner_factory or ABTestRunner,
         )
         app.state.cost = CostService(database_url)
+        app.state.notifications = NotificationService(database_url)
         app.state.progress_stream = progress_stream or RedisProgressStream()
         app.state.files = FileService(app.state.auth, file_settings or FileSettings())
         from api.services.artifact_service import EvaluationArtifactService
@@ -188,6 +191,7 @@ def create_app(
     app.include_router(benchmarks_router)
     app.include_router(ab_tests_router)
     app.include_router(costs_router)
+    app.include_router(notifications_router)
     app.include_router(ws_router)
 
     @app.get("/api/v1/health")

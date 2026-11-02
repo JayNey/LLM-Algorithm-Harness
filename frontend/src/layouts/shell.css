@@ -1248,6 +1248,11 @@ p {
   .notification-item {
     padding: 20px 12px;
   }
+  .notification-drawer.ant-drawer-content-wrapper,
+  .ant-drawer.notification-drawer {
+    width: 100% !important;
+    max-width: 100vw;
+  }
   .ant-drawer-body {
     padding-bottom: max(24px, env(safe-area-inset-bottom)) !important;
   }

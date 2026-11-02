@@ -38,6 +38,7 @@ from api.services import (
     ExperimentService,
 )
 from api.services.evaluation_options_service import EvaluationOptionsService
+from api.services.in_app_notification_service import NotificationService
 from src.task_manager import TaskManager
 
 pytestmark = pytest.mark.unit
@@ -120,6 +121,29 @@ def case(method, path, target=None, args=(), **kwargs):
 
 
 CASES = [
+    case(
+        "GET",
+        "/notifications",
+        "notifications.list_notifications",
+        (OWNER,),
+        kwargs=dict(limit=20, cursor=None, kind=None, unread=None),
+    ),
+    case(
+        "GET",
+        "/notifications/unread-count",
+        "notifications.unread_count",
+        (OWNER,),
+        result=3,
+        expected={"unread_count": 3},
+    ),
+    case("POST", "/notifications/read-all", "notifications.mark_all_read", (OWNER, None)),
+    case("POST", "/notifications/clear", "notifications.clear", (OWNER, None)),
+    case(
+        "POST",
+        "/notifications/{notification_id}/read",
+        "notifications.mark_read",
+        (OWNER, "note-1"),
+    ),
     case("GET", "/datasets", "files.datasets", (OWNER,), result=[], expected=[]),
     case(
         "GET",
@@ -846,6 +870,7 @@ def url(item):
         PREFIX
         + item.path.format(
             key_id="key-1",
+            notification_id="note-1",
             evaluation_id="eval-1",
             experiment_id="exp-1",
             suite_id="suite-1",
@@ -892,6 +917,7 @@ def api(monkeypatch, tmp_path, unit_app):
             benchmarks=BenchmarkService,
             ab_tests=ABTestService,
             cost=CostService,
+            notifications=NotificationService,
             monitor=MonitorService,
             manager=TaskManager,
         ).items()
