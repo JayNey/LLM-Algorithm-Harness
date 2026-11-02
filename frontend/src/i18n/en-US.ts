@@ -1319,4 +1319,111 @@ export default {
   已删除规则: 'Deleted rule',
   '渠道 {{value1}} 需要填写通知目标':
     'Channel {{value1}} requires a notification target',
+  // 结果分析（issue #329）
+  '范围：本次运行': 'Scope: this run',
+  '范围：全账号 · 仅已完成运行': 'Scope: whole account · completed runs only',
+  不支持筛选: 'No filters',
+  已应用筛选: 'Filters applied',
+  未设置筛选: 'No filters set',
+  '运行尚无已记录结果，分析为空。':
+    'The run has no recorded results yet; analysis is empty.',
+  '任务已暂停，分析只覆盖已记录的部分结果。':
+    'The task is paused; analysis covers only the recorded partial results.',
+  '任务失败，分析只覆盖已记录的部分结果。':
+    'The task failed; analysis covers only the recorded partial results.',
+  '任务已取消，分析只覆盖已记录的部分结果。':
+    'The task was cancelled; analysis covers only the recorded partial results.',
+  '任务已完成，但记录少于预期单元数，统计不代表完整评估。':
+    'The task completed with fewer recorded units than expected; the statistics do not represent a complete evaluation.',
+  '结果未确认，以下统计范围可能不完整。':
+    'Results are unconfirmed; the statistics below may be incomplete.',
+  '面板渲染失败，其他面板不受影响。':
+    'This panel failed to render; other panels are unaffected.',
+  '可滚动的{{value1}}': 'Scrollable {{value1}}',
+  成功率统计: 'Success rate statistics',
+  '当前范围没有匹配的单元。': 'No units match the current scope.',
+  '成功 {{value1}} / {{value2}}（{{value3}}）· 平均执行耗时 {{value4}}':
+    'Solved {{value1}} / {{value2}} ({{value3}}) · average execution time {{value4}}',
+  按难度: 'By difficulty',
+  按难度成功率: 'Success rate by difficulty',
+  '没有可归类难度的单元。': 'No units have a resolvable difficulty.',
+  按标签: 'By tag',
+  按标签成功率: 'Success rate by tag',
+  标签: 'Tag',
+  '没有带标签的单元：执行快照标签为空的单元不计入标签统计。':
+    'No tagged units: units whose execution snapshot has empty tags are excluded from tag statistics.',
+  'Token 与费用': 'Tokens and cost',
+  'Token 合计': 'Total tokens',
+  '存在缺少定价或用量的单元，已知费用是下限而不是精确总额。':
+    'Some units lack pricing or usage; the known cost is a lower bound, not an exact total.',
+  '已记录迭代 {{value1}} 条，未记录 {{value2}} 条；平均 {{value3}}':
+    '{{value1}} iterations recorded, {{value2}} missing; average {{value3}}',
+  迭代分布: 'Iteration distribution',
+  单元数: 'Units',
+  失败模式: 'Failure modes',
+  '没有失败单元。': 'No failed units.',
+  各策略成功率: 'Success rate by strategy',
+  '成功率（%）': 'Success rate (%)',
+  '逐题 Token': 'Tokens per problem',
+  '逐题 Token 概览': 'Per-problem token overview',
+  '缺少 Token 记录的单元': 'Units missing token records',
+  成本与准确率: 'Cost vs accuracy',
+  '已知估算费用（USD）': 'Known estimated cost (USD)',
+  '正在核对未知费用条数…': 'Checking unknown-cost count…',
+  '{{value1}}；无法确认未知费用条数。':
+    '{{value1}}; unable to confirm the unknown-cost count.',
+  '统计含 {{value1}} 条成本未知单元；横轴只计已知费用，是下限而不是精确总额。':
+    'Statistics include {{value1}} units with unknown cost; the x-axis counts known cost only and is a lower bound, not an exact total.',
+  '所有单元费用已知。': 'All unit costs are known.',
+  已知估算费用: 'Known estimated cost',
+  未标注模型: 'Unlabeled model',
+  '维度得分为后端按执行快照标签计算的 0–100 成功率；没有可映射标签的题目不计入任何维度。':
+    'Scores are 0–100 success rates computed server-side from execution snapshot tags; problems without a mapped tag count toward no dimension.',
+  维度: 'Dimension',
+  失败摘要: 'Failure summary',
+  '本次运行没有失败单元。': 'This run has no failed units.',
+  错误聚类: 'Error clusters',
+  归一化错误模式: 'Normalized error pattern',
+  '（空）': '(empty)',
+  失败案例: 'Failure cases',
+  '共 {{value1}} 条非成功单元。': '{{value1}} non-success units in total.',
+  错误信息: 'Error message',
+  未记录: 'Not recorded',
+  策略对比: 'Strategy comparison',
+  '本次运行尚无策略统计。': 'This run has no strategy statistics yet.',
+  历史对比: 'History comparison',
+  '范围：与本次运行同模型且策略集合相同的其他运行':
+    'Scope: other runs with the same model and the same strategy set',
+  '没有同模型且策略集合相同的历史运行。':
+    'No historical runs share this model and strategy set.',
+  运行记录: 'Run',
+  未完成: 'Not completed',
+  模型对比: 'Model comparison',
+  '账号下没有已完成的运行。': 'No completed runs in this account.',
+  分析筛选: 'Analysis filters',
+  策略筛选: 'Strategy filter',
+  全部策略: 'All strategies',
+  难度筛选: 'Difficulty filter',
+  全部难度: 'All difficulties',
+  标签筛选: 'Tag filter',
+  '单个标签，精确且区分大小写': 'One tag, exact and case-sensitive',
+  应用筛选: 'Apply filters',
+  '筛选只作用于标注"已应用筛选"的面板。':
+    'Filters only affect panels labeled "filters applied".',
+  图表: 'Charts',
+  按标签失败率: 'Failure rate by tag',
+  失败分析: 'Failure analysis',
+  '全账号统计只包含已完成的运行，不会按当前任务筛选。':
+    'Whole-account statistics include completed runs only and are never filtered by the current task.',
+  '以下统计以运行记录 {{value1}} 为范围，由服务端全量聚合，不随单题分页变化。':
+    'Statistics below are scoped to run {{value1}}, aggregated server-side and unaffected by the per-problem pagination.',
+  '运行记录未关联，暂不可分析；不会以评估 ID 代替运行记录发起请求。':
+    'No run record is linked, so analysis is unavailable; the evaluation ID is never sent in its place.',
+  结果分析: 'Results analysis',
+  全账号分析: 'Whole-account analysis',
+  收起全账号分析: 'Hide whole-account analysis',
+  查看全账号分析: 'View whole-account analysis',
+  '只统计当前账号已完成的运行，由服务端全量聚合，与上方列表的状态筛选和分页无关；展开后才会请求分析接口。':
+    'Counts completed runs of the current account only, aggregated server-side and independent of the status filter and pagination above; analysis endpoints are requested only after expanding.',
+  结果分析接口响应格式不兼容: 'Results analytics API response is incompatible',
 }
