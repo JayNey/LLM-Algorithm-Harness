@@ -39,6 +39,7 @@ from src.celery_app import celery_app
 from src.llm_client import LLMClient
 from src.models import LLMResponse, SandboxResult, TokenUsage
 from src.sandbox_executor import SandboxExecutor
+from src.tasks.artifacts import publish_evaluation_artifacts
 from src.tasks.evaluation import run_evaluation_task
 from src.tasks.experiment import run_experiment_task
 
@@ -115,6 +116,7 @@ def environment(tmp_path, monkeypatch):
         monkeypatch.setenv(key, getattr(auth, key).get_secret_value())
     monkeypatch.setenv("AUTH_DATABASE_PATH", str(auth.AUTH_DATABASE_PATH))
     files = FileSettings(_env_file=None, UPLOAD_DIR=tmp_path / "uploads")
+    monkeypatch.setenv("UPLOAD_DIR", str(files.UPLOAD_DIR))
     monkeypatch.setattr(settings, "DATA_ROOT", str(tmp_path))
     monkeypatch.setattr(settings, "DATABASE_URL", f"sqlite:///{tmp_path / 'business.sqlite3'}")
     queue = deque()
@@ -172,6 +174,7 @@ def environment(tmp_path, monkeypatch):
         tasks = {
             run_evaluation_task.name: run_evaluation_task,
             run_experiment_task.name: run_experiment_task,
+            publish_evaluation_artifacts.name: publish_evaluation_artifacts,
         }
 
         def execute(message):

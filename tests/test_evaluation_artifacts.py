@@ -16,7 +16,7 @@ from src.tasks.evaluation import _record_unit_result
 def test_publication_migration_preserves_legacy_rows_and_is_reversible(tmp_path):
     engine = make_engine(f"sqlite:///{tmp_path / 'migration.sqlite3'}")
     try:
-        upgrade(engine, "0005")
+        upgrade(engine, "0006")
         with engine.begin() as db:
             db.execute(
                 text(
@@ -40,8 +40,9 @@ def test_publication_migration_preserves_legacy_rows_and_is_reversible(tmp_path)
                 ).scalar()
                 is None
             )
-        downgrade(engine, "0005")
+        downgrade(engine, "0006")
         assert "evaluation_artifact_publications" not in inspect(engine).get_table_names()
+        assert "in_app_notifications" in inspect(engine).get_table_names()
         with engine.connect() as db:
             assert (
                 db.execute(text("SELECT status FROM evaluation_results WHERE id='result'")).scalar()

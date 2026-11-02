@@ -337,7 +337,7 @@ def test_notification_routes_return_only_the_current_user(tmp_path):
 
 def test_notification_operations_are_documented():
     schema = create_app().openapi()
-    assert schema["info"]["version"] == "1.5.0"
+    assert schema["info"]["version"] == "1.6.0"
     paths = schema["paths"]
     for path in (
         "/api/v1/notifications",

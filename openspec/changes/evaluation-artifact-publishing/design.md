@@ -10,7 +10,7 @@ canonical_spec: openspec
 
 Worker 已在单元完成后提交数据库结果，持有带 celery_task_id 的执行代际锁，并保留 P8 的执行元数据。EvaluationResult 当前只存度量子集，无法从历史行完整恢复原始 ExecutionResult。FileService 的既有 publish_results 只接受旧策略字典，文件激活没有发布版本。
 
-本文是唯一正式技术设计。用户已选择持久化发布记录、版本检查和独立重试方案，以下具体合同为待审阅的实施建议。
+本文是用户已确认的唯一正式技术设计；采用持久化发布记录、版本检查和独立重试方案。
 
 ## Goals / Non-Goals
 
@@ -30,7 +30,7 @@ Non-Goals：改写即时报告或前端下载 UI、重跑模型补文件、引�
 
 新增业务表 evaluation_artifact_publications，每个评估一条当前发布记录，evaluation_id 主键及 CASCADE 外键，保存 user_id、单调 revision、snapshot JSON、status（pending/published/failed）、published_revision、error_code、attempts 和时间。EvaluationResult 新增 nullable execution_payload JSON，用于新单元原始执行结果的安全持久化；旧行保持 null，不回填默认执行数据。迁移沿现有 Alembic head，兼容 SQLite/PostgreSQL，提供降级。
 
-单元结果、原始 execution_payload、计数和最新发布快照在同一业务事务提交。先按已有顺序锁 AsyncTask/Evaluation，再写发布记录；只有当前执行代际可更新。快照由本事务可见的已持久化 EvaluationResult 生成，包含实际行状态、metrics、error_message 与可空原始 execution；原始内容先脱敏，不持久化凭证。状态变化时即使没有新增单元也更新快照，以记录最终生命周期和完整性。无任何结果时仅记录 unavailable 原因，不发布空的成功文件。
+单元结果、原始 execution_payload、计数和最新发布快照在同一业务事务提交。先按已有顺序锁 AsyncTask/Evaluation，再写发布记录；只有当前执行代际可更新。快照由本事务可见的已持久化 EvaluationResult 生成，包含实际行状态、metrics、error_message 与可空原始 execution；原始内容先脱敏，不持久化凭证。状态变化时即使没有新增单元也更新快照，以记录最终生命周期和完整性。API 暂停/取消/恢复与 TaskManager 的状态提交在同一事务暂存快照，提交后投递独立发布；即使 revoke(terminate=True) 使 Worker 无法运行 finally，已提交部分结果仍可自动发布。无 AsyncTask 的历史取消同样处理。无任何结果时仅记录 unavailable 原因，不发布空的成功文件。
 
 快照内容与上次相同不提升 revision；内容/生命周期/完整性变化则提升。终态消息重复投递只能请求重试已有快照，不能重新执行或覆盖结果。旧代际回调既不能创建新发布版本，也不能改变新版本失败状态。取消、暂停和异常退出以数据库真实状态收尾，保留已提交部分结果；运行线程未确认的结果不宣称已发布。
 
@@ -40,7 +40,7 @@ Non-Goals：改写即时报告或前端下载 UI、重跑模型补文件、引�
 
 既有 publish_results 的旧策略字典和手工/历史文件继续可读。新发布路径和渲染器识别版本化文档，不用构造默认 ExecutionResult 填补缺失度量。JSON/Markdown/HTML 保留完整性清单和实际结果；CSV 提供实际行字段，缺值留空并附版本/完整性列；PNG 明确部分结果标题，成功比例基于实际记录单元；ZIP 包含 JSON 清单和其余既有格式。源数据中的 P8 元数据与未知费用标记保留。下载入口仍为 /results/{evaluation_id}/download、export、charts；即时 /reports/* 不改变。
 
-HTTP 下载增加可核对且经 CORS 暴露的发布版本与完整性响应头，不把部分结果称为完整结果；GET 发布状态提供同一信息。完全没有结果返回明确不可用；已产生新 revision 但当前文件尚未发布时不把上一版当作当前成功文件，可返回明确的未就绪错误，调用者能查询/重试。失效、被删除或过期文件不能因为旧状态为 published 就宣称可下载。
+HTTP 下载先验证并读取同一不可变文件快照，再核对当前版本与删除标记；响应头和渲染内容均源于该快照，若读取期间版本发生变化则明确拒绝而不混用。HTTP 下载增加可核对且经 CORS 暴露的发布版本与完整性响应头，不把部分结果称为完整结果；GET 发布状态提供同一信息。完全没有结果返回明确不可用；已产生新 revision 但当前文件尚未发布时不把上一版当作当前成功文件，可返回明确的未就绪错误，调用者能查询/重试。失效、被删除或过期文件不能因为旧状态为 published 就宣称可下载。
 
 ### 4. 发布、版本和文件回收
 
@@ -54,7 +54,7 @@ FileStore 注册记录兼容增加已激活 revision、文件摘要和实际结�
 
 新增 GET /api/v1/results/{evaluation_id}/publication，返回 revision、published_revision、status、available、complete、recorded_units、expected_units、attempts、最近错误分类和时间；未发布、无结果、文件过期与发布失败均可区分。错误不包含原始路径、凭证或不受控异常文本。
 
-新增 POST /api/v1/results/{evaluation_id}/publication/retry，只对当前所有者注册且未删除的评估操作；只发送/执行独立发布任务，绝不启动评估。已发布且当前文件有效时幂等返回状态；无结果明确拒绝；排队/处理中重复请求不产生重复激活。端点继续使用 Cookie/CSRF/统一错误规范。独立任务支持有上限的退避重试；队列失败记录失败状态而非伪造已排队成功。
+新增 POST /api/v1/results/{evaluation_id}/publication/retry，只对当前所有者注册且未删除的评估操作；只发送/执行独立发布任务，绝不启动评估。已发布且当前文件有效时幂等返回状态；无结果明确拒绝；排队/处理中重复请求不产生重复激活。端点继续使用 Cookie/CSRF/统一错误规范。独立任务支持有上限的退避重试；发布者不订阅结果后端，连接/套接字读取有明确超时且无连接重试，队列失败记录失败状态而非伪造已排队成功。失败回写或将版本置 pending 前，在业务锁内重新核对当前有效文件，不降级并发成功。
 
 历史评估若有数据库结果但没有 publication 记录，仅在所有者显式 retry 时从现有结果建立快照，execution 保持 null；不在迁移或普通查询时自动全量回填，不通过终态 Worker 重投递重跑模型。历史完整性按真实行覆盖数和状态计算，另保留 execution_payload_available=false 的原始字段缺失说明。
 
@@ -84,4 +84,4 @@ Worker 正常路径在结果和最终状态提交后触发发布，失败不把 
 
 ## Migration Plan
 
-先应用兼容业务库迁移和文件 SQLite 增量元数据，再部署 API/Worker；旧文件继续按旧格式读取，新 Worker 才写版本化快照。部署前确认 API 与 Worker 使用相同认证元数据库和共享 UPLOAD_DIR。回滚时停止新发布任务后回滚代码；新文件仍可保留供审计或清理；数据库降级会移除新增发布记录和原始执行字段，需显式由部署者选择，日常回滚不自动丢弃数据。
+同步 main@859f33b 后，站内通知已占用 0006；本 change 使用 0007（down_revision=0006），回退本迁移保留站内通知。先应用兼容业务库迁移和文件 SQLite 增量元数据，再部署 API/Worker；旧文件继续按旧格式读取，新 Worker 才写版本化快照。部署前确认 API 与 Worker 使用相同认证元数据库和共享 UPLOAD_DIR。回滚时停止新发布任务后回滚代码；新文件仍可保留供审计或清理；数据库降级会移除新增发布记录和原始执行字段，需显式由部署者选择，日常回滚不自动丢弃数据。

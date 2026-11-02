@@ -574,6 +574,38 @@ OPERATIONS: dict[str, tuple[str, Any]] = {
     "download_file": ("下载自己的原始上传文件；Content-Type 根据已保存文件后缀决定。", None),
     "delete_file": ("删除自己的已上传文件及原始内容。", None),
     "export_problems": ("把自己的题库导出为 json 或 csv 附件。", None),
+    "publication_status": (
+        "查询自己的评估文件发布版本、完整性和可用状态；文件 ID 使用创建评估返回的 evaluation_id，发布失败不代表模型执行失败。",
+        {
+            "revision": 1,
+            "published_revision": 1,
+            "status": "published",
+            "available": True,
+            "complete": False,
+            "recorded_units": 1,
+            "expected_units": 2,
+            "attempts": 1,
+            "error_code": None,
+            "retryable": True,
+            "updated_at": STAMP,
+        },
+    ),
+    "retry_publication": (
+        "独立重试自己的已提交评估产物，不重新调用模型；Cookie 请求需要 CSRF。无结果或已删除返回409，队列不可用返回503。",
+        {
+            "revision": 1,
+            "published_revision": None,
+            "status": "pending",
+            "available": False,
+            "complete": False,
+            "recorded_units": 1,
+            "expected_units": 2,
+            "attempts": 1,
+            "error_code": None,
+            "retryable": True,
+            "updated_at": STAMP,
+        },
+    ),
     "download_results": (
         "导出自己的运行结果；download 与 export 是同一接口的别名，支持 json/csv/md/markdown/html/png/zip。",
         None,
@@ -1504,9 +1536,9 @@ ERROR_MESSAGES = {
     503: "Service is unavailable",
 }
 
-API_CONTRACT_VERSION = "1.5.0"
+API_CONTRACT_VERSION = "1.6.0"
 
-OVERVIEW = """LLM Algorithm Harness API，HTTP 契约版本 1.5.0（API v1）。
+OVERVIEW = """LLM Algorithm Harness API，HTTP 契约版本 1.6.0（API v1）。
 
 **版本策略**：URL 主版本 `/api/v1`；不使用 Header 版本协商。
 兼容扩展沿用 v1；破坏性变更使用新的 URL 主版本，并提供迁移说明、并行支持与退役公告。
@@ -1628,6 +1660,15 @@ def _document_operation(path: str, method: str, operation: dict[str, Any]) -> No
                 "limit": ("每页条数，默认 20，范围 1–100；越界返回 400。", 20),
                 "offset": ("从零开始的偏移，默认 0；负值返回 400。", 0),
             }[parameter["name"]]
+        if (
+            name
+            in {"publication_status", "retry_publication", "download_results", "download_chart"}
+            and parameter["name"] == "run_id"
+        ):
+            description, example = (
+                "文件注册的评估 ID；使用创建评估返回的 evaluation_id，不是本地检查点或数据库报告 run_id。",
+                "eval-demo",
+            )
         if name == "alert_history" and parameter["name"] == "limit":
             description, example = "最近预警条数；默认 50，服务端限制到 1–200。", 50
         if name == "list_notifications" and parameter["name"] == "limit":
@@ -1711,6 +1752,19 @@ def _document_operation(path: str, method: str, operation: dict[str, Any]) -> No
                         "schema": {"type": "string"},
                     }
                 }
+                if name in {"download_results", "download_chart"}:
+                    response["headers"].update(
+                        {
+                            "X-Artifact-Revision": {
+                                "description": "版本化评估产物的实际版本；与返回内容一致。旧格式不提供。",
+                                "schema": {"type": "integer"},
+                            },
+                            "X-Artifact-Completeness": {
+                                "description": "版本化产物为 complete 或 partial；与返回内容一致。",
+                                "schema": {"type": "string", "enum": ["complete", "partial"]},
+                            },
+                        }
+                    )
                 if name == "download_logs":
                     response["headers"].update(
                         {
