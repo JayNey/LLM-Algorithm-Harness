@@ -57,9 +57,11 @@ export function ScatterPlot({
 export interface RadarChartProps {
   labels: string[]
   datasets: { label: string; values: number[] }[]
+  /** 固定各轴量程（如后端 0–100 评分）；缺省时由 ECharts 按数据自适应。 */
+  max?: number
 }
 
-export function RadarChart({ labels, datasets }: RadarChartProps) {
+export function RadarChart({ labels, datasets, max }: RadarChartProps) {
   useTranslation()
 
   return (
@@ -70,7 +72,9 @@ export function RadarChart({ labels, datasets }: RadarChartProps) {
         tooltip: {},
         legend: {},
         radar: {
-          indicator: labels.map((name) => ({ name })),
+          indicator: labels.map((name) =>
+            max === undefined ? { name } : { name, max },
+          ),
           data: datasets.length,
         },
         series: [
@@ -89,11 +93,14 @@ export function RadarChart({ labels, datasets }: RadarChartProps) {
 
 export interface BarCompareProps {
   labels: string[]
-  series: { name: string; values: number[] }[]
+  /** null 表示该类目没有记录值，渲染为空缺而不是 0。 */
+  series: { name: string; values: (number | null)[] }[]
   yName?: string
+  /** 类目很多（如逐题）时开启滑动缩放。 */
+  zoom?: boolean
 }
 
-export function BarCompare({ labels, series, yName }: BarCompareProps) {
+export function BarCompare({ labels, series, yName, zoom }: BarCompareProps) {
   useTranslation()
 
   return (
@@ -103,12 +110,13 @@ export function BarCompare({ labels, series, yName }: BarCompareProps) {
       option={{
         tooltip: { trigger: 'axis' },
         legend: {},
+        ...(zoom ? { dataZoom: [{ type: 'slider' }, { type: 'inside' }] } : {}),
         xAxis: { type: 'category', data: labels },
         yAxis: { type: 'value', ...(yName ? { name: yName } : {}) },
         series: series.map((item) => ({
           name: item.name,
           type: 'bar',
-          data: item.values,
+          data: item.values.map((value) => (value === null ? '-' : value)),
         })),
       }}
     />
