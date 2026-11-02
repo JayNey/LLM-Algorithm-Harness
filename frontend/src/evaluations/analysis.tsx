@@ -510,23 +510,27 @@ export interface TokenChartView {
 /** 全账号范围同一题目会按多次运行重复出现在同一策略序列里：按出现次序各占一个类目，不丢弃任何单元。 */
 // eslint-disable-next-line react-refresh/only-export-components
 export function tokenChartView(series: TokenChart['series']): TokenChartView {
+  // 类目以 (出现次序, 题目 ID) 为内部键，展示标签单独生成：真实题目 ID 形如 "x #2" 时也不会与生成标签合并。
+  const keys: string[] = []
   const labels: string[] = []
-  const labelIndex = new Map<string, number>()
+  const keyIndex = new Set<string>()
   const perSeries = series.map((group) => {
     const ordinal = new Map<string, number>()
     const values = new Map<string, number | null>()
     for (const point of group.points) {
       const occurrence = (ordinal.get(point.problem_id) ?? 0) + 1
       ordinal.set(point.problem_id, occurrence)
-      const label =
-        occurrence === 1
-          ? point.problem_id
-          : `${point.problem_id} #${occurrence}`
-      if (!labelIndex.has(label)) {
-        labelIndex.set(label, labels.length)
-        labels.push(label)
+      const key = `${occurrence}\u0000${point.problem_id}`
+      if (!keyIndex.has(key)) {
+        keyIndex.add(key)
+        keys.push(key)
+        labels.push(
+          occurrence === 1
+            ? point.problem_id
+            : `${point.problem_id} #${occurrence}`,
+        )
       }
-      values.set(label, point.tokens)
+      values.set(key, point.tokens)
     }
     return { name: group.name, values }
   })
@@ -534,7 +538,7 @@ export function tokenChartView(series: TokenChart['series']): TokenChartView {
     labels,
     series: perSeries.map((item) => ({
       name: item.name,
-      values: labels.map((label) => item.values.get(label) ?? null),
+      values: keys.map((key) => item.values.get(key) ?? null),
     })),
   }
 }
@@ -1107,7 +1111,9 @@ export function AnalysisSection({
         <Button onClick={() => setRefreshCount((value) => value + 1)}>
           {t('刷新分析')}
         </Button>
-        <span>{t('运行中的结果不会自动刷新分析面板，需要时手动刷新。')}</span>
+        {runId !== null && (
+          <span>{t('运行中的结果不会自动刷新分析面板，需要时手动刷新。')}</span>
+        )}
       </div>
       <FilterBar
         filters={filters}

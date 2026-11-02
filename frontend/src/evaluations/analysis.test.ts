@@ -107,6 +107,19 @@ test('逐题 Token 视图保留同一题目的每次出现并按序列对齐，�
     { name: 'cot', values: [null, 12, null, 15] },
   ])
   assert.deepEqual(tokenChartView([]), { labels: [], series: [] })
+  // 真实题目 ID 形如 "x #2" 时不得与生成标签合并，三个单元各占一个类目。
+  const collision = tokenChartView([
+    {
+      name: 'direct',
+      points: [
+        { problem_id: 'x', tokens: 1 },
+        { problem_id: 'x', tokens: 2 },
+        { problem_id: 'x #2', tokens: 3 },
+      ],
+    },
+  ])
+  assert.deepEqual(collision.labels, ['x', 'x #2', 'x #2'])
+  assert.deepEqual(collision.series[0]?.values, [1, 2, 3])
 })
 
 test('筛选归一化去掉空白并把空值归为未设置', () => {
