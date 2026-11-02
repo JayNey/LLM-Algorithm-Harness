@@ -112,6 +112,7 @@ class FileService:
         category: str,
         run_id: str | None = None,
         temporary: bool = False,
+        staged_result: bool = False,
     ) -> dict[str, Any]:
         if len(data) > self.settings.FILE_UPLOAD_MAX_BYTES:
             raise HTTPException(413, "File exceeds size limit")
@@ -140,7 +141,7 @@ class FileService:
                 "created_at": now,
                 "expires_at": (
                     now + self.settings.FILE_TTL_SECONDS
-                    if temporary or category == "upload"
+                    if temporary or staged_result or category == "upload"
                     else None
                 ),
                 "run_id": run_id,
@@ -149,6 +150,11 @@ class FileService:
             self.auth.audit("file_store", user_id, file_id)
             return self.metadata(record)
         except Exception:
+            if staged_result:
+                with self.store.connection() as db:
+                    db.execute(
+                        "DELETE FROM api_file_objects WHERE id=? AND user_id=?", (file_id, user_id)
+                    )
             target.unlink(missing_ok=True)
             raise
         finally:
@@ -377,6 +383,46 @@ class FileService:
         self.cleanup()
         return metadata
 
+    def find_snapshot_candidate(
+        self, run_id: str, user_id: str, digest: str
+    ) -> dict[str, Any] | None:
+        with self.store.connection() as db:
+            self.store.check_run(db, run_id, user_id)
+            rows = db.execute(
+                "SELECT id FROM api_file_objects WHERE run_id=? AND user_id=? AND sha256=? AND category='results' AND deleted=0 AND (expires_at IS NULL OR expires_at>?) ORDER BY created_at,id",
+                (run_id, user_id, digest, int(time.time())),
+            ).fetchall()
+        for row in rows:
+            try:
+                metadata, _ = self.read_file(row["id"], user_id)
+                return metadata
+            except (HTTPException, OSError):
+                self.discard_candidate(row["id"], user_id)
+        return None
+
+    def stage_snapshot(self, run_id: str, user_id: str, snapshot: dict[str, Any]) -> dict[str, Any]:
+        if snapshot["recorded_units"] > self.settings.FILE_IMPORT_MAX_ITEMS:
+            raise HTTPException(413, "Too many result records")
+        self.cleanup()
+        return self._persist(
+            user_id,
+            json_bytes(redact_sensitive_data(snapshot)),
+            ".json",
+            "results.json",
+            "results",
+            run_id=run_id,
+            staged_result=True,
+        )
+
+    def discard_candidate(self, file_id: str, user_id: str) -> None:
+        # Never tombstone the active pointer while compensating an unused candidate.
+        with self.store.connection() as db:
+            db.execute(
+                "UPDATE api_file_objects SET deleted=1 WHERE id=? AND user_id=? AND NOT EXISTS (SELECT 1 FROM api_file_runs WHERE result_file_id=?)",
+                (file_id, user_id, file_id),
+            )
+        self.cleanup()
+
     def _result_payload(self, run_id: str, user_id: str) -> dict[str, Any]:
         record = self.store.result_file(run_id, user_id)
         _, data = self.read_file(record["id"], user_id)
@@ -385,6 +431,15 @@ class FileService:
     def _render_results(
         self, payload: dict[str, Any], format_name: str, user_id: str
     ) -> tuple[str, str, bytes]:
+        if (
+            payload.get("schema_version") == 1
+            and "evaluation_id" in payload
+            and "results" in payload
+        ):
+            from api.files.artifact_rendering import render_snapshot
+
+            with _CHART_LOCK:
+                return render_snapshot(payload, format_name)
         if format_name == "json":
             return "results.json", "application/json", json_bytes(payload)
         text = json_bytes(payload).decode("utf-8")
@@ -460,6 +515,11 @@ class FileService:
 
     def export_results(self, run_id: str, user_id: str, format_name: str) -> tuple[str, str, bytes]:
         payload = self._result_payload(run_id, user_id)
+        return self.export_payload(payload, user_id, format_name)
+
+    def export_payload(
+        self, payload: dict[str, Any], user_id: str, format_name: str
+    ) -> tuple[str, str, bytes]:
         result = self._render_results(payload, format_name, user_id)
         if len(result[2]) > self.settings.FILE_UPLOAD_MAX_BYTES:
             raise HTTPException(413, "Export exceeds size limit")

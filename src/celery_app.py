@@ -45,6 +45,7 @@ def configure_celery() -> None:
         # Celery Beat 定时任务配置
         include=[
             "src.tasks.evaluation",
+            "src.tasks.artifacts",
             "src.tasks.cleanup",
             "src.tasks.experiment",
             "src.tasks.imports",

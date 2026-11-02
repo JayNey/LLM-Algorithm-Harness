@@ -55,8 +55,93 @@ class FileStore:
                 CREATE INDEX IF NOT EXISTS api_file_jobs_source ON api_file_jobs(file_id,status);
             """)
 
+        # Incrementally extend existing auth/file SQLite databases under one writer lock.
+        with self.connection() as db:
+            db.execute("BEGIN IMMEDIATE")
+            columns = {row[1] for row in db.execute("PRAGMA table_info(api_file_runs)")}
+            for name, definition in (
+                ("result_revision", "INTEGER NOT NULL DEFAULT 0"),
+                ("result_digest", "TEXT"),
+                ("deleted_revision", "INTEGER"),
+                ("result_content_digest", "TEXT"),
+                ("deleted_content_digest", "TEXT"),
+            ):
+                if name not in columns:
+                    db.execute(f"ALTER TABLE api_file_runs ADD COLUMN {name} {definition}")
+
     def connection(self) -> AbstractContextManager[sqlite3.Connection]:
         return self.auth_store.connection()
+
+    def publication(self, run_id: str, user_id: str) -> dict[str, Any]:
+        """Internal registry state; deleted revision survives physical object cleanup."""
+        with self.connection() as db:
+            self.check_run(db, run_id, user_id)
+            return dict(
+                db.execute(
+                    "SELECT * FROM api_file_runs WHERE run_id=? AND user_id=?", (run_id, user_id)
+                ).fetchone()
+            )
+
+    def activate_snapshot(
+        self,
+        run_id: str,
+        user_id: str,
+        file_id: str,
+        revision: int,
+        digest: str,
+        replace_file_id: str | None = None,
+        content_digest: str | None = None,
+    ) -> str:
+        with self.connection() as db:
+            db.execute("BEGIN IMMEDIATE")
+            self.check_run(db, run_id, user_id)
+            run = db.execute(
+                "SELECT * FROM api_file_runs WHERE run_id=? AND user_id=?", (run_id, user_id)
+            ).fetchone()
+            if run["deleted_revision"] is not None and run["deleted_revision"] >= revision:
+                raise HTTPException(409, "Artifact deleted")
+            if content_digest is not None and run["deleted_content_digest"] == content_digest:
+                raise HTTPException(409, "Artifact deleted")
+            if run["result_revision"] > revision:
+                raise HTTPException(409, "Artifact revision superseded")
+            if run["result_revision"] == revision and run["result_digest"] != digest:
+                raise HTTPException(409, "Artifact revision content mismatch")
+            old = run["result_file_id"]
+            if old and old != replace_file_id and run["result_revision"] == revision:
+                current = db.execute(
+                    "SELECT * FROM api_file_objects WHERE id=? AND user_id=? AND deleted=0 AND (expires_at IS NULL OR expires_at>?)",
+                    (old, user_id, int(time.time())),
+                ).fetchone()
+                if current is not None:
+                    if file_id != old:
+                        db.execute(
+                            "UPDATE api_file_objects SET deleted=1 WHERE id=? AND user_id=?",
+                            (file_id, user_id),
+                        )
+                    return str(old)
+            candidate = db.execute(
+                "SELECT * FROM api_file_objects WHERE id=? AND user_id=? AND run_id=? AND deleted=0 AND (expires_at IS NULL OR expires_at>?)",
+                (file_id, user_id, run_id, int(time.time())),
+            ).fetchone()
+            if (
+                candidate is None
+                or candidate["sha256"] != digest
+                or candidate["category"] != "results"
+            ):
+                raise HTTPException(409, "Invalid artifact candidate")
+            db.execute(
+                "UPDATE api_file_runs SET result_file_id=?,result_revision=?,result_digest=?,result_content_digest=? WHERE run_id=? AND user_id=?",
+                (file_id, revision, digest, content_digest, run_id, user_id),
+            )
+            db.execute(
+                "UPDATE api_file_objects SET expires_at=NULL WHERE id=? AND user_id=?",
+                (file_id, user_id),
+            )
+            if old and old != file_id:
+                db.execute(
+                    "UPDATE api_file_objects SET deleted=1 WHERE id=? AND user_id=?", (old, user_id)
+                )
+            return file_id
 
     def owned_file(self, file_id: str, user_id: str, allow_expired: bool = False) -> dict[str, Any]:
         with self.connection() as db:
@@ -305,6 +390,10 @@ class FileStore:
                 raise HTTPException(409, "File is being imported")
             db.execute(
                 "UPDATE api_file_objects SET deleted=1 WHERE id=? AND user_id=?", (file_id, user_id)
+            )
+            db.execute(
+                "UPDATE api_file_runs SET deleted_revision=result_revision,deleted_content_digest=result_content_digest WHERE result_file_id=? AND user_id=? AND (deleted_revision IS NULL OR deleted_revision<result_revision)",
+                (file_id, user_id),
             )
 
     def mark_run_deleted(self, run_id: str, user_id: str) -> None:

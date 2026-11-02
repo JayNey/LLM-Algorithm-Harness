@@ -25,7 +25,14 @@ from src.tasks.evaluation import run_evaluation_task
 @pytest.fixture(autouse=True)
 def no_uploaded_problems():
     """These unit tests mock auth storage; private uploads are covered by HTTP integration tests."""
-    with patch("api.files.store.FileStore.dataset", return_value=[]):
+    with (
+        patch("api.files.store.FileStore.dataset", return_value=[]),
+        patch("src.task_manager.celery_app.send_task"),
+        patch(
+            "src.tasks.evaluation.get_artifact_service",
+            side_effect=RuntimeError("Harness-only fixture has no file transport"),
+        ),
+    ):
         yield
 
 

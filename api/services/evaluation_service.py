@@ -581,11 +581,17 @@ class EvaluationService:
             if evaluation.async_task_id:
                 # Revoke the Celery task and mark the AsyncTask cancelled.
                 async_task = task_manager.cancel_task(evaluation.async_task_id, evaluation.user_id)
-            elif evaluation.status != "running":
-                raise ValueError(f"Cannot cancel task in {evaluation.status} status")
+            else:
+                from api.services.artifact_service import _owned
+
+                evaluation = _owned(session, evaluation_id, owner_id, lock=True)
+                if evaluation.status != "running":
+                    raise ValueError(f"Cannot cancel task in {evaluation.status} status")
             evaluation.status = "cancelled"
             evaluation.updated_at = utcnow()
-            session.commit()
+            if async_task is None:
+                task_manager._stage_evaluation_publication(evaluation)
+            task_manager._commit()
             return _to_response_async(evaluation, async_task)
         finally:
             session.close()

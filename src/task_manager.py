@@ -4,6 +4,7 @@
 """
 
 import hashlib
+import logging
 import uuid
 from collections.abc import Callable
 from datetime import datetime
@@ -70,6 +71,7 @@ class TaskManager:
         self.celery_task_id = celery_task_id
         self._file_store = file_store
         self._import_transitions: list[tuple[str, str, str, str]] = []
+        self._artifact_publications: dict[str, tuple[str, int]] = {}
 
     def _import_store(self) -> FileStore:
         if self._file_store is None:
@@ -77,7 +79,7 @@ class TaskManager:
         return self._file_store
 
     def _commit(self) -> None:
-        """Compensate import metadata if the business transaction cannot commit."""
+        """Commit state and snapshots before transport; compensate failed import commits."""
         try:
             self.db.commit()
         except Exception:
@@ -85,8 +87,41 @@ class TaskManager:
             for job_id, owner, expected, previous in reversed(self._import_transitions):
                 self._import_store().restore_task_status(job_id, owner, expected, previous)
             self._import_transitions.clear()
+            self._artifact_publications.clear()
             raise
         self._import_transitions.clear()
+        notifications = self._artifact_publications.copy()
+        self._artifact_publications.clear()
+        for evaluation_id, (owner, revision) in notifications.items():
+            try:
+                from api.services.artifact_service import EvaluationArtifactService
+
+                EvaluationArtifactService._send(evaluation_id, owner, revision, False)
+            except Exception:
+                # Lifecycle and snapshot already committed. Transport failure must
+                # not roll back cancellation or overwrite a concurrent success.
+                from api.db.models import EvaluationArtifactPublication
+
+                try:
+                    self.db.execute(
+                        update(EvaluationArtifactPublication)
+                        .where(
+                            EvaluationArtifactPublication.evaluation_id == evaluation_id,
+                            EvaluationArtifactPublication.revision == revision,
+                            EvaluationArtifactPublication.status != "published",
+                        )
+                        .values(
+                            status="failed", error_code="queue_unavailable", updated_at=utcnow()
+                        )
+                    )
+                    self.db.commit()
+                except Exception:
+                    self.db.rollback()
+                logging.getLogger(__name__).warning(
+                    "artifact_dispatch_deferred evaluation_id=%s revision=%s",
+                    evaluation_id,
+                    revision,
+                )
 
     def _lock_business_task(self, task: AsyncTask) -> None:
         """Serialize paired state writes on SQLite as well as PostgreSQL."""
@@ -141,6 +176,18 @@ class TaskManager:
         row.started_at = task.started_at
         row.completed_at = task.completed_at
         row.updated_at = utcnow()
+        if task.task_type == "evaluation":
+            self._stage_evaluation_publication(cast(Evaluation, row))
+
+    def _stage_evaluation_publication(self, evaluation: Evaluation) -> None:
+        from api.db.models import EvaluationArtifactPublication
+        from api.services.artifact_service import stage_publication
+
+        previous = self.db.get(EvaluationArtifactPublication, evaluation.id)
+        previous_revision = previous.revision if previous is not None else None
+        publication = stage_publication(self.db, evaluation)
+        if publication is not None and publication.revision != previous_revision:
+            self._artifact_publications[evaluation.id] = (evaluation.user_id, publication.revision)
 
     def _experiment_transition_blocked(self, task: AsyncTask, status: str) -> bool:
         if task.task_type not in _BUSINESS_TYPES and self.celery_task_id is None:

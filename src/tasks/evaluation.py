@@ -11,6 +11,7 @@ run_evaluation_task 是异步评估执行的核心任务，负责：
 
 from __future__ import annotations
 
+import logging
 import uuid
 from collections.abc import Callable, Iterable
 from dataclasses import dataclass, field
@@ -27,6 +28,7 @@ from api.db.engine import business_database_url, make_engine, make_session_facto
 from api.db.models import AsyncTask, Evaluation, EvaluationResult, PricingOverride, utcnow
 from api.monitoring.execution_logs import record_execution_event
 from api.progress import publish_progress
+from api.services.artifact_service import EvaluationArtifactService, stage_publication
 from api.services.cost_alert_service import WebCostAlertDispatcher
 from api.services.cost_service import CostService
 from src.celery_app import celery_app
@@ -42,6 +44,7 @@ from src.task_manager import TaskManager
 from src.task_service import TaskService, TaskUnit
 from src.tasks.support import task_progress
 from src.utils.pricing import PricingInfo, PricingManager
+from src.utils.secrets import redact_sensitive_data
 
 if TYPE_CHECKING:
     from api.db.models import Problem
@@ -53,6 +56,57 @@ def get_db_session() -> Session:
     engine = make_engine(business_database_url())
     session_factory = make_session_factory(engine)
     return session_factory()
+
+
+def get_artifact_service(db: Session) -> EvaluationArtifactService:
+    from api.auth.config import AuthSettings
+    from api.auth.service import AuthService
+    from api.files.config import FileSettings
+    from api.files.service import FileService
+
+    return EvaluationArtifactService(
+        sessionmaker(bind=db.get_bind(), expire_on_commit=False),
+        FileService(AuthService(AuthSettings()), FileSettings()),
+    )
+
+
+def _publish_committed_artifacts(
+    db: Session,
+    evaluation_id: str,
+    owner: str,
+    generation: str | None,
+    cache: dict[str, EvaluationArtifactService] | None = None,
+) -> None:
+    """Best effort transport after durable staging; never turn file errors into model failures."""
+    try:
+        from api.services.artifact_service import _owned
+
+        factory = sessionmaker(bind=db.get_bind(), expire_on_commit=False)
+        with factory() as source:
+            evaluation = _owned(source, evaluation_id, owner, lock=True)
+            task = (
+                source.get(AsyncTask, evaluation.async_task_id)
+                if evaluation.async_task_id
+                else None
+            )
+            if task is None or task.celery_task_id != generation:
+                return
+            publication = stage_publication(source, evaluation)
+            source.commit()
+            revision = publication.revision if publication else None
+        if revision is not None:
+            service = cache.get("service") if cache is not None else None
+            if service is None:
+                service = get_artifact_service(db)
+                if cache is not None:
+                    cache["service"] = service
+            state = service.publish(evaluation_id, owner, revision)
+            if state["status"] == "failed" and state["error_code"] == "storage_error":
+                service.enqueue_retry(evaluation_id, owner, revision)
+    except Exception:
+        logging.getLogger(__name__).warning(
+            "artifact_publication_deferred evaluation_id=%s", evaluation_id
+        )
 
 
 class EvaluationTask(Task):  # type: ignore[misc]
@@ -98,6 +152,7 @@ def run_evaluation_task(self: EvaluationTask, evaluation_id: str) -> dict[str, A
     async_task = None
     evaluation = None
     generation = None
+    artifact_cache: dict[str, EvaluationArtifactService] = {}
 
     try:
         # 1. 加载 Evaluation 和 AsyncTask 记录
@@ -167,7 +222,11 @@ def run_evaluation_task(self: EvaluationTask, evaluation_id: str) -> dict[str, A
         evaluation.status = "running"
         task_manager.update_task_status(async_task.id, "running")
         task_manager.celery_task_id = generation
+        stage_publication(db, evaluation)
         db.commit()
+        _publish_committed_artifacts(
+            db, evaluation_id, evaluation.user_id, generation, artifact_cache
+        )
         publish_progress(
             evaluation_id,
             "task.started",
@@ -280,7 +339,11 @@ def run_evaluation_task(self: EvaluationTask, evaluation_id: str) -> dict[str, A
             )
             evaluation.completed_count = sum(1 for u in record.units if u.status == "completed")
             evaluation.failed_count = sum(1 for u in record.units if u.status == "failed")
+            stage_publication(db, evaluation)
             db.commit()
+            _publish_committed_artifacts(
+                db, evaluation_id, evaluation.user_id, generation, artifact_cache
+            )
             cost_alerts.process(evaluation.user_id)
             report_progress(record, unit, record.completed_units)
             record_execution_event(
@@ -511,6 +574,10 @@ def run_evaluation_task(self: EvaluationTask, evaluation_id: str) -> dict[str, A
         raise
 
     finally:
+        if evaluation is not None and generation is not None:
+            _publish_committed_artifacts(
+                db, evaluation_id, evaluation.user_id, generation, artifact_cache
+            )
         db.close()
 
 
@@ -817,6 +884,7 @@ def _record_unit_result(db: Session, evaluation: Evaluation, unit: TaskUnit) -> 
     row.status = status
     row.metrics = metrics
     row.error_message = error_message
+    row.execution_payload = redact_sensitive_data(unit.result) if unit.result else None
     return cost
 
 

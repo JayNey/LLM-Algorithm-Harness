@@ -103,6 +103,30 @@ class EvaluationResult(Base):
     status: Mapped[str] = mapped_column(String(16), default="pending")
     metrics: Mapped[dict | None] = mapped_column(JSON)
     error_message: Mapped[str | None] = mapped_column(Text)
+    execution_payload: Mapped[dict | None] = mapped_column(JSON)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=utcnow)
+    updated_at: Mapped[datetime] = mapped_column(DateTime, default=utcnow, onupdate=utcnow)
+
+
+class EvaluationArtifactPublication(Base):
+    """Latest committed evaluation snapshot, independently publishable without LLMs."""
+
+    __tablename__ = "evaluation_artifact_publications"
+
+    evaluation_id: Mapped[str] = mapped_column(
+        ForeignKey("evaluations.id", ondelete="CASCADE"), primary_key=True
+    )
+    user_id: Mapped[str] = mapped_column(String(64), index=True)
+    revision: Mapped[int] = mapped_column(Integer, default=1)
+    digest: Mapped[str] = mapped_column(String(64))
+    content_digest: Mapped[str] = mapped_column(String(64))
+    source_task_id: Mapped[str | None] = mapped_column(String(36))
+    source_generation: Mapped[str | None] = mapped_column(String(255))
+    snapshot: Mapped[dict] = mapped_column(JSON)
+    status: Mapped[str] = mapped_column(String(16), default="pending")
+    published_revision: Mapped[int | None] = mapped_column(Integer)
+    error_code: Mapped[str | None] = mapped_column(String(64))
+    attempts: Mapped[int] = mapped_column(Integer, default=0)
     created_at: Mapped[datetime] = mapped_column(DateTime, default=utcnow)
     updated_at: Mapped[datetime] = mapped_column(DateTime, default=utcnow, onupdate=utcnow)
 
