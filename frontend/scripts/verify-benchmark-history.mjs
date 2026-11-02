@@ -296,16 +296,43 @@ try {
     .getByText('任务关联不匹配，已停止进度查询', { exact: true })
     .waitFor({ timeout: 4000 })
   assertions++
+  activeStatus = 'pending'
   await page.goto(`${base}/benchmarks/suite?run_id=active`)
-  await page.getByTestId('selected-benchmark-run').getByText(/50%/).waitFor()
+  const selectedActive = page.getByTestId('selected-benchmark-run')
+  await selectedActive.getByText(/^排队中 ·/).waitFor()
+  await selectedActive.getByText(/50%/).waitFor()
+  activeStatus = 'running'
+  await selectedActive.getByText(/^运行中 ·/).waitFor({ timeout: 6500 })
+  assert.equal(await selectedActive.getByText(/^排队中 ·/).count(), 0)
+  assertions++
+  activeStatus = 'paused'
+  await selectedActive.getByText(/^已暂停 ·/).waitFor({ timeout: 6500 })
+  await selectedActive
+    .getByText('任务已暂停，可手动刷新运行状态', { exact: true })
+    .waitFor()
+  assert.equal(await selectedActive.getByText(/^运行中 ·/).count(), 0)
+  const autoPausedCalls = taskCalls
+  await page.waitForTimeout(3300)
+  assert.equal(taskCalls, autoPausedCalls)
+  assertions++
+  activeStatus = 'running'
+  await page.getByRole('button', { name: '刷新运行', exact: true }).click()
+  await selectedActive.getByText(/^运行中 ·/).waitFor()
+  await selectedActive.getByText(/50%/).waitFor()
+  assert.equal(
+    await selectedActive
+      .getByText('任务已暂停，可手动刷新运行状态', { exact: true })
+      .count(),
+    0,
+  )
+  assertions++
   const beforeHistory = historyCalls,
     beforeCurve = curveCalls
   activeStatus = 'completed'
-  await page.getByRole('button', { name: '刷新运行', exact: true }).click()
   await page
     .getByTestId('selected-benchmark-run')
     .getByText(/^已完成 ·/)
-    .waitFor()
+    .waitFor({ timeout: 6500 })
   await page.waitForTimeout(500)
   assert.ok(historyCalls > beforeHistory && curveCalls > beforeCurve)
   assertions++

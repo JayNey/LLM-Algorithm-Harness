@@ -287,7 +287,8 @@ function SelectedRun({
     detail.retry()
     onSettled()
   }, [terminal, detail, onSettled])
-  const paused = progress.task?.status === 'paused' || run?.status === 'paused'
+  const status = progress.task?.status ?? run?.status
+  const paused = status === 'paused'
   return (
     <section
       data-testid="selected-benchmark-run"
@@ -312,7 +313,7 @@ function SelectedRun({
         run && (
           <>
             <p role="status">
-              {runStatusLabel(run.status)} · {run.model ?? '—'} ·{' '}
+              {runStatusLabel(status ?? run.status)} · {run.model ?? '—'} ·{' '}
               {formatRate(run.accuracy)} · {formatUsd(run.cost_usd)}
             </p>
             {(run.error_message || progress.task?.error_message) && (
