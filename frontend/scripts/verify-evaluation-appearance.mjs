@@ -61,9 +61,10 @@ const problems = Array.from({ length: 21 }, (_, index) => ({
   ...problem,
   problem_id: index === 0 ? problem.problem_id : `appearance-problem-${index}`,
 }))
+const runId = 'appearance-run'
 const resultSummary = {
   id: evaluationId,
-  run_id: null,
+  run_id: runId,
   status: 'completed',
   model: 'model-a',
   strategy_names: ['direct'],
@@ -71,7 +72,7 @@ const resultSummary = {
   completed_at: createdAt,
 }
 const resultDetail = {
-  run_id: null,
+  run_id: runId,
   status: 'completed',
   created_at: createdAt,
   completed_at: createdAt,
@@ -106,6 +107,29 @@ const resultDetail = {
     offset: 0,
     has_more: false,
   },
+}
+// 结果分析分区在详情页首屏挂载统计分区；其余分区惰性挂载，外观矩阵只需统计接口。
+const rate = { success_rate: 1, solved: 1, total: 1 }
+const analyticsReplies = {
+  '/analytics/success-rate': {
+    ...rate,
+    avg_execution_time: 0.01,
+    by_difficulty: { easy: rate },
+    by_tag: { array: rate },
+  },
+  '/analytics/tokens': {
+    total_tokens: 1,
+    avg_tokens: 1,
+    estimated_cost_usd: 0,
+    unknown_cost_count: 1,
+  },
+  '/analytics/iterations': {
+    known_count: 1,
+    unknown_count: 0,
+    average: 1,
+    distribution: [{ iterations: 1, count: 1 }],
+  },
+  '/analytics/failure-modes': {},
 }
 const report = {
   scenario: 'appearance',
@@ -359,6 +383,14 @@ try {
               email: 'appearance@example.invalid',
               created_at: '2026-10-26',
             })
+          // #330 起通知中心在布局挂载时读取持久化通知；fixture 返回空页。
+          if (method === 'GET' && path === '/notifications')
+            return send({
+              items: [],
+              next_cursor: null,
+              unread_count: 0,
+              server_time: new Date().toISOString(),
+            })
           if (method === 'GET' && path === '/api-keys') return send(keys)
           if (method === 'GET' && path === '/evaluation-options')
             return send({
@@ -422,6 +454,12 @@ try {
           }
           if (method === 'GET' && path === `/results/${evaluationId}`)
             return send(resultDetail)
+          if (
+            method === 'GET' &&
+            Object.hasOwn(analyticsReplies, path) &&
+            url.searchParams.get('run_id') === runId
+          )
+            return send(analyticsReplies[path])
           report.unknownRequests.push(call)
           return route.fulfill({
             status: 501,
@@ -697,6 +735,59 @@ try {
                 exact: true,
               }),
               `${combo} 单题结果滚动区域`,
+            )
+          },
+        )
+        const analysis = page.getByRole('region', {
+          name: '结果分析',
+          exact: true,
+        })
+        await analysis
+          .getByRole('region', { name: '成功率统计', exact: true })
+          .getByText(/成功 1 \/ 1/)
+          .waitFor({ timeout: 5000 })
+        await record(
+          `${combo} 结果分析分区范围说明、筛选与表格可由键盘访问`,
+          async () => {
+            assert.ok(
+              (
+                await analysis
+                  .getByRole('region', { name: '成功率统计', exact: true })
+                  .getByRole('note')
+                  .innerText()
+              ).includes('范围：本次运行'),
+            )
+            await assertNoPageOverflow(page, `${combo} result analysis`)
+            await assertKeyboardReachable(
+              page,
+              analysis.getByRole('button', { name: '应用筛选', exact: true }),
+              `${combo} 应用筛选`,
+            )
+            await assertKeyboardReachable(
+              page,
+              analysis.getByRole('region', {
+                name: '可滚动的按难度成功率',
+                exact: true,
+              }),
+              `${combo} 按难度成功率滚动区域`,
+            )
+            // antd Tabs 遵循 WAI-ARIA：仅激活标签在 Tab 序内，方向键切换标签；
+            // 聚焦后标签会附加 "Tab n of m" 读屏文本，因此按正则匹配名称。
+            const statsTab = analysis.getByRole('tab', { name: /统计$/ })
+            const chartsTab = analysis.getByRole('tab', { name: /图表$/ })
+            await assertKeyboardReachable(
+              page,
+              statsTab,
+              `${combo} 统计分区标签`,
+            )
+            await page.keyboard.press('ArrowRight')
+            assert.ok(
+              await chartsTab.evaluate(
+                (element) =>
+                  element === document.activeElement ||
+                  element.contains(document.activeElement),
+              ),
+              `${combo} 方向键应把焦点移到图表分区标签`,
             )
           },
         )
