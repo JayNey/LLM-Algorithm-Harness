@@ -1411,7 +1411,6 @@ export default {
   '筛选只作用于标注"已应用筛选"的面板。':
     'Filters only affect panels labeled "filters applied".',
   图表: 'Charts',
-  按标签失败率: 'Failure rate by tag',
   失败分析: 'Failure analysis',
   '全账号统计只包含已完成的运行，不会按当前任务筛选。':
     'Whole-account statistics include completed runs only and are never filtered by the current task.',
@@ -1426,4 +1425,13 @@ export default {
   '只统计当前账号已完成的运行，由服务端全量聚合，与上方列表的状态筛选和分页无关；展开后才会请求分析接口。':
     'Counts completed runs of the current account only, aggregated server-side and independent of the status filter and pagination above; analysis endpoints are requested only after expanding.',
   结果分析接口响应格式不兼容: 'Results analytics API response is incompatible',
+  刷新分析: 'Refresh analysis',
+  '运行中的结果不会自动刷新分析面板，需要时手动刷新。':
+    'Analysis panels do not refresh automatically while a run is in progress; refresh manually when needed.',
+  '任务已完成但没有记录任何单元，分析为空。':
+    'The task completed without any recorded units; analysis is empty.',
+  '没有记录失败模式。': 'No failure modes recorded.',
+  '没有记录失败分类。': 'No failure categories recorded.',
+  '没有可聚类的错误信息（失败单元未记录错误信息）。':
+    'No error messages available for clustering (failed units recorded no error message).',
 }

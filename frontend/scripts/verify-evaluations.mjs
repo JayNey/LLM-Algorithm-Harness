@@ -3126,6 +3126,28 @@ async function analyticsScenario() {
       ),
     )
   }
+  const beforeRefresh = analytics().length
+  await page.getByRole('tab', { name: /统计$/ }).click()
+  await section.getByRole('button', { name: '刷新分析', exact: true }).click()
+  await stats.getByText(/成功 3 \/ 6/).waitFor()
+  await page.waitForTimeout(300)
+  await check('刷新分析按钮重新读取已挂载面板并保留各自的筛选口径', () => {
+    const fresh = analytics().slice(beforeRefresh)
+    assert.ok(fresh.length >= 4, String(fresh.length))
+    for (const c of fresh) {
+      const filterable =
+        /^\/(analytics|visualizations)\//.test(c.path) ||
+        c.path === '/failures/by-tag'
+      assert.equal(c.query.includes('tag=graph'), filterable, c.path + c.query)
+    }
+  })
+  h.failDetail(403)
+  await page.getByRole('button', { name: '刷新结果', exact: true }).click()
+  await section.waitFor({ state: 'hidden' })
+  await check('任务不可访问后分析分区随之消失，不再展示旧运行', async () => {
+    assert.equal(await section.count(), 0)
+    await page.getByRole('alert').first().waitFor()
+  })
   await h.context.close()
   const missing = await fixture('results', '/results/eval-fixture-1')
   await missing.page

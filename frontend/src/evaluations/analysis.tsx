@@ -22,6 +22,7 @@ import {
   type AnalyticsFilters,
   type AnalyticsScope,
   type RateBucket,
+  type TokenChart,
 } from './analytics.ts'
 import { EvaluationFeedback } from './components.tsx'
 import {
@@ -78,9 +79,22 @@ const availabilityNotes: Partial<Record<Availability, string>> = {
   get incomplete() {
     return t('任务已完成，但记录少于预期单元数，统计不代表完整评估。')
   },
+  get empty() {
+    return t('任务已完成但没有记录任何单元，分析为空。')
+  },
   get unknown() {
     return t('结果未确认，以下统计范围可能不完整。')
   },
+}
+/** 去掉首尾空白并把空值归一为 undefined：后端精确匹配，且避免 '' 与 undefined 之间的无效重取。 */
+// eslint-disable-next-line react-refresh/only-export-components
+export function normalizeFilters(filters: AnalyticsFilters): AnalyticsFilters {
+  const normalized: AnalyticsFilters = {}
+  for (const key of ['strategy', 'difficulty', 'tag'] as const) {
+    const value = filters[key]?.trim()
+    if (value) normalized[key] = value
+  }
+  return normalized
 }
 
 class PanelBoundary extends Component<
@@ -489,27 +503,49 @@ function SuccessRateChartPanel(props: Scoped) {
   )
 }
 
+export interface TokenChartView {
+  labels: string[]
+  series: { name: string; values: (number | null)[] }[]
+}
+/** 全账号范围同一题目会按多次运行重复出现在同一策略序列里：按出现次序各占一个类目，不丢弃任何单元。 */
+// eslint-disable-next-line react-refresh/only-export-components
+export function tokenChartView(series: TokenChart['series']): TokenChartView {
+  const labels: string[] = []
+  const labelIndex = new Map<string, number>()
+  const perSeries = series.map((group) => {
+    const ordinal = new Map<string, number>()
+    const values = new Map<string, number | null>()
+    for (const point of group.points) {
+      const occurrence = (ordinal.get(point.problem_id) ?? 0) + 1
+      ordinal.set(point.problem_id, occurrence)
+      const label =
+        occurrence === 1
+          ? point.problem_id
+          : `${point.problem_id} #${occurrence}`
+      if (!labelIndex.has(label)) {
+        labelIndex.set(label, labels.length)
+        labels.push(label)
+      }
+      values.set(label, point.tokens)
+    }
+    return { name: group.name, values }
+  })
+  return {
+    labels,
+    series: perSeries.map((item) => ({
+      name: item.name,
+      values: labels.map((label) => item.values.get(label) ?? null),
+    })),
+  }
+}
+
 function TokenChartPanel(props: Scoped) {
   const state = useScopedLoad(props, true, readers.tokenChart)
   const data = state.data
-  const chart = useMemo(() => {
-    if (!data) return null
-    const labels: string[] = []
-    for (const group of data.series)
-      for (const point of group.points)
-        if (!labels.includes(point.problem_id)) labels.push(point.problem_id)
-    return {
-      labels,
-      series: data.series.map((group) => ({
-        name: group.name,
-        values: labels.map(
-          (id) =>
-            group.points.find((point) => point.problem_id === id)?.tokens ??
-            null,
-        ),
-      })),
-    }
-  }, [data])
+  const chart = useMemo(
+    () => (data ? tokenChartView(data.series) : null),
+    [data],
+  )
   return (
     <AnalysisPanel
       title={t('逐题 Token')}
@@ -701,26 +737,40 @@ function FailureSummaryPanel(props: Scoped) {
       {data && (
         <>
           <h4>{t('失败模式')}</h4>
-          <Table
-            label={t('失败模式')}
-            head={[t('失败模式'), t('单元数')]}
-            rows={countRows(data.modes)}
-          />
+          {Object.keys(data.modes).length ? (
+            <Table
+              label={t('失败模式')}
+              head={[t('失败模式'), t('单元数')]}
+              rows={countRows(data.modes)}
+            />
+          ) : (
+            <p className="analysis-empty">{t('没有记录失败模式。')}</p>
+          )}
           <h4>{t('失败分类')}</h4>
-          <Table
-            label={t('失败分类')}
-            head={[t('失败分类'), t('单元数')]}
-            rows={countRows(data.categories)}
-          />
+          {Object.keys(data.categories).length ? (
+            <Table
+              label={t('失败分类')}
+              head={[t('失败分类'), t('单元数')]}
+              rows={countRows(data.categories)}
+            />
+          ) : (
+            <p className="analysis-empty">{t('没有记录失败分类。')}</p>
+          )}
           <h4>{t('错误聚类')}</h4>
-          <Table
-            label={t('错误聚类')}
-            head={[t('归一化错误模式'), t('单元数')]}
-            rows={data.clusters.map((row, index) => ({
-              key: `${index}:${row.pattern}`,
-              cells: [row.pattern || t('（空）'), row.count],
-            }))}
-          />
+          {data.clusters.length ? (
+            <Table
+              label={t('错误聚类')}
+              head={[t('归一化错误模式'), t('单元数')]}
+              rows={data.clusters.map((row, index) => ({
+                key: `${index}:${row.pattern}`,
+                cells: [row.pattern || t('（空）'), row.count],
+              }))}
+            />
+          ) : (
+            <p className="analysis-empty">
+              {t('没有可聚类的错误信息（失败单元未记录错误信息）。')}
+            </p>
+          )}
         </>
       )}
     </AnalysisPanel>
@@ -978,8 +1028,9 @@ export function AnalysisSection({
   )
   const [filters, setFilters] = useState<AnalyticsFilters>({})
   const scoped: Scoped = { client, scope, filters }
-  // 可用性纪元：结果状态变化时整组面板重挂并重新读取；翻页不改变它。
-  const epoch = availability ?? ''
+  // 可用性纪元：结果状态变化或用户点击刷新时整组面板重挂并重新读取；翻页不改变它。
+  const [refreshCount, setRefreshCount] = useState(0)
+  const epoch = `${availability ?? ''}:${refreshCount}`
   const runId = scope.kind === 'run' ? scope.runId : null
   const note = availability ? availabilityNotes[availability] : undefined
   const items = [
@@ -1009,7 +1060,7 @@ export function AnalysisSection({
     },
     {
       key: 'failures',
-      label: runId === null ? t('按标签失败率') : t('失败分析'),
+      label: runId === null ? t('按标签成功率') : t('失败分析'),
       children: (
         <div className="analysis-grid" key={epoch}>
           <FailuresByTagPanel {...scoped} />
@@ -1052,10 +1103,16 @@ export function AnalysisSection({
             )}
         {note ? ` ${note}` : ''}
       </p>
+      <div className="evaluation-actions analysis-section-actions">
+        <Button onClick={() => setRefreshCount((value) => value + 1)}>
+          {t('刷新分析')}
+        </Button>
+        <span>{t('运行中的结果不会自动刷新分析面板，需要时手动刷新。')}</span>
+      </div>
       <FilterBar
         filters={filters}
         strategyOptions={strategyOptions}
-        onApply={setFilters}
+        onApply={(next) => setFilters(normalizeFilters(next))}
       />
       <Tabs items={items} />
     </div>

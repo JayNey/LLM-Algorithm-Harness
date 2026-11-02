@@ -470,7 +470,7 @@ function runId(value: string): string {
 function pathId(value: string): string {
   return encodeURIComponent(runId(value))
 }
-/** 只保留白名单内的非空筛选；全账号范围不带 run_id。 */
+/** 只保留白名单内的非空筛选并去掉首尾空白（后端精确匹配）；全账号范围不带 run_id。 */
 export function analyticsQuery(
   scope: AnalyticsScope,
   filters: AnalyticsFilters,
@@ -478,8 +478,8 @@ export function analyticsQuery(
   const query: Record<string, string> = {}
   if (scope.kind === 'run') query.run_id = runId(scope.runId)
   for (const key of ['strategy', 'difficulty', 'tag'] as const) {
-    const value = filters[key]
-    if (typeof value === 'string' && value.trim()) query[key] = value
+    const value = filters[key]?.trim()
+    if (value) query[key] = value
   }
   return query
 }

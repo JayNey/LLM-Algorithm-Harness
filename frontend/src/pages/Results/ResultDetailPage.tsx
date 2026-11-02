@@ -148,6 +148,8 @@ function ResultDetail({ evaluationId }: { evaluationId: string }) {
   const [anchor, setAnchor] = useState<AnalysisAnchor>()
   // 翻页重读期间 result 短暂为空时保留上一锚点，新结果到达时在渲染期同步更新。
   if (next && next !== anchor) setAnchor(next)
+  // 任务本身已不可访问（403/404 或实时通道拒绝）且读取已结束时清除锚点，不再展示旧运行的分析。
+  if (!loading && !current && anchor) setAnchor(undefined)
   return (
     <section className="evaluation-workflow">
       <header className="page-heading">

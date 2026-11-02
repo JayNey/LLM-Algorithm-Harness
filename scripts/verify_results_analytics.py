@@ -320,6 +320,10 @@ def run() -> None:
         "VITE_API_BASE_URL": api_url + "/api/v1",
         "VITE_WS_URL": f"ws://127.0.0.1:{api_port}/api/v1/ws",
         "VITE_APP_NAME": "Issue 329 acceptance",
+    }
+    # Only the browser script needs the credentials and expectations.
+    browser_env = {
+        **env,
         "ANALYTICS_UI_URL": ui_url,
         "ANALYTICS_API_URL": api_url,
         "ANALYTICS_USERNAME": OWNER,
@@ -391,7 +395,7 @@ def run() -> None:
         subprocess.run(
             ["node", str(ROOT / "frontend/scripts/verify-results-analytics-live.mjs")],
             cwd=runtime,
-            env=env,
+            env=browser_env,
             check=True,
         )
         browser = json.loads((runtime / "browser.json").read_text(encoding="utf-8"))

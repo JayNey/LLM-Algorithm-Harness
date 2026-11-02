@@ -215,6 +215,11 @@ test('查询白名单：全账号不带 run_id，空白筛选与未知键被丢�
     analyticsQuery(account, { strategy: ' ', difficulty: '', tag: 'Graph' }),
     { tag: 'Graph' },
   )
+  // 后端精确匹配，首尾空白必须在发送前去掉。
+  assert.deepEqual(
+    analyticsQuery(account, { tag: ' Graph ', strategy: 'cot ' }),
+    { tag: 'Graph', strategy: 'cot' },
+  )
   assert.deepEqual(
     analyticsQuery(run, {
       strategy: 'direct',
