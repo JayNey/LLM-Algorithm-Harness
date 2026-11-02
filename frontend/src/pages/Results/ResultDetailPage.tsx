@@ -1,7 +1,7 @@
 import { useTranslation } from 'react-i18next'
 import { t } from '../../i18n/core.ts'
 import { Button } from 'antd'
-import { useCallback, useEffect, useMemo } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import { Link, useParams, useSearchParams } from 'react-router-dom'
 import {
   EvaluationFacts,
@@ -16,6 +16,10 @@ import {
 } from '@/evaluations/useEvaluation.ts'
 import { fetchEvaluationResult } from '@/evaluations/results.ts'
 import { ReportDownloads } from '@/evaluations/ReportDownloads.tsx'
+import {
+  AnalysisSection,
+  AnalysisUnavailable,
+} from '@/evaluations/analysis.tsx'
 import { readListQuery, writeListQuery } from '@/evaluations/validation.ts'
 import {
   resultAvailability,
@@ -24,6 +28,13 @@ import {
 import type { ResultAvailability } from '@/evaluations/types.ts'
 import { useAuthStore } from '@/store/auth.ts'
 import '@/evaluations/workflow.css'
+
+/** 分析分区的锚点；跨翻页重读的短暂空档保留，避免面板重挂重新请求。 */
+interface AnalysisAnchor {
+  runId: string
+  availability: ResultAvailability['kind']
+  strategies: string[]
+}
 
 const availabilityLabels: Record<ResultAvailability['kind'], string> = {
   get waiting() {
@@ -56,9 +67,14 @@ const availabilityLabels: Record<ResultAvailability['kind'], string> = {
 }
 
 export default function ResultDetailPage() {
+  const { evaluationId = '' } = useParams()
+  // 路由切换时整页重挂（与 EvaluationDetailPage 一致），分析锚点随之重置。
+  return <ResultDetail key={evaluationId} evaluationId={evaluationId} />
+}
+
+function ResultDetail({ evaluationId }: { evaluationId: string }) {
   useTranslation()
 
-  const { evaluationId = '' } = useParams()
   const { client, owner } = useEvaluationSession()
   const [search, setSearch] = useSearchParams()
   const rawSearch = search.toString()
@@ -116,6 +132,22 @@ export default function ResultDetailPage() {
     else reload()
   }, [liveEnabled, refreshLive, reload])
   const loading = bootstrap.loading || outOfRange
+  const runId = result?.run_id ?? null
+  const availabilityKind = availability?.kind
+  const next = useMemo<AnalysisAnchor | undefined>(
+    () =>
+      runId && result && availabilityKind
+        ? {
+            runId,
+            availability: availabilityKind,
+            strategies: result.strategies.map((strategy) => strategy.name),
+          }
+        : undefined,
+    [runId, result, availabilityKind],
+  )
+  const [anchor, setAnchor] = useState<AnalysisAnchor>()
+  // 翻页重读期间 result 短暂为空时保留上一锚点，新结果到达时在渲染期同步更新。
+  if (next && next !== anchor) setAnchor(next)
   return (
     <section className="evaluation-workflow">
       <header className="page-heading">
@@ -252,6 +284,28 @@ export default function ResultDetailPage() {
             )
           )}
         </section>
+      )}
+      {anchor ? (
+        <section className="panel evaluation-panel" aria-label={t('结果分析')}>
+          <h2>{t('结果分析')}</h2>
+          <AnalysisSection
+            key={String(owner) + ':' + anchor.runId}
+            scope={{ kind: 'run', runId: anchor.runId }}
+            availability={anchor.availability}
+            strategyOptions={anchor.strategies}
+          />
+        </section>
+      ) : (
+        result &&
+        !result.run_id && (
+          <section
+            className="panel evaluation-panel"
+            aria-label={t('结果分析')}
+          >
+            <h2>{t('结果分析')}</h2>
+            <AnalysisUnavailable />
+          </section>
+        )
       )}
     </section>
   )
