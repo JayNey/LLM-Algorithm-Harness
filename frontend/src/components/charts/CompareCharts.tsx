@@ -116,9 +116,11 @@ export function BarCompare({ labels, series, yName }: BarCompareProps) {
 }
 
 export interface TrendLineProps {
+  onSelectRun?: (runId: string) => void
   series: {
     model: string
     points: {
+      run_id?: string | null
       timestamp: string | null
       accuracy: number | null
       cost_usd: number | null
@@ -128,13 +130,22 @@ export interface TrendLineProps {
 }
 
 /** 学习曲线折线：按模型分组的准确率/成本序列（时间升序）。 */
-export function TrendLine({ series, metric }: TrendLineProps) {
+export function TrendLine({ series, metric, onSelectRun }: TrendLineProps) {
   useTranslation()
 
   const yName = metric === 'accuracy' ? t('准确率') : t('成本（USD）')
   return (
     <ReactECharts
       style={{ height: 360 }}
+      onEvents={
+        onSelectRun
+          ? {
+              click: (event: { data?: { run_id?: string } }) => {
+                if (event.data?.run_id) onSelectRun(event.data.run_id)
+              },
+            }
+          : undefined
+      }
       notMerge
       option={{
         tooltip: { trigger: 'axis' },
@@ -149,7 +160,10 @@ export function TrendLine({ series, metric }: TrendLineProps) {
             .filter(
               (point) => point.timestamp !== null && point[metric] !== null,
             )
-            .map((point) => [point.timestamp, point[metric]]),
+            .map((point) => ({
+              value: [point.timestamp, point[metric]],
+              run_id: point.run_id,
+            })),
         })),
       }}
     />
