@@ -269,10 +269,13 @@ function useScopedLoad<T>(
   filterable: boolean,
   read: Reader<T>,
 ) {
-  const { strategy, difficulty, tag } = filters
+  // 不支持筛选的面板把筛选值固定为 undefined，筛选变化不得改变其 load 身份。
+  const strategy = filterable ? filters.strategy : undefined
+  const difficulty = filterable ? filters.difficulty : undefined
+  const tag = filterable ? filters.tag : undefined
   const applied = useMemo<AnalyticsFilters>(
-    () => (filterable ? { strategy, difficulty, tag } : {}),
-    [filterable, strategy, difficulty, tag],
+    () => ({ strategy, difficulty, tag }),
+    [strategy, difficulty, tag],
   )
   const runId = scope.kind === 'run' ? scope.runId : null
   const load = useCallback(
