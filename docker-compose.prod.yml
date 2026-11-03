@@ -65,6 +65,7 @@ services:
     volumes:
       - uploads_data:/app/uploads
       - task_data:/app/data
+      - results_data:/app/results
     depends_on:
       postgres:
         condition: service_healthy
@@ -91,6 +92,7 @@ services:
     volumes:
       - uploads_data:/app/uploads
       - task_data:/app/data
+      - results_data:/app/results
       # 沙箱以宿主 docker 运行不受信代码；确认安全边界后再启用
       - /var/run/docker.sock:/var/run/docker.sock
       # 先按 docs/deployment/deploy.md 创建目录并赋予 UID 1000 写权限
@@ -168,3 +170,4 @@ volumes:
   postgres_data:
   uploads_data:
   task_data:
+  results_data:

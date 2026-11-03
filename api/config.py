@@ -44,6 +44,10 @@ class Settings(BaseSettings):
     # TaskService 存储路径
     TASK_SERVICE_ROOT: str = "./data/tasks"
 
+    # 实验/A/B 结果与检查点的共享根；相对路径按仓库根解析，保证 API 与
+    # Worker 即使从不同 cwd 启动也指向同一位置。
+    RESULTS_ROOT: str = os.getenv("RESULTS_ROOT", "results")
+
     class Config:
         env_file = ".env"
         extra = "ignore"  # Auth and API settings share the same dotenv file.

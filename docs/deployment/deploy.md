@@ -69,7 +69,9 @@ docker compose down -v               # 停止并清空数据卷
 - 只想跑集成测试时用法不变：`docker compose up -d redis` +
   `bash scripts/run_integration_tests.sh`（redis 服务定义未改动）。
 - 镜像内以非 root 用户 `harness` 运行；数据落在命名卷
-  （`postgres_data` / `uploads_data` / `task_data`）。
+  （`postgres_data` / `uploads_data` / `task_data` / `results_data`）。
+  其中 `results_data` 同时挂到 api 与 worker 的 `/app/results`，保存实验/A/B
+  的结果、对比/面板与检查点。
 
 ## 3. 生产部署
 
@@ -214,6 +216,7 @@ python3 scripts/seed_data.py --database-url sqlite:///./data/business/seed-demo.
 | `CELERY_BROKER_URL` / `CELERY_RESULT_BACKEND` | `redis://localhost:6379/0` | 队列与结果后端 |
 | `UPLOAD_DIR` / `FILE_UPLOAD_MAX_BYTES` | `uploads` / 100 MiB | 上传目录与上限（nginx `client_max_body_size` 需对齐） |
 | `DATA_ROOT` / `TASK_SERVICE_ROOT` | `data` / `./data/tasks` | 数据集与任务存储 |
+| `RESULTS_ROOT` | `results` | 实验/A/B 结果与检查点共享根；相对值按仓库根解析，compose 挂载到 `/app/results` |
 | `LOG_LEVEL` / `LOG_FORMAT` | `INFO` / `text` | 日志级别与格式（`json` 为生产推荐） |
 
 ## 6. 故障排查

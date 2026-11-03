@@ -33,8 +33,9 @@ WORKDIR /app
 COPY --chown=harness:harness api/ ./api/
 COPY --chown=harness:harness src/ ./src/
 
-RUN mkdir -p data/business data/auth data/tasks uploads \
-    && chown -R harness:harness data uploads
+# results 与 API 共享，保存实验/A/B 产物与检查点。
+RUN mkdir -p data/business data/auth data/tasks uploads results \
+    && chown -R harness:harness data uploads results
 
 USER harness
 

@@ -29,6 +29,7 @@ from api.db import AsyncTask, Experiment, make_engine, make_session_factory, run
 from api.db.engine import business_database_url
 from api.db.models import utcnow
 from api.experiment_models import ExperimentCreateRequest, ModelSpec
+from api.results import resolve_results_path, results_root
 from src.experiment import ExperimentRunner
 from src.experiment_panel import _build_panel_data
 from src.experiment_report import generate_comparison_report
@@ -277,7 +278,7 @@ class ExperimentService:
         return ExperimentConfig(
             name=config["name"] or f"api-{row.id[:8]}",
             dataset_path=dataset_path,
-            output_dir=f"results/experiments/api/{row.id}",
+            output_dir=str(results_root() / "experiments" / "api" / row.id),
             models=models,
             strategies=config["strategies"],
             repeats=config["repeats"],
@@ -321,7 +322,9 @@ class ExperimentService:
 
                 runner.on_spend = on_spend
                 runner.before_generate = recorder.check
-                runner.checkpoint_dir = Path(f"results/experiments/api/{experiment_id}/execution")
+                runner.checkpoint_dir = (
+                    results_root() / "experiments" / "api" / experiment_id / "execution"
+                )
                 runner.should_pause = lambda: (
                     self._async_task_stopped(experiment_id, owner_id, generation)
                     or budget.should_pause()
@@ -460,7 +463,7 @@ class ExperimentService:
             raise ValueError(
                 f"Experiment {experiment_id} has no results yet (status: {row.status})"
             )
-        exp_dir = Path(row.output_dir)
+        exp_dir = resolve_results_path(row.output_dir)
         if not exp_dir.is_dir():
             raise ValueError(f"Experiment {experiment_id} artifacts are missing")
         return exp_dir

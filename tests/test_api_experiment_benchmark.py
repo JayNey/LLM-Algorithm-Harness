@@ -15,7 +15,7 @@ from fastapi.testclient import TestClient
 
 from api.auth.config import AuthSettings
 from api.config import settings
-from api.db.models import AsyncTask, BenchmarkRun, BenchmarkSuite, Experiment
+from api.db.models import ABTest, AsyncTask, BenchmarkRun, BenchmarkSuite, Experiment
 from api.files.config import FileSettings
 from api.main import create_app
 from src.benchmark.executor import BenchmarkExecutor
@@ -123,6 +123,12 @@ class FakeABTestRunner:
         }
         (out / "ab_test.json").write_text(json.dumps(report), encoding="utf-8")
         return out
+
+
+@pytest.fixture(autouse=True)
+def shared_results_root(tmp_path, monkeypatch):
+    """Keep experiment/A-B artifacts inside the test's shared results root."""
+    monkeypatch.setattr(settings, "RESULTS_ROOT", str(tmp_path / "results"))
 
 
 @pytest.fixture(autouse=True)
@@ -325,6 +331,35 @@ class TestExperiments:
 
         deleted = client.delete(f"/api/v1/experiments/{experiment_id}", headers=headers)
         assert deleted.status_code == 204
+
+    def test_results_readable_from_another_working_directory(self, api, tmp_path, monkeypatch):
+        client, headers, key_id, app = api
+        experiment_id = client.post(
+            "/api/v1/experiments", headers=headers, json=_experiment_payload(key_id)
+        ).json()["data"]["id"]
+        client.post(f"/api/v1/experiments/{experiment_id}/run", headers=headers)
+        _execute_experiment(app, experiment_id)
+        _wait_status(
+            lambda: client.get(f"/api/v1/experiments/{experiment_id}", headers=headers).json()[
+                "data"
+            ],
+            {"completed"},
+        )
+
+        with app.state.experiments._session() as session:
+            row = session.get(Experiment, experiment_id)
+            assert row is not None
+            output_dir = row.output_dir
+        assert output_dir is not None
+        assert Path(output_dir).is_absolute()
+        assert Path(output_dir).is_relative_to(tmp_path / "results")
+
+        elsewhere = tmp_path / "elsewhere"
+        elsewhere.mkdir()
+        monkeypatch.chdir(elsewhere)
+        for path in ("results", "comparison", "panel"):
+            response = client.get(f"/api/v1/experiments/{experiment_id}/{path}", headers=headers)
+            assert response.status_code == 200, response.text
 
     def test_rejects_foreign_api_key(self, api):
         client, headers, _, _ = api
@@ -1298,6 +1333,42 @@ class TestABTests:
             assert run_ab_test_task(test_id, owner)["status"] == "completed"
         results = client.get(f"/api/v1/ab-tests/{test_id}/results", headers=headers)
         assert results.status_code == 200
+        assert results.json()["data"]["variants"] == ["baseline", "treatment"]
+
+    def test_results_readable_from_another_working_directory(self, api, tmp_path, monkeypatch):
+        client, headers, key_id, _ = api
+        test_id = client.post(
+            "/api/v1/ab-tests", headers=headers, json=self._ab_payload(key_id)
+        ).json()["data"]["id"]
+        task_id = client.post(f"/api/v1/ab-tests/{test_id}/run", headers=headers).json()["data"][
+            "task_id"
+        ]
+        from src.ab_testing import ABTestRunner
+        from src.tasks.ab_test import run_ab_test_task
+
+        with (
+            patch("api.auth.config.AuthSettings", return_value=client.app.state.auth.settings),
+            patch.object(ABTestRunner, "run", FakeABTestRunner.run),
+        ):
+            from api.db.models import AsyncTask
+
+            with client.app.state.ab_tests._session() as db:
+                owner = db.get(AsyncTask, task_id).user_id
+            assert run_ab_test_task(test_id, owner)["status"] == "completed"
+
+        with client.app.state.ab_tests._session() as db:
+            row = db.get(ABTest, test_id)
+            assert row is not None
+            output_dir = row.output_dir
+        assert output_dir is not None
+        assert Path(output_dir).is_absolute()
+        assert Path(output_dir).is_relative_to(tmp_path / "results")
+
+        elsewhere = tmp_path / "elsewhere"
+        elsewhere.mkdir()
+        monkeypatch.chdir(elsewhere)
+        results = client.get(f"/api/v1/ab-tests/{test_id}/results", headers=headers)
+        assert results.status_code == 200, results.text
         assert results.json()["data"]["variants"] == ["baseline", "treatment"]
 
     def test_ab_test_cross_user_access_is_404(self, api):
