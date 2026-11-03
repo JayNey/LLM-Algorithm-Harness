@@ -7,7 +7,7 @@
 
 ### Requirement: 实验生命周期管理
 
-系统 SHALL 支持创建（校验模型/策略/预算配置与 `api_key_id` 归属）、列出、查看、异步运行固定预算实验，并以 `pending/running/paused/completed/failed/cancelled` 跟踪状态；实验配置与状态 SHALL 持久化，结果分析 SHALL 从实验产物目录读取。
+系统 SHALL 支持创建（校验模型/策略/预算配置与 `api_key_id` 归属）、列出、查看、异步运行固定预算实验，并以 `pending/running/paused/completed/failed/cancelled` 跟踪状态；实验配置与状态 SHALL 持久化，结果分析 SHALL 从跨进程共享且可配置的 `RESULTS_ROOT` 产物根读取。
 
 #### Scenario: 创建时校验密钥归属
 
@@ -43,12 +43,17 @@
 
 ### Requirement: 实验结果分析
 
-系统 SHALL 从完成的实验产物中返回结果摘要、模型×策略对比（含胜率矩阵与 McNemar 显著性）、以及交互面板数据；产物缺失或实验未完成时 SHALL 返回明确错误。
+系统 SHALL 从完成的实验产物中返回结果摘要、模型×策略对比（含胜率矩阵与 McNemar 显著性）、以及交互面板数据；产物 SHALL 位于 API 与 Worker 共同可用的 `RESULTS_ROOT` 下，读取 SHALL NOT 依赖发起请求进程的当前工作目录。产物缺失或实验未完成时 SHALL 返回明确错误。
 
 #### Scenario: 未完成实验不可取结果
 
 - **WHEN** 对 running 状态的实验请求对比报告
 - **THEN** 返回明确错误而非部分数据
+
+#### Scenario: 分离进程读取结果
+
+- **WHEN** Worker 在共享 `RESULTS_ROOT` 下完成实验，API 进程以不同当前工作目录启动后请求结果、对比与面板
+- **THEN** 三个端点均返回该实验的完整产物，而非 artifacts missing
 
 ### Requirement: 帕累托与成本优化分析
 
@@ -135,3 +140,22 @@
 #### Scenario: 快照校验和清理
 - **WHEN** Worker 读取快照且所有者或摘要不符，或执行退出
 - **THEN** 不符时拒绝执行；正常、暂停和异常退出清理临时文件，持久化快照保持可追溯。
+
+### Requirement: 实验与 A/B 的跨进程结果和检查点
+
+系统 SHALL 把实验和 A/B 的结果、对比、面板与执行检查点存放到可配置的 `RESULTS_ROOT`，并通过共享卷或等价共享存储让 API 与全部 Worker 访问同一位置；相对历史路径 SHALL 解析到该根而不是发起请求进程的 cwd。启动 SHALL 校验该根可创建且可写，不可写时 SHALL 以明确错误拒绝启动。
+
+#### Scenario: A/B 分离进程读取结果
+
+- **WHEN** Worker 完成 A/B 测试且 API 进程在另一个容器或另一 cwd 中请求该测试结果
+- **THEN** 返回包含变体与显著性统计的结果，而不是 artifacts are missing
+
+#### Scenario: 重启或换 Worker 后恢复
+
+- **WHEN** 暂停的实验或 A/B 在 Worker 重启或被另一个 Worker 接续时恢复
+- **THEN** 从共享 `RESULTS_ROOT` 读取同一检查点，已提交单元不重复执行
+
+#### Scenario: 结果根不可写
+
+- **WHEN** `RESULTS_ROOT` 无法创建或对当前进程只读
+- **THEN** API 或 Worker 启动失败并报告具体路径，不进入任务消费或执行
