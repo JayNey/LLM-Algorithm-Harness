@@ -2,6 +2,7 @@
 change: evaluation-artifact-publishing
 design-doc: openspec/changes/evaluation-artifact-publishing/design.md
 base-ref: 06f8d4e85ae5cb0edbadaba796b79115e019a948
+archived-with: 2026-11-03-evaluation-artifact-publishing
 ---
 
 # 实施计划

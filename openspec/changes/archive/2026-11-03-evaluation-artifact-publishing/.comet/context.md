@@ -1,3 +1,62 @@
+# Comet Design Handoff
+
+- Change: evaluation-artifact-publishing
+- Phase: design
+- Mode: compact
+- Context hash: 724a20ee5837caeee3b3bc63c5fd6d61faf714f0b28b648dd66bf26ea8e9871f
+
+Generated-by: comet-handoff.sh
+Task hash policy: task-content-v1. Read tasks.md for live completion; excerpts are design-time context.
+
+OpenSpec remains the canonical capability spec. This handoff is a deterministic, source-traceable context pack, not an agent-authored summary.
+
+## openspec/changes/evaluation-artifact-publishing/proposal.md
+
+- Source: openspec/changes/evaluation-artifact-publishing/proposal.md
+- Lines: 1-28
+- SHA256: f7bd4d77ec1103b578fe1c692c615c228336f39ea260a3557148d1a9289347a4
+
+```md
+## Why
+
+#319：文件服务已支持 publish_results 和多格式导出，但真实评估 Worker 没有发布产物；数据库有结果时文件下载仍可能返回 Result not available。需要把真实执行、持久化、发布与下载接通，并让发布失败可单独恢复。
+
+## What Changes
+
+- 在真实评估结果提交边界持久化待发布记录，明确部分/完成/暂停/失败/取消的完整性语义。
+- 按实际账号和已注册 evaluation_id 发布，不混用本地检查点 eval-{id} 或即时报告 run_id。
+- 发布记录保存版本与状态；发布过程校验最新版本，防止重复、重试和旧执行回调覆盖较新文件。
+- 提供归属校验的发布状态与独立重试能力，失败不丢失已提交结果、不把文件失败改写成模型执行失败。
+- 保持既有 JSON、CSV、Markdown、HTML、PNG、ZIP 导出，以及脱敏、完整性、配额、保留期和删除清理；不伪造缺失的度量。
+- 通过真实 Worker 编排到 HTTP 下载的集成链和并发/失败回归验证。
+
+## Capabilities
+
+### New Capabilities
+
+- `api/evaluation-artifacts`：真实评估文件发布、版本控制、发布状态、独立重试与完整性说明。
+
+### Modified Capabilities
+
+无。
+
+## Impact
+
+涉及 src/tasks/evaluation.py、发布服务、业务数据库模型和迁移、FileService/FileStore、受认证发布状态/重试路由、文档及测试。沿用已合并 P5/P8 的预算和执行元数据，不改变其统计口径；即时 /reports 接口和 #299 前端独立保持可用。独立于 #322，单独 PR；基线 main@8a6ab918c3f70e38e9c00d4251f9d4343da98120。
+
+非目标：引入新存储产品、重做评估调度、补造历史缺失执行结果、扩展下载 UI 或通知功能。设计需明确跨业务库/文件 SQLite 的提交顺序、部分结果发布点、崩溃后的重试与旧版本文件回收。核心验收包括自动发布下载、多格式可解析、过期回调保护、失败可重试、账号隔离及删除清理。
+
+```
+
+## openspec/changes/evaluation-artifact-publishing/design.md
+
+- Source: openspec/changes/evaluation-artifact-publishing/design.md
+- Lines: 1-87
+- SHA256: 1eb78f32be336414cd702f68737eafc3dde0a86b34bb09fb1541be9759a97dfe
+
+[TRUNCATED]
+
+```md
 ---
 comet_change: evaluation-artifact-publishing
 role: technical-design
@@ -78,10 +137,139 @@ Worker 正常路径在结果和最终状态提交后触发发布，失败不把 
 
 ## Validation
 
-先 RED 再 GREEN 覆盖迁移、版本递增/幂等、原始字段保留和空值语义。真实 Worker 编排到数据库快照、文件发布、受认证 HTTP 下载，外部模型采用可控替身，不手工 publish_results 作为主验收。分别解析 JSON/CSV/Markdown/HTML/PNG/ZIP，验证状态、内容、P8 元数据及未知费用。
 
-故障注入覆盖暂存/登记/激活/业务确认/队列失败，旧代际、较旧 revision、同版本重复、暂停恢复/取消竞争、部分异常、重试不重新调用模型、删除/过期/配额回收及跨账号访问。运行定向回归、数据库迁移和 PostgreSQL 离线 SQL、相关类型/格式/编码检查，按 CI 要求检查 macOS/Ubuntu/Windows。最终独立集成审查。
+```
 
-## Migration Plan
+Full source: openspec/changes/evaluation-artifact-publishing/design.md
 
-同步 main@859f33b 后，站内通知已占用 0006；本 change 使用 0007（down_revision=0006），回退本迁移保留站内通知。先应用兼容业务库迁移和文件 SQLite 增量元数据，再部署 API/Worker；旧文件继续按旧格式读取，新 Worker 才写版本化快照。部署前确认 API 与 Worker 使用相同认证元数据库和共享 UPLOAD_DIR。回滚时停止新发布任务后回滚代码；新文件仍可保留供审计或清理；数据库降级会移除新增发布记录和原始执行字段，需显式由部署者选择，日常回滚不自动丢弃数据。
+## openspec/changes/evaluation-artifact-publishing/tasks.md
+
+- Source: openspec/changes/evaluation-artifact-publishing/tasks.md
+- Lines: 1-16
+- SHA256: 7fc84d60431a36e726daacc34d48728ecf45770fa36119d89fd246aed97dab97
+
+```md
+## 1. 持久发布合同
+
+- [ ] 1.1 添加原始执行载荷与当前发布记录的兼容模型/迁移；验证旧数据库升级/降级、新旧结果空值语义和 PostgreSQL 离线 SQL。 <!-- comet-task:714ee1d7-5776-4573-b4d1-d28107985c61 -->
+- [ ] 1.2 实现真实结果快照、完整性计算和单调版本分配；以测试验证快照与已提交行一致、未知字段不补造、重复内容幂等和旧代际拒绝。 <!-- comet-task:920bbb87-dd55-40df-aba1-54382c5c9de9 -->
+
+## 2. 文件发布与恢复
+
+- [ ] 2.1 扩展文件版本/摘要和候选激活流程；故障与竞争测试验证旧版本拒绝、同版本幂等、激活后确认前崩溃恢复及配额/候选清理。 <!-- comet-task:7ebc2395-4101-43ff-a5cb-ad7a115ecbc2 -->
+- [ ] 2.2 接入 Worker 单元/生命周期持久化边界与独立发布任务；真实编排测试覆盖完成、暂停/恢复、失败/取消、提交后退出，确认发布失败不改变执行真值。 <!-- comet-task:32792741-abaf-4cd8-8676-f356f7f39e5d -->
+- [ ] 2.3 实现认证的发布状态/独立重试和安全错误分类；HTTP 测试验证归属、CSRF、无结果、重复请求、队列失败、文件过期和重试不增加模型调用。 <!-- comet-task:6d8967f8-a8b7-4632-ad3a-b762cd61bbdf -->
+- [ ] 2.4 兼容版本化产物的多格式下载与完整性元数据；解析 JSON/CSV/Markdown/HTML/PNG/ZIP，验证执行原始字段、P8 元数据、未知费用及旧格式回归。 <!-- comet-task:4c7c62cb-c182-457f-8bb1-df8e2bad5d4a -->
+
+## 3. 综合验收与交付
+
+- [ ] 3.1 完成 Worker → 发布 → HTTP 下载的完整集成链、跨账号/删除/延迟消息/清理回归、定向测试及格式类型编码检查；更新 API 文档并提交可复跑验证报告。 <!-- comet-task:072dce93-1669-4901-8445-856a7ae7afbe -->
+- [ ] 3.2 完成分段独立审查并修复问题，核对规格和提交归属，备齐独立 PR 交付材料；以实际复审、检查及提交记录验收。 <!-- comet-task:c4eb5f79-0f22-4cde-831f-0f15e2943341 -->
+
+```
+
+## openspec/changes/evaluation-artifact-publishing/.openspec.yaml
+
+- Source: openspec/changes/evaluation-artifact-publishing/.openspec.yaml
+- Lines: 1-2
+- SHA256: 108f7b3dae33488206672f31b510275110c0194c93062eb1970e19ca60c08722
+
+```md
+schema: spec-driven
+created: 2026-11-01
+
+```
+
+## openspec/changes/evaluation-artifact-publishing/specs/api/evaluation-artifacts/spec.md
+
+- Source: openspec/changes/evaluation-artifact-publishing/specs/api/evaluation-artifacts/spec.md
+- Lines: 1-95
+- SHA256: 4eb13b629f34754d8937471fb7ac11409ba85661eb31d02b25d3a17683a7ff02
+
+[TRUNCATED]
+
+```md
+## Purpose
+
+将 Web 评估实际执行后已提交的结果发布为归属正确、版本可核对的下载产物，明确完整与部分结果的区别，并让文件发布失败可观察且可在不重新运行模型的情况下恢复，同时保持文件隔离、脱敏和删除清理语义。
+
+## ADDED Requirements
+
+### Requirement: 真实执行自动发布
+
+系统 SHALL 在评估真实结果持久化后自动发布对应已注册评估的文件产物。文件内容 SHALL 来自该账号该次运行的已提交结果，保留实际执行字段和元数据；缺失内容 SHALL 明确为空或不可用，不补造代码、迭代、token、费用或计时。文件发布失败 SHALL NOT 撤销已提交执行结果或伪造评估执行失败。
+
+#### Scenario: 完成评估后直接下载
+
+- **WHEN** 用户的真实评估执行完成并产生持久化结果
+- **THEN** 无需人工调用发布方法或注入结果文件，受认证下载、导出和图表接口可读取该评估产物，内容与该次已提交结果一致
+
+#### Scenario: 历史缺失字段
+
+- **WHEN** 已有结果没有完整执行载荷
+- **THEN** 发布内容保留真实状态和已有度量，并显式表示缺失字段，不将默认成功或默认零值作为执行证据
+
+### Requirement: 部分结果和多格式一致性
+
+系统 SHALL 明确发布版本、评估状态、已记录及预期单元数和完整性；running/paused/failed/cancelled 的已提交结果 SHALL 作为部分结果呈现。没有结果或产物不可用 SHALL 返回明确错误，不作为成功空文件下载。既有 JSON、CSV、Markdown、HTML、PNG、ZIP 格式 SHALL 可解析或打开，并表达相同运行和版本的真实内容及完整性。
+
+#### Scenario: 暂停或失败后已有部分结果
+
+- **WHEN** 评估暂停、失败或取消前已有已提交结果
+- **THEN** 可用产物标记为部分结果，说明实际记录数和预期数，未执行单元不伪装为成功
+
+#### Scenario: 新版本未发布
+
+- **WHEN** 当前持久化结果版本比已发布文件更新
+- **THEN** 系统不将旧文件作为当前完整成功产物，发布状态明确表示当前版本尚未可用
+
+#### Scenario: 多格式内容可核对
+
+- **WHEN** 用户下载同一可用版本的 JSON、CSV、Markdown、HTML、PNG 和 ZIP
+- **THEN** 文件均为可用格式，内容对应同一账号和运行，部分结果在文件或随附清单及响应元数据中明确表达
+
+### Requirement: 单调发布版本与幂等激活
+
+系统 SHALL 持久化待发布内容和版本，防止旧执行代际、较旧发布版本、重复消息和恢复回调覆盖较新产物。同一内容版本重复发布 SHALL 幂等；失败候选和已替代文件 SHALL 可清理，不产生无法回收的占用。最终激活 SHALL 只引用完整、校验成功且仍为当前允许版本的文件。
+
+#### Scenario: 旧发布晚返回
+
+- **WHEN** 新版本已生成并激活，旧版本发布或旧 Worker 回调随后完成
+- **THEN** 当前产物不被旧版本替换，当前发布状态和结果不倒退
+
+#### Scenario: 激活后确认前崩溃
+
+- **WHEN** 文件已激活但发布确认尚未提交时进程退出，之后重试同一版本
+- **THEN** 系统能核对并完成该版本确认，不生成重复有效副本或破坏更新产物
+
+### Requirement: 发布状态和独立重试
+
+系统 SHALL 向当前所有者提供发布状态和重试入口，区分待发布、已发布、失败、无结果及文件不可用，提供版本、完整性、重试次数和安全错误分类。重试 SHALL 只处理持久化发布内容，不重新调用模型；队列或文件操作失败 SHALL 可观察，不能报告未发生的成功。
+
+#### Scenario: 发布失败后恢复
+
+- **WHEN** 文件写入或激活失败，用户或独立任务重试发布
+- **THEN** 已提交结果保持，发布错误可查询；成功重试后当前版本可下载，模型执行次数不增加
+
+#### Scenario: 提交快照后进程退出
+
+- **WHEN** 待发布快照已提交但尚未完成文件发布时进程退出
+- **THEN** 待发布状态仍可查询并可独立重试，无需重新运行评估
+
+#### Scenario: 历史评估没有发布记录
+
+- **WHEN** 所有者显式重试已有真实数据库结果、但尚无发布记录的历史评估
+- **THEN** 系统可从实际结果建立快照并发布，无法恢复的原始执行载荷明确缺失，不调用模型或伪造字段
+
+### Requirement: 文件归属和生命周期保护
+
+发布、状态、重试与下载 SHALL 检查业务及文件注册归属，沿用脱敏、完整性校验、配额、保留期及清理机制。已删除评估和文件 SHALL 不可通过延迟发布复活；过期或已删除文件 SHALL 不因旧发布状态而假装可用。
+
+#### Scenario: 跨账号和删除后的延迟任务
+
+- **WHEN** 其他账号查询或重试产物，或删除评估后旧发布任务到达
+- **THEN** 系统拒绝越权访问且不泄露内容，延迟任务不会重新注册、激活或公开已删除产物
+
+```
+
+Full source: openspec/changes/evaluation-artifact-publishing/specs/api/evaluation-artifacts/spec.md
