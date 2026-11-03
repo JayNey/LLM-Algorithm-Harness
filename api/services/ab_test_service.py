@@ -5,7 +5,6 @@ import uuid
 from collections.abc import Callable
 from contextlib import ExitStack
 from datetime import datetime
-from pathlib import Path
 from threading import Semaphore
 from typing import Any
 
@@ -24,6 +23,7 @@ from api.db import ABTest, AsyncTask, make_engine, make_session_factory, run_mig
 from api.db.engine import business_database_url
 from api.db.models import utcnow
 from api.experiment_models import ABTestCreateRequest, ModelSpec
+from api.results import resolve_results_path, results_root
 from src.ab_testing import ABTestConfig, ABTestRunner
 from src.task_manager import TaskManager
 
@@ -245,7 +245,7 @@ class ABTestService:
         return ABTestConfig(
             name=config["name"] or f"api-{row.id[:8]}",
             dataset_path=dataset_path,
-            output_dir=f"results/ab-tests/api/{row.id}",
+            output_dir=str(results_root() / "ab-tests" / "api" / row.id),
             model=llm,
             strategy=config["strategy"],
             prompt_variants=config["prompt_variants"],
@@ -300,7 +300,7 @@ class ABTestService:
 
                 runner.on_spend = on_spend
                 runner.before_generate = recorder.check
-                runner.checkpoint_dir = Path(f"results/ab-tests/api/{test_id}/execution")
+                runner.checkpoint_dir = results_root() / "ab-tests" / "api" / test_id / "execution"
                 runner.should_stop = (
                     lambda: self._should_stop(task_id, generation) or budget.should_pause()
                 )
@@ -383,7 +383,7 @@ class ABTestService:
             row = self._owned(session, test_id, owner_id)
             if row.status != "completed" or not row.output_dir:
                 raise ValueError(f"A/B test {test_id} has no results yet (status: {row.status})")
-            report = Path(row.output_dir) / "ab_test.json"
+            report = resolve_results_path(row.output_dir) / "ab_test.json"
             if not report.is_file():
                 raise ValueError(f"A/B test {test_id} artifacts are missing")
             payload = json.loads(report.read_text(encoding="utf-8"))

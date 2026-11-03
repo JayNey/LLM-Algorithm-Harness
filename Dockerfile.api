@@ -26,9 +26,10 @@ WORKDIR /app
 COPY --chown=harness:harness api/ ./api/
 COPY --chown=harness:harness src/ ./src/
 
-# 运行期可写目录；容器部署时由 compose 卷挂载覆盖
-RUN mkdir -p data/business data/auth data/tasks uploads \
-    && chown -R harness:harness data uploads
+# 运行期可写目录；容器部署时由 compose 卷挂载覆盖。
+# results 与 Worker 共享，保存实验/A/B 产物与检查点。
+RUN mkdir -p data/business data/auth data/tasks uploads results \
+    && chown -R harness:harness data uploads results
 
 USER harness
 EXPOSE 8000

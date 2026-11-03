@@ -26,6 +26,7 @@ from api.middleware.logging import setup_logging_middleware
 from api.monitoring.config import MonitorSettings
 from api.monitoring.service import MonitorService
 from api.progress import ProgressStream, RedisProgressStream
+from api.results import ensure_results_root
 from api.routes import evaluation_results_router, evaluations_router, tasks_router
 from api.routes.ab_tests import router as ab_tests_router
 from api.routes.auth import router as auth_router
@@ -75,6 +76,10 @@ def create_app(
 
     @asynccontextmanager
     async def lifespan(app: FastAPI) -> AsyncIterator[None]:
+        # Experiments and A/B tests share artifacts with Celery workers; fail at
+        # startup rather than on the first result write when the volume is bad.
+        ensure_results_root()
+
         from api.db.engine import (
             business_database_url,
             make_engine,

@@ -73,5 +73,16 @@ def configure_celery() -> None:
 # 自动发现任务。worker 通过 conf.include 导入具体任务模块。
 celery_app.autodiscover_tasks(["src.tasks"])
 
+
+def preflight_results_root() -> None:
+    """Fail fast when the shared experiment/A-B results root is not writable."""
+    from api.results import ensure_results_root
+
+    ensure_results_root()
+
+
 # 初始化配置
 configure_celery()
+
+# Worker 以本模块为启动入口；结果根不可写时应在消费任务前失败。
+preflight_results_root()

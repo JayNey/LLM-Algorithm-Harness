@@ -259,6 +259,18 @@ def test_compose_sandbox_runner_is_visible_to_host_docker(
     assert list(shared.iterdir()) == []
 
 
+@pytest.mark.parametrize("compose_name", ["docker-compose.yml", "docker-compose.prod.yml"])
+def test_results_volume_shared_by_api_and_worker(compose_name):
+    """实验/A-B 产物与检查点必须落在 api/worker 共同可见的卷上。"""
+    compose = yaml.safe_load((REPO / compose_name).read_text(encoding="utf-8"))
+    assert "results_data" in compose["volumes"], compose_name
+    for service in ("api", "worker"):
+        assert "results_data:/app/results" in compose["services"][service]["volumes"], (
+            compose_name,
+            service,
+        )
+
+
 class TestDockerfiles:
     def test_api_is_multistage(self, dockerfile_api):
         assert "FROM python:3.11-slim AS builder" in dockerfile_api
@@ -276,6 +288,12 @@ class TestDockerfiles:
 
     def test_worker_runs_as_non_root(self, dockerfile_worker):
         assert re.search(r"^USER harness$", dockerfile_worker, re.MULTILINE)
+
+    def test_images_create_writable_results_directory(self, dockerfile_api, dockerfile_worker):
+        """结果卷首次挂载继承镜像目录属主，非 root 用户才能写入。"""
+        for content in (dockerfile_api, dockerfile_worker):
+            assert re.search(r"mkdir -p [^\n]*\bresults\b", content)
+            assert re.search(r"chown -R harness:harness [^\n]*\bresults\b", content)
 
     def test_build_context_ignores_secrets(self):
         dockerignore = (REPO / ".dockerignore").read_text(encoding="utf-8").splitlines()
