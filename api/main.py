@@ -112,6 +112,9 @@ def create_app(
         app.state.notifications = NotificationService(database_url)
         app.state.progress_stream = progress_stream or RedisProgressStream()
         app.state.files = FileService(app.state.auth, file_settings or FileSettings())
+        from api.services.artifact_service import EvaluationArtifactService
+
+        app.state.artifacts = EvaluationArtifactService(session_factory, app.state.files)
         app.state.evaluation_options = EvaluationOptionsService(
             session_factory, app.state.files.store, app.state.auth
         )
@@ -172,7 +175,7 @@ def create_app(
         allow_credentials=True,
         allow_methods=["*"],
         allow_headers=["*"],
-        expose_headers=["X-CSRF-Token"],
+        expose_headers=["X-CSRF-Token", "X-Artifact-Revision", "X-Artifact-Completeness"],
     )
     setup_logging_middleware(app)
 

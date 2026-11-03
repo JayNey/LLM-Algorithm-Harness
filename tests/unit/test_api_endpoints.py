@@ -37,6 +37,7 @@ from api.services import (
     EvaluationService,
     ExperimentService,
 )
+from api.services.artifact_service import EvaluationArtifactService
 from api.services.evaluation_options_service import EvaluationOptionsService
 from api.services.in_app_notification_service import NotificationService
 from src.task_manager import TaskManager
@@ -747,14 +748,26 @@ CASES += [
         download=True,
     ),
 ]
+CASES.extend(
+    [
+        case("GET", "/results/{run_id}/publication", "artifacts.state", ("run-1", OWNER)),
+        case(
+            "POST",
+            "/results/{run_id}/publication/retry",
+            "artifacts.retry",
+            ("run-1", OWNER),
+            status=202,
+        ),
+    ]
+)
 for suffix in ["download", "export"]:
     CASES.append(
         case(
             "GET",
             f"/results/{{run_id}}/{suffix}",
-            "files.export_results",
+            "artifacts.export_results",
             ("run-1", OWNER, "json"),
-            result=("fixture.json", "application/json", b"{}"),
+            result=(("fixture.json", "application/json", b"{}"), {}),
             expected=b"{}",
             download=True,
         )
@@ -763,9 +776,9 @@ CASES.append(
     case(
         "GET",
         "/results/{run_id}/charts/{chart_name}",
-        "files.export_results",
+        "artifacts.export_results",
         ("run-1", OWNER, "png"),
-        result=("chart.png", "image/png", b"png-bytes"),
+        result=(("chart.png", "image/png", b"png-bytes"), {}),
         expected=b"png-bytes",
         download=True,
     )
@@ -910,6 +923,7 @@ def api(monkeypatch, tmp_path, unit_app):
         for name, cls in dict(
             auth=AuthService,
             files=FileService,
+            artifacts=EvaluationArtifactService,
             evaluations=EvaluationService,
             evaluation_options=EvaluationOptionsService,
             evaluation_results=EvaluationResultsService,
@@ -1411,7 +1425,7 @@ def test_unknown_chart_is_rejected_without_export(api):
     assert_error(
         api.client.get(PREFIX + "/results/run-1/charts/unknown"), 404, "RESOURCE_NOT_FOUND"
     )
-    api.files.export_results.assert_not_called()
+    api.artifacts.export_results.assert_not_called()
 
 
 @pytest.mark.parametrize(

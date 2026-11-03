@@ -109,7 +109,9 @@ class ChartGenerator:
         return buf
 
     @staticmethod
-    def generate_success_rate_chart(metrics: dict[str, dict]) -> io.BytesIO | None:
+    def generate_success_rate_chart(
+        metrics: dict[str, dict], title: str | None = None
+    ) -> io.BytesIO | None:
         """
         Generate success rate comparison bar chart.
 
@@ -154,7 +156,7 @@ class ChartGenerator:
 
             ax.set_xlabel("Strategy", fontsize=12)
             ax.set_ylabel("Success Rate (%)", fontsize=12)
-            ax.set_title("Success Rate Comparison", fontsize=14, fontweight="bold")
+            ax.set_title(title or "Success Rate Comparison", fontsize=14, fontweight="bold")
             ax.set_ylim(0, 105)
             ax.grid(axis="y", linestyle="--", alpha=0.3)
             ax.legend(["≥80%", "50-80%", "<50%"], loc="upper right")

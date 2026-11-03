@@ -298,3 +298,19 @@ Worker 首次创建检查点时冻结该评估各题目的实际执行版本，�
 `GET /api/v1/results` 的 `tag`/`difficulty` 筛选、`/analytics/*`、`/failures/by-tag`、`/visualizations/*` 的统计统一优先上述快照。显式空标签和空难度不回退到公共题。雷达按题目 ID 与标签版本区分历史题目，同一版本的多策略结果分别参与成功率，题目数量去重。用户所有权校验与现有响应结构不变。
 
 **旧结果兼容与不完整性**：没有 `problem_snapshot` 的历史结果沿用当前公共题库标签，难度优先原 `metrics.difficulty`、再回退当前公共题库。该路径属于尽力兼容，不能保证历史准确性；同 ID 的个人覆盖关系无法恢复，公共库缺失时不计入标签分组或雷达维度，但仍计入整体结果总数。系统不读取当前个人题为旧结果补写标签，也不自动回填快照。有快照且标签为空与旧记录没有快照具有不同语义。
+
+## 评估文件产物发布（#319）
+
+真实评估 Worker 在提交结果后自动发布文件。文件接口中的 ID 使用创建评估返回的 `evaluation_id`，不要使用本地检查点的 `eval-{evaluation_id}`，也不要替换为 `/reports/*` 使用的数据库 `run_id`。即时报告接口保持独立。
+
+- `GET /api/v1/results/{evaluation_id}/publication`：查询当前 `revision`、`published_revision`、`status`、`available`、`complete`、`recorded_units`、`expected_units`、`attempts`、`error_code`、`retryable` 和 `updated_at`。状态为 pending/published/failed/unavailable；published 表示版本曾发布，下载以 `available` 为准。无结果为 no_results，历史有结果但尚无发布记录为 not_published。
+- `POST /api/v1/results/{evaluation_id}/publication/retry`：仅重试当前持久化结果的文件发布（202），不会启动评估或调用模型。历史尚无发布记录时，从真实数据库行建立快照，缺失原始执行载荷保持 null。无结果、主动删除或已变化的版本返回 409；队列不可用返回 503 并保留安全错误分类。Cookie 请求遵循既有 CSRF 规则。
+- `GET /api/v1/results/{evaluation_id}/download?format=json|csv|markdown|html|png|zip`，`export` 别名和 `charts/success-rate` 保持可用。当前版本未发布、读取期间版本改变或产物不可用时，不把旧文件作为当前成功下载。成功响应的 `X-Artifact-Revision` 与 `X-Artifact-Completeness: complete|partial` 和实际内容源自同一快照，两个头均经 CORS 暴露。
+
+新文件 JSON 为版本化文档：`schema_version: 1`、evaluation_id、可空 run_id、revision、state、complete、expected_units、recorded_units、execution_payload_available 和按策略分组的 results。每行保留实际 problem_id、strategy、status、metrics、error_message 与可空 execution。未知费用标记和执行时题目元数据保留；不为历史缺失数据填入默认代码、token、迭代或计时。CSV 的结构化字段为 JSON 单元格，缺值留空；Markdown/HTML 包含清单，PNG 标注完整性，ZIP 包含五种文件。
+
+running/paused/failed/cancelled 的已提交结果为部分产物，只有 completed 且记录覆盖全部预期单元才完整；完整不代表全部题目成功。用户暂停、取消、恢复与相应快照同事务提交，发布使用独立任务，强制终止 Worker 不丢失生命周期快照。发布失败不撤销已提交评估结果；重复消息和旧版本不能覆盖新版本，独立任务的瞬时存储错误最多退避重试三次。
+
+归属由业务记录与文件注册共同校验，跨账号或不存在资源返回 404。结果文件沿用既有无自动 TTL 的保留策略；候选文件可过期回收。单独主动删除的结果内容不会因状态或代际变化复活，只有真实新结果可生成新产物；过期/损坏文件仅显式重试可重建。新旧文件并存按真实占用检查配额，空间不足报告 storage_limit，释放空间后可重试。删除评估会删除发布记录并清理文件，延迟消息不会复活它。
+
+部署顺序：应用业务迁移 `0007`（依赖站内通知 `0006`），再更新 API 与包含 `src.tasks.artifacts` 的 Worker；API/Worker 必须共享认证元数据库和 UPLOAD_DIR。回退到 `0006` 仅移除新增发布表与原始执行字段，不影响站内通知；代码回滚不自动降级删除数据。可用 `python scripts/verify_evaluation_artifacts.py` 复跑真实 TCP API、实际任务函数、六种格式和故障重试联调；供应商、沙箱及队列/结果后端在该脚本中明确使用可控替身，无手工结果注入或付费模型调用。

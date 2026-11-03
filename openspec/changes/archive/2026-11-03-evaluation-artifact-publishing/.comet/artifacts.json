@@ -1,0 +1,9 @@
+{
+  "openspec_proposal": "openspec/changes/evaluation-artifact-publishing/proposal.md",
+  "openspec_design": "openspec/changes/evaluation-artifact-publishing/design.md",
+  "openspec_tasks": "openspec/changes/evaluation-artifact-publishing/tasks.md",
+  "openspec_delta_spec": "openspec/changes/evaluation-artifact-publishing/specs/api/evaluation-artifacts/spec.md",
+  "handoff_context": "openspec/changes/archive/2026-11-03-evaluation-artifact-publishing/.comet/handoff/design-context.json",
+  "handoff_markdown": "openspec/changes/archive/2026-11-03-evaluation-artifact-publishing/.comet/handoff/design-context.md",
+  "archive_directory": "openspec/changes/archive/2026-11-03-evaluation-artifact-publishing"
+}

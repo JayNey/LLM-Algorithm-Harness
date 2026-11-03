@@ -17,6 +17,7 @@ from api.files.dependencies import file_service
 from api.files.service import FileService
 from api.files.templates import TEMPLATES, template
 from api.schemas import ApiResponse
+from api.services.artifact_service import EvaluationArtifactService
 from src.task_manager import TaskManager
 
 router = APIRouter(prefix="/api/v1", tags=["files"])
@@ -262,6 +263,36 @@ def export_problems(
     return download(*service.export_dataset(principal.user_id, format))
 
 
+def artifact_service(request: Request) -> EvaluationArtifactService:
+    return request.app.state.artifacts
+
+
+@router.get("/results/{run_id}/publication")
+def publication_status(
+    run_id: str,
+    principal: Principal = Depends(current_user),
+    service: EvaluationArtifactService = Depends(artifact_service),
+) -> ApiResponse[dict[str, Any]]:
+    return ApiResponse(
+        success=True,
+        data=service.state(run_id, principal.user_id),
+        message="Artifact publication status",
+    )
+
+
+@router.post("/results/{run_id}/publication/retry", status_code=202)
+def retry_publication(
+    run_id: str,
+    principal: Principal = Depends(current_user),
+    service: EvaluationArtifactService = Depends(artifact_service),
+) -> ApiResponse[dict[str, Any]]:
+    return ApiResponse(
+        success=True,
+        data=service.retry(run_id, principal.user_id),
+        message="Artifact publication retry",
+    )
+
+
 @router.get("/results/{run_id}/download")
 @router.get("/results/{run_id}/export")
 def download_results(
@@ -269,8 +300,12 @@ def download_results(
     format: str = "json",
     principal: Principal = Depends(current_user),
     service: FileService = Depends(file_service),
+    publications: EvaluationArtifactService = Depends(artifact_service),
 ) -> Response:
-    return download(*service.export_results(run_id, principal.user_id, format))
+    result, headers = publications.export_results(run_id, principal.user_id, format)
+    response = download(*result)
+    response.headers.update(headers)
+    return response
 
 
 @router.get("/results/{run_id}/charts/{chart_name}")
@@ -279,10 +314,14 @@ def download_chart(
     chart_name: str,
     principal: Principal = Depends(current_user),
     service: FileService = Depends(file_service),
+    publications: EvaluationArtifactService = Depends(artifact_service),
 ) -> Response:
     if chart_name != "success-rate":
         raise HTTPException(404, "Chart not found")
-    return download(*service.export_results(run_id, principal.user_id, "png"))
+    result, headers = publications.export_results(run_id, principal.user_id, "png")
+    response = download(*result)
+    response.headers.update(headers)
+    return response
 
 
 @router.get("/datasets")

@@ -1,6 +1,6 @@
 # API 版本管理
 
-当前 HTTP 契约版本为 **1.5.0**，URL 主版本为 **v1**。业务接口均使用 `/api/v1/...`；公开文档入口仍是 `/docs`、`/redoc` 和 `/openapi.json`。OpenAPI `info.version` 显示契约版本，Swagger UI 和 ReDoc 读取同一份文档。
+当前 HTTP 契约版本为 **1.6.0**，URL 主版本为 **v1**。业务接口均使用 `/api/v1/...`；公开文档入口仍是 `/docs`、`/redoc` 和 `/openapi.json`。OpenAPI `info.version` 显示契约版本，Swagger UI 和 ReDoc 读取同一份文档。
 
 采用 URL 版本，而非 `API-Version`、`Accept-Version` 或自定义 Accept 媒体类型的 Header 协商：URL 在 curl、代理、日志和客户端中直接可见，不需要版本相关的 `Vary` 缓存规则。Header 不选择版本，例如 `/api/v1/health` 带 `API-Version: 2` 仍请求 v1；未实现的 `/api/v2/health` 返回 404。不要将 v2 静默降级到 v1。
 
@@ -43,3 +43,5 @@ OpenAPI 门禁覆盖结构契约，不能验证业务语义、动态字典中的
 1.5.0 增加当前用户的站内通知接口：分页列表、全量未读数、单条已读、按截止时间全部已读和清空。这些是新增操作，不改变既有路径、字段或错误语义。通知只返回调用者本人的记录，别人的标识返回 404。
 
 1.4.0 增加 `GET /api/v1/benchmarks/suites/{suite_id}/runs`，支持单一状态筛选和稳定分页；运行详情兼容增加 task_id/started_at/completed_at，学习曲线点兼容增加 run_id。既有前端解析器只提取消费字段、忽略新增字段，现有指标、completed-only 统计、请求与错误规范保持；运行及关联任务增加所有者防御校验。基线只追加新历史操作及其引用的新响应组件，既有操作和组件保持原样，不重新生成全量基线。完整契约及空值语义见 [学习曲线指南](learning-curve-tracking.md#http-run-history)。
+
+1.6.0 增加评估文件 publication 状态与独立重试两个操作。既有下载/导出/图表的成功响应兼容增加可选 X-Artifact-Revision、X-Artifact-Completeness 头，版本化内容与头绑定同一不可变快照；旧文件允许不返回这些头。新 Worker 生成 schema_version=1 的产物，旧受信任发布文件仍可读。已独立审查：移除两个新头后，既有三个操作与冻结基线完全相同；请求、媒体类型、响应结构、认证、错误组件和全局协议不变。基线仅定向增加这六处头声明及两个新操作，不重录其他主干新增接口，也不放宽兼容断言。
