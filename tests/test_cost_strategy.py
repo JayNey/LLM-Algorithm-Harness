@@ -638,8 +638,26 @@ class TestHarnessCostAwareIntegration:
         with pytest.raises(ValueError, match="task service"):
             harness.run()
 
-    def test_auto_stop_requires_task_service_path(self, tmp_path):
+    def test_downgrade_requires_task_service_path(self, tmp_path):
         harness = make_harness(tmp_path, [problem_payload("p1", "easy")], None, budget_cap_usd=1.0)
+        harness.config.budget_action = "downgrade"
+        with pytest.raises(ValueError, match="task service"):
+            harness.run()
+
+    def test_budget_without_action_requires_task_service_path(self, tmp_path):
+        harness = make_harness(tmp_path, [problem_payload("p1", "easy")], None, budget_cap_usd=1.0)
+        harness.config.budget_action = None
+        with pytest.raises(ValueError, match="task service"):
+            harness.run()
+
+    def test_budget_allocation_requires_task_service_path(self, tmp_path):
+        harness = make_harness(
+            tmp_path,
+            [problem_payload("p1", "easy")],
+            None,
+            budget_cap_usd=1.0,
+            budget_allocation={"easy": 1.0},
+        )
         harness.config.budget_action = "auto_stop"
         with pytest.raises(ValueError, match="task service"):
             harness.run()

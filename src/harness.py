@@ -134,7 +134,15 @@ class AlgorithmHarness:
             or self.config.cost_alerts is not None
             or self.config.budget_action is not None
         ) and not use_task_service:
-            raise ValueError("Run-level cost budgets require the task service run path")
+            # Non task-service callers (benchmark executor, experiment runner)
+            # can auto-stop at the cap, but not downgrade or deliver cost alerts.
+            if not (
+                self.config.budget_action == "auto_stop"
+                and self.config.budget_cap_usd is not None
+                and self.config.cost_alerts is None
+                and self.config.budget_allocation is None
+            ):
+                raise ValueError("Run-level cost budgets require the task service run path")
         if self.config.difficulty_strategy and not use_task_service:
             raise ValueError(
                 "difficulty_strategy selection requires the task service run "
@@ -144,6 +152,9 @@ class AlgorithmHarness:
             return self._run_with_task_service(run_id=run_id, resume=resume)
 
         logger.info("harness_run_started")
+
+        if self.config.budget_cap_usd is not None:
+            self.cost_monitor = RunCostMonitor(self.config.budget_cap_usd)
 
         # Load problems
         problems = self._load_problems()
@@ -167,13 +178,22 @@ class AlgorithmHarness:
 
         # Run each strategy
         reports = {}
-        for strategy_config in self.config.strategies:
+        for index, strategy_config in enumerate(self.config.strategies):
             if self.paused:
                 break
             logger.info("running_strategy", strategy=strategy_config.name)
             report = self._run_strategy(strategy_config, problems)
             reports[strategy_config.name] = report
             if self.paused:
+                break
+            # An exhausted cap only pauses the run when another strategy still
+            # has units to dispatch; reaching it on the final unit completes.
+            if (
+                self.cost_monitor is not None
+                and self.cost_monitor.over_cap
+                and index + 1 < len(self.config.strategies)
+            ):
+                self.paused = True
                 break
 
         logger.info("harness_run_completed", strategies=len(reports))
@@ -659,10 +679,20 @@ class AlgorithmHarness:
     def _pause_requested(self) -> bool:
         if self.paused:
             return True
+        if self.cost_monitor is not None and self.cost_monitor.over_cap:
+            self.paused = True
+            return True
         if self.should_pause is not None and self.should_pause():
             self.paused = True
             return True
         return False
+
+    def _settle_run_budget(self, result: ExecutionResult) -> None:
+        """Accumulate a unit's known cost; the next dispatch re-checks the cap."""
+        monitor = self.cost_monitor
+        if monitor is None or monitor.budget_cap_usd is None:
+            return
+        monitor.add_result(result)
 
     def _run_strategy(
         self, strategy_config: StrategyConfig, problems: list[Problem]
@@ -685,8 +715,12 @@ class AlgorithmHarness:
             key = f"{TaskService.config_fingerprint(strategy_config)}:{problem.problem_id}"
             saved = self._unit_checkpoint.get(key) if self._unit_checkpoint is not None else None
             if saved is not None:
-                results.append(ExecutionResult.model_validate(saved))
+                replayed = ExecutionResult.model_validate(saved)
+                results.append(replayed)
                 self._progress_done += 1
+                # Resumed units must still count toward the run budget, or a
+                # resume could spend past the cap again.
+                self._settle_run_budget(replayed)
                 continue
             if self._pause_requested():
                 break
@@ -730,6 +764,7 @@ class AlgorithmHarness:
                     self.budget_tracker.finalize_problem()
             if self._unit_checkpoint is not None:
                 self._unit_checkpoint.put(key, results[-1].model_dump(mode="json"))
+            self._settle_run_budget(results[-1])
 
         # Generate report
         report = self._generate_report(strategy_config, results, problems)

@@ -291,13 +291,18 @@ class BenchmarkService:
                     or config_dict.get("dataset_id")
                     else str(resolve_dataset_path(config_dict["dataset_path"]))
                 )
+                budget_cap_usd = config_dict.get("budget_cap_usd")
                 harness_config = HarnessConfig(
                     llm_config=self._auth.llm_config(
                         config_dict["api_key_id"], owner_id, config_dict["model"]
                     ),
                     dataset_path=dataset_path,
                     strategies=config_dict.get("strategies") or [],
-                    budget_cap_usd=config_dict.get("budget_cap_usd"),
+                    budget_cap_usd=budget_cap_usd,
+                    # Benchmark budgets pause at the known-cost cap; the run
+                    # keeps its own pause/checkpoint path instead of the
+                    # task-service budget/downgrade machinery.
+                    budget_action="auto_stop" if budget_cap_usd is not None else None,
                     problem_filters=config_dict.get("problem_filters"),
                 )
                 from api.services.cost_alert_service import WebCostAlertDispatcher

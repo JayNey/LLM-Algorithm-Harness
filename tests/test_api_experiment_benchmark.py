@@ -697,6 +697,31 @@ class TestBenchmarks:
         assert len(curve["data"]) == 2
         assert curve["trends"]["accuracy_growth_rate"] == 0.5
 
+    def test_run_with_budget_uses_auto_stop_harness_config(self, api):
+        client, headers, key_id, app = api
+        suite_id = client.post(
+            "/api/v1/benchmarks/suites", headers=headers, json=self._suite_payload()
+        ).json()["data"]["id"]
+
+        started = client.post(
+            f"/api/v1/benchmarks/suites/{suite_id}/run",
+            headers=headers,
+            json={
+                "api_key_id": key_id,
+                "dataset_path": "problems.json",
+                "model": "gpt-test",
+                "strategies": [{"name": "vanilla"}],
+                "budget_cap_usd": 1.5,
+            },
+        )
+        assert started.status_code == 202, started.text
+        _execute_benchmark(app, started.json()["data"]["id"])
+
+        config = FakeBenchmarkExecutor.last_config
+        assert config is not None
+        assert config.budget_cap_usd == 1.5
+        assert config.budget_action == "auto_stop"
+
     @pytest.mark.parametrize(
         ("results", "accuracy", "cost_usd"),
         [
