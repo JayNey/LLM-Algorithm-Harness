@@ -37,7 +37,6 @@ import {
   setProblemImportIntent,
   writeProblemListQuery,
 } from '@/problems/validation.ts'
-import '@/evaluations/workflow.css'
 
 const IMPORT_POLL_MS = 3_000
 

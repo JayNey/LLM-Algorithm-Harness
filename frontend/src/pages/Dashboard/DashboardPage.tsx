@@ -12,7 +12,6 @@ import { Icon } from '@/layouts/components/Icon.tsx'
 import { probeStatusLabel, formatUptime } from '@/monitoring/presentation.ts'
 import { useAuthStore } from '@/store/auth.ts'
 import { useUiStore } from '@/store/ui.ts'
-import '@/evaluations/workflow.css'
 
 type DashboardClient = ReturnType<typeof createDashboardClient>
 

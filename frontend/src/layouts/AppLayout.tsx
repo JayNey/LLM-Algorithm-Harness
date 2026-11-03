@@ -32,6 +32,9 @@ import {
   Navigation,
 } from './components/Navigation.tsx'
 import { NotificationCenter } from './components/NotificationCenter.tsx'
+// 工作流样式随共享布局进入入口 CSS：直接打开/刷新页面时无需等待页面 chunk。
+import '@/evaluations/workflow.css'
+
 const appName = readViteEnv().appName
 const wordmark = appName === 'LLM Algorithm Harness' ? 'Harness' : appName
 function subscribeMotion(change: () => void) {

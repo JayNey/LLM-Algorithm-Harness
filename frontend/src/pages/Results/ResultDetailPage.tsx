@@ -27,7 +27,6 @@ import {
 } from '@/evaluations/presentation.ts'
 import type { ResultAvailability } from '@/evaluations/types.ts'
 import { useAuthStore } from '@/store/auth.ts'
-import '@/evaluations/workflow.css'
 
 /** 分析分区的锚点；跨翻页重读的短暂空档保留，避免面板重挂重新请求。 */
 interface AnalysisAnchor {

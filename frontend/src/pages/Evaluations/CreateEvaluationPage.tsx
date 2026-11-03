@@ -13,7 +13,6 @@ import type { DraftErrors, ProblemQuery } from '@/evaluations/types.ts'
 import { validateDraft } from '@/evaluations/validation.ts'
 import { useAuthStore } from '@/store/auth.ts'
 import { useResource } from '@/hooks/useResource.ts'
-import '@/evaluations/workflow.css'
 
 export default function CreateEvaluationPage() {
   useTranslation()

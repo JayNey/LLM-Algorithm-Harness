@@ -16,7 +16,6 @@ import {
   useEvaluation,
   useEvaluationLive,
 } from '@/evaluations/useEvaluation.ts'
-import '@/evaluations/workflow.css'
 
 export default function EvaluationDetailPage() {
   const { evaluationId = '' } = useParams()
