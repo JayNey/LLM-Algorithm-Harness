@@ -2,7 +2,6 @@ import { useTranslation } from 'react-i18next'
 import { t } from '../../i18n/core.ts'
 import { Button } from 'antd'
 import { Link, useNavigate } from 'react-router-dom'
-import '@/evaluations/workflow.css'
 
 const sections = [
   { id: 'keys', title: '密钥配置' },

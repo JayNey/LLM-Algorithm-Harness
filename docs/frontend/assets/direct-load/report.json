@@ -1,0 +1,324 @@
+{
+  "layer": "browser-fixture (production build, direct load)",
+  "base": "http://127.0.0.1:5191",
+  "assertions": [
+    {
+      "name": "入口 CSS 包含共享工作流规则",
+      "ok": true
+    },
+    {
+      "name": "workflow.css 只有共享布局一个导入来源",
+      "ok": true
+    },
+    {
+      "name": "experiments-list 直接加载后渲染",
+      "ok": true
+    },
+    {
+      "name": "experiments-list 共享样式来自入口 CSS",
+      "ok": true
+    },
+    {
+      "name": "experiments-list 工作流容器 min-width",
+      "ok": true
+    },
+    {
+      "name": "experiments-list 表格关键样式",
+      "ok": true
+    },
+    {
+      "name": "experiments-list 无横向溢出",
+      "ok": true
+    },
+    {
+      "name": "experiments-list 无页面异常",
+      "ok": true
+    },
+    {
+      "name": "experiments-list 无未声明请求",
+      "ok": true
+    },
+    {
+      "name": "experiments-list 无失败响应",
+      "ok": true
+    },
+    {
+      "name": "experiments-create 直接加载后渲染",
+      "ok": true
+    },
+    {
+      "name": "experiments-create 共享样式来自入口 CSS",
+      "ok": true
+    },
+    {
+      "name": "experiments-create 工作流容器 min-width",
+      "ok": true
+    },
+    {
+      "name": "experiments-create 面板内边距",
+      "ok": true
+    },
+    {
+      "name": "experiments-create 无横向溢出",
+      "ok": true
+    },
+    {
+      "name": "experiments-create 无页面异常",
+      "ok": true
+    },
+    {
+      "name": "experiments-create 无未声明请求",
+      "ok": true
+    },
+    {
+      "name": "experiments-create 无失败响应",
+      "ok": true
+    },
+    {
+      "name": "experiment-detail 直接加载后渲染",
+      "ok": true
+    },
+    {
+      "name": "experiment-detail 共享样式来自入口 CSS",
+      "ok": true
+    },
+    {
+      "name": "experiment-detail 工作流容器 min-width",
+      "ok": true
+    },
+    {
+      "name": "experiment-detail 面板内边距",
+      "ok": true
+    },
+    {
+      "name": "experiment-detail 无横向溢出",
+      "ok": true
+    },
+    {
+      "name": "experiment-detail 无页面异常",
+      "ok": true
+    },
+    {
+      "name": "experiment-detail 无未声明请求",
+      "ok": true
+    },
+    {
+      "name": "experiment-detail 无失败响应",
+      "ok": true
+    },
+    {
+      "name": "abtests-list 直接加载后渲染",
+      "ok": true
+    },
+    {
+      "name": "abtests-list 共享样式来自入口 CSS",
+      "ok": true
+    },
+    {
+      "name": "abtests-list 工作流容器 min-width",
+      "ok": true
+    },
+    {
+      "name": "abtests-list 表格关键样式",
+      "ok": true
+    },
+    {
+      "name": "abtests-list 无横向溢出",
+      "ok": true
+    },
+    {
+      "name": "abtests-list 无页面异常",
+      "ok": true
+    },
+    {
+      "name": "abtests-list 无未声明请求",
+      "ok": true
+    },
+    {
+      "name": "abtests-list 无失败响应",
+      "ok": true
+    },
+    {
+      "name": "abtests-create 直接加载后渲染",
+      "ok": true
+    },
+    {
+      "name": "abtests-create 共享样式来自入口 CSS",
+      "ok": true
+    },
+    {
+      "name": "abtests-create 工作流容器 min-width",
+      "ok": true
+    },
+    {
+      "name": "abtests-create 面板内边距",
+      "ok": true
+    },
+    {
+      "name": "abtests-create 无横向溢出",
+      "ok": true
+    },
+    {
+      "name": "abtests-create 无页面异常",
+      "ok": true
+    },
+    {
+      "name": "abtests-create 无未声明请求",
+      "ok": true
+    },
+    {
+      "name": "abtests-create 无失败响应",
+      "ok": true
+    },
+    {
+      "name": "benchmark-detail 直接加载后渲染",
+      "ok": true
+    },
+    {
+      "name": "benchmark-detail 共享样式来自入口 CSS",
+      "ok": true
+    },
+    {
+      "name": "benchmark-detail 工作流容器 min-width",
+      "ok": true
+    },
+    {
+      "name": "benchmark-detail 面板内边距",
+      "ok": true
+    },
+    {
+      "name": "benchmark-detail 无横向溢出",
+      "ok": true
+    },
+    {
+      "name": "benchmark-detail 无页面异常",
+      "ok": true
+    },
+    {
+      "name": "benchmark-detail 无未声明请求",
+      "ok": true
+    },
+    {
+      "name": "benchmark-detail 无失败响应",
+      "ok": true
+    },
+    {
+      "name": "experiments-list-mobile 直接加载后渲染",
+      "ok": true
+    },
+    {
+      "name": "experiments-list-mobile 共享样式来自入口 CSS",
+      "ok": true
+    },
+    {
+      "name": "experiments-list-mobile 工作流容器 min-width",
+      "ok": true
+    },
+    {
+      "name": "experiments-list-mobile 表格关键样式",
+      "ok": true
+    },
+    {
+      "name": "experiments-list-mobile 无横向溢出",
+      "ok": true
+    },
+    {
+      "name": "experiments-list-mobile 无页面异常",
+      "ok": true
+    },
+    {
+      "name": "experiments-list-mobile 无未声明请求",
+      "ok": true
+    },
+    {
+      "name": "experiments-list-mobile 无失败响应",
+      "ok": true
+    },
+    {
+      "name": "experiments-create-mobile 直接加载后渲染",
+      "ok": true
+    },
+    {
+      "name": "experiments-create-mobile 共享样式来自入口 CSS",
+      "ok": true
+    },
+    {
+      "name": "experiments-create-mobile 工作流容器 min-width",
+      "ok": true
+    },
+    {
+      "name": "experiments-create-mobile 面板内边距",
+      "ok": true
+    },
+    {
+      "name": "experiments-create-mobile 无横向溢出",
+      "ok": true
+    },
+    {
+      "name": "experiments-create-mobile 无页面异常",
+      "ok": true
+    },
+    {
+      "name": "experiments-create-mobile 无未声明请求",
+      "ok": true
+    },
+    {
+      "name": "experiments-create-mobile 无失败响应",
+      "ok": true
+    }
+  ],
+  "replaced": [
+    "GET /notifications",
+    "GET /users/me",
+    "GET /experiments",
+    "GET /notifications",
+    "GET /users/me",
+    "GET /api-keys",
+    "GET /datasets",
+    "GET /evaluation-options",
+    "GET /notifications",
+    "GET /users/me",
+    "GET /experiments/exp-fixture-1",
+    "GET /tasks",
+    "GET /tasks",
+    "GET /tasks",
+    "GET /notifications",
+    "GET /users/me",
+    "GET /ab-tests",
+    "GET /notifications",
+    "GET /users/me",
+    "GET /api-keys",
+    "GET /datasets",
+    "GET /evaluation-options",
+    "GET /notifications",
+    "GET /users/me",
+    "GET /benchmarks/suites/suite-fixture-1",
+    "GET /api-keys",
+    "GET /benchmarks/learning-curve/suite-fixture-1",
+    "GET /benchmarks/suites/suite-fixture-1/runs",
+    "GET /benchmarks/suites/suite-fixture-1/runs",
+    "GET /benchmarks/suites/suite-fixture-1/runs",
+    "GET /benchmarks/suites/suite-fixture-1/runs",
+    "GET /datasets",
+    "GET /evaluation-options",
+    "GET /notifications",
+    "GET /users/me",
+    "GET /experiments",
+    "GET /notifications",
+    "GET /users/me",
+    "GET /api-keys",
+    "GET /datasets",
+    "GET /evaluation-options"
+  ],
+  "unknown": [],
+  "screenshots": [
+    "experiments-list.png",
+    "experiments-create.png",
+    "experiment-detail.png",
+    "abtests-list.png",
+    "abtests-create.png",
+    "benchmark-detail.png",
+    "experiments-list-mobile.png",
+    "experiments-create-mobile.png"
+  ]
+}

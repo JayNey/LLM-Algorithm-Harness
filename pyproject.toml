@@ -122,6 +122,13 @@ disallow_any_generics = false
 exclude = ["tests/", "build/"]
 plugins = ["pydantic.mypy"]
 
+[[tool.mypy.overrides]]
+# kombu 5.7.0 起在发行包中声明 py.typed，但 Exchange/Queue 仍无类型注解：strict
+# 模式下会把正常调用判为 no-untyped-call，并把惰性导出的名字判为 attr-defined。
+# 这里跳过 kombu 的静态分析，不改运行时依赖范围；上游补齐注解后可移除本覆盖。
+module = ["kombu"]
+follow_imports = "skip"
+
 [tool.pydantic-mypy]
 init_forbid_extra = true
 init_typed = true

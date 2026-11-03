@@ -16,7 +16,6 @@ import {
   suiteCreateInput,
   validateSuiteDraft,
 } from '@/benchmarks/validation.ts'
-import '@/evaluations/workflow.css'
 
 function emptyDraft(): SuiteDraft {
   return {

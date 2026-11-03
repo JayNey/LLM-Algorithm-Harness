@@ -23,7 +23,6 @@ import {
 } from '@/evaluations/optionFields.tsx'
 import { effectiveApiKey } from '@/evaluations/optionCatalog.ts'
 import { useResource } from '@/hooks/useResource.ts'
-import '@/evaluations/workflow.css'
 
 export default function CreateExperimentPage() {
   useTranslation()

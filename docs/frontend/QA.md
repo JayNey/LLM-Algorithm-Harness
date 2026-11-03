@@ -140,3 +140,26 @@ node scripts/verify-evaluations.mjs --scenario appearance
 - [结果详情 · Studio / dark / 1440px](assets/evaluations/appearance/result-detail-studio-dark-1440.png)
 
 验证层级为 Chromium 的桌面浏览器视口模拟，真实 React 页面、路由、状态和 HTTP 客户端参与执行；身份及业务 HTTP 响应由 fixture 替换，通知使用外壳本地示例数据。未执行真实账号/Cookie/CSRF、用户隔离、离线 HTTP 服务端、Redis/Celery、供应商、沙箱、真机、Safari/Firefox 或屏幕阅读器验证。fixture 返回完成状态仅供前端显示与交互检查，不证明真实评估执行成功；真实联调由 #232 跟踪。
+
+## 直接加载视觉 smoke（共享工作流样式）
+
+`src/evaluations/workflow.css` 由共享布局 `AppLayout` 导入，随应用入口 CSS 下发；页面组件不再各自导入。`scripts/verify-direct-load.mjs` 针对**生产构建**直接打开工作流路由（不走站内导航），确认共享样式在首屏可用。
+
+先构建，再在 `frontend/` 运行：
+
+```bash
+npm run build
+PLAYWRIGHT_MODULE=/absolute/path/to/playwright \
+CHROME_PATH="/Applications/Google Chrome.app/Contents/MacOS/Google Chrome" \
+node scripts/verify-direct-load.mjs
+```
+
+未设置 `DIRECT_LOAD_BASE_URL` 时脚本会自动启动并清理 `vite preview`（默认 `http://127.0.0.1:5191`）；设置为已有服务地址时复用该服务。`DIRECT_LOAD_QA_DIR` 覆盖截图与报告目录，默认 `docs/frontend/assets/direct-load/`。`PLAYWRIGHT_MODULE`、`CHROME_PATH` 与其它浏览器脚本一致，不新增项目依赖；缺少 `dist/index.html` 时脚本会提示先执行 `npm run build`。
+
+脚本断言分三层：
+
+- 静态层：入口 CSS 文件包含 `.evaluation-list-table` 与 `.evaluation-panel` 规则；`src/pages/**` 不再出现 `workflow.css` 导入。
+- 计算样式层：在 `/experiments`、`/experiments/new`、`/experiments/:id`、`/ab-tests`、`/ab-tests/new`、`/benchmarks/:suiteId` 直接加载后，表格 `border-collapse: collapse`、`min-width: 760px`、单元格内边距 16px/12px，面板内边距 24px（390px 下 16px），`.evaluation-workflow` 为 `min-width: 0`。
+- 布局层：1440px 与 390px 下页面无横向溢出、无 `pageerror`、无未声明或失败请求。
+
+结果写入 `docs/frontend/assets/direct-load/report.json`，每个路由各保留一张截图（`/experiments` 与 `/experiments/new` 另含 390px 版本）。身份与业务响应全部由 fixture 替换，因此该 smoke 证明直接加载的样式与布局，不证明真实后端或生产部署。

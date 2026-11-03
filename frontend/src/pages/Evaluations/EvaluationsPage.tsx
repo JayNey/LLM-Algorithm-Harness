@@ -9,7 +9,6 @@ import { useEvaluationSession } from '@/evaluations/session.tsx'
 import type { Evaluation, ListQuery } from '@/evaluations/types.ts'
 import { useList } from '@/evaluations/useList.ts'
 import { readListQuery, writeListQuery } from '@/evaluations/validation.ts'
-import '@/evaluations/workflow.css'
 
 const statusOptions = [
   {
