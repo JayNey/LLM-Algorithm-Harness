@@ -105,6 +105,19 @@ def test_budget_not_reached_runs_every_unit(tmp_path, monkeypatch):
     assert reports["vanilla"].solved_problems == 3
 
 
+def test_budget_reached_on_last_unit_completes_instead_of_pausing(tmp_path, monkeypatch):
+    calls = _patch_runtimes(monkeypatch, cost=0.5)
+    harness = _harness(tmp_path, budget_cap_usd=1.5, budget_action="auto_stop")
+
+    reports = harness.run()
+
+    # Exactly at the cap, but no unit remains to dispatch: the run completes
+    # instead of parking in a paused state it can never leave.
+    assert calls == [("vanilla", "p1"), ("vanilla", "p2"), ("vanilla", "p3")]
+    assert harness.paused is False
+    assert reports["vanilla"].solved_problems == 3
+
+
 def test_benchmark_executor_reports_budget_pause(tmp_path, monkeypatch):
     from src.benchmark.executor import BenchmarkExecutor
     from src.benchmark.suite import BenchmarkSuite
