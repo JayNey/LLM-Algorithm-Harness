@@ -1,11 +1,12 @@
 """Double-submit CSRF for cookie-authenticated mutations."""
 
+import asyncio
 import hmac
 import json
 from typing import Any
 
 from starlette.datastructures import Headers, MutableHeaders
-from starlette.requests import HTTPConnection
+from starlette.requests import ClientDisconnect, HTTPConnection
 from starlette.responses import Response
 from starlette.types import ASGIApp, Message, Receive, Scope, Send
 
@@ -17,10 +18,12 @@ from api.auth.cookies import (
     REFRESH_COOKIE,
     new_csrf_token,
 )
-from api.middleware.errors import ErrorCode, error_response
+from api.middleware.errors import ApiError, ErrorCode, error_response
 
 CSRF_HEADER = "x-csrf-token"
 UNSAFE_METHODS = {"POST", "PUT", "PATCH", "DELETE"}
+REFRESH_BODY_MAX_BYTES = 16384
+REFRESH_BODY_TIMEOUT_SECONDS = 10.0
 
 
 def csrf_matches(expected: str | None, provided: str | None) -> bool:
@@ -127,20 +130,31 @@ def skips_csrf(path: str) -> bool:
 async def explicit_refresh_token(receive: Receive) -> tuple[bool, Receive]:
     """JSON refresh_token wins over the refresh cookie, matching the auth route."""
     chunks: list[bytes] = []
+    size = 0
+    loop = asyncio.get_running_loop()
+    deadline = loop.time() + REFRESH_BODY_TIMEOUT_SECONDS
     while True:
-        message = await receive()
+        remaining = deadline - loop.time()
+        try:
+            if remaining <= 0:
+                raise asyncio.TimeoutError
+            message = await asyncio.wait_for(receive(), timeout=remaining)
+        except asyncio.TimeoutError:
+            raise ApiError("Request body timed out", ErrorCode.REQUEST_TIMEOUT, 408) from None
         if message["type"] == "http.disconnect":
-
-            async def disconnected() -> Message:
-                return message
-
-            return False, disconnected
-        chunks.append(message.get("body", b""))
+            raise ClientDisconnect
+        chunk = message.get("body", b"")
+        size += len(chunk)
+        if size > REFRESH_BODY_MAX_BYTES:
+            raise ApiError("Request body too large", ErrorCode.PAYLOAD_TOO_LARGE, 413)
+        # Empty ASGI chunks must not grow the buffer's per-chunk overhead.
+        if chunk:
+            chunks.append(chunk)
         if not message.get("more_body", False):
             break
     body = b"".join(chunks)
     supplied = False
-    if 0 < len(body) <= 16384:
+    if body:
         try:
             payload = json.loads(body)
         except json.JSONDecodeError:
@@ -173,7 +187,15 @@ class CsrfMiddleware:
             replay: Receive = receive
             supplied_refresh = False
             if path.endswith("/auth/refresh"):
-                supplied_refresh, replay = await explicit_refresh_token(receive)
+                try:
+                    supplied_refresh, replay = await explicit_refresh_token(receive)
+                except ClientDisconnect:
+                    return
+                except ApiError as error:
+                    await error_response(
+                        scope, error.status_code, error.detail, code=error.error_code
+                    )(scope, receive, send)
+                    return
             headers = Headers(scope=scope)
             if not supplied_refresh and not csrf_matches(
                 request_cookies(scope).get(CSRF_COOKIE), headers.get(CSRF_HEADER)
