@@ -6,6 +6,15 @@ model execution, and pricing so the real evaluation orchestration can finish
 without a provider or a sandbox.
 """
 
+import os
+from pathlib import Path
+
+# Celery's fast trace state is inherited by fork; macOS defaults to spawn.
+if os.environ.get("EVALUATION_TEST_CRASH_MARKER"):
+    import billiard
+
+    billiard.set_start_method("fork", force=True)
+
 from pydantic import SecretStr
 
 from api.auth.service import AuthService
@@ -46,6 +55,9 @@ def _execute_problem(
 ) -> ExecutionResult:
     """Return one successful local result."""
     del self, strategy, sandbox
+    if calls := os.environ.get("EVALUATION_TEST_CALLS"):
+        with Path(calls).open("a") as stream:
+            stream.write(problem.problem_id + "\n")
     return ExecutionResult(
         problem_id=problem.problem_id,
         strategy=strategy_config.name,
@@ -69,3 +81,20 @@ AuthService.llm_config = _llm_config
 AlgorithmHarness._prepare_strategy_runtime = _prepare_strategy_runtime
 AlgorithmHarness._execute_problem = _execute_problem
 AlgorithmHarness._estimate_cost = _estimate_cost
+
+
+# Test-only fault hook: kill the actual pool child after its file commit.
+if marker := os.environ.get("EVALUATION_TEST_CRASH_MARKER"):
+    from src.tasks import evaluation
+
+    _record_result = evaluation._record_unit_result
+
+    def _crash_before_sql(db, ev, unit):
+        try:
+            with Path(marker).open("x") as stream:
+                stream.write(str(os.getpid()))
+        except FileExistsError:
+            return _record_result(db, ev, unit)
+        os._exit(73)
+
+    evaluation._record_unit_result = _crash_before_sql
