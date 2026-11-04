@@ -70,11 +70,13 @@ class TestChartErrorHandling(unittest.TestCase):
         self.assertIn("error-details", result)
 
     def test_format_chart_error_special_characters(self):
-        """Test error formatting with special characters in chart name."""
+        """Test error formatting escapes special characters in chart name (issue #343)."""
         error = Exception("Special error")
         result = HTMLGenerator._format_chart_error("Token & Cost Chart", error, show_traceback=True)
 
-        self.assertIn("Failed to generate Token & Cost Chart", result)
+        # Dynamic text is HTML-escaped since #343; the browser still shows "Token & Cost Chart".
+        self.assertIn("Failed to generate Token &amp; Cost Chart", result)
+        self.assertNotIn("Failed to generate Token & Cost Chart", result)
         # The ID should have special characters escaped/replaced
         self.assertIn("error-details-", result)
 

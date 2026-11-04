@@ -4,6 +4,7 @@ HTML Report Generator Extensions for Code Quality
 This module extends the HTML report generator with code quality visualization.
 """
 
+from html import escape
 from typing import Any
 
 
@@ -26,18 +27,18 @@ def generate_quality_section(quality_metrics: dict[str, Any] | None) -> str:
     # Overall score
     overall = quality_metrics.get("overall_score")
     if overall is not None:
-        html += f'<div class="overall-score">综合评分: {overall:.1f}/100</div>\n'
+        html += f'<div class="overall-score">综合评分: {escape(f"{overall:.1f}")}/100</div>\n'
 
     # Time complexity
     time_comp = quality_metrics.get("time_complexity")
     if time_comp:
         html += '<div class="metric-card">\n'
         html += "<h3>⏱️ 时间复杂度</h3>\n"
-        html += f"<p>静态分析: {time_comp.get('static_analysis', 'N/A')}</p>\n"
-        html += f"<p>循环嵌套深度: {time_comp.get('loop_nesting_depth', 0)}</p>\n"
+        html += f"<p>静态分析: {escape(str(time_comp.get('static_analysis', 'N/A')))}</p>\n"
+        html += f"<p>循环嵌套深度: {escape(str(time_comp.get('loop_nesting_depth', 0)))}</p>\n"
         score = time_comp.get("performance_score")
         if score is not None:
-            html += f"<p>性能评分: {score:.1f}/100</p>\n"
+            html += f"<p>性能评分: {escape(f'{score:.1f}')}/100</p>\n"
         html += "</div>\n"
 
     # Space complexity
@@ -47,10 +48,10 @@ def generate_quality_section(quality_metrics: dict[str, Any] | None) -> str:
         html += "<h3>💾 空间复杂度</h3>\n"
         peak_mb = space_comp.get("peak_memory_mb")
         if peak_mb:
-            html += f"<p>峰值内存: {peak_mb:.2f} MB</p>\n"
+            html += f"<p>峰值内存: {escape(f'{peak_mb:.2f}')} MB</p>\n"
         score = space_comp.get("memory_efficiency_score")
         if score is not None:
-            html += f"<p>空间效率: {score:.1f}/100</p>\n"
+            html += f"<p>空间效率: {escape(f'{score:.1f}')}/100</p>\n"
         html += "</div>\n"
 
     # Readability
@@ -60,16 +61,16 @@ def generate_quality_section(quality_metrics: dict[str, Any] | None) -> str:
         html += "<h3>📖 代码可读性</h3>\n"
         pylint = readability.get("pylint_score")
         if pylint is not None:
-            html += f"<p>Pylint 评分: {pylint:.1f}/10</p>\n"
+            html += f"<p>Pylint 评分: {escape(f'{pylint:.1f}')}/10</p>\n"
         flake8 = readability.get("flake8_issues")
         if flake8 is not None:
-            html += f"<p>Flake8 问题数: {flake8}</p>\n"
+            html += f"<p>Flake8 问题数: {escape(str(flake8))}</p>\n"
         complexity = readability.get("cyclomatic_complexity")
         if complexity is not None:
-            html += f"<p>圈复杂度: {complexity:.1f}</p>\n"
+            html += f"<p>圈复杂度: {escape(f'{complexity:.1f}')}</p>\n"
         score = readability.get("readability_score")
         if score is not None:
-            html += f"<p>可读性评分: {score:.1f}/100</p>\n"
+            html += f"<p>可读性评分: {escape(f'{score:.1f}')}/100</p>\n"
         html += "</div>\n"
 
     # Style consistency
@@ -81,10 +82,10 @@ def generate_quality_section(quality_metrics: dict[str, Any] | None) -> str:
         if compliant is not None:
             html += f"<p>Black 格式: {'✅ 符合' if compliant else '❌ 不符合'}</p>\n"
         violations = style.get("style_violations", 0)
-        html += f"<p>风格违规: {violations}</p>\n"
+        html += f"<p>风格违规: {escape(str(violations))}</p>\n"
         score = style.get("style_score")
         if score is not None:
-            html += f"<p>风格评分: {score:.1f}/100</p>\n"
+            html += f"<p>风格评分: {escape(f'{score:.1f}')}/100</p>\n"
         html += "</div>\n"
 
     html += "</div>\n"

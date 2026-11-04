@@ -385,3 +385,111 @@ def test_html_flat_result_list_counts_failures(temp_html_path: str):
     content = Path(temp_html_path).read_text(encoding="utf-8")
     assert "<strong>Model failed:</strong> 1" in content
     assert "<strong>System failed:</strong> 0" in content
+
+
+class TestHtmlEscaping:
+    """issue #343 (S19)：写入 HTML 的动态文本必须按上下文转义。"""
+
+    def test_malicious_model_and_strategy_are_escaped(
+        self, temp_html_path, sample_metrics, sample_results
+    ):
+        config = {"model": "<script>alert(1)</script>", "temperature": 0.7, "timeout": 30}
+        metrics = {
+            "<b>evil</b>": dict(sample_metrics["direct"]),
+            "cot": sample_metrics["cot"],
+        }
+        results = {"<b>evil</b>": sample_results["direct"], "cot": sample_results["cot"]}
+
+        content = HTMLGenerator.generate(
+            metrics, results, temp_html_path, include_charts=False, config=config
+        )
+
+        assert "<script>alert(1)</script>" not in content
+        assert "<b>evil</b>" not in content
+        assert "&lt;script&gt;alert(1)&lt;/script&gt;" in content
+        assert "&lt;b&gt;evil&lt;/b&gt;" in content
+        # 既有结构与嵌入 JS 不受转义影响
+        assert "<h1>LLM Algorithm Harness - Evaluation Report</h1>" in content
+        assert "function toggleDetails" in content
+        assert "80.0% Success" in content
+
+    def test_derived_problem_and_metrics_markup_are_escaped(self, temp_html_path):
+        metrics = {
+            "vanilla": {
+                "total_problems": "<sup>1</sup>",
+                "solved_problems": 1,
+                "success_rate": 1.0,
+                "avg_tokens_per_problem": 15,
+                "by_difficulty": {"easy": {"solved": "<i>2</i>", "total": 3, "success_rate": 0.5}},
+                "sample_only_problems": "<u>7</u>",
+                "formal_evaluable_problems": 2,
+                "formal_solved_problems": 1,
+                "formal_success_rate": 0.5,
+            }
+        }
+        result = ExecutionResult(
+            problem_id="p<script>1</script>",
+            strategy="vanilla",
+            generated_code="print(1)",
+            status="success",
+            iterations=[],
+            quality_metrics={"overall_score": 90},
+        )
+
+        content = HTMLGenerator.generate(
+            metrics, {"vanilla": [result]}, temp_html_path, include_charts=False
+        )
+
+        assert "<sup>1</sup>" not in content and "&lt;sup&gt;1&lt;/sup&gt;" in content
+        assert "<i>2</i>" not in content and "&lt;i&gt;2&lt;/i&gt;" in content
+        assert "<u>7</u>" not in content and "&lt;u&gt;7&lt;/u&gt;" in content
+        assert "<h3>Problem: p&lt;script&gt;1&lt;/script&gt;</h3>" in content
+
+    def test_capability_card_escapes_model_name(self, tmp_path):
+
+        strategy = "<img src=x onerror=alert(2)>"
+        metrics = {
+            strategy: {
+                "total_problems": 1,
+                "solved_problems": 1,
+                "success_rate": 1.0,
+                "avg_tokens_per_problem": 15,
+            }
+        }
+        result = ExecutionResult(
+            problem_id="p1",
+            strategy=strategy,
+            generated_code="print(1)",
+            status="success",
+            iterations=[],
+        )
+        out = tmp_path / "r.html"
+
+        content = HTMLGenerator.generate(
+            metrics,
+            {strategy: [result]},
+            str(out),
+            include_charts=True,
+            problems=[{"problem_id": "p1", "title": "P1", "difficulty": "easy", "tags": ["dp"]}],
+        )
+
+        assert "<img src=x onerror=alert(2)>" not in content
+        assert "Capability Analysis: &lt;img src=x onerror=alert(2)&gt;" in content
+
+    def test_chart_error_block_escapes_text_and_attributes(self):
+        error = RuntimeError("<script>alert('x')</script>")
+        try:
+            raise error
+        except RuntimeError as exc:
+            block = HTMLGenerator._format_chart_error('Rate <Chart> "A"', exc, show_traceback=True)
+
+        assert "<script>alert" not in block
+        assert 'Rate <Chart> "A"' not in block
+        assert "&lt;script&gt;alert(&#x27;x&#x27;)&lt;/script&gt;" in block
+        # 属性上下文：派生 id 与 onclick 引用经含引号转义，无法提前闭合属性
+        assert "id='error-details-rate-&lt;chart&gt;-&quot;a&quot;'" in block
+        assert (
+            "onclick='toggleDetails(\"error-details-rate-&lt;chart&gt;-&quot;a&quot;\")'" in block
+        )
+        # traceback 文本保留但转义
+        assert "Traceback (most recent call last)" in block

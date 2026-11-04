@@ -103,3 +103,29 @@ def test_radar_chart_none_scores_fall_back_to_zero():
     metrics = {"time_complexity": {"performance_score": None}}
     svg = generate_quality_radar_chart(metrics)
     assert svg.startswith("<svg")
+
+
+def test_generate_quality_section_escapes_dynamic_text():
+    """issue #343 (S19)：质量区块的派生文本同样不得注入标记。"""
+    quality_metrics = {
+        "overall_score": 88.0,
+        "time_complexity": {
+            "static_analysis": "<b>O(n)</b>",
+            "loop_nesting_depth": "<i>3</i>",
+            "performance_score": 70,
+        },
+        "style_consistency": {
+            "black_compliant": True,
+            "style_violations": "<script>5</script>",
+            "style_score": 60,
+        },
+    }
+
+    html = generate_quality_section(quality_metrics)
+
+    assert "<b>O(n)</b>" not in html and "&lt;b&gt;O(n)&lt;/b&gt;" in html
+    assert "<i>3</i>" not in html and "&lt;i&gt;3&lt;/i&gt;" in html
+    assert "<script>5</script>" not in html and "&lt;script&gt;5&lt;/script&gt;" in html
+    # 结构与固定文案不受转义影响
+    assert "综合评分: 88.0/100" in html
+    assert '<div class="quality-section">' in html
