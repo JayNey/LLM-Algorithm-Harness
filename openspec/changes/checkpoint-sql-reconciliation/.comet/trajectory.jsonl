@@ -1,4 +1,0 @@
-{"sequence":1,"timestamp":"2026-11-04T09:18:11.061Z","type":"run_started","runId":"72bfacd0-28ab-49a4-a0df-62f5d1a5823f","data":{"skill":"comet-classic","skillVersion":"1","skillHash":"9bd4ffab011ae18aef91dc0db336ffc12d454b513229178c15b8b75d50930ba1"}}
-{"sequence":2,"timestamp":"2026-11-04T09:18:11.061Z","type":"state_migrated","runId":"72bfacd0-28ab-49a4-a0df-62f5d1a5823f","data":{"kind":"classic","migrationVersion":1,"profile":"tweak","source":"pre-migration"}}
-{"sequence":3,"timestamp":"2026-11-04T09:18:11.150Z","type":"state_transitioned","runId":"72bfacd0-28ab-49a4-a0df-62f5d1a5823f","data":{"kind":"classic","fromStep":"tweak.open","toStep":"tweak.build.execute","event":"open-complete","phase":"open","source":"comet-guard"}}
-{"sequence":4,"timestamp":"2026-11-04T09:29:22.971Z","type":"command_check_recorded","runId":"72bfacd0-28ab-49a4-a0df-62f5d1a5823f","data":{"scope":"build","command":"python3 -m compileall -q src api","exitCode":0,"cwd":"."}}

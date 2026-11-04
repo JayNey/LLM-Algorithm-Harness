@@ -2,5 +2,6 @@
   "openspec_proposal": "openspec/changes/checkpoint-sql-reconciliation/proposal.md",
   "openspec_design": "openspec/changes/checkpoint-sql-reconciliation/design.md",
   "openspec_tasks": "openspec/changes/checkpoint-sql-reconciliation/tasks.md",
-  "openspec_delta_spec": "openspec/changes/checkpoint-sql-reconciliation/specs/async-task-queue/spec.md"
+  "openspec_delta_spec": "openspec/changes/checkpoint-sql-reconciliation/specs/async-task-queue/spec.md",
+  "archive_directory": "openspec/changes/archive/2026-11-04-checkpoint-sql-reconciliation"
 }
