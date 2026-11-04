@@ -515,7 +515,8 @@ def test_parallel_command_timing_is_owned_by_each_call(
                     problem.model_copy(update={"problem_id": label}).model_dump(mode="json")
                     for label in ["A", "B"]
                 ]
-            )
+            ),
+            encoding="utf-8",
         )
         results = {}
 
