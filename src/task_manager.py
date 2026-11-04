@@ -748,10 +748,18 @@ class TaskManager:
     def resume_task(self, task_id: str, user_id: str) -> AsyncTask:
         """Atomically reserve one continuation of an owned, stopped task."""
         task = self.get_task(task_id, user_id)
-        if task.task_type == "evaluation":
-            with evaluation_execution(task.entity_id):
-                return self._resume_task(task_id, user_id)
-        return self._resume_task(task_id, user_id)
+        try:
+            # Keep admission before task serialization, as for other submissions.
+            # Ownership acquisition is nonblocking: a live worker or concurrent
+            # evaluation-resume cannot deadlock while waiting for our DB lock.
+            self._check_evaluation_capacity(task.task_type, user_id)
+            if task.task_type == "evaluation":
+                with evaluation_execution(task.entity_id):
+                    return self._resume_task(task_id, user_id)
+            return self._resume_task(task_id, user_id)
+        except Exception:
+            self.db.rollback()
+            raise
 
     def _resume_task(self, task_id: str, user_id: str) -> AsyncTask:
         task = self.db.query(AsyncTask).filter_by(id=task_id, user_id=user_id).first()
@@ -760,8 +768,6 @@ class TaskManager:
         if task.task_type not in _RESUME_WORKERS:
             raise ValueError("Unsupported task type for resume")
         try:
-            # All admission operations acquire the per-user lock before the task lock.
-            self._check_evaluation_capacity(task.task_type, user_id)
             self._lock_business_task(task)
             if task.status != "paused" or task.user_id != user_id:
                 raise ValueError("Can only resume paused tasks owned by the user")
