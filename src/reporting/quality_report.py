@@ -7,6 +7,13 @@ This module extends the HTML report generator with code quality visualization.
 from html import escape
 from typing import Any
 
+from src.utils.secrets import redact_sensitive_text
+
+
+def _esc(value: Any) -> str:
+    """Redact credential-shaped text BEFORE HTML-escaping (issue #343)."""
+    return escape(str(redact_sensitive_text(str(value))))
+
 
 def generate_quality_section(quality_metrics: dict[str, Any] | None) -> str:
     """
@@ -34,8 +41,8 @@ def generate_quality_section(quality_metrics: dict[str, Any] | None) -> str:
     if time_comp:
         html += '<div class="metric-card">\n'
         html += "<h3>⏱️ 时间复杂度</h3>\n"
-        html += f"<p>静态分析: {escape(str(time_comp.get('static_analysis', 'N/A')))}</p>\n"
-        html += f"<p>循环嵌套深度: {escape(str(time_comp.get('loop_nesting_depth', 0)))}</p>\n"
+        html += f"<p>静态分析: {_esc(time_comp.get('static_analysis', 'N/A'))}</p>\n"
+        html += f"<p>循环嵌套深度: {_esc(time_comp.get('loop_nesting_depth', 0))}</p>\n"
         score = time_comp.get("performance_score")
         if score is not None:
             html += f"<p>性能评分: {escape(f'{score:.1f}')}/100</p>\n"
@@ -64,7 +71,7 @@ def generate_quality_section(quality_metrics: dict[str, Any] | None) -> str:
             html += f"<p>Pylint 评分: {escape(f'{pylint:.1f}')}/10</p>\n"
         flake8 = readability.get("flake8_issues")
         if flake8 is not None:
-            html += f"<p>Flake8 问题数: {escape(str(flake8))}</p>\n"
+            html += f"<p>Flake8 问题数: {_esc(flake8)}</p>\n"
         complexity = readability.get("cyclomatic_complexity")
         if complexity is not None:
             html += f"<p>圈复杂度: {escape(f'{complexity:.1f}')}</p>\n"
@@ -82,7 +89,7 @@ def generate_quality_section(quality_metrics: dict[str, Any] | None) -> str:
         if compliant is not None:
             html += f"<p>Black 格式: {'✅ 符合' if compliant else '❌ 不符合'}</p>\n"
         violations = style.get("style_violations", 0)
-        html += f"<p>风格违规: {escape(str(violations))}</p>\n"
+        html += f"<p>风格违规: {_esc(violations)}</p>\n"
         score = style.get("style_score")
         if score is not None:
             html += f"<p>风格评分: {escape(f'{score:.1f}')}/100</p>\n"

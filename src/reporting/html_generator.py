@@ -17,6 +17,16 @@ from src.utils.secrets import redact_sensitive_text
 logger = logging.getLogger(__name__)
 
 
+def _esc(value: Any) -> str:
+    """Redact credential-shaped text BEFORE HTML-escaping (issue #343).
+
+    The report-wide redaction pass runs on the fully escaped document, where
+    quoted values no longer match the credential patterns; per-value redaction
+    keeps quoted secrets covered while escape() then makes the text safe.
+    """
+    return escape(str(redact_sensitive_text(str(value))))
+
+
 class HTMLGenerator:
     """Generate self-contained HTML evaluation reports."""
 
@@ -361,20 +371,20 @@ class HTMLGenerator:
         error_id = f"error-details-{chart_name.replace(' ', '-').lower()}"
         escaped_error_id = escape(error_id)
         error_type = escape(type(error).__name__)
-        error_msg = escape(str(error))
+        error_msg = _esc(error)
 
         html_parts = []
         html_parts.append("<div class='error-container'>")
         html_parts.append("<div class='error-title'>")
         html_parts.append("<span class='error-icon'>⚠️</span>")
-        html_parts.append(f"<span>Failed to generate {escape(chart_name)}</span>")
+        html_parts.append(f"<span>Failed to generate {_esc(chart_name)}</span>")
         html_parts.append("</div>")
         html_parts.append(
             f"<div class='error-message'><strong>{error_type}:</strong> {error_msg}</div>"
         )
 
         if show_traceback:
-            tb_str = escape(traceback.format_exc())
+            tb_str = _esc(traceback.format_exc())
             html_parts.append(
                 f"<button class='error-toggle' onclick='toggleDetails(\"{escaped_error_id}\")'>Show Technical Details</button>"
             )
@@ -391,7 +401,7 @@ class HTMLGenerator:
         # Add placeholder
         html_parts.append("<div class='chart-placeholder'>")
         html_parts.append("<div class='chart-placeholder-icon'>📊</div>")
-        html_parts.append(f"<p>{escape(chart_name)} could not be rendered</p>")
+        html_parts.append(f"<p>{_esc(chart_name)} could not be rendered</p>")
         html_parts.append("</div>")
 
         return "\n".join(html_parts)
@@ -442,14 +452,12 @@ class HTMLGenerator:
             f"<p><strong>Generated:</strong> {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}</p>"
         )
         if config:
+            html_parts.append(f"<p><strong>Model:</strong> {_esc(config.get('model', 'N/A'))}</p>")
             html_parts.append(
-                f"<p><strong>Model:</strong> {escape(str(config.get('model', 'N/A')))}</p>"
+                f"<p><strong>Temperature:</strong> {_esc(config.get('temperature', 'N/A'))}</p>"
             )
             html_parts.append(
-                f"<p><strong>Temperature:</strong> {escape(str(config.get('temperature', 'N/A')))}</p>"
-            )
-            html_parts.append(
-                f"<p><strong>Timeout:</strong> {escape(str(config.get('timeout', 'N/A')))}s</p>"
+                f"<p><strong>Timeout:</strong> {_esc(config.get('timeout', 'N/A'))}s</p>"
             )
         html_parts.append("</div>")
 
@@ -485,13 +493,13 @@ class HTMLGenerator:
 
             html_parts.append("<div class='card'>")
             html_parts.append("<div class='card-header'>")
-            html_parts.append(f"<span class='card-title'>{escape(str(strategy_name))}</span>")
+            html_parts.append(f"<span class='card-title'>{_esc(strategy_name)}</span>")
             html_parts.append(
                 f"<span class='badge {badge_class}'>{success_rate:.1f}% Success</span>"
             )
             html_parts.append("</div>")
             html_parts.append(
-                f"<p><strong>Solved:</strong> {escape(str(solved))}/{escape(str(total))} problems</p>"
+                f"<p><strong>Solved:</strong> {_esc(solved)}/{_esc(total)} problems</p>"
             )
             html_parts.append(f"<p><strong>Model failed:</strong> {model_failed}</p>")
             html_parts.append(f"<p><strong>System failed:</strong> {system_failed}</p>")
@@ -501,12 +509,10 @@ class HTMLGenerator:
                 formal_rate = strategy_metrics.get("formal_success_rate", 0) * 100
                 sample_only = strategy_metrics.get("sample_only_problems", 0)
                 html_parts.append(
-                    f"<p><strong>Formal Evaluation:</strong> {escape(str(formal_solved))}/{escape(str(formal_total))} "
+                    f"<p><strong>Formal Evaluation:</strong> {_esc(formal_solved)}/{_esc(formal_total)} "
                     f"({escape(f'{formal_rate:.1f}%')})</p>"
                 )
-                html_parts.append(
-                    f"<p><strong>Sample Only:</strong> {escape(str(sample_only))}</p>"
-                )
+                html_parts.append(f"<p><strong>Sample Only:</strong> {_esc(sample_only)}</p>")
             html_parts.append(f"<p><strong>Avg Tokens:</strong> {escape(f'{avg_tokens:.0f}')}</p>")
 
             # Cost information with pricing source
@@ -572,7 +578,7 @@ class HTMLGenerator:
                         total_diff = diff_data.get("total", 0)
                         html_parts.append(
                             f"<tr><td>{escape(diff.capitalize())}</td><td>{escape(f'{rate:.1f}%')}</td>"
-                            f"<td>{escape(str(solved_diff))}/{escape(str(total_diff))}</td></tr>"
+                            f"<td>{_esc(solved_diff)}/{_esc(total_diff)}</td></tr>"
                         )
                 html_parts.append("</table>")
 
@@ -716,12 +722,12 @@ class HTMLGenerator:
                                     )
                                     html_parts.append("<div class='card'>")
                                     html_parts.append(
-                                        f"<div class='card-header'><span class='card-title'>Capability Analysis: {escape(str(first_model_name))}</span></div>"
+                                        f"<div class='card-header'><span class='card-title'>Capability Analysis: {_esc(first_model_name)}</span></div>"
                                     )
                                     # Convert Markdown to HTML (simple conversion). Escape first so
                                     # model-derived text cannot introduce markup through the replaces.
                                     analysis_html = (
-                                        escape(analysis_text)
+                                        _esc(analysis_text)
                                         .replace("\n\n", "</p><p>")
                                         .replace("\n", "<br>")
                                     )
@@ -791,7 +797,7 @@ class HTMLGenerator:
                         else result.quality_metrics.model_dump()
                     )
                     html_parts.append(
-                        f"<h3>Problem: {escape(str(getattr(result, 'problem_id', 'Unknown')))}</h3>"
+                        f"<h3>Problem: {_esc(getattr(result, 'problem_id', 'Unknown'))}</h3>"
                     )
                     html_parts.append(generate_quality_section(quality_dict))
 

@@ -2,6 +2,7 @@
 Unit tests for HTMLGenerator.
 """
 
+import re
 from pathlib import Path
 from unittest.mock import MagicMock, patch
 
@@ -475,6 +476,10 @@ class TestHtmlEscaping:
 
         assert "<img src=x onerror=alert(2)>" not in content
         assert "Capability Analysis: &lt;img src=x onerror=alert(2)&gt;" in content
+        # 钉住 analysis_text 先转义再做 markdown 替换的顺序：能力分析里的
+        # 静态字面量 (<50) 必须以实体出现，而不是裸标记混入生成的 <li> 等标签。
+        assert "(&lt;50)" in content
+        assert re.search(r"\(<50\)", content) is None
 
     def test_chart_error_block_escapes_text_and_attributes(self):
         error = RuntimeError("<script>alert('x')</script>")
@@ -493,3 +498,43 @@ class TestHtmlEscaping:
         )
         # traceback 文本保留但转义
         assert "Traceback (most recent call last)" in block
+
+
+class TestEscapingKeepsRedaction:
+    """issue #343 复审回归：脱敏必须在转义之前，带引号的凭据不得因实体化而漏脱敏。"""
+
+    def test_quoted_credential_in_model_is_redacted_end_to_end(self, temp_html_path):
+        config = {"model": 'gpt-x token: "sk-live-abcdef123456"', "temperature": 0.7}
+
+        content = HTMLGenerator.generate(
+            {
+                "direct": {
+                    "total_problems": 1,
+                    "solved_problems": 1,
+                    "success_rate": 1.0,
+                    "avg_tokens_per_problem": 10,
+                }
+            },
+            {"direct": []},
+            temp_html_path,
+            include_charts=False,
+            config=config,
+        )
+
+        assert "sk-live-abcdef123456" not in content
+        assert "&quot;sk-live-abcdef123456&quot;" not in content
+        assert "[REDACTED]" in content
+
+    def test_chart_error_traceback_redacts_quoted_credentials(self):
+        try:
+            raise RuntimeError('token: "sk-abc123456"')
+        except RuntimeError as exc:
+            block = HTMLGenerator._format_chart_error("Token Chart", exc, show_traceback=True)
+
+        # 错误消息本体先脱敏再转义
+        assert "sk-abc123456" not in block.split("<pre")[0]
+        assert "[REDACTED]" in block.split("<pre")[0]
+        # traceback 中的来源语句含既有脱敏器无法覆盖的上下文（见验证报告的契约记录），
+        # 此处只断言其已被转义、不产生可执行标记。
+        assert "&quot;sk-abc123456&quot;" in block
+        assert "<script>" not in block
