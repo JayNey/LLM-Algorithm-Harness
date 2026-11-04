@@ -7,7 +7,7 @@ from unittest.mock import patch
 import pytest
 
 from src.models import Problem, SandboxConfig, TestCase
-from src.sandbox_executor import SandboxExecutor
+from src.sandbox_executor import FUNCTION_RESULT_MARKER, SandboxExecutionError, SandboxExecutor
 
 
 @pytest.fixture
@@ -77,6 +77,48 @@ def test_function_mode_keeps_debug_stdout_separate(sandbox_executor):
 
     assert result.status == "success"
     assert result.test_results[0].actual_output == 4
+
+
+def test_function_print_and_clean_exit_is_not_a_return(sandbox_executor, simple_problem):
+    result = sandbox_executor.execute(
+        "def solution(a, b):\n    print(a + b)\n    raise SystemExit(0)", simple_problem
+    )
+
+    assert result.all_passed is False
+    assert result.status == "failed"
+    assert all(case.status == "runtime_error" for case in result.test_results)
+    assert "marker was not produced" in result.test_results[0].error_message
+
+
+@pytest.mark.parametrize("stderr", ["", FUNCTION_RESULT_MARKER + "1", "other-marker:1"])
+def test_explicit_function_marker_never_falls_back_to_stdout(stderr):
+    with pytest.raises(SandboxExecutionError, match="marker was not produced") as exc:
+        SandboxExecutor._parse_function_result(stderr, "1", "this-run:")
+    assert exc.value.status == "runtime_error"
+
+
+@pytest.mark.parametrize("payload", ["", "not-json", "{", "1 trailing"])
+def test_invalid_function_payload_never_falls_back_to_stdout(payload):
+    with pytest.raises(SandboxExecutionError, match="invalid JSON") as exc:
+        SandboxExecutor._parse_function_result("this-run:" + payload, "1", "this-run:")
+    assert exc.value.status == "runtime_error"
+
+
+@pytest.mark.parametrize(
+    "payload, expected", [("null", None), ("0", 0), ('{"ok": true}', {"ok": True})]
+)
+def test_valid_function_marker_takes_precedence_over_stdout(payload, expected):
+    assert (
+        SandboxExecutor._parse_function_result(
+            "debug\nthis-run:" + payload + "\n", "99", "this-run:"
+        )
+        == expected
+    )
+
+
+def test_legacy_function_result_without_explicit_marker():
+    assert SandboxExecutor._parse_function_result("", "1\n") == 1
+    assert SandboxExecutor._parse_function_result(FUNCTION_RESULT_MARKER + "2", "1") == 2
 
 
 def test_function_result_channel_uses_trusted_serializer(sandbox_config):
