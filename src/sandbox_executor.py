@@ -13,6 +13,7 @@ import sys
 import tempfile
 import time
 import uuid
+from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, Literal
 
@@ -37,6 +38,16 @@ FUNCTION_RESULT_MARKER = "__LLM_HARNESS_FUNCTION_RESULT__"
 SANDBOX_CONTAINER_LABEL = "io.llm-algorithm-harness.sandbox=v1"
 
 
+@dataclass
+class _CommandTiming:
+    """Timing owned by one runner invocation, including its failure paths."""
+
+    seconds: float | None = None
+
+    def elapsed(self, started: float) -> float:
+        return self.seconds if self.seconds is not None else time.monotonic() - started
+
+
 class SandboxExecutionError(RuntimeError):
     """Structured failure raised by a sandbox backend."""
 
@@ -56,7 +67,6 @@ class SandboxExecutor:
             config: Sandbox configuration
         """
         self.config = config
-        self._last_command_seconds: float | None = None
         logger.info("sandbox_initialized", config=config.model_dump())
 
     def execute(self, code: str, problem: Problem, stage: str = "public") -> SandboxResult:
@@ -406,31 +416,30 @@ class SandboxExecutor:
         Returns:
             TestCaseResult
         """
+        start_time = time.monotonic()
+        timing = _CommandTiming()
         try:
-            start_time = time.time()
-            self._last_command_seconds = None
-
             # Execute in subprocess for isolation
             if problem and problem.input_output_mode == "stdin_stdout":
                 if self.config.backend == "docker":
-                    raw_output = self._run_in_docker(code, test_case.input, problem)
+                    raw_output = self._run_in_docker(code, test_case.input, problem, _timing=timing)
                 else:
-                    raw_output = self._run_in_subprocess(code, test_case.input, problem)
+                    raw_output = self._run_in_subprocess(
+                        code, test_case.input, problem, _timing=timing
+                    )
                 actual_output = self._parse_stdout_output(
                     raw_output, test_case.expected_output, problem.judge_config
                 )
             elif self.config.backend == "docker":
-                actual_output = self._run_in_docker(code, test_case.input, problem)
+                actual_output = self._run_in_docker(code, test_case.input, problem, _timing=timing)
             else:
-                actual_output = self._run_in_subprocess(code, test_case.input, problem)
+                actual_output = self._run_in_subprocess(
+                    code, test_case.input, problem, _timing=timing
+                )
 
             # Container cleanup runs after the bounded command and must not
             # consume the algorithm timeout budget.
-            execution_time = (
-                self._last_command_seconds
-                if self._last_command_seconds is not None
-                else time.time() - start_time
-            )
+            execution_time = timing.elapsed(start_time)
 
             # Check timeout
             if execution_time > self.config.timeout_seconds:
@@ -478,7 +487,7 @@ class SandboxExecutor:
                 actual_output=None,
                 expected_output=test_case.expected_output,
                 error_message=str(exc),
-                execution_time=time.time() - start_time,
+                execution_time=timing.elapsed(start_time),
                 status=exc.status,
             )
 
@@ -489,7 +498,7 @@ class SandboxExecutor:
                 actual_output=None,
                 expected_output=test_case.expected_output,
                 error_message=f"Timeout: exceeded {self.config.timeout_seconds}s",
-                execution_time=self.config.timeout_seconds,
+                execution_time=timing.elapsed(start_time),
                 status="timeout",
             )
 
@@ -500,7 +509,7 @@ class SandboxExecutor:
                 actual_output=None,
                 expected_output=test_case.expected_output,
                 error_message=f"Runtime error: {str(e)}",
-                execution_time=time.time() - start_time,
+                execution_time=timing.elapsed(start_time),
                 status="runtime_error",
             )
 
@@ -511,6 +520,7 @@ class SandboxExecutor:
         problem: Problem | None = None,
         *,
         _profile_memory: bool = False,
+        _timing: _CommandTiming | None = None,
     ) -> Any:
         """
         Run code in subprocess for isolation.
@@ -590,6 +600,7 @@ if __name__ == "__main__":
                     "HOME": str(Path(temp_file).parent),
                 },
                 input_data=input_data,
+                _timing=_timing,
             )
 
             if result.returncode != 0:
@@ -621,6 +632,7 @@ if __name__ == "__main__":
         cwd: str | None = None,
         cleanup: Any = None,
         input_data: bytes | None = None,
+        _timing: _CommandTiming | None = None,
     ) -> subprocess.CompletedProcess[str]:
         """Run a command while bounding combined stdout/stderr in the parent."""
         started = time.perf_counter()
@@ -640,7 +652,9 @@ if __name__ == "__main__":
                 "output_limit", "Sandbox output exceeded the configured limit"
             ) from exc
         finally:
-            self._last_command_seconds = time.perf_counter() - started
+            elapsed = time.perf_counter() - started
+            if _timing is not None:
+                _timing.seconds = elapsed
             if cleanup is not None:
                 try:
                     cleanup()
@@ -660,6 +674,7 @@ if __name__ == "__main__":
         problem: Problem | None = None,
         *,
         _profile_memory: bool = False,
+        _timing: _CommandTiming | None = None,
     ) -> Any:
         """Run one test in a network-disabled, resource-limited container."""
         if problem and problem.input_output_mode == "stdin_stdout":
@@ -709,6 +724,7 @@ _harness_write(_harness_fd, ({result_marker!r} + _harness_dumps(result) + "\\n")
                     env={"PATH": os.environ.get("PATH", "")},
                     cleanup=None,
                     input_data=input_data,
+                    _timing=_timing,
                 )
             finally:
                 # Ensure container cleanup in all exit paths
@@ -1040,12 +1056,11 @@ _mp_write(_mp_fd, ({marker!r} + _mp_dumps({{"current_bytes": _mp_current, "peak_
                         test.input if scale == 1 else self._scale_memory_input(test.input, scale)
                     )
                     start = time.monotonic()
-                    self._last_command_seconds = None
-                    output, sample = runner(code, test_input, problem, _profile_memory=True)
-                    elapsed = self._last_command_seconds
-                    if (
-                        elapsed if elapsed is not None else time.monotonic() - start
-                    ) > self.config.timeout_seconds:
+                    timing = _CommandTiming()
+                    output, sample = runner(
+                        code, test_input, problem, _profile_memory=True, _timing=timing
+                    )
+                    if timing.elapsed(start) > self.config.timeout_seconds:
                         return {}
                     is_text = problem.input_output_mode == "stdin_stdout"
                     if is_text:

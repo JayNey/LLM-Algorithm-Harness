@@ -410,3 +410,207 @@ def test_host_backend_does_not_inherit_api_key_environment(monkeypatch):
 
     assert result.status == "success"
     assert result.test_results[0].actual_output is None
+
+
+@pytest.mark.parametrize("mode", ["function", "stdin_stdout"])
+@pytest.mark.parametrize(
+    "entry, failure",
+    [("direct", item) for item in [None, "exit", "output_limit", "timeout", "parse"]]
+    + [("harness", None), ("profile", None)],
+)
+@pytest.mark.parametrize("cleanup_raises", [False, True])
+def test_parallel_command_timing_is_owned_by_each_call(
+    monkeypatch, tmp_path, mode, entry, failure, cleanup_raises
+):
+    """A fast call paused in cleanup must never inherit B's six-second duration."""
+    import threading
+    from concurrent.futures import ThreadPoolExecutor
+
+    from src.utils.process_manager import OutputLimitExceededError, ProcessTimeoutError
+
+    executor = SandboxExecutor(SandboxConfig(backend="docker", timeout_seconds=5))
+    monkeypatch.setattr(executor, "_docker_available", lambda: True)
+    local = threading.local()
+    a_cleaning = threading.Event()
+    b_finished = threading.Event()
+
+    def clock():
+        return next(local.ticks)
+
+    monkeypatch.setattr(
+        "src.sandbox_executor.time",
+        SimpleNamespace(perf_counter=clock, monotonic=time.monotonic, time=time.time),
+    )
+
+    def run(command, **kwargs):
+        if local.label == "B":
+            assert a_cleaning.wait(5)
+        if local.label == "A":
+            if failure == "output_limit":
+                raise OutputLimitExceededError("too much output")
+            if failure == "timeout":
+                raise ProcessTimeoutError("timed out")
+            if failure == "exit":
+                return SimpleNamespace(returncode=1, stdout=b"", stderr=b"failed")
+            if failure == "parse":
+                return SimpleNamespace(returncode=0, stdout=b"not-json", stderr=b"")
+        if entry == "profile":
+            mount = command[command.index("--mount") + 1]
+            workdir = next(part[4:] for part in mount.split(",") if part.startswith("src="))
+            with subprocess.Popen(
+                [sys.executable, str(Path(workdir, "runner.py"))],
+                stdout=subprocess.PIPE,
+                stderr=subprocess.PIPE,
+            ) as process:
+                stdout, stderr = process.communicate(timeout=5)
+                return SimpleNamespace(returncode=process.returncode, stdout=stdout, stderr=stderr)
+        if mode == "function":
+            result = _successful_function_run(command)
+            return SimpleNamespace(
+                returncode=0, stdout=result.stdout.encode(), stderr=result.stderr.encode()
+            )
+        return SimpleNamespace(returncode=0, stdout=b"3", stderr=b"")
+
+    def cleanup(*args, **kwargs):
+        if local.label == "A":
+            a_cleaning.set()
+            assert b_finished.wait(5)
+        if cleanup_raises:
+            raise RuntimeError("cleanup failed")
+        return subprocess.CompletedProcess(args[0], 0)
+
+    monkeypatch.setattr("src.sandbox_executor.run_bounded", run)
+    monkeypatch.setattr("src.sandbox_executor.subprocess.run", cleanup)
+    problem = _problem(3 if mode == "function" else "3", inputs={}).model_copy(
+        update={"input_output_mode": mode}
+    )
+    if failure == "parse" and mode == "stdin_stdout":
+        from src.models import JudgeConfig
+
+        problem = problem.model_copy(update={"judge_config": JudgeConfig(output_format="json")})
+
+    code = "def solution(): return 3" if mode == "function" else "print(3)"
+
+    def execute(label):
+        local.label = label
+        local.ticks = iter([0, 0.1 if label == "A" else 6])
+        try:
+            if entry == "profile":
+                return executor.execute_with_memory_profiling(code, problem)
+            return executor._execute_single_test(code, problem.test_cases[0], 0, problem)
+        finally:
+            if label == "B":
+                b_finished.set()
+
+    if entry == "harness":
+        import json
+
+        from src.harness import AlgorithmHarness
+        from src.models import ExecutionResult, HarnessConfig, LLMConfig, StrategyConfig
+
+        dataset = tmp_path / "problems.json"
+        dataset.write_text(
+            json.dumps(
+                [
+                    problem.model_copy(update={"problem_id": label}).model_dump(mode="json")
+                    for label in ["A", "B"]
+                ]
+            ),
+            encoding="utf-8",
+        )
+        results = {}
+
+        class Strategy:
+            def execute(self, selected_problem):
+                result = execute(selected_problem.problem_id)
+                results[selected_problem.problem_id] = result
+                return ExecutionResult(
+                    problem_id=selected_problem.problem_id,
+                    strategy="vanilla",
+                    generated_code="",
+                    status="success" if result.passed else "failed",
+                )
+
+        harness = AlgorithmHarness(
+            HarnessConfig(
+                dataset_path=str(dataset),
+                output_dir=str(tmp_path / "results"),
+                llm_config=LLMConfig(provider="openai", api_key="test-key", model="test"),
+                sandbox_config=executor.config,
+                strategies=[StrategyConfig(name="vanilla")],
+            )
+        )
+        monkeypatch.setattr(
+            harness, "_prepare_strategy_runtime", lambda config: (Strategy(), executor)
+        )
+        reports = harness.run(use_task_service=True)
+        assert reports["vanilla"].solved_problems == 1
+        assert harness.task_record.state == "completed"
+        a_result, b_result = results["A"], results["B"]
+    else:
+        with ThreadPoolExecutor(max_workers=2) as pool:
+            a = pool.submit(execute, "A")
+            b = pool.submit(execute, "B")
+            a_result, b_result = a.result(timeout=10), b.result(timeout=10)
+    if entry == "profile":
+        assert a_result[1]["peak_bytes"] > 0
+        assert b_result == {}
+        return
+    expected_status = {
+        None: "passed",
+        "exit": "sandbox_error",
+        "output_limit": "output_limit",
+        "timeout": "timeout",
+        "parse": "runtime_error",
+    }[failure]
+    assert (a_result.status, a_result.execution_time) == (expected_status, 0.1)
+    assert (b_result.status, b_result.execution_time) == ("timeout", 6)
+
+
+@pytest.mark.skipif(os.getenv("RUN_DOCKER_TESTS") != "1", reason="set RUN_DOCKER_TESTS=1")
+@pytest.mark.parametrize("mode", ["function", "stdin_stdout"])
+def test_real_docker_parallel_timing_excludes_cleanup(monkeypatch, mode):
+    """Real containers overlap on a shared executor while fast cleanup waits for slow work."""
+    import threading
+    from concurrent.futures import ThreadPoolExecutor
+
+    executor = SandboxExecutor(
+        SandboxConfig(backend="docker", timeout_seconds=5, allowed_imports=["time"])
+    )
+    a_cleaning, b_finished = threading.Event(), threading.Event()
+    local = threading.local()
+    real_run = subprocess.run
+
+    def cleanup(command, *args, **kwargs):
+        if command[:2] == ["docker", "rm"] and local.label == "A":
+            a_cleaning.set()
+            assert b_finished.wait(20)
+        return real_run(command, *args, **kwargs)
+
+    monkeypatch.setattr("src.sandbox_executor.subprocess.run", cleanup)
+    problem = _problem(3 if mode == "function" else "3", inputs={}).model_copy(
+        update={"input_output_mode": mode}
+    )
+
+    def execute(label):
+        local.label = label
+        if label == "B":
+            assert a_cleaning.wait(10)
+        code = "def solution(): return 3" if mode == "function" else "print(3)"
+        if label == "B":
+            code = "import time\ntime.sleep(6)\n" + code
+        try:
+            return executor._execute_single_test(code, problem.test_cases[0], 0, problem)
+        finally:
+            if label == "B":
+                b_finished.set()
+
+    started = time.monotonic()
+    with ThreadPoolExecutor(max_workers=2) as pool:
+        a, b = pool.submit(execute, "A"), pool.submit(execute, "B")
+        fast, slow = a.result(timeout=30), b.result(timeout=30)
+    assert fast.status == "passed"
+    assert 0 < fast.execution_time < 5
+    assert slow.status == "timeout"
+    assert slow.execution_time > 5
+    assert time.monotonic() - started > 5
