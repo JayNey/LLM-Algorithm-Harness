@@ -1,16 +1,33 @@
 """Tests for the explicit Docker sandbox backend."""
 
+import ast
 import os
 import subprocess
 import sys
 import time
+from pathlib import Path
 from types import SimpleNamespace
 
 import pytest
 from test_process_manager import _pid_alive
 
 from src.models import Problem, SandboxConfig, TestCase
-from src.sandbox_executor import SandboxExecutionError, SandboxExecutor
+from src.sandbox_executor import FUNCTION_RESULT_MARKER, SandboxExecutionError, SandboxExecutor
+
+
+def _successful_function_run(command, **kwargs):
+    """Model the result channel emitted by the current container wrapper."""
+    mount = command[command.index("--mount") + 1]
+    workdir = next(part[4:] for part in mount.split(",") if part.startswith("src="))
+    wrapper = Path(workdir, "runner.py").read_text(encoding="utf-8")
+    marker = next(
+        node.value
+        for node in ast.walk(ast.parse(wrapper))
+        if isinstance(node, ast.Constant)
+        and isinstance(node.value, str)
+        and node.value.startswith(FUNCTION_RESULT_MARKER + ":")
+    )
+    return SimpleNamespace(returncode=0, stdout="debug\n", stderr=marker + "3\n")
 
 
 @pytest.fixture(autouse=True)
@@ -128,7 +145,7 @@ def test_docker_backend_runs_algorithm_without_host_environment(monkeypatch):
 
     def fake_run(command, **kwargs):
         calls.append((command, kwargs))
-        return SimpleNamespace(returncode=0, stdout="3\n", stderr="")
+        return _successful_function_run(command, **kwargs)
 
     monkeypatch.setattr(executor, "_run_command", fake_run)
     result = executor.execute("def solution(a, b): return a + b", _problem())
@@ -138,6 +155,53 @@ def test_docker_backend_runs_algorithm_without_host_environment(monkeypatch):
     command, kwargs = calls[0]
     assert "--network" in command and "none" in command
     assert kwargs["env"] == {"PATH": kwargs["env"]["PATH"]}
+
+
+def test_docker_function_stdout_without_marker_is_rejected(monkeypatch):
+    executor = SandboxExecutor(SandboxConfig(backend="docker"))
+    monkeypatch.setattr(executor, "_docker_available", lambda: True)
+    monkeypatch.setattr(
+        executor,
+        "_run_command",
+        lambda *args, **kwargs: SimpleNamespace(returncode=0, stdout="3\n", stderr=""),
+    )
+    result = executor.execute(
+        "def solution(a, b):\n    print(a + b)\n    raise SystemExit(0)", _problem()
+    )
+    assert result.all_passed is False
+    assert result.test_results[0].status == "runtime_error"
+    assert "marker was not produced" in result.test_results[0].error_message
+
+
+@pytest.mark.skipif(os.getenv("RUN_DOCKER_TESTS") != "1", reason="set RUN_DOCKER_TESTS=1")
+@pytest.mark.parametrize(
+    "code, passed",
+    [
+        ("def solution(a, b):\n    print(a + b)\n    raise SystemExit(0)", False),
+        ("def solution(a, b):\n    return a + b", True),
+        ("def solution(a, b):\n    print('debug')\n    return a + b", True),
+    ],
+)
+def test_real_docker_function_result_channel(code, passed):
+    result = SandboxExecutor(SandboxConfig(backend="docker")).execute(code, _problem())
+    assert result.all_passed is passed
+    if passed:
+        assert result.status == "success"
+        assert result.test_results[0].actual_output == 3
+    else:
+        assert result.test_results[0].status == "runtime_error"
+        assert "marker was not produced" in result.test_results[0].error_message
+
+
+@pytest.mark.skipif(os.getenv("RUN_DOCKER_TESTS") != "1", reason="set RUN_DOCKER_TESTS=1")
+def test_real_docker_stdin_stdout_does_not_require_function_marker():
+    problem = _problem("3\n", inputs="1 2\n").model_copy(
+        update={"input_output_mode": "stdin_stdout", "entry_point": "main()"}
+    )
+    result = SandboxExecutor(SandboxConfig(backend="docker")).execute(
+        "a, b = map(int, input().split())\nprint(a + b)", problem
+    )
+    assert result.all_passed is True
 
 
 def test_docker_workspace_is_readable_by_non_root_container_user(monkeypatch):
@@ -153,7 +217,7 @@ def test_docker_workspace_is_readable_by_non_root_container_user(monkeypatch):
     monkeypatch.setattr(
         executor,
         "_run_command",
-        lambda *args, **kwargs: SimpleNamespace(returncode=0, stdout="3\n", stderr=""),
+        _successful_function_run,
     )
 
     result = executor.execute("def solution(a, b): return a + b", _problem())

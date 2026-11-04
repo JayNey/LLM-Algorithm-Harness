@@ -787,9 +787,9 @@ _harness_write(_harness_fd, ({result_marker!r} + _harness_dumps(result) + "\\n")
                     raise SandboxExecutionError(
                         "runtime_error", "Function result channel contained invalid JSON"
                     ) from exc
-        # Keep compatibility with mocked/legacy runners that returned only a
-        # JSON stdout payload. New wrappers always use the dedicated marker.
-        if stdout.strip():
+        # Only callers that did not request a dedicated marker may use the
+        # legacy JSON stdout channel. Current wrappers require their marker.
+        if result_marker is None and stdout.strip():
             try:
                 return json.loads(stdout.strip())
             except json.JSONDecodeError:
