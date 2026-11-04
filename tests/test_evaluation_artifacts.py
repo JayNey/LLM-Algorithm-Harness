@@ -477,6 +477,44 @@ def test_real_worker_commits_publishes_and_http_downloads_without_manual_injecti
     assert e["files"].store.result_file(e["id"], e["owner"])["id"] == first
 
 
+@pytest.mark.parametrize("boundary", ["before_sql", "after_sql"])
+def test_recovered_checkpoint_publishes_complete_http_export(worker_env, monkeypatch, boundary):
+    e, calls, task = worker_env
+    from src.tasks import evaluation as module
+
+    def lose_before_sql(db, ev, unit):
+        raise SystemExit("lost after file")
+
+    def lose_after_sql(*args, **kwargs):
+        raise SystemExit("lost after SQL")
+
+    with monkeypatch.context() as m:
+        if boundary == "before_sql":
+            m.setattr(module, "_record_unit_result", lose_before_sql)
+        else:
+            # Publication follows the result transaction's commit.
+            m.setattr(module, "_publish_committed_artifacts", lose_after_sql)
+
+            # Skip the initial running-state publication; lose at first result.
+            def publish(db, *args, **kwargs):
+                if db.query(EvaluationResult).count():
+                    lose_after_sql()
+
+            m.setattr(module, "_publish_committed_artifacts", publish)
+        with pytest.raises(SystemExit):
+            task.run(e["id"])
+    assert task.run(e["id"])["status"] == "completed"
+    response = e["client"].get(
+        f"/api/v1/results/{e['id']}/download", headers=auth_headers(e["alice"])
+    )
+    assert response.status_code == 200, response.text
+    assert response.headers["X-Artifact-Completeness"] == "complete"
+    assert response.json()["complete"] is True
+    assert response.json()["recorded_units"] == 1
+    assert response.json()["results"]["vanilla"][0]["execution"]["total_tokens"] == 37
+    assert calls == ["p1"]
+
+
 def test_expired_artifact_requires_explicit_retry_and_preserves_result_retention(artifact_env):
     e = artifact_env
     revision = e["stage"]()

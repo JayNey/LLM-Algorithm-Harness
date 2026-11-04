@@ -245,6 +245,50 @@ def _poll_status(session_factory, task_id: str, target: set[str], timeout: float
 class TestAsyncTaskQueueEndToEnd:
     """Real broker + worker round-trips for the task queue."""
 
+    def test_worker_lost_replays_checkpoint_without_double_charge(
+        self, db, monkeypatch, request, tmp_path
+    ):
+        from api.db.models import EvaluationArtifactPublication, EvaluationResult
+
+        marker = tmp_path / "lost-child"
+        calls = tmp_path / "model-calls"
+        monkeypatch.setenv("EVALUATION_TEST_CRASH_MARKER", str(marker))
+        monkeypatch.setenv("EVALUATION_TEST_CALLS", str(calls))
+        monkeypatch.setenv("CELERY_TEST_POOL", "prefork")
+        monkeypatch.setenv("OBJC_DISABLE_INITIALIZE_FORK_SAFETY", "YES")
+        worker = request.getfixturevalue("celery_worker")
+        with db.session_factory() as session:
+            eval_id, task_id = _seed_evaluation(session, "worker-loss", problem_count=2)
+            message_id = str(uuid.uuid4())
+            session.get(AsyncTask, task_id).celery_task_id = message_id
+            session.commit()
+        try:
+            celery_app.send_task(
+                "src.tasks.evaluation.run_evaluation_task",
+                args=[eval_id],
+                task_id=message_id,
+                queue="evaluations",
+            )
+            _poll_status(db.session_factory, task_id, {"completed", "failed"}, timeout=60)
+            with db.session_factory() as session:
+                ev = session.get(Evaluation, eval_id)
+                assert ev.status == "completed", ev.error_message
+                assert ev.completed_count == 2
+                assert ev.spent_usd == pytest.approx(0.02)
+                assert session.query(EvaluationResult).filter_by(evaluation_id=eval_id).count() == 2
+                assert (
+                    session.get(EvaluationArtifactPublication, eval_id).snapshot["complete"] is True
+                )
+            assert marker.exists()
+            assert calls.read_text(encoding="utf-8").splitlines() == ["p0", "p1"]
+            log = (tmp_path / "worker.log").read_text(encoding="utf-8")
+            assert "WorkerLostError" in log
+            assert log.count(message_id + "] received") >= 2
+        finally:
+            import shutil
+
+            shutil.rmtree(TASK_SERVICE_ROOT / eval_id, ignore_errors=True)
+
     def test_run_evaluation_task_completes(self, db, celery_worker):
         user_id = f"e2e-{uuid.uuid4().hex[:8]}"
         with db.session_factory() as session:
