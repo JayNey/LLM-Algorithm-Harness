@@ -28,7 +28,9 @@ logger = get_logger(__name__)
 
 
 @contextmanager
-def exclusive_lock(file_obj: IO[str]) -> Iterator[None]:
+def exclusive_lock(
+    file_obj: IO[str], *, blocking: bool = True, required: bool = False
+) -> Iterator[None]:
     """Hold an exclusive lock on an open file object for the block duration.
 
     Raises OSError immediately when the platform lock cannot be acquired
@@ -36,7 +38,8 @@ def exclusive_lock(file_obj: IO[str]) -> Iterator[None]:
     to a no-op on platforms with no locking primitive.
     """
     if fcntl is not None:
-        fcntl.flock(file_obj.fileno(), fcntl.LOCK_EX)
+        flags = fcntl.LOCK_EX | (0 if blocking else fcntl.LOCK_NB)
+        fcntl.flock(file_obj.fileno(), flags)
         try:
             yield
         finally:
@@ -54,5 +57,7 @@ def exclusive_lock(file_obj: IO[str]) -> Iterator[None]:
             file_obj.seek(anchor)
             msvcrt.locking(file_obj.fileno(), msvcrt.LK_UNLCK, 1)
     else:
+        if required:
+            raise RuntimeError("Exclusive file locking is required for evaluation execution")
         logger.debug("file_lock_unavailable", fileno=file_obj.fileno())
         yield

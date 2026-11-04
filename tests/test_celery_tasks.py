@@ -23,8 +23,9 @@ from src.tasks.evaluation import run_evaluation_task
 
 
 @pytest.fixture(autouse=True)
-def no_uploaded_problems():
+def no_uploaded_problems(tmp_path, monkeypatch):
     """These unit tests mock auth storage; private uploads are covered by HTTP integration tests."""
+    monkeypatch.chdir(tmp_path)
     with (
         patch("api.files.store.FileStore.dataset", return_value=[]),
         patch("src.task_manager.celery_app.send_task"),
@@ -905,6 +906,228 @@ def _reload(db, model, id_):
 
 class TestRunEvaluationTaskIntegration:
     """run_evaluation_task 经真实 TaskService 编排 + 真实 harness 执行路径的集成测试。"""
+
+    def test_active_delivery_never_enters_execution(
+        self, db_session, integration_harness, auth_ok, tmp_path, monkeypatch
+    ):
+        import hashlib
+        from pathlib import Path
+
+        from celery.exceptions import Retry
+
+        from src.utils.file_lock import exclusive_lock
+
+        monkeypatch.chdir(tmp_path)
+        eid = _seed_evaluation(db_session, problem_ids=["p1"], strategy_names=["vanilla"])
+        task = db_session.query(AsyncTask).filter_by(entity_id=eid).one()
+        task.status = "running"
+        db_session.commit()
+        lock = Path("data/tasks/.execution") / (hashlib.sha256(eid.encode()).hexdigest() + ".lock")
+        lock.parent.mkdir(parents=True)
+        with lock.open("a", encoding="utf-8") as stream, exclusive_lock(stream):
+            with patch("src.tasks.evaluation.get_db_session", return_value=db_session):
+                with pytest.raises(Retry):
+                    run_evaluation_task.run(eid)
+        assert integration_harness.execute_calls == []
+        assert db_session.query(EvaluationResult).count() == 0
+        assert db_session.get(Evaluation, eid).spent_usd == 0
+
+    @pytest.mark.parametrize("entry", ["task", "evaluation"])
+    def test_resume_rejects_live_executor(self, db_session, integration_harness, entry):
+        from api.services.evaluation_service import EvaluationService
+        from src.task_manager import TaskManager, evaluation_execution
+
+        eid = _seed_evaluation(db_session, problem_ids=["p1"], strategy_names=["vanilla"])
+        task = db_session.query(AsyncTask).filter_by(entity_id=eid).one()
+        task.status = "paused"
+        db_session.get(Evaluation, eid).status = "paused"
+        db_session.commit()
+        generation = task.celery_task_id
+        with evaluation_execution(eid):
+            with pytest.raises(ValueError, match="not stopped"):
+                if entry == "task":
+                    TaskManager(db_session).resume_task(task.id, "test_user")
+                else:
+                    service = EvaluationService.__new__(EvaluationService)
+                    service._session = lambda: db_session
+                    service.resume_evaluation(eid, "test_user")
+        assert db_session.get(AsyncTask, task.id).celery_task_id == generation
+        assert db_session.get(Evaluation, eid).status == "paused"
+        from src.task_manager import EvaluationExecutionBusy, celery_app
+
+        def publish(*args, **kwargs):
+            # The resume owns the lock through commit and broker publication,
+            # so another resume/worker cannot race the linkage or generation.
+            with pytest.raises(EvaluationExecutionBusy):
+                with evaluation_execution(eid):
+                    pass
+
+        celery_app.send_task.side_effect = publish
+        if entry == "task":
+            resumed = TaskManager(db_session).resume_task(task.id, "test_user")
+            assert resumed.status == "pending"
+            assert resumed.celery_task_id != generation
+        else:
+            resumed = service.resume_evaluation(eid, "test_user")
+            assert resumed.status == "pending"
+            assert db_session.get(Evaluation, eid).async_task_id != task.id
+
+    def test_unsupported_lock_platform_refuses_execution(self, tmp_path, monkeypatch):
+        from src.utils import file_lock
+
+        monkeypatch.chdir(tmp_path)
+        monkeypatch.setattr(file_lock, "fcntl", None)
+        monkeypatch.setattr(file_lock, "msvcrt", None)
+        with pytest.raises(RuntimeError, match="locking is required"):
+            run_evaluation_task.run("unsupported")
+        assert not (tmp_path / "data/tasks/unsupported").exists()
+
+    def test_cancel_retains_execution_until_inflight_call_finishes(self, tmp_path, monkeypatch):
+        from concurrent.futures import ThreadPoolExecutor
+        from threading import Event
+
+        from src.task_manager import EvaluationExecutionBusy, evaluation_execution
+
+        monkeypatch.chdir(tmp_path)
+        service = TaskService(tmp_path / "checkpoint")
+        service.create(
+            run_id="run",
+            config_fingerprint="c",
+            dataset_fingerprint="d",
+            units=[TaskUnit(unit_id="u", strategy="vanilla", problem_id="p")],
+        )
+        entered, cancelled, release = Event(), Event(), Event()
+        save = service.store.save
+
+        def save_cancel(record):
+            save(record)
+            if record.state == "cancelled":
+                cancelled.set()
+
+        monkeypatch.setattr(service.store, "save", save_cancel)
+
+        def worker(unit):
+            entered.set()
+            assert release.wait(10)
+            return {"cost_usd": 0.01}
+
+        def run():
+            with evaluation_execution("eval"):
+                return service.run("run", worker, wait_on_cancel=True)
+
+        with ThreadPoolExecutor(max_workers=1) as pool:
+            result = pool.submit(run)
+            try:
+                assert entered.wait(10)
+                service.request_cancel("run")
+                assert cancelled.wait(10)
+                with pytest.raises(EvaluationExecutionBusy):
+                    with evaluation_execution("eval"):
+                        pass
+                assert not result.done()
+            finally:
+                release.set()
+            assert result.result(timeout=10).state == "cancelled"
+        with evaluation_execution("eval"):
+            assert service.get("run").state == "cancelled"
+
+    @pytest.mark.parametrize("crash", [False, True])
+    def test_independent_workers_exclude_duplicates_and_recover_process_death(
+        self, integration_harness, auth_ok, monkeypatch, tmp_path, crash
+    ):
+        import multiprocessing
+        import time
+
+        from celery.exceptions import Retry
+
+        from src.tasks import evaluation as module
+
+        if "fork" not in multiprocessing.get_all_start_methods():
+            pytest.skip("Inherited provider doubles require POSIX fork")
+        context = multiprocessing.get_context("fork")
+        url = f"sqlite:///{tmp_path / 'workers.sqlite'}"
+        engine = create_engine(url)
+        Base.metadata.create_all(engine)
+        with sessionmaker(engine)() as db:
+            eid = _seed_evaluation(db, problem_ids=["p1"], strategy_names=["vanilla"])
+            generation = db.query(AsyncTask).filter_by(entity_id=eid).one().celery_task_id
+        engine.dispose()
+        entered = context.Event()
+        release = tmp_path / "release-provider"
+        outcomes = context.Queue()
+        calls = tmp_path / "provider-calls"
+        execute = AlgorithmHarness._execute_problem
+
+        def provider(self, *args):
+            with calls.open("a", encoding="utf-8") as stream:
+                stream.write("paid-call\n")
+            entered.set()
+            deadline = time.monotonic() + 15
+            while not release.exists():
+                assert time.monotonic() < deadline
+                time.sleep(0.01)
+            return execute(self, *args)
+
+        monkeypatch.setattr(AlgorithmHarness, "_execute_problem", provider)
+
+        def run():
+            worker_engine = create_engine(url)
+            module.get_db_session = sessionmaker(worker_engine)
+            run_evaluation_task.push_request(
+                id=generation, called_directly=False, is_eager=True, retries=100
+            )
+            try:
+                outcomes.put(run_evaluation_task.run(eid)["status"])
+            except Retry:
+                outcomes.put("retry")
+            except Exception as exc:
+                outcomes.put(type(exc).__name__ + ": " + str(exc))
+            finally:
+                run_evaluation_task.pop_request()
+                worker_engine.dispose()
+
+        first = context.Process(target=run)
+        second = context.Process(target=run)
+        try:
+            first.start()
+            assert entered.wait(15)
+            second.start()
+            assert outcomes.get(timeout=15) == "retry"
+            second.join(15)
+            assert second.exitcode == 0
+            assert calls.read_text(encoding="utf-8").splitlines() == ["paid-call"]
+            if crash:
+                first.terminate()
+                first.join(15)
+                assert first.exitcode is not None
+                release.touch()
+                second = context.Process(target=run)
+                second.start()
+            else:
+                release.touch()
+            assert outcomes.get(timeout=15) == "completed"
+            first.join(15)
+            if crash:
+                second.join(15)
+                assert second.exitcode == 0
+            else:
+                assert first.exitcode == 0
+            # Terminal redelivery cannot issue or bill another provider call.
+            run()
+            assert outcomes.get(timeout=15) == "completed"
+            assert len(calls.read_text(encoding="utf-8").splitlines()) == (2 if crash else 1)
+            with sessionmaker(create_engine(url))() as db:
+                assert db.get(Evaluation, eid).spent_usd == pytest.approx(0.01)
+                assert db.get(Evaluation, eid).completed_count == 1
+                assert db.query(EvaluationResult).count() == 1
+        finally:
+            release.touch()
+            for process in (first, second):
+                if process.pid is not None:
+                    if process.is_alive():
+                        process.terminate()
+                    process.join(15)
+            outcomes.close()
 
     @pytest.mark.parametrize(
         "boundary", ["file_before", "file_after", "sql_before", "sql_after", "terminal_file"]

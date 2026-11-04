@@ -14,6 +14,7 @@ from __future__ import annotations
 import logging
 import uuid
 from collections.abc import Callable, Iterable
+from contextlib import ExitStack
 from dataclasses import dataclass, field
 from decimal import Decimal
 from typing import TYPE_CHECKING, Any
@@ -40,7 +41,7 @@ from src.models import (
     StrategyConfig,
 )
 from src.models import Problem as DomainProblem
-from src.task_manager import TaskManager
+from src.task_manager import EvaluationExecutionBusy, TaskManager, evaluation_execution
 from src.task_service import TaskService, TaskUnit
 from src.tasks.support import task_progress
 from src.utils.pricing import PricingInfo, PricingManager
@@ -131,8 +132,24 @@ class EvaluationTask(Task):  # type: ignore[misc]
     retry_backoff_max=300,
     acks_late=True,
     reject_on_worker_lost=True,
+    max_retries=None,
 )
 def run_evaluation_task(self: EvaluationTask, evaluation_id: str) -> dict[str, Any]:
+    # Keep all writes, exception handling and in-flight calls inside ownership.
+    # Contention is outside the business error handler and cannot mark failure.
+    from celery.exceptions import Retry
+
+    with ExitStack() as ownership:
+        try:
+            ownership.enter_context(evaluation_execution(evaluation_id))
+        except EvaluationExecutionBusy as exc:
+            if self.request.called_directly:
+                raise Retry("Evaluation executor is still active") from exc
+            raise self.retry(exc=exc, countdown=2, max_retries=None)
+        return _run_owned_evaluation(self, evaluation_id)
+
+
+def _run_owned_evaluation(self: EvaluationTask, evaluation_id: str) -> dict[str, Any]:
     """执行评估任务
 
     Args:
@@ -482,6 +499,7 @@ def run_evaluation_task(self: EvaluationTask, evaluation_id: str) -> dict[str, A
             pause_when=should_pause,
             on_unit_started=on_unit_started,
             on_unit_finished=on_unit_finished,
+            wait_on_cancel=True,
         )
 
         # 8. 更新最终状态。调用方可能已在另一个连接把任务写成 cancelled；

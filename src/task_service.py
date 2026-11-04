@@ -285,6 +285,7 @@ class TaskService:
         pause_when: Callable[[TaskRecord], bool] | None = None,
         on_unit_started: Callable[[TaskRecord, TaskUnit], None] | None = None,
         on_unit_finished: Callable[[TaskRecord, TaskUnit], None] | None = None,
+        wait_on_cancel: bool = False,
     ) -> TaskRecord:
         """Execute queued units, or resume a compatible interrupted task."""
         if max_workers < 1:
@@ -338,7 +339,7 @@ class TaskService:
                     record.updated_at = _now()
                     self._append_event(record, "task_cancelled", message="Task cancelled")
                     self._save_with_external_events(record)
-                    executor.shutdown(wait=False, cancel_futures=True)
+                    executor.shutdown(wait=wait_on_cancel, cancel_futures=True)
                     detached_executor = True
                     return record
 
@@ -419,7 +420,7 @@ class TaskService:
             if detached_executor:
                 pass
             elif pending:
-                executor.shutdown(wait=False, cancel_futures=True)
+                executor.shutdown(wait=wait_on_cancel, cancel_futures=True)
             else:
                 executor.shutdown(wait=True)
             with self._cancel_lock:
