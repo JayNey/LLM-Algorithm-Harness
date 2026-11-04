@@ -56,7 +56,7 @@ def _execute_problem(
     """Return one successful local result."""
     del self, strategy, sandbox
     if calls := os.environ.get("EVALUATION_TEST_CALLS"):
-        with Path(calls).open("a") as stream:
+        with Path(calls).open("a", encoding="utf-8") as stream:
             stream.write(problem.problem_id + "\n")
     return ExecutionResult(
         problem_id=problem.problem_id,
@@ -91,7 +91,7 @@ if marker := os.environ.get("EVALUATION_TEST_CRASH_MARKER"):
 
     def _crash_before_sql(db, ev, unit):
         try:
-            with Path(marker).open("x") as stream:
+            with Path(marker).open("x", encoding="utf-8") as stream:
                 stream.write(str(os.getpid()))
         except FileExistsError:
             return _record_result(db, ev, unit)

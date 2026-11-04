@@ -280,8 +280,8 @@ class TestAsyncTaskQueueEndToEnd:
                     session.get(EvaluationArtifactPublication, eval_id).snapshot["complete"] is True
                 )
             assert marker.exists()
-            assert calls.read_text().splitlines() == ["p0", "p1"]
-            log = (tmp_path / "worker.log").read_text()
+            assert calls.read_text(encoding="utf-8").splitlines() == ["p0", "p1"]
+            log = (tmp_path / "worker.log").read_text(encoding="utf-8")
             assert "WorkerLostError" in log
             assert log.count(message_id + "] received") >= 2
         finally:
