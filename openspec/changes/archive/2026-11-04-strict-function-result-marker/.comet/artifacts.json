@@ -1,0 +1,7 @@
+{
+  "openspec_proposal": "openspec/changes/strict-function-result-marker/proposal.md",
+  "openspec_design": "openspec/changes/strict-function-result-marker/design.md",
+  "openspec_tasks": "openspec/changes/strict-function-result-marker/tasks.md",
+  "openspec_delta_spec": "openspec/changes/strict-function-result-marker/specs/execution-protocol/spec.md",
+  "archive_directory": "openspec/changes/archive/2026-11-04-strict-function-result-marker"
+}
