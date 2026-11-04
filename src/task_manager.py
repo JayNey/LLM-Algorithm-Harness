@@ -3,11 +3,14 @@
 统一管理异步任务的生命周期，作为服务层与 Celery 的桥梁。
 """
 
+import errno
 import hashlib
 import logging
 import uuid
-from collections.abc import Callable
+from collections.abc import Callable, Iterator
+from contextlib import ExitStack, contextmanager
 from datetime import datetime
+from pathlib import Path
 from typing import Any, cast
 
 from sqlalchemy import CursorResult, false, func, select, text, update
@@ -18,6 +21,7 @@ from api.db.models import ABTest, AsyncTask, BenchmarkRun, Evaluation, Experimen
 from api.files.store import FileStore
 from api.monitoring.execution_logs import record_execution_event
 from src.celery_app import celery_app
+from src.utils.file_lock import exclusive_lock
 
 _EVALUATION_CELERY_TASK = "src.tasks.evaluation.run_evaluation_task"
 _BUSINESS_TYPES = ("experiment", "benchmark", "import", "ab_test")
@@ -37,6 +41,33 @@ _RESUME_WORKERS = {
 
 class EvaluationConcurrencyLimitExceeded(ValueError):
     """The user has reserved all evaluation admission slots."""
+
+
+class EvaluationExecutionBusy(ValueError):
+    """An evaluation still has a live executor, including its in-flight calls."""
+
+
+@contextmanager
+def evaluation_execution(evaluation_id: str) -> Iterator[None]:
+    """Own the shared checkpoint's execution lifetime, across all message generations.
+
+    Never unlink this file: replacing its inode would allow concurrent owners.
+    A process crash releases the OS lock; a slow live worker never expires.
+    API and workers must share the same lock-capable task volume.
+    """
+    root = Path("data/tasks/.execution")
+    root.mkdir(parents=True, exist_ok=True)
+    path = root / (hashlib.sha256(evaluation_id.encode()).hexdigest() + ".lock")
+    with path.open("a", encoding="utf-8") as stream, ExitStack() as ownership:
+        try:
+            ownership.enter_context(exclusive_lock(stream, blocking=False, required=True))
+        except OSError as exc:
+            if exc.errno in (errno.EACCES, errno.EAGAIN):
+                raise EvaluationExecutionBusy(
+                    "Worker has not stopped; retry after it stops"
+                ) from exc
+            raise
+        yield
 
 
 def _request_evaluation_cancel(evaluation_id: str) -> None:
@@ -716,6 +747,13 @@ class TaskManager:
 
     def resume_task(self, task_id: str, user_id: str) -> AsyncTask:
         """Atomically reserve one continuation of an owned, stopped task."""
+        task = self.get_task(task_id, user_id)
+        if task.task_type == "evaluation":
+            with evaluation_execution(task.entity_id):
+                return self._resume_task(task_id, user_id)
+        return self._resume_task(task_id, user_id)
+
+    def _resume_task(self, task_id: str, user_id: str) -> AsyncTask:
         task = self.db.query(AsyncTask).filter_by(id=task_id, user_id=user_id).first()
         if task is None:
             raise ValueError("Task not found or access denied")

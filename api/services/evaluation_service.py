@@ -11,6 +11,7 @@ tasks via TaskManager, and get_evaluation aggregates status from AsyncTask.
 
 import uuid
 from collections.abc import Callable
+from contextlib import ExitStack
 from datetime import datetime
 from typing import TypedDict
 
@@ -22,7 +23,7 @@ from api.db.engine import business_database_url
 from api.db.models import AsyncTask, utcnow
 from api.models import EvaluationCreateRequest, EvaluationUpdateRequest
 from api.schemas import EvaluationResponse, ExecutionProgress, ProgressInfo
-from src.task_manager import TaskManager
+from src.task_manager import TaskManager, evaluation_execution
 
 INTERRUPTED_BY_RESTART = "interrupted by service restart"
 
@@ -442,8 +443,11 @@ class EvaluationService:
         Creates a new AsyncTask to resume execution from the checkpoint.
         """
         session = self._session()
+        ownership = ExitStack()
         try:
             evaluation = self._owned_task(session, evaluation_id, owner_id)
+            ownership.enter_context(evaluation_execution(evaluation_id))
+            session.refresh(evaluation)
 
             if not evaluation.async_task_id:
                 raise ValueError("Evaluation has no associated task")
@@ -492,7 +496,10 @@ class EvaluationService:
 
             return _to_response_async(evaluation, new_task)
         finally:
-            session.close()
+            try:
+                session.close()
+            finally:
+                ownership.close()
 
     def delete_evaluation_async(self, evaluation_id: str, owner_id: str) -> None:
         """Delete evaluation and cancel associated async task.
