@@ -292,6 +292,7 @@ class TestRunEvaluationTask:
                 # 模拟已存在的暂停任务
                 existing_record = Mock()
                 existing_record.state = "paused"
+                existing_record.units = []
                 mock_task_service.get.return_value = existing_record
 
                 # 恢复后完成
@@ -904,6 +905,121 @@ def _reload(db, model, id_):
 
 class TestRunEvaluationTaskIntegration:
     """run_evaluation_task 经真实 TaskService 编排 + 真实 harness 执行路径的集成测试。"""
+
+    @pytest.mark.parametrize(
+        "boundary", ["file_before", "file_after", "sql_before", "sql_after", "terminal_file"]
+    )
+    @pytest.mark.parametrize("count", [1, 2])
+    def test_redelivery_reconciles_commit_windows(
+        self, db_session, integration_harness, auth_ok, monkeypatch, boundary, count
+    ):
+        """Confirmed disk results survive every commit boundary without double billing."""
+        from src.task_service import TaskStore
+        from src.tasks import evaluation as module
+
+        evaluation_id = _seed_evaluation(
+            db_session, problem_ids=[f"p{i}" for i in range(count)], strategy_names=["vanilla"]
+        )
+        save = TaskStore.save
+        record_result = module._record_unit_result
+        commit = db_session.commit
+        lost = False
+
+        def crash():
+            nonlocal lost
+            lost = True
+            raise SystemExit("commit window")
+
+        def save_at_boundary(store, record):
+            terminal = record.units[0].status == "completed"
+            if not lost and terminal and boundary == "file_before":
+                crash()
+            save(store, record)
+            if not lost and terminal and boundary == "file_after":
+                crash()
+            if not lost and record.state == "completed" and boundary == "terminal_file":
+                crash()
+
+        def record_at_boundary(db, ev, unit):
+            cost = record_result(db, ev, unit)
+            if not lost and boundary == "sql_before":
+                crash()
+            return cost
+
+        def commit_at_boundary():
+            has_result = db_session.query(EvaluationResult).count() > 0
+            commit()
+            if not lost and has_result and boundary == "sql_after":
+                crash()
+
+        with monkeypatch.context() as m:
+            m.setattr(TaskStore, "save", save_at_boundary)
+            m.setattr(module, "_record_unit_result", record_at_boundary)
+            m.setattr(db_session, "commit", commit_at_boundary)
+            with patch("src.tasks.evaluation.get_db_session", return_value=db_session):
+                with pytest.raises(SystemExit, match="commit window"):
+                    run_evaluation_task.run(evaluation_id)
+        assert lost
+        with patch("src.tasks.evaluation.get_db_session", return_value=db_session):
+            result = run_evaluation_task.run(evaluation_id)
+            # A duplicate delivery after completion cannot charge or execute again.
+            again = run_evaluation_task.run(evaluation_id)
+        ev = _reload(db_session, Evaluation, evaluation_id)
+        assert result["status"] == again["status"] == ev.status == "completed"
+        assert ev.completed_count == count
+        assert ev.failed_count == 0
+        assert db_session.query(EvaluationResult).count() == count
+        assert ev.spent_usd == pytest.approx(count * integration_harness.cost)
+        from api.db.models import EvaluationArtifactPublication
+
+        publication = db_session.get(EvaluationArtifactPublication, evaluation_id)
+        assert publication.snapshot["complete"] is True
+        assert publication.snapshot["recorded_units"] == count
+        calls = [("vanilla", f"p{i}") for i in range(count)]
+        if boundary == "file_before":
+            calls.insert(0, ("vanilla", "p0"))  # Unconfirmed execution may be retried.
+        assert integration_harness.execute_calls == calls
+
+    def test_recovered_cost_enforces_budget_before_dispatch(
+        self, db_session, integration_harness, auth_ok
+    ):
+        evaluation_id = _seed_evaluation(
+            db_session,
+            problem_ids=["p1", "p2"],
+            strategy_names=["vanilla"],
+            budget_cap_usd=integration_harness.cost,
+        )
+        with patch("src.tasks.evaluation.get_db_session", return_value=db_session):
+            with patch("src.tasks.evaluation._record_unit_result", side_effect=SystemExit):
+                with pytest.raises(SystemExit):
+                    run_evaluation_task.run(evaluation_id)
+            for _ in range(2):
+                assert run_evaluation_task.run(evaluation_id)["status"] == "paused"
+                ev = _reload(db_session, Evaluation, evaluation_id)
+                assert ev.spent_usd == pytest.approx(integration_harness.cost)
+                assert ev.completed_count == 1
+                assert db_session.query(EvaluationResult).count() == 1
+            assert integration_harness.execute_calls == [("vanilla", "p1")]
+
+    def test_recovery_preserves_failed_checkpoint_unit(
+        self, db_session, integration_harness, auth_ok
+    ):
+        evaluation_id = _seed_evaluation(
+            db_session, problem_ids=["missing"], seed_problem_ids=[], strategy_names=["vanilla"]
+        )
+        with patch("src.tasks.evaluation.get_db_session", return_value=db_session):
+            with patch("src.tasks.evaluation._record_unit_result", side_effect=SystemExit):
+                with pytest.raises(SystemExit):
+                    run_evaluation_task.run(evaluation_id)
+            assert run_evaluation_task.run(evaluation_id)["status"] == "failed"
+        ev = _reload(db_session, Evaluation, evaluation_id)
+        assert ev.failed_count == 1
+        assert ev.completed_count == 0
+        assert ev.spent_usd == 0
+        row = db_session.query(EvaluationResult).one()
+        assert row.status == "failed"
+        assert "not found" in row.error_message
+        assert integration_harness.execute_calls == []
 
     def test_redelivery_resumes_running_checkpoint(
         self, db_session, integration_harness, auth_ok, monkeypatch

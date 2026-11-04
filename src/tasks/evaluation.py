@@ -257,7 +257,7 @@ def run_evaluation_task(self: EvaluationTask, evaluation_id: str) -> dict[str, A
         resume = False
         try:
             existing_record = task_service.get(run_id)
-            if existing_record.state in ("running", "paused", "failed"):
+            if existing_record.state in ("running", "paused", "failed", "completed"):
                 resume = True
         except FileNotFoundError:
             pass
@@ -333,9 +333,25 @@ def run_evaluation_task(self: EvaluationTask, evaluation_id: str) -> dict[str, A
                 db.commit()
                 return
             db.refresh(evaluation)
+            previous = (
+                db.query(EvaluationResult)
+                .filter_by(
+                    evaluation_id=evaluation.id,
+                    problem_id=unit.problem_id,
+                    strategy_name=unit.strategy,
+                )
+                .first()
+            )
+            previous_cost = (
+                Decimal(str((previous.metrics or {}).get("cost_usd", 0)))
+                if previous
+                else Decimal(0)
+            )
             cost = _record_unit_result(db, evaluation, unit)
+            # Result and cost delta commit together. Replaying a checkpoint after
+            # either side of the SQL commit cannot charge the same unit twice.
             evaluation.spent_usd = float(
-                Decimal(str(evaluation.spent_usd or 0)) + Decimal(str(cost))
+                Decimal(str(evaluation.spent_usd or 0)) + Decimal(str(cost)) - previous_cost
             )
             evaluation.completed_count = sum(1 for u in record.units if u.status == "completed")
             evaluation.failed_count = sum(1 for u in record.units if u.status == "failed")
@@ -438,6 +454,18 @@ def run_evaluation_task(self: EvaluationTask, evaluation_id: str) -> dict[str, A
             ctx.missing_reasons,
             execution_strategies=execution_strategies,
         )
+
+        if resume:
+            # Validate before replay, just as TaskService.run does before dispatch.
+            # A completed file checkpoint may still have an uncommitted SQL tail.
+            task_service._validate_resume_fingerprints(
+                existing_record,
+                config_fingerprint=config_fingerprint,
+                dataset_fingerprint=dataset_fingerprint,
+            )
+            for unit in existing_record.units:
+                if unit.status in {"completed", "failed"} and not unit.uncertain:
+                    on_unit_finished(existing_record, unit)
 
         # Check committed spend on start/resume, including when budget pause
         # prevents any further units from running.
