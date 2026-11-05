@@ -10,6 +10,7 @@ from sqlalchemy import inspect, text
 
 from api.auth.config import AuthSettings
 from api.db import (
+    Evaluation,
     ProblemStore,
     downgrade,
     make_engine,
@@ -186,7 +187,8 @@ class TestProblemStore:
 
 
 class TestEvaluationPersistence:
-    def test_restart_marks_non_terminal_tasks_failed(self, tmp_path):
+    @pytest.mark.parametrize("status", ["pending", "running"])
+    def test_restart_preserves_drafts_and_fails_orphaned_execution(self, tmp_path, status):
         url = f"sqlite:///{tmp_path / 'business.sqlite3'}"
         app = create_app(auth_config(tmp_path), FileSettings(), database_url=url)
         with TestClient(app) as client:
@@ -203,14 +205,27 @@ class TestEvaluationPersistence:
             )
             assert created.status_code == 201, created.text
             task_id = created.json()["data"]["evaluation_id"]
+            if status == "running":
+                with app.state.task_session_factory() as session, session.begin():
+                    session.get(Evaluation, task_id).status = "running"
 
         # A fresh process against the same database observes the task...
         revived = create_app(auth_config(tmp_path), FileSettings(), database_url=url)
         with TestClient(revived) as client:
             headers, _ = _bootstrap_user(client)
             data = client.get(f"/api/v1/evaluations/{task_id}", headers=headers).json()["data"]
-            assert data["status"] == "failed"
-            assert data["error_message"] == RESTART_REASON
+            if status == "running":
+                assert data["status"] == "failed"
+                assert data["error_message"] == RESTART_REASON
+            else:
+                assert data["status"] == "pending"
+                assert data["error_message"] is None
+                with patch("src.task_manager.celery_app.send_task") as publish:
+                    started = client.post(f"/api/v1/evaluations/{task_id}/start", headers=headers)
+                    assert started.status_code == 202, started.text
+                    repeated = client.post(f"/api/v1/evaluations/{task_id}/start", headers=headers)
+                    assert repeated.status_code == 400, repeated.text
+                assert publish.call_count == 1
 
     def test_enqueued_pending_survives_restart(self, tmp_path):
         url = f"sqlite:///{tmp_path / 'business.sqlite3'}"
