@@ -30,3 +30,12 @@ proposal 目标均满足；design 的逐块限制、总截止时间和单次回�
 ## 归档交付授权
 
 用户选择 C：确认归档、提交、推送当前绑定分支并创建关联 #342 的 PR。按此方式执行归档与交付，不合并 PR。
+
+## 2026-11-05 CI 修复
+
+PR #346 的首次 CI 在 Windows 3.11/3.12 中分别出现 29/28 项失败，均来自此前已有的测试隔离问题：
+
+- Windows fixture 用数值等于 5 判断默认超时，将测试显式传入的 5 秒也改为 15 秒，导致模拟 6 秒调用的 28 项超时断言失效。改为通过 Pydantic model_fields_set 判断字段是否显式设置，保留未指定超时的 Windows 默认扩展。
+- 并发恢复测试只模拟 send_task；较晚进入的竞争者看见 pending 后会读取真实 Redis。补充 PENDING 结果替身，新增 late_competitor 参数，稳定覆盖首次恢复完成后才读取的场景，仍断言恰好一次成功及一次发布。
+
+本地通过临时 pytest 插件，仅将 Windows fixture 自身的 platform 输入设为 win32：原代码 28 failed，修改后 28 passed。业务恢复测试完整文件 91 passed；改动文件 black、ruff、git diff --check 通过。应用与沙箱业务源码未改动。完整离线回归和推送后的 CI 继续验证。

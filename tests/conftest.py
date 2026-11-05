@@ -65,7 +65,7 @@ def _increase_docker_timeout_on_windows(monkeypatch):
 
         def patched_init(self, config, *args, **kwargs):
             # Increase timeout for docker backend if using default
-            if config.backend == "docker" and config.timeout_seconds == 5:
+            if config.backend == "docker" and "timeout_seconds" not in config.model_fields_set:
                 # Create a modified config with increased timeout
                 config_dict = config.model_dump()
                 config_dict["timeout_seconds"] = 15
