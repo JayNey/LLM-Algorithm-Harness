@@ -14,7 +14,7 @@ from pathlib import Path
 from threading import Semaphore
 from typing import Any, cast
 
-from sqlalchemy import CursorResult, select, update
+from sqlalchemy import CursorResult, or_, select, update
 from sqlalchemy.orm import Session
 
 from api.auth.service import AuthService
@@ -85,23 +85,34 @@ class ExperimentService:
     def _recover_interrupted(self) -> None:
         """Preserve queued and running records owned by independent workers."""
         with self._session() as session, session.begin():
-            live_tasks = set(
-                session.scalars(
-                    select(AsyncTask.entity_id).where(
-                        AsyncTask.task_type == "experiment",
-                        AsyncTask.status.in_(("pending", "running", "paused")),
-                    )
+            owned_tasks = select(AsyncTask.id).where(
+                AsyncTask.task_type == "experiment",
+                AsyncTask.entity_id == Experiment.id,
+                AsyncTask.user_id == Experiment.user_id,
+            )
+            live_tasks = owned_tasks.where(
+                AsyncTask.status.in_(("pending", "running", "paused"))
+            ).exists()
+            # Unsubmitted pending configurations survive startup. Keep the
+            # orphan check in the UPDATE to respect concurrent starts/finishes.
+            session.execute(
+                update(Experiment)
+                .where(
+                    Experiment.status.in_(("pending", "running")),
+                    or_(
+                        Experiment.status == "running",
+                        Experiment.started_at.is_not(None),
+                        owned_tasks.exists(),
+                    ),
+                    ~live_tasks,
                 )
+                .values(
+                    status="failed",
+                    error_message="interrupted by service restart",
+                    updated_at=utcnow(),
+                )
+                .execution_options(synchronize_session=False)
             )
-            rows = session.scalars(
-                select(Experiment).where(Experiment.status.in_(("pending", "running")))
-            )
-            for row in rows:
-                if row.id in live_tasks:
-                    continue
-                row.status = "failed"
-                row.error_message = "interrupted by service restart"
-                row.updated_at = utcnow()
 
     def _owned(self, session: Session, experiment_id: str, owner_id: str) -> Experiment:
         row = session.get(Experiment, experiment_id)
