@@ -5,6 +5,7 @@ import json
 import secrets
 import time
 from concurrent.futures import ThreadPoolExecutor
+from types import SimpleNamespace
 from unittest.mock import Mock, patch
 
 import jwt
@@ -736,22 +737,39 @@ async def test_refresh_preread_has_total_read_deadline(api, monkeypatch, drip):
     monkeypatch.setattr("api.auth.csrf.REFRESH_BODY_TIMEOUT_SECONDS", 0.04, raising=False)
     consumed = 0
     cancelled = False
+    elapsed = 0.0
+    if drip:
+        # Advance only the body reader's clock, leaving asyncio's scheduler real.
+        # Expire between completed chunks instead of racing short wall-clock sleeps.
+        monkeypatch.setattr(
+            "api.auth.csrf.asyncio",
+            SimpleNamespace(
+                get_running_loop=lambda: SimpleNamespace(time=lambda: elapsed),
+                wait_for=asyncio.wait_for,
+                TimeoutError=asyncio.TimeoutError,
+            ),
+        )
 
     async def receive():
-        nonlocal consumed, cancelled
+        nonlocal consumed, cancelled, elapsed
         consumed += 1
         try:
-            await asyncio.sleep(0.01 if drip else 10)
+            await asyncio.sleep(0 if drip else 10)
         except asyncio.CancelledError:
             cancelled = True
             raise
+        elapsed += 0.011
         return {"type": "http.request", "body": b"", "more_body": consumed < 20}
 
     messages = await refresh_asgi(app, receive)
     assert messages[0]["status"] == 408
     assert json.loads(messages[1]["body"])["error"]["code"] == "REQUEST_TIMEOUT"
     assert consumed < 20
-    assert cancelled
+    if drip:
+        assert consumed == 4
+        assert not cancelled
+    else:
+        assert cancelled
 
 
 @pytest.mark.asyncio
