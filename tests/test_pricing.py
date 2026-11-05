@@ -5,6 +5,9 @@ Tests for PricingManager module.
 import json
 import tempfile
 from pathlib import Path
+from unittest.mock import patch
+
+import pytest
 
 from src.utils.pricing import PricingInfo, PricingManager
 
@@ -293,3 +296,110 @@ class TestUnknownPricingAndFormats:
         assert pricing.prompt_price is None
         assert pricing.completion_price is None
         assert pricing.as_of is None
+
+
+class TestLongestBuiltinPrefix:
+    """Issue #351: a broad family must never shadow a more specific one."""
+
+    @pytest.mark.parametrize("order", ["original", "reversed", "rotated"])
+    @pytest.mark.parametrize(
+        "model,prompt,completion",
+        [
+            ("gpt-4", 0.03, 0.06),
+            ("gpt-4-0613", 0.03, 0.06),
+            ("gpt-4o", 0.005, 0.015),
+            ("gpt-4o-2024-08-06", 0.005, 0.015),
+            ("gpt-4o-mini", 0.005, 0.015),
+            ("gpt-4-turbo", 0.01, 0.03),
+            ("gpt-4-turbo-2024-04-09", 0.01, 0.03),
+            ("claude-3-5-haiku-20241022", 0.001, 0.005),
+        ],
+    )
+    def test_family_selection_independent_of_insertion_order(
+        self, tmp_path, monkeypatch, order, model, prompt, completion
+    ):
+        entries = list(PricingManager.BUILTIN_PRICING.items())
+        if order == "reversed":
+            entries.reverse()
+        elif order == "rotated":
+            entries = entries[2:] + entries[:2]
+        monkeypatch.setattr(PricingManager, "BUILTIN_PRICING", dict(entries))
+        manager = PricingManager(str(tmp_path / "absent.json"))
+        pricing = manager.get_pricing(model)
+        assert pricing.model == model
+        assert pricing.source == "builtin"
+        assert (pricing.prompt_price, pricing.completion_price) == (prompt, completion)
+
+    @pytest.mark.parametrize(
+        "model,override,source,price",
+        [
+            ("gpt-4o-2024-08-06", True, "override", 0.9),
+            ("gpt-4o-2024-08-06", False, "custom", 0.3),
+            ("gpt-4o-mini", False, "custom", 0.2),
+            ("gpt-4-turbo", False, "custom", 0.1),
+        ],
+    )
+    def test_source_and_exact_precedence(self, tmp_path, model, override, source, price):
+        manager = PricingManager(str(tmp_path / "absent.json"))
+        manager.custom_pricing = {
+            "gpt-4": {"prompt": 0.1, "completion": 0.1},
+            "gpt-4o": {"prompt": 0.2, "completion": 0.2},
+            "gpt-4o-2024-08-06": {"prompt": 0.3, "completion": 0.3},
+        }
+        # A family override must not act as a prefix override.
+        manager.overrides["gpt-4o"] = PricingInfo("gpt-4o", 0.8, 0.8, "override")
+        if override:
+            manager.overrides[model] = PricingInfo(model, 0.9, 0.9, "override")
+        pricing = manager.get_pricing(model)
+        assert pricing.source == source
+        assert (pricing.prompt_price, pricing.completion_price) == (price, price)
+
+    @pytest.mark.parametrize(
+        "family,snapshot,expected_cost",
+        [
+            ("gpt-4o", "gpt-4o-2024-08-06", 0.02),
+            ("gpt-4-turbo", "gpt-4-turbo-2024-04-09", 0.04),
+        ],
+    )
+    def test_response_cost_reaches_budget_monitor(self, tmp_path, family, snapshot, expected_cost):
+        from src.cost_strategy import RunCostMonitor
+        from src.llm_client import LLMClient
+        from src.models import CacheConfig, ExecutionResult, LLMConfig
+
+        config = LLMConfig(
+            provider="openai",
+            api_key="offline-test",
+            model=family,
+            cache=CacheConfig(enabled=False),
+        )
+        # Replace only the external provider; pricing and budget consumers remain real.
+        with patch("src.llm_client.OpenAI") as sdk:
+            sdk.return_value.chat.completions.create.return_value = {
+                "model": snapshot,
+                "choices": [{"message": {"content": "pass"}, "finish_reason": "stop"}],
+                "usage": {"prompt_tokens": 1000, "completion_tokens": 1000, "total_tokens": 2000},
+            }
+            client = LLMClient(config)
+            client.pricing_manager = PricingManager(str(tmp_path / "absent.json"))
+            response = client.generate("offline pricing regression")
+        metadata = response.pricing_metadata
+        assert response.model == snapshot
+        assert metadata["source"] == "builtin"
+        assert metadata["pricing_known"] is True
+        assert metadata["total_cost"] == pytest.approx(expected_cost)
+        assert client.estimate_cost(response.usage) == pytest.approx(expected_cost)
+        result = ExecutionResult(
+            problem_id="pricing-regression",
+            strategy="vanilla",
+            generated_code="pass",
+            status="success",
+            llm_traces=[{**response.usage.model_dump(), "pricing_metadata": metadata}],
+        )
+        monitor = RunCostMonitor(budget_cap_usd=0.05)
+        monitor.add_result(result)
+        assert float(monitor.accumulated_cost) == pytest.approx(expected_cost)
+        assert monitor.over_cap is False
+        monitor.add_result(result)
+        monitor.add_result(result)
+        assert float(monitor.accumulated_cost) == pytest.approx(expected_cost * 3)
+        assert monitor.over_cap is True

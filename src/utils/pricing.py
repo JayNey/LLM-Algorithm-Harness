@@ -175,8 +175,8 @@ class PricingManager:
         if model in self.BUILTIN_PRICING:
             return self._pricing_from_entry(model, self.BUILTIN_PRICING[model], "builtin")
 
-        # Try prefix match in built-in pricing
-        for key in self.BUILTIN_PRICING:
+        # Try prefix match in built-in pricing (longest match first)
+        for key in sorted(self.BUILTIN_PRICING, key=len, reverse=True):
             if model.startswith(key):
                 logger.debug(f"Prefix match: {model} matched to built-in pricing key '{key}'")
                 return self._pricing_from_entry(model, self.BUILTIN_PRICING[key], "builtin")
