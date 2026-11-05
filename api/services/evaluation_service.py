@@ -15,7 +15,7 @@ from contextlib import ExitStack
 from datetime import datetime
 from typing import TypedDict
 
-from sqlalchemy import Engine, select
+from sqlalchemy import Engine, or_, select, update
 from sqlalchemy.orm import Session
 
 from api.db import Evaluation, make_engine, make_session_factory, run_migrations
@@ -219,15 +219,32 @@ class EvaluationService:
         preserve both queued and running evaluations until that worker finishes.
         """
         with self._session() as session, session.begin():
-            candidates = session.scalars(
-                select(Evaluation).where(Evaluation.status.in_(("pending", "running")))
-            ).all()
-            for task in candidates:
-                if self._is_enqueued(session, task):
-                    continue
-                task.status = "failed"
-                task.error_message = INTERRUPTED_BY_RESTART
-                task.updated_at = utcnow()
+            owned_tasks = select(AsyncTask.id).where(
+                AsyncTask.task_type == "evaluation",
+                AsyncTask.entity_id == Evaluation.id,
+                AsyncTask.user_id == Evaluation.user_id,
+            )
+            live_tasks = owned_tasks.where(
+                AsyncTask.status.in_(("pending", "running", "paused"))
+            ).exists()
+            # A pending record without execution evidence is a saved draft.
+            # Evaluate evidence and liveness at UPDATE time so a concurrent
+            # submission or worker completion cannot be overwritten by startup.
+            session.execute(
+                update(Evaluation)
+                .where(
+                    Evaluation.status.in_(("pending", "running")),
+                    or_(
+                        Evaluation.status == "running",
+                        Evaluation.started_at.is_not(None),
+                        Evaluation.async_task_id.is_not(None),
+                        owned_tasks.exists(),
+                    ),
+                    ~live_tasks,
+                )
+                .values(status="failed", error_message=INTERRUPTED_BY_RESTART, updated_at=utcnow())
+                .execution_options(synchronize_session=False)
+            )
 
     @staticmethod
     def _is_enqueued(session: Session, evaluation: Evaluation) -> bool:

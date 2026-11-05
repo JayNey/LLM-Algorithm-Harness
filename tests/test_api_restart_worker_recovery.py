@@ -4,16 +4,19 @@ import json
 from contextlib import ExitStack
 from datetime import datetime
 from types import SimpleNamespace
-from unittest.mock import patch
+from unittest.mock import Mock, patch
 
 import pytest
 from cryptography.fernet import Fernet
 from fastapi.testclient import TestClient
+from sqlalchemy import event, select
 
 from api.auth.config import AuthSettings
 from api.db.models import AsyncTask, BenchmarkRun, BenchmarkSuite, Evaluation, Experiment
+from api.experiment_models import ExperimentCreateRequest
 from api.files.config import FileSettings
 from api.main import create_app
+from api.models import EvaluationCreateRequest
 from api.services.benchmark_service import BenchmarkService
 from api.services.evaluation_service import EvaluationService
 from api.services.experiment_service import ExperimentService
@@ -89,7 +92,9 @@ def test_restart_preserves_records_with_live_worker_tasks(service, status, task_
     try:
         with restarted._session() as session:
             row = session.get(model, "entity-1")
-            if task_status in ("pending", "running", "paused"):
+            if task_status in ("pending", "running", "paused") or (
+                kind != "benchmark" and status == "pending" and task_status is None
+            ):
                 assert row.status == status
                 assert row.error_message is None
                 assert row.updated_at == STAMP
@@ -189,3 +194,191 @@ def test_experiment_worker_completes_and_links_results_after_api_restart(tmp_pat
             assert response.json()["data"]["experiment_id"] == "entity-1"
         finally:
             worker._engine.dispose()
+
+
+@pytest.fixture(params=["evaluation", "experiment"])
+def draft(request, tmp_path):
+    kind = request.param
+    cls, model = SERVICE_TYPES[kind]
+    url = f"sqlite:///{tmp_path / 'draft.sqlite3'}"
+    original = cls(url)
+    if kind == "evaluation":
+        row = original.create_evaluation(
+            EvaluationCreateRequest(
+                api_key_id="key", model="test", problem_ids=["p1"], strategy_names=["vanilla"]
+            ),
+            "owner-1",
+        )
+        entity_id = row.evaluation_id
+    else:
+        original._auth = Mock()
+        with patch("api.services.experiment_service.freeze_dataset", return_value={}):
+            row = original.create_experiment(
+                ExperimentCreateRequest(
+                    name="draft",
+                    dataset_id="dataset",
+                    api_key_id="key",
+                    models=[{"model": "test"}],
+                    strategies=[{"name": "vanilla"}],
+                ),
+                "owner-1",
+            )
+        entity_id = row["id"]
+    yield kind, model, original, url, entity_id
+    original._engine.dispose()
+
+
+def start(service, kind, entity_id):
+    return getattr(service, f"start_{kind}")(entity_id, "owner-1")
+
+
+@pytest.mark.parametrize("close_original", [False, True])
+def test_unstarted_draft_survives_rebuild_and_starts_once(draft, close_original):
+    kind, model, original, url, entity_id = draft
+    with original._session() as db:
+        before = {
+            c.name: getattr(db.get(model, entity_id), c.name) for c in model.__table__.columns
+        }
+    if close_original:
+        original._engine.dispose()
+    restarted = type(original)(url)
+    try:
+        restarted._recover_interrupted()
+        with restarted._session() as db:
+            row = db.get(model, entity_id)
+            assert {c.name: getattr(row, c.name) for c in model.__table__.columns} == before
+        with patch("src.task_manager.celery_app.send_task") as publish:
+            start(restarted, kind, entity_id)
+            restarted._recover_interrupted()
+            with pytest.raises(ValueError, match="already queued"):
+                start(restarted, kind, entity_id)
+        assert publish.call_count == 1
+        with restarted._session() as db:
+            tasks = list(db.scalars(select(AsyncTask).where(AsyncTask.entity_id == entity_id)))
+            assert len(tasks) == 1
+            assert tasks[0].status == "pending"
+            assert db.get(model, entity_id).status == "pending"
+    finally:
+        restarted._engine.dispose()
+
+
+@pytest.mark.parametrize("evidence", ["started", "history", "unlinked-history"])
+def test_pending_with_execution_evidence_is_not_a_draft(draft, evidence):
+    kind, model, service, url, entity_id = draft
+    with service._session() as db, db.begin():
+        row = db.get(model, entity_id)
+        if evidence == "started":
+            row.started_at = STAMP
+        else:
+            task = AsyncTask(
+                id="past",
+                celery_task_id="past",
+                task_type=kind,
+                entity_id=entity_id,
+                user_id="owner-1",
+                status="failed",
+            )
+            db.add(task)
+            db.flush()
+            if kind == "evaluation" and evidence == "history":
+                row.async_task_id = task.id
+    service._recover_interrupted()
+    with service._session() as db:
+        row = db.get(model, entity_id)
+        assert row.status == "failed"
+        assert row.error_message == "interrupted by service restart"
+        updated = row.updated_at
+    service._recover_interrupted()
+    with service._session() as db:
+        assert db.get(model, entity_id).updated_at == updated
+
+
+@pytest.mark.parametrize("operation", ["start", "complete", "create"])
+def test_recovery_does_not_overwrite_concurrent_lifecycle_change(draft, operation):
+    kind, model, service, url, entity_id = draft
+    # Complete begins with a genuine orphan; start/create begin with an unstarted draft.
+    if operation == "complete":
+        with service._session() as db, db.begin():
+            db.get(model, entity_id).status = "running"
+    changed = False
+
+    def before_update(_conn, _cursor, statement, *_args):
+        nonlocal changed
+        if changed or not statement.startswith(f"UPDATE {model.__tablename__}"):
+            return
+        changed = True
+        if operation == "start":
+            start(service, kind, entity_id)
+        else:
+            with service._session() as db, db.begin():
+                if operation == "complete":
+                    row = db.get(model, entity_id)
+                    row.status = "completed"
+                    row.completed_at = STAMP
+                else:
+                    db.add(model(id="new-draft", user_id="owner-1", status="pending"))
+
+    event.listen(service._engine, "before_cursor_execute", before_update)
+    try:
+        with patch("src.task_manager.celery_app.send_task"):
+            service._recover_interrupted()
+    finally:
+        event.remove(service._engine, "before_cursor_execute", before_update)
+    assert changed
+    with service._session() as db:
+        row = db.get(model, entity_id)
+        assert row.status == ("completed" if operation == "complete" else "pending")
+        assert row.error_message is None
+        if operation == "start":
+            assert len(list(db.scalars(select(AsyncTask)))) == 1
+        elif operation == "complete":
+            assert row.completed_at == STAMP
+        else:
+            assert db.get(model, "new-draft").status == "pending"
+
+
+@pytest.mark.parametrize("task_status", ["pending", "running", "paused"])
+def test_recovery_preserves_owned_live_task_even_without_evaluation_link(draft, task_status):
+    kind, model, service, url, entity_id = draft
+    with service._session() as db, db.begin():
+        db.add(
+            AsyncTask(
+                id="live",
+                celery_task_id="live",
+                task_type=kind,
+                entity_id=entity_id,
+                user_id="owner-1",
+                status=task_status,
+            )
+        )
+    service._recover_interrupted()
+    with service._session() as db:
+        assert db.get(model, entity_id).status == "pending"
+        assert db.get(AsyncTask, "live").status == task_status
+
+
+@pytest.mark.parametrize("task_status", ["pending", "failed"])
+@pytest.mark.parametrize("wrong", ["owner", "type"])
+def test_unrelated_task_does_not_count_as_draft_execution_history(draft, task_status, wrong):
+    kind, model, service, url, entity_id = draft
+    with service._session() as db, db.begin():
+        db.add(
+            AsyncTask(
+                id="unrelated",
+                celery_task_id="unrelated",
+                task_type=kind if wrong == "owner" else "import",
+                entity_id=entity_id,
+                user_id="other" if wrong == "owner" else "owner-1",
+                status=task_status,
+            )
+        )
+    service._recover_interrupted()
+    with service._session() as db:
+        assert db.get(model, entity_id).status == "pending"
+        # A foreign live task must not protect a genuine orphan either.
+        db.get(model, entity_id).status = "running"
+        db.commit()
+    service._recover_interrupted()
+    with service._session() as db:
+        assert db.get(model, entity_id).status == "failed"
+        assert db.get(AsyncTask, "unrelated").status == task_status
