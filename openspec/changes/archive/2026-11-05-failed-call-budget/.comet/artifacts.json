@@ -1,5 +1,6 @@
 {
   "openspec_proposal": "openspec/changes/failed-call-budget/proposal.md",
   "openspec_design": "openspec/changes/failed-call-budget/design.md",
-  "openspec_tasks": "openspec/changes/failed-call-budget/tasks.md"
+  "openspec_tasks": "openspec/changes/failed-call-budget/tasks.md",
+  "archive_directory": "openspec/changes/archive/2026-11-05-failed-call-budget"
 }
