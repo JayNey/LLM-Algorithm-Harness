@@ -1,5 +1,7 @@
 """Real HTTP + SQLite tests for identity, ownership, persistence and abuse boundaries."""
 
+import asyncio
+import json
 import secrets
 import time
 from concurrent.futures import ThreadPoolExecutor
@@ -666,6 +668,135 @@ def test_body_limit_before_json_parse_including_chunked_input(api):
         "/api/v1/auth/login", content="{", headers={"Content-Type": "application/json"}
     )
     assert result.status_code == 400
+
+
+async def refresh_asgi(app, receive, csrf=False):
+    """Use the actual application stack without HTTP clients coalescing chunks."""
+    messages = []
+    request_headers = [
+        (b"cookie", b"harness_refresh_token=fake; harness_csrf=pair"),
+        (b"content-type", b"application/json"),
+        (b"origin", b"http://localhost:3000"),
+    ]
+    if csrf:
+        request_headers.append((b"x-csrf-token", b"pair"))
+
+    async def send(message):
+        messages.append(message)
+
+    await asyncio.wait_for(
+        app(
+            {
+                "type": "http",
+                "http_version": "1.1",
+                "method": "POST",
+                "path": "/api/v1/auth/refresh",
+                "scheme": "http",
+                "query_string": b"",
+                "headers": request_headers,
+                "client": ("127.0.0.1", 1234),
+                "server": ("testserver", 80),
+            },
+            receive,
+            send,
+        ),
+        timeout=1,
+    )
+    return messages
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("csrf", [False, True])
+@pytest.mark.parametrize("chunks", [[65536, 1], [8192, 8192, 1, 1]])
+async def test_refresh_preread_rejects_at_first_oversized_chunk(api, csrf, chunks):
+    _, _, app, _ = api
+    consumed = 0
+
+    async def receive():
+        nonlocal consumed
+        size = chunks[consumed]
+        consumed += 1
+        return {"type": "http.request", "body": b"x" * size, "more_body": consumed < len(chunks)}
+
+    messages = await refresh_asgi(app, receive, csrf)
+    assert messages[0]["status"] == 413
+    assert consumed == (1 if chunks[0] == 65536 else 3)
+    response_headers = dict(messages[0]["headers"])
+    assert response_headers[b"cache-control"] == b"no-store"
+    assert response_headers[b"access-control-allow-origin"] == b"http://localhost:3000"
+    error = json.loads(messages[1]["body"])["error"]
+    assert error["code"] == "PAYLOAD_TOO_LARGE"
+    assert error["request_id"].encode() == response_headers[b"x-request-id"]
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("drip", [False, True])
+async def test_refresh_preread_has_total_read_deadline(api, monkeypatch, drip):
+    _, _, app, _ = api
+    monkeypatch.setattr("api.auth.csrf.REFRESH_BODY_TIMEOUT_SECONDS", 0.04, raising=False)
+    consumed = 0
+    cancelled = False
+
+    async def receive():
+        nonlocal consumed, cancelled
+        consumed += 1
+        try:
+            await asyncio.sleep(0.01 if drip else 10)
+        except asyncio.CancelledError:
+            cancelled = True
+            raise
+        return {"type": "http.request", "body": b"", "more_body": consumed < 20}
+
+    messages = await refresh_asgi(app, receive)
+    assert messages[0]["status"] == 408
+    assert json.loads(messages[1]["body"])["error"]["code"] == "REQUEST_TIMEOUT"
+    assert consumed < 20
+    assert cancelled
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("csrf", [False, True])
+async def test_refresh_preread_stops_on_disconnect(api, csrf):
+    _, _, app, _ = api
+    consumed = 0
+
+    async def receive():
+        nonlocal consumed
+        consumed += 1
+        assert consumed <= 2
+        if consumed == 1:
+            return {"type": "http.request", "body": b"{", "more_body": True}
+        return {"type": "http.disconnect"}
+
+    assert await refresh_asgi(app, receive, csrf) == []
+    assert consumed == 2
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("token, status", [(None, 403), ("invalid-explicit-token", 401)])
+async def test_refresh_preread_accepts_exact_limit_and_replays_json(api, token, status):
+    _, _, app, _ = api
+    payload = json.dumps({"refresh_token": token}).encode().ljust(16384, b" ")
+    chunks = iter([payload[:8192], payload[8192:]])
+    consumed = 0
+
+    async def receive():
+        nonlocal consumed
+        consumed += 1
+        assert consumed <= 2
+        return {"type": "http.request", "body": next(chunks), "more_body": consumed < 2}
+
+    messages = await refresh_asgi(app, receive)
+    assert messages[0]["status"] == status
+    assert consumed == 2
+
+
+def test_explicit_refresh_token_wins_over_fake_cookie_without_csrf(api):
+    client, tokens, _, _ = api
+    client.cookies.set("harness_refresh_token", "fake")
+    result = client.post("/api/v1/auth/refresh", json={"refresh_token": tokens["refresh_token"]})
+    assert result.status_code == 200
+    assert result.json()["data"]["access_token"]
 
 
 def test_missing_and_invalid_secret_configuration_fails_closed(tmp_path, monkeypatch):

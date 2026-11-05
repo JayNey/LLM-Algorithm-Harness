@@ -1,6 +1,7 @@
 """Resume contracts against real independent database sessions (issue #306)."""
 
 from concurrent.futures import ThreadPoolExecutor
+from threading import Event
 from types import SimpleNamespace
 from unittest.mock import patch
 
@@ -126,19 +127,34 @@ def test_resume_commits_pair_before_publish_and_preserves_progress(resumedb, kin
 
 
 @pytest.mark.parametrize("kind", KINDS)
-def test_concurrent_resume_only_publishes_one_message(resumedb, kind):
+@pytest.mark.parametrize("late_competitor", [False, True])
+def test_concurrent_resume_only_publishes_one_message(resumedb, kind, late_competitor):
     factory, store = resumedb
     seed(factory, store, kind)
 
-    def resume(_):
+    first_finished = Event()
+
+    def resume(index):
+        if late_competitor and index == 1:
+            assert first_finished.wait(10)
         with factory() as db:
             try:
                 TaskManager(db).resume_task("task", "owner")
                 return True
             except ValueError:
                 return False
+            finally:
+                if index == 0:
+                    first_finished.set()
 
-    with patch("src.task_manager.celery_app.send_task") as publish:
+    # A late competitor sees pending and polls the published task. Model the
+    # queued result as well as publication so that no real Redis is required.
+    with (
+        patch("src.task_manager.celery_app.send_task") as publish,
+        patch(
+            "src.task_manager.celery_app.AsyncResult", return_value=SimpleNamespace(state="PENDING")
+        ),
+    ):
         with ThreadPoolExecutor(max_workers=2) as pool:
             outcomes = list(pool.map(resume, range(2)))
     assert outcomes.count(True) == 1
