@@ -646,7 +646,14 @@ class ProblemBudget(BaseModel):
     tokens the provider reports inside its completion count).
     """
 
-    max_calls: int | None = Field(None, ge=1, description="Maximum model calls per problem")
+    max_calls: int | None = Field(
+        None,
+        ge=1,
+        description=(
+            "Maximum admitted logical generate calls per problem, including failures "
+            "and cache hits; internal SDK retries count as one logical call"
+        ),
+    )
     max_tokens: int | None = Field(
         None,
         ge=1,

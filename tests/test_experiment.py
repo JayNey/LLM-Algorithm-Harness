@@ -129,8 +129,9 @@ class TestBudgetTracker:
         tracker = BudgetTracker(ProblemBudget(max_calls=2))
         tracker.begin_problem("p1")
         assert tracker.allow_call()
-        tracker.record(_response())
-        tracker.record(_response())
+        client = BudgetedLLMClient(MagicMock(generate=MagicMock(return_value=_response())), tracker)
+        client.generate("prompt")
+        client.generate("prompt")
         assert not tracker.allow_call()
         assert tracker.stop_reason() == "budget_exhausted: max_calls"
 
@@ -162,7 +163,9 @@ class TestBudgetTracker:
     def test_finalize_records_completed_reason(self):
         tracker = BudgetTracker(ProblemBudget(max_calls=5))
         tracker.begin_problem("p1")
-        tracker.record(_response())
+        BudgetedLLMClient(
+            MagicMock(generate=MagicMock(return_value=_response())), tracker
+        ).generate("prompt")
         tracker.finalize_problem()
         assert tracker.ledger["p1"]["stop_reason"] == "completed"
         assert tracker.ledger["p1"]["calls"] == 1
@@ -1115,3 +1118,114 @@ def test_comparison_markdown_without_evolution_data(tmp_path):
     }
     markdown = _render_markdown(comparison)
     assert "## 代码质量演化分析" not in markdown
+
+
+@pytest.mark.parametrize("budget", [ProblemBudget(max_calls=1), None])
+def test_failed_call_is_charged_on_admission(budget):
+    tracker = BudgetTracker(budget)
+    tracker.begin_problem("p1")
+    inner = MagicMock()
+    failure = RuntimeError("provider failure")
+
+    def fail(*args, **kwargs):
+        assert tracker.ledger["p1"]["calls"] == inner.generate.call_count
+        raise failure
+
+    inner.generate.side_effect = fail
+    client = BudgetedLLMClient(inner, tracker)
+    with pytest.raises(RuntimeError) as caught:
+        client.generate("prompt")
+    assert caught.value is failure
+    assert tracker.ledger["p1"]["calls"] == 1
+    assert tracker.ledger["p1"]["total_tokens"] == 0
+    if budget:
+        with pytest.raises(BudgetExhausted, match="max_calls"):
+            client.generate("prompt")
+        assert inner.generate.call_count == 1
+    tracker.finalize_problem()
+    assert tracker.ledger["p1"]["stop_reason"] == (
+        "budget_exhausted: max_calls" if budget else "completed"
+    )
+
+
+@pytest.mark.parametrize("cached", [False, True])
+def test_success_or_cache_hit_consumes_one_call(cached):
+    from src.llm_client import LLMClient
+    from src.models import CacheConfig
+
+    config = LLMConfig(
+        provider="openai",
+        api_key="offline",
+        model="fixed-double",
+        cache=CacheConfig(enabled=cached),
+    )
+    with patch("src.llm_client.OpenAI"), patch("src.llm_client.LLMResponseCache") as cache:
+        cache.return_value.get.return_value = _response() if cached else None
+        inner = LLMClient(config)
+        with patch.object(inner, "_call_openai", return_value=_response()) as provider:
+            tracker = BudgetTracker(ProblemBudget(max_calls=1))
+            tracker.begin_problem("p1")
+            client = BudgetedLLMClient(inner, tracker)
+            assert client.generate("prompt").usage.total_tokens == 15
+            with pytest.raises(BudgetExhausted):
+                client.generate("prompt")
+            assert provider.call_count == (0 if cached else 1)
+    assert tracker.ledger["p1"]["calls"] == 1
+    assert tracker.ledger["p1"]["total_tokens"] == 15
+
+
+def test_sdk_retries_share_one_logical_call():
+    from src.llm_client import LLMClient
+    from src.models import CacheConfig
+
+    class RateLimitError(Exception):
+        status_code = 429
+
+    config = LLMConfig(
+        provider="openai",
+        api_key="offline",
+        model="fixed-double",
+        cache=CacheConfig(enabled=False),
+        retry_max_attempts=3,
+        retry_backoff_seconds=0,
+    )
+    with patch("src.llm_client.OpenAI") as sdk:
+        sdk.return_value.chat.completions.create.side_effect = RateLimitError("busy")
+        inner = LLMClient(config)
+        tracker = BudgetTracker(ProblemBudget(max_calls=1))
+        tracker.begin_problem("p1")
+        client = BudgetedLLMClient(inner, tracker)
+        with pytest.raises(RuntimeError, match="busy"):
+            client.generate("prompt")
+        assert tracker.ledger["p1"]["calls"] == 1
+        with pytest.raises(BudgetExhausted):
+            client.generate("prompt")
+        assert sdk.return_value.chat.completions.create.call_count == 3
+
+
+@pytest.mark.parametrize("max_calls", [1, 2])
+def test_self_consistency_stops_after_provider_failure(tmp_path, max_calls):
+    dataset = _offline_dataset(tmp_path, WRONG_BUDGET_SOLUTION)
+    harness, tracker = _budget_harness(
+        tmp_path,
+        dataset,
+        ProblemBudget(max_calls=max_calls),
+        strategies=[{"name": "self_consistency", "custom_params": {"num_candidates": 5}}],
+    )
+    inner = MagicMock()
+    inner.generate.side_effect = (
+        RuntimeError("provider failure")
+        if max_calls == 1
+        else [_response(), RuntimeError("provider failure")]
+    )
+    with patch("src.harness.LLMClient", return_value=inner):
+        harness.run()
+    result = harness.get_results("self_consistency")[0]
+    assert inner.generate.call_count == max_calls
+    assert len(result.iterations) == max_calls
+    assert result.iterations[-1].llm_error == "provider failure"
+    assert result.status == "budget_exhausted"
+    assert result.failure_category is None
+    assert result.error_message == "budget_exhausted: max_calls"
+    assert tracker.ledger["budget-1"]["calls"] == max_calls
+    assert tracker.ledger["budget-1"]["stop_reason"] == "budget_exhausted: max_calls"
