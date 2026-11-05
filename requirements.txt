@@ -45,7 +45,8 @@ redis>=5.0.0
 
 # LLM providers
 openai>=1.0.0
-anthropic>=0.18.0
+# Anthropic 1.x removed temperature/top_p used by our generation contract.
+anthropic>=0.18.0,<1
 
 # Reporting and analysis
 pandas>=2.0.0

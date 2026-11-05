@@ -95,7 +95,7 @@ class SelfConsistencyStrategy(StrategyBase):
                         if "max_tokens" in self.config.model_fields_set
                         else None
                     ),
-                    custom_params=self.config.custom_params,
+                    custom_params=self._provider_custom_params(),
                 )
                 llm_responses.append(llm_response)
 
