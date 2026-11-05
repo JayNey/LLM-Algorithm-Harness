@@ -7,3 +7,6 @@
 
 ## Risks / Trade-offs
 未来新增内部键需更新过滤清单。用真实 SDK 的本地 transport 测试覆盖三个 provider 路径、三个策略入口、参数优先级与缓存命中/失效；不访问付费模型。
+
+## 验证环境
+真实请求边界使用 OpenAI 3.13.0、Anthropic 0.49.0，所有请求由本地 MockTransport 返回。宿主 Anthropic 1.5.0 已移除 temperature/top_p，与主线现有请求格式不兼容；该独立兼容性问题不在 #348 内，未通过改动生产参数语义规避。测试 transport 兼容两代 HTTP 库。
