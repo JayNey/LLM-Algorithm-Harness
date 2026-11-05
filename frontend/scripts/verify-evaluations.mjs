@@ -393,6 +393,9 @@ async function fixture(
     const headers = {
       'access-control-allow-origin': base,
       'access-control-allow-credentials': 'true',
+      // 真实后端经 expose_headers 暴露 x-csrf-token（api/main.py），fixture 必须复刻，
+      // 否则浏览器对 JS 隐藏该头、刷新轮换的 CSRF 无法被前端记住。
+      'access-control-expose-headers': 'x-csrf-token',
     }
     const send = (data, status = 200) =>
       route.fulfill({ status, headers, json: { data } })
@@ -1536,7 +1539,16 @@ async function authHttpScenario() {
       calls.push(call)
       report.requests.push({ mode: `auth-${outcome}`, ...call })
       const send = (data, status = 200, headers = {}) =>
-        route.fulfill({ status, headers, json: { data } })
+        route.fulfill({
+          status,
+          headers: {
+            'access-control-allow-origin': base,
+            'access-control-allow-credentials': 'true',
+            'access-control-expose-headers': 'x-csrf-token',
+            ...headers,
+          },
+          json: { data },
+        })
       if (path === '/auth/refresh' && call.method === 'POST') {
         refreshes++
         await refreshGate
@@ -1731,7 +1743,10 @@ async function lateIdentityScenario() {
         const name = route.request().postDataJSON().username
         return route.fulfill({
           json: { data: { expires_in: 3600 } },
-          headers: { 'x-csrf-token': `csrf-${name}` },
+          headers: {
+            'x-csrf-token': `csrf-${name}`,
+            'access-control-expose-headers': 'x-csrf-token',
+          },
         })
       }
       if (path === '/users/me') {
@@ -1739,7 +1754,10 @@ async function lateIdentityScenario() {
         if (old) await gate
         return route.fulfill({
           status: old ? status : 200,
-          headers: { 'x-csrf-token': old ? 'csrf-old-user' : 'csrf-new-user' },
+          headers: {
+            'x-csrf-token': old ? 'csrf-old-user' : 'csrf-new-user',
+            'access-control-expose-headers': 'x-csrf-token',
+          },
           json: {
             data: { username: old ? 'old-user' : 'new-user', role: 'user' },
           },
