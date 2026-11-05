@@ -50,13 +50,16 @@ harness experiment --config experiment.json --output-dir ./results/experiments
 
 - `models` / `strategies` / `repeats` 决定组合总数：`模型数 × 策略数 × 重复数`。
 - `api_key` 支持 `env:VAR` 引用，密钥不会进入配置文件或任何结果文件。
-- `budget` 为每题预算（三项均可选）：`max_calls` 限制模型调用次数；`max_tokens` 按已知用量（输入 + 输出，含供应商报告的推理 token）结算；`max_seconds` 为每题墙钟时间。每道题都从全新预算开始。
+- `budget` 为每题预算（三项均可选）：`max_calls` 限制准入的逻辑 `generate` 调用次数（包括失败与缓存命中）；`max_tokens` 按已知用量（输入 + 输出，含供应商报告的推理 token）结算；`max_seconds` 为每题墙钟时间。每道题都从全新预算开始。
 
 ## 预算如何生效
 
 - 每次模型调用前检查预算；预算不足以支付下一次调用时停止该题，结果记录为终态 `budget_exhausted`（不属于失败分类），已完成的轮次轨迹保留可查。
 - 供应商响应缺少 usage 数据时无法结算 token 用量：若实验声明了 `max_tokens`，该组合会被标记 `token_budget_unsupported`，报告明确标注其 token 预算不受支持，不会假装满足严格预算。
 - 达到预算后不再发起新调用，停止原因与实际消耗记录在各组合的 `budget_ledger.json`。
+
+调用名额在进入客户端前扣除，provider 异常不退还名额，成功响应仅结算 token、不重复增加调用数。客户端内部 SDK 重试属于同一次逻辑调用，由 `retry_max_attempts` 和 `retry_max_elapsed_seconds` 单独限制：远程请求次数可能高于 `max_calls`（至多为其与每次调用允许的 attempts 数的乘积），因此此项不是远程请求数或收费金额上限。没有可靠用量的失败请求不虚构 token 或费用。
+
 
 ## 输出与口径
 

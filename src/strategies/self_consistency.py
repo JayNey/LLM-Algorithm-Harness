@@ -9,6 +9,7 @@ import time
 from collections import Counter
 from typing import Any
 
+from src.budget import BudgetExhausted
 from src.models import (
     ExecutionResult,
     IterationResult,
@@ -64,6 +65,7 @@ class SelfConsistencyStrategy(StrategyBase):
         Returns:
             ExecutionResult with all candidate iterations and voting statistics
         """
+        budget_stop = None
         start_time = time.time()
         iterations: list[IterationResult] = []
         llm_responses: list[LLMResponse | None] = []
@@ -136,6 +138,9 @@ class SelfConsistencyStrategy(StrategyBase):
                     tests_passed=sandbox_result.all_passed if sandbox_result else False,
                 )
 
+            except BudgetExhausted as e:
+                budget_stop = str(e)
+                break
             except Exception as e:
                 # Handle LLM API errors
                 llm_error = str(e)
@@ -204,6 +209,8 @@ class SelfConsistencyStrategy(StrategyBase):
             selected_frequency=voting_result["selected_frequency"],
         )
 
+        if budget_stop is not None:
+            execution_result = self.mark_budget_exhausted(execution_result, budget_stop)
         return execution_result
 
     def _vote_on_candidates(self, iterations: list[IterationResult]) -> dict:

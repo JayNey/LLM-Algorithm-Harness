@@ -6,6 +6,10 @@ one tracker per model x strategy x repeat combination and points it at the
 problem being executed; a BudgetedLLMClient wraps the real client so every
 strategy call path is gated without touching strategy code.
 
+Call budgets count admitted logical generate calls, including failures and cache
+hits. Provider/SDK retries stay inside one logical call and are bounded separately
+by the LLM client's retry settings; max_calls is not a remote-attempt or cost cap.
+
 Token budgets settle against known provider usage only. A provider response
 without usage data cannot satisfy a strict token budget, so the combination
 is flagged ``token_budget_unsupported`` instead of pretending enforcement.
@@ -77,18 +81,25 @@ class BudgetTracker:
                 return False
         return True
 
+    def _admit_call(self) -> None:
+        """Consume a logical call before entering the client, even if it fails."""
+        if not self.allow_call():
+            raise BudgetExhausted(self.stop_reason())
+        entry = self._entry()
+        if entry is not None:
+            entry["calls"] += 1
+
     def stop_reason(self) -> str:
         """The recorded stop reason for the current problem."""
         entry = self._entry()
         return entry["stop_reason"] if entry else "budget_exhausted"
 
     def record(self, response: Any) -> None:
-        """Settle one completed model call against the current problem."""
+        """Settle response usage only; admission already counted the logical call."""
         entry = self._entry()
         if entry is None:
             return
         usage = getattr(response, "usage", None)
-        entry["calls"] += 1
         if usage is not None:
             entry["prompt_tokens"] += getattr(usage, "prompt_tokens", 0) or 0
             entry["completion_tokens"] += getattr(usage, "completion_tokens", 0) or 0
@@ -123,8 +134,7 @@ class BudgetedLLMClient:
         self._tracker = tracker
 
     def generate(self, *args: Any, **kwargs: Any) -> Any:
-        if not self._tracker.allow_call():
-            raise BudgetExhausted(self._tracker.stop_reason())
+        self._tracker._admit_call()
         response = self._inner.generate(*args, **kwargs)
         self._tracker.record(response)
         return response
