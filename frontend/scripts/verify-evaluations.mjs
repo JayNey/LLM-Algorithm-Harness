@@ -555,14 +555,56 @@ async function fixture(
         email: 'fixture@example.com',
         created_at: '2026-10-21',
       })
-    // #330 起通知中心在布局挂载时读取持久化通知；fixture 返回空页。
-    if (method === 'GET' && path === '/notifications')
+    // #330 起通知中心在布局挂载时读取持久化通知；entries 场景播种三条
+    // 通知演练通知中心到真实页面的入口，其余场景保持空页。
+    if (method === 'GET' && path === '/notifications') {
+      const items =
+        mode === 'entries'
+          ? [
+              {
+                id: 'n-results',
+                kind: 'task_completed',
+                title_key: '代码生成基线已完成',
+                body_key: '代码生成基线已完成',
+                params: {},
+                created_at: '2026-11-05T00:00:00Z',
+                read: false,
+                href: '/results',
+                resource_available: true,
+              },
+              {
+                id: 'n-budget',
+                kind: 'budget_alert',
+                title_key: '单任务预算使用达 80%',
+                body_key: '单任务预算使用达 80%',
+                params: {},
+                created_at: '2026-11-05T00:05:00Z',
+                read: false,
+                href: '/evaluations',
+                resource_available: true,
+              },
+              {
+                id: 'n-welcome',
+                kind: 'system',
+                title_key: '欢迎使用工作台',
+                body_key: '欢迎使用工作台',
+                params: {},
+                created_at: '2026-11-05T00:10:00Z',
+                read: false,
+                href: '/help',
+                resource_available: true,
+              },
+            ]
+          : []
       return send({
-        items: [],
+        items,
         next_cursor: null,
-        unread_count: 0,
+        unread_count: items.length,
         server_time: new Date().toISOString(),
       })
+    }
+    if (method === 'POST' && /^\/notifications\/[^/]+\/read$/.test(path))
+      return route.fulfill({ status: 204, headers })
     if (method === 'GET' && path === '/api-keys')
       return send(mode === 'empty' ? [] : keys)
     if (method === 'GET' && path === '/evaluation-options')
@@ -3315,26 +3357,29 @@ async function entriesScenario() {
   report.screenshots.push(file)
   await page.goto(`${base}/`)
   await page.getByRole('heading', { name: '仪表盘', exact: true }).waitFor()
+  // #313 起侧栏导入进入题目页的真实导入抽屉（不再有 Mock 弹窗）。
   await page.locator('.side-bottom .import-button').click()
-  await page.getByRole('dialog').waitFor()
-  await check('导入保持明确 Mock 示例', async () => {
-    await page
-      .getByText('题目导入的交互示例，不读取或上传文件。', { exact: true })
-      .waitFor()
+  await page.waitForURL('**/problems**')
+  await page.getByRole('heading', { name: '导入题目（个人题库）' }).waitFor()
+  await check('侧栏导入进入真实导入抽屉', async () => {
+    assert.equal(new URL(page.url()).pathname, '/problems')
+    assert.match(new URL(page.url()).search, /import=1/)
+    await page.getByLabel('题目导入', { exact: true }).waitFor()
+    assert.equal(await page.locator('input[type=file]').count(), 1)
     assert.equal(
-      await page.getByPlaceholder('例如：HumanEval 基线对照').count(),
+      await page.getByText('题目导入的交互示例，不读取或上传文件。').count(),
       0,
     )
   })
-  await page.keyboard.press('Escape')
-  await page.getByRole('dialog').waitFor({ state: 'hidden' })
+  await page.goto(`${base}/`)
+  await page.getByRole('heading', { name: '仪表盘', exact: true }).waitFor()
   await page.getByRole('button', { name: '快速操作', exact: true }).click()
   await page.getByRole('menuitem', { name: '导入题目', exact: true }).click()
-  await page
-    .getByText('题目导入的交互示例，不读取或上传文件。', { exact: true })
-    .waitFor()
-  await page.keyboard.press('Escape')
-  await page.getByRole('dialog').waitFor({ state: 'hidden' })
+  await page.waitForURL('**/problems**')
+  await page.getByRole('heading', { name: '导入题目（个人题库）' }).waitFor()
+  await check('快速操作导入项进入同一真实抽屉', () =>
+    assert.match(new URL(page.url()).search, /import=1/),
+  )
   const stabilize = async () => {
     // 真实列表页挂载后会重写查询参数并更换 location.key；
     // 通知抽屉依赖 location.key 判定开合，需等 URL 稳定后再交互。
@@ -3346,6 +3391,7 @@ async function entriesScenario() {
     }
   }
   const follow = async (item, path, entryName) => {
+    await stabilize()
     await page.getByRole('button', { name: /通知中心/ }).click()
     await page.getByRole('button', { name: new RegExp(item) }).click()
     await page.waitForURL(`**${path}`)
@@ -3383,7 +3429,15 @@ async function entriesScenario() {
     )
   })
   await check('入口遍历未提交创建或启动请求', () =>
-    assert.equal(calls.filter((call) => call.method === 'POST').length, 0),
+    assert.deepEqual(
+      calls
+        .filter(
+          (call) =>
+            call.method === 'POST' && !call.path.startsWith('/notifications'),
+        )
+        .map((call) => call.path),
+      [],
+    ),
   )
   await check('entries 场景无页面异常', () => assert.deepEqual(errors, []))
 }
