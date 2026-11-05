@@ -538,9 +538,7 @@ class TestSolutionExtraction:
         result = tot_strategy._extract_best_solution(nodes, [], sample_problem, elapsed_time=1.0)
 
         assert result.success is True
-        # generated_code comes from the last iteration's code_extracted
-        # Since we have no iterations, it will be empty
-        # But we can verify the best node was selected by checking sandbox was called with correct code
+        assert result.generated_code == "code2"
         tot_strategy.sandbox.execute.assert_called_once()
         call_args = tot_strategy.sandbox.execute.call_args
         assert call_args[0][0] == "code2"  # First positional arg is the code
@@ -579,6 +577,7 @@ class TestSolutionExtraction:
 
         result = tot_strategy._extract_best_solution(nodes, [], sample_problem, elapsed_time=1.0)
 
+        assert result.generated_code == best_code
         # Verify the best node's code was used for execution
         tot_strategy.sandbox.execute.assert_called_once()
         call_args = tot_strategy.sandbox.execute.call_args
@@ -646,3 +645,152 @@ def solution(): return 1
 
         # Should still return a result (possibly with no valid solution)
         assert isinstance(result, ExecutionResult)
+
+
+class TestSelectedCodeContract:
+    @pytest.mark.parametrize("search_strategy", ["bfs", "dfs"])
+    @pytest.mark.parametrize("max_depth", [1, 3])
+    @pytest.mark.parametrize("reverse", [False, True])
+    def test_result_keeps_best_leaf_across_traversals(
+        self, tot_strategy, sample_problem, search_strategy, max_depth, reverse
+    ):
+        """The last expanded parent must never replace the selected leaf code."""
+        tot_strategy.search_strategy = search_strategy
+        tot_strategy.max_depth = max_depth
+        best_code = "def solution(): return 42"
+
+        def branches(node, problem):
+            if node.depth == 0:
+                children = [
+                    ThoughtNode(1, "best", best_code if max_depth == 1 else "parent-best", 0.9),
+                    ThoughtNode(1, "other", "parent-other", 0.5),
+                ]
+                return list(reversed(children)) if reverse else children
+            return [
+                ThoughtNode(
+                    node.depth + 1,
+                    node.thought,
+                    best_code if node.thought == "best" else "other-leaf",
+                    node.quality_score,
+                )
+            ]
+
+        tot_strategy.generate_branches = branches
+        tot_strategy.evaluate_node = lambda node, problem: node.quality_score
+        result = tot_strategy.execute(sample_problem)
+
+        assert result.success
+        assert result.generated_code == best_code
+        assert tot_strategy.sandbox.execute.call_args.args[0] == best_code
+
+    @pytest.mark.parametrize("mode", ["empty", "pruned", "blank"])
+    def test_no_usable_leaf_is_extraction_failure(self, tot_strategy, sample_problem, mode):
+        """An empty root or whitespace leaf cannot become a successful result."""
+        tot_strategy.max_depth = 1
+        tot_strategy.generate_branches = lambda node, problem: (
+            []
+            if mode == "empty"
+            else [
+                ThoughtNode(
+                    1,
+                    "candidate",
+                    " \n\t" if mode == "blank" else "pass",
+                    0.1 if mode == "pruned" else 0.9,
+                )
+            ]
+        )
+        tot_strategy.evaluate_node = lambda node, problem: node.quality_score
+        result = tot_strategy.execute(sample_problem)
+
+        assert not result.success
+        assert result.generated_code == ""
+        assert result.failure_category == "code_extraction_failed"
+        tot_strategy.sandbox.execute.assert_not_called()
+
+    def test_empty_high_score_does_not_hide_usable_leaf(self, tot_strategy, sample_problem):
+        nodes = [ThoughtNode(1, "empty", "", 1.0), ThoughtNode(1, "valid", "pass", 0.7)]
+        result = tot_strategy._extract_best_solution(nodes, [], sample_problem, 0.1)
+        assert result.success
+        assert result.generated_code == "pass"
+
+    def test_no_leaf_does_not_return_historical_parent(self, tot_strategy, sample_problem):
+        from src.models import IterationResult
+
+        result = tot_strategy._extract_best_solution(
+            [], [IterationResult(iteration=1, code_extracted="stale parent")], sample_problem, 0.1
+        )
+        assert not result.success
+        assert result.generated_code == ""
+        assert result.failure_category == "code_extraction_failed"
+
+    @pytest.mark.parametrize("outcome", ["wrong_answer", "exception"])
+    def test_public_failure_preserves_selected_code(self, tot_strategy, sample_problem, outcome):
+        if outcome == "exception":
+            tot_strategy.sandbox.execute.side_effect = RuntimeError("sandbox unavailable")
+        else:
+            tot_strategy.sandbox.execute.return_value = SandboxResult(
+                status="failed", all_passed=False
+            )
+        result = tot_strategy._extract_best_solution(
+            [ThoughtNode(1, "selected", "def solution(): return 42", 0.9)], [], sample_problem, 0.1
+        )
+        assert not result.success
+        assert result.generated_code == "def solution(): return 42"
+        if outcome == "wrong_answer":
+            assert result.final_result.status == "failed"
+
+    @pytest.mark.parametrize("hidden_passed", [True, False])
+    def test_harness_evaluates_selected_leaf_on_hidden(
+        self, mock_config, mock_llm_client, mock_sandbox, hidden_passed
+    ):
+        """Real strategy output must reach the Harness hidden gate with its code."""
+        from src.harness import AlgorithmHarness
+        from src.models import CacheConfig, HarnessConfig, LLMConfig
+
+        code = "def solution(x):\n    return x"
+        mock_llm_client.generate.side_effect = [
+            mock_llm_response(
+                f"=== Approach 1 ===\nReasoning: identity\nCode:\n```python\n{code}\n```"
+            ),
+            mock_llm_response("0.9"),
+        ]
+        public = SandboxResult(status="success", all_passed=True)
+        hidden = SandboxResult(
+            status="success" if hidden_passed else "failed", all_passed=hidden_passed
+        )
+        mock_sandbox.execute.side_effect = [public, hidden]
+        strategy = TreeOfThoughtsStrategy(
+            mock_config, mock_llm_client, mock_sandbox, max_depth=1, branching_factor=1
+        )
+        problem = Problem(
+            problem_id="selected-hidden",
+            title="Identity",
+            description="Return input",
+            difficulty="easy",
+            public_test_cases=[{"input": {"x": 1}, "expected_output": 1}],
+            hidden_test_cases=[{"input": {"x": 2}, "expected_output": 2}],
+        )
+        harness = AlgorithmHarness(
+            HarnessConfig(
+                dataset_path="unused",
+                llm_config=LLMConfig(
+                    provider="openai",
+                    api_key="test-key",
+                    model="gpt-4",
+                    cache=CacheConfig(enabled=False),
+                ),
+            )
+        )
+        result = harness._execute_problem(mock_config, problem, strategy, mock_sandbox)
+
+        assert result.generated_code == code
+        assert result.final_result is public
+        assert result.hidden_result is hidden
+        assert result.success is hidden_passed
+        assert [call.kwargs["stage"] for call in mock_sandbox.execute.call_args_list] == [
+            "public",
+            "hidden",
+        ]
+        assert all(call.args[0] == code for call in mock_sandbox.execute.call_args_list)
+        if not hidden_passed:
+            assert result.failure_category == "wrong_answer"

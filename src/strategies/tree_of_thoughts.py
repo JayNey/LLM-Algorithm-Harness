@@ -524,11 +524,13 @@ Example: 0.75
         """
         # Find leaf nodes (nodes with no children or at max depth)
         leaf_nodes = [
-            node for node in all_nodes if not node.children or node.depth >= self.max_depth
+            node
+            for node in all_nodes
+            if (not node.children or node.depth >= self.max_depth) and node.code_snippet.strip()
         ]
 
         if not leaf_nodes:
-            return self.create_execution_result(
+            result = self.create_execution_result(
                 problem=problem,
                 iterations=iterations,
                 final_result=None,
@@ -537,6 +539,9 @@ Example: 0.75
                 failure_category="code_extraction_failed",
                 execution_time_seconds=elapsed_time,
             )
+            # Exploration history may contain a parent that was never selected.
+            result.generated_code = ""
+            return result
 
         # Find the leaf with highest quality score
         best_leaf = max(leaf_nodes, key=lambda n: n.quality_score)
@@ -570,7 +575,7 @@ Example: 0.75
             except Exception as e:
                 self.logger.error("sandbox_execution_failed", error=str(e))
 
-        return self.create_execution_result(
+        result = self.create_execution_result(
             problem=problem,
             iterations=iterations,
             final_result=sandbox_result,
@@ -578,3 +583,7 @@ Example: 0.75
             llm_responses=[],
             execution_time_seconds=elapsed_time,
         )
+        # The last expanded parent is not necessarily the selected solution.
+        # Preserve the exact code tested above for saving and hidden evaluation.
+        result.generated_code = best_leaf.code_snippet
+        return result
