@@ -32,7 +32,8 @@ dependencies = [
     "psutil>=5.9.0",
     "click>=8.1.0",
     "openai>=1.0.0",
-    "anthropic>=0.18.0",
+    # Anthropic 1.x removed temperature/top_p used by our generation contract.
+    "anthropic>=0.18.0,<1",
     "RestrictedPython>=6.0",
     "numpy>=1.24.0",
     "scipy>=1.10.0",

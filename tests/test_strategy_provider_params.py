@@ -6,7 +6,6 @@ from unittest.mock import Mock
 import httpx
 import pytest
 from anthropic import Anthropic
-from anthropic import _base_client as anthropic_transport
 from openai import OpenAI
 
 from src.cache import LLMResponseCache
@@ -37,8 +36,6 @@ CODE = "```python\ndef solution(nums, target):\n    return [0, 1]\n```"
 @pytest.fixture(params=["openai", "local", "anthropic"])
 def boundary(request):
     provider = request.param
-    # Anthropic 1.x uses httpx2; older supported releases use httpx.
-    transport = getattr(anthropic_transport, "httpx2", httpx) if provider == "anthropic" else httpx
     bodies = []
     answers = []
 
@@ -71,7 +68,7 @@ def boundary(request):
                 ],
                 "usage": {"prompt_tokens": 10, "completion_tokens": 5, "total_tokens": 15},
             }
-        return transport.Response(200, json=payload)
+        return httpx.Response(200, json=payload)
 
     client = LLMClient(
         LLMConfig(
@@ -91,7 +88,7 @@ def boundary(request):
         api_key="fake-boundary-key",
         base_url="https://boundary.invalid/v1",
         max_retries=0,
-        http_client=transport.Client(transport=transport.MockTransport(respond)),
+        http_client=httpx.Client(transport=httpx.MockTransport(respond)),
     )
     yield client, bodies, answers
     client.client.close()

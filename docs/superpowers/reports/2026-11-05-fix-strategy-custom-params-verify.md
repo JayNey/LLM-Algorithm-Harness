@@ -46,3 +46,16 @@ OpenSpec apply 状态为 all_done（2/2 tasks）。恢复后重新运行 12 项�
 ## 归档交付选择
 
 用户已明确选择 C：确认归档、立即推送当前绑定分支并创建关联 #348 的 PR。
+
+## PR #355 CI 修复补充
+
+CI run 41973021457 的 Ubuntu/macOS 测试均显示相同四项 Anthropic 请求边界失败：`Messages.create() got an unexpected keyword argument 'temperature'`。根因是依赖仅声明下限，CI 安装 Anthropic 1.5.0；此前临时使用 0.49 验证没有约束实际项目安装，验证环境与 CI 不一致。
+
+在当前 PR 内同步将 pyproject.toml 与 requirements.txt 约束为 `anthropic>=0.18.0,<1`，保持现有采样参数契约。未跳过 Anthropic 测试或吞掉参数；移除测试对 SDK 私有 HTTP 模块的适配，直接使用受支持 0.x 系列的 httpx MockTransport。
+
+- RED：宿主 Anthropic 1.5.0 上四项真实 SDK 测试均复现失败。
+- GREEN：将兼容范围升级到最新 Anthropic 0.125.0，策略/provider/缓存相关 161 项测试通过（包含全部 12 项请求边界回归）。
+- Black、Ruff、git diff --check 通过。
+- 从修改后的项目元数据执行 uv 依赖解析，确认 Anthropic 1.x 不会被选中。
+
+此前“未修改项目依赖”的描述仅对应最初实现；本次 CI 修复已补上兼容范围约束。完整跨平台结果以推送后 GitHub Actions 新运行记录为准。
