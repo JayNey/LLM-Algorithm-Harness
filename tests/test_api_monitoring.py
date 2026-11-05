@@ -378,11 +378,11 @@ def test_store_survives_restart_with_same_identity_scope(api):
             second.get("/api/v1/system/tasks/queued", headers=headers(admin)).json()["data"][
                 "total"
             ]
-            == 0
+            == 1
         )
         overview = second.get("/api/v1/system/status", headers=headers(admin)).json()["data"]
         assert overview["task_source"] == "persisted_business_evaluations"
-        assert overview["task_count"] == 1 and overview["task_counts"] == {"failed": 1}
+        assert overview["task_count"] == 1 and overview["task_counts"] == {"pending": 1}
 
 
 def test_quotas_are_available_only_for_current_user_and_real_cache_is_opt_in(api):

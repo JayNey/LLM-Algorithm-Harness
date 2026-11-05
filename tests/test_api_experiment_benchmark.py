@@ -406,7 +406,8 @@ class TestExperiments:
             == 204
         )
 
-    def test_restart_marks_pending_experiment_failed(self, tmp_path):
+    @pytest.mark.parametrize("status", ["pending", "running"])
+    def test_restart_preserves_drafts_and_fails_orphaned_experiment(self, tmp_path, status):
         app = create_app(
             auth_config(tmp_path),
             FileSettings(_env_file=None, UPLOAD_DIR=tmp_path / "uploads"),
@@ -431,6 +432,9 @@ class TestExperiments:
             experiment_id = client.post(
                 "/api/v1/experiments", headers=headers, json=_experiment_payload(key_id)
             ).json()["data"]["id"]
+            if status == "running":
+                with app.state.task_session_factory() as session, session.begin():
+                    session.get(Experiment, experiment_id).status = "running"
 
         revived = create_app(
             auth_config_data,
@@ -445,8 +449,22 @@ class TestExperiments:
             data = client.get(f"/api/v1/experiments/{experiment_id}", headers=headers).json()[
                 "data"
             ]
-            assert data["status"] == "failed"
-            assert data["error_message"] == RESTART_REASON
+            if status == "running":
+                assert data["status"] == "failed"
+                assert data["error_message"] == RESTART_REASON
+            else:
+                assert data["status"] == "pending"
+                assert data["error_message"] is None
+                with patch("src.task_manager.celery_app.send_task") as publish:
+                    started = client.post(
+                        f"/api/v1/experiments/{experiment_id}/run", headers=headers
+                    )
+                    assert started.status_code == 202, started.text
+                    repeated = client.post(
+                        f"/api/v1/experiments/{experiment_id}/run", headers=headers
+                    )
+                    assert repeated.status_code == 400, repeated.text
+                assert publish.call_count == 1
 
     def test_restart_keeps_queued_experiment_pending(self, tmp_path):
         app = create_app(
