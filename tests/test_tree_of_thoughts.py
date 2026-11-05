@@ -794,3 +794,171 @@ class TestSelectedCodeContract:
         assert all(call.args[0] == code for call in mock_sandbox.execute.call_args_list)
         if not hidden_passed:
             assert result.failure_category == "wrong_answer"
+
+
+class TestCallAccounting:
+    """Account calls, rather than generated or retained tree nodes (#349)."""
+
+    @staticmethod
+    def branch_text(count=1):
+        return "\n".join(
+            f"=== Approach {i + 1} ===\nReasoning: identity\nCode:\n"
+            "```python\ndef solution(x):\n    return x\n```"
+            for i in range(count)
+        )
+
+    @staticmethod
+    def priced(text, cost=0.01):
+        response = mock_llm_response(text)
+        response.pricing_metadata = {"total_cost": cost, "usage_known": True, "pricing_known": True}
+        return response
+
+    def test_two_calls_settle_and_match_experiment_ledger(self, tot_strategy, sample_problem):
+        from decimal import Decimal
+
+        from src.budget import BudgetedLLMClient, BudgetTracker
+        from src.cost_strategy import RunCostMonitor, result_cost
+
+        tot_strategy.max_depth = 1
+        responses = [self.priced(self.branch_text()), self.priced("0.9")]
+        tot_strategy.llm_client.generate.side_effect = responses
+        tracker = BudgetTracker()
+        tracker.begin_problem(sample_problem.problem_id)
+        tot_strategy.llm_client = BudgetedLLMClient(tot_strategy.llm_client, tracker)
+        result = tot_strategy.execute(sample_problem)
+        assert result.total_tokens == 300
+        assert result.total_tokens == tracker.ledger[sample_problem.problem_id]["total_tokens"]
+        assert len(result.llm_traces) == 2
+        assert [t["response_text"] for t in result.llm_traces] == [r.text for r in responses]
+        assert [t["call_type"] for t in result.llm_traces] == [
+            "branch_generation",
+            "node_evaluation",
+        ]
+        assert [t["node_depth"] for t in result.llm_traces] == [0, 1]
+        assert result_cost(result) == (Decimal("0.02"), False)
+        from src.harness import AlgorithmHarness
+
+        summary_cost, summary = AlgorithmHarness._estimate_cost(None, [result])
+        assert summary_cost == pytest.approx(0.02)
+        assert summary["total_tokens"] == 300
+        assert not summary["unknown_usage"]
+        monitor = RunCostMonitor(0.01)
+        monitor.add_result(result)
+        assert monitor.over_cap
+
+    @pytest.mark.parametrize("search", ["bfs", "dfs"])
+    def test_multilevel_pruning_keeps_every_call(self, tot_strategy, sample_problem, search):
+        from decimal import Decimal
+
+        from src.cost_strategy import result_cost
+
+        tot_strategy.search_strategy = search
+        tot_strategy.llm_client.generate.side_effect = [
+            self.priced(self.branch_text(2)),
+            self.priced("0.1"),
+            self.priced("0.9"),
+            self.priced(self.branch_text(2)),
+            self.priced("0.8"),
+            self.priced("0.9"),
+        ]
+        result = tot_strategy.execute(sample_problem)
+        assert result.total_tokens == 900
+        assert len(result.llm_traces) == 6
+        assert result_cost(result) == (Decimal("0.06"), False)
+        assert [t["node_depth"] for t in result.llm_traces] == [0, 1, 1, 1, 2, 2]
+
+    @pytest.mark.parametrize("text", ["no code", branch_text(2)])
+    def test_empty_or_pruned_search_retains_cost(self, tot_strategy, sample_problem, text):
+        tot_strategy.max_depth = 1
+        tot_strategy.llm_client.generate.side_effect = [
+            self.priced(text),
+            self.priced("0.1"),
+            self.priced("0.1"),
+        ]
+        result = tot_strategy.execute(sample_problem)
+        calls = tot_strategy.llm_client.generate.call_count
+        assert not result.success
+        assert len(result.llm_traces) == calls
+        assert result.total_tokens == 150 * calls
+
+    def test_budget_rejection_is_not_a_call(self, tot_strategy, sample_problem):
+        from src.budget import BudgetedLLMClient, BudgetTracker
+        from src.models import ProblemBudget
+
+        tracker = BudgetTracker(ProblemBudget(max_calls=1))
+        tracker.begin_problem(sample_problem.problem_id)
+        inner = tot_strategy.llm_client
+        inner.generate.return_value = self.priced(self.branch_text())
+        tot_strategy.llm_client = BudgetedLLMClient(inner, tracker)
+        result = tot_strategy.execute(sample_problem)
+        assert result.status == "budget_exhausted"
+        assert result.total_tokens == 150
+        assert len(result.llm_traces) == inner.generate.call_count == 1
+
+    @pytest.mark.parametrize("failure_at", [0, 1, 2])
+    def test_model_failure_preserves_prior_calls(self, tot_strategy, sample_problem, failure_at):
+        from src.cost_strategy import result_cost
+
+        tot_strategy.max_depth = 1 if failure_at < 2 else 2
+        tot_strategy.llm_client.generate.side_effect = [
+            self.priced(self.branch_text()),
+            self.priced("0.9"),
+        ][:failure_at] + [RuntimeError("provider unavailable")]
+        result = tot_strategy.execute(sample_problem)
+        if failure_at == 0:
+            assert result.failure_category == "model_error"
+        assert result.total_tokens == failure_at * 150
+        assert len(result.llm_traces) == failure_at + 1
+        assert result.llm_traces[-1]["llm_error"] == "provider unavailable"
+        assert result.llm_traces[-1]["usage_missing"]
+        assert result_cost(result)[1]
+
+    @pytest.mark.parametrize("mode", ["missing_usage", "unknown_price", "zero_price"])
+    def test_unknown_and_zero_semantics(self, tot_strategy, sample_problem, mode):
+        from decimal import Decimal
+
+        from src.cost_strategy import result_cost
+
+        tot_strategy.max_depth = 1
+        response = self.priced(self.branch_text(), cost=0)
+        if mode == "missing_usage":
+            response.usage = TokenUsage(prompt_tokens=0, completion_tokens=0, total_tokens=0)
+            response.usage_missing = True
+            response.pricing_metadata = {"total_cost": None, "usage_known": False}
+        elif mode == "unknown_price":
+            response.pricing_metadata = None
+        tot_strategy.llm_client.generate.side_effect = [response, self.priced("0.9", cost=0)]
+        result = tot_strategy.execute(sample_problem)
+        assert result_cost(result) == (Decimal("0"), mode != "zero_price")
+        assert result.llm_traces[0]["usage_missing"] == (mode == "missing_usage")
+
+    def test_strategy_reuse_does_not_carry_cost(self, tot_strategy, sample_problem):
+        tot_strategy.max_depth = 1
+        tot_strategy.llm_client.generate.side_effect = [
+            self.priced(self.branch_text()),
+            self.priced("0.9"),
+            self.priced(self.branch_text()),
+            self.priced("0.8"),
+        ]
+        first = tot_strategy.execute(sample_problem)
+        second = tot_strategy.execute(sample_problem)
+        assert first.total_tokens == second.total_tokens == 300
+        assert len(first.llm_traces) == len(second.llm_traces) == 2
+
+    def test_invalid_score_still_retains_response(self, tot_strategy, sample_problem):
+        tot_strategy.max_depth = 1
+        tot_strategy.llm_client.generate.side_effect = [
+            self.priced(self.branch_text()),
+            self.priced("not a score"),
+        ]
+        result = tot_strategy.execute(sample_problem)
+        assert result.total_tokens == 300
+        assert result.llm_traces[1]["response_text"] == "not a score"
+        assert result.success
+
+    def test_budget_before_any_call_has_no_usage(self, tot_strategy, sample_problem):
+        tot_strategy.generate = Mock(side_effect=BudgetExhausted("limit"))
+        result = tot_strategy.execute(sample_problem)
+        assert result.status == "budget_exhausted"
+        assert result.total_tokens == 0
+        assert result.llm_traces == []

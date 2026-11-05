@@ -9,7 +9,7 @@ from dataclasses import dataclass, field
 from typing import TYPE_CHECKING, Literal
 
 from src.budget import BudgetExhausted
-from src.models import ExecutionResult, IterationResult, Problem, StrategyConfig
+from src.models import ExecutionResult, IterationResult, LLMResponse, Problem, StrategyConfig
 from src.strategy_base import StrategyBase
 from src.utils.logging import get_logger
 
@@ -91,6 +91,42 @@ class TreeOfThoughtsStrategy(StrategyBase):
         self.max_depth = max_depth
         self.search_strategy = search_strategy
         self.pruning_threshold = pruning_threshold
+        self._call_iterations: list[IterationResult] = []
+        self._call_responses: list[LLMResponse | None] = []
+        self._call_context: list[tuple[str, int]] = []
+        self._budget_stop: str | None = None
+
+    def _generate_recorded(self, prompt: str, node: ThoughtNode, call_type: str) -> LLMResponse:
+        """Keep one record per attempted model call, independent of tree nodes."""
+        started = time.perf_counter()
+        response = None
+        error = None
+        try:
+            response = self.generate(prompt)
+            return response
+        except BudgetExhausted as exc:
+            # The budget gate rejected the call before reaching the provider.
+            self._budget_stop = str(exc)
+            raise
+        except Exception as exc:
+            error = str(exc)
+            raise
+        finally:
+            if response is not None or error is not None:
+                iteration = self.create_iteration_result(
+                    iteration=len(self._call_iterations) + 1,
+                    llm_response=response,
+                    code=node.code_snippet,
+                    sandbox_result=None,
+                    prompt=prompt,
+                    llm_error=error,
+                    elapsed_seconds=time.perf_counter() - started,
+                )
+                if response is None:
+                    iteration.usage_missing = True
+                self._call_iterations.append(iteration)
+                self._call_responses.append(response)
+                self._call_context.append((call_type, node.depth))
 
     def execute(self, problem: Problem) -> ExecutionResult:
         """
@@ -162,8 +198,7 @@ class TreeOfThoughtsStrategy(StrategyBase):
         prompt = self._build_branch_generation_prompt(node, problem)
 
         try:
-            self._before_generate(prompt)
-            llm_response = self.generate(prompt)
+            llm_response = self._generate_recorded(prompt, node, "branch_generation")
         except BudgetExhausted:
             self.logger.warning("budget_exhausted_during_branch_generation")
             return []
@@ -318,7 +353,7 @@ Code:
         prompt = self._build_evaluation_prompt(node, problem)
 
         try:
-            llm_response = self.generate(prompt)
+            llm_response = self._generate_recorded(prompt, node, "node_evaluation")
             score = self._parse_quality_score(llm_response.text)
         except BudgetExhausted:
             self.logger.warning("budget_exhausted_during_evaluation")
@@ -435,7 +470,12 @@ Example: 0.75
             ExecutionResult with the best solution found
         """
         start_time = time.perf_counter()
-        iterations = []
+        # A strategy instance may solve several problems sequentially.
+        self._call_iterations = []
+        self._call_responses = []
+        self._call_context = []
+        self._budget_stop = None
+        iterations = self._call_iterations
         all_nodes = [root]
 
         # Initialize search queue/stack
@@ -463,15 +503,25 @@ Example: 0.75
                     continue
 
                 # Generate branches
-                iteration_start = time.perf_counter()
-                branches = self.generate_branches(current, problem)
+                try:
+                    branches = self.generate_branches(current, problem)
+                except BudgetExhausted as exc:
+                    self._budget_stop = str(exc)
+                    break
+                except Exception as exc:
+                    self.logger.warning("branch_generation_failed", error=str(exc))
+                    break
 
                 if not branches:
+                    if self._budget_stop is not None:
+                        break
                     continue
 
                 # Evaluate each branch
                 for branch in branches:
                     branch.quality_score = self.evaluate_node(branch, problem)
+                    if self._budget_stop is not None:
+                        break
 
                 # Prune low-quality branches
                 kept_branches = self.prune_branches(branches)
@@ -486,22 +536,24 @@ Example: 0.75
                 else:
                     stack.extend(reversed(kept_branches))  # Reverse for DFS order
 
-                # Record iteration
-                iteration_elapsed = time.perf_counter() - iteration_start
-                iteration = IterationResult(
-                    iteration=nodes_explored,
-                    code_extracted=current.code_snippet,
-                )
-                iterations.append(iteration)
+                if self._budget_stop is not None:
+                    break
 
         except BudgetExhausted as e:
+            self._budget_stop = str(e)
             self.logger.warning("budget_exhausted_during_search", nodes_explored=nodes_explored)
             # Continue to extract best solution from explored nodes
 
         elapsed_time = time.perf_counter() - start_time
 
         # Extract best solution from all explored nodes
-        return self._extract_best_solution(all_nodes, iterations, problem, elapsed_time)
+        result = self._extract_best_solution(all_nodes, iterations, problem, elapsed_time)
+        for trace, (call_type, depth) in zip(result.llm_traces, self._call_context):
+            trace["call_type"] = call_type
+            trace["node_depth"] = depth
+        if self._budget_stop is not None:
+            result = self.mark_budget_exhausted(result, self._budget_stop)
+        return result
 
     def _extract_best_solution(
         self,
@@ -535,8 +587,12 @@ Example: 0.75
                 iterations=iterations,
                 final_result=None,
                 success=False,
-                llm_responses=[],
-                failure_category="code_extraction_failed",
+                llm_responses=self._call_responses,
+                failure_category=(
+                    "model_error"
+                    if iterations and iterations[-1].llm_error
+                    else "code_extraction_failed"
+                ),
                 execution_time_seconds=elapsed_time,
             )
             # Exploration history may contain a parent that was never selected.
@@ -580,7 +636,7 @@ Example: 0.75
             iterations=iterations,
             final_result=sandbox_result,
             success=success,
-            llm_responses=[],
+            llm_responses=self._call_responses,
             execution_time_seconds=elapsed_time,
         )
         # The last expanded parent is not necessarily the selected solution.
