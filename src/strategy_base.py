@@ -4,6 +4,7 @@ Base strategy interface and common utilities.
 
 import re
 from abc import ABC, abstractmethod
+from collections.abc import Sequence
 from typing import Any, Literal
 
 from src.llm_client import LLMClient
@@ -473,7 +474,7 @@ Your response should include the code in a ```python code block.
         iterations: list,
         final_result: SandboxResult | None,
         success: bool,
-        llm_responses: list[LLMResponse] | None = None,
+        llm_responses: Sequence[LLMResponse | None] | None = None,
         failure_category: (
             Literal[
                 "wrong_answer",
