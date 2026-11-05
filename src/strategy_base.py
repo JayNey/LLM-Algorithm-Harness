@@ -4,7 +4,7 @@ Base strategy interface and common utilities.
 
 import re
 from abc import ABC, abstractmethod
-from typing import Literal
+from typing import Any, Literal
 
 from src.llm_client import LLMClient
 from src.models import (
@@ -83,6 +83,24 @@ class StrategyBase(ABC):
         """
         pass
 
+    def _provider_custom_params(self) -> dict[str, Any]:
+        """Separate built-in strategy controls from provider generation options.
+
+        Keep the original config intact: strategies still consume these controls.
+        Filter before LLMClient resolves parameters and constructs its cache key.
+        """
+        controls = {
+            "num_candidates",
+            "num_examples",
+            "similarity_metric",
+            "min_similarity_score",
+            "example_source",
+            "reflection_context_chars",
+        }
+        return {
+            key: value for key, value in self.config.custom_params.items() if key not in controls
+        }
+
     def generate(self, prompt: str) -> LLMResponse:
         """Generate with this strategy's parameters applied consistently."""
         # Trigger debug hook before LLM call
@@ -102,7 +120,7 @@ class StrategyBase(ABC):
             system_prompt=self.config.system_prompt,
             temperature=temperature,
             max_tokens=max_tokens,
-            custom_params=self.config.custom_params,
+            custom_params=self._provider_custom_params(),
         )
 
     @abstractmethod

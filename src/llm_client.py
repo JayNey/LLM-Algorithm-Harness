@@ -706,6 +706,8 @@ class LLMClient:
             "messages": [{"role": "user", "content": prompt}],
         }
 
+        if effective.get("extra_body"):
+            kwargs["extra_body"] = effective["extra_body"]
         if effective.get("system_prompt"):
             kwargs["system"] = effective["system_prompt"]
         for key, value in effective.items():
