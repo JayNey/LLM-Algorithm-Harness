@@ -1,0 +1,9 @@
+{
+  "action": "pr",
+  "targetBranch": "fix/365-capability-heatmap",
+  "remote": "origin",
+  "schemaVersion": 1,
+  "changeIdentity": "run:17bf892f-2590-4734-b13a-7c3843baa9dc",
+  "authorizationId": "65858d92-6082-4267-a037-708a42742906",
+  "authorizedRemoteUrl": "https://github.com/JayNey/LLM-Algorithm-Harness.git"
+}
