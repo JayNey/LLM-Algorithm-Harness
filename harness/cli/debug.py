@@ -112,8 +112,8 @@ def run_debug_command(args: argparse.Namespace) -> int:
             print(f"Available strategies: {', '.join(AlgorithmHarness.STRATEGY_MAP.keys())}")
             return 1
 
-        # Create base strategy - instantiate concrete class
-        base_strategy = strategy_class(strategy_config, llm_client, sandbox)
+        # The registry contains concrete implementations of StrategyBase.
+        base_strategy = strategy_class(strategy_config, llm_client, sandbox)  # type: ignore[abstract]
 
         wrapped_strategy = DebugStrategyWrapper(
             wrapped_strategy=base_strategy,
