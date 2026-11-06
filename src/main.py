@@ -2072,14 +2072,29 @@ def main() -> None:
                                         unchanged=len(unchanged_ids),
                                     )
 
-                                if unchanged_ids and not historical_results:
+                                result_groups = (
+                                    ["cost_aware"]
+                                    if config.difficulty_strategy
+                                    else [strategy.name for strategy in config.strategies]
+                                )
+                                incomplete_groups = []
+                                for group in result_groups:
+                                    rows = historical_results.get(group, [])
+                                    if (
+                                        len(rows) != len(unchanged_ids)
+                                        or {row.problem_id for row in rows} != unchanged_ids
+                                    ):
+                                        incomplete_groups.append(group)
+
+                                if incomplete_groups:
                                     print(
-                                        "⚠️  Historical results could not be loaded; "
+                                        "⚠️  Historical results are missing or incomplete; "
                                         "falling back to full evaluation"
                                     )
                                     logger.warning(
                                         "incremental_mode_skipped",
-                                        reason="historical_results_unavailable",
+                                        reason="historical_results_incomplete",
+                                        groups=incomplete_groups,
                                     )
                                     # Keep current_fingerprint: the fallback full
                                     # run is recorded below so future runs can

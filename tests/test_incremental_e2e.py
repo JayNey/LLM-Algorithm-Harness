@@ -8,6 +8,7 @@ with real (non-placeholder) metrics.
 """
 
 import json
+from pathlib import Path
 from unittest.mock import MagicMock, patch
 
 import pytest
@@ -87,9 +88,14 @@ def sandboxed(monkeypatch):
 
 
 class TestIncrementalEndToEnd:
-    def test_second_run_evaluates_only_changed_and_merges(self, tmp_path, capsys):
+    @pytest.mark.parametrize("report_name", ["vanilla", "cost_aware"])
+    def test_second_run_evaluates_only_changed_and_merges(self, tmp_path, capsys, report_name):
         dataset = _dataset(tmp_path, ["p1", "p2", "p3"])
         config_path = _config_file(tmp_path, dataset)
+        if report_name == "cost_aware":
+            config = json.loads(config_path.read_text(encoding="utf-8"))
+            config["difficulty_strategy"] = {"easy": "vanilla"}
+            config_path.write_text(json.dumps(config), encoding="utf-8")
 
         # First run: full evaluation of 3 problems, records history.
         with patch("src.harness.LLMClient", side_effect=_llm_factory()):
@@ -115,14 +121,11 @@ class TestIncrementalEndToEnd:
         assert "Unchanged: 2 problems (reusing results)" in second_out
         assert "New: 1 problems" in second_out
         assert "Merged 2 reused results with 2 new results" in second_out
-        # The merged report is a real report, not a placeholder.
-        assert "Cost" not in second_out or "unknown" not in second_out.lower()
-
         # Latest run summary reflects the full merged dataset (4 problems).
         latest = json.loads((tmp_path / "results" / "latest.json").read_text(encoding="utf-8"))
         run_dir = tmp_path / "results" / latest["latest_run"]
         summary = json.loads((run_dir / "summary.json").read_text(encoding="utf-8"))
-        report = summary["strategies"]["vanilla"]
+        report = summary["strategies"][report_name]
         assert report["total_problems"] == 4
         assert report["estimated_cost_usd"] > 0, "merged report must keep real cost"
         assert set(report["by_difficulty"]) == {"easy"}
@@ -187,6 +190,7 @@ class TestIncrementalStaleStrategies:
         with patch("src.harness.LLMClient", side_effect=_llm_factory()):
             assert _run_main(["--config", str(config_path), "--incremental"]) == 0
 
+        assert "Incremental evaluation mode enabled" in capsys.readouterr().out
         latest = json.loads((tmp_path / "results" / "latest.json").read_text(encoding="utf-8"))
         run_dir = tmp_path / "results" / latest["latest_run"]
         summary = json.loads((run_dir / "summary.json").read_text(encoding="utf-8"))
@@ -221,6 +225,73 @@ class TestIncrementalShrunkDataset:
 
 
 class TestIncrementalFallbacks:
+    @pytest.mark.parametrize(
+        "history_gap", ["added_strategy", "missing_file", "missing_record", "duplicate", "bad_json"]
+    )
+    def test_unusable_history_falls_back_to_complete_run(self, tmp_path, capsys, history_gap):
+        problem_ids = ["p1", "p2", "p3"]
+        dataset = _dataset(tmp_path, problem_ids)
+        config_path = _config_file(tmp_path, dataset)
+        config = json.loads(config_path.read_text(encoding="utf-8"))
+        second_strategy = {"name": "chain_of_thought", "max_iterations": 1}
+        if history_gap == "missing_file":
+            config["strategies"].append(second_strategy)
+            config_path.write_text(json.dumps(config), encoding="utf-8")
+
+        argv = ["--config", str(config_path), "--incremental"]
+        with patch("src.harness.LLMClient", side_effect=_llm_factory()):
+            assert _run_main(argv) == 0
+        capsys.readouterr()
+
+        output_dir = tmp_path / "results"
+        history_path = output_dir / ".incremental" / "history.json"
+        first_run = json.loads(history_path.read_text(encoding="utf-8"))["runs"][-1]
+        first_result_dir = Path(first_run["result_path"])
+        vanilla_file = first_result_dir / "vanilla_results.json"
+        if history_gap == "added_strategy":
+            config["strategies"].append(second_strategy)
+            config_path.write_text(json.dumps(config), encoding="utf-8")
+        elif history_gap == "missing_file":
+            (first_result_dir / "chain_of_thought_results.json").unlink()
+        elif history_gap == "bad_json":
+            vanilla_file.write_text("{invalid", encoding="utf-8")
+        else:
+            rows = json.loads(vanilla_file.read_text(encoding="utf-8"))
+            if history_gap == "missing_record":
+                rows = [row for row in rows if row["problem_id"] != "p3"]
+            else:
+                rows.append(next(row for row in rows if row["problem_id"] == "p3"))
+            vanilla_file.write_text(json.dumps(rows), encoding="utf-8")
+
+        _dataset(tmp_path, problem_ids, modify_id="p1")
+        with patch("src.harness.LLMClient", side_effect=_llm_factory()):
+            assert _run_main(argv) == 0
+        out = capsys.readouterr().out
+
+        latest = json.loads((output_dir / "latest.json").read_text(encoding="utf-8"))
+        run_dir = output_dir / latest["latest_run"]
+        summary = json.loads((run_dir / "summary.json").read_text(encoding="utf-8"))
+        strategies = {strategy["name"] for strategy in config["strategies"]}
+        assert set(summary["strategies"]) == strategies
+        for strategy in strategies:
+            report = summary["strategies"][strategy]
+            assert report["total_problems"] == len(problem_ids), strategy
+            assert report["success_rate"] == 1.0
+            rows = json.loads((run_dir / f"{strategy}_results.json").read_text(encoding="utf-8"))
+            assert sorted(row["problem_id"] for row in rows) == problem_ids
+
+        metadata = json.loads((run_dir / "metadata.json").read_text(encoding="utf-8"))
+        assert metadata["incremental_mode"]["enabled"] is False
+
+        runs = json.loads(history_path.read_text(encoding="utf-8"))["runs"]
+        assert len(runs) == 2
+        assert runs[-1]["run_id"] == latest["latest_run"]
+        assert Path(runs[-1]["result_path"]) == run_dir
+        assert set(runs[-1]["dataset_fingerprint"]) == set(problem_ids)
+        assert runs[-1]["problem_count"] == len(problem_ids)
+        assert "Incremental evaluation mode enabled" not in out
+        assert "falling back to full evaluation" in out
+
     def test_missing_results_dir_falls_back_to_full(self, tmp_path, capsys):
         """Corrupt/missing history results must fall back to full evaluation
         (delta spec: never a silent subset run)."""
