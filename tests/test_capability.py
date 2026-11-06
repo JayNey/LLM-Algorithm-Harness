@@ -1,5 +1,7 @@
 """Tests for heuristic model capability maps and experiment panel integration."""
 
+import pytest
+
 from src.capability import build_capability_map
 from src.experiment_panel import _build_panel_data, _render_panel
 
@@ -69,3 +71,118 @@ def test_panel_embeds_capability_chart_and_heatmap():
     assert "能力图谱雷达图" in html
     assert "capability-heatmap" in html
     assert "capability" in html.lower()
+
+
+def _heatmap_comparison(counts):
+    return {
+        "combinations": [
+            {
+                "model": model,
+                "strategy": strategy,
+                "repeat": repeat,
+                "by_difficulty": {"easy": values},
+                "by_tags": {"array": values},
+            }
+            for model, strategy, repeat, values in counts
+        ]
+    }
+
+
+def test_heatmap_pools_strategy_and_repeat_counts_instead_of_rates():
+    comparison = _heatmap_comparison(
+        [
+            ("model-a", "vanilla", 0, {"solved": 1, "total": 1, "rate": 1.0}),
+            ("model-a", "cot", 0, {"solved": 0, "total": 9, "rate": 0.0}),
+            ("model-a", "vanilla", 1, {"solved": 2, "total": 2, "rate": None}),
+            ("model-b", "vanilla", 0, {"solved": 1, "total": 2, "rate": 0.5}),
+        ]
+    )
+    rows = build_capability_map(comparison)["heatmap"]
+    assert rows == [
+        {"model": model, "dimension": dimension, "success": solved, "total": total, "rate": rate}
+        for model, solved, total, rate in [("model-a", 3, 12, 0.25), ("model-b", 1, 2, 0.5)]
+        for dimension in ["easy", "tag:array"]
+    ]
+    from itertools import permutations
+
+    for order in permutations(comparison["combinations"]):
+        assert build_capability_map({"combinations": order})["heatmap"] == rows
+
+
+def test_heatmap_zero_denominator_stays_unknown_and_empty_combo_is_neutral():
+    empty = ("model-a", "vanilla", 0, {"solved": 0, "total": 0, "rate": 1.0})
+    rows = build_capability_map(_heatmap_comparison([empty]))["heatmap"]
+    assert all(row["success"] == 0 and row["total"] == 0 and row["rate"] is None for row in rows)
+    valid = ("model-a", "cot", 0, {"solved": 2, "total": 3, "rate": 0.1})
+    rows = build_capability_map(_heatmap_comparison([empty, valid]))["heatmap"]
+    assert all(row["success"] == 2 and row["total"] == 3 and row["rate"] == 2 / 3 for row in rows)
+    assert build_capability_map({})["heatmap"] == []
+
+
+@pytest.mark.parametrize(
+    "values",
+    [
+        {},
+        {"solved": 1, "rate": 1.0},
+        {"solved": 0, "total": None},
+        {"solved": None, "total": 1},
+        {"solved": 0, "total": -1},
+        {"solved": -1, "total": 1},
+        {"solved": 2, "total": 1},
+        {"solved": True, "total": 1},
+        {"solved": 1, "total": "2"},
+    ],
+)
+def test_heatmap_unknown_or_invalid_counts_never_become_confident_rates(values):
+    unknown = ("model-a", "cot", 0, values)
+    valid = ("model-a", "vanilla", 0, {"solved": 1, "total": 2})
+    for counts in ([unknown], [valid, unknown], [unknown, valid]):
+        rows = build_capability_map(_heatmap_comparison(counts))["heatmap"]
+        assert all(
+            row["success"] is None and row["total"] is None and row["rate"] is None for row in rows
+        )
+
+
+def test_panel_heatmap_reconciles_real_comparison_group_counts():
+    from src.experiment_report import _combo_metrics
+
+    meta = {
+        "dataset": {
+            "problems": [
+                {"problem_id": pid, "difficulty": "easy", "tags": ["array", "dp"]}
+                for pid in ["p1", "p2"]
+            ]
+        }
+    }
+    combos = []
+    for strategy, repeat, statuses in [
+        ("vanilla", 0, ["success", "success"]),
+        ("cot", 0, ["wrong_answer", "success"]),
+        ("vanilla", 1, ["wrong_answer", "wrong_answer"]),
+    ]:
+        combo = {
+            "combo_id": f"{strategy}-{repeat}",
+            "model": "model-a",
+            "strategy": strategy,
+            "repeat": repeat,
+        }
+        results = [
+            {"problem_id": pid, "status": status} for pid, status in zip(["p1", "p2"], statuses)
+        ]
+        combos.append(_combo_metrics(meta, combo, {}, results, {"problems": []}))
+    comparison = _comparison()
+    comparison["combinations"] = combos
+    data = _build_panel_data(comparison)
+    for row in data["capability"]["heatmap"]:
+        assert row["success"] == 3
+        assert row["total"] == 6
+        assert row["rate"] == 0.5
+        group, key = (
+            ("by_tags", row["dimension"][4:])
+            if row["dimension"].startswith("tag:")
+            else ("by_difficulty", row["dimension"])
+        )
+        assert row["success"] == sum(combo[group][key]["solved"] for combo in combos)
+        assert row["total"] == sum(combo[group][key]["total"] for combo in combos)
+    assert len(data["capability"]["heatmap"]) == 3
+    assert '"success": 3, "total": 6, "rate": 0.5' in _render_panel(data)
