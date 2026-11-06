@@ -27,6 +27,7 @@ from src.reporting.capability_profiler import (
     format_dimension_scores_for_radar,
     get_dimension_problem_counts,
 )
+from src.reporting.evolution_report import should_include_evolution_analysis
 from src.utils.logging import get_logger
 
 logger = get_logger(__name__)
@@ -596,15 +597,7 @@ def _analyze_quality_evolution(
                     # Validate and convert to ExecutionResult
                     result = ExecutionResult.model_validate(result_dict)
 
-                    # Check if evolution analysis is applicable
-                    if len(result.iterations) < 2:
-                        continue
-
-                    has_quality_data = any(
-                        iter_result.code_quality is not None for iter_result in result.iterations
-                    )
-
-                    if not has_quality_data:
+                    if not should_include_evolution_analysis(result):
                         continue
 
                     evolution_summary["has_evolution_data"] = True

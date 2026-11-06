@@ -19,6 +19,7 @@ from rich.progress import (
 from src.budget import BudgetedLLMClient, BudgetExhausted, BudgetTracker
 from src.checkpoints import UnitCheckpoint
 from src.code_quality.analyzer import CodeQualityAnalyzer
+from src.code_quality.models import CodeQualityMetrics
 from src.cost_alert import CostAlertManager
 from src.cost_strategy import (
     CostAwareSelector,
@@ -822,13 +823,8 @@ class AlgorithmHarness:
             result = strategy.execute(strategy_problem)
             result.formal_evaluable = problem.formal_evaluable
 
-            # Analyze code quality if analyzer is enabled
-            if self.quality_analyzer and result.generated_code:
-                try:
-                    quality_metrics = self.quality_analyzer.analyze(result.generated_code, problem)
-                    result.quality_metrics = quality_metrics.model_dump()
-                except Exception as e:
-                    logger.warning("quality_analysis_failed", error=str(e))
+            if self.quality_analyzer is not None:
+                self._record_code_quality(result, problem)
 
             if (
                 problem.formal_evaluable
@@ -878,6 +874,77 @@ class AlgorithmHarness:
                 ),
                 problem,
             )
+
+    def _record_code_quality(self, result: ExecutionResult, problem: Problem) -> None:
+        if result.strategy != "multi_round_feedback":
+            if result.generated_code:
+                result.quality_metrics = self._analyze_code_quality(result.generated_code, problem)
+            return
+
+        # Analyze each distinct submission once, without rerunning the sandbox.
+        by_code: dict[str, CodeQualityMetrics | None] = {}
+        for iteration in result.iterations:
+            code = iteration.code_extracted
+            if not code:
+                continue
+            if code not in by_code:
+                metrics = self._analyze_code_quality(code, problem)
+                by_code[code] = (
+                    metrics if metrics is not None and metrics.overall_score is not None else None
+                )
+            iteration.code_quality = by_code[code]
+
+        final_code = result.generated_code
+        if final_code:
+            if final_code in by_code:
+                result.quality_metrics = by_code[final_code]
+            else:
+                result.quality_metrics = self._analyze_code_quality(final_code, problem)
+
+        if self.config.enable_evolution_analysis:
+            self._log_quality_evolution(result)
+        else:
+            result.metadata["enable_evolution_analysis"] = False
+
+    def _analyze_code_quality(self, code: str, problem: Problem) -> CodeQualityMetrics | None:
+        if self.quality_analyzer is None:
+            return None
+        try:
+            return self.quality_analyzer.analyze(code, problem)
+        except Exception as e:
+            logger.warning("quality_analysis_failed", error=str(e))
+            return None
+
+    @staticmethod
+    def _log_quality_evolution(result: ExecutionResult) -> None:
+        try:
+            from src.analysis.evolution import EvolutionAnalyzer
+            from src.reporting.evolution_report import should_include_evolution_analysis
+
+            if not should_include_evolution_analysis(result):
+                return
+
+            analyzer = EvolutionAnalyzer(result)
+            drops = analyzer.identify_quality_drops()
+            if not drops:
+                return
+            logger.warning(
+                "quality_drops_detected",
+                problem_id=result.problem_id,
+                num_drops=len(drops),
+                affected_iterations=[drop.iteration for drop in drops],
+            )
+            for drop in drops:
+                logger.info(
+                    "quality_drop_detail",
+                    iteration=drop.iteration,
+                    metric=drop.metric_name,
+                    previous_value=drop.previous_value,
+                    current_value=drop.current_value,
+                    reason=analyzer.analyze_drop_reason(drop),
+                )
+        except Exception as e:
+            logger.warning("evolution_analysis_failed", error=str(e))
 
     @staticmethod
     def _annotate_failure_mode(result: ExecutionResult, problem: Problem) -> ExecutionResult:

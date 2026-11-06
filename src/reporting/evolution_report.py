@@ -5,6 +5,7 @@ This module provides functions to generate evolution analysis sections
 for multi-round strategy reports.
 """
 
+from itertools import pairwise
 from pathlib import Path
 
 from src.models import ExecutionResult
@@ -21,16 +22,7 @@ def generate_evolution_section(result: ExecutionResult, output_dir: Path | None 
     Returns:
         Markdown string for evolution section, or empty string if not applicable
     """
-    # Only generate for multi-round strategies with quality data
-    if len(result.iterations) < 2:
-        return ""
-
-    # Check if any iteration has quality data
-    has_quality_data = any(
-        iter_result.code_quality is not None for iter_result in result.iterations
-    )
-
-    if not has_quality_data:
+    if not should_include_evolution_analysis(result):
         return ""
 
     try:
@@ -69,9 +61,10 @@ def should_include_evolution_analysis(result: ExecutionResult) -> bool:
     Returns:
         True if evolution analysis is applicable
     """
-    # Need at least 2 iterations
-    if len(result.iterations) < 2:
+    if result.metadata.get("enable_evolution_analysis") is False:
         return False
 
-    # Need at least one iteration with quality data
-    return any(iter_result.code_quality is not None for iter_result in result.iterations)
+    return any(
+        previous.code_quality is not None and current.code_quality is not None
+        for previous, current in pairwise(result.iterations)
+    )
