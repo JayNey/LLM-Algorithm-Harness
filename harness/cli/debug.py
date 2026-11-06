@@ -3,6 +3,7 @@ CLI command for interactive debugging.
 """
 
 import argparse
+import os
 from typing import Any
 
 from harness.debug.breakpoint import BreakpointManager
@@ -51,7 +52,10 @@ def run_debug_command(args: argparse.Namespace) -> int:
         # Initialize components
         breakpoint_manager = BreakpointManager()
         trace_recorder = TraceRecorder(
-            problem_id=args.problem, strategy_name=args.strategy, model_name=args.model
+            problem_id=args.problem,
+            strategy_name=args.strategy,
+            model_name=args.model,
+            known_secrets=(os.getenv("OPENAI_API_KEY", ""),),
         )
 
         # Create debugger
@@ -100,8 +104,6 @@ def run_debug_command(args: argparse.Namespace) -> int:
         sandbox = SandboxExecutor(sandbox_config)
 
         # Get strategy class
-        from src.strategies.base import StrategyBase
-
         from src.harness import AlgorithmHarness
 
         strategy_class = AlgorithmHarness.STRATEGY_MAP.get(args.strategy)
@@ -111,21 +113,12 @@ def run_debug_command(args: argparse.Namespace) -> int:
             return 1
 
         # Create base strategy - instantiate concrete class
-        base_strategy: StrategyBase = strategy_class(strategy_config, llm_client, sandbox)  # type: ignore[abstract]
-
-        # Wrap with debug strategy - use pause callback to integrate with debugger
-        def pause_callback(location: str, context: dict) -> None:
-            """Called when strategy hits a breakpoint."""
-            # trace_recorder.record_breakpoint(location, context)  # Method not available
-            print(f"\n⊙ Breakpoint hit at '{location}'")
-            print(f"Context: {list(context.keys())}")
-            # Return to debugger prompt
-            debugger.cmdloop()
+        base_strategy = strategy_class(strategy_config, llm_client, sandbox)
 
         wrapped_strategy = DebugStrategyWrapper(
             wrapped_strategy=base_strategy,
             breakpoint_manager=breakpoint_manager,
-            pause_callback=pause_callback,
+            debugger=debugger,
         )
 
         # Give debugger access to strategy and problem
@@ -144,6 +137,8 @@ def run_debug_command(args: argparse.Namespace) -> int:
                 print(f"\n✓ Trace saved to {args.trace_output}")
             else:
                 print(f"\n✗ Failed to save trace to {args.trace_output}")
+        else:
+            debugger.save_trace_on_exit()
 
         return 0
 
