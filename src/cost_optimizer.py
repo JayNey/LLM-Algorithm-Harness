@@ -32,23 +32,33 @@ def _accuracy(combo: dict[str, Any]) -> float | None:
 
 
 def _combo_rows(comparison: dict[str, Any]) -> list[dict[str, Any]]:
-    """One ranked row per combination with cost-known filtering."""
+    """One row per combination, with a ratio only for comparable evidence."""
     rows = []
     for combo in comparison.get("combinations", []):
         cost_info = combo.get("cost") or {}
-        known = bool(cost_info.get("known")) and (cost_info.get("total_cost_usd") or 0) > 0
         accuracy = _accuracy(combo)
-        cost = cost_info.get("total_cost_usd")
-        ratio = (combo.get("solved", 0) / cost) if known and cost else None
+        cost = cost_info.get("total_cost_usd") if cost_info.get("known") else None
+        solved = combo.get("solved")
+        ratio = None
+        if cost is None or cost < 0:
+            cost = None
+            note = "成本未知"
+        elif cost == 0:
+            note = "零费用"
+        elif accuracy is None or solved is None:
+            note = "结果不足"
+        else:
+            ratio = round(solved / cost, 3)
+            note = None
         rows.append(
             {
                 "model": combo.get("model"),
                 "strategy": combo.get("strategy"),
                 "accuracy": accuracy,
-                "cost_usd": cost if known else None,
-                "ratio": round(ratio, 3) if ratio is not None else None,
-                "available": known,
-                "note": None if known else "成本未知",
+                "cost_usd": cost,
+                "ratio": ratio,
+                "available": ratio is not None,
+                "note": note,
             }
         )
     return rows
@@ -249,8 +259,10 @@ def render_markdown(payload: dict[str, Any]) -> str:
             f"| ${row['cost_usd']:.4f} | {row['ratio']} |"
         )
     for row in payload["ranking"]["excluded"]:
+        accuracy = f"{row['accuracy']:.1%}" if row["accuracy"] is not None else "未知"
+        cost = f"${row['cost_usd']:.4f}" if row["cost_usd"] is not None else "未知"
         lines.append(
-            f"| {row['model']} | {row['strategy']} | {row['accuracy'] or 0:.1%} | 未知 | — |"
+            f"| {row['model']} | {row['strategy']} | {accuracy} | {cost} | {row['note']} |"
         )
     lines.append("")
     lines.append("## 推荐组合")

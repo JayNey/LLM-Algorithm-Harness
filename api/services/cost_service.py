@@ -4,17 +4,19 @@ Cost figures combine legacy evaluation/benchmark totals with immutable
 experiment/A-B call records. Reads never reprice historical consumption.
 """
 
+import math
 import re
 import uuid
 from collections import Counter, defaultdict
 from collections.abc import Iterable, Sequence
 from datetime import date, datetime, timezone
 from decimal import Decimal
+from itertools import groupby
 from typing import Any, cast
 
 from sqlalchemy import select
 from sqlalchemy.exc import IntegrityError
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, load_only
 
 from api.config import settings
 from api.db import (
@@ -55,6 +57,70 @@ def _mask_target(target: str) -> str:
         _, domain = target.rsplit("@", 1)
         return f"***@{domain}"
     return "***"
+
+
+def _known_amount(value: Any) -> float | None:
+    if type(value) in (float, int) and 0 <= value < math.inf:
+        return float(value)
+    return None
+
+
+def _evaluation_sample(
+    evaluation: Evaluation, results: Iterable[EvaluationResult | None]
+) -> tuple[int, int, int, float | None]:
+    problems = set(evaluation.problem_ids or [])
+    strategies = set(evaluation.strategy_names or [])
+    total = (len(problems) or evaluation.problem_count) * len(strategies)
+    # Results arrive oldest first, so each planned unit contributes its latest stored state.
+    latest = {
+        (row.problem_id, row.strategy_name): row
+        for row in results
+        if row is not None
+        and row.strategy_name in strategies
+        and (not problems or row.problem_id in problems)
+    }
+    observed = [row for row in latest.values() if row.status not in {"pending", "running"}]
+    if not 0 < len(observed) <= total:
+        return total, 0, 0, None
+    solved = sum(row.status == "success" for row in observed)
+    cost = None
+    if len(observed) == total:
+        costs = []
+        for row in observed:
+            metrics = row.metrics or {}
+            amount = _known_amount(metrics.get("cost_usd"))
+            if metrics.get("cost_unknown") or amount is None:
+                break
+            costs.append(amount)
+        else:
+            cost = math.fsum(costs)
+    return total, len(observed), solved, cost
+
+
+def _benchmark_counts(run: BenchmarkRun) -> tuple[int, int]:
+    strategies = (run.results or {}).get("strategies")
+    if not isinstance(strategies, dict):
+        return 0, 0
+    solved = total = 0
+    for result in strategies.values():
+        if not isinstance(result, dict):
+            return 0, 0
+        passed, count = result.get("passed"), result.get("total")
+        if type(passed) is not int or type(count) is not int or not 0 <= passed <= count:
+            return 0, 0
+        solved += passed
+        total += count
+    return solved, total
+
+
+def _advisory_cost(costs: Iterable[float | None]) -> dict[str, Any]:
+    known = []
+    for cost in costs:
+        if cost is None:
+            return {"known": False, "total_cost_usd": None}
+        known.append(cost)
+    total = math.fsum(known)
+    return {"known": True, "total_cost_usd": total}
 
 
 class CostService:
@@ -694,75 +760,92 @@ class CostService:
         return task
 
     def cost_optimization_report(self, owner_id: str) -> dict[str, Any]:
-        """Synthesize a comparison from the user's own runs and advise on it.
-
-        Accuracy uses the ``pass_rate_over_total`` key that
-        ``build_advisory``/``_accuracy`` read; benchmark accuracy and cost
-        are aggregated in a single pass over completed runs so the ratio
-        denominator cannot diverge from the accuracy sample.
-        """
-        by_model: dict[str, dict[str, Any]] = defaultdict(
-            lambda: {"accuracy_sum": 0.0, "count": 0, "cost": 0.0}
-        )
-        evaluations: dict[tuple[str, str], dict[str, Any]] = defaultdict(
-            lambda: {"accuracy_sum": 0.0, "count": 0, "cost": 0.0, "solved": 0}
+        """Compare the owner's completed runs using persisted outcome and pricing evidence."""
+        benchmarks: dict[str, list[BenchmarkRun]] = defaultdict(list)
+        evaluations: dict[tuple[str, str], list[tuple[int, int, int, float | None]]] = defaultdict(
+            list
         )
 
         with self._session() as session:
-            runs = session.scalars(
+            for run in session.scalars(
                 select(BenchmarkRun).where(
                     BenchmarkRun.user_id == owner_id,
                     BenchmarkRun.status == "completed",
                 )
-            ).all()
-            rows = session.scalars(
-                select(Evaluation).where(
+            ):
+                if run.model:
+                    benchmarks[run.model].append(run)
+            rows = session.execute(
+                select(Evaluation, EvaluationResult)
+                .outerjoin(EvaluationResult)
+                .options(
+                    load_only(
+                        EvaluationResult.problem_id,
+                        EvaluationResult.strategy_name,
+                        EvaluationResult.status,
+                        EvaluationResult.metrics,
+                    )
+                )
+                .where(
                     Evaluation.user_id == owner_id,
                     Evaluation.status == "completed",
                 )
-            ).all()
-
-        for run in runs:
-            if not run.model:
-                continue
-            bucket = by_model[run.model]
-            bucket["count"] += 1
-            if run.accuracy is not None:
-                bucket["accuracy_sum"] += run.accuracy
-            bucket["cost"] += run.cost_usd or 0.0
+                .order_by(Evaluation.id, EvaluationResult.updated_at, EvaluationResult.id)
+            )
+            for evaluation, group in groupby(rows, key=lambda row: row[0]):
+                sample = _evaluation_sample(evaluation, (result for _, result in group))
+                if sample[0] > 0:
+                    key = (
+                        evaluation.model or "evaluation-run",
+                        "+".join(evaluation.strategy_names),
+                    )
+                    evaluations[key].append(sample)
 
         combos: list[dict[str, Any]] = []
-        for model, bucket in by_model.items():
-            accuracy = bucket["accuracy_sum"] / bucket["count"] if bucket["count"] else None
+        for model, runs in benchmarks.items():
+            counts = [_benchmark_counts(run) for run in runs]
+            accuracy: float | None
+            if all(total for _, total in counts):
+                benchmark_solved = sum(passed for passed, _ in counts)
+                accuracy = benchmark_solved / sum(total for _, total in counts)
+            else:
+                # Legacy rows can retain a rate without evidence of how many units passed.
+                benchmark_solved = None
+                rates = [
+                    run.accuracy
+                    for run in runs
+                    if run.accuracy is not None and 0 <= run.accuracy <= 1
+                ]
+                accuracy = sum(rates) / len(runs) if len(rates) == len(runs) else None
             combos.append(
                 {
                     "model": model,
                     "strategy": "benchmark",
-                    "solved": round((accuracy or 0.0) * 100),
+                    "solved": benchmark_solved,
                     "pass_rate_over_total": accuracy,
-                    "cost": {"known": True, "total_cost_usd": round(bucket["cost"], 6)},
+                    "cost": _advisory_cost(
+                        (
+                            _known_amount(run.cost_usd)
+                            if (run.results or {}).get("cost_known") is True
+                            else None
+                        )
+                        for run in runs
+                    ),
                 }
             )
 
-        for evaluation in rows:
-            if not evaluation.strategy_names or evaluation.problem_count == 0:
-                continue
-            key = (evaluation.model or "evaluation-run", "+".join(evaluation.strategy_names))
-            bucket = evaluations[key]
-            bucket["count"] += 1
-            bucket["accuracy_sum"] += evaluation.completed_count / evaluation.problem_count
-            bucket["cost"] += evaluation.spent_usd or 0.0
-            bucket["solved"] += evaluation.completed_count
-
-        for (model, strategy), bucket in evaluations.items():
-            accuracy = bucket["accuracy_sum"] / bucket["count"] if bucket["count"] else None
+        for (model, strategy), samples in evaluations.items():
+            total = sum(planned for planned, _, _, _ in samples)
+            observed = sum(seen for _, seen, _, _ in samples)
+            solved = sum(passed for _, _, passed, _ in samples)
             combos.append(
                 {
                     "model": model,
                     "strategy": strategy,
-                    "solved": bucket["solved"],
-                    "pass_rate_over_total": accuracy,
-                    "cost": {"known": True, "total_cost_usd": round(bucket["cost"], 6)},
+                    "denominator": {"total": total, "completed": observed},
+                    "solved": solved,
+                    "pass_rate_over_total": solved / total if observed else None,
+                    "cost": _advisory_cost(cost for _, _, _, cost in samples),
                 }
             )
 

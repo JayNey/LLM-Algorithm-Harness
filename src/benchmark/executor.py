@@ -150,6 +150,12 @@ class BenchmarkExecutor:
             results["cost_usd"] = sum(
                 (report.estimated_cost_usd for report in reports.values()), 0.0
             )
+            results["cost_known"] = bool(reports) and all(
+                report.pricing_metadata is not None
+                and report.pricing_metadata.get("unknown_usage") is False
+                and report.pricing_metadata.get("unknown_pricing") is False
+                for report in reports.values()
+            )
 
             logger.info(
                 "benchmark_execution_completed",

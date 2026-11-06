@@ -16,7 +16,7 @@ from fastapi.testclient import TestClient
 from sqlalchemy.orm import Session
 
 from api.auth.config import AuthSettings
-from api.db.models import BenchmarkRun, BenchmarkSuite, Evaluation, utcnow
+from api.db.models import BenchmarkRun, BenchmarkSuite, Evaluation, EvaluationResult, utcnow
 from api.files.config import FileSettings
 from api.main import create_app
 
@@ -83,7 +83,7 @@ def _completed_evaluation(client, headers, key_id, app):
 
     CI 无 broker/worker（与本文件 test_benchmark_run_cost_via_task_endpoint 同因），
     因此 stub send_task 后直接写回 worker 会产出的聚合状态。model 是 §5.2 起 create
-    请求的必填字段。cost 端点只读 Evaluation 行的 spent_usd/completed_count/strategy_names。
+    请求的必填字段。
     """
     created = client.post(
         "/api/v1/evaluations",
@@ -110,6 +110,16 @@ def _completed_evaluation(client, headers, key_id, app):
         row.failed_count = 0
         row.spent_usd = 0.2
         row.updated_at = utcnow()
+        session.add(
+            EvaluationResult(
+                id=f"{task_id}-result",
+                evaluation_id=task_id,
+                problem_id="p1",
+                strategy_name="vanilla",
+                status="success",
+                metrics={"cost_usd": 0.2, "cost_unknown": False},
+            )
+        )
 
     data = client.get(f"/api/v1/evaluations/{task_id}", headers=headers).json()["data"]
     assert data["status"] == "completed", data
@@ -531,6 +541,122 @@ class TestPricing:
 
 
 class TestReports:
+    @pytest.mark.parametrize(
+        ("units", "solved", "accuracy", "cost"),
+        [
+            ([("failed", 0.2), ("failed", 0.3)], 0, 0.0, 0.5),
+            ([("success", 0.2), ("failed", 0.3)], 1, 0.5, 0.5),
+            ([("success", 0.2)], 1, 0.5, None),
+            ([], 0, None, None),
+            ([("success", 0.2), ("failed", None)], 1, 0.5, None),
+            ([("success", 0.0), ("failed", 0.0)], 1, 0.5, 0.0),
+        ],
+        ids=["wrong", "mixed", "partial", "empty", "unpriced", "zero"],
+    )
+    def test_optimization_uses_planned_units_and_cost_evidence(
+        self, api, monkeypatch, units, solved, accuracy, cost
+    ):
+        from api.services import cost_service
+
+        client, headers, key_id, app = api
+        task_id, _ = _completed_evaluation(client, headers, key_id, app)
+        with Session(app.state.evaluations.engine) as session, session.begin():
+            owner_id = session.get(Evaluation, task_id).user_id
+            session.add(
+                Evaluation(
+                    id="multi",
+                    user_id=owner_id,
+                    model="multi-model",
+                    status="completed",
+                    problem_ids=["p1"],
+                    problem_count=1,
+                    strategy_names=["vanilla", "chain_of_thought"],
+                    completed_count=2,
+                    spent_usd=0.5,
+                )
+            )
+            session.flush()
+            for index, ((status, amount), strategy) in enumerate(
+                zip(units, ("vanilla", "chain_of_thought"), strict=False)
+            ):
+                session.add(
+                    EvaluationResult(
+                        id=f"multi-{index}",
+                        evaluation_id="multi",
+                        problem_id="p1",
+                        strategy_name=strategy,
+                        status=status,
+                        metrics={"cost_usd": amount or 0.0, "cost_unknown": amount is None},
+                    )
+                )
+
+        original = cost_service.build_advisory
+
+        def capture(comparison):
+            combo = next(c for c in comparison["combinations"] if c["model"] == "multi-model")
+            assert combo["solved"] == solved
+            assert combo["denominator"]["total"] == 2
+            assert combo["pass_rate_over_total"] == accuracy
+            assert combo["cost"] == {"known": cost is not None, "total_cost_usd": cost}
+            return original(comparison)
+
+        monkeypatch.setattr(cost_service, "build_advisory", capture)
+        response = client.get("/api/v1/reports/cost-optimization", headers=headers)
+        assert response.status_code == 200, response.text
+        data = response.json()["data"]
+        ranking = data["ranking"]
+        section = "ranking" if cost else "excluded"
+        row = next(row for row in ranking[section] if row["model"] == "multi-model")
+        assert row["accuracy"] == accuracy
+        assert row["cost_usd"] == cost
+        assert row["ratio"] == (solved / cost if cost else None)
+        assert data["recommendations"]["highest_accuracy"]["model"] == "gpt-4o-mini"
+        assert data["recommendations"]["best_value"]["model"] == "gpt-4o-mini"
+        assert data["recommendations"]["lowest_cost"]["model"] == "gpt-4o-mini"
+
+    def test_optimization_excludes_benchmark_with_incomplete_cost(self, model_costs, api):
+        client, headers = model_costs
+        _, _, _, app = api
+        with Session(app.state.evaluations.engine) as session, session.begin():
+            known_run = session.get(BenchmarkRun, "benchmark")
+            for run_id, model, cost, cost_known in [
+                ("partial", known_run.model, 0.1, False),
+                ("legacy", "legacy-benchmark", 0.3, None),
+                ("missing", "missing-benchmark", None, True),
+                ("free", "free-benchmark", 0.0, True),
+            ]:
+                results = {"strategies": {"vanilla": {"passed": 2, "total": 2}}}
+                if cost_known is not None:
+                    results["cost_known"] = cost_known
+                session.add(
+                    BenchmarkRun(
+                        id=run_id,
+                        suite_id=known_run.suite_id,
+                        user_id=known_run.user_id,
+                        model=model,
+                        status="completed",
+                        accuracy=1.0,
+                        cost_usd=cost,
+                        results=results,
+                    )
+                )
+
+        response = client.get("/api/v1/reports/cost-optimization", headers=headers)
+        assert response.status_code == 200, response.text
+        data = response.json()["data"]
+        excluded = {
+            row["model"]: row
+            for row in data["ranking"]["excluded"]
+            if row["strategy"] == "benchmark"
+        }
+        assert {name: row["cost_usd"] for name, row in excluded.items()} == {
+            "gpt-4o-mini": None,
+            "legacy-benchmark": None,
+            "missing-benchmark": None,
+            "free-benchmark": 0.0,
+        }
+        assert all(rec["strategy"] != "benchmark" for rec in data["recommendations"].values())
+
     def test_optimization_groups_by_saved_model_and_strategy(self, model_costs):
         client, headers = model_costs
         response = client.get("/api/v1/reports/cost-optimization", headers=headers)
@@ -544,6 +670,7 @@ class TestReports:
         assert rows[("other-model", "vanilla")]["accuracy"] == 0
         assert rows[("evaluation-run", "vanilla")]["cost_usd"] == 0.24
         assert rows[("gpt-4o-mini", "benchmark")]["cost_usd"] == 0.4
+        assert rows[("gpt-4o-mini", "benchmark")]["ratio"] == 10.0
         assert rows[("old-model", "vanilla")]["cost_usd"] == 0.8
 
     def test_task_report_and_optimization(self, api):
@@ -584,9 +711,21 @@ def model_costs(api):
                     model=model,
                     status="completed",
                     strategy_names=["vanilla"],
+                    problem_ids=["p1"],
                     problem_count=1,
                     completed_count=completed,
                     spent_usd=cost,
+                )
+            )
+            session.flush()
+            session.add(
+                EvaluationResult(
+                    id=f"{row_id}-result",
+                    evaluation_id=row_id,
+                    problem_id="p1",
+                    strategy_name="vanilla",
+                    status="success" if completed else "failed",
+                    metrics={"cost_usd": cost, "cost_unknown": False},
                 )
             )
         session.add_all(
@@ -599,6 +738,10 @@ def model_costs(api):
                     status="completed",
                     cost_usd=0.4,
                     accuracy=0.8,
+                    results={
+                        "cost_known": True,
+                        "strategies": {"vanilla": {"passed": 4, "total": 5}},
+                    },
                 ),
                 Evaluation(
                     id="foreign",
@@ -622,6 +765,17 @@ def model_costs(api):
                     created_at=datetime(1999, 1, 1),
                 ),
             ]
+        )
+        session.flush()
+        session.add(
+            EvaluationResult(
+                id="old-result",
+                evaluation_id="old",
+                problem_id="p1",
+                strategy_name="vanilla",
+                status="success",
+                metrics={"cost_usd": 0.8, "cost_unknown": False},
+            )
         )
     return client, headers
 
