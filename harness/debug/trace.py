@@ -6,6 +6,8 @@ import json
 from dataclasses import asdict, dataclass, field
 from typing import Any
 
+from src.utils.secrets import redact_sensitive_data, redact_sensitive_text
+
 
 @dataclass
 class RoundTrace:
@@ -18,13 +20,20 @@ class RoundTrace:
     execution_result: dict[str, Any] | None = None
     feedback: str | None = None
     user_interventions: list[dict[str, str]] = field(default_factory=list)
-    status: str = "pending"  # pending, passed, failed, error
+    status: str = "pending"
 
 
 class TraceRecorder:
     """Records and displays execution traces for debugging sessions."""
 
-    def __init__(self, problem_id: str, strategy_name: str, model_name: str):
+    def __init__(
+        self,
+        problem_id: str,
+        strategy_name: str,
+        model_name: str,
+        *,
+        known_secrets: tuple[str, ...] = (),
+    ):
         """
         Initialize trace recorder.
 
@@ -33,11 +42,15 @@ class TraceRecorder:
             strategy_name: Name of the strategy being used
             model_name: Name of the LLM model
         """
-        self.problem_id = problem_id
-        self.strategy_name = strategy_name
-        self.model_name = model_name
+        self._known_secrets = known_secrets
+        self.problem_id = self.redact(problem_id)
+        self.strategy_name = self.redact(strategy_name)
+        self.model_name = self.redact(model_name)
         self.rounds: list[RoundTrace] = []
         self._current_round: RoundTrace | None = None
+
+    def redact(self, text: str) -> str:
+        return redact_sensitive_text(text, self._known_secrets)
 
     def start_round(self, round_number: int, prompt: str) -> None:
         """
@@ -47,27 +60,32 @@ class TraceRecorder:
             round_number: Round number
             prompt: The prompt for this round
         """
-        self._current_round = RoundTrace(round=round_number, prompt=prompt)
+        self._current_round = RoundTrace(round=round_number, prompt=self.redact(prompt))
 
     def record_response(self, response: str) -> None:
         """Record LLM response for current round."""
         if self._current_round:
-            self._current_round.response = response
+            self._current_round.response = self.redact(response)
 
     def record_code(self, code: str) -> None:
         """Record extracted code for current round."""
         if self._current_round:
-            self._current_round.code = code
+            self._current_round.code = self.redact(code)
 
     def record_execution(self, result: dict[str, Any]) -> None:
         """Record execution result for current round."""
         if self._current_round:
+            result = redact_sensitive_data(result, self._known_secrets)
+            previous = self._current_round.execution_result
+            if previous:
+                stages = previous.get("stages", [previous])
+                result = {**result, "stages": [*stages, result]}
             self._current_round.execution_result = result
 
     def record_feedback(self, feedback: str) -> None:
         """Record feedback for current round."""
         if self._current_round:
-            self._current_round.feedback = feedback
+            self._current_round.feedback = self.redact(feedback)
 
     def record_intervention(self, intervention_type: str, details: str) -> None:
         """
@@ -81,11 +99,17 @@ class TraceRecorder:
             self._current_round.user_interventions.append(
                 {
                     "type": intervention_type,
-                    "details": details,
+                    "details": self.redact(details),
                 }
             )
 
-    def complete_round(self, status: str) -> None:
+    def update_status(self, status: str) -> None:
+        if self._current_round:
+            if status == "passed" and self._current_round.status in ("failed", "skipped", "error"):
+                return
+            self._current_round.status = status
+
+    def complete_round(self, status: str | None = None) -> None:
         """
         Complete the current round.
 
@@ -93,9 +117,15 @@ class TraceRecorder:
             status: Final status (passed, failed, error)
         """
         if self._current_round:
-            self._current_round.status = status
+            if status is not None:
+                self._current_round.status = status
             self.rounds.append(self._current_round)
             self._current_round = None
+
+    def _visible_rounds(self) -> list[RoundTrace]:
+        if self._current_round is None:
+            return self.rounds
+        return [*self.rounds, self._current_round]
 
     def display_summary(self) -> str:
         """
@@ -104,7 +134,8 @@ class TraceRecorder:
         Returns:
             Formatted summary string
         """
-        if not self.rounds:
+        rounds = self._visible_rounds()
+        if not rounds:
             return "No rounds recorded yet."
 
         lines = ["=" * 60]
@@ -113,10 +144,10 @@ class TraceRecorder:
         lines.append(f"Problem: {self.problem_id}")
         lines.append(f"Strategy: {self.strategy_name}")
         lines.append(f"Model: {self.model_name}")
-        lines.append(f"Total Rounds: {len(self.rounds)}")
+        lines.append(f"Total Rounds: {len(rounds)}")
         lines.append("")
 
-        for round_trace in self.rounds:
+        for round_trace in rounds:
             status_symbol = {
                 "passed": "✓",
                 "failed": "✗",
@@ -153,7 +184,7 @@ class TraceRecorder:
         Returns:
             Formatted round details string
         """
-        round_trace = next((r for r in self.rounds if r.round == round_number), None)
+        round_trace = next((r for r in self._visible_rounds() if r.round == round_number), None)
 
         if not round_trace:
             return f"Round {round_number} not found."
@@ -170,9 +201,7 @@ class TraceRecorder:
 
         if round_trace.response:
             lines.append("--- Response ---")
-            lines.append(
-                round_trace.response[:500] + ("..." if len(round_trace.response) > 500 else "")
-            )
+            lines.append(round_trace.response)
             lines.append("")
 
         if round_trace.code:
@@ -210,12 +239,13 @@ class TraceRecorder:
             True if export succeeded, False otherwise
         """
         try:
+            rounds = self._visible_rounds()
             data = {
                 "problem_id": self.problem_id,
                 "strategy": self.strategy_name,
                 "model": self.model_name,
-                "total_rounds": len(self.rounds),
-                "rounds": [asdict(r) for r in self.rounds],
+                "total_rounds": len(rounds),
+                "rounds": [asdict(r) for r in rounds],
             }
 
             with open(filepath, "w", encoding="utf-8") as f:
@@ -223,7 +253,7 @@ class TraceRecorder:
 
             return True
         except Exception as e:
-            print(f"Error exporting trace: {e}")
+            print(f"Error exporting trace: {self.redact(str(e))}. Choose a writable path.")
             return False
 
     def get_round_count(self) -> int:

@@ -8,11 +8,212 @@ Tests the complete debug workflow including:
 """
 
 import json
+import sys
 import tempfile
 from pathlib import Path
 
+import pytest
+
 from harness.debug.breakpoint import BreakpointManager
 from harness.debug.trace import TraceRecorder
+from src.main import main
+
+
+@pytest.fixture
+def debug_cli(tmp_path, monkeypatch, sample_problem, mock_llm_client, mock_sandbox_executor):
+    dataset = tmp_path / "problems.json"
+    dataset.write_text(json.dumps([sample_problem.model_dump(mode="json")]), encoding="utf-8")
+    output = tmp_path / "trace.json"
+    monkeypatch.setattr("src.llm_client.LLMClient", lambda config: mock_llm_client)
+    monkeypatch.setattr(
+        "src.sandbox_executor.SandboxExecutor", lambda config: mock_sandbox_executor
+    )
+
+    def run(commands, strategy="vanilla"):
+        monkeypatch.setattr(
+            sys,
+            "argv",
+            [
+                "harness",
+                "debug",
+                "--problem",
+                sample_problem.problem_id,
+                "--strategy",
+                strategy,
+                "--model",
+                "test-model",
+                "--dataset",
+                str(dataset),
+                "--trace-output",
+                str(output),
+            ],
+        )
+        commands = iter(commands)
+        calls_at_prompt = []
+
+        def read_command(prompt):
+            if prompt.startswith("Save trace"):
+                return "n"
+            calls_at_prompt.append(
+                (mock_llm_client.generate.call_count, mock_sandbox_executor.execute.call_count)
+            )
+            return next(commands, "quit")
+
+        monkeypatch.setattr("builtins.input", read_command)
+        with pytest.raises(SystemExit) as result:
+            main()
+        assert result.value.code == 0
+        return calls_at_prompt, json.loads(output.read_text(encoding="utf-8"))
+
+    return run
+
+
+def test_cli_initial_next_steps_and_continue_honors_breakpoint(debug_cli, capsys):
+    calls, trace = debug_cli(
+        ["break feedback", "next", "trace 1", "next", "continue", "continue", "quit"]
+    )
+    assert calls == [(0, 0), (0, 0), (1, 0), (1, 0), (1, 0), (1, 1), (1, 1)]
+    assert trace["rounds"][0]["status"] == "passed"
+    output = capsys.readouterr().out
+    assert "Round 1 Details" in output
+    assert "Breakpoint hit at 'feedback'" in output
+
+
+@pytest.mark.parametrize("location", ["generate", "execute"])
+def test_cli_quit_at_breakpoint_stops_the_strategy(debug_cli, location, mock_sandbox_executor):
+    calls, trace = debug_cli([f"break {location}", "run", "quit"])
+    assert calls == [(0, 0), (0, 0), (1, 0)]
+    mock_sandbox_executor.execute.assert_not_called()
+    assert trace["rounds"][0]["response"]
+    assert trace["rounds"][0]["status"] == "cancelled"
+
+
+@pytest.mark.parametrize("location", ["generate", "execute"])
+def test_cli_skip_bypasses_sandbox(debug_cli, location, mock_sandbox_executor):
+    _, trace = debug_cli([f"break {location}", "run", "skip", "quit"])
+    mock_sandbox_executor.execute.assert_not_called()
+    assert trace["rounds"][0]["status"] == "skipped"
+    assert any(item["type"] == "skip" for item in trace["rounds"][0]["user_interventions"])
+
+
+def test_cli_applies_one_time_prompt_changes_and_exports_redacted_trace(
+    debug_cli, monkeypatch, mock_llm_client, mock_sandbox_executor, tmp_path, capsys
+):
+    secret = "secret-debug-session-value"
+    prompt = f"REVIEW_EDIT api_key={secret}"
+    monkeypatch.setattr("harness.debug.debugger.edit_prompt", lambda text: prompt)
+    original_response = mock_llm_client.generate.return_value
+    mock_llm_client.generate.return_value = original_response.model_copy(
+        update={"text": original_response.text + f"\napi_key={secret}"}
+    )
+    manual_trace = tmp_path / "manual.json"
+    _, trace = debug_cli(
+        [
+            "set temperature 0.1",
+            "set temperature 20",
+            "set max_tokens 256",
+            "edit-prompt",
+            "inject REVIEW_INJECT",
+            "run",
+            "trace",
+            "trace 1",
+            f"export {manual_trace}",
+            "run",
+            "quit",
+        ]
+    )
+    first, second = mock_llm_client.generate.call_args_list
+    assert first.args[0] == f"{prompt}\n\nREVIEW_INJECT"
+    assert "REVIEW_EDIT" not in second.args[0]
+    assert "REVIEW_INJECT" not in second.args[0]
+    assert first.kwargs["temperature"] == second.kwargs["temperature"] == 0.1
+    assert first.kwargs["max_tokens"] == second.kwargs["max_tokens"] == 256
+    assert mock_sandbox_executor.execute.call_count == 2
+    assert [item["round"] for item in trace["rounds"]] == [1, 2]
+    round_one = trace["rounds"][0]
+    assert "REVIEW_INJECT" in round_one["prompt"]
+    assert "def solution" in round_one["response"]
+    assert round_one["execution_result"]["test_results"][0]["passed"]
+    assert round_one["feedback"]
+    assert {"set_parameter", "edit_prompt", "inject"} <= {
+        item["type"] for item in round_one["user_interventions"]
+    }
+    assert json.loads(manual_trace.read_text(encoding="utf-8"))["rounds"] == [round_one]
+    assert secret not in json.dumps(trace)
+    output = capsys.readouterr().out
+    assert "Round 1 Details" in output and "Total Rounds: 1" in output
+    assert "Success: True" in output and "Execution failed" not in output
+    assert secret not in output
+
+
+def test_cli_max_rounds_limits_multi_round_strategy(debug_cli, mock_sandbox_executor):
+    mock_sandbox_executor.execute.return_value = (
+        mock_sandbox_executor.execute.return_value.model_copy(
+            update={"status": "failed", "all_passed": False}
+        )
+    )
+    _, trace = debug_cli(["set max_rounds 2", "run", "quit"], strategy="multi_round_feedback")
+    assert mock_sandbox_executor.execute.call_count == 2
+    assert [item["status"] for item in trace["rounds"]] == ["failed", "failed"]
+    assert {"type": "set_parameter", "details": "max_rounds = 2"} in trace["rounds"][0][
+        "user_interventions"
+    ]
+
+
+def test_cli_quit_at_feedback_preserves_feedback_and_stops_retry(debug_cli, mock_sandbox_executor):
+    mock_sandbox_executor.execute.return_value = (
+        mock_sandbox_executor.execute.return_value.model_copy(
+            update={"status": "failed", "all_passed": False}
+        )
+    )
+    calls, trace = debug_cli(["break feedback", "run", "quit"], strategy="multi_round_feedback")
+    assert calls == [(0, 0), (0, 0), (1, 1)]
+    assert trace["total_rounds"] == 1
+    assert trace["rounds"][0]["execution_result"]["status"] == "failed"
+    assert "All passed: False" in trace["rounds"][0]["feedback"]
+
+
+def test_cli_intercepts_strategy_that_calls_client_directly(debug_cli, mock_llm_client):
+    calls, trace = debug_cli(["set temperature 0.2", "next", "quit"], strategy="self_consistency")
+    assert calls == [(0, 0), (0, 0), (1, 0)]
+    mock_llm_client.generate.assert_called_once()
+    assert mock_llm_client.generate.call_args.kwargs["temperature"] == 0.2
+    assert trace["rounds"][0]["response"]
+
+
+def test_cli_feedback_breakpoint_interventions_apply_to_next_request(
+    debug_cli, monkeypatch, mock_llm_client, mock_sandbox_executor
+):
+    mock_sandbox_executor.execute.return_value = (
+        mock_sandbox_executor.execute.return_value.model_copy(
+            update={"status": "failed", "all_passed": False}
+        )
+    )
+    monkeypatch.setattr("harness.debug.debugger.edit_prompt", lambda text: "EDIT_AT_FEEDBACK")
+    _, trace = debug_cli(
+        [
+            "break feedback",
+            "run",
+            "set temperature 0.3",
+            "edit_prompt",
+            "inject INJECT_AT_FEEDBACK",
+            "skip",
+            "quit",
+        ],
+        strategy="multi_round_feedback",
+    )
+    first, second = mock_llm_client.generate.call_args_list
+    assert first.kwargs["temperature"] is None
+    assert second.kwargs["temperature"] == 0.3
+    assert second.args[0] == "EDIT_AT_FEEDBACK\n\nINJECT_AT_FEEDBACK"
+    assert trace["rounds"][0]["user_interventions"] == [{"type": "skip", "details": "feedback"}]
+    assert trace["rounds"][1]["prompt"] == second.args[0]
+
+
+def test_cli_export_error_leaves_session_and_automatic_trace_available(debug_cli, tmp_path, capsys):
+    _, trace = debug_cli(["run", f"export {tmp_path / 'missing' / 'trace.json'}", "quit"])
+    assert "Choose a writable path" in capsys.readouterr().out
+    assert trace["total_rounds"] == 1
 
 
 class TestDebugE2E:

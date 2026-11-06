@@ -35,7 +35,7 @@ harness debug --problem leetcode_1 --strategy vanilla --model gpt-3.5-turbo --tr
 ### 执行控制
 
 #### `next`
-执行下一步并暂停。
+从初始提示启动策略并在收到第一条模型响应后暂停。从断点输入时，推进到下一个调试位置或策略结束。
 
 ```
 (debug) next
@@ -51,7 +51,7 @@ Continuing to next breakpoint...
 ```
 
 #### `skip`
-跳过当前步骤，继续执行下一步。
+在 `generate` 断点丢弃当前响应的后续处理，在 `execute` 断点跳过当前沙箱调用，在 `feedback` 断点结束本次暂停。策略继续运行至下一个已启用的断点或结束。
 
 ```
 (debug) skip
@@ -94,7 +94,7 @@ Enabled breakpoints:
 ### Prompt 和参数修改
 
 #### `edit-prompt`
-编辑下一轮的 prompt。优先使用 `$EDITOR` 环境变量指定的编辑器，否则使用内联多行输入模式。
+编辑下一次模型请求的 prompt，也可以输入 `edit_prompt`。优先使用 `$EDITOR` 环境变量指定的编辑器，否则使用内联多行输入模式。编辑只作用于下一次请求。
 
 ```
 (debug) edit-prompt
@@ -106,7 +106,7 @@ Modified prompt content...
 ```
 
 #### `set <param> <value>`
-动态修改策略参数。
+`temperature`（0 到 2）和 `max_tokens`（100 到 8000）从下一次模型请求起在当前会话持续生效。对 `multi_round_feedback` 和 `reflexion`，`max_rounds`（1 到 10）在下一次启动策略时生效。
 
 ```
 (debug) set temperature 0.9
@@ -124,7 +124,7 @@ Current overrides:
 ```
 
 #### `inject "<text>"`
-在下一轮 prompt 末尾注入自定义提示文本。
+在下一次模型请求的 prompt 末尾追加自定义文本。若同时编辑了 prompt，注入文本追加到编辑后的内容。
 
 ```
 (debug) inject "请特别注意边界情况的处理"
@@ -135,7 +135,7 @@ Current overrides:
 ### 轨迹检查
 
 #### `trace`
-显示所有轮次的执行轨迹摘要。
+显示已记录轮次的摘要，包含断点处仍在进行的轮次。每次模型请求开始一个编号轮次，该轮持续记录到下一次模型请求或本次运行结束。
 
 ```
 (debug) trace
@@ -147,9 +147,9 @@ Strategy: chain_of_thought
 Model: gpt-4
 Total Rounds: 3
 
-Round 1: Generate → FAILED ✗
-Round 2: Execute → PASSED ✓
-Round 3: Refine → PASSED ✓
+Round 1: Refine → FAILED ✗
+Round 2: Refine → PASSED ✓
+Round 3: Generate → GENERATED ?
 ============================================================
 ```
 
@@ -182,7 +182,7 @@ Passed: 3/3
 ```
 
 #### `export <filepath>`
-导出完整轨迹到 JSON 文件。
+导出已记录的真实请求、响应、沙箱结果、反馈和干预到 JSON 文件。轨迹显示与导出会按项目规则脱敏凭据。
 
 ```
 (debug) export debug_session.json
@@ -221,6 +221,8 @@ Enter filepath (default: trace.json): my_trace.json
 
 Exiting debug session...
 ```
+
+在任何断点使用 `quit` 或 `exit` 都会结束整个会话。指定 `--trace-output` 时，退出会自动写入该路径。
 
 ## 典型调试工作流
 

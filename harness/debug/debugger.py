@@ -11,6 +11,10 @@ from harness.debug.editor import edit_prompt
 from harness.debug.trace import TraceRecorder
 
 
+class DebugSessionExit(BaseException):
+    """Unwind a paused strategy without triggering its execution-error handlers."""
+
+
 class Debugger(cmd.Cmd):
     """
     Interactive debugger for stepping through strategy execution.
@@ -29,6 +33,11 @@ Type 'help <command>' for detailed help on a specific command.
     """.strip()
 
     prompt = "(debug) "
+    _parameter_ranges = {
+        "temperature": (float, 0.0, 2.0),
+        "max_tokens": (int, 100, 8000),
+        "max_rounds": (int, 1, 10),
+    }
 
     def __init__(
         self,
@@ -45,56 +54,97 @@ Type 'help <command>' for detailed help on a specific command.
         super().__init__()
         self.breakpoint_manager = breakpoint_manager
         self.trace_recorder = trace_recorder
-        self.continue_execution = False
-        self.skip_current = False
+        self._step = False
+        self._paused = False
+        self._skip = False
         self.should_exit = False
+        self.current_prompt: str | None = None
         self.modified_prompt: str | None = None
         self.injected_text: str | None = None
         self.param_overrides: dict[str, Any] = {}
         self.strategy = None  # Set externally by CLI
         self.problem = None  # Set externally by CLI
-        self.result = None  # Stores execution result{}
+        self.result = None
 
     # ===== Execution control commands =====
 
-    def do_run(self, arg: str) -> None:
+    def do_run(self, arg: str) -> bool:
         """Execute the strategy on the problem."""
+        if self._paused:
+            print("Strategy already running. Use next, continue or skip.")
+            return False
+        return self._run(step=False)
+
+    def _run(self, *, step: bool) -> bool:
         if not self.strategy or not self.problem:
             print("✗ Strategy or problem not initialized")
-            return
+            return False
 
+        self.result = None
+        self._step = step
         print(f"Running strategy on problem: {self.problem.problem_id}")
         try:
             self.result = self.strategy.execute(self.problem)
             print("\n✓ Execution completed")
             print(f"  Success: {self.result.success}")
+            attempts = len(self.result.iterations)
             if self.result.success:
-                print(f"  Solution found in {len(self.result.attempts)} attempt(s)")
+                print(f"  Solution found in {attempts} attempt(s)")
             else:
-                print(f"  Failed after {len(self.result.attempts)} attempt(s)")
+                print(f"  Failed after {attempts} attempt(s)")
+        except DebugSessionExit:
+            return True
         except Exception as e:
-            print(f"✗ Execution failed: {e}")
+            print(f"✗ Execution failed: {self.trace_recorder.redact(str(e))}")
+        finally:
+            self._step = False
+            self.current_prompt = None
+        return False
+
+    def pause(self, location: str, detail: str) -> bool:
+        """Pause if stepping or at an enabled breakpoint. Return whether to skip."""
+        if not (self._step or self.breakpoint_manager.should_break(location)):
+            return False
+        self._step = False
+        self._skip = False
+        self._paused = True
+        print(f"\n⊙ Breakpoint hit at '{location}'")
+        print(self.trace_recorder.redact(detail))
+        try:
+            self.cmdloop(intro="")
+        finally:
+            self._paused = False
+
+        if self.should_exit:
+            self.trace_recorder.record_intervention("quit", location)
+            raise DebugSessionExit
+        if self._skip:
+            self.trace_recorder.record_intervention("skip", location)
+        return self._skip
 
     def do_next(self, arg: str) -> bool:
         """Execute the next step and pause."""
         print("Executing next step...")
-        self.continue_execution = True
-        return True  # Exit cmdloop
+        if not self._paused:
+            return self._run(step=True)
+        self._step = True
+        return True
 
     def do_continue(self, arg: str) -> bool:
         """Continue execution until next breakpoint or completion."""
         print("Continuing to next breakpoint...")
-        self.continue_execution = True
-        # Temporarily disable all breakpoints for this command
-        # (handled by caller checking continue_execution flag)
-        return True  # Exit cmdloop
+        if not self._paused:
+            return self._run(step=False)
+        return True
 
     def do_skip(self, arg: str) -> bool:
         """Skip the current step and continue."""
+        if not self._paused:
+            print("Skip is available at a breakpoint.")
+            return False
         print("Skipping current step...")
-        self.skip_current = True
-        self.continue_execution = True
-        return True  # Exit cmdloop
+        self._skip = True
+        return True
 
     # ===== Breakpoint management =====
 
@@ -148,8 +198,13 @@ Type 'help <command>' for detailed help on a specific command.
         Edit the prompt for the next round.
         Opens your $EDITOR or provides inline input mode.
         """
-        # Get current prompt from context (would be passed by wrapper)
-        current_prompt = arg if arg else "# Enter your prompt here"
+        current_prompt = arg or self.modified_prompt or self.current_prompt
+        if current_prompt is None:
+            current_prompt = (
+                self.strategy.build_base_prompt(self.problem)
+                if self.strategy and self.problem
+                else "# Enter your prompt here"
+            )
 
         print("\nOpening prompt editor...")
         edited = edit_prompt(current_prompt)
@@ -158,7 +213,8 @@ Type 'help <command>' for detailed help on a specific command.
             self.modified_prompt = edited
             print("\n✓ Prompt modified. New prompt preview:")
             print("─" * 60)
-            print(edited[:200] + ("..." if len(edited) > 200 else ""))
+            preview = self.trace_recorder.redact(edited)
+            print(preview[:200] + ("..." if len(preview) > 200 else ""))
             print("─" * 60)
         else:
             print("\n✗ Prompt not modified")
@@ -179,27 +235,37 @@ Type 'help <command>' for detailed help on a specific command.
                 print("  (none)")
             return
 
-        parts = shlex.split(arg)
+        try:
+            parts = shlex.split(arg)
+        except ValueError:
+            print("Usage: set <param> <value>")
+            return
         if len(parts) != 2:
             print("Usage: set <param> <value>")
             return
 
         param, value_str = parts
 
-        # Try to convert value to appropriate type
+        supported = self._parameter_ranges.copy()
+        if not self.strategy or self.strategy.config.name not in (
+            "multi_round_feedback",
+            "reflexion",
+        ):
+            supported.pop("max_rounds")
         try:
-            # Try int first
-            value = int(value_str)
-        except ValueError:
-            try:
-                # Then try float
-                value = float(value_str)
-            except ValueError:
-                # Keep as string
-                value = value_str
+            convert, minimum, maximum = supported[param]
+            value = convert(value_str)
+        except (KeyError, ValueError):
+            value = None
+        if value is None or not minimum <= value <= maximum:
+            ranges = ", ".join(f"{name} [{lo}, {hi}]" for name, (_, lo, hi) in supported.items())
+            print(f"✗ Invalid parameter or value. Supported ranges: {ranges}")
+            return
 
         self.param_overrides[param] = value
         print(f"✓ Set {param} = {value}")
+        if param == "max_rounds" and self._paused:
+            print("The round limit takes effect on the next run.")
 
     def do_inject(self, arg: str) -> None:
         """
@@ -214,7 +280,13 @@ Type 'help <command>' for detailed help on a specific command.
         text = arg.strip().strip('"').strip("'")
         self.injected_text = text
         print("✓ Will inject text into next prompt:")
-        print(f"  {text[:100]}")
+        print(f"  {self.trace_recorder.redact(text)[:100]}")
+
+    def precmd(self, line: str) -> str:
+        command, _, arguments = line.partition(" ")
+        if command == "edit-prompt":
+            return f"edit_prompt {arguments}"
+        return line
 
     # ===== Trace inspection =====
 
@@ -265,21 +337,20 @@ Type 'help <command>' for detailed help on a specific command.
         return self._handle_exit()
 
     def _handle_exit(self) -> bool:
-        """Handle exit with optional trace save prompt."""
-        if self.trace_recorder.get_round_count() > 0:
-            response = input("\nSave trace before exiting? (y/n): ").strip().lower()
-            if response in ("y", "yes"):
-                filepath = input("Enter filepath (default: trace.json): ").strip()
-                if not filepath:
-                    filepath = "trace.json"
-                if self.trace_recorder.export_json(filepath):
-                    print(f"✓ Trace saved to {filepath}")
-                else:
-                    print("✗ Failed to save trace")
-
         print("\nExiting debug session...")
         self.should_exit = True
-        return True  # Exit cmdloop
+        return True
+
+    def save_trace_on_exit(self) -> None:
+        if not self.trace_recorder.get_round_count():
+            return
+        try:
+            if input("\nSave trace before exiting? (y/n): ").strip().lower() not in ("y", "yes"):
+                return
+            filepath = input("Enter filepath (default: trace.json): ").strip() or "trace.json"
+        except EOFError:
+            return
+        self.do_export(filepath)
 
     # ===== Helper commands =====
 
@@ -308,7 +379,7 @@ Type 'help <command>' for detailed help on a specific command.
         if self.modified_prompt:
             print("Prompt modification: pending")
         if self.injected_text:
-            print(f"Injected text: {self.injected_text[:50]}...")
+            print(f"Injected text: {self.trace_recorder.redact(self.injected_text)[:50]}...")
 
         print("=" * 60 + "\n")
 
