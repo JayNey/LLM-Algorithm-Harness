@@ -17,6 +17,8 @@ import pytest
 from harness.debug.breakpoint import BreakpointManager
 from harness.debug.trace import TraceRecorder
 from src.main import main
+from src.models import ExecutionResult
+from src.strategies.vanilla import VanillaStrategy
 
 
 @pytest.fixture
@@ -66,6 +68,78 @@ def debug_cli(tmp_path, monkeypatch, sample_problem, mock_llm_client, mock_sandb
         return calls_at_prompt, json.loads(output.read_text(encoding="utf-8"))
 
     return run
+
+
+@pytest.mark.parametrize(
+    ("success", "summary", "trace_status"),
+    [
+        (True, "Solution found in 1 attempt(s)", "passed"),
+        (False, "Failed after 1 attempt(s)", "failed"),
+    ],
+    ids=["solved", "wrong-answer"],
+)
+def test_cli_run_summarizes_result_and_keeps_trace_available(
+    debug_cli, mock_sandbox_executor, tmp_path, capsys, success, summary, trace_status
+):
+    if not success:
+        sandbox_result = mock_sandbox_executor.execute.return_value
+        wrong_answer = sandbox_result.test_results[0].model_copy(
+            update={"passed": False, "status": "failed", "actual_output": []}
+        )
+        mock_sandbox_executor.execute.return_value = sandbox_result.model_copy(
+            update={"status": "failed", "all_passed": False, "test_results": [wrong_answer]}
+        )
+
+    exported = tmp_path / "run-trace.json"
+    _, trace = debug_cli(["run", "trace 1", f"export {exported}", "quit"])
+
+    output = capsys.readouterr().out
+    assert "Execution completed" in output
+    assert f"Success: {success}" in output
+    assert summary in output
+    assert "Execution failed" not in output
+    assert "Round 1 Details" in output
+    assert [round_info["status"] for round_info in trace["rounds"]] == [trace_status]
+    assert json.loads(exported.read_text(encoding="utf-8"))["rounds"] == trace["rounds"]
+
+
+def test_cli_run_summarizes_zero_iterations(debug_cli, monkeypatch, sample_problem, capsys):
+    result = ExecutionResult(
+        problem_id=sample_problem.problem_id,
+        strategy="vanilla",
+        generated_code="",
+        status="failed",
+        iterations=[],
+    )
+    monkeypatch.setattr(VanillaStrategy, "execute", lambda self, problem: result)
+
+    _, trace = debug_cli(["run", "trace", "quit"])
+
+    output = capsys.readouterr().out
+    assert "Execution completed" in output
+    assert "Success: False" in output
+    assert "Failed after 0 attempt(s)" in output
+    assert "Execution failed" not in output
+    assert "No rounds recorded yet." in output
+    assert trace["total_rounds"] == 0
+
+
+def test_cli_run_reports_strategy_exception_and_returns_to_prompt(debug_cli, monkeypatch, capsys):
+    secret = "test-debug-api-key"
+    monkeypatch.setenv("OPENAI_API_KEY", secret)
+
+    def fail_building_prompt(self, problem):
+        raise RuntimeError(f"prompt construction failed for {secret}")
+
+    monkeypatch.setattr(VanillaStrategy, "build_base_prompt", fail_building_prompt)
+
+    debug_cli(["run", "status", "quit"])
+
+    output = capsys.readouterr().out
+    assert "Execution failed: prompt construction failed" in output
+    assert "Execution completed" not in output
+    assert secret not in output
+    assert "Debugging Status" in output
 
 
 def test_cli_initial_next_steps_and_continue_honors_breakpoint(debug_cli, capsys):
