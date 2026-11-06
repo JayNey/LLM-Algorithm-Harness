@@ -47,7 +47,7 @@ def run_multi_round(tmp_path, monkeypatch):
         encoding="utf-8",
     )
 
-    def run(rounds, *, quality=True, evolution=True, fail_analysis=False):
+    def run(rounds, *, quality=True, evolution=True, fail_analysis=False, space=False):
         config = HarnessConfig(
             dataset_path=str(dataset),
             llm_config=LLMConfig(provider="openai", api_key="test-key", model="test-model"),
@@ -55,7 +55,7 @@ def run_multi_round(tmp_path, monkeypatch):
             enable_quality_analysis=quality,
             enable_evolution_analysis=evolution,
             quality_analysis_config={
-                "enable_space_analysis": False,
+                "enable_space_analysis": space,
                 "enable_readability_analysis": False,
                 "enable_style_analysis": False,
             },
@@ -72,6 +72,10 @@ def run_multi_round(tmp_path, monkeypatch):
         ]
         sandbox = MagicMock()
         sandbox.health_check.return_value = (True, "OK")
+        sandbox.config = config.sandbox_config
+        sandbox.execute_with_memory_profiling.return_value = {
+            1: {"current_bytes": 64, "peak_bytes": 128, "peak_mb": 128 / (1024 * 1024)}
+        }
         sandbox.execute.side_effect = [
             SandboxResult(status="success" if passed else "failed", all_passed=passed)
             for code, passed in rounds
@@ -97,12 +101,26 @@ def run_multi_round(tmp_path, monkeypatch):
         assert result.success
         assert result.generated_code == FINAL_CODE
         assert sandbox.execute.call_count == sum(bool(code) for code, _ in rounds)
+        if space:
+            sandbox.execute_with_memory_profiling.assert_called_once_with(
+                FINAL_CODE, harness.problems_by_id[result.problem_id], scales=[1]
+            )
+        else:
+            sandbox.execute_with_memory_profiling.assert_not_called()
         summary = _analyze_quality_evolution(
             {"combo": [json.loads(result.model_dump_json())]}, tmp_path
         )
         return result, logs, summary
 
     return run
+
+
+def test_harness_profiles_only_final_code_in_multi_round_feedback(run_multi_round):
+    result, _, _ = run_multi_round([(FIRST_CODE, False), (FINAL_CODE, True)], space=True)
+
+    assert result.quality_metrics.space_complexity.peak_memory_bytes == 128
+    for iteration in result.iterations:
+        assert iteration.code_quality.space_complexity.peak_memory_bytes is None
 
 
 @pytest.mark.parametrize("quality,evolution", [(True, True), (True, False), (False, True)])

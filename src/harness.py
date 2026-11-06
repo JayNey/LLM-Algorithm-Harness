@@ -802,7 +802,7 @@ class AlgorithmHarness:
         strategy_config: StrategyConfig,
         problem: Problem,
         strategy: Any,
-        sandbox: Any,
+        sandbox: SandboxExecutor,
     ) -> ExecutionResult:
         """Execute one visible problem and its independent hidden stage."""
         if problem.unsupported_reason:
@@ -824,7 +824,8 @@ class AlgorithmHarness:
             result.formal_evaluable = problem.formal_evaluable
 
             if self.quality_analyzer is not None:
-                self._record_code_quality(result, problem)
+                profiling_sandbox = sandbox if self.quality_analyzer.enable_space else None
+                self._record_code_quality(result, problem, profiling_sandbox)
 
             if (
                 problem.formal_evaluable
@@ -875,13 +876,17 @@ class AlgorithmHarness:
                 problem,
             )
 
-    def _record_code_quality(self, result: ExecutionResult, problem: Problem) -> None:
+    def _record_code_quality(
+        self, result: ExecutionResult, problem: Problem, profiling_sandbox: SandboxExecutor | None
+    ) -> None:
         if result.strategy != "multi_round_feedback":
             if result.generated_code:
-                result.quality_metrics = self._analyze_code_quality(result.generated_code, problem)
+                result.quality_metrics = self._analyze_code_quality(
+                    result.generated_code, problem, profiling_sandbox
+                )
             return
 
-        # Analyze each distinct submission once, without rerunning the sandbox.
+        # Compare rounds using static metrics. Only the final result gets a memory sample.
         by_code: dict[str, CodeQualityMetrics | None] = {}
         for iteration in result.iterations:
             code = iteration.code_extracted
@@ -896,21 +901,25 @@ class AlgorithmHarness:
 
         final_code = result.generated_code
         if final_code:
-            if final_code in by_code:
+            if profiling_sandbox is None and final_code in by_code:
                 result.quality_metrics = by_code[final_code]
             else:
-                result.quality_metrics = self._analyze_code_quality(final_code, problem)
+                result.quality_metrics = self._analyze_code_quality(
+                    final_code, problem, profiling_sandbox
+                )
 
         if self.config.enable_evolution_analysis:
             self._log_quality_evolution(result)
         else:
             result.metadata["enable_evolution_analysis"] = False
 
-    def _analyze_code_quality(self, code: str, problem: Problem) -> CodeQualityMetrics | None:
+    def _analyze_code_quality(
+        self, code: str, problem: Problem, sandbox: SandboxExecutor | None = None
+    ) -> CodeQualityMetrics | None:
         if self.quality_analyzer is None:
             return None
         try:
-            return self.quality_analyzer.analyze(code, problem)
+            return self.quality_analyzer.analyze(code, problem, sandbox_executor=sandbox)
         except Exception as e:
             logger.warning("quality_analysis_failed", error=str(e))
             return None

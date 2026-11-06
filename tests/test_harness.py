@@ -18,6 +18,7 @@ from src.models import (
     TestCase,
     TestCaseResult,
 )
+from src.sandbox_executor import SandboxExecutor
 
 
 @pytest.fixture
@@ -476,6 +477,63 @@ def test_run_strategy(harness_config, monkeypatch):
         assert report.strategy_name == "vanilla"
         assert report.total_problems == 1
         assert report.solved_problems == 1
+
+
+@pytest.mark.parametrize("scenario", ["sample", "disabled", "rejected", "unavailable", "no-public"])
+def test_harness_records_final_memory_profile(harness_config, monkeypatch, scenario):
+    harness_config.enable_quality_analysis = True
+    harness_config.quality_analysis_config = {
+        "enable_time_analysis": False,
+        "enable_space_analysis": scenario != "disabled",
+        "enable_readability_analysis": False,
+        "enable_style_analysis": False,
+    }
+    harness = AlgorithmHarness(harness_config)
+    problem = harness._load_problems()[0]
+    problem.public_test_cases[0].input = {"x": 2 * 1024 * 1024}
+    if scenario == "no-public":
+        problem.public_test_cases = []
+
+    code = "def solution(x):\n    data = bytearray(x)\n    return 2"
+    if scenario == "rejected":
+        code = "import os\n" + code
+
+    sandbox_config = harness_config.sandbox_config
+    if scenario == "unavailable":
+        sandbox_config = sandbox_config.model_copy(update={"backend": "docker"})
+    sandbox = SandboxExecutor(sandbox_config)
+    # Simulate loss of Docker after preflight while keeping the real profiler.
+    monkeypatch.setattr(sandbox, "health_check", lambda: (True, "OK"))
+    monkeypatch.setattr(sandbox, "_docker_available", lambda: False)
+    profile = MagicMock(wraps=sandbox.execute_with_memory_profiling)
+    monkeypatch.setattr(sandbox, "execute_with_memory_profiling", profile)
+    monkeypatch.setattr("src.harness.SandboxExecutor", lambda config: sandbox)
+    monkeypatch.setattr("src.harness.LLMClient", MagicMock())
+
+    strategy = MagicMock()
+    strategy.execute.return_value = ExecutionResult(
+        problem_id=problem.problem_id,
+        strategy="vanilla",
+        generated_code=code,
+        status="success",
+    )
+    monkeypatch.setitem(harness.STRATEGY_MAP, "vanilla", lambda *args: strategy)
+
+    harness._run_strategy(harness_config.strategies[0], [problem])
+    result = harness.results["vanilla"][0]
+    assert result.status == "success"
+    space = result.model_dump(mode="json")["quality_metrics"]["space_complexity"]
+    if scenario == "disabled":
+        profile.assert_not_called()
+        assert space is None
+    else:
+        if scenario == "sample":
+            assert space["peak_memory_bytes"] >= 2 * 1024 * 1024
+            assert space["peak_memory_mb"] >= 2
+        else:
+            assert space["peak_memory_bytes"] is None
+            assert any("No valid memory samples" in note for note in space["analysis_notes"])
+        profile.assert_called_once_with(code, problem, scales=[1])
 
 
 def test_generate_report(harness_config):
