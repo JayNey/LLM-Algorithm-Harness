@@ -18,6 +18,18 @@ def _mean(values: list[float]) -> float | None:
     return sum(values) / len(values) if values else None
 
 
+def _heatmap_cell(entries: list[dict[str, Any]]) -> dict[str, int | float | None]:
+    """Pool observations, keeping incomplete or invalid counts unknown."""
+    success = total = 0
+    for values in entries:
+        solved, count = values.get("solved"), values.get("total")
+        if type(solved) is not int or type(count) is not int or not 0 <= solved <= count:
+            return {"success": None, "total": None, "rate": None}
+        success += solved
+        total += count
+    return {"success": success, "total": total, "rate": success / total if total else None}
+
+
 def build_capability_map(comparison: dict[str, Any]) -> dict[str, Any]:
     """Build radar dimensions and difficulty/tag heatmap from comparison metrics.
 
@@ -70,25 +82,19 @@ def build_capability_map(comparison: dict[str, Any]) -> dict[str, Any]:
             "sample_count": sum(item.get("denominator", {}).get("total", 0) for item in entries),
         }
 
-    heatmap: dict[str, dict[str, dict[str, int | float | None]]] = defaultdict(dict)
+    # Each strategy/repeat contributes its observations to the same model cell.
+    heatmap: dict[str, dict[str, list[dict[str, Any]]]] = defaultdict(lambda: defaultdict(list))
     for combo in combos:
         model = combo.get("model", "unknown")
         for difficulty, values in (combo.get("by_difficulty") or {}).items():
-            heatmap[model][difficulty] = {
-                "success": values.get("solved", 0),
-                "total": values.get("total", 0),
-                "rate": values.get("rate"),
-            }
+            heatmap[model][difficulty].append(values)
         for tag, values in (combo.get("by_tags") or {}).items():
-            heatmap[model][f"tag:{tag}"] = {
-                "success": values.get("solved", 0),
-                "total": values.get("total", 0),
-                "rate": values.get("rate"),
-            }
+            heatmap[model][f"tag:{tag}"].append(values)
 
     heatmap_rows = []
-    for model, cells in heatmap.items():
-        for dimension, cell in cells.items():
+    for model in sorted(heatmap):
+        for dimension, entries in sorted(heatmap[model].items()):
+            cell = _heatmap_cell(entries)
             heatmap_rows.append({"model": model, "dimension": dimension, **cell})
     return {
         "dimension_labels": DIMENSIONS,
