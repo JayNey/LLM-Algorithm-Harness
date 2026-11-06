@@ -121,6 +121,8 @@ class LeetCodeImporter(ProblemImporter):
         self.backoff_seconds = max(0.0, backoff_seconds)
         self.batch_delay_seconds = max(0.0, batch_delay_seconds)
         self.sleep = sleep
+        self.fetch_failures: list[dict[str, Any]] = []
+        # Compatibility view consumed by the CLI: fetch + current transform failures.
         self.transform_failures: list[dict[str, Any]] = []
 
     @classmethod
@@ -172,6 +174,8 @@ class LeetCodeImporter(ProblemImporter):
         Returns:
             List of raw question data dictionaries
         """
+        # A fetch starts a new import round, including invalid or failed fetches.
+        self._reset_failures()
         # Single-question mode: source provided
         if source:
             slug, canonical_url = self.parse_source(source)
@@ -343,6 +347,7 @@ class LeetCodeImporter(ProblemImporter):
         First fetches the question list, then fetches details for each question.
         Partial failures are recorded but don't stop the batch.
         """
+        self._reset_failures()
         # Get question list
         question_list = self._fetch_question_list(tags, difficulty, limit)
 
@@ -372,14 +377,14 @@ class LeetCodeImporter(ProblemImporter):
                     index=idx,
                     error=str(exc),
                 )
-                self.transform_failures.append(
-                    {
-                        "index": idx,
-                        "problem_id": question_meta.get("questionFrontendId", "unknown"),
-                        "slug": slug,
-                        "error": str(exc),
-                    }
-                )
+                failure = {
+                    "index": idx,
+                    "problem_id": question_meta.get("questionFrontendId", "unknown"),
+                    "slug": slug,
+                    "error": str(exc),
+                }
+                self.fetch_failures.append(failure)
+                self.transform_failures.append(failure)
 
             # Add delay between requests to avoid rate limiting
             if idx < total - 1:
@@ -393,11 +398,16 @@ class LeetCodeImporter(ProblemImporter):
         )
         return results
 
+    def _reset_failures(self) -> None:
+        self.fetch_failures = []
+        self.transform_failures = []
+
     def transform_to_schema(self, raw_data: Any) -> list[Problem]:
         """Transform GraphQL question data to the project Problem schema."""
         items = raw_data if isinstance(raw_data, list) else [raw_data]
         problems = []
-        self.transform_failures = []
+        # Replace previous conversion errors without discarding this round's fetch errors.
+        self.transform_failures = list(self.fetch_failures)
         for index, item in enumerate(items):
             try:
                 problems.append(self._transform_question(item))

@@ -298,6 +298,8 @@ harness import --source local-json --input data/new_problems.json --force
 
 LeetCode 导入只访问公开题目接口，不绕过登录、付费限制或反爬验证，也不获取官方隐藏测试。无法可靠配对样例输入/输出或提取 Python 入口时，导入结果会标记为需要人工补全，不会伪造测试数据。
 
+LeetCode 批量导入报告会保留每道抓取或转换失败题目的题号和原因。部分失败时普通模式退出码为 `1`，`--strict` 为 `3`；全部失败为 `2`（含 strict），全部成功为 `0`。`--preview` 同样执行完整检查和报告但不写入；`--force` 仅保存成功题目。同一 importer 实例开始下一次抓取时会重置上一轮失败。
+
 **LeetCode 批量导入限流建议：** 批量导入会对每个题目发起独立的 GraphQL 请求。为避免触发 LeetCode 限流，建议：
 - 首次批量导入使用 `--import-limit 50` 或更小的值
 - 题目间自动延迟 0.2 秒（可通过代码调整 `batch_delay_seconds` 参数）
