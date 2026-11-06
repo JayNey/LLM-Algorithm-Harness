@@ -472,6 +472,8 @@ harness benchmark --suite benchmark.example.json
 harness benchmark --suite benchmark.example.json --compare --output reports/learning_curve.md
 ```
 
+`--compare` 从 `results/benchmark/` 读取同名题目集的历史，至少需要两个模型各有一个有效的准确率样本。比较模式无需评估配置，也不会启动评估或追加历史。`--output` 仅用于比较模式，省略时报告保存在 `results/benchmark/`。
+
 **主要功能：**
 - **基准题目集管理**：定义固定的题目集（frozen benchmark），确保评估一致性
 - **历史数据存储**：自动保存每次评估结果，按时间戳和模型 ID 组织

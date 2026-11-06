@@ -53,7 +53,9 @@ class TrendAnalyzer:
             timestamp = datetime.fromisoformat(result["timestamp"])
             accuracy = result.get("accuracy")
 
-            if accuracy is None:
+            if not isinstance(mid, str) or not mid.strip() or accuracy is None:
+                continue
+            if not 0 <= accuracy <= 1:
                 continue
 
             if mid not in time_series:

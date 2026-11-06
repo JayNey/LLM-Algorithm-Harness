@@ -1197,13 +1197,16 @@ def run_ab_test_command(args: argparse.Namespace) -> int:
 
 
 def run_benchmark_command(args: argparse.Namespace) -> int:
-    """Run benchmark evaluation for learning curve tracking."""
+    """Run a benchmark evaluation or compare historical results."""
     from src.benchmark import BenchmarkManager
     from src.benchmark.executor import BenchmarkExecutor
     from src.benchmark.history import BenchmarkHistoryStorage
     from src.utils.config import load_config
 
     try:
+        if args.output is not None and not args.compare:
+            raise ValueError("--output requires --compare")
+
         manager = BenchmarkManager(".")
 
         # List available suites if requested
@@ -1229,6 +1232,35 @@ def run_benchmark_command(args: argparse.Namespace) -> int:
         print(f"  Problems: {len(suite.problems)}")
         print(f"  Version: {suite.version}")
         print(f"  Frozen: {suite.frozen}")
+
+        if args.compare:
+            from src.benchmark.analysis import TrendAnalyzer
+            from src.benchmark.report import ReportGenerator
+
+            storage = BenchmarkHistoryStorage()
+            analyzer = TrendAnalyzer(storage)
+            model_ids = sorted(analyzer.extract_time_series(suite_name=suite.name))
+            if len(model_ids) < 2:
+                if not model_ids and not storage.list_results(suite_name=suite.name):
+                    raise ValueError(f"No benchmark history for suite '{suite.name}'")
+                raise ValueError(
+                    f"Comparison for suite '{suite.name}' needs at least two models "
+                    "with valid historical accuracy samples"
+                )
+
+            if args.output is not None:
+                output = Path(args.output).resolve()
+                if output.parent == storage.storage_dir.resolve() and output.suffix == ".json":
+                    raise ValueError(f"Report output conflicts with benchmark history: {output}")
+
+            try:
+                report_path = ReportGenerator(storage, analyzer).generate_report(
+                    model_ids, suite_name=suite.name, output_path=args.output
+                )
+            except OSError as exc:
+                raise ValueError(f"Could not write benchmark report: {exc}") from exc
+            print(f"Benchmark comparison report saved to: {report_path}")
+            return 0
 
         # Load harness config
         config = load_config(str(Path("config.yaml")))
@@ -1731,9 +1763,11 @@ def main() -> None:
         "--list-suites", action="store_true", help="List available benchmark suites"
     )
     benchmark_parser.add_argument(
-        "--compare", action="store_true", help="Enable multi-model comparison mode"
+        "--compare", action="store_true", help="Compare models using saved benchmark history"
     )
-    benchmark_parser.add_argument("--output", type=str, help="Output path for report")
+    benchmark_parser.add_argument(
+        "--output", type=str, help="Markdown report path (requires --compare)"
+    )
     benchmark_parser.add_argument("--log-format", choices=["console", "json"], default="console")
 
     # Tag management commands
