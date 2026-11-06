@@ -1,168 +1,153 @@
 """End-to-end tests for code evolution analysis feature."""
 
-from unittest.mock import MagicMock, patch
+import json
+from unittest.mock import MagicMock
 
 import pytest
+from structlog.testing import capture_logs
 
+from src.experiment_report import _analyze_quality_evolution
+from src.harness import AlgorithmHarness
 from src.models import (
     CodeQualityMetrics,
+    HarnessConfig,
+    LLMConfig,
     LLMResponse,
-    Problem,
     SandboxResult,
     StrategyConfig,
-    TestCaseResult,
     TokenUsage,
 )
 
+FIRST_CODE = "def solution(nums):\n    return 0"
+FINAL_CODE = """def solution(nums):
+    total = 0
+    for i in range(len(nums)):
+        for j in range(len(nums)):
+            if i == j:
+                total += nums[i]
+    return total"""
+
 
 @pytest.fixture
-def mock_llm_client():
-    """Create a mock LLM client."""
-    with patch("src.llm_client.LLMClient") as mock:
-        client = MagicMock()
-        response = LLMResponse(
-            text="```python\ndef solution(nums):\n    return sum(nums)\n```",
-            usage=TokenUsage(
-                prompt_tokens=50,
-                completion_tokens=50,
-                total_tokens=100,
-            ),
-            model="test-model",
-            effective_params={},
+def run_multi_round(tmp_path, monkeypatch):
+    dataset = tmp_path / "dataset.json"
+    dataset.write_text(
+        json.dumps(
+            [
+                {
+                    "problem_id": "sum",
+                    "title": "Sum",
+                    "description": "Return the sum of the numbers.",
+                    "difficulty": "easy",
+                    "entry_point": "solution(nums)",
+                    "public_test_cases": [{"input": {"nums": [1, 2, 3]}, "expected_output": 6}],
+                }
+            ]
+        ),
+        encoding="utf-8",
+    )
+
+    def run(rounds, *, quality=True, evolution=True, fail_analysis=False):
+        config = HarnessConfig(
+            dataset_path=str(dataset),
+            llm_config=LLMConfig(provider="openai", api_key="test-key", model="test-model"),
+            strategies=[StrategyConfig(name="multi_round_feedback", max_iterations=len(rounds))],
+            enable_quality_analysis=quality,
+            enable_evolution_analysis=evolution,
+            quality_analysis_config={
+                "enable_space_analysis": False,
+                "enable_readability_analysis": False,
+                "enable_style_analysis": False,
+            },
         )
-        client.generate.return_value = response
-        mock.return_value = client
-        yield client
-
-
-@pytest.fixture
-def mock_sandbox():
-    """Create a mock sandbox executor."""
-    from src.sandbox_executor import SandboxExecutor
-
-    with patch("src.sandbox_executor.SandboxExecutor") as mock:
+        harness = AlgorithmHarness(config)
+        client = MagicMock()
+        client.generate.side_effect = [
+            LLMResponse(
+                text=f"```python\n{code}\n```" if code else "I have no solution yet.",
+                usage=TokenUsage(prompt_tokens=50, completion_tokens=50, total_tokens=100),
+                model="test-model",
+            )
+            for code, _ in rounds
+        ]
         sandbox = MagicMock()
         sandbox.health_check.return_value = (True, "OK")
-        sandbox.execute.return_value = SandboxResult(
-            status="success",
-            all_passed=True,
-            test_results=[
-                TestCaseResult(
-                    test_case_index=0,
-                    passed=True,
-                    status="passed",
-                    execution_time=0.01,
-                )
-            ],
-            execution_time=0.1,
+        sandbox.execute.side_effect = [
+            SandboxResult(status="success" if passed else "failed", all_passed=passed)
+            for code, passed in rounds
+            if code
+        ]
+        monkeypatch.setattr("src.harness.LLMClient", lambda config: client)
+        monkeypatch.setattr("src.harness.SandboxExecutor", lambda config: sandbox)
+        if fail_analysis:
+            time_analyzer = harness.quality_analyzer.time_analyzer
+            analyze = time_analyzer.analyze
+
+            def analyze_time(code, *args):
+                if code == FIRST_CODE:
+                    raise ValueError("unavailable quality analysis")
+                return analyze(code, *args)
+
+            monkeypatch.setattr(time_analyzer, "analyze", analyze_time)
+
+        with capture_logs() as logs:
+            harness.run()
+        result = harness.results["multi_round_feedback"][0]
+
+        assert result.success
+        assert result.generated_code == FINAL_CODE
+        assert sandbox.execute.call_count == sum(bool(code) for code, _ in rounds)
+        summary = _analyze_quality_evolution(
+            {"combo": [json.loads(result.model_dump_json())]}, tmp_path
         )
-        # Keep the static method _entry_point_parts working
-        mock._entry_point_parts = SandboxExecutor._entry_point_parts
-        mock.return_value = sandbox
-        yield sandbox
+        return result, logs, summary
+
+    return run
 
 
-def test_multi_round_strategy_with_quality_analysis(tmp_path, mock_llm_client, mock_sandbox):
-    """Test that MultiRoundFeedbackStrategy produces quality metrics in iterations."""
-    from src.strategies.multi_round_feedback import MultiRoundFeedbackStrategy
-
-    # Create strategy configuration
-    config = StrategyConfig(name="multi_round_feedback", max_iterations=3)
-
-    # Create strategy
-    strategy = MultiRoundFeedbackStrategy(config, mock_llm_client, mock_sandbox)
-
-    # Create test problem with required fields
-    problem = Problem(
-        problem_id="test_problem",
-        title="Test Problem",
-        description="Test problem",
-        difficulty="easy",
-        public_test_cases=[{"input": "[1, 2, 3]", "expected_output": "6"}],
-        metadata={
-            "code_snippet": {"python": "class Solution:\n    def solve(self, nums):\n        pass"}
-        },
-        entry_point="Solution.solve(nums)",
+@pytest.mark.parametrize("quality,evolution", [(True, True), (True, False), (False, True)])
+def test_harness_produces_round_quality_and_report(run_multi_round, quality, evolution):
+    result, logs, summary = run_multi_round(
+        [(FIRST_CODE, False), (FINAL_CODE, True)], quality=quality, evolution=evolution
     )
 
-    # Execute strategy
-    result = strategy.execute(problem)
+    first, final = result.iterations
+    assert first.sandbox_result.status == "failed"
+    assert final.sandbox_result.status == "success"
+    if quality:
+        assert first.code_quality is not None
+        assert final.code_quality is not None
+        assert first.code_quality.time_complexity.static_analysis == "O(1)"
+        assert final.code_quality.time_complexity.static_analysis == "O(n^2)"
+        assert result.quality_metrics == final.code_quality
+    else:
+        assert first.code_quality is final.code_quality is result.quality_metrics is None
 
-    # Verify execution completed
-    assert result.status in ["success", "model_error", "system_error"]
-    assert len(result.iterations) > 0
-
-    # Note: Quality metrics are only added if quality analysis is enabled
-    # and the analyzer is properly integrated. This test verifies the
-    # structure is in place.
-    for iteration in result.iterations:
-        assert hasattr(iteration, "code_quality")
-
-
-def test_evolution_analysis_in_strategy_execution(tmp_path, mock_llm_client, mock_sandbox):
-    """Test that evolution analysis runs during strategy execution when quality data exists."""
-    from src.strategies.multi_round_feedback import MultiRoundFeedbackStrategy
-
-    # Create strategy configuration
-    config = StrategyConfig(name="multi_round_feedback", max_iterations=2)
-
-    # Create strategy
-    strategy = MultiRoundFeedbackStrategy(config, mock_llm_client, mock_sandbox)
-
-    # Create test problem with required fields
-    problem = Problem(
-        problem_id="test_problem",
-        title="Test Problem",
-        description="Test problem",
-        difficulty="medium",
-        public_test_cases=[{"input": "[1, 2, 3]", "expected_output": "6"}],
-        metadata={
-            "code_snippet": {"python": "class Solution:\n    def solve(self, nums):\n        pass"}
-        },
-        entry_point="Solution.solve",
-    )
-
-    # Execute strategy
-    result = strategy.execute(problem)
-
-    # Verify quality data structure is present
-    assert len(result.iterations) >= 1
-    for iteration in result.iterations:
-        assert hasattr(iteration, "code_quality")
+    should_analyze = quality and evolution
+    assert any(entry["event"] == "quality_drops_detected" for entry in logs) == should_analyze
+    assert summary["has_evolution_data"] is should_analyze
+    assert summary["total_drops"] == (2 if should_analyze else 0)
+    assert summary["charts_generated"] == (["evolution_sum.png"] if should_analyze else [])
 
 
-def test_evolution_analysis_not_run_for_single_iteration(tmp_path, mock_llm_client, mock_sandbox):
-    """Test that evolution analysis is not run for single-iteration strategies."""
-    from src.strategies.multi_round_feedback import MultiRoundFeedbackStrategy
+@pytest.mark.parametrize(
+    "rounds,fail_analysis",
+    [
+        ([(None, False), (FINAL_CODE, True)], False),
+        ([(FIRST_CODE, False), (FINAL_CODE, True)], True),
+        ([(FINAL_CODE, True)], False),
+    ],
+)
+def test_harness_skips_evolution_without_comparable_rounds(run_multi_round, rounds, fail_analysis):
+    result, logs, summary = run_multi_round(rounds, fail_analysis=fail_analysis)
 
-    # Create a configuration with max_iterations=1
-    config = StrategyConfig(name="multi_round_feedback", max_iterations=1)
-
-    # Create strategy
-    strategy = MultiRoundFeedbackStrategy(config, mock_llm_client, mock_sandbox)
-
-    # Create test problem
-    problem = Problem(
-        problem_id="test_problem",
-        title="Test Problem",
-        description="Test problem",
-        difficulty="easy",
-        public_test_cases=[{"input": "[1, 2, 3]", "expected_output": "6"}],
-        metadata={
-            "code_snippet": {"python": "class Solution:\n    def solve(self, nums):\n        pass"}
-        },
-        entry_point="Solution.solve",
-    )
-
-    # Execute strategy
-    result = strategy.execute(problem)
-
-    # Verify only one iteration
-    assert len(result.iterations) == 1
-
-    # Evolution analysis should not run with single iteration
-    # (verified by the fact that the code doesn't crash and completes successfully)
-    assert result.status in ["success", "model_error", "system_error"]
+    assert [item.code_quality is not None for item in result.iterations] == [
+        *([False] * (len(rounds) - 1)),
+        True,
+    ]
+    assert result.quality_metrics == result.iterations[-1].code_quality
+    assert not any(entry["event"] == "quality_drops_detected" for entry in logs)
+    assert summary["has_evolution_data"] is False
 
 
 def test_evolution_chart_generation_in_reports(tmp_path):

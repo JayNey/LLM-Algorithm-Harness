@@ -100,7 +100,7 @@ class CodeQualityMetrics(BaseModel):
         default_factory=list, description="Errors encountered during analysis"
     )
 
-    def calculate_overall_score(self) -> float:
+    def calculate_overall_score(self) -> float | None:
         """Calculate weighted overall quality score from individual dimensions."""
         scores = []
         weights = []
@@ -122,7 +122,7 @@ class CodeQualityMetrics(BaseModel):
             weights.append(0.2)
 
         if not scores:
-            return 0.0
+            return None
 
         # Weighted average
         total_weight = sum(weights)

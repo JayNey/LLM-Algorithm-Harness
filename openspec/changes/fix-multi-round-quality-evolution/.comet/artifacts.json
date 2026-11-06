@@ -1,0 +1,6 @@
+{
+  "openspec_proposal": "openspec/changes/fix-multi-round-quality-evolution/proposal.md",
+  "openspec_design": "openspec/changes/fix-multi-round-quality-evolution/design.md",
+  "openspec_tasks": "openspec/changes/fix-multi-round-quality-evolution/tasks.md",
+  "openspec_delta_spec": "openspec/changes/fix-multi-round-quality-evolution/specs/result-recording/spec.md"
+}
