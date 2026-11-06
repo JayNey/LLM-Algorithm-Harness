@@ -76,6 +76,27 @@ class TestCollectStats:
         stats = DifficultyCalibrator(tmp_path).collect_stats()
         assert stats["p1"]["success_rate"] == 0.0
 
+    def test_aggregates_only_completed_evaluations(self, tmp_path):
+        write_results(
+            tmp_path / "vanilla_results.json",
+            [
+                record("p1", iterations=1),
+                {**record("p1", status="failed", iterations=2), "failure_category": "wrong_answer"},
+                record("p1", hidden_passed=False, iterations=3),
+                record("p1", status="budget_exhausted", iterations=10),
+                {**record("p1", status="error", iterations=10), "evaluation_completed": False},
+                record("p2", status="unsupported"),
+            ],
+        )
+
+        stats = DifficultyCalibrator(tmp_path).collect_stats()
+
+        assert set(stats) == {"p1"}
+        assert stats["p1"]["total"] == 3
+        assert stats["p1"]["solved"] == 1
+        assert stats["p1"]["success_rate"] == pytest.approx(1 / 3)
+        assert stats["p1"]["avg_iterations"] == 2.0
+
     def test_unreadable_files_are_skipped(self, tmp_path):
         write_results(tmp_path / "a_results.json", [record("p1")])
         (tmp_path / "broken_results.json").write_text("{not json", encoding="utf-8")
@@ -101,6 +122,16 @@ class TestClassify:
 
 
 class TestRecalibrate:
+    def test_preserves_difficulty_with_only_unexecuted_history(self, tmp_path):
+        write_results(
+            tmp_path / "vanilla_results.json",
+            [{**record("p1", status="budget_exhausted"), "evaluation_completed": False}],
+        )
+
+        decisions = DifficultyCalibrator(tmp_path).recalibrate([make_problem("p1", "easy")])
+
+        assert decisions["p1"] == {"original": "easy", "calibrated": "easy", "has_data": False}
+
     def test_recalibrates_and_keeps_no_data_problems(self, tmp_path):
         write_results(
             tmp_path / "vanilla_results.json",

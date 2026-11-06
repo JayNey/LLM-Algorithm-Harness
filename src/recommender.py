@@ -16,6 +16,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
+from src.evaluation_history import is_completed_evaluation, is_solved_evaluation
 from src.models import Problem
 from src.problem_loader import ProblemLoader
 from src.utils.secrets import redact_sensitive_data
@@ -96,18 +97,21 @@ class RecommendationEngine:
         if not history:
             raise ValueError("No result records found under history path")
 
-        evaluated_ids = {record["problem_id"] for record in history}
+        evaluated_ids: set[str] = set()
         problem_map = {problem.problem_id: problem for problem in problems}
         cost_by_difficulty: dict[str, tuple[float, int]] = {}
         stats: dict[str, dict[str, Any]] = defaultdict(self._new_group)
         per_problem: dict[str, dict[str, int]] = defaultdict(lambda: {"total": 0, "failed": 0})
 
         for record in history:
+            if not is_completed_evaluation(record):
+                continue
             problem_id = record["problem_id"]
+            evaluated_ids.add(problem_id)
             problem = problem_map.get(problem_id)
             if problem is None:
                 continue
-            failed = self._record_failed(record)
+            failed = not is_solved_evaluation(record)
             per_problem[problem_id]["total"] += 1
             per_problem[problem_id]["failed"] += int(failed)
             cost, countable = _record_known_cost(record)
@@ -272,13 +276,6 @@ class RecommendationEngine:
     @staticmethod
     def _new_group() -> dict[str, Any]:
         return {"type": "", "key": "", "total": 0, "failed": 0, "problem_ids": set()}
-
-    @staticmethod
-    def _record_failed(record: dict[str, Any]) -> bool:
-        if record.get("status") != "success":
-            return True
-        hidden = record.get("hidden_result")
-        return bool(hidden and not hidden.get("all_passed", False))
 
     @staticmethod
     def _group_keys(problem: Problem) -> list[tuple[str, str]]:

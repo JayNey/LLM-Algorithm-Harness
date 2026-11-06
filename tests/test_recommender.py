@@ -87,6 +87,49 @@ def test_analyze_ranks_weak_groups_and_excludes_seen_problems(tmp_path):
     assert "seen-dp" not in report["recommended_problem_ids"]
 
 
+def test_analyze_returns_no_weaknesses_when_all_history_was_skipped(tmp_path):
+    history = tmp_path / "vanilla_results.json"
+    history.write_text(
+        json.dumps(
+            [{"problem_id": "seen-dp", "status": "budget_exhausted", "evaluation_completed": False}]
+        ),
+        encoding="utf-8",
+    )
+
+    report = RecommendationEngine(history, dataset_path=_dataset(tmp_path)).analyze()
+
+    assert report["history_record_count"] == 1
+    assert report["evaluated_problem_count"] == 0
+    assert report["weakness_report"] == []
+    assert report["recommended_problem_ids"] == []
+
+
+def test_analyze_excludes_skipped_records_from_weaknesses_and_practice(tmp_path):
+    records = [
+        {"problem_id": "seen-dp", "status": "success"},
+        {"problem_id": "seen-dp", "status": "failed", "failure_category": "wrong_answer"},
+        {"problem_id": "seen-dp", "status": "success", "hidden_result": {"all_passed": False}},
+        {"problem_id": "seen-dp", "status": "budget_exhausted", "evaluation_completed": True},
+        {"problem_id": "candidate-dp", "status": "unsupported"},
+        {"problem_id": "candidate-dp", "status": "cancelled"},
+        {"problem_id": "candidate-dp", "status": "canceled"},
+        {"problem_id": "candidate-dp", "status": "error", "evaluation_completed": False},
+    ]
+    history = tmp_path / "vanilla_results.json"
+    history.write_text(json.dumps(records), encoding="utf-8")
+
+    report = RecommendationEngine(history, dataset_path=_dataset(tmp_path)).analyze()
+
+    assert report["history_record_count"] == 8
+    assert report["evaluated_problem_count"] == 1
+    assert len(report["weakness_report"]) == 5
+    for weakness in report["weakness_report"]:
+        assert weakness["total"] == 3
+        assert weakness["failed"] == 2
+        assert weakness["failure_rate"] == pytest.approx(2 / 3)
+    assert report["recommended_problem_ids"] == ["candidate-dp"]
+
+
 def test_write_outputs_report_and_usable_dataset(tmp_path):
     engine = RecommendationEngine(_history(tmp_path), dataset_path=_dataset(tmp_path))
     output = tmp_path / "recommended.json"

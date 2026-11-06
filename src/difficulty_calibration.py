@@ -9,7 +9,7 @@ report for human review.
 
 Classification: success rate above the easy threshold (default 0.7) -> easy;
 below the hard threshold (default 0.3) -> hard; rates equal to a threshold
-fall in medium. Problems without any history keep their original label and
+fall in medium. Problems without completed evaluations keep their original label and
 are listed for review.
 """
 
@@ -18,6 +18,7 @@ from collections.abc import Iterable
 from pathlib import Path
 from typing import Any
 
+from src.evaluation_history import is_completed_evaluation, is_solved_evaluation
 from src.models import Problem
 from src.utils.logging import get_logger
 
@@ -53,14 +54,6 @@ def _iter_history_records(history_path: Path) -> Iterable[dict[str, Any]]:
                 yield record
 
 
-def _record_solved(record: dict[str, Any]) -> bool:
-    """Same solved semantics as the recommender: sample pass + hidden pass."""
-    if record.get("status") != "success":
-        return False
-    hidden = record.get("hidden_result")
-    return not (hidden and not hidden.get("all_passed", False))
-
-
 class DifficultyCalibrator:
     """Aggregate historical performance and recalibrate difficulty labels."""
 
@@ -79,6 +72,8 @@ class DifficultyCalibrator:
         """Aggregate per-problem success rate and average iterations."""
         acc: dict[str, dict[str, float]] = {}
         for record in _iter_history_records(self.history_path):
+            if not is_completed_evaluation(record):
+                continue
             entry = acc.setdefault(
                 record["problem_id"], {"total": 0, "solved": 0, "iterations": 0.0}
             )
@@ -86,7 +81,7 @@ class DifficultyCalibrator:
             iterations = record.get("iterations")
             if isinstance(iterations, list):
                 entry["iterations"] += float(len(iterations))
-            if _record_solved(record):
+            if is_solved_evaluation(record):
                 entry["solved"] += 1
         for entry in acc.values():
             total = entry["total"]
@@ -112,7 +107,7 @@ class DifficultyCalibrator:
         """Return per-problem recalibration decisions.
 
         Each entry maps problem_id to {"original", "calibrated",
-        "success_rate", "avg_iterations"}; problems without history carry
+        "success_rate", "avg_iterations"}; problems without completed evaluations carry
         calibrated == original (flagged by "has_data": False).
         """
         if not self.stats:
