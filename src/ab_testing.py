@@ -179,9 +179,13 @@ class ABTestRunner:
         problems = ProblemLoader().load(self.config.dataset_path)
         if self.config.problem_filters:
             problems = ProblemLoader().filter_problems(problems, **self.config.problem_filters)
-        if not problems:
-            raise ValueError("A/B test requires at least one problem")
         assignment = stratified_assign(problems, self.config.prompt_variants, self.config.seed)
+        if len(assignment) != len(problems):
+            raise ValueError("A/B test requires unique problem IDs after filtering")
+        if len(set(assignment.values())) != 2:
+            raise ValueError(
+                "A/B test requires at least one problem in each variant after filtering"
+            )
         output = self._create_output_dir()
         if self.checkpoint_dir is not None:
             checkpoint_config = self.config.redacted_dict()

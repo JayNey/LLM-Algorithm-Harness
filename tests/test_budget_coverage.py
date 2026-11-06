@@ -93,7 +93,7 @@ def _fake_llm(monkeypatch):
     )
 
 
-def _write_dataset(tmp_path, problem_id="budget-p1"):
+def _write_dataset(tmp_path, *problem_ids):
     (tmp_path / "problems.json").write_text(
         json.dumps(
             [
@@ -104,6 +104,7 @@ def _write_dataset(tmp_path, problem_id="budget-p1"):
                     "difficulty": "easy",
                     "test_cases": [{"input": {"x": 1}, "expected_output": 2}],
                 }
+                for problem_id in problem_ids or ("budget-p1",)
             ]
         ),
         encoding="utf-8",
@@ -287,7 +288,7 @@ def test_ab_budget_downgrade_action_pauses_then_completes(api, monkeypatch, tmp_
     client, headers, key_id, app = api
     monkeypatch.chdir(tmp_path)
     monkeypatch.setattr(settings, "DATA_ROOT", str(tmp_path))
-    _write_dataset(tmp_path)
+    _write_dataset(tmp_path, "budget-p1", "budget-p2")
     _setup_pricing_and_llm(client, headers, monkeypatch)
 
     # downgrade 对 A/B 无保语义降级：显式按暂停处理（语义约定见 budget_guard）。

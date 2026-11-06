@@ -5,6 +5,7 @@ import subprocess
 import sys
 from argparse import Namespace
 from collections import Counter
+from pathlib import Path
 
 import pytest
 
@@ -117,6 +118,36 @@ def test_runner_generates_report_csv_markdown_and_statistics(tmp_path):
     assert (output / "results.csv").exists()
     assert (output / "REPORT.md").exists()
     assert "baseline" in (output / "REPORT.md").read_text(encoding="utf-8")
+
+
+@pytest.mark.parametrize(
+    ("filters", "duplicate_id", "message"),
+    [
+        ({"limit": 1}, False, "at least one problem in each variant"),
+        ({"difficulty": "medium"}, False, "at least one problem in each variant"),
+        (None, True, "unique problem IDs"),
+    ],
+)
+def test_runner_rejects_incomparable_input_before_execution(
+    tmp_path, filters, duplicate_id, message
+):
+    dataset = _dataset(tmp_path)
+    if duplicate_id:
+        problems = json.loads(dataset.read_text(encoding="utf-8"))
+        problems[1]["problem_id"] = problems[0]["problem_id"]
+        dataset.write_text(json.dumps(problems), encoding="utf-8")
+    config = _config(tmp_path, dataset)
+    config.problem_filters = filters
+
+    def unexpected_factory(_):
+        pytest.fail("Invalid A/B input reached a model or sandbox factory")
+
+    runner = ABTestRunner(
+        config, client_factory=unexpected_factory, sandbox_factory=unexpected_factory
+    )
+    with pytest.raises(ValueError, match=message):
+        runner.run()
+    assert not Path(config.output_dir).exists()
 
 
 def test_ab_test_cli_help_is_available():
