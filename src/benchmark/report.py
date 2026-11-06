@@ -1,8 +1,10 @@
 """Learning curve report generation."""
 
 from datetime import datetime
+from os.path import relpath
 from pathlib import Path
 from typing import Any
+from urllib.parse import quote
 
 from src.benchmark.analysis import TrendAnalyzer
 from src.benchmark.history import BenchmarkHistoryStorage
@@ -111,6 +113,7 @@ class ReportGenerator:
             comparison_plot=comparison_plot,
             model_stats=model_stats,
             version_comparison=version_comparison,
+            report_dir=output_path.parent,
         )
 
         # Write report
@@ -129,8 +132,18 @@ class ReportGenerator:
         comparison_plot: Path | None,
         model_stats: dict[str, dict[str, Any]],
         version_comparison: dict[str, Any] | None,
+        report_dir: Path,
     ) -> str:
         """Build markdown report content."""
+
+        def plot_link(plot_path: Path) -> str:
+            try:
+                relative_path = relpath(plot_path.resolve(), start=report_dir.resolve())
+            except ValueError:
+                # Windows cannot make relative paths across drives.
+                return plot_path.resolve().as_uri()
+            return quote(Path(relative_path).as_posix())
+
         lines = []
 
         # Header
@@ -146,7 +159,7 @@ class ReportGenerator:
         if comparison_plot:
             lines.append("## Model Comparison")
             lines.append("")
-            lines.append(f"![Model Comparison]({comparison_plot.name})")
+            lines.append(f"![Model Comparison]({plot_link(comparison_plot)})")
             lines.append("")
 
         # Individual model sections
@@ -157,7 +170,7 @@ class ReportGenerator:
             # Learning curve plot
             model_plot = next((p for mid, p in plots if mid == model_id), None)
             if model_plot:
-                lines.append(f"![Learning Curve - {model_id}]({model_plot.name})")
+                lines.append(f"![Learning Curve - {model_id}]({plot_link(model_plot)})")
                 lines.append("")
 
             # Statistics

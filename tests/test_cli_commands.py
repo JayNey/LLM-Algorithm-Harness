@@ -3,14 +3,17 @@
 import argparse
 import json
 import os
+import re
 import subprocess
 import sys
 from datetime import datetime
 from pathlib import Path
+from urllib.parse import unquote
 
 import pytest
 
 from src.main import (
+    main,
     run_benchmark_command,
     run_cache_command,
     run_import_command,
@@ -168,6 +171,99 @@ class TestBenchmarkCommand:
             log_format="console",
         )
         return args, results
+
+    def _invoke_benchmark(self, monkeypatch, *args):
+        monkeypatch.setattr("src.main.setup_logging", lambda **kwargs: None)
+        monkeypatch.setattr(
+            sys, "argv", ["harness", "benchmark", "--suite", "benchmark.json", *args]
+        )
+        with pytest.raises(SystemExit) as exit_info:
+            main()
+        return exit_info.value.code
+
+    def _seed_comparison_history(self, models):
+        from src.benchmark.history import BenchmarkHistoryStorage
+
+        storage = BenchmarkHistoryStorage()
+        paths = {}
+        for model, accuracies in models.items():
+            for index, accuracy in enumerate(accuracies, start=1):
+                results = {"strategies": {"vanilla": {"accuracy": accuracy}}}
+                path = storage.save_result("历史基准", model, results, datetime(2025, 1, index))
+                paths[path] = path.read_bytes()
+        other = storage.save_result(
+            "其他套件", "outside-suite", {"strategies": {"vanilla": {"accuracy": 1.0}}}
+        )
+        paths[other] = other.read_bytes()
+        return paths
+
+    def test_compare_cli_writes_report_from_history(self, benchmark_run, monkeypatch):
+        history = self._seed_comparison_history({"model-a": [0.25, 0.75], "model-b": [0.5, 1.0]})
+        output = Path("nested reports/learning curve.md")
+
+        assert self._invoke_benchmark(monkeypatch, "--compare", "--output", str(output)) == 0
+
+        assert output.is_file()
+        content = output.read_text(encoding="utf-8")
+        assert "**Benchmark Suite:** 历史基准" in content
+        assert "| model-a | model-b | +25.00%" in content
+        assert "outside-suite" not in content
+        links = re.findall(r"!\[[^\]]+\]\(([^)]+)\)", content)
+        assert len(links) == 3
+        assert all((output.parent / unquote(link)).is_file() for link in links)
+        assert {
+            path: path.read_bytes() for path in Path("results/benchmark").glob("*.json")
+        } == history
+
+    @pytest.mark.parametrize(
+        ("models", "message"),
+        [
+            ({}, "No benchmark history"),
+            ({"model-a": [0.5]}, "at least two models"),
+            ({"model-a": [0.5], "model-b": [None]}, "at least two models"),
+            ({"model-a": [0.5], "model-b": [float("nan")]}, "at least two models"),
+        ],
+    )
+    def test_compare_cli_rejects_insufficient_history(
+        self, benchmark_run, monkeypatch, capsys, models, message
+    ):
+        history = self._seed_comparison_history(models)
+
+        assert self._invoke_benchmark(monkeypatch, "--compare", "--output", "report.md") == 1
+
+        assert message in capsys.readouterr().err
+        assert not Path("report.md").exists()
+        assert set(Path("results/benchmark").glob("*.json")) == set(history)
+
+    def test_compare_cli_reports_output_failure(self, benchmark_run, monkeypatch, capsys):
+        self._seed_comparison_history({"model-a": [0.5], "model-b": [0.75]})
+        Path("blocked").mkdir()
+
+        assert self._invoke_benchmark(monkeypatch, "--compare", "--output", "blocked") == 1
+
+        assert "blocked" in capsys.readouterr().err
+
+    def test_compare_cli_protects_history_from_output(self, benchmark_run, monkeypatch, capsys):
+        history = self._seed_comparison_history({"model-a": [0.5], "model-b": [0.75]})
+        path = next(iter(history))
+
+        assert self._invoke_benchmark(monkeypatch, "--compare", "--output", str(path)) == 1
+
+        assert "history" in capsys.readouterr().err
+        assert path.read_bytes() == history[path]
+
+    def test_compare_cli_uses_default_report_path_without_config(self, benchmark_run, monkeypatch):
+        self._seed_comparison_history({"model-a": [0.5], "model-b": [0.75]})
+        Path("config.yaml").unlink()
+
+        assert self._invoke_benchmark(monkeypatch, "--compare") == 0
+
+        assert len(list(Path("results/benchmark").glob("learning_curve_report_*.md"))) == 1
+
+    def test_output_requires_compare(self, benchmark_run, monkeypatch, capsys):
+        assert self._invoke_benchmark(monkeypatch, "--output", "report.md") == 1
+        assert "--output requires --compare" in capsys.readouterr().err
+        assert not Path("results/benchmark").exists()
 
     def test_run_saves_complete_history(self, benchmark_run, tmp_path, capsys):
         from src.benchmark.history import BenchmarkHistoryStorage
