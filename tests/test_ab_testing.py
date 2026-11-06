@@ -4,6 +4,7 @@ import json
 import subprocess
 import sys
 from argparse import Namespace
+from collections import Counter
 
 import pytest
 
@@ -73,23 +74,29 @@ def _config(tmp_path, dataset):
     )
 
 
-def test_stratified_assignment_is_reproducible_and_balanced():
-    problems = [
-        Problem(
-            problem_id=f"p{i}",
-            title=f"P{i}",
-            description="A sufficiently long problem description.",
-            difficulty="easy",
-            tags=["array"],
-            test_cases=[{"input": {"x": 1}, "expected_output": 1}],
-        )
-        for i in range(6)
+@pytest.mark.parametrize("sizes", [(6,), (1,) * 20, (3, 2, 1, 4, 3), (1, 1), (1,)])
+def test_stratified_assignment_is_reproducible_and_balanced(sizes):
+    strata = [
+        [
+            Problem(
+                problem_id=f"p{stratum}-{index}",
+                title=f"Problem {index}",
+                description="A sufficiently long problem description.",
+                difficulty="easy",
+                tags=[f"tag{stratum}"],
+                test_cases=[{"input": {"x": 1}, "expected_output": 1}],
+            )
+            for index in range(size)
+        ]
+        for stratum, size in enumerate(sizes)
     ]
+    problems = [problem for stratum in strata for problem in stratum]
     variants = [PromptVariant(id="a"), PromptVariant(id="b")]
-    first = stratified_assign(problems, variants, seed=10)
-    assert first == stratified_assign(problems, variants, seed=10)
-    assert list(first.values()).count("a") == 3
-    assert list(first.values()).count("b") == 3
+    assignment = stratified_assign(problems, variants, seed=42)
+    assert assignment == stratified_assign(problems, variants, seed=42)
+    for stratum in [*strata, problems]:
+        counts = Counter(assignment[problem.problem_id] for problem in stratum)
+        assert abs(counts["a"] - counts["b"]) == len(stratum) % 2
 
 
 def test_confidence_interval_has_explicit_difference():

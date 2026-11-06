@@ -98,10 +98,15 @@ def stratified_assign(
     for problem in problems:
         groups[(problem.difficulty, tuple(sorted(problem.tags)))].append(problem)
     assignment: dict[str, str] = {}
+    next_extra_variant = 0
     for key in sorted(groups):
         items = list(groups[key])
         rng.shuffle(items)
-        for index, problem in enumerate(items):
+        start_variant = 0
+        if len(items) % 2:
+            start_variant = next_extra_variant
+            next_extra_variant = 1 - next_extra_variant
+        for index, problem in enumerate(items, start=start_variant):
             assignment[problem.problem_id] = variants[index % 2].id
     return assignment
 
