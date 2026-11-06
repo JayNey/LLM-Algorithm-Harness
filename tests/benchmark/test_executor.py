@@ -66,6 +66,27 @@ def _setup(tmp_path, suite_problem_ids=("bm-1", "bm-2"), dataset_ids=("bm-1", "b
 
 
 class TestBenchmarkExecutor:
+    @pytest.mark.parametrize(
+        ("pricing", "cost_known"),
+        [
+            ({"unknown_usage": False, "unknown_pricing": False}, True),
+            ({"unknown_usage": True, "unknown_pricing": False}, False),
+            ({"unknown_usage": False, "unknown_pricing": True}, False),
+            (None, False),
+        ],
+    )
+    def test_execute_preserves_pricing_completeness(self, tmp_path, pricing, cost_known):
+        executor = _setup(tmp_path)
+        report = _report("vanilla", total=2, solved=1)
+        report.pricing_metadata = pricing
+
+        with patch("src.benchmark.executor.AlgorithmHarness") as harness_cls:
+            harness_cls.return_value.run.return_value = {"vanilla": report}
+            results = executor.execute()
+
+        assert results["cost_usd"] == 0.02
+        assert results["cost_known"] is cost_known
+
     def test_execute_runs_harness_and_collects_results(self, tmp_path):
         executor = _setup(tmp_path)
         reports = {"vanilla": _report("vanilla", total=2, solved=1)}
