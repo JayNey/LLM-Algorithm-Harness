@@ -3,6 +3,7 @@ Unit tests for ChartGenerator.
 """
 
 import io
+import math
 from unittest.mock import patch
 
 import matplotlib.pyplot as plt
@@ -436,7 +437,9 @@ class TestTokenChartHistoricalCost:
         captured = self._capture_chart(metrics, results)
 
         assert captured["cost_ydata"] == [[5.0]]
-        assert any("1 call(s) with unknown cost excluded" in title for title in captured["titles"])
+        assert any(
+            "1 result unit(s) with unknown cost excluded" in title for title in captured["titles"]
+        )
 
     def test_missing_pricing_metadata_counts_as_unknown(self):
         metrics = {"vanilla": {"avg_tokens_per_problem": 2000}}
@@ -463,7 +466,9 @@ class TestTokenChartHistoricalCost:
         captured = self._capture_chart(metrics, results)
 
         assert captured["cost_ydata"] == [[3.0]]
-        assert any("1 call(s) with unknown cost excluded" in title for title in captured["titles"])
+        assert any(
+            "1 result unit(s) with unknown cost excluded" in title for title in captured["titles"]
+        )
 
     def test_no_known_cost_data_draws_no_dollars(self):
         metrics = {"vanilla": {"avg_tokens_per_problem": 2000}}
@@ -478,7 +483,72 @@ class TestTokenChartHistoricalCost:
         captured = self._capture_chart(metrics, results)
 
         assert captured["cost_lines"] == 0
-        assert any("1 call(s) with unknown cost excluded" in title for title in captured["titles"])
+        assert any(
+            "1 result unit(s) with unknown cost excluded" in title for title in captured["titles"]
+        )
+
+    def test_usage_known_false_counts_as_unknown(self):
+        metrics = {"vanilla": {"avg_tokens_per_problem": 2000}}
+        results = {
+            "vanilla": [
+                self._result_with_traces(
+                    [
+                        {
+                            "prompt_tokens": 1000,
+                            "completion_tokens": 1000,
+                            "total_tokens": 2000,
+                            "pricing_metadata": {
+                                "total_cost": 5,
+                                "usage_known": False,
+                                "pricing_known": True,
+                            },
+                        }
+                    ]
+                )
+            ]
+        }
+
+        captured = self._capture_chart(metrics, results)
+
+        assert captured["cost_lines"] == 0
+        assert any(
+            "1 result unit(s) with unknown cost excluded" in title for title in captured["titles"]
+        )
+
+    def test_multiple_strategies_and_untraced_results(self):
+        metrics = {
+            "known": {"avg_tokens_per_problem": 450.0},
+            "unknown": {"avg_tokens_per_problem": 200.0},
+        }
+        results = {
+            "known": [
+                self._result_with_traces(
+                    [
+                        {
+                            "prompt_tokens": 300,
+                            "completion_tokens": 150,
+                            "total_tokens": 450,
+                            "pricing_metadata": {
+                                "total_cost": 7,
+                                "usage_known": True,
+                                "pricing_known": True,
+                            },
+                        }
+                    ]
+                )
+            ],
+            "unknown": [self._result_with_traces([])],
+        }
+
+        captured = self._capture_chart(metrics, results)
+
+        assert captured["token_ydata"] == [450.0, 200.0]
+        assert len(captured["cost_ydata"]) == 1
+        assert captured["cost_ydata"][0][0] == 7.0
+        assert math.isnan(captured["cost_ydata"][0][1])
+        assert any(
+            "1 result unit(s) with unknown cost excluded" in title for title in captured["titles"]
+        )
 
     def test_metrics_only_draws_no_dollars(self):
         metrics = {"vanilla": {"avg_tokens_per_problem": 2000}}

@@ -5,6 +5,7 @@ Chart generation module using matplotlib.
 import base64
 import io
 import logging
+import math
 from typing import Any
 
 import matplotlib
@@ -122,42 +123,59 @@ class ChartGenerator:
     @staticmethod
     def _aggregate_trace_usage(
         results: list[ExecutionResult],
-    ) -> tuple[list[int], list[float], int, int]:
+    ) -> tuple[list[int], list[float | None], int]:
         """
-        Aggregate per-result token totals and known costs from llm_traces.
+        Aggregate per-strategy token totals and known costs from llm_traces.
 
         Trace token totals already merge main and reflection rounds, and known
         costs are the merged ``pricing_metadata.total_cost`` values — the same
         semantics as ``harness._estimate_cost``, so charts and text reports
-        reconcile. Calls with unknown cost are counted, never estimated.
+        reconcile. Results whose traces are missing entirely (unexecuted
+        placeholders, budget-exhausted units) contribute their recorded token
+        total and count as unknown cost; results with unknown-cost calls
+        contribute only their known part and are flagged too.
 
         Returns:
-            (token_counts, known_costs, unknown_calls, known_calls) per result,
-            in order
+            (token_counts, known_costs, unknown_units) per strategy, in order.
+            ``known_costs`` entries are ``float("nan")`` when a strategy has no
+            known cost data.
         """
         token_counts: list[int] = []
-        known_costs: list[float] = []
-        unknown_calls = 0
-        known_calls = 0
+        known_costs: list[float | None] = []
+        unknown_units = 0
         for result in results:
             traces = result.llm_traces or []
             trace_tokens = 0
             result_known_cost = 0.0
+            result_unknown = False
             for trace in traces:
                 trace_tokens += trace.get("total_tokens", 0)
                 pricing = trace.get("pricing_metadata")
                 if not isinstance(pricing, dict):
-                    unknown_calls += 1
+                    result_unknown = True
                     continue
                 trace_cost = pricing.get("total_cost")
                 if trace_cost is None or pricing.get("usage_known") is False:
-                    unknown_calls += 1
+                    result_unknown = True
                     continue
-                known_calls += 1
                 result_known_cost += float(trace_cost)
+            if not traces:
+                # 无 trace 的结果：无法区分已计费与未执行，费用记为未知；
+                # token 用结果记录的总额，如实计入用量轴。
+                if result.total_tokens:
+                    token_counts.append(result.total_tokens)
+                unknown_units += 1
+                known_costs.append(float("nan"))
+                continue
             token_counts.append(trace_tokens)
-            known_costs.append(result_known_cost)
-        return token_counts, known_costs, unknown_calls, known_calls
+            if result_unknown:
+                unknown_units += 1
+            # 已知部分照实入账；全部调用未知时没有已知美元值（NaN 不绘制）。
+            if result_known_cost > 0 or not result_unknown:
+                known_costs.append(result_known_cost)
+            else:
+                known_costs.append(float("nan"))
+        return token_counts, known_costs, unknown_units
 
     @staticmethod
     def generate_token_chart(
@@ -189,41 +207,32 @@ class ChartGenerator:
             # Calculate percentiles if results are provided
             percentile_25: list[float] = []
             percentile_75: list[float] = []
-            avg_costs: list[float] = []
-            unknown_calls_total = 0
-            known_calls_total = 0
+            avg_costs: list[float | None] = []
+            unknown_units_total = 0
 
             if results:
                 for strategy in strategies:
                     strategy_results = results.get(strategy, [])
-                    if strategy_results:
-                        token_counts, costs, unknown_calls, known_calls = (
-                            ChartGenerator._aggregate_trace_usage(strategy_results)
-                        )
-                        unknown_calls_total += unknown_calls
-                        known_calls_total += known_calls
+                    token_counts, known_costs, unknown_units = (
+                        ChartGenerator._aggregate_trace_usage(strategy_results)
+                    )
+                    unknown_units_total += unknown_units
+                    known_values = [c for c in known_costs if c is not None]
+                    avg_cost = float(np.mean(known_values)) if known_values else float("nan")
+                    avg_costs.append(avg_cost)
 
-                        # Calculate 25th and 75th percentiles
-                        if token_counts:
-                            p25 = np.percentile(token_counts, 25)
-                            p75 = np.percentile(token_counts, 75)
-                            percentile_25.append(float(p25))
-                            percentile_75.append(float(p75))
-
-                            # Calculate average cost
-                            avg_cost = np.mean(costs) if costs else 0.0
-                            avg_costs.append(float(avg_cost))
-                        else:
-                            percentile_25.append(0.0)
-                            percentile_75.append(0.0)
-                            avg_costs.append(0.0)
+                    # Calculate 25th and 75th percentiles
+                    if token_counts:
+                        p25 = np.percentile(token_counts, 25)
+                        p75 = np.percentile(token_counts, 75)
+                        percentile_25.append(float(p25))
+                        percentile_75.append(float(p75))
                     else:
                         percentile_25.append(0.0)
                         percentile_75.append(0.0)
-                        avg_costs.append(0.0)
 
-            # 无已知费用调用时不绘制伪造美元值（issue #368）；成本轴只画历史已知部分。
-            plot_cost = known_calls_total > 0
+            # 无已知费用的策略不绘制伪造美元值（issue #368）；成本轴只画历史已知部分。
+            plot_cost = any(c is not None and not math.isnan(c) for c in avg_costs)
 
             # Create figure and axes
             fig, ax1 = plt.subplots(figsize=(12, 6))
@@ -316,7 +325,7 @@ class ChartGenerator:
             ax2.tick_params(axis="y", labelcolor=color_cost)
 
             # Add value labels for tokens and known costs
-            for i, (x, tokens, cost) in enumerate(zip(x_pos, avg_tokens, avg_costs)):
+            for i, (x, tokens) in enumerate(zip(x_pos, avg_tokens)):
                 # Token label
                 ax1.text(
                     x,
@@ -328,8 +337,11 @@ class ChartGenerator:
                     color=color_tokens,
                 )
 
-                # Cost label with smart formatting (only for known values)
-                if plot_cost:
+            if plot_cost:
+                # Cost labels with smart formatting (only known values; NaN strategies skipped)
+                for i, (x, cost) in enumerate(zip(x_pos, avg_costs)):
+                    if cost is None or math.isnan(cost):
+                        continue
                     if cost < 1.0:
                         cost_str = f"${cost:.4f}"
                     else:
@@ -343,8 +355,8 @@ class ChartGenerator:
 
             # Honest title: costs are historical known values, never estimated
             title = "Token Consumption and Known Cost Comparison"
-            if unknown_calls_total:
-                title += f" ({unknown_calls_total} call(s) with unknown cost excluded)"
+            if unknown_units_total:
+                title += f" ({unknown_units_total} result unit(s) with unknown cost excluded)"
             elif not plot_cost:
                 title += " (no known cost data)"
             plt.title(title, fontsize=14, fontweight="bold")
