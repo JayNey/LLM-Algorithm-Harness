@@ -1,5 +1,6 @@
 {
   "openspec_proposal": "openspec/changes/readme-cli-pricing-examples/proposal.md",
   "openspec_design": "openspec/changes/readme-cli-pricing-examples/design.md",
-  "openspec_tasks": "openspec/changes/readme-cli-pricing-examples/tasks.md"
+  "openspec_tasks": "openspec/changes/readme-cli-pricing-examples/tasks.md",
+  "archive_directory": "openspec/changes/archive/2026-11-07-readme-cli-pricing-examples"
 }
