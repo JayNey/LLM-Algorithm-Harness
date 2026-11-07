@@ -36,6 +36,8 @@ try {
   )
   const headers = { Authorization: `Bearer ${token}` }
   const page = await browser.newPage()
+  const cdp = await page.context().newCDPSession(page)
+  await cdp.send('Network.setCacheDisabled', { cacheDisabled: true })
   page.setDefaultTimeout(12_000)
   await page.goto(`${ui}/login`)
   await page.locator('#login-identity').fill(username)
@@ -45,11 +47,23 @@ try {
 
   const globalCap = page.getByLabel('全局预算上限', { exact: true })
   const difficulty = (key) => page.getByLabel(`${key} 难度预算上限`)
+  const action = page.getByRole('combobox', { name: '超限动作' })
+  const actionSelect = page.locator('.ant-select').filter({ has: action })
+  const selectedAction = (label) =>
+    actionSelect
+      .locator('.ant-select-content-has-value')
+      .filter({ hasText: label })
   const save = page.getByRole('button', { name: '保存预算', exact: true })
   const budgetSection = page
     .getByRole('heading', { name: '预算配置' })
     .locator('..')
   const route = '**/api/v1/budgets'
+  const nextPatch = () =>
+    page.waitForResponse(
+      (response) =>
+        response.url().endsWith(budgetPath) &&
+        response.request().method() === 'PATCH',
+    )
   const caps = { easy: 1, medium: 2 }
   const scenarios = [
     { mode: 'normal', difficultyCaps: caps },
@@ -58,6 +72,25 @@ try {
     { mode: 'legacy', difficultyCaps: null },
     { mode: 'empty', difficultyCaps: {} },
   ]
+
+  await page.goto(`${ui}/settings/budgets`)
+  await actionSelect.getByText('默认暂停（pause）', { exact: true }).waitFor()
+  await globalCap.fill('10')
+  const firstPatch = nextPatch()
+  await save.click()
+  const firstResponse = await firstPatch
+  assert.deepEqual(firstResponse.request().postDataJSON(), {
+    global_cap_usd: 10,
+  })
+  assert.equal((await data(firstResponse)).action, 'pause')
+  await selectedAction('暂停（pause）').waitFor()
+  assert.equal(
+    (await data(await api.get(budgetPath, { headers }))).action,
+    'pause',
+  )
+  await page.reload()
+  await selectedAction('暂停（pause）').waitFor()
+  process.stdout.write('PASS default pause\n')
 
   for (const [index, { mode, difficultyCaps }] of scenarios.entries()) {
     const seed = { global_cap_usd: 10, action: 'downgrade' }
@@ -101,11 +134,15 @@ try {
 
     const updated = 20 + index
     await globalCap.fill(`0${updated}.0`)
-    const pending = page.waitForResponse(
-      (response) =>
-        response.url().endsWith(budgetPath) &&
-        response.request().method() === 'PATCH',
-    )
+    if (mode === 'normal') {
+      await actionSelect.hover()
+      assert.equal(
+        await actionSelect.locator('.ant-select-clear').count(),
+        0,
+        'Saved budget action can be cleared',
+      )
+    }
+    const pending = nextPatch()
     await save.click()
     const response = await pending
     const persisted = await data(await api.get(budgetPath, { headers }))
@@ -127,6 +164,7 @@ try {
     await page.unrouteAll({ behavior: 'wait' })
     await page.reload()
     await globalCap.waitFor()
+    await selectedAction('降级模型（downgrade）').waitFor()
     assert.equal(await globalCap.inputValue(), String(updated))
     for (const key of ['easy', 'medium', 'hard']) {
       assert.equal(
@@ -145,11 +183,7 @@ try {
   await page.reload()
   assert.equal(await difficulty('easy').inputValue(), '1')
   await difficulty('easy').fill('')
-  const pending = page.waitForResponse(
-    (response) =>
-      response.url().endsWith(budgetPath) &&
-      response.request().method() === 'PATCH',
-  )
+  const pending = nextPatch()
   await save.click()
   const response = await pending
   assert.deepEqual(response.request().postDataJSON(), {
@@ -158,6 +192,31 @@ try {
   const persisted = await data(await api.get(budgetPath, { headers }))
   assert.deepEqual(persisted.difficulty_caps, { medium: 2 })
   process.stdout.write('PASS clear one difficulty cap\n')
+
+  for (const [value, label] of [
+    ['downgrade', '降级模型（downgrade）'],
+    ['pause', '暂停（pause）'],
+  ]) {
+    await action.click()
+    await page
+      .locator('.ant-select-dropdown:visible')
+      .getByText(label, { exact: true })
+      .click()
+    const pending = nextPatch()
+    await save.click()
+    const response = await pending
+    assert.deepEqual(response.request().postDataJSON(), { action: value })
+    assert.equal((await data(response)).action, value)
+    await page.getByText('预算已保存。', { exact: true }).waitFor()
+    await selectedAction(label).waitFor()
+    assert.equal(
+      (await data(await api.get(budgetPath, { headers }))).action,
+      value,
+    )
+    await page.reload()
+    await selectedAction(label).waitFor()
+    process.stdout.write(`PASS save and reload ${value}\n`)
+  }
 } finally {
   await browser.close()
   await api.dispose()
