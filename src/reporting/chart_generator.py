@@ -256,7 +256,7 @@ class ChartGenerator:
                 yerr_lower: list[float] = []
                 yerr_upper: list[float] = []
 
-                for i, (avg, p25, p75) in enumerate(zip(avg_tokens, percentile_25, percentile_75)):
+                for i, (avg, p25, p75) in enumerate(zip(avg_tokens, percentile_25, percentile_75)):  # type: ignore[assignment]
                     avg_float = float(avg)
                     p25_float = float(p25)
                     p75_float = float(p75)
