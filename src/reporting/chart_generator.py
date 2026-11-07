@@ -123,7 +123,7 @@ class ChartGenerator:
     @staticmethod
     def _aggregate_trace_usage(
         results: list[ExecutionResult],
-    ) -> tuple[list[int], list[float | None], int]:
+    ) -> tuple[list[int], list[float], int]:
         """
         Aggregate per-strategy token totals and known costs from llm_traces.
 
@@ -141,7 +141,7 @@ class ChartGenerator:
             known cost data.
         """
         token_counts: list[int] = []
-        known_costs: list[float | None] = []
+        known_costs: list[float] = []
         unknown_units = 0
         for result in results:
             traces = result.llm_traces or []
@@ -207,7 +207,7 @@ class ChartGenerator:
             # Calculate percentiles if results are provided
             percentile_25: list[float] = []
             percentile_75: list[float] = []
-            avg_costs: list[float | None] = []
+            avg_costs: list[float] = []
             unknown_units_total = 0
 
             if results:
@@ -256,7 +256,7 @@ class ChartGenerator:
                 yerr_lower: list[float] = []
                 yerr_upper: list[float] = []
 
-                for i, (avg, p25, p75) in enumerate(zip(avg_tokens, percentile_25, percentile_75)):  # type: ignore[assignment]
+                for i, (avg, p25, p75) in enumerate(zip(avg_tokens, percentile_25, percentile_75)):
                     avg_float = float(avg)
                     p25_float = float(p25)
                     p75_float = float(p75)
