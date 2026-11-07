@@ -71,7 +71,7 @@ function budgetConfig(value: unknown): Partial<BudgetConfig> {
   return {
     global_cap_usd: nullableFloat(data.global_cap_usd, 'budget.global_cap_usd'),
     difficulty_caps: difficultyCaps(
-      data.difficulty_caps,
+      data.difficulty_caps ?? {},
       'budget.difficulty_caps',
     ),
     action: (action as BudgetConfig['action']) ?? null,

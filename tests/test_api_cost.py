@@ -780,6 +780,7 @@ def model_costs(api):
     return client, headers
 
 
+@pytest.mark.parametrize("cap_scope", ["global", "difficulty"])
 @pytest.mark.parametrize(
     "action,want_status,strategies",
     [
@@ -788,7 +789,7 @@ def model_costs(api):
     ],
 )
 def test_web_saved_budget_controls_worker(
-    api, monkeypatch, tmp_path, action, want_status, strategies
+    api, monkeypatch, tmp_path, action, want_status, strategies, cap_scope
 ):
     """The HTTP write must govern real TaskService dispatch, not just budget display."""
     from api.db.models import EvaluationResult, Problem
@@ -829,14 +830,22 @@ def test_web_saved_budget_controls_worker(
                     test_cases=[{"input": {}, "expected_output": 1}],
                 )
             )
-    saved = client.post(
-        "/api/v1/budgets", headers=headers, json={"global_cap_usd": 0.01, "action": action}
-    )
+    budget = {"global_cap_usd": 0.01, "action": action}
+    if cap_scope == "difficulty":
+        budget["difficulty_caps"] = {"easy": 0.01, "medium": 0.02}
+    saved = client.post("/api/v1/budgets", headers=headers, json=budget)
     assert saved.status_code in (200, 201), saved.text
+    threshold_pct = 100
+    if cap_scope == "difficulty":
+        # Raise the global cap so only the persisted easy cap governs dispatch.
+        patched = client.patch("/api/v1/budgets", headers=headers, json={"global_cap_usd": 0.04})
+        assert patched.status_code == 200, patched.text
+        assert patched.json()["data"]["difficulty_caps"] == {"easy": 0.01, "medium": 0.02}
+        threshold_pct = 25
     rule = client.post(
         "/api/v1/alerts",
         headers=headers,
-        json={"threshold_pct": 100, "channel": "webhook", "target": WEBHOOK},
+        json={"threshold_pct": threshold_pct, "channel": "webhook", "target": WEBHOOK},
     )
     assert rule.status_code == 201, rule.text
     deliveries = []

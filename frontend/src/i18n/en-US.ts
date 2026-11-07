@@ -894,7 +894,7 @@ export default {
   中等: 'Medium',
   困难: 'Hard',
   上限: 'Cap',
-  '留空 = 保持现有值': 'Empty = keep current value',
+  '留空 = 无上限': 'Empty = no cap',
   超限动作: 'Action on limit exceeded',
   不动作: 'No action',
   '暂停（pause）': 'Pause',
