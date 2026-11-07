@@ -1,13 +1,14 @@
 import { useTranslation } from 'react-i18next'
 import { t } from '../../i18n/core.ts'
 import { Alert, Button, Input, Select, Skeleton } from 'antd'
-import { useCallback, useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { ExperimentFeedback } from '@/experiments/components.tsx'
 import { useBudgetSession } from '@/budgets/session.tsx'
 import type {
   AlertChannel,
   AlertRule,
+  BudgetConfig,
   BudgetUsage,
   CostRange,
 } from '@/budgets/types.ts'
@@ -68,72 +69,63 @@ function useResource<T>(load: (signal: AbortSignal) => Promise<T>) {
   }
 }
 
-function BudgetForm({ onSaved }: { onSaved: () => void }) {
+function budgetFormValues(budget: Partial<BudgetConfig>) {
+  return {
+    global_cap_usd: String(budget.global_cap_usd ?? ''),
+    easy: String(budget.difficulty_caps?.easy ?? ''),
+    medium: String(budget.difficulty_caps?.medium ?? ''),
+    hard: String(budget.difficulty_caps?.hard ?? ''),
+    action: budget.action ?? '',
+  } as const
+}
+
+function BudgetForm({
+  budget,
+  onSaved,
+}: {
+  budget: Partial<BudgetConfig>
+  onSaved: () => void
+}) {
   useTranslation()
 
   const { client } = useBudgetSession()
-  const [form, setForm] = useState({
-    global_cap_usd: '',
-    easy: '',
-    medium: '',
-    hard: '',
-    action: '' as 'pause' | 'downgrade' | '',
-  })
+  const [saved, setSaved] = useState(budget)
+  const [form, setForm] = useState(() => budgetFormValues(budget))
   const [errors, setErrors] = useState<Record<string, string>>({})
   const [busy, setBusy] = useState(false)
   const [message, setMessage] = useState<string | null>(null)
-  const loaded = useRef(false)
-
-  useEffect(() => {
-    if (loaded.current) return
-    loaded.current = true
-    const controller = new AbortController()
-    void client.getBudget(controller.signal).then(
-      (budget) => {
-        setForm({
-          global_cap_usd:
-            budget.global_cap_usd === undefined ||
-            budget.global_cap_usd === null
-              ? ''
-              : String(budget.global_cap_usd),
-          easy: budget.difficulty_caps?.easy
-            ? String(budget.difficulty_caps.easy)
-            : '',
-          medium: budget.difficulty_caps?.medium
-            ? String(budget.difficulty_caps.medium)
-            : '',
-          hard: budget.difficulty_caps?.hard
-            ? String(budget.difficulty_caps.hard)
-            : '',
-          action: budget.action ?? '',
-        })
-      },
-      () => {
-        // 读取失败不阻塞编辑（保存仍可用）
-      },
-    )
-    return () => controller.abort()
-  }, [client])
-
   async function save() {
     if (busy) return
     const nextErrors = validateBudgetInput(form)
     setErrors(nextErrors)
     if (Object.keys(nextErrors).length) return
+    const cap = (value: string) => (value.trim() ? Number(value) : null)
+    const globalCap = cap(form.global_cap_usd)
+    const difficultyCaps = {
+      easy: cap(form.easy),
+      medium: cap(form.medium),
+      hard: cap(form.hard),
+    }
+    const action = form.action || null
+    const patch: Partial<BudgetConfig> = {}
+    if (globalCap !== (saved.global_cap_usd ?? null))
+      patch.global_cap_usd = globalCap
+    // PATCH replaces the complete difficulty map when the field is present.
+    if (
+      (['easy', 'medium', 'hard'] as const).some(
+        (key) => difficultyCaps[key] !== (saved.difficulty_caps?.[key] ?? null),
+      )
+    )
+      patch.difficulty_caps = difficultyCaps
+    if (action !== (saved.action ?? null)) patch.action = action
+    if (Object.keys(patch).length === 0) return
+
     setBusy(true)
     setMessage(null)
     try {
-      await client.saveBudget({
-        global_cap_usd: form.global_cap_usd.trim()
-          ? Number(form.global_cap_usd)
-          : null,
-        difficulty_caps: {
-          easy: form.easy.trim() ? Number(form.easy) : null,
-          medium: form.medium.trim() ? Number(form.medium) : null,
-          hard: form.hard.trim() ? Number(form.hard) : null,
-        },
-        action: form.action === '' ? null : form.action,
-      })
+      const updated = await client.saveBudget(patch)
+      setSaved(updated)
+      setForm(budgetFormValues(updated))
       setMessage('预算已保存。')
       onSaved()
     } catch (cause: unknown) {
@@ -152,6 +144,7 @@ function BudgetForm({ onSaved }: { onSaved: () => void }) {
         )}
         <Input
           aria-label={t('全局预算上限')}
+          disabled={busy}
           value={form.global_cap_usd}
           placeholder={t('如 100')}
           onChange={(event) =>
@@ -169,8 +162,9 @@ function BudgetForm({ onSaved }: { onSaved: () => void }) {
             {t('上限')}
             <Input
               aria-label={t('{{value1}} 难度预算上限', { value1: key })}
+              disabled={busy}
               value={form[key]}
-              placeholder={t('留空 = 保持现有值')}
+              placeholder={t('留空 = 无上限')}
               onChange={(event) =>
                 setForm({ ...form, [key]: event.target.value })
               }
@@ -183,6 +177,7 @@ function BudgetForm({ onSaved }: { onSaved: () => void }) {
         {t('超限动作')}
         <Select
           aria-label={t('超限动作')}
+          disabled={busy}
           value={form.action || undefined}
           placeholder={t('不动作')}
           allowClear
@@ -846,6 +841,9 @@ export default function BudgetsPage() {
   useTranslation()
 
   const { client } = useBudgetSession()
+  const budget = useResource(
+    useCallback((signal: AbortSignal) => client.getBudget(signal), [client]),
+  )
   const usage = useResource(
     useCallback((signal: AbortSignal) => client.usage(signal), [client]),
   )
@@ -861,7 +859,13 @@ export default function BudgetsPage() {
       <div className="grid gap-8">
         <div>
           <h2 className="mb-3 text-lg font-semibold">{t('预算配置')}</h2>
-          <BudgetForm onSaved={refreshUsage} />
+          {budget.loading ? (
+            <Skeleton active paragraph={{ rows: 4 }} />
+          ) : budget.error ? (
+            <ExperimentFeedback message={budget.error} retry={budget.retry} />
+          ) : budget.data ? (
+            <BudgetForm budget={budget.data} onSaved={refreshUsage} />
+          ) : null}
         </div>
         <div>
           <h2 className="mb-3 text-lg font-semibold">{t('使用量')}</h2>
