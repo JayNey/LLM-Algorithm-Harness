@@ -5,6 +5,7 @@ Chart generation module using matplotlib.
 import base64
 import io
 import logging
+import math
 from typing import Any
 
 import matplotlib
@@ -21,59 +22,6 @@ logger = logging.getLogger(__name__)
 
 class ChartGenerator:
     """Generate visualization charts using matplotlib."""
-
-    # Pricing per 1M tokens (USD) - Based on 2026-09 official pricing
-    # Format: (input_price, output_price)
-    MODEL_PRICING = {
-        "gpt-4": (30.0, 60.0),
-        "gpt-4-turbo": (10.0, 30.0),
-        "gpt-3.5-turbo": (0.5, 1.5),
-        "claude-3-opus": (15.0, 75.0),
-        "claude-3-sonnet": (3.0, 15.0),
-        "claude-3-5-sonnet": (3.0, 15.0),
-        "claude-3-haiku": (0.25, 1.25),
-        "gemini-1.5-pro": (1.25, 5.0),  # Fixed: was (3.5, 10.5)
-        "gemini-1.5-flash": (0.35, 1.05),
-        "default": (10.0, 30.0),  # Fixed: was (1.0, 3.0) - Conservative default for unknown models
-    }
-
-    @staticmethod
-    def _calculate_cost(
-        prompt_tokens: int, completion_tokens: int, model: str | None = None
-    ) -> float:
-        """
-        Calculate cost based on token usage and model pricing.
-
-        Args:
-            prompt_tokens: Number of input tokens
-            completion_tokens: Number of output tokens
-            model: Model name (e.g., 'gpt-4', 'claude-3-sonnet')
-
-        Returns:
-            Estimated cost in USD
-        """
-        # Normalize model name to lowercase for matching
-        model_key = model.lower() if model else "default"
-
-        # Try exact match first
-        if model_key in ChartGenerator.MODEL_PRICING:
-            input_price, output_price = ChartGenerator.MODEL_PRICING[model_key]
-        else:
-            # Try partial match (e.g., 'gpt-4-0125-preview' matches 'gpt-4')
-            matched = False
-            for key in ChartGenerator.MODEL_PRICING:
-                if key != "default" and key in model_key:
-                    input_price, output_price = ChartGenerator.MODEL_PRICING[key]
-                    matched = True
-                    break
-
-            if not matched:
-                # Use default pricing
-                input_price, output_price = ChartGenerator.MODEL_PRICING["default"]
-
-        # Calculate cost (prices are per 1M tokens)
-        cost = (prompt_tokens * input_price + completion_tokens * output_price) / 1_000_000
-        return cost
 
     @staticmethod
     def _setup_chinese_font() -> None:
@@ -173,18 +121,79 @@ class ChartGenerator:
             return None
 
     @staticmethod
+    def _aggregate_trace_usage(
+        results: list[ExecutionResult],
+    ) -> tuple[list[int], list[float], int]:
+        """
+        Aggregate per-strategy token totals and known costs from llm_traces.
+
+        Trace token totals already merge main and reflection rounds, and known
+        costs are the merged ``pricing_metadata.total_cost`` values — the same
+        semantics as ``harness._estimate_cost``, so charts and text reports
+        reconcile. Results whose traces are missing entirely (unexecuted
+        placeholders, budget-exhausted units) contribute their recorded token
+        total and count as unknown cost; results with unknown-cost calls
+        contribute only their known part and are flagged too.
+
+        Returns:
+            (token_counts, known_costs, unknown_units) per strategy, in order.
+            ``known_costs`` entries are ``float("nan")`` when a strategy has no
+            known cost data.
+        """
+        token_counts: list[int] = []
+        known_costs: list[float] = []
+        unknown_units = 0
+        for result in results:
+            traces = result.llm_traces or []
+            trace_tokens = 0
+            result_known_cost = 0.0
+            result_unknown = False
+            for trace in traces:
+                trace_tokens += trace.get("total_tokens", 0)
+                pricing = trace.get("pricing_metadata")
+                if not isinstance(pricing, dict):
+                    result_unknown = True
+                    continue
+                trace_cost = pricing.get("total_cost")
+                if trace_cost is None or pricing.get("usage_known") is False:
+                    result_unknown = True
+                    continue
+                result_known_cost += float(trace_cost)
+            if not traces:
+                # 无 trace 的结果：无法区分已计费与未执行，费用记为未知；
+                # token 用结果记录的总额，如实计入用量轴。
+                if result.total_tokens:
+                    token_counts.append(result.total_tokens)
+                unknown_units += 1
+                known_costs.append(float("nan"))
+                continue
+            token_counts.append(trace_tokens)
+            if result_unknown:
+                unknown_units += 1
+            # 已知部分照实入账；全部调用未知时没有已知美元值（NaN 不绘制）。
+            if result_known_cost > 0 or not result_unknown:
+                known_costs.append(result_known_cost)
+            else:
+                known_costs.append(float("nan"))
+        return token_counts, known_costs, unknown_units
+
+    @staticmethod
     def generate_token_chart(
         metrics: dict[str, dict],
         results: dict[str, list[ExecutionResult]] | None = None,
-        model: str | None = None,
     ) -> io.BytesIO | None:
         """
-        Generate token consumption line chart with cost estimation on dual Y-axis.
+        Generate token consumption line chart with historical known cost on dual Y-axis.
+
+        Cost and usage come from each result's ``llm_traces`` (the same source as
+        the text report): trace token totals already include reflection rounds,
+        and the dollar axis only aggregates known ``pricing_metadata.total_cost``
+        values. Calls with unknown cost are excluded from the dollar axis and
+        annotated instead of being re-estimated (issue #368).
 
         Args:
             metrics: Dictionary mapping strategy name to metrics dict
             results: Optional dictionary mapping strategy name to results list (for percentile calculation)
-            model: Optional model name for cost calculation
 
         Returns:
             BytesIO containing PNG image, or None if generation fails
@@ -199,64 +208,31 @@ class ChartGenerator:
             percentile_25: list[float] = []
             percentile_75: list[float] = []
             avg_costs: list[float] = []
+            unknown_units_total = 0
 
             if results:
                 for strategy in strategies:
                     strategy_results = results.get(strategy, [])
-                    if strategy_results:
-                        # Extract total tokens from each result
-                        token_counts = []
-                        costs = []
+                    token_counts, known_costs, unknown_units = (
+                        ChartGenerator._aggregate_trace_usage(strategy_results)
+                    )
+                    unknown_units_total += unknown_units
+                    known_values = [c for c in known_costs if not math.isnan(c)]
+                    avg_cost = float(np.mean(known_values)) if known_values else float("nan")
+                    avg_costs.append(avg_cost)
 
-                        for result in strategy_results:
-                            total_prompt = 0
-                            total_completion = 0
-                            result_cost = 0.0
-
-                            for iteration in result.iterations:
-                                total_prompt += iteration.prompt_tokens
-                                total_completion += iteration.completion_tokens
-                                # Calculate cost per iteration to preserve input/output pricing
-                                result_cost += ChartGenerator._calculate_cost(
-                                    iteration.prompt_tokens, iteration.completion_tokens, model
-                                )
-
-                            total_tokens = total_prompt + total_completion
-                            token_counts.append(total_tokens)
-                            costs.append(result_cost)
-
-                        # Calculate 25th and 75th percentiles
-                        if token_counts:
-                            p25 = np.percentile(token_counts, 25)
-                            p75 = np.percentile(token_counts, 75)
-                            percentile_25.append(float(p25))
-                            percentile_75.append(float(p75))
-
-                            # Calculate average cost
-                            avg_cost = np.mean(costs) if costs else 0.0
-                            avg_costs.append(float(avg_cost))
-                        else:
-                            percentile_25.append(0.0)
-                            percentile_75.append(0.0)
-                            avg_costs.append(0.0)
+                    # Calculate 25th and 75th percentiles
+                    if token_counts:
+                        p25 = np.percentile(token_counts, 25)
+                        p75 = np.percentile(token_counts, 75)
+                        percentile_25.append(float(p25))
+                        percentile_75.append(float(p75))
                     else:
                         percentile_25.append(0.0)
                         percentile_75.append(0.0)
-                        avg_costs.append(0.0)
 
-            # If no results provided, estimate cost using 70/30 split
-            use_estimated_split = False
-            if not avg_costs or all(c == 0 for c in avg_costs):
-                use_estimated_split = True
-                avg_costs = []
-                for avg_token in avg_tokens:
-                    # Assume 70% input, 30% output tokens
-                    estimated_prompt = int(avg_token * 0.7)
-                    estimated_completion = int(avg_token * 0.3)
-                    cost = ChartGenerator._calculate_cost(
-                        estimated_prompt, estimated_completion, model
-                    )
-                    avg_costs.append(cost)
+            # 无已知费用的策略不绘制伪造美元值（issue #368）；成本轴只画历史已知部分。
+            plot_cost = any(not math.isnan(c) for c in avg_costs)
 
             # Create figure and axes
             fig, ax1 = plt.subplots(figsize=(12, 6))
@@ -280,10 +256,11 @@ class ChartGenerator:
                 yerr_lower: list[float] = []
                 yerr_upper: list[float] = []
 
-                for i, (avg, p25, p75) in enumerate(zip(avg_tokens, percentile_25, percentile_75)):  # type: ignore[assignment]
-                    avg_float = float(avg)
-                    p25_float = float(p25)
-                    p75_float = float(p75)
+                pairs = [
+                    (float(avg), float(p25), float(p75))
+                    for avg, p25, p75 in zip(avg_tokens, percentile_25, percentile_75)
+                ]
+                for i, (avg_float, p25_float, p75_float) in enumerate(pairs):
                     # Check for data consistency: p25 should be <= avg <= p75
                     # If not, it means metrics and results are from different datasets
                     if p25_float > 0 and p75_float > 0:
@@ -330,25 +307,26 @@ class ChartGenerator:
             ax1.set_xticklabels(strategies, rotation=45, ha="right")
             ax1.grid(axis="y", linestyle="--", alpha=0.3)
 
-            # Secondary Y-axis: Cost (right)
+            # Secondary Y-axis: Known historical cost (right)
             ax2 = ax1.twinx()
             color_cost = "#2ecc71"
-            ax2.plot(
-                x_pos,
-                avg_costs,
-                marker="s",
-                markersize=7,
-                linewidth=2,
-                linestyle="--",
-                color=color_cost,
-                label="Estimated Cost",
-            )
+            if plot_cost:
+                ax2.plot(
+                    x_pos,
+                    avg_costs,
+                    marker="s",
+                    markersize=7,
+                    linewidth=2,
+                    linestyle="--",
+                    color=color_cost,
+                    label="Known Cost",
+                )
 
-            ax2.set_ylabel("Estimated Cost (USD)", fontsize=12, color=color_cost)
+            ax2.set_ylabel("Known Cost (USD)", fontsize=12, color=color_cost)
             ax2.tick_params(axis="y", labelcolor=color_cost)
 
-            # Add value labels for tokens and costs
-            for i, (x, tokens, cost) in enumerate(zip(x_pos, avg_tokens, avg_costs)):
+            # Add value labels for tokens and known costs
+            for i, (x, tokens) in enumerate(zip(x_pos, avg_tokens)):
                 # Token label
                 ax1.text(
                     x,
@@ -360,24 +338,28 @@ class ChartGenerator:
                     color=color_tokens,
                 )
 
-                # Cost label with smart formatting
-                if cost < 1.0:
-                    cost_str = f"${cost:.4f}"
-                else:
-                    cost_str = f"${cost:.2f}"
-                ax2.text(x, cost, cost_str, ha="center", va="top", fontsize=9, color=color_cost)
+            if plot_cost:
+                # Cost labels with smart formatting (only known values; NaN strategies skipped)
+                for i, (x, cost) in enumerate(zip(x_pos, avg_costs)):
+                    if cost is None or math.isnan(cost):
+                        continue
+                    if cost < 1.0:
+                        cost_str = f"${cost:.4f}"
+                    else:
+                        cost_str = f"${cost:.2f}"
+                    ax2.text(x, cost, cost_str, ha="center", va="top", fontsize=9, color=color_cost)
 
             # Combined legend
             lines1, labels1 = ax1.get_legend_handles_labels()
             lines2, labels2 = ax2.get_legend_handles_labels()
             ax1.legend(lines1 + lines2, labels1 + labels2, loc="upper left")
 
-            # Add title with estimation note if 70/30 split was used
-            title = "Token Consumption and Cost Comparison"
-            if use_estimated_split:
-                title += " (cost estimated using 70/30 input/output ratio)"
-            else:
-                title += " (estimated)"
+            # Honest title: costs are historical known values, never estimated
+            title = "Token Consumption and Known Cost Comparison"
+            if unknown_units_total:
+                title += f" ({unknown_units_total} result unit(s) with unknown cost excluded)"
+            elif not plot_cost:
+                title += " (no known cost data)"
             plt.title(title, fontsize=14, fontweight="bold")
             plt.tight_layout()
 

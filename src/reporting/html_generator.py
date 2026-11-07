@@ -616,9 +616,8 @@ class HTMLGenerator:
                     )
                 )
 
-            # Token chart with cost estimation
-            model_name = config.get("model") if config else None
-            token_buf = ChartGenerator.generate_token_chart(metrics, results, model_name)
+            # Token chart with historical known cost from result traces
+            token_buf = ChartGenerator.generate_token_chart(metrics, results)
             if token_buf:
                 try:
                     token_b64 = base64.b64encode(token_buf.read()).decode("utf-8")

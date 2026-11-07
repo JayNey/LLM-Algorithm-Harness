@@ -433,6 +433,21 @@ def _execution_result(row: EvaluationResult) -> ExecutionResult:
         if count is not None and count > 0
         else []
     )
+    # 为报告图表补充单位级费用的合成 trace：cost_unknown 单位保持未知语义，
+    # 其余按存储的 cost_usd 进入已知费用口径（与 _known_cost 的聚合规则一致）。
+    cost_usd = metrics.get("cost_usd")
+    cost_unknown = bool(metrics.get("cost_unknown"))
+    llm_traces: list[dict[str, Any]] = []
+    if cost_usd is not None or cost_unknown:
+        llm_traces = [
+            {
+                "total_tokens": int(metrics.get("total_tokens") or 0),
+                "pricing_metadata": {
+                    "total_cost": None if cost_unknown else float(cost_usd or 0),
+                    "usage_known": not cost_unknown,
+                },
+            }
+        ]
     return ExecutionResult(
         problem_id=row.problem_id,
         strategy=row.strategy_name,
@@ -445,6 +460,7 @@ def _execution_result(row: EvaluationResult) -> ExecutionResult:
         error_message=row.error_message,
         total_tokens=int(metrics.get("total_tokens") or 0),
         execution_time_seconds=float(metrics.get("execution_time_seconds") or 0.0),
+        llm_traces=llm_traces,
     )
 
 
