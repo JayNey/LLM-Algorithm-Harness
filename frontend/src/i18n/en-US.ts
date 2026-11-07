@@ -896,7 +896,7 @@ export default {
   上限: 'Cap',
   '留空 = 无上限': 'Empty = no cap',
   超限动作: 'Action on limit exceeded',
-  不动作: 'No action',
+  '默认暂停（pause）': 'Pause by default',
   '暂停（pause）': 'Pause',
   '降级模型（downgrade）': 'Downgrade model',
   保存预算: 'Save budget',

@@ -75,7 +75,7 @@ function budgetFormValues(budget: Partial<BudgetConfig>) {
     easy: String(budget.difficulty_caps?.easy ?? ''),
     medium: String(budget.difficulty_caps?.medium ?? ''),
     hard: String(budget.difficulty_caps?.hard ?? ''),
-    action: budget.action ?? '',
+    action: budget.action ?? undefined,
   } as const
 }
 
@@ -106,7 +106,6 @@ function BudgetForm({
       medium: cap(form.medium),
       hard: cap(form.hard),
     }
-    const action = form.action || null
     const patch: Partial<BudgetConfig> = {}
     if (globalCap !== (saved.global_cap_usd ?? null))
       patch.global_cap_usd = globalCap
@@ -117,7 +116,7 @@ function BudgetForm({
       )
     )
       patch.difficulty_caps = difficultyCaps
-    if (action !== (saved.action ?? null)) patch.action = action
+    if (form.action && form.action !== saved.action) patch.action = form.action
     if (Object.keys(patch).length === 0) return
 
     setBusy(true)
@@ -175,19 +174,16 @@ function BudgetForm({
       </div>
       <label>
         {t('超限动作')}
-        <Select
+        <Select<NonNullable<BudgetConfig['action']>>
           aria-label={t('超限动作')}
           disabled={busy}
-          value={form.action || undefined}
-          placeholder={t('不动作')}
-          allowClear
+          value={form.action}
+          placeholder={t('默认暂停（pause）')}
           options={[
             { value: 'pause', label: t('暂停（pause）') },
             { value: 'downgrade', label: t('降级模型（downgrade）') },
           ]}
-          onChange={(value) =>
-            setForm({ ...form, action: (value ?? '') as typeof form.action })
-          }
+          onChange={(value) => setForm({ ...form, action: value })}
         />
       </label>
       <Button
