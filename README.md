@@ -237,7 +237,7 @@ harness tags normalize \
 - 模型 ID 以官方模型列表为准，也可手动填写完整模型 ID（`llm_config.model`）；模型规模元数据接口未可靠提供，一律标注未知。
 - 列表查询失败时按错误原因排查（401 为鉴权问题），也可直接手动配置模型 ID 运行评测。
 - 示例配置见 `config.siliconflow.example.json`（无真实密钥）。
-- 成本估算：未收录进 `pricing.json` 的模型按默认单价估算（报告来源标记为 `default`），可能与实际计费有偏差；可在 `pricing.json` 中为常用模型补充真实单价。
+- 模型未匹配到可用定价时，费用标为未知。可在 `pricing.json` 中补充实际单价，详见[自定义模型定价](#自定义模型定价)。
 - 请求参数：策略中的 `temperature`、`max_tokens`、`system_prompt` 和 `custom_params` 会覆盖全局 `llm_config` 对应值；模型、超时和认证仍由全局配置控制，每轮 trace 会保存脱敏后的有效参数。
 - 本地服务：`provider: "local"` 表示 OpenAI 兼容服务，必须设置 `base_url`；无认证的本地服务可将 `api_key` 留空。
 - API 错误：客户端只对 429、5xx、超时和连接错误做有限重试；401/403 和参数错误立即失败。缺少 token usage 时报告会标注 usage 未知，不会把调用当作零成本。
@@ -268,13 +268,9 @@ harness import --source leetcode --tags dynamic-programming --import-difficulty 
 # 从 Codeforces 公开 API 和题面导入
 harness import codeforces --contest 1234 --tags dp,graphs --import-limit 50 --output data/codeforces.json --force
 
-# 从固定版本的 LiveCodeBench 缓存导入
-harness import --source livecodebench --input data/livecodebench-release-v6.json \
-  --release-version release_v6 --difficulty hard --import-limit 50 --preview
-
 # 从固定版本的 LiveCodeBench 本地缓存导入
 harness import --source livecodebench --input data/livecodebench-release-v6.json \
-  --release-version release_v6 --difficulty hard --import-limit 50 --preview
+  --release-version release_v6 --import-difficulty hard --import-limit 50 --preview
 
 # 预览导入结果（不实际写入）
 harness import --source local-json --input data/new_problems.json --preview
@@ -829,7 +825,7 @@ python -m coverage report --include="api/*" --fail-under=81
 | 现象 | 原因与处理 |
 |------|-----------|
 | `Sandbox preflight failed: Docker sandbox backend unavailable...` | 沙箱预检失败（评测在任何 API 调用前中止）。启动 Docker Desktop 并确认镜像存在后重跑 |
-| `Unknown model '...' - using default pricing` | `pricing.json` 未收录该模型，成本按默认单价估算；可按 `pricing.example.json` 格式补充真实单价 |
+| `Unknown model '...' - no pricing configured` | 模型未匹配到可用定价，费用标为未知。可按 `pricing.example.json` 格式补充实际单价 |
 | `Model listing failed: ...` | 模型列表接口失败（401 为鉴权问题）；可手动在配置中填写完整模型 ID 继续评测 |
 | 全部题目 `system_error: backend_unavailable` | Docker 在运行中途掉线；启动 Docker 后重跑（评测开始前有预检，此情况仅发生在运行中途） |
 
@@ -1063,11 +1059,14 @@ Harness 支持用户自定义 LLM 模型定价，用于准确估算评估成本�
 
 ### 定价策略
 
-成本估算采用三级降级策略：
+系统按以下顺序查找模型定价，命中即停止。
 
-1. **自定义定价** (`pricing.json`) - 用户提供的定价配置，优先级最高
-2. **内置定价** - Harness 内置的常见模型定价（GPT-4、Claude 3 等）
-3. **默认定价** - 未知模型使用默认值，并记录警告日志
+1. Web 评估优先按完整模型 ID 精确匹配本次评估的价格覆盖（`override`）。
+2. 查询当前目录 `pricing.json` 中的自定义定价（`custom`）。先精确匹配，再取最长匹配前缀。
+3. 查询内置定价（`builtin`）。同样先精确匹配，再取最长匹配前缀。
+4. 全部未命中时记录警告，标记 `source: "unknown"` 和 `pricing_known: false`，单次调用的 `total_cost` 为 `null`。
+
+两个单价都显式设为 `0` 时，定价仍为已知。有 token 用量记录的零价调用费用为 `0`。缺少单价或 token 用量时，费用标为未知。
 
 ### 配置方法
 
@@ -1103,56 +1102,25 @@ Harness 支持用户自定义 LLM 模型定价，用于准确估算评估成本�
 
 #### 3. 模型匹配规则
 
-PricingManager 按以下顺序匹配模型：
-
-1. **精确匹配**: 完全匹配模型名称（如 `gpt-4-turbo-2024-04-09`）
-2. **前缀匹配**: 匹配模型名称前缀（如 `gpt-4-turbo` 匹配所有 `gpt-4-turbo-*` 模型）
-3. **降级默认**: 使用默认定价并记录警告
+例如，自定义文件同时包含 `gpt-4` 和 `gpt-4o` 时，`gpt-4o-2024-08-06` 匹配较长的 `gpt-4o`。自定义前缀匹配优先于内置精确匹配。
 
 ### 历史数据准确性保障
 
-定价元数据会随评估结果保存到 `summary.json`：
+每次运行在 `results/<run-id>/summary.json` 中保存各策略的 `estimated_cost_usd` 和 `pricing_metadata`。金额字段只累计可计算的费用。只要 `pricing_metadata.unknown_pricing` 或 `pricing_metadata.unknown_usage` 为 `true`，策略总费用就显示为未知，即使金额字段是 `0`。
 
-```json
-{
-  "strategies": {
-    "vanilla": {
-      "success_rate": 0.8,
-      "estimated_cost_usd": 0.0156,
-      "pricing_metadata": {
-        "model": "gpt-4o",
-        "prompt_price_per_1k": 0.0025,
-        "completion_price_per_1k": 0.01,
-        "source": "custom",
-        "has_actual_pricing": true
-      }
-    }
-  }
-}
-```
-
-**定价来源标识**：
-- `custom`: 来自 `pricing.json` 自定义配置
-- `builtin`: 来自 Harness 内置定价
-- `default`: 使用默认值（未知模型）
-
-生成报告时优先使用 `summary.json` 中的历史定价数据，确保即使模型定价更新，历史评估的成本估算仍然准确。
+要查看单次调用的定价来源、单价和费用，可读取同目录下 `<strategy>_results.json` 中每条结果的 `llm_traces[].pricing_metadata`。HTML 和 Markdown 报告根据运行时保存的汇总判断费用是否已知。
 
 ### 使用示例
 
+如果尚无 `pricing.json` 和 `config.json`，可分别从 `pricing.example.json` 和 `config.example.json` 复制。为 `gpt-4o` 填写实际单价，在 `config.json` 中将 `llm_config.model` 设为 `gpt-4o`，并配置对应供应商的 API 密钥。
+
 ```bash
-# 1. 创建自定义定价配置
-cp pricing.example.json pricing.json
-# 编辑 pricing.json 设置实际定价
+harness run --config config.json --dataset data/problems.json --strategy vanilla --output results
 
-# 2. 运行评估
-harness --dataset data/problems.json --model gpt-4o
-
-# 3. 查看成本估算
-cat results/summary.json | jq '.strategies.vanilla.pricing_metadata'
+# 读取最近一次运行的费用汇总
+run_id=$(jq -r '.latest_run' results/latest.json)
+jq '.strategies.vanilla | {estimated_cost_usd, pricing_metadata}' "results/$run_id/summary.json"
 ```
-
-生成的 HTML 和 Markdown 报告会显示成本估算和定价来源。
 
 ## 策略说明
 
@@ -1241,9 +1209,8 @@ cat results/summary.json | jq '.strategies.vanilla.pricing_metadata'
 
 ## 注意事项
 
-- 如果 `pricing.json` 文件格式错误或不存在，系统会自动降级到内置定价
-- 未知模型使用默认定价时，会在日志中记录 WARNING 信息
-- 旧版本的 `summary.json` 不包含 `pricing_metadata`，生成报告时会使用当前配置重新估算（报告中会标注"历史数据不可用"）
+- `pricing.json` 格式错误或不存在时，模型仍可匹配内置定价。
+- 对于缺少 `pricing_metadata` 的旧版 `summary.json`，HTML 和 Markdown 报告会标注“历史数据不可用”。
 
 ## 添加新策略
 
