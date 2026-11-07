@@ -237,6 +237,8 @@ def _run_owned_evaluation(self: EvaluationTask, evaluation_id: str) -> dict[str,
                 "total_units": len(evaluation.problem_ids) * len(evaluation.strategy_names),
             }
         evaluation.status = "running"
+        if evaluation.run_id is None:
+            evaluation.run_id = evaluation.web_run_id
         task_manager.update_task_status(async_task.id, "running")
         task_manager.celery_task_id = generation
         stage_publication(db, evaluation)

@@ -23,6 +23,8 @@ from sqlalchemy import (
 )
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column
 
+WEB_EVALUATION_RUN_PREFIX = "web-"
+
 
 def utcnow() -> datetime:
     """Naive UTC timestamp; stored consistently across SQLite and PostgreSQL."""
@@ -97,6 +99,11 @@ class Evaluation(Base):
     updated_at: Mapped[datetime] = mapped_column(DateTime, default=utcnow, onupdate=utcnow)
     started_at: Mapped[datetime | None] = mapped_column(DateTime)
     completed_at: Mapped[datetime | None] = mapped_column(DateTime)
+
+    @property
+    def web_run_id(self) -> str:
+        """Public run ID derived from the immutable Web evaluation ID."""
+        return f"{WEB_EVALUATION_RUN_PREFIX}{self.id}"
 
 
 class EvaluationResult(Base):
