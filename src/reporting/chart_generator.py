@@ -217,7 +217,7 @@ class ChartGenerator:
                         ChartGenerator._aggregate_trace_usage(strategy_results)
                     )
                     unknown_units_total += unknown_units
-                    known_values = [c for c in known_costs if c is not None]
+                    known_values = [c for c in known_costs if not math.isnan(c)]
                     avg_cost = float(np.mean(known_values)) if known_values else float("nan")
                     avg_costs.append(avg_cost)
 
@@ -232,7 +232,7 @@ class ChartGenerator:
                         percentile_75.append(0.0)
 
             # 无已知费用的策略不绘制伪造美元值（issue #368）；成本轴只画历史已知部分。
-            plot_cost = any(c is not None and not math.isnan(c) for c in avg_costs)
+            plot_cost = any(not math.isnan(c) for c in avg_costs)
 
             # Create figure and axes
             fig, ax1 = plt.subplots(figsize=(12, 6))
