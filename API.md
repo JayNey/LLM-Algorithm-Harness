@@ -41,7 +41,9 @@ curl --fail http://localhost:8000/openapi.json --output openapi.json
 - 系统监控、依赖健康、全局指标/日志及服务器配置目录要求管理员身份。
   管理员由环境变量 `MONITOR_ADMIN_USER_IDS` 配置为用户 UUID 的 JSON 数组，不能通过注册请求或 token 自行声明。
 - `/users/me` 返回服务器解析的 `role`。`/auth/refresh` 轮换刷新令牌，旧刷新令牌不能再次使用。
-  `/auth/logout` 撤销当前会话；`/users/me/password` 修改密码后撤销所有会话。
+  `/auth/logout` 撤销当前会话。
+  `/users/me/password` 改密成功后，当前会话和其他已登录会话继续有效。
+  仍有效的访问令牌可继续访问 API，刷新令牌可按原规则换取新令牌。
 - LLM 提供商 Key 先通过 `/api-keys` 加密保存，再用返回的 `id` 作为 `api_key_id`。响应只包含 `masked_preview` 等元数据。
 
 [认证完整说明](docs/api-authentication.md)包含密钥配置、令牌生命周期和密码要求。

@@ -177,7 +177,11 @@ OPERATIONS: dict[str, tuple[str, Any]] = {
     "logout": ("撤销当前登录会话；该会话的访问令牌和刷新令牌随即失效。", None),
     "me": ("查询当前用户资料和由服务器配置决定的 user/admin 角色。", {**USER, "role": "user"}),
     "update_me": ("修改自己的用户名或邮箱；冲突返回 409。", USER),
-    "change_password": ("校验当前密码后修改密码，并撤销该用户所有会话；随后需要重新登录。", None),
+    "change_password": (
+        "校验当前密码后修改密码。当前会话和其他已登录会话继续有效。"
+        "仍有效的访问令牌可继续访问 API，刷新令牌可按原规则换取新令牌。",
+        None,
+    ),
     "list_keys": ("列出自己的 LLM 提供商密钥元数据；不会返回明文或密文。", [KEY]),
     "add_key": ("加密保存提供商密钥，返回密钥 ID 和遮罩预览，供评估请求引用。", KEY),
     "update_key": ("修改自己保存的密钥名称或替换密钥值；不可访问其他用户密钥。", KEY),
@@ -1459,7 +1463,7 @@ FIELD_DESCRIPTIONS = {
     "password": "用户密码。注册至少 12 个字符；仅用于请求，不会出现在响应。",
     "refresh_token": "登录或上一次刷新取得的刷新令牌；轮换后旧令牌失效。",
     "current_password": "修改密码前校验的当前密码。",
-    "new_password": "新密码，至少 12 个字符；修改后所有会话撤销。",
+    "new_password": "新密码，长度为 12–1024 个字符。改密成功后，当前会话和其他已登录会话继续有效。",
     "provider": "LLM 提供商：openai、anthropic、siliconflow 或 deepseek。",
     "key_name": "用户自定义密钥名称，不是提供商密钥本身。",
     "api_key": "提供商明文密钥；仅本次请求提交，服务器加密存储。",
