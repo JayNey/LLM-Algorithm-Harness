@@ -256,10 +256,11 @@ class ChartGenerator:
                 yerr_lower: list[float] = []
                 yerr_upper: list[float] = []
 
-                for i, (avg, p25, p75) in enumerate(zip(avg_tokens, percentile_25, percentile_75)):  # type: ignore[assignment]
-                    avg_float = float(avg)
-                    p25_float = float(p25)
-                    p75_float = float(p75)
+                pairs = [
+                    (float(avg), float(p25), float(p75))
+                    for avg, p25, p75 in zip(avg_tokens, percentile_25, percentile_75)
+                ]
+                for i, (avg_float, p25_float, p75_float) in enumerate(pairs):
                     # Check for data consistency: p25 should be <= avg <= p75
                     # If not, it means metrics and results are from different datasets
                     if p25_float > 0 and p75_float > 0:
