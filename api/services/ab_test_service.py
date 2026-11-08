@@ -8,6 +8,7 @@ from datetime import datetime
 from threading import Semaphore
 from typing import Any
 
+from fastapi import HTTPException
 from sqlalchemy import delete, select, update
 from sqlalchemy.orm import Session
 
@@ -25,6 +26,7 @@ from api.db.models import utcnow
 from api.experiment_models import ABTestCreateRequest, ModelSpec
 from api.results import resolve_results_path, results_root
 from src.ab_testing import ABTestConfig, ABTestRunner
+from src.harness import AlgorithmHarness
 from src.task_manager import TaskManager
 
 _TERMINAL_STATUSES = ("completed", "failed", "cancelled")
@@ -32,6 +34,11 @@ _TERMINAL_STATUSES = ("completed", "failed", "cancelled")
 
 def _iso(value: datetime) -> str:
     return value.isoformat() + "Z"
+
+
+def _validate_strategy(name: str) -> None:
+    if name not in AlgorithmHarness.STRATEGY_MAP:
+        raise HTTPException(status_code=400, detail=f"Unknown A/B test strategy: {name!r}")
 
 
 def _job_view(row: ABTest) -> dict[str, Any]:
@@ -108,6 +115,7 @@ class ABTestService:
         if self._auth is None:
             raise ValueError("authentication service is not configured")
         self._auth.owned_key(request.api_key_id, owner_id)
+        _validate_strategy(request.strategy.name)
         ids = [variant.id for variant in request.prompt_variants]
         if len(set(ids)) != len(ids):
             raise ValueError("prompt_variants must contain unique IDs")
@@ -205,6 +213,7 @@ class ABTestService:
             row = self._owned(session, test_id, owner_id)
             if row.status != "pending" or self._task(session, test_id, owner_id):
                 raise ValueError(f"Cannot start A/B test in {row.status} status or already queued")
+            _validate_strategy(row.config["strategy"]["name"])
             task = TaskManager(session).enqueue_task(
                 task_type="ab_test",
                 entity_id=test_id,

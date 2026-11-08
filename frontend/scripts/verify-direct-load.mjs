@@ -64,7 +64,7 @@ const abTestJob = {
     name: '直接加载 A/B',
     dataset_path: 'datasets/demo.json',
     model: { model: 'model-a' },
-    strategy: { name: 'direct' },
+    strategy: { name: 'vanilla' },
     prompt_variants: [{ id: 'baseline' }, { id: 'treatment' }],
     seed: 42,
     max_workers: 4,

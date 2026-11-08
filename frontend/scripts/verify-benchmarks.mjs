@@ -77,7 +77,7 @@ const abJobFixture = {
     name: '提示词对比',
     dataset_path: 'datasets/demo.json',
     model: { model: 'model-a' },
-    strategy: { name: 'direct' },
+    strategy: { name: 'vanilla' },
     prompt_variants: [{ id: 'baseline' }, { id: 'treatment' }],
     seed: 42,
     max_workers: 4,
@@ -119,6 +119,8 @@ function mockRoute(context) {
     if (method === 'GET' && path === '/users/me')
       return reply({ id: 'user-fixture-1', username: 'fixture', role: 'user' })
     if (method === 'GET' && path === '/datasets') return reply([])
+    if (method === 'GET' && path === '/notifications')
+      return reply({ items: [], total: 0, unread_count: 0 })
     if (method === 'GET' && path === '/api-keys') return reply(keys)
     if (method === 'GET' && path === '/evaluation-options')
       return reply({
@@ -157,6 +159,8 @@ function mockRoute(context) {
       return reply(abJobFixture)
     if (method === 'POST' && path === '/benchmarks/suites')
       return reply({ ...suiteFixture, id: 'suite-fixture-new' }, 201)
+    if (method === 'POST' && path === '/ab-tests')
+      return reply(abJobFixture, 201)
     if (
       method === 'GET' &&
       path === '/benchmarks/learning-curve/suite-fixture-1'
@@ -257,6 +261,15 @@ async function curveScenario(page) {
   report.screenshots.push('curve.png')
 }
 
+async function fillABTestRequiredFields(page) {
+  await page.getByRole('combobox', { name: '数据来源' }).click()
+  await page.getByText('服务器数据集路径', { exact: true }).click()
+  await page.getByRole('textbox', { name: '数据集路径' }).fill('problems.json')
+  await page.getByRole('combobox', { name: 'A/B 密钥' }).click()
+  await page.getByText('冒烟密钥', { exact: true }).click()
+  await page.getByRole('combobox', { name: 'A/B 模型' }).fill('model-a')
+}
+
 async function abtestsScenario(page) {
   await page.goto(`${base}/ab-tests`)
   await check('AB 列表渲染', async () => {
@@ -268,6 +281,53 @@ async function abtestsScenario(page) {
     fullPage: true,
   })
   report.screenshots.push('abtests.png')
+
+  await check('AB 表单默认提交已注册的 vanilla 策略', async () => {
+    await page.goto(`${base}/ab-tests/new`)
+    await fillABTestRequiredFields(page)
+    const [request] = await Promise.all([
+      page.waitForRequest(
+        (request) =>
+          request.method() === 'POST' &&
+          new URL(request.url()).pathname === '/api/v1/ab-tests',
+      ),
+      page.getByRole('button', { name: '提交 A/B 测试' }).click(),
+    ])
+    assert.deepEqual(request.postDataJSON().strategy, { name: 'vanilla' })
+    await page.waitForURL('**/ab-tests/ab-fixture-1')
+  })
+
+  await check('AB 表单拒绝目录中不存在的策略', async () => {
+    const catalog = '**/api/v1/evaluation-options'
+    const withOtherStrategy = (route) =>
+      route.fulfill({
+        headers: {
+          'access-control-allow-origin': route.request().headers().origin,
+          'access-control-allow-credentials': 'true',
+        },
+        json: {
+          success: true,
+          data: { strategies: [{ name: 'chain_of_thought' }], sources: [] },
+          message: '',
+        },
+      })
+    await page.route(catalog, withOtherStrategy)
+    try {
+      const creates = () =>
+        report.replaced.filter((request) => request === 'POST /ab-tests').length
+      const previousCreates = creates()
+      await page.goto(`${base}/ab-tests/new`)
+      await fillABTestRequiredFields(page)
+      await page.getByRole('button', { name: '提交 A/B 测试' }).click()
+      await page
+        .getByRole('alert')
+        .filter({ hasText: '请选择可用策略' })
+        .waitFor()
+      assert.equal(creates(), previousCreates)
+    } finally {
+      await page.unroute(catalog, withOtherStrategy)
+    }
+  })
 }
 
 async function abDetailScenario(page) {
