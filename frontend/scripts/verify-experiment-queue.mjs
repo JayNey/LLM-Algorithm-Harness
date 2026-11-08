@@ -1,5 +1,5 @@
-/* global localStorage, document, setTimeout */
-// Browser fixture regression for #296; use PLAYWRIGHT_MODULE for an external package.
+/* global localStorage, setTimeout */
+// Browser fixture regression for #296 and #414; use PLAYWRIGHT_MODULE for an external package.
 import assert from 'node:assert/strict'
 import { createRequire } from 'node:module'
 import process from 'node:process'
@@ -40,6 +40,11 @@ const scenarios = [
   'legacy-loading',
   'terminal',
   'publish-uncertain',
+  'cancel-list-success',
+  'cancel-list-failure',
+  'cancel-list-race',
+  'cancel-detail-failure',
+  'cancel-detail-race',
 ]
 const failures = []
 try {
@@ -55,8 +60,18 @@ try {
         }),
       ),
     )
-    let status = scenario === 'terminal' ? 'cancelled' : 'pending'
-    let cancelled = 0
+    const listCancellation = scenario.startsWith('cancel-list-')
+    const cancellation = scenario === 'queued' || scenario.startsWith('cancel-')
+    let status =
+      scenario === 'terminal'
+        ? 'cancelled'
+        : scenario.endsWith('-race')
+          ? 'running'
+          : scenario.endsWith('-failure')
+            ? 'paused'
+            : 'pending'
+    const cancelPaths = []
+    let reads = 0
     let queries = 0
     let starts = 0
     const errors = []
@@ -77,9 +92,12 @@ try {
       )
         row.task_id = null
       if (scenario.startsWith('legacy')) delete row.task_id
-      if (path === '/experiments/queued-exp' && request.method() === 'GET')
+      if (path === '/experiments/queued-exp' && request.method() === 'GET') {
+        reads++
         return reply(row)
-      if (path === '/experiments')
+      }
+      if (path === '/experiments') {
+        reads++
         return reply({
           items: [row],
           total: 1,
@@ -87,17 +105,29 @@ try {
           offset: 0,
           has_more: false,
         })
+      }
       if (path === '/experiments/queued-exp/run') {
         starts++
         if (scenario === 'publish-uncertain')
           return route.fulfill({ status: 503, body: '{}' })
         return reply(row)
       }
-      if (path === '/tasks/queued-task') {
-        if (request.method() === 'DELETE') {
-          cancelled++
-          status = 'cancelled'
+      if (path.startsWith('/tasks/') && request.method() === 'DELETE') {
+        cancelPaths.push(path)
+        await new Promise((resolve) => setTimeout(resolve, 200))
+        if (scenario.endsWith('-failure'))
+          return route.fulfill({ status: 503, body: '{}' })
+        if (scenario.endsWith('-race')) {
+          status = 'completed'
+          return route.fulfill({
+            status: 400,
+            json: { detail: '实验已完成' },
+          })
         }
+        status = 'cancelled'
+        return reply(null)
+      }
+      if (path === '/tasks/queued-task') {
         return reply({
           id: 'queued-task',
           task_type: 'experiment',
@@ -139,39 +169,82 @@ try {
     page.setDefaultTimeout(5000)
     page.on('pageerror', (error) => errors.push(String(error)))
     try {
-      await page.goto(`${base}/experiments/queued-exp`)
-      await page.getByRole('heading', { name: /队列回归实验/ }).waitFor()
+      await page.goto(
+        `${base}/experiments${listCancellation ? '' : '/queued-exp'}`,
+      )
+      const experiment = listCancellation
+        ? page.getByRole('row', { name: /队列回归实验/ })
+        : page
+      const heading = page.getByRole('heading', { name: /队列回归实验/ })
+      if (listCancellation) await experiment.waitFor()
+      else await heading.waitFor()
       const start = page.getByRole('button', { name: '启动实验' })
-      const remove = page.getByRole('button', { name: /删\s*除/, exact: true })
-      if (scenario === 'queued') {
-        await page.getByRole('button', { name: '取消实验' }).waitFor()
+      const remove = experiment.getByRole('button', {
+        name: /删\s*除/,
+        exact: true,
+      })
+      if (cancellation) {
+        const cancel = experiment.getByRole('button', {
+          name: listCancellation ? '取消运行' : '取消实验',
+        })
+        const dialog = page.getByRole('dialog', { name: '取消运行' })
+        await cancel.waitFor()
         assert.equal(await start.count(), 0)
-        assert.ok(await remove.isDisabled())
-        await page.reload()
-        await page.getByRole('button', { name: '取消实验' }).waitFor()
-        assert.equal(await start.count(), 0)
-        await page.getByRole('button', { name: '取消实验' }).click()
-        await page.waitForFunction(() =>
-          [...document.querySelectorAll('button')].some(
-            (b) => b.textContent.replace(/\s/g, '') === '删除' && !b.disabled,
-          ),
-        )
-        assert.equal(cancelled, 1)
+        if (listCancellation) assert.equal(await remove.count(), 0)
+        else assert.ok(await remove.isDisabled())
+        if (scenario === 'queued') await page.reload()
+
+        await cancel.press('Enter')
+        await dialog.waitFor()
+        await page.keyboard.press('Escape')
+        await dialog.waitFor({ state: 'hidden' })
+        assert.deepEqual(cancelPaths, [])
+
+        await cancel.press('Space')
+        await dialog
+          .getByRole('button', { name: /返\s*回/, exact: true })
+          .click()
+        await dialog.waitFor({ state: 'hidden' })
+        assert.deepEqual(cancelPaths, [])
+
+        const readsBefore = reads
+        await cancel.press('Enter')
+        await dialog.getByRole('button', { name: '确认取消' }).dblclick()
+        await dialog.waitFor({ state: 'hidden' })
+
+        const expected = scenario.endsWith('-failure')
+          ? '已暂停'
+          : scenario.endsWith('-race')
+            ? '已完成'
+            : '已取消'
+        if (listCancellation)
+          await experiment.getByText(expected, { exact: true }).waitFor()
+        else await heading.filter({ hasText: expected }).waitFor()
+
+        // The status already matched before a 503. Require a fresh read and
+        // verify the server response still allows cancellation.
+        if (scenario.endsWith('-failure')) {
+          await page
+            .getByRole('alert')
+            .filter({ hasText: '服务暂时不可用' })
+            .waitFor()
+          await cancel.waitFor()
+          assert.ok(await cancel.isEnabled())
+          if (listCancellation) assert.equal(await remove.count(), 0)
+          else assert.ok(await remove.isDisabled())
+        } else {
+          await remove.waitFor()
+          assert.ok(await remove.isEnabled())
+          assert.equal(await cancel.count(), 0)
+        }
+        assert.ok(reads > readsBefore, 'cancellation must refresh server state')
+        assert.deepEqual(cancelPaths, ['/tasks/queued-task'])
         assert.equal(
           queries,
           0,
           'explicit association must avoid global task scans',
         )
         assert.equal(starts, 0)
-        status = 'pending'
-        await page.goto(`${base}/experiments`)
-        await page.getByRole('button', { name: '取消运行' }).waitFor()
-        assert.equal(
-          await page
-            .getByRole('button', { name: /删\s*除/, exact: true })
-            .count(),
-          0,
-        )
       } else if (scenario === 'publish-uncertain') {
         await start.waitFor()
         await start.click()
