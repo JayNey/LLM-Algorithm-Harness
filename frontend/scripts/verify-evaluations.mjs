@@ -337,6 +337,7 @@ async function fixture(
   const detailProgress = []
   let subscriptionAt = 0
   let wsUrls = []
+  let creates = 0
   let starts = 0
   let detailFailure = 0
   let resultFailure = 0
@@ -796,7 +797,22 @@ async function fixture(
           headers,
           json: { message: '创建响应暂时不可用' },
         })
-      return send(evaluation, 201)
+      const evaluationId = `eval-fixture-${++creates}`
+      return send({ ...evaluation, evaluation_id: evaluationId }, 201)
+    }
+    if (
+      mode === 'start-error' &&
+      path.startsWith('/evaluations/eval-fixture-2')
+    ) {
+      const second = {
+        ...evaluation,
+        evaluation_id: 'eval-fixture-2',
+        can_start: false,
+      }
+      if (method === 'GET' && path === '/evaluations/eval-fixture-2')
+        return send(second)
+      if (method === 'POST' && path === '/evaluations/eval-fixture-2/start')
+        return send(second)
     }
     if (method === 'POST' && path === '/evaluations/eval-fixture-1/start') {
       if (mode === 'start-error' && ++starts > 1) {
@@ -1214,10 +1230,63 @@ async function createScenario() {
         .length,
       1,
     )
-    assert.equal(
-      calls.filter((c) => c.method === 'POST' && c.path.endsWith('/start'))
-        .length,
-      2,
+    assert.deepEqual(
+      calls
+        .filter((c) => c.method === 'POST' && c.path.endsWith('/start'))
+        .map((c) => c.path),
+      [
+        '/evaluations/eval-fixture-1/start',
+        '/evaluations/eval-fixture-1/start',
+      ],
+    )
+  })
+  await page.getByRole('link', { name: '返回任务列表', exact: true }).click()
+  await page.getByRole('link', { name: '创建评估', exact: true }).click()
+  await page.waitForURL('**/evaluations/new')
+  await page.getByRole('link', { name: /查看任务\s*eval-fixture-1/ }).waitFor()
+  await page
+    .getByRole('button', { name: '开始新评估', exact: true })
+    .click({ timeout: 5000 })
+  await page.getByText('已选 0 道题目', { exact: true }).waitFor()
+  assert.equal(
+    await page
+      .getByLabel('预算上限（USD，可选）', { exact: true })
+      .inputValue(),
+    '',
+  )
+  const createButton = page.getByRole('button', {
+    name: '创建并启动',
+    exact: true,
+  })
+  assert.equal(await createButton.isDisabled(), true)
+  assert.equal(
+    calls.filter((c) => c.method === 'POST' && c.path === '/evaluations')
+      .length,
+    1,
+  )
+  await configure(page)
+  await Promise.all([
+    page.waitForResponse(
+      (response) =>
+        new URL(response.url()).pathname ===
+          '/api/v1/evaluations/eval-fixture-2/start' &&
+        response.request().method() === 'POST' &&
+        response.ok(),
+    ),
+    createButton.click(),
+  ])
+  await page.waitForURL('**/evaluations/eval-fixture-2')
+  await page.getByText('eval-fixture-2', { exact: true }).waitFor()
+  check('同一会话可从回执开启空白草稿并创建第二个 ID', () => {
+    assert.deepEqual(
+      calls.filter((c) => c.method === 'POST').map((c) => c.path),
+      [
+        '/evaluations',
+        '/evaluations/eval-fixture-1/start',
+        '/evaluations/eval-fixture-1/start',
+        '/evaluations',
+        '/evaluations/eval-fixture-2/start',
+      ],
     )
   })
   check('浏览器无运行异常', () => assert.deepEqual(errors, []))
@@ -1228,21 +1297,25 @@ async function createScenario() {
     .getByRole('button', { name: '创建并启动', exact: true })
     .click()
   await unknown.page.getByText('创建结果尚未确认', { exact: true }).waitFor()
+  await unknown.page
+    .getByRole('link', { name: '查看任务列表', exact: true })
+    .click()
+  await unknown.page
+    .getByRole('link', { name: '创建评估', exact: true })
+    .click()
+  await unknown.page.getByText('创建结果尚未确认', { exact: true }).waitFor()
   assert.equal(
     await unknown.page
-      .getByRole('link', { name: '查看任务列表', exact: true })
+      .getByRole('button', { name: '开始新评估', exact: true })
       .count(),
-    1,
+    0,
   )
   await unknown.page
     .getByRole('button', { name: '确认核对后开始新评估', exact: true })
     .click()
-  assert.equal(
-    await unknown.page
-      .getByRole('heading', { name: '创建评估', exact: true })
-      .count(),
-    1,
-  )
+  await unknown.page
+    .getByRole('button', { name: '创建并启动', exact: true })
+    .waitFor()
   check('未知创建仅显式核对后开始新操作且不自动重发', () =>
     assert.equal(unknown.calls.filter((c) => c.method === 'POST').length, 1),
   )

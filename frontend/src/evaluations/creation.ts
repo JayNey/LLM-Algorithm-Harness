@@ -19,6 +19,7 @@ export interface CreationState {
   evaluationId: string | null
   error: ApiClientError | null
   setDraft(patch: Partial<Draft>): void
+  startNewDraft(): boolean
   submit(): Promise<void>
   retryStart(evaluationId: string): Promise<void>
   action: {
@@ -126,6 +127,23 @@ export function createCreationStore(
           },
           error: null,
         })
+      },
+      startNewDraft() {
+        const { owner, phase, evaluationId } = get()
+        if (
+          !owns(owner) ||
+          active ||
+          !evaluationId ||
+          (phase !== 'queued' && phase !== 'start-error')
+        )
+          return false
+        set({
+          draft: emptyDraft(),
+          phase: 'editing',
+          evaluationId: null,
+          error: null,
+        })
+        return true
       },
       submit() {
         const { owner, phase, draft } = get()

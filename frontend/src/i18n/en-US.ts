@@ -570,6 +570,7 @@ export default {
     'The request returned no definite result. The task may have been created. Check the task list before trying again to avoid duplicates.',
   查看任务列表: 'View task list',
   确认核对后开始新评估: 'Start a new evaluation after checking',
+  开始新评估: 'Start a new evaluation',
   '任务已创建。': 'Task created.',
   查看任务: 'View task',
   模型与策略: 'Model and strategy',
