@@ -9,7 +9,10 @@ import {
   ScatterPlot,
 } from '@/components/charts/CompareCharts.tsx'
 import { WinRateHeatmap } from '@/components/charts/WinRateHeatmap.tsx'
-import { ExperimentFeedback } from '@/experiments/components.tsx'
+import {
+  CancelExperimentButton,
+  ExperimentFeedback,
+} from '@/experiments/components.tsx'
 import {
   formatAccuracy,
   formatDateTime,
@@ -511,8 +514,8 @@ function ExperimentDetail({ experimentId }: { experimentId: string }) {
   )
   const activeTaskId =
     loadedJob && ACTIVE.has(loadedJob.status)
-      ? ((started?.id === loadedJob.id ? started.taskId : null) ??
-        loadedJob.task_id ??
+      ? (loadedJob.task_id ??
+        (started?.id === loadedJob.id ? started.taskId : null) ??
         taskId.data ??
         null)
       : null
@@ -568,15 +571,15 @@ function ExperimentDetail({ experimentId }: { experimentId: string }) {
     setActionError(null)
     try {
       await client.cancelTask(activeTaskId)
-      setStarted(null)
-      jobResource.retry()
-      progress.reload()
-      taskId.retry()
     } catch (cause: unknown) {
       setActionError(
         cause instanceof Error ? cause.message : '取消失败，请重试',
       )
     } finally {
+      setStarted(null)
+      jobResource.retry()
+      progress.reload()
+      taskId.retry()
       setBusy(false)
     }
   }
@@ -676,13 +679,13 @@ function ExperimentDetail({ experimentId }: { experimentId: string }) {
             </Button>
           )}
           {active && (
-            <Button
-              aria-label={t('取消实验')}
+            <CancelExperimentButton
+              key={activeTaskId}
+              name={job.name || job.id}
+              label={t('取消实验')}
               disabled={busy}
-              onClick={() => void cancel()}
-            >
-              {t('取消运行')}
-            </Button>
+              onConfirm={cancel}
+            />
           )}
           <Button
             danger

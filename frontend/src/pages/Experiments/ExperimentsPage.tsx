@@ -3,7 +3,10 @@ import { t } from '../../i18n/core.ts'
 import { Button, Empty, Select, Skeleton } from 'antd'
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { Link, useSearchParams } from 'react-router-dom'
-import { ExperimentFeedback } from '@/experiments/components.tsx'
+import {
+  CancelExperimentButton,
+  ExperimentFeedback,
+} from '@/experiments/components.tsx'
 import { formatDateTime, statusLabel } from '@/experiments/presentation.ts'
 import { useExperimentSession } from '@/experiments/session.tsx'
 import type { ExperimentJob, ListQuery } from '@/experiments/types.ts'
@@ -58,9 +61,11 @@ const statusOptions = [
 function ExperimentRow({
   job,
   onSettled,
+  onCancelSettled,
 }: {
   job: ExperimentJob
   onSettled: () => void
+  onCancelSettled: (error: string | null) => void
 }) {
   useTranslation()
 
@@ -75,6 +80,7 @@ function ExperimentRow({
     if (busy) return
     setBusy(true)
     setError(null)
+    let cancelError = null
     try {
       let taskId = job.task_id
       if (!taskId) {
@@ -82,14 +88,13 @@ function ExperimentRow({
         taskId = tasks.find((item) => item.entity_id === job.id)?.id
       }
       if (!taskId) {
-        setError('未找到该实验的运行任务')
-        return
+        throw new Error('未找到该实验的运行任务')
       }
       await client.cancelTask(taskId)
-      onSettled()
     } catch (cause: unknown) {
-      setError(cause instanceof Error ? cause.message : '取消失败，请重试')
+      cancelError = cause instanceof Error ? cause.message : '取消失败，请重试'
     } finally {
+      onCancelSettled(cancelError)
       setBusy(false)
     }
   }
@@ -142,9 +147,12 @@ function ExperimentRow({
       </td>
       <td>
         {running && (
-          <Button size="small" disabled={busy} onClick={() => void cancel()}>
-            {t('取消运行')}
-          </Button>
+          <CancelExperimentButton
+            name={job.name || job.id}
+            size="small"
+            disabled={busy}
+            onConfirm={cancel}
+          />
         )}
         {!running && (
           <Button
@@ -181,6 +189,11 @@ export default function ExperimentsPage() {
     [client],
   )
   const list = useList<ExperimentJob>(load, query, owner ?? '')
+  const [cancelError, setCancelError] = useState<string | null>(null)
+  function cancelSettled(error: string | null) {
+    setCancelError(error)
+    list.reload()
+  }
   const data = list.data
   const outOfRange = !!data && query.offset > 0 && query.offset >= data.total
   useEffect(() => {
@@ -231,6 +244,7 @@ export default function ExperimentsPage() {
             </span>
           )}
         </div>
+        {cancelError && <ExperimentFeedback message={cancelError} />}
         {loading ? (
           <div aria-busy="true">
             <p role="status">{t('正在加载实验…')}</p>
@@ -270,6 +284,7 @@ export default function ExperimentsPage() {
                     key={job.id}
                     job={job}
                     onSettled={list.reload}
+                    onCancelSettled={cancelSettled}
                   />
                 ))}
               </tbody>
