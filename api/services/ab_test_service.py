@@ -396,4 +396,7 @@ class ABTestService:
             if not report.is_file():
                 raise ValueError(f"A/B test {test_id} artifacts are missing")
             payload = json.loads(report.read_text(encoding="utf-8"))
-        return payload if isinstance(payload, dict) else {"results": payload}
+        if not isinstance(payload, dict):
+            return {"results": payload}
+        ABTestRunner.upgrade_legacy_report(payload)
+        return payload
