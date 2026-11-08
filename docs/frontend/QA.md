@@ -39,42 +39,44 @@ PLAYWRIGHT_MODULE=/absolute/path/to/node_modules/playwright node scripts/verify-
 
 2026-10-22 的真实列表接入与独立验证见 [#223 验证报告](../superpowers/reports/2026-10-22-owned-evaluation-list-verify.md)。列表页面使用实际认证客户端；对应浏览器测试替换身份和列表响应，因此它证明前端行为，尚未证明真实后端端到端。公开 [fixture 结果](assets/evaluations/list/list.json) 包含 22 组断言及 390/1440px 截图索引。此前外壳证据仍只适用于其记录版本；全局入口/Mock 标记后续由 #228 处理，完整外观矩阵由 #229 处理。
 
-## 实验管理页验证（issue #166 第①步）
+## 页面浏览器验收（#400）
 
-```bash
-npm run dev -- --host 127.0.0.1 --port 5180
-# 另开终端：
-PLAYWRIGHT_MODULE=/absolute/path/to/node_modules/playwright \
-  node scripts/verify-experiments.mjs all
+以下七个脚本统一使用 Vite dev。先从仓库根启动开发服务。
+
+```sh
+cd frontend
+npm run dev -- --host 127.0.0.1 --port 5180 --strictPort
 ```
 
-场景：`create`（创建→详情导航）、`list`（列表渲染与筛选）、`detail`（详情配置摘要与启动入口）、`all`。
-浏览器 fixture 层验证（不连真实后端）；报告与截图写入
-`docs/superpowers/reports/assets/experiments/fixture/`。
+另开终端，从仓库根执行。先将 `PLAYWRIGHT_MODULE` 设为本机可用的 Playwright 包路径，按需设置 `CHROME_PATH`。
 
-## 基准与 A/B 测试页验证（issue #166 第②步）
-
-```bash
-npm run dev -- --host 127.0.0.1 --port 5180
-PLAYWRIGHT_MODULE=/absolute/path/to/node_modules/playwright \
-  node scripts/verify-benchmarks.mjs all
+```sh
+cd frontend
+export PLAYWRIGHT_MODULE=/absolute/path/to/node_modules/playwright
+DASHBOARD_BASE_URL=http://127.0.0.1:5180 node scripts/verify-dashboard.mjs
+node scripts/verify-experiments.mjs all
+node scripts/verify-experiment-queue.mjs
+node scripts/verify-benchmarks.mjs all
+BENCHMARK_BASE_URL=http://127.0.0.1:5180 node scripts/verify-benchmark-history.mjs
+node scripts/verify-problems.mjs all
+node scripts/verify-settings.mjs all
 ```
 
-场景：`suites`（套件列表）、`curve`（学习曲线趋势）、`abtests`（AB 列表）、`all`。
-报告与截图写入 `docs/superpowers/reports/assets/benchmarks/fixture/`。
+脚本用 fixture 拦截身份、持久化通知读取和各场景声明的业务 API，未声明的 API 请求会导致失败。逐条检查退出码。仪表盘默认把报告和截图写到 `/tmp/dashboard-qa`，实验、基准、题库和设置页写到 `docs/superpowers/reports/assets/<页面>/fixture/`。运行时可用 `DASHBOARD_QA_DIR`、`EXPERIMENT_QA_DIR`、`BENCHMARK_QA_DIR`、`PROBLEM_QA_DIR` 和 `SETTINGS_QA_DIR` 覆盖。实验队列和基准历史在终端输出结果。
 
-## 题目管理页验证（#163、#399）
+生产构建的静态样式与直接加载由下文 `verify-direct-load.mjs` 使用 Vite preview 单独验收。
 
-```bash
-npm run dev -- --host 127.0.0.1 --port 5180
-PLAYWRIGHT_MODULE=/absolute/path/to/node_modules/playwright \
-  node scripts/verify-problems.mjs all
-```
+实验页支持单跑 `create`（创建与详情导航）、`list`（列表与筛选）、`detail`（详情与启动入口）。基准与 A/B 页支持 `suites`（套件列表）、`curve`（学习曲线）、`abtests`（A/B 列表与详情）。
 
-场景：`list`（列表与来源筛选）、`import`（同步导入报告）、`history`（评估历史抽屉）。
-报告与截图写入 `docs/superpowers/reports/assets/problems/fixture/`。
+### 题目管理（#163、#399）
+
+支持单跑 `list`（列表与来源筛选）、`import`（同步导入报告）、`history`（评估历史抽屉）。
 
 个人题库文件导入的验收范围为 JSON（`.json`）和 CSV（`.csv`）。表单应提示这两种格式。用两种格式分别核对 5 MiB 以内（含）的同步校验报告和超过 5 MiB 的异步作业进度。选择 `.yaml` 或 `.yml` 后提交时，页面应提示支持的格式，且不发送上传或导入请求。直接调用同步导入，或用通用上传得到的 YAML 文件 ID 请求异步导入时，服务端也应拒绝。服务端入口见 [文件服务指南](../api-files.md)。
+
+### 设置与系统管理（#167）
+
+支持单跑 `monitor`（系统监控面板）、`budgets`（预算与预警）、`pricing`（定价目录）、`logs`（日志查询）。
 
 ## 评估详情实时进度与权限清理（#225 补验收）
 
@@ -89,17 +91,6 @@ node scripts/verify-evaluations.mjs --scenario all
 ```
 
 这是 Chromium HTTP/WS fixture，真实 React/路由/会话适配器/观察器/客户端参与，身份、HTTP、WS 均被替换；没有连接真实 Redis/Celery、供应商或沙箱。详情 3 风格×2 主题×320/1440px 的截图保留，人工抽查 progress 桌面、Orbit 深色手机及 Studio 浅色桌面；不外推为真机或全流程外观验收。工程结果与独立审查详见 [补验收报告](../superpowers/reports/2026-10-24-evaluation-progress-verification-verify.md)。
-
-## 设置与系统管理页验证（issue #167）
-
-```bash
-npm run dev -- --host 127.0.0.1 --port 5180
-PLAYWRIGHT_MODULE=/absolute/path/to/node_modules/playwright \
-  node scripts/verify-settings.mjs all
-```
-
-场景：`monitor`（系统监控面板）、`budgets`（预算与预警）、`pricing`（定价目录）、`logs`（日志查询）。
-报告与截图写入 `docs/superpowers/reports/assets/settings/fixture/`。
 
 ## 真实评估结果列表与详情（#226）
 

@@ -3,6 +3,7 @@
 import assert from 'node:assert/strict'
 import { createRequire } from 'node:module'
 import process from 'node:process'
+import { emptyNotificationPage } from './fixtures/notifications.mjs'
 import console from 'node:console'
 import { URL } from 'node:url'
 import { setTimeout } from 'node:timers'
@@ -75,6 +76,8 @@ try {
       })
     if (request.method() === 'OPTIONS')
       return route.fulfill({ status: 204, headers })
+    if (request.method() === 'GET' && path === '/notifications')
+      return reply(emptyNotificationPage)
     if (path === '/users/me')
       return reply({ id: 'fixture', username: 'fixture', role: 'user' })
     if (path === '/api-keys')

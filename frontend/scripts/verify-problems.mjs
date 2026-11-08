@@ -6,6 +6,7 @@ import { resolve } from 'node:path'
 import { URL } from 'node:url'
 import { Buffer } from 'node:buffer'
 import process from 'node:process'
+import { emptyNotificationPage } from './fixtures/notifications.mjs'
 import console from 'node:console'
 
 const require = createRequire(import.meta.url)
@@ -63,14 +64,29 @@ function mockRoute(context) {
     const url = new URL(request.url())
     const path = url.pathname.replace('/api/v1', '')
     const method = request.method()
+    const cors = {
+      'access-control-allow-origin': new URL(base).origin,
+      'access-control-allow-credentials': 'true',
+    }
+    if (method === 'OPTIONS')
+      return route.fulfill({
+        status: 204,
+        headers: {
+          ...cors,
+          'access-control-allow-headers': 'content-type,x-csrf-token',
+          'access-control-allow-methods': 'GET,POST,OPTIONS',
+        },
+      })
     const reply = (data, status = 200) =>
       route.fulfill({
         status,
-        headers: { 'access-control-allow-origin': '*' },
+        headers: cors,
         contentType: 'application/json',
         body: JSON.stringify({ success: true, data, message: '' }),
       })
     report.replaced.push(`${method} ${path}`)
+    if (method === 'GET' && path === '/notifications')
+      return reply(emptyNotificationPage)
     if (method === 'GET' && path === '/users/me')
       return reply({
         username: 'fixture',
@@ -146,7 +162,7 @@ function mockRoute(context) {
           dataset_total: 4,
         },
       })
-    if (method === 'GET' && path.startsWith('/results/problems/'))
+    if (method === 'GET' && path === '/results/problems/mine-1')
       return reply({
         items: [
           {
@@ -190,9 +206,16 @@ async function listScenario(page) {
     assert.ok((await page.getByText('mine-1').count()) >= 1)
   })
   await check('来源筛选切到个人', async () => {
-    await page.getByLabel('题目来源').click()
-    await page.getByRole('option', { name: /个人题目/ }).click()
-    await page.waitForSelector('text=个人题一')
+    await page.getByRole('combobox', { name: '题目来源' }).click()
+    await page
+      .locator('.ant-select-dropdown:visible')
+      .getByText('个人题目（1）', { exact: true })
+      .click()
+    const table = page.getByRole('table', { name: '题目列表' })
+    await table
+      .getByRole('row', { name: /shared-1/ })
+      .waitFor({ state: 'hidden' })
+    await table.getByRole('row', { name: /mine-1/ }).waitFor()
     assert.ok(page.url().includes('source=personal'))
     assert.equal(await page.getByText('共享题一').count(), 0)
   })
@@ -209,16 +232,19 @@ async function importScenario(page) {
       mimeType: 'application/json',
       buffer: Buffer.from('[]'),
     })
-    await page.getByLabel('导入模式').click()
-    await page.getByRole('option', { name: /追加/ }).click()
+    await page.getByRole('combobox', { name: '导入模式' }).click()
+    await page
+      .locator('.ant-select-dropdown:visible')
+      .getByText('追加（跳过重复题目）', { exact: true })
+      .click()
     await page.getByRole('button', { name: '开始导入' }).click()
-    await page.waitForSelector('[aria-label="导入报告"]')
-    assert.ok((await page.getByText('无效 1').count()) >= 1)
-    assert.ok((await page.getByText('重复 1').count()) >= 1)
-    assert.ok((await page.getByText('第 2 条').count()) >= 1)
-    assert.ok(
-      (await page.getByText('description（missing）').count()) >= 1,
-      '错误明细按 {field,type} 真实形状渲染',
+    const report = page.getByRole('status', { name: '导入报告' })
+    await report.waitFor()
+    assert.match(await report.innerText(), /无效\s*1/)
+    assert.match(await report.innerText(), /重复\s*1/)
+    assert.match(
+      await report.getByRole('listitem').innerText(),
+      /第\s*2\s*条：description（missing）/,
     )
   })
   await page.screenshot({ path: resolve(outDir, 'import.png'), fullPage: true })
@@ -228,10 +254,15 @@ async function importScenario(page) {
 async function historyScenario(page) {
   await page.goto(`${base}/problems`)
   await check('评估历史抽屉聚合', async () => {
-    await page.getByRole('button', { name: '评估历史' }).first().click()
-    await page.waitForSelector('table[aria-label="题目评估历史"]')
-    assert.ok((await page.getByText('通过率 50%').count()) >= 1)
-    assert.ok((await page.getByText('执行错误').count()) >= 1)
+    await page
+      .getByRole('row', { name: /mine-1/ })
+      .getByRole('button', { name: '评估历史' })
+      .click()
+    const dialog = page.getByRole('dialog', { name: /个人题一.*评估历史/ })
+    const table = dialog.getByRole('table', { name: '题目评估历史' })
+    await table.waitFor()
+    assert.match(await dialog.getByRole('status').innerText(), /通过率\s*50%/)
+    assert.equal(await table.getByRole('cell', { name: '执行错误' }).count(), 1)
   })
   await page.screenshot({
     path: resolve(outDir, 'history.png'),

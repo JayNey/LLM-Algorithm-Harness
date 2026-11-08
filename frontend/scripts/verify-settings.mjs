@@ -5,6 +5,7 @@ import { createRequire } from 'node:module'
 import { resolve } from 'node:path'
 import { URL } from 'node:url'
 import process from 'node:process'
+import { emptyNotificationPage } from './fixtures/notifications.mjs'
 import console from 'node:console'
 
 const require = createRequire(import.meta.url)
@@ -72,6 +73,8 @@ function mockRoute(context) {
         body: JSON.stringify({ success: true, data, message: '' }),
       })
     report.replaced.push(`${method} ${path}`)
+    if (method === 'GET' && path === '/notifications')
+      return reply(emptyNotificationPage)
     if (method === 'GET' && path === '/users/me')
       return reply({
         username: 'admin-fixture',
@@ -159,6 +162,7 @@ function mockRoute(context) {
       })
     if (method === 'GET' && path === '/metrics/cache-stats')
       return reply({
+        status: 'ok',
         enabled: true,
         total_entries: 20,
         disk_usage_mb: 1.5,
@@ -383,7 +387,7 @@ async function monitorScenario(page) {
     assert.ok((await page.getByText('正常').count()) >= 1)
     await page.getByRole('tab', { name: '统计' }).click()
     await page.getByText('平均 / P95 响应').waitFor()
-    assert.ok((await page.getByText('40 ms').count()) >= 1)
+    await page.getByText('40 ms · 150 ms', { exact: true }).waitFor()
   })
   await page.screenshot({
     path: resolve(outDir, 'monitor.png'),
@@ -395,8 +399,8 @@ async function monitorScenario(page) {
 async function budgetsScenario(page) {
   await page.goto(`${base}/settings/budgets`)
   await check('预算使用量与预警规则渲染', async () => {
-    await page.getByText('预算使用量').waitFor()
-    assert.ok((await page.getByText('40%').count()) >= 1)
+    const table = page.getByRole('table', { name: '预算使用量' })
+    await table.getByRole('cell', { name: '40%', exact: true }).waitFor()
     assert.ok((await page.getByText('预算预警').count()) >= 1)
   })
   await check('费用概览渲染汇总与每日趋势', async () => {
@@ -413,7 +417,6 @@ async function budgetsScenario(page) {
     await table.getByText('预算预警').waitFor()
     await table.getByText('已删除规则').waitFor()
   })
-  await page.screenshot({ path: resolve(outDir, 'budgets-mid.png'), fullPage: true })
   await check('预警规则提供全字段编辑入口', async () => {
     // antd 会对两字按钮名插入空格（编 辑），用正则匹配可访问名。
     assert.ok(
