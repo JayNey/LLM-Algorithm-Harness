@@ -87,8 +87,12 @@ const fixtureModels = {
   complete: true,
 }
 
+const createdJobs = new Map()
+const createRequests = []
+const lateCreate = Promise.withResolvers()
+
 function mockRoute(context) {
-  context.route('**/api/v1/**', (route, request) => {
+  context.route('**/api/v1/**', async (route, request) => {
     const url = new URL(request.url())
     const path = url.pathname.replace('/api/v1', '')
     const method = request.method()
@@ -118,6 +122,13 @@ function mockRoute(context) {
     if (method === 'GET' && path === '/datasets') return reply([])
     if (method === 'GET' && path === '/users/me')
       return reply({ id: 'user-fixture-1', username: 'fixture', role: 'user' })
+    if (method === 'GET' && path === '/notifications')
+      return reply({
+        items: [],
+        next_cursor: null,
+        unread_count: 0,
+        server_time: fixtureJob.created_at,
+      })
     if (method === 'GET' && path === '/api-keys') return reply(fixtureKeys)
     if (method === 'GET' && path === '/evaluation-options')
       return reply(fixtureOptions)
@@ -140,18 +151,25 @@ function mockRoute(context) {
         has_more: false,
       })
     if (method === 'POST' && path === '/experiments') {
-      report.experimentPost = JSON.parse(request.postData() ?? 'null')
-      return reply(
-        {
-          ...fixtureJob,
-          id: 'exp-fixture-new',
-          created_at: '2026-10-22T01:00:00Z',
-        },
-        201,
-      )
+      const body = JSON.parse(request.postData() ?? 'null')
+      createRequests.push(body)
+      if (body.name === '超时实验') return reply(null, 408)
+      if (body.name === '迟到实验') await lateCreate.promise
+      const job = {
+        ...fixtureJob,
+        name: body.name,
+        id:
+          createdJobs.size === 0
+            ? 'exp-fixture-new'
+            : `exp-fixture-new-${createdJobs.size + 1}`,
+        created_at: '2026-10-22T01:00:00Z',
+      }
+      createdJobs.set(job.id, job)
+      return reply(job, 201)
     }
-    if (method === 'GET' && path === '/experiments/exp-fixture-new')
-      return reply({ ...fixtureJob, id: 'exp-fixture-new' })
+    const created = createdJobs.get(path.slice('/experiments/'.length))
+    if (method === 'GET' && path.startsWith('/experiments/') && created)
+      return reply(created)
     if (method === 'GET' && path === '/experiments/exp-fixture-1')
       return reply(fixtureJob)
     if (method === 'GET' && path === '/tasks')
@@ -171,16 +189,8 @@ function mockRoute(context) {
   })
 }
 
-async function createScenario(page) {
-  await page.goto(`${base}/experiments/new`)
-  await check('创建页渲染标题', async () => {
-    await page.getByRole('heading', { name: '创建实验' }).waitFor()
-    assert.equal(
-      await page.getByRole('heading', { name: '创建实验' }).count(),
-      1,
-    )
-  })
-  await page.getByLabel('实验名称').fill('对比实验')
+async function fillBasics(page, name) {
+  await page.getByLabel('实验名称').fill(name)
   await page.getByLabel('数据来源', { exact: true }).click()
   await page
     .locator('.ant-select-dropdown:visible')
@@ -194,6 +204,31 @@ async function createScenario(page) {
   // 点击式选option不稳定，改用键盘选择。
   await page.keyboard.press('ArrowDown')
   await page.keyboard.press('Enter')
+}
+
+async function fillDraft(page, name) {
+  await fillBasics(page, name)
+  await page.getByLabel('模型 1 名称').fill('model-a')
+  await page.keyboard.press('Escape')
+  await page.getByLabel('策略 1 名称').fill('direct')
+  await page.keyboard.press('Escape')
+}
+
+async function enterCreateFromList(page) {
+  await page.getByRole('link', { name: '返回列表' }).click()
+  await page.getByRole('link', { name: '创建实验' }).click()
+}
+
+async function createScenario(page) {
+  await page.goto(`${base}/experiments/new`)
+  await check('创建页渲染标题', async () => {
+    await page.getByRole('heading', { name: '创建实验' }).waitFor()
+    assert.equal(
+      await page.getByRole('heading', { name: '创建实验' }).count(),
+      1,
+    )
+  })
+  await fillBasics(page, '对比实验')
   // rc-select 的无障碍 listbox 只渲染激活项附近的窄窗口，getByRole('option')
   // 会漏掉非激活项；目录断言按可视选项节点定位，并用输入触发下拉（点击开合
   // 在连续交互下不稳定）。
@@ -223,13 +258,93 @@ async function createScenario(page) {
     assert.ok(page.url().includes('/experiments/exp-fixture-new'))
   })
   await check('手动输入的模型与策略进入提交负载', () => {
-    const body = report.experimentPost
+    const [body] = createRequests
     assert.ok(body, '未捕获到 POST /experiments 请求体')
     assert.equal(body.models?.[0]?.model, 'model-a')
     assert.equal(body.strategies?.[0]?.name, 'direct')
   })
   await page.screenshot({ path: resolve(outDir, 'create.png'), fullPage: true })
   report.screenshots.push('create.png')
+
+  await check('同一会话从确认回执连续创建两个不同实验', async () => {
+    await enterCreateFromList(page)
+    const receipt = page.getByRole('link', { name: '前往详情页启动' })
+    assert.equal(
+      await receipt.getAttribute('href'),
+      '/experiments/exp-fixture-new',
+    )
+    await page
+      .getByRole('button', { name: '开始新实验' })
+      .click({ timeout: 5_000 })
+    assert.equal(await page.getByLabel('实验名称').inputValue(), '')
+    assert.equal(createRequests.length, 1)
+    await fillDraft(page, '第二个实验')
+    await page.getByLabel('提交实验').click()
+    await page.waitForURL('**/experiments/exp-fixture-new-2', {
+      timeout: 5_000,
+    })
+    assert.deepEqual(
+      createRequests.map(({ name }) => name),
+      ['对比实验', '第二个实验'],
+    )
+  })
+
+  if (createRequests.length !== 2) return
+
+  await check('取消草稿和创建超时后重新进入均不会额外提交', async () => {
+    await enterCreateFromList(page)
+    await page.getByRole('button', { name: '开始新实验' }).click()
+    await page.getByLabel('实验名称').fill('取消的草稿')
+    await page.getByLabel('重置实验草稿').click()
+    await enterCreateFromList(page)
+    assert.equal(await page.getByLabel('实验名称').inputValue(), '')
+    assert.equal(createRequests.length, 2)
+
+    await fillDraft(page, '超时实验')
+    await page.getByLabel('提交实验').click()
+    const warning = page.getByText('创建结果未知', { exact: false })
+    await warning.waitFor()
+    await enterCreateFromList(page)
+    await warning.waitFor()
+    assert.ok(await page.getByLabel('提交实验').isDisabled())
+    assert.equal(
+      await page.getByRole('button', { name: '开始新实验' }).count(),
+      0,
+    )
+    await page.getByLabel('重置未知创建').click()
+    assert.equal(await page.getByLabel('实验名称').inputValue(), '')
+    assert.equal(createRequests.length, 3)
+  })
+
+  await check('离开创建页后的迟到成功回执不会重定向或重复提交', async () => {
+    await fillDraft(page, '迟到实验')
+    const isCreate = (request) =>
+      request.method() === 'POST' &&
+      new URL(request.url()).pathname === '/api/v1/experiments'
+    const sent = page.waitForRequest(isCreate)
+    await page.getByLabel('提交实验').click()
+    await sent
+    await enterCreateFromList(page)
+    assert.ok(await page.getByLabel('提交实验').isDisabled())
+    const createLink = page.getByRole('link', { name: '创建实验' })
+    await page.getByRole('link', { name: '返回列表' }).click()
+    await createLink.waitFor()
+    const received = page.waitForResponse((response) =>
+      isCreate(response.request()),
+    )
+    lateCreate.resolve()
+    await received
+    await createLink.click({ timeout: 5_000 })
+    const receipt = page.getByRole('link', { name: '前往详情页启动' })
+    assert.equal(
+      await receipt.getAttribute('href'),
+      '/experiments/exp-fixture-new-3',
+    )
+    assert.deepEqual(
+      createRequests.map(({ name }) => name),
+      ['对比实验', '第二个实验', '超时实验', '迟到实验'],
+    )
+  })
 }
 
 async function listScenario(page) {

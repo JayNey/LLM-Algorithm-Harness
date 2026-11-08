@@ -641,6 +641,7 @@ export default {
   上一页任务: 'Previous tasks',
   下一页任务: 'Next tasks',
   实验已创建: 'Experiment created',
+  开始新实验: 'Start a new experiment',
   实验编号: 'Experiment ID',
   前往详情页启动: 'Go to details to start',
   创建实验: 'Create experiment',
