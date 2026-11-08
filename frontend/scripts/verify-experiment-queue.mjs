@@ -3,6 +3,7 @@
 import assert from 'node:assert/strict'
 import { createRequire } from 'node:module'
 import process from 'node:process'
+import { emptyNotificationPage } from './fixtures/notifications.mjs'
 import console from 'node:console'
 import { URL } from 'node:url'
 
@@ -67,6 +68,8 @@ try {
           contentType: 'application/json',
           body: JSON.stringify({ success: true, data, message: '' }),
         })
+      if (request.method() === 'GET' && path === '/notifications')
+        return reply(emptyNotificationPage)
       const row = { ...job, status }
       if (
         scenario === 'unqueued' ||

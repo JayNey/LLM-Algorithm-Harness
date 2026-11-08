@@ -5,6 +5,7 @@ import { createRequire } from 'node:module'
 import { resolve } from 'node:path'
 import { URL } from 'node:url'
 import process from 'node:process'
+import { emptyNotificationPage } from './fixtures/notifications.mjs'
 import console from 'node:console'
 
 const require = createRequire(import.meta.url)
@@ -120,7 +121,7 @@ function mockRoute(context) {
       return reply({ id: 'user-fixture-1', username: 'fixture', role: 'user' })
     if (method === 'GET' && path === '/datasets') return reply([])
     if (method === 'GET' && path === '/notifications')
-      return reply({ items: [], total: 0, unread_count: 0 })
+      return reply(emptyNotificationPage)
     if (method === 'GET' && path === '/api-keys') return reply(keys)
     if (method === 'GET' && path === '/evaluation-options')
       return reply({

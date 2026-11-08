@@ -3,6 +3,7 @@ import assert from 'node:assert/strict'
 import { createRequire } from 'node:module'
 import { resolve } from 'node:path'
 import process from 'node:process'
+import { emptyNotificationPage } from './fixtures/notifications.mjs'
 import { URL } from 'node:url'
 import console from 'node:console'
 // 实验管理前端验证脚本（issue #166 第①步）——浏览器 fixture 层，
@@ -123,12 +124,7 @@ function mockRoute(context) {
     if (method === 'GET' && path === '/users/me')
       return reply({ id: 'user-fixture-1', username: 'fixture', role: 'user' })
     if (method === 'GET' && path === '/notifications')
-      return reply({
-        items: [],
-        next_cursor: null,
-        unread_count: 0,
-        server_time: fixtureJob.created_at,
-      })
+      return reply(emptyNotificationPage)
     if (method === 'GET' && path === '/api-keys') return reply(fixtureKeys)
     if (method === 'GET' && path === '/evaluation-options')
       return reply(fixtureOptions)

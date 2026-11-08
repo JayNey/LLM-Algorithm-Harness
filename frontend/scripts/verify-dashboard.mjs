@@ -4,6 +4,7 @@ import { createRequire } from 'node:module'
 import { mkdir, writeFile } from 'node:fs/promises'
 import { resolve } from 'node:path'
 import process from 'node:process'
+import { emptyNotificationPage } from './fixtures/notifications.mjs'
 const require = createRequire(import.meta.url)
 const { chromium } = require(process.env.PLAYWRIGHT_MODULE || 'playwright')
 const base = process.env.DASHBOARD_BASE_URL || 'http://127.0.0.1:5192'
@@ -144,6 +145,7 @@ async function setup({
         },
       })
     assert.equal(request.method(), 'GET', 'dashboard must remain read-only')
+    if (path === '/notifications') return send(emptyNotificationPage)
     if (path === '/users/me')
       return send(
         { username: 'qa', role: state.role },
