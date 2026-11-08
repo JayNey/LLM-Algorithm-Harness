@@ -17,7 +17,15 @@ from src.task_manager import TaskManager
 def service(tmp_path):
     service = ABTestService()
     with service._session() as db:
-        db.add(ABTest(id="ab-1", user_id="owner", name="test", status="pending", config={}))
+        db.add(
+            ABTest(
+                id="ab-1",
+                user_id="owner",
+                name="test",
+                status="pending",
+                config={"strategy": {"name": "vanilla"}},
+            )
+        )
         db.commit()
     yield service
     service._engine.dispose()
