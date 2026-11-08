@@ -1347,9 +1347,11 @@ class TestABTests:
             "api_key_id": key_id,
         }
 
-    def test_ab_test_lifecycle(self, api):
+    def test_ab_test_lifecycle(self, api, mock_llm_client, mock_sandbox_executor):
         client, headers, key_id, _ = api
-        created = client.post("/api/v1/ab-tests", headers=headers, json=self._ab_payload(key_id))
+        payload = self._ab_payload(key_id)
+        payload.update(prompt_variants=[{"id": "baseline"}, {"id": "treatment"}], max_workers=4)
+        created = client.post("/api/v1/ab-tests", headers=headers, json=payload)
         assert created.status_code == 201, created.text
         test_id = created.json()["data"]["id"]
 
@@ -1365,9 +1367,21 @@ class TestABTests:
         from src.ab_testing import ABTestRunner
         from src.tasks.ab_test import run_ab_test_task
 
+        runner_init = ABTestRunner.__init__
+
+        def init_with_test_dependencies(runner, config):
+            mock_llm_client.config = config.model
+            mock_sandbox_executor.health_check.return_value = (True, None)
+            runner_init(
+                runner,
+                config,
+                client_factory=lambda _: mock_llm_client,
+                sandbox_factory=lambda _: mock_sandbox_executor,
+            )
+
         with (
             patch("api.auth.config.AuthSettings", return_value=client.app.state.auth.settings),
-            patch.object(ABTestRunner, "run", FakeABTestRunner.run),
+            patch.object(ABTestRunner, "__init__", init_with_test_dependencies),
         ):
             from api.db.models import AsyncTask
 
@@ -1375,8 +1389,44 @@ class TestABTests:
                 owner = db.get(AsyncTask, task_id).user_id
             assert run_ab_test_task(test_id, owner)["status"] == "completed"
         results = client.get(f"/api/v1/ab-tests/{test_id}/results", headers=headers)
-        assert results.status_code == 200
-        assert results.json()["data"]["variants"] == ["baseline", "treatment"]
+        assert results.status_code == 200, results.text
+        report = results.json()["data"]
+        assert report["strategy"]["name"] == "vanilla"
+        assert [variant["id"] for variant in report["variants"]] == ["baseline", "treatment"]
+        assert report["comparison"]["sample"]["baseline"] == 1.0
+        assert report["comparison"]["sample"]["treatment"] == 1.0
+
+    @pytest.mark.parametrize("name", ["direct", "not found"])
+    def test_ab_test_unknown_strategy_is_not_saved(self, api, celery_submit, name):
+        client, headers, key_id, _ = api
+        payload = self._ab_payload(key_id)
+        payload["strategy"]["name"] = name
+
+        response = client.post("/api/v1/ab-tests", headers=headers, json=payload)
+
+        assert response.status_code == 400, response.text
+        assert name in response.json()["detail"]
+        assert client.get("/api/v1/ab-tests", headers=headers).json()["data"]["total"] == 0
+        celery_submit.assert_not_called()
+
+    def test_ab_test_legacy_unknown_strategy_is_not_queued(self, api, celery_submit):
+        client, headers, key_id, app = api
+        created = client.post("/api/v1/ab-tests", headers=headers, json=self._ab_payload(key_id))
+        assert created.status_code == 201, created.text
+        test_id = created.json()["data"]["id"]
+        with app.state.ab_tests._session() as db, db.begin():
+            row = db.get(ABTest, test_id)
+            row.config = {**row.config, "strategy": {"name": "direct"}}
+
+        url = f"/api/v1/ab-tests/{test_id}"
+        response = client.post(f"{url}/run", headers=headers)
+
+        assert response.status_code == 400, response.text
+        assert "direct" in response.json()["detail"]
+        detail = client.get(url, headers=headers).json()["data"]
+        assert detail["status"] == "pending"
+        assert detail["task_id"] is None
+        celery_submit.assert_not_called()
 
     def test_results_readable_from_another_working_directory(self, api, tmp_path, monkeypatch):
         client, headers, key_id, _ = api

@@ -13,10 +13,8 @@ import { useABTestSession } from '@/abtests/session.tsx'
 import type { ABTestDraft, DraftErrors } from '@/abtests/types.ts'
 import { validateABTestDraft } from '@/abtests/validation.ts'
 import type { AxiosInstance } from 'axios'
-import {
-  ModelNameField,
-  StrategyNameField,
-} from '@/evaluations/optionFields.tsx'
+import { ModelNameField } from '@/evaluations/optionFields.tsx'
+import { useEvaluationOptions } from '@/evaluations/optionCatalog.ts'
 import { useResource } from '@/hooks/useResource.ts'
 
 function VariantFields({
@@ -110,7 +108,7 @@ export default function CreateABTestPage() {
     api_key_id: '',
     model: '',
     model_temperature: '',
-    strategy: 'direct',
+    strategy: 'vanilla',
     strategy_max_iterations: '',
     seed: '42',
     max_workers: '4',
@@ -134,6 +132,11 @@ export default function CreateABTestPage() {
   const [errors, setErrors] = useState<DraftErrors>({})
   const [busy, setBusy] = useState(false)
   const [actionError, setActionError] = useState<string | null>(null)
+  const strategyCatalog = useEvaluationOptions()
+  const strategies = strategyCatalog.data?.strategies ?? []
+  const strategyIsAvailable = strategies.some(
+    (strategy) => strategy.name === draft.strategy,
+  )
   const keys = useResource(
     useCallback(async (signal: AbortSignal) => {
       const http = useAuthStore.getState().httpClient() as AxiosInstance
@@ -152,6 +155,7 @@ export default function CreateABTestPage() {
   }
   async function submit() {
     const nextErrors = validateABTestDraft(draft)
+    if (!strategyIsAvailable) nextErrors.strategy = '请选择可用策略'
     setErrors(nextErrors)
     if (Object.keys(nextErrors).length) return
     setBusy(true)
@@ -247,15 +251,25 @@ export default function CreateABTestPage() {
             </label>
             <label>
               {t('策略')}
-              <StrategyNameField
-                ariaLabel={t('A/B 策略')}
-                value={draft.strategy}
-                onChange={(value) => update({ strategy: value })}
+              <Select
+                aria-label={t('A/B 策略')}
+                value={strategyIsAvailable ? draft.strategy : undefined}
+                placeholder={t('请选择可用策略')}
+                options={strategies.map(({ name }) => ({ value: name }))}
+                loading={strategyCatalog.loading}
+                disabled={busy || !strategies.length}
+                onChange={(value: string) => update({ strategy: value })}
               />
               {errors.strategy && (
                 <small role="alert">{t(errors.strategy)}</small>
               )}
             </label>
+            {strategyCatalog.error && (
+              <ExperimentFeedback
+                message={strategyCatalog.error}
+                retry={strategyCatalog.retry}
+              />
+            )}
             <label>
               {t('策略最大迭代（可选，1–10）')}
               <Input
@@ -265,9 +279,6 @@ export default function CreateABTestPage() {
                   update({ strategy_max_iterations: event.target.value })
                 }
               />
-              {errors.strategy && (
-                <small role="alert">{t(errors.strategy)}</small>
-              )}
             </label>
             <label>
               {t('随机种子')}
@@ -311,7 +322,7 @@ export default function CreateABTestPage() {
             <Button
               type="primary"
               aria-label={t('提交 A/B 测试')}
-              disabled={busy}
+              disabled={busy || !strategies.length}
               onClick={() => void submit()}
             >
               {busy ? t('创建中…') : t('创建 A/B 测试')}

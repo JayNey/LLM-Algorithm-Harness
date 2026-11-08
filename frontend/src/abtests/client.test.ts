@@ -18,7 +18,7 @@ const job: ABTestJob = {
     name: '提示词对比',
     dataset_path: 'datasets/demo.json',
     model: { model: 'model-a', temperature: 0.7 },
-    strategy: { name: 'direct' },
+    strategy: { name: 'vanilla' },
     prompt_variants: [{ id: 'baseline' }, { id: 'treatment' }],
     seed: 42,
     max_workers: 4,
@@ -127,7 +127,7 @@ const baseDraft = (overrides: Partial<ABTestDraft> = {}): ABTestDraft => ({
   api_key_id: 'k1',
   model: 'model-a',
   model_temperature: '',
-  strategy: 'direct',
+  strategy: 'vanilla',
   strategy_max_iterations: '',
   seed: '',
   max_workers: '4',
@@ -157,6 +157,7 @@ test('合法草稿产出对齐后端 schema 的 payload（seed 默认 42）', ()
   assert.equal(payload.prompt_variants[0].id, 'baseline')
   assert.equal(payload.max_workers, 4)
   assert.deepEqual(payload.model, { model: 'model-a' })
+  assert.deepEqual(payload.strategy, { name: 'vanilla' })
 })
 
 test('非法草稿逐字段报错且 createPayload 拒绝', () => {
