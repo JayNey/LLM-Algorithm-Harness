@@ -232,7 +232,8 @@ export default function ABTestDetailPage() {
       <header className="page-heading">
         <div>
           <h1>
-            {job.name || job.id} <small>{statusLabel(job.status)}</small>
+            {job.name || job.id}{' '}
+            {!status.fatal && <small>{statusLabel(job.status)}</small>}
           </h1>
           <p>
             {t('创建于 ')}
@@ -246,6 +247,25 @@ export default function ABTestDetailPage() {
       </header>
       <div className="panel evaluation-panel">
         {actionError && <ExperimentFeedback message={t(actionError)} />}
+        {status.error && (
+          <Alert
+            role="alert"
+            type="error"
+            showIcon
+            message={
+              status.fatal
+                ? t(status.error)
+                : `${t(status.error)}（${t('显示的状态可能已过期')}）`
+            }
+            action={
+              status.fatal ? undefined : (
+                <Button size="small" onClick={status.reload}>
+                  {t('重试')}
+                </Button>
+              )
+            }
+          />
+        )}
         {job.error_message && (
           <Alert role="alert" type="error" message={job.error_message} />
         )}
@@ -266,37 +286,39 @@ export default function ABTestDetailPage() {
               .join(' / ')}
           </dd>
         </dl>
-        <div className="evaluation-section-heading">
-          {job.status === 'pending' && !job.task_id && (
+        {!status.fatal && (
+          <div className="evaluation-section-heading">
+            {job.status === 'pending' && !job.task_id && (
+              <Button
+                type="primary"
+                aria-label={t('启动 A/B 测试')}
+                disabled={busy}
+                onClick={() => void launch()}
+              >
+                {t('启动测试')}
+              </Button>
+            )}
+            {job.status === 'pending' && job.task_id && (
+              <span role="status">{t('测试已排队，等待开始执行…')}</span>
+            )}
+            {job.status === 'running' && (
+              <span role="status">{t('测试执行中，完成后自动展示结果…')}</span>
+            )}
             <Button
-              type="primary"
-              aria-label={t('启动 A/B 测试')}
-              disabled={busy}
-              onClick={() => void launch()}
+              danger
+              disabled={
+                busy ||
+                Boolean(
+                  job.task_id &&
+                  ['pending', 'running', 'paused'].includes(job.status),
+                )
+              }
+              onClick={() => void remove()}
             >
-              {t('启动测试')}
+              {t('删除')}
             </Button>
-          )}
-          {job.status === 'pending' && job.task_id && (
-            <span role="status">{t('测试已排队，等待开始执行…')}</span>
-          )}
-          {job.status === 'running' && (
-            <span role="status">{t('测试执行中，完成后自动展示结果…')}</span>
-          )}
-          <Button
-            danger
-            disabled={
-              busy ||
-              Boolean(
-                job.task_id &&
-                ['pending', 'running', 'paused'].includes(job.status),
-              )
-            }
-            onClick={() => void remove()}
-          >
-            {t('删除')}
-          </Button>
-        </div>
+          </div>
+        )}
         <Tabs
           items={
             settled

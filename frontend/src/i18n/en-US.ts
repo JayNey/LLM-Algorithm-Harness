@@ -400,6 +400,7 @@ export default {
   '测试已排队，等待开始执行…': 'Test queued, waiting to start…',
   '测试执行中，完成后自动展示结果…':
     'Test running. Results will appear when it finishes…',
+  显示的状态可能已过期: 'The status shown may be outdated',
   删除: 'Delete',
   结果统计: 'Result statistics',
   测试未产出结果: 'No results from this test',
@@ -570,7 +571,6 @@ export default {
     'The request returned no definite result. The task may have been created. Check the task list before trying again to avoid duplicates.',
   查看任务列表: 'View task list',
   确认核对后开始新评估: 'Start a new evaluation after checking',
-  开始新评估: 'Start a new evaluation',
   '任务已创建。': 'Task created.',
   查看任务: 'View task',
   模型与策略: 'Model and strategy',
@@ -641,7 +641,6 @@ export default {
   上一页任务: 'Previous tasks',
   下一页任务: 'Next tasks',
   实验已创建: 'Experiment created',
-  开始新实验: 'Start a new experiment',
   实验编号: 'Experiment ID',
   前往详情页启动: 'Go to details to start',
   创建实验: 'Create experiment',
@@ -738,9 +737,6 @@ export default {
   启动实验: 'Start experiment',
   取消实验: 'Cancel experiment',
   取消运行: 'Cancel run',
-  确认取消: 'Confirm cancellation',
-  返回: 'Go back',
-  '确认取消实验「{{value1}}」？': 'Cancel experiment “{{value1}}”?',
   对比报告: 'Comparison report',
   分析面板: 'Analysis panel',
   帕累托: 'Pareto',
@@ -781,10 +777,8 @@ export default {
     'Too many errors. Only the first 200 are shown.',
   '导入任务失败，请检查文件格式后重试。':
     'Import task failed. Check the file format and try again.',
-  '进度查询连续失败，可以重试查询原导入作业。':
-    'Could not check import progress after several attempts. You can retry checking the same job.',
-  重试查询导入进度: 'Retry checking import progress',
-  '正在查询导入进度…': 'Checking import progress…',
+  '进度查询连续失败，请稍后刷新页面查看导入结果。':
+    'Repeated progress query failures. Refresh later to check the import result.',
   'overwrite 将整库替换个人题库，确认继续？':
     'Overwrite replaces your entire personal library. Continue?',
   '导入失败，请重试': 'Import failed. Try again',
@@ -901,9 +895,9 @@ export default {
   中等: 'Medium',
   困难: 'Hard',
   上限: 'Cap',
-  '留空 = 无上限': 'Empty = no cap',
+  '留空 = 保持现有值': 'Empty = keep current value',
   超限动作: 'Action on limit exceeded',
-  '默认暂停（pause）': 'Pause by default',
+  不动作: 'No action',
   '暂停（pause）': 'Pause',
   '降级模型（downgrade）': 'Downgrade model',
   保存预算: 'Save budget',

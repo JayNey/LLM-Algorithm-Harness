@@ -1,24 +1,26 @@
 import { useEffect, useRef, useState } from 'react'
+import {
+  createStatusPollingSession,
+  type StatusPollingSnapshot,
+} from './statusPolling.ts'
 import type { ABTestClient, ABTestJob } from './types.ts'
-
-const TERMINAL = new Set(['completed', 'failed', 'cancelled'])
-const POLL_MS = 5_000
 
 export interface StatusPollingState {
   job: ABTestJob | null
   paused: boolean
+  error: string | null
+  fatal: boolean
   reload: () => void
 }
 
-interface StatusSnapshot {
+interface StatusSnapshot extends StatusPollingSnapshot {
   testId: string | null
   attempt: number
-  job: ABTestJob | null
-  paused: boolean
 }
 
 /** AB 测试状态轮询：进程内线程执行，无 task 通道，只能轮询测试状态（5s）。
- * 终态停止；单次失败不打断（下一周期自然重试）。状态按快照派生，
+ * 终态与 403/404 停止；暂时性故障保留旧快照、可见错误并继续重试。
+ * 轮询语义见 statusPolling.ts；快照按 (testId, attempt) 派生，
  * effect 内不做同步 setState（react-hooks/set-state-in-effect）。
  */
 export function useStatusPolling(
@@ -31,54 +33,31 @@ export function useStatusPolling(
     attempt: 0,
     job: null,
     paused: false,
+    error: null,
+    fatal: false,
   })
   const generation = useRef(0)
 
   useEffect(() => {
     if (!testId) return
-    const controller = new AbortController()
     const operation = ++generation.current
-    let timer: ReturnType<typeof setTimeout> | null = null
-    const clearTimer = () => {
-      if (timer !== null) {
-        clearTimeout(timer)
-        timer = null
-      }
-    }
-    const patch = (update: Partial<StatusSnapshot>): void => {
-      if (controller.signal.aborted || operation !== generation.current) return
-      setSnapshot((previous) => ({ ...previous, testId, attempt, ...update }))
-    }
-    const tick = async (): Promise<void> => {
-      if (controller.signal.aborted || operation !== generation.current) return
-      try {
-        const job = await client.get(testId, controller.signal)
-        if (controller.signal.aborted || operation !== generation.current)
-          return
-        patch({ job })
-        if (TERMINAL.has(job.status)) {
-          clearTimer()
-          patch({ paused: true })
-          return
-        }
-        timer = setTimeout(() => void tick(), POLL_MS)
-      } catch {
-        if (controller.signal.aborted || operation !== generation.current)
-          return
-        // 单次失败不打断轮询，下一周期自然重试
-        timer = setTimeout(() => void tick(), POLL_MS)
-      }
-    }
-    void tick()
-    return () => {
-      controller.abort()
-      clearTimer()
-    }
+    const session = createStatusPollingSession({
+      client,
+      testId,
+      onUpdate: (update) => {
+        if (operation !== generation.current) return
+        setSnapshot((previous) => ({ ...previous, testId, attempt, ...update }))
+      },
+    })
+    void session.tick()
+    return () => session.dispose()
   }, [client, testId, attempt])
   const current = snapshot.testId === testId && snapshot.attempt === attempt
   return {
     job: current ? snapshot.job : null,
     paused: current ? snapshot.paused : false,
+    error: current ? snapshot.error : null,
+    fatal: current ? snapshot.fatal : false,
     reload: () => setAttempt((value) => value + 1),
   }
 }
