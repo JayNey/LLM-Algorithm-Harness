@@ -18,8 +18,17 @@ export default function CreateEvaluationPage() {
   useTranslation()
 
   const { client, creationStore, owner } = useEvaluationSession()
-  const { draft, phase, evaluationId, error, setDraft, submit, reset } =
-    useStore(creationStore)
+  const {
+    draft,
+    phase,
+    evaluationId,
+    error,
+    action,
+    setDraft,
+    startNewDraft,
+    submit,
+    reset,
+  } = useStore(creationStore)
   const [errors, setErrors] = useState<DraftErrors>({})
   const [query, setQuery] = useState<ProblemQuery>({
     source: 'all',
@@ -140,10 +149,26 @@ export default function CreateEvaluationPage() {
       ) : evaluationId ? (
         <div className="panel evaluation-panel">
           <p>{t('任务已创建。')}</p>
-          <Link to={`/evaluations/${encodeURIComponent(evaluationId)}`}>
-            {t('查看任务 ')}
-            {evaluationId}
-          </Link>
+          <div className="evaluation-actions">
+            <Link to={`/evaluations/${encodeURIComponent(evaluationId)}`}>
+              {t('查看任务 ')}
+              {evaluationId}
+            </Link>
+            <Button
+              disabled={
+                (phase !== 'queued' && phase !== 'start-error') ||
+                action?.pending
+              }
+              onClick={() => {
+                if (!startNewDraft()) return
+                setErrors({})
+                setVerified({ source: 'all', ids: [] })
+                setQuery({ source: 'all', offset: 0, limit: 20 })
+              }}
+            >
+              {t('开始新评估')}
+            </Button>
+          </div>
         </div>
       ) : (
         <Form
