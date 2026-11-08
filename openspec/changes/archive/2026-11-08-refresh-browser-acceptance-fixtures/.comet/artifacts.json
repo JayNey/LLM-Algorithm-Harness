@@ -1,5 +1,6 @@
 {
   "openspec_proposal": "openspec/changes/refresh-browser-acceptance-fixtures/proposal.md",
   "openspec_design": "openspec/changes/refresh-browser-acceptance-fixtures/design.md",
-  "openspec_tasks": "openspec/changes/refresh-browser-acceptance-fixtures/tasks.md"
+  "openspec_tasks": "openspec/changes/refresh-browser-acceptance-fixtures/tasks.md",
+  "archive_directory": "openspec/changes/archive/2026-11-08-refresh-browser-acceptance-fixtures"
 }
