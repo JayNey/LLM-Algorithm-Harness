@@ -1347,7 +1347,7 @@ class TestABTests:
             "api_key_id": key_id,
         }
 
-    def test_ab_test_lifecycle(self, api, mock_llm_client, mock_sandbox_executor):
+    def test_ab_test_lifecycle(self, api, tmp_path, mock_llm_client):
         client, headers, key_id, _ = api
         payload = self._ab_payload(key_id)
         payload.update(prompt_variants=[{"id": "baseline"}, {"id": "treatment"}], max_workers=4)
@@ -1365,19 +1365,37 @@ class TestABTests:
         task = client.get(f"/api/v1/tasks/{task_id}", headers=headers).json()["data"]
         assert task["status"] == "pending" and task["task_type"] == "ab_test"
         from src.ab_testing import ABTestRunner
+        from src.models import SandboxConfig
         from src.tasks.ab_test import run_ab_test_task
 
+        dataset = tmp_path / "mixed-problems.json"
+        dataset.write_text(
+            json.dumps(
+                [
+                    {
+                        "problem_id": f"mixed-{index}",
+                        "title": f"Mixed {index}",
+                        "description": "Return the indices of two numbers that sum to the target.",
+                        "difficulty": "easy",
+                        "public_test_cases": [
+                            {"input": {"nums": [1, 2, 3], "target": 3}, "expected_output": [0, 1]}
+                        ],
+                        "hidden_test_cases": [
+                            {"input": {"nums": [1, 2, 3], "target": 5}, "expected_output": [1, 2]}
+                        ],
+                    }
+                    for index in range(2)
+                ]
+            ),
+            encoding="utf-8",
+        )
         runner_init = ABTestRunner.__init__
 
         def init_with_test_dependencies(runner, config):
             mock_llm_client.config = config.model
-            mock_sandbox_executor.health_check.return_value = (True, None)
-            runner_init(
-                runner,
-                config,
-                client_factory=lambda _: mock_llm_client,
-                sandbox_factory=lambda _: mock_sandbox_executor,
-            )
+            config.dataset_path = str(dataset)
+            config.sandbox_config = SandboxConfig(backend="host")
+            runner_init(runner, config, client_factory=lambda _: mock_llm_client)
 
         with (
             patch("api.auth.config.AuthSettings", return_value=client.app.state.auth.settings),
@@ -1388,13 +1406,37 @@ class TestABTests:
             with client.app.state.ab_tests._session() as db:
                 owner = db.get(AsyncTask, task_id).user_id
             assert run_ab_test_task(test_id, owner)["status"] == "completed"
-        results = client.get(f"/api/v1/ab-tests/{test_id}/results", headers=headers)
+        results_url = f"/api/v1/ab-tests/{test_id}/results"
+        results = client.get(results_url, headers=headers)
         assert results.status_code == 200, results.text
         report = results.json()["data"]
         assert report["strategy"]["name"] == "vanilla"
         assert [variant["id"] for variant in report["variants"]] == ["baseline", "treatment"]
         assert report["comparison"]["sample"]["baseline"] == 1.0
         assert report["comparison"]["sample"]["treatment"] == 1.0
+        assert report["comparison"]["formal"]["baseline"] == 0.0
+        assert report["comparison"]["formal"]["treatment"] == 0.0
+        assert report["comparison"]["formal_statistics"]["categorical_test"] == "unavailable"
+
+        with client.app.state.ab_tests._session() as db:
+            artifact = Path(db.get(ABTest, test_id).output_dir) / "ab_test.json"
+        legacy = json.loads(artifact.read_text(encoding="utf-8"))
+        legacy["schema_version"] = "1.0"
+        legacy["comparison"]["sample"].update(baseline=0.0, treatment=0.0)
+        del legacy["comparison"]["formal_statistics"]
+        legacy_json = json.dumps(legacy)
+        artifact.write_text(legacy_json, encoding="utf-8")
+
+        restored = client.get(results_url, headers=headers)
+        assert restored.status_code == 200, restored.text
+        assert restored.json()["data"] == report
+        assert artifact.read_text(encoding="utf-8") == legacy_json
+
+        del legacy["rows"][0]["sample_passed"]
+        artifact.write_text(json.dumps(legacy), encoding="utf-8")
+        invalid = client.get(results_url, headers=headers)
+        assert invalid.status_code == 400
+        assert "rerun" in invalid.json()["detail"]
 
     @pytest.mark.parametrize("name", ["direct", "not found"])
     def test_ab_test_unknown_strategy_is_not_saved(self, api, celery_submit, name):

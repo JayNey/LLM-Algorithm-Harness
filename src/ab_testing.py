@@ -398,6 +398,43 @@ class ABTestRunner:
             "ci95": _proportion_ci(passed_a, len(baseline), passed_b, len(treatment)),
         }
 
+    @classmethod
+    def upgrade_legacy_report(cls, report: dict[str, Any]) -> None:
+        """Recompute a 1.0 report in memory using its original per-problem outcomes."""
+        if report.get("schema_version") != "1.0":
+            return
+        rows = report.get("rows")
+        comparison = report.get("comparison")
+        baseline, treatment = report.get("baseline_id"), report.get("treatment_id")
+        error = "Legacy A/B report has incomplete outcomes; rerun the A/B test"
+        if (
+            not isinstance(rows, list)
+            or not isinstance(comparison, dict)
+            or not isinstance(baseline, str)
+            or not isinstance(treatment, str)
+            or baseline == treatment
+        ):
+            raise ValueError(error)
+        by_variant: dict[str, list[dict[str, Any]]] = {baseline: [], treatment: []}
+        for row in rows:
+            if (
+                not isinstance(row, dict)
+                or row.get("variant") not in (baseline, treatment)
+                or not isinstance(row.get("sample_passed"), bool)
+                or not isinstance(row.get("formal_evaluable"), bool)
+                or (row["formal_evaluable"] and not isinstance(row.get("formal_passed"), bool))
+            ):
+                raise ValueError(error)
+            by_variant[row["variant"]].append(row)
+        if not by_variant[baseline] or not by_variant[treatment]:
+            raise ValueError(error)
+        pass_statistics = cls._pass_statistics(by_variant[baseline], by_variant[treatment])
+        comparison.update(pass_statistics)
+        report["recommendation"] = cls._recommendation(
+            pass_statistics["statistics"], pass_statistics["sample"]["ci95"]
+        )
+        report["schema_version"] = REPORT_SCHEMA_VERSION
+
     @staticmethod
     def _failure_counts(rows: list[dict[str, Any]]) -> dict[str, int]:
         counts: dict[str, int] = defaultdict(int)
