@@ -16,6 +16,7 @@ export interface CreationState {
   experimentId: string | null
   error: ApiClientError | null
   setDraft(patch: Partial<ExperimentDraft>): void
+  startNewDraft(): boolean
   submit(): Promise<void>
   reset(owner: string | null): void
 }
@@ -100,6 +101,13 @@ export function createExperimentCreationStore(
           },
           error: null,
         })
+      },
+      startNewDraft() {
+        const { owner, phase, experimentId, reset } = get()
+        if (!owns(owner) || active || phase !== 'created' || !experimentId)
+          return false
+        reset(owner)
+        return true
       },
       submit() {
         const { owner, phase, draft } = get()

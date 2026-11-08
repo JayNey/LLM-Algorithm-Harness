@@ -28,8 +28,16 @@ export default function CreateExperimentPage() {
   useTranslation()
 
   const { creationStore } = useExperimentSession()
-  const { draft, phase, error, setDraft, submit, reset } =
-    useStore(creationStore)
+  const {
+    draft,
+    phase,
+    experimentId,
+    error,
+    setDraft,
+    startNewDraft,
+    submit,
+    reset,
+  } = useStore(creationStore)
   const navigate = useNavigate()
   const [errors, setErrors] = useState<DraftErrors>({})
   const keys = useResource(
@@ -84,15 +92,24 @@ export default function CreateExperimentPage() {
             showIcon
             message={t('实验已创建')}
             description={
-              <p>
-                {t('实验编号 ')}
-                {draft.name || creationStore.getState().experimentId}。
-                <Link
-                  to={`/experiments/${encodeURIComponent(creationStore.getState().experimentId ?? '')}`}
+              <>
+                <p>
+                  {t('实验编号 ')}
+                  {draft.name || experimentId}。
+                  <Link
+                    to={`/experiments/${encodeURIComponent(experimentId ?? '')}`}
+                  >
+                    {t('前往详情页启动')}
+                  </Link>
+                </p>
+                <Button
+                  onClick={() => {
+                    if (startNewDraft()) setErrors({})
+                  }}
                 >
-                  {t('前往详情页启动')}
-                </Link>
-              </p>
+                  {t('开始新实验')}
+                </Button>
+              </>
             }
           />
         </div>
