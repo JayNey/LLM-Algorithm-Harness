@@ -63,7 +63,7 @@ PLAYWRIGHT_MODULE=/absolute/path/to/node_modules/playwright \
 场景：`suites`（套件列表）、`curve`（学习曲线趋势）、`abtests`（AB 列表）、`all`。
 报告与截图写入 `docs/superpowers/reports/assets/benchmarks/fixture/`。
 
-## 题目管理页验证（issue #163）
+## 题目管理页验证（#163、#399）
 
 ```bash
 npm run dev -- --host 127.0.0.1 --port 5180
@@ -73,6 +73,8 @@ PLAYWRIGHT_MODULE=/absolute/path/to/node_modules/playwright \
 
 场景：`list`（列表与来源筛选）、`import`（同步导入报告）、`history`（评估历史抽屉）。
 报告与截图写入 `docs/superpowers/reports/assets/problems/fixture/`。
+
+个人题库文件导入的验收范围为 JSON（`.json`）和 CSV（`.csv`）。表单应提示这两种格式。用两种格式分别核对 5 MiB 以内（含）的同步校验报告和超过 5 MiB 的异步作业进度。选择 `.yaml` 或 `.yml` 后提交时，页面应提示支持的格式，且不发送上传或导入请求。直接调用同步导入，或用通用上传得到的 YAML 文件 ID 请求异步导入时，服务端也应拒绝。服务端入口见 [文件服务指南](../api-files.md)。
 
 ## 评估详情实时进度与权限清理（#225 补验收）
 
