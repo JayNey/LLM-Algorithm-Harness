@@ -35,7 +35,7 @@ def proxy(tmp_path):
                 status = 401
             elif self.headers.get("Upgrade", "").lower() == "websocket":
                 status = 101
-            elif self.path.startswith("/status/"):
+            elif self.path.startswith("/api/v1/status/"):
                 status = int(self.path.rsplit("/", 1)[1])
             else:
                 status = 201
@@ -58,6 +58,11 @@ def proxy(tmp_path):
         port = sock.getsockname()[1]
     (tmp_path / "logs").mkdir()
     (tmp_path / "temp").mkdir()
+    (tmp_path / "web/assets").mkdir(parents=True)
+    (tmp_path / "web/index.html").write_text(
+        "<!doctype html><title>Harness</title>", encoding="utf-8"
+    )
+    (tmp_path / "web/assets/login.js").write_text("export default 'login'", encoding="utf-8")
     conf = (REPO / "deploy/nginx/nginx.conf").read_text(encoding="utf-8")
     # Packaged nginx uses absolute system paths even with -p. Override all
     # runtime files so the real proxy runs as an unprivileged CI user.
@@ -75,8 +80,9 @@ def proxy(tmp_path):
         1,
     )
     conf = conf.replace("include /etc/nginx/mime.types;", "")
-    conf = conf.replace("server api:8000;", f"server 127.0.0.1:{upstream.server_port};")
+    conf = conf.replace("server api:8000 resolve;", f"server 127.0.0.1:{upstream.server_port};")
     conf = conf.replace("listen 80;", f"listen 127.0.0.1:{port};")
+    conf = conf.replace("/usr/share/nginx/html", str(tmp_path / "web"))
     config = tmp_path / "nginx.conf"
     config.write_text(conf, encoding="utf-8")
     process = subprocess.Popen(
@@ -118,6 +124,25 @@ def test_nginx_runtime_pid_is_isolated(proxy):
     assert int(pid_file.read_text(encoding="utf-8")) == state["pid"]
 
 
+@pytest.mark.parametrize("path", ["/login", "/results/evaluation-123"])
+def test_spa_navigation_survives_unready_api(proxy, path):
+    state, session, url = proxy
+    state["ready"] = 503
+    response = session.get(url + path, timeout=5)
+    assert response.status_code == 200
+    assert "<title>Harness</title>" in response.text
+    assert response.headers["Cache-Control"] == "no-cache"
+    assert not state["calls"]
+
+
+def test_static_asset_paths_never_fall_back_to_spa(proxy):
+    state, session, url = proxy
+    state["ready"] = 503
+    assert session.get(url + "/assets/login.js", timeout=5).text == "export default 'login'"
+    assert session.get(url + "/assets/missing.js", timeout=5).status_code == 404
+    assert not state["calls"]
+
+
 @pytest.mark.parametrize(
     "path", ["/api/v1/evaluations", "/api/v1/auth/login", "/api/v1/ws/progress"]
 )
@@ -140,7 +165,7 @@ def test_probe_error_and_timeout_fail_closed(proxy, status):
     state, session, url = proxy
     state["ready"] = status
     start = time.monotonic()
-    assert session.get(url + "/business", timeout=5).status_code == 503
+    assert session.get(url + "/api/v1/business", timeout=5).status_code == 503
     assert time.monotonic() - start < 4
     assert all(call[1] == "/api/v1/health/ready" for call in state["calls"])
 
@@ -149,7 +174,7 @@ def test_probe_is_get_without_client_credentials_body_or_query(proxy):
     state, session, url = proxy
     assert (
         session.post(
-            url + "/business?secret=query",
+            url + "/api/v1/business?secret=query",
             data="secret body",
             headers={"Authorization": "Bearer client", "Cookie": "session=client"},
             timeout=5,
@@ -164,7 +189,7 @@ def test_probe_is_get_without_client_credentials_body_or_query(proxy):
 @pytest.mark.parametrize("status", [401, 403, 500])
 def test_business_errors_are_preserved(proxy, status):
     _, session, url = proxy
-    assert session.get(url + f"/status/{status}", timeout=5).status_code == status
+    assert session.get(url + f"/api/v1/status/{status}", timeout=5).status_code == status
 
 
 def test_probe_requests_do_not_hit_business_rate_limit(proxy):

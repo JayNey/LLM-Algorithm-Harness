@@ -1,0 +1,11 @@
+**
+!deploy/nginx/nginx.conf
+!frontend/.env.production
+!frontend/index.html
+!frontend/package*.json
+!frontend/postcss.config.js
+!frontend/public/**
+!frontend/src/**
+!frontend/tailwind.config.js
+!frontend/tsconfig*.json
+!frontend/vite.config.ts
