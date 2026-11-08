@@ -16,7 +16,7 @@ const outDir =
   process.env.PROBLEM_QA_DIR ||
   resolve(process.cwd(), '../docs/superpowers/reports/assets/problems/fixture')
 
-const known = ['list', 'import', 'history', 'all']
+const known = ['list', 'import', 'import-recovery', 'history', 'all']
 const scenario = process.argv[2] || 'all'
 assert.ok(known.includes(scenario), `未知场景：${scenario}`)
 
@@ -59,7 +59,14 @@ const keys = [
   },
 ]
 
-function mockRoute(context) {
+const recoveredProblem = {
+  problem_id: 'mine-recovered',
+  title: '恢复导入的题目',
+  difficulty: null,
+  source: 'personal',
+}
+
+function mockRoute(context, job) {
   context.route('**/api/v1/**', (route, request) => {
     const url = new URL(request.url())
     const path = url.pathname.replace('/api/v1', '')
@@ -100,7 +107,11 @@ function mockRoute(context) {
         strategies: [{ name: 'direct' }],
         sources: [
           { id: 'shared', label: '共享题目', problem_count: 2 },
-          { id: 'personal', label: '个人题目', problem_count: 1 },
+          {
+            id: 'personal',
+            label: '个人题目',
+            problem_count: job.status === 'completed' ? 2 : 1,
+          },
         ],
       })
     if (method === 'GET' && path === '/evaluation-options/problems') {
@@ -127,6 +138,7 @@ function mockRoute(context) {
           source: 'personal',
         },
       ]
+      if (job.status === 'completed') personal.push(recoveredProblem)
       const items =
         source === 'shared'
           ? shared
@@ -139,6 +151,49 @@ function mockRoute(context) {
         limit: 20,
         offset: 0,
         has_more: false,
+      })
+    }
+    if (method === 'POST' && path === '/files/upload')
+      return reply({
+        file: { id: 'f-import-large', filename: 'large.json', size: 5_242_881 },
+        parsed: null,
+      })
+    if (method === 'POST' && path === '/problems/import') {
+      job.status = job.nextStartStatus
+      return reply({
+        job_id: 'j-import-large',
+        task_id: 'task-import-large',
+        status: job.status,
+      })
+    }
+    if (method === 'GET' && path === '/imports/j-import-large') {
+      if (job.failures > 0) {
+        job.failures -= 1
+        return reply(null, 503)
+      }
+      const completed = job.status === 'completed'
+      const result = completed
+        ? {
+            total: 1,
+            valid: 1,
+            invalid: 0,
+            duplicates: 0,
+            imported: 1,
+            dataset_total: 2,
+            errors: [],
+            errors_truncated: false,
+            file_id: 'f-import-large',
+          }
+        : job.status === 'failed'
+          ? { status_code: 422, detail: '导入 fixture 数据无效' }
+          : null
+      return reply({
+        job_id: 'j-import-large',
+        status: job.status,
+        processed: completed ? 1 : 0,
+        total: 1,
+        percentage: completed ? 100 : 0,
+        result,
       })
     }
     if (method === 'POST' && path === '/problems/upload')
@@ -251,6 +306,132 @@ async function importScenario(page) {
   report.screenshots.push('import.png')
 }
 
+async function importRecoveryScenario(page, job) {
+  const progressPath = '/imports/j-import-large'
+  const progressRequest = () =>
+    page.waitForRequest((request) => request.url().endsWith(progressPath), {
+      timeout: 6_000,
+    })
+  const openImport = () =>
+    page
+      .getByRole('main')
+      .getByRole('button', { name: '导入题目', exact: true })
+      .click()
+  const selectFile = () =>
+    page.setInputFiles('input[type="file"]', {
+      name: 'large.json',
+      mimeType: 'application/json',
+      buffer: Buffer.alloc(5_242_881),
+    })
+  const submit = page.getByRole('button', { name: '开始导入' })
+  const pollError = page.getByRole('alert').filter({ hasText: '进度查询' })
+  const jobRequests = () =>
+    report.replaced.filter((request) => request === `GET ${progressPath}`)
+      .length
+  const setAccount = (marker, username) =>
+    page.evaluate(
+      ({ marker, username }) =>
+        localStorage.setItem(
+          'llm-harness-session',
+          JSON.stringify({
+            marker,
+            username,
+            expiresAt: Date.now() + 3_600_000,
+          }),
+        ),
+      { marker, username },
+    )
+
+  await page.goto(`${base}/problems`)
+  await openImport()
+  job.failures = 3
+  await selectFile()
+  await submit.click()
+
+  await check('连续三次失败后硬刷新查询同一作业且锁定提交', async () => {
+    await pollError.waitFor({ timeout: 15_000 })
+    assert.equal(jobRequests(), 3)
+    assert.ok(await submit.isDisabled())
+    await Promise.all([progressRequest(), page.reload()])
+    await selectFile()
+    assert.ok(await submit.isDisabled())
+  })
+
+  await check('再次中断时手动重试原作业并展示暂停状态', async () => {
+    job.failures = 3
+    await pollError.waitFor({ timeout: 15_000 })
+    const retry = page.getByRole('button', { name: '重试查询导入进度' })
+    job.status = 'paused'
+    await Promise.all([progressRequest(), retry.click({ timeout: 5_000 })])
+    await page.getByText(/导入已暂停.*j-import-large/).waitFor()
+    assert.ok(await submit.isDisabled())
+    assert.equal(
+      report.replaced.filter((request) => request === 'POST /files/upload')
+        .length,
+      1,
+    )
+    assert.equal(
+      report.replaced.filter((request) => request === 'POST /problems/import')
+        .length,
+      1,
+    )
+  })
+
+  await check('离开后回到题库继续原作业，另一账号没有旧作业', async () => {
+    const navigation = page.getByRole('navigation', { name: '主导航' })
+    await navigation.getByRole('link', { name: '帮助文档' }).click()
+    await page.waitForURL('**/help')
+    await Promise.all([
+      progressRequest(),
+      navigation.getByRole('link', { name: '题目库' }).click(),
+    ])
+    await openImport()
+    await page.getByText(/导入已暂停.*j-import-large/).waitFor()
+    const beforeSwitch = jobRequests()
+    await setAccount('fixture-other', 'other')
+    await page.reload()
+    await selectFile()
+    assert.ok(await submit.isEnabled())
+    assert.equal(await page.getByText(/j-import-large/).count(), 0)
+    await assert.rejects(progressRequest(), { name: 'TimeoutError' })
+    assert.equal(jobRequests(), beforeSwitch)
+  })
+
+  await check('原会话恢复后显示原作业报告并刷新列表及来源计数', async () => {
+    await setAccount('fixture-user', 'fixture')
+    await Promise.all([progressRequest(), page.reload()])
+    await page.getByText(/导入已暂停.*j-import-large/).waitFor()
+    await page.getByRole('combobox', { name: '题目来源' }).click()
+    await page
+      .locator('.ant-select-dropdown:visible')
+      .getByText('个人题目（1）', { exact: true })
+      .waitFor()
+    await page.keyboard.press('Escape')
+    job.status = 'completed'
+    const result = page.getByRole('status', { name: '导入报告' })
+    await result.waitFor({ timeout: 10_000 })
+    assert.match(await result.innerText(), /库存量\s*2/)
+    await page.getByRole('row', { name: /mine-recovered/ }).waitFor()
+    await page.getByRole('combobox', { name: '题目来源' }).click()
+    await page
+      .locator('.ant-select-dropdown:visible')
+      .getByText('个人题目（2）', { exact: true })
+      .waitFor()
+    await page.keyboard.press('Escape')
+  })
+
+  await check('触发接口直接返回失败时查询终态详情并解锁', async () => {
+    job.nextStartStatus = 'failed'
+    await selectFile()
+    await Promise.all([progressRequest(), submit.click()])
+    await page
+      .getByRole('alert')
+      .filter({ hasText: '导入 fixture 数据无效' })
+      .waitFor()
+    assert.ok(await submit.isEnabled())
+  })
+}
+
 async function historyScenario(page) {
   await page.goto(`${base}/problems`)
   await check('评估历史抽屉聚合', async () => {
@@ -279,6 +460,7 @@ const browser = await chromium.launch({
 try {
   const context = await browser.newContext()
   await context.addInitScript(() => {
+    if (localStorage.getItem('llm-harness-session')) return
     localStorage.setItem(
       'llm-harness-session',
       JSON.stringify({
@@ -288,11 +470,14 @@ try {
       }),
     )
   })
-  mockRoute(context)
+  const job = { status: null, nextStartStatus: 'running', failures: 0 }
+  mockRoute(context, job)
   const page = await context.newPage()
   if (scenario === 'all' || scenario === 'list') await listScenario(page)
   if (scenario === 'all' || scenario === 'import') await importScenario(page)
   if (scenario === 'all' || scenario === 'history') await historyScenario(page)
+  if (scenario === 'all' || scenario === 'import-recovery')
+    await importRecoveryScenario(page, job)
   await check('无未声明 API 请求', () => assert.deepEqual(report.unknown, []))
 } finally {
   const { writeFileSync, mkdirSync } = await import('node:fs')
