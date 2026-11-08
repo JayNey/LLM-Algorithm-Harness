@@ -112,15 +112,42 @@ print("sandbox preflight passed")
 PY
 ```
 
-生产栈拓扑：`nginx:80 → api:8000`（内部端口不对外），postgres/redis 仅内网，
+生产栈由 `nginx:80` 同源提供 Web、API 和 WebSocket。`api:8000`、PostgreSQL 和 Redis 仅在内网，
 worker 挂载宿主 `/var/run/docker.sock` 执行沙箱（**确认安全边界后再启用**，
 并设置 `DOCKER_GID`），全部服务 `restart: unless-stopped`，日志经 json-file
 驱动轮转（10 MiB × 3）。api 服务设置了 `FORWARDED_ALLOW_IPS`，uvicorn 信任
 nginx 传来的 `X-Forwarded-For`，应用层限流与审计按真实客户端 IP 计数；
 若自行改变拓扑（如再叠加一层代理），需同步调整该值。
 
-HTTPS：按 `deploy/nginx/nginx.conf` 末尾的注释模板签发 Let's Encrypt 证书、
-挂载 `deploy/nginx/certs/`、放开 443 端口并添加 80→443 跳转。
+### Web 发布
+
+`Dockerfile.nginx` 使用 `npm ci` 安装锁定依赖，运行 `npm run build` 并将 `frontend/dist`
+和 `deploy/nginx/nginx.conf` 打包到生产 Nginx 镜像。前端构建读取 `frontend/.env.production`，
+默认使用同源的 `/api/v1` 与 `/api/v1/ws/progress`。修改前端代码、Vite 生产配置或 Nginx
+配置后，重建镜像并更新容器。
+
+```bash
+docker compose -f docker-compose.prod.yml build nginx
+docker compose -f docker-compose.prod.yml up -d nginx
+```
+
+访问部署地址的 `/login`。浏览器直接打开或刷新 `/experiments/new` 等路由时，Nginx 返回
+`index.html` 并要求缓存重新验证。`/assets/` 下缺失的分包返回 404。`/api/` 和 FastAPI
+文档入口继续由 API 处理，进度 WebSocket 使用同一域名的 `ws://` 或 `wss://`。
+
+公网发布使用 HTTPS。按 `deploy/nginx/nginx.conf` 末尾的注释模板配置证书、挂载
+`deploy/nginx/certs/`、发布 443 端口并添加 80→443 跳转，然后重建 Nginx 镜像。
+HTTPS 下 API 会为会话 Cookie 设置 `Secure`。
+
+### Web 发布验收
+
+1. 从发布地址打开 `/login` 并登录。确认 HTML 和登录路由的 JavaScript 分包返回 200，
+   登录响应设置 HttpOnly 会话 Cookie，同源 `/api/v1/users/me` 返回当前用户。
+2. 在浏览器禁用缓存后硬刷新 `/experiments/new`，确认 HTML 和路由分包返回 200。访问
+   `/assets/missing.js` 应返回 404。使用同源 `/api/v1/ws/progress` 确认会话能连接并收到 `connected`。
+3. 在隔离验收实例暂停 PostgreSQL。等待 `/api/v1/health/ready` 返回 503 后，确认登录页和分包
+   仍可加载，业务 API 和新 WebSocket 握手返回 503。恢复 PostgreSQL 后，确认就绪接口、业务 API
+   与新 WebSocket 连接恢复。
 
 限流对齐关系（nginx 与应用双层）：`/api/v1/auth/*` 10 req/min（`AUTH_RATE_LIMIT`），
 其余 API 120 req/min（`AUTH_PROTECTED_RATE_LIMIT`）；请求体上限 100 MiB
