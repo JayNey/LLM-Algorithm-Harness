@@ -18,5 +18,6 @@
 
 - 生产 Compose 配置检查、镜像构建、六项服务健康检查和容器内 `nginx -t` 均通过。
 - 部署配置、Nginx 代理和 API 就绪共 85 项 Python 测试通过。使用锁文件干净安装后，前端 322 项测试通过。修改文件通过 Ruff、Prettier 检查和 `git diff --check`。OpenSpec 通过严格校验。
+- 全量 Python 测试通过 4062 项，跳过 18 项，覆盖率 93.44%。宿主安装的 Anthropic SDK 1.5.0 使用 `httpx2`，导致 4 项策略用例在初始化时出错。使用符合项目 `<1` 约束的 0.125.0 在独立目录重跑该测试文件，12 项全部通过。
 - 生产构建的 npm 审计与基线均报告相同的 14 项告警，包括 Monaco 间接依赖 DOMPurify 的 Critical 告警。全仓前端格式检查仍报告基线文件 `frontend/scripts/verify-settings.mjs`。
 - 验收使用生产编排的本地发布地址。公网域名、公开证书和外部网络链路需在正式部署后验收。
