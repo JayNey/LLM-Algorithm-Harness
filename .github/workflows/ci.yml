@@ -199,3 +199,78 @@ jobs:
         with:
           file: ./coverage.xml
           fail_ci_if_error: false
+
+  frontend-checks:
+    name: Frontend Lint and Tests
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: frontend
+    env:
+      HUSKY: '0'
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+
+      - run: npm ci
+
+      - name: Run ESLint
+        run: npm run lint
+
+      - name: Run Node tests
+        run: npm test
+
+  frontend-browser-smoke:
+    name: Frontend Build and Browser Smoke
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    defaults:
+      run:
+        working-directory: frontend
+    env:
+      HUSKY: '0'
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+
+      - run: npm ci
+
+      - name: Type-check and build production SPA
+        run: npm run build
+
+      - name: Install Chromium
+        run: npm exec -- playwright install --with-deps chromium
+
+      - name: Verify direct routes and experiment creation
+        shell: bash
+        env:
+          DIRECT_LOAD_BASE_URL: http://127.0.0.1:5191
+          DIRECT_LOAD_QA_DIR: ${{ runner.temp }}/frontend-smoke/direct-load
+          EXPERIMENT_BASE_URL: http://127.0.0.1:5191
+          EXPERIMENT_QA_DIR: ${{ runner.temp }}/frontend-smoke/experiments
+        run: |
+          node node_modules/vite/bin/vite.js preview --host 127.0.0.1 --port 5191 --strictPort &
+          preview_pid=$!
+          trap 'kill "$preview_pid" 2>/dev/null || true' EXIT
+          curl --fail --silent --show-error --retry 20 --retry-connrefused --retry-delay 1 \
+            --output /dev/null "$DIRECT_LOAD_BASE_URL/"
+          node scripts/verify-direct-load.mjs
+          node scripts/verify-experiments.mjs create
+
+      - name: Upload browser smoke reports
+        if: ${{ !cancelled() }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: frontend-browser-smoke
+          path: ${{ runner.temp }}/frontend-smoke/
+          if-no-files-found: ignore
