@@ -479,37 +479,70 @@ export default function ExperimentDetailPage() {
   useTranslation()
 
   const { experimentId } = useParams()
+  if (!experimentId)
+    return <Alert role="alert" type="error" message={t('缺少实验 ID')} />
+  return <ExperimentDetail key={experimentId} experimentId={experimentId} />
+}
+
+function ExperimentDetail({ experimentId }: { experimentId: string }) {
+  useTranslation()
+
   const { client, owner } = useExperimentSession()
   const navigate = useNavigate()
   const [actionError, setActionError] = useState<string | null>(null)
   const [busy, setBusy] = useState(false)
   const load = useCallback(
-    (signal: AbortSignal) => client.get(experimentId ?? '', signal),
+    (signal: AbortSignal) => client.get(experimentId, signal),
     [client, experimentId],
   )
   const jobResource = useResource(load)
-  const job = jobResource.data
+  const loadedJob = jobResource.data
   const taskId = useResource(
     useCallback(
       async (signal: AbortSignal): Promise<string | null> => {
-        if (!job || !ACTIVE.has(job.status)) return null
-        if (job.task_id !== undefined) return job.task_id
+        if (!loadedJob || !ACTIVE.has(loadedJob.status)) return null
+        if (loadedJob.task_id !== undefined) return loadedJob.task_id
         const running = await client.runningExperimentTasks(signal)
-        const match = running.find((task) => task.entity_id === job.id)
+        const match = running.find((task) => task.entity_id === loadedJob.id)
         return match ? match.id : null
       },
-      [client, job],
+      [client, loadedJob],
     ),
   )
   const [started, setStarted] = useState<{ id: string; taskId: string } | null>(
     null,
   )
   const activeTaskId =
-    job?.task_id ??
-    (started && started.id === job?.id ? started.taskId : null) ??
-    taskId.data ??
-    null
+    loadedJob && ACTIVE.has(loadedJob.status)
+      ? (loadedJob.task_id ??
+        (started?.id === loadedJob.id ? started.taskId : null) ??
+        taskId.data ??
+        null)
+      : null
   const progress = useTaskProgress(client, activeTaskId, owner)
+  const task =
+    progress.task?.id === activeTaskId &&
+    progress.task.entity_id === experimentId &&
+    progress.task.task_type === 'experiment'
+      ? progress.task
+      : null
+  const terminalTask = task && TERMINAL.has(task.status) ? task : null
+  const reconciliation = useResource(
+    useCallback(
+      async (signal: AbortSignal) => {
+        if (!terminalTask) return null
+        const persisted = await load(signal)
+        return persisted.id === experimentId &&
+          persisted.status === terminalTask.status &&
+          (persisted.task_id === undefined ||
+            persisted.task_id === terminalTask.id)
+          ? persisted
+          : null
+      },
+      [experimentId, load, terminalTask],
+    ),
+  )
+  const job = reconciliation.data ?? loadedJob
 
   async function start() {
     if (!job || busy) return
@@ -572,8 +605,6 @@ export default function ExperimentDetailPage() {
     }
   }
 
-  if (!experimentId)
-    return <Alert role="alert" type="error" message={t('缺少实验 ID')} />
   if (jobResource.loading) return <Skeleton active paragraph={{ rows: 6 }} />
   if (jobResource.error)
     return (
@@ -583,7 +614,12 @@ export default function ExperimentDetailPage() {
       />
     )
   if (!job) return <Alert role="alert" type="error" message={t('实验不存在')} />
-  const status = progress.task?.status ?? job.status
+  const status = task?.status ?? job.status
+  const failureReason =
+    status === 'failed'
+      ? task?.error_message ||
+        (job.status === 'failed' ? job.error_message : null)
+      : null
   const settled = TERMINAL.has(status)
   const resolvingTask = ACTIVE.has(status) && (taskId.loading || !!taskId.error)
   const active = ACTIVE.has(status) && !!activeTaskId
@@ -609,18 +645,17 @@ export default function ExperimentDetailPage() {
         {taskId.error && (
           <ExperimentFeedback message={t(taskId.error)} retry={taskId.retry} />
         )}
-        {job.error_message && (
-          <Alert role="alert" type="error" message={job.error_message} />
+        {failureReason && (
+          <Alert role="alert" type="error" message={failureReason} />
         )}
         <ConfigSummary job={job} />
         {active && (
           <div role="status" aria-label={t('实验进度')}>
-            {progress.task?.progress ? (
+            {task?.progress ? (
               <p>
-                {progress.task.progress.current_step || t('执行中')} ·{' '}
-                {progress.task.progress.current} /{' '}
-                {progress.task.progress.total}（
-                {progress.task.progress.percentage}%）
+                {task.progress.current_step || t('执行中')} ·{' '}
+                {task.progress.current} / {task.progress.total}（
+                {task.progress.percentage}%）
               </p>
             ) : (
               <p>{t('等待任务调度…')}</p>
