@@ -113,11 +113,90 @@ def test_runner_generates_report_csv_markdown_and_statistics(tmp_path):
     assert report["baseline_id"] == "baseline"
     assert report["treatment_id"] == "treatment"
     assert report["balance"]
-    assert report["comparison"]["sample"]["ci95"]["difference"] is not None
-    assert "p_value" in report["comparison"]["statistics"]
+    assert report["comparison"]["sample"]["baseline"] == 0.0
+    assert report["comparison"]["sample"]["treatment"] == 1.0
+    assert report["comparison"]["formal"] == {
+        "baseline": None,
+        "treatment": None,
+        "ci95": dict.fromkeys(("difference", "lower", "upper")),
+    }
+    assert report["comparison"]["statistics"]["categorical_test"] == "fisher_exact"
+    assert report["comparison"]["statistics"]["welch_t_p_value"] is None
+    assert report["comparison"]["formal_statistics"]["categorical_test"] == "unavailable"
     assert (output / "results.csv").exists()
     assert (output / "REPORT.md").exists()
     assert "baseline" in (output / "REPORT.md").read_text(encoding="utf-8")
+
+
+def test_runner_reports_public_passes_independently_of_hidden_failures(tmp_path):
+    dataset = _dataset(tmp_path)
+    problems = json.loads(dataset.read_text(encoding="utf-8"))
+    for problem in problems:
+        problem["public_test_cases"] = problem.pop("test_cases")
+        problem["hidden_test_cases"] = [{"input": {"x": 2}, "expected_output": 0}]
+    dataset.write_text(json.dumps(problems), encoding="utf-8")
+    config = _config(tmp_path, dataset)
+    config.prompt_variants[0].system_prompt = "treatment"
+
+    output = ABTestRunner(config, client_factory=FixedClient).run()
+    report = json.loads((output / "ab_test.json").read_text(encoding="utf-8"))
+    assert {
+        (row["sample_passed"], row["formal_passed"], row["success"]) for row in report["rows"]
+    } == {(True, False, False)}
+    comparison = report["comparison"]
+    zero_ci = dict.fromkeys(("difference", "lower", "upper"), 0.0)
+    assert comparison["sample"] == {"baseline": 1.0, "treatment": 1.0, "ci95": zero_ci}
+    assert comparison["formal"] == {"baseline": 0.0, "treatment": 0.0, "ci95": zero_ci}
+    unavailable = {"categorical_test": "unavailable", "p_value": None, "welch_t_p_value": None}
+    assert comparison["statistics"] == comparison["formal_statistics"] == unavailable
+    markdown = (output / "REPORT.md").read_text(encoding="utf-8")
+    assert "| baseline | 100% | 0% |" in markdown
+    assert "| treatment | 100% | 0% |" in markdown
+
+
+def test_report_uses_distinct_outcomes_for_intervals_and_tests(tmp_path):
+    outcomes = {
+        "baseline": [(True, True), (True, False), (True, None), (True, None), (False, None)],
+        "treatment": [(True, True), (False, True), (False, True), (False, True), (False, False)],
+    }
+    rows = [
+        {
+            "variant": variant,
+            "sample_passed": sample,
+            "formal_passed": formal is True,
+            "formal_evaluable": formal is not None,
+            "success": False,
+            "elapsed_seconds": 0,
+            "total_tokens": 0,
+            "failure_category": None,
+            "difficulty": "easy",
+            "tags": [],
+        }
+        for variant, results in outcomes.items()
+        for sample, formal in results
+    ]
+    runner = ABTestRunner(_config(tmp_path, _dataset(tmp_path)))
+    comparison = runner._build_report(rows, {}, tmp_path)["comparison"]
+    assert comparison["sample"] == {
+        "baseline": 0.8,
+        "treatment": 0.2,
+        "ci95": pytest.approx({"difference": -0.6, "lower": -1.09584514, "upper": -0.10415486}),
+    }
+    assert comparison["formal"] == {
+        "baseline": 0.5,
+        "treatment": 0.8,
+        "ci95": pytest.approx({"difference": 0.3, "lower": -0.47661522, "upper": 1.07661522}),
+    }
+    assert comparison["statistics"] == {
+        "categorical_test": "fisher_exact",
+        "p_value": pytest.approx(0.2063492),
+        "welch_t_p_value": pytest.approx(0.066688),
+    }
+    assert comparison["formal_statistics"] == {
+        "categorical_test": "fisher_exact",
+        "p_value": pytest.approx(1.0),
+        "welch_t_p_value": pytest.approx(0.65626403),
+    }
 
 
 @pytest.mark.parametrize(

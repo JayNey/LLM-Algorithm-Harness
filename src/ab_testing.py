@@ -27,6 +27,8 @@ from src.task_service import TaskService
 from src.utils.pricing import PricingManager
 from src.utils.secrets import redact_sensitive_data
 
+REPORT_SCHEMA_VERSION = "1.1"
+
 
 class PromptVariant(BaseModel):
     id: str = Field(..., min_length=1)
@@ -128,28 +130,40 @@ def _proportion_ci(
 
 
 def _statistical_tests(success_a: list[int], success_b: list[int]) -> dict[str, Any]:
+    unavailable = {"categorical_test": "unavailable", "p_value": None, "welch_t_p_value": None}
+    if not success_a or not success_b:
+        return unavailable
+    passed_a, passed_b = sum(success_a), sum(success_b)
+    failed_a, failed_b = len(success_a) - passed_a, len(success_b) - passed_b
+    if not (passed_a + passed_b and failed_a + failed_b):
+        return unavailable
     table = [
-        [sum(success_a), len(success_a) - sum(success_a)],
-        [sum(success_b), len(success_b) - sum(success_b)],
+        [passed_a, failed_a],
+        [passed_b, failed_b],
     ]
     try:
         from scipy import stats
 
-        expected = stats.chi2_contingency(table, correction=False)[3]
+        _, p_value, _, expected = stats.chi2_contingency(table, correction=False)
         if min(min(row) for row in expected) < 5:
             _, p_value = stats.fisher_exact(table)
             test = "fisher_exact"
         else:
-            _, p_value, _, _ = stats.chi2_contingency(table, correction=False)
             test = "chi_square"
-        _, welch_p = stats.ttest_ind(success_a, success_b, equal_var=False)
+        welch_p = None
+        if min(len(success_a), len(success_b)) >= 2 and (
+            (passed_a and failed_a) or (passed_b and failed_b)
+        ):
+            _, p = stats.ttest_ind(success_a, success_b, equal_var=False)
+            if math.isfinite(float(p)):
+                welch_p = float(p)
         return {
             "categorical_test": test,
             "p_value": float(p_value),
-            "welch_t_p_value": float(welch_p) if math.isfinite(float(welch_p)) else None,
+            "welch_t_p_value": welch_p,
         }
     except (ImportError, ValueError, ZeroDivisionError):
-        return {"categorical_test": "unavailable", "p_value": None, "welch_t_p_value": None}
+        return unavailable
 
 
 class ABTestRunner:
@@ -319,28 +333,11 @@ class ABTestRunner:
             variant.id: [row for row in rows if row["variant"] == variant.id]
             for variant in self.config.prompt_variants
         }
-        binary = {key: [int(row["success"]) for row in value] for key, value in by_variant.items()}
-        formal = {
-            key: [int(row["formal_passed"]) for row in value if row["formal_evaluable"]]
-            for key, value in by_variant.items()
-        }
-        sample_diff = _proportion_ci(
-            sum(binary[baseline]),
-            len(binary[baseline]),
-            sum(binary[treatment]),
-            len(binary[treatment]),
-        )
-        formal_diff = _proportion_ci(
-            sum(formal[baseline]),
-            len(formal[baseline]),
-            sum(formal[treatment]),
-            len(formal[treatment]),
-        )
-        stats = _statistical_tests(binary[baseline], binary[treatment])
+        pass_statistics = self._pass_statistics(by_variant[baseline], by_variant[treatment])
         grouped = self._grouped_rates(rows)
         return redact_sensitive_data(  # type: ignore[no-any-return]
             {
-                "schema_version": "1.0",
+                "schema_version": REPORT_SCHEMA_VERSION,
                 "name": self.config.name or "ab-test",
                 "generated_at": datetime.now(timezone.utc).isoformat(),
                 "output_dir": str(output),
@@ -355,17 +352,7 @@ class ABTestRunner:
                 "assignments": assignments,
                 "balance": self._balance(assignments),
                 "comparison": {
-                    "sample": {
-                        "baseline": self._rate(binary[baseline]),
-                        "treatment": self._rate(binary[treatment]),
-                        "ci95": sample_diff,
-                    },
-                    "formal": {
-                        "baseline": self._rate(formal[baseline]),
-                        "treatment": self._rate(formal[treatment]),
-                        "ci95": formal_diff,
-                    },
-                    "statistics": stats,
+                    **pass_statistics,
                     "elapsed_seconds": {
                         key: sum(row["elapsed_seconds"] for row in value)
                         for key, value in by_variant.items()
@@ -380,14 +367,36 @@ class ABTestRunner:
                 },
                 "by_difficulty": grouped["difficulty"],
                 "by_tag": grouped["tag"],
-                "recommendation": self._recommendation(stats, sample_diff),
+                "recommendation": self._recommendation(
+                    pass_statistics["statistics"], pass_statistics["sample"]["ci95"]
+                ),
                 "rows": rows,
             }
         )
 
     @staticmethod
-    def _rate(values: list[int]) -> float | None:
-        return sum(values) / len(values) if values else None
+    def _pass_statistics(
+        baseline: list[dict[str, Any]], treatment: list[dict[str, Any]]
+    ) -> dict[str, Any]:
+        sample_a = [int(row["sample_passed"]) for row in baseline]
+        sample_b = [int(row["sample_passed"]) for row in treatment]
+        formal_a = [int(row["formal_passed"]) for row in baseline if row["formal_evaluable"]]
+        formal_b = [int(row["formal_passed"]) for row in treatment if row["formal_evaluable"]]
+        return {
+            "sample": ABTestRunner._pass_comparison(sample_a, sample_b),
+            "formal": ABTestRunner._pass_comparison(formal_a, formal_b),
+            "statistics": _statistical_tests(sample_a, sample_b),
+            "formal_statistics": _statistical_tests(formal_a, formal_b),
+        }
+
+    @staticmethod
+    def _pass_comparison(baseline: list[int], treatment: list[int]) -> dict[str, Any]:
+        passed_a, passed_b = sum(baseline), sum(treatment)
+        return {
+            "baseline": passed_a / len(baseline) if baseline else None,
+            "treatment": passed_b / len(treatment) if treatment else None,
+            "ci95": _proportion_ci(passed_a, len(baseline), passed_b, len(treatment)),
+        }
 
     @staticmethod
     def _failure_counts(rows: list[dict[str, Any]]) -> dict[str, int]:
@@ -463,6 +472,9 @@ class ABTestRunner:
 
     @staticmethod
     def _markdown(report: dict[str, Any]) -> str:
+        def format_rate(value: float | None) -> str:
+            return "—" if value is None else f"{value * 100:g}%"
+
         comparison = report["comparison"]
         lines = [
             f"# A/B Test: {report['name']}",
@@ -470,6 +482,7 @@ class ABTestRunner:
             f"Baseline: `{report['baseline_id']}`",
             f"Treatment: `{report['treatment_id']}`",
             f"Seed: `{report['seed']}`",
+            f"Report schema: `{report['schema_version']}`",
             "",
             "| Variant | Sample rate | Formal rate | Tokens | Seconds |",
             "|---|---:|---:|---:|---:|",
@@ -478,14 +491,19 @@ class ABTestRunner:
             variant_id = variant["id"]
             role = "baseline" if variant_id == report["baseline_id"] else "treatment"
             lines.append(
-                f"| {variant_id} | {comparison['sample'][role]} | "
-                f"{comparison['formal'][role]} | {comparison['tokens'][variant_id]} | "
+                f"| {variant_id} | {format_rate(comparison['sample'][role])} | "
+                f"{format_rate(comparison['formal'][role])} | {comparison['tokens'][variant_id]} | "
                 f"{comparison['elapsed_seconds'][variant_id]:.3f} |"
             )
         lines.extend(
             [
                 "",
-                f"p-value: {comparison['statistics'].get('p_value')}",
+                f"Sample test: {comparison['statistics']['categorical_test']} "
+                f"(p-value: {comparison['statistics']['p_value']}, "
+                f"Welch t p-value: {comparison['statistics']['welch_t_p_value']})",
+                f"Formal test: {comparison['formal_statistics']['categorical_test']} "
+                f"(p-value: {comparison['formal_statistics']['p_value']}, "
+                f"Welch t p-value: {comparison['formal_statistics']['welch_t_p_value']})",
                 "",
                 report["recommendation"],
                 "",
