@@ -32,6 +32,7 @@ from fastapi.testclient import TestClient
 
 from api.auth.config import AuthSettings
 from api.config import settings
+from api.db.models import Evaluation
 from api.db.problem_store import ProblemStore
 from api.files.config import FileSettings
 from api.main import create_app
@@ -233,7 +234,8 @@ def cookie_account(client, name="cookie-alice"):
     return headers, key
 
 
-def test_cookie_create_start_observe_running_and_results(environment, monkeypatch):
+@pytest.mark.parametrize("legacy", [False, True], ids=["persisted", "legacy-null"])
+def test_cookie_create_start_observe_running_and_results(environment, monkeypatch, legacy):
     """Deleting worker execution or breaking evaluation/task/run mapping fails here."""
     with environment.session() as (client, app):
         headers, key = cookie_account(client)
@@ -258,20 +260,42 @@ def test_cookie_create_start_observe_running_and_results(environment, monkeypatc
         monkeypatch.setattr(SandboxExecutor, "execute", observe_running)
         environment.drain()
         assert observations == ["running"]
+        if legacy:
+            with app.state.task_session_factory.begin() as session:
+                session.get_one(Evaluation, evaluation).run_id = None
         finished = result(client, {}, evaluation)
         assert finished["status"] == "completed"
-        # Web evaluations legitimately have no persisted Run ID. The worker's
-        # checkpoint key is not a public run_id and must not be substituted.
-        assert finished["run_id"] is None
+        run_id = finished["run_id"]
+        assert run_id and run_id != evaluation
+        with app.state.task_session_factory() as session:
+            assert session.get_one(Evaluation, evaluation).run_id == (None if legacy else run_id)
+        assert result(client, {}, evaluation)["run_id"] == run_id
+        assert result(client, {}, run_id) == finished
         assert client.get(f"/api/v1/results/{identity}").status_code == 404
         from src.task_service import TaskService
 
         checkpoint = TaskService(root=f"data/tasks/{evaluation}").get(f"eval-{evaluation}")
         assert checkpoint.state == "completed"
         assert finished["problems"]["items"][0]["problem_id"] == "cookie-p1"
+        report_paths = [f"/api/v1/reports/{fmt}/{run_id}" for fmt in ("markdown", "html", "csv")]
+        for path in report_paths:
+            report = client.get(path)
+            assert report.status_code == 200, report.text
+            assert report.headers["content-disposition"].startswith("attachment")
+            assert "vanilla" in report.text
+        analysis = f"/api/v1/analytics/success-rate?run_id={run_id}"
+        assert data(client.get(analysis))["solved"] == 1
         task = data(client.get(f"/api/v1/tasks/{identity}"))
         assert task["status"] == "completed" and task["progress"]["percentage"] == 100
         assert environment.generated == ["gpt-4o-mini"]
+        cookie_account(client, "cookie-bob")
+        for path in (
+            f"/api/v1/results/{evaluation}",
+            f"/api/v1/results/{run_id}",
+            analysis,
+            *report_paths,
+        ):
+            assert client.get(path).status_code == 404
 
 
 @pytest.mark.parametrize("cancel_at", ["queued", "running"])
@@ -593,8 +617,15 @@ def test_pause_restart_resume_uses_checkpoint_without_repeating_work(environment
         environment.drain()
         paused = data(client.get(f"/api/v1/evaluations/{evaluation}", headers=headers))
         assert paused["status"] == "paused"
-        first = result(client, headers, evaluation)["problems"]["items"]
+        partial = result(client, headers, evaluation)
+        first = partial["problems"]["items"]
         assert len(first) == 1
+        assert partial["status"] == "paused"
+        run_id = partial["run_id"]
+        assert run_id
+        report = client.get(f"/api/v1/reports/csv/{run_id}", headers=headers)
+        assert report.status_code == 200
+        assert "p1,vanilla" in report.text and "p2,vanilla" not in report.text
         checkpoint = TaskService(root=f"data/tasks/{evaluation}").get(f"eval-{evaluation}")
         assert checkpoint.state == "paused"
         assert checkpoint.completed_units == 1
@@ -608,6 +639,7 @@ def test_pause_restart_resume_uses_checkpoint_without_repeating_work(environment
         environment.drain()
         detail = result(client, headers, evaluation)
         assert detail["status"] == "completed"
+        assert detail["run_id"] == run_id
         assert detail["problems"]["total"] == 2
         assert sorted(executed) == ["p1", "p2"]
         assert len(environment.generated) == 2

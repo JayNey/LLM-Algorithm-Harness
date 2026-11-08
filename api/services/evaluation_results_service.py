@@ -36,6 +36,7 @@ from api.db import (
 )
 from api.db.engine import business_database_url
 from api.db.migrate import SCRIPT_LOCATION
+from api.db.models import WEB_EVALUATION_RUN_PREFIX
 from src.error_analysis import normalize_message
 from src.models import ExecutionResult, IterationResult
 from src.reporting.capability_profiler import (
@@ -538,11 +539,19 @@ class EvaluationResultsService:
         return self._session_factory()
 
     def _resolve(self, session: Session, owner_id: str, key: str) -> Evaluation:
-        """Match this user's evaluation id first, then run id."""
+        """Match this user's evaluation ID, stored run ID, or legacy run ID."""
         owned = select(Evaluation).where(Evaluation.user_id == owner_id)
         found = session.scalar(owned.where(Evaluation.id == key))
         if found is None:
             found = session.scalar(owned.where(Evaluation.run_id == key))
+        if found is None and key.startswith(WEB_EVALUATION_RUN_PREFIX):
+            found = session.scalar(
+                owned.where(
+                    Evaluation.id == key.removeprefix(WEB_EVALUATION_RUN_PREFIX),
+                    Evaluation.run_id.is_(None),
+                    exists().where(EvaluationResult.evaluation_id == Evaluation.id),
+                )
+            )
         if found is None:
             raise ValueError("Evaluation not found")
         return found
@@ -557,7 +566,11 @@ class EvaluationResultsService:
             total = len(rows)
             page = rows[offset : offset + limit]
             return {
-                "run_id": evaluation.run_id,
+                "run_id": (
+                    evaluation.web_run_id
+                    if evaluation.run_id is None and total
+                    else evaluation.run_id
+                ),
                 "status": evaluation.status,
                 "created_at": _iso(evaluation.created_at),
                 "completed_at": _iso(evaluation.completed_at),
