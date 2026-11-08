@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { ApiClientError } from '../auth/http.ts'
 import type { ApiPage, ListQuery } from './types.ts'
 
@@ -16,6 +16,7 @@ export function useList<T>(
   owner: string,
 ): ListState<T> {
   const [attempt, setAttempt] = useState(0)
+  const reload = useCallback(() => setAttempt((value) => value + 1), [])
   const generation = useRef(0)
   const { status, limit, offset } = query
   const [snapshot, setSnapshot] = useState<{
@@ -75,6 +76,6 @@ export function useList<T>(
         : 'ready',
     data: current ? snapshot.data : undefined,
     error: current ? snapshot.error : undefined,
-    reload: () => setAttempt((value) => value + 1),
+    reload,
   }
 }

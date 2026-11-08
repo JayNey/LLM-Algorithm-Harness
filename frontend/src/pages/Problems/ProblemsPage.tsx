@@ -16,7 +16,6 @@ import {
 import { useProblemSession } from '@/problems/session.tsx'
 import type {
   ApiPage,
-  DirectImportResult,
   ImportJobProgress,
   ImportMode,
   ImportValidation,
@@ -37,8 +36,34 @@ import {
   setProblemImportIntent,
   writeProblemListQuery,
 } from '@/problems/validation.ts'
+import { useAuthStore } from '@/store/auth.ts'
 
 const IMPORT_POLL_MS = 3_000
+
+function readImportJob(storageKey: string): string | null {
+  try {
+    return localStorage.getItem(storageKey) || null
+  } catch {
+    return null
+  }
+}
+
+function rememberImportJob(storageKey: string, jobId: string) {
+  try {
+    localStorage.setItem(storageKey, jobId)
+  } catch {
+    // 当前页面仍可查询作业，即使浏览器禁用了存储。
+  }
+}
+
+function forgetImportJob(storageKey: string, jobId: string) {
+  try {
+    if (localStorage.getItem(storageKey) === jobId)
+      localStorage.removeItem(storageKey)
+  } catch {
+    // 浏览器拒绝访问存储时仍然展示终态。
+  }
+}
 
 function ValidationReport({ report }: { report: ImportValidation }) {
   useTranslation()
@@ -83,62 +108,90 @@ function ImportPanel({
 }) {
   useTranslation()
 
-  const { client } = useProblemSession()
+  const { client, owner } = useProblemSession()
+  const storageKey = `llm-harness-problem-import:session:${owner}`
   const [file, setFile] = useState<File | null>(null)
   const [mode, setMode] = useState<ImportMode>('append')
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [report, setReport] = useState<ImportValidation | null>(null)
+  const [jobId, setJobId] = useState(() => readImportJob(storageKey))
   const [progress, setProgress] = useState<ImportJobProgress | null>(null)
+  const [pollPaused, setPollPaused] = useState(false)
   const submitLock = useRef(false)
-  const pollFailures = useRef(0)
 
   useEffect(() => {
-    // 异步导入轮询：终态停止；失败重试有上限（连续 3 次无进展则停并提示）
-    if (!progress || isImportTerminalStatus(progress.status)) return
+    if (!jobId || pollPaused) return
     const controller = new AbortController()
-    const timer = setTimeout(() => {
-      void client
-        .importJob(progress.job_id, controller.signal)
-        .then((next) => {
-          pollFailures.current = 0
-          setProgress(next)
-          if (isImportTerminalStatus(next.status)) submitLock.current = false
-          if (next.status === 'completed' && next.result) {
-            setReport(next.result)
-            onImported()
-          } else if (next.status === 'failed') {
-            setError(
-              next.failureDetail
-                ? t('导入任务失败：{{value1}}', { value1: next.failureDetail })
-                : '导入任务失败，请检查文件格式后重试。',
-            )
-          }
-        })
-        .catch(() => {
-          pollFailures.current += 1
-          if (pollFailures.current >= 3) {
-            setError('进度查询连续失败，请稍后刷新页面查看导入结果。')
-            return
-          }
-          // 触发重排：同对象新引用让 effect 重新调度下一周期
-          setProgress({ ...progress })
-        })
-    }, IMPORT_POLL_MS)
+    let timer: ReturnType<typeof setTimeout> | undefined
+    let failures = 0
+    const stillCurrent = () =>
+      !controller.signal.aborted &&
+      useAuthStore.getState().session?.marker === owner
+
+    async function poll(id: string) {
+      if (!stillCurrent()) return
+      let next: ImportJobProgress
+      try {
+        next = await client.importJob(id, controller.signal)
+      } catch {
+        if (!stillCurrent()) return
+        failures += 1
+        if (failures >= 3) setPollPaused(true)
+        else timer = setTimeout(() => void poll(id), IMPORT_POLL_MS)
+        return
+      }
+      if (!stillCurrent()) return
+      failures = 0
+      setProgress(next)
+      if (!isImportTerminalStatus(next.status)) {
+        timer = setTimeout(() => void poll(id), IMPORT_POLL_MS)
+        return
+      }
+
+      forgetImportJob(storageKey, id)
+      setJobId(null)
+      submitLock.current = false
+      if (next.status === 'completed') {
+        setReport(next.result)
+        onImported()
+      } else if (next.status === 'failed') {
+        setError(
+          next.failureDetail
+            ? t('导入任务失败：{{value1}}', { value1: next.failureDetail })
+            : '导入任务失败，请检查文件格式后重试。',
+        )
+      }
+    }
+    timer = setTimeout(() => void poll(jobId), 0)
     return () => {
       controller.abort()
       clearTimeout(timer)
     }
-  }, [client, progress, onImported])
+  }, [client, jobId, onImported, owner, pollPaused, storageKey])
 
-  function submit() {
+  async function submit() {
     const selectedFile = file
+    const sameSession = () => useAuthStore.getState().session?.marker === owner
     if (
       !selectedFile ||
-      !canSubmitImport(true, busy, progress?.status ?? null, submitLock.current)
+      !sameSession() ||
+      !canSubmitImport(
+        true,
+        busy,
+        progress?.status ?? null,
+        submitLock.current || jobId !== null,
+      )
     )
       return
-    pollFailures.current = 0
+    const savedJob = readImportJob(storageKey)
+    if (savedJob) {
+      setJobId(savedJob)
+      setError(null)
+      setReport(null)
+      setProgress(null)
+      return
+    }
     const fileError = validateImportFile({
       name: selectedFile.name,
       size: selectedFile.size,
@@ -158,46 +211,28 @@ function ImportPanel({
     setError(null)
     setReport(null)
     setProgress(null)
-    const finish = () => {
-      submitLock.current = false
+    let startedJob = false
+    try {
+      if (selectedFile.size <= DIRECT_IMPORT_MAX_BYTES) {
+        const result = await client.directImport(selectedFile, mode)
+        if (!sameSession()) return
+        setReport(result.validation)
+        onImported()
+      } else {
+        const uploaded = await client.uploadFile(selectedFile)
+        if (!sameSession()) return
+        const started = await client.startImport(uploaded.file_id, mode)
+        if (!sameSession()) return
+        rememberImportJob(storageKey, started.job_id)
+        startedJob = true
+        setJobId(started.job_id)
+      }
+    } catch (cause) {
+      if (sameSession())
+        setError(cause instanceof Error ? cause.message : '导入失败，请重试')
+    } finally {
+      if (!startedJob) submitLock.current = false
       setBusy(false)
-    }
-    if (selectedFile.size <= DIRECT_IMPORT_MAX_BYTES) {
-      client
-        .directImport(selectedFile, mode)
-        .then((result: DirectImportResult) => {
-          setReport(result.validation)
-          onImported()
-        })
-        .catch((cause: unknown) =>
-          setError(cause instanceof Error ? cause.message : '导入失败，请重试'),
-        )
-        .finally(finish)
-    } else {
-      let awaitingTerminal = false
-      client
-        .uploadFile(selectedFile)
-        .then((uploaded) => client.startImport(uploaded.file_id, mode))
-        .then((started) => {
-          awaitingTerminal = !isImportTerminalStatus(started.status)
-          setProgress({
-            job_id: started.job_id,
-            status: started.status,
-            processed: 0,
-            total: 0,
-            percentage: 0,
-            result: null,
-            failureDetail: null,
-          })
-          if (!awaitingTerminal) submitLock.current = false
-        })
-        .catch((cause: unknown) =>
-          setError(cause instanceof Error ? cause.message : '导入失败，请重试'),
-        )
-        .finally(() => {
-          if (!awaitingTerminal) submitLock.current = false
-          setBusy(false)
-        })
     }
   }
 
@@ -208,6 +243,18 @@ function ImportPanel({
         {t('支持 JSON / CSV 文件；小于 5MiB 直接导入，大文件转入后台任务。')}
       </p>
       {error && <Alert role="alert" type="error" message={t(error)} />}
+      {pollPaused && (
+        <Alert
+          role="alert"
+          type="warning"
+          message={t('进度查询连续失败，可以重试查询原导入作业。')}
+          action={
+            <Button onClick={() => setPollPaused(false)}>
+              {t('重试查询导入进度')}
+            </Button>
+          }
+        />
+      )}
       <Upload
         aria-label={t('导入文件选择')}
         maxCount={1}
@@ -246,7 +293,12 @@ function ImportPanel({
         type="primary"
         aria-label={t('开始导入')}
         disabled={
-          !canSubmitImport(file !== null, busy, progress?.status ?? null)
+          !canSubmitImport(
+            file !== null,
+            busy,
+            progress?.status ?? null,
+            jobId !== null,
+          )
         }
         onClick={submit}
       >
@@ -255,10 +307,14 @@ function ImportPanel({
       <Button aria-label={t('关闭导入面板')} disabled={busy} onClick={onClose}>
         {t('收起')}
       </Button>
-      {progress && !isImportTerminalStatus(progress.status) && (
+      {jobId && !progress && !pollPaused && (
+        <p role="status">{t('正在查询导入进度…')}</p>
+      )}
+      {progress && (
         <p role="status">
-          {importStatusLabel(progress.status)} · {progress.processed} /{' '}
-          {progress.total || '…'}（{Math.round(progress.percentage)}%）
+          {importStatusLabel(progress.status)}
+          {!isImportTerminalStatus(progress.status) &&
+            ` · ${progress.processed} / ${progress.total || '…'}（${Math.round(progress.percentage)}%）`}
           {progress.status === 'paused' &&
             t(
               '导入已暂停；此页面不支持恢复或取消。请勿重复提交，持续暂停时联系管理员并提供导入任务 ID：{{jobId}}。',
@@ -396,6 +452,7 @@ export default function ProblemsPage() {
     { id: string; label: string; problem_count: number }[]
   >([])
   const [exportBusy, setExportBusy] = useState(false)
+  const [sourcesVersion, setSourcesVersion] = useState(0)
 
   useEffect(() => {
     const controller = new AbortController()
@@ -408,7 +465,7 @@ export default function ProblemsPage() {
         // 计数徽标失败不阻塞列表
       })
     return () => controller.abort()
-  }, [client])
+  }, [client, sourcesVersion])
 
   const load = useCallback(
     (listQuery: { limit: number; offset: number }, signal: AbortSignal) =>
@@ -416,6 +473,11 @@ export default function ProblemsPage() {
     [client, query],
   )
   const list = useList<ProblemOption>(load, query, owner ?? '')
+  const { reload } = list
+  const onImported = useCallback(() => {
+    reload()
+    setSourcesVersion((version) => version + 1)
+  }, [reload])
   const data = list.data
 
   function exportLibrary(format: 'json' | 'csv') {
@@ -486,7 +548,7 @@ export default function ProblemsPage() {
         </div>
         <div hidden={!importOpen}>
           <ImportPanel
-            onImported={list.reload}
+            onImported={onImported}
             onClose={() =>
               setSearch(setProblemImportIntent(search, false), {
                 replace: true,

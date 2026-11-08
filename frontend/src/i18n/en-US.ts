@@ -778,8 +778,10 @@ export default {
     'Too many errors. Only the first 200 are shown.',
   '导入任务失败，请检查文件格式后重试。':
     'Import task failed. Check the file format and try again.',
-  '进度查询连续失败，请稍后刷新页面查看导入结果。':
-    'Repeated progress query failures. Refresh later to check the import result.',
+  '进度查询连续失败，可以重试查询原导入作业。':
+    'Could not check import progress after several attempts. You can retry checking the same job.',
+  重试查询导入进度: 'Retry checking import progress',
+  '正在查询导入进度…': 'Checking import progress…',
   'overwrite 将整库替换个人题库，确认继续？':
     'Overwrite replaces your entire personal library. Continue?',
   '导入失败，请重试': 'Import failed. Try again',
