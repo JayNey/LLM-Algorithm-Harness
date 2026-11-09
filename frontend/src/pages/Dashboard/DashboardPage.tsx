@@ -114,6 +114,8 @@ function Metric({
           </Button>
           <p role="alert">{t(error)}</p>
         </>
+      ) : currency && data === undefined ? (
+        <strong>{t('成本未知')}</strong>
       ) : (
         <strong>
           {currency
@@ -455,7 +457,21 @@ function Dashboard() {
         <Metric
           title={t('累计调用费用')}
           {...cost}
-          note={t('评估与已完成基准 · 已记录费用')}
+          data={
+            cost.data?.knownCostUsd === 0 && cost.data.unknownCostCount > 0
+              ? undefined
+              : cost.data?.knownCostUsd
+          }
+          note={
+            t('评估与已完成基准 · 已记录费用') +
+            (cost.data?.unknownCostCount
+              ? ' · ' +
+                t('{{value1}}{{value2}} 条成本未知', {
+                  value1: '',
+                  value2: cost.data.unknownCostCount,
+                })
+              : '')
+          }
           currency
         />
       </div>

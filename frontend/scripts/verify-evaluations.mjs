@@ -668,7 +668,7 @@ async function fixture(
         has_more: false,
       })
     if (mode === 'entries' && method === 'GET' && path === '/costs/summary')
-      return send({ total_cost_usd: 0 })
+      return send({ total_cost_usd: 0, by_source: {} })
     if (
       mode.startsWith('detail-') &&
       path.startsWith('/evaluations/eval-fixture-1')
