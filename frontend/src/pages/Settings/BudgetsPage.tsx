@@ -13,6 +13,7 @@ import type {
   CostRange,
 } from '@/budgets/types.ts'
 import { validateAlertInput, validateBudgetInput } from '@/budgets/client.ts'
+import SettingsTable from './SettingsTable'
 
 const CHANNEL_OPTIONS: { value: AlertChannel; label: string }[] = [
   {
@@ -230,7 +231,7 @@ function UsageSection({ usage }: { usage: BudgetUsage }) {
           )}
         </p>
       )}
-      <table className="evaluation-list-table" aria-label={t('预算使用量')}>
+      <SettingsTable label={t('预算使用量')}>
         <thead>
           <tr>
             {[t('口径'), t('上限'), t('已用'), t('剩余'), t('使用率')].map(
@@ -257,7 +258,7 @@ function UsageSection({ usage }: { usage: BudgetUsage }) {
             </tr>
           ))}
         </tbody>
-      </table>
+      </SettingsTable>
     </div>
   )
 }
@@ -411,7 +412,7 @@ function AlertRulesSection({ onChanged }: { onChanged: () => void }) {
       {rules === null && !error ? (
         <Skeleton active paragraph={{ rows: 3 }} />
       ) : rules && rules.length ? (
-        <table className="evaluation-list-table" aria-label={t('预警规则')}>
+        <SettingsTable label={t('预警规则')}>
           <thead>
             <tr>
               {[
@@ -538,7 +539,7 @@ function AlertRulesSection({ onChanged }: { onChanged: () => void }) {
               ),
             )}
           </tbody>
-        </table>
+        </SettingsTable>
       ) : (
         <p role="status">{t('还没有预警规则。')}</p>
       )}
@@ -671,7 +672,7 @@ function CostOverviewSection() {
               )}
             />
           )}
-          <table className="evaluation-list-table" aria-label={t('费用汇总')}>
+          <SettingsTable label={t('费用汇总')}>
             <tbody>
               <tr>
                 <th scope="row">{t('已知费用合计')}</th>
@@ -682,12 +683,9 @@ function CostOverviewSection() {
                 <td>{summary.task_count}</td>
               </tr>
             </tbody>
-          </table>
+          </SettingsTable>
           <h3 className="mt-2 font-medium">{t('每日费用趋势')}</h3>
-          <table
-            className="evaluation-list-table"
-            aria-label={t('每日费用趋势')}
-          >
+          <SettingsTable label={t('每日费用趋势')}>
             <thead>
               <tr>
                 {[t('日期'), t('已知费用（USD）'), t('未知费用条数')].map(
@@ -714,7 +712,7 @@ function CostOverviewSection() {
                 </tr>
               )}
             </tbody>
-          </table>
+          </SettingsTable>
           <h3 className="mt-2 font-medium">{t('费用分项')}</h3>
           {(
             [
@@ -723,11 +721,7 @@ function CostOverviewSection() {
               [t('按策略'), breakdown.by_strategy],
             ] as const
           ).map(([label, rows]) => (
-            <table
-              key={label}
-              className="evaluation-list-table"
-              aria-label={label}
-            >
+            <SettingsTable key={label} label={label}>
               <caption className="text-left">{label}</caption>
               <thead>
                 <tr>
@@ -752,7 +746,7 @@ function CostOverviewSection() {
                   </tr>
                 )}
               </tbody>
-            </table>
+            </SettingsTable>
           ))}
           {unknownNote(
             breakdown.unknown_cost_count,
@@ -794,7 +788,7 @@ function AlertHistorySection() {
       ) : state.error ? (
         <ExperimentFeedback message={t(state.error)} retry={state.retry} />
       ) : history && history.length ? (
-        <table className="evaluation-list-table" aria-label={t('预警投递历史')}>
+        <SettingsTable label={t('预警投递历史')}>
           <thead>
             <tr>
               {[
@@ -823,7 +817,7 @@ function AlertHistorySection() {
               </tr>
             ))}
           </tbody>
-        </table>
+        </SettingsTable>
       ) : (
         <p className="text-neutral-600 dark:text-neutral-400">
           {t('暂无预警投递历史；已配置规则只会在真实预算检查越过阈值时记录。')}

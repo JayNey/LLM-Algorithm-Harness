@@ -7,6 +7,7 @@ import { ExperimentFeedback } from '@/experiments/components.tsx'
 import { usePricingSession } from '@/pricing/session.tsx'
 import type { PricingCatalog, PricingVersion } from '@/pricing/types.ts'
 import { validateOverrideInput } from '@/pricing/client.ts'
+import SettingsTable from './SettingsTable'
 
 const SOURCE_LABELS: Record<string, string> = {
   get builtin() {
@@ -73,7 +74,7 @@ function useHistoryDrawer(
       ) : versions === null ? (
         <Skeleton active paragraph={{ rows: 4 }} />
       ) : versions.length ? (
-        <table className="evaluation-list-table" aria-label={t('定价历史')}>
+        <SettingsTable label={t('定价历史')}>
           <thead>
             <tr>
               {[t('输入价/1k'), t('输出价/1k'), t('创建者'), t('时间')].map(
@@ -99,7 +100,7 @@ function useHistoryDrawer(
               </tr>
             ))}
           </tbody>
-        </table>
+        </SettingsTable>
       ) : (
         <p role="status">{t('该模型没有自定义定价历史。')}</p>
       )}
@@ -185,7 +186,7 @@ export default function PricingPage() {
       ) : catalog === null ? (
         <Skeleton active paragraph={{ rows: 6 }} />
       ) : entries.length ? (
-        <table className="evaluation-list-table" aria-label={t('定价目录')}>
+        <SettingsTable label={t('定价目录')}>
           <thead>
             <tr>
               {[
@@ -216,7 +217,7 @@ export default function PricingPage() {
               </tr>
             ))}
           </tbody>
-        </table>
+        </SettingsTable>
       ) : (
         <p role="status">{t('目录为空。')}</p>
       )}

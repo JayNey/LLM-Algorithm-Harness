@@ -1,4 +1,4 @@
-/* global localStorage */
+/* global document, localStorage, window */
 // 设置与系统管理页验证（issue #167）——浏览器 fixture 层。
 import assert from 'node:assert/strict'
 import { createRequire } from 'node:module'
@@ -311,7 +311,7 @@ function mockRoute(context) {
           },
         },
       })
-    if (method === 'GET' && path.startsWith('/pricing/'))
+    if (method === 'GET' && path === '/pricing/model-override/history')
       return reply([
         {
           prompt_per_1k: 0.2,
@@ -396,6 +396,59 @@ async function monitorScenario(page) {
   report.screenshots.push('monitor.png')
 }
 
+const settingsWidths = [320, 390, 768, 1024, 1440]
+
+async function assertPageFits(page, width, label) {
+  const documentWidth = await page.evaluate(
+    () => document.documentElement.scrollWidth,
+  )
+  assert.ok(
+    documentWidth <= width,
+    `${label}：${width}px 视口的文档宽度为 ${documentWidth}px`,
+  )
+}
+
+async function checkTableScroll(page, name, width) {
+  const region = page
+    .getByRole('region', { name, exact: true })
+    .filter({ has: page.getByRole('table', { name, exact: true }) })
+  assert.equal(await region.count(), 1, `${name}缺少独立的具名滚动区`)
+  assert.equal(await region.evaluate((element) => element.tabIndex), 0)
+  const overflow = await region.evaluate(
+    (element) => element.scrollWidth - element.clientWidth,
+  )
+  if (width <= 768) assert.ok(overflow > 0, `${name}应能在窄屏横向滚动`)
+  await region.focus()
+  await page.keyboard.press('Shift+Tab')
+  await page.keyboard.press('Tab')
+  assert.equal(
+    await region.evaluate((element) => document.activeElement === element),
+    true,
+  )
+  if (overflow > 0) {
+    await region.evaluate((element) => {
+      element.scrollLeft = 0
+    })
+    await page.keyboard.press('ArrowRight')
+    await page.waitForFunction(() => document.activeElement.scrollLeft > 0)
+  }
+  assert.equal(await page.evaluate(() => window.scrollX), 0)
+}
+
+async function tabToRowAction(page, action) {
+  await page.keyboard.press('Tab')
+  assert.equal(
+    await action.evaluate((element) => element === document.activeElement),
+    true,
+  )
+  assert.ok(
+    await action.evaluate((element) => {
+      const button = element.getBoundingClientRect()
+      return button.left >= 0 && button.right <= window.innerWidth
+    }),
+  )
+}
+
 async function budgetsScenario(page) {
   await page.goto(`${base}/settings/budgets`)
   await check('预算使用量与预警规则渲染', async () => {
@@ -423,6 +476,37 @@ async function budgetsScenario(page) {
       (await page.getByRole('button', { name: /编\s*辑/ }).count()) >= 1,
     )
   })
+  for (const width of settingsWidths) {
+    await check(`预算与预警宽表在 ${width}px 内局部滚动`, async () => {
+      await page.setViewportSize({ width, height: 900 })
+      const data = [
+        ['预算使用量', '40%'],
+        ['预警规则', '预算预警'],
+        ['费用汇总', '$1.25'],
+        ['每日费用趋势', '2026-10-28'],
+        ['按来源', 'evaluations'],
+        ['按模型', 'model-x'],
+        ['按策略', 'vanilla'],
+        ['预警投递历史', '已删除规则'],
+      ]
+      for (const [name, value] of data) {
+        const table = page.getByRole('table', { name, exact: true })
+        await table.getByRole('cell', { name: value, exact: true }).waitFor()
+        await checkTableScroll(page, name, width)
+        if (name === '预警规则') {
+          await tabToRowAction(
+            page,
+            table.getByRole('button', { name: /编\s*辑/ }),
+          )
+          if (width === 390) {
+            await page.screenshot({ path: resolve(outDir, 'budgets-390.png') })
+            report.screenshots.push('budgets-390.png')
+          }
+        }
+      }
+      await assertPageFits(page, width, '预算与预警')
+    })
+  }
   await page.screenshot({
     path: resolve(outDir, 'budgets.png'),
     fullPage: true,
@@ -432,11 +516,44 @@ async function budgetsScenario(page) {
 
 async function pricingScenario(page) {
   await page.goto(`${base}/settings/pricing`)
-  await check('定价目录三源标注渲染', async () => {
+  await check('定价目录来源标注渲染', async () => {
     await page.getByRole('table', { name: '定价目录' }).waitFor()
     assert.ok((await page.getByText('内置').count()) >= 1)
     assert.ok((await page.getByText('覆盖').count()) >= 1)
   })
+  for (const width of settingsWidths) {
+    await check(`定价目录与历史宽表在 ${width}px 内局部滚动`, async () => {
+      await page.setViewportSize({ width, height: 900 })
+      const catalog = page.getByRole('table', { name: '定价目录' })
+      await assertPageFits(page, width, '定价管理')
+      await checkTableScroll(page, '定价目录', width)
+      await page.keyboard.press('Tab')
+      const historyAction = catalog
+        .getByRole('row', { name: /model-override/ })
+        .getByRole('button', { name: /历\s*史/ })
+      await tabToRowAction(page, historyAction)
+      await page.keyboard.press('Enter')
+      const drawer = page.getByRole('dialog')
+      const history = drawer.getByRole('table', { name: '定价历史' })
+      await history
+        .getByRole('cell', { name: 'admin-fixture', exact: true })
+        .waitFor()
+      await assertPageFits(page, width, '定价历史抽屉')
+      await checkTableScroll(page, '定价历史', width)
+      await page.waitForFunction(() => {
+        const region = document.activeElement.getBoundingClientRect()
+        return region.left >= 0 && region.right <= window.innerWidth
+      })
+      if (width === 390) {
+        await page.screenshot({
+          path: resolve(outDir, 'pricing-history-390.png'),
+        })
+        report.screenshots.push('pricing-history-390.png')
+      }
+      await page.keyboard.press('Escape')
+      await drawer.waitFor({ state: 'hidden' })
+    })
+  }
   await page.screenshot({
     path: resolve(outDir, 'pricing.png'),
     fullPage: true,
