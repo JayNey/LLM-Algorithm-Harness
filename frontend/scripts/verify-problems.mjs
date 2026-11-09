@@ -66,6 +66,18 @@ const recoveredProblem = {
   source: 'personal',
 }
 
+function historyEntry(problemId, runId, status = 'passed') {
+  return {
+    problem_id: problemId,
+    strategy: 'direct',
+    status,
+    iterations: null,
+    tokens: null,
+    execution_time: null,
+    run_id: runId,
+  }
+}
+
 function mockRoute(context, job) {
   context.route('**/api/v1/**', (route, request) => {
     const url = new URL(request.url())
@@ -217,29 +229,42 @@ function mockRoute(context, job) {
           dataset_total: 4,
         },
       })
-    if (method === 'GET' && path === '/results/problems/mine-1')
+    if (method === 'GET' && path === '/results/problems/mine-1') {
+      const offset = Number(url.searchParams.get('offset'))
+      if (offset === 20)
+        return reply({
+          items: [historyEntry('mine-1', 'r-page-2')],
+          total: 21,
+          limit: 20,
+          offset,
+          has_more: false,
+        })
       return reply({
-        items: [
-          {
-            problem_id: 'mine-1',
-            strategy: 'direct',
-            status: 'passed',
-            iterations: 1,
-            tokens: 100,
-            execution_time: 0.5,
-            run_id: 'r1',
-          },
-          {
-            problem_id: 'mine-1',
-            strategy: 'reflexion',
-            status: 'error',
-            iterations: null,
-            tokens: null,
-            execution_time: null,
-            run_id: null,
-          },
-        ],
-        total: 2,
+        items: Array.from({ length: 20 }, (_, index) =>
+          index % 2 === 0
+            ? historyEntry('mine-1', `r${index}`)
+            : historyEntry('mine-1', null, 'error'),
+        ),
+        total: 21,
+        limit: 20,
+        offset,
+        has_more: true,
+      })
+    }
+    if (method === 'GET' && path === '/results/problems/shared-1') {
+      const offset = Number(url.searchParams.get('offset'))
+      return reply({
+        items: offset === 0 ? [historyEntry('shared-1', 'r-shared-1')] : [],
+        total: 1,
+        limit: 20,
+        offset,
+        has_more: false,
+      })
+    }
+    if (method === 'GET' && path === '/results/problems/shared-2')
+      return reply({
+        items: [],
+        total: 0,
         limit: 20,
         offset: 0,
         has_more: false,
@@ -434,22 +459,93 @@ async function importRecoveryScenario(page, job) {
 
 async function historyScenario(page) {
   await page.goto(`${base}/problems`)
-  await check('评估历史抽屉聚合', async () => {
-    await page
-      .getByRole('row', { name: /mine-1/ })
+  const openHistory = (problemId) =>
+    page
+      .getByRole('row', { name: new RegExp(problemId) })
       .getByRole('button', { name: '评估历史' })
       .click()
-    const dialog = page.getByRole('dialog', { name: /个人题一.*评估历史/ })
-    const table = dialog.getByRole('table', { name: '题目评估历史' })
+  const closeHistory = async (dialog) => {
+    await dialog.press('Escape')
+    await dialog.waitFor({ state: 'hidden' })
+  }
+  const historyRequest = (problemId) =>
+    page.waitForRequest(
+      (request) =>
+        new URL(request.url()).pathname ===
+        `/api/v1/results/problems/${problemId}`,
+    )
+  const personal = page.getByRole('dialog', { name: /个人题一.*评估历史/ })
+  const shared = page.getByRole('dialog', { name: /共享题一.*评估历史/ })
+  const table = personal.getByRole('table', { name: '题目评估历史' })
+  await check('评估历史抽屉聚合', async () => {
+    await openHistory('mine-1')
     await table.waitFor()
-    assert.match(await dialog.getByRole('status').innerText(), /通过率\s*50%/)
-    assert.equal(await table.getByRole('cell', { name: '执行错误' }).count(), 1)
+    assert.match(await personal.getByRole('status').innerText(), /通过率\s*50%/)
+    assert.equal(
+      await table.getByRole('cell', { name: '执行错误' }).count(),
+      10,
+    )
   })
   await page.screenshot({
     path: resolve(outDir, 'history.png'),
     fullPage: true,
   })
   report.screenshots.push('history.png')
+
+  await check('同一题目的下一页显示对应记录', async () => {
+    await personal.getByRole('button', { name: '下一页' }).click()
+    await table.getByRole('cell', { name: 'r-page-2' }).waitFor()
+  })
+  await check('换题后的首个历史请求从首页开始', async () => {
+    await closeHistory(personal)
+    const [request] = await Promise.all([
+      historyRequest('shared-1'),
+      openHistory('shared-1'),
+    ])
+    assert.equal(new URL(request.url()).searchParams.get('offset'), '0')
+    await shared.getByRole('cell', { name: 'r-shared-1' }).waitFor()
+    await closeHistory(shared)
+  })
+  await check('旧题的迟到响应不会覆盖当前题目', async () => {
+    const delayed = Promise.withResolvers()
+    const intercepted = Promise.withResolvers()
+    const path = '**/results/problems/mine-1?*'
+    await page.route(path, async (route) => {
+      intercepted.resolve()
+      await delayed.promise
+      await route.fallback()
+    })
+    try {
+      const [oldRequest] = await Promise.all([
+        historyRequest('mine-1'),
+        openHistory('mine-1'),
+        intercepted.promise,
+      ])
+      await closeHistory(personal)
+      await openHistory('shared-1')
+      const currentRecord = shared.getByRole('cell', { name: 'r-shared-1' })
+      await currentRecord.waitFor()
+      delayed.resolve()
+      const response = await oldRequest.response()
+      await response?.finished()
+      assert.ok(await currentRecord.isVisible())
+      assert.equal(
+        await shared.getByRole('cell', { name: 'r0', exact: true }).count(),
+        0,
+      )
+      await closeHistory(shared)
+    } finally {
+      delayed.resolve()
+      await page.unroute(path)
+    }
+  })
+  await check('无历史记录的题目显示真实空态', async () => {
+    await openHistory('shared-2')
+    await page
+      .getByRole('dialog', { name: /共享题二.*评估历史/ })
+      .getByText('该题还没有评估记录。')
+      .waitFor()
+  })
 }
 
 const { chromium } = playwright
