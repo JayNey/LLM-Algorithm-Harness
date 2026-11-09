@@ -1,5 +1,6 @@
 import assert from 'node:assert/strict'
 import { test } from 'node:test'
+import { ApiClientError } from '../auth/http.ts'
 import {
   bindNotificationRefresh,
   createNotificationGateway,
@@ -61,6 +62,14 @@ function gateway(
       record.before.push(before)
     },
   }
+}
+
+function deferred<T>() {
+  let resolve!: (value: T) => void
+  const promise = new Promise<T>((done) => {
+    resolve = done
+  })
+  return { promise, resolve }
 }
 
 test('通知从空列表开始，未读数使用接口返回的全量值', async () => {
@@ -138,6 +147,174 @@ test('全部已读和清空使用最近一次服务端时间，过期响应不�
     '2026-11-01T06:00:00',
     '2026-11-01T06:00:00',
   ])
+})
+
+test('后台刷新沿新游标保留旧尾部，并对账新增和已移除的条目', async () => {
+  const items = ['9', '8', '7', '6', '5', '4', '3'].map((id) =>
+    note({ id, createdAt: `2026-11-01T06:00:0${id}` }),
+  )
+  let server = items.slice(2)
+  const calls: Array<string | undefined> = []
+  const store = createNotificationStore('alice', {
+    ...gateway([]),
+    async list({ cursor }) {
+      calls.push(cursor)
+      const start = cursor
+        ? server.findIndex((item) => item.id === cursor) + 1
+        : 0
+      const batch = server.slice(start, start + 2)
+      return page(batch, {
+        nextCursor:
+          start + batch.length < server.length ? batch.at(-1)!.id : null,
+        unreadCount: server.length,
+      })
+    },
+  })
+  await store.getState().load()
+  await store.getState().loadMore()
+  assert.deepEqual(
+    store.getState().notes.map(({ id }) => id),
+    ['7', '6', '5', '4'],
+  )
+
+  server = items.filter(({ id }) => id !== '6')
+  calls.length = 0
+  await store.getState().load()
+  assert.deepEqual(calls, [undefined, '8', '5'])
+  assert.deepEqual(
+    store.getState().notes.map(({ id }) => id),
+    ['9', '8', '7', '5', '4', '3'],
+  )
+  assert.equal(store.getState().nextCursor, null)
+  assert.equal(store.getState().unread, 6)
+})
+
+for (const action of ['markAllRead', 'clear'] as const) {
+  test(`${action} 提交前后的后台刷新不会抢占回读或恢复旧状态`, async () => {
+    const old = page([note()])
+    const after = action === 'clear' ? page([]) : page([note({ read: true })])
+    const writing = deferred<void>()
+    const stalePoll = deferred<NotificationPage>()
+    const readback = deferred<NotificationPage>()
+    const readbackStarted = deferred<void>()
+    let calls = 0
+    const store = createNotificationStore('alice', {
+      ...gateway([]),
+      async list() {
+        calls += 1
+        if (calls === 1) return old
+        if (calls === 2) return stalePoll.promise
+        if (calls === 3) {
+          readbackStarted.resolve()
+          return readback.promise
+        }
+        return old
+      },
+      markAll: () => writing.promise,
+      clear: () => writing.promise,
+    })
+    await store.getState().load()
+    const mutation = store.getState()[action]()
+    const earlier = store.getState().load()
+    writing.resolve()
+    await readbackStarted.promise
+    const later = store.getState().load()
+    if (action === 'markAllRead') {
+      stalePoll.resolve(old)
+      await earlier
+    }
+    readback.resolve(after)
+    await mutation
+    stalePoll.resolve(old)
+    await Promise.all([earlier, later])
+    assert.equal(store.getState().unread, 0)
+    assert.deepEqual(store.getState().notes, after.items)
+  })
+}
+
+test('分类切换后只接受当前分类，旧账号的迟到响应与新账号隔离', async () => {
+  const stale = deferred<NotificationPage>()
+  const oldOwner = deferred<NotificationPage>()
+  let calls = 0
+  const alice = createNotificationStore('alice', {
+    ...gateway([]),
+    async list({ kind }) {
+      calls += 1
+      if (calls === 1) return stale.promise
+      if (calls === 3) return oldOwner.promise
+      assert.equal(kind, 'system')
+      return page([note({ id: 'system', kind })], {
+        nextCursor: 'system-cursor',
+      })
+    },
+  })
+  const oldFilter = alice.getState().load('budget_alert')
+  await alice.getState().load('system')
+  stale.resolve(page([note({ id: 'budget', kind: 'budget_alert' })]))
+  await oldFilter
+  assert.equal(alice.getState().notes[0]?.id, 'system')
+  assert.equal(alice.getState().nextCursor, 'system-cursor')
+
+  const oldAccount = alice.getState().load()
+  const bob = createNotificationStore('bob', gateway([page([])]))
+  await bob.getState().load()
+  oldOwner.resolve(page([note({ id: 'alice-only' })]))
+  await oldAccount
+  assert.deepEqual(bob.getState().notes, [])
+  assert.equal(bob.getState().unread, 0)
+})
+
+test('切换分类时放弃旧分类的分页请求和加载深度', async () => {
+  const stale = deferred<NotificationPage>()
+  const store = createNotificationStore('alice', {
+    ...gateway([]),
+    async list({ kind, cursor }) {
+      if (cursor === 'all-cursor') return stale.promise
+      if (kind === 'system') {
+        assert.equal(cursor, undefined)
+        return page([note({ id: 'system', kind })], {
+          nextCursor: 'system-cursor',
+        })
+      }
+      return page([note({ id: 'all' })], { nextCursor: 'all-cursor' })
+    },
+  })
+  await store.getState().load()
+  const more = store.getState().loadMore()
+  await store.getState().load('system')
+  stale.resolve(page([note({ id: 'stale' })]))
+  await more
+  assert.deepEqual(
+    store.getState().notes.map(({ id }) => id),
+    ['system'],
+  )
+  assert.equal(store.getState().nextCursor, 'system-cursor')
+  assert.equal(store.getState().status, 'ready')
+})
+
+test('失效游标从当前分类第一页恢复并继续分页', async () => {
+  const calls: Array<string | undefined> = []
+  const store = createNotificationStore('alice', {
+    ...gateway([]),
+    async list({ kind, cursor }) {
+      assert.equal(kind, 'system')
+      calls.push(cursor)
+      if (cursor === 'expired') throw new ApiClientError('invalid cursor', 400)
+      if (calls.length === 1) {
+        return page([note({ id: 'removed' })], { nextCursor: 'expired' })
+      }
+      if (!cursor) return page([note({ id: 'head' })], { nextCursor: 'fresh' })
+      return page([note({ id: 'tail' })])
+    },
+  })
+  await store.getState().load('system')
+  await store.getState().loadMore()
+  assert.deepEqual(calls, [undefined, 'expired', undefined, 'fresh'])
+  assert.deepEqual(
+    store.getState().notes.map(({ id }) => id),
+    ['head', 'tail'],
+  )
+  assert.equal(store.getState().status, 'ready')
 })
 
 test('通知时间按 UTC 解释，不可用资源不能导航', () => {
