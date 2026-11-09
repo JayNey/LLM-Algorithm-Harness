@@ -1,0 +1,4 @@
+{"sequence":1,"timestamp":"2026-11-09T13:14:57.165Z","type":"run_started","runId":"15c2547a-742b-49ea-9b97-0863ae2a3247","data":{"skill":"comet-classic","skillVersion":"1","skillHash":"9bd4ffab011ae18aef91dc0db336ffc12d454b513229178c15b8b75d50930ba1"}}
+{"sequence":2,"timestamp":"2026-11-09T13:14:57.165Z","type":"state_migrated","runId":"15c2547a-742b-49ea-9b97-0863ae2a3247","data":{"kind":"classic","migrationVersion":1,"profile":"tweak","source":"pre-migration"}}
+{"sequence":3,"timestamp":"2026-11-09T13:14:57.259Z","type":"state_transitioned","runId":"15c2547a-742b-49ea-9b97-0863ae2a3247","data":{"kind":"classic","fromStep":"tweak.open","toStep":"tweak.build.execute","event":"open-complete","phase":"open","source":"comet-guard"}}
+{"sequence":4,"timestamp":"2026-11-09T13:20:47.893Z","type":"command_check_recorded","runId":"15c2547a-742b-49ea-9b97-0863ae2a3247","data":{"scope":"build","command":"npm run build","exitCode":0,"cwd":"frontend"}}
