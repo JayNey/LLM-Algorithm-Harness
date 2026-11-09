@@ -108,6 +108,8 @@ async function setup({
     listFailure: false,
     roleFailure: false,
     gate: null,
+    sandbox: { status: 'ok' },
+    sandboxGate: null,
   }
   await context.addInitScript(
     ({ variant, theme }) => {
@@ -201,6 +203,10 @@ async function setup({
       )
     }
     if (path === '/system/status') return send(system)
+    if (path === '/health/sandbox') {
+      if (state.sandboxGate) await state.sandboxGate
+      return state.sandbox ? send(state.sandbox) : route.abort('timedout')
+    }
     if (path.startsWith('/evaluations/')) return send(task(22))
     throw new Error(`Unexpected request ${path}`)
   })
@@ -250,6 +256,15 @@ try {
           calls.filter((call) => call.path === '/system/status').length,
           0,
         )
+        await page.getByText('系统状态仅管理员可查看。').waitFor()
+        assert.equal(
+          await page.getByRole('button', { name: '检查沙箱' }).count(),
+          0,
+        )
+        assert.equal(
+          calls.filter((call) => call.path === '/health/sandbox').length,
+          0,
+        )
         assert.equal(await page.getByLabel('预览数据状态').count(), 0)
         assert.equal(
           await page
@@ -286,11 +301,68 @@ try {
       calls.filter((call) => call.path === '/system/status').length,
       1,
     )
+    const diagnostic = page.getByRole('group', { name: '沙箱' })
+    const checkSandbox = diagnostic.getByRole('button', { name: '检查沙箱' })
+    const sandboxCalls = () =>
+      calls.filter((call) => call.path === '/health/sandbox').length
+    await diagnostic
+      .getByText('未检查', { exact: true })
+      .waitFor({ timeout: 5000 })
+    assert.equal(sandboxCalls(), 0)
+    let release
+    state.sandboxGate = new Promise((resolve) => {
+      release = resolve
+    })
+    const request = page.waitForRequest('**/health/sandbox')
+    await checkSandbox.click()
+    await request
+    await diagnostic.getByText('正在检查…', { exact: true }).waitFor()
+    assert.equal(await checkSandbox.isDisabled(), true)
+    await checkSandbox.evaluate((button) => button.click())
+    release()
+    await diagnostic.getByText('正常', { exact: true }).waitFor()
+    assert.equal(sandboxCalls(), 1)
+    await page.getByRole('button', { name: '刷新数据', exact: true }).click()
+    await page.getByText('降级', { exact: true }).waitFor()
+    await diagnostic.getByText('正常', { exact: true }).waitFor()
+    assert.equal(sandboxCalls(), 1)
+    assert.ok(
+      calls
+        .filter((call) => call.path === '/system/status')
+        .every((call) => call.query === ''),
+    )
+
+    state.sandbox = null
+    await checkSandbox.click()
+    await diagnostic.getByRole('alert').getByText('沙箱检查请求失败').waitFor()
+    state.sandbox = {
+      status: 'unavailable',
+      detail: 'Docker sandbox preflight failed',
+    }
+    await diagnostic.getByRole('button', { name: '重试沙箱检查' }).click()
+    await diagnostic.getByText('不可用', { exact: true }).waitFor()
+    await diagnostic.getByText('Docker 沙箱预检失败', { exact: true }).waitFor()
+    assert.equal(sandboxCalls(), 3)
+    report.checks.push(
+      'on-demand sandbox check, in-flight guard, refresh and timeout retry',
+    )
     await page.screenshot({
       path: resolve(output, 'admin-health.png'),
       fullPage: true,
     })
     report.screenshots.push('admin-health.png')
+    await page.setViewportSize({ width: 390, height: 900 })
+    await diagnostic.scrollIntoViewIfNeeded()
+    assert.equal(
+      await diagnostic.evaluate((element) => {
+        const { left, right } = element.getBoundingClientRect()
+        return left >= 0 && right <= window.innerWidth
+      }),
+      true,
+    )
+    await diagnostic.screenshot({ path: resolve(output, 'sandbox-390.png') })
+    report.screenshots.push('sandbox-390.png')
+    await page.setViewportSize({ width: 1440, height: 1000 })
 
     state.costFailure = true
     await page.getByRole('button', { name: '刷新数据', exact: true }).click()

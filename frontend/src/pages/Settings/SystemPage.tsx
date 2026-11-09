@@ -8,6 +8,7 @@ import { ApiClientError } from '@/auth/http.ts'
 import { useRole } from '@/auth/roleContext.ts'
 import { useAuthStore } from '@/store/auth.ts'
 import { createMonitoringClient } from '@/monitoring/client.ts'
+import { SandboxDiagnostic } from '@/monitoring/SandboxDiagnostic.tsx'
 import type {
   ApiStats,
   CacheStats,
@@ -24,6 +25,7 @@ import {
   formatUptime,
   probeStatusLabel,
 } from '@/monitoring/presentation.ts'
+import SettingsTable from './SettingsTable'
 
 const REFRESH_MS = 30_000
 const WINDOW_OPTIONS = [
@@ -110,14 +112,9 @@ function HealthSection({ status }: { status: SystemStatus }) {
           })
         : (checks.workers.detail ?? ''),
     ],
-    [
-      t('沙箱'),
-      probeStatusLabel(checks.sandbox.status),
-      checks.sandbox.detail ?? '',
-    ],
   ]
   return (
-    <table className="evaluation-list-table" aria-label={t('组件健康')}>
+    <SettingsTable label={t('组件健康')}>
       <thead>
         <tr>
           {[t('组件'), t('状态'), t('说明')].map((name) => (
@@ -136,7 +133,7 @@ function HealthSection({ status }: { status: SystemStatus }) {
           </tr>
         ))}
       </tbody>
-    </table>
+    </SettingsTable>
   )
 }
 
@@ -626,6 +623,7 @@ export default function SystemPage() {
                     ]}
                   />
                   <HealthSection status={snapshot} />
+                  <SandboxDiagnostic />
                 </div>
               ),
             },
