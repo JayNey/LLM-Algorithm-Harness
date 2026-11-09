@@ -214,34 +214,102 @@ export function bindNotificationRefresh(
   }
 }
 
+type NotificationSnapshot = NotificationPage & { depth: number }
+type ReadMode = 'refresh' | 'more' | 'mutation'
+
 export function createNotificationStore(
   owner: string,
   gateway: NotificationGateway,
 ) {
-  let generation = 0
   return createStore<NotificationState>((set, get) => {
-    const selectedKind = (kind?: NotificationKind | 'all') =>
-      kind === undefined ? get().kind : kind === 'all' ? undefined : kind
+    let scopeVersion = 0
+    let readVersion = 0
+    let pendingRead: ReadMode | null = null
+    let depth = 1
 
-    const apply = (page: NotificationPage, notes = page.items) =>
-      set({
-        notes,
-        unread: page.unreadCount,
-        nextCursor: page.nextCursor,
-        serverTime: page.serverTime,
-        status: 'ready',
-        error: null,
-      })
+    const reportError = () => set({ status: 'error', error: loadError })
 
-    const fail = (token: number) => {
-      if (token !== generation) return
-      set({ status: 'error', error: loadError })
+    async function read(
+      mode: ReadMode,
+      request: (
+        isCurrent: () => boolean,
+      ) => Promise<NotificationSnapshot | undefined>,
+    ) {
+      const version = ++readVersion
+      const isCurrent = () => version === readVersion
+      pendingRead = mode
+      try {
+        const snapshot = await request(isCurrent)
+        if (!snapshot || !isCurrent()) return
+        depth = snapshot.depth
+        set({
+          notes: snapshot.items,
+          unread: snapshot.unreadCount,
+          nextCursor: snapshot.nextCursor,
+          serverTime: snapshot.serverTime,
+          status: 'ready',
+          error: null,
+        })
+      } catch {
+        if (isCurrent()) reportError()
+      } finally {
+        if (isCurrent()) pendingRead = null
+      }
     }
 
-    const replace = async (token: number, kind?: NotificationKind) => {
-      const page = await gateway.list({ kind })
-      if (token !== generation) return
-      apply(page)
+    async function reconcile(
+      kind: NotificationKind | undefined,
+      targetDepth: number,
+      tail: AppNotification | undefined,
+      isCurrent: () => boolean,
+    ): Promise<NotificationSnapshot | undefined> {
+      const items = new Map<string, AppNotification>()
+      let cursor: string | undefined
+      let serverTime: string | undefined
+      for (let pages = 1; isCurrent(); pages += 1) {
+        const page = await gateway.list({ kind, cursor })
+        if (!isCurrent()) return
+        serverTime ??= page.serverTime
+        for (const note of page.items) items.set(note.id, note)
+
+        // The API orders canonical UTC timestamps and then IDs, both descending.
+        const last = page.items.at(-1)
+        const reachedTail =
+          !tail ||
+          (last &&
+            (last.createdAt < tail.createdAt ||
+              (last.createdAt === tail.createdAt && last.id <= tail.id)))
+        if (!page.nextCursor || (pages >= targetDepth && reachedTail)) {
+          return {
+            ...page,
+            items: [...items.values()],
+            serverTime,
+            depth: pages,
+          }
+        }
+        cursor = page.nextCursor
+      }
+    }
+
+    function refresh(mode: 'refresh' | 'mutation') {
+      const { kind, notes } = get()
+      const targetDepth =
+        depth + Number(mode === 'mutation' && pendingRead === 'more')
+      return read(mode, (isCurrent) =>
+        reconcile(kind, targetDepth, notes.at(-1), isCurrent),
+      )
+    }
+
+    async function mutate(write: () => Promise<void>) {
+      const scope = scopeVersion
+      try {
+        await write()
+      } catch {
+        if (scope === scopeVersion) reportError()
+        return
+      }
+      // Start a new snapshot after each successful commit, in the current filter.
+      await refresh('mutation')
     }
 
     return {
@@ -254,66 +322,61 @@ export function createNotificationStore(
       serverTime: null,
       kind: undefined,
       async load(kind) {
-        const token = ++generation
-        const nextKind = selectedKind(kind)
-        const switching = nextKind !== get().kind
-        set({
-          kind: nextKind,
-          notes: switching ? [] : get().notes,
-          nextCursor: switching ? null : get().nextCursor,
-          error: null,
-          status:
-            switching || get().notes.length === 0 ? 'loading' : get().status,
-        })
-        try {
-          await replace(token, nextKind)
-        } catch {
-          fail(token)
+        const current = get()
+        const nextKind = kind === 'all' ? undefined : (kind ?? current.kind)
+        if (nextKind !== current.kind) {
+          scopeVersion += 1
+          depth = 1
+          set({
+            kind: nextKind,
+            notes: [],
+            nextCursor: null,
+            error: null,
+            status: 'loading',
+          })
+        } else {
+          if (pendingRead === 'mutation' || pendingRead === 'more') return
+          if (current.notes.length === 0) {
+            set({ status: 'loading', error: null })
+          }
         }
+        await refresh('refresh')
       },
       async loadMore() {
-        const cursor = get().nextCursor
-        if (!cursor) return
-        const token = ++generation
-        try {
-          const page = await gateway.list({ cursor, kind: get().kind })
-          if (token !== generation) return
-          const seen = new Set(get().notes.map((note) => note.id))
-          apply(page, [
-            ...get().notes,
-            ...page.items.filter((note) => !seen.has(note.id)),
-          ])
-        } catch {
-          fail(token)
-        }
+        const { kind, nextCursor: cursor, notes, serverTime } = get()
+        if (!cursor || pendingRead === 'more' || pendingRead === 'mutation')
+          return
+        const targetDepth = depth + 1
+        const refreshing = pendingRead === 'refresh'
+        await read('more', async (isCurrent) => {
+          if (refreshing) {
+            return reconcile(kind, targetDepth, notes.at(-1), isCurrent)
+          }
+          try {
+            const page = await gateway.list({ cursor, kind })
+            const items = new Map(notes.map((note) => [note.id, note]))
+            for (const note of page.items) items.set(note.id, note)
+            return {
+              ...page,
+              items: [...items.values()],
+              serverTime: serverTime ?? page.serverTime,
+              depth: targetDepth,
+            }
+          } catch (error) {
+            if (!(
+              error instanceof ApiClientError &&
+              error.status === 400 &&
+              error.message === 'invalid cursor'
+            )) {
+              throw error
+            }
+            return reconcile(kind, targetDepth, notes.at(-1), isCurrent)
+          }
+        })
       },
-      async markRead(id) {
-        const token = ++generation
-        try {
-          await gateway.markRead(id)
-          await replace(token, get().kind)
-        } catch {
-          fail(token)
-        }
-      },
-      async markAllRead() {
-        const token = ++generation
-        try {
-          await gateway.markAll(get().serverTime)
-          await replace(token, get().kind)
-        } catch {
-          fail(token)
-        }
-      },
-      async clear() {
-        const token = ++generation
-        try {
-          await gateway.clear(get().serverTime)
-          await replace(token, get().kind)
-        } catch {
-          fail(token)
-        }
-      },
+      markRead: (id) => mutate(() => gateway.markRead(id)),
+      markAllRead: () => mutate(() => gateway.markAll(get().serverTime)),
+      clear: () => mutate(() => gateway.clear(get().serverTime)),
     }
   })
 }

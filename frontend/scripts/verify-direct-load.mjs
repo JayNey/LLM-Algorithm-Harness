@@ -407,7 +407,7 @@ async function assertWorkflowContainer(page) {
   assert.equal(minWidth, '0px')
 }
 
-async function visit(browser, spec, viewport) {
+async function createFixtureContext(browser, viewport) {
   const context = await browser.newContext({
     viewport,
     reducedMotion: 'reduce',
@@ -423,6 +423,11 @@ async function visit(browser, spec, viewport) {
     )
   })
   mockRoute(context)
+  return context
+}
+
+async function visit(browser, spec, viewport) {
+  const context = await createFixtureContext(browser, viewport)
   const page = await context.newPage()
   const errors = []
   const failed = []
@@ -468,6 +473,76 @@ async function visit(browser, spec, viewport) {
   })
   report.screenshots.push(screenshot)
   await context.close()
+}
+
+async function verifyNotificationRefresh(browser) {
+  const context = await createFixtureContext(browser, desktop)
+  try {
+    const page = await context.newPage()
+    await page.clock.install()
+    let newest = 9
+    await page.route('**/api/v1/notifications?*', (route) => {
+      const cursor = new URL(route.request().url()).searchParams.get('cursor')
+      const first = cursor === null ? newest : Number(cursor) - 1
+      const items = [first, first - 1]
+        .filter((id) => id > 0)
+        .map((id) => ({
+          id: String(id),
+          kind: 'system',
+          title_key: `qa-notice-${id}`,
+          body_key: '',
+          created_at: new Date(Date.UTC(2026, 10, id)).toISOString(),
+          read: false,
+          href: null,
+          resource_available: false,
+          params: {},
+        }))
+      return route.fulfill({
+        json: {
+          data: {
+            items,
+            next_cursor: first > 2 ? String(first - 1) : null,
+            unread_count: newest,
+            server_time: createdAt,
+          },
+        },
+      })
+    })
+    const badge = (count) =>
+      page.getByRole('button', {
+        name: `通知中心，${count} 条未读`,
+        exact: true,
+      })
+    await page.goto(`${base}/help`)
+    await badge(9).click()
+    const more = page.getByRole('button', { name: '加载更多', exact: true })
+    await more.click()
+    const notes = page.locator('.notification-item')
+    const focused = notes.filter({ hasText: 'qa-notice-6' })
+    await focused.focus()
+    for (const trigger of [
+      () =>
+        page.evaluate(() => window.dispatchEvent(new window.Event('focus'))),
+      () => page.clock.fastForward(30_000),
+    ]) {
+      newest += 1
+      await trigger()
+      await badge(newest).waitFor({ state: 'attached' })
+      assert.equal(
+        await focused.evaluate((element) => document.activeElement === element),
+        true,
+      )
+      const titles = await notes.locator('strong').allTextContents()
+      assert.equal(titles[0], `qa-notice-${newest}`)
+      assert.equal(titles.filter((title) => title === 'qa-notice-6').length, 1)
+      assert.equal(new Set(titles).size, titles.length)
+    }
+    const nextId = newest - (await notes.count())
+    await more.click()
+    await notes.getByText(`qa-notice-${nextId}`, { exact: true }).waitFor()
+  } finally {
+    await context.close()
+  }
 }
 
 let server
@@ -526,6 +601,9 @@ try {
   }
   await visit(browser, routes[0], mobile)
   await visit(browser, routes[1], mobile)
+  await check('通知聚焦与轮询保留后续页和键盘焦点', () =>
+    verifyNotificationRefresh(browser),
+  )
 } finally {
   if (browser) await browser.close()
   if (ownsServer && server?.pid) {
