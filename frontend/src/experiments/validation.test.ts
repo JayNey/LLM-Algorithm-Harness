@@ -77,6 +77,47 @@ test('非法草稿指出具体字段且 createPayload 拒绝', () => {
   )
 })
 
+for (const kind of ['max_calls', 'max_tokens'] as const) {
+  test(`${kind} 仅接受正整数预算`, () => {
+    for (const value of [
+      '1.5',
+      '0.5',
+      '0',
+      '-1',
+      'abc',
+      '',
+      '9007199254740993',
+    ]) {
+      const invalid = draft({ budget_kind: kind, budget_value: value })
+      assert.equal(
+        validateExperimentDraft(invalid).budget_value,
+        '预算须为正整数',
+        value,
+      )
+      assert.throws(() => createExperimentPayload(invalid), ApiClientError)
+    }
+    assert.deepEqual(
+      createExperimentPayload(
+        draft({ budget_kind: kind, budget_value: ' 42 ' }),
+      ).budget,
+      { [kind]: 42 },
+    )
+  })
+}
+
+test('时间预算保留正小数，无预算时忽略限制值', () => {
+  assert.deepEqual(
+    createExperimentPayload(
+      draft({ budget_kind: 'max_seconds', budget_value: '0.5' }),
+    ).budget,
+    { max_seconds: 0.5 },
+  )
+  assert.equal(
+    createExperimentPayload(draft({ budget_value: 'abc' })).budget,
+    null,
+  )
+})
+
 test('空模型被过滤、预算 none 时为 null、温度越界报错', () => {
   const payload = createExperimentPayload(
     draft({

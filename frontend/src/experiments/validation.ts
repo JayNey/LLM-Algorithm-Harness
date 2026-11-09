@@ -58,7 +58,11 @@ export function validateExperimentDraft(draft: ExperimentDraft): DraftErrors {
     errors.max_workers = '并行数须为 1–16 的整数'
   if (draft.budget_kind !== 'none') {
     const value = draft.budget_value.trim()
-    if (!value || !validPositive(value)) errors.budget_value = '预算须为正数'
+    if (draft.budget_kind === 'max_seconds') {
+      if (!validPositive(value)) errors.budget_value = '预算须为正数'
+    } else if (!validInteger(value, 1, Number.MAX_SAFE_INTEGER)) {
+      errors.budget_value = '预算须为正整数'
+    }
   }
   return errors
 }

@@ -215,6 +215,14 @@ async function enterCreateFromList(page) {
   await page.getByRole('link', { name: '创建实验' }).click()
 }
 
+async function selectBudget(page, name) {
+  await page.getByLabel('实验预算类型').click()
+  await page
+    .locator('.ant-select-dropdown:visible')
+    .getByText(name, { exact: true })
+    .click()
+}
+
 async function createScenario(page) {
   await page.goto(`${base}/experiments/new`)
   await check('创建页渲染标题', async () => {
@@ -248,6 +256,30 @@ async function createScenario(page) {
     )
   })
   await page.getByLabel('策略 1 名称').fill('direct')
+  await page.keyboard.press('Escape')
+  const budgetValue = page.getByLabel('实验预算限制值')
+  for (const [name, fraction] of [
+    ['调用次数', '1.5'],
+    ['token 数', '0.5'],
+  ]) {
+    await check(`${name}无效时提示字段错误且不发送创建请求`, async () => {
+      await selectBudget(page, name)
+      const error = page
+        .locator('label')
+        .filter({ has: budgetValue })
+        .getByRole('alert')
+        .filter({ hasText: '预算须为正整数' })
+      for (const value of [fraction, '0', '-1', 'abc', '']) {
+        await budgetValue.fill(value)
+        await page.getByLabel('提交实验').click()
+        await error.waitFor({ timeout: 2_000 })
+        assert.equal(createRequests.length, 0, value)
+      }
+    })
+    if (createRequests.length) return
+  }
+  await selectBudget(page, '调用次数')
+  await budgetValue.fill('12')
   await page.getByLabel('提交实验').click()
   await check('创建成功后导航到详情', async () => {
     await page.waitForURL('**/experiments/exp-fixture-new', { timeout: 5_000 })
@@ -258,6 +290,7 @@ async function createScenario(page) {
     assert.ok(body, '未捕获到 POST /experiments 请求体')
     assert.equal(body.models?.[0]?.model, 'model-a')
     assert.equal(body.strategies?.[0]?.name, 'direct')
+    assert.deepEqual(body.budget, { max_calls: 12 })
   })
   await page.screenshot({ path: resolve(outDir, 'create.png'), fullPage: true })
   report.screenshots.push('create.png')
@@ -275,6 +308,8 @@ async function createScenario(page) {
     assert.equal(await page.getByLabel('实验名称').inputValue(), '')
     assert.equal(createRequests.length, 1)
     await fillDraft(page, '第二个实验')
+    await selectBudget(page, 'token 数')
+    await budgetValue.fill('50')
     await page.getByLabel('提交实验').click()
     await page.waitForURL('**/experiments/exp-fixture-new-2', {
       timeout: 5_000,
@@ -283,6 +318,7 @@ async function createScenario(page) {
       createRequests.map(({ name }) => name),
       ['对比实验', '第二个实验'],
     )
+    assert.deepEqual(createRequests[1].budget, { max_tokens: 50 })
   })
 
   if (createRequests.length !== 2) return
@@ -310,10 +346,13 @@ async function createScenario(page) {
     await page.getByLabel('重置未知创建').click()
     assert.equal(await page.getByLabel('实验名称').inputValue(), '')
     assert.equal(createRequests.length, 3)
+    assert.equal(createRequests[2].budget, null)
   })
 
   await check('离开创建页后的迟到成功回执不会重定向或重复提交', async () => {
     await fillDraft(page, '迟到实验')
+    await selectBudget(page, '时间（秒）')
+    await budgetValue.fill('0.5')
     const isCreate = (request) =>
       request.method() === 'POST' &&
       new URL(request.url()).pathname === '/api/v1/experiments'
@@ -340,6 +379,7 @@ async function createScenario(page) {
       createRequests.map(({ name }) => name),
       ['对比实验', '第二个实验', '超时实验', '迟到实验'],
     )
+    assert.deepEqual(createRequests[3].budget, { max_seconds: 0.5 })
   })
 }
 
