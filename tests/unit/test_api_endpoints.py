@@ -1285,7 +1285,7 @@ INVALID_BODIES = [
     ("PATCH", "/budgets", {"difficulty_caps": {"easy": -1}}),
     ("POST", "/alerts", {"threshold_pct": 0, "channel": "log"}),
     ("PATCH", "/alerts/{rule_id}", {"threshold_pct": 101}),
-    ("POST", "/pricing/{model_id}", {"prompt_per_1k": 0, "completion_per_1k": 1}),
+    ("POST", "/pricing/{model_id}", {"prompt_per_1k": -1, "completion_per_1k": 1}),
     ("POST", "/pareto/analyze", {"comparisons": []}),
     ("POST", "/optimize", {"comparison": {}, "min_accuracy": 1.01}),
 ]

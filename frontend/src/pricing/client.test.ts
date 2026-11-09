@@ -36,7 +36,7 @@ test('目录解析（三源标注）与历史解析', async () => {
               source: 'custom_file',
             },
             'model-override': {
-              prompt_per_1k: 0.2,
+              prompt_per_1k: 0,
               completion_per_1k: 0.6,
               source: 'override',
             },
@@ -47,7 +47,7 @@ test('目录解析（三源标注）与历史解析', async () => {
       data: [
         {
           prompt_per_1k: 0.2,
-          completion_per_1k: 0.6,
+          completion_per_1k: 0,
           created_by: 'user-1',
           created_at: '2026-10-24T00:00:00Z',
         },
@@ -56,26 +56,36 @@ test('目录解析（三源标注）与历史解析', async () => {
   })
   const catalog = await client.catalog()
   assert.equal(catalog.models['model-override']?.source, 'override')
+  assert.equal(catalog.models['model-override']?.prompt_per_1k, 0)
   assert.equal(catalog.models['model-custom']?.prompt_per_1k, 0.3)
   const history = await client.history('model-override')
   assert.equal(history[0].created_by, 'user-1')
+  assert.equal(history[0].completion_per_1k, 0)
 })
 
 test('追加自定义定价（POST 语义与校验）', async () => {
   const { client, seen } = clientFor(({ method }) => {
     if (method === 'POST')
       return {
-        data: { model: 'model-x', prompt_per_1k: 0.1, completion_per_1k: 0.2 },
+        data: { model: 'model-x', prompt_per_1k: 0, completion_per_1k: 0.2 },
       }
     return { data: { models: {} } }
   })
   const result = await client.addOverride({
     modelId: 'model-x',
-    prompt_per_1k: 0.1,
+    prompt_per_1k: 0,
     completion_per_1k: 0.2,
   })
-  assert.equal(result.model, 'model-x')
-  assert.ok(seen[0].url === '/pricing/model-x')
+  assert.deepEqual(result, {
+    model: 'model-x',
+    prompt_per_1k: 0,
+    completion_per_1k: 0.2,
+  })
+  assert.deepEqual(seen[0], {
+    method: 'POST',
+    url: '/pricing/model-x',
+    body: { prompt_per_1k: 0, completion_per_1k: 0.2 },
+  })
   // 非法输入本地拒绝
   await assert.rejects(
     client.addOverride({
@@ -131,7 +141,7 @@ test('保存和历史对完整模型 ID 仅编码一次', async () => {
   }
 })
 
-test('表单校验（正数价格 + 模型必填）', () => {
+test('表单接受零和正价，拒绝负数、空白与非有限值', () => {
   assert.deepEqual(
     validateOverrideInput({
       modelId: ' ',
@@ -140,16 +150,26 @@ test('表单校验（正数价格 + 模型必填）', () => {
     }),
     {
       modelId: '请填写模型 ID',
-      prompt_per_1k: '须为正数',
-      completion_per_1k: '须为正数',
+      prompt_per_1k: '请输入大于或等于 0 的有限数值',
     },
   )
   assert.deepEqual(
     validateOverrideInput({
       modelId: 'm',
-      prompt_per_1k: '0.5',
+      prompt_per_1k: '0',
       completion_per_1k: '1.5',
     }),
     {},
   )
+  for (const invalid of ['-1', '', ' ', 'Infinity', 'NaN']) {
+    const errors = validateOverrideInput({
+      modelId: 'm',
+      prompt_per_1k: invalid,
+      completion_per_1k: invalid,
+    })
+    assert.deepEqual(Object.keys(errors), [
+      'prompt_per_1k',
+      'completion_per_1k',
+    ])
+  }
 })

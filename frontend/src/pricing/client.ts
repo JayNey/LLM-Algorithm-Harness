@@ -20,9 +20,12 @@ function text(value: unknown, field: string, allowEmpty = false): string {
     protocol(field)
   return value
 }
-function positiveFloat(value: unknown, field: string): number {
-  if (typeof value !== 'number' || !Number.isFinite(value) || value <= 0)
-    protocol(field)
+function isValidPrice(value: number): boolean {
+  return Number.isFinite(value) && value >= 0
+}
+
+function readPrice(value: unknown, field: string): number {
+  if (typeof value !== 'number' || !isValidPrice(value)) protocol(field)
   return value
 }
 
@@ -41,11 +44,11 @@ function catalog(value: unknown): PricingCatalog {
         return [
           model,
           {
-            prompt_per_1k: positiveFloat(
+            prompt_per_1k: readPrice(
               row.prompt_per_1k,
               `…${model}.prompt_per_1k`,
             ),
-            completion_per_1k: positiveFloat(
+            completion_per_1k: readPrice(
               row.completion_per_1k,
               `…${model}.completion_per_1k`,
             ),
@@ -62,11 +65,11 @@ function history(value: unknown): PricingVersion[] {
   return value.map((item, index) => {
     const row = record(item, `history.${index}`)
     return {
-      prompt_per_1k: positiveFloat(
+      prompt_per_1k: readPrice(
         row.prompt_per_1k,
         `history.${index}.prompt_per_1k`,
       ),
-      completion_per_1k: positiveFloat(
+      completion_per_1k: readPrice(
         row.completion_per_1k,
         `history.${index}.completion_per_1k`,
       ),
@@ -83,10 +86,12 @@ export function validateOverrideInput(input: {
 }): Record<string, string> {
   const errors: Record<string, string> = {}
   if (!input.modelId.trim()) errors.modelId = '请填写模型 ID'
-  const positive = (value: string) =>
-    Number.isFinite(Number(value)) && Number(value) > 0
-  if (!positive(input.prompt_per_1k)) errors.prompt_per_1k = '须为正数'
-  if (!positive(input.completion_per_1k)) errors.completion_per_1k = '须为正数'
+  const priceError = '请输入大于或等于 0 的有限数值'
+  const validInput = (value: string) =>
+    value.trim() !== '' && isValidPrice(Number(value))
+  if (!validInput(input.prompt_per_1k)) errors.prompt_per_1k = priceError
+  if (!validInput(input.completion_per_1k))
+    errors.completion_per_1k = priceError
   return errors
 }
 
@@ -129,11 +134,8 @@ export function createPricingClient(http: AxiosInstance): PricingClient {
       const row = record(data, 'override')
       return {
         model: text(row.model, 'override.model'),
-        prompt_per_1k: positiveFloat(
-          row.prompt_per_1k,
-          'override.prompt_per_1k',
-        ),
-        completion_per_1k: positiveFloat(
+        prompt_per_1k: readPrice(row.prompt_per_1k, 'override.prompt_per_1k'),
+        completion_per_1k: readPrice(
           row.completion_per_1k,
           'override.completion_per_1k',
         ),

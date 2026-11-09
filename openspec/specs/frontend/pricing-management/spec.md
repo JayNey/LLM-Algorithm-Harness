@@ -1,13 +1,13 @@
 # frontend/pricing-management Specification
 
 ## Purpose
-TBD - created by archiving change settings-frontend. Update Purpose after archive.
+提供模型定价管理页面，集中展示内置、自定义文件和覆盖定价的来源与版本历史。用户可追加输入及输出单价，使用零价记录已知免费的用量。
 
 ## Requirements
 
 ### Requirement: 定价管理
 
-用户 SHALL 能查看三源合并的模型定价目录（内置/自定义文件/覆盖标注）、按模型查看版本历史，并以追加方式提交自定义定价（最新覆盖生效，无编辑删除）。表单校验 SHALL 与后端 schema 对齐（非负价格）。
+用户 SHALL 能查看三源合并的模型定价目录（内置/自定义文件/覆盖标注）、按模型查看版本历史，并以追加方式提交自定义定价（最新覆盖生效，无编辑删除）。表单和 API SHALL 分别接受有限非负的输入与输出单价。表单 SHALL 提示 `0` 表示该项免费，并拒绝空白、负数和非有限值。
 
 #### Scenario: 目录与来源标注
 
@@ -18,3 +18,8 @@ TBD - created by archiving change settings-frontend. Update Purpose after archiv
 
 - **WHEN** 用户为某模型提交新价格
 - **THEN** 目录与该模型历史随之更新，追加式覆盖语义在界面说明
+
+#### Scenario: 保存和回读零价
+
+- **WHEN** 用户追加输入或输出单价为 `0` 的价格版本
+- **THEN** 该版本保存成功，定价目录和历史显示相应的零价

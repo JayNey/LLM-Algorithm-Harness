@@ -494,13 +494,10 @@ class TestPricing:
             invalid_path = "/api/v1/pricing/" + quote(model, safe="")
             assert client.post(invalid_path, headers=headers, json=prices).status_code == 400
             assert client.get(invalid_path + "/history", headers=headers).status_code == 400
-        for price in (0, -1):
-            assert (
-                client.post(
-                    path, headers=headers, json={**prices, "prompt_per_1k": price}
-                ).status_code
-                == 400
-            )
+        assert (
+            client.post(path, headers=headers, json={**prices, "prompt_per_1k": -1}).status_code
+            == 400
+        )
         assert client.get(path + "/history", headers=headers).json()["data"] == []
 
     def test_catalog_override_and_history(self, api):
@@ -519,25 +516,92 @@ class TestPricing:
         assert catalog["models"]["gpt-3.5-turbo"]["source"] == "override"
         assert catalog["models"]["gpt-3.5-turbo"]["prompt_per_1k"] == 0.002
 
-        client.post(
+        free_prices = {"prompt_per_1k": 0, "completion_per_1k": 0}
+        override = client.post(
             "/api/v1/pricing/gpt-3.5-turbo",
             headers=headers,
-            json={"prompt_per_1k": 0.004, "completion_per_1k": 0.006},
+            json=free_prices,
         )
+        assert override.status_code == 201, override.text
+        assert {key: override.json()["data"][key] for key in free_prices} == free_prices
+        catalog = client.get("/api/v1/pricing", headers=headers).json()["data"]
+        assert catalog["models"]["gpt-3.5-turbo"] == {**free_prices, "source": "override"}
         history = client.get("/api/v1/pricing/gpt-3.5-turbo/history", headers=headers).json()[
             "data"
         ]
         assert len(history) == 2
-        assert history[0]["prompt_per_1k"] == 0.004  # latest first
+        assert {key: history[0][key] for key in free_prices} == free_prices
+        assert history[1]["prompt_per_1k"] == 0.002
+        assert history[1]["completion_per_1k"] == 0.003
 
-    def test_nonpositive_prices_rejected(self, api):
+    @pytest.mark.parametrize("price", [-1, "Infinity"])
+    def test_invalid_prices_rejected(self, api, price):
         client, headers, _, _ = api
-        response = client.post(
-            "/api/v1/pricing/gpt-x",
+        prices = {"prompt_per_1k": 1, "completion_per_1k": 1}
+        path = "/api/v1/pricing/gpt-x"
+        for field in prices:
+            response = client.post(path, headers=headers, json={**prices, field: price})
+            assert response.status_code == 400, response.text
+        assert client.get(path + "/history", headers=headers).json()["data"] == []
+
+    def test_saved_free_price_counts_as_known_cost(self, api, monkeypatch, tmp_path):
+        from types import SimpleNamespace
+
+        from api.db.models import Experiment
+        from api.services.spend_records import SpendRecorder, pricing_snapshot
+        from src.llm_client import LLMClient
+        from src.models import LLMConfig
+
+        client, headers, _, app = api
+        monkeypatch.chdir(tmp_path)
+        saved = client.post(
+            "/api/v1/pricing/fixture-free-model",
             headers=headers,
-            json={"prompt_per_1k": 0, "completion_per_1k": 1},
+            json={"prompt_per_1k": 0, "completion_per_1k": 0},
         )
-        assert response.status_code == 400
+        assert saved.status_code == 201, saved.text
+
+        def create(**kwargs):
+            return {
+                "model": kwargs["model"],
+                "usage": {"prompt_tokens": 100, "completion_tokens": 50, "total_tokens": 150},
+                "choices": [{"message": {"content": "test response"}, "finish_reason": "stop"}],
+            }
+
+        monkeypatch.setattr(
+            LLMClient,
+            "_initialize_client",
+            lambda _: SimpleNamespace(
+                chat=SimpleNamespace(completions=SimpleNamespace(create=create))
+            ),
+        )
+        owner = app.state.auth.authenticate(headers["Authorization"].split()[1]).user_id
+        session_factory = app.state.cost._session
+        snapshot = pricing_snapshot(session_factory)
+        cases = (("fixture-free-model", 0.0), ("fixture-unpriced-model", None))
+        with session_factory() as db, db.begin():
+            for model, _ in cases:
+                db.add(Experiment(id=model, user_id=owner, config={}))
+
+        for model, amount in cases:
+            llm = LLMClient(
+                LLMConfig(
+                    provider="openai", model=model, api_key="test-only", cache={"enabled": False}
+                )
+            )
+            llm.pricing_manager = snapshot
+            recorder = SpendRecorder(session_factory, "experiments", model, owner)
+            llm.on_response = recorder.callback(model=model, strategy="vanilla")
+            llm.generate("check pricing")
+            task = client.get(f"/api/v1/costs/tasks/{model}", headers=headers).json()["data"]
+            assert task["total_cost_usd"] == amount
+            assert task["cost_complete"] is (amount is not None)
+            assert task["unknown_cost_count"] == (1 if amount is None else 0)
+
+        summary = client.get("/api/v1/costs/summary", headers=headers).json()["data"]
+        assert summary["total_cost_usd"] == 0.0
+        assert summary["unknown_cost_count"] == 1
+        assert summary["unknown_reasons"] == {"missing_pricing": 1}
 
 
 class TestReports:

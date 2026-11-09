@@ -48,5 +48,5 @@ class AlertRuleUpdateRequest(BaseModel):
 class PricingOverrideRequest(BaseModel):
     """Append a custom pricing version for one model (USD per 1k tokens)."""
 
-    prompt_per_1k: float = Field(..., gt=0)
-    completion_per_1k: float = Field(..., gt=0)
+    prompt_per_1k: float = Field(..., ge=0, allow_inf_nan=False)
+    completion_per_1k: float = Field(..., ge=0, allow_inf_nan=False)
