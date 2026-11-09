@@ -64,11 +64,26 @@ def _redacted_assignment(match: re.Match) -> str:
     return f"{match.group('prefix')}{replacement}"
 
 
-def _redact_key_value(match: re.Match) -> str:
-    """Redact only assignments whose key is credential-bearing."""
-    if not is_sensitive_key(match.group("key")):
-        return str(match.group(0))
-    return _redacted_assignment(match)
+def _redact_credential_assignments(text: str) -> str:
+    """Redact only credential-bearing assignments, preserving other text."""
+    parts: list[str] = []
+    kept_end = 0
+    search_from = 0
+    while True:
+        match = _KEY_VALUE.search(text, search_from)
+        if match is None:
+            break
+        if is_sensitive_key(match.group("key")):
+            parts.append(text[kept_end : match.start()])
+            parts.append(_redacted_assignment(match))
+            kept_end = match.end()
+            search_from = kept_end
+        else:
+            # Resume inside the match so the value of a non-credential
+            # assignment cannot swallow a following credential assignment.
+            search_from = match.start() + 1
+    parts.append(text[kept_end:])
+    return "".join(parts)
 
 
 def _redact_mapping_value(key: object, value: Any, known_secrets: tuple[str, ...]) -> Any:
@@ -88,7 +103,7 @@ def redact_sensitive_text(text: str, known_secrets: Iterable[str] = ()) -> str:
     # Recognize credential fields before substitutions can alter their labels.
     redacted = _AUTHORIZATION_VALUE.sub(_redacted_assignment, text)
     redacted = _BEARER_VALUE.sub(lambda match: f"{match.group(1)}{REDACTED}", redacted)
-    redacted = _KEY_VALUE.sub(_redact_key_value, redacted)
+    redacted = _redact_credential_assignments(redacted)
     values = {value for value in known_secrets if value and value != REDACTED}
     if values:
         # Match complete keys (including keys containing a literal placeholder)

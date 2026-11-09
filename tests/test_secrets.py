@@ -128,3 +128,39 @@ def test_known_secret_containing_placeholder_is_redacted_as_one_value():
     redacted = secrets.redact_sensitive_text(f"provider returned {key}", ("prefix", key, "["))
     assert redacted == "provider returned [REDACTED]"
     assert secrets.redact_sensitive_text(redacted, ("prefix", key, "[")) == redacted
+
+
+def test_noncredential_assignment_does_not_swallow_following_credential():
+    """A non-credential `key: value` match must not consume the credential
+    assignment that follows it, so quoted credentials still get redacted."""
+    secrets = importlib.import_module("src.utils.secrets")
+
+    # Traceback shape: the secret sits in quotes after `RuntimeError: token:`.
+    traceback_line = 'RuntimeError: token: "sk-abc123456"'
+    redacted = secrets.redact_sensitive_text(traceback_line)
+    assert "sk-abc123456" not in redacted
+    assert redacted == 'RuntimeError: token: "[REDACTED]"'
+
+    # No whitespace between the outer value and the JSON credential key.
+    assert (
+        secrets.redact_sensitive_text('config dump:{"token": "sk-x"}')
+        == 'config dump:{"token": "[REDACTED]"}'
+    )
+
+    # Unquoted credential value glued to a non-credential assignment.
+    assert secrets.redact_sensitive_text("note: token=abc123") == "note: token=[REDACTED]"
+
+    # Repeated cleanup stays stable.
+    assert secrets.redact_sensitive_text(redacted) == redacted
+
+
+def test_noncredential_values_are_preserved_while_inner_credentials_redact():
+    """Ordinary `key: value` text keeps its value; only credential keys change."""
+    secrets = importlib.import_module("src.utils.secrets")
+    for text in (
+        "warning: token count exceeded",
+        "elapsed: 12:30:45",
+        "secretary: person",
+        "passwordless: true",
+    ):
+        assert secrets.redact_sensitive_text(text) == text
