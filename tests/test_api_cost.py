@@ -544,6 +544,65 @@ class TestPricing:
             assert response.status_code == 400, response.text
         assert client.get(path + "/history", headers=headers).json()["data"] == []
 
+    def test_saved_free_price_counts_as_known_cost(self, api, monkeypatch, tmp_path):
+        from types import SimpleNamespace
+
+        from api.db.models import Experiment
+        from api.services.spend_records import SpendRecorder, pricing_snapshot
+        from src.llm_client import LLMClient
+        from src.models import LLMConfig
+
+        client, headers, _, app = api
+        monkeypatch.chdir(tmp_path)
+        saved = client.post(
+            "/api/v1/pricing/fixture-free-model",
+            headers=headers,
+            json={"prompt_per_1k": 0, "completion_per_1k": 0},
+        )
+        assert saved.status_code == 201, saved.text
+
+        def create(**kwargs):
+            return {
+                "model": kwargs["model"],
+                "usage": {"prompt_tokens": 100, "completion_tokens": 50, "total_tokens": 150},
+                "choices": [{"message": {"content": "test response"}, "finish_reason": "stop"}],
+            }
+
+        monkeypatch.setattr(
+            LLMClient,
+            "_initialize_client",
+            lambda _: SimpleNamespace(
+                chat=SimpleNamespace(completions=SimpleNamespace(create=create))
+            ),
+        )
+        owner = app.state.auth.authenticate(headers["Authorization"].split()[1]).user_id
+        session_factory = app.state.cost._session
+        snapshot = pricing_snapshot(session_factory)
+        cases = (("fixture-free-model", 0.0), ("fixture-unpriced-model", None))
+        with session_factory() as db, db.begin():
+            for model, _ in cases:
+                db.add(Experiment(id=model, user_id=owner, config={}))
+
+        for model, amount in cases:
+            llm = LLMClient(
+                LLMConfig(
+                    provider="openai", model=model, api_key="test-only", cache={"enabled": False}
+                )
+            )
+            llm.pricing_manager = snapshot
+            recorder = SpendRecorder(session_factory, "experiments", model, owner)
+            llm.on_response = recorder.callback(model=model, strategy="vanilla")
+            llm.generate("check pricing")
+            task = client.get(f"/api/v1/costs/tasks/{model}", headers=headers).json()["data"]
+            assert task["total_cost_usd"] == amount
+            assert task["cost_complete"] is (amount is not None)
+            assert task["unknown_cost_count"] == (1 if amount is None else 0)
+
+        summary = client.get("/api/v1/costs/summary", headers=headers).json()["data"]
+        assert summary["total_cost_usd"] == 0.0
+        assert summary["unknown_cost_count"] == 1
+        assert summary["unknown_reasons"] == {"missing_pricing": 1}
+
 
 class TestReports:
     @pytest.mark.parametrize(
