@@ -972,6 +972,10 @@ export default {
   历史: 'History',
   '目录为空。': 'Catalog is empty.',
   追加自定义定价: 'Append custom pricing',
+  '输入和输出单价均可填 0，表示该项免费。':
+    'Enter 0 for the input or output price if those tokens are free.',
+  '请输入大于或等于 0 的有限数值':
+    'Enter a finite number greater than or equal to 0',
   '模型 ID': 'Model ID',
   '如 gpt-4o-mini': 'e.g. gpt-4o-mini',
   '输入价 / 1k tokens': 'Input price / 1k tokens',

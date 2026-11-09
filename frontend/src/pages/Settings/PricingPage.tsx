@@ -223,6 +223,9 @@ export default function PricingPage() {
       )}
       <fieldset className="mt-6">
         <legend>{t('追加自定义定价')}</legend>
+        <p id="pricing-price-hint">
+          {t('输入和输出单价均可填 0，表示该项免费。')}
+        </p>
         <div className="evaluation-section-heading">
           <label>
             {t('模型 ID')}
@@ -242,6 +245,7 @@ export default function PricingPage() {
             {t('输入价 / 1k tokens')}
             <Input
               aria-label={t('输入价')}
+              aria-describedby="pricing-price-hint"
               value={form.prompt_per_1k}
               placeholder={t('如 0.15')}
               onChange={(event) =>
@@ -256,6 +260,7 @@ export default function PricingPage() {
             {t('输出价 / 1k tokens')}
             <Input
               aria-label={t('输出价')}
+              aria-describedby="pricing-price-hint"
               value={form.completion_per_1k}
               placeholder={t('如 0.6')}
               onChange={(event) =>

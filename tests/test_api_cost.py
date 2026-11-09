@@ -494,13 +494,10 @@ class TestPricing:
             invalid_path = "/api/v1/pricing/" + quote(model, safe="")
             assert client.post(invalid_path, headers=headers, json=prices).status_code == 400
             assert client.get(invalid_path + "/history", headers=headers).status_code == 400
-        for price in (0, -1):
-            assert (
-                client.post(
-                    path, headers=headers, json={**prices, "prompt_per_1k": price}
-                ).status_code
-                == 400
-            )
+        assert (
+            client.post(path, headers=headers, json={**prices, "prompt_per_1k": -1}).status_code
+            == 400
+        )
         assert client.get(path + "/history", headers=headers).json()["data"] == []
 
     def test_catalog_override_and_history(self, api):
@@ -519,25 +516,33 @@ class TestPricing:
         assert catalog["models"]["gpt-3.5-turbo"]["source"] == "override"
         assert catalog["models"]["gpt-3.5-turbo"]["prompt_per_1k"] == 0.002
 
-        client.post(
+        free_prices = {"prompt_per_1k": 0, "completion_per_1k": 0}
+        override = client.post(
             "/api/v1/pricing/gpt-3.5-turbo",
             headers=headers,
-            json={"prompt_per_1k": 0.004, "completion_per_1k": 0.006},
+            json=free_prices,
         )
+        assert override.status_code == 201, override.text
+        assert {key: override.json()["data"][key] for key in free_prices} == free_prices
+        catalog = client.get("/api/v1/pricing", headers=headers).json()["data"]
+        assert catalog["models"]["gpt-3.5-turbo"] == {**free_prices, "source": "override"}
         history = client.get("/api/v1/pricing/gpt-3.5-turbo/history", headers=headers).json()[
             "data"
         ]
         assert len(history) == 2
-        assert history[0]["prompt_per_1k"] == 0.004  # latest first
+        assert {key: history[0][key] for key in free_prices} == free_prices
+        assert history[1]["prompt_per_1k"] == 0.002
+        assert history[1]["completion_per_1k"] == 0.003
 
-    def test_nonpositive_prices_rejected(self, api):
+    @pytest.mark.parametrize("price", [-1, "Infinity"])
+    def test_invalid_prices_rejected(self, api, price):
         client, headers, _, _ = api
-        response = client.post(
-            "/api/v1/pricing/gpt-x",
-            headers=headers,
-            json={"prompt_per_1k": 0, "completion_per_1k": 1},
-        )
-        assert response.status_code == 400
+        prices = {"prompt_per_1k": 1, "completion_per_1k": 1}
+        path = "/api/v1/pricing/gpt-x"
+        for field in prices:
+            response = client.post(path, headers=headers, json={**prices, field: price})
+            assert response.status_code == 400, response.text
+        assert client.get(path + "/history", headers=headers).json()["data"] == []
 
 
 class TestReports:
