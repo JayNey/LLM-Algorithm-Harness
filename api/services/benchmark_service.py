@@ -200,7 +200,7 @@ class BenchmarkService:
                 row.problems = list(request.problems)
             if request.version is not None:
                 row.version = request.version
-            if request.description is not None:
+            if "description" in request.model_fields_set:
                 row.description = request.description
             if request.frozen is not None:
                 row.frozen = request.frozen
