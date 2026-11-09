@@ -336,22 +336,6 @@ function HistoryDrawer({
 }) {
   useTranslation()
 
-  const { client } = useProblemSession()
-  const [offset, setOffset] = useState(0)
-  // 抽屉关闭（problem=null）时不发请求：短路 owner 阻止 useList 取数
-  const load = useCallback(
-    (query: { limit: number; offset: number }, signal: AbortSignal) =>
-      client.problemHistory(problem?.problem_id ?? '', query, signal),
-    [client, problem],
-  )
-  const query = useMemo<ProblemListQuery & { source: 'all' }>(
-    () => ({ source: 'all', limit: 20, offset }),
-    [offset],
-  )
-  const list = useList<ProblemHistoryItem>(load, query, problem ? 'owner' : '')
-  const data = list.data as ApiPage<ProblemHistoryItem> | undefined
-  const items = data?.items ?? []
-  const passed = items.filter((item) => item.status === 'passed').length
   return (
     <Drawer
       title={
@@ -365,6 +349,36 @@ function HistoryDrawer({
       onClose={onClose}
       width={560}
     >
+      {problem && (
+        <ProblemHistory
+          key={problem.problem_id}
+          problemId={problem.problem_id}
+        />
+      )}
+    </Drawer>
+  )
+}
+
+function ProblemHistory({ problemId }: { problemId: string }) {
+  useTranslation()
+
+  const { client } = useProblemSession()
+  const [offset, setOffset] = useState(0)
+  const load = useCallback(
+    (query: { limit: number; offset: number }, signal: AbortSignal) =>
+      client.problemHistory(problemId, query, signal),
+    [client, problemId],
+  )
+  const query = useMemo<ProblemListQuery & { source: 'all' }>(
+    () => ({ source: 'all', limit: 20, offset }),
+    [offset],
+  )
+  const list = useList<ProblemHistoryItem>(load, query, problemId)
+  const data = list.data as ApiPage<ProblemHistoryItem> | undefined
+  const items = data?.items ?? []
+  const passed = items.filter((item) => item.status === 'passed').length
+  return (
+    <>
       {list.status === 'loading' ? (
         <Skeleton active paragraph={{ rows: 6 }} />
       ) : list.status === 'error' ? (
@@ -427,7 +441,7 @@ function HistoryDrawer({
       ) : (
         <p role="status">{t('该题还没有评估记录。')}</p>
       )}
-    </Drawer>
+    </>
   )
 }
 
