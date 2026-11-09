@@ -1,7 +1,8 @@
 import { useTranslation } from 'react-i18next'
 import { t } from '../../i18n/core.ts'
 import { Alert, Button, Form, Input } from 'antd'
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
+import type { AxiosInstance } from 'axios'
 import { Controller, useForm } from 'react-hook-form'
 import {
   formatUnixSeconds,
@@ -28,6 +29,8 @@ export default function ProfilePage() {
   useTranslation()
 
   const updateUsername = useAuthStore((state) => state.updateUsername)
+  const [attempt, setAttempt] = useState(0)
+  const readController = useRef<AbortController | null>(null)
   const [loading, setLoading] = useState(true)
   const [loadError, setLoadError] = useState('')
   const [formMessage, setFormMessage] = useState('')
@@ -63,30 +66,38 @@ export default function ProfilePage() {
   })
 
   useEffect(() => {
-    let active = true
+    const controller = new AbortController()
+    readController.current = controller
+    const http = useAuthStore.getState().httpClient() as AxiosInstance
     void (async () => {
       try {
-        const profile = readProfile(
-          await useAuthStore.getState().httpClient().get('/users/me'),
-        )
-        if (!active) return
+        const data = await http.get<unknown, unknown>('/users/me', {
+          signal: controller.signal,
+          timeout: 10_000,
+        })
+        if (controller.signal.aborted) return
+        const profile = readProfile(data)
         if (!profile) {
-          setLoadError('服务暂时不可用')
+          setLoadError(data == null ? '' : '服务暂时不可用')
           return
         }
         reset({ username: profile.username, email: profile.email })
         setCreatedAt(profile.created_at)
       } catch (error) {
-        if (!active) return
+        if (controller.signal.aborted) return
         setLoadError(failureText(error))
       } finally {
-        if (active) setLoading(false)
+        if (!controller.signal.aborted) setLoading(false)
       }
     })()
-    return () => {
-      active = false
-    }
-  }, [reset])
+    return () => controller.abort()
+  }, [attempt, reset])
+
+  function retry() {
+    setLoading(true)
+    setLoadError('')
+    setAttempt((value) => value + 1)
+  }
 
   async function onSubmit(values: ProfileInput) {
     clearErrors()
@@ -99,8 +110,10 @@ export default function ProfilePage() {
     }
     if (Object.keys(clientErrors).length > 0) return
 
+    const session = useAuthStore.getState().session
+    const signal = readController.current?.signal
+    if (!signal || signal.aborted) return
     setSubmitting(true)
-    const previous = useAuthStore.getState().session?.username
     try {
       const profile = readProfile(
         await useAuthStore.getState().httpClient().patch('/users/me', {
@@ -108,13 +121,20 @@ export default function ProfilePage() {
           email: values.email,
         }),
       )
+      if (
+        signal.aborted ||
+        session?.marker !== useAuthStore.getState().session?.marker
+      )
+        return
       if (!profile) {
         setFormMessage('服务暂时不可用')
         return
       }
       reset({ username: profile.username, email: profile.email })
       setCreatedAt(profile.created_at)
-      if (profile.username !== previous) updateUsername(profile.username)
+      if (profile.username !== session?.username) {
+        updateUsername(profile.username)
+      }
       setSaved(true)
     } catch (error) {
       setFormMessage(failureText(error))
@@ -162,15 +182,17 @@ export default function ProfilePage() {
     }
   }
 
-  if (loading) return <p>{t('加载中')}</p>
+  if (loading) return <p role="status">{t('加载中')}</p>
   if (loadError || createdAt === null) {
     return (
       <section>
         <h1>{t('个人资料')}</h1>
         <Alert
-          type="error"
-          message={t(loadError || t('服务暂时不可用'))}
+          type={loadError ? 'error' : 'info'}
+          title={loadError ? t('个人资料加载失败') : t('暂无个人资料')}
+          description={t(loadError)}
           showIcon
+          action={<Button onClick={retry}>{t('重试')}</Button>}
         />
       </section>
     )

@@ -72,6 +72,7 @@ function BenchmarkDetailContent() {
   )
   const suite = suiteResource.data as BenchmarkSuite | undefined
   const keys = useApiKeys()
+  const hasKeys = Boolean(keys.data?.length)
 
   const [editing, setEditing] = useState(false)
   const [editDraft, setEditDraft] = useState<SuiteDraft | null>(null)
@@ -146,7 +147,7 @@ function BenchmarkDetailContent() {
   }
 
   async function launchRun() {
-    if (!suite || submission.current) return
+    if (!suite || !hasKeys || submission.current) return
     const nextErrors = validateRunDraft(runDraft)
     setRunErrors(nextErrors)
     if (Object.keys(nextErrors).length) return
@@ -254,11 +255,13 @@ function BenchmarkDetailContent() {
                 <div>
                   <h3>{t('启动新 run')}</h3>
                   <label>
-                    API Key
+                    {t('API 密钥')}
                     <Select
                       aria-label={t('基准运行密钥')}
                       value={runDraft.api_key_id || undefined}
                       placeholder={t('选择可用密钥')}
+                      loading={keys.loading}
+                      disabled={busy || !hasKeys}
                       options={(keys.data ?? []).map((key) => ({
                         value: key.id,
                         label: key.key_name || key.id,
@@ -274,6 +277,18 @@ function BenchmarkDetailContent() {
                       <small role="alert">{t(runErrors.api_key_id)}</small>
                     )}
                   </label>
+                  {keys.loading ? (
+                    <p role="status">{t('正在加载密钥列表')}</p>
+                  ) : keys.error ? (
+                    <Alert
+                      type="error"
+                      title={t('密钥列表加载失败')}
+                      showIcon
+                      action={<Button onClick={keys.retry}>{t('重试')}</Button>}
+                    />
+                  ) : !hasKeys ? (
+                    <p>{t('还没有 API 密钥')}</p>
+                  ) : null}
                   <DatasetPicker
                     datasetId={runDraft.dataset_id}
                     datasetPath={runDraft.dataset_path}
@@ -333,7 +348,7 @@ function BenchmarkDetailContent() {
                   <Button
                     type="primary"
                     aria-label={t('启动基准运行')}
-                    disabled={busy}
+                    disabled={busy || !hasKeys}
                     onClick={() => void launchRun()}
                   >
                     {t('启动运行')}
