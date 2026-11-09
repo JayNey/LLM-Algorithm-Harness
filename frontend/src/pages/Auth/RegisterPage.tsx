@@ -159,8 +159,15 @@ export default function RegisterPage() {
       >
         <Form.Item
           label={t('用户名')}
+          htmlFor="register-username"
           validateStatus={errors.username ? 'error' : undefined}
-          help={t(errors.username?.message)}
+          help={
+            errors.username?.message ? (
+              <span id="register-username-error">
+                {t(errors.username.message)}
+              </span>
+            ) : undefined
+          }
         >
           <Controller
             name="username"
@@ -168,6 +175,12 @@ export default function RegisterPage() {
             render={({ field }) => (
               <Input
                 id="register-username"
+                aria-invalid={errors.username ? true : undefined}
+                aria-describedby={
+                  errors.username?.message
+                    ? 'register-username-error'
+                    : undefined
+                }
                 autoFocus
                 autoComplete="username"
                 {...field}
@@ -177,8 +190,13 @@ export default function RegisterPage() {
         </Form.Item>
         <Form.Item
           label={t('邮箱')}
+          htmlFor="register-email"
           validateStatus={errors.email ? 'error' : undefined}
-          help={t(errors.email?.message)}
+          help={
+            errors.email?.message ? (
+              <span id="register-email-error">{t(errors.email.message)}</span>
+            ) : undefined
+          }
         >
           <Controller
             name="email"
@@ -186,6 +204,10 @@ export default function RegisterPage() {
             render={({ field }) => (
               <Input
                 id="register-email"
+                aria-invalid={errors.email ? true : undefined}
+                aria-describedby={
+                  errors.email?.message ? 'register-email-error' : undefined
+                }
                 type="email"
                 autoComplete="email"
                 {...field}
@@ -195,8 +217,15 @@ export default function RegisterPage() {
         </Form.Item>
         <Form.Item
           label={t('密码')}
+          htmlFor="register-password"
           validateStatus={errors.password ? 'error' : undefined}
-          help={t(errors.password?.message)}
+          help={
+            errors.password?.message ? (
+              <span id="register-password-error">
+                {t(errors.password.message)}
+              </span>
+            ) : undefined
+          }
           extra={strengthText[passwordStrength(password)]}
         >
           <Controller
@@ -205,6 +234,12 @@ export default function RegisterPage() {
             render={({ field }) => (
               <Input.Password
                 id="register-password"
+                aria-invalid={errors.password ? true : undefined}
+                aria-describedby={
+                  errors.password?.message
+                    ? 'register-password-error'
+                    : undefined
+                }
                 autoComplete="new-password"
                 {...field}
               />
@@ -213,8 +248,15 @@ export default function RegisterPage() {
         </Form.Item>
         <Form.Item
           label={t('确认密码')}
+          htmlFor="register-confirm-password"
           validateStatus={errors.confirmPassword ? 'error' : undefined}
-          help={t(errors.confirmPassword?.message)}
+          help={
+            errors.confirmPassword?.message ? (
+              <span id="register-confirm-password-error">
+                {t(errors.confirmPassword.message)}
+              </span>
+            ) : undefined
+          }
         >
           <Controller
             name="confirmPassword"
@@ -222,6 +264,12 @@ export default function RegisterPage() {
             render={({ field }) => (
               <Input.Password
                 id="register-confirm-password"
+                aria-invalid={errors.confirmPassword ? true : undefined}
+                aria-describedby={
+                  errors.confirmPassword?.message
+                    ? 'register-confirm-password-error'
+                    : undefined
+                }
                 autoComplete="new-password"
                 {...field}
               />

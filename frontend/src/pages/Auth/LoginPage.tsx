@@ -169,8 +169,15 @@ export default function LoginPage() {
       >
         <Form.Item
           label={t('用户名或邮箱')}
+          htmlFor="login-identity"
           validateStatus={errors.identity ? 'error' : undefined}
-          help={t(errors.identity?.message)}
+          help={
+            errors.identity?.message ? (
+              <span id="login-identity-error">
+                {t(errors.identity.message)}
+              </span>
+            ) : undefined
+          }
         >
           <Controller
             name="identity"
@@ -178,6 +185,10 @@ export default function LoginPage() {
             render={({ field }) => (
               <Input
                 id="login-identity"
+                aria-invalid={errors.identity ? true : undefined}
+                aria-describedby={
+                  errors.identity?.message ? 'login-identity-error' : undefined
+                }
                 autoFocus
                 autoComplete="username"
                 {...field}
@@ -187,8 +198,15 @@ export default function LoginPage() {
         </Form.Item>
         <Form.Item
           label={t('密码')}
+          htmlFor="login-password"
           validateStatus={errors.password ? 'error' : undefined}
-          help={t(errors.password?.message)}
+          help={
+            errors.password?.message ? (
+              <span id="login-password-error">
+                {t(errors.password.message)}
+              </span>
+            ) : undefined
+          }
         >
           <Controller
             name="password"
@@ -196,6 +214,10 @@ export default function LoginPage() {
             render={({ field }) => (
               <Input.Password
                 id="login-password"
+                aria-invalid={errors.password ? true : undefined}
+                aria-describedby={
+                  errors.password?.message ? 'login-password-error' : undefined
+                }
                 autoComplete="current-password"
                 {...field}
               />
