@@ -1,5 +1,6 @@
 {
   "openspec_proposal": "openspec/changes/add-on-demand-sandbox-diagnostics/proposal.md",
   "openspec_design": "openspec/changes/add-on-demand-sandbox-diagnostics/design.md",
-  "openspec_tasks": "openspec/changes/add-on-demand-sandbox-diagnostics/tasks.md"
+  "openspec_tasks": "openspec/changes/add-on-demand-sandbox-diagnostics/tasks.md",
+  "archive_directory": "openspec/changes/archive/2026-11-09-add-on-demand-sandbox-diagnostics"
 }
