@@ -9,6 +9,12 @@ for (const mode of modes) {
   if (!env.apiBaseUrl || !env.wsUrl || !env.appName) {
     throw new Error(`${mode} 环境文件缺少必填值`)
   }
+  if (
+    mode === 'development' &&
+    (env.apiBaseUrl !== '/api/v1' || env.wsUrl !== '/api/v1/ws/progress')
+  ) {
+    throw new Error('开发模式的 HTTP 和 WebSocket 必须使用同源 /api 代理')
+  }
   if (mode === 'test' && !env.featureFlags.has('test-mode')) {
     throw new Error('test 模式应读到功能开关 test-mode')
   }

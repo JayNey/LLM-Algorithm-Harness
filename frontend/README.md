@@ -2,16 +2,32 @@
 
 React 18、TypeScript 和 Vite 工程。源码别名 `@` 指向 `src/`。
 
+## 本地开发
+
+按[仓库安装说明](../README.md#安装)安装 Python 依赖，并按 [`.env.example`](../.env.example) 在仓库根目录的 `.env` 中配置 `SECRET_KEY` 和 `ENCRYPTION_KEY`。在仓库根目录启动 API。
+
+```bash
+python3 -m uvicorn api.main:app --host 127.0.0.1 --port 8000
+```
+
+另开终端，从仓库根目录启动前端。
+
 ```bash
 cd frontend
-npm install
+npm ci
 npm run dev
+```
+
+浏览器可打开 `http://localhost:3000` 或 `http://127.0.0.1:3000`。Vite 监听本机回环地址的 3000 端口。开发模式默认通过当前页面的 `/api/v1` 发出 HTTP 请求，并用相同主机连接 `/api/v1/ws/progress`。Vite 将 HTTP 请求和 WebSocket 升级一并转发至 `http://127.0.0.1:8000`。使用任一入口都无需额外配置 API 的 CORS 来源。
+
+在 `frontend/` 运行环境配置检查、代码检查和生产构建。
+
+```bash
+npm run check:env
 npm run lint
 npm run format:check
 npm run build
 ```
-
-开发服务器端口是 3000，并把 `/api` 代理到 `http://localhost:8000`。
 
 ## 角色访问控制
 
