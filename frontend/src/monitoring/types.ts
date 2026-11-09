@@ -134,6 +134,7 @@ export interface ProvidersCatalog {
 
 export interface MonitoringClient {
   systemStatus(signal?: AbortSignal): Promise<SystemStatus>
+  sandboxHealth(signal?: AbortSignal): Promise<HealthCheck>
   apiStats(windowSeconds: number, signal?: AbortSignal): Promise<ApiStats>
   llmStats(
     windowSeconds: number | null,

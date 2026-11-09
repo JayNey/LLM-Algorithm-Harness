@@ -434,6 +434,14 @@ export function createMonitoringClient(http: AxiosInstance): MonitoringClient {
   return {
     systemStatus: async (signal) =>
       get('/system/status', systemStatus, undefined, signal, 20_000),
+    sandboxHealth: (signal) =>
+      get(
+        '/health/sandbox',
+        (value) => healthCheck(value, 'sandbox'),
+        undefined,
+        signal,
+        45_000,
+      ),
     apiStats: (windowSeconds, signal) =>
       get(
         '/metrics/api-stats',

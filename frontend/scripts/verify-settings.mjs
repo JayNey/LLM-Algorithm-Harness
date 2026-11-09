@@ -45,7 +45,7 @@ function check(name, fn) {
     )
 }
 
-function mockRoute(context) {
+function mockRoute(context, state) {
   context.route('**/api/v1/**', (route, request) => {
     const url = new URL(request.url())
     const path = url.pathname.replace('/api/v1', '')
@@ -78,13 +78,18 @@ function mockRoute(context) {
     if (method === 'GET' && path === '/users/me')
       return reply({
         username: 'admin-fixture',
-        role: 'admin',
+        role: state.role,
         email: 'a@e.org',
         created_at: '2026-10-24',
       })
-    if (method === 'GET' && path === '/system/status')
+    if (method === 'GET' && path === '/health/sandbox') {
+      state.sandboxCalls++
+      return reply(state.sandbox, state.sandbox ? 200 : 503)
+    }
+    if (method === 'GET' && path === '/system/status') {
+      state.systemQueries.push(url.search)
       return reply({
-        uptime_seconds: 3600,
+        uptime_seconds: 3600 + (state.systemQueries.length - 1) * 60,
         task_counts: { pending: 1, running: 1, completed: 3 },
         task_count: 5,
         task_status: 'ok',
@@ -106,7 +111,7 @@ function mockRoute(context) {
               },
             },
             workers: { status: 'ok', worker_count: 2, active: 1, reserved: 0 },
-            sandbox: { status: 'ok' },
+            sandbox: { status: 'not_checked' },
           },
         },
         resources: {
@@ -138,6 +143,7 @@ function mockRoute(context) {
         },
         containers: { status: 'not_configured' },
       })
+    }
     if (method === 'GET' && path === '/metrics/api-stats')
       return reply({
         request_count: 100,
@@ -380,8 +386,54 @@ function mockRoute(context) {
   })
 }
 
-async function monitorScenario(page) {
+async function monitorScenario(page, state) {
+  await page.clock.install()
   await page.goto(`${base}/settings/system`)
+  await check('系统页沙箱诊断独立于常规刷新，可在请求失败后重试', async () => {
+    const diagnostic = page.getByRole('group', { name: '沙箱' })
+    const checkSandbox = diagnostic.getByRole('button', { name: '检查沙箱' })
+    await diagnostic
+      .getByText('未检查', { exact: true })
+      .waitFor({ timeout: 5000 })
+    assert.equal(state.sandboxCalls, 0)
+    await checkSandbox.click()
+    await diagnostic.getByText('正常', { exact: true }).waitFor()
+    state.sandbox = {
+      status: 'unavailable',
+      detail: 'Docker sandbox preflight failed',
+    }
+    await checkSandbox.click()
+    await diagnostic.getByText('不可用', { exact: true }).waitFor()
+    assert.equal(state.sandboxCalls, 2)
+
+    await page.getByRole('button', { name: '立即刷新' }).click()
+    await page.getByText('1 小时 1 分', { exact: true }).waitFor()
+    await page.clock.fastForward(31_000)
+    await page.getByText('1 小时 2 分', { exact: true }).waitFor()
+    await diagnostic.getByText('不可用', { exact: true }).waitFor()
+    assert.equal(state.sandboxCalls, 2)
+    assert.ok(state.systemQueries.every((query) => query === ''))
+
+    state.sandbox = null
+    await checkSandbox.click()
+    await diagnostic.getByRole('alert').getByText('沙箱检查请求失败').waitFor()
+    await page.setViewportSize({ width: 390, height: 900 })
+    await diagnostic.scrollIntoViewIfNeeded()
+    await assertPageFits(page, 390, '系统监控')
+    assert.ok(
+      await diagnostic.evaluate((element) => {
+        const { left, right } = element.getBoundingClientRect()
+        return left >= 0 && right <= window.innerWidth
+      }),
+    )
+    await diagnostic.screenshot({ path: resolve(outDir, 'sandbox-390.png') })
+    report.screenshots.push('sandbox-390.png')
+    await page.setViewportSize({ width: 1280, height: 720 })
+    state.sandbox = { status: 'ok' }
+    await diagnostic.getByRole('button', { name: '重试沙箱检查' }).click()
+    await diagnostic.getByText('正常', { exact: true }).waitFor()
+    assert.equal(state.sandboxCalls, 4)
+  })
   await check('监控面板分区渲染（健康/资源/统计）', async () => {
     await page.getByRole('tab', { name: '概览' }).waitFor()
     assert.ok((await page.getByText('正常').count()) >= 1)
@@ -394,6 +446,18 @@ async function monitorScenario(page) {
     fullPage: true,
   })
   report.screenshots.push('monitor.png')
+
+  await check('普通用户访问系统页时没有诊断操作', async () => {
+    state.role = 'user'
+    await page.goto(`${base}/settings/system`)
+    await page.getByText('无权访问此页面', { exact: true }).waitFor()
+    assert.equal(
+      await page.getByRole('button', { name: '检查沙箱' }).count(),
+      0,
+    )
+    assert.equal(state.sandboxCalls, 4)
+    state.role = 'admin'
+  })
 }
 
 const settingsWidths = [320, 390, 768, 1024, 1440]
@@ -589,9 +653,16 @@ try {
       }),
     )
   })
-  mockRoute(context)
+  const state = {
+    role: 'admin',
+    sandbox: { status: 'ok' },
+    sandboxCalls: 0,
+    systemQueries: [],
+  }
+  mockRoute(context, state)
   const page = await context.newPage()
-  if (scenario === 'all' || scenario === 'monitor') await monitorScenario(page)
+  if (scenario === 'all' || scenario === 'monitor')
+    await monitorScenario(page, state)
   if (scenario === 'all' || scenario === 'budgets') await budgetsScenario(page)
   if (scenario === 'all' || scenario === 'pricing') await pricingScenario(page)
   if (scenario === 'all' || scenario === 'logs') await logsScenario(page)

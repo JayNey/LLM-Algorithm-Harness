@@ -10,6 +10,7 @@ import { evaluationLabel } from '@/evaluations/presentation.ts'
 import type { Evaluation } from '@/evaluations/types.ts'
 import { Icon } from '@/layouts/components/Icon.tsx'
 import { probeStatusLabel, formatUptime } from '@/monitoring/presentation.ts'
+import { SandboxDiagnostic } from '@/monitoring/SandboxDiagnostic.tsx'
 import { useAuthStore } from '@/store/auth.ts'
 import { useUiStore } from '@/store/ui.ts'
 
@@ -332,7 +333,12 @@ function SystemPanel({
   if (state.status === 'error')
     return <Failure message={t('无法确认访问权限')} retry={reload} />
   if (state.role !== 'admin') return <p>{t('系统状态仅管理员可查看。')}</p>
-  return <AdminSystem key={state.role} client={client} refresh={refresh} />
+  return (
+    <>
+      <AdminSystem client={client} refresh={refresh} />
+      <SandboxDiagnostic />
+    </>
+  )
 }
 function AdminSystem({
   client,
@@ -363,7 +369,6 @@ function AdminSystem({
     [t('数据库'), data.health.checks.database.status],
     ['Redis', data.health.checks.redis.status],
     ['Workers', data.health.checks.workers.status],
-    [t('沙箱'), data.health.checks.sandbox.status],
   ]
   return (
     <>
