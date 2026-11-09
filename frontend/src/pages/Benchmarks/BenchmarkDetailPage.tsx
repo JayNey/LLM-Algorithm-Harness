@@ -113,7 +113,7 @@ function BenchmarkDetailContent() {
   const [metric, setMetric] = useState<'accuracy' | 'cost_usd'>('accuracy')
 
   async function saveEdit() {
-    if (!suite || !editDraft || submission.current) return
+    if (!suite || suite.frozen || !editDraft || submission.current) return
     const nextErrors = validateSuiteDraft(editDraft)
     setEditErrors(nextErrors)
     if (Object.keys(nextErrors).length) return
@@ -206,7 +206,7 @@ function BenchmarkDetailContent() {
       </header>
       <div className="panel evaluation-panel">
         {actionError && <ExperimentFeedback message={t(actionError)} />}
-        {editing && editDraft && (
+        {!suite.frozen && editing && editDraft && (
           <SuiteForm
             draft={editDraft}
             errors={editErrors}
@@ -223,7 +223,7 @@ function BenchmarkDetailContent() {
             submitLabel={t('保存修改')}
           />
         )}
-        {!editing && (
+        {!suite.frozen && !editing && (
           <div className="evaluation-section-heading">
             <Button
               aria-label={t('编辑套件')}

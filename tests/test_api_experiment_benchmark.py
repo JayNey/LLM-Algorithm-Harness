@@ -662,6 +662,7 @@ class TestBenchmarks:
         )
         assert updated.status_code == 200
         assert updated.json()["data"]["problems"] == ["two-sum"]
+        assert updated.json()["data"]["description"] == "api suite"
 
         frozen = client.patch(
             f"/api/v1/benchmarks/suites/{suite_id}", headers=headers, json={"frozen": True}
@@ -679,6 +680,23 @@ class TestBenchmarks:
         listing = client.get("/api/v1/benchmarks/suites", headers=headers)
         assert listing.status_code == 200
         assert listing.json()["data"]["total"] == 1
+
+    def test_suite_patch_clears_and_replaces_description(self, api):
+        client, headers, _, _ = api
+        created = client.post(
+            "/api/v1/benchmarks/suites", headers=headers, json=self._suite_payload()
+        )
+        assert created.status_code == 201, created.text
+        url = f"/api/v1/benchmarks/suites/{created.json()['data']['id']}"
+
+        for description in (None, "updated description"):
+            response = client.patch(url, headers=headers, json={"description": description})
+            assert response.status_code == 200, response.text
+            assert response.json()["data"]["description"] == description
+
+            reloaded = client.get(url, headers=headers)
+            assert reloaded.status_code == 200, reloaded.text
+            assert reloaded.json()["data"]["description"] == description
 
     def test_run_results_and_learning_curve(self, api):
         client, headers, key_id, app = api
