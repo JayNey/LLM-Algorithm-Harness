@@ -70,3 +70,17 @@ TBD - created by archiving change benchmarks-abtests. Update Purpose after archi
 
 - **WHEN** 用户以中文或英文在 320px 窄屏或键盘模式操作历史与曲线
 - **THEN** 运行选择、分页、刷新与错误反馈均可用，页面无整体横向溢出
+
+### Requirement: 恢复运行表单的密钥读取
+
+基准套件的运行表单 SHALL 分别展示密钥加载中、读取失败和成功空列表。失败时 SHALL 提供仅重试密钥读取的入口。密钥尚不可选时 SHALL 禁用密钥选择和启动。账号、页面或套件变化后，迟到的密钥响应 MUST NOT 更新当前表单。
+
+#### Scenario: 密钥首次读取失败后恢复
+
+- **WHEN** 基准套件详情的密钥列表请求失败且用户在接口恢复后点击重试
+- **THEN** 只重新读取密钥列表，用户可选择当前会话的可用密钥并继续操作
+
+#### Scenario: 没有密钥
+
+- **WHEN** 密钥列表读取成功且没有密钥
+- **THEN** 运行表单显示空列表提示

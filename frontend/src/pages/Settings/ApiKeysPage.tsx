@@ -1,7 +1,8 @@
 import { useTranslation } from 'react-i18next'
 import { t } from '../../i18n/core.ts'
 import { Alert, Button, Form, Input, Modal, Select } from 'antd'
-import { useEffect, useState } from 'react'
+import { useState } from 'react'
+import type { AxiosInstance } from 'axios'
 import { Controller, useForm } from 'react-hook-form'
 import {
   groupApiKeys,
@@ -19,6 +20,7 @@ import {
 import { formatUnixSeconds } from '@/account/profile.ts'
 import { ApiClientError } from '@/auth/http.ts'
 import { escapeHtml } from '@/auth/text.ts'
+import { useResource } from '@/hooks/useResource.ts'
 import { useAuthStore } from '@/store/auth.ts'
 
 interface AddInput {
@@ -33,20 +35,29 @@ function failureText(error: unknown): string {
   )
 }
 
+type KeyNotice = { type: 'success' | 'error'; text: string }
+
+async function loadKeys(signal: AbortSignal) {
+  const http = useAuthStore.getState().httpClient() as AxiosInstance
+  const keys = readApiKeys(
+    await http.get<unknown, unknown>('/api-keys', { signal, timeout: 10_000 }),
+  )
+  if (!keys) throw new Error('密钥列表响应无效，请重试')
+  return keys
+}
+
 function KeyRow({
   item,
-  load,
+  refresh,
   verifying,
   markVerifying,
   setNotice,
-  setLoadError,
 }: {
   item: ApiKeyRecord
-  load: () => Promise<void>
+  refresh: () => void
   verifying: boolean
   markVerifying: (id: string, active: boolean) => void
-  setNotice: (message: string) => void
-  setLoadError: (message: string) => void
+  setNotice: (notice: KeyNotice) => void
 }) {
   useTranslation()
 
@@ -54,14 +65,7 @@ function KeyRow({
   const [name, setName] = useState(item.key_name)
   const [nameError, setNameError] = useState('')
   const [saving, setSaving] = useState(false)
-
-  async function reload() {
-    try {
-      await load()
-    } catch {
-      setLoadError('服务暂时不可用')
-    }
-  }
+  const [modal, modalHolder] = Modal.useModal()
 
   async function saveName() {
     const invalid = validateKeyName(name)
@@ -83,11 +87,12 @@ function KeyRow({
       setSaving(false)
     }
     setEditing(false)
-    await reload()
+    setNotice({ type: 'success', text: '密钥已改名' })
+    refresh()
   }
 
   function confirmDelete() {
-    Modal.confirm({
+    modal.confirm({
       title: t('删除这条密钥？'),
       okText: t('删除'),
       cancelText: t('取消'),
@@ -98,10 +103,11 @@ function KeyRow({
             .httpClient()
             .delete('/api-keys/' + item.id)
         } catch (error) {
-          setNotice(failureText(error))
+          setNotice({ type: 'error', text: failureText(error) })
           return
         }
-        await reload()
+        setNotice({ type: 'success', text: '密钥已删除' })
+        refresh()
       },
     })
   }
@@ -118,18 +124,19 @@ function KeyRow({
         result !== null &&
         'ok' in result &&
         result.ok === true
-      setNotice(verifyStatusText(ok))
+      setNotice({ type: ok ? 'success' : 'error', text: verifyStatusText(ok) })
     } catch (error) {
-      setNotice(failureText(error))
+      setNotice({ type: 'error', text: failureText(error) })
       return
     } finally {
       markVerifying(item.id, false)
     }
-    await reload()
+    refresh()
   }
 
   return (
     <li>
+      {modalHolder}
       <p>{escapeHtml(item.key_name)}</p>
       {item.masked_preview ? <p>{escapeHtml(item.masked_preview)}</p> : null}
       <p>{item.provider}</p>
@@ -197,12 +204,10 @@ function KeyRow({
 export default function ApiKeysPage() {
   useTranslation()
 
-  const [loading, setLoading] = useState(true)
-  const [error, setError] = useState('')
-  const [keys, setKeys] = useState<ApiKeyRecord[]>([])
+  const keys = useResource(loadKeys)
   const [submitting, setSubmitting] = useState(false)
   const [formMessage, setFormMessage] = useState('')
-  const [notice, setNotice] = useState('')
+  const [notice, setNotice] = useState<KeyNotice | null>(null)
   const [verifyingIds, setVerifyingIds] = useState<ReadonlySet<string>>(
     () => new Set(),
   )
@@ -225,35 +230,6 @@ export default function ApiKeysPage() {
   } = useForm<AddInput>({
     defaultValues: { provider: 'openai', key_name: '', api_key: '' },
   })
-
-  async function load() {
-    const parsed = readApiKeys(
-      await useAuthStore.getState().httpClient().get('/api-keys'),
-    )
-    if (!parsed) {
-      setError('服务暂时不可用')
-      setKeys([])
-      return
-    }
-    setError('')
-    setKeys(parsed)
-  }
-
-  useEffect(() => {
-    let active = true
-    void (async () => {
-      try {
-        if (active) await load()
-      } catch {
-        if (active) setError('服务暂时不可用')
-      } finally {
-        if (active) setLoading(false)
-      }
-    })()
-    return () => {
-      active = false
-    }
-  }, [])
 
   async function onSubmit(values: AddInput) {
     clearErrors()
@@ -279,41 +255,45 @@ export default function ApiKeysPage() {
       setSubmitting(false)
     }
     reset({ provider: 'openai', key_name: '', api_key: '' })
-    try {
-      await load()
-    } catch {
-      setError('服务暂时不可用')
-    }
+    setNotice({ type: 'success', text: '密钥已添加' })
+    keys.retry()
   }
 
-  if (loading) return <p>{t('加载中')}</p>
-  if (error) {
+  const header = (
+    <>
+      <h1>{t('API 密钥')}</h1>
+      {notice ? (
+        <Alert
+          className="mb-2"
+          type={notice.type}
+          title={t(notice.text)}
+          showIcon
+        />
+      ) : null}
+    </>
+  )
+  if (keys.loading || keys.error) {
     return (
       <section>
-        <h1>{t('API 密钥')}</h1>
-        {notice ? (
+        {header}
+        {keys.loading ? (
+          <p role="status">{t('正在加载密钥列表')}</p>
+        ) : (
           <Alert
-            type={notice === '验证成功' ? 'success' : 'error'}
-            message={t(notice)}
+            type="error"
+            title={t('密钥列表加载失败')}
             showIcon
+            action={<Button onClick={keys.retry}>{t('重试')}</Button>}
           />
-        ) : null}
-        <Alert type="error" message={t(error)} showIcon />
+        )}
       </section>
     )
   }
 
-  const groups = groupApiKeys(keys)
+  const groups = groupApiKeys(keys.data ?? [])
   return (
     <section>
-      <h1>{t('API 密钥')}</h1>
-      {notice ? (
-        <Alert
-          type={notice === '验证成功' ? 'success' : 'error'}
-          message={t(notice)}
-          showIcon
-        />
-      ) : null}
+      {header}
       <p>{t('密钥保存后不再显示')}</p>
       {formMessage ? (
         <Alert type="error" message={t(formMessage)} showIcon />
@@ -375,11 +355,10 @@ export default function ApiKeysPage() {
               <KeyRow
                 key={item.id}
                 item={item}
-                load={load}
+                refresh={keys.retry}
                 verifying={verifyingIds.has(item.id)}
                 markVerifying={markVerifying}
                 setNotice={setNotice}
-                setLoadError={setError}
               />
             ))}
           </ul>
