@@ -196,6 +196,7 @@ export default {
   重复次数须为正整数: 'Repetitions must be a positive integer',
   '并行数须为 1–16 的整数': 'Concurrency must be an integer from 1 to 16',
   预算须为正数: 'Budget must be positive',
+  预算须为正整数: 'Budget must be a positive integer',
   实验配置无效: 'Invalid experiment configuration',
   已登录: 'Signed in',
   跳至主内容: 'Skip to main content',

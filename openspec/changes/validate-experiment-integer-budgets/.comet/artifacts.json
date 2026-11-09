@@ -1,0 +1,5 @@
+{
+  "openspec_proposal": "openspec/changes/validate-experiment-integer-budgets/proposal.md",
+  "openspec_design": "openspec/changes/validate-experiment-integer-budgets/design.md",
+  "openspec_tasks": "openspec/changes/validate-experiment-integer-budgets/tasks.md"
+}
