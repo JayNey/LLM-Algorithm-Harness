@@ -400,6 +400,7 @@ export default {
   '测试已排队，等待开始执行…': 'Test queued, waiting to start…',
   '测试执行中，完成后自动展示结果…':
     'Test running. Results will appear when it finishes…',
+  显示的状态可能已过期: 'The status shown may be outdated',
   删除: 'Delete',
   结果统计: 'Result statistics',
   测试未产出结果: 'No results from this test',
