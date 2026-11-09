@@ -23,6 +23,14 @@ const report = {
   errors: [],
   screenshots: [],
 }
+const spend = (knownCost, unknownCount = 0) => ({
+  cost_usd: knownCost,
+  task_count: 1 + unknownCount,
+  known_cost_usd: knownCost,
+  cost_complete: unknownCount === 0,
+  unknown_cost_count: unknownCount,
+  unknown_reasons: unknownCount ? { missing_cost: unknownCount } : {},
+})
 const task = (id) => ({
   evaluation_id: `real-task-${id}-long-identifier`,
   created_at: `2026-10-${String(id + 1).padStart(2, '0')}T01:00:00Z`,
@@ -91,6 +99,12 @@ async function setup({
     role,
     total: 23,
     costFailure: false,
+    bySource: {
+      evaluations: spend(17),
+      benchmarks: spend(0.123456),
+      experiments: spend(2),
+      ab_tests: spend(4),
+    },
     listFailure: false,
     roleFailure: false,
     gate: null,
@@ -178,11 +192,14 @@ async function setup({
         has_more: offset + limit < total,
       })
     }
-    if (path === '/costs/summary')
+    if (path === '/costs/summary') {
+      const sources = Object.values(state.bySource)
+      const total = sources.reduce((sum, source) => sum + source.cost_usd, 0)
       return send(
-        { total_cost_usd: state.total ? 17.123456 : 0 },
+        { total_cost_usd: total, by_source: state.bySource },
         state.costFailure ? 500 : 200,
       )
+    }
     if (path === '/system/status') return send(system)
     if (path.startsWith('/evaluations/')) return send(task(22))
     throw new Error(`Unexpected request ${path}`)
@@ -309,6 +326,7 @@ try {
   {
     const { context, page, state } = await setup()
     state.total = 0
+    state.bySource = {}
     await page.goto(base)
     await page.getByText('还没有评估任务', { exact: true }).waitFor()
     assert.deepEqual(
@@ -318,6 +336,26 @@ try {
     await page.getByRole('link', { name: '创建第一次评估' }).click()
     await page.waitForURL('**/evaluations/new')
     report.checks.push('empty and true zero values; create route')
+    await context.close()
+  }
+  {
+    const { context, page, state } = await setup()
+    state.bySource = { experiments: spend(2), ab_tests: spend(4) }
+    await page.goto(base)
+    const cost = page.locator('.metric-strip > div').last()
+    await cost.getByText('$0USD', { exact: true }).waitFor()
+
+    state.bySource.benchmarks = spend(0, 1)
+    await page.getByRole('button', { name: '刷新数据', exact: true }).click()
+    await cost.getByText('成本未知', { exact: true }).waitFor()
+    await cost.getByText('1 条成本未知', { exact: false }).waitFor()
+    assert.equal(await cost.getByText('$0USD', { exact: true }).count(), 0)
+
+    state.bySource.evaluations = spend(2)
+    await page.getByRole('button', { name: '刷新数据', exact: true }).click()
+    await cost.getByText('$2USD', { exact: true }).waitFor()
+    await cost.getByText('1 条成本未知', { exact: false }).waitFor()
+    report.checks.push('excluded spend, unknown-only and partial known cost')
     await context.close()
   }
   {

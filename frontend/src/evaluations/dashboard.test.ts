@@ -92,20 +92,95 @@ test('filtered counts use server totals instead of counting the single sample', 
   assert.equal(await api.count('completed', new AbortController().signal), 91)
 })
 
-test('cost uses owner summary without a date filter and rejects malformed totals', async () => {
+function spend(knownCost: number, unknownCount = 0) {
+  return {
+    cost_usd: knownCost,
+    task_count: 1 + unknownCount,
+    known_cost_usd: knownCost,
+    cost_complete: unknownCount === 0,
+    unknown_cost_count: unknownCount,
+    unknown_reasons: unknownCount ? { missing_cost: unknownCount } : {},
+  }
+}
+
+test('cost sums only evaluations and completed benchmarks without a date filter', async () => {
   const api = client((url, params) => {
     assert.equal(url, '/costs/summary')
     assert.deepEqual(params, {})
-    return { total_cost_usd: 17.123456 }
+    return {
+      total_cost_usd: 17.75,
+      by_source: {
+        evaluations: spend(1.25),
+        benchmarks: spend(0.5),
+        experiments: spend(7),
+        ab_tests: spend(9),
+      },
+    }
   })
-  assert.equal(await api.cost(new AbortController().signal), 17.123456)
-  for (const total of [undefined, null, '17', -1, Infinity]) {
+  assert.deepEqual(await api.cost(new AbortController().signal), {
+    knownCostUsd: 1.75,
+    unknownCostCount: 0,
+  })
+})
+
+test('cost is a known zero for an empty account', async () => {
+  const api = client(() => ({ total_cost_usd: 0, by_source: {} }))
+  assert.deepEqual(await api.cost(new AbortController().signal), {
+    knownCostUsd: 0,
+    unknownCostCount: 0,
+  })
+})
+
+test('cost is a known zero when only experiments and A/B tests have spend', async () => {
+  const api = client(() => ({
+    total_cost_usd: 16,
+    by_source: { experiments: spend(7, 1), ab_tests: spend(9) },
+  }))
+  assert.deepEqual(await api.cost(new AbortController().signal), {
+    knownCostUsd: 0,
+    unknownCostCount: 0,
+  })
+})
+
+test('cost tracks unknown records only from included sources', async () => {
+  for (const known of [0, 0.5]) {
+    const api = client(() => ({
+      total_cost_usd: known + 7,
+      by_source: {
+        benchmarks: spend(known, 2),
+        experiments: spend(7, 1),
+      },
+    }))
+    assert.deepEqual(await api.cost(new AbortController().signal), {
+      knownCostUsd: known,
+      unknownCostCount: 2,
+    })
+  }
+})
+
+test('cost rejects malformed summaries and failed requests', async () => {
+  const invalidSources = [
+    undefined,
+    null,
+    [],
+    { benchmarks: null },
+    { evaluations: spend(-1) },
+    { benchmarks: spend(Infinity) },
+    { benchmarks: { ...spend(0), unknown_cost_count: -1 } },
+    { benchmarks: { ...spend(0), unknown_cost_count: 0.5 } },
+  ]
+  for (const by_source of invalidSources) {
+    const api = client(() => ({ total_cost_usd: 0, by_source }))
     await assert.rejects(
-      client(() => ({ total_cost_usd: total })).cost(
-        new AbortController().signal,
-      ),
+      api.cost(new AbortController().signal),
+      /费用汇总响应格式不兼容/,
     )
   }
+
+  const offline = client(() => {
+    throw new Error('offline')
+  })
+  await assert.rejects(offline.cost(new AbortController().signal), /offline/)
 })
 
 test('system is never queried for a user or unconfirmed role', async () => {

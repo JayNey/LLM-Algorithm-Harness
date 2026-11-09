@@ -26,7 +26,7 @@ export function createDashboardClient(http: AxiosInstance) {
       return (await evaluations.list({ status, limit: 1, offset: 0 }, signal))
         .total
     },
-    async cost(signal: AbortSignal): Promise<number> {
+    async cost(signal: AbortSignal) {
       const value: unknown = await http.get('/costs/summary', {
         signal,
         timeout: 15_000,
@@ -34,13 +34,36 @@ export function createDashboardClient(http: AxiosInstance) {
       if (
         typeof value !== 'object' ||
         value === null ||
-        !('total_cost_usd' in value) ||
-        typeof value.total_cost_usd !== 'number' ||
-        !Number.isFinite(value.total_cost_usd) ||
-        value.total_cost_usd < 0
+        !('by_source' in value) ||
+        typeof value.by_source !== 'object' ||
+        value.by_source === null ||
+        Array.isArray(value.by_source)
       )
         throw new ApiClientError('费用汇总响应格式不兼容')
-      return value.total_cost_usd
+
+      const sources = value.by_source as Record<string, unknown>
+      let knownCostUsd = 0
+      let unknownCostCount = 0
+      for (const source of ['evaluations', 'benchmarks']) {
+        if (!Object.hasOwn(sources, source)) continue
+        const entry = sources[source]
+        if (
+          typeof entry !== 'object' ||
+          entry === null ||
+          !('known_cost_usd' in entry) ||
+          typeof entry.known_cost_usd !== 'number' ||
+          !Number.isFinite(entry.known_cost_usd) ||
+          entry.known_cost_usd < 0 ||
+          !('unknown_cost_count' in entry) ||
+          typeof entry.unknown_cost_count !== 'number' ||
+          !Number.isSafeInteger(entry.unknown_cost_count) ||
+          entry.unknown_cost_count < 0
+        )
+          throw new ApiClientError('费用汇总响应格式不兼容')
+        knownCostUsd += entry.known_cost_usd
+        unknownCostCount += entry.unknown_cost_count
+      }
+      return { knownCostUsd, unknownCostCount }
     },
     system(role: UserRole | null, signal: AbortSignal) {
       return role === 'admin'

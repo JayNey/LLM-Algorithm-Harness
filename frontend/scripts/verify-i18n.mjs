@@ -144,7 +144,8 @@ async function contextFor({
         offset: 0,
         has_more: false,
       }
-    else if (path === '/costs/summary') data = { total_cost_usd: 0 }
+    else if (path === '/costs/summary')
+      data = { total_cost_usd: 0, by_source: {} }
     else
       return route.fulfill({
         status: 503,
