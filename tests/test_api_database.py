@@ -1,5 +1,6 @@
 """Business database tests for issue #151: migrations, problem import and evaluation persistence."""
 
+import os
 import secrets
 from unittest.mock import Mock, patch
 
@@ -53,6 +54,26 @@ def _bootstrap_user(client):
         json={"provider": "openai", "key_name": "test", "api_key": KEY},
     ).json()["data"]["id"]
     return headers, key_id
+
+
+def test_postgresql_pool_replaces_disconnected_connection():
+    database_url = os.getenv("TEST_POSTGRESQL_URL")
+    if not database_url:
+        pytest.skip("TEST_POSTGRESQL_URL requires an isolated PostgreSQL instance")
+
+    engine = make_engine(database_url)
+    try:
+        assert engine.dialect.name == "postgresql"
+        # Keep the control connection checked out so the next checkout must
+        # use the idle connection whose backend was just terminated.
+        with engine.connect() as admin:
+            with engine.connect() as connection:
+                stale_pid = connection.scalar(text("SELECT pg_backend_pid()"))
+            assert admin.scalar(text("SELECT pg_terminate_backend(:pid, 5000)"), {"pid": stale_pid})
+            with engine.connect() as connection:
+                assert connection.scalar(text("SELECT pg_backend_pid()")) != stale_pid
+    finally:
+        engine.dispose()
 
 
 class TestMigrations:

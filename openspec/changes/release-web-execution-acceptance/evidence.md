@@ -13,7 +13,7 @@
 
 Chromium 登录和受保护 API 返回 200，确认 HttpOnly Cookie。禁用缓存硬刷新 `/experiments/new` 返回 200，33 个 JavaScript 响应和两个公共 SVG 均为 200，缺失分包返回 404。初次导出误用了过严的 umask，导致两个 SVG 的权限不足。使用标准检出权限从同一 SHA 重建 Web 镜像后复核通过。原生 WebSocket 收到 `connected`，发送 `{"action":"ping"}` 后收到 `pong`。
 
-停止隔离 PostgreSQL 后，`/login` 和 API 存活探针返回 200，就绪、`/users/me` 和新 WebSocket 握手返回 503。恢复 PostgreSQL 后，就绪与 `/users/me` 返回 200，WebSocket 收到 `pong`。随后实验与 A/B 的首次创建和基准套件列表各出现一次 HTTP 500，API 记录 `OperationalError`。用候选版本的 `make_engine` 对 PostgreSQL 池预热并复现中断。就绪恢复 200 后，旧池连接的第一次 `SELECT 1` 返回 `AdminShutdown`，SQLAlchemy 标记连接失效，下一次查询返回 1。该问题阻塞本候选的完整就绪恢复验收。
+停止隔离 PostgreSQL 后，`/login` 和 API 存活探针返回 200，就绪、`/users/me` 和新 WebSocket 握手返回 503。恢复 PostgreSQL 后，就绪与 `/users/me` 返回 200，WebSocket 收到 `pong`。随后实验与 A/B 的首次创建和基准套件列表各出现一次 HTTP 500，API 记录 `OperationalError`。用候选版本的 `make_engine` 对 PostgreSQL 池预热并复现中断。就绪恢复 200 后，旧池连接的第一次 `SELECT 1` 返回 `AdminShutdown`，SQLAlchemy 标记连接失效，下一次查询返回 1。该问题使原候选的完整就绪恢复验收未通过。修复复测见下文。
 
 沙箱预检在生产 worker 内执行一条真实 Docker 用例，1/1 通过。
 
@@ -61,6 +61,16 @@ git diff --check
 
 ## 结论与未执行项
 
-本候选的四条模型替身链均到达预期终态。PostgreSQL 恢复后的首次业务请求 500 是发布验收未通过项。基准留空策略会导致 worker 失败，成功链使用显式策略。真实供应商及公网 TLS 证据未执行。现行 Web 暂停恢复用例覆盖评估，基准 Web 恢复入口范围待产品确认。
+本候选的四条模型替身链均到达预期终态。原候选的 PostgreSQL 恢复问题已在修复镜像中复测通过。基准留空策略会导致 worker 失败，成功链使用显式策略。真实供应商及公网 TLS 证据未执行。现行 Web 暂停恢复用例覆盖评估，基准 Web 恢复入口范围待产品确认。
 
 复现包 `issue-443-evidence.zip` 包含浏览器和连接池探针、脱敏 JSON 结果、编排覆盖与运行指引。ZIP SHA-256 为 `291aa23c03513ef4436caa905be5f91c4a1d8cff48f036a5066e741a03a391c0`，解包后可用 `shasum -a 256 -c SHA256SUMS` 检查内容。验收后停止本次 Compose 服务，保留独立卷供复查。
+
+## PostgreSQL 就绪恢复修复复测
+
+在同一隔离 Compose 环境对比 `73e7050a` 与加入连接池修复的源码。修复镜像为 API `70393d5a230e` 和 worker `075fa9811676`，使用原生产 Web 镜像。PostgreSQL 连接池在借出连接前检查可用性，失效时换用新连接。
+
+- **数据库回归**。用真实 PostgreSQL 15.19 终止一条空闲池连接，控制连接等待终止确认。基线首次借用后查询抛出 `AdminShutdown`。修复后首次查询成功并返回新 backend PID。用例位于 `tests/test_api_database.py`，通过 `TEST_POSTGRESQL_URL` 选择隔离 PostgreSQL 实例。
+- **生产入口回归**。Chromium 登录后通过 Nginx 预热三个业务池。停止 PostgreSQL 时，就绪和业务请求均为 503。恢复就绪 200 后，实验创建、A/B 创建、基准套件列表的首次请求在基线均为 500，修复后分别为 201、201、200。故障注入前后 API 容器标识与启动时间一致。
+- **入口门禁复测**。修复镜像上登录、深链接、分包和 SVG 均返回 200。数据库不可用时静态入口返回 200，业务和新 WS 握手返回 503，恢复后同源 WS 收到 `connected` 和 `pong`。
+- **相关测试**。`python3 -m pytest tests/test_api_database.py tests/test_api_readiness.py tests/test_api_experiment_benchmark.py -q --no-cov` 返回 105 通过、1 跳过。跳过项为上述需要真实 PostgreSQL 的用例，已在隔离容器内分别执行失败与通过检查。
+- 本轮取证范围是数据库恢复和生产入口。四条完整执行链的结果仍对应原候选，待对最终候选统一复验。
