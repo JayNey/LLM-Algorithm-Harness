@@ -545,6 +545,129 @@ async function verifyNotificationRefresh(browser) {
   }
 }
 
+const authForms = [
+  {
+    path: '/login',
+    fields: [
+      [
+        'login-identity',
+        '用户名或邮箱',
+        'Username or email',
+        '请输入用户名或邮箱',
+        'Enter your username or email',
+      ],
+      [
+        'login-password',
+        '密码',
+        'Password',
+        '请输入密码',
+        'Enter your password',
+      ],
+    ],
+  },
+  {
+    path: '/register',
+    fields: [
+      [
+        'register-username',
+        '用户名',
+        'Username',
+        '用户名需为 3–64 个字母、数字、下划线、点或连字符',
+        'Username must be 3–64 letters, numbers, underscores, dots or hyphens',
+      ],
+      [
+        'register-email',
+        '邮箱',
+        'Email',
+        '请输入有效邮箱',
+        'Enter a valid email',
+      ],
+      [
+        'register-password',
+        '密码',
+        'Password',
+        '至少 12 个字符',
+        'At least 12 characters',
+      ],
+      [
+        'register-confirm-password',
+        '确认密码',
+        'Confirm password',
+        '两次密码不一致',
+        'Passwords do not match',
+      ],
+    ],
+  },
+]
+
+async function verifyAuthForm(browser, { path, fields }, language) {
+  const context = await browser.newContext({
+    viewport: { width: 320, height: 844 },
+    reducedMotion: 'reduce',
+  })
+  try {
+    await context.addInitScript((locale) => {
+      localStorage.setItem('llm-harness-language', locale)
+    }, language)
+    const page = await context.newPage()
+    const ax = await context.newCDPSession(page)
+    await page.goto(base + path)
+    const ids = fields.map(([id]) => id)
+    await page.locator(`#${ids[0]}`).waitFor()
+    const label = `${path} ${language} 320px`
+    const { root } = await ax.send('DOM.getDocument')
+    async function accessibleField(id) {
+      const { nodeId } = await ax.send('DOM.querySelector', {
+        nodeId: root.nodeId,
+        selector: `#${id}`,
+      })
+      const { nodes } = await ax.send('Accessibility.getPartialAXTree', {
+        nodeId,
+        fetchRelatives: false,
+      })
+      return nodes[0]
+    }
+
+    const english = language === 'en-US'
+    await check(`${label} 字段可访问名称`, async () => {
+      for (const [id, chineseName, englishName] of fields) {
+        const field = await accessibleField(id)
+        assert.equal(field.name?.value, english ? englishName : chineseName, id)
+      }
+    })
+
+    await check(`${label} 键盘提交和字段错误描述`, async () => {
+      assert.equal(await page.locator(':focus').getAttribute('id'), ids[0])
+      // 从首字段退回再按 Tab，覆盖首字段本身也能通过 Tab 到达。
+      await page.keyboard.press('Shift+Tab')
+      const reached = []
+      for (let step = 0; step < 8 && reached.length < ids.length; step++) {
+        await page.keyboard.press('Tab')
+        const focusedId = await page.locator(':focus').getAttribute('id')
+        if (ids.includes(focusedId)) reached.push(focusedId)
+        if (focusedId === 'register-password') await page.keyboard.type('abc')
+      }
+      assert.deepEqual(reached, ids, 'Tab 可按顺序到达所有字段')
+      await page.keyboard.press('Enter')
+
+      for (const [id, , , chineseError, englishError] of fields) {
+        const error = english ? englishError : chineseError
+        await page.getByText(error, { exact: true }).waitFor()
+        const field = await accessibleField(id)
+        assert.equal(field.description?.value, error, id)
+        assert.equal(
+          field.properties.find(({ name }) => name === 'invalid')?.value.value,
+          'true',
+          id,
+        )
+      }
+      await assertNoOverflow(page, label)
+    })
+  } finally {
+    await context.close()
+  }
+}
+
 let server
 let browser
 let ownsServer = false
@@ -604,6 +727,11 @@ try {
   await check('通知聚焦与轮询保留后续页和键盘焦点', () =>
     verifyNotificationRefresh(browser),
   )
+  for (const form of authForms) {
+    for (const language of ['zh-CN', 'en-US']) {
+      await verifyAuthForm(browser, form, language)
+    }
+  }
 } finally {
   if (browser) await browser.close()
   if (ownsServer && server?.pid) {
