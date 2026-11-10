@@ -140,8 +140,11 @@ export default function RegisterPage() {
   }
 
   return (
-    <section className="mx-auto w-full max-w-md">
-      <h1 className="mb-4 text-xl font-semibold">{t('注册')}</h1>
+    <section className="auth-entry-form">
+      <h1>{t('注册')}</h1>
+      <p className="auth-entry-form-description">
+        {t('创建账号，开始你的第一次评估。')}
+      </p>
       {formMessage ? (
         <Alert
           className="mb-4"
@@ -280,8 +283,8 @@ export default function RegisterPage() {
           {t('注册')}
         </Button>
       </Form>
-      <p className="mt-4">
-        <Link to="/login">{t('登录')}</Link>
+      <p className="auth-entry-switch">
+        {t('已有账号？')} <Link to="/login">{t('登录')}</Link>
       </p>
     </section>
   )

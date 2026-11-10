@@ -475,6 +475,19 @@ export default {
   '创建中…': 'Creating…',
   登录失败: 'Sign-in failed',
   登录: 'Sign in',
+  '解法各异，': 'Different strategies.',
+  '取舍有据。': 'Measured trade-offs.',
+  '在同一组题目上衡量模型的准确率与评估成本。':
+    'Compare accuracy and cost across strategies on the same set of problems.',
+  评估成本: 'Evaluation cost',
+  效率前沿: 'Efficiency frontier',
+  概念示意: 'Illustrative data',
+  '运行评估任务，比较不同策略的结果。':
+    'Run evaluations and compare strategy results.',
+  '创建账号，开始你的第一次评估。':
+    'Create an account and run your first evaluation.',
+  '还没有账号？': 'New to Harness?',
+  '已有账号？': 'Already have an account?',
   可以登录: 'You can sign in now',
   用户名或邮箱: 'Username or email',
   密码: 'Password',
