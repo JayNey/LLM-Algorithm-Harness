@@ -45,6 +45,11 @@ export function formatPercent(value: number | null): string {
   return value === null ? '—' : `${Math.round(value * 10) / 10}%`
 }
 
+/** Monitoring ratio fields (error_rate/success_rate/hit_rate) are 0–1. */
+export function formatRatio(value: number | null): string {
+  return formatPercent(value === null ? null : value * 100)
+}
+
 export function formatMs(value: number | null): string {
   return value === null ? '—' : `${Math.round(value * 10) / 10} ms`
 }

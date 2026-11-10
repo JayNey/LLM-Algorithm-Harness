@@ -22,6 +22,7 @@ import {
   formatMs,
   formatPercent,
   formatRatePerSecond,
+  formatRatio,
   formatUptime,
   probeStatusLabel,
 } from '@/monitoring/presentation.ts'
@@ -299,7 +300,7 @@ function StatsSection({
           {
             key: 'errors',
             label: t('错误数 / 错误率'),
-            children: `${api?.errors ?? '—'} · ${formatPercent(api?.error_rate ?? null)}`,
+            children: `${api?.errors ?? '—'} · ${formatRatio(api?.error_rate ?? null)}`,
           },
         ]}
       />
@@ -335,7 +336,7 @@ function StatsSection({
                 llm.success_rate === null && llm.retained_sample
                   ? llm.retained_sample
                   : llm
-              return `${formatPercent(sample.success_rate)} · ${formatMs(sample.avg_latency_ms)}`
+              return `${formatRatio(sample.success_rate)} · ${formatMs(sample.avg_latency_ms)}`
             })(),
           },
         ]}
@@ -359,7 +360,7 @@ function StatsSection({
             key: 'cache-hits',
             label: t('命中 / 未命中 / 命中率'),
             children: cache
-              ? `${cache.hits ?? '—'} / ${cache.misses ?? '—'} · ${formatPercent(cache.hit_rate)}`
+              ? `${cache.hits ?? '—'} / ${cache.misses ?? '—'} · ${formatRatio(cache.hit_rate)}`
               : '—',
           },
           {
