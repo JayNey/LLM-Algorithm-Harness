@@ -297,7 +297,7 @@ class BenchmarkService:
                         config_dict["api_key_id"], owner_id, config_dict["model"]
                     ),
                     dataset_path=dataset_path,
-                    strategies=config_dict.get("strategies") or [],
+                    strategies=config_dict.get("strategies") or [{"name": "vanilla"}],
                     budget_cap_usd=budget_cap_usd,
                     # Benchmark budgets pause at the known-cost cap; the run
                     # keeps its own pause/checkpoint path instead of the

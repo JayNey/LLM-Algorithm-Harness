@@ -7,6 +7,7 @@ from pathlib import Path
 from typing import Any
 
 from sqlalchemy import Engine, create_engine, event
+from sqlalchemy.engine import make_url
 from sqlalchemy.orm import Session, sessionmaker
 
 DATABASE_PATH = Path("data/business/business.sqlite3")
@@ -25,13 +26,21 @@ def make_engine(database_url: str) -> Engine:
     SQLite gets cross-thread access plus a busy timeout so API worker threads
     and the execution thread can share one file without spurious locks.
     File-based SQLite databases get their parent directory created upfront.
+    PostgreSQL checks pooled connections before reuse to recover from restarts.
     """
+    url = make_url(database_url)
+    backend = url.get_backend_name()
     connect_args: dict[str, object] = {}
-    if database_url.startswith("sqlite"):
+    if backend == "sqlite":
         connect_args["check_same_thread"] = False
         if ":memory:" not in database_url:
             Path(database_url.removeprefix("sqlite:///")).parent.mkdir(parents=True, exist_ok=True)
-    engine = create_engine(database_url, future=True, connect_args=connect_args)
+    engine = create_engine(
+        url,
+        future=True,
+        connect_args=connect_args,
+        pool_pre_ping=backend == "postgresql",
+    )
     if engine.dialect.name == "sqlite":
 
         @event.listens_for(engine, "connect")
