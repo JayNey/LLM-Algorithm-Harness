@@ -1113,6 +1113,7 @@ export default {
   '用户菜单：{{value1}}': 'User menu: {{value1}}',
   '{{value1}} 仪表盘': '{{value1}} dashboard',
   '通知中心，{{value1}} 条未读': 'Notification center, {{value1}} unread',
+  '超出 {{value1}}': 'Over by {{value1}}',
   '评估进度 {{value1}} / {{value2}}':
     'Evaluation progress {{value1}} / {{value2}}',
   '查看 {{value1}}': 'View {{value1}}',
