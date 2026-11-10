@@ -366,14 +366,24 @@ export function createBudgetClient(http: AxiosInstance): BudgetClient {
       )
     },
     updateAlertRule: async (ruleId, patch) => {
-      if (patch.threshold_pct !== undefined || patch.channel !== undefined) {
-        const error = validateAlertInput({
-          threshold_pct: patch.threshold_pct ?? 50,
-          channel: patch.channel ?? 'log',
-          target: patch.target ?? '',
-        })
-        if (error) throw new ApiClientError(error)
-      }
+      // 部分更新逐字段校验：未提供 target 表示保持原值（列表只暴露脱敏
+      // 形态，回传会覆盖真实投递地址 #450），不做渠道×目标的整体验证。
+      if (
+        patch.threshold_pct !== undefined &&
+        (!Number.isInteger(patch.threshold_pct) ||
+          patch.threshold_pct < 1 ||
+          patch.threshold_pct > 100)
+      )
+        throw new ApiClientError('阈值须为 1–100 的整数百分比')
+      if (patch.channel !== undefined && !CHANNELS.includes(patch.channel))
+        throw new ApiClientError('渠道不支持')
+      if (
+        patch.channel !== undefined &&
+        patch.channel !== 'log' &&
+        patch.target !== undefined &&
+        !patch.target.trim()
+      )
+        throw new ApiClientError(`渠道 ${patch.channel} 需要填写通知目标`)
       return mutate(
         `/alerts/${encodeURIComponent(ruleId)}`,
         'patch',

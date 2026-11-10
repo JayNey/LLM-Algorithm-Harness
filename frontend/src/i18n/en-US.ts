@@ -1311,6 +1311,7 @@ export default {
   编辑阈值百分比: 'Edit threshold percent',
   编辑通知渠道: 'Edit notification channel',
   编辑通知目标: 'Edit notification target',
+  留空保持原目标: 'Leave empty to keep the current target',
   编辑: 'Edit',
   '统计含 {{value1}} 条未知费用记录（{{value2}}）；已知费用合计为下限，不是精确总额。':
     'Statistics include {{value1}} unknown-cost records ({{value2}}); the known-cost total is a lower bound, not an exact amount.',
