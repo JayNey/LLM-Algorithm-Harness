@@ -98,6 +98,38 @@ test('预算读取（含未设置键的 null）与保存（空 cap 省略）', a
   })
 })
 
+test('超支时 remaining_usd 为负仍可解析', async () => {
+  const client = createBudgetClient({
+    async get(url: string) {
+      assert.equal(url, '/budgets/usage')
+      return {
+        global_budget: {
+          cap_usd: 10,
+          used_usd: 12,
+          remaining_usd: -2,
+          percentage_used: 120,
+          known_cost_usd: 12,
+          cost_complete: true,
+          unknown_cost_count: 0,
+          unknown_reasons: {},
+        },
+        by_difficulty: {
+          easy: { cap_usd: null, used_usd: 0, percentage_used: null },
+          medium: { cap_usd: null, used_usd: 0, percentage_used: null },
+          hard: { cap_usd: null, used_usd: 0, percentage_used: null },
+        },
+        basis: 'estimate',
+      }
+    },
+    async post() {
+      return null
+    },
+  } as never)
+  const usage = await client.usage()
+  assert.equal(usage.global_budget.remaining_usd, -2)
+  assert.equal(usage.global_budget.percentage_used, 120)
+})
+
 test('get_budget 空对象（未配置）合法', async () => {
   const { client } = clientFor(({ url }) =>
     url === '/budgets' ? { data: {} } : { data: [] },

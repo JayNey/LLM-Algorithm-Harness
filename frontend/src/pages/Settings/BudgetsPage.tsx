@@ -36,6 +36,14 @@ function formatUsd(value: number | null): string {
   return value === null ? '—' : `$${value.toFixed(2)}`
 }
 
+// 剩余额度无下限：超支时后端返回负值，按「超出 $X」呈现。
+function formatRemaining(value: number | null | undefined): string {
+  if (value === null || value === undefined) return '—'
+  return value < 0
+    ? t('超出 {{value1}}', { value1: `$${Math.abs(value).toFixed(2)}` })
+    : `$${value.toFixed(2)}`
+}
+
 function useResource<T>(load: (signal: AbortSignal) => Promise<T>) {
   const [attempt, setAttempt] = useState(0)
   const [state, setState] = useState<{
@@ -249,7 +257,7 @@ function UsageSection({ usage }: { usage: BudgetUsage }) {
               <td>{name}</td>
               <td>{formatUsd(section.cap_usd)}</td>
               <td>{formatUsd(section.used_usd)}</td>
-              <td>{formatUsd(section.remaining_usd ?? null)}</td>
+              <td>{formatRemaining(section.remaining_usd)}</td>
               <td>
                 {section.percentage_used === null
                   ? '—'

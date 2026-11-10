@@ -37,6 +37,12 @@ function nullableFloat(value: unknown, field: string): number | null {
     protocol(field)
   return value
 }
+/** remaining_usd = cap - used 无下限（超支时为负），不能按非负金额解析。 */
+function nullableSignedFloat(value: unknown, field: string): number | null {
+  if (value === null || value === undefined) return null
+  if (typeof value !== 'number' || !Number.isFinite(value)) protocol(field)
+  return value
+}
 function boolean(value: unknown, field: string): boolean {
   if (typeof value !== 'boolean') protocol(field)
   return value
@@ -86,7 +92,10 @@ function usageSection(
   return {
     cap_usd: nullableFloat(data.cap_usd, `${field}.cap_usd`),
     used_usd: nullableFloat(data.used_usd, `${field}.used_usd`) ?? 0,
-    remaining_usd: nullableFloat(data.remaining_usd, `${field}.remaining_usd`),
+    remaining_usd: nullableSignedFloat(
+      data.remaining_usd,
+      `${field}.remaining_usd`,
+    ),
     percentage_used: nullableFloat(
       data.percentage_used,
       `${field}.percentage_used`,

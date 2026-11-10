@@ -1078,6 +1078,7 @@ export default {
   '用户菜单：{{value1}}': '用户菜单：{{value1}}',
   '{{value1}} 仪表盘': '{{value1}} 仪表盘',
   '通知中心，{{value1}} 条未读': '通知中心，{{value1}} 条未读',
+  '超出 {{value1}}': '超出 {{value1}}',
   '评估进度 {{value1}} / {{value2}}': '评估进度 {{value1}} / {{value2}}',
   '查看 {{value1}}': '查看 {{value1}}',
   '{{value1}} 秒': '{{value1}} 秒',
