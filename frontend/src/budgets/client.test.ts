@@ -298,7 +298,8 @@ test('预警历史解析与 limit 参数', async () => {
             threshold_pct: 80,
             used_usd: 0.5,
             cap_usd: 0.6,
-            channel: 'log',
+            channel: 'webhook',
+            status: 'failed',
             triggered_at: '2026-10-27T00:00:00Z',
           },
           {
@@ -318,6 +319,8 @@ test('预警历史解析与 limit 参数', async () => {
   const history = await client.alertHistory(undefined, 10)
   assert.equal(history.length, 2)
   assert.equal(history[1].channel, 'log')
+  assert.equal(history[1].status, 'succeeded')
+  assert.equal(history[0].status, 'failed')
   assert.equal(history[1].used_usd, 0.3)
   assert.equal(history[0].rule_id, null)
   const call = seen.find((row) => String(row.url).includes('/alerts/history'))

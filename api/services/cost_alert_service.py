@@ -88,17 +88,20 @@ class WebCostAlertDispatcher:
                     .limit(1)
                 )
                 if existing is not None:
-                    if existing.channel != "pending" or existing.created_at > now - timedelta(
-                        minutes=5
-                    ):
+                    pending = existing.channel == "pending"
+                    if pending and existing.created_at > now - timedelta(minutes=5):
                         return None
-                    # Compare-and-delete prevents stealing a renewed lease.
+                    if not pending and existing.status != "failed":
+                        return None
+                    # Compare-and-delete protects both a renewed lease and a
+                    # failed attempt another worker has already retried.
                     removed = cast(
                         CursorResult[Any],
                         db.execute(
                             delete(AlertEvent).where(
                                 AlertEvent.id == existing.id,
-                                AlertEvent.channel == "pending",
+                                AlertEvent.channel == existing.channel,
+                                AlertEvent.status == existing.status,
                                 AlertEvent.created_at == existing.created_at,
                             )
                         ),
@@ -114,6 +117,7 @@ class WebCostAlertDispatcher:
                         used_usd=float(used),
                         cap_usd=float(cap),
                         channel="pending",
+                        status="pending",
                         created_at=now,
                     )
                 )
@@ -140,19 +144,19 @@ class WebCostAlertDispatcher:
     def _finish(self, claim: tuple[str, datetime], channel: str, success: bool) -> None:
         event_id, claimed_at = claim
         with self.sessions() as db, db.begin():
-            conditions = (
-                AlertEvent.id == event_id,
-                AlertEvent.channel == "pending",
-                AlertEvent.created_at == claimed_at,
-            )
-            if success:
-                db.execute(
-                    update(AlertEvent)
-                    .where(*conditions)
-                    .values(channel=channel, created_at=utcnow())
+            db.execute(
+                update(AlertEvent)
+                .where(
+                    AlertEvent.id == event_id,
+                    AlertEvent.channel == "pending",
+                    AlertEvent.created_at == claimed_at,
                 )
-            else:
-                db.execute(delete(AlertEvent).where(*conditions))
+                .values(
+                    channel=channel,
+                    status="succeeded" if success else "failed",
+                    created_at=utcnow(),
+                )
+            )
 
     def _process(self, owner_id: str) -> None:
         with self.sessions() as db:

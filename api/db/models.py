@@ -292,6 +292,7 @@ class AlertEvent(Base):
     used_usd: Mapped[float] = mapped_column(Float)
     cap_usd: Mapped[float] = mapped_column(Float)
     channel: Mapped[str] = mapped_column(String(16), default="log")
+    status: Mapped[str] = mapped_column(String(16), server_default="succeeded")
     created_at: Mapped[datetime] = mapped_column(DateTime, default=utcnow)
 
 

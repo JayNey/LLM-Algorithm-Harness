@@ -284,6 +284,9 @@ function costBreakdown(value: unknown): CostBreakdown {
 
 function alertEvent(value: unknown, field: string): AlertEventRecord {
   const data = record(value, field)
+  // Older deployments only return successful deliveries.
+  const status = data.status === undefined ? 'succeeded' : data.status
+  if (status !== 'succeeded' && status !== 'failed') protocol(`${field}.status`)
   return {
     id: text(data.id, `${field}.id`),
     // 规则删除后 ondelete=SET NULL 会把 rule_id 置空（历史仍需展示）。
@@ -293,6 +296,7 @@ function alertEvent(value: unknown, field: string): AlertEventRecord {
     used_usd: nullableFloat(data.used_usd, `${field}.used_usd`) ?? 0,
     cap_usd: nullableFloat(data.cap_usd, `${field}.cap_usd`) ?? 0,
     channel: text(data.channel, `${field}.channel`),
+    status,
     triggered_at: text(data.triggered_at, `${field}.triggered_at`),
   }
 }

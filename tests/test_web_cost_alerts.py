@@ -1,4 +1,4 @@
-"""Web notifications use committed owner spend and durable successful history."""
+"""Web notifications use committed owner spend and durable delivery history."""
 
 from unittest.mock import Mock
 
@@ -7,6 +7,47 @@ import requests
 
 from api.db import make_engine, make_session_factory, run_migrations
 from api.db.models import AlertEvent, AlertRule, Budget, Evaluation, InAppNotification
+
+
+def test_delivery_status_migration_preserves_existing_history(tmp_path):
+    from api.db.migrate import downgrade, upgrade
+    from api.services.cost_service import CostService
+
+    engine = make_engine(f"sqlite:///{tmp_path / 'legacy-alerts.db'}")
+    upgrade(engine, "0007")
+    with engine.begin() as connection:
+        connection.exec_driver_sql(
+            "INSERT INTO alert_events (id, user_id, threshold_pct, used_usd, cap_usd, "
+            "channel, created_at) VALUES "
+            "('success', 'alice', 50, 0.5, 1, 'webhook', CURRENT_TIMESTAMP), "
+            "('pending', 'alice', 80, 0.8, 1, 'pending', CURRENT_TIMESTAMP)"
+        )
+    run_migrations(engine)
+    with engine.begin() as connection:
+        rows = connection.exec_driver_sql("SELECT id, status FROM alert_events ORDER BY id").all()
+        assert rows == [("pending", "pending"), ("success", "succeeded")]
+        connection.exec_driver_sql(
+            "INSERT INTO alert_events (id, user_id, threshold_pct, used_usd, cap_usd, "
+            "channel, created_at, status) VALUES "
+            "('failed', 'alice', 100, 1, 1, 'webhook', CURRENT_TIMESTAMP, 'failed')"
+        )
+        # An older worker may finish an in-flight delivery after the migration.
+        connection.exec_driver_sql(
+            "UPDATE alert_events SET channel = 'webhook' WHERE id = 'pending'"
+        )
+    service = CostService.__new__(CostService)
+    service._session_factory = make_session_factory(engine)
+    assert {row["id"]: row["status"] for row in service.alert_history("alice")} == {
+        "pending": "succeeded",
+        "success": "succeeded",
+        "failed": "failed",
+    }
+    downgrade(engine, "0007")
+    with engine.connect() as connection:
+        assert connection.exec_driver_sql(
+            "SELECT id, channel FROM alert_events ORDER BY id"
+        ).all() == [("pending", "webhook"), ("success", "webhook")]
+    engine.dispose()
 
 
 @pytest.fixture
@@ -109,12 +150,16 @@ def test_in_app_alert_is_independent_of_delivery_and_rule_save(sessions, monkeyp
         assert notes[0].href == "/settings/budgets"
         assert notes[0].params["threshold_pct"] == 100
         assert "secret" not in str(notes[0].params)
-        assert db.query(AlertEvent).count() == 0
+        assert db.query(AlertEvent).one().status == "failed"
 
 
 def test_failed_delivery_is_bounded_safe_and_resume_retries(sessions, monkeypatch, caplog):
+    from api.services.cost_service import CostService
+
     add_rule(sessions)
     add_rule(sessions, "log", channel="log", target="")
+    service = CostService.__new__(CostService)
+    service._session_factory = sessions
     attempts = []
 
     def fail(*args, **kwargs):
@@ -127,15 +172,22 @@ def test_failed_delivery_is_bounded_safe_and_resume_retries(sessions, monkeypatc
     worker.process("alice")
     assert len(attempts) == 3
     assert "secret-credential" not in caplog.text
-    with sessions() as db:
-        assert [r.rule_id for r in db.query(AlertEvent).all()] == ["log"]
+    history = {event["rule_id"]: event for event in service.alert_history("alice")}
+    assert history["log"]["status"] == "succeeded"
+    assert history["rule"]["status"] == "failed"
+    assert history["rule"]["channel"] == "webhook"
+    assert "secret" not in str(history)
+    assert service.alert_history("bob") == []
     monkeypatch.setattr(
         "src.cost_alert.requests.post",
         lambda *a, **k: Mock(status_code=200, raise_for_status=lambda: None),
     )
     dispatcher(sessions).process("alice")
-    with sessions() as db:
-        assert db.query(AlertEvent).count() == 2
+    dispatcher(sessions).process("alice")
+    history_after = {event["rule_id"]: event for event in service.alert_history("alice")}
+    assert history_after["rule"]["status"] == "succeeded"
+    assert history_after["rule"]["id"] == history["rule"]["id"]
+    assert len(service.alert_history("alice")) == 2
 
 
 @pytest.mark.parametrize("channel", ["slack", "smtp"])
@@ -281,7 +333,7 @@ def test_web_redirect_is_failed_without_following(sessions, monkeypatch):
     assert len(calls) == 1
     assert calls[0]["allow_redirects"] is False
     with sessions() as db:
-        assert db.query(AlertEvent).count() == 0
+        assert db.query(AlertEvent).one().status == "failed"
 
 
 def test_live_lease_is_hidden_and_expired_lease_can_resume(sessions, monkeypatch):

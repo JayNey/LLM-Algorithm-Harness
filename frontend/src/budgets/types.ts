@@ -97,6 +97,7 @@ export interface AlertEventRecord {
   used_usd: number
   cap_usd: number
   channel: string
+  status: 'succeeded' | 'failed'
   triggered_at: string
 }
 

@@ -797,6 +797,7 @@ function AlertHistorySection() {
                 t('阈值'),
                 t('已用 / 上限（USD）'),
                 t('渠道'),
+                t('状态'),
               ].map((name) => (
                 <th key={name} scope="col">
                   {name}
@@ -814,6 +815,9 @@ function AlertHistorySection() {
                   {formatUsd(event.used_usd)} / {formatUsd(event.cap_usd)}
                 </td>
                 <td>{event.channel}</td>
+                <td>
+                  {t(event.status === 'failed' ? '投递失败' : '投递成功')}
+                </td>
               </tr>
             ))}
           </tbody>
