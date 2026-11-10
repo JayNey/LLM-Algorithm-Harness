@@ -3,6 +3,7 @@ import { currentLanguage, t } from '../../i18n/core.ts'
 import { Alert, Button, Drawer, Input, Skeleton } from 'antd'
 import { useCallback, useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
+import { useRole } from '@/auth/roleContext.ts'
 import { ExperimentFeedback } from '@/experiments/components.tsx'
 import { usePricingSession } from '@/pricing/session.tsx'
 import type { PricingCatalog, PricingVersion } from '@/pricing/types.ts'
@@ -112,6 +113,8 @@ function useHistoryDrawer(
 export default function PricingPage() {
   useTranslation()
 
+  const { state: roleState } = useRole()
+  const canAppend = roleState.role === 'admin'
   const { client } = usePricingSession()
   const [catalog, setCatalog] = useState<PricingCatalog | null>(null)
   const [error, setError] = useState<string | null>(null)
@@ -221,66 +224,68 @@ export default function PricingPage() {
       ) : (
         <p role="status">{t('目录为空。')}</p>
       )}
-      <fieldset className="mt-6">
-        <legend>{t('追加自定义定价')}</legend>
-        <p id="pricing-price-hint">
-          {t('输入和输出单价均可填 0，表示该项免费。')}
-        </p>
-        <div className="evaluation-section-heading">
-          <label>
-            {t('模型 ID')}
-            <Input
-              aria-label={t('模型 ID')}
-              value={form.modelId}
-              placeholder={t('如 gpt-4o-mini')}
-              onChange={(event) =>
-                setForm({ ...form, modelId: event.target.value })
-              }
-            />
-            {formErrors.modelId && (
-              <small role="alert">{t(formErrors.modelId)}</small>
-            )}
-          </label>
-          <label>
-            {t('输入价 / 1k tokens')}
-            <Input
-              aria-label={t('输入价')}
-              aria-describedby="pricing-price-hint"
-              value={form.prompt_per_1k}
-              placeholder={t('如 0.15')}
-              onChange={(event) =>
-                setForm({ ...form, prompt_per_1k: event.target.value })
-              }
-            />
-            {formErrors.prompt_per_1k && (
-              <small role="alert">{t(formErrors.prompt_per_1k)}</small>
-            )}
-          </label>
-          <label>
-            {t('输出价 / 1k tokens')}
-            <Input
-              aria-label={t('输出价')}
-              aria-describedby="pricing-price-hint"
-              value={form.completion_per_1k}
-              placeholder={t('如 0.6')}
-              onChange={(event) =>
-                setForm({ ...form, completion_per_1k: event.target.value })
-              }
-            />
-            {formErrors.completion_per_1k && (
-              <small role="alert">{t(formErrors.completion_per_1k)}</small>
-            )}
-          </label>
-          <Button
-            type="primary"
-            aria-label={t('追加定价')}
-            disabled={busy}
-            onClick={() => void submit()}
-          >
-            {busy ? t('追加中…') : t('追加')}
-          </Button>
-        </div>
-      </fieldset>
+      {canAppend && (
+        <fieldset className="mt-6">
+          <legend>{t('追加自定义定价')}</legend>
+          <p id="pricing-price-hint">
+            {t('输入和输出单价均可填 0，表示该项免费。')}
+          </p>
+          <div className="evaluation-section-heading">
+            <label>
+              {t('模型 ID')}
+              <Input
+                aria-label={t('模型 ID')}
+                value={form.modelId}
+                placeholder={t('如 gpt-4o-mini')}
+                onChange={(event) =>
+                  setForm({ ...form, modelId: event.target.value })
+                }
+              />
+              {formErrors.modelId && (
+                <small role="alert">{t(formErrors.modelId)}</small>
+              )}
+            </label>
+            <label>
+              {t('输入价 / 1k tokens')}
+              <Input
+                aria-label={t('输入价')}
+                aria-describedby="pricing-price-hint"
+                value={form.prompt_per_1k}
+                placeholder={t('如 0.15')}
+                onChange={(event) =>
+                  setForm({ ...form, prompt_per_1k: event.target.value })
+                }
+              />
+              {formErrors.prompt_per_1k && (
+                <small role="alert">{t(formErrors.prompt_per_1k)}</small>
+              )}
+            </label>
+            <label>
+              {t('输出价 / 1k tokens')}
+              <Input
+                aria-label={t('输出价')}
+                aria-describedby="pricing-price-hint"
+                value={form.completion_per_1k}
+                placeholder={t('如 0.6')}
+                onChange={(event) =>
+                  setForm({ ...form, completion_per_1k: event.target.value })
+                }
+              />
+              {formErrors.completion_per_1k && (
+                <small role="alert">{t(formErrors.completion_per_1k)}</small>
+              )}
+            </label>
+            <Button
+              type="primary"
+              aria-label={t('追加定价')}
+              disabled={busy}
+              onClick={() => void submit()}
+            >
+              {busy ? t('追加中…') : t('追加')}
+            </Button>
+          </div>
+        </fieldset>
+      )}
       {history.drawer}
       <p className="mt-6">
         <Link to="/settings">{t('返回设置')}</Link>

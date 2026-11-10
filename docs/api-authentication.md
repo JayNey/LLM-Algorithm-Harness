@@ -70,7 +70,9 @@ python -c 'from cryptography.fernet import Fernet; print("ENCRYPTION_KEY=" + Fer
 - #151 业务数据库已合并，但认证仍使用 `api/auth/store.py` 的独立、持久化 SQLite 适配器，包含 `auth_users/auth_sessions/auth_keys/auth_rates`。业务任务的 `user_id` 引用认证用户 ID，不使用跨库外键。后续替换认证 Repository 时需保留刷新条件更新、撤销、参数化查询、加密值和原子限流语义。不同实例必须共享同一认证数据库文件；不支持跨机器独立 SQLite 文件共享认证状态。
 - 评估与异步任务状态跨重启持久化；现有评估服务的启动恢复规则不能当成真实队列恢复执行保障。认证用户、密钥、会话和限流在同机共享文件的多进程及重启场景有效。
 - #153 私有题库/文件 API 和 #150 的订阅权限可复用 `current_user` / `AuthService.authenticate`；各自还需在资源查询时验证 owner，不能只检查 Token。
-- 完整 RBAC、管理员账号创建、邮箱验证和密码重置为 issue 中的可选项，当前不开放。#157 的监控管理员由部署者设置 `MONITOR_ADMIN_USER_IDS` UUID 白名单，仅授权监控端点；用户名或客户端 Token 角色不能赋予权限，详见 [监控指南](api-monitoring.md)。
+- 完整 RBAC、管理员账号创建、邮箱验证和密码重置为 issue 中的可选项，当前不开放。部署者通过 `MONITOR_ADMIN_USER_IDS` UUID 白名单授权管理员监控接口及 `POST /api/v1/pricing/{model_id}`。目录和历史面向所有登录用户。用户名或客户端 Token 角色不能赋予权限。监控入口详见 [监控指南](api-monitoring.md)。
+
+现有 API v1 写入端点已收紧共享定价权限。原先以普通账号追加定价的客户端现在收到 403。需要追加时，由部署者配置的管理员执行写入。其他登录用户可继续查询目录和历史。[#444](https://github.com/JayNey/LLM-Algorithm-Harness/issues/444)
 
 正式部署使用 HTTPS，保护数据库目录及 `.env` 权限，并明确配置可信代理。应用限流使用 ASGI 的客户端地址，不直接信任请求中的 `X-Forwarded-For`；代理是否信任由服务启动参数控制。#157 已持久化脱敏的 API 生命周期与可信任务事件，并提供管理员全局查询和所有者任务日志下载；它不代表完整运维审计平台，异步 worker 的真实事件尚待绑定。
 

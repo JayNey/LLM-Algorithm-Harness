@@ -171,7 +171,11 @@ node scripts/verify-evaluations-live.mjs
 
 脚本创建专用账号并真实登录、保存本人密钥、加载供应商模型列表、选择单题/vanilla、设置预算后真实创建/启动。默认本地 UI；可用 `LIVE_UI_URL` 指定 localhost origin，`CHROME_PATH` 指定浏览器。输出仅包含状态、UTC、哈希 ID、数值和脱敏截图；原始错误仅写入私有 runtime 目录。不要将整个 runtime 打包上传。
 
-本轮以 [官方价格页](https://api-docs.deepseek.com/quick_start/pricing/) 2026-10-27 高峰 cache-miss 价格作为保守单价：输入 US$0.30/百万 tokens、输出 US$1.20/百万 tokens。生成上限 2000 tokens、关闭 thinking、SDK 重试关闭、账号日/月生成尝试最多 2 次；实际 prompt 616 bytes 加 256 余量，计算双次上界 US$0.0053232。脚本为该模型保存应用价格 override；模型验证/枚举不计生成尝试。未来复现先重新确认价格，变价后同步守卫与 override。
+本轮以 2026-10-27 的高峰 cache-miss 价格作为保守单价，输入 US$0.30/百万 tokens、输出 US$1.20/百万 tokens。生成上限为 2000 tokens，关闭 thinking 和 SDK 重试，账号日/月生成尝试最多 2 次。实际 prompt 为 616 bytes，加 256 余量后计算双次上界为 US$0.0053232。模型验证和枚举不计生成尝试。[供应商价格页](https://api-docs.deepseek.com/quick_start/pricing/)
+
+运行前，管理员在同一隔离部署的「定价管理」确认 `deepseek-flash` 目录中的输入和输出单价分别为 US$0.0003 和 US$0.0012 每千 tokens，需要时追加匹配版本。全新部署可另注册一个隔离操作员账号，登录后从 `GET /api/v1/users/me` 取得其 UUID，将该 UUID 加入 `services.env` 中的 `MONITOR_ADMIN_USER_IDS` JSON 数组，再重启本轮 API。评估验收账号保持普通角色。
+
+脚本读取目录，缺失或不匹配时在付费评估提交前停止。以后复现时先重新核对供应商价格和授权预算，价格变化时同步费用守卫和目录单价。
 
 `browser-state.json` 防止失败后重复提交；有已确认 ID 时默认只恢复观察。仅在核对上次 completed、费用和剩余授权后，才使用一次 `--retry-completed` 创建新的 smoke；脚本保留之前评估与费用，拒绝第二次重试，服务器配额仍是累计 2 次。未知提交结果时先调查私有数据库，不删除状态文件重试。禁止用关闭失败断言或重放 fixture 的方式生成通过证据。
 

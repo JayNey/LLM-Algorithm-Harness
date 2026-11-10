@@ -1231,7 +1231,8 @@ OPERATIONS: dict[str, tuple[str, Any]] = {
         ],
     ),
     "set_pricing_override": (
-        "追加模型价格覆盖版本；两项 USD/千 token 单价均须为正。",
+        "追加共享模型价格覆盖版本。两项 USD/千 token 单价均须为有限非负数，0 表示已知免费。"
+        "使用会话 Cookie 时须发送匹配的 X-CSRF-Token，否则返回 403。",
         {
             "model": "gpt-4o-mini",
             "prompt_per_1k": 0.001,
@@ -1299,6 +1300,7 @@ ADMIN_OPERATIONS = {
     "sandbox_config",
     "system_config",
     "global_logs",
+    "set_pricing_override",
 }
 AUTH_OPERATIONS = {"register", "login", "refresh"}
 UPLOAD_OPERATIONS = {"upload_file", "upload_problems", "upload_config"}
@@ -1821,11 +1823,12 @@ def _document_operation(path: str, method: str, operation: dict[str, Any]) -> No
                     "schema": {"type": "integer"},
                     "example": 60,
                 }
-    auth = (
-        "认证：公开接口，无需 Bearer。"
-        if not operation.get("security")
-        else "认证：Authorization: Bearer <access_token>；仅可操作自己的资源。"
-    )
+    if not operation.get("security"):
+        auth = "认证：公开接口，无需 Bearer。"
+    elif name in {"pricing_catalog", "pricing_history", "set_pricing_override"}:
+        auth = "认证：Authorization: Bearer <access_token> 或会话 Cookie。此接口操作共享定价。"
+    else:
+        auth = "认证：Authorization: Bearer <access_token>；仅可操作自己的资源。"
     if name in ADMIN_OPERATIONS:
         auth += " 需要管理员权限，由 MONITOR_ADMIN_USER_IDS 配置；不足时 403。"
     errors = "错误：参数或业务状态无效 400；未认证/令牌无效 401；资源不可访问 404；限流 429；内部故障 500/503。下方保留全局 HTTP 错误模型，非每个状态都会由本处理器产生。"

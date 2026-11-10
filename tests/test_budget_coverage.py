@@ -7,6 +7,7 @@
 
 import json
 from unittest.mock import patch
+from uuid import UUID
 
 import pytest
 from fastapi.testclient import TestClient
@@ -113,6 +114,8 @@ def _write_dataset(tmp_path, *problem_ids):
 
 def _setup_pricing_and_llm(client, headers, monkeypatch):
     _fake_llm(monkeypatch)
+    owner = client.get("/api/v1/users/me", headers=headers).json()["data"]["id"]
+    client.app.state.monitor.settings.MONITOR_ADMIN_USER_IDS = [UUID(owner)]
     price = client.post(
         "/api/v1/pricing/priced%2Fmodel",
         headers=headers,
