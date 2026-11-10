@@ -275,7 +275,11 @@ export function createHttpClient(options: HttpClientOptions): AxiosInstance {
       options.write(next)
       return next
     } catch (error) {
-      if (isCurrent()) options.clear()
+      // Only a definitive 401 from the refresh endpoint means the refresh
+      // token is revoked; network errors, 5xx and throttling keep the
+      // session so the next request can retry the pre-refresh (#452).
+      const definitive = error instanceof ApiClientError && error.status === 401
+      if (definitive && isCurrent()) options.clear()
       if (error instanceof ApiClientError) throw error
       throw new ApiClientError(unavailable)
     }

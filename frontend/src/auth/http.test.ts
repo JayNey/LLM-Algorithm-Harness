@@ -701,6 +701,93 @@ test('刷新失败时清除会话并抛出 ApiClientError', async () => {
   assert.equal(cleared, 1)
 })
 
+test('刷新 5xx 保留会话，恢复后自动预刷新成功', async () => {
+  let cleared = 0
+  let refreshCount = 0
+  const client = createHttpClient({
+    baseURL: 'http://api.test',
+    now: () => 0,
+    read: () => session({ expiresAt: 60_000 }),
+    write: () => undefined,
+    clear: () => {
+      cleared += 1
+    },
+    adapter: (config) => {
+      const url = config.url ?? ''
+      if (url.endsWith('/auth/refresh')) {
+        refreshCount += 1
+        if (refreshCount === 1)
+          return resolveWith(
+            config,
+            503,
+            { detail: '维护中' },
+            'Service Unavailable',
+          )
+        return resolveWith(
+          config,
+          200,
+          envelope({ access_token: 'new', expires_in: 900 }),
+        )
+      }
+      // 业务请求始终 401，借恢复路径触发刷新。
+      return resolveWith(config, 401, { detail: '未授权' }, 'Unauthorized')
+    },
+  })
+  // 5xx 按既有语义忽略响应正文，但保留状态码；会话不清除。
+  await assert.rejects(
+    () => client.get('/api/v1/users/me'),
+    (error: unknown) => assertApiError(error, '服务暂时不可用', 503),
+  )
+  assert.equal(cleared, 0, '暂时性刷新失败不得清除会话')
+  // 下一次请求走恢复路径重新刷新（本次仍 401，但刷新已成功且会话保留）。
+  await assert.rejects(
+    () => client.get('/api/v1/users/me'),
+    (error: unknown) => assertApiError(error, '未授权', 401),
+  )
+  assert.equal(refreshCount, 2, '下一次请求应重新发起刷新')
+  assert.equal(cleared, 0)
+})
+
+test('刷新网络失败保留会话且不破坏后续请求', async () => {
+  let cleared = 0
+  let refreshCount = 0
+  const client = createHttpClient({
+    baseURL: 'http://api.test',
+    now: () => 0,
+    read: () => session({ expiresAt: 60_000 }),
+    write: () => undefined,
+    clear: () => {
+      cleared += 1
+    },
+    adapter: (config) => {
+      const url = config.url ?? ''
+      if (url.endsWith('/auth/refresh')) {
+        refreshCount += 1
+        if (refreshCount === 1)
+          return Promise.reject(new AxiosError('Network Error'))
+        return resolveWith(
+          config,
+          200,
+          envelope({ access_token: 'new', expires_in: 900 }),
+        )
+      }
+      // 业务请求始终 401，借恢复路径触发刷新。
+      return resolveWith(config, 401, { detail: '未授权' }, 'Unauthorized')
+    },
+  })
+  await assert.rejects(
+    () => client.get('/api/v1/users/me'),
+    (error: unknown) => assertApiError(error, '服务暂时不可用'),
+  )
+  assert.equal(cleared, 0, '断网刷新失败不得清除会话')
+  await assert.rejects(
+    () => client.get('/api/v1/users/me'),
+    (error: unknown) => assertApiError(error, '未授权', 401),
+  )
+  assert.equal(refreshCount, 2)
+  assert.equal(cleared, 0)
+})
+
 test('重试仍返回 401 时不再刷新', async () => {
   let refreshCount = 0
   const client = createHttpClient({
