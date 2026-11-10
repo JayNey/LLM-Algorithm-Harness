@@ -72,38 +72,43 @@ function ResultsTab({ testId }: { testId: string }) {
   return (
     <div>
       <h3>{t('通过率对比（基线 vs 实验组）')}</h3>
-      <table className="evaluation-list-table" aria-label={t('A/B 通过率对比')}>
-        <thead>
-          <tr>
-            {[
-              t('口径'),
-              t('基线'),
-              t('实验组'),
-              t('差值'),
-              t('95% 置信区间'),
-            ].map((name) => (
-              <th key={name} scope="col">
-                {name}
-              </th>
-            ))}
-          </tr>
-        </thead>
-        <tbody>
-          {rows.map(({ name, pair }) => (
-            <tr key={name}>
-              <td>{name}</td>
-              <td>{formatRate(pair.baseline)}</td>
-              <td>{formatRate(pair.treatment)}</td>
-              <td>{formatDiff(pair.ci95.difference)}</td>
-              <td>
-                {pair.ci95.lower === null || pair.ci95.upper === null
-                  ? '—'
-                  : `[${formatDiff(pair.ci95.lower)}, ${formatDiff(pair.ci95.upper)}]`}
-              </td>
+      <div className="evaluation-list-scroll">
+        <table
+          className="evaluation-list-table"
+          aria-label={t('A/B 通过率对比')}
+        >
+          <thead>
+            <tr>
+              {[
+                t('口径'),
+                t('基线'),
+                t('实验组'),
+                t('差值'),
+                t('95% 置信区间'),
+              ].map((name) => (
+                <th key={name} scope="col">
+                  {name}
+                </th>
+              ))}
             </tr>
-          ))}
-        </tbody>
-      </table>
+          </thead>
+          <tbody>
+            {rows.map(({ name, pair }) => (
+              <tr key={name}>
+                <td>{name}</td>
+                <td>{formatRate(pair.baseline)}</td>
+                <td>{formatRate(pair.treatment)}</td>
+                <td>{formatDiff(pair.ci95.difference)}</td>
+                <td>
+                  {pair.ci95.lower === null || pair.ci95.upper === null
+                    ? '—'
+                    : `[${formatDiff(pair.ci95.lower)}, ${formatDiff(pair.ci95.upper)}]`}
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
       <h3>{t('统计检验')}</h3>
       <p>
         {t('方法：')}
@@ -120,47 +125,53 @@ function ResultsTab({ testId }: { testId: string }) {
       <h3>{t('按变体统计')}</h3>
       {Object.keys(data.comparison.elapsed_seconds).length ||
       Object.keys(data.comparison.failure_categories).length ? (
-        <table className="evaluation-list-table" aria-label={t('按变体统计')}>
-          <thead>
-            <tr>
-              {[t('变体'), t('总耗时（秒）'), t('token 数'), t('失败分类')].map(
-                (name) => (
+        <div className="evaluation-list-scroll">
+          <table className="evaluation-list-table" aria-label={t('按变体统计')}>
+            <thead>
+              <tr>
+                {[
+                  t('变体'),
+                  t('总耗时（秒）'),
+                  t('token 数'),
+                  t('失败分类'),
+                ].map((name) => (
                   <th key={name} scope="col">
                     {name}
                   </th>
-                ),
-              )}
-            </tr>
-          </thead>
-          <tbody>
-            {Object.keys(data.comparison.elapsed_seconds)
-              .concat(Object.keys(data.comparison.failure_categories))
-              .filter((variant, index, all) => all.indexOf(variant) === index)
-              .map((variant) => {
-                const categories =
-                  data.comparison.failure_categories[variant] ?? {}
-                const summary = Object.keys(categories).length
-                  ? Object.entries(categories)
-                      .map(
-                        ([category, countValue]) => `${category}×${countValue}`,
-                      )
-                      .join('、')
-                  : t('无失败')
-                return (
-                  <tr key={variant}>
-                    <td>{variant}</td>
-                    <td>
-                      {data.comparison.elapsed_seconds[variant] !== undefined
-                        ? data.comparison.elapsed_seconds[variant].toFixed(1)
-                        : '—'}
-                    </td>
-                    <td>{data.comparison.tokens[variant] ?? '—'}</td>
-                    <td>{summary}</td>
-                  </tr>
-                )
-              })}
-          </tbody>
-        </table>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {Object.keys(data.comparison.elapsed_seconds)
+                .concat(Object.keys(data.comparison.failure_categories))
+                .filter((variant, index, all) => all.indexOf(variant) === index)
+                .map((variant) => {
+                  const categories =
+                    data.comparison.failure_categories[variant] ?? {}
+                  const summary = Object.keys(categories).length
+                    ? Object.entries(categories)
+                        .map(
+                          ([category, countValue]) =>
+                            `${category}×${countValue}`,
+                        )
+                        .join('、')
+                    : t('无失败')
+                  return (
+                    <tr key={variant}>
+                      <td>{variant}</td>
+                      <td>
+                        {data.comparison.elapsed_seconds[variant] !== undefined
+                          ? data.comparison.elapsed_seconds[variant].toFixed(1)
+                          : '—'}
+                      </td>
+                      <td>{data.comparison.tokens[variant] ?? '—'}</td>
+                      <td>{summary}</td>
+                    </tr>
+                  )
+                })}
+            </tbody>
+          </table>
+        </div>
       ) : (
         <p>{t('无失败记录')}</p>
       )}

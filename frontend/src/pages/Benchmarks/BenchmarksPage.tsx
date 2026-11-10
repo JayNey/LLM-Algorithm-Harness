@@ -145,41 +145,46 @@ export default function BenchmarksPage() {
             action={<Button onClick={suites.reload}>{t('重试')}</Button>}
           />
         ) : suites.data?.length ? (
-          <table
-            className="evaluation-list-table"
-            aria-label={t('基准套件列表')}
-          >
-            <thead>
-              <tr>
-                {[t('名称 / 版本'), t('题目数'), t('状态'), t('更新时间')].map(
-                  (name) => (
+          <div className="evaluation-list-scroll">
+            <table
+              className="evaluation-list-table"
+              aria-label={t('基准套件列表')}
+            >
+              <thead>
+                <tr>
+                  {[
+                    t('名称 / 版本'),
+                    t('题目数'),
+                    t('状态'),
+                    t('更新时间'),
+                  ].map((name) => (
                     <th key={name} scope="col">
                       {name}
                     </th>
-                  ),
-                )}
-              </tr>
-            </thead>
-            <tbody>
-              {suites.data.map((suite) => (
-                <tr key={suite.id}>
-                  <td>
-                    <Link to={`/benchmarks/${encodeURIComponent(suite.id)}`}>
-                      {suite.name}
-                    </Link>
-                    <small>v{suite.version}</small>
-                  </td>
-                  <td>{suite.problems.length}</td>
-                  <td>{suite.frozen ? t('已冻结') : t('可编辑')}</td>
-                  <td>
-                    <time dateTime={suite.updated_at}>
-                      {formatDateTime(suite.updated_at)}
-                    </time>
-                  </td>
+                  ))}
                 </tr>
-              ))}
-            </tbody>
-          </table>
+              </thead>
+              <tbody>
+                {suites.data.map((suite) => (
+                  <tr key={suite.id}>
+                    <td>
+                      <Link to={`/benchmarks/${encodeURIComponent(suite.id)}`}>
+                        {suite.name}
+                      </Link>
+                      <small>v{suite.version}</small>
+                    </td>
+                    <td>{suite.problems.length}</td>
+                    <td>{suite.frozen ? t('已冻结') : t('可编辑')}</td>
+                    <td>
+                      <time dateTime={suite.updated_at}>
+                        {formatDateTime(suite.updated_at)}
+                      </time>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
         ) : (
           <p role="status">{t('还没有基准套件，点击「新建套件」开始。')}</p>
         )}

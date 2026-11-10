@@ -122,48 +122,50 @@ function ComparisonTab({ experimentId }: { experimentId: string }) {
   return (
     <div>
       <h3>{t('组合指标')}</h3>
-      <table className="evaluation-list-table" aria-label={t('组合指标表')}>
-        <thead>
-          <tr>
-            {[
-              t('组合'),
-              t('模型'),
-              t('策略'),
-              t('完成/总数'),
-              t('通过率'),
-              t('正式通过率'),
-              t('成本'),
-            ].map((name) => (
-              <th key={name} scope="col">
-                {name}
-              </th>
-            ))}
-          </tr>
-        </thead>
-        <tbody>
-          {data.combinations.map((row) => (
-            <tr key={row.combo_id}>
-              <td>{row.combo_id}</td>
-              <td>{row.model}</td>
-              <td>{row.strategy}</td>
-              <td>
-                {row.denominator.completed} / {row.denominator.total}
-              </td>
-              <td>
-                {row.pass_rate_over_total === null
-                  ? '—'
-                  : formatAccuracy(row.pass_rate_over_total)}
-              </td>
-              <td>
-                {row.formal.rate === null
-                  ? '—'
-                  : formatAccuracy(row.formal.rate)}
-              </td>
-              <td>{formatUsd(row.cost.total_cost_usd)}</td>
+      <div className="evaluation-list-scroll">
+        <table className="evaluation-list-table" aria-label={t('组合指标表')}>
+          <thead>
+            <tr>
+              {[
+                t('组合'),
+                t('模型'),
+                t('策略'),
+                t('完成/总数'),
+                t('通过率'),
+                t('正式通过率'),
+                t('成本'),
+              ].map((name) => (
+                <th key={name} scope="col">
+                  {name}
+                </th>
+              ))}
             </tr>
-          ))}
-        </tbody>
-      </table>
+          </thead>
+          <tbody>
+            {data.combinations.map((row) => (
+              <tr key={row.combo_id}>
+                <td>{row.combo_id}</td>
+                <td>{row.model}</td>
+                <td>{row.strategy}</td>
+                <td>
+                  {row.denominator.completed} / {row.denominator.total}
+                </td>
+                <td>
+                  {row.pass_rate_over_total === null
+                    ? '—'
+                    : formatAccuracy(row.pass_rate_over_total)}
+                </td>
+                <td>
+                  {row.formal.rate === null
+                    ? '—'
+                    : formatAccuracy(row.formal.rate)}
+                </td>
+                <td>{formatUsd(row.cost.total_cost_usd)}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
       {Object.entries(data.model_comparison.strategies).map(
         ([strategy, group]) => (
           <section key={strategy}>
@@ -172,70 +174,74 @@ function ComparisonTab({ experimentId }: { experimentId: string }) {
               {strategy}
             </h3>
             <WinRateHeatmap strategy={strategy} matrix={group.matrix} />
-            <table
-              className="evaluation-list-table"
-              aria-label={t('显著性检验')}
-            >
-              <thead>
-                <tr>
-                  {[
-                    t('对比'),
-                    t('不一致对数'),
-                    t('p 值'),
-                    t('显著'),
-                    t('说明'),
-                  ].map((name) => (
-                    <th key={name} scope="col">
-                      {name}
-                    </th>
-                  ))}
-                </tr>
-              </thead>
-              <tbody>
-                {group.significance.map((row, index) => (
-                  <tr key={index}>
-                    <td>{row.a && row.b ? `${row.a} vs ${row.b}` : '—'}</td>
-                    <td>{row.discordant_pairs}</td>
-                    <td>{row.p_value === null ? '—' : row.p_value}</td>
-                    <td>
-                      {row.significant === null
-                        ? '—'
-                        : row.significant
-                          ? t('显著（p<0.05）')
-                          : t('不显著')}
-                    </td>
-                    <td>{row.note}</td>
+            <div className="evaluation-list-scroll">
+              <table
+                className="evaluation-list-table"
+                aria-label={t('显著性检验')}
+              >
+                <thead>
+                  <tr>
+                    {[
+                      t('对比'),
+                      t('不一致对数'),
+                      t('p 值'),
+                      t('显著'),
+                      t('说明'),
+                    ].map((name) => (
+                      <th key={name} scope="col">
+                        {name}
+                      </th>
+                    ))}
                   </tr>
-                ))}
-              </tbody>
-            </table>
+                </thead>
+                <tbody>
+                  {group.significance.map((row, index) => (
+                    <tr key={index}>
+                      <td>{row.a && row.b ? `${row.a} vs ${row.b}` : '—'}</td>
+                      <td>{row.discordant_pairs}</td>
+                      <td>{row.p_value === null ? '—' : row.p_value}</td>
+                      <td>
+                        {row.significant === null
+                          ? '—'
+                          : row.significant
+                            ? t('显著（p<0.05）')
+                            : t('不显著')}
+                      </td>
+                      <td>{row.note}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
           </section>
         ),
       )}
       <h3>{t('成本效益')}</h3>
-      <table className="evaluation-list-table" aria-label={t('成本效益表')}>
-        <thead>
-          <tr>
-            {[t('模型'), t('解决题数'), t('总成本'), t('每美元解决题数')].map(
-              (name) => (
-                <th key={name} scope="col">
-                  {name}
-                </th>
-              ),
-            )}
-          </tr>
-        </thead>
-        <tbody>
-          {data.model_comparison.cost_effectiveness.map((row) => (
-            <tr key={row.model}>
-              <td>{row.model}</td>
-              <td>{row.solved}</td>
-              <td>{formatUsd(row.total_cost_usd)}</td>
-              <td>{row.solved_per_usd}</td>
+      <div className="evaluation-list-scroll">
+        <table className="evaluation-list-table" aria-label={t('成本效益表')}>
+          <thead>
+            <tr>
+              {[t('模型'), t('解决题数'), t('总成本'), t('每美元解决题数')].map(
+                (name) => (
+                  <th key={name} scope="col">
+                    {name}
+                  </th>
+                ),
+              )}
             </tr>
-          ))}
-        </tbody>
-      </table>
+          </thead>
+          <tbody>
+            {data.model_comparison.cost_effectiveness.map((row) => (
+              <tr key={row.model}>
+                <td>{row.model}</td>
+                <td>{row.solved}</td>
+                <td>{formatUsd(row.total_cost_usd)}</td>
+                <td>{row.solved_per_usd}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
     </div>
   )
 }
@@ -335,26 +341,31 @@ function ParetoTab({ experimentId }: { experimentId: string }) {
           .map((point) => `${point.model} × ${point.strategy}`)
           .join('、') || t('无')}
       </p>
-      <table className="evaluation-list-table" aria-label={t('帕累托预算建议')}>
-        <thead>
-          <tr>
-            {[t('预算（USD）'), t('可行'), t('推荐组合')].map((name) => (
-              <th key={name} scope="col">
-                {name}
-              </th>
-            ))}
-          </tr>
-        </thead>
-        <tbody>
-          {data.budget_recommendations.map((row) => (
-            <tr key={row.budget_usd}>
-              <td>{row.budget_usd}</td>
-              <td>{row.feasible ? t('可行') : t('不可行')}</td>
-              <td>{row.point_id || '—'}</td>
+      <div className="evaluation-list-scroll">
+        <table
+          className="evaluation-list-table"
+          aria-label={t('帕累托预算建议')}
+        >
+          <thead>
+            <tr>
+              {[t('预算（USD）'), t('可行'), t('推荐组合')].map((name) => (
+                <th key={name} scope="col">
+                  {name}
+                </th>
+              ))}
             </tr>
-          ))}
-        </tbody>
-      </table>
+          </thead>
+          <tbody>
+            {data.budget_recommendations.map((row) => (
+              <tr key={row.budget_usd}>
+                <td>{row.budget_usd}</td>
+                <td>{row.feasible ? t('可行') : t('不可行')}</td>
+                <td>{row.point_id || '—'}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
     </div>
   )
 }
@@ -398,79 +409,90 @@ function OptimizeTab({ experimentId }: { experimentId: string }) {
           ) => setObjective(value)}
         />
       </label>
-      <table className="evaluation-list-table" aria-label={t('优化建议')}>
-        <thead>
-          <tr>
-            {[t('目标'), t('可行'), t('推荐组合'), t('准确率'), t('成本')].map(
-              (name) => (
+      <div className="evaluation-list-scroll">
+        <table className="evaluation-list-table" aria-label={t('优化建议')}>
+          <thead>
+            <tr>
+              {[
+                t('目标'),
+                t('可行'),
+                t('推荐组合'),
+                t('准确率'),
+                t('成本'),
+              ].map((name) => (
                 <th key={name} scope="col">
                   {name}
                 </th>
+              ))}
+            </tr>
+          </thead>
+          <tbody>
+            {Object.entries(data.recommendations).map(
+              ([key, recommendation]) => (
+                <tr key={key}>
+                  <td>
+                    {names[recommendation.objective] ??
+                      recommendation.objective}
+                  </td>
+                  <td>{recommendation.feasible ? t('可行') : t('不可行')}</td>
+                  <td>
+                    {recommendation.feasible
+                      ? `${recommendation.model ?? '—'} × ${recommendation.strategy ?? '—'}`
+                      : (recommendation.note ?? '—')}
+                  </td>
+                  <td>
+                    {recommendation.accuracy !== undefined
+                      ? formatAccuracy(recommendation.accuracy)
+                      : '—'}
+                  </td>
+                  <td>
+                    {recommendation.cost_usd !== undefined
+                      ? formatUsd(recommendation.cost_usd)
+                      : '—'}
+                  </td>
+                </tr>
               ),
             )}
-          </tr>
-        </thead>
-        <tbody>
-          {Object.entries(data.recommendations).map(([key, recommendation]) => (
-            <tr key={key}>
-              <td>
-                {names[recommendation.objective] ?? recommendation.objective}
-              </td>
-              <td>{recommendation.feasible ? t('可行') : t('不可行')}</td>
-              <td>
-                {recommendation.feasible
-                  ? `${recommendation.model ?? '—'} × ${recommendation.strategy ?? '—'}`
-                  : (recommendation.note ?? '—')}
-              </td>
-              <td>
-                {recommendation.accuracy !== undefined
-                  ? formatAccuracy(recommendation.accuracy)
-                  : '—'}
-              </td>
-              <td>
-                {recommendation.cost_usd !== undefined
-                  ? formatUsd(recommendation.cost_usd)
-                  : '—'}
-              </td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
+          </tbody>
+        </table>
+      </div>
       <h3>{t('组合排名')}</h3>
-      <table className="evaluation-list-table" aria-label={t('组合排名')}>
-        <thead>
-          <tr>
-            {[
-              t('模型'),
-              t('策略'),
-              t('准确率'),
-              t('成本'),
-              t('每美元解决'),
-            ].map((name) => (
-              <th key={name} scope="col">
-                {name}
-              </th>
-            ))}
-          </tr>
-        </thead>
-        <tbody>
-          {data.ranking.ranking.map((row) => (
-            <tr key={`${row.model}-${row.strategy}`}>
-              <td>{row.model}</td>
-              <td>{row.strategy}</td>
-              <td>
-                {row.accuracy === null ? '—' : formatAccuracy(row.accuracy)}
-              </td>
-              <td>
-                {row.cost_usd === null
-                  ? t('成本未知')
-                  : formatUsd(row.cost_usd)}
-              </td>
-              <td>{row.ratio === null ? '—' : row.ratio}</td>
+      <div className="evaluation-list-scroll">
+        <table className="evaluation-list-table" aria-label={t('组合排名')}>
+          <thead>
+            <tr>
+              {[
+                t('模型'),
+                t('策略'),
+                t('准确率'),
+                t('成本'),
+                t('每美元解决'),
+              ].map((name) => (
+                <th key={name} scope="col">
+                  {name}
+                </th>
+              ))}
             </tr>
-          ))}
-        </tbody>
-      </table>
+          </thead>
+          <tbody>
+            {data.ranking.ranking.map((row) => (
+              <tr key={`${row.model}-${row.strategy}`}>
+                <td>{row.model}</td>
+                <td>{row.strategy}</td>
+                <td>
+                  {row.accuracy === null ? '—' : formatAccuracy(row.accuracy)}
+                </td>
+                <td>
+                  {row.cost_usd === null
+                    ? t('成本未知')
+                    : formatUsd(row.cost_usd)}
+                </td>
+                <td>{row.ratio === null ? '—' : row.ratio}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
     </div>
   )
 }
