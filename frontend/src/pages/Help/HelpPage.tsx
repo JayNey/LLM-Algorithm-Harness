@@ -57,7 +57,7 @@ export default function HelpPage() {
               {t('在')}
               <Link to="/settings/pricing">{t('设置 → 定价管理')}</Link>
               {t(
-                '为使用的模型配置每 1k tokens 的输入/输出单价；未配置定价的模型成本按未知处理，不计入费用统计。',
+                '查看模型每 1k tokens 的输入和输出单价。管理员可以追加共享定价。未配置定价的模型成本按未知处理，不计入费用统计。',
               )}
             </li>
           </ol>

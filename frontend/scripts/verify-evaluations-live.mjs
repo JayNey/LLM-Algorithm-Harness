@@ -8,6 +8,9 @@ import { resolve, join } from 'node:path'
 import { fileURLToPath, pathToFileURL, URL } from 'node:url'
 import { execFileSync } from 'node:child_process'
 
+// Conservative peak cache-miss USD prices per million tokens, checked 2026-10-27.
+const LIVE_PRICING = { prompt: 0.3, completion: 1.2 }
+
 export function localOrigin(value) {
   const url = new URL(value)
   assert.ok(['http:', 'https:'].includes(url.protocol))
@@ -25,9 +28,11 @@ export function budgetBound(allowed, promptTokens, outputTokens, attempts) {
     Number.isInteger(outputTokens) && outputTokens > 0 && outputTokens <= 2000,
   )
   assert.ok(Number.isInteger(attempts) && attempts > 0 && attempts <= 2)
-  // Conservative peak cache-miss USD prices, per million tokens, checked 2026-10-27.
   const bound =
-    (attempts * (promptTokens * 0.3 + outputTokens * 1.2)) / 1_000_000
+    (attempts *
+      (promptTokens * LIVE_PRICING.prompt +
+        outputTokens * LIVE_PRICING.completion)) /
+    1_000_000
   assert.ok(bound <= allowed)
   return bound
 }
@@ -61,7 +66,17 @@ export function recordProgressFrame(socket, data, targetId) {
   if (data.task_id) socket.evaluation = publicId(data.task_id)
 }
 
-function selfTest() {
+export async function checkLivePricing(api) {
+  const catalog = await api('/pricing')
+  const price = catalog?.models?.['deepseek-flash']
+  assert.ok(
+    price?.prompt_per_1k === LIVE_PRICING.prompt / 1000 &&
+      price?.completion_per_1k === LIVE_PRICING.completion / 1000,
+    'Ask an administrator to prepare the matching deepseek-flash price in the isolated deployment before starting a paid evaluation',
+  )
+}
+
+async function selfTest() {
   assert.equal(localOrigin('http://localhost:3000'), 'http://localhost:3000')
   assert.throws(() => localOrigin('https://example.org'))
   assert.throws(() => localOrigin('http://user:password@localhost:3000'))
@@ -70,6 +85,33 @@ function selfTest() {
   assert.throws(() => budgetBound(NaN, 100, 2000, 2))
   assert.throws(() => budgetBound(0.1, 100, 2001, 2))
   assert.throws(() => budgetBound(0.1, 100, 2000, 3))
+  const catalog = {
+    models: {
+      'deepseek-flash': {
+        prompt_per_1k: 0.0003,
+        completion_per_1k: 0.0012,
+      },
+    },
+  }
+  const readCatalog = async (path, method = 'GET') => {
+    assert.equal(method, 'GET')
+    assert.equal(path, '/pricing')
+    return catalog
+  }
+  await checkLivePricing(readCatalog)
+  await assert.rejects(
+    () => checkLivePricing(async () => ({ models: {} })),
+    /administrator/,
+  )
+  await assert.rejects(
+    () =>
+      checkLivePricing(async () => ({
+        models: {
+          'deepseek-flash': { prompt_per_1k: 0, completion_per_1k: 0.0012 },
+        },
+      })),
+    /administrator/,
+  )
   assert.equal(publicId('private-id'), publicId('private-id'))
   assert.equal(publicId(null), null)
   assert.ok(!publicId('private-id').includes('private-id'))
@@ -112,7 +154,9 @@ function selfTest() {
     'mine',
   )
   assert.deepEqual(filtered.received_types, ['task.started'])
-  console.log('PASS: 16 live origin, budget, identifier and lifecycle guards')
+  console.log(
+    'PASS: live origin, budget, pricing, identifier and lifecycle guards',
+  )
 }
 
 const promptPreflight = `
@@ -337,6 +381,11 @@ async function run() {
       ),
     }
     assert.ok(Object.values(report.authentication).every(Boolean))
+    const retryCompleted = process.argv.includes('--retry-completed')
+    if (!state.submissionAttempted || retryCompleted) {
+      phase = 'pricing-preflight'
+      await checkLivePricing(api)
+    }
     phase = 'real-websocket-preflight'
     assert.equal(
       await page.evaluate(
@@ -365,7 +414,7 @@ async function run() {
       true,
       'Real cookie-authenticated WebSocket must work before paid generation',
     )
-    if (process.argv.includes('--retry-completed')) {
+    if (retryCompleted) {
       phase = 'completed-retry-guard'
       assert.ok(state.evaluationId && state.submissionAttempted)
       const previous = await api('/evaluations/' + state.evaluationId)
@@ -414,11 +463,7 @@ async function run() {
       state.keyId = (await response.json()).data.id
       await saveState()
     }
-    phase = 'pricing-and-prompt-budget-preflight'
-    await api('/pricing/deepseek-flash', 'POST', {
-      prompt_per_1k: 0.0003,
-      completion_per_1k: 0.0012,
-    })
+    phase = 'prompt-budget-preflight'
     const planOutput = execFileSync(
       process.env.LIVE_PYTHON || 'python3',
       ['-c', promptPreflight],
@@ -620,7 +665,7 @@ async function run() {
   if (!report.pass) process.exitCode = 1
 }
 
-if (process.argv.includes('--self-test')) selfTest()
+if (process.argv.includes('--self-test')) await selfTest()
 else if (
   process.argv[1] &&
   resolve(process.argv[1]) === resolve(fileURLToPath(import.meta.url))
