@@ -119,5 +119,5 @@ export interface ProblemClient {
     query: HistoryQuery,
     signal?: AbortSignal,
   ): Promise<ApiPage<ProblemHistoryItem>>
-  exportUrl(format: 'json' | 'csv'): string
+  exportLibrary(format: 'json' | 'csv'): Promise<Blob>
 }

@@ -677,6 +677,8 @@ class CostService:
                 "used_usd": row.used_usd,
                 "cap_usd": row.cap_usd,
                 "channel": row.channel,
+                # Legacy workers complete a lease by updating only its channel.
+                "status": "succeeded" if row.status == "pending" else row.status,
                 "triggered_at": _iso(row.created_at),
             }
             for row in rows

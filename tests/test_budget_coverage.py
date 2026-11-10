@@ -240,9 +240,10 @@ def test_experiment_budget_pauses_records_alert_once_and_resumes(api, monkeypatc
     events = _alert_events(app, owner, rule_id)
     assert len(events) == 1, events
     assert events[0].channel == "log"
+    assert events[0].status == "succeeded"
 
     # 通知失败不得破坏任务状态：新增一条已达阈值的新规则并让投递必炸，
-    # 恢复后 worker 仍走到暂停（而非 failed），且不留下成功投递记录。
+    # 恢复后 worker 仍走到暂停，历史如实保留失败结果。
     second = client.post(
         "/api/v1/alerts",
         headers=headers,
@@ -261,7 +262,8 @@ def test_experiment_budget_pauses_records_alert_once_and_resumes(api, monkeypatc
     assert run_experiment_task(job_id, owner)["status"] == "paused"
     assert experiment_status() == "paused"
     assert len(sender_calls) >= 1, "投递必炸替身未被触达，失败隔离场景未生效"
-    assert _alert_events(app, owner, second_rule_id) == []
+    failed_events = _alert_events(app, owner, second_rule_id)
+    assert [(event.channel, event.status) for event in failed_events] == [("log", "failed")]
 
     # 调整预算后恢复原任务：已完成单元与费用不重复累计，任务完成。
     assert (

@@ -1160,7 +1160,22 @@ OPERATIONS: dict[str, tuple[str, Any]] = {
     ),
     "update_alert_rule": ("局部更新自己的成本预警规则。", RULE),
     "delete_alert_rule": ("删除自己的成本预警规则。", None),
-    "alert_history": ("读取自己的最近预警历史，最多返回 200 条。", []),
+    "alert_history": (
+        "读取自己的最近预警投递历史，最多返回 200 条。"
+        "status 为 succeeded（成功）或 failed（失败），响应不含投递目标与原始错误。",
+        [
+            {
+                "id": "delivery-demo",
+                "rule_id": "rule-demo",
+                "threshold_pct": 80,
+                "used_usd": 8.0,
+                "cap_usd": 10.0,
+                "channel": "webhook",
+                "status": "failed",
+                "triggered_at": "2026-10-27T00:00:00Z",
+            }
+        ],
+    ),
     "list_notifications": (
         "分页读取自己的站内通知，可按类型和已读筛选；未读总数覆盖全部可见通知，不是当前页。",
         {

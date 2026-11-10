@@ -311,8 +311,12 @@ export function createProblemClient(http: AxiosInstance): ProblemClient {
         { limit: query.limit, offset: query.offset },
         signal,
       ),
-    exportUrl: (format) =>
-      `/api/v1/problems/export?format=${format === 'csv' ? 'csv' : 'json'}`,
+    exportLibrary: (format) =>
+      http.get<unknown, Blob>('/problems/export', {
+        params: { format },
+        responseType: 'blob',
+        timeout: 60_000,
+      }),
   }
 }
 

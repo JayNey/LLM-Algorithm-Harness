@@ -1335,6 +1335,8 @@ export default {
   条目: 'Item',
   暂无数据: 'No data',
   预警投递历史: 'Alert delivery history',
+  投递成功: 'Delivered',
+  投递失败: 'Delivery failed',
   触发时间: 'Triggered at',
   规则: 'Rule',
   '已用 / 上限（USD）': 'Used / cap (USD)',
