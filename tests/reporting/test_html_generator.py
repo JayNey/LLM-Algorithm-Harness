@@ -534,7 +534,8 @@ class TestEscapingKeepsRedaction:
         # 错误消息本体先脱敏再转义
         assert "sk-abc123456" not in block.split("<pre")[0]
         assert "[REDACTED]" in block.split("<pre")[0]
-        # traceback 中的来源语句含既有脱敏器无法覆盖的上下文（见验证报告的契约记录），
-        # 此处只断言其已被转义、不产生可执行标记。
-        assert "&quot;sk-abc123456&quot;" in block
+        # 赋值扫描器不再被前置非敏感 `key: value` 吞掉 token 赋值，
+        # traceback 来源语句中的带引号凭据同样被脱敏（仅保留转义实体）。
+        assert "sk-abc123456" not in block
+        assert "token: &quot;[REDACTED]&quot;" in block.split("<pre", 1)[1]
         assert "<script>" not in block
