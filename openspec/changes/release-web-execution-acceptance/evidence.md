@@ -73,4 +73,23 @@ git diff --check
 - **生产入口回归**。Chromium 登录后通过 Nginx 预热三个业务池。停止 PostgreSQL 时，就绪和业务请求均为 503。恢复就绪 200 后，实验创建、A/B 创建、基准套件列表的首次请求在基线均为 500，修复后分别为 201、201、200。故障注入前后 API 容器标识与启动时间一致。
 - **入口门禁复测**。修复镜像上登录、深链接、分包和 SVG 均返回 200。数据库不可用时静态入口返回 200，业务和新 WS 握手返回 503，恢复后同源 WS 收到 `connected` 和 `pong`。
 - **相关测试**。`python3 -m pytest tests/test_api_database.py tests/test_api_readiness.py tests/test_api_experiment_benchmark.py -q --no-cov` 返回 105 通过、1 跳过。跳过项为上述需要真实 PostgreSQL 的用例，已在隔离容器内分别执行失败与通过检查。
-- 本轮取证范围是数据库恢复和生产入口。四条完整执行链的结果仍对应原候选，待对最终候选统一复验。
+- 本轮取证范围是数据库恢复和生产入口。本节的四条业务链取证沿用原候选。两项修复后的统一复验见下文。
+
+## 2026-11-10 统一候选复验
+
+候选提交 `96951b4fa0ed7aa4df5beb1c24526b34ca1cdd64` 同时包含 PostgreSQL 恢复和基准默认策略修复。从干净源码构建生产镜像，在 Docker Desktop Linux ARM64 上启动独立项目 `harness-443-candidate`。镜像 ID 为 Web `28cf19591d25`、API `8e778db9fdb0`、worker `afe27a8153d5`、beat `c65757d1e8c2`。初次构建的镜像站对 Node 与 Docker CLI 基础镜像返回 503，从 Docker 官方 registry 取得相同摘要后构建通过。
+
+- **发布入口与 PostgreSQL**。Chromium 登录、硬刷新受保护路由、分包与公共 SVG 均为 200。真实 PostgreSQL 停止时就绪、业务请求和新 WS 握手均为 503，静态入口保持 200。就绪恢复后，首次实验创建、A/B 创建及基准套件列表为 201、201、200。WS 收到 `connected/pong`。真实 PostgreSQL 空闲连接终止用例及真实 Docker 沙箱预检通过。
+- **基准**。浏览器保持策略留空。实际 worker 使用 `vanilla` 完成 3/3，准确率 100%，刷新后的学习曲线包含该运行。策略同样留空的低预算运行仅调用一次替身后暂停，点击「刷新运行」读回暂停状态。自动回归分别覆盖省略策略、空数组及显式策略参数。前两种在修复前失败，修复后三种均通过。
+- **实验与 A/B**。浏览器创建并启动，真实 Celery 和 Docker 沙箱执行完成。分别重启 API 后，比较报告和 A/B 统计可回读。实验在启动前移走原数据集文件，仍使用冻结快照执行三道题。
+- **评估**。浏览器创建并启动三题评估，主动断开 WebSocket 后观察到 HTTP 回读及重新订阅。一个单元完成后暂停，重启 worker，再用同一任务 ID 恢复。替身共收到三个题目标记，各一次。刷新读回 3/3，通过页面下载 Markdown，单次分析可读。
+- **回归测试**。143 通过，1 项 PostgreSQL 用例在宿主跳过后，于候选 API 容器连接真实 PostgreSQL 单独通过。Black、Ruff、Markdown 格式和 OpenSpec 严格校验通过。
+
+```sh
+python3 -m pytest tests/test_api_experiment_benchmark.py tests/test_benchmark_task.py tests/test_benchmark_run_budget.py tests/test_api_database.py tests/test_api_readiness.py tests/test_deployment_readiness.py -q --no-cov
+./compose build
+./compose up -d --wait --wait-timeout 100
+./verify-candidate.sh
+```
+
+模型目录和生成仍由隔离替身提供。真实供应商联调待专用凭证和预算授权。脱敏包 `issue-443-candidate-evidence.zip` 包含本次结果与复现命令，SHA-256 为 `4024ce8875f9004a26bf1f1fd1de9ad62ae843796c5453259158836957ee50e3`。
