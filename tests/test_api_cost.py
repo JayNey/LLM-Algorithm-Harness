@@ -7,6 +7,7 @@ import time
 from datetime import datetime
 from unittest.mock import Mock, patch
 from urllib.parse import quote
+from uuid import UUID
 
 import httpx
 import pytest
@@ -134,6 +135,8 @@ def api(tmp_path):
     )
     with TestClient(app) as client:
         headers = _signup(client)
+        owner = app.state.auth.store.find_user("alice")["id"]
+        app.state.monitor.settings.MONITOR_ADMIN_USER_IDS = [UUID(owner)]
         key_id = _add_key(client, headers)
         yield client, headers, key_id, app
 
@@ -446,6 +449,21 @@ def pricing_http(api):
 
 
 class TestPricing:
+    def test_regular_user_can_read_but_cannot_append_shared_prices(self, api):
+        client, admin, _, _ = api
+        user = _signup(client, "pricing-reader")
+        path = "/api/v1/pricing/permission-test"
+        prices = {"prompt_per_1k": 0, "completion_per_1k": 1}
+
+        assert client.get("/api/v1/pricing", headers=user).status_code == 200
+        assert client.post(path, headers=admin, json=prices).status_code == 201
+        assert (
+            client.post(path, headers=user, json={**prices, "prompt_per_1k": 2}).status_code == 403
+        )
+        history = client.get(path + "/history", headers=user)
+        assert history.status_code == 200
+        assert [row["prompt_per_1k"] for row in history.json()["data"]] == [0]
+
     def test_full_model_ids_round_trip_over_http(self, pricing_http):
         client, headers = pricing_http
         models = [

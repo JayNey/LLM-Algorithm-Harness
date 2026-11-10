@@ -14,6 +14,7 @@ from api.cost_models import (
     BudgetUpsertRequest,
     PricingOverrideRequest,
 )
+from api.monitoring.dependencies import administrator
 from api.schemas import ApiResponse
 from api.services.cost_service import CostService
 
@@ -208,7 +209,7 @@ def pricing_history(
 @router.post("/pricing/{model_id:path}", status_code=201)
 def set_pricing_override(
     request: PricingOverrideRequest,
-    principal: Principal = Depends(current_user),
+    principal: Principal = Depends(administrator),
     service: CostService = Depends(cost_service),
     model_id: str = PathParam(..., max_length=200, description=PRICING_MODEL_ID_DESCRIPTION),
 ) -> ApiResponse[dict]:

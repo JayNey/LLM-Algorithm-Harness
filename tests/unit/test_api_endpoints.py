@@ -515,6 +515,7 @@ CASES = [
         ("test-model", ANY, OWNER),
         body=dict(prompt_per_1k=0.01, completion_per_1k=0.02),
         status=201,
+        admin=True,
     ),
     case("GET", "/reports/cost/{task_id}", "cost.task_report", ("task-1", OWNER)),
     case("GET", "/reports/cost-optimization", "cost.cost_optimization_report", (OWNER,)),
@@ -1127,7 +1128,7 @@ def test_every_protected_endpoint_requires_authentication(api, item):
 
 
 @pytest.mark.parametrize("item", [item for item in CASES if item.admin], ids=lambda item: item.id)
-def test_monitoring_rejects_non_admin_before_probing(api, item):
+def test_admin_endpoint_rejects_non_admin_before_business_operation(api, item):
     api.monitor.settings.is_admin = lambda user_id: False
     response = send(api, item)
     assert response.status_code == 403
