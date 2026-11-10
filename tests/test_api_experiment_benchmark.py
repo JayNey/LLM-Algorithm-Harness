@@ -733,6 +733,43 @@ class TestBenchmarks:
         assert len(curve["data"]) == 2
         assert curve["trends"]["accuracy_growth_rate"] == 0.5
 
+    @pytest.mark.parametrize(
+        ("strategy_fields", "expected"),
+        [
+            ({}, [{"name": "vanilla", "max_iterations": 1}]),
+            ({"strategies": []}, [{"name": "vanilla", "max_iterations": 1}]),
+            (
+                {"strategies": [{"name": "self_refine", "max_iterations": 3}]},
+                [{"name": "self_refine", "max_iterations": 3}],
+            ),
+        ],
+        ids=["omitted", "empty", "explicit"],
+    )
+    def test_run_resolves_optional_strategies_at_execution(self, api, strategy_fields, expected):
+        client, headers, key_id, app = api
+        suite_id = client.post(
+            "/api/v1/benchmarks/suites", headers=headers, json=self._suite_payload()
+        ).json()["data"]["id"]
+
+        started = client.post(
+            f"/api/v1/benchmarks/suites/{suite_id}/run",
+            headers=headers,
+            json={
+                "api_key_id": key_id,
+                "dataset_path": "problems.json",
+                "model": "gpt-test",
+                **strategy_fields,
+            },
+        )
+        assert started.status_code == 202, started.text
+        _execute_benchmark(app, started.json()["data"]["id"])
+
+        config = FakeBenchmarkExecutor.last_config
+        assert config is not None
+        assert [
+            s.model_dump(include={"name", "max_iterations"}) for s in config.strategies
+        ] == expected
+
     def test_run_with_budget_uses_auto_stop_harness_config(self, api):
         client, headers, key_id, app = api
         suite_id = client.post(
