@@ -156,3 +156,26 @@ node scripts/verify-direct-load.mjs
 - 布局层：1440px 与 390px 下页面无横向溢出、无 `pageerror`、无未声明或失败请求。
 
 结果写入 `docs/frontend/assets/direct-load/report.json`，每个路由各保留一张截图（`/experiments` 与 `/experiments/new` 另含 390px 版本）。身份与业务响应全部由 fixture 替换，因此该 smoke 证明直接加载的样式与布局，不证明真实后端或生产部署。
+
+## 关键页面窄屏、键盘与焦点验收（#446）
+
+`scripts/verify-responsive-keyboard.mjs` 针对**生产构建**（`npm run build` + `vite preview`）覆盖题库、设置（预算）、监控（系统状态）、基准历史四类页面。先构建，再在 `frontend/` 运行：
+
+```bash
+npm run build
+node scripts/verify-responsive-keyboard.mjs all
+```
+
+未设置 `RESPONSIVE_BASE_URL` 时脚本使用 `http://127.0.0.1:5194`，需自行启动 `node node_modules/vite/bin/vite.js preview --host 127.0.0.1 --port 5194 --strictPort`；设置后复用已有服务。`RESPONSIVE_QA_DIR` 覆盖截图与报告目录，默认 `docs/frontend/assets/v06/`。场景可选 `responsive` / `keyboard` / `forms` / `all`。
+
+三层场景共 78 项断言（2026-11-09，HEAD 记录于 `assets/v06/all.json`，0 失败、0 未声明请求）：
+
+- 视口矩阵：320 / 390 / 768 / 1024 / 1440px × 四页面，断言无整页横向滚动；所有可见 `.evaluation-list-table` 有滚动容器且容器可滚到表格末尾；关键操作（题库「评估历史」、预算「编辑」、系统「立即刷新」、运行历史「下一页」）可达。390px 档以英文 + 深色运行，覆盖中英文与外观组合。
+- 键盘与焦点：skip-link 是首个可见停靠点，聚焦即入视口且 Enter 进入主内容；通知抽屉 Esc 关闭后焦点回到触发按钮；分页按钮可 Tab 到达且 Enter 翻页（第二页内容可见）；320px 下表格行操作可达、Esc 关闭历史抽屉。
+- 表单可访问性：登录/注册在 320 与 1440px × 中英文下可访问名称齐全；空提交显示字段错误且控件带 `aria-invalid`；应用内切换语言与深浅主题后已填内容保留、焦点可继续输入。
+
+配套源码修复：`.evaluation-list-table{min-width:760px}` 的 12 处表格（实验详情 6、A/B 详情 2、题库 2、A/B 列表与基准列表各 1）包进 `.evaluation-list-scroll`，RunHistory 的内联 overflow 改为同一容器并补 `运行记录` 标签，与设置表格既有模式一致（#453）。
+
+截图：320px 与 1440px 全页面 + 390px 英文深色（四页面各一）+ 注册深色 320px，共 13 张，见 `docs/frontend/assets/v06/`。
+
+未执行范围：真实 iOS/Android 设备、Safari/Firefox、屏幕阅读器、真实触摸与软键盘、真实后端链路。视口模拟（Chromium）与 fixture 身份/业务响应不能替代这些验收。

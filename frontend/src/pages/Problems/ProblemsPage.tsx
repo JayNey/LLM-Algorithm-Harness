@@ -393,39 +393,41 @@ function ProblemHistory({ problemId }: { problemId: string }) {
             {items.length} {t(' 条 · 通过 ')}
             {passed} {t(' · 通过率')} {formatRate(passed, items.length)}
           </p>
-          <table
-            className="evaluation-list-table"
-            aria-label={t('题目评估历史')}
-          >
-            <thead>
-              <tr>
-                {[
-                  t('策略'),
-                  t('状态'),
-                  t('迭代'),
-                  'token',
-                  t('耗时(s)'),
-                  t('运行'),
-                ].map((name) => (
-                  <th key={name} scope="col">
-                    {name}
-                  </th>
-                ))}
-              </tr>
-            </thead>
-            <tbody>
-              {items.map((item, index) => (
-                <tr key={index}>
-                  <td>{item.strategy}</td>
-                  <td>{historyStatusLabel(item.status)}</td>
-                  <td>{item.iterations ?? '—'}</td>
-                  <td>{item.tokens ?? '—'}</td>
-                  <td>{item.execution_time ?? '—'}</td>
-                  <td>{item.run_id ?? '—'}</td>
+          <div className="evaluation-list-scroll">
+            <table
+              className="evaluation-list-table"
+              aria-label={t('题目评估历史')}
+            >
+              <thead>
+                <tr>
+                  {[
+                    t('策略'),
+                    t('状态'),
+                    t('迭代'),
+                    'token',
+                    t('耗时(s)'),
+                    t('运行'),
+                  ].map((name) => (
+                    <th key={name} scope="col">
+                      {name}
+                    </th>
+                  ))}
                 </tr>
-              ))}
-            </tbody>
-          </table>
+              </thead>
+              <tbody>
+                {items.map((item, index) => (
+                  <tr key={index}>
+                    <td>{item.strategy}</td>
+                    <td>{historyStatusLabel(item.status)}</td>
+                    <td>{item.iterations ?? '—'}</td>
+                    <td>{item.tokens ?? '—'}</td>
+                    <td>{item.execution_time ?? '—'}</td>
+                    <td>{item.run_id ?? '—'}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
           <nav className="evaluation-pagination" aria-label={t('历史分页')}>
             <Button disabled={offset === 0} onClick={() => setOffset(0)}>
               {t('首页')}
@@ -581,39 +583,41 @@ export default function ProblemsPage() {
             retry={list.reload}
           />
         ) : data?.items.length ? (
-          <table className="evaluation-list-table" aria-label={t('题目列表')}>
-            <thead>
-              <tr>
-                {[t('题目 ID / 标题'), t('难度'), t('来源'), t('操作')].map(
-                  (name) => (
-                    <th key={name} scope="col">
-                      {name}
-                    </th>
-                  ),
-                )}
-              </tr>
-            </thead>
-            <tbody>
-              {data.items.map((problem) => (
-                <tr key={problem.problem_id}>
-                  <td>
-                    {problem.title || problem.problem_id}
-                    <small>{problem.problem_id}</small>
-                  </td>
-                  <td>{difficultyLabel(problem.difficulty)}</td>
-                  <td>{sourceLabel(problem.source)}</td>
-                  <td>
-                    <Button
-                      size="small"
-                      onClick={() => setHistoryProblem(problem)}
-                    >
-                      {t('评估历史')}
-                    </Button>
-                  </td>
+          <div className="evaluation-list-scroll">
+            <table className="evaluation-list-table" aria-label={t('题目列表')}>
+              <thead>
+                <tr>
+                  {[t('题目 ID / 标题'), t('难度'), t('来源'), t('操作')].map(
+                    (name) => (
+                      <th key={name} scope="col">
+                        {name}
+                      </th>
+                    ),
+                  )}
                 </tr>
-              ))}
-            </tbody>
-          </table>
+              </thead>
+              <tbody>
+                {data.items.map((problem) => (
+                  <tr key={problem.problem_id}>
+                    <td>
+                      {problem.title || problem.problem_id}
+                      <small>{problem.problem_id}</small>
+                    </td>
+                    <td>{difficultyLabel(problem.difficulty)}</td>
+                    <td>{sourceLabel(problem.source)}</td>
+                    <td>
+                      <Button
+                        size="small"
+                        onClick={() => setHistoryProblem(problem)}
+                      >
+                        {t('评估历史')}
+                      </Button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
         ) : (
           <p role="status">{t('当前来源没有题目。')}</p>
         )}

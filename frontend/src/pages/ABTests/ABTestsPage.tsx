@@ -203,31 +203,37 @@ export default function ABTestsPage() {
             retry={list.reload}
           />
         ) : data?.items.length ? (
-          <table
-            className="evaluation-list-table"
-            aria-label={t('A/B 测试列表')}
-          >
-            <thead>
-              <tr>
-                {[
-                  t('测试 ID / 名称'),
-                  t('模型 / 策略'),
-                  t('状态 / 变体'),
-                  t('创建时间'),
-                  t('操作'),
-                ].map((name) => (
-                  <th key={name} scope="col">
-                    {name}
-                  </th>
+          <div className="evaluation-list-scroll">
+            <table
+              className="evaluation-list-table"
+              aria-label={t('A/B 测试列表')}
+            >
+              <thead>
+                <tr>
+                  {[
+                    t('测试 ID / 名称'),
+                    t('模型 / 策略'),
+                    t('状态 / 变体'),
+                    t('创建时间'),
+                    t('操作'),
+                  ].map((name) => (
+                    <th key={name} scope="col">
+                      {name}
+                    </th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody>
+                {data.items.map((test) => (
+                  <ABTestRow
+                    key={test.id}
+                    test={test}
+                    onDeleted={list.reload}
+                  />
                 ))}
-              </tr>
-            </thead>
-            <tbody>
-              {data.items.map((test) => (
-                <ABTestRow key={test.id} test={test} onDeleted={list.reload} />
-              ))}
-            </tbody>
-          </table>
+              </tbody>
+            </table>
+          </div>
         ) : (
           <Empty
             description={

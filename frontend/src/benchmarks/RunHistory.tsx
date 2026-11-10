@@ -121,8 +121,11 @@ export default function RunHistory({
             <p role="status">
               {t('共 {{total}} 次运行', { total: history.data.total })}
             </p>
-            <div style={{ overflowX: 'auto' }}>
-              <table className="evaluation-list-table">
+            <div className="evaluation-list-scroll">
+              <table
+                className="evaluation-list-table"
+                aria-label={t('运行记录')}
+              >
                 <thead>
                   <tr>
                     {[

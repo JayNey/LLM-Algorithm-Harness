@@ -1,0 +1,53 @@
+{
+  "scenario": "keyboard",
+  "layer": "browser-fixture over production build (not backend E2E)",
+  "assertions": [
+    {
+      "name": "跳转正文链接是首个停靠点，聚焦即入视口且 Enter 生效",
+      "ok": true
+    },
+    {
+      "name": "通知抽屉 Esc 关闭后焦点回到触发按钮",
+      "ok": true
+    },
+    {
+      "name": "分页按钮可键盘到达且 Enter 生效",
+      "ok": true
+    },
+    {
+      "name": "表格行操作按钮在滚动容器内可达（评估历史）",
+      "ok": true
+    },
+    {
+      "name": "无未声明 API 请求",
+      "ok": true
+    }
+  ],
+  "replaced": [
+    "GET /notifications",
+    "GET /users/me",
+    "GET /benchmarks/suites/suite",
+    "GET /api-keys",
+    "GET /benchmarks/learning-curve/suite",
+    "GET /benchmarks/suites/suite/runs",
+    "GET /benchmarks/suites/suite/runs",
+    "GET /benchmarks/suites/suite/runs",
+    "GET /benchmarks/suites/suite/runs",
+    "GET /datasets",
+    "GET /evaluation-options",
+    "GET /notifications",
+    "GET /benchmarks/suites/suite/runs",
+    "GET /notifications",
+    "GET /users/me",
+    "GET /evaluation-options",
+    "GET /evaluation-options/problems",
+    "GET /results/problems/prob-1"
+  ],
+  "unknown": [],
+  "screenshots": [],
+  "coverage": {
+    "viewports": [],
+    "combos": [],
+    "uncovered": []
+  }
+}

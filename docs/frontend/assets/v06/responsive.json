@@ -1,0 +1,454 @@
+{
+  "scenario": "responsive",
+  "layer": "browser-fixture over production build (not backend E2E)",
+  "assertions": [
+    {
+      "name": "problems@320px：无整页横向滚动",
+      "ok": true
+    },
+    {
+      "name": "problems@320px：宽表格在自身容器内滚动且不被裁切",
+      "ok": true
+    },
+    {
+      "name": "problems@320px：关键操作「/评估历史|Evaluation history/」可达",
+      "ok": true
+    },
+    {
+      "name": "budgets@320px：无整页横向滚动",
+      "ok": true
+    },
+    {
+      "name": "budgets@320px：宽表格在自身容器内滚动且不被裁切",
+      "ok": true
+    },
+    {
+      "name": "budgets@320px：关键操作「/编\\s*辑|Edit/」可达",
+      "ok": true
+    },
+    {
+      "name": "system@320px：无整页横向滚动",
+      "ok": true
+    },
+    {
+      "name": "system@320px：宽表格在自身容器内滚动且不被裁切",
+      "ok": true
+    },
+    {
+      "name": "system@320px：关键操作「/立即刷新|Refresh now/」可达",
+      "ok": true
+    },
+    {
+      "name": "benchmarks@320px：无整页横向滚动",
+      "ok": true
+    },
+    {
+      "name": "benchmarks@320px：宽表格在自身容器内滚动且不被裁切",
+      "ok": true
+    },
+    {
+      "name": "benchmarks@320px：关键操作「/下一页|Next/」可达",
+      "ok": true
+    },
+    {
+      "name": "problems@390px：无整页横向滚动",
+      "ok": true
+    },
+    {
+      "name": "problems@390px：宽表格在自身容器内滚动且不被裁切",
+      "ok": true
+    },
+    {
+      "name": "problems@390px：关键操作「/评估历史|Evaluation history/」可达",
+      "ok": true
+    },
+    {
+      "name": "budgets@390px：无整页横向滚动",
+      "ok": true
+    },
+    {
+      "name": "budgets@390px：宽表格在自身容器内滚动且不被裁切",
+      "ok": true
+    },
+    {
+      "name": "budgets@390px：关键操作「/编\\s*辑|Edit/」可达",
+      "ok": true
+    },
+    {
+      "name": "system@390px：无整页横向滚动",
+      "ok": true
+    },
+    {
+      "name": "system@390px：宽表格在自身容器内滚动且不被裁切",
+      "ok": true
+    },
+    {
+      "name": "system@390px：关键操作「/立即刷新|Refresh now/」可达",
+      "ok": true
+    },
+    {
+      "name": "benchmarks@390px：无整页横向滚动",
+      "ok": true
+    },
+    {
+      "name": "benchmarks@390px：宽表格在自身容器内滚动且不被裁切",
+      "ok": true
+    },
+    {
+      "name": "benchmarks@390px：关键操作「/下一页|Next/」可达",
+      "ok": true
+    },
+    {
+      "name": "problems@768px：无整页横向滚动",
+      "ok": true
+    },
+    {
+      "name": "problems@768px：宽表格在自身容器内滚动且不被裁切",
+      "ok": true
+    },
+    {
+      "name": "problems@768px：关键操作「/评估历史|Evaluation history/」可达",
+      "ok": true
+    },
+    {
+      "name": "budgets@768px：无整页横向滚动",
+      "ok": true
+    },
+    {
+      "name": "budgets@768px：宽表格在自身容器内滚动且不被裁切",
+      "ok": true
+    },
+    {
+      "name": "budgets@768px：关键操作「/编\\s*辑|Edit/」可达",
+      "ok": true
+    },
+    {
+      "name": "system@768px：无整页横向滚动",
+      "ok": true
+    },
+    {
+      "name": "system@768px：宽表格在自身容器内滚动且不被裁切",
+      "ok": true
+    },
+    {
+      "name": "system@768px：关键操作「/立即刷新|Refresh now/」可达",
+      "ok": true
+    },
+    {
+      "name": "benchmarks@768px：无整页横向滚动",
+      "ok": true
+    },
+    {
+      "name": "benchmarks@768px：宽表格在自身容器内滚动且不被裁切",
+      "ok": true
+    },
+    {
+      "name": "benchmarks@768px：关键操作「/下一页|Next/」可达",
+      "ok": true
+    },
+    {
+      "name": "problems@1024px：无整页横向滚动",
+      "ok": true
+    },
+    {
+      "name": "problems@1024px：宽表格在自身容器内滚动且不被裁切",
+      "ok": true
+    },
+    {
+      "name": "problems@1024px：关键操作「/评估历史|Evaluation history/」可达",
+      "ok": true
+    },
+    {
+      "name": "budgets@1024px：无整页横向滚动",
+      "ok": true
+    },
+    {
+      "name": "budgets@1024px：宽表格在自身容器内滚动且不被裁切",
+      "ok": true
+    },
+    {
+      "name": "budgets@1024px：关键操作「/编\\s*辑|Edit/」可达",
+      "ok": true
+    },
+    {
+      "name": "system@1024px：无整页横向滚动",
+      "ok": true
+    },
+    {
+      "name": "system@1024px：宽表格在自身容器内滚动且不被裁切",
+      "ok": true
+    },
+    {
+      "name": "system@1024px：关键操作「/立即刷新|Refresh now/」可达",
+      "ok": true
+    },
+    {
+      "name": "benchmarks@1024px：无整页横向滚动",
+      "ok": true
+    },
+    {
+      "name": "benchmarks@1024px：宽表格在自身容器内滚动且不被裁切",
+      "ok": true
+    },
+    {
+      "name": "benchmarks@1024px：关键操作「/下一页|Next/」可达",
+      "ok": true
+    },
+    {
+      "name": "problems@1440px：无整页横向滚动",
+      "ok": true
+    },
+    {
+      "name": "problems@1440px：宽表格在自身容器内滚动且不被裁切",
+      "ok": true
+    },
+    {
+      "name": "problems@1440px：关键操作「/评估历史|Evaluation history/」可达",
+      "ok": true
+    },
+    {
+      "name": "budgets@1440px：无整页横向滚动",
+      "ok": true
+    },
+    {
+      "name": "budgets@1440px：宽表格在自身容器内滚动且不被裁切",
+      "ok": true
+    },
+    {
+      "name": "budgets@1440px：关键操作「/编\\s*辑|Edit/」可达",
+      "ok": true
+    },
+    {
+      "name": "system@1440px：无整页横向滚动",
+      "ok": true
+    },
+    {
+      "name": "system@1440px：宽表格在自身容器内滚动且不被裁切",
+      "ok": true
+    },
+    {
+      "name": "system@1440px：关键操作「/立即刷新|Refresh now/」可达",
+      "ok": true
+    },
+    {
+      "name": "benchmarks@1440px：无整页横向滚动",
+      "ok": true
+    },
+    {
+      "name": "benchmarks@1440px：宽表格在自身容器内滚动且不被裁切",
+      "ok": true
+    },
+    {
+      "name": "benchmarks@1440px：关键操作「/下一页|Next/」可达",
+      "ok": true
+    },
+    {
+      "name": "无未声明 API 请求",
+      "ok": true
+    }
+  ],
+  "replaced": [
+    "GET /notifications",
+    "GET /users/me",
+    "GET /evaluation-options",
+    "GET /evaluation-options/problems",
+    "GET /notifications",
+    "GET /users/me",
+    "GET /alerts",
+    "GET /costs/summary",
+    "GET /costs/trends",
+    "GET /costs/breakdown",
+    "GET /alerts/history",
+    "GET /alerts",
+    "GET /budgets",
+    "GET /budgets/usage",
+    "GET /notifications",
+    "GET /users/me",
+    "GET /system/status",
+    "GET /metrics/api-stats",
+    "GET /metrics/llm-stats",
+    "GET /metrics/cache-stats",
+    "GET /notifications",
+    "GET /users/me",
+    "GET /benchmarks/suites/suite",
+    "GET /api-keys",
+    "GET /benchmarks/learning-curve/suite",
+    "GET /benchmarks/suites/suite/runs",
+    "GET /benchmarks/suites/suite/runs",
+    "GET /benchmarks/suites/suite/runs",
+    "GET /benchmarks/suites/suite/runs",
+    "GET /datasets",
+    "GET /evaluation-options",
+    "GET /notifications",
+    "GET /users/me",
+    "GET /evaluation-options",
+    "GET /evaluation-options/problems",
+    "GET /notifications",
+    "GET /users/me",
+    "GET /alerts",
+    "GET /costs/summary",
+    "GET /costs/trends",
+    "GET /costs/breakdown",
+    "GET /alerts/history",
+    "GET /alerts",
+    "GET /budgets",
+    "GET /budgets/usage",
+    "GET /notifications",
+    "GET /users/me",
+    "GET /system/status",
+    "GET /metrics/api-stats",
+    "GET /metrics/llm-stats",
+    "GET /metrics/cache-stats",
+    "GET /notifications",
+    "GET /users/me",
+    "GET /benchmarks/suites/suite",
+    "GET /api-keys",
+    "GET /benchmarks/learning-curve/suite",
+    "GET /benchmarks/suites/suite/runs",
+    "GET /benchmarks/suites/suite/runs",
+    "GET /benchmarks/suites/suite/runs",
+    "GET /benchmarks/suites/suite/runs",
+    "GET /datasets",
+    "GET /evaluation-options",
+    "GET /notifications",
+    "GET /users/me",
+    "GET /evaluation-options",
+    "GET /evaluation-options/problems",
+    "GET /notifications",
+    "GET /users/me",
+    "GET /alerts",
+    "GET /costs/summary",
+    "GET /costs/trends",
+    "GET /costs/breakdown",
+    "GET /alerts/history",
+    "GET /alerts",
+    "GET /budgets",
+    "GET /budgets/usage",
+    "GET /notifications",
+    "GET /users/me",
+    "GET /system/status",
+    "GET /metrics/api-stats",
+    "GET /metrics/llm-stats",
+    "GET /metrics/cache-stats",
+    "GET /notifications",
+    "GET /users/me",
+    "GET /benchmarks/suites/suite",
+    "GET /api-keys",
+    "GET /benchmarks/learning-curve/suite",
+    "GET /benchmarks/suites/suite/runs",
+    "GET /benchmarks/suites/suite/runs",
+    "GET /benchmarks/suites/suite/runs",
+    "GET /benchmarks/suites/suite/runs",
+    "GET /datasets",
+    "GET /evaluation-options",
+    "GET /notifications",
+    "GET /users/me",
+    "GET /evaluation-options",
+    "GET /evaluation-options/problems",
+    "GET /notifications",
+    "GET /users/me",
+    "GET /alerts",
+    "GET /costs/summary",
+    "GET /costs/trends",
+    "GET /costs/breakdown",
+    "GET /alerts/history",
+    "GET /alerts",
+    "GET /budgets",
+    "GET /budgets/usage",
+    "GET /notifications",
+    "GET /users/me",
+    "GET /system/status",
+    "GET /metrics/api-stats",
+    "GET /metrics/llm-stats",
+    "GET /metrics/cache-stats",
+    "GET /notifications",
+    "GET /users/me",
+    "GET /benchmarks/suites/suite",
+    "GET /api-keys",
+    "GET /benchmarks/learning-curve/suite",
+    "GET /benchmarks/suites/suite/runs",
+    "GET /benchmarks/suites/suite/runs",
+    "GET /benchmarks/suites/suite/runs",
+    "GET /benchmarks/suites/suite/runs",
+    "GET /datasets",
+    "GET /evaluation-options",
+    "GET /notifications",
+    "GET /users/me",
+    "GET /evaluation-options",
+    "GET /evaluation-options/problems",
+    "GET /notifications",
+    "GET /users/me",
+    "GET /alerts",
+    "GET /costs/summary",
+    "GET /costs/trends",
+    "GET /costs/breakdown",
+    "GET /alerts/history",
+    "GET /alerts",
+    "GET /budgets",
+    "GET /budgets/usage",
+    "GET /notifications",
+    "GET /users/me",
+    "GET /system/status",
+    "GET /metrics/api-stats",
+    "GET /metrics/llm-stats",
+    "GET /metrics/cache-stats",
+    "GET /notifications",
+    "GET /users/me",
+    "GET /benchmarks/suites/suite",
+    "GET /api-keys",
+    "GET /benchmarks/learning-curve/suite",
+    "GET /benchmarks/suites/suite/runs",
+    "GET /benchmarks/suites/suite/runs",
+    "GET /benchmarks/suites/suite/runs",
+    "GET /benchmarks/suites/suite/runs",
+    "GET /datasets",
+    "GET /evaluation-options"
+  ],
+  "unknown": [],
+  "screenshots": [
+    "problems-320.png",
+    "budgets-320.png",
+    "system-320.png",
+    "benchmarks-320.png",
+    "problems-390-dark.png",
+    "budgets-390-dark.png",
+    "system-390-dark.png",
+    "benchmarks-390-dark.png",
+    "problems-1440.png",
+    "budgets-1440.png",
+    "system-1440.png",
+    "benchmarks-1440.png"
+  ],
+  "coverage": {
+    "viewports": [
+      "320px",
+      "390px",
+      "768px",
+      "1024px",
+      "1440px"
+    ],
+    "combos": [
+      "problems@320px/zh-CN/light",
+      "budgets@320px/zh-CN/light",
+      "system@320px/zh-CN/light",
+      "benchmarks@320px/zh-CN/light",
+      "problems@390px/en-US/dark",
+      "budgets@390px/en-US/dark",
+      "system@390px/en-US/dark",
+      "benchmarks@390px/en-US/dark",
+      "problems@768px/zh-CN/light",
+      "budgets@768px/zh-CN/light",
+      "system@768px/zh-CN/light",
+      "benchmarks@768px/zh-CN/light",
+      "problems@1024px/zh-CN/light",
+      "budgets@1024px/zh-CN/light",
+      "system@1024px/zh-CN/light",
+      "benchmarks@1024px/zh-CN/light",
+      "problems@1440px/zh-CN/light",
+      "budgets@1440px/zh-CN/light",
+      "system@1440px/zh-CN/light",
+      "benchmarks@1440px/zh-CN/light"
+    ],
+    "uncovered": []
+  }
+}

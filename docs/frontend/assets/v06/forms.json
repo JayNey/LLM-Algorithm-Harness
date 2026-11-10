@@ -1,0 +1,72 @@
+{
+  "scenario": "forms",
+  "layer": "browser-fixture over production build (not backend E2E)",
+  "assertions": [
+    {
+      "name": "登录表单可访问名称（320px/zh-CN）",
+      "ok": true
+    },
+    {
+      "name": "登录空提交显示字段错误且与控件关联（320px/zh-CN）",
+      "ok": true
+    },
+    {
+      "name": "应用内切换语言与主题后表单内容与焦点可用（320px）",
+      "ok": true
+    },
+    {
+      "name": "登录表单可访问名称（320px/en-US）",
+      "ok": true
+    },
+    {
+      "name": "登录空提交显示字段错误且与控件关联（320px/en-US）",
+      "ok": true
+    },
+    {
+      "name": "应用内切换语言与主题后表单内容与焦点可用（320px）",
+      "ok": true
+    },
+    {
+      "name": "登录表单可访问名称（1440px/zh-CN）",
+      "ok": true
+    },
+    {
+      "name": "登录空提交显示字段错误且与控件关联（1440px/zh-CN）",
+      "ok": true
+    },
+    {
+      "name": "应用内切换语言与主题后表单内容与焦点可用（1440px）",
+      "ok": true
+    },
+    {
+      "name": "登录表单可访问名称（1440px/en-US）",
+      "ok": true
+    },
+    {
+      "name": "登录空提交显示字段错误且与控件关联（1440px/en-US）",
+      "ok": true
+    },
+    {
+      "name": "应用内切换语言与主题后表单内容与焦点可用（1440px）",
+      "ok": true
+    },
+    {
+      "name": "注册表单深色主题下可访问名称齐全",
+      "ok": true
+    },
+    {
+      "name": "无未声明 API 请求",
+      "ok": true
+    }
+  ],
+  "replaced": [],
+  "unknown": [],
+  "screenshots": [
+    "register-320-dark.png"
+  ],
+  "coverage": {
+    "viewports": [],
+    "combos": [],
+    "uncovered": []
+  }
+}
