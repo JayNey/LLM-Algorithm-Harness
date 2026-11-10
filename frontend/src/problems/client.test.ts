@@ -1,5 +1,6 @@
 import assert from 'node:assert/strict'
 import { test } from 'node:test'
+import { createHttpClient } from '../auth/http.ts'
 import { createProblemClient } from './client.ts'
 import { readListQuery, writeListQuery } from './validation.ts'
 
@@ -277,4 +278,37 @@ test('URL 来源筛选白名单回填', () => {
   assert.equal(search.get('source'), 'personal')
   const all = writeListQuery(readListQuery(new URLSearchParams()))
   assert.equal(all.get('source'), null)
+})
+
+test('题库导出使用会话 HTTP 刷新到期 Cookie 并保留文件字节', async () => {
+  let session = { marker: 'owner', username: 'owner', expiresAt: 0 }
+  const seen: string[] = []
+  const blob = new Blob(['[]'], { type: 'application/json' })
+  const http = createHttpClient({
+    baseURL: '/api/v1',
+    now: () => 1,
+    read: () => session,
+    write: (next) => {
+      session = next
+    },
+    clear: () => assert.fail('valid refresh must keep the session'),
+    adapter: async (config) => {
+      seen.push(config.url ?? '')
+      assert.equal(config.withCredentials, true)
+      const isRefresh = config.url === '/auth/refresh'
+      if (!isRefresh) {
+        assert.equal(config.responseType, 'blob')
+        assert.deepEqual(config.params, { format: 'json' })
+      }
+      return {
+        config,
+        status: 200,
+        statusText: 'OK',
+        headers: {},
+        data: isRefresh ? { data: { expires_in: 60 } } : blob,
+      }
+    },
+  })
+  assert.equal(await createProblemClient(http).exportLibrary('json'), blob)
+  assert.deepEqual(seen, ['/auth/refresh', '/problems/export'])
 })

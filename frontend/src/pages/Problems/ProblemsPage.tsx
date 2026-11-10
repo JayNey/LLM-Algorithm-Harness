@@ -468,6 +468,8 @@ export default function ProblemsPage() {
     { id: string; label: string; problem_count: number }[]
   >([])
   const [exportBusy, setExportBusy] = useState(false)
+  const [exportError, setExportError] = useState(false)
+  const exportPending = useRef(false)
   const [sourcesVersion, setSourcesVersion] = useState(0)
 
   useEffect(() => {
@@ -496,11 +498,36 @@ export default function ProblemsPage() {
   }, [reload])
   const data = list.data
 
-  function exportLibrary(format: 'json' | 'csv') {
-    if (exportBusy) return
+  async function exportLibrary(format: 'json' | 'csv') {
+    if (exportPending.current) return
+    exportPending.current = true
     setExportBusy(true)
-    window.open(client.exportUrl(format), '_blank')
-    setTimeout(() => setExportBusy(false), 500)
+    setExportError(false)
+    try {
+      const blob = await client.exportLibrary(format)
+      if (useAuthStore.getState().session?.marker !== owner) return
+      if (!(blob instanceof Blob)) {
+        setExportError(true)
+        return
+      }
+      const url = URL.createObjectURL(blob)
+      const link = document.createElement('a')
+      try {
+        link.href = url
+        link.download = `problems.${format}`
+        document.body.append(link)
+        link.click()
+      } finally {
+        link.remove()
+        setTimeout(() => URL.revokeObjectURL(url), 1000)
+      }
+    } catch {
+      if (useAuthStore.getState().session?.marker === owner)
+        setExportError(true)
+    } finally {
+      exportPending.current = false
+      setExportBusy(false)
+    }
   }
 
   return (
@@ -515,6 +542,8 @@ export default function ProblemsPage() {
             aria-label={t('导出格式')}
             value={undefined}
             placeholder={t('导出个人题库')}
+            loading={exportBusy}
+            disabled={exportBusy}
             options={[
               { value: 'json', label: t('导出 JSON') },
               { value: 'csv', label: t('导出 CSV') },
@@ -530,6 +559,9 @@ export default function ProblemsPage() {
           </Button>
         </div>
       </header>
+      {exportError && (
+        <Alert role="alert" type="error" message={t('操作失败，请重试')} />
+      )}
       <div className="panel evaluation-panel">
         <div className="evaluation-section-heading">
           <Select
