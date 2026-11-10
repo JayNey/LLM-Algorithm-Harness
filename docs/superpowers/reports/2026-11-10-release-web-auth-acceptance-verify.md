@@ -1,6 +1,6 @@
 # #444 发布候选会话与权限正式验证
 
-2026-11-10。变更 `release-web-auth-acceptance` 在分支 `tweak/20261110/release-web-auth-acceptance` 完成完整验证，结论为 **PASS**。实际浏览器、API 和镜像结果见 [发布候选验收记录](../../../openspec/changes/release-web-auth-acceptance/evidence.md)。
+2026-11-10。变更 `release-web-auth-acceptance` 在分支 `tweak/20261110/release-web-auth-acceptance` 完成完整验证，结论为 **PASS**。实际浏览器、API 和镜像结果见 [发布候选验收记录](../../../openspec/changes/archive/2026-11-10-release-web-auth-acceptance/evidence.md)。
 
 ## 完整性
 
