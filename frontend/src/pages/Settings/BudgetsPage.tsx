@@ -297,21 +297,28 @@ function AlertRulesSection({ onChanged }: { onChanged: () => void }) {
 
   async function saveEdit() {
     if (!editing || busy) return
-    const input = {
-      name: editDraft.name.trim(),
+    // 目标框留空 = 保持原目标：列表只暴露脱敏形态，回传会覆盖真实
+    // 投递地址（#450）。校验用原目标兜底渠道必填检查。
+    const nextTarget = editDraft.target.trim()
+    const invalid = validateAlertInput({
       threshold_pct: Number(editDraft.threshold_pct),
       channel: editDraft.channel,
-      target: editDraft.target.trim(),
-      enabled: editDraft.enabled,
-    }
-    const invalid = validateAlertInput(input)
+      target: nextTarget || editing.target,
+    })
     if (invalid) {
       setSaveError(invalid)
       return
     }
+    const patch: Parameters<typeof client.updateAlertRule>[1] = {
+      name: editDraft.name.trim(),
+      threshold_pct: Number(editDraft.threshold_pct),
+      channel: editDraft.channel,
+      enabled: editDraft.enabled,
+    }
+    if (nextTarget) patch.target = nextTarget
     setBusy(true)
     try {
-      await client.updateAlertRule(editing.id, input)
+      await client.updateAlertRule(editing.id, patch)
       setEditing(null)
       setSaveError(null)
       reload()
@@ -475,6 +482,7 @@ function AlertRulesSection({ onChanged }: { onChanged: () => void }) {
                   <td>
                     <Input
                       aria-label={t('编辑通知目标')}
+                      placeholder={t('留空保持原目标')}
                       value={editDraft.target}
                       onChange={(event) =>
                         setEditDraft({
@@ -516,11 +524,13 @@ function AlertRulesSection({ onChanged }: { onChanged: () => void }) {
                       disabled={busy}
                       onClick={() => {
                         setEditing(rule)
+                        // 目标框预填为空：列表暴露的是脱敏形态（#450），
+                        // 留空表示保持原目标。
                         setEditDraft({
                           name: rule.name,
                           threshold_pct: String(rule.threshold_pct),
                           channel: rule.channel as AlertChannel,
-                          target: rule.target,
+                          target: '',
                           enabled: rule.enabled,
                         })
                       }}

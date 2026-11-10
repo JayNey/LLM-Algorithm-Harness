@@ -378,6 +378,45 @@ class TestAlertRules:
         assert client.delete(f"/api/v1/alerts/{rule_id}", headers=headers).status_code == 204
         assert client.get("/api/v1/alerts", headers=headers).json()["data"] == []
 
+    def test_masked_target_patch_is_rejected_and_keeps_target(self, api):
+        """Editing other fields must not let the masked target overwrite the
+        real delivery address (#450)."""
+        client, headers, _, _ = api
+        created = client.post(
+            "/api/v1/alerts",
+            headers=headers,
+            json={
+                "name": "90pct",
+                "threshold_pct": 90,
+                "channel": "webhook",
+                "target": WEBHOOK,
+            },
+        )
+        assert created.status_code == 201, created.text
+        rule_id = created.json()["data"]["id"]
+
+        masked = created.json()["data"]["target"]
+        rejected = client.patch(
+            f"/api/v1/alerts/{rule_id}",
+            headers=headers,
+            json={"threshold_pct": 95, "target": masked},
+        )
+        assert rejected.status_code == 400, rejected.text
+
+        kept = client.get("/api/v1/alerts", headers=headers).json()["data"]
+        assert len(kept) == 1
+        assert kept[0]["threshold_pct"] == 90
+        assert kept[0]["target"] == masked
+
+        replaced = client.patch(
+            f"/api/v1/alerts/{rule_id}",
+            headers=headers,
+            json={"target": "https://hooks.example.com/other"},
+        )
+        assert replaced.status_code == 200
+        assert replaced.json()["data"]["target"] == "https://hooks.example.com/***"
+        assert client.delete(f"/api/v1/alerts/{rule_id}", headers=headers).status_code == 204
+
     def test_invalid_rules_are_rejected(self, api):
         client, headers, _, _ = api
         zero = client.post(

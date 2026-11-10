@@ -176,6 +176,32 @@ test('预警规则列表/创建/更新/删除', async () => {
   )
 })
 
+test('部分更新不带 target 不触发渠道必填校验，且不回传脱敏目标', async () => {
+  const { client, seen } = clientFor(() => ({
+    data: {
+      id: 'rule-9',
+      name: '规则',
+      threshold_pct: 95,
+      channel: 'webhook',
+      target: 'https://hooks.example.com/***',
+      enabled: true,
+      created_at: '2026-11-01T00:00:00Z',
+      updated_at: '2026-11-01T00:00:00Z',
+    },
+  }))
+  // 编辑场景：只改阈值，目标留空表示保持原值——不应被客户端校验拒绝，
+  // 也不应把脱敏字符串回传给后端（#450）。
+  const updated = await client.updateAlertRule('rule-9', {
+    threshold_pct: 95,
+  })
+  assert.equal(updated.threshold_pct, 95)
+  const patch = seen.find(
+    (call) => call.method === 'PATCH' && call.url === '/alerts/rule-9',
+  ) as { body: Record<string, unknown> }
+  assert.deepEqual(patch.body, { threshold_pct: 95 })
+  assert.equal('target' in patch.body, false)
+})
+
 test('预警输入校验：阈值范围/渠道/目标必填', () => {
   assert.match(
     (() => {

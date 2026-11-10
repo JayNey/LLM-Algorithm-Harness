@@ -646,6 +646,13 @@ class CostService:
                     raise ValueError(f"channel must be one of {sorted(_CHANNELS)}")
                 row.channel = request.channel
             if request.target is not None:
+                if request.target == _mask_target(row.target):
+                    # The list view only exposes the masked target; a client
+                    # echoing it back must not overwrite the real address (#450).
+                    raise ValueError(
+                        "target matches the masked form of the current target; "
+                        "provide the real delivery address",
+                    )
                 row.target = request.target
             if request.enabled is not None:
                 row.enabled = request.enabled
