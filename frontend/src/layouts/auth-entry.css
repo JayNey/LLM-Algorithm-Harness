@@ -1,0 +1,230 @@
+.auth-entry {
+  --auth-form-bg: #f8fbff;
+  --surface: #edf3fa;
+  --text: #172b41;
+  --muted: #50677f;
+  --line: #d5e0ed;
+  --control: #7d91a8;
+  --accent: #2168b0;
+  --auth-split: 52%;
+  --auth-gutter: clamp(24px, 4.25vw, 64px);
+  display: grid;
+  grid-template-rows: auto 1fr;
+  min-height: 100svh;
+  color: var(--text);
+  background: linear-gradient(
+    to right,
+    var(--surface) 0 var(--auth-split),
+    var(--line) var(--auth-split) calc(var(--auth-split) + 1px),
+    var(--auth-form-bg) calc(var(--auth-split) + 1px)
+  );
+}
+
+.auth-entry[data-scheme='dark'] {
+  --auth-form-bg: #0b1320;
+  --surface: #101c2c;
+  --text: #e5effa;
+  --muted: #a4b7cc;
+  --line: #293b51;
+  --control: #6b84a0;
+  --accent: #7bcaff;
+}
+
+.auth-entry-header,
+.auth-entry-brand,
+.auth-entry-settings {
+  display: flex;
+  align-items: center;
+}
+
+.auth-entry-header {
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 8px 24px;
+  min-height: 84px;
+  padding: 8px var(--auth-gutter);
+}
+
+.auth-entry-brand {
+  gap: 10px;
+  font-size: 15px;
+  overflow-wrap: anywhere;
+}
+
+.auth-entry-brand img {
+  flex: none;
+}
+
+.auth-entry-settings {
+  flex-wrap: wrap;
+  gap: 10px;
+  color: var(--muted);
+  font-size: 13px;
+}
+
+.auth-entry-settings button {
+  color: inherit;
+}
+
+.auth-entry-settings select:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+.auth-entry-layout {
+  display: grid;
+  grid-template-columns: var(--auth-split) minmax(0, 1fr);
+  align-items: center;
+}
+
+.auth-entry-intro {
+  min-width: 0;
+  padding: 24px clamp(24px, 5vw, 80px) 46px var(--auth-gutter);
+}
+
+.auth-entry-headline {
+  color: var(--text);
+  font-size: clamp(1.875rem, 4.25vw, 3.625rem);
+  font-weight: 670;
+  letter-spacing: -0.035em;
+  line-height: 1.12;
+}
+
+.auth-entry-headline span {
+  display: block;
+}
+
+.auth-entry-description {
+  margin-top: 18px;
+  font-size: 15px;
+  text-wrap: balance;
+}
+
+.auth-frontier-chart {
+  max-width: 536px;
+  margin: 36px 0 0;
+}
+
+.auth-frontier-chart svg {
+  display: block;
+  width: 100%;
+  height: auto;
+}
+
+.auth-chart-grid {
+  stroke: var(--line);
+}
+
+.auth-frontier-chart figcaption {
+  margin-left: 6px;
+  color: var(--muted);
+  font-size: 11px;
+  letter-spacing: 0.05em;
+}
+
+.auth-entry-main {
+  padding: 18px var(--auth-gutter) 52px;
+}
+
+.auth-entry-form {
+  width: 100%;
+  max-width: 360px;
+  margin-inline: auto;
+}
+
+.auth-entry-form h1 {
+  font-size: 32px;
+  line-height: 1.2;
+  letter-spacing: -0.03em;
+}
+
+.auth-entry-form-description {
+  margin: 12px 0 26px;
+  line-height: 1.5;
+}
+
+.auth-entry-form button[type='submit'] {
+  min-height: 46px;
+  font-weight: 650;
+}
+
+.auth-entry-switch {
+  margin-top: 20px;
+  text-align: center;
+  font-size: 13px;
+}
+
+.auth-entry-switch a {
+  margin-inline-start: 4px;
+  color: var(--accent);
+  font-weight: 600;
+}
+
+.auth-entry-switch a:hover {
+  text-decoration: underline;
+}
+
+@media (max-width: 767px) {
+  .auth-entry {
+    background: var(--auth-form-bg);
+    grid-template-rows: auto 1fr;
+  }
+
+  .auth-entry-header {
+    min-height: 64px;
+    padding-inline: 16px;
+    column-gap: 8px;
+  }
+
+  .auth-entry-brand {
+    flex: 1 1 112px;
+    gap: 6px;
+    font-size: 13px;
+  }
+
+  .auth-entry-brand img {
+    width: 22px;
+    height: 22px;
+  }
+
+  .auth-entry-settings {
+    gap: 4px;
+  }
+
+  .auth-entry-settings .language-control > span {
+    display: none;
+  }
+
+  .auth-entry-settings button {
+    padding-inline: 8px;
+  }
+
+  .auth-entry-layout {
+    grid-template-columns: minmax(0, 1fr);
+    align-content: start;
+  }
+
+  .auth-entry-intro {
+    padding: 22px var(--auth-gutter);
+    border-block: 1px solid var(--line);
+    background: var(--surface);
+  }
+
+  .auth-entry-headline,
+  .auth-entry-form h1 {
+    font-size: 26px;
+  }
+
+  .auth-entry-description {
+    margin-top: 8px;
+    font-size: 13px;
+  }
+
+  .auth-frontier-chart {
+    display: none;
+  }
+
+  .auth-entry-main {
+    padding-block: 30px 36px;
+  }
+}

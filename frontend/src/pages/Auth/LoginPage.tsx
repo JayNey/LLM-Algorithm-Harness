@@ -142,8 +142,11 @@ export default function LoginPage() {
   }
 
   return (
-    <section className="mx-auto w-full max-w-md">
-      <h1 className="mb-4 text-xl font-semibold">{t('登录')}</h1>
+    <section className="auth-entry-form">
+      <h1>{t('登录')}</h1>
+      <p className="auth-entry-form-description">
+        {t('运行评估任务，比较不同策略的结果。')}
+      </p>
       {registered ? (
         <Alert
           className="mb-4"
@@ -243,8 +246,8 @@ export default function LoginPage() {
           {t('登录')}
         </Button>
       </Form>
-      <p className="mt-4">
-        <Link to="/register">{t('注册')}</Link>
+      <p className="auth-entry-switch">
+        {t('还没有账号？')} <Link to="/register">{t('注册')}</Link>
       </p>
     </section>
   )
