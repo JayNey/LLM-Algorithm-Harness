@@ -18,10 +18,15 @@ export function sourceLabel(source: string): string {
 }
 
 export function historyStatusLabel(status: string): string {
+  // 评测单元状态与后端口径一致（src/strategy_base.py 写入 success/
+  // failed/error/unsupported/budget_exhausted，沙箱超时为 timeout）。
   const labels: Record<string, string> = {
-    passed: t('通过'),
+    success: t('通过'),
     failed: t('未通过'),
     error: t('执行错误'),
+    timeout: t('执行超时'),
+    unsupported: t('不支持'),
+    budget_exhausted: t('预算跳过'),
     skipped: t('跳过'),
     pending: t('等待中'),
     running: t('执行中'),

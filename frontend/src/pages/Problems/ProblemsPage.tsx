@@ -376,7 +376,7 @@ function ProblemHistory({ problemId }: { problemId: string }) {
   const list = useList<ProblemHistoryItem>(load, query, problemId)
   const data = list.data as ApiPage<ProblemHistoryItem> | undefined
   const items = data?.items ?? []
-  const passed = items.filter((item) => item.status === 'passed').length
+  const passed = items.filter((item) => item.status === 'success').length
   return (
     <>
       {list.status === 'loading' ? (

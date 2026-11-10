@@ -243,7 +243,7 @@ test('评估历史条目与可空指标解析', async () => {
         {
           problem_id: 'p1',
           strategy: 'direct',
-          status: 'passed',
+          status: 'success',
           iterations: 2,
           tokens: 120,
           execution_time: 1.5,
@@ -266,7 +266,7 @@ test('评估历史条目与可空指标解析', async () => {
     },
   }))
   const history = await client.problemHistory('p1', { limit: 20, offset: 0 })
-  assert.equal(history.items[0].status, 'passed')
+  assert.equal(history.items[0].status, 'success')
   assert.equal(history.items[1].tokens, null)
 })
 

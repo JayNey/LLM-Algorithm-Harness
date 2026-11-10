@@ -66,7 +66,7 @@ const recoveredProblem = {
   source: 'personal',
 }
 
-function historyEntry(problemId, runId, status = 'passed') {
+function historyEntry(problemId, runId, status = 'success') {
   return {
     problem_id: problemId,
     strategy: 'direct',
