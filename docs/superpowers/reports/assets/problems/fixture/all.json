@@ -1,0 +1,142 @@
+{
+  "scenario": "all",
+  "layer": "browser-fixture (not backend E2E)",
+  "assertions": [
+    {
+      "name": "题目列表渲染元数据行",
+      "ok": true
+    },
+    {
+      "name": "来源筛选切到个人",
+      "ok": true
+    },
+    {
+      "name": "同步导入报告呈现",
+      "ok": true
+    },
+    {
+      "name": "评估历史抽屉聚合",
+      "ok": true
+    },
+    {
+      "name": "同一题目的下一页显示对应记录",
+      "ok": true
+    },
+    {
+      "name": "换题后的首个历史请求从首页开始",
+      "ok": true
+    },
+    {
+      "name": "旧题的迟到响应不会覆盖当前题目",
+      "ok": true
+    },
+    {
+      "name": "无历史记录的题目显示真实空态",
+      "ok": true
+    },
+    {
+      "name": "连续三次失败后硬刷新查询同一作业且锁定提交",
+      "ok": true
+    },
+    {
+      "name": "再次中断时手动重试原作业并展示暂停状态",
+      "ok": true
+    },
+    {
+      "name": "离开后回到题库继续原作业，另一账号没有旧作业",
+      "ok": true
+    },
+    {
+      "name": "原会话恢复后显示原作业报告并刷新列表及来源计数",
+      "ok": true
+    },
+    {
+      "name": "触发接口直接返回失败时查询终态详情并解锁",
+      "ok": true
+    },
+    {
+      "name": "无未声明 API 请求",
+      "ok": true
+    }
+  ],
+  "replaced": [
+    "GET /notifications",
+    "GET /users/me",
+    "GET /notifications",
+    "GET /users/me",
+    "GET /evaluation-options",
+    "GET /evaluation-options/problems",
+    "GET /evaluation-options/problems",
+    "GET /notifications",
+    "GET /users/me",
+    "GET /notifications",
+    "GET /users/me",
+    "GET /evaluation-options",
+    "GET /evaluation-options/problems",
+    "POST /problems/upload",
+    "GET /evaluation-options",
+    "GET /evaluation-options/problems",
+    "GET /notifications",
+    "GET /users/me",
+    "GET /notifications",
+    "GET /users/me",
+    "GET /evaluation-options",
+    "GET /evaluation-options/problems",
+    "GET /results/problems/mine-1",
+    "GET /results/problems/mine-1",
+    "GET /results/problems/shared-1",
+    "GET /results/problems/shared-1",
+    "GET /results/problems/mine-1",
+    "GET /results/problems/shared-2",
+    "GET /notifications",
+    "GET /users/me",
+    "GET /notifications",
+    "GET /users/me",
+    "GET /evaluation-options",
+    "GET /evaluation-options/problems",
+    "POST /files/upload",
+    "POST /problems/import",
+    "GET /imports/j-import-large",
+    "GET /imports/j-import-large",
+    "GET /imports/j-import-large",
+    "GET /notifications",
+    "GET /users/me",
+    "GET /notifications",
+    "GET /users/me",
+    "GET /evaluation-options",
+    "GET /evaluation-options/problems",
+    "GET /imports/j-import-large",
+    "GET /imports/j-import-large",
+    "GET /imports/j-import-large",
+    "GET /imports/j-import-large",
+    "GET /imports/j-import-large",
+    "GET /evaluation-options",
+    "GET /evaluation-options/problems",
+    "GET /imports/j-import-large",
+    "GET /notifications",
+    "GET /users/me",
+    "GET /notifications",
+    "GET /users/me",
+    "GET /evaluation-options",
+    "GET /evaluation-options/problems",
+    "GET /notifications",
+    "GET /users/me",
+    "GET /notifications",
+    "GET /users/me",
+    "GET /evaluation-options",
+    "GET /evaluation-options/problems",
+    "GET /imports/j-import-large",
+    "GET /imports/j-import-large",
+    "GET /evaluation-options",
+    "GET /evaluation-options/problems",
+    "POST /files/upload",
+    "POST /problems/import",
+    "GET /imports/j-import-large"
+  ],
+  "unknown": [],
+  "screenshots": [
+    "list.png",
+    "import.png",
+    "history.png"
+  ]
+}
