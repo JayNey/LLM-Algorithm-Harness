@@ -1,7 +1,9 @@
 """Request validation and candidate metadata for LeetCode batch imports."""
 
+from __future__ import annotations
+
 import re
-from typing import Annotated, Literal, Self
+from typing import Annotated, Literal
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 
@@ -27,7 +29,7 @@ class LeetCodePreviewRequest(BaseModel):
         return value
 
     @model_validator(mode="after")
-    def require_filter(self) -> Self:
+    def require_filter(self) -> LeetCodePreviewRequest:
         if not self.tags and self.difficulty is None:
             raise ValueError("Choose a tag or difficulty")
         return self

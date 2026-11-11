@@ -66,6 +66,37 @@ export interface LeetCodeImportResult {
   imported: boolean
 }
 
+export type LeetCodeDifficulty = 'easy' | 'medium' | 'hard'
+
+export interface LeetCodeFilters {
+  tags: string[]
+  difficulty: LeetCodeDifficulty | null
+  limit: number
+}
+
+export interface LeetCodeCandidate {
+  slug: string
+  number: string
+  title: string
+  difficulty: LeetCodeDifficulty
+  tags: string[]
+  source_url: string
+}
+
+export interface LeetCodeBatchItem {
+  slug: string
+  status: 'pending' | 'imported' | 'duplicate' | 'failed'
+  error?: string
+  retryable?: boolean
+}
+
+export interface LeetCodeBatchResult {
+  items: LeetCodeBatchItem[]
+  imported: number
+  duplicates: number
+  failed: number
+}
+
 export interface PersonalProblemDetail {
   description: string
   source_url: string | null
@@ -93,6 +124,7 @@ export interface ImportJobProgress {
   total: number
   percentage: number
   result: ImportValidation | null
+  batch?: LeetCodeBatchResult
   /** 失败终态时从 result.detail 提取的错误说明 */
   failureDetail: string | null
 }
@@ -124,6 +156,9 @@ export interface ProblemClient {
   uploadFile(file: File): Promise<UploadedFile>
   directImport(file: File, mode: ImportMode): Promise<DirectImportResult>
   importLeetCode(url: string): Promise<LeetCodeImportResult>
+  previewLeetCode(filters: LeetCodeFilters): Promise<LeetCodeCandidate[]>
+  startLeetCodeBatch(slugs: string[]): Promise<ImportJobStarted>
+  retryLeetCodeBatch(jobId: string, slugs: string[]): Promise<ImportJobStarted>
   personalProblem(
     problemId: string,
     signal?: AbortSignal,

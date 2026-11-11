@@ -89,10 +89,12 @@ def run_import_task(self: ImportTask, job_id: str, user_id: str) -> dict[str, An
             raise
 
         status = str(job.get("status") or "failed")
-        if status == "paused" or should_pause():
-            return {"job_id": job_id, "status": "paused"}
         if status == "completed":
+            # Progress for the last LeetCode item can already mirror the
+            # completed job to the task. That terminal state is a success.
             manager.update_task_status(async_task.id, "completed")
+        elif status == "paused" or should_pause():
+            return {"job_id": job_id, "status": "paused"}
         else:
             raw_result = job.get("result")
             detail = raw_result.get("detail") if isinstance(raw_result, dict) else None

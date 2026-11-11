@@ -812,6 +812,28 @@ export default {
   '导入失败，请重试': 'Import failed. Try again',
   题目导入: 'Problem import',
   '从 LeetCode 导入': 'Import from LeetCode',
+  按标签和难度批量导入: 'Import by tag and difficulty',
+  '标签（逗号分隔）': 'Tags (comma-separated)',
+  不限难度: 'Any difficulty',
+  '最多导入（1–50）': 'Maximum problems (1–50)',
+  预览公开题目: 'Preview public problems',
+  '请输入最多 10 个英文标签，用逗号分隔。':
+    'Enter up to 10 English tags, separated by commas.',
+  '无法预览 LeetCode 题目，请稍后重试。':
+    'Could not preview LeetCode problems. Try again later.',
+  '没有符合条件的公开题目。': 'No public problems match these filters.',
+  'LeetCode 候选题目': 'LeetCode candidates',
+  全选候选题: 'Select all candidates',
+  '确认导入 {{count}} 道题': 'Import selected problems ({{count}})',
+  'LeetCode 批量导入结果': 'LeetCode batch import results',
+  '成功 {{imported}} · 跳过重复 {{duplicates}} · 失败 {{failed}}':
+    'Imported {{imported}} · Skipped {{duplicates}} duplicates · Failed {{failed}}',
+  'LeetCode 请求触发限流，请稍后重试。':
+    'LeetCode rate limit reached. Try again later.',
+  '个人题库已达到容量上限。': 'Your personal library has reached its capacity.',
+  重试这道题: 'Retry this problem',
+  'LeetCode 批量导入任务失败，请重试。':
+    'LeetCode batch import failed. Try again.',
   '粘贴 LeetCode 国际站的一道公开题目链接。':
     'Paste a link to one public problem on leetcode.com.',
   'LeetCode 题目链接': 'LeetCode problem URL',

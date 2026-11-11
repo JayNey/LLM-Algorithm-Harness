@@ -1325,8 +1325,12 @@ def test_leetcode_batch_previews_public_matches_without_writing(api, monkeypatch
     assert client.get("/api/v1/problems/export?format=json", headers=headers).json() == []
 
 
-def test_leetcode_batch_persists_partial_results_and_retries_only_failed_items(api, monkeypatch):
-    client, alice, bob, app, _, _ = api
+def test_leetcode_batch_persists_partial_results_and_retries_only_failed_items(
+    api, monkeypatch, celery_submit
+):
+    from src.tasks.imports import run_import_task
+
+    client, alice, bob, app, auth, settings = api
     headers, other = auth_headers(alice), auth_headers(bob)
     owner = app.state.auth.store.find_user("alice")["id"]
     base = "/api/v1/problems/import/leetcode"
@@ -1394,7 +1398,15 @@ def test_leetcode_batch_persists_partial_results_and_retries_only_failed_items(a
     statuses["network-error"] = 200
     retried = client.post(retry_url, headers=headers, json={"slugs": ["network-error"]})
     assert retried.status_code == 202, retried.text
-    files.process_job(retried.json()["data"]["job_id"], owner)
+    retry_id = retried.json()["data"]["job_id"]
+    publish = celery_submit.call_args
+    assert publish.args == ("src.tasks.imports.run_import_task",)
+    assert publish.kwargs["args"] == (retry_id, owner)
+    monkeypatch.setenv("AUTH_DATABASE_PATH", str(auth.AUTH_DATABASE_PATH))
+    monkeypatch.setattr("api.auth.config.AuthSettings", lambda: auth)
+    monkeypatch.setattr("api.files.config.FileSettings", lambda: settings)
+    worker = run_import_task.apply(args=(retry_id, owner), task_id=publish.kwargs["task_id"])
+    assert worker.get(propagate=True) == {"job_id": retry_id, "status": "completed"}
     assert calls[-1] == "network-error" and calls.count("two-sum") == 1
     assert [row["problem_id"] for row in files.store.dataset(owner)] == ["leetcode-1", "leetcode-2"]
 
