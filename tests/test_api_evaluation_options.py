@@ -608,3 +608,100 @@ def test_monitor_models_errors_never_fall_back_to_static(api, monkeypatch, state
     assert response.headers["cache-control"] == "no-store"
     if state != "limit":
         assert sdk.closed is True
+
+
+@pytest.fixture
+def recommendation_history(populated):
+    from api.db.models import Evaluation, EvaluationResult
+
+    app, client, users = populated
+    with app.state.task_session_factory() as db, db.begin():
+        db.add_all(
+            [
+                Evaluation(id="mine", user_id=users["alice"][1], status="completed"),
+                Evaluation(id="theirs", user_id=users["bob"][1], status="completed"),
+            ]
+        )
+        db.flush()
+        for pid, status, completed in (
+            ("p1", "wrong_answer", True),
+            ("p2", "budget_exhausted", False),
+            ("unexecuted", "failed", False),
+        ):
+            db.add(
+                EvaluationResult(
+                    id=pid,
+                    evaluation_id="mine",
+                    problem_id=pid,
+                    strategy_name="vanilla",
+                    status=status,
+                    metrics={"problem_snapshot": {"difficulty": "easy", "tags": ["array"]}},
+                    execution_payload={"evaluation_completed": completed},
+                )
+            )
+    return app, client, users
+
+
+def test_recommendations_use_owned_executed_history_and_candidate_source(recommendation_history):
+    _, client, users = recommendation_history
+    headers = users["alice"][0]
+    url = "/api/v1/results/recommendations/preview"
+    response = client.post(url, headers=headers, json={"run_ids": ["mine", "web-mine"]})
+    assert response.status_code == 200, response.text
+    preview = response.json()["data"]
+    assert preview["weaknesses"][0]["total"] == 1
+    assert preview["weaknesses"][0]["failure_rate"] == 1
+    assert [item["problem_id"] for item in preview["problems"]] == ["p3"]
+    assert preview["problems"][0]["reason"]
+    assert "hidden-answer" not in response.text
+    for params, expected in [
+        ({"run_ids": ["mine"], "min_samples": 2}, "insufficient_history"),
+        ({"run_ids": ["mine"], "source": "personal"}, "no_candidates"),
+    ]:
+        assert (
+            client.post(url, headers=headers, json=params).json()["data"]["empty_reason"]
+            == expected
+        )
+    assert (
+        client.post(url, headers=headers, json={"run_ids": ["mine", "theirs"]}).status_code == 404
+    )
+
+
+def test_saved_recommendation_set_preserves_references_and_is_private(populated):
+    app, client, users = populated
+    headers = users["alice"][0]
+    url = "/api/v1/recommendation-sets"
+    saved = client.post(url, headers=headers, json={"name": "Next", "problem_ids": ["p3", "p1"]})
+    assert saved.status_code == 201, saved.text
+    set_id = saved.json()["data"]["id"]
+    assert client.get(url, headers=headers).json()["data"][0]["id"] == set_id
+    assert client.get(url, headers=users["bob"][0]).json()["data"] == []
+    assert client.get(f"{url}/{set_id}", headers=users["bob"][0]).status_code == 404
+    reopened = client.get(f"{url}/{set_id}", headers=headers).json()["data"]
+    assert [item["problem_id"] for item in reopened["problems"]] == ["p3", "p1"]
+    assert (
+        client.post(
+            url, headers=headers, json={"name": "Private", "problem_ids": ["bob-secret"]}
+        ).status_code
+        == 400
+    )
+
+    payload = {
+        "api_key_id": model_key(app, users),
+        "model": "test",
+        "problem_ids": ["p3", "p1"],
+        "strategy_names": ["vanilla"],
+    }
+    created = client.post("/api/v1/evaluations/with-selection", headers=headers, json=payload)
+    assert created.status_code == 201, created.text
+    from api.db.models import Evaluation
+
+    with app.state.task_session_factory() as db:
+        evaluation = db.get(Evaluation, created.json()["data"]["evaluation_id"])
+        assert evaluation.problem_ids == ["p3", "p1"]
+    rejected = client.post(
+        "/api/v1/evaluations/with-selection",
+        headers=headers,
+        json={**payload, "problem_ids": ["bob-secret"]},
+    )
+    assert rejected.status_code == 400, rejected.text

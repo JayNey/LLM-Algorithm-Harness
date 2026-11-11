@@ -39,6 +39,7 @@ from api.db.migrate import SCRIPT_LOCATION
 from api.db.models import WEB_EVALUATION_RUN_PREFIX
 from src.error_analysis import normalize_message
 from src.models import ExecutionResult, IterationResult
+from src.recommender import RecommendationProblem
 from src.reporting.capability_profiler import (
     calculate_dimension_scores,
     format_dimension_scores_for_radar,
@@ -526,6 +527,24 @@ def _generated_text(write: Callable[[str], str]) -> str:
         return write(str(Path(directory) / "report"))
 
 
+def _recommendation_outcome(row: EvaluationResult) -> dict[str, Any]:
+    payload = row.execution_payload or {}
+    metrics = row.metrics or {}
+    snapshot = metrics.get("problem_snapshot")
+    completed = (
+        payload.get("evaluation_completed", metrics.get("evaluation_completed")) is not False
+        and row.status not in {"pending", "running", "paused", "skipped"}
+        and not (isinstance(snapshot, dict) and snapshot.get("origin") == "unavailable")
+        and (row.status != "failed" or bool(payload) or "success" in metrics)
+    )
+    return {
+        "problem_id": row.problem_id,
+        "status": row.status,
+        "evaluation_completed": completed,
+        "hidden_result": payload.get("hidden_result"),
+    }
+
+
 class EvaluationResultsService:
     """Read evaluation results that belong to one user."""
 
@@ -583,6 +602,39 @@ class EvaluationResultsService:
                     "has_more": offset + limit < total,
                 },
             }
+
+    def recommendation_history(
+        self,
+        owner_id: str,
+        run_ids: list[str],
+        catalog: dict[str, RecommendationProblem],
+    ) -> list[tuple[dict[str, Any], RecommendationProblem | None]]:
+        with self._session() as session:
+            ids = dict.fromkeys(self._resolve(session, owner_id, key).id for key in run_ids)
+            rows = session.scalars(
+                select(EvaluationResult).where(EvaluationResult.evaluation_id.in_(ids))
+            )
+            history = []
+            for row in rows:
+                problem = catalog.get(row.problem_id)
+                metrics = row.metrics or {}
+                snapshot = metrics.get("problem_snapshot")
+                if isinstance(snapshot, dict):
+                    problem = RecommendationProblem(
+                        problem_id=row.problem_id,
+                        title="",
+                        difficulty=snapshot.get("difficulty"),
+                        tags=snapshot.get("tags") or [],
+                    )
+                elif metrics.get("difficulty"):
+                    problem = RecommendationProblem(
+                        problem_id=row.problem_id,
+                        title="",
+                        difficulty=metrics["difficulty"],
+                        tags=problem.tags if problem else [],
+                    )
+                history.append((_recommendation_outcome(row), problem))
+            return history
 
     def list_runs(
         self,

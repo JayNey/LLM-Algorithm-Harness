@@ -9,8 +9,20 @@ from fastapi.responses import Response
 
 from api.auth.dependencies import current_user
 from api.auth.service import Principal
+from api.evaluation_options import (
+    RecommendationPreview,
+    RecommendationPreviewRequest,
+    RecommendationSetCreate,
+    RecommendationSetDetail,
+    RecommendationSetSummary,
+    RecommendationWeakness,
+    RecommendedProblem,
+)
+from api.routes.evaluation_options import evaluation_options_service
 from api.schemas import ApiResponse, PaginatedData
 from api.services import EvaluationResultsService
+from api.services.evaluation_options_service import EvaluationOptionsService
+from src.recommender import analyze_recommendations
 
 router = APIRouter(prefix="/api/v1", tags=["evaluation-results"])
 T = TypeVar("T")
@@ -49,6 +61,107 @@ def _analytics(
 
 def _page(limit: int, offset: int) -> tuple[int, int]:
     return (limit if 1 <= limit <= 100 else 20, max(0, offset))
+
+
+@router.post("/results/recommendations/preview")
+def preview_recommendations(
+    request: RecommendationPreviewRequest,
+    principal: Principal = Depends(current_user),
+    service: EvaluationResultsService = Depends(evaluation_results_service),
+    options: EvaluationOptionsService = Depends(evaluation_options_service),
+) -> ApiResponse[RecommendationPreview]:
+    owner = principal.user_id
+    catalog = options.problem_metadata(owner)
+    history = call(
+        lambda: service.recommendation_history(
+            owner, request.run_ids, {pid: problem for pid, (problem, _) in catalog.items()}
+        )
+    )
+    analysis, sufficient = analyze_recommendations(
+        history,
+        (problem for problem, source in catalog.values() if request.source in ("all", source)),
+        min_samples=request.min_samples,
+        failure_threshold=request.failure_threshold,
+    )
+    weaknesses = [
+        RecommendationWeakness.model_validate(item) for item in analysis["weakness_report"]
+    ]
+    problems = [
+        RecommendedProblem(
+            problem_id=item["problem_id"],
+            title=item["title"],
+            difficulty=item["difficulty"],
+            reason=item["recommendation_reason"],
+            matching_groups=item["matching_groups"],
+            failure_rate=item["recommendation_score"],
+            total=item["sample_count"],
+        )
+        for item in analysis["recommended_problems"]
+    ]
+    if not sufficient:
+        empty_reason = "insufficient_history"
+    elif not weaknesses:
+        empty_reason = "no_weaknesses"
+    elif not problems:
+        empty_reason = "no_candidates"
+    else:
+        empty_reason = None
+    return ApiResponse(
+        success=True,
+        data=RecommendationPreview(
+            weaknesses=weaknesses, problems=problems, empty_reason=empty_reason
+        ),
+        message="Recommendation preview",
+    )
+
+
+@router.get("/recommendation-sets")
+def list_recommendation_sets(
+    principal: Principal = Depends(current_user),
+    options: EvaluationOptionsService = Depends(evaluation_options_service),
+) -> ApiResponse[list[RecommendationSetSummary]]:
+    return ApiResponse(
+        success=True,
+        data=[
+            RecommendationSetSummary.model_validate(row)
+            for row in options.files.recommendation_sets(principal.user_id)
+        ],
+        message="Personal recommendation sets",
+    )
+
+
+@router.post("/recommendation-sets", status_code=201)
+def save_recommendation_set(
+    request: RecommendationSetCreate,
+    principal: Principal = Depends(current_user),
+    options: EvaluationOptionsService = Depends(evaluation_options_service),
+) -> ApiResponse[RecommendationSetSummary]:
+    owner = principal.user_id
+    options.selected_problems(owner, request.problem_ids, require_all=True)
+    set_id = options.files.save_recommendation_set(owner, request.name, request.problem_ids)
+    return ApiResponse(
+        success=True,
+        data=RecommendationSetSummary(id=set_id, name=request.name),
+        message="Recommendation set saved",
+    )
+
+
+@router.get("/recommendation-sets/{set_id}")
+def get_recommendation_set(
+    set_id: str,
+    principal: Principal = Depends(current_user),
+    options: EvaluationOptionsService = Depends(evaluation_options_service),
+) -> ApiResponse[RecommendationSetDetail]:
+    owner = principal.user_id
+    name, ids = options.files.recommendation_set(owner, set_id)
+    problems = options.selected_problems(owner, ids)
+    return ApiResponse(
+        success=True,
+        data=RecommendationSetDetail(
+            id=set_id, name=name, problems=problems, unavailable_count=len(ids) - len(problems)
+        ),
+        message="Personal recommendation set",
+    )
 
 
 @router.get("/results/problems/{problem_id}")

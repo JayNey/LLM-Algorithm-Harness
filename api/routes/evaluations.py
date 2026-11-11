@@ -11,8 +11,10 @@ from api.files.dependencies import file_service
 from api.files.service import FileService
 from api.middleware.errors import ApiError, ErrorCode
 from api.models import EvaluationCreateRequest, EvaluationUpdateRequest
+from api.routes.evaluation_options import evaluation_options_service
 from api.schemas import ApiResponse, EvaluationResponse, PaginatedData, ProgressInfo
 from api.services import EvaluationService
+from api.services.evaluation_options_service import EvaluationOptionsService
 from src.task_manager import EvaluationConcurrencyLimitExceeded
 
 router = APIRouter(prefix="/api/v1", tags=["evaluations"])
@@ -33,15 +35,17 @@ def call(operation: Callable[[], T]) -> T:
         raise HTTPException(404 if "not found" in str(exc).lower() else 400, str(exc)) from None
 
 
-@router.post("/evaluations", status_code=201)
-def create_evaluation(
+def _create_evaluation(
     request: EvaluationCreateRequest,
-    principal: Principal = Depends(current_user),
-    auth: AuthService = Depends(auth_service),
-    service: EvaluationService = Depends(evaluation_service),
-    files: FileService = Depends(file_service),
+    principal: Principal,
+    auth: AuthService,
+    service: EvaluationService,
+    files: FileService,
+    options: EvaluationOptionsService | None = None,
 ) -> ApiResponse[EvaluationResponse]:
     auth.owned_key(request.api_key_id, principal.user_id)
+    if options is not None:
+        options.selected_problems(principal.user_id, request.problem_ids, require_all=True)
     result = service.create_evaluation(request, principal.user_id)
     try:
         files.store.register_run(result.evaluation_id, principal.user_id)
@@ -50,6 +54,29 @@ def create_evaluation(
         raise
     auth.audit("evaluation_create", principal.user_id, result.evaluation_id)
     return ApiResponse(success=True, data=result, message="Evaluation created successfully")
+
+
+@router.post("/evaluations", status_code=201)
+def create_evaluation(
+    request: EvaluationCreateRequest,
+    principal: Principal = Depends(current_user),
+    auth: AuthService = Depends(auth_service),
+    service: EvaluationService = Depends(evaluation_service),
+    files: FileService = Depends(file_service),
+) -> ApiResponse[EvaluationResponse]:
+    return _create_evaluation(request, principal, auth, service, files)
+
+
+@router.post("/evaluations/with-selection", status_code=201)
+def create_evaluation_with_selection(
+    request: EvaluationCreateRequest,
+    principal: Principal = Depends(current_user),
+    auth: AuthService = Depends(auth_service),
+    service: EvaluationService = Depends(evaluation_service),
+    files: FileService = Depends(file_service),
+    options: EvaluationOptionsService = Depends(evaluation_options_service),
+) -> ApiResponse[EvaluationResponse]:
+    return _create_evaluation(request, principal, auth, service, files, options)
 
 
 @router.get("/evaluations")

@@ -128,9 +128,53 @@ def page(items: list[Any]) -> dict[str, Any]:
     return {"items": items, "total": len(items), "limit": 20, "offset": 0, "has_more": False}
 
 
+SELECTED_PROBLEM = {
+    "problem_id": "two-sum",
+    "title": "Two Sum",
+    "difficulty": "easy",
+    "source": "shared",
+}
+RECOMMENDATION_SET = {"id": "set-demo", "name": "数组练习"}
+
+
 # Handler name -> purpose, response data. Aliased paths share the same contract.
 # Examples show representative data; empty aggregates mean no stored results.
 OPERATIONS: dict[str, tuple[str, Any]] = {
+    "selected_problems": (
+        "按 ID 校验共享题目或本人的题目并返回可访问的元数据；缺失和无权访问的 ID 均省略。",
+        [SELECTED_PROBLEM],
+    ),
+    "preview_recommendations": (
+        "使用本人的评估历史预览薄弱分组与匹配的未评估题目。包含无权访问的运行时返回 404。",
+        {
+            "weaknesses": [{"key": "tag:array", "failure_rate": 1.0, "total": 1}],
+            "problems": [
+                {
+                    "problem_id": "two-sum",
+                    "title": "Two Sum",
+                    "difficulty": "easy",
+                    "reason": "匹配高失败率分组 tag:array",
+                    "matching_groups": ["tag:array"],
+                    "failure_rate": 1.0,
+                    "total": 1,
+                }
+            ],
+            "empty_reason": None,
+        },
+    ),
+    "list_recommendation_sets": ("列出自己保存的推荐题集。", [RECOMMENDATION_SET]),
+    "save_recommendation_set": (
+        "保存题集名称与有权访问的题目 ID 引用。任一题目不可访问时返回 400。",
+        RECOMMENDATION_SET,
+    ),
+    "get_recommendation_set": (
+        "打开自己保存的推荐题集并解析当前可访问的题目；缺失或越权的题集返回 404。",
+        {
+            **RECOMMENDATION_SET,
+            "problems": [SELECTED_PROBLEM],
+            "unavailable_count": 0,
+        },
+    ),
     "datasets": (
         "列出自己已导入的个人题库集合。dataset_id 可用于实验、基准运行及 A/B 创建；与 dataset_path 恰好提供一个。创建业务时冻结完整题目快照，源上传过期、题库覆盖及恢复不会改变执行内容；不存在或属于他人的集合返回 404，空或不可用集合返回 400。",
         [
@@ -225,6 +269,10 @@ OPERATIONS: dict[str, tuple[str, Any]] = {
     ),
     "create_evaluation": (
         "创建待运行评估，引用自己的 api_key_id 和已存在的题目；随后调用 start。",
+        EVALUATION,
+    ),
+    "create_evaluation_with_selection": (
+        "用选中的推荐题目创建待运行评估。创建前校验每道题的当前访问权限；任一题目不可访问时返回 400。随后调用 start。",
         EVALUATION,
     ),
     "list_evaluations": ("分页查询自己的评估，可按状态过滤。", page([EVALUATION])),
@@ -1384,6 +1432,9 @@ DOWNLOADS = {
 }
 
 REQUEST_EXAMPLES: dict[str, Any] = {
+    "ProblemSelection": {"problem_ids": ["two-sum"]},
+    "RecommendationPreviewRequest": {"run_ids": ["eval-demo"], "source": "all", "min_samples": 1},
+    "RecommendationSetCreate": {"name": "数组练习", "problem_ids": ["two-sum"]},
     "LeetCodeImportRequest": {"url": "https://leetcode.com/problems/two-sum/"},
     "LeetCodePreviewRequest": {
         "tags": ["dynamic-programming"],
@@ -1469,6 +1520,7 @@ REQUEST_EXAMPLES: dict[str, Any] = {
 
 # Parameter explanations include coercion behavior only where handlers implement it.
 PARAMETERS: dict[str, tuple[str, Any]] = {
+    "set_id": ("本人保存的推荐题集 ID。", "set-demo"),
     "evaluation_id": ("自己的评估 ID，由创建评估接口返回。", "eval-demo"),
     "task_id": ("自己的任务 ID；日志/成本接口按各自关联的运行记录解析。", "task-demo"),
     "run_id": (
@@ -1666,7 +1718,7 @@ def _rate_limit(name: str, path: str) -> str:
         name in UPLOAD_OPERATIONS
         or path == "/api/v1/problems/export"
         or (path.startswith("/api/v1/files/") and path.endswith("/download"))
-        or path.startswith("/api/v1/results/")
+        or name in {"download_results", "download_chart"}
     ):
         text += " 此路径还受 FILE_MAX_CONCURRENT_TRANSFERS（每个 API 进程默认 2 个）并发容量限制。"
     if name == "models":
@@ -1771,19 +1823,23 @@ def _document_operation(path: str, method: str, operation: dict[str, Any]) -> No
                 **(
                     {"config_type": "harness"}
                     if name == "upload_config"
-                    else {"mode": "append", "validate": True} if name == "upload_problems" else {}
+                    else {"mode": "append", "validate": True}
+                    if name == "upload_problems"
+                    else {}
                 ),
             }
             properties = media["schema"]["properties"]
             allowed = (
                 {"file", "config_type"}
                 if name == "upload_config"
-                else {"file", "mode", "validate"} if name == "upload_problems" else {"file"}
+                else {"file", "mode", "validate"}
+                if name == "upload_problems"
+                else {"file"}
             )
             media["schema"]["properties"] = {k: v for k, v in properties.items() if k in allowed}
-        operation["requestBody"][
-            "description"
-        ] = "请求体各字段的语义、必填项、类型及约束见 schema；示例中的 ID/令牌需要替换为自己的资源。"
+        operation["requestBody"]["description"] = (
+            "请求体各字段的语义、必填项、类型及约束见 schema；示例中的 ID/令牌需要替换为自己的资源。"
+        )
     responses = operation["responses"]
     # The application's RequestValidationError handler returns 400, never 422.
     responses.pop("422", None)
