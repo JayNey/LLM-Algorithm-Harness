@@ -1,5 +1,6 @@
 {
   "openspec_proposal": "openspec/changes/add-web-problem-recommendations/proposal.md",
   "openspec_design": "openspec/changes/add-web-problem-recommendations/design.md",
-  "openspec_tasks": "openspec/changes/add-web-problem-recommendations/tasks.md"
+  "openspec_tasks": "openspec/changes/add-web-problem-recommendations/tasks.md",
+  "archive_directory": "openspec/changes/archive/2026-11-11-add-web-problem-recommendations"
 }
