@@ -417,7 +417,7 @@ class FileStore:
         ).fetchall()
         details = {"status_code": 409, "detail": "Import interrupted or timed out"}
         for row in rows:
-            result = details
+            result: dict[str, Any] = details
             if row["mode"] == "leetcode":
                 result = {**json.loads(row["result"]), **details}
                 for item in result["items"]:
