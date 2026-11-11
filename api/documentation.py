@@ -414,6 +414,30 @@ OPERATIONS: dict[str, tuple[str, Any]] = {
         "无效链接返回 400，题目不存在或受限返回 404，超时返回 408，限流返回 429。",
         {"problem_id": "leetcode-1", "imported": True},
     ),
+    "preview_leetcode": (
+        "预览 LeetCode 国际站公开题。至少提供标签或难度中的一项，最多提供 10 个标签。"
+        "limit 默认 20，范围为 1–50。响应包含题号、标题、难度、标签和来源链接。确认批量导入后才写入题库。",
+        [
+            {
+                "slug": "jump-game-ii",
+                "number": "45",
+                "title": "Jump Game II",
+                "difficulty": "medium",
+                "tags": ["Dynamic Programming", "Greedy", "Array"],
+                "source_url": "https://leetcode.com/problems/jump-game-ii/",
+            }
+        ],
+    ),
+    "import_leetcode_batch": (
+        "将勾选的 LeetCode 公开题加入后台导入队列。slugs 接受 1–50 个题目标识。"
+        "任务将题目追加到自己的题库，并跳过重复题。使用返回的 job_id 查询进度。",
+        {"job_id": "job-demo", "task_id": "task-demo", "status": "pending"},
+    ),
+    "retry_leetcode_batch": (
+        "重试自己的已结束批次中选定的可恢复失败项。slugs 接受 1–50 个标记为 retryable 的题目标识。"
+        "使用返回的新 job_id 查询重试进度。",
+        {"job_id": "job-retry-demo", "task_id": "task-retry-demo", "status": "pending"},
+    ),
     "personal_problem_detail": (
         "查看自己题库中的题面、LeetCode 来源和人工补全状态；题目不存在或不属于本人时返回 404。",
         {
@@ -423,7 +447,9 @@ OPERATIONS: dict[str, tuple[str, Any]] = {
         },
     ),
     "import_progress": (
-        "查询自己的导入任务进度、完成比例和校验结果。",
+        "查询自己的导入任务进度、完成比例和结果。"
+        "LeetCode 批次的 result.kind 为 leetcode，包含成功、重复和失败数以及逐题状态。"
+        "失败项的 error 表示原因，retryable 表示是否可按题重试。",
         {
             "job_id": "job-demo",
             "status": "pending",
@@ -1359,6 +1385,12 @@ DOWNLOADS = {
 
 REQUEST_EXAMPLES: dict[str, Any] = {
     "LeetCodeImportRequest": {"url": "https://leetcode.com/problems/two-sum/"},
+    "LeetCodePreviewRequest": {
+        "tags": ["dynamic-programming"],
+        "difficulty": "medium",
+        "limit": 20,
+    },
+    "LeetCodeBatchRequest": {"slugs": ["jump-game-ii"]},
     "RegisterInput": {
         "username": "demo",
         "email": "demo@example.com",
@@ -1628,6 +1660,8 @@ def _rate_limit(name: str, path: str) -> str:
     text = "速率限制：同一用户共享 AUTH_PROTECTED_RATE_LIMIT（默认 120 次）/ AUTH_RATE_WINDOW_SECONDS（默认 60 秒）；429 后按 Retry-After 重试。"
     if name in UPLOAD_OPERATIONS:
         text += " 上传额外按 IP 和用户分别限制 FILE_UPLOAD_RATE_LIMIT（默认 10 次/同一认证窗口）。"
+    if path.startswith("/api/v1/problems/import/leetcode"):
+        text += " LeetCode 预览、导入和重试共享同一用户的 FILE_UPLOAD_RATE_LIMIT（默认 10 次/同一认证窗口）。"
     if (
         name in UPLOAD_OPERATIONS
         or path == "/api/v1/problems/export"
