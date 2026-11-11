@@ -14,6 +14,7 @@ from api.auth.dependencies import current_user
 from api.auth.service import Principal
 from api.db.engine import get_db
 from api.files.dependencies import file_service
+from api.files.leetcode import LeetCodeBatchRequest, LeetCodeCandidate, LeetCodePreviewRequest
 from api.files.service import FileService
 from api.files.templates import TEMPLATES, template
 from api.schemas import ApiResponse
@@ -150,6 +151,19 @@ class PersonalProblemDetail(BaseModel):
     needs_manual_completion: bool
 
 
+@router.post("/problems/import/leetcode/preview")
+def preview_leetcode(
+    request: LeetCodePreviewRequest,
+    principal: Principal = Depends(current_user),
+    service: FileService = Depends(file_service),
+) -> ApiResponse[list[LeetCodeCandidate]]:
+    return ApiResponse(
+        success=True,
+        data=service.preview_leetcode(request, principal.user_id),
+        message="LeetCode candidates",
+    )
+
+
 @router.post("/problems/import/leetcode")
 def import_leetcode(
     request: LeetCodeImportRequest,
@@ -189,12 +203,41 @@ def import_uploaded(
     job_id = service.store.create_job(
         request.file_id, principal.user_id, request.mode, service.settings.FILE_MAX_ACTIVE_IMPORTS
     )
+    return enqueue_import(job_id, principal.user_id, service, db)
+
+
+@router.post("/problems/import/leetcode/batch", status_code=202)
+def import_leetcode_batch(
+    request: LeetCodeBatchRequest,
+    principal: Principal = Depends(current_user),
+    service: FileService = Depends(file_service),
+    db: Session = Depends(get_db),
+) -> ApiResponse[dict[str, Any]]:
+    job_id = service.queue_leetcode_batch(principal.user_id, request.slugs)
+    return enqueue_import(job_id, principal.user_id, service, db)
+
+
+@router.post("/problems/import/leetcode/batch/{job_id}/retry", status_code=202)
+def retry_leetcode_batch(
+    job_id: str,
+    request: LeetCodeBatchRequest,
+    principal: Principal = Depends(current_user),
+    service: FileService = Depends(file_service),
+    db: Session = Depends(get_db),
+) -> ApiResponse[dict[str, Any]]:
+    retry_id = service.queue_leetcode_batch(principal.user_id, request.slugs, retry_job_id=job_id)
+    return enqueue_import(retry_id, principal.user_id, service, db)
+
+
+def enqueue_import(
+    job_id: str, user_id: str, service: FileService, db: Session
+) -> ApiResponse[dict[str, Any]]:
     task = TaskManager(db, file_store=service.store).enqueue_task(
         task_type="import",
         entity_id=job_id,
-        user_id=principal.user_id,
+        user_id=user_id,
         celery_task_name="src.tasks.imports.run_import_task",
-        celery_task_args=(job_id, principal.user_id),
+        celery_task_args=(job_id, user_id),
     )
     return ApiResponse(
         success=True,

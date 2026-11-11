@@ -1264,3 +1264,213 @@ def test_leetcode_import_preserves_manual_completion(api, monkeypatch):
     assert response.status_code == 200, response.text
     detail = client.get("/api/v1/problems/personal/leetcode-1", headers=headers)
     assert detail.json()["data"]["needs_manual_completion"] is True
+
+
+def test_leetcode_batch_previews_public_matches_without_writing(api, monkeypatch):
+    client, alice, *_ = api
+    calls = []
+
+    def post(_session, _url, **kwargs):
+        calls.append(kwargs["json"])
+        question = {
+            "titleSlug": "jump-game-ii",
+            "title": "Jump Game II",
+            "questionFrontendId": "45",
+            "difficulty": "MEDIUM",
+            "paidOnly": False,
+            "topicTags": [{"slug": "dynamic-programming", "name": "Dynamic Programming"}],
+        }
+        response = Mock(status_code=200)
+        response.json.return_value = {
+            "data": {
+                "problemsetQuestionListV2": {
+                    "questions": [question, {**question, "titleSlug": "premium", "paidOnly": True}]
+                }
+            }
+        }
+        return response
+
+    monkeypatch.setattr("requests.Session.post", post)
+    route = "/api/v1/problems/import/leetcode/preview"
+    headers = auth_headers(alice)
+    assert client.post(route, headers=headers, json={"limit": 10}).status_code == 400
+    assert (
+        client.post(route, headers=headers, json={"difficulty": "medium", "limit": 51}).status_code
+        == 400
+    )
+    assert client.post(route, headers=headers, json={"tags": ["<invalid>"]}).status_code == 400
+    assert not calls
+    response = client.post(
+        route,
+        headers=headers,
+        json={"tags": ["Dynamic Programming"], "difficulty": "medium", "limit": 10},
+    )
+    assert response.status_code == 200, response.text
+    assert response.json()["data"] == [
+        {
+            "slug": "jump-game-ii",
+            "number": "45",
+            "title": "Jump Game II",
+            "difficulty": "medium",
+            "tags": ["Dynamic Programming"],
+            "source_url": "https://leetcode.com/problems/jump-game-ii/",
+        }
+    ]
+    assert calls[0]["variables"]["filters"] == {
+        "filterCombineType": "ALL",
+        "topicFilter": {"topicSlugs": ["dynamic-programming"], "operator": "IS"},
+        "difficultyFilter": {"difficulties": ["MEDIUM"], "operator": "IS"},
+        "premiumFilter": {"premiumStatus": ["NOT_PREMIUM"], "operator": "IS"},
+    }
+    assert client.get("/api/v1/problems/export?format=json", headers=headers).json() == []
+
+
+def test_leetcode_batch_persists_partial_results_and_retries_only_failed_items(
+    api, monkeypatch, celery_submit
+):
+    from src.tasks.imports import run_import_task
+
+    client, alice, bob, app, auth, settings = api
+    headers, other = auth_headers(alice), auth_headers(bob)
+    owner = app.state.auth.store.find_user("alice")["id"]
+    base = "/api/v1/problems/import/leetcode"
+    calls = []
+    statuses = {"network-error": 429, "restricted": 403}
+
+    def post(_session, _url, **kwargs):
+        slug = kwargs["json"]["variables"]["titleSlug"]
+        calls.append(slug)
+        question = {
+            **leetcode_question(),
+            "questionFrontendId": "2" if slug == "network-error" else "1",
+            "codeSnippets": [],
+            "content": "<p>Question without examples.</p>",
+        }
+        response = Mock(status_code=statuses.get(slug, 200))
+        response.json.return_value = {"data": {"question": question}}
+        return response
+
+    monkeypatch.setattr("requests.Session.post", post)
+
+    def start(slugs):
+        response = client.post(base + "/batch", headers=headers, json={"slugs": slugs})
+        assert response.status_code == 202, response.text
+        return response.json()["data"]["job_id"]
+
+    assert (
+        client.post(base + "/batch", headers=headers, json={"slugs": ["../unsafe"]}).status_code
+        == 400
+    )
+    job_id = start(["two-sum", "network-error", "restricted"])
+    progress_url = f"/api/v1/imports/{job_id}"
+    retry_url = base + f"/batch/{job_id}/retry"
+    assert not calls
+    assert client.get(progress_url, headers=other).status_code == 404
+    assert (
+        client.post(retry_url, headers=other, json={"slugs": ["network-error"]}).status_code == 404
+    )
+
+    files = app.state.files
+    files.process_job(job_id, owner, should_pause=lambda: calls == ["two-sum", "network-error"])
+    paused = client.get(progress_url, headers=headers).json()["data"]
+    assert paused["status"] == "paused" and paused["processed"] == 1
+    assert files.store.sync_task_status(job_id, owner, "pending") == "pending"
+    files.process_job(job_id, owner)
+    progress = client.get(progress_url, headers=headers).json()["data"]
+    assert progress["status"] == "completed" and progress["processed"] == 3
+    assert calls == ["two-sum", "network-error", "network-error", "restricted"]
+    result = progress["result"]
+    assert (result["imported"], result["duplicates"], result["failed"]) == (1, 0, 2)
+    assert [
+        (item["slug"], item.get("error"), item.get("retryable")) for item in result["items"]
+    ] == [
+        ("two-sum", None, None),
+        ("network-error", "rate_limit", True),
+        ("restricted", "unavailable", False),
+    ]
+    assert [row["problem_id"] for row in files.store.dataset(owner)] == ["leetcode-1"]
+    detail = client.get("/api/v1/problems/personal/leetcode-1", headers=headers).json()["data"]
+    assert detail["needs_manual_completion"] is True
+    assert client.get("/api/v1/problems/export?format=json", headers=other).json() == []
+
+    for slug in ["two-sum", "restricted", "not-selected"]:
+        assert client.post(retry_url, headers=headers, json={"slugs": [slug]}).status_code == 400
+    statuses["network-error"] = 200
+    retried = client.post(retry_url, headers=headers, json={"slugs": ["network-error"]})
+    assert retried.status_code == 202, retried.text
+    retry_id = retried.json()["data"]["job_id"]
+    publish = celery_submit.call_args
+    assert publish.args == ("src.tasks.imports.run_import_task",)
+    assert publish.kwargs["args"] == (retry_id, owner)
+    monkeypatch.setenv("AUTH_DATABASE_PATH", str(auth.AUTH_DATABASE_PATH))
+    monkeypatch.setattr("api.auth.config.AuthSettings", lambda: auth)
+    monkeypatch.setattr("api.files.config.FileSettings", lambda: settings)
+    worker = run_import_task.apply(args=(retry_id, owner), task_id=publish.kwargs["task_id"])
+    assert worker.get(propagate=True) == {"job_id": retry_id, "status": "completed"}
+    assert calls[-1] == "network-error" and calls.count("two-sum") == 1
+    assert [row["problem_id"] for row in files.store.dataset(owner)] == ["leetcode-1", "leetcode-2"]
+
+    duplicate_id = start(["two-sum"])
+    files.process_job(duplicate_id, owner)
+    duplicate = client.get(f"/api/v1/imports/{duplicate_id}", headers=headers).json()["data"]
+    assert duplicate["result"]["duplicates"] == 1
+
+
+def test_leetcode_batch_continues_after_malformed_upstream_response(api, monkeypatch):
+    _, _, _, app, _, _ = api
+    files = app.state.files
+    owner = app.state.auth.store.find_user("alice")["id"]
+
+    def post(_session, _url, **kwargs):
+        response = Mock(status_code=200)
+        slug = kwargs["json"]["variables"]["titleSlug"]
+        response.json.return_value = (
+            None if slug == "malformed" else {"data": {"question": leetcode_question()}}
+        )
+        return response
+
+    monkeypatch.setattr("requests.Session.post", post)
+    job_id = files.queue_leetcode_batch(owner, ["malformed", "two-sum"])
+    files.process_job(job_id, owner)
+    job = files.store.job(job_id, owner)
+    assert job["status"] == "completed"
+    assert job["result"]["items"][0] == {
+        "slug": "malformed",
+        "status": "failed",
+        "error": "upstream",
+        "retryable": True,
+    }
+    assert job["result"]["items"][1]["status"] == "imported"
+
+
+def test_leetcode_batch_timeout_preserves_results_and_can_retry_pending_items(api):
+    client, alice, _, app, _, _ = api
+    headers = auth_headers(alice)
+    files = app.state.files
+    owner = app.state.auth.store.find_user("alice")["id"]
+    job_id = files.queue_leetcode_batch(owner, ["rate-limited", "pending"])
+    assert files.store.claim_job(job_id, owner)
+    assert files.store.record_leetcode_item(
+        job_id,
+        owner,
+        0,
+        {"status": "failed", "error": "rate_limit", "retryable": True},
+        None,
+        files.settings.FILE_UPLOAD_MAX_BYTES,
+        files.settings.FILE_IMPORT_MAX_ITEMS,
+    )
+    with files.store.connection() as db:
+        db.execute("UPDATE api_file_jobs SET updated_at=0 WHERE id=?", (job_id,))
+    files.cleanup()
+
+    job = client.get(f"/api/v1/imports/{job_id}", headers=headers).json()["data"]
+    assert job["status"] == "failed"
+    assert job["result"]["kind"] == "leetcode"
+    assert job["result"]["failed"] == 2
+    assert [item["error"] for item in job["result"]["items"]] == ["rate_limit", "timeout"]
+    response = client.post(
+        f"/api/v1/problems/import/leetcode/batch/{job_id}/retry",
+        headers=headers,
+        json={"slugs": ["pending"]},
+    )
+    assert response.status_code == 202, response.text

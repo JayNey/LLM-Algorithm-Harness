@@ -64,7 +64,7 @@ def test_fetch_question_list_normalizes_difficulty(importer, mock_session):
     # Assert
     call_args = mock_session.post.call_args
     payload = call_args[1]["json"]
-    assert payload["variables"]["filters"]["difficulty"] == "EASY"
+    assert payload["variables"]["filters"]["difficultyFilter"]["difficulties"] == ["EASY"]
 
 
 def test_fetch_question_list_validates_difficulty_value(importer):
@@ -78,11 +78,11 @@ def test_fetch_question_list_validates_response_fields(importer, mock_session):
     # Arrange - missing 'questions' field
     mock_response = Mock()
     mock_response.status_code = 200
-    mock_response.json.return_value = {"data": {"problemsetQuestionList": {}}}
+    mock_response.json.return_value = {"data": {"problemsetQuestionListV2": {}}}
     mock_session.post.return_value = mock_response
 
     # Act & Assert
-    with pytest.raises(ValueError, match="problemsetQuestionList returned no data"):
+    with pytest.raises(ValueError, match="problemsetQuestionListV2 returned no data"):
         importer._fetch_question_list()
 
 
@@ -93,7 +93,7 @@ def test_fetch_question_list_validates_titleslug_present(importer, mock_session)
     mock_response.status_code = 200
     mock_response.json.return_value = {
         "data": {
-            "problemsetQuestionList": {
+            "problemsetQuestionListV2": {
                 "questions": [{"questionFrontendId": "1", "title": "Test"}]  # missing titleSlug
             }
         }

@@ -7,6 +7,9 @@ import type {
   ImportJobProgress,
   ImportJobStarted,
   ImportValidation,
+  LeetCodeBatchItem,
+  LeetCodeBatchResult,
+  LeetCodeCandidate,
   PersonalProblemDetail,
   ProblemClient,
   ProblemHistoryItem,
@@ -198,6 +201,52 @@ function importStarted(value: unknown): ImportJobStarted {
   }
 }
 
+function leetCodeSlug(value: unknown, field: string): string {
+  const slug = text(value, field)
+  if (!/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(slug)) protocol(field)
+  return slug
+}
+
+function leetCodeCandidate(value: unknown, field: string): LeetCodeCandidate {
+  const data = record(value, field)
+  const slug = leetCodeSlug(data.slug, `${field}.slug`)
+  const { difficulty } = data
+  if (difficulty !== 'easy' && difficulty !== 'medium' && difficulty !== 'hard')
+    protocol(`${field}.difficulty`)
+  const source = `https://leetcode.com/problems/${slug}/`
+  if (data.source_url !== source) protocol(`${field}.source_url`)
+  return {
+    slug,
+    number: text(data.number, `${field}.number`),
+    title: text(data.title, `${field}.title`),
+    difficulty,
+    tags: array(data.tags, text, `${field}.tags`),
+    source_url: source,
+  }
+}
+
+function leetCodeBatchItem(value: unknown, field: string): LeetCodeBatchItem {
+  const data = record(value, field)
+  const { status } = data
+  if (
+    status !== 'pending' &&
+    status !== 'imported' &&
+    status !== 'duplicate' &&
+    status !== 'failed'
+  )
+    protocol(`${field}.status`)
+  const item: LeetCodeBatchItem = {
+    slug: leetCodeSlug(data.slug, `${field}.slug`),
+    status,
+  }
+  if (status !== 'failed') return item
+  return {
+    ...item,
+    error: text(data.error, `${field}.error`),
+    retryable: boolean(data.retryable, `${field}.retryable`),
+  }
+}
+
 function importProgress(value: unknown): ImportJobProgress {
   const data = record(value, 'import-job')
   const status = text(data.status, 'import-job.status')
@@ -211,14 +260,28 @@ function importProgress(value: unknown): ImportJobProgress {
   )
     protocol('import-job.percentage')
   let result: ImportValidation | null = null
+  let batch: LeetCodeBatchResult | undefined
   let failureDetail: string | null = null
   if (data.result !== null && data.result !== undefined) {
-    if (status === 'completed') {
+    const report = record(data.result, 'import-job.result')
+    if (report.kind === 'leetcode') {
+      batch = {
+        items: array(
+          report.items,
+          leetCodeBatchItem,
+          'import-job.result.items',
+        ),
+        imported: count(report.imported, 'import-job.result.imported'),
+        duplicates: count(report.duplicates, 'import-job.result.duplicates'),
+        failed: count(report.failed, 'import-job.result.failed'),
+      }
+    }
+    if (status === 'completed' && !batch) {
       result = validation(data.result)
-    } else {
+    } else if (status === 'failed') {
       // 失败终态的 result 是 {status_code, detail}；detail 也可能是
       // {message, errors} 字典（bad(...) 全部无效时），字符串才透传
-      const failure = record(data.result, 'import-job.result')
+      const failure = report
       if (typeof failure.detail === 'string') {
         failureDetail = text(failure.detail, 'import-job.result.detail', true)
       } else if (
@@ -241,6 +304,7 @@ function importProgress(value: unknown): ImportJobProgress {
     total: count(data.total, 'import-job.total'),
     percentage,
     result,
+    ...(batch ? { batch } : {}),
     failureDetail,
   }
 }
@@ -323,6 +387,34 @@ export function createProblemClient(http: AxiosInstance): ProblemClient {
         imported: boolean(data.imported, 'leetcode-import.imported'),
       }
     },
+    previewLeetCode: async (filters) =>
+      array(
+        await http.post<unknown, unknown>(
+          '/problems/import/leetcode/preview',
+          filters,
+          {
+            timeout: 20_000,
+          },
+        ),
+        leetCodeCandidate,
+        'leetcode-preview',
+      ),
+    startLeetCodeBatch: async (slugs) =>
+      importStarted(
+        await http.post<unknown, unknown>(
+          '/problems/import/leetcode/batch',
+          { slugs },
+          { timeout: 20_000 },
+        ),
+      ),
+    retryLeetCodeBatch: async (jobId, slugs) =>
+      importStarted(
+        await http.post<unknown, unknown>(
+          `/problems/import/leetcode/batch/${encodeURIComponent(jobId)}/retry`,
+          { slugs },
+          { timeout: 20_000 },
+        ),
+      ),
     personalProblem: (problemId, signal) =>
       get(
         `/problems/personal/${encodeURIComponent(problemId)}`,

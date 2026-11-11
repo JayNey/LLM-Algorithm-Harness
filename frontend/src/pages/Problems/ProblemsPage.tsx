@@ -49,6 +49,10 @@ import {
   writeProblemListQuery,
 } from '@/problems/validation.ts'
 import { useAuthStore } from '@/store/auth.ts'
+import {
+  LeetCodeBatchImport,
+  type BatchOutcome,
+} from './LeetCodeBatchImport.tsx'
 
 const IMPORT_POLL_MS = 3_000
 const LEETCODE_ERRORS: Partial<Record<number, string>> = {
@@ -134,9 +138,13 @@ function ImportPanel({
   const [file, setFile] = useState<File | null>(null)
   const [url, setUrl] = useState('')
   const [mode, setMode] = useState<ImportMode>('append')
-  const [busy, setBusy] = useState<'file' | 'leetcode' | null>(null)
+  const [busy, setBusy] = useState<'file' | 'leetcode' | 'batch' | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [leetcodeError, setLeetcodeError] = useState<string | null>(null)
+  const [batchError, setBatchError] = useState<string | null>(null)
+  const [batchOutcomes, setBatchOutcomes] = useState<
+    Record<string, BatchOutcome>
+  >({})
   const [report, setReport] = useState<ImportValidation | null>(null)
   const [leetcodeResult, setLeetcodeResult] =
     useState<LeetCodeImportResult | null>(null)
@@ -150,6 +158,7 @@ function ImportPanel({
     const controller = new AbortController()
     let timer: ReturnType<typeof setTimeout> | undefined
     let failures = 0
+    let imported = 0
     const stillCurrent = () =>
       !controller.signal.aborted &&
       useAuthStore.getState().session?.marker === owner
@@ -169,6 +178,19 @@ function ImportPanel({
       if (!stillCurrent()) return
       failures = 0
       setProgress(next)
+      if (next.batch) {
+        const finished = next.batch.items
+          .filter((item) => item.status !== 'pending')
+          .map((item) => [item.slug, { ...item, jobId: next.job_id }] as const)
+        setBatchOutcomes((previous) => ({
+          ...previous,
+          ...Object.fromEntries(finished),
+        }))
+        if (next.batch.imported > imported) {
+          imported = next.batch.imported
+          onImported()
+        }
+      }
       if (!isImportTerminalStatus(next.status)) {
         timer = setTimeout(() => void poll(id), IMPORT_POLL_MS)
         return
@@ -177,15 +199,19 @@ function ImportPanel({
       forgetImportJob(storageKey, id)
       setJobId(null)
       submitLock.current = false
-      if (next.status === 'completed') {
+      if (next.status === 'completed' && !next.batch) {
         setReport(next.result)
         onImported()
       } else if (next.status === 'failed') {
-        setError(
-          next.failureDetail
-            ? t('导入任务失败：{{value1}}', { value1: next.failureDetail })
-            : '导入任务失败，请检查文件格式后重试。',
-        )
+        if (next.batch) {
+          setBatchError('LeetCode 批量导入任务失败，请重试。')
+        } else {
+          setError(
+            next.failureDetail
+              ? t('导入任务失败：{{value1}}', { value1: next.failureDetail })
+              : '导入任务失败，请检查文件格式后重试。',
+          )
+        }
       }
     }
     timer = setTimeout(() => void poll(jobId), 0)
@@ -195,7 +221,10 @@ function ImportPanel({
     }
   }, [client, jobId, onImported, owner, pollPaused, storageKey])
 
-  async function submit(kind: 'file' | 'leetcode') {
+  async function submit(
+    request: 'file' | 'leetcode' | { slugs: string[]; retryJobId?: string },
+  ) {
+    const kind = typeof request === 'string' ? request : 'batch'
     const selectedFile = file
     const selectedUrl = url.trim()
     const sameSession = () => useAuthStore.getState().session?.marker === owner
@@ -203,7 +232,11 @@ function ImportPanel({
       !owner ||
       !sameSession() ||
       !canSubmitImport(
-        kind === 'file' ? selectedFile !== null : !!selectedUrl,
+        typeof request !== 'string'
+          ? request.slugs.length > 0
+          : kind === 'file'
+            ? selectedFile !== null
+            : !!selectedUrl,
         busy !== null,
         progress?.status ?? null,
         submitLock.current || jobId !== null,
@@ -215,6 +248,7 @@ function ImportPanel({
       setJobId(savedJob)
       setError(null)
       setLeetcodeError(null)
+      setBatchError(null)
       setReport(null)
       setLeetcodeResult(null)
       setProgress(null)
@@ -237,12 +271,22 @@ function ImportPanel({
     setBusy(kind)
     setError(null)
     setLeetcodeError(null)
+    setBatchError(null)
     setReport(null)
     setLeetcodeResult(null)
     setProgress(null)
     let startedJob = false
     try {
-      if (kind === 'leetcode') {
+      if (typeof request !== 'string') {
+        const started = request.retryJobId
+          ? await client.retryLeetCodeBatch(request.retryJobId, request.slugs)
+          : await client.startLeetCodeBatch(request.slugs)
+        if (!sameSession()) return
+        if (!request.retryJobId) setBatchOutcomes({})
+        rememberImportJob(storageKey, started.job_id)
+        startedJob = true
+        setJobId(started.job_id)
+      } else if (kind === 'leetcode') {
         const result = await client.importLeetCode(selectedUrl)
         if (!sameSession()) return
         setLeetcodeResult(result)
@@ -267,11 +311,11 @@ function ImportPanel({
           kind === 'leetcode' && cause instanceof ApiClientError
             ? LEETCODE_ERRORS[cause.status ?? 0]
             : undefined
-        const setSubmitError = kind === 'leetcode' ? setLeetcodeError : setError
-        setSubmitError(
-          message ??
-            (cause instanceof Error ? cause.message : '导入失败，请重试'),
-        )
+        const fallback =
+          cause instanceof Error ? cause.message : '导入失败，请重试'
+        if (kind === 'batch') setBatchError(fallback)
+        else if (kind === 'leetcode') setLeetcodeError(message ?? fallback)
+        else setError(fallback)
       }
     } finally {
       if (!startedJob) submitLock.current = false
@@ -424,6 +468,21 @@ function ImportPanel({
           </p>
         )}
       </form>
+      <LeetCodeBatchImport
+        client={client}
+        blocked={
+          !canSubmitImport(
+            true,
+            busy !== null,
+            progress?.status ?? null,
+            jobId !== null,
+          )
+        }
+        submitting={busy === 'batch'}
+        submitError={batchError}
+        outcomes={Object.values(batchOutcomes)}
+        onSubmit={(slugs, retryJobId) => void submit({ slugs, retryJobId })}
+      />
     </div>
   )
 }

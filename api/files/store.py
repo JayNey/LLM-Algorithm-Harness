@@ -252,16 +252,85 @@ class FileStore:
             ).fetchone()
             if active:
                 raise HTTPException(409, "File is already being imported")
-            pending = db.execute(
-                "SELECT COUNT(*) FROM api_file_jobs WHERE status IN ('pending','running')"
-            ).fetchone()[0]
-            if pending >= max_active:
-                raise HTTPException(429, "Import capacity reached", headers={"Retry-After": "1"})
+            self._check_import_capacity(db, max_active)
             db.execute(
                 "INSERT INTO api_file_jobs(id,user_id,file_id,mode,status,created_at,updated_at) VALUES (?,?,?,?,'pending',?,?)",
                 (job_id, user_id, file_id, mode, now, now),
             )
         return job_id
+
+    @staticmethod
+    def _check_import_capacity(db: sqlite3.Connection, max_active: int) -> None:
+        pending = db.execute(
+            "SELECT COUNT(*) FROM api_file_jobs WHERE status IN ('pending','running')"
+        ).fetchone()[0]
+        if pending >= max_active:
+            raise HTTPException(429, "Import capacity reached", headers={"Retry-After": "1"})
+
+    def create_leetcode_job(self, user_id: str, slugs: list[str], max_active: int) -> str:
+        job_id, now = str(uuid.uuid4()), int(time.time())
+        result = {
+            "kind": "leetcode",
+            "items": [{"slug": slug, "status": "pending"} for slug in slugs],
+            "imported": 0,
+            "duplicates": 0,
+            "failed": 0,
+        }
+        with self.connection() as db:
+            db.execute("BEGIN IMMEDIATE")
+            self._check_import_capacity(db, max_active)
+            # Batch inputs live in the job, so there is no uploaded file to expire.
+            db.execute(
+                "INSERT INTO api_file_jobs(id,user_id,file_id,mode,status,total,created_at,updated_at,result) VALUES (?,?,?,'leetcode','pending',?,?,?,?)",
+                (job_id, user_id, job_id, len(slugs), now, now, json.dumps(result)),
+            )
+        return job_id
+
+    def record_leetcode_item(
+        self,
+        job_id: str,
+        user_id: str,
+        index: int,
+        outcome: dict[str, Any],
+        problem: dict[str, Any] | None,
+        max_bytes: int,
+        max_items: int,
+    ) -> bool:
+        """Commit the item result and any personal library write together."""
+        with self.connection() as db:
+            db.execute("BEGIN IMMEDIATE")
+            job = db.execute(
+                "SELECT processed,total,result FROM api_file_jobs WHERE id=? AND user_id=? AND mode='leetcode' AND status='running'",
+                (job_id, user_id),
+            ).fetchone()
+            if job is None or job["processed"] != index:
+                return False
+            result = json.loads(job["result"])
+            item = result["items"][index]
+            if problem is not None:
+                try:
+                    imported, _ = self._merge_dataset(
+                        db, user_id, [problem], "append", max_bytes, max_items
+                    )
+                except HTTPException as error:
+                    if error.status_code != 413:
+                        raise
+                    outcome = {"status": "failed", "error": "library_limit", "retryable": False}
+                else:
+                    outcome = {
+                        "status": "imported" if imported else "duplicate",
+                        "problem_id": problem["problem_id"],
+                    }
+            item.update(outcome)
+            counter = {"imported": "imported", "duplicate": "duplicates", "failed": "failed"}
+            result[counter[item["status"]]] += 1
+            processed = index + 1
+            status = "completed" if processed == job["total"] else "running"
+            db.execute(
+                "UPDATE api_file_jobs SET status=?,processed=?,result=?,updated_at=? WHERE id=? AND user_id=?",
+                (status, processed, json.dumps(result), int(time.time()), job_id, user_id),
+            )
+            return True
 
     def job(self, job_id: str, user_id: str) -> dict[str, Any]:
         with self.connection() as db:
@@ -323,6 +392,13 @@ class FileStore:
 
     def fail_job(self, job_id: str, details: dict[str, Any]) -> None:
         with self.connection() as db:
+            db.execute("BEGIN IMMEDIATE")
+            batch = db.execute(
+                "SELECT result FROM api_file_jobs WHERE id=? AND mode='leetcode'",
+                (job_id,),
+            ).fetchone()
+            if batch is not None:
+                details = {**json.loads(batch["result"]), **details}
             db.execute(
                 "UPDATE api_file_jobs SET status='failed',result=?,updated_at=? WHERE id=? AND status IN ('pending','running')",
                 (
@@ -330,6 +406,27 @@ class FileStore:
                     int(time.time()),
                     job_id,
                 ),
+            )
+
+    @staticmethod
+    def expire_imports(db: sqlite3.Connection, now: int, timeout: int) -> None:
+        """Close stalled imports under the cleanup transaction."""
+        rows = db.execute(
+            "SELECT id,mode,result FROM api_file_jobs WHERE status IN ('pending','running') AND updated_at<=?",
+            (now - timeout,),
+        ).fetchall()
+        details = {"status_code": 409, "detail": "Import interrupted or timed out"}
+        for row in rows:
+            result: dict[str, Any] = details
+            if row["mode"] == "leetcode":
+                result = {**json.loads(row["result"]), **details}
+                for item in result["items"]:
+                    if item["status"] == "pending":
+                        item.update(status="failed", error="timeout", retryable=True)
+                        result["failed"] += 1
+            db.execute(
+                "UPDATE api_file_jobs SET status='failed',result=?,updated_at=? WHERE id=?",
+                (json.dumps(result), now, row["id"]),
             )
 
     def merge_dataset(

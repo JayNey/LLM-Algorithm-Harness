@@ -24,6 +24,7 @@ from pydantic import ValidationError
 
 from api.auth.service import AuthService
 from api.files.config import FileSettings
+from api.files.leetcode import LeetCodeCandidate, LeetCodePreviewRequest
 from api.files.parsing import (
     bad,
     filename_suffix,
@@ -248,31 +249,9 @@ class FileService:
         self.auth.limit("leetcode-import:" + user_id, self.settings.FILE_UPLOAD_RATE_LIMIT)
         if not self.imports.acquire(blocking=False):
             raise HTTPException(429, "Too many active imports")
-        unavailable = "LeetCode question not found or is restricted"
         try:
             with requests.Session() as session:
-                # Only the importer's fixed public GraphQL endpoint is allowed.
-                session.max_redirects = 0
-                importer = LeetCodeImporter(session=session, timeout=8, retries=0)
-                try:
-                    raw = importer.fetch_problems(source)
-                except requests.exceptions.JSONDecodeError:
-                    raise HTTPException(503) from None
-                except ValueError:
-                    raise HTTPException(404, unavailable) from None
-                except RuntimeError as error:
-                    if isinstance(error.__cause__, LeetCodeRateLimitError):
-                        raise HTTPException(429, "LeetCode rate limit exceeded") from None
-                    if isinstance(error.__cause__, (requests.Timeout, TimeoutError)):
-                        raise HTTPException(408, "LeetCode request timed out") from None
-                    raise HTTPException(503) from None
-                if not raw or raw[0].get("isPaidOnly") or not raw[0].get("content"):
-                    raise HTTPException(404, unavailable)
-                problems = importer.transform_to_schema(raw)
-                if len(problems) != 1:
-                    raise HTTPException(503)
-
-            problem = problems[0]
+                problem = self._fetch_public_leetcode(self._leetcode_importer(session), source)
             imported = self.store.append_problem(
                 user_id,
                 problem.model_dump(mode="json"),
@@ -284,6 +263,136 @@ class FileService:
             return problem.problem_id, imported
         finally:
             self.imports.release()
+
+    @staticmethod
+    def _leetcode_importer(session: requests.Session) -> LeetCodeImporter:
+        # Only the importer's fixed public GraphQL endpoint is allowed.
+        session.max_redirects = 0
+        return LeetCodeImporter(session=session, timeout=8, retries=0)
+
+    @staticmethod
+    def _leetcode_upstream_error(error: RuntimeError) -> HTTPException:
+        if isinstance(error.__cause__, LeetCodeRateLimitError):
+            return HTTPException(429, "LeetCode rate limit exceeded")
+        if isinstance(error.__cause__, (requests.Timeout, TimeoutError)):
+            return HTTPException(408, "LeetCode request timed out")
+        return HTTPException(503)
+
+    @staticmethod
+    def _fetch_public_leetcode(importer: LeetCodeImporter, source: str) -> Problem:
+        unavailable = "LeetCode question not found or is restricted"
+        try:
+            raw = importer.fetch_problems(source)
+        except requests.exceptions.JSONDecodeError:
+            raise HTTPException(503) from None
+        except ValueError:
+            raise HTTPException(404, unavailable) from None
+        except RuntimeError as error:
+            raise FileService._leetcode_upstream_error(error) from None
+        if not raw or raw[0].get("isPaidOnly") or not raw[0].get("content"):
+            raise HTTPException(404, unavailable)
+        problems = importer.transform_to_schema(raw)
+        if len(problems) != 1:
+            raise HTTPException(503)
+        return problems[0]
+
+    def preview_leetcode(
+        self, filters: LeetCodePreviewRequest, user_id: str
+    ) -> list[LeetCodeCandidate]:
+        self.auth.limit("leetcode-import:" + user_id, self.settings.FILE_UPLOAD_RATE_LIMIT)
+        if not self.imports.acquire(blocking=False):
+            raise HTTPException(429, "Too many active imports")
+        try:
+            with requests.Session() as session:
+                importer = self._leetcode_importer(session)
+                rows = importer.list_public_questions(
+                    filters.tags, filters.difficulty, filters.limit
+                )
+                return [
+                    LeetCodeCandidate.model_validate(
+                        {
+                            "slug": row["titleSlug"],
+                            "number": str(row["questionFrontendId"]),
+                            "title": row["title"],
+                            "difficulty": row["difficulty"].lower(),
+                            "tags": [tag["name"] for tag in row["topicTags"]],
+                            "source_url": f"https://leetcode.com/problems/{row['titleSlug']}/",
+                        }
+                    )
+                    for row in rows
+                ]
+        except RuntimeError as error:
+            raise self._leetcode_upstream_error(error) from None
+        except (ValueError, KeyError, TypeError, AttributeError):
+            raise HTTPException(503, "LeetCode preview unavailable") from None
+        finally:
+            self.imports.release()
+
+    def queue_leetcode_batch(
+        self, user_id: str, slugs: list[str], retry_job_id: str | None = None
+    ) -> str:
+        self.auth.limit("leetcode-import:" + user_id, self.settings.FILE_UPLOAD_RATE_LIMIT)
+        selected = list(dict.fromkeys(slugs))
+        if retry_job_id is not None:
+            job = self.store.job(retry_job_id, user_id)
+            result = job["result"]
+            items = result.get("items") if isinstance(result, dict) else None
+            if (
+                job["mode"] != "leetcode"
+                or job["status"] not in {"completed", "failed"}
+                or not isinstance(items, list)
+            ):
+                raise HTTPException(400, "Choose failed items from a finished LeetCode batch")
+            retryable = {item["slug"] for item in items if item.get("retryable") is True}
+            if not retryable.issuperset(selected):
+                raise HTTPException(400, "Only retryable failures can be selected")
+        return self.store.create_leetcode_job(
+            user_id, selected, self.settings.FILE_MAX_ACTIVE_IMPORTS
+        )
+
+    def _process_leetcode_batch(
+        self,
+        job: dict[str, Any],
+        user_id: str,
+        should_pause: Callable[[], bool] | None,
+        on_progress: Callable[[int, int], None] | None,
+    ) -> None:
+        job_id, total = job["id"], job["total"]
+        errors = {404: "unavailable", 408: "timeout", 429: "rate_limit", 503: "upstream"}
+        with requests.Session() as session:
+            importer = self._leetcode_importer(session)
+            for index in range(job["processed"], total):
+                if should_pause is not None and should_pause():
+                    self.store.pause_job(job_id)
+                    return
+                slug = job["result"]["items"][index]["slug"]
+                problem = None
+                outcome = {}
+                try:
+                    problem = self._fetch_public_leetcode(importer, slug)
+                except HTTPException as error:
+                    outcome = {
+                        "status": "failed",
+                        "error": errors[error.status_code],
+                        "retryable": error.status_code != 404,
+                    }
+                if should_pause is not None and should_pause():
+                    self.store.pause_job(job_id)
+                    return
+                if not self.store.record_leetcode_item(
+                    job_id,
+                    user_id,
+                    index,
+                    outcome,
+                    problem.model_dump(mode="json") if problem is not None else None,
+                    self.settings.FILE_UPLOAD_MAX_BYTES,
+                    self.settings.FILE_IMPORT_MAX_ITEMS,
+                ):
+                    return
+                if on_progress is not None:
+                    on_progress(index + 1, total)
+                if index + 1 < total:
+                    importer.sleep(importer.batch_delay_seconds)
 
     def personal_problem(self, problem_id: str, user_id: str) -> dict[str, Any]:
         for problem in self.store.dataset(user_id):
@@ -307,9 +416,10 @@ class FileService:
         user_id: str,
         should_pause: Callable[[], bool] | None = None,
         claimed: bool = False,
+        on_progress: Callable[[int, int], None] | None = None,
     ) -> None:
         with self.imports:
-            self._process_job(job_id, user_id, should_pause=should_pause, claimed=claimed)
+            self._process_job(job_id, user_id, should_pause, claimed, on_progress)
 
     def _process_job(
         self,
@@ -317,11 +427,15 @@ class FileService:
         user_id: str,
         should_pause: Callable[[], bool] | None = None,
         claimed: bool = False,
+        on_progress: Callable[[int, int], None] | None = None,
     ) -> None:
         if not claimed and not self.store.claim_job(job_id, user_id):
             return
         try:
             job = self.store.job(job_id, user_id)
+            if job["mode"] == "leetcode":
+                self._process_leetcode_batch(job, user_id, should_pause, on_progress)
+                return
             record = self.store.owned_file(job["file_id"], user_id, allow_expired=True)
             path = self.path(record["relative_path"], user_id)
             if hashlib.sha256(path.read_bytes()).hexdigest() != record["sha256"]:
@@ -345,6 +459,11 @@ class FileService:
             errors: list[dict[str, Any]] = saved.get("errors", [])
             processed = int(saved.get("processed", 0))
 
+            def progress() -> None:
+                self.store.progress(job_id, processed, len(data))
+                if on_progress is not None:
+                    on_progress(processed, len(data))
+
             def checkpoint() -> None:
                 write_checkpoint(
                     checkpoint_path,
@@ -355,9 +474,9 @@ class FileService:
                         "errors": errors,
                     },
                 )
-                self.store.progress(job_id, processed, len(data))
+                progress()
 
-            self.store.progress(job_id, processed, len(data))
+            progress()
             for index in range(processed, len(data)):
                 item = data[index]
                 if should_pause is not None and should_pause():
@@ -614,14 +733,7 @@ class FileService:
         now, removed = int(time.time()), 0
         with self.store.connection() as db:
             db.execute("BEGIN IMMEDIATE")
-            db.execute(
-                "UPDATE api_file_jobs SET status='failed',result=?,updated_at=? WHERE status IN ('pending','running') AND updated_at<=?",
-                (
-                    json.dumps({"status_code": 409, "detail": "Import interrupted or timed out"}),
-                    now,
-                    now - self.settings.FILE_IMPORT_TIMEOUT_SECONDS,
-                ),
-            )
+            self.store.expire_imports(db, now, self.settings.FILE_IMPORT_TIMEOUT_SECONDS)
             records = db.execute(
                 "SELECT * FROM api_file_objects f WHERE (f.deleted=1 OR f.expires_at<=? OR EXISTS(SELECT 1 FROM api_file_runs r WHERE r.run_id=f.run_id AND r.deleted=1)) AND NOT EXISTS(SELECT 1 FROM api_file_jobs j WHERE j.file_id=f.id AND j.status IN ('pending','running'))",
                 (now,),

@@ -21,6 +21,7 @@ from fastapi.testclient import TestClient
 from api.auth.service import AuthService, Principal
 from api.db.engine import get_db
 from api.files.config import FileSettings
+from api.files.leetcode import LeetCodeCandidate, LeetCodePreviewRequest
 from api.files.service import FileService
 from api.files.templates import TEMPLATES, template
 from api.main import create_app
@@ -75,6 +76,16 @@ PROBLEM_OPTIONS = dict(
 )
 MODEL_OPTIONS = dict(provider="openai", models=["test-model"], complete=True)
 LEETCODE_URL = "https://leetcode.com/problems/two-sum/"
+LEETCODE_PREVIEW = LeetCodePreviewRequest(tags=["array"], difficulty="easy", limit=5)
+LEETCODE_CANDIDATE = LeetCodeCandidate(
+    slug="two-sum",
+    number="1",
+    title="Two Sum",
+    difficulty="easy",
+    tags=["Array", "Hash Table"],
+    source_url=LEETCODE_URL,
+)
+LEETCODE_BATCH_JOB = {"job_id": "job-2", "task_id": "task-1", "status": "pending"}
 PERSONAL_PROBLEM_DETAIL = dict(
     description="Return the indices of the two numbers.",
     source_url=LEETCODE_URL,
@@ -728,6 +739,36 @@ CASES += [
         expected=dict(problem_id="leetcode-1", imported=True),
     ),
     case(
+        "POST",
+        "/problems/import/leetcode/preview",
+        "files.preview_leetcode",
+        (LEETCODE_PREVIEW, OWNER),
+        body=LEETCODE_PREVIEW.model_dump(),
+        result=[LEETCODE_CANDIDATE],
+        expected=[LEETCODE_CANDIDATE.model_dump()],
+    ),
+    case(
+        "POST",
+        "/problems/import/leetcode/batch",
+        "files.queue_leetcode_batch",
+        (OWNER, ["two-sum"]),
+        body=dict(slugs=["two-sum"]),
+        result="job-2",
+        expected=LEETCODE_BATCH_JOB,
+        status=202,
+    ),
+    case(
+        "POST",
+        "/problems/import/leetcode/batch/{job_id}/retry",
+        "files.queue_leetcode_batch",
+        (OWNER, ["two-sum"]),
+        kwargs=dict(retry_job_id="job-1"),
+        body=dict(slugs=["two-sum"]),
+        result="job-2",
+        expected=LEETCODE_BATCH_JOB,
+        status=202,
+    ),
+    case(
         "GET",
         "/problems/personal/{problem_id}",
         "files.personal_problem",
@@ -973,6 +1014,7 @@ def api(monkeypatch, tmp_path, unit_app):
     state.files.store.create_job.return_value = "job-1"
     state.files.store.job.return_value = dict(status="completed", total=0, processed=0, result={})
     state.files.metadata.return_value = VALUE.copy()
+    state.manager.enqueue_task.return_value = SimpleNamespace(id="task-1")
     state.monitor.settings = SimpleNamespace(is_admin=lambda user_id: user_id == OWNER)
     state.monitor.probes = Mock()
     state.monitor.readiness = Mock(spec=ReadinessCheck)
@@ -1104,6 +1146,14 @@ def test_endpoint_happy_path(api, item):
     if item.path.startswith("/logs/"):
         api.monitor.owned_log_key.assert_called_once_with("task-1", OWNER)
         api.files.store.check_run.assert_not_called()
+    if item.target == "files.queue_leetcode_batch":
+        api.manager.enqueue_task.assert_called_once_with(
+            task_type="import",
+            entity_id="job-2",
+            user_id=OWNER,
+            celery_task_name="src.tasks.imports.run_import_task",
+            celery_task_args=("job-2", OWNER),
+        )
     if item.path == "/evaluations" and item.method == "POST":
         api.auth.owned_key.assert_called_once_with("key-1", OWNER)
         api.files.store.register_run.assert_called_once_with("eval-1", OWNER)

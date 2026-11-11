@@ -1,4 +1,4 @@
-"""Celery task that runs one uploaded dataset import."""
+"""Celery task that runs an import into a personal dataset."""
 
 from __future__ import annotations
 
@@ -33,15 +33,9 @@ def execute_import(
         if exc.status_code == 404:
             raise ValueError(f"Import job {job_id} not found") from None
         raise
-    if on_progress is not None:
-        original = service.store.progress
-
-        def progress(current_job: str, processed: int, total: int) -> None:
-            original(current_job, processed, total)
-            on_progress(processed, total)
-
-        setattr(service.store, "progress", progress)
-    service.process_job(job_id, user_id, should_pause=should_pause, claimed=True)
+    service.process_job(
+        job_id, user_id, should_pause=should_pause, claimed=True, on_progress=on_progress
+    )
     return service.store.job(job_id, user_id)
 
 
@@ -95,10 +89,12 @@ def run_import_task(self: ImportTask, job_id: str, user_id: str) -> dict[str, An
             raise
 
         status = str(job.get("status") or "failed")
-        if status == "paused" or should_pause():
-            return {"job_id": job_id, "status": "paused"}
         if status == "completed":
+            # Progress for the last LeetCode item can already mirror the
+            # completed job to the task. That terminal state is a success.
             manager.update_task_status(async_task.id, "completed")
+        elif status == "paused" or should_pause():
+            return {"job_id": job_id, "status": "paused"}
         else:
             raw_result = job.get("result")
             detail = raw_result.get("detail") if isinstance(raw_result, dict) else None

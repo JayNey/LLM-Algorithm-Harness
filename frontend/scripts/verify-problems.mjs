@@ -21,6 +21,7 @@ const known = [
   'import',
   'import-recovery',
   'leetcode',
+  'leetcode-batch',
   'history',
   'all',
 ]
@@ -79,6 +80,19 @@ const leetcodeProblem = {
   difficulty: 'easy',
   source: 'personal',
 }
+
+const batchCandidates = [
+  ['45', 'Jump Game II', 'jump-game-ii'],
+  ['22', 'Generate Parentheses', 'generate-parentheses'],
+  ['5', 'Longest Palindromic Substring', 'longest-palindromic-substring'],
+].map(([number, title, slug]) => ({
+  number,
+  title,
+  slug,
+  difficulty: 'medium',
+  tags: ['Dynamic Programming'],
+  source_url: `https://leetcode.com/problems/${slug}/`,
+}))
 
 function historyEntry(problemId, runId, status = 'success') {
   return {
@@ -195,6 +209,64 @@ function mockRoute(context, job) {
         const imported = !job.leetcode
         job.leetcode = true
         return reply({ problem_id: 'leetcode-1', imported })
+      })
+    }
+    if (method === 'POST' && path === '/problems/import/leetcode/preview') {
+      assert.deepEqual(request.postDataJSON(), {
+        tags: ['Dynamic Programming'],
+        difficulty: 'medium',
+        limit: 3,
+      })
+      return reply(batchCandidates)
+    }
+    if (method === 'POST' && path === '/problems/import/leetcode/batch') {
+      assert.deepEqual(request.postDataJSON(), {
+        slugs: ['jump-game-ii', 'generate-parentheses'],
+      })
+      return reply(
+        { job_id: 'j-leetcode-batch', task_id: 't-batch', status: 'pending' },
+        202,
+      )
+    }
+    if (
+      method === 'POST' &&
+      path === '/problems/import/leetcode/batch/j-leetcode-batch/retry'
+    ) {
+      assert.deepEqual(request.postDataJSON(), {
+        slugs: ['generate-parentheses'],
+      })
+      return reply(
+        { job_id: 'j-leetcode-retry', task_id: 't-retry', status: 'pending' },
+        202,
+      )
+    }
+    if (method === 'GET' && path.startsWith('/imports/j-leetcode-')) {
+      const retry = path.endsWith('-retry')
+      const complete = retry || job.batchComplete
+      const items = retry
+        ? [{ slug: 'generate-parentheses', status: 'imported' }]
+        : [
+            { slug: 'jump-game-ii', status: 'imported' },
+            {
+              slug: 'generate-parentheses',
+              ...(complete
+                ? { status: 'failed', error: 'timeout', retryable: true }
+                : { status: 'pending' }),
+            },
+          ]
+      return reply({
+        job_id: retry ? 'j-leetcode-retry' : 'j-leetcode-batch',
+        status: complete ? 'completed' : 'running',
+        processed: complete ? items.length : 1,
+        total: items.length,
+        percentage: complete ? 100 : 50,
+        result: {
+          kind: 'leetcode',
+          items,
+          imported: 1,
+          duplicates: 0,
+          failed: !retry && complete ? 1 : 0,
+        },
       })
     }
     if (method === 'GET' && path === '/problems/personal/leetcode-1')
@@ -431,6 +503,55 @@ async function leetcodeScenario(page, job) {
       .filter({ hasText: 'LeetCode 请求超时' })
       .waitFor()
     assert.equal(await page.getByRole('row', { name: /Two Sum/ }).count(), 1)
+  })
+}
+
+async function leetCodeBatchScenario(page, job) {
+  await page.goto(`${base}/problems?source=personal&import=1`)
+  const batch = page.getByRole('region', { name: '按标签和难度批量导入' })
+  await check(
+    '批量预览保留题号、难度、标签和原题链接，仅提交勾选项',
+    async () => {
+      await batch.getByLabel('标签（逗号分隔）').fill('Dynamic Programming')
+      await batch.getByRole('combobox', { name: '难度' }).click()
+      await page
+        .locator('.ant-select-dropdown:visible')
+        .getByText('中等', { exact: true })
+        .click()
+      await batch.getByLabel('最多导入（1–50）').fill('3')
+      await batch.getByRole('button', { name: '预览公开题目' }).click()
+      const first = batch
+        .getByRole('listitem')
+        .filter({ hasText: '45. Jump Game II' })
+      await first.getByText('Dynamic Programming').waitFor()
+      assert.equal(
+        await first.getByRole('link').getAttribute('href'),
+        'https://leetcode.com/problems/jump-game-ii/',
+      )
+      const submit = batch.getByRole('button', { name: /确认导入/ })
+      assert.ok(await submit.isDisabled())
+      await batch.getByRole('checkbox', { name: '45. Jump Game II' }).check()
+      await batch
+        .getByRole('checkbox', { name: '22. Generate Parentheses' })
+        .check()
+      await submit.click()
+      await page
+        .getByRole('status')
+        .filter({ hasText: '1 / 2（50%）' })
+        .waitFor()
+      assert.ok(await submit.isDisabled())
+      job.batchComplete = true
+      await batch.getByText('成功 1 · 跳过重复 0 · 失败 1').waitFor()
+    },
+  )
+  await check('显示逐题超时并仅重试所选失败题，保留原有成功计数', async () => {
+    await batch.getByText('LeetCode 请求超时，请重试。').waitFor()
+    await batch.getByRole('button', { name: '重试这道题' }).click()
+    await batch.getByText('成功 2 · 跳过重复 0 · 失败 0').waitFor()
+    assert.equal(
+      await batch.getByRole('button', { name: '重试这道题' }).count(),
+      0,
+    )
   })
 }
 
@@ -679,6 +800,8 @@ try {
     await importRecoveryScenario(page, job)
   if (scenario === 'all' || scenario === 'leetcode')
     await leetcodeScenario(page, job)
+  if (scenario === 'all' || scenario === 'leetcode-batch')
+    await leetCodeBatchScenario(page, job)
   await check('无未声明 API 请求', () => assert.deepEqual(report.unknown, []))
 } finally {
   const { writeFileSync, mkdirSync } = await import('node:fs')

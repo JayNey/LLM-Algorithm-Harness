@@ -312,3 +312,67 @@ test('题库导出使用会话 HTTP 刷新到期 Cookie 并保留文件字节', 
   assert.equal(await createProblemClient(http).exportLibrary('json'), blob)
   assert.deepEqual(seen, ['/auth/refresh', '/problems/export'])
 })
+
+test('previews LeetCode metadata and retries only the selected slug', async () => {
+  const candidate = {
+    slug: 'jump-game-ii',
+    number: '45',
+    title: 'Jump Game II',
+    difficulty: 'medium',
+    tags: ['Dynamic Programming'],
+    source_url: 'https://leetcode.com/problems/jump-game-ii/',
+  }
+  const calls: unknown[] = []
+  const client = createProblemClient({
+    post: async (url: string, body: unknown) => {
+      calls.push([url, body])
+      if (url.endsWith('/preview')) return [candidate]
+      return { job_id: 'next', task_id: 'task', status: 'pending' }
+    },
+    get: async () => ({
+      job_id: 'job/1',
+      status: 'completed',
+      processed: 1,
+      total: 1,
+      percentage: 100,
+      result: {
+        kind: 'leetcode',
+        items: [
+          {
+            slug: 'jump-game-ii',
+            status: 'failed',
+            error: 'timeout',
+            retryable: true,
+          },
+        ],
+        imported: 0,
+        duplicates: 0,
+        failed: 1,
+      },
+    }),
+  } as never)
+
+  const filters = {
+    tags: ['Dynamic Programming'],
+    difficulty: 'medium',
+    limit: 10,
+  } as const
+  assert.deepEqual(
+    await client.previewLeetCode({ ...filters, tags: [...filters.tags] }),
+    [candidate],
+  )
+  await client.startLeetCodeBatch([candidate.slug])
+  const progress = await client.importJob('job/1')
+  assert.equal(progress.result, null)
+  assert.equal(progress.batch?.items[0].error, 'timeout')
+  assert.equal(progress.batch?.items[0].retryable, true)
+  await client.retryLeetCodeBatch('job/1', [candidate.slug])
+  assert.deepEqual(calls, [
+    ['/problems/import/leetcode/preview', filters],
+    ['/problems/import/leetcode/batch', { slugs: [candidate.slug] }],
+    [
+      '/problems/import/leetcode/batch/job%2F1/retry',
+      { slugs: [candidate.slug] },
+    ],
+  ])
+})
