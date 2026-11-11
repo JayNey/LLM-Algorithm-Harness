@@ -63,6 +63,7 @@ query questionData($titleSlug: String!) {
     questionFrontendId
     title
     content
+    isPaidOnly
     difficulty
     topicTags { name slug }
     exampleTestcases
@@ -98,6 +99,10 @@ _ASSIGNMENT_RE = re.compile(r"^([A-Za-z_]\w*)\s*=\s*(.*)$", re.S)
 
 class LeetCodeTransientError(RuntimeError):
     """A retryable public endpoint failure."""
+
+
+class LeetCodeRateLimitError(LeetCodeTransientError):
+    """The public endpoint rejected the request due to its rate limit."""
 
 
 class LeetCodeImporter(ProblemImporter):
@@ -204,7 +209,10 @@ class LeetCodeImporter(ProblemImporter):
         for attempt in range(self.retries + 1):
             try:
                 response = self.session.post(
-                    self.endpoint, json=payload, headers=headers, timeout=self.timeout  # type: ignore[arg-type]
+                    self.endpoint,
+                    json=payload,
+                    headers=headers,
+                    timeout=self.timeout,  # type: ignore[arg-type]
                 )
                 status = getattr(response, "status_code", 200)
                 if status in {401, 403}:
@@ -212,7 +220,7 @@ class LeetCodeImporter(ProblemImporter):
                 if status == 404:
                     raise ValueError(f"LeetCode question not found: {slug}")
                 if status == 429:
-                    raise LeetCodeTransientError("LeetCode rate limit exceeded")
+                    raise LeetCodeRateLimitError("LeetCode rate limit exceeded")
                 if status >= 500:
                     raise LeetCodeTransientError(f"LeetCode server error: HTTP {status}")
                 if status >= 400:
@@ -293,7 +301,10 @@ class LeetCodeImporter(ProblemImporter):
         for attempt in range(self.retries + 1):
             try:
                 response = self.session.post(
-                    self.endpoint, json=payload, headers=headers, timeout=self.timeout  # type: ignore[arg-type]
+                    self.endpoint,
+                    json=payload,
+                    headers=headers,
+                    timeout=self.timeout,  # type: ignore[arg-type]
                 )
                 status = getattr(response, "status_code", 200)
                 if status == 429:
@@ -364,7 +375,7 @@ class LeetCodeImporter(ProblemImporter):
             slug = question_meta["titleSlug"]
             canonical_url = f"https://leetcode.com/problems/{slug}/"
 
-            print(f"Fetching problem {idx+1}/{total}: {slug}")
+            print(f"Fetching problem {idx + 1}/{total}: {slug}")
 
             try:
                 question_data = self._fetch_question_data(slug, canonical_url)
@@ -480,9 +491,9 @@ class LeetCodeImporter(ProblemImporter):
         text = content
         text = re.sub(
             r"<pre[^>]*>\s*(?:<code[^>]*>)?(.*?)</(?:code\s*>)?pre>",
-            lambda match: "\n```\n"
-            + html.unescape(re.sub(r"<[^>]+>", "", match.group(1)))
-            + "\n```\n",
+            lambda match: (
+                "\n```\n" + html.unescape(re.sub(r"<[^>]+>", "", match.group(1))) + "\n```\n"
+            ),
             text,
             flags=re.I | re.S,
         )

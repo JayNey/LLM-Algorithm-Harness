@@ -134,6 +134,51 @@ class ImportRequest(BaseModel):
     mode: Literal["append", "overwrite"] = "append"
 
 
+class LeetCodeImportRequest(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    url: str = Field(min_length=1, max_length=1000)
+
+
+class LeetCodeImportResult(BaseModel):
+    problem_id: str
+    imported: bool
+
+
+class PersonalProblemDetail(BaseModel):
+    description: str
+    source_url: str | None
+    needs_manual_completion: bool
+
+
+@router.post("/problems/import/leetcode")
+def import_leetcode(
+    request: LeetCodeImportRequest,
+    principal: Principal = Depends(current_user),
+    service: FileService = Depends(file_service),
+) -> ApiResponse[LeetCodeImportResult]:
+    """Append a public LeetCode question to the authenticated user's library."""
+    problem_id, imported = service.import_leetcode(request.url, principal.user_id)
+    return ApiResponse(
+        success=True,
+        data=LeetCodeImportResult(problem_id=problem_id, imported=imported),
+        message="Problem imported" if imported else "Problem already exists",
+    )
+
+
+@router.get("/problems/personal/{problem_id}")
+def personal_problem_detail(
+    problem_id: str,
+    principal: Principal = Depends(current_user),
+    service: FileService = Depends(file_service),
+) -> ApiResponse[PersonalProblemDetail]:
+    """Read an owned question without exposing hidden tests or storage metadata."""
+    return ApiResponse(
+        success=True,
+        data=PersonalProblemDetail(**service.personal_problem(problem_id, principal.user_id)),
+        message="Personal problem detail",
+    )
+
+
 @router.post("/problems/import", status_code=202)
 def import_uploaded(
     request: ImportRequest,

@@ -349,36 +349,61 @@ class FileStore:
             ).fetchone()
             if not job:
                 raise HTTPException(409, "Import job is no longer active")
-            old = db.execute(
-                "SELECT payload FROM api_file_datasets WHERE user_id=?", (user_id,)
-            ).fetchone()
-            dataset = json.loads(old["payload"]) if old and job["mode"] == "append" else []
-            by_id = {p["problem_id"]: p for p in dataset}
-            duplicates = 0
-            for problem in problems:
-                if problem["problem_id"] in by_id:
-                    duplicates += 1
-                else:
-                    by_id[problem["problem_id"]] = problem
-            payload = json.dumps(list(by_id.values()), ensure_ascii=False, allow_nan=False)
-            if len(payload.encode("utf-8")) > max_bytes or len(by_id) > max_items:
-                raise HTTPException(413, "Merged dataset exceeds limit")
+            imported, dataset_total = self._merge_dataset(
+                db, user_id, problems, job["mode"], max_bytes, max_items
+            )
             result = {
                 **report,
-                "duplicates": duplicates,
-                "imported": len(problems) - duplicates,
-                "dataset_total": len(by_id),
+                "duplicates": len(problems) - imported,
+                "imported": imported,
+                "dataset_total": dataset_total,
             }
             now = int(time.time())
-            db.execute(
-                "INSERT INTO api_file_datasets VALUES (?,?,?) ON CONFLICT(user_id) DO UPDATE SET payload=excluded.payload,updated_at=excluded.updated_at",
-                (user_id, payload, now),
-            )
             db.execute(
                 "UPDATE api_file_jobs SET status='completed',processed=total,result=?,updated_at=? WHERE id=? AND user_id=?",
                 (json.dumps(result, ensure_ascii=False, allow_nan=False), now, job_id, user_id),
             )
             return result
+
+    def append_problem(
+        self, user_id: str, problem: dict[str, Any], max_bytes: int, max_items: int
+    ) -> bool:
+        with self.connection() as db:
+            db.execute("BEGIN IMMEDIATE")
+            imported, _ = self._merge_dataset(
+                db, user_id, [problem], "append", max_bytes, max_items
+            )
+            return bool(imported)
+
+    @staticmethod
+    def _merge_dataset(
+        db: sqlite3.Connection,
+        user_id: str,
+        problems: list[dict[str, Any]],
+        mode: str,
+        max_bytes: int,
+        max_items: int,
+    ) -> tuple[int, int]:
+        old = db.execute(
+            "SELECT payload FROM api_file_datasets WHERE user_id=?", (user_id,)
+        ).fetchone()
+        dataset = json.loads(old["payload"]) if old and mode == "append" else []
+        by_id = {p["problem_id"]: p for p in dataset}
+        imported = 0
+        for problem in problems:
+            if problem["problem_id"] not in by_id:
+                by_id[problem["problem_id"]] = problem
+                imported += 1
+        if not imported and mode == "append":
+            return 0, len(by_id)
+        payload = json.dumps(list(by_id.values()), ensure_ascii=False, allow_nan=False)
+        if len(payload.encode("utf-8")) > max_bytes or len(by_id) > max_items:
+            raise HTTPException(413, "Merged dataset exceeds limit")
+        db.execute(
+            "INSERT INTO api_file_datasets VALUES (?,?,?) ON CONFLICT(user_id) DO UPDATE SET payload=excluded.payload,updated_at=excluded.updated_at",
+            (user_id, payload, int(time.time())),
+        )
+        return imported, len(by_id)
 
     def mark_file_deleted(self, file_id: str, user_id: str) -> None:
         with self.connection() as db:

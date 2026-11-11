@@ -7,6 +7,7 @@ import io
 import json
 import logging
 import os
+import re
 import tempfile
 import threading
 import time
@@ -16,6 +17,7 @@ from collections.abc import Callable
 from pathlib import Path
 from typing import Any, BinaryIO, cast
 
+import requests
 import yaml
 from fastapi import HTTPException
 from pydantic import ValidationError
@@ -33,6 +35,7 @@ from api.files.parsing import (
 )
 from api.files.store import FileStore
 from src.checkpoints import write_checkpoint
+from src.importers.leetcode import LeetCodeImporter, LeetCodeRateLimitError
 from src.models import ExecutionResult, Problem
 from src.reporting.chart_generator import ChartGenerator
 from src.reporting.csv_exporter import CSVExporter
@@ -40,6 +43,11 @@ from src.utils.secrets import redact_sensitive_data
 
 logger = logging.getLogger(__name__)
 _CHART_LOCK = threading.Lock()
+_LEETCODE_LINK = re.compile(
+    r"https?://(?:www\.)?leetcode\.com/problems/([a-z0-9]+(?:-[a-z0-9]+)*)(?:/description)?/?"
+    r"(?:[?#][^\s]*)?",
+    re.IGNORECASE | re.ASCII,
+)
 PUBLIC_FIELDS = (
     "id",
     "filename",
@@ -63,6 +71,13 @@ def safe_cell(value: str) -> str:
         if value.lstrip().startswith(("=", "+", "-", "@")) or value.startswith(("\t", "\r"))
         else value
     )
+
+
+def canonical_leetcode_link(value: str) -> str | None:
+    match = _LEETCODE_LINK.fullmatch(value.strip())
+    if match:
+        return f"https://leetcode.com/problems/{match[1].lower()}/"
+    return None
 
 
 class FileService:
@@ -225,6 +240,66 @@ class FileService:
         if hashlib.sha256(data).hexdigest() != record["sha256"]:
             raise HTTPException(409, "Stored file integrity check failed")
         return self.metadata(record), data
+
+    def import_leetcode(self, url: str, user_id: str) -> tuple[str, bool]:
+        source = canonical_leetcode_link(url)
+        if source is None:
+            raise HTTPException(400, "Enter a public leetcode.com problem URL")
+        self.auth.limit("leetcode-import:" + user_id, self.settings.FILE_UPLOAD_RATE_LIMIT)
+        if not self.imports.acquire(blocking=False):
+            raise HTTPException(429, "Too many active imports")
+        unavailable = "LeetCode question not found or is restricted"
+        try:
+            with requests.Session() as session:
+                # Only the importer's fixed public GraphQL endpoint is allowed.
+                session.max_redirects = 0
+                importer = LeetCodeImporter(session=session, timeout=8, retries=0)
+                try:
+                    raw = importer.fetch_problems(source)
+                except requests.exceptions.JSONDecodeError:
+                    raise HTTPException(503) from None
+                except ValueError:
+                    raise HTTPException(404, unavailable) from None
+                except RuntimeError as error:
+                    if isinstance(error.__cause__, LeetCodeRateLimitError):
+                        raise HTTPException(429, "LeetCode rate limit exceeded") from None
+                    if isinstance(error.__cause__, (requests.Timeout, TimeoutError)):
+                        raise HTTPException(408, "LeetCode request timed out") from None
+                    raise HTTPException(503) from None
+                if not raw or raw[0].get("isPaidOnly") or not raw[0].get("content"):
+                    raise HTTPException(404, unavailable)
+                problems = importer.transform_to_schema(raw)
+                if len(problems) != 1:
+                    raise HTTPException(503)
+
+            problem = problems[0]
+            imported = self.store.append_problem(
+                user_id,
+                problem.model_dump(mode="json"),
+                self.settings.FILE_UPLOAD_MAX_BYTES,
+                self.settings.FILE_IMPORT_MAX_ITEMS,
+            )
+            if imported:
+                self.auth.audit("dataset_import_leetcode", user_id, problem.problem_id)
+            return problem.problem_id, imported
+        finally:
+            self.imports.release()
+
+    def personal_problem(self, problem_id: str, user_id: str) -> dict[str, Any]:
+        for problem in self.store.dataset(user_id):
+            if problem["problem_id"] != problem_id:
+                continue
+            source = problem.get("source_url")
+            return {
+                "description": problem["description"],
+                "source_url": (
+                    canonical_leetcode_link(source)
+                    if problem.get("source_platform") == "leetcode" and isinstance(source, str)
+                    else None
+                ),
+                "needs_manual_completion": bool(problem.get("needs_manual_completion")),
+            }
+        raise HTTPException(404, "Personal problem not found")
 
     def process_job(
         self,

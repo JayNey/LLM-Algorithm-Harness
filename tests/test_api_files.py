@@ -1123,3 +1123,144 @@ def test_paused_import_does_not_write_remaining_problems(api):
     dataset = app.state.files.store.dataset(owner)
     assert "skip-me" not in {item["problem_id"] for item in dataset}
     assert app.state.files.store.job(job_id, owner)["status"] == "paused"
+
+
+def stub_leetcode(monkeypatch, *, status=200, question=None, error=None):
+    calls = []
+
+    def post(session, url, **kwargs):
+        calls.append((url, kwargs))
+        if error:
+            raise error
+        response = Mock(status_code=status)
+        response.json.return_value = {"data": {"question": question}}
+        return response
+
+    monkeypatch.setattr("requests.Session.post", post)
+    return calls
+
+
+def leetcode_question():
+    return json.loads(
+        (Path(__file__).parent / "fixtures" / "leetcode_questions.json").read_text(encoding="utf-8")
+    )[0]
+
+
+def test_leetcode_import_appends_and_exposes_owner_detail(api, monkeypatch):
+    client, alice, bob, *_ = api
+    calls = stub_leetcode(monkeypatch, question=leetcode_question())
+    url = " https://www.leetcode.com/problems/two-sum/description/?envType=study-plan "
+    route = "/api/v1/problems/import/leetcode"
+    detail_url = "/api/v1/problems/personal/leetcode-1"
+
+    assert client.post(route, json={"url": url}).status_code == 401
+    assert not calls
+    response = client.post(route, headers=auth_headers(alice), json={"url": url})
+    assert response.status_code == 200, response.text
+    assert response.json()["data"] == {"problem_id": "leetcode-1", "imported": True}
+    assert calls[0][0] == "https://leetcode.com/graphql"
+    assert calls[0][1]["json"]["variables"] == {"titleSlug": "two-sum"}
+
+    detail = client.get(detail_url, headers=auth_headers(alice)).json()["data"]
+    assert detail["source_url"] == "https://leetcode.com/problems/two-sum/"
+    assert detail["needs_manual_completion"] is False
+    assert detail["description"]
+    assert client.get(detail_url, headers=auth_headers(bob)).status_code == 404
+
+    duplicate = client.post(route, headers=auth_headers(alice), json={"url": url})
+    assert duplicate.json()["data"] == {"problem_id": "leetcode-1", "imported": False}
+    rows = client.get(
+        "/api/v1/evaluation-options/problems?source=personal", headers=auth_headers(alice)
+    ).json()["data"]
+    assert rows["total"] == 1
+    assert rows["items"][0]["problem_id"] == "leetcode-1"
+    shared = client.get(
+        "/api/v1/evaluation-options/problems?source=shared", headers=auth_headers(bob)
+    ).json()["data"]
+    assert not any(item["problem_id"] == "leetcode-1" for item in shared["items"])
+    independent = client.post(route, headers=auth_headers(bob), json={"url": url})
+    assert independent.json()["data"]["imported"] is True
+
+    export = client.get("/api/v1/problems/export?format=json", headers=auth_headers(alice))
+    imported = export.json()[0]
+    assert imported["difficulty"] == "easy"
+    assert "Array" in imported["tags"]
+    assert imported["public_test_cases"][0]["expected_output"] == [0, 1]
+
+
+@pytest.mark.parametrize(
+    "url",
+    [
+        "two-sum",
+        "https://leetcode.cn/problems/two-sum/",
+        "https://leetcode.com.evil.test/problems/two-sum/",
+        "https://user@leetcode.com/problems/two-sum/",
+        "https://leetcode.com:8443/problems/two-sum/",
+        "https://leetcode.com/problemset/",
+        "https://leetcode.com/problems/two-sum/submissions/",
+        "ftp://leetcode.com/problems/two-sum/",
+    ],
+)
+def test_leetcode_import_rejects_invalid_links_before_fetch(api, monkeypatch, url):
+    client, alice, *_ = api
+    calls = stub_leetcode(monkeypatch)
+    response = client.post(
+        "/api/v1/problems/import/leetcode", headers=auth_headers(alice), json={"url": url}
+    )
+    assert response.status_code == 400, response.text
+    assert not calls
+
+
+@pytest.mark.parametrize(
+    "upstream,expected,message",
+    [
+        (404, 404, "LeetCode question not found or is restricted"),
+        (403, 404, "LeetCode question not found or is restricted"),
+        (200, 404, "LeetCode question not found or is restricted"),
+        (429, 429, "LeetCode rate limit exceeded"),
+        ("timeout", 408, "LeetCode request timed out"),
+        ("paid", 404, "LeetCode question not found or is restricted"),
+    ],
+)
+def test_leetcode_import_failures_leave_existing_library(
+    api, monkeypatch, upstream, expected, message
+):
+    from requests import Timeout
+
+    client, alice, *_ = api
+    assert upload(client, alice, [problem()], route="/api/v1/problems/upload").status_code == 200
+    question = {**leetcode_question(), "isPaidOnly": True} if upstream == "paid" else None
+    stub_leetcode(
+        monkeypatch,
+        status=upstream if isinstance(upstream, int) else 200,
+        question=question,
+        error=Timeout("private upstream details") if upstream == "timeout" else None,
+    )
+    response = client.post(
+        "/api/v1/problems/import/leetcode",
+        headers=auth_headers(alice),
+        json={"url": "https://leetcode.com/problems/two-sum/"},
+    )
+    assert response.status_code == expected, response.text
+    assert response.json()["error"]["message"] == message
+    export = client.get("/api/v1/problems/export?format=json", headers=auth_headers(alice))
+    assert [item["problem_id"] for item in export.json()] == ["p1"]
+
+
+def test_leetcode_import_preserves_manual_completion(api, monkeypatch):
+    client, alice, *_ = api
+    question = {
+        **leetcode_question(),
+        "codeSnippets": [],
+        "content": "<p>Question without examples.</p>",
+    }
+    stub_leetcode(monkeypatch, question=question)
+    headers = auth_headers(alice)
+    response = client.post(
+        "/api/v1/problems/import/leetcode",
+        headers=headers,
+        json={"url": "https://leetcode.com/problems/two-sum/"},
+    )
+    assert response.status_code == 200, response.text
+    detail = client.get("/api/v1/problems/personal/leetcode-1", headers=headers)
+    assert detail.json()["data"]["needs_manual_completion"] is True
