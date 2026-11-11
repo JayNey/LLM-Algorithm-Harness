@@ -1718,7 +1718,7 @@ def _rate_limit(name: str, path: str) -> str:
         name in UPLOAD_OPERATIONS
         or path == "/api/v1/problems/export"
         or (path.startswith("/api/v1/files/") and path.endswith("/download"))
-        or name in {"download_results", "download_chart"}
+        or (path.startswith("/api/v1/results/") and name != "preview_recommendations")
     ):
         text += " 此路径还受 FILE_MAX_CONCURRENT_TRANSFERS（每个 API 进程默认 2 个）并发容量限制。"
     if name == "models":
