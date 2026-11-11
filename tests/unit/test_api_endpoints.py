@@ -75,6 +75,7 @@ PROBLEM_OPTIONS = dict(
     has_more=False,
 )
 MODEL_OPTIONS = dict(provider="openai", models=["test-model"], complete=True)
+RECOMMENDATION_SET = {"id": "set-1", "name": "Array practice"}
 LEETCODE_URL = "https://leetcode.com/problems/two-sum/"
 LEETCODE_PREVIEW = LeetCodePreviewRequest(tags=["array"], difficulty="easy", limit=5)
 LEETCODE_CANDIDATE = LeetCodeCandidate(
@@ -269,7 +270,65 @@ CASES = [
     ),
     case(
         "POST",
+        "/evaluation-options/problems/selection",
+        "evaluation_options.selected_problems",
+        (OWNER, ["p1"]),
+        body={"problem_ids": ["p1"]},
+        result=PROBLEM_OPTIONS["items"],
+        expected=PROBLEM_OPTIONS["items"],
+    ),
+    case(
+        "POST",
+        "/results/recommendations/preview",
+        "evaluation_results.recommendation_history",
+        (OWNER, ["run-1"], {}),
+        body={"run_ids": ["run-1"]},
+        result=[],
+        expected={"weaknesses": [], "problems": [], "empty_reason": "insufficient_history"},
+    ),
+    case(
+        "GET",
+        "/recommendation-sets",
+        "evaluation_options.files.recommendation_sets",
+        (OWNER,),
+        result=[RECOMMENDATION_SET],
+        expected=[RECOMMENDATION_SET],
+    ),
+    case(
+        "POST",
+        "/recommendation-sets",
+        "evaluation_options.files.save_recommendation_set",
+        (OWNER, "Array practice", ["p1"]),
+        body={"name": "Array practice", "problem_ids": ["p1"]},
+        result="set-1",
+        expected=RECOMMENDATION_SET,
+        status=201,
+    ),
+    case(
+        "GET",
+        "/recommendation-sets/{set_id}",
+        "evaluation_options.files.recommendation_set",
+        (OWNER, "set-1"),
+        result=("Array practice", ["p1"]),
+        expected={
+            **RECOMMENDATION_SET,
+            "problems": PROBLEM_OPTIONS["items"],
+            "unavailable_count": 0,
+        },
+    ),
+    case(
+        "POST",
         "/evaluations",
+        "evaluations.create_evaluation",
+        (ANY, OWNER),
+        body=EVAL_BODY,
+        result=EVALUATION,
+        expected=EVALUATION.model_dump(),
+        status=201,
+    ),
+    case(
+        "POST",
+        "/evaluations/with-selection",
         "evaluations.create_evaluation",
         (ANY, OWNER),
         body=EVAL_BODY,
@@ -957,6 +1016,7 @@ def url(item):
             problem_id="p1",
             task_id="task-1",
             rule_id="rule-1",
+            set_id="set-1",
             model_id="test-model",
             file_id="file-1",
             job_id="job-1",
@@ -1011,6 +1071,9 @@ def api(monkeypatch, tmp_path, unit_app):
     state.files.settings = FileSettings(_env_file=None, UPLOAD_DIR=tmp_path)
     state.files.transfers = BoundedSemaphore(1)
     state.files.store = Mock()
+    state.evaluation_options.files = state.files.store
+    state.evaluation_options.problem_metadata.return_value = {}
+    state.evaluation_options.selected_problems.return_value = PROBLEM_OPTIONS["items"]
     state.files.store.create_job.return_value = "job-1"
     state.files.store.job.return_value = dict(status="completed", total=0, processed=0, result={})
     state.files.metadata.return_value = VALUE.copy()
@@ -1154,9 +1217,16 @@ def test_endpoint_happy_path(api, item):
             celery_task_name="src.tasks.imports.run_import_task",
             celery_task_args=("job-2", OWNER),
         )
-    if item.path == "/evaluations" and item.method == "POST":
+    if item.path in {"/evaluations", "/evaluations/with-selection"} and item.method == "POST":
         api.auth.owned_key.assert_called_once_with("key-1", OWNER)
         api.files.store.register_run.assert_called_once_with("eval-1", OWNER)
+    if (
+        item.path in {"/evaluations/with-selection", "/recommendation-sets"}
+        and item.method == "POST"
+    ):
+        api.evaluation_options.selected_problems.assert_called_once_with(
+            OWNER, ["p1"], require_all=True
+        )
     if item.path == "/evaluations/{evaluation_id}/start":
         api.auth.owned_key.assert_called_once_with("key-1", OWNER)
 

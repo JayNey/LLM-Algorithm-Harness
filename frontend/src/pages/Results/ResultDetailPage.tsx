@@ -16,6 +16,7 @@ import {
 } from '@/evaluations/useEvaluation.ts'
 import { fetchEvaluationResult } from '@/evaluations/results.ts'
 import { ReportDownloads } from '@/evaluations/ReportDownloads.tsx'
+import { RecommendationPanel } from '@/evaluations/RecommendationPanel.tsx'
 import {
   AnalysisSection,
   AnalysisUnavailable,
@@ -75,6 +76,7 @@ function ResultDetail({ evaluationId }: { evaluationId: string }) {
   useTranslation()
 
   const { client, owner } = useEvaluationSession()
+  const [recommendationsOpen, setRecommendationsOpen] = useState(false)
   const [search, setSearch] = useSearchParams()
   const rawSearch = search.toString()
   const page = useMemo(() => {
@@ -190,8 +192,19 @@ function ResultDetail({ evaluationId }: { evaluationId: string }) {
           <Link to={`/evaluations/${encodeURIComponent(evaluationId)}`}>
             {t('查看任务详情')}
           </Link>
+          {result && (
+            <Button onClick={() => setRecommendationsOpen(true)}>
+              {t('推荐下一轮题目')}
+            </Button>
+          )}
         </div>
       </section>
+      {current && recommendationsOpen && (
+        <RecommendationPanel
+          evaluationId={evaluationId}
+          onClose={() => setRecommendationsOpen(false)}
+        />
+      )}
       {!loading && current && (
         <section className="panel evaluation-panel" aria-label={t('评估结果')}>
           <div role="status" aria-label={t('结果可用性')}>

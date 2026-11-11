@@ -70,6 +70,7 @@ export function createPayload(draft: Draft): CreatePayload {
   }
   if (draft.budget_cap_usd.trim())
     payload.budget_cap_usd = Number(draft.budget_cap_usd)
+  if (draft.verify_problem_access) payload.verify_problem_access = true
   return payload
 }
 

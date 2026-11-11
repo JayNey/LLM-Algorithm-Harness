@@ -20,6 +20,7 @@ export interface CreationState {
   error: ApiClientError | null
   setDraft(patch: Partial<Draft>): void
   startNewDraft(): boolean
+  prefillProblems(owner: string, problemIds: string[]): boolean
   submit(): Promise<void>
   retryStart(evaluationId: string): Promise<void>
   action: {
@@ -139,6 +140,26 @@ export function createCreationStore(
           return false
         set({
           draft: emptyDraft(),
+          phase: 'editing',
+          evaluationId: null,
+          error: null,
+        })
+        return true
+      },
+      prefillProblems(owner, problemIds) {
+        const { phase } = get()
+        if (
+          !owns(owner) ||
+          active ||
+          !['editing', 'queued', 'start-error'].includes(phase)
+        )
+          return false
+        set({
+          draft: {
+            ...emptyDraft(),
+            problem_ids: [...new Set(problemIds)],
+            verify_problem_access: true,
+          },
           phase: 'editing',
           evaluationId: null,
           error: null,

@@ -1,4 +1,44 @@
 export default {
+  标签组合: 'Tag combination',
+  难度与标签: 'Difficulty and tags',
+  推荐下一轮题目: 'Recommend next problems',
+  推荐预览: 'Preview',
+  个人推荐题集: 'Saved recommendations',
+  '保存题集失败，请重试。': 'Could not save the set. Try again.',
+  历史评估: 'Evaluation history',
+  当前运行: 'Current run',
+  加载更多历史评估: 'Load more evaluations',
+  候选题库: 'Candidate problem library',
+  共享题库: 'Shared problem library',
+  本人导入: 'My imports',
+  最少样本数: 'Minimum sample count',
+  预览推荐: 'Preview recommendations',
+  薄弱题型: 'Weak areas',
+  '{{group}} · 失败率 {{rate}} · {{count}} 个样本':
+    '{{group}} · {{rate}} failure rate · {{count}} samples',
+  '所选历史中的有效样本不足。请选择更多评估或降低最少样本数。':
+    'Too few eligible results. Select more evaluations or lower the minimum sample count.',
+  '所选历史中没有达到失败率阈值的题型。':
+    'No groups in the selected history meet the failure-rate threshold.',
+  '所选题库中没有匹配的未评估题目。':
+    'The selected library has no matching unevaluated problems.',
+  推荐题目: 'Recommended problems',
+  '匹配 {{groups}}。最高失败率 {{rate}}（{{count}} 个样本）':
+    'Matches {{groups}}. Highest failure rate {{rate}} ({{count}} samples)',
+  题集名称: 'Set name',
+  保存个人题集: 'Save personal set',
+  带选题创建评估: 'Create evaluation with selected problems',
+  '题集已保存，可在个人推荐题集中打开。':
+    'Set saved. Open it under Saved recommendations.',
+  '还没有保存的推荐题集。': 'You have no saved recommendation sets.',
+  打开题集: 'Open set',
+  '正在读取题集…': 'Loading set…',
+  '{{count}} 道题已无法访问。': '{{count}} problems are no longer accessible.',
+  用此题集创建评估: 'Create evaluation with this set',
+  '请先核对上一项评估的创建状态。':
+    'Check the previous evaluation’s creation status first.',
+  '正在校验推荐题目…': 'Checking recommended problems…',
+  已选推荐题目: 'Selected recommendations',
   预算须为非负有限数值: 'Budget must be a finite non-negative number',
   '任务状态已变化，请核对最新状态。':
     'Task state changed. Check the latest state.',

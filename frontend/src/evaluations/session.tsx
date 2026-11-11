@@ -18,11 +18,10 @@ import type { StoreApi } from 'zustand/vanilla'
 import { useAuthStore } from '../store/auth.ts'
 import { createEvaluationClient } from './client.ts'
 import { createCreationStore, type CreationState } from './creation.ts'
-import type { EvaluationClient } from './types.ts'
 
 export interface EvaluationSession {
   owner: string | null
-  client: EvaluationClient
+  client: ReturnType<typeof createEvaluationClient>
   creationStore: StoreApi<CreationState>
 }
 const useCommittedEffect =

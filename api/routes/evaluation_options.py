@@ -10,6 +10,7 @@ from api.evaluation_options import (
     EvaluationOptions,
     ModelOptions,
     ProblemOption,
+    ProblemSelection,
     ProblemSourceFilter,
 )
 from api.schemas import ApiResponse, PaginatedData
@@ -63,4 +64,17 @@ def models(
         success=True,
         data=service.models(principal.user_id, api_key_id),
         message="Provider models",
+    )
+
+
+@router.post("/problems/selection")
+def selected_problems(
+    selection: ProblemSelection,
+    principal: Principal = Depends(current_user),
+    service: EvaluationOptionsService = Depends(evaluation_options_service),
+) -> ApiResponse[list[ProblemOption]]:
+    return ApiResponse(
+        success=True,
+        data=service.selected_problems(principal.user_id, selection.problem_ids),
+        message="Accessible selected problems",
     )

@@ -196,6 +196,63 @@ function problem(value: unknown, field: string): ProblemOption {
     source: source(data.source, `${field}.source`),
   }
 }
+function recommendationWeakness(value: unknown, field: string) {
+  const data = record(value, field)
+  return {
+    key: text(data.key, field + '.key'),
+    failure_rate: number(data.failure_rate, field + '.failure_rate', 1),
+    total: count(data.total, field + '.total'),
+  }
+}
+function recommendedProblem(value: unknown, field: string) {
+  const data = record(value, field)
+  return {
+    problem_id: text(data.problem_id, field + '.problem_id'),
+    title: text(data.title, field + '.title', true),
+    difficulty: nullable(data.difficulty, text, field + '.difficulty'),
+    matching_groups: array(
+      data.matching_groups,
+      text,
+      field + '.matching_groups',
+    ),
+    failure_rate: number(data.failure_rate, field + '.failure_rate', 1),
+    total: count(data.total, field + '.total'),
+  }
+}
+function recommendationPreview(value: unknown) {
+  const data = record(value, 'recommendations')
+  const reason = data.empty_reason
+  if (
+    reason !== null &&
+    reason !== 'insufficient_history' &&
+    reason !== 'no_weaknesses' &&
+    reason !== 'no_candidates'
+  )
+    protocol('recommendations.empty_reason')
+  return {
+    weaknesses: array(data.weaknesses, recommendationWeakness, 'weaknesses'),
+    problems: array(data.problems, recommendedProblem, 'recommended_problems'),
+    empty_reason: reason,
+  } as const
+}
+function recommendationSet(value: unknown, field = 'recommendation_set') {
+  const data = record(value, field)
+  return {
+    id: text(data.id, field + '.id'),
+    name: text(data.name, field + '.name'),
+  }
+}
+function recommendationSetDetail(value: unknown) {
+  const data = record(value, 'recommendation_set')
+  return {
+    ...recommendationSet(data),
+    problems: array(data.problems, problem, 'recommendation_set.problems'),
+    unavailable_count: count(
+      data.unavailable_count,
+      'recommendation_set.unavailable_count',
+    ),
+  }
+}
 function models(value: unknown): ModelOptions {
   const data = record(value, 'models')
   return {
@@ -309,7 +366,7 @@ function payload(input: CreatePayload): CreatePayload {
 }
 
 // 注入 useAuthStore 提供的同一已解包实例，沿用 Cookie、CSRF 和共享刷新。
-export function createEvaluationClient(http: AxiosInstance): EvaluationClient {
+export function createEvaluationClient(http: AxiosInstance) {
   async function get<T>(
     url: string,
     read: (value: unknown) => T,
@@ -327,6 +384,16 @@ export function createEvaluationClient(http: AxiosInstance): EvaluationClient {
   ): Promise<Evaluation> {
     return evaluation(
       await http.post<unknown, unknown>(url, data, { timeout: 20_000 }),
+    )
+  }
+  async function post<T>(
+    url: string,
+    data: unknown,
+    read: (value: unknown) => T,
+    signal?: AbortSignal,
+  ): Promise<T> {
+    return read(
+      await http.post<unknown, unknown>(url, data, { signal, timeout: 10_000 }),
     )
   }
   return {
@@ -357,7 +424,13 @@ export function createEvaluationClient(http: AxiosInstance): EvaluationClient {
       ),
     get: async (id, signal) =>
       get(`/evaluations/${pathId(id)}`, evaluation, undefined, signal),
-    create: async (input) => mutate('/evaluations', payload(input)),
+    create: async (input) => {
+      const { verify_problem_access, ...body } = payload(input)
+      return mutate(
+        verify_problem_access ? '/evaluations/with-selection' : '/evaluations',
+        body,
+      )
+    },
     start: async (id) => mutate(`/evaluations/${pathId(id)}/start`),
     cancel: async (id) => mutate(`/evaluations/${pathId(id)}/cancel`),
     pause: async (id, signal) => {
@@ -401,5 +474,46 @@ export function createEvaluationClient(http: AxiosInstance): EvaluationClient {
       ),
     result: async (id, query, signal) =>
       get(`/results/${pathId(id)}`, detail, pageQuery(query), signal),
-  }
+    selectedProblems: (ids: string[], signal: AbortSignal) =>
+      post(
+        '/evaluation-options/problems/selection',
+        { problem_ids: ids },
+        (value) => array(value, problem, 'selected_problems'),
+        signal,
+      ),
+    previewRecommendations: (
+      query: {
+        run_ids: string[]
+        source: 'all' | ProblemSource
+        min_samples: number
+      },
+      signal: AbortSignal,
+    ) =>
+      post(
+        '/results/recommendations/preview',
+        query,
+        recommendationPreview,
+        signal,
+      ),
+    recommendationSets: (signal: AbortSignal) =>
+      get(
+        '/recommendation-sets',
+        (value) => array(value, recommendationSet, 'recommendation_sets'),
+        undefined,
+        signal,
+      ),
+    recommendationSet: (id: string, signal: AbortSignal) =>
+      get(
+        `/recommendation-sets/${pathId(id)}`,
+        recommendationSetDetail,
+        undefined,
+        signal,
+      ),
+    saveRecommendationSet: (name: string, ids: string[]) =>
+      post(
+        '/recommendation-sets',
+        { name, problem_ids: ids },
+        recommendationSet,
+      ),
+  } satisfies EvaluationClient & Record<string, unknown>
 }

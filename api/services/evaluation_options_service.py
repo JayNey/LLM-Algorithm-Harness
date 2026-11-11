@@ -22,6 +22,7 @@ from api.files.store import FileStore
 from api.schemas import PaginatedData
 from src.harness import AlgorithmHarness
 from src.llm_client import LLMClient
+from src.recommender import RecommendationProblem
 
 
 class EvaluationOptionsService:
@@ -32,31 +33,62 @@ class EvaluationOptionsService:
         self.files = files
         self.auth = auth
 
-    def _effective_problems(self, owner_id: str) -> list[ProblemOption]:
+    def problem_metadata(
+        self, owner_id: str, ids: list[str] | None = None
+    ) -> dict[str, tuple[RecommendationProblem, ProblemSource]]:
         # 与 worker 一致：本人集合按 ID 去重，最后一项覆盖共享同 ID。
+        requested = set(ids) if ids is not None else None
         personal = {item["problem_id"]: item for item in self.files.dataset(owner_id)}
+        statement = select(Problem.problem_id, Problem.title, Problem.difficulty, Problem.tags)
+        if requested is not None:
+            statement = statement.where(Problem.problem_id.in_(requested - personal.keys()))
         with self.session_factory() as session:
-            shared = session.execute(select(Problem.problem_id, Problem.title, Problem.difficulty))
-            problems = [
-                ProblemOption(
-                    problem_id=row.problem_id,
-                    title=row.title,
-                    difficulty=row.difficulty,
-                    source="shared",
+            problems: dict[str, tuple[RecommendationProblem, ProblemSource]] = {
+                row.problem_id: (
+                    RecommendationProblem(
+                        problem_id=row.problem_id,
+                        title=row.title,
+                        difficulty=row.difficulty,
+                        tags=row.tags or [],
+                    ),
+                    "shared",
                 )
-                for row in shared
+                for row in session.execute(statement)
                 if row.problem_id not in personal
-            ]
-        problems.extend(
-            ProblemOption(
-                problem_id=pid,
-                title=item["title"],
-                difficulty=item.get("difficulty"),
-                source="personal",
-            )
-            for pid, item in personal.items()
+            }
+        for pid, item in personal.items():
+            if requested is None or pid in requested:
+                problems[pid] = (
+                    RecommendationProblem(
+                        problem_id=pid,
+                        title=item["title"],
+                        difficulty=item.get("difficulty"),
+                        tags=item.get("tags") or [],
+                    ),
+                    "personal",
+                )
+        return problems
+
+    def selected_problems(
+        self, owner_id: str, ids: list[str], *, require_all: bool = False
+    ) -> list[ProblemOption]:
+        catalog = self.problem_metadata(owner_id, ids)
+        if require_all and set(ids) != catalog.keys():
+            raise HTTPException(400, "One or more selected problems are no longer accessible")
+        return [self._option(*catalog[pid]) for pid in ids if pid in catalog]
+
+    @staticmethod
+    def _option(problem: RecommendationProblem, source: ProblemSource) -> ProblemOption:
+        return ProblemOption(
+            problem_id=problem.problem_id,
+            title=problem.title,
+            difficulty=problem.difficulty,
+            source=source,
         )
-        return sorted(problems, key=lambda item: item.problem_id)
+
+    def _effective_problems(self, owner_id: str) -> list[ProblemOption]:
+        catalog = self.problem_metadata(owner_id)
+        return [self._option(*catalog[pid]) for pid in sorted(catalog)]
 
     def options(self, owner_id: str) -> EvaluationOptions:
         counts = Counter(item.source for item in self._effective_problems(owner_id))

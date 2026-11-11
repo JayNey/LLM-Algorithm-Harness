@@ -46,6 +46,12 @@ class FileStore:
                 CREATE TABLE IF NOT EXISTS api_file_datasets (
                     user_id TEXT PRIMARY KEY, payload TEXT NOT NULL, updated_at INTEGER NOT NULL
                 );
+                CREATE TABLE IF NOT EXISTS api_recommendation_sets (
+                    id TEXT PRIMARY KEY, user_id TEXT NOT NULL, name TEXT NOT NULL,
+                    problem_ids TEXT NOT NULL, created_at INTEGER NOT NULL
+                );
+                CREATE INDEX IF NOT EXISTS api_recommendation_sets_owner
+                    ON api_recommendation_sets(user_id, created_at, id);
                 CREATE TABLE IF NOT EXISTS api_file_jobs (
                     id TEXT PRIMARY KEY, user_id TEXT NOT NULL, file_id TEXT NOT NULL,
                     mode TEXT NOT NULL, status TEXT NOT NULL,
@@ -235,6 +241,36 @@ class FileStore:
                 "SELECT payload FROM api_file_datasets WHERE user_id=?", (user_id,)
             ).fetchone()
             return cast(list[dict[str, Any]], json.loads(row["payload"])) if row else []
+
+    def save_recommendation_set(self, user_id: str, name: str, problem_ids: list[str]) -> str:
+        set_id = str(uuid.uuid4())
+        with self.connection() as db:
+            db.execute(
+                "INSERT INTO api_recommendation_sets VALUES (?, ?, ?, ?, ?)",
+                (set_id, user_id, name, json.dumps(problem_ids), int(time.time())),
+            )
+        return set_id
+
+    def recommendation_sets(self, user_id: str) -> list[dict[str, Any]]:
+        with self.connection() as db:
+            return [
+                dict(row)
+                for row in db.execute(
+                    "SELECT id, name FROM api_recommendation_sets WHERE user_id=?"
+                    " ORDER BY created_at DESC, id DESC",
+                    (user_id,),
+                )
+            ]
+
+    def recommendation_set(self, user_id: str, set_id: str) -> tuple[str, list[str]]:
+        with self.connection() as db:
+            row = db.execute(
+                "SELECT name, problem_ids FROM api_recommendation_sets WHERE user_id=? AND id=?",
+                (user_id, set_id),
+            ).fetchone()
+        if row is None:
+            raise HTTPException(404, "Recommendation set not found")
+        return row["name"], json.loads(row["problem_ids"])
 
     def create_job(self, file_id: str, user_id: str, mode: str, max_active: int = 8) -> str:
         job_id, now = str(uuid.uuid4()), int(time.time())
