@@ -1264,3 +1264,62 @@ def test_leetcode_import_preserves_manual_completion(api, monkeypatch):
     assert response.status_code == 200, response.text
     detail = client.get("/api/v1/problems/personal/leetcode-1", headers=headers)
     assert detail.json()["data"]["needs_manual_completion"] is True
+
+
+def test_leetcode_batch_previews_public_matches_without_writing(api, monkeypatch):
+    client, alice, *_ = api
+    calls = []
+
+    def post(_session, _url, **kwargs):
+        calls.append(kwargs["json"])
+        question = {
+            "titleSlug": "jump-game-ii",
+            "title": "Jump Game II",
+            "questionFrontendId": "45",
+            "difficulty": "MEDIUM",
+            "paidOnly": False,
+            "topicTags": [{"slug": "dynamic-programming", "name": "Dynamic Programming"}],
+        }
+        response = Mock(status_code=200)
+        response.json.return_value = {
+            "data": {
+                "problemsetQuestionListV2": {
+                    "questions": [question, {**question, "titleSlug": "premium", "paidOnly": True}]
+                }
+            }
+        }
+        return response
+
+    monkeypatch.setattr("requests.Session.post", post)
+    route = "/api/v1/problems/import/leetcode/preview"
+    headers = auth_headers(alice)
+    assert client.post(route, headers=headers, json={"limit": 10}).status_code == 400
+    assert (
+        client.post(route, headers=headers, json={"difficulty": "medium", "limit": 51}).status_code
+        == 400
+    )
+    assert client.post(route, headers=headers, json={"tags": ["<invalid>"]}).status_code == 400
+    assert not calls
+    response = client.post(
+        route,
+        headers=headers,
+        json={"tags": ["Dynamic Programming"], "difficulty": "medium", "limit": 10},
+    )
+    assert response.status_code == 200, response.text
+    assert response.json()["data"] == [
+        {
+            "slug": "jump-game-ii",
+            "number": "45",
+            "title": "Jump Game II",
+            "difficulty": "medium",
+            "tags": ["Dynamic Programming"],
+            "source_url": "https://leetcode.com/problems/jump-game-ii/",
+        }
+    ]
+    assert calls[0]["variables"]["filters"] == {
+        "filterCombineType": "ALL",
+        "topicFilter": {"topicSlugs": ["dynamic-programming"], "operator": "IS"},
+        "difficultyFilter": {"difficulties": ["MEDIUM"], "operator": "IS"},
+        "premiumFilter": {"premiumStatus": ["NOT_PREMIUM"], "operator": "IS"},
+    }
+    assert client.get("/api/v1/problems/export?format=json", headers=headers).json() == []

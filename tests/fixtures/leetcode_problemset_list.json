@@ -1,7 +1,7 @@
 {
   "data": {
-    "problemsetQuestionList": {
-      "total": 3,
+    "problemsetQuestionListV2": {
+      "totalLength": 3,
       "questions": [
         {
           "questionFrontendId": "1",

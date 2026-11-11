@@ -14,6 +14,7 @@ from api.auth.dependencies import current_user
 from api.auth.service import Principal
 from api.db.engine import get_db
 from api.files.dependencies import file_service
+from api.files.leetcode import LeetCodeCandidate, LeetCodePreviewRequest
 from api.files.service import FileService
 from api.files.templates import TEMPLATES, template
 from api.schemas import ApiResponse
@@ -148,6 +149,19 @@ class PersonalProblemDetail(BaseModel):
     description: str
     source_url: str | None
     needs_manual_completion: bool
+
+
+@router.post("/problems/import/leetcode/preview")
+def preview_leetcode(
+    request: LeetCodePreviewRequest,
+    principal: Principal = Depends(current_user),
+    service: FileService = Depends(file_service),
+) -> ApiResponse[list[LeetCodeCandidate]]:
+    return ApiResponse(
+        success=True,
+        data=service.preview_leetcode(request, principal.user_id),
+        message="LeetCode candidates",
+    )
 
 
 @router.post("/problems/import/leetcode")

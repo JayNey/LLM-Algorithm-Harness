@@ -73,19 +73,20 @@ query questionData($titleSlug: String!) {
 """
 
 PROBLEMSET_QUERY = """
-query problemsetQuestionList($categorySlug: String, $limit: Int, $skip: Int, $filters: QuestionListFilterInput) {
-  problemsetQuestionList(
+query problemsetQuestionListV2($categorySlug: String, $limit: Int, $skip: Int, $filters: QuestionFilterInput) {
+  problemsetQuestionListV2(
     categorySlug: $categorySlug
     limit: $limit
     skip: $skip
     filters: $filters
   ) {
-    total
+    totalLength
     questions {
       questionFrontendId
       titleSlug
       title
       difficulty
+      paidOnly
       topicTags { name slug }
     }
   }
@@ -257,38 +258,31 @@ class LeetCodeImporter(ProblemImporter):
         tags: list[str] | None = None,
         difficulty: str | None = None,
         limit: int | None = None,
+        *,
+        public_only: bool = False,
     ) -> list[dict[str, Any]]:
-        """Fetch question metadata list using problemsetQuestionList query.
+        """Fetch question metadata from the public problemset.
 
         Returns:
             List of question metadata dicts with keys: questionFrontendId, titleSlug,
             title, difficulty, topicTags
         """
-        # Normalize difficulty to LeetCode's enum format
-        difficulty_enum = None
-        if difficulty:
-            difficulty_lower = difficulty.lower()
-            if difficulty_lower == "easy":
-                difficulty_enum = "EASY"
-            elif difficulty_lower == "medium":
-                difficulty_enum = "MEDIUM"
-            elif difficulty_lower == "hard":
-                difficulty_enum = "HARD"
-            else:
-                raise ValueError(f"Invalid difficulty: {difficulty}. Must be easy, medium, or hard")
-
-        # Build filters
-        filters: dict[str, Any] = {}
+        filters: dict[str, Any] = {"filterCombineType": "ALL"}
         if tags:
-            filters["tags"] = tags
-        if difficulty_enum:
-            filters["difficulty"] = difficulty_enum
+            filters["topicFilter"] = {"topicSlugs": tags, "operator": "IS"}
+        if difficulty:
+            difficulty_enum = difficulty.upper()
+            if difficulty_enum not in {"EASY", "MEDIUM", "HARD"}:
+                raise ValueError(f"Invalid difficulty: {difficulty}. Must be easy, medium, or hard")
+            filters["difficultyFilter"] = {"difficulties": [difficulty_enum], "operator": "IS"}
+        if public_only:
+            filters["premiumFilter"] = {"premiumStatus": ["NOT_PREMIUM"], "operator": "IS"}
 
         variables: dict[str, Any] = {
             "categorySlug": "",
             "skip": 0,
             "limit": limit or 50,
-            "filters": filters if filters else {},
+            "filters": filters,
         }
 
         payload: dict[str, str | dict[str, Any]] = {
@@ -314,7 +308,7 @@ class LeetCodeImporter(ProblemImporter):
                 )
                 status = getattr(response, "status_code", 200)
                 if status == 429:
-                    raise LeetCodeTransientError("LeetCode rate limit exceeded")
+                    raise LeetCodeRateLimitError("LeetCode rate limit exceeded")
                 if status >= 500:
                     raise LeetCodeTransientError(f"LeetCode server error: HTTP {status}")
                 if status >= 400:
@@ -328,9 +322,9 @@ class LeetCodeImporter(ProblemImporter):
                     raise ValueError(f"LeetCode GraphQL error: {messages}")
 
                 data = body.get("data", {})
-                result = data.get("problemsetQuestionList")
+                result = data.get("problemsetQuestionListV2")
                 if not result:
-                    raise ValueError("LeetCode problemsetQuestionList returned no data")
+                    raise ValueError("LeetCode problemsetQuestionListV2 returned no data")
 
                 questions: list[dict[str, Any]] = result.get("questions")
                 if questions is None:
@@ -352,6 +346,13 @@ class LeetCodeImporter(ProblemImporter):
                 self.sleep(self.backoff_seconds * (2**attempt))
 
         raise RuntimeError(f"Unable to fetch LeetCode question list: {last_error}") from last_error
+
+    def list_public_questions(
+        self, tags: list[str], difficulty: str | None, limit: int
+    ) -> list[dict[str, Any]]:
+        """Return only public question metadata without fetching question bodies."""
+        questions = self._fetch_question_list(tags, difficulty, limit, public_only=True)
+        return [question for question in questions if question.get("paidOnly") is False][:limit]
 
     def _fetch_batch_questions(
         self,

@@ -24,6 +24,7 @@ from pydantic import ValidationError
 
 from api.auth.service import AuthService
 from api.files.config import FileSettings
+from api.files.leetcode import LeetCodeCandidate, LeetCodePreviewRequest
 from api.files.parsing import (
     bad,
     filename_suffix,
@@ -282,6 +283,43 @@ class FileService:
             if imported:
                 self.auth.audit("dataset_import_leetcode", user_id, problem.problem_id)
             return problem.problem_id, imported
+        finally:
+            self.imports.release()
+
+    def preview_leetcode(
+        self, filters: LeetCodePreviewRequest, user_id: str
+    ) -> list[LeetCodeCandidate]:
+        self.auth.limit("leetcode-import:" + user_id, self.settings.FILE_UPLOAD_RATE_LIMIT)
+        if not self.imports.acquire(blocking=False):
+            raise HTTPException(429, "Too many active imports")
+        try:
+            with requests.Session() as session:
+                session.max_redirects = 0
+                importer = LeetCodeImporter(session=session, timeout=8, retries=0)
+                rows = importer.list_public_questions(
+                    filters.tags, filters.difficulty, filters.limit
+                )
+                return [
+                    LeetCodeCandidate.model_validate(
+                        {
+                            "slug": row["titleSlug"],
+                            "number": str(row["questionFrontendId"]),
+                            "title": row["title"],
+                            "difficulty": row["difficulty"].lower(),
+                            "tags": [tag["name"] for tag in row["topicTags"]],
+                            "source_url": f"https://leetcode.com/problems/{row['titleSlug']}/",
+                        }
+                    )
+                    for row in rows
+                ]
+        except RuntimeError as error:
+            if isinstance(error.__cause__, LeetCodeRateLimitError):
+                raise HTTPException(429, "LeetCode rate limit exceeded") from None
+            if isinstance(error.__cause__, (requests.Timeout, TimeoutError)):
+                raise HTTPException(408, "LeetCode request timed out") from None
+            raise HTTPException(503, "LeetCode preview unavailable") from None
+        except (ValueError, KeyError, TypeError, AttributeError):
+            raise HTTPException(503, "LeetCode preview unavailable") from None
         finally:
             self.imports.release()
 

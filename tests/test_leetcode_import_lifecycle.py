@@ -31,7 +31,7 @@ def _batch_responses(statuses):
         {"titleSlug": f"problem-{index}", "questionFrontendId": str(index)}
         for index in range(1, len(statuses) + 1)
     ]
-    responses = [Response(payload={"data": {"problemsetQuestionList": {"questions": questions}}})]
+    responses = [Response(payload={"data": {"problemsetQuestionListV2": {"questions": questions}}})]
     for index, status in enumerate(statuses, 1):
         if status == 200:
             question = {**_question(), "questionFrontendId": str(index)}
