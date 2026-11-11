@@ -5,6 +5,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react'
 import { Link, useSearchParams } from 'react-router-dom'
 import { AnalysisSection } from '@/evaluations/analysis.tsx'
 import { EvaluationFeedback } from '@/evaluations/components.tsx'
+import { RecommendationPanel } from '@/evaluations/RecommendationPanel.tsx'
 import { resultStatusLabel } from '@/evaluations/presentation.ts'
 import { useEvaluationSession } from '@/evaluations/session.tsx'
 import type { ResultSummary, ListQuery } from '@/evaluations/types.ts'
@@ -110,6 +111,7 @@ export default function ResultsPage() {
   const loading = list.status === 'loading' || outOfRange
   // 全账号分析按需展开，默认不发任何分析请求。
   const [showAnalysis, setShowAnalysis] = useState(false)
+  const [showSavedSets, setShowSavedSets] = useState(false)
   return (
     <section className="evaluation-workflow">
       <header className="page-heading">
@@ -117,10 +119,18 @@ export default function ResultsPage() {
           <h1>{t('评估结果')}</h1>
           <p>{t('查看当前账号已记录的评估结果。')}</p>
         </div>
-        <Link className="evaluation-create-link" to="/evaluations/new">
-          {t('创建评估')}
-        </Link>
+        <div className="evaluation-actions">
+          <Button onClick={() => setShowSavedSets(true)}>
+            {t('个人推荐题集')}
+          </Button>
+          <Link className="evaluation-create-link" to="/evaluations/new">
+            {t('创建评估')}
+          </Link>
+        </div>
       </header>
+      {showSavedSets && (
+        <RecommendationPanel onClose={() => setShowSavedSets(false)} />
+      )}
       <div className="panel evaluation-panel">
         <div className="evaluation-section-heading">
           <Select

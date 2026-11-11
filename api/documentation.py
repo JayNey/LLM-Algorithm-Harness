@@ -1823,23 +1823,19 @@ def _document_operation(path: str, method: str, operation: dict[str, Any]) -> No
                 **(
                     {"config_type": "harness"}
                     if name == "upload_config"
-                    else {"mode": "append", "validate": True}
-                    if name == "upload_problems"
-                    else {}
+                    else {"mode": "append", "validate": True} if name == "upload_problems" else {}
                 ),
             }
             properties = media["schema"]["properties"]
             allowed = (
                 {"file", "config_type"}
                 if name == "upload_config"
-                else {"file", "mode", "validate"}
-                if name == "upload_problems"
-                else {"file"}
+                else {"file", "mode", "validate"} if name == "upload_problems" else {"file"}
             )
             media["schema"]["properties"] = {k: v for k, v in properties.items() if k in allowed}
-        operation["requestBody"]["description"] = (
-            "请求体各字段的语义、必填项、类型及约束见 schema；示例中的 ID/令牌需要替换为自己的资源。"
-        )
+        operation["requestBody"][
+            "description"
+        ] = "请求体各字段的语义、必填项、类型及约束见 schema；示例中的 ID/令牌需要替换为自己的资源。"
     responses = operation["responses"]
     # The application's RequestValidationError handler returns 400, never 422.
     responses.pop("422", None)

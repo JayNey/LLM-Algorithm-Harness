@@ -3,7 +3,7 @@ import { t } from '../../i18n/core.ts'
 import { Alert, Button, Checkbox, Form, Input, Select, Skeleton } from 'antd'
 import type { AxiosInstance } from 'axios'
 import { useCallback, useState } from 'react'
-import { Link } from 'react-router-dom'
+import { Link, useLocation } from 'react-router-dom'
 import { useStore } from 'zustand'
 import { readApiKeys } from '@/account/apiKeys.ts'
 import { ApiClientError } from '@/auth/http.ts'
@@ -18,6 +18,20 @@ export default function CreateEvaluationPage() {
   useTranslation()
 
   const { client, creationStore, owner } = useEvaluationSession()
+  const { state } = useLocation()
+  const recommendedIds =
+    owner &&
+    state?.recommendedFor === owner &&
+    Array.isArray(state.recommendedProblemIds)
+      ? (state.recommendedProblemIds as unknown[]).filter(
+          (id): id is string => typeof id === 'string' && !!id.trim(),
+        )
+      : []
+  // Use the contents rather than the array identity as a request dependency.
+  const recommendationKey = JSON.stringify(
+    [...new Set(recommendedIds)].slice(0, 100),
+  )
+  const hasRecommendation = recommendationKey !== '[]'
   const {
     draft,
     phase,
@@ -39,6 +53,25 @@ export default function CreateEvaluationPage() {
     source: ProblemQuery['source']
     ids: string[]
   }>({ source: 'all', ids: [] })
+  const prefill = useResource(
+    useCallback(
+      async (signal: AbortSignal) => {
+        if (!owner || recommendationKey === '[]') return null
+        const ids = JSON.parse(recommendationKey) as string[]
+        const items = await client.selectedProblems(ids, signal)
+        if (
+          !signal.aborted &&
+          !creationStore.getState().prefillProblems(
+            owner,
+            items.map((item) => item.problem_id),
+          )
+        )
+          throw new ApiClientError('请先核对上一项评估的创建状态。')
+        return { items, missing: ids.length - items.length }
+      },
+      [client, creationStore, owner, recommendationKey],
+    ),
+  )
   const options = useResource(
     useCallback((signal: AbortSignal) => client.options(signal), [client]),
   )
@@ -83,7 +116,7 @@ export default function CreateEvaluationPage() {
       [client, query],
     ),
   )
-  const editing = phase === 'editing'
+  const editing = phase === 'editing' && !(hasRecommendation && prefill.loading)
   const ready = !!(
     keys.data?.length &&
     options.data?.strategies.length &&
@@ -91,7 +124,12 @@ export default function CreateEvaluationPage() {
     models.data?.models.length &&
     problems.data?.total
   )
-  const locked = !editing || !ready || problems.loading || models.loading
+  const locked =
+    !editing ||
+    !ready ||
+    problems.loading ||
+    models.loading ||
+    (hasRecommendation && !prefill.data)
   function create() {
     if (locked) return
     const next = validateDraft(draft, {
@@ -99,7 +137,12 @@ export default function CreateEvaluationPage() {
       models: models.data?.models ?? [],
       strategy_names:
         options.data?.strategies.map((strategy) => strategy.name) ?? [],
-      problem_ids: verified.source === query.source ? verified.ids : [],
+      problem_ids: [
+        ...(verified.source === query.source ? verified.ids : []),
+        ...(query.source === 'all'
+          ? (prefill.data?.items.map((item) => item.problem_id) ?? [])
+          : []),
+      ],
     })
     setErrors(next)
     if (!Object.keys(next).length) void submit()
@@ -112,6 +155,14 @@ export default function CreateEvaluationPage() {
     })
   }
   const currentIds = problems.data?.items.map((item) => item.problem_id) ?? []
+  const offPageRecommendations =
+    query.source === 'all'
+      ? (prefill.data?.items.filter(
+          (item) =>
+            draft.problem_ids.includes(item.problem_id) &&
+            !currentIds.includes(item.problem_id),
+        ) ?? [])
+      : []
   const selectedCount = currentIds.filter((id) =>
     draft.problem_ids.includes(id),
   ).length
@@ -331,6 +382,44 @@ export default function CreateEvaluationPage() {
                 {draft.problem_ids.length} {t(' 道题目')}
               </span>
             </div>
+            {hasRecommendation && prefill.loading && (
+              <p role="status">{t('正在校验推荐题目…')}</p>
+            )}
+            {prefill.error && (
+              <EvaluationFeedback
+                message={t(prefill.error)}
+                retry={prefill.retry}
+              />
+            )}
+            {!!prefill.data?.missing && (
+              <Alert
+                type="warning"
+                showIcon
+                title={t('{{count}} 道题已无法访问。', {
+                  count: prefill.data.missing,
+                })}
+              />
+            )}
+            {!!offPageRecommendations.length && (
+              <>
+                <h3>{t('已选推荐题目')}</h3>
+                <ul className="evaluation-problem-list">
+                  {offPageRecommendations.map((item) => (
+                    <li key={item.problem_id}>
+                      <Checkbox
+                        checked
+                        onChange={() => selectProblem(item.problem_id, false)}
+                      >
+                        <span>{item.title || item.problem_id}</span>
+                        <small>
+                          {item.problem_id} · {t(item.difficulty ?? '难度未知')}
+                        </small>
+                      </Checkbox>
+                    </li>
+                  ))}
+                </ul>
+              </>
+            )}
             <Form.Item label={t('题目来源')} htmlFor="evaluation-source">
               <Select
                 id="evaluation-source"

@@ -546,3 +546,31 @@ test('现有任务动作保留创建草稿和editing，仍能提交新任务', a
   await h.store.getState().submit()
   assert.equal(h.payloads.length, 1)
 })
+
+test('推荐预填替换旧选题，确认后只提交所选题目', async () => {
+  const h = setup()
+  assert.equal(
+    h.store.getState().prefillProblems('other-session', ['private']),
+    false,
+  )
+  assert.deepEqual(h.store.getState().draft.problem_ids, ['p-1', 'p-1'])
+  assert.equal(
+    h.store.getState().prefillProblems('session-1', ['p-47', 'p-42']),
+    true,
+  )
+  assert.equal(h.store.getState().draft.model, '')
+  assert.deepEqual(h.store.getState().draft.strategy_names, [])
+  assert.deepEqual(h.payloads, [])
+  h.store.getState().setDraft({
+    api_key_id: 'key-1',
+    model: 'model-1',
+    strategy_names: ['direct'],
+  })
+  await h.store.getState().submit()
+  assert.deepEqual(
+    h.payloads.map((payload) => payload.problem_ids),
+    [['p-47', 'p-42']],
+  )
+  assert.equal(h.payloads[0].verify_problem_access, true)
+  assert.deepEqual(h.starts, ['eval-1'])
+})
