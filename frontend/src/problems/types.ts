@@ -61,6 +61,17 @@ export interface DirectImportResult {
   validation: ImportValidation
 }
 
+export interface LeetCodeImportResult {
+  problem_id: string
+  imported: boolean
+}
+
+export interface PersonalProblemDetail {
+  description: string
+  source_url: string | null
+  needs_manual_completion: boolean
+}
+
 /** 异步导入：POST /files/upload 的 data.file（api/files/service.py _persist 形状）。 */
 export interface UploadedFile {
   file_id: string
@@ -112,6 +123,11 @@ export interface ProblemClient {
   ): Promise<ApiPage<ProblemOption>>
   uploadFile(file: File): Promise<UploadedFile>
   directImport(file: File, mode: ImportMode): Promise<DirectImportResult>
+  importLeetCode(url: string): Promise<LeetCodeImportResult>
+  personalProblem(
+    problemId: string,
+    signal?: AbortSignal,
+  ): Promise<PersonalProblemDetail>
   startImport(fileId: string, mode: ImportMode): Promise<ImportJobStarted>
   importJob(jobId: string, signal?: AbortSignal): Promise<ImportJobProgress>
   problemHistory(

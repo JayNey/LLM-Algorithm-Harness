@@ -7,6 +7,7 @@ import type {
   ImportJobProgress,
   ImportJobStarted,
   ImportValidation,
+  PersonalProblemDetail,
   ProblemClient,
   ProblemHistoryItem,
   ProblemOption,
@@ -83,6 +84,25 @@ function problemOption(value: unknown, field: string): ProblemOption {
         ? null
         : text(data.difficulty, `${field}.difficulty`),
     source: problemSource(data.source, `${field}.source`),
+  }
+}
+
+function personalProblem(value: unknown): PersonalProblemDetail {
+  const data = record(value, 'personal-problem')
+  const source = data.source_url
+  return {
+    description: text(data.description, 'personal-problem.description'),
+    source_url:
+      typeof source === 'string' &&
+      /^https:\/\/leetcode\.com\/problems\/[a-z0-9]+(?:-[a-z0-9]+)*\/$/.test(
+        source,
+      )
+        ? source
+        : null,
+    needs_manual_completion: boolean(
+      data.needs_manual_completion,
+      'personal-problem.needs_manual_completion',
+    ),
   }
 }
 
@@ -289,6 +309,27 @@ export function createProblemClient(http: AxiosInstance): ProblemClient {
       })
       return directImportResult(data)
     },
+    importLeetCode: async (url) => {
+      const data = record(
+        await http.post<unknown, unknown>(
+          '/problems/import/leetcode',
+          { url },
+          { timeout: 20_000 },
+        ),
+        'leetcode-import',
+      )
+      return {
+        problem_id: text(data.problem_id, 'leetcode-import.problem_id'),
+        imported: boolean(data.imported, 'leetcode-import.imported'),
+      }
+    },
+    personalProblem: (problemId, signal) =>
+      get(
+        `/problems/personal/${encodeURIComponent(problemId)}`,
+        personalProblem,
+        undefined,
+        signal,
+      ),
     startImport: async (fileId, mode) => {
       const data = await http.post<unknown, unknown>(
         '/problems/import',

@@ -409,6 +409,19 @@ OPERATIONS: dict[str, tuple[str, Any]] = {
         "把自己的已上传题目文件加入异步导入队列；轮询 imports/{job_id}。",
         {"job_id": "job-demo", "task_id": "task-demo", "status": "pending"},
     ),
+    "import_leetcode": (
+        "将 LeetCode 国际站的一道公开题追加到自己的题库；重复返回 imported=false，"
+        "无效链接返回 400，题目不存在或受限返回 404，超时返回 408，限流返回 429。",
+        {"problem_id": "leetcode-1", "imported": True},
+    ),
+    "personal_problem_detail": (
+        "查看自己题库中的题面、LeetCode 来源和人工补全状态；题目不存在或不属于本人时返回 404。",
+        {
+            "description": "Return the indices of the two numbers.",
+            "source_url": "https://leetcode.com/problems/two-sum/",
+            "needs_manual_completion": False,
+        },
+    ),
     "import_progress": (
         "查询自己的导入任务进度、完成比例和校验结果。",
         {
@@ -1345,6 +1358,7 @@ DOWNLOADS = {
 }
 
 REQUEST_EXAMPLES: dict[str, Any] = {
+    "LeetCodeImportRequest": {"url": "https://leetcode.com/problems/two-sum/"},
     "RegisterInput": {
         "username": "demo",
         "email": "demo@example.com",

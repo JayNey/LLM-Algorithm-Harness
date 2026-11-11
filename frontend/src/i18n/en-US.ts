@@ -811,6 +811,29 @@ export default {
     'Overwrite replaces your entire personal library. Continue?',
   '导入失败，请重试': 'Import failed. Try again',
   题目导入: 'Problem import',
+  '从 LeetCode 导入': 'Import from LeetCode',
+  '粘贴 LeetCode 国际站的一道公开题目链接。':
+    'Paste a link to one public problem on leetcode.com.',
+  'LeetCode 题目链接': 'LeetCode problem URL',
+  导入链接: 'Import link',
+  '正在从 LeetCode 导入…': 'Importing from LeetCode…',
+  '已导入个人题库。': 'Added to your personal library.',
+  '题目已存在，已跳过。': 'This problem is already in your library.',
+  查看题目: 'View problem',
+  题目详情: 'Problem details',
+  '题目详情：{{value1}}': 'Problem details: {{value1}}',
+  题目详情加载失败: 'Could not load problem details',
+  '在 LeetCode 查看原题': 'View original on LeetCode',
+  '公开样例或 Python 入口需人工补全。':
+    'Public examples or the Python entry point need manual completion.',
+  '请输入 LeetCode 国际站的公开题目链接。':
+    'Enter a public problem link from leetcode.com.',
+  'LeetCode 题目不存在或无法公开访问。':
+    'This LeetCode problem was not found or is not public.',
+  'LeetCode 请求超时，请重试。': 'The LeetCode request timed out. Try again.',
+  '导入请求过多，请稍后重试。': 'Too many import requests. Try again later.',
+  '暂时无法连接 LeetCode，请稍后重试。':
+    'LeetCode is temporarily unavailable. Try again later.',
   '导入题目（个人题库）': 'Import problems (personal library)',
   '支持 JSON / CSV 文件；小于 5MiB 直接导入，大文件转入后台任务。':
     'JSON / CSV supported. Files smaller than 5 MiB import directly; larger files run in the background.',

@@ -74,6 +74,12 @@ PROBLEM_OPTIONS = dict(
     has_more=False,
 )
 MODEL_OPTIONS = dict(provider="openai", models=["test-model"], complete=True)
+LEETCODE_URL = "https://leetcode.com/problems/two-sum/"
+PERSONAL_PROBLEM_DETAIL = dict(
+    description="Return the indices of the two numbers.",
+    source_url=LEETCODE_URL,
+    needs_manual_completion=False,
+)
 EXPERIMENT_BODY = dict(
     dataset_path="dataset.json",
     models=[{"model": "test-model"}],
@@ -711,6 +717,23 @@ CASES += [
         result=SimpleNamespace(id="task-1"),
         expected={"job_id": "job-1", "task_id": "task-1", "status": "pending"},
         status=202,
+    ),
+    case(
+        "POST",
+        "/problems/import/leetcode",
+        "files.import_leetcode",
+        (LEETCODE_URL, OWNER),
+        body=dict(url=LEETCODE_URL),
+        result=("leetcode-1", True),
+        expected=dict(problem_id="leetcode-1", imported=True),
+    ),
+    case(
+        "GET",
+        "/problems/personal/{problem_id}",
+        "files.personal_problem",
+        ("p1", OWNER),
+        result=PERSONAL_PROBLEM_DETAIL,
+        expected=PERSONAL_PROBLEM_DETAIL,
     ),
     case(
         "GET",

@@ -1,9 +1,19 @@
 import { useTranslation } from 'react-i18next'
 import { t } from '../../i18n/core.ts'
-import { Alert, Button, Drawer, Select, Skeleton, Upload } from 'antd'
+import {
+  Alert,
+  Button,
+  Drawer,
+  Input,
+  Select,
+  Skeleton,
+  Space,
+  Upload,
+} from 'antd'
 import type { UploadFile } from 'antd'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useSearchParams } from 'react-router-dom'
+import { ApiClientError } from '@/auth/http.ts'
 import { ExperimentFeedback } from '@/experiments/components.tsx'
 import { useList } from '@/evaluations/useList.ts'
 import {
@@ -19,6 +29,8 @@ import type {
   ImportJobProgress,
   ImportMode,
   ImportValidation,
+  LeetCodeImportResult,
+  PersonalProblemDetail,
   ProblemHistoryItem,
   ProblemListQuery,
   ProblemOption,
@@ -39,6 +51,13 @@ import {
 import { useAuthStore } from '@/store/auth.ts'
 
 const IMPORT_POLL_MS = 3_000
+const LEETCODE_ERRORS: Partial<Record<number, string>> = {
+  400: '请输入 LeetCode 国际站的公开题目链接。',
+  404: 'LeetCode 题目不存在或无法公开访问。',
+  408: 'LeetCode 请求超时，请重试。',
+  429: '导入请求过多，请稍后重试。',
+  503: '暂时无法连接 LeetCode，请稍后重试。',
+}
 
 function readImportJob(storageKey: string): string | null {
   try {
@@ -101,9 +120,11 @@ function ValidationReport({ report }: { report: ImportValidation }) {
 
 function ImportPanel({
   onImported,
+  onOpenProblem,
   onClose,
 }: {
   onImported: () => void
+  onOpenProblem: (problemId: string) => void
   onClose: () => void
 }) {
   useTranslation()
@@ -111,10 +132,14 @@ function ImportPanel({
   const { client, owner } = useProblemSession()
   const storageKey = `llm-harness-problem-import:session:${owner}`
   const [file, setFile] = useState<File | null>(null)
+  const [url, setUrl] = useState('')
   const [mode, setMode] = useState<ImportMode>('append')
-  const [busy, setBusy] = useState(false)
+  const [busy, setBusy] = useState<'file' | 'leetcode' | null>(null)
   const [error, setError] = useState<string | null>(null)
+  const [leetcodeError, setLeetcodeError] = useState<string | null>(null)
   const [report, setReport] = useState<ImportValidation | null>(null)
+  const [leetcodeResult, setLeetcodeResult] =
+    useState<LeetCodeImportResult | null>(null)
   const [jobId, setJobId] = useState(() => readImportJob(storageKey))
   const [progress, setProgress] = useState<ImportJobProgress | null>(null)
   const [pollPaused, setPollPaused] = useState(false)
@@ -170,15 +195,16 @@ function ImportPanel({
     }
   }, [client, jobId, onImported, owner, pollPaused, storageKey])
 
-  async function submit() {
+  async function submit(kind: 'file' | 'leetcode') {
     const selectedFile = file
+    const selectedUrl = url.trim()
     const sameSession = () => useAuthStore.getState().session?.marker === owner
     if (
-      !selectedFile ||
+      !owner ||
       !sameSession() ||
       !canSubmitImport(
-        true,
-        busy,
+        kind === 'file' ? selectedFile !== null : !!selectedUrl,
+        busy !== null,
         progress?.status ?? null,
         submitLock.current || jobId !== null,
       )
@@ -188,37 +214,45 @@ function ImportPanel({
     if (savedJob) {
       setJobId(savedJob)
       setError(null)
+      setLeetcodeError(null)
       setReport(null)
+      setLeetcodeResult(null)
       setProgress(null)
       return
     }
-    const fileError = validateImportFile({
-      name: selectedFile.name,
-      size: selectedFile.size,
-    })
-    if (fileError) {
-      setError(fileError)
-      return
-    }
-    if (
-      mode === 'overwrite' &&
-      !window.confirm(t('overwrite 将整库替换个人题库，确认继续？'))
-    ) {
-      return
+    if (kind === 'file' && selectedFile) {
+      const fileError = validateImportFile(selectedFile)
+      if (fileError) {
+        setError(fileError)
+        return
+      }
+      if (
+        mode === 'overwrite' &&
+        !window.confirm(t('overwrite 将整库替换个人题库，确认继续？'))
+      ) {
+        return
+      }
     }
     submitLock.current = true
-    setBusy(true)
+    setBusy(kind)
     setError(null)
+    setLeetcodeError(null)
     setReport(null)
+    setLeetcodeResult(null)
     setProgress(null)
     let startedJob = false
     try {
-      if (selectedFile.size <= DIRECT_IMPORT_MAX_BYTES) {
+      if (kind === 'leetcode') {
+        const result = await client.importLeetCode(selectedUrl)
+        if (!sameSession()) return
+        setLeetcodeResult(result)
+        if (result.imported) onImported()
+      } else if (selectedFile && selectedFile.size <= DIRECT_IMPORT_MAX_BYTES) {
         const result = await client.directImport(selectedFile, mode)
         if (!sameSession()) return
         setReport(result.validation)
         onImported()
-      } else {
+      } else if (selectedFile) {
         const uploaded = await client.uploadFile(selectedFile)
         if (!sameSession()) return
         const started = await client.startImport(uploaded.file_id, mode)
@@ -228,11 +262,20 @@ function ImportPanel({
         setJobId(started.job_id)
       }
     } catch (cause) {
-      if (sameSession())
-        setError(cause instanceof Error ? cause.message : '导入失败，请重试')
+      if (sameSession()) {
+        const message =
+          kind === 'leetcode' && cause instanceof ApiClientError
+            ? LEETCODE_ERRORS[cause.status ?? 0]
+            : undefined
+        const setSubmitError = kind === 'leetcode' ? setLeetcodeError : setError
+        setSubmitError(
+          message ??
+            (cause instanceof Error ? cause.message : '导入失败，请重试'),
+        )
+      }
     } finally {
       if (!startedJob) submitLock.current = false
-      setBusy(false)
+      setBusy(null)
     }
   }
 
@@ -295,16 +338,20 @@ function ImportPanel({
         disabled={
           !canSubmitImport(
             file !== null,
-            busy,
+            busy !== null,
             progress?.status ?? null,
             jobId !== null,
           )
         }
-        onClick={submit}
+        onClick={() => void submit('file')}
       >
-        {busy ? t('导入中…') : t('开始导入')}
+        {busy === 'file' ? t('导入中…') : t('开始导入')}
       </Button>
-      <Button aria-label={t('关闭导入面板')} disabled={busy} onClick={onClose}>
+      <Button
+        aria-label={t('关闭导入面板')}
+        disabled={busy !== null}
+        onClick={onClose}
+      >
         {t('收起')}
       </Button>
       {jobId && !progress && !pollPaused && (
@@ -323,7 +370,113 @@ function ImportPanel({
         </p>
       )}
       {report && <ValidationReport report={report} />}
+      <form
+        onSubmit={(event) => {
+          event.preventDefault()
+          void submit('leetcode')
+        }}
+      >
+        <h4>{t('从 LeetCode 导入')}</h4>
+        <p>{t('粘贴 LeetCode 国际站的一道公开题目链接。')}</p>
+        <Space.Compact block>
+          <Input
+            aria-label={t('LeetCode 题目链接')}
+            placeholder="https://leetcode.com/problems/two-sum/"
+            maxLength={1000}
+            value={url}
+            disabled={busy === 'leetcode'}
+            onChange={(event) => setUrl(event.target.value)}
+          />
+          <Button
+            htmlType="submit"
+            loading={busy === 'leetcode'}
+            disabled={
+              !canSubmitImport(
+                !!url.trim(),
+                busy !== null,
+                progress?.status ?? null,
+                jobId !== null,
+              )
+            }
+          >
+            {t('导入链接')}
+          </Button>
+        </Space.Compact>
+        {leetcodeError && (
+          <Alert role="alert" type="error" title={t(leetcodeError)} />
+        )}
+        {busy === 'leetcode' && (
+          <p role="status">{t('正在从 LeetCode 导入…')}</p>
+        )}
+        {leetcodeResult && (
+          <p role="status">
+            {t(
+              leetcodeResult.imported
+                ? '已导入个人题库。'
+                : '题目已存在，已跳过。',
+            )}
+            <Button
+              type="link"
+              onClick={() => onOpenProblem(leetcodeResult.problem_id)}
+            >
+              {t('查看题目')}
+            </Button>
+          </p>
+        )}
+      </form>
     </div>
+  )
+}
+
+type DetailTarget = Pick<ProblemOption, 'problem_id' | 'title'>
+
+function PersonalDetail({ problemId }: { problemId: string }) {
+  useTranslation()
+  const { client } = useProblemSession()
+  const [detail, setDetail] = useState<PersonalProblemDetail | null>(null)
+  const [failed, setFailed] = useState(false)
+  const [attempt, setAttempt] = useState(0)
+
+  useEffect(() => {
+    const controller = new AbortController()
+    void client.personalProblem(problemId, controller.signal).then(
+      (result) => {
+        if (!controller.signal.aborted) setDetail(result)
+      },
+      () => {
+        if (!controller.signal.aborted) setFailed(true)
+      },
+    )
+    return () => controller.abort()
+  }, [attempt, client, problemId])
+
+  if (failed)
+    return (
+      <ExperimentFeedback
+        message={t('题目详情加载失败')}
+        retry={() => {
+          setFailed(false)
+          setAttempt((value) => value + 1)
+        }}
+      />
+    )
+  if (!detail) return <p role="status">{t('正在加载题目…')}</p>
+  return (
+    <>
+      {detail.source_url && (
+        <p>
+          <a href={detail.source_url} target="_blank" rel="noopener noreferrer">
+            {t('在 LeetCode 查看原题')}
+          </a>
+        </p>
+      )}
+      {detail.needs_manual_completion && (
+        <Alert type="info" title={t('公开样例或 Python 入口需人工补全。')} />
+      )}
+      <p style={{ whiteSpace: 'pre-wrap', overflowWrap: 'anywhere' }}>
+        {detail.description}
+      </p>
+    </>
   )
 }
 
@@ -464,6 +617,7 @@ export default function ProblemsPage() {
   const [historyProblem, setHistoryProblem] = useState<ProblemOption | null>(
     null,
   )
+  const [detailProblem, setDetailProblem] = useState<DetailTarget | null>(null)
   const [sources, setSources] = useState<
     { id: string; label: string; problem_count: number }[]
   >([])
@@ -597,6 +751,9 @@ export default function ProblemsPage() {
         <div hidden={!importOpen}>
           <ImportPanel
             onImported={onImported}
+            onOpenProblem={(problemId) =>
+              setDetailProblem({ problem_id: problemId, title: problemId })
+            }
             onClose={() =>
               setSearch(setProblemImportIntent(search, false), {
                 replace: true,
@@ -638,12 +795,22 @@ export default function ProblemsPage() {
                     <td>{difficultyLabel(problem.difficulty)}</td>
                     <td>{sourceLabel(problem.source)}</td>
                     <td>
-                      <Button
-                        size="small"
-                        onClick={() => setHistoryProblem(problem)}
-                      >
-                        {t('评估历史')}
-                      </Button>
+                      <Space wrap size="small">
+                        {problem.source === 'personal' && (
+                          <Button
+                            size="small"
+                            onClick={() => setDetailProblem(problem)}
+                          >
+                            {t('题目详情')}
+                          </Button>
+                        )}
+                        <Button
+                          size="small"
+                          onClick={() => setHistoryProblem(problem)}
+                        >
+                          {t('评估历史')}
+                        </Button>
+                      </Space>
                     </td>
                   </tr>
                 ))}
@@ -698,6 +865,23 @@ export default function ProblemsPage() {
         problem={historyProblem}
         onClose={() => setHistoryProblem(null)}
       />
+      <Drawer
+        title={
+          detailProblem
+            ? t('题目详情：{{value1}}', { value1: detailProblem.title })
+            : ''
+        }
+        open={!!detailProblem}
+        onClose={() => setDetailProblem(null)}
+        width={560}
+      >
+        {detailProblem && (
+          <PersonalDetail
+            key={detailProblem.problem_id}
+            problemId={detailProblem.problem_id}
+          />
+        )}
+      </Drawer>
     </section>
   )
 }

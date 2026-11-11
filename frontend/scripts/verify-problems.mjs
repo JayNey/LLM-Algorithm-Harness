@@ -16,7 +16,14 @@ const outDir =
   process.env.PROBLEM_QA_DIR ||
   resolve(process.cwd(), '../docs/superpowers/reports/assets/problems/fixture')
 
-const known = ['list', 'import', 'import-recovery', 'history', 'all']
+const known = [
+  'list',
+  'import',
+  'import-recovery',
+  'leetcode',
+  'history',
+  'all',
+]
 const scenario = process.argv[2] || 'all'
 assert.ok(known.includes(scenario), `未知场景：${scenario}`)
 
@@ -63,6 +70,13 @@ const recoveredProblem = {
   problem_id: 'mine-recovered',
   title: '恢复导入的题目',
   difficulty: null,
+  source: 'personal',
+}
+
+const leetcodeProblem = {
+  problem_id: 'leetcode-1',
+  title: 'Two Sum',
+  difficulty: 'easy',
   source: 'personal',
 }
 
@@ -122,7 +136,8 @@ function mockRoute(context, job) {
           {
             id: 'personal',
             label: '个人题目',
-            problem_count: job.status === 'completed' ? 2 : 1,
+            problem_count:
+              1 + Number(job.status === 'completed') + Number(!!job.leetcode),
           },
         ],
       })
@@ -151,6 +166,7 @@ function mockRoute(context, job) {
         },
       ]
       if (job.status === 'completed') personal.push(recoveredProblem)
+      if (job.leetcode) personal.push(leetcodeProblem)
       const items =
         source === 'shared'
           ? shared
@@ -169,6 +185,23 @@ function mockRoute(context, job) {
       return reply({
         file: { id: 'f-import-large', filename: 'large.json', size: 5_242_881 },
         parsed: null,
+      })
+    if (method === 'POST' && path === '/problems/import/leetcode') {
+      assert.deepEqual(request.postDataJSON(), {
+        url: 'https://leetcode.com/problems/two-sum/',
+      })
+      return job.finishLeetcode.then(() => {
+        if (job.leetcodeError) return reply(null, job.leetcodeError)
+        const imported = !job.leetcode
+        job.leetcode = true
+        return reply({ problem_id: 'leetcode-1', imported })
+      })
+    }
+    if (method === 'GET' && path === '/problems/personal/leetcode-1')
+      return reply({
+        description: 'Return indices of the two numbers.',
+        source_url: 'https://leetcode.com/problems/two-sum/',
+        needs_manual_completion: true,
       })
     if (method === 'POST' && path === '/problems/import') {
       job.status = job.nextStartStatus
@@ -329,6 +362,76 @@ async function importScenario(page) {
   })
   await page.screenshot({ path: resolve(outDir, 'import.png'), fullPage: true })
   report.screenshots.push('import.png')
+}
+
+async function leetcodeScenario(page, job) {
+  await page.goto(`${base}/problems?source=personal&import=1`)
+  const input = page.getByRole('textbox', { name: 'LeetCode 题目链接' })
+  const submit = page.getByRole('button', { name: '导入链接' })
+  await check('链接导入等待并锁定提交，完成后刷新个人题库', async () => {
+    let finish
+    job.finishLeetcode = new Promise((resolve) => {
+      finish = resolve
+    })
+    try {
+      await input.fill('https://leetcode.com/problems/two-sum/', {
+        timeout: 6_000,
+      })
+      await submit.click()
+      await page
+        .getByRole('status')
+        .filter({ hasText: '正在从 LeetCode 导入' })
+        .waitFor()
+      assert.ok(await submit.isDisabled())
+      assert.ok(
+        await page.getByRole('button', { name: '开始导入' }).isDisabled(),
+      )
+    } finally {
+      finish()
+    }
+    await page.getByText('已导入个人题库。').waitFor()
+    await page.getByRole('row', { name: /Two Sum/ }).waitFor()
+    await page.getByRole('combobox', { name: '题目来源' }).click()
+    await page
+      .locator('.ant-select-dropdown:visible')
+      .getByText('个人题目（2）', { exact: true })
+      .waitFor()
+    await page.keyboard.press('Escape')
+  })
+  await check('个人题目详情展示 LeetCode 来源和补全状态', async () => {
+    await page
+      .getByRole('row', { name: /Two Sum/ })
+      .getByRole('button', { name: '题目详情' })
+      .click()
+    const dialog = page.getByRole('dialog', { name: /Two Sum/ })
+    await dialog.getByText('Return indices of the two numbers.').waitFor()
+    const link = dialog.getByRole('link', { name: '在 LeetCode 查看原题' })
+    assert.equal(
+      await link.getAttribute('href'),
+      'https://leetcode.com/problems/two-sum/',
+    )
+    assert.ok(
+      await dialog.getByText('公开样例或 Python 入口需人工补全。').isVisible(),
+    )
+    await page.screenshot({
+      path: resolve(outDir, 'leetcode.png'),
+      animations: 'disabled',
+    })
+    report.screenshots.push('leetcode.png')
+    await page.keyboard.press('Escape')
+  })
+  await check('重复和超时分别提示，保留已导入题目', async () => {
+    await input.fill('https://leetcode.com/problems/two-sum/')
+    await submit.click()
+    await page.getByText('题目已存在，已跳过。').waitFor()
+    job.leetcodeError = 408
+    await submit.click()
+    await page
+      .getByRole('alert')
+      .filter({ hasText: 'LeetCode 请求超时' })
+      .waitFor()
+    assert.equal(await page.getByRole('row', { name: /Two Sum/ }).count(), 1)
+  })
 }
 
 async function importRecoveryScenario(page, job) {
@@ -574,6 +677,8 @@ try {
   if (scenario === 'all' || scenario === 'history') await historyScenario(page)
   if (scenario === 'all' || scenario === 'import-recovery')
     await importRecoveryScenario(page, job)
+  if (scenario === 'all' || scenario === 'leetcode')
+    await leetcodeScenario(page, job)
   await check('无未声明 API 请求', () => assert.deepEqual(report.unknown, []))
 } finally {
   const { writeFileSync, mkdirSync } = await import('node:fs')
