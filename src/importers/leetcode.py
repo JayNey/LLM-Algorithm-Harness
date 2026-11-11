@@ -197,7 +197,10 @@ class LeetCodeImporter(ProblemImporter):
 
     def _fetch_question_data(self, slug: str, canonical_url: str) -> list[dict[str, Any]]:
         """Fetch a single question's full data."""
-        payload = {"query": QUESTION_QUERY, "variables": {"titleSlug": slug}}
+        payload: dict[str, str | dict[str, str]] = {
+            "query": QUESTION_QUERY,
+            "variables": {"titleSlug": slug},
+        }
         headers = {
             "Accept": "application/json",
             "Content-Type": "application/json",
@@ -212,7 +215,7 @@ class LeetCodeImporter(ProblemImporter):
                     self.endpoint,
                     json=payload,
                     headers=headers,
-                    timeout=self.timeout,  # type: ignore[arg-type]
+                    timeout=self.timeout,
                 )
                 status = getattr(response, "status_code", 200)
                 if status in {401, 403}:
@@ -288,7 +291,10 @@ class LeetCodeImporter(ProblemImporter):
             "filters": filters if filters else {},
         }
 
-        payload = {"query": PROBLEMSET_QUERY, "variables": variables}
+        payload: dict[str, str | dict[str, Any]] = {
+            "query": PROBLEMSET_QUERY,
+            "variables": variables,
+        }
         headers = {
             "Accept": "application/json",
             "Content-Type": "application/json",
@@ -304,7 +310,7 @@ class LeetCodeImporter(ProblemImporter):
                     self.endpoint,
                     json=payload,
                     headers=headers,
-                    timeout=self.timeout,  # type: ignore[arg-type]
+                    timeout=self.timeout,
                 )
                 status = getattr(response, "status_code", 200)
                 if status == 429:
