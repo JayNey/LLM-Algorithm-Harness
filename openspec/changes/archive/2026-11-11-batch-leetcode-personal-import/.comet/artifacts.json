@@ -1,5 +1,6 @@
 {
   "openspec_proposal": "openspec/changes/batch-leetcode-personal-import/proposal.md",
   "openspec_design": "openspec/changes/batch-leetcode-personal-import/design.md",
-  "openspec_tasks": "openspec/changes/batch-leetcode-personal-import/tasks.md"
+  "openspec_tasks": "openspec/changes/batch-leetcode-personal-import/tasks.md",
+  "archive_directory": "openspec/changes/archive/2026-11-11-batch-leetcode-personal-import"
 }
