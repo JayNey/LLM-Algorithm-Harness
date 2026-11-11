@@ -230,14 +230,24 @@ class LeetCodeImporter(ProblemImporter):
                 if status >= 400:
                     raise ValueError(f"LeetCode request failed with HTTP {status}")
                 body = response.json()
-                if body.get("errors"):
-                    messages = "; ".join(
-                        str(error.get("message", error)) for error in body["errors"]
-                    )
+                if not isinstance(body, dict):
+                    raise LeetCodeTransientError("Invalid LeetCode response")
+                errors = body.get("errors")
+                if errors:
+                    if not isinstance(errors, list) or any(
+                        not isinstance(error, dict) for error in errors
+                    ):
+                        raise LeetCodeTransientError("Invalid LeetCode errors")
+                    messages = "; ".join(str(error.get("message", error)) for error in errors)
                     raise ValueError(f"LeetCode GraphQL error: {messages}")
-                question = (body.get("data") or {}).get("question")
-                if not question:
+                data = body.get("data")
+                if not isinstance(data, dict) or "question" not in data:
+                    raise LeetCodeTransientError("Missing LeetCode question response")
+                question = data["question"]
+                if question is None:
                     raise ValueError(f"LeetCode question not found or is restricted: {slug}")
+                if not isinstance(question, dict):
+                    raise LeetCodeTransientError("Invalid LeetCode question response")
                 question = dict(question)
                 question["_source_slug"] = slug
                 question["_source_url"] = canonical_url

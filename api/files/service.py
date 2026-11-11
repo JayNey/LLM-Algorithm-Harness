@@ -335,11 +335,15 @@ class FileService:
         selected = list(dict.fromkeys(slugs))
         if retry_job_id is not None:
             job = self.store.job(retry_job_id, user_id)
-            if job["mode"] != "leetcode" or job["status"] not in {"completed", "failed"}:
+            result = job["result"]
+            items = result.get("items") if isinstance(result, dict) else None
+            if (
+                job["mode"] != "leetcode"
+                or job["status"] not in {"completed", "failed"}
+                or not isinstance(items, list)
+            ):
                 raise HTTPException(400, "Choose failed items from a finished LeetCode batch")
-            retryable = {
-                item["slug"] for item in job["result"]["items"] if item.get("retryable") is True
-            }
+            retryable = {item["slug"] for item in items if item.get("retryable") is True}
             if not retryable.issuperset(selected):
                 raise HTTPException(400, "Only retryable failures can be selected")
         return self.store.create_leetcode_job(
@@ -729,14 +733,7 @@ class FileService:
         now, removed = int(time.time()), 0
         with self.store.connection() as db:
             db.execute("BEGIN IMMEDIATE")
-            db.execute(
-                "UPDATE api_file_jobs SET status='failed',result=?,updated_at=? WHERE status IN ('pending','running') AND updated_at<=?",
-                (
-                    json.dumps({"status_code": 409, "detail": "Import interrupted or timed out"}),
-                    now,
-                    now - self.settings.FILE_IMPORT_TIMEOUT_SECONDS,
-                ),
-            )
+            self.store.expire_imports(db, now, self.settings.FILE_IMPORT_TIMEOUT_SECONDS)
             records = db.execute(
                 "SELECT * FROM api_file_objects f WHERE (f.deleted=1 OR f.expires_at<=? OR EXISTS(SELECT 1 FROM api_file_runs r WHERE r.run_id=f.run_id AND r.deleted=1)) AND NOT EXISTS(SELECT 1 FROM api_file_jobs j WHERE j.file_id=f.id AND j.status IN ('pending','running'))",
                 (now,),

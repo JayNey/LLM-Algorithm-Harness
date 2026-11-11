@@ -408,6 +408,27 @@ class FileStore:
                 ),
             )
 
+    @staticmethod
+    def expire_imports(db: sqlite3.Connection, now: int, timeout: int) -> None:
+        """Close stalled imports under the cleanup transaction."""
+        rows = db.execute(
+            "SELECT id,mode,result FROM api_file_jobs WHERE status IN ('pending','running') AND updated_at<=?",
+            (now - timeout,),
+        ).fetchall()
+        details = {"status_code": 409, "detail": "Import interrupted or timed out"}
+        for row in rows:
+            result = details
+            if row["mode"] == "leetcode":
+                result = {**json.loads(row["result"]), **details}
+                for item in result["items"]:
+                    if item["status"] == "pending":
+                        item.update(status="failed", error="timeout", retryable=True)
+                        result["failed"] += 1
+            db.execute(
+                "UPDATE api_file_jobs SET status='failed',result=?,updated_at=? WHERE id=?",
+                (json.dumps(result), now, row["id"]),
+            )
+
     def merge_dataset(
         self,
         job_id: str,

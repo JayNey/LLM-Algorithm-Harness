@@ -1414,3 +1414,63 @@ def test_leetcode_batch_persists_partial_results_and_retries_only_failed_items(
     files.process_job(duplicate_id, owner)
     duplicate = client.get(f"/api/v1/imports/{duplicate_id}", headers=headers).json()["data"]
     assert duplicate["result"]["duplicates"] == 1
+
+
+def test_leetcode_batch_continues_after_malformed_upstream_response(api, monkeypatch):
+    _, _, _, app, _, _ = api
+    files = app.state.files
+    owner = app.state.auth.store.find_user("alice")["id"]
+
+    def post(_session, _url, **kwargs):
+        response = Mock(status_code=200)
+        slug = kwargs["json"]["variables"]["titleSlug"]
+        response.json.return_value = (
+            None if slug == "malformed" else {"data": {"question": leetcode_question()}}
+        )
+        return response
+
+    monkeypatch.setattr("requests.Session.post", post)
+    job_id = files.queue_leetcode_batch(owner, ["malformed", "two-sum"])
+    files.process_job(job_id, owner)
+    job = files.store.job(job_id, owner)
+    assert job["status"] == "completed"
+    assert job["result"]["items"][0] == {
+        "slug": "malformed",
+        "status": "failed",
+        "error": "upstream",
+        "retryable": True,
+    }
+    assert job["result"]["items"][1]["status"] == "imported"
+
+
+def test_leetcode_batch_timeout_preserves_results_and_can_retry_pending_items(api):
+    client, alice, _, app, _, _ = api
+    headers = auth_headers(alice)
+    files = app.state.files
+    owner = app.state.auth.store.find_user("alice")["id"]
+    job_id = files.queue_leetcode_batch(owner, ["rate-limited", "pending"])
+    assert files.store.claim_job(job_id, owner)
+    assert files.store.record_leetcode_item(
+        job_id,
+        owner,
+        0,
+        {"status": "failed", "error": "rate_limit", "retryable": True},
+        None,
+        files.settings.FILE_UPLOAD_MAX_BYTES,
+        files.settings.FILE_IMPORT_MAX_ITEMS,
+    )
+    with files.store.connection() as db:
+        db.execute("UPDATE api_file_jobs SET updated_at=0 WHERE id=?", (job_id,))
+    files.cleanup()
+
+    job = client.get(f"/api/v1/imports/{job_id}", headers=headers).json()["data"]
+    assert job["status"] == "failed"
+    assert job["result"]["kind"] == "leetcode"
+    assert job["result"]["failed"] == 2
+    assert [item["error"] for item in job["result"]["items"]] == ["rate_limit", "timeout"]
+    response = client.post(
+        f"/api/v1/problems/import/leetcode/batch/{job_id}/retry",
+        headers=headers,
+        json={"slugs": ["pending"]},
+    )
+    assert response.status_code == 202, response.text
