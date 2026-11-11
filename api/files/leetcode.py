@@ -40,3 +40,8 @@ class LeetCodeCandidate(BaseModel):
     difficulty: LeetCodeDifficulty
     tags: list[str]
     source_url: str
+
+
+class LeetCodeBatchRequest(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    slugs: list[LeetCodeSlug] = Field(min_length=1, max_length=MAX_LEETCODE_BATCH)

@@ -1323,3 +1323,82 @@ def test_leetcode_batch_previews_public_matches_without_writing(api, monkeypatch
         "premiumFilter": {"premiumStatus": ["NOT_PREMIUM"], "operator": "IS"},
     }
     assert client.get("/api/v1/problems/export?format=json", headers=headers).json() == []
+
+
+def test_leetcode_batch_persists_partial_results_and_retries_only_failed_items(api, monkeypatch):
+    client, alice, bob, app, _, _ = api
+    headers, other = auth_headers(alice), auth_headers(bob)
+    owner = app.state.auth.store.find_user("alice")["id"]
+    base = "/api/v1/problems/import/leetcode"
+    calls = []
+    statuses = {"network-error": 429, "restricted": 403}
+
+    def post(_session, _url, **kwargs):
+        slug = kwargs["json"]["variables"]["titleSlug"]
+        calls.append(slug)
+        question = {
+            **leetcode_question(),
+            "questionFrontendId": "2" if slug == "network-error" else "1",
+            "codeSnippets": [],
+            "content": "<p>Question without examples.</p>",
+        }
+        response = Mock(status_code=statuses.get(slug, 200))
+        response.json.return_value = {"data": {"question": question}}
+        return response
+
+    monkeypatch.setattr("requests.Session.post", post)
+
+    def start(slugs):
+        response = client.post(base + "/batch", headers=headers, json={"slugs": slugs})
+        assert response.status_code == 202, response.text
+        return response.json()["data"]["job_id"]
+
+    assert (
+        client.post(base + "/batch", headers=headers, json={"slugs": ["../unsafe"]}).status_code
+        == 400
+    )
+    job_id = start(["two-sum", "network-error", "restricted"])
+    progress_url = f"/api/v1/imports/{job_id}"
+    retry_url = base + f"/batch/{job_id}/retry"
+    assert not calls
+    assert client.get(progress_url, headers=other).status_code == 404
+    assert (
+        client.post(retry_url, headers=other, json={"slugs": ["network-error"]}).status_code == 404
+    )
+
+    files = app.state.files
+    files.process_job(job_id, owner, should_pause=lambda: calls == ["two-sum", "network-error"])
+    paused = client.get(progress_url, headers=headers).json()["data"]
+    assert paused["status"] == "paused" and paused["processed"] == 1
+    assert files.store.sync_task_status(job_id, owner, "pending") == "pending"
+    files.process_job(job_id, owner)
+    progress = client.get(progress_url, headers=headers).json()["data"]
+    assert progress["status"] == "completed" and progress["processed"] == 3
+    assert calls == ["two-sum", "network-error", "network-error", "restricted"]
+    result = progress["result"]
+    assert (result["imported"], result["duplicates"], result["failed"]) == (1, 0, 2)
+    assert [
+        (item["slug"], item.get("error"), item.get("retryable")) for item in result["items"]
+    ] == [
+        ("two-sum", None, None),
+        ("network-error", "rate_limit", True),
+        ("restricted", "unavailable", False),
+    ]
+    assert [row["problem_id"] for row in files.store.dataset(owner)] == ["leetcode-1"]
+    detail = client.get("/api/v1/problems/personal/leetcode-1", headers=headers).json()["data"]
+    assert detail["needs_manual_completion"] is True
+    assert client.get("/api/v1/problems/export?format=json", headers=other).json() == []
+
+    for slug in ["two-sum", "restricted", "not-selected"]:
+        assert client.post(retry_url, headers=headers, json={"slugs": [slug]}).status_code == 400
+    statuses["network-error"] = 200
+    retried = client.post(retry_url, headers=headers, json={"slugs": ["network-error"]})
+    assert retried.status_code == 202, retried.text
+    files.process_job(retried.json()["data"]["job_id"], owner)
+    assert calls[-1] == "network-error" and calls.count("two-sum") == 1
+    assert [row["problem_id"] for row in files.store.dataset(owner)] == ["leetcode-1", "leetcode-2"]
+
+    duplicate_id = start(["two-sum"])
+    files.process_job(duplicate_id, owner)
+    duplicate = client.get(f"/api/v1/imports/{duplicate_id}", headers=headers).json()["data"]
+    assert duplicate["result"]["duplicates"] == 1
