@@ -20,6 +20,7 @@ from src.failure_report import (
 from src.harness import AlgorithmHarness
 from src.llm_client import LLMClient
 from src.models import (
+    NOT_EVALUABLE,
     CostAlertConfig,
     ExecutionResult,
     HarnessConfig,
@@ -2079,6 +2080,11 @@ def main() -> None:
                             unchanged_ids = (
                                 set(current_fingerprint.keys()) - added - modified - removed
                             )
+                            zero_case_ids = {
+                                problem.problem_id
+                                for problem in all_problems
+                                if not problem.test_cases_for("all")
+                            }
 
                             if not changed_ids:
                                 # Dataset shrank (removals only): nothing new to
@@ -2117,6 +2123,11 @@ def main() -> None:
                                     if (
                                         len(rows) != len(unchanged_ids)
                                         or {row.problem_id for row in rows} != unchanged_ids
+                                        or any(
+                                            row.problem_id in zero_case_ids
+                                            and row.status != NOT_EVALUABLE
+                                            for row in rows
+                                        )
                                     ):
                                         incomplete_groups.append(group)
 
@@ -2225,7 +2236,9 @@ def main() -> None:
                         # Only strategies that actually ran this time get a
                         # report; stale strategies from the matched run are
                         # merged into results but not reported.
-                        results = merged_results.get(strategy_name, [])
+                        all_results = merged_results.get(strategy_name, [])
+                        harness.problem_totals[strategy_name] = len(all_results)
+                        results = [r for r in all_results if r.status != NOT_EVALUABLE]
                         # Recompute every metric from the merged results so the
                         # merged report is a real report, not a placeholder.
                         # _estimate_cost keeps the exact accounting of the

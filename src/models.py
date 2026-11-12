@@ -24,6 +24,8 @@ from pydantic import (
 from src.code_quality.models import CodeQualityMetrics
 from src.utils.secrets import REDACTED, redact_sensitive_data
 
+NOT_EVALUABLE = "not_evaluable"
+
 # ============================================================================
 # Problem-related Models
 # ============================================================================
@@ -344,7 +346,7 @@ class ExecutionResult(BaseModel):
     status: str = Field(..., description="Execution status")
     evaluation_completed: bool = Field(
         True,
-        description="False for a task-service placeholder when no execution result was recorded",
+        description="False when evaluation did not run, including skipped units and placeholders",
     )
     source: Literal["fresh", "reused"] = Field(
         "fresh",

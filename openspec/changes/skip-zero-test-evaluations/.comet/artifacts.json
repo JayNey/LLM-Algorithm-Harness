@@ -1,0 +1,6 @@
+{
+  "openspec_proposal": "openspec/changes/skip-zero-test-evaluations/proposal.md",
+  "openspec_design": "openspec/changes/skip-zero-test-evaluations/design.md",
+  "openspec_tasks": "openspec/changes/skip-zero-test-evaluations/tasks.md",
+  "openspec_delta_spec": "openspec/changes/skip-zero-test-evaluations/specs/execution-protocol/spec.md"
+}
