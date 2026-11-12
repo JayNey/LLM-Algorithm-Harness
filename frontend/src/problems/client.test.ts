@@ -376,3 +376,75 @@ test('previews LeetCode metadata and retries only the selected slug', async () =
     ],
   ])
 })
+
+test('预览、逐项保存并重新打开题集版本', async () => {
+  const base = '/problems/governance'
+  const token = `${'a'.repeat(64)}.${'b'.repeat(64)}`
+  const selection = {
+    problem_ids: ['p1'],
+    run_ids: ['e1'],
+    easy_threshold: 0.7,
+    hard_threshold: 0.3,
+  }
+  const version = { id: 'v1', name: 'Reviewed', problem_count: 1 }
+  const { client, seen } = clientFor(({ method, url }) => ({
+    data: url.endsWith('/preview')
+      ? {
+          preview_token: token,
+          problems: [
+            {
+              problem_id: 'p1',
+              title: 'Problem',
+              original_tags: ['Array'],
+              standard_tags: ['array'],
+              suggestions: [],
+              original_difficulty: 'easy',
+              suggested_difficulty: 'easy',
+              sample_count: 0,
+              pass_rate: null,
+            },
+          ],
+        }
+      : url.endsWith('/v1')
+        ? {
+            ...version,
+            problems: [
+              {
+                problem_id: 'p1',
+                title: 'Problem',
+                difficulty: 'easy',
+                tags: ['array'],
+              },
+            ],
+          }
+        : method === 'GET'
+          ? [version]
+          : version,
+  }))
+  const preview = await client.previewGovernance(selection)
+  assert.equal(preview.problems[0].pass_rate, null)
+  const save = {
+    preview: selection,
+    preview_token: token,
+    name: 'Reviewed',
+    changes: [
+      {
+        problem_id: 'p1',
+        normalize_tags: true,
+        suggested_tags: [],
+        apply_difficulty: false,
+      },
+    ],
+  }
+  assert.deepEqual(await client.saveDatasetVersion(save), version)
+  assert.deepEqual(await client.datasetVersions(), [version])
+  assert.deepEqual((await client.datasetVersion('v1')).problems[0].tags, [
+    'array',
+  ])
+  assert.deepEqual(seen, [
+    { method: 'POST', url: base + '/preview', body: selection },
+    { method: 'POST', url: base + '/versions', body: save },
+    { method: 'GET', url: base + '/versions' },
+    { method: 'GET', url: base + '/versions/v1' },
+  ])
+})

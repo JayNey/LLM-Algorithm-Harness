@@ -49,6 +49,7 @@ import {
   writeProblemListQuery,
 } from '@/problems/validation.ts'
 import { useAuthStore } from '@/store/auth.ts'
+import { GovernancePanel } from './GovernancePanel.tsx'
 import {
   LeetCodeBatchImport,
   type BatchOutcome,
@@ -673,6 +674,7 @@ export default function ProblemsPage() {
     [rawListSearch],
   )
   const importOpen = search.get('import') === '1'
+  const [governanceOpen, setGovernanceOpen] = useState(false)
   const [historyProblem, setHistoryProblem] = useState<ProblemOption | null>(
     null,
   )
@@ -751,6 +753,9 @@ export default function ProblemsPage() {
           <p>{t('浏览共享与个人题目，导入与管理个人题库。')}</p>
         </div>
         <div className="evaluation-section-heading">
+          <Button onClick={() => setGovernanceOpen(true)}>
+            {t('批量治理')}
+          </Button>
           <Select
             aria-label={t('导出格式')}
             value={undefined}
@@ -941,6 +946,9 @@ export default function ProblemsPage() {
           />
         )}
       </Drawer>
+      {governanceOpen && (
+        <GovernancePanel onClose={() => setGovernanceOpen(false)} />
+      )}
     </section>
   )
 }

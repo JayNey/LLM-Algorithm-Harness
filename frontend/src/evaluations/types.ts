@@ -115,6 +115,7 @@ export interface CreatePayload {
   strategy_names: string[]
   budget_cap_usd?: number
   verify_problem_access?: true
+  dataset_version_id?: string
 }
 export interface Draft {
   api_key_id: string
@@ -123,6 +124,7 @@ export interface Draft {
   strategy_names: string[]
   budget_cap_usd: string
   verify_problem_access?: true
+  dataset_version_id?: string
 }
 // 包含当前来源已核实的跨页可选 ID；调用方不应仅传当前页。
 export interface DraftAvailable {

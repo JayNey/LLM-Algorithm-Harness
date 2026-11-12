@@ -71,6 +71,8 @@ export function createPayload(draft: Draft): CreatePayload {
   if (draft.budget_cap_usd.trim())
     payload.budget_cap_usd = Number(draft.budget_cap_usd)
   if (draft.verify_problem_access) payload.verify_problem_access = true
+  if (draft.dataset_version_id)
+    payload.dataset_version_id = draft.dataset_version_id
   return payload
 }
 

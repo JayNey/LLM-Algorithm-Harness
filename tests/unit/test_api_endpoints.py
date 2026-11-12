@@ -17,6 +17,7 @@ from unittest.mock import ANY, AsyncMock, Mock, call
 import pytest
 from fastapi.routing import APIRoute, APIWebSocketRoute
 from fastapi.testclient import TestClient
+from pydantic import BaseModel
 
 from api.auth.service import AuthService, Principal
 from api.db.engine import get_db
@@ -76,6 +77,16 @@ PROBLEM_OPTIONS = dict(
 )
 MODEL_OPTIONS = dict(provider="openai", models=["test-model"], complete=True)
 RECOMMENDATION_SET = {"id": "set-1", "name": "Array practice"}
+DATASET_VERSION = {"id": "version-1", "name": "Reviewed", "problem_count": 1}
+VERSION_PROBLEM = {"problem_id": "p1", "title": "Problem", "difficulty": "easy", "tags": ["array"]}
+GOVERNANCE_REQUEST = {"problem_ids": ["p1"], "run_ids": ["run-1"]}
+GOVERNANCE_PREVIEW = {"preview_token": "0" * 64 + "." + "0" * 64, "problems": []}
+GOVERNANCE_SAVE = {
+    "preview": GOVERNANCE_REQUEST,
+    "preview_token": GOVERNANCE_PREVIEW["preview_token"],
+    "name": DATASET_VERSION["name"],
+    "changes": [{"problem_id": "p1", "normalize_tags": True}],
+}
 LEETCODE_URL = "https://leetcode.com/problems/two-sum/"
 LEETCODE_PREVIEW = LeetCodePreviewRequest(tags=["array"], difficulty="easy", limit=5)
 LEETCODE_CANDIDATE = LeetCodeCandidate(
@@ -140,6 +151,52 @@ def case(method, path, target=None, args=(), **kwargs):
 
 
 CASES = [
+    case(
+        "POST",
+        "/problems/governance/preview",
+        "governance_preview",
+        (ANY, ANY, OWNER, ANY),
+        body=GOVERNANCE_REQUEST,
+        result=(GOVERNANCE_PREVIEW, {}),
+        expected=GOVERNANCE_PREVIEW,
+    ),
+    case(
+        "POST",
+        "/problems/governance/versions",
+        "governance_save",
+        (ANY, ANY, OWNER, ANY),
+        body=GOVERNANCE_SAVE,
+        result=DATASET_VERSION,
+        expected=DATASET_VERSION,
+        status=201,
+    ),
+    case(
+        "GET",
+        "/problems/governance/versions",
+        "files.store.dataset_versions",
+        (OWNER,),
+        result=[DATASET_VERSION],
+        expected=[DATASET_VERSION],
+    ),
+    case(
+        "GET",
+        "/problems/governance/versions/{version_id}",
+        "files.store.dataset_version",
+        (OWNER, "version-1"),
+        result=(DATASET_VERSION["name"], [VERSION_PROBLEM]),
+        expected={**DATASET_VERSION, "problems": [VERSION_PROBLEM]},
+    ),
+    case(
+        "POST",
+        "/evaluations/with-dataset-version",
+        "evaluations.create_evaluation",
+        (ANY, OWNER),
+        kwargs={"dataset_version_id": "version-1"},
+        body={**EVAL_BODY, "dataset_version_id": "version-1"},
+        result=EVALUATION,
+        expected=EVALUATION.model_dump(mode="json"),
+        status=201,
+    ),
     case(
         "GET",
         "/notifications",
@@ -1017,6 +1074,7 @@ def url(item):
             task_id="task-1",
             rule_id="rule-1",
             set_id="set-1",
+            version_id="version-1",
             model_id="test-model",
             file_id="file-1",
             job_id="job-1",
@@ -1071,6 +1129,7 @@ def api(monkeypatch, tmp_path, unit_app):
     state.files.settings = FileSettings(_env_file=None, UPLOAD_DIR=tmp_path)
     state.files.transfers = BoundedSemaphore(1)
     state.files.store = Mock()
+    state.files.store.dataset_version.return_value = (DATASET_VERSION["name"], [VERSION_PROBLEM])
     state.evaluation_options.files = state.files.store
     state.evaluation_options.problem_metadata.return_value = {}
     state.evaluation_options.selected_problems.return_value = PROBLEM_OPTIONS["items"]
@@ -1121,6 +1180,12 @@ def api(monkeypatch, tmp_path, unit_app):
     monkeypatch.setattr("api.routes.monitoring.public_system_config", state.system_config)
     monkeypatch.setattr("api.routes.ab_tests.build_pareto_analysis", state.pareto_analysis)
     monkeypatch.setattr("api.routes.ab_tests.build_advisory", state.advisory)
+    state.governance_preview = Mock()
+    state.governance_save = Mock()
+    monkeypatch.setattr(
+        "api.routes.evaluation_results.preview_governance", state.governance_preview
+    )
+    monkeypatch.setattr("api.routes.evaluation_results.save_governance", state.governance_save)
 
     def unexpected_external_call(*args, **kwargs):
         raise AssertionError("Route unit test attempted an external dependency")
@@ -1179,7 +1244,7 @@ def test_endpoint_happy_path(api, item):
             operation.assert_called_once_with(*item.args, **item.kwargs)
         # Verify supplied fields recursively, including nested models and secrets.
         for arg in operation.call_args.args:
-            if hasattr(arg, "model_dump") and item.body:
+            if isinstance(arg, BaseModel) and item.body:
                 assert_submitted_fields(arg, item.body)
     if item.status == 204:
         assert response.content == b""
@@ -1217,7 +1282,11 @@ def test_endpoint_happy_path(api, item):
             celery_task_name="src.tasks.imports.run_import_task",
             celery_task_args=("job-2", OWNER),
         )
-    if item.path in {"/evaluations", "/evaluations/with-selection"} and item.method == "POST":
+    if (
+        item.path
+        in {"/evaluations", "/evaluations/with-selection", "/evaluations/with-dataset-version"}
+        and item.method == "POST"
+    ):
         api.auth.owned_key.assert_called_once_with("key-1", OWNER)
         api.files.store.register_run.assert_called_once_with("eval-1", OWNER)
     if (

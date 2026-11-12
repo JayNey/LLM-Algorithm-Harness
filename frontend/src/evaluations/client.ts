@@ -427,7 +427,11 @@ export function createEvaluationClient(http: AxiosInstance) {
     create: async (input) => {
       const { verify_problem_access, ...body } = payload(input)
       return mutate(
-        verify_problem_access ? '/evaluations/with-selection' : '/evaluations',
+        body.dataset_version_id
+          ? '/evaluations/with-dataset-version'
+          : verify_problem_access
+            ? '/evaluations/with-selection'
+            : '/evaluations',
         body,
       )
     },
