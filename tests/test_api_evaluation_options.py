@@ -705,3 +705,99 @@ def test_saved_recommendation_set_preserves_references_and_is_private(populated)
         json={**payload, "problem_ids": ["bob-secret"]},
     )
     assert rejected.status_code == 400, rejected.text
+
+
+def test_governance_previews_only_owned_executed_history_and_saves_approved_changes(
+    recommendation_history,
+):
+    from api.db.models import EvaluationResult
+
+    app, client, users = recommendation_history
+    headers, owner = users["alice"]
+    store = app.state.files.store
+    rows = [
+        {**problem("p1", "Binary Search", "easy"), "tags": ["  ARRAY  "]},
+        problem("p2", "No valid samples", "medium"),
+        problem("p4", "Unchanged", "easy"),
+    ]
+    with store.connection() as db:
+        db.execute(
+            "UPDATE api_file_datasets SET payload=? WHERE user_id=?", (json.dumps(rows), owner)
+        )
+    with app.state.task_session_factory() as db, db.begin():
+        db.add(
+            EvaluationResult(
+                id="skip-p1",
+                evaluation_id="mine",
+                problem_id="p1",
+                strategy_name="reflexion",
+                status="budget_exhausted",
+                execution_payload={"evaluation_completed": False},
+            )
+        )
+
+    base = "/api/v1/problems/governance"
+    params = {"problem_ids": ["p1", "p2"], "run_ids": ["mine", "web-mine"]}
+    preview = client.post(base + "/preview", headers=headers, json=params)
+    assert preview.status_code == 200, preview.text
+    data = preview.json()["data"]
+    p1, p2 = data["problems"]
+    assert (
+        p1["original_difficulty"],
+        p1["suggested_difficulty"],
+        p1["sample_count"],
+        p1["pass_rate"],
+    ) == (
+        "easy",
+        "hard",
+        1,
+        0,
+    )
+    assert p1["original_tags"] == ["  ARRAY  "] and p1["standard_tags"] == ["array"]
+    assert any(
+        tag["tag"] == "binary-search" and tag["matched_keywords"] for tag in p1["suggestions"]
+    )
+    assert (p2["sample_count"], p2["pass_rate"], p2["suggested_difficulty"]) == (0, None, "medium")
+    assert store.dataset(owner) == rows
+
+    for extra in ({"run_ids": ["theirs"]}, {"problem_ids": ["bob-secret"]}):
+        response = client.post(base + "/preview", headers=headers, json={**params, **extra})
+        assert response.status_code == 404, response.text
+
+    save = {"preview": params, "preview_token": data["preview_token"], "name": "Reviewed"}
+    versions = base + "/versions"
+    assert client.post(versions, headers=headers, json={**save, "changes": []}).status_code == 400
+    changes = [{"problem_id": "p1", "normalize_tags": True, "suggested_tags": ["binary-search"]}]
+    assert (
+        client.post(
+            versions,
+            headers=headers,
+            json={**save, "changes": [{**changes[0], "suggested_tags": ["forged"]}]},
+        ).status_code
+        == 400
+    )
+    saved = client.post(versions, headers=headers, json={**save, "changes": changes})
+    assert saved.status_code == 201, saved.text
+    version = saved.json()["data"]
+    version_url = f"{versions}/{version['id']}"
+    detail = client.get(version_url, headers=headers).json()["data"]
+    assert [(p["problem_id"], p["difficulty"], p["tags"]) for p in detail["problems"]] == [
+        ("p1", "easy", ["array", "binary-search"]),
+        ("p2", "medium", []),
+    ]
+    assert "hidden-answer" not in json.dumps(detail)
+    assert client.get(versions, headers=headers).json()["data"] == [version]
+    assert client.get(versions, headers=users["bob"][0]).json()["data"] == []
+    assert client.get(version_url, headers=users["bob"][0]).status_code == 404
+    assert (
+        client.post(
+            versions, headers=users["bob"][0], json={**save, "changes": changes}
+        ).status_code
+        == 409
+    )
+    assert store.dataset(owner) == rows
+
+    store.append_problem(owner, problem("new"), max_bytes=100_000, max_items=20)
+    stale = client.post(versions, headers=headers, json={**save, "changes": changes})
+    assert stale.status_code == 409, stale.text
+    assert client.get(version_url, headers=headers).json()["data"] == detail
