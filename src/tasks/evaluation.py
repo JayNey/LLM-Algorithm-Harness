@@ -673,6 +673,7 @@ class _EvalContext:
     missing_reasons: dict[str, str] = field(default_factory=dict)
     pricing_manager: PricingManager | None = None
     problem_sources: dict[str, str] = field(default_factory=dict)
+    dataset_version_id: str | None = None
 
 
 def _freeze_problem(ctx: _EvalContext, problem_id: str) -> dict[str, Any]:
@@ -683,6 +684,7 @@ def _freeze_problem(ctx: _EvalContext, problem_id: str) -> dict[str, Any]:
         "origin": ctx.problem_sources.get(problem_id, "public") if problem else "unavailable",
         "problem": problem.model_dump(mode="json") if problem else None,
         "error": ctx.missing_reasons.get(problem_id),
+        **({"dataset_version_id": ctx.dataset_version_id} if ctx.dataset_version_id else {}),
     }
 
 
@@ -694,6 +696,11 @@ def _problem_metadata(snapshot: dict[str, Any]) -> dict[str, Any]:
         "origin": snapshot["origin"],
         "tags": list(problem.get("tags", [])),
         "difficulty": problem.get("difficulty"),
+        **(
+            {"dataset_version_id": snapshot["dataset_version_id"]}
+            if "dataset_version_id" in snapshot
+            else {}
+        ),
         **{
             key: problem.get(key)
             for key in (
@@ -806,9 +813,16 @@ def _resolve_execution_context(
     store = ProblemStore(session_factory)
     # Uploads are private to their owner and must never be copied into the
     # shared problem table. Prefer the owner's version on ID collisions.
-    uploaded = {
-        item["problem_id"]: item for item in FileStore(auth.store).dataset(evaluation.user_id)
-    }
+    files = FileStore(auth.store)
+    version_id = evaluation.dataset_version_id
+    if version_id is None:
+        dataset = files.dataset(evaluation.user_id)
+    else:
+        try:
+            _, dataset = files.dataset_version(evaluation.user_id, version_id)
+        except HTTPException as exc:
+            raise ValueError(f"Dataset version unavailable: {exc.detail}") from None
+    uploaded = {item["problem_id"]: item for item in dataset}
     problem_map: dict[str, DomainProblem] = {}
     missing: set[str] = set()
     missing_reasons: dict[str, str] = {}
@@ -822,7 +836,7 @@ def _resolve_execution_context(
                     f"invalid/incomplete problem data: {_validation_error_summary(exc)}"
                 )
             continue
-        row = store.get_by_problem_id(pid)
+        row = store.get_by_problem_id(pid) if version_id is None else None
         if row is None:
             missing.add(pid)
             missing_reasons[pid] = "not found in problem store"
@@ -854,6 +868,7 @@ def _resolve_execution_context(
         missing_reasons=missing_reasons,
         pricing_manager=pricing_manager,
         problem_sources={pid: "personal" if pid in uploaded else "public" for pid in problem_map},
+        dataset_version_id=version_id,
     )
 
 

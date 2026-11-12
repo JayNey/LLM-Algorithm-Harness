@@ -62,6 +62,12 @@ class EvaluationCreateRequest(BaseModel):
         }
 
 
+class EvaluationVersionCreateRequest(EvaluationCreateRequest):
+    dataset_version_id: str = Field(
+        min_length=1, max_length=64, description="ID of an owned personal dataset version"
+    )
+
+
 class EvaluationUpdateRequest(BaseModel):
     """Request model for updating an evaluation (only pending tasks)."""
 

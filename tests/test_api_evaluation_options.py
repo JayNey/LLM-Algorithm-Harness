@@ -801,3 +801,55 @@ def test_governance_previews_only_owned_executed_history_and_saves_approved_chan
     stale = client.post(versions, headers=headers, json={**save, "changes": changes})
     assert stale.status_code == 409, stale.text
     assert client.get(version_url, headers=headers).json()["data"] == detail
+
+
+def test_version_evaluation_resolves_frozen_problems_and_preserves_history(
+    recommendation_history, monkeypatch
+):
+    from api.db.models import Evaluation
+    from src.tasks.evaluation import _freeze_problem, _resolve_execution_context
+
+    app, client, users = recommendation_history
+    headers, owner = users["alice"]
+    store = app.state.files.store
+    revision, _ = store.dataset_snapshot(owner)
+    version = store.save_dataset_version(
+        owner, revision, "Reviewed", [{**problem("p1", "Reviewed p1", "medium"), "tags": ["array"]}]
+    )
+    key = model_key(app, users)
+    url = "/api/v1/evaluations/with-dataset-version"
+    payload = {
+        "api_key_id": key,
+        "model": "test",
+        "problem_ids": ["p1"],
+        "strategy_names": ["vanilla"],
+        "dataset_version_id": version["id"],
+    }
+    bob_key = model_key(app, {"alice": users["bob"]})
+    foreign = client.post(url, headers=users["bob"][0], json={**payload, "api_key_id": bob_key})
+    assert foreign.status_code == 404, foreign.text
+    unrelated = client.post(url, headers=headers, json={**payload, "problem_ids": ["p3"]})
+    assert unrelated.status_code == 400, unrelated.text
+    created = client.post(url, headers=headers, json=payload)
+    assert created.status_code == 201, created.text
+
+    prior = client.get("/api/v1/results/mine", headers=headers)
+    assert prior.status_code == 200, prior.text
+    with store.connection() as db:
+        db.execute("UPDATE api_file_datasets SET payload='[]' WHERE user_id=?", (owner,))
+    monkeypatch.setattr("api.auth.config.AuthSettings", lambda: app.state.auth.settings)
+    session_factory = app.state.task_session_factory
+    with session_factory() as db:
+        evaluation = db.get(Evaluation, created.json()["data"]["evaluation_id"])
+        assert evaluation.problem_ids == ["p1"]
+        ctx = _resolve_execution_context(evaluation, session_factory)
+        frozen = _freeze_problem(ctx, "p1")
+    assert frozen["problem"]["difficulty"] == "medium"
+    assert frozen["problem"]["tags"] == ["array"]
+    assert frozen["problem"]["title"] == "Reviewed p1"
+
+    assert frozen["dataset_version_id"] == version["id"]
+    after = client.get("/api/v1/results/mine", headers=headers)
+    assert after.status_code == 200, after.text
+    assert after.json()["data"] == prior.json()["data"]
+    assert any(p["problem_id"] == "p1" for p in after.json()["data"]["problems"]["items"])
