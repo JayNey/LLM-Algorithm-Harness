@@ -18,6 +18,18 @@ from api.evaluation_options import (
     RecommendationWeakness,
     RecommendedProblem,
 )
+from api.files.dependencies import file_service
+from api.files.governance import (
+    DatasetVersion,
+    DatasetVersionDetail,
+    GovernancePreview,
+    GovernanceRequest,
+    GovernanceSaveRequest,
+    VersionProblem,
+    preview_governance,
+    save_governance,
+)
+from api.files.service import FileService
 from api.routes.evaluation_options import evaluation_options_service
 from api.schemas import ApiResponse, PaginatedData
 from api.services import EvaluationResultsService
@@ -61,6 +73,60 @@ def _analytics(
 
 def _page(limit: int, offset: int) -> tuple[int, int]:
     return (limit if 1 <= limit <= 100 else 20, max(0, offset))
+
+
+@router.post("/problems/governance/preview")
+def preview_problem_governance(
+    request: GovernanceRequest,
+    principal: Principal = Depends(current_user),
+    history: EvaluationResultsService = Depends(evaluation_results_service),
+    files: FileService = Depends(file_service),
+) -> ApiResponse[GovernancePreview]:
+    preview, _ = call(lambda: preview_governance(files.store, history, principal.user_id, request))
+    return ApiResponse(success=True, data=preview, message="Governance preview")
+
+
+@router.post("/problems/governance/versions", status_code=201)
+def save_problem_version(
+    request: GovernanceSaveRequest,
+    principal: Principal = Depends(current_user),
+    history: EvaluationResultsService = Depends(evaluation_results_service),
+    files: FileService = Depends(file_service),
+) -> ApiResponse[DatasetVersion]:
+    version = call(lambda: save_governance(files.store, history, principal.user_id, request))
+    return ApiResponse(success=True, data=version, message="Dataset version saved")
+
+
+@router.get("/problems/governance/versions")
+def list_problem_versions(
+    principal: Principal = Depends(current_user),
+    files: FileService = Depends(file_service),
+) -> ApiResponse[list[DatasetVersion]]:
+    versions = files.store.dataset_versions(principal.user_id)
+    return ApiResponse(
+        success=True,
+        data=[DatasetVersion.model_validate(version) for version in versions],
+        message="Personal dataset versions",
+    )
+
+
+@router.get("/problems/governance/versions/{version_id}")
+def get_problem_version(
+    version_id: str,
+    principal: Principal = Depends(current_user),
+    files: FileService = Depends(file_service),
+) -> ApiResponse[DatasetVersionDetail]:
+    name, dataset = files.store.dataset_version(principal.user_id, version_id)
+    return ApiResponse(
+        success=True,
+        data=DatasetVersionDetail(
+            id=version_id,
+            name=name,
+            problem_count=len(dataset),
+            problems=[VersionProblem.model_validate(problem) for problem in dataset],
+        ),
+        message="Personal dataset version",
+    )
 
 
 @router.post("/results/recommendations/preview")

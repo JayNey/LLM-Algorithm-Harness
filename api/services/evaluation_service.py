@@ -264,7 +264,11 @@ class EvaluationService:
     # -- CRUD ----------------------------------------------------------------
 
     def create_evaluation(
-        self, request: EvaluationCreateRequest, owner_id: str
+        self,
+        request: EvaluationCreateRequest,
+        owner_id: str,
+        *,
+        dataset_version_id: str | None = None,
     ) -> EvaluationResponse:
         """Create a new evaluation task."""
         task = Evaluation(
@@ -273,6 +277,7 @@ class EvaluationService:
             status="pending",
             strategy_names=list(request.strategy_names),
             problem_ids=list(request.problem_ids),
+            dataset_version_id=dataset_version_id,
             problem_count=len(request.problem_ids),
             api_key_id=request.api_key_id,
             model=request.model,

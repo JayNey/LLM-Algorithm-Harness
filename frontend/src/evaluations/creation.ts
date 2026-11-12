@@ -20,7 +20,11 @@ export interface CreationState {
   error: ApiClientError | null
   setDraft(patch: Partial<Draft>): void
   startNewDraft(): boolean
-  prefillProblems(owner: string, problemIds: string[]): boolean
+  prefillProblems(
+    owner: string,
+    problemIds: string[],
+    datasetVersionId?: string,
+  ): boolean
   submit(): Promise<void>
   retryStart(evaluationId: string): Promise<void>
   action: {
@@ -146,7 +150,7 @@ export function createCreationStore(
         })
         return true
       },
-      prefillProblems(owner, problemIds) {
+      prefillProblems(owner, problemIds, datasetVersionId) {
         const { phase } = get()
         if (
           !owns(owner) ||
@@ -159,6 +163,9 @@ export function createCreationStore(
             ...emptyDraft(),
             problem_ids: [...new Set(problemIds)],
             verify_problem_access: true,
+            ...(datasetVersionId
+              ? { dataset_version_id: datasetVersionId }
+              : {}),
           },
           phase: 'editing',
           evaluationId: null,

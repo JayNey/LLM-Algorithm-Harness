@@ -1,5 +1,6 @@
 """Transactional file metadata and per-user datasets in a separate namespace."""
 
+import hashlib
 import json
 import sqlite3
 import time
@@ -52,6 +53,12 @@ class FileStore:
                 );
                 CREATE INDEX IF NOT EXISTS api_recommendation_sets_owner
                     ON api_recommendation_sets(user_id, created_at, id);
+                CREATE TABLE IF NOT EXISTS api_dataset_versions (
+                    id TEXT PRIMARY KEY, user_id TEXT NOT NULL, name TEXT NOT NULL,
+                    payload TEXT NOT NULL, problem_count INTEGER NOT NULL, created_at INTEGER NOT NULL
+                );
+                CREATE INDEX IF NOT EXISTS api_dataset_versions_owner
+                    ON api_dataset_versions(user_id, created_at, id);
                 CREATE TABLE IF NOT EXISTS api_file_jobs (
                     id TEXT PRIMARY KEY, user_id TEXT NOT NULL, file_id TEXT NOT NULL,
                     mode TEXT NOT NULL, status TEXT NOT NULL,
@@ -64,6 +71,11 @@ class FileStore:
         # Incrementally extend existing auth/file SQLite databases under one writer lock.
         with self.connection() as db:
             db.execute("BEGIN IMMEDIATE")
+            dataset_columns = {row[1] for row in db.execute("PRAGMA table_info(api_file_datasets)")}
+            if "revision" not in dataset_columns:
+                db.execute(
+                    "ALTER TABLE api_file_datasets ADD COLUMN revision INTEGER NOT NULL DEFAULT 0"
+                )
             columns = {row[1] for row in db.execute("PRAGMA table_info(api_file_runs)")}
             for name, definition in (
                 ("result_revision", "INTEGER NOT NULL DEFAULT 0"),
@@ -241,6 +253,55 @@ class FileStore:
                 "SELECT payload FROM api_file_datasets WHERE user_id=?", (user_id,)
             ).fetchone()
             return cast(list[dict[str, Any]], json.loads(row["payload"])) if row else []
+
+    @staticmethod
+    def _dataset_snapshot(db: sqlite3.Connection, user_id: str) -> tuple[str, str]:
+        row = db.execute(
+            "SELECT payload, revision FROM api_file_datasets WHERE user_id=?", (user_id,)
+        ).fetchone()
+        payload, revision = (row["payload"], row["revision"]) if row else ("[]", 0)
+        token = hashlib.sha256(f"{user_id}:{revision}:{payload}".encode()).hexdigest()
+        return token, payload
+
+    def dataset_snapshot(self, user_id: str) -> tuple[str, list[dict[str, Any]]]:
+        with self.connection() as db:
+            token, payload = self._dataset_snapshot(db, user_id)
+        return token, json.loads(payload)
+
+    def save_dataset_version(
+        self, user_id: str, source_token: str, name: str, problems: list[dict[str, Any]]
+    ) -> dict[str, Any]:
+        version = {"id": str(uuid.uuid4()), "name": name, "problem_count": len(problems)}
+        with self.connection() as db:
+            db.execute("BEGIN IMMEDIATE")
+            if self._dataset_snapshot(db, user_id)[0] != source_token:
+                raise HTTPException(409, "Governance preview is stale")
+            db.execute(
+                "INSERT INTO api_dataset_versions VALUES (?,?,?,?,?,?)",
+                (version["id"], user_id, name, json.dumps(problems), len(problems), time.time_ns()),
+            )
+        return version
+
+    def dataset_versions(self, user_id: str) -> list[dict[str, Any]]:
+        with self.connection() as db:
+            return [
+                dict(row)
+                for row in db.execute(
+                    "SELECT id, name, problem_count FROM api_dataset_versions WHERE user_id=?"
+                    " ORDER BY created_at DESC, id DESC",
+                    (user_id,),
+                )
+            ]
+
+    def dataset_version(self, user_id: str, version_id: str) -> tuple[str, list[dict[str, Any]]]:
+        with self.connection() as db:
+            row = db.execute(
+                "SELECT name, payload FROM api_dataset_versions WHERE user_id=? AND id=?",
+                (user_id, version_id),
+            ).fetchone()
+        if row is None:
+            raise HTTPException(404, "Dataset version not found")
+        return row["name"], json.loads(row["payload"])
 
     def save_recommendation_set(self, user_id: str, name: str, problem_ids: list[str]) -> str:
         set_id = str(uuid.uuid4())
@@ -533,7 +594,9 @@ class FileStore:
         if len(payload.encode("utf-8")) > max_bytes or len(by_id) > max_items:
             raise HTTPException(413, "Merged dataset exceeds limit")
         db.execute(
-            "INSERT INTO api_file_datasets VALUES (?,?,?) ON CONFLICT(user_id) DO UPDATE SET payload=excluded.payload,updated_at=excluded.updated_at",
+            "INSERT INTO api_file_datasets(user_id,payload,updated_at,revision) VALUES (?,?,?,1)"
+            " ON CONFLICT(user_id) DO UPDATE SET payload=excluded.payload,"
+            " updated_at=excluded.updated_at, revision=api_file_datasets.revision+1",
             (user_id, payload, int(time.time())),
         )
         return imported, len(by_id)

@@ -59,7 +59,7 @@ class DifficultyCalibrator:
 
     def __init__(
         self,
-        history_path: Path,
+        history_path: Path | None = None,
         easy_threshold: float = DEFAULT_EASY_THRESHOLD,
         hard_threshold: float = DEFAULT_HARD_THRESHOLD,
     ):
@@ -68,10 +68,16 @@ class DifficultyCalibrator:
         self.hard_threshold = hard_threshold
         self.stats: dict[str, dict[str, float]] = {}
 
-    def collect_stats(self) -> dict[str, dict[str, float]]:
+    def collect_stats(
+        self, records: Iterable[dict[str, Any]] | None = None
+    ) -> dict[str, dict[str, float]]:
         """Aggregate per-problem success rate and average iterations."""
         acc: dict[str, dict[str, float]] = {}
-        for record in _iter_history_records(self.history_path):
+        if records is None:
+            records = (
+                _iter_history_records(self.history_path) if self.history_path is not None else ()
+            )
+        for record in records:
             if not is_completed_evaluation(record):
                 continue
             entry = acc.setdefault(

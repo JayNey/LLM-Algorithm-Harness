@@ -1588,4 +1588,44 @@ export default {
     'Run association mismatch. Select the run again.',
   '任务关联不匹配，已停止进度查询':
     'Task association mismatch. Progress updates stopped.',
+  批量治理: 'Batch governance',
+  预览与审核: 'Preview and review',
+  题集版本: 'Dataset versions',
+  选择个人题目: 'Select personal problems',
+  '个人题库还没有题目。': 'Your personal library is empty.',
+  加载更多题目: 'Load more problems',
+  '选择历史评估（可选）': 'Select past evaluations (optional)',
+  加载更多评估: 'Load more evaluations',
+  '困难阈值（%）': 'Hard threshold (%)',
+  '简单阈值（%）': 'Easy threshold (%)',
+  '困难阈值必须低于简单阈值，且两者都在 0–100% 之间。':
+    'Both thresholds must be between 0 and 100%, with the hard threshold below the easy threshold.',
+  '通过率低于困难阈值为困难，高于简单阈值为简单，其余为中等。':
+    'Pass rates below the hard threshold are hard, rates above the easy threshold are easy, and the rest are medium.',
+  预览变更: 'Preview changes',
+  原标签: 'Original tags',
+  标准标签: 'Standard tags',
+  应用标准标签: 'Apply standard tags',
+  建议标签: 'Suggested tags',
+  匹配关键词: 'Matched keywords',
+  置信度: 'Confidence',
+  原难度: 'Original difficulty',
+  建议难度: 'Suggested difficulty',
+  有效样本数: 'Valid samples',
+  '没有有效的历史执行，保留原难度。':
+    'No valid historical executions. Original difficulty retained.',
+  应用建议难度: 'Apply suggested difficulty',
+  '所选题目没有可应用的变更。':
+    'The selected problems have no changes to apply.',
+  题集版本名称: 'Dataset version name',
+  保存题集版本: 'Save dataset version',
+  '题库或历史已更新，请重新预览。':
+    'The source library or evaluation history changed. Preview again.',
+  '保存题集版本失败，请重试。':
+    'Could not save the dataset version. Try again.',
+  选择已保存的题集版本: 'Select a saved dataset version',
+  '{{count}} 道题目': '{{count}} problems',
+  '还没有保存的题集版本。': 'No saved dataset versions yet.',
+  '正在加载题集版本…': 'Loading dataset version…',
+  使用此版本创建评估: 'Create evaluation with this version',
 }

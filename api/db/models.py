@@ -84,6 +84,7 @@ class Evaluation(Base):
     status: Mapped[str] = mapped_column(String(16), default="pending", index=True)
     strategy_names: Mapped[list] = mapped_column(JSON, default=list)
     problem_ids: Mapped[list] = mapped_column(JSON, default=list)
+    dataset_version_id: Mapped[str | None] = mapped_column(String(64))
     problem_count: Mapped[int] = mapped_column(Integer, default=0)
     api_key_id: Mapped[str | None] = mapped_column(String(64))
     model: Mapped[str | None] = mapped_column(String(200))

@@ -2,8 +2,8 @@ import { useTranslation } from 'react-i18next'
 import { t } from '../../i18n/core.ts'
 import { Alert, Button, Checkbox, Form, Input, Select, Skeleton } from 'antd'
 import type { AxiosInstance } from 'axios'
-import { useCallback, useState } from 'react'
-import { Link, useLocation } from 'react-router-dom'
+import { useCallback, useEffect, useState } from 'react'
+import { Link, useLocation, useNavigate } from 'react-router-dom'
 import { useStore } from 'zustand'
 import { readApiKeys } from '@/account/apiKeys.ts'
 import { ApiClientError } from '@/auth/http.ts'
@@ -13,13 +13,20 @@ import type { DraftErrors, ProblemQuery } from '@/evaluations/types.ts'
 import { validateDraft } from '@/evaluations/validation.ts'
 import { useAuthStore } from '@/store/auth.ts'
 import { useResource } from '@/hooks/useResource.ts'
+import { difficultyLabel } from '@/problems/presentation.ts'
+import { useProblemSession } from '@/problems/session.tsx'
 
 export default function CreateEvaluationPage() {
   useTranslation()
 
   const { client, creationStore, owner } = useEvaluationSession()
-  const { state } = useLocation()
+  const { client: problemClient } = useProblemSession()
+  const { state, search } = useLocation()
+  const navigate = useNavigate()
+  const versionId =
+    new URLSearchParams(search).get('dataset_version')?.trim() || null
   const recommendedIds =
+    !versionId &&
     owner &&
     state?.recommendedFor === owner &&
     Array.isArray(state.recommendedProblemIds)
@@ -43,6 +50,15 @@ export default function CreateEvaluationPage() {
     submit,
     reset,
   } = useStore(creationStore)
+  useEffect(() => {
+    if (!versionId && draft.dataset_version_id && phase === 'editing') {
+      setDraft({
+        dataset_version_id: undefined,
+        problem_ids: [],
+        verify_problem_access: undefined,
+      })
+    }
+  }, [draft.dataset_version_id, phase, setDraft, versionId])
   const [errors, setErrors] = useState<DraftErrors>({})
   const [query, setQuery] = useState<ProblemQuery>({
     source: 'all',
@@ -70,6 +86,25 @@ export default function CreateEvaluationPage() {
         return { items, missing: ids.length - items.length }
       },
       [client, creationStore, owner, recommendationKey],
+    ),
+  )
+  const version = useResource(
+    useCallback(
+      async (signal: AbortSignal) => {
+        if (!owner || !versionId) return null
+        const data = await problemClient.datasetVersion(versionId, signal)
+        if (
+          !signal.aborted &&
+          !creationStore.getState().prefillProblems(
+            owner,
+            data.problems.map((problem) => problem.problem_id),
+            data.id,
+          )
+        )
+          throw new ApiClientError('请先核对上一项评估的创建状态。')
+        return data
+      },
+      [creationStore, owner, problemClient, versionId],
     ),
   )
   const options = useResource(
@@ -100,6 +135,7 @@ export default function CreateEvaluationPage() {
   const problems = useResource(
     useCallback(
       async (signal: AbortSignal) => {
+        if (versionId) return null
         const data = await client.problems(query, signal)
         if (!signal.aborted)
           setVerified((previous) => ({
@@ -113,22 +149,27 @@ export default function CreateEvaluationPage() {
           }))
         return data
       },
-      [client, query],
+      [client, query, versionId],
     ),
   )
-  const editing = phase === 'editing' && !(hasRecommendation && prefill.loading)
+  const editing =
+    phase === 'editing' &&
+    !(hasRecommendation && prefill.loading) &&
+    !(versionId && version.loading)
   const ready = !!(
     keys.data?.length &&
     options.data?.strategies.length &&
-    options.data.sources.length &&
     models.data?.models.length &&
-    problems.data?.total
+    (versionId
+      ? version.data?.problems.length
+      : options.data.sources.length && problems.data?.total)
   )
   const locked =
     !editing ||
     !ready ||
-    problems.loading ||
+    (!versionId && problems.loading) ||
     models.loading ||
+    (draft.dataset_version_id ?? null) !== versionId ||
     (hasRecommendation && !prefill.data)
   function create() {
     if (locked) return
@@ -137,12 +178,14 @@ export default function CreateEvaluationPage() {
       models: models.data?.models ?? [],
       strategy_names:
         options.data?.strategies.map((strategy) => strategy.name) ?? [],
-      problem_ids: [
-        ...(verified.source === query.source ? verified.ids : []),
-        ...(query.source === 'all'
-          ? (prefill.data?.items.map((item) => item.problem_id) ?? [])
-          : []),
-      ],
+      problem_ids: versionId
+        ? (version.data?.problems.map((problem) => problem.problem_id) ?? [])
+        : [
+            ...(verified.source === query.source ? verified.ids : []),
+            ...(query.source === 'all'
+              ? (prefill.data?.items.map((item) => item.problem_id) ?? [])
+              : []),
+          ],
     })
     setErrors(next)
     if (!Object.keys(next).length) void submit()
@@ -191,6 +234,7 @@ export default function CreateEvaluationPage() {
               onClick={() => {
                 reset(owner)
                 setErrors({})
+                if (versionId) version.retry()
               }}
             >
               {t('确认核对后开始新评估')}
@@ -215,6 +259,8 @@ export default function CreateEvaluationPage() {
                 setErrors({})
                 setVerified({ source: 'all', ids: [] })
                 setQuery({ source: 'all', offset: 0, limit: 20 })
+                if (versionId)
+                  void navigate('/evaluations/new', { replace: true })
               }}
             >
               {t('开始新评估')}
@@ -382,160 +428,231 @@ export default function CreateEvaluationPage() {
                 {draft.problem_ids.length} {t(' 道题目')}
               </span>
             </div>
-            {hasRecommendation && prefill.loading && (
-              <p role="status">{t('正在校验推荐题目…')}</p>
-            )}
-            {prefill.error && (
-              <EvaluationFeedback
-                message={t(prefill.error)}
-                retry={prefill.retry}
-              />
-            )}
-            {!!prefill.data?.missing && (
-              <Alert
-                type="warning"
-                showIcon
-                title={t('{{count}} 道题已无法访问。', {
-                  count: prefill.data.missing,
-                })}
-              />
-            )}
-            {!!offPageRecommendations.length && (
+            {versionId ? (
               <>
-                <h3>{t('已选推荐题目')}</h3>
-                <ul className="evaluation-problem-list">
-                  {offPageRecommendations.map((item) => (
-                    <li key={item.problem_id}>
-                      <Checkbox
-                        checked
-                        onChange={() => selectProblem(item.problem_id, false)}
-                      >
-                        <span>{item.title || item.problem_id}</span>
-                        <small>
-                          {item.problem_id} · {t(item.difficulty ?? '难度未知')}
-                        </small>
-                      </Checkbox>
-                    </li>
-                  ))}
-                </ul>
-              </>
-            )}
-            <Form.Item label={t('题目来源')} htmlFor="evaluation-source">
-              <Select
-                id="evaluation-source"
-                aria-label={t('题目来源')}
-                value={query.source}
-                options={[
-                  { value: 'all', label: t('全部来源') },
-                  ...(options.data?.sources.map((source) => ({
-                    value: source.id,
-                    label: `${source.label}（${source.problem_count}）`,
-                  })) ?? []),
-                ]}
-                onChange={(source: ProblemQuery['source']) => {
-                  setDraft({ problem_ids: [] })
-                  setQuery({ ...query, source, offset: 0 })
-                  setErrors({})
-                }}
-              />
-              <p>{t('切换来源会清空已选题目。全选仅选择当前页。')}</p>
-            </Form.Item>
-            {options.data?.sources.length === 0 ? (
-              <p>{t('当前没有可用题目来源。')}</p>
-            ) : null}
-            {errors.problem_ids ? (
-              <p role="alert" className="evaluation-field-error">
-                {t(errors.problem_ids)}
-              </p>
-            ) : null}
-            {problems.loading ? (
-              <Skeleton active={false} paragraph={{ rows: 4 }} title={false} />
-            ) : problems.error ? (
-              <EvaluationFeedback
-                message={t(problems.error)}
-                retry={problems.retry}
-              />
-            ) : problems.data?.items.length ? (
-              <>
-                <Checkbox
-                  disabled={!editing}
-                  checked={selectedCount === currentIds.length}
-                  indeterminate={
-                    selectedCount > 0 && selectedCount < currentIds.length
-                  }
-                  onChange={(event) =>
-                    setDraft({
-                      problem_ids: event.target.checked
-                        ? [...new Set([...draft.problem_ids, ...currentIds])]
-                        : draft.problem_ids.filter(
-                            (id) => !currentIds.includes(id),
-                          ),
-                    })
-                  }
-                >
-                  {t('全选当前页')}
-                </Checkbox>
-                <ul className="evaluation-problem-list">
-                  {problems.data.items.map((problem) => (
-                    <li key={problem.problem_id}>
-                      <Checkbox
-                        aria-label={t('选择题目 {{value1}}', {
-                          value1: problem.problem_id,
-                        })}
-                        disabled={!editing}
-                        checked={draft.problem_ids.includes(problem.problem_id)}
-                        onChange={(event) =>
-                          selectProblem(
-                            problem.problem_id,
-                            event.target.checked,
-                          )
-                        }
-                      >
-                        <span>{problem.title || problem.problem_id}</span>
-                        <small>
-                          {problem.problem_id} ·{' '}
-                          {problem.source === 'personal'
-                            ? t('个人')
-                            : t('共享')}{' '}
-                          · {problem.difficulty ?? t('难度未知')}
-                        </small>
-                      </Checkbox>
-                    </li>
-                  ))}
-                </ul>
+                {version.loading && (
+                  <p role="status">{t('正在加载题集版本…')}</p>
+                )}
+                {version.error && (
+                  <EvaluationFeedback
+                    message={t(version.error)}
+                    retry={version.retry}
+                  />
+                )}
+                {version.data && (
+                  <>
+                    <h3>{version.data.name}</h3>
+                    {errors.problem_ids && (
+                      <p role="alert" className="evaluation-field-error">
+                        {t(errors.problem_ids)}
+                      </p>
+                    )}
+                    <ul className="evaluation-problem-list">
+                      {version.data.problems.map((problem) => (
+                        <li key={problem.problem_id}>
+                          <Checkbox
+                            aria-label={t('选择题目 {{value1}}', {
+                              value1: problem.problem_id,
+                            })}
+                            checked={draft.problem_ids.includes(
+                              problem.problem_id,
+                            )}
+                            onChange={(event) =>
+                              selectProblem(
+                                problem.problem_id,
+                                event.target.checked,
+                              )
+                            }
+                          >
+                            <span>{problem.title || problem.problem_id}</span>
+                            <small>
+                              {problem.problem_id} ·{' '}
+                              {difficultyLabel(problem.difficulty)}
+                              {problem.tags.length
+                                ? ` · ${problem.tags.join(', ')}`
+                                : ''}
+                            </small>
+                          </Checkbox>
+                        </li>
+                      ))}
+                    </ul>
+                  </>
+                )}
               </>
             ) : (
-              <p>{t('该来源还没有可用题目，请更换来源。')}</p>
+              <>
+                {hasRecommendation && prefill.loading && (
+                  <p role="status">{t('正在校验推荐题目…')}</p>
+                )}
+                {prefill.error && (
+                  <EvaluationFeedback
+                    message={t(prefill.error)}
+                    retry={prefill.retry}
+                  />
+                )}
+                {!!prefill.data?.missing && (
+                  <Alert
+                    type="warning"
+                    showIcon
+                    title={t('{{count}} 道题已无法访问。', {
+                      count: prefill.data.missing,
+                    })}
+                  />
+                )}
+                {!!offPageRecommendations.length && (
+                  <>
+                    <h3>{t('已选推荐题目')}</h3>
+                    <ul className="evaluation-problem-list">
+                      {offPageRecommendations.map((item) => (
+                        <li key={item.problem_id}>
+                          <Checkbox
+                            checked
+                            onChange={() =>
+                              selectProblem(item.problem_id, false)
+                            }
+                          >
+                            <span>{item.title || item.problem_id}</span>
+                            <small>
+                              {item.problem_id} ·{' '}
+                              {t(item.difficulty ?? '难度未知')}
+                            </small>
+                          </Checkbox>
+                        </li>
+                      ))}
+                    </ul>
+                  </>
+                )}
+                <Form.Item label={t('题目来源')} htmlFor="evaluation-source">
+                  <Select
+                    id="evaluation-source"
+                    aria-label={t('题目来源')}
+                    value={query.source}
+                    options={[
+                      { value: 'all', label: t('全部来源') },
+                      ...(options.data?.sources.map((source) => ({
+                        value: source.id,
+                        label: `${source.label}（${source.problem_count}）`,
+                      })) ?? []),
+                    ]}
+                    onChange={(source: ProblemQuery['source']) => {
+                      setDraft({ problem_ids: [] })
+                      setQuery({ ...query, source, offset: 0 })
+                      setErrors({})
+                    }}
+                  />
+                  <p>{t('切换来源会清空已选题目。全选仅选择当前页。')}</p>
+                </Form.Item>
+                {options.data?.sources.length === 0 ? (
+                  <p>{t('当前没有可用题目来源。')}</p>
+                ) : null}
+                {errors.problem_ids ? (
+                  <p role="alert" className="evaluation-field-error">
+                    {t(errors.problem_ids)}
+                  </p>
+                ) : null}
+                {problems.loading ? (
+                  <Skeleton
+                    active={false}
+                    paragraph={{ rows: 4 }}
+                    title={false}
+                  />
+                ) : problems.error ? (
+                  <EvaluationFeedback
+                    message={t(problems.error)}
+                    retry={problems.retry}
+                  />
+                ) : problems.data?.items.length ? (
+                  <>
+                    <Checkbox
+                      disabled={!editing}
+                      checked={selectedCount === currentIds.length}
+                      indeterminate={
+                        selectedCount > 0 && selectedCount < currentIds.length
+                      }
+                      onChange={(event) =>
+                        setDraft({
+                          problem_ids: event.target.checked
+                            ? [
+                                ...new Set([
+                                  ...draft.problem_ids,
+                                  ...currentIds,
+                                ]),
+                              ]
+                            : draft.problem_ids.filter(
+                                (id) => !currentIds.includes(id),
+                              ),
+                        })
+                      }
+                    >
+                      {t('全选当前页')}
+                    </Checkbox>
+                    <ul className="evaluation-problem-list">
+                      {problems.data.items.map((problem) => (
+                        <li key={problem.problem_id}>
+                          <Checkbox
+                            aria-label={t('选择题目 {{value1}}', {
+                              value1: problem.problem_id,
+                            })}
+                            disabled={!editing}
+                            checked={draft.problem_ids.includes(
+                              problem.problem_id,
+                            )}
+                            onChange={(event) =>
+                              selectProblem(
+                                problem.problem_id,
+                                event.target.checked,
+                              )
+                            }
+                          >
+                            <span>{problem.title || problem.problem_id}</span>
+                            <small>
+                              {problem.problem_id} ·{' '}
+                              {problem.source === 'personal'
+                                ? t('个人')
+                                : t('共享')}{' '}
+                              · {problem.difficulty ?? t('难度未知')}
+                            </small>
+                          </Checkbox>
+                        </li>
+                      ))}
+                    </ul>
+                  </>
+                ) : (
+                  <p>{t('该来源还没有可用题目，请更换来源。')}</p>
+                )}
+                <div className="evaluation-pagination">
+                  <span>
+                    {t('共 ')}
+                    {problems.data?.total ?? '—'} {t(' 道题目')}
+                  </span>
+                  <Button
+                    aria-label={t('上一页题目')}
+                    disabled={
+                      !editing || problems.loading || query.offset === 0
+                    }
+                    onClick={() =>
+                      setQuery({
+                        ...query,
+                        offset: Math.max(0, query.offset - query.limit),
+                      })
+                    }
+                  >
+                    {t('上一页')}
+                  </Button>
+                  <Button
+                    aria-label={t('下一页题目')}
+                    disabled={
+                      !editing || problems.loading || !problems.data?.has_more
+                    }
+                    onClick={() =>
+                      setQuery({ ...query, offset: query.offset + query.limit })
+                    }
+                  >
+                    {t('下一页')}
+                  </Button>
+                </div>
+              </>
             )}
-            <div className="evaluation-pagination">
-              <span>
-                {t('共 ')}
-                {problems.data?.total ?? '—'} {t(' 道题目')}
-              </span>
-              <Button
-                aria-label={t('上一页题目')}
-                disabled={!editing || problems.loading || query.offset === 0}
-                onClick={() =>
-                  setQuery({
-                    ...query,
-                    offset: Math.max(0, query.offset - query.limit),
-                  })
-                }
-              >
-                {t('上一页')}
-              </Button>
-              <Button
-                aria-label={t('下一页题目')}
-                disabled={
-                  !editing || problems.loading || !problems.data?.has_more
-                }
-                onClick={() =>
-                  setQuery({ ...query, offset: query.offset + query.limit })
-                }
-              >
-                {t('下一页')}
-              </Button>
-            </div>
           </div>
           {error ? <EvaluationFeedback message={t(error.message)} /> : null}
           <div className="evaluation-actions">

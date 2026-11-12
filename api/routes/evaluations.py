@@ -10,7 +10,11 @@ from api.auth.service import AuthService, Principal
 from api.files.dependencies import file_service
 from api.files.service import FileService
 from api.middleware.errors import ApiError, ErrorCode
-from api.models import EvaluationCreateRequest, EvaluationUpdateRequest
+from api.models import (
+    EvaluationCreateRequest,
+    EvaluationUpdateRequest,
+    EvaluationVersionCreateRequest,
+)
 from api.routes.evaluation_options import evaluation_options_service
 from api.schemas import ApiResponse, EvaluationResponse, PaginatedData, ProgressInfo
 from api.services import EvaluationService
@@ -42,11 +46,22 @@ def _create_evaluation(
     service: EvaluationService,
     files: FileService,
     options: EvaluationOptionsService | None = None,
+    *,
+    dataset_version_id: str | None = None,
 ) -> ApiResponse[EvaluationResponse]:
     auth.owned_key(request.api_key_id, principal.user_id)
-    if options is not None:
+    if dataset_version_id is not None:
+        _, dataset = files.store.dataset_version(principal.user_id, dataset_version_id)
+        if not set(request.problem_ids).issubset(problem["problem_id"] for problem in dataset):
+            raise HTTPException(400, "Selected problems must belong to the dataset version")
+    elif options is not None:
         options.selected_problems(principal.user_id, request.problem_ids, require_all=True)
-    result = service.create_evaluation(request, principal.user_id)
+    if dataset_version_id is None:
+        result = service.create_evaluation(request, principal.user_id)
+    else:
+        result = service.create_evaluation(
+            request, principal.user_id, dataset_version_id=dataset_version_id
+        )
     try:
         files.store.register_run(result.evaluation_id, principal.user_id)
     except Exception:
@@ -77,6 +92,19 @@ def create_evaluation_with_selection(
     options: EvaluationOptionsService = Depends(evaluation_options_service),
 ) -> ApiResponse[EvaluationResponse]:
     return _create_evaluation(request, principal, auth, service, files, options)
+
+
+@router.post("/evaluations/with-dataset-version", status_code=201)
+def create_evaluation_with_dataset_version(
+    request: EvaluationVersionCreateRequest,
+    principal: Principal = Depends(current_user),
+    auth: AuthService = Depends(auth_service),
+    service: EvaluationService = Depends(evaluation_service),
+    files: FileService = Depends(file_service),
+) -> ApiResponse[EvaluationResponse]:
+    return _create_evaluation(
+        request, principal, auth, service, files, dataset_version_id=request.dataset_version_id
+    )
 
 
 @router.get("/evaluations")

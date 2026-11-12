@@ -2,8 +2,11 @@ import type { AxiosInstance } from 'axios'
 import { ApiClientError } from '../auth/http.ts'
 import type {
   ApiPage,
+  DatasetVersion,
+  DatasetVersionDetail,
   DirectImportResult,
   EvaluationOptionsMeta,
+  GovernancePreview,
   ImportJobProgress,
   ImportJobStarted,
   ImportValidation,
@@ -332,6 +335,101 @@ function historyItem(value: unknown, field: string): ProblemHistoryItem {
 const ALLOWED_SUFFIXES = ['.json', '.csv']
 export const DIRECT_IMPORT_MAX_BYTES = 5 * 1024 * 1024
 
+const governance = '/problems/governance'
+
+function readGovernancePreview(value: unknown): GovernancePreview {
+  const data = record(value, 'preview')
+  return {
+    preview_token: text(data.preview_token, 'preview.preview_token'),
+    problems: array(
+      data.problems,
+      (item, field) => {
+        const row = record(item, field)
+        return {
+          problem_id: text(row.problem_id, field + '.problem_id'),
+          title: text(row.title, field + '.title', true),
+          original_tags: array(
+            row.original_tags,
+            (tag, path) => text(tag, path, true),
+            field + '.original_tags',
+          ),
+          standard_tags: array(
+            row.standard_tags,
+            text,
+            field + '.standard_tags',
+          ),
+          suggestions: array(
+            row.suggestions,
+            (value, path) => {
+              const suggestion = record(value, path)
+              const confidence = nullableFloat(
+                suggestion.confidence,
+                path + '.confidence',
+              )
+              if (confidence === null || confidence > 1)
+                protocol(path + '.confidence')
+              return {
+                tag: text(suggestion.tag, path + '.tag'),
+                confidence,
+                matched_keywords: array(
+                  suggestion.matched_keywords,
+                  text,
+                  path + '.matched_keywords',
+                ),
+              }
+            },
+            field + '.suggestions',
+          ),
+          original_difficulty: text(
+            row.original_difficulty,
+            field + '.original_difficulty',
+          ),
+          suggested_difficulty: text(
+            row.suggested_difficulty,
+            field + '.suggested_difficulty',
+          ),
+          sample_count: count(row.sample_count, field + '.sample_count'),
+          pass_rate: nullableFloat(row.pass_rate, field + '.pass_rate'),
+        }
+      },
+      'preview.problems',
+    ),
+  }
+}
+
+function readDatasetVersion(value: unknown, field = 'version'): DatasetVersion {
+  const data = record(value, field)
+  return {
+    id: text(data.id, field + '.id'),
+    name: text(data.name, field + '.name'),
+    problem_count: count(data.problem_count, field + '.problem_count'),
+  }
+}
+
+function readDatasetVersionDetail(value: unknown): DatasetVersionDetail {
+  const data = record(value, 'version')
+  return {
+    ...readDatasetVersion(data),
+    problems: array(
+      data.problems,
+      (item, field) => {
+        const problem = record(item, field)
+        return {
+          problem_id: text(problem.problem_id, field + '.problem_id'),
+          title: text(problem.title, field + '.title', true),
+          difficulty: text(problem.difficulty, field + '.difficulty'),
+          tags: array(
+            problem.tags,
+            (tag, path) => text(tag, path, true),
+            field + '.tags',
+          ),
+        }
+      },
+      'version.problems',
+    ),
+  }
+}
+
 // 注入 useAuthStore 提供的同一已解包实例，沿用 Cookie、CSRF 和共享刷新。
 export function createProblemClient(http: AxiosInstance): ProblemClient {
   async function get<T>(
@@ -346,6 +444,33 @@ export function createProblemClient(http: AxiosInstance): ProblemClient {
     )
   }
   return {
+    previewGovernance: async (request, signal) =>
+      readGovernancePreview(
+        await http.post<unknown, unknown>(governance + '/preview', request, {
+          signal,
+          timeout: 20_000,
+        }),
+      ),
+    saveDatasetVersion: async (request) =>
+      readDatasetVersion(
+        await http.post<unknown, unknown>(governance + '/versions', request, {
+          timeout: 20_000,
+        }),
+      ),
+    datasetVersions: (signal) =>
+      get(
+        governance + '/versions',
+        (value) => array(value, readDatasetVersion, 'versions'),
+        undefined,
+        signal,
+      ),
+    datasetVersion: (id, signal) =>
+      get(
+        governance + '/versions/' + encodeURIComponent(id),
+        readDatasetVersionDetail,
+        undefined,
+        signal,
+      ),
     options: async (signal) =>
       get('/evaluation-options', optionsMeta, undefined, signal),
     problems: (query, signal) =>

@@ -603,6 +603,21 @@ class EvaluationResultsService:
                 },
             }
 
+    def governance_history(
+        self, owner_id: str, run_ids: list[str], problem_ids: list[str]
+    ) -> list[dict[str, Any]]:
+        if not run_ids:
+            return []
+        with self._session() as session:
+            ids = dict.fromkeys(self._resolve(session, owner_id, key).id for key in run_ids)
+            rows = session.scalars(
+                select(EvaluationResult).where(
+                    EvaluationResult.evaluation_id.in_(ids),
+                    EvaluationResult.problem_id.in_(problem_ids),
+                )
+            )
+            return [_recommendation_outcome(row) for row in rows]
+
     def recommendation_history(
         self,
         owner_id: str,

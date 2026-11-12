@@ -112,7 +112,8 @@ def test_quotas_are_owned_and_count_actual_sql_utf8_bytes(monitoring):
     dataset = json.dumps([{"description": "中文数据"}], ensure_ascii=False)
     with monitor.auth.store.connection() as db:
         db.execute(
-            "INSERT INTO api_file_datasets VALUES (?,?,?)", (alice, dataset, int(time.time()))
+            "INSERT INTO api_file_datasets(user_id,payload,updated_at) VALUES (?,?,?)",
+            (alice, dataset, int(time.time())),
         )
     monitor.auth.limit("protected:" + alice, 5)
     monitor.auth.limit("protected:" + alice, 5)

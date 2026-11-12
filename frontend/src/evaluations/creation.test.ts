@@ -574,3 +574,20 @@ test('推荐预填替换旧选题，确认后只提交所选题目', async () =>
   assert.equal(h.payloads[0].verify_problem_access, true)
   assert.deepEqual(h.starts, ['eval-1'])
 })
+
+test('从题集版本创建时提交版本 ID 和选中的题目', async () => {
+  const h = setup()
+  assert.equal(
+    h.store.getState().prefillProblems('session-1', ['p-47', 'p-42'], 'v-1'),
+    true,
+  )
+  h.store.getState().setDraft({
+    api_key_id: draft.api_key_id,
+    model: draft.model,
+    strategy_names: draft.strategy_names,
+    problem_ids: ['p-42'],
+  })
+  await h.store.getState().submit()
+  assert.equal(h.payloads[0].dataset_version_id, 'v-1')
+  assert.deepEqual(h.payloads[0].problem_ids, ['p-42'])
+})

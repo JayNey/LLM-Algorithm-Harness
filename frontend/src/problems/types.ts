@@ -147,7 +147,65 @@ export interface HistoryQuery {
 
 export type ImportMode = 'append' | 'overwrite'
 
+export interface GovernanceRequest {
+  problem_ids: string[]
+  run_ids: string[]
+  easy_threshold: number
+  hard_threshold: number
+}
+
+export interface GovernanceChange {
+  problem_id: string
+  title: string
+  original_tags: string[]
+  standard_tags: string[]
+  suggestions: { tag: string; confidence: number; matched_keywords: string[] }[]
+  original_difficulty: string
+  suggested_difficulty: string
+  sample_count: number
+  pass_rate: number | null
+}
+
+export interface GovernancePreview {
+  preview_token: string
+  problems: GovernanceChange[]
+}
+
+export interface ApprovedChange {
+  problem_id: string
+  normalize_tags: boolean
+  suggested_tags: string[]
+  apply_difficulty: boolean
+}
+
+export interface GovernanceSaveRequest {
+  preview: GovernanceRequest
+  preview_token: string
+  name: string
+  changes: ApprovedChange[]
+}
+
+export interface DatasetVersion {
+  id: string
+  name: string
+  problem_count: number
+}
+
+export interface DatasetVersionDetail extends DatasetVersion {
+  problems: (Omit<ProblemOption, 'source'> & { tags: string[] })[]
+}
+
 export interface ProblemClient {
+  previewGovernance(
+    request: GovernanceRequest,
+    signal?: AbortSignal,
+  ): Promise<GovernancePreview>
+  saveDatasetVersion(request: GovernanceSaveRequest): Promise<DatasetVersion>
+  datasetVersions(signal?: AbortSignal): Promise<DatasetVersion[]>
+  datasetVersion(
+    id: string,
+    signal?: AbortSignal,
+  ): Promise<DatasetVersionDetail>
   options(signal?: AbortSignal): Promise<EvaluationOptionsMeta>
   problems(
     query: ProblemListQuery,

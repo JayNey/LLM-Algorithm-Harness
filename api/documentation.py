@@ -135,11 +135,52 @@ SELECTED_PROBLEM = {
     "source": "shared",
 }
 RECOMMENDATION_SET = {"id": "set-demo", "name": "数组练习"}
+DATASET_VERSION = {"id": "version-demo", "name": "审核后的题集", "problem_count": 1}
+GOVERNANCE_REQUEST = {"problem_ids": ["two-sum"], "run_ids": ["eval-demo"]}
+GOVERNANCE_TOKEN = "0" * 64 + "." + "0" * 64
 
 
 # Handler name -> purpose, response data. Aliased paths share the same contract.
 # Examples show representative data; empty aggregates mean no stored results.
 OPERATIONS: dict[str, tuple[str, Any]] = {
+    "preview_problem_governance": (
+        "逐题预览个人题库的标签和难度变更；无权访问的题目或历史评估返回 404。",
+        {
+            "preview_token": GOVERNANCE_TOKEN,
+            "problems": [
+                {
+                    "problem_id": "two-sum",
+                    "title": "Two Sum",
+                    "original_tags": ["Array"],
+                    "standard_tags": ["array"],
+                    "suggestions": [],
+                    "original_difficulty": "easy",
+                    "suggested_difficulty": "medium",
+                    "sample_count": 2,
+                    "pass_rate": 0.5,
+                }
+            ],
+        },
+    ),
+    "save_problem_version": (
+        "将逐题获批变更保存为个人题集版本；预览过期返回 409，无可应用变更返回 400。",
+        DATASET_VERSION,
+    ),
+    "list_problem_versions": ("列出自己保存的个人题集版本。", [DATASET_VERSION]),
+    "get_problem_version": (
+        "读取自己的个人题集版本和题目元数据；版本不存在或无权访问返回 404。",
+        {
+            **DATASET_VERSION,
+            "problems": [
+                {
+                    "problem_id": "two-sum",
+                    "title": "Two Sum",
+                    "difficulty": "medium",
+                    "tags": ["array"],
+                }
+            ],
+        },
+    ),
     "selected_problems": (
         "按 ID 校验共享题目或本人的题目并返回可访问的元数据；缺失和无权访问的 ID 均省略。",
         [SELECTED_PROBLEM],
@@ -273,6 +314,10 @@ OPERATIONS: dict[str, tuple[str, Any]] = {
     ),
     "create_evaluation_with_selection": (
         "用选中的推荐题目创建待运行评估。创建前校验每道题的当前访问权限；任一题目不可访问时返回 400。随后调用 start。",
+        EVALUATION,
+    ),
+    "create_evaluation_with_dataset_version": (
+        "从自己的个人题集版本创建待运行评估；版本不存在或无权访问返回 404，题目不属于该版本返回 400。随后调用 start。",
         EVALUATION,
     ),
     "list_evaluations": ("分页查询自己的评估，可按状态过滤。", page([EVALUATION])),
@@ -1432,6 +1477,20 @@ DOWNLOADS = {
 }
 
 REQUEST_EXAMPLES: dict[str, Any] = {
+    "GovernanceRequest": GOVERNANCE_REQUEST,
+    "GovernanceSaveRequest": {
+        "preview": GOVERNANCE_REQUEST,
+        "preview_token": GOVERNANCE_TOKEN,
+        "name": "审核后的题集",
+        "changes": [{"problem_id": "two-sum", "normalize_tags": True, "apply_difficulty": True}],
+    },
+    "EvaluationVersionCreateRequest": {
+        "api_key_id": "key-demo",
+        "model": "gpt-4o-mini",
+        "problem_ids": ["two-sum"],
+        "strategy_names": ["vanilla"],
+        "dataset_version_id": "version-demo",
+    },
     "ProblemSelection": {"problem_ids": ["two-sum"]},
     "RecommendationPreviewRequest": {"run_ids": ["eval-demo"], "source": "all", "min_samples": 1},
     "RecommendationSetCreate": {"name": "数组练习", "problem_ids": ["two-sum"]},
@@ -1520,6 +1579,7 @@ REQUEST_EXAMPLES: dict[str, Any] = {
 
 # Parameter explanations include coercion behavior only where handlers implement it.
 PARAMETERS: dict[str, tuple[str, Any]] = {
+    "version_id": ("本人保存的个人题集版本 ID。", "version-demo"),
     "set_id": ("本人保存的推荐题集 ID。", "set-demo"),
     "evaluation_id": ("自己的评估 ID，由创建评估接口返回。", "eval-demo"),
     "task_id": ("自己的任务 ID；日志/成本接口按各自关联的运行记录解析。", "task-demo"),
