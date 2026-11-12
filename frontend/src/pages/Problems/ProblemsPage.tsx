@@ -590,6 +590,9 @@ function ProblemHistory({ problemId }: { problemId: string }) {
   const data = list.data as ApiPage<ProblemHistoryItem> | undefined
   const items = data?.items ?? []
   const passed = items.filter((item) => item.status === 'success').length
+  const evaluated = items.filter(
+    (item) => item.status !== 'not_evaluable',
+  ).length
   return (
     <>
       {list.status === 'loading' ? (
@@ -604,7 +607,7 @@ function ProblemHistory({ problemId }: { problemId: string }) {
           <p role="status">
             {t('本页 ')}
             {items.length} {t(' 条 · 通过 ')}
-            {passed} {t(' · 通过率')} {formatRate(passed, items.length)}
+            {passed} {t(' · 通过率')} {formatRate(passed, evaluated)}
           </p>
           <div className="evaluation-list-scroll">
             <table

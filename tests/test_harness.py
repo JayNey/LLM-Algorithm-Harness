@@ -342,6 +342,7 @@ def test_zero_case_import_is_excluded_for_each_strategy(
             text="```python\ndef solution():\n    return 1\n```",
             usage=TokenUsage(prompt_tokens=1, completion_tokens=1, total_tokens=2),
             model="stub",
+            pricing_metadata={"total_cost": 0.01, "usage_known": True, "pricing_known": True},
         )
     )
     monkeypatch.setattr(LLMClient, "generate", generate)
@@ -363,6 +364,9 @@ def test_zero_case_import_is_excluded_for_each_strategy(
         assert report.total_problems == report.solved_problems == 2
         assert report.failed_problems == report.model_failed_problems == 0
         assert report.success_rate == 1.0
+        assert report.pricing_metadata is not None
+        assert report.pricing_metadata["unknown_usage"] is False
+        assert report.estimated_cost_usd == 0.02
         assert harness.compare_strategies()["metrics"][strategy]["success_rate"] == 1.0
     assert generate.call_count == 4
 

@@ -36,6 +36,7 @@ from api.db import (
 from api.db.engine import business_database_url
 from api.db.models import SpendRecord, utcnow
 from src.cost_optimizer import build_advisory
+from src.models import NOT_EVALUABLE
 from src.utils.pricing import PricingManager
 
 _CHANNELS = frozenset({"slack", "webhook", "smtp", "log"})
@@ -79,7 +80,10 @@ def _evaluation_sample(
         and row.strategy_name in strategies
         and (not problems or row.problem_id in problems)
     }
-    observed = [row for row in latest.values() if row.status not in {"pending", "running"}]
+    total = max(0, total - sum(row.status == NOT_EVALUABLE for row in latest.values()))
+    observed = [
+        row for row in latest.values() if row.status not in {"pending", "running", NOT_EVALUABLE}
+    ]
     if not 0 < len(observed) <= total:
         return total, 0, 0, None
     solved = sum(row.status == "success" for row in observed)

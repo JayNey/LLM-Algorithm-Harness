@@ -1088,6 +1088,8 @@ class AlgorithmHarness:
         }
 
         for result in results:
+            if result.status == NOT_EVALUABLE:
+                continue
             if result.llm_traces:
                 # Use actual pricing from llm_traces
                 for trace in result.llm_traces:

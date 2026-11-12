@@ -37,7 +37,7 @@ from api.files.parsing import (
 from api.files.store import FileStore
 from src.checkpoints import write_checkpoint
 from src.importers.leetcode import LeetCodeImporter, LeetCodeRateLimitError
-from src.models import ExecutionResult, Problem
+from src.models import NOT_EVALUABLE, ExecutionResult, Problem
 from src.reporting.chart_generator import ChartGenerator
 from src.reporting.csv_exporter import CSVExporter
 from src.utils.secrets import redact_sensitive_data
@@ -679,11 +679,16 @@ class FileService:
         if format_name == "png":
             metrics = {}
             for strategy, items in payload.items():
-                solved = sum(ExecutionResult.model_validate(item).is_successful() for item in items)
+                evaluated = [
+                    ExecutionResult.model_validate(item)
+                    for item in items
+                    if item.get("status") != NOT_EVALUABLE
+                ]
+                solved = sum(result.is_successful() for result in evaluated)
                 metrics[strategy] = {
-                    "success_rate": solved / len(items) if items else 0,
+                    "success_rate": solved / len(evaluated) if evaluated else 0,
                     "solved_problems": solved,
-                    "total_problems": len(items),
+                    "total_problems": len(evaluated),
                 }
             with _CHART_LOCK:
                 chart = ChartGenerator.generate_success_rate_chart(metrics)

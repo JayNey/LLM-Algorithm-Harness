@@ -177,10 +177,9 @@ export default {
   创建时间: 'Created',
   更新时间: 'Updated',
   策略汇总: 'Strategy summary',
-  '全量已记录单元的统计，不随下方单题分页变化。':
-    'Statistics cover all recorded units and do not change with the problem pagination below.',
   可滚动的策略汇总: 'Scrollable strategy summary',
-  '成功 / 记录单元': 'Successful / recorded units',
+  '成功 / 已评估单元': 'Successful / evaluated units',
+  '不可评估（缺少测试用例）': 'Not evaluable (no test cases)',
   成功率: 'Success rate',
   '平均 Token': 'Average tokens',
   平均执行耗时: 'Average execution time',
