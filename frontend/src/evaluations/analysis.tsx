@@ -228,7 +228,7 @@ function strategyRows(strategies: StrategySummary[]) {
 }
 const strategyHead = () => [
   t('策略'),
-  t('成功 / 记录单元'),
+  t('成功 / 已评估单元'),
   t('成功率'),
   t('平均 Token'),
   t('平均执行耗时'),
@@ -334,7 +334,7 @@ function SuccessRatePanel(props: Scoped) {
           {Object.keys(data.by_difficulty).length ? (
             <Table
               label={t('按难度成功率')}
-              head={[t('难度'), t('成功 / 记录单元'), t('成功率')]}
+              head={[t('难度'), t('成功 / 已评估单元'), t('成功率')]}
               rows={bucketRows(data.by_difficulty)}
             />
           ) : (
@@ -344,7 +344,7 @@ function SuccessRatePanel(props: Scoped) {
           {Object.keys(data.by_tag).length ? (
             <Table
               label={t('按标签成功率')}
-              head={[t('标签'), t('成功 / 记录单元'), t('成功率')]}
+              head={[t('标签'), t('成功 / 已评估单元'), t('成功率')]}
               rows={bucketRows(data.by_tag)}
             />
           ) : (
@@ -713,7 +713,7 @@ function FailuresByTagPanel(props: Scoped) {
       {data && (
         <Table
           label={t('按标签成功率')}
-          head={[t('标签'), t('成功 / 记录单元'), t('成功率')]}
+          head={[t('标签'), t('成功 / 已评估单元'), t('成功率')]}
           rows={bucketRows(data.tags)}
         />
       )}

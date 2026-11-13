@@ -38,7 +38,7 @@ from api.db.engine import business_database_url
 from api.db.migrate import SCRIPT_LOCATION
 from api.db.models import WEB_EVALUATION_RUN_PREFIX
 from src.error_analysis import normalize_message
-from src.models import ExecutionResult, IterationResult
+from src.models import NOT_EVALUABLE, ExecutionResult, IterationResult
 from src.recommender import RecommendationProblem
 from src.reporting.capability_profiler import (
     calculate_dimension_scores,
@@ -70,25 +70,11 @@ def _by_difficulty(
     items: list[tuple[EvaluationResult, Problem | None]],
 ) -> dict[str, dict[str, float | int]]:
     """Group one strategy with the same difficulty rule as analytics."""
-    grouped: dict[str, list[EvaluationResult]] = {}
-    for row, problem in items:
-        difficulty = _effective_difficulty(row.metrics, problem)
-        if not difficulty:
-            continue
-        grouped.setdefault(difficulty, []).append(row)
-    summary: dict[str, dict[str, float | int]] = {}
-    for name, rows in grouped.items():
-        solved = sum(1 for row in rows if row.status == "success")
-        summary[name] = {
-            "success_rate": solved / len(rows),
-            "solved": solved,
-            "total": len(rows),
-        }
-    return summary
+    return _group_rates(items, _difficulty_labels)
 
 
 def aggregate(pairs: list[tuple[EvaluationResult, Problem | None]]) -> list[dict]:
-    """Summarize every unit of a run, grouped by strategy.
+    """Summarize evaluated units for every strategy in a run.
 
     Difficulty comes from metrics when that value is present and not null,
     otherwise from the joined problem. Later analytics and comparison reuse
@@ -100,8 +86,8 @@ def aggregate(pairs: list[tuple[EvaluationResult, Problem | None]]) -> list[dict
         grouped.setdefault(pair[0].strategy_name, []).append(pair)
     strategies = []
     for name, items in grouped.items():
-        rows = [row for row, _problem in items]
-        solved = sum(1 for row in rows if row.status == "success")
+        rows = [row for row, _problem in items if row.status != NOT_EVALUABLE]
+        rates = _rate_bucket(rows)
         estimated_cost, unknown_cost = _known_cost(rows)
         times = [
             value
@@ -112,9 +98,9 @@ def aggregate(pairs: list[tuple[EvaluationResult, Problem | None]]) -> list[dict
         strategies.append(
             {
                 "name": name,
-                "success_rate": solved / len(rows) if rows else 0.0,
-                "total_problems": len(rows),
-                "solved_problems": solved,
+                "success_rate": rates["success_rate"],
+                "total_problems": rates["total"],
+                "solved_problems": rates["solved"],
                 "avg_tokens": (sum(tokens) / len(tokens)) if tokens else 0.0,
                 "estimated_cost_usd": estimated_cost,
                 "unknown_cost_count": unknown_cost,
@@ -132,6 +118,7 @@ def _problem_item(row: EvaluationResult) -> dict:
         "problem_id": row.problem_id,
         "strategy": row.strategy_name,
         "status": row.status,
+        **({"error_message": row.error_message} if row.status == NOT_EVALUABLE else {}),
         "iterations": (
             None if metrics is None or "iterations" not in metrics else metrics["iterations"]
         ),
@@ -205,7 +192,7 @@ def _effective_difficulty(metrics: dict | None, problem: Problem | None) -> str 
 
 def _rate_bucket(rows: list[EvaluationResult]) -> dict[str, float | int]:
     solved = sum(1 for row in rows if row.status == "success")
-    total = len(rows)
+    total = sum(row.status != NOT_EVALUABLE for row in rows)
     return {
         "success_rate": (solved / total) if total else 0.0,
         "solved": solved,
@@ -220,6 +207,8 @@ def _group_rates(
     """Count each unit once per label. Overall totals stay on the ungrouped rows."""
     grouped: dict[str, list[EvaluationResult]] = {}
     for row, problem in pairs:
+        if row.status == NOT_EVALUABLE:
+            continue
         seen: set[str] = set()
         for label in labeler(row, problem):
             if not label or label in seen:
@@ -255,7 +244,7 @@ def _known_cost(rows: list[EvaluationResult]) -> tuple[float, int]:
 
 
 def _success_payload(pairs: list[tuple[EvaluationResult, Problem | None]]) -> dict[str, Any]:
-    rows = [row for row, _problem in pairs]
+    rows = [row for row, _problem in pairs if row.status != NOT_EVALUABLE]
     times = [
         value for row in rows if (value := _num(row.metrics, "execution_time_seconds")) is not None
     ]
@@ -302,7 +291,7 @@ def _failure_modes_payload(pairs: list[tuple[EvaluationResult, Problem | None]])
     """Count saved failure_mode on non-success rows. A missing mode is unknown."""
     counts: Counter[str] = Counter()
     for row, _problem in pairs:
-        if row.status == "success":
+        if row.status in {"success", NOT_EVALUABLE}:
             continue
         counts[(row.metrics or {}).get("failure_mode") or "unknown"] += 1
     return dict(counts)
@@ -455,6 +444,7 @@ def _execution_result(row: EvaluationResult) -> ExecutionResult:
         strategy=row.strategy_name,
         generated_code="",
         status=row.status,
+        evaluation_completed=row.status != NOT_EVALUABLE,
         failure_category=_allowed(metrics, "failure_category", _FAILURE_CATEGORIES),  # type: ignore[arg-type]
         failure_mode=_allowed(metrics, "failure_mode", _FAILURE_MODES),  # type: ignore[arg-type]
         difficulty=_allowed(metrics, "difficulty", _DIFFICULTIES),  # type: ignore[arg-type]
@@ -533,7 +523,7 @@ def _recommendation_outcome(row: EvaluationResult) -> dict[str, Any]:
     snapshot = metrics.get("problem_snapshot")
     completed = (
         payload.get("evaluation_completed", metrics.get("evaluation_completed")) is not False
-        and row.status not in {"pending", "running", "paused", "skipped"}
+        and row.status not in {"pending", "running", "paused", "skipped", NOT_EVALUABLE}
         and not (isinstance(snapshot, dict) and snapshot.get("origin") == "unavailable")
         and (row.status != "failed" or bool(payload) or "success" in metrics)
     )
@@ -1087,6 +1077,8 @@ class EvaluationResultsService:
             problem_dicts: list[dict[str, Any]] = []
             seen: set[str] = set()
             for row, problem in pairs:
+                if row.status == NOT_EVALUABLE:
+                    continue
                 tags = sorted(set(_tag_labels(row, problem)))
                 # The same ID can have different historical versions even within
                 # one owner's runs. Join profiler inputs by version, not bare ID.
@@ -1120,7 +1112,7 @@ class EvaluationResultsService:
         categories: Counter[str] = Counter()
         clusters: Counter[str] = Counter()
         for row in rows:
-            if row.status == "success":
+            if row.status in {"success", NOT_EVALUABLE}:
                 continue
             metrics = row.metrics or {}
             modes[metrics.get("failure_mode") or "unknown"] += 1
@@ -1170,7 +1162,7 @@ class EvaluationResultsService:
                     "error_message": row.error_message,
                 }
                 for row in rows
-                if row.status != "success"
+                if row.status not in {"success", NOT_EVALUABLE}
             ]
         }
 

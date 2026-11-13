@@ -663,6 +663,31 @@ class TestPricing:
 
 class TestReports:
     @pytest.mark.parametrize(
+        ("statuses", "expected"),
+        [
+            (["success", "not_evaluable"], (1, 1, 1, 0.2)),
+            (["not_evaluable", "not_evaluable"], (0, 0, 0, None)),
+            (["pending", "not_evaluable"], (1, 0, 0, None)),
+        ],
+    )
+    def test_optimization_sample_excludes_zero_case_units(self, statuses, expected):
+        from api.services.cost_service import _evaluation_sample
+
+        evaluation = Evaluation(
+            problem_ids=["p1", "p2"], strategy_names=["vanilla"], problem_count=2
+        )
+        results = [
+            EvaluationResult(
+                problem_id=problem_id,
+                strategy_name="vanilla",
+                status=status,
+                metrics={"cost_usd": 0.2} if status == "success" else {"cost_unknown": True},
+            )
+            for problem_id, status in zip(evaluation.problem_ids, statuses, strict=True)
+        ]
+        assert _evaluation_sample(evaluation, results) == expected
+
+    @pytest.mark.parametrize(
         ("units", "solved", "accuracy", "cost"),
         [
             ([("failed", 0.2), ("failed", 0.3)], 0, 0.0, 0.5),

@@ -2,21 +2,27 @@
 Tests for AlgorithmHarness.
 """
 
+import json
+from pathlib import Path
 from unittest.mock import MagicMock, patch
 
 import pytest
 
 from src.harness import AlgorithmHarness
+from src.importers.leetcode import LeetCodeImporter
+from src.llm_client import LLMClient
 from src.models import (
     ExecutionResult,
     HarnessConfig,
     LLMConfig,
+    LLMResponse,
     Problem,
     SandboxConfig,
     SandboxResult,
     StrategyConfig,
     TestCase,
     TestCaseResult,
+    TokenUsage,
 )
 from src.sandbox_executor import SandboxExecutor
 
@@ -304,6 +310,67 @@ def test_hidden_only_problem_is_scored_by_hidden_stage(harness_config, monkeypat
     assert sandbox.execute.call_args.kwargs["stage"] == "hidden"
 
 
+@pytest.mark.parametrize("use_task_service", [False, True])
+def test_zero_case_import_is_excluded_for_each_strategy(
+    harness_config, tmp_path, monkeypatch, use_task_service
+):
+    fixture = Path(__file__).parent / "fixtures" / "leetcode_questions.json"
+    imported = LeetCodeImporter().transform_to_schema(
+        json.loads(fixture.read_text(encoding="utf-8"))
+    )
+    zero_case = imported[4]
+    assert not zero_case.test_cases_for("all")
+    assert zero_case.needs_manual_completion
+    problems = [zero_case]
+    for stage in ("feedback", "hidden"):
+        problems.append(
+            Problem(
+                problem_id=f"{stage}-only",
+                title=f"{stage} only",
+                description="Return the integer one.",
+                difficulty="easy",
+                **{f"{stage}_test_cases": [{"input": {}, "expected_output": 1}]},
+            )
+        )
+    Path(harness_config.dataset_path).write_text(
+        json.dumps([problem.model_dump(mode="json") for problem in problems]), encoding="utf-8"
+    )
+    harness_config.output_dir = str(tmp_path / "output")
+    harness_config.strategies.append(StrategyConfig(name="chain_of_thought", max_iterations=1))
+    generate = MagicMock(
+        return_value=LLMResponse(
+            text="```python\ndef solution():\n    return 1\n```",
+            usage=TokenUsage(prompt_tokens=1, completion_tokens=1, total_tokens=2),
+            model="stub",
+            pricing_metadata={"total_cost": 0.01, "usage_known": True, "pricing_known": True},
+        )
+    )
+    monkeypatch.setattr(LLMClient, "generate", generate)
+    harness = AlgorithmHarness(harness_config)
+
+    reports = harness.run(use_task_service=use_task_service)
+
+    for strategy, report in reports.items():
+        skipped, feedback, hidden = harness.results[strategy]
+        assert skipped.problem_id == zero_case.problem_id
+        assert skipped.status == "not_evaluable"
+        assert skipped.failure_category is None
+        assert skipped.failure_mode is None
+        assert "test cases" in skipped.error_message
+        assert not skipped.iterations
+        assert feedback.status == hidden.status == "success"
+        assert feedback.final_result and len(feedback.final_result.test_results) == 1
+        assert hidden.hidden_result and len(hidden.hidden_result.test_results) == 1
+        assert report.total_problems == report.solved_problems == 2
+        assert report.failed_problems == report.model_failed_problems == 0
+        assert report.success_rate == 1.0
+        assert report.pricing_metadata is not None
+        assert report.pricing_metadata["unknown_usage"] is False
+        assert report.estimated_cost_usd == 0.02
+        assert harness.compare_strategies()["metrics"][strategy]["success_rate"] == 1.0
+    assert generate.call_count == 4
+
+
 def test_unsupported_problem_is_short_circuited_before_strategy(harness_config, monkeypatch):
     """Unsupported protocols never enter model generation or hidden scoring."""
     problem = Problem(
@@ -492,6 +559,7 @@ def test_harness_records_final_memory_profile(harness_config, monkeypatch, scena
     problem = harness._load_problems()[0]
     problem.public_test_cases[0].input = {"x": 2 * 1024 * 1024}
     if scenario == "no-public":
+        problem.feedback_test_cases = problem.public_test_cases
         problem.public_test_cases = []
 
     code = "def solution(x):\n    data = bytearray(x)\n    return 2"

@@ -26,6 +26,7 @@ export function historyStatusLabel(status: string): string {
     error: t('执行错误'),
     timeout: t('执行超时'),
     unsupported: t('不支持'),
+    not_evaluable: t('不可评估（缺少测试用例）'),
     budget_exhausted: t('预算跳过'),
     skipped: t('跳过'),
     pending: t('等待中'),

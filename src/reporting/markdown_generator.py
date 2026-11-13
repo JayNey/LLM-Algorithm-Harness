@@ -7,7 +7,7 @@ from datetime import datetime
 from pathlib import Path
 from typing import Any
 
-from src.models import ExecutionResult
+from src.models import NOT_EVALUABLE, ExecutionResult
 from src.utils.secrets import redact_sensitive_text
 
 logger = logging.getLogger(__name__)
@@ -199,7 +199,9 @@ class MarkdownGenerator:
         for strategy_tuple in sorted_strategies:
             strategy_name = strategy_tuple[0]
             strategy_results = results.get(strategy_name, [])
-            failed = [r for r in strategy_results if not r.is_successful()]
+            failed = [
+                r for r in strategy_results if r.status != NOT_EVALUABLE and not r.is_successful()
+            ]
 
             if failed:
                 has_failures = True
@@ -220,6 +222,21 @@ class MarkdownGenerator:
 
         if not has_failures:
             lines.append("No failures recorded.")
+            lines.append("")
+
+        skipped = [
+            (strategy, result)
+            for strategy, strategy_results in results.items()
+            for result in strategy_results
+            if result.status == NOT_EVALUABLE
+        ]
+        if skipped:
+            lines.extend(["## Not Evaluable", ""])
+            for strategy, result in skipped:
+                problem_id = MarkdownGenerator._escape_markdown(result.problem_id)
+                strategy_name = MarkdownGenerator._escape_markdown(strategy)
+                reason = MarkdownGenerator._escape_markdown(result.error_message or "No test cases")
+                lines.append(f"- **{problem_id}** ({strategy_name}): {reason}")
             lines.append("")
 
         markdown_content = redact_sensitive_text("\n".join(lines))

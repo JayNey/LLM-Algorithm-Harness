@@ -88,6 +88,45 @@ def sandboxed(monkeypatch):
 
 
 class TestIncrementalEndToEnd:
+    @pytest.mark.parametrize("legacy_success", [False, True])
+    def test_zero_case_results_do_not_inflate_incremental_summary(self, tmp_path, legacy_success):
+        dataset = _dataset(tmp_path, ["p1", "p2", "p3"])
+        problems = json.loads(dataset.read_text(encoding="utf-8"))
+        problems[2].pop("test_cases")
+        problems[2].update(public_test_cases=[], needs_manual_completion=True)
+        dataset.write_text(json.dumps(problems), encoding="utf-8")
+        argv = ["--config", str(_config_file(tmp_path, dataset)), "--incremental"]
+        output_dir = tmp_path / "results"
+
+        with patch("src.harness.LLMClient", side_effect=_llm_factory()):
+            assert _run_main(argv) == 0
+
+        def latest_run():
+            latest = json.loads((output_dir / "latest.json").read_text(encoding="utf-8"))
+            return output_dir / latest["latest_run"]
+
+        if legacy_success:
+            prior = latest_run() / "vanilla_results.json"
+            rows = json.loads(prior.read_text(encoding="utf-8"))
+            skipped = next(row for row in rows if row["problem_id"] == "p3")
+            skipped.update(status="success", evaluation_completed=True, error_message=None)
+            prior.write_text(json.dumps(rows), encoding="utf-8")
+
+        problems[0]["description"] = "Modified problem description."
+        dataset.write_text(json.dumps(problems), encoding="utf-8")
+        with patch("src.harness.LLMClient", side_effect=_llm_factory()):
+            assert _run_main(argv) == 0
+
+        run = latest_run()
+        summary = json.loads((run / "summary.json").read_text(encoding="utf-8"))
+        report = summary["strategies"]["vanilla"]
+        assert report["total_problems"] == report["solved_problems"] == 2
+        assert report["success_rate"] == 1.0
+        rows = json.loads((run / "vanilla_results.json").read_text(encoding="utf-8"))
+        skipped = next(row for row in rows if row["problem_id"] == "p3")
+        assert skipped["status"] == "not_evaluable"
+        assert skipped["source"] == ("fresh" if legacy_success else "reused")
+
     @pytest.mark.parametrize("report_name", ["vanilla", "cost_aware"])
     def test_second_run_evaluates_only_changed_and_merges(self, tmp_path, capsys, report_name):
         dataset = _dataset(tmp_path, ["p1", "p2", "p3"])

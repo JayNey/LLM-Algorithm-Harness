@@ -30,6 +30,7 @@ from src.cost_strategy import (
 from src.failure_classifier import classify_failure_mode
 from src.llm_client import LLMClient, SpendCallback
 from src.models import (
+    NOT_EVALUABLE,
     CostAlertConfig,
     ExecutionResult,
     HarnessConfig,
@@ -259,6 +260,8 @@ class AlgorithmHarness:
         )
         progress_task_id: TaskID | None = None
         progress_lock = threading.Lock()
+        evaluated_count = 0
+        success_count = 0
 
         if resume:
             if not run_id:
@@ -331,6 +334,7 @@ class AlgorithmHarness:
             raise
 
         def worker(unit: TaskUnit) -> ExecutionResult:
+            nonlocal evaluated_count, success_count
             strategy_config = strategy_map[unit.strategy]
             problem = problem_map[unit.problem_id]
             strategy, sandbox = runtimes[unit.strategy]
@@ -378,16 +382,10 @@ class AlgorithmHarness:
             if progress_task_id is not None:
                 with progress_lock:
                     progress.advance(progress_task_id, 1)
-                    # Calculate current success rate
-                    completed = progress.tasks[progress_task_id].completed
-                    if completed > 0:
-                        # Collect results so far to calculate success rate
-                        success_count = sum(
-                            1 for r in self.results.get(unit.strategy, []) if r.status == "success"
-                        )
-                        success_rate = (
-                            f"{success_count}/{completed} ({success_count / completed * 100:.1f}%)"
-                        )
+                    if result.status != NOT_EVALUABLE:
+                        evaluated_count += 1
+                        success_count += int(result.success)
+                        success_rate = f"{success_count}/{evaluated_count} ({success_count / evaluated_count:.1%})"
                         progress.update(progress_task_id, success_rate=success_rate)
 
             return result
@@ -715,7 +713,9 @@ class AlgorithmHarness:
         for i, problem in enumerate(problems):
             key = f"{TaskService.config_fingerprint(strategy_config)}:{problem.problem_id}"
             saved = self._unit_checkpoint.get(key) if self._unit_checkpoint is not None else None
-            if saved is not None:
+            if saved is not None and (
+                saved.get("status") == NOT_EVALUABLE or problem.test_cases_for("all")
+            ):
                 replayed = ExecutionResult.model_validate(saved)
                 results.append(replayed)
                 self._progress_done += 1
@@ -805,6 +805,16 @@ class AlgorithmHarness:
         sandbox: SandboxExecutor,
     ) -> ExecutionResult:
         """Execute one visible problem and its independent hidden stage."""
+        if not problem.test_cases_for("all"):
+            return ExecutionResult(
+                problem_id=problem.problem_id,
+                strategy=strategy_config.name,
+                generated_code="",
+                status=NOT_EVALUABLE,
+                evaluation_completed=False,
+                difficulty=problem.difficulty,
+                error_message="No test cases configured for this problem",
+            )
         if problem.unsupported_reason:
             return ExecutionResult(
                 problem_id=problem.problem_id,
@@ -997,7 +1007,7 @@ class AlgorithmHarness:
         Returns:
             StrategyReport
         """
-        total_problems = len(problems)
+        total_problems = len(problems) - sum(r.status == NOT_EVALUABLE for r in results)
         solved_problems = sum(1 for r in results if r.status == "success")
         model_failed = sum(1 for r in results if r.failure_category == "model_error")
         system_failed = sum(1 for r in results if r.failure_category == "system_error")
@@ -1078,6 +1088,8 @@ class AlgorithmHarness:
         }
 
         for result in results:
+            if result.status == NOT_EVALUABLE:
+                continue
             if result.llm_traces:
                 # Use actual pricing from llm_traces
                 for trace in result.llm_traces:
@@ -1154,6 +1166,8 @@ class AlgorithmHarness:
         # Group results by difficulty (use result.difficulty directly if available)
         by_difficulty: dict[str, dict[str, Any]] = {}
         for result in results:
+            if result.status == NOT_EVALUABLE:
+                continue
             # Prefer result.difficulty (populated in newer runs)
             difficulty = result.difficulty
             if not difficulty:
@@ -1207,7 +1221,7 @@ class AlgorithmHarness:
             List of problem IDs
         """
         results = self.get_results(strategy_name)
-        return [r.problem_id for r in results if r.status != "success"]
+        return [r.problem_id for r in results if r.status not in {"success", NOT_EVALUABLE}]
 
     def compare_strategies(self) -> dict:
         """
@@ -1225,6 +1239,7 @@ class AlgorithmHarness:
             # Use the same denominator as the strategy report so that a
             # problem dropped mid-run still counts against the strategy
             total = self.problem_totals.get(strategy_name, len(results))
+            total -= sum(r.status == NOT_EVALUABLE for r in results)
             solved = sum(1 for r in results if r.status == "success")
 
             comparison["metrics"][strategy_name] = {

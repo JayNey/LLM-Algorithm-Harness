@@ -395,7 +395,7 @@ def test_publication_http_owner_retry_queue_failure_and_empty_semantics(artifact
 
 
 @pytest.fixture
-def worker_env(artifact_env, monkeypatch, tmp_path):
+def worker_env(artifact_env, monkeypatch, tmp_path, request):
     e = artifact_env
     from api.db.models import AsyncTask, Problem
     from src.harness import AlgorithmHarness
@@ -439,6 +439,8 @@ def worker_env(artifact_env, monkeypatch, tmp_path):
     monkeypatch.setattr(run_evaluation_task, "update_state", lambda **k: None)
     monkeypatch.setattr(AlgorithmHarness, "_prepare_strategy_runtime", lambda *a: (None, None))
     calls = []
+    if getattr(request, "param", False):
+        return e, calls, run_evaluation_task
 
     def execute(self, config, problem, *args):
         calls.append(problem.problem_id)
@@ -456,6 +458,50 @@ def worker_env(artifact_env, monkeypatch, tmp_path):
         AlgorithmHarness, "_estimate_cost", lambda *a: (0.0, {"unknown_pricing": True})
     )
     return e, calls, run_evaluation_task
+
+
+@pytest.mark.parametrize("worker_env", [True], indirect=True)
+def test_worker_publishes_zero_case_import_for_each_strategy(worker_env):
+    import json
+    from pathlib import Path
+
+    from src.importers.leetcode import LeetCodeImporter
+
+    e, _, task = worker_env
+    fixture = Path(__file__).parent / "fixtures" / "leetcode_questions.json"
+    problem = LeetCodeImporter().transform_to_schema(
+        json.loads(fixture.read_text(encoding="utf-8"))
+    )[4]
+    store = e["files"].store
+    assert store.append_problem(
+        e["owner"], problem.model_dump(mode="json"), max_bytes=100_000, max_items=20
+    )
+    factory = e["app"].state.task_session_factory
+    with factory() as db:
+        evaluation = db.get(Evaluation, e["id"])
+        evaluation.problem_ids = [problem.problem_id]
+        evaluation.strategy_names = ["vanilla", "chain_of_thought"]
+        db.commit()
+
+    assert task.run(e["id"])["status"] == "completed"
+
+    headers = auth_headers(e["alice"])
+    detail = e["client"].get(f"/api/v1/results/{e['id']}", headers=headers).json()["data"]
+    assert detail["problems"]["total"] == 2
+    assert {row["strategy"] for row in detail["problems"]["items"]} == {
+        "vanilla",
+        "chain_of_thought",
+    }
+    for row in detail["problems"]["items"]:
+        assert row["status"] == "not_evaluable"
+        assert "test cases" in row["error_message"]
+    for strategy in detail["strategies"]:
+        assert strategy["total_problems"] == strategy["solved_problems"] == 0
+        assert strategy["unknown_cost_count"] == 0
+    with factory() as db:
+        evaluation = db.get(Evaluation, e["id"])
+        assert evaluation.completed_count == 2
+        assert evaluation.failed_count == 0
 
 
 def test_real_worker_commits_publishes_and_http_downloads_without_manual_injection(worker_env):

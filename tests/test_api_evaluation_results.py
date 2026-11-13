@@ -17,7 +17,10 @@ from api.db.models import BenchmarkRun, BenchmarkSuite, Evaluation, EvaluationRe
 from api.files.config import FileSettings
 from api.main import create_app
 from src.error_analysis import normalize_message
+from src.models import ExecutionResult
 from src.reporting.capability_profiler import ALL_DIMENSIONS
+from src.task_service import TaskUnit
+from src.tasks.evaluation import _record_unit_result
 
 PASSWORD = "a-long-test-password-!"
 
@@ -811,6 +814,70 @@ def test_failure_summary_keeps_stored_mode(client, owner_headers):
         "solved": 1,
         "total": 2,
     }
+
+
+def test_not_evaluable_unit_is_visible_without_affecting_web_rates(client, owner_headers):
+    result = ExecutionResult(
+        problem_id="leetcode-355",
+        strategy="vanilla",
+        generated_code="",
+        status="not_evaluable",
+        evaluation_completed=False,
+        difficulty="easy",
+        error_message="No test cases configured for this problem",
+        metadata={"problem_snapshot": {"tags": ["array"], "difficulty": "easy"}},
+    )
+    with client.app.state.task_session_factory() as db:
+        evaluation = db.get(Evaluation, "eval-own")
+        assert evaluation is not None
+        _record_unit_result(
+            db,
+            evaluation,
+            TaskUnit(
+                unit_id="vanilla:leetcode-355:0",
+                problem_id=result.problem_id,
+                strategy=result.strategy,
+                status="completed",
+                result=result.model_dump(mode="json"),
+            ),
+        )
+        db.commit()
+
+    detail = client.get("/api/v1/results/run-own", headers=owner_headers).json()["data"]
+    assert detail["problems"]["total"] == 3
+    skipped = next(row for row in detail["problems"]["items"] if row["status"] == "not_evaluable")
+    assert skipped["problem_id"] == "leetcode-355"
+    assert "test cases" in skipped["error_message"]
+    vanilla = next(row for row in detail["strategies"] if row["name"] == "vanilla")
+    assert vanilla["success_rate"] == 1.0
+    assert vanilla["total_problems"] == vanilla["by_difficulty"]["easy"]["total"] == 1
+
+    rate = client.get(
+        "/api/v1/analytics/success-rate", headers=owner_headers, params={"run_id": "run-own"}
+    ).json()["data"]
+    assert rate["success_rate"] == 0.5
+    assert (
+        rate["total"]
+        == rate["by_tag"]["array"]["total"]
+        == rate["by_difficulty"]["easy"]["total"]
+        == 2
+    )
+    summary = client.get("/api/v1/failures/summary/run-own", headers=owner_headers).json()["data"]
+    assert summary["categories"] == {"wrong_answer": 1}
+    cases = client.get("/api/v1/failures/cases/run-own", headers=owner_headers).json()["data"]
+    assert [case["status"] for case in cases["items"]] == ["failed"]
+    radar = client.get(
+        "/api/v1/visualizations/capability-radar",
+        headers=owner_headers,
+        params={"run_id": "run-own"},
+    ).json()["data"]
+    assert radar["problem_counts"]["Array"] == 1
+    assert radar["series"][0]["data"][radar["dimensions"].index("Array")] == 50.0
+    markdown = client.get("/api/v1/reports/markdown/run-own", headers=owner_headers)
+    assert markdown.status_code == 200
+    failed, skipped = markdown.text.split("## Not Evaluable")
+    assert "leetcode-355" not in failed
+    assert "leetcode-355" in skipped and "No test cases" in skipped
 
 
 def test_results_api_hides_other_users_and_paginates_problems(client, owner_headers):

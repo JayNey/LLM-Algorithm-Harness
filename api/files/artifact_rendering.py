@@ -11,6 +11,7 @@ from typing import Any
 
 from fastapi import HTTPException
 
+from src.models import NOT_EVALUABLE
 from src.reporting.chart_generator import ChartGenerator
 
 
@@ -89,15 +90,17 @@ def render_snapshot(payload: dict[str, Any], format_name: str) -> tuple[str, str
                 )
         return "results.csv", "text/csv", stream.getvalue().encode("utf-8-sig")
     if format_name == "png":
-        metrics = {
-            strategy: {
-                "success_rate": sum(row["status"] == "success" for row in rows) / len(rows),
-                "solved_problems": sum(row["status"] == "success" for row in rows),
-                "total_problems": len(rows),
+        metrics = {}
+        for strategy, rows in payload["results"].items():
+            if not rows:
+                continue
+            solved = sum(row["status"] == "success" for row in rows)
+            total = sum(row["status"] != NOT_EVALUABLE for row in rows)
+            metrics[strategy] = {
+                "success_rate": solved / total if total else 0.0,
+                "solved_problems": solved,
+                "total_problems": total,
             }
-            for strategy, rows in payload["results"].items()
-            if rows
-        }
         chart = ChartGenerator.generate_success_rate_chart(metrics, title=title)
         if chart is None:
             raise HTTPException(404, "Chart not available")

@@ -92,7 +92,6 @@ export function ResultTables({ result }: { result: ResultDetail }) {
   return (
     <>
       <h2>{t('策略汇总')}</h2>
-      <p>{t('全量已记录单元的统计，不随下方单题分页变化。')}</p>
       {result.strategies.length ? (
         <div
           className="evaluation-list-scroll"
@@ -105,7 +104,7 @@ export function ResultTables({ result }: { result: ResultDetail }) {
               <tr>
                 {[
                   t('策略'),
-                  t('成功 / 记录单元'),
+                  t('成功 / 已评估单元'),
                   t('成功率'),
                   t('平均 Token'),
                   t('平均执行耗时'),
@@ -177,7 +176,11 @@ export function ResultTables({ result }: { result: ResultDetail }) {
                 <tr key={JSON.stringify([row.problem_id, row.strategy])}>
                   <td>{row.problem_id}</td>
                   <td>{row.strategy}</td>
-                  <td>{row.status}</td>
+                  <td>
+                    {row.status === 'not_evaluable'
+                      ? t('不可评估（缺少测试用例）')
+                      : row.status}
+                  </td>
                   <td>{metricLabel(row.iterations)}</td>
                   <td>{metricLabel(row.tokens)}</td>
                   <td>{metricLabel(row.execution_time, t('秒'))}</td>
