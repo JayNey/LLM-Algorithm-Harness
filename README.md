@@ -707,6 +707,10 @@ problem_filters:
 
 函数题可用 `judge_config.result_argument` 指定要比较的原地修改参数。每个用例的 `input` 都要提供同名字段，`expected_output` 填写参数修改后的值。LeetCode 公开导入的 73、88、49 在加载时会为缺省配置补上对应规则。手工维护的旧题库可为 73 和 88 分别添加 `"result_argument": "matrix"` 和 `"result_argument": "nums1"`，为 49 设置 `"comparison": "unordered_groups"`。
 
+LeetCode 公开导入的 105、106、133、138 会在判题进程内提供相应的 `TreeNode` 或 `Node` 构造器。105 和 106 比较带内部 `null` 的层序序列，133 按节点编号比较邻接表，138 比较 `[值, 随机指针索引]` 序列。133 和 138 还会检查返回结构是否复用了原节点。
+
+这四题的既有公开导入记录会在 CLI 和 Web 加载时补齐缺省适配。对于其他使用尚未支持节点类型的题目，重新导入可记录具体原因。CLI 可用 `harness import leetcode --input <题目 URL 或 slug> --output <现有题库路径> --update-strategy overwrite` 更新记录。Web 可将更新后的完整题库用「替换」模式上传。
+
 链表、树、交互题等需要自定义序列化或交互协议的题目，可以填写 `unsupported_reason`。Harness 会将其标记为 `unsupported`，不会把它记为模型答错。
 
 ## 运行测试

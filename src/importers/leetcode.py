@@ -455,7 +455,8 @@ class LeetCodeImporter(ProblemImporter):
         source_url = question.get("_source_url") or f"https://leetcode.com/problems/{slug}/"
         content = self.clean_html_content(question.get("content") or "")
         notes: list[str] = []
-        entry_point = self._extract_entry_point(question.get("codeSnippets") or [])
+        snippets = question.get("codeSnippets") or []
+        entry_point = self._extract_entry_point(snippets)
         if entry_point is None:
             entry_point = "solution(**test_input)"
             notes.append(
@@ -478,7 +479,7 @@ class LeetCodeImporter(ProblemImporter):
 
         public_test_cases = [TestCase(**case) for case in public_cases]
 
-        return Problem(
+        problem = Problem(
             schema_version="1.1",
             problem_id=f"leetcode-{frontend_id}",
             title=question.get("title") or slug.replace("-", " ").title(),
@@ -496,6 +497,18 @@ class LeetCodeImporter(ProblemImporter):
             needs_manual_completion=needs_manual,
             manual_completion_notes=notes,
         )
+        if problem.judge_config.node_adapter is None:
+            node_types = self._node_signature_types(self._python_snippet(snippets), entry_point)
+            if node_types:
+                return problem.model_copy(
+                    update={
+                        "unsupported_reason": (
+                            "No LeetCode node judge adapter for "
+                            f"{entry_point} ({', '.join(sorted(node_types))})."
+                        )
+                    }
+                )
+        return problem
 
     @staticmethod
     def _slug_from_question(question: dict[str, Any]) -> str:
@@ -528,8 +541,8 @@ class LeetCodeImporter(ProblemImporter):
         return text.strip()
 
     @staticmethod
-    def _extract_entry_point(snippets: list[dict[str, Any]]) -> str | None:
-        snippet = next(
+    def _python_snippet(snippets: list[dict[str, Any]]) -> str:
+        return next(
             (
                 item.get("code", "")
                 for item in snippets
@@ -537,6 +550,43 @@ class LeetCodeImporter(ProblemImporter):
             ),
             "",
         )
+
+    @staticmethod
+    def _node_signature_types(snippet: str, entry_point: str) -> set[str]:
+        try:
+            scope = ast.parse(snippet).body
+        except SyntaxError:
+            return set()
+        target = entry_point.split("(", 1)[0]
+        owner, _, method = target.rpartition(".")
+        if owner:
+            scope = next(
+                (
+                    node.body
+                    for node in scope
+                    if isinstance(node, ast.ClassDef) and node.name == owner
+                ),
+                [],
+            )
+        node_names = {"TreeNode", "ListNode", "Node", "NestedInteger", "QuadNode", "RandomListNode"}
+        for node in scope:
+            if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef)) and node.name == method:
+                annotations = [node.returns] + [
+                    arg.annotation
+                    for arg in node.args.posonlyargs + node.args.args + node.args.kwonlyargs
+                ]
+                return {
+                    name
+                    for annotation in annotations
+                    if annotation is not None
+                    for name in re.findall(r"\b\w+\b", ast.unparse(annotation))
+                    if name in node_names
+                }
+        return set()
+
+    @staticmethod
+    def _extract_entry_point(snippets: list[dict[str, Any]]) -> str | None:
+        snippet = LeetCodeImporter._python_snippet(snippets)
         if not snippet:
             return None
         try:

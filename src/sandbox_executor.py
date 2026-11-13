@@ -379,6 +379,53 @@ class SandboxExecutor:
             return f"{target_expr}().{method_name}"
         return target_expr
 
+    def _function_wrapper(
+        self, code: str, problem: Problem | None, input_expression: str
+    ) -> tuple[str, str]:
+        invocation = (
+            self._function_invocation(problem, "_user_globals")
+            if problem
+            else "_user_globals['solution']"
+        )
+        result_argument = problem.judge_config.result_argument if problem else None
+        adapter = problem.judge_config.node_adapter if problem else None
+        adapter_source = (
+            Path(__file__).with_name("leetcode_node_runner.py").read_text(encoding="utf-8")
+            if adapter
+            else ""
+        )
+        result_marker = f"{FUNCTION_RESULT_MARKER}:{uuid.uuid4().hex}:"
+        wrapper = f"""
+import json as _harness_json
+import os as _harness_os
+import sys as _harness_sys
+_harness_dumps = _harness_json.dumps
+_harness_loads = _harness_json.loads
+_harness_write = _harness_os.write
+_harness_fd = _harness_os.dup(2)
+{adapter_source}
+_user_globals = {{"__name__": "__candidate__"}}
+if {adapter!r} is not None:
+    _user_globals.update(node_globals({adapter!r}))
+exec({code!r}, _user_globals, _user_globals)
+test_input = _harness_loads({input_expression})
+if {adapter!r} is not None:
+    test_input, original_nodes = node_arguments({adapter!r}, test_input)
+target = {invocation}
+if isinstance(test_input, dict):
+    result = target(**test_input)
+elif isinstance(test_input, (list, tuple)):
+    result = target(*test_input)
+else:
+    result = target(test_input)
+if {result_argument is not None!r}:
+    result = test_input[{result_argument!r}]
+if {adapter!r} is not None:
+    result = node_result({adapter!r}, result, original_nodes)
+_harness_write(_harness_fd, ({result_marker!r} + _harness_dumps(result) + "\\n").encode("utf-8"))
+"""
+        return wrapper, result_marker
+
     def _check_imports(self, code: str) -> None:
         """
         Check for disallowed imports.
@@ -541,37 +588,7 @@ class SandboxExecutor:
             input_data = self._serialize_stdin_input(test_input)
             result_marker = None
         else:
-            invocation = (
-                self._function_invocation(problem, "_user_globals")
-                if problem
-                else "_user_globals['solution']"
-            )
-            result_argument = problem.judge_config.result_argument if problem else None
-            result_marker = f"{FUNCTION_RESULT_MARKER}:{uuid.uuid4().hex}:"
-            wrapper = f"""
-import json as _harness_json
-import os as _harness_os
-import sys as _harness_sys
-_harness_dumps = _harness_json.dumps
-_harness_loads = _harness_json.loads
-_harness_write = _harness_os.write
-_harness_fd = _harness_os.dup(2)
-_user_globals = {{"__name__": "__candidate__"}}
-exec({code!r}, _user_globals, _user_globals)
-
-if __name__ == "__main__":
-    test_input = _harness_loads(_harness_sys.argv[1])
-    target = {invocation}
-    if isinstance(test_input, dict):
-        result = target(**test_input)
-    elif isinstance(test_input, (list, tuple)):
-        result = target(*test_input)
-    else:
-        result = target(test_input)
-    if {result_argument is not None!r}:
-        result = test_input[{result_argument!r}]
-    _harness_write(_harness_fd, ({result_marker!r} + _harness_dumps(result) + "\\n").encode("utf-8"))
-"""
+            wrapper, result_marker = self._function_wrapper(code, problem, "_harness_sys.argv[1]")
             input_data = None
 
         if _profile_memory:
@@ -685,34 +702,9 @@ if __name__ == "__main__":
             wrapper = code
             input_data = self._serialize_stdin_input(test_input)
         else:
-            invocation = (
-                self._function_invocation(problem, "_user_globals")
-                if problem
-                else "_user_globals['solution']"
+            wrapper, result_marker = self._function_wrapper(
+                code, problem, repr(json.dumps(test_input))
             )
-            result_argument = problem.judge_config.result_argument if problem else None
-            result_marker = f"{FUNCTION_RESULT_MARKER}:{uuid.uuid4().hex}:"
-            wrapper = f"""
-import json as _harness_json
-import os as _harness_os
-_harness_dumps = _harness_json.dumps
-_harness_loads = _harness_json.loads
-_harness_write = _harness_os.write
-_harness_fd = _harness_os.dup(2)
-_user_globals = {{"__name__": "__candidate__"}}
-exec({code!r}, _user_globals, _user_globals)
-test_input = _harness_loads({json.dumps(json.dumps(test_input))})
-target = {invocation}
-if isinstance(test_input, dict):
-    result = target(**test_input)
-elif isinstance(test_input, (list, tuple)):
-    result = target(*test_input)
-else:
-    result = target(test_input)
-if {result_argument is not None!r}:
-    result = test_input[{result_argument!r}]
-_harness_write(_harness_fd, ({result_marker!r} + _harness_dumps(result) + "\\n").encode("utf-8"))
-"""
             input_data = None
         if _profile_memory:
             wrapper, memory_marker = self._memory_profile_wrapper(wrapper)
@@ -862,6 +854,17 @@ _harness_write(_harness_fd, ({result_marker!r} + _harness_dumps(result) + "\\n")
                 return actual.split() == expected.split()
             return actual == expected
 
+        if config.node_adapter:
+            if not isinstance(actual, list) or not isinstance(expected, list):
+                return False
+            if config.node_adapter == "graph_clone":
+                if not all(
+                    isinstance(row, list) and all(type(value) is int for value in row)
+                    for row in expected
+                ):
+                    return False
+                expected = [sorted(row) for row in expected]
+            return bool(actual == expected)
         if config.comparison == "exact":
             return bool(actual == expected)
         if config.comparison == "unordered":
