@@ -2,5 +2,6 @@
   "openspec_proposal": "openspec/changes/guard-unknown-evaluation-cost/proposal.md",
   "openspec_design": "openspec/changes/guard-unknown-evaluation-cost/design.md",
   "openspec_tasks": "openspec/changes/guard-unknown-evaluation-cost/tasks.md",
-  "openspec_delta_spec": "openspec/changes/guard-unknown-evaluation-cost/specs/cost-aware-strategy-selection/spec.md"
+  "openspec_delta_spec": "openspec/changes/guard-unknown-evaluation-cost/specs/cost-aware-strategy-selection/spec.md",
+  "archive_directory": "openspec/changes/archive/2026-11-13-guard-unknown-evaluation-cost"
 }
