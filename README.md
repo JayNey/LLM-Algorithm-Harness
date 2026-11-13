@@ -703,7 +703,9 @@ problem_filters:
 
 旧版题目中的 `test_cases` 仍然可以导入，但会保守迁移为 `public_test_cases`，并标记为仅样例验证；系统不会根据旧字段推断隐藏测试。`public_test_cases`、`feedback_test_cases` 和 `hidden_test_cases` 可以按数据集需要为空；缺失的阶段会被显式跳过，空阶段不会被当作通过。
 
-`input_output_mode` 支持 `function` 和 `stdin_stdout`。函数题默认调用 `solution(**test_input)`，也可以用 `entry_point` 声明自定义函数或简单的 LeetCode 方法入口，例如 `solve(value)` 或 `Solution.twoSum(nums, target)`；标准输入输出题的 `TestCase.input` 使用原始字符串，程序从 stdin 读取并写入 stdout。`judge_config.comparison` 可选 `exact`、`float_tolerance` 或 `unordered`，其中 `unordered` 只对明确配置的列表结果忽略顺序；`whitespace` 可选 `exact`、`trim` 或 `tokens`。
+`input_output_mode` 支持 `function` 和 `stdin_stdout`。函数题默认调用 `solution(**test_input)`，也可以用 `entry_point` 声明自定义函数或简单的 LeetCode 方法入口，例如 `solve(value)` 或 `Solution.twoSum(nums, target)`。标准输入输出题的 `TestCase.input` 使用原始字符串，程序从 stdin 读取并写入 stdout。`judge_config.comparison` 可选 `exact`、`float_tolerance`、`unordered` 或 `unordered_groups`。`unordered` 忽略结果列表最外层的顺序。`unordered_groups` 忽略字符串分组的组间和组内顺序，并保留分组边界与出现次数。`whitespace` 可选 `exact`、`trim` 或 `tokens`。
+
+函数题可用 `judge_config.result_argument` 指定要比较的原地修改参数。每个用例的 `input` 都要提供同名字段，`expected_output` 填写参数修改后的值。LeetCode 公开导入的 73、88、49 在加载时会为缺省配置补上对应规则。手工维护的旧题库可为 73 和 88 分别添加 `"result_argument": "matrix"` 和 `"result_argument": "nums1"`，为 49 设置 `"comparison": "unordered_groups"`。
 
 链表、树、交互题等需要自定义序列化或交互协议的题目，可以填写 `unsupported_reason`。Harness 会将其标记为 `unsupported`，不会把它记为模型答错。
 

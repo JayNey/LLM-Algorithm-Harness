@@ -614,3 +614,154 @@ def test_real_docker_parallel_timing_excludes_cleanup(monkeypatch, mode):
     assert slow.status == "timeout"
     assert slow.execution_time > 5
     assert time.monotonic() - started > 5
+
+
+_LEETCODE_JUDGE_CASES = [
+    pytest.param(
+        "73",
+        "set-matrix-zeroes",
+        "setZeroes",
+        "matrix",
+        "matrix = [[1,1,1],[1,0,1],[1,1,1]]",
+        "[[1,0,1],[0,0,0],[1,0,1]]",
+        "class Solution:\n"
+        "    def setZeroes(self, matrix):\n"
+        "        zeros = [(i, j) for i, row in enumerate(matrix)"
+        " for j, value in enumerate(row) if value == 0]\n"
+        "        for i, j in zeros:\n"
+        "            matrix[i][:] = [0] * len(matrix[i])\n"
+        "            for row in matrix:\n"
+        "                row[j] = 0\n",
+        id="matrix",
+    ),
+    pytest.param(
+        "88",
+        "merge-sorted-array",
+        "merge",
+        "nums1, m, nums2, n",
+        "nums1 = [1,2,3,0,0,0], m = 3, nums2 = [2,5,6], n = 3",
+        "[1,2,2,3,5,6]",
+        "class Solution:\n"
+        "    def merge(self, nums1, m, nums2, n):\n"
+        "        nums1[:] = sorted(nums1[:m] + nums2[:n])\n",
+        id="merge",
+    ),
+    pytest.param(
+        "49",
+        "group-anagrams",
+        "groupAnagrams",
+        "strs",
+        'strs = ["eat","tea","eat","tan","nat","bat"]',
+        '[["bat"],["nat","tan"],["tea","eat","eat"]]',
+        "class Solution:\n"
+        "    def groupAnagrams(self, strs):\n"
+        "        groups = {}\n"
+        "        for word in strs:\n"
+        "            groups.setdefault(tuple(sorted(word)), []).append(word)\n"
+        "        return list(groups.values())\n",
+        id="anagrams",
+    ),
+]
+
+
+@pytest.mark.parametrize(
+    "backend",
+    [
+        "host",
+        pytest.param(
+            "docker",
+            marks=pytest.mark.skipif(
+                os.getenv("RUN_DOCKER_TESTS") != "1", reason="set RUN_DOCKER_TESTS=1"
+            ),
+        ),
+    ],
+)
+@pytest.mark.parametrize("number,slug,method,args,inputs,expected,code", _LEETCODE_JUDGE_CASES)
+def test_real_docker_and_host_judge_imported_leetcode_outputs(
+    backend, number, slug, method, args, inputs, expected, code
+):
+    from api.files.parsing import validate_problem
+    from src.importers.leetcode import LeetCodeImporter
+    from src.problem_loader import ProblemLoader
+
+    [problem] = LeetCodeImporter().transform_to_schema(
+        {
+            "questionFrontendId": number,
+            "titleSlug": slug,
+            "content": f"<pre>Input: {inputs}\nOutput: {expected}</pre>",
+            "codeSnippets": [
+                {
+                    "langSlug": "python3",
+                    "code": f"class Solution:\n    def {method}(self, {args}): ...",
+                }
+            ],
+        }
+    )
+    old_record = problem.model_dump(mode="json")
+    old_record["judge_config"] = {
+        "comparison": "float_tolerance",
+        "float_tolerance": 1e-6,
+        "whitespace": "trim",
+        "output_format": "auto",
+    }
+    executor = SandboxExecutor(SandboxConfig(backend=backend))
+    [cli_problem] = ProblemLoader().validate_dataset([old_record])
+    web_problem = validate_problem(old_record)
+    assert cli_problem == web_problem == problem
+    for saved_problem in (problem, cli_problem):
+        result = executor.execute(code, saved_problem)
+        assert result.all_passed, result.model_dump()
+    if number in {"73", "88"}:
+        # A correct return value alone must not pass an in-place problem.
+        return_only = f"class Solution:\n    def {method}(self, {args}): return {expected}"
+        assert executor.execute(return_only, problem).test_results[0].status == "wrong_answer"
+    else:
+        for wrong in (
+            [["eat", "tea"], ["tan", "nat"], ["bat"]],
+            [["eat", "tea", "eat", "eat"], ["tan", "nat"], ["bat"]],
+            [["eat", "tea", "tan"], ["eat", "nat"], ["bat"]],
+        ):
+            incorrect = f"class Solution:\n    def {method}(self, {args}): return {wrong!r}"
+            assert executor.execute(incorrect, problem).test_results[0].status == "wrong_answer"
+
+        ordered = problem.model_dump(mode="json")
+        ordered["judge_config"] = {"comparison": "unordered"}
+        result = executor.execute(code, Problem.model_validate(ordered))
+        assert result.test_results[0].status == "wrong_answer"
+
+
+@pytest.mark.parametrize(
+    "backend",
+    [
+        "host",
+        pytest.param(
+            "docker",
+            marks=pytest.mark.skipif(
+                os.getenv("RUN_DOCKER_TESTS") != "1", reason="set RUN_DOCKER_TESTS=1"
+            ),
+        ),
+    ],
+)
+def test_real_docker_and_host_respect_declared_function_judge(backend):
+    executor = SandboxExecutor(SandboxConfig(backend=backend))
+    record = _problem([1, 2], inputs={"items": [2, 1]}).model_dump(mode="json")
+    record["judge_config"] = {"comparison": "exact", "result_argument": "items"}
+    problem = Problem.model_validate(record)
+    assert executor.execute(
+        "def solution(items):\n    items.sort()\n    return object()", problem
+    ).all_passed
+
+    record["judge_config"] = {"comparison": "exact"}
+    problem = Problem.model_validate(record)
+    assert executor.execute("def solution(items): return [1, 2]", problem).all_passed
+    assert (
+        executor.execute("def solution(items): return items", problem).test_results[0].status
+        == "wrong_answer"
+    )
+
+
+def test_declared_result_argument_requires_named_input():
+    record = _problem().model_dump(mode="json")
+    record["judge_config"] = {"result_argument": "missing"}
+    with pytest.raises(ValueError, match="result_argument"):
+        Problem.model_validate(record)

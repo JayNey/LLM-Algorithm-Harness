@@ -275,6 +275,12 @@ Your response should include the code in a ```python code block.
                 "from standard input and write only the judged result to standard output. "
                 f"The declared entry point is {problem.entry_point}."
             )
+        if problem.judge_config.result_argument is not None:
+            return (
+                f"Implement the declared entry point {problem.entry_point}. "
+                f"Modify `{problem.judge_config.result_argument}` in place. "
+                "The judge compares that argument after the call."
+            )
         target = SandboxExecutor._entry_point_parts(problem.entry_point)
         if target and target[1]:
             class_name, method_name = target

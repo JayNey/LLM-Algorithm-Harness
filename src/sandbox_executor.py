@@ -13,6 +13,7 @@ import sys
 import tempfile
 import time
 import uuid
+from collections import Counter
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, Literal
@@ -545,6 +546,7 @@ class SandboxExecutor:
                 if problem
                 else "_user_globals['solution']"
             )
+            result_argument = problem.judge_config.result_argument if problem else None
             result_marker = f"{FUNCTION_RESULT_MARKER}:{uuid.uuid4().hex}:"
             wrapper = f"""
 import json as _harness_json
@@ -566,6 +568,8 @@ if __name__ == "__main__":
         result = target(*test_input)
     else:
         result = target(test_input)
+    if {result_argument is not None!r}:
+        result = test_input[{result_argument!r}]
     _harness_write(_harness_fd, ({result_marker!r} + _harness_dumps(result) + "\\n").encode("utf-8"))
 """
             input_data = None
@@ -686,6 +690,7 @@ if __name__ == "__main__":
                 if problem
                 else "_user_globals['solution']"
             )
+            result_argument = problem.judge_config.result_argument if problem else None
             result_marker = f"{FUNCTION_RESULT_MARKER}:{uuid.uuid4().hex}:"
             wrapper = f"""
 import json as _harness_json
@@ -704,6 +709,8 @@ elif isinstance(test_input, (list, tuple)):
     result = target(*test_input)
 else:
     result = target(test_input)
+if {result_argument is not None!r}:
+    result = test_input[{result_argument!r}]
 _harness_write(_harness_fd, ({result_marker!r} + _harness_dumps(result) + "\\n").encode("utf-8"))
 """
             input_data = None
@@ -859,7 +866,25 @@ _harness_write(_harness_fd, ({result_marker!r} + _harness_dumps(result) + "\\n")
             return bool(actual == expected)
         if config.comparison == "unordered":
             return self._compare_unordered(actual, expected, config.float_tolerance)
+        if config.comparison == "unordered_groups":
+            actual_groups = self._string_group_counts(actual)
+            return actual_groups is not None and actual_groups == self._string_group_counts(
+                expected
+            )
         return self._compare_float_tolerant(actual, expected, config.float_tolerance)
+
+    @staticmethod
+    def _string_group_counts(value: Any) -> Counter[tuple[str, ...]] | None:
+        if not isinstance(value, (list, tuple)):
+            return None
+        groups: Counter[tuple[str, ...]] = Counter()
+        for group in value:
+            if not isinstance(group, (list, tuple)) or any(
+                not isinstance(item, str) for item in group
+            ):
+                return None
+            groups[tuple(sorted(group))] += 1
+        return groups
 
     @classmethod
     def _compare_float_tolerant(cls, actual: Any, expected: Any, tolerance: float) -> bool:
