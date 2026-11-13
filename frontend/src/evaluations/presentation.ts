@@ -1,10 +1,45 @@
 import { t } from '../i18n/core.ts'
 import type {
   Evaluation,
+  FailureDiagnostic,
   ResultAvailability,
   ResultDetail,
   StrategySummary,
 } from './types.ts'
+
+export function failureDiagnosticLabel({
+  error_stage,
+  error_type,
+}: FailureDiagnostic) {
+  if (!error_stage || !error_type) return undefined
+  const stages = {
+    generation: t('模型生成'),
+    reflection: t('模型反思'),
+    sandbox: t('沙箱执行'),
+  }
+  const errors = {
+    timeout: t('请求超时'),
+    rate_limit: t('供应商限流'),
+    authentication: t('鉴权失败'),
+    connection: t('连接失败'),
+    provider_unavailable: t('供应商服务不可用'),
+    provider_error: t('供应商错误'),
+    sandbox_error: t('沙箱错误'),
+    backend_unavailable: t('沙箱不可用'),
+    runtime_error: t('运行时错误'),
+    syntax_error: t('语法错误'),
+    memory_error: t('内存错误'),
+    output_limit: t('超出输出限制'),
+    process_limit: t('超出进程限制'),
+  }
+  const stage = Object.hasOwn(stages, error_stage)
+    ? stages[error_stage as keyof typeof stages]
+    : error_stage
+  const error = Object.hasOwn(errors, error_type)
+    ? errors[error_type as keyof typeof errors]
+    : error_type
+  return `${stage} · ${error}`
+}
 
 const labels: Record<string, string> = {
   get running() {

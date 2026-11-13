@@ -26,6 +26,7 @@ import {
 } from './analytics.ts'
 import { EvaluationFeedback } from './components.tsx'
 import {
+  failureDiagnosticLabel,
   metricLabel,
   resultCostLabel,
   successRateLabel,
@@ -767,7 +768,10 @@ function FailureSummaryPanel(props: Scoped) {
               head={[t('归一化错误模式'), t('单元数')]}
               rows={data.clusters.map((row, index) => ({
                 key: `${index}:${row.pattern}`,
-                cells: [row.pattern || t('（空）'), row.count],
+                cells: [
+                  failureDiagnosticLabel(row) ?? (row.pattern || t('（空）')),
+                  row.count,
+                ],
               }))}
             />
           ) : (
@@ -807,7 +811,7 @@ function FailureCasesPanel(props: Scoped) {
                 row.problem_id,
                 row.strategy,
                 row.status,
-                row.error_message === null ? t('未记录') : row.error_message,
+                failureDiagnosticLabel(row) ?? row.error_message ?? t('未记录'),
               ],
             }))}
           />

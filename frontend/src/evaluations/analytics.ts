@@ -1,6 +1,7 @@
 import type { AxiosInstance } from 'axios'
 import { ApiClientError } from '../auth/http.ts'
-import type { StrategySummary } from './types.ts'
+import { failureDiagnostic } from './client.ts'
+import type { FailureDiagnostic, StrategySummary } from './types.ts'
 
 /** 单次运行以结果的 run_id 为准；全账号由后端限定为已完成运行。 */
 export type AnalyticsScope =
@@ -57,9 +58,9 @@ export interface FailuresByTag {
 export interface FailureSummary {
   modes: Record<string, number>
   categories: Record<string, number>
-  clusters: { pattern: string; count: number }[]
+  clusters: (FailureDiagnostic & { pattern: string; count: number })[]
 }
-export interface FailureCase {
+export interface FailureCase extends FailureDiagnostic {
   problem_id: string
   strategy: string
   status: string
@@ -388,6 +389,7 @@ function failureSummary(value: unknown): FailureSummary {
         return {
           pattern: text(row.pattern, `${field}.pattern`, true),
           count: count(row.count, `${field}.count`),
+          ...failureDiagnostic(row, field),
         }
       },
       'failure_summary.clusters',
@@ -405,6 +407,7 @@ function failureCases(value: unknown): FailureCases {
           problem_id: text(row.problem_id, `${field}.problem_id`),
           strategy: text(row.strategy, `${field}.strategy`),
           status: text(row.status, `${field}.status`),
+          ...failureDiagnostic(row, field),
           error_message: nullable(
             row.error_message,
             (value, field) => text(value, field, true),

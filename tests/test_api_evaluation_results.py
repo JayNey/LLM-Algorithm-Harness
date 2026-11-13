@@ -1479,3 +1479,72 @@ def test_radar_keeps_same_id_historical_versions_and_legacy_unknown(client, owne
     ).json()["data"]
     assert rate["total"] == 2
     assert rate["by_tag"] == {"graph": {"total": 1, "solved": 0, "success_rate": 0.0}}
+
+
+@pytest.mark.parametrize(
+    "iteration,final_result,category,phase,error_type",
+    [
+        (
+            {"llm_error": "Request timed out. private upstream body"},
+            None,
+            None,
+            "generation",
+            "timeout",
+        ),
+        (
+            {"llm_error": "Error code: 429 - private upstream body"},
+            None,
+            None,
+            "generation",
+            "rate_limit",
+        ),
+        (
+            {"llm_error": "Error code: 401 - private upstream body"},
+            None,
+            None,
+            "generation",
+            "authentication",
+        ),
+        ({"llm_error": "[authentication]"}, None, None, "generation", "authentication"),
+        ({"sandbox_error": "private upstream body"}, None, None, "sandbox", "sandbox_error"),
+        (
+            {"llm_error": "[timeout]"},
+            {"status": "runtime_error"},
+            "model_error",
+            "generation",
+            "timeout",
+        ),
+        (
+            {},
+            {"status": "failed", "test_results": [{"status": "sandbox_error"}]},
+            "system_error",
+            "sandbox",
+            "sandbox_error",
+        ),
+    ],
+)
+def test_saved_iteration_errors_reach_results_and_clusters(
+    client, owner_headers, iteration, final_result, category, phase, error_type
+):
+    with client.app.state.task_session_factory() as db, db.begin():
+        row = db.scalar(
+            select(EvaluationResult).filter_by(evaluation_id="eval-own", strategy_name="retry")
+        )
+        row.error_message = None
+        row.metrics = {**(row.metrics or {}), "failure_category": category}
+        row.execution_payload = {"iterations": [iteration, iteration], "final_result": final_result}
+
+    detail = client.get("/api/v1/results/run-own", headers=owner_headers)
+    cases = client.get("/api/v1/failures/cases/run-own", headers=owner_headers)
+    summary = client.get("/api/v1/failures/summary/run-own", headers=owner_headers)
+    for response in (detail, cases, summary):
+        assert response.status_code == 200
+        assert "private upstream body" not in response.text
+    unit = next(
+        item for item in detail.json()["data"]["problems"]["items"] if item["strategy"] == "retry"
+    )
+    case = cases.json()["data"]["items"][0]
+    cluster = summary.json()["data"]["clusters"][0]
+    for item in (unit, case, cluster):
+        assert (item["error_stage"], item["error_type"]) == (phase, error_type)
+    assert cluster["count"] == 1

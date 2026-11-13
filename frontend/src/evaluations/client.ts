@@ -8,6 +8,7 @@ import type {
   EvaluationClient,
   EvaluationOptions,
   ExecutionProgress,
+  FailureDiagnostic,
   ListQuery,
   ModelOptions,
   PageQuery,
@@ -32,6 +33,20 @@ function text(value: unknown, field: string, allowEmpty = false): string {
   if (typeof value !== 'string' || (!allowEmpty && !value.trim()))
     protocol(field)
   return value
+}
+
+export function failureDiagnostic(
+  data: Record<string, unknown>,
+  field: string,
+): FailureDiagnostic {
+  return {
+    ...('error_stage' in data
+      ? { error_stage: text(data.error_stage, `${field}.error_stage`) }
+      : {}),
+    ...('error_type' in data
+      ? { error_type: text(data.error_type, `${field}.error_type`) }
+      : {}),
+  }
 }
 function boolean(value: unknown, field: string): boolean {
   if (typeof value !== 'boolean') protocol(field)
@@ -148,6 +163,14 @@ function evaluation(value: unknown, field = 'evaluation'): Evaluation {
     ),
     strategy_names: array(data.strategy_names, text, `${field}.strategy_names`),
     model: nullable(data.model, text, `${field}.model`),
+    ...('generation_timeout_seconds' in data
+      ? {
+          generation_timeout_seconds: count(
+            data.generation_timeout_seconds,
+            `${field}.generation_timeout_seconds`,
+          ),
+        }
+      : {}),
     problem_count: count(data.problem_count, `${field}.problem_count`),
     spent_usd: number(data.spent_usd, `${field}.spent_usd`),
     budget_cap_usd: nullable(
@@ -319,6 +342,16 @@ function problemResult(value: unknown, field: string): ProblemResult {
     problem_id: text(data.problem_id, `${field}.problem_id`),
     strategy: text(data.strategy, `${field}.strategy`),
     status: text(data.status, `${field}.status`),
+    ...failureDiagnostic(data, field),
+    ...('error_message' in data
+      ? {
+          error_message: nullable(
+            data.error_message,
+            (value, field) => text(value, field, true),
+            `${field}.error_message`,
+          ),
+        }
+      : {}),
     iterations: nullable(data.iterations, number, `${field}.iterations`),
     tokens: nullable(data.tokens, number, `${field}.tokens`),
     execution_time: nullable(
