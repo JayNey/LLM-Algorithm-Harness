@@ -52,10 +52,13 @@ class TestCase(BaseModel):
 
 
 class JudgeConfig(BaseModel):
-    """Problem-level output comparison and stdin/stdout parsing rules."""
+    """Problem-level result selection and output comparison rules."""
 
-    comparison: Literal["exact", "float_tolerance", "unordered"] = Field(
+    comparison: Literal["exact", "float_tolerance", "unordered", "unordered_groups"] = Field(
         "float_tolerance", description="Output comparison strategy"
+    )
+    result_argument: str | None = Field(
+        None, min_length=1, description="Named function argument to judge after the call"
     )
     float_tolerance: float = Field(
         1e-6, ge=0.0, description="Absolute and relative tolerance for float comparison"
@@ -133,6 +136,37 @@ class Problem(BaseModel):
             values["migration_status"] = "legacy_test_cases_as_public"
         return values
 
+    @model_validator(mode="before")
+    @classmethod
+    def apply_leetcode_judge_defaults(cls, data: Any) -> Any:
+        """Set the judge for known public imports, including serialized v1 defaults."""
+        if not isinstance(data, dict) or (
+            data.get("source_platform") != "leetcode"
+            or data.get("source_version") != "leetcode-graphql-public-v1"
+            or data.get("input_output_mode", "function") != "function"
+        ):
+            return data
+        legacy_default = {
+            "comparison": "float_tolerance",
+            "float_tolerance": 1e-6,
+            "whitespace": "trim",
+            "output_format": "auto",
+        }
+        if "judge_config" in data and data["judge_config"] != legacy_default:
+            return data
+
+        source_id = data.get("source_problem_id")
+        entry = data.get("entry_point")
+        if source_id == "73" and entry == "Solution.setZeroes(matrix)":
+            judge = {"result_argument": "matrix"}
+        elif source_id == "88" and entry == "Solution.merge(nums1, m, nums2, n)":
+            judge = {"result_argument": "nums1"}
+        elif source_id == "49" and entry == "Solution.groupAnagrams(strs)":
+            judge = {"comparison": "unordered_groups"}
+        else:
+            return data
+        return {**data, "judge_config": judge}
+
     @model_validator(mode="after")
     def assign_test_case_sources(self) -> "Problem":
         """Ensure each staged list carries its authoritative visibility label."""
@@ -152,6 +186,15 @@ class Problem(BaseModel):
             and not self.needs_manual_completion
         ):
             raise ValueError("At least one public, feedback, or hidden test case is required")
+        result_argument = self.judge_config.result_argument
+        if result_argument is not None and (
+            self.input_output_mode != "function"
+            or any(
+                not isinstance(case.input, dict) or result_argument not in case.input
+                for case in self.test_cases_for("all")
+            )
+        ):
+            raise ValueError("result_argument requires function tests with that named input")
         return self
 
     @property

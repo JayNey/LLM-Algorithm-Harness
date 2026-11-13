@@ -40,7 +40,7 @@ def compute_problem_fingerprint(problem: Problem) -> str:
         "feedback_test_cases": [tc.model_dump() for tc in problem.feedback_test_cases],
         "hidden_test_cases": [tc.model_dump() for tc in problem.hidden_test_cases],
         # Include judge configuration
-        "judge_config": problem.judge_config.model_dump(),
+        "judge_config": problem.judge_config.model_dump(exclude_none=True),
     }
 
     # Serialize to stable JSON (sorted keys) and compute hash
