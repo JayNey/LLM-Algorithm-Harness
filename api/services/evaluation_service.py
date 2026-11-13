@@ -16,13 +16,14 @@ from datetime import datetime
 from typing import TypedDict
 
 from sqlalchemy import Engine, or_, select, update
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, object_session
 
 from api.db import Evaluation, make_engine, make_session_factory, run_migrations
 from api.db.engine import business_database_url
-from api.db.models import AsyncTask, utcnow
+from api.db.models import AsyncTask, EvaluationResult, utcnow
 from api.models import EvaluationCreateRequest, EvaluationUpdateRequest
 from api.schemas import EvaluationResponse, ExecutionProgress, ProgressInfo
+from src.cost_strategy import MISSING_PRICING_BUDGET
 from src.task_manager import TaskManager, evaluation_execution
 
 INTERRUPTED_BY_RESTART = "interrupted by service restart"
@@ -97,7 +98,64 @@ def _operation_capabilities(
     }
 
 
-def _to_response(task: Evaluation, async_task: AsyncTask | None = None) -> EvaluationResponse:
+class _CostSummary(TypedDict):
+    known_cost_usd: float | None
+    unknown_cost_count: int
+    budget_status: str
+
+
+def _cost_counts(session: Session, evaluation_ids: list[str]) -> dict[str, tuple[int, bool]]:
+    if not evaluation_ids:
+        return {}
+    counts: dict[str, tuple[int, bool]] = {}
+    for evaluation_id, metrics in session.execute(
+        select(EvaluationResult.evaluation_id, EvaluationResult.metrics).where(
+            EvaluationResult.evaluation_id.in_(evaluation_ids)
+        )
+    ):
+        metrics = metrics or {}
+        unknown, known = counts.get(evaluation_id, (0, False))
+        missing = bool(metrics.get("cost_unknown"))
+        counts[evaluation_id] = (
+            unknown + int(missing),
+            known or bool(metrics.get("cost_known", "cost_usd" in metrics and not missing)),
+        )
+    return counts
+
+
+def _cost_summary(evaluation: Evaluation, counts: tuple[int, bool] | None = None) -> _CostSummary:
+    if counts is None:
+        session = object_session(evaluation)
+        counts = _cost_counts(session, [evaluation.id]).get(evaluation.id) if session else None
+    unknown, has_known = counts or (0, False)
+    cap = evaluation.budget_cap_usd
+    missing_pricing = evaluation.error_message == MISSING_PRICING_BUDGET
+    if cap is None:
+        status = "unlimited"
+    elif unknown:
+        status = "unknown_cost"
+    elif missing_pricing:
+        status = "missing_pricing"
+    elif evaluation.spent_usd >= cap:
+        status = "reached"
+    else:
+        status = "within_limit"
+    return {
+        "known_cost_usd": (
+            evaluation.spent_usd
+            if has_known or evaluation.spent_usd or not (unknown or missing_pricing)
+            else None
+        ),
+        "unknown_cost_count": unknown,
+        "budget_status": status,
+    }
+
+
+def _to_response(
+    task: Evaluation,
+    async_task: AsyncTask | None = None,
+    counts: tuple[int, bool] | None = None,
+) -> EvaluationResponse:
     """Convert an evaluation row to the API response shape.
 
     Used for legacy in-memory task execution. For async tasks, use _to_response_async.
@@ -118,6 +176,7 @@ def _to_response(task: Evaluation, async_task: AsyncTask | None = None) -> Evalu
         problem_count=task.problem_count,
         spent_usd=task.spent_usd,
         budget_cap_usd=task.budget_cap_usd,
+        **_cost_summary(task, counts),
         error_message=task.error_message,
         progress=ProgressInfo(
             current=task.completed_count,
@@ -177,6 +236,7 @@ def _to_response_async(evaluation: Evaluation, async_task: AsyncTask | None) -> 
         problem_count=evaluation.problem_count,
         spent_usd=evaluation.spent_usd,
         budget_cap_usd=evaluation.budget_cap_usd,
+        **_cost_summary(evaluation),
         error_message=error_message,
         progress=progress
         or ProgressInfo(
@@ -325,8 +385,14 @@ class EvaluationService:
                 else []
             )
             linked_tasks = {task.id: task for task in async_tasks}
+            counts = _cost_counts(session, [task.id for task in page])
             responses = [
-                _to_response(task, linked_tasks.get(task.async_task_id or "")) for task in page
+                _to_response(
+                    task,
+                    linked_tasks.get(task.async_task_id or ""),
+                    counts.get(task.id, (0, False)),
+                )
+                for task in page
             ]
             return responses, len(tasks)
 

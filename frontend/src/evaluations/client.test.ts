@@ -264,6 +264,18 @@ test('缺少新能力字段或错误字段类型明确拒绝，不造默认值',
     )
 })
 
+test('任务预算摘要区分未知金额与已知零金额', async () => {
+  for (const cost of [null, 0]) {
+    const reply = {
+      ...evaluation,
+      known_cost_usd: cost,
+      unknown_cost_count: 1,
+      budget_status: 'unknown_cost',
+    }
+    assert.deepEqual(await clientFor(reply).get('eval1'), reply)
+  }
+})
+
 test('分页、选项和结果嵌套契约均严格读取，null指标不填零', async () => {
   for (const invalid of [
     null,

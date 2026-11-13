@@ -173,6 +173,22 @@ function evaluation(value: unknown, field = 'evaluation'): Evaluation {
       : {}),
     problem_count: count(data.problem_count, `${field}.problem_count`),
     spent_usd: number(data.spent_usd, `${field}.spent_usd`),
+    ...('known_cost_usd' in data && {
+      known_cost_usd: nullable(
+        data.known_cost_usd,
+        number,
+        `${field}.known_cost_usd`,
+      ),
+    }),
+    ...('unknown_cost_count' in data && {
+      unknown_cost_count: count(
+        data.unknown_cost_count,
+        `${field}.unknown_cost_count`,
+      ),
+    }),
+    ...('budget_status' in data && {
+      budget_status: text(data.budget_status, `${field}.budget_status`),
+    }),
     budget_cap_usd: nullable(
       data.budget_cap_usd,
       number,

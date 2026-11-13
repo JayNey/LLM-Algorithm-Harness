@@ -46,6 +46,9 @@ export interface Evaluation {
   generation_timeout_seconds?: number
   problem_count: number
   spent_usd: number
+  known_cost_usd?: number | null
+  unknown_cost_count?: number
+  budget_status?: string
   budget_cap_usd: number | null
   error_message: string | null
   progress: ProgressInfo | null

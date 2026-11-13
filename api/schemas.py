@@ -92,6 +92,9 @@ class EvaluationResponse(BaseModel):
     problem_count: int = Field(..., ge=0, description="Total number of problems")
     spent_usd: float = Field(..., ge=0, description="Amount spent so far in USD")
     budget_cap_usd: float | None = Field(None, ge=0, description="Budget limit in USD")
+    known_cost_usd: float | None = Field(None, ge=0, description="Known USD subtotal, if available")
+    unknown_cost_count: int = Field(0, ge=0, description="Units with incomplete cost")
+    budget_status: str = Field("unlimited", description="Status of the evaluation's USD limit")
     error_message: str | None = Field(None, description="Failure or stoppage reason, if any")
     progress: ProgressInfo | None = Field(None, description="Execution progress")
 

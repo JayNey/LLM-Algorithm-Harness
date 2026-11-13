@@ -288,7 +288,11 @@ def print_report(reports: dict) -> None:
         print(f"  Avg Tokens: {report.avg_tokens_per_problem:.0f}")
         cost_pricing = report.pricing_metadata or {}
         if cost_pricing.get("unknown_usage") or cost_pricing.get("unknown_pricing"):
-            print("  Estimated Cost: 未知")
+            known_cost = cost_pricing.get("known_cost_usd")
+            if known_cost is None:
+                print("  Estimated Cost: 未知")
+            else:
+                print(f"  Estimated Cost: ${known_cost:.4f} known; some costs are unknown")
         else:
             print(f"  Estimated Cost: ${report.estimated_cost_usd:.4f}")
         print()
@@ -455,7 +459,8 @@ def save_results(
             "run_id": task_run_id,
             "timestamp": datetime.now().isoformat(),
             "state": "paused",
-            "reason": "known_cost_reached_budget_cap",
+            "reason": getattr(harness, "budget_pause_reason", None)
+            or "known_cost_reached_budget_cap",
             **(cost_monitor.snapshot() if cost_monitor is not None else {}),
             "completed_units": task_record.completed_units,
             "queued_units": sum(unit.status == "queued" for unit in task_record.units),
@@ -2378,30 +2383,30 @@ def main() -> None:
                     logger.warning("incremental_history_update_failed", error=str(e))
                     # Non-fatal, continue
 
-            if config.budget_cap_usd is not None or config.difficulty_strategy:
-                if harness.cost_monitor is not None:
-                    snapshot = harness.cost_monitor.snapshot()
-                    cap_text = (
-                        f"${snapshot['budget_cap_usd']}"
-                        if snapshot["budget_cap_usd"] is not None
-                        else "no cap"
-                    )
+            if harness.cost_monitor is not None:
+                snapshot = harness.cost_monitor.snapshot()
+                cap = snapshot["budget_cap_usd"]
+                cap_text = "no cap" if cap is None else f"${cap}"
+                cost = snapshot["known_cost_usd"]
+                cost_text = "unknown" if cost is None else f"${cost:.4f}"
                 print(
-                    f"Cost control: accumulated ${snapshot['accumulated_cost_usd']:.4f} "
-                    f"of {cap_text}; "
+                    f"Cost control: known cost {cost_text}; budget {cap_text} "
+                    f"({snapshot['budget_status']}); "
                     f"{snapshot['downgraded_problems']} problem(s) downgraded; "
-                    f"{snapshot['unknown_usage_results']} result(s) with unknown usage "
-                    "not counted toward the cap"
+                    f"{snapshot['unknown_usage_results']} unit(s) with unknown cost"
                 )
                 if harness.task_record is not None and harness.task_record.state == "paused":
                     print(
-                        "Evaluation paused at budget cap; see cost_cutoff.json in the run output."
+                        f"Evaluation paused ({harness.budget_pause_reason}); see cost_cutoff.json."
                     )
             if harness.budget_allocation_monitor is not None:
                 for difficulty, usage in harness.budget_allocation_monitor.snapshot().items():
+                    cost = usage["known_cost_usd"]
+                    cost_text = "unknown" if cost is None else f"${cost:.4f}"
                     print(
-                        f"  {difficulty}: ${usage['accumulated_cost_usd']:.4f} "
-                        f"of ${usage['budget_cap_usd']} budget; "
+                        f"  {difficulty}: known cost {cost_text}; "
+                        f"${usage['budget_cap_usd']} budget ({usage['budget_status']}); "
+                        f"{usage['unknown_usage_results']} unit(s) with unknown cost; "
                         f"{usage['downgraded_problems']} problem(s) downgraded"
                     )
 

@@ -146,7 +146,7 @@ def artifact_env(tmp_path):
             with app.state.task_session_factory() as db:
                 evaluation = db.get(Evaluation, evaluation_id)
                 evaluation.status = status
-                evaluation.problem_ids = [f"p{i+1}" for i in range(count)]
+                evaluation.problem_ids = [f"p{i + 1}" for i in range(count)]
                 row = db.query(EvaluationResult).filter_by(evaluation_id=evaluation_id).first()
                 if row is None:
                     row = EvaluationResult(
@@ -584,6 +584,32 @@ def test_corrupted_current_artifact_can_be_explicitly_rebuilt_from_committed_sna
     assert not e["service"].state(e["id"], e["owner"])["available"]
     assert e["service"].publish(e["id"], e["owner"], revision, manual=True)["available"]
     assert e["files"].store.result_file(e["id"], e["owner"])["id"] != before["id"]
+
+
+def test_task_summary_keeps_partial_and_zero_cost_distinct(artifact_env):
+    e = artifact_env
+    e["stage"]()
+    url = f"/api/v1/evaluations/{e['id']}"
+    headers = auth_headers(e["alice"])
+
+    with e["app"].state.task_session_factory() as db:
+        evaluation = db.get(Evaluation, e["id"])
+        evaluation.budget_cap_usd = 1
+        db.commit()
+
+    unknown = e["client"].get(url, headers=headers).json()["data"]
+    assert unknown["known_cost_usd"] is None
+    assert unknown["unknown_cost_count"] == 1
+    assert unknown["budget_status"] == "unknown_cost"
+
+    with e["app"].state.task_session_factory() as db:
+        row = db.query(EvaluationResult).filter_by(evaluation_id=e["id"]).one()
+        row.metrics = {**row.metrics, "cost_usd": 0, "cost_known": True}
+        db.commit()
+    partial = e["client"].get(url, headers=headers).json()["data"]
+    assert partial["known_cost_usd"] == 0
+    assert partial["unknown_cost_count"] == 1
+    assert partial["budget_status"] == "unknown_cost"
 
 
 @pytest.mark.parametrize("ending", ["pause_resume", "cancel", "failure"])
