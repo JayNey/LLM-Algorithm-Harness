@@ -83,6 +83,7 @@ class AlgorithmHarness:
         self.pricing_manager: PricingManager | None = None
         self.on_response: SpendCallback | None = None
         self.before_generate: Callable[[], None] | None = None
+        self.before_retry: Callable[[], None] | None = None
         self.cost_monitor: RunCostMonitor | None = None
         self.budget_allocation_monitor: DifficultyBudgetMonitor | None = None
         self.cost_alert_manager: CostAlertManager | None = None
@@ -787,6 +788,7 @@ class AlgorithmHarness:
         base_client = LLMClient(self.config.llm_config)
         base_client.on_response = self.on_response
         base_client.before_generate = self.before_generate
+        base_client.before_retry = self.before_retry
         if self.pricing_manager is not None:
             base_client.pricing_manager = self.pricing_manager
         llm_client: LLMClient | BudgetedLLMClient = base_client

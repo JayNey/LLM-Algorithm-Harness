@@ -423,12 +423,18 @@ class CostService:
     # -- budgets -------------------------------------------------------------
 
     @staticmethod
-    def execution_budget(session: Session, owner_id: str) -> dict[str, Any] | None:
+    def execution_budget(
+        session: Session,
+        owner_id: str,
+        *,
+        pending_cost: Decimal = Decimal(0),
+        difficulty: str | None = None,
+    ) -> dict[str, Any] | None:
         """Fresh personal limits at a dispatch boundary, using persisted known costs.
 
         Global spend matches the cost API. Difficulty spend uses result costs,
         rather than the proportional estimate exposed by ``budget_usage``.
-        The caller owns the session and must call this on its orchestration thread.
+        A caller may include known costs of its in-flight unit before settlement.
         """
         budget = session.scalar(
             select(Budget)
@@ -438,10 +444,12 @@ class CostService:
         if budget is None:
             return None
         spend = CostService._collect_spend_rows(session, owner_id)
-        used = sum((Decimal(str(row["cost_usd"] or 0)) for row in spend), Decimal(0))
+        used = sum((Decimal(str(row["cost_usd"] or 0)) for row in spend), pending_cost)
         difficulty_used: dict[str, Decimal] = defaultdict(Decimal)
         caps = budget.difficulty_caps or {}
         if caps:
+            if difficulty is not None and difficulty in caps:
+                difficulty_used[difficulty] += pending_cost
             for row in spend:
                 if row.get("difficulty") in caps:
                     difficulty_used[row["difficulty"]] += Decimal(str(row["cost_usd"] or 0))

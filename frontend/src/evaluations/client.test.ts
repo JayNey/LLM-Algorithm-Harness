@@ -408,3 +408,16 @@ test('管理接口使用 AsyncTask ID、PATCH 白名单与 DELETE 204', async ()
       client.update('eval1', { budget_cap_usd: budget }),
     )
 })
+
+test('单题结果保留可显示的失败阶段和类型', async () => {
+  const unit = {
+    ...detail.problems.items[0],
+    status: 'failed',
+    error_stage: 'generation',
+    error_type: 'timeout',
+  }
+  const client = clientFor({ ...detail, problems: page([unit]) })
+  const result = await client.result('run-1', { limit: 20, offset: 0 })
+  assert.equal(result.problems.items[0]?.error_stage, 'generation')
+  assert.equal(result.problems.items[0]?.error_type, 'timeout')
+})

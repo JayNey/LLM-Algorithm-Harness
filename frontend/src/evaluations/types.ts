@@ -43,6 +43,7 @@ export interface Evaluation {
   execution_progress: ExecutionProgress
   strategy_names: string[]
   model: string | null
+  generation_timeout_seconds?: number
   problem_count: number
   spent_usd: number
   budget_cap_usd: number | null
@@ -87,10 +88,16 @@ export interface StrategySummary {
     { success_rate: number; solved: number; total: number }
   >
 }
-export interface ProblemResult {
+export interface FailureDiagnostic {
+  error_stage?: string
+  error_type?: string
+}
+
+export interface ProblemResult extends FailureDiagnostic {
   problem_id: string
   strategy: string
   status: string
+  error_message?: string | null
   iterations: number | null
   tokens: number | null
   execution_time: number | null

@@ -9,6 +9,7 @@ from __future__ import annotations
 import csv
 import io
 import json
+import re
 import tempfile
 from collections import Counter
 from collections.abc import Callable
@@ -47,6 +48,7 @@ from src.reporting.capability_profiler import (
 )
 from src.reporting.html_generator import HTMLGenerator
 from src.reporting.markdown_generator import MarkdownGenerator
+from src.utils.secrets import redact_sensitive_text
 
 _SORT_COLUMNS = {
     "completed_at": Evaluation.completed_at,
@@ -111,6 +113,102 @@ def aggregate(pairs: list[tuple[EvaluationResult, Problem | None]]) -> list[dict
     return strategies
 
 
+_GENERATION_ERROR_TYPES = frozenset(
+    {
+        "timeout",
+        "authentication",
+        "rate_limit",
+        "connection",
+        "provider_unavailable",
+        "provider_error",
+    }
+)
+_SANDBOX_ERROR_STATUSES = frozenset(
+    {
+        "timeout",
+        "sandbox_error",
+        "backend_unavailable",
+        "runtime_error",
+        "syntax_error",
+        "memory_error",
+        "output_limit",
+        "process_limit",
+    }
+)
+
+
+def _generation_error_type(message: str) -> str:
+    marker = re.fullmatch(r"\[([a-z_]+)\]", message)
+    if marker and marker[1] in _GENERATION_ERROR_TYPES:
+        return marker[1]
+    # SDK messages saved before generation recorded a stable error type.
+    text = message.lower()
+    if re.search(r"(?:^|\b(?:code|status)[: ]+)\s*(?:401|403)\b", text) or any(
+        hint in text for hint in ("unauthorized", "authentication", "invalid api key", "forbidden")
+    ):
+        return "authentication"
+    if (
+        re.search(r"(?:^|\b(?:code|status)[: ]+)\s*429\b", text)
+        or "rate limit" in text
+        or "too many requests" in text
+    ):
+        return "rate_limit"
+    if "timed out" in text or "timeout" in text or "time out" in text:
+        return "timeout"
+    if "connection" in text:
+        return "connection"
+    return "provider_error"
+
+
+def _failure_diagnostic(row: EvaluationResult) -> tuple[str, str] | None:
+    if row.status in {"success", NOT_EVALUABLE}:
+        return None
+    payload = row.execution_payload or {}
+    category = (row.metrics or {}).get("failure_category")
+    iterations = payload.get("iterations")
+    if not isinstance(iterations, list):
+        iterations = []
+    if category == "model_error":
+        for item in reversed(iterations):
+            if (
+                isinstance(item, dict)
+                and isinstance(message := item.get("llm_error"), str)
+                and message
+            ):
+                return "generation", _generation_error_type(message)
+        return "generation", _generation_error_type(row.error_message or "")
+    for key in ("hidden_result", "final_result"):
+        result = payload.get(key)
+        if not isinstance(result, dict):
+            continue
+        status = result.get("status")
+        if isinstance(status, str) and status in _SANDBOX_ERROR_STATUSES:
+            return "sandbox", status
+        # Some strategies merge sandbox results into a generic failed status.
+        if key == "final_result" and isinstance(tests := result.get("test_results"), list):
+            for test in tests:
+                status = test.get("status") if isinstance(test, dict) else None
+                if isinstance(status, str) and status in _SANDBOX_ERROR_STATUSES:
+                    return "sandbox", status
+    for item in reversed(iterations):
+        if not isinstance(item, dict):
+            continue
+        if isinstance(message := item.get("llm_error"), str) and message:
+            return "generation", _generation_error_type(message)
+        if item.get("sandbox_error"):
+            return "sandbox", "sandbox_error"
+        if isinstance(message := item.get("reflection_error"), str) and message:
+            return "reflection", _generation_error_type(message)
+    return None
+
+
+def _diagnostic_fields(diagnostic: tuple[str, str] | None) -> dict[str, str]:
+    if diagnostic is None:
+        return {}
+    stage, error_type = diagnostic
+    return {"error_stage": stage, "error_type": error_type}
+
+
 def _problem_item(row: EvaluationResult) -> dict:
     """One stored unit. Missing iterations stay null instead of becoming 0."""
     metrics = row.metrics
@@ -118,6 +216,7 @@ def _problem_item(row: EvaluationResult) -> dict:
         "problem_id": row.problem_id,
         "strategy": row.strategy_name,
         "status": row.status,
+        **_diagnostic_fields(_failure_diagnostic(row)),
         **({"error_message": row.error_message} if row.status == NOT_EVALUABLE else {}),
         "iterations": (
             None if metrics is None or "iterations" not in metrics else metrics["iterations"]
@@ -1110,22 +1209,26 @@ class EvaluationResultsService:
             rows = self._units(session, evaluation.id)
         modes: Counter[str] = Counter()
         categories: Counter[str] = Counter()
-        clusters: Counter[str] = Counter()
+        clusters: Counter[tuple[str, tuple[str, str] | None]] = Counter()
         for row in rows:
             if row.status in {"success", NOT_EVALUABLE}:
                 continue
             metrics = row.metrics or {}
             modes[metrics.get("failure_mode") or "unknown"] += 1
             categories[metrics.get("failure_category") or "unknown"] += 1
-            if row.error_message:
-                clusters[normalize_message(row.error_message)] += 1
+            diagnostic = _failure_diagnostic(row)
+            if diagnostic:
+                pattern = " / ".join(diagnostic)
+            else:
+                pattern = normalize_message(redact_sensitive_text(row.error_message or ""))
+            if pattern:
+                clusters[pattern, diagnostic] += 1
         return {
             "modes": dict(modes),
             "categories": dict(categories),
             "clusters": [
-                {"pattern": pattern, "count": count}
-                for pattern, count in clusters.most_common()
-                if pattern
+                {"pattern": pattern, "count": count, **_diagnostic_fields(diagnostic)}
+                for (pattern, diagnostic), count in clusters.most_common()
             ],
         }
 
@@ -1155,15 +1258,29 @@ class EvaluationResultsService:
             rows = self._units(session, evaluation.id)
         return {
             "items": [
-                {
-                    "problem_id": row.problem_id,
-                    "strategy": row.strategy_name,
-                    "status": row.status,
-                    "error_message": row.error_message,
-                }
+                self._failure_case(row)
                 for row in rows
                 if row.status not in {"success", NOT_EVALUABLE}
             ]
+        }
+
+    @staticmethod
+    def _failure_case(row: EvaluationResult) -> dict:
+        diagnostic = _failure_diagnostic(row)
+        return {
+            "problem_id": row.problem_id,
+            "strategy": row.strategy_name,
+            "status": row.status,
+            "error_message": (
+                " / ".join(diagnostic)
+                if diagnostic
+                else (
+                    redact_sensitive_text(row.error_message)
+                    if row.error_message
+                    else row.error_message
+                )
+            ),
+            **_diagnostic_fields(diagnostic),
         }
 
     def learning_curve(self, owner_id: str, suite_id: str | None = None) -> dict:

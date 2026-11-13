@@ -32,11 +32,14 @@ from api.progress import publish_progress
 from api.services.artifact_service import EvaluationArtifactService, stage_publication
 from api.services.cost_alert_service import WebCostAlertDispatcher
 from api.services.cost_service import CostService
+from src.budget import BudgetExhausted
 from src.celery_app import celery_app
 from src.harness import AlgorithmHarness
+from src.llm_client import LLMAdmissionError
 from src.models import (
     ExecutionResult,
     HarnessConfig,
+    LLMResponse,
     SandboxConfig,
     StrategyConfig,
 )
@@ -220,6 +223,8 @@ def _run_owned_evaluation(self: EvaluationTask, evaluation_id: str) -> dict[str,
         # 不发起任何单元、无 EvaluationResult 行。
         session_factory = sessionmaker(bind=db.get_bind())
         ctx = _resolve_execution_context(evaluation, session_factory)
+        if ctx.retry_budget is not None:
+            ctx.retry_budget.generation = generation
         cost_alerts = WebCostAlertDispatcher(session_factory, evaluation_id)
 
         # 3. 更新状态为 running
@@ -472,6 +477,7 @@ def _run_owned_evaluation(self: EvaluationTask, evaluation_id: str) -> dict[str,
             ctx.problem_map,
             ctx.missing_reasons,
             execution_strategies=execution_strategies,
+            retry_budget=ctx.retry_budget,
         )
 
         if resume:
@@ -674,6 +680,66 @@ class _EvalContext:
     pricing_manager: PricingManager | None = None
     problem_sources: dict[str, str] = field(default_factory=dict)
     dataset_version_id: str | None = None
+    retry_budget: _EvaluationRetryBudget | None = None
+
+
+@dataclass
+class _EvaluationRetryBudget:
+    """Known spend for the one unit currently dispatched by this evaluation."""
+
+    session_factory: sessionmaker[Session]
+    evaluation_id: str
+    generation: str | None = None
+    difficulty: str | None = None
+    known_cost: Decimal = Decimal(0)
+    unknown_usage: bool = False
+
+    def begin_unit(self, difficulty: str) -> None:
+        self.difficulty = difficulty
+        self.known_cost = Decimal(0)
+        self.unknown_usage = False
+
+    def observe(self, _event_id: str, response: LLMResponse | None, cached: bool) -> None:
+        if cached:
+            return
+        pricing = response.pricing_metadata if response is not None else None
+        cost = (pricing or {}).get("total_cost")
+        if cost is None:
+            self.unknown_usage = True
+        else:
+            self.known_cost += Decimal(str(cost))
+
+    def check_retry(self) -> None:
+        # A separate session keeps the executor thread independent of the task session.
+        with self.session_factory() as session:
+            evaluation = session.get(Evaluation, self.evaluation_id)
+            if evaluation is None:
+                raise LLMAdmissionError("Evaluation unavailable")
+            task = (
+                session.get(AsyncTask, evaluation.async_task_id)
+                if evaluation.async_task_id
+                else None
+            )
+            if task is None or task.status != "running" or task.celery_task_id != self.generation:
+                raise LLMAdmissionError("Evaluation stopped before the next request")
+            cap = evaluation.budget_cap_usd
+            used = Decimal(str(evaluation.spent_usd or 0)) + self.known_cost
+            if cap is not None and used >= Decimal(str(cap)):
+                raise BudgetExhausted("Evaluation cost budget exhausted")
+            budget = CostService.execution_budget(
+                session,
+                evaluation.user_id,
+                pending_cost=self.known_cost,
+                difficulty=self.difficulty,
+            )
+            if (
+                budget
+                and budget["action"] == "pause"
+                and (
+                    budget["global_reached"] or self.difficulty in budget["exhausted_difficulties"]
+                )
+            ):
+                raise BudgetExhausted("Personal cost budget exhausted")
 
 
 def _freeze_problem(ctx: _EvalContext, problem_id: str) -> dict[str, Any]:
@@ -809,6 +875,15 @@ def _resolve_execution_context(
         llm_config = auth.llm_config(api_key_id, evaluation.user_id, model)
     except HTTPException as exc:
         raise ValueError(f"Credential unavailable: {exc.detail}") from None
+    timeout = evaluation.effective_generation_timeout
+    llm_config = llm_config.model_copy(
+        update={
+            "timeout": timeout,
+            "retry_max_attempts": 3,
+            "retry_max_elapsed_seconds": min(600, 3 * timeout),
+        }
+    )
+    llm_config._enforce_retry_deadline = True
 
     store = ProblemStore(session_factory)
     # Uploads are private to their owner and must never be copied into the
@@ -869,6 +944,7 @@ def _resolve_execution_context(
         pricing_manager=pricing_manager,
         problem_sources={pid: "personal" if pid in uploaded else "public" for pid in problem_map},
         dataset_version_id=version_id,
+        retry_budget=_EvaluationRetryBudget(session_factory, evaluation.id),
     )
 
 
@@ -988,6 +1064,9 @@ def _build_harness(
     )
     harness = AlgorithmHarness(config)
     harness.pricing_manager = ctx.pricing_manager
+    if ctx.retry_budget is not None:
+        harness.before_retry = ctx.retry_budget.check_retry
+        harness.on_response = ctx.retry_budget.observe
     runtimes = {
         name: harness._prepare_strategy_runtime(strategy_config)
         for name, strategy_config in strategy_configs.items()
@@ -1003,6 +1082,7 @@ def _make_worker(
     missing_reasons: dict[str, str] | None = None,
     *,
     execution_strategies: dict[str, str] | None = None,
+    retry_budget: _EvaluationRetryBudget | None = None,
 ) -> Callable[[TaskUnit], ExecutionResult]:
     """返回真实执行一个 TaskUnit 的 worker 闭包。
 
@@ -1047,6 +1127,8 @@ def _make_worker(
         selected = (execution_strategies or {}).get(unit.unit_id, unit.strategy)
         strategy_config = strategy_configs[selected]
         strategy, sandbox = runtimes[selected]
+        if retry_budget is not None:
+            retry_budget.begin_unit(problem.difficulty)
         result = harness._execute_problem(strategy_config, problem, strategy, sandbox)
         if frozen is not None:
             result.metadata["problem_snapshot"] = _problem_metadata(frozen)
@@ -1055,7 +1137,9 @@ def _make_worker(
         cost, pricing_metadata = harness._estimate_cost([result])
         result.metadata["cost_usd"] = cost
         result.metadata["cost_unknown"] = bool(
-            pricing_metadata.get("unknown_usage") or pricing_metadata.get("unknown_pricing")
+            pricing_metadata.get("unknown_usage")
+            or pricing_metadata.get("unknown_pricing")
+            or (retry_budget is not None and retry_budget.unknown_usage)
         )
         return result
 

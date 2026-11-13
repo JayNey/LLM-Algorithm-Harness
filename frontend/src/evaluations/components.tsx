@@ -3,6 +3,7 @@ import { t } from '../i18n/core.ts'
 import type { Evaluation, ResultDetail } from './types.ts'
 import {
   evaluationLabel,
+  failureDiagnosticLabel,
   metricLabel,
   resultCostLabel,
   successRateLabel,
@@ -43,6 +44,14 @@ export function EvaluationFacts({ evaluation }: { evaluation: Evaluation }) {
           <dt>{t('模型')}</dt>
           <dd>{evaluation.model ?? t('未知')}</dd>
         </div>
+        {evaluation.generation_timeout_seconds !== undefined && (
+          <div>
+            <dt>{t('模型生成超时')}</dt>
+            <dd>
+              {metricLabel(evaluation.generation_timeout_seconds, t('秒'))}
+            </dd>
+          </div>
+        )}
         <div>
           <dt>{t('策略')}</dt>
           <dd>{evaluation.strategy_names.join('、') || t('未知')}</dd>
@@ -180,6 +189,11 @@ export function ResultTables({ result }: { result: ResultDetail }) {
                     {row.status === 'not_evaluable'
                       ? t('不可评估（缺少测试用例）')
                       : row.status}
+                    {(failureDiagnosticLabel(row) ?? row.error_message) && (
+                      <div>
+                        {failureDiagnosticLabel(row) ?? row.error_message}
+                      </div>
+                    )}
                   </td>
                   <td>{metricLabel(row.iterations)}</td>
                   <td>{metricLabel(row.tokens)}</td>

@@ -217,3 +217,29 @@ def test_execution_progress_http_create_update_list_and_detail(tmp_path):
                 "percentage": 50.0,
             }
             assert body["progress"]["percentage"] == 25.0
+
+
+@pytest.mark.parametrize("timeout,expected", [(None, 60), (18, 18)])
+def test_generation_timeout_persists_in_evaluation(tmp_path, timeout, expected):
+    app = create_app(
+        auth_config(tmp_path),
+        FileSettings(_env_file=None, UPLOAD_DIR=tmp_path / "uploads"),
+        database_url=f"sqlite:///{tmp_path / 'generation.sqlite3'}",
+    )
+    with TestClient(app) as client:
+        headers, key_id = _bootstrap_user(client)
+        request = {
+            "api_key_id": key_id,
+            "model": "test-model",
+            "problem_ids": ["p1"],
+            "strategy_names": ["vanilla"],
+        }
+        if timeout is not None:
+            request["generation_timeout_seconds"] = timeout
+        created = client.post("/api/v1/evaluations", headers=headers, json=request)
+        assert created.status_code == 201
+        evaluation_id = created.json()["data"]["evaluation_id"]
+        with Session(app.state.evaluations.engine) as session:
+            assert session.get(Evaluation, evaluation_id).generation_timeout_seconds == expected
+        detail = client.get(f"/api/v1/evaluations/{evaluation_id}", headers=headers)
+        assert detail.json()["data"]["generation_timeout_seconds"] == expected
