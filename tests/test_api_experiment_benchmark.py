@@ -209,7 +209,73 @@ def _experiment_payload(key_id):
     }
 
 
+def _assert_model_endpoint_rejected(client, headers, url, payload, field):
+    response = client.post(url, headers=headers, json=payload)
+
+    assert response.status_code == 400, response.text
+    assert "base_url" in response.json()["error"]["details"][field]
+    assert client.get(url, headers=headers).json()["data"]["total"] == 0
+
+
+def _assert_legacy_endpoint_blocked(api, url, payload, service, row_type, runner, worker):
+    client, headers, _, app = api
+    created = client.post(url, headers=headers, json=payload)
+    assert created.status_code == 201, created.text
+    job_id = created.json()["data"]["id"]
+    job_url = f"{url}/{job_id}"
+    started = client.post(f"{job_url}/run", headers=headers)
+    assert started.status_code == 202, started.text
+    task_id = started.json()["data"]["task_id"]
+    base_url = "http://127.0.0.1:8765/v1"
+    with service._session() as db, db.begin():
+        row = db.get(row_type, job_id)
+        owner_id = row.user_id
+        if row_type is Experiment:
+            models = [*row.config["models"], {**row.config["models"][0], "base_url": base_url}]
+            row.config = {**row.config, "models": models}
+        else:
+            row.config = {**row.config, "model": {**row.config["model"], "base_url": base_url}}
+
+    with (
+        patch("api.auth.config.AuthSettings", return_value=app.state.auth.settings),
+        patch.object(runner, "__init__", side_effect=AssertionError("unexpected runner")) as init,
+    ):
+        result = worker(job_id, owner_id)
+
+    init.assert_not_called()
+    assert result["status"] == "failed"
+    for path in (job_url, f"/api/v1/tasks/{task_id}"):
+        record = client.get(path, headers=headers).json()["data"]
+        assert record["status"] == "failed"
+        assert "base_url" in record["error_message"]
+        assert base_url not in record["error_message"]
+
+
 class TestExperiments:
+    @pytest.mark.parametrize("base_url", ["http://127.0.0.1:8765/v1", "https://example.org/v1", ""])
+    def test_create_rejects_model_base_url(self, api, base_url):
+        client, headers, key_id, _ = api
+        payload = _experiment_payload(key_id)
+        payload["models"].append({"model": "another-model", "base_url": base_url})
+
+        _assert_model_endpoint_rejected(
+            client, headers, "/api/v1/experiments", payload, "models.1.base_url"
+        )
+
+    def test_worker_blocks_legacy_model_base_url(self, api):
+        from src.experiment import ExperimentRunner
+        from src.tasks.experiment import run_experiment_task
+
+        _assert_legacy_endpoint_blocked(
+            api,
+            "/api/v1/experiments",
+            _experiment_payload(api[2]),
+            api[3].state.experiments,
+            Experiment,
+            ExperimentRunner,
+            run_experiment_task,
+        )
+
     def test_queued_experiment_rejects_duplicate_run_and_delete(self, api):
         client, headers, key_id, app = api
         experiment_id = client.post(
@@ -301,19 +367,25 @@ class TestExperiments:
 
     def test_full_lifecycle(self, api):
         client, headers, key_id, app = api
-        created = client.post(
-            "/api/v1/experiments", headers=headers, json=_experiment_payload(key_id)
-        )
+        payload = _experiment_payload(key_id)
+        payload["models"][0].update(base_url=None, temperature=0.25)
+        created = client.post("/api/v1/experiments", headers=headers, json=payload)
         assert created.status_code == 201, created.text
         experiment_id = created.json()["data"]["id"]
         assert created.json()["data"]["status"] == "pending"
+        assert "base_url" not in created.json()["data"]["config"]["models"][0]
         assert KEY not in created.text  # the raw secret never reaches responses
 
         started = client.post(f"/api/v1/experiments/{experiment_id}/run", headers=headers)
         assert started.status_code == 202, started.text
         assert started.json()["data"]["status"] == "pending"
         assert started.json()["data"]["task_id"]
-        _execute_experiment(app, experiment_id)
+        with patch.object(
+            app.state.experiments, "_runner_factory", wraps=FakeExperimentRunner
+        ) as runner:
+            _execute_experiment(app, experiment_id)
+        model = runner.call_args.args[0].models[0]
+        assert (model.provider, model.base_url, model.temperature) == ("openai", None, 0.25)
 
         data = _wait_status(
             lambda: client.get(f"/api/v1/experiments/{experiment_id}", headers=headers).json()[
@@ -1402,12 +1474,38 @@ class TestABTests:
             "api_key_id": key_id,
         }
 
+    @pytest.mark.parametrize("base_url", ["http://127.0.0.1:8765/v1", "https://example.org/v1", ""])
+    def test_create_rejects_model_base_url(self, api, base_url):
+        client, headers, key_id, _ = api
+        payload = self._ab_payload(key_id)
+        payload["model"]["base_url"] = base_url
+
+        _assert_model_endpoint_rejected(
+            client, headers, "/api/v1/ab-tests", payload, "model.base_url"
+        )
+
+    def test_worker_blocks_legacy_model_base_url(self, api):
+        from src.ab_testing import ABTestRunner
+        from src.tasks.ab_test import run_ab_test_task
+
+        _assert_legacy_endpoint_blocked(
+            api,
+            "/api/v1/ab-tests",
+            self._ab_payload(api[2]),
+            api[3].state.ab_tests,
+            ABTest,
+            ABTestRunner,
+            run_ab_test_task,
+        )
+
     def test_ab_test_lifecycle(self, api, tmp_path, mock_llm_client):
         client, headers, key_id, _ = api
         payload = self._ab_payload(key_id)
+        payload["model"].update(base_url=None, temperature=0.25)
         payload.update(prompt_variants=[{"id": "baseline"}, {"id": "treatment"}], max_workers=4)
         created = client.post("/api/v1/ab-tests", headers=headers, json=payload)
         assert created.status_code == 201, created.text
+        assert "base_url" not in created.json()["data"]["config"]["model"]
         test_id = created.json()["data"]["id"]
 
         started = client.post(f"/api/v1/ab-tests/{test_id}/run", headers=headers)
@@ -1447,7 +1545,9 @@ class TestABTests:
         runner_init = ABTestRunner.__init__
 
         def init_with_test_dependencies(runner, config):
-            mock_llm_client.config = config.model
+            model = config.model
+            assert (model.provider, model.base_url, model.temperature) == ("openai", None, 0.25)
+            mock_llm_client.config = model
             config.dataset_path = str(dataset)
             config.sandbox_config = SandboxConfig(backend="host")
             runner_init(runner, config, client_factory=lambda _: mock_llm_client)

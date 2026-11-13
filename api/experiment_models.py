@@ -13,11 +13,17 @@ class ModelSpec(BaseModel):
     """One model arm of an experiment; keys resolve from the auth store."""
 
     model: str = Field(..., min_length=1, description="Model name")
-    base_url: str | None = Field(None, description="Optional base URL override")
+    base_url: str | None = Field(None, description="Reserved field. Omit or pass null.")
     temperature: float | None = Field(None, ge=0.0, le=2.0)
     api_key_id: str | None = Field(
         None, description="Per-model key override; falls back to the request-level key"
     )
+
+    @field_validator("base_url")
+    @classmethod
+    def reject_base_url(cls, value: object) -> None:
+        if value is not None:
+            raise ValueError("base_url is managed by the server and cannot be overridden")
 
 
 class DatasetRequest(BaseModel):
