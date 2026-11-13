@@ -60,6 +60,7 @@ class JudgeConfig(BaseModel):
     result_argument: str | None = Field(
         None, min_length=1, description="Named function argument to judge after the call"
     )
+    node_adapter: Literal["binary_tree", "graph_clone", "random_list_copy"] | None = None
     float_tolerance: float = Field(
         1e-6, ge=0.0, description="Absolute and relative tolerance for float comparison"
     )
@@ -152,7 +153,14 @@ class Problem(BaseModel):
             "whitespace": "trim",
             "output_format": "auto",
         }
-        if "judge_config" in data and data["judge_config"] != legacy_default:
+        stored_config = data.get("judge_config", legacy_default)
+        if isinstance(stored_config, JudgeConfig):
+            stored_config = stored_config.model_dump(exclude_none=True)
+        if isinstance(stored_config, dict):
+            stored_config = {
+                key: value for key, value in stored_config.items() if value is not None
+            }
+        if stored_config not in (legacy_default, {}):
             return data
 
         source_id = data.get("source_problem_id")
@@ -163,6 +171,15 @@ class Problem(BaseModel):
             judge = {"result_argument": "nums1"}
         elif source_id == "49" and entry == "Solution.groupAnagrams(strs)":
             judge = {"comparison": "unordered_groups"}
+        elif (source_id, entry) in (
+            ("105", "Solution.buildTree(preorder, inorder)"),
+            ("106", "Solution.buildTree(inorder, postorder)"),
+        ):
+            judge = {"node_adapter": "binary_tree"}
+        elif source_id == "133" and entry == "Solution.cloneGraph(node)":
+            judge = {"node_adapter": "graph_clone"}
+        elif source_id == "138" and entry == "Solution.copyRandomList(head)":
+            judge = {"node_adapter": "random_list_copy"}
         else:
             return data
         return {**data, "judge_config": judge}
@@ -170,15 +187,18 @@ class Problem(BaseModel):
     @model_validator(mode="after")
     def assign_test_case_sources(self) -> "Problem":
         """Ensure each staged list carries its authoritative visibility label."""
-        self.public_test_cases = [
-            case.model_copy(update={"source": "public"}) for case in self.public_test_cases
-        ]
-        self.feedback_test_cases = [
-            case.model_copy(update={"source": "feedback"}) for case in self.feedback_test_cases
-        ]
-        self.hidden_test_cases = [
-            case.model_copy(update={"source": "hidden"}) for case in self.hidden_test_cases
-        ]
+        for stage in ("public", "feedback", "hidden"):
+            cases = []
+            for case in self.test_cases_for(stage):
+                arguments = case.input
+                if (
+                    self.judge_config.node_adapter == "graph_clone"
+                    and isinstance(arguments, dict)
+                    and arguments.keys() == {"adjList"}
+                ):
+                    arguments = {"node": arguments["adjList"]}
+                cases.append(case.model_copy(update={"source": stage, "input": arguments}))
+            setattr(self, f"{stage}_test_cases", cases)
         if (
             not self.public_test_cases
             and not self.feedback_test_cases
@@ -187,6 +207,10 @@ class Problem(BaseModel):
         ):
             raise ValueError("At least one public, feedback, or hidden test case is required")
         result_argument = self.judge_config.result_argument
+        if self.judge_config.node_adapter and (
+            self.input_output_mode != "function" or result_argument is not None
+        ):
+            raise ValueError("node_adapter requires a function return value")
         if result_argument is not None and (
             self.input_output_mode != "function"
             or any(

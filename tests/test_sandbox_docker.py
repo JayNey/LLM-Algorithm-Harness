@@ -765,3 +765,210 @@ def test_declared_result_argument_requires_named_input():
     record["judge_config"] = {"result_argument": "missing"}
     with pytest.raises(ValueError, match="result_argument"):
         Problem.model_validate(record)
+
+
+_TREE_PREORDER = """
+class Solution:
+    def buildTree(self, preorder, inorder) -> Optional[TreeNode]:
+        if not preorder:
+            return None
+        root = TreeNode(preorder[0])
+        pivot = inorder.index(root.val)
+        root.left = self.buildTree(preorder[1:pivot + 1], inorder[:pivot])
+        root.right = self.buildTree(preorder[pivot + 1:], inorder[pivot + 1:])
+        return root
+"""
+
+_TREE_POSTORDER = """
+class Solution:
+    def buildTree(self, inorder, postorder) -> Optional[TreeNode]:
+        if not postorder:
+            return None
+        root = TreeNode(postorder[-1])
+        pivot = inorder.index(root.val)
+        root.left = self.buildTree(inorder[:pivot], postorder[:pivot])
+        root.right = self.buildTree(inorder[pivot + 1:], postorder[pivot:-1])
+        return root
+"""
+
+_CLONE_GRAPH = """
+class Solution:
+    def cloneGraph(self, node: Optional['Node']) -> Optional['Node']:
+        copies = {}
+        def visit(old):
+            if old not in copies:
+                copies[old] = Node(old.val)
+                copies[old].neighbors = [visit(n) for n in reversed(old.neighbors)]
+            return copies[old]
+        return visit(node) if node is not None else None
+"""
+
+_COPY_RANDOM_LIST = """
+class Solution:
+    def copyRandomList(self, head: 'Optional[Node]') -> 'Optional[Node]':
+        copies = {None: None}
+        node = head
+        while node is not None:
+            copies[node] = Node(node.val)
+            node = node.next
+        node = head
+        while node is not None:
+            copies[node].next = copies[node.next]
+            copies[node].random = copies[node.random]
+            node = node.next
+        return copies[head]
+"""
+
+
+def _import_node_problem(number, signature, examples):
+    from src.importers.leetcode import LeetCodeImporter
+
+    [problem] = LeetCodeImporter().transform_to_schema(
+        {
+            "questionFrontendId": number,
+            "title": f"LeetCode {number}",
+            "content": "".join(
+                f"<pre>Input: {inputs}\nOutput: {expected}</pre>" for inputs, expected in examples
+            ),
+            "codeSnippets": [
+                {"langSlug": "python3", "code": f"class Solution:\n    def {signature}: ..."}
+            ],
+        }
+    )
+    return problem
+
+
+@pytest.mark.parametrize(
+    "backend",
+    [
+        "host",
+        pytest.param(
+            "docker",
+            marks=pytest.mark.skipif(
+                os.getenv("RUN_DOCKER_TESTS") != "1", reason="set RUN_DOCKER_TESTS=1"
+            ),
+        ),
+    ],
+)
+@pytest.mark.parametrize(
+    "number,signature,examples,correct,incorrect",
+    [
+        pytest.param(
+            "105",
+            "buildTree(self, preorder, inorder) -> Optional[TreeNode]",
+            [
+                ("preorder = [3,9,20,15,7], inorder = [9,3,15,20,7]", "[3,9,20,null,null,15,7]"),
+                ("preorder = [], inorder = []", "[]"),
+            ],
+            _TREE_PREORDER,
+            [
+                "return TreeNode(3, TreeNode(20), TreeNode(9))",
+                "root = TreeNode(3); root.left = root; return root",
+                "return [3,9,20,None,None,15,7]",
+            ],
+            id="preorder-tree",
+        ),
+        pytest.param(
+            "106",
+            "buildTree(self, inorder, postorder) -> Optional[TreeNode]",
+            [
+                ("inorder = [9,3,15,20,7], postorder = [9,15,7,20,3]", "[3,9,20,null,null,15,7]"),
+                ("inorder = [], postorder = []", "[]"),
+            ],
+            _TREE_POSTORDER,
+            ["return TreeNode(3, TreeNode(9), TreeNode(20))"],
+            id="postorder-tree",
+        ),
+        pytest.param(
+            "133",
+            "cloneGraph(self, node: Optional['Node']) -> Optional['Node']",
+            [
+                ("adjList = [[4,2],[1,3],[2,4],[1,3]]", "[[4,2],[3,1],[2,4],[1,3]]"),
+                ("adjList = [[]]", "[[]]"),
+                ("adjList = []", "[]"),
+            ],
+            _CLONE_GRAPH,
+            [
+                "return node",
+                "return Node(node.val, node.neighbors[:])",
+                "return Node(node.val)",
+                "return Node(2, node.neighbors)",
+                """nodes = [node, *node.neighbors, node.neighbors[0].neighbors[1]]
+copies = {old: Node(old.val, old.neighbors) for old in nodes}
+for old in nodes:
+    old.neighbors[:] = [copies[neighbor] for neighbor in old.neighbors]
+return copies[node]""",
+            ],
+            id="cyclic-graph",
+        ),
+        pytest.param(
+            "138",
+            "copyRandomList(self, head: 'Optional[Node]') -> 'Optional[Node]'",
+            [
+                ("head = [[7,null],[7,2],[11,0],[10,3]]", "[[7,null],[7,2],[11,0],[10,3]]"),
+                ("head = []", "[]"),
+            ],
+            _COPY_RANDOM_LIST,
+            [
+                "return head",
+                "return Node(head.val, head.next)",
+                "result = Node(head.val); result.next = result; return result",
+                "result = Node(head.val); result.random = head.next; return result",
+                "return Node(7, Node(7, Node(11, Node(10))))",
+            ],
+            id="random-list",
+        ),
+    ],
+)
+def test_real_docker_and_host_judge_leetcode_nodes(
+    backend, number, signature, examples, correct, incorrect
+):
+    from api.files.parsing import validate_problem
+    from src.incremental.fingerprint import compute_problem_fingerprint
+    from src.problem_loader import ProblemLoader
+
+    problem = _import_node_problem(number, signature, examples)
+    executor = SandboxExecutor(SandboxConfig(backend=backend))
+    result = executor.execute(correct, problem)
+    assert result.all_passed, result.model_dump()
+    assert len(result.test_results) == len(examples)
+
+    # Simulate serialized defaults from before node support, including the old adjList key.
+    record = problem.model_dump(mode="json")
+    record["judge_config"] = {
+        "comparison": "float_tolerance",
+        "result_argument": None,
+        "float_tolerance": 1e-6,
+        "whitespace": "trim",
+        "output_format": "auto",
+    }
+    if number == "133":
+        for case in record["public_test_cases"]:
+            if "node" in case["input"]:
+                case["input"]["adjList"] = case["input"].pop("node")
+    [cli_problem] = ProblemLoader().validate_dataset([record])
+    web_problem = validate_problem(record)
+    assert cli_problem == web_problem
+    assert compute_problem_fingerprint(cli_problem) == compute_problem_fingerprint(problem)
+    result = executor.execute(correct, cli_problem)
+    assert result.all_passed, result.model_dump()
+
+    # Only the first, non-empty case is needed for the fixed incorrect solutions.
+    first_case = problem.model_copy(update={"public_test_cases": problem.public_test_cases[:1]})
+    for body in incorrect:
+        indented = "\n".join(f"        {line}" for line in body.splitlines())
+        code = f"class Solution:\n    def {signature}:\n{indented}"
+        case = executor.execute(code, first_case).test_results[0]
+        assert case.status == "wrong_answer", case.model_dump()
+
+
+def test_leetcode_import_reports_unsupported_node_signature():
+    problem = _import_node_problem(
+        "206",
+        "reverseList(self, head: Optional[ListNode]) -> Optional[ListNode]",
+        [("head = [1,2]", "[2,1]")],
+    )
+    assert problem.unsupported_reason and "ListNode" in problem.unsupported_reason
+    result = SandboxExecutor(SandboxConfig(backend="host")).execute("", problem)
+    assert result.status == "unsupported"
+    assert result.error_message == problem.unsupported_reason
