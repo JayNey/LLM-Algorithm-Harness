@@ -128,7 +128,6 @@ class ABTestService:
             ),
             "model": {
                 "model": request.model.model,
-                "base_url": request.model.base_url,
                 "temperature": request.model.temperature,
             },
             "strategy": request.strategy.model_dump(mode="json"),
@@ -236,6 +235,7 @@ class ABTestService:
 
             self._auth = AuthService(AuthSettings())
         config = row.config
+        ModelSpec.reject_base_url(config["model"].get("base_url"))
         if config.get("dataset_snapshot") is not None or config.get("dataset_id"):
             if dataset_files is None:
                 raise ValueError("Dataset snapshot requires an execution scope")
@@ -245,8 +245,6 @@ class ABTestService:
         spec = ModelSpec(**config["model"])
         llm = self._auth.llm_config(row.api_key_id or "", owner_id, spec.model)
         update: dict[str, Any] = {}
-        if spec.base_url:
-            update["base_url"] = spec.base_url
         if spec.temperature is not None:
             update["temperature"] = spec.temperature
         if update:

@@ -146,7 +146,6 @@ class ExperimentService:
             "models": [
                 {
                     "model": spec.model,
-                    "base_url": spec.base_url,
                     "temperature": spec.temperature,
                     "api_key_id": self._key_id_for(request, spec),
                 }
@@ -271,6 +270,8 @@ class ExperimentService:
         if self._auth is None:
             raise ValueError("authentication service is not configured")
         config = row.config
+        for spec in config["models"]:
+            ModelSpec.reject_base_url(spec.get("base_url"))
         if config.get("dataset_snapshot") is not None or config.get("dataset_id"):
             if dataset_files is None:
                 raise ValueError("Dataset snapshot requires an execution scope")
@@ -281,8 +282,6 @@ class ExperimentService:
         for spec in config["models"]:
             llm = self._auth.llm_config(spec["api_key_id"], owner_id, spec["model"])
             update: dict[str, Any] = {}
-            if spec.get("base_url"):
-                update["base_url"] = spec["base_url"]
             if spec.get("temperature") is not None:
                 update["temperature"] = spec["temperature"]
             models.append(llm.model_copy(update=update) if update else llm)
