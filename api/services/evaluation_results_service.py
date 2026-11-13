@@ -1274,9 +1274,11 @@ class EvaluationResultsService:
             "error_message": (
                 " / ".join(diagnostic)
                 if diagnostic
-                else redact_sensitive_text(row.error_message)
-                if row.error_message
-                else row.error_message
+                else (
+                    redact_sensitive_text(row.error_message)
+                    if row.error_message
+                    else row.error_message
+                )
             ),
             **_diagnostic_fields(diagnostic),
         }
