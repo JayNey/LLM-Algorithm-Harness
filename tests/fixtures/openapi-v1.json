@@ -959,6 +959,10 @@
               }
             ]
           },
+          "budget_status": {
+            "default": "unlimited",
+            "type": "string"
+          },
           "can_cancel": {
             "type": "boolean"
           },
@@ -1004,6 +1008,17 @@
             "default": 60,
             "type": "integer"
           },
+          "known_cost_usd": {
+            "anyOf": [
+              {
+                "minimum": 0.0,
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
           "model": {
             "anyOf": [
               {
@@ -1040,6 +1055,11 @@
               "type": "string"
             },
             "type": "array"
+          },
+          "unknown_cost_count": {
+            "default": 0,
+            "minimum": 0.0,
+            "type": "integer"
           },
           "updated_at": {
             "type": "string"

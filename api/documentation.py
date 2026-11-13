@@ -1715,9 +1715,9 @@ ERROR_MESSAGES = {
     503: "Service is unavailable",
 }
 
-API_CONTRACT_VERSION = "1.7.0"
+API_CONTRACT_VERSION = "1.8.0"
 
-OVERVIEW = """LLM Algorithm Harness API，HTTP 契约版本 1.7.0（API v1）。
+OVERVIEW = """LLM Algorithm Harness API，HTTP 契约版本 1.8.0（API v1）。
 
 **版本策略**：URL 主版本 `/api/v1`；不使用 Header 版本协商。
 兼容扩展沿用 v1；破坏性变更使用新的 URL 主版本，并提供迁移说明、并行支持与退役公告。

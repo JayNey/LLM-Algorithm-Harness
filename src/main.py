@@ -2383,7 +2383,9 @@ def main() -> None:
                     logger.warning("incremental_history_update_failed", error=str(e))
                     # Non-fatal, continue
 
-            if harness.cost_monitor is not None:
+            if (
+                config.budget_cap_usd is not None or config.difficulty_strategy
+            ) and harness.cost_monitor is not None:
                 snapshot = harness.cost_monitor.snapshot()
                 cap = snapshot["budget_cap_usd"]
                 cap_text = "no cap" if cap is None else f"${cap}"
@@ -2399,7 +2401,7 @@ def main() -> None:
                     print(
                         f"Evaluation paused ({harness.budget_pause_reason}); see cost_cutoff.json."
                     )
-            if harness.budget_allocation_monitor is not None:
+            if config.budget_allocation and harness.budget_allocation_monitor is not None:
                 for difficulty, usage in harness.budget_allocation_monitor.snapshot().items():
                     cost = usage["known_cost_usd"]
                     cost_text = "unknown" if cost is None else f"${cost:.4f}"

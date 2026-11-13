@@ -1,6 +1,6 @@
 # API 版本管理
 
-当前 HTTP 契约版本为 **1.7.0**，URL 主版本为 **v1**。业务接口均使用 `/api/v1/...`；公开文档入口仍是 `/docs`、`/redoc` 和 `/openapi.json`。OpenAPI `info.version` 显示契约版本，Swagger UI 和 ReDoc 读取同一份文档。
+当前 HTTP 契约版本为 **1.8.0**，URL 主版本为 **v1**。业务接口均使用 `/api/v1/...`；公开文档入口仍是 `/docs`、`/redoc` 和 `/openapi.json`。OpenAPI `info.version` 显示契约版本，Swagger UI 和 ReDoc 读取同一份文档。
 
 采用 URL 版本，而非 `API-Version`、`Accept-Version` 或自定义 Accept 媒体类型的 Header 协商：URL 在 curl、代理、日志和客户端中直接可见，不需要版本相关的 `Vary` 缓存规则。Header 不选择版本，例如 `/api/v1/health` 带 `API-Version: 2` 仍请求 v1；未实现的 `/api/v2/health` 返回 404。不要将 v2 静默降级到 v1。
 
@@ -47,3 +47,5 @@ OpenAPI 门禁覆盖结构契约，不能验证业务语义、动态字典中的
 1.6.0 增加评估文件 publication 状态与独立重试两个操作。既有下载/导出/图表的成功响应兼容增加可选 X-Artifact-Revision、X-Artifact-Completeness 头，版本化内容与头绑定同一不可变快照；旧文件允许不返回这些头。新 Worker 生成 schema_version=1 的产物，旧受信任发布文件仍可读。已独立审查：移除两个新头后，既有三个操作与冻结基线完全相同；请求、媒体类型、响应结构、认证、错误组件和全局协议不变。基线仅定向增加这六处头声明及两个新操作，不重录其他主干新增接口，也不放宽兼容断言。
 
 1.7.0 为 Web 评估创建请求新增可选整数 `generation_timeout_seconds`，取值 1–300，默认 60。评估响应包含生效值，历史记录没有保存值时返回 60。既有客户端可以沿用原请求格式，旧版结果响应缺少该字段时也可由当前 Web 客户端解析。冻结基线仅增加两个评估组件中的该字段。
+
+1.8.0 为 `EvaluationResponse` 增加三个可选响应字段。 `known_cost_usd` 是已知费用小计，无可用金额时为 `null`。 `unknown_cost_count` 是费用未知的单元数，`budget_status` 是任务预算状态。现有请求和原有响应字段继续适用，当前 Web 客户端可读取旧版响应。
