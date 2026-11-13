@@ -893,6 +893,12 @@
               }
             ]
           },
+          "generation_timeout_seconds": {
+            "default": 60,
+            "maximum": 300.0,
+            "minimum": 1.0,
+            "type": "integer"
+          },
           "max_concurrency": {
             "default": 5,
             "minimum": 1.0,
@@ -993,6 +999,10 @@
           },
           "execution_progress": {
             "$ref": "#/components/schemas/ExecutionProgress"
+          },
+          "generation_timeout_seconds": {
+            "default": 60,
+            "type": "integer"
           },
           "model": {
             "anyOf": [
