@@ -5,7 +5,7 @@
 
 import uuid
 from decimal import Decimal
-from unittest.mock import Mock, patch
+from unittest.mock import AsyncMock, Mock, patch
 
 import pytest
 from fastapi import HTTPException
@@ -436,7 +436,7 @@ class TestResolveExecutionContext:
         from src.tasks.evaluation import _resolve_execution_context
 
         ev = make_evaluation(model="m", problem_ids=["p1", "missing"])
-        sentinel_llm = object()
+        credential = LLMConfig(provider="openai", api_key="test", model="m")
         orm_row = ORMProblem(
             id="row-1",
             problem_id="p1",
@@ -462,11 +462,12 @@ class TestResolveExecutionContext:
             patch("api.auth.config.AuthSettings"),
             patch("api.auth.service.AuthService") as MockAuth,
         ):
-            MockAuth.return_value.llm_config.return_value = sentinel_llm
+            MockAuth.return_value.llm_config.return_value = credential
             with patch("api.db.problem_store.ProblemStore", _FakeStore):
                 ctx = _resolve_execution_context(ev, session_factory)
 
-        assert ctx.llm_config is sentinel_llm
+        assert ctx.llm_config.model == credential.model
+        assert ctx.llm_config.timeout == 60
         assert "missing" in ctx.missing_problems
         assert "p1" in ctx.problem_map
         # ORM 行必须被转换成 domain src.models.Problem（供 _execute_problem 消费）
@@ -508,7 +509,9 @@ class TestResolveExecutionContext:
             patch("api.auth.config.AuthSettings"),
             patch("api.auth.service.AuthService") as MockAuth,
         ):
-            MockAuth.return_value.llm_config.return_value = object()
+            MockAuth.return_value.llm_config.return_value = LLMConfig(
+                provider="openai", api_key="test", model="m"
+            )
             with patch("api.db.problem_store.ProblemStore", _FakeStore):
                 ctx = _resolve_execution_context(ev, session_factory)
 
@@ -2063,16 +2066,14 @@ def test_web_pricing_drives_real_cost_and_budget(
     from types import SimpleNamespace
 
     from api.services.cost_service import CostService
-    from src.llm_client import LLMClient
     from src.sandbox_executor import SandboxExecutor
 
     monkeypatch.chdir(tmp_path)
     monkeypatch.setattr(SandboxExecutor, "health_check", lambda self: (True, "ok"))
     monkeypatch.setattr(run_evaluation_task, "update_state", lambda *a, **k: None)
-    monkeypatch.setattr("src.llm_client.OpenAI", lambda **kwargs: Mock())
 
     # No code means no sandbox execution; the provider call still incurs token cost.
-    def provider(self, effective_call):
+    def provider(**kwargs):
         return SimpleNamespace(
             model="provider-canonical-model",
             choices=[
@@ -2081,7 +2082,10 @@ def test_web_pricing_drives_real_cost_and_budget(
             usage=SimpleNamespace(prompt_tokens=1000, completion_tokens=1000, total_tokens=2000),
         )
 
-    monkeypatch.setattr(LLMClient, "_call_with_retry", provider)
+    sdk = AsyncMock()
+    sdk.__aenter__.return_value = sdk
+    sdk.chat.completions.create = AsyncMock(side_effect=provider)
+    monkeypatch.setattr("src.llm_client.AsyncOpenAI", lambda **kwargs: sdk)
     monkeypatch.setattr("src.tasks.evaluation.get_db_session", lambda: db_session)
     # CostService uses the very same database as the evaluation worker.
     service = CostService.__new__(CostService)
@@ -2127,7 +2131,7 @@ def test_web_pricing_snapshot_shared_by_all_and_late_runtimes(db_session, auth_o
     from src.tasks.evaluation import _build_harness, _resolve_execution_context
 
     monkeypatch.setattr(SandboxExecutor, "health_check", lambda self: (True, "ok"))
-    monkeypatch.setattr("src.llm_client.OpenAI", lambda **kwargs: Mock())
+    monkeypatch.setattr("src.llm_client.AsyncOpenAI", lambda **kwargs: Mock())
     factory = sessionmaker(bind=db_session.get_bind(), expire_on_commit=False)
     service = CostService.__new__(CostService)
     service._session = factory
@@ -2307,3 +2311,137 @@ def test_resume_budget_uses_frozen_difficulty(
     ):
         assert run_evaluation_task.run(evaluation_id)["status"] == want_status
     assert integration_harness.execute_calls == want_calls
+
+
+@pytest.mark.parametrize(
+    "outcome,attempts", [("slow", 1), ("timeout", 3), ("rate_limit", 3), ("auth", 1)]
+)
+def test_web_generation_provider_attempts(db_session, auth_ok, monkeypatch, outcome, attempts):
+    from types import SimpleNamespace
+
+    from src.llm_client import LLMClient
+    from src.tasks.evaluation import _resolve_execution_context
+
+    class ProviderError(Exception):
+        def __init__(self, status_code):
+            self.status_code = status_code
+
+    now = 0.0
+    timeouts = []
+
+    def advance(seconds):
+        nonlocal now
+        now += seconds
+
+    def provider(**kwargs):
+        timeout = kwargs["timeout"]
+        timeouts.append(timeout)
+        if outcome in {"slow", "timeout"}:
+            if outcome == "timeout" or timeout < 6:
+                advance(timeout)
+                raise TimeoutError("Request timed out")
+            advance(6)
+            return {"choices": [{"message": {"content": "answer"}}]}
+        raise ProviderError(429 if outcome == "rate_limit" else 401)
+
+    monkeypatch.setattr(
+        "src.llm_client.time",
+        SimpleNamespace(
+            monotonic=lambda: now, perf_counter=lambda: now, time=lambda: now, sleep=advance
+        ),
+    )
+    sdk = AsyncMock()
+    sdk.__aenter__.return_value = sdk
+    sdk.chat.completions.create = AsyncMock(side_effect=provider)
+    monkeypatch.setattr("src.llm_client.AsyncOpenAI", lambda **kwargs: sdk)
+    evaluation_id = _seed_evaluation(db_session, problem_ids=["p1"], strategy_names=["vanilla"])
+    evaluation = db_session.get(Evaluation, evaluation_id)
+    evaluation.generation_timeout_seconds = 12
+    factory = sessionmaker(bind=db_session.get_bind(), expire_on_commit=False)
+    config = _resolve_execution_context(evaluation, factory).llm_config
+    client = LLMClient(config)
+
+    if outcome == "slow":
+        assert client.generate("prompt").text == "answer"
+    else:
+        with pytest.raises(RuntimeError):
+            client.generate("prompt")
+    assert len(timeouts) == attempts
+    assert timeouts[0] == 12
+    if outcome == "timeout":
+        assert timeouts == [12, 12, 10.5]
+        assert now == 36
+
+
+@pytest.mark.parametrize("change", ["budget", "cancelled"])
+def test_web_generation_rechecks_admission_before_retry(tmp_path, auth_ok, monkeypatch, change):
+    from api.db.engine import make_engine
+    from src.sandbox_executor import SandboxExecutor
+
+    engine = make_engine(f"sqlite:///{tmp_path / 'retry-budget.sqlite3'}")
+    Base.metadata.create_all(engine)
+    factory = sessionmaker(bind=engine, expire_on_commit=False)
+    with factory() as db:
+        evaluation_id = _seed_evaluation(db, problem_ids=["p1"], strategy_names=["vanilla"])
+
+    def provider(**_kwargs):
+        # Another session can change the budget while the request is in flight.
+        with factory() as db, db.begin():
+            evaluation = db.get(Evaluation, evaluation_id)
+            if change == "budget":
+                evaluation.budget_cap_usd = 0
+            else:
+                db.get(AsyncTask, evaluation.async_task_id).status = "cancelled"
+        raise TimeoutError("Request timed out")
+
+    sdk = AsyncMock()
+    sdk.__aenter__.return_value = sdk
+    sdk.chat.completions.create = AsyncMock(side_effect=provider)
+    monkeypatch.setattr("src.llm_client.AsyncOpenAI", lambda **kwargs: sdk)
+    monkeypatch.setattr("src.tasks.evaluation.get_db_session", factory)
+    monkeypatch.setattr(SandboxExecutor, "health_check", lambda self: (True, "ok"))
+    monkeypatch.setattr(run_evaluation_task, "update_state", lambda *args, **kwargs: None)
+
+    run_evaluation_task.run(evaluation_id)
+
+    assert sdk.chat.completions.create.call_count == 1
+    with factory() as db:
+        row = db.query(EvaluationResult).filter_by(evaluation_id=evaluation_id).one()
+        assert row.status == ("budget_exhausted" if change == "budget" else "failed")
+        assert row.metrics["cost_unknown"] is True
+
+
+def test_web_generation_cancels_slow_sdk_response(db_session, auth_ok, monkeypatch):
+    import asyncio
+    from types import SimpleNamespace
+
+    from src.llm_client import LLMClient
+    from src.tasks.evaluation import _resolve_execution_context
+
+    cancelled = []
+
+    class SlowProvider:
+        async def __aenter__(self):
+            return self
+
+        async def __aexit__(self, *_args):
+            return None
+
+        async def create(self, **_kwargs):
+            try:
+                await asyncio.sleep(10)
+            finally:
+                cancelled.append(True)
+
+    sdk = SlowProvider()
+    sdk.chat = SimpleNamespace(completions=sdk)
+    monkeypatch.setattr("src.llm_client.AsyncOpenAI", lambda **kwargs: sdk)
+    evaluation_id = _seed_evaluation(db_session, problem_ids=["p1"], strategy_names=["vanilla"])
+    evaluation = db_session.get(Evaluation, evaluation_id)
+    evaluation.generation_timeout_seconds = 1
+    factory = sessionmaker(bind=db_session.get_bind(), expire_on_commit=False)
+    config = _resolve_execution_context(evaluation, factory).llm_config
+    config.retry_max_attempts = 1
+    with pytest.raises(RuntimeError, match=r"\[timeout\]"):
+        LLMClient(config).generate("prompt")
+    assert cancelled == [True]

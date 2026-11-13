@@ -2,16 +2,19 @@
 LLM Client - Interface for calling LLM APIs.
 """
 
+import asyncio
 import os
 import re
 import time
 import uuid
 from collections.abc import Callable
+from functools import partial
 from typing import Any
 
 from httpx import URL
 from pydantic import SecretStr
 
+from src.budget import BudgetExhausted
 from src.cache import CacheKey, LLMResponseCache
 from src.models import LLMConfig, LLMResponse, TokenUsage
 from src.utils.logging import get_logger
@@ -20,13 +23,15 @@ from src.utils.secrets import redact_sensitive_data, redact_sensitive_text
 
 # Optional imports for LLM providers (may not be installed)
 try:
-    from openai import OpenAI
+    from openai import AsyncOpenAI, OpenAI
 except ImportError:
+    AsyncOpenAI = None  # type: ignore[assignment, misc]
     OpenAI = None  # type: ignore[assignment, misc]
 
 try:
-    from anthropic import Anthropic
+    from anthropic import Anthropic, AsyncAnthropic
 except ImportError:
+    AsyncAnthropic = None  # type: ignore[assignment, misc]
     Anthropic = None  # type: ignore[assignment, misc]
 
 logger = get_logger(__name__)
@@ -44,11 +49,16 @@ class LLMAccountingError(RuntimeError):
     """An accounting failure must never become another provider attempt."""
 
 
+class LLMProviderError(RuntimeError):
+    """A sanitized provider failure that retains a stable error type."""
+
+
 class LLMClient:
     """LLM API client."""
 
     on_response: SpendCallback | None = None
     before_generate: Callable[[], None] | None = None
+    before_retry: Callable[[], None] | None = None
 
     def __init__(self, config: LLMConfig):
         """
@@ -92,8 +102,12 @@ class LLMClient:
         Raises:
             ValueError: If provider not supported
         """
+        bounded = self.config._enforce_retry_deadline
+        openai_sdk = AsyncOpenAI if bounded else OpenAI
+        anthropic_sdk = AsyncAnthropic if bounded else Anthropic
+
         if self.config.provider in ("openai", "local"):
-            if OpenAI is None:
+            if openai_sdk is None:
                 raise ImportError("openai package not installed. Run: pip install openai")
             if self.config.provider == "local" and not self.config.base_url:
                 raise ValueError(
@@ -107,7 +121,7 @@ class LLMClient:
             # Support custom base_url for OpenAI-compatible APIs (e.g., DeepSeek)
             # Keep retries in one place (_call_with_retry) to avoid SDK retry
             # multiplication when a provider returns a rate-limit/5xx error.
-            client_kwargs = {"api_key": api_key, "max_retries": 0}
+            client_kwargs: dict[str, Any] = {"api_key": api_key, "max_retries": 0}
             if self.config.base_url:
                 client_kwargs["base_url"] = self.config.base_url
                 logger.info(
@@ -117,12 +131,14 @@ class LLMClient:
                 )
 
             try:
-                return OpenAI(**client_kwargs)  # type: ignore[arg-type]
+                return (
+                    partial(openai_sdk, **client_kwargs) if bounded else openai_sdk(**client_kwargs)
+                )
             except Exception as exc:
                 raise self._safe_provider_error(exc, api_key) from None
 
         elif self.config.provider == "deepseek":
-            if OpenAI is None:
+            if openai_sdk is None:
                 raise ImportError("openai package not installed. Run: pip install openai")
             if self.config.base_url and self.config.base_url.rstrip("/") not in (
                 "https://api.deepseek.com",
@@ -132,14 +148,17 @@ class LLMClient:
             api_key = self._resolve_api_key("DEEPSEEK_API_KEY", "DeepSeek")
             self._resolved_api_key = SecretStr(api_key)
             try:
-                return OpenAI(api_key=api_key, max_retries=0, base_url="https://api.deepseek.com")
+                factory = partial(
+                    openai_sdk, api_key=api_key, max_retries=0, base_url="https://api.deepseek.com"
+                )
+                return factory if bounded else factory()
             except Exception as exc:
                 raise self._safe_provider_error(exc, api_key) from None
 
         elif self.config.provider == "siliconflow":
             # SiliconFlow exposes an OpenAI-compatible API; reuse the SDK and
             # only inject the service preset (base_url + dedicated key source)
-            if OpenAI is None:
+            if openai_sdk is None:
                 raise ImportError("openai package not installed. Run: pip install openai")
             api_key = self._resolve_api_key("SILICONFLOW_API_KEY", "SiliconFlow")
             self._resolved_api_key = SecretStr(api_key)
@@ -161,19 +180,22 @@ class LLMClient:
                 )
 
             try:
-                return OpenAI(**client_kwargs)  # type: ignore[arg-type]
+                return (
+                    partial(openai_sdk, **client_kwargs) if bounded else openai_sdk(**client_kwargs)
+                )
             except Exception as exc:
                 raise self._safe_provider_error(exc, api_key) from None
 
         elif self.config.provider == "anthropic":
-            if Anthropic is None:
+            if anthropic_sdk is None:
                 raise ImportError("anthropic package not installed. Run: pip install anthropic")
             api_key = self._resolve_api_key("ANTHROPIC_API_KEY", "Anthropic")
             self._resolved_api_key = SecretStr(api_key)
             try:
                 # Timeout is also passed to messages.create so it applies to
                 # each request even when the SDK constructor is mocked.
-                return Anthropic(api_key=api_key, max_retries=0)
+                anthropic_factory = partial(anthropic_sdk, api_key=api_key, max_retries=0)
+                return anthropic_factory if bounded else anthropic_factory()
             except Exception as exc:
                 raise self._safe_provider_error(exc, api_key) from None
 
@@ -222,6 +244,9 @@ class LLMClient:
         self, error: Exception, resolved_api_key: str | None = None
     ) -> RuntimeError:
         """Create an exception message that cannot contain the resolved credential."""
+        if self.config._enforce_retry_deadline:
+            error_type = self._provider_error_type(error)
+            return LLMProviderError(f"[{error_type}]")
         api_key = resolved_api_key
         if api_key is None and self._resolved_api_key is not None:
             api_key = self._resolved_api_key.get_secret_value()
@@ -359,7 +384,7 @@ class LLMClient:
                 time=response_time,
             )
 
-        except (LLMAdmissionError, LLMAccountingError):
+        except (BudgetExhausted, LLMAdmissionError, LLMAccountingError):
             raise
         except Exception as e:
             if self.on_response is not None:
@@ -488,36 +513,75 @@ class LLMClient:
         return None
 
     @classmethod
+    def _provider_error_type(cls, error: Exception) -> str:
+        status = cls._status_code(error)
+        name = error.__class__.__name__.lower()
+        if status in {401, 403}:
+            return "authentication"
+        if status == 429:
+            return "rate_limit"
+        if status == 408:
+            return "timeout"
+        if status is not None and 400 <= status < 500:
+            return "provider_error"
+        if (status is not None and 500 <= status < 600) or "internalserver" in name:
+            return "provider_unavailable"
+        if "authentication" in name or "permissiondenied" in name:
+            return "authentication"
+        if "ratelimit" in name:
+            return "rate_limit"
+        if "timeout" in name:
+            return "timeout"
+        if "connection" in name:
+            return "connection"
+        return "provider_error"
+
+    @classmethod
     def _is_retryable_error(cls, error: Exception) -> bool:
         status = cls._status_code(error)
-        if (
-            status == 401
-            or status == 403
-            or (status is not None and 400 <= status < 500 and status != 429)
-        ):
-            return False
-        if status == 429 or (status is not None and status >= 500):
+        if status is not None and 400 <= status < 500:
+            return status == 429
+        if status is not None and status >= 500:
             return True
         name = error.__class__.__name__.lower()
         return any(
             token in name for token in ("ratelimit", "timeout", "connection", "internalserver")
         )
 
-    def _call_with_retry(self, operation: Callable[[], Any]) -> Any:
+    def _call_with_retry(
+        self, operation: Callable[[], Any], *, request_kwargs: dict[str, Any] | None = None
+    ) -> Any:
         """Run one provider operation with bounded retry and backoff."""
         started = time.monotonic()
         attempt_finished = started
         telemetry_seconds = 0.0
+        enforce_deadline = self.config._enforce_retry_deadline and request_kwargs is not None
+        request_timeout = self.config.timeout
+
+        def remaining_time() -> float:
+            elapsed = time.monotonic() - started - telemetry_seconds
+            return self.config.retry_max_elapsed_seconds - elapsed
 
         def provider_attempt() -> Any:
             nonlocal attempt_finished
             try:
+                if enforce_deadline and request_kwargs is not None:
+                    remaining = remaining_time()
+                    if remaining <= 0:
+                        raise TimeoutError("Model generation deadline exceeded")
+                    request_kwargs["timeout"] = min(request_timeout, remaining)
                 return operation()
             finally:
                 attempt_finished = time.monotonic()
 
         last_error: Exception | None = None
         for attempt in range(self.config.retry_max_attempts):
+            if attempt and self.before_retry is not None:
+                admission_started = time.monotonic()
+                self.before_retry()
+                telemetry_seconds += max(0.0, time.monotonic() - admission_started)
+            if enforce_deadline and remaining_time() <= 0:
+                raise TimeoutError("Model generation deadline exceeded") from None
             # Admission errors must propagate without retry or telemetry; only
             # real SDK attempts are observed and charged to the retry budget.
             if self.config._reserve_api_attempt is not None:
@@ -532,14 +596,16 @@ class LLMClient:
                 now = time.monotonic()
                 telemetry_seconds += max(0.0, now - attempt_finished)
                 last_error = error
-                if (
-                    not self._is_retryable_error(error)
-                    or attempt + 1 >= self.config.retry_max_attempts
-                ):
+                retryable = (
+                    self._provider_error_type(error)
+                    in {"timeout", "rate_limit", "connection", "provider_unavailable"}
+                    if enforce_deadline
+                    else self._is_retryable_error(error)
+                )
+                if not retryable or attempt + 1 >= self.config.retry_max_attempts:
                     raise
                 delay = self.config.retry_backoff_seconds * (2**attempt)
-                elapsed = now - started - telemetry_seconds
-                if self.config.retry_max_elapsed_seconds <= elapsed + delay:
+                if remaining_time() <= delay:
                     raise
                 # A timeout may have consumed tokens even if a later attempt
                 # succeeds. Keep that attempt explicitly unknown. The final
@@ -555,6 +621,19 @@ class LLMClient:
                     time.sleep(delay)
         assert last_error is not None
         raise last_error
+
+    def _generate_with_sdk(self, request: Callable[..., Any], kwargs: dict[str, Any]) -> Any:
+        if not self.config._enforce_retry_deadline:
+            return self._call_with_retry(lambda: request(self.client, **kwargs))
+
+        async def attempt() -> Any:
+            async def dispatch() -> Any:
+                async with self.client() as sdk:
+                    return await request(sdk, **kwargs)
+
+            return await asyncio.wait_for(dispatch(), timeout=kwargs["timeout"])
+
+        return self._call_with_retry(lambda: asyncio.run(attempt()), request_kwargs=kwargs)
 
     def _observe_operation(self, operation: Callable[[], Any]) -> Any:
         """Measure only the SDK attempt; telemetry must never become a retry."""
@@ -644,7 +723,9 @@ class LLMClient:
             }:
                 kwargs[key] = value
 
-        response = self._call_with_retry(lambda: self.client.chat.completions.create(**kwargs))
+        response = self._generate_with_sdk(
+            lambda sdk, **params: sdk.chat.completions.create(**params), kwargs
+        )
 
         token_usage, usage_missing = self._openai_usage(self._field(response, "usage"))
 
@@ -721,7 +802,9 @@ class LLMClient:
             }:
                 kwargs[key] = value
 
-        response = self._call_with_retry(lambda: self.client.messages.create(**kwargs))
+        response = self._generate_with_sdk(
+            lambda sdk, **params: sdk.messages.create(**params), kwargs
+        )
 
         # Get pricing metadata for this model
         model = self._field(response, "model") or self.config.model

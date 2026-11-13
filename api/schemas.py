@@ -4,6 +4,8 @@ from typing import Generic, TypeVar
 
 from pydantic import BaseModel, Field
 
+from api.db.models import DEFAULT_GENERATION_TIMEOUT_SECONDS
+
 T = TypeVar("T")
 
 
@@ -86,6 +88,7 @@ class EvaluationResponse(BaseModel):
     execution_progress: ExecutionProgress = Field(..., description="Finished execution units")
     strategy_names: list[str] = Field(..., description="Strategies used in this evaluation")
     model: str | None = Field(None, description="Model name used to execute the evaluation")
+    generation_timeout_seconds: int = DEFAULT_GENERATION_TIMEOUT_SECONDS
     problem_count: int = Field(..., ge=0, description="Total number of problems")
     spent_usd: float = Field(..., ge=0, description="Amount spent so far in USD")
     budget_cap_usd: float | None = Field(None, ge=0, description="Budget limit in USD")

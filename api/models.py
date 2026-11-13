@@ -2,6 +2,8 @@
 
 from pydantic import BaseModel, Field, field_validator
 
+from api.db.models import DEFAULT_GENERATION_TIMEOUT_SECONDS
+
 
 class EvaluationCreateRequest(BaseModel):
     """Request model for creating a new evaluation."""
@@ -16,6 +18,12 @@ class EvaluationCreateRequest(BaseModel):
     )
     budget_cap_usd: float | None = Field(None, ge=0, description="Maximum budget in USD")
     timeout_seconds: int = Field(300, ge=1, description="Timeout per problem in seconds")
+    generation_timeout_seconds: int = Field(
+        DEFAULT_GENERATION_TIMEOUT_SECONDS,
+        ge=1,
+        le=300,
+        description="Model request timeout in seconds",
+    )
     max_concurrency: int = Field(5, ge=1, description="Max concurrent problems")
 
     @field_validator("strategy_names")

@@ -73,6 +73,9 @@ class AsyncTask(Base):
     updated_at: Mapped[datetime] = mapped_column(DateTime, default=utcnow, onupdate=utcnow)
 
 
+DEFAULT_GENERATION_TIMEOUT_SECONDS = 60
+
+
 class Evaluation(Base):
     """One evaluation run requested through the API."""
 
@@ -88,6 +91,7 @@ class Evaluation(Base):
     problem_count: Mapped[int] = mapped_column(Integer, default=0)
     api_key_id: Mapped[str | None] = mapped_column(String(64))
     model: Mapped[str | None] = mapped_column(String(200))
+    generation_timeout_seconds: Mapped[int | None] = mapped_column(Integer)
     budget_cap_usd: Mapped[float | None] = mapped_column(Float)
     spent_usd: Mapped[float] = mapped_column(Float, default=0.0)
     completed_count: Mapped[int] = mapped_column(Integer, default=0)
@@ -105,6 +109,10 @@ class Evaluation(Base):
     def web_run_id(self) -> str:
         """Public run ID derived from the immutable Web evaluation ID."""
         return f"{WEB_EVALUATION_RUN_PREFIX}{self.id}"
+
+    @property
+    def effective_generation_timeout(self) -> int:
+        return self.generation_timeout_seconds or DEFAULT_GENERATION_TIMEOUT_SECONDS
 
 
 class EvaluationResult(Base):
