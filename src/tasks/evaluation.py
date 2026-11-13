@@ -34,6 +34,13 @@ from api.services.cost_alert_service import WebCostAlertDispatcher
 from api.services.cost_service import CostService
 from src.budget import BudgetExhausted
 from src.celery_app import celery_app
+from src.cost_strategy import (
+    MISSING_PRICING_BUDGET,
+    REACHED_COST_BUDGET,
+    UNKNOWN_COST_BUDGET,
+    UnitCallCost,
+    result_cost_details,
+)
 from src.harness import AlgorithmHarness
 from src.llm_client import LLMAdmissionError
 from src.models import (
@@ -242,6 +249,7 @@ def _run_owned_evaluation(self: EvaluationTask, evaluation_id: str) -> dict[str,
                 "total_units": len(evaluation.problem_ids) * len(evaluation.strategy_names),
             }
         evaluation.status = "running"
+        async_task.error_message = None
         if evaluation.run_id is None:
             evaluation.run_id = evaluation.web_run_id
         task_manager.update_task_status(async_task.id, "running")
@@ -296,6 +304,13 @@ def _run_owned_evaluation(self: EvaluationTask, evaluation_id: str) -> dict[str,
 
         # 6. 定义回调和检查函数
         execution_strategies: dict[str, str] = {}
+        pause_reason: str | None = None
+        pricing_missing = (
+            not (ctx.pricing_manager or PricingManager())
+            .get_pricing(ctx.llm_config.model)
+            .pricing_known
+        )
+        unknown_cost_units: set[tuple[str, str]] = set()
 
         def report_progress(record: Any, unit: TaskUnit, finished: int) -> None:
             """把即将执行或刚结束单元的进度写入任务记录和 Celery。
@@ -372,6 +387,11 @@ def _run_owned_evaluation(self: EvaluationTask, evaluation_id: str) -> dict[str,
                 else Decimal(0)
             )
             cost = _record_unit_result(db, evaluation, unit)
+            key = (unit.problem_id, unit.strategy)
+            if ((unit.result or {}).get("metadata") or {}).get("cost_unknown"):
+                unknown_cost_units.add(key)
+            else:
+                unknown_cost_units.discard(key)
             # Result and cost delta commit together. Replaying a checkpoint after
             # either side of the SQL commit cannot charge the same unit twice.
             evaluation.spent_usd = float(
@@ -441,12 +461,18 @@ def _run_owned_evaluation(self: EvaluationTask, evaluation_id: str) -> dict[str,
             ):
                 return True
 
-            # 检查预算上限
-            if (
-                evaluation.budget_cap_usd is not None
-                and evaluation.spent_usd >= evaluation.budget_cap_usd
-            ):
-                return True
+            nonlocal pause_reason
+            if evaluation.budget_cap_usd is not None:
+                if unknown_cost_units:
+                    pause_reason = UNKNOWN_COST_BUDGET
+                elif pricing_missing:
+                    pause_reason = MISSING_PRICING_BUDGET
+                elif evaluation.spent_usd >= evaluation.budget_cap_usd:
+                    pause_reason = REACHED_COST_BUDGET
+                else:
+                    pause_reason = None
+                if pause_reason is not None:
+                    return True
 
             budget = CostService.execution_budget(db, evaluation.user_id)
             queued = next((unit for unit in record.units if unit.status == "queued"), None)
@@ -492,6 +518,15 @@ def _run_owned_evaluation(self: EvaluationTask, evaluation_id: str) -> dict[str,
                 if unit.status in {"completed", "failed"} and not unit.uncertain:
                     on_unit_finished(existing_record, unit)
 
+        unknown_cost_units.update(
+            (problem_id, strategy)
+            for problem_id, strategy in db.execute(
+                select(EvaluationResult.problem_id, EvaluationResult.strategy_name).where(
+                    EvaluationResult.evaluation_id == evaluation_id,
+                    EvaluationResult.metrics["cost_unknown"].as_boolean().is_(True),
+                )
+            )
+        )
         # Check committed spend on start/resume, including when budget pause
         # prevents any further units from running.
         cost_alerts.process(evaluation.user_id)
@@ -547,8 +582,9 @@ def _run_owned_evaluation(self: EvaluationTask, evaluation_id: str) -> dict[str,
             if evaluation.completed_at is None:
                 evaluation.completed_at = utcnow()
         elif final_record.state == "paused":
-            task_manager.update_task_status(async_task.id, "paused")
+            task_manager.update_task_status(async_task.id, "paused", error_message=pause_reason)
             evaluation.status = "paused"
+            evaluation.error_message = pause_reason
         elif final_record.state == "failed":
             task_manager.update_task_status(
                 async_task.id, "failed", error_message=final_record.error
@@ -691,23 +727,19 @@ class _EvaluationRetryBudget:
     evaluation_id: str
     generation: str | None = None
     difficulty: str | None = None
-    known_cost: Decimal = Decimal(0)
-    unknown_usage: bool = False
+    call_cost: UnitCallCost = field(default_factory=UnitCallCost)
+    has_cap: bool = False
 
     def begin_unit(self, difficulty: str) -> None:
         self.difficulty = difficulty
-        self.known_cost = Decimal(0)
-        self.unknown_usage = False
+        self.call_cost = UnitCallCost()
 
-    def observe(self, _event_id: str, response: LLMResponse | None, cached: bool) -> None:
-        if cached:
-            return
-        pricing = response.pricing_metadata if response is not None else None
-        cost = (pricing or {}).get("total_cost")
-        if cost is None:
-            self.unknown_usage = True
-        else:
-            self.known_cost += Decimal(str(cost))
+    def observe(self, event_id: str, response: LLMResponse | None, cached: bool) -> None:
+        self.call_cost.observe(event_id, response, cached)
+
+    def check_next_call(self) -> None:
+        if self.has_cap:
+            self.call_cost.check_unknown()
 
     def check_retry(self) -> None:
         # A separate session keeps the executor thread independent of the task session.
@@ -723,13 +755,15 @@ class _EvaluationRetryBudget:
             if task is None or task.status != "running" or task.celery_task_id != self.generation:
                 raise LLMAdmissionError("Evaluation stopped before the next request")
             cap = evaluation.budget_cap_usd
-            used = Decimal(str(evaluation.spent_usd or 0)) + self.known_cost
-            if cap is not None and used >= Decimal(str(cap)):
-                raise BudgetExhausted("Evaluation cost budget exhausted")
+            used = Decimal(str(evaluation.spent_usd or 0)) + self.call_cost.known_cost
+            if cap is not None:
+                self.call_cost.check_unknown()
+                if used >= Decimal(str(cap)):
+                    raise BudgetExhausted(REACHED_COST_BUDGET)
             budget = CostService.execution_budget(
                 session,
                 evaluation.user_id,
-                pending_cost=self.known_cost,
+                pending_cost=self.call_cost.known_cost,
                 difficulty=self.difficulty,
             )
             if (
@@ -944,7 +978,9 @@ def _resolve_execution_context(
         pricing_manager=pricing_manager,
         problem_sources={pid: "personal" if pid in uploaded else "public" for pid in problem_map},
         dataset_version_id=version_id,
-        retry_budget=_EvaluationRetryBudget(session_factory, evaluation.id),
+        retry_budget=_EvaluationRetryBudget(
+            session_factory, evaluation.id, has_cap=evaluation.budget_cap_usd is not None
+        ),
     )
 
 
@@ -978,6 +1014,7 @@ def _record_unit_result(db: Session, evaluation: Evaluation, unit: TaskUnit) -> 
             "execution_time_seconds": data.get("execution_time_seconds", 0.0),
             "cost_usd": meta.get("cost_usd", 0.0),
             "cost_unknown": meta.get("cost_unknown", False),
+            "cost_known": meta.get("cost_known", not meta.get("cost_unknown", False)),
             "executed_strategy": meta.get("executed_strategy", unit.strategy),
             "cost_downgraded": meta.get("cost_downgraded", False),
             "formal_evaluable": data.get("formal_evaluable", False),
@@ -1066,6 +1103,7 @@ def _build_harness(
     harness.pricing_manager = ctx.pricing_manager
     if ctx.retry_budget is not None:
         harness.before_retry = ctx.retry_budget.check_retry
+        harness.before_generate = ctx.retry_budget.check_next_call
         harness.on_response = ctx.retry_budget.observe
     runtimes = {
         name: harness._prepare_strategy_runtime(strategy_config)
@@ -1134,13 +1172,16 @@ def _make_worker(
             result.metadata["problem_snapshot"] = _problem_metadata(frozen)
         result.metadata["executed_strategy"] = selected
         result.metadata["cost_downgraded"] = selected != unit.strategy
-        cost, pricing_metadata = harness._estimate_cost([result])
-        result.metadata["cost_usd"] = cost
-        result.metadata["cost_unknown"] = bool(
-            pricing_metadata.get("unknown_usage")
-            or pricing_metadata.get("unknown_pricing")
-            or (retry_budget is not None and retry_budget.unknown_usage)
-        )
+        if retry_budget is not None:
+            retry_budget.call_cost.write_result(result)
+        if "cost_known" not in result.metadata:
+            cost, pricing_metadata = harness._estimate_cost([result])
+            result.metadata["cost_usd"] = cost
+            result.metadata["cost_unknown"] = bool(
+                pricing_metadata.get("unknown_usage") or pricing_metadata.get("unknown_pricing")
+            )
+            _, trace_cost_known, _ = result_cost_details(result)
+            result.metadata["cost_known"] = trace_cost_known or cost > 0
         return result
 
     return worker

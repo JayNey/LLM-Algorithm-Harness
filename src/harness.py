@@ -25,7 +25,9 @@ from src.cost_strategy import (
     CostAwareSelector,
     DifficultyBudgetMonitor,
     RunCostMonitor,
+    UnitCallCost,
     result_cost,
+    result_cost_details,
 )
 from src.failure_classifier import classify_failure_mode
 from src.llm_client import LLMClient, SpendCallback
@@ -92,6 +94,7 @@ class AlgorithmHarness:
         self.problem_totals: dict[str, int] = {}
         self.problems_by_id: dict[str, Problem] = {}
         self.task_record: TaskRecord | None = None
+        self.budget_pause_reason: str | None = None
         self.should_pause: Callable[[], bool] | None = None
         self.checkpoint_dir: Path | None = None
         self._unit_checkpoint: UnitCheckpoint | None = None
@@ -235,6 +238,19 @@ class AlgorithmHarness:
             allocation_monitor = DifficultyBudgetMonitor(self.config.budget_allocation)
             self.budget_allocation_monitor = allocation_monitor
 
+        self.budget_pause_reason = None
+        capped = self.config.budget_cap_usd is not None or allocation_monitor is not None
+        pricing = (self.pricing_manager or PricingManager()) if capped else None
+        missing_pricing = (
+            pricing is not None
+            and not pricing.get_pricing(self.config.llm_config.model).pricing_known
+        )
+        if monitor is not None and self.config.budget_cap_usd is not None:
+            monitor.missing_pricing = missing_pricing
+        if allocation_monitor is not None:
+            for allocated in allocation_monitor.monitors.values():
+                allocated.missing_pricing = missing_pricing
+
         # Create real-time cost panel
         cost_panel = None
         if monitor is not None:
@@ -273,7 +289,7 @@ class AlgorithmHarness:
                 # ledger so the remaining work cannot spend past the cap again.
                 resume_problem_map = {p.problem_id: p for p in problems}
                 for unit in record.units:
-                    if unit.result is not None:
+                    if unit.result is not None and not unit.uncertain:
                         result = ExecutionResult.model_validate(unit.result)
                         monitor.add_result(result)
                         if allocation_monitor is not None:
@@ -325,6 +341,33 @@ class AlgorithmHarness:
 
         problem_map = {problem.problem_id: problem for problem in problems}
         strategy_map = {strategy.name: strategy for strategy in self.config.strategies}
+        call_cost = UnitCallCost()
+        active_cap = False
+        previous_response = self.on_response
+        previous_generate = self.before_generate
+        previous_retry = self.before_retry
+
+        def observe(event_id: str, response: Any, cached: bool) -> None:
+            call_cost.observe(event_id, response, cached)
+            if previous_response is not None:
+                previous_response(event_id, response, cached)
+
+        def before_generate() -> None:
+            if active_cap:
+                call_cost.check_unknown()
+            if previous_generate is not None:
+                previous_generate()
+
+        def before_retry() -> None:
+            if active_cap:
+                call_cost.check_unknown()
+            if previous_retry is not None:
+                previous_retry()
+
+        if capped:
+            self.on_response = observe
+            self.before_generate = before_generate
+            self.before_retry = before_retry
         try:
             runtimes = {
                 name: self._prepare_strategy_runtime(strategy_config)
@@ -333,9 +376,13 @@ class AlgorithmHarness:
         except Exception as exc:
             service.fail(record.run_id, redact_sensitive_text(str(exc)))
             raise
+        finally:
+            self.on_response = previous_response
+            self.before_generate = previous_generate
+            self.before_retry = previous_retry
 
         def worker(unit: TaskUnit) -> ExecutionResult:
-            nonlocal evaluated_count, success_count
+            nonlocal evaluated_count, success_count, call_cost, active_cap
             strategy_config = strategy_map[unit.strategy]
             problem = problem_map[unit.problem_id]
             strategy, sandbox = runtimes[unit.strategy]
@@ -375,7 +422,15 @@ class AlgorithmHarness:
                                 ),
                                 cheap_strategy=cheapest,
                             )
+            if capped:
+                call_cost = UnitCallCost()
+                active_cap = self.config.budget_cap_usd is not None or (
+                    allocation_monitor is not None
+                    and allocation_monitor.cap_for(problem.difficulty) is not None
+                )
             result = self._execute_problem(strategy_config, problem, strategy, sandbox)
+            if capped:
+                call_cost.write_result(result)
             if downgraded:
                 result.cost_downgraded = True
 
@@ -424,6 +479,27 @@ class AlgorithmHarness:
                     completed_count = len([u for u in _record.units if u.result is not None])
                     cost_panel.update(completed_count, result)
 
+        def should_pause(current: TaskRecord) -> bool:
+            if monitor is not None and monitor.unknown_cost_blocks_dispatch:
+                self.budget_pause_reason = monitor.snapshot()["budget_status"]
+                return True
+            if monitor is not None and budget_action == "auto_stop" and monitor.over_cap:
+                self.budget_pause_reason = "known_cost_reached_budget_cap"
+                return True
+            if allocation_monitor is None:
+                return False
+            queued = next((unit for unit in current.units if unit.status == "queued"), None)
+            if queued is None:
+                return False
+            difficulty = problem_map[queued.problem_id].difficulty
+            allocated = allocation_monitor.monitors.get(difficulty or "")
+            if allocated is None:
+                return False
+            if allocated.unknown_cost_blocks_dispatch:
+                self.budget_pause_reason = allocated.snapshot()["budget_status"]
+                return True
+            return False
+
         # Calculate total units for progress tracking
         if resume:
             total_units = len([u for u in record.units if u.status == "queued"])
@@ -443,15 +519,11 @@ class AlgorithmHarness:
                 self.task_record = service.run(
                     record.run_id,
                     worker,
-                    max_workers=1 if budget_action == "auto_stop" else self.config.max_workers,
+                    max_workers=1 if capped else self.config.max_workers,
                     config_fingerprint=config_fingerprint,
                     dataset_fingerprint=dataset_fingerprint,
                     resume=resume,
-                    pause_when=(
-                        (lambda _: monitor.over_cap)
-                        if budget_action == "auto_stop" and monitor is not None
-                        else None
-                    ),
+                    pause_when=should_pause if capped else None,
                     on_unit_finished=settle_unit if monitor is not None else None,
                 )
         else:
@@ -463,15 +535,11 @@ class AlgorithmHarness:
                 self.task_record = service.run(
                     record.run_id,
                     worker,
-                    max_workers=1 if budget_action == "auto_stop" else self.config.max_workers,
+                    max_workers=1 if capped else self.config.max_workers,
                     config_fingerprint=config_fingerprint,
                     dataset_fingerprint=dataset_fingerprint,
                     resume=resume,
-                    pause_when=(
-                        (lambda _: monitor.over_cap)
-                        if budget_action == "auto_stop" and monitor is not None
-                        else None
-                    ),
+                    pause_when=should_pause if capped else None,
                     on_unit_finished=settle_unit if monitor is not None else None,
                 )
 
@@ -531,7 +599,7 @@ class AlgorithmHarness:
                         difficulty=problem.difficulty,
                         error_message=unit.error
                         or (
-                            "Not run: budget cap reached"
+                            "Not run: evaluation budget paused"
                             if self.task_record.state == "paused" and unit.status == "queued"
                             else "Task unit did not produce a result"
                         ),
@@ -1078,7 +1146,6 @@ class AlgorithmHarness:
         Returns:
             Tuple of (total_cost_usd, pricing_metadata_dict)
         """
-        total_cost = 0.0
         pricing_metadata: dict[str, Any] = {
             "total_prompt_tokens": 0,
             "total_completion_tokens": 0,
@@ -1107,8 +1174,6 @@ class AlgorithmHarness:
                         trace_cost = pm.get("total_cost")
                         if trace_cost is None or pm.get("usage_known") is False:
                             pricing_metadata["unknown_usage"] = True
-                        else:
-                            total_cost += trace_cost
 
                         if pm.get("pricing_known") is False or pm.get("source") == "unknown":
                             pricing_metadata["unknown_pricing"] = True
@@ -1148,6 +1213,14 @@ class AlgorithmHarness:
                 pricing_metadata["total_tokens"] += result.total_tokens
                 pricing_metadata["unknown_usage"] = True
 
+        cost_details = [
+            result_cost_details(result) for result in results if result.status != NOT_EVALUABLE
+        ]
+        total_cost = float(sum(amount for amount, _, _ in cost_details))
+        pricing_metadata["unknown_usage"] |= any(unknown for _, _, unknown in cost_details)
+        pricing_metadata["known_cost_usd"] = (
+            total_cost if any(known for _, known, _ in cost_details) else None
+        )
         pricing_metadata["total_cost"] = total_cost
 
         return total_cost, pricing_metadata

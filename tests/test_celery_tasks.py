@@ -787,12 +787,13 @@ class _HarnessControl:
 
 
 @pytest.fixture
-def integration_harness(monkeypatch, tmp_path):
+def integration_harness(monkeypatch, tmp_path, auth_ok):
     """patch harness 执行/定价/runtime 与 celery update_state，并隔离 TaskService 文件写入。
 
     TaskService 用相对 ``root=f"data/tasks/{id}"``，chdir 到 tmp_path 隔离产物；
     worker 真实跑在 executor 线程但只读 problem_map/harness 替身，不触碰 db。
     """
+    auth_ok.model = "gpt-4o"
     control = _HarnessControl()
     monkeypatch.chdir(tmp_path)
 
@@ -1403,33 +1404,34 @@ class TestRunEvaluationTaskIntegration:
         # 严格在完成单元边界停止：仅首单元真实执行
         assert len(integration_harness.execute_calls) == 1
 
+    @pytest.mark.parametrize("model,expected_units", [("unpriced-budget-model", 0), ("gpt-4o", 1)])
     def test_run_evaluation_task_unknown_pricing_honest(
-        self, db_session, integration_harness, auth_ok
+        self, db_session, integration_harness, auth_ok, model, expected_units
     ):
-        """成本无定价 → spent_usd 不伪造增长、不触发预算暂停、结果行 cost_unknown=True。"""
+        auth_ok.model = model
         integration_harness.cost = 0.0
         integration_harness.cost_meta = {"unknown_usage": True}
         evaluation_id = _seed_evaluation(
             db_session,
             problem_ids=["p1", "p2"],
             strategy_names=["vanilla"],
-            budget_cap_usd=0.01,  # 有 cap，但 cost 未知不伪造 → 不触发暂停
+            budget_cap_usd=0.01,
         )
         with (
             patch("src.tasks.evaluation.TaskManager"),
             patch("src.tasks.evaluation.get_db_session", return_value=db_session),
         ):
-            result = run_evaluation_task(evaluation_id)
-
-        ev = _reload(db_session, Evaluation, evaluation_id)
-        assert ev.spent_usd == 0.0
-        assert ev.status == "completed"
-        assert result["status"] == "completed"
+            for _ in range(2):
+                assert run_evaluation_task(evaluation_id)["status"] == "paused"
+                ev = _reload(db_session, Evaluation, evaluation_id)
+                assert ev.spent_usd == 0
+                assert ev.completed_count == expected_units
+                db_session.get(AsyncTask, ev.async_task_id).status = "pending"
+                db_session.commit()
+        assert len(integration_harness.execute_calls) == expected_units
         rows = db_session.query(EvaluationResult).all()
-        assert len(rows) == 2
-        for row in rows:
-            assert row.metrics["cost_unknown"] is True
-            assert row.metrics["cost_usd"] == 0.0
+        assert len(rows) == expected_units
+        assert all(row.metrics["cost_unknown"] for row in rows)
 
     def test_resume_after_pause_runs_only_remaining(self, db_session, integration_harness, auth_ok):
         """预算触顶 paused 后提高预算 resume：只跑剩余单元、不重复已完成单元。
@@ -2371,6 +2373,53 @@ def test_web_generation_provider_attempts(db_session, auth_ok, monkeypatch, outc
     if outcome == "timeout":
         assert timeouts == [12, 12, 10.5]
         assert now == 36
+
+
+@pytest.mark.parametrize("unknown", ["missing_usage", "timeout"])
+def test_capped_web_generation_stops_after_unaccountable_attempt(
+    tmp_path, auth_ok, monkeypatch, unknown
+):
+    from types import SimpleNamespace
+
+    from api.db.engine import make_engine
+    from src.sandbox_executor import SandboxExecutor
+
+    monkeypatch.chdir(tmp_path)
+    auth_ok.model = "gpt-4o"
+    engine = make_engine(f"sqlite:///{tmp_path / 'unknown-budget.sqlite3'}")
+    Base.metadata.create_all(engine)
+    factory = sessionmaker(bind=engine, expire_on_commit=False)
+    with factory() as db:
+        evaluation_id = _seed_evaluation(
+            db, problem_ids=["p1", "p2"], strategy_names=["self_consistency"], budget_cap_usd=1
+        )
+
+    def provider(**_kwargs):
+        if unknown == "timeout":
+            raise TimeoutError("Request timed out")
+        return SimpleNamespace(
+            model=auth_ok.model,
+            choices=[
+                SimpleNamespace(message=SimpleNamespace(content="No code"), finish_reason="stop")
+            ],
+            usage=None,
+        )
+
+    sdk = AsyncMock()
+    sdk.__aenter__.return_value = sdk
+    sdk.chat.completions.create = AsyncMock(side_effect=provider)
+    monkeypatch.setattr("src.llm_client.AsyncOpenAI", lambda **kwargs: sdk)
+    monkeypatch.setattr("src.tasks.evaluation.get_db_session", factory)
+    monkeypatch.setattr(SandboxExecutor, "health_check", lambda self: (True, "ok"))
+    monkeypatch.setattr(run_evaluation_task, "update_state", lambda *args, **kwargs: None)
+
+    assert run_evaluation_task.run(evaluation_id)["status"] == "paused"
+    assert sdk.chat.completions.create.call_count == 1
+    with factory() as db:
+        row = db.query(EvaluationResult).filter_by(evaluation_id=evaluation_id).one()
+        assert row.metrics["cost_unknown"] is True
+        assert row.metrics["cost_known"] is False
+        assert row.metrics["cost_usd"] == 0
 
 
 @pytest.mark.parametrize("change", ["budget", "cancelled"])

@@ -33,6 +33,17 @@ export function EvaluationFacts({ evaluation }: { evaluation: Evaluation }) {
   useTranslation()
 
   const progress = evaluation.execution_progress
+  const knownCost =
+    evaluation.known_cost_usd === undefined
+      ? evaluation.spent_usd
+      : evaluation.known_cost_usd
+  const budgetLabels: Record<string, string> = {
+    unlimited: t('未设置上限'),
+    within_limit: t('预算内'),
+    reached: t('已达预算上限'),
+    missing_pricing: t('缺少模型定价'),
+    unknown_cost: t('有费用无法核算'),
+  }
   return (
     <>
       <dl className="evaluation-facts">
@@ -61,9 +72,26 @@ export function EvaluationFacts({ evaluation }: { evaluation: Evaluation }) {
           <dd>{evaluation.problem_count}</dd>
         </div>
         <div>
-          <dt>{t('已花费')}</dt>
-          <dd>{metricLabel(evaluation.spent_usd, 'USD')}</dd>
+          <dt>{t('已知费用合计')}</dt>
+          <dd>
+            {knownCost === null ? t('费用未知') : metricLabel(knownCost, 'USD')}
+          </dd>
         </div>
+        {evaluation.unknown_cost_count !== undefined && (
+          <div>
+            <dt>{t('费用未知单元')}</dt>
+            <dd>{evaluation.unknown_cost_count}</dd>
+          </div>
+        )}
+        {evaluation.budget_status && (
+          <div>
+            <dt>{t('预算状态')}</dt>
+            <dd>
+              {budgetLabels[evaluation.budget_status] ??
+                evaluation.budget_status}
+            </dd>
+          </div>
+        )}
         <div>
           <dt>{t('预算上限')}</dt>
           <dd>

@@ -146,6 +146,16 @@ class TestRunCostMonitor:
         assert snapshot["unknown_usage_results"] == 5
         assert not monitor.over_cap
 
+    def test_mixed_cost_keeps_known_subtotal(self):
+        monitor = RunCostMonitor(budget_cap_usd=1.0)
+        result = make_result(cost=0.25)
+        result.llm_traces.extend(make_result("cost_none").llm_traces)
+        monitor.add_result(result)
+        snapshot = monitor.snapshot()
+        assert snapshot["known_cost_usd"] == 0.25
+        assert snapshot["unknown_usage_results"] == 1
+        assert snapshot["budget_status"] == "unknown_cost"
+
     def test_call_free_result_is_not_flagged_unknown(self):
         monitor = RunCostMonitor(budget_cap_usd=0.5)
         free = ExecutionResult(
@@ -464,7 +474,7 @@ def make_harness(
     config = HarnessConfig(
         dataset_path=str(dataset),
         output_dir=str(tmp_path / "results"),
-        llm_config=LLMConfig(provider="openai", api_key="key", model="test-model"),
+        llm_config=LLMConfig(provider="openai", api_key="key", model="gpt-4o"),
         sandbox_config=SandboxConfig(backend="host"),
         strategies=[
             StrategyConfig(name="vanilla"),
@@ -523,6 +533,75 @@ class TestHarnessCostAwareIntegration:
         resumed.run(use_task_service=True, run_id="run-auto-stop", resume=True)
         assert resumed.task_record.state == "paused"
         assert calls == [("vanilla", "p1"), ("vanilla", "p2")]
+
+    @pytest.mark.parametrize(
+        "cost,model,expected_calls",
+        [
+            (0.0, "unpriced-budget-model", 0),
+            (None, "gpt-4o", 1),
+            (0.0, "gpt-4o", 2),
+        ],
+    )
+    def test_cap_handles_unpriceable_calls(
+        self, tmp_path, monkeypatch, cost, model, expected_calls
+    ):
+        calls = patch_runtimes(monkeypatch, {"vanilla": cost, "chain_of_thought": cost})
+        harness = make_harness(
+            tmp_path,
+            [problem_payload("p1", "easy"), problem_payload("p2", "medium")],
+            {"easy": "vanilla", "medium": "chain_of_thought"},
+            budget_cap_usd=1,
+        )
+        harness.config.strategies = harness.config.strategies[:2]
+        harness.config.llm_config.model = model
+        harness.run(use_task_service=True, run_id="unknown-cost")
+        assert len(calls) == expected_calls
+        assert harness.task_record.state == ("completed" if expected_calls == 2 else "paused")
+        snapshot = harness.cost_monitor.snapshot()
+        assert snapshot["unknown_usage_results"] == (1 if cost is None else 0)
+        assert snapshot["known_cost_usd"] == (0 if expected_calls == 2 else None)
+
+        resumed = AlgorithmHarness(harness.config)
+        resumed.run(use_task_service=True, run_id="unknown-cost", resume=True)
+        assert len(calls) == expected_calls
+        assert resumed.cost_monitor.snapshot() == snapshot
+
+    @pytest.mark.parametrize("unknown", ["missing_usage", "timeout"])
+    def test_cli_stops_later_provider_attempts(self, tmp_path, monkeypatch, unknown):
+        from types import SimpleNamespace
+
+        from src.sandbox_executor import SandboxExecutor
+
+        harness = make_harness(
+            tmp_path,
+            [problem_payload("p1", "easy"), problem_payload("p2", "easy")],
+            None,
+            budget_cap_usd=1,
+        )
+        harness.config.strategies = [StrategyConfig(name="self_consistency", max_iterations=3)]
+        harness.config.budget_action = "auto_stop"
+        harness.config.llm_config.cache.enabled = False
+        harness.config.llm_config.retry_backoff_seconds = 0
+
+        response = SimpleNamespace(
+            model="gpt-4o",
+            choices=[
+                SimpleNamespace(message=SimpleNamespace(content="No code"), finish_reason="stop")
+            ],
+            usage=None,
+        )
+        create = Mock(return_value=response)
+        if unknown == "timeout":
+            create.side_effect = TimeoutError("Request timed out")
+        sdk = SimpleNamespace(chat=SimpleNamespace(completions=SimpleNamespace(create=create)))
+        monkeypatch.setattr("src.llm_client.OpenAI", lambda **kwargs: sdk)
+        monkeypatch.setattr(SandboxExecutor, "health_check", lambda self: (True, "ok"))
+
+        harness.run(use_task_service=True, run_id="cli-unknown-attempt")
+        assert create.call_count == 1
+        assert harness.task_record.state == "paused"
+        assert harness.budget_pause_reason == "unknown_cost"
+        assert harness.cost_monitor.snapshot()["unknown_usage_results"] == 1
 
     def test_auto_stop_with_selector_pauses_without_downgrading(self, tmp_path, monkeypatch):
         calls = patch_runtimes(

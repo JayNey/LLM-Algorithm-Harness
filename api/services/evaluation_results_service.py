@@ -332,11 +332,11 @@ def _tag_labels(row: EvaluationResult, problem: Problem | None) -> list[str]:
 
 
 def _known_cost(rows: list[EvaluationResult]) -> tuple[float, int]:
-    """Sum cost_usd, skipping units flagged cost_unknown. Same rule as aggregate()."""
+    """Sum known subtotals and count units with incomplete cost."""
     known = [
         float((row.metrics or {}).get("cost_usd") or 0)
         for row in rows
-        if not (row.metrics or {}).get("cost_unknown")
+        if (row.metrics or {}).get("cost_known") or not (row.metrics or {}).get("cost_unknown")
     ]
     unknown = sum(1 for row in rows if (row.metrics or {}).get("cost_unknown"))
     return sum(known), unknown

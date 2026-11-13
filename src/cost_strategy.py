@@ -12,10 +12,12 @@ unknown usage are counted separately and never treated as free.
 """
 
 import threading
-from collections.abc import Iterable
+from collections.abc import Iterable, Mapping
 from decimal import Decimal, InvalidOperation
 from typing import Any
 
+from src.budget import BudgetExhausted
+from src.models import LLMResponse
 from src.utils.logging import get_logger
 
 logger = get_logger(__name__)
@@ -75,49 +77,94 @@ class CostAwareSelector:
         return sorted(present)[0]
 
 
-def result_cost(result: Any) -> tuple[Decimal, bool]:
-    """Known-pricing cost of one result, and whether its usage was unknown.
+UNKNOWN_COST_BUDGET = "Evaluation paused because some model costs are unknown"
+MISSING_PRICING_BUDGET = "Evaluation paused because the configured model has no pricing"
+REACHED_COST_BUDGET = "Evaluation cost budget exhausted"
 
-    Shared settlement logic for the run-level and per-difficulty ledgers and
-    the report's per-difficulty cost breakdown. Mirrors
-    ``harness._estimate_cost``: only traces with known pricing and known
-    usage count toward the cost; unknown usage is flagged, never silently
-    treated as free.
-    """
-    known_cost = Decimal("0")
-    usage_unknown = False
-    for trace in getattr(result, "llm_traces", None) or []:
-        if not isinstance(trace, dict):
-            usage_unknown = True
-            continue
-        pricing = trace.get("pricing_metadata")
-        if not isinstance(pricing, dict):
-            # Tokens without provider pricing cannot be converted honestly.
-            usage_unknown = True
-            continue
-        trace_cost = pricing.get("total_cost")
-        if (
-            trace_cost is None
-            or pricing.get("usage_known") is False
-            or pricing.get("pricing_known") is False
-        ):
-            usage_unknown = True
+
+def priced_amount(pricing: Mapping[str, Any] | None) -> Decimal | None:
+    """Read a known USD amount, including an explicitly priced zero."""
+    if not pricing or pricing.get("usage_known") is False or pricing.get("pricing_known") is False:
+        return None
+    if pricing.get("source") == "unknown":
+        return None
+    try:
+        amount = Decimal(str(pricing.get("total_cost")))
+    except (InvalidOperation, TypeError, ValueError):
+        return None
+    return amount if amount.is_finite() and amount >= 0 else None
+
+
+def result_cost_details(result: Any) -> tuple[Decimal, bool, bool]:
+    """Return known subtotal, whether any amount is known, and completeness flag."""
+    metadata = getattr(result, "metadata", None) or {}
+    if "cost_known" in metadata:
+        return (
+            Decimal(str(metadata["cost_usd"])),
+            bool(metadata["cost_known"]),
+            bool(metadata.get("cost_unknown")),
+        )
+
+    total = Decimal(0)
+    known = False
+    traces = getattr(result, "llm_traces", None) or []
+    unknown = bool(
+        metadata.get("cost_unknown") or (not traces and getattr(result, "total_tokens", 0))
+    )
+    for trace in traces:
+        pricing = trace.get("pricing_metadata") if isinstance(trace, dict) else None
+        amount = priced_amount(pricing if isinstance(pricing, dict) else None)
+        if amount is None:
+            unknown = True
         else:
-            try:
-                amount = Decimal(str(trace_cost))
-            except (InvalidOperation, TypeError, ValueError):
-                usage_unknown = True
-                continue
-            if not amount.is_finite() or amount < 0:
-                usage_unknown = True
-                continue
-            known_cost += amount
-    if not usage_unknown and not (getattr(result, "llm_traces", None) or []):
-        # A result without traces still burns unpriced tokens when the
-        # provider reported usage; truly call-free results stay clean.
-        if getattr(result, "total_tokens", 0):
-            usage_unknown = True
-    return known_cost, usage_unknown
+            total += amount
+            known = True
+    return total, known, unknown
+
+
+def result_cost(result: Any) -> tuple[Decimal, bool]:
+    """Known subtotal and whether any call cost is unknown."""
+    total, _, unknown = result_cost_details(result)
+    return total, unknown
+
+
+class UnitCallCost:
+    """Track actual requests, including SDK failures that never produce a trace."""
+
+    def __init__(self) -> None:
+        self.events: set[str] = set()
+        self.known_cost = Decimal(0)
+        self.has_known_cost = False
+        self.unknown = False
+
+    def observe(self, event_id: str, response: LLMResponse | None, cached: bool) -> None:
+        if event_id in self.events:
+            return
+        self.events.add(event_id)
+        if cached:
+            return
+        amount = (
+            priced_amount(response.pricing_metadata)
+            if response is not None and not response.usage_missing
+            else None
+        )
+        if amount is None:
+            self.unknown = True
+        else:
+            self.known_cost += amount
+            self.has_known_cost = True
+
+    def check_unknown(self) -> None:
+        if self.unknown:
+            raise BudgetExhausted(UNKNOWN_COST_BUDGET)
+
+    def write_result(self, result: Any) -> None:
+        if self.events:
+            result.metadata.update(
+                cost_usd=float(self.known_cost),
+                cost_known=self.has_known_cost,
+                cost_unknown=self.unknown,
+            )
 
 
 class RunCostMonitor:
@@ -128,13 +175,16 @@ class RunCostMonitor:
         self._lock = threading.Lock()
         self._accumulated_cost = Decimal("0")
         self._unknown_usage_results = 0
+        self._has_known_cost = False
+        self.missing_pricing = False
         self._downgraded_count = 0
 
     def add_result(self, result: Any) -> None:
         """Settle one finished problem's known-pricing cost into the ledger."""
-        known_cost, usage_unknown = result_cost(result)
+        known_cost, has_known_cost, usage_unknown = result_cost_details(result)
         with self._lock:
             self._accumulated_cost += known_cost
+            self._has_known_cost |= has_known_cost
             if usage_unknown:
                 self._unknown_usage_results += 1
 
@@ -145,6 +195,24 @@ class RunCostMonitor:
             return False
         with self._lock:
             return self._accumulated_cost >= self.budget_cap_usd
+
+    @property
+    def unknown_cost_blocks_dispatch(self) -> bool:
+        with self._lock:
+            return self.budget_cap_usd is not None and (
+                self.missing_pricing or self._unknown_usage_results > 0
+            )
+
+    def _budget_status(self) -> str:
+        if self.budget_cap_usd is None:
+            return "unlimited"
+        if self.missing_pricing:
+            return "missing_pricing"
+        if self._unknown_usage_results:
+            return "unknown_cost"
+        if self._accumulated_cost >= self.budget_cap_usd:
+            return "reached"
+        return "within_limit"
 
     @property
     def accumulated_cost(self) -> Decimal:
@@ -167,6 +235,13 @@ class RunCostMonitor:
                     float(self.budget_cap_usd) if self.budget_cap_usd is not None else None
                 ),
                 "accumulated_cost_usd": float(round(self._accumulated_cost, 6)),
+                "known_cost_usd": (
+                    float(self._accumulated_cost)
+                    if self._has_known_cost
+                    or not (self._unknown_usage_results or self.missing_pricing)
+                    else None
+                ),
+                "budget_status": self._budget_status(),
                 "unknown_usage_results": self._unknown_usage_results,
                 "downgraded_problems": self._downgraded_count,
             }

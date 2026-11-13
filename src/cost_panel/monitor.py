@@ -87,26 +87,33 @@ class RealtimeCostPanel:
         table.add_column("指标", style="cyan", no_wrap=True)
         table.add_column("数值", justify="right")
 
-        # 累计成本
         accumulated_cost = Decimal("0")
+        unknown_units = 0
+        known_cost: float | None = 0
         if self.cost_monitor is not None:
             accumulated_cost = self.cost_monitor.accumulated_cost
-        table.add_row("累计成本", f"${accumulated_cost:.4f}")
+            snapshot = self.cost_monitor.snapshot()
+            known_cost = snapshot["known_cost_usd"]
+            unknown_units = snapshot["unknown_usage_results"]
+            blocked = snapshot["budget_status"] in {"missing_pricing", "unknown_cost"}
+        else:
+            blocked = False
+        table.add_row("已知费用合计", "未知" if known_cost is None else f"${known_cost:.4f}")
+        if unknown_units:
+            table.add_row("费用未知单元", str(unknown_units))
 
-        # 预算相关信息（仅在有预算配置时显示）
         if self.cost_monitor is not None and self.cost_monitor.budget_cap_usd is not None:
-            budget_cap = self.cost_monitor.budget_cap_usd
-            budget_used_pct = float((accumulated_cost / budget_cap) * 100) if budget_cap > 0 else 0
-            budget_remaining = budget_cap - accumulated_cost
+            if blocked:
+                table.add_row("预算状态", "费用无法核算")
+            else:
+                budget_cap = self.cost_monitor.budget_cap_usd
+                budget_used_pct = float((accumulated_cost / budget_cap) * 100) if budget_cap else 0
+                budget_remaining = budget_cap - accumulated_cost
+                color = self._get_budget_color(budget_used_pct)
+                table.add_row("预算使用", f"[{color}]{budget_used_pct:.1f}%[/{color}]")
+                table.add_row("预算剩余", f"[{color}]${budget_remaining:.4f}[/{color}]")
 
-            # 根据预算使用百分比选择颜色
-            color = self._get_budget_color(budget_used_pct)
-
-            table.add_row("预算使用", f"[{color}]{budget_used_pct:.1f}%[/{color}]")
-            table.add_row("预算剩余", f"[{color}]${budget_remaining:.4f}[/{color}]")
-
-        # 预计总成本（基于已完成题目推算）
-        if self.completed_problems > 0:
+        if self.completed_problems > 0 and not (blocked or unknown_units):
             avg_cost_per_problem = accumulated_cost / Decimal(self.completed_problems)
             projected_total = avg_cost_per_problem * Decimal(self.total_problems)
             table.add_row("预计总成本", f"${projected_total:.4f}")
