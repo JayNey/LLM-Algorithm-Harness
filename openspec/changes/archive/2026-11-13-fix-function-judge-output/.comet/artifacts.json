@@ -2,5 +2,6 @@
   "openspec_proposal": "openspec/changes/fix-function-judge-output/proposal.md",
   "openspec_design": "openspec/changes/fix-function-judge-output/design.md",
   "openspec_tasks": "openspec/changes/fix-function-judge-output/tasks.md",
-  "openspec_delta_spec": "openspec/changes/fix-function-judge-output/specs/execution-protocol/spec.md"
+  "openspec_delta_spec": "openspec/changes/fix-function-judge-output/specs/execution-protocol/spec.md",
+  "archive_directory": "openspec/changes/archive/2026-11-13-fix-function-judge-output"
 }
