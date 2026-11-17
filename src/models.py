@@ -26,6 +26,9 @@ from src.utils.secrets import REDACTED, redact_sensitive_data
 
 NOT_EVALUABLE = "not_evaluable"
 
+# Increment when output comparison changes which results pass.
+JUDGE_CONTRACT_VERSION = 2
+
 # ============================================================================
 # Problem-related Models
 # ============================================================================

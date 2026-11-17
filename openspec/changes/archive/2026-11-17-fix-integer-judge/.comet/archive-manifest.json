@@ -1,0 +1,40 @@
+{
+  "schema": "comet.classic.archive-manifest.v2",
+  "execution": {
+    "workflow": {
+      "id": "comet-classic-tweak",
+      "version": "2",
+      "hash": "d1e067bc00ca13395dbc6f701565417c3e227f17a57df025dd73ebda905e2638"
+    },
+    "runId": "fix-integer-judge",
+    "actionId": "fix-integer-judge:18",
+    "attempt": 1,
+    "inputHash": "aa8ea2f08b15d771155a6d98999293b807523e1e1760cec40b3153cc08db9ab7",
+    "claimToken": "portable-28daca00014c4d8280f44001036bc2a0c5742f21d67d19324383a18e2e790949"
+  },
+  "activeRef": "openspec/changes/fix-integer-judge",
+  "archiveRef": "openspec/changes/archive/2026-11-17-fix-integer-judge",
+  "stateRef": "openspec/changes/archive/2026-11-17-fix-integer-judge/comet-state.yaml",
+  "paths": [
+    "openspec/changes/archive/2026-11-17-fix-integer-judge/.comet/archive-requirements.json",
+    "openspec/changes/archive/2026-11-17-fix-integer-judge/.openspec.yaml",
+    "openspec/changes/archive/2026-11-17-fix-integer-judge/design.md",
+    "openspec/changes/archive/2026-11-17-fix-integer-judge/proposal.md",
+    "openspec/changes/archive/2026-11-17-fix-integer-judge/specs/execution-protocol/spec.md",
+    "openspec/changes/archive/2026-11-17-fix-integer-judge/specs/incremental-evaluation/spec.md",
+    "openspec/changes/archive/2026-11-17-fix-integer-judge/tasks.md",
+    "openspec/changes/archive/2026-11-17-fix-integer-judge/walkthrough.html",
+    "openspec/specs/execution-protocol/spec.md",
+    "openspec/specs/incremental-evaluation/spec.md"
+  ],
+  "sourcePaths": [
+    "openspec/changes/fix-integer-judge/.comet/archive-requirements.json",
+    "openspec/changes/fix-integer-judge/.openspec.yaml",
+    "openspec/changes/fix-integer-judge/design.md",
+    "openspec/changes/fix-integer-judge/proposal.md",
+    "openspec/changes/fix-integer-judge/specs/execution-protocol/spec.md",
+    "openspec/changes/fix-integer-judge/specs/incremental-evaluation/spec.md",
+    "openspec/changes/fix-integer-judge/tasks.md",
+    "openspec/changes/fix-integer-judge/walkthrough.html"
+  ]
+}

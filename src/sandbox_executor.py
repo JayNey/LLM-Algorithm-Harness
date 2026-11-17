@@ -891,9 +891,13 @@ _harness_write(_harness_fd, ({result_marker!r} + _harness_dumps(result) + "\\n")
 
     @classmethod
     def _compare_float_tolerant(cls, actual: Any, expected: Any, tolerance: float) -> bool:
-        """Recursively compare nested values with a configured float tolerance."""
-        if isinstance(actual, numbers.Real) and not isinstance(actual, bool):
-            if isinstance(expected, numbers.Real) and not isinstance(expected, bool):
+        """Compare nested values exactly for integers and with tolerance for floats."""
+        if isinstance(actual, bool) or isinstance(expected, bool):
+            return actual is expected
+        if isinstance(actual, numbers.Integral) and isinstance(expected, numbers.Integral):
+            return bool(actual == expected)
+        if isinstance(actual, numbers.Real):
+            if isinstance(expected, numbers.Real):
                 return math.isclose(
                     float(actual), float(expected), rel_tol=tolerance, abs_tol=tolerance
                 )

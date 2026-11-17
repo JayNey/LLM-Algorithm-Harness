@@ -1,0 +1,2375 @@
+# comet-execution: managed-run
+change_id: 8b019fc5-2b3b-427d-a5a4-87774c31016d
+workflow: tweak
+language: zh-CN
+phase: archive
+context_compression: off
+build_mode: direct
+build_pause: null
+subagent_dispatch: null
+tdd_mode: direct
+review_mode: off
+isolation: current
+verify_mode: light
+auto_transition: true
+base_ref: fcfa51797e3c1ab675b26dbecaaab022804cbbda
+design_doc: null
+plan: null
+verify_result: pass
+verify_failures: 0
+verification_report: docs/superpowers/reports/2026-11-17-fix-integer-judge-verify.md
+branch_status: pending
+created_at: 2026-11-17
+verified_at: 2026-11-17
+archive_confirmation: confirmed
+archived: true
+bound_branch: codex/fix-integer-judge
+run_checkpoint:
+  schema: comet.workflow-run-checkpoint.v1
+  hash: 649342d7c83454c803a964572cb47ce3434c1f5d117d4bc67c9fa0db79d1bdc0
+  run:
+    protocolVersion: 1
+    schemaVersion: 1
+    runId: fix-integer-judge
+    revision: 1
+    workflow:
+      id: comet-classic-tweak
+      version: "2"
+      hash: d1e067bc00ca13395dbc6f701565417c3e227f17a57df025dd73ebda905e2638
+    definitionHashes:
+      '["comet-classic-tweak","2"]': d1e067bc00ca13395dbc6f701565417c3e227f17a57df025dd73ebda905e2638
+    initialStateHash: ef24e5edfa1f074b513ac97edb1c8f559fbedca0e724850f235f5dc97ce9c4a4
+    input:
+      change: fix-integer-judge
+      changeDir: openspec/changes/fix-integer-judge
+      workspaceBaseline:
+        ref: 85c29a9d-190c-4c4d-8813-a0465608880c
+    state:
+      archiveConfirmation: confirmed
+      archived: true
+      autoTransition: true
+      baseRef: fcfa51797e3c1ab675b26dbecaaab022804cbbda
+      boundBranch: codex/fix-integer-judge
+      branchStatus: pending
+      buildMode: direct
+      buildPause: null
+      checkEpoch: 8
+      classicMigration: null
+      classicProfile: null
+      contextCompression: off
+      createdAt: 2026-11-17
+      designDoc: null
+      directOverride: null
+      handoffContext: null
+      handoffHash: null
+      isolation: current
+      language: zh-CN
+      phase: archive
+      plan: null
+      reviewMode: off
+      subagentDispatch: null
+      tddMode: direct
+      verificationReport: docs/superpowers/reports/2026-11-17-fix-integer-judge-verify.md
+      verifiedAt: 2026-11-17
+      verifyFailures: 0
+      verifyMode: light
+      verifyResult: pass
+      workflow: tweak
+    status: running
+    sequence: 19
+    actions:
+      - attempt: 1
+        claim:
+          executorId: comet-classic-guard
+          token: portable-9cdee52c70295ec0e28591fdbfaa9a0e3e1fbf75a31549939d7f3216194a21cf
+        executionOrigin:
+          workflow:
+            hash: 518d3e8e12eb39899775cb7d2ddcc7ddeba10cb1f1d43cff7b03f2ca61a70c65
+            id: comet-classic-tweak
+            version: "2"
+        id: fix-integer-judge:1
+        input:
+          input:
+            change: fix-integer-judge
+            changeDir: openspec/changes/fix-integer-judge
+            workspaceBaseline:
+              ref: 85c29a9d-190c-4c4d-8813-a0465608880c
+          outputs: {}
+        inputHash: 63cf0063790a9600b2da0afba3f6ee499c634453050748ae4c40614eb86775ef
+        outcome:
+          actionId: fix-integer-judge:1
+          attempt: 1
+          claimToken: portable-9cdee52c70295ec0e28591fdbfaa9a0e3e1fbf75a31549939d7f3216194a21cf
+          inputHash: 63cf0063790a9600b2da0afba3f6ee499c634453050748ae4c40614eb86775ef
+          outcomeId: e25f16d0-045e-49a3-869a-d263c2f26b0e
+          output:
+            event: open-complete
+            requirementsEvidence:
+              ref: openspec/changes/fix-integer-judge
+          status: succeeded
+        protocolVersion: 1
+        receipts:
+          - hash: 4d76bc879b544348d11dafa235060712d99b8276275c9812e225a82da48f2569
+            outcomeId: e25f16d0-045e-49a3-869a-d263c2f26b0e
+        reconciliations: []
+        ref: comet-tweak
+        requiredCapabilities: []
+        retry: manual
+        runId: fix-integer-judge
+        status: succeeded
+        stepId: tweak.open
+        type: invoke_skill
+      - attempt: 1
+        claim:
+          executorId: comet-classic-state
+          sessionId: 01a1e84c-24b2-75b2-9f5d-b4e017e8abc0
+          token: portable-beb4c26c39f370cceced528dd0aaf3298266ec420627be93d4a2871b91ae761f
+        executionOrigin:
+          workflow:
+            hash: 518d3e8e12eb39899775cb7d2ddcc7ddeba10cb1f1d43cff7b03f2ca61a70c65
+            id: comet-classic-tweak
+            version: "2"
+        id: fix-integer-judge:3
+        input:
+          input:
+            change: fix-integer-judge
+            changeDir: openspec/changes/fix-integer-judge
+            workspaceBaseline:
+              ref: 85c29a9d-190c-4c4d-8813-a0465608880c
+          outputs:
+            tweak.open:
+              event: open-complete
+              requirementsEvidence:
+                ref: openspec/changes/fix-integer-judge
+            tweak.open.evidence:
+              contentHash: 63cf0063790a9600b2da0afba3f6ee499c634453050748ae4c40614eb86775ef
+              ref: openspec/changes/fix-integer-judge
+        inputHash: c490987be33b19f48ec4ce764494094f316c39ad5eec88b9dbd6825a3bd6322a
+        outcome:
+          actionId: fix-integer-judge:3
+          attempt: 1
+          claimToken: portable-beb4c26c39f370cceced528dd0aaf3298266ec420627be93d4a2871b91ae761f
+          inputHash: c490987be33b19f48ec4ce764494094f316c39ad5eec88b9dbd6825a3bd6322a
+          outcomeId: cfabbcfa-8204-4538-9f99-4028e58021dd
+          output:
+            checks:
+              - name: pytest --no-cov tests/test_sandbox_executor.py
+                  tests/test_sandbox_docker.py（仓库根目录）
+                note: 113 passed，16 项真实 Docker 测试在默认模式下跳过。先运行新增回归，旧实现 8 项按预期失败。日志
+                  /private/tmp/comet-488-judge-red.log 与
+                  /private/tmp/comet-488-sandbox.log。
+                result: passed
+              - name: pytest --no-cov tests/test_fingerprint.py tests/test_incremental_e2e.py
+                  tests/test_incremental_history.py tests/test_models.py（仓库根目录）
+                note: 79 passed。旧版指纹测试在添加版本前按预期失败。日志 /private/tmp/comet-488-fingerprint-red.log
+                  与 /private/tmp/comet-488-incremental.log。
+                result: passed
+              - name: comet classic openspec -- validate fix-integer-judge --strict 和 git diff
+                  --check（仓库根目录）
+                note: 变更规范严格校验通过，Git 差异无空白错误。
+                result: passed
+            event: build-complete
+          status: succeeded
+        protocolVersion: 1
+        receipts:
+          - hash: 5cb3a47da32dec48239f0f5b5a858642f61847025cf8ea1cf10a9bc7ad4bfd9a
+            outcomeId: cfabbcfa-8204-4538-9f99-4028e58021dd
+        reconciliations: []
+        ref: comet-build
+        requiredCapabilities: []
+        retry: manual
+        runId: fix-integer-judge
+        status: succeeded
+        stepId: tweak.build.execute
+        type: invoke_skill
+      - attempt: 1
+        claim:
+          executorId: comet-classic-guard
+          token: portable-a8ae57e92dac7b660b6afa6728a63a43283c6c1d449b065ab125d7307c410410
+        executionOrigin:
+          workflow:
+            hash: 518d3e8e12eb39899775cb7d2ddcc7ddeba10cb1f1d43cff7b03f2ca61a70c65
+            id: comet-classic-tweak
+            version: "2"
+        id: fix-integer-judge:4
+        input:
+          input:
+            change: fix-integer-judge
+            changeDir: openspec/changes/fix-integer-judge
+            workspaceBaseline:
+              ref: 85c29a9d-190c-4c4d-8813-a0465608880c
+          outputs:
+            tweak.build.execute:
+              checks:
+                - name: pytest --no-cov tests/test_sandbox_executor.py
+                    tests/test_sandbox_docker.py（仓库根目录）
+                  note: 113 passed，16 项真实 Docker 测试在默认模式下跳过。先运行新增回归，旧实现 8 项按预期失败。日志
+                    /private/tmp/comet-488-judge-red.log 与
+                    /private/tmp/comet-488-sandbox.log。
+                  result: passed
+                - name: pytest --no-cov tests/test_fingerprint.py tests/test_incremental_e2e.py
+                    tests/test_incremental_history.py
+                    tests/test_models.py（仓库根目录）
+                  note: 79 passed。旧版指纹测试在添加版本前按预期失败。日志 /private/tmp/comet-488-fingerprint-red.log
+                    与 /private/tmp/comet-488-incremental.log。
+                  result: passed
+                - name: comet classic openspec -- validate fix-integer-judge --strict 和 git diff
+                    --check（仓库根目录）
+                  note: 变更规范严格校验通过，Git 差异无空白错误。
+                  result: passed
+              event: build-complete
+            tweak.open:
+              event: open-complete
+              requirementsEvidence:
+                ref: openspec/changes/fix-integer-judge
+            tweak.open.evidence:
+              contentHash: 63cf0063790a9600b2da0afba3f6ee499c634453050748ae4c40614eb86775ef
+              ref: openspec/changes/fix-integer-judge
+        inputHash: 8250da4c8b75cf3a56408c0e854cec9c507f14bee8ab7f4f7213de704ddef3f8
+        outcome:
+          actionId: fix-integer-judge:4
+          attempt: 1
+          claimToken: portable-a8ae57e92dac7b660b6afa6728a63a43283c6c1d449b065ab125d7307c410410
+          inputHash: 8250da4c8b75cf3a56408c0e854cec9c507f14bee8ab7f4f7213de704ddef3f8
+          outcomeId: bd1e588e-3be1-4558-b0e0-9dfae5aa1fe8
+          output:
+            checks:
+              - name: pytest --no-cov tests/test_sandbox_executor.py
+                  tests/test_sandbox_docker.py（仓库根目录）
+                note: 113 passed，16 项真实 Docker 测试在默认模式下跳过。先运行新增回归，旧实现 8 项按预期失败。日志
+                  /private/tmp/comet-488-judge-red.log 与
+                  /private/tmp/comet-488-sandbox.log。
+                result: passed
+              - name: pytest --no-cov tests/test_fingerprint.py tests/test_incremental_e2e.py
+                  tests/test_incremental_history.py tests/test_models.py（仓库根目录）
+                note: 79 passed。旧版指纹测试在添加版本前按预期失败。日志 /private/tmp/comet-488-fingerprint-red.log
+                  与 /private/tmp/comet-488-incremental.log。
+                result: passed
+              - name: comet classic openspec -- validate fix-integer-judge --strict 和 git diff
+                  --check（仓库根目录）
+                note: 变更规范严格校验通过，Git 差异无空白错误。
+                result: passed
+              - name: 真实 Docker 公开、隐藏与 LeetCode 节点回归（仓库根目录）
+                note: python:3.12-slim-bookworm 实际容器中，两阶段拒绝偏差整数，105、106、133、138 正确与错误节点输出通过验证。日志
+                  /private/tmp/comet-488-docker-smoke.log。
+                result: passed
+            event: verification-ready
+            verificationReport: docs/superpowers/reports/2026-11-17-fix-integer-judge-verify.md
+          status: succeeded
+        protocolVersion: 1
+        receipts:
+          - hash: 83b1214998e105d884e58f23a920de6ba5ed5286ba5f5051c169797f794c8f5e
+            outcomeId: bd1e588e-3be1-4558-b0e0-9dfae5aa1fe8
+        reconciliations: []
+        ref: comet-verify
+        requiredCapabilities: []
+        retry: manual
+        runId: fix-integer-judge
+        status: succeeded
+        stepId: tweak.verify.run
+        type: invoke_skill
+      - attempt: 1
+        claim:
+          executorId: comet-classic-state
+          token: portable-7cececf2c2569e823030aa4c528ac97380fe9ce3e9684611b177986f67f1183c
+        executionOrigin:
+          workflow:
+            hash: 518d3e8e12eb39899775cb7d2ddcc7ddeba10cb1f1d43cff7b03f2ca61a70c65
+            id: comet-classic-tweak
+            version: "2"
+        id: fix-integer-judge:6
+        input:
+          input:
+            change: fix-integer-judge
+            changeDir: openspec/changes/fix-integer-judge
+            workspaceBaseline:
+              ref: 85c29a9d-190c-4c4d-8813-a0465608880c
+          outputs:
+            tweak.build.execute:
+              checks:
+                - name: pytest --no-cov tests/test_sandbox_executor.py
+                    tests/test_sandbox_docker.py（仓库根目录）
+                  note: 113 passed，16 项真实 Docker 测试在默认模式下跳过。先运行新增回归，旧实现 8 项按预期失败。日志
+                    /private/tmp/comet-488-judge-red.log 与
+                    /private/tmp/comet-488-sandbox.log。
+                  result: passed
+                - name: pytest --no-cov tests/test_fingerprint.py tests/test_incremental_e2e.py
+                    tests/test_incremental_history.py
+                    tests/test_models.py（仓库根目录）
+                  note: 79 passed。旧版指纹测试在添加版本前按预期失败。日志 /private/tmp/comet-488-fingerprint-red.log
+                    与 /private/tmp/comet-488-incremental.log。
+                  result: passed
+                - name: comet classic openspec -- validate fix-integer-judge --strict 和 git diff
+                    --check（仓库根目录）
+                  note: 变更规范严格校验通过，Git 差异无空白错误。
+                  result: passed
+              event: build-complete
+            tweak.open:
+              event: open-complete
+              requirementsEvidence:
+                ref: openspec/changes/fix-integer-judge
+            tweak.open.evidence:
+              contentHash: 63cf0063790a9600b2da0afba3f6ee499c634453050748ae4c40614eb86775ef
+              ref: openspec/changes/fix-integer-judge
+            tweak.verify.report.evidence:
+              contentHash: 8250da4c8b75cf3a56408c0e854cec9c507f14bee8ab7f4f7213de704ddef3f8
+              ref: docs/superpowers/reports/2026-11-17-fix-integer-judge-verify.md
+            tweak.verify.run:
+              checks:
+                - name: pytest --no-cov tests/test_sandbox_executor.py
+                    tests/test_sandbox_docker.py（仓库根目录）
+                  note: 113 passed，16 项真实 Docker 测试在默认模式下跳过。先运行新增回归，旧实现 8 项按预期失败。日志
+                    /private/tmp/comet-488-judge-red.log 与
+                    /private/tmp/comet-488-sandbox.log。
+                  result: passed
+                - name: pytest --no-cov tests/test_fingerprint.py tests/test_incremental_e2e.py
+                    tests/test_incremental_history.py
+                    tests/test_models.py（仓库根目录）
+                  note: 79 passed。旧版指纹测试在添加版本前按预期失败。日志 /private/tmp/comet-488-fingerprint-red.log
+                    与 /private/tmp/comet-488-incremental.log。
+                  result: passed
+                - name: comet classic openspec -- validate fix-integer-judge --strict 和 git diff
+                    --check（仓库根目录）
+                  note: 变更规范严格校验通过，Git 差异无空白错误。
+                  result: passed
+                - name: 真实 Docker 公开、隐藏与 LeetCode 节点回归（仓库根目录）
+                  note: python:3.12-slim-bookworm 实际容器中，两阶段拒绝偏差整数，105、106、133、138 正确与错误节点输出通过验证。日志
+                    /private/tmp/comet-488-docker-smoke.log。
+                  result: passed
+              event: verification-ready
+              verificationReport: docs/superpowers/reports/2026-11-17-fix-integer-judge-verify.md
+        inputHash: 847e47e2ab4ac7ee9c8f36605f6ec292812cf69208068fdc5f41fa18e50e32ca
+        outcome:
+          actionId: fix-integer-judge:6
+          attempt: 1
+          claimToken: portable-7cececf2c2569e823030aa4c528ac97380fe9ce3e9684611b177986f67f1183c
+          inputHash: 847e47e2ab4ac7ee9c8f36605f6ec292812cf69208068fdc5f41fa18e50e32ca
+          outcomeId: 850b3daf-1693-4bcb-93d3-b2ec658fa557
+          output:
+            remote: origin
+            summary: "归档 #488，合并 execution-protocol 和 incremental-evaluation
+              的规范增量，保存验证报告及变更说明，在当前绑定分支 main 提交。可选择本地提交或推送 origin/main。"
+            targetBranch: main
+          status: succeeded
+        protocolVersion: 1
+        receipts:
+          - hash: c85cf1d3b582915ec3a8903d1a579e2481754056d6bb1dd34bb6693c86d43b8f
+            outcomeId: 850b3daf-1693-4bcb-93d3-b2ec658fa557
+        reconciliations: []
+        ref: comet-archive
+        requiredCapabilities: []
+        retry: manual
+        runId: fix-integer-judge
+        status: succeeded
+        stepId: tweak.archive.prepare
+        type: invoke_skill
+      - attempt: 1
+        claim:
+          executorId: comet-classic-guard
+          token: portable-f48620e2dbc4238c0de00f3864a61d74830c955ec8ebeb3ad5180fc9ad81738f
+        executionOrigin:
+          workflow:
+            hash: d1e067bc00ca13395dbc6f701565417c3e227f17a57df025dd73ebda905e2638
+            id: comet-classic-tweak
+            version: "2"
+        id: fix-integer-judge:8
+        input:
+          activation:
+            expectedRevision: 12
+            fromPhase: archive
+          input:
+            change: fix-integer-judge
+            changeDir: openspec/changes/fix-integer-judge
+            workspaceBaseline:
+              ref: 85c29a9d-190c-4c4d-8813-a0465608880c
+          outputs: {}
+        inputHash: 34a57d903e1f94ce32a0c5ec1b8c3eaf51d3a595b6692d82cb3092ef2283027b
+        outcome:
+          actionId: fix-integer-judge:8
+          attempt: 1
+          claimToken: portable-f48620e2dbc4238c0de00f3864a61d74830c955ec8ebeb3ad5180fc9ad81738f
+          inputHash: 34a57d903e1f94ce32a0c5ec1b8c3eaf51d3a595b6692d82cb3092ef2283027b
+          outcomeId: c76ef989-5f86-4b2e-bcb6-c9aea73637a0
+          output:
+            checks:
+              - name: pytest --no-cov tests/test_sandbox_executor.py
+                  tests/test_sandbox_docker.py（仓库根目录）
+                note: 113 passed，16 项真实 Docker 测试在默认模式下跳过。先运行新增回归，旧实现 8 项按预期失败。日志
+                  /private/tmp/comet-488-judge-red.log 与
+                  /private/tmp/comet-488-sandbox.log。
+                result: passed
+              - name: pytest --no-cov tests/test_fingerprint.py tests/test_incremental_e2e.py
+                  tests/test_incremental_history.py tests/test_models.py（仓库根目录）
+                note: 79 passed。旧版指纹测试在添加版本前按预期失败。日志 /private/tmp/comet-488-fingerprint-red.log
+                  与 /private/tmp/comet-488-incremental.log。
+                result: passed
+              - name: comet classic openspec -- validate fix-integer-judge --strict 和 git diff
+                  --check（仓库根目录）
+                note: 变更规范严格校验通过，Git 差异无空白错误。
+                result: passed
+              - name: 真实 Docker 公开、隐藏与 LeetCode 节点回归（仓库根目录）
+                note: python:3.12-slim-bookworm 实际容器中，两阶段拒绝偏差整数，105、106、133、138 正确与错误节点输出通过验证。日志
+                  /private/tmp/comet-488-docker-smoke.log。
+                result: passed
+              - name: RUN_DOCKER_TESTS=1 pytest -k real_docker_and_host（仓库根目录）
+                note: 16 passed，默认 python:3.11-slim 容器和 Host 分支。日志
+                  /private/tmp/comet-488-docker-default.log。
+                result: passed
+              - name: Black 与 Ruff（五个修改过的 Python 文件，仓库根目录）
+                note: Black 全部无需改动，Ruff 未发现问题。
+                result: passed
+              - name: 全量离线测试的七个环境失败项复跑（仓库根目录）
+                note: 全量首轮 4224 passed、44 skipped、3 failed、4 errors，覆盖率 93.04%。放开回环端口后 5
+                  passed，装齐临时分析工具后 2 passed。日志
+                  /private/tmp/comet-488-offline.log、/private/tmp/comet-488-loopback.log、/private/tmp/comet-488-broker.log、/private/tmp/comet-488-readability-recheck.log。
+                result: passed
+            event: verification-ready
+            verificationReport: docs/superpowers/reports/2026-11-17-fix-integer-judge-verify.md
+          status: succeeded
+        protocolVersion: 1
+        receipts:
+          - hash: 491b5cbcbc439731093939743d987393133935e36d4be4184b21664c5358bd07
+            outcomeId: c76ef989-5f86-4b2e-bcb6-c9aea73637a0
+        reconciliations: []
+        ref: comet-verify
+        requiredCapabilities: []
+        retry: manual
+        runId: fix-integer-judge
+        status: succeeded
+        stepId: tweak.verify.run
+        type: invoke_skill
+      - attempt: 1
+        claim:
+          executorId: comet-classic-state
+          token: portable-793286233cbdeb75125e2976327503efb996e2158019a8b710c70637edaa856c
+        executionOrigin:
+          workflow:
+            hash: d1e067bc00ca13395dbc6f701565417c3e227f17a57df025dd73ebda905e2638
+            id: comet-classic-tweak
+            version: "2"
+        id: fix-integer-judge:10
+        input:
+          input:
+            change: fix-integer-judge
+            changeDir: openspec/changes/fix-integer-judge
+            workspaceBaseline:
+              ref: 85c29a9d-190c-4c4d-8813-a0465608880c
+          outputs:
+            tweak.verify.report.evidence:
+              contentHash: 34a57d903e1f94ce32a0c5ec1b8c3eaf51d3a595b6692d82cb3092ef2283027b
+              ref: docs/superpowers/reports/2026-11-17-fix-integer-judge-verify.md
+            tweak.verify.run:
+              checks:
+                - name: pytest --no-cov tests/test_sandbox_executor.py
+                    tests/test_sandbox_docker.py（仓库根目录）
+                  note: 113 passed，16 项真实 Docker 测试在默认模式下跳过。先运行新增回归，旧实现 8 项按预期失败。日志
+                    /private/tmp/comet-488-judge-red.log 与
+                    /private/tmp/comet-488-sandbox.log。
+                  result: passed
+                - name: pytest --no-cov tests/test_fingerprint.py tests/test_incremental_e2e.py
+                    tests/test_incremental_history.py
+                    tests/test_models.py（仓库根目录）
+                  note: 79 passed。旧版指纹测试在添加版本前按预期失败。日志 /private/tmp/comet-488-fingerprint-red.log
+                    与 /private/tmp/comet-488-incremental.log。
+                  result: passed
+                - name: comet classic openspec -- validate fix-integer-judge --strict 和 git diff
+                    --check（仓库根目录）
+                  note: 变更规范严格校验通过，Git 差异无空白错误。
+                  result: passed
+                - name: 真实 Docker 公开、隐藏与 LeetCode 节点回归（仓库根目录）
+                  note: python:3.12-slim-bookworm 实际容器中，两阶段拒绝偏差整数，105、106、133、138 正确与错误节点输出通过验证。日志
+                    /private/tmp/comet-488-docker-smoke.log。
+                  result: passed
+                - name: RUN_DOCKER_TESTS=1 pytest -k real_docker_and_host（仓库根目录）
+                  note: 16 passed，默认 python:3.11-slim 容器和 Host 分支。日志
+                    /private/tmp/comet-488-docker-default.log。
+                  result: passed
+                - name: Black 与 Ruff（五个修改过的 Python 文件，仓库根目录）
+                  note: Black 全部无需改动，Ruff 未发现问题。
+                  result: passed
+                - name: 全量离线测试的七个环境失败项复跑（仓库根目录）
+                  note: 全量首轮 4224 passed、44 skipped、3 failed、4 errors，覆盖率 93.04%。放开回环端口后 5
+                    passed，装齐临时分析工具后 2 passed。日志
+                    /private/tmp/comet-488-offline.log、/private/tmp/comet-488-loopback.log、/private/tmp/comet-488-broker.log、/private/tmp/comet-488-readability-recheck.log。
+                  result: passed
+              event: verification-ready
+              verificationReport: docs/superpowers/reports/2026-11-17-fix-integer-judge-verify.md
+        inputHash: a11ed66d736fa83fb236f5f3158295cd9893287d3b53eaa56f186e3eb52c37a2
+        outcome:
+          actionId: fix-integer-judge:10
+          attempt: 1
+          claimToken: portable-793286233cbdeb75125e2976327503efb996e2158019a8b710c70637edaa856c
+          inputHash: a11ed66d736fa83fb236f5f3158295cd9893287d3b53eaa56f186e3eb52c37a2
+          outcomeId: 37fc28dc-e278-4559-b2c4-32cded79c0dd
+          output:
+            deliveryPaths:
+              - README.md
+              - src/incremental/fingerprint.py
+              - src/models.py
+              - src/sandbox_executor.py
+              - tests/test_fingerprint.py
+              - tests/test_sandbox_executor.py
+              - docs/superpowers/reports/2026-11-17-fix-integer-judge-verify.md
+            prBaseBranch: main
+            remote: origin
+            summary: "归档 #488，合并两项 OpenSpec 规范，保存验收报告和变更说明，将修复提交到 codex/fix-integer-judge 并向
+              origin/main 发 PR。"
+            targetBranch: codex/fix-integer-judge
+          status: succeeded
+        protocolVersion: 1
+        receipts:
+          - hash: 2df78cc97fe7f0711f92e0746581127f6671bc8b8812c8fc0c529c3bc912e0d8
+            outcomeId: 37fc28dc-e278-4559-b2c4-32cded79c0dd
+        reconciliations: []
+        ref: comet-archive
+        requiredCapabilities: []
+        retry: manual
+        runId: fix-integer-judge
+        status: succeeded
+        stepId: tweak.archive.prepare
+        type: invoke_skill
+      - attempt: 1
+        id: fix-integer-judge:12
+        input:
+          input:
+            change: fix-integer-judge
+            changeDir: openspec/changes/fix-integer-judge
+            workspaceBaseline:
+              ref: 85c29a9d-190c-4c4d-8813-a0465608880c
+          outputs:
+            tweak.archive.confirm:
+              choice: pr
+              proposal:
+                input:
+                  change: fix-integer-judge
+                  changeDir: openspec/changes/fix-integer-judge
+                  workspaceBaseline:
+                    ref: 85c29a9d-190c-4c4d-8813-a0465608880c
+                outputs:
+                  tweak.archive.prepare:
+                    deliveryPaths:
+                      - README.md
+                      - src/incremental/fingerprint.py
+                      - src/models.py
+                      - src/sandbox_executor.py
+                      - tests/test_fingerprint.py
+                      - tests/test_sandbox_executor.py
+                      - docs/superpowers/reports/2026-11-17-fix-integer-judge-verify.md
+                    prBaseBranch: main
+                    remote: origin
+                    summary: "归档 #488，合并两项 OpenSpec 规范，保存验收报告和变更说明，将修复提交到 codex/fix-integer-judge 并向
+                      origin/main 发 PR。"
+                    targetBranch: codex/fix-integer-judge
+            tweak.archive.prepare:
+              deliveryPaths:
+                - README.md
+                - src/incremental/fingerprint.py
+                - src/models.py
+                - src/sandbox_executor.py
+                - tests/test_fingerprint.py
+                - tests/test_sandbox_executor.py
+                - docs/superpowers/reports/2026-11-17-fix-integer-judge-verify.md
+              prBaseBranch: main
+              remote: origin
+              summary: "归档 #488，合并两项 OpenSpec 规范，保存验收报告和变更说明，将修复提交到 codex/fix-integer-judge 并向
+                origin/main 发 PR。"
+              targetBranch: codex/fix-integer-judge
+            tweak.verify.report.evidence:
+              contentHash: 34a57d903e1f94ce32a0c5ec1b8c3eaf51d3a595b6692d82cb3092ef2283027b
+              ref: docs/superpowers/reports/2026-11-17-fix-integer-judge-verify.md
+            tweak.verify.run:
+              checks:
+                - name: pytest --no-cov tests/test_sandbox_executor.py
+                    tests/test_sandbox_docker.py（仓库根目录）
+                  note: 113 passed，16 项真实 Docker 测试在默认模式下跳过。先运行新增回归，旧实现 8 项按预期失败。日志
+                    /private/tmp/comet-488-judge-red.log 与
+                    /private/tmp/comet-488-sandbox.log。
+                  result: passed
+                - name: pytest --no-cov tests/test_fingerprint.py tests/test_incremental_e2e.py
+                    tests/test_incremental_history.py
+                    tests/test_models.py（仓库根目录）
+                  note: 79 passed。旧版指纹测试在添加版本前按预期失败。日志 /private/tmp/comet-488-fingerprint-red.log
+                    与 /private/tmp/comet-488-incremental.log。
+                  result: passed
+                - name: comet classic openspec -- validate fix-integer-judge --strict 和 git diff
+                    --check（仓库根目录）
+                  note: 变更规范严格校验通过，Git 差异无空白错误。
+                  result: passed
+                - name: 真实 Docker 公开、隐藏与 LeetCode 节点回归（仓库根目录）
+                  note: python:3.12-slim-bookworm 实际容器中，两阶段拒绝偏差整数，105、106、133、138 正确与错误节点输出通过验证。日志
+                    /private/tmp/comet-488-docker-smoke.log。
+                  result: passed
+                - name: RUN_DOCKER_TESTS=1 pytest -k real_docker_and_host（仓库根目录）
+                  note: 16 passed，默认 python:3.11-slim 容器和 Host 分支。日志
+                    /private/tmp/comet-488-docker-default.log。
+                  result: passed
+                - name: Black 与 Ruff（五个修改过的 Python 文件，仓库根目录）
+                  note: Black 全部无需改动，Ruff 未发现问题。
+                  result: passed
+                - name: 全量离线测试的七个环境失败项复跑（仓库根目录）
+                  note: 全量首轮 4224 passed、44 skipped、3 failed、4 errors，覆盖率 93.04%。放开回环端口后 5
+                    passed，装齐临时分析工具后 2 passed。日志
+                    /private/tmp/comet-488-offline.log、/private/tmp/comet-488-loopback.log、/private/tmp/comet-488-broker.log、/private/tmp/comet-488-readability-recheck.log。
+                  result: passed
+              event: verification-ready
+              verificationReport: docs/superpowers/reports/2026-11-17-fix-integer-judge-verify.md
+        inputHash: 279d42a0eb23190c8ecae216ddb15d518537a7759bdf11a7f8257fefbbaeab35
+        protocolVersion: 1
+        reason: 命令 reopen-verification 已取代待执行 Action
+        receipts: []
+        reconciliations: []
+        ref: classic-archive-preflight
+        requiredCapabilities: []
+        retry: manual
+        runId: fix-integer-judge
+        status: cancelled
+        stepId: tweak.archive.preflight
+        type: call_tool
+      - attempt: 1
+        claim:
+          executorId: comet-classic-guard
+          token: portable-475ca3fff2ebfc75896bfe148bd8e8f06a2c81e905db542821444905d7b0c390
+        executionOrigin:
+          workflow:
+            hash: d1e067bc00ca13395dbc6f701565417c3e227f17a57df025dd73ebda905e2638
+            id: comet-classic-tweak
+            version: "2"
+        id: fix-integer-judge:13
+        input:
+          activation:
+            expectedRevision: 19
+            fromPhase: archive
+          input:
+            change: fix-integer-judge
+            changeDir: openspec/changes/fix-integer-judge
+            workspaceBaseline:
+              ref: 85c29a9d-190c-4c4d-8813-a0465608880c
+          outputs: {}
+        inputHash: 135553406b7ad0aa771e36728293d3152d7933df057d00c75739682e66b6db09
+        outcome:
+          actionId: fix-integer-judge:13
+          attempt: 1
+          claimToken: portable-475ca3fff2ebfc75896bfe148bd8e8f06a2c81e905db542821444905d7b0c390
+          inputHash: 135553406b7ad0aa771e36728293d3152d7933df057d00c75739682e66b6db09
+          outcomeId: d84d2938-9d92-4587-8b5f-465cb77a1853
+          output:
+            checks:
+              - name: pytest --no-cov tests/test_sandbox_executor.py
+                  tests/test_sandbox_docker.py（仓库根目录）
+                note: 113 passed，16 项真实 Docker 测试在默认模式下跳过。先运行新增回归，旧实现 8 项按预期失败。日志
+                  /private/tmp/comet-488-judge-red.log 与
+                  /private/tmp/comet-488-sandbox.log。
+                result: passed
+              - name: pytest --no-cov tests/test_fingerprint.py tests/test_incremental_e2e.py
+                  tests/test_incremental_history.py tests/test_models.py（仓库根目录）
+                note: 79 passed。旧版指纹测试在添加版本前按预期失败。日志 /private/tmp/comet-488-fingerprint-red.log
+                  与 /private/tmp/comet-488-incremental.log。
+                result: passed
+              - name: comet classic openspec -- validate fix-integer-judge --strict 和 git diff
+                  --check（仓库根目录）
+                note: 变更规范严格校验通过，Git 差异无空白错误。
+                result: passed
+              - name: 真实 Docker 公开、隐藏与 LeetCode 节点回归（仓库根目录）
+                note: python:3.12-slim-bookworm 实际容器中，两阶段拒绝偏差整数，105、106、133、138 正确与错误节点输出通过验证。日志
+                  /private/tmp/comet-488-docker-smoke.log。
+                result: passed
+              - name: RUN_DOCKER_TESTS=1 pytest -k real_docker_and_host（仓库根目录）
+                note: 16 passed，默认 python:3.11-slim 容器和 Host 分支。日志
+                  /private/tmp/comet-488-docker-default.log。
+                result: passed
+              - name: Black 与 Ruff（五个修改过的 Python 文件，仓库根目录）
+                note: Black 全部无需改动，Ruff 未发现问题。
+                result: passed
+              - name: 全量离线测试的七个环境失败项复跑（仓库根目录）
+                note: 全量首轮 4224 passed、44 skipped、3 failed、4 errors，覆盖率 93.04%。放开回环端口后 5
+                  passed，装齐临时分析工具后 2 passed。日志
+                  /private/tmp/comet-488-offline.log、/private/tmp/comet-488-loopback.log、/private/tmp/comet-488-broker.log、/private/tmp/comet-488-readability-recheck.log。
+                result: passed
+            event: verification-ready
+            verificationReport: docs/superpowers/reports/2026-11-17-fix-integer-judge-verify.md
+          status: succeeded
+        protocolVersion: 1
+        receipts:
+          - hash: 680a538a9c973d8c56540da42c4fdbd369cd80c4c30f07f09a8df660c3883757
+            outcomeId: d84d2938-9d92-4587-8b5f-465cb77a1853
+        reconciliations: []
+        ref: comet-verify
+        requiredCapabilities: []
+        retry: manual
+        runId: fix-integer-judge
+        status: succeeded
+        stepId: tweak.verify.run
+        type: invoke_skill
+      - attempt: 1
+        claim:
+          executorId: comet-classic-state
+          token: portable-80ae79e2406ec6e07685ee26b4e7b8a6b6a95da29cd14e1d31595724eef8c88a
+        executionOrigin:
+          workflow:
+            hash: d1e067bc00ca13395dbc6f701565417c3e227f17a57df025dd73ebda905e2638
+            id: comet-classic-tweak
+            version: "2"
+        id: fix-integer-judge:15
+        input:
+          input:
+            change: fix-integer-judge
+            changeDir: openspec/changes/fix-integer-judge
+            workspaceBaseline:
+              ref: 85c29a9d-190c-4c4d-8813-a0465608880c
+          outputs:
+            tweak.verify.report.evidence:
+              contentHash: 135553406b7ad0aa771e36728293d3152d7933df057d00c75739682e66b6db09
+              ref: docs/superpowers/reports/2026-11-17-fix-integer-judge-verify.md
+            tweak.verify.run:
+              checks:
+                - name: pytest --no-cov tests/test_sandbox_executor.py
+                    tests/test_sandbox_docker.py（仓库根目录）
+                  note: 113 passed，16 项真实 Docker 测试在默认模式下跳过。先运行新增回归，旧实现 8 项按预期失败。日志
+                    /private/tmp/comet-488-judge-red.log 与
+                    /private/tmp/comet-488-sandbox.log。
+                  result: passed
+                - name: pytest --no-cov tests/test_fingerprint.py tests/test_incremental_e2e.py
+                    tests/test_incremental_history.py
+                    tests/test_models.py（仓库根目录）
+                  note: 79 passed。旧版指纹测试在添加版本前按预期失败。日志 /private/tmp/comet-488-fingerprint-red.log
+                    与 /private/tmp/comet-488-incremental.log。
+                  result: passed
+                - name: comet classic openspec -- validate fix-integer-judge --strict 和 git diff
+                    --check（仓库根目录）
+                  note: 变更规范严格校验通过，Git 差异无空白错误。
+                  result: passed
+                - name: 真实 Docker 公开、隐藏与 LeetCode 节点回归（仓库根目录）
+                  note: python:3.12-slim-bookworm 实际容器中，两阶段拒绝偏差整数，105、106、133、138 正确与错误节点输出通过验证。日志
+                    /private/tmp/comet-488-docker-smoke.log。
+                  result: passed
+                - name: RUN_DOCKER_TESTS=1 pytest -k real_docker_and_host（仓库根目录）
+                  note: 16 passed，默认 python:3.11-slim 容器和 Host 分支。日志
+                    /private/tmp/comet-488-docker-default.log。
+                  result: passed
+                - name: Black 与 Ruff（五个修改过的 Python 文件，仓库根目录）
+                  note: Black 全部无需改动，Ruff 未发现问题。
+                  result: passed
+                - name: 全量离线测试的七个环境失败项复跑（仓库根目录）
+                  note: 全量首轮 4224 passed、44 skipped、3 failed、4 errors，覆盖率 93.04%。放开回环端口后 5
+                    passed，装齐临时分析工具后 2 passed。日志
+                    /private/tmp/comet-488-offline.log、/private/tmp/comet-488-loopback.log、/private/tmp/comet-488-broker.log、/private/tmp/comet-488-readability-recheck.log。
+                  result: passed
+              event: verification-ready
+              verificationReport: docs/superpowers/reports/2026-11-17-fix-integer-judge-verify.md
+        inputHash: 476e7d82af47bec29b74d9f168889bc9456f50505fec611331803c897f4a3942
+        outcome:
+          actionId: fix-integer-judge:15
+          attempt: 1
+          claimToken: portable-80ae79e2406ec6e07685ee26b4e7b8a6b6a95da29cd14e1d31595724eef8c88a
+          inputHash: 476e7d82af47bec29b74d9f168889bc9456f50505fec611331803c897f4a3942
+          outcomeId: 807939b2-0d9d-4c21-90a8-8328a3a90c36
+          output:
+            deliveryPaths:
+              - README.md
+              - src/incremental/fingerprint.py
+              - src/models.py
+              - src/sandbox_executor.py
+              - tests/test_fingerprint.py
+              - tests/test_sandbox_executor.py
+            prBaseBranch: main
+            remote: origin
+            summary: "归档 #488，合并两项 OpenSpec 规范，保存验收报告和变更说明，将修复提交到 codex/fix-integer-judge 并向
+              origin/main 发 PR。"
+            targetBranch: codex/fix-integer-judge
+          status: succeeded
+        protocolVersion: 1
+        receipts:
+          - hash: 549c59131db0ffe2fabac7ebc6d52d0c91832866da584dc0252b0bb0ccb4a620
+            outcomeId: 807939b2-0d9d-4c21-90a8-8328a3a90c36
+        reconciliations: []
+        ref: comet-archive
+        requiredCapabilities: []
+        retry: manual
+        runId: fix-integer-judge
+        status: succeeded
+        stepId: tweak.archive.prepare
+        type: invoke_skill
+      - attempt: 1
+        claim:
+          executorId: comet-classic-archive-preflight
+          token: portable-b785a02c41c7f70fd1085d4ddbc90d5756263e1280483b508f158b63d2926dc9
+        executionOrigin:
+          workflow:
+            hash: d1e067bc00ca13395dbc6f701565417c3e227f17a57df025dd73ebda905e2638
+            id: comet-classic-tweak
+            version: "2"
+        id: fix-integer-judge:17
+        input:
+          input:
+            change: fix-integer-judge
+            changeDir: openspec/changes/fix-integer-judge
+            workspaceBaseline:
+              ref: 85c29a9d-190c-4c4d-8813-a0465608880c
+          outputs:
+            tweak.archive.confirm:
+              choice: pr
+              proposal:
+                input:
+                  change: fix-integer-judge
+                  changeDir: openspec/changes/fix-integer-judge
+                  workspaceBaseline:
+                    ref: 85c29a9d-190c-4c4d-8813-a0465608880c
+                outputs:
+                  tweak.archive.prepare:
+                    deliveryPaths:
+                      - README.md
+                      - src/incremental/fingerprint.py
+                      - src/models.py
+                      - src/sandbox_executor.py
+                      - tests/test_fingerprint.py
+                      - tests/test_sandbox_executor.py
+                    prBaseBranch: main
+                    remote: origin
+                    summary: "归档 #488，合并两项 OpenSpec 规范，保存验收报告和变更说明，将修复提交到 codex/fix-integer-judge 并向
+                      origin/main 发 PR。"
+                    targetBranch: codex/fix-integer-judge
+            tweak.archive.prepare:
+              deliveryPaths:
+                - README.md
+                - src/incremental/fingerprint.py
+                - src/models.py
+                - src/sandbox_executor.py
+                - tests/test_fingerprint.py
+                - tests/test_sandbox_executor.py
+              prBaseBranch: main
+              remote: origin
+              summary: "归档 #488，合并两项 OpenSpec 规范，保存验收报告和变更说明，将修复提交到 codex/fix-integer-judge 并向
+                origin/main 发 PR。"
+              targetBranch: codex/fix-integer-judge
+            tweak.verify.report.evidence:
+              contentHash: 135553406b7ad0aa771e36728293d3152d7933df057d00c75739682e66b6db09
+              ref: docs/superpowers/reports/2026-11-17-fix-integer-judge-verify.md
+            tweak.verify.run:
+              checks:
+                - name: pytest --no-cov tests/test_sandbox_executor.py
+                    tests/test_sandbox_docker.py（仓库根目录）
+                  note: 113 passed，16 项真实 Docker 测试在默认模式下跳过。先运行新增回归，旧实现 8 项按预期失败。日志
+                    /private/tmp/comet-488-judge-red.log 与
+                    /private/tmp/comet-488-sandbox.log。
+                  result: passed
+                - name: pytest --no-cov tests/test_fingerprint.py tests/test_incremental_e2e.py
+                    tests/test_incremental_history.py
+                    tests/test_models.py（仓库根目录）
+                  note: 79 passed。旧版指纹测试在添加版本前按预期失败。日志 /private/tmp/comet-488-fingerprint-red.log
+                    与 /private/tmp/comet-488-incremental.log。
+                  result: passed
+                - name: comet classic openspec -- validate fix-integer-judge --strict 和 git diff
+                    --check（仓库根目录）
+                  note: 变更规范严格校验通过，Git 差异无空白错误。
+                  result: passed
+                - name: 真实 Docker 公开、隐藏与 LeetCode 节点回归（仓库根目录）
+                  note: python:3.12-slim-bookworm 实际容器中，两阶段拒绝偏差整数，105、106、133、138 正确与错误节点输出通过验证。日志
+                    /private/tmp/comet-488-docker-smoke.log。
+                  result: passed
+                - name: RUN_DOCKER_TESTS=1 pytest -k real_docker_and_host（仓库根目录）
+                  note: 16 passed，默认 python:3.11-slim 容器和 Host 分支。日志
+                    /private/tmp/comet-488-docker-default.log。
+                  result: passed
+                - name: Black 与 Ruff（五个修改过的 Python 文件，仓库根目录）
+                  note: Black 全部无需改动，Ruff 未发现问题。
+                  result: passed
+                - name: 全量离线测试的七个环境失败项复跑（仓库根目录）
+                  note: 全量首轮 4224 passed、44 skipped、3 failed、4 errors，覆盖率 93.04%。放开回环端口后 5
+                    passed，装齐临时分析工具后 2 passed。日志
+                    /private/tmp/comet-488-offline.log、/private/tmp/comet-488-loopback.log、/private/tmp/comet-488-broker.log、/private/tmp/comet-488-readability-recheck.log。
+                  result: passed
+              event: verification-ready
+              verificationReport: docs/superpowers/reports/2026-11-17-fix-integer-judge-verify.md
+        inputHash: f20c614227d4bcb86eb2313b94fb47d113e0f040ecacbca358892a081f11ca5a
+        outcome:
+          actionId: fix-integer-judge:17
+          attempt: 1
+          claimToken: portable-b785a02c41c7f70fd1085d4ddbc90d5756263e1280483b508f158b63d2926dc9
+          inputHash: f20c614227d4bcb86eb2313b94fb47d113e0f040ecacbca358892a081f11ca5a
+          outcomeId: 081efbab-91b6-4d2d-89fe-cf2530a8056c
+          output:
+            baseCommit: fcfa51797e3c1ab675b26dbecaaab022804cbbda
+            deliveryAction: pr
+            deliveryPaths:
+              - README.md
+              - src/incremental/fingerprint.py
+              - src/models.py
+              - src/sandbox_executor.py
+              - tests/test_fingerprint.py
+              - tests/test_sandbox_executor.py
+            prBaseBranch: main
+            remote: origin
+            remoteIdentity: 128eeb1e6f0d21b25601fcb7f9aad36adfdfb4d76f37f54f004760410190f351
+            targetBranch: codex/fix-integer-judge
+            verifiedBranch: codex/fix-integer-judge
+          status: succeeded
+        protocolVersion: 1
+        receipts:
+          - hash: b034e3b712c4c4240fe5c8d92e29f65c78c287212ee8324a19faf372b997fe90
+            outcomeId: 081efbab-91b6-4d2d-89fe-cf2530a8056c
+        reconciliations: []
+        ref: classic-archive-preflight
+        requiredCapabilities: []
+        retry: manual
+        runId: fix-integer-judge
+        status: succeeded
+        stepId: tweak.archive.preflight
+        type: call_tool
+      - attempt: 1
+        claim:
+          executorId: comet-classic-archive
+          token: portable-28daca00014c4d8280f44001036bc2a0c5742f21d67d19324383a18e2e790949
+        executionOrigin:
+          workflow:
+            hash: d1e067bc00ca13395dbc6f701565417c3e227f17a57df025dd73ebda905e2638
+            id: comet-classic-tweak
+            version: "2"
+        id: fix-integer-judge:18
+        input:
+          input:
+            change: fix-integer-judge
+            changeDir: openspec/changes/fix-integer-judge
+            workspaceBaseline:
+              ref: 85c29a9d-190c-4c4d-8813-a0465608880c
+          outputs:
+            tweak.archive.confirm:
+              choice: pr
+              proposal:
+                input:
+                  change: fix-integer-judge
+                  changeDir: openspec/changes/fix-integer-judge
+                  workspaceBaseline:
+                    ref: 85c29a9d-190c-4c4d-8813-a0465608880c
+                outputs:
+                  tweak.archive.prepare:
+                    deliveryPaths:
+                      - README.md
+                      - src/incremental/fingerprint.py
+                      - src/models.py
+                      - src/sandbox_executor.py
+                      - tests/test_fingerprint.py
+                      - tests/test_sandbox_executor.py
+                    prBaseBranch: main
+                    remote: origin
+                    summary: "归档 #488，合并两项 OpenSpec 规范，保存验收报告和变更说明，将修复提交到 codex/fix-integer-judge 并向
+                      origin/main 发 PR。"
+                    targetBranch: codex/fix-integer-judge
+            tweak.archive.preflight:
+              baseCommit: fcfa51797e3c1ab675b26dbecaaab022804cbbda
+              deliveryAction: pr
+              deliveryPaths:
+                - README.md
+                - src/incremental/fingerprint.py
+                - src/models.py
+                - src/sandbox_executor.py
+                - tests/test_fingerprint.py
+                - tests/test_sandbox_executor.py
+              prBaseBranch: main
+              remote: origin
+              remoteIdentity: 128eeb1e6f0d21b25601fcb7f9aad36adfdfb4d76f37f54f004760410190f351
+              targetBranch: codex/fix-integer-judge
+              verifiedBranch: codex/fix-integer-judge
+            tweak.archive.prepare:
+              deliveryPaths:
+                - README.md
+                - src/incremental/fingerprint.py
+                - src/models.py
+                - src/sandbox_executor.py
+                - tests/test_fingerprint.py
+                - tests/test_sandbox_executor.py
+              prBaseBranch: main
+              remote: origin
+              summary: "归档 #488，合并两项 OpenSpec 规范，保存验收报告和变更说明，将修复提交到 codex/fix-integer-judge 并向
+                origin/main 发 PR。"
+              targetBranch: codex/fix-integer-judge
+            tweak.verify.report.evidence:
+              contentHash: 135553406b7ad0aa771e36728293d3152d7933df057d00c75739682e66b6db09
+              ref: docs/superpowers/reports/2026-11-17-fix-integer-judge-verify.md
+            tweak.verify.run:
+              checks:
+                - name: pytest --no-cov tests/test_sandbox_executor.py
+                    tests/test_sandbox_docker.py（仓库根目录）
+                  note: 113 passed，16 项真实 Docker 测试在默认模式下跳过。先运行新增回归，旧实现 8 项按预期失败。日志
+                    /private/tmp/comet-488-judge-red.log 与
+                    /private/tmp/comet-488-sandbox.log。
+                  result: passed
+                - name: pytest --no-cov tests/test_fingerprint.py tests/test_incremental_e2e.py
+                    tests/test_incremental_history.py
+                    tests/test_models.py（仓库根目录）
+                  note: 79 passed。旧版指纹测试在添加版本前按预期失败。日志 /private/tmp/comet-488-fingerprint-red.log
+                    与 /private/tmp/comet-488-incremental.log。
+                  result: passed
+                - name: comet classic openspec -- validate fix-integer-judge --strict 和 git diff
+                    --check（仓库根目录）
+                  note: 变更规范严格校验通过，Git 差异无空白错误。
+                  result: passed
+                - name: 真实 Docker 公开、隐藏与 LeetCode 节点回归（仓库根目录）
+                  note: python:3.12-slim-bookworm 实际容器中，两阶段拒绝偏差整数，105、106、133、138 正确与错误节点输出通过验证。日志
+                    /private/tmp/comet-488-docker-smoke.log。
+                  result: passed
+                - name: RUN_DOCKER_TESTS=1 pytest -k real_docker_and_host（仓库根目录）
+                  note: 16 passed，默认 python:3.11-slim 容器和 Host 分支。日志
+                    /private/tmp/comet-488-docker-default.log。
+                  result: passed
+                - name: Black 与 Ruff（五个修改过的 Python 文件，仓库根目录）
+                  note: Black 全部无需改动，Ruff 未发现问题。
+                  result: passed
+                - name: 全量离线测试的七个环境失败项复跑（仓库根目录）
+                  note: 全量首轮 4224 passed、44 skipped、3 failed、4 errors，覆盖率 93.04%。放开回环端口后 5
+                    passed，装齐临时分析工具后 2 passed。日志
+                    /private/tmp/comet-488-offline.log、/private/tmp/comet-488-loopback.log、/private/tmp/comet-488-broker.log、/private/tmp/comet-488-readability-recheck.log。
+                  result: passed
+              event: verification-ready
+              verificationReport: docs/superpowers/reports/2026-11-17-fix-integer-judge-verify.md
+        inputHash: aa8ea2f08b15d771155a6d98999293b807523e1e1760cec40b3153cc08db9ab7
+        outcome:
+          actionId: fix-integer-judge:18
+          artifacts: []
+          attempt: 1
+          claimToken: portable-28daca00014c4d8280f44001036bc2a0c5742f21d67d19324383a18e2e790949
+          inputHash: aa8ea2f08b15d771155a6d98999293b807523e1e1760cec40b3153cc08db9ab7
+          outcomeId: 11a6b3c0-cf09-48af-8b57-885e91bec0a4
+          output:
+            archiveDirectory: openspec/changes/archive/2026-11-17-fix-integer-judge
+          status: succeeded
+        protocolVersion: 1
+        receipts:
+          - hash: 730bb3c168cfad61cbfe3647002bd376334e1a12f65091b347075217cc3e485e
+            outcomeId: 11a6b3c0-cf09-48af-8b57-885e91bec0a4
+        reconciliations: []
+        ref: classic-archive
+        requiredCapabilities: []
+        retry: manual
+        runId: fix-integer-judge
+        status: succeeded
+        stepId: tweak.archive.execute
+        type: call_tool
+      - attempt: 1
+        id: fix-integer-judge:19
+        input:
+          input:
+            change: fix-integer-judge
+            changeDir: openspec/changes/fix-integer-judge
+            workspaceBaseline:
+              ref: 85c29a9d-190c-4c4d-8813-a0465608880c
+          outputs:
+            tweak.archive.confirm:
+              choice: pr
+              proposal:
+                input:
+                  change: fix-integer-judge
+                  changeDir: openspec/changes/fix-integer-judge
+                  workspaceBaseline:
+                    ref: 85c29a9d-190c-4c4d-8813-a0465608880c
+                outputs:
+                  tweak.archive.prepare:
+                    deliveryPaths:
+                      - README.md
+                      - src/incremental/fingerprint.py
+                      - src/models.py
+                      - src/sandbox_executor.py
+                      - tests/test_fingerprint.py
+                      - tests/test_sandbox_executor.py
+                    prBaseBranch: main
+                    remote: origin
+                    summary: "归档 #488，合并两项 OpenSpec 规范，保存验收报告和变更说明，将修复提交到 codex/fix-integer-judge 并向
+                      origin/main 发 PR。"
+                    targetBranch: codex/fix-integer-judge
+            tweak.archive.execute:
+              archiveDirectory: openspec/changes/archive/2026-11-17-fix-integer-judge
+            tweak.archive.preflight:
+              baseCommit: fcfa51797e3c1ab675b26dbecaaab022804cbbda
+              deliveryAction: pr
+              deliveryPaths:
+                - README.md
+                - src/incremental/fingerprint.py
+                - src/models.py
+                - src/sandbox_executor.py
+                - tests/test_fingerprint.py
+                - tests/test_sandbox_executor.py
+              prBaseBranch: main
+              remote: origin
+              remoteIdentity: 128eeb1e6f0d21b25601fcb7f9aad36adfdfb4d76f37f54f004760410190f351
+              targetBranch: codex/fix-integer-judge
+              verifiedBranch: codex/fix-integer-judge
+            tweak.archive.prepare:
+              deliveryPaths:
+                - README.md
+                - src/incremental/fingerprint.py
+                - src/models.py
+                - src/sandbox_executor.py
+                - tests/test_fingerprint.py
+                - tests/test_sandbox_executor.py
+              prBaseBranch: main
+              remote: origin
+              summary: "归档 #488，合并两项 OpenSpec 规范，保存验收报告和变更说明，将修复提交到 codex/fix-integer-judge 并向
+                origin/main 发 PR。"
+              targetBranch: codex/fix-integer-judge
+            tweak.verify.report.evidence:
+              contentHash: 135553406b7ad0aa771e36728293d3152d7933df057d00c75739682e66b6db09
+              ref: docs/superpowers/reports/2026-11-17-fix-integer-judge-verify.md
+            tweak.verify.run:
+              checks:
+                - name: pytest --no-cov tests/test_sandbox_executor.py
+                    tests/test_sandbox_docker.py（仓库根目录）
+                  note: 113 passed，16 项真实 Docker 测试在默认模式下跳过。先运行新增回归，旧实现 8 项按预期失败。日志
+                    /private/tmp/comet-488-judge-red.log 与
+                    /private/tmp/comet-488-sandbox.log。
+                  result: passed
+                - name: pytest --no-cov tests/test_fingerprint.py tests/test_incremental_e2e.py
+                    tests/test_incremental_history.py
+                    tests/test_models.py（仓库根目录）
+                  note: 79 passed。旧版指纹测试在添加版本前按预期失败。日志 /private/tmp/comet-488-fingerprint-red.log
+                    与 /private/tmp/comet-488-incremental.log。
+                  result: passed
+                - name: comet classic openspec -- validate fix-integer-judge --strict 和 git diff
+                    --check（仓库根目录）
+                  note: 变更规范严格校验通过，Git 差异无空白错误。
+                  result: passed
+                - name: 真实 Docker 公开、隐藏与 LeetCode 节点回归（仓库根目录）
+                  note: python:3.12-slim-bookworm 实际容器中，两阶段拒绝偏差整数，105、106、133、138 正确与错误节点输出通过验证。日志
+                    /private/tmp/comet-488-docker-smoke.log。
+                  result: passed
+                - name: RUN_DOCKER_TESTS=1 pytest -k real_docker_and_host（仓库根目录）
+                  note: 16 passed，默认 python:3.11-slim 容器和 Host 分支。日志
+                    /private/tmp/comet-488-docker-default.log。
+                  result: passed
+                - name: Black 与 Ruff（五个修改过的 Python 文件，仓库根目录）
+                  note: Black 全部无需改动，Ruff 未发现问题。
+                  result: passed
+                - name: 全量离线测试的七个环境失败项复跑（仓库根目录）
+                  note: 全量首轮 4224 passed、44 skipped、3 failed、4 errors，覆盖率 93.04%。放开回环端口后 5
+                    passed，装齐临时分析工具后 2 passed。日志
+                    /private/tmp/comet-488-offline.log、/private/tmp/comet-488-loopback.log、/private/tmp/comet-488-broker.log、/private/tmp/comet-488-readability-recheck.log。
+                  result: passed
+              event: verification-ready
+              verificationReport: docs/superpowers/reports/2026-11-17-fix-integer-judge-verify.md
+        inputHash: 9b8359a978fa00c6494ccbff0803c381c00a3a32d0e488737001999d2a1d2d70
+        protocolVersion: 1
+        receipts: []
+        reconciliations: []
+        ref: comet-archive
+        requiredCapabilities: []
+        retry: manual
+        runId: fix-integer-judge
+        status: pending
+        stepId: tweak.archive.deliver
+        type: invoke_skill
+    commands:
+      - id: 1abfe5d88b38c1b660a563f1ef62663d6d05c405c1162e95869d09082403a9d1
+        name: reopen-verification
+        inputHash: f5e487703e8f5203c1a70838dc38a9f0c3378ad441ad266fc269ee9debbfde5a
+        actionId: fix-integer-judge:8
+      - id: 87991f5056980bc7e84f859e370f4515dffbc39a9095983617057748ad7efa4c
+        name: reopen-verification
+        inputHash: a092a35e87b24f6f8e67bf780d944e1c618e8e734dbd120cd761f02cd63cca5e
+        actionId: fix-integer-judge:13
+    actionContexts:
+      fix-integer-judge:1:
+        results: {}
+        sequence: 1
+      fix-integer-judge:10:
+        results:
+          tweak.verify.report.evidence:
+            sequence: 9
+            value:
+              contentHash: 34a57d903e1f94ce32a0c5ec1b8c3eaf51d3a595b6692d82cb3092ef2283027b
+              ref: docs/superpowers/reports/2026-11-17-fix-integer-judge-verify.md
+          tweak.verify.run:
+            sequence: 8
+            value:
+              checks:
+                - name: pytest --no-cov tests/test_sandbox_executor.py
+                    tests/test_sandbox_docker.py（仓库根目录）
+                  note: 113 passed，16 项真实 Docker 测试在默认模式下跳过。先运行新增回归，旧实现 8 项按预期失败。日志
+                    /private/tmp/comet-488-judge-red.log 与
+                    /private/tmp/comet-488-sandbox.log。
+                  result: passed
+                - name: pytest --no-cov tests/test_fingerprint.py tests/test_incremental_e2e.py
+                    tests/test_incremental_history.py
+                    tests/test_models.py（仓库根目录）
+                  note: 79 passed。旧版指纹测试在添加版本前按预期失败。日志 /private/tmp/comet-488-fingerprint-red.log
+                    与 /private/tmp/comet-488-incremental.log。
+                  result: passed
+                - name: comet classic openspec -- validate fix-integer-judge --strict 和 git diff
+                    --check（仓库根目录）
+                  note: 变更规范严格校验通过，Git 差异无空白错误。
+                  result: passed
+                - name: 真实 Docker 公开、隐藏与 LeetCode 节点回归（仓库根目录）
+                  note: python:3.12-slim-bookworm 实际容器中，两阶段拒绝偏差整数，105、106、133、138 正确与错误节点输出通过验证。日志
+                    /private/tmp/comet-488-docker-smoke.log。
+                  result: passed
+                - name: RUN_DOCKER_TESTS=1 pytest -k real_docker_and_host（仓库根目录）
+                  note: 16 passed，默认 python:3.11-slim 容器和 Host 分支。日志
+                    /private/tmp/comet-488-docker-default.log。
+                  result: passed
+                - name: Black 与 Ruff（五个修改过的 Python 文件，仓库根目录）
+                  note: Black 全部无需改动，Ruff 未发现问题。
+                  result: passed
+                - name: 全量离线测试的七个环境失败项复跑（仓库根目录）
+                  note: 全量首轮 4224 passed、44 skipped、3 failed、4 errors，覆盖率 93.04%。放开回环端口后 5
+                    passed，装齐临时分析工具后 2 passed。日志
+                    /private/tmp/comet-488-offline.log、/private/tmp/comet-488-loopback.log、/private/tmp/comet-488-broker.log、/private/tmp/comet-488-readability-recheck.log。
+                  result: passed
+              event: verification-ready
+              verificationReport: docs/superpowers/reports/2026-11-17-fix-integer-judge-verify.md
+        sequence: 10
+      fix-integer-judge:12:
+        results:
+          tweak.archive.confirm:
+            sequence: 11
+            value:
+              choice: pr
+              proposal:
+                input:
+                  change: fix-integer-judge
+                  changeDir: openspec/changes/fix-integer-judge
+                  workspaceBaseline:
+                    ref: 85c29a9d-190c-4c4d-8813-a0465608880c
+                outputs:
+                  tweak.archive.prepare:
+                    deliveryPaths:
+                      - README.md
+                      - src/incremental/fingerprint.py
+                      - src/models.py
+                      - src/sandbox_executor.py
+                      - tests/test_fingerprint.py
+                      - tests/test_sandbox_executor.py
+                      - docs/superpowers/reports/2026-11-17-fix-integer-judge-verify.md
+                    prBaseBranch: main
+                    remote: origin
+                    summary: "归档 #488，合并两项 OpenSpec 规范，保存验收报告和变更说明，将修复提交到 codex/fix-integer-judge 并向
+                      origin/main 发 PR。"
+                    targetBranch: codex/fix-integer-judge
+          tweak.archive.prepare:
+            sequence: 10
+            value:
+              deliveryPaths:
+                - README.md
+                - src/incremental/fingerprint.py
+                - src/models.py
+                - src/sandbox_executor.py
+                - tests/test_fingerprint.py
+                - tests/test_sandbox_executor.py
+                - docs/superpowers/reports/2026-11-17-fix-integer-judge-verify.md
+              prBaseBranch: main
+              remote: origin
+              summary: "归档 #488，合并两项 OpenSpec 规范，保存验收报告和变更说明，将修复提交到 codex/fix-integer-judge 并向
+                origin/main 发 PR。"
+              targetBranch: codex/fix-integer-judge
+          tweak.verify.report.evidence:
+            sequence: 9
+            value:
+              contentHash: 34a57d903e1f94ce32a0c5ec1b8c3eaf51d3a595b6692d82cb3092ef2283027b
+              ref: docs/superpowers/reports/2026-11-17-fix-integer-judge-verify.md
+          tweak.verify.run:
+            sequence: 8
+            value:
+              checks:
+                - name: pytest --no-cov tests/test_sandbox_executor.py
+                    tests/test_sandbox_docker.py（仓库根目录）
+                  note: 113 passed，16 项真实 Docker 测试在默认模式下跳过。先运行新增回归，旧实现 8 项按预期失败。日志
+                    /private/tmp/comet-488-judge-red.log 与
+                    /private/tmp/comet-488-sandbox.log。
+                  result: passed
+                - name: pytest --no-cov tests/test_fingerprint.py tests/test_incremental_e2e.py
+                    tests/test_incremental_history.py
+                    tests/test_models.py（仓库根目录）
+                  note: 79 passed。旧版指纹测试在添加版本前按预期失败。日志 /private/tmp/comet-488-fingerprint-red.log
+                    与 /private/tmp/comet-488-incremental.log。
+                  result: passed
+                - name: comet classic openspec -- validate fix-integer-judge --strict 和 git diff
+                    --check（仓库根目录）
+                  note: 变更规范严格校验通过，Git 差异无空白错误。
+                  result: passed
+                - name: 真实 Docker 公开、隐藏与 LeetCode 节点回归（仓库根目录）
+                  note: python:3.12-slim-bookworm 实际容器中，两阶段拒绝偏差整数，105、106、133、138 正确与错误节点输出通过验证。日志
+                    /private/tmp/comet-488-docker-smoke.log。
+                  result: passed
+                - name: RUN_DOCKER_TESTS=1 pytest -k real_docker_and_host（仓库根目录）
+                  note: 16 passed，默认 python:3.11-slim 容器和 Host 分支。日志
+                    /private/tmp/comet-488-docker-default.log。
+                  result: passed
+                - name: Black 与 Ruff（五个修改过的 Python 文件，仓库根目录）
+                  note: Black 全部无需改动，Ruff 未发现问题。
+                  result: passed
+                - name: 全量离线测试的七个环境失败项复跑（仓库根目录）
+                  note: 全量首轮 4224 passed、44 skipped、3 failed、4 errors，覆盖率 93.04%。放开回环端口后 5
+                    passed，装齐临时分析工具后 2 passed。日志
+                    /private/tmp/comet-488-offline.log、/private/tmp/comet-488-loopback.log、/private/tmp/comet-488-broker.log、/private/tmp/comet-488-readability-recheck.log。
+                  result: passed
+              event: verification-ready
+              verificationReport: docs/superpowers/reports/2026-11-17-fix-integer-judge-verify.md
+        sequence: 12
+      fix-integer-judge:13:
+        results: {}
+        sequence: 13
+      fix-integer-judge:15:
+        results:
+          tweak.verify.report.evidence:
+            sequence: 14
+            value:
+              contentHash: 135553406b7ad0aa771e36728293d3152d7933df057d00c75739682e66b6db09
+              ref: docs/superpowers/reports/2026-11-17-fix-integer-judge-verify.md
+          tweak.verify.run:
+            sequence: 13
+            value:
+              checks:
+                - name: pytest --no-cov tests/test_sandbox_executor.py
+                    tests/test_sandbox_docker.py（仓库根目录）
+                  note: 113 passed，16 项真实 Docker 测试在默认模式下跳过。先运行新增回归，旧实现 8 项按预期失败。日志
+                    /private/tmp/comet-488-judge-red.log 与
+                    /private/tmp/comet-488-sandbox.log。
+                  result: passed
+                - name: pytest --no-cov tests/test_fingerprint.py tests/test_incremental_e2e.py
+                    tests/test_incremental_history.py
+                    tests/test_models.py（仓库根目录）
+                  note: 79 passed。旧版指纹测试在添加版本前按预期失败。日志 /private/tmp/comet-488-fingerprint-red.log
+                    与 /private/tmp/comet-488-incremental.log。
+                  result: passed
+                - name: comet classic openspec -- validate fix-integer-judge --strict 和 git diff
+                    --check（仓库根目录）
+                  note: 变更规范严格校验通过，Git 差异无空白错误。
+                  result: passed
+                - name: 真实 Docker 公开、隐藏与 LeetCode 节点回归（仓库根目录）
+                  note: python:3.12-slim-bookworm 实际容器中，两阶段拒绝偏差整数，105、106、133、138 正确与错误节点输出通过验证。日志
+                    /private/tmp/comet-488-docker-smoke.log。
+                  result: passed
+                - name: RUN_DOCKER_TESTS=1 pytest -k real_docker_and_host（仓库根目录）
+                  note: 16 passed，默认 python:3.11-slim 容器和 Host 分支。日志
+                    /private/tmp/comet-488-docker-default.log。
+                  result: passed
+                - name: Black 与 Ruff（五个修改过的 Python 文件，仓库根目录）
+                  note: Black 全部无需改动，Ruff 未发现问题。
+                  result: passed
+                - name: 全量离线测试的七个环境失败项复跑（仓库根目录）
+                  note: 全量首轮 4224 passed、44 skipped、3 failed、4 errors，覆盖率 93.04%。放开回环端口后 5
+                    passed，装齐临时分析工具后 2 passed。日志
+                    /private/tmp/comet-488-offline.log、/private/tmp/comet-488-loopback.log、/private/tmp/comet-488-broker.log、/private/tmp/comet-488-readability-recheck.log。
+                  result: passed
+              event: verification-ready
+              verificationReport: docs/superpowers/reports/2026-11-17-fix-integer-judge-verify.md
+        sequence: 15
+      fix-integer-judge:17:
+        results:
+          tweak.archive.confirm:
+            sequence: 16
+            value:
+              choice: pr
+              proposal:
+                input:
+                  change: fix-integer-judge
+                  changeDir: openspec/changes/fix-integer-judge
+                  workspaceBaseline:
+                    ref: 85c29a9d-190c-4c4d-8813-a0465608880c
+                outputs:
+                  tweak.archive.prepare:
+                    deliveryPaths:
+                      - README.md
+                      - src/incremental/fingerprint.py
+                      - src/models.py
+                      - src/sandbox_executor.py
+                      - tests/test_fingerprint.py
+                      - tests/test_sandbox_executor.py
+                    prBaseBranch: main
+                    remote: origin
+                    summary: "归档 #488，合并两项 OpenSpec 规范，保存验收报告和变更说明，将修复提交到 codex/fix-integer-judge 并向
+                      origin/main 发 PR。"
+                    targetBranch: codex/fix-integer-judge
+          tweak.archive.prepare:
+            sequence: 15
+            value:
+              deliveryPaths:
+                - README.md
+                - src/incremental/fingerprint.py
+                - src/models.py
+                - src/sandbox_executor.py
+                - tests/test_fingerprint.py
+                - tests/test_sandbox_executor.py
+              prBaseBranch: main
+              remote: origin
+              summary: "归档 #488，合并两项 OpenSpec 规范，保存验收报告和变更说明，将修复提交到 codex/fix-integer-judge 并向
+                origin/main 发 PR。"
+              targetBranch: codex/fix-integer-judge
+          tweak.verify.report.evidence:
+            sequence: 14
+            value:
+              contentHash: 135553406b7ad0aa771e36728293d3152d7933df057d00c75739682e66b6db09
+              ref: docs/superpowers/reports/2026-11-17-fix-integer-judge-verify.md
+          tweak.verify.run:
+            sequence: 13
+            value:
+              checks:
+                - name: pytest --no-cov tests/test_sandbox_executor.py
+                    tests/test_sandbox_docker.py（仓库根目录）
+                  note: 113 passed，16 项真实 Docker 测试在默认模式下跳过。先运行新增回归，旧实现 8 项按预期失败。日志
+                    /private/tmp/comet-488-judge-red.log 与
+                    /private/tmp/comet-488-sandbox.log。
+                  result: passed
+                - name: pytest --no-cov tests/test_fingerprint.py tests/test_incremental_e2e.py
+                    tests/test_incremental_history.py
+                    tests/test_models.py（仓库根目录）
+                  note: 79 passed。旧版指纹测试在添加版本前按预期失败。日志 /private/tmp/comet-488-fingerprint-red.log
+                    与 /private/tmp/comet-488-incremental.log。
+                  result: passed
+                - name: comet classic openspec -- validate fix-integer-judge --strict 和 git diff
+                    --check（仓库根目录）
+                  note: 变更规范严格校验通过，Git 差异无空白错误。
+                  result: passed
+                - name: 真实 Docker 公开、隐藏与 LeetCode 节点回归（仓库根目录）
+                  note: python:3.12-slim-bookworm 实际容器中，两阶段拒绝偏差整数，105、106、133、138 正确与错误节点输出通过验证。日志
+                    /private/tmp/comet-488-docker-smoke.log。
+                  result: passed
+                - name: RUN_DOCKER_TESTS=1 pytest -k real_docker_and_host（仓库根目录）
+                  note: 16 passed，默认 python:3.11-slim 容器和 Host 分支。日志
+                    /private/tmp/comet-488-docker-default.log。
+                  result: passed
+                - name: Black 与 Ruff（五个修改过的 Python 文件，仓库根目录）
+                  note: Black 全部无需改动，Ruff 未发现问题。
+                  result: passed
+                - name: 全量离线测试的七个环境失败项复跑（仓库根目录）
+                  note: 全量首轮 4224 passed、44 skipped、3 failed、4 errors，覆盖率 93.04%。放开回环端口后 5
+                    passed，装齐临时分析工具后 2 passed。日志
+                    /private/tmp/comet-488-offline.log、/private/tmp/comet-488-loopback.log、/private/tmp/comet-488-broker.log、/private/tmp/comet-488-readability-recheck.log。
+                  result: passed
+              event: verification-ready
+              verificationReport: docs/superpowers/reports/2026-11-17-fix-integer-judge-verify.md
+        sequence: 17
+      fix-integer-judge:18:
+        results:
+          tweak.archive.confirm:
+            sequence: 16
+            value:
+              choice: pr
+              proposal:
+                input:
+                  change: fix-integer-judge
+                  changeDir: openspec/changes/fix-integer-judge
+                  workspaceBaseline:
+                    ref: 85c29a9d-190c-4c4d-8813-a0465608880c
+                outputs:
+                  tweak.archive.prepare:
+                    deliveryPaths:
+                      - README.md
+                      - src/incremental/fingerprint.py
+                      - src/models.py
+                      - src/sandbox_executor.py
+                      - tests/test_fingerprint.py
+                      - tests/test_sandbox_executor.py
+                    prBaseBranch: main
+                    remote: origin
+                    summary: "归档 #488，合并两项 OpenSpec 规范，保存验收报告和变更说明，将修复提交到 codex/fix-integer-judge 并向
+                      origin/main 发 PR。"
+                    targetBranch: codex/fix-integer-judge
+          tweak.archive.preflight:
+            sequence: 17
+            value:
+              baseCommit: fcfa51797e3c1ab675b26dbecaaab022804cbbda
+              deliveryAction: pr
+              deliveryPaths:
+                - README.md
+                - src/incremental/fingerprint.py
+                - src/models.py
+                - src/sandbox_executor.py
+                - tests/test_fingerprint.py
+                - tests/test_sandbox_executor.py
+              prBaseBranch: main
+              remote: origin
+              remoteIdentity: 128eeb1e6f0d21b25601fcb7f9aad36adfdfb4d76f37f54f004760410190f351
+              targetBranch: codex/fix-integer-judge
+              verifiedBranch: codex/fix-integer-judge
+          tweak.archive.prepare:
+            sequence: 15
+            value:
+              deliveryPaths:
+                - README.md
+                - src/incremental/fingerprint.py
+                - src/models.py
+                - src/sandbox_executor.py
+                - tests/test_fingerprint.py
+                - tests/test_sandbox_executor.py
+              prBaseBranch: main
+              remote: origin
+              summary: "归档 #488，合并两项 OpenSpec 规范，保存验收报告和变更说明，将修复提交到 codex/fix-integer-judge 并向
+                origin/main 发 PR。"
+              targetBranch: codex/fix-integer-judge
+          tweak.verify.report.evidence:
+            sequence: 14
+            value:
+              contentHash: 135553406b7ad0aa771e36728293d3152d7933df057d00c75739682e66b6db09
+              ref: docs/superpowers/reports/2026-11-17-fix-integer-judge-verify.md
+          tweak.verify.run:
+            sequence: 13
+            value:
+              checks:
+                - name: pytest --no-cov tests/test_sandbox_executor.py
+                    tests/test_sandbox_docker.py（仓库根目录）
+                  note: 113 passed，16 项真实 Docker 测试在默认模式下跳过。先运行新增回归，旧实现 8 项按预期失败。日志
+                    /private/tmp/comet-488-judge-red.log 与
+                    /private/tmp/comet-488-sandbox.log。
+                  result: passed
+                - name: pytest --no-cov tests/test_fingerprint.py tests/test_incremental_e2e.py
+                    tests/test_incremental_history.py
+                    tests/test_models.py（仓库根目录）
+                  note: 79 passed。旧版指纹测试在添加版本前按预期失败。日志 /private/tmp/comet-488-fingerprint-red.log
+                    与 /private/tmp/comet-488-incremental.log。
+                  result: passed
+                - name: comet classic openspec -- validate fix-integer-judge --strict 和 git diff
+                    --check（仓库根目录）
+                  note: 变更规范严格校验通过，Git 差异无空白错误。
+                  result: passed
+                - name: 真实 Docker 公开、隐藏与 LeetCode 节点回归（仓库根目录）
+                  note: python:3.12-slim-bookworm 实际容器中，两阶段拒绝偏差整数，105、106、133、138 正确与错误节点输出通过验证。日志
+                    /private/tmp/comet-488-docker-smoke.log。
+                  result: passed
+                - name: RUN_DOCKER_TESTS=1 pytest -k real_docker_and_host（仓库根目录）
+                  note: 16 passed，默认 python:3.11-slim 容器和 Host 分支。日志
+                    /private/tmp/comet-488-docker-default.log。
+                  result: passed
+                - name: Black 与 Ruff（五个修改过的 Python 文件，仓库根目录）
+                  note: Black 全部无需改动，Ruff 未发现问题。
+                  result: passed
+                - name: 全量离线测试的七个环境失败项复跑（仓库根目录）
+                  note: 全量首轮 4224 passed、44 skipped、3 failed、4 errors，覆盖率 93.04%。放开回环端口后 5
+                    passed，装齐临时分析工具后 2 passed。日志
+                    /private/tmp/comet-488-offline.log、/private/tmp/comet-488-loopback.log、/private/tmp/comet-488-broker.log、/private/tmp/comet-488-readability-recheck.log。
+                  result: passed
+              event: verification-ready
+              verificationReport: docs/superpowers/reports/2026-11-17-fix-integer-judge-verify.md
+        sequence: 18
+      fix-integer-judge:19:
+        results:
+          tweak.archive.confirm:
+            sequence: 16
+            value:
+              choice: pr
+              proposal:
+                input:
+                  change: fix-integer-judge
+                  changeDir: openspec/changes/fix-integer-judge
+                  workspaceBaseline:
+                    ref: 85c29a9d-190c-4c4d-8813-a0465608880c
+                outputs:
+                  tweak.archive.prepare:
+                    deliveryPaths:
+                      - README.md
+                      - src/incremental/fingerprint.py
+                      - src/models.py
+                      - src/sandbox_executor.py
+                      - tests/test_fingerprint.py
+                      - tests/test_sandbox_executor.py
+                    prBaseBranch: main
+                    remote: origin
+                    summary: "归档 #488，合并两项 OpenSpec 规范，保存验收报告和变更说明，将修复提交到 codex/fix-integer-judge 并向
+                      origin/main 发 PR。"
+                    targetBranch: codex/fix-integer-judge
+          tweak.archive.execute:
+            sequence: 18
+            value:
+              archiveDirectory: openspec/changes/archive/2026-11-17-fix-integer-judge
+          tweak.archive.preflight:
+            sequence: 17
+            value:
+              baseCommit: fcfa51797e3c1ab675b26dbecaaab022804cbbda
+              deliveryAction: pr
+              deliveryPaths:
+                - README.md
+                - src/incremental/fingerprint.py
+                - src/models.py
+                - src/sandbox_executor.py
+                - tests/test_fingerprint.py
+                - tests/test_sandbox_executor.py
+              prBaseBranch: main
+              remote: origin
+              remoteIdentity: 128eeb1e6f0d21b25601fcb7f9aad36adfdfb4d76f37f54f004760410190f351
+              targetBranch: codex/fix-integer-judge
+              verifiedBranch: codex/fix-integer-judge
+          tweak.archive.prepare:
+            sequence: 15
+            value:
+              deliveryPaths:
+                - README.md
+                - src/incremental/fingerprint.py
+                - src/models.py
+                - src/sandbox_executor.py
+                - tests/test_fingerprint.py
+                - tests/test_sandbox_executor.py
+              prBaseBranch: main
+              remote: origin
+              summary: "归档 #488，合并两项 OpenSpec 规范，保存验收报告和变更说明，将修复提交到 codex/fix-integer-judge 并向
+                origin/main 发 PR。"
+              targetBranch: codex/fix-integer-judge
+          tweak.verify.report.evidence:
+            sequence: 14
+            value:
+              contentHash: 135553406b7ad0aa771e36728293d3152d7933df057d00c75739682e66b6db09
+              ref: docs/superpowers/reports/2026-11-17-fix-integer-judge-verify.md
+          tweak.verify.run:
+            sequence: 13
+            value:
+              checks:
+                - name: pytest --no-cov tests/test_sandbox_executor.py
+                    tests/test_sandbox_docker.py（仓库根目录）
+                  note: 113 passed，16 项真实 Docker 测试在默认模式下跳过。先运行新增回归，旧实现 8 项按预期失败。日志
+                    /private/tmp/comet-488-judge-red.log 与
+                    /private/tmp/comet-488-sandbox.log。
+                  result: passed
+                - name: pytest --no-cov tests/test_fingerprint.py tests/test_incremental_e2e.py
+                    tests/test_incremental_history.py
+                    tests/test_models.py（仓库根目录）
+                  note: 79 passed。旧版指纹测试在添加版本前按预期失败。日志 /private/tmp/comet-488-fingerprint-red.log
+                    与 /private/tmp/comet-488-incremental.log。
+                  result: passed
+                - name: comet classic openspec -- validate fix-integer-judge --strict 和 git diff
+                    --check（仓库根目录）
+                  note: 变更规范严格校验通过，Git 差异无空白错误。
+                  result: passed
+                - name: 真实 Docker 公开、隐藏与 LeetCode 节点回归（仓库根目录）
+                  note: python:3.12-slim-bookworm 实际容器中，两阶段拒绝偏差整数，105、106、133、138 正确与错误节点输出通过验证。日志
+                    /private/tmp/comet-488-docker-smoke.log。
+                  result: passed
+                - name: RUN_DOCKER_TESTS=1 pytest -k real_docker_and_host（仓库根目录）
+                  note: 16 passed，默认 python:3.11-slim 容器和 Host 分支。日志
+                    /private/tmp/comet-488-docker-default.log。
+                  result: passed
+                - name: Black 与 Ruff（五个修改过的 Python 文件，仓库根目录）
+                  note: Black 全部无需改动，Ruff 未发现问题。
+                  result: passed
+                - name: 全量离线测试的七个环境失败项复跑（仓库根目录）
+                  note: 全量首轮 4224 passed、44 skipped、3 failed、4 errors，覆盖率 93.04%。放开回环端口后 5
+                    passed，装齐临时分析工具后 2 passed。日志
+                    /private/tmp/comet-488-offline.log、/private/tmp/comet-488-loopback.log、/private/tmp/comet-488-broker.log、/private/tmp/comet-488-readability-recheck.log。
+                  result: passed
+              event: verification-ready
+              verificationReport: docs/superpowers/reports/2026-11-17-fix-integer-judge-verify.md
+        sequence: 19
+      fix-integer-judge:3:
+        results:
+          tweak.open:
+            sequence: 1
+            value:
+              event: open-complete
+              requirementsEvidence:
+                ref: openspec/changes/fix-integer-judge
+          tweak.open.evidence:
+            sequence: 2
+            value:
+              contentHash: 63cf0063790a9600b2da0afba3f6ee499c634453050748ae4c40614eb86775ef
+              ref: openspec/changes/fix-integer-judge
+        sequence: 3
+      fix-integer-judge:4:
+        results:
+          tweak.build.execute:
+            sequence: 3
+            value:
+              checks:
+                - name: pytest --no-cov tests/test_sandbox_executor.py
+                    tests/test_sandbox_docker.py（仓库根目录）
+                  note: 113 passed，16 项真实 Docker 测试在默认模式下跳过。先运行新增回归，旧实现 8 项按预期失败。日志
+                    /private/tmp/comet-488-judge-red.log 与
+                    /private/tmp/comet-488-sandbox.log。
+                  result: passed
+                - name: pytest --no-cov tests/test_fingerprint.py tests/test_incremental_e2e.py
+                    tests/test_incremental_history.py
+                    tests/test_models.py（仓库根目录）
+                  note: 79 passed。旧版指纹测试在添加版本前按预期失败。日志 /private/tmp/comet-488-fingerprint-red.log
+                    与 /private/tmp/comet-488-incremental.log。
+                  result: passed
+                - name: comet classic openspec -- validate fix-integer-judge --strict 和 git diff
+                    --check（仓库根目录）
+                  note: 变更规范严格校验通过，Git 差异无空白错误。
+                  result: passed
+              event: build-complete
+          tweak.open:
+            sequence: 1
+            value:
+              event: open-complete
+              requirementsEvidence:
+                ref: openspec/changes/fix-integer-judge
+          tweak.open.evidence:
+            sequence: 2
+            value:
+              contentHash: 63cf0063790a9600b2da0afba3f6ee499c634453050748ae4c40614eb86775ef
+              ref: openspec/changes/fix-integer-judge
+        sequence: 4
+      fix-integer-judge:6:
+        results:
+          tweak.build.execute:
+            sequence: 3
+            value:
+              checks:
+                - name: pytest --no-cov tests/test_sandbox_executor.py
+                    tests/test_sandbox_docker.py（仓库根目录）
+                  note: 113 passed，16 项真实 Docker 测试在默认模式下跳过。先运行新增回归，旧实现 8 项按预期失败。日志
+                    /private/tmp/comet-488-judge-red.log 与
+                    /private/tmp/comet-488-sandbox.log。
+                  result: passed
+                - name: pytest --no-cov tests/test_fingerprint.py tests/test_incremental_e2e.py
+                    tests/test_incremental_history.py
+                    tests/test_models.py（仓库根目录）
+                  note: 79 passed。旧版指纹测试在添加版本前按预期失败。日志 /private/tmp/comet-488-fingerprint-red.log
+                    与 /private/tmp/comet-488-incremental.log。
+                  result: passed
+                - name: comet classic openspec -- validate fix-integer-judge --strict 和 git diff
+                    --check（仓库根目录）
+                  note: 变更规范严格校验通过，Git 差异无空白错误。
+                  result: passed
+              event: build-complete
+          tweak.open:
+            sequence: 1
+            value:
+              event: open-complete
+              requirementsEvidence:
+                ref: openspec/changes/fix-integer-judge
+          tweak.open.evidence:
+            sequence: 2
+            value:
+              contentHash: 63cf0063790a9600b2da0afba3f6ee499c634453050748ae4c40614eb86775ef
+              ref: openspec/changes/fix-integer-judge
+          tweak.verify.report.evidence:
+            sequence: 5
+            value:
+              contentHash: 8250da4c8b75cf3a56408c0e854cec9c507f14bee8ab7f4f7213de704ddef3f8
+              ref: docs/superpowers/reports/2026-11-17-fix-integer-judge-verify.md
+          tweak.verify.run:
+            sequence: 4
+            value:
+              checks:
+                - name: pytest --no-cov tests/test_sandbox_executor.py
+                    tests/test_sandbox_docker.py（仓库根目录）
+                  note: 113 passed，16 项真实 Docker 测试在默认模式下跳过。先运行新增回归，旧实现 8 项按预期失败。日志
+                    /private/tmp/comet-488-judge-red.log 与
+                    /private/tmp/comet-488-sandbox.log。
+                  result: passed
+                - name: pytest --no-cov tests/test_fingerprint.py tests/test_incremental_e2e.py
+                    tests/test_incremental_history.py
+                    tests/test_models.py（仓库根目录）
+                  note: 79 passed。旧版指纹测试在添加版本前按预期失败。日志 /private/tmp/comet-488-fingerprint-red.log
+                    与 /private/tmp/comet-488-incremental.log。
+                  result: passed
+                - name: comet classic openspec -- validate fix-integer-judge --strict 和 git diff
+                    --check（仓库根目录）
+                  note: 变更规范严格校验通过，Git 差异无空白错误。
+                  result: passed
+                - name: 真实 Docker 公开、隐藏与 LeetCode 节点回归（仓库根目录）
+                  note: python:3.12-slim-bookworm 实际容器中，两阶段拒绝偏差整数，105、106、133、138 正确与错误节点输出通过验证。日志
+                    /private/tmp/comet-488-docker-smoke.log。
+                  result: passed
+              event: verification-ready
+              verificationReport: docs/superpowers/reports/2026-11-17-fix-integer-judge-verify.md
+        sequence: 6
+      fix-integer-judge:8:
+        results: {}
+        sequence: 8
+    waits:
+      - id: fix-integer-judge:7
+        stepId: tweak.archive.confirm
+        sequence: 7
+        status: cancelled
+        proposal:
+          input:
+            change: fix-integer-judge
+            changeDir: openspec/changes/fix-integer-judge
+            workspaceBaseline:
+              ref: 85c29a9d-190c-4c4d-8813-a0465608880c
+          outputs:
+            tweak.archive.prepare:
+              remote: origin
+              summary: "归档 #488，合并 execution-protocol 和 incremental-evaluation
+                的规范增量，保存验证报告及变更说明，在当前绑定分支 main 提交。可选择本地提交或推送 origin/main。"
+              targetBranch: main
+        proposalHash: fa39572d814e001baad5dd6e34fe1635c75d12302de9e4dbcead380a5be3b792
+        choices:
+          - local
+          - push
+          - pr
+          - reverify
+          - later
+        results:
+          tweak.archive.prepare:
+            sequence: 6
+            value:
+              remote: origin
+              summary: "归档 #488，合并 execution-protocol 和 incremental-evaluation
+                的规范增量，保存验证报告及变更说明，在当前绑定分支 main 提交。可选择本地提交或推送 origin/main。"
+              targetBranch: main
+          tweak.build.execute:
+            sequence: 3
+            value:
+              checks:
+                - name: pytest --no-cov tests/test_sandbox_executor.py
+                    tests/test_sandbox_docker.py（仓库根目录）
+                  note: 113 passed，16 项真实 Docker 测试在默认模式下跳过。先运行新增回归，旧实现 8 项按预期失败。日志
+                    /private/tmp/comet-488-judge-red.log 与
+                    /private/tmp/comet-488-sandbox.log。
+                  result: passed
+                - name: pytest --no-cov tests/test_fingerprint.py tests/test_incremental_e2e.py
+                    tests/test_incremental_history.py
+                    tests/test_models.py（仓库根目录）
+                  note: 79 passed。旧版指纹测试在添加版本前按预期失败。日志 /private/tmp/comet-488-fingerprint-red.log
+                    与 /private/tmp/comet-488-incremental.log。
+                  result: passed
+                - name: comet classic openspec -- validate fix-integer-judge --strict 和 git diff
+                    --check（仓库根目录）
+                  note: 变更规范严格校验通过，Git 差异无空白错误。
+                  result: passed
+              event: build-complete
+          tweak.open:
+            sequence: 1
+            value:
+              event: open-complete
+              requirementsEvidence:
+                ref: openspec/changes/fix-integer-judge
+          tweak.open.evidence:
+            sequence: 2
+            value:
+              contentHash: 63cf0063790a9600b2da0afba3f6ee499c634453050748ae4c40614eb86775ef
+              ref: openspec/changes/fix-integer-judge
+          tweak.verify.report.evidence:
+            sequence: 5
+            value:
+              contentHash: 8250da4c8b75cf3a56408c0e854cec9c507f14bee8ab7f4f7213de704ddef3f8
+              ref: docs/superpowers/reports/2026-11-17-fix-integer-judge-verify.md
+          tweak.verify.run:
+            sequence: 4
+            value:
+              checks:
+                - name: pytest --no-cov tests/test_sandbox_executor.py
+                    tests/test_sandbox_docker.py（仓库根目录）
+                  note: 113 passed，16 项真实 Docker 测试在默认模式下跳过。先运行新增回归，旧实现 8 项按预期失败。日志
+                    /private/tmp/comet-488-judge-red.log 与
+                    /private/tmp/comet-488-sandbox.log。
+                  result: passed
+                - name: pytest --no-cov tests/test_fingerprint.py tests/test_incremental_e2e.py
+                    tests/test_incremental_history.py
+                    tests/test_models.py（仓库根目录）
+                  note: 79 passed。旧版指纹测试在添加版本前按预期失败。日志 /private/tmp/comet-488-fingerprint-red.log
+                    与 /private/tmp/comet-488-incremental.log。
+                  result: passed
+                - name: comet classic openspec -- validate fix-integer-judge --strict 和 git diff
+                    --check（仓库根目录）
+                  note: 变更规范严格校验通过，Git 差异无空白错误。
+                  result: passed
+                - name: 真实 Docker 公开、隐藏与 LeetCode 节点回归（仓库根目录）
+                  note: python:3.12-slim-bookworm 实际容器中，两阶段拒绝偏差整数，105、106、133、138 正确与错误节点输出通过验证。日志
+                    /private/tmp/comet-488-docker-smoke.log。
+                  result: passed
+              event: verification-ready
+              verificationReport: docs/superpowers/reports/2026-11-17-fix-integer-judge-verify.md
+      - id: fix-integer-judge:11
+        stepId: tweak.archive.confirm
+        sequence: 11
+        status: resolved
+        proposal:
+          input:
+            change: fix-integer-judge
+            changeDir: openspec/changes/fix-integer-judge
+            workspaceBaseline:
+              ref: 85c29a9d-190c-4c4d-8813-a0465608880c
+          outputs:
+            tweak.archive.prepare:
+              deliveryPaths:
+                - README.md
+                - src/incremental/fingerprint.py
+                - src/models.py
+                - src/sandbox_executor.py
+                - tests/test_fingerprint.py
+                - tests/test_sandbox_executor.py
+                - docs/superpowers/reports/2026-11-17-fix-integer-judge-verify.md
+              prBaseBranch: main
+              remote: origin
+              summary: "归档 #488，合并两项 OpenSpec 规范，保存验收报告和变更说明，将修复提交到 codex/fix-integer-judge 并向
+                origin/main 发 PR。"
+              targetBranch: codex/fix-integer-judge
+        proposalHash: 9b7c9d10b278c55d1de84f395c0de6d5e4f4ddba378b43c86b4c0f79b112066e
+        choices:
+          - local
+          - push
+          - pr
+          - reverify
+          - later
+        results:
+          tweak.archive.prepare:
+            sequence: 10
+            value:
+              deliveryPaths:
+                - README.md
+                - src/incremental/fingerprint.py
+                - src/models.py
+                - src/sandbox_executor.py
+                - tests/test_fingerprint.py
+                - tests/test_sandbox_executor.py
+                - docs/superpowers/reports/2026-11-17-fix-integer-judge-verify.md
+              prBaseBranch: main
+              remote: origin
+              summary: "归档 #488，合并两项 OpenSpec 规范，保存验收报告和变更说明，将修复提交到 codex/fix-integer-judge 并向
+                origin/main 发 PR。"
+              targetBranch: codex/fix-integer-judge
+          tweak.verify.report.evidence:
+            sequence: 9
+            value:
+              contentHash: 34a57d903e1f94ce32a0c5ec1b8c3eaf51d3a595b6692d82cb3092ef2283027b
+              ref: docs/superpowers/reports/2026-11-17-fix-integer-judge-verify.md
+          tweak.verify.run:
+            sequence: 8
+            value:
+              checks:
+                - name: pytest --no-cov tests/test_sandbox_executor.py
+                    tests/test_sandbox_docker.py（仓库根目录）
+                  note: 113 passed，16 项真实 Docker 测试在默认模式下跳过。先运行新增回归，旧实现 8 项按预期失败。日志
+                    /private/tmp/comet-488-judge-red.log 与
+                    /private/tmp/comet-488-sandbox.log。
+                  result: passed
+                - name: pytest --no-cov tests/test_fingerprint.py tests/test_incremental_e2e.py
+                    tests/test_incremental_history.py
+                    tests/test_models.py（仓库根目录）
+                  note: 79 passed。旧版指纹测试在添加版本前按预期失败。日志 /private/tmp/comet-488-fingerprint-red.log
+                    与 /private/tmp/comet-488-incremental.log。
+                  result: passed
+                - name: comet classic openspec -- validate fix-integer-judge --strict 和 git diff
+                    --check（仓库根目录）
+                  note: 变更规范严格校验通过，Git 差异无空白错误。
+                  result: passed
+                - name: 真实 Docker 公开、隐藏与 LeetCode 节点回归（仓库根目录）
+                  note: python:3.12-slim-bookworm 实际容器中，两阶段拒绝偏差整数，105、106、133、138 正确与错误节点输出通过验证。日志
+                    /private/tmp/comet-488-docker-smoke.log。
+                  result: passed
+                - name: RUN_DOCKER_TESTS=1 pytest -k real_docker_and_host（仓库根目录）
+                  note: 16 passed，默认 python:3.11-slim 容器和 Host 分支。日志
+                    /private/tmp/comet-488-docker-default.log。
+                  result: passed
+                - name: Black 与 Ruff（五个修改过的 Python 文件，仓库根目录）
+                  note: Black 全部无需改动，Ruff 未发现问题。
+                  result: passed
+                - name: 全量离线测试的七个环境失败项复跑（仓库根目录）
+                  note: 全量首轮 4224 passed、44 skipped、3 failed、4 errors，覆盖率 93.04%。放开回环端口后 5
+                    passed，装齐临时分析工具后 2 passed。日志
+                    /private/tmp/comet-488-offline.log、/private/tmp/comet-488-loopback.log、/private/tmp/comet-488-broker.log、/private/tmp/comet-488-readability-recheck.log。
+                  result: passed
+              event: verification-ready
+              verificationReport: docs/superpowers/reports/2026-11-17-fix-integer-judge-verify.md
+        decision:
+          id: classic-archive-9b7c9d10b278c55d1de84f395c0de6d5e4f4ddba378b43c86b4c0f79b112066e-pr
+          choice: pr
+          proposalHash: 9b7c9d10b278c55d1de84f395c0de6d5e4f4ddba378b43c86b4c0f79b112066e
+      - id: fix-integer-judge:16
+        stepId: tweak.archive.confirm
+        sequence: 16
+        status: resolved
+        proposal:
+          input:
+            change: fix-integer-judge
+            changeDir: openspec/changes/fix-integer-judge
+            workspaceBaseline:
+              ref: 85c29a9d-190c-4c4d-8813-a0465608880c
+          outputs:
+            tweak.archive.prepare:
+              deliveryPaths:
+                - README.md
+                - src/incremental/fingerprint.py
+                - src/models.py
+                - src/sandbox_executor.py
+                - tests/test_fingerprint.py
+                - tests/test_sandbox_executor.py
+              prBaseBranch: main
+              remote: origin
+              summary: "归档 #488，合并两项 OpenSpec 规范，保存验收报告和变更说明，将修复提交到 codex/fix-integer-judge 并向
+                origin/main 发 PR。"
+              targetBranch: codex/fix-integer-judge
+        proposalHash: b73d77b3f07f006228c6d0b2efe848d7cbb0da63491ac53b1ae7811c689f2ddd
+        choices:
+          - local
+          - push
+          - pr
+          - reverify
+          - later
+        results:
+          tweak.archive.prepare:
+            sequence: 15
+            value:
+              deliveryPaths:
+                - README.md
+                - src/incremental/fingerprint.py
+                - src/models.py
+                - src/sandbox_executor.py
+                - tests/test_fingerprint.py
+                - tests/test_sandbox_executor.py
+              prBaseBranch: main
+              remote: origin
+              summary: "归档 #488，合并两项 OpenSpec 规范，保存验收报告和变更说明，将修复提交到 codex/fix-integer-judge 并向
+                origin/main 发 PR。"
+              targetBranch: codex/fix-integer-judge
+          tweak.verify.report.evidence:
+            sequence: 14
+            value:
+              contentHash: 135553406b7ad0aa771e36728293d3152d7933df057d00c75739682e66b6db09
+              ref: docs/superpowers/reports/2026-11-17-fix-integer-judge-verify.md
+          tweak.verify.run:
+            sequence: 13
+            value:
+              checks:
+                - name: pytest --no-cov tests/test_sandbox_executor.py
+                    tests/test_sandbox_docker.py（仓库根目录）
+                  note: 113 passed，16 项真实 Docker 测试在默认模式下跳过。先运行新增回归，旧实现 8 项按预期失败。日志
+                    /private/tmp/comet-488-judge-red.log 与
+                    /private/tmp/comet-488-sandbox.log。
+                  result: passed
+                - name: pytest --no-cov tests/test_fingerprint.py tests/test_incremental_e2e.py
+                    tests/test_incremental_history.py
+                    tests/test_models.py（仓库根目录）
+                  note: 79 passed。旧版指纹测试在添加版本前按预期失败。日志 /private/tmp/comet-488-fingerprint-red.log
+                    与 /private/tmp/comet-488-incremental.log。
+                  result: passed
+                - name: comet classic openspec -- validate fix-integer-judge --strict 和 git diff
+                    --check（仓库根目录）
+                  note: 变更规范严格校验通过，Git 差异无空白错误。
+                  result: passed
+                - name: 真实 Docker 公开、隐藏与 LeetCode 节点回归（仓库根目录）
+                  note: python:3.12-slim-bookworm 实际容器中，两阶段拒绝偏差整数，105、106、133、138 正确与错误节点输出通过验证。日志
+                    /private/tmp/comet-488-docker-smoke.log。
+                  result: passed
+                - name: RUN_DOCKER_TESTS=1 pytest -k real_docker_and_host（仓库根目录）
+                  note: 16 passed，默认 python:3.11-slim 容器和 Host 分支。日志
+                    /private/tmp/comet-488-docker-default.log。
+                  result: passed
+                - name: Black 与 Ruff（五个修改过的 Python 文件，仓库根目录）
+                  note: Black 全部无需改动，Ruff 未发现问题。
+                  result: passed
+                - name: 全量离线测试的七个环境失败项复跑（仓库根目录）
+                  note: 全量首轮 4224 passed、44 skipped、3 failed、4 errors，覆盖率 93.04%。放开回环端口后 5
+                    passed，装齐临时分析工具后 2 passed。日志
+                    /private/tmp/comet-488-offline.log、/private/tmp/comet-488-loopback.log、/private/tmp/comet-488-broker.log、/private/tmp/comet-488-readability-recheck.log。
+                  result: passed
+              event: verification-ready
+              verificationReport: docs/superpowers/reports/2026-11-17-fix-integer-judge-verify.md
+        decision:
+          id: classic-archive-b73d77b3f07f006228c6d0b2efe848d7cbb0da63491ac53b1ae7811c689f2ddd-pr
+          choice: pr
+          proposalHash: b73d77b3f07f006228c6d0b2efe848d7cbb0da63491ac53b1ae7811c689f2ddd
+    evidenceWaits:
+      - id: fix-integer-judge:2
+        stepId: tweak.open.evidence
+        sequence: 2
+        kind: classic-open-artifacts
+        status: resolved
+        results:
+          tweak.open:
+            sequence: 1
+            value:
+              event: open-complete
+              requirementsEvidence:
+                ref: openspec/changes/fix-integer-judge
+        receipt:
+          ref: openspec/changes/fix-integer-judge
+          contentHash: 63cf0063790a9600b2da0afba3f6ee499c634453050748ae4c40614eb86775ef
+          submissionId: b3caf4fe-68be-4dd8-b1bd-f27c1f349d09
+      - id: fix-integer-judge:5
+        stepId: tweak.verify.report.evidence
+        sequence: 5
+        kind: classic-verification-report
+        status: resolved
+        results:
+          tweak.build.execute:
+            sequence: 3
+            value:
+              checks:
+                - name: pytest --no-cov tests/test_sandbox_executor.py
+                    tests/test_sandbox_docker.py（仓库根目录）
+                  note: 113 passed，16 项真实 Docker 测试在默认模式下跳过。先运行新增回归，旧实现 8 项按预期失败。日志
+                    /private/tmp/comet-488-judge-red.log 与
+                    /private/tmp/comet-488-sandbox.log。
+                  result: passed
+                - name: pytest --no-cov tests/test_fingerprint.py tests/test_incremental_e2e.py
+                    tests/test_incremental_history.py
+                    tests/test_models.py（仓库根目录）
+                  note: 79 passed。旧版指纹测试在添加版本前按预期失败。日志 /private/tmp/comet-488-fingerprint-red.log
+                    与 /private/tmp/comet-488-incremental.log。
+                  result: passed
+                - name: comet classic openspec -- validate fix-integer-judge --strict 和 git diff
+                    --check（仓库根目录）
+                  note: 变更规范严格校验通过，Git 差异无空白错误。
+                  result: passed
+              event: build-complete
+          tweak.open:
+            sequence: 1
+            value:
+              event: open-complete
+              requirementsEvidence:
+                ref: openspec/changes/fix-integer-judge
+          tweak.open.evidence:
+            sequence: 2
+            value:
+              contentHash: 63cf0063790a9600b2da0afba3f6ee499c634453050748ae4c40614eb86775ef
+              ref: openspec/changes/fix-integer-judge
+          tweak.verify.run:
+            sequence: 4
+            value:
+              checks:
+                - name: pytest --no-cov tests/test_sandbox_executor.py
+                    tests/test_sandbox_docker.py（仓库根目录）
+                  note: 113 passed，16 项真实 Docker 测试在默认模式下跳过。先运行新增回归，旧实现 8 项按预期失败。日志
+                    /private/tmp/comet-488-judge-red.log 与
+                    /private/tmp/comet-488-sandbox.log。
+                  result: passed
+                - name: pytest --no-cov tests/test_fingerprint.py tests/test_incremental_e2e.py
+                    tests/test_incremental_history.py
+                    tests/test_models.py（仓库根目录）
+                  note: 79 passed。旧版指纹测试在添加版本前按预期失败。日志 /private/tmp/comet-488-fingerprint-red.log
+                    与 /private/tmp/comet-488-incremental.log。
+                  result: passed
+                - name: comet classic openspec -- validate fix-integer-judge --strict 和 git diff
+                    --check（仓库根目录）
+                  note: 变更规范严格校验通过，Git 差异无空白错误。
+                  result: passed
+                - name: 真实 Docker 公开、隐藏与 LeetCode 节点回归（仓库根目录）
+                  note: python:3.12-slim-bookworm 实际容器中，两阶段拒绝偏差整数，105、106、133、138 正确与错误节点输出通过验证。日志
+                    /private/tmp/comet-488-docker-smoke.log。
+                  result: passed
+              event: verification-ready
+              verificationReport: docs/superpowers/reports/2026-11-17-fix-integer-judge-verify.md
+        receipt:
+          ref: docs/superpowers/reports/2026-11-17-fix-integer-judge-verify.md
+          contentHash: 8250da4c8b75cf3a56408c0e854cec9c507f14bee8ab7f4f7213de704ddef3f8
+          submissionId: fa069bf5-e33e-4749-9421-81328aa2362c
+      - id: fix-integer-judge:9
+        stepId: tweak.verify.report.evidence
+        sequence: 9
+        kind: classic-verification-report
+        status: resolved
+        results:
+          tweak.verify.run:
+            sequence: 8
+            value:
+              checks:
+                - name: pytest --no-cov tests/test_sandbox_executor.py
+                    tests/test_sandbox_docker.py（仓库根目录）
+                  note: 113 passed，16 项真实 Docker 测试在默认模式下跳过。先运行新增回归，旧实现 8 项按预期失败。日志
+                    /private/tmp/comet-488-judge-red.log 与
+                    /private/tmp/comet-488-sandbox.log。
+                  result: passed
+                - name: pytest --no-cov tests/test_fingerprint.py tests/test_incremental_e2e.py
+                    tests/test_incremental_history.py
+                    tests/test_models.py（仓库根目录）
+                  note: 79 passed。旧版指纹测试在添加版本前按预期失败。日志 /private/tmp/comet-488-fingerprint-red.log
+                    与 /private/tmp/comet-488-incremental.log。
+                  result: passed
+                - name: comet classic openspec -- validate fix-integer-judge --strict 和 git diff
+                    --check（仓库根目录）
+                  note: 变更规范严格校验通过，Git 差异无空白错误。
+                  result: passed
+                - name: 真实 Docker 公开、隐藏与 LeetCode 节点回归（仓库根目录）
+                  note: python:3.12-slim-bookworm 实际容器中，两阶段拒绝偏差整数，105、106、133、138 正确与错误节点输出通过验证。日志
+                    /private/tmp/comet-488-docker-smoke.log。
+                  result: passed
+                - name: RUN_DOCKER_TESTS=1 pytest -k real_docker_and_host（仓库根目录）
+                  note: 16 passed，默认 python:3.11-slim 容器和 Host 分支。日志
+                    /private/tmp/comet-488-docker-default.log。
+                  result: passed
+                - name: Black 与 Ruff（五个修改过的 Python 文件，仓库根目录）
+                  note: Black 全部无需改动，Ruff 未发现问题。
+                  result: passed
+                - name: 全量离线测试的七个环境失败项复跑（仓库根目录）
+                  note: 全量首轮 4224 passed、44 skipped、3 failed、4 errors，覆盖率 93.04%。放开回环端口后 5
+                    passed，装齐临时分析工具后 2 passed。日志
+                    /private/tmp/comet-488-offline.log、/private/tmp/comet-488-loopback.log、/private/tmp/comet-488-broker.log、/private/tmp/comet-488-readability-recheck.log。
+                  result: passed
+              event: verification-ready
+              verificationReport: docs/superpowers/reports/2026-11-17-fix-integer-judge-verify.md
+        receipt:
+          ref: docs/superpowers/reports/2026-11-17-fix-integer-judge-verify.md
+          contentHash: 34a57d903e1f94ce32a0c5ec1b8c3eaf51d3a595b6692d82cb3092ef2283027b
+          submissionId: 6e28eeb3-1b9b-49f4-824a-19781cd033fb
+      - id: fix-integer-judge:14
+        stepId: tweak.verify.report.evidence
+        sequence: 14
+        kind: classic-verification-report
+        status: resolved
+        results:
+          tweak.verify.run:
+            sequence: 13
+            value:
+              checks:
+                - name: pytest --no-cov tests/test_sandbox_executor.py
+                    tests/test_sandbox_docker.py（仓库根目录）
+                  note: 113 passed，16 项真实 Docker 测试在默认模式下跳过。先运行新增回归，旧实现 8 项按预期失败。日志
+                    /private/tmp/comet-488-judge-red.log 与
+                    /private/tmp/comet-488-sandbox.log。
+                  result: passed
+                - name: pytest --no-cov tests/test_fingerprint.py tests/test_incremental_e2e.py
+                    tests/test_incremental_history.py
+                    tests/test_models.py（仓库根目录）
+                  note: 79 passed。旧版指纹测试在添加版本前按预期失败。日志 /private/tmp/comet-488-fingerprint-red.log
+                    与 /private/tmp/comet-488-incremental.log。
+                  result: passed
+                - name: comet classic openspec -- validate fix-integer-judge --strict 和 git diff
+                    --check（仓库根目录）
+                  note: 变更规范严格校验通过，Git 差异无空白错误。
+                  result: passed
+                - name: 真实 Docker 公开、隐藏与 LeetCode 节点回归（仓库根目录）
+                  note: python:3.12-slim-bookworm 实际容器中，两阶段拒绝偏差整数，105、106、133、138 正确与错误节点输出通过验证。日志
+                    /private/tmp/comet-488-docker-smoke.log。
+                  result: passed
+                - name: RUN_DOCKER_TESTS=1 pytest -k real_docker_and_host（仓库根目录）
+                  note: 16 passed，默认 python:3.11-slim 容器和 Host 分支。日志
+                    /private/tmp/comet-488-docker-default.log。
+                  result: passed
+                - name: Black 与 Ruff（五个修改过的 Python 文件，仓库根目录）
+                  note: Black 全部无需改动，Ruff 未发现问题。
+                  result: passed
+                - name: 全量离线测试的七个环境失败项复跑（仓库根目录）
+                  note: 全量首轮 4224 passed、44 skipped、3 failed、4 errors，覆盖率 93.04%。放开回环端口后 5
+                    passed，装齐临时分析工具后 2 passed。日志
+                    /private/tmp/comet-488-offline.log、/private/tmp/comet-488-loopback.log、/private/tmp/comet-488-broker.log、/private/tmp/comet-488-readability-recheck.log。
+                  result: passed
+              event: verification-ready
+              verificationReport: docs/superpowers/reports/2026-11-17-fix-integer-judge-verify.md
+        receipt:
+          ref: docs/superpowers/reports/2026-11-17-fix-integer-judge-verify.md
+          contentHash: 135553406b7ad0aa771e36728293d3152d7933df057d00c75739682e66b6db09
+          submissionId: 85ce2ede-516b-4894-98ff-a072949a545e
+    ready: []
+    joins: {}
+    outputs:
+      tweak.archive.confirm:
+        sequence: 16
+        value:
+          choice: pr
+          proposal:
+            input:
+              change: fix-integer-judge
+              changeDir: openspec/changes/fix-integer-judge
+              workspaceBaseline:
+                ref: 85c29a9d-190c-4c4d-8813-a0465608880c
+            outputs:
+              tweak.archive.prepare:
+                deliveryPaths:
+                  - README.md
+                  - src/incremental/fingerprint.py
+                  - src/models.py
+                  - src/sandbox_executor.py
+                  - tests/test_fingerprint.py
+                  - tests/test_sandbox_executor.py
+                prBaseBranch: main
+                remote: origin
+                summary: "归档 #488，合并两项 OpenSpec 规范，保存验收报告和变更说明，将修复提交到 codex/fix-integer-judge 并向
+                  origin/main 发 PR。"
+                targetBranch: codex/fix-integer-judge
+      tweak.archive.execute:
+        sequence: 18
+        value:
+          archiveDirectory: openspec/changes/archive/2026-11-17-fix-integer-judge
+      tweak.archive.preflight:
+        sequence: 17
+        value:
+          baseCommit: fcfa51797e3c1ab675b26dbecaaab022804cbbda
+          deliveryAction: pr
+          deliveryPaths:
+            - README.md
+            - src/incremental/fingerprint.py
+            - src/models.py
+            - src/sandbox_executor.py
+            - tests/test_fingerprint.py
+            - tests/test_sandbox_executor.py
+          prBaseBranch: main
+          remote: origin
+          remoteIdentity: 128eeb1e6f0d21b25601fcb7f9aad36adfdfb4d76f37f54f004760410190f351
+          targetBranch: codex/fix-integer-judge
+          verifiedBranch: codex/fix-integer-judge
+      tweak.archive.prepare:
+        sequence: 15
+        value:
+          deliveryPaths:
+            - README.md
+            - src/incremental/fingerprint.py
+            - src/models.py
+            - src/sandbox_executor.py
+            - tests/test_fingerprint.py
+            - tests/test_sandbox_executor.py
+          prBaseBranch: main
+          remote: origin
+          summary: "归档 #488，合并两项 OpenSpec 规范，保存验收报告和变更说明，将修复提交到 codex/fix-integer-judge 并向
+            origin/main 发 PR。"
+          targetBranch: codex/fix-integer-judge
+      tweak.build.execute:
+        sequence: 3
+        value:
+          checks:
+            - name: pytest --no-cov tests/test_sandbox_executor.py
+                tests/test_sandbox_docker.py（仓库根目录）
+              note: 113 passed，16 项真实 Docker 测试在默认模式下跳过。先运行新增回归，旧实现 8 项按预期失败。日志
+                /private/tmp/comet-488-judge-red.log 与
+                /private/tmp/comet-488-sandbox.log。
+              result: passed
+            - name: pytest --no-cov tests/test_fingerprint.py tests/test_incremental_e2e.py
+                tests/test_incremental_history.py tests/test_models.py（仓库根目录）
+              note: 79 passed。旧版指纹测试在添加版本前按预期失败。日志 /private/tmp/comet-488-fingerprint-red.log
+                与 /private/tmp/comet-488-incremental.log。
+              result: passed
+            - name: comet classic openspec -- validate fix-integer-judge --strict 和 git diff
+                --check（仓库根目录）
+              note: 变更规范严格校验通过，Git 差异无空白错误。
+              result: passed
+          event: build-complete
+      tweak.open:
+        sequence: 1
+        value:
+          event: open-complete
+          requirementsEvidence:
+            ref: openspec/changes/fix-integer-judge
+      tweak.open.evidence:
+        sequence: 2
+        value:
+          contentHash: 63cf0063790a9600b2da0afba3f6ee499c634453050748ae4c40614eb86775ef
+          ref: openspec/changes/fix-integer-judge
+      tweak.verify.report.evidence:
+        sequence: 14
+        value:
+          contentHash: 135553406b7ad0aa771e36728293d3152d7933df057d00c75739682e66b6db09
+          ref: docs/superpowers/reports/2026-11-17-fix-integer-judge-verify.md
+      tweak.verify.run:
+        sequence: 13
+        value:
+          checks:
+            - name: pytest --no-cov tests/test_sandbox_executor.py
+                tests/test_sandbox_docker.py（仓库根目录）
+              note: 113 passed，16 项真实 Docker 测试在默认模式下跳过。先运行新增回归，旧实现 8 项按预期失败。日志
+                /private/tmp/comet-488-judge-red.log 与
+                /private/tmp/comet-488-sandbox.log。
+              result: passed
+            - name: pytest --no-cov tests/test_fingerprint.py tests/test_incremental_e2e.py
+                tests/test_incremental_history.py tests/test_models.py（仓库根目录）
+              note: 79 passed。旧版指纹测试在添加版本前按预期失败。日志 /private/tmp/comet-488-fingerprint-red.log
+                与 /private/tmp/comet-488-incremental.log。
+              result: passed
+            - name: comet classic openspec -- validate fix-integer-judge --strict 和 git diff
+                --check（仓库根目录）
+              note: 变更规范严格校验通过，Git 差异无空白错误。
+              result: passed
+            - name: 真实 Docker 公开、隐藏与 LeetCode 节点回归（仓库根目录）
+              note: python:3.12-slim-bookworm 实际容器中，两阶段拒绝偏差整数，105、106、133、138 正确与错误节点输出通过验证。日志
+                /private/tmp/comet-488-docker-smoke.log。
+              result: passed
+            - name: RUN_DOCKER_TESTS=1 pytest -k real_docker_and_host（仓库根目录）
+              note: 16 passed，默认 python:3.11-slim 容器和 Host 分支。日志
+                /private/tmp/comet-488-docker-default.log。
+              result: passed
+            - name: Black 与 Ruff（五个修改过的 Python 文件，仓库根目录）
+              note: Black 全部无需改动，Ruff 未发现问题。
+              result: passed
+            - name: 全量离线测试的七个环境失败项复跑（仓库根目录）
+              note: 全量首轮 4224 passed、44 skipped、3 failed、4 errors，覆盖率 93.04%。放开回环端口后 5
+                passed，装齐临时分析工具后 2 passed。日志
+                /private/tmp/comet-488-offline.log、/private/tmp/comet-488-loopback.log、/private/tmp/comet-488-broker.log、/private/tmp/comet-488-readability-recheck.log。
+              result: passed
+          event: verification-ready
+          verificationReport: docs/superpowers/reports/2026-11-17-fix-integer-judge-verify.md
+    children: []
+    lineage: []
+  sourceRevision: 30
+  sourceHash: 6c1731c5206cba8777546d60ca3465ee188a91704c8e49d309d1cbe89b7a7b61
+direct_override: null
+handoff_context: null
+handoff_hash: null
+classic_profile: null
+classic_migration: null
+check_epoch: 8

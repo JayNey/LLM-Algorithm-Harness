@@ -5,7 +5,7 @@ Problem and dataset fingerprint calculation for incremental evaluation.
 import hashlib
 import json
 
-from src.models import Problem
+from src.models import JUDGE_CONTRACT_VERSION, Problem
 
 
 def compute_problem_fingerprint(problem: Problem) -> str:
@@ -18,6 +18,7 @@ def compute_problem_fingerprint(problem: Problem) -> str:
     - test cases (public, feedback, hidden)
     - entry_point
     - judge_config
+    - judge_contract_version
     - input_output_mode
 
     Args:
@@ -39,8 +40,9 @@ def compute_problem_fingerprint(problem: Problem) -> str:
         "public_test_cases": [tc.model_dump() for tc in problem.public_test_cases],
         "feedback_test_cases": [tc.model_dump() for tc in problem.feedback_test_cases],
         "hidden_test_cases": [tc.model_dump() for tc in problem.hidden_test_cases],
-        # Include judge configuration
+        # Include judge configuration and comparison semantics.
         "judge_config": problem.judge_config.model_dump(exclude_none=True),
+        "judge_contract_version": JUDGE_CONTRACT_VERSION,
     }
 
     # Serialize to stable JSON (sorted keys) and compute hash
