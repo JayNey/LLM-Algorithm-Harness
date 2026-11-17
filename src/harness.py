@@ -86,6 +86,7 @@ class AlgorithmHarness:
         self.on_response: SpendCallback | None = None
         self.before_generate: Callable[[], None] | None = None
         self.before_retry: Callable[[], None] | None = None
+        self.sampling_scope: str | None = None
         self.cost_monitor: RunCostMonitor | None = None
         self.budget_allocation_monitor: DifficultyBudgetMonitor | None = None
         self.cost_alert_manager: CostAlertManager | None = None
@@ -178,6 +179,14 @@ class AlgorithmHarness:
                     }
                 ),
             )
+            if self.config.llm_config.cache.enabled:
+                for strategy in self.config.strategies:
+                    if strategy.name != "self_consistency":
+                        continue
+                    strategy_key = TaskService.config_fingerprint(strategy)
+                    for problem in problems:
+                        saved = self._unit_checkpoint.get(f"{strategy_key}:{problem.problem_id}")
+                        self._validate_candidate_checkpoint(saved)
         self._progress_done = 0
         self._progress_total = len(self.config.strategies) * len(problems)
         logger.info("problems_loaded", count=len(problems))
@@ -284,6 +293,11 @@ class AlgorithmHarness:
             if not run_id:
                 raise ValueError("--resume requires --run-id")
             record = service.get(run_id)
+            if self.config.llm_config.cache.enabled:
+                for unit in record.units:
+                    if unit.status in {"completed", "failed"} and not unit.uncertain:
+                        self._validate_candidate_checkpoint(unit.result)
+            logger.info("task_checkpoint_resumed", run_id=run_id)
             if monitor is not None:
                 # Same run resumed: settle already-completed problems into the
                 # ledger so the remaining work cannot spend past the cap again.
@@ -762,6 +776,18 @@ class AlgorithmHarness:
             return
         monitor.add_result(result)
 
+    @staticmethod
+    def _validate_candidate_checkpoint(saved: dict[str, Any] | None) -> None:
+        if (
+            saved is not None
+            and saved.get("strategy") == "self_consistency"
+            and saved.get("iterations")
+            and not saved.get("metadata", {}).get("candidate_samples")
+        ):
+            raise ValueError(
+                "This Self-Consistency checkpoint predates independent sampling; start a new run"
+            )
+
     def _run_strategy(
         self, strategy_config: StrategyConfig, problems: list[Problem]
     ) -> StrategyReport:
@@ -779,13 +805,19 @@ class AlgorithmHarness:
 
         # Execute on all problems
         results = []
+        strategy_key = TaskService.config_fingerprint(strategy_config)
         for i, problem in enumerate(problems):
-            key = f"{TaskService.config_fingerprint(strategy_config)}:{problem.problem_id}"
+            key = f"{strategy_key}:{problem.problem_id}"
             saved = self._unit_checkpoint.get(key) if self._unit_checkpoint is not None else None
             if saved is not None and (
                 saved.get("status") == NOT_EVALUABLE or problem.test_cases_for("all")
             ):
                 replayed = ExecutionResult.model_validate(saved)
+                logger.info(
+                    "problem_checkpoint_reused",
+                    problem_id=problem.problem_id,
+                    strategy=strategy_config.name,
+                )
                 results.append(replayed)
                 self._progress_done += 1
                 # Resumed units must still count toward the run budget, or a
@@ -853,7 +885,14 @@ class AlgorithmHarness:
         preflight_ok, preflight_detail = sandbox.health_check()
         if not preflight_ok:
             raise RuntimeError(f"Sandbox preflight failed: {preflight_detail}")
-        base_client = LLMClient(self.config.llm_config)
+        llm_config = self.config.llm_config
+        if self.sampling_scope is not None and llm_config.cache.enabled:
+            # Skip disk cache initialization for independently sampled combinations.
+            llm_config = llm_config.model_copy(
+                update={"cache": llm_config.cache.model_copy(update={"enabled": False})}
+            )
+        base_client = LLMClient(llm_config)
+        base_client.sampling_scope = self.sampling_scope
         base_client.on_response = self.on_response
         base_client.before_generate = self.before_generate
         base_client.before_retry = self.before_retry

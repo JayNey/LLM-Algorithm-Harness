@@ -1229,3 +1229,267 @@ def test_self_consistency_stops_after_provider_failure(tmp_path, max_calls):
     assert result.error_message == "budget_exhausted: max_calls"
     assert tracker.ledger["budget-1"]["calls"] == max_calls
     assert tracker.ledger["budget-1"]["stop_reason"] == "budget_exhausted: max_calls"
+
+
+@pytest.fixture
+def offline_cached_provider(tmp_path, monkeypatch):
+    from src.cache import LLMResponseCache
+    from src.llm_client import LLMClient
+
+    cache_dir = tmp_path / "llm-cache"
+    monkeypatch.setattr(LLMClient, "_observe_cache", lambda self: None)
+    with (
+        patch("src.llm_client.OpenAI") as sdk,
+        patch(
+            "src.llm_client.LLMResponseCache",
+            side_effect=lambda **options: LLMResponseCache(cache_dir=str(cache_dir), **options),
+        ),
+    ):
+        provider = sdk.return_value.chat.completions.create
+        provider.return_value = {
+            "model": "gpt-4o-mini",
+            "choices": [{"message": {"content": f"```python\n{CORRECT_BUDGET_SOLUTION}\n```"}}],
+            "usage": {"prompt_tokens": 10, "completion_tokens": 5, "total_tokens": 15},
+        }
+        yield provider, cache_dir
+
+
+def test_self_consistency_samples_despite_matching_disk_cache(tmp_path, offline_cached_provider):
+    from src.llm_client import LLMClient
+    from src.strategies.self_consistency import SelfConsistencyStrategy
+
+    provider, cache_dir = offline_cached_provider
+    dataset = _offline_dataset(tmp_path, CORRECT_BUDGET_SOLUTION)
+    harness, tracker = _budget_harness(
+        tmp_path,
+        dataset,
+        ProblemBudget(max_calls=3),
+        strategies=[{"name": "self_consistency", "custom_params": {"num_candidates": 5}}],
+    )
+    problem = harness._load_problems()[0]
+    config = harness.config.strategies[0]
+    cache_client = LLMClient(harness.config.llm_config)
+    prompt = SelfConsistencyStrategy(config, cache_client, MagicMock()).build_base_prompt(problem)
+    spend = MagicMock()
+    cache_client.on_response = spend
+    cache_client.generate(prompt, temperature=0.8)
+    entries = {
+        path.name: path.read_bytes()
+        for path in cache_dir.glob("*.json")
+        if not path.name.startswith(".")
+    }
+    assert len(entries) == 1
+
+    harness.on_response = spend
+    harness.run()
+    assert provider.call_count == 4
+    assert provider.call_args_list[1:] == [provider.call_args_list[0]] * 3
+    assert {name: (cache_dir / name).read_bytes() for name in entries} == entries
+    assert sum(not path.name.startswith(".") for path in cache_dir.glob("*.json")) == 1
+
+    result = harness.get_results("self_consistency")[0]
+    assert len(result.iterations) == 3
+    assert len(set(iteration.code_extracted for iteration in result.iterations)) == 1
+    samples = result.metadata["candidate_samples"]
+    assert len({sample["sample_id"] for sample in samples}) == 3
+    assert [sample["cache_hit"] for sample in samples] == [False] * 3
+    assert tracker.ledger[problem.problem_id]["calls"] == 3
+    assert tracker.ledger[problem.problem_id]["total_tokens"] == 45
+
+    # A separate client can still intentionally replay the original disk entry.
+    replay = LLMClient(harness.config.llm_config)
+    replay.on_response = spend
+    replay.generate(prompt, temperature=0.8)
+    assert provider.call_count == 4
+    assert [call.args[2] for call in spend.call_args_list] == [False] * 4 + [True]
+    assert len({call.args[0] for call in spend.call_args_list}) == 5
+    assert all(call.args[1].pricing_metadata["total_cost"] > 0 for call in spend.call_args_list)
+
+
+@pytest.mark.parametrize("storage", ["unit_checkpoint", "task_service"])
+@pytest.mark.parametrize("cache_enabled", [True, False])
+def test_resume_legacy_candidate_checkpoint(
+    tmp_path, offline_cached_provider, storage, cache_enabled
+):
+    from src.checkpoints import UnitCheckpoint
+    from src.models import ExecutionResult, IterationResult
+    from src.task_service import TaskService, TaskUnit
+
+    provider, _ = offline_cached_provider
+    dataset = _offline_dataset(tmp_path, CORRECT_BUDGET_SOLUTION)
+    harness, _ = _budget_harness(tmp_path, dataset, None, strategies=[{"name": "self_consistency"}])
+    harness.config.llm_config.cache.enabled = cache_enabled
+    problems = harness._load_problems()
+    problem_id = problems[0].problem_id
+    strategy = harness.config.strategies[0]
+    saved = ExecutionResult(
+        problem_id=problem_id,
+        strategy=strategy.name,
+        generated_code=CORRECT_BUDGET_SOLUTION,
+        status="success",
+        iterations=[IterationResult(iteration=1, code_extracted=CORRECT_BUDGET_SOLUTION)],
+    ).model_dump(mode="json")
+    run_args = {}
+
+    if storage == "unit_checkpoint":
+        harness.checkpoint_dir = tmp_path / "checkpoint"
+        snapshot = harness.config.redacted_dict()
+        snapshot.pop("dataset_path")
+        checkpoint = UnitCheckpoint(
+            harness.checkpoint_dir,
+            TaskService.config_fingerprint(
+                {
+                    "config": snapshot,
+                    "problems": [problem.model_dump(mode="json") for problem in problems],
+                }
+            ),
+        )
+        key = f"{TaskService.config_fingerprint(strategy)}:{problem_id}"
+        checkpoint.put(key, saved)
+    else:
+        service = TaskService(Path(harness.config.output_dir) / "tasks")
+        record = service.create(
+            units=[TaskUnit(unit_id="saved", strategy=strategy.name, problem_id=problem_id)],
+            config_fingerprint=service.config_fingerprint(harness.config),
+            dataset_fingerprint=service.dataset_fingerprint(dataset),
+        )
+        service.run(record.run_id, lambda _: saved)
+        run_args = {"use_task_service": True, "run_id": record.run_id, "resume": True}
+
+    if cache_enabled:
+        with pytest.raises(ValueError, match="independent sampling"):
+            harness.run(**run_args)
+        if storage == "unit_checkpoint":
+            assert checkpoint.get(key) == saved
+        else:
+            assert service.get(record.run_id).units[0].result == saved
+    else:
+        harness.run(**run_args)
+        assert len(harness.get_results(strategy.name)[0].iterations) == 1
+    assert provider.call_count == 0
+
+
+@pytest.mark.parametrize("execution", ["serial", "parallel"])
+def test_experiment_repeats_sample_despite_disk_cache(tmp_path, offline_cached_provider, execution):
+    from structlog.testing import capture_logs
+
+    from src.experiment_report import _load_json
+
+    provider, cache_dir = offline_cached_provider
+    dataset = _offline_dataset(tmp_path, CORRECT_BUDGET_SOLUTION)
+    config = _runner_config(
+        tmp_path, dataset, strategies=[StrategyConfig(name="vanilla")], repeats=1
+    )
+    spend = MagicMock()
+    with patch("src.experiment.generate_html_panel"):
+        ExperimentRunner(config).run()
+        runner = ExperimentRunner(config.model_copy(update={"repeats": 3, "execution": execution}))
+        runner.on_spend = spend
+        with capture_logs() as logs:
+            output = runner.run()
+
+    assert provider.call_count == 4
+    assert provider.call_args_list[1:] == [provider.call_args_list[0]] * 3
+    assert sum(not path.name.startswith(".") for path in cache_dir.glob("*.json")) == 1
+    metadata = _load_json(output / "experiment.json")
+    assert metadata["sampling_run_id"]
+    combinations = metadata["combinations"]
+    assert [combo["repeat"] for combo in combinations] == [1, 2, 3]
+    scopes = {combo["sampling_scope"] for combo in combinations}
+    assert len(scopes) == 3
+    calls = [entry for entry in logs if entry["event"] == "generating_llm_response"]
+    assert {entry["sampling_scope"] for entry in calls} == scopes
+    assert all(entry["cache_hit"] is False for entry in calls)
+    assert [call.args[2] for call in spend.call_args_list] == [False] * 3
+    assert {entry["event_id"] for entry in calls} == {call.args[0] for call in spend.call_args_list}
+    for combo in combinations:
+        ledger = _load_json(output / combo["combo_dir"] / "budget_ledger.json")["problems"][0]
+        assert ledger["calls"] == 1
+        assert ledger["total_tokens"] == 15
+
+
+@pytest.mark.parametrize("unit_file_only", [False, True])
+def test_experiment_resume_preserves_sampling_scope(
+    tmp_path, offline_cached_provider, unit_file_only
+):
+    from src.checkpoints import write_checkpoint
+    from src.experiment_report import _load_json
+
+    provider, _ = offline_cached_provider
+    dataset = _offline_dataset(tmp_path, CORRECT_BUDGET_SOLUTION)
+    config = _runner_config(
+        tmp_path, dataset, strategies=[StrategyConfig(name="vanilla")], repeats=3
+    )
+    first = ExperimentRunner(config)
+    first.checkpoint_dir = tmp_path / "resume"
+    first.should_pause = lambda: provider.call_count == 1
+    first_dir = first.run()
+    metadata_path = first_dir / "experiment.json"
+    saved = _load_json(metadata_path)
+    saved_combo = saved["combinations"][0]
+    assert saved_combo["sampling_scope"]
+    if unit_file_only:
+        # A crash can leave the completed unit durable before experiment.json catches up.
+        write_checkpoint(metadata_path, {**saved, "combinations": []})
+
+    resumed = ExperimentRunner(config)
+    resumed.checkpoint_dir = first.checkpoint_dir
+    resumed.on_spend = MagicMock()
+    with patch("src.experiment.generate_html_panel"):
+        assert resumed.run() == first_dir
+
+    completed = _load_json(metadata_path)
+    assert completed["sampling_run_id"] == saved["sampling_run_id"]
+    assert completed["combinations"][0] == saved_combo
+    assert len({combo["sampling_scope"] for combo in completed["combinations"]}) == 3
+    assert provider.call_count == 3
+    assert resumed.on_spend.call_count == 2
+
+
+@pytest.mark.parametrize("cache_enabled", [True, False])
+def test_legacy_experiment_sampling_report_and_resume(
+    tmp_path, offline_cached_provider, cache_enabled
+):
+    from src.checkpoints import UnitCheckpoint, write_checkpoint
+    from src.experiment_report import _load_json, generate_comparison_report
+
+    provider, _ = offline_cached_provider
+    dataset = _offline_dataset(tmp_path, CORRECT_BUDGET_SOLUTION)
+    config = _runner_config(
+        tmp_path, dataset, strategies=[StrategyConfig(name="vanilla")], repeats=2
+    )
+    config.models[0].cache.enabled = cache_enabled
+    run = ExperimentRunner(config)
+    run.checkpoint_dir = tmp_path / "legacy"
+    with patch("src.experiment.generate_html_panel"):
+        output = run.run()
+    path = output / "experiment.json"
+    old_metadata = _load_json(path)
+    del old_metadata["sampling_run_id"]
+    checkpoint_dir = output / "units"
+    fingerprint = _load_json(checkpoint_dir / "manifest.json")["fingerprint"]
+    checkpoint = UnitCheckpoint(checkpoint_dir, fingerprint)
+    for combo in old_metadata["combinations"]:
+        del combo["sampling_scope"]
+        checkpoint.put(combo["unit_id"], combo)
+    write_checkpoint(path, old_metadata)
+
+    comparison = generate_comparison_report(output)
+    assert comparison["by_model_strategy"][0]["sampling_verified"] is not cache_enabled
+    markdown = (output / "REPORT.md").read_text(encoding="utf-8")
+    assert ("采样独立性未验证" in markdown) is cache_enabled
+
+    # Simulate a completed checkpoint entry that was never published to experiment.json.
+    old_metadata["combinations"] = []
+    write_checkpoint(path, old_metadata)
+    resumed = ExperimentRunner(config)
+    resumed.checkpoint_dir = run.checkpoint_dir
+    if cache_enabled:
+        with pytest.raises(ValueError, match="independent sampling"):
+            resumed.run()
+        assert _load_json(path) == old_metadata
+    else:
+        with patch("src.experiment.generate_html_panel"):
+            resumed.run()
+        assert len(_load_json(path)["combinations"]) == 2
+    assert provider.call_count == 2

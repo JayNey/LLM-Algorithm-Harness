@@ -17,6 +17,7 @@ from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime
 from pathlib import Path
 from typing import Any
+from uuid import uuid4
 
 from src.budget import BudgetTracker
 from src.checkpoints import UnitCheckpoint, write_checkpoint
@@ -136,6 +137,7 @@ class ExperimentRunner:
             "schema_version": "1.0",
             "name": self.config.name,
             "experiment_id": exp_dir.name,
+            "sampling_run_id": uuid4().hex,
             "created_at": started_at,
             "code_version": {"git_commit": _git_commit(), "git_dirty": _git_dirty()},
             "dataset": self._dataset_fingerprint(problems),
@@ -151,9 +153,13 @@ class ExperimentRunner:
             },
             "combinations": [],
         }
-        if checkpoint is not None and (exp_dir / "experiment.json").exists():
-            metadata = json.loads((exp_dir / "experiment.json").read_text(encoding="utf-8"))
-        self._write_json(exp_dir / "experiment.json", metadata)
+        metadata_path = exp_dir / "experiment.json"
+        recorded_sampling_policy = False
+        if checkpoint is not None and metadata_path.exists():
+            metadata = json.loads(metadata_path.read_text(encoding="utf-8"))
+            recorded_sampling_policy = "sampling_run_id" in metadata
+            if not recorded_sampling_policy:
+                metadata["sampling_run_id"] = uuid4().hex
 
         all_jobs = [
             (model, strategy, repeat)
@@ -161,18 +167,36 @@ class ExperimentRunner:
             for strategy in self.config.strategies
             for repeat in range(1, self.config.repeats + 1)
         ]
-        completed = {combo.get("unit_id") for combo in metadata["combinations"]}
+        completed = {combo.get("unit_id"): combo for combo in metadata["combinations"]}
         total = len(all_jobs)
         remaining = []
         for index, (model, strategy, repeat) in enumerate(all_jobs):
             key = str(index)
-            if checkpoint is not None and key in completed:
-                continue
-            saved = checkpoint.get(key) if checkpoint is not None else None
-            if saved is not None:
-                metadata["combinations"].append(saved)
-            else:
+            saved = completed.get(key)
+            if saved is None and checkpoint is not None:
+                saved = checkpoint.get(key)
+            if saved is None:
                 remaining.append((key, model, strategy, repeat))
+                continue
+            if (
+                not recorded_sampling_policy
+                and model.cache.enabled
+                and self._requires_independent_sampling(strategy)
+                and not saved.get("sampling_scope")
+            ):
+                raise ValueError(
+                    "This experiment checkpoint predates independent sampling; start a new experiment"
+                )
+            if key not in completed:
+                metadata["combinations"].append(saved)
+            logger.info(
+                "experiment_combination_recovered",
+                experiment_id=exp_dir.name,
+                sampling_run_id=metadata.get("sampling_run_id"),
+                unit_id=key,
+                sampling_scope=saved.get("sampling_scope"),
+            )
+        self._write_json(metadata_path, metadata)
 
         def run_combo(
             key: str, model: LLMConfig, strategy: StrategyConfig, repeat: int
@@ -284,6 +308,9 @@ class ExperimentRunner:
         exp_dir.mkdir(parents=True)
         return exp_dir
 
+    def _requires_independent_sampling(self, strategy: StrategyConfig) -> bool:
+        return self.config.repeats > 1 or strategy.name == "self_consistency"
+
     def _run_combo(
         self,
         exp_dir: Path,
@@ -312,6 +339,8 @@ class ExperimentRunner:
         )
         tracker = BudgetTracker(self.config.budget)
         harness = AlgorithmHarness(harness_config, budget_tracker=tracker)
+        sampling_scope = uuid4().hex if self._requires_independent_sampling(strategy) else None
+        harness.sampling_scope = sampling_scope
         harness.pricing_manager = self.pricing_manager
         harness.before_generate = self.before_generate
         if self.on_spend is not None:
@@ -356,6 +385,7 @@ class ExperimentRunner:
             "model": model.model,
             "strategy": strategy.name,
             "repeat": repeat,
+            "sampling_scope": sampling_scope,
             "combo_dir": combo_id,
             "token_budget_unsupported": tracker.token_budget_unsupported,
         }

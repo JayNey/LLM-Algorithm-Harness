@@ -1,0 +1,1302 @@
+# comet-execution: managed-run
+change_id: 70c7d03c-8478-4886-8f53-9f8777622316
+workflow: tweak
+language: zh-CN
+phase: archive
+context_compression: off
+build_mode: direct
+build_pause: null
+subagent_dispatch: null
+tdd_mode: direct
+review_mode: off
+isolation: current
+verify_mode: light
+auto_transition: true
+base_ref: 9c7382d67bc34ecf5f78c59841e8c68d34b55672
+design_doc: null
+plan: null
+verify_result: pass
+verify_failures: 0
+verification_report: docs/superpowers/reports/2026-11-17-fix-independent-sampling-verify.md
+branch_status: pending
+created_at: 2026-11-17
+verified_at: 2026-11-17
+archive_confirmation: confirmed
+archived: true
+bound_branch: codex/fix-independent-sampling
+run_checkpoint:
+  schema: comet.workflow-run-checkpoint.v1
+  hash: 3307ac4ca4b45a0b22de4adc6f70a3bcefadb3a5e8254204f189377c128ae889
+  run:
+    protocolVersion: 1
+    schemaVersion: 1
+    runId: fix-independent-sampling
+    revision: 1
+    workflow:
+      id: comet-classic-tweak
+      version: "2"
+      hash: 518d3e8e12eb39899775cb7d2ddcc7ddeba10cb1f1d43cff7b03f2ca61a70c65
+    definitionHashes:
+      '["comet-classic-tweak","2"]': 518d3e8e12eb39899775cb7d2ddcc7ddeba10cb1f1d43cff7b03f2ca61a70c65
+    initialStateHash: 0f3c50304e0893f0ec06722db850b2f20d73cb440bb31a98f1957689dcb06d5e
+    input:
+      change: fix-independent-sampling
+      changeDir: openspec/changes/fix-independent-sampling
+      workspaceBaseline:
+        ref: 107f1ff6-806d-4e94-b59a-e3796ba5afaf
+    state:
+      archiveConfirmation: confirmed
+      archived: true
+      autoTransition: true
+      baseRef: 9c7382d67bc34ecf5f78c59841e8c68d34b55672
+      boundBranch: codex/fix-independent-sampling
+      branchStatus: pending
+      buildMode: direct
+      buildPause: null
+      checkEpoch: 5
+      classicMigration: null
+      classicProfile: null
+      contextCompression: off
+      createdAt: 2026-11-17
+      designDoc: null
+      directOverride: null
+      handoffContext: null
+      handoffHash: null
+      isolation: current
+      language: zh-CN
+      phase: archive
+      plan: null
+      reviewMode: off
+      subagentDispatch: null
+      tddMode: direct
+      verificationReport: docs/superpowers/reports/2026-11-17-fix-independent-sampling-verify.md
+      verifiedAt: 2026-11-17
+      verifyFailures: 0
+      verifyMode: light
+      verifyResult: pass
+      workflow: tweak
+    status: running
+    sequence: 10
+    actions:
+      - attempt: 1
+        claim:
+          executorId: comet-classic-guard
+          token: portable-10f1a40e23f79066192cf6ccd8ea40a912c5f5a2dff15311490bd3aff4cb4fc3
+        executionOrigin:
+          workflow:
+            hash: 518d3e8e12eb39899775cb7d2ddcc7ddeba10cb1f1d43cff7b03f2ca61a70c65
+            id: comet-classic-tweak
+            version: "2"
+        id: fix-independent-sampling:1
+        input:
+          input:
+            change: fix-independent-sampling
+            changeDir: openspec/changes/fix-independent-sampling
+            workspaceBaseline:
+              ref: 107f1ff6-806d-4e94-b59a-e3796ba5afaf
+          outputs: {}
+        inputHash: 35c28cb210875f3ea469dd3f81bea618db33dbaf7a8c458106228d824ed24279
+        outcome:
+          actionId: fix-independent-sampling:1
+          attempt: 1
+          claimToken: portable-10f1a40e23f79066192cf6ccd8ea40a912c5f5a2dff15311490bd3aff4cb4fc3
+          inputHash: 35c28cb210875f3ea469dd3f81bea618db33dbaf7a8c458106228d824ed24279
+          outcomeId: 54e82d39-0c51-4d86-af0b-14abf14bec4e
+          output:
+            event: open-complete
+            requirementsEvidence:
+              ref: openspec/changes/fix-independent-sampling
+          status: succeeded
+        protocolVersion: 1
+        receipts:
+          - hash: 4682259aec6b2886fe52a445ac879fce6778fb63b1e7073fac9df2fec6e46bef
+            outcomeId: 54e82d39-0c51-4d86-af0b-14abf14bec4e
+        reconciliations: []
+        ref: comet-tweak
+        requiredCapabilities: []
+        retry: manual
+        runId: fix-independent-sampling
+        status: succeeded
+        stepId: tweak.open
+        type: invoke_skill
+      - attempt: 1
+        claim:
+          executorId: comet-classic-state
+          sessionId: 01a1e89a-3b16-74e2-ac0d-cd0c6ed42ac9
+          token: portable-6a2fe3747c09097ba7ecee64aadd49d760df09fdcced13e8a45141681316671c
+        executionOrigin:
+          workflow:
+            hash: 518d3e8e12eb39899775cb7d2ddcc7ddeba10cb1f1d43cff7b03f2ca61a70c65
+            id: comet-classic-tweak
+            version: "2"
+        id: fix-independent-sampling:3
+        input:
+          input:
+            change: fix-independent-sampling
+            changeDir: openspec/changes/fix-independent-sampling
+            workspaceBaseline:
+              ref: 107f1ff6-806d-4e94-b59a-e3796ba5afaf
+          outputs:
+            tweak.open:
+              event: open-complete
+              requirementsEvidence:
+                ref: openspec/changes/fix-independent-sampling
+            tweak.open.evidence:
+              contentHash: 35c28cb210875f3ea469dd3f81bea618db33dbaf7a8c458106228d824ed24279
+              ref: openspec/changes/fix-independent-sampling
+        inputHash: fc19401762da79ad28faad157e55b1deffeea215acbaf8196f7a31355bf2c951
+        outcome:
+          actionId: fix-independent-sampling:3
+          attempt: 1
+          claimToken: portable-6a2fe3747c09097ba7ecee64aadd49d760df09fdcced13e8a45141681316671c
+          inputHash: fc19401762da79ad28faad157e55b1deffeea215acbaf8196f7a31355bf2c951
+          outcomeId: cbd7b682-efeb-4aad-90d7-3d4167f362ec
+          output:
+            checks:
+              - name: 仓库根目录：python -m pytest --no-cov -q -m 'not online'，15 个相关测试模块
+                note: 299 通过。覆盖真实磁盘缓存与模拟供应商、重复串并行、组合与候选检查点、历史报告、预算、Web 实际费用、重试和 A/B 测试。日志
+                  /private/tmp/harness-489-targeted-final.log
+                result: passed
+              - name: 仓库根目录：ruff check .、ruff format --check（6 个改动文件）、git diff --check
+                note: 静态检查和格式检查均通过。
+                result: passed
+              - name: comet classic openspec -- validate fix-independent-sampling --strict
+                note: 两份 delta 规格及 change 结构均通过严格校验。
+                result: passed
+            event: build-complete
+          status: succeeded
+        protocolVersion: 1
+        receipts:
+          - hash: 220cb08217bfc8113deab9bea751abce1f1f015cf8fdec42967351549b1fa2e1
+            outcomeId: cbd7b682-efeb-4aad-90d7-3d4167f362ec
+        reconciliations: []
+        ref: comet-build
+        requiredCapabilities: []
+        retry: manual
+        runId: fix-independent-sampling
+        status: succeeded
+        stepId: tweak.build.execute
+        type: invoke_skill
+      - attempt: 1
+        claim:
+          executorId: comet-classic-guard
+          token: portable-796f66421705259b132de5abf3fa938ba3521c873bbcc4374ab9b8321f15cc9f
+        executionOrigin:
+          workflow:
+            hash: 518d3e8e12eb39899775cb7d2ddcc7ddeba10cb1f1d43cff7b03f2ca61a70c65
+            id: comet-classic-tweak
+            version: "2"
+        id: fix-independent-sampling:4
+        input:
+          input:
+            change: fix-independent-sampling
+            changeDir: openspec/changes/fix-independent-sampling
+            workspaceBaseline:
+              ref: 107f1ff6-806d-4e94-b59a-e3796ba5afaf
+          outputs:
+            tweak.build.execute:
+              checks:
+                - name: 仓库根目录：python -m pytest --no-cov -q -m 'not online'，15 个相关测试模块
+                  note: 299 通过。覆盖真实磁盘缓存与模拟供应商、重复串并行、组合与候选检查点、历史报告、预算、Web 实际费用、重试和 A/B 测试。日志
+                    /private/tmp/harness-489-targeted-final.log
+                  result: passed
+                - name: 仓库根目录：ruff check .、ruff format --check（6 个改动文件）、git diff --check
+                  note: 静态检查和格式检查均通过。
+                  result: passed
+                - name: comet classic openspec -- validate fix-independent-sampling --strict
+                  note: 两份 delta 规格及 change 结构均通过严格校验。
+                  result: passed
+              event: build-complete
+            tweak.open:
+              event: open-complete
+              requirementsEvidence:
+                ref: openspec/changes/fix-independent-sampling
+            tweak.open.evidence:
+              contentHash: 35c28cb210875f3ea469dd3f81bea618db33dbaf7a8c458106228d824ed24279
+              ref: openspec/changes/fix-independent-sampling
+        inputHash: c42902232bdb292a0773ddd50d7338a17b98acf50c05fba0899ad2371379820b
+        outcome:
+          actionId: fix-independent-sampling:4
+          attempt: 1
+          claimToken: portable-796f66421705259b132de5abf3fa938ba3521c873bbcc4374ab9b8321f15cc9f
+          inputHash: c42902232bdb292a0773ddd50d7338a17b98acf50c05fba0899ad2371379820b
+          outcomeId: 35d7f0ae-42e8-4fca-80b0-31feced31aad
+          output:
+            checks:
+              - name: 仓库根目录：python -m pytest --no-cov -q -m 'not online'，15 个相关测试模块
+                note: 299 通过。覆盖真实磁盘缓存与模拟供应商、重复串并行、组合与候选检查点、历史报告、预算、Web 实际费用、重试和 A/B 测试。日志
+                  /private/tmp/harness-489-targeted-final.log
+                result: passed
+              - name: 仓库根目录：ruff check .、ruff format --check（6 个改动文件）、git diff --check
+                note: 静态检查和格式检查均通过。
+                result: passed
+              - name: comet classic openspec -- validate fix-independent-sampling --strict
+                note: 两份 delta 规格及 change 结构均通过严格校验。
+                result: passed
+            event: verification-ready
+            verificationReport: docs/superpowers/reports/2026-11-17-fix-independent-sampling-verify.md
+          status: succeeded
+        protocolVersion: 1
+        receipts:
+          - hash: dfbf8885b3b99e47452e6edd920a26113d7d280f0bb1363b8593575d2ae57a0d
+            outcomeId: 35d7f0ae-42e8-4fca-80b0-31feced31aad
+        reconciliations: []
+        ref: comet-verify
+        requiredCapabilities: []
+        retry: manual
+        runId: fix-independent-sampling
+        status: succeeded
+        stepId: tweak.verify.run
+        type: invoke_skill
+      - attempt: 1
+        claim:
+          executorId: comet-classic-state
+          token: portable-65ccd1943ae3f6fed11d23cf4a3c42913a3065791a42b2e935c6f01c7dd61cc0
+        executionOrigin:
+          workflow:
+            hash: 518d3e8e12eb39899775cb7d2ddcc7ddeba10cb1f1d43cff7b03f2ca61a70c65
+            id: comet-classic-tweak
+            version: "2"
+        id: fix-independent-sampling:6
+        input:
+          input:
+            change: fix-independent-sampling
+            changeDir: openspec/changes/fix-independent-sampling
+            workspaceBaseline:
+              ref: 107f1ff6-806d-4e94-b59a-e3796ba5afaf
+          outputs:
+            tweak.build.execute:
+              checks:
+                - name: 仓库根目录：python -m pytest --no-cov -q -m 'not online'，15 个相关测试模块
+                  note: 299 通过。覆盖真实磁盘缓存与模拟供应商、重复串并行、组合与候选检查点、历史报告、预算、Web 实际费用、重试和 A/B 测试。日志
+                    /private/tmp/harness-489-targeted-final.log
+                  result: passed
+                - name: 仓库根目录：ruff check .、ruff format --check（6 个改动文件）、git diff --check
+                  note: 静态检查和格式检查均通过。
+                  result: passed
+                - name: comet classic openspec -- validate fix-independent-sampling --strict
+                  note: 两份 delta 规格及 change 结构均通过严格校验。
+                  result: passed
+              event: build-complete
+            tweak.open:
+              event: open-complete
+              requirementsEvidence:
+                ref: openspec/changes/fix-independent-sampling
+            tweak.open.evidence:
+              contentHash: 35c28cb210875f3ea469dd3f81bea618db33dbaf7a8c458106228d824ed24279
+              ref: openspec/changes/fix-independent-sampling
+            tweak.verify.report.evidence:
+              contentHash: c42902232bdb292a0773ddd50d7338a17b98acf50c05fba0899ad2371379820b
+              ref: docs/superpowers/reports/2026-11-17-fix-independent-sampling-verify.md
+            tweak.verify.run:
+              checks:
+                - name: 仓库根目录：python -m pytest --no-cov -q -m 'not online'，15 个相关测试模块
+                  note: 299 通过。覆盖真实磁盘缓存与模拟供应商、重复串并行、组合与候选检查点、历史报告、预算、Web 实际费用、重试和 A/B 测试。日志
+                    /private/tmp/harness-489-targeted-final.log
+                  result: passed
+                - name: 仓库根目录：ruff check .、ruff format --check（6 个改动文件）、git diff --check
+                  note: 静态检查和格式检查均通过。
+                  result: passed
+                - name: comet classic openspec -- validate fix-independent-sampling --strict
+                  note: 两份 delta 规格及 change 结构均通过严格校验。
+                  result: passed
+              event: verification-ready
+              verificationReport: docs/superpowers/reports/2026-11-17-fix-independent-sampling-verify.md
+        inputHash: aeb90662e6a76c58b9053c34c32228f53a31dffeb4825978ef637cdd68e2977a
+        outcome:
+          actionId: fix-independent-sampling:6
+          attempt: 1
+          claimToken: portable-65ccd1943ae3f6fed11d23cf4a3c42913a3065791a42b2e935c6f01c7dd61cc0
+          inputHash: aeb90662e6a76c58b9053c34c32228f53a31dffeb4825978ef637cdd68e2977a
+          outcomeId: 8e4e5310-398a-4773-9d80-d8fcf3cffce4
+          output:
+            prBaseBranch: main
+            remote: origin
+            summary: "归档 issue #489 的修复和验证材料，合并 llm-response-cache 与
+              experiment/budget-comparison 两份增量规格，提交到本地
+              codex/fix-independent-sampling。已通过 299 项离线回归。选择 Push 时仅推送该分支到
+              origin；选择 PR 时推送该分支并向 origin 的 main 创建 PR。"
+            targetBranch: codex/fix-independent-sampling
+          status: succeeded
+        protocolVersion: 1
+        receipts:
+          - hash: 8e3d7eda1616ce67f1427f8e99be25e9ab3e30d7527fafb8086fd6dd9ba2ddc9
+            outcomeId: 8e4e5310-398a-4773-9d80-d8fcf3cffce4
+        reconciliations: []
+        ref: comet-archive
+        requiredCapabilities: []
+        retry: manual
+        runId: fix-independent-sampling
+        status: succeeded
+        stepId: tweak.archive.prepare
+        type: invoke_skill
+      - attempt: 1
+        claim:
+          executorId: comet-classic-archive-preflight
+          token: portable-a0cfec4ab96fb20ce515d2e24dcf318587a32fe898481567371e4b3494c92d5c
+        executionOrigin:
+          workflow:
+            hash: 518d3e8e12eb39899775cb7d2ddcc7ddeba10cb1f1d43cff7b03f2ca61a70c65
+            id: comet-classic-tweak
+            version: "2"
+        id: fix-independent-sampling:8
+        input:
+          input:
+            change: fix-independent-sampling
+            changeDir: openspec/changes/fix-independent-sampling
+            workspaceBaseline:
+              ref: 107f1ff6-806d-4e94-b59a-e3796ba5afaf
+          outputs:
+            tweak.archive.confirm:
+              choice: pr
+              proposal:
+                input:
+                  change: fix-independent-sampling
+                  changeDir: openspec/changes/fix-independent-sampling
+                  workspaceBaseline:
+                    ref: 107f1ff6-806d-4e94-b59a-e3796ba5afaf
+                outputs:
+                  tweak.archive.prepare:
+                    prBaseBranch: main
+                    remote: origin
+                    summary: "归档 issue #489 的修复和验证材料，合并 llm-response-cache 与
+                      experiment/budget-comparison 两份增量规格，提交到本地
+                      codex/fix-independent-sampling。已通过 299 项离线回归。选择 Push
+                      时仅推送该分支到 origin；选择 PR 时推送该分支并向 origin 的 main 创建 PR。"
+                    targetBranch: codex/fix-independent-sampling
+            tweak.archive.prepare:
+              prBaseBranch: main
+              remote: origin
+              summary: "归档 issue #489 的修复和验证材料，合并 llm-response-cache 与
+                experiment/budget-comparison 两份增量规格，提交到本地
+                codex/fix-independent-sampling。已通过 299 项离线回归。选择 Push 时仅推送该分支到
+                origin；选择 PR 时推送该分支并向 origin 的 main 创建 PR。"
+              targetBranch: codex/fix-independent-sampling
+            tweak.build.execute:
+              checks:
+                - name: 仓库根目录：python -m pytest --no-cov -q -m 'not online'，15 个相关测试模块
+                  note: 299 通过。覆盖真实磁盘缓存与模拟供应商、重复串并行、组合与候选检查点、历史报告、预算、Web 实际费用、重试和 A/B 测试。日志
+                    /private/tmp/harness-489-targeted-final.log
+                  result: passed
+                - name: 仓库根目录：ruff check .、ruff format --check（6 个改动文件）、git diff --check
+                  note: 静态检查和格式检查均通过。
+                  result: passed
+                - name: comet classic openspec -- validate fix-independent-sampling --strict
+                  note: 两份 delta 规格及 change 结构均通过严格校验。
+                  result: passed
+              event: build-complete
+            tweak.open:
+              event: open-complete
+              requirementsEvidence:
+                ref: openspec/changes/fix-independent-sampling
+            tweak.open.evidence:
+              contentHash: 35c28cb210875f3ea469dd3f81bea618db33dbaf7a8c458106228d824ed24279
+              ref: openspec/changes/fix-independent-sampling
+            tweak.verify.report.evidence:
+              contentHash: c42902232bdb292a0773ddd50d7338a17b98acf50c05fba0899ad2371379820b
+              ref: docs/superpowers/reports/2026-11-17-fix-independent-sampling-verify.md
+            tweak.verify.run:
+              checks:
+                - name: 仓库根目录：python -m pytest --no-cov -q -m 'not online'，15 个相关测试模块
+                  note: 299 通过。覆盖真实磁盘缓存与模拟供应商、重复串并行、组合与候选检查点、历史报告、预算、Web 实际费用、重试和 A/B 测试。日志
+                    /private/tmp/harness-489-targeted-final.log
+                  result: passed
+                - name: 仓库根目录：ruff check .、ruff format --check（6 个改动文件）、git diff --check
+                  note: 静态检查和格式检查均通过。
+                  result: passed
+                - name: comet classic openspec -- validate fix-independent-sampling --strict
+                  note: 两份 delta 规格及 change 结构均通过严格校验。
+                  result: passed
+              event: verification-ready
+              verificationReport: docs/superpowers/reports/2026-11-17-fix-independent-sampling-verify.md
+        inputHash: be079e6146df3f6ea2cb33d362b75fe2d9bbda74ef4f2212f033faff8ce9dd30
+        outcome:
+          actionId: fix-independent-sampling:8
+          attempt: 1
+          claimToken: portable-a0cfec4ab96fb20ce515d2e24dcf318587a32fe898481567371e4b3494c92d5c
+          inputHash: be079e6146df3f6ea2cb33d362b75fe2d9bbda74ef4f2212f033faff8ce9dd30
+          outcomeId: 060eb92a-03c6-4ad3-ab1c-23cfb21dfef1
+          output:
+            baseCommit: 9c7382d67bc34ecf5f78c59841e8c68d34b55672
+            deliveryAction: pr
+            deliveryPaths:
+              - src/experiment.py
+              - src/experiment_report.py
+              - src/harness.py
+              - src/llm_client.py
+              - src/strategies/self_consistency.py
+              - tests/test_experiment.py
+            prBaseBranch: main
+            remote: origin
+            remoteIdentity: 128eeb1e6f0d21b25601fcb7f9aad36adfdfb4d76f37f54f004760410190f351
+            targetBranch: codex/fix-independent-sampling
+            verifiedBranch: codex/fix-independent-sampling
+          status: succeeded
+        protocolVersion: 1
+        receipts:
+          - hash: 13af1b436e74f0aff059001234fc3533f1c2bc5c81f7967c847fc7cde8196de2
+            outcomeId: 060eb92a-03c6-4ad3-ab1c-23cfb21dfef1
+        reconciliations: []
+        ref: classic-archive-preflight
+        requiredCapabilities: []
+        retry: manual
+        runId: fix-independent-sampling
+        status: succeeded
+        stepId: tweak.archive.preflight
+        type: call_tool
+      - attempt: 1
+        claim:
+          executorId: comet-classic-archive
+          token: portable-d8822d03e36fc1d6c682784bebf4bef7dfc16592302ba0de65ed17cbf14c65b6
+        executionOrigin:
+          workflow:
+            hash: 518d3e8e12eb39899775cb7d2ddcc7ddeba10cb1f1d43cff7b03f2ca61a70c65
+            id: comet-classic-tweak
+            version: "2"
+        id: fix-independent-sampling:9
+        input:
+          input:
+            change: fix-independent-sampling
+            changeDir: openspec/changes/fix-independent-sampling
+            workspaceBaseline:
+              ref: 107f1ff6-806d-4e94-b59a-e3796ba5afaf
+          outputs:
+            tweak.archive.confirm:
+              choice: pr
+              proposal:
+                input:
+                  change: fix-independent-sampling
+                  changeDir: openspec/changes/fix-independent-sampling
+                  workspaceBaseline:
+                    ref: 107f1ff6-806d-4e94-b59a-e3796ba5afaf
+                outputs:
+                  tweak.archive.prepare:
+                    prBaseBranch: main
+                    remote: origin
+                    summary: "归档 issue #489 的修复和验证材料，合并 llm-response-cache 与
+                      experiment/budget-comparison 两份增量规格，提交到本地
+                      codex/fix-independent-sampling。已通过 299 项离线回归。选择 Push
+                      时仅推送该分支到 origin；选择 PR 时推送该分支并向 origin 的 main 创建 PR。"
+                    targetBranch: codex/fix-independent-sampling
+            tweak.archive.preflight:
+              baseCommit: 9c7382d67bc34ecf5f78c59841e8c68d34b55672
+              deliveryAction: pr
+              deliveryPaths:
+                - src/experiment.py
+                - src/experiment_report.py
+                - src/harness.py
+                - src/llm_client.py
+                - src/strategies/self_consistency.py
+                - tests/test_experiment.py
+              prBaseBranch: main
+              remote: origin
+              remoteIdentity: 128eeb1e6f0d21b25601fcb7f9aad36adfdfb4d76f37f54f004760410190f351
+              targetBranch: codex/fix-independent-sampling
+              verifiedBranch: codex/fix-independent-sampling
+            tweak.archive.prepare:
+              prBaseBranch: main
+              remote: origin
+              summary: "归档 issue #489 的修复和验证材料，合并 llm-response-cache 与
+                experiment/budget-comparison 两份增量规格，提交到本地
+                codex/fix-independent-sampling。已通过 299 项离线回归。选择 Push 时仅推送该分支到
+                origin；选择 PR 时推送该分支并向 origin 的 main 创建 PR。"
+              targetBranch: codex/fix-independent-sampling
+            tweak.build.execute:
+              checks:
+                - name: 仓库根目录：python -m pytest --no-cov -q -m 'not online'，15 个相关测试模块
+                  note: 299 通过。覆盖真实磁盘缓存与模拟供应商、重复串并行、组合与候选检查点、历史报告、预算、Web 实际费用、重试和 A/B 测试。日志
+                    /private/tmp/harness-489-targeted-final.log
+                  result: passed
+                - name: 仓库根目录：ruff check .、ruff format --check（6 个改动文件）、git diff --check
+                  note: 静态检查和格式检查均通过。
+                  result: passed
+                - name: comet classic openspec -- validate fix-independent-sampling --strict
+                  note: 两份 delta 规格及 change 结构均通过严格校验。
+                  result: passed
+              event: build-complete
+            tweak.open:
+              event: open-complete
+              requirementsEvidence:
+                ref: openspec/changes/fix-independent-sampling
+            tweak.open.evidence:
+              contentHash: 35c28cb210875f3ea469dd3f81bea618db33dbaf7a8c458106228d824ed24279
+              ref: openspec/changes/fix-independent-sampling
+            tweak.verify.report.evidence:
+              contentHash: c42902232bdb292a0773ddd50d7338a17b98acf50c05fba0899ad2371379820b
+              ref: docs/superpowers/reports/2026-11-17-fix-independent-sampling-verify.md
+            tweak.verify.run:
+              checks:
+                - name: 仓库根目录：python -m pytest --no-cov -q -m 'not online'，15 个相关测试模块
+                  note: 299 通过。覆盖真实磁盘缓存与模拟供应商、重复串并行、组合与候选检查点、历史报告、预算、Web 实际费用、重试和 A/B 测试。日志
+                    /private/tmp/harness-489-targeted-final.log
+                  result: passed
+                - name: 仓库根目录：ruff check .、ruff format --check（6 个改动文件）、git diff --check
+                  note: 静态检查和格式检查均通过。
+                  result: passed
+                - name: comet classic openspec -- validate fix-independent-sampling --strict
+                  note: 两份 delta 规格及 change 结构均通过严格校验。
+                  result: passed
+              event: verification-ready
+              verificationReport: docs/superpowers/reports/2026-11-17-fix-independent-sampling-verify.md
+        inputHash: 816e6e6d711ef061c3107c011ae0aff9a8365c8c715ead1686a44e7191eeac2c
+        outcome:
+          actionId: fix-independent-sampling:9
+          artifacts: []
+          attempt: 1
+          claimToken: portable-d8822d03e36fc1d6c682784bebf4bef7dfc16592302ba0de65ed17cbf14c65b6
+          inputHash: 816e6e6d711ef061c3107c011ae0aff9a8365c8c715ead1686a44e7191eeac2c
+          outcomeId: b593b7cb-b600-4905-b2a4-5a67150eeac8
+          output:
+            archiveDirectory: openspec/changes/archive/2026-11-17-fix-independent-sampling
+          status: succeeded
+        protocolVersion: 1
+        receipts:
+          - hash: 3b1735dac637989c275e3443118834f26e2fe84afb296a927d6c4c1749a0a985
+            outcomeId: b593b7cb-b600-4905-b2a4-5a67150eeac8
+        reconciliations: []
+        ref: classic-archive
+        requiredCapabilities: []
+        retry: manual
+        runId: fix-independent-sampling
+        status: succeeded
+        stepId: tweak.archive.execute
+        type: call_tool
+      - attempt: 1
+        id: fix-independent-sampling:10
+        input:
+          input:
+            change: fix-independent-sampling
+            changeDir: openspec/changes/fix-independent-sampling
+            workspaceBaseline:
+              ref: 107f1ff6-806d-4e94-b59a-e3796ba5afaf
+          outputs:
+            tweak.archive.confirm:
+              choice: pr
+              proposal:
+                input:
+                  change: fix-independent-sampling
+                  changeDir: openspec/changes/fix-independent-sampling
+                  workspaceBaseline:
+                    ref: 107f1ff6-806d-4e94-b59a-e3796ba5afaf
+                outputs:
+                  tweak.archive.prepare:
+                    prBaseBranch: main
+                    remote: origin
+                    summary: "归档 issue #489 的修复和验证材料，合并 llm-response-cache 与
+                      experiment/budget-comparison 两份增量规格，提交到本地
+                      codex/fix-independent-sampling。已通过 299 项离线回归。选择 Push
+                      时仅推送该分支到 origin；选择 PR 时推送该分支并向 origin 的 main 创建 PR。"
+                    targetBranch: codex/fix-independent-sampling
+            tweak.archive.execute:
+              archiveDirectory: openspec/changes/archive/2026-11-17-fix-independent-sampling
+            tweak.archive.preflight:
+              baseCommit: 9c7382d67bc34ecf5f78c59841e8c68d34b55672
+              deliveryAction: pr
+              deliveryPaths:
+                - src/experiment.py
+                - src/experiment_report.py
+                - src/harness.py
+                - src/llm_client.py
+                - src/strategies/self_consistency.py
+                - tests/test_experiment.py
+              prBaseBranch: main
+              remote: origin
+              remoteIdentity: 128eeb1e6f0d21b25601fcb7f9aad36adfdfb4d76f37f54f004760410190f351
+              targetBranch: codex/fix-independent-sampling
+              verifiedBranch: codex/fix-independent-sampling
+            tweak.archive.prepare:
+              prBaseBranch: main
+              remote: origin
+              summary: "归档 issue #489 的修复和验证材料，合并 llm-response-cache 与
+                experiment/budget-comparison 两份增量规格，提交到本地
+                codex/fix-independent-sampling。已通过 299 项离线回归。选择 Push 时仅推送该分支到
+                origin；选择 PR 时推送该分支并向 origin 的 main 创建 PR。"
+              targetBranch: codex/fix-independent-sampling
+            tweak.build.execute:
+              checks:
+                - name: 仓库根目录：python -m pytest --no-cov -q -m 'not online'，15 个相关测试模块
+                  note: 299 通过。覆盖真实磁盘缓存与模拟供应商、重复串并行、组合与候选检查点、历史报告、预算、Web 实际费用、重试和 A/B 测试。日志
+                    /private/tmp/harness-489-targeted-final.log
+                  result: passed
+                - name: 仓库根目录：ruff check .、ruff format --check（6 个改动文件）、git diff --check
+                  note: 静态检查和格式检查均通过。
+                  result: passed
+                - name: comet classic openspec -- validate fix-independent-sampling --strict
+                  note: 两份 delta 规格及 change 结构均通过严格校验。
+                  result: passed
+              event: build-complete
+            tweak.open:
+              event: open-complete
+              requirementsEvidence:
+                ref: openspec/changes/fix-independent-sampling
+            tweak.open.evidence:
+              contentHash: 35c28cb210875f3ea469dd3f81bea618db33dbaf7a8c458106228d824ed24279
+              ref: openspec/changes/fix-independent-sampling
+            tweak.verify.report.evidence:
+              contentHash: c42902232bdb292a0773ddd50d7338a17b98acf50c05fba0899ad2371379820b
+              ref: docs/superpowers/reports/2026-11-17-fix-independent-sampling-verify.md
+            tweak.verify.run:
+              checks:
+                - name: 仓库根目录：python -m pytest --no-cov -q -m 'not online'，15 个相关测试模块
+                  note: 299 通过。覆盖真实磁盘缓存与模拟供应商、重复串并行、组合与候选检查点、历史报告、预算、Web 实际费用、重试和 A/B 测试。日志
+                    /private/tmp/harness-489-targeted-final.log
+                  result: passed
+                - name: 仓库根目录：ruff check .、ruff format --check（6 个改动文件）、git diff --check
+                  note: 静态检查和格式检查均通过。
+                  result: passed
+                - name: comet classic openspec -- validate fix-independent-sampling --strict
+                  note: 两份 delta 规格及 change 结构均通过严格校验。
+                  result: passed
+              event: verification-ready
+              verificationReport: docs/superpowers/reports/2026-11-17-fix-independent-sampling-verify.md
+        inputHash: 37c8df2674d2108b443320e250139ed754f6fde01ac4074d03340356dbb8d6bc
+        protocolVersion: 1
+        receipts: []
+        reconciliations: []
+        ref: comet-archive
+        requiredCapabilities: []
+        retry: manual
+        runId: fix-independent-sampling
+        status: pending
+        stepId: tweak.archive.deliver
+        type: invoke_skill
+    actionContexts:
+      fix-independent-sampling:1:
+        results: {}
+        sequence: 1
+      fix-independent-sampling:10:
+        results:
+          tweak.archive.confirm:
+            sequence: 7
+            value:
+              choice: pr
+              proposal:
+                input:
+                  change: fix-independent-sampling
+                  changeDir: openspec/changes/fix-independent-sampling
+                  workspaceBaseline:
+                    ref: 107f1ff6-806d-4e94-b59a-e3796ba5afaf
+                outputs:
+                  tweak.archive.prepare:
+                    prBaseBranch: main
+                    remote: origin
+                    summary: "归档 issue #489 的修复和验证材料，合并 llm-response-cache 与
+                      experiment/budget-comparison 两份增量规格，提交到本地
+                      codex/fix-independent-sampling。已通过 299 项离线回归。选择 Push
+                      时仅推送该分支到 origin；选择 PR 时推送该分支并向 origin 的 main 创建 PR。"
+                    targetBranch: codex/fix-independent-sampling
+          tweak.archive.execute:
+            sequence: 9
+            value:
+              archiveDirectory: openspec/changes/archive/2026-11-17-fix-independent-sampling
+          tweak.archive.preflight:
+            sequence: 8
+            value:
+              baseCommit: 9c7382d67bc34ecf5f78c59841e8c68d34b55672
+              deliveryAction: pr
+              deliveryPaths:
+                - src/experiment.py
+                - src/experiment_report.py
+                - src/harness.py
+                - src/llm_client.py
+                - src/strategies/self_consistency.py
+                - tests/test_experiment.py
+              prBaseBranch: main
+              remote: origin
+              remoteIdentity: 128eeb1e6f0d21b25601fcb7f9aad36adfdfb4d76f37f54f004760410190f351
+              targetBranch: codex/fix-independent-sampling
+              verifiedBranch: codex/fix-independent-sampling
+          tweak.archive.prepare:
+            sequence: 6
+            value:
+              prBaseBranch: main
+              remote: origin
+              summary: "归档 issue #489 的修复和验证材料，合并 llm-response-cache 与
+                experiment/budget-comparison 两份增量规格，提交到本地
+                codex/fix-independent-sampling。已通过 299 项离线回归。选择 Push 时仅推送该分支到
+                origin；选择 PR 时推送该分支并向 origin 的 main 创建 PR。"
+              targetBranch: codex/fix-independent-sampling
+          tweak.build.execute:
+            sequence: 3
+            value:
+              checks:
+                - name: 仓库根目录：python -m pytest --no-cov -q -m 'not online'，15 个相关测试模块
+                  note: 299 通过。覆盖真实磁盘缓存与模拟供应商、重复串并行、组合与候选检查点、历史报告、预算、Web 实际费用、重试和 A/B 测试。日志
+                    /private/tmp/harness-489-targeted-final.log
+                  result: passed
+                - name: 仓库根目录：ruff check .、ruff format --check（6 个改动文件）、git diff --check
+                  note: 静态检查和格式检查均通过。
+                  result: passed
+                - name: comet classic openspec -- validate fix-independent-sampling --strict
+                  note: 两份 delta 规格及 change 结构均通过严格校验。
+                  result: passed
+              event: build-complete
+          tweak.open:
+            sequence: 1
+            value:
+              event: open-complete
+              requirementsEvidence:
+                ref: openspec/changes/fix-independent-sampling
+          tweak.open.evidence:
+            sequence: 2
+            value:
+              contentHash: 35c28cb210875f3ea469dd3f81bea618db33dbaf7a8c458106228d824ed24279
+              ref: openspec/changes/fix-independent-sampling
+          tweak.verify.report.evidence:
+            sequence: 5
+            value:
+              contentHash: c42902232bdb292a0773ddd50d7338a17b98acf50c05fba0899ad2371379820b
+              ref: docs/superpowers/reports/2026-11-17-fix-independent-sampling-verify.md
+          tweak.verify.run:
+            sequence: 4
+            value:
+              checks:
+                - name: 仓库根目录：python -m pytest --no-cov -q -m 'not online'，15 个相关测试模块
+                  note: 299 通过。覆盖真实磁盘缓存与模拟供应商、重复串并行、组合与候选检查点、历史报告、预算、Web 实际费用、重试和 A/B 测试。日志
+                    /private/tmp/harness-489-targeted-final.log
+                  result: passed
+                - name: 仓库根目录：ruff check .、ruff format --check（6 个改动文件）、git diff --check
+                  note: 静态检查和格式检查均通过。
+                  result: passed
+                - name: comet classic openspec -- validate fix-independent-sampling --strict
+                  note: 两份 delta 规格及 change 结构均通过严格校验。
+                  result: passed
+              event: verification-ready
+              verificationReport: docs/superpowers/reports/2026-11-17-fix-independent-sampling-verify.md
+        sequence: 10
+      fix-independent-sampling:3:
+        results:
+          tweak.open:
+            sequence: 1
+            value:
+              event: open-complete
+              requirementsEvidence:
+                ref: openspec/changes/fix-independent-sampling
+          tweak.open.evidence:
+            sequence: 2
+            value:
+              contentHash: 35c28cb210875f3ea469dd3f81bea618db33dbaf7a8c458106228d824ed24279
+              ref: openspec/changes/fix-independent-sampling
+        sequence: 3
+      fix-independent-sampling:4:
+        results:
+          tweak.build.execute:
+            sequence: 3
+            value:
+              checks:
+                - name: 仓库根目录：python -m pytest --no-cov -q -m 'not online'，15 个相关测试模块
+                  note: 299 通过。覆盖真实磁盘缓存与模拟供应商、重复串并行、组合与候选检查点、历史报告、预算、Web 实际费用、重试和 A/B 测试。日志
+                    /private/tmp/harness-489-targeted-final.log
+                  result: passed
+                - name: 仓库根目录：ruff check .、ruff format --check（6 个改动文件）、git diff --check
+                  note: 静态检查和格式检查均通过。
+                  result: passed
+                - name: comet classic openspec -- validate fix-independent-sampling --strict
+                  note: 两份 delta 规格及 change 结构均通过严格校验。
+                  result: passed
+              event: build-complete
+          tweak.open:
+            sequence: 1
+            value:
+              event: open-complete
+              requirementsEvidence:
+                ref: openspec/changes/fix-independent-sampling
+          tweak.open.evidence:
+            sequence: 2
+            value:
+              contentHash: 35c28cb210875f3ea469dd3f81bea618db33dbaf7a8c458106228d824ed24279
+              ref: openspec/changes/fix-independent-sampling
+        sequence: 4
+      fix-independent-sampling:6:
+        results:
+          tweak.build.execute:
+            sequence: 3
+            value:
+              checks:
+                - name: 仓库根目录：python -m pytest --no-cov -q -m 'not online'，15 个相关测试模块
+                  note: 299 通过。覆盖真实磁盘缓存与模拟供应商、重复串并行、组合与候选检查点、历史报告、预算、Web 实际费用、重试和 A/B 测试。日志
+                    /private/tmp/harness-489-targeted-final.log
+                  result: passed
+                - name: 仓库根目录：ruff check .、ruff format --check（6 个改动文件）、git diff --check
+                  note: 静态检查和格式检查均通过。
+                  result: passed
+                - name: comet classic openspec -- validate fix-independent-sampling --strict
+                  note: 两份 delta 规格及 change 结构均通过严格校验。
+                  result: passed
+              event: build-complete
+          tweak.open:
+            sequence: 1
+            value:
+              event: open-complete
+              requirementsEvidence:
+                ref: openspec/changes/fix-independent-sampling
+          tweak.open.evidence:
+            sequence: 2
+            value:
+              contentHash: 35c28cb210875f3ea469dd3f81bea618db33dbaf7a8c458106228d824ed24279
+              ref: openspec/changes/fix-independent-sampling
+          tweak.verify.report.evidence:
+            sequence: 5
+            value:
+              contentHash: c42902232bdb292a0773ddd50d7338a17b98acf50c05fba0899ad2371379820b
+              ref: docs/superpowers/reports/2026-11-17-fix-independent-sampling-verify.md
+          tweak.verify.run:
+            sequence: 4
+            value:
+              checks:
+                - name: 仓库根目录：python -m pytest --no-cov -q -m 'not online'，15 个相关测试模块
+                  note: 299 通过。覆盖真实磁盘缓存与模拟供应商、重复串并行、组合与候选检查点、历史报告、预算、Web 实际费用、重试和 A/B 测试。日志
+                    /private/tmp/harness-489-targeted-final.log
+                  result: passed
+                - name: 仓库根目录：ruff check .、ruff format --check（6 个改动文件）、git diff --check
+                  note: 静态检查和格式检查均通过。
+                  result: passed
+                - name: comet classic openspec -- validate fix-independent-sampling --strict
+                  note: 两份 delta 规格及 change 结构均通过严格校验。
+                  result: passed
+              event: verification-ready
+              verificationReport: docs/superpowers/reports/2026-11-17-fix-independent-sampling-verify.md
+        sequence: 6
+      fix-independent-sampling:8:
+        results:
+          tweak.archive.confirm:
+            sequence: 7
+            value:
+              choice: pr
+              proposal:
+                input:
+                  change: fix-independent-sampling
+                  changeDir: openspec/changes/fix-independent-sampling
+                  workspaceBaseline:
+                    ref: 107f1ff6-806d-4e94-b59a-e3796ba5afaf
+                outputs:
+                  tweak.archive.prepare:
+                    prBaseBranch: main
+                    remote: origin
+                    summary: "归档 issue #489 的修复和验证材料，合并 llm-response-cache 与
+                      experiment/budget-comparison 两份增量规格，提交到本地
+                      codex/fix-independent-sampling。已通过 299 项离线回归。选择 Push
+                      时仅推送该分支到 origin；选择 PR 时推送该分支并向 origin 的 main 创建 PR。"
+                    targetBranch: codex/fix-independent-sampling
+          tweak.archive.prepare:
+            sequence: 6
+            value:
+              prBaseBranch: main
+              remote: origin
+              summary: "归档 issue #489 的修复和验证材料，合并 llm-response-cache 与
+                experiment/budget-comparison 两份增量规格，提交到本地
+                codex/fix-independent-sampling。已通过 299 项离线回归。选择 Push 时仅推送该分支到
+                origin；选择 PR 时推送该分支并向 origin 的 main 创建 PR。"
+              targetBranch: codex/fix-independent-sampling
+          tweak.build.execute:
+            sequence: 3
+            value:
+              checks:
+                - name: 仓库根目录：python -m pytest --no-cov -q -m 'not online'，15 个相关测试模块
+                  note: 299 通过。覆盖真实磁盘缓存与模拟供应商、重复串并行、组合与候选检查点、历史报告、预算、Web 实际费用、重试和 A/B 测试。日志
+                    /private/tmp/harness-489-targeted-final.log
+                  result: passed
+                - name: 仓库根目录：ruff check .、ruff format --check（6 个改动文件）、git diff --check
+                  note: 静态检查和格式检查均通过。
+                  result: passed
+                - name: comet classic openspec -- validate fix-independent-sampling --strict
+                  note: 两份 delta 规格及 change 结构均通过严格校验。
+                  result: passed
+              event: build-complete
+          tweak.open:
+            sequence: 1
+            value:
+              event: open-complete
+              requirementsEvidence:
+                ref: openspec/changes/fix-independent-sampling
+          tweak.open.evidence:
+            sequence: 2
+            value:
+              contentHash: 35c28cb210875f3ea469dd3f81bea618db33dbaf7a8c458106228d824ed24279
+              ref: openspec/changes/fix-independent-sampling
+          tweak.verify.report.evidence:
+            sequence: 5
+            value:
+              contentHash: c42902232bdb292a0773ddd50d7338a17b98acf50c05fba0899ad2371379820b
+              ref: docs/superpowers/reports/2026-11-17-fix-independent-sampling-verify.md
+          tweak.verify.run:
+            sequence: 4
+            value:
+              checks:
+                - name: 仓库根目录：python -m pytest --no-cov -q -m 'not online'，15 个相关测试模块
+                  note: 299 通过。覆盖真实磁盘缓存与模拟供应商、重复串并行、组合与候选检查点、历史报告、预算、Web 实际费用、重试和 A/B 测试。日志
+                    /private/tmp/harness-489-targeted-final.log
+                  result: passed
+                - name: 仓库根目录：ruff check .、ruff format --check（6 个改动文件）、git diff --check
+                  note: 静态检查和格式检查均通过。
+                  result: passed
+                - name: comet classic openspec -- validate fix-independent-sampling --strict
+                  note: 两份 delta 规格及 change 结构均通过严格校验。
+                  result: passed
+              event: verification-ready
+              verificationReport: docs/superpowers/reports/2026-11-17-fix-independent-sampling-verify.md
+        sequence: 8
+      fix-independent-sampling:9:
+        results:
+          tweak.archive.confirm:
+            sequence: 7
+            value:
+              choice: pr
+              proposal:
+                input:
+                  change: fix-independent-sampling
+                  changeDir: openspec/changes/fix-independent-sampling
+                  workspaceBaseline:
+                    ref: 107f1ff6-806d-4e94-b59a-e3796ba5afaf
+                outputs:
+                  tweak.archive.prepare:
+                    prBaseBranch: main
+                    remote: origin
+                    summary: "归档 issue #489 的修复和验证材料，合并 llm-response-cache 与
+                      experiment/budget-comparison 两份增量规格，提交到本地
+                      codex/fix-independent-sampling。已通过 299 项离线回归。选择 Push
+                      时仅推送该分支到 origin；选择 PR 时推送该分支并向 origin 的 main 创建 PR。"
+                    targetBranch: codex/fix-independent-sampling
+          tweak.archive.preflight:
+            sequence: 8
+            value:
+              baseCommit: 9c7382d67bc34ecf5f78c59841e8c68d34b55672
+              deliveryAction: pr
+              deliveryPaths:
+                - src/experiment.py
+                - src/experiment_report.py
+                - src/harness.py
+                - src/llm_client.py
+                - src/strategies/self_consistency.py
+                - tests/test_experiment.py
+              prBaseBranch: main
+              remote: origin
+              remoteIdentity: 128eeb1e6f0d21b25601fcb7f9aad36adfdfb4d76f37f54f004760410190f351
+              targetBranch: codex/fix-independent-sampling
+              verifiedBranch: codex/fix-independent-sampling
+          tweak.archive.prepare:
+            sequence: 6
+            value:
+              prBaseBranch: main
+              remote: origin
+              summary: "归档 issue #489 的修复和验证材料，合并 llm-response-cache 与
+                experiment/budget-comparison 两份增量规格，提交到本地
+                codex/fix-independent-sampling。已通过 299 项离线回归。选择 Push 时仅推送该分支到
+                origin；选择 PR 时推送该分支并向 origin 的 main 创建 PR。"
+              targetBranch: codex/fix-independent-sampling
+          tweak.build.execute:
+            sequence: 3
+            value:
+              checks:
+                - name: 仓库根目录：python -m pytest --no-cov -q -m 'not online'，15 个相关测试模块
+                  note: 299 通过。覆盖真实磁盘缓存与模拟供应商、重复串并行、组合与候选检查点、历史报告、预算、Web 实际费用、重试和 A/B 测试。日志
+                    /private/tmp/harness-489-targeted-final.log
+                  result: passed
+                - name: 仓库根目录：ruff check .、ruff format --check（6 个改动文件）、git diff --check
+                  note: 静态检查和格式检查均通过。
+                  result: passed
+                - name: comet classic openspec -- validate fix-independent-sampling --strict
+                  note: 两份 delta 规格及 change 结构均通过严格校验。
+                  result: passed
+              event: build-complete
+          tweak.open:
+            sequence: 1
+            value:
+              event: open-complete
+              requirementsEvidence:
+                ref: openspec/changes/fix-independent-sampling
+          tweak.open.evidence:
+            sequence: 2
+            value:
+              contentHash: 35c28cb210875f3ea469dd3f81bea618db33dbaf7a8c458106228d824ed24279
+              ref: openspec/changes/fix-independent-sampling
+          tweak.verify.report.evidence:
+            sequence: 5
+            value:
+              contentHash: c42902232bdb292a0773ddd50d7338a17b98acf50c05fba0899ad2371379820b
+              ref: docs/superpowers/reports/2026-11-17-fix-independent-sampling-verify.md
+          tweak.verify.run:
+            sequence: 4
+            value:
+              checks:
+                - name: 仓库根目录：python -m pytest --no-cov -q -m 'not online'，15 个相关测试模块
+                  note: 299 通过。覆盖真实磁盘缓存与模拟供应商、重复串并行、组合与候选检查点、历史报告、预算、Web 实际费用、重试和 A/B 测试。日志
+                    /private/tmp/harness-489-targeted-final.log
+                  result: passed
+                - name: 仓库根目录：ruff check .、ruff format --check（6 个改动文件）、git diff --check
+                  note: 静态检查和格式检查均通过。
+                  result: passed
+                - name: comet classic openspec -- validate fix-independent-sampling --strict
+                  note: 两份 delta 规格及 change 结构均通过严格校验。
+                  result: passed
+              event: verification-ready
+              verificationReport: docs/superpowers/reports/2026-11-17-fix-independent-sampling-verify.md
+        sequence: 9
+    waits:
+      - id: fix-independent-sampling:7
+        stepId: tweak.archive.confirm
+        sequence: 7
+        status: resolved
+        proposal:
+          input:
+            change: fix-independent-sampling
+            changeDir: openspec/changes/fix-independent-sampling
+            workspaceBaseline:
+              ref: 107f1ff6-806d-4e94-b59a-e3796ba5afaf
+          outputs:
+            tweak.archive.prepare:
+              prBaseBranch: main
+              remote: origin
+              summary: "归档 issue #489 的修复和验证材料，合并 llm-response-cache 与
+                experiment/budget-comparison 两份增量规格，提交到本地
+                codex/fix-independent-sampling。已通过 299 项离线回归。选择 Push 时仅推送该分支到
+                origin；选择 PR 时推送该分支并向 origin 的 main 创建 PR。"
+              targetBranch: codex/fix-independent-sampling
+        proposalHash: 964c82d3e0ec296581b6e25df00a5a3781205fdb4ea79f9f3255b7ca9ed1d302
+        choices:
+          - local
+          - push
+          - pr
+          - reverify
+          - later
+        results:
+          tweak.archive.prepare:
+            sequence: 6
+            value:
+              prBaseBranch: main
+              remote: origin
+              summary: "归档 issue #489 的修复和验证材料，合并 llm-response-cache 与
+                experiment/budget-comparison 两份增量规格，提交到本地
+                codex/fix-independent-sampling。已通过 299 项离线回归。选择 Push 时仅推送该分支到
+                origin；选择 PR 时推送该分支并向 origin 的 main 创建 PR。"
+              targetBranch: codex/fix-independent-sampling
+          tweak.build.execute:
+            sequence: 3
+            value:
+              checks:
+                - name: 仓库根目录：python -m pytest --no-cov -q -m 'not online'，15 个相关测试模块
+                  note: 299 通过。覆盖真实磁盘缓存与模拟供应商、重复串并行、组合与候选检查点、历史报告、预算、Web 实际费用、重试和 A/B 测试。日志
+                    /private/tmp/harness-489-targeted-final.log
+                  result: passed
+                - name: 仓库根目录：ruff check .、ruff format --check（6 个改动文件）、git diff --check
+                  note: 静态检查和格式检查均通过。
+                  result: passed
+                - name: comet classic openspec -- validate fix-independent-sampling --strict
+                  note: 两份 delta 规格及 change 结构均通过严格校验。
+                  result: passed
+              event: build-complete
+          tweak.open:
+            sequence: 1
+            value:
+              event: open-complete
+              requirementsEvidence:
+                ref: openspec/changes/fix-independent-sampling
+          tweak.open.evidence:
+            sequence: 2
+            value:
+              contentHash: 35c28cb210875f3ea469dd3f81bea618db33dbaf7a8c458106228d824ed24279
+              ref: openspec/changes/fix-independent-sampling
+          tweak.verify.report.evidence:
+            sequence: 5
+            value:
+              contentHash: c42902232bdb292a0773ddd50d7338a17b98acf50c05fba0899ad2371379820b
+              ref: docs/superpowers/reports/2026-11-17-fix-independent-sampling-verify.md
+          tweak.verify.run:
+            sequence: 4
+            value:
+              checks:
+                - name: 仓库根目录：python -m pytest --no-cov -q -m 'not online'，15 个相关测试模块
+                  note: 299 通过。覆盖真实磁盘缓存与模拟供应商、重复串并行、组合与候选检查点、历史报告、预算、Web 实际费用、重试和 A/B 测试。日志
+                    /private/tmp/harness-489-targeted-final.log
+                  result: passed
+                - name: 仓库根目录：ruff check .、ruff format --check（6 个改动文件）、git diff --check
+                  note: 静态检查和格式检查均通过。
+                  result: passed
+                - name: comet classic openspec -- validate fix-independent-sampling --strict
+                  note: 两份 delta 规格及 change 结构均通过严格校验。
+                  result: passed
+              event: verification-ready
+              verificationReport: docs/superpowers/reports/2026-11-17-fix-independent-sampling-verify.md
+        decision:
+          id: classic-archive-964c82d3e0ec296581b6e25df00a5a3781205fdb4ea79f9f3255b7ca9ed1d302-pr
+          choice: pr
+          proposalHash: 964c82d3e0ec296581b6e25df00a5a3781205fdb4ea79f9f3255b7ca9ed1d302
+    evidenceWaits:
+      - id: fix-independent-sampling:2
+        stepId: tweak.open.evidence
+        sequence: 2
+        kind: classic-open-artifacts
+        status: resolved
+        results:
+          tweak.open:
+            sequence: 1
+            value:
+              event: open-complete
+              requirementsEvidence:
+                ref: openspec/changes/fix-independent-sampling
+        receipt:
+          ref: openspec/changes/fix-independent-sampling
+          contentHash: 35c28cb210875f3ea469dd3f81bea618db33dbaf7a8c458106228d824ed24279
+          submissionId: 3224518c-8199-463e-a3bf-4a83f08b1cac
+      - id: fix-independent-sampling:5
+        stepId: tweak.verify.report.evidence
+        sequence: 5
+        kind: classic-verification-report
+        status: resolved
+        results:
+          tweak.build.execute:
+            sequence: 3
+            value:
+              checks:
+                - name: 仓库根目录：python -m pytest --no-cov -q -m 'not online'，15 个相关测试模块
+                  note: 299 通过。覆盖真实磁盘缓存与模拟供应商、重复串并行、组合与候选检查点、历史报告、预算、Web 实际费用、重试和 A/B 测试。日志
+                    /private/tmp/harness-489-targeted-final.log
+                  result: passed
+                - name: 仓库根目录：ruff check .、ruff format --check（6 个改动文件）、git diff --check
+                  note: 静态检查和格式检查均通过。
+                  result: passed
+                - name: comet classic openspec -- validate fix-independent-sampling --strict
+                  note: 两份 delta 规格及 change 结构均通过严格校验。
+                  result: passed
+              event: build-complete
+          tweak.open:
+            sequence: 1
+            value:
+              event: open-complete
+              requirementsEvidence:
+                ref: openspec/changes/fix-independent-sampling
+          tweak.open.evidence:
+            sequence: 2
+            value:
+              contentHash: 35c28cb210875f3ea469dd3f81bea618db33dbaf7a8c458106228d824ed24279
+              ref: openspec/changes/fix-independent-sampling
+          tweak.verify.run:
+            sequence: 4
+            value:
+              checks:
+                - name: 仓库根目录：python -m pytest --no-cov -q -m 'not online'，15 个相关测试模块
+                  note: 299 通过。覆盖真实磁盘缓存与模拟供应商、重复串并行、组合与候选检查点、历史报告、预算、Web 实际费用、重试和 A/B 测试。日志
+                    /private/tmp/harness-489-targeted-final.log
+                  result: passed
+                - name: 仓库根目录：ruff check .、ruff format --check（6 个改动文件）、git diff --check
+                  note: 静态检查和格式检查均通过。
+                  result: passed
+                - name: comet classic openspec -- validate fix-independent-sampling --strict
+                  note: 两份 delta 规格及 change 结构均通过严格校验。
+                  result: passed
+              event: verification-ready
+              verificationReport: docs/superpowers/reports/2026-11-17-fix-independent-sampling-verify.md
+        receipt:
+          ref: docs/superpowers/reports/2026-11-17-fix-independent-sampling-verify.md
+          contentHash: c42902232bdb292a0773ddd50d7338a17b98acf50c05fba0899ad2371379820b
+          submissionId: 291759c1-3d00-4a89-bd45-470e05728da9
+    ready: []
+    joins: {}
+    outputs:
+      tweak.archive.confirm:
+        sequence: 7
+        value:
+          choice: pr
+          proposal:
+            input:
+              change: fix-independent-sampling
+              changeDir: openspec/changes/fix-independent-sampling
+              workspaceBaseline:
+                ref: 107f1ff6-806d-4e94-b59a-e3796ba5afaf
+            outputs:
+              tweak.archive.prepare:
+                prBaseBranch: main
+                remote: origin
+                summary: "归档 issue #489 的修复和验证材料，合并 llm-response-cache 与
+                  experiment/budget-comparison 两份增量规格，提交到本地
+                  codex/fix-independent-sampling。已通过 299 项离线回归。选择 Push 时仅推送该分支到
+                  origin；选择 PR 时推送该分支并向 origin 的 main 创建 PR。"
+                targetBranch: codex/fix-independent-sampling
+      tweak.archive.execute:
+        sequence: 9
+        value:
+          archiveDirectory: openspec/changes/archive/2026-11-17-fix-independent-sampling
+      tweak.archive.preflight:
+        sequence: 8
+        value:
+          baseCommit: 9c7382d67bc34ecf5f78c59841e8c68d34b55672
+          deliveryAction: pr
+          deliveryPaths:
+            - src/experiment.py
+            - src/experiment_report.py
+            - src/harness.py
+            - src/llm_client.py
+            - src/strategies/self_consistency.py
+            - tests/test_experiment.py
+          prBaseBranch: main
+          remote: origin
+          remoteIdentity: 128eeb1e6f0d21b25601fcb7f9aad36adfdfb4d76f37f54f004760410190f351
+          targetBranch: codex/fix-independent-sampling
+          verifiedBranch: codex/fix-independent-sampling
+      tweak.archive.prepare:
+        sequence: 6
+        value:
+          prBaseBranch: main
+          remote: origin
+          summary: "归档 issue #489 的修复和验证材料，合并 llm-response-cache 与
+            experiment/budget-comparison 两份增量规格，提交到本地
+            codex/fix-independent-sampling。已通过 299 项离线回归。选择 Push 时仅推送该分支到
+            origin；选择 PR 时推送该分支并向 origin 的 main 创建 PR。"
+          targetBranch: codex/fix-independent-sampling
+      tweak.build.execute:
+        sequence: 3
+        value:
+          checks:
+            - name: 仓库根目录：python -m pytest --no-cov -q -m 'not online'，15 个相关测试模块
+              note: 299 通过。覆盖真实磁盘缓存与模拟供应商、重复串并行、组合与候选检查点、历史报告、预算、Web 实际费用、重试和 A/B 测试。日志
+                /private/tmp/harness-489-targeted-final.log
+              result: passed
+            - name: 仓库根目录：ruff check .、ruff format --check（6 个改动文件）、git diff --check
+              note: 静态检查和格式检查均通过。
+              result: passed
+            - name: comet classic openspec -- validate fix-independent-sampling --strict
+              note: 两份 delta 规格及 change 结构均通过严格校验。
+              result: passed
+          event: build-complete
+      tweak.open:
+        sequence: 1
+        value:
+          event: open-complete
+          requirementsEvidence:
+            ref: openspec/changes/fix-independent-sampling
+      tweak.open.evidence:
+        sequence: 2
+        value:
+          contentHash: 35c28cb210875f3ea469dd3f81bea618db33dbaf7a8c458106228d824ed24279
+          ref: openspec/changes/fix-independent-sampling
+      tweak.verify.report.evidence:
+        sequence: 5
+        value:
+          contentHash: c42902232bdb292a0773ddd50d7338a17b98acf50c05fba0899ad2371379820b
+          ref: docs/superpowers/reports/2026-11-17-fix-independent-sampling-verify.md
+      tweak.verify.run:
+        sequence: 4
+        value:
+          checks:
+            - name: 仓库根目录：python -m pytest --no-cov -q -m 'not online'，15 个相关测试模块
+              note: 299 通过。覆盖真实磁盘缓存与模拟供应商、重复串并行、组合与候选检查点、历史报告、预算、Web 实际费用、重试和 A/B 测试。日志
+                /private/tmp/harness-489-targeted-final.log
+              result: passed
+            - name: 仓库根目录：ruff check .、ruff format --check（6 个改动文件）、git diff --check
+              note: 静态检查和格式检查均通过。
+              result: passed
+            - name: comet classic openspec -- validate fix-independent-sampling --strict
+              note: 两份 delta 规格及 change 结构均通过严格校验。
+              result: passed
+          event: verification-ready
+          verificationReport: docs/superpowers/reports/2026-11-17-fix-independent-sampling-verify.md
+    children: []
+    lineage: []
+  sourceRevision: 17
+  sourceHash: 43978701966c9794fb7900cdf76393860e1f4c09ad05b2df7ddbfc030f871f2b
+direct_override: null
+handoff_context: null
+handoff_hash: null
+classic_profile: null
+classic_migration: null
+check_epoch: 5

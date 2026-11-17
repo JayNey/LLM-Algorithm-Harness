@@ -8,6 +8,7 @@ the most frequent correct answer through voting.
 import time
 from collections import Counter
 from typing import Any
+from uuid import uuid4
 
 from src.budget import BudgetExhausted
 from src.models import (
@@ -69,6 +70,7 @@ class SelfConsistencyStrategy(StrategyBase):
         start_time = time.time()
         iterations: list[IterationResult] = []
         llm_responses: list[LLMResponse | None] = []
+        sampling_id = uuid4().hex
 
         # Step 1: Generate N candidate solutions
         self.logger.info(
@@ -98,6 +100,7 @@ class SelfConsistencyStrategy(StrategyBase):
                         else None
                     ),
                     custom_params=self._provider_custom_params(),
+                    sample_id=f"{sampling_id}:{iteration_num}",
                 )
                 llm_responses.append(llm_response)
 
@@ -185,6 +188,10 @@ class SelfConsistencyStrategy(StrategyBase):
         )
         # The base helper uses the last iteration; voting may select an earlier one.
         execution_result.generated_code = voting_result["selected_code"]
+        execution_result.metadata["candidate_samples"] = [
+            {"sample_id": f"{sampling_id}:{iteration.iteration}", "cache_hit": False}
+            for iteration in iterations
+        ]
 
         # Add voting statistics as metadata
         voting_metadata = {
