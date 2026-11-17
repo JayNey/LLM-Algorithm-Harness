@@ -778,6 +778,19 @@ class ExperimentConfig(BaseModel):
         None, description="Optional filters applied to the dataset before execution"
     )
 
+    @model_validator(mode="after")
+    def validate_unique_names(self) -> "ExperimentConfig":
+        for kind, names in (
+            ("model", [model.model for model in self.models]),
+            ("strategy", [strategy.name for strategy in self.strategies]),
+        ):
+            seen: set[str] = set()
+            for name in names:
+                if name in seen:
+                    raise ValueError(f"Duplicate {kind} name in experiment: {name!r}")
+                seen.add(name)
+        return self
+
     def redacted_dict(self) -> dict[str, Any]:
         """Return a serialization-safe view of the experiment configuration."""
         result = redact_sensitive_data(self.model_dump(mode="json"))

@@ -10,7 +10,6 @@ parameters, budget definition, and a pricing snapshot.
 
 import hashlib
 import json
-import re
 import subprocess
 from collections.abc import Callable
 from concurrent.futures import ThreadPoolExecutor
@@ -33,11 +32,7 @@ from src.utils.pricing import PricingManager
 from src.utils.secrets import redact_sensitive_data
 
 logger = get_logger(__name__)
-
-
-def _safe_dirname(value: str) -> str:
-    """Make a model/strategy name safe to use as a directory name."""
-    return re.sub(r"[^A-Za-z0-9._-]+", "_", value).strip("_") or "unnamed"
+EXPERIMENT_SCHEMA_VERSION = "1.1"
 
 
 def _sha256_file(path: Path) -> str:
@@ -112,72 +107,87 @@ class ExperimentRunner:
 
     def run(self) -> Path:
         """Execute all combinations and return the experiment directory."""
+        self.config.validate_unique_names()
         started_at = datetime.now().isoformat()
         problems = self._load_problems()
         exp_dir = self._create_experiment_dir()
-        checkpoint_config = self.config.redacted_dict()
-        checkpoint_config.pop("dataset_path", None)
-        checkpoint_dataset = self._dataset_fingerprint(problems)
-        checkpoint_dataset.pop("path", None)
-        checkpoint = (
-            UnitCheckpoint(
+        metadata_path = exp_dir / "experiment.json"
+        dataset = self._dataset_fingerprint(problems)
+
+        metadata: dict[str, Any]
+        if self.checkpoint_dir is not None and metadata_path.exists():
+            metadata = json.loads(metadata_path.read_text(encoding="utf-8"))
+            if metadata.get("schema_version") != EXPERIMENT_SCHEMA_VERSION:
+                raise ValueError(
+                    "Unsupported experiment checkpoint format "
+                    f"{metadata.get('schema_version')!r}; start a new experiment"
+                )
+        else:
+            metadata = {
+                "schema_version": EXPERIMENT_SCHEMA_VERSION,
+                "name": self.config.name,
+                "experiment_id": exp_dir.name,
+                "sampling_run_id": uuid4().hex,
+                "created_at": started_at,
+                "code_version": {"git_commit": _git_commit(), "git_dirty": _git_dirty()},
+                "dataset": dataset,
+                "budget": self.config.budget.model_dump() if self.config.budget else None,
+                "sandbox_config": self.config.sandbox_config.model_dump(mode="json"),
+                "problem_filters": self.config.problem_filters,
+                "repeats": self.config.repeats,
+                "models": [model.redacted_dict() for model in self.config.models],
+                "strategies": [strategy.model_dump() for strategy in self.config.strategies],
+                "pricing_snapshot": {
+                    model.model: self.pricing_manager.get_pricing(model.model).to_dict()
+                    for model in self.config.models
+                },
+                "combinations": [],
+            }
+
+        checkpoint = None
+        if self.checkpoint_dir is not None:
+            checkpoint_config = self.config.redacted_dict()
+            checkpoint_config.pop("dataset_path", None)
+            checkpoint_dataset = dataset.copy()
+            checkpoint_dataset.pop("path", None)
+            checkpoint = UnitCheckpoint(
                 exp_dir / "units",
                 TaskService.config_fingerprint(
-                    {
-                        "config": checkpoint_config,
-                        "dataset": checkpoint_dataset,
-                    }
+                    {"config": checkpoint_config, "dataset": checkpoint_dataset}
                 ),
             )
-            if self.checkpoint_dir is not None
-            else None
-        )
 
-        metadata: dict[str, Any] = {
-            "schema_version": "1.0",
-            "name": self.config.name,
-            "experiment_id": exp_dir.name,
-            "sampling_run_id": uuid4().hex,
-            "created_at": started_at,
-            "code_version": {"git_commit": _git_commit(), "git_dirty": _git_dirty()},
-            "dataset": self._dataset_fingerprint(problems),
-            "budget": self.config.budget.model_dump() if self.config.budget else None,
-            "sandbox_config": self.config.sandbox_config.model_dump(mode="json"),
-            "problem_filters": self.config.problem_filters,
-            "repeats": self.config.repeats,
-            "models": [model.redacted_dict() for model in self.config.models],
-            "strategies": [strategy.model_dump() for strategy in self.config.strategies],
-            "pricing_snapshot": {
-                model.model: self.pricing_manager.get_pricing(model.model).to_dict()
-                for model in self.config.models
-            },
-            "combinations": [],
-        }
-        metadata_path = exp_dir / "experiment.json"
-        recorded_sampling_policy = False
-        if checkpoint is not None and metadata_path.exists():
-            metadata = json.loads(metadata_path.read_text(encoding="utf-8"))
-            recorded_sampling_policy = "sampling_run_id" in metadata
-            if not recorded_sampling_policy:
-                metadata["sampling_run_id"] = uuid4().hex
+        recorded_sampling_policy = "sampling_run_id" in metadata
+        if not recorded_sampling_policy:
+            metadata["sampling_run_id"] = uuid4().hex
 
-        all_jobs = [
+        combinations = (
             (model, strategy, repeat)
             for model in self.config.models
             for strategy in self.config.strategies
             for repeat in range(1, self.config.repeats + 1)
-        ]
-        completed = {combo.get("unit_id"): combo for combo in metadata["combinations"]}
+        )
+        all_jobs = {f"combo-{index}": combo for index, combo in enumerate(combinations)}
+        completed = {combo["combo_id"]: combo for combo in metadata["combinations"]}
+        if len(completed) != len(metadata["combinations"]) or completed.keys() - all_jobs.keys():
+            raise ValueError("Invalid combination IDs in experiment checkpoint metadata")
         total = len(all_jobs)
         remaining = []
-        for index, (model, strategy, repeat) in enumerate(all_jobs):
-            key = str(index)
-            saved = completed.get(key)
+        for combo_id, (model, strategy, repeat) in all_jobs.items():
+            saved = completed.get(combo_id)
             if saved is None and checkpoint is not None:
-                saved = checkpoint.get(key)
+                saved = checkpoint.get(combo_id)
             if saved is None:
-                remaining.append((key, model, strategy, repeat))
+                remaining.append((combo_id, model, strategy, repeat))
                 continue
+            if (
+                saved.get("combo_id"),
+                saved.get("combo_dir"),
+                saved.get("model"),
+                saved.get("strategy"),
+                saved.get("repeat"),
+            ) != (combo_id, combo_id, model.model, strategy.name, repeat):
+                raise ValueError(f"Mismatched experiment checkpoint for combination {combo_id!r}")
             if (
                 not recorded_sampling_policy
                 and model.cache.enabled
@@ -187,32 +197,25 @@ class ExperimentRunner:
                 raise ValueError(
                     "This experiment checkpoint predates independent sampling; start a new experiment"
                 )
-            if key not in completed:
+            if combo_id not in completed:
                 metadata["combinations"].append(saved)
             logger.info(
                 "experiment_combination_recovered",
                 experiment_id=exp_dir.name,
                 sampling_run_id=metadata.get("sampling_run_id"),
-                unit_id=key,
+                combo_id=combo_id,
                 sampling_scope=saved.get("sampling_scope"),
             )
         self._write_json(metadata_path, metadata)
 
         def run_combo(
-            key: str, model: LLMConfig, strategy: StrategyConfig, repeat: int
+            combo_id: str, model: LLMConfig, strategy: StrategyConfig, repeat: int
         ) -> dict[str, Any] | None:
             if self._pause_requested():
                 return None
-            unit_dir = exp_dir / f"unit-{key}" if checkpoint is not None else exp_dir
-            combo = self._run_combo(unit_dir, model, strategy, repeat)
+            combo = self._run_combo(exp_dir / combo_id, model, strategy, repeat)
             if checkpoint is not None:
-                combo = {
-                    **combo,
-                    "unit_id": key,
-                    "combo_id": f"unit-{key}__{combo['combo_id']}",
-                    "combo_dir": f"unit-{key}/{combo['combo_dir']}",
-                }
-                checkpoint.put(key, combo)
+                checkpoint.put(combo_id, combo)
             return combo
 
         jobs = remaining
@@ -224,26 +227,26 @@ class ExperimentRunner:
                 # combination order stays identical to serial execution.
                 # Combinations already submitted may finish; later ones do not start.
                 futures = []
-                for key, model, strategy, repeat in jobs:
+                for combo_id, model, strategy, repeat in jobs:
                     if self._pause_requested():
                         break
                     self._report_combination(
                         len(metadata["combinations"]), total, model, strategy, repeat
                     )
-                    futures.append(pool.submit(run_combo, key, model, strategy, repeat))
+                    futures.append(pool.submit(run_combo, combo_id, model, strategy, repeat))
                 for future in futures:
                     combo = future.result()
                     if combo is not None:
                         metadata["combinations"].append(combo)
                     self._write_json(exp_dir / "experiment.json", metadata)
         else:
-            for key, model, strategy, repeat in jobs:
+            for combo_id, model, strategy, repeat in jobs:
                 if self._pause_requested():
                     break
                 self._report_combination(
                     len(metadata["combinations"]), total, model, strategy, repeat
                 )
-                combo = run_combo(key, model, strategy, repeat)
+                combo = run_combo(combo_id, model, strategy, repeat)
                 if combo is not None:
                     metadata["combinations"].append(combo)
                 self._write_json(exp_dir / "experiment.json", metadata)
@@ -313,13 +316,12 @@ class ExperimentRunner:
 
     def _run_combo(
         self,
-        exp_dir: Path,
+        combo_dir: Path,
         model: LLMConfig,
         strategy: StrategyConfig,
         repeat: int,
     ) -> dict[str, Any]:
-        combo_id = f"{_safe_dirname(model.model)}__{_safe_dirname(strategy.name)}__r{repeat}"
-        combo_dir = exp_dir / combo_id
+        combo_id = combo_dir.name
         combo_dir.mkdir(parents=True, exist_ok=True)
         logger.info(
             "experiment_combo_started",

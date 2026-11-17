@@ -1,0 +1,37 @@
+{
+  "schema": "comet.classic.archive-manifest.v2",
+  "execution": {
+    "workflow": {
+      "id": "comet-classic-tweak",
+      "version": "2",
+      "hash": "d1e067bc00ca13395dbc6f701565417c3e227f17a57df025dd73ebda905e2638"
+    },
+    "runId": "fix-experiment-combination-identity",
+    "actionId": "fix-experiment-combination-identity:13",
+    "attempt": 1,
+    "inputHash": "5cae3c424e15932af89e44207a5a840a0bbc70dabedaa2d0f4d12f756a410acc",
+    "claimToken": "portable-c5526645d1c024b9227982dc3aab39fe55c3dc597aca5a395196d8056544e1eb"
+  },
+  "activeRef": "openspec/changes/fix-experiment-combination-identity",
+  "archiveRef": "openspec/changes/archive/2026-11-18-fix-experiment-combination-identity",
+  "stateRef": "openspec/changes/archive/2026-11-18-fix-experiment-combination-identity/comet-state.yaml",
+  "paths": [
+    "openspec/changes/archive/2026-11-18-fix-experiment-combination-identity/.comet/archive-requirements.json",
+    "openspec/changes/archive/2026-11-18-fix-experiment-combination-identity/.openspec.yaml",
+    "openspec/changes/archive/2026-11-18-fix-experiment-combination-identity/design.md",
+    "openspec/changes/archive/2026-11-18-fix-experiment-combination-identity/proposal.md",
+    "openspec/changes/archive/2026-11-18-fix-experiment-combination-identity/specs/experiment/budget-comparison/spec.md",
+    "openspec/changes/archive/2026-11-18-fix-experiment-combination-identity/tasks.md",
+    "openspec/changes/archive/2026-11-18-fix-experiment-combination-identity/walkthrough.html",
+    "openspec/specs/experiment/budget-comparison/spec.md"
+  ],
+  "sourcePaths": [
+    "openspec/changes/fix-experiment-combination-identity/.comet/archive-requirements.json",
+    "openspec/changes/fix-experiment-combination-identity/.openspec.yaml",
+    "openspec/changes/fix-experiment-combination-identity/design.md",
+    "openspec/changes/fix-experiment-combination-identity/proposal.md",
+    "openspec/changes/fix-experiment-combination-identity/specs/experiment/budget-comparison/spec.md",
+    "openspec/changes/fix-experiment-combination-identity/tasks.md",
+    "openspec/changes/fix-experiment-combination-identity/walkthrough.html"
+  ]
+}

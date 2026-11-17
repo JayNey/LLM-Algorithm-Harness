@@ -667,14 +667,31 @@ def _analyze_quality_evolution(
 
 def generate_comparison_report(exp_dir: Path) -> dict[str, Any]:
     meta = _load_json(Path(exp_dir) / "experiment.json")
+    references = meta.get("combinations", [])
+    directories: dict[str, Path] = {}
+    seen_directories: set[tuple[int, int]] = set()
+    for reference in references:
+        combo_id = reference["combo_id"]
+        if combo_id in directories:
+            raise ValueError(f"Duplicate experiment combination ID {combo_id!r}")
+        combo_dir = Path(exp_dir) / reference["combo_dir"]
+        # Compare filesystem identities to catch aliases, including case-insensitive paths.
+        directory_stat = combo_dir.stat()
+        directory_identity = (directory_stat.st_dev, directory_stat.st_ino)
+        if directory_identity in seen_directories:
+            raise ValueError(f"Shared experiment combination directory {reference['combo_dir']!r}")
+        directories[combo_id] = combo_dir
+        seen_directories.add(directory_identity)
+
     combos: list[dict[str, Any]] = []
     raw_results: dict[str, list[dict[str, Any]]] = {}
-    for combo_ref in meta.get("combinations", []):
-        combo_dir = Path(exp_dir) / combo_ref["combo_dir"]
+    for combo_ref in references:
+        combo_id = combo_ref["combo_id"]
+        combo_dir = directories[combo_id]
         summary = _load_json(combo_dir / "summary.json")
         results = _load_json(combo_dir / f"{combo_ref['strategy']}_results.json")
         ledger = _load_json(combo_dir / "budget_ledger.json")
-        raw_results[combo_ref["combo_id"]] = results
+        raw_results[combo_id] = results
         combos.append(_combo_metrics(meta, combo_ref, summary, results, ledger))
 
     problem_info = {

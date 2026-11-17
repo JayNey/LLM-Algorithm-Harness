@@ -1,0 +1,1670 @@
+# comet-execution: managed-run
+change_id: a67c15a4-b42d-403b-8a2a-98bad0dc0f65
+workflow: tweak
+language: zh-CN
+phase: archive
+context_compression: off
+build_mode: direct
+build_pause: null
+subagent_dispatch: null
+tdd_mode: direct
+review_mode: off
+isolation: current
+verify_mode: light
+auto_transition: true
+base_ref: b67b431ce5786cbce11295d8e0322db249ca4897
+design_doc: null
+plan: null
+verify_result: pass
+verify_failures: 0
+verification_report: docs/superpowers/reports/2026-11-18-fix-experiment-combination-identity-verify.md
+branch_status: pending
+created_at: 2026-11-17
+verified_at: 2026-11-17
+archive_confirmation: confirmed
+archived: true
+bound_branch: codex/fix-experiment-combination-identity
+run_checkpoint:
+  schema: comet.workflow-run-checkpoint.v1
+  hash: 3f22a9bb696b01d7c287629ace1d7e3d5d8bc16c494e631c9b48bc9afd37446e
+  run:
+    protocolVersion: 1
+    schemaVersion: 1
+    runId: fix-experiment-combination-identity
+    revision: 1
+    workflow:
+      id: comet-classic-tweak
+      version: "2"
+      hash: d1e067bc00ca13395dbc6f701565417c3e227f17a57df025dd73ebda905e2638
+    definitionHashes:
+      '["comet-classic-tweak","2"]': d1e067bc00ca13395dbc6f701565417c3e227f17a57df025dd73ebda905e2638
+    initialStateHash: 51f3a174970977b81ae448ed939af2fa120b54d5cc49b69e1bcff072f79fa415
+    input:
+      change: fix-experiment-combination-identity
+      changeDir: openspec/changes/fix-experiment-combination-identity
+      workspaceBaseline:
+        ref: 84b926a1-d5bf-4bd5-87dd-029f865c8ad0
+    state:
+      archiveConfirmation: confirmed
+      archived: true
+      autoTransition: true
+      baseRef: b67b431ce5786cbce11295d8e0322db249ca4897
+      boundBranch: codex/fix-experiment-combination-identity
+      branchStatus: pending
+      buildMode: direct
+      buildPause: null
+      checkEpoch: 6
+      classicMigration: null
+      classicProfile: null
+      contextCompression: off
+      createdAt: 2026-11-17
+      designDoc: null
+      directOverride: null
+      handoffContext: null
+      handoffHash: null
+      isolation: current
+      language: zh-CN
+      phase: archive
+      plan: null
+      reviewMode: off
+      subagentDispatch: null
+      tddMode: direct
+      verificationReport: docs/superpowers/reports/2026-11-18-fix-experiment-combination-identity-verify.md
+      verifiedAt: 2026-11-17
+      verifyFailures: 0
+      verifyMode: light
+      verifyResult: pass
+      workflow: tweak
+    status: running
+    sequence: 14
+    actions:
+      - attempt: 1
+        claim:
+          executorId: comet-classic-guard
+          token: portable-fcf1cbaab46c1ca8c801f49529563f947db9062bb9bb237ea320be5b2e30921d
+        executionOrigin:
+          workflow:
+            hash: 518d3e8e12eb39899775cb7d2ddcc7ddeba10cb1f1d43cff7b03f2ca61a70c65
+            id: comet-classic-tweak
+            version: "2"
+        id: fix-experiment-combination-identity:1
+        input:
+          input:
+            change: fix-experiment-combination-identity
+            changeDir: openspec/changes/fix-experiment-combination-identity
+            workspaceBaseline:
+              ref: 84b926a1-d5bf-4bd5-87dd-029f865c8ad0
+          outputs: {}
+        inputHash: 3eaa0ef2837bf9be6fccbf98f510ab04ca7e79d6acf1988dc2472df7fd2f99e8
+        outcome:
+          actionId: fix-experiment-combination-identity:1
+          attempt: 1
+          claimToken: portable-fcf1cbaab46c1ca8c801f49529563f947db9062bb9bb237ea320be5b2e30921d
+          inputHash: 3eaa0ef2837bf9be6fccbf98f510ab04ca7e79d6acf1988dc2472df7fd2f99e8
+          outcomeId: 613ae463-0dcf-4219-8052-5eaf5ddb086b
+          output:
+            event: open-complete
+            requirementsEvidence:
+              ref: openspec/changes/fix-experiment-combination-identity
+          status: succeeded
+        protocolVersion: 1
+        receipts:
+          - hash: 20ecd97e049cc652d3dcdd9348ed06502d946a62aa7d77a6e467f9af39a7136e
+            outcomeId: 613ae463-0dcf-4219-8052-5eaf5ddb086b
+        reconciliations: []
+        ref: comet-tweak
+        requiredCapabilities: []
+        retry: manual
+        runId: fix-experiment-combination-identity
+        status: succeeded
+        stepId: tweak.open
+        type: invoke_skill
+      - attempt: 1
+        claim:
+          executorId: comet-classic-state
+          sessionId: 01a1ea55-3af3-7782-ab3c-155b5821a56a
+          token: portable-2faacd2a44af18915376d698144ed6414caba1bf8cec4a20049764473c160327
+        executionOrigin:
+          workflow:
+            hash: 518d3e8e12eb39899775cb7d2ddcc7ddeba10cb1f1d43cff7b03f2ca61a70c65
+            id: comet-classic-tweak
+            version: "2"
+        id: fix-experiment-combination-identity:3
+        input:
+          input:
+            change: fix-experiment-combination-identity
+            changeDir: openspec/changes/fix-experiment-combination-identity
+            workspaceBaseline:
+              ref: 84b926a1-d5bf-4bd5-87dd-029f865c8ad0
+          outputs:
+            tweak.open:
+              event: open-complete
+              requirementsEvidence:
+                ref: openspec/changes/fix-experiment-combination-identity
+            tweak.open.evidence:
+              contentHash: 3eaa0ef2837bf9be6fccbf98f510ab04ca7e79d6acf1988dc2472df7fd2f99e8
+              ref: openspec/changes/fix-experiment-combination-identity
+        inputHash: 88ce6411f803dde72f3548fb87f996d9ba8dac652579dfa7c7d8f9344b55b9ba
+        outcome:
+          actionId: fix-experiment-combination-identity:3
+          attempt: 1
+          claimToken: portable-2faacd2a44af18915376d698144ed6414caba1bf8cec4a20049764473c160327
+          inputHash: 88ce6411f803dde72f3548fb87f996d9ba8dac652579dfa7c7d8f9344b55b9ba
+          outcomeId: 6e806c55-66de-4cb7-8e73-f6788153af8e
+          output:
+            checks:
+              - name: pytest -q --no-cov tests/test_experiment.py
+                  tests/test_business_checkpoints.py
+                  tests/test_experiment_task.py
+                  tests/test_api_experiment_benchmark.py
+                  tests/test_experiment_cancellation.py
+                  tests/test_experiment_queue_safety.py tests/test_pareto.py
+                note: 仓库根目录，228 passed。串行复现 0/0、并行一次复现 1/1 后修复为各 1/0；恢复和历史产物回归通过。日志
+                  /private/tmp/comet-491-targeted.log，RED
+                  /private/tmp/comet-491-red.log 与
+                  /private/tmp/comet-491-red-admission.log。
+                result: passed
+              - name: ruff check / black --check（5 个变更文件）/ git diff --check
+                note: 仓库根目录执行，全部退出 0。
+                result: passed
+              - name: comet classic openspec -- validate fix-experiment-combination-identity
+                  --strict
+                note: 仓库根目录执行，严格校验通过。
+                result: passed
+            event: build-complete
+          status: succeeded
+        protocolVersion: 1
+        receipts:
+          - hash: 5c609372dfb98c46d10d165a7d3e4f620af59aa2e94d41240bd3b4315091af53
+            outcomeId: 6e806c55-66de-4cb7-8e73-f6788153af8e
+        reconciliations: []
+        ref: comet-build
+        requiredCapabilities: []
+        retry: manual
+        runId: fix-experiment-combination-identity
+        status: succeeded
+        stepId: tweak.build.execute
+        type: invoke_skill
+      - attempt: 1
+        claim:
+          executorId: comet-classic-guard
+          token: portable-b27489a906608810ef9ca5969e57278558ebf85b0108c95739e497b630087962
+        executionOrigin:
+          workflow:
+            hash: 518d3e8e12eb39899775cb7d2ddcc7ddeba10cb1f1d43cff7b03f2ca61a70c65
+            id: comet-classic-tweak
+            version: "2"
+        id: fix-experiment-combination-identity:4
+        input:
+          input:
+            change: fix-experiment-combination-identity
+            changeDir: openspec/changes/fix-experiment-combination-identity
+            workspaceBaseline:
+              ref: 84b926a1-d5bf-4bd5-87dd-029f865c8ad0
+          outputs:
+            tweak.build.execute:
+              checks:
+                - name: pytest -q --no-cov tests/test_experiment.py
+                    tests/test_business_checkpoints.py
+                    tests/test_experiment_task.py
+                    tests/test_api_experiment_benchmark.py
+                    tests/test_experiment_cancellation.py
+                    tests/test_experiment_queue_safety.py tests/test_pareto.py
+                  note: 仓库根目录，228 passed。串行复现 0/0、并行一次复现 1/1 后修复为各 1/0；恢复和历史产物回归通过。日志
+                    /private/tmp/comet-491-targeted.log，RED
+                    /private/tmp/comet-491-red.log 与
+                    /private/tmp/comet-491-red-admission.log。
+                  result: passed
+                - name: ruff check / black --check（5 个变更文件）/ git diff --check
+                  note: 仓库根目录执行，全部退出 0。
+                  result: passed
+                - name: comet classic openspec -- validate fix-experiment-combination-identity
+                    --strict
+                  note: 仓库根目录执行，严格校验通过。
+                  result: passed
+              event: build-complete
+            tweak.open:
+              event: open-complete
+              requirementsEvidence:
+                ref: openspec/changes/fix-experiment-combination-identity
+            tweak.open.evidence:
+              contentHash: 3eaa0ef2837bf9be6fccbf98f510ab04ca7e79d6acf1988dc2472df7fd2f99e8
+              ref: openspec/changes/fix-experiment-combination-identity
+        inputHash: c8578795c9234e7cd41a4de560adc37dfef74ab761118483bec52a87cd9f0029
+        outcome:
+          actionId: fix-experiment-combination-identity:4
+          attempt: 1
+          claimToken: portable-b27489a906608810ef9ca5969e57278558ebf85b0108c95739e497b630087962
+          inputHash: c8578795c9234e7cd41a4de560adc37dfef74ab761118483bec52a87cd9f0029
+          outcomeId: ea33b144-3821-4b46-80c4-cea508ca22ab
+          output:
+            checks:
+              - name: pytest -q --no-cov tests/test_experiment.py
+                  tests/test_business_checkpoints.py
+                  tests/test_experiment_task.py
+                  tests/test_api_experiment_benchmark.py
+                  tests/test_experiment_cancellation.py
+                  tests/test_experiment_queue_safety.py tests/test_pareto.py
+                note: 仓库根目录，228 passed。串行复现 0/0、并行一次复现 1/1 后修复为各 1/0；恢复和历史产物回归通过。日志
+                  /private/tmp/comet-491-targeted.log，RED
+                  /private/tmp/comet-491-red.log 与
+                  /private/tmp/comet-491-red-admission.log。
+                result: passed
+              - name: ruff check / black --check（5 个变更文件）/ git diff --check
+                note: 仓库根目录执行，全部退出 0。
+                result: passed
+              - name: comet classic openspec -- validate fix-experiment-combination-identity
+                  --strict
+                note: 仓库根目录执行，严格校验通过。
+                result: passed
+              - name: 离线全套件与环境修正后的定点复测（仓库根目录）
+                note: pytest -m not online 首次运行退出 1，4269 通过、44 跳过、3 失败、4 报错，覆盖率 93.08% 达到 90%
+                  阈值。对全部异常项复测，补齐 pylint、flake8、radon 后 2 项通过，允许临时环回端口后 5
+                  项通过。命令与结果详见验收报告以及
+                  /private/tmp/comet-491-offline.log、/private/tmp/comet-491-readability.log、/private/tmp/comet-491-loopback.log。
+                result: passed
+            event: verification-ready
+            verificationReport: docs/superpowers/reports/2026-11-18-fix-experiment-combination-identity-verify.md
+          status: succeeded
+        protocolVersion: 1
+        receipts:
+          - hash: 5ba1f187ceb924b118e9d2d6e6f1b72c253db298e376b08c1e2c99b99e62d3f2
+            outcomeId: ea33b144-3821-4b46-80c4-cea508ca22ab
+        reconciliations: []
+        ref: comet-verify
+        requiredCapabilities: []
+        retry: manual
+        runId: fix-experiment-combination-identity
+        status: succeeded
+        stepId: tweak.verify.run
+        type: invoke_skill
+      - attempt: 1
+        claim:
+          executorId: comet-classic-state
+          token: portable-1e29ac6662dfaa75321c3465d561ac102159330f0e54ecd8b6429cdb157c36a2
+        executionOrigin:
+          workflow:
+            hash: 518d3e8e12eb39899775cb7d2ddcc7ddeba10cb1f1d43cff7b03f2ca61a70c65
+            id: comet-classic-tweak
+            version: "2"
+        id: fix-experiment-combination-identity:6
+        input:
+          input:
+            change: fix-experiment-combination-identity
+            changeDir: openspec/changes/fix-experiment-combination-identity
+            workspaceBaseline:
+              ref: 84b926a1-d5bf-4bd5-87dd-029f865c8ad0
+          outputs:
+            tweak.build.execute:
+              checks:
+                - name: pytest -q --no-cov tests/test_experiment.py
+                    tests/test_business_checkpoints.py
+                    tests/test_experiment_task.py
+                    tests/test_api_experiment_benchmark.py
+                    tests/test_experiment_cancellation.py
+                    tests/test_experiment_queue_safety.py tests/test_pareto.py
+                  note: 仓库根目录，228 passed。串行复现 0/0、并行一次复现 1/1 后修复为各 1/0；恢复和历史产物回归通过。日志
+                    /private/tmp/comet-491-targeted.log，RED
+                    /private/tmp/comet-491-red.log 与
+                    /private/tmp/comet-491-red-admission.log。
+                  result: passed
+                - name: ruff check / black --check（5 个变更文件）/ git diff --check
+                  note: 仓库根目录执行，全部退出 0。
+                  result: passed
+                - name: comet classic openspec -- validate fix-experiment-combination-identity
+                    --strict
+                  note: 仓库根目录执行，严格校验通过。
+                  result: passed
+              event: build-complete
+            tweak.open:
+              event: open-complete
+              requirementsEvidence:
+                ref: openspec/changes/fix-experiment-combination-identity
+            tweak.open.evidence:
+              contentHash: 3eaa0ef2837bf9be6fccbf98f510ab04ca7e79d6acf1988dc2472df7fd2f99e8
+              ref: openspec/changes/fix-experiment-combination-identity
+            tweak.verify.report.evidence:
+              contentHash: c8578795c9234e7cd41a4de560adc37dfef74ab761118483bec52a87cd9f0029
+              ref: docs/superpowers/reports/2026-11-18-fix-experiment-combination-identity-verify.md
+            tweak.verify.run:
+              checks:
+                - name: pytest -q --no-cov tests/test_experiment.py
+                    tests/test_business_checkpoints.py
+                    tests/test_experiment_task.py
+                    tests/test_api_experiment_benchmark.py
+                    tests/test_experiment_cancellation.py
+                    tests/test_experiment_queue_safety.py tests/test_pareto.py
+                  note: 仓库根目录，228 passed。串行复现 0/0、并行一次复现 1/1 后修复为各 1/0；恢复和历史产物回归通过。日志
+                    /private/tmp/comet-491-targeted.log，RED
+                    /private/tmp/comet-491-red.log 与
+                    /private/tmp/comet-491-red-admission.log。
+                  result: passed
+                - name: ruff check / black --check（5 个变更文件）/ git diff --check
+                  note: 仓库根目录执行，全部退出 0。
+                  result: passed
+                - name: comet classic openspec -- validate fix-experiment-combination-identity
+                    --strict
+                  note: 仓库根目录执行，严格校验通过。
+                  result: passed
+                - name: 离线全套件与环境修正后的定点复测（仓库根目录）
+                  note: pytest -m not online 首次运行退出 1，4269 通过、44 跳过、3 失败、4 报错，覆盖率 93.08% 达到 90%
+                    阈值。对全部异常项复测，补齐 pylint、flake8、radon 后 2 项通过，允许临时环回端口后 5
+                    项通过。命令与结果详见验收报告以及
+                    /private/tmp/comet-491-offline.log、/private/tmp/comet-491-readability.log、/private/tmp/comet-491-loopback.log。
+                  result: passed
+              event: verification-ready
+              verificationReport: docs/superpowers/reports/2026-11-18-fix-experiment-combination-identity-verify.md
+        inputHash: c1bcbdfec283fa8b0e8f60f7beed71b1b9707d78a65dd712fa03d15f3e66ab6f
+        outcome:
+          actionId: fix-experiment-combination-identity:6
+          attempt: 1
+          claimToken: portable-1e29ac6662dfaa75321c3465d561ac102159330f0e54ecd8b6429cdb157c36a2
+          inputHash: c1bcbdfec283fa8b0e8f60f7beed71b1b9707d78a65dd712fa03d15f3e66ab6f
+          outcomeId: 830fbd8c-58c3-4332-b945-473c134f951d
+          output:
+            prBaseBranch: main
+            remote: origin
+            summary: "Issue #491 验收通过。归档该 change 与验收材料，同步 experiment/budget-comparison
+              主规格，交付范围包括 5 个实现与测试文件及本次验收报告。当前绑定 main，远端 origin，PR 目标 main；若选择
+              PR，先在独立修复分支重新绑定。"
+            targetBranch: main
+          status: succeeded
+        protocolVersion: 1
+        receipts:
+          - hash: 433a41b0b9e6e77f63e18c9fc648dee42f74682cfb669ab41e399ffce32f28cf
+            outcomeId: 830fbd8c-58c3-4332-b945-473c134f951d
+        reconciliations: []
+        ref: comet-archive
+        requiredCapabilities: []
+        retry: manual
+        runId: fix-experiment-combination-identity
+        status: succeeded
+        stepId: tweak.archive.prepare
+        type: invoke_skill
+      - attempt: 1
+        claim:
+          executorId: comet-classic-guard
+          token: portable-17d5ea4f56fc44430f3cca74a71b6744a2f15a9cea42511c65088dbf4f005293
+        executionOrigin:
+          workflow:
+            hash: d1e067bc00ca13395dbc6f701565417c3e227f17a57df025dd73ebda905e2638
+            id: comet-classic-tweak
+            version: "2"
+        id: fix-experiment-combination-identity:8
+        input:
+          activation:
+            expectedRevision: 12
+            fromPhase: archive
+          input:
+            change: fix-experiment-combination-identity
+            changeDir: openspec/changes/fix-experiment-combination-identity
+            workspaceBaseline:
+              ref: 84b926a1-d5bf-4bd5-87dd-029f865c8ad0
+          outputs: {}
+        inputHash: 35243270309d530def1963b96e9f0894b1bf94cbfbab9527768897ee8d81a164
+        outcome:
+          actionId: fix-experiment-combination-identity:8
+          attempt: 1
+          claimToken: portable-17d5ea4f56fc44430f3cca74a71b6744a2f15a9cea42511c65088dbf4f005293
+          inputHash: 35243270309d530def1963b96e9f0894b1bf94cbfbab9527768897ee8d81a164
+          outcomeId: 7fe7957a-ce80-4565-adf9-3d7846427d5e
+          output:
+            checks:
+              - name: pytest -q --no-cov tests/test_experiment.py
+                  tests/test_business_checkpoints.py
+                  tests/test_experiment_task.py
+                  tests/test_api_experiment_benchmark.py
+                  tests/test_experiment_cancellation.py
+                  tests/test_experiment_queue_safety.py tests/test_pareto.py
+                note: 仓库根目录，228 passed。串行复现 0/0、并行一次复现 1/1 后修复为各 1/0；恢复和历史产物回归通过。日志
+                  /private/tmp/comet-491-targeted.log，RED
+                  /private/tmp/comet-491-red.log 与
+                  /private/tmp/comet-491-red-admission.log。
+                result: passed
+              - name: ruff check / black --check（5 个变更文件）/ git diff --check
+                note: 仓库根目录执行，全部退出 0。
+                result: passed
+              - name: comet classic openspec -- validate fix-experiment-combination-identity
+                  --strict
+                note: 仓库根目录执行，严格校验通过。
+                result: passed
+              - name: 离线全套件与环境修正后的定点复测（仓库根目录）
+                note: pytest -m not online 首次运行退出 1，4269 通过、44 跳过、3 失败、4 报错，覆盖率 93.08% 达到 90%
+                  阈值。对全部异常项复测，补齐 pylint、flake8、radon 后 2 项通过，允许临时环回端口后 5
+                  项通过。命令与结果详见验收报告以及
+                  /private/tmp/comet-491-offline.log、/private/tmp/comet-491-readability.log、/private/tmp/comet-491-loopback.log。
+                result: passed
+            event: verification-ready
+            verificationReport: docs/superpowers/reports/2026-11-18-fix-experiment-combination-identity-verify.md
+          status: succeeded
+        protocolVersion: 1
+        receipts:
+          - hash: 93985bdb25a04ccce576286720504447e3621081ea4ebb84cd8d9b5b0eafa863
+            outcomeId: 7fe7957a-ce80-4565-adf9-3d7846427d5e
+        reconciliations: []
+        ref: comet-verify
+        requiredCapabilities: []
+        retry: manual
+        runId: fix-experiment-combination-identity
+        status: succeeded
+        stepId: tweak.verify.run
+        type: invoke_skill
+      - attempt: 1
+        claim:
+          executorId: comet-classic-state
+          token: portable-824e3f8b03f0532991d62c881477857d7c9f8cbe55145521e3a853e92e7ce180
+        executionOrigin:
+          workflow:
+            hash: d1e067bc00ca13395dbc6f701565417c3e227f17a57df025dd73ebda905e2638
+            id: comet-classic-tweak
+            version: "2"
+        id: fix-experiment-combination-identity:10
+        input:
+          input:
+            change: fix-experiment-combination-identity
+            changeDir: openspec/changes/fix-experiment-combination-identity
+            workspaceBaseline:
+              ref: 84b926a1-d5bf-4bd5-87dd-029f865c8ad0
+          outputs:
+            tweak.verify.report.evidence:
+              contentHash: 35243270309d530def1963b96e9f0894b1bf94cbfbab9527768897ee8d81a164
+              ref: docs/superpowers/reports/2026-11-18-fix-experiment-combination-identity-verify.md
+            tweak.verify.run:
+              checks:
+                - name: pytest -q --no-cov tests/test_experiment.py
+                    tests/test_business_checkpoints.py
+                    tests/test_experiment_task.py
+                    tests/test_api_experiment_benchmark.py
+                    tests/test_experiment_cancellation.py
+                    tests/test_experiment_queue_safety.py tests/test_pareto.py
+                  note: 仓库根目录，228 passed。串行复现 0/0、并行一次复现 1/1 后修复为各 1/0；恢复和历史产物回归通过。日志
+                    /private/tmp/comet-491-targeted.log，RED
+                    /private/tmp/comet-491-red.log 与
+                    /private/tmp/comet-491-red-admission.log。
+                  result: passed
+                - name: ruff check / black --check（5 个变更文件）/ git diff --check
+                  note: 仓库根目录执行，全部退出 0。
+                  result: passed
+                - name: comet classic openspec -- validate fix-experiment-combination-identity
+                    --strict
+                  note: 仓库根目录执行，严格校验通过。
+                  result: passed
+                - name: 离线全套件与环境修正后的定点复测（仓库根目录）
+                  note: pytest -m not online 首次运行退出 1，4269 通过、44 跳过、3 失败、4 报错，覆盖率 93.08% 达到 90%
+                    阈值。对全部异常项复测，补齐 pylint、flake8、radon 后 2 项通过，允许临时环回端口后 5
+                    项通过。命令与结果详见验收报告以及
+                    /private/tmp/comet-491-offline.log、/private/tmp/comet-491-readability.log、/private/tmp/comet-491-loopback.log。
+                  result: passed
+              event: verification-ready
+              verificationReport: docs/superpowers/reports/2026-11-18-fix-experiment-combination-identity-verify.md
+        inputHash: e7f18015bd2a81c7b52e6571fe5b7b19e2cc4381a6e96adc2fa4d5ac04c36675
+        outcome:
+          actionId: fix-experiment-combination-identity:10
+          attempt: 1
+          claimToken: portable-824e3f8b03f0532991d62c881477857d7c9f8cbe55145521e3a853e92e7ce180
+          inputHash: e7f18015bd2a81c7b52e6571fe5b7b19e2cc4381a6e96adc2fa4d5ac04c36675
+          outcomeId: 3e37ab1c-6204-43f3-ae45-97c55d50dcad
+          output:
+            prBaseBranch: main
+            remote: origin
+            summary: "按用户已选择的 A 交付 Issue #491。从 codex/fix-experiment-combination-identity 向
+              origin/main 发起 PR，归档当前 change，同步 experiment/budget-comparison
+              主规格，并提交已验收的 5 个实现与测试文件及验收报告。"
+            targetBranch: codex/fix-experiment-combination-identity
+          status: succeeded
+        protocolVersion: 1
+        receipts:
+          - hash: 80fdec56402feac04f26d7f132b9fa6d19fbc3649fd183bd9f733e6e7b1755ca
+            outcomeId: 3e37ab1c-6204-43f3-ae45-97c55d50dcad
+        reconciliations: []
+        ref: comet-archive
+        requiredCapabilities: []
+        retry: manual
+        runId: fix-experiment-combination-identity
+        status: succeeded
+        stepId: tweak.archive.prepare
+        type: invoke_skill
+      - attempt: 1
+        claim:
+          executorId: comet-classic-archive-preflight
+          token: portable-b1b43461f5ae65ea0adc436e999002bd9f692011abb023484176052bc3457ac6
+        executionOrigin:
+          workflow:
+            hash: d1e067bc00ca13395dbc6f701565417c3e227f17a57df025dd73ebda905e2638
+            id: comet-classic-tweak
+            version: "2"
+        id: fix-experiment-combination-identity:12
+        input:
+          input:
+            change: fix-experiment-combination-identity
+            changeDir: openspec/changes/fix-experiment-combination-identity
+            workspaceBaseline:
+              ref: 84b926a1-d5bf-4bd5-87dd-029f865c8ad0
+          outputs:
+            tweak.archive.confirm:
+              choice: pr
+              proposal:
+                input:
+                  change: fix-experiment-combination-identity
+                  changeDir: openspec/changes/fix-experiment-combination-identity
+                  workspaceBaseline:
+                    ref: 84b926a1-d5bf-4bd5-87dd-029f865c8ad0
+                outputs:
+                  tweak.archive.prepare:
+                    prBaseBranch: main
+                    remote: origin
+                    summary: "按用户已选择的 A 交付 Issue #491。从 codex/fix-experiment-combination-identity 向
+                      origin/main 发起 PR，归档当前 change，同步
+                      experiment/budget-comparison 主规格，并提交已验收的 5 个实现与测试文件及验收报告。"
+                    targetBranch: codex/fix-experiment-combination-identity
+            tweak.archive.prepare:
+              prBaseBranch: main
+              remote: origin
+              summary: "按用户已选择的 A 交付 Issue #491。从 codex/fix-experiment-combination-identity 向
+                origin/main 发起 PR，归档当前 change，同步 experiment/budget-comparison
+                主规格，并提交已验收的 5 个实现与测试文件及验收报告。"
+              targetBranch: codex/fix-experiment-combination-identity
+            tweak.verify.report.evidence:
+              contentHash: 35243270309d530def1963b96e9f0894b1bf94cbfbab9527768897ee8d81a164
+              ref: docs/superpowers/reports/2026-11-18-fix-experiment-combination-identity-verify.md
+            tweak.verify.run:
+              checks:
+                - name: pytest -q --no-cov tests/test_experiment.py
+                    tests/test_business_checkpoints.py
+                    tests/test_experiment_task.py
+                    tests/test_api_experiment_benchmark.py
+                    tests/test_experiment_cancellation.py
+                    tests/test_experiment_queue_safety.py tests/test_pareto.py
+                  note: 仓库根目录，228 passed。串行复现 0/0、并行一次复现 1/1 后修复为各 1/0；恢复和历史产物回归通过。日志
+                    /private/tmp/comet-491-targeted.log，RED
+                    /private/tmp/comet-491-red.log 与
+                    /private/tmp/comet-491-red-admission.log。
+                  result: passed
+                - name: ruff check / black --check（5 个变更文件）/ git diff --check
+                  note: 仓库根目录执行，全部退出 0。
+                  result: passed
+                - name: comet classic openspec -- validate fix-experiment-combination-identity
+                    --strict
+                  note: 仓库根目录执行，严格校验通过。
+                  result: passed
+                - name: 离线全套件与环境修正后的定点复测（仓库根目录）
+                  note: pytest -m not online 首次运行退出 1，4269 通过、44 跳过、3 失败、4 报错，覆盖率 93.08% 达到 90%
+                    阈值。对全部异常项复测，补齐 pylint、flake8、radon 后 2 项通过，允许临时环回端口后 5
+                    项通过。命令与结果详见验收报告以及
+                    /private/tmp/comet-491-offline.log、/private/tmp/comet-491-readability.log、/private/tmp/comet-491-loopback.log。
+                  result: passed
+              event: verification-ready
+              verificationReport: docs/superpowers/reports/2026-11-18-fix-experiment-combination-identity-verify.md
+        inputHash: 431afba6c8b29e7961e5425d5b6cd32dca880d6f7941ff5a328b0c561c538940
+        outcome:
+          actionId: fix-experiment-combination-identity:12
+          attempt: 1
+          claimToken: portable-b1b43461f5ae65ea0adc436e999002bd9f692011abb023484176052bc3457ac6
+          inputHash: 431afba6c8b29e7961e5425d5b6cd32dca880d6f7941ff5a328b0c561c538940
+          outcomeId: b337c0bc-ebbd-4385-bb9c-fa43b46a8189
+          output:
+            baseCommit: b67b431ce5786cbce11295d8e0322db249ca4897
+            deliveryAction: pr
+            deliveryPaths:
+              - src/experiment.py
+              - src/experiment_report.py
+              - src/models.py
+              - tests/test_business_checkpoints.py
+              - tests/test_experiment.py
+            prBaseBranch: main
+            remote: origin
+            remoteIdentity: 128eeb1e6f0d21b25601fcb7f9aad36adfdfb4d76f37f54f004760410190f351
+            targetBranch: codex/fix-experiment-combination-identity
+            verifiedBranch: codex/fix-experiment-combination-identity
+          status: succeeded
+        protocolVersion: 1
+        receipts:
+          - hash: 7876ebb66dc9ed15057248c3af31fce8a08f9762662ded85af32b522d3bcaa3f
+            outcomeId: b337c0bc-ebbd-4385-bb9c-fa43b46a8189
+        reconciliations: []
+        ref: classic-archive-preflight
+        requiredCapabilities: []
+        retry: manual
+        runId: fix-experiment-combination-identity
+        status: succeeded
+        stepId: tweak.archive.preflight
+        type: call_tool
+      - attempt: 1
+        claim:
+          executorId: comet-classic-archive
+          token: portable-c5526645d1c024b9227982dc3aab39fe55c3dc597aca5a395196d8056544e1eb
+        executionOrigin:
+          workflow:
+            hash: d1e067bc00ca13395dbc6f701565417c3e227f17a57df025dd73ebda905e2638
+            id: comet-classic-tweak
+            version: "2"
+        id: fix-experiment-combination-identity:13
+        input:
+          input:
+            change: fix-experiment-combination-identity
+            changeDir: openspec/changes/fix-experiment-combination-identity
+            workspaceBaseline:
+              ref: 84b926a1-d5bf-4bd5-87dd-029f865c8ad0
+          outputs:
+            tweak.archive.confirm:
+              choice: pr
+              proposal:
+                input:
+                  change: fix-experiment-combination-identity
+                  changeDir: openspec/changes/fix-experiment-combination-identity
+                  workspaceBaseline:
+                    ref: 84b926a1-d5bf-4bd5-87dd-029f865c8ad0
+                outputs:
+                  tweak.archive.prepare:
+                    prBaseBranch: main
+                    remote: origin
+                    summary: "按用户已选择的 A 交付 Issue #491。从 codex/fix-experiment-combination-identity 向
+                      origin/main 发起 PR，归档当前 change，同步
+                      experiment/budget-comparison 主规格，并提交已验收的 5 个实现与测试文件及验收报告。"
+                    targetBranch: codex/fix-experiment-combination-identity
+            tweak.archive.preflight:
+              baseCommit: b67b431ce5786cbce11295d8e0322db249ca4897
+              deliveryAction: pr
+              deliveryPaths:
+                - src/experiment.py
+                - src/experiment_report.py
+                - src/models.py
+                - tests/test_business_checkpoints.py
+                - tests/test_experiment.py
+              prBaseBranch: main
+              remote: origin
+              remoteIdentity: 128eeb1e6f0d21b25601fcb7f9aad36adfdfb4d76f37f54f004760410190f351
+              targetBranch: codex/fix-experiment-combination-identity
+              verifiedBranch: codex/fix-experiment-combination-identity
+            tweak.archive.prepare:
+              prBaseBranch: main
+              remote: origin
+              summary: "按用户已选择的 A 交付 Issue #491。从 codex/fix-experiment-combination-identity 向
+                origin/main 发起 PR，归档当前 change，同步 experiment/budget-comparison
+                主规格，并提交已验收的 5 个实现与测试文件及验收报告。"
+              targetBranch: codex/fix-experiment-combination-identity
+            tweak.verify.report.evidence:
+              contentHash: 35243270309d530def1963b96e9f0894b1bf94cbfbab9527768897ee8d81a164
+              ref: docs/superpowers/reports/2026-11-18-fix-experiment-combination-identity-verify.md
+            tweak.verify.run:
+              checks:
+                - name: pytest -q --no-cov tests/test_experiment.py
+                    tests/test_business_checkpoints.py
+                    tests/test_experiment_task.py
+                    tests/test_api_experiment_benchmark.py
+                    tests/test_experiment_cancellation.py
+                    tests/test_experiment_queue_safety.py tests/test_pareto.py
+                  note: 仓库根目录，228 passed。串行复现 0/0、并行一次复现 1/1 后修复为各 1/0；恢复和历史产物回归通过。日志
+                    /private/tmp/comet-491-targeted.log，RED
+                    /private/tmp/comet-491-red.log 与
+                    /private/tmp/comet-491-red-admission.log。
+                  result: passed
+                - name: ruff check / black --check（5 个变更文件）/ git diff --check
+                  note: 仓库根目录执行，全部退出 0。
+                  result: passed
+                - name: comet classic openspec -- validate fix-experiment-combination-identity
+                    --strict
+                  note: 仓库根目录执行，严格校验通过。
+                  result: passed
+                - name: 离线全套件与环境修正后的定点复测（仓库根目录）
+                  note: pytest -m not online 首次运行退出 1，4269 通过、44 跳过、3 失败、4 报错，覆盖率 93.08% 达到 90%
+                    阈值。对全部异常项复测，补齐 pylint、flake8、radon 后 2 项通过，允许临时环回端口后 5
+                    项通过。命令与结果详见验收报告以及
+                    /private/tmp/comet-491-offline.log、/private/tmp/comet-491-readability.log、/private/tmp/comet-491-loopback.log。
+                  result: passed
+              event: verification-ready
+              verificationReport: docs/superpowers/reports/2026-11-18-fix-experiment-combination-identity-verify.md
+        inputHash: 5cae3c424e15932af89e44207a5a840a0bbc70dabedaa2d0f4d12f756a410acc
+        outcome:
+          actionId: fix-experiment-combination-identity:13
+          artifacts: []
+          attempt: 1
+          claimToken: portable-c5526645d1c024b9227982dc3aab39fe55c3dc597aca5a395196d8056544e1eb
+          inputHash: 5cae3c424e15932af89e44207a5a840a0bbc70dabedaa2d0f4d12f756a410acc
+          outcomeId: 524fcbac-686a-4813-a245-db950e5fedf5
+          output:
+            archiveDirectory: openspec/changes/archive/2026-11-18-fix-experiment-combination-identity
+          status: succeeded
+        protocolVersion: 1
+        receipts:
+          - hash: 657380a8f3f85c64ab409c18b0ced4849e651206caa8303d9acd4612c93d0e73
+            outcomeId: 524fcbac-686a-4813-a245-db950e5fedf5
+        reconciliations: []
+        ref: classic-archive
+        requiredCapabilities: []
+        retry: manual
+        runId: fix-experiment-combination-identity
+        status: succeeded
+        stepId: tweak.archive.execute
+        type: call_tool
+      - attempt: 1
+        id: fix-experiment-combination-identity:14
+        input:
+          input:
+            change: fix-experiment-combination-identity
+            changeDir: openspec/changes/fix-experiment-combination-identity
+            workspaceBaseline:
+              ref: 84b926a1-d5bf-4bd5-87dd-029f865c8ad0
+          outputs:
+            tweak.archive.confirm:
+              choice: pr
+              proposal:
+                input:
+                  change: fix-experiment-combination-identity
+                  changeDir: openspec/changes/fix-experiment-combination-identity
+                  workspaceBaseline:
+                    ref: 84b926a1-d5bf-4bd5-87dd-029f865c8ad0
+                outputs:
+                  tweak.archive.prepare:
+                    prBaseBranch: main
+                    remote: origin
+                    summary: "按用户已选择的 A 交付 Issue #491。从 codex/fix-experiment-combination-identity 向
+                      origin/main 发起 PR，归档当前 change，同步
+                      experiment/budget-comparison 主规格，并提交已验收的 5 个实现与测试文件及验收报告。"
+                    targetBranch: codex/fix-experiment-combination-identity
+            tweak.archive.execute:
+              archiveDirectory: openspec/changes/archive/2026-11-18-fix-experiment-combination-identity
+            tweak.archive.preflight:
+              baseCommit: b67b431ce5786cbce11295d8e0322db249ca4897
+              deliveryAction: pr
+              deliveryPaths:
+                - src/experiment.py
+                - src/experiment_report.py
+                - src/models.py
+                - tests/test_business_checkpoints.py
+                - tests/test_experiment.py
+              prBaseBranch: main
+              remote: origin
+              remoteIdentity: 128eeb1e6f0d21b25601fcb7f9aad36adfdfb4d76f37f54f004760410190f351
+              targetBranch: codex/fix-experiment-combination-identity
+              verifiedBranch: codex/fix-experiment-combination-identity
+            tweak.archive.prepare:
+              prBaseBranch: main
+              remote: origin
+              summary: "按用户已选择的 A 交付 Issue #491。从 codex/fix-experiment-combination-identity 向
+                origin/main 发起 PR，归档当前 change，同步 experiment/budget-comparison
+                主规格，并提交已验收的 5 个实现与测试文件及验收报告。"
+              targetBranch: codex/fix-experiment-combination-identity
+            tweak.verify.report.evidence:
+              contentHash: 35243270309d530def1963b96e9f0894b1bf94cbfbab9527768897ee8d81a164
+              ref: docs/superpowers/reports/2026-11-18-fix-experiment-combination-identity-verify.md
+            tweak.verify.run:
+              checks:
+                - name: pytest -q --no-cov tests/test_experiment.py
+                    tests/test_business_checkpoints.py
+                    tests/test_experiment_task.py
+                    tests/test_api_experiment_benchmark.py
+                    tests/test_experiment_cancellation.py
+                    tests/test_experiment_queue_safety.py tests/test_pareto.py
+                  note: 仓库根目录，228 passed。串行复现 0/0、并行一次复现 1/1 后修复为各 1/0；恢复和历史产物回归通过。日志
+                    /private/tmp/comet-491-targeted.log，RED
+                    /private/tmp/comet-491-red.log 与
+                    /private/tmp/comet-491-red-admission.log。
+                  result: passed
+                - name: ruff check / black --check（5 个变更文件）/ git diff --check
+                  note: 仓库根目录执行，全部退出 0。
+                  result: passed
+                - name: comet classic openspec -- validate fix-experiment-combination-identity
+                    --strict
+                  note: 仓库根目录执行，严格校验通过。
+                  result: passed
+                - name: 离线全套件与环境修正后的定点复测（仓库根目录）
+                  note: pytest -m not online 首次运行退出 1，4269 通过、44 跳过、3 失败、4 报错，覆盖率 93.08% 达到 90%
+                    阈值。对全部异常项复测，补齐 pylint、flake8、radon 后 2 项通过，允许临时环回端口后 5
+                    项通过。命令与结果详见验收报告以及
+                    /private/tmp/comet-491-offline.log、/private/tmp/comet-491-readability.log、/private/tmp/comet-491-loopback.log。
+                  result: passed
+              event: verification-ready
+              verificationReport: docs/superpowers/reports/2026-11-18-fix-experiment-combination-identity-verify.md
+        inputHash: 5a90c99e83ef237221e81f6cf52b23764c8f1449648ab76416963a4cf9b63779
+        protocolVersion: 1
+        receipts: []
+        reconciliations: []
+        ref: comet-archive
+        requiredCapabilities: []
+        retry: manual
+        runId: fix-experiment-combination-identity
+        status: pending
+        stepId: tweak.archive.deliver
+        type: invoke_skill
+    commands:
+      - id: aff94f603b30cdd1e08aa5ab22c1e390f0eaeecaddf8b3c5c507977b3a2b976e
+        name: reopen-verification
+        inputHash: f5e487703e8f5203c1a70838dc38a9f0c3378ad441ad266fc269ee9debbfde5a
+        actionId: fix-experiment-combination-identity:8
+    actionContexts:
+      fix-experiment-combination-identity:1:
+        results: {}
+        sequence: 1
+      fix-experiment-combination-identity:10:
+        results:
+          tweak.verify.report.evidence:
+            sequence: 9
+            value:
+              contentHash: 35243270309d530def1963b96e9f0894b1bf94cbfbab9527768897ee8d81a164
+              ref: docs/superpowers/reports/2026-11-18-fix-experiment-combination-identity-verify.md
+          tweak.verify.run:
+            sequence: 8
+            value:
+              checks:
+                - name: pytest -q --no-cov tests/test_experiment.py
+                    tests/test_business_checkpoints.py
+                    tests/test_experiment_task.py
+                    tests/test_api_experiment_benchmark.py
+                    tests/test_experiment_cancellation.py
+                    tests/test_experiment_queue_safety.py tests/test_pareto.py
+                  note: 仓库根目录，228 passed。串行复现 0/0、并行一次复现 1/1 后修复为各 1/0；恢复和历史产物回归通过。日志
+                    /private/tmp/comet-491-targeted.log，RED
+                    /private/tmp/comet-491-red.log 与
+                    /private/tmp/comet-491-red-admission.log。
+                  result: passed
+                - name: ruff check / black --check（5 个变更文件）/ git diff --check
+                  note: 仓库根目录执行，全部退出 0。
+                  result: passed
+                - name: comet classic openspec -- validate fix-experiment-combination-identity
+                    --strict
+                  note: 仓库根目录执行，严格校验通过。
+                  result: passed
+                - name: 离线全套件与环境修正后的定点复测（仓库根目录）
+                  note: pytest -m not online 首次运行退出 1，4269 通过、44 跳过、3 失败、4 报错，覆盖率 93.08% 达到 90%
+                    阈值。对全部异常项复测，补齐 pylint、flake8、radon 后 2 项通过，允许临时环回端口后 5
+                    项通过。命令与结果详见验收报告以及
+                    /private/tmp/comet-491-offline.log、/private/tmp/comet-491-readability.log、/private/tmp/comet-491-loopback.log。
+                  result: passed
+              event: verification-ready
+              verificationReport: docs/superpowers/reports/2026-11-18-fix-experiment-combination-identity-verify.md
+        sequence: 10
+      fix-experiment-combination-identity:12:
+        results:
+          tweak.archive.confirm:
+            sequence: 11
+            value:
+              choice: pr
+              proposal:
+                input:
+                  change: fix-experiment-combination-identity
+                  changeDir: openspec/changes/fix-experiment-combination-identity
+                  workspaceBaseline:
+                    ref: 84b926a1-d5bf-4bd5-87dd-029f865c8ad0
+                outputs:
+                  tweak.archive.prepare:
+                    prBaseBranch: main
+                    remote: origin
+                    summary: "按用户已选择的 A 交付 Issue #491。从 codex/fix-experiment-combination-identity 向
+                      origin/main 发起 PR，归档当前 change，同步
+                      experiment/budget-comparison 主规格，并提交已验收的 5 个实现与测试文件及验收报告。"
+                    targetBranch: codex/fix-experiment-combination-identity
+          tweak.archive.prepare:
+            sequence: 10
+            value:
+              prBaseBranch: main
+              remote: origin
+              summary: "按用户已选择的 A 交付 Issue #491。从 codex/fix-experiment-combination-identity 向
+                origin/main 发起 PR，归档当前 change，同步 experiment/budget-comparison
+                主规格，并提交已验收的 5 个实现与测试文件及验收报告。"
+              targetBranch: codex/fix-experiment-combination-identity
+          tweak.verify.report.evidence:
+            sequence: 9
+            value:
+              contentHash: 35243270309d530def1963b96e9f0894b1bf94cbfbab9527768897ee8d81a164
+              ref: docs/superpowers/reports/2026-11-18-fix-experiment-combination-identity-verify.md
+          tweak.verify.run:
+            sequence: 8
+            value:
+              checks:
+                - name: pytest -q --no-cov tests/test_experiment.py
+                    tests/test_business_checkpoints.py
+                    tests/test_experiment_task.py
+                    tests/test_api_experiment_benchmark.py
+                    tests/test_experiment_cancellation.py
+                    tests/test_experiment_queue_safety.py tests/test_pareto.py
+                  note: 仓库根目录，228 passed。串行复现 0/0、并行一次复现 1/1 后修复为各 1/0；恢复和历史产物回归通过。日志
+                    /private/tmp/comet-491-targeted.log，RED
+                    /private/tmp/comet-491-red.log 与
+                    /private/tmp/comet-491-red-admission.log。
+                  result: passed
+                - name: ruff check / black --check（5 个变更文件）/ git diff --check
+                  note: 仓库根目录执行，全部退出 0。
+                  result: passed
+                - name: comet classic openspec -- validate fix-experiment-combination-identity
+                    --strict
+                  note: 仓库根目录执行，严格校验通过。
+                  result: passed
+                - name: 离线全套件与环境修正后的定点复测（仓库根目录）
+                  note: pytest -m not online 首次运行退出 1，4269 通过、44 跳过、3 失败、4 报错，覆盖率 93.08% 达到 90%
+                    阈值。对全部异常项复测，补齐 pylint、flake8、radon 后 2 项通过，允许临时环回端口后 5
+                    项通过。命令与结果详见验收报告以及
+                    /private/tmp/comet-491-offline.log、/private/tmp/comet-491-readability.log、/private/tmp/comet-491-loopback.log。
+                  result: passed
+              event: verification-ready
+              verificationReport: docs/superpowers/reports/2026-11-18-fix-experiment-combination-identity-verify.md
+        sequence: 12
+      fix-experiment-combination-identity:13:
+        results:
+          tweak.archive.confirm:
+            sequence: 11
+            value:
+              choice: pr
+              proposal:
+                input:
+                  change: fix-experiment-combination-identity
+                  changeDir: openspec/changes/fix-experiment-combination-identity
+                  workspaceBaseline:
+                    ref: 84b926a1-d5bf-4bd5-87dd-029f865c8ad0
+                outputs:
+                  tweak.archive.prepare:
+                    prBaseBranch: main
+                    remote: origin
+                    summary: "按用户已选择的 A 交付 Issue #491。从 codex/fix-experiment-combination-identity 向
+                      origin/main 发起 PR，归档当前 change，同步
+                      experiment/budget-comparison 主规格，并提交已验收的 5 个实现与测试文件及验收报告。"
+                    targetBranch: codex/fix-experiment-combination-identity
+          tweak.archive.preflight:
+            sequence: 12
+            value:
+              baseCommit: b67b431ce5786cbce11295d8e0322db249ca4897
+              deliveryAction: pr
+              deliveryPaths:
+                - src/experiment.py
+                - src/experiment_report.py
+                - src/models.py
+                - tests/test_business_checkpoints.py
+                - tests/test_experiment.py
+              prBaseBranch: main
+              remote: origin
+              remoteIdentity: 128eeb1e6f0d21b25601fcb7f9aad36adfdfb4d76f37f54f004760410190f351
+              targetBranch: codex/fix-experiment-combination-identity
+              verifiedBranch: codex/fix-experiment-combination-identity
+          tweak.archive.prepare:
+            sequence: 10
+            value:
+              prBaseBranch: main
+              remote: origin
+              summary: "按用户已选择的 A 交付 Issue #491。从 codex/fix-experiment-combination-identity 向
+                origin/main 发起 PR，归档当前 change，同步 experiment/budget-comparison
+                主规格，并提交已验收的 5 个实现与测试文件及验收报告。"
+              targetBranch: codex/fix-experiment-combination-identity
+          tweak.verify.report.evidence:
+            sequence: 9
+            value:
+              contentHash: 35243270309d530def1963b96e9f0894b1bf94cbfbab9527768897ee8d81a164
+              ref: docs/superpowers/reports/2026-11-18-fix-experiment-combination-identity-verify.md
+          tweak.verify.run:
+            sequence: 8
+            value:
+              checks:
+                - name: pytest -q --no-cov tests/test_experiment.py
+                    tests/test_business_checkpoints.py
+                    tests/test_experiment_task.py
+                    tests/test_api_experiment_benchmark.py
+                    tests/test_experiment_cancellation.py
+                    tests/test_experiment_queue_safety.py tests/test_pareto.py
+                  note: 仓库根目录，228 passed。串行复现 0/0、并行一次复现 1/1 后修复为各 1/0；恢复和历史产物回归通过。日志
+                    /private/tmp/comet-491-targeted.log，RED
+                    /private/tmp/comet-491-red.log 与
+                    /private/tmp/comet-491-red-admission.log。
+                  result: passed
+                - name: ruff check / black --check（5 个变更文件）/ git diff --check
+                  note: 仓库根目录执行，全部退出 0。
+                  result: passed
+                - name: comet classic openspec -- validate fix-experiment-combination-identity
+                    --strict
+                  note: 仓库根目录执行，严格校验通过。
+                  result: passed
+                - name: 离线全套件与环境修正后的定点复测（仓库根目录）
+                  note: pytest -m not online 首次运行退出 1，4269 通过、44 跳过、3 失败、4 报错，覆盖率 93.08% 达到 90%
+                    阈值。对全部异常项复测，补齐 pylint、flake8、radon 后 2 项通过，允许临时环回端口后 5
+                    项通过。命令与结果详见验收报告以及
+                    /private/tmp/comet-491-offline.log、/private/tmp/comet-491-readability.log、/private/tmp/comet-491-loopback.log。
+                  result: passed
+              event: verification-ready
+              verificationReport: docs/superpowers/reports/2026-11-18-fix-experiment-combination-identity-verify.md
+        sequence: 13
+      fix-experiment-combination-identity:14:
+        results:
+          tweak.archive.confirm:
+            sequence: 11
+            value:
+              choice: pr
+              proposal:
+                input:
+                  change: fix-experiment-combination-identity
+                  changeDir: openspec/changes/fix-experiment-combination-identity
+                  workspaceBaseline:
+                    ref: 84b926a1-d5bf-4bd5-87dd-029f865c8ad0
+                outputs:
+                  tweak.archive.prepare:
+                    prBaseBranch: main
+                    remote: origin
+                    summary: "按用户已选择的 A 交付 Issue #491。从 codex/fix-experiment-combination-identity 向
+                      origin/main 发起 PR，归档当前 change，同步
+                      experiment/budget-comparison 主规格，并提交已验收的 5 个实现与测试文件及验收报告。"
+                    targetBranch: codex/fix-experiment-combination-identity
+          tweak.archive.execute:
+            sequence: 13
+            value:
+              archiveDirectory: openspec/changes/archive/2026-11-18-fix-experiment-combination-identity
+          tweak.archive.preflight:
+            sequence: 12
+            value:
+              baseCommit: b67b431ce5786cbce11295d8e0322db249ca4897
+              deliveryAction: pr
+              deliveryPaths:
+                - src/experiment.py
+                - src/experiment_report.py
+                - src/models.py
+                - tests/test_business_checkpoints.py
+                - tests/test_experiment.py
+              prBaseBranch: main
+              remote: origin
+              remoteIdentity: 128eeb1e6f0d21b25601fcb7f9aad36adfdfb4d76f37f54f004760410190f351
+              targetBranch: codex/fix-experiment-combination-identity
+              verifiedBranch: codex/fix-experiment-combination-identity
+          tweak.archive.prepare:
+            sequence: 10
+            value:
+              prBaseBranch: main
+              remote: origin
+              summary: "按用户已选择的 A 交付 Issue #491。从 codex/fix-experiment-combination-identity 向
+                origin/main 发起 PR，归档当前 change，同步 experiment/budget-comparison
+                主规格，并提交已验收的 5 个实现与测试文件及验收报告。"
+              targetBranch: codex/fix-experiment-combination-identity
+          tweak.verify.report.evidence:
+            sequence: 9
+            value:
+              contentHash: 35243270309d530def1963b96e9f0894b1bf94cbfbab9527768897ee8d81a164
+              ref: docs/superpowers/reports/2026-11-18-fix-experiment-combination-identity-verify.md
+          tweak.verify.run:
+            sequence: 8
+            value:
+              checks:
+                - name: pytest -q --no-cov tests/test_experiment.py
+                    tests/test_business_checkpoints.py
+                    tests/test_experiment_task.py
+                    tests/test_api_experiment_benchmark.py
+                    tests/test_experiment_cancellation.py
+                    tests/test_experiment_queue_safety.py tests/test_pareto.py
+                  note: 仓库根目录，228 passed。串行复现 0/0、并行一次复现 1/1 后修复为各 1/0；恢复和历史产物回归通过。日志
+                    /private/tmp/comet-491-targeted.log，RED
+                    /private/tmp/comet-491-red.log 与
+                    /private/tmp/comet-491-red-admission.log。
+                  result: passed
+                - name: ruff check / black --check（5 个变更文件）/ git diff --check
+                  note: 仓库根目录执行，全部退出 0。
+                  result: passed
+                - name: comet classic openspec -- validate fix-experiment-combination-identity
+                    --strict
+                  note: 仓库根目录执行，严格校验通过。
+                  result: passed
+                - name: 离线全套件与环境修正后的定点复测（仓库根目录）
+                  note: pytest -m not online 首次运行退出 1，4269 通过、44 跳过、3 失败、4 报错，覆盖率 93.08% 达到 90%
+                    阈值。对全部异常项复测，补齐 pylint、flake8、radon 后 2 项通过，允许临时环回端口后 5
+                    项通过。命令与结果详见验收报告以及
+                    /private/tmp/comet-491-offline.log、/private/tmp/comet-491-readability.log、/private/tmp/comet-491-loopback.log。
+                  result: passed
+              event: verification-ready
+              verificationReport: docs/superpowers/reports/2026-11-18-fix-experiment-combination-identity-verify.md
+        sequence: 14
+      fix-experiment-combination-identity:3:
+        results:
+          tweak.open:
+            sequence: 1
+            value:
+              event: open-complete
+              requirementsEvidence:
+                ref: openspec/changes/fix-experiment-combination-identity
+          tweak.open.evidence:
+            sequence: 2
+            value:
+              contentHash: 3eaa0ef2837bf9be6fccbf98f510ab04ca7e79d6acf1988dc2472df7fd2f99e8
+              ref: openspec/changes/fix-experiment-combination-identity
+        sequence: 3
+      fix-experiment-combination-identity:4:
+        results:
+          tweak.build.execute:
+            sequence: 3
+            value:
+              checks:
+                - name: pytest -q --no-cov tests/test_experiment.py
+                    tests/test_business_checkpoints.py
+                    tests/test_experiment_task.py
+                    tests/test_api_experiment_benchmark.py
+                    tests/test_experiment_cancellation.py
+                    tests/test_experiment_queue_safety.py tests/test_pareto.py
+                  note: 仓库根目录，228 passed。串行复现 0/0、并行一次复现 1/1 后修复为各 1/0；恢复和历史产物回归通过。日志
+                    /private/tmp/comet-491-targeted.log，RED
+                    /private/tmp/comet-491-red.log 与
+                    /private/tmp/comet-491-red-admission.log。
+                  result: passed
+                - name: ruff check / black --check（5 个变更文件）/ git diff --check
+                  note: 仓库根目录执行，全部退出 0。
+                  result: passed
+                - name: comet classic openspec -- validate fix-experiment-combination-identity
+                    --strict
+                  note: 仓库根目录执行，严格校验通过。
+                  result: passed
+              event: build-complete
+          tweak.open:
+            sequence: 1
+            value:
+              event: open-complete
+              requirementsEvidence:
+                ref: openspec/changes/fix-experiment-combination-identity
+          tweak.open.evidence:
+            sequence: 2
+            value:
+              contentHash: 3eaa0ef2837bf9be6fccbf98f510ab04ca7e79d6acf1988dc2472df7fd2f99e8
+              ref: openspec/changes/fix-experiment-combination-identity
+        sequence: 4
+      fix-experiment-combination-identity:6:
+        results:
+          tweak.build.execute:
+            sequence: 3
+            value:
+              checks:
+                - name: pytest -q --no-cov tests/test_experiment.py
+                    tests/test_business_checkpoints.py
+                    tests/test_experiment_task.py
+                    tests/test_api_experiment_benchmark.py
+                    tests/test_experiment_cancellation.py
+                    tests/test_experiment_queue_safety.py tests/test_pareto.py
+                  note: 仓库根目录，228 passed。串行复现 0/0、并行一次复现 1/1 后修复为各 1/0；恢复和历史产物回归通过。日志
+                    /private/tmp/comet-491-targeted.log，RED
+                    /private/tmp/comet-491-red.log 与
+                    /private/tmp/comet-491-red-admission.log。
+                  result: passed
+                - name: ruff check / black --check（5 个变更文件）/ git diff --check
+                  note: 仓库根目录执行，全部退出 0。
+                  result: passed
+                - name: comet classic openspec -- validate fix-experiment-combination-identity
+                    --strict
+                  note: 仓库根目录执行，严格校验通过。
+                  result: passed
+              event: build-complete
+          tweak.open:
+            sequence: 1
+            value:
+              event: open-complete
+              requirementsEvidence:
+                ref: openspec/changes/fix-experiment-combination-identity
+          tweak.open.evidence:
+            sequence: 2
+            value:
+              contentHash: 3eaa0ef2837bf9be6fccbf98f510ab04ca7e79d6acf1988dc2472df7fd2f99e8
+              ref: openspec/changes/fix-experiment-combination-identity
+          tweak.verify.report.evidence:
+            sequence: 5
+            value:
+              contentHash: c8578795c9234e7cd41a4de560adc37dfef74ab761118483bec52a87cd9f0029
+              ref: docs/superpowers/reports/2026-11-18-fix-experiment-combination-identity-verify.md
+          tweak.verify.run:
+            sequence: 4
+            value:
+              checks:
+                - name: pytest -q --no-cov tests/test_experiment.py
+                    tests/test_business_checkpoints.py
+                    tests/test_experiment_task.py
+                    tests/test_api_experiment_benchmark.py
+                    tests/test_experiment_cancellation.py
+                    tests/test_experiment_queue_safety.py tests/test_pareto.py
+                  note: 仓库根目录，228 passed。串行复现 0/0、并行一次复现 1/1 后修复为各 1/0；恢复和历史产物回归通过。日志
+                    /private/tmp/comet-491-targeted.log，RED
+                    /private/tmp/comet-491-red.log 与
+                    /private/tmp/comet-491-red-admission.log。
+                  result: passed
+                - name: ruff check / black --check（5 个变更文件）/ git diff --check
+                  note: 仓库根目录执行，全部退出 0。
+                  result: passed
+                - name: comet classic openspec -- validate fix-experiment-combination-identity
+                    --strict
+                  note: 仓库根目录执行，严格校验通过。
+                  result: passed
+                - name: 离线全套件与环境修正后的定点复测（仓库根目录）
+                  note: pytest -m not online 首次运行退出 1，4269 通过、44 跳过、3 失败、4 报错，覆盖率 93.08% 达到 90%
+                    阈值。对全部异常项复测，补齐 pylint、flake8、radon 后 2 项通过，允许临时环回端口后 5
+                    项通过。命令与结果详见验收报告以及
+                    /private/tmp/comet-491-offline.log、/private/tmp/comet-491-readability.log、/private/tmp/comet-491-loopback.log。
+                  result: passed
+              event: verification-ready
+              verificationReport: docs/superpowers/reports/2026-11-18-fix-experiment-combination-identity-verify.md
+        sequence: 6
+      fix-experiment-combination-identity:8:
+        results: {}
+        sequence: 8
+    waits:
+      - id: fix-experiment-combination-identity:7
+        stepId: tweak.archive.confirm
+        sequence: 7
+        status: cancelled
+        proposal:
+          input:
+            change: fix-experiment-combination-identity
+            changeDir: openspec/changes/fix-experiment-combination-identity
+            workspaceBaseline:
+              ref: 84b926a1-d5bf-4bd5-87dd-029f865c8ad0
+          outputs:
+            tweak.archive.prepare:
+              prBaseBranch: main
+              remote: origin
+              summary: "Issue #491 验收通过。归档该 change 与验收材料，同步 experiment/budget-comparison
+                主规格，交付范围包括 5 个实现与测试文件及本次验收报告。当前绑定 main，远端 origin，PR 目标 main；若选择
+                PR，先在独立修复分支重新绑定。"
+              targetBranch: main
+        proposalHash: 57e705f059349785dbf24098178b8acdad2acafee146b82c8b1235f5ae741257
+        choices:
+          - local
+          - push
+          - pr
+          - reverify
+          - later
+        results:
+          tweak.archive.prepare:
+            sequence: 6
+            value:
+              prBaseBranch: main
+              remote: origin
+              summary: "Issue #491 验收通过。归档该 change 与验收材料，同步 experiment/budget-comparison
+                主规格，交付范围包括 5 个实现与测试文件及本次验收报告。当前绑定 main，远端 origin，PR 目标 main；若选择
+                PR，先在独立修复分支重新绑定。"
+              targetBranch: main
+          tweak.build.execute:
+            sequence: 3
+            value:
+              checks:
+                - name: pytest -q --no-cov tests/test_experiment.py
+                    tests/test_business_checkpoints.py
+                    tests/test_experiment_task.py
+                    tests/test_api_experiment_benchmark.py
+                    tests/test_experiment_cancellation.py
+                    tests/test_experiment_queue_safety.py tests/test_pareto.py
+                  note: 仓库根目录，228 passed。串行复现 0/0、并行一次复现 1/1 后修复为各 1/0；恢复和历史产物回归通过。日志
+                    /private/tmp/comet-491-targeted.log，RED
+                    /private/tmp/comet-491-red.log 与
+                    /private/tmp/comet-491-red-admission.log。
+                  result: passed
+                - name: ruff check / black --check（5 个变更文件）/ git diff --check
+                  note: 仓库根目录执行，全部退出 0。
+                  result: passed
+                - name: comet classic openspec -- validate fix-experiment-combination-identity
+                    --strict
+                  note: 仓库根目录执行，严格校验通过。
+                  result: passed
+              event: build-complete
+          tweak.open:
+            sequence: 1
+            value:
+              event: open-complete
+              requirementsEvidence:
+                ref: openspec/changes/fix-experiment-combination-identity
+          tweak.open.evidence:
+            sequence: 2
+            value:
+              contentHash: 3eaa0ef2837bf9be6fccbf98f510ab04ca7e79d6acf1988dc2472df7fd2f99e8
+              ref: openspec/changes/fix-experiment-combination-identity
+          tweak.verify.report.evidence:
+            sequence: 5
+            value:
+              contentHash: c8578795c9234e7cd41a4de560adc37dfef74ab761118483bec52a87cd9f0029
+              ref: docs/superpowers/reports/2026-11-18-fix-experiment-combination-identity-verify.md
+          tweak.verify.run:
+            sequence: 4
+            value:
+              checks:
+                - name: pytest -q --no-cov tests/test_experiment.py
+                    tests/test_business_checkpoints.py
+                    tests/test_experiment_task.py
+                    tests/test_api_experiment_benchmark.py
+                    tests/test_experiment_cancellation.py
+                    tests/test_experiment_queue_safety.py tests/test_pareto.py
+                  note: 仓库根目录，228 passed。串行复现 0/0、并行一次复现 1/1 后修复为各 1/0；恢复和历史产物回归通过。日志
+                    /private/tmp/comet-491-targeted.log，RED
+                    /private/tmp/comet-491-red.log 与
+                    /private/tmp/comet-491-red-admission.log。
+                  result: passed
+                - name: ruff check / black --check（5 个变更文件）/ git diff --check
+                  note: 仓库根目录执行，全部退出 0。
+                  result: passed
+                - name: comet classic openspec -- validate fix-experiment-combination-identity
+                    --strict
+                  note: 仓库根目录执行，严格校验通过。
+                  result: passed
+                - name: 离线全套件与环境修正后的定点复测（仓库根目录）
+                  note: pytest -m not online 首次运行退出 1，4269 通过、44 跳过、3 失败、4 报错，覆盖率 93.08% 达到 90%
+                    阈值。对全部异常项复测，补齐 pylint、flake8、radon 后 2 项通过，允许临时环回端口后 5
+                    项通过。命令与结果详见验收报告以及
+                    /private/tmp/comet-491-offline.log、/private/tmp/comet-491-readability.log、/private/tmp/comet-491-loopback.log。
+                  result: passed
+              event: verification-ready
+              verificationReport: docs/superpowers/reports/2026-11-18-fix-experiment-combination-identity-verify.md
+      - id: fix-experiment-combination-identity:11
+        stepId: tweak.archive.confirm
+        sequence: 11
+        status: resolved
+        proposal:
+          input:
+            change: fix-experiment-combination-identity
+            changeDir: openspec/changes/fix-experiment-combination-identity
+            workspaceBaseline:
+              ref: 84b926a1-d5bf-4bd5-87dd-029f865c8ad0
+          outputs:
+            tweak.archive.prepare:
+              prBaseBranch: main
+              remote: origin
+              summary: "按用户已选择的 A 交付 Issue #491。从 codex/fix-experiment-combination-identity 向
+                origin/main 发起 PR，归档当前 change，同步 experiment/budget-comparison
+                主规格，并提交已验收的 5 个实现与测试文件及验收报告。"
+              targetBranch: codex/fix-experiment-combination-identity
+        proposalHash: f5f9cdf574ff5d2aed75eb5e7734afb34cd36e9c8071cb95b364cae90540d716
+        choices:
+          - local
+          - push
+          - pr
+          - reverify
+          - later
+        results:
+          tweak.archive.prepare:
+            sequence: 10
+            value:
+              prBaseBranch: main
+              remote: origin
+              summary: "按用户已选择的 A 交付 Issue #491。从 codex/fix-experiment-combination-identity 向
+                origin/main 发起 PR，归档当前 change，同步 experiment/budget-comparison
+                主规格，并提交已验收的 5 个实现与测试文件及验收报告。"
+              targetBranch: codex/fix-experiment-combination-identity
+          tweak.verify.report.evidence:
+            sequence: 9
+            value:
+              contentHash: 35243270309d530def1963b96e9f0894b1bf94cbfbab9527768897ee8d81a164
+              ref: docs/superpowers/reports/2026-11-18-fix-experiment-combination-identity-verify.md
+          tweak.verify.run:
+            sequence: 8
+            value:
+              checks:
+                - name: pytest -q --no-cov tests/test_experiment.py
+                    tests/test_business_checkpoints.py
+                    tests/test_experiment_task.py
+                    tests/test_api_experiment_benchmark.py
+                    tests/test_experiment_cancellation.py
+                    tests/test_experiment_queue_safety.py tests/test_pareto.py
+                  note: 仓库根目录，228 passed。串行复现 0/0、并行一次复现 1/1 后修复为各 1/0；恢复和历史产物回归通过。日志
+                    /private/tmp/comet-491-targeted.log，RED
+                    /private/tmp/comet-491-red.log 与
+                    /private/tmp/comet-491-red-admission.log。
+                  result: passed
+                - name: ruff check / black --check（5 个变更文件）/ git diff --check
+                  note: 仓库根目录执行，全部退出 0。
+                  result: passed
+                - name: comet classic openspec -- validate fix-experiment-combination-identity
+                    --strict
+                  note: 仓库根目录执行，严格校验通过。
+                  result: passed
+                - name: 离线全套件与环境修正后的定点复测（仓库根目录）
+                  note: pytest -m not online 首次运行退出 1，4269 通过、44 跳过、3 失败、4 报错，覆盖率 93.08% 达到 90%
+                    阈值。对全部异常项复测，补齐 pylint、flake8、radon 后 2 项通过，允许临时环回端口后 5
+                    项通过。命令与结果详见验收报告以及
+                    /private/tmp/comet-491-offline.log、/private/tmp/comet-491-readability.log、/private/tmp/comet-491-loopback.log。
+                  result: passed
+              event: verification-ready
+              verificationReport: docs/superpowers/reports/2026-11-18-fix-experiment-combination-identity-verify.md
+        decision:
+          id: classic-archive-f5f9cdf574ff5d2aed75eb5e7734afb34cd36e9c8071cb95b364cae90540d716-pr
+          choice: pr
+          proposalHash: f5f9cdf574ff5d2aed75eb5e7734afb34cd36e9c8071cb95b364cae90540d716
+    evidenceWaits:
+      - id: fix-experiment-combination-identity:2
+        stepId: tweak.open.evidence
+        sequence: 2
+        kind: classic-open-artifacts
+        status: resolved
+        results:
+          tweak.open:
+            sequence: 1
+            value:
+              event: open-complete
+              requirementsEvidence:
+                ref: openspec/changes/fix-experiment-combination-identity
+        receipt:
+          ref: openspec/changes/fix-experiment-combination-identity
+          contentHash: 3eaa0ef2837bf9be6fccbf98f510ab04ca7e79d6acf1988dc2472df7fd2f99e8
+          submissionId: 5c9a6bd2-1d04-45c4-b80c-5be73a8c844c
+      - id: fix-experiment-combination-identity:5
+        stepId: tweak.verify.report.evidence
+        sequence: 5
+        kind: classic-verification-report
+        status: resolved
+        results:
+          tweak.build.execute:
+            sequence: 3
+            value:
+              checks:
+                - name: pytest -q --no-cov tests/test_experiment.py
+                    tests/test_business_checkpoints.py
+                    tests/test_experiment_task.py
+                    tests/test_api_experiment_benchmark.py
+                    tests/test_experiment_cancellation.py
+                    tests/test_experiment_queue_safety.py tests/test_pareto.py
+                  note: 仓库根目录，228 passed。串行复现 0/0、并行一次复现 1/1 后修复为各 1/0；恢复和历史产物回归通过。日志
+                    /private/tmp/comet-491-targeted.log，RED
+                    /private/tmp/comet-491-red.log 与
+                    /private/tmp/comet-491-red-admission.log。
+                  result: passed
+                - name: ruff check / black --check（5 个变更文件）/ git diff --check
+                  note: 仓库根目录执行，全部退出 0。
+                  result: passed
+                - name: comet classic openspec -- validate fix-experiment-combination-identity
+                    --strict
+                  note: 仓库根目录执行，严格校验通过。
+                  result: passed
+              event: build-complete
+          tweak.open:
+            sequence: 1
+            value:
+              event: open-complete
+              requirementsEvidence:
+                ref: openspec/changes/fix-experiment-combination-identity
+          tweak.open.evidence:
+            sequence: 2
+            value:
+              contentHash: 3eaa0ef2837bf9be6fccbf98f510ab04ca7e79d6acf1988dc2472df7fd2f99e8
+              ref: openspec/changes/fix-experiment-combination-identity
+          tweak.verify.run:
+            sequence: 4
+            value:
+              checks:
+                - name: pytest -q --no-cov tests/test_experiment.py
+                    tests/test_business_checkpoints.py
+                    tests/test_experiment_task.py
+                    tests/test_api_experiment_benchmark.py
+                    tests/test_experiment_cancellation.py
+                    tests/test_experiment_queue_safety.py tests/test_pareto.py
+                  note: 仓库根目录，228 passed。串行复现 0/0、并行一次复现 1/1 后修复为各 1/0；恢复和历史产物回归通过。日志
+                    /private/tmp/comet-491-targeted.log，RED
+                    /private/tmp/comet-491-red.log 与
+                    /private/tmp/comet-491-red-admission.log。
+                  result: passed
+                - name: ruff check / black --check（5 个变更文件）/ git diff --check
+                  note: 仓库根目录执行，全部退出 0。
+                  result: passed
+                - name: comet classic openspec -- validate fix-experiment-combination-identity
+                    --strict
+                  note: 仓库根目录执行，严格校验通过。
+                  result: passed
+                - name: 离线全套件与环境修正后的定点复测（仓库根目录）
+                  note: pytest -m not online 首次运行退出 1，4269 通过、44 跳过、3 失败、4 报错，覆盖率 93.08% 达到 90%
+                    阈值。对全部异常项复测，补齐 pylint、flake8、radon 后 2 项通过，允许临时环回端口后 5
+                    项通过。命令与结果详见验收报告以及
+                    /private/tmp/comet-491-offline.log、/private/tmp/comet-491-readability.log、/private/tmp/comet-491-loopback.log。
+                  result: passed
+              event: verification-ready
+              verificationReport: docs/superpowers/reports/2026-11-18-fix-experiment-combination-identity-verify.md
+        receipt:
+          ref: docs/superpowers/reports/2026-11-18-fix-experiment-combination-identity-verify.md
+          contentHash: c8578795c9234e7cd41a4de560adc37dfef74ab761118483bec52a87cd9f0029
+          submissionId: 8b1fadeb-445a-4a26-bc92-38333a1569f9
+      - id: fix-experiment-combination-identity:9
+        stepId: tweak.verify.report.evidence
+        sequence: 9
+        kind: classic-verification-report
+        status: resolved
+        results:
+          tweak.verify.run:
+            sequence: 8
+            value:
+              checks:
+                - name: pytest -q --no-cov tests/test_experiment.py
+                    tests/test_business_checkpoints.py
+                    tests/test_experiment_task.py
+                    tests/test_api_experiment_benchmark.py
+                    tests/test_experiment_cancellation.py
+                    tests/test_experiment_queue_safety.py tests/test_pareto.py
+                  note: 仓库根目录，228 passed。串行复现 0/0、并行一次复现 1/1 后修复为各 1/0；恢复和历史产物回归通过。日志
+                    /private/tmp/comet-491-targeted.log，RED
+                    /private/tmp/comet-491-red.log 与
+                    /private/tmp/comet-491-red-admission.log。
+                  result: passed
+                - name: ruff check / black --check（5 个变更文件）/ git diff --check
+                  note: 仓库根目录执行，全部退出 0。
+                  result: passed
+                - name: comet classic openspec -- validate fix-experiment-combination-identity
+                    --strict
+                  note: 仓库根目录执行，严格校验通过。
+                  result: passed
+                - name: 离线全套件与环境修正后的定点复测（仓库根目录）
+                  note: pytest -m not online 首次运行退出 1，4269 通过、44 跳过、3 失败、4 报错，覆盖率 93.08% 达到 90%
+                    阈值。对全部异常项复测，补齐 pylint、flake8、radon 后 2 项通过，允许临时环回端口后 5
+                    项通过。命令与结果详见验收报告以及
+                    /private/tmp/comet-491-offline.log、/private/tmp/comet-491-readability.log、/private/tmp/comet-491-loopback.log。
+                  result: passed
+              event: verification-ready
+              verificationReport: docs/superpowers/reports/2026-11-18-fix-experiment-combination-identity-verify.md
+        receipt:
+          ref: docs/superpowers/reports/2026-11-18-fix-experiment-combination-identity-verify.md
+          contentHash: 35243270309d530def1963b96e9f0894b1bf94cbfbab9527768897ee8d81a164
+          submissionId: e66d2854-1b1e-4fd6-9d1e-39e158f7470d
+    ready: []
+    joins: {}
+    outputs:
+      tweak.archive.confirm:
+        sequence: 11
+        value:
+          choice: pr
+          proposal:
+            input:
+              change: fix-experiment-combination-identity
+              changeDir: openspec/changes/fix-experiment-combination-identity
+              workspaceBaseline:
+                ref: 84b926a1-d5bf-4bd5-87dd-029f865c8ad0
+            outputs:
+              tweak.archive.prepare:
+                prBaseBranch: main
+                remote: origin
+                summary: "按用户已选择的 A 交付 Issue #491。从 codex/fix-experiment-combination-identity 向
+                  origin/main 发起 PR，归档当前 change，同步 experiment/budget-comparison
+                  主规格，并提交已验收的 5 个实现与测试文件及验收报告。"
+                targetBranch: codex/fix-experiment-combination-identity
+      tweak.archive.execute:
+        sequence: 13
+        value:
+          archiveDirectory: openspec/changes/archive/2026-11-18-fix-experiment-combination-identity
+      tweak.archive.preflight:
+        sequence: 12
+        value:
+          baseCommit: b67b431ce5786cbce11295d8e0322db249ca4897
+          deliveryAction: pr
+          deliveryPaths:
+            - src/experiment.py
+            - src/experiment_report.py
+            - src/models.py
+            - tests/test_business_checkpoints.py
+            - tests/test_experiment.py
+          prBaseBranch: main
+          remote: origin
+          remoteIdentity: 128eeb1e6f0d21b25601fcb7f9aad36adfdfb4d76f37f54f004760410190f351
+          targetBranch: codex/fix-experiment-combination-identity
+          verifiedBranch: codex/fix-experiment-combination-identity
+      tweak.archive.prepare:
+        sequence: 10
+        value:
+          prBaseBranch: main
+          remote: origin
+          summary: "按用户已选择的 A 交付 Issue #491。从 codex/fix-experiment-combination-identity 向
+            origin/main 发起 PR，归档当前 change，同步 experiment/budget-comparison
+            主规格，并提交已验收的 5 个实现与测试文件及验收报告。"
+          targetBranch: codex/fix-experiment-combination-identity
+      tweak.build.execute:
+        sequence: 3
+        value:
+          checks:
+            - name: pytest -q --no-cov tests/test_experiment.py
+                tests/test_business_checkpoints.py tests/test_experiment_task.py
+                tests/test_api_experiment_benchmark.py
+                tests/test_experiment_cancellation.py
+                tests/test_experiment_queue_safety.py tests/test_pareto.py
+              note: 仓库根目录，228 passed。串行复现 0/0、并行一次复现 1/1 后修复为各 1/0；恢复和历史产物回归通过。日志
+                /private/tmp/comet-491-targeted.log，RED
+                /private/tmp/comet-491-red.log 与
+                /private/tmp/comet-491-red-admission.log。
+              result: passed
+            - name: ruff check / black --check（5 个变更文件）/ git diff --check
+              note: 仓库根目录执行，全部退出 0。
+              result: passed
+            - name: comet classic openspec -- validate fix-experiment-combination-identity
+                --strict
+              note: 仓库根目录执行，严格校验通过。
+              result: passed
+          event: build-complete
+      tweak.open:
+        sequence: 1
+        value:
+          event: open-complete
+          requirementsEvidence:
+            ref: openspec/changes/fix-experiment-combination-identity
+      tweak.open.evidence:
+        sequence: 2
+        value:
+          contentHash: 3eaa0ef2837bf9be6fccbf98f510ab04ca7e79d6acf1988dc2472df7fd2f99e8
+          ref: openspec/changes/fix-experiment-combination-identity
+      tweak.verify.report.evidence:
+        sequence: 9
+        value:
+          contentHash: 35243270309d530def1963b96e9f0894b1bf94cbfbab9527768897ee8d81a164
+          ref: docs/superpowers/reports/2026-11-18-fix-experiment-combination-identity-verify.md
+      tweak.verify.run:
+        sequence: 8
+        value:
+          checks:
+            - name: pytest -q --no-cov tests/test_experiment.py
+                tests/test_business_checkpoints.py tests/test_experiment_task.py
+                tests/test_api_experiment_benchmark.py
+                tests/test_experiment_cancellation.py
+                tests/test_experiment_queue_safety.py tests/test_pareto.py
+              note: 仓库根目录，228 passed。串行复现 0/0、并行一次复现 1/1 后修复为各 1/0；恢复和历史产物回归通过。日志
+                /private/tmp/comet-491-targeted.log，RED
+                /private/tmp/comet-491-red.log 与
+                /private/tmp/comet-491-red-admission.log。
+              result: passed
+            - name: ruff check / black --check（5 个变更文件）/ git diff --check
+              note: 仓库根目录执行，全部退出 0。
+              result: passed
+            - name: comet classic openspec -- validate fix-experiment-combination-identity
+                --strict
+              note: 仓库根目录执行，严格校验通过。
+              result: passed
+            - name: 离线全套件与环境修正后的定点复测（仓库根目录）
+              note: pytest -m not online 首次运行退出 1，4269 通过、44 跳过、3 失败、4 报错，覆盖率 93.08% 达到 90%
+                阈值。对全部异常项复测，补齐 pylint、flake8、radon 后 2 项通过，允许临时环回端口后 5
+                项通过。命令与结果详见验收报告以及
+                /private/tmp/comet-491-offline.log、/private/tmp/comet-491-readability.log、/private/tmp/comet-491-loopback.log。
+              result: passed
+          event: verification-ready
+          verificationReport: docs/superpowers/reports/2026-11-18-fix-experiment-combination-identity-verify.md
+    children: []
+    lineage: []
+  sourceRevision: 23
+  sourceHash: f61390aea926eb973256382dfe18461eebac7e2890dd4c167fda72cfc0abd92b
+direct_override: null
+handoff_context: null
+handoff_hash: null
+classic_profile: null
+classic_migration: null
+check_epoch: 6

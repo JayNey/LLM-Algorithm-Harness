@@ -1,0 +1,122 @@
+<!doctype html>
+<html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'unsafe-inline'; base-uri 'none'; form-action 'none'"><title>变更说明 · 实验组合使用独立的目录和检查点。模型名中的斜杠与下划线不再导致实验互相覆盖。</title>
+<style>
+:root {
+  color-scheme: light dark;
+  --page: #fafbfc;
+  --ink: #202a35;
+  --muted: #566575;
+  --line: #dbe2e8;
+  --accent: #245b85;
+  --highlight: #edf3f7;
+  --hover: #e9eef3;
+  --code-bg: #edf0f4;
+  --code-ink: #263443;
+  --success: #236d4f;
+  --failure: #a83131;
+  --text: 15px;
+  --small: 13px;
+  --label: 12px;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --page: #181d23;
+    --ink: #e4eaf0;
+    --muted: #a4b1be;
+    --line: #35404b;
+    --accent: #94c6ec;
+    --highlight: #222e39;
+    --hover: #27323d;
+    --code-bg: #10161d;
+    --code-ink: #e0e8f0;
+    --success: #8ed8b5;
+    --failure: #ffb0a8;
+  }
+}
+* { box-sizing: border-box; }
+body {
+  margin: 0;
+  background: var(--page);
+  color: var(--ink);
+  font: var(--text)/1.65 system-ui, -apple-system, "Segoe UI", sans-serif;
+}
+main { max-width: 1040px; margin: auto; padding: 32px 32px 48px; }
+.eyebrow { color: var(--accent); font-size: var(--label); font-weight: 500; letter-spacing: .08em; }
+h1 { margin: 8px 0 12px; max-width: 32em; font-size: 28px; font-weight: 500; line-height: 1.4; letter-spacing: -.02em; overflow-wrap: anywhere; }
+h2 { margin: 0; font-size: 18px; font-weight: 500; line-height: 1.5; overflow-wrap: anywhere; }
+h3 { margin: 0 0 4px; color: var(--muted); font-size: var(--label); font-weight: 500; }
+p { margin: 0; white-space: pre-wrap; overflow-wrap: anywhere; }
+strong { font-weight: 500; }
+.meta { margin-bottom: 24px; color: var(--muted); font-size: var(--small); overflow-wrap: anywhere; }
+.meta p + p { margin-top: 2px; }
+article { padding: 20px 0 12px; border-top: 1px solid var(--line); }
+article header { display: flex; align-items: baseline; gap: 12px; margin-bottom: 12px; }
+.number { color: var(--muted); font: var(--label)/1.5 ui-monospace, Consolas, monospace; font-variant-numeric: tabular-nums; }
+.comparison { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 16px; }
+.comparison section { min-width: 0; padding: 12px; }
+.after { background: var(--highlight); border-radius: 4px; }
+.after h3 { color: var(--accent); }
+.reason { margin-top: 12px; font-size: var(--small); color: var(--muted); }
+.reason strong { margin-right: 8px; color: var(--ink); }
+summary { min-height: 44px; padding: 10px 4px; cursor: pointer; font-size: var(--small); font-weight: 500; border-radius: 4px; }
+summary:hover { background: var(--hover); }
+summary:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.count, .tag { color: var(--muted); font-size: var(--label); font-weight: 400; }
+.count { margin-left: 4px; font-variant-numeric: tabular-nums; }
+.file { min-width: 0; padding: 0 0 16px; scroll-margin-top: 20px; }
+.file:target { outline: 2px solid var(--accent); outline-offset: 4px; }
+.file-heading { display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 8px; }
+.file-heading code { min-width: 0; font-size: var(--small); overflow-wrap: anywhere; }
+.tag { white-space: nowrap; }
+pre { margin: 8px 0 0; padding: 12px 16px; overflow: auto; background: var(--code-bg); color: var(--code-ink); border-radius: 4px; font: var(--small)/1.65 ui-monospace, Consolas, monospace; tab-size: 2; }
+footer { margin-top: 12px; padding-top: 20px; border-top: 1px solid var(--line); }
+footer h2 { margin-bottom: 8px; }
+.check { display: grid; grid-template-columns: 72px minmax(0, 1fr); gap: 12px; padding: 12px 0; border-bottom: 1px solid var(--line); }
+.status { padding-top: 2px; font-size: var(--label); font-weight: 500; }
+.passed { color: var(--success); }
+.failed { color: var(--failure); }
+.not-run, .unknown { color: var(--muted); }
+.check p { margin-top: 2px; color: var(--muted); font-size: var(--small); }
+.more { border-top: 1px solid var(--line); }
+.more > summary { padding-block: 12px; }
+.diagram { margin: 0; padding: 20px 0; border-top: 1px solid var(--line); }
+.diagram figcaption { margin-bottom: 12px; font-size: 18px; font-weight: 500; overflow-wrap: anywhere; }
+.diagram-svg { display: block; max-width: 100%; height: auto; margin: auto; overflow: visible; font: 13px system-ui, -apple-system, "Segoe UI", sans-serif; }
+.diagram-svg text { fill: var(--ink); }
+.diagram-edge { fill: none; stroke: var(--muted); stroke-width: 1.5; }
+.diagram-svg marker path { fill: var(--muted); }
+.diagram-edge-label { fill: var(--page); }
+.diagram-svg .diagram-edge-text { fill: var(--muted); font-size: 12px; }
+.diagram-node rect { fill: var(--page); stroke: var(--line); stroke-width: 1.5; }
+.diagram-node.modified rect { fill: var(--highlight); stroke: var(--accent); }
+.diagram-node.added rect { stroke: var(--success); }
+.diagram-node.deleted rect { stroke: var(--failure); stroke-dasharray: 4 3; }
+.diagram-svg .diagram-kind { fill: var(--muted); font-size: 11px; }
+.diagram-node[href] { cursor: pointer; }
+.diagram-node[href]:hover rect, .diagram-node[href]:focus-visible rect { stroke: var(--accent); stroke-width: 2.5; }
+.diagram-node[href]:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; }
+.diagram-hint { margin-top: 12px; color: var(--muted); font-size: var(--small); text-align: center; }
+.diagram-comparison { display: grid; grid-template-columns: minmax(0,1fr) minmax(0,1fr); gap: 16px; }
+.diagram-comparison > section { min-width: 0; padding: 12px; border: 1px solid var(--line); border-radius: 4px; }
+.diagram-comparison > section > h3 { margin-bottom: 12px; }
+.diagram-compact { display: none; }
+@media (max-width: 999px) {
+  .diagram-wide { display: none; }
+  .diagram-compact { display: block; }
+}
+@media (max-width: 640px) {
+  main { padding: 24px 16px 32px; }
+  h1 { font-size: 24px; }
+  .meta { margin-bottom: 20px; }
+  article { padding-top: 16px; }
+  article header { gap: 8px; }
+  .comparison { grid-template-columns: minmax(0, 1fr); gap: 4px; }
+  .check { grid-template-columns: 60px minmax(0, 1fr); gap: 8px; }
+  pre { padding: 12px; }
+  .diagram-comparison { grid-template-columns: minmax(0,1fr); }
+  .diagram-comparison > section { padding: 12px 0; border: 0; }
+}
+</style></head><body><main><div class="eyebrow">COMET / 变更说明</div><h1>实验组合使用独立的目录和检查点。模型名中的斜杠与下划线不再导致实验互相覆盖。</h1><div class="meta"><p>比较范围 · Issue #491，基线 b67b431c 与当前工作区的变更。</p><p>生成时间 · 2026-11-17T16:48:26.180Z</p></div><figure class="diagram"><figcaption>组合结果如何进入报告</figcaption><div class="diagram-wide"><svg class="diagram-svg" width="624" height="176" viewBox="0 0 624 176" role="group" aria-labelledby="walkthrough-diagram-0-wide-title walkthrough-diagram-0-wide-description"><title id="walkthrough-diagram-0-wide-title">组合结果如何进入报告</title><desc id="walkthrough-diagram-0-wide-description">模型、策略、重复编号 → 校验名称并分配组合标识; 校验名称并分配组合标识 → 按标识写入产物; 按标识写入产物 → 按标识写入与恢复检查点; 按标识写入产物 → 按标识读取并聚合报告</desc><defs><marker id="walkthrough-diagram-0-wide-arrow" viewBox="0 0 8 8" refX="7" refY="4" markerWidth="6" markerHeight="6" orient="auto"><path d="M 0 0 L 8 4 L 0 8 z"/></marker></defs><path class="diagram-edge" d="M 132 88 C 152 88, 152 88, 169 88" marker-end="url(#walkthrough-diagram-0-wide-arrow)"/><path class="diagram-edge" d="M 292 88 C 312 88, 312 88, 329 88" marker-end="url(#walkthrough-diagram-0-wide-arrow)"/><path class="diagram-edge" d="M 452 88 C 472 88, 472 42, 489 42" marker-end="url(#walkthrough-diagram-0-wide-arrow)"/><path class="diagram-edge" d="M 452 88 C 472 88, 472 134, 489 134" marker-end="url(#walkthrough-diagram-0-wide-arrow)"/><g class="diagram-node "><rect x="12" y="58" width="120" height="60" rx="5"/><text class="" x="72" y="83" text-anchor="middle"><tspan x="72" dy="0">模型、策略、重</tspan><tspan x="72" dy="18">复编号</tspan></text></g><g class="diagram-node "><rect x="172" y="58" width="120" height="60" rx="5"/><text class="" x="232" y="83" text-anchor="middle"><tspan x="232" dy="0">校验名称并分配</tspan><tspan x="232" dy="18">组合标识</tspan></text></g><g class="diagram-node "><rect x="332" y="58" width="120" height="60" rx="5"/><text class="" x="392" y="92" text-anchor="middle"><tspan x="392" dy="0">按标识写入产物</tspan></text></g><g class="diagram-node "><rect x="492" y="12" width="120" height="60" rx="5"/><text class="" x="552" y="37" text-anchor="middle"><tspan x="552" dy="0">按标识写入与恢</tspan><tspan x="552" dy="18">复检查点</tspan></text></g><g class="diagram-node "><rect x="492" y="104" width="120" height="60" rx="5"/><text class="" x="552" y="129" text-anchor="middle"><tspan x="552" dy="0">按标识读取并聚</tspan><tspan x="552" dy="18">合报告</tspan></text></g></svg></div><div class="diagram-compact"><svg class="diagram-svg" width="272" height="372" viewBox="0 0 272 372" role="group" aria-labelledby="walkthrough-diagram-0-compact-title walkthrough-diagram-0-compact-description"><title id="walkthrough-diagram-0-compact-title">组合结果如何进入报告</title><desc id="walkthrough-diagram-0-compact-description">模型、策略、重复编号 → 校验名称并分配组合标识; 校验名称并分配组合标识 → 按标识写入产物; 按标识写入产物 → 按标识写入与恢复检查点; 按标识写入产物 → 按标识读取并聚合报告</desc><defs><marker id="walkthrough-diagram-0-compact-arrow" viewBox="0 0 8 8" refX="7" refY="4" markerWidth="6" markerHeight="6" orient="auto"><path d="M 0 0 L 8 4 L 0 8 z"/></marker></defs><path class="diagram-edge" d="M 136 72 C 136 90, 136 90, 136 105" marker-end="url(#walkthrough-diagram-0-compact-arrow)"/><path class="diagram-edge" d="M 136 168 C 136 186, 136 186, 136 201" marker-end="url(#walkthrough-diagram-0-compact-arrow)"/><path class="diagram-edge" d="M 136 264 C 136 282, 68 282, 68 297" marker-end="url(#walkthrough-diagram-0-compact-arrow)"/><path class="diagram-edge" d="M 136 264 C 136 282, 204 282, 204 297" marker-end="url(#walkthrough-diagram-0-compact-arrow)"/><g class="diagram-node "><rect x="80" y="12" width="112" height="60" rx="5"/><text class="" x="136" y="37" text-anchor="middle"><tspan x="136" dy="0">模型、策略、</tspan><tspan x="136" dy="18">重复编号</tspan></text></g><g class="diagram-node "><rect x="80" y="108" width="112" height="60" rx="5"/><text class="" x="136" y="133" text-anchor="middle"><tspan x="136" dy="0">校验名称并分</tspan><tspan x="136" dy="18">配组合标识</tspan></text></g><g class="diagram-node "><rect x="80" y="204" width="112" height="60" rx="5"/><text class="" x="136" y="229" text-anchor="middle"><tspan x="136" dy="0">按标识写入产</tspan><tspan x="136" dy="18">物</tspan></text></g><g class="diagram-node "><rect x="12" y="300" width="112" height="60" rx="5"/><text class="" x="68" y="325" text-anchor="middle"><tspan x="68" dy="0">按标识写入与</tspan><tspan x="68" dy="18">恢复检查点</tspan></text></g><g class="diagram-node "><rect x="148" y="300" width="112" height="60" rx="5"/><text class="" x="204" y="325" text-anchor="middle"><tspan x="204" dy="0">按标识读取并</tspan><tspan x="204" dy="18">聚合报告</tspan></text></g></svg></div></figure><article><header><span class="number">01</span><h2>组合身份和恢复</h2></header><div class="comparison"><section><h3>原来</h3><p>CLI 把模型名和策略名清洗后作为目录名。检查点模式在外层附加另一套序号。</p></section><section class="after"><h3>现在</h3><p>按配置顺序分配 combo-0、combo-1 等标识，目录、元数据和检查点使用同一标识。</p></section></div><p class="reason"><strong>原因</strong> 同一配置的串行、并行和恢复都能把每组结果归到同一位置。</p><details><summary>查看文件和关键代码 <span class="count">1</span></summary><div class="file" id="walkthrough-file-0-0"><div class="file-heading"><span class="tag">修改</span><code>src/experiment.py:170</code></div><pre><code>all_jobs = {f&quot;combo-{index}&quot;: combo for index, combo in enumerate(combinations)}
+...
+checkpoint.put(combo_id, combo)</code></pre></div></details></article><article><header><span class="number">02</span><h2>配置校验与历史结果</h2></header><div class="comparison"><section><h3>原来</h3><p>同名配置等到 Pareto 分析才报错。旧目录冲突可能导致报告读取同一份结果两次。</p></section><section class="after"><h3>现在</h3><p>在执行前拒绝重名配置。历史报告读取可区分的旧引用，发现重复标识或共用目录就停止。旧格式检查点提示新建实验。</p></section></div><p class="reason"><strong>原因</strong> 提前发现无效配置，防止恢复或重建报告时把结果归到错误组合。</p><details><summary>查看文件和关键代码 <span class="count">2</span></summary><div class="file" id="walkthrough-file-1-0"><div class="file-heading"><span class="tag">修改</span><code>src/models.py:782</code></div><pre><code>if name in seen:
+    raise ValueError(f&quot;Duplicate {kind} name in experiment: {name!r}&quot;)</code></pre></div><div class="file" id="walkthrough-file-1-1"><div class="file-heading"><span class="tag">修改</span><code>src/experiment_report.py:668</code></div><pre><code>raw_results[combo_id] = results</code></pre></div></details></article><footer><h2>实际验证</h2><div class="check"><span class="status passed">通过</span><div><strong>相关离线测试</strong><p>228 项通过，覆盖碰撞名称、同名校验、恢复、旧报告和 API。</p></div></div><div class="check"><span class="status passed">通过</span><div><strong>全量离线套件</strong><p>首次运行 4,269 项通过、44 项跳过、7 项发生环境异常，覆盖率 93.08%。补齐工具和开放本机环回端口后，7 项全部定点重跑通过。</p></div></div><div class="check"><span class="status passed">通过</span><div><strong>规格和静态检查</strong><p>核对 3 条规格及 5 个场景，OpenSpec 严格校验、Ruff、Black 与 git diff --check 均通过。</p></div></div><div class="check"><span class="status not-run">未执行</span><div><strong>独立审查</strong><p>Tweak 预设关闭独立审查。</p></div></div></footer></main><template id="walkthrough-data">eyJzdW1tYXJ5Ijoi5a6e6aqM57uE5ZCI5L2/55So54us56uL55qE55uu5b2V5ZKM5qOA5p+l54K544CC5qih5Z6L5ZCN5Lit55qE5pac5p2g5LiO5LiL5YiS57q/5LiN5YaN5a+86Ie05a6e6aqM5LqS55u46KaG55uW44CCIiwic2NvcGUiOiJJc3N1ZSAjNDkx77yM5Z+657q/IGI2N2I0MzFjIOS4juW9k+WJjeW3peS9nOWMuueahOWPmOabtOOAgiIsImNoYW5nZXMiOlt7InRpdGxlIjoi57uE5ZCI6Lqr5Lu95ZKM5oGi5aSNIiwiYmVmb3JlIjoiQ0xJIOaKiuaooeWei+WQjeWSjOetlueVpeWQjea4hea0l+WQjuS9nOS4uuebruW9leWQjeOAguajgOafpeeCueaooeW8j+WcqOWkluWxgumZhOWKoOWPpuS4gOWll+W6j+WPt+OAgiIsImFmdGVyIjoi5oyJ6YWN572u6aG65bqP5YiG6YWNIGNvbWJvLTDjgIFjb21iby0xIOetieagh+ivhu+8jOebruW9leOAgeWFg+aVsOaNruWSjOajgOafpeeCueS9v+eUqOWQjOS4gOagh+ivhuOAgiIsInJlYXNvbiI6IuWQjOS4gOmFjee9rueahOS4suihjOOAgeW5tuihjOWSjOaBouWkjemDveiDveaKiuavj+e7hOe7k+aenOW9kuWIsOWQjOS4gOS9jee9ruOAgiIsImZpbGVzIjpbeyJwYXRoIjoic3JjL2V4cGVyaW1lbnQucHk6MTcwIiwia2luZCI6Im1vZGlmaWVkIiwiY29kZSI6ImFsbF9qb2JzID0ge2ZcImNvbWJvLXtpbmRleH1cIjogY29tYm8gZm9yIGluZGV4LCBjb21ibyBpbiBlbnVtZXJhdGUoY29tYmluYXRpb25zKX1cbi4uLlxuY2hlY2twb2ludC5wdXQoY29tYm9faWQsIGNvbWJvKSJ9XX0seyJ0aXRsZSI6IumFjee9ruagoemqjOS4juWOhuWPsue7k+aenCIsImJlZm9yZSI6IuWQjOWQjemFjee9ruetieWIsCBQYXJldG8g5YiG5p6Q5omN5oql6ZSZ44CC5pen55uu5b2V5Yay56qB5Y+v6IO95a+86Ie05oql5ZGK6K+75Y+W5ZCM5LiA5Lu957uT5p6c5Lik5qyh44CCIiwiYWZ0ZXIiOiLlnKjmiafooYzliY3mi5Lnu53ph43lkI3phY3nva7jgILljoblj7LmiqXlkYror7vlj5blj6/ljLrliIbnmoTml6flvJXnlKjvvIzlj5HnjrDph43lpI3moIfor4bmiJblhbHnlKjnm67lvZXlsLHlgZzmraLjgILml6fmoLzlvI/mo4Dmn6Xngrnmj5DnpLrmlrDlu7rlrp7pqozjgIIiLCJyZWFzb24iOiLmj5DliY3lj5HnjrDml6DmlYjphY3nva7vvIzpmLLmraLmgaLlpI3miJbph43lu7rmiqXlkYrml7bmiornu5PmnpzlvZLliLDplJnor6/nu4TlkIjjgIIiLCJmaWxlcyI6W3sicGF0aCI6InNyYy9tb2RlbHMucHk6NzgyIiwia2luZCI6Im1vZGlmaWVkIiwiY29kZSI6ImlmIG5hbWUgaW4gc2VlbjpcbiAgICByYWlzZSBWYWx1ZUVycm9yKGZcIkR1cGxpY2F0ZSB7a2luZH0gbmFtZSBpbiBleHBlcmltZW50OiB7bmFtZSFyfVwiKSJ9LHsicGF0aCI6InNyYy9leHBlcmltZW50X3JlcG9ydC5weTo2NjgiLCJraW5kIjoibW9kaWZpZWQiLCJjb2RlIjoicmF3X3Jlc3VsdHNbY29tYm9faWRdID0gcmVzdWx0cyJ9XX1dLCJ2ZXJpZmljYXRpb24iOlt7ImxhYmVsIjoi55u45YWz56a757q/5rWL6K+VIiwic3RhdHVzIjoicGFzc2VkIiwiZGV0YWlsIjoiMjI4IOmhuemAmui/h++8jOimhueblueisOaSnuWQjeensOOAgeWQjOWQjeagoemqjOOAgeaBouWkjeOAgeaXp+aKpeWRiuWSjCBBUEnjgIIifSx7ImxhYmVsIjoi5YWo6YeP56a757q/5aWX5Lu2Iiwic3RhdHVzIjoicGFzc2VkIiwiZGV0YWlsIjoi6aaW5qyh6L+Q6KGMIDQsMjY5IOmhuemAmui/h+OAgTQ0IOmhuei3s+i/h+OAgTcg6aG55Y+R55Sf546v5aKD5byC5bi477yM6KaG55uW546HIDkzLjA4JeOAguihpem9kOW3peWFt+WSjOW8gOaUvuacrOacuueOr+Wbnuerr+WPo+WQju+8jDcg6aG55YWo6YOo5a6a54K56YeN6LeR6YCa6L+H44CCIn0seyJsYWJlbCI6IuinhOagvOWSjOmdmeaAgeajgOafpSIsInN0YXR1cyI6InBhc3NlZCIsImRldGFpbCI6IuaguOWvuSAzIOadoeinhOagvOWPiiA1IOS4quWcuuaZr++8jE9wZW5TcGVjIOS4peagvOagoemqjOOAgVJ1ZmbjgIFCbGFjayDkuI4gZ2l0IGRpZmYgLS1jaGVjayDlnYfpgJrov4fjgIIifSx7ImxhYmVsIjoi54us56uL5a6h5p+lIiwic3RhdHVzIjoibm90LXJ1biIsImRldGFpbCI6IlR3ZWFrIOmihOiuvuWFs+mXreeLrOeri+WuoeafpeOAgiJ9XSwiZGlhZ3JhbXMiOlt7InR5cGUiOiJmbG93IiwidGl0bGUiOiLnu4TlkIjnu5PmnpzlpoLkvZXov5vlhaXmiqXlkYoiLCJub2RlcyI6W3siaWQiOiJjb25maWciLCJsYWJlbCI6IuaooeWei+OAgeetlueVpeOAgemHjeWkjee8luWPtyJ9LHsiaWQiOiJpZGVudGl0eSIsImxhYmVsIjoi5qCh6aqM5ZCN56ew5bm25YiG6YWN57uE5ZCI5qCH6K+GIn0seyJpZCI6ImFydGlmYWN0cyIsImxhYmVsIjoi5oyJ5qCH6K+G5YaZ5YWl5Lqn54mpIn0seyJpZCI6InJlY292ZXJ5IiwibGFiZWwiOiLmjInmoIfor4blhpnlhaXkuI7mgaLlpI3mo4Dmn6XngrkifSx7ImlkIjoicmVwb3J0IiwibGFiZWwiOiLmjInmoIfor4bor7vlj5blubbogZrlkIjmiqXlkYoifV0sImVkZ2VzIjpbeyJmcm9tIjoiY29uZmlnIiwidG8iOiJpZGVudGl0eSJ9LHsiZnJvbSI6ImlkZW50aXR5IiwidG8iOiJhcnRpZmFjdHMifSx7ImZyb20iOiJhcnRpZmFjdHMiLCJ0byI6InJlY292ZXJ5In0seyJmcm9tIjoiYXJ0aWZhY3RzIiwidG8iOiJyZXBvcnQifV19XX0=</template></body></html>
