@@ -67,16 +67,19 @@ def test_compute_problem_fingerprint_changes_on_test_case(sample_problem):
 
 
 def test_compute_problem_fingerprint_ignores_metadata(sample_problem):
-    """Test that fingerprint ignores non-evaluation fields like title, tags."""
+    """Source and import notes do not affect an already normalized problem."""
     fp1 = compute_problem_fingerprint(sample_problem)
 
-    # Modify non-evaluation fields
-    sample_problem.title = "Modified Title"
-    sample_problem.tags = ["different", "tags"]
-    sample_problem.difficulty = "hard"
+    sample_problem.schema_version = "1.2"
+    sample_problem.source_platform = "manual"
+    sample_problem.source_problem_id = "p1"
+    sample_problem.source_url = "https://example.com/p1"
+    sample_problem.source_version = "v2"
+    sample_problem.source_metadata = {"reviewed": True}
+    sample_problem.needs_manual_completion = True
+    sample_problem.manual_completion_notes = ["Check original source"]
     fp2 = compute_problem_fingerprint(sample_problem)
 
-    # Fingerprint should be unchanged
     assert fp1 == fp2
 
 

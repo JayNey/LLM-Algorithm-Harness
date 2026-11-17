@@ -1,0 +1,2087 @@
+# comet-execution: managed-run
+change_id: 07b43989-1c4f-4f1f-a68c-1176f3a15cca
+workflow: tweak
+language: zh-CN
+phase: archive
+context_compression: off
+build_mode: direct
+build_pause: null
+subagent_dispatch: null
+tdd_mode: direct
+review_mode: off
+isolation: current
+verify_mode: light
+auto_transition: true
+base_ref: 0a0b4aa49158c1fcea0ef93d7f41faa9763abbef
+design_doc: null
+plan: null
+verify_result: pass
+verify_failures: 0
+verification_report: docs/superpowers/reports/2026-11-17-fix-incremental-reuse-fingerprints-verify.md
+branch_status: pending
+created_at: 2026-11-17
+verified_at: 2026-11-17
+archive_confirmation: confirmed
+archived: true
+bound_branch: codex/fix-incremental-reuse-fingerprints
+run_checkpoint:
+  schema: comet.workflow-run-checkpoint.v1
+  hash: f7442e355f06f7c133f76b47cc7dd84ce51d39f58f2a6f1e16d33b8a76293782
+  run:
+    protocolVersion: 1
+    schemaVersion: 1
+    runId: fix-incremental-reuse-fingerprints
+    revision: 1
+    workflow:
+      id: comet-classic-tweak
+      version: "2"
+      hash: 518d3e8e12eb39899775cb7d2ddcc7ddeba10cb1f1d43cff7b03f2ca61a70c65
+    definitionHashes:
+      '["comet-classic-tweak","2"]': 518d3e8e12eb39899775cb7d2ddcc7ddeba10cb1f1d43cff7b03f2ca61a70c65
+    initialStateHash: bd24189a2517e306f2d86c65258356fb811a7aa4d6d5c3f79660313e05f83973
+    input:
+      change: fix-incremental-reuse-fingerprints
+      changeDir: openspec/changes/fix-incremental-reuse-fingerprints
+      workspaceBaseline:
+        ref: b7346888-c152-4ea3-94ab-924101fdd919
+    state:
+      archiveConfirmation: confirmed
+      archived: true
+      autoTransition: true
+      baseRef: 0a0b4aa49158c1fcea0ef93d7f41faa9763abbef
+      boundBranch: codex/fix-incremental-reuse-fingerprints
+      branchStatus: pending
+      buildMode: direct
+      buildPause: null
+      checkEpoch: 5
+      classicMigration: null
+      classicProfile: null
+      contextCompression: off
+      createdAt: 2026-11-17
+      designDoc: null
+      directOverride: null
+      handoffContext: null
+      handoffHash: null
+      isolation: current
+      language: zh-CN
+      phase: archive
+      plan: null
+      reviewMode: off
+      subagentDispatch: null
+      tddMode: direct
+      verificationReport: docs/superpowers/reports/2026-11-17-fix-incremental-reuse-fingerprints-verify.md
+      verifiedAt: 2026-11-17
+      verifyFailures: 0
+      verifyMode: light
+      verifyResult: pass
+      workflow: tweak
+    status: running
+    sequence: 12
+    actions:
+      - attempt: 1
+        claim:
+          executorId: comet-classic-guard
+          token: portable-53c6d56319ef9507195fc2aed2ea199f859730c7363badea14b6a7541455e0ae
+        executionOrigin:
+          workflow:
+            hash: 518d3e8e12eb39899775cb7d2ddcc7ddeba10cb1f1d43cff7b03f2ca61a70c65
+            id: comet-classic-tweak
+            version: "2"
+        id: fix-incremental-reuse-fingerprints:1
+        input:
+          input:
+            change: fix-incremental-reuse-fingerprints
+            changeDir: openspec/changes/fix-incremental-reuse-fingerprints
+            workspaceBaseline:
+              ref: b7346888-c152-4ea3-94ab-924101fdd919
+          outputs: {}
+        inputHash: 5c1e343ec4f1814895ab15ddfa6b3bfe5e0aaa840e36ea80e0ad48f02c6cb0cf
+        outcome:
+          actionId: fix-incremental-reuse-fingerprints:1
+          attempt: 1
+          claimToken: portable-53c6d56319ef9507195fc2aed2ea199f859730c7363badea14b6a7541455e0ae
+          inputHash: 5c1e343ec4f1814895ab15ddfa6b3bfe5e0aaa840e36ea80e0ad48f02c6cb0cf
+          outcomeId: a620208e-c276-43a8-aed4-b7ae6c6b03a5
+          output:
+            event: open-complete
+            requirementsEvidence:
+              ref: openspec/changes/fix-incremental-reuse-fingerprints
+          status: succeeded
+        protocolVersion: 1
+        receipts:
+          - hash: 7d6d1f92d72d39abf103137256795ae26d00faf071eb2da897b71ae27ab3cb04
+            outcomeId: a620208e-c276-43a8-aed4-b7ae6c6b03a5
+        reconciliations: []
+        ref: comet-tweak
+        requiredCapabilities: []
+        retry: manual
+        runId: fix-incremental-reuse-fingerprints
+        status: succeeded
+        stepId: tweak.open
+        type: invoke_skill
+      - attempt: 1
+        claim:
+          executorId: comet-classic-state
+          token: portable-02ae16c8f319b738e31aa04401f068b8f4a57439be032164ab3e1a3e36148cff
+        executionOrigin:
+          workflow:
+            hash: 518d3e8e12eb39899775cb7d2ddcc7ddeba10cb1f1d43cff7b03f2ca61a70c65
+            id: comet-classic-tweak
+            version: "2"
+        id: fix-incremental-reuse-fingerprints:3
+        input:
+          input:
+            change: fix-incremental-reuse-fingerprints
+            changeDir: openspec/changes/fix-incremental-reuse-fingerprints
+            workspaceBaseline:
+              ref: b7346888-c152-4ea3-94ab-924101fdd919
+          outputs:
+            tweak.open:
+              event: open-complete
+              requirementsEvidence:
+                ref: openspec/changes/fix-incremental-reuse-fingerprints
+            tweak.open.evidence:
+              contentHash: 5c1e343ec4f1814895ab15ddfa6b3bfe5e0aaa840e36ea80e0ad48f02c6cb0cf
+              ref: openspec/changes/fix-incremental-reuse-fingerprints
+        inputHash: b6900a720f908607c5d2d5d2dbbec63617ecb8c16f438fbb082071cf45862a94
+        outcome:
+          actionId: fix-incremental-reuse-fingerprints:3
+          attempt: 1
+          claimToken: portable-02ae16c8f319b738e31aa04401f068b8f4a57439be032164ab3e1a3e36148cff
+          inputHash: b6900a720f908607c5d2d5d2dbbec63617ecb8c16f438fbb082071cf45862a94
+          outcomeId: f5c33e82-6bd5-4e6e-afd1-d148ba5dee08
+          output:
+            event: escalation-requested
+            proposal: 仅文件数超过 tweak 预设的 6 个。设定执行配置指纹、题目指纹、历史兼容性与断点恢复需改动 4 个实现文件，涉及 CLI 和
+              src/incremental；3 个测试文件分别覆盖匹配器、CLI 回归以及修正旧题目指纹测试对标题、标签和难度的旧断言。共 7
+              个交付文件。批准的行为、验收、风险范围保持原定。
+            requirementsEvidence:
+              contentHash: b6900a720f908607c5d2d5d2dbbec63617ecb8c16f438fbb082071cf45862a94
+              ref: openspec/changes/fix-incremental-reuse-fingerprints
+          status: succeeded
+        protocolVersion: 1
+        receipts:
+          - hash: d050f996431d78aafbe4099f75d09072c94f9a3d918c761854db205b3364048b
+            outcomeId: f5c33e82-6bd5-4e6e-afd1-d148ba5dee08
+        reconciliations: []
+        ref: comet-build
+        requiredCapabilities: []
+        retry: manual
+        runId: fix-incremental-reuse-fingerprints
+        status: succeeded
+        stepId: tweak.build.execute
+        type: invoke_skill
+      - attempt: 1
+        claim:
+          executorId: comet-classic-state
+          sessionId: 01a1e8c4-5c47-7053-8afb-085535086dbc
+          token: portable-b386481e888ae81e30c9da91825e415b91503f045915f0e0b70e461debe50e1a
+        executionOrigin:
+          workflow:
+            hash: 518d3e8e12eb39899775cb7d2ddcc7ddeba10cb1f1d43cff7b03f2ca61a70c65
+            id: comet-classic-tweak
+            version: "2"
+        id: fix-incremental-reuse-fingerprints:5
+        input:
+          input:
+            change: fix-incremental-reuse-fingerprints
+            changeDir: openspec/changes/fix-incremental-reuse-fingerprints
+            workspaceBaseline:
+              ref: b7346888-c152-4ea3-94ab-924101fdd919
+          outputs:
+            tweak.build.escalation-confirm:
+              choice: continue
+              proposal:
+                input:
+                  change: fix-incremental-reuse-fingerprints
+                  changeDir: openspec/changes/fix-incremental-reuse-fingerprints
+                  workspaceBaseline:
+                    ref: b7346888-c152-4ea3-94ab-924101fdd919
+                outputs:
+                  tweak.build.execute:
+                    event: escalation-requested
+                    proposal: 仅文件数超过 tweak 预设的 6 个。设定执行配置指纹、题目指纹、历史兼容性与断点恢复需改动 4 个实现文件，涉及 CLI 和
+                      src/incremental；3 个测试文件分别覆盖匹配器、CLI
+                      回归以及修正旧题目指纹测试对标题、标签和难度的旧断言。共 7 个交付文件。批准的行为、验收、风险范围保持原定。
+                    requirementsEvidence:
+                      contentHash: b6900a720f908607c5d2d5d2dbbec63617ecb8c16f438fbb082071cf45862a94
+                      ref: openspec/changes/fix-incremental-reuse-fingerprints
+            tweak.build.execute:
+              event: escalation-requested
+              proposal: 仅文件数超过 tweak 预设的 6 个。设定执行配置指纹、题目指纹、历史兼容性与断点恢复需改动 4 个实现文件，涉及 CLI 和
+                src/incremental；3 个测试文件分别覆盖匹配器、CLI 回归以及修正旧题目指纹测试对标题、标签和难度的旧断言。共
+                7 个交付文件。批准的行为、验收、风险范围保持原定。
+              requirementsEvidence:
+                contentHash: b6900a720f908607c5d2d5d2dbbec63617ecb8c16f438fbb082071cf45862a94
+                ref: openspec/changes/fix-incremental-reuse-fingerprints
+            tweak.open:
+              event: open-complete
+              requirementsEvidence:
+                ref: openspec/changes/fix-incremental-reuse-fingerprints
+            tweak.open.evidence:
+              contentHash: 5c1e343ec4f1814895ab15ddfa6b3bfe5e0aaa840e36ea80e0ad48f02c6cb0cf
+              ref: openspec/changes/fix-incremental-reuse-fingerprints
+        inputHash: 8e3ebf0141b64a39aee3cb04c383c3d99b49b73ec145bad59ff34be6a8a6fd10
+        outcome:
+          actionId: fix-incremental-reuse-fingerprints:5
+          attempt: 1
+          claimToken: portable-b386481e888ae81e30c9da91825e415b91503f045915f0e0b70e461debe50e1a
+          inputHash: 8e3ebf0141b64a39aee3cb04c383c3d99b49b73ec145bad59ff34be6a8a6fd10
+          outcomeId: 93c19153-2de4-4638-8825-969050dd81c2
+          output:
+            checks:
+              - name: 仓库根目录，Python 3.12：pytest --no-cov -q tests/test_incremental_e2e.py
+                  tests/test_incremental_history.py tests/test_detector.py
+                  tests/test_fingerprint.py tests/test_merger_integration.py
+                  tests/test_task_service.py tests/test_business_task_resume.py
+                  tests/test_business_checkpoints.py tests/test_main.py
+                  tests/test_main_helpers.py tests/test_cost_strategy.py
+                  tests/test_failure_integration.py
+                note: 304 passed。日志 /tmp/comet-issue-490-targeted-final.log。两处核心回归先按错误复用断言失败，日志
+                  /tmp/comet-issue-490-red.log。
+                result: passed
+              - name: "仓库根目录：离线重跑 #490 初始温度复现脚本"
+                note: 两轮共 5 次模拟 provider 调用；温度变为 0.9 后，a、b、c 均为 fresh 并得到新参数对应的失败结果。修复前只有 3 次调用。
+                result: passed
+              - name: 仓库根目录：ruff check .、ruff format --check（7 个实施文件）、git diff --check
+                note: 全部通过。
+                result: passed
+              - name: 仓库根目录：comet classic openspec -- validate
+                  fix-incremental-reuse-fingerprints --strict
+                note: 成功验证增量评估 delta spec。
+                result: passed
+            event: build-complete
+          status: succeeded
+        protocolVersion: 1
+        receipts:
+          - hash: 1881c898f3f554c666caab926283baadc554303f981fcb34df1c209b65109440
+            outcomeId: 93c19153-2de4-4638-8825-969050dd81c2
+        reconciliations: []
+        ref: comet-build
+        requiredCapabilities: []
+        retry: manual
+        runId: fix-incremental-reuse-fingerprints
+        status: succeeded
+        stepId: tweak.build.execute
+        type: invoke_skill
+      - attempt: 1
+        claim:
+          executorId: comet-classic-guard
+          token: portable-a07f711ce20cdc85bc0cb35d47d3ce04be149081e06c236cafc5e96fa1470807
+        executionOrigin:
+          workflow:
+            hash: 518d3e8e12eb39899775cb7d2ddcc7ddeba10cb1f1d43cff7b03f2ca61a70c65
+            id: comet-classic-tweak
+            version: "2"
+        id: fix-incremental-reuse-fingerprints:6
+        input:
+          input:
+            change: fix-incremental-reuse-fingerprints
+            changeDir: openspec/changes/fix-incremental-reuse-fingerprints
+            workspaceBaseline:
+              ref: b7346888-c152-4ea3-94ab-924101fdd919
+          outputs:
+            tweak.build.escalation-confirm:
+              choice: continue
+              proposal:
+                input:
+                  change: fix-incremental-reuse-fingerprints
+                  changeDir: openspec/changes/fix-incremental-reuse-fingerprints
+                  workspaceBaseline:
+                    ref: b7346888-c152-4ea3-94ab-924101fdd919
+                outputs:
+                  tweak.build.execute:
+                    event: escalation-requested
+                    proposal: 仅文件数超过 tweak 预设的 6 个。设定执行配置指纹、题目指纹、历史兼容性与断点恢复需改动 4 个实现文件，涉及 CLI 和
+                      src/incremental；3 个测试文件分别覆盖匹配器、CLI
+                      回归以及修正旧题目指纹测试对标题、标签和难度的旧断言。共 7 个交付文件。批准的行为、验收、风险范围保持原定。
+                    requirementsEvidence:
+                      contentHash: b6900a720f908607c5d2d5d2dbbec63617ecb8c16f438fbb082071cf45862a94
+                      ref: openspec/changes/fix-incremental-reuse-fingerprints
+            tweak.build.execute:
+              checks:
+                - name: 仓库根目录，Python 3.12：pytest --no-cov -q tests/test_incremental_e2e.py
+                    tests/test_incremental_history.py tests/test_detector.py
+                    tests/test_fingerprint.py tests/test_merger_integration.py
+                    tests/test_task_service.py
+                    tests/test_business_task_resume.py
+                    tests/test_business_checkpoints.py tests/test_main.py
+                    tests/test_main_helpers.py tests/test_cost_strategy.py
+                    tests/test_failure_integration.py
+                  note: 304 passed。日志 /tmp/comet-issue-490-targeted-final.log。两处核心回归先按错误复用断言失败，日志
+                    /tmp/comet-issue-490-red.log。
+                  result: passed
+                - name: "仓库根目录：离线重跑 #490 初始温度复现脚本"
+                  note: 两轮共 5 次模拟 provider 调用；温度变为 0.9 后，a、b、c 均为 fresh 并得到新参数对应的失败结果。修复前只有 3 次调用。
+                  result: passed
+                - name: 仓库根目录：ruff check .、ruff format --check（7 个实施文件）、git diff --check
+                  note: 全部通过。
+                  result: passed
+                - name: 仓库根目录：comet classic openspec -- validate
+                    fix-incremental-reuse-fingerprints --strict
+                  note: 成功验证增量评估 delta spec。
+                  result: passed
+              event: build-complete
+            tweak.open:
+              event: open-complete
+              requirementsEvidence:
+                ref: openspec/changes/fix-incremental-reuse-fingerprints
+            tweak.open.evidence:
+              contentHash: 5c1e343ec4f1814895ab15ddfa6b3bfe5e0aaa840e36ea80e0ad48f02c6cb0cf
+              ref: openspec/changes/fix-incremental-reuse-fingerprints
+        inputHash: 9458a0a4beffbf3d0b9d2816f6e48f01f1f477e25c5c556a8663c1bd91fa6ef9
+        outcome:
+          actionId: fix-incremental-reuse-fingerprints:6
+          attempt: 1
+          claimToken: portable-a07f711ce20cdc85bc0cb35d47d3ce04be149081e06c236cafc5e96fa1470807
+          inputHash: 9458a0a4beffbf3d0b9d2816f6e48f01f1f477e25c5c556a8663c1bd91fa6ef9
+          outcomeId: fa526f51-e511-4dad-b66c-c053f130bf6d
+          output:
+            checks:
+              - name: 仓库根目录，Python 3.12：pytest --no-cov -q tests/test_incremental_e2e.py
+                  tests/test_incremental_history.py tests/test_detector.py
+                  tests/test_fingerprint.py tests/test_merger_integration.py
+                  tests/test_task_service.py tests/test_business_task_resume.py
+                  tests/test_business_checkpoints.py tests/test_main.py
+                  tests/test_main_helpers.py tests/test_cost_strategy.py
+                  tests/test_failure_integration.py
+                note: 304 passed。日志 /tmp/comet-issue-490-targeted-final.log。两处核心回归先按错误复用断言失败，日志
+                  /tmp/comet-issue-490-red.log。
+                result: passed
+              - name: "仓库根目录：离线重跑 #490 初始温度复现脚本"
+                note: 两轮共 5 次模拟 provider 调用；温度变为 0.9 后，a、b、c 均为 fresh 并得到新参数对应的失败结果。修复前只有 3 次调用。
+                result: passed
+              - name: 仓库根目录：ruff check .、ruff format --check（7 个实施文件）、git diff --check
+                note: 全部通过。
+                result: passed
+              - name: 仓库根目录：comet classic openspec -- validate
+                  fix-incremental-reuse-fingerprints --strict
+                note: 成功验证增量评估 delta spec。
+                result: passed
+              - name: 仓库根目录：Black 格式检查（7 个实施文件）
+                note: 7 个文件无需格式修改。
+                result: passed
+              - name: 离线 CLI 难度预算探针
+                note: 启用按难度预算与策略映射，新增一题后，三道题的 source 均为 fresh。
+                result: passed
+              - name: 判题契约版本探针
+                note: 提高判题契约版本后，相同输入的执行配置及题目指纹都变化。
+                result: passed
+            event: verification-ready
+            verificationReport: docs/superpowers/reports/2026-11-17-fix-incremental-reuse-fingerprints-verify.md
+          status: succeeded
+        protocolVersion: 1
+        receipts:
+          - hash: 3c3a0194e78b92d065fa1c9a97c11bc5003f841a8e98b839c61624cd0ea4a7cf
+            outcomeId: fa526f51-e511-4dad-b66c-c053f130bf6d
+        reconciliations: []
+        ref: comet-verify
+        requiredCapabilities: []
+        retry: manual
+        runId: fix-incremental-reuse-fingerprints
+        status: succeeded
+        stepId: tweak.verify.run
+        type: invoke_skill
+      - attempt: 1
+        claim:
+          executorId: comet-classic-state
+          token: portable-37e59cd422e0f5ddb5b3d52dff504982ebe507dddbf59c931664dc1c9e670510
+        executionOrigin:
+          workflow:
+            hash: 518d3e8e12eb39899775cb7d2ddcc7ddeba10cb1f1d43cff7b03f2ca61a70c65
+            id: comet-classic-tweak
+            version: "2"
+        id: fix-incremental-reuse-fingerprints:8
+        input:
+          input:
+            change: fix-incremental-reuse-fingerprints
+            changeDir: openspec/changes/fix-incremental-reuse-fingerprints
+            workspaceBaseline:
+              ref: b7346888-c152-4ea3-94ab-924101fdd919
+          outputs:
+            tweak.build.escalation-confirm:
+              choice: continue
+              proposal:
+                input:
+                  change: fix-incremental-reuse-fingerprints
+                  changeDir: openspec/changes/fix-incremental-reuse-fingerprints
+                  workspaceBaseline:
+                    ref: b7346888-c152-4ea3-94ab-924101fdd919
+                outputs:
+                  tweak.build.execute:
+                    event: escalation-requested
+                    proposal: 仅文件数超过 tweak 预设的 6 个。设定执行配置指纹、题目指纹、历史兼容性与断点恢复需改动 4 个实现文件，涉及 CLI 和
+                      src/incremental；3 个测试文件分别覆盖匹配器、CLI
+                      回归以及修正旧题目指纹测试对标题、标签和难度的旧断言。共 7 个交付文件。批准的行为、验收、风险范围保持原定。
+                    requirementsEvidence:
+                      contentHash: b6900a720f908607c5d2d5d2dbbec63617ecb8c16f438fbb082071cf45862a94
+                      ref: openspec/changes/fix-incremental-reuse-fingerprints
+            tweak.build.execute:
+              checks:
+                - name: 仓库根目录，Python 3.12：pytest --no-cov -q tests/test_incremental_e2e.py
+                    tests/test_incremental_history.py tests/test_detector.py
+                    tests/test_fingerprint.py tests/test_merger_integration.py
+                    tests/test_task_service.py
+                    tests/test_business_task_resume.py
+                    tests/test_business_checkpoints.py tests/test_main.py
+                    tests/test_main_helpers.py tests/test_cost_strategy.py
+                    tests/test_failure_integration.py
+                  note: 304 passed。日志 /tmp/comet-issue-490-targeted-final.log。两处核心回归先按错误复用断言失败，日志
+                    /tmp/comet-issue-490-red.log。
+                  result: passed
+                - name: "仓库根目录：离线重跑 #490 初始温度复现脚本"
+                  note: 两轮共 5 次模拟 provider 调用；温度变为 0.9 后，a、b、c 均为 fresh 并得到新参数对应的失败结果。修复前只有 3 次调用。
+                  result: passed
+                - name: 仓库根目录：ruff check .、ruff format --check（7 个实施文件）、git diff --check
+                  note: 全部通过。
+                  result: passed
+                - name: 仓库根目录：comet classic openspec -- validate
+                    fix-incremental-reuse-fingerprints --strict
+                  note: 成功验证增量评估 delta spec。
+                  result: passed
+              event: build-complete
+            tweak.open:
+              event: open-complete
+              requirementsEvidence:
+                ref: openspec/changes/fix-incremental-reuse-fingerprints
+            tweak.open.evidence:
+              contentHash: 5c1e343ec4f1814895ab15ddfa6b3bfe5e0aaa840e36ea80e0ad48f02c6cb0cf
+              ref: openspec/changes/fix-incremental-reuse-fingerprints
+            tweak.verify.report.evidence:
+              contentHash: 9458a0a4beffbf3d0b9d2816f6e48f01f1f477e25c5c556a8663c1bd91fa6ef9
+              ref: docs/superpowers/reports/2026-11-17-fix-incremental-reuse-fingerprints-verify.md
+            tweak.verify.run:
+              checks:
+                - name: 仓库根目录，Python 3.12：pytest --no-cov -q tests/test_incremental_e2e.py
+                    tests/test_incremental_history.py tests/test_detector.py
+                    tests/test_fingerprint.py tests/test_merger_integration.py
+                    tests/test_task_service.py
+                    tests/test_business_task_resume.py
+                    tests/test_business_checkpoints.py tests/test_main.py
+                    tests/test_main_helpers.py tests/test_cost_strategy.py
+                    tests/test_failure_integration.py
+                  note: 304 passed。日志 /tmp/comet-issue-490-targeted-final.log。两处核心回归先按错误复用断言失败，日志
+                    /tmp/comet-issue-490-red.log。
+                  result: passed
+                - name: "仓库根目录：离线重跑 #490 初始温度复现脚本"
+                  note: 两轮共 5 次模拟 provider 调用；温度变为 0.9 后，a、b、c 均为 fresh 并得到新参数对应的失败结果。修复前只有 3 次调用。
+                  result: passed
+                - name: 仓库根目录：ruff check .、ruff format --check（7 个实施文件）、git diff --check
+                  note: 全部通过。
+                  result: passed
+                - name: 仓库根目录：comet classic openspec -- validate
+                    fix-incremental-reuse-fingerprints --strict
+                  note: 成功验证增量评估 delta spec。
+                  result: passed
+                - name: 仓库根目录：Black 格式检查（7 个实施文件）
+                  note: 7 个文件无需格式修改。
+                  result: passed
+                - name: 离线 CLI 难度预算探针
+                  note: 启用按难度预算与策略映射，新增一题后，三道题的 source 均为 fresh。
+                  result: passed
+                - name: 判题契约版本探针
+                  note: 提高判题契约版本后，相同输入的执行配置及题目指纹都变化。
+                  result: passed
+              event: verification-ready
+              verificationReport: docs/superpowers/reports/2026-11-17-fix-incremental-reuse-fingerprints-verify.md
+        inputHash: 7261ccae61ed7d920c0d877cf4874e13704d6a02c2d83143ffe8d44ee5103b9a
+        outcome:
+          actionId: fix-incremental-reuse-fingerprints:8
+          attempt: 1
+          claimToken: portable-37e59cd422e0f5ddb5b3d52dff504982ebe507dddbf59c931664dc1c9e670510
+          inputHash: 7261ccae61ed7d920c0d877cf4874e13704d6a02c2d83143ffe8d44ee5103b9a
+          outcomeId: fd08389e-65ea-4c6d-a93c-8935947cb912
+          output:
+            prBaseBranch: main
+            remote: origin
+            summary: "归档已通过 Verify 的 GitHub #490，将增量评估 delta 合入主规格，提交 4 个实现文件、3 个测试文件及 Comet
+              产物。将 codex/fix-incremental-reuse-fingerprints 推到 origin 并创建目标为
+              main 的 PR。"
+            targetBranch: codex/fix-incremental-reuse-fingerprints
+          status: succeeded
+        protocolVersion: 1
+        receipts:
+          - hash: 1cb1dd40dbd690dc7a0968bd90c7264c30c0e1ce24656cf1b694dbdd5341ac14
+            outcomeId: fd08389e-65ea-4c6d-a93c-8935947cb912
+        reconciliations: []
+        ref: comet-archive
+        requiredCapabilities: []
+        retry: manual
+        runId: fix-incremental-reuse-fingerprints
+        status: succeeded
+        stepId: tweak.archive.prepare
+        type: invoke_skill
+      - attempt: 1
+        claim:
+          executorId: comet-classic-archive-preflight
+          token: portable-919c6a0087ac7b58464908e20da94019c2936f2d85dac107a4f39ff1cb80b18b
+        executionOrigin:
+          workflow:
+            hash: 518d3e8e12eb39899775cb7d2ddcc7ddeba10cb1f1d43cff7b03f2ca61a70c65
+            id: comet-classic-tweak
+            version: "2"
+        id: fix-incremental-reuse-fingerprints:10
+        input:
+          input:
+            change: fix-incremental-reuse-fingerprints
+            changeDir: openspec/changes/fix-incremental-reuse-fingerprints
+            workspaceBaseline:
+              ref: b7346888-c152-4ea3-94ab-924101fdd919
+          outputs:
+            tweak.archive.confirm:
+              choice: pr
+              proposal:
+                input:
+                  change: fix-incremental-reuse-fingerprints
+                  changeDir: openspec/changes/fix-incremental-reuse-fingerprints
+                  workspaceBaseline:
+                    ref: b7346888-c152-4ea3-94ab-924101fdd919
+                outputs:
+                  tweak.archive.prepare:
+                    prBaseBranch: main
+                    remote: origin
+                    summary: "归档已通过 Verify 的 GitHub #490，将增量评估 delta 合入主规格，提交 4 个实现文件、3 个测试文件及 Comet
+                      产物。将 codex/fix-incremental-reuse-fingerprints 推到 origin
+                      并创建目标为 main 的 PR。"
+                    targetBranch: codex/fix-incremental-reuse-fingerprints
+            tweak.archive.prepare:
+              prBaseBranch: main
+              remote: origin
+              summary: "归档已通过 Verify 的 GitHub #490，将增量评估 delta 合入主规格，提交 4 个实现文件、3 个测试文件及 Comet
+                产物。将 codex/fix-incremental-reuse-fingerprints 推到 origin 并创建目标为
+                main 的 PR。"
+              targetBranch: codex/fix-incremental-reuse-fingerprints
+            tweak.build.escalation-confirm:
+              choice: continue
+              proposal:
+                input:
+                  change: fix-incremental-reuse-fingerprints
+                  changeDir: openspec/changes/fix-incremental-reuse-fingerprints
+                  workspaceBaseline:
+                    ref: b7346888-c152-4ea3-94ab-924101fdd919
+                outputs:
+                  tweak.build.execute:
+                    event: escalation-requested
+                    proposal: 仅文件数超过 tweak 预设的 6 个。设定执行配置指纹、题目指纹、历史兼容性与断点恢复需改动 4 个实现文件，涉及 CLI 和
+                      src/incremental；3 个测试文件分别覆盖匹配器、CLI
+                      回归以及修正旧题目指纹测试对标题、标签和难度的旧断言。共 7 个交付文件。批准的行为、验收、风险范围保持原定。
+                    requirementsEvidence:
+                      contentHash: b6900a720f908607c5d2d5d2dbbec63617ecb8c16f438fbb082071cf45862a94
+                      ref: openspec/changes/fix-incremental-reuse-fingerprints
+            tweak.build.execute:
+              checks:
+                - name: 仓库根目录，Python 3.12：pytest --no-cov -q tests/test_incremental_e2e.py
+                    tests/test_incremental_history.py tests/test_detector.py
+                    tests/test_fingerprint.py tests/test_merger_integration.py
+                    tests/test_task_service.py
+                    tests/test_business_task_resume.py
+                    tests/test_business_checkpoints.py tests/test_main.py
+                    tests/test_main_helpers.py tests/test_cost_strategy.py
+                    tests/test_failure_integration.py
+                  note: 304 passed。日志 /tmp/comet-issue-490-targeted-final.log。两处核心回归先按错误复用断言失败，日志
+                    /tmp/comet-issue-490-red.log。
+                  result: passed
+                - name: "仓库根目录：离线重跑 #490 初始温度复现脚本"
+                  note: 两轮共 5 次模拟 provider 调用；温度变为 0.9 后，a、b、c 均为 fresh 并得到新参数对应的失败结果。修复前只有 3 次调用。
+                  result: passed
+                - name: 仓库根目录：ruff check .、ruff format --check（7 个实施文件）、git diff --check
+                  note: 全部通过。
+                  result: passed
+                - name: 仓库根目录：comet classic openspec -- validate
+                    fix-incremental-reuse-fingerprints --strict
+                  note: 成功验证增量评估 delta spec。
+                  result: passed
+              event: build-complete
+            tweak.open:
+              event: open-complete
+              requirementsEvidence:
+                ref: openspec/changes/fix-incremental-reuse-fingerprints
+            tweak.open.evidence:
+              contentHash: 5c1e343ec4f1814895ab15ddfa6b3bfe5e0aaa840e36ea80e0ad48f02c6cb0cf
+              ref: openspec/changes/fix-incremental-reuse-fingerprints
+            tweak.verify.report.evidence:
+              contentHash: 9458a0a4beffbf3d0b9d2816f6e48f01f1f477e25c5c556a8663c1bd91fa6ef9
+              ref: docs/superpowers/reports/2026-11-17-fix-incremental-reuse-fingerprints-verify.md
+            tweak.verify.run:
+              checks:
+                - name: 仓库根目录，Python 3.12：pytest --no-cov -q tests/test_incremental_e2e.py
+                    tests/test_incremental_history.py tests/test_detector.py
+                    tests/test_fingerprint.py tests/test_merger_integration.py
+                    tests/test_task_service.py
+                    tests/test_business_task_resume.py
+                    tests/test_business_checkpoints.py tests/test_main.py
+                    tests/test_main_helpers.py tests/test_cost_strategy.py
+                    tests/test_failure_integration.py
+                  note: 304 passed。日志 /tmp/comet-issue-490-targeted-final.log。两处核心回归先按错误复用断言失败，日志
+                    /tmp/comet-issue-490-red.log。
+                  result: passed
+                - name: "仓库根目录：离线重跑 #490 初始温度复现脚本"
+                  note: 两轮共 5 次模拟 provider 调用；温度变为 0.9 后，a、b、c 均为 fresh 并得到新参数对应的失败结果。修复前只有 3 次调用。
+                  result: passed
+                - name: 仓库根目录：ruff check .、ruff format --check（7 个实施文件）、git diff --check
+                  note: 全部通过。
+                  result: passed
+                - name: 仓库根目录：comet classic openspec -- validate
+                    fix-incremental-reuse-fingerprints --strict
+                  note: 成功验证增量评估 delta spec。
+                  result: passed
+                - name: 仓库根目录：Black 格式检查（7 个实施文件）
+                  note: 7 个文件无需格式修改。
+                  result: passed
+                - name: 离线 CLI 难度预算探针
+                  note: 启用按难度预算与策略映射，新增一题后，三道题的 source 均为 fresh。
+                  result: passed
+                - name: 判题契约版本探针
+                  note: 提高判题契约版本后，相同输入的执行配置及题目指纹都变化。
+                  result: passed
+              event: verification-ready
+              verificationReport: docs/superpowers/reports/2026-11-17-fix-incremental-reuse-fingerprints-verify.md
+        inputHash: 6611e65f5076d72ea2b260577e9961cb369402847712db930a4d8bfe550e3d61
+        outcome:
+          actionId: fix-incremental-reuse-fingerprints:10
+          attempt: 1
+          claimToken: portable-919c6a0087ac7b58464908e20da94019c2936f2d85dac107a4f39ff1cb80b18b
+          inputHash: 6611e65f5076d72ea2b260577e9961cb369402847712db930a4d8bfe550e3d61
+          outcomeId: df8a35ee-9351-41aa-954a-1afdc204ab7d
+          output:
+            baseCommit: 0a0b4aa49158c1fcea0ef93d7f41faa9763abbef
+            deliveryAction: pr
+            deliveryPaths:
+              - src/incremental/detector.py
+              - src/incremental/fingerprint.py
+              - src/incremental/history.py
+              - src/main.py
+              - tests/test_detector.py
+              - tests/test_fingerprint.py
+              - tests/test_incremental_e2e.py
+            prBaseBranch: main
+            remote: origin
+            remoteIdentity: 128eeb1e6f0d21b25601fcb7f9aad36adfdfb4d76f37f54f004760410190f351
+            targetBranch: codex/fix-incremental-reuse-fingerprints
+            verifiedBranch: codex/fix-incremental-reuse-fingerprints
+          status: succeeded
+        protocolVersion: 1
+        receipts:
+          - hash: 772345902f60f99020ba33ac290d34cfebe47bdf6407ebe827e232f1dcaac038
+            outcomeId: df8a35ee-9351-41aa-954a-1afdc204ab7d
+        reconciliations: []
+        ref: classic-archive-preflight
+        requiredCapabilities: []
+        retry: manual
+        runId: fix-incremental-reuse-fingerprints
+        status: succeeded
+        stepId: tweak.archive.preflight
+        type: call_tool
+      - attempt: 1
+        claim:
+          executorId: comet-classic-archive
+          token: portable-28eee37f952c9719c0f7dd2d394bd907197b535dedf11ad5c0abfb7e59956ffe
+        executionOrigin:
+          workflow:
+            hash: 518d3e8e12eb39899775cb7d2ddcc7ddeba10cb1f1d43cff7b03f2ca61a70c65
+            id: comet-classic-tweak
+            version: "2"
+        id: fix-incremental-reuse-fingerprints:11
+        input:
+          input:
+            change: fix-incremental-reuse-fingerprints
+            changeDir: openspec/changes/fix-incremental-reuse-fingerprints
+            workspaceBaseline:
+              ref: b7346888-c152-4ea3-94ab-924101fdd919
+          outputs:
+            tweak.archive.confirm:
+              choice: pr
+              proposal:
+                input:
+                  change: fix-incremental-reuse-fingerprints
+                  changeDir: openspec/changes/fix-incremental-reuse-fingerprints
+                  workspaceBaseline:
+                    ref: b7346888-c152-4ea3-94ab-924101fdd919
+                outputs:
+                  tweak.archive.prepare:
+                    prBaseBranch: main
+                    remote: origin
+                    summary: "归档已通过 Verify 的 GitHub #490，将增量评估 delta 合入主规格，提交 4 个实现文件、3 个测试文件及 Comet
+                      产物。将 codex/fix-incremental-reuse-fingerprints 推到 origin
+                      并创建目标为 main 的 PR。"
+                    targetBranch: codex/fix-incremental-reuse-fingerprints
+            tweak.archive.preflight:
+              baseCommit: 0a0b4aa49158c1fcea0ef93d7f41faa9763abbef
+              deliveryAction: pr
+              deliveryPaths:
+                - src/incremental/detector.py
+                - src/incremental/fingerprint.py
+                - src/incremental/history.py
+                - src/main.py
+                - tests/test_detector.py
+                - tests/test_fingerprint.py
+                - tests/test_incremental_e2e.py
+              prBaseBranch: main
+              remote: origin
+              remoteIdentity: 128eeb1e6f0d21b25601fcb7f9aad36adfdfb4d76f37f54f004760410190f351
+              targetBranch: codex/fix-incremental-reuse-fingerprints
+              verifiedBranch: codex/fix-incremental-reuse-fingerprints
+            tweak.archive.prepare:
+              prBaseBranch: main
+              remote: origin
+              summary: "归档已通过 Verify 的 GitHub #490，将增量评估 delta 合入主规格，提交 4 个实现文件、3 个测试文件及 Comet
+                产物。将 codex/fix-incremental-reuse-fingerprints 推到 origin 并创建目标为
+                main 的 PR。"
+              targetBranch: codex/fix-incremental-reuse-fingerprints
+            tweak.build.escalation-confirm:
+              choice: continue
+              proposal:
+                input:
+                  change: fix-incremental-reuse-fingerprints
+                  changeDir: openspec/changes/fix-incremental-reuse-fingerprints
+                  workspaceBaseline:
+                    ref: b7346888-c152-4ea3-94ab-924101fdd919
+                outputs:
+                  tweak.build.execute:
+                    event: escalation-requested
+                    proposal: 仅文件数超过 tweak 预设的 6 个。设定执行配置指纹、题目指纹、历史兼容性与断点恢复需改动 4 个实现文件，涉及 CLI 和
+                      src/incremental；3 个测试文件分别覆盖匹配器、CLI
+                      回归以及修正旧题目指纹测试对标题、标签和难度的旧断言。共 7 个交付文件。批准的行为、验收、风险范围保持原定。
+                    requirementsEvidence:
+                      contentHash: b6900a720f908607c5d2d5d2dbbec63617ecb8c16f438fbb082071cf45862a94
+                      ref: openspec/changes/fix-incremental-reuse-fingerprints
+            tweak.build.execute:
+              checks:
+                - name: 仓库根目录，Python 3.12：pytest --no-cov -q tests/test_incremental_e2e.py
+                    tests/test_incremental_history.py tests/test_detector.py
+                    tests/test_fingerprint.py tests/test_merger_integration.py
+                    tests/test_task_service.py
+                    tests/test_business_task_resume.py
+                    tests/test_business_checkpoints.py tests/test_main.py
+                    tests/test_main_helpers.py tests/test_cost_strategy.py
+                    tests/test_failure_integration.py
+                  note: 304 passed。日志 /tmp/comet-issue-490-targeted-final.log。两处核心回归先按错误复用断言失败，日志
+                    /tmp/comet-issue-490-red.log。
+                  result: passed
+                - name: "仓库根目录：离线重跑 #490 初始温度复现脚本"
+                  note: 两轮共 5 次模拟 provider 调用；温度变为 0.9 后，a、b、c 均为 fresh 并得到新参数对应的失败结果。修复前只有 3 次调用。
+                  result: passed
+                - name: 仓库根目录：ruff check .、ruff format --check（7 个实施文件）、git diff --check
+                  note: 全部通过。
+                  result: passed
+                - name: 仓库根目录：comet classic openspec -- validate
+                    fix-incremental-reuse-fingerprints --strict
+                  note: 成功验证增量评估 delta spec。
+                  result: passed
+              event: build-complete
+            tweak.open:
+              event: open-complete
+              requirementsEvidence:
+                ref: openspec/changes/fix-incremental-reuse-fingerprints
+            tweak.open.evidence:
+              contentHash: 5c1e343ec4f1814895ab15ddfa6b3bfe5e0aaa840e36ea80e0ad48f02c6cb0cf
+              ref: openspec/changes/fix-incremental-reuse-fingerprints
+            tweak.verify.report.evidence:
+              contentHash: 9458a0a4beffbf3d0b9d2816f6e48f01f1f477e25c5c556a8663c1bd91fa6ef9
+              ref: docs/superpowers/reports/2026-11-17-fix-incremental-reuse-fingerprints-verify.md
+            tweak.verify.run:
+              checks:
+                - name: 仓库根目录，Python 3.12：pytest --no-cov -q tests/test_incremental_e2e.py
+                    tests/test_incremental_history.py tests/test_detector.py
+                    tests/test_fingerprint.py tests/test_merger_integration.py
+                    tests/test_task_service.py
+                    tests/test_business_task_resume.py
+                    tests/test_business_checkpoints.py tests/test_main.py
+                    tests/test_main_helpers.py tests/test_cost_strategy.py
+                    tests/test_failure_integration.py
+                  note: 304 passed。日志 /tmp/comet-issue-490-targeted-final.log。两处核心回归先按错误复用断言失败，日志
+                    /tmp/comet-issue-490-red.log。
+                  result: passed
+                - name: "仓库根目录：离线重跑 #490 初始温度复现脚本"
+                  note: 两轮共 5 次模拟 provider 调用；温度变为 0.9 后，a、b、c 均为 fresh 并得到新参数对应的失败结果。修复前只有 3 次调用。
+                  result: passed
+                - name: 仓库根目录：ruff check .、ruff format --check（7 个实施文件）、git diff --check
+                  note: 全部通过。
+                  result: passed
+                - name: 仓库根目录：comet classic openspec -- validate
+                    fix-incremental-reuse-fingerprints --strict
+                  note: 成功验证增量评估 delta spec。
+                  result: passed
+                - name: 仓库根目录：Black 格式检查（7 个实施文件）
+                  note: 7 个文件无需格式修改。
+                  result: passed
+                - name: 离线 CLI 难度预算探针
+                  note: 启用按难度预算与策略映射，新增一题后，三道题的 source 均为 fresh。
+                  result: passed
+                - name: 判题契约版本探针
+                  note: 提高判题契约版本后，相同输入的执行配置及题目指纹都变化。
+                  result: passed
+              event: verification-ready
+              verificationReport: docs/superpowers/reports/2026-11-17-fix-incremental-reuse-fingerprints-verify.md
+        inputHash: c079c582f191c635cb4a0105313804b964dc2c5968f055e36c1a1cec776f403f
+        outcome:
+          actionId: fix-incremental-reuse-fingerprints:11
+          artifacts: []
+          attempt: 1
+          claimToken: portable-28eee37f952c9719c0f7dd2d394bd907197b535dedf11ad5c0abfb7e59956ffe
+          inputHash: c079c582f191c635cb4a0105313804b964dc2c5968f055e36c1a1cec776f403f
+          outcomeId: 15e523e3-3a26-4dc7-b1c9-6366ecc974c1
+          output:
+            archiveDirectory: openspec/changes/archive/2026-11-17-fix-incremental-reuse-fingerprints
+          status: succeeded
+        protocolVersion: 1
+        receipts:
+          - hash: e0012eefae49976eabc8fb4e893f90306d0394edb62bae85d6cef568fa304064
+            outcomeId: 15e523e3-3a26-4dc7-b1c9-6366ecc974c1
+        reconciliations: []
+        ref: classic-archive
+        requiredCapabilities: []
+        retry: manual
+        runId: fix-incremental-reuse-fingerprints
+        status: succeeded
+        stepId: tweak.archive.execute
+        type: call_tool
+      - attempt: 1
+        id: fix-incremental-reuse-fingerprints:12
+        input:
+          input:
+            change: fix-incremental-reuse-fingerprints
+            changeDir: openspec/changes/fix-incremental-reuse-fingerprints
+            workspaceBaseline:
+              ref: b7346888-c152-4ea3-94ab-924101fdd919
+          outputs:
+            tweak.archive.confirm:
+              choice: pr
+              proposal:
+                input:
+                  change: fix-incremental-reuse-fingerprints
+                  changeDir: openspec/changes/fix-incremental-reuse-fingerprints
+                  workspaceBaseline:
+                    ref: b7346888-c152-4ea3-94ab-924101fdd919
+                outputs:
+                  tweak.archive.prepare:
+                    prBaseBranch: main
+                    remote: origin
+                    summary: "归档已通过 Verify 的 GitHub #490，将增量评估 delta 合入主规格，提交 4 个实现文件、3 个测试文件及 Comet
+                      产物。将 codex/fix-incremental-reuse-fingerprints 推到 origin
+                      并创建目标为 main 的 PR。"
+                    targetBranch: codex/fix-incremental-reuse-fingerprints
+            tweak.archive.execute:
+              archiveDirectory: openspec/changes/archive/2026-11-17-fix-incremental-reuse-fingerprints
+            tweak.archive.preflight:
+              baseCommit: 0a0b4aa49158c1fcea0ef93d7f41faa9763abbef
+              deliveryAction: pr
+              deliveryPaths:
+                - src/incremental/detector.py
+                - src/incremental/fingerprint.py
+                - src/incremental/history.py
+                - src/main.py
+                - tests/test_detector.py
+                - tests/test_fingerprint.py
+                - tests/test_incremental_e2e.py
+              prBaseBranch: main
+              remote: origin
+              remoteIdentity: 128eeb1e6f0d21b25601fcb7f9aad36adfdfb4d76f37f54f004760410190f351
+              targetBranch: codex/fix-incremental-reuse-fingerprints
+              verifiedBranch: codex/fix-incremental-reuse-fingerprints
+            tweak.archive.prepare:
+              prBaseBranch: main
+              remote: origin
+              summary: "归档已通过 Verify 的 GitHub #490，将增量评估 delta 合入主规格，提交 4 个实现文件、3 个测试文件及 Comet
+                产物。将 codex/fix-incremental-reuse-fingerprints 推到 origin 并创建目标为
+                main 的 PR。"
+              targetBranch: codex/fix-incremental-reuse-fingerprints
+            tweak.build.escalation-confirm:
+              choice: continue
+              proposal:
+                input:
+                  change: fix-incremental-reuse-fingerprints
+                  changeDir: openspec/changes/fix-incremental-reuse-fingerprints
+                  workspaceBaseline:
+                    ref: b7346888-c152-4ea3-94ab-924101fdd919
+                outputs:
+                  tweak.build.execute:
+                    event: escalation-requested
+                    proposal: 仅文件数超过 tweak 预设的 6 个。设定执行配置指纹、题目指纹、历史兼容性与断点恢复需改动 4 个实现文件，涉及 CLI 和
+                      src/incremental；3 个测试文件分别覆盖匹配器、CLI
+                      回归以及修正旧题目指纹测试对标题、标签和难度的旧断言。共 7 个交付文件。批准的行为、验收、风险范围保持原定。
+                    requirementsEvidence:
+                      contentHash: b6900a720f908607c5d2d5d2dbbec63617ecb8c16f438fbb082071cf45862a94
+                      ref: openspec/changes/fix-incremental-reuse-fingerprints
+            tweak.build.execute:
+              checks:
+                - name: 仓库根目录，Python 3.12：pytest --no-cov -q tests/test_incremental_e2e.py
+                    tests/test_incremental_history.py tests/test_detector.py
+                    tests/test_fingerprint.py tests/test_merger_integration.py
+                    tests/test_task_service.py
+                    tests/test_business_task_resume.py
+                    tests/test_business_checkpoints.py tests/test_main.py
+                    tests/test_main_helpers.py tests/test_cost_strategy.py
+                    tests/test_failure_integration.py
+                  note: 304 passed。日志 /tmp/comet-issue-490-targeted-final.log。两处核心回归先按错误复用断言失败，日志
+                    /tmp/comet-issue-490-red.log。
+                  result: passed
+                - name: "仓库根目录：离线重跑 #490 初始温度复现脚本"
+                  note: 两轮共 5 次模拟 provider 调用；温度变为 0.9 后，a、b、c 均为 fresh 并得到新参数对应的失败结果。修复前只有 3 次调用。
+                  result: passed
+                - name: 仓库根目录：ruff check .、ruff format --check（7 个实施文件）、git diff --check
+                  note: 全部通过。
+                  result: passed
+                - name: 仓库根目录：comet classic openspec -- validate
+                    fix-incremental-reuse-fingerprints --strict
+                  note: 成功验证增量评估 delta spec。
+                  result: passed
+              event: build-complete
+            tweak.open:
+              event: open-complete
+              requirementsEvidence:
+                ref: openspec/changes/fix-incremental-reuse-fingerprints
+            tweak.open.evidence:
+              contentHash: 5c1e343ec4f1814895ab15ddfa6b3bfe5e0aaa840e36ea80e0ad48f02c6cb0cf
+              ref: openspec/changes/fix-incremental-reuse-fingerprints
+            tweak.verify.report.evidence:
+              contentHash: 9458a0a4beffbf3d0b9d2816f6e48f01f1f477e25c5c556a8663c1bd91fa6ef9
+              ref: docs/superpowers/reports/2026-11-17-fix-incremental-reuse-fingerprints-verify.md
+            tweak.verify.run:
+              checks:
+                - name: 仓库根目录，Python 3.12：pytest --no-cov -q tests/test_incremental_e2e.py
+                    tests/test_incremental_history.py tests/test_detector.py
+                    tests/test_fingerprint.py tests/test_merger_integration.py
+                    tests/test_task_service.py
+                    tests/test_business_task_resume.py
+                    tests/test_business_checkpoints.py tests/test_main.py
+                    tests/test_main_helpers.py tests/test_cost_strategy.py
+                    tests/test_failure_integration.py
+                  note: 304 passed。日志 /tmp/comet-issue-490-targeted-final.log。两处核心回归先按错误复用断言失败，日志
+                    /tmp/comet-issue-490-red.log。
+                  result: passed
+                - name: "仓库根目录：离线重跑 #490 初始温度复现脚本"
+                  note: 两轮共 5 次模拟 provider 调用；温度变为 0.9 后，a、b、c 均为 fresh 并得到新参数对应的失败结果。修复前只有 3 次调用。
+                  result: passed
+                - name: 仓库根目录：ruff check .、ruff format --check（7 个实施文件）、git diff --check
+                  note: 全部通过。
+                  result: passed
+                - name: 仓库根目录：comet classic openspec -- validate
+                    fix-incremental-reuse-fingerprints --strict
+                  note: 成功验证增量评估 delta spec。
+                  result: passed
+                - name: 仓库根目录：Black 格式检查（7 个实施文件）
+                  note: 7 个文件无需格式修改。
+                  result: passed
+                - name: 离线 CLI 难度预算探针
+                  note: 启用按难度预算与策略映射，新增一题后，三道题的 source 均为 fresh。
+                  result: passed
+                - name: 判题契约版本探针
+                  note: 提高判题契约版本后，相同输入的执行配置及题目指纹都变化。
+                  result: passed
+              event: verification-ready
+              verificationReport: docs/superpowers/reports/2026-11-17-fix-incremental-reuse-fingerprints-verify.md
+        inputHash: 9e6011015eafc695e34bf79c60db3d10f015cd24424c2429c354c6e2d208d187
+        protocolVersion: 1
+        receipts: []
+        reconciliations: []
+        ref: comet-archive
+        requiredCapabilities: []
+        retry: manual
+        runId: fix-incremental-reuse-fingerprints
+        status: pending
+        stepId: tweak.archive.deliver
+        type: invoke_skill
+    actionContexts:
+      fix-incremental-reuse-fingerprints:1:
+        results: {}
+        sequence: 1
+      fix-incremental-reuse-fingerprints:10:
+        results:
+          tweak.archive.confirm:
+            sequence: 9
+            value:
+              choice: pr
+              proposal:
+                input:
+                  change: fix-incremental-reuse-fingerprints
+                  changeDir: openspec/changes/fix-incremental-reuse-fingerprints
+                  workspaceBaseline:
+                    ref: b7346888-c152-4ea3-94ab-924101fdd919
+                outputs:
+                  tweak.archive.prepare:
+                    prBaseBranch: main
+                    remote: origin
+                    summary: "归档已通过 Verify 的 GitHub #490，将增量评估 delta 合入主规格，提交 4 个实现文件、3 个测试文件及 Comet
+                      产物。将 codex/fix-incremental-reuse-fingerprints 推到 origin
+                      并创建目标为 main 的 PR。"
+                    targetBranch: codex/fix-incremental-reuse-fingerprints
+          tweak.archive.prepare:
+            sequence: 8
+            value:
+              prBaseBranch: main
+              remote: origin
+              summary: "归档已通过 Verify 的 GitHub #490，将增量评估 delta 合入主规格，提交 4 个实现文件、3 个测试文件及 Comet
+                产物。将 codex/fix-incremental-reuse-fingerprints 推到 origin 并创建目标为
+                main 的 PR。"
+              targetBranch: codex/fix-incremental-reuse-fingerprints
+          tweak.build.escalation-confirm:
+            sequence: 4
+            value:
+              choice: continue
+              proposal:
+                input:
+                  change: fix-incremental-reuse-fingerprints
+                  changeDir: openspec/changes/fix-incremental-reuse-fingerprints
+                  workspaceBaseline:
+                    ref: b7346888-c152-4ea3-94ab-924101fdd919
+                outputs:
+                  tweak.build.execute:
+                    event: escalation-requested
+                    proposal: 仅文件数超过 tweak 预设的 6 个。设定执行配置指纹、题目指纹、历史兼容性与断点恢复需改动 4 个实现文件，涉及 CLI 和
+                      src/incremental；3 个测试文件分别覆盖匹配器、CLI
+                      回归以及修正旧题目指纹测试对标题、标签和难度的旧断言。共 7 个交付文件。批准的行为、验收、风险范围保持原定。
+                    requirementsEvidence:
+                      contentHash: b6900a720f908607c5d2d5d2dbbec63617ecb8c16f438fbb082071cf45862a94
+                      ref: openspec/changes/fix-incremental-reuse-fingerprints
+          tweak.build.execute:
+            sequence: 5
+            value:
+              checks:
+                - name: 仓库根目录，Python 3.12：pytest --no-cov -q tests/test_incremental_e2e.py
+                    tests/test_incremental_history.py tests/test_detector.py
+                    tests/test_fingerprint.py tests/test_merger_integration.py
+                    tests/test_task_service.py
+                    tests/test_business_task_resume.py
+                    tests/test_business_checkpoints.py tests/test_main.py
+                    tests/test_main_helpers.py tests/test_cost_strategy.py
+                    tests/test_failure_integration.py
+                  note: 304 passed。日志 /tmp/comet-issue-490-targeted-final.log。两处核心回归先按错误复用断言失败，日志
+                    /tmp/comet-issue-490-red.log。
+                  result: passed
+                - name: "仓库根目录：离线重跑 #490 初始温度复现脚本"
+                  note: 两轮共 5 次模拟 provider 调用；温度变为 0.9 后，a、b、c 均为 fresh 并得到新参数对应的失败结果。修复前只有 3 次调用。
+                  result: passed
+                - name: 仓库根目录：ruff check .、ruff format --check（7 个实施文件）、git diff --check
+                  note: 全部通过。
+                  result: passed
+                - name: 仓库根目录：comet classic openspec -- validate
+                    fix-incremental-reuse-fingerprints --strict
+                  note: 成功验证增量评估 delta spec。
+                  result: passed
+              event: build-complete
+          tweak.open:
+            sequence: 1
+            value:
+              event: open-complete
+              requirementsEvidence:
+                ref: openspec/changes/fix-incremental-reuse-fingerprints
+          tweak.open.evidence:
+            sequence: 2
+            value:
+              contentHash: 5c1e343ec4f1814895ab15ddfa6b3bfe5e0aaa840e36ea80e0ad48f02c6cb0cf
+              ref: openspec/changes/fix-incremental-reuse-fingerprints
+          tweak.verify.report.evidence:
+            sequence: 7
+            value:
+              contentHash: 9458a0a4beffbf3d0b9d2816f6e48f01f1f477e25c5c556a8663c1bd91fa6ef9
+              ref: docs/superpowers/reports/2026-11-17-fix-incremental-reuse-fingerprints-verify.md
+          tweak.verify.run:
+            sequence: 6
+            value:
+              checks:
+                - name: 仓库根目录，Python 3.12：pytest --no-cov -q tests/test_incremental_e2e.py
+                    tests/test_incremental_history.py tests/test_detector.py
+                    tests/test_fingerprint.py tests/test_merger_integration.py
+                    tests/test_task_service.py
+                    tests/test_business_task_resume.py
+                    tests/test_business_checkpoints.py tests/test_main.py
+                    tests/test_main_helpers.py tests/test_cost_strategy.py
+                    tests/test_failure_integration.py
+                  note: 304 passed。日志 /tmp/comet-issue-490-targeted-final.log。两处核心回归先按错误复用断言失败，日志
+                    /tmp/comet-issue-490-red.log。
+                  result: passed
+                - name: "仓库根目录：离线重跑 #490 初始温度复现脚本"
+                  note: 两轮共 5 次模拟 provider 调用；温度变为 0.9 后，a、b、c 均为 fresh 并得到新参数对应的失败结果。修复前只有 3 次调用。
+                  result: passed
+                - name: 仓库根目录：ruff check .、ruff format --check（7 个实施文件）、git diff --check
+                  note: 全部通过。
+                  result: passed
+                - name: 仓库根目录：comet classic openspec -- validate
+                    fix-incremental-reuse-fingerprints --strict
+                  note: 成功验证增量评估 delta spec。
+                  result: passed
+                - name: 仓库根目录：Black 格式检查（7 个实施文件）
+                  note: 7 个文件无需格式修改。
+                  result: passed
+                - name: 离线 CLI 难度预算探针
+                  note: 启用按难度预算与策略映射，新增一题后，三道题的 source 均为 fresh。
+                  result: passed
+                - name: 判题契约版本探针
+                  note: 提高判题契约版本后，相同输入的执行配置及题目指纹都变化。
+                  result: passed
+              event: verification-ready
+              verificationReport: docs/superpowers/reports/2026-11-17-fix-incremental-reuse-fingerprints-verify.md
+        sequence: 10
+      fix-incremental-reuse-fingerprints:11:
+        results:
+          tweak.archive.confirm:
+            sequence: 9
+            value:
+              choice: pr
+              proposal:
+                input:
+                  change: fix-incremental-reuse-fingerprints
+                  changeDir: openspec/changes/fix-incremental-reuse-fingerprints
+                  workspaceBaseline:
+                    ref: b7346888-c152-4ea3-94ab-924101fdd919
+                outputs:
+                  tweak.archive.prepare:
+                    prBaseBranch: main
+                    remote: origin
+                    summary: "归档已通过 Verify 的 GitHub #490，将增量评估 delta 合入主规格，提交 4 个实现文件、3 个测试文件及 Comet
+                      产物。将 codex/fix-incremental-reuse-fingerprints 推到 origin
+                      并创建目标为 main 的 PR。"
+                    targetBranch: codex/fix-incremental-reuse-fingerprints
+          tweak.archive.preflight:
+            sequence: 10
+            value:
+              baseCommit: 0a0b4aa49158c1fcea0ef93d7f41faa9763abbef
+              deliveryAction: pr
+              deliveryPaths:
+                - src/incremental/detector.py
+                - src/incremental/fingerprint.py
+                - src/incremental/history.py
+                - src/main.py
+                - tests/test_detector.py
+                - tests/test_fingerprint.py
+                - tests/test_incremental_e2e.py
+              prBaseBranch: main
+              remote: origin
+              remoteIdentity: 128eeb1e6f0d21b25601fcb7f9aad36adfdfb4d76f37f54f004760410190f351
+              targetBranch: codex/fix-incremental-reuse-fingerprints
+              verifiedBranch: codex/fix-incremental-reuse-fingerprints
+          tweak.archive.prepare:
+            sequence: 8
+            value:
+              prBaseBranch: main
+              remote: origin
+              summary: "归档已通过 Verify 的 GitHub #490，将增量评估 delta 合入主规格，提交 4 个实现文件、3 个测试文件及 Comet
+                产物。将 codex/fix-incremental-reuse-fingerprints 推到 origin 并创建目标为
+                main 的 PR。"
+              targetBranch: codex/fix-incremental-reuse-fingerprints
+          tweak.build.escalation-confirm:
+            sequence: 4
+            value:
+              choice: continue
+              proposal:
+                input:
+                  change: fix-incremental-reuse-fingerprints
+                  changeDir: openspec/changes/fix-incremental-reuse-fingerprints
+                  workspaceBaseline:
+                    ref: b7346888-c152-4ea3-94ab-924101fdd919
+                outputs:
+                  tweak.build.execute:
+                    event: escalation-requested
+                    proposal: 仅文件数超过 tweak 预设的 6 个。设定执行配置指纹、题目指纹、历史兼容性与断点恢复需改动 4 个实现文件，涉及 CLI 和
+                      src/incremental；3 个测试文件分别覆盖匹配器、CLI
+                      回归以及修正旧题目指纹测试对标题、标签和难度的旧断言。共 7 个交付文件。批准的行为、验收、风险范围保持原定。
+                    requirementsEvidence:
+                      contentHash: b6900a720f908607c5d2d5d2dbbec63617ecb8c16f438fbb082071cf45862a94
+                      ref: openspec/changes/fix-incremental-reuse-fingerprints
+          tweak.build.execute:
+            sequence: 5
+            value:
+              checks:
+                - name: 仓库根目录，Python 3.12：pytest --no-cov -q tests/test_incremental_e2e.py
+                    tests/test_incremental_history.py tests/test_detector.py
+                    tests/test_fingerprint.py tests/test_merger_integration.py
+                    tests/test_task_service.py
+                    tests/test_business_task_resume.py
+                    tests/test_business_checkpoints.py tests/test_main.py
+                    tests/test_main_helpers.py tests/test_cost_strategy.py
+                    tests/test_failure_integration.py
+                  note: 304 passed。日志 /tmp/comet-issue-490-targeted-final.log。两处核心回归先按错误复用断言失败，日志
+                    /tmp/comet-issue-490-red.log。
+                  result: passed
+                - name: "仓库根目录：离线重跑 #490 初始温度复现脚本"
+                  note: 两轮共 5 次模拟 provider 调用；温度变为 0.9 后，a、b、c 均为 fresh 并得到新参数对应的失败结果。修复前只有 3 次调用。
+                  result: passed
+                - name: 仓库根目录：ruff check .、ruff format --check（7 个实施文件）、git diff --check
+                  note: 全部通过。
+                  result: passed
+                - name: 仓库根目录：comet classic openspec -- validate
+                    fix-incremental-reuse-fingerprints --strict
+                  note: 成功验证增量评估 delta spec。
+                  result: passed
+              event: build-complete
+          tweak.open:
+            sequence: 1
+            value:
+              event: open-complete
+              requirementsEvidence:
+                ref: openspec/changes/fix-incremental-reuse-fingerprints
+          tweak.open.evidence:
+            sequence: 2
+            value:
+              contentHash: 5c1e343ec4f1814895ab15ddfa6b3bfe5e0aaa840e36ea80e0ad48f02c6cb0cf
+              ref: openspec/changes/fix-incremental-reuse-fingerprints
+          tweak.verify.report.evidence:
+            sequence: 7
+            value:
+              contentHash: 9458a0a4beffbf3d0b9d2816f6e48f01f1f477e25c5c556a8663c1bd91fa6ef9
+              ref: docs/superpowers/reports/2026-11-17-fix-incremental-reuse-fingerprints-verify.md
+          tweak.verify.run:
+            sequence: 6
+            value:
+              checks:
+                - name: 仓库根目录，Python 3.12：pytest --no-cov -q tests/test_incremental_e2e.py
+                    tests/test_incremental_history.py tests/test_detector.py
+                    tests/test_fingerprint.py tests/test_merger_integration.py
+                    tests/test_task_service.py
+                    tests/test_business_task_resume.py
+                    tests/test_business_checkpoints.py tests/test_main.py
+                    tests/test_main_helpers.py tests/test_cost_strategy.py
+                    tests/test_failure_integration.py
+                  note: 304 passed。日志 /tmp/comet-issue-490-targeted-final.log。两处核心回归先按错误复用断言失败，日志
+                    /tmp/comet-issue-490-red.log。
+                  result: passed
+                - name: "仓库根目录：离线重跑 #490 初始温度复现脚本"
+                  note: 两轮共 5 次模拟 provider 调用；温度变为 0.9 后，a、b、c 均为 fresh 并得到新参数对应的失败结果。修复前只有 3 次调用。
+                  result: passed
+                - name: 仓库根目录：ruff check .、ruff format --check（7 个实施文件）、git diff --check
+                  note: 全部通过。
+                  result: passed
+                - name: 仓库根目录：comet classic openspec -- validate
+                    fix-incremental-reuse-fingerprints --strict
+                  note: 成功验证增量评估 delta spec。
+                  result: passed
+                - name: 仓库根目录：Black 格式检查（7 个实施文件）
+                  note: 7 个文件无需格式修改。
+                  result: passed
+                - name: 离线 CLI 难度预算探针
+                  note: 启用按难度预算与策略映射，新增一题后，三道题的 source 均为 fresh。
+                  result: passed
+                - name: 判题契约版本探针
+                  note: 提高判题契约版本后，相同输入的执行配置及题目指纹都变化。
+                  result: passed
+              event: verification-ready
+              verificationReport: docs/superpowers/reports/2026-11-17-fix-incremental-reuse-fingerprints-verify.md
+        sequence: 11
+      fix-incremental-reuse-fingerprints:12:
+        results:
+          tweak.archive.confirm:
+            sequence: 9
+            value:
+              choice: pr
+              proposal:
+                input:
+                  change: fix-incremental-reuse-fingerprints
+                  changeDir: openspec/changes/fix-incremental-reuse-fingerprints
+                  workspaceBaseline:
+                    ref: b7346888-c152-4ea3-94ab-924101fdd919
+                outputs:
+                  tweak.archive.prepare:
+                    prBaseBranch: main
+                    remote: origin
+                    summary: "归档已通过 Verify 的 GitHub #490，将增量评估 delta 合入主规格，提交 4 个实现文件、3 个测试文件及 Comet
+                      产物。将 codex/fix-incremental-reuse-fingerprints 推到 origin
+                      并创建目标为 main 的 PR。"
+                    targetBranch: codex/fix-incremental-reuse-fingerprints
+          tweak.archive.execute:
+            sequence: 11
+            value:
+              archiveDirectory: openspec/changes/archive/2026-11-17-fix-incremental-reuse-fingerprints
+          tweak.archive.preflight:
+            sequence: 10
+            value:
+              baseCommit: 0a0b4aa49158c1fcea0ef93d7f41faa9763abbef
+              deliveryAction: pr
+              deliveryPaths:
+                - src/incremental/detector.py
+                - src/incremental/fingerprint.py
+                - src/incremental/history.py
+                - src/main.py
+                - tests/test_detector.py
+                - tests/test_fingerprint.py
+                - tests/test_incremental_e2e.py
+              prBaseBranch: main
+              remote: origin
+              remoteIdentity: 128eeb1e6f0d21b25601fcb7f9aad36adfdfb4d76f37f54f004760410190f351
+              targetBranch: codex/fix-incremental-reuse-fingerprints
+              verifiedBranch: codex/fix-incremental-reuse-fingerprints
+          tweak.archive.prepare:
+            sequence: 8
+            value:
+              prBaseBranch: main
+              remote: origin
+              summary: "归档已通过 Verify 的 GitHub #490，将增量评估 delta 合入主规格，提交 4 个实现文件、3 个测试文件及 Comet
+                产物。将 codex/fix-incremental-reuse-fingerprints 推到 origin 并创建目标为
+                main 的 PR。"
+              targetBranch: codex/fix-incremental-reuse-fingerprints
+          tweak.build.escalation-confirm:
+            sequence: 4
+            value:
+              choice: continue
+              proposal:
+                input:
+                  change: fix-incremental-reuse-fingerprints
+                  changeDir: openspec/changes/fix-incremental-reuse-fingerprints
+                  workspaceBaseline:
+                    ref: b7346888-c152-4ea3-94ab-924101fdd919
+                outputs:
+                  tweak.build.execute:
+                    event: escalation-requested
+                    proposal: 仅文件数超过 tweak 预设的 6 个。设定执行配置指纹、题目指纹、历史兼容性与断点恢复需改动 4 个实现文件，涉及 CLI 和
+                      src/incremental；3 个测试文件分别覆盖匹配器、CLI
+                      回归以及修正旧题目指纹测试对标题、标签和难度的旧断言。共 7 个交付文件。批准的行为、验收、风险范围保持原定。
+                    requirementsEvidence:
+                      contentHash: b6900a720f908607c5d2d5d2dbbec63617ecb8c16f438fbb082071cf45862a94
+                      ref: openspec/changes/fix-incremental-reuse-fingerprints
+          tweak.build.execute:
+            sequence: 5
+            value:
+              checks:
+                - name: 仓库根目录，Python 3.12：pytest --no-cov -q tests/test_incremental_e2e.py
+                    tests/test_incremental_history.py tests/test_detector.py
+                    tests/test_fingerprint.py tests/test_merger_integration.py
+                    tests/test_task_service.py
+                    tests/test_business_task_resume.py
+                    tests/test_business_checkpoints.py tests/test_main.py
+                    tests/test_main_helpers.py tests/test_cost_strategy.py
+                    tests/test_failure_integration.py
+                  note: 304 passed。日志 /tmp/comet-issue-490-targeted-final.log。两处核心回归先按错误复用断言失败，日志
+                    /tmp/comet-issue-490-red.log。
+                  result: passed
+                - name: "仓库根目录：离线重跑 #490 初始温度复现脚本"
+                  note: 两轮共 5 次模拟 provider 调用；温度变为 0.9 后，a、b、c 均为 fresh 并得到新参数对应的失败结果。修复前只有 3 次调用。
+                  result: passed
+                - name: 仓库根目录：ruff check .、ruff format --check（7 个实施文件）、git diff --check
+                  note: 全部通过。
+                  result: passed
+                - name: 仓库根目录：comet classic openspec -- validate
+                    fix-incremental-reuse-fingerprints --strict
+                  note: 成功验证增量评估 delta spec。
+                  result: passed
+              event: build-complete
+          tweak.open:
+            sequence: 1
+            value:
+              event: open-complete
+              requirementsEvidence:
+                ref: openspec/changes/fix-incremental-reuse-fingerprints
+          tweak.open.evidence:
+            sequence: 2
+            value:
+              contentHash: 5c1e343ec4f1814895ab15ddfa6b3bfe5e0aaa840e36ea80e0ad48f02c6cb0cf
+              ref: openspec/changes/fix-incremental-reuse-fingerprints
+          tweak.verify.report.evidence:
+            sequence: 7
+            value:
+              contentHash: 9458a0a4beffbf3d0b9d2816f6e48f01f1f477e25c5c556a8663c1bd91fa6ef9
+              ref: docs/superpowers/reports/2026-11-17-fix-incremental-reuse-fingerprints-verify.md
+          tweak.verify.run:
+            sequence: 6
+            value:
+              checks:
+                - name: 仓库根目录，Python 3.12：pytest --no-cov -q tests/test_incremental_e2e.py
+                    tests/test_incremental_history.py tests/test_detector.py
+                    tests/test_fingerprint.py tests/test_merger_integration.py
+                    tests/test_task_service.py
+                    tests/test_business_task_resume.py
+                    tests/test_business_checkpoints.py tests/test_main.py
+                    tests/test_main_helpers.py tests/test_cost_strategy.py
+                    tests/test_failure_integration.py
+                  note: 304 passed。日志 /tmp/comet-issue-490-targeted-final.log。两处核心回归先按错误复用断言失败，日志
+                    /tmp/comet-issue-490-red.log。
+                  result: passed
+                - name: "仓库根目录：离线重跑 #490 初始温度复现脚本"
+                  note: 两轮共 5 次模拟 provider 调用；温度变为 0.9 后，a、b、c 均为 fresh 并得到新参数对应的失败结果。修复前只有 3 次调用。
+                  result: passed
+                - name: 仓库根目录：ruff check .、ruff format --check（7 个实施文件）、git diff --check
+                  note: 全部通过。
+                  result: passed
+                - name: 仓库根目录：comet classic openspec -- validate
+                    fix-incremental-reuse-fingerprints --strict
+                  note: 成功验证增量评估 delta spec。
+                  result: passed
+                - name: 仓库根目录：Black 格式检查（7 个实施文件）
+                  note: 7 个文件无需格式修改。
+                  result: passed
+                - name: 离线 CLI 难度预算探针
+                  note: 启用按难度预算与策略映射，新增一题后，三道题的 source 均为 fresh。
+                  result: passed
+                - name: 判题契约版本探针
+                  note: 提高判题契约版本后，相同输入的执行配置及题目指纹都变化。
+                  result: passed
+              event: verification-ready
+              verificationReport: docs/superpowers/reports/2026-11-17-fix-incremental-reuse-fingerprints-verify.md
+        sequence: 12
+      fix-incremental-reuse-fingerprints:3:
+        results:
+          tweak.open:
+            sequence: 1
+            value:
+              event: open-complete
+              requirementsEvidence:
+                ref: openspec/changes/fix-incremental-reuse-fingerprints
+          tweak.open.evidence:
+            sequence: 2
+            value:
+              contentHash: 5c1e343ec4f1814895ab15ddfa6b3bfe5e0aaa840e36ea80e0ad48f02c6cb0cf
+              ref: openspec/changes/fix-incremental-reuse-fingerprints
+        sequence: 3
+      fix-incremental-reuse-fingerprints:5:
+        results:
+          tweak.build.escalation-confirm:
+            sequence: 4
+            value:
+              choice: continue
+              proposal:
+                input:
+                  change: fix-incremental-reuse-fingerprints
+                  changeDir: openspec/changes/fix-incremental-reuse-fingerprints
+                  workspaceBaseline:
+                    ref: b7346888-c152-4ea3-94ab-924101fdd919
+                outputs:
+                  tweak.build.execute:
+                    event: escalation-requested
+                    proposal: 仅文件数超过 tweak 预设的 6 个。设定执行配置指纹、题目指纹、历史兼容性与断点恢复需改动 4 个实现文件，涉及 CLI 和
+                      src/incremental；3 个测试文件分别覆盖匹配器、CLI
+                      回归以及修正旧题目指纹测试对标题、标签和难度的旧断言。共 7 个交付文件。批准的行为、验收、风险范围保持原定。
+                    requirementsEvidence:
+                      contentHash: b6900a720f908607c5d2d5d2dbbec63617ecb8c16f438fbb082071cf45862a94
+                      ref: openspec/changes/fix-incremental-reuse-fingerprints
+          tweak.build.execute:
+            sequence: 3
+            value:
+              event: escalation-requested
+              proposal: 仅文件数超过 tweak 预设的 6 个。设定执行配置指纹、题目指纹、历史兼容性与断点恢复需改动 4 个实现文件，涉及 CLI 和
+                src/incremental；3 个测试文件分别覆盖匹配器、CLI 回归以及修正旧题目指纹测试对标题、标签和难度的旧断言。共
+                7 个交付文件。批准的行为、验收、风险范围保持原定。
+              requirementsEvidence:
+                contentHash: b6900a720f908607c5d2d5d2dbbec63617ecb8c16f438fbb082071cf45862a94
+                ref: openspec/changes/fix-incremental-reuse-fingerprints
+          tweak.open:
+            sequence: 1
+            value:
+              event: open-complete
+              requirementsEvidence:
+                ref: openspec/changes/fix-incremental-reuse-fingerprints
+          tweak.open.evidence:
+            sequence: 2
+            value:
+              contentHash: 5c1e343ec4f1814895ab15ddfa6b3bfe5e0aaa840e36ea80e0ad48f02c6cb0cf
+              ref: openspec/changes/fix-incremental-reuse-fingerprints
+        sequence: 5
+      fix-incremental-reuse-fingerprints:6:
+        results:
+          tweak.build.escalation-confirm:
+            sequence: 4
+            value:
+              choice: continue
+              proposal:
+                input:
+                  change: fix-incremental-reuse-fingerprints
+                  changeDir: openspec/changes/fix-incremental-reuse-fingerprints
+                  workspaceBaseline:
+                    ref: b7346888-c152-4ea3-94ab-924101fdd919
+                outputs:
+                  tweak.build.execute:
+                    event: escalation-requested
+                    proposal: 仅文件数超过 tweak 预设的 6 个。设定执行配置指纹、题目指纹、历史兼容性与断点恢复需改动 4 个实现文件，涉及 CLI 和
+                      src/incremental；3 个测试文件分别覆盖匹配器、CLI
+                      回归以及修正旧题目指纹测试对标题、标签和难度的旧断言。共 7 个交付文件。批准的行为、验收、风险范围保持原定。
+                    requirementsEvidence:
+                      contentHash: b6900a720f908607c5d2d5d2dbbec63617ecb8c16f438fbb082071cf45862a94
+                      ref: openspec/changes/fix-incremental-reuse-fingerprints
+          tweak.build.execute:
+            sequence: 5
+            value:
+              checks:
+                - name: 仓库根目录，Python 3.12：pytest --no-cov -q tests/test_incremental_e2e.py
+                    tests/test_incremental_history.py tests/test_detector.py
+                    tests/test_fingerprint.py tests/test_merger_integration.py
+                    tests/test_task_service.py
+                    tests/test_business_task_resume.py
+                    tests/test_business_checkpoints.py tests/test_main.py
+                    tests/test_main_helpers.py tests/test_cost_strategy.py
+                    tests/test_failure_integration.py
+                  note: 304 passed。日志 /tmp/comet-issue-490-targeted-final.log。两处核心回归先按错误复用断言失败，日志
+                    /tmp/comet-issue-490-red.log。
+                  result: passed
+                - name: "仓库根目录：离线重跑 #490 初始温度复现脚本"
+                  note: 两轮共 5 次模拟 provider 调用；温度变为 0.9 后，a、b、c 均为 fresh 并得到新参数对应的失败结果。修复前只有 3 次调用。
+                  result: passed
+                - name: 仓库根目录：ruff check .、ruff format --check（7 个实施文件）、git diff --check
+                  note: 全部通过。
+                  result: passed
+                - name: 仓库根目录：comet classic openspec -- validate
+                    fix-incremental-reuse-fingerprints --strict
+                  note: 成功验证增量评估 delta spec。
+                  result: passed
+              event: build-complete
+          tweak.open:
+            sequence: 1
+            value:
+              event: open-complete
+              requirementsEvidence:
+                ref: openspec/changes/fix-incremental-reuse-fingerprints
+          tweak.open.evidence:
+            sequence: 2
+            value:
+              contentHash: 5c1e343ec4f1814895ab15ddfa6b3bfe5e0aaa840e36ea80e0ad48f02c6cb0cf
+              ref: openspec/changes/fix-incremental-reuse-fingerprints
+        sequence: 6
+      fix-incremental-reuse-fingerprints:8:
+        results:
+          tweak.build.escalation-confirm:
+            sequence: 4
+            value:
+              choice: continue
+              proposal:
+                input:
+                  change: fix-incremental-reuse-fingerprints
+                  changeDir: openspec/changes/fix-incremental-reuse-fingerprints
+                  workspaceBaseline:
+                    ref: b7346888-c152-4ea3-94ab-924101fdd919
+                outputs:
+                  tweak.build.execute:
+                    event: escalation-requested
+                    proposal: 仅文件数超过 tweak 预设的 6 个。设定执行配置指纹、题目指纹、历史兼容性与断点恢复需改动 4 个实现文件，涉及 CLI 和
+                      src/incremental；3 个测试文件分别覆盖匹配器、CLI
+                      回归以及修正旧题目指纹测试对标题、标签和难度的旧断言。共 7 个交付文件。批准的行为、验收、风险范围保持原定。
+                    requirementsEvidence:
+                      contentHash: b6900a720f908607c5d2d5d2dbbec63617ecb8c16f438fbb082071cf45862a94
+                      ref: openspec/changes/fix-incremental-reuse-fingerprints
+          tweak.build.execute:
+            sequence: 5
+            value:
+              checks:
+                - name: 仓库根目录，Python 3.12：pytest --no-cov -q tests/test_incremental_e2e.py
+                    tests/test_incremental_history.py tests/test_detector.py
+                    tests/test_fingerprint.py tests/test_merger_integration.py
+                    tests/test_task_service.py
+                    tests/test_business_task_resume.py
+                    tests/test_business_checkpoints.py tests/test_main.py
+                    tests/test_main_helpers.py tests/test_cost_strategy.py
+                    tests/test_failure_integration.py
+                  note: 304 passed。日志 /tmp/comet-issue-490-targeted-final.log。两处核心回归先按错误复用断言失败，日志
+                    /tmp/comet-issue-490-red.log。
+                  result: passed
+                - name: "仓库根目录：离线重跑 #490 初始温度复现脚本"
+                  note: 两轮共 5 次模拟 provider 调用；温度变为 0.9 后，a、b、c 均为 fresh 并得到新参数对应的失败结果。修复前只有 3 次调用。
+                  result: passed
+                - name: 仓库根目录：ruff check .、ruff format --check（7 个实施文件）、git diff --check
+                  note: 全部通过。
+                  result: passed
+                - name: 仓库根目录：comet classic openspec -- validate
+                    fix-incremental-reuse-fingerprints --strict
+                  note: 成功验证增量评估 delta spec。
+                  result: passed
+              event: build-complete
+          tweak.open:
+            sequence: 1
+            value:
+              event: open-complete
+              requirementsEvidence:
+                ref: openspec/changes/fix-incremental-reuse-fingerprints
+          tweak.open.evidence:
+            sequence: 2
+            value:
+              contentHash: 5c1e343ec4f1814895ab15ddfa6b3bfe5e0aaa840e36ea80e0ad48f02c6cb0cf
+              ref: openspec/changes/fix-incremental-reuse-fingerprints
+          tweak.verify.report.evidence:
+            sequence: 7
+            value:
+              contentHash: 9458a0a4beffbf3d0b9d2816f6e48f01f1f477e25c5c556a8663c1bd91fa6ef9
+              ref: docs/superpowers/reports/2026-11-17-fix-incremental-reuse-fingerprints-verify.md
+          tweak.verify.run:
+            sequence: 6
+            value:
+              checks:
+                - name: 仓库根目录，Python 3.12：pytest --no-cov -q tests/test_incremental_e2e.py
+                    tests/test_incremental_history.py tests/test_detector.py
+                    tests/test_fingerprint.py tests/test_merger_integration.py
+                    tests/test_task_service.py
+                    tests/test_business_task_resume.py
+                    tests/test_business_checkpoints.py tests/test_main.py
+                    tests/test_main_helpers.py tests/test_cost_strategy.py
+                    tests/test_failure_integration.py
+                  note: 304 passed。日志 /tmp/comet-issue-490-targeted-final.log。两处核心回归先按错误复用断言失败，日志
+                    /tmp/comet-issue-490-red.log。
+                  result: passed
+                - name: "仓库根目录：离线重跑 #490 初始温度复现脚本"
+                  note: 两轮共 5 次模拟 provider 调用；温度变为 0.9 后，a、b、c 均为 fresh 并得到新参数对应的失败结果。修复前只有 3 次调用。
+                  result: passed
+                - name: 仓库根目录：ruff check .、ruff format --check（7 个实施文件）、git diff --check
+                  note: 全部通过。
+                  result: passed
+                - name: 仓库根目录：comet classic openspec -- validate
+                    fix-incremental-reuse-fingerprints --strict
+                  note: 成功验证增量评估 delta spec。
+                  result: passed
+                - name: 仓库根目录：Black 格式检查（7 个实施文件）
+                  note: 7 个文件无需格式修改。
+                  result: passed
+                - name: 离线 CLI 难度预算探针
+                  note: 启用按难度预算与策略映射，新增一题后，三道题的 source 均为 fresh。
+                  result: passed
+                - name: 判题契约版本探针
+                  note: 提高判题契约版本后，相同输入的执行配置及题目指纹都变化。
+                  result: passed
+              event: verification-ready
+              verificationReport: docs/superpowers/reports/2026-11-17-fix-incremental-reuse-fingerprints-verify.md
+        sequence: 8
+    waits:
+      - id: fix-incremental-reuse-fingerprints:4
+        stepId: tweak.build.escalation-confirm
+        sequence: 4
+        status: resolved
+        proposal:
+          input:
+            change: fix-incremental-reuse-fingerprints
+            changeDir: openspec/changes/fix-incremental-reuse-fingerprints
+            workspaceBaseline:
+              ref: b7346888-c152-4ea3-94ab-924101fdd919
+          outputs:
+            tweak.build.execute:
+              event: escalation-requested
+              proposal: 仅文件数超过 tweak 预设的 6 个。设定执行配置指纹、题目指纹、历史兼容性与断点恢复需改动 4 个实现文件，涉及 CLI 和
+                src/incremental；3 个测试文件分别覆盖匹配器、CLI 回归以及修正旧题目指纹测试对标题、标签和难度的旧断言。共
+                7 个交付文件。批准的行为、验收、风险范围保持原定。
+              requirementsEvidence:
+                contentHash: b6900a720f908607c5d2d5d2dbbec63617ecb8c16f438fbb082071cf45862a94
+                ref: openspec/changes/fix-incremental-reuse-fingerprints
+        proposalHash: f5ba89f205079c5b3c3803efd7107397a84ada6b69b17cf197091721b27e3a8c
+        choices:
+          - continue
+          - upgrade
+        results:
+          tweak.build.execute:
+            sequence: 3
+            value:
+              event: escalation-requested
+              proposal: 仅文件数超过 tweak 预设的 6 个。设定执行配置指纹、题目指纹、历史兼容性与断点恢复需改动 4 个实现文件，涉及 CLI 和
+                src/incremental；3 个测试文件分别覆盖匹配器、CLI 回归以及修正旧题目指纹测试对标题、标签和难度的旧断言。共
+                7 个交付文件。批准的行为、验收、风险范围保持原定。
+              requirementsEvidence:
+                contentHash: b6900a720f908607c5d2d5d2dbbec63617ecb8c16f438fbb082071cf45862a94
+                ref: openspec/changes/fix-incremental-reuse-fingerprints
+          tweak.open:
+            sequence: 1
+            value:
+              event: open-complete
+              requirementsEvidence:
+                ref: openspec/changes/fix-incremental-reuse-fingerprints
+          tweak.open.evidence:
+            sequence: 2
+            value:
+              contentHash: 5c1e343ec4f1814895ab15ddfa6b3bfe5e0aaa840e36ea80e0ad48f02c6cb0cf
+              ref: openspec/changes/fix-incremental-reuse-fingerprints
+        decision:
+          id: classic-escalation-f5ba89f205079c5b3c3803efd7107397a84ada6b69b17cf197091721b27e3a8c-continue
+          choice: continue
+          proposalHash: f5ba89f205079c5b3c3803efd7107397a84ada6b69b17cf197091721b27e3a8c
+      - id: fix-incremental-reuse-fingerprints:9
+        stepId: tweak.archive.confirm
+        sequence: 9
+        status: resolved
+        proposal:
+          input:
+            change: fix-incremental-reuse-fingerprints
+            changeDir: openspec/changes/fix-incremental-reuse-fingerprints
+            workspaceBaseline:
+              ref: b7346888-c152-4ea3-94ab-924101fdd919
+          outputs:
+            tweak.archive.prepare:
+              prBaseBranch: main
+              remote: origin
+              summary: "归档已通过 Verify 的 GitHub #490，将增量评估 delta 合入主规格，提交 4 个实现文件、3 个测试文件及 Comet
+                产物。将 codex/fix-incremental-reuse-fingerprints 推到 origin 并创建目标为
+                main 的 PR。"
+              targetBranch: codex/fix-incremental-reuse-fingerprints
+        proposalHash: a119b4444de8e2dbb2657c635f3642ab6c752aced2518cdd841109d890b22c78
+        choices:
+          - local
+          - push
+          - pr
+          - reverify
+          - later
+        results:
+          tweak.archive.prepare:
+            sequence: 8
+            value:
+              prBaseBranch: main
+              remote: origin
+              summary: "归档已通过 Verify 的 GitHub #490，将增量评估 delta 合入主规格，提交 4 个实现文件、3 个测试文件及 Comet
+                产物。将 codex/fix-incremental-reuse-fingerprints 推到 origin 并创建目标为
+                main 的 PR。"
+              targetBranch: codex/fix-incremental-reuse-fingerprints
+          tweak.build.escalation-confirm:
+            sequence: 4
+            value:
+              choice: continue
+              proposal:
+                input:
+                  change: fix-incremental-reuse-fingerprints
+                  changeDir: openspec/changes/fix-incremental-reuse-fingerprints
+                  workspaceBaseline:
+                    ref: b7346888-c152-4ea3-94ab-924101fdd919
+                outputs:
+                  tweak.build.execute:
+                    event: escalation-requested
+                    proposal: 仅文件数超过 tweak 预设的 6 个。设定执行配置指纹、题目指纹、历史兼容性与断点恢复需改动 4 个实现文件，涉及 CLI 和
+                      src/incremental；3 个测试文件分别覆盖匹配器、CLI
+                      回归以及修正旧题目指纹测试对标题、标签和难度的旧断言。共 7 个交付文件。批准的行为、验收、风险范围保持原定。
+                    requirementsEvidence:
+                      contentHash: b6900a720f908607c5d2d5d2dbbec63617ecb8c16f438fbb082071cf45862a94
+                      ref: openspec/changes/fix-incremental-reuse-fingerprints
+          tweak.build.execute:
+            sequence: 5
+            value:
+              checks:
+                - name: 仓库根目录，Python 3.12：pytest --no-cov -q tests/test_incremental_e2e.py
+                    tests/test_incremental_history.py tests/test_detector.py
+                    tests/test_fingerprint.py tests/test_merger_integration.py
+                    tests/test_task_service.py
+                    tests/test_business_task_resume.py
+                    tests/test_business_checkpoints.py tests/test_main.py
+                    tests/test_main_helpers.py tests/test_cost_strategy.py
+                    tests/test_failure_integration.py
+                  note: 304 passed。日志 /tmp/comet-issue-490-targeted-final.log。两处核心回归先按错误复用断言失败，日志
+                    /tmp/comet-issue-490-red.log。
+                  result: passed
+                - name: "仓库根目录：离线重跑 #490 初始温度复现脚本"
+                  note: 两轮共 5 次模拟 provider 调用；温度变为 0.9 后，a、b、c 均为 fresh 并得到新参数对应的失败结果。修复前只有 3 次调用。
+                  result: passed
+                - name: 仓库根目录：ruff check .、ruff format --check（7 个实施文件）、git diff --check
+                  note: 全部通过。
+                  result: passed
+                - name: 仓库根目录：comet classic openspec -- validate
+                    fix-incremental-reuse-fingerprints --strict
+                  note: 成功验证增量评估 delta spec。
+                  result: passed
+              event: build-complete
+          tweak.open:
+            sequence: 1
+            value:
+              event: open-complete
+              requirementsEvidence:
+                ref: openspec/changes/fix-incremental-reuse-fingerprints
+          tweak.open.evidence:
+            sequence: 2
+            value:
+              contentHash: 5c1e343ec4f1814895ab15ddfa6b3bfe5e0aaa840e36ea80e0ad48f02c6cb0cf
+              ref: openspec/changes/fix-incremental-reuse-fingerprints
+          tweak.verify.report.evidence:
+            sequence: 7
+            value:
+              contentHash: 9458a0a4beffbf3d0b9d2816f6e48f01f1f477e25c5c556a8663c1bd91fa6ef9
+              ref: docs/superpowers/reports/2026-11-17-fix-incremental-reuse-fingerprints-verify.md
+          tweak.verify.run:
+            sequence: 6
+            value:
+              checks:
+                - name: 仓库根目录，Python 3.12：pytest --no-cov -q tests/test_incremental_e2e.py
+                    tests/test_incremental_history.py tests/test_detector.py
+                    tests/test_fingerprint.py tests/test_merger_integration.py
+                    tests/test_task_service.py
+                    tests/test_business_task_resume.py
+                    tests/test_business_checkpoints.py tests/test_main.py
+                    tests/test_main_helpers.py tests/test_cost_strategy.py
+                    tests/test_failure_integration.py
+                  note: 304 passed。日志 /tmp/comet-issue-490-targeted-final.log。两处核心回归先按错误复用断言失败，日志
+                    /tmp/comet-issue-490-red.log。
+                  result: passed
+                - name: "仓库根目录：离线重跑 #490 初始温度复现脚本"
+                  note: 两轮共 5 次模拟 provider 调用；温度变为 0.9 后，a、b、c 均为 fresh 并得到新参数对应的失败结果。修复前只有 3 次调用。
+                  result: passed
+                - name: 仓库根目录：ruff check .、ruff format --check（7 个实施文件）、git diff --check
+                  note: 全部通过。
+                  result: passed
+                - name: 仓库根目录：comet classic openspec -- validate
+                    fix-incremental-reuse-fingerprints --strict
+                  note: 成功验证增量评估 delta spec。
+                  result: passed
+                - name: 仓库根目录：Black 格式检查（7 个实施文件）
+                  note: 7 个文件无需格式修改。
+                  result: passed
+                - name: 离线 CLI 难度预算探针
+                  note: 启用按难度预算与策略映射，新增一题后，三道题的 source 均为 fresh。
+                  result: passed
+                - name: 判题契约版本探针
+                  note: 提高判题契约版本后，相同输入的执行配置及题目指纹都变化。
+                  result: passed
+              event: verification-ready
+              verificationReport: docs/superpowers/reports/2026-11-17-fix-incremental-reuse-fingerprints-verify.md
+        decision:
+          id: classic-archive-a119b4444de8e2dbb2657c635f3642ab6c752aced2518cdd841109d890b22c78-pr
+          choice: pr
+          proposalHash: a119b4444de8e2dbb2657c635f3642ab6c752aced2518cdd841109d890b22c78
+    evidenceWaits:
+      - id: fix-incremental-reuse-fingerprints:2
+        stepId: tweak.open.evidence
+        sequence: 2
+        kind: classic-open-artifacts
+        status: resolved
+        results:
+          tweak.open:
+            sequence: 1
+            value:
+              event: open-complete
+              requirementsEvidence:
+                ref: openspec/changes/fix-incremental-reuse-fingerprints
+        receipt:
+          ref: openspec/changes/fix-incremental-reuse-fingerprints
+          contentHash: 5c1e343ec4f1814895ab15ddfa6b3bfe5e0aaa840e36ea80e0ad48f02c6cb0cf
+          submissionId: 337b72e7-26f2-4b72-905f-04016256f77b
+      - id: fix-incremental-reuse-fingerprints:7
+        stepId: tweak.verify.report.evidence
+        sequence: 7
+        kind: classic-verification-report
+        status: resolved
+        results:
+          tweak.build.escalation-confirm:
+            sequence: 4
+            value:
+              choice: continue
+              proposal:
+                input:
+                  change: fix-incremental-reuse-fingerprints
+                  changeDir: openspec/changes/fix-incremental-reuse-fingerprints
+                  workspaceBaseline:
+                    ref: b7346888-c152-4ea3-94ab-924101fdd919
+                outputs:
+                  tweak.build.execute:
+                    event: escalation-requested
+                    proposal: 仅文件数超过 tweak 预设的 6 个。设定执行配置指纹、题目指纹、历史兼容性与断点恢复需改动 4 个实现文件，涉及 CLI 和
+                      src/incremental；3 个测试文件分别覆盖匹配器、CLI
+                      回归以及修正旧题目指纹测试对标题、标签和难度的旧断言。共 7 个交付文件。批准的行为、验收、风险范围保持原定。
+                    requirementsEvidence:
+                      contentHash: b6900a720f908607c5d2d5d2dbbec63617ecb8c16f438fbb082071cf45862a94
+                      ref: openspec/changes/fix-incremental-reuse-fingerprints
+          tweak.build.execute:
+            sequence: 5
+            value:
+              checks:
+                - name: 仓库根目录，Python 3.12：pytest --no-cov -q tests/test_incremental_e2e.py
+                    tests/test_incremental_history.py tests/test_detector.py
+                    tests/test_fingerprint.py tests/test_merger_integration.py
+                    tests/test_task_service.py
+                    tests/test_business_task_resume.py
+                    tests/test_business_checkpoints.py tests/test_main.py
+                    tests/test_main_helpers.py tests/test_cost_strategy.py
+                    tests/test_failure_integration.py
+                  note: 304 passed。日志 /tmp/comet-issue-490-targeted-final.log。两处核心回归先按错误复用断言失败，日志
+                    /tmp/comet-issue-490-red.log。
+                  result: passed
+                - name: "仓库根目录：离线重跑 #490 初始温度复现脚本"
+                  note: 两轮共 5 次模拟 provider 调用；温度变为 0.9 后，a、b、c 均为 fresh 并得到新参数对应的失败结果。修复前只有 3 次调用。
+                  result: passed
+                - name: 仓库根目录：ruff check .、ruff format --check（7 个实施文件）、git diff --check
+                  note: 全部通过。
+                  result: passed
+                - name: 仓库根目录：comet classic openspec -- validate
+                    fix-incremental-reuse-fingerprints --strict
+                  note: 成功验证增量评估 delta spec。
+                  result: passed
+              event: build-complete
+          tweak.open:
+            sequence: 1
+            value:
+              event: open-complete
+              requirementsEvidence:
+                ref: openspec/changes/fix-incremental-reuse-fingerprints
+          tweak.open.evidence:
+            sequence: 2
+            value:
+              contentHash: 5c1e343ec4f1814895ab15ddfa6b3bfe5e0aaa840e36ea80e0ad48f02c6cb0cf
+              ref: openspec/changes/fix-incremental-reuse-fingerprints
+          tweak.verify.run:
+            sequence: 6
+            value:
+              checks:
+                - name: 仓库根目录，Python 3.12：pytest --no-cov -q tests/test_incremental_e2e.py
+                    tests/test_incremental_history.py tests/test_detector.py
+                    tests/test_fingerprint.py tests/test_merger_integration.py
+                    tests/test_task_service.py
+                    tests/test_business_task_resume.py
+                    tests/test_business_checkpoints.py tests/test_main.py
+                    tests/test_main_helpers.py tests/test_cost_strategy.py
+                    tests/test_failure_integration.py
+                  note: 304 passed。日志 /tmp/comet-issue-490-targeted-final.log。两处核心回归先按错误复用断言失败，日志
+                    /tmp/comet-issue-490-red.log。
+                  result: passed
+                - name: "仓库根目录：离线重跑 #490 初始温度复现脚本"
+                  note: 两轮共 5 次模拟 provider 调用；温度变为 0.9 后，a、b、c 均为 fresh 并得到新参数对应的失败结果。修复前只有 3 次调用。
+                  result: passed
+                - name: 仓库根目录：ruff check .、ruff format --check（7 个实施文件）、git diff --check
+                  note: 全部通过。
+                  result: passed
+                - name: 仓库根目录：comet classic openspec -- validate
+                    fix-incremental-reuse-fingerprints --strict
+                  note: 成功验证增量评估 delta spec。
+                  result: passed
+                - name: 仓库根目录：Black 格式检查（7 个实施文件）
+                  note: 7 个文件无需格式修改。
+                  result: passed
+                - name: 离线 CLI 难度预算探针
+                  note: 启用按难度预算与策略映射，新增一题后，三道题的 source 均为 fresh。
+                  result: passed
+                - name: 判题契约版本探针
+                  note: 提高判题契约版本后，相同输入的执行配置及题目指纹都变化。
+                  result: passed
+              event: verification-ready
+              verificationReport: docs/superpowers/reports/2026-11-17-fix-incremental-reuse-fingerprints-verify.md
+        receipt:
+          ref: docs/superpowers/reports/2026-11-17-fix-incremental-reuse-fingerprints-verify.md
+          contentHash: 9458a0a4beffbf3d0b9d2816f6e48f01f1f477e25c5c556a8663c1bd91fa6ef9
+          submissionId: bf346cef-79f8-4a4f-8c25-73a9aeaf8e95
+    ready: []
+    joins: {}
+    outputs:
+      tweak.archive.confirm:
+        sequence: 9
+        value:
+          choice: pr
+          proposal:
+            input:
+              change: fix-incremental-reuse-fingerprints
+              changeDir: openspec/changes/fix-incremental-reuse-fingerprints
+              workspaceBaseline:
+                ref: b7346888-c152-4ea3-94ab-924101fdd919
+            outputs:
+              tweak.archive.prepare:
+                prBaseBranch: main
+                remote: origin
+                summary: "归档已通过 Verify 的 GitHub #490，将增量评估 delta 合入主规格，提交 4 个实现文件、3 个测试文件及 Comet
+                  产物。将 codex/fix-incremental-reuse-fingerprints 推到 origin 并创建目标为
+                  main 的 PR。"
+                targetBranch: codex/fix-incremental-reuse-fingerprints
+      tweak.archive.execute:
+        sequence: 11
+        value:
+          archiveDirectory: openspec/changes/archive/2026-11-17-fix-incremental-reuse-fingerprints
+      tweak.archive.preflight:
+        sequence: 10
+        value:
+          baseCommit: 0a0b4aa49158c1fcea0ef93d7f41faa9763abbef
+          deliveryAction: pr
+          deliveryPaths:
+            - src/incremental/detector.py
+            - src/incremental/fingerprint.py
+            - src/incremental/history.py
+            - src/main.py
+            - tests/test_detector.py
+            - tests/test_fingerprint.py
+            - tests/test_incremental_e2e.py
+          prBaseBranch: main
+          remote: origin
+          remoteIdentity: 128eeb1e6f0d21b25601fcb7f9aad36adfdfb4d76f37f54f004760410190f351
+          targetBranch: codex/fix-incremental-reuse-fingerprints
+          verifiedBranch: codex/fix-incremental-reuse-fingerprints
+      tweak.archive.prepare:
+        sequence: 8
+        value:
+          prBaseBranch: main
+          remote: origin
+          summary: "归档已通过 Verify 的 GitHub #490，将增量评估 delta 合入主规格，提交 4 个实现文件、3 个测试文件及 Comet
+            产物。将 codex/fix-incremental-reuse-fingerprints 推到 origin 并创建目标为 main
+            的 PR。"
+          targetBranch: codex/fix-incremental-reuse-fingerprints
+      tweak.build.escalation-confirm:
+        sequence: 4
+        value:
+          choice: continue
+          proposal:
+            input:
+              change: fix-incremental-reuse-fingerprints
+              changeDir: openspec/changes/fix-incremental-reuse-fingerprints
+              workspaceBaseline:
+                ref: b7346888-c152-4ea3-94ab-924101fdd919
+            outputs:
+              tweak.build.execute:
+                event: escalation-requested
+                proposal: 仅文件数超过 tweak 预设的 6 个。设定执行配置指纹、题目指纹、历史兼容性与断点恢复需改动 4 个实现文件，涉及 CLI 和
+                  src/incremental；3 个测试文件分别覆盖匹配器、CLI
+                  回归以及修正旧题目指纹测试对标题、标签和难度的旧断言。共 7 个交付文件。批准的行为、验收、风险范围保持原定。
+                requirementsEvidence:
+                  contentHash: b6900a720f908607c5d2d5d2dbbec63617ecb8c16f438fbb082071cf45862a94
+                  ref: openspec/changes/fix-incremental-reuse-fingerprints
+      tweak.build.execute:
+        sequence: 5
+        value:
+          checks:
+            - name: 仓库根目录，Python 3.12：pytest --no-cov -q tests/test_incremental_e2e.py
+                tests/test_incremental_history.py tests/test_detector.py
+                tests/test_fingerprint.py tests/test_merger_integration.py
+                tests/test_task_service.py tests/test_business_task_resume.py
+                tests/test_business_checkpoints.py tests/test_main.py
+                tests/test_main_helpers.py tests/test_cost_strategy.py
+                tests/test_failure_integration.py
+              note: 304 passed。日志 /tmp/comet-issue-490-targeted-final.log。两处核心回归先按错误复用断言失败，日志
+                /tmp/comet-issue-490-red.log。
+              result: passed
+            - name: "仓库根目录：离线重跑 #490 初始温度复现脚本"
+              note: 两轮共 5 次模拟 provider 调用；温度变为 0.9 后，a、b、c 均为 fresh 并得到新参数对应的失败结果。修复前只有 3 次调用。
+              result: passed
+            - name: 仓库根目录：ruff check .、ruff format --check（7 个实施文件）、git diff --check
+              note: 全部通过。
+              result: passed
+            - name: 仓库根目录：comet classic openspec -- validate
+                fix-incremental-reuse-fingerprints --strict
+              note: 成功验证增量评估 delta spec。
+              result: passed
+          event: build-complete
+      tweak.open:
+        sequence: 1
+        value:
+          event: open-complete
+          requirementsEvidence:
+            ref: openspec/changes/fix-incremental-reuse-fingerprints
+      tweak.open.evidence:
+        sequence: 2
+        value:
+          contentHash: 5c1e343ec4f1814895ab15ddfa6b3bfe5e0aaa840e36ea80e0ad48f02c6cb0cf
+          ref: openspec/changes/fix-incremental-reuse-fingerprints
+      tweak.verify.report.evidence:
+        sequence: 7
+        value:
+          contentHash: 9458a0a4beffbf3d0b9d2816f6e48f01f1f477e25c5c556a8663c1bd91fa6ef9
+          ref: docs/superpowers/reports/2026-11-17-fix-incremental-reuse-fingerprints-verify.md
+      tweak.verify.run:
+        sequence: 6
+        value:
+          checks:
+            - name: 仓库根目录，Python 3.12：pytest --no-cov -q tests/test_incremental_e2e.py
+                tests/test_incremental_history.py tests/test_detector.py
+                tests/test_fingerprint.py tests/test_merger_integration.py
+                tests/test_task_service.py tests/test_business_task_resume.py
+                tests/test_business_checkpoints.py tests/test_main.py
+                tests/test_main_helpers.py tests/test_cost_strategy.py
+                tests/test_failure_integration.py
+              note: 304 passed。日志 /tmp/comet-issue-490-targeted-final.log。两处核心回归先按错误复用断言失败，日志
+                /tmp/comet-issue-490-red.log。
+              result: passed
+            - name: "仓库根目录：离线重跑 #490 初始温度复现脚本"
+              note: 两轮共 5 次模拟 provider 调用；温度变为 0.9 后，a、b、c 均为 fresh 并得到新参数对应的失败结果。修复前只有 3 次调用。
+              result: passed
+            - name: 仓库根目录：ruff check .、ruff format --check（7 个实施文件）、git diff --check
+              note: 全部通过。
+              result: passed
+            - name: 仓库根目录：comet classic openspec -- validate
+                fix-incremental-reuse-fingerprints --strict
+              note: 成功验证增量评估 delta spec。
+              result: passed
+            - name: 仓库根目录：Black 格式检查（7 个实施文件）
+              note: 7 个文件无需格式修改。
+              result: passed
+            - name: 离线 CLI 难度预算探针
+              note: 启用按难度预算与策略映射，新增一题后，三道题的 source 均为 fresh。
+              result: passed
+            - name: 判题契约版本探针
+              note: 提高判题契约版本后，相同输入的执行配置及题目指纹都变化。
+              result: passed
+          event: verification-ready
+          verificationReport: docs/superpowers/reports/2026-11-17-fix-incremental-reuse-fingerprints-verify.md
+    children: []
+    lineage: []
+  sourceRevision: 20
+  sourceHash: 28352c68a898bda79d5549d8ccc1eb0741d7c374653bbaf0ea90ecb6cc4310ed
+direct_override: null
+handoff_context: null
+handoff_hash: null
+classic_profile: null
+classic_migration: null
+check_epoch: 5
