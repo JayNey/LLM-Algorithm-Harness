@@ -1,0 +1,123 @@
+<!doctype html>
+<html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'unsafe-inline'; base-uri 'none'; form-action 'none'"><title>变更说明 · CLI 增量评估只复用执行条件相同、题目内容未改变的结果。恢复中断时沿用原历史来源，并完整统计当前题集。</title>
+<style>
+:root {
+  color-scheme: light dark;
+  --page: #fafbfc;
+  --ink: #202a35;
+  --muted: #566575;
+  --line: #dbe2e8;
+  --accent: #245b85;
+  --highlight: #edf3f7;
+  --hover: #e9eef3;
+  --code-bg: #edf0f4;
+  --code-ink: #263443;
+  --success: #236d4f;
+  --failure: #a83131;
+  --text: 15px;
+  --small: 13px;
+  --label: 12px;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --page: #181d23;
+    --ink: #e4eaf0;
+    --muted: #a4b1be;
+    --line: #35404b;
+    --accent: #94c6ec;
+    --highlight: #222e39;
+    --hover: #27323d;
+    --code-bg: #10161d;
+    --code-ink: #e0e8f0;
+    --success: #8ed8b5;
+    --failure: #ffb0a8;
+  }
+}
+* { box-sizing: border-box; }
+body {
+  margin: 0;
+  background: var(--page);
+  color: var(--ink);
+  font: var(--text)/1.65 system-ui, -apple-system, "Segoe UI", sans-serif;
+}
+main { max-width: 1040px; margin: auto; padding: 32px 32px 48px; }
+.eyebrow { color: var(--accent); font-size: var(--label); font-weight: 500; letter-spacing: .08em; }
+h1 { margin: 8px 0 12px; max-width: 32em; font-size: 28px; font-weight: 500; line-height: 1.4; letter-spacing: -.02em; overflow-wrap: anywhere; }
+h2 { margin: 0; font-size: 18px; font-weight: 500; line-height: 1.5; overflow-wrap: anywhere; }
+h3 { margin: 0 0 4px; color: var(--muted); font-size: var(--label); font-weight: 500; }
+p { margin: 0; white-space: pre-wrap; overflow-wrap: anywhere; }
+strong { font-weight: 500; }
+.meta { margin-bottom: 24px; color: var(--muted); font-size: var(--small); overflow-wrap: anywhere; }
+.meta p + p { margin-top: 2px; }
+article { padding: 20px 0 12px; border-top: 1px solid var(--line); }
+article header { display: flex; align-items: baseline; gap: 12px; margin-bottom: 12px; }
+.number { color: var(--muted); font: var(--label)/1.5 ui-monospace, Consolas, monospace; font-variant-numeric: tabular-nums; }
+.comparison { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 16px; }
+.comparison section { min-width: 0; padding: 12px; }
+.after { background: var(--highlight); border-radius: 4px; }
+.after h3 { color: var(--accent); }
+.reason { margin-top: 12px; font-size: var(--small); color: var(--muted); }
+.reason strong { margin-right: 8px; color: var(--ink); }
+summary { min-height: 44px; padding: 10px 4px; cursor: pointer; font-size: var(--small); font-weight: 500; border-radius: 4px; }
+summary:hover { background: var(--hover); }
+summary:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.count, .tag { color: var(--muted); font-size: var(--label); font-weight: 400; }
+.count { margin-left: 4px; font-variant-numeric: tabular-nums; }
+.file { min-width: 0; padding: 0 0 16px; scroll-margin-top: 20px; }
+.file:target { outline: 2px solid var(--accent); outline-offset: 4px; }
+.file-heading { display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 8px; }
+.file-heading code { min-width: 0; font-size: var(--small); overflow-wrap: anywhere; }
+.tag { white-space: nowrap; }
+pre { margin: 8px 0 0; padding: 12px 16px; overflow: auto; background: var(--code-bg); color: var(--code-ink); border-radius: 4px; font: var(--small)/1.65 ui-monospace, Consolas, monospace; tab-size: 2; }
+footer { margin-top: 12px; padding-top: 20px; border-top: 1px solid var(--line); }
+footer h2 { margin-bottom: 8px; }
+.check { display: grid; grid-template-columns: 72px minmax(0, 1fr); gap: 12px; padding: 12px 0; border-bottom: 1px solid var(--line); }
+.status { padding-top: 2px; font-size: var(--label); font-weight: 500; }
+.passed { color: var(--success); }
+.failed { color: var(--failure); }
+.not-run, .unknown { color: var(--muted); }
+.check p { margin-top: 2px; color: var(--muted); font-size: var(--small); }
+.more { border-top: 1px solid var(--line); }
+.more > summary { padding-block: 12px; }
+.diagram { margin: 0; padding: 20px 0; border-top: 1px solid var(--line); }
+.diagram figcaption { margin-bottom: 12px; font-size: 18px; font-weight: 500; overflow-wrap: anywhere; }
+.diagram-svg { display: block; max-width: 100%; height: auto; margin: auto; overflow: visible; font: 13px system-ui, -apple-system, "Segoe UI", sans-serif; }
+.diagram-svg text { fill: var(--ink); }
+.diagram-edge { fill: none; stroke: var(--muted); stroke-width: 1.5; }
+.diagram-svg marker path { fill: var(--muted); }
+.diagram-edge-label { fill: var(--page); }
+.diagram-svg .diagram-edge-text { fill: var(--muted); font-size: 12px; }
+.diagram-node rect { fill: var(--page); stroke: var(--line); stroke-width: 1.5; }
+.diagram-node.modified rect { fill: var(--highlight); stroke: var(--accent); }
+.diagram-node.added rect { stroke: var(--success); }
+.diagram-node.deleted rect { stroke: var(--failure); stroke-dasharray: 4 3; }
+.diagram-svg .diagram-kind { fill: var(--muted); font-size: 11px; }
+.diagram-node[href] { cursor: pointer; }
+.diagram-node[href]:hover rect, .diagram-node[href]:focus-visible rect { stroke: var(--accent); stroke-width: 2.5; }
+.diagram-node[href]:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; }
+.diagram-hint { margin-top: 12px; color: var(--muted); font-size: var(--small); text-align: center; }
+.diagram-comparison { display: grid; grid-template-columns: minmax(0,1fr) minmax(0,1fr); gap: 16px; }
+.diagram-comparison > section { min-width: 0; padding: 12px; border: 1px solid var(--line); border-radius: 4px; }
+.diagram-comparison > section > h3 { margin-bottom: 12px; }
+.diagram-compact { display: none; }
+@media (max-width: 999px) {
+  .diagram-wide { display: none; }
+  .diagram-compact { display: block; }
+}
+@media (max-width: 640px) {
+  main { padding: 24px 16px 32px; }
+  h1 { font-size: 24px; }
+  .meta { margin-bottom: 20px; }
+  article { padding-top: 16px; }
+  article header { gap: 8px; }
+  .comparison { grid-template-columns: minmax(0, 1fr); gap: 4px; }
+  .check { grid-template-columns: 60px minmax(0, 1fr); gap: 8px; }
+  pre { padding: 12px; }
+  .diagram-comparison { grid-template-columns: minmax(0,1fr); }
+  .diagram-comparison > section { padding: 12px 0; border: 0; }
+}
+</style></head><body><main><div class="eyebrow">COMET / 变更说明</div><h1>CLI 增量评估只复用执行条件相同、题目内容未改变的结果。恢复中断时沿用原历史来源，并完整统计当前题集。</h1><div class="meta"><p>比较范围 · 当前 main 工作区中 GitHub #490 对应的 4 个实现文件和 3 个测试文件。</p><p>生成时间 · 2026-11-17T09:37:14.688Z</p></div><figure class="diagram"><figcaption>CLI 增量执行与恢复</figcaption><div class="diagram-wide"><svg class="diagram-svg" width="624" height="100" viewBox="0 0 624 100" role="group" aria-labelledby="walkthrough-diagram-0-wide-title walkthrough-diagram-0-wide-description"><title id="walkthrough-diagram-0-wide-title">CLI 增量执行与恢复</title><desc id="walkthrough-diagram-0-wide-description">有效配置与题目指纹 → 选择兼容历史; 选择兼容历史 → 固化选择，派发变化题; 固化选择，派发变化题 → 合并并重算报告</desc><defs><marker id="walkthrough-diagram-0-wide-arrow" viewBox="0 0 8 8" refX="7" refY="4" markerWidth="6" markerHeight="6" orient="auto"><path d="M 0 0 L 8 4 L 0 8 z"/></marker></defs><path class="diagram-edge" d="M 132 50 C 152 50, 152 50, 169 50" marker-end="url(#walkthrough-diagram-0-wide-arrow)"/><path class="diagram-edge" d="M 292 50 C 312 50, 312 50, 329 50" marker-end="url(#walkthrough-diagram-0-wide-arrow)"/><path class="diagram-edge" d="M 452 50 C 472 50, 472 50, 489 50" marker-end="url(#walkthrough-diagram-0-wide-arrow)"/><a class="diagram-node modified" href="#walkthrough-file-0-0" aria-label="有效配置与题目指纹 · src/incremental/fingerprint.py"><rect x="12" y="12" width="120" height="76" rx="5"/><text class="diagram-kind" x="72" y="29" text-anchor="middle"><tspan x="72" dy="0">修改</tspan></text><text class="" x="72" y="47" text-anchor="middle"><tspan x="72" dy="0">有效配置与题目</tspan><tspan x="72" dy="18">指纹</tspan></text></a><a class="diagram-node modified" href="#walkthrough-file-0-1" aria-label="选择兼容历史 · src/incremental/detector.py"><rect x="172" y="12" width="120" height="76" rx="5"/><text class="diagram-kind" x="232" y="29" text-anchor="middle"><tspan x="232" dy="0">修改</tspan></text><text class="" x="232" y="47" text-anchor="middle"><tspan x="232" dy="0">选择兼容历史</tspan></text></a><a class="diagram-node modified" href="#walkthrough-file-1-0" aria-label="固化选择，派发变化题 · src/main.py"><rect x="332" y="12" width="120" height="76" rx="5"/><text class="diagram-kind" x="392" y="29" text-anchor="middle"><tspan x="392" dy="0">修改</tspan></text><text class="" x="392" y="47" text-anchor="middle"><tspan x="392" dy="0">固化选择，派发</tspan><tspan x="392" dy="18">变化题</tspan></text></a><g class="diagram-node "><rect x="492" y="12" width="120" height="76" rx="5"/><text class="" x="552" y="54" text-anchor="middle"><tspan x="552" dy="0">合并并重算报告</tspan></text></g></svg></div><div class="diagram-compact"><svg class="diagram-svg" width="272" height="436" viewBox="0 0 272 436" role="group" aria-labelledby="walkthrough-diagram-0-compact-title walkthrough-diagram-0-compact-description"><title id="walkthrough-diagram-0-compact-title">CLI 增量执行与恢复</title><desc id="walkthrough-diagram-0-compact-description">有效配置与题目指纹 → 选择兼容历史; 选择兼容历史 → 固化选择，派发变化题; 固化选择，派发变化题 → 合并并重算报告</desc><defs><marker id="walkthrough-diagram-0-compact-arrow" viewBox="0 0 8 8" refX="7" refY="4" markerWidth="6" markerHeight="6" orient="auto"><path d="M 0 0 L 8 4 L 0 8 z"/></marker></defs><path class="diagram-edge" d="M 136 88 C 136 106, 136 106, 136 121" marker-end="url(#walkthrough-diagram-0-compact-arrow)"/><path class="diagram-edge" d="M 136 200 C 136 218, 136 218, 136 233" marker-end="url(#walkthrough-diagram-0-compact-arrow)"/><path class="diagram-edge" d="M 136 312 C 136 330, 136 330, 136 345" marker-end="url(#walkthrough-diagram-0-compact-arrow)"/><a class="diagram-node modified" href="#walkthrough-file-0-0" aria-label="有效配置与题目指纹 · src/incremental/fingerprint.py"><rect x="80" y="12" width="112" height="76" rx="5"/><text class="diagram-kind" x="136" y="29" text-anchor="middle"><tspan x="136" dy="0">修改</tspan></text><text class="" x="136" y="47" text-anchor="middle"><tspan x="136" dy="0">有效配置与题</tspan><tspan x="136" dy="18">目指纹</tspan></text></a><a class="diagram-node modified" href="#walkthrough-file-0-1" aria-label="选择兼容历史 · src/incremental/detector.py"><rect x="80" y="124" width="112" height="76" rx="5"/><text class="diagram-kind" x="136" y="141" text-anchor="middle"><tspan x="136" dy="0">修改</tspan></text><text class="" x="136" y="159" text-anchor="middle"><tspan x="136" dy="0">选择兼容历史</tspan></text></a><a class="diagram-node modified" href="#walkthrough-file-1-0" aria-label="固化选择，派发变化题 · src/main.py"><rect x="80" y="236" width="112" height="76" rx="5"/><text class="diagram-kind" x="136" y="253" text-anchor="middle"><tspan x="136" dy="0">修改</tspan></text><text class="" x="136" y="271" text-anchor="middle"><tspan x="136" dy="0">固化选择，派</tspan><tspan x="136" dy="18">发变化题</tspan></text></a><g class="diagram-node "><rect x="80" y="348" width="112" height="76" rx="5"/><text class="" x="136" y="381" text-anchor="middle"><tspan x="136" dy="0">合并并重算报</tspan><tspan x="136" dy="18">告</tspan></text></g></svg></div><p class="diagram-hint">点击带链接的节点查看相关代码。</p></figure><article><header><span class="number">01</span><h2>按实际执行条件选择历史</h2></header><div class="comparison"><section><h3>原来</h3><p>只比较首个策略名和模型名。</p></section><section class="after"><h3>现在</h3><p>模型、provider、有效端点、生成参数、完整策略列表、沙箱和执行版本共同决定兼容性。旧历史仍保留，缺少当前版本时跳过复用。</p></section></div><p class="reason"><strong>原因</strong> 配置变化会影响结果，即使题目和策略名相同。</p><details><summary>查看文件和关键代码 <span class="count">3</span></summary><div class="file" id="walkthrough-file-0-0"><div class="file-heading"><span class="tag">修改</span><code>src/incremental/fingerprint.py</code></div><pre><code>compute_execution_fingerprint(config)
+EXECUTION_FINGERPRINT_VERSION = 1</code></pre></div><div class="file" id="walkthrough-file-0-1"><div class="file-heading"><span class="tag">修改</span><code>src/incremental/detector.py</code></div><pre><code>find_matching_run(history, execution_fingerprint, source_run_id=...)</code></pre></div><div class="file" id="walkthrough-file-0-2"><div class="file-heading"><span class="tag">修改</span><code>src/incremental/history.py</code></div><pre><code>execution_fingerprint: str | None = None
+fingerprint_version: int | None = None</code></pre></div></details></article><article><header><span class="number">02</span><h2>只派发新增题和改题，恢复后完整重算报告</h2></header><div class="comparison"><section><h3>原来</h3><p>标题、约束、难度、标签等字段未参与题目哈希。缩小题集后，原配置无法恢复相同增量任务。</p></section><section class="after"><h3>现在</h3><p>题目哈希包含提示、路由和判题输入。派发前保存原历史来源和选集。恢复校验后继续原任务，报告按完整选集生成，并将历史索引按 run ID 更新。</p></section></div><p class="reason"><strong>原因</strong> 已经评估的题和历史结果都应在恢复后只计一次。</p><details><summary>查看文件和关键代码 <span class="count">2</span></summary><div class="file" id="walkthrough-file-1-0"><div class="file-heading"><span class="tag">修改</span><code>src/main.py</code></div><pre><code>prepare_incremental_run(config, run_id, resume=args.resume)
+merge_incremental_reports(harness, selection, dataset_fingerprint)</code></pre></div><div class="file" id="walkthrough-file-1-1"><div class="file-heading"><span class="tag">修改</span><code>tests/test_incremental_e2e.py</code></div><pre><code>test_constraint_change_reruns_only_modified_and_added_problems
+test_resume_uses_the_original_incremental_selection</code></pre></div></details></article><footer><h2>实际验证</h2><div class="check"><span class="status passed">通过</span><div><strong>离线回归</strong><p>304 项相关测试通过。温度和题目约束两处修复前失败的回归均转绿。</p></div></div><div class="check"><span class="status passed">通过</span><div><strong>规格一致性</strong><p>核对 6 项需求和 23 个场景。验证难度预算、判题契约版本及履历恢复。</p></div></div><div class="check"><span class="status passed">通过</span><div><strong>格式检查</strong><p>OpenSpec 严格校验、全仓 Ruff、七个改动文件的 Ruff 与 Black 格式检查和 Git 空白校验通过。</p></div></div><div class="check"><span class="status not-run">未执行</span><div><strong>完整仓库与供应商集成</strong><p>验收使用模拟供应商和本机沙箱；未运行全仓测试、真实供应商和 Docker 评估。</p></div></div></footer></main><template id="walkthrough-data">eyJzdW1tYXJ5IjoiQ0xJIOWinumHj+ivhOS8sOWPquWkjeeUqOaJp+ihjOadoeS7tuebuOWQjOOAgemimOebruWGheWuueacquaUueWPmOeahOe7k+aenOOAguaBouWkjeS4reaWreaXtuayv+eUqOWOn+WOhuWPsuadpea6kO+8jOW5tuWujOaVtOe7n+iuoeW9k+WJjemimOmbhuOAgiIsInNjb3BlIjoi5b2T5YmNIG1haW4g5bel5L2c5Yy65LitIEdpdEh1YiAjNDkwIOWvueW6lOeahCA0IOS4quWunueOsOaWh+S7tuWSjCAzIOS4qua1i+ivleaWh+S7tuOAgiIsImNoYW5nZXMiOlt7InRpdGxlIjoi5oyJ5a6e6ZmF5omn6KGM5p2h5Lu26YCJ5oup5Y6G5Y+yIiwiYmVmb3JlIjoi5Y+q5q+U6L6D6aaW5Liq562W55Wl5ZCN5ZKM5qih5Z6L5ZCN44CCIiwiYWZ0ZXIiOiLmqKHlnovjgIFwcm92aWRlcuOAgeacieaViOerr+eCueOAgeeUn+aIkOWPguaVsOOAgeWujOaVtOetlueVpeWIl+ihqOOAgeaymeeuseWSjOaJp+ihjOeJiOacrOWFseWQjOWGs+WumuWFvOWuueaAp+OAguaXp+WOhuWPsuS7jeS/neeVme+8jOe8uuWwkeW9k+WJjeeJiOacrOaXtui3s+i/h+WkjeeUqOOAgiIsInJlYXNvbiI6IumFjee9ruWPmOWMluS8muW9seWTjee7k+aenO+8jOWNs+S9v+mimOebruWSjOetlueVpeWQjeebuOWQjOOAgiIsImZpbGVzIjpbeyJwYXRoIjoic3JjL2luY3JlbWVudGFsL2ZpbmdlcnByaW50LnB5Iiwia2luZCI6Im1vZGlmaWVkIiwiY29kZSI6ImNvbXB1dGVfZXhlY3V0aW9uX2ZpbmdlcnByaW50KGNvbmZpZylcbkVYRUNVVElPTl9GSU5HRVJQUklOVF9WRVJTSU9OID0gMSJ9LHsicGF0aCI6InNyYy9pbmNyZW1lbnRhbC9kZXRlY3Rvci5weSIsImtpbmQiOiJtb2RpZmllZCIsImNvZGUiOiJmaW5kX21hdGNoaW5nX3J1bihoaXN0b3J5LCBleGVjdXRpb25fZmluZ2VycHJpbnQsIHNvdXJjZV9ydW5faWQ9Li4uKSJ9LHsicGF0aCI6InNyYy9pbmNyZW1lbnRhbC9oaXN0b3J5LnB5Iiwia2luZCI6Im1vZGlmaWVkIiwiY29kZSI6ImV4ZWN1dGlvbl9maW5nZXJwcmludDogc3RyIHwgTm9uZSA9IE5vbmVcbmZpbmdlcnByaW50X3ZlcnNpb246IGludCB8IE5vbmUgPSBOb25lIn1dfSx7InRpdGxlIjoi5Y+q5rS+5Y+R5paw5aKe6aKY5ZKM5pS56aKY77yM5oGi5aSN5ZCO5a6M5pW06YeN566X5oql5ZGKIiwiYmVmb3JlIjoi5qCH6aKY44CB57qm5p2f44CB6Zq+5bqm44CB5qCH562+562J5a2X5q615pyq5Y+C5LiO6aKY55uu5ZOI5biM44CC57yp5bCP6aKY6ZuG5ZCO77yM5Y6f6YWN572u5peg5rOV5oGi5aSN55u45ZCM5aKe6YeP5Lu75Yqh44CCIiwiYWZ0ZXIiOiLpopjnm67lk4jluIzljIXlkKvmj5DnpLrjgIHot6/nlLHlkozliKTpopjovpPlhaXjgILmtL7lj5HliY3kv53lrZjljp/ljoblj7LmnaXmupDlkozpgInpm4bjgILmgaLlpI3moKHpqozlkI7nu6fnu63ljp/ku7vliqHvvIzmiqXlkYrmjInlrozmlbTpgInpm4bnlJ/miJDvvIzlubblsIbljoblj7LntKLlvJXmjIkgcnVuIElEIOabtOaWsOOAgiIsInJlYXNvbiI6IuW3sue7j+ivhOS8sOeahOmimOWSjOWOhuWPsue7k+aenOmDveW6lOWcqOaBouWkjeWQjuWPquiuoeS4gOasoeOAgiIsImZpbGVzIjpbeyJwYXRoIjoic3JjL21haW4ucHkiLCJraW5kIjoibW9kaWZpZWQiLCJjb2RlIjoicHJlcGFyZV9pbmNyZW1lbnRhbF9ydW4oY29uZmlnLCBydW5faWQsIHJlc3VtZT1hcmdzLnJlc3VtZSlcbm1lcmdlX2luY3JlbWVudGFsX3JlcG9ydHMoaGFybmVzcywgc2VsZWN0aW9uLCBkYXRhc2V0X2ZpbmdlcnByaW50KSJ9LHsicGF0aCI6InRlc3RzL3Rlc3RfaW5jcmVtZW50YWxfZTJlLnB5Iiwia2luZCI6Im1vZGlmaWVkIiwiY29kZSI6InRlc3RfY29uc3RyYWludF9jaGFuZ2VfcmVydW5zX29ubHlfbW9kaWZpZWRfYW5kX2FkZGVkX3Byb2JsZW1zXG50ZXN0X3Jlc3VtZV91c2VzX3RoZV9vcmlnaW5hbF9pbmNyZW1lbnRhbF9zZWxlY3Rpb24ifV19XSwidmVyaWZpY2F0aW9uIjpbeyJsYWJlbCI6Iuemu+e6v+WbnuW9kiIsInN0YXR1cyI6InBhc3NlZCIsImRldGFpbCI6IjMwNCDpobnnm7jlhbPmtYvor5XpgJrov4fjgILmuKnluqblkozpopjnm67nuqbmnZ/kuKTlpITkv67lpI3liY3lpLHotKXnmoTlm57lvZLlnYfovaznu7/jgIIifSx7ImxhYmVsIjoi6KeE5qC85LiA6Ie05oCnIiwic3RhdHVzIjoicGFzc2VkIiwiZGV0YWlsIjoi5qC45a+5IDYg6aG56ZyA5rGC5ZKMIDIzIOS4quWcuuaZr+OAgumqjOivgemavuW6pumihOeul+OAgeWIpOmimOWlkee6pueJiOacrOWPiuWxpeWOhuaBouWkjeOAgiJ9LHsibGFiZWwiOiLmoLzlvI/mo4Dmn6UiLCJzdGF0dXMiOiJwYXNzZWQiLCJkZXRhaWwiOiJPcGVuU3BlYyDkuKXmoLzmoKHpqozjgIHlhajku5MgUnVmZuOAgeS4g+S4quaUueWKqOaWh+S7tueahCBSdWZmIOS4jiBCbGFjayDmoLzlvI/mo4Dmn6XlkowgR2l0IOepuueZveagoemqjOmAmui/h+OAgiJ9LHsibGFiZWwiOiLlrozmlbTku5PlupPkuI7kvpvlupTllYbpm4bmiJAiLCJzdGF0dXMiOiJub3QtcnVuIiwiZGV0YWlsIjoi6aqM5pS25L2/55So5qih5ouf5L6b5bqU5ZWG5ZKM5pys5py65rKZ566x77yb5pyq6L+Q6KGM5YWo5LuT5rWL6K+V44CB55yf5a6e5L6b5bqU5ZWG5ZKMIERvY2tlciDor4TkvLDjgIIifV0sImRpYWdyYW1zIjpbeyJ0eXBlIjoiZmxvdyIsInRpdGxlIjoiQ0xJIOWinumHj+aJp+ihjOS4juaBouWkjSIsIm5vZGVzIjpbeyJpZCI6ImNvbmZpZyIsImxhYmVsIjoi5pyJ5pWI6YWN572u5LiO6aKY55uu5oyH57q5IiwiZmlsZSI6InNyYy9pbmNyZW1lbnRhbC9maW5nZXJwcmludC5weSIsImtpbmQiOiJtb2RpZmllZCJ9LHsiaWQiOiJoaXN0b3J5IiwibGFiZWwiOiLpgInmi6nlhbzlrrnljoblj7IiLCJmaWxlIjoic3JjL2luY3JlbWVudGFsL2RldGVjdG9yLnB5Iiwia2luZCI6Im1vZGlmaWVkIn0seyJpZCI6InJ1biIsImxhYmVsIjoi5Zu65YyW6YCJ5oup77yM5rS+5Y+R5Y+Y5YyW6aKYIiwiZmlsZSI6InNyYy9tYWluLnB5Iiwia2luZCI6Im1vZGlmaWVkIn0seyJpZCI6InJlcG9ydCIsImxhYmVsIjoi5ZCI5bm25bm26YeN566X5oql5ZGKIn1dLCJlZGdlcyI6W3siZnJvbSI6ImNvbmZpZyIsInRvIjoiaGlzdG9yeSJ9LHsiZnJvbSI6Imhpc3RvcnkiLCJ0byI6InJ1biJ9LHsiZnJvbSI6InJ1biIsInRvIjoicmVwb3J0In1dfV19</template></body></html>

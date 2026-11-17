@@ -11,6 +11,7 @@ from src.incremental.detector import (
     load_historical_results,
     should_use_incremental,
 )
+from src.incremental.fingerprint import EXECUTION_FINGERPRINT_VERSION
 from src.incremental.history import IncrementalHistory, RunRecord
 
 
@@ -107,117 +108,50 @@ def test_should_use_incremental_large_changes():
     assert should_use_incremental(changes, fingerprint) is False
 
 
+def _run_record(
+    run_id, execution_fingerprint="execution-hash", version=EXECUTION_FINGERPRINT_VERSION
+):
+    return RunRecord(
+        run_id=run_id,
+        timestamp=datetime.now(timezone.utc).isoformat(),
+        strategy="direct",
+        model="claude-opus-5",
+        dataset_fingerprint={"prob1": "hash1"},
+        result_path=f"/path/to/{run_id}",
+        problem_count=1,
+        success_count=0,
+        execution_fingerprint=execution_fingerprint,
+        fingerprint_version=version,
+    )
+
+
 def test_find_matching_run_no_history():
-    """Test finding matching run with empty history."""
-    history = IncrementalHistory(runs=[])
-    fingerprint = {"prob1": "hash1"}
-
-    result = find_matching_run(history, fingerprint, "direct", "claude-opus-5")
-    assert result is None
+    assert find_matching_run(IncrementalHistory(runs=[]), "execution-hash") is None
 
 
-def test_find_matching_run_exact_match():
-    """Test finding an exact matching run."""
-    fingerprint = {"prob1": "hash1", "prob2": "hash2"}
-
-    history = IncrementalHistory(runs=[])
-    history.add_run(
-        RunRecord(
-            run_id="run1",
-            timestamp=datetime.now(timezone.utc).isoformat(),
-            strategy="direct",
-            model="claude-opus-5",
-            dataset_fingerprint=fingerprint,
-            result_path="/path/to/run1",
-            problem_count=2,
-            success_count=0,
-        )
-    )
-
-    result = find_matching_run(history, fingerprint, "direct", "claude-opus-5")
-    assert result is not None
-    assert result.run_id == "run1"
+@pytest.mark.parametrize(
+    ("fingerprint", "version"),
+    [
+        ("different-hash", EXECUTION_FINGERPRINT_VERSION),
+        (None, EXECUTION_FINGERPRINT_VERSION),
+        ("execution-hash", None),
+        ("execution-hash", EXECUTION_FINGERPRINT_VERSION + 1),
+        ("execution-hash", True),
+    ],
+)
+def test_find_matching_run_rejects_incompatible_records(fingerprint, version):
+    history = IncrementalHistory([_run_record("run1", fingerprint, version)])
+    assert find_matching_run(history, "execution-hash") is None
 
 
-def test_find_matching_run_strategy_mismatch():
-    """Test that strategy must match."""
-    fingerprint = {"prob1": "hash1"}
-
-    history = IncrementalHistory(runs=[])
-    history.add_run(
-        RunRecord(
-            run_id="run1",
-            timestamp=datetime.now(timezone.utc).isoformat(),
-            strategy="cot",
-            model="claude-opus-5",
-            dataset_fingerprint=fingerprint,
-            result_path="/path/to/run1",
-            problem_count=1,
-            success_count=0,
-        )
-    )
-
-    result = find_matching_run(history, fingerprint, "direct", "claude-opus-5")
-    assert result is None
-
-
-def test_find_matching_run_model_mismatch():
-    """Test that model must match."""
-    fingerprint = {"prob1": "hash1"}
-
-    history = IncrementalHistory(runs=[])
-    history.add_run(
-        RunRecord(
-            run_id="run1",
-            timestamp=datetime.now(timezone.utc).isoformat(),
-            strategy="direct",
-            model="claude-sonnet-5",
-            dataset_fingerprint=fingerprint,
-            result_path="/path/to/run1",
-            problem_count=1,
-            success_count=0,
-        )
-    )
-
-    result = find_matching_run(history, fingerprint, "direct", "claude-opus-5")
-    assert result is None
-
-
-def test_find_matching_run_most_recent():
-    """Test that most recent matching run is returned."""
-    fingerprint = {"prob1": "hash1"}
-
-    history = IncrementalHistory(runs=[])
-    # Add older run
-    history.add_run(
-        RunRecord(
-            run_id="run1",
-            timestamp="2024-01-01T00:00:00Z",
-            strategy="direct",
-            model="claude-opus-5",
-            dataset_fingerprint=fingerprint,
-            result_path="/path/to/run1",
-            problem_count=1,
-            success_count=0,
-        )
-    )
-    # Add newer run
-    history.add_run(
-        RunRecord(
-            run_id="run2",
-            timestamp="2024-12-01T00:00:00Z",
-            strategy="direct",
-            model="claude-opus-5",
-            dataset_fingerprint=fingerprint,
-            result_path="/path/to/run2",
-            problem_count=1,
-            success_count=0,
-        )
-    )
-
-    result = find_matching_run(history, fingerprint, "direct", "claude-opus-5")
-    assert result is not None
-    assert result.run_id == "run2"
+def test_find_matching_run_most_recent_compatible_record():
+    first = _run_record("oldest")
+    newer = _run_record("compatible")
+    newest = _run_record("newest", "incompatible")
+    history = IncrementalHistory([first, newer, newest])
+    assert find_matching_run(history, "execution-hash") == newer
+    assert find_matching_run(history, "execution-hash", source_run_id="oldest") == first
+    assert find_matching_run(history, "execution-hash", source_run_id="newest") is None
 
 
 def test_load_historical_results_missing_file(tmp_path):

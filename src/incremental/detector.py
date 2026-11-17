@@ -5,6 +5,7 @@ Change detection and historical result loading for incremental evaluation.
 import json
 from pathlib import Path
 
+from src.incremental.fingerprint import EXECUTION_FINGERPRINT_VERSION
 from src.incremental.history import IncrementalHistory, RunRecord
 from src.models import ExecutionResult
 from src.utils.logging import get_logger
@@ -14,41 +15,22 @@ logger = get_logger(__name__)
 
 def find_matching_run(
     history: IncrementalHistory,
-    current_fingerprint: dict[str, str],
-    strategy: str,
-    model: str,
+    execution_fingerprint: str,
+    *,
+    source_run_id: str | None = None,
 ) -> RunRecord | None:
-    """
-    Find a historical run that matches the current evaluation parameters.
-
-    Matching criteria:
-    - Strategy name must match
-    - Model name must match
-    - Dataset fingerprint must match
-
-    Args:
-        history: Historical run records
-        current_fingerprint: Current dataset fingerprint mapping
-        strategy: Current strategy name
-        model: Current model name
-
-    Returns:
-        Matching RunRecord if found, None otherwise
-    """
-    for record in reversed(history.runs):  # Search newest first
-        if record.strategy != strategy:
+    """Select the newest compatible run, or the original source when resuming."""
+    if not execution_fingerprint:
+        return None
+    for record in reversed(history.runs):
+        if (
+            type(record.fingerprint_version) is not int
+            or record.fingerprint_version != EXECUTION_FINGERPRINT_VERSION
+            or record.execution_fingerprint != execution_fingerprint
+            or (source_run_id is not None and record.run_id != source_run_id)
+        ):
             continue
-        if record.model != model:
-            continue
-        # Strategy and model match. The dataset fingerprint may differ —
-        # that is the whole point of incremental evaluation; detect_changes
-        # quantifies the diff and should_use_incremental rejects changes
-        # that are too large for reuse to pay off.
-        logger.info(
-            f"Found matching run: {record.run_id} "
-            f"(strategy={strategy}, model={model}, "
-            f"{len(record.dataset_fingerprint or {})} historical problems)"
-        )
+        logger.info("compatible_incremental_run", run_id=record.run_id)
         return record
 
     return None

@@ -3,7 +3,7 @@ Historical run record management for incremental evaluation.
 """
 
 import json
-from dataclasses import asdict, dataclass
+from dataclasses import asdict, dataclass, fields
 from pathlib import Path
 
 from src.utils.file_lock import exclusive_lock
@@ -24,6 +24,8 @@ class RunRecord:
     result_path: str
     problem_count: int
     success_count: int
+    execution_fingerprint: str | None = None
+    fingerprint_version: int | None = None
 
 
 @dataclass
@@ -55,8 +57,13 @@ class IncrementalHistory:
                 with exclusive_lock(f):
                     data = json.load(f)
 
-            # Reconstruct RunRecord instances from dict
-            runs = [RunRecord(**record) for record in data.get("runs", [])]
+            known_fields = {field.name for field in fields(RunRecord)}
+            runs = []
+            for record in data["runs"]:
+                try:
+                    runs.append(RunRecord(**{k: v for k, v in record.items() if k in known_fields}))
+                except (AttributeError, TypeError):
+                    logger.warning("Skipping invalid incremental history record", path=str(path))
             return cls(runs=runs)
 
         except json.JSONDecodeError as e:
@@ -66,20 +73,21 @@ class IncrementalHistory:
             logger.error(f"Invalid history file structure in {path}: {e}")
             return cls(runs=[])
 
-    def save(self, path: Path, max_retries: int = 3) -> None:
+    def save(self, path: Path, max_retries: int = 3, *, upsert: bool = False) -> None:
         """
         Save history to file with file locking to prevent concurrent write conflicts.
 
         Args:
             path: Path to history.json file
             max_retries: Maximum number of retry attempts on lock failure
+            upsert: Add or replace these runs by ID while retaining other records
 
         Raises:
             IOError: If file cannot be written after retries
         """
         path.parent.mkdir(parents=True, exist_ok=True)
 
-        data = {"runs": [asdict(record) for record in self.runs]}
+        updates = [asdict(record) for record in self.runs]
 
         # Retry logic for file locking
         for attempt in range(max_retries):
@@ -88,9 +96,27 @@ class IncrementalHistory:
                 with open(path, "a+", encoding="utf-8") as f:
                     f.seek(0)  # Anchor the Windows byte-range lock at byte zero.
                     with exclusive_lock(f):
+                        runs = updates
+                        if upsert:
+                            # Read and update under the same lock. Keep unfamiliar
+                            # rows intact, including fields from newer versions.
+                            try:
+                                existing = json.load(f)["runs"]
+                                if not isinstance(existing, list):
+                                    existing = []
+                            except (ValueError, TypeError, KeyError):
+                                existing = []
+                            updated_ids = {record.run_id for record in self.runs}
+                            runs = [
+                                row
+                                for row in existing
+                                if not isinstance(row, dict)
+                                or not isinstance(row.get("run_id"), str)
+                                or row["run_id"] not in updated_ids
+                            ] + updates
                         f.seek(0)
                         f.truncate()
-                        json.dump(data, f, indent=2)
+                        json.dump({"runs": runs}, f, indent=2)
                         f.write("\n")  # Trailing newline
                         f.flush()  # Publish buffered data before releasing the lock.
                 logger.debug(f"Successfully saved history to {path}")

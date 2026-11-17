@@ -1,0 +1,39 @@
+{
+  "schema": "comet.classic.archive-manifest.v2",
+  "execution": {
+    "workflow": {
+      "id": "comet-classic-tweak",
+      "version": "2",
+      "hash": "518d3e8e12eb39899775cb7d2ddcc7ddeba10cb1f1d43cff7b03f2ca61a70c65"
+    },
+    "runId": "fix-incremental-reuse-fingerprints",
+    "actionId": "fix-incremental-reuse-fingerprints:11",
+    "attempt": 1,
+    "inputHash": "c079c582f191c635cb4a0105313804b964dc2c5968f055e36c1a1cec776f403f",
+    "claimToken": "portable-28eee37f952c9719c0f7dd2d394bd907197b535dedf11ad5c0abfb7e59956ffe"
+  },
+  "activeRef": "openspec/changes/fix-incremental-reuse-fingerprints",
+  "archiveRef": "openspec/changes/archive/2026-11-17-fix-incremental-reuse-fingerprints",
+  "stateRef": "openspec/changes/archive/2026-11-17-fix-incremental-reuse-fingerprints/comet-state.yaml",
+  "paths": [
+    "openspec/changes/archive/2026-11-17-fix-incremental-reuse-fingerprints/.comet/archive-requirements.json",
+    "openspec/changes/archive/2026-11-17-fix-incremental-reuse-fingerprints/.comet/rulings.md",
+    "openspec/changes/archive/2026-11-17-fix-incremental-reuse-fingerprints/.openspec.yaml",
+    "openspec/changes/archive/2026-11-17-fix-incremental-reuse-fingerprints/design.md",
+    "openspec/changes/archive/2026-11-17-fix-incremental-reuse-fingerprints/proposal.md",
+    "openspec/changes/archive/2026-11-17-fix-incremental-reuse-fingerprints/specs/incremental-evaluation/spec.md",
+    "openspec/changes/archive/2026-11-17-fix-incremental-reuse-fingerprints/tasks.md",
+    "openspec/changes/archive/2026-11-17-fix-incremental-reuse-fingerprints/walkthrough.html",
+    "openspec/specs/incremental-evaluation/spec.md"
+  ],
+  "sourcePaths": [
+    "openspec/changes/fix-incremental-reuse-fingerprints/.comet/archive-requirements.json",
+    "openspec/changes/fix-incremental-reuse-fingerprints/.comet/rulings.md",
+    "openspec/changes/fix-incremental-reuse-fingerprints/.openspec.yaml",
+    "openspec/changes/fix-incremental-reuse-fingerprints/design.md",
+    "openspec/changes/fix-incremental-reuse-fingerprints/proposal.md",
+    "openspec/changes/fix-incremental-reuse-fingerprints/specs/incremental-evaluation/spec.md",
+    "openspec/changes/fix-incremental-reuse-fingerprints/tasks.md",
+    "openspec/changes/fix-incremental-reuse-fingerprints/walkthrough.html"
+  ]
+}

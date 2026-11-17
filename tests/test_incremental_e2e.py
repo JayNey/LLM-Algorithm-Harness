@@ -13,7 +13,7 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
-from src.models import LLMResponse, TokenUsage
+from src.models import LLMResponse, Problem, TokenUsage
 
 
 def _dataset(tmp_path, problem_ids, modify_id=None):
@@ -58,6 +58,26 @@ def _run_main(argv):
         except SystemExit as exc:
             exit_code = exc.code or 0
     return exit_code
+
+
+def _read_json(path):
+    return json.loads(path.read_text(encoding="utf-8"))
+
+
+def _write_json(path, value):
+    path.write_text(json.dumps(value), encoding="utf-8")
+
+
+def _latest_run(tmp_path):
+    output = tmp_path / "results"
+    return output / _read_json(output / "latest.json")["latest_run"]
+
+
+def _result_sources(run, strategy="vanilla"):
+    rows = _read_json(run / f"{strategy}_results.json")
+    sources = {row["problem_id"]: row["source"] for row in rows}
+    assert len(sources) == len(rows)
+    return sources
 
 
 def _llm_factory():
@@ -184,10 +204,217 @@ class TestIncrementalEndToEnd:
         assert "Incremental evaluation mode enabled" not in out
 
 
+class TestIncrementalFingerprints:
+    @pytest.mark.parametrize(
+        "changed_setting", ["temperature", "system_prompt", "endpoint", "second_strategy"]
+    )
+    def test_config_changes_rerun_unchanged_problems(self, tmp_path, monkeypatch, changed_setting):
+        dataset = _dataset(tmp_path, ["p1", "p2"])
+        config_path = _config_file(tmp_path, dataset)
+        config = _read_json(config_path)
+        config["llm_config"].update(temperature=0.1, cache={"enabled": False})
+        if changed_setting == "second_strategy":
+            config["strategies"].append({"name": "chain_of_thought"})
+        _write_json(config_path, config)
+        argv = ["--config", str(config_path), "--incremental"]
+
+        with patch("src.harness.LLMClient", side_effect=_llm_factory()):
+            assert _run_main(argv) == 0
+            first = _latest_run(tmp_path)
+            if changed_setting == "temperature":
+                config["llm_config"]["temperature"] = 0.9
+            elif changed_setting == "system_prompt":
+                config["strategies"][0]["system_prompt"] = "Use the new generation prompt."
+            elif changed_setting == "endpoint":
+                monkeypatch.setenv("OPENAI_BASE_URL", "https://another.example/v1")
+            else:
+                config["strategies"][1]["temperature"] = 0.9
+            _write_json(config_path, config)
+            _dataset(tmp_path, ["p1", "p2", "p3"])
+            assert _run_main(argv) == 0
+
+        current = _latest_run(tmp_path)
+        for strategy in config["strategies"]:
+            assert _result_sources(current, strategy["name"]) == dict.fromkeys(
+                ["p1", "p2", "p3"], "fresh"
+            )
+        runs = _read_json(tmp_path / "results" / ".incremental" / "history.json")["runs"]
+        assert [row["run_id"] for row in runs] == [first.name, current.name]
+        assert runs[0]["execution_fingerprint"] != runs[1]["execution_fingerprint"]
+
+    def test_constraint_change_reruns_only_modified_and_added_problems(self, tmp_path):
+        dataset = _dataset(tmp_path, ["p1", "p2"])
+        argv = ["--config", str(_config_file(tmp_path, dataset)), "--incremental"]
+        with patch("src.harness.LLMClient", side_effect=_llm_factory()):
+            assert _run_main(argv) == 0
+            first = _latest_run(tmp_path)
+            _dataset(tmp_path, ["p1", "p2", "p3"])
+            problems = _read_json(dataset)
+            problems[0]["constraints"] = "The input must be a positive integer."
+            _write_json(dataset, problems)
+            assert _run_main(argv) == 0
+
+        run = _latest_run(tmp_path)
+        assert _result_sources(run) == {"p1": "fresh", "p2": "reused", "p3": "fresh"}
+        metadata = _read_json(run / "metadata.json")
+        assert metadata["incremental_mode"]["source_run_id"] == first.name
+        assert metadata["incremental_mode"]["reused_results"] == 1
+        assert (
+            metadata["execution_fingerprint"]
+            == _read_json(first / "metadata.json")["execution_fingerprint"]
+        )
+        assert _read_json(run / "summary.json")["strategies"]["vanilla"]["total_problems"] == 3
+
+    @pytest.mark.parametrize(
+        "field", ["execution_fingerprint", "fingerprint_version", "future_version"]
+    )
+    def test_old_history_is_kept_but_requires_a_full_run(self, tmp_path, field):
+        dataset = _dataset(tmp_path, ["p1", "p2"])
+        argv = ["--config", str(_config_file(tmp_path, dataset)), "--incremental"]
+        history = tmp_path / "results" / ".incremental" / "history.json"
+        with patch("src.harness.LLMClient", side_effect=_llm_factory()):
+            assert _run_main(argv) == 0
+            first = _latest_run(tmp_path)
+            document = _read_json(history)
+            record = document["runs"][0]
+            if field == "future_version":
+                record["fingerprint_version"] = 999
+                record["newer_metadata"] = {"preserve": True}
+            else:
+                record.pop(field, None)
+            _write_json(history, document)
+            _dataset(tmp_path, ["p1", "p2", "p3"])
+            assert _run_main(argv) == 0
+
+        assert _result_sources(_latest_run(tmp_path)) == dict.fromkeys(["p1", "p2", "p3"], "fresh")
+        assert _read_json(history)["runs"][0] == record
+        assert record["run_id"] == first.name
+        assert (first / "metadata.json").exists()
+
+
+@pytest.mark.parametrize(
+    ("field", "value"),
+    [
+        ("title", "Another title"),
+        ("description", "A different problem description."),
+        ("difficulty", "hard"),
+        ("tags", ["graphs"]),
+        ("constraints", "The input must be positive."),
+        ("unsupported_reason", "Unsupported judge"),
+        ("input_output_mode", "stdin_stdout"),
+        ("entry_point", "another(x)"),
+        ("judge_config", {"comparison": "exact"}),
+        ("public_test_cases", [{"input": {"x": 5}, "expected_output": 6}]),
+        ("feedback_test_cases", [{"input": {"x": 2}, "expected_output": 3}]),
+        ("hidden_test_cases", [{"input": {"x": 3}, "expected_output": 4}]),
+    ],
+)
+def test_problem_fingerprint_tracks_evaluation_fields(tmp_path, field, value):
+    from src.incremental.fingerprint import compute_problem_fingerprint
+
+    payload = _read_json(_dataset(tmp_path, ["p1"]))[0]
+    original = Problem.model_validate(payload)
+    changed = Problem.model_validate({**original.model_dump(), field: value})
+    assert compute_problem_fingerprint(changed) != compute_problem_fingerprint(original)
+
+
+@pytest.mark.parametrize("run_dependent", ["budget", "examples"])
+def test_run_dependent_execution_evaluates_the_full_selection(tmp_path, run_dependent):
+    dataset = _dataset(tmp_path, ["p1", "p2"])
+    config_path = _config_file(tmp_path, dataset)
+    config = _read_json(config_path)
+    strategy = "vanilla"
+    if run_dependent == "budget":
+        config.update(budget_cap_usd=10.0, budget_action="auto_stop")
+        config["llm_config"]["model"] = "gpt-4o-mini"
+    else:
+        strategy = "few_shot_learning"
+        config["strategies"][0]["name"] = strategy
+    _write_json(config_path, config)
+    argv = ["--config", str(config_path), "--incremental"]
+
+    with patch("src.harness.LLMClient", side_effect=_llm_factory()):
+        assert _run_main(argv) == 0
+        _dataset(tmp_path, ["p1", "p2", "p3"])
+        assert _run_main(argv) == 0
+    assert _result_sources(_latest_run(tmp_path), strategy) == dict.fromkeys(
+        ["p1", "p2", "p3"], "fresh"
+    )
+
+
+@pytest.mark.parametrize("missing_source", [False, True])
+def test_resume_uses_the_original_incremental_selection(tmp_path, missing_source, capsys):
+    from src.task_service import TaskService
+
+    dataset = _dataset(tmp_path, ["p1", "p2"])
+    config_path = _config_file(tmp_path, dataset)
+    config = _read_json(config_path)
+    config["llm_config"]["cache"] = {"enabled": False}
+    config["max_workers"] = 1
+    _write_json(config_path, config)
+    argv = ["--config", str(config_path), "--incremental"]
+    run_id = "interrupted-incremental"
+    run = TaskService.run
+
+    def pause_after_one(self, selected_run_id, worker, **kwargs):
+        if selected_run_id == run_id:
+            kwargs["pause_when"] = lambda record: record.completed_units >= 1
+        return run(self, selected_run_id, worker, **kwargs)
+
+    generate = MagicMock()
+    create_client = _llm_factory()
+
+    def tracked_client(settings):
+        client = create_client(settings)
+        generate.return_value = client.generate.return_value
+        client.generate = generate
+        return client
+
+    with patch("src.harness.LLMClient", side_effect=tracked_client):
+        assert _run_main(argv) == 0
+        original_source = _latest_run(tmp_path)
+        _dataset(tmp_path, ["p1", "p2", "p3", "p4"])
+        with patch.object(TaskService, "run", pause_after_one):
+            assert _run_main([*argv, "--run-id", run_id]) == 0
+        paused_run = _latest_run(tmp_path)
+        checkpoint = _read_json(tmp_path / "results" / "tasks" / f"{run_id}.json")
+        assert checkpoint["state"] == "paused"
+        assert [unit["problem_id"] for unit in checkpoint["units"]] == ["p3", "p4"]
+
+        # A later compatible run must never replace the source of the interrupted run.
+        assert _run_main(argv) == 0
+        if missing_source:
+            (original_source / "vanilla_results.json").unlink()
+        generate.reset_mock()
+        resume_argv = [*argv, "--resume", "--run-id", run_id]
+        if missing_source:
+            assert _run_main(resume_argv) == 1
+            assert "Historical results are missing or incomplete" in capsys.readouterr().err
+            assert generate.call_count == 0
+            return
+
+        assert _run_main(resume_argv) == 0
+        assert generate.call_count == 1
+        assert _run_main(resume_argv) == 0
+        assert generate.call_count == 1
+
+    assert _latest_run(tmp_path) == paused_run
+    assert _result_sources(paused_run) == {
+        "p1": "reused",
+        "p2": "reused",
+        "p3": "fresh",
+        "p4": "fresh",
+    }
+    assert _read_json(paused_run / "summary.json")["strategies"]["vanilla"]["total_problems"] == 4
+    metadata = _read_json(paused_run / "metadata.json")
+    assert metadata["incremental_mode"]["source_run_id"] == original_source.name
+    history = _read_json(tmp_path / "results" / ".incremental" / "history.json")
+    assert sum(record["run_id"] == run_id for record in history["runs"]) == 1
+
+
 class TestIncrementalStaleStrategies:
     def test_shrunk_strategy_set_stays_out_of_reports(self, tmp_path, capsys):
-        """First run two strategies, second run only one + dataset change:
-        the stale strategy must not appear in summary.json (W2 guard)."""
+        """Removing a strategy invalidates the old run's execution configuration."""
         problems = []
         for pid in ("p1", "p2", "p3"):
             problems.append(
@@ -229,12 +456,13 @@ class TestIncrementalStaleStrategies:
         with patch("src.harness.LLMClient", side_effect=_llm_factory()):
             assert _run_main(["--config", str(config_path), "--incremental"]) == 0
 
-        assert "Incremental evaluation mode enabled" in capsys.readouterr().out
+        assert "Incremental evaluation mode enabled" not in capsys.readouterr().out
         latest = json.loads((tmp_path / "results" / "latest.json").read_text(encoding="utf-8"))
         run_dir = tmp_path / "results" / latest["latest_run"]
         summary = json.loads((run_dir / "summary.json").read_text(encoding="utf-8"))
         assert set(summary["strategies"]) == {"vanilla"}
         assert summary["strategies"]["vanilla"]["total_problems"] == 3
+        assert _result_sources(run_dir) == dict.fromkeys(["p1", "p2", "p3"], "fresh")
 
 
 class TestIncrementalShrunkDataset:
