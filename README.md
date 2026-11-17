@@ -411,7 +411,9 @@ harness --config config.json --incremental
 - 触发条件：存在同策略、同模型的历史运行记录（自动记录在 `output_dir/.incremental/history.json`）；至少有一道未变题目可复用时才进入增量，否则自动回退全量。
 - 复用的结果标记 `source="reused"`；合并报告的指标（成功率、成本、难度分布）从合并结果真实重算。
 - 历史文件损坏或不匹配时自动回退全量评估，不影响正常使用。
-- 边界：结果有效性由"题目内容 + 策略 + 模型"保证，`max_iterations`、沙箱配置或提示词变更不触发失效；增量运行若被预算暂停，请改用全量重跑（暂不支持对增量运行 resume）。
+- 增量复用依据题目内容、判题契约版本、策略和模型。`max_iterations`、沙箱配置或提示词变更不触发失效。增量运行若被预算暂停，请全量重跑（增量运行暂不支持恢复）。
+
+判题契约 v2 升级后，CLI 会重新评估旧指纹对应的题目。已保存的评分保留原判题结果。重评时在 CLI 使用 `harness --config config.json --no-incremental` 开启新运行，或在 Web 以相同题库、模型和策略新建评估。`--resume` 会沿用旧运行已完成的单元，因此完整重评应使用新的运行 ID。
 
 ### 运行管理（断点续传运维）
 
@@ -704,6 +706,8 @@ problem_filters:
 旧版题目中的 `test_cases` 仍然可以导入，但会保守迁移为 `public_test_cases`，并标记为仅样例验证；系统不会根据旧字段推断隐藏测试。`public_test_cases`、`feedback_test_cases` 和 `hidden_test_cases` 可以按数据集需要为空；缺失的阶段会被显式跳过，空阶段不会被当作通过。
 
 `input_output_mode` 支持 `function` 和 `stdin_stdout`。函数题默认调用 `solution(**test_input)`，也可以用 `entry_point` 声明自定义函数或简单的 LeetCode 方法入口，例如 `solve(value)` 或 `Solution.twoSum(nums, target)`。标准输入输出题的 `TestCase.input` 使用原始字符串，程序从 stdin 读取并写入 stdout。`judge_config.comparison` 可选 `exact`、`float_tolerance`、`unordered` 或 `unordered_groups`。`unordered` 忽略结果列表最外层的顺序。`unordered_groups` 忽略字符串分组的组间和组内顺序，并保留分组边界与出现次数。`whitespace` 可选 `exact`、`trim` 或 `tokens`。
+
+判题契约 v2 下，`float_tolerance` 和 `unordered` 比较结构化结果时，两个整数必须精确相等，布尔值只匹配相同的布尔值。非布尔数值对中包含浮点数时，仍使用 `float_tolerance` 配置的绝对和相对容差。这些规则也适用于列表和字典内的值。
 
 函数题可用 `judge_config.result_argument` 指定要比较的原地修改参数。每个用例的 `input` 都要提供同名字段，`expected_output` 填写参数修改后的值。LeetCode 公开导入的 73、88、49 在加载时会为缺省配置补上对应规则。手工维护的旧题库可为 73 和 88 分别添加 `"result_argument": "matrix"` 和 `"result_argument": "nums1"`，为 49 设置 `"comparison": "unordered_groups"`。
 

@@ -1,0 +1,122 @@
+<!doctype html>
+<html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'unsafe-inline'; base-uri 'none'; form-action 'none'"><title>变更说明 · 公开和隐藏测试现在会拒绝相差一的大整数答案。判题契约 v2 也会让 CLI 增量评估重新评分旧指纹对应的题目。</title>
+<style>
+:root {
+  color-scheme: light dark;
+  --page: #fafbfc;
+  --ink: #202a35;
+  --muted: #566575;
+  --line: #dbe2e8;
+  --accent: #245b85;
+  --highlight: #edf3f7;
+  --hover: #e9eef3;
+  --code-bg: #edf0f4;
+  --code-ink: #263443;
+  --success: #236d4f;
+  --failure: #a83131;
+  --text: 15px;
+  --small: 13px;
+  --label: 12px;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --page: #181d23;
+    --ink: #e4eaf0;
+    --muted: #a4b1be;
+    --line: #35404b;
+    --accent: #94c6ec;
+    --highlight: #222e39;
+    --hover: #27323d;
+    --code-bg: #10161d;
+    --code-ink: #e0e8f0;
+    --success: #8ed8b5;
+    --failure: #ffb0a8;
+  }
+}
+* { box-sizing: border-box; }
+body {
+  margin: 0;
+  background: var(--page);
+  color: var(--ink);
+  font: var(--text)/1.65 system-ui, -apple-system, "Segoe UI", sans-serif;
+}
+main { max-width: 1040px; margin: auto; padding: 32px 32px 48px; }
+.eyebrow { color: var(--accent); font-size: var(--label); font-weight: 500; letter-spacing: .08em; }
+h1 { margin: 8px 0 12px; max-width: 32em; font-size: 28px; font-weight: 500; line-height: 1.4; letter-spacing: -.02em; overflow-wrap: anywhere; }
+h2 { margin: 0; font-size: 18px; font-weight: 500; line-height: 1.5; overflow-wrap: anywhere; }
+h3 { margin: 0 0 4px; color: var(--muted); font-size: var(--label); font-weight: 500; }
+p { margin: 0; white-space: pre-wrap; overflow-wrap: anywhere; }
+strong { font-weight: 500; }
+.meta { margin-bottom: 24px; color: var(--muted); font-size: var(--small); overflow-wrap: anywhere; }
+.meta p + p { margin-top: 2px; }
+article { padding: 20px 0 12px; border-top: 1px solid var(--line); }
+article header { display: flex; align-items: baseline; gap: 12px; margin-bottom: 12px; }
+.number { color: var(--muted); font: var(--label)/1.5 ui-monospace, Consolas, monospace; font-variant-numeric: tabular-nums; }
+.comparison { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 16px; }
+.comparison section { min-width: 0; padding: 12px; }
+.after { background: var(--highlight); border-radius: 4px; }
+.after h3 { color: var(--accent); }
+.reason { margin-top: 12px; font-size: var(--small); color: var(--muted); }
+.reason strong { margin-right: 8px; color: var(--ink); }
+summary { min-height: 44px; padding: 10px 4px; cursor: pointer; font-size: var(--small); font-weight: 500; border-radius: 4px; }
+summary:hover { background: var(--hover); }
+summary:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.count, .tag { color: var(--muted); font-size: var(--label); font-weight: 400; }
+.count { margin-left: 4px; font-variant-numeric: tabular-nums; }
+.file { min-width: 0; padding: 0 0 16px; scroll-margin-top: 20px; }
+.file:target { outline: 2px solid var(--accent); outline-offset: 4px; }
+.file-heading { display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 8px; }
+.file-heading code { min-width: 0; font-size: var(--small); overflow-wrap: anywhere; }
+.tag { white-space: nowrap; }
+pre { margin: 8px 0 0; padding: 12px 16px; overflow: auto; background: var(--code-bg); color: var(--code-ink); border-radius: 4px; font: var(--small)/1.65 ui-monospace, Consolas, monospace; tab-size: 2; }
+footer { margin-top: 12px; padding-top: 20px; border-top: 1px solid var(--line); }
+footer h2 { margin-bottom: 8px; }
+.check { display: grid; grid-template-columns: 72px minmax(0, 1fr); gap: 12px; padding: 12px 0; border-bottom: 1px solid var(--line); }
+.status { padding-top: 2px; font-size: var(--label); font-weight: 500; }
+.passed { color: var(--success); }
+.failed { color: var(--failure); }
+.not-run, .unknown { color: var(--muted); }
+.check p { margin-top: 2px; color: var(--muted); font-size: var(--small); }
+.more { border-top: 1px solid var(--line); }
+.more > summary { padding-block: 12px; }
+.diagram { margin: 0; padding: 20px 0; border-top: 1px solid var(--line); }
+.diagram figcaption { margin-bottom: 12px; font-size: 18px; font-weight: 500; overflow-wrap: anywhere; }
+.diagram-svg { display: block; max-width: 100%; height: auto; margin: auto; overflow: visible; font: 13px system-ui, -apple-system, "Segoe UI", sans-serif; }
+.diagram-svg text { fill: var(--ink); }
+.diagram-edge { fill: none; stroke: var(--muted); stroke-width: 1.5; }
+.diagram-svg marker path { fill: var(--muted); }
+.diagram-edge-label { fill: var(--page); }
+.diagram-svg .diagram-edge-text { fill: var(--muted); font-size: 12px; }
+.diagram-node rect { fill: var(--page); stroke: var(--line); stroke-width: 1.5; }
+.diagram-node.modified rect { fill: var(--highlight); stroke: var(--accent); }
+.diagram-node.added rect { stroke: var(--success); }
+.diagram-node.deleted rect { stroke: var(--failure); stroke-dasharray: 4 3; }
+.diagram-svg .diagram-kind { fill: var(--muted); font-size: 11px; }
+.diagram-node[href] { cursor: pointer; }
+.diagram-node[href]:hover rect, .diagram-node[href]:focus-visible rect { stroke: var(--accent); stroke-width: 2.5; }
+.diagram-node[href]:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; }
+.diagram-hint { margin-top: 12px; color: var(--muted); font-size: var(--small); text-align: center; }
+.diagram-comparison { display: grid; grid-template-columns: minmax(0,1fr) minmax(0,1fr); gap: 16px; }
+.diagram-comparison > section { min-width: 0; padding: 12px; border: 1px solid var(--line); border-radius: 4px; }
+.diagram-comparison > section > h3 { margin-bottom: 12px; }
+.diagram-compact { display: none; }
+@media (max-width: 999px) {
+  .diagram-wide { display: none; }
+  .diagram-compact { display: block; }
+}
+@media (max-width: 640px) {
+  main { padding: 24px 16px 32px; }
+  h1 { font-size: 24px; }
+  .meta { margin-bottom: 20px; }
+  article { padding-top: 16px; }
+  article header { gap: 8px; }
+  .comparison { grid-template-columns: minmax(0, 1fr); gap: 4px; }
+  .check { grid-template-columns: 60px minmax(0, 1fr); gap: 8px; }
+  pre { padding: 12px; }
+  .diagram-comparison { grid-template-columns: minmax(0,1fr); }
+  .diagram-comparison > section { padding: 12px 0; border: 0; }
+}
+</style></head><body><main><div class="eyebrow">COMET / 变更说明</div><h1>公开和隐藏测试现在会拒绝相差一的大整数答案。判题契约 v2 也会让 CLI 增量评估重新评分旧指纹对应的题目。</h1><div class="meta"><p>比较范围 · Issue #488。对比 fcfa5179 与 fix-integer-judge 工作区。</p><p>生成时间 · 2026-11-17T07:41:41.664Z</p></div><article><header><span class="number">01</span><h2>结构化结果中的整数和布尔值</h2></header><div class="comparison"><section><h3>原来</h3><p>两个整数被转换成浮点数并套用容差。布尔值与整数的比较结果取决于参数顺序。</p></section><section class="after"><h3>现在</h3><p>整数对精确比较。布尔值只与相同布尔值匹配。含浮点值的非布尔数值对仍使用原有容差。</p></section></div><p class="reason"><strong>原因</strong> 整数计数需要逐值相等，浮点计算仍需要容忍舍入误差。</p><details><summary>查看文件和关键代码 <span class="count">2</span></summary><div class="file" id="walkthrough-file-0-0"><div class="file-heading"><span class="tag">修改</span><code>src/sandbox_executor.py:893</code></div><pre><code>if isinstance(actual, bool) or isinstance(expected, bool):
+    return actual is expected
+if isinstance(actual, numbers.Integral) and isinstance(expected, numbers.Integral):
+    return bool(actual == expected)</code></pre></div><div class="file" id="walkthrough-file-0-1"><div class="file-heading"><span class="tag">修改</span><code>tests/test_sandbox_executor.py:209</code></div><pre><code>@pytest.mark.parametrize(&quot;stage&quot;, [&quot;public&quot;, &quot;hidden&quot;])</code></pre></div></details></article><article><header><span class="number">02</span><h2>判题版本与历史结果</h2></header><div class="comparison"><section><h3>原来</h3><p>题目内容相同时，增量评估可以复用旧判题规则产生的结果。</p></section><section class="after"><h3>现在</h3><p>题目指纹包含判题契约版本。旧评分仍可查阅，需要新建评估获得 v2 评分。</p></section></div><p class="reason"><strong>原因</strong> 将评分结果绑定到生成该结果的判题规则。</p><details><summary>查看文件和关键代码 <span class="count">2</span></summary><div class="file" id="walkthrough-file-1-0"><div class="file-heading"><span class="tag">修改</span><code>src/incremental/fingerprint.py:44</code></div><pre><code>&quot;judge_contract_version&quot;: JUDGE_CONTRACT_VERSION,</code></pre></div><div class="file" id="walkthrough-file-1-1"><div class="file-heading"><span class="tag">修改</span><code>README.md:416</code></div><pre><code>harness --config config.json --no-incremental</code></pre></div></details></article><footer><h2>实际验证</h2><div class="check"><span class="status passed">通过</span><div><strong>沙箱回归</strong><p>旧判题的新增测试有 8 项按预期失败。修复后 113 项沙箱测试通过。</p></div></div><div class="check"><span class="status passed">通过</span><div><strong>真实 Docker 检查</strong><p>公开和隐藏阶段均拒绝相差一的大整数，四种 LeetCode 节点题的正确和错误候选行为符合预期。 默认镜像的 16 项 Host 与 Docker 参数化测试全部通过。</p></div></div><div class="check"><span class="status passed">通过</span><div><strong>增量与版本检查</strong><p>指纹、增量端到端、历史和模型测试 79 项通过。OpenSpec 严格校验通过。</p></div></div><div class="check"><span class="status not-run">未执行</span><div><strong>独立审查</strong><p>当前 Tweak 预设的 review_mode 为 off。</p></div></div><div class="check"><span class="status failed">失败</span><div><strong>全量离线补充检查</strong><p>首轮 4,224 项通过，覆盖率 93.04%。权限及工具缺口影响了七项，补齐条件后逐项复跑均通过。</p></div></div><div class="check"><span class="status passed">通过</span><div><strong>代码格式和规范</strong><p>Black、Ruff、Git 差异空白检查及 OpenSpec 严格校验通过。</p></div></div></footer></main><template id="walkthrough-data">eyJzdW1tYXJ5Ijoi5YWs5byA5ZKM6ZqQ6JeP5rWL6K+V546w5Zyo5Lya5ouS57ud55u45beu5LiA55qE5aSn5pW05pWw562U5qGI44CC5Yik6aKY5aWR57qmIHYyIOS5n+S8muiuqSBDTEkg5aKe6YeP6K+E5Lyw6YeN5paw6K+E5YiG5pen5oyH57q55a+55bqU55qE6aKY55uu44CCIiwic2NvcGUiOiJJc3N1ZSAjNDg444CC5a+55q+UIGZjZmE1MTc5IOS4jiBmaXgtaW50ZWdlci1qdWRnZSDlt6XkvZzljLrjgIIiLCJjaGFuZ2VzIjpbeyJ0aXRsZSI6Iue7k+aehOWMlue7k+aenOS4reeahOaVtOaVsOWSjOW4g+WwlOWAvCIsImJlZm9yZSI6IuS4pOS4quaVtOaVsOiiq+i9rOaNouaIkOa1rueCueaVsOW5tuWll+eUqOWuueW3ruOAguW4g+WwlOWAvOS4juaVtOaVsOeahOavlOi+g+e7k+aenOWPluWGs+S6juWPguaVsOmhuuW6j+OAgiIsImFmdGVyIjoi5pW05pWw5a+557K+56Gu5q+U6L6D44CC5biD5bCU5YC85Y+q5LiO55u45ZCM5biD5bCU5YC85Yy56YWN44CC5ZCr5rWu54K55YC855qE6Z2e5biD5bCU5pWw5YC85a+55LuN5L2/55So5Y6f5pyJ5a655beu44CCIiwicmVhc29uIjoi5pW05pWw6K6h5pWw6ZyA6KaB6YCQ5YC855u4562J77yM5rWu54K56K6h566X5LuN6ZyA6KaB5a655b+N6IiN5YWl6K+v5beu44CCIiwiZmlsZXMiOlt7InBhdGgiOiJzcmMvc2FuZGJveF9leGVjdXRvci5weTo4OTMiLCJraW5kIjoibW9kaWZpZWQiLCJjb2RlIjoiaWYgaXNpbnN0YW5jZShhY3R1YWwsIGJvb2wpIG9yIGlzaW5zdGFuY2UoZXhwZWN0ZWQsIGJvb2wpOlxuICAgIHJldHVybiBhY3R1YWwgaXMgZXhwZWN0ZWRcbmlmIGlzaW5zdGFuY2UoYWN0dWFsLCBudW1iZXJzLkludGVncmFsKSBhbmQgaXNpbnN0YW5jZShleHBlY3RlZCwgbnVtYmVycy5JbnRlZ3JhbCk6XG4gICAgcmV0dXJuIGJvb2woYWN0dWFsID09IGV4cGVjdGVkKSJ9LHsicGF0aCI6InRlc3RzL3Rlc3Rfc2FuZGJveF9leGVjdXRvci5weToyMDkiLCJraW5kIjoibW9kaWZpZWQiLCJjb2RlIjoiQHB5dGVzdC5tYXJrLnBhcmFtZXRyaXplKFwic3RhZ2VcIiwgW1wicHVibGljXCIsIFwiaGlkZGVuXCJdKSJ9XX0seyJ0aXRsZSI6IuWIpOmimOeJiOacrOS4juWOhuWPsue7k+aenCIsImJlZm9yZSI6IumimOebruWGheWuueebuOWQjOaXtu+8jOWinumHj+ivhOS8sOWPr+S7peWkjeeUqOaXp+WIpOmimOinhOWImeS6p+eUn+eahOe7k+aenOOAgiIsImFmdGVyIjoi6aKY55uu5oyH57q55YyF5ZCr5Yik6aKY5aWR57qm54mI5pys44CC5pen6K+E5YiG5LuN5Y+v5p+l6ZiF77yM6ZyA6KaB5paw5bu66K+E5Lyw6I635b6XIHYyIOivhOWIhuOAgiIsInJlYXNvbiI6IuWwhuivhOWIhue7k+aenOe7keWumuWIsOeUn+aIkOivpee7k+aenOeahOWIpOmimOinhOWImeOAgiIsImZpbGVzIjpbeyJwYXRoIjoic3JjL2luY3JlbWVudGFsL2ZpbmdlcnByaW50LnB5OjQ0Iiwia2luZCI6Im1vZGlmaWVkIiwiY29kZSI6IlwianVkZ2VfY29udHJhY3RfdmVyc2lvblwiOiBKVURHRV9DT05UUkFDVF9WRVJTSU9OLCJ9LHsicGF0aCI6IlJFQURNRS5tZDo0MTYiLCJraW5kIjoibW9kaWZpZWQiLCJjb2RlIjoiaGFybmVzcyAtLWNvbmZpZyBjb25maWcuanNvbiAtLW5vLWluY3JlbWVudGFsIn1dfV0sInZlcmlmaWNhdGlvbiI6W3sibGFiZWwiOiLmspnnrrHlm57lvZIiLCJzdGF0dXMiOiJwYXNzZWQiLCJkZXRhaWwiOiLml6fliKTpopjnmoTmlrDlop7mtYvor5XmnIkgOCDpobnmjInpooTmnJ/lpLHotKXjgILkv67lpI3lkI4gMTEzIOmhueaymeeusea1i+ivlemAmui/h+OAgiJ9LHsibGFiZWwiOiLnnJ/lrp4gRG9ja2VyIOajgOafpSIsInN0YXR1cyI6InBhc3NlZCIsImRldGFpbCI6IuWFrOW8gOWSjOmakOiXj+mYtuauteWdh+aLkue7neebuOW3ruS4gOeahOWkp+aVtOaVsO+8jOWbm+enjSBMZWV0Q29kZSDoioLngrnpopjnmoTmraPnoa7lkozplJnor6/lgJnpgInooYzkuLrnrKblkIjpooTmnJ/jgIIg6buY6K6k6ZWc5YOP55qEIDE2IOmhuSBIb3N0IOS4jiBEb2NrZXIg5Y+C5pWw5YyW5rWL6K+V5YWo6YOo6YCa6L+H44CCIn0seyJsYWJlbCI6IuWinumHj+S4jueJiOacrOajgOafpSIsInN0YXR1cyI6InBhc3NlZCIsImRldGFpbCI6IuaMh+e6ueOAgeWinumHj+err+WIsOerr+OAgeWOhuWPsuWSjOaooeWei+a1i+ivlSA3OSDpobnpgJrov4fjgIJPcGVuU3BlYyDkuKXmoLzmoKHpqozpgJrov4fjgIIifSx7ImxhYmVsIjoi54us56uL5a6h5p+lIiwic3RhdHVzIjoibm90LXJ1biIsImRldGFpbCI6IuW9k+WJjSBUd2VhayDpooTorr7nmoQgcmV2aWV3X21vZGUg5Li6IG9mZuOAgiJ9LHsibGFiZWwiOiLlhajph4/nprvnur/ooaXlhYXmo4Dmn6UiLCJzdGF0dXMiOiJmYWlsZWQiLCJkZXRhaWwiOiLpppbova4gNCwyMjQg6aG56YCa6L+H77yM6KaG55uW546HIDkzLjA0JeOAguadg+mZkOWPiuW3peWFt+e8uuWPo+W9seWTjeS6huS4g+mhue+8jOihpem9kOadoeS7tuWQjumAkOmhueWkjei3keWdh+mAmui/h+OAgiJ9LHsibGFiZWwiOiLku6PnoIHmoLzlvI/lkozop4TojIMiLCJzdGF0dXMiOiJwYXNzZWQiLCJkZXRhaWwiOiJCbGFja+OAgVJ1ZmbjgIFHaXQg5beu5byC56m655m95qOA5p+l5Y+KIE9wZW5TcGVjIOS4peagvOagoemqjOmAmui/h+OAgiJ9XX0=</template></body></html>

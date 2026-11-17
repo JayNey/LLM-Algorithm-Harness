@@ -6,7 +6,7 @@ from unittest.mock import patch
 
 import pytest
 
-from src.models import Problem, SandboxConfig, TestCase
+from src.models import JudgeConfig, Problem, SandboxConfig, TestCase
 from src.sandbox_executor import FUNCTION_RESULT_MARKER, SandboxExecutionError, SandboxExecutor
 
 
@@ -206,6 +206,55 @@ def test_stdin_stdout_json_parse_errors_are_not_model_wrong_answers(sandbox_conf
     assert "valid JSON" in result.test_results[0].error_message
 
 
+@pytest.mark.parametrize("stage", ["public", "hidden"])
+def test_default_judge_rejects_off_by_one_integer(sandbox_executor, stage):
+    case = {"input": {"x": 1_000_000}, "expected_output": 1_000_000}
+    problem = Problem(
+        problem_id="integer-count",
+        title="Integer Count",
+        description="The returned count must match the expected integer exactly.",
+        difficulty="easy",
+        public_test_cases=[case],
+        hidden_test_cases=[case],
+    )
+
+    result = sandbox_executor.execute("def solution(x):\n    return x + 1", problem, stage)
+
+    assert result.all_passed is False
+    assert result.test_results[0].status == "wrong_answer"
+    assert result.test_results[0].actual_output == 1_000_001
+
+
+@pytest.mark.parametrize("value", [2**53, 10**400], ids=["beyond-precision", "beyond-range"])
+def test_default_judge_compares_nested_integers_exactly(sandbox_executor, value):
+    expected = {"counts": [value]}
+
+    assert sandbox_executor._compare_outputs({"counts": [value + 1]}, expected) is False
+    assert sandbox_executor._compare_outputs({"counts": [value]}, expected) is True
+
+
+@pytest.mark.parametrize(
+    ("actual", "expected", "matches"),
+    [
+        (True, 1, False),
+        (False, 0, False),
+        (True, 1.0, False),
+        (True, True, True),
+        (False, False, True),
+        (True, False, False),
+    ],
+)
+def test_default_judge_compares_booleans_symmetrically(sandbox_executor, actual, expected, matches):
+    assert sandbox_executor._compare_outputs(actual, expected) is matches
+    assert sandbox_executor._compare_outputs(expected, actual) is matches
+
+
+def test_default_judge_keeps_mixed_float_tolerance(sandbox_executor):
+    assert sandbox_executor._compare_outputs(1_000_000, 1_000_000.5) is True
+    assert sandbox_executor._compare_outputs(1_000_000.5, 1_000_000) is True
+    assert sandbox_executor._compare_outputs(1_000_002.0, 1_000_000) is False
+
+
 def test_function_judge_exact_and_nested_float_tolerance(sandbox_executor):
     """Exact comparison and recursive float tolerance are configurable."""
     exact_problem = Problem(
@@ -263,6 +312,14 @@ def test_unordered_comparison_does_not_relax_exact_mode(sandbox_executor):
         sandbox_executor.execute("def solution():\n    return [2, 1]", unordered_problem).all_passed
         is True
     )
+
+
+def test_unordered_judge_compares_nested_integers_exactly(sandbox_executor):
+    config = JudgeConfig(comparison="unordered")
+    expected = ["tag", {"counts": [2**53]}]
+
+    assert sandbox_executor._compare_outputs([{"counts": [2**53]}, "tag"], expected, config)
+    assert not sandbox_executor._compare_outputs([{"counts": [2**53 + 1]}, "tag"], expected, config)
 
 
 def test_leetcode_method_entry_point_adapter(sandbox_executor):

@@ -91,6 +91,13 @@ def test_compute_problem_fingerprint_changes_on_judge_config(sample_problem):
     assert fp1 != fp2
 
 
+def test_compute_problem_fingerprint_invalidates_pre_v2_judge_history(sample_problem):
+    # Fingerprint of this unchanged problem before the judge contract was versioned.
+    legacy_fingerprint = "787e739f20c3e6031a12011f7306c045e046e5e5d85ffe6f1b1bde303b4f72b2"
+
+    assert compute_problem_fingerprint(sample_problem) != legacy_fingerprint
+
+
 def test_compute_dataset_fingerprint():
     """Test dataset fingerprint generation."""
     problems = [
