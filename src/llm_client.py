@@ -59,6 +59,7 @@ class LLMClient:
     on_response: SpendCallback | None = None
     before_generate: Callable[[], None] | None = None
     before_retry: Callable[[], None] | None = None
+    sampling_scope: str | None = None
 
     def __init__(self, config: LLMConfig):
         """
@@ -262,6 +263,8 @@ class LLMClient:
         custom_params: dict[str, Any] | None = None,
         problem_id: str | None = None,
         strategy_name: str | None = None,
+        *,
+        sample_id: str | None = None,
     ) -> LLMResponse:
         """
         Generate response from LLM.
@@ -274,6 +277,7 @@ class LLMClient:
             custom_params: Optional custom parameters
             problem_id: Optional problem identifier for cache key
             strategy_name: Optional strategy name for cache key
+            sample_id: Local identity for a fresh sample that bypasses response caching
 
         Returns:
             LLMResponse object
@@ -291,40 +295,43 @@ class LLMClient:
             custom_params=custom_params,
         )
 
-        # SDK base_url includes defaults and environment overrides, unlike config alone.
-        base_url = getattr(self.client, "base_url", None)
-        if not isinstance(base_url, (str, URL)):
-            base_url = self.config.base_url or {
-                "openai": "https://api.openai.com/v1",
-                "anthropic": "https://api.anthropic.com",
-                "siliconflow": "https://api.siliconflow.cn/v1",
-            }.get(self.config.provider, "")
-
-        # Hash raw effective values, never redacted metadata that could collapse
-        # distinct parameters. Timeout/retry settings do not change generation.
-        cache_key = CacheKey.generate(
-            model=self.config.model,
-            prompt=prompt,
-            temperature=effective["temperature"],
-            max_tokens=effective["max_tokens"],
-            problem_id=problem_id,
-            strategy_name=strategy_name,
-            system_prompt=effective.get("system_prompt"),
-            provider=self.config.provider,
-            base_url=str(base_url).rstrip("/"),
-            generation_params={key: value for key, value in effective.items() if key != "timeout"},
+        call_log = logger.bind(
+            event_id=event_id, sample_id=sample_id, sampling_scope=self.sampling_scope
         )
-
-        # Check cache if enabled
-        if self.config.cache.enabled:
+        cache_key = None
+        if self.config.cache.enabled and sample_id is None and self.sampling_scope is None:
+            # SDK base_url includes defaults and environment overrides, unlike config alone.
+            base_url = getattr(self.client, "base_url", None)
+            if not isinstance(base_url, (str, URL)):
+                base_url = self.config.base_url or {
+                    "openai": "https://api.openai.com/v1",
+                    "anthropic": "https://api.anthropic.com",
+                    "siliconflow": "https://api.siliconflow.cn/v1",
+                }.get(self.config.provider, "")
+            # Hash raw effective values. Timeout/retry settings do not change generation.
+            cache_key = CacheKey.generate(
+                model=self.config.model,
+                prompt=prompt,
+                temperature=effective["temperature"],
+                max_tokens=effective["max_tokens"],
+                problem_id=problem_id,
+                strategy_name=strategy_name,
+                system_prompt=effective.get("system_prompt"),
+                provider=self.config.provider,
+                base_url=str(base_url).rstrip("/"),
+                generation_params={
+                    key: value for key, value in effective.items() if key != "timeout"
+                },
+            )
             cached_response = self.cache.get(cache_key)
             self._observe_cache()
             if cached_response is not None:
-                logger.info(
+                call_log.info(
                     "cache_hit",
                     provider=self.config.provider,
                     model=self.config.model,
                     cache_key=cache_key[:16],
+                    cache_hit=True,
                 )
                 if (
                     self.config.model in self.pricing_manager.overrides
@@ -360,8 +367,11 @@ class LLMClient:
                     self.on_response(event_id, cached_response, True)
                 return cached_response
 
-        logger.info(
-            "generating_llm_response", provider=self.config.provider, model=self.config.model
+        call_log.info(
+            "generating_llm_response",
+            provider=self.config.provider,
+            model=self.config.model,
+            cache_hit=False,
         )
 
         start_time = time.time()
@@ -376,7 +386,7 @@ class LLMClient:
 
             response_time = time.time() - start_time
 
-            logger.info(
+            call_log.info(
                 "llm_response_received",
                 provider=self.config.provider,
                 model=self.config.model,
@@ -390,18 +400,17 @@ class LLMClient:
             if self.on_response is not None:
                 self.on_response(event_id, None, False)
             safe_error = self._safe_provider_error(e)
-            logger.error("llm_api_error", provider=self.config.provider, error=str(safe_error))
+            call_log.error("llm_api_error", provider=self.config.provider, error=str(safe_error))
             raise safe_error from None
 
         # Accounting is outside provider error handling and precedes cache/report writes.
         if self.on_response is not None:
             self.on_response(event_id, response, False)
         try:
-            # Cache the response if enabled
-            if self.config.cache.enabled:
+            if cache_key is not None:
                 self.cache.set(cache_key, response)
                 self._observe_cache()
-                logger.info(
+                call_log.info(
                     "response_cached",
                     cache_key=cache_key[:16],
                     model=self.config.model,
@@ -411,7 +420,7 @@ class LLMClient:
 
         except Exception as e:
             safe_error = self._safe_provider_error(e)
-            logger.error("llm_api_error", provider=self.config.provider, error=str(safe_error))
+            call_log.error("llm_api_error", provider=self.config.provider, error=str(safe_error))
             raise safe_error from None
 
     def _effective_params(

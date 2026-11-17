@@ -128,6 +128,7 @@ def _combo_metrics(
         "model": combo["model"],
         "strategy": strategy,
         "repeat": combo["repeat"],
+        "sampling_scope": combo.get("sampling_scope"),
         "token_budget_unsupported": combo.get("token_budget_unsupported", False),
         "denominator": {
             "total": total,
@@ -203,6 +204,7 @@ def _group_rates(
 
 
 def _aggregate_by_model_strategy(
+    meta: dict[str, Any],
     combos: list[dict[str, Any]],
 ) -> list[dict[str, Any]]:
     """Collapse repeats per (model, strategy) into min/max ranges."""
@@ -214,6 +216,13 @@ def _aggregate_by_model_strategy(
             grouped[key] = []
             order.append(key)
         grouped[key].append(combo)
+
+    models = meta.get("models", [])
+    uncached_models = {model["model"] for model in models if "model" in model} - {
+        model["model"]
+        for model in models
+        if "model" in model and (model.get("cache") or {}).get("enabled") is not False
+    }
 
     range_keys = [
         "pass_rate_over_total",
@@ -237,25 +246,36 @@ def _aggregate_by_model_strategy(
     for key in order:
         members = grouped[key]
         model, strategy = key
+        count = len(members)
+        independent_sampling_expected = (
+            count > 1 or meta.get("repeats", 1) > 1 or strategy == "self_consistency"
+        )
+        sampling_verified = None
+        if independent_sampling_expected:
+            scopes = {member.get("sampling_scope") for member in members}
+            sampling_verified = (len(scopes) == count and all(scopes)) or model in uncached_models
+        if sampling_verified is False:
+            uncertainty_note = f"历史记录 {count} 次，采样独立性未验证。范围仅反映已记录的结果。"
+        elif count > 1:
+            uncertainty_note = (
+                f"重复 {count} 次，范围为独立重复的最小值和最大值。"
+                "远端生成的随机性可能让重跑结果变化。"
+            )
+        else:
+            uncertainty_note = "单次运行，无跨重复范围"
         ranges: dict[str, Any] = {}
         for dotted in range_keys:
             values = [v for v in (_flat(c, dotted) for c in members) if v is not None]
-            if len(members) > 1 and values:
+            if values:
                 ranges[dotted] = {"min": min(values), "max": max(values)}
-            elif values:
-                ranges[dotted] = {"min": values[0], "max": values[0]}
         aggregated.append(
             {
                 "model": model,
                 "strategy": strategy,
-                "repeats": len(members),
+                "repeats": count,
                 "ranges": ranges,
-                "uncertainty_note": (
-                    f"重复 {len(members)} 次：范围为跨重复的最小/最大值，"
-                    "远端生成随机性不宣称为位级复现"
-                    if len(members) > 1
-                    else "单次运行，无跨重复范围"
-                ),
+                "sampling_verified": sampling_verified,
+                "uncertainty_note": uncertainty_note,
             }
         )
     return aggregated
@@ -673,7 +693,7 @@ def generate_comparison_report(exp_dir: Path) -> dict[str, Any]:
         "generated_at": datetime.now().isoformat(),
         "experiment": meta,
         "combinations": combos,
-        "by_model_strategy": _aggregate_by_model_strategy(combos),
+        "by_model_strategy": _aggregate_by_model_strategy(meta, combos),
         "model_comparison": build_model_comparison(meta, combos, raw_results),
         "error_analysis": analyze_results(
             [r for results in raw_results.values() for r in results], problem_info

@@ -1,0 +1,119 @@
+<!doctype html>
+<html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'unsafe-inline'; base-uri 'none'; form-action 'none'"><title>变更说明 · Self-Consistency 候选和重复实验各自向供应商取样，报告记录采样身份。</title>
+<style>
+:root {
+  color-scheme: light dark;
+  --page: #fafbfc;
+  --ink: #202a35;
+  --muted: #566575;
+  --line: #dbe2e8;
+  --accent: #245b85;
+  --highlight: #edf3f7;
+  --hover: #e9eef3;
+  --code-bg: #edf0f4;
+  --code-ink: #263443;
+  --success: #236d4f;
+  --failure: #a83131;
+  --text: 15px;
+  --small: 13px;
+  --label: 12px;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --page: #181d23;
+    --ink: #e4eaf0;
+    --muted: #a4b1be;
+    --line: #35404b;
+    --accent: #94c6ec;
+    --highlight: #222e39;
+    --hover: #27323d;
+    --code-bg: #10161d;
+    --code-ink: #e0e8f0;
+    --success: #8ed8b5;
+    --failure: #ffb0a8;
+  }
+}
+* { box-sizing: border-box; }
+body {
+  margin: 0;
+  background: var(--page);
+  color: var(--ink);
+  font: var(--text)/1.65 system-ui, -apple-system, "Segoe UI", sans-serif;
+}
+main { max-width: 1040px; margin: auto; padding: 32px 32px 48px; }
+.eyebrow { color: var(--accent); font-size: var(--label); font-weight: 500; letter-spacing: .08em; }
+h1 { margin: 8px 0 12px; max-width: 32em; font-size: 28px; font-weight: 500; line-height: 1.4; letter-spacing: -.02em; overflow-wrap: anywhere; }
+h2 { margin: 0; font-size: 18px; font-weight: 500; line-height: 1.5; overflow-wrap: anywhere; }
+h3 { margin: 0 0 4px; color: var(--muted); font-size: var(--label); font-weight: 500; }
+p { margin: 0; white-space: pre-wrap; overflow-wrap: anywhere; }
+strong { font-weight: 500; }
+.meta { margin-bottom: 24px; color: var(--muted); font-size: var(--small); overflow-wrap: anywhere; }
+.meta p + p { margin-top: 2px; }
+article { padding: 20px 0 12px; border-top: 1px solid var(--line); }
+article header { display: flex; align-items: baseline; gap: 12px; margin-bottom: 12px; }
+.number { color: var(--muted); font: var(--label)/1.5 ui-monospace, Consolas, monospace; font-variant-numeric: tabular-nums; }
+.comparison { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 16px; }
+.comparison section { min-width: 0; padding: 12px; }
+.after { background: var(--highlight); border-radius: 4px; }
+.after h3 { color: var(--accent); }
+.reason { margin-top: 12px; font-size: var(--small); color: var(--muted); }
+.reason strong { margin-right: 8px; color: var(--ink); }
+summary { min-height: 44px; padding: 10px 4px; cursor: pointer; font-size: var(--small); font-weight: 500; border-radius: 4px; }
+summary:hover { background: var(--hover); }
+summary:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.count, .tag { color: var(--muted); font-size: var(--label); font-weight: 400; }
+.count { margin-left: 4px; font-variant-numeric: tabular-nums; }
+.file { min-width: 0; padding: 0 0 16px; scroll-margin-top: 20px; }
+.file:target { outline: 2px solid var(--accent); outline-offset: 4px; }
+.file-heading { display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 8px; }
+.file-heading code { min-width: 0; font-size: var(--small); overflow-wrap: anywhere; }
+.tag { white-space: nowrap; }
+pre { margin: 8px 0 0; padding: 12px 16px; overflow: auto; background: var(--code-bg); color: var(--code-ink); border-radius: 4px; font: var(--small)/1.65 ui-monospace, Consolas, monospace; tab-size: 2; }
+footer { margin-top: 12px; padding-top: 20px; border-top: 1px solid var(--line); }
+footer h2 { margin-bottom: 8px; }
+.check { display: grid; grid-template-columns: 72px minmax(0, 1fr); gap: 12px; padding: 12px 0; border-bottom: 1px solid var(--line); }
+.status { padding-top: 2px; font-size: var(--label); font-weight: 500; }
+.passed { color: var(--success); }
+.failed { color: var(--failure); }
+.not-run, .unknown { color: var(--muted); }
+.check p { margin-top: 2px; color: var(--muted); font-size: var(--small); }
+.more { border-top: 1px solid var(--line); }
+.more > summary { padding-block: 12px; }
+.diagram { margin: 0; padding: 20px 0; border-top: 1px solid var(--line); }
+.diagram figcaption { margin-bottom: 12px; font-size: 18px; font-weight: 500; overflow-wrap: anywhere; }
+.diagram-svg { display: block; max-width: 100%; height: auto; margin: auto; overflow: visible; font: 13px system-ui, -apple-system, "Segoe UI", sans-serif; }
+.diagram-svg text { fill: var(--ink); }
+.diagram-edge { fill: none; stroke: var(--muted); stroke-width: 1.5; }
+.diagram-svg marker path { fill: var(--muted); }
+.diagram-edge-label { fill: var(--page); }
+.diagram-svg .diagram-edge-text { fill: var(--muted); font-size: 12px; }
+.diagram-node rect { fill: var(--page); stroke: var(--line); stroke-width: 1.5; }
+.diagram-node.modified rect { fill: var(--highlight); stroke: var(--accent); }
+.diagram-node.added rect { stroke: var(--success); }
+.diagram-node.deleted rect { stroke: var(--failure); stroke-dasharray: 4 3; }
+.diagram-svg .diagram-kind { fill: var(--muted); font-size: 11px; }
+.diagram-node[href] { cursor: pointer; }
+.diagram-node[href]:hover rect, .diagram-node[href]:focus-visible rect { stroke: var(--accent); stroke-width: 2.5; }
+.diagram-node[href]:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; }
+.diagram-hint { margin-top: 12px; color: var(--muted); font-size: var(--small); text-align: center; }
+.diagram-comparison { display: grid; grid-template-columns: minmax(0,1fr) minmax(0,1fr); gap: 16px; }
+.diagram-comparison > section { min-width: 0; padding: 12px; border: 1px solid var(--line); border-radius: 4px; }
+.diagram-comparison > section > h3 { margin-bottom: 12px; }
+.diagram-compact { display: none; }
+@media (max-width: 999px) {
+  .diagram-wide { display: none; }
+  .diagram-compact { display: block; }
+}
+@media (max-width: 640px) {
+  main { padding: 24px 16px 32px; }
+  h1 { font-size: 24px; }
+  .meta { margin-bottom: 20px; }
+  article { padding-top: 16px; }
+  article header { gap: 8px; }
+  .comparison { grid-template-columns: minmax(0, 1fr); gap: 4px; }
+  .check { grid-template-columns: 60px minmax(0, 1fr); gap: 8px; }
+  pre { padding: 12px; }
+  .diagram-comparison { grid-template-columns: minmax(0,1fr); }
+  .diagram-comparison > section { padding: 12px 0; border: 0; }
+}
+</style></head><body><main><div class="eyebrow">COMET / 变更说明</div><h1>Self-Consistency 候选和重复实验各自向供应商取样，报告记录采样身份。</h1><div class="meta"><p>比较范围 · 基于 main 的 9c7382d6 和本次工作区差异，共 6 个实现及测试文件。</p><p>生成时间 · 2026-11-17T08:42:10.914Z</p></div><figure class="diagram"><figcaption>模型调用与缓存</figcaption><div class="diagram-wide"><svg class="diagram-svg" width="624" height="172" viewBox="0 0 624 172" role="group" aria-labelledby="walkthrough-diagram-0-wide-title walkthrough-diagram-0-wide-description"><title id="walkthrough-diagram-0-wide-title">模型调用与缓存</title><desc id="walkthrough-diagram-0-wide-description">候选或重复组合 → LLM 客户端 (采样身份); 普通请求 → LLM 客户端; LLM 客户端 → 请求供应商 (独立采样或未命中); LLM 客户端 → 回放已有缓存 (普通请求命中)</desc><defs><marker id="walkthrough-diagram-0-wide-arrow" viewBox="0 0 8 8" refX="7" refY="4" markerWidth="6" markerHeight="6" orient="auto"><path d="M 0 0 L 8 4 L 0 8 z"/></marker></defs><path class="diagram-edge" d="M 132 41 C 192 41, 192 86, 249 86" marker-end="url(#walkthrough-diagram-0-wide-arrow)"/><rect class="diagram-edge-label" x="162" y="52.5" width="60" height="22"/><text class="diagram-edge-text" x="192" y="67.5" text-anchor="middle"><tspan x="192" dy="0">采样身份</tspan></text><path class="diagram-edge" d="M 132 131 C 192 131, 192 86, 249 86" marker-end="url(#walkthrough-diagram-0-wide-arrow)"/><path class="diagram-edge" d="M 372 86 C 432 86, 432 41, 489 41" marker-end="url(#walkthrough-diagram-0-wide-arrow)"/><rect class="diagram-edge-label" x="376" y="52.5" width="112" height="22"/><text class="diagram-edge-text" x="432" y="67.5" text-anchor="middle"><tspan x="432" dy="0">独立采样或未命中</tspan></text><path class="diagram-edge" d="M 372 86 C 432 86, 432 131, 489 131" marker-end="url(#walkthrough-diagram-0-wide-arrow)"/><rect class="diagram-edge-label" x="389" y="97.5" width="86" height="22"/><text class="diagram-edge-text" x="432" y="112.5" text-anchor="middle"><tspan x="432" dy="0">普通请求命中</tspan></text><a class="diagram-node modified" href="#walkthrough-file-0-0" aria-label="候选或重复组合 · src/strategies/self_consistency.py"><rect x="12" y="12" width="120" height="58" rx="5"/><text class="diagram-kind" x="72" y="29" text-anchor="middle"><tspan x="72" dy="0">修改</tspan></text><text class="" x="72" y="47" text-anchor="middle"><tspan x="72" dy="0">候选或重复组合</tspan></text></a><g class="diagram-node "><rect x="12" y="102" width="120" height="58" rx="5"/><text class="" x="72" y="135" text-anchor="middle"><tspan x="72" dy="0">普通请求</tspan></text></g><a class="diagram-node modified" href="#walkthrough-file-0-1" aria-label="LLM 客户端 · src/llm_client.py"><rect x="252" y="57" width="120" height="58" rx="5"/><text class="diagram-kind" x="312" y="74" text-anchor="middle"><tspan x="312" dy="0">修改</tspan></text><text class="" x="312" y="92" text-anchor="middle"><tspan x="312" dy="0">LLM 客户端</tspan></text></a><g class="diagram-node "><rect x="492" y="12" width="120" height="58" rx="5"/><text class="" x="552" y="45" text-anchor="middle"><tspan x="552" dy="0">请求供应商</tspan></text></g><g class="diagram-node "><rect x="492" y="102" width="120" height="58" rx="5"/><text class="" x="552" y="135" text-anchor="middle"><tspan x="552" dy="0">回放已有缓存</tspan></text></g></svg></div><div class="diagram-compact"><svg class="diagram-svg" width="272" height="356" viewBox="0 0 272 356" role="group" aria-labelledby="walkthrough-diagram-0-compact-title walkthrough-diagram-0-compact-description"><title id="walkthrough-diagram-0-compact-title">模型调用与缓存</title><desc id="walkthrough-diagram-0-compact-description">候选或重复组合 → LLM 客户端 (采样身份); 普通请求 → LLM 客户端; LLM 客户端 → 请求供应商 (独立采样或未命中); LLM 客户端 → 回放已有缓存 (普通请求命中)</desc><defs><marker id="walkthrough-diagram-0-compact-arrow" viewBox="0 0 8 8" refX="7" refY="4" markerWidth="6" markerHeight="6" orient="auto"><path d="M 0 0 L 8 4 L 0 8 z"/></marker></defs><path class="diagram-edge" d="M 68 88 C 68 114, 136 114, 136 137" marker-end="url(#walkthrough-diagram-0-compact-arrow)"/><rect class="diagram-edge-label" x="72" y="103" width="60" height="22"/><text class="diagram-edge-text" x="102" y="118" text-anchor="middle"><tspan x="102" dy="0">采样身份</tspan></text><path class="diagram-edge" d="M 204 88 C 204 114, 136 114, 136 137" marker-end="url(#walkthrough-diagram-0-compact-arrow)"/><path class="diagram-edge" d="M 136 216 C 136 242, 68 242, 68 265" marker-end="url(#walkthrough-diagram-0-compact-arrow)"/><rect class="diagram-edge-label" x="52.5" y="222" width="99" height="40"/><text class="diagram-edge-text" x="102" y="237" text-anchor="middle"><tspan x="102" dy="0">独立采样或未命</tspan><tspan x="102" dy="18">中</tspan></text><path class="diagram-edge" d="M 136 216 C 136 242, 204 242, 204 265" marker-end="url(#walkthrough-diagram-0-compact-arrow)"/><rect class="diagram-edge-label" x="127" y="231" width="86" height="22"/><text class="diagram-edge-text" x="170" y="246" text-anchor="middle"><tspan x="170" dy="0">普通请求命中</tspan></text><a class="diagram-node modified" href="#walkthrough-file-0-0" aria-label="候选或重复组合 · src/strategies/self_consistency.py"><rect x="12" y="12" width="112" height="76" rx="5"/><text class="diagram-kind" x="68" y="29" text-anchor="middle"><tspan x="68" dy="0">修改</tspan></text><text class="" x="68" y="47" text-anchor="middle"><tspan x="68" dy="0">候选或重复组</tspan><tspan x="68" dy="18">合</tspan></text></a><g class="diagram-node "><rect x="148" y="12" width="112" height="76" rx="5"/><text class="" x="204" y="54" text-anchor="middle"><tspan x="204" dy="0">普通请求</tspan></text></g><a class="diagram-node modified" href="#walkthrough-file-0-1" aria-label="LLM 客户端 · src/llm_client.py"><rect x="80" y="140" width="112" height="76" rx="5"/><text class="diagram-kind" x="136" y="157" text-anchor="middle"><tspan x="136" dy="0">修改</tspan></text><text class="" x="136" y="175" text-anchor="middle"><tspan x="136" dy="0">LLM 客户端</tspan></text></a><g class="diagram-node "><rect x="12" y="268" width="112" height="76" rx="5"/><text class="" x="68" y="310" text-anchor="middle"><tspan x="68" dy="0">请求供应商</tspan></text></g><g class="diagram-node "><rect x="148" y="268" width="112" height="76" rx="5"/><text class="" x="204" y="310" text-anchor="middle"><tspan x="204" dy="0">回放已有缓存</tspan></text></g></svg></div><p class="diagram-hint">点击带链接的节点查看相关代码。</p></figure><article><header><span class="number">01</span><h2>独立采样</h2></header><div class="comparison"><section><h3>原来</h3><p>候选和重复组合可能共用同一条磁盘缓存响应。</p></section><section class="after"><h3>现在</h3><p>候选有独立编号，多次重复的每个组合有唯一采样范围。新采样直接请求供应商。普通调用仍可回放有效缓存。</p></section></div><p class="reason"><strong>原因</strong> 供应商可能返回相同文本，调用和缓存轨迹能区分独立生成与回放。</p><details><summary>查看文件和关键代码 <span class="count">4</span></summary><div class="file" id="walkthrough-file-0-0"><div class="file-heading"><span class="tag">修改</span><code>src/strategies/self_consistency.py</code></div><pre><code>sample_id=f&quot;{sampling_id}:{iteration_num}&quot;</code></pre></div><div class="file" id="walkthrough-file-0-1"><div class="file-heading"><span class="tag">修改</span><code>src/llm_client.py</code></div><pre><code>if self.config.cache.enabled and sample_id is None and self.sampling_scope is None:</code></pre></div><div class="file" id="walkthrough-file-0-2"><div class="file-heading"><span class="tag">修改</span><code>src/harness.py</code></div><pre><code>base_client.sampling_scope = self.sampling_scope</code></pre></div><div class="file" id="walkthrough-file-0-3"><div class="file-heading"><span class="tag">修改</span><code>src/experiment.py</code></div><pre><code>sampling_scope = uuid4().hex if self._requires_independent_sampling(strategy) else None</code></pre></div></details></article><article><header><span class="number">02</span><h2>恢复和历史报告</h2></header><div class="comparison"><section><h3>原来</h3><p>旧重复结果可能混入使用独立采样的新运行，历史报告也缺少采样来源。</p></section><section class="after"><h3>现在</h3><p>恢复保留可验证的已完成工作。可能受旧缓存影响的检查点提示新建运行，重新生成的报告标明历史结果的独立性无法验证。</p></section></div><p class="reason"><strong>原因</strong> 保留历史文件和已完成工作，并让比较范围反映证据。</p><details><summary>查看文件和关键代码 <span class="count">2</span></summary><div class="file" id="walkthrough-file-1-0"><div class="file-heading"><span class="tag">修改</span><code>src/experiment_report.py</code></div><pre><code>&quot;sampling_verified&quot;: sampling_verified</code></pre></div><div class="file" id="walkthrough-file-1-1"><div class="file-heading"><span class="tag">修改</span><code>tests/test_experiment.py</code></div><pre><code>assert provider.call_count == 4</code></pre></div></details></article><footer><h2>实际验证</h2><div class="check"><span class="status passed">通过</span><div><strong>离线回归</strong><p>299 项通过，覆盖真实磁盘缓存和模拟供应商、串并行重复、检查点恢复、Web 费用入账及预算暂停。</p></div></div><div class="check"><span class="status passed">通过</span><div><strong>两条规格与六个场景</strong><p>任务 4/4，逐项核对实现和测试。OpenSpec 严格校验、Ruff 检查和 Git 空白检查均通过。</p></div></div><div class="check"><span class="status not-run">未执行</span><div><strong>独立审查</strong><p>本次 Tweak 的审查配置为关闭。</p></div></div></footer></main><template id="walkthrough-data">eyJzdW1tYXJ5IjoiU2VsZi1Db25zaXN0ZW5jeSDlgJnpgInlkozph43lpI3lrp7pqozlkIToh6rlkJHkvpvlupTllYblj5bmoLfvvIzmiqXlkYrorrDlvZXph4fmoLfouqvku73jgIIiLCJzY29wZSI6IuWfuuS6jiBtYWluIOeahCA5YzczODJkNiDlkozmnKzmrKHlt6XkvZzljLrlt67lvILvvIzlhbEgNiDkuKrlrp7njrDlj4rmtYvor5Xmlofku7bjgIIiLCJjaGFuZ2VzIjpbeyJ0aXRsZSI6IueLrOeri+mHh+agtyIsImJlZm9yZSI6IuWAmemAieWSjOmHjeWkjee7hOWQiOWPr+iDveWFseeUqOWQjOS4gOadoeejgeebmOe8k+WtmOWTjeW6lOOAgiIsImFmdGVyIjoi5YCZ6YCJ5pyJ54us56uL57yW5Y+377yM5aSa5qyh6YeN5aSN55qE5q+P5Liq57uE5ZCI5pyJ5ZSv5LiA6YeH5qC36IyD5Zu044CC5paw6YeH5qC355u05o6l6K+35rGC5L6b5bqU5ZWG44CC5pmu6YCa6LCD55So5LuN5Y+v5Zue5pS+5pyJ5pWI57yT5a2Y44CCIiwicmVhc29uIjoi5L6b5bqU5ZWG5Y+v6IO96L+U5Zue55u45ZCM5paH5pys77yM6LCD55So5ZKM57yT5a2Y6L2o6L+56IO95Yy65YiG54us56uL55Sf5oiQ5LiO5Zue5pS+44CCIiwiZmlsZXMiOlt7InBhdGgiOiJzcmMvc3RyYXRlZ2llcy9zZWxmX2NvbnNpc3RlbmN5LnB5Iiwia2luZCI6Im1vZGlmaWVkIiwiY29kZSI6InNhbXBsZV9pZD1mXCJ7c2FtcGxpbmdfaWR9OntpdGVyYXRpb25fbnVtfVwiIn0seyJwYXRoIjoic3JjL2xsbV9jbGllbnQucHkiLCJraW5kIjoibW9kaWZpZWQiLCJjb2RlIjoiaWYgc2VsZi5jb25maWcuY2FjaGUuZW5hYmxlZCBhbmQgc2FtcGxlX2lkIGlzIE5vbmUgYW5kIHNlbGYuc2FtcGxpbmdfc2NvcGUgaXMgTm9uZToifSx7InBhdGgiOiJzcmMvaGFybmVzcy5weSIsImtpbmQiOiJtb2RpZmllZCIsImNvZGUiOiJiYXNlX2NsaWVudC5zYW1wbGluZ19zY29wZSA9IHNlbGYuc2FtcGxpbmdfc2NvcGUifSx7InBhdGgiOiJzcmMvZXhwZXJpbWVudC5weSIsImtpbmQiOiJtb2RpZmllZCIsImNvZGUiOiJzYW1wbGluZ19zY29wZSA9IHV1aWQ0KCkuaGV4IGlmIHNlbGYuX3JlcXVpcmVzX2luZGVwZW5kZW50X3NhbXBsaW5nKHN0cmF0ZWd5KSBlbHNlIE5vbmUifV19LHsidGl0bGUiOiLmgaLlpI3lkozljoblj7LmiqXlkYoiLCJiZWZvcmUiOiLml6fph43lpI3nu5Pmnpzlj6/og73mt7flhaXkvb/nlKjni6znq4vph4fmoLfnmoTmlrDov5DooYzvvIzljoblj7LmiqXlkYrkuZ/nvLrlsJHph4fmoLfmnaXmupDjgIIiLCJhZnRlciI6IuaBouWkjeS/neeVmeWPr+mqjOivgeeahOW3suWujOaIkOW3peS9nOOAguWPr+iDveWPl+aXp+e8k+WtmOW9seWTjeeahOajgOafpeeCueaPkOekuuaWsOW7uui/kOihjO+8jOmHjeaWsOeUn+aIkOeahOaKpeWRiuagh+aYjuWOhuWPsue7k+aenOeahOeLrOeri+aAp+aXoOazlemqjOivgeOAgiIsInJlYXNvbiI6IuS/neeVmeWOhuWPsuaWh+S7tuWSjOW3suWujOaIkOW3peS9nO+8jOW5tuiuqeavlOi+g+iMg+WbtOWPjeaYoOivgeaNruOAgiIsImZpbGVzIjpbeyJwYXRoIjoic3JjL2V4cGVyaW1lbnRfcmVwb3J0LnB5Iiwia2luZCI6Im1vZGlmaWVkIiwiY29kZSI6Ilwic2FtcGxpbmdfdmVyaWZpZWRcIjogc2FtcGxpbmdfdmVyaWZpZWQifSx7InBhdGgiOiJ0ZXN0cy90ZXN0X2V4cGVyaW1lbnQucHkiLCJraW5kIjoibW9kaWZpZWQiLCJjb2RlIjoiYXNzZXJ0IHByb3ZpZGVyLmNhbGxfY291bnQgPT0gNCJ9XX1dLCJ2ZXJpZmljYXRpb24iOlt7ImxhYmVsIjoi56a757q/5Zue5b2SIiwic3RhdHVzIjoicGFzc2VkIiwiZGV0YWlsIjoiMjk5IOmhuemAmui/h++8jOimhuebluecn+WunuejgeebmOe8k+WtmOWSjOaooeaLn+S+m+W6lOWVhuOAgeS4suW5tuihjOmHjeWkjeOAgeajgOafpeeCueaBouWkjeOAgVdlYiDotLnnlKjlhaXotKblj4rpooTnrpfmmoLlgZzjgIIifSx7ImxhYmVsIjoi5Lik5p2h6KeE5qC85LiO5YWt5Liq5Zy65pmvIiwic3RhdHVzIjoicGFzc2VkIiwiZGV0YWlsIjoi5Lu75YqhIDQvNO+8jOmAkOmhueaguOWvueWunueOsOWSjOa1i+ivleOAgk9wZW5TcGVjIOS4peagvOagoemqjOOAgVJ1ZmYg5qOA5p+l5ZKMIEdpdCDnqbrnmb3mo4Dmn6XlnYfpgJrov4fjgIIifSx7ImxhYmVsIjoi54us56uL5a6h5p+lIiwic3RhdHVzIjoibm90LXJ1biIsImRldGFpbCI6IuacrOasoSBUd2VhayDnmoTlrqHmn6XphY3nva7kuLrlhbPpl63jgIIifV0sImRpYWdyYW1zIjpbeyJ0eXBlIjoiZmxvdyIsInRpdGxlIjoi5qih5Z6L6LCD55So5LiO57yT5a2YIiwibm9kZXMiOlt7ImlkIjoiY2FuZGlkYXRlIiwibGFiZWwiOiLlgJnpgInmiJbph43lpI3nu4TlkIgiLCJmaWxlIjoic3JjL3N0cmF0ZWdpZXMvc2VsZl9jb25zaXN0ZW5jeS5weSIsImtpbmQiOiJtb2RpZmllZCJ9LHsiaWQiOiJvcmRpbmFyeSIsImxhYmVsIjoi5pmu6YCa6K+35rGCIn0seyJpZCI6ImNsaWVudCIsImxhYmVsIjoiTExNIOWuouaIt+erryIsImZpbGUiOiJzcmMvbGxtX2NsaWVudC5weSIsImtpbmQiOiJtb2RpZmllZCJ9LHsiaWQiOiJwcm92aWRlciIsImxhYmVsIjoi6K+35rGC5L6b5bqU5ZWGIn0seyJpZCI6ImNhY2hlIiwibGFiZWwiOiLlm57mlL7lt7LmnInnvJPlrZgifV0sImVkZ2VzIjpbeyJmcm9tIjoiY2FuZGlkYXRlIiwidG8iOiJjbGllbnQiLCJsYWJlbCI6IumHh+agt+i6q+S7vSJ9LHsiZnJvbSI6Im9yZGluYXJ5IiwidG8iOiJjbGllbnQifSx7ImZyb20iOiJjbGllbnQiLCJ0byI6InByb3ZpZGVyIiwibGFiZWwiOiLni6znq4vph4fmoLfmiJbmnKrlkb3kuK0ifSx7ImZyb20iOiJjbGllbnQiLCJ0byI6ImNhY2hlIiwibGFiZWwiOiLmma7pgJror7fmsYLlkb3kuK0ifV19XX0=</template></body></html>

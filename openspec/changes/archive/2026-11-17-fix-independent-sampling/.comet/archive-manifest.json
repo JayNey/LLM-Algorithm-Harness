@@ -1,0 +1,40 @@
+{
+  "schema": "comet.classic.archive-manifest.v2",
+  "execution": {
+    "workflow": {
+      "id": "comet-classic-tweak",
+      "version": "2",
+      "hash": "518d3e8e12eb39899775cb7d2ddcc7ddeba10cb1f1d43cff7b03f2ca61a70c65"
+    },
+    "runId": "fix-independent-sampling",
+    "actionId": "fix-independent-sampling:9",
+    "attempt": 1,
+    "inputHash": "816e6e6d711ef061c3107c011ae0aff9a8365c8c715ead1686a44e7191eeac2c",
+    "claimToken": "portable-d8822d03e36fc1d6c682784bebf4bef7dfc16592302ba0de65ed17cbf14c65b6"
+  },
+  "activeRef": "openspec/changes/fix-independent-sampling",
+  "archiveRef": "openspec/changes/archive/2026-11-17-fix-independent-sampling",
+  "stateRef": "openspec/changes/archive/2026-11-17-fix-independent-sampling/comet-state.yaml",
+  "paths": [
+    "openspec/changes/archive/2026-11-17-fix-independent-sampling/.comet/archive-requirements.json",
+    "openspec/changes/archive/2026-11-17-fix-independent-sampling/.openspec.yaml",
+    "openspec/changes/archive/2026-11-17-fix-independent-sampling/design.md",
+    "openspec/changes/archive/2026-11-17-fix-independent-sampling/proposal.md",
+    "openspec/changes/archive/2026-11-17-fix-independent-sampling/specs/experiment/budget-comparison/spec.md",
+    "openspec/changes/archive/2026-11-17-fix-independent-sampling/specs/llm-response-cache/spec.md",
+    "openspec/changes/archive/2026-11-17-fix-independent-sampling/tasks.md",
+    "openspec/changes/archive/2026-11-17-fix-independent-sampling/walkthrough.html",
+    "openspec/specs/experiment/budget-comparison/spec.md",
+    "openspec/specs/llm-response-cache/spec.md"
+  ],
+  "sourcePaths": [
+    "openspec/changes/fix-independent-sampling/.comet/archive-requirements.json",
+    "openspec/changes/fix-independent-sampling/.openspec.yaml",
+    "openspec/changes/fix-independent-sampling/design.md",
+    "openspec/changes/fix-independent-sampling/proposal.md",
+    "openspec/changes/fix-independent-sampling/specs/experiment/budget-comparison/spec.md",
+    "openspec/changes/fix-independent-sampling/specs/llm-response-cache/spec.md",
+    "openspec/changes/fix-independent-sampling/tasks.md",
+    "openspec/changes/fix-independent-sampling/walkthrough.html"
+  ]
+}
