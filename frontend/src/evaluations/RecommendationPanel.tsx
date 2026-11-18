@@ -16,6 +16,7 @@ import { ApiClientError } from '../auth/http.ts'
 import { useResource } from '../hooks/useResource.ts'
 import { currentLanguage, t } from '../i18n/core.ts'
 import { EvaluationFeedback } from './components.tsx'
+import { difficultyLabel } from '../problems/presentation.ts'
 import { useEvaluationSession } from './session.tsx'
 import type { ProblemQuery, ResultSummary } from './types.ts'
 
@@ -222,7 +223,11 @@ function RecommendationPreview({
                   value: item.id,
                   label: [
                     item.model,
-                    new Date(item.created_at).toLocaleString(currentLanguage()),
+                    Number.isNaN(new Date(item.created_at).getTime())
+                      ? item.created_at
+                      : new Date(item.created_at).toLocaleString(
+                          currentLanguage(),
+                        ),
                     item.run_id ?? item.id,
                   ]
                     .filter(Boolean)
@@ -333,7 +338,7 @@ function RecommendationPreview({
                 >
                   <span>{item.title || item.problem_id}</span>
                   <small>
-                    {item.problem_id} · {t(item.difficulty ?? '难度未知')}
+                    {item.problem_id} · {difficultyLabel(item.difficulty)}
                   </small>
                   <small>
                     {t(
@@ -440,7 +445,7 @@ function SavedRecommendationSets({
             {opened.data.problems.map((item) => (
               <li key={item.problem_id}>
                 {item.title || item.problem_id} ·{' '}
-                {t(item.difficulty ?? '难度未知')}
+                {difficultyLabel(item.difficulty)}
               </li>
             ))}
           </ul>
