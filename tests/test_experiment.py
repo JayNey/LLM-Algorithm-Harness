@@ -432,6 +432,29 @@ def _runner_config(tmp_path, dataset, **overrides):
     return ExperimentConfig(**values)
 
 
+@pytest.mark.parametrize("kind", ["model", "strategy"])
+@pytest.mark.parametrize("entry", ["config", "runner"])
+def test_duplicate_experiment_names_are_rejected_before_execution(tmp_path, kind, entry):
+    dataset = _runner_dataset(tmp_path)
+    config = _runner_config(tmp_path, dataset)
+    if kind == "model":
+        config.models.append(config.models[0].model_copy(update={"temperature": 0.9}))
+        name = "fixed-double"
+    else:
+        config.strategies.append(config.strategies[0].model_copy(update={"max_iterations": 3}))
+        name = "vanilla"
+    error = rf"Duplicate {kind} name.*{name}"
+
+    with patch("src.harness.LLMClient", side_effect=_correct_factory()) as client:
+        with pytest.raises(ValueError, match=error):
+            if entry == "config":
+                ExperimentConfig.model_validate(config.model_dump())
+            else:
+                ExperimentRunner(config).run()
+    client.assert_not_called()
+    assert not Path(config.output_dir).exists()
+
+
 def test_runner_executes_all_combinations_with_metadata(tmp_path):
     dataset = _runner_dataset(tmp_path)
     config = _runner_config(tmp_path, dataset)
@@ -455,12 +478,7 @@ def test_runner_executes_all_combinations_with_metadata(tmp_path):
     # model x strategy x repeat = 1 x 2 x 2 combinations
     assert len(meta["combinations"]) == 4
     combo_ids = [c["combo_id"] for c in meta["combinations"]]
-    assert combo_ids == [
-        "fixed-double__vanilla__r1",
-        "fixed-double__vanilla__r2",
-        "fixed-double__multi_round_feedback__r1",
-        "fixed-double__multi_round_feedback__r2",
-    ]
+    assert combo_ids == ["combo-0", "combo-1", "combo-2", "combo-3"]
 
     # Per-combination artifacts use the regular run shape
     for combo in meta["combinations"]:
@@ -950,7 +968,9 @@ def test_budget_exhausted_pairing_counts_as_loss(tmp_path):
     # then verify the pairing logic through build_model_comparison
     meta = json.loads((exp_dir_a / "experiment.json").read_text(encoding="utf-8"))
     results_a = json.loads(
-        (exp_dir_a / "model-a__vanilla__r1" / "vanilla_results.json").read_text(encoding="utf-8")
+        (exp_dir_a / meta["combinations"][0]["combo_dir"] / "vanilla_results.json").read_text(
+            encoding="utf-8"
+        )
     )
     results_b = [
         {"problem_id": "pw-1", "status": "success"},
@@ -1074,6 +1094,89 @@ def test_parallel_execution_matches_serial_structure(tmp_path):
             pricing_file="nonexistent.json",
         ).run()
     assert (single / "panel.html").exists()
+
+
+@pytest.mark.parametrize("execution", ["serial", "parallel"])
+def test_colliding_model_names_keep_distinct_results(tmp_path, execution):
+    dataset = _runner_dataset(tmp_path)
+    config = _runner_config(
+        tmp_path,
+        dataset,
+        models=[
+            LLMConfig(provider="openai", api_key="k", model="org/model"),
+            LLMConfig(provider="openai", api_key="k", model="org_model"),
+        ],
+        strategies=[StrategyConfig(name="vanilla")],
+        repeats=1,
+        problem_filters={"difficulty": "easy"},
+        execution=execution,
+    )
+
+    def factory(model_config):
+        client = _correct_factory()(model_config)
+        if model_config.model == "org_model":
+            client.generate.return_value.text = "```python\ndef solution(x):\n    return x\n```"
+        return client
+
+    with patch("src.harness.LLMClient", side_effect=factory):
+        output = ExperimentRunner(config).run()
+
+    comparison = json.loads((output / "comparison.json").read_text(encoding="utf-8"))
+    assert {row["model"]: row["solved"] for row in comparison["combinations"]} == {
+        "org/model": 1,
+        "org_model": 0,
+    }
+    matrix = comparison["model_comparison"]["strategies"]["vanilla"]["matrix"]
+    assert {row["model"]: row["solved"] for row in matrix} == {"org/model": 1, "org_model": 0}
+    combos = comparison["experiment"]["combinations"]
+    assert [row["combo_id"] for row in combos] == ["combo-0", "combo-1"]
+    for row, expected in zip(combos, ["success", "failed"], strict=True):
+        assert row["combo_dir"] == row["combo_id"]
+        raw = json.loads(
+            (output / row["combo_dir"] / "vanilla_results.json").read_text(encoding="utf-8")
+        )
+        assert [result["status"] for result in raw] == [expected]
+
+
+def test_legacy_combination_references_can_rebuild_report(tmp_path):
+    from src.checkpoints import write_checkpoint
+    from src.experiment_report import _load_json, generate_comparison_report
+
+    config = _runner_config(
+        tmp_path, _runner_dataset(tmp_path), strategies=[StrategyConfig(name="vanilla")]
+    )
+    with patch("src.harness.LLMClient", side_effect=_correct_factory()):
+        output = ExperimentRunner(config).run()
+
+    path = output / "experiment.json"
+    metadata = _load_json(path)
+    metadata["schema_version"] = "1.0"
+    for row in metadata["combinations"]:
+        legacy_id = f"fixed-double__vanilla__r{row['repeat']}"
+        if row["combo_dir"] != legacy_id:
+            (output / row["combo_dir"]).rename(output / legacy_id)
+        row.update(combo_id=legacy_id, combo_dir=legacy_id)
+    write_checkpoint(path, metadata)
+    before = path.read_bytes()
+
+    report = generate_comparison_report(output)
+    assert [row["combo_id"] for row in report["combinations"]] == [
+        "fixed-double__vanilla__r1",
+        "fixed-double__vanilla__r2",
+    ]
+    assert [row["solved"] for row in report["combinations"]] == [2, 2]
+    assert path.read_bytes() == before
+
+    report_path = output / "comparison.json"
+    original_report = report_path.read_bytes()
+    first, second = metadata["combinations"]
+    for field, message in [("combo_id", "combination ID"), ("combo_dir", "combination directory")]:
+        write_checkpoint(
+            path, {**metadata, "combinations": [first, {**second, field: first[field]}]}
+        )
+        with pytest.raises(ValueError, match=message):
+            generate_comparison_report(output)
+        assert report_path.read_bytes() == original_report
 
 
 def test_cli_experiment_missing_config_reports_error(tmp_path, capsys):
@@ -1412,7 +1515,7 @@ def test_experiment_repeats_sample_despite_disk_cache(tmp_path, offline_cached_p
 def test_experiment_resume_preserves_sampling_scope(
     tmp_path, offline_cached_provider, unit_file_only
 ):
-    from src.checkpoints import write_checkpoint
+    from src.checkpoints import UnitCheckpoint, write_checkpoint
     from src.experiment_report import _load_json
 
     provider, _ = offline_cached_provider
@@ -1428,6 +1531,13 @@ def test_experiment_resume_preserves_sampling_scope(
     saved = _load_json(metadata_path)
     saved_combo = saved["combinations"][0]
     assert saved_combo["sampling_scope"]
+    combo_id = saved_combo["combo_id"]
+    assert saved_combo["combo_dir"] == combo_id
+    units = first_dir / "units"
+    checkpoint = UnitCheckpoint(units, _load_json(units / "manifest.json")["fingerprint"])
+    assert checkpoint.get(combo_id) == saved_combo
+    results_path = first_dir / combo_id / "vanilla_results.json"
+    first_results = results_path.read_bytes()
     if unit_file_only:
         # A crash can leave the completed unit durable before experiment.json catches up.
         write_checkpoint(metadata_path, {**saved, "combinations": []})
@@ -1441,6 +1551,12 @@ def test_experiment_resume_preserves_sampling_scope(
     completed = _load_json(metadata_path)
     assert completed["sampling_run_id"] == saved["sampling_run_id"]
     assert completed["combinations"][0] == saved_combo
+    assert [combo["combo_id"] for combo in completed["combinations"]] == [
+        "combo-0",
+        "combo-1",
+        "combo-2",
+    ]
+    assert results_path.read_bytes() == first_results
     assert len({combo["sampling_scope"] for combo in completed["combinations"]}) == 3
     assert provider.call_count == 3
     assert resumed.on_spend.call_count == 2
@@ -1471,7 +1587,7 @@ def test_legacy_experiment_sampling_report_and_resume(
     checkpoint = UnitCheckpoint(checkpoint_dir, fingerprint)
     for combo in old_metadata["combinations"]:
         del combo["sampling_scope"]
-        checkpoint.put(combo["unit_id"], combo)
+        checkpoint.put(combo["combo_id"], combo)
     write_checkpoint(path, old_metadata)
 
     comparison = generate_comparison_report(output)
@@ -1493,3 +1609,22 @@ def test_legacy_experiment_sampling_report_and_resume(
             resumed.run()
         assert len(_load_json(path)["combinations"]) == 2
     assert provider.call_count == 2
+
+
+def test_legacy_experiment_checkpoint_requires_new_run(tmp_path):
+    from src.checkpoints import write_checkpoint
+
+    config = _runner_config(tmp_path, _runner_dataset(tmp_path))
+    runner = ExperimentRunner(config)
+    runner.checkpoint_dir = tmp_path / "legacy"
+    metadata_path = runner.checkpoint_dir / "experiment.json"
+    write_checkpoint(metadata_path, {"schema_version": "1.0", "combinations": []})
+    before = metadata_path.read_bytes()
+
+    with patch("src.harness.LLMClient", side_effect=_correct_factory()) as client:
+        with pytest.raises(ValueError, match="checkpoint format.*start a new experiment"):
+            runner.run()
+
+    client.assert_not_called()
+    assert metadata_path.read_bytes() == before
+    assert list(runner.checkpoint_dir.iterdir()) == [metadata_path]

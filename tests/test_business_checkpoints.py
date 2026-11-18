@@ -51,14 +51,14 @@ def test_experiment_resumes_same_directory_and_skips_saved_combinations(tmp_path
     )
     calls = []
 
-    def combo(self, output, model, strategy, repeat):
+    def combo(self, combo_dir, model, strategy, repeat):
         calls.append(repeat)
         return {
-            "combo_id": f"combo-{repeat}",
+            "combo_id": combo_dir.name,
             "model": model.model,
             "strategy": strategy.name,
             "repeat": repeat,
-            "combo_dir": f"combo-{repeat}",
+            "combo_dir": combo_dir.name,
         }
 
     def runner():
@@ -196,22 +196,22 @@ def test_import_resume_skips_validated_rows_and_merges_once(tmp_path, dataset):
     assert len(service.store.dataset("owner")) == 4
 
 
-def test_same_named_experiment_model_arms_remain_distinct_on_resume(tmp_path, dataset):
+def test_colliding_experiment_model_names_remain_distinct_on_resume(tmp_path, dataset):
     config = ExperimentConfig(
         dataset_path=str(dataset),
         models=[
-            llm().model_copy(update={"temperature": 0.1}),
-            llm().model_copy(update={"temperature": 0.9}),
+            llm().model_copy(update={"model": "org/model"}),
+            llm().model_copy(update={"model": "org_model"}),
         ],
         strategies=[{"name": "vanilla"}],
     )
     calls = []
 
-    def combo(self, output, model, strategy, repeat):
-        calls.append(model.temperature)
+    def combo(self, combo_dir, model, strategy, repeat):
+        calls.append(model.model)
         return {
-            "combo_id": "combo",
-            "combo_dir": "combo",
+            "combo_id": combo_dir.name,
+            "combo_dir": combo_dir.name,
             "model": model.model,
             "strategy": strategy.name,
             "repeat": repeat,
@@ -229,7 +229,7 @@ def test_same_named_experiment_model_arms_remain_distinct_on_resume(tmp_path, da
         second = ExperimentRunner(config)
         second.checkpoint_dir = first.checkpoint_dir
         second.run()
-    assert calls == [0.1, 0.9]
+    assert calls == ["org/model", "org_model"]
 
 
 def test_ab_single_result_per_arm_has_json_safe_statistics():
