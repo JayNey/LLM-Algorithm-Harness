@@ -58,6 +58,9 @@ import {
 const IMPORT_POLL_MS = 3_000
 const LEETCODE_ERRORS: Partial<Record<number, string>> = {
   400: '请输入 LeetCode 国际站的公开题目链接。',
+  403: '没有权限执行该导入操作，请刷新后重试。',
+  409: '已有导入作业在执行或题目集已更新，请刷新后重试。',
+  413: '合并题目集超出大小上限，请减少导入数量。',
   404: 'LeetCode 题目不存在或无法公开访问。',
   408: 'LeetCode 请求超时，请重试。',
   429: '导入请求过多，请稍后重试。',
@@ -205,7 +208,13 @@ function ImportPanel({
         onImported()
       } else if (next.status === 'failed') {
         if (next.batch) {
-          setBatchError('LeetCode 批量导入任务失败，请重试。')
+          setBatchError(
+            next.failureDetail
+              ? t('批量导入任务失败：{{value1}}', {
+                  value1: next.failureDetail,
+                })
+              : 'LeetCode 批量导入任务失败，请重试。',
+          )
         } else {
           setError(
             next.failureDetail
@@ -309,12 +318,12 @@ function ImportPanel({
     } catch (cause) {
       if (sameSession()) {
         const message =
-          kind === 'leetcode' && cause instanceof ApiClientError
+          cause instanceof ApiClientError
             ? LEETCODE_ERRORS[cause.status ?? 0]
             : undefined
         const fallback =
           cause instanceof Error ? cause.message : '导入失败，请重试'
-        if (kind === 'batch') setBatchError(fallback)
+        if (kind === 'batch') setBatchError(message ?? fallback)
         else if (kind === 'leetcode') setLeetcodeError(message ?? fallback)
         else setError(fallback)
       }

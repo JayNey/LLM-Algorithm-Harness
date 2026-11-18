@@ -2,6 +2,7 @@ import { useTranslation } from 'react-i18next'
 import { t } from '../i18n/core.ts'
 import type { Evaluation, ResultDetail } from './types.ts'
 import {
+  resultStatusLabel,
   evaluationLabel,
   failureDiagnosticLabel,
   metricLabel,
@@ -216,7 +217,7 @@ export function ResultTables({ result }: { result: ResultDetail }) {
                   <td>
                     {row.status === 'not_evaluable'
                       ? t('不可评估（缺少测试用例）')
-                      : row.status}
+                      : resultStatusLabel(row.status)}
                     {(failureDiagnosticLabel(row) ?? row.error_message) && (
                       <div>
                         {failureDiagnosticLabel(row) ?? row.error_message}

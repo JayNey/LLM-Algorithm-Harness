@@ -457,6 +457,7 @@ export default function CreateEvaluationPage() {
                             checked={draft.problem_ids.includes(
                               problem.problem_id,
                             )}
+                            disabled={!editing}
                             onChange={(event) =>
                               selectProblem(
                                 problem.problem_id,
@@ -514,7 +515,7 @@ export default function CreateEvaluationPage() {
                             <span>{item.title || item.problem_id}</span>
                             <small>
                               {item.problem_id} ·{' '}
-                              {t(item.difficulty ?? '难度未知')}
+                              {difficultyLabel(item.difficulty)}
                             </small>
                           </Checkbox>
                         </li>

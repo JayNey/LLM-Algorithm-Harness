@@ -1267,6 +1267,7 @@ export default {
   '移除策略 {{value1}}': 'Remove strategy {{value1}}',
   '（温度 {{value1}}）': ' (temperature {{value1}})',
   '确认删除实验「{{value1}}」？': 'Delete experiment “{{value1}}”?',
+  '批量导入任务失败：{{value1}}': 'Batch import failed: {{value1}}',
   '导入任务失败：{{value1}}': 'Import task failed: {{value1}}',
   '{{value1}} · 评估历史': '{{value1}} · Evaluation history',
   '{{value1}}；下方为上次读取的数据。':
