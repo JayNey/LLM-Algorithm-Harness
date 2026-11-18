@@ -15,7 +15,7 @@ TEMPLATES: dict[str, dict[str, Any]] = {
         "config": HarnessConfig(
             llm_config=LLM,
             dataset_path="problems.json",
-            strategies=[StrategyConfig(name="vanilla")],
+            strategies=[StrategyConfig(name="vanilla", temperature=0.7, max_tokens=2000)],
         ).redacted_dict(),
     },
     "experiment": {
@@ -23,7 +23,7 @@ TEMPLATES: dict[str, dict[str, Any]] = {
         "config": ExperimentConfig(
             dataset_path="problems.json",
             models=[LLM],
-            strategies=[StrategyConfig(name="vanilla")],
+            strategies=[StrategyConfig(name="vanilla", temperature=0.7, max_tokens=2000)],
             repeats=1,
         ).redacted_dict(),
     },

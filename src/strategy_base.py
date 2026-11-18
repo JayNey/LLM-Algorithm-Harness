@@ -97,6 +97,10 @@ class StrategyBase(ABC):
             "min_similarity_score",
             "example_source",
             "reflection_context_chars",
+            "branching_factor",
+            "max_depth",
+            "search_strategy",
+            "pruning_threshold",
         }
         return {
             key: value for key, value in self.config.custom_params.items() if key not in controls

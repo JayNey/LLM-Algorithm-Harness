@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import math
 import re
 import time
 from collections import deque
@@ -54,10 +55,10 @@ class TreeOfThoughtsStrategy(StrategyBase):
         config: StrategyConfig,
         llm_client: LLMClient,
         sandbox: SandboxExecutor,
-        branching_factor: int = 3,
-        max_depth: int = 4,
-        search_strategy: Literal["bfs", "dfs"] = "bfs",
-        pruning_threshold: float = 0.3,
+        branching_factor: int | None = None,
+        max_depth: int | None = None,
+        search_strategy: Literal["bfs", "dfs"] | None = None,
+        pruning_threshold: float | None = None,
     ):
         """
         Initialize Tree of Thoughts strategy.
@@ -76,13 +77,30 @@ class TreeOfThoughtsStrategy(StrategyBase):
         """
         super().__init__(config, llm_client, sandbox)
 
-        if branching_factor < 1:
-            raise ValueError(f"branching_factor must be >= 1, got {branching_factor}")
-        if max_depth < 1:
-            raise ValueError(f"max_depth must be >= 1, got {max_depth}")
+        # Explicit constructor overrides win; production factories supply config only.
+        if branching_factor is None:
+            branching_factor = config.custom_params.get("branching_factor", 3)
+        if max_depth is None:
+            max_depth = config.custom_params.get("max_depth", 4)
+        if search_strategy is None:
+            search_strategy = config.custom_params.get("search_strategy", "bfs")
+        if pruning_threshold is None:
+            pruning_threshold = config.custom_params.get("pruning_threshold", 0.3)
+
+        if type(branching_factor) is not int or branching_factor < 1:
+            raise ValueError(
+                f"branching_factor must be >= 1 and an integer, got {branching_factor}"
+            )
+        if type(max_depth) is not int or max_depth < 1:
+            raise ValueError(f"max_depth must be >= 1 and an integer, got {max_depth}")
         if search_strategy not in ("bfs", "dfs"):
             raise ValueError(f"search_strategy must be 'bfs' or 'dfs', got '{search_strategy}'")
-        if not 0.0 <= pruning_threshold <= 1.0:
+        if (
+            isinstance(pruning_threshold, bool)
+            or not isinstance(pruning_threshold, (int, float))
+            or not math.isfinite(pruning_threshold)
+            or not 0.0 <= pruning_threshold <= 1.0
+        ):
             raise ValueError(
                 f"pruning_threshold must be between 0.0 and 1.0, got {pruning_threshold}"
             )

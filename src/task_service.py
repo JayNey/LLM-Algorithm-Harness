@@ -182,7 +182,8 @@ class TaskService:
             if secret_hashes:
                 payload = dict(payload)
                 payload["cost_alert_secret_fingerprints"] = secret_hashes
-        return TaskService._hash_json(payload)
+        # Old snapshots cannot prove which overrides and ToT controls were used.
+        return TaskService._hash_json({"strategy_parameter_contract": 1, "config": payload})
 
     @staticmethod
     def dataset_fingerprint(path: str | Path) -> str:
@@ -434,7 +435,9 @@ class TaskService:
         dataset_fingerprint: str | None,
     ) -> None:
         if config_fingerprint and config_fingerprint != record.config_fingerprint:
-            raise ValueError("Task configuration fingerprint does not match; refusing resume")
+            raise ValueError(
+                "Task configuration fingerprint does not match; refusing resume; start a new run"
+            )
         if dataset_fingerprint and dataset_fingerprint != record.dataset_fingerprint:
             raise ValueError("Dataset fingerprint does not match; refusing resume")
 

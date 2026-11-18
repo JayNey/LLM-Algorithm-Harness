@@ -16,8 +16,10 @@ from pydantic import (
     Field,
     PrivateAttr,
     SecretStr,
+    SerializerFunctionWrapHandler,
     field_serializer,
     field_validator,
+    model_serializer,
     model_validator,
 )
 
@@ -709,6 +711,19 @@ class StrategyConfig(BaseModel):
     max_tokens: int = Field(2000, ge=100, le=8000, description="Max tokens per generation")
     system_prompt: str | None = Field(None, description="System prompt override")
     custom_params: dict[str, Any] = Field(default_factory=dict, description="Custom parameters")
+
+    @model_serializer(mode="wrap")
+    def serialize_overrides(self, handler: SerializerFunctionWrapHandler) -> dict[str, Any]:
+        """Preserve inheritance through standalone and nested config snapshots.
+
+        Only generation overrides have omission semantics. Keep other defaults
+        and explicitly supplied default values in their existing representation.
+        """
+        payload: dict[str, Any] = handler(self)
+        for field in ("temperature", "max_tokens"):
+            if field not in self.model_fields_set:
+                payload.pop(field, None)
+        return payload
 
 
 class ProblemBudget(BaseModel):

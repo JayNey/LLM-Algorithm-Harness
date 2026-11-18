@@ -288,9 +288,14 @@ class MonitorProbes:
         return [
             {
                 "name": name,
-                "defaults": StrategyConfig(name=name).model_dump(
-                    exclude={"system_prompt", "custom_params"}
-                ),
+                # Metadata describes available defaults, not persisted overrides.
+                "defaults": {
+                    "name": name,
+                    **{
+                        field: StrategyConfig.model_fields[field].default
+                        for field in ("max_iterations", "temperature", "max_tokens")
+                    },
+                },
             }
             for name in AlgorithmHarness.STRATEGY_MAP
         ]
