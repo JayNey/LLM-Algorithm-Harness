@@ -235,8 +235,7 @@ class ABTestService:
 
             self._auth = AuthService(AuthSettings())
         config = row.config
-        # 存量行可能持久化了 base_url（#487 之前的合法配置）：剥离而非拒绝 (#502)。
-        config["model"].pop("base_url", None)
+        ModelSpec.reject_base_url(config["model"].get("base_url"))
         if config.get("dataset_snapshot") is not None or config.get("dataset_id"):
             if dataset_files is None:
                 raise ValueError("Dataset snapshot requires an execution scope")

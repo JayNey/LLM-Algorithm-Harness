@@ -271,9 +271,7 @@ class ExperimentService:
             raise ValueError("authentication service is not configured")
         config = row.config
         for spec in config["models"]:
-            # 存量行可能持久化了 base_url（#487 之前的合法配置）：剥离而非拒绝，
-            # 端点统一由 PROVIDER_URLS 决定；请求入口层仍 fail-closed (#502)。
-            spec.pop("base_url", None)
+            ModelSpec.reject_base_url(spec.get("base_url"))
         if config.get("dataset_snapshot") is not None or config.get("dataset_id"):
             if dataset_files is None:
                 raise ValueError("Dataset snapshot requires an execution scope")
