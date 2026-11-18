@@ -107,7 +107,7 @@ class ExperimentRunner:
 
     def run(self) -> Path:
         """Execute all combinations and return the experiment directory."""
-        self.config.validate_unique_names()
+        ExperimentConfig.model_validate(self.config.model_dump())
         started_at = datetime.now().isoformat()
         problems = self._load_problems()
         exp_dir = self._create_experiment_dir()
