@@ -157,6 +157,7 @@ export default {
   重试: 'Retry',
   无权访问此页面: 'You do not have access to this page',
   '此页面仅对管理员开放。': 'This page is only available to administrators.',
+  认证页导航: 'Auth navigation',
   返回设置: 'Back to settings',
   准确率: 'Accuracy',
   '成本（USD）': 'Cost (USD)',

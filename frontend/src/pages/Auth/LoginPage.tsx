@@ -246,9 +246,9 @@ export default function LoginPage() {
           {t('登录')}
         </Button>
       </Form>
-      <p className="auth-entry-switch">
+      <nav aria-label={t('认证页导航')} className="auth-entry-switch">
         {t('还没有账号？')} <Link to="/register">{t('注册')}</Link>
-      </p>
+      </nav>
     </section>
   )
 }

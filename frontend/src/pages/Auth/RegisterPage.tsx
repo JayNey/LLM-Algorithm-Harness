@@ -283,9 +283,9 @@ export default function RegisterPage() {
           {t('注册')}
         </Button>
       </Form>
-      <p className="auth-entry-switch">
+      <nav aria-label={t('认证页导航')} className="auth-entry-switch">
         {t('已有账号？')} <Link to="/login">{t('登录')}</Link>
-      </p>
+      </nav>
     </section>
   )
 }

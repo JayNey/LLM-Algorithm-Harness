@@ -7,6 +7,13 @@ import { readViteEnv } from '@/config/env.ts'
 import { useAuthStore } from '@/store/auth.ts'
 import { useUiStore } from '@/store/ui.ts'
 import { appearanceTheme } from './appearance.ts'
+import { useSyncExternalStore } from 'react'
+
+function subscribeMotion(change: () => void) {
+  const media = window.matchMedia('(prefers-reduced-motion: reduce)')
+  media.addEventListener('change', change)
+  return () => media.removeEventListener('change', change)
+}
 import './auth-entry.css'
 
 const appName = readViteEnv().appName
@@ -86,12 +93,17 @@ export function AuthLayout() {
   const colorScheme = useUiStore((state) => state.colorScheme)
   const toggleColorScheme = useUiStore((state) => state.toggleColorScheme)
 
+  const reducedMotion = useSyncExternalStore(
+    subscribeMotion,
+    () => window.matchMedia('(prefers-reduced-motion: reduce)').matches,
+    () => false,
+  )
   if (session !== null) {
     return <Navigate to="/" replace />
   }
 
   const dark = colorScheme === 'dark'
-  const frontierTheme = appearanceTheme('orbit', colorScheme)
+  const frontierTheme = appearanceTheme('orbit', colorScheme, reducedMotion)
 
   return (
     <ConfigProvider
