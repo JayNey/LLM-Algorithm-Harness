@@ -1,7 +1,6 @@
 """HTTP error contract shared by exception handlers and early ASGI boundaries."""
 
 import logging
-import traceback
 import uuid
 from collections.abc import Mapping
 from enum import Enum
@@ -181,8 +180,6 @@ def error_responses() -> dict[int | str, dict[str, Any]]:
 
 def internal_error_response(scope: Scope, exc: Exception) -> JSONResponse:
     logger.error("Unhandled API error request_id=%s type=%s", request_id(scope), type(exc).__name__)
-    with open("/tmp/harness-500-trace.log", "a", encoding="utf-8") as fh:
-        fh.write("=== %s ===\n" % type(exc).__name__ + traceback.format_exc() + "\n")
     return error_response(scope, 500)
 
 
