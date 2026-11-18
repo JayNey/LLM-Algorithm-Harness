@@ -1,0 +1,37 @@
+{
+  "schema": "comet.classic.archive-manifest.v2",
+  "execution": {
+    "workflow": {
+      "id": "comet-classic-tweak",
+      "version": "2",
+      "hash": "518d3e8e12eb39899775cb7d2ddcc7ddeba10cb1f1d43cff7b03f2ca61a70c65"
+    },
+    "runId": "fix-tot-concurrent-state",
+    "actionId": "fix-tot-concurrent-state:9",
+    "attempt": 1,
+    "inputHash": "6361797143571428f06295132e0979e3bb3eda0059a0c0f6c5b7d1c880fb394f",
+    "claimToken": "portable-a8c7b37a9d0279d45064e27eb4ced68af8175ec1f8b06eb1a94a67117a405461"
+  },
+  "activeRef": "openspec/changes/fix-tot-concurrent-state",
+  "archiveRef": "openspec/changes/archive/2026-11-18-fix-tot-concurrent-state",
+  "stateRef": "openspec/changes/archive/2026-11-18-fix-tot-concurrent-state/comet-state.yaml",
+  "paths": [
+    "openspec/changes/archive/2026-11-18-fix-tot-concurrent-state/.comet/archive-requirements.json",
+    "openspec/changes/archive/2026-11-18-fix-tot-concurrent-state/.openspec.yaml",
+    "openspec/changes/archive/2026-11-18-fix-tot-concurrent-state/design.md",
+    "openspec/changes/archive/2026-11-18-fix-tot-concurrent-state/proposal.md",
+    "openspec/changes/archive/2026-11-18-fix-tot-concurrent-state/specs/strategies/tree-of-thoughts/spec.md",
+    "openspec/changes/archive/2026-11-18-fix-tot-concurrent-state/tasks.md",
+    "openspec/changes/archive/2026-11-18-fix-tot-concurrent-state/walkthrough.html",
+    "openspec/specs/strategies/tree-of-thoughts/spec.md"
+  ],
+  "sourcePaths": [
+    "openspec/changes/fix-tot-concurrent-state/.comet/archive-requirements.json",
+    "openspec/changes/fix-tot-concurrent-state/.openspec.yaml",
+    "openspec/changes/fix-tot-concurrent-state/design.md",
+    "openspec/changes/fix-tot-concurrent-state/proposal.md",
+    "openspec/changes/fix-tot-concurrent-state/specs/strategies/tree-of-thoughts/spec.md",
+    "openspec/changes/fix-tot-concurrent-state/tasks.md",
+    "openspec/changes/fix-tot-concurrent-state/walkthrough.html"
+  ]
+}

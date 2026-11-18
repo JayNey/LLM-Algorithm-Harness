@@ -962,3 +962,23 @@ class TestCallAccounting:
         assert result.status == "budget_exhausted"
         assert result.total_tokens == 0
         assert result.llm_traces == []
+
+
+def test_search_context_restored_after_result_exception(tot_strategy, sample_problem, monkeypatch):
+    """Even an unexpected result-building failure must release this search's state."""
+    tot_strategy.max_depth = 1
+    tot_strategy.llm_client.generate.return_value = mock_llm_response("no branches")
+    original = tot_strategy._extract_best_solution
+
+    def fail(*args):
+        raise RuntimeError("result building failed")
+
+    monkeypatch.setattr(tot_strategy, "_extract_best_solution", fail)
+    with pytest.raises(RuntimeError, match="result building failed"):
+        tot_strategy.execute(sample_problem)
+    assert tot_strategy._search_state.get() is None
+    monkeypatch.setattr(tot_strategy, "_extract_best_solution", original)
+    result = tot_strategy.execute(sample_problem)
+    assert len(result.iterations) == 1
+    assert result.total_tokens == 150
+    assert tot_strategy._search_state.get() is None

@@ -1161,3 +1161,128 @@ def test_run_strategy_preflight_failure_aborts_before_llm(harness_config, monkey
 
     mock_llm_class.assert_not_called()
     mock_strategy.execute.assert_not_called()
+
+
+@pytest.mark.parametrize("first_outcome", ["success", "error", "budget"])
+@pytest.mark.parametrize("workers", [1, 2])
+def test_tot_shared_runtime_isolates_problem_state(
+    harness_config, tmp_path, monkeypatch, first_outcome, workers
+):
+    """Exercise the production shared runtime with deterministic provider interleaving."""
+    from threading import Barrier, Event
+
+    from src.budget import BudgetExhausted
+    from src.cost_strategy import result_cost
+    from src.strategies.tree_of_thoughts import TreeOfThoughtsStrategy
+    from src.task_service import TaskService
+
+    problems = [
+        Problem(
+            problem_id=identity,
+            title=identity,
+            description=f"Return {value} for {identity}.",
+            difficulty="easy",
+            public_test_cases=[{"input": {}, "expected_output": value}],
+            hidden_test_cases=[{"input": {}, "expected_output": value}],
+        )
+        for identity, value in [("alpha_marker", 1), ("beta_marker", 2)]
+    ]
+    Path(harness_config.dataset_path).write_text(
+        json.dumps([p.model_dump(mode="json") for p in problems]), encoding="utf-8"
+    )
+    harness_config.output_dir = str(tmp_path / "output")
+    harness_config.max_workers = workers
+    harness_config.strategies = [
+        StrategyConfig(
+            name="tree_of_thoughts", custom_params={"branching_factor": 1, "max_depth": 1}
+        )
+    ]
+    entered = Barrier(2, timeout=10)
+    evaluated = Barrier(2, timeout=10)
+    first_finished = Event()
+    instances = []
+    original_execute = TreeOfThoughtsStrategy.execute
+
+    def execute(self, problem):
+        instances.append(self)
+        try:
+            return original_execute(self, problem)
+        finally:
+            if problem.problem_id == "alpha_marker":
+                first_finished.set()
+
+    def generate(self, prompt, **kwargs):
+        first = "alpha_marker" in prompt
+        identity, value = ("alpha_marker", 1) if first else ("beta_marker", 2)
+        scoring = "Rate this solution" in prompt
+        if workers == 2:
+            if not scoring:
+                entered.wait()
+                if not first and first_outcome != "success":
+                    assert first_finished.wait(10), "first problem did not complete"
+            elif first_outcome == "success":
+                evaluated.wait()
+        if first and first_outcome != "success":
+            if first_outcome == "budget":
+                raise BudgetExhausted("alpha_marker budget stopped")
+            raise RuntimeError("alpha_marker provider failed")
+        text = (
+            "0.9"
+            if scoring
+            else f"=== Approach 1 ===\nReasoning: {identity}\nCode:\n"
+            f"```python\ndef solution():\n    return {value}\n```"
+        )
+        return LLMResponse(
+            text=text,
+            usage=TokenUsage(
+                prompt_tokens=value * 10, completion_tokens=value * 5, total_tokens=value * 15
+            ),
+            model="stub",
+            reasoning_text=identity,
+            pricing_metadata={"total_cost": value * 0.01, "usage_known": True},
+        )
+
+    monkeypatch.setattr(TreeOfThoughtsStrategy, "execute", execute)
+    monkeypatch.setattr(LLMClient, "generate", generate)
+    harness = AlgorithmHarness(harness_config)
+    harness.run(use_task_service=True)
+    assert len(instances) == 2 and instances[0] is instances[1]
+    results = {r.problem_id: r for r in harness.results["tree_of_thoughts"]}
+    durable = TaskService(Path(harness_config.output_dir) / "tasks").store.load(
+        harness.task_record.run_id
+    )
+    for unit in durable.units:
+        assert ExecutionResult.model_validate(unit.result) == results[unit.problem_id]
+    for identity, value in [("alpha_marker", 1), ("beta_marker", 2)]:
+        result = results[identity]
+        other = "beta_marker" if value == 1 else "alpha_marker"
+        if value == 1 and first_outcome != "success":
+            assert result.status == ("budget_exhausted" if first_outcome == "budget" else "failed")
+            assert result.total_tokens == 0
+            assert len(result.iterations) == (0 if first_outcome == "budget" else 1)
+            if first_outcome == "error":
+                assert result.failure_category == "model_error"
+                assert identity in result.llm_traces[0]["llm_error"]
+            else:
+                assert identity in result.error_message
+            continue
+        assert result.status == "success"
+        assert result.hidden_result.all_passed
+        assert f"return {value}" in result.generated_code
+        assert result.total_tokens == value * 30
+        assert len(result.iterations) == len(result.llm_traces) == 2
+        assert [it.iteration for it in result.iterations] == [1, 2]
+        assert [t["call_type"] for t in result.llm_traces] == [
+            "branch_generation",
+            "node_evaluation",
+        ]
+        assert [t["node_depth"] for t in result.llm_traces] == [0, 1]
+        assert result.llm_traces[1]["response_text"] == "0.9"
+        for trace in result.llm_traces:
+            assert identity in trace["prompt"] and other not in trace["prompt"]
+            assert trace["reasoning_text"] == identity
+            assert other not in trace["response_text"]
+        assert float(result_cost(result)[0]) == pytest.approx(value * 0.02)
+    assert sum(r.total_tokens for r in results.values()) == (
+        90 if first_outcome == "success" else 60
+    )
