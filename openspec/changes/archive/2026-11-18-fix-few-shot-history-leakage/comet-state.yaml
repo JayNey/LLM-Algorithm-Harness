@@ -1,0 +1,1680 @@
+# comet-execution: managed-run
+change_id: 4a54070c-8e41-4d6c-84e9-ca5f4f6ac053
+workflow: tweak
+language: zh-CN
+phase: archive
+context_compression: off
+build_mode: direct
+build_pause: null
+subagent_dispatch: null
+tdd_mode: direct
+review_mode: off
+isolation: current
+verify_mode: light
+auto_transition: true
+base_ref: 2d79bd95889c0305316bd989853cd43de2fcfe11
+design_doc: null
+plan: null
+verify_result: pass
+verify_failures: 0
+verification_report: docs/superpowers/reports/2026-11-18-fix-few-shot-history-leakage-verify.md
+branch_status: pending
+created_at: 2026-11-18
+verified_at: 2026-11-18
+archive_confirmation: confirmed
+archived: true
+bound_branch: main
+run_checkpoint:
+  schema: comet.workflow-run-checkpoint.v1
+  hash: 0cd54aeedd070e5d576711ab777ef434fb5ec9b6ad3e6bcb7b4b2a7eac8898c3
+  run:
+    protocolVersion: 1
+    schemaVersion: 1
+    runId: fix-few-shot-history-leakage
+    revision: 1
+    workflow:
+      id: comet-classic-tweak
+      version: "2"
+      hash: 518d3e8e12eb39899775cb7d2ddcc7ddeba10cb1f1d43cff7b03f2ca61a70c65
+    definitionHashes:
+      '["comet-classic-tweak","2"]': 518d3e8e12eb39899775cb7d2ddcc7ddeba10cb1f1d43cff7b03f2ca61a70c65
+    initialStateHash: 528aa38b8b2274388dea4d0d10f7a65f63bd0e6dff1da51fc6434ea5afc43265
+    input:
+      change: fix-few-shot-history-leakage
+      changeDir: openspec/changes/fix-few-shot-history-leakage
+      workspaceBaseline:
+        ref: 0dc0d201-2db3-4b0e-aa0d-4e309aad07c4
+    state:
+      archiveConfirmation: confirmed
+      archived: true
+      autoTransition: true
+      baseRef: 2d79bd95889c0305316bd989853cd43de2fcfe11
+      boundBranch: main
+      branchStatus: pending
+      buildMode: direct
+      buildPause: null
+      checkEpoch: 5
+      classicMigration: null
+      classicProfile: null
+      contextCompression: off
+      createdAt: 2026-11-18
+      designDoc: null
+      directOverride: null
+      handoffContext: null
+      handoffHash: null
+      isolation: current
+      language: zh-CN
+      phase: archive
+      plan: null
+      reviewMode: off
+      subagentDispatch: null
+      tddMode: direct
+      verificationReport: docs/superpowers/reports/2026-11-18-fix-few-shot-history-leakage-verify.md
+      verifiedAt: 2026-11-18
+      verifyFailures: 0
+      verifyMode: light
+      verifyResult: pass
+      workflow: tweak
+    status: running
+    sequence: 10
+    actions:
+      - attempt: 1
+        claim:
+          executorId: comet-classic-guard
+          token: portable-73e1d046d92fdf08cd2abd95c8d42f3c46dc5bd3c0f51abb0fbf67c528a839b6
+        executionOrigin:
+          workflow:
+            hash: 518d3e8e12eb39899775cb7d2ddcc7ddeba10cb1f1d43cff7b03f2ca61a70c65
+            id: comet-classic-tweak
+            version: "2"
+        id: fix-few-shot-history-leakage:1
+        input:
+          input:
+            change: fix-few-shot-history-leakage
+            changeDir: openspec/changes/fix-few-shot-history-leakage
+            workspaceBaseline:
+              ref: 0dc0d201-2db3-4b0e-aa0d-4e309aad07c4
+          outputs: {}
+        inputHash: 32dae79348ccfe9b3088c528e30204fc066eae664b22074b5aba2210e73390ab
+        outcome:
+          actionId: fix-few-shot-history-leakage:1
+          attempt: 1
+          claimToken: portable-73e1d046d92fdf08cd2abd95c8d42f3c46dc5bd3c0f51abb0fbf67c528a839b6
+          inputHash: 32dae79348ccfe9b3088c528e30204fc066eae664b22074b5aba2210e73390ab
+          outcomeId: 75047f93-2910-4cd8-acfd-75de010fb919
+          output:
+            event: open-complete
+            requirementsEvidence:
+              ref: openspec/changes/fix-few-shot-history-leakage
+          status: succeeded
+        protocolVersion: 1
+        receipts:
+          - hash: 970d3ed3a5c14debc78a190344ed9ce781597fae3e4319dbab737c953c0a29d2
+            outcomeId: 75047f93-2910-4cd8-acfd-75de010fb919
+        reconciliations: []
+        ref: comet-tweak
+        requiredCapabilities: []
+        retry: manual
+        runId: fix-few-shot-history-leakage
+        status: succeeded
+        stepId: tweak.open
+        type: invoke_skill
+      - attempt: 1
+        claim:
+          executorId: comet-classic-state
+          sessionId: codex-01a1ed63-2275-7330-9bc2-ec010c271e16
+          token: portable-0dab2b6a26c8b84876d4fbbdbc32a953ba3efbbf8b6f17042df39f62b11d9891
+        executionOrigin:
+          workflow:
+            hash: 518d3e8e12eb39899775cb7d2ddcc7ddeba10cb1f1d43cff7b03f2ca61a70c65
+            id: comet-classic-tweak
+            version: "2"
+        id: fix-few-shot-history-leakage:3
+        input:
+          input:
+            change: fix-few-shot-history-leakage
+            changeDir: openspec/changes/fix-few-shot-history-leakage
+            workspaceBaseline:
+              ref: 0dc0d201-2db3-4b0e-aa0d-4e309aad07c4
+          outputs:
+            tweak.open:
+              event: open-complete
+              requirementsEvidence:
+                ref: openspec/changes/fix-few-shot-history-leakage
+            tweak.open.evidence:
+              contentHash: 32dae79348ccfe9b3088c528e30204fc066eae664b22074b5aba2210e73390ab
+              ref: openspec/changes/fix-few-shot-history-leakage
+        inputHash: d470388e060800810f2e69142cb1397c016167bbdeec2c7c3dbfd3054337978f
+        outcome:
+          actionId: fix-few-shot-history-leakage:3
+          attempt: 1
+          claimToken: portable-0dab2b6a26c8b84876d4fbbdbc32a953ba3efbbf8b6f17042df39f62b11d9891
+          inputHash: d470388e060800810f2e69142cb1397c016167bbdeec2c7c3dbfd3054337978f
+          outcomeId: 24afe9d0-e3db-401c-a653-c32880fe4c19
+          output:
+            checks:
+              - name: "必要验收 /Users/verstappen/LLM-Algorithm-Harness: python -m pytest [9
+                  个相关测试模块] --no-cov -q"
+                note: 278 passed, 9 warnings;
+                  /private/tmp/issue-494-targeted-final.log；完整命令及扩展全仓尝试的失败/中断限制见
+                  change/verification.md
+                result: passed
+              - name: 全仓 python -m ruff check .
+                note: All checks passed
+                result: passed
+              - name: 源码 python -m mypy src/ --ignore-missing-imports
+                note: 104 source files; /private/tmp/issue-494-mypy-full.log
+                result: passed
+              - name: black --check 改动的 10 个 Python 文件
+                note: 10 files would be left unchanged
+                result: passed
+              - name: python scripts/find_missing_encoding.py
+                note: "Implicit text encodings: 0"
+                result: passed
+              - name: OpenSpec strict 与 git diff --check
+                note: 规格严格校验和 diff 格式通过
+                result: passed
+              - name: 本地 HTTP 环境复核
+                note: 允许回环端口后四项通过；/private/tmp/issue-494-loopback-green.log；沙箱内失败及全仓中断均记录在验证报告
+                result: passed
+            event: build-complete
+          status: succeeded
+        protocolVersion: 1
+        receipts:
+          - hash: 67840de5e8fc206af39dccb8edcde8c63c03fbad5903a515eb6e0bbd58b85fb6
+            outcomeId: 24afe9d0-e3db-401c-a653-c32880fe4c19
+        reconciliations: []
+        ref: comet-build
+        requiredCapabilities: []
+        retry: manual
+        runId: fix-few-shot-history-leakage
+        status: succeeded
+        stepId: tweak.build.execute
+        type: invoke_skill
+      - attempt: 1
+        claim:
+          executorId: comet-classic-guard
+          token: portable-35d9edd0112f1082c4a059794b91b035c937e0cb8cac0c773aa6c2cfcbeb9a0e
+        executionOrigin:
+          workflow:
+            hash: 518d3e8e12eb39899775cb7d2ddcc7ddeba10cb1f1d43cff7b03f2ca61a70c65
+            id: comet-classic-tweak
+            version: "2"
+        id: fix-few-shot-history-leakage:4
+        input:
+          input:
+            change: fix-few-shot-history-leakage
+            changeDir: openspec/changes/fix-few-shot-history-leakage
+            workspaceBaseline:
+              ref: 0dc0d201-2db3-4b0e-aa0d-4e309aad07c4
+          outputs:
+            tweak.build.execute:
+              checks:
+                - name: "必要验收 /Users/verstappen/LLM-Algorithm-Harness: python -m pytest [9
+                    个相关测试模块] --no-cov -q"
+                  note: 278 passed, 9 warnings;
+                    /private/tmp/issue-494-targeted-final.log；完整命令及扩展全仓尝试的失败/中断限制见
+                    change/verification.md
+                  result: passed
+                - name: 全仓 python -m ruff check .
+                  note: All checks passed
+                  result: passed
+                - name: 源码 python -m mypy src/ --ignore-missing-imports
+                  note: 104 source files; /private/tmp/issue-494-mypy-full.log
+                  result: passed
+                - name: black --check 改动的 10 个 Python 文件
+                  note: 10 files would be left unchanged
+                  result: passed
+                - name: python scripts/find_missing_encoding.py
+                  note: "Implicit text encodings: 0"
+                  result: passed
+                - name: OpenSpec strict 与 git diff --check
+                  note: 规格严格校验和 diff 格式通过
+                  result: passed
+                - name: 本地 HTTP 环境复核
+                  note: 允许回环端口后四项通过；/private/tmp/issue-494-loopback-green.log；沙箱内失败及全仓中断均记录在验证报告
+                  result: passed
+              event: build-complete
+            tweak.open:
+              event: open-complete
+              requirementsEvidence:
+                ref: openspec/changes/fix-few-shot-history-leakage
+            tweak.open.evidence:
+              contentHash: 32dae79348ccfe9b3088c528e30204fc066eae664b22074b5aba2210e73390ab
+              ref: openspec/changes/fix-few-shot-history-leakage
+        inputHash: 5ab75bd4858510aba033255c9fd312b6996be16f5c4565444e0571d8f2e68d98
+        outcome:
+          actionId: fix-few-shot-history-leakage:4
+          attempt: 1
+          claimToken: portable-35d9edd0112f1082c4a059794b91b035c937e0cb8cac0c773aa6c2cfcbeb9a0e
+          inputHash: 5ab75bd4858510aba033255c9fd312b6996be16f5c4565444e0571d8f2e68d98
+          outcomeId: 998f15c2-ad1d-45b5-9ea0-07308e37223b
+          output:
+            checks:
+              - name: "必要验收 /Users/verstappen/LLM-Algorithm-Harness: python -m pytest [9
+                  个相关测试模块] --no-cov -q"
+                note: 278 passed, 9 warnings;
+                  /private/tmp/issue-494-targeted-final.log；完整命令及扩展全仓尝试的失败/中断限制见
+                  docs/superpowers/reports/2026-11-18-fix-few-shot-history-leakage-verify.md
+                result: passed
+              - name: 全仓 python -m ruff check .
+                note: All checks passed
+                result: passed
+              - name: 源码 python -m mypy src/ --ignore-missing-imports
+                note: 104 source files; /private/tmp/issue-494-mypy-full.log
+                result: passed
+              - name: black --check 改动的 10 个 Python 文件
+                note: 10 files would be left unchanged
+                result: passed
+              - name: python scripts/find_missing_encoding.py
+                note: "Implicit text encodings: 0"
+                result: passed
+              - name: OpenSpec strict 与 git diff --check
+                note: 规格严格校验和 diff 格式通过
+                result: passed
+              - name: 本地 HTTP 环境复核
+                note: 允许回环端口后四项通过；/private/tmp/issue-494-loopback-green.log；沙箱内失败及全仓中断均记录在验证报告
+                result: passed
+            event: verification-ready
+            verificationReport: docs/superpowers/reports/2026-11-18-fix-few-shot-history-leakage-verify.md
+          status: succeeded
+        protocolVersion: 1
+        receipts:
+          - hash: 762596a6e35a1d3a7feab3b8be1fdd6f96c807a03db7b0d00ec671194d236449
+            outcomeId: 998f15c2-ad1d-45b5-9ea0-07308e37223b
+        reconciliations: []
+        ref: comet-verify
+        requiredCapabilities: []
+        retry: manual
+        runId: fix-few-shot-history-leakage
+        status: succeeded
+        stepId: tweak.verify.run
+        type: invoke_skill
+      - attempt: 1
+        claim:
+          executorId: comet-classic-state
+          token: portable-77cc91951a3ebefbeff4d1a85b7f2058a23be92d8ceb750dcd16b1e1e6c98880
+        executionOrigin:
+          workflow:
+            hash: 518d3e8e12eb39899775cb7d2ddcc7ddeba10cb1f1d43cff7b03f2ca61a70c65
+            id: comet-classic-tweak
+            version: "2"
+        id: fix-few-shot-history-leakage:6
+        input:
+          input:
+            change: fix-few-shot-history-leakage
+            changeDir: openspec/changes/fix-few-shot-history-leakage
+            workspaceBaseline:
+              ref: 0dc0d201-2db3-4b0e-aa0d-4e309aad07c4
+          outputs:
+            tweak.build.execute:
+              checks:
+                - name: "必要验收 /Users/verstappen/LLM-Algorithm-Harness: python -m pytest [9
+                    个相关测试模块] --no-cov -q"
+                  note: 278 passed, 9 warnings;
+                    /private/tmp/issue-494-targeted-final.log；完整命令及扩展全仓尝试的失败/中断限制见
+                    change/verification.md
+                  result: passed
+                - name: 全仓 python -m ruff check .
+                  note: All checks passed
+                  result: passed
+                - name: 源码 python -m mypy src/ --ignore-missing-imports
+                  note: 104 source files; /private/tmp/issue-494-mypy-full.log
+                  result: passed
+                - name: black --check 改动的 10 个 Python 文件
+                  note: 10 files would be left unchanged
+                  result: passed
+                - name: python scripts/find_missing_encoding.py
+                  note: "Implicit text encodings: 0"
+                  result: passed
+                - name: OpenSpec strict 与 git diff --check
+                  note: 规格严格校验和 diff 格式通过
+                  result: passed
+                - name: 本地 HTTP 环境复核
+                  note: 允许回环端口后四项通过；/private/tmp/issue-494-loopback-green.log；沙箱内失败及全仓中断均记录在验证报告
+                  result: passed
+              event: build-complete
+            tweak.open:
+              event: open-complete
+              requirementsEvidence:
+                ref: openspec/changes/fix-few-shot-history-leakage
+            tweak.open.evidence:
+              contentHash: 32dae79348ccfe9b3088c528e30204fc066eae664b22074b5aba2210e73390ab
+              ref: openspec/changes/fix-few-shot-history-leakage
+            tweak.verify.report.evidence:
+              contentHash: 5ab75bd4858510aba033255c9fd312b6996be16f5c4565444e0571d8f2e68d98
+              ref: docs/superpowers/reports/2026-11-18-fix-few-shot-history-leakage-verify.md
+            tweak.verify.run:
+              checks:
+                - name: "必要验收 /Users/verstappen/LLM-Algorithm-Harness: python -m pytest [9
+                    个相关测试模块] --no-cov -q"
+                  note: 278 passed, 9 warnings;
+                    /private/tmp/issue-494-targeted-final.log；完整命令及扩展全仓尝试的失败/中断限制见
+                    docs/superpowers/reports/2026-11-18-fix-few-shot-history-leakage-verify.md
+                  result: passed
+                - name: 全仓 python -m ruff check .
+                  note: All checks passed
+                  result: passed
+                - name: 源码 python -m mypy src/ --ignore-missing-imports
+                  note: 104 source files; /private/tmp/issue-494-mypy-full.log
+                  result: passed
+                - name: black --check 改动的 10 个 Python 文件
+                  note: 10 files would be left unchanged
+                  result: passed
+                - name: python scripts/find_missing_encoding.py
+                  note: "Implicit text encodings: 0"
+                  result: passed
+                - name: OpenSpec strict 与 git diff --check
+                  note: 规格严格校验和 diff 格式通过
+                  result: passed
+                - name: 本地 HTTP 环境复核
+                  note: 允许回环端口后四项通过；/private/tmp/issue-494-loopback-green.log；沙箱内失败及全仓中断均记录在验证报告
+                  result: passed
+              event: verification-ready
+              verificationReport: docs/superpowers/reports/2026-11-18-fix-few-shot-history-leakage-verify.md
+        inputHash: d57c8b96e819e6c8055a57f9736132fa58b444af070690b6c5d8f913aac4559b
+        outcome:
+          actionId: fix-few-shot-history-leakage:6
+          attempt: 1
+          claimToken: portable-77cc91951a3ebefbeff4d1a85b7f2058a23be92d8ceb750dcd16b1e1e6c98880
+          inputHash: d57c8b96e819e6c8055a57f9736132fa58b444af070690b6c5d8f913aac4559b
+          outcomeId: 1a6b92aa-db11-42fd-942a-aa5c9f1ae9ad
+          output:
+            prBaseBranch: main
+            remote: origin
+            summary: "Issue #494 已完成并通过 Verify；A=8ca1e2bd，B=eafa98d4；当前本地 main 比 origin/main
+              领先两次修复提交。归档将同步
+              strategies/few-shot-learning、result-recording、experiment/budget-c\
+              omparison 三份主规格，保存 change 与 walkthrough，并创建独立归档提交。local
+              仅本地归档提交；push 推送 origin/main；pr 需先新建并绑定
+              codex/fix-few-shot-history-leakage 分支，再推送并开往 origin/main 的
+              PR；reverify 返回验证；later 保留当前工作。未获推送或 PR 授权。"
+            targetBranch: main
+          status: succeeded
+        protocolVersion: 1
+        receipts:
+          - hash: 35311f074bad90ebbc6a1a90236e385bcfdf6c22c57d96dfdf1bda9684d2c034
+            outcomeId: 1a6b92aa-db11-42fd-942a-aa5c9f1ae9ad
+        reconciliations: []
+        ref: comet-archive
+        requiredCapabilities: []
+        retry: manual
+        runId: fix-few-shot-history-leakage
+        status: succeeded
+        stepId: tweak.archive.prepare
+        type: invoke_skill
+      - attempt: 1
+        claim:
+          executorId: comet-classic-archive-preflight
+          token: portable-4cbdc7583729ee4db477456595eb642496e3d899af7e35d938196032f86076ff
+        executionOrigin:
+          workflow:
+            hash: 518d3e8e12eb39899775cb7d2ddcc7ddeba10cb1f1d43cff7b03f2ca61a70c65
+            id: comet-classic-tweak
+            version: "2"
+        id: fix-few-shot-history-leakage:8
+        input:
+          input:
+            change: fix-few-shot-history-leakage
+            changeDir: openspec/changes/fix-few-shot-history-leakage
+            workspaceBaseline:
+              ref: 0dc0d201-2db3-4b0e-aa0d-4e309aad07c4
+          outputs:
+            tweak.archive.confirm:
+              choice: local
+              proposal:
+                input:
+                  change: fix-few-shot-history-leakage
+                  changeDir: openspec/changes/fix-few-shot-history-leakage
+                  workspaceBaseline:
+                    ref: 0dc0d201-2db3-4b0e-aa0d-4e309aad07c4
+                outputs:
+                  tweak.archive.prepare:
+                    prBaseBranch: main
+                    remote: origin
+                    summary: "Issue #494 已完成并通过 Verify；A=8ca1e2bd，B=eafa98d4；当前本地 main 比 origin/main
+                      领先两次修复提交。归档将同步
+                      strategies/few-shot-learning、result-recording、experiment/\
+                      budget-comparison 三份主规格，保存 change 与
+                      walkthrough，并创建独立归档提交。local 仅本地归档提交；push 推送 origin/main；pr
+                      需先新建并绑定 codex/fix-few-shot-history-leakage 分支，再推送并开往
+                      origin/main 的 PR；reverify 返回验证；later 保留当前工作。未获推送或 PR 授权。"
+                    targetBranch: main
+            tweak.archive.prepare:
+              prBaseBranch: main
+              remote: origin
+              summary: "Issue #494 已完成并通过 Verify；A=8ca1e2bd，B=eafa98d4；当前本地 main 比 origin/main
+                领先两次修复提交。归档将同步
+                strategies/few-shot-learning、result-recording、experiment/budget\
+                -comparison 三份主规格，保存 change 与 walkthrough，并创建独立归档提交。local
+                仅本地归档提交；push 推送 origin/main；pr 需先新建并绑定
+                codex/fix-few-shot-history-leakage 分支，再推送并开往 origin/main 的
+                PR；reverify 返回验证；later 保留当前工作。未获推送或 PR 授权。"
+              targetBranch: main
+            tweak.build.execute:
+              checks:
+                - name: "必要验收 /Users/verstappen/LLM-Algorithm-Harness: python -m pytest [9
+                    个相关测试模块] --no-cov -q"
+                  note: 278 passed, 9 warnings;
+                    /private/tmp/issue-494-targeted-final.log；完整命令及扩展全仓尝试的失败/中断限制见
+                    change/verification.md
+                  result: passed
+                - name: 全仓 python -m ruff check .
+                  note: All checks passed
+                  result: passed
+                - name: 源码 python -m mypy src/ --ignore-missing-imports
+                  note: 104 source files; /private/tmp/issue-494-mypy-full.log
+                  result: passed
+                - name: black --check 改动的 10 个 Python 文件
+                  note: 10 files would be left unchanged
+                  result: passed
+                - name: python scripts/find_missing_encoding.py
+                  note: "Implicit text encodings: 0"
+                  result: passed
+                - name: OpenSpec strict 与 git diff --check
+                  note: 规格严格校验和 diff 格式通过
+                  result: passed
+                - name: 本地 HTTP 环境复核
+                  note: 允许回环端口后四项通过；/private/tmp/issue-494-loopback-green.log；沙箱内失败及全仓中断均记录在验证报告
+                  result: passed
+              event: build-complete
+            tweak.open:
+              event: open-complete
+              requirementsEvidence:
+                ref: openspec/changes/fix-few-shot-history-leakage
+            tweak.open.evidence:
+              contentHash: 32dae79348ccfe9b3088c528e30204fc066eae664b22074b5aba2210e73390ab
+              ref: openspec/changes/fix-few-shot-history-leakage
+            tweak.verify.report.evidence:
+              contentHash: 5ab75bd4858510aba033255c9fd312b6996be16f5c4565444e0571d8f2e68d98
+              ref: docs/superpowers/reports/2026-11-18-fix-few-shot-history-leakage-verify.md
+            tweak.verify.run:
+              checks:
+                - name: "必要验收 /Users/verstappen/LLM-Algorithm-Harness: python -m pytest [9
+                    个相关测试模块] --no-cov -q"
+                  note: 278 passed, 9 warnings;
+                    /private/tmp/issue-494-targeted-final.log；完整命令及扩展全仓尝试的失败/中断限制见
+                    docs/superpowers/reports/2026-11-18-fix-few-shot-history-leakage-verify.md
+                  result: passed
+                - name: 全仓 python -m ruff check .
+                  note: All checks passed
+                  result: passed
+                - name: 源码 python -m mypy src/ --ignore-missing-imports
+                  note: 104 source files; /private/tmp/issue-494-mypy-full.log
+                  result: passed
+                - name: black --check 改动的 10 个 Python 文件
+                  note: 10 files would be left unchanged
+                  result: passed
+                - name: python scripts/find_missing_encoding.py
+                  note: "Implicit text encodings: 0"
+                  result: passed
+                - name: OpenSpec strict 与 git diff --check
+                  note: 规格严格校验和 diff 格式通过
+                  result: passed
+                - name: 本地 HTTP 环境复核
+                  note: 允许回环端口后四项通过；/private/tmp/issue-494-loopback-green.log；沙箱内失败及全仓中断均记录在验证报告
+                  result: passed
+              event: verification-ready
+              verificationReport: docs/superpowers/reports/2026-11-18-fix-few-shot-history-leakage-verify.md
+        inputHash: 0e71a55f93d146d0527b8fe7864fd4d3d9b302f8a5a16239515111c077055d72
+        outcome:
+          actionId: fix-few-shot-history-leakage:8
+          attempt: 1
+          claimToken: portable-4cbdc7583729ee4db477456595eb642496e3d899af7e35d938196032f86076ff
+          inputHash: 0e71a55f93d146d0527b8fe7864fd4d3d9b302f8a5a16239515111c077055d72
+          outcomeId: 9839a249-d1c3-48f8-8964-9b4911e8c1bb
+          output:
+            baseCommit: eafa98d49a2d52ade7d46c373d9921bc9800fabf
+            deliveryAction: local
+            deliveryPaths: []
+            prBaseBranch: main
+            remote: origin
+            remoteIdentity: 128eeb1e6f0d21b25601fcb7f9aad36adfdfb4d76f37f54f004760410190f351
+            targetBranch: main
+            verifiedBranch: main
+          status: succeeded
+        protocolVersion: 1
+        receipts:
+          - hash: 0e64cc2209ff5214c4b0176862e0de680893577281d857a2a73e0251db0faea6
+            outcomeId: 9839a249-d1c3-48f8-8964-9b4911e8c1bb
+        reconciliations: []
+        ref: classic-archive-preflight
+        requiredCapabilities: []
+        retry: manual
+        runId: fix-few-shot-history-leakage
+        status: succeeded
+        stepId: tweak.archive.preflight
+        type: call_tool
+      - attempt: 1
+        claim:
+          executorId: comet-classic-archive
+          token: portable-1237f0801551258fb59cce7c688a8186e17f2166f5671efec86bd3f3a9f24c46
+        executionOrigin:
+          workflow:
+            hash: 518d3e8e12eb39899775cb7d2ddcc7ddeba10cb1f1d43cff7b03f2ca61a70c65
+            id: comet-classic-tweak
+            version: "2"
+        id: fix-few-shot-history-leakage:9
+        input:
+          input:
+            change: fix-few-shot-history-leakage
+            changeDir: openspec/changes/fix-few-shot-history-leakage
+            workspaceBaseline:
+              ref: 0dc0d201-2db3-4b0e-aa0d-4e309aad07c4
+          outputs:
+            tweak.archive.confirm:
+              choice: local
+              proposal:
+                input:
+                  change: fix-few-shot-history-leakage
+                  changeDir: openspec/changes/fix-few-shot-history-leakage
+                  workspaceBaseline:
+                    ref: 0dc0d201-2db3-4b0e-aa0d-4e309aad07c4
+                outputs:
+                  tweak.archive.prepare:
+                    prBaseBranch: main
+                    remote: origin
+                    summary: "Issue #494 已完成并通过 Verify；A=8ca1e2bd，B=eafa98d4；当前本地 main 比 origin/main
+                      领先两次修复提交。归档将同步
+                      strategies/few-shot-learning、result-recording、experiment/\
+                      budget-comparison 三份主规格，保存 change 与
+                      walkthrough，并创建独立归档提交。local 仅本地归档提交；push 推送 origin/main；pr
+                      需先新建并绑定 codex/fix-few-shot-history-leakage 分支，再推送并开往
+                      origin/main 的 PR；reverify 返回验证；later 保留当前工作。未获推送或 PR 授权。"
+                    targetBranch: main
+            tweak.archive.preflight:
+              baseCommit: eafa98d49a2d52ade7d46c373d9921bc9800fabf
+              deliveryAction: local
+              deliveryPaths: []
+              prBaseBranch: main
+              remote: origin
+              remoteIdentity: 128eeb1e6f0d21b25601fcb7f9aad36adfdfb4d76f37f54f004760410190f351
+              targetBranch: main
+              verifiedBranch: main
+            tweak.archive.prepare:
+              prBaseBranch: main
+              remote: origin
+              summary: "Issue #494 已完成并通过 Verify；A=8ca1e2bd，B=eafa98d4；当前本地 main 比 origin/main
+                领先两次修复提交。归档将同步
+                strategies/few-shot-learning、result-recording、experiment/budget\
+                -comparison 三份主规格，保存 change 与 walkthrough，并创建独立归档提交。local
+                仅本地归档提交；push 推送 origin/main；pr 需先新建并绑定
+                codex/fix-few-shot-history-leakage 分支，再推送并开往 origin/main 的
+                PR；reverify 返回验证；later 保留当前工作。未获推送或 PR 授权。"
+              targetBranch: main
+            tweak.build.execute:
+              checks:
+                - name: "必要验收 /Users/verstappen/LLM-Algorithm-Harness: python -m pytest [9
+                    个相关测试模块] --no-cov -q"
+                  note: 278 passed, 9 warnings;
+                    /private/tmp/issue-494-targeted-final.log；完整命令及扩展全仓尝试的失败/中断限制见
+                    change/verification.md
+                  result: passed
+                - name: 全仓 python -m ruff check .
+                  note: All checks passed
+                  result: passed
+                - name: 源码 python -m mypy src/ --ignore-missing-imports
+                  note: 104 source files; /private/tmp/issue-494-mypy-full.log
+                  result: passed
+                - name: black --check 改动的 10 个 Python 文件
+                  note: 10 files would be left unchanged
+                  result: passed
+                - name: python scripts/find_missing_encoding.py
+                  note: "Implicit text encodings: 0"
+                  result: passed
+                - name: OpenSpec strict 与 git diff --check
+                  note: 规格严格校验和 diff 格式通过
+                  result: passed
+                - name: 本地 HTTP 环境复核
+                  note: 允许回环端口后四项通过；/private/tmp/issue-494-loopback-green.log；沙箱内失败及全仓中断均记录在验证报告
+                  result: passed
+              event: build-complete
+            tweak.open:
+              event: open-complete
+              requirementsEvidence:
+                ref: openspec/changes/fix-few-shot-history-leakage
+            tweak.open.evidence:
+              contentHash: 32dae79348ccfe9b3088c528e30204fc066eae664b22074b5aba2210e73390ab
+              ref: openspec/changes/fix-few-shot-history-leakage
+            tweak.verify.report.evidence:
+              contentHash: 5ab75bd4858510aba033255c9fd312b6996be16f5c4565444e0571d8f2e68d98
+              ref: docs/superpowers/reports/2026-11-18-fix-few-shot-history-leakage-verify.md
+            tweak.verify.run:
+              checks:
+                - name: "必要验收 /Users/verstappen/LLM-Algorithm-Harness: python -m pytest [9
+                    个相关测试模块] --no-cov -q"
+                  note: 278 passed, 9 warnings;
+                    /private/tmp/issue-494-targeted-final.log；完整命令及扩展全仓尝试的失败/中断限制见
+                    docs/superpowers/reports/2026-11-18-fix-few-shot-history-leakage-verify.md
+                  result: passed
+                - name: 全仓 python -m ruff check .
+                  note: All checks passed
+                  result: passed
+                - name: 源码 python -m mypy src/ --ignore-missing-imports
+                  note: 104 source files; /private/tmp/issue-494-mypy-full.log
+                  result: passed
+                - name: black --check 改动的 10 个 Python 文件
+                  note: 10 files would be left unchanged
+                  result: passed
+                - name: python scripts/find_missing_encoding.py
+                  note: "Implicit text encodings: 0"
+                  result: passed
+                - name: OpenSpec strict 与 git diff --check
+                  note: 规格严格校验和 diff 格式通过
+                  result: passed
+                - name: 本地 HTTP 环境复核
+                  note: 允许回环端口后四项通过；/private/tmp/issue-494-loopback-green.log；沙箱内失败及全仓中断均记录在验证报告
+                  result: passed
+              event: verification-ready
+              verificationReport: docs/superpowers/reports/2026-11-18-fix-few-shot-history-leakage-verify.md
+        inputHash: b774cf73ff9391358cb80d9cac475f1fbb98dc875c36abc9e74a795aa7470bce
+        outcome:
+          actionId: fix-few-shot-history-leakage:9
+          artifacts: []
+          attempt: 1
+          claimToken: portable-1237f0801551258fb59cce7c688a8186e17f2166f5671efec86bd3f3a9f24c46
+          inputHash: b774cf73ff9391358cb80d9cac475f1fbb98dc875c36abc9e74a795aa7470bce
+          outcomeId: 5d0986b1-011c-427f-b3af-33eda92c6207
+          output:
+            archiveDirectory: openspec/changes/archive/2026-11-18-fix-few-shot-history-leakage
+          status: succeeded
+        protocolVersion: 1
+        receipts:
+          - hash: e63a3a8eca12b07c5e1d404cc3b55bc9b7bfb66a1a138efe8b86224a0509db6d
+            outcomeId: 5d0986b1-011c-427f-b3af-33eda92c6207
+        reconciliations: []
+        ref: classic-archive
+        requiredCapabilities: []
+        retry: manual
+        runId: fix-few-shot-history-leakage
+        status: succeeded
+        stepId: tweak.archive.execute
+        type: call_tool
+      - attempt: 1
+        id: fix-few-shot-history-leakage:10
+        input:
+          input:
+            change: fix-few-shot-history-leakage
+            changeDir: openspec/changes/fix-few-shot-history-leakage
+            workspaceBaseline:
+              ref: 0dc0d201-2db3-4b0e-aa0d-4e309aad07c4
+          outputs:
+            tweak.archive.confirm:
+              choice: local
+              proposal:
+                input:
+                  change: fix-few-shot-history-leakage
+                  changeDir: openspec/changes/fix-few-shot-history-leakage
+                  workspaceBaseline:
+                    ref: 0dc0d201-2db3-4b0e-aa0d-4e309aad07c4
+                outputs:
+                  tweak.archive.prepare:
+                    prBaseBranch: main
+                    remote: origin
+                    summary: "Issue #494 已完成并通过 Verify；A=8ca1e2bd，B=eafa98d4；当前本地 main 比 origin/main
+                      领先两次修复提交。归档将同步
+                      strategies/few-shot-learning、result-recording、experiment/\
+                      budget-comparison 三份主规格，保存 change 与
+                      walkthrough，并创建独立归档提交。local 仅本地归档提交；push 推送 origin/main；pr
+                      需先新建并绑定 codex/fix-few-shot-history-leakage 分支，再推送并开往
+                      origin/main 的 PR；reverify 返回验证；later 保留当前工作。未获推送或 PR 授权。"
+                    targetBranch: main
+            tweak.archive.execute:
+              archiveDirectory: openspec/changes/archive/2026-11-18-fix-few-shot-history-leakage
+            tweak.archive.preflight:
+              baseCommit: eafa98d49a2d52ade7d46c373d9921bc9800fabf
+              deliveryAction: local
+              deliveryPaths: []
+              prBaseBranch: main
+              remote: origin
+              remoteIdentity: 128eeb1e6f0d21b25601fcb7f9aad36adfdfb4d76f37f54f004760410190f351
+              targetBranch: main
+              verifiedBranch: main
+            tweak.archive.prepare:
+              prBaseBranch: main
+              remote: origin
+              summary: "Issue #494 已完成并通过 Verify；A=8ca1e2bd，B=eafa98d4；当前本地 main 比 origin/main
+                领先两次修复提交。归档将同步
+                strategies/few-shot-learning、result-recording、experiment/budget\
+                -comparison 三份主规格，保存 change 与 walkthrough，并创建独立归档提交。local
+                仅本地归档提交；push 推送 origin/main；pr 需先新建并绑定
+                codex/fix-few-shot-history-leakage 分支，再推送并开往 origin/main 的
+                PR；reverify 返回验证；later 保留当前工作。未获推送或 PR 授权。"
+              targetBranch: main
+            tweak.build.execute:
+              checks:
+                - name: "必要验收 /Users/verstappen/LLM-Algorithm-Harness: python -m pytest [9
+                    个相关测试模块] --no-cov -q"
+                  note: 278 passed, 9 warnings;
+                    /private/tmp/issue-494-targeted-final.log；完整命令及扩展全仓尝试的失败/中断限制见
+                    change/verification.md
+                  result: passed
+                - name: 全仓 python -m ruff check .
+                  note: All checks passed
+                  result: passed
+                - name: 源码 python -m mypy src/ --ignore-missing-imports
+                  note: 104 source files; /private/tmp/issue-494-mypy-full.log
+                  result: passed
+                - name: black --check 改动的 10 个 Python 文件
+                  note: 10 files would be left unchanged
+                  result: passed
+                - name: python scripts/find_missing_encoding.py
+                  note: "Implicit text encodings: 0"
+                  result: passed
+                - name: OpenSpec strict 与 git diff --check
+                  note: 规格严格校验和 diff 格式通过
+                  result: passed
+                - name: 本地 HTTP 环境复核
+                  note: 允许回环端口后四项通过；/private/tmp/issue-494-loopback-green.log；沙箱内失败及全仓中断均记录在验证报告
+                  result: passed
+              event: build-complete
+            tweak.open:
+              event: open-complete
+              requirementsEvidence:
+                ref: openspec/changes/fix-few-shot-history-leakage
+            tweak.open.evidence:
+              contentHash: 32dae79348ccfe9b3088c528e30204fc066eae664b22074b5aba2210e73390ab
+              ref: openspec/changes/fix-few-shot-history-leakage
+            tweak.verify.report.evidence:
+              contentHash: 5ab75bd4858510aba033255c9fd312b6996be16f5c4565444e0571d8f2e68d98
+              ref: docs/superpowers/reports/2026-11-18-fix-few-shot-history-leakage-verify.md
+            tweak.verify.run:
+              checks:
+                - name: "必要验收 /Users/verstappen/LLM-Algorithm-Harness: python -m pytest [9
+                    个相关测试模块] --no-cov -q"
+                  note: 278 passed, 9 warnings;
+                    /private/tmp/issue-494-targeted-final.log；完整命令及扩展全仓尝试的失败/中断限制见
+                    docs/superpowers/reports/2026-11-18-fix-few-shot-history-leakage-verify.md
+                  result: passed
+                - name: 全仓 python -m ruff check .
+                  note: All checks passed
+                  result: passed
+                - name: 源码 python -m mypy src/ --ignore-missing-imports
+                  note: 104 source files; /private/tmp/issue-494-mypy-full.log
+                  result: passed
+                - name: black --check 改动的 10 个 Python 文件
+                  note: 10 files would be left unchanged
+                  result: passed
+                - name: python scripts/find_missing_encoding.py
+                  note: "Implicit text encodings: 0"
+                  result: passed
+                - name: OpenSpec strict 与 git diff --check
+                  note: 规格严格校验和 diff 格式通过
+                  result: passed
+                - name: 本地 HTTP 环境复核
+                  note: 允许回环端口后四项通过；/private/tmp/issue-494-loopback-green.log；沙箱内失败及全仓中断均记录在验证报告
+                  result: passed
+              event: verification-ready
+              verificationReport: docs/superpowers/reports/2026-11-18-fix-few-shot-history-leakage-verify.md
+        inputHash: 0626dbfdafa1ec473e56ce57e54866bc1af295b7d683f552c05928ca12958746
+        protocolVersion: 1
+        receipts: []
+        reconciliations: []
+        ref: comet-archive
+        requiredCapabilities: []
+        retry: manual
+        runId: fix-few-shot-history-leakage
+        status: pending
+        stepId: tweak.archive.deliver
+        type: invoke_skill
+    actionContexts:
+      fix-few-shot-history-leakage:1:
+        results: {}
+        sequence: 1
+      fix-few-shot-history-leakage:10:
+        results:
+          tweak.archive.confirm:
+            sequence: 7
+            value:
+              choice: local
+              proposal:
+                input:
+                  change: fix-few-shot-history-leakage
+                  changeDir: openspec/changes/fix-few-shot-history-leakage
+                  workspaceBaseline:
+                    ref: 0dc0d201-2db3-4b0e-aa0d-4e309aad07c4
+                outputs:
+                  tweak.archive.prepare:
+                    prBaseBranch: main
+                    remote: origin
+                    summary: "Issue #494 已完成并通过 Verify；A=8ca1e2bd，B=eafa98d4；当前本地 main 比 origin/main
+                      领先两次修复提交。归档将同步
+                      strategies/few-shot-learning、result-recording、experiment/\
+                      budget-comparison 三份主规格，保存 change 与
+                      walkthrough，并创建独立归档提交。local 仅本地归档提交；push 推送 origin/main；pr
+                      需先新建并绑定 codex/fix-few-shot-history-leakage 分支，再推送并开往
+                      origin/main 的 PR；reverify 返回验证；later 保留当前工作。未获推送或 PR 授权。"
+                    targetBranch: main
+          tweak.archive.execute:
+            sequence: 9
+            value:
+              archiveDirectory: openspec/changes/archive/2026-11-18-fix-few-shot-history-leakage
+          tweak.archive.preflight:
+            sequence: 8
+            value:
+              baseCommit: eafa98d49a2d52ade7d46c373d9921bc9800fabf
+              deliveryAction: local
+              deliveryPaths: []
+              prBaseBranch: main
+              remote: origin
+              remoteIdentity: 128eeb1e6f0d21b25601fcb7f9aad36adfdfb4d76f37f54f004760410190f351
+              targetBranch: main
+              verifiedBranch: main
+          tweak.archive.prepare:
+            sequence: 6
+            value:
+              prBaseBranch: main
+              remote: origin
+              summary: "Issue #494 已完成并通过 Verify；A=8ca1e2bd，B=eafa98d4；当前本地 main 比 origin/main
+                领先两次修复提交。归档将同步
+                strategies/few-shot-learning、result-recording、experiment/budget\
+                -comparison 三份主规格，保存 change 与 walkthrough，并创建独立归档提交。local
+                仅本地归档提交；push 推送 origin/main；pr 需先新建并绑定
+                codex/fix-few-shot-history-leakage 分支，再推送并开往 origin/main 的
+                PR；reverify 返回验证；later 保留当前工作。未获推送或 PR 授权。"
+              targetBranch: main
+          tweak.build.execute:
+            sequence: 3
+            value:
+              checks:
+                - name: "必要验收 /Users/verstappen/LLM-Algorithm-Harness: python -m pytest [9
+                    个相关测试模块] --no-cov -q"
+                  note: 278 passed, 9 warnings;
+                    /private/tmp/issue-494-targeted-final.log；完整命令及扩展全仓尝试的失败/中断限制见
+                    change/verification.md
+                  result: passed
+                - name: 全仓 python -m ruff check .
+                  note: All checks passed
+                  result: passed
+                - name: 源码 python -m mypy src/ --ignore-missing-imports
+                  note: 104 source files; /private/tmp/issue-494-mypy-full.log
+                  result: passed
+                - name: black --check 改动的 10 个 Python 文件
+                  note: 10 files would be left unchanged
+                  result: passed
+                - name: python scripts/find_missing_encoding.py
+                  note: "Implicit text encodings: 0"
+                  result: passed
+                - name: OpenSpec strict 与 git diff --check
+                  note: 规格严格校验和 diff 格式通过
+                  result: passed
+                - name: 本地 HTTP 环境复核
+                  note: 允许回环端口后四项通过；/private/tmp/issue-494-loopback-green.log；沙箱内失败及全仓中断均记录在验证报告
+                  result: passed
+              event: build-complete
+          tweak.open:
+            sequence: 1
+            value:
+              event: open-complete
+              requirementsEvidence:
+                ref: openspec/changes/fix-few-shot-history-leakage
+          tweak.open.evidence:
+            sequence: 2
+            value:
+              contentHash: 32dae79348ccfe9b3088c528e30204fc066eae664b22074b5aba2210e73390ab
+              ref: openspec/changes/fix-few-shot-history-leakage
+          tweak.verify.report.evidence:
+            sequence: 5
+            value:
+              contentHash: 5ab75bd4858510aba033255c9fd312b6996be16f5c4565444e0571d8f2e68d98
+              ref: docs/superpowers/reports/2026-11-18-fix-few-shot-history-leakage-verify.md
+          tweak.verify.run:
+            sequence: 4
+            value:
+              checks:
+                - name: "必要验收 /Users/verstappen/LLM-Algorithm-Harness: python -m pytest [9
+                    个相关测试模块] --no-cov -q"
+                  note: 278 passed, 9 warnings;
+                    /private/tmp/issue-494-targeted-final.log；完整命令及扩展全仓尝试的失败/中断限制见
+                    docs/superpowers/reports/2026-11-18-fix-few-shot-history-leakage-verify.md
+                  result: passed
+                - name: 全仓 python -m ruff check .
+                  note: All checks passed
+                  result: passed
+                - name: 源码 python -m mypy src/ --ignore-missing-imports
+                  note: 104 source files; /private/tmp/issue-494-mypy-full.log
+                  result: passed
+                - name: black --check 改动的 10 个 Python 文件
+                  note: 10 files would be left unchanged
+                  result: passed
+                - name: python scripts/find_missing_encoding.py
+                  note: "Implicit text encodings: 0"
+                  result: passed
+                - name: OpenSpec strict 与 git diff --check
+                  note: 规格严格校验和 diff 格式通过
+                  result: passed
+                - name: 本地 HTTP 环境复核
+                  note: 允许回环端口后四项通过；/private/tmp/issue-494-loopback-green.log；沙箱内失败及全仓中断均记录在验证报告
+                  result: passed
+              event: verification-ready
+              verificationReport: docs/superpowers/reports/2026-11-18-fix-few-shot-history-leakage-verify.md
+        sequence: 10
+      fix-few-shot-history-leakage:3:
+        results:
+          tweak.open:
+            sequence: 1
+            value:
+              event: open-complete
+              requirementsEvidence:
+                ref: openspec/changes/fix-few-shot-history-leakage
+          tweak.open.evidence:
+            sequence: 2
+            value:
+              contentHash: 32dae79348ccfe9b3088c528e30204fc066eae664b22074b5aba2210e73390ab
+              ref: openspec/changes/fix-few-shot-history-leakage
+        sequence: 3
+      fix-few-shot-history-leakage:4:
+        results:
+          tweak.build.execute:
+            sequence: 3
+            value:
+              checks:
+                - name: "必要验收 /Users/verstappen/LLM-Algorithm-Harness: python -m pytest [9
+                    个相关测试模块] --no-cov -q"
+                  note: 278 passed, 9 warnings;
+                    /private/tmp/issue-494-targeted-final.log；完整命令及扩展全仓尝试的失败/中断限制见
+                    change/verification.md
+                  result: passed
+                - name: 全仓 python -m ruff check .
+                  note: All checks passed
+                  result: passed
+                - name: 源码 python -m mypy src/ --ignore-missing-imports
+                  note: 104 source files; /private/tmp/issue-494-mypy-full.log
+                  result: passed
+                - name: black --check 改动的 10 个 Python 文件
+                  note: 10 files would be left unchanged
+                  result: passed
+                - name: python scripts/find_missing_encoding.py
+                  note: "Implicit text encodings: 0"
+                  result: passed
+                - name: OpenSpec strict 与 git diff --check
+                  note: 规格严格校验和 diff 格式通过
+                  result: passed
+                - name: 本地 HTTP 环境复核
+                  note: 允许回环端口后四项通过；/private/tmp/issue-494-loopback-green.log；沙箱内失败及全仓中断均记录在验证报告
+                  result: passed
+              event: build-complete
+          tweak.open:
+            sequence: 1
+            value:
+              event: open-complete
+              requirementsEvidence:
+                ref: openspec/changes/fix-few-shot-history-leakage
+          tweak.open.evidence:
+            sequence: 2
+            value:
+              contentHash: 32dae79348ccfe9b3088c528e30204fc066eae664b22074b5aba2210e73390ab
+              ref: openspec/changes/fix-few-shot-history-leakage
+        sequence: 4
+      fix-few-shot-history-leakage:6:
+        results:
+          tweak.build.execute:
+            sequence: 3
+            value:
+              checks:
+                - name: "必要验收 /Users/verstappen/LLM-Algorithm-Harness: python -m pytest [9
+                    个相关测试模块] --no-cov -q"
+                  note: 278 passed, 9 warnings;
+                    /private/tmp/issue-494-targeted-final.log；完整命令及扩展全仓尝试的失败/中断限制见
+                    change/verification.md
+                  result: passed
+                - name: 全仓 python -m ruff check .
+                  note: All checks passed
+                  result: passed
+                - name: 源码 python -m mypy src/ --ignore-missing-imports
+                  note: 104 source files; /private/tmp/issue-494-mypy-full.log
+                  result: passed
+                - name: black --check 改动的 10 个 Python 文件
+                  note: 10 files would be left unchanged
+                  result: passed
+                - name: python scripts/find_missing_encoding.py
+                  note: "Implicit text encodings: 0"
+                  result: passed
+                - name: OpenSpec strict 与 git diff --check
+                  note: 规格严格校验和 diff 格式通过
+                  result: passed
+                - name: 本地 HTTP 环境复核
+                  note: 允许回环端口后四项通过；/private/tmp/issue-494-loopback-green.log；沙箱内失败及全仓中断均记录在验证报告
+                  result: passed
+              event: build-complete
+          tweak.open:
+            sequence: 1
+            value:
+              event: open-complete
+              requirementsEvidence:
+                ref: openspec/changes/fix-few-shot-history-leakage
+          tweak.open.evidence:
+            sequence: 2
+            value:
+              contentHash: 32dae79348ccfe9b3088c528e30204fc066eae664b22074b5aba2210e73390ab
+              ref: openspec/changes/fix-few-shot-history-leakage
+          tweak.verify.report.evidence:
+            sequence: 5
+            value:
+              contentHash: 5ab75bd4858510aba033255c9fd312b6996be16f5c4565444e0571d8f2e68d98
+              ref: docs/superpowers/reports/2026-11-18-fix-few-shot-history-leakage-verify.md
+          tweak.verify.run:
+            sequence: 4
+            value:
+              checks:
+                - name: "必要验收 /Users/verstappen/LLM-Algorithm-Harness: python -m pytest [9
+                    个相关测试模块] --no-cov -q"
+                  note: 278 passed, 9 warnings;
+                    /private/tmp/issue-494-targeted-final.log；完整命令及扩展全仓尝试的失败/中断限制见
+                    docs/superpowers/reports/2026-11-18-fix-few-shot-history-leakage-verify.md
+                  result: passed
+                - name: 全仓 python -m ruff check .
+                  note: All checks passed
+                  result: passed
+                - name: 源码 python -m mypy src/ --ignore-missing-imports
+                  note: 104 source files; /private/tmp/issue-494-mypy-full.log
+                  result: passed
+                - name: black --check 改动的 10 个 Python 文件
+                  note: 10 files would be left unchanged
+                  result: passed
+                - name: python scripts/find_missing_encoding.py
+                  note: "Implicit text encodings: 0"
+                  result: passed
+                - name: OpenSpec strict 与 git diff --check
+                  note: 规格严格校验和 diff 格式通过
+                  result: passed
+                - name: 本地 HTTP 环境复核
+                  note: 允许回环端口后四项通过；/private/tmp/issue-494-loopback-green.log；沙箱内失败及全仓中断均记录在验证报告
+                  result: passed
+              event: verification-ready
+              verificationReport: docs/superpowers/reports/2026-11-18-fix-few-shot-history-leakage-verify.md
+        sequence: 6
+      fix-few-shot-history-leakage:8:
+        results:
+          tweak.archive.confirm:
+            sequence: 7
+            value:
+              choice: local
+              proposal:
+                input:
+                  change: fix-few-shot-history-leakage
+                  changeDir: openspec/changes/fix-few-shot-history-leakage
+                  workspaceBaseline:
+                    ref: 0dc0d201-2db3-4b0e-aa0d-4e309aad07c4
+                outputs:
+                  tweak.archive.prepare:
+                    prBaseBranch: main
+                    remote: origin
+                    summary: "Issue #494 已完成并通过 Verify；A=8ca1e2bd，B=eafa98d4；当前本地 main 比 origin/main
+                      领先两次修复提交。归档将同步
+                      strategies/few-shot-learning、result-recording、experiment/\
+                      budget-comparison 三份主规格，保存 change 与
+                      walkthrough，并创建独立归档提交。local 仅本地归档提交；push 推送 origin/main；pr
+                      需先新建并绑定 codex/fix-few-shot-history-leakage 分支，再推送并开往
+                      origin/main 的 PR；reverify 返回验证；later 保留当前工作。未获推送或 PR 授权。"
+                    targetBranch: main
+          tweak.archive.prepare:
+            sequence: 6
+            value:
+              prBaseBranch: main
+              remote: origin
+              summary: "Issue #494 已完成并通过 Verify；A=8ca1e2bd，B=eafa98d4；当前本地 main 比 origin/main
+                领先两次修复提交。归档将同步
+                strategies/few-shot-learning、result-recording、experiment/budget\
+                -comparison 三份主规格，保存 change 与 walkthrough，并创建独立归档提交。local
+                仅本地归档提交；push 推送 origin/main；pr 需先新建并绑定
+                codex/fix-few-shot-history-leakage 分支，再推送并开往 origin/main 的
+                PR；reverify 返回验证；later 保留当前工作。未获推送或 PR 授权。"
+              targetBranch: main
+          tweak.build.execute:
+            sequence: 3
+            value:
+              checks:
+                - name: "必要验收 /Users/verstappen/LLM-Algorithm-Harness: python -m pytest [9
+                    个相关测试模块] --no-cov -q"
+                  note: 278 passed, 9 warnings;
+                    /private/tmp/issue-494-targeted-final.log；完整命令及扩展全仓尝试的失败/中断限制见
+                    change/verification.md
+                  result: passed
+                - name: 全仓 python -m ruff check .
+                  note: All checks passed
+                  result: passed
+                - name: 源码 python -m mypy src/ --ignore-missing-imports
+                  note: 104 source files; /private/tmp/issue-494-mypy-full.log
+                  result: passed
+                - name: black --check 改动的 10 个 Python 文件
+                  note: 10 files would be left unchanged
+                  result: passed
+                - name: python scripts/find_missing_encoding.py
+                  note: "Implicit text encodings: 0"
+                  result: passed
+                - name: OpenSpec strict 与 git diff --check
+                  note: 规格严格校验和 diff 格式通过
+                  result: passed
+                - name: 本地 HTTP 环境复核
+                  note: 允许回环端口后四项通过；/private/tmp/issue-494-loopback-green.log；沙箱内失败及全仓中断均记录在验证报告
+                  result: passed
+              event: build-complete
+          tweak.open:
+            sequence: 1
+            value:
+              event: open-complete
+              requirementsEvidence:
+                ref: openspec/changes/fix-few-shot-history-leakage
+          tweak.open.evidence:
+            sequence: 2
+            value:
+              contentHash: 32dae79348ccfe9b3088c528e30204fc066eae664b22074b5aba2210e73390ab
+              ref: openspec/changes/fix-few-shot-history-leakage
+          tweak.verify.report.evidence:
+            sequence: 5
+            value:
+              contentHash: 5ab75bd4858510aba033255c9fd312b6996be16f5c4565444e0571d8f2e68d98
+              ref: docs/superpowers/reports/2026-11-18-fix-few-shot-history-leakage-verify.md
+          tweak.verify.run:
+            sequence: 4
+            value:
+              checks:
+                - name: "必要验收 /Users/verstappen/LLM-Algorithm-Harness: python -m pytest [9
+                    个相关测试模块] --no-cov -q"
+                  note: 278 passed, 9 warnings;
+                    /private/tmp/issue-494-targeted-final.log；完整命令及扩展全仓尝试的失败/中断限制见
+                    docs/superpowers/reports/2026-11-18-fix-few-shot-history-leakage-verify.md
+                  result: passed
+                - name: 全仓 python -m ruff check .
+                  note: All checks passed
+                  result: passed
+                - name: 源码 python -m mypy src/ --ignore-missing-imports
+                  note: 104 source files; /private/tmp/issue-494-mypy-full.log
+                  result: passed
+                - name: black --check 改动的 10 个 Python 文件
+                  note: 10 files would be left unchanged
+                  result: passed
+                - name: python scripts/find_missing_encoding.py
+                  note: "Implicit text encodings: 0"
+                  result: passed
+                - name: OpenSpec strict 与 git diff --check
+                  note: 规格严格校验和 diff 格式通过
+                  result: passed
+                - name: 本地 HTTP 环境复核
+                  note: 允许回环端口后四项通过；/private/tmp/issue-494-loopback-green.log；沙箱内失败及全仓中断均记录在验证报告
+                  result: passed
+              event: verification-ready
+              verificationReport: docs/superpowers/reports/2026-11-18-fix-few-shot-history-leakage-verify.md
+        sequence: 8
+      fix-few-shot-history-leakage:9:
+        results:
+          tweak.archive.confirm:
+            sequence: 7
+            value:
+              choice: local
+              proposal:
+                input:
+                  change: fix-few-shot-history-leakage
+                  changeDir: openspec/changes/fix-few-shot-history-leakage
+                  workspaceBaseline:
+                    ref: 0dc0d201-2db3-4b0e-aa0d-4e309aad07c4
+                outputs:
+                  tweak.archive.prepare:
+                    prBaseBranch: main
+                    remote: origin
+                    summary: "Issue #494 已完成并通过 Verify；A=8ca1e2bd，B=eafa98d4；当前本地 main 比 origin/main
+                      领先两次修复提交。归档将同步
+                      strategies/few-shot-learning、result-recording、experiment/\
+                      budget-comparison 三份主规格，保存 change 与
+                      walkthrough，并创建独立归档提交。local 仅本地归档提交；push 推送 origin/main；pr
+                      需先新建并绑定 codex/fix-few-shot-history-leakage 分支，再推送并开往
+                      origin/main 的 PR；reverify 返回验证；later 保留当前工作。未获推送或 PR 授权。"
+                    targetBranch: main
+          tweak.archive.preflight:
+            sequence: 8
+            value:
+              baseCommit: eafa98d49a2d52ade7d46c373d9921bc9800fabf
+              deliveryAction: local
+              deliveryPaths: []
+              prBaseBranch: main
+              remote: origin
+              remoteIdentity: 128eeb1e6f0d21b25601fcb7f9aad36adfdfb4d76f37f54f004760410190f351
+              targetBranch: main
+              verifiedBranch: main
+          tweak.archive.prepare:
+            sequence: 6
+            value:
+              prBaseBranch: main
+              remote: origin
+              summary: "Issue #494 已完成并通过 Verify；A=8ca1e2bd，B=eafa98d4；当前本地 main 比 origin/main
+                领先两次修复提交。归档将同步
+                strategies/few-shot-learning、result-recording、experiment/budget\
+                -comparison 三份主规格，保存 change 与 walkthrough，并创建独立归档提交。local
+                仅本地归档提交；push 推送 origin/main；pr 需先新建并绑定
+                codex/fix-few-shot-history-leakage 分支，再推送并开往 origin/main 的
+                PR；reverify 返回验证；later 保留当前工作。未获推送或 PR 授权。"
+              targetBranch: main
+          tweak.build.execute:
+            sequence: 3
+            value:
+              checks:
+                - name: "必要验收 /Users/verstappen/LLM-Algorithm-Harness: python -m pytest [9
+                    个相关测试模块] --no-cov -q"
+                  note: 278 passed, 9 warnings;
+                    /private/tmp/issue-494-targeted-final.log；完整命令及扩展全仓尝试的失败/中断限制见
+                    change/verification.md
+                  result: passed
+                - name: 全仓 python -m ruff check .
+                  note: All checks passed
+                  result: passed
+                - name: 源码 python -m mypy src/ --ignore-missing-imports
+                  note: 104 source files; /private/tmp/issue-494-mypy-full.log
+                  result: passed
+                - name: black --check 改动的 10 个 Python 文件
+                  note: 10 files would be left unchanged
+                  result: passed
+                - name: python scripts/find_missing_encoding.py
+                  note: "Implicit text encodings: 0"
+                  result: passed
+                - name: OpenSpec strict 与 git diff --check
+                  note: 规格严格校验和 diff 格式通过
+                  result: passed
+                - name: 本地 HTTP 环境复核
+                  note: 允许回环端口后四项通过；/private/tmp/issue-494-loopback-green.log；沙箱内失败及全仓中断均记录在验证报告
+                  result: passed
+              event: build-complete
+          tweak.open:
+            sequence: 1
+            value:
+              event: open-complete
+              requirementsEvidence:
+                ref: openspec/changes/fix-few-shot-history-leakage
+          tweak.open.evidence:
+            sequence: 2
+            value:
+              contentHash: 32dae79348ccfe9b3088c528e30204fc066eae664b22074b5aba2210e73390ab
+              ref: openspec/changes/fix-few-shot-history-leakage
+          tweak.verify.report.evidence:
+            sequence: 5
+            value:
+              contentHash: 5ab75bd4858510aba033255c9fd312b6996be16f5c4565444e0571d8f2e68d98
+              ref: docs/superpowers/reports/2026-11-18-fix-few-shot-history-leakage-verify.md
+          tweak.verify.run:
+            sequence: 4
+            value:
+              checks:
+                - name: "必要验收 /Users/verstappen/LLM-Algorithm-Harness: python -m pytest [9
+                    个相关测试模块] --no-cov -q"
+                  note: 278 passed, 9 warnings;
+                    /private/tmp/issue-494-targeted-final.log；完整命令及扩展全仓尝试的失败/中断限制见
+                    docs/superpowers/reports/2026-11-18-fix-few-shot-history-leakage-verify.md
+                  result: passed
+                - name: 全仓 python -m ruff check .
+                  note: All checks passed
+                  result: passed
+                - name: 源码 python -m mypy src/ --ignore-missing-imports
+                  note: 104 source files; /private/tmp/issue-494-mypy-full.log
+                  result: passed
+                - name: black --check 改动的 10 个 Python 文件
+                  note: 10 files would be left unchanged
+                  result: passed
+                - name: python scripts/find_missing_encoding.py
+                  note: "Implicit text encodings: 0"
+                  result: passed
+                - name: OpenSpec strict 与 git diff --check
+                  note: 规格严格校验和 diff 格式通过
+                  result: passed
+                - name: 本地 HTTP 环境复核
+                  note: 允许回环端口后四项通过；/private/tmp/issue-494-loopback-green.log；沙箱内失败及全仓中断均记录在验证报告
+                  result: passed
+              event: verification-ready
+              verificationReport: docs/superpowers/reports/2026-11-18-fix-few-shot-history-leakage-verify.md
+        sequence: 9
+    waits:
+      - id: fix-few-shot-history-leakage:7
+        stepId: tweak.archive.confirm
+        sequence: 7
+        status: resolved
+        proposal:
+          input:
+            change: fix-few-shot-history-leakage
+            changeDir: openspec/changes/fix-few-shot-history-leakage
+            workspaceBaseline:
+              ref: 0dc0d201-2db3-4b0e-aa0d-4e309aad07c4
+          outputs:
+            tweak.archive.prepare:
+              prBaseBranch: main
+              remote: origin
+              summary: "Issue #494 已完成并通过 Verify；A=8ca1e2bd，B=eafa98d4；当前本地 main 比 origin/main
+                领先两次修复提交。归档将同步
+                strategies/few-shot-learning、result-recording、experiment/budget\
+                -comparison 三份主规格，保存 change 与 walkthrough，并创建独立归档提交。local
+                仅本地归档提交；push 推送 origin/main；pr 需先新建并绑定
+                codex/fix-few-shot-history-leakage 分支，再推送并开往 origin/main 的
+                PR；reverify 返回验证；later 保留当前工作。未获推送或 PR 授权。"
+              targetBranch: main
+        proposalHash: 143c9eda8b0d6e53ed107d0de324834c16054304ca59381347b738ae27fb6c28
+        choices:
+          - local
+          - push
+          - pr
+          - reverify
+          - later
+        results:
+          tweak.archive.prepare:
+            sequence: 6
+            value:
+              prBaseBranch: main
+              remote: origin
+              summary: "Issue #494 已完成并通过 Verify；A=8ca1e2bd，B=eafa98d4；当前本地 main 比 origin/main
+                领先两次修复提交。归档将同步
+                strategies/few-shot-learning、result-recording、experiment/budget\
+                -comparison 三份主规格，保存 change 与 walkthrough，并创建独立归档提交。local
+                仅本地归档提交；push 推送 origin/main；pr 需先新建并绑定
+                codex/fix-few-shot-history-leakage 分支，再推送并开往 origin/main 的
+                PR；reverify 返回验证；later 保留当前工作。未获推送或 PR 授权。"
+              targetBranch: main
+          tweak.build.execute:
+            sequence: 3
+            value:
+              checks:
+                - name: "必要验收 /Users/verstappen/LLM-Algorithm-Harness: python -m pytest [9
+                    个相关测试模块] --no-cov -q"
+                  note: 278 passed, 9 warnings;
+                    /private/tmp/issue-494-targeted-final.log；完整命令及扩展全仓尝试的失败/中断限制见
+                    change/verification.md
+                  result: passed
+                - name: 全仓 python -m ruff check .
+                  note: All checks passed
+                  result: passed
+                - name: 源码 python -m mypy src/ --ignore-missing-imports
+                  note: 104 source files; /private/tmp/issue-494-mypy-full.log
+                  result: passed
+                - name: black --check 改动的 10 个 Python 文件
+                  note: 10 files would be left unchanged
+                  result: passed
+                - name: python scripts/find_missing_encoding.py
+                  note: "Implicit text encodings: 0"
+                  result: passed
+                - name: OpenSpec strict 与 git diff --check
+                  note: 规格严格校验和 diff 格式通过
+                  result: passed
+                - name: 本地 HTTP 环境复核
+                  note: 允许回环端口后四项通过；/private/tmp/issue-494-loopback-green.log；沙箱内失败及全仓中断均记录在验证报告
+                  result: passed
+              event: build-complete
+          tweak.open:
+            sequence: 1
+            value:
+              event: open-complete
+              requirementsEvidence:
+                ref: openspec/changes/fix-few-shot-history-leakage
+          tweak.open.evidence:
+            sequence: 2
+            value:
+              contentHash: 32dae79348ccfe9b3088c528e30204fc066eae664b22074b5aba2210e73390ab
+              ref: openspec/changes/fix-few-shot-history-leakage
+          tweak.verify.report.evidence:
+            sequence: 5
+            value:
+              contentHash: 5ab75bd4858510aba033255c9fd312b6996be16f5c4565444e0571d8f2e68d98
+              ref: docs/superpowers/reports/2026-11-18-fix-few-shot-history-leakage-verify.md
+          tweak.verify.run:
+            sequence: 4
+            value:
+              checks:
+                - name: "必要验收 /Users/verstappen/LLM-Algorithm-Harness: python -m pytest [9
+                    个相关测试模块] --no-cov -q"
+                  note: 278 passed, 9 warnings;
+                    /private/tmp/issue-494-targeted-final.log；完整命令及扩展全仓尝试的失败/中断限制见
+                    docs/superpowers/reports/2026-11-18-fix-few-shot-history-leakage-verify.md
+                  result: passed
+                - name: 全仓 python -m ruff check .
+                  note: All checks passed
+                  result: passed
+                - name: 源码 python -m mypy src/ --ignore-missing-imports
+                  note: 104 source files; /private/tmp/issue-494-mypy-full.log
+                  result: passed
+                - name: black --check 改动的 10 个 Python 文件
+                  note: 10 files would be left unchanged
+                  result: passed
+                - name: python scripts/find_missing_encoding.py
+                  note: "Implicit text encodings: 0"
+                  result: passed
+                - name: OpenSpec strict 与 git diff --check
+                  note: 规格严格校验和 diff 格式通过
+                  result: passed
+                - name: 本地 HTTP 环境复核
+                  note: 允许回环端口后四项通过；/private/tmp/issue-494-loopback-green.log；沙箱内失败及全仓中断均记录在验证报告
+                  result: passed
+              event: verification-ready
+              verificationReport: docs/superpowers/reports/2026-11-18-fix-few-shot-history-leakage-verify.md
+        decision:
+          id: classic-archive-143c9eda8b0d6e53ed107d0de324834c16054304ca59381347b738ae27fb6c28-local
+          choice: local
+          proposalHash: 143c9eda8b0d6e53ed107d0de324834c16054304ca59381347b738ae27fb6c28
+    evidenceWaits:
+      - id: fix-few-shot-history-leakage:2
+        stepId: tweak.open.evidence
+        sequence: 2
+        kind: classic-open-artifacts
+        status: resolved
+        results:
+          tweak.open:
+            sequence: 1
+            value:
+              event: open-complete
+              requirementsEvidence:
+                ref: openspec/changes/fix-few-shot-history-leakage
+        receipt:
+          ref: openspec/changes/fix-few-shot-history-leakage
+          contentHash: 32dae79348ccfe9b3088c528e30204fc066eae664b22074b5aba2210e73390ab
+          submissionId: 4d2fe496-e4a8-4195-9c4e-3ea3cb93a68e
+      - id: fix-few-shot-history-leakage:5
+        stepId: tweak.verify.report.evidence
+        sequence: 5
+        kind: classic-verification-report
+        status: resolved
+        results:
+          tweak.build.execute:
+            sequence: 3
+            value:
+              checks:
+                - name: "必要验收 /Users/verstappen/LLM-Algorithm-Harness: python -m pytest [9
+                    个相关测试模块] --no-cov -q"
+                  note: 278 passed, 9 warnings;
+                    /private/tmp/issue-494-targeted-final.log；完整命令及扩展全仓尝试的失败/中断限制见
+                    change/verification.md
+                  result: passed
+                - name: 全仓 python -m ruff check .
+                  note: All checks passed
+                  result: passed
+                - name: 源码 python -m mypy src/ --ignore-missing-imports
+                  note: 104 source files; /private/tmp/issue-494-mypy-full.log
+                  result: passed
+                - name: black --check 改动的 10 个 Python 文件
+                  note: 10 files would be left unchanged
+                  result: passed
+                - name: python scripts/find_missing_encoding.py
+                  note: "Implicit text encodings: 0"
+                  result: passed
+                - name: OpenSpec strict 与 git diff --check
+                  note: 规格严格校验和 diff 格式通过
+                  result: passed
+                - name: 本地 HTTP 环境复核
+                  note: 允许回环端口后四项通过；/private/tmp/issue-494-loopback-green.log；沙箱内失败及全仓中断均记录在验证报告
+                  result: passed
+              event: build-complete
+          tweak.open:
+            sequence: 1
+            value:
+              event: open-complete
+              requirementsEvidence:
+                ref: openspec/changes/fix-few-shot-history-leakage
+          tweak.open.evidence:
+            sequence: 2
+            value:
+              contentHash: 32dae79348ccfe9b3088c528e30204fc066eae664b22074b5aba2210e73390ab
+              ref: openspec/changes/fix-few-shot-history-leakage
+          tweak.verify.run:
+            sequence: 4
+            value:
+              checks:
+                - name: "必要验收 /Users/verstappen/LLM-Algorithm-Harness: python -m pytest [9
+                    个相关测试模块] --no-cov -q"
+                  note: 278 passed, 9 warnings;
+                    /private/tmp/issue-494-targeted-final.log；完整命令及扩展全仓尝试的失败/中断限制见
+                    docs/superpowers/reports/2026-11-18-fix-few-shot-history-leakage-verify.md
+                  result: passed
+                - name: 全仓 python -m ruff check .
+                  note: All checks passed
+                  result: passed
+                - name: 源码 python -m mypy src/ --ignore-missing-imports
+                  note: 104 source files; /private/tmp/issue-494-mypy-full.log
+                  result: passed
+                - name: black --check 改动的 10 个 Python 文件
+                  note: 10 files would be left unchanged
+                  result: passed
+                - name: python scripts/find_missing_encoding.py
+                  note: "Implicit text encodings: 0"
+                  result: passed
+                - name: OpenSpec strict 与 git diff --check
+                  note: 规格严格校验和 diff 格式通过
+                  result: passed
+                - name: 本地 HTTP 环境复核
+                  note: 允许回环端口后四项通过；/private/tmp/issue-494-loopback-green.log；沙箱内失败及全仓中断均记录在验证报告
+                  result: passed
+              event: verification-ready
+              verificationReport: docs/superpowers/reports/2026-11-18-fix-few-shot-history-leakage-verify.md
+        receipt:
+          ref: docs/superpowers/reports/2026-11-18-fix-few-shot-history-leakage-verify.md
+          contentHash: 5ab75bd4858510aba033255c9fd312b6996be16f5c4565444e0571d8f2e68d98
+          submissionId: 912dc7f7-7f53-4ffc-acca-d3200392dc40
+    ready: []
+    joins: {}
+    outputs:
+      tweak.archive.confirm:
+        sequence: 7
+        value:
+          choice: local
+          proposal:
+            input:
+              change: fix-few-shot-history-leakage
+              changeDir: openspec/changes/fix-few-shot-history-leakage
+              workspaceBaseline:
+                ref: 0dc0d201-2db3-4b0e-aa0d-4e309aad07c4
+            outputs:
+              tweak.archive.prepare:
+                prBaseBranch: main
+                remote: origin
+                summary: "Issue #494 已完成并通过 Verify；A=8ca1e2bd，B=eafa98d4；当前本地 main 比 origin/main
+                  领先两次修复提交。归档将同步
+                  strategies/few-shot-learning、result-recording、experiment/budg\
+                  et-comparison 三份主规格，保存 change 与 walkthrough，并创建独立归档提交。local
+                  仅本地归档提交；push 推送 origin/main；pr 需先新建并绑定
+                  codex/fix-few-shot-history-leakage 分支，再推送并开往 origin/main 的
+                  PR；reverify 返回验证；later 保留当前工作。未获推送或 PR 授权。"
+                targetBranch: main
+      tweak.archive.execute:
+        sequence: 9
+        value:
+          archiveDirectory: openspec/changes/archive/2026-11-18-fix-few-shot-history-leakage
+      tweak.archive.preflight:
+        sequence: 8
+        value:
+          baseCommit: eafa98d49a2d52ade7d46c373d9921bc9800fabf
+          deliveryAction: local
+          deliveryPaths: []
+          prBaseBranch: main
+          remote: origin
+          remoteIdentity: 128eeb1e6f0d21b25601fcb7f9aad36adfdfb4d76f37f54f004760410190f351
+          targetBranch: main
+          verifiedBranch: main
+      tweak.archive.prepare:
+        sequence: 6
+        value:
+          prBaseBranch: main
+          remote: origin
+          summary: "Issue #494 已完成并通过 Verify；A=8ca1e2bd，B=eafa98d4；当前本地 main 比 origin/main
+            领先两次修复提交。归档将同步
+            strategies/few-shot-learning、result-recording、experiment/budget-com\
+            parison 三份主规格，保存 change 与 walkthrough，并创建独立归档提交。local 仅本地归档提交；push
+            推送 origin/main；pr 需先新建并绑定 codex/fix-few-shot-history-leakage
+            分支，再推送并开往 origin/main 的 PR；reverify 返回验证；later 保留当前工作。未获推送或 PR 授权。"
+          targetBranch: main
+      tweak.build.execute:
+        sequence: 3
+        value:
+          checks:
+            - name: "必要验收 /Users/verstappen/LLM-Algorithm-Harness: python -m pytest [9
+                个相关测试模块] --no-cov -q"
+              note: 278 passed, 9 warnings;
+                /private/tmp/issue-494-targeted-final.log；完整命令及扩展全仓尝试的失败/中断限制见
+                change/verification.md
+              result: passed
+            - name: 全仓 python -m ruff check .
+              note: All checks passed
+              result: passed
+            - name: 源码 python -m mypy src/ --ignore-missing-imports
+              note: 104 source files; /private/tmp/issue-494-mypy-full.log
+              result: passed
+            - name: black --check 改动的 10 个 Python 文件
+              note: 10 files would be left unchanged
+              result: passed
+            - name: python scripts/find_missing_encoding.py
+              note: "Implicit text encodings: 0"
+              result: passed
+            - name: OpenSpec strict 与 git diff --check
+              note: 规格严格校验和 diff 格式通过
+              result: passed
+            - name: 本地 HTTP 环境复核
+              note: 允许回环端口后四项通过；/private/tmp/issue-494-loopback-green.log；沙箱内失败及全仓中断均记录在验证报告
+              result: passed
+          event: build-complete
+      tweak.open:
+        sequence: 1
+        value:
+          event: open-complete
+          requirementsEvidence:
+            ref: openspec/changes/fix-few-shot-history-leakage
+      tweak.open.evidence:
+        sequence: 2
+        value:
+          contentHash: 32dae79348ccfe9b3088c528e30204fc066eae664b22074b5aba2210e73390ab
+          ref: openspec/changes/fix-few-shot-history-leakage
+      tweak.verify.report.evidence:
+        sequence: 5
+        value:
+          contentHash: 5ab75bd4858510aba033255c9fd312b6996be16f5c4565444e0571d8f2e68d98
+          ref: docs/superpowers/reports/2026-11-18-fix-few-shot-history-leakage-verify.md
+      tweak.verify.run:
+        sequence: 4
+        value:
+          checks:
+            - name: "必要验收 /Users/verstappen/LLM-Algorithm-Harness: python -m pytest [9
+                个相关测试模块] --no-cov -q"
+              note: 278 passed, 9 warnings;
+                /private/tmp/issue-494-targeted-final.log；完整命令及扩展全仓尝试的失败/中断限制见
+                docs/superpowers/reports/2026-11-18-fix-few-shot-history-leakage-verify.md
+              result: passed
+            - name: 全仓 python -m ruff check .
+              note: All checks passed
+              result: passed
+            - name: 源码 python -m mypy src/ --ignore-missing-imports
+              note: 104 source files; /private/tmp/issue-494-mypy-full.log
+              result: passed
+            - name: black --check 改动的 10 个 Python 文件
+              note: 10 files would be left unchanged
+              result: passed
+            - name: python scripts/find_missing_encoding.py
+              note: "Implicit text encodings: 0"
+              result: passed
+            - name: OpenSpec strict 与 git diff --check
+              note: 规格严格校验和 diff 格式通过
+              result: passed
+            - name: 本地 HTTP 环境复核
+              note: 允许回环端口后四项通过；/private/tmp/issue-494-loopback-green.log；沙箱内失败及全仓中断均记录在验证报告
+              result: passed
+          event: verification-ready
+          verificationReport: docs/superpowers/reports/2026-11-18-fix-few-shot-history-leakage-verify.md
+    children: []
+    lineage: []
+  sourceRevision: 16
+  sourceHash: b0208147ae0ea790c6f3acd1515103a48b8244a1f3cd74b83a4bd6eb72658994
+direct_override: null
+handoff_context: null
+handoff_hash: null
+classic_profile: null
+classic_migration: null
+check_epoch: 5

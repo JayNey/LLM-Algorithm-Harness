@@ -1,0 +1,45 @@
+{
+  "schema": "comet.classic.archive-manifest.v2",
+  "execution": {
+    "workflow": {
+      "id": "comet-classic-tweak",
+      "version": "2",
+      "hash": "518d3e8e12eb39899775cb7d2ddcc7ddeba10cb1f1d43cff7b03f2ca61a70c65"
+    },
+    "runId": "fix-few-shot-history-leakage",
+    "actionId": "fix-few-shot-history-leakage:9",
+    "attempt": 1,
+    "inputHash": "b774cf73ff9391358cb80d9cac475f1fbb98dc875c36abc9e74a795aa7470bce",
+    "claimToken": "portable-1237f0801551258fb59cce7c688a8186e17f2166f5671efec86bd3f3a9f24c46"
+  },
+  "activeRef": "openspec/changes/fix-few-shot-history-leakage",
+  "archiveRef": "openspec/changes/archive/2026-11-18-fix-few-shot-history-leakage",
+  "stateRef": "openspec/changes/archive/2026-11-18-fix-few-shot-history-leakage/comet-state.yaml",
+  "paths": [
+    "openspec/changes/archive/2026-11-18-fix-few-shot-history-leakage/.comet/archive-requirements.json",
+    "openspec/changes/archive/2026-11-18-fix-few-shot-history-leakage/.comet/rulings.md",
+    "openspec/changes/archive/2026-11-18-fix-few-shot-history-leakage/.openspec.yaml",
+    "openspec/changes/archive/2026-11-18-fix-few-shot-history-leakage/design.md",
+    "openspec/changes/archive/2026-11-18-fix-few-shot-history-leakage/proposal.md",
+    "openspec/changes/archive/2026-11-18-fix-few-shot-history-leakage/specs/experiment/budget-comparison/spec.md",
+    "openspec/changes/archive/2026-11-18-fix-few-shot-history-leakage/specs/result-recording/spec.md",
+    "openspec/changes/archive/2026-11-18-fix-few-shot-history-leakage/specs/strategies/few-shot-learning/spec.md",
+    "openspec/changes/archive/2026-11-18-fix-few-shot-history-leakage/tasks.md",
+    "openspec/changes/archive/2026-11-18-fix-few-shot-history-leakage/walkthrough.html",
+    "openspec/specs/experiment/budget-comparison/spec.md",
+    "openspec/specs/result-recording/spec.md",
+    "openspec/specs/strategies/few-shot-learning/spec.md"
+  ],
+  "sourcePaths": [
+    "openspec/changes/fix-few-shot-history-leakage/.comet/archive-requirements.json",
+    "openspec/changes/fix-few-shot-history-leakage/.comet/rulings.md",
+    "openspec/changes/fix-few-shot-history-leakage/.openspec.yaml",
+    "openspec/changes/fix-few-shot-history-leakage/design.md",
+    "openspec/changes/fix-few-shot-history-leakage/proposal.md",
+    "openspec/changes/fix-few-shot-history-leakage/specs/experiment/budget-comparison/spec.md",
+    "openspec/changes/fix-few-shot-history-leakage/specs/result-recording/spec.md",
+    "openspec/changes/fix-few-shot-history-leakage/specs/strategies/few-shot-learning/spec.md",
+    "openspec/changes/fix-few-shot-history-leakage/tasks.md",
+    "openspec/changes/fix-few-shot-history-leakage/walkthrough.html"
+  ]
+}

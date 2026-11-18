@@ -2,38 +2,27 @@
 Few-Shot Learning strategy - Learn from similar solved problems.
 """
 
-import json
 import time
-from dataclasses import dataclass
 from pathlib import Path
 
 from src.budget import BudgetExhausted
+from src.few_shot_examples import (
+    ExampleProblem as ExampleProblem,
+)
+from src.few_shot_examples import (
+    SimilarProblem,
+    create_manifest,
+    example_reference,
+    examples_from_manifest,
+    load_history,
+    load_manifest,
+    overlap_reason,
+)
 from src.llm_client import LLMClient
 from src.models import ExecutionResult, Problem, StrategyConfig
 from src.sandbox_executor import SandboxExecutor
 from src.strategies.similarity.tag_based import calculate_tag_similarity
 from src.strategy_base import StrategyBase
-
-
-@dataclass
-class ExampleProblem:
-    """Lightweight problem representation for few-shot examples."""
-
-    problem_id: str
-    title: str
-    description: str
-    difficulty: str
-    tags: list[str]
-
-
-@dataclass
-class SimilarProblem:
-    """Similar problem with its solution."""
-
-    problem: ExampleProblem
-    solution_code: str
-    similarity_score: float
-    matching_tags: list[str]
 
 
 class FewShotLearningStrategy(StrategyBase):
@@ -64,81 +53,25 @@ class FewShotLearningStrategy(StrategyBase):
 
         # Initialize example database
         self.example_db: list[SimilarProblem] = []
+        self.example_manifest = create_manifest([])
+        self.example_set_id = self.example_manifest["example_set_id"]
+        self.overlap_exclusions: list[dict] = []
         self._load_example_database()
 
     def _load_example_database(self) -> None:
-        """
-        Load example database from evaluation results.
-
-        Loads successfully solved problems and their solutions from
-        project evaluation history.
-        """
-        self.logger.info("loading_example_database")
-
-        # Try to load from results directory
-        results_dir = Path("results")
-        if not results_dir.exists():
-            self.logger.warning("results_directory_not_found", path=str(results_dir))
-            return
-
-        loaded_count = 0
-
-        # Scan for result files
-        for result_file in results_dir.rglob("*_results.json"):
-            try:
-                with open(result_file, encoding="utf-8") as f:
-                    results = json.load(f)
-
-                # Extract successful solutions
-                for result in results:
-                    if result.get("status") == "success" and result.get("generated_code"):
-                        # Try to load the problem
-                        problem_id = result.get("problem_id")
-                        if not problem_id:
-                            continue
-
-                        # Create a lightweight example problem
-                        # Extract tags from result metadata if available
-                        tags = result.get("tags", [])
-                        if not tags and "problem_metadata" in result:
-                            tags = result["problem_metadata"].get("tags", [])
-
-                        problem = ExampleProblem(
-                            problem_id=problem_id,
-                            title=result.get("title", problem_id),
-                            description=result.get("description", "Example problem from history"),
-                            difficulty=result.get("difficulty", "medium"),
-                            tags=tags,
-                        )
-
-                        try:
-                            # We don't compute similarity yet - just store
-                            self.example_db.append(
-                                SimilarProblem(
-                                    problem=problem,
-                                    solution_code=result["generated_code"],
-                                    similarity_score=0.0,  # Will be computed later
-                                    matching_tags=[],
-                                )
-                            )
-                            loaded_count += 1
-                        except Exception as e:
-                            self.logger.debug(
-                                "failed_to_load_example",
-                                problem_id=problem_id,
-                                error=str(e),
-                            )
-
-            except Exception as e:
-                self.logger.debug(
-                    "failed_to_load_result_file",
-                    file=str(result_file),
-                    error=str(e),
-                )
-
+        params = self.config.custom_params or {}
+        if params.get("example_manifest"):
+            self.example_manifest = load_manifest(
+                Path(params["example_manifest"]), params.get("example_set_id", "")
+            )
+        else:
+            self.example_manifest = load_history()
+        self.example_set_id = self.example_manifest["example_set_id"]
+        self.example_db = examples_from_manifest(self.example_manifest)
         self.logger.info(
             "example_database_loaded",
-            total_examples=loaded_count,
+            total_examples=len(self.example_db),
+            example_set_id=self.example_set_id,
         )
 
     def retrieve_similar(self, problem: Problem, k: int) -> list[SimilarProblem]:
@@ -152,13 +85,18 @@ class FewShotLearningStrategy(StrategyBase):
         Returns:
             List of similar problems sorted by similarity (highest first)
         """
-        if not self.example_db:
+        self.overlap_exclusions = []
+        if k <= 0 or not self.example_db:
             self.logger.info("no_examples_available")
             return []
 
         similarities = []
 
         for example in self.example_db:
+            reason = overlap_reason(problem, example.problem)
+            if reason:
+                self.overlap_exclusions.append({**example_reference(example), "reason": reason})
+                continue
             # Calculate similarity based on tags
             if self.similarity_metric == "tag_overlap":
                 score = calculate_tag_similarity(problem.tags, example.problem.tags)
@@ -172,7 +110,9 @@ class FewShotLearningStrategy(StrategyBase):
                     problem=example.problem,
                     solution_code=example.solution_code,
                     similarity_score=score,
-                    matching_tags=matching_tags,
+                    matching_tags=sorted(matching_tags),
+                    example_id=example.example_id,
+                    sources=example.sources,
                 )
 
                 if score >= self.min_similarity_score:
@@ -204,6 +144,7 @@ class FewShotLearningStrategy(StrategyBase):
         Returns:
             Prompt string with examples
         """
+        examples = [e for e in examples if not overlap_reason(problem, e.problem)]
         if not examples:
             # Fallback to base prompt without examples
             return self.build_base_prompt(problem)
@@ -319,6 +260,13 @@ class FewShotLearningStrategy(StrategyBase):
             llm_responses=[llm_response] if llm_response is not None else [],
             execution_time_seconds=time.perf_counter() - started,
         )
+
+        execution_result.metadata["few_shot_examples"] = {
+            "schema_version": self.example_manifest["schema_version"],
+            "example_set_id": self.example_set_id,
+            "selected": [example_reference(example) for example in similar_problems],
+            "excluded": self.overlap_exclusions,
+        }
 
         if budget_stop is not None:
             execution_result = self.mark_budget_exhausted(execution_result, budget_stop)

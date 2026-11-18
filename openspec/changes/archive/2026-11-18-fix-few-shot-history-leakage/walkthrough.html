@@ -1,0 +1,122 @@
+<!doctype html>
+<html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'unsafe-inline'; base-uri 'none'; form-action 'none'"><title>变更说明 · Few-Shot 先阻断目标答案泄漏，再恢复带来源的历史复用，并固定正式实验示例条件。</title>
+<style>
+:root {
+  color-scheme: light dark;
+  --page: #fafbfc;
+  --ink: #202a35;
+  --muted: #566575;
+  --line: #dbe2e8;
+  --accent: #245b85;
+  --highlight: #edf3f7;
+  --hover: #e9eef3;
+  --code-bg: #edf0f4;
+  --code-ink: #263443;
+  --success: #236d4f;
+  --failure: #a83131;
+  --text: 15px;
+  --small: 13px;
+  --label: 12px;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --page: #181d23;
+    --ink: #e4eaf0;
+    --muted: #a4b1be;
+    --line: #35404b;
+    --accent: #94c6ec;
+    --highlight: #222e39;
+    --hover: #27323d;
+    --code-bg: #10161d;
+    --code-ink: #e0e8f0;
+    --success: #8ed8b5;
+    --failure: #ffb0a8;
+  }
+}
+* { box-sizing: border-box; }
+body {
+  margin: 0;
+  background: var(--page);
+  color: var(--ink);
+  font: var(--text)/1.65 system-ui, -apple-system, "Segoe UI", sans-serif;
+}
+main { max-width: 1040px; margin: auto; padding: 32px 32px 48px; }
+.eyebrow { color: var(--accent); font-size: var(--label); font-weight: 500; letter-spacing: .08em; }
+h1 { margin: 8px 0 12px; max-width: 32em; font-size: 28px; font-weight: 500; line-height: 1.4; letter-spacing: -.02em; overflow-wrap: anywhere; }
+h2 { margin: 0; font-size: 18px; font-weight: 500; line-height: 1.5; overflow-wrap: anywhere; }
+h3 { margin: 0 0 4px; color: var(--muted); font-size: var(--label); font-weight: 500; }
+p { margin: 0; white-space: pre-wrap; overflow-wrap: anywhere; }
+strong { font-weight: 500; }
+.meta { margin-bottom: 24px; color: var(--muted); font-size: var(--small); overflow-wrap: anywhere; }
+.meta p + p { margin-top: 2px; }
+article { padding: 20px 0 12px; border-top: 1px solid var(--line); }
+article header { display: flex; align-items: baseline; gap: 12px; margin-bottom: 12px; }
+.number { color: var(--muted); font: var(--label)/1.5 ui-monospace, Consolas, monospace; font-variant-numeric: tabular-nums; }
+.comparison { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 16px; }
+.comparison section { min-width: 0; padding: 12px; }
+.after { background: var(--highlight); border-radius: 4px; }
+.after h3 { color: var(--accent); }
+.reason { margin-top: 12px; font-size: var(--small); color: var(--muted); }
+.reason strong { margin-right: 8px; color: var(--ink); }
+summary { min-height: 44px; padding: 10px 4px; cursor: pointer; font-size: var(--small); font-weight: 500; border-radius: 4px; }
+summary:hover { background: var(--hover); }
+summary:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.count, .tag { color: var(--muted); font-size: var(--label); font-weight: 400; }
+.count { margin-left: 4px; font-variant-numeric: tabular-nums; }
+.file { min-width: 0; padding: 0 0 16px; scroll-margin-top: 20px; }
+.file:target { outline: 2px solid var(--accent); outline-offset: 4px; }
+.file-heading { display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 8px; }
+.file-heading code { min-width: 0; font-size: var(--small); overflow-wrap: anywhere; }
+.tag { white-space: nowrap; }
+pre { margin: 8px 0 0; padding: 12px 16px; overflow: auto; background: var(--code-bg); color: var(--code-ink); border-radius: 4px; font: var(--small)/1.65 ui-monospace, Consolas, monospace; tab-size: 2; }
+footer { margin-top: 12px; padding-top: 20px; border-top: 1px solid var(--line); }
+footer h2 { margin-bottom: 8px; }
+.check { display: grid; grid-template-columns: 72px minmax(0, 1fr); gap: 12px; padding: 12px 0; border-bottom: 1px solid var(--line); }
+.status { padding-top: 2px; font-size: var(--label); font-weight: 500; }
+.passed { color: var(--success); }
+.failed { color: var(--failure); }
+.not-run, .unknown { color: var(--muted); }
+.check p { margin-top: 2px; color: var(--muted); font-size: var(--small); }
+.more { border-top: 1px solid var(--line); }
+.more > summary { padding-block: 12px; }
+.diagram { margin: 0; padding: 20px 0; border-top: 1px solid var(--line); }
+.diagram figcaption { margin-bottom: 12px; font-size: 18px; font-weight: 500; overflow-wrap: anywhere; }
+.diagram-svg { display: block; max-width: 100%; height: auto; margin: auto; overflow: visible; font: 13px system-ui, -apple-system, "Segoe UI", sans-serif; }
+.diagram-svg text { fill: var(--ink); }
+.diagram-edge { fill: none; stroke: var(--muted); stroke-width: 1.5; }
+.diagram-svg marker path { fill: var(--muted); }
+.diagram-edge-label { fill: var(--page); }
+.diagram-svg .diagram-edge-text { fill: var(--muted); font-size: 12px; }
+.diagram-node rect { fill: var(--page); stroke: var(--line); stroke-width: 1.5; }
+.diagram-node.modified rect { fill: var(--highlight); stroke: var(--accent); }
+.diagram-node.added rect { stroke: var(--success); }
+.diagram-node.deleted rect { stroke: var(--failure); stroke-dasharray: 4 3; }
+.diagram-svg .diagram-kind { fill: var(--muted); font-size: 11px; }
+.diagram-node[href] { cursor: pointer; }
+.diagram-node[href]:hover rect, .diagram-node[href]:focus-visible rect { stroke: var(--accent); stroke-width: 2.5; }
+.diagram-node[href]:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; }
+.diagram-hint { margin-top: 12px; color: var(--muted); font-size: var(--small); text-align: center; }
+.diagram-comparison { display: grid; grid-template-columns: minmax(0,1fr) minmax(0,1fr); gap: 16px; }
+.diagram-comparison > section { min-width: 0; padding: 12px; border: 1px solid var(--line); border-radius: 4px; }
+.diagram-comparison > section > h3 { margin-bottom: 12px; }
+.diagram-compact { display: none; }
+@media (max-width: 999px) {
+  .diagram-wide { display: none; }
+  .diagram-compact { display: block; }
+}
+@media (max-width: 640px) {
+  main { padding: 24px 16px 32px; }
+  h1 { font-size: 24px; }
+  .meta { margin-bottom: 20px; }
+  article { padding-top: 16px; }
+  article header { gap: 8px; }
+  .comparison { grid-template-columns: minmax(0, 1fr); gap: 4px; }
+  .check { grid-template-columns: 60px minmax(0, 1fr); gap: 8px; }
+  pre { padding: 12px; }
+  .diagram-comparison { grid-template-columns: minmax(0,1fr); }
+  .diagram-comparison > section { padding: 12px 0; border: 0; }
+}
+</style></head><body><main><div class="eyebrow">COMET / 变更说明</div><h1>Few-Shot 先阻断目标答案泄漏，再恢复带来源的历史复用，并固定正式实验示例条件。</h1><div class="meta"><p>比较范围 · 基线 2d79bd95 到 8ca1e2bd、eafa98d4 两次修复提交；11 个交付文件。</p><p>生成时间 · 2026-11-18T07:06:18.728Z</p></div><figure class="diagram"><figcaption>历史复用到正式实验</figcaption><div class="diagram-wide"><svg class="diagram-svg" width="624" height="84" viewBox="0 0 624 84" role="group" aria-labelledby="walkthrough-diagram-0-wide-title walkthrough-diagram-0-wide-description"><title id="walkthrough-diagram-0-wide-title">历史复用到正式实验</title><desc id="walkthrough-diagram-0-wide-description">成功结果与公开快照 → 逐条校验与集合摘要; 逐条校验与集合摘要 → 全目标排除并冻结; 全目标排除并冻结 → 逐题复查并构建提示</desc><defs><marker id="walkthrough-diagram-0-wide-arrow" viewBox="0 0 8 8" refX="7" refY="4" markerWidth="6" markerHeight="6" orient="auto"><path d="M 0 0 L 8 4 L 0 8 z"/></marker></defs><path class="diagram-edge" d="M 132 42 C 152 42, 152 42, 169 42" marker-end="url(#walkthrough-diagram-0-wide-arrow)"/><path class="diagram-edge" d="M 292 42 C 312 42, 312 42, 329 42" marker-end="url(#walkthrough-diagram-0-wide-arrow)"/><path class="diagram-edge" d="M 452 42 C 472 42, 472 42, 489 42" marker-end="url(#walkthrough-diagram-0-wide-arrow)"/><g class="diagram-node "><rect x="12" y="12" width="120" height="60" rx="5"/><text class="" x="72" y="37" text-anchor="middle"><tspan x="72" dy="0">成功结果与公开</tspan><tspan x="72" dy="18">快照</tspan></text></g><g class="diagram-node "><rect x="172" y="12" width="120" height="60" rx="5"/><text class="" x="232" y="37" text-anchor="middle"><tspan x="232" dy="0">逐条校验与集合</tspan><tspan x="232" dy="18">摘要</tspan></text></g><g class="diagram-node "><rect x="332" y="12" width="120" height="60" rx="5"/><text class="" x="392" y="37" text-anchor="middle"><tspan x="392" dy="0">全目标排除并冻</tspan><tspan x="392" dy="18">结</tspan></text></g><g class="diagram-node "><rect x="492" y="12" width="120" height="60" rx="5"/><text class="" x="552" y="37" text-anchor="middle"><tspan x="552" dy="0">逐题复查并构建</tspan><tspan x="552" dy="18">提示</tspan></text></g></svg></div><div class="diagram-compact"><svg class="diagram-svg" width="272" height="372" viewBox="0 0 272 372" role="group" aria-labelledby="walkthrough-diagram-0-compact-title walkthrough-diagram-0-compact-description"><title id="walkthrough-diagram-0-compact-title">历史复用到正式实验</title><desc id="walkthrough-diagram-0-compact-description">成功结果与公开快照 → 逐条校验与集合摘要; 逐条校验与集合摘要 → 全目标排除并冻结; 全目标排除并冻结 → 逐题复查并构建提示</desc><defs><marker id="walkthrough-diagram-0-compact-arrow" viewBox="0 0 8 8" refX="7" refY="4" markerWidth="6" markerHeight="6" orient="auto"><path d="M 0 0 L 8 4 L 0 8 z"/></marker></defs><path class="diagram-edge" d="M 136 72 C 136 90, 136 90, 136 105" marker-end="url(#walkthrough-diagram-0-compact-arrow)"/><path class="diagram-edge" d="M 136 168 C 136 186, 136 186, 136 201" marker-end="url(#walkthrough-diagram-0-compact-arrow)"/><path class="diagram-edge" d="M 136 264 C 136 282, 136 282, 136 297" marker-end="url(#walkthrough-diagram-0-compact-arrow)"/><g class="diagram-node "><rect x="80" y="12" width="112" height="60" rx="5"/><text class="" x="136" y="37" text-anchor="middle"><tspan x="136" dy="0">成功结果与公</tspan><tspan x="136" dy="18">开快照</tspan></text></g><g class="diagram-node "><rect x="80" y="108" width="112" height="60" rx="5"/><text class="" x="136" y="133" text-anchor="middle"><tspan x="136" dy="0">逐条校验与集</tspan><tspan x="136" dy="18">合摘要</tspan></text></g><g class="diagram-node "><rect x="80" y="204" width="112" height="60" rx="5"/><text class="" x="136" y="229" text-anchor="middle"><tspan x="136" dy="0">全目标排除并</tspan><tspan x="136" dy="18">冻结</tspan></text></g><g class="diagram-node "><rect x="80" y="300" width="112" height="60" rx="5"/><text class="" x="136" y="325" text-anchor="middle"><tspan x="136" dy="0">逐题复查并构</tspan><tspan x="136" dy="18">建提示</tspan></text></g></svg></div></figure><article><header><span class="number">01</span><h2>目标答案不进入示例提示</h2></header><div class="comparison"><section><h3>原来</h3><p>只按标签检索，历史中的目标题答案可能被选中。</p></section><section class="after"><h3>现在</h3><p>检索与提示构建均排除同 ID、同来源、同 URL 及规范化相同题面，阈值 0 也执行。</p></section></div><p class="reason"><strong>原因</strong> 防止答案泄漏。</p><details><summary>查看文件和关键代码 <span class="count">2</span></summary><div class="file" id="walkthrough-file-0-0"><div class="file-heading"><span class="tag">新增</span><code>src/few_shot_examples.py:overlap_reason</code></div><pre><code>if target.problem_id.strip() == candidate.problem_id.strip():
+    return &quot;problem_id&quot;</code></pre></div><div class="file" id="walkthrough-file-0-1"><div class="file-heading"><span class="tag">修改</span><code>src/strategies/few_shot_learning.py:build_few_shot_prompt</code></div><pre><code>examples = [e for e in examples if not overlap_reason(problem, e.problem)]</code></pre></div></details></article><article><header><span class="number">02</span><h2>标准结果直接复用为历史示例</h2></header><div class="comparison"><section><h3>原来</h3><p>结果没有题意与标签，加载器使用占位题意；单条损坏影响后续加载。</p></section><section class="after"><h3>现在</h3><p>保存版本化最小题目快照，逐条校验成功资格；集合、选中来源与排除原因可追溯。</p></section></div><p class="reason"><strong>原因</strong> 保证题意和答案配对，缺失信息时安全降级。</p><details><summary>查看文件和关键代码 <span class="count">3</span></summary><div class="file" id="walkthrough-file-1-0"><div class="file-heading"><span class="tag">修改</span><code>src/models.py:ProblemSnapshot</code></div><pre><code>problem_snapshot: ProblemSnapshot | None = None</code></pre></div><div class="file" id="walkthrough-file-1-1"><div class="file-heading"><span class="tag">修改</span><code>src/strategy_base.py:create_execution_result</code></div><pre><code>problem_snapshot=ProblemSnapshot.from_problem(problem)</code></pre></div><div class="file" id="walkthrough-file-1-2"><div class="file-heading"><span class="tag">新增</span><code>src/few_shot_examples.py:load_history</code></div><pre><code>snapshot = ProblemSnapshot.model_validate(raw)</code></pre></div></details></article><article><header><span class="number">03</span><h2>正式实验固定示例条件</h2></header><div class="comparison"><section><h3>原来</h3><p>每个组合重新扫描历史，后续组合会受到新增答案影响。</p></section><section class="after"><h3>现在</h3><p>调度前冻结集合，检查整个目标集重叠；恢复校验原集合与目标指纹，缺少证明则拒绝。</p></section></div><p class="reason"><strong>原因</strong> 让模型、重复和串并行组合使用可核对的同一示例输入。</p><details><summary>查看文件和关键代码 <span class="count">1</span></summary><div class="file" id="walkthrough-file-2-0"><div class="file-heading"><span class="tag">修改</span><code>src/experiment.py:_prepare_few_shot_examples</code></div><pre><code>manifest = load_manifest(path, saved.get(&quot;example_set_id&quot;, &quot;&quot;))
+if saved.get(&quot;targets_id&quot;) != targets_id:
+    raise ValueError(&quot;Frozen example inputs changed&quot;)</code></pre></div></details></article><footer><h2>实际验证</h2><div class="check"><span class="status passed">通过</span><div><strong>Builder 必要验收</strong><p>278 项相关测试；全仓 Ruff；104 个源码文件 mypy；10 个改动 Python 文件 Black；编码检查与 OpenSpec strict。</p></div></div><div class="check"><span class="status not-run">未执行</span><div><strong>全仓扩展测试</strong><p>实际尝试后因本地端口限制中断，未完整完成；对应四个 HTTP 用例在允许回环端口后通过。详见 docs/superpowers/reports/2026-11-18-fix-few-shot-history-leakage-verify.md。</p></div></div><div class="check"><span class="status passed">通过</span><div><strong>Runtime Build / Verify</strong><p>11/11 任务完成，Build 检查接受；Verify 对 5 项要求与 18 场景的一致性验收通过，进入 Archive。</p></div></div><div class="check"><span class="status not-run">未执行</span><div><strong>独立 reviewer</strong><p>当前 tweak 预设 review_mode=off；不冒充独立验收。</p></div></div></footer></main><template id="walkthrough-data">eyJzdW1tYXJ5IjoiRmV3LVNob3Qg5YWI6Zi75pat55uu5qCH562U5qGI5rOE5ryP77yM5YaN5oGi5aSN5bim5p2l5rqQ55qE5Y6G5Y+y5aSN55So77yM5bm25Zu65a6a5q2j5byP5a6e6aqM56S65L6L5p2h5Lu244CCIiwic2NvcGUiOiLln7rnur8gMmQ3OWJkOTUg5YiwIDhjYTFlMmJk44CBZWFmYTk4ZDQg5Lik5qyh5L+u5aSN5o+Q5Lqk77ybMTEg5Liq5Lqk5LuY5paH5Lu244CCIiwiY2hhbmdlcyI6W3sidGl0bGUiOiLnm67moIfnrZTmoYjkuI3ov5vlhaXnpLrkvovmj5DnpLoiLCJiZWZvcmUiOiLlj6rmjInmoIfnrb7mo4DntKLvvIzljoblj7LkuK3nmoTnm67moIfpopjnrZTmoYjlj6/og73ooqvpgInkuK3jgIIiLCJhZnRlciI6IuajgOe0ouS4juaPkOekuuaehOW7uuWdh+aOkumZpOWQjCBJROOAgeWQjOadpea6kOOAgeWQjCBVUkwg5Y+K6KeE6IyD5YyW55u45ZCM6aKY6Z2i77yM6ZiI5YC8IDAg5Lmf5omn6KGM44CCIiwicmVhc29uIjoi6Ziy5q2i562U5qGI5rOE5ryP44CCIiwiZmlsZXMiOlt7InBhdGgiOiJzcmMvZmV3X3Nob3RfZXhhbXBsZXMucHk6b3ZlcmxhcF9yZWFzb24iLCJraW5kIjoiYWRkZWQiLCJjb2RlIjoiaWYgdGFyZ2V0LnByb2JsZW1faWQuc3RyaXAoKSA9PSBjYW5kaWRhdGUucHJvYmxlbV9pZC5zdHJpcCgpOlxuICAgIHJldHVybiBcInByb2JsZW1faWRcIiJ9LHsicGF0aCI6InNyYy9zdHJhdGVnaWVzL2Zld19zaG90X2xlYXJuaW5nLnB5OmJ1aWxkX2Zld19zaG90X3Byb21wdCIsImtpbmQiOiJtb2RpZmllZCIsImNvZGUiOiJleGFtcGxlcyA9IFtlIGZvciBlIGluIGV4YW1wbGVzIGlmIG5vdCBvdmVybGFwX3JlYXNvbihwcm9ibGVtLCBlLnByb2JsZW0pXSJ9XX0seyJ0aXRsZSI6Iuagh+WHhue7k+aenOebtOaOpeWkjeeUqOS4uuWOhuWPsuekuuS+iyIsImJlZm9yZSI6Iue7k+aenOayoeaciemimOaEj+S4juagh+etvu+8jOWKoOi9veWZqOS9v+eUqOWNoOS9jemimOaEj++8m+WNleadoeaNn+Wdj+W9seWTjeWQjue7reWKoOi9veOAgiIsImFmdGVyIjoi5L+d5a2Y54mI5pys5YyW5pyA5bCP6aKY55uu5b+r54Wn77yM6YCQ5p2h5qCh6aqM5oiQ5Yqf6LWE5qC877yb6ZuG5ZCI44CB6YCJ5Lit5p2l5rqQ5LiO5o6S6Zmk5Y6f5Zug5Y+v6L+95rqv44CCIiwicmVhc29uIjoi5L+d6K+B6aKY5oSP5ZKM562U5qGI6YWN5a+577yM57y65aSx5L+h5oGv5pe25a6J5YWo6ZmN57qn44CCIiwiZmlsZXMiOlt7InBhdGgiOiJzcmMvbW9kZWxzLnB5OlByb2JsZW1TbmFwc2hvdCIsImtpbmQiOiJtb2RpZmllZCIsImNvZGUiOiJwcm9ibGVtX3NuYXBzaG90OiBQcm9ibGVtU25hcHNob3QgfCBOb25lID0gTm9uZSJ9LHsicGF0aCI6InNyYy9zdHJhdGVneV9iYXNlLnB5OmNyZWF0ZV9leGVjdXRpb25fcmVzdWx0Iiwia2luZCI6Im1vZGlmaWVkIiwiY29kZSI6InByb2JsZW1fc25hcHNob3Q9UHJvYmxlbVNuYXBzaG90LmZyb21fcHJvYmxlbShwcm9ibGVtKSJ9LHsicGF0aCI6InNyYy9mZXdfc2hvdF9leGFtcGxlcy5weTpsb2FkX2hpc3RvcnkiLCJraW5kIjoiYWRkZWQiLCJjb2RlIjoic25hcHNob3QgPSBQcm9ibGVtU25hcHNob3QubW9kZWxfdmFsaWRhdGUocmF3KSJ9XX0seyJ0aXRsZSI6Iuato+W8j+WunumqjOWbuuWumuekuuS+i+adoeS7tiIsImJlZm9yZSI6Iuavj+S4que7hOWQiOmHjeaWsOaJq+aPj+WOhuWPsu+8jOWQjue7ree7hOWQiOS8muWPl+WIsOaWsOWinuetlOahiOW9seWTjeOAgiIsImFmdGVyIjoi6LCD5bqm5YmN5Ya757uT6ZuG5ZCI77yM5qOA5p+l5pW05Liq55uu5qCH6ZuG6YeN5Y+g77yb5oGi5aSN5qCh6aqM5Y6f6ZuG5ZCI5LiO55uu5qCH5oyH57q577yM57y65bCR6K+B5piO5YiZ5ouS57ud44CCIiwicmVhc29uIjoi6K6p5qih5Z6L44CB6YeN5aSN5ZKM5Liy5bm26KGM57uE5ZCI5L2/55So5Y+v5qC45a+555qE5ZCM5LiA56S65L6L6L6T5YWl44CCIiwiZmlsZXMiOlt7InBhdGgiOiJzcmMvZXhwZXJpbWVudC5weTpfcHJlcGFyZV9mZXdfc2hvdF9leGFtcGxlcyIsImtpbmQiOiJtb2RpZmllZCIsImNvZGUiOiJtYW5pZmVzdCA9IGxvYWRfbWFuaWZlc3QocGF0aCwgc2F2ZWQuZ2V0KFwiZXhhbXBsZV9zZXRfaWRcIiwgXCJcIikpXG5pZiBzYXZlZC5nZXQoXCJ0YXJnZXRzX2lkXCIpICE9IHRhcmdldHNfaWQ6XG4gICAgcmFpc2UgVmFsdWVFcnJvcihcIkZyb3plbiBleGFtcGxlIGlucHV0cyBjaGFuZ2VkXCIpIn1dfV0sInZlcmlmaWNhdGlvbiI6W3sibGFiZWwiOiJCdWlsZGVyIOW/heimgemqjOaUtiIsInN0YXR1cyI6InBhc3NlZCIsImRldGFpbCI6IjI3OCDpobnnm7jlhbPmtYvor5XvvJvlhajku5MgUnVmZu+8mzEwNCDkuKrmupDnoIHmlofku7YgbXlwee+8mzEwIOS4quaUueWKqCBQeXRob24g5paH5Lu2IEJsYWNr77yb57yW56CB5qOA5p+l5LiOIE9wZW5TcGVjIHN0cmljdOOAgiJ9LHsibGFiZWwiOiLlhajku5PmianlsZXmtYvor5UiLCJzdGF0dXMiOiJub3QtcnVuIiwiZGV0YWlsIjoi5a6e6ZmF5bCd6K+V5ZCO5Zug5pys5Zyw56uv5Y+j6ZmQ5Yi25Lit5pat77yM5pyq5a6M5pW05a6M5oiQ77yb5a+55bqU5Zub5LiqIEhUVFAg55So5L6L5Zyo5YWB6K645Zue546v56uv5Y+j5ZCO6YCa6L+H44CC6K+m6KeBIGRvY3Mvc3VwZXJwb3dlcnMvcmVwb3J0cy8yMDI2LTExLTE4LWZpeC1mZXctc2hvdC1oaXN0b3J5LWxlYWthZ2UtdmVyaWZ5Lm1k44CCIn0seyJsYWJlbCI6IlJ1bnRpbWUgQnVpbGQgLyBWZXJpZnkiLCJzdGF0dXMiOiJwYXNzZWQiLCJkZXRhaWwiOiIxMS8xMSDku7vliqHlrozmiJDvvIxCdWlsZCDmo4Dmn6XmjqXlj5fvvJtWZXJpZnkg5a+5IDUg6aG56KaB5rGC5LiOIDE4IOWcuuaZr+eahOS4gOiHtOaAp+mqjOaUtumAmui/h++8jOi/m+WFpSBBcmNoaXZl44CCIn0seyJsYWJlbCI6IueLrOeriyByZXZpZXdlciIsInN0YXR1cyI6Im5vdC1ydW4iLCJkZXRhaWwiOiLlvZPliY0gdHdlYWsg6aKE6K6+IHJldmlld19tb2RlPW9mZu+8m+S4jeWGkuWFheeLrOeri+mqjOaUtuOAgiJ9XSwiZGlhZ3JhbXMiOlt7InR5cGUiOiJmbG93IiwidGl0bGUiOiLljoblj7LlpI3nlKjliLDmraPlvI/lrp7pqowiLCJub2RlcyI6W3siaWQiOiJoaXN0b3J5IiwibGFiZWwiOiLmiJDlip/nu5PmnpzkuI7lhazlvIDlv6vnhacifSx7ImlkIjoibG9hZCIsImxhYmVsIjoi6YCQ5p2h5qCh6aqM5LiO6ZuG5ZCI5pGY6KaBIn0seyJpZCI6ImZyZWV6ZSIsImxhYmVsIjoi5YWo55uu5qCH5o6S6Zmk5bm25Ya757uTIn0seyJpZCI6InByb21wdCIsImxhYmVsIjoi6YCQ6aKY5aSN5p+l5bm25p6E5bu65o+Q56S6In1dLCJlZGdlcyI6W3siZnJvbSI6Imhpc3RvcnkiLCJ0byI6ImxvYWQifSx7ImZyb20iOiJsb2FkIiwidG8iOiJmcmVlemUifSx7ImZyb20iOiJmcmVlemUiLCJ0byI6InByb21wdCJ9XX1dfQ==</template></body></html>
