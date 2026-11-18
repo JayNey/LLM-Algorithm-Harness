@@ -238,7 +238,8 @@ harness tags normalize \
 - 列表查询失败时按错误原因排查（401 为鉴权问题），也可直接手动配置模型 ID 运行评测。
 - 示例配置见 `config.siliconflow.example.json`（无真实密钥）。
 - 模型未匹配到可用定价时，费用标为未知。可在 `pricing.json` 中补充实际单价，详见[自定义模型定价](#自定义模型定价)。
-- 请求参数：策略中的 `temperature`、`max_tokens`、`system_prompt` 和 `custom_params` 会覆盖全局 `llm_config` 对应值；模型、超时和认证仍由全局配置控制，每轮 trace 会保存脱敏后的有效参数。
+- 请求参数：显式填写的策略 `temperature`、`max_tokens` 覆盖模型设置（即使填写的是默认值 `0.7`、`2000`）；省略时继承模型配置。Web 实验、A/B、基准保存和配置快照往返保留这一语义。`system_prompt` 和供应商 `custom_params` 继续按既有规则应用，trace 保存脱敏后的有效参数。
+- 历史配置兼容：旧数据库中已保存的默认值继续视为显式覆盖，无法推断用户当时是否省略。需要继承时，请重新创建配置并省略相应字段。修复前的任务和检查点无法证明使用了相同的参数契约，恢复会拒绝复用并保留旧结果，请新建运行；这是对既有独立采样及结果复用兼容规则的补充。
 - 本地服务：`provider: "local"` 表示 OpenAI 兼容服务，必须设置 `base_url`；无认证的本地服务可将 `api_key` 留空。
 - API 错误：客户端只对 429、5xx、超时和连接错误做有限重试；401/403 和参数错误立即失败。缺少 token usage 时报告会标注 usage 未知，不会把调用当作零成本。
 - 真实 API 端到端验证位于 `tests/test_online_verification.py`，标记为 `online`：无凭证环境自动跳过，Mock 测试不构成真实 API 验证。
@@ -1202,6 +1203,14 @@ jq '.strategies.vanilla | {estimated_cost_usd, pricing_metadata}' "results/$run_
 - `max_depth`: 搜索树的最大深度（默认 4，必须 >= 1）
 - `search_strategy`: 搜索算法，可选 "bfs"（广度优先）或 "dfs"（深度优先，默认 "bfs"）
 - `pruning_threshold`: 质量得分阈值，低于此值的分支会被剪枝（默认 0.3，范围 0.0-1.0）
+
+将以上字段放入策略的 `custom_params`，例如：
+
+```json
+{"name": "tree_of_thoughts", "custom_params": {"branching_factor": 1, "max_depth": 1, "search_strategy": "dfs", "pruning_threshold": 0.9}}
+```
+
+Harness 会读取这些搜索控制值；它们不会发送给模型供应商，`top_p` 等供应商参数仍可同时使用。分支数与深度必须为正整数（不接受布尔或小数），阈值必须为 0–1 的有限数；非法配置在模型请求前失败。直接构造策略实例时，显式构造器参数优先于 `custom_params`。
 
 **适用场景：**
 - 复杂问题需要探索多种解决方案

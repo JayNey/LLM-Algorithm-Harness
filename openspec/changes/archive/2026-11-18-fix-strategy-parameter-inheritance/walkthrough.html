@@ -1,0 +1,122 @@
+<!doctype html>
+<html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'unsafe-inline'; base-uri 'none'; form-action 'none'"><title>变更说明 · 保留策略参数继承，让 ToT 搜索配置实际生效</title>
+<style>
+:root {
+  color-scheme: light dark;
+  --page: #fafbfc;
+  --ink: #202a35;
+  --muted: #566575;
+  --line: #dbe2e8;
+  --accent: #245b85;
+  --highlight: #edf3f7;
+  --hover: #e9eef3;
+  --code-bg: #edf0f4;
+  --code-ink: #263443;
+  --success: #236d4f;
+  --failure: #a83131;
+  --text: 15px;
+  --small: 13px;
+  --label: 12px;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --page: #181d23;
+    --ink: #e4eaf0;
+    --muted: #a4b1be;
+    --line: #35404b;
+    --accent: #94c6ec;
+    --highlight: #222e39;
+    --hover: #27323d;
+    --code-bg: #10161d;
+    --code-ink: #e0e8f0;
+    --success: #8ed8b5;
+    --failure: #ffb0a8;
+  }
+}
+* { box-sizing: border-box; }
+body {
+  margin: 0;
+  background: var(--page);
+  color: var(--ink);
+  font: var(--text)/1.65 system-ui, -apple-system, "Segoe UI", sans-serif;
+}
+main { max-width: 1040px; margin: auto; padding: 32px 32px 48px; }
+.eyebrow { color: var(--accent); font-size: var(--label); font-weight: 500; letter-spacing: .08em; }
+h1 { margin: 8px 0 12px; max-width: 32em; font-size: 28px; font-weight: 500; line-height: 1.4; letter-spacing: -.02em; overflow-wrap: anywhere; }
+h2 { margin: 0; font-size: 18px; font-weight: 500; line-height: 1.5; overflow-wrap: anywhere; }
+h3 { margin: 0 0 4px; color: var(--muted); font-size: var(--label); font-weight: 500; }
+p { margin: 0; white-space: pre-wrap; overflow-wrap: anywhere; }
+strong { font-weight: 500; }
+.meta { margin-bottom: 24px; color: var(--muted); font-size: var(--small); overflow-wrap: anywhere; }
+.meta p + p { margin-top: 2px; }
+article { padding: 20px 0 12px; border-top: 1px solid var(--line); }
+article header { display: flex; align-items: baseline; gap: 12px; margin-bottom: 12px; }
+.number { color: var(--muted); font: var(--label)/1.5 ui-monospace, Consolas, monospace; font-variant-numeric: tabular-nums; }
+.comparison { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 16px; }
+.comparison section { min-width: 0; padding: 12px; }
+.after { background: var(--highlight); border-radius: 4px; }
+.after h3 { color: var(--accent); }
+.reason { margin-top: 12px; font-size: var(--small); color: var(--muted); }
+.reason strong { margin-right: 8px; color: var(--ink); }
+summary { min-height: 44px; padding: 10px 4px; cursor: pointer; font-size: var(--small); font-weight: 500; border-radius: 4px; }
+summary:hover { background: var(--hover); }
+summary:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.count, .tag { color: var(--muted); font-size: var(--label); font-weight: 400; }
+.count { margin-left: 4px; font-variant-numeric: tabular-nums; }
+.file { min-width: 0; padding: 0 0 16px; scroll-margin-top: 20px; }
+.file:target { outline: 2px solid var(--accent); outline-offset: 4px; }
+.file-heading { display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 8px; }
+.file-heading code { min-width: 0; font-size: var(--small); overflow-wrap: anywhere; }
+.tag { white-space: nowrap; }
+pre { margin: 8px 0 0; padding: 12px 16px; overflow: auto; background: var(--code-bg); color: var(--code-ink); border-radius: 4px; font: var(--small)/1.65 ui-monospace, Consolas, monospace; tab-size: 2; }
+footer { margin-top: 12px; padding-top: 20px; border-top: 1px solid var(--line); }
+footer h2 { margin-bottom: 8px; }
+.check { display: grid; grid-template-columns: 72px minmax(0, 1fr); gap: 12px; padding: 12px 0; border-bottom: 1px solid var(--line); }
+.status { padding-top: 2px; font-size: var(--label); font-weight: 500; }
+.passed { color: var(--success); }
+.failed { color: var(--failure); }
+.not-run, .unknown { color: var(--muted); }
+.check p { margin-top: 2px; color: var(--muted); font-size: var(--small); }
+.more { border-top: 1px solid var(--line); }
+.more > summary { padding-block: 12px; }
+.diagram { margin: 0; padding: 20px 0; border-top: 1px solid var(--line); }
+.diagram figcaption { margin-bottom: 12px; font-size: 18px; font-weight: 500; overflow-wrap: anywhere; }
+.diagram-svg { display: block; max-width: 100%; height: auto; margin: auto; overflow: visible; font: 13px system-ui, -apple-system, "Segoe UI", sans-serif; }
+.diagram-svg text { fill: var(--ink); }
+.diagram-edge { fill: none; stroke: var(--muted); stroke-width: 1.5; }
+.diagram-svg marker path { fill: var(--muted); }
+.diagram-edge-label { fill: var(--page); }
+.diagram-svg .diagram-edge-text { fill: var(--muted); font-size: 12px; }
+.diagram-node rect { fill: var(--page); stroke: var(--line); stroke-width: 1.5; }
+.diagram-node.modified rect { fill: var(--highlight); stroke: var(--accent); }
+.diagram-node.added rect { stroke: var(--success); }
+.diagram-node.deleted rect { stroke: var(--failure); stroke-dasharray: 4 3; }
+.diagram-svg .diagram-kind { fill: var(--muted); font-size: 11px; }
+.diagram-node[href] { cursor: pointer; }
+.diagram-node[href]:hover rect, .diagram-node[href]:focus-visible rect { stroke: var(--accent); stroke-width: 2.5; }
+.diagram-node[href]:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; }
+.diagram-hint { margin-top: 12px; color: var(--muted); font-size: var(--small); text-align: center; }
+.diagram-comparison { display: grid; grid-template-columns: minmax(0,1fr) minmax(0,1fr); gap: 16px; }
+.diagram-comparison > section { min-width: 0; padding: 12px; border: 1px solid var(--line); border-radius: 4px; }
+.diagram-comparison > section > h3 { margin-bottom: 12px; }
+.diagram-compact { display: none; }
+@media (max-width: 999px) {
+  .diagram-wide { display: none; }
+  .diagram-compact { display: block; }
+}
+@media (max-width: 640px) {
+  main { padding: 24px 16px 32px; }
+  h1 { font-size: 24px; }
+  .meta { margin-bottom: 20px; }
+  article { padding-top: 16px; }
+  article header { gap: 8px; }
+  .comparison { grid-template-columns: minmax(0, 1fr); gap: 4px; }
+  .check { grid-template-columns: 60px minmax(0, 1fr); gap: 8px; }
+  pre { padding: 12px; }
+  .diagram-comparison { grid-template-columns: minmax(0,1fr); }
+  .diagram-comparison > section { padding: 12px 0; border: 0; }
+}
+</style></head><body><main><div class="eyebrow">COMET / 变更说明</div><h1>保留策略参数继承，让 ToT 搜索配置实际生效</h1><div class="meta"><p>比较范围 · main 基线 8a4d0e1c 与本次工作区；用户已授权 8 个交付文件，另有 Comet 流程产物。</p><p>生成时间 · 2026-11-18T02:36:12.221Z</p></div><article><header><span class="number">01</span><h2>Web 配置保存与快照</h2></header><div class="comparison"><section><h3>原来</h3><p>省略值被序列化为显式 0.7/2000，覆盖模型。</p></section><section class="after"><h3>现在</h3><p>仅在策略显式填写时保存这两个生成覆盖字段。三个 service 与嵌套快照共享同一边界。</p></section></div><p class="reason"><strong>原因</strong> 保留继承及用户明确填写默认值的能力。</p><details><summary>查看文件和关键代码 <span class="count">1</span></summary><div class="file" id="walkthrough-file-0-0"><div class="file-heading"><span class="tag">修改</span><code>src/models.py:StrategyConfig</code></div><pre><code>@model_serializer(mode=&quot;wrap&quot;)
+if field not in self.model_fields_set:
+    payload.pop(field, None)</code></pre></div></details></article><article><header><span class="number">02</span><h2>ToT 搜索与供应商参数隔离</h2></header><div class="comparison"><section><h3>原来</h3><p>工厂忽略 custom_params 的搜索设置，搜索字段被发送供应商。</p></section><section class="after"><h3>现在</h3><p>显式构造器值 &gt; custom_params &gt; 默认值；验证类型和范围，供应商请求过滤四个控制字段。</p></section></div><p class="reason"><strong>原因</strong> 实际搜索、请求和记录需符合用户配置。</p><details><summary>查看文件和关键代码 <span class="count">2</span></summary><div class="file" id="walkthrough-file-1-0"><div class="file-heading"><span class="tag">修改</span><code>src/strategies/tree_of_thoughts.py</code></div><pre><code>if max_depth is None:
+    max_depth = config.custom_params.get(&quot;max_depth&quot;, 4)</code></pre></div><div class="file" id="walkthrough-file-1-1"><div class="file-heading"><span class="tag">修改</span><code>src/strategy_base.py</code></div><pre><code>controls 包含 branching_factor, max_depth, search_strategy, pruning_threshold</code></pre></div></details></article><article><header><span class="number">03</span><h2>复用兼容与用户说明</h2></header><div class="comparison"><section><h3>原来</h3><p>省略值与显式默认值指纹相同，旧结果不能证明实际参数。</p></section><section class="after"><h3>现在</h3><p>序列化区别进入指纹，同时隔离修复前检查点；历史数据库保持已存显式值。</p></section></div><p class="reason"><strong>原因</strong> 衔接阶段 3 复用规则，防止错误复用。</p><details><summary>查看文件和关键代码 <span class="count">3</span></summary><div class="file" id="walkthrough-file-2-0"><div class="file-heading"><span class="tag">修改</span><code>src/task_service.py</code></div><pre><code>{&quot;strategy_parameter_contract&quot;: 1, &quot;config&quot;: payload}</code></pre></div><div class="file" id="walkthrough-file-2-1"><div class="file-heading"><span class="tag">修改</span><code>README.md</code></div><pre><code>历史已存字段视为显式值；重新创建并省略字段可启用继承。旧检查点需新建运行。</code></pre></div><div class="file" id="walkthrough-file-2-2"><div class="file-heading"><span class="tag">新增</span><code>tests/test_strategy_parameter_contract.py</code></div><pre><code>真实 SQLite 保存/加载、Harness 小树执行、模拟 SDK、快照及检查点回归。</code></pre></div></details></article><details class="more"><summary>其余变化 (1)</summary><div><article><header><span class="number">04</span><h2>默认值目录与公开模板兼容</h2></header><div class="comparison"><section><h3>原来</h3><p>继承修复后，展示目录缺少省略字段，模板与文档不一致。</p></section><section class="after"><h3>现在</h3><p>目录从 schema 读取展示默认值，模板显式声明原有示例参数。</p></section></div><p class="reason"><strong>原因</strong> 配置持久化与元数据展示各自保持原契约。</p><details><summary>查看文件和关键代码 <span class="count">2</span></summary><div class="file" id="walkthrough-file-3-0"><div class="file-heading"><span class="tag">修改</span><code>api/monitoring/probes.py</code></div><pre><code>StrategyConfig.model_fields[field].default</code></pre></div><div class="file" id="walkthrough-file-3-1"><div class="file-heading"><span class="tag">修改</span><code>api/files/templates.py</code></div><pre><code>StrategyConfig(name=&quot;vanilla&quot;, temperature=0.7, max_tokens=2000)</code></pre></div></details></article></div></details><footer><h2>实际验证</h2><div class="check"><span class="status passed">通过</span><div><strong>Runtime 验收</strong><p>Verify guard 已通过，6/6 任务与全部规格验收完成；等待用户选择归档及 Git 交付方式。</p></div></div><div class="check"><span class="status passed">通过</span><div><strong>回归证据</strong><p>340 项定向回归与修复后的 177 项 API/元数据复测通过；原完整套件失败和环境复核均见验收报告。</p></div></div><div class="check"><span class="status passed">通过</span><div><strong>静态检查</strong><p>Ruff/Black 7 文件、聚焦 Mypy 6 模块、编码扫描与 diff 空白检查通过。默认扩大 Mypy 的5项原有错误已与main对照。</p></div></div><div class="check"><span class="status not-run">未执行</span><div><strong>独立审查</strong><p>按已确认 off 配置。</p></div></div></footer></main><template id="walkthrough-data">eyJzdW1tYXJ5Ijoi5L+d55WZ562W55Wl5Y+C5pWw57un5om/77yM6K6pIFRvVCDmkJzntKLphY3nva7lrp7pmYXnlJ/mlYgiLCJzY29wZSI6Im1haW4g5Z+657q/IDhhNGQwZTFjIOS4juacrOasoeW3peS9nOWMuu+8m+eUqOaIt+W3suaOiOadgyA4IOS4quS6pOS7mOaWh+S7tu+8jOWPpuaciSBDb21ldCDmtYHnqIvkuqfnianjgIIiLCJjaGFuZ2VzIjpbeyJ0aXRsZSI6IldlYiDphY3nva7kv53lrZjkuI7lv6vnhaciLCJiZWZvcmUiOiLnnIHnlaXlgLzooqvluo/liJfljJbkuLrmmL7lvI8gMC43LzIwMDDvvIzopobnm5bmqKHlnovjgIIiLCJhZnRlciI6IuS7heWcqOetlueVpeaYvuW8j+Whq+WGmeaXtuS/neWtmOi/meS4pOS4queUn+aIkOimhuebluWtl+auteOAguS4ieS4qiBzZXJ2aWNlIOS4juW1jOWll+W/q+eFp+WFseS6q+WQjOS4gOi+ueeVjOOAgiIsInJlYXNvbiI6IuS/neeVmee7p+aJv+WPiueUqOaIt+aYjuehruWhq+WGmem7mOiupOWAvOeahOiDveWKm+OAgiIsImZpbGVzIjpbeyJwYXRoIjoic3JjL21vZGVscy5weTpTdHJhdGVneUNvbmZpZyIsImtpbmQiOiJtb2RpZmllZCIsImNvZGUiOiJAbW9kZWxfc2VyaWFsaXplcihtb2RlPVwid3JhcFwiKVxuaWYgZmllbGQgbm90IGluIHNlbGYubW9kZWxfZmllbGRzX3NldDpcbiAgICBwYXlsb2FkLnBvcChmaWVsZCwgTm9uZSkifV19LHsidGl0bGUiOiJUb1Qg5pCc57Si5LiO5L6b5bqU5ZWG5Y+C5pWw6ZqU56a7IiwiYmVmb3JlIjoi5bel5Y6C5b+955WlIGN1c3RvbV9wYXJhbXMg55qE5pCc57Si6K6+572u77yM5pCc57Si5a2X5q616KKr5Y+R6YCB5L6b5bqU5ZWG44CCIiwiYWZ0ZXIiOiLmmL7lvI/mnoTpgKDlmajlgLwgPiBjdXN0b21fcGFyYW1zID4g6buY6K6k5YC877yb6aqM6K+B57G75Z6L5ZKM6IyD5Zu077yM5L6b5bqU5ZWG6K+35rGC6L+H5ruk5Zub5Liq5o6n5Yi25a2X5q6144CCIiwicmVhc29uIjoi5a6e6ZmF5pCc57Si44CB6K+35rGC5ZKM6K6w5b2V6ZyA56ym5ZCI55So5oi36YWN572u44CCIiwiZmlsZXMiOlt7InBhdGgiOiJzcmMvc3RyYXRlZ2llcy90cmVlX29mX3Rob3VnaHRzLnB5Iiwia2luZCI6Im1vZGlmaWVkIiwiY29kZSI6ImlmIG1heF9kZXB0aCBpcyBOb25lOlxuICAgIG1heF9kZXB0aCA9IGNvbmZpZy5jdXN0b21fcGFyYW1zLmdldChcIm1heF9kZXB0aFwiLCA0KSJ9LHsicGF0aCI6InNyYy9zdHJhdGVneV9iYXNlLnB5Iiwia2luZCI6Im1vZGlmaWVkIiwiY29kZSI6ImNvbnRyb2xzIOWMheWQqyBicmFuY2hpbmdfZmFjdG9yLCBtYXhfZGVwdGgsIHNlYXJjaF9zdHJhdGVneSwgcHJ1bmluZ190aHJlc2hvbGQifV19LHsidGl0bGUiOiLlpI3nlKjlhbzlrrnkuI7nlKjmiLfor7TmmI4iLCJiZWZvcmUiOiLnnIHnlaXlgLzkuI7mmL7lvI/pu5jorqTlgLzmjIfnurnnm7jlkIzvvIzml6fnu5PmnpzkuI3og73or4HmmI7lrp7pmYXlj4LmlbDjgIIiLCJhZnRlciI6IuW6j+WIl+WMluWMuuWIq+i/m+WFpeaMh+e6ue+8jOWQjOaXtumalOemu+S/ruWkjeWJjeajgOafpeeCue+8m+WOhuWPsuaVsOaNruW6k+S/neaMgeW3suWtmOaYvuW8j+WAvOOAgiIsInJlYXNvbiI6IuihlOaOpemYtuautSAzIOWkjeeUqOinhOWIme+8jOmYsuatoumUmeivr+WkjeeUqOOAgiIsImZpbGVzIjpbeyJwYXRoIjoic3JjL3Rhc2tfc2VydmljZS5weSIsImtpbmQiOiJtb2RpZmllZCIsImNvZGUiOiJ7XCJzdHJhdGVneV9wYXJhbWV0ZXJfY29udHJhY3RcIjogMSwgXCJjb25maWdcIjogcGF5bG9hZH0ifSx7InBhdGgiOiJSRUFETUUubWQiLCJraW5kIjoibW9kaWZpZWQiLCJjb2RlIjoi5Y6G5Y+y5bey5a2Y5a2X5q616KeG5Li65pi+5byP5YC877yb6YeN5paw5Yib5bu65bm255yB55Wl5a2X5q615Y+v5ZCv55So57un5om/44CC5pen5qOA5p+l54K56ZyA5paw5bu66L+Q6KGM44CCIn0seyJwYXRoIjoidGVzdHMvdGVzdF9zdHJhdGVneV9wYXJhbWV0ZXJfY29udHJhY3QucHkiLCJraW5kIjoiYWRkZWQiLCJjb2RlIjoi55yf5a6eIFNRTGl0ZSDkv53lrZgv5Yqg6L2944CBSGFybmVzcyDlsI/moJHmiafooYzjgIHmqKHmi58gU0RL44CB5b+r54Wn5Y+K5qOA5p+l54K55Zue5b2S44CCIn1dfSx7InRpdGxlIjoi6buY6K6k5YC855uu5b2V5LiO5YWs5byA5qih5p2/5YW85a65IiwiYmVmb3JlIjoi57un5om/5L+u5aSN5ZCO77yM5bGV56S655uu5b2V57y65bCR55yB55Wl5a2X5q6177yM5qih5p2/5LiO5paH5qGj5LiN5LiA6Ie044CCIiwiYWZ0ZXIiOiLnm67lvZXku44gc2NoZW1hIOivu+WPluWxleekuum7mOiupOWAvO+8jOaooeadv+aYvuW8j+WjsOaYjuWOn+acieekuuS+i+WPguaVsOOAgiIsInJlYXNvbiI6IumFjee9ruaMgeS5heWMluS4juWFg+aVsOaNruWxleekuuWQhOiHquS/neaMgeWOn+Wlkee6puOAgiIsImZpbGVzIjpbeyJwYXRoIjoiYXBpL21vbml0b3JpbmcvcHJvYmVzLnB5Iiwia2luZCI6Im1vZGlmaWVkIiwiY29kZSI6IlN0cmF0ZWd5Q29uZmlnLm1vZGVsX2ZpZWxkc1tmaWVsZF0uZGVmYXVsdCJ9LHsicGF0aCI6ImFwaS9maWxlcy90ZW1wbGF0ZXMucHkiLCJraW5kIjoibW9kaWZpZWQiLCJjb2RlIjoiU3RyYXRlZ3lDb25maWcobmFtZT1cInZhbmlsbGFcIiwgdGVtcGVyYXR1cmU9MC43LCBtYXhfdG9rZW5zPTIwMDApIn1dfV0sInZlcmlmaWNhdGlvbiI6W3sibGFiZWwiOiJSdW50aW1lIOmqjOaUtiIsInN0YXR1cyI6InBhc3NlZCIsImRldGFpbCI6IlZlcmlmeSBndWFyZCDlt7LpgJrov4fvvIw2LzYg5Lu75Yqh5LiO5YWo6YOo6KeE5qC86aqM5pS25a6M5oiQ77yb562J5b6F55So5oi36YCJ5oup5b2S5qGj5Y+KIEdpdCDkuqTku5jmlrnlvI/jgIIifSx7ImxhYmVsIjoi5Zue5b2S6K+B5o2uIiwic3RhdHVzIjoicGFzc2VkIiwiZGV0YWlsIjoiMzQwIOmhueWumuWQkeWbnuW9kuS4juS/ruWkjeWQjueahCAxNzcg6aG5IEFQSS/lhYPmlbDmja7lpI3mtYvpgJrov4fvvJvljp/lrozmlbTlpZfku7blpLHotKXlkoznjq/looPlpI3moLjlnYfop4HpqozmlLbmiqXlkYrjgIIifSx7ImxhYmVsIjoi6Z2Z5oCB5qOA5p+lIiwic3RhdHVzIjoicGFzc2VkIiwiZGV0YWlsIjoiUnVmZi9CbGFjayA3IOaWh+S7tuOAgeiBmueEpiBNeXB5IDYg5qih5Z2X44CB57yW56CB5omr5o+P5LiOIGRpZmYg56m655m95qOA5p+l6YCa6L+H44CC6buY6K6k5omp5aSnIE15cHkg55qENemhueWOn+aciemUmeivr+W3suS4jm1haW7lr7nnhafjgIIifSx7ImxhYmVsIjoi54us56uL5a6h5p+lIiwic3RhdHVzIjoibm90LXJ1biIsImRldGFpbCI6IuaMieW3suehruiupCBvZmYg6YWN572u44CCIn1dfQ==</template></body></html>

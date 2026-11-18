@@ -1,0 +1,2726 @@
+# comet-execution: managed-run
+change_id: d3349fa2-88bf-4ee2-be90-99ba1f9cdd2d
+workflow: tweak
+language: zh-CN
+phase: archive
+context_compression: off
+build_mode: direct
+build_pause: null
+subagent_dispatch: null
+tdd_mode: direct
+review_mode: off
+isolation: current
+verify_mode: light
+auto_transition: true
+base_ref: 8a4d0e1c48d4391984765c28dd5f66e579308af1
+design_doc: null
+plan: null
+verify_result: pass
+verify_failures: 0
+verification_report: docs/superpowers/reports/2026-11-18-fix-strategy-parameter-inheritance-verify.md
+branch_status: pending
+created_at: 2026-11-18
+verified_at: 2026-11-18
+archive_confirmation: confirmed
+archived: true
+bound_branch: main
+run_checkpoint:
+  schema: comet.workflow-run-checkpoint.v1
+  hash: c4b3d351c5cae41bcc88399928da673d3297a13894e4cf5ca892cac4d4d8fd62
+  run:
+    protocolVersion: 1
+    schemaVersion: 1
+    runId: fix-strategy-parameter-inheritance
+    revision: 1
+    workflow:
+      id: comet-classic-tweak
+      version: "2"
+      hash: 518d3e8e12eb39899775cb7d2ddcc7ddeba10cb1f1d43cff7b03f2ca61a70c65
+    definitionHashes:
+      '["comet-classic-tweak","2"]': 518d3e8e12eb39899775cb7d2ddcc7ddeba10cb1f1d43cff7b03f2ca61a70c65
+    initialStateHash: b9cd703878bb8a7aa7ee8f1f6545605da254192cfc618111137204e00f57143c
+    input:
+      change: fix-strategy-parameter-inheritance
+      changeDir: openspec/changes/fix-strategy-parameter-inheritance
+      workspaceBaseline:
+        ref: b325437c-f5b6-4a9a-899c-2628810de3b1
+    state:
+      archiveConfirmation: confirmed
+      archived: true
+      autoTransition: true
+      baseRef: 8a4d0e1c48d4391984765c28dd5f66e579308af1
+      boundBranch: main
+      branchStatus: pending
+      buildMode: direct
+      buildPause: null
+      checkEpoch: 7
+      classicMigration: null
+      classicProfile: null
+      contextCompression: off
+      createdAt: 2026-11-18
+      designDoc: null
+      directOverride: null
+      handoffContext: null
+      handoffHash: null
+      isolation: current
+      language: zh-CN
+      phase: archive
+      plan: null
+      reviewMode: off
+      subagentDispatch: null
+      tddMode: direct
+      verificationReport: docs/superpowers/reports/2026-11-18-fix-strategy-parameter-inheritance-verify.md
+      verifiedAt: 2026-11-18
+      verifyFailures: 0
+      verifyMode: light
+      verifyResult: pass
+      workflow: tweak
+    status: running
+    sequence: 14
+    actions:
+      - attempt: 1
+        claim:
+          executorId: comet-classic-guard
+          token: portable-0687bb755d331d560190694ff577854b6afa4b822203a770797b81e2f42710f2
+        executionOrigin:
+          workflow:
+            hash: 518d3e8e12eb39899775cb7d2ddcc7ddeba10cb1f1d43cff7b03f2ca61a70c65
+            id: comet-classic-tweak
+            version: "2"
+        id: fix-strategy-parameter-inheritance:1
+        input:
+          input:
+            change: fix-strategy-parameter-inheritance
+            changeDir: openspec/changes/fix-strategy-parameter-inheritance
+            workspaceBaseline:
+              ref: b325437c-f5b6-4a9a-899c-2628810de3b1
+          outputs: {}
+        inputHash: 498352ffbd675f047ec70e0810aa1dfbf55a5b3b007e592465d48509aef39576
+        outcome:
+          actionId: fix-strategy-parameter-inheritance:1
+          attempt: 1
+          claimToken: portable-0687bb755d331d560190694ff577854b6afa4b822203a770797b81e2f42710f2
+          inputHash: 498352ffbd675f047ec70e0810aa1dfbf55a5b3b007e592465d48509aef39576
+          outcomeId: b23e85e6-40a2-4a66-805b-ca036479e03c
+          output:
+            event: open-complete
+            requirementsEvidence:
+              ref: openspec/changes/fix-strategy-parameter-inheritance
+          status: succeeded
+        protocolVersion: 1
+        receipts:
+          - hash: bacc7bc5ba0f83ce4cf75f995aef34198b42d98a67e3f416b602be11281beeb1
+            outcomeId: b23e85e6-40a2-4a66-805b-ca036479e03c
+        reconciliations: []
+        ref: comet-tweak
+        requiredCapabilities: []
+        retry: manual
+        runId: fix-strategy-parameter-inheritance
+        status: succeeded
+        stepId: tweak.open
+        type: invoke_skill
+      - attempt: 1
+        claim:
+          executorId: comet-classic-state
+          sessionId: codex-issue492-root
+          token: portable-6c4768f26d5e759f3dc2b9ad1f4f390403decd5bead0c288397aacc16ca1df32
+        executionOrigin:
+          workflow:
+            hash: 518d3e8e12eb39899775cb7d2ddcc7ddeba10cb1f1d43cff7b03f2ca61a70c65
+            id: comet-classic-tweak
+            version: "2"
+        id: fix-strategy-parameter-inheritance:3
+        input:
+          input:
+            change: fix-strategy-parameter-inheritance
+            changeDir: openspec/changes/fix-strategy-parameter-inheritance
+            workspaceBaseline:
+              ref: b325437c-f5b6-4a9a-899c-2628810de3b1
+          outputs:
+            tweak.open:
+              event: open-complete
+              requirementsEvidence:
+                ref: openspec/changes/fix-strategy-parameter-inheritance
+            tweak.open.evidence:
+              contentHash: 498352ffbd675f047ec70e0810aa1dfbf55a5b3b007e592465d48509aef39576
+              ref: openspec/changes/fix-strategy-parameter-inheritance
+        inputHash: 7d328ee0ce285d8202ad2ef8f1b493de4948c7451034a1a7534786c8878d7c41
+        outcome:
+          actionId: fix-strategy-parameter-inheritance:3
+          attempt: 1
+          claimToken: portable-6c4768f26d5e759f3dc2b9ad1f4f390403decd5bead0c288397aacc16ca1df32
+          inputHash: 7d328ee0ce285d8202ad2ef8f1b493de4948c7451034a1a7534786c8878d7c41
+          outcomeId: 7ce86140-bdd1-4786-a4b1-9ee0b06049b9
+          output:
+            checks:
+              - name: "issue #492 regression and related suites (repository root): python -m
+                  pytest tests/test_strategy_parameter_contract.py
+                  tests/test_models.py tests/test_tree_of_thoughts.py
+                  tests/test_task_service.py tests/test_business_checkpoints.py
+                  tests/test_experiment.py tests/test_llm_client.py
+                  tests/test_api_experiment_benchmark.py -q --no-cov"
+                note: "340 passed; /private/tmp/comet-492-targeted.log. Initial reproduction:
+                  /private/tmp/comet-492-red.log (31 expected failures)."
+                result: passed
+              - name: Ruff and Black for five changed Python files
+                note: ruff check and black --check passed; tools installed in temporary cache.
+                result: passed
+              - name: Mypy four changed production modules
+                note: "Success: no issues found in 4 source files;
+                  /private/tmp/comet-492-mypy.log"
+                result: passed
+              - name: python scripts/find_missing_encoding.py and git diff --check
+                note: "Implicit text encodings: 0; no whitespace errors"
+                result: passed
+              - name: Loopback HTTP tests requiring socket permissions
+                note: 4 passed; /private/tmp/comet-492-loopback.log
+                result: passed
+            event: build-complete
+          status: succeeded
+        protocolVersion: 1
+        receipts:
+          - hash: e70e144a0d40d90e9432126796c1a19fabed256a17926c5b844b976d3b0aa38d
+            outcomeId: 7ce86140-bdd1-4786-a4b1-9ee0b06049b9
+        reconciliations: []
+        ref: comet-build
+        requiredCapabilities: []
+        retry: manual
+        runId: fix-strategy-parameter-inheritance
+        status: succeeded
+        stepId: tweak.build.execute
+        type: invoke_skill
+      - attempt: 1
+        claim:
+          executorId: comet-classic-state
+          token: portable-9f8aa71026f0e9c0450f0c8a4816183ec7743ddfe32a0fc99a534ccf8a736df9
+        executionOrigin:
+          workflow:
+            hash: 518d3e8e12eb39899775cb7d2ddcc7ddeba10cb1f1d43cff7b03f2ca61a70c65
+            id: comet-classic-tweak
+            version: "2"
+        id: fix-strategy-parameter-inheritance:4
+        input:
+          input:
+            change: fix-strategy-parameter-inheritance
+            changeDir: openspec/changes/fix-strategy-parameter-inheritance
+            workspaceBaseline:
+              ref: b325437c-f5b6-4a9a-899c-2628810de3b1
+          outputs:
+            tweak.build.execute:
+              checks:
+                - name: "issue #492 regression and related suites (repository root): python -m
+                    pytest tests/test_strategy_parameter_contract.py
+                    tests/test_models.py tests/test_tree_of_thoughts.py
+                    tests/test_task_service.py
+                    tests/test_business_checkpoints.py tests/test_experiment.py
+                    tests/test_llm_client.py
+                    tests/test_api_experiment_benchmark.py -q --no-cov"
+                  note: "340 passed; /private/tmp/comet-492-targeted.log. Initial reproduction:
+                    /private/tmp/comet-492-red.log (31 expected failures)."
+                  result: passed
+                - name: Ruff and Black for five changed Python files
+                  note: ruff check and black --check passed; tools installed in temporary cache.
+                  result: passed
+                - name: Mypy four changed production modules
+                  note: "Success: no issues found in 4 source files;
+                    /private/tmp/comet-492-mypy.log"
+                  result: passed
+                - name: python scripts/find_missing_encoding.py and git diff --check
+                  note: "Implicit text encodings: 0; no whitespace errors"
+                  result: passed
+                - name: Loopback HTTP tests requiring socket permissions
+                  note: 4 passed; /private/tmp/comet-492-loopback.log
+                  result: passed
+              event: build-complete
+            tweak.open:
+              event: open-complete
+              requirementsEvidence:
+                ref: openspec/changes/fix-strategy-parameter-inheritance
+            tweak.open.evidence:
+              contentHash: 498352ffbd675f047ec70e0810aa1dfbf55a5b3b007e592465d48509aef39576
+              ref: openspec/changes/fix-strategy-parameter-inheritance
+        inputHash: 626424e58fb62a176e59d87830a973d25600f04272e1887628fc6dbdfea76cd5
+        outcome:
+          actionId: fix-strategy-parameter-inheritance:4
+          attempt: 1
+          claimToken: portable-9f8aa71026f0e9c0450f0c8a4816183ec7743ddfe32a0fc99a534ccf8a736df9
+          inputHash: 626424e58fb62a176e59d87830a973d25600f04272e1887628fc6dbdfea76cd5
+          outcomeId: 5b432492-cedd-4c7d-b728-86171442e7ec
+          output:
+            event: verify-fail
+            reason: 完整回归发现共享策略序列化影响策略目录默认值和模板文档一致性，需回 Build 补齐两个原范围展示入口。
+          status: succeeded
+        protocolVersion: 1
+        receipts:
+          - hash: 412da5c5585739359e7bfdb51cd1356788211d52a282c33720c04331f54ad32e
+            outcomeId: 5b432492-cedd-4c7d-b728-86171442e7ec
+        reconciliations: []
+        ref: comet-verify
+        requiredCapabilities: []
+        retry: manual
+        runId: fix-strategy-parameter-inheritance
+        status: succeeded
+        stepId: tweak.verify.run
+        type: invoke_skill
+      - attempt: 1
+        claim:
+          executorId: comet-classic-state
+          token: portable-4a35356357daa0b4e483b29d4ec97f036e29aa8c0ae582d9d83bc6e8b459533f
+        executionOrigin:
+          workflow:
+            hash: 518d3e8e12eb39899775cb7d2ddcc7ddeba10cb1f1d43cff7b03f2ca61a70c65
+            id: comet-classic-tweak
+            version: "2"
+        id: fix-strategy-parameter-inheritance:5
+        input:
+          input:
+            change: fix-strategy-parameter-inheritance
+            changeDir: openspec/changes/fix-strategy-parameter-inheritance
+            workspaceBaseline:
+              ref: b325437c-f5b6-4a9a-899c-2628810de3b1
+          outputs:
+            tweak.build.execute:
+              checks:
+                - name: "issue #492 regression and related suites (repository root): python -m
+                    pytest tests/test_strategy_parameter_contract.py
+                    tests/test_models.py tests/test_tree_of_thoughts.py
+                    tests/test_task_service.py
+                    tests/test_business_checkpoints.py tests/test_experiment.py
+                    tests/test_llm_client.py
+                    tests/test_api_experiment_benchmark.py -q --no-cov"
+                  note: "340 passed; /private/tmp/comet-492-targeted.log. Initial reproduction:
+                    /private/tmp/comet-492-red.log (31 expected failures)."
+                  result: passed
+                - name: Ruff and Black for five changed Python files
+                  note: ruff check and black --check passed; tools installed in temporary cache.
+                  result: passed
+                - name: Mypy four changed production modules
+                  note: "Success: no issues found in 4 source files;
+                    /private/tmp/comet-492-mypy.log"
+                  result: passed
+                - name: python scripts/find_missing_encoding.py and git diff --check
+                  note: "Implicit text encodings: 0; no whitespace errors"
+                  result: passed
+                - name: Loopback HTTP tests requiring socket permissions
+                  note: 4 passed; /private/tmp/comet-492-loopback.log
+                  result: passed
+              event: build-complete
+            tweak.open:
+              event: open-complete
+              requirementsEvidence:
+                ref: openspec/changes/fix-strategy-parameter-inheritance
+            tweak.open.evidence:
+              contentHash: 498352ffbd675f047ec70e0810aa1dfbf55a5b3b007e592465d48509aef39576
+              ref: openspec/changes/fix-strategy-parameter-inheritance
+            tweak.verify.run:
+              event: verify-fail
+              reason: 完整回归发现共享策略序列化影响策略目录默认值和模板文档一致性，需回 Build 补齐两个原范围展示入口。
+        inputHash: 3262b0f0850582e2d8a2cec3246d85cf85ec39fae94f1450480148c4924393ff
+        outcome:
+          actionId: fix-strategy-parameter-inheritance:5
+          attempt: 1
+          claimToken: portable-4a35356357daa0b4e483b29d4ec97f036e29aa8c0ae582d9d83bc6e8b459533f
+          inputHash: 3262b0f0850582e2d8a2cec3246d85cf85ec39fae94f1450480148c4924393ff
+          outcomeId: 0d860cba-826f-4538-83d0-1e2400ec0aa1
+          output:
+            event: escalation-requested
+            proposal: 仅文件数由6增至8：需在 api/monitoring/probes.py 保持策略目录默认值展示，在
+              api/files/templates.py 显式声明模板默认策略参数以保持文档契约。仍为原 issue
+              参数序列化修复，不增加功能、API或架构风险；现有2项失败回归可直接验证。建议继续 tweak。
+            requirementsEvidence:
+              contentHash: 3262b0f0850582e2d8a2cec3246d85cf85ec39fae94f1450480148c4924393ff
+              ref: openspec/changes/fix-strategy-parameter-inheritance
+          status: succeeded
+        protocolVersion: 1
+        receipts:
+          - hash: 2cd17d3cc0f359eb78e26de3eca122bad8e71706cebbb04ce9733cfa24acefef
+            outcomeId: 0d860cba-826f-4538-83d0-1e2400ec0aa1
+        reconciliations: []
+        ref: comet-build
+        requiredCapabilities: []
+        retry: manual
+        runId: fix-strategy-parameter-inheritance
+        status: succeeded
+        stepId: tweak.build.execute
+        type: invoke_skill
+      - attempt: 1
+        claim:
+          executorId: comet-classic-state
+          sessionId: codex-issue492-root
+          token: portable-beb9dc424d3fbdb19acc5c3993759cf3b12a87b6f141d421a31be923ec074faf
+        executionOrigin:
+          workflow:
+            hash: 518d3e8e12eb39899775cb7d2ddcc7ddeba10cb1f1d43cff7b03f2ca61a70c65
+            id: comet-classic-tweak
+            version: "2"
+        id: fix-strategy-parameter-inheritance:7
+        input:
+          input:
+            change: fix-strategy-parameter-inheritance
+            changeDir: openspec/changes/fix-strategy-parameter-inheritance
+            workspaceBaseline:
+              ref: b325437c-f5b6-4a9a-899c-2628810de3b1
+          outputs:
+            tweak.build.escalation-confirm:
+              choice: continue
+              proposal:
+                input:
+                  change: fix-strategy-parameter-inheritance
+                  changeDir: openspec/changes/fix-strategy-parameter-inheritance
+                  workspaceBaseline:
+                    ref: b325437c-f5b6-4a9a-899c-2628810de3b1
+                outputs:
+                  tweak.build.execute:
+                    event: escalation-requested
+                    proposal: 仅文件数由6增至8：需在 api/monitoring/probes.py 保持策略目录默认值展示，在
+                      api/files/templates.py 显式声明模板默认策略参数以保持文档契约。仍为原 issue
+                      参数序列化修复，不增加功能、API或架构风险；现有2项失败回归可直接验证。建议继续 tweak。
+                    requirementsEvidence:
+                      contentHash: 3262b0f0850582e2d8a2cec3246d85cf85ec39fae94f1450480148c4924393ff
+                      ref: openspec/changes/fix-strategy-parameter-inheritance
+            tweak.build.execute:
+              event: escalation-requested
+              proposal: 仅文件数由6增至8：需在 api/monitoring/probes.py 保持策略目录默认值展示，在
+                api/files/templates.py 显式声明模板默认策略参数以保持文档契约。仍为原 issue
+                参数序列化修复，不增加功能、API或架构风险；现有2项失败回归可直接验证。建议继续 tweak。
+              requirementsEvidence:
+                contentHash: 3262b0f0850582e2d8a2cec3246d85cf85ec39fae94f1450480148c4924393ff
+                ref: openspec/changes/fix-strategy-parameter-inheritance
+            tweak.open:
+              event: open-complete
+              requirementsEvidence:
+                ref: openspec/changes/fix-strategy-parameter-inheritance
+            tweak.open.evidence:
+              contentHash: 498352ffbd675f047ec70e0810aa1dfbf55a5b3b007e592465d48509aef39576
+              ref: openspec/changes/fix-strategy-parameter-inheritance
+            tweak.verify.run:
+              event: verify-fail
+              reason: 完整回归发现共享策略序列化影响策略目录默认值和模板文档一致性，需回 Build 补齐两个原范围展示入口。
+        inputHash: 645a857466c85b52a6ff05bd6dcd713147415b5cfe56df89980feb29984b72b0
+        outcome:
+          actionId: fix-strategy-parameter-inheritance:7
+          attempt: 1
+          claimToken: portable-beb9dc424d3fbdb19acc5c3993759cf3b12a87b6f141d421a31be923ec074faf
+          inputHash: 645a857466c85b52a6ff05bd6dcd713147415b5cfe56df89980feb29984b72b0
+          outcomeId: e8192d67-4830-4058-9f30-9156f3cb54d4
+          output:
+            checks:
+              - name: "issue #492 regression and related suites (repository root): python -m
+                  pytest tests/test_strategy_parameter_contract.py
+                  tests/test_models.py tests/test_tree_of_thoughts.py
+                  tests/test_task_service.py tests/test_business_checkpoints.py
+                  tests/test_experiment.py tests/test_llm_client.py
+                  tests/test_api_experiment_benchmark.py -q --no-cov"
+                note: "340 passed; /private/tmp/comet-492-targeted.log. Initial reproduction:
+                  /private/tmp/comet-492-red.log (31 expected failures)."
+                result: passed
+              - name: Ruff and Black for five changed Python files
+                note: ruff check and black --check passed; tools installed in temporary cache.
+                result: passed
+              - name: Mypy four changed production modules
+                note: "Success: no issues found in 4 source files;
+                  /private/tmp/comet-492-mypy.log"
+                result: passed
+              - name: python scripts/find_missing_encoding.py and git diff --check
+                note: "Implicit text encodings: 0; no whitespace errors"
+                result: passed
+              - name: Loopback HTTP tests requiring socket permissions
+                note: 4 passed; /private/tmp/comet-492-loopback.log
+                result: passed
+              - name: Metadata, API documentation, issue regressions and file API
+                note: 177 passed; /private/tmp/comet-492-metadata-green.log
+                result: passed
+              - name: Final scoped quality checks
+                note: Ruff/Black 7 files, mypy focused 6 modules passed; default expanded mypy
+                  has identical 5 baseline errors in imported files, documented
+                  in verification.md
+                result: passed
+              - name: Offline suite and follow-up of every failed/error case
+                note: "Initial full run EXIT 1: 4303 passed, 44 skipped, 5 failed, 4 errors; 2
+                  true regressions fixed and verified in 177-test run; 2
+                  readability failures passed with temporary Flake8; 5 socket
+                  cases passed with loopback permission. Original and follow-up
+                  results are separately documented."
+                result: passed
+            event: build-complete
+          status: succeeded
+        protocolVersion: 1
+        receipts:
+          - hash: 8e3f35b4098a60b19ad79be02e4c6300f5f3db8f775dbcd1bc255164df43b912
+            outcomeId: e8192d67-4830-4058-9f30-9156f3cb54d4
+        reconciliations: []
+        ref: comet-build
+        requiredCapabilities: []
+        retry: manual
+        runId: fix-strategy-parameter-inheritance
+        status: succeeded
+        stepId: tweak.build.execute
+        type: invoke_skill
+      - attempt: 1
+        claim:
+          executorId: comet-classic-guard
+          token: portable-c32cb217810d64dc0c9027ce6e0368bf4ed780497fbc5db4f4e7d246a4142795
+        executionOrigin:
+          workflow:
+            hash: 518d3e8e12eb39899775cb7d2ddcc7ddeba10cb1f1d43cff7b03f2ca61a70c65
+            id: comet-classic-tweak
+            version: "2"
+        id: fix-strategy-parameter-inheritance:8
+        input:
+          input:
+            change: fix-strategy-parameter-inheritance
+            changeDir: openspec/changes/fix-strategy-parameter-inheritance
+            workspaceBaseline:
+              ref: b325437c-f5b6-4a9a-899c-2628810de3b1
+          outputs:
+            tweak.build.escalation-confirm:
+              choice: continue
+              proposal:
+                input:
+                  change: fix-strategy-parameter-inheritance
+                  changeDir: openspec/changes/fix-strategy-parameter-inheritance
+                  workspaceBaseline:
+                    ref: b325437c-f5b6-4a9a-899c-2628810de3b1
+                outputs:
+                  tweak.build.execute:
+                    event: escalation-requested
+                    proposal: 仅文件数由6增至8：需在 api/monitoring/probes.py 保持策略目录默认值展示，在
+                      api/files/templates.py 显式声明模板默认策略参数以保持文档契约。仍为原 issue
+                      参数序列化修复，不增加功能、API或架构风险；现有2项失败回归可直接验证。建议继续 tweak。
+                    requirementsEvidence:
+                      contentHash: 3262b0f0850582e2d8a2cec3246d85cf85ec39fae94f1450480148c4924393ff
+                      ref: openspec/changes/fix-strategy-parameter-inheritance
+            tweak.build.execute:
+              checks:
+                - name: "issue #492 regression and related suites (repository root): python -m
+                    pytest tests/test_strategy_parameter_contract.py
+                    tests/test_models.py tests/test_tree_of_thoughts.py
+                    tests/test_task_service.py
+                    tests/test_business_checkpoints.py tests/test_experiment.py
+                    tests/test_llm_client.py
+                    tests/test_api_experiment_benchmark.py -q --no-cov"
+                  note: "340 passed; /private/tmp/comet-492-targeted.log. Initial reproduction:
+                    /private/tmp/comet-492-red.log (31 expected failures)."
+                  result: passed
+                - name: Ruff and Black for five changed Python files
+                  note: ruff check and black --check passed; tools installed in temporary cache.
+                  result: passed
+                - name: Mypy four changed production modules
+                  note: "Success: no issues found in 4 source files;
+                    /private/tmp/comet-492-mypy.log"
+                  result: passed
+                - name: python scripts/find_missing_encoding.py and git diff --check
+                  note: "Implicit text encodings: 0; no whitespace errors"
+                  result: passed
+                - name: Loopback HTTP tests requiring socket permissions
+                  note: 4 passed; /private/tmp/comet-492-loopback.log
+                  result: passed
+                - name: Metadata, API documentation, issue regressions and file API
+                  note: 177 passed; /private/tmp/comet-492-metadata-green.log
+                  result: passed
+                - name: Final scoped quality checks
+                  note: Ruff/Black 7 files, mypy focused 6 modules passed; default expanded mypy
+                    has identical 5 baseline errors in imported files,
+                    documented in verification.md
+                  result: passed
+                - name: Offline suite and follow-up of every failed/error case
+                  note: "Initial full run EXIT 1: 4303 passed, 44 skipped, 5 failed, 4 errors; 2
+                    true regressions fixed and verified in 177-test run; 2
+                    readability failures passed with temporary Flake8; 5 socket
+                    cases passed with loopback permission. Original and
+                    follow-up results are separately documented."
+                  result: passed
+              event: build-complete
+            tweak.open:
+              event: open-complete
+              requirementsEvidence:
+                ref: openspec/changes/fix-strategy-parameter-inheritance
+            tweak.open.evidence:
+              contentHash: 498352ffbd675f047ec70e0810aa1dfbf55a5b3b007e592465d48509aef39576
+              ref: openspec/changes/fix-strategy-parameter-inheritance
+            tweak.verify.run:
+              event: verify-fail
+              reason: 完整回归发现共享策略序列化影响策略目录默认值和模板文档一致性，需回 Build 补齐两个原范围展示入口。
+        inputHash: ea334f7c685076ac083b7e204ddf24054f651ddd9fda96acb64b03d045f7ae48
+        outcome:
+          actionId: fix-strategy-parameter-inheritance:8
+          attempt: 1
+          claimToken: portable-c32cb217810d64dc0c9027ce6e0368bf4ed780497fbc5db4f4e7d246a4142795
+          inputHash: ea334f7c685076ac083b7e204ddf24054f651ddd9fda96acb64b03d045f7ae48
+          outcomeId: 8cbd83bd-d97c-401b-a777-9af0e01038f0
+          output:
+            checks:
+              - name: "issue #492 regression and related suites (repository root): python -m
+                  pytest tests/test_strategy_parameter_contract.py
+                  tests/test_models.py tests/test_tree_of_thoughts.py
+                  tests/test_task_service.py tests/test_business_checkpoints.py
+                  tests/test_experiment.py tests/test_llm_client.py
+                  tests/test_api_experiment_benchmark.py -q --no-cov"
+                note: "340 passed; /private/tmp/comet-492-targeted.log. Initial reproduction:
+                  /private/tmp/comet-492-red.log (31 expected failures)."
+                result: passed
+              - name: Ruff and Black for five changed Python files
+                note: ruff check and black --check passed; tools installed in temporary cache.
+                result: passed
+              - name: Mypy four changed production modules
+                note: "Success: no issues found in 4 source files;
+                  /private/tmp/comet-492-mypy.log"
+                result: passed
+              - name: python scripts/find_missing_encoding.py and git diff --check
+                note: "Implicit text encodings: 0; no whitespace errors"
+                result: passed
+              - name: Loopback HTTP tests requiring socket permissions
+                note: 4 passed; /private/tmp/comet-492-loopback.log
+                result: passed
+              - name: Metadata, API documentation, issue regressions and file API
+                note: 177 passed; /private/tmp/comet-492-metadata-green.log
+                result: passed
+              - name: Final scoped quality checks
+                note: Ruff/Black 7 files, mypy focused 6 modules passed; default expanded mypy
+                  has identical 5 baseline errors in imported files, documented
+                  in verification.md
+                result: passed
+              - name: Offline suite and follow-up of every failed/error case
+                note: "Initial full run EXIT 1: 4303 passed, 44 skipped, 5 failed, 4 errors; 2
+                  true regressions fixed and verified in 177-test run; 2
+                  readability failures passed with temporary Flake8; 5 socket
+                  cases passed with loopback permission. Original and follow-up
+                  results are separately documented."
+                result: passed
+            event: verification-ready
+            verificationReport: docs/superpowers/reports/2026-11-18-fix-strategy-parameter-inheritance-verify.md
+          status: succeeded
+        protocolVersion: 1
+        receipts:
+          - hash: bacfd114d23f0cf2685cf757af71a37359e2b4fbe517ca008d49bbf99bde764e
+            outcomeId: 8cbd83bd-d97c-401b-a777-9af0e01038f0
+        reconciliations: []
+        ref: comet-verify
+        requiredCapabilities: []
+        retry: manual
+        runId: fix-strategy-parameter-inheritance
+        status: succeeded
+        stepId: tweak.verify.run
+        type: invoke_skill
+      - attempt: 1
+        claim:
+          executorId: comet-classic-state
+          token: portable-83e8812c41bef4147cd58bb590bc8590643241184a934720bd350cf81a6be2c0
+        executionOrigin:
+          workflow:
+            hash: 518d3e8e12eb39899775cb7d2ddcc7ddeba10cb1f1d43cff7b03f2ca61a70c65
+            id: comet-classic-tweak
+            version: "2"
+        id: fix-strategy-parameter-inheritance:10
+        input:
+          input:
+            change: fix-strategy-parameter-inheritance
+            changeDir: openspec/changes/fix-strategy-parameter-inheritance
+            workspaceBaseline:
+              ref: b325437c-f5b6-4a9a-899c-2628810de3b1
+          outputs:
+            tweak.build.escalation-confirm:
+              choice: continue
+              proposal:
+                input:
+                  change: fix-strategy-parameter-inheritance
+                  changeDir: openspec/changes/fix-strategy-parameter-inheritance
+                  workspaceBaseline:
+                    ref: b325437c-f5b6-4a9a-899c-2628810de3b1
+                outputs:
+                  tweak.build.execute:
+                    event: escalation-requested
+                    proposal: 仅文件数由6增至8：需在 api/monitoring/probes.py 保持策略目录默认值展示，在
+                      api/files/templates.py 显式声明模板默认策略参数以保持文档契约。仍为原 issue
+                      参数序列化修复，不增加功能、API或架构风险；现有2项失败回归可直接验证。建议继续 tweak。
+                    requirementsEvidence:
+                      contentHash: 3262b0f0850582e2d8a2cec3246d85cf85ec39fae94f1450480148c4924393ff
+                      ref: openspec/changes/fix-strategy-parameter-inheritance
+            tweak.build.execute:
+              checks:
+                - name: "issue #492 regression and related suites (repository root): python -m
+                    pytest tests/test_strategy_parameter_contract.py
+                    tests/test_models.py tests/test_tree_of_thoughts.py
+                    tests/test_task_service.py
+                    tests/test_business_checkpoints.py tests/test_experiment.py
+                    tests/test_llm_client.py
+                    tests/test_api_experiment_benchmark.py -q --no-cov"
+                  note: "340 passed; /private/tmp/comet-492-targeted.log. Initial reproduction:
+                    /private/tmp/comet-492-red.log (31 expected failures)."
+                  result: passed
+                - name: Ruff and Black for five changed Python files
+                  note: ruff check and black --check passed; tools installed in temporary cache.
+                  result: passed
+                - name: Mypy four changed production modules
+                  note: "Success: no issues found in 4 source files;
+                    /private/tmp/comet-492-mypy.log"
+                  result: passed
+                - name: python scripts/find_missing_encoding.py and git diff --check
+                  note: "Implicit text encodings: 0; no whitespace errors"
+                  result: passed
+                - name: Loopback HTTP tests requiring socket permissions
+                  note: 4 passed; /private/tmp/comet-492-loopback.log
+                  result: passed
+                - name: Metadata, API documentation, issue regressions and file API
+                  note: 177 passed; /private/tmp/comet-492-metadata-green.log
+                  result: passed
+                - name: Final scoped quality checks
+                  note: Ruff/Black 7 files, mypy focused 6 modules passed; default expanded mypy
+                    has identical 5 baseline errors in imported files,
+                    documented in verification.md
+                  result: passed
+                - name: Offline suite and follow-up of every failed/error case
+                  note: "Initial full run EXIT 1: 4303 passed, 44 skipped, 5 failed, 4 errors; 2
+                    true regressions fixed and verified in 177-test run; 2
+                    readability failures passed with temporary Flake8; 5 socket
+                    cases passed with loopback permission. Original and
+                    follow-up results are separately documented."
+                  result: passed
+              event: build-complete
+            tweak.open:
+              event: open-complete
+              requirementsEvidence:
+                ref: openspec/changes/fix-strategy-parameter-inheritance
+            tweak.open.evidence:
+              contentHash: 498352ffbd675f047ec70e0810aa1dfbf55a5b3b007e592465d48509aef39576
+              ref: openspec/changes/fix-strategy-parameter-inheritance
+            tweak.verify.report.evidence:
+              contentHash: ea334f7c685076ac083b7e204ddf24054f651ddd9fda96acb64b03d045f7ae48
+              ref: docs/superpowers/reports/2026-11-18-fix-strategy-parameter-inheritance-verify.md
+            tweak.verify.run:
+              checks:
+                - name: "issue #492 regression and related suites (repository root): python -m
+                    pytest tests/test_strategy_parameter_contract.py
+                    tests/test_models.py tests/test_tree_of_thoughts.py
+                    tests/test_task_service.py
+                    tests/test_business_checkpoints.py tests/test_experiment.py
+                    tests/test_llm_client.py
+                    tests/test_api_experiment_benchmark.py -q --no-cov"
+                  note: "340 passed; /private/tmp/comet-492-targeted.log. Initial reproduction:
+                    /private/tmp/comet-492-red.log (31 expected failures)."
+                  result: passed
+                - name: Ruff and Black for five changed Python files
+                  note: ruff check and black --check passed; tools installed in temporary cache.
+                  result: passed
+                - name: Mypy four changed production modules
+                  note: "Success: no issues found in 4 source files;
+                    /private/tmp/comet-492-mypy.log"
+                  result: passed
+                - name: python scripts/find_missing_encoding.py and git diff --check
+                  note: "Implicit text encodings: 0; no whitespace errors"
+                  result: passed
+                - name: Loopback HTTP tests requiring socket permissions
+                  note: 4 passed; /private/tmp/comet-492-loopback.log
+                  result: passed
+                - name: Metadata, API documentation, issue regressions and file API
+                  note: 177 passed; /private/tmp/comet-492-metadata-green.log
+                  result: passed
+                - name: Final scoped quality checks
+                  note: Ruff/Black 7 files, mypy focused 6 modules passed; default expanded mypy
+                    has identical 5 baseline errors in imported files,
+                    documented in verification.md
+                  result: passed
+                - name: Offline suite and follow-up of every failed/error case
+                  note: "Initial full run EXIT 1: 4303 passed, 44 skipped, 5 failed, 4 errors; 2
+                    true regressions fixed and verified in 177-test run; 2
+                    readability failures passed with temporary Flake8; 5 socket
+                    cases passed with loopback permission. Original and
+                    follow-up results are separately documented."
+                  result: passed
+              event: verification-ready
+              verificationReport: docs/superpowers/reports/2026-11-18-fix-strategy-parameter-inheritance-verify.md
+        inputHash: aeab34e997f6bbdb0305abb021484d3abae7ab6a7002df3aac87a55736642b8d
+        outcome:
+          actionId: fix-strategy-parameter-inheritance:10
+          attempt: 1
+          claimToken: portable-83e8812c41bef4147cd58bb590bc8590643241184a934720bd350cf81a6be2c0
+          inputHash: aeab34e997f6bbdb0305abb021484d3abae7ab6a7002df3aac87a55736642b8d
+          outcomeId: 0774e30b-691e-4aa2-96ad-cd7f70ef18ab
+          output:
+            prBaseBranch: main
+            remote: origin
+            summary: "Issue #492 修复与最终验收通过；8 个交付文件已获范围授权，6/6 任务完成。归档本
+              change、同步3份主规格并提交全部本次修改。当前绑定与建议本地提交目标为 main；origin 为 GitHub
+              JayNey/LLM-Algorithm-Harness，PR base 为 main，创建 PR 需先新建修复分支。未授权
+              push 或 PR。"
+            targetBranch: main
+          status: succeeded
+        protocolVersion: 1
+        receipts:
+          - hash: 59e88de0b97b9b5f5a9aafa43219b3fc4f9cb1033a4fd7573962240171b3596a
+            outcomeId: 0774e30b-691e-4aa2-96ad-cd7f70ef18ab
+        reconciliations: []
+        ref: comet-archive
+        requiredCapabilities: []
+        retry: manual
+        runId: fix-strategy-parameter-inheritance
+        status: succeeded
+        stepId: tweak.archive.prepare
+        type: invoke_skill
+      - attempt: 1
+        claim:
+          executorId: comet-classic-archive-preflight
+          token: portable-980583fe0c760d2dd6edc58522b18ec09afd906b9f8f61b9854594cfa4ba64ec
+        executionOrigin:
+          workflow:
+            hash: 518d3e8e12eb39899775cb7d2ddcc7ddeba10cb1f1d43cff7b03f2ca61a70c65
+            id: comet-classic-tweak
+            version: "2"
+        id: fix-strategy-parameter-inheritance:12
+        input:
+          input:
+            change: fix-strategy-parameter-inheritance
+            changeDir: openspec/changes/fix-strategy-parameter-inheritance
+            workspaceBaseline:
+              ref: b325437c-f5b6-4a9a-899c-2628810de3b1
+          outputs:
+            tweak.archive.confirm:
+              choice: local
+              proposal:
+                input:
+                  change: fix-strategy-parameter-inheritance
+                  changeDir: openspec/changes/fix-strategy-parameter-inheritance
+                  workspaceBaseline:
+                    ref: b325437c-f5b6-4a9a-899c-2628810de3b1
+                outputs:
+                  tweak.archive.prepare:
+                    prBaseBranch: main
+                    remote: origin
+                    summary: "Issue #492 修复与最终验收通过；8 个交付文件已获范围授权，6/6 任务完成。归档本
+                      change、同步3份主规格并提交全部本次修改。当前绑定与建议本地提交目标为 main；origin 为
+                      GitHub JayNey/LLM-Algorithm-Harness，PR base 为 main，创建 PR
+                      需先新建修复分支。未授权 push 或 PR。"
+                    targetBranch: main
+            tweak.archive.prepare:
+              prBaseBranch: main
+              remote: origin
+              summary: "Issue #492 修复与最终验收通过；8 个交付文件已获范围授权，6/6 任务完成。归档本
+                change、同步3份主规格并提交全部本次修改。当前绑定与建议本地提交目标为 main；origin 为 GitHub
+                JayNey/LLM-Algorithm-Harness，PR base 为 main，创建 PR 需先新建修复分支。未授权
+                push 或 PR。"
+              targetBranch: main
+            tweak.build.escalation-confirm:
+              choice: continue
+              proposal:
+                input:
+                  change: fix-strategy-parameter-inheritance
+                  changeDir: openspec/changes/fix-strategy-parameter-inheritance
+                  workspaceBaseline:
+                    ref: b325437c-f5b6-4a9a-899c-2628810de3b1
+                outputs:
+                  tweak.build.execute:
+                    event: escalation-requested
+                    proposal: 仅文件数由6增至8：需在 api/monitoring/probes.py 保持策略目录默认值展示，在
+                      api/files/templates.py 显式声明模板默认策略参数以保持文档契约。仍为原 issue
+                      参数序列化修复，不增加功能、API或架构风险；现有2项失败回归可直接验证。建议继续 tweak。
+                    requirementsEvidence:
+                      contentHash: 3262b0f0850582e2d8a2cec3246d85cf85ec39fae94f1450480148c4924393ff
+                      ref: openspec/changes/fix-strategy-parameter-inheritance
+            tweak.build.execute:
+              checks:
+                - name: "issue #492 regression and related suites (repository root): python -m
+                    pytest tests/test_strategy_parameter_contract.py
+                    tests/test_models.py tests/test_tree_of_thoughts.py
+                    tests/test_task_service.py
+                    tests/test_business_checkpoints.py tests/test_experiment.py
+                    tests/test_llm_client.py
+                    tests/test_api_experiment_benchmark.py -q --no-cov"
+                  note: "340 passed; /private/tmp/comet-492-targeted.log. Initial reproduction:
+                    /private/tmp/comet-492-red.log (31 expected failures)."
+                  result: passed
+                - name: Ruff and Black for five changed Python files
+                  note: ruff check and black --check passed; tools installed in temporary cache.
+                  result: passed
+                - name: Mypy four changed production modules
+                  note: "Success: no issues found in 4 source files;
+                    /private/tmp/comet-492-mypy.log"
+                  result: passed
+                - name: python scripts/find_missing_encoding.py and git diff --check
+                  note: "Implicit text encodings: 0; no whitespace errors"
+                  result: passed
+                - name: Loopback HTTP tests requiring socket permissions
+                  note: 4 passed; /private/tmp/comet-492-loopback.log
+                  result: passed
+                - name: Metadata, API documentation, issue regressions and file API
+                  note: 177 passed; /private/tmp/comet-492-metadata-green.log
+                  result: passed
+                - name: Final scoped quality checks
+                  note: Ruff/Black 7 files, mypy focused 6 modules passed; default expanded mypy
+                    has identical 5 baseline errors in imported files,
+                    documented in verification.md
+                  result: passed
+                - name: Offline suite and follow-up of every failed/error case
+                  note: "Initial full run EXIT 1: 4303 passed, 44 skipped, 5 failed, 4 errors; 2
+                    true regressions fixed and verified in 177-test run; 2
+                    readability failures passed with temporary Flake8; 5 socket
+                    cases passed with loopback permission. Original and
+                    follow-up results are separately documented."
+                  result: passed
+              event: build-complete
+            tweak.open:
+              event: open-complete
+              requirementsEvidence:
+                ref: openspec/changes/fix-strategy-parameter-inheritance
+            tweak.open.evidence:
+              contentHash: 498352ffbd675f047ec70e0810aa1dfbf55a5b3b007e592465d48509aef39576
+              ref: openspec/changes/fix-strategy-parameter-inheritance
+            tweak.verify.report.evidence:
+              contentHash: ea334f7c685076ac083b7e204ddf24054f651ddd9fda96acb64b03d045f7ae48
+              ref: docs/superpowers/reports/2026-11-18-fix-strategy-parameter-inheritance-verify.md
+            tweak.verify.run:
+              checks:
+                - name: "issue #492 regression and related suites (repository root): python -m
+                    pytest tests/test_strategy_parameter_contract.py
+                    tests/test_models.py tests/test_tree_of_thoughts.py
+                    tests/test_task_service.py
+                    tests/test_business_checkpoints.py tests/test_experiment.py
+                    tests/test_llm_client.py
+                    tests/test_api_experiment_benchmark.py -q --no-cov"
+                  note: "340 passed; /private/tmp/comet-492-targeted.log. Initial reproduction:
+                    /private/tmp/comet-492-red.log (31 expected failures)."
+                  result: passed
+                - name: Ruff and Black for five changed Python files
+                  note: ruff check and black --check passed; tools installed in temporary cache.
+                  result: passed
+                - name: Mypy four changed production modules
+                  note: "Success: no issues found in 4 source files;
+                    /private/tmp/comet-492-mypy.log"
+                  result: passed
+                - name: python scripts/find_missing_encoding.py and git diff --check
+                  note: "Implicit text encodings: 0; no whitespace errors"
+                  result: passed
+                - name: Loopback HTTP tests requiring socket permissions
+                  note: 4 passed; /private/tmp/comet-492-loopback.log
+                  result: passed
+                - name: Metadata, API documentation, issue regressions and file API
+                  note: 177 passed; /private/tmp/comet-492-metadata-green.log
+                  result: passed
+                - name: Final scoped quality checks
+                  note: Ruff/Black 7 files, mypy focused 6 modules passed; default expanded mypy
+                    has identical 5 baseline errors in imported files,
+                    documented in verification.md
+                  result: passed
+                - name: Offline suite and follow-up of every failed/error case
+                  note: "Initial full run EXIT 1: 4303 passed, 44 skipped, 5 failed, 4 errors; 2
+                    true regressions fixed and verified in 177-test run; 2
+                    readability failures passed with temporary Flake8; 5 socket
+                    cases passed with loopback permission. Original and
+                    follow-up results are separately documented."
+                  result: passed
+              event: verification-ready
+              verificationReport: docs/superpowers/reports/2026-11-18-fix-strategy-parameter-inheritance-verify.md
+        inputHash: 1514563e92b5117beafde16a405ab7b05f67a20990dd2f2f21a817b5d698fb62
+        outcome:
+          actionId: fix-strategy-parameter-inheritance:12
+          attempt: 1
+          claimToken: portable-980583fe0c760d2dd6edc58522b18ec09afd906b9f8f61b9854594cfa4ba64ec
+          inputHash: 1514563e92b5117beafde16a405ab7b05f67a20990dd2f2f21a817b5d698fb62
+          outcomeId: a38d7be2-729d-4202-940b-c9abecb76fc8
+          output:
+            baseCommit: 8a4d0e1c48d4391984765c28dd5f66e579308af1
+            deliveryAction: local
+            deliveryPaths:
+              - README.md
+              - api/files/templates.py
+              - api/monitoring/probes.py
+              - src/models.py
+              - src/strategies/tree_of_thoughts.py
+              - src/strategy_base.py
+              - src/task_service.py
+              - tests/test_strategy_parameter_contract.py
+            prBaseBranch: main
+            remote: origin
+            remoteIdentity: 128eeb1e6f0d21b25601fcb7f9aad36adfdfb4d76f37f54f004760410190f351
+            targetBranch: main
+            verifiedBranch: main
+          status: succeeded
+        protocolVersion: 1
+        receipts:
+          - hash: 765cabc39b79474d3ce506b1db0c262f845a6d91c9673bff2d65e70947b4713c
+            outcomeId: a38d7be2-729d-4202-940b-c9abecb76fc8
+        reconciliations: []
+        ref: classic-archive-preflight
+        requiredCapabilities: []
+        retry: manual
+        runId: fix-strategy-parameter-inheritance
+        status: succeeded
+        stepId: tweak.archive.preflight
+        type: call_tool
+      - attempt: 1
+        claim:
+          executorId: comet-classic-archive
+          token: portable-b64f8017186a50af7e99c079dd0547e852e831b5ffb87a303cab7ab2ac2c7f78
+        executionOrigin:
+          workflow:
+            hash: 518d3e8e12eb39899775cb7d2ddcc7ddeba10cb1f1d43cff7b03f2ca61a70c65
+            id: comet-classic-tweak
+            version: "2"
+        id: fix-strategy-parameter-inheritance:13
+        input:
+          input:
+            change: fix-strategy-parameter-inheritance
+            changeDir: openspec/changes/fix-strategy-parameter-inheritance
+            workspaceBaseline:
+              ref: b325437c-f5b6-4a9a-899c-2628810de3b1
+          outputs:
+            tweak.archive.confirm:
+              choice: local
+              proposal:
+                input:
+                  change: fix-strategy-parameter-inheritance
+                  changeDir: openspec/changes/fix-strategy-parameter-inheritance
+                  workspaceBaseline:
+                    ref: b325437c-f5b6-4a9a-899c-2628810de3b1
+                outputs:
+                  tweak.archive.prepare:
+                    prBaseBranch: main
+                    remote: origin
+                    summary: "Issue #492 修复与最终验收通过；8 个交付文件已获范围授权，6/6 任务完成。归档本
+                      change、同步3份主规格并提交全部本次修改。当前绑定与建议本地提交目标为 main；origin 为
+                      GitHub JayNey/LLM-Algorithm-Harness，PR base 为 main，创建 PR
+                      需先新建修复分支。未授权 push 或 PR。"
+                    targetBranch: main
+            tweak.archive.preflight:
+              baseCommit: 8a4d0e1c48d4391984765c28dd5f66e579308af1
+              deliveryAction: local
+              deliveryPaths:
+                - README.md
+                - api/files/templates.py
+                - api/monitoring/probes.py
+                - src/models.py
+                - src/strategies/tree_of_thoughts.py
+                - src/strategy_base.py
+                - src/task_service.py
+                - tests/test_strategy_parameter_contract.py
+              prBaseBranch: main
+              remote: origin
+              remoteIdentity: 128eeb1e6f0d21b25601fcb7f9aad36adfdfb4d76f37f54f004760410190f351
+              targetBranch: main
+              verifiedBranch: main
+            tweak.archive.prepare:
+              prBaseBranch: main
+              remote: origin
+              summary: "Issue #492 修复与最终验收通过；8 个交付文件已获范围授权，6/6 任务完成。归档本
+                change、同步3份主规格并提交全部本次修改。当前绑定与建议本地提交目标为 main；origin 为 GitHub
+                JayNey/LLM-Algorithm-Harness，PR base 为 main，创建 PR 需先新建修复分支。未授权
+                push 或 PR。"
+              targetBranch: main
+            tweak.build.escalation-confirm:
+              choice: continue
+              proposal:
+                input:
+                  change: fix-strategy-parameter-inheritance
+                  changeDir: openspec/changes/fix-strategy-parameter-inheritance
+                  workspaceBaseline:
+                    ref: b325437c-f5b6-4a9a-899c-2628810de3b1
+                outputs:
+                  tweak.build.execute:
+                    event: escalation-requested
+                    proposal: 仅文件数由6增至8：需在 api/monitoring/probes.py 保持策略目录默认值展示，在
+                      api/files/templates.py 显式声明模板默认策略参数以保持文档契约。仍为原 issue
+                      参数序列化修复，不增加功能、API或架构风险；现有2项失败回归可直接验证。建议继续 tweak。
+                    requirementsEvidence:
+                      contentHash: 3262b0f0850582e2d8a2cec3246d85cf85ec39fae94f1450480148c4924393ff
+                      ref: openspec/changes/fix-strategy-parameter-inheritance
+            tweak.build.execute:
+              checks:
+                - name: "issue #492 regression and related suites (repository root): python -m
+                    pytest tests/test_strategy_parameter_contract.py
+                    tests/test_models.py tests/test_tree_of_thoughts.py
+                    tests/test_task_service.py
+                    tests/test_business_checkpoints.py tests/test_experiment.py
+                    tests/test_llm_client.py
+                    tests/test_api_experiment_benchmark.py -q --no-cov"
+                  note: "340 passed; /private/tmp/comet-492-targeted.log. Initial reproduction:
+                    /private/tmp/comet-492-red.log (31 expected failures)."
+                  result: passed
+                - name: Ruff and Black for five changed Python files
+                  note: ruff check and black --check passed; tools installed in temporary cache.
+                  result: passed
+                - name: Mypy four changed production modules
+                  note: "Success: no issues found in 4 source files;
+                    /private/tmp/comet-492-mypy.log"
+                  result: passed
+                - name: python scripts/find_missing_encoding.py and git diff --check
+                  note: "Implicit text encodings: 0; no whitespace errors"
+                  result: passed
+                - name: Loopback HTTP tests requiring socket permissions
+                  note: 4 passed; /private/tmp/comet-492-loopback.log
+                  result: passed
+                - name: Metadata, API documentation, issue regressions and file API
+                  note: 177 passed; /private/tmp/comet-492-metadata-green.log
+                  result: passed
+                - name: Final scoped quality checks
+                  note: Ruff/Black 7 files, mypy focused 6 modules passed; default expanded mypy
+                    has identical 5 baseline errors in imported files,
+                    documented in verification.md
+                  result: passed
+                - name: Offline suite and follow-up of every failed/error case
+                  note: "Initial full run EXIT 1: 4303 passed, 44 skipped, 5 failed, 4 errors; 2
+                    true regressions fixed and verified in 177-test run; 2
+                    readability failures passed with temporary Flake8; 5 socket
+                    cases passed with loopback permission. Original and
+                    follow-up results are separately documented."
+                  result: passed
+              event: build-complete
+            tweak.open:
+              event: open-complete
+              requirementsEvidence:
+                ref: openspec/changes/fix-strategy-parameter-inheritance
+            tweak.open.evidence:
+              contentHash: 498352ffbd675f047ec70e0810aa1dfbf55a5b3b007e592465d48509aef39576
+              ref: openspec/changes/fix-strategy-parameter-inheritance
+            tweak.verify.report.evidence:
+              contentHash: ea334f7c685076ac083b7e204ddf24054f651ddd9fda96acb64b03d045f7ae48
+              ref: docs/superpowers/reports/2026-11-18-fix-strategy-parameter-inheritance-verify.md
+            tweak.verify.run:
+              checks:
+                - name: "issue #492 regression and related suites (repository root): python -m
+                    pytest tests/test_strategy_parameter_contract.py
+                    tests/test_models.py tests/test_tree_of_thoughts.py
+                    tests/test_task_service.py
+                    tests/test_business_checkpoints.py tests/test_experiment.py
+                    tests/test_llm_client.py
+                    tests/test_api_experiment_benchmark.py -q --no-cov"
+                  note: "340 passed; /private/tmp/comet-492-targeted.log. Initial reproduction:
+                    /private/tmp/comet-492-red.log (31 expected failures)."
+                  result: passed
+                - name: Ruff and Black for five changed Python files
+                  note: ruff check and black --check passed; tools installed in temporary cache.
+                  result: passed
+                - name: Mypy four changed production modules
+                  note: "Success: no issues found in 4 source files;
+                    /private/tmp/comet-492-mypy.log"
+                  result: passed
+                - name: python scripts/find_missing_encoding.py and git diff --check
+                  note: "Implicit text encodings: 0; no whitespace errors"
+                  result: passed
+                - name: Loopback HTTP tests requiring socket permissions
+                  note: 4 passed; /private/tmp/comet-492-loopback.log
+                  result: passed
+                - name: Metadata, API documentation, issue regressions and file API
+                  note: 177 passed; /private/tmp/comet-492-metadata-green.log
+                  result: passed
+                - name: Final scoped quality checks
+                  note: Ruff/Black 7 files, mypy focused 6 modules passed; default expanded mypy
+                    has identical 5 baseline errors in imported files,
+                    documented in verification.md
+                  result: passed
+                - name: Offline suite and follow-up of every failed/error case
+                  note: "Initial full run EXIT 1: 4303 passed, 44 skipped, 5 failed, 4 errors; 2
+                    true regressions fixed and verified in 177-test run; 2
+                    readability failures passed with temporary Flake8; 5 socket
+                    cases passed with loopback permission. Original and
+                    follow-up results are separately documented."
+                  result: passed
+              event: verification-ready
+              verificationReport: docs/superpowers/reports/2026-11-18-fix-strategy-parameter-inheritance-verify.md
+        inputHash: a7cd617fb7a1602b5e2faf42e6b74777fe3161070cdfd8dfcc6485c282fb7762
+        outcome:
+          actionId: fix-strategy-parameter-inheritance:13
+          artifacts: []
+          attempt: 1
+          claimToken: portable-b64f8017186a50af7e99c079dd0547e852e831b5ffb87a303cab7ab2ac2c7f78
+          inputHash: a7cd617fb7a1602b5e2faf42e6b74777fe3161070cdfd8dfcc6485c282fb7762
+          outcomeId: b21dc4a3-1bc1-4c0b-95fd-e47785378e04
+          output:
+            archiveDirectory: openspec/changes/archive/2026-11-18-fix-strategy-parameter-inheritance
+          status: succeeded
+        protocolVersion: 1
+        receipts:
+          - hash: 987095fc3bbf96bccfb8a0b759fba71ee18583238860f913ac7e5d8f56d16a46
+            outcomeId: b21dc4a3-1bc1-4c0b-95fd-e47785378e04
+        reconciliations: []
+        ref: classic-archive
+        requiredCapabilities: []
+        retry: manual
+        runId: fix-strategy-parameter-inheritance
+        status: succeeded
+        stepId: tweak.archive.execute
+        type: call_tool
+      - attempt: 1
+        id: fix-strategy-parameter-inheritance:14
+        input:
+          input:
+            change: fix-strategy-parameter-inheritance
+            changeDir: openspec/changes/fix-strategy-parameter-inheritance
+            workspaceBaseline:
+              ref: b325437c-f5b6-4a9a-899c-2628810de3b1
+          outputs:
+            tweak.archive.confirm:
+              choice: local
+              proposal:
+                input:
+                  change: fix-strategy-parameter-inheritance
+                  changeDir: openspec/changes/fix-strategy-parameter-inheritance
+                  workspaceBaseline:
+                    ref: b325437c-f5b6-4a9a-899c-2628810de3b1
+                outputs:
+                  tweak.archive.prepare:
+                    prBaseBranch: main
+                    remote: origin
+                    summary: "Issue #492 修复与最终验收通过；8 个交付文件已获范围授权，6/6 任务完成。归档本
+                      change、同步3份主规格并提交全部本次修改。当前绑定与建议本地提交目标为 main；origin 为
+                      GitHub JayNey/LLM-Algorithm-Harness，PR base 为 main，创建 PR
+                      需先新建修复分支。未授权 push 或 PR。"
+                    targetBranch: main
+            tweak.archive.execute:
+              archiveDirectory: openspec/changes/archive/2026-11-18-fix-strategy-parameter-inheritance
+            tweak.archive.preflight:
+              baseCommit: 8a4d0e1c48d4391984765c28dd5f66e579308af1
+              deliveryAction: local
+              deliveryPaths:
+                - README.md
+                - api/files/templates.py
+                - api/monitoring/probes.py
+                - src/models.py
+                - src/strategies/tree_of_thoughts.py
+                - src/strategy_base.py
+                - src/task_service.py
+                - tests/test_strategy_parameter_contract.py
+              prBaseBranch: main
+              remote: origin
+              remoteIdentity: 128eeb1e6f0d21b25601fcb7f9aad36adfdfb4d76f37f54f004760410190f351
+              targetBranch: main
+              verifiedBranch: main
+            tweak.archive.prepare:
+              prBaseBranch: main
+              remote: origin
+              summary: "Issue #492 修复与最终验收通过；8 个交付文件已获范围授权，6/6 任务完成。归档本
+                change、同步3份主规格并提交全部本次修改。当前绑定与建议本地提交目标为 main；origin 为 GitHub
+                JayNey/LLM-Algorithm-Harness，PR base 为 main，创建 PR 需先新建修复分支。未授权
+                push 或 PR。"
+              targetBranch: main
+            tweak.build.escalation-confirm:
+              choice: continue
+              proposal:
+                input:
+                  change: fix-strategy-parameter-inheritance
+                  changeDir: openspec/changes/fix-strategy-parameter-inheritance
+                  workspaceBaseline:
+                    ref: b325437c-f5b6-4a9a-899c-2628810de3b1
+                outputs:
+                  tweak.build.execute:
+                    event: escalation-requested
+                    proposal: 仅文件数由6增至8：需在 api/monitoring/probes.py 保持策略目录默认值展示，在
+                      api/files/templates.py 显式声明模板默认策略参数以保持文档契约。仍为原 issue
+                      参数序列化修复，不增加功能、API或架构风险；现有2项失败回归可直接验证。建议继续 tweak。
+                    requirementsEvidence:
+                      contentHash: 3262b0f0850582e2d8a2cec3246d85cf85ec39fae94f1450480148c4924393ff
+                      ref: openspec/changes/fix-strategy-parameter-inheritance
+            tweak.build.execute:
+              checks:
+                - name: "issue #492 regression and related suites (repository root): python -m
+                    pytest tests/test_strategy_parameter_contract.py
+                    tests/test_models.py tests/test_tree_of_thoughts.py
+                    tests/test_task_service.py
+                    tests/test_business_checkpoints.py tests/test_experiment.py
+                    tests/test_llm_client.py
+                    tests/test_api_experiment_benchmark.py -q --no-cov"
+                  note: "340 passed; /private/tmp/comet-492-targeted.log. Initial reproduction:
+                    /private/tmp/comet-492-red.log (31 expected failures)."
+                  result: passed
+                - name: Ruff and Black for five changed Python files
+                  note: ruff check and black --check passed; tools installed in temporary cache.
+                  result: passed
+                - name: Mypy four changed production modules
+                  note: "Success: no issues found in 4 source files;
+                    /private/tmp/comet-492-mypy.log"
+                  result: passed
+                - name: python scripts/find_missing_encoding.py and git diff --check
+                  note: "Implicit text encodings: 0; no whitespace errors"
+                  result: passed
+                - name: Loopback HTTP tests requiring socket permissions
+                  note: 4 passed; /private/tmp/comet-492-loopback.log
+                  result: passed
+                - name: Metadata, API documentation, issue regressions and file API
+                  note: 177 passed; /private/tmp/comet-492-metadata-green.log
+                  result: passed
+                - name: Final scoped quality checks
+                  note: Ruff/Black 7 files, mypy focused 6 modules passed; default expanded mypy
+                    has identical 5 baseline errors in imported files,
+                    documented in verification.md
+                  result: passed
+                - name: Offline suite and follow-up of every failed/error case
+                  note: "Initial full run EXIT 1: 4303 passed, 44 skipped, 5 failed, 4 errors; 2
+                    true regressions fixed and verified in 177-test run; 2
+                    readability failures passed with temporary Flake8; 5 socket
+                    cases passed with loopback permission. Original and
+                    follow-up results are separately documented."
+                  result: passed
+              event: build-complete
+            tweak.open:
+              event: open-complete
+              requirementsEvidence:
+                ref: openspec/changes/fix-strategy-parameter-inheritance
+            tweak.open.evidence:
+              contentHash: 498352ffbd675f047ec70e0810aa1dfbf55a5b3b007e592465d48509aef39576
+              ref: openspec/changes/fix-strategy-parameter-inheritance
+            tweak.verify.report.evidence:
+              contentHash: ea334f7c685076ac083b7e204ddf24054f651ddd9fda96acb64b03d045f7ae48
+              ref: docs/superpowers/reports/2026-11-18-fix-strategy-parameter-inheritance-verify.md
+            tweak.verify.run:
+              checks:
+                - name: "issue #492 regression and related suites (repository root): python -m
+                    pytest tests/test_strategy_parameter_contract.py
+                    tests/test_models.py tests/test_tree_of_thoughts.py
+                    tests/test_task_service.py
+                    tests/test_business_checkpoints.py tests/test_experiment.py
+                    tests/test_llm_client.py
+                    tests/test_api_experiment_benchmark.py -q --no-cov"
+                  note: "340 passed; /private/tmp/comet-492-targeted.log. Initial reproduction:
+                    /private/tmp/comet-492-red.log (31 expected failures)."
+                  result: passed
+                - name: Ruff and Black for five changed Python files
+                  note: ruff check and black --check passed; tools installed in temporary cache.
+                  result: passed
+                - name: Mypy four changed production modules
+                  note: "Success: no issues found in 4 source files;
+                    /private/tmp/comet-492-mypy.log"
+                  result: passed
+                - name: python scripts/find_missing_encoding.py and git diff --check
+                  note: "Implicit text encodings: 0; no whitespace errors"
+                  result: passed
+                - name: Loopback HTTP tests requiring socket permissions
+                  note: 4 passed; /private/tmp/comet-492-loopback.log
+                  result: passed
+                - name: Metadata, API documentation, issue regressions and file API
+                  note: 177 passed; /private/tmp/comet-492-metadata-green.log
+                  result: passed
+                - name: Final scoped quality checks
+                  note: Ruff/Black 7 files, mypy focused 6 modules passed; default expanded mypy
+                    has identical 5 baseline errors in imported files,
+                    documented in verification.md
+                  result: passed
+                - name: Offline suite and follow-up of every failed/error case
+                  note: "Initial full run EXIT 1: 4303 passed, 44 skipped, 5 failed, 4 errors; 2
+                    true regressions fixed and verified in 177-test run; 2
+                    readability failures passed with temporary Flake8; 5 socket
+                    cases passed with loopback permission. Original and
+                    follow-up results are separately documented."
+                  result: passed
+              event: verification-ready
+              verificationReport: docs/superpowers/reports/2026-11-18-fix-strategy-parameter-inheritance-verify.md
+        inputHash: 6714658bd53975bd6e5902bfe27dfe1be6c2508cece464dcabb0ef4bdd152cad
+        protocolVersion: 1
+        receipts: []
+        reconciliations: []
+        ref: comet-archive
+        requiredCapabilities: []
+        retry: manual
+        runId: fix-strategy-parameter-inheritance
+        status: pending
+        stepId: tweak.archive.deliver
+        type: invoke_skill
+    actionContexts:
+      fix-strategy-parameter-inheritance:1:
+        results: {}
+        sequence: 1
+      fix-strategy-parameter-inheritance:10:
+        results:
+          tweak.build.escalation-confirm:
+            sequence: 6
+            value:
+              choice: continue
+              proposal:
+                input:
+                  change: fix-strategy-parameter-inheritance
+                  changeDir: openspec/changes/fix-strategy-parameter-inheritance
+                  workspaceBaseline:
+                    ref: b325437c-f5b6-4a9a-899c-2628810de3b1
+                outputs:
+                  tweak.build.execute:
+                    event: escalation-requested
+                    proposal: 仅文件数由6增至8：需在 api/monitoring/probes.py 保持策略目录默认值展示，在
+                      api/files/templates.py 显式声明模板默认策略参数以保持文档契约。仍为原 issue
+                      参数序列化修复，不增加功能、API或架构风险；现有2项失败回归可直接验证。建议继续 tweak。
+                    requirementsEvidence:
+                      contentHash: 3262b0f0850582e2d8a2cec3246d85cf85ec39fae94f1450480148c4924393ff
+                      ref: openspec/changes/fix-strategy-parameter-inheritance
+          tweak.build.execute:
+            sequence: 7
+            value:
+              checks:
+                - name: "issue #492 regression and related suites (repository root): python -m
+                    pytest tests/test_strategy_parameter_contract.py
+                    tests/test_models.py tests/test_tree_of_thoughts.py
+                    tests/test_task_service.py
+                    tests/test_business_checkpoints.py tests/test_experiment.py
+                    tests/test_llm_client.py
+                    tests/test_api_experiment_benchmark.py -q --no-cov"
+                  note: "340 passed; /private/tmp/comet-492-targeted.log. Initial reproduction:
+                    /private/tmp/comet-492-red.log (31 expected failures)."
+                  result: passed
+                - name: Ruff and Black for five changed Python files
+                  note: ruff check and black --check passed; tools installed in temporary cache.
+                  result: passed
+                - name: Mypy four changed production modules
+                  note: "Success: no issues found in 4 source files;
+                    /private/tmp/comet-492-mypy.log"
+                  result: passed
+                - name: python scripts/find_missing_encoding.py and git diff --check
+                  note: "Implicit text encodings: 0; no whitespace errors"
+                  result: passed
+                - name: Loopback HTTP tests requiring socket permissions
+                  note: 4 passed; /private/tmp/comet-492-loopback.log
+                  result: passed
+                - name: Metadata, API documentation, issue regressions and file API
+                  note: 177 passed; /private/tmp/comet-492-metadata-green.log
+                  result: passed
+                - name: Final scoped quality checks
+                  note: Ruff/Black 7 files, mypy focused 6 modules passed; default expanded mypy
+                    has identical 5 baseline errors in imported files,
+                    documented in verification.md
+                  result: passed
+                - name: Offline suite and follow-up of every failed/error case
+                  note: "Initial full run EXIT 1: 4303 passed, 44 skipped, 5 failed, 4 errors; 2
+                    true regressions fixed and verified in 177-test run; 2
+                    readability failures passed with temporary Flake8; 5 socket
+                    cases passed with loopback permission. Original and
+                    follow-up results are separately documented."
+                  result: passed
+              event: build-complete
+          tweak.open:
+            sequence: 1
+            value:
+              event: open-complete
+              requirementsEvidence:
+                ref: openspec/changes/fix-strategy-parameter-inheritance
+          tweak.open.evidence:
+            sequence: 2
+            value:
+              contentHash: 498352ffbd675f047ec70e0810aa1dfbf55a5b3b007e592465d48509aef39576
+              ref: openspec/changes/fix-strategy-parameter-inheritance
+          tweak.verify.report.evidence:
+            sequence: 9
+            value:
+              contentHash: ea334f7c685076ac083b7e204ddf24054f651ddd9fda96acb64b03d045f7ae48
+              ref: docs/superpowers/reports/2026-11-18-fix-strategy-parameter-inheritance-verify.md
+          tweak.verify.run:
+            sequence: 8
+            value:
+              checks:
+                - name: "issue #492 regression and related suites (repository root): python -m
+                    pytest tests/test_strategy_parameter_contract.py
+                    tests/test_models.py tests/test_tree_of_thoughts.py
+                    tests/test_task_service.py
+                    tests/test_business_checkpoints.py tests/test_experiment.py
+                    tests/test_llm_client.py
+                    tests/test_api_experiment_benchmark.py -q --no-cov"
+                  note: "340 passed; /private/tmp/comet-492-targeted.log. Initial reproduction:
+                    /private/tmp/comet-492-red.log (31 expected failures)."
+                  result: passed
+                - name: Ruff and Black for five changed Python files
+                  note: ruff check and black --check passed; tools installed in temporary cache.
+                  result: passed
+                - name: Mypy four changed production modules
+                  note: "Success: no issues found in 4 source files;
+                    /private/tmp/comet-492-mypy.log"
+                  result: passed
+                - name: python scripts/find_missing_encoding.py and git diff --check
+                  note: "Implicit text encodings: 0; no whitespace errors"
+                  result: passed
+                - name: Loopback HTTP tests requiring socket permissions
+                  note: 4 passed; /private/tmp/comet-492-loopback.log
+                  result: passed
+                - name: Metadata, API documentation, issue regressions and file API
+                  note: 177 passed; /private/tmp/comet-492-metadata-green.log
+                  result: passed
+                - name: Final scoped quality checks
+                  note: Ruff/Black 7 files, mypy focused 6 modules passed; default expanded mypy
+                    has identical 5 baseline errors in imported files,
+                    documented in verification.md
+                  result: passed
+                - name: Offline suite and follow-up of every failed/error case
+                  note: "Initial full run EXIT 1: 4303 passed, 44 skipped, 5 failed, 4 errors; 2
+                    true regressions fixed and verified in 177-test run; 2
+                    readability failures passed with temporary Flake8; 5 socket
+                    cases passed with loopback permission. Original and
+                    follow-up results are separately documented."
+                  result: passed
+              event: verification-ready
+              verificationReport: docs/superpowers/reports/2026-11-18-fix-strategy-parameter-inheritance-verify.md
+        sequence: 10
+      fix-strategy-parameter-inheritance:12:
+        results:
+          tweak.archive.confirm:
+            sequence: 11
+            value:
+              choice: local
+              proposal:
+                input:
+                  change: fix-strategy-parameter-inheritance
+                  changeDir: openspec/changes/fix-strategy-parameter-inheritance
+                  workspaceBaseline:
+                    ref: b325437c-f5b6-4a9a-899c-2628810de3b1
+                outputs:
+                  tweak.archive.prepare:
+                    prBaseBranch: main
+                    remote: origin
+                    summary: "Issue #492 修复与最终验收通过；8 个交付文件已获范围授权，6/6 任务完成。归档本
+                      change、同步3份主规格并提交全部本次修改。当前绑定与建议本地提交目标为 main；origin 为
+                      GitHub JayNey/LLM-Algorithm-Harness，PR base 为 main，创建 PR
+                      需先新建修复分支。未授权 push 或 PR。"
+                    targetBranch: main
+          tweak.archive.prepare:
+            sequence: 10
+            value:
+              prBaseBranch: main
+              remote: origin
+              summary: "Issue #492 修复与最终验收通过；8 个交付文件已获范围授权，6/6 任务完成。归档本
+                change、同步3份主规格并提交全部本次修改。当前绑定与建议本地提交目标为 main；origin 为 GitHub
+                JayNey/LLM-Algorithm-Harness，PR base 为 main，创建 PR 需先新建修复分支。未授权
+                push 或 PR。"
+              targetBranch: main
+          tweak.build.escalation-confirm:
+            sequence: 6
+            value:
+              choice: continue
+              proposal:
+                input:
+                  change: fix-strategy-parameter-inheritance
+                  changeDir: openspec/changes/fix-strategy-parameter-inheritance
+                  workspaceBaseline:
+                    ref: b325437c-f5b6-4a9a-899c-2628810de3b1
+                outputs:
+                  tweak.build.execute:
+                    event: escalation-requested
+                    proposal: 仅文件数由6增至8：需在 api/monitoring/probes.py 保持策略目录默认值展示，在
+                      api/files/templates.py 显式声明模板默认策略参数以保持文档契约。仍为原 issue
+                      参数序列化修复，不增加功能、API或架构风险；现有2项失败回归可直接验证。建议继续 tweak。
+                    requirementsEvidence:
+                      contentHash: 3262b0f0850582e2d8a2cec3246d85cf85ec39fae94f1450480148c4924393ff
+                      ref: openspec/changes/fix-strategy-parameter-inheritance
+          tweak.build.execute:
+            sequence: 7
+            value:
+              checks:
+                - name: "issue #492 regression and related suites (repository root): python -m
+                    pytest tests/test_strategy_parameter_contract.py
+                    tests/test_models.py tests/test_tree_of_thoughts.py
+                    tests/test_task_service.py
+                    tests/test_business_checkpoints.py tests/test_experiment.py
+                    tests/test_llm_client.py
+                    tests/test_api_experiment_benchmark.py -q --no-cov"
+                  note: "340 passed; /private/tmp/comet-492-targeted.log. Initial reproduction:
+                    /private/tmp/comet-492-red.log (31 expected failures)."
+                  result: passed
+                - name: Ruff and Black for five changed Python files
+                  note: ruff check and black --check passed; tools installed in temporary cache.
+                  result: passed
+                - name: Mypy four changed production modules
+                  note: "Success: no issues found in 4 source files;
+                    /private/tmp/comet-492-mypy.log"
+                  result: passed
+                - name: python scripts/find_missing_encoding.py and git diff --check
+                  note: "Implicit text encodings: 0; no whitespace errors"
+                  result: passed
+                - name: Loopback HTTP tests requiring socket permissions
+                  note: 4 passed; /private/tmp/comet-492-loopback.log
+                  result: passed
+                - name: Metadata, API documentation, issue regressions and file API
+                  note: 177 passed; /private/tmp/comet-492-metadata-green.log
+                  result: passed
+                - name: Final scoped quality checks
+                  note: Ruff/Black 7 files, mypy focused 6 modules passed; default expanded mypy
+                    has identical 5 baseline errors in imported files,
+                    documented in verification.md
+                  result: passed
+                - name: Offline suite and follow-up of every failed/error case
+                  note: "Initial full run EXIT 1: 4303 passed, 44 skipped, 5 failed, 4 errors; 2
+                    true regressions fixed and verified in 177-test run; 2
+                    readability failures passed with temporary Flake8; 5 socket
+                    cases passed with loopback permission. Original and
+                    follow-up results are separately documented."
+                  result: passed
+              event: build-complete
+          tweak.open:
+            sequence: 1
+            value:
+              event: open-complete
+              requirementsEvidence:
+                ref: openspec/changes/fix-strategy-parameter-inheritance
+          tweak.open.evidence:
+            sequence: 2
+            value:
+              contentHash: 498352ffbd675f047ec70e0810aa1dfbf55a5b3b007e592465d48509aef39576
+              ref: openspec/changes/fix-strategy-parameter-inheritance
+          tweak.verify.report.evidence:
+            sequence: 9
+            value:
+              contentHash: ea334f7c685076ac083b7e204ddf24054f651ddd9fda96acb64b03d045f7ae48
+              ref: docs/superpowers/reports/2026-11-18-fix-strategy-parameter-inheritance-verify.md
+          tweak.verify.run:
+            sequence: 8
+            value:
+              checks:
+                - name: "issue #492 regression and related suites (repository root): python -m
+                    pytest tests/test_strategy_parameter_contract.py
+                    tests/test_models.py tests/test_tree_of_thoughts.py
+                    tests/test_task_service.py
+                    tests/test_business_checkpoints.py tests/test_experiment.py
+                    tests/test_llm_client.py
+                    tests/test_api_experiment_benchmark.py -q --no-cov"
+                  note: "340 passed; /private/tmp/comet-492-targeted.log. Initial reproduction:
+                    /private/tmp/comet-492-red.log (31 expected failures)."
+                  result: passed
+                - name: Ruff and Black for five changed Python files
+                  note: ruff check and black --check passed; tools installed in temporary cache.
+                  result: passed
+                - name: Mypy four changed production modules
+                  note: "Success: no issues found in 4 source files;
+                    /private/tmp/comet-492-mypy.log"
+                  result: passed
+                - name: python scripts/find_missing_encoding.py and git diff --check
+                  note: "Implicit text encodings: 0; no whitespace errors"
+                  result: passed
+                - name: Loopback HTTP tests requiring socket permissions
+                  note: 4 passed; /private/tmp/comet-492-loopback.log
+                  result: passed
+                - name: Metadata, API documentation, issue regressions and file API
+                  note: 177 passed; /private/tmp/comet-492-metadata-green.log
+                  result: passed
+                - name: Final scoped quality checks
+                  note: Ruff/Black 7 files, mypy focused 6 modules passed; default expanded mypy
+                    has identical 5 baseline errors in imported files,
+                    documented in verification.md
+                  result: passed
+                - name: Offline suite and follow-up of every failed/error case
+                  note: "Initial full run EXIT 1: 4303 passed, 44 skipped, 5 failed, 4 errors; 2
+                    true regressions fixed and verified in 177-test run; 2
+                    readability failures passed with temporary Flake8; 5 socket
+                    cases passed with loopback permission. Original and
+                    follow-up results are separately documented."
+                  result: passed
+              event: verification-ready
+              verificationReport: docs/superpowers/reports/2026-11-18-fix-strategy-parameter-inheritance-verify.md
+        sequence: 12
+      fix-strategy-parameter-inheritance:13:
+        results:
+          tweak.archive.confirm:
+            sequence: 11
+            value:
+              choice: local
+              proposal:
+                input:
+                  change: fix-strategy-parameter-inheritance
+                  changeDir: openspec/changes/fix-strategy-parameter-inheritance
+                  workspaceBaseline:
+                    ref: b325437c-f5b6-4a9a-899c-2628810de3b1
+                outputs:
+                  tweak.archive.prepare:
+                    prBaseBranch: main
+                    remote: origin
+                    summary: "Issue #492 修复与最终验收通过；8 个交付文件已获范围授权，6/6 任务完成。归档本
+                      change、同步3份主规格并提交全部本次修改。当前绑定与建议本地提交目标为 main；origin 为
+                      GitHub JayNey/LLM-Algorithm-Harness，PR base 为 main，创建 PR
+                      需先新建修复分支。未授权 push 或 PR。"
+                    targetBranch: main
+          tweak.archive.preflight:
+            sequence: 12
+            value:
+              baseCommit: 8a4d0e1c48d4391984765c28dd5f66e579308af1
+              deliveryAction: local
+              deliveryPaths:
+                - README.md
+                - api/files/templates.py
+                - api/monitoring/probes.py
+                - src/models.py
+                - src/strategies/tree_of_thoughts.py
+                - src/strategy_base.py
+                - src/task_service.py
+                - tests/test_strategy_parameter_contract.py
+              prBaseBranch: main
+              remote: origin
+              remoteIdentity: 128eeb1e6f0d21b25601fcb7f9aad36adfdfb4d76f37f54f004760410190f351
+              targetBranch: main
+              verifiedBranch: main
+          tweak.archive.prepare:
+            sequence: 10
+            value:
+              prBaseBranch: main
+              remote: origin
+              summary: "Issue #492 修复与最终验收通过；8 个交付文件已获范围授权，6/6 任务完成。归档本
+                change、同步3份主规格并提交全部本次修改。当前绑定与建议本地提交目标为 main；origin 为 GitHub
+                JayNey/LLM-Algorithm-Harness，PR base 为 main，创建 PR 需先新建修复分支。未授权
+                push 或 PR。"
+              targetBranch: main
+          tweak.build.escalation-confirm:
+            sequence: 6
+            value:
+              choice: continue
+              proposal:
+                input:
+                  change: fix-strategy-parameter-inheritance
+                  changeDir: openspec/changes/fix-strategy-parameter-inheritance
+                  workspaceBaseline:
+                    ref: b325437c-f5b6-4a9a-899c-2628810de3b1
+                outputs:
+                  tweak.build.execute:
+                    event: escalation-requested
+                    proposal: 仅文件数由6增至8：需在 api/monitoring/probes.py 保持策略目录默认值展示，在
+                      api/files/templates.py 显式声明模板默认策略参数以保持文档契约。仍为原 issue
+                      参数序列化修复，不增加功能、API或架构风险；现有2项失败回归可直接验证。建议继续 tweak。
+                    requirementsEvidence:
+                      contentHash: 3262b0f0850582e2d8a2cec3246d85cf85ec39fae94f1450480148c4924393ff
+                      ref: openspec/changes/fix-strategy-parameter-inheritance
+          tweak.build.execute:
+            sequence: 7
+            value:
+              checks:
+                - name: "issue #492 regression and related suites (repository root): python -m
+                    pytest tests/test_strategy_parameter_contract.py
+                    tests/test_models.py tests/test_tree_of_thoughts.py
+                    tests/test_task_service.py
+                    tests/test_business_checkpoints.py tests/test_experiment.py
+                    tests/test_llm_client.py
+                    tests/test_api_experiment_benchmark.py -q --no-cov"
+                  note: "340 passed; /private/tmp/comet-492-targeted.log. Initial reproduction:
+                    /private/tmp/comet-492-red.log (31 expected failures)."
+                  result: passed
+                - name: Ruff and Black for five changed Python files
+                  note: ruff check and black --check passed; tools installed in temporary cache.
+                  result: passed
+                - name: Mypy four changed production modules
+                  note: "Success: no issues found in 4 source files;
+                    /private/tmp/comet-492-mypy.log"
+                  result: passed
+                - name: python scripts/find_missing_encoding.py and git diff --check
+                  note: "Implicit text encodings: 0; no whitespace errors"
+                  result: passed
+                - name: Loopback HTTP tests requiring socket permissions
+                  note: 4 passed; /private/tmp/comet-492-loopback.log
+                  result: passed
+                - name: Metadata, API documentation, issue regressions and file API
+                  note: 177 passed; /private/tmp/comet-492-metadata-green.log
+                  result: passed
+                - name: Final scoped quality checks
+                  note: Ruff/Black 7 files, mypy focused 6 modules passed; default expanded mypy
+                    has identical 5 baseline errors in imported files,
+                    documented in verification.md
+                  result: passed
+                - name: Offline suite and follow-up of every failed/error case
+                  note: "Initial full run EXIT 1: 4303 passed, 44 skipped, 5 failed, 4 errors; 2
+                    true regressions fixed and verified in 177-test run; 2
+                    readability failures passed with temporary Flake8; 5 socket
+                    cases passed with loopback permission. Original and
+                    follow-up results are separately documented."
+                  result: passed
+              event: build-complete
+          tweak.open:
+            sequence: 1
+            value:
+              event: open-complete
+              requirementsEvidence:
+                ref: openspec/changes/fix-strategy-parameter-inheritance
+          tweak.open.evidence:
+            sequence: 2
+            value:
+              contentHash: 498352ffbd675f047ec70e0810aa1dfbf55a5b3b007e592465d48509aef39576
+              ref: openspec/changes/fix-strategy-parameter-inheritance
+          tweak.verify.report.evidence:
+            sequence: 9
+            value:
+              contentHash: ea334f7c685076ac083b7e204ddf24054f651ddd9fda96acb64b03d045f7ae48
+              ref: docs/superpowers/reports/2026-11-18-fix-strategy-parameter-inheritance-verify.md
+          tweak.verify.run:
+            sequence: 8
+            value:
+              checks:
+                - name: "issue #492 regression and related suites (repository root): python -m
+                    pytest tests/test_strategy_parameter_contract.py
+                    tests/test_models.py tests/test_tree_of_thoughts.py
+                    tests/test_task_service.py
+                    tests/test_business_checkpoints.py tests/test_experiment.py
+                    tests/test_llm_client.py
+                    tests/test_api_experiment_benchmark.py -q --no-cov"
+                  note: "340 passed; /private/tmp/comet-492-targeted.log. Initial reproduction:
+                    /private/tmp/comet-492-red.log (31 expected failures)."
+                  result: passed
+                - name: Ruff and Black for five changed Python files
+                  note: ruff check and black --check passed; tools installed in temporary cache.
+                  result: passed
+                - name: Mypy four changed production modules
+                  note: "Success: no issues found in 4 source files;
+                    /private/tmp/comet-492-mypy.log"
+                  result: passed
+                - name: python scripts/find_missing_encoding.py and git diff --check
+                  note: "Implicit text encodings: 0; no whitespace errors"
+                  result: passed
+                - name: Loopback HTTP tests requiring socket permissions
+                  note: 4 passed; /private/tmp/comet-492-loopback.log
+                  result: passed
+                - name: Metadata, API documentation, issue regressions and file API
+                  note: 177 passed; /private/tmp/comet-492-metadata-green.log
+                  result: passed
+                - name: Final scoped quality checks
+                  note: Ruff/Black 7 files, mypy focused 6 modules passed; default expanded mypy
+                    has identical 5 baseline errors in imported files,
+                    documented in verification.md
+                  result: passed
+                - name: Offline suite and follow-up of every failed/error case
+                  note: "Initial full run EXIT 1: 4303 passed, 44 skipped, 5 failed, 4 errors; 2
+                    true regressions fixed and verified in 177-test run; 2
+                    readability failures passed with temporary Flake8; 5 socket
+                    cases passed with loopback permission. Original and
+                    follow-up results are separately documented."
+                  result: passed
+              event: verification-ready
+              verificationReport: docs/superpowers/reports/2026-11-18-fix-strategy-parameter-inheritance-verify.md
+        sequence: 13
+      fix-strategy-parameter-inheritance:14:
+        results:
+          tweak.archive.confirm:
+            sequence: 11
+            value:
+              choice: local
+              proposal:
+                input:
+                  change: fix-strategy-parameter-inheritance
+                  changeDir: openspec/changes/fix-strategy-parameter-inheritance
+                  workspaceBaseline:
+                    ref: b325437c-f5b6-4a9a-899c-2628810de3b1
+                outputs:
+                  tweak.archive.prepare:
+                    prBaseBranch: main
+                    remote: origin
+                    summary: "Issue #492 修复与最终验收通过；8 个交付文件已获范围授权，6/6 任务完成。归档本
+                      change、同步3份主规格并提交全部本次修改。当前绑定与建议本地提交目标为 main；origin 为
+                      GitHub JayNey/LLM-Algorithm-Harness，PR base 为 main，创建 PR
+                      需先新建修复分支。未授权 push 或 PR。"
+                    targetBranch: main
+          tweak.archive.execute:
+            sequence: 13
+            value:
+              archiveDirectory: openspec/changes/archive/2026-11-18-fix-strategy-parameter-inheritance
+          tweak.archive.preflight:
+            sequence: 12
+            value:
+              baseCommit: 8a4d0e1c48d4391984765c28dd5f66e579308af1
+              deliveryAction: local
+              deliveryPaths:
+                - README.md
+                - api/files/templates.py
+                - api/monitoring/probes.py
+                - src/models.py
+                - src/strategies/tree_of_thoughts.py
+                - src/strategy_base.py
+                - src/task_service.py
+                - tests/test_strategy_parameter_contract.py
+              prBaseBranch: main
+              remote: origin
+              remoteIdentity: 128eeb1e6f0d21b25601fcb7f9aad36adfdfb4d76f37f54f004760410190f351
+              targetBranch: main
+              verifiedBranch: main
+          tweak.archive.prepare:
+            sequence: 10
+            value:
+              prBaseBranch: main
+              remote: origin
+              summary: "Issue #492 修复与最终验收通过；8 个交付文件已获范围授权，6/6 任务完成。归档本
+                change、同步3份主规格并提交全部本次修改。当前绑定与建议本地提交目标为 main；origin 为 GitHub
+                JayNey/LLM-Algorithm-Harness，PR base 为 main，创建 PR 需先新建修复分支。未授权
+                push 或 PR。"
+              targetBranch: main
+          tweak.build.escalation-confirm:
+            sequence: 6
+            value:
+              choice: continue
+              proposal:
+                input:
+                  change: fix-strategy-parameter-inheritance
+                  changeDir: openspec/changes/fix-strategy-parameter-inheritance
+                  workspaceBaseline:
+                    ref: b325437c-f5b6-4a9a-899c-2628810de3b1
+                outputs:
+                  tweak.build.execute:
+                    event: escalation-requested
+                    proposal: 仅文件数由6增至8：需在 api/monitoring/probes.py 保持策略目录默认值展示，在
+                      api/files/templates.py 显式声明模板默认策略参数以保持文档契约。仍为原 issue
+                      参数序列化修复，不增加功能、API或架构风险；现有2项失败回归可直接验证。建议继续 tweak。
+                    requirementsEvidence:
+                      contentHash: 3262b0f0850582e2d8a2cec3246d85cf85ec39fae94f1450480148c4924393ff
+                      ref: openspec/changes/fix-strategy-parameter-inheritance
+          tweak.build.execute:
+            sequence: 7
+            value:
+              checks:
+                - name: "issue #492 regression and related suites (repository root): python -m
+                    pytest tests/test_strategy_parameter_contract.py
+                    tests/test_models.py tests/test_tree_of_thoughts.py
+                    tests/test_task_service.py
+                    tests/test_business_checkpoints.py tests/test_experiment.py
+                    tests/test_llm_client.py
+                    tests/test_api_experiment_benchmark.py -q --no-cov"
+                  note: "340 passed; /private/tmp/comet-492-targeted.log. Initial reproduction:
+                    /private/tmp/comet-492-red.log (31 expected failures)."
+                  result: passed
+                - name: Ruff and Black for five changed Python files
+                  note: ruff check and black --check passed; tools installed in temporary cache.
+                  result: passed
+                - name: Mypy four changed production modules
+                  note: "Success: no issues found in 4 source files;
+                    /private/tmp/comet-492-mypy.log"
+                  result: passed
+                - name: python scripts/find_missing_encoding.py and git diff --check
+                  note: "Implicit text encodings: 0; no whitespace errors"
+                  result: passed
+                - name: Loopback HTTP tests requiring socket permissions
+                  note: 4 passed; /private/tmp/comet-492-loopback.log
+                  result: passed
+                - name: Metadata, API documentation, issue regressions and file API
+                  note: 177 passed; /private/tmp/comet-492-metadata-green.log
+                  result: passed
+                - name: Final scoped quality checks
+                  note: Ruff/Black 7 files, mypy focused 6 modules passed; default expanded mypy
+                    has identical 5 baseline errors in imported files,
+                    documented in verification.md
+                  result: passed
+                - name: Offline suite and follow-up of every failed/error case
+                  note: "Initial full run EXIT 1: 4303 passed, 44 skipped, 5 failed, 4 errors; 2
+                    true regressions fixed and verified in 177-test run; 2
+                    readability failures passed with temporary Flake8; 5 socket
+                    cases passed with loopback permission. Original and
+                    follow-up results are separately documented."
+                  result: passed
+              event: build-complete
+          tweak.open:
+            sequence: 1
+            value:
+              event: open-complete
+              requirementsEvidence:
+                ref: openspec/changes/fix-strategy-parameter-inheritance
+          tweak.open.evidence:
+            sequence: 2
+            value:
+              contentHash: 498352ffbd675f047ec70e0810aa1dfbf55a5b3b007e592465d48509aef39576
+              ref: openspec/changes/fix-strategy-parameter-inheritance
+          tweak.verify.report.evidence:
+            sequence: 9
+            value:
+              contentHash: ea334f7c685076ac083b7e204ddf24054f651ddd9fda96acb64b03d045f7ae48
+              ref: docs/superpowers/reports/2026-11-18-fix-strategy-parameter-inheritance-verify.md
+          tweak.verify.run:
+            sequence: 8
+            value:
+              checks:
+                - name: "issue #492 regression and related suites (repository root): python -m
+                    pytest tests/test_strategy_parameter_contract.py
+                    tests/test_models.py tests/test_tree_of_thoughts.py
+                    tests/test_task_service.py
+                    tests/test_business_checkpoints.py tests/test_experiment.py
+                    tests/test_llm_client.py
+                    tests/test_api_experiment_benchmark.py -q --no-cov"
+                  note: "340 passed; /private/tmp/comet-492-targeted.log. Initial reproduction:
+                    /private/tmp/comet-492-red.log (31 expected failures)."
+                  result: passed
+                - name: Ruff and Black for five changed Python files
+                  note: ruff check and black --check passed; tools installed in temporary cache.
+                  result: passed
+                - name: Mypy four changed production modules
+                  note: "Success: no issues found in 4 source files;
+                    /private/tmp/comet-492-mypy.log"
+                  result: passed
+                - name: python scripts/find_missing_encoding.py and git diff --check
+                  note: "Implicit text encodings: 0; no whitespace errors"
+                  result: passed
+                - name: Loopback HTTP tests requiring socket permissions
+                  note: 4 passed; /private/tmp/comet-492-loopback.log
+                  result: passed
+                - name: Metadata, API documentation, issue regressions and file API
+                  note: 177 passed; /private/tmp/comet-492-metadata-green.log
+                  result: passed
+                - name: Final scoped quality checks
+                  note: Ruff/Black 7 files, mypy focused 6 modules passed; default expanded mypy
+                    has identical 5 baseline errors in imported files,
+                    documented in verification.md
+                  result: passed
+                - name: Offline suite and follow-up of every failed/error case
+                  note: "Initial full run EXIT 1: 4303 passed, 44 skipped, 5 failed, 4 errors; 2
+                    true regressions fixed and verified in 177-test run; 2
+                    readability failures passed with temporary Flake8; 5 socket
+                    cases passed with loopback permission. Original and
+                    follow-up results are separately documented."
+                  result: passed
+              event: verification-ready
+              verificationReport: docs/superpowers/reports/2026-11-18-fix-strategy-parameter-inheritance-verify.md
+        sequence: 14
+      fix-strategy-parameter-inheritance:3:
+        results:
+          tweak.open:
+            sequence: 1
+            value:
+              event: open-complete
+              requirementsEvidence:
+                ref: openspec/changes/fix-strategy-parameter-inheritance
+          tweak.open.evidence:
+            sequence: 2
+            value:
+              contentHash: 498352ffbd675f047ec70e0810aa1dfbf55a5b3b007e592465d48509aef39576
+              ref: openspec/changes/fix-strategy-parameter-inheritance
+        sequence: 3
+      fix-strategy-parameter-inheritance:4:
+        results:
+          tweak.build.execute:
+            sequence: 3
+            value:
+              checks:
+                - name: "issue #492 regression and related suites (repository root): python -m
+                    pytest tests/test_strategy_parameter_contract.py
+                    tests/test_models.py tests/test_tree_of_thoughts.py
+                    tests/test_task_service.py
+                    tests/test_business_checkpoints.py tests/test_experiment.py
+                    tests/test_llm_client.py
+                    tests/test_api_experiment_benchmark.py -q --no-cov"
+                  note: "340 passed; /private/tmp/comet-492-targeted.log. Initial reproduction:
+                    /private/tmp/comet-492-red.log (31 expected failures)."
+                  result: passed
+                - name: Ruff and Black for five changed Python files
+                  note: ruff check and black --check passed; tools installed in temporary cache.
+                  result: passed
+                - name: Mypy four changed production modules
+                  note: "Success: no issues found in 4 source files;
+                    /private/tmp/comet-492-mypy.log"
+                  result: passed
+                - name: python scripts/find_missing_encoding.py and git diff --check
+                  note: "Implicit text encodings: 0; no whitespace errors"
+                  result: passed
+                - name: Loopback HTTP tests requiring socket permissions
+                  note: 4 passed; /private/tmp/comet-492-loopback.log
+                  result: passed
+              event: build-complete
+          tweak.open:
+            sequence: 1
+            value:
+              event: open-complete
+              requirementsEvidence:
+                ref: openspec/changes/fix-strategy-parameter-inheritance
+          tweak.open.evidence:
+            sequence: 2
+            value:
+              contentHash: 498352ffbd675f047ec70e0810aa1dfbf55a5b3b007e592465d48509aef39576
+              ref: openspec/changes/fix-strategy-parameter-inheritance
+        sequence: 4
+      fix-strategy-parameter-inheritance:5:
+        results:
+          tweak.build.execute:
+            sequence: 3
+            value:
+              checks:
+                - name: "issue #492 regression and related suites (repository root): python -m
+                    pytest tests/test_strategy_parameter_contract.py
+                    tests/test_models.py tests/test_tree_of_thoughts.py
+                    tests/test_task_service.py
+                    tests/test_business_checkpoints.py tests/test_experiment.py
+                    tests/test_llm_client.py
+                    tests/test_api_experiment_benchmark.py -q --no-cov"
+                  note: "340 passed; /private/tmp/comet-492-targeted.log. Initial reproduction:
+                    /private/tmp/comet-492-red.log (31 expected failures)."
+                  result: passed
+                - name: Ruff and Black for five changed Python files
+                  note: ruff check and black --check passed; tools installed in temporary cache.
+                  result: passed
+                - name: Mypy four changed production modules
+                  note: "Success: no issues found in 4 source files;
+                    /private/tmp/comet-492-mypy.log"
+                  result: passed
+                - name: python scripts/find_missing_encoding.py and git diff --check
+                  note: "Implicit text encodings: 0; no whitespace errors"
+                  result: passed
+                - name: Loopback HTTP tests requiring socket permissions
+                  note: 4 passed; /private/tmp/comet-492-loopback.log
+                  result: passed
+              event: build-complete
+          tweak.open:
+            sequence: 1
+            value:
+              event: open-complete
+              requirementsEvidence:
+                ref: openspec/changes/fix-strategy-parameter-inheritance
+          tweak.open.evidence:
+            sequence: 2
+            value:
+              contentHash: 498352ffbd675f047ec70e0810aa1dfbf55a5b3b007e592465d48509aef39576
+              ref: openspec/changes/fix-strategy-parameter-inheritance
+          tweak.verify.run:
+            sequence: 4
+            value:
+              event: verify-fail
+              reason: 完整回归发现共享策略序列化影响策略目录默认值和模板文档一致性，需回 Build 补齐两个原范围展示入口。
+        sequence: 5
+      fix-strategy-parameter-inheritance:7:
+        results:
+          tweak.build.escalation-confirm:
+            sequence: 6
+            value:
+              choice: continue
+              proposal:
+                input:
+                  change: fix-strategy-parameter-inheritance
+                  changeDir: openspec/changes/fix-strategy-parameter-inheritance
+                  workspaceBaseline:
+                    ref: b325437c-f5b6-4a9a-899c-2628810de3b1
+                outputs:
+                  tweak.build.execute:
+                    event: escalation-requested
+                    proposal: 仅文件数由6增至8：需在 api/monitoring/probes.py 保持策略目录默认值展示，在
+                      api/files/templates.py 显式声明模板默认策略参数以保持文档契约。仍为原 issue
+                      参数序列化修复，不增加功能、API或架构风险；现有2项失败回归可直接验证。建议继续 tweak。
+                    requirementsEvidence:
+                      contentHash: 3262b0f0850582e2d8a2cec3246d85cf85ec39fae94f1450480148c4924393ff
+                      ref: openspec/changes/fix-strategy-parameter-inheritance
+          tweak.build.execute:
+            sequence: 5
+            value:
+              event: escalation-requested
+              proposal: 仅文件数由6增至8：需在 api/monitoring/probes.py 保持策略目录默认值展示，在
+                api/files/templates.py 显式声明模板默认策略参数以保持文档契约。仍为原 issue
+                参数序列化修复，不增加功能、API或架构风险；现有2项失败回归可直接验证。建议继续 tweak。
+              requirementsEvidence:
+                contentHash: 3262b0f0850582e2d8a2cec3246d85cf85ec39fae94f1450480148c4924393ff
+                ref: openspec/changes/fix-strategy-parameter-inheritance
+          tweak.open:
+            sequence: 1
+            value:
+              event: open-complete
+              requirementsEvidence:
+                ref: openspec/changes/fix-strategy-parameter-inheritance
+          tweak.open.evidence:
+            sequence: 2
+            value:
+              contentHash: 498352ffbd675f047ec70e0810aa1dfbf55a5b3b007e592465d48509aef39576
+              ref: openspec/changes/fix-strategy-parameter-inheritance
+          tweak.verify.run:
+            sequence: 4
+            value:
+              event: verify-fail
+              reason: 完整回归发现共享策略序列化影响策略目录默认值和模板文档一致性，需回 Build 补齐两个原范围展示入口。
+        sequence: 7
+      fix-strategy-parameter-inheritance:8:
+        results:
+          tweak.build.escalation-confirm:
+            sequence: 6
+            value:
+              choice: continue
+              proposal:
+                input:
+                  change: fix-strategy-parameter-inheritance
+                  changeDir: openspec/changes/fix-strategy-parameter-inheritance
+                  workspaceBaseline:
+                    ref: b325437c-f5b6-4a9a-899c-2628810de3b1
+                outputs:
+                  tweak.build.execute:
+                    event: escalation-requested
+                    proposal: 仅文件数由6增至8：需在 api/monitoring/probes.py 保持策略目录默认值展示，在
+                      api/files/templates.py 显式声明模板默认策略参数以保持文档契约。仍为原 issue
+                      参数序列化修复，不增加功能、API或架构风险；现有2项失败回归可直接验证。建议继续 tweak。
+                    requirementsEvidence:
+                      contentHash: 3262b0f0850582e2d8a2cec3246d85cf85ec39fae94f1450480148c4924393ff
+                      ref: openspec/changes/fix-strategy-parameter-inheritance
+          tweak.build.execute:
+            sequence: 7
+            value:
+              checks:
+                - name: "issue #492 regression and related suites (repository root): python -m
+                    pytest tests/test_strategy_parameter_contract.py
+                    tests/test_models.py tests/test_tree_of_thoughts.py
+                    tests/test_task_service.py
+                    tests/test_business_checkpoints.py tests/test_experiment.py
+                    tests/test_llm_client.py
+                    tests/test_api_experiment_benchmark.py -q --no-cov"
+                  note: "340 passed; /private/tmp/comet-492-targeted.log. Initial reproduction:
+                    /private/tmp/comet-492-red.log (31 expected failures)."
+                  result: passed
+                - name: Ruff and Black for five changed Python files
+                  note: ruff check and black --check passed; tools installed in temporary cache.
+                  result: passed
+                - name: Mypy four changed production modules
+                  note: "Success: no issues found in 4 source files;
+                    /private/tmp/comet-492-mypy.log"
+                  result: passed
+                - name: python scripts/find_missing_encoding.py and git diff --check
+                  note: "Implicit text encodings: 0; no whitespace errors"
+                  result: passed
+                - name: Loopback HTTP tests requiring socket permissions
+                  note: 4 passed; /private/tmp/comet-492-loopback.log
+                  result: passed
+                - name: Metadata, API documentation, issue regressions and file API
+                  note: 177 passed; /private/tmp/comet-492-metadata-green.log
+                  result: passed
+                - name: Final scoped quality checks
+                  note: Ruff/Black 7 files, mypy focused 6 modules passed; default expanded mypy
+                    has identical 5 baseline errors in imported files,
+                    documented in verification.md
+                  result: passed
+                - name: Offline suite and follow-up of every failed/error case
+                  note: "Initial full run EXIT 1: 4303 passed, 44 skipped, 5 failed, 4 errors; 2
+                    true regressions fixed and verified in 177-test run; 2
+                    readability failures passed with temporary Flake8; 5 socket
+                    cases passed with loopback permission. Original and
+                    follow-up results are separately documented."
+                  result: passed
+              event: build-complete
+          tweak.open:
+            sequence: 1
+            value:
+              event: open-complete
+              requirementsEvidence:
+                ref: openspec/changes/fix-strategy-parameter-inheritance
+          tweak.open.evidence:
+            sequence: 2
+            value:
+              contentHash: 498352ffbd675f047ec70e0810aa1dfbf55a5b3b007e592465d48509aef39576
+              ref: openspec/changes/fix-strategy-parameter-inheritance
+          tweak.verify.run:
+            sequence: 4
+            value:
+              event: verify-fail
+              reason: 完整回归发现共享策略序列化影响策略目录默认值和模板文档一致性，需回 Build 补齐两个原范围展示入口。
+        sequence: 8
+    waits:
+      - id: fix-strategy-parameter-inheritance:6
+        stepId: tweak.build.escalation-confirm
+        sequence: 6
+        status: resolved
+        proposal:
+          input:
+            change: fix-strategy-parameter-inheritance
+            changeDir: openspec/changes/fix-strategy-parameter-inheritance
+            workspaceBaseline:
+              ref: b325437c-f5b6-4a9a-899c-2628810de3b1
+          outputs:
+            tweak.build.execute:
+              event: escalation-requested
+              proposal: 仅文件数由6增至8：需在 api/monitoring/probes.py 保持策略目录默认值展示，在
+                api/files/templates.py 显式声明模板默认策略参数以保持文档契约。仍为原 issue
+                参数序列化修复，不增加功能、API或架构风险；现有2项失败回归可直接验证。建议继续 tweak。
+              requirementsEvidence:
+                contentHash: 3262b0f0850582e2d8a2cec3246d85cf85ec39fae94f1450480148c4924393ff
+                ref: openspec/changes/fix-strategy-parameter-inheritance
+        proposalHash: b7cb42967c5f7500fbe69c490e60d9ee0b63b2a20f79ac49b0ac90200f4ff3a0
+        choices:
+          - continue
+          - upgrade
+        results:
+          tweak.build.execute:
+            sequence: 5
+            value:
+              event: escalation-requested
+              proposal: 仅文件数由6增至8：需在 api/monitoring/probes.py 保持策略目录默认值展示，在
+                api/files/templates.py 显式声明模板默认策略参数以保持文档契约。仍为原 issue
+                参数序列化修复，不增加功能、API或架构风险；现有2项失败回归可直接验证。建议继续 tweak。
+              requirementsEvidence:
+                contentHash: 3262b0f0850582e2d8a2cec3246d85cf85ec39fae94f1450480148c4924393ff
+                ref: openspec/changes/fix-strategy-parameter-inheritance
+          tweak.open:
+            sequence: 1
+            value:
+              event: open-complete
+              requirementsEvidence:
+                ref: openspec/changes/fix-strategy-parameter-inheritance
+          tweak.open.evidence:
+            sequence: 2
+            value:
+              contentHash: 498352ffbd675f047ec70e0810aa1dfbf55a5b3b007e592465d48509aef39576
+              ref: openspec/changes/fix-strategy-parameter-inheritance
+          tweak.verify.run:
+            sequence: 4
+            value:
+              event: verify-fail
+              reason: 完整回归发现共享策略序列化影响策略目录默认值和模板文档一致性，需回 Build 补齐两个原范围展示入口。
+        decision:
+          id: classic-escalation-b7cb42967c5f7500fbe69c490e60d9ee0b63b2a20f79ac49b0ac90200f4ff3a0-continue
+          choice: continue
+          proposalHash: b7cb42967c5f7500fbe69c490e60d9ee0b63b2a20f79ac49b0ac90200f4ff3a0
+      - id: fix-strategy-parameter-inheritance:11
+        stepId: tweak.archive.confirm
+        sequence: 11
+        status: resolved
+        proposal:
+          input:
+            change: fix-strategy-parameter-inheritance
+            changeDir: openspec/changes/fix-strategy-parameter-inheritance
+            workspaceBaseline:
+              ref: b325437c-f5b6-4a9a-899c-2628810de3b1
+          outputs:
+            tweak.archive.prepare:
+              prBaseBranch: main
+              remote: origin
+              summary: "Issue #492 修复与最终验收通过；8 个交付文件已获范围授权，6/6 任务完成。归档本
+                change、同步3份主规格并提交全部本次修改。当前绑定与建议本地提交目标为 main；origin 为 GitHub
+                JayNey/LLM-Algorithm-Harness，PR base 为 main，创建 PR 需先新建修复分支。未授权
+                push 或 PR。"
+              targetBranch: main
+        proposalHash: 2535cf87a7f38a142a1d6ab961cae185e9e90e737a65eee16ec601de9aa8d9ae
+        choices:
+          - local
+          - push
+          - pr
+          - reverify
+          - later
+        results:
+          tweak.archive.prepare:
+            sequence: 10
+            value:
+              prBaseBranch: main
+              remote: origin
+              summary: "Issue #492 修复与最终验收通过；8 个交付文件已获范围授权，6/6 任务完成。归档本
+                change、同步3份主规格并提交全部本次修改。当前绑定与建议本地提交目标为 main；origin 为 GitHub
+                JayNey/LLM-Algorithm-Harness，PR base 为 main，创建 PR 需先新建修复分支。未授权
+                push 或 PR。"
+              targetBranch: main
+          tweak.build.escalation-confirm:
+            sequence: 6
+            value:
+              choice: continue
+              proposal:
+                input:
+                  change: fix-strategy-parameter-inheritance
+                  changeDir: openspec/changes/fix-strategy-parameter-inheritance
+                  workspaceBaseline:
+                    ref: b325437c-f5b6-4a9a-899c-2628810de3b1
+                outputs:
+                  tweak.build.execute:
+                    event: escalation-requested
+                    proposal: 仅文件数由6增至8：需在 api/monitoring/probes.py 保持策略目录默认值展示，在
+                      api/files/templates.py 显式声明模板默认策略参数以保持文档契约。仍为原 issue
+                      参数序列化修复，不增加功能、API或架构风险；现有2项失败回归可直接验证。建议继续 tweak。
+                    requirementsEvidence:
+                      contentHash: 3262b0f0850582e2d8a2cec3246d85cf85ec39fae94f1450480148c4924393ff
+                      ref: openspec/changes/fix-strategy-parameter-inheritance
+          tweak.build.execute:
+            sequence: 7
+            value:
+              checks:
+                - name: "issue #492 regression and related suites (repository root): python -m
+                    pytest tests/test_strategy_parameter_contract.py
+                    tests/test_models.py tests/test_tree_of_thoughts.py
+                    tests/test_task_service.py
+                    tests/test_business_checkpoints.py tests/test_experiment.py
+                    tests/test_llm_client.py
+                    tests/test_api_experiment_benchmark.py -q --no-cov"
+                  note: "340 passed; /private/tmp/comet-492-targeted.log. Initial reproduction:
+                    /private/tmp/comet-492-red.log (31 expected failures)."
+                  result: passed
+                - name: Ruff and Black for five changed Python files
+                  note: ruff check and black --check passed; tools installed in temporary cache.
+                  result: passed
+                - name: Mypy four changed production modules
+                  note: "Success: no issues found in 4 source files;
+                    /private/tmp/comet-492-mypy.log"
+                  result: passed
+                - name: python scripts/find_missing_encoding.py and git diff --check
+                  note: "Implicit text encodings: 0; no whitespace errors"
+                  result: passed
+                - name: Loopback HTTP tests requiring socket permissions
+                  note: 4 passed; /private/tmp/comet-492-loopback.log
+                  result: passed
+                - name: Metadata, API documentation, issue regressions and file API
+                  note: 177 passed; /private/tmp/comet-492-metadata-green.log
+                  result: passed
+                - name: Final scoped quality checks
+                  note: Ruff/Black 7 files, mypy focused 6 modules passed; default expanded mypy
+                    has identical 5 baseline errors in imported files,
+                    documented in verification.md
+                  result: passed
+                - name: Offline suite and follow-up of every failed/error case
+                  note: "Initial full run EXIT 1: 4303 passed, 44 skipped, 5 failed, 4 errors; 2
+                    true regressions fixed and verified in 177-test run; 2
+                    readability failures passed with temporary Flake8; 5 socket
+                    cases passed with loopback permission. Original and
+                    follow-up results are separately documented."
+                  result: passed
+              event: build-complete
+          tweak.open:
+            sequence: 1
+            value:
+              event: open-complete
+              requirementsEvidence:
+                ref: openspec/changes/fix-strategy-parameter-inheritance
+          tweak.open.evidence:
+            sequence: 2
+            value:
+              contentHash: 498352ffbd675f047ec70e0810aa1dfbf55a5b3b007e592465d48509aef39576
+              ref: openspec/changes/fix-strategy-parameter-inheritance
+          tweak.verify.report.evidence:
+            sequence: 9
+            value:
+              contentHash: ea334f7c685076ac083b7e204ddf24054f651ddd9fda96acb64b03d045f7ae48
+              ref: docs/superpowers/reports/2026-11-18-fix-strategy-parameter-inheritance-verify.md
+          tweak.verify.run:
+            sequence: 8
+            value:
+              checks:
+                - name: "issue #492 regression and related suites (repository root): python -m
+                    pytest tests/test_strategy_parameter_contract.py
+                    tests/test_models.py tests/test_tree_of_thoughts.py
+                    tests/test_task_service.py
+                    tests/test_business_checkpoints.py tests/test_experiment.py
+                    tests/test_llm_client.py
+                    tests/test_api_experiment_benchmark.py -q --no-cov"
+                  note: "340 passed; /private/tmp/comet-492-targeted.log. Initial reproduction:
+                    /private/tmp/comet-492-red.log (31 expected failures)."
+                  result: passed
+                - name: Ruff and Black for five changed Python files
+                  note: ruff check and black --check passed; tools installed in temporary cache.
+                  result: passed
+                - name: Mypy four changed production modules
+                  note: "Success: no issues found in 4 source files;
+                    /private/tmp/comet-492-mypy.log"
+                  result: passed
+                - name: python scripts/find_missing_encoding.py and git diff --check
+                  note: "Implicit text encodings: 0; no whitespace errors"
+                  result: passed
+                - name: Loopback HTTP tests requiring socket permissions
+                  note: 4 passed; /private/tmp/comet-492-loopback.log
+                  result: passed
+                - name: Metadata, API documentation, issue regressions and file API
+                  note: 177 passed; /private/tmp/comet-492-metadata-green.log
+                  result: passed
+                - name: Final scoped quality checks
+                  note: Ruff/Black 7 files, mypy focused 6 modules passed; default expanded mypy
+                    has identical 5 baseline errors in imported files,
+                    documented in verification.md
+                  result: passed
+                - name: Offline suite and follow-up of every failed/error case
+                  note: "Initial full run EXIT 1: 4303 passed, 44 skipped, 5 failed, 4 errors; 2
+                    true regressions fixed and verified in 177-test run; 2
+                    readability failures passed with temporary Flake8; 5 socket
+                    cases passed with loopback permission. Original and
+                    follow-up results are separately documented."
+                  result: passed
+              event: verification-ready
+              verificationReport: docs/superpowers/reports/2026-11-18-fix-strategy-parameter-inheritance-verify.md
+        decision:
+          id: classic-archive-2535cf87a7f38a142a1d6ab961cae185e9e90e737a65eee16ec601de9aa8d9ae-local
+          choice: local
+          proposalHash: 2535cf87a7f38a142a1d6ab961cae185e9e90e737a65eee16ec601de9aa8d9ae
+    evidenceWaits:
+      - id: fix-strategy-parameter-inheritance:2
+        stepId: tweak.open.evidence
+        sequence: 2
+        kind: classic-open-artifacts
+        status: resolved
+        results:
+          tweak.open:
+            sequence: 1
+            value:
+              event: open-complete
+              requirementsEvidence:
+                ref: openspec/changes/fix-strategy-parameter-inheritance
+        receipt:
+          ref: openspec/changes/fix-strategy-parameter-inheritance
+          contentHash: 498352ffbd675f047ec70e0810aa1dfbf55a5b3b007e592465d48509aef39576
+          submissionId: 090e35ee-1a70-410a-ac09-cea0326858c6
+      - id: fix-strategy-parameter-inheritance:9
+        stepId: tweak.verify.report.evidence
+        sequence: 9
+        kind: classic-verification-report
+        status: resolved
+        results:
+          tweak.build.escalation-confirm:
+            sequence: 6
+            value:
+              choice: continue
+              proposal:
+                input:
+                  change: fix-strategy-parameter-inheritance
+                  changeDir: openspec/changes/fix-strategy-parameter-inheritance
+                  workspaceBaseline:
+                    ref: b325437c-f5b6-4a9a-899c-2628810de3b1
+                outputs:
+                  tweak.build.execute:
+                    event: escalation-requested
+                    proposal: 仅文件数由6增至8：需在 api/monitoring/probes.py 保持策略目录默认值展示，在
+                      api/files/templates.py 显式声明模板默认策略参数以保持文档契约。仍为原 issue
+                      参数序列化修复，不增加功能、API或架构风险；现有2项失败回归可直接验证。建议继续 tweak。
+                    requirementsEvidence:
+                      contentHash: 3262b0f0850582e2d8a2cec3246d85cf85ec39fae94f1450480148c4924393ff
+                      ref: openspec/changes/fix-strategy-parameter-inheritance
+          tweak.build.execute:
+            sequence: 7
+            value:
+              checks:
+                - name: "issue #492 regression and related suites (repository root): python -m
+                    pytest tests/test_strategy_parameter_contract.py
+                    tests/test_models.py tests/test_tree_of_thoughts.py
+                    tests/test_task_service.py
+                    tests/test_business_checkpoints.py tests/test_experiment.py
+                    tests/test_llm_client.py
+                    tests/test_api_experiment_benchmark.py -q --no-cov"
+                  note: "340 passed; /private/tmp/comet-492-targeted.log. Initial reproduction:
+                    /private/tmp/comet-492-red.log (31 expected failures)."
+                  result: passed
+                - name: Ruff and Black for five changed Python files
+                  note: ruff check and black --check passed; tools installed in temporary cache.
+                  result: passed
+                - name: Mypy four changed production modules
+                  note: "Success: no issues found in 4 source files;
+                    /private/tmp/comet-492-mypy.log"
+                  result: passed
+                - name: python scripts/find_missing_encoding.py and git diff --check
+                  note: "Implicit text encodings: 0; no whitespace errors"
+                  result: passed
+                - name: Loopback HTTP tests requiring socket permissions
+                  note: 4 passed; /private/tmp/comet-492-loopback.log
+                  result: passed
+                - name: Metadata, API documentation, issue regressions and file API
+                  note: 177 passed; /private/tmp/comet-492-metadata-green.log
+                  result: passed
+                - name: Final scoped quality checks
+                  note: Ruff/Black 7 files, mypy focused 6 modules passed; default expanded mypy
+                    has identical 5 baseline errors in imported files,
+                    documented in verification.md
+                  result: passed
+                - name: Offline suite and follow-up of every failed/error case
+                  note: "Initial full run EXIT 1: 4303 passed, 44 skipped, 5 failed, 4 errors; 2
+                    true regressions fixed and verified in 177-test run; 2
+                    readability failures passed with temporary Flake8; 5 socket
+                    cases passed with loopback permission. Original and
+                    follow-up results are separately documented."
+                  result: passed
+              event: build-complete
+          tweak.open:
+            sequence: 1
+            value:
+              event: open-complete
+              requirementsEvidence:
+                ref: openspec/changes/fix-strategy-parameter-inheritance
+          tweak.open.evidence:
+            sequence: 2
+            value:
+              contentHash: 498352ffbd675f047ec70e0810aa1dfbf55a5b3b007e592465d48509aef39576
+              ref: openspec/changes/fix-strategy-parameter-inheritance
+          tweak.verify.run:
+            sequence: 8
+            value:
+              checks:
+                - name: "issue #492 regression and related suites (repository root): python -m
+                    pytest tests/test_strategy_parameter_contract.py
+                    tests/test_models.py tests/test_tree_of_thoughts.py
+                    tests/test_task_service.py
+                    tests/test_business_checkpoints.py tests/test_experiment.py
+                    tests/test_llm_client.py
+                    tests/test_api_experiment_benchmark.py -q --no-cov"
+                  note: "340 passed; /private/tmp/comet-492-targeted.log. Initial reproduction:
+                    /private/tmp/comet-492-red.log (31 expected failures)."
+                  result: passed
+                - name: Ruff and Black for five changed Python files
+                  note: ruff check and black --check passed; tools installed in temporary cache.
+                  result: passed
+                - name: Mypy four changed production modules
+                  note: "Success: no issues found in 4 source files;
+                    /private/tmp/comet-492-mypy.log"
+                  result: passed
+                - name: python scripts/find_missing_encoding.py and git diff --check
+                  note: "Implicit text encodings: 0; no whitespace errors"
+                  result: passed
+                - name: Loopback HTTP tests requiring socket permissions
+                  note: 4 passed; /private/tmp/comet-492-loopback.log
+                  result: passed
+                - name: Metadata, API documentation, issue regressions and file API
+                  note: 177 passed; /private/tmp/comet-492-metadata-green.log
+                  result: passed
+                - name: Final scoped quality checks
+                  note: Ruff/Black 7 files, mypy focused 6 modules passed; default expanded mypy
+                    has identical 5 baseline errors in imported files,
+                    documented in verification.md
+                  result: passed
+                - name: Offline suite and follow-up of every failed/error case
+                  note: "Initial full run EXIT 1: 4303 passed, 44 skipped, 5 failed, 4 errors; 2
+                    true regressions fixed and verified in 177-test run; 2
+                    readability failures passed with temporary Flake8; 5 socket
+                    cases passed with loopback permission. Original and
+                    follow-up results are separately documented."
+                  result: passed
+              event: verification-ready
+              verificationReport: docs/superpowers/reports/2026-11-18-fix-strategy-parameter-inheritance-verify.md
+        receipt:
+          ref: docs/superpowers/reports/2026-11-18-fix-strategy-parameter-inheritance-verify.md
+          contentHash: ea334f7c685076ac083b7e204ddf24054f651ddd9fda96acb64b03d045f7ae48
+          submissionId: 4a3c67f4-54c0-4173-93dd-dc04eeb21f6e
+    ready: []
+    joins: {}
+    outputs:
+      tweak.archive.confirm:
+        sequence: 11
+        value:
+          choice: local
+          proposal:
+            input:
+              change: fix-strategy-parameter-inheritance
+              changeDir: openspec/changes/fix-strategy-parameter-inheritance
+              workspaceBaseline:
+                ref: b325437c-f5b6-4a9a-899c-2628810de3b1
+            outputs:
+              tweak.archive.prepare:
+                prBaseBranch: main
+                remote: origin
+                summary: "Issue #492 修复与最终验收通过；8 个交付文件已获范围授权，6/6 任务完成。归档本
+                  change、同步3份主规格并提交全部本次修改。当前绑定与建议本地提交目标为 main；origin 为 GitHub
+                  JayNey/LLM-Algorithm-Harness，PR base 为 main，创建 PR 需先新建修复分支。未授权
+                  push 或 PR。"
+                targetBranch: main
+      tweak.archive.execute:
+        sequence: 13
+        value:
+          archiveDirectory: openspec/changes/archive/2026-11-18-fix-strategy-parameter-inheritance
+      tweak.archive.preflight:
+        sequence: 12
+        value:
+          baseCommit: 8a4d0e1c48d4391984765c28dd5f66e579308af1
+          deliveryAction: local
+          deliveryPaths:
+            - README.md
+            - api/files/templates.py
+            - api/monitoring/probes.py
+            - src/models.py
+            - src/strategies/tree_of_thoughts.py
+            - src/strategy_base.py
+            - src/task_service.py
+            - tests/test_strategy_parameter_contract.py
+          prBaseBranch: main
+          remote: origin
+          remoteIdentity: 128eeb1e6f0d21b25601fcb7f9aad36adfdfb4d76f37f54f004760410190f351
+          targetBranch: main
+          verifiedBranch: main
+      tweak.archive.prepare:
+        sequence: 10
+        value:
+          prBaseBranch: main
+          remote: origin
+          summary: "Issue #492 修复与最终验收通过；8 个交付文件已获范围授权，6/6 任务完成。归档本
+            change、同步3份主规格并提交全部本次修改。当前绑定与建议本地提交目标为 main；origin 为 GitHub
+            JayNey/LLM-Algorithm-Harness，PR base 为 main，创建 PR 需先新建修复分支。未授权 push
+            或 PR。"
+          targetBranch: main
+      tweak.build.escalation-confirm:
+        sequence: 6
+        value:
+          choice: continue
+          proposal:
+            input:
+              change: fix-strategy-parameter-inheritance
+              changeDir: openspec/changes/fix-strategy-parameter-inheritance
+              workspaceBaseline:
+                ref: b325437c-f5b6-4a9a-899c-2628810de3b1
+            outputs:
+              tweak.build.execute:
+                event: escalation-requested
+                proposal: 仅文件数由6增至8：需在 api/monitoring/probes.py 保持策略目录默认值展示，在
+                  api/files/templates.py 显式声明模板默认策略参数以保持文档契约。仍为原 issue
+                  参数序列化修复，不增加功能、API或架构风险；现有2项失败回归可直接验证。建议继续 tweak。
+                requirementsEvidence:
+                  contentHash: 3262b0f0850582e2d8a2cec3246d85cf85ec39fae94f1450480148c4924393ff
+                  ref: openspec/changes/fix-strategy-parameter-inheritance
+      tweak.build.execute:
+        sequence: 7
+        value:
+          checks:
+            - name: "issue #492 regression and related suites (repository root): python -m
+                pytest tests/test_strategy_parameter_contract.py
+                tests/test_models.py tests/test_tree_of_thoughts.py
+                tests/test_task_service.py tests/test_business_checkpoints.py
+                tests/test_experiment.py tests/test_llm_client.py
+                tests/test_api_experiment_benchmark.py -q --no-cov"
+              note: "340 passed; /private/tmp/comet-492-targeted.log. Initial reproduction:
+                /private/tmp/comet-492-red.log (31 expected failures)."
+              result: passed
+            - name: Ruff and Black for five changed Python files
+              note: ruff check and black --check passed; tools installed in temporary cache.
+              result: passed
+            - name: Mypy four changed production modules
+              note: "Success: no issues found in 4 source files;
+                /private/tmp/comet-492-mypy.log"
+              result: passed
+            - name: python scripts/find_missing_encoding.py and git diff --check
+              note: "Implicit text encodings: 0; no whitespace errors"
+              result: passed
+            - name: Loopback HTTP tests requiring socket permissions
+              note: 4 passed; /private/tmp/comet-492-loopback.log
+              result: passed
+            - name: Metadata, API documentation, issue regressions and file API
+              note: 177 passed; /private/tmp/comet-492-metadata-green.log
+              result: passed
+            - name: Final scoped quality checks
+              note: Ruff/Black 7 files, mypy focused 6 modules passed; default expanded mypy
+                has identical 5 baseline errors in imported files, documented in
+                verification.md
+              result: passed
+            - name: Offline suite and follow-up of every failed/error case
+              note: "Initial full run EXIT 1: 4303 passed, 44 skipped, 5 failed, 4 errors; 2
+                true regressions fixed and verified in 177-test run; 2
+                readability failures passed with temporary Flake8; 5 socket
+                cases passed with loopback permission. Original and follow-up
+                results are separately documented."
+              result: passed
+          event: build-complete
+      tweak.open:
+        sequence: 1
+        value:
+          event: open-complete
+          requirementsEvidence:
+            ref: openspec/changes/fix-strategy-parameter-inheritance
+      tweak.open.evidence:
+        sequence: 2
+        value:
+          contentHash: 498352ffbd675f047ec70e0810aa1dfbf55a5b3b007e592465d48509aef39576
+          ref: openspec/changes/fix-strategy-parameter-inheritance
+      tweak.verify.report.evidence:
+        sequence: 9
+        value:
+          contentHash: ea334f7c685076ac083b7e204ddf24054f651ddd9fda96acb64b03d045f7ae48
+          ref: docs/superpowers/reports/2026-11-18-fix-strategy-parameter-inheritance-verify.md
+      tweak.verify.run:
+        sequence: 8
+        value:
+          checks:
+            - name: "issue #492 regression and related suites (repository root): python -m
+                pytest tests/test_strategy_parameter_contract.py
+                tests/test_models.py tests/test_tree_of_thoughts.py
+                tests/test_task_service.py tests/test_business_checkpoints.py
+                tests/test_experiment.py tests/test_llm_client.py
+                tests/test_api_experiment_benchmark.py -q --no-cov"
+              note: "340 passed; /private/tmp/comet-492-targeted.log. Initial reproduction:
+                /private/tmp/comet-492-red.log (31 expected failures)."
+              result: passed
+            - name: Ruff and Black for five changed Python files
+              note: ruff check and black --check passed; tools installed in temporary cache.
+              result: passed
+            - name: Mypy four changed production modules
+              note: "Success: no issues found in 4 source files;
+                /private/tmp/comet-492-mypy.log"
+              result: passed
+            - name: python scripts/find_missing_encoding.py and git diff --check
+              note: "Implicit text encodings: 0; no whitespace errors"
+              result: passed
+            - name: Loopback HTTP tests requiring socket permissions
+              note: 4 passed; /private/tmp/comet-492-loopback.log
+              result: passed
+            - name: Metadata, API documentation, issue regressions and file API
+              note: 177 passed; /private/tmp/comet-492-metadata-green.log
+              result: passed
+            - name: Final scoped quality checks
+              note: Ruff/Black 7 files, mypy focused 6 modules passed; default expanded mypy
+                has identical 5 baseline errors in imported files, documented in
+                verification.md
+              result: passed
+            - name: Offline suite and follow-up of every failed/error case
+              note: "Initial full run EXIT 1: 4303 passed, 44 skipped, 5 failed, 4 errors; 2
+                true regressions fixed and verified in 177-test run; 2
+                readability failures passed with temporary Flake8; 5 socket
+                cases passed with loopback permission. Original and follow-up
+                results are separately documented."
+              result: passed
+          event: verification-ready
+          verificationReport: docs/superpowers/reports/2026-11-18-fix-strategy-parameter-inheritance-verify.md
+    children: []
+    lineage: []
+  sourceRevision: 23
+  sourceHash: 005f974619efa25fce1a3e2e50fb5bba59e65eca06e17d9d53cd0ab2ce79f441
+direct_override: null
+handoff_context: null
+handoff_hash: null
+classic_profile: null
+classic_migration: null
+check_epoch: 7

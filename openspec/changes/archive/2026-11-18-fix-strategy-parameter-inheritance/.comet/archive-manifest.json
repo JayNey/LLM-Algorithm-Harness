@@ -1,0 +1,45 @@
+{
+  "schema": "comet.classic.archive-manifest.v2",
+  "execution": {
+    "workflow": {
+      "id": "comet-classic-tweak",
+      "version": "2",
+      "hash": "518d3e8e12eb39899775cb7d2ddcc7ddeba10cb1f1d43cff7b03f2ca61a70c65"
+    },
+    "runId": "fix-strategy-parameter-inheritance",
+    "actionId": "fix-strategy-parameter-inheritance:13",
+    "attempt": 1,
+    "inputHash": "a7cd617fb7a1602b5e2faf42e6b74777fe3161070cdfd8dfcc6485c282fb7762",
+    "claimToken": "portable-b64f8017186a50af7e99c079dd0547e852e831b5ffb87a303cab7ab2ac2c7f78"
+  },
+  "activeRef": "openspec/changes/fix-strategy-parameter-inheritance",
+  "archiveRef": "openspec/changes/archive/2026-11-18-fix-strategy-parameter-inheritance",
+  "stateRef": "openspec/changes/archive/2026-11-18-fix-strategy-parameter-inheritance/comet-state.yaml",
+  "paths": [
+    "openspec/changes/archive/2026-11-18-fix-strategy-parameter-inheritance/.comet/archive-requirements.json",
+    "openspec/changes/archive/2026-11-18-fix-strategy-parameter-inheritance/.openspec.yaml",
+    "openspec/changes/archive/2026-11-18-fix-strategy-parameter-inheritance/design.md",
+    "openspec/changes/archive/2026-11-18-fix-strategy-parameter-inheritance/proposal.md",
+    "openspec/changes/archive/2026-11-18-fix-strategy-parameter-inheritance/rulings.md",
+    "openspec/changes/archive/2026-11-18-fix-strategy-parameter-inheritance/specs/api/experiment-management/spec.md",
+    "openspec/changes/archive/2026-11-18-fix-strategy-parameter-inheritance/specs/llm-response-cache/spec.md",
+    "openspec/changes/archive/2026-11-18-fix-strategy-parameter-inheritance/specs/strategies/tree-of-thoughts/spec.md",
+    "openspec/changes/archive/2026-11-18-fix-strategy-parameter-inheritance/tasks.md",
+    "openspec/changes/archive/2026-11-18-fix-strategy-parameter-inheritance/walkthrough.html",
+    "openspec/specs/api/experiment-management/spec.md",
+    "openspec/specs/llm-response-cache/spec.md",
+    "openspec/specs/strategies/tree-of-thoughts/spec.md"
+  ],
+  "sourcePaths": [
+    "openspec/changes/fix-strategy-parameter-inheritance/.comet/archive-requirements.json",
+    "openspec/changes/fix-strategy-parameter-inheritance/.openspec.yaml",
+    "openspec/changes/fix-strategy-parameter-inheritance/design.md",
+    "openspec/changes/fix-strategy-parameter-inheritance/proposal.md",
+    "openspec/changes/fix-strategy-parameter-inheritance/rulings.md",
+    "openspec/changes/fix-strategy-parameter-inheritance/specs/api/experiment-management/spec.md",
+    "openspec/changes/fix-strategy-parameter-inheritance/specs/llm-response-cache/spec.md",
+    "openspec/changes/fix-strategy-parameter-inheritance/specs/strategies/tree-of-thoughts/spec.md",
+    "openspec/changes/fix-strategy-parameter-inheritance/tasks.md",
+    "openspec/changes/fix-strategy-parameter-inheritance/walkthrough.html"
+  ]
+}
