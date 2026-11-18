@@ -112,6 +112,7 @@ def config(name):
 
 def assert_request(body):
     assert not CONTROLS.keys() & body.keys()
+    assert not {"example_manifest", "example_set_id"} & body.keys()
     assert body["top_p"] == 0.9
     assert body["temperature"] == 0.2
     assert body["max_tokens"] == 50
@@ -141,9 +142,17 @@ def test_few_shot_controls_retrieval_without_leaking(boundary, sample_problem, m
     sandbox = Mock()
     sandbox.execute.return_value = SandboxResult(status="success", all_passed=True)
     strategy = FewShotLearningStrategy(cfg, client, sandbox)
+    cfg.custom_params.update(example_manifest="frozen-input.json", example_set_id="pinned-id")
+    original = cfg.model_dump()
     strategy.example_db = [
         SimilarProblem(
-            ExampleProblem(str(i), f"Included example {i}", "example", "easy", sample_problem.tags),
+            ExampleProblem(
+                str(i),
+                f"Included example {i}",
+                "Example question text",
+                "easy",
+                sample_problem.tags,
+            ),
             "def solution(): pass",
             0,
             [],
@@ -151,7 +160,9 @@ def test_few_shot_controls_retrieval_without_leaking(boundary, sample_problem, m
         for i in range(3)
     ] + [
         SimilarProblem(
-            ExampleProblem("low", "Excluded low score", "example", "easy", ["unrelated"]),
+            ExampleProblem(
+                "low", "Excluded low score", "Example question text", "easy", ["unrelated"]
+            ),
             "def solution(): pass",
             0,
             [],

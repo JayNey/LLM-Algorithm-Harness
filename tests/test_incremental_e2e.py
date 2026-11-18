@@ -342,6 +342,19 @@ def test_run_dependent_execution_evaluates_the_full_selection(tmp_path, run_depe
     )
 
 
+def test_few_shot_cannot_resume_an_incremental_reuse_plan(tmp_path):
+    from src.main import select_incremental_results
+    from src.models import HarnessConfig
+
+    dataset = _dataset(tmp_path, ["p1"])
+    config_path = _config_file(tmp_path, dataset)
+    payload = _read_json(config_path)
+    payload["strategies"][0]["name"] = "few_shot_learning"
+    config = HarnessConfig.model_validate(payload)
+    with pytest.raises(ValueError, match="cannot resume incremental reuse"):
+        select_incremental_results(config, [], "old-fingerprint", {}, source_run_id="old-run")
+
+
 @pytest.mark.parametrize("missing_source", [False, True])
 def test_resume_uses_the_original_incremental_selection(tmp_path, missing_source, capsys):
     from src.task_service import TaskService

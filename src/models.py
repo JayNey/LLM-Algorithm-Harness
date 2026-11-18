@@ -409,10 +409,42 @@ class IterationResult(BaseModel):
     )
 
 
+class ProblemSnapshot(BaseModel):
+    """Versioned public question data, independent of mutable datasets."""
+
+    model_config = {"extra": "forbid", "strict": True}
+
+    schema_version: Literal["1.0"] = "1.0"
+    problem_id: str = Field(..., min_length=1)
+    title: str = Field(..., min_length=1)
+    description: str = Field(..., min_length=10)
+    difficulty: Literal["easy", "medium", "hard"]
+    tags: list[str]
+    source_platform: str = "legacy"
+    source_problem_id: str | None = None
+    source_url: str | None = None
+    source_version: str | None = None
+
+    @field_validator("problem_id", "title", "description")
+    @classmethod
+    def require_nonblank(cls, value: str) -> str:
+        if not value.strip():
+            raise ValueError("Problem snapshot text must not be blank")
+        return value
+
+    @classmethod
+    def from_problem(cls, problem: Problem) -> "ProblemSnapshot":
+        fields = set(cls.model_fields) - {"schema_version"}
+        return cls.model_validate(problem.model_dump(include=fields))
+
+
 class ExecutionResult(BaseModel):
     """Complete result of strategy execution on a problem."""
 
     problem_id: str = Field(..., description="Problem ID")
+    problem_snapshot: ProblemSnapshot | None = Field(
+        None, description="Minimal public question snapshot for historical example reuse"
+    )
     strategy: str = Field(..., description="Strategy name")
     generated_code: str = Field(..., description="Generated code")
     status: str = Field(..., description="Execution status")

@@ -13,6 +13,7 @@ from src.models import (
     IterationResult,
     LLMResponse,
     Problem,
+    ProblemSnapshot,
     SandboxResult,
     StrategyConfig,
 )
@@ -96,6 +97,8 @@ class StrategyBase(ABC):
             "similarity_metric",
             "min_similarity_score",
             "example_source",
+            "example_manifest",
+            "example_set_id",
             "reflection_context_chars",
             "branching_factor",
             "max_depth",
@@ -564,6 +567,7 @@ Your response should include the code in a ```python code block.
 
         return ExecutionResult(
             problem_id=problem.problem_id,
+            problem_snapshot=ProblemSnapshot.from_problem(problem),
             strategy=self.config.name,
             generated_code=generated_code,
             status=status,

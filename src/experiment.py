@@ -22,9 +22,25 @@ from src.budget import BudgetTracker
 from src.checkpoints import UnitCheckpoint, write_checkpoint
 from src.experiment_panel import generate_html_panel
 from src.experiment_report import generate_comparison_report
+from src.few_shot_examples import (
+    content_hash,
+    create_manifest,
+    example_reference,
+    examples_from_manifest,
+    load_history,
+    load_manifest,
+    overlap_reason,
+)
 from src.harness import AlgorithmHarness
 from src.llm_client import SpendObserver
-from src.models import ExperimentConfig, HarnessConfig, LLMConfig, Problem, StrategyConfig
+from src.models import (
+    ExperimentConfig,
+    HarnessConfig,
+    LLMConfig,
+    Problem,
+    ProblemSnapshot,
+    StrategyConfig,
+)
 from src.problem_loader import ProblemLoader
 from src.task_service import TaskService
 from src.utils.logging import get_logger
@@ -113,9 +129,10 @@ class ExperimentRunner:
         exp_dir = self._create_experiment_dir()
         metadata_path = exp_dir / "experiment.json"
         dataset = self._dataset_fingerprint(problems)
+        resuming = self.checkpoint_dir is not None and metadata_path.exists()
 
         metadata: dict[str, Any]
-        if self.checkpoint_dir is not None and metadata_path.exists():
+        if resuming:
             metadata = json.loads(metadata_path.read_text(encoding="utf-8"))
             if metadata.get("schema_version") != EXPERIMENT_SCHEMA_VERSION:
                 raise ValueError(
@@ -143,6 +160,8 @@ class ExperimentRunner:
                 },
                 "combinations": [],
             }
+
+        self._prepare_few_shot_examples(exp_dir, metadata, problems, resuming=resuming)
 
         checkpoint = None
         if self.checkpoint_dir is not None:
@@ -314,6 +333,68 @@ class ExperimentRunner:
     def _requires_independent_sampling(self, strategy: StrategyConfig) -> bool:
         return self.config.repeats > 1 or strategy.name == "self_consistency"
 
+    def _prepare_few_shot_examples(
+        self, exp_dir: Path, metadata: dict[str, Any], problems: list[Problem], *, resuming: bool
+    ) -> None:
+        if not any(strategy.name == "few_shot_learning" for strategy in self.config.strategies):
+            return
+        targets_id = content_hash(
+            [ProblemSnapshot.from_problem(problem).model_dump() for problem in problems]
+        )
+        filename = "few_shot_examples.json"
+        path = exp_dir / filename
+        if resuming:
+            saved = metadata.get("few_shot_examples")
+            if not isinstance(saved, dict) or saved.get("path") != filename:
+                raise ValueError(
+                    "Few-Shot checkpoint has no frozen examples; start a new experiment"
+                )
+            manifest = load_manifest(path, saved.get("example_set_id", ""))
+            if saved.get("targets_id") != targets_id or saved.get("manifest_hash") != content_hash(
+                manifest
+            ):
+                raise ValueError("Frozen example inputs changed; start a new experiment")
+        else:
+            if self.checkpoint_dir is not None and (exp_dir / "units").exists():
+                raise ValueError("Few-Shot checkpoint metadata is missing; start a new experiment")
+            strategy = next(s for s in self.config.strategies if s.name == "few_shot_learning")
+            params = strategy.custom_params
+            candidates = (
+                load_manifest(Path(params["example_manifest"]), params.get("example_set_id", ""))
+                if params.get("example_manifest")
+                else load_history()
+            )
+            included = []
+            excluded = []
+            for example in examples_from_manifest(candidates):
+                for target in problems:
+                    reason = overlap_reason(target, example.problem)
+                    if reason:
+                        excluded.append(
+                            {
+                                **example_reference(example),
+                                "reason": reason,
+                                "target_problem_id": target.problem_id,
+                            }
+                        )
+                        break
+                else:
+                    included.append(example)
+            manifest = create_manifest(included, excluded)
+            self._write_json(path, manifest)
+            metadata["few_shot_examples"] = {
+                "schema_version": manifest["schema_version"],
+                "example_set_id": manifest["example_set_id"],
+                "path": filename,
+                "manifest_hash": content_hash(manifest),
+                "targets_id": targets_id,
+                "excluded": excluded,
+            }
+        self._frozen_few_shot_params = {
+            "example_manifest": str(path.resolve()),
+            "example_set_id": manifest["example_set_id"],
+        }
+
     def _run_combo(
         self,
         combo_dir: Path,
@@ -334,7 +415,20 @@ class ExperimentRunner:
         harness_config = HarnessConfig(
             llm_config=model,
             dataset_path=self.config.dataset_path,
-            strategies=[strategy],
+            strategies=[
+                (
+                    strategy.model_copy(
+                        update={
+                            "custom_params": {
+                                **strategy.custom_params,
+                                **self._frozen_few_shot_params,
+                            }
+                        }
+                    )
+                    if strategy.name == "few_shot_learning"
+                    else strategy
+                )
+            ],
             sandbox_config=self.config.sandbox_config,
             output_dir=str(combo_dir),
             problem_filters=self.config.problem_filters,

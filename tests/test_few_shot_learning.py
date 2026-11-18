@@ -111,6 +111,11 @@ class TestTagSimilarity:
 class TestFewShotLearningStrategy:
     """Test Few-Shot Learning strategy implementation."""
 
+    @pytest.fixture(autouse=True)
+    def isolate_example_history(self, tmp_path, monkeypatch):
+        """Unit scenarios must not retrieve the developer's real result history."""
+        monkeypatch.chdir(tmp_path)
+
     @pytest.fixture
     def mock_llm_client(self):
         """Create mock LLM client."""
@@ -514,6 +519,7 @@ class TestFewShotLearningStrategy:
             {
                 "problem_id": "test-problem",
                 "title": "Test Problem",
+                "description": "Double the given integer value.",
                 "difficulty": "easy",
                 "tags": ["array", "hash-table"],
                 "generated_code": "def solution(x):\n    return x * 2",
