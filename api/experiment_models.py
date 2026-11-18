@@ -59,6 +59,21 @@ class ExperimentCreateRequest(DatasetRequest):
     problem_filters: dict[str, Any] | None = None
     api_key_id: str = Field(..., min_length=1, description="Default key for all model arms")
 
+    @model_validator(mode="after")
+    def validate_unique_names(self) -> Self:
+        """Mirror ExperimentConfig so duplicate arms reject at creation (422)
+        instead of failing the run after persistence."""
+        for kind, names in (
+            ("model", [model.model for model in self.models]),
+            ("strategy", [strategy.name for strategy in self.strategies]),
+        ):
+            seen: set[str] = set()
+            for name in names:
+                if name in seen:
+                    raise ValueError(f"Duplicate {kind} name in experiment: {name!r}")
+                seen.add(name)
+        return self
+
 
 class BenchmarkSuiteCreateRequest(BaseModel):
     """Create a benchmark suite."""

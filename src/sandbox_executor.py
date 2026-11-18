@@ -898,9 +898,14 @@ _harness_write(_harness_fd, ({result_marker!r} + _harness_dumps(result) + "\\n")
             return bool(actual == expected)
         if isinstance(actual, numbers.Real):
             if isinstance(expected, numbers.Real):
-                return math.isclose(
-                    float(actual), float(expected), rel_tol=tolerance, abs_tol=tolerance
-                )
+                try:
+                    return math.isclose(
+                        float(actual), float(expected), rel_tol=tolerance, abs_tol=tolerance
+                    )
+                except OverflowError:
+                    # 一侧超出 float64 表示范围（如超大整数对 1e400）：量级悬殊必不相等，
+                    # 不能让判题器自身崩溃伪装成候选代码 runtime_error。
+                    return False
             return False
         if isinstance(actual, dict) and isinstance(expected, dict):
             return set(actual) == set(expected) and all(

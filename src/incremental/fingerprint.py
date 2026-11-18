@@ -12,7 +12,9 @@ from src.models import JUDGE_CONTRACT_VERSION, HarnessConfig, LLMConfig, Problem
 
 # Bump when generation, strategy, sandbox, or result semantics change in a way
 # that is not represented by the hashed configuration or the judge contract.
-EXECUTION_FINGERPRINT_VERSION = 1
+# v2: 运行无关字段（max_workers、预算、质量/演化分析开关、缓存配置、凭证）
+# 移出指纹——它们不影响结果内容，混入会在改并发/预算时静默作废全部历史 (#503)。
+EXECUTION_FINGERPRINT_VERSION = 2
 
 
 def hash_json(content: Any) -> str:
@@ -58,19 +60,32 @@ def _llm_identity(config: LLMConfig) -> dict[str, Any]:
 
 
 def compute_execution_fingerprint(config: HarnessConfig) -> str:
-    """Hash effective execution inputs. Only the digest may be persisted."""
+    """Hash effective execution inputs. Only the digest may be persisted.
+
+    运行无关字段（调度并发、预算额度、质量/演化分析、响应缓存、凭证）
+    不参与指纹：它们不改变结果内容，混入会在调整这些配置时静默作废
+    全部历史（#503）。
+    """
     payload = config.model_dump(
         exclude={
-            "llm_config": {"api_key", "base_url"},
+            "llm_config": {"api_key", "base_url", "cache"},
             "dataset_path": True,
             "output_dir": True,
             "log_level": True,
             "problem_filters": True,  # The selected problem fingerprints cover this.
             "enable_incremental": True,
             "cost_alerts": True,
+            "max_workers": True,
+            "budget_cap_usd": True,
+            "budget_action": True,
+            "enable_quality_analysis": True,
+            "quality_analysis_config": True,
+            "enable_evolution_analysis": True,
         },
     )
-    payload["llm_config"].update(_llm_identity(config.llm_config))
+    identity = _llm_identity(config.llm_config)
+    identity.pop("credential", None)  # 凭证不影响结果内容，仅影响计费账号。
+    payload["llm_config"].update(identity)
     payload["execution_fingerprint_version"] = EXECUTION_FINGERPRINT_VERSION
     payload["judge_contract_version"] = JUDGE_CONTRACT_VERSION
     if config.sandbox_config.backend == "host":

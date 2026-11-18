@@ -158,3 +158,53 @@ def test_compute_dataset_fingerprint_empty():
     """Test dataset fingerprint with empty list."""
     fingerprints = compute_dataset_fingerprint([])
     assert fingerprints == {}
+
+
+def _execution_config(tmp_path, **overrides):
+    from src.models import HarnessConfig, LLMConfig, SandboxConfig, StrategyConfig
+
+    base: dict = {
+        "dataset_path": str(tmp_path / "data.json"),
+        "llm_config": LLMConfig(provider="openai", api_key="key-a", model="gpt-x"),
+        "sandbox_config": SandboxConfig(backend="host", timeout_seconds=5, memory_limit_mb=256),
+        "strategies": [StrategyConfig(name="vanilla", max_iterations=1)],
+    }
+    base.update(overrides)
+    return HarnessConfig(**base)
+
+
+def test_execution_fingerprint_ignores_run_dependent_fields(tmp_path):
+    """调度并发/预算/质量开关/凭证不影响结果内容，不得混入执行指纹 (#503)。"""
+    from src.incremental.fingerprint import compute_execution_fingerprint
+    from src.models import LLMConfig
+
+    base = compute_execution_fingerprint(_execution_config(tmp_path))
+    assert compute_execution_fingerprint(_execution_config(tmp_path, max_workers=8)) == base
+    assert compute_execution_fingerprint(_execution_config(tmp_path, budget_cap_usd=5.0)) == base
+    assert (
+        compute_execution_fingerprint(_execution_config(tmp_path, enable_quality_analysis=True))
+        == base
+    )
+    assert (
+        compute_execution_fingerprint(
+            _execution_config(
+                tmp_path,
+                llm_config=LLMConfig(provider="openai", api_key="key-b", model="gpt-x"),
+            )
+        )
+        == base
+    )
+    # 结果相关维度（策略参数）仍改变指纹。
+    assert (
+        compute_execution_fingerprint(
+            _execution_config(
+                tmp_path,
+                strategies=[
+                    __import__("src.models", fromlist=["StrategyConfig"]).StrategyConfig(
+                        name="self_consistency", max_iterations=1
+                    )
+                ],
+            )
+        )
+        != base
+    )
