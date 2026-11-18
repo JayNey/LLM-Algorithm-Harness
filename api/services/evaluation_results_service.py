@@ -217,7 +217,11 @@ def _problem_item(row: EvaluationResult) -> dict:
         "strategy": row.strategy_name,
         "status": row.status,
         **_diagnostic_fields(_failure_diagnostic(row)),
-        **({"error_message": row.error_message} if row.status == NOT_EVALUABLE else {}),
+        **(
+            {"error_message": redact_sensitive_text(row.error_message)}
+            if row.status == NOT_EVALUABLE
+            else {}
+        ),
         "iterations": (
             None if metrics is None or "iterations" not in metrics else metrics["iterations"]
         ),

@@ -14,6 +14,9 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 
 from api.auth.store import AuthStore
 
+# 每用户保留的题集版本数上限：版本载荷是整份题库快照，不清理会单调膨胀 (#501)。
+DATASET_VERSION_MAX_PER_USER = 50
+
 
 class _FileDatabaseSettings(BaseSettings):
     model_config = SettingsConfigDict(env_file=".env", extra="ignore")
@@ -269,7 +272,13 @@ class FileStore:
         return token, json.loads(payload)
 
     def save_dataset_version(
-        self, user_id: str, source_token: str, name: str, problems: list[dict[str, Any]]
+        self,
+        user_id: str,
+        source_token: str,
+        name: str,
+        problems: list[dict[str, Any]],
+        *,
+        max_versions: int = DATASET_VERSION_MAX_PER_USER,
     ) -> dict[str, Any]:
         version = {"id": str(uuid.uuid4()), "name": name, "problem_count": len(problems)}
         with self.connection() as db:
@@ -279,6 +288,17 @@ class FileStore:
             db.execute(
                 "INSERT INTO api_dataset_versions VALUES (?,?,?,?,?,?)",
                 (version["id"], user_id, name, json.dumps(problems), len(problems), time.time_ns()),
+            )
+            # 每用户只保留最近 N 个版本：版本载荷是整份题库快照，不清理会单调膨胀 (#501)。
+            db.execute(
+                """
+                DELETE FROM api_dataset_versions
+                WHERE user_id = ? AND id NOT IN (
+                    SELECT id FROM api_dataset_versions WHERE user_id = ?
+                    ORDER BY created_at DESC, id DESC LIMIT ?
+                )
+                """,
+                (user_id, user_id, max_versions),
             )
         return version
 
