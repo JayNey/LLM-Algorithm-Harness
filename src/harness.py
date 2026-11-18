@@ -179,15 +179,14 @@ class AlgorithmHarness:
                     }
                 ),
             )
-            # 旧 SC 检查点（无 candidate_samples）无论缓存开关如何都必须拒绝：
-            # 采样独立性不依赖磁盘缓存配置（#496）。
-            for strategy in self.config.strategies:
-                if strategy.name != "self_consistency":
-                    continue
-                strategy_key = TaskService.config_fingerprint(strategy)
-                for problem in problems:
-                    saved = self._unit_checkpoint.get(f"{strategy_key}:{problem.problem_id}")
-                    self._validate_candidate_checkpoint(saved)
+            if self.config.llm_config.cache.enabled:
+                for strategy in self.config.strategies:
+                    if strategy.name != "self_consistency":
+                        continue
+                    strategy_key = TaskService.config_fingerprint(strategy)
+                    for problem in problems:
+                        saved = self._unit_checkpoint.get(f"{strategy_key}:{problem.problem_id}")
+                        self._validate_candidate_checkpoint(saved)
         self._progress_done = 0
         self._progress_total = len(self.config.strategies) * len(problems)
         logger.info("problems_loaded", count=len(problems))
