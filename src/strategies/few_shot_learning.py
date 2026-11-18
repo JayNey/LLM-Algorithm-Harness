@@ -8,22 +8,12 @@ from dataclasses import dataclass
 from pathlib import Path
 
 from src.budget import BudgetExhausted
+from src.few_shot_examples import ExampleProblem, overlap_reason
 from src.llm_client import LLMClient
 from src.models import ExecutionResult, Problem, StrategyConfig
 from src.sandbox_executor import SandboxExecutor
 from src.strategies.similarity.tag_based import calculate_tag_similarity
 from src.strategy_base import StrategyBase
-
-
-@dataclass
-class ExampleProblem:
-    """Lightweight problem representation for few-shot examples."""
-
-    problem_id: str
-    title: str
-    description: str
-    difficulty: str
-    tags: list[str]
 
 
 @dataclass
@@ -109,6 +99,14 @@ class FewShotLearningStrategy(StrategyBase):
                             description=result.get("description", "Example problem from history"),
                             difficulty=result.get("difficulty", "medium"),
                             tags=tags,
+                            **{
+                                key: result.get(key, result.get("problem_metadata", {}).get(key))
+                                for key in ("source_problem_id", "source_url", "source_version")
+                            },
+                            source_platform=result.get(
+                                "source_platform",
+                                result.get("problem_metadata", {}).get("source_platform", "legacy"),
+                            ),
                         )
 
                         try:
@@ -159,6 +157,8 @@ class FewShotLearningStrategy(StrategyBase):
         similarities = []
 
         for example in self.example_db:
+            if overlap_reason(problem, example.problem):
+                continue
             # Calculate similarity based on tags
             if self.similarity_metric == "tag_overlap":
                 score = calculate_tag_similarity(problem.tags, example.problem.tags)
@@ -204,6 +204,7 @@ class FewShotLearningStrategy(StrategyBase):
         Returns:
             Prompt string with examples
         """
+        examples = [e for e in examples if not overlap_reason(problem, e.problem)]
         if not examples:
             # Fallback to base prompt without examples
             return self.build_base_prompt(problem)
