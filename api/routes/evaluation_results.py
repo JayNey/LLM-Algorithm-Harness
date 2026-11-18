@@ -95,8 +95,11 @@ def save_problem_version(
     files: FileService = Depends(file_service),
 ) -> ApiResponse[DatasetVersion]:
     version = call(lambda: save_governance(files.store, history, principal.user_id, request))
-    # 标签/难度审核变更与版本创建入审计（与导入事件同口径）。
-    http_request.app.state.auth.audit("dataset_governance_save", principal.user_id, version.id)
+    # 审计只取资源 id：save_governance 返回模型（契约测试的替身返回字典）。
+    resource_id = version.get("id") if isinstance(version, dict) else version.id
+    http_request.app.state.auth.audit(
+        "dataset_governance_save", principal.user_id, resource_id or ""
+    )
     return ApiResponse(success=True, data=version, message="Dataset version saved")
 
 

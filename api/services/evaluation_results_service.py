@@ -218,7 +218,7 @@ def _problem_item(row: EvaluationResult) -> dict:
         "status": row.status,
         **_diagnostic_fields(_failure_diagnostic(row)),
         **(
-            {"error_message": redact_sensitive_text(row.error_message)}
+            {"error_message": redact_sensitive_text(row.error_message or "")}
             if row.status == NOT_EVALUABLE
             else {}
         ),

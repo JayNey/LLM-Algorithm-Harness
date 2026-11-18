@@ -185,4 +185,13 @@ def save_governance(
     if not applied:
         raise HTTPException(400, "No approved changes to save")
     version = store.save_dataset_version(owner, revision, request.name, list(updated.values()))
-    return DatasetVersion.model_validate(version)
+    import os
+    if os.environ.get("V06_DEBUG"):
+        with open("/tmp/v06-debug.log", "a") as fh:
+            fh.write(f"ENTRY store_return_type={type(version)} qual={__name__}.{save_governance.__qualname__}\n")
+    validated = DatasetVersion.model_validate(version)
+    import os
+    if os.environ.get("V06_DEBUG"):
+        with open("/tmp/v06-debug.log", "a") as fh:
+            fh.write(f"governance: type={type(validated)} dv={DatasetVersion} id={getattr(validated, 'id', 'NO-ID')}\n")
+    return validated
