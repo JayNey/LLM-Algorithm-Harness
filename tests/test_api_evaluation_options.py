@@ -803,6 +803,30 @@ def test_governance_previews_only_owned_executed_history_and_saves_approved_chan
     assert client.get(version_url, headers=headers).json()["data"] == detail
 
 
+def test_dataset_versions_pruned_to_per_user_cap(recommendation_history):
+    """版本载荷是整份题库快照：每用户只保留最近 N 版，最旧被清理 (#501)。"""
+    app, client, users = recommendation_history
+    headers, owner = users["alice"]
+    store = app.state.files.store
+    token, _ = store.dataset_snapshot(owner)
+
+    for index in range(4):
+        store.save_dataset_version(
+            owner,
+            token,
+            f"v{index}",
+            [problem(f"p{index}", f"Title {index}", "easy")],
+            max_versions=2,
+        )
+    versions = client.get("/api/v1/problems/governance/versions", headers=headers).json()["data"]
+    assert sorted(v["name"] for v in versions) == ["v2", "v3"]
+    newest = next(v for v in versions if v["name"] == "v3")
+    detail = client.get(
+        f"/api/v1/problems/governance/versions/{newest['id']}", headers=headers
+    ).json()["data"]
+    assert [p["problem_id"] for p in detail["problems"]] == ["p3"]
+
+
 def test_version_evaluation_resolves_frozen_problems_and_preserves_history(
     recommendation_history, monkeypatch
 ):

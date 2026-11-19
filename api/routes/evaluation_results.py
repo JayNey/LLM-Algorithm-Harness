@@ -89,11 +89,17 @@ def preview_problem_governance(
 @router.post("/problems/governance/versions", status_code=201)
 def save_problem_version(
     request: GovernanceSaveRequest,
+    http_request: Request,
     principal: Principal = Depends(current_user),
     history: EvaluationResultsService = Depends(evaluation_results_service),
     files: FileService = Depends(file_service),
 ) -> ApiResponse[DatasetVersion]:
     version = call(lambda: save_governance(files.store, history, principal.user_id, request))
+    # 审计只取资源 id：save_governance 返回模型（契约测试的替身返回字典）。
+    resource_id = version.get("id") if isinstance(version, dict) else version.id
+    http_request.app.state.auth.audit(
+        "dataset_governance_save", principal.user_id, resource_id or ""
+    )
     return ApiResponse(success=True, data=version, message="Dataset version saved")
 
 
