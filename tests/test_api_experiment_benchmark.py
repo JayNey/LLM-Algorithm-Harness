@@ -276,6 +276,16 @@ class TestExperiments:
             run_experiment_task,
         )
 
+    def test_create_rejects_duplicate_model_names(self, api):
+        client, headers, key_id, _ = api
+        payload = _experiment_payload(key_id)
+        payload["models"].append({"model": "gpt-test"})
+
+        response = client.post("/api/v1/experiments", headers=headers, json=payload)
+        assert response.status_code == 400, response.text
+        assert "Duplicate model name" in response.text
+        assert client.get("/api/v1/experiments", headers=headers).json()["data"]["total"] == 0
+
     def test_queued_experiment_rejects_duplicate_run_and_delete(self, api):
         client, headers, key_id, app = api
         experiment_id = client.post(

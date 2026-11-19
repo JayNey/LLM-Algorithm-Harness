@@ -123,3 +123,25 @@ def test_optional_online_leetcode_import():
         pytest.skip("requests/certifi is not installed in this minimal test environment")
     problems = LeetCodeImporter(timeout=10, retries=1).fetch_problems("two-sum")
     assert problems and problems[0]["title"]
+
+
+def test_node_signature_falls_back_to_snippet_scan():
+    """无注解签名的节点题回退文本扫描，宁可标记不支持也不落回浮点误判。"""
+    annotated = (
+        "class Solution:\n"
+        "    def invertTree(self, root: TreeNode) -> TreeNode:\n"
+        "        return root"
+    )
+    assert LeetCodeImporter._node_signature_types(annotated, "Solution.invertTree") == {"TreeNode"}
+    unannotated = (
+        "# Definition for a binary tree node.\n"
+        "# class TreeNode:\n"
+        "class Solution:\n"
+        "    def invertTree(self, root):\n"
+        "        return root"
+    )
+    assert LeetCodeImporter._node_signature_types(unannotated, "Solution.invertTree") == {
+        "TreeNode"
+    }
+    plain = "class Solution:\n    def twoSum(self, nums, target):\n        return []"
+    assert LeetCodeImporter._node_signature_types(plain, "Solution.twoSum") == set()

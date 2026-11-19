@@ -553,10 +553,11 @@ class LeetCodeImporter(ProblemImporter):
 
     @staticmethod
     def _node_signature_types(snippet: str, entry_point: str) -> set[str]:
+        node_names = {"TreeNode", "ListNode", "Node", "NestedInteger", "QuadNode", "RandomListNode"}
         try:
             scope = ast.parse(snippet).body
         except SyntaxError:
-            return set()
+            scope = []
         target = entry_point.split("(", 1)[0]
         owner, _, method = target.rpartition(".")
         if owner:
@@ -568,21 +569,25 @@ class LeetCodeImporter(ProblemImporter):
                 ),
                 [],
             )
-        node_names = {"TreeNode", "ListNode", "Node", "NestedInteger", "QuadNode", "RandomListNode"}
         for node in scope:
             if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef)) and node.name == method:
                 annotations = [node.returns] + [
                     arg.annotation
                     for arg in node.args.posonlyargs + node.args.args + node.args.kwonlyargs
                 ]
-                return {
+                annotated = {
                     name
                     for annotation in annotations
                     if annotation is not None
                     for name in re.findall(r"\b\w+\b", ast.unparse(annotation))
                     if name in node_names
                 }
-        return set()
+                if annotated:
+                    return annotated
+                break
+        # 注解缺失/解析失败时的文本回退：LeetCode 节点题模板必带节点类定义，
+        # 片段中出现节点类名即按节点题处理——宁可标记不支持也不落回浮点容差误判。
+        return {name for name in node_names if re.search(rf"\b{name}\b", snippet)}
 
     @staticmethod
     def _extract_entry_point(snippets: list[dict[str, Any]]) -> str | None:

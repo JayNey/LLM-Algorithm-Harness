@@ -768,3 +768,13 @@ def test_health_check_rejects_unsuccessful_known_good_probe(failure):
         ok, detail = executor.health_check()
     assert ok is False
     assert detail
+
+
+def test_compare_float_tolerant_handles_out_of_range_integers():
+    """超大整数与 inf/浮点比较不得让判题器 OverflowError（伪装 runtime_error）。"""
+    big = 10**400
+    compare = SandboxExecutor._compare_float_tolerant
+    assert compare(big, big, 1e-9) is True
+    assert compare(big, float("inf"), 1e-9) is False
+    assert compare(float("inf"), big, 1e-9) is False
+    assert compare({"v": [big]}, {"v": [float("inf")]}, 1e-9) is False
