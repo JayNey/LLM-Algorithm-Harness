@@ -82,6 +82,19 @@ harness run --config config.local.yaml \
 Web「预算与预警」中保存的启用规则在 Celery 评估 worker 启动（含恢复）和每个单元成本提交后生效。先保存**个人全局预算**，再选择渠道、阈值（1–100%）和目标。规则使用当前用户全部评估已知累计成本及已完成基准运行成本，与个人预算执行口径一致；不是单任务预算，也不是按月重置的额度。未知用量不视作免费，通知单独列出已持久化评估结果中的未知计数。没有个人全局预算时不发通知，只有难度预算时也不触发全局规则。
 
 - Slack / Webhook：目标填完整 HTTPS URL，不含内嵌用户名或密码；Slack 使用 Incoming Webhook。Web 通道不跟随重定向，3xx 视为失败。通用 Webhook 的 JSON 增加 `rule_id`，`cost_basis` 为 `owner_known_pricing_usage`，`run_id` 是本次触发检查的 Web 评估 ID。
+
+  部署者必须在 **API 与 worker** 的环境或 `.env` 中配置相同的完整目标白名单，然后重启两个服务：
+
+  ```dotenv
+  COST_ALERT_ALLOWED_WEBHOOK_URLS='["https://hooks.slack.com/services/REPLACE_LOCALLY","https://alerts.example.com/budget?token=REPLACE_LOCALLY"]'
+  ```
+
+  默认 `[]` 拒绝所有 Web Slack/Webhook 目标。完整 URL 必须精确匹配（含路径、端口和 query）；不支持通配符、域名后缀或路径前缀。非 HTTPS、内嵌凭据、片段及有歧义的 URL 语法即使列入配置也会被拒绝。配置中的秘密路径、query 和 token 应像其他凭据一样保密，不提交到仓库。
+
+  仅配置部署者掌控或可信服务商的固定外部地址，域名及其 DNS 必须可信，不能把普通用户可控的域名加入白名单。此策略通过限制可选择的完整地址建立授权边界，不对用户提供的任意主机做一次性 DNS 检查，也不承诺抵御可信域名或部署配置被接管。
+
+  创建、修改（包括只修改名称或启用状态）和历史规则投递都会重新检查授权；拒绝修改时所有本次字段变更回滚。升级前已保存但未获授权的规则会记录投递失败，不发送 HTTP 请求；仍可删除或改为合法规则。撤销目标授权后应同步更新 API/worker 配置并重启；配置不一致时 worker 仍按自身白名单独立拒绝。SMTP、log 与本地 CLI 配置不使用此白名单。
+
 - 邮件（SMTP）：规则目标填一个收件邮箱。SMTP 连接由 worker 的环境或 `.env` 提供，例如：
 
 ```dotenv

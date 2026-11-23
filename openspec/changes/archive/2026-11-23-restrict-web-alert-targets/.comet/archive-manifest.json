@@ -1,0 +1,37 @@
+{
+  "schema": "comet.classic.archive-manifest.v2",
+  "execution": {
+    "workflow": {
+      "id": "comet-classic-tweak",
+      "version": "2",
+      "hash": "518d3e8e12eb39899775cb7d2ddcc7ddeba10cb1f1d43cff7b03f2ca61a70c65"
+    },
+    "runId": "restrict-web-alert-targets",
+    "actionId": "restrict-web-alert-targets:9",
+    "attempt": 1,
+    "inputHash": "05c144f4ac88cde33c091eaa5dfe59fa2467c1f67384eb3ce1d6e5ee22f83fd3",
+    "claimToken": "portable-3d3402f81d8f42c31d3325e50a018babc86bb1181a72cb25483f150f3103d6d4"
+  },
+  "activeRef": "openspec/changes/restrict-web-alert-targets",
+  "archiveRef": "openspec/changes/archive/2026-11-23-restrict-web-alert-targets",
+  "stateRef": "openspec/changes/archive/2026-11-23-restrict-web-alert-targets/comet-state.yaml",
+  "paths": [
+    "openspec/changes/archive/2026-11-23-restrict-web-alert-targets/.comet/archive-requirements.json",
+    "openspec/changes/archive/2026-11-23-restrict-web-alert-targets/.openspec.yaml",
+    "openspec/changes/archive/2026-11-23-restrict-web-alert-targets/design.md",
+    "openspec/changes/archive/2026-11-23-restrict-web-alert-targets/proposal.md",
+    "openspec/changes/archive/2026-11-23-restrict-web-alert-targets/specs/api/cost-management/spec.md",
+    "openspec/changes/archive/2026-11-23-restrict-web-alert-targets/tasks.md",
+    "openspec/changes/archive/2026-11-23-restrict-web-alert-targets/walkthrough.html",
+    "openspec/specs/api/cost-management/spec.md"
+  ],
+  "sourcePaths": [
+    "openspec/changes/restrict-web-alert-targets/.comet/archive-requirements.json",
+    "openspec/changes/restrict-web-alert-targets/.openspec.yaml",
+    "openspec/changes/restrict-web-alert-targets/design.md",
+    "openspec/changes/restrict-web-alert-targets/proposal.md",
+    "openspec/changes/restrict-web-alert-targets/specs/api/cost-management/spec.md",
+    "openspec/changes/restrict-web-alert-targets/tasks.md",
+    "openspec/changes/restrict-web-alert-targets/walkthrough.html"
+  ]
+}
