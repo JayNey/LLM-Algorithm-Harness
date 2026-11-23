@@ -1,0 +1,37 @@
+{
+  "schema": "comet.classic.archive-manifest.v2",
+  "execution": {
+    "workflow": {
+      "id": "comet-classic-tweak",
+      "version": "2",
+      "hash": "d1e067bc00ca13395dbc6f701565417c3e227f17a57df025dd73ebda905e2638"
+    },
+    "runId": "fix-generic-evaluation-submission",
+    "actionId": "fix-generic-evaluation-submission:13",
+    "attempt": 1,
+    "inputHash": "7f3f0052837d04d34e063d99a67100e8d0ce5d0f3fe56965b77e6980542ee660",
+    "claimToken": "portable-0c9cb763b009909a58c3b401fd0356ffe81c9615387d34442a2f0b65fccb59e2"
+  },
+  "activeRef": "openspec/changes/fix-generic-evaluation-submission",
+  "archiveRef": "openspec/changes/archive/2026-11-23-fix-generic-evaluation-submission",
+  "stateRef": "openspec/changes/archive/2026-11-23-fix-generic-evaluation-submission/comet-state.yaml",
+  "paths": [
+    "openspec/changes/archive/2026-11-23-fix-generic-evaluation-submission/.comet/archive-requirements.json",
+    "openspec/changes/archive/2026-11-23-fix-generic-evaluation-submission/.openspec.yaml",
+    "openspec/changes/archive/2026-11-23-fix-generic-evaluation-submission/design.md",
+    "openspec/changes/archive/2026-11-23-fix-generic-evaluation-submission/proposal.md",
+    "openspec/changes/archive/2026-11-23-fix-generic-evaluation-submission/specs/async-task-queue/spec.md",
+    "openspec/changes/archive/2026-11-23-fix-generic-evaluation-submission/tasks.md",
+    "openspec/changes/archive/2026-11-23-fix-generic-evaluation-submission/walkthrough.html",
+    "openspec/specs/async-task-queue/spec.md"
+  ],
+  "sourcePaths": [
+    "openspec/changes/fix-generic-evaluation-submission/.comet/archive-requirements.json",
+    "openspec/changes/fix-generic-evaluation-submission/.openspec.yaml",
+    "openspec/changes/fix-generic-evaluation-submission/design.md",
+    "openspec/changes/fix-generic-evaluation-submission/proposal.md",
+    "openspec/changes/fix-generic-evaluation-submission/specs/async-task-queue/spec.md",
+    "openspec/changes/fix-generic-evaluation-submission/tasks.md",
+    "openspec/changes/fix-generic-evaluation-submission/walkthrough.html"
+  ]
+}

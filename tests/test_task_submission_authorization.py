@@ -9,9 +9,10 @@ from fastapi.testclient import TestClient
 
 from api.auth.dependencies import current_user
 from api.auth.service import Principal
-from api.db.engine import get_db, make_engine, make_session_factory
-from api.db.models import AsyncTask, Base, utcnow
+from api.db.engine import get_db, make_session_factory
+from api.db.models import AsyncTask, Evaluation, utcnow
 from api.routes.tasks import router
+from api.services.evaluation_service import EvaluationService
 from src.tasks.cleanup import cleanup_old_tasks, cleanup_task_count
 
 BUSINESS_TASKS = [
@@ -28,8 +29,8 @@ CLEANUP_TASKS = [
 
 @pytest.fixture
 def task_api(tmp_path):
-    engine = make_engine(f"sqlite:///{tmp_path / 'tasks.sqlite3'}")
-    Base.metadata.create_all(engine)
+    service = EvaluationService(f"sqlite:///{tmp_path / 'tasks.sqlite3'}")
+    engine = service.engine
     factory = make_session_factory(engine)
 
     def database():
@@ -37,6 +38,8 @@ def task_api(tmp_path):
             yield session
 
     app = FastAPI()
+    app.state.auth = Mock()
+    app.state.evaluations = service
     app.include_router(router)
     app.dependency_overrides[current_user] = lambda: Principal(
         user_id="attacker", session_id="attacker-session"
@@ -44,6 +47,7 @@ def task_api(tmp_path):
     app.dependency_overrides[get_db] = database
     with TestClient(app) as client:
         yield client, factory
+    app.state.evaluations.close()
     engine.dispose()
 
 
@@ -122,6 +126,19 @@ def test_public_submission_rejects_unknown_or_mismatched_tasks(task_api, task_ty
 @pytest.mark.parametrize("task_type,celery_name", BUSINESS_TASKS)
 def test_public_submission_preserves_business_tasks(task_api, task_type, celery_name):
     client, factory = task_api
+    if task_type == "evaluation":
+        with factory() as session, session.begin():
+            session.add(
+                Evaluation(
+                    id="entity-1",
+                    user_id="attacker",
+                    status="pending",
+                    api_key_id="key-1",
+                    strategy_names=["vanilla"],
+                    problem_ids=["p1"],
+                    problem_count=1,
+                )
+            )
     args = ["entity-1"] if task_type == "evaluation" else ["entity-1", "attacker"]
     with patch("src.task_manager.celery_app.send_task", return_value=Mock()) as send:
         response = client.post(

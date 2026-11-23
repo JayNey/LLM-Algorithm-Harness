@@ -1,0 +1,1860 @@
+# comet-execution: managed-run
+change_id: fbf4eab0-6ba9-49d2-a083-67c21829ef84
+workflow: tweak
+language: zh-CN
+phase: archive
+context_compression: off
+build_mode: direct
+build_pause: null
+subagent_dispatch: null
+tdd_mode: direct
+review_mode: off
+isolation: current
+verify_mode: light
+auto_transition: true
+base_ref: db958ea9eb4ab3889e30668744a8b21d17f158b5
+design_doc: null
+plan: null
+verify_result: pass
+verify_failures: 0
+verification_report: docs/superpowers/reports/2026-11-23-fix-generic-evaluation-submission-verify.md
+branch_status: pending
+created_at: 2026-11-23
+verified_at: 2026-11-23
+archive_confirmation: confirmed
+archived: true
+bound_branch: codex/fix-generic-evaluation-submission
+run_checkpoint:
+  schema: comet.workflow-run-checkpoint.v1
+  hash: 5fa27d1d73e5bd01ded88dfad4db8c3b0119a142978283bd049cbd37e579b9f5
+  run:
+    protocolVersion: 1
+    schemaVersion: 1
+    runId: fix-generic-evaluation-submission
+    revision: 1
+    workflow:
+      id: comet-classic-tweak
+      version: "2"
+      hash: d1e067bc00ca13395dbc6f701565417c3e227f17a57df025dd73ebda905e2638
+    definitionHashes:
+      '["comet-classic-tweak","2"]': d1e067bc00ca13395dbc6f701565417c3e227f17a57df025dd73ebda905e2638
+    initialStateHash: 9cab3866f431937933fff4a31b114b5770fb5d75752b263040e14551e2e2f0e9
+    input:
+      change: fix-generic-evaluation-submission
+      changeDir: openspec/changes/fix-generic-evaluation-submission
+      workspaceBaseline:
+        ref: a3bbf282-8531-45e1-919d-5db10b8fe4c8
+    state:
+      archiveConfirmation: confirmed
+      archived: true
+      autoTransition: true
+      baseRef: db958ea9eb4ab3889e30668744a8b21d17f158b5
+      boundBranch: codex/fix-generic-evaluation-submission
+      branchStatus: pending
+      buildMode: direct
+      buildPause: null
+      checkEpoch: 6
+      classicMigration: null
+      classicProfile: null
+      contextCompression: off
+      createdAt: 2026-11-23
+      designDoc: null
+      directOverride: null
+      handoffContext: null
+      handoffHash: null
+      isolation: current
+      language: zh-CN
+      phase: archive
+      plan: null
+      reviewMode: off
+      subagentDispatch: null
+      tddMode: direct
+      verificationReport: docs/superpowers/reports/2026-11-23-fix-generic-evaluation-submission-verify.md
+      verifiedAt: 2026-11-23
+      verifyFailures: 0
+      verifyMode: light
+      verifyResult: pass
+      workflow: tweak
+    status: running
+    sequence: 14
+    actions:
+      - attempt: 1
+        claim:
+          executorId: comet-classic-guard
+          token: portable-5343aa2a147b70cdd606575a71f991f134f8d444e2403643f1283cf11d163bb9
+        executionOrigin:
+          workflow:
+            hash: 518d3e8e12eb39899775cb7d2ddcc7ddeba10cb1f1d43cff7b03f2ca61a70c65
+            id: comet-classic-tweak
+            version: "2"
+        id: fix-generic-evaluation-submission:1
+        input:
+          input:
+            change: fix-generic-evaluation-submission
+            changeDir: openspec/changes/fix-generic-evaluation-submission
+            workspaceBaseline:
+              ref: a3bbf282-8531-45e1-919d-5db10b8fe4c8
+          outputs: {}
+        inputHash: 3068bfcc4454177f966d1f0653c6f660305cbdd8f8ce1e28a7e6f5542fbf6c3d
+        outcome:
+          actionId: fix-generic-evaluation-submission:1
+          attempt: 1
+          claimToken: portable-5343aa2a147b70cdd606575a71f991f134f8d444e2403643f1283cf11d163bb9
+          inputHash: 3068bfcc4454177f966d1f0653c6f660305cbdd8f8ce1e28a7e6f5542fbf6c3d
+          outcomeId: fb066a3c-9646-4c2b-bf8b-0691dc53af6b
+          output:
+            event: open-complete
+            requirementsEvidence:
+              ref: openspec/changes/fix-generic-evaluation-submission
+          status: succeeded
+        protocolVersion: 1
+        receipts:
+          - hash: de8837d6121fe37a1098bbd5192157cb856157f139547ae1dd8a8ebb547035ed
+            outcomeId: fb066a3c-9646-4c2b-bf8b-0691dc53af6b
+        reconciliations: []
+        ref: comet-tweak
+        requiredCapabilities: []
+        retry: manual
+        runId: fix-generic-evaluation-submission
+        status: succeeded
+        stepId: tweak.open
+        type: invoke_skill
+      - attempt: 1
+        claim:
+          executorId: comet-classic-state
+          sessionId: codex-issue-512
+          token: portable-803648f637ef4303fe34f0686b1296a710049212e692cd639bb97bf9418ba3d3
+        executionOrigin:
+          workflow:
+            hash: 518d3e8e12eb39899775cb7d2ddcc7ddeba10cb1f1d43cff7b03f2ca61a70c65
+            id: comet-classic-tweak
+            version: "2"
+        id: fix-generic-evaluation-submission:3
+        input:
+          input:
+            change: fix-generic-evaluation-submission
+            changeDir: openspec/changes/fix-generic-evaluation-submission
+            workspaceBaseline:
+              ref: a3bbf282-8531-45e1-919d-5db10b8fe4c8
+          outputs:
+            tweak.open:
+              event: open-complete
+              requirementsEvidence:
+                ref: openspec/changes/fix-generic-evaluation-submission
+            tweak.open.evidence:
+              contentHash: 3068bfcc4454177f966d1f0653c6f660305cbdd8f8ce1e28a7e6f5542fbf6c3d
+              ref: openspec/changes/fix-generic-evaluation-submission
+        inputHash: cc98b583d5e5cb15f0f2973fac3d27be04ae611109d84f8f3b8f9f499d4beab0
+        outcome:
+          actionId: fix-generic-evaluation-submission:3
+          attempt: 1
+          claimToken: portable-803648f637ef4303fe34f0686b1296a710049212e692cd639bb97bf9418ba3d3
+          inputHash: cc98b583d5e5cb15f0f2973fac3d27be04ae611109d84f8f3b8f9f499d4beab0
+          outcomeId: 55cd14fc-4b06-4e33-83ab-db9f0680ea9d
+          output:
+            checks:
+              - name: .venv/bin/pytest tests/test_generic_evaluation_submission.py
+                  tests/test_task_submission_authorization.py -q --no-cov
+                  (project root)
+                note: 38 passed; /tmp/issue512-green.log
+                result: passed
+              - name: .venv/bin/pytest tests/unit/test_api_endpoints.py
+                  tests/test_api_evaluations.py
+                  tests/test_evaluation_service_async.py
+                  tests/test_async_task_submission.py
+                  tests/test_user_evaluation_concurrency.py
+                  tests/test_tasks_api.py tests/test_evaluation_async_flow.py
+                  tests/test_evaluation_workflow_contract.py -q --no-cov
+                  (project root)
+                note: 1169 passed; /tmp/issue512-regression.log
+                result: passed
+              - name: black --check and ruff check on all 6 delivery Python files; git diff
+                  --check (project root)
+                note: All passed
+                result: passed
+              - name: comet classic openspec -- validate fix-generic-evaluation-submission
+                  --strict (project root)
+                note: Change is valid
+                result: passed
+              - name: mypy diagnostic baseline comparison (project root)
+                note: Current and HEAD shadow-file runs both exited 1 with identical 8
+                  pre-existing errors; normalized diagnostic Counters match.
+                  This is a no-new-errors check, not a clean mypy run.
+                  /tmp/issue512-mypy.log; /tmp/issue512-mypy-baseline.log
+                result: passed
+            event: build-complete
+          status: succeeded
+        protocolVersion: 1
+        receipts:
+          - hash: 957ef5e2949575484907fb2bcd8a3c84521578fcdeb0a86f8fb66ed5eff35727
+            outcomeId: 55cd14fc-4b06-4e33-83ab-db9f0680ea9d
+        reconciliations: []
+        ref: comet-build
+        requiredCapabilities: []
+        retry: manual
+        runId: fix-generic-evaluation-submission
+        status: succeeded
+        stepId: tweak.build.execute
+        type: invoke_skill
+      - attempt: 1
+        claim:
+          executorId: comet-classic-guard
+          token: portable-f9fb769aad2b7592c63b846388d5e2d58271c3d90f540afecd764798ff5bd9f6
+        executionOrigin:
+          workflow:
+            hash: 518d3e8e12eb39899775cb7d2ddcc7ddeba10cb1f1d43cff7b03f2ca61a70c65
+            id: comet-classic-tweak
+            version: "2"
+        id: fix-generic-evaluation-submission:4
+        input:
+          input:
+            change: fix-generic-evaluation-submission
+            changeDir: openspec/changes/fix-generic-evaluation-submission
+            workspaceBaseline:
+              ref: a3bbf282-8531-45e1-919d-5db10b8fe4c8
+          outputs:
+            tweak.build.execute:
+              checks:
+                - name: .venv/bin/pytest tests/test_generic_evaluation_submission.py
+                    tests/test_task_submission_authorization.py -q --no-cov
+                    (project root)
+                  note: 38 passed; /tmp/issue512-green.log
+                  result: passed
+                - name: .venv/bin/pytest tests/unit/test_api_endpoints.py
+                    tests/test_api_evaluations.py
+                    tests/test_evaluation_service_async.py
+                    tests/test_async_task_submission.py
+                    tests/test_user_evaluation_concurrency.py
+                    tests/test_tasks_api.py tests/test_evaluation_async_flow.py
+                    tests/test_evaluation_workflow_contract.py -q --no-cov
+                    (project root)
+                  note: 1169 passed; /tmp/issue512-regression.log
+                  result: passed
+                - name: black --check and ruff check on all 6 delivery Python files; git diff
+                    --check (project root)
+                  note: All passed
+                  result: passed
+                - name: comet classic openspec -- validate fix-generic-evaluation-submission
+                    --strict (project root)
+                  note: Change is valid
+                  result: passed
+                - name: mypy diagnostic baseline comparison (project root)
+                  note: Current and HEAD shadow-file runs both exited 1 with identical 8
+                    pre-existing errors; normalized diagnostic Counters match.
+                    This is a no-new-errors check, not a clean mypy run.
+                    /tmp/issue512-mypy.log; /tmp/issue512-mypy-baseline.log
+                  result: passed
+              event: build-complete
+            tweak.open:
+              event: open-complete
+              requirementsEvidence:
+                ref: openspec/changes/fix-generic-evaluation-submission
+            tweak.open.evidence:
+              contentHash: 3068bfcc4454177f966d1f0653c6f660305cbdd8f8ce1e28a7e6f5542fbf6c3d
+              ref: openspec/changes/fix-generic-evaluation-submission
+        inputHash: 0106ecab04e49340f23adf536671c4355ad5f5bea43428c452a2b100c34375f8
+        outcome:
+          actionId: fix-generic-evaluation-submission:4
+          attempt: 1
+          claimToken: portable-f9fb769aad2b7592c63b846388d5e2d58271c3d90f540afecd764798ff5bd9f6
+          inputHash: 0106ecab04e49340f23adf536671c4355ad5f5bea43428c452a2b100c34375f8
+          outcomeId: 33239ffc-22dd-4f80-aa82-2cd210438a8d
+          output:
+            checks:
+              - name: .venv/bin/pytest tests/test_generic_evaluation_submission.py
+                  tests/test_task_submission_authorization.py -q --no-cov
+                  (project root)
+                note: 38 passed; /tmp/issue512-green.log
+                result: passed
+              - name: .venv/bin/pytest tests/unit/test_api_endpoints.py
+                  tests/test_api_evaluations.py
+                  tests/test_evaluation_service_async.py
+                  tests/test_async_task_submission.py
+                  tests/test_user_evaluation_concurrency.py
+                  tests/test_tasks_api.py tests/test_evaluation_async_flow.py
+                  tests/test_evaluation_workflow_contract.py -q --no-cov
+                  (project root)
+                note: 1169 passed; /tmp/issue512-regression.log
+                result: passed
+              - name: black --check and ruff check on all 6 delivery Python files; git diff
+                  --check (project root)
+                note: All passed
+                result: passed
+              - name: comet classic openspec -- validate fix-generic-evaluation-submission
+                  --strict (project root)
+                note: Change is valid
+                result: passed
+              - name: mypy diagnostic baseline comparison (project root)
+                note: Current and HEAD shadow-file runs both exited 1 with identical 8
+                  pre-existing errors; normalized diagnostic Counters match.
+                  This is a no-new-errors check, not a clean mypy run.
+                  /tmp/issue512-mypy.log; /tmp/issue512-mypy-baseline.log
+                result: passed
+            event: verification-ready
+            verificationReport: docs/superpowers/reports/2026-11-23-fix-generic-evaluation-submission-verify.md
+          status: succeeded
+        protocolVersion: 1
+        receipts:
+          - hash: 60a106689a82a59a9f439990ee011a50abe97af9115963464e81a22e25458701
+            outcomeId: 33239ffc-22dd-4f80-aa82-2cd210438a8d
+        reconciliations: []
+        ref: comet-verify
+        requiredCapabilities: []
+        retry: manual
+        runId: fix-generic-evaluation-submission
+        status: succeeded
+        stepId: tweak.verify.run
+        type: invoke_skill
+      - attempt: 1
+        claim:
+          executorId: comet-classic-state
+          token: portable-602bab98e1aee7c76b81870f248c17f30bb6bfe1b8bfb6baf291578e0b30b18b
+        executionOrigin:
+          workflow:
+            hash: 518d3e8e12eb39899775cb7d2ddcc7ddeba10cb1f1d43cff7b03f2ca61a70c65
+            id: comet-classic-tweak
+            version: "2"
+        id: fix-generic-evaluation-submission:6
+        input:
+          input:
+            change: fix-generic-evaluation-submission
+            changeDir: openspec/changes/fix-generic-evaluation-submission
+            workspaceBaseline:
+              ref: a3bbf282-8531-45e1-919d-5db10b8fe4c8
+          outputs:
+            tweak.build.execute:
+              checks:
+                - name: .venv/bin/pytest tests/test_generic_evaluation_submission.py
+                    tests/test_task_submission_authorization.py -q --no-cov
+                    (project root)
+                  note: 38 passed; /tmp/issue512-green.log
+                  result: passed
+                - name: .venv/bin/pytest tests/unit/test_api_endpoints.py
+                    tests/test_api_evaluations.py
+                    tests/test_evaluation_service_async.py
+                    tests/test_async_task_submission.py
+                    tests/test_user_evaluation_concurrency.py
+                    tests/test_tasks_api.py tests/test_evaluation_async_flow.py
+                    tests/test_evaluation_workflow_contract.py -q --no-cov
+                    (project root)
+                  note: 1169 passed; /tmp/issue512-regression.log
+                  result: passed
+                - name: black --check and ruff check on all 6 delivery Python files; git diff
+                    --check (project root)
+                  note: All passed
+                  result: passed
+                - name: comet classic openspec -- validate fix-generic-evaluation-submission
+                    --strict (project root)
+                  note: Change is valid
+                  result: passed
+                - name: mypy diagnostic baseline comparison (project root)
+                  note: Current and HEAD shadow-file runs both exited 1 with identical 8
+                    pre-existing errors; normalized diagnostic Counters match.
+                    This is a no-new-errors check, not a clean mypy run.
+                    /tmp/issue512-mypy.log; /tmp/issue512-mypy-baseline.log
+                  result: passed
+              event: build-complete
+            tweak.open:
+              event: open-complete
+              requirementsEvidence:
+                ref: openspec/changes/fix-generic-evaluation-submission
+            tweak.open.evidence:
+              contentHash: 3068bfcc4454177f966d1f0653c6f660305cbdd8f8ce1e28a7e6f5542fbf6c3d
+              ref: openspec/changes/fix-generic-evaluation-submission
+            tweak.verify.report.evidence:
+              contentHash: 0106ecab04e49340f23adf536671c4355ad5f5bea43428c452a2b100c34375f8
+              ref: docs/superpowers/reports/2026-11-23-fix-generic-evaluation-submission-verify.md
+            tweak.verify.run:
+              checks:
+                - name: .venv/bin/pytest tests/test_generic_evaluation_submission.py
+                    tests/test_task_submission_authorization.py -q --no-cov
+                    (project root)
+                  note: 38 passed; /tmp/issue512-green.log
+                  result: passed
+                - name: .venv/bin/pytest tests/unit/test_api_endpoints.py
+                    tests/test_api_evaluations.py
+                    tests/test_evaluation_service_async.py
+                    tests/test_async_task_submission.py
+                    tests/test_user_evaluation_concurrency.py
+                    tests/test_tasks_api.py tests/test_evaluation_async_flow.py
+                    tests/test_evaluation_workflow_contract.py -q --no-cov
+                    (project root)
+                  note: 1169 passed; /tmp/issue512-regression.log
+                  result: passed
+                - name: black --check and ruff check on all 6 delivery Python files; git diff
+                    --check (project root)
+                  note: All passed
+                  result: passed
+                - name: comet classic openspec -- validate fix-generic-evaluation-submission
+                    --strict (project root)
+                  note: Change is valid
+                  result: passed
+                - name: mypy diagnostic baseline comparison (project root)
+                  note: Current and HEAD shadow-file runs both exited 1 with identical 8
+                    pre-existing errors; normalized diagnostic Counters match.
+                    This is a no-new-errors check, not a clean mypy run.
+                    /tmp/issue512-mypy.log; /tmp/issue512-mypy-baseline.log
+                  result: passed
+              event: verification-ready
+              verificationReport: docs/superpowers/reports/2026-11-23-fix-generic-evaluation-submission-verify.md
+        inputHash: f48ae250d6ce8c95b4456aa3d545372fa85cfb2fa84588b56f7fc79d0724d09d
+        outcome:
+          actionId: fix-generic-evaluation-submission:6
+          attempt: 1
+          claimToken: portable-602bab98e1aee7c76b81870f248c17f30bb6bfe1b8bfb6baf291578e0b30b18b
+          inputHash: f48ae250d6ce8c95b4456aa3d545372fa85cfb2fa84588b56f7fc79d0724d09d
+          outcomeId: d2c1c2fe-86b4-43de-ab49-7049e8abd3f5
+          output:
+            prBaseBranch: main
+            remote: origin
+            summary: "Issue #512 修复及验证已完成：6 个实现/测试文件，1207 项相关测试通过，格式与规格校验通过；mypy 与基线相同 8
+              条错误，无新增。归档将同步 async-task-queue 的 1 个需求，移动本 change
+              至日期归档目录，纳入验证报告及现有 walkthrough，并在当前 main 创建归档提交。推送目标为
+              origin/main；PR base 为 main，若选择 PR 需先确认可用的独立分支。尚未提交、推送或创建 PR。"
+            targetBranch: main
+          status: succeeded
+        protocolVersion: 1
+        receipts:
+          - hash: 1c4d69b1ad5c8372a000fa1dfc9ca211ec7c6dc478e1232e58b169ce8f6ced25
+            outcomeId: d2c1c2fe-86b4-43de-ab49-7049e8abd3f5
+        reconciliations: []
+        ref: comet-archive
+        requiredCapabilities: []
+        retry: manual
+        runId: fix-generic-evaluation-submission
+        status: succeeded
+        stepId: tweak.archive.prepare
+        type: invoke_skill
+      - attempt: 1
+        claim:
+          executorId: comet-classic-guard
+          token: portable-d4d65ce5bc73535e6dd731b9b18c391148c6defa2a991507bcf36cbc600fad25
+        executionOrigin:
+          workflow:
+            hash: d1e067bc00ca13395dbc6f701565417c3e227f17a57df025dd73ebda905e2638
+            id: comet-classic-tweak
+            version: "2"
+        id: fix-generic-evaluation-submission:8
+        input:
+          activation:
+            expectedRevision: 12
+            fromPhase: archive
+          input:
+            change: fix-generic-evaluation-submission
+            changeDir: openspec/changes/fix-generic-evaluation-submission
+            workspaceBaseline:
+              ref: a3bbf282-8531-45e1-919d-5db10b8fe4c8
+          outputs: {}
+        inputHash: dcc7fe9441b3ce673982dd120631f4a94c62f152bb9ecbdc05806a2f14932ee9
+        outcome:
+          actionId: fix-generic-evaluation-submission:8
+          attempt: 1
+          claimToken: portable-d4d65ce5bc73535e6dd731b9b18c391148c6defa2a991507bcf36cbc600fad25
+          inputHash: dcc7fe9441b3ce673982dd120631f4a94c62f152bb9ecbdc05806a2f14932ee9
+          outcomeId: 9008c0b2-fe6a-4779-945d-3d961a70c0d6
+          output:
+            checks:
+              - name: .venv/bin/pytest tests/test_generic_evaluation_submission.py
+                  tests/test_task_submission_authorization.py -q --no-cov
+                  (project root)
+                note: 38 passed; /tmp/issue512-green.log
+                result: passed
+              - name: .venv/bin/pytest tests/unit/test_api_endpoints.py
+                  tests/test_api_evaluations.py
+                  tests/test_evaluation_service_async.py
+                  tests/test_async_task_submission.py
+                  tests/test_user_evaluation_concurrency.py
+                  tests/test_tasks_api.py tests/test_evaluation_async_flow.py
+                  tests/test_evaluation_workflow_contract.py -q --no-cov
+                  (project root)
+                note: 1169 passed; /tmp/issue512-regression.log
+                result: passed
+              - name: black --check and ruff check on all 6 delivery Python files; git diff
+                  --check (project root)
+                note: All passed
+                result: passed
+              - name: comet classic openspec -- validate fix-generic-evaluation-submission
+                  --strict (project root)
+                note: Change is valid
+                result: passed
+              - name: mypy diagnostic baseline comparison (project root)
+                note: Current and HEAD shadow-file runs both exited 1 with identical 8
+                  pre-existing errors; normalized diagnostic Counters match.
+                  This is a no-new-errors check, not a clean mypy run.
+                  /tmp/issue512-mypy.log; /tmp/issue512-mypy-baseline.log
+                result: passed
+            event: verification-ready
+            verificationReport: docs/superpowers/reports/2026-11-23-fix-generic-evaluation-submission-verify.md
+          status: succeeded
+        protocolVersion: 1
+        receipts:
+          - hash: 56a35029b0b188ca6040a00e2f01638470f0fe529aced36e70a26de3211e3c13
+            outcomeId: 9008c0b2-fe6a-4779-945d-3d961a70c0d6
+        reconciliations: []
+        ref: comet-verify
+        requiredCapabilities: []
+        retry: manual
+        runId: fix-generic-evaluation-submission
+        status: succeeded
+        stepId: tweak.verify.run
+        type: invoke_skill
+      - attempt: 1
+        claim:
+          executorId: comet-classic-state
+          token: portable-2b267955d1e6cb87b6e0bbb74010d3b645434a95ffaf44b845e1b7fe6c959851
+        executionOrigin:
+          workflow:
+            hash: d1e067bc00ca13395dbc6f701565417c3e227f17a57df025dd73ebda905e2638
+            id: comet-classic-tweak
+            version: "2"
+        id: fix-generic-evaluation-submission:10
+        input:
+          input:
+            change: fix-generic-evaluation-submission
+            changeDir: openspec/changes/fix-generic-evaluation-submission
+            workspaceBaseline:
+              ref: a3bbf282-8531-45e1-919d-5db10b8fe4c8
+          outputs:
+            tweak.verify.report.evidence:
+              contentHash: dcc7fe9441b3ce673982dd120631f4a94c62f152bb9ecbdc05806a2f14932ee9
+              ref: docs/superpowers/reports/2026-11-23-fix-generic-evaluation-submission-verify.md
+            tweak.verify.run:
+              checks:
+                - name: .venv/bin/pytest tests/test_generic_evaluation_submission.py
+                    tests/test_task_submission_authorization.py -q --no-cov
+                    (project root)
+                  note: 38 passed; /tmp/issue512-green.log
+                  result: passed
+                - name: .venv/bin/pytest tests/unit/test_api_endpoints.py
+                    tests/test_api_evaluations.py
+                    tests/test_evaluation_service_async.py
+                    tests/test_async_task_submission.py
+                    tests/test_user_evaluation_concurrency.py
+                    tests/test_tasks_api.py tests/test_evaluation_async_flow.py
+                    tests/test_evaluation_workflow_contract.py -q --no-cov
+                    (project root)
+                  note: 1169 passed; /tmp/issue512-regression.log
+                  result: passed
+                - name: black --check and ruff check on all 6 delivery Python files; git diff
+                    --check (project root)
+                  note: All passed
+                  result: passed
+                - name: comet classic openspec -- validate fix-generic-evaluation-submission
+                    --strict (project root)
+                  note: Change is valid
+                  result: passed
+                - name: mypy diagnostic baseline comparison (project root)
+                  note: Current and HEAD shadow-file runs both exited 1 with identical 8
+                    pre-existing errors; normalized diagnostic Counters match.
+                    This is a no-new-errors check, not a clean mypy run.
+                    /tmp/issue512-mypy.log; /tmp/issue512-mypy-baseline.log
+                  result: passed
+              event: verification-ready
+              verificationReport: docs/superpowers/reports/2026-11-23-fix-generic-evaluation-submission-verify.md
+        inputHash: 0699db62d7032717f73585bc508e1c047e9686607f7225b031659ce21b298128
+        outcome:
+          actionId: fix-generic-evaluation-submission:10
+          attempt: 1
+          claimToken: portable-2b267955d1e6cb87b6e0bbb74010d3b645434a95ffaf44b845e1b7fe6c959851
+          inputHash: 0699db62d7032717f73585bc508e1c047e9686607f7225b031659ce21b298128
+          outcomeId: caf49799-f6ae-4d42-bdf9-0bbdca449add
+          output:
+            prBaseBranch: main
+            remote: origin
+            summary: "用户已选择 PR 交付。归档 Issue #512 的已验证修复：6 个实现及测试文件、验证报告、OpenSpec 规格同步和现有
+              walkthrough。提交分支 codex/fix-generic-evaluation-submission，推送至
+              origin 同名分支，创建合并到 main 的 PR。1207 项相关回归通过；mypy 与基线相同 8 条既有错误。"
+            targetBranch: codex/fix-generic-evaluation-submission
+          status: succeeded
+        protocolVersion: 1
+        receipts:
+          - hash: 299818e007b04f1a203519b8271a3ebf17c292eb855694a4f494fd9f86bac0e2
+            outcomeId: caf49799-f6ae-4d42-bdf9-0bbdca449add
+        reconciliations: []
+        ref: comet-archive
+        requiredCapabilities: []
+        retry: manual
+        runId: fix-generic-evaluation-submission
+        status: succeeded
+        stepId: tweak.archive.prepare
+        type: invoke_skill
+      - attempt: 1
+        claim:
+          executorId: comet-classic-archive-preflight
+          token: portable-173795d7b9450c039ed824e5d88228ee0be7cf5b98ed192b69d132731fe55f26
+        executionOrigin:
+          workflow:
+            hash: d1e067bc00ca13395dbc6f701565417c3e227f17a57df025dd73ebda905e2638
+            id: comet-classic-tweak
+            version: "2"
+        id: fix-generic-evaluation-submission:12
+        input:
+          input:
+            change: fix-generic-evaluation-submission
+            changeDir: openspec/changes/fix-generic-evaluation-submission
+            workspaceBaseline:
+              ref: a3bbf282-8531-45e1-919d-5db10b8fe4c8
+          outputs:
+            tweak.archive.confirm:
+              choice: pr
+              proposal:
+                input:
+                  change: fix-generic-evaluation-submission
+                  changeDir: openspec/changes/fix-generic-evaluation-submission
+                  workspaceBaseline:
+                    ref: a3bbf282-8531-45e1-919d-5db10b8fe4c8
+                outputs:
+                  tweak.archive.prepare:
+                    prBaseBranch: main
+                    remote: origin
+                    summary: "用户已选择 PR 交付。归档 Issue #512 的已验证修复：6 个实现及测试文件、验证报告、OpenSpec 规格同步和现有
+                      walkthrough。提交分支
+                      codex/fix-generic-evaluation-submission，推送至 origin
+                      同名分支，创建合并到 main 的 PR。1207 项相关回归通过；mypy 与基线相同 8 条既有错误。"
+                    targetBranch: codex/fix-generic-evaluation-submission
+            tweak.archive.prepare:
+              prBaseBranch: main
+              remote: origin
+              summary: "用户已选择 PR 交付。归档 Issue #512 的已验证修复：6 个实现及测试文件、验证报告、OpenSpec 规格同步和现有
+                walkthrough。提交分支 codex/fix-generic-evaluation-submission，推送至
+                origin 同名分支，创建合并到 main 的 PR。1207 项相关回归通过；mypy 与基线相同 8 条既有错误。"
+              targetBranch: codex/fix-generic-evaluation-submission
+            tweak.verify.report.evidence:
+              contentHash: dcc7fe9441b3ce673982dd120631f4a94c62f152bb9ecbdc05806a2f14932ee9
+              ref: docs/superpowers/reports/2026-11-23-fix-generic-evaluation-submission-verify.md
+            tweak.verify.run:
+              checks:
+                - name: .venv/bin/pytest tests/test_generic_evaluation_submission.py
+                    tests/test_task_submission_authorization.py -q --no-cov
+                    (project root)
+                  note: 38 passed; /tmp/issue512-green.log
+                  result: passed
+                - name: .venv/bin/pytest tests/unit/test_api_endpoints.py
+                    tests/test_api_evaluations.py
+                    tests/test_evaluation_service_async.py
+                    tests/test_async_task_submission.py
+                    tests/test_user_evaluation_concurrency.py
+                    tests/test_tasks_api.py tests/test_evaluation_async_flow.py
+                    tests/test_evaluation_workflow_contract.py -q --no-cov
+                    (project root)
+                  note: 1169 passed; /tmp/issue512-regression.log
+                  result: passed
+                - name: black --check and ruff check on all 6 delivery Python files; git diff
+                    --check (project root)
+                  note: All passed
+                  result: passed
+                - name: comet classic openspec -- validate fix-generic-evaluation-submission
+                    --strict (project root)
+                  note: Change is valid
+                  result: passed
+                - name: mypy diagnostic baseline comparison (project root)
+                  note: Current and HEAD shadow-file runs both exited 1 with identical 8
+                    pre-existing errors; normalized diagnostic Counters match.
+                    This is a no-new-errors check, not a clean mypy run.
+                    /tmp/issue512-mypy.log; /tmp/issue512-mypy-baseline.log
+                  result: passed
+              event: verification-ready
+              verificationReport: docs/superpowers/reports/2026-11-23-fix-generic-evaluation-submission-verify.md
+        inputHash: a36d7f2e65efa38dd5984bbb9443df3d677c4fa99f07222acfcdb0328f0e189a
+        outcome:
+          actionId: fix-generic-evaluation-submission:12
+          attempt: 1
+          claimToken: portable-173795d7b9450c039ed824e5d88228ee0be7cf5b98ed192b69d132731fe55f26
+          inputHash: a36d7f2e65efa38dd5984bbb9443df3d677c4fa99f07222acfcdb0328f0e189a
+          outcomeId: 214b0a93-8e45-4c29-90f9-c983976c8ace
+          output:
+            baseCommit: db958ea9eb4ab3889e30668744a8b21d17f158b5
+            deliveryAction: pr
+            deliveryPaths:
+              - api/models.py
+              - api/routes/evaluations.py
+              - api/routes/tasks.py
+              - tests/test_generic_evaluation_submission.py
+              - tests/test_task_submission_authorization.py
+              - tests/unit/test_api_endpoints.py
+            prBaseBranch: main
+            remote: origin
+            remoteIdentity: 128eeb1e6f0d21b25601fcb7f9aad36adfdfb4d76f37f54f004760410190f351
+            targetBranch: codex/fix-generic-evaluation-submission
+            verifiedBranch: codex/fix-generic-evaluation-submission
+          status: succeeded
+        protocolVersion: 1
+        receipts:
+          - hash: 4f2a3da3bd1fb01883a4306ad91bdd73d2daa05b85078f1c9049f8a191aae1ca
+            outcomeId: 214b0a93-8e45-4c29-90f9-c983976c8ace
+        reconciliations: []
+        ref: classic-archive-preflight
+        requiredCapabilities: []
+        retry: manual
+        runId: fix-generic-evaluation-submission
+        status: succeeded
+        stepId: tweak.archive.preflight
+        type: call_tool
+      - attempt: 1
+        claim:
+          executorId: comet-classic-archive
+          token: portable-0c9cb763b009909a58c3b401fd0356ffe81c9615387d34442a2f0b65fccb59e2
+        executionOrigin:
+          workflow:
+            hash: d1e067bc00ca13395dbc6f701565417c3e227f17a57df025dd73ebda905e2638
+            id: comet-classic-tweak
+            version: "2"
+        id: fix-generic-evaluation-submission:13
+        input:
+          input:
+            change: fix-generic-evaluation-submission
+            changeDir: openspec/changes/fix-generic-evaluation-submission
+            workspaceBaseline:
+              ref: a3bbf282-8531-45e1-919d-5db10b8fe4c8
+          outputs:
+            tweak.archive.confirm:
+              choice: pr
+              proposal:
+                input:
+                  change: fix-generic-evaluation-submission
+                  changeDir: openspec/changes/fix-generic-evaluation-submission
+                  workspaceBaseline:
+                    ref: a3bbf282-8531-45e1-919d-5db10b8fe4c8
+                outputs:
+                  tweak.archive.prepare:
+                    prBaseBranch: main
+                    remote: origin
+                    summary: "用户已选择 PR 交付。归档 Issue #512 的已验证修复：6 个实现及测试文件、验证报告、OpenSpec 规格同步和现有
+                      walkthrough。提交分支
+                      codex/fix-generic-evaluation-submission，推送至 origin
+                      同名分支，创建合并到 main 的 PR。1207 项相关回归通过；mypy 与基线相同 8 条既有错误。"
+                    targetBranch: codex/fix-generic-evaluation-submission
+            tweak.archive.preflight:
+              baseCommit: db958ea9eb4ab3889e30668744a8b21d17f158b5
+              deliveryAction: pr
+              deliveryPaths:
+                - api/models.py
+                - api/routes/evaluations.py
+                - api/routes/tasks.py
+                - tests/test_generic_evaluation_submission.py
+                - tests/test_task_submission_authorization.py
+                - tests/unit/test_api_endpoints.py
+              prBaseBranch: main
+              remote: origin
+              remoteIdentity: 128eeb1e6f0d21b25601fcb7f9aad36adfdfb4d76f37f54f004760410190f351
+              targetBranch: codex/fix-generic-evaluation-submission
+              verifiedBranch: codex/fix-generic-evaluation-submission
+            tweak.archive.prepare:
+              prBaseBranch: main
+              remote: origin
+              summary: "用户已选择 PR 交付。归档 Issue #512 的已验证修复：6 个实现及测试文件、验证报告、OpenSpec 规格同步和现有
+                walkthrough。提交分支 codex/fix-generic-evaluation-submission，推送至
+                origin 同名分支，创建合并到 main 的 PR。1207 项相关回归通过；mypy 与基线相同 8 条既有错误。"
+              targetBranch: codex/fix-generic-evaluation-submission
+            tweak.verify.report.evidence:
+              contentHash: dcc7fe9441b3ce673982dd120631f4a94c62f152bb9ecbdc05806a2f14932ee9
+              ref: docs/superpowers/reports/2026-11-23-fix-generic-evaluation-submission-verify.md
+            tweak.verify.run:
+              checks:
+                - name: .venv/bin/pytest tests/test_generic_evaluation_submission.py
+                    tests/test_task_submission_authorization.py -q --no-cov
+                    (project root)
+                  note: 38 passed; /tmp/issue512-green.log
+                  result: passed
+                - name: .venv/bin/pytest tests/unit/test_api_endpoints.py
+                    tests/test_api_evaluations.py
+                    tests/test_evaluation_service_async.py
+                    tests/test_async_task_submission.py
+                    tests/test_user_evaluation_concurrency.py
+                    tests/test_tasks_api.py tests/test_evaluation_async_flow.py
+                    tests/test_evaluation_workflow_contract.py -q --no-cov
+                    (project root)
+                  note: 1169 passed; /tmp/issue512-regression.log
+                  result: passed
+                - name: black --check and ruff check on all 6 delivery Python files; git diff
+                    --check (project root)
+                  note: All passed
+                  result: passed
+                - name: comet classic openspec -- validate fix-generic-evaluation-submission
+                    --strict (project root)
+                  note: Change is valid
+                  result: passed
+                - name: mypy diagnostic baseline comparison (project root)
+                  note: Current and HEAD shadow-file runs both exited 1 with identical 8
+                    pre-existing errors; normalized diagnostic Counters match.
+                    This is a no-new-errors check, not a clean mypy run.
+                    /tmp/issue512-mypy.log; /tmp/issue512-mypy-baseline.log
+                  result: passed
+              event: verification-ready
+              verificationReport: docs/superpowers/reports/2026-11-23-fix-generic-evaluation-submission-verify.md
+        inputHash: 7f3f0052837d04d34e063d99a67100e8d0ce5d0f3fe56965b77e6980542ee660
+        outcome:
+          actionId: fix-generic-evaluation-submission:13
+          artifacts: []
+          attempt: 1
+          claimToken: portable-0c9cb763b009909a58c3b401fd0356ffe81c9615387d34442a2f0b65fccb59e2
+          inputHash: 7f3f0052837d04d34e063d99a67100e8d0ce5d0f3fe56965b77e6980542ee660
+          outcomeId: 78863880-430c-430d-bd1a-10c38a761fab
+          output:
+            archiveDirectory: openspec/changes/archive/2026-11-23-fix-generic-evaluation-submission
+          status: succeeded
+        protocolVersion: 1
+        receipts:
+          - hash: 914e2690782332923226420f413f946aff9f96f2107bca503fed4b87ac8aa31c
+            outcomeId: 78863880-430c-430d-bd1a-10c38a761fab
+        reconciliations: []
+        ref: classic-archive
+        requiredCapabilities: []
+        retry: manual
+        runId: fix-generic-evaluation-submission
+        status: succeeded
+        stepId: tweak.archive.execute
+        type: call_tool
+      - attempt: 1
+        id: fix-generic-evaluation-submission:14
+        input:
+          input:
+            change: fix-generic-evaluation-submission
+            changeDir: openspec/changes/fix-generic-evaluation-submission
+            workspaceBaseline:
+              ref: a3bbf282-8531-45e1-919d-5db10b8fe4c8
+          outputs:
+            tweak.archive.confirm:
+              choice: pr
+              proposal:
+                input:
+                  change: fix-generic-evaluation-submission
+                  changeDir: openspec/changes/fix-generic-evaluation-submission
+                  workspaceBaseline:
+                    ref: a3bbf282-8531-45e1-919d-5db10b8fe4c8
+                outputs:
+                  tweak.archive.prepare:
+                    prBaseBranch: main
+                    remote: origin
+                    summary: "用户已选择 PR 交付。归档 Issue #512 的已验证修复：6 个实现及测试文件、验证报告、OpenSpec 规格同步和现有
+                      walkthrough。提交分支
+                      codex/fix-generic-evaluation-submission，推送至 origin
+                      同名分支，创建合并到 main 的 PR。1207 项相关回归通过；mypy 与基线相同 8 条既有错误。"
+                    targetBranch: codex/fix-generic-evaluation-submission
+            tweak.archive.execute:
+              archiveDirectory: openspec/changes/archive/2026-11-23-fix-generic-evaluation-submission
+            tweak.archive.preflight:
+              baseCommit: db958ea9eb4ab3889e30668744a8b21d17f158b5
+              deliveryAction: pr
+              deliveryPaths:
+                - api/models.py
+                - api/routes/evaluations.py
+                - api/routes/tasks.py
+                - tests/test_generic_evaluation_submission.py
+                - tests/test_task_submission_authorization.py
+                - tests/unit/test_api_endpoints.py
+              prBaseBranch: main
+              remote: origin
+              remoteIdentity: 128eeb1e6f0d21b25601fcb7f9aad36adfdfb4d76f37f54f004760410190f351
+              targetBranch: codex/fix-generic-evaluation-submission
+              verifiedBranch: codex/fix-generic-evaluation-submission
+            tweak.archive.prepare:
+              prBaseBranch: main
+              remote: origin
+              summary: "用户已选择 PR 交付。归档 Issue #512 的已验证修复：6 个实现及测试文件、验证报告、OpenSpec 规格同步和现有
+                walkthrough。提交分支 codex/fix-generic-evaluation-submission，推送至
+                origin 同名分支，创建合并到 main 的 PR。1207 项相关回归通过；mypy 与基线相同 8 条既有错误。"
+              targetBranch: codex/fix-generic-evaluation-submission
+            tweak.verify.report.evidence:
+              contentHash: dcc7fe9441b3ce673982dd120631f4a94c62f152bb9ecbdc05806a2f14932ee9
+              ref: docs/superpowers/reports/2026-11-23-fix-generic-evaluation-submission-verify.md
+            tweak.verify.run:
+              checks:
+                - name: .venv/bin/pytest tests/test_generic_evaluation_submission.py
+                    tests/test_task_submission_authorization.py -q --no-cov
+                    (project root)
+                  note: 38 passed; /tmp/issue512-green.log
+                  result: passed
+                - name: .venv/bin/pytest tests/unit/test_api_endpoints.py
+                    tests/test_api_evaluations.py
+                    tests/test_evaluation_service_async.py
+                    tests/test_async_task_submission.py
+                    tests/test_user_evaluation_concurrency.py
+                    tests/test_tasks_api.py tests/test_evaluation_async_flow.py
+                    tests/test_evaluation_workflow_contract.py -q --no-cov
+                    (project root)
+                  note: 1169 passed; /tmp/issue512-regression.log
+                  result: passed
+                - name: black --check and ruff check on all 6 delivery Python files; git diff
+                    --check (project root)
+                  note: All passed
+                  result: passed
+                - name: comet classic openspec -- validate fix-generic-evaluation-submission
+                    --strict (project root)
+                  note: Change is valid
+                  result: passed
+                - name: mypy diagnostic baseline comparison (project root)
+                  note: Current and HEAD shadow-file runs both exited 1 with identical 8
+                    pre-existing errors; normalized diagnostic Counters match.
+                    This is a no-new-errors check, not a clean mypy run.
+                    /tmp/issue512-mypy.log; /tmp/issue512-mypy-baseline.log
+                  result: passed
+              event: verification-ready
+              verificationReport: docs/superpowers/reports/2026-11-23-fix-generic-evaluation-submission-verify.md
+        inputHash: f83063d32bee2f6d890fd98c180c01c2b03c224a901a3125b5b74aaf92a9c75b
+        protocolVersion: 1
+        receipts: []
+        reconciliations: []
+        ref: comet-archive
+        requiredCapabilities: []
+        retry: manual
+        runId: fix-generic-evaluation-submission
+        status: pending
+        stepId: tweak.archive.deliver
+        type: invoke_skill
+    commands:
+      - id: 8e6b938ddce119b9ff0fb650a4a608a281b89d9aedff61e637ff1024dbe1b056
+        name: reopen-verification
+        inputHash: f5e487703e8f5203c1a70838dc38a9f0c3378ad441ad266fc269ee9debbfde5a
+        actionId: fix-generic-evaluation-submission:8
+    actionContexts:
+      fix-generic-evaluation-submission:1:
+        results: {}
+        sequence: 1
+      fix-generic-evaluation-submission:10:
+        results:
+          tweak.verify.report.evidence:
+            sequence: 9
+            value:
+              contentHash: dcc7fe9441b3ce673982dd120631f4a94c62f152bb9ecbdc05806a2f14932ee9
+              ref: docs/superpowers/reports/2026-11-23-fix-generic-evaluation-submission-verify.md
+          tweak.verify.run:
+            sequence: 8
+            value:
+              checks:
+                - name: .venv/bin/pytest tests/test_generic_evaluation_submission.py
+                    tests/test_task_submission_authorization.py -q --no-cov
+                    (project root)
+                  note: 38 passed; /tmp/issue512-green.log
+                  result: passed
+                - name: .venv/bin/pytest tests/unit/test_api_endpoints.py
+                    tests/test_api_evaluations.py
+                    tests/test_evaluation_service_async.py
+                    tests/test_async_task_submission.py
+                    tests/test_user_evaluation_concurrency.py
+                    tests/test_tasks_api.py tests/test_evaluation_async_flow.py
+                    tests/test_evaluation_workflow_contract.py -q --no-cov
+                    (project root)
+                  note: 1169 passed; /tmp/issue512-regression.log
+                  result: passed
+                - name: black --check and ruff check on all 6 delivery Python files; git diff
+                    --check (project root)
+                  note: All passed
+                  result: passed
+                - name: comet classic openspec -- validate fix-generic-evaluation-submission
+                    --strict (project root)
+                  note: Change is valid
+                  result: passed
+                - name: mypy diagnostic baseline comparison (project root)
+                  note: Current and HEAD shadow-file runs both exited 1 with identical 8
+                    pre-existing errors; normalized diagnostic Counters match.
+                    This is a no-new-errors check, not a clean mypy run.
+                    /tmp/issue512-mypy.log; /tmp/issue512-mypy-baseline.log
+                  result: passed
+              event: verification-ready
+              verificationReport: docs/superpowers/reports/2026-11-23-fix-generic-evaluation-submission-verify.md
+        sequence: 10
+      fix-generic-evaluation-submission:12:
+        results:
+          tweak.archive.confirm:
+            sequence: 11
+            value:
+              choice: pr
+              proposal:
+                input:
+                  change: fix-generic-evaluation-submission
+                  changeDir: openspec/changes/fix-generic-evaluation-submission
+                  workspaceBaseline:
+                    ref: a3bbf282-8531-45e1-919d-5db10b8fe4c8
+                outputs:
+                  tweak.archive.prepare:
+                    prBaseBranch: main
+                    remote: origin
+                    summary: "用户已选择 PR 交付。归档 Issue #512 的已验证修复：6 个实现及测试文件、验证报告、OpenSpec 规格同步和现有
+                      walkthrough。提交分支
+                      codex/fix-generic-evaluation-submission，推送至 origin
+                      同名分支，创建合并到 main 的 PR。1207 项相关回归通过；mypy 与基线相同 8 条既有错误。"
+                    targetBranch: codex/fix-generic-evaluation-submission
+          tweak.archive.prepare:
+            sequence: 10
+            value:
+              prBaseBranch: main
+              remote: origin
+              summary: "用户已选择 PR 交付。归档 Issue #512 的已验证修复：6 个实现及测试文件、验证报告、OpenSpec 规格同步和现有
+                walkthrough。提交分支 codex/fix-generic-evaluation-submission，推送至
+                origin 同名分支，创建合并到 main 的 PR。1207 项相关回归通过；mypy 与基线相同 8 条既有错误。"
+              targetBranch: codex/fix-generic-evaluation-submission
+          tweak.verify.report.evidence:
+            sequence: 9
+            value:
+              contentHash: dcc7fe9441b3ce673982dd120631f4a94c62f152bb9ecbdc05806a2f14932ee9
+              ref: docs/superpowers/reports/2026-11-23-fix-generic-evaluation-submission-verify.md
+          tweak.verify.run:
+            sequence: 8
+            value:
+              checks:
+                - name: .venv/bin/pytest tests/test_generic_evaluation_submission.py
+                    tests/test_task_submission_authorization.py -q --no-cov
+                    (project root)
+                  note: 38 passed; /tmp/issue512-green.log
+                  result: passed
+                - name: .venv/bin/pytest tests/unit/test_api_endpoints.py
+                    tests/test_api_evaluations.py
+                    tests/test_evaluation_service_async.py
+                    tests/test_async_task_submission.py
+                    tests/test_user_evaluation_concurrency.py
+                    tests/test_tasks_api.py tests/test_evaluation_async_flow.py
+                    tests/test_evaluation_workflow_contract.py -q --no-cov
+                    (project root)
+                  note: 1169 passed; /tmp/issue512-regression.log
+                  result: passed
+                - name: black --check and ruff check on all 6 delivery Python files; git diff
+                    --check (project root)
+                  note: All passed
+                  result: passed
+                - name: comet classic openspec -- validate fix-generic-evaluation-submission
+                    --strict (project root)
+                  note: Change is valid
+                  result: passed
+                - name: mypy diagnostic baseline comparison (project root)
+                  note: Current and HEAD shadow-file runs both exited 1 with identical 8
+                    pre-existing errors; normalized diagnostic Counters match.
+                    This is a no-new-errors check, not a clean mypy run.
+                    /tmp/issue512-mypy.log; /tmp/issue512-mypy-baseline.log
+                  result: passed
+              event: verification-ready
+              verificationReport: docs/superpowers/reports/2026-11-23-fix-generic-evaluation-submission-verify.md
+        sequence: 12
+      fix-generic-evaluation-submission:13:
+        results:
+          tweak.archive.confirm:
+            sequence: 11
+            value:
+              choice: pr
+              proposal:
+                input:
+                  change: fix-generic-evaluation-submission
+                  changeDir: openspec/changes/fix-generic-evaluation-submission
+                  workspaceBaseline:
+                    ref: a3bbf282-8531-45e1-919d-5db10b8fe4c8
+                outputs:
+                  tweak.archive.prepare:
+                    prBaseBranch: main
+                    remote: origin
+                    summary: "用户已选择 PR 交付。归档 Issue #512 的已验证修复：6 个实现及测试文件、验证报告、OpenSpec 规格同步和现有
+                      walkthrough。提交分支
+                      codex/fix-generic-evaluation-submission，推送至 origin
+                      同名分支，创建合并到 main 的 PR。1207 项相关回归通过；mypy 与基线相同 8 条既有错误。"
+                    targetBranch: codex/fix-generic-evaluation-submission
+          tweak.archive.preflight:
+            sequence: 12
+            value:
+              baseCommit: db958ea9eb4ab3889e30668744a8b21d17f158b5
+              deliveryAction: pr
+              deliveryPaths:
+                - api/models.py
+                - api/routes/evaluations.py
+                - api/routes/tasks.py
+                - tests/test_generic_evaluation_submission.py
+                - tests/test_task_submission_authorization.py
+                - tests/unit/test_api_endpoints.py
+              prBaseBranch: main
+              remote: origin
+              remoteIdentity: 128eeb1e6f0d21b25601fcb7f9aad36adfdfb4d76f37f54f004760410190f351
+              targetBranch: codex/fix-generic-evaluation-submission
+              verifiedBranch: codex/fix-generic-evaluation-submission
+          tweak.archive.prepare:
+            sequence: 10
+            value:
+              prBaseBranch: main
+              remote: origin
+              summary: "用户已选择 PR 交付。归档 Issue #512 的已验证修复：6 个实现及测试文件、验证报告、OpenSpec 规格同步和现有
+                walkthrough。提交分支 codex/fix-generic-evaluation-submission，推送至
+                origin 同名分支，创建合并到 main 的 PR。1207 项相关回归通过；mypy 与基线相同 8 条既有错误。"
+              targetBranch: codex/fix-generic-evaluation-submission
+          tweak.verify.report.evidence:
+            sequence: 9
+            value:
+              contentHash: dcc7fe9441b3ce673982dd120631f4a94c62f152bb9ecbdc05806a2f14932ee9
+              ref: docs/superpowers/reports/2026-11-23-fix-generic-evaluation-submission-verify.md
+          tweak.verify.run:
+            sequence: 8
+            value:
+              checks:
+                - name: .venv/bin/pytest tests/test_generic_evaluation_submission.py
+                    tests/test_task_submission_authorization.py -q --no-cov
+                    (project root)
+                  note: 38 passed; /tmp/issue512-green.log
+                  result: passed
+                - name: .venv/bin/pytest tests/unit/test_api_endpoints.py
+                    tests/test_api_evaluations.py
+                    tests/test_evaluation_service_async.py
+                    tests/test_async_task_submission.py
+                    tests/test_user_evaluation_concurrency.py
+                    tests/test_tasks_api.py tests/test_evaluation_async_flow.py
+                    tests/test_evaluation_workflow_contract.py -q --no-cov
+                    (project root)
+                  note: 1169 passed; /tmp/issue512-regression.log
+                  result: passed
+                - name: black --check and ruff check on all 6 delivery Python files; git diff
+                    --check (project root)
+                  note: All passed
+                  result: passed
+                - name: comet classic openspec -- validate fix-generic-evaluation-submission
+                    --strict (project root)
+                  note: Change is valid
+                  result: passed
+                - name: mypy diagnostic baseline comparison (project root)
+                  note: Current and HEAD shadow-file runs both exited 1 with identical 8
+                    pre-existing errors; normalized diagnostic Counters match.
+                    This is a no-new-errors check, not a clean mypy run.
+                    /tmp/issue512-mypy.log; /tmp/issue512-mypy-baseline.log
+                  result: passed
+              event: verification-ready
+              verificationReport: docs/superpowers/reports/2026-11-23-fix-generic-evaluation-submission-verify.md
+        sequence: 13
+      fix-generic-evaluation-submission:14:
+        results:
+          tweak.archive.confirm:
+            sequence: 11
+            value:
+              choice: pr
+              proposal:
+                input:
+                  change: fix-generic-evaluation-submission
+                  changeDir: openspec/changes/fix-generic-evaluation-submission
+                  workspaceBaseline:
+                    ref: a3bbf282-8531-45e1-919d-5db10b8fe4c8
+                outputs:
+                  tweak.archive.prepare:
+                    prBaseBranch: main
+                    remote: origin
+                    summary: "用户已选择 PR 交付。归档 Issue #512 的已验证修复：6 个实现及测试文件、验证报告、OpenSpec 规格同步和现有
+                      walkthrough。提交分支
+                      codex/fix-generic-evaluation-submission，推送至 origin
+                      同名分支，创建合并到 main 的 PR。1207 项相关回归通过；mypy 与基线相同 8 条既有错误。"
+                    targetBranch: codex/fix-generic-evaluation-submission
+          tweak.archive.execute:
+            sequence: 13
+            value:
+              archiveDirectory: openspec/changes/archive/2026-11-23-fix-generic-evaluation-submission
+          tweak.archive.preflight:
+            sequence: 12
+            value:
+              baseCommit: db958ea9eb4ab3889e30668744a8b21d17f158b5
+              deliveryAction: pr
+              deliveryPaths:
+                - api/models.py
+                - api/routes/evaluations.py
+                - api/routes/tasks.py
+                - tests/test_generic_evaluation_submission.py
+                - tests/test_task_submission_authorization.py
+                - tests/unit/test_api_endpoints.py
+              prBaseBranch: main
+              remote: origin
+              remoteIdentity: 128eeb1e6f0d21b25601fcb7f9aad36adfdfb4d76f37f54f004760410190f351
+              targetBranch: codex/fix-generic-evaluation-submission
+              verifiedBranch: codex/fix-generic-evaluation-submission
+          tweak.archive.prepare:
+            sequence: 10
+            value:
+              prBaseBranch: main
+              remote: origin
+              summary: "用户已选择 PR 交付。归档 Issue #512 的已验证修复：6 个实现及测试文件、验证报告、OpenSpec 规格同步和现有
+                walkthrough。提交分支 codex/fix-generic-evaluation-submission，推送至
+                origin 同名分支，创建合并到 main 的 PR。1207 项相关回归通过；mypy 与基线相同 8 条既有错误。"
+              targetBranch: codex/fix-generic-evaluation-submission
+          tweak.verify.report.evidence:
+            sequence: 9
+            value:
+              contentHash: dcc7fe9441b3ce673982dd120631f4a94c62f152bb9ecbdc05806a2f14932ee9
+              ref: docs/superpowers/reports/2026-11-23-fix-generic-evaluation-submission-verify.md
+          tweak.verify.run:
+            sequence: 8
+            value:
+              checks:
+                - name: .venv/bin/pytest tests/test_generic_evaluation_submission.py
+                    tests/test_task_submission_authorization.py -q --no-cov
+                    (project root)
+                  note: 38 passed; /tmp/issue512-green.log
+                  result: passed
+                - name: .venv/bin/pytest tests/unit/test_api_endpoints.py
+                    tests/test_api_evaluations.py
+                    tests/test_evaluation_service_async.py
+                    tests/test_async_task_submission.py
+                    tests/test_user_evaluation_concurrency.py
+                    tests/test_tasks_api.py tests/test_evaluation_async_flow.py
+                    tests/test_evaluation_workflow_contract.py -q --no-cov
+                    (project root)
+                  note: 1169 passed; /tmp/issue512-regression.log
+                  result: passed
+                - name: black --check and ruff check on all 6 delivery Python files; git diff
+                    --check (project root)
+                  note: All passed
+                  result: passed
+                - name: comet classic openspec -- validate fix-generic-evaluation-submission
+                    --strict (project root)
+                  note: Change is valid
+                  result: passed
+                - name: mypy diagnostic baseline comparison (project root)
+                  note: Current and HEAD shadow-file runs both exited 1 with identical 8
+                    pre-existing errors; normalized diagnostic Counters match.
+                    This is a no-new-errors check, not a clean mypy run.
+                    /tmp/issue512-mypy.log; /tmp/issue512-mypy-baseline.log
+                  result: passed
+              event: verification-ready
+              verificationReport: docs/superpowers/reports/2026-11-23-fix-generic-evaluation-submission-verify.md
+        sequence: 14
+      fix-generic-evaluation-submission:3:
+        results:
+          tweak.open:
+            sequence: 1
+            value:
+              event: open-complete
+              requirementsEvidence:
+                ref: openspec/changes/fix-generic-evaluation-submission
+          tweak.open.evidence:
+            sequence: 2
+            value:
+              contentHash: 3068bfcc4454177f966d1f0653c6f660305cbdd8f8ce1e28a7e6f5542fbf6c3d
+              ref: openspec/changes/fix-generic-evaluation-submission
+        sequence: 3
+      fix-generic-evaluation-submission:4:
+        results:
+          tweak.build.execute:
+            sequence: 3
+            value:
+              checks:
+                - name: .venv/bin/pytest tests/test_generic_evaluation_submission.py
+                    tests/test_task_submission_authorization.py -q --no-cov
+                    (project root)
+                  note: 38 passed; /tmp/issue512-green.log
+                  result: passed
+                - name: .venv/bin/pytest tests/unit/test_api_endpoints.py
+                    tests/test_api_evaluations.py
+                    tests/test_evaluation_service_async.py
+                    tests/test_async_task_submission.py
+                    tests/test_user_evaluation_concurrency.py
+                    tests/test_tasks_api.py tests/test_evaluation_async_flow.py
+                    tests/test_evaluation_workflow_contract.py -q --no-cov
+                    (project root)
+                  note: 1169 passed; /tmp/issue512-regression.log
+                  result: passed
+                - name: black --check and ruff check on all 6 delivery Python files; git diff
+                    --check (project root)
+                  note: All passed
+                  result: passed
+                - name: comet classic openspec -- validate fix-generic-evaluation-submission
+                    --strict (project root)
+                  note: Change is valid
+                  result: passed
+                - name: mypy diagnostic baseline comparison (project root)
+                  note: Current and HEAD shadow-file runs both exited 1 with identical 8
+                    pre-existing errors; normalized diagnostic Counters match.
+                    This is a no-new-errors check, not a clean mypy run.
+                    /tmp/issue512-mypy.log; /tmp/issue512-mypy-baseline.log
+                  result: passed
+              event: build-complete
+          tweak.open:
+            sequence: 1
+            value:
+              event: open-complete
+              requirementsEvidence:
+                ref: openspec/changes/fix-generic-evaluation-submission
+          tweak.open.evidence:
+            sequence: 2
+            value:
+              contentHash: 3068bfcc4454177f966d1f0653c6f660305cbdd8f8ce1e28a7e6f5542fbf6c3d
+              ref: openspec/changes/fix-generic-evaluation-submission
+        sequence: 4
+      fix-generic-evaluation-submission:6:
+        results:
+          tweak.build.execute:
+            sequence: 3
+            value:
+              checks:
+                - name: .venv/bin/pytest tests/test_generic_evaluation_submission.py
+                    tests/test_task_submission_authorization.py -q --no-cov
+                    (project root)
+                  note: 38 passed; /tmp/issue512-green.log
+                  result: passed
+                - name: .venv/bin/pytest tests/unit/test_api_endpoints.py
+                    tests/test_api_evaluations.py
+                    tests/test_evaluation_service_async.py
+                    tests/test_async_task_submission.py
+                    tests/test_user_evaluation_concurrency.py
+                    tests/test_tasks_api.py tests/test_evaluation_async_flow.py
+                    tests/test_evaluation_workflow_contract.py -q --no-cov
+                    (project root)
+                  note: 1169 passed; /tmp/issue512-regression.log
+                  result: passed
+                - name: black --check and ruff check on all 6 delivery Python files; git diff
+                    --check (project root)
+                  note: All passed
+                  result: passed
+                - name: comet classic openspec -- validate fix-generic-evaluation-submission
+                    --strict (project root)
+                  note: Change is valid
+                  result: passed
+                - name: mypy diagnostic baseline comparison (project root)
+                  note: Current and HEAD shadow-file runs both exited 1 with identical 8
+                    pre-existing errors; normalized diagnostic Counters match.
+                    This is a no-new-errors check, not a clean mypy run.
+                    /tmp/issue512-mypy.log; /tmp/issue512-mypy-baseline.log
+                  result: passed
+              event: build-complete
+          tweak.open:
+            sequence: 1
+            value:
+              event: open-complete
+              requirementsEvidence:
+                ref: openspec/changes/fix-generic-evaluation-submission
+          tweak.open.evidence:
+            sequence: 2
+            value:
+              contentHash: 3068bfcc4454177f966d1f0653c6f660305cbdd8f8ce1e28a7e6f5542fbf6c3d
+              ref: openspec/changes/fix-generic-evaluation-submission
+          tweak.verify.report.evidence:
+            sequence: 5
+            value:
+              contentHash: 0106ecab04e49340f23adf536671c4355ad5f5bea43428c452a2b100c34375f8
+              ref: docs/superpowers/reports/2026-11-23-fix-generic-evaluation-submission-verify.md
+          tweak.verify.run:
+            sequence: 4
+            value:
+              checks:
+                - name: .venv/bin/pytest tests/test_generic_evaluation_submission.py
+                    tests/test_task_submission_authorization.py -q --no-cov
+                    (project root)
+                  note: 38 passed; /tmp/issue512-green.log
+                  result: passed
+                - name: .venv/bin/pytest tests/unit/test_api_endpoints.py
+                    tests/test_api_evaluations.py
+                    tests/test_evaluation_service_async.py
+                    tests/test_async_task_submission.py
+                    tests/test_user_evaluation_concurrency.py
+                    tests/test_tasks_api.py tests/test_evaluation_async_flow.py
+                    tests/test_evaluation_workflow_contract.py -q --no-cov
+                    (project root)
+                  note: 1169 passed; /tmp/issue512-regression.log
+                  result: passed
+                - name: black --check and ruff check on all 6 delivery Python files; git diff
+                    --check (project root)
+                  note: All passed
+                  result: passed
+                - name: comet classic openspec -- validate fix-generic-evaluation-submission
+                    --strict (project root)
+                  note: Change is valid
+                  result: passed
+                - name: mypy diagnostic baseline comparison (project root)
+                  note: Current and HEAD shadow-file runs both exited 1 with identical 8
+                    pre-existing errors; normalized diagnostic Counters match.
+                    This is a no-new-errors check, not a clean mypy run.
+                    /tmp/issue512-mypy.log; /tmp/issue512-mypy-baseline.log
+                  result: passed
+              event: verification-ready
+              verificationReport: docs/superpowers/reports/2026-11-23-fix-generic-evaluation-submission-verify.md
+        sequence: 6
+      fix-generic-evaluation-submission:8:
+        results: {}
+        sequence: 8
+    waits:
+      - id: fix-generic-evaluation-submission:7
+        stepId: tweak.archive.confirm
+        sequence: 7
+        status: cancelled
+        proposal:
+          input:
+            change: fix-generic-evaluation-submission
+            changeDir: openspec/changes/fix-generic-evaluation-submission
+            workspaceBaseline:
+              ref: a3bbf282-8531-45e1-919d-5db10b8fe4c8
+          outputs:
+            tweak.archive.prepare:
+              prBaseBranch: main
+              remote: origin
+              summary: "Issue #512 修复及验证已完成：6 个实现/测试文件，1207 项相关测试通过，格式与规格校验通过；mypy 与基线相同 8
+                条错误，无新增。归档将同步 async-task-queue 的 1 个需求，移动本 change
+                至日期归档目录，纳入验证报告及现有 walkthrough，并在当前 main 创建归档提交。推送目标为
+                origin/main；PR base 为 main，若选择 PR 需先确认可用的独立分支。尚未提交、推送或创建 PR。"
+              targetBranch: main
+        proposalHash: bb27e0246b0b357678828a925f38352171bc05a44849b9425f5ce70c195a99c8
+        choices:
+          - local
+          - push
+          - pr
+          - reverify
+          - later
+        results:
+          tweak.archive.prepare:
+            sequence: 6
+            value:
+              prBaseBranch: main
+              remote: origin
+              summary: "Issue #512 修复及验证已完成：6 个实现/测试文件，1207 项相关测试通过，格式与规格校验通过；mypy 与基线相同 8
+                条错误，无新增。归档将同步 async-task-queue 的 1 个需求，移动本 change
+                至日期归档目录，纳入验证报告及现有 walkthrough，并在当前 main 创建归档提交。推送目标为
+                origin/main；PR base 为 main，若选择 PR 需先确认可用的独立分支。尚未提交、推送或创建 PR。"
+              targetBranch: main
+          tweak.build.execute:
+            sequence: 3
+            value:
+              checks:
+                - name: .venv/bin/pytest tests/test_generic_evaluation_submission.py
+                    tests/test_task_submission_authorization.py -q --no-cov
+                    (project root)
+                  note: 38 passed; /tmp/issue512-green.log
+                  result: passed
+                - name: .venv/bin/pytest tests/unit/test_api_endpoints.py
+                    tests/test_api_evaluations.py
+                    tests/test_evaluation_service_async.py
+                    tests/test_async_task_submission.py
+                    tests/test_user_evaluation_concurrency.py
+                    tests/test_tasks_api.py tests/test_evaluation_async_flow.py
+                    tests/test_evaluation_workflow_contract.py -q --no-cov
+                    (project root)
+                  note: 1169 passed; /tmp/issue512-regression.log
+                  result: passed
+                - name: black --check and ruff check on all 6 delivery Python files; git diff
+                    --check (project root)
+                  note: All passed
+                  result: passed
+                - name: comet classic openspec -- validate fix-generic-evaluation-submission
+                    --strict (project root)
+                  note: Change is valid
+                  result: passed
+                - name: mypy diagnostic baseline comparison (project root)
+                  note: Current and HEAD shadow-file runs both exited 1 with identical 8
+                    pre-existing errors; normalized diagnostic Counters match.
+                    This is a no-new-errors check, not a clean mypy run.
+                    /tmp/issue512-mypy.log; /tmp/issue512-mypy-baseline.log
+                  result: passed
+              event: build-complete
+          tweak.open:
+            sequence: 1
+            value:
+              event: open-complete
+              requirementsEvidence:
+                ref: openspec/changes/fix-generic-evaluation-submission
+          tweak.open.evidence:
+            sequence: 2
+            value:
+              contentHash: 3068bfcc4454177f966d1f0653c6f660305cbdd8f8ce1e28a7e6f5542fbf6c3d
+              ref: openspec/changes/fix-generic-evaluation-submission
+          tweak.verify.report.evidence:
+            sequence: 5
+            value:
+              contentHash: 0106ecab04e49340f23adf536671c4355ad5f5bea43428c452a2b100c34375f8
+              ref: docs/superpowers/reports/2026-11-23-fix-generic-evaluation-submission-verify.md
+          tweak.verify.run:
+            sequence: 4
+            value:
+              checks:
+                - name: .venv/bin/pytest tests/test_generic_evaluation_submission.py
+                    tests/test_task_submission_authorization.py -q --no-cov
+                    (project root)
+                  note: 38 passed; /tmp/issue512-green.log
+                  result: passed
+                - name: .venv/bin/pytest tests/unit/test_api_endpoints.py
+                    tests/test_api_evaluations.py
+                    tests/test_evaluation_service_async.py
+                    tests/test_async_task_submission.py
+                    tests/test_user_evaluation_concurrency.py
+                    tests/test_tasks_api.py tests/test_evaluation_async_flow.py
+                    tests/test_evaluation_workflow_contract.py -q --no-cov
+                    (project root)
+                  note: 1169 passed; /tmp/issue512-regression.log
+                  result: passed
+                - name: black --check and ruff check on all 6 delivery Python files; git diff
+                    --check (project root)
+                  note: All passed
+                  result: passed
+                - name: comet classic openspec -- validate fix-generic-evaluation-submission
+                    --strict (project root)
+                  note: Change is valid
+                  result: passed
+                - name: mypy diagnostic baseline comparison (project root)
+                  note: Current and HEAD shadow-file runs both exited 1 with identical 8
+                    pre-existing errors; normalized diagnostic Counters match.
+                    This is a no-new-errors check, not a clean mypy run.
+                    /tmp/issue512-mypy.log; /tmp/issue512-mypy-baseline.log
+                  result: passed
+              event: verification-ready
+              verificationReport: docs/superpowers/reports/2026-11-23-fix-generic-evaluation-submission-verify.md
+      - id: fix-generic-evaluation-submission:11
+        stepId: tweak.archive.confirm
+        sequence: 11
+        status: resolved
+        proposal:
+          input:
+            change: fix-generic-evaluation-submission
+            changeDir: openspec/changes/fix-generic-evaluation-submission
+            workspaceBaseline:
+              ref: a3bbf282-8531-45e1-919d-5db10b8fe4c8
+          outputs:
+            tweak.archive.prepare:
+              prBaseBranch: main
+              remote: origin
+              summary: "用户已选择 PR 交付。归档 Issue #512 的已验证修复：6 个实现及测试文件、验证报告、OpenSpec 规格同步和现有
+                walkthrough。提交分支 codex/fix-generic-evaluation-submission，推送至
+                origin 同名分支，创建合并到 main 的 PR。1207 项相关回归通过；mypy 与基线相同 8 条既有错误。"
+              targetBranch: codex/fix-generic-evaluation-submission
+        proposalHash: a007f699202fd63360f31063d7bb694d1c26c4c8176091761045796fcba96448
+        choices:
+          - local
+          - push
+          - pr
+          - reverify
+          - later
+        results:
+          tweak.archive.prepare:
+            sequence: 10
+            value:
+              prBaseBranch: main
+              remote: origin
+              summary: "用户已选择 PR 交付。归档 Issue #512 的已验证修复：6 个实现及测试文件、验证报告、OpenSpec 规格同步和现有
+                walkthrough。提交分支 codex/fix-generic-evaluation-submission，推送至
+                origin 同名分支，创建合并到 main 的 PR。1207 项相关回归通过；mypy 与基线相同 8 条既有错误。"
+              targetBranch: codex/fix-generic-evaluation-submission
+          tweak.verify.report.evidence:
+            sequence: 9
+            value:
+              contentHash: dcc7fe9441b3ce673982dd120631f4a94c62f152bb9ecbdc05806a2f14932ee9
+              ref: docs/superpowers/reports/2026-11-23-fix-generic-evaluation-submission-verify.md
+          tweak.verify.run:
+            sequence: 8
+            value:
+              checks:
+                - name: .venv/bin/pytest tests/test_generic_evaluation_submission.py
+                    tests/test_task_submission_authorization.py -q --no-cov
+                    (project root)
+                  note: 38 passed; /tmp/issue512-green.log
+                  result: passed
+                - name: .venv/bin/pytest tests/unit/test_api_endpoints.py
+                    tests/test_api_evaluations.py
+                    tests/test_evaluation_service_async.py
+                    tests/test_async_task_submission.py
+                    tests/test_user_evaluation_concurrency.py
+                    tests/test_tasks_api.py tests/test_evaluation_async_flow.py
+                    tests/test_evaluation_workflow_contract.py -q --no-cov
+                    (project root)
+                  note: 1169 passed; /tmp/issue512-regression.log
+                  result: passed
+                - name: black --check and ruff check on all 6 delivery Python files; git diff
+                    --check (project root)
+                  note: All passed
+                  result: passed
+                - name: comet classic openspec -- validate fix-generic-evaluation-submission
+                    --strict (project root)
+                  note: Change is valid
+                  result: passed
+                - name: mypy diagnostic baseline comparison (project root)
+                  note: Current and HEAD shadow-file runs both exited 1 with identical 8
+                    pre-existing errors; normalized diagnostic Counters match.
+                    This is a no-new-errors check, not a clean mypy run.
+                    /tmp/issue512-mypy.log; /tmp/issue512-mypy-baseline.log
+                  result: passed
+              event: verification-ready
+              verificationReport: docs/superpowers/reports/2026-11-23-fix-generic-evaluation-submission-verify.md
+        decision:
+          id: classic-archive-a007f699202fd63360f31063d7bb694d1c26c4c8176091761045796fcba96448-pr
+          choice: pr
+          proposalHash: a007f699202fd63360f31063d7bb694d1c26c4c8176091761045796fcba96448
+    evidenceWaits:
+      - id: fix-generic-evaluation-submission:2
+        stepId: tweak.open.evidence
+        sequence: 2
+        kind: classic-open-artifacts
+        status: resolved
+        results:
+          tweak.open:
+            sequence: 1
+            value:
+              event: open-complete
+              requirementsEvidence:
+                ref: openspec/changes/fix-generic-evaluation-submission
+        receipt:
+          ref: openspec/changes/fix-generic-evaluation-submission
+          contentHash: 3068bfcc4454177f966d1f0653c6f660305cbdd8f8ce1e28a7e6f5542fbf6c3d
+          submissionId: b896cbac-fe5c-405f-bd53-ce2e7bacd602
+      - id: fix-generic-evaluation-submission:5
+        stepId: tweak.verify.report.evidence
+        sequence: 5
+        kind: classic-verification-report
+        status: resolved
+        results:
+          tweak.build.execute:
+            sequence: 3
+            value:
+              checks:
+                - name: .venv/bin/pytest tests/test_generic_evaluation_submission.py
+                    tests/test_task_submission_authorization.py -q --no-cov
+                    (project root)
+                  note: 38 passed; /tmp/issue512-green.log
+                  result: passed
+                - name: .venv/bin/pytest tests/unit/test_api_endpoints.py
+                    tests/test_api_evaluations.py
+                    tests/test_evaluation_service_async.py
+                    tests/test_async_task_submission.py
+                    tests/test_user_evaluation_concurrency.py
+                    tests/test_tasks_api.py tests/test_evaluation_async_flow.py
+                    tests/test_evaluation_workflow_contract.py -q --no-cov
+                    (project root)
+                  note: 1169 passed; /tmp/issue512-regression.log
+                  result: passed
+                - name: black --check and ruff check on all 6 delivery Python files; git diff
+                    --check (project root)
+                  note: All passed
+                  result: passed
+                - name: comet classic openspec -- validate fix-generic-evaluation-submission
+                    --strict (project root)
+                  note: Change is valid
+                  result: passed
+                - name: mypy diagnostic baseline comparison (project root)
+                  note: Current and HEAD shadow-file runs both exited 1 with identical 8
+                    pre-existing errors; normalized diagnostic Counters match.
+                    This is a no-new-errors check, not a clean mypy run.
+                    /tmp/issue512-mypy.log; /tmp/issue512-mypy-baseline.log
+                  result: passed
+              event: build-complete
+          tweak.open:
+            sequence: 1
+            value:
+              event: open-complete
+              requirementsEvidence:
+                ref: openspec/changes/fix-generic-evaluation-submission
+          tweak.open.evidence:
+            sequence: 2
+            value:
+              contentHash: 3068bfcc4454177f966d1f0653c6f660305cbdd8f8ce1e28a7e6f5542fbf6c3d
+              ref: openspec/changes/fix-generic-evaluation-submission
+          tweak.verify.run:
+            sequence: 4
+            value:
+              checks:
+                - name: .venv/bin/pytest tests/test_generic_evaluation_submission.py
+                    tests/test_task_submission_authorization.py -q --no-cov
+                    (project root)
+                  note: 38 passed; /tmp/issue512-green.log
+                  result: passed
+                - name: .venv/bin/pytest tests/unit/test_api_endpoints.py
+                    tests/test_api_evaluations.py
+                    tests/test_evaluation_service_async.py
+                    tests/test_async_task_submission.py
+                    tests/test_user_evaluation_concurrency.py
+                    tests/test_tasks_api.py tests/test_evaluation_async_flow.py
+                    tests/test_evaluation_workflow_contract.py -q --no-cov
+                    (project root)
+                  note: 1169 passed; /tmp/issue512-regression.log
+                  result: passed
+                - name: black --check and ruff check on all 6 delivery Python files; git diff
+                    --check (project root)
+                  note: All passed
+                  result: passed
+                - name: comet classic openspec -- validate fix-generic-evaluation-submission
+                    --strict (project root)
+                  note: Change is valid
+                  result: passed
+                - name: mypy diagnostic baseline comparison (project root)
+                  note: Current and HEAD shadow-file runs both exited 1 with identical 8
+                    pre-existing errors; normalized diagnostic Counters match.
+                    This is a no-new-errors check, not a clean mypy run.
+                    /tmp/issue512-mypy.log; /tmp/issue512-mypy-baseline.log
+                  result: passed
+              event: verification-ready
+              verificationReport: docs/superpowers/reports/2026-11-23-fix-generic-evaluation-submission-verify.md
+        receipt:
+          ref: docs/superpowers/reports/2026-11-23-fix-generic-evaluation-submission-verify.md
+          contentHash: 0106ecab04e49340f23adf536671c4355ad5f5bea43428c452a2b100c34375f8
+          submissionId: 70b08892-b69b-438e-b513-e195edc25513
+      - id: fix-generic-evaluation-submission:9
+        stepId: tweak.verify.report.evidence
+        sequence: 9
+        kind: classic-verification-report
+        status: resolved
+        results:
+          tweak.verify.run:
+            sequence: 8
+            value:
+              checks:
+                - name: .venv/bin/pytest tests/test_generic_evaluation_submission.py
+                    tests/test_task_submission_authorization.py -q --no-cov
+                    (project root)
+                  note: 38 passed; /tmp/issue512-green.log
+                  result: passed
+                - name: .venv/bin/pytest tests/unit/test_api_endpoints.py
+                    tests/test_api_evaluations.py
+                    tests/test_evaluation_service_async.py
+                    tests/test_async_task_submission.py
+                    tests/test_user_evaluation_concurrency.py
+                    tests/test_tasks_api.py tests/test_evaluation_async_flow.py
+                    tests/test_evaluation_workflow_contract.py -q --no-cov
+                    (project root)
+                  note: 1169 passed; /tmp/issue512-regression.log
+                  result: passed
+                - name: black --check and ruff check on all 6 delivery Python files; git diff
+                    --check (project root)
+                  note: All passed
+                  result: passed
+                - name: comet classic openspec -- validate fix-generic-evaluation-submission
+                    --strict (project root)
+                  note: Change is valid
+                  result: passed
+                - name: mypy diagnostic baseline comparison (project root)
+                  note: Current and HEAD shadow-file runs both exited 1 with identical 8
+                    pre-existing errors; normalized diagnostic Counters match.
+                    This is a no-new-errors check, not a clean mypy run.
+                    /tmp/issue512-mypy.log; /tmp/issue512-mypy-baseline.log
+                  result: passed
+              event: verification-ready
+              verificationReport: docs/superpowers/reports/2026-11-23-fix-generic-evaluation-submission-verify.md
+        receipt:
+          ref: docs/superpowers/reports/2026-11-23-fix-generic-evaluation-submission-verify.md
+          contentHash: dcc7fe9441b3ce673982dd120631f4a94c62f152bb9ecbdc05806a2f14932ee9
+          submissionId: d5fa797e-e004-4e76-858d-949d8cb8af7d
+    ready: []
+    joins: {}
+    outputs:
+      tweak.archive.confirm:
+        sequence: 11
+        value:
+          choice: pr
+          proposal:
+            input:
+              change: fix-generic-evaluation-submission
+              changeDir: openspec/changes/fix-generic-evaluation-submission
+              workspaceBaseline:
+                ref: a3bbf282-8531-45e1-919d-5db10b8fe4c8
+            outputs:
+              tweak.archive.prepare:
+                prBaseBranch: main
+                remote: origin
+                summary: "用户已选择 PR 交付。归档 Issue #512 的已验证修复：6 个实现及测试文件、验证报告、OpenSpec 规格同步和现有
+                  walkthrough。提交分支 codex/fix-generic-evaluation-submission，推送至
+                  origin 同名分支，创建合并到 main 的 PR。1207 项相关回归通过；mypy 与基线相同 8 条既有错误。"
+                targetBranch: codex/fix-generic-evaluation-submission
+      tweak.archive.execute:
+        sequence: 13
+        value:
+          archiveDirectory: openspec/changes/archive/2026-11-23-fix-generic-evaluation-submission
+      tweak.archive.preflight:
+        sequence: 12
+        value:
+          baseCommit: db958ea9eb4ab3889e30668744a8b21d17f158b5
+          deliveryAction: pr
+          deliveryPaths:
+            - api/models.py
+            - api/routes/evaluations.py
+            - api/routes/tasks.py
+            - tests/test_generic_evaluation_submission.py
+            - tests/test_task_submission_authorization.py
+            - tests/unit/test_api_endpoints.py
+          prBaseBranch: main
+          remote: origin
+          remoteIdentity: 128eeb1e6f0d21b25601fcb7f9aad36adfdfb4d76f37f54f004760410190f351
+          targetBranch: codex/fix-generic-evaluation-submission
+          verifiedBranch: codex/fix-generic-evaluation-submission
+      tweak.archive.prepare:
+        sequence: 10
+        value:
+          prBaseBranch: main
+          remote: origin
+          summary: "用户已选择 PR 交付。归档 Issue #512 的已验证修复：6 个实现及测试文件、验证报告、OpenSpec 规格同步和现有
+            walkthrough。提交分支 codex/fix-generic-evaluation-submission，推送至 origin
+            同名分支，创建合并到 main 的 PR。1207 项相关回归通过；mypy 与基线相同 8 条既有错误。"
+          targetBranch: codex/fix-generic-evaluation-submission
+      tweak.build.execute:
+        sequence: 3
+        value:
+          checks:
+            - name: .venv/bin/pytest tests/test_generic_evaluation_submission.py
+                tests/test_task_submission_authorization.py -q --no-cov (project
+                root)
+              note: 38 passed; /tmp/issue512-green.log
+              result: passed
+            - name: .venv/bin/pytest tests/unit/test_api_endpoints.py
+                tests/test_api_evaluations.py
+                tests/test_evaluation_service_async.py
+                tests/test_async_task_submission.py
+                tests/test_user_evaluation_concurrency.py
+                tests/test_tasks_api.py tests/test_evaluation_async_flow.py
+                tests/test_evaluation_workflow_contract.py -q --no-cov (project
+                root)
+              note: 1169 passed; /tmp/issue512-regression.log
+              result: passed
+            - name: black --check and ruff check on all 6 delivery Python files; git diff
+                --check (project root)
+              note: All passed
+              result: passed
+            - name: comet classic openspec -- validate fix-generic-evaluation-submission
+                --strict (project root)
+              note: Change is valid
+              result: passed
+            - name: mypy diagnostic baseline comparison (project root)
+              note: Current and HEAD shadow-file runs both exited 1 with identical 8
+                pre-existing errors; normalized diagnostic Counters match. This
+                is a no-new-errors check, not a clean mypy run.
+                /tmp/issue512-mypy.log; /tmp/issue512-mypy-baseline.log
+              result: passed
+          event: build-complete
+      tweak.open:
+        sequence: 1
+        value:
+          event: open-complete
+          requirementsEvidence:
+            ref: openspec/changes/fix-generic-evaluation-submission
+      tweak.open.evidence:
+        sequence: 2
+        value:
+          contentHash: 3068bfcc4454177f966d1f0653c6f660305cbdd8f8ce1e28a7e6f5542fbf6c3d
+          ref: openspec/changes/fix-generic-evaluation-submission
+      tweak.verify.report.evidence:
+        sequence: 9
+        value:
+          contentHash: dcc7fe9441b3ce673982dd120631f4a94c62f152bb9ecbdc05806a2f14932ee9
+          ref: docs/superpowers/reports/2026-11-23-fix-generic-evaluation-submission-verify.md
+      tweak.verify.run:
+        sequence: 8
+        value:
+          checks:
+            - name: .venv/bin/pytest tests/test_generic_evaluation_submission.py
+                tests/test_task_submission_authorization.py -q --no-cov (project
+                root)
+              note: 38 passed; /tmp/issue512-green.log
+              result: passed
+            - name: .venv/bin/pytest tests/unit/test_api_endpoints.py
+                tests/test_api_evaluations.py
+                tests/test_evaluation_service_async.py
+                tests/test_async_task_submission.py
+                tests/test_user_evaluation_concurrency.py
+                tests/test_tasks_api.py tests/test_evaluation_async_flow.py
+                tests/test_evaluation_workflow_contract.py -q --no-cov (project
+                root)
+              note: 1169 passed; /tmp/issue512-regression.log
+              result: passed
+            - name: black --check and ruff check on all 6 delivery Python files; git diff
+                --check (project root)
+              note: All passed
+              result: passed
+            - name: comet classic openspec -- validate fix-generic-evaluation-submission
+                --strict (project root)
+              note: Change is valid
+              result: passed
+            - name: mypy diagnostic baseline comparison (project root)
+              note: Current and HEAD shadow-file runs both exited 1 with identical 8
+                pre-existing errors; normalized diagnostic Counters match. This
+                is a no-new-errors check, not a clean mypy run.
+                /tmp/issue512-mypy.log; /tmp/issue512-mypy-baseline.log
+              result: passed
+          event: verification-ready
+          verificationReport: docs/superpowers/reports/2026-11-23-fix-generic-evaluation-submission-verify.md
+    children: []
+    lineage: []
+  sourceRevision: 23
+  sourceHash: c124474f41bcc0002a34d68593e37ea20d3afa25cec9d2e3d995c351b87b82f0
+direct_override: null
+handoff_context: null
+handoff_hash: null
+classic_profile: null
+classic_migration: null
+check_epoch: 6

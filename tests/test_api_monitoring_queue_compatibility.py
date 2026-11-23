@@ -56,7 +56,8 @@ def signup(client, name):
 
 
 def create_queue_task(client, credentials, entity_id=None):
-    entity_id = entity_id or str(uuid4())
+    # Public submission requires an existing owned draft and a usable credential.
+    entity_id = entity_id or create_legacy_evaluation(client, credentials)
     broker_id = "broker-" + str(uuid4())
     with patch("src.task_manager.celery_app.send_task") as send:
         send.return_value = SimpleNamespace(id=broker_id)
@@ -76,7 +77,11 @@ def create_queue_task(client, credentials, entity_id=None):
     assert send.call_args.kwargs["args"] == (entity_id,)
     assert send.call_args.kwargs["kwargs"] == {}
     assert send.call_args.kwargs["task_id"]
-    return response.json()["data"]["id"]
+    task_id = response.json()["data"]["id"]
+    evaluation = client.get(f"/api/v1/evaluations/{entity_id}", headers=credentials)
+    assert evaluation.status_code == 200, evaluation.text
+    assert evaluation.json()["data"]["async_task_id"] == task_id
+    return task_id
 
 
 def create_legacy_evaluation(client, credentials):
@@ -141,10 +146,6 @@ def test_actual_task_and_legacy_routes_coexist_and_linked_tasks_are_not_double_c
     legacy_id = create_legacy_evaluation(client, admin)
     linked_id = create_legacy_evaluation(client, admin)
     async_id = create_queue_task(client, admin, linked_id)
-    with app.state.task_engine.begin() as connection:
-        connection.execute(
-            update(Evaluation).where(Evaluation.id == linked_id).values(async_task_id=async_id)
-        )
     queued = "/api/v1/system/tasks/queued"
     legacy = client.get(queued, headers=admin).json()["data"]
     queue = client.get(queued + "?task_source=async_task", headers=admin).json()["data"]

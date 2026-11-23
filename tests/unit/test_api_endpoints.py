@@ -986,17 +986,10 @@ CASES += [
     case(
         "POST",
         "/tasks",
-        "manager.enqueue_task",
-        kwargs=dict(
-            task_type="evaluation",
-            entity_id="eval-1",
-            user_id=OWNER,
-            celery_task_name=TASK_BODY["celery_task_name"],
-            celery_task_args=(),
-            celery_task_kwargs={},
-        ),
+        "evaluations.start_evaluation",
+        ("eval-1", OWNER),
         body=TASK_BODY,
-        result=TASK,
+        result=EVALUATION.model_copy(update={"async_task_id": "task-1"}),
         expected=TASK_DATA,
         status=201,
     ),
@@ -1137,6 +1130,8 @@ def api(monkeypatch, tmp_path, unit_app):
     state.files.store.job.return_value = dict(status="completed", total=0, processed=0, result={})
     state.files.metadata.return_value = VALUE.copy()
     state.manager.enqueue_task.return_value = SimpleNamespace(id="task-1")
+    state.manager.db = Mock()
+    state.manager.db.get.return_value = TASK
     state.monitor.settings = SimpleNamespace(is_admin=lambda user_id: user_id == OWNER)
     state.monitor.probes = Mock()
     state.monitor.readiness = Mock(spec=ReadinessCheck)

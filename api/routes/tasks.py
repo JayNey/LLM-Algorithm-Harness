@@ -6,11 +6,14 @@ from typing import TypeVar
 from fastapi import APIRouter, Depends, HTTPException, Request
 from sqlalchemy.orm import Session
 
-from api.auth.dependencies import current_user
-from api.auth.service import Principal
+from api.auth.dependencies import auth_service, current_user
+from api.auth.service import AuthService, Principal
 from api.db.engine import get_db
+from api.db.models import AsyncTask
 from api.models import AsyncTaskCreateRequest
+from api.routes.evaluations import evaluation_service, start_owned_evaluation
 from api.schemas import ApiResponse, AsyncTaskResponse, PaginatedData
+from api.services.evaluation_service import EvaluationService
 from src.task_manager import TaskManager
 
 router = APIRouter(prefix="/api/v1", tags=["tasks"])
@@ -65,15 +68,21 @@ def create_task(
     request: AsyncTaskCreateRequest,
     principal: Principal = Depends(current_user),
     manager: TaskManager = Depends(task_manager),
+    auth: AuthService = Depends(auth_service),
+    evaluations: EvaluationService = Depends(evaluation_service),
 ) -> ApiResponse[AsyncTaskResponse]:
     """Create a new async task.
 
-    Creates an async task and submits it to Celery for execution.
+    Evaluation submissions start an owned pending draft with the same checks as
+    /evaluations/{id}/start. Evaluation args must be empty or [entity_id], with
+    no kwargs; execution parameters come from the persisted evaluation.
 
     Args:
         request: Task creation request with task_type, entity_id, and celery task details
         principal: Authenticated user
         manager: TaskManager instance
+        auth: Credential ownership and audit service
+        evaluations: Evaluation business submission service
 
     Returns:
         ApiResponse with created task details
@@ -84,16 +93,23 @@ def create_task(
     task_args = tuple(request.celery_task_args) if request.celery_task_args else ()
     task_kwargs = request.celery_task_kwargs or {}
 
-    task = call(
-        lambda: manager.enqueue_task(
-            task_type=request.task_type,
-            entity_id=request.entity_id,
-            user_id=principal.user_id,
-            celery_task_name=request.celery_task_name,
-            celery_task_args=task_args,
-            celery_task_kwargs=task_kwargs,
+    if request.task_type == "evaluation":
+        if task_args not in ((), (request.entity_id,)) or task_kwargs:
+            raise HTTPException(400, "Evaluation args must be empty or [entity_id], with no kwargs")
+        evaluation = start_owned_evaluation(request.entity_id, principal, auth, evaluations)
+        # Read the exact task without polling Celery or creating another submission.
+        task = manager.db.get(AsyncTask, evaluation.async_task_id)
+    else:
+        task = call(
+            lambda: manager.enqueue_task(
+                task_type=request.task_type,
+                entity_id=request.entity_id,
+                user_id=principal.user_id,
+                celery_task_name=request.celery_task_name,
+                celery_task_args=task_args,
+                celery_task_kwargs=task_kwargs,
+            )
         )
-    )
 
     return ApiResponse(
         success=True,
