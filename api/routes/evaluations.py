@@ -167,6 +167,20 @@ def delete_evaluation(
     auth.audit("evaluation_delete", principal.user_id, evaluation_id)
 
 
+def start_owned_evaluation(
+    evaluation_id: str,
+    principal: Principal,
+    auth: AuthService,
+    service: EvaluationService,
+) -> EvaluationResponse:
+    """Apply the same credential, admission and audit rules to both HTTP entry points."""
+    key_id = call(lambda: service.credential_id(evaluation_id, principal.user_id))
+    auth.owned_key(key_id, principal.user_id)
+    result = call(lambda: service.start_evaluation(evaluation_id, principal.user_id))
+    auth.audit("evaluation_start", principal.user_id, evaluation_id)
+    return result
+
+
 @router.post("/evaluations/{evaluation_id}/start", status_code=202)
 def start_evaluation(
     evaluation_id: str,
@@ -174,10 +188,7 @@ def start_evaluation(
     auth: AuthService = Depends(auth_service),
     service: EvaluationService = Depends(evaluation_service),
 ) -> ApiResponse[EvaluationResponse]:
-    key_id = call(lambda: service.credential_id(evaluation_id, principal.user_id))
-    auth.owned_key(key_id, principal.user_id)
-    result = call(lambda: service.start_evaluation(evaluation_id, principal.user_id))
-    auth.audit("evaluation_start", principal.user_id, evaluation_id)
+    result = start_owned_evaluation(evaluation_id, principal, auth, service)
     return ApiResponse(success=True, data=result, message="Evaluation started successfully")
 
 

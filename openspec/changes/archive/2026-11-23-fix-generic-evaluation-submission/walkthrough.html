@@ -1,0 +1,123 @@
+<!doctype html>
+<html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'unsafe-inline'; base-uri 'none'; form-action 'none'"><title>变更说明 · 通用任务入口现在能安全启动已有评估草稿，并在发布前保存业务关联。</title>
+<style>
+:root {
+  color-scheme: light dark;
+  --page: #fafbfc;
+  --ink: #202a35;
+  --muted: #566575;
+  --line: #dbe2e8;
+  --accent: #245b85;
+  --highlight: #edf3f7;
+  --hover: #e9eef3;
+  --code-bg: #edf0f4;
+  --code-ink: #263443;
+  --success: #236d4f;
+  --failure: #a83131;
+  --text: 15px;
+  --small: 13px;
+  --label: 12px;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --page: #181d23;
+    --ink: #e4eaf0;
+    --muted: #a4b1be;
+    --line: #35404b;
+    --accent: #94c6ec;
+    --highlight: #222e39;
+    --hover: #27323d;
+    --code-bg: #10161d;
+    --code-ink: #e0e8f0;
+    --success: #8ed8b5;
+    --failure: #ffb0a8;
+  }
+}
+* { box-sizing: border-box; }
+body {
+  margin: 0;
+  background: var(--page);
+  color: var(--ink);
+  font: var(--text)/1.65 system-ui, -apple-system, "Segoe UI", sans-serif;
+}
+main { max-width: 1040px; margin: auto; padding: 32px 32px 48px; }
+.eyebrow { color: var(--accent); font-size: var(--label); font-weight: 500; letter-spacing: .08em; }
+h1 { margin: 8px 0 12px; max-width: 32em; font-size: 28px; font-weight: 500; line-height: 1.4; letter-spacing: -.02em; overflow-wrap: anywhere; }
+h2 { margin: 0; font-size: 18px; font-weight: 500; line-height: 1.5; overflow-wrap: anywhere; }
+h3 { margin: 0 0 4px; color: var(--muted); font-size: var(--label); font-weight: 500; }
+p { margin: 0; white-space: pre-wrap; overflow-wrap: anywhere; }
+strong { font-weight: 500; }
+.meta { margin-bottom: 24px; color: var(--muted); font-size: var(--small); overflow-wrap: anywhere; }
+.meta p + p { margin-top: 2px; }
+article { padding: 20px 0 12px; border-top: 1px solid var(--line); }
+article header { display: flex; align-items: baseline; gap: 12px; margin-bottom: 12px; }
+.number { color: var(--muted); font: var(--label)/1.5 ui-monospace, Consolas, monospace; font-variant-numeric: tabular-nums; }
+.comparison { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 16px; }
+.comparison section { min-width: 0; padding: 12px; }
+.after { background: var(--highlight); border-radius: 4px; }
+.after h3 { color: var(--accent); }
+.reason { margin-top: 12px; font-size: var(--small); color: var(--muted); }
+.reason strong { margin-right: 8px; color: var(--ink); }
+summary { min-height: 44px; padding: 10px 4px; cursor: pointer; font-size: var(--small); font-weight: 500; border-radius: 4px; }
+summary:hover { background: var(--hover); }
+summary:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.count, .tag { color: var(--muted); font-size: var(--label); font-weight: 400; }
+.count { margin-left: 4px; font-variant-numeric: tabular-nums; }
+.file { min-width: 0; padding: 0 0 16px; scroll-margin-top: 20px; }
+.file:target { outline: 2px solid var(--accent); outline-offset: 4px; }
+.file-heading { display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 8px; }
+.file-heading code { min-width: 0; font-size: var(--small); overflow-wrap: anywhere; }
+.tag { white-space: nowrap; }
+pre { margin: 8px 0 0; padding: 12px 16px; overflow: auto; background: var(--code-bg); color: var(--code-ink); border-radius: 4px; font: var(--small)/1.65 ui-monospace, Consolas, monospace; tab-size: 2; }
+footer { margin-top: 12px; padding-top: 20px; border-top: 1px solid var(--line); }
+footer h2 { margin-bottom: 8px; }
+.check { display: grid; grid-template-columns: 72px minmax(0, 1fr); gap: 12px; padding: 12px 0; border-bottom: 1px solid var(--line); }
+.status { padding-top: 2px; font-size: var(--label); font-weight: 500; }
+.passed { color: var(--success); }
+.failed { color: var(--failure); }
+.not-run, .unknown { color: var(--muted); }
+.check p { margin-top: 2px; color: var(--muted); font-size: var(--small); }
+.more { border-top: 1px solid var(--line); }
+.more > summary { padding-block: 12px; }
+.diagram { margin: 0; padding: 20px 0; border-top: 1px solid var(--line); }
+.diagram figcaption { margin-bottom: 12px; font-size: 18px; font-weight: 500; overflow-wrap: anywhere; }
+.diagram-svg { display: block; max-width: 100%; height: auto; margin: auto; overflow: visible; font: 13px system-ui, -apple-system, "Segoe UI", sans-serif; }
+.diagram-svg text { fill: var(--ink); }
+.diagram-edge { fill: none; stroke: var(--muted); stroke-width: 1.5; }
+.diagram-svg marker path { fill: var(--muted); }
+.diagram-edge-label { fill: var(--page); }
+.diagram-svg .diagram-edge-text { fill: var(--muted); font-size: 12px; }
+.diagram-node rect { fill: var(--page); stroke: var(--line); stroke-width: 1.5; }
+.diagram-node.modified rect { fill: var(--highlight); stroke: var(--accent); }
+.diagram-node.added rect { stroke: var(--success); }
+.diagram-node.deleted rect { stroke: var(--failure); stroke-dasharray: 4 3; }
+.diagram-svg .diagram-kind { fill: var(--muted); font-size: 11px; }
+.diagram-node[href] { cursor: pointer; }
+.diagram-node[href]:hover rect, .diagram-node[href]:focus-visible rect { stroke: var(--accent); stroke-width: 2.5; }
+.diagram-node[href]:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; }
+.diagram-hint { margin-top: 12px; color: var(--muted); font-size: var(--small); text-align: center; }
+.diagram-comparison { display: grid; grid-template-columns: minmax(0,1fr) minmax(0,1fr); gap: 16px; }
+.diagram-comparison > section { min-width: 0; padding: 12px; border: 1px solid var(--line); border-radius: 4px; }
+.diagram-comparison > section > h3 { margin-bottom: 12px; }
+.diagram-compact { display: none; }
+@media (max-width: 999px) {
+  .diagram-wide { display: none; }
+  .diagram-compact { display: block; }
+}
+@media (max-width: 640px) {
+  main { padding: 24px 16px 32px; }
+  h1 { font-size: 24px; }
+  .meta { margin-bottom: 20px; }
+  article { padding-top: 16px; }
+  article header { gap: 8px; }
+  .comparison { grid-template-columns: minmax(0, 1fr); gap: 4px; }
+  .check { grid-template-columns: 60px minmax(0, 1fr); gap: 8px; }
+  pre { padding: 12px; }
+  .diagram-comparison { grid-template-columns: minmax(0,1fr); }
+  .diagram-comparison > section { padding: 12px 0; border: 0; }
+}
+</style></head><body><main><div class="eyebrow">COMET / 变更说明</div><h1>通用任务入口现在能安全启动已有评估草稿，并在发布前保存业务关联。</h1><div class="meta"><p>比较范围 · 基线 db958ea9eb4ab3889e30668744a8b21d17f158b5 与当前工作区；3 个生产文件和 3 个测试文件。</p><p>生成时间 · 2026-11-23T08:05:40.631Z</p></div><figure class="diagram"><figcaption>评估通用提交路径</figcaption><div class="diagram-wide"><svg class="diagram-svg" width="624" height="84" viewBox="0 0 624 84" role="group" aria-labelledby="walkthrough-diagram-0-wide-title walkthrough-diagram-0-wide-description"><title id="walkthrough-diagram-0-wide-title">评估通用提交路径</title><desc id="walkthrough-diagram-0-wide-description">通用评估提交 → 参数与业务校验; 参数与业务校验 → 原子保存任务及关联; 原子保存任务及关联 → 发布并执行 worker</desc><defs><marker id="walkthrough-diagram-0-wide-arrow" viewBox="0 0 8 8" refX="7" refY="4" markerWidth="6" markerHeight="6" orient="auto"><path d="M 0 0 L 8 4 L 0 8 z"/></marker></defs><path class="diagram-edge" d="M 132 42 C 152 42, 152 42, 169 42" marker-end="url(#walkthrough-diagram-0-wide-arrow)"/><path class="diagram-edge" d="M 292 42 C 312 42, 312 42, 329 42" marker-end="url(#walkthrough-diagram-0-wide-arrow)"/><path class="diagram-edge" d="M 452 42 C 472 42, 472 42, 489 42" marker-end="url(#walkthrough-diagram-0-wide-arrow)"/><g class="diagram-node "><rect x="12" y="12" width="120" height="60" rx="5"/><text class="" x="72" y="46" text-anchor="middle"><tspan x="72" dy="0">通用评估提交</tspan></text></g><a class="diagram-node modified" href="#walkthrough-file-0-0" aria-label="参数与业务校验 · api/routes/tasks.py:96"><rect x="172" y="12" width="120" height="60" rx="5"/><text class="diagram-kind" x="232" y="29" text-anchor="middle"><tspan x="232" dy="0">修改</tspan></text><text class="" x="232" y="47" text-anchor="middle"><tspan x="232" dy="0">参数与业务校验</tspan></text></a><g class="diagram-node "><rect x="332" y="12" width="120" height="60" rx="5"/><text class="" x="392" y="37" text-anchor="middle"><tspan x="392" dy="0">原子保存任务及</tspan><tspan x="392" dy="18">关联</tspan></text></g><g class="diagram-node "><rect x="492" y="12" width="120" height="60" rx="5"/><text class="" x="552" y="37" text-anchor="middle"><tspan x="552" dy="0">发布并执行</tspan><tspan x="552" dy="18">worker</tspan></text></g></svg></div><div class="diagram-compact"><svg class="diagram-svg" width="272" height="436" viewBox="0 0 272 436" role="group" aria-labelledby="walkthrough-diagram-0-compact-title walkthrough-diagram-0-compact-description"><title id="walkthrough-diagram-0-compact-title">评估通用提交路径</title><desc id="walkthrough-diagram-0-compact-description">通用评估提交 → 参数与业务校验; 参数与业务校验 → 原子保存任务及关联; 原子保存任务及关联 → 发布并执行 worker</desc><defs><marker id="walkthrough-diagram-0-compact-arrow" viewBox="0 0 8 8" refX="7" refY="4" markerWidth="6" markerHeight="6" orient="auto"><path d="M 0 0 L 8 4 L 0 8 z"/></marker></defs><path class="diagram-edge" d="M 136 88 C 136 106, 136 106, 136 121" marker-end="url(#walkthrough-diagram-0-compact-arrow)"/><path class="diagram-edge" d="M 136 200 C 136 218, 136 218, 136 233" marker-end="url(#walkthrough-diagram-0-compact-arrow)"/><path class="diagram-edge" d="M 136 312 C 136 330, 136 330, 136 345" marker-end="url(#walkthrough-diagram-0-compact-arrow)"/><g class="diagram-node "><rect x="80" y="12" width="112" height="76" rx="5"/><text class="" x="136" y="54" text-anchor="middle"><tspan x="136" dy="0">通用评估提交</tspan></text></g><a class="diagram-node modified" href="#walkthrough-file-0-0" aria-label="参数与业务校验 · api/routes/tasks.py:96"><rect x="80" y="124" width="112" height="76" rx="5"/><text class="diagram-kind" x="136" y="141" text-anchor="middle"><tspan x="136" dy="0">修改</tspan></text><text class="" x="136" y="159" text-anchor="middle"><tspan x="136" dy="0">参数与业务校</tspan><tspan x="136" dy="18">验</tspan></text></a><g class="diagram-node "><rect x="80" y="236" width="112" height="76" rx="5"/><text class="" x="136" y="269" text-anchor="middle"><tspan x="136" dy="0">原子保存任务</tspan><tspan x="136" dy="18">及关联</tspan></text></g><g class="diagram-node "><rect x="80" y="348" width="112" height="76" rx="5"/><text class="" x="136" y="381" text-anchor="middle"><tspan x="136" dy="0">发布并执行</tspan><tspan x="136" dy="18">worker</tspan></text></g></svg></div><p class="diagram-hint">点击带链接的节点查看相关代码。</p></figure><article><header><span class="number">01</span><h2>统一评估启动</h2></header><div class="comparison"><section><h3>原来</h3><p>直接发布 Celery 消息，缺少评估关联和业务校验。</p></section><section class="after"><h3>现在</h3><p>验证参数并共用凭据、归属、状态、配额校验，在发布前原子建立关联。</p></section></div><p class="reason"><strong>原因</strong> 返回 201 的任务必须可被 worker 解析执行，拒绝请求不占任务额度。</p><details><summary>查看文件和关键代码 <span class="count">4</span></summary><div class="file" id="walkthrough-file-0-0"><div class="file-heading"><span class="tag">修改</span><code>api/routes/tasks.py:96</code></div><pre><code>evaluation = start_owned_evaluation(request.entity_id, principal, auth, evaluations)
+task = manager.db.get(AsyncTask, evaluation.async_task_id)</code></pre></div><div class="file" id="walkthrough-file-0-1"><div class="file-heading"><span class="tag">修改</span><code>api/routes/evaluations.py:170</code></div><pre><code>def start_owned_evaluation(...):
+    key_id = call(lambda: service.credential_id(evaluation_id, principal.user_id))
+    auth.owned_key(key_id, principal.user_id)
+    result = call(lambda: service.start_evaluation(evaluation_id, principal.user_id))</code></pre></div><div class="file" id="walkthrough-file-0-2"><div class="file-heading"><span class="tag">修改</span><code>api/models.py:105</code></div><pre><code>evaluation args: omitted, [] or [entity_id]; kwargs: omitted or {}</code></pre></div><div class="file" id="walkthrough-file-0-3"><div class="file-heading"><span class="tag">新增</span><code>tests/test_generic_evaluation_submission.py</code></div><pre><code>20 项新增回归：发布前独立会话读取关联、非法请求不新增任务、真实 worker running → completed。</code></pre></div></details></article><footer><h2>实际验证</h2><div class="check"><span class="status passed">通过</span><div><strong>Builder 自检</strong><p>1207 项相关测试通过；格式、lint、规格通过。mypy 当前和基线均有相同 8 条错误，无新增诊断。</p></div></div><div class="check"><span class="status not-run">未执行</span><div><strong>Runtime 检查</strong><p>等待提交 Build 结果。</p></div></div><div class="check"><span class="status not-run">未执行</span><div><strong>独立审查</strong><p>本次已确认配置为 review_mode=off。</p></div></div><div class="check"><span class="status not-run">未执行</span><div><strong>真实外部执行</strong><p>未运行真实 Redis、Docker、付费模型或生产部署。</p></div></div></footer></main><template id="walkthrough-data">eyJzdW1tYXJ5Ijoi6YCa55So5Lu75Yqh5YWl5Y+j546w5Zyo6IO95a6J5YWo5ZCv5Yqo5bey5pyJ6K+E5Lyw6I2J56i/77yM5bm25Zyo5Y+R5biD5YmN5L+d5a2Y5Lia5Yqh5YWz6IGU44CCIiwic2NvcGUiOiLln7rnur8gZGI5NThlYTllYjRhYjM4ODllMzA2Njg3NDRhOGIyMWQxN2YxNThiNSDkuI7lvZPliY3lt6XkvZzljLrvvJszIOS4queUn+S6p+aWh+S7tuWSjCAzIOS4qua1i+ivleaWh+S7tuOAgiIsImNoYW5nZXMiOlt7InRpdGxlIjoi57uf5LiA6K+E5Lyw5ZCv5YqoIiwiYmVmb3JlIjoi55u05o6l5Y+R5biDIENlbGVyeSDmtojmga/vvIznvLrlsJHor4TkvLDlhbPogZTlkozkuJrliqHmoKHpqozjgIIiLCJhZnRlciI6IumqjOivgeWPguaVsOW5tuWFseeUqOWHreaNruOAgeW9kuWxnuOAgeeKtuaAgeOAgemFjemineagoemqjO+8jOWcqOWPkeW4g+WJjeWOn+WtkOW7uueri+WFs+iBlOOAgiIsInJlYXNvbiI6Iui/lOWbniAyMDEg55qE5Lu75Yqh5b+F6aG75Y+v6KKrIHdvcmtlciDop6PmnpDmiafooYzvvIzmi5Lnu53or7fmsYLkuI3ljaDku7vliqHpop3luqbjgIIiLCJmaWxlcyI6W3sicGF0aCI6ImFwaS9yb3V0ZXMvdGFza3MucHk6OTYiLCJraW5kIjoibW9kaWZpZWQiLCJjb2RlIjoiZXZhbHVhdGlvbiA9IHN0YXJ0X293bmVkX2V2YWx1YXRpb24ocmVxdWVzdC5lbnRpdHlfaWQsIHByaW5jaXBhbCwgYXV0aCwgZXZhbHVhdGlvbnMpXG50YXNrID0gbWFuYWdlci5kYi5nZXQoQXN5bmNUYXNrLCBldmFsdWF0aW9uLmFzeW5jX3Rhc2tfaWQpIn0seyJwYXRoIjoiYXBpL3JvdXRlcy9ldmFsdWF0aW9ucy5weToxNzAiLCJraW5kIjoibW9kaWZpZWQiLCJjb2RlIjoiZGVmIHN0YXJ0X293bmVkX2V2YWx1YXRpb24oLi4uKTpcbiAgICBrZXlfaWQgPSBjYWxsKGxhbWJkYTogc2VydmljZS5jcmVkZW50aWFsX2lkKGV2YWx1YXRpb25faWQsIHByaW5jaXBhbC51c2VyX2lkKSlcbiAgICBhdXRoLm93bmVkX2tleShrZXlfaWQsIHByaW5jaXBhbC51c2VyX2lkKVxuICAgIHJlc3VsdCA9IGNhbGwobGFtYmRhOiBzZXJ2aWNlLnN0YXJ0X2V2YWx1YXRpb24oZXZhbHVhdGlvbl9pZCwgcHJpbmNpcGFsLnVzZXJfaWQpKSJ9LHsicGF0aCI6ImFwaS9tb2RlbHMucHk6MTA1Iiwia2luZCI6Im1vZGlmaWVkIiwiY29kZSI6ImV2YWx1YXRpb24gYXJnczogb21pdHRlZCwgW10gb3IgW2VudGl0eV9pZF07IGt3YXJnczogb21pdHRlZCBvciB7fSJ9LHsicGF0aCI6InRlc3RzL3Rlc3RfZ2VuZXJpY19ldmFsdWF0aW9uX3N1Ym1pc3Npb24ucHkiLCJraW5kIjoiYWRkZWQiLCJjb2RlIjoiMjAg6aG55paw5aKe5Zue5b2S77ya5Y+R5biD5YmN54us56uL5Lya6K+d6K+75Y+W5YWz6IGU44CB6Z2e5rOV6K+35rGC5LiN5paw5aKe5Lu75Yqh44CB55yf5a6eIHdvcmtlciBydW5uaW5nIOKGkiBjb21wbGV0ZWTjgIIifV19XSwidmVyaWZpY2F0aW9uIjpbeyJsYWJlbCI6IkJ1aWxkZXIg6Ieq5qOAIiwic3RhdHVzIjoicGFzc2VkIiwiZGV0YWlsIjoiMTIwNyDpobnnm7jlhbPmtYvor5XpgJrov4fvvJvmoLzlvI/jgIFsaW5044CB6KeE5qC86YCa6L+H44CCbXlweSDlvZPliY3lkozln7rnur/lnYfmnInnm7jlkIwgOCDmnaHplJnor6/vvIzml6DmlrDlop7or4rmlq3jgIIifSx7ImxhYmVsIjoiUnVudGltZSDmo4Dmn6UiLCJzdGF0dXMiOiJub3QtcnVuIiwiZGV0YWlsIjoi562J5b6F5o+Q5LqkIEJ1aWxkIOe7k+aenOOAgiJ9LHsibGFiZWwiOiLni6znq4vlrqHmn6UiLCJzdGF0dXMiOiJub3QtcnVuIiwiZGV0YWlsIjoi5pys5qyh5bey56Gu6K6k6YWN572u5Li6IHJldmlld19tb2RlPW9mZuOAgiJ9LHsibGFiZWwiOiLnnJ/lrp7lpJbpg6jmiafooYwiLCJzdGF0dXMiOiJub3QtcnVuIiwiZGV0YWlsIjoi5pyq6L+Q6KGM55yf5a6eIFJlZGlz44CBRG9ja2Vy44CB5LuY6LS55qih5Z6L5oiW55Sf5Lqn6YOo572y44CCIn1dLCJkaWFncmFtcyI6W3sidHlwZSI6ImZsb3ciLCJ0aXRsZSI6IuivhOS8sOmAmueUqOaPkOS6pOi3r+W+hCIsIm5vZGVzIjpbeyJpZCI6InJlcXVlc3QiLCJsYWJlbCI6IumAmueUqOivhOS8sOaPkOS6pCJ9LHsiaWQiOiJ2YWxpZGF0ZSIsImxhYmVsIjoi5Y+C5pWw5LiO5Lia5Yqh5qCh6aqMIiwiZmlsZSI6ImFwaS9yb3V0ZXMvdGFza3MucHk6OTYiLCJraW5kIjoibW9kaWZpZWQifSx7ImlkIjoiY29tbWl0IiwibGFiZWwiOiLljp/lrZDkv53lrZjku7vliqHlj4rlhbPogZQifSx7ImlkIjoicHVibGlzaCIsImxhYmVsIjoi5Y+R5biD5bm25omn6KGMIHdvcmtlciJ9XSwiZWRnZXMiOlt7ImZyb20iOiJyZXF1ZXN0IiwidG8iOiJ2YWxpZGF0ZSJ9LHsiZnJvbSI6InZhbGlkYXRlIiwidG8iOiJjb21taXQifSx7ImZyb20iOiJjb21taXQiLCJ0byI6InB1Ymxpc2gifV19XX0=</template></body></html>
