@@ -1,0 +1,2086 @@
+# comet-execution: managed-run
+change_id: c3fdb9f7-d551-4665-a43f-2eec706846ab
+workflow: tweak
+language: zh-CN
+phase: archive
+context_compression: off
+build_mode: direct
+build_pause: null
+subagent_dispatch: null
+tdd_mode: direct
+review_mode: off
+isolation: current
+verify_mode: light
+auto_transition: true
+base_ref: e4e37886f98ec2b9e2a7a8fdd36d32bf95b2c883
+design_doc: null
+plan: null
+verify_result: pass
+verify_failures: 0
+verification_report: docs/superpowers/reports/2026-11-23-fix-queued-evaluation-delete-verify.md
+branch_status: pending
+created_at: 2026-11-23
+verified_at: 2026-11-23
+archive_confirmation: confirmed
+archived: true
+bound_branch: codex/fix-queued-evaluation-delete
+run_checkpoint:
+  schema: comet.workflow-run-checkpoint.v1
+  hash: a5c39baab85ec77caf15db60f85ce8198f7e678d496440bc74ee871e3e7b80b8
+  run:
+    protocolVersion: 1
+    schemaVersion: 1
+    runId: fix-queued-evaluation-delete
+    revision: 1
+    workflow:
+      id: comet-classic-tweak
+      version: "2"
+      hash: d1e067bc00ca13395dbc6f701565417c3e227f17a57df025dd73ebda905e2638
+    definitionHashes:
+      '["comet-classic-tweak","2"]': d1e067bc00ca13395dbc6f701565417c3e227f17a57df025dd73ebda905e2638
+    initialStateHash: 74721c0d83d66c89139eb3b6fcb1bb4ace6d358ab4fe7aa95eb25dd6a202d186
+    input:
+      change: fix-queued-evaluation-delete
+      changeDir: openspec/changes/fix-queued-evaluation-delete
+      workspaceBaseline:
+        ref: 5dd562a2-64e2-4b42-8587-0673add35827
+    state:
+      archiveConfirmation: confirmed
+      archived: true
+      autoTransition: true
+      baseRef: e4e37886f98ec2b9e2a7a8fdd36d32bf95b2c883
+      boundBranch: codex/fix-queued-evaluation-delete
+      branchStatus: pending
+      buildMode: direct
+      buildPause: null
+      checkEpoch: 6
+      classicMigration: null
+      classicProfile: null
+      contextCompression: off
+      createdAt: 2026-11-23
+      designDoc: null
+      directOverride: null
+      handoffContext: null
+      handoffHash: null
+      isolation: current
+      language: zh-CN
+      phase: archive
+      plan: null
+      reviewMode: off
+      subagentDispatch: null
+      tddMode: direct
+      verificationReport: docs/superpowers/reports/2026-11-23-fix-queued-evaluation-delete-verify.md
+      verifiedAt: 2026-11-23
+      verifyFailures: 0
+      verifyMode: light
+      verifyResult: pass
+      workflow: tweak
+    status: running
+    sequence: 14
+    actions:
+      - attempt: 1
+        claim:
+          executorId: comet-classic-guard
+          token: portable-5242228fba362e79297579ec0341f60e7c1b0a1cc3671c33f9f3dc68bc9f2530
+        executionOrigin:
+          workflow:
+            hash: 518d3e8e12eb39899775cb7d2ddcc7ddeba10cb1f1d43cff7b03f2ca61a70c65
+            id: comet-classic-tweak
+            version: "2"
+        id: fix-queued-evaluation-delete:1
+        input:
+          input:
+            change: fix-queued-evaluation-delete
+            changeDir: openspec/changes/fix-queued-evaluation-delete
+            workspaceBaseline:
+              ref: 5dd562a2-64e2-4b42-8587-0673add35827
+          outputs: {}
+        inputHash: 19b7c5b89d56ac703991eaa77e385006b1ebffac18001f75fd92d6e8d6a3a0a4
+        outcome:
+          actionId: fix-queued-evaluation-delete:1
+          attempt: 1
+          claimToken: portable-5242228fba362e79297579ec0341f60e7c1b0a1cc3671c33f9f3dc68bc9f2530
+          inputHash: 19b7c5b89d56ac703991eaa77e385006b1ebffac18001f75fd92d6e8d6a3a0a4
+          outcomeId: 2d16de88-882b-4b54-8e7a-ebc5d59b2b53
+          output:
+            event: open-complete
+            requirementsEvidence:
+              ref: openspec/changes/fix-queued-evaluation-delete
+          status: succeeded
+        protocolVersion: 1
+        receipts:
+          - hash: a1322a05a04b4afefc3ce947adc77cba0be7dc6f03052f91fbcbf49c58bfb373
+            outcomeId: 2d16de88-882b-4b54-8e7a-ebc5d59b2b53
+        reconciliations: []
+        ref: comet-tweak
+        requiredCapabilities: []
+        retry: manual
+        runId: fix-queued-evaluation-delete
+        status: succeeded
+        stepId: tweak.open
+        type: invoke_skill
+      - attempt: 1
+        claim:
+          executorId: comet-classic-state
+          sessionId: codex-511-main
+          token: portable-dcc15aac1d840a074d043e4811ea6031bf53ca3a278be5d683613c0982443d3b
+        executionOrigin:
+          workflow:
+            hash: 518d3e8e12eb39899775cb7d2ddcc7ddeba10cb1f1d43cff7b03f2ca61a70c65
+            id: comet-classic-tweak
+            version: "2"
+        id: fix-queued-evaluation-delete:3
+        input:
+          input:
+            change: fix-queued-evaluation-delete
+            changeDir: openspec/changes/fix-queued-evaluation-delete
+            workspaceBaseline:
+              ref: 5dd562a2-64e2-4b42-8587-0673add35827
+          outputs:
+            tweak.open:
+              event: open-complete
+              requirementsEvidence:
+                ref: openspec/changes/fix-queued-evaluation-delete
+            tweak.open.evidence:
+              contentHash: 19b7c5b89d56ac703991eaa77e385006b1ebffac18001f75fd92d6e8d6a3a0a4
+              ref: openspec/changes/fix-queued-evaluation-delete
+        inputHash: 33bd40709c94493f488e98b6631acc42bcae442c9416188d5557f7fafac21106
+        outcome:
+          actionId: fix-queued-evaluation-delete:3
+          attempt: 1
+          claimToken: portable-dcc15aac1d840a074d043e4811ea6031bf53ca3a278be5d683613c0982443d3b
+          inputHash: 33bd40709c94493f488e98b6631acc42bcae442c9416188d5557f7fafac21106
+          outcomeId: bf2ee2cf-7186-43c2-8fc7-b8d24b8980b0
+          output:
+            checks:
+              - name: 关联评估、任务、文件与 worker 回归（465 项）
+                note: MPLCONFIGDIR=/tmp/issue511-mpl .venv/bin/python -m pytest
+                  tests/test_evaluation_workflow_contract.py
+                  tests/test_evaluation_service_async.py
+                  tests/test_user_evaluation_concurrency.py
+                  tests/test_api_files.py tests/test_api_evaluations.py
+                  tests/test_api_database.py tests/test_evaluation_async_flow.py
+                  tests/test_celery_tasks.py tests/test_task_manager.py
+                  tests/test_evaluation_artifacts.py --no-cov -q；原运行 463
+                  passed/1 skipped/1 sandbox socket.bind
+                  failure；唯一失败已在允许本机端口环境单独补验通过，合计 464 passed、1 skipped。日志
+                  /tmp/issue511-regression.log、/tmp/issue511-broker-check.log。
+                result: passed
+              - name: 最终删除保护与能力投影回归
+                note: 最终谓词类型整理后复验 54 passed；/tmp/issue511-final-focused.log。
+                result: passed
+              - name: Ruff、Black 与 diff 空白检查
+                note: 5 个改动 Python 文件的 ruff check / black --check 及 git diff --check 均通过。
+                result: passed
+              - name: 改动实现类型检查
+                note: .venv/bin/mypy api/services/evaluation_service.py src/task_manager.py
+                  --follow-imports=silent
+                  --disable-error-code=import-untyped：Success, 2 source
+                  files。仓库依赖 Celery/scipy 缺类型桩，排除 import-untyped；原始报告
+                  /tmp/issue511-mypy.log。
+                result: passed
+              - name: OpenSpec 严格校验
+                note: comet classic openspec -- validate fix-queued-evaluation-delete
+                  --strict：valid。
+                result: passed
+              - name: 真实 PostgreSQL
+                note: TEST_POSTGRESQL_URL 未配置，连接池回归跳过；本次锁 key 与 SQL 顺序已通过真实 SQLite Session 拦截 PG
+                  SQL 的契约测试覆盖。
+                result: not-run
+              - name: 独立审查
+                note: 本 tweak Run 配置 reviewMode=off；由实施者完成规格、设计和最终差异核对，未伪称独立审查。
+                result: not-run
+            event: build-complete
+          status: succeeded
+        protocolVersion: 1
+        receipts:
+          - hash: 902477f93fd614c60b3ca6b407904b99ff084a26dc165839894865d534442bb2
+            outcomeId: bf2ee2cf-7186-43c2-8fc7-b8d24b8980b0
+        reconciliations: []
+        ref: comet-build
+        requiredCapabilities: []
+        retry: manual
+        runId: fix-queued-evaluation-delete
+        status: succeeded
+        stepId: tweak.build.execute
+        type: invoke_skill
+      - attempt: 1
+        claim:
+          executorId: comet-classic-guard
+          token: portable-30915f98afb83d58883e4cc612acf3b7329129096f556b6f722e25926ae55d4e
+        executionOrigin:
+          workflow:
+            hash: 518d3e8e12eb39899775cb7d2ddcc7ddeba10cb1f1d43cff7b03f2ca61a70c65
+            id: comet-classic-tweak
+            version: "2"
+        id: fix-queued-evaluation-delete:4
+        input:
+          input:
+            change: fix-queued-evaluation-delete
+            changeDir: openspec/changes/fix-queued-evaluation-delete
+            workspaceBaseline:
+              ref: 5dd562a2-64e2-4b42-8587-0673add35827
+          outputs:
+            tweak.build.execute:
+              checks:
+                - name: 关联评估、任务、文件与 worker 回归（465 项）
+                  note: MPLCONFIGDIR=/tmp/issue511-mpl .venv/bin/python -m pytest
+                    tests/test_evaluation_workflow_contract.py
+                    tests/test_evaluation_service_async.py
+                    tests/test_user_evaluation_concurrency.py
+                    tests/test_api_files.py tests/test_api_evaluations.py
+                    tests/test_api_database.py
+                    tests/test_evaluation_async_flow.py
+                    tests/test_celery_tasks.py tests/test_task_manager.py
+                    tests/test_evaluation_artifacts.py --no-cov -q；原运行 463
+                    passed/1 skipped/1 sandbox socket.bind
+                    failure；唯一失败已在允许本机端口环境单独补验通过，合计 464 passed、1 skipped。日志
+                    /tmp/issue511-regression.log、/tmp/issue511-broker-check.log。
+                  result: passed
+                - name: 最终删除保护与能力投影回归
+                  note: 最终谓词类型整理后复验 54 passed；/tmp/issue511-final-focused.log。
+                  result: passed
+                - name: Ruff、Black 与 diff 空白检查
+                  note: 5 个改动 Python 文件的 ruff check / black --check 及 git diff --check 均通过。
+                  result: passed
+                - name: 改动实现类型检查
+                  note: .venv/bin/mypy api/services/evaluation_service.py src/task_manager.py
+                    --follow-imports=silent
+                    --disable-error-code=import-untyped：Success, 2 source
+                    files。仓库依赖 Celery/scipy 缺类型桩，排除 import-untyped；原始报告
+                    /tmp/issue511-mypy.log。
+                  result: passed
+                - name: OpenSpec 严格校验
+                  note: comet classic openspec -- validate fix-queued-evaluation-delete
+                    --strict：valid。
+                  result: passed
+                - name: 真实 PostgreSQL
+                  note: TEST_POSTGRESQL_URL 未配置，连接池回归跳过；本次锁 key 与 SQL 顺序已通过真实 SQLite Session 拦截 PG
+                    SQL 的契约测试覆盖。
+                  result: not-run
+                - name: 独立审查
+                  note: 本 tweak Run 配置 reviewMode=off；由实施者完成规格、设计和最终差异核对，未伪称独立审查。
+                  result: not-run
+              event: build-complete
+            tweak.open:
+              event: open-complete
+              requirementsEvidence:
+                ref: openspec/changes/fix-queued-evaluation-delete
+            tweak.open.evidence:
+              contentHash: 19b7c5b89d56ac703991eaa77e385006b1ebffac18001f75fd92d6e8d6a3a0a4
+              ref: openspec/changes/fix-queued-evaluation-delete
+        inputHash: 46f965164dbe430b989b9a48bb1874b3274c026ad011c5bf4a049d409cee3b72
+        outcome:
+          actionId: fix-queued-evaluation-delete:4
+          attempt: 1
+          claimToken: portable-30915f98afb83d58883e4cc612acf3b7329129096f556b6f722e25926ae55d4e
+          inputHash: 46f965164dbe430b989b9a48bb1874b3274c026ad011c5bf4a049d409cee3b72
+          outcomeId: bd09dd6d-e1fe-4f63-9f53-61e51f46bf8b
+          output:
+            checks:
+              - name: 关联评估、任务、文件与 worker 回归（465 项）
+                note: MPLCONFIGDIR=/tmp/issue511-mpl .venv/bin/python -m pytest
+                  tests/test_evaluation_workflow_contract.py
+                  tests/test_evaluation_service_async.py
+                  tests/test_user_evaluation_concurrency.py
+                  tests/test_api_files.py tests/test_api_evaluations.py
+                  tests/test_api_database.py tests/test_evaluation_async_flow.py
+                  tests/test_celery_tasks.py tests/test_task_manager.py
+                  tests/test_evaluation_artifacts.py --no-cov -q；原运行 463
+                  passed/1 skipped/1 sandbox socket.bind
+                  failure；唯一失败已在允许本机端口环境单独补验通过，合计 464 passed、1 skipped。日志
+                  /tmp/issue511-regression.log、/tmp/issue511-broker-check.log。
+                result: passed
+              - name: 最终删除保护与能力投影回归
+                note: 最终谓词类型整理后复验 54 passed；/tmp/issue511-final-focused.log。
+                result: passed
+              - name: Ruff、Black 与 diff 空白检查
+                note: 5 个改动 Python 文件的 ruff check / black --check 及 git diff --check 均通过。
+                result: passed
+              - name: 改动实现类型检查
+                note: .venv/bin/mypy api/services/evaluation_service.py src/task_manager.py
+                  --follow-imports=silent
+                  --disable-error-code=import-untyped：Success, 2 source
+                  files。仓库依赖 Celery/scipy 缺类型桩，排除 import-untyped；原始报告
+                  /tmp/issue511-mypy.log。
+                result: passed
+              - name: OpenSpec 严格校验
+                note: comet classic openspec -- validate fix-queued-evaluation-delete
+                  --strict：valid。
+                result: passed
+              - name: 真实 PostgreSQL
+                note: TEST_POSTGRESQL_URL 未配置，连接池回归跳过；本次锁 key 与 SQL 顺序已通过真实 SQLite Session 拦截 PG
+                  SQL 的契约测试覆盖。
+                result: not-run
+              - name: 独立审查
+                note: 本 tweak Run 配置 reviewMode=off；由实施者完成规格、设计和最终差异核对，未伪称独立审查。
+                result: not-run
+            event: verification-ready
+            verificationReport: docs/superpowers/reports/2026-11-23-fix-queued-evaluation-delete-verify.md
+          status: succeeded
+        protocolVersion: 1
+        receipts:
+          - hash: be20caa04f8d97953c165587b585286b64d2ac316a13a163630bab3aed7c273e
+            outcomeId: bd09dd6d-e1fe-4f63-9f53-61e51f46bf8b
+        reconciliations: []
+        ref: comet-verify
+        requiredCapabilities: []
+        retry: manual
+        runId: fix-queued-evaluation-delete
+        status: succeeded
+        stepId: tweak.verify.run
+        type: invoke_skill
+      - attempt: 1
+        claim:
+          executorId: comet-classic-state
+          token: portable-f0cf5a0397c0ee1c8a146e11607908c6418847026c570c214bd818413a92affe
+        executionOrigin:
+          workflow:
+            hash: 518d3e8e12eb39899775cb7d2ddcc7ddeba10cb1f1d43cff7b03f2ca61a70c65
+            id: comet-classic-tweak
+            version: "2"
+        id: fix-queued-evaluation-delete:6
+        input:
+          input:
+            change: fix-queued-evaluation-delete
+            changeDir: openspec/changes/fix-queued-evaluation-delete
+            workspaceBaseline:
+              ref: 5dd562a2-64e2-4b42-8587-0673add35827
+          outputs:
+            tweak.build.execute:
+              checks:
+                - name: 关联评估、任务、文件与 worker 回归（465 项）
+                  note: MPLCONFIGDIR=/tmp/issue511-mpl .venv/bin/python -m pytest
+                    tests/test_evaluation_workflow_contract.py
+                    tests/test_evaluation_service_async.py
+                    tests/test_user_evaluation_concurrency.py
+                    tests/test_api_files.py tests/test_api_evaluations.py
+                    tests/test_api_database.py
+                    tests/test_evaluation_async_flow.py
+                    tests/test_celery_tasks.py tests/test_task_manager.py
+                    tests/test_evaluation_artifacts.py --no-cov -q；原运行 463
+                    passed/1 skipped/1 sandbox socket.bind
+                    failure；唯一失败已在允许本机端口环境单独补验通过，合计 464 passed、1 skipped。日志
+                    /tmp/issue511-regression.log、/tmp/issue511-broker-check.log。
+                  result: passed
+                - name: 最终删除保护与能力投影回归
+                  note: 最终谓词类型整理后复验 54 passed；/tmp/issue511-final-focused.log。
+                  result: passed
+                - name: Ruff、Black 与 diff 空白检查
+                  note: 5 个改动 Python 文件的 ruff check / black --check 及 git diff --check 均通过。
+                  result: passed
+                - name: 改动实现类型检查
+                  note: .venv/bin/mypy api/services/evaluation_service.py src/task_manager.py
+                    --follow-imports=silent
+                    --disable-error-code=import-untyped：Success, 2 source
+                    files。仓库依赖 Celery/scipy 缺类型桩，排除 import-untyped；原始报告
+                    /tmp/issue511-mypy.log。
+                  result: passed
+                - name: OpenSpec 严格校验
+                  note: comet classic openspec -- validate fix-queued-evaluation-delete
+                    --strict：valid。
+                  result: passed
+                - name: 真实 PostgreSQL
+                  note: TEST_POSTGRESQL_URL 未配置，连接池回归跳过；本次锁 key 与 SQL 顺序已通过真实 SQLite Session 拦截 PG
+                    SQL 的契约测试覆盖。
+                  result: not-run
+                - name: 独立审查
+                  note: 本 tweak Run 配置 reviewMode=off；由实施者完成规格、设计和最终差异核对，未伪称独立审查。
+                  result: not-run
+              event: build-complete
+            tweak.open:
+              event: open-complete
+              requirementsEvidence:
+                ref: openspec/changes/fix-queued-evaluation-delete
+            tweak.open.evidence:
+              contentHash: 19b7c5b89d56ac703991eaa77e385006b1ebffac18001f75fd92d6e8d6a3a0a4
+              ref: openspec/changes/fix-queued-evaluation-delete
+            tweak.verify.report.evidence:
+              contentHash: 46f965164dbe430b989b9a48bb1874b3274c026ad011c5bf4a049d409cee3b72
+              ref: docs/superpowers/reports/2026-11-23-fix-queued-evaluation-delete-verify.md
+            tweak.verify.run:
+              checks:
+                - name: 关联评估、任务、文件与 worker 回归（465 项）
+                  note: MPLCONFIGDIR=/tmp/issue511-mpl .venv/bin/python -m pytest
+                    tests/test_evaluation_workflow_contract.py
+                    tests/test_evaluation_service_async.py
+                    tests/test_user_evaluation_concurrency.py
+                    tests/test_api_files.py tests/test_api_evaluations.py
+                    tests/test_api_database.py
+                    tests/test_evaluation_async_flow.py
+                    tests/test_celery_tasks.py tests/test_task_manager.py
+                    tests/test_evaluation_artifacts.py --no-cov -q；原运行 463
+                    passed/1 skipped/1 sandbox socket.bind
+                    failure；唯一失败已在允许本机端口环境单独补验通过，合计 464 passed、1 skipped。日志
+                    /tmp/issue511-regression.log、/tmp/issue511-broker-check.log。
+                  result: passed
+                - name: 最终删除保护与能力投影回归
+                  note: 最终谓词类型整理后复验 54 passed；/tmp/issue511-final-focused.log。
+                  result: passed
+                - name: Ruff、Black 与 diff 空白检查
+                  note: 5 个改动 Python 文件的 ruff check / black --check 及 git diff --check 均通过。
+                  result: passed
+                - name: 改动实现类型检查
+                  note: .venv/bin/mypy api/services/evaluation_service.py src/task_manager.py
+                    --follow-imports=silent
+                    --disable-error-code=import-untyped：Success, 2 source
+                    files。仓库依赖 Celery/scipy 缺类型桩，排除 import-untyped；原始报告
+                    /tmp/issue511-mypy.log。
+                  result: passed
+                - name: OpenSpec 严格校验
+                  note: comet classic openspec -- validate fix-queued-evaluation-delete
+                    --strict：valid。
+                  result: passed
+                - name: 真实 PostgreSQL
+                  note: TEST_POSTGRESQL_URL 未配置，连接池回归跳过；本次锁 key 与 SQL 顺序已通过真实 SQLite Session 拦截 PG
+                    SQL 的契约测试覆盖。
+                  result: not-run
+                - name: 独立审查
+                  note: 本 tweak Run 配置 reviewMode=off；由实施者完成规格、设计和最终差异核对，未伪称独立审查。
+                  result: not-run
+              event: verification-ready
+              verificationReport: docs/superpowers/reports/2026-11-23-fix-queued-evaluation-delete-verify.md
+        inputHash: 94fc207697059b6e2d2102dad90a5475ddcd829db3e024b7d2a6db8f05a8b3f8
+        outcome:
+          actionId: fix-queued-evaluation-delete:6
+          attempt: 1
+          claimToken: portable-f0cf5a0397c0ee1c8a146e11607908c6418847026c570c214bd818413a92affe
+          inputHash: 94fc207697059b6e2d2102dad90a5475ddcd829db3e024b7d2a6db8f05a8b3f8
+          outcomeId: e1517933-c34a-4392-81e1-95bc90445bc0
+          output:
+            prBaseBranch: main
+            remote: origin
+            summary: "Issue #511 已实施并通过 Verify。归档本 change 并同步 api/evaluation-execution
+              的两条删除保护要求；交付包含 5 个源码/测试文件、验收报告与工作流产物，无无关修改。当前绑定 main，local
+              创建本地归档提交，push 推送 origin/main；PR 目标为 origin/main，需使用独立 change 分支后创建
+              PR。关联回归合计 464 passed、1 PostgreSQL skipped，最终专项 54 passed；真实 PG
+              与付费模型未运行。"
+            targetBranch: main
+          status: succeeded
+        protocolVersion: 1
+        receipts:
+          - hash: e20673b002967d82ebc66bedff64cfa94017b04b05b4cdd2b739f8340b396568
+            outcomeId: e1517933-c34a-4392-81e1-95bc90445bc0
+        reconciliations: []
+        ref: comet-archive
+        requiredCapabilities: []
+        retry: manual
+        runId: fix-queued-evaluation-delete
+        status: succeeded
+        stepId: tweak.archive.prepare
+        type: invoke_skill
+      - attempt: 1
+        claim:
+          executorId: comet-classic-guard
+          token: portable-1b7387dfca4f596bc2047f5847e9398394437f0a68f672527cb800c2708d6de4
+        executionOrigin:
+          workflow:
+            hash: d1e067bc00ca13395dbc6f701565417c3e227f17a57df025dd73ebda905e2638
+            id: comet-classic-tweak
+            version: "2"
+        id: fix-queued-evaluation-delete:8
+        input:
+          activation:
+            expectedRevision: 12
+            fromPhase: archive
+          input:
+            change: fix-queued-evaluation-delete
+            changeDir: openspec/changes/fix-queued-evaluation-delete
+            workspaceBaseline:
+              ref: 5dd562a2-64e2-4b42-8587-0673add35827
+          outputs: {}
+        inputHash: bb9ce1a43dc47149b4691b2cd7e966ffbc3b5856523d7327543ccc27a2f296f3
+        outcome:
+          actionId: fix-queued-evaluation-delete:8
+          attempt: 1
+          claimToken: portable-1b7387dfca4f596bc2047f5847e9398394437f0a68f672527cb800c2708d6de4
+          inputHash: bb9ce1a43dc47149b4691b2cd7e966ffbc3b5856523d7327543ccc27a2f296f3
+          outcomeId: a59176ac-229a-4796-a89e-8e8149b8e029
+          output:
+            checks:
+              - name: 关联评估、任务、文件与 worker 回归（465 项）
+                note: MPLCONFIGDIR=/tmp/issue511-mpl .venv/bin/python -m pytest
+                  tests/test_evaluation_workflow_contract.py
+                  tests/test_evaluation_service_async.py
+                  tests/test_user_evaluation_concurrency.py
+                  tests/test_api_files.py tests/test_api_evaluations.py
+                  tests/test_api_database.py tests/test_evaluation_async_flow.py
+                  tests/test_celery_tasks.py tests/test_task_manager.py
+                  tests/test_evaluation_artifacts.py --no-cov -q；原运行 463
+                  passed/1 skipped/1 sandbox socket.bind
+                  failure；唯一失败已在允许本机端口环境单独补验通过，合计 464 passed、1 skipped。日志
+                  /tmp/issue511-regression.log、/tmp/issue511-broker-check.log。
+                result: passed
+              - name: 最终删除保护与能力投影回归
+                note: 最终谓词类型整理后复验 54 passed；/tmp/issue511-final-focused.log。
+                result: passed
+              - name: Ruff、Black 与 diff 空白检查
+                note: 5 个改动 Python 文件的 ruff check / black --check 及 git diff --check 均通过。
+                result: passed
+              - name: 改动实现类型检查
+                note: .venv/bin/mypy api/services/evaluation_service.py src/task_manager.py
+                  --follow-imports=silent
+                  --disable-error-code=import-untyped：Success, 2 source
+                  files。仓库依赖 Celery/scipy 缺类型桩，排除 import-untyped；原始报告
+                  /tmp/issue511-mypy.log。
+                result: passed
+              - name: OpenSpec 严格校验
+                note: comet classic openspec -- validate fix-queued-evaluation-delete
+                  --strict：valid。
+                result: passed
+              - name: 真实 PostgreSQL
+                note: TEST_POSTGRESQL_URL 未配置，连接池回归跳过；本次锁 key 与 SQL 顺序已通过真实 SQLite Session 拦截 PG
+                  SQL 的契约测试覆盖。
+                result: not-run
+              - name: 独立审查
+                note: 本 tweak Run 配置 reviewMode=off；由实施者完成规格、设计和最终差异核对，未伪称独立审查。
+                result: not-run
+            event: verification-ready
+            verificationReport: docs/superpowers/reports/2026-11-23-fix-queued-evaluation-delete-verify.md
+          status: succeeded
+        protocolVersion: 1
+        receipts:
+          - hash: 3266ce11f51c5aae0a4735470536a0706f3512a4cc77ee0f4aaa154c7d55b870
+            outcomeId: a59176ac-229a-4796-a89e-8e8149b8e029
+        reconciliations: []
+        ref: comet-verify
+        requiredCapabilities: []
+        retry: manual
+        runId: fix-queued-evaluation-delete
+        status: succeeded
+        stepId: tweak.verify.run
+        type: invoke_skill
+      - attempt: 1
+        claim:
+          executorId: comet-classic-state
+          token: portable-fd790f33e8d84b32f9b3c5e8dff2536fa26a8acd3cf5f2ab927b15f80f74a30a
+        executionOrigin:
+          workflow:
+            hash: d1e067bc00ca13395dbc6f701565417c3e227f17a57df025dd73ebda905e2638
+            id: comet-classic-tweak
+            version: "2"
+        id: fix-queued-evaluation-delete:10
+        input:
+          input:
+            change: fix-queued-evaluation-delete
+            changeDir: openspec/changes/fix-queued-evaluation-delete
+            workspaceBaseline:
+              ref: 5dd562a2-64e2-4b42-8587-0673add35827
+          outputs:
+            tweak.verify.report.evidence:
+              contentHash: bb9ce1a43dc47149b4691b2cd7e966ffbc3b5856523d7327543ccc27a2f296f3
+              ref: docs/superpowers/reports/2026-11-23-fix-queued-evaluation-delete-verify.md
+            tweak.verify.run:
+              checks:
+                - name: 关联评估、任务、文件与 worker 回归（465 项）
+                  note: MPLCONFIGDIR=/tmp/issue511-mpl .venv/bin/python -m pytest
+                    tests/test_evaluation_workflow_contract.py
+                    tests/test_evaluation_service_async.py
+                    tests/test_user_evaluation_concurrency.py
+                    tests/test_api_files.py tests/test_api_evaluations.py
+                    tests/test_api_database.py
+                    tests/test_evaluation_async_flow.py
+                    tests/test_celery_tasks.py tests/test_task_manager.py
+                    tests/test_evaluation_artifacts.py --no-cov -q；原运行 463
+                    passed/1 skipped/1 sandbox socket.bind
+                    failure；唯一失败已在允许本机端口环境单独补验通过，合计 464 passed、1 skipped。日志
+                    /tmp/issue511-regression.log、/tmp/issue511-broker-check.log。
+                  result: passed
+                - name: 最终删除保护与能力投影回归
+                  note: 最终谓词类型整理后复验 54 passed；/tmp/issue511-final-focused.log。
+                  result: passed
+                - name: Ruff、Black 与 diff 空白检查
+                  note: 5 个改动 Python 文件的 ruff check / black --check 及 git diff --check 均通过。
+                  result: passed
+                - name: 改动实现类型检查
+                  note: .venv/bin/mypy api/services/evaluation_service.py src/task_manager.py
+                    --follow-imports=silent
+                    --disable-error-code=import-untyped：Success, 2 source
+                    files。仓库依赖 Celery/scipy 缺类型桩，排除 import-untyped；原始报告
+                    /tmp/issue511-mypy.log。
+                  result: passed
+                - name: OpenSpec 严格校验
+                  note: comet classic openspec -- validate fix-queued-evaluation-delete
+                    --strict：valid。
+                  result: passed
+                - name: 真实 PostgreSQL
+                  note: TEST_POSTGRESQL_URL 未配置，连接池回归跳过；本次锁 key 与 SQL 顺序已通过真实 SQLite Session 拦截 PG
+                    SQL 的契约测试覆盖。
+                  result: not-run
+                - name: 独立审查
+                  note: 本 tweak Run 配置 reviewMode=off；由实施者完成规格、设计和最终差异核对，未伪称独立审查。
+                  result: not-run
+              event: verification-ready
+              verificationReport: docs/superpowers/reports/2026-11-23-fix-queued-evaluation-delete-verify.md
+        inputHash: b231eae9edaf2878d0cf281a243928029ba9ab23582384be16fa9ec5ca95b360
+        outcome:
+          actionId: fix-queued-evaluation-delete:10
+          attempt: 1
+          claimToken: portable-fd790f33e8d84b32f9b3c5e8dff2536fa26a8acd3cf5f2ab927b15f80f74a30a
+          inputHash: b231eae9edaf2878d0cf281a243928029ba9ab23582384be16fa9ec5ca95b360
+          outcomeId: cd8f87b4-863f-49b2-846d-6be7e56208b3
+          output:
+            prBaseBranch: main
+            remote: origin
+            summary: 按用户选项 3 交付：归档本 change、同步两条删除保护要求，在 codex/fix-queued-evaluation-delete
+              创建归档提交，推送 origin/codex/fix-queued-evaluation-delete 并创建面向 main 的
+              PR。交付包括 5 个源码/测试文件、验收报告及本次工作流产物；无实现变化，沿用 464 passed/1 PostgreSQL
+              skipped、最终专项 54 passed 的验证证据。
+            targetBranch: codex/fix-queued-evaluation-delete
+          status: succeeded
+        protocolVersion: 1
+        receipts:
+          - hash: ecee3dd2e39a294ea3aa0e1fb2d58bd7971e8440e2444739ca62f09ce0ae1271
+            outcomeId: cd8f87b4-863f-49b2-846d-6be7e56208b3
+        reconciliations: []
+        ref: comet-archive
+        requiredCapabilities: []
+        retry: manual
+        runId: fix-queued-evaluation-delete
+        status: succeeded
+        stepId: tweak.archive.prepare
+        type: invoke_skill
+      - attempt: 1
+        claim:
+          executorId: comet-classic-archive-preflight
+          token: portable-31fbef0b4babf87dd8e05c1563469b407a81fc3ab44dea3251f37e3bfe1059ed
+        executionOrigin:
+          workflow:
+            hash: d1e067bc00ca13395dbc6f701565417c3e227f17a57df025dd73ebda905e2638
+            id: comet-classic-tweak
+            version: "2"
+        id: fix-queued-evaluation-delete:12
+        input:
+          input:
+            change: fix-queued-evaluation-delete
+            changeDir: openspec/changes/fix-queued-evaluation-delete
+            workspaceBaseline:
+              ref: 5dd562a2-64e2-4b42-8587-0673add35827
+          outputs:
+            tweak.archive.confirm:
+              choice: pr
+              proposal:
+                input:
+                  change: fix-queued-evaluation-delete
+                  changeDir: openspec/changes/fix-queued-evaluation-delete
+                  workspaceBaseline:
+                    ref: 5dd562a2-64e2-4b42-8587-0673add35827
+                outputs:
+                  tweak.archive.prepare:
+                    prBaseBranch: main
+                    remote: origin
+                    summary: 按用户选项 3 交付：归档本 change、同步两条删除保护要求，在 codex/fix-queued-evaluation-delete
+                      创建归档提交，推送 origin/codex/fix-queued-evaluation-delete 并创建面向
+                      main 的 PR。交付包括 5 个源码/测试文件、验收报告及本次工作流产物；无实现变化，沿用 464
+                      passed/1 PostgreSQL skipped、最终专项 54 passed 的验证证据。
+                    targetBranch: codex/fix-queued-evaluation-delete
+            tweak.archive.prepare:
+              prBaseBranch: main
+              remote: origin
+              summary: 按用户选项 3 交付：归档本 change、同步两条删除保护要求，在 codex/fix-queued-evaluation-delete
+                创建归档提交，推送 origin/codex/fix-queued-evaluation-delete 并创建面向 main 的
+                PR。交付包括 5 个源码/测试文件、验收报告及本次工作流产物；无实现变化，沿用 464 passed/1 PostgreSQL
+                skipped、最终专项 54 passed 的验证证据。
+              targetBranch: codex/fix-queued-evaluation-delete
+            tweak.verify.report.evidence:
+              contentHash: bb9ce1a43dc47149b4691b2cd7e966ffbc3b5856523d7327543ccc27a2f296f3
+              ref: docs/superpowers/reports/2026-11-23-fix-queued-evaluation-delete-verify.md
+            tweak.verify.run:
+              checks:
+                - name: 关联评估、任务、文件与 worker 回归（465 项）
+                  note: MPLCONFIGDIR=/tmp/issue511-mpl .venv/bin/python -m pytest
+                    tests/test_evaluation_workflow_contract.py
+                    tests/test_evaluation_service_async.py
+                    tests/test_user_evaluation_concurrency.py
+                    tests/test_api_files.py tests/test_api_evaluations.py
+                    tests/test_api_database.py
+                    tests/test_evaluation_async_flow.py
+                    tests/test_celery_tasks.py tests/test_task_manager.py
+                    tests/test_evaluation_artifacts.py --no-cov -q；原运行 463
+                    passed/1 skipped/1 sandbox socket.bind
+                    failure；唯一失败已在允许本机端口环境单独补验通过，合计 464 passed、1 skipped。日志
+                    /tmp/issue511-regression.log、/tmp/issue511-broker-check.log。
+                  result: passed
+                - name: 最终删除保护与能力投影回归
+                  note: 最终谓词类型整理后复验 54 passed；/tmp/issue511-final-focused.log。
+                  result: passed
+                - name: Ruff、Black 与 diff 空白检查
+                  note: 5 个改动 Python 文件的 ruff check / black --check 及 git diff --check 均通过。
+                  result: passed
+                - name: 改动实现类型检查
+                  note: .venv/bin/mypy api/services/evaluation_service.py src/task_manager.py
+                    --follow-imports=silent
+                    --disable-error-code=import-untyped：Success, 2 source
+                    files。仓库依赖 Celery/scipy 缺类型桩，排除 import-untyped；原始报告
+                    /tmp/issue511-mypy.log。
+                  result: passed
+                - name: OpenSpec 严格校验
+                  note: comet classic openspec -- validate fix-queued-evaluation-delete
+                    --strict：valid。
+                  result: passed
+                - name: 真实 PostgreSQL
+                  note: TEST_POSTGRESQL_URL 未配置，连接池回归跳过；本次锁 key 与 SQL 顺序已通过真实 SQLite Session 拦截 PG
+                    SQL 的契约测试覆盖。
+                  result: not-run
+                - name: 独立审查
+                  note: 本 tweak Run 配置 reviewMode=off；由实施者完成规格、设计和最终差异核对，未伪称独立审查。
+                  result: not-run
+              event: verification-ready
+              verificationReport: docs/superpowers/reports/2026-11-23-fix-queued-evaluation-delete-verify.md
+        inputHash: 23a1a9947568bd0ec5e26989a969ee720ad61bcae44055879b3e37802c84c20b
+        outcome:
+          actionId: fix-queued-evaluation-delete:12
+          attempt: 1
+          claimToken: portable-31fbef0b4babf87dd8e05c1563469b407a81fc3ab44dea3251f37e3bfe1059ed
+          inputHash: 23a1a9947568bd0ec5e26989a969ee720ad61bcae44055879b3e37802c84c20b
+          outcomeId: 98ecaa70-cecf-4bc1-9bd0-cc69954d0854
+          output:
+            baseCommit: e4e37886f98ec2b9e2a7a8fdd36d32bf95b2c883
+            deliveryAction: pr
+            deliveryPaths:
+              - api/services/evaluation_service.py
+              - src/task_manager.py
+              - tests/test_api_files.py
+              - tests/test_evaluation_service_async.py
+              - tests/test_evaluation_workflow_contract.py
+            prBaseBranch: main
+            remote: origin
+            remoteIdentity: 128eeb1e6f0d21b25601fcb7f9aad36adfdfb4d76f37f54f004760410190f351
+            targetBranch: codex/fix-queued-evaluation-delete
+            verifiedBranch: codex/fix-queued-evaluation-delete
+          status: succeeded
+        protocolVersion: 1
+        receipts:
+          - hash: e5c3a82186dacfae063bf06d055f3340f9ffacb5ca326adc790e809b8d039402
+            outcomeId: 98ecaa70-cecf-4bc1-9bd0-cc69954d0854
+        reconciliations: []
+        ref: classic-archive-preflight
+        requiredCapabilities: []
+        retry: manual
+        runId: fix-queued-evaluation-delete
+        status: succeeded
+        stepId: tweak.archive.preflight
+        type: call_tool
+      - attempt: 1
+        claim:
+          executorId: comet-classic-archive
+          token: portable-2f54207107da7365443ee8a6394df9d369fec9317b161f3969d620cd87c069f2
+        executionOrigin:
+          workflow:
+            hash: d1e067bc00ca13395dbc6f701565417c3e227f17a57df025dd73ebda905e2638
+            id: comet-classic-tweak
+            version: "2"
+        id: fix-queued-evaluation-delete:13
+        input:
+          input:
+            change: fix-queued-evaluation-delete
+            changeDir: openspec/changes/fix-queued-evaluation-delete
+            workspaceBaseline:
+              ref: 5dd562a2-64e2-4b42-8587-0673add35827
+          outputs:
+            tweak.archive.confirm:
+              choice: pr
+              proposal:
+                input:
+                  change: fix-queued-evaluation-delete
+                  changeDir: openspec/changes/fix-queued-evaluation-delete
+                  workspaceBaseline:
+                    ref: 5dd562a2-64e2-4b42-8587-0673add35827
+                outputs:
+                  tweak.archive.prepare:
+                    prBaseBranch: main
+                    remote: origin
+                    summary: 按用户选项 3 交付：归档本 change、同步两条删除保护要求，在 codex/fix-queued-evaluation-delete
+                      创建归档提交，推送 origin/codex/fix-queued-evaluation-delete 并创建面向
+                      main 的 PR。交付包括 5 个源码/测试文件、验收报告及本次工作流产物；无实现变化，沿用 464
+                      passed/1 PostgreSQL skipped、最终专项 54 passed 的验证证据。
+                    targetBranch: codex/fix-queued-evaluation-delete
+            tweak.archive.preflight:
+              baseCommit: e4e37886f98ec2b9e2a7a8fdd36d32bf95b2c883
+              deliveryAction: pr
+              deliveryPaths:
+                - api/services/evaluation_service.py
+                - src/task_manager.py
+                - tests/test_api_files.py
+                - tests/test_evaluation_service_async.py
+                - tests/test_evaluation_workflow_contract.py
+              prBaseBranch: main
+              remote: origin
+              remoteIdentity: 128eeb1e6f0d21b25601fcb7f9aad36adfdfb4d76f37f54f004760410190f351
+              targetBranch: codex/fix-queued-evaluation-delete
+              verifiedBranch: codex/fix-queued-evaluation-delete
+            tweak.archive.prepare:
+              prBaseBranch: main
+              remote: origin
+              summary: 按用户选项 3 交付：归档本 change、同步两条删除保护要求，在 codex/fix-queued-evaluation-delete
+                创建归档提交，推送 origin/codex/fix-queued-evaluation-delete 并创建面向 main 的
+                PR。交付包括 5 个源码/测试文件、验收报告及本次工作流产物；无实现变化，沿用 464 passed/1 PostgreSQL
+                skipped、最终专项 54 passed 的验证证据。
+              targetBranch: codex/fix-queued-evaluation-delete
+            tweak.verify.report.evidence:
+              contentHash: bb9ce1a43dc47149b4691b2cd7e966ffbc3b5856523d7327543ccc27a2f296f3
+              ref: docs/superpowers/reports/2026-11-23-fix-queued-evaluation-delete-verify.md
+            tweak.verify.run:
+              checks:
+                - name: 关联评估、任务、文件与 worker 回归（465 项）
+                  note: MPLCONFIGDIR=/tmp/issue511-mpl .venv/bin/python -m pytest
+                    tests/test_evaluation_workflow_contract.py
+                    tests/test_evaluation_service_async.py
+                    tests/test_user_evaluation_concurrency.py
+                    tests/test_api_files.py tests/test_api_evaluations.py
+                    tests/test_api_database.py
+                    tests/test_evaluation_async_flow.py
+                    tests/test_celery_tasks.py tests/test_task_manager.py
+                    tests/test_evaluation_artifacts.py --no-cov -q；原运行 463
+                    passed/1 skipped/1 sandbox socket.bind
+                    failure；唯一失败已在允许本机端口环境单独补验通过，合计 464 passed、1 skipped。日志
+                    /tmp/issue511-regression.log、/tmp/issue511-broker-check.log。
+                  result: passed
+                - name: 最终删除保护与能力投影回归
+                  note: 最终谓词类型整理后复验 54 passed；/tmp/issue511-final-focused.log。
+                  result: passed
+                - name: Ruff、Black 与 diff 空白检查
+                  note: 5 个改动 Python 文件的 ruff check / black --check 及 git diff --check 均通过。
+                  result: passed
+                - name: 改动实现类型检查
+                  note: .venv/bin/mypy api/services/evaluation_service.py src/task_manager.py
+                    --follow-imports=silent
+                    --disable-error-code=import-untyped：Success, 2 source
+                    files。仓库依赖 Celery/scipy 缺类型桩，排除 import-untyped；原始报告
+                    /tmp/issue511-mypy.log。
+                  result: passed
+                - name: OpenSpec 严格校验
+                  note: comet classic openspec -- validate fix-queued-evaluation-delete
+                    --strict：valid。
+                  result: passed
+                - name: 真实 PostgreSQL
+                  note: TEST_POSTGRESQL_URL 未配置，连接池回归跳过；本次锁 key 与 SQL 顺序已通过真实 SQLite Session 拦截 PG
+                    SQL 的契约测试覆盖。
+                  result: not-run
+                - name: 独立审查
+                  note: 本 tweak Run 配置 reviewMode=off；由实施者完成规格、设计和最终差异核对，未伪称独立审查。
+                  result: not-run
+              event: verification-ready
+              verificationReport: docs/superpowers/reports/2026-11-23-fix-queued-evaluation-delete-verify.md
+        inputHash: 4e57605a86f37aac40942949583b69835ef913f7b2e2ec648250b46319cb3300
+        outcome:
+          actionId: fix-queued-evaluation-delete:13
+          artifacts: []
+          attempt: 1
+          claimToken: portable-2f54207107da7365443ee8a6394df9d369fec9317b161f3969d620cd87c069f2
+          inputHash: 4e57605a86f37aac40942949583b69835ef913f7b2e2ec648250b46319cb3300
+          outcomeId: d18329b3-69de-4012-a378-e94213e9af7e
+          output:
+            archiveDirectory: openspec/changes/archive/2026-11-23-fix-queued-evaluation-delete
+          status: succeeded
+        protocolVersion: 1
+        receipts:
+          - hash: ec5e69700fb2fe2a2de4252253a4c1353daf94bb48088bdd087ad43aa515d2b8
+            outcomeId: d18329b3-69de-4012-a378-e94213e9af7e
+        reconciliations: []
+        ref: classic-archive
+        requiredCapabilities: []
+        retry: manual
+        runId: fix-queued-evaluation-delete
+        status: succeeded
+        stepId: tweak.archive.execute
+        type: call_tool
+      - attempt: 1
+        id: fix-queued-evaluation-delete:14
+        input:
+          input:
+            change: fix-queued-evaluation-delete
+            changeDir: openspec/changes/fix-queued-evaluation-delete
+            workspaceBaseline:
+              ref: 5dd562a2-64e2-4b42-8587-0673add35827
+          outputs:
+            tweak.archive.confirm:
+              choice: pr
+              proposal:
+                input:
+                  change: fix-queued-evaluation-delete
+                  changeDir: openspec/changes/fix-queued-evaluation-delete
+                  workspaceBaseline:
+                    ref: 5dd562a2-64e2-4b42-8587-0673add35827
+                outputs:
+                  tweak.archive.prepare:
+                    prBaseBranch: main
+                    remote: origin
+                    summary: 按用户选项 3 交付：归档本 change、同步两条删除保护要求，在 codex/fix-queued-evaluation-delete
+                      创建归档提交，推送 origin/codex/fix-queued-evaluation-delete 并创建面向
+                      main 的 PR。交付包括 5 个源码/测试文件、验收报告及本次工作流产物；无实现变化，沿用 464
+                      passed/1 PostgreSQL skipped、最终专项 54 passed 的验证证据。
+                    targetBranch: codex/fix-queued-evaluation-delete
+            tweak.archive.execute:
+              archiveDirectory: openspec/changes/archive/2026-11-23-fix-queued-evaluation-delete
+            tweak.archive.preflight:
+              baseCommit: e4e37886f98ec2b9e2a7a8fdd36d32bf95b2c883
+              deliveryAction: pr
+              deliveryPaths:
+                - api/services/evaluation_service.py
+                - src/task_manager.py
+                - tests/test_api_files.py
+                - tests/test_evaluation_service_async.py
+                - tests/test_evaluation_workflow_contract.py
+              prBaseBranch: main
+              remote: origin
+              remoteIdentity: 128eeb1e6f0d21b25601fcb7f9aad36adfdfb4d76f37f54f004760410190f351
+              targetBranch: codex/fix-queued-evaluation-delete
+              verifiedBranch: codex/fix-queued-evaluation-delete
+            tweak.archive.prepare:
+              prBaseBranch: main
+              remote: origin
+              summary: 按用户选项 3 交付：归档本 change、同步两条删除保护要求，在 codex/fix-queued-evaluation-delete
+                创建归档提交，推送 origin/codex/fix-queued-evaluation-delete 并创建面向 main 的
+                PR。交付包括 5 个源码/测试文件、验收报告及本次工作流产物；无实现变化，沿用 464 passed/1 PostgreSQL
+                skipped、最终专项 54 passed 的验证证据。
+              targetBranch: codex/fix-queued-evaluation-delete
+            tweak.verify.report.evidence:
+              contentHash: bb9ce1a43dc47149b4691b2cd7e966ffbc3b5856523d7327543ccc27a2f296f3
+              ref: docs/superpowers/reports/2026-11-23-fix-queued-evaluation-delete-verify.md
+            tweak.verify.run:
+              checks:
+                - name: 关联评估、任务、文件与 worker 回归（465 项）
+                  note: MPLCONFIGDIR=/tmp/issue511-mpl .venv/bin/python -m pytest
+                    tests/test_evaluation_workflow_contract.py
+                    tests/test_evaluation_service_async.py
+                    tests/test_user_evaluation_concurrency.py
+                    tests/test_api_files.py tests/test_api_evaluations.py
+                    tests/test_api_database.py
+                    tests/test_evaluation_async_flow.py
+                    tests/test_celery_tasks.py tests/test_task_manager.py
+                    tests/test_evaluation_artifacts.py --no-cov -q；原运行 463
+                    passed/1 skipped/1 sandbox socket.bind
+                    failure；唯一失败已在允许本机端口环境单独补验通过，合计 464 passed、1 skipped。日志
+                    /tmp/issue511-regression.log、/tmp/issue511-broker-check.log。
+                  result: passed
+                - name: 最终删除保护与能力投影回归
+                  note: 最终谓词类型整理后复验 54 passed；/tmp/issue511-final-focused.log。
+                  result: passed
+                - name: Ruff、Black 与 diff 空白检查
+                  note: 5 个改动 Python 文件的 ruff check / black --check 及 git diff --check 均通过。
+                  result: passed
+                - name: 改动实现类型检查
+                  note: .venv/bin/mypy api/services/evaluation_service.py src/task_manager.py
+                    --follow-imports=silent
+                    --disable-error-code=import-untyped：Success, 2 source
+                    files。仓库依赖 Celery/scipy 缺类型桩，排除 import-untyped；原始报告
+                    /tmp/issue511-mypy.log。
+                  result: passed
+                - name: OpenSpec 严格校验
+                  note: comet classic openspec -- validate fix-queued-evaluation-delete
+                    --strict：valid。
+                  result: passed
+                - name: 真实 PostgreSQL
+                  note: TEST_POSTGRESQL_URL 未配置，连接池回归跳过；本次锁 key 与 SQL 顺序已通过真实 SQLite Session 拦截 PG
+                    SQL 的契约测试覆盖。
+                  result: not-run
+                - name: 独立审查
+                  note: 本 tweak Run 配置 reviewMode=off；由实施者完成规格、设计和最终差异核对，未伪称独立审查。
+                  result: not-run
+              event: verification-ready
+              verificationReport: docs/superpowers/reports/2026-11-23-fix-queued-evaluation-delete-verify.md
+        inputHash: c10786ebcae550b71791c06177b7358e000f9bc6fc71acdb083ac606ce7b0097
+        protocolVersion: 1
+        receipts: []
+        reconciliations: []
+        ref: comet-archive
+        requiredCapabilities: []
+        retry: manual
+        runId: fix-queued-evaluation-delete
+        status: pending
+        stepId: tweak.archive.deliver
+        type: invoke_skill
+    commands:
+      - id: b8355a071c29461d1438f3ff660f8c4f337b3a08ad1dacc9d3ca48a7feab9549
+        name: reopen-verification
+        inputHash: f5e487703e8f5203c1a70838dc38a9f0c3378ad441ad266fc269ee9debbfde5a
+        actionId: fix-queued-evaluation-delete:8
+    actionContexts:
+      fix-queued-evaluation-delete:1:
+        results: {}
+        sequence: 1
+      fix-queued-evaluation-delete:10:
+        results:
+          tweak.verify.report.evidence:
+            sequence: 9
+            value:
+              contentHash: bb9ce1a43dc47149b4691b2cd7e966ffbc3b5856523d7327543ccc27a2f296f3
+              ref: docs/superpowers/reports/2026-11-23-fix-queued-evaluation-delete-verify.md
+          tweak.verify.run:
+            sequence: 8
+            value:
+              checks:
+                - name: 关联评估、任务、文件与 worker 回归（465 项）
+                  note: MPLCONFIGDIR=/tmp/issue511-mpl .venv/bin/python -m pytest
+                    tests/test_evaluation_workflow_contract.py
+                    tests/test_evaluation_service_async.py
+                    tests/test_user_evaluation_concurrency.py
+                    tests/test_api_files.py tests/test_api_evaluations.py
+                    tests/test_api_database.py
+                    tests/test_evaluation_async_flow.py
+                    tests/test_celery_tasks.py tests/test_task_manager.py
+                    tests/test_evaluation_artifacts.py --no-cov -q；原运行 463
+                    passed/1 skipped/1 sandbox socket.bind
+                    failure；唯一失败已在允许本机端口环境单独补验通过，合计 464 passed、1 skipped。日志
+                    /tmp/issue511-regression.log、/tmp/issue511-broker-check.log。
+                  result: passed
+                - name: 最终删除保护与能力投影回归
+                  note: 最终谓词类型整理后复验 54 passed；/tmp/issue511-final-focused.log。
+                  result: passed
+                - name: Ruff、Black 与 diff 空白检查
+                  note: 5 个改动 Python 文件的 ruff check / black --check 及 git diff --check 均通过。
+                  result: passed
+                - name: 改动实现类型检查
+                  note: .venv/bin/mypy api/services/evaluation_service.py src/task_manager.py
+                    --follow-imports=silent
+                    --disable-error-code=import-untyped：Success, 2 source
+                    files。仓库依赖 Celery/scipy 缺类型桩，排除 import-untyped；原始报告
+                    /tmp/issue511-mypy.log。
+                  result: passed
+                - name: OpenSpec 严格校验
+                  note: comet classic openspec -- validate fix-queued-evaluation-delete
+                    --strict：valid。
+                  result: passed
+                - name: 真实 PostgreSQL
+                  note: TEST_POSTGRESQL_URL 未配置，连接池回归跳过；本次锁 key 与 SQL 顺序已通过真实 SQLite Session 拦截 PG
+                    SQL 的契约测试覆盖。
+                  result: not-run
+                - name: 独立审查
+                  note: 本 tweak Run 配置 reviewMode=off；由实施者完成规格、设计和最终差异核对，未伪称独立审查。
+                  result: not-run
+              event: verification-ready
+              verificationReport: docs/superpowers/reports/2026-11-23-fix-queued-evaluation-delete-verify.md
+        sequence: 10
+      fix-queued-evaluation-delete:12:
+        results:
+          tweak.archive.confirm:
+            sequence: 11
+            value:
+              choice: pr
+              proposal:
+                input:
+                  change: fix-queued-evaluation-delete
+                  changeDir: openspec/changes/fix-queued-evaluation-delete
+                  workspaceBaseline:
+                    ref: 5dd562a2-64e2-4b42-8587-0673add35827
+                outputs:
+                  tweak.archive.prepare:
+                    prBaseBranch: main
+                    remote: origin
+                    summary: 按用户选项 3 交付：归档本 change、同步两条删除保护要求，在 codex/fix-queued-evaluation-delete
+                      创建归档提交，推送 origin/codex/fix-queued-evaluation-delete 并创建面向
+                      main 的 PR。交付包括 5 个源码/测试文件、验收报告及本次工作流产物；无实现变化，沿用 464
+                      passed/1 PostgreSQL skipped、最终专项 54 passed 的验证证据。
+                    targetBranch: codex/fix-queued-evaluation-delete
+          tweak.archive.prepare:
+            sequence: 10
+            value:
+              prBaseBranch: main
+              remote: origin
+              summary: 按用户选项 3 交付：归档本 change、同步两条删除保护要求，在 codex/fix-queued-evaluation-delete
+                创建归档提交，推送 origin/codex/fix-queued-evaluation-delete 并创建面向 main 的
+                PR。交付包括 5 个源码/测试文件、验收报告及本次工作流产物；无实现变化，沿用 464 passed/1 PostgreSQL
+                skipped、最终专项 54 passed 的验证证据。
+              targetBranch: codex/fix-queued-evaluation-delete
+          tweak.verify.report.evidence:
+            sequence: 9
+            value:
+              contentHash: bb9ce1a43dc47149b4691b2cd7e966ffbc3b5856523d7327543ccc27a2f296f3
+              ref: docs/superpowers/reports/2026-11-23-fix-queued-evaluation-delete-verify.md
+          tweak.verify.run:
+            sequence: 8
+            value:
+              checks:
+                - name: 关联评估、任务、文件与 worker 回归（465 项）
+                  note: MPLCONFIGDIR=/tmp/issue511-mpl .venv/bin/python -m pytest
+                    tests/test_evaluation_workflow_contract.py
+                    tests/test_evaluation_service_async.py
+                    tests/test_user_evaluation_concurrency.py
+                    tests/test_api_files.py tests/test_api_evaluations.py
+                    tests/test_api_database.py
+                    tests/test_evaluation_async_flow.py
+                    tests/test_celery_tasks.py tests/test_task_manager.py
+                    tests/test_evaluation_artifacts.py --no-cov -q；原运行 463
+                    passed/1 skipped/1 sandbox socket.bind
+                    failure；唯一失败已在允许本机端口环境单独补验通过，合计 464 passed、1 skipped。日志
+                    /tmp/issue511-regression.log、/tmp/issue511-broker-check.log。
+                  result: passed
+                - name: 最终删除保护与能力投影回归
+                  note: 最终谓词类型整理后复验 54 passed；/tmp/issue511-final-focused.log。
+                  result: passed
+                - name: Ruff、Black 与 diff 空白检查
+                  note: 5 个改动 Python 文件的 ruff check / black --check 及 git diff --check 均通过。
+                  result: passed
+                - name: 改动实现类型检查
+                  note: .venv/bin/mypy api/services/evaluation_service.py src/task_manager.py
+                    --follow-imports=silent
+                    --disable-error-code=import-untyped：Success, 2 source
+                    files。仓库依赖 Celery/scipy 缺类型桩，排除 import-untyped；原始报告
+                    /tmp/issue511-mypy.log。
+                  result: passed
+                - name: OpenSpec 严格校验
+                  note: comet classic openspec -- validate fix-queued-evaluation-delete
+                    --strict：valid。
+                  result: passed
+                - name: 真实 PostgreSQL
+                  note: TEST_POSTGRESQL_URL 未配置，连接池回归跳过；本次锁 key 与 SQL 顺序已通过真实 SQLite Session 拦截 PG
+                    SQL 的契约测试覆盖。
+                  result: not-run
+                - name: 独立审查
+                  note: 本 tweak Run 配置 reviewMode=off；由实施者完成规格、设计和最终差异核对，未伪称独立审查。
+                  result: not-run
+              event: verification-ready
+              verificationReport: docs/superpowers/reports/2026-11-23-fix-queued-evaluation-delete-verify.md
+        sequence: 12
+      fix-queued-evaluation-delete:13:
+        results:
+          tweak.archive.confirm:
+            sequence: 11
+            value:
+              choice: pr
+              proposal:
+                input:
+                  change: fix-queued-evaluation-delete
+                  changeDir: openspec/changes/fix-queued-evaluation-delete
+                  workspaceBaseline:
+                    ref: 5dd562a2-64e2-4b42-8587-0673add35827
+                outputs:
+                  tweak.archive.prepare:
+                    prBaseBranch: main
+                    remote: origin
+                    summary: 按用户选项 3 交付：归档本 change、同步两条删除保护要求，在 codex/fix-queued-evaluation-delete
+                      创建归档提交，推送 origin/codex/fix-queued-evaluation-delete 并创建面向
+                      main 的 PR。交付包括 5 个源码/测试文件、验收报告及本次工作流产物；无实现变化，沿用 464
+                      passed/1 PostgreSQL skipped、最终专项 54 passed 的验证证据。
+                    targetBranch: codex/fix-queued-evaluation-delete
+          tweak.archive.preflight:
+            sequence: 12
+            value:
+              baseCommit: e4e37886f98ec2b9e2a7a8fdd36d32bf95b2c883
+              deliveryAction: pr
+              deliveryPaths:
+                - api/services/evaluation_service.py
+                - src/task_manager.py
+                - tests/test_api_files.py
+                - tests/test_evaluation_service_async.py
+                - tests/test_evaluation_workflow_contract.py
+              prBaseBranch: main
+              remote: origin
+              remoteIdentity: 128eeb1e6f0d21b25601fcb7f9aad36adfdfb4d76f37f54f004760410190f351
+              targetBranch: codex/fix-queued-evaluation-delete
+              verifiedBranch: codex/fix-queued-evaluation-delete
+          tweak.archive.prepare:
+            sequence: 10
+            value:
+              prBaseBranch: main
+              remote: origin
+              summary: 按用户选项 3 交付：归档本 change、同步两条删除保护要求，在 codex/fix-queued-evaluation-delete
+                创建归档提交，推送 origin/codex/fix-queued-evaluation-delete 并创建面向 main 的
+                PR。交付包括 5 个源码/测试文件、验收报告及本次工作流产物；无实现变化，沿用 464 passed/1 PostgreSQL
+                skipped、最终专项 54 passed 的验证证据。
+              targetBranch: codex/fix-queued-evaluation-delete
+          tweak.verify.report.evidence:
+            sequence: 9
+            value:
+              contentHash: bb9ce1a43dc47149b4691b2cd7e966ffbc3b5856523d7327543ccc27a2f296f3
+              ref: docs/superpowers/reports/2026-11-23-fix-queued-evaluation-delete-verify.md
+          tweak.verify.run:
+            sequence: 8
+            value:
+              checks:
+                - name: 关联评估、任务、文件与 worker 回归（465 项）
+                  note: MPLCONFIGDIR=/tmp/issue511-mpl .venv/bin/python -m pytest
+                    tests/test_evaluation_workflow_contract.py
+                    tests/test_evaluation_service_async.py
+                    tests/test_user_evaluation_concurrency.py
+                    tests/test_api_files.py tests/test_api_evaluations.py
+                    tests/test_api_database.py
+                    tests/test_evaluation_async_flow.py
+                    tests/test_celery_tasks.py tests/test_task_manager.py
+                    tests/test_evaluation_artifacts.py --no-cov -q；原运行 463
+                    passed/1 skipped/1 sandbox socket.bind
+                    failure；唯一失败已在允许本机端口环境单独补验通过，合计 464 passed、1 skipped。日志
+                    /tmp/issue511-regression.log、/tmp/issue511-broker-check.log。
+                  result: passed
+                - name: 最终删除保护与能力投影回归
+                  note: 最终谓词类型整理后复验 54 passed；/tmp/issue511-final-focused.log。
+                  result: passed
+                - name: Ruff、Black 与 diff 空白检查
+                  note: 5 个改动 Python 文件的 ruff check / black --check 及 git diff --check 均通过。
+                  result: passed
+                - name: 改动实现类型检查
+                  note: .venv/bin/mypy api/services/evaluation_service.py src/task_manager.py
+                    --follow-imports=silent
+                    --disable-error-code=import-untyped：Success, 2 source
+                    files。仓库依赖 Celery/scipy 缺类型桩，排除 import-untyped；原始报告
+                    /tmp/issue511-mypy.log。
+                  result: passed
+                - name: OpenSpec 严格校验
+                  note: comet classic openspec -- validate fix-queued-evaluation-delete
+                    --strict：valid。
+                  result: passed
+                - name: 真实 PostgreSQL
+                  note: TEST_POSTGRESQL_URL 未配置，连接池回归跳过；本次锁 key 与 SQL 顺序已通过真实 SQLite Session 拦截 PG
+                    SQL 的契约测试覆盖。
+                  result: not-run
+                - name: 独立审查
+                  note: 本 tweak Run 配置 reviewMode=off；由实施者完成规格、设计和最终差异核对，未伪称独立审查。
+                  result: not-run
+              event: verification-ready
+              verificationReport: docs/superpowers/reports/2026-11-23-fix-queued-evaluation-delete-verify.md
+        sequence: 13
+      fix-queued-evaluation-delete:14:
+        results:
+          tweak.archive.confirm:
+            sequence: 11
+            value:
+              choice: pr
+              proposal:
+                input:
+                  change: fix-queued-evaluation-delete
+                  changeDir: openspec/changes/fix-queued-evaluation-delete
+                  workspaceBaseline:
+                    ref: 5dd562a2-64e2-4b42-8587-0673add35827
+                outputs:
+                  tweak.archive.prepare:
+                    prBaseBranch: main
+                    remote: origin
+                    summary: 按用户选项 3 交付：归档本 change、同步两条删除保护要求，在 codex/fix-queued-evaluation-delete
+                      创建归档提交，推送 origin/codex/fix-queued-evaluation-delete 并创建面向
+                      main 的 PR。交付包括 5 个源码/测试文件、验收报告及本次工作流产物；无实现变化，沿用 464
+                      passed/1 PostgreSQL skipped、最终专项 54 passed 的验证证据。
+                    targetBranch: codex/fix-queued-evaluation-delete
+          tweak.archive.execute:
+            sequence: 13
+            value:
+              archiveDirectory: openspec/changes/archive/2026-11-23-fix-queued-evaluation-delete
+          tweak.archive.preflight:
+            sequence: 12
+            value:
+              baseCommit: e4e37886f98ec2b9e2a7a8fdd36d32bf95b2c883
+              deliveryAction: pr
+              deliveryPaths:
+                - api/services/evaluation_service.py
+                - src/task_manager.py
+                - tests/test_api_files.py
+                - tests/test_evaluation_service_async.py
+                - tests/test_evaluation_workflow_contract.py
+              prBaseBranch: main
+              remote: origin
+              remoteIdentity: 128eeb1e6f0d21b25601fcb7f9aad36adfdfb4d76f37f54f004760410190f351
+              targetBranch: codex/fix-queued-evaluation-delete
+              verifiedBranch: codex/fix-queued-evaluation-delete
+          tweak.archive.prepare:
+            sequence: 10
+            value:
+              prBaseBranch: main
+              remote: origin
+              summary: 按用户选项 3 交付：归档本 change、同步两条删除保护要求，在 codex/fix-queued-evaluation-delete
+                创建归档提交，推送 origin/codex/fix-queued-evaluation-delete 并创建面向 main 的
+                PR。交付包括 5 个源码/测试文件、验收报告及本次工作流产物；无实现变化，沿用 464 passed/1 PostgreSQL
+                skipped、最终专项 54 passed 的验证证据。
+              targetBranch: codex/fix-queued-evaluation-delete
+          tweak.verify.report.evidence:
+            sequence: 9
+            value:
+              contentHash: bb9ce1a43dc47149b4691b2cd7e966ffbc3b5856523d7327543ccc27a2f296f3
+              ref: docs/superpowers/reports/2026-11-23-fix-queued-evaluation-delete-verify.md
+          tweak.verify.run:
+            sequence: 8
+            value:
+              checks:
+                - name: 关联评估、任务、文件与 worker 回归（465 项）
+                  note: MPLCONFIGDIR=/tmp/issue511-mpl .venv/bin/python -m pytest
+                    tests/test_evaluation_workflow_contract.py
+                    tests/test_evaluation_service_async.py
+                    tests/test_user_evaluation_concurrency.py
+                    tests/test_api_files.py tests/test_api_evaluations.py
+                    tests/test_api_database.py
+                    tests/test_evaluation_async_flow.py
+                    tests/test_celery_tasks.py tests/test_task_manager.py
+                    tests/test_evaluation_artifacts.py --no-cov -q；原运行 463
+                    passed/1 skipped/1 sandbox socket.bind
+                    failure；唯一失败已在允许本机端口环境单独补验通过，合计 464 passed、1 skipped。日志
+                    /tmp/issue511-regression.log、/tmp/issue511-broker-check.log。
+                  result: passed
+                - name: 最终删除保护与能力投影回归
+                  note: 最终谓词类型整理后复验 54 passed；/tmp/issue511-final-focused.log。
+                  result: passed
+                - name: Ruff、Black 与 diff 空白检查
+                  note: 5 个改动 Python 文件的 ruff check / black --check 及 git diff --check 均通过。
+                  result: passed
+                - name: 改动实现类型检查
+                  note: .venv/bin/mypy api/services/evaluation_service.py src/task_manager.py
+                    --follow-imports=silent
+                    --disable-error-code=import-untyped：Success, 2 source
+                    files。仓库依赖 Celery/scipy 缺类型桩，排除 import-untyped；原始报告
+                    /tmp/issue511-mypy.log。
+                  result: passed
+                - name: OpenSpec 严格校验
+                  note: comet classic openspec -- validate fix-queued-evaluation-delete
+                    --strict：valid。
+                  result: passed
+                - name: 真实 PostgreSQL
+                  note: TEST_POSTGRESQL_URL 未配置，连接池回归跳过；本次锁 key 与 SQL 顺序已通过真实 SQLite Session 拦截 PG
+                    SQL 的契约测试覆盖。
+                  result: not-run
+                - name: 独立审查
+                  note: 本 tweak Run 配置 reviewMode=off；由实施者完成规格、设计和最终差异核对，未伪称独立审查。
+                  result: not-run
+              event: verification-ready
+              verificationReport: docs/superpowers/reports/2026-11-23-fix-queued-evaluation-delete-verify.md
+        sequence: 14
+      fix-queued-evaluation-delete:3:
+        results:
+          tweak.open:
+            sequence: 1
+            value:
+              event: open-complete
+              requirementsEvidence:
+                ref: openspec/changes/fix-queued-evaluation-delete
+          tweak.open.evidence:
+            sequence: 2
+            value:
+              contentHash: 19b7c5b89d56ac703991eaa77e385006b1ebffac18001f75fd92d6e8d6a3a0a4
+              ref: openspec/changes/fix-queued-evaluation-delete
+        sequence: 3
+      fix-queued-evaluation-delete:4:
+        results:
+          tweak.build.execute:
+            sequence: 3
+            value:
+              checks:
+                - name: 关联评估、任务、文件与 worker 回归（465 项）
+                  note: MPLCONFIGDIR=/tmp/issue511-mpl .venv/bin/python -m pytest
+                    tests/test_evaluation_workflow_contract.py
+                    tests/test_evaluation_service_async.py
+                    tests/test_user_evaluation_concurrency.py
+                    tests/test_api_files.py tests/test_api_evaluations.py
+                    tests/test_api_database.py
+                    tests/test_evaluation_async_flow.py
+                    tests/test_celery_tasks.py tests/test_task_manager.py
+                    tests/test_evaluation_artifacts.py --no-cov -q；原运行 463
+                    passed/1 skipped/1 sandbox socket.bind
+                    failure；唯一失败已在允许本机端口环境单独补验通过，合计 464 passed、1 skipped。日志
+                    /tmp/issue511-regression.log、/tmp/issue511-broker-check.log。
+                  result: passed
+                - name: 最终删除保护与能力投影回归
+                  note: 最终谓词类型整理后复验 54 passed；/tmp/issue511-final-focused.log。
+                  result: passed
+                - name: Ruff、Black 与 diff 空白检查
+                  note: 5 个改动 Python 文件的 ruff check / black --check 及 git diff --check 均通过。
+                  result: passed
+                - name: 改动实现类型检查
+                  note: .venv/bin/mypy api/services/evaluation_service.py src/task_manager.py
+                    --follow-imports=silent
+                    --disable-error-code=import-untyped：Success, 2 source
+                    files。仓库依赖 Celery/scipy 缺类型桩，排除 import-untyped；原始报告
+                    /tmp/issue511-mypy.log。
+                  result: passed
+                - name: OpenSpec 严格校验
+                  note: comet classic openspec -- validate fix-queued-evaluation-delete
+                    --strict：valid。
+                  result: passed
+                - name: 真实 PostgreSQL
+                  note: TEST_POSTGRESQL_URL 未配置，连接池回归跳过；本次锁 key 与 SQL 顺序已通过真实 SQLite Session 拦截 PG
+                    SQL 的契约测试覆盖。
+                  result: not-run
+                - name: 独立审查
+                  note: 本 tweak Run 配置 reviewMode=off；由实施者完成规格、设计和最终差异核对，未伪称独立审查。
+                  result: not-run
+              event: build-complete
+          tweak.open:
+            sequence: 1
+            value:
+              event: open-complete
+              requirementsEvidence:
+                ref: openspec/changes/fix-queued-evaluation-delete
+          tweak.open.evidence:
+            sequence: 2
+            value:
+              contentHash: 19b7c5b89d56ac703991eaa77e385006b1ebffac18001f75fd92d6e8d6a3a0a4
+              ref: openspec/changes/fix-queued-evaluation-delete
+        sequence: 4
+      fix-queued-evaluation-delete:6:
+        results:
+          tweak.build.execute:
+            sequence: 3
+            value:
+              checks:
+                - name: 关联评估、任务、文件与 worker 回归（465 项）
+                  note: MPLCONFIGDIR=/tmp/issue511-mpl .venv/bin/python -m pytest
+                    tests/test_evaluation_workflow_contract.py
+                    tests/test_evaluation_service_async.py
+                    tests/test_user_evaluation_concurrency.py
+                    tests/test_api_files.py tests/test_api_evaluations.py
+                    tests/test_api_database.py
+                    tests/test_evaluation_async_flow.py
+                    tests/test_celery_tasks.py tests/test_task_manager.py
+                    tests/test_evaluation_artifacts.py --no-cov -q；原运行 463
+                    passed/1 skipped/1 sandbox socket.bind
+                    failure；唯一失败已在允许本机端口环境单独补验通过，合计 464 passed、1 skipped。日志
+                    /tmp/issue511-regression.log、/tmp/issue511-broker-check.log。
+                  result: passed
+                - name: 最终删除保护与能力投影回归
+                  note: 最终谓词类型整理后复验 54 passed；/tmp/issue511-final-focused.log。
+                  result: passed
+                - name: Ruff、Black 与 diff 空白检查
+                  note: 5 个改动 Python 文件的 ruff check / black --check 及 git diff --check 均通过。
+                  result: passed
+                - name: 改动实现类型检查
+                  note: .venv/bin/mypy api/services/evaluation_service.py src/task_manager.py
+                    --follow-imports=silent
+                    --disable-error-code=import-untyped：Success, 2 source
+                    files。仓库依赖 Celery/scipy 缺类型桩，排除 import-untyped；原始报告
+                    /tmp/issue511-mypy.log。
+                  result: passed
+                - name: OpenSpec 严格校验
+                  note: comet classic openspec -- validate fix-queued-evaluation-delete
+                    --strict：valid。
+                  result: passed
+                - name: 真实 PostgreSQL
+                  note: TEST_POSTGRESQL_URL 未配置，连接池回归跳过；本次锁 key 与 SQL 顺序已通过真实 SQLite Session 拦截 PG
+                    SQL 的契约测试覆盖。
+                  result: not-run
+                - name: 独立审查
+                  note: 本 tweak Run 配置 reviewMode=off；由实施者完成规格、设计和最终差异核对，未伪称独立审查。
+                  result: not-run
+              event: build-complete
+          tweak.open:
+            sequence: 1
+            value:
+              event: open-complete
+              requirementsEvidence:
+                ref: openspec/changes/fix-queued-evaluation-delete
+          tweak.open.evidence:
+            sequence: 2
+            value:
+              contentHash: 19b7c5b89d56ac703991eaa77e385006b1ebffac18001f75fd92d6e8d6a3a0a4
+              ref: openspec/changes/fix-queued-evaluation-delete
+          tweak.verify.report.evidence:
+            sequence: 5
+            value:
+              contentHash: 46f965164dbe430b989b9a48bb1874b3274c026ad011c5bf4a049d409cee3b72
+              ref: docs/superpowers/reports/2026-11-23-fix-queued-evaluation-delete-verify.md
+          tweak.verify.run:
+            sequence: 4
+            value:
+              checks:
+                - name: 关联评估、任务、文件与 worker 回归（465 项）
+                  note: MPLCONFIGDIR=/tmp/issue511-mpl .venv/bin/python -m pytest
+                    tests/test_evaluation_workflow_contract.py
+                    tests/test_evaluation_service_async.py
+                    tests/test_user_evaluation_concurrency.py
+                    tests/test_api_files.py tests/test_api_evaluations.py
+                    tests/test_api_database.py
+                    tests/test_evaluation_async_flow.py
+                    tests/test_celery_tasks.py tests/test_task_manager.py
+                    tests/test_evaluation_artifacts.py --no-cov -q；原运行 463
+                    passed/1 skipped/1 sandbox socket.bind
+                    failure；唯一失败已在允许本机端口环境单独补验通过，合计 464 passed、1 skipped。日志
+                    /tmp/issue511-regression.log、/tmp/issue511-broker-check.log。
+                  result: passed
+                - name: 最终删除保护与能力投影回归
+                  note: 最终谓词类型整理后复验 54 passed；/tmp/issue511-final-focused.log。
+                  result: passed
+                - name: Ruff、Black 与 diff 空白检查
+                  note: 5 个改动 Python 文件的 ruff check / black --check 及 git diff --check 均通过。
+                  result: passed
+                - name: 改动实现类型检查
+                  note: .venv/bin/mypy api/services/evaluation_service.py src/task_manager.py
+                    --follow-imports=silent
+                    --disable-error-code=import-untyped：Success, 2 source
+                    files。仓库依赖 Celery/scipy 缺类型桩，排除 import-untyped；原始报告
+                    /tmp/issue511-mypy.log。
+                  result: passed
+                - name: OpenSpec 严格校验
+                  note: comet classic openspec -- validate fix-queued-evaluation-delete
+                    --strict：valid。
+                  result: passed
+                - name: 真实 PostgreSQL
+                  note: TEST_POSTGRESQL_URL 未配置，连接池回归跳过；本次锁 key 与 SQL 顺序已通过真实 SQLite Session 拦截 PG
+                    SQL 的契约测试覆盖。
+                  result: not-run
+                - name: 独立审查
+                  note: 本 tweak Run 配置 reviewMode=off；由实施者完成规格、设计和最终差异核对，未伪称独立审查。
+                  result: not-run
+              event: verification-ready
+              verificationReport: docs/superpowers/reports/2026-11-23-fix-queued-evaluation-delete-verify.md
+        sequence: 6
+      fix-queued-evaluation-delete:8:
+        results: {}
+        sequence: 8
+    waits:
+      - id: fix-queued-evaluation-delete:7
+        stepId: tweak.archive.confirm
+        sequence: 7
+        status: cancelled
+        proposal:
+          input:
+            change: fix-queued-evaluation-delete
+            changeDir: openspec/changes/fix-queued-evaluation-delete
+            workspaceBaseline:
+              ref: 5dd562a2-64e2-4b42-8587-0673add35827
+          outputs:
+            tweak.archive.prepare:
+              prBaseBranch: main
+              remote: origin
+              summary: "Issue #511 已实施并通过 Verify。归档本 change 并同步 api/evaluation-execution
+                的两条删除保护要求；交付包含 5 个源码/测试文件、验收报告与工作流产物，无无关修改。当前绑定 main，local
+                创建本地归档提交，push 推送 origin/main；PR 目标为 origin/main，需使用独立 change
+                分支后创建 PR。关联回归合计 464 passed、1 PostgreSQL skipped，最终专项 54
+                passed；真实 PG 与付费模型未运行。"
+              targetBranch: main
+        proposalHash: 8e404d8611d65e5a4e1872a78e585ff55b91649946fd840209cfde17005be8ce
+        choices:
+          - local
+          - push
+          - pr
+          - reverify
+          - later
+        results:
+          tweak.archive.prepare:
+            sequence: 6
+            value:
+              prBaseBranch: main
+              remote: origin
+              summary: "Issue #511 已实施并通过 Verify。归档本 change 并同步 api/evaluation-execution
+                的两条删除保护要求；交付包含 5 个源码/测试文件、验收报告与工作流产物，无无关修改。当前绑定 main，local
+                创建本地归档提交，push 推送 origin/main；PR 目标为 origin/main，需使用独立 change
+                分支后创建 PR。关联回归合计 464 passed、1 PostgreSQL skipped，最终专项 54
+                passed；真实 PG 与付费模型未运行。"
+              targetBranch: main
+          tweak.build.execute:
+            sequence: 3
+            value:
+              checks:
+                - name: 关联评估、任务、文件与 worker 回归（465 项）
+                  note: MPLCONFIGDIR=/tmp/issue511-mpl .venv/bin/python -m pytest
+                    tests/test_evaluation_workflow_contract.py
+                    tests/test_evaluation_service_async.py
+                    tests/test_user_evaluation_concurrency.py
+                    tests/test_api_files.py tests/test_api_evaluations.py
+                    tests/test_api_database.py
+                    tests/test_evaluation_async_flow.py
+                    tests/test_celery_tasks.py tests/test_task_manager.py
+                    tests/test_evaluation_artifacts.py --no-cov -q；原运行 463
+                    passed/1 skipped/1 sandbox socket.bind
+                    failure；唯一失败已在允许本机端口环境单独补验通过，合计 464 passed、1 skipped。日志
+                    /tmp/issue511-regression.log、/tmp/issue511-broker-check.log。
+                  result: passed
+                - name: 最终删除保护与能力投影回归
+                  note: 最终谓词类型整理后复验 54 passed；/tmp/issue511-final-focused.log。
+                  result: passed
+                - name: Ruff、Black 与 diff 空白检查
+                  note: 5 个改动 Python 文件的 ruff check / black --check 及 git diff --check 均通过。
+                  result: passed
+                - name: 改动实现类型检查
+                  note: .venv/bin/mypy api/services/evaluation_service.py src/task_manager.py
+                    --follow-imports=silent
+                    --disable-error-code=import-untyped：Success, 2 source
+                    files。仓库依赖 Celery/scipy 缺类型桩，排除 import-untyped；原始报告
+                    /tmp/issue511-mypy.log。
+                  result: passed
+                - name: OpenSpec 严格校验
+                  note: comet classic openspec -- validate fix-queued-evaluation-delete
+                    --strict：valid。
+                  result: passed
+                - name: 真实 PostgreSQL
+                  note: TEST_POSTGRESQL_URL 未配置，连接池回归跳过；本次锁 key 与 SQL 顺序已通过真实 SQLite Session 拦截 PG
+                    SQL 的契约测试覆盖。
+                  result: not-run
+                - name: 独立审查
+                  note: 本 tweak Run 配置 reviewMode=off；由实施者完成规格、设计和最终差异核对，未伪称独立审查。
+                  result: not-run
+              event: build-complete
+          tweak.open:
+            sequence: 1
+            value:
+              event: open-complete
+              requirementsEvidence:
+                ref: openspec/changes/fix-queued-evaluation-delete
+          tweak.open.evidence:
+            sequence: 2
+            value:
+              contentHash: 19b7c5b89d56ac703991eaa77e385006b1ebffac18001f75fd92d6e8d6a3a0a4
+              ref: openspec/changes/fix-queued-evaluation-delete
+          tweak.verify.report.evidence:
+            sequence: 5
+            value:
+              contentHash: 46f965164dbe430b989b9a48bb1874b3274c026ad011c5bf4a049d409cee3b72
+              ref: docs/superpowers/reports/2026-11-23-fix-queued-evaluation-delete-verify.md
+          tweak.verify.run:
+            sequence: 4
+            value:
+              checks:
+                - name: 关联评估、任务、文件与 worker 回归（465 项）
+                  note: MPLCONFIGDIR=/tmp/issue511-mpl .venv/bin/python -m pytest
+                    tests/test_evaluation_workflow_contract.py
+                    tests/test_evaluation_service_async.py
+                    tests/test_user_evaluation_concurrency.py
+                    tests/test_api_files.py tests/test_api_evaluations.py
+                    tests/test_api_database.py
+                    tests/test_evaluation_async_flow.py
+                    tests/test_celery_tasks.py tests/test_task_manager.py
+                    tests/test_evaluation_artifacts.py --no-cov -q；原运行 463
+                    passed/1 skipped/1 sandbox socket.bind
+                    failure；唯一失败已在允许本机端口环境单独补验通过，合计 464 passed、1 skipped。日志
+                    /tmp/issue511-regression.log、/tmp/issue511-broker-check.log。
+                  result: passed
+                - name: 最终删除保护与能力投影回归
+                  note: 最终谓词类型整理后复验 54 passed；/tmp/issue511-final-focused.log。
+                  result: passed
+                - name: Ruff、Black 与 diff 空白检查
+                  note: 5 个改动 Python 文件的 ruff check / black --check 及 git diff --check 均通过。
+                  result: passed
+                - name: 改动实现类型检查
+                  note: .venv/bin/mypy api/services/evaluation_service.py src/task_manager.py
+                    --follow-imports=silent
+                    --disable-error-code=import-untyped：Success, 2 source
+                    files。仓库依赖 Celery/scipy 缺类型桩，排除 import-untyped；原始报告
+                    /tmp/issue511-mypy.log。
+                  result: passed
+                - name: OpenSpec 严格校验
+                  note: comet classic openspec -- validate fix-queued-evaluation-delete
+                    --strict：valid。
+                  result: passed
+                - name: 真实 PostgreSQL
+                  note: TEST_POSTGRESQL_URL 未配置，连接池回归跳过；本次锁 key 与 SQL 顺序已通过真实 SQLite Session 拦截 PG
+                    SQL 的契约测试覆盖。
+                  result: not-run
+                - name: 独立审查
+                  note: 本 tweak Run 配置 reviewMode=off；由实施者完成规格、设计和最终差异核对，未伪称独立审查。
+                  result: not-run
+              event: verification-ready
+              verificationReport: docs/superpowers/reports/2026-11-23-fix-queued-evaluation-delete-verify.md
+      - id: fix-queued-evaluation-delete:11
+        stepId: tweak.archive.confirm
+        sequence: 11
+        status: resolved
+        proposal:
+          input:
+            change: fix-queued-evaluation-delete
+            changeDir: openspec/changes/fix-queued-evaluation-delete
+            workspaceBaseline:
+              ref: 5dd562a2-64e2-4b42-8587-0673add35827
+          outputs:
+            tweak.archive.prepare:
+              prBaseBranch: main
+              remote: origin
+              summary: 按用户选项 3 交付：归档本 change、同步两条删除保护要求，在 codex/fix-queued-evaluation-delete
+                创建归档提交，推送 origin/codex/fix-queued-evaluation-delete 并创建面向 main 的
+                PR。交付包括 5 个源码/测试文件、验收报告及本次工作流产物；无实现变化，沿用 464 passed/1 PostgreSQL
+                skipped、最终专项 54 passed 的验证证据。
+              targetBranch: codex/fix-queued-evaluation-delete
+        proposalHash: 77c72cc154863fc016f7c943fa571ae84b19f0ce9ad1da764f477c0c4955b4d2
+        choices:
+          - local
+          - push
+          - pr
+          - reverify
+          - later
+        results:
+          tweak.archive.prepare:
+            sequence: 10
+            value:
+              prBaseBranch: main
+              remote: origin
+              summary: 按用户选项 3 交付：归档本 change、同步两条删除保护要求，在 codex/fix-queued-evaluation-delete
+                创建归档提交，推送 origin/codex/fix-queued-evaluation-delete 并创建面向 main 的
+                PR。交付包括 5 个源码/测试文件、验收报告及本次工作流产物；无实现变化，沿用 464 passed/1 PostgreSQL
+                skipped、最终专项 54 passed 的验证证据。
+              targetBranch: codex/fix-queued-evaluation-delete
+          tweak.verify.report.evidence:
+            sequence: 9
+            value:
+              contentHash: bb9ce1a43dc47149b4691b2cd7e966ffbc3b5856523d7327543ccc27a2f296f3
+              ref: docs/superpowers/reports/2026-11-23-fix-queued-evaluation-delete-verify.md
+          tweak.verify.run:
+            sequence: 8
+            value:
+              checks:
+                - name: 关联评估、任务、文件与 worker 回归（465 项）
+                  note: MPLCONFIGDIR=/tmp/issue511-mpl .venv/bin/python -m pytest
+                    tests/test_evaluation_workflow_contract.py
+                    tests/test_evaluation_service_async.py
+                    tests/test_user_evaluation_concurrency.py
+                    tests/test_api_files.py tests/test_api_evaluations.py
+                    tests/test_api_database.py
+                    tests/test_evaluation_async_flow.py
+                    tests/test_celery_tasks.py tests/test_task_manager.py
+                    tests/test_evaluation_artifacts.py --no-cov -q；原运行 463
+                    passed/1 skipped/1 sandbox socket.bind
+                    failure；唯一失败已在允许本机端口环境单独补验通过，合计 464 passed、1 skipped。日志
+                    /tmp/issue511-regression.log、/tmp/issue511-broker-check.log。
+                  result: passed
+                - name: 最终删除保护与能力投影回归
+                  note: 最终谓词类型整理后复验 54 passed；/tmp/issue511-final-focused.log。
+                  result: passed
+                - name: Ruff、Black 与 diff 空白检查
+                  note: 5 个改动 Python 文件的 ruff check / black --check 及 git diff --check 均通过。
+                  result: passed
+                - name: 改动实现类型检查
+                  note: .venv/bin/mypy api/services/evaluation_service.py src/task_manager.py
+                    --follow-imports=silent
+                    --disable-error-code=import-untyped：Success, 2 source
+                    files。仓库依赖 Celery/scipy 缺类型桩，排除 import-untyped；原始报告
+                    /tmp/issue511-mypy.log。
+                  result: passed
+                - name: OpenSpec 严格校验
+                  note: comet classic openspec -- validate fix-queued-evaluation-delete
+                    --strict：valid。
+                  result: passed
+                - name: 真实 PostgreSQL
+                  note: TEST_POSTGRESQL_URL 未配置，连接池回归跳过；本次锁 key 与 SQL 顺序已通过真实 SQLite Session 拦截 PG
+                    SQL 的契约测试覆盖。
+                  result: not-run
+                - name: 独立审查
+                  note: 本 tweak Run 配置 reviewMode=off；由实施者完成规格、设计和最终差异核对，未伪称独立审查。
+                  result: not-run
+              event: verification-ready
+              verificationReport: docs/superpowers/reports/2026-11-23-fix-queued-evaluation-delete-verify.md
+        decision:
+          id: classic-archive-77c72cc154863fc016f7c943fa571ae84b19f0ce9ad1da764f477c0c4955b4d2-pr
+          choice: pr
+          proposalHash: 77c72cc154863fc016f7c943fa571ae84b19f0ce9ad1da764f477c0c4955b4d2
+    evidenceWaits:
+      - id: fix-queued-evaluation-delete:2
+        stepId: tweak.open.evidence
+        sequence: 2
+        kind: classic-open-artifacts
+        status: resolved
+        results:
+          tweak.open:
+            sequence: 1
+            value:
+              event: open-complete
+              requirementsEvidence:
+                ref: openspec/changes/fix-queued-evaluation-delete
+        receipt:
+          ref: openspec/changes/fix-queued-evaluation-delete
+          contentHash: 19b7c5b89d56ac703991eaa77e385006b1ebffac18001f75fd92d6e8d6a3a0a4
+          submissionId: eff36048-91b6-4561-a416-e941f8bd95e1
+      - id: fix-queued-evaluation-delete:5
+        stepId: tweak.verify.report.evidence
+        sequence: 5
+        kind: classic-verification-report
+        status: resolved
+        results:
+          tweak.build.execute:
+            sequence: 3
+            value:
+              checks:
+                - name: 关联评估、任务、文件与 worker 回归（465 项）
+                  note: MPLCONFIGDIR=/tmp/issue511-mpl .venv/bin/python -m pytest
+                    tests/test_evaluation_workflow_contract.py
+                    tests/test_evaluation_service_async.py
+                    tests/test_user_evaluation_concurrency.py
+                    tests/test_api_files.py tests/test_api_evaluations.py
+                    tests/test_api_database.py
+                    tests/test_evaluation_async_flow.py
+                    tests/test_celery_tasks.py tests/test_task_manager.py
+                    tests/test_evaluation_artifacts.py --no-cov -q；原运行 463
+                    passed/1 skipped/1 sandbox socket.bind
+                    failure；唯一失败已在允许本机端口环境单独补验通过，合计 464 passed、1 skipped。日志
+                    /tmp/issue511-regression.log、/tmp/issue511-broker-check.log。
+                  result: passed
+                - name: 最终删除保护与能力投影回归
+                  note: 最终谓词类型整理后复验 54 passed；/tmp/issue511-final-focused.log。
+                  result: passed
+                - name: Ruff、Black 与 diff 空白检查
+                  note: 5 个改动 Python 文件的 ruff check / black --check 及 git diff --check 均通过。
+                  result: passed
+                - name: 改动实现类型检查
+                  note: .venv/bin/mypy api/services/evaluation_service.py src/task_manager.py
+                    --follow-imports=silent
+                    --disable-error-code=import-untyped：Success, 2 source
+                    files。仓库依赖 Celery/scipy 缺类型桩，排除 import-untyped；原始报告
+                    /tmp/issue511-mypy.log。
+                  result: passed
+                - name: OpenSpec 严格校验
+                  note: comet classic openspec -- validate fix-queued-evaluation-delete
+                    --strict：valid。
+                  result: passed
+                - name: 真实 PostgreSQL
+                  note: TEST_POSTGRESQL_URL 未配置，连接池回归跳过；本次锁 key 与 SQL 顺序已通过真实 SQLite Session 拦截 PG
+                    SQL 的契约测试覆盖。
+                  result: not-run
+                - name: 独立审查
+                  note: 本 tweak Run 配置 reviewMode=off；由实施者完成规格、设计和最终差异核对，未伪称独立审查。
+                  result: not-run
+              event: build-complete
+          tweak.open:
+            sequence: 1
+            value:
+              event: open-complete
+              requirementsEvidence:
+                ref: openspec/changes/fix-queued-evaluation-delete
+          tweak.open.evidence:
+            sequence: 2
+            value:
+              contentHash: 19b7c5b89d56ac703991eaa77e385006b1ebffac18001f75fd92d6e8d6a3a0a4
+              ref: openspec/changes/fix-queued-evaluation-delete
+          tweak.verify.run:
+            sequence: 4
+            value:
+              checks:
+                - name: 关联评估、任务、文件与 worker 回归（465 项）
+                  note: MPLCONFIGDIR=/tmp/issue511-mpl .venv/bin/python -m pytest
+                    tests/test_evaluation_workflow_contract.py
+                    tests/test_evaluation_service_async.py
+                    tests/test_user_evaluation_concurrency.py
+                    tests/test_api_files.py tests/test_api_evaluations.py
+                    tests/test_api_database.py
+                    tests/test_evaluation_async_flow.py
+                    tests/test_celery_tasks.py tests/test_task_manager.py
+                    tests/test_evaluation_artifacts.py --no-cov -q；原运行 463
+                    passed/1 skipped/1 sandbox socket.bind
+                    failure；唯一失败已在允许本机端口环境单独补验通过，合计 464 passed、1 skipped。日志
+                    /tmp/issue511-regression.log、/tmp/issue511-broker-check.log。
+                  result: passed
+                - name: 最终删除保护与能力投影回归
+                  note: 最终谓词类型整理后复验 54 passed；/tmp/issue511-final-focused.log。
+                  result: passed
+                - name: Ruff、Black 与 diff 空白检查
+                  note: 5 个改动 Python 文件的 ruff check / black --check 及 git diff --check 均通过。
+                  result: passed
+                - name: 改动实现类型检查
+                  note: .venv/bin/mypy api/services/evaluation_service.py src/task_manager.py
+                    --follow-imports=silent
+                    --disable-error-code=import-untyped：Success, 2 source
+                    files。仓库依赖 Celery/scipy 缺类型桩，排除 import-untyped；原始报告
+                    /tmp/issue511-mypy.log。
+                  result: passed
+                - name: OpenSpec 严格校验
+                  note: comet classic openspec -- validate fix-queued-evaluation-delete
+                    --strict：valid。
+                  result: passed
+                - name: 真实 PostgreSQL
+                  note: TEST_POSTGRESQL_URL 未配置，连接池回归跳过；本次锁 key 与 SQL 顺序已通过真实 SQLite Session 拦截 PG
+                    SQL 的契约测试覆盖。
+                  result: not-run
+                - name: 独立审查
+                  note: 本 tweak Run 配置 reviewMode=off；由实施者完成规格、设计和最终差异核对，未伪称独立审查。
+                  result: not-run
+              event: verification-ready
+              verificationReport: docs/superpowers/reports/2026-11-23-fix-queued-evaluation-delete-verify.md
+        receipt:
+          ref: docs/superpowers/reports/2026-11-23-fix-queued-evaluation-delete-verify.md
+          contentHash: 46f965164dbe430b989b9a48bb1874b3274c026ad011c5bf4a049d409cee3b72
+          submissionId: 9d28726a-c3dd-44e5-8b17-d45ebab53875
+      - id: fix-queued-evaluation-delete:9
+        stepId: tweak.verify.report.evidence
+        sequence: 9
+        kind: classic-verification-report
+        status: resolved
+        results:
+          tweak.verify.run:
+            sequence: 8
+            value:
+              checks:
+                - name: 关联评估、任务、文件与 worker 回归（465 项）
+                  note: MPLCONFIGDIR=/tmp/issue511-mpl .venv/bin/python -m pytest
+                    tests/test_evaluation_workflow_contract.py
+                    tests/test_evaluation_service_async.py
+                    tests/test_user_evaluation_concurrency.py
+                    tests/test_api_files.py tests/test_api_evaluations.py
+                    tests/test_api_database.py
+                    tests/test_evaluation_async_flow.py
+                    tests/test_celery_tasks.py tests/test_task_manager.py
+                    tests/test_evaluation_artifacts.py --no-cov -q；原运行 463
+                    passed/1 skipped/1 sandbox socket.bind
+                    failure；唯一失败已在允许本机端口环境单独补验通过，合计 464 passed、1 skipped。日志
+                    /tmp/issue511-regression.log、/tmp/issue511-broker-check.log。
+                  result: passed
+                - name: 最终删除保护与能力投影回归
+                  note: 最终谓词类型整理后复验 54 passed；/tmp/issue511-final-focused.log。
+                  result: passed
+                - name: Ruff、Black 与 diff 空白检查
+                  note: 5 个改动 Python 文件的 ruff check / black --check 及 git diff --check 均通过。
+                  result: passed
+                - name: 改动实现类型检查
+                  note: .venv/bin/mypy api/services/evaluation_service.py src/task_manager.py
+                    --follow-imports=silent
+                    --disable-error-code=import-untyped：Success, 2 source
+                    files。仓库依赖 Celery/scipy 缺类型桩，排除 import-untyped；原始报告
+                    /tmp/issue511-mypy.log。
+                  result: passed
+                - name: OpenSpec 严格校验
+                  note: comet classic openspec -- validate fix-queued-evaluation-delete
+                    --strict：valid。
+                  result: passed
+                - name: 真实 PostgreSQL
+                  note: TEST_POSTGRESQL_URL 未配置，连接池回归跳过；本次锁 key 与 SQL 顺序已通过真实 SQLite Session 拦截 PG
+                    SQL 的契约测试覆盖。
+                  result: not-run
+                - name: 独立审查
+                  note: 本 tweak Run 配置 reviewMode=off；由实施者完成规格、设计和最终差异核对，未伪称独立审查。
+                  result: not-run
+              event: verification-ready
+              verificationReport: docs/superpowers/reports/2026-11-23-fix-queued-evaluation-delete-verify.md
+        receipt:
+          ref: docs/superpowers/reports/2026-11-23-fix-queued-evaluation-delete-verify.md
+          contentHash: bb9ce1a43dc47149b4691b2cd7e966ffbc3b5856523d7327543ccc27a2f296f3
+          submissionId: f90a48bc-c3de-4738-a10d-d98a4a815fbf
+    ready: []
+    joins: {}
+    outputs:
+      tweak.archive.confirm:
+        sequence: 11
+        value:
+          choice: pr
+          proposal:
+            input:
+              change: fix-queued-evaluation-delete
+              changeDir: openspec/changes/fix-queued-evaluation-delete
+              workspaceBaseline:
+                ref: 5dd562a2-64e2-4b42-8587-0673add35827
+            outputs:
+              tweak.archive.prepare:
+                prBaseBranch: main
+                remote: origin
+                summary: 按用户选项 3 交付：归档本 change、同步两条删除保护要求，在 codex/fix-queued-evaluation-delete
+                  创建归档提交，推送 origin/codex/fix-queued-evaluation-delete 并创建面向 main
+                  的 PR。交付包括 5 个源码/测试文件、验收报告及本次工作流产物；无实现变化，沿用 464 passed/1
+                  PostgreSQL skipped、最终专项 54 passed 的验证证据。
+                targetBranch: codex/fix-queued-evaluation-delete
+      tweak.archive.execute:
+        sequence: 13
+        value:
+          archiveDirectory: openspec/changes/archive/2026-11-23-fix-queued-evaluation-delete
+      tweak.archive.preflight:
+        sequence: 12
+        value:
+          baseCommit: e4e37886f98ec2b9e2a7a8fdd36d32bf95b2c883
+          deliveryAction: pr
+          deliveryPaths:
+            - api/services/evaluation_service.py
+            - src/task_manager.py
+            - tests/test_api_files.py
+            - tests/test_evaluation_service_async.py
+            - tests/test_evaluation_workflow_contract.py
+          prBaseBranch: main
+          remote: origin
+          remoteIdentity: 128eeb1e6f0d21b25601fcb7f9aad36adfdfb4d76f37f54f004760410190f351
+          targetBranch: codex/fix-queued-evaluation-delete
+          verifiedBranch: codex/fix-queued-evaluation-delete
+      tweak.archive.prepare:
+        sequence: 10
+        value:
+          prBaseBranch: main
+          remote: origin
+          summary: 按用户选项 3 交付：归档本 change、同步两条删除保护要求，在 codex/fix-queued-evaluation-delete
+            创建归档提交，推送 origin/codex/fix-queued-evaluation-delete 并创建面向 main 的
+            PR。交付包括 5 个源码/测试文件、验收报告及本次工作流产物；无实现变化，沿用 464 passed/1 PostgreSQL
+            skipped、最终专项 54 passed 的验证证据。
+          targetBranch: codex/fix-queued-evaluation-delete
+      tweak.build.execute:
+        sequence: 3
+        value:
+          checks:
+            - name: 关联评估、任务、文件与 worker 回归（465 项）
+              note: MPLCONFIGDIR=/tmp/issue511-mpl .venv/bin/python -m pytest
+                tests/test_evaluation_workflow_contract.py
+                tests/test_evaluation_service_async.py
+                tests/test_user_evaluation_concurrency.py
+                tests/test_api_files.py tests/test_api_evaluations.py
+                tests/test_api_database.py tests/test_evaluation_async_flow.py
+                tests/test_celery_tasks.py tests/test_task_manager.py
+                tests/test_evaluation_artifacts.py --no-cov -q；原运行 463 passed/1
+                skipped/1 sandbox socket.bind failure；唯一失败已在允许本机端口环境单独补验通过，合计
+                464 passed、1 skipped。日志
+                /tmp/issue511-regression.log、/tmp/issue511-broker-check.log。
+              result: passed
+            - name: 最终删除保护与能力投影回归
+              note: 最终谓词类型整理后复验 54 passed；/tmp/issue511-final-focused.log。
+              result: passed
+            - name: Ruff、Black 与 diff 空白检查
+              note: 5 个改动 Python 文件的 ruff check / black --check 及 git diff --check 均通过。
+              result: passed
+            - name: 改动实现类型检查
+              note: .venv/bin/mypy api/services/evaluation_service.py src/task_manager.py
+                --follow-imports=silent
+                --disable-error-code=import-untyped：Success, 2 source files。仓库依赖
+                Celery/scipy 缺类型桩，排除 import-untyped；原始报告 /tmp/issue511-mypy.log。
+              result: passed
+            - name: OpenSpec 严格校验
+              note: comet classic openspec -- validate fix-queued-evaluation-delete
+                --strict：valid。
+              result: passed
+            - name: 真实 PostgreSQL
+              note: TEST_POSTGRESQL_URL 未配置，连接池回归跳过；本次锁 key 与 SQL 顺序已通过真实 SQLite Session 拦截 PG
+                SQL 的契约测试覆盖。
+              result: not-run
+            - name: 独立审查
+              note: 本 tweak Run 配置 reviewMode=off；由实施者完成规格、设计和最终差异核对，未伪称独立审查。
+              result: not-run
+          event: build-complete
+      tweak.open:
+        sequence: 1
+        value:
+          event: open-complete
+          requirementsEvidence:
+            ref: openspec/changes/fix-queued-evaluation-delete
+      tweak.open.evidence:
+        sequence: 2
+        value:
+          contentHash: 19b7c5b89d56ac703991eaa77e385006b1ebffac18001f75fd92d6e8d6a3a0a4
+          ref: openspec/changes/fix-queued-evaluation-delete
+      tweak.verify.report.evidence:
+        sequence: 9
+        value:
+          contentHash: bb9ce1a43dc47149b4691b2cd7e966ffbc3b5856523d7327543ccc27a2f296f3
+          ref: docs/superpowers/reports/2026-11-23-fix-queued-evaluation-delete-verify.md
+      tweak.verify.run:
+        sequence: 8
+        value:
+          checks:
+            - name: 关联评估、任务、文件与 worker 回归（465 项）
+              note: MPLCONFIGDIR=/tmp/issue511-mpl .venv/bin/python -m pytest
+                tests/test_evaluation_workflow_contract.py
+                tests/test_evaluation_service_async.py
+                tests/test_user_evaluation_concurrency.py
+                tests/test_api_files.py tests/test_api_evaluations.py
+                tests/test_api_database.py tests/test_evaluation_async_flow.py
+                tests/test_celery_tasks.py tests/test_task_manager.py
+                tests/test_evaluation_artifacts.py --no-cov -q；原运行 463 passed/1
+                skipped/1 sandbox socket.bind failure；唯一失败已在允许本机端口环境单独补验通过，合计
+                464 passed、1 skipped。日志
+                /tmp/issue511-regression.log、/tmp/issue511-broker-check.log。
+              result: passed
+            - name: 最终删除保护与能力投影回归
+              note: 最终谓词类型整理后复验 54 passed；/tmp/issue511-final-focused.log。
+              result: passed
+            - name: Ruff、Black 与 diff 空白检查
+              note: 5 个改动 Python 文件的 ruff check / black --check 及 git diff --check 均通过。
+              result: passed
+            - name: 改动实现类型检查
+              note: .venv/bin/mypy api/services/evaluation_service.py src/task_manager.py
+                --follow-imports=silent
+                --disable-error-code=import-untyped：Success, 2 source files。仓库依赖
+                Celery/scipy 缺类型桩，排除 import-untyped；原始报告 /tmp/issue511-mypy.log。
+              result: passed
+            - name: OpenSpec 严格校验
+              note: comet classic openspec -- validate fix-queued-evaluation-delete
+                --strict：valid。
+              result: passed
+            - name: 真实 PostgreSQL
+              note: TEST_POSTGRESQL_URL 未配置，连接池回归跳过；本次锁 key 与 SQL 顺序已通过真实 SQLite Session 拦截 PG
+                SQL 的契约测试覆盖。
+              result: not-run
+            - name: 独立审查
+              note: 本 tweak Run 配置 reviewMode=off；由实施者完成规格、设计和最终差异核对，未伪称独立审查。
+              result: not-run
+          event: verification-ready
+          verificationReport: docs/superpowers/reports/2026-11-23-fix-queued-evaluation-delete-verify.md
+    children: []
+    lineage: []
+  sourceRevision: 23
+  sourceHash: 612f0965ce6ec84cf3c9c5901346e06bd77b86f7fccea5c726fb27d5b854cdc1
+direct_override: null
+handoff_context: null
+handoff_hash: null
+classic_profile: null
+classic_migration: null
+check_epoch: 6

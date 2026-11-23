@@ -15,8 +15,9 @@ from contextlib import ExitStack
 from datetime import datetime
 from typing import TypedDict
 
-from sqlalchemy import Engine, or_, select, update
+from sqlalchemy import Engine, and_, or_, select, update
 from sqlalchemy.orm import Session, object_session
+from sqlalchemy.sql.elements import ColumnElement
 
 from api.db import Evaluation, make_engine, make_session_factory, run_migrations
 from api.db.engine import business_database_url
@@ -27,6 +28,17 @@ from src.cost_strategy import MISSING_PRICING_BUDGET
 from src.task_manager import TaskManager, evaluation_execution
 
 INTERRUPTED_BY_RESTART = "interrupted by service restart"
+_LIVE_TASK_STATUSES = ("pending", "running", "paused")
+
+
+def _live_evaluation_task_filter(owner_id: str, evaluation_ids: list[str]) -> ColumnElement[bool]:
+    """Owned activity includes older tasks missing from the current linkage."""
+    return and_(
+        AsyncTask.user_id == owner_id,
+        AsyncTask.task_type == "evaluation",
+        AsyncTask.entity_id.in_(evaluation_ids),
+        AsyncTask.status.in_(_LIVE_TASK_STATUSES),
+    )
 
 
 def _iso(value: datetime) -> str:
@@ -71,7 +83,9 @@ class _OperationCapabilities(TypedDict):
 
 
 def _operation_capabilities(
-    evaluation: Evaluation, async_task: AsyncTask | None = None
+    evaluation: Evaluation,
+    async_task: AsyncTask | None = None,
+    has_live_task: bool | None = None,
 ) -> _OperationCapabilities:
     """仅根据持久化状态投影操作能力，不同步 broker，也不替代归属校验。"""
     if async_task is not None and (
@@ -82,6 +96,19 @@ def _operation_capabilities(
     ):
         async_task = None
     live_task = async_task is not None and async_task.status in ("pending", "running", "paused")
+    if has_live_task is None:
+        session = object_session(evaluation)
+        has_live_task = (
+            bool(
+                session.scalar(
+                    select(AsyncTask.id)
+                    .where(_live_evaluation_task_filter(evaluation.user_id, [evaluation.id]))
+                    .limit(1)
+                )
+            )
+            if session is not None
+            else live_task
+        )
     return {
         "async_task_id": async_task.id if async_task is not None else None,
         "can_pause": evaluation.status in ("pending", "running")
@@ -91,7 +118,8 @@ def _operation_capabilities(
         and async_task is not None
         and async_task.status == "paused",
         "can_update": evaluation.status == "pending",
-        "can_delete": evaluation.status in ("pending", "completed", "cancelled"),
+        "can_delete": evaluation.status in ("pending", "completed", "cancelled")
+        and not has_live_task,
         "can_start": evaluation.status == "pending" and not live_task,
         "can_cancel": evaluation.status in ("pending", "running", "paused")
         and (live_task or (evaluation.async_task_id is None and evaluation.status == "running")),
@@ -155,6 +183,7 @@ def _to_response(
     task: Evaluation,
     async_task: AsyncTask | None = None,
     counts: tuple[int, bool] | None = None,
+    has_live_task: bool | None = None,
 ) -> EvaluationResponse:
     """Convert an evaluation row to the API response shape.
 
@@ -168,7 +197,7 @@ def _to_response(
         created_at=_iso(task.created_at),
         updated_at=_iso(task.updated_at),
         status=task.status,
-        **_operation_capabilities(task, async_task),
+        **_operation_capabilities(task, async_task, has_live_task),
         execution_progress=_execution_progress(task),
         strategy_names=list(task.strategy_names),
         model=task.model,
@@ -380,17 +409,32 @@ class EvaluationService:
             page = tasks[offset : offset + limit]
             task_ids = {task.async_task_id for task in page if task.async_task_id}
             async_tasks = (
-                session.scalars(select(AsyncTask).where(AsyncTask.id.in_(task_ids))).all()
-                if task_ids
+                session.scalars(
+                    select(AsyncTask).where(
+                        or_(
+                            AsyncTask.id.in_(task_ids),
+                            _live_evaluation_task_filter(owner_id, [task.id for task in page]),
+                        )
+                    )
+                ).all()
+                if page
                 else []
             )
             linked_tasks = {task.id: task for task in async_tasks}
+            live_ids = {
+                task.entity_id
+                for task in async_tasks
+                if task.user_id == owner_id
+                and task.task_type == "evaluation"
+                and task.status in _LIVE_TASK_STATUSES
+            }
             counts = _cost_counts(session, [task.id for task in page])
             responses = [
                 _to_response(
                     task,
                     linked_tasks.get(task.async_task_id or ""),
                     counts.get(task.id, (0, False)),
+                    task.id in live_ids,
                 )
                 for task in page
             ]
@@ -413,23 +457,62 @@ class EvaluationService:
     def delete_evaluation(
         self, evaluation_id: str, owner_id: str, cleanup: Callable[[], None] | None = None
     ) -> None:
-        """Delete evaluation task (pending or completed only).
+        """Delete a stopped evaluation, keeping submission fenced through cleanup."""
+        self._delete_evaluation(evaluation_id, owner_id, cleanup, remove_task=False)
 
-        Cleanup runs before the row is removed, matching the original
-        in-memory semantics: a cleanup failure leaves the row intact so the
-        client can retry instead of orphaning associated records.
-        """
-        with self._session() as session, session.begin():
+    def _delete_evaluation(
+        self,
+        evaluation_id: str,
+        owner_id: str,
+        cleanup: Callable[[], None] | None,
+        *,
+        remove_task: bool,
+    ) -> None:
+        # Exit order commits/closes the DB before releasing execution ownership.
+        with ExitStack() as ownership, self._session() as session, session.begin():
+            self._owned_task(session, evaluation_id, owner_id)
+            manager = TaskManager(session)
+            manager._lock_evaluation_admission(owner_id)
+            session.expire_all()
             task = self._owned_task(session, evaluation_id, owner_id)
+            linked = session.get(AsyncTask, task.async_task_id) if task.async_task_id else None
+            if linked is not None:
+                manager._lock_business_task(linked)
+            # Match worker/artifact lock order: task first, then evaluation.
+            session.execute(
+                update(Evaluation)
+                .where(Evaluation.id == evaluation_id)
+                .values(id=Evaluation.id, updated_at=Evaluation.updated_at)
+                .execution_options(synchronize_session=False)
+            )
+            session.refresh(task)
+            if task.user_id != owner_id:
+                raise ValueError(f"Evaluation {evaluation_id} not found")
+            if session.scalar(
+                select(AsyncTask.id)
+                .where(_live_evaluation_task_filter(owner_id, [evaluation_id]))
+                .limit(1)
+            ):
+                raise ValueError(
+                    "Cannot delete active task; cancel it and wait for the worker to stop"
+                )
             if task.status not in ("pending", "completed", "cancelled"):
                 raise ValueError(f"Cannot delete task in {task.status} status")
-        if cleanup:
-            cleanup()
-        with self._session() as session, session.begin():
-            task = self._owned_task(session, evaluation_id, owner_id)
-            if task.status not in ("pending", "completed", "cancelled"):
-                raise ValueError(f"Cannot delete task in {task.status} status")
+            ownership.enter_context(evaluation_execution(evaluation_id))
+            if cleanup:
+                cleanup()
             session.delete(task)
+            if (
+                remove_task
+                and linked is not None
+                and (
+                    linked.user_id == owner_id
+                    and linked.entity_id == evaluation_id
+                    and linked.task_type == "evaluation"
+                )
+            ):
+                session.flush()
+                session.delete(linked)
 
     # -- async task support (Task 5) ----------------------------------------
 
@@ -594,31 +677,8 @@ class EvaluationService:
                 ownership.close()
 
     def delete_evaluation_async(self, evaluation_id: str, owner_id: str) -> None:
-        """Delete evaluation and cancel associated async task.
-
-        Cancels the Celery task and removes both AsyncTask and Evaluation records.
-        """
-        session = self._session()
-        try:
-            evaluation = self._owned_task(session, evaluation_id, owner_id)
-
-            # Cancel async task if present
-            if evaluation.async_task_id:
-                task_manager = TaskManager(session)
-                try:
-                    task_manager.cancel_task(evaluation.async_task_id, owner_id)
-                except ValueError:
-                    # Task already in terminal state, ignore
-                    pass
-
-                # Delete the AsyncTask record
-                session.query(AsyncTask).filter(AsyncTask.id == evaluation.async_task_id).delete()
-
-            # Delete the Evaluation record
-            session.delete(evaluation)
-            session.commit()
-        finally:
-            session.close()
+        """Delete a stopped evaluation and its owned terminal task."""
+        self._delete_evaluation(evaluation_id, owner_id, None, remove_task=True)
 
     # -- lifecycle -----------------------------------------------------------
 

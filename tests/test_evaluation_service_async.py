@@ -435,26 +435,27 @@ class TestResumeEvaluation:
 
 
 class TestDeleteEvaluation:
-    """Test delete_evaluation method with task cancellation."""
+    """Async deletion obeys the same stopped-task guard as the HTTP path."""
 
-    def test_delete_evaluation_cancels_async_task(
+    def test_delete_evaluation_rejects_active_async_task(
         self, test_db_session, test_user_id, evaluation_with_task
     ):
-        """Verify delete_evaluation cancels the associated AsyncTask."""
+        """Deletion cannot implicitly cancel and remove a queued task."""
         from api.services.evaluation_service import EvaluationService
 
         service = EvaluationService.__new__(EvaluationService)
         service._session_factory = lambda: test_db_session
 
-        with patch("api.services.evaluation_service.TaskManager") as MockTaskManager:
-            mock_task_mgr = Mock()
-            MockTaskManager.return_value = mock_task_mgr
-
-            # When: Delete evaluation
+        with (
+            patch("src.task_manager.TaskManager.cancel_task"),
+            pytest.raises(ValueError, match="cancel.*stop"),
+        ):
             service.delete_evaluation_async(evaluation_with_task["evaluation_id"], test_user_id)
-
-        # Then: cancel_task should have been called
-        mock_task_mgr.cancel_task.assert_called_once()
+        assert test_db_session.get(Evaluation, evaluation_with_task["evaluation_id"]) is not None
+        assert (
+            test_db_session.get(AsyncTask, evaluation_with_task["async_task_id"]).status
+            == "pending"
+        )
 
     def test_delete_evaluation_removes_evaluation_record(
         self, test_db_session, test_user_id, evaluation_with_task
@@ -466,17 +467,15 @@ class TestDeleteEvaluation:
         service._session_factory = lambda: test_db_session
 
         evaluation_id = evaluation_with_task["evaluation_id"]
-
-        with patch("api.services.evaluation_service.TaskManager") as MockTaskManager:
-            mock_task_mgr = Mock()
-            MockTaskManager.return_value = mock_task_mgr
-
-            # When: Delete evaluation
-            service.delete_evaluation_async(evaluation_id, test_user_id)
+        evaluation_with_task["evaluation"].status = "completed"
+        evaluation_with_task["async_task"].status = "completed"
+        test_db_session.commit()
+        service.delete_evaluation_async(evaluation_id, test_user_id)
 
         # Then: Evaluation should be deleted
         evaluation = test_db_session.query(Evaluation).filter_by(id=evaluation_id).first()
         assert evaluation is None
+        assert test_db_session.get(AsyncTask, evaluation_with_task["async_task_id"]) is None
 
     def test_delete_evaluation_fails_for_non_existent_evaluation(
         self, test_db_session, test_user_id

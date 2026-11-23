@@ -1,0 +1,39 @@
+{
+  "schema": "comet.classic.archive-manifest.v2",
+  "execution": {
+    "workflow": {
+      "id": "comet-classic-tweak",
+      "version": "2",
+      "hash": "d1e067bc00ca13395dbc6f701565417c3e227f17a57df025dd73ebda905e2638"
+    },
+    "runId": "fix-queued-evaluation-delete",
+    "actionId": "fix-queued-evaluation-delete:13",
+    "attempt": 1,
+    "inputHash": "4e57605a86f37aac40942949583b69835ef913f7b2e2ec648250b46319cb3300",
+    "claimToken": "portable-2f54207107da7365443ee8a6394df9d369fec9317b161f3969d620cd87c069f2"
+  },
+  "activeRef": "openspec/changes/fix-queued-evaluation-delete",
+  "archiveRef": "openspec/changes/archive/2026-11-23-fix-queued-evaluation-delete",
+  "stateRef": "openspec/changes/archive/2026-11-23-fix-queued-evaluation-delete/comet-state.yaml",
+  "paths": [
+    "openspec/changes/archive/2026-11-23-fix-queued-evaluation-delete/.comet/archive-requirements.json",
+    "openspec/changes/archive/2026-11-23-fix-queued-evaluation-delete/.openspec.yaml",
+    "openspec/changes/archive/2026-11-23-fix-queued-evaluation-delete/checks.json",
+    "openspec/changes/archive/2026-11-23-fix-queued-evaluation-delete/design.md",
+    "openspec/changes/archive/2026-11-23-fix-queued-evaluation-delete/proposal.md",
+    "openspec/changes/archive/2026-11-23-fix-queued-evaluation-delete/specs/api/evaluation-execution/spec.md",
+    "openspec/changes/archive/2026-11-23-fix-queued-evaluation-delete/tasks.md",
+    "openspec/changes/archive/2026-11-23-fix-queued-evaluation-delete/walkthrough.html",
+    "openspec/specs/api/evaluation-execution/spec.md"
+  ],
+  "sourcePaths": [
+    "openspec/changes/fix-queued-evaluation-delete/.comet/archive-requirements.json",
+    "openspec/changes/fix-queued-evaluation-delete/.openspec.yaml",
+    "openspec/changes/fix-queued-evaluation-delete/checks.json",
+    "openspec/changes/fix-queued-evaluation-delete/design.md",
+    "openspec/changes/fix-queued-evaluation-delete/proposal.md",
+    "openspec/changes/fix-queued-evaluation-delete/specs/api/evaluation-execution/spec.md",
+    "openspec/changes/fix-queued-evaluation-delete/tasks.md",
+    "openspec/changes/fix-queued-evaluation-delete/walkthrough.html"
+  ]
+}
