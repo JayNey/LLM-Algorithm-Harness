@@ -66,6 +66,12 @@ curl --fail http://localhost:8000/openapi.json --output openapi.json
 
 ## 从注册到评估结果
 
+评估创建请求暂不支持 `timeout_seconds`（每题总超时）和 `max_concurrency`（单评估内并发）。显式发送任意值，包括历史默认值 `300`/`5` 或 `null`，都会返回 HTTP 400；`error.code` 为 `INVALID_PARAMETER`，`details` 按字段说明需省略该参数。此限制适用于普通、选题和个人集合版本创建。PATCH 显式提供 `timeout_seconds` 也返回 400，整次更新不生效，包括同一请求中的预算修改。
+
+迁移时从创建 JSON 删除这两个字段，从 PATCH JSON 删除 `timeout_seconds`。例如修改预算使用 `{"budget_cap_usd": 2.0}`。这是对过去“成功但静默忽略”的纠错，显式发送旧字段的客户端需要调整。OpenAPI 保留的数字默认值只是遗留 schema 占位，不代表实际执行配置；字段已标记弃用。
+
+省略上述字段后，评估按当前执行器串行调度，每个沙箱测试用例默认允许 5 秒；这不是整道题的总时限。模型请求时限由独立的 `generation_timeout_seconds` 控制，取值 1–300 秒、默认 60 秒，仍会持久化并传入 worker。
+
 示例凭证均为虚构值。先运行注册，再登录；已经注册时可直接登录。
 所有资源 ID 必须从自己的前序响应中获取。示例题目须已导入业务题库，模型须受自己的提供商密钥支持。
 以下操作会创建账户、保存密钥或创建/执行评估，按需在本地开发服务使用。

@@ -900,6 +900,7 @@
             "type": "integer"
           },
           "max_concurrency": {
+            "deprecated": true,
             "default": 5,
             "minimum": 1.0,
             "type": "integer"
@@ -923,6 +924,7 @@
             "type": "array"
           },
           "timeout_seconds": {
+            "deprecated": true,
             "default": 300,
             "minimum": 1.0,
             "type": "integer"
@@ -1093,6 +1095,7 @@
             ]
           },
           "timeout_seconds": {
+            "deprecated": true,
             "anyOf": [
               {
                 "minimum": 1.0,

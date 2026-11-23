@@ -1,0 +1,2117 @@
+# comet-execution: managed-run
+change_id: 0becb2de-eb35-420a-8bc6-01c818ec10c8
+workflow: tweak
+language: zh-CN
+phase: archive
+context_compression: off
+build_mode: direct
+build_pause: null
+subagent_dispatch: null
+tdd_mode: direct
+review_mode: off
+isolation: current
+verify_mode: light
+auto_transition: true
+base_ref: 6668006d011bd6481b84f4145551b7f48439b630
+design_doc: null
+plan: null
+verify_result: pass
+verify_failures: 0
+verification_report: docs/superpowers/reports/2026-11-23-reject-unsupported-evaluation-options-verify.md
+branch_status: pending
+created_at: 2026-11-23
+verified_at: 2026-11-23
+archive_confirmation: confirmed
+archived: true
+bound_branch: codex/reject-unsupported-evaluation-options
+run_checkpoint:
+  schema: comet.workflow-run-checkpoint.v1
+  hash: e4d6ba441813f83232db99605c77d4babe0c999a3c6e848f7de251f38639b0d3
+  run:
+    protocolVersion: 1
+    schemaVersion: 1
+    runId: reject-unsupported-evaluation-options
+    revision: 1
+    workflow:
+      id: comet-classic-tweak
+      version: "2"
+      hash: d1e067bc00ca13395dbc6f701565417c3e227f17a57df025dd73ebda905e2638
+    definitionHashes:
+      '["comet-classic-tweak","2"]': d1e067bc00ca13395dbc6f701565417c3e227f17a57df025dd73ebda905e2638
+    initialStateHash: 7fe4ffc3e7dd5fd83afa1df19ac4345211c2a4e8d3a49c5bb0dc790f0997fa02
+    input:
+      change: reject-unsupported-evaluation-options
+      changeDir: openspec/changes/reject-unsupported-evaluation-options
+      workspaceBaseline:
+        ref: 3315937d-f385-475b-b863-1a1c8ee5f650
+    state:
+      archiveConfirmation: confirmed
+      archived: true
+      autoTransition: true
+      baseRef: 6668006d011bd6481b84f4145551b7f48439b630
+      boundBranch: codex/reject-unsupported-evaluation-options
+      branchStatus: pending
+      buildMode: direct
+      buildPause: null
+      checkEpoch: 6
+      classicMigration: null
+      classicProfile: null
+      contextCompression: off
+      createdAt: 2026-11-23
+      designDoc: null
+      directOverride: null
+      handoffContext: null
+      handoffHash: null
+      isolation: current
+      language: zh-CN
+      phase: archive
+      plan: null
+      reviewMode: off
+      subagentDispatch: null
+      tddMode: direct
+      verificationReport: docs/superpowers/reports/2026-11-23-reject-unsupported-evaluation-options-verify.md
+      verifiedAt: 2026-11-23
+      verifyFailures: 0
+      verifyMode: light
+      verifyResult: pass
+      workflow: tweak
+    status: running
+    sequence: 14
+    actions:
+      - attempt: 1
+        claim:
+          executorId: comet-classic-guard
+          token: portable-262c0722cba3b59e12c6d4f94e3c6ce858545bee7f590644f4490a27f26a1009
+        executionOrigin:
+          workflow:
+            hash: 518d3e8e12eb39899775cb7d2ddcc7ddeba10cb1f1d43cff7b03f2ca61a70c65
+            id: comet-classic-tweak
+            version: "2"
+        id: reject-unsupported-evaluation-options:1
+        input:
+          input:
+            change: reject-unsupported-evaluation-options
+            changeDir: openspec/changes/reject-unsupported-evaluation-options
+            workspaceBaseline:
+              ref: 3315937d-f385-475b-b863-1a1c8ee5f650
+          outputs: {}
+        inputHash: 233f4da1d1bb50841c763ddb1e11d896c30f162c214c981d225b596cbf1f5b1f
+        outcome:
+          actionId: reject-unsupported-evaluation-options:1
+          attempt: 1
+          claimToken: portable-262c0722cba3b59e12c6d4f94e3c6ce858545bee7f590644f4490a27f26a1009
+          inputHash: 233f4da1d1bb50841c763ddb1e11d896c30f162c214c981d225b596cbf1f5b1f
+          outcomeId: ac66c637-b66b-4bbf-9ad0-02b1f40b1955
+          output:
+            event: open-complete
+            requirementsEvidence:
+              ref: openspec/changes/reject-unsupported-evaluation-options
+          status: succeeded
+        protocolVersion: 1
+        receipts:
+          - hash: b142633c1262536e7998fb66dcbc9a2194c43ccf22309bb2dbdb20576ebaee76
+            outcomeId: ac66c637-b66b-4bbf-9ad0-02b1f40b1955
+        reconciliations: []
+        ref: comet-tweak
+        requiredCapabilities: []
+        retry: manual
+        runId: reject-unsupported-evaluation-options
+        status: succeeded
+        stepId: tweak.open
+        type: invoke_skill
+      - attempt: 1
+        claim:
+          executorId: comet-classic-state
+          sessionId: codex-513-root
+          token: portable-f92dca263506d23bff9ccb8eae2543ba8ceb042b5bdca4dea866147a0935b7b1
+        executionOrigin:
+          workflow:
+            hash: 518d3e8e12eb39899775cb7d2ddcc7ddeba10cb1f1d43cff7b03f2ca61a70c65
+            id: comet-classic-tweak
+            version: "2"
+        id: reject-unsupported-evaluation-options:3
+        input:
+          input:
+            change: reject-unsupported-evaluation-options
+            changeDir: openspec/changes/reject-unsupported-evaluation-options
+            workspaceBaseline:
+              ref: 3315937d-f385-475b-b863-1a1c8ee5f650
+          outputs:
+            tweak.open:
+              event: open-complete
+              requirementsEvidence:
+                ref: openspec/changes/reject-unsupported-evaluation-options
+            tweak.open.evidence:
+              contentHash: 233f4da1d1bb50841c763ddb1e11d896c30f162c214c981d225b596cbf1f5b1f
+              ref: openspec/changes/reject-unsupported-evaluation-options
+        inputHash: 44909046629d3c74d0cbaf007320ee63778cbc92f44ef2c073a7bd626f2eb504
+        outcome:
+          actionId: reject-unsupported-evaluation-options:3
+          attempt: 1
+          claimToken: portable-f92dca263506d23bff9ccb8eae2543ba8ceb042b5bdca4dea866147a0935b7b1
+          inputHash: 44909046629d3c74d0cbaf007320ee63778cbc92f44ef2c073a7bd626f2eb504
+          outcomeId: 9ca46041-2127-4267-8f8b-fe4a789a3d05
+          output:
+            checks:
+              - name: Focused API/workflow/version/documentation/async/unit regression in
+                  repository root
+                note: 1113 passed, 40 warnings; .venv/bin/python -m pytest
+                  tests/test_api_evaluations.py
+                  tests/integration/test_api_workflows.py
+                  tests/test_api_versioning.py tests/test_api_documentation.py
+                  tests/test_evaluation_service_async.py
+                  tests/test_generic_evaluation_submission.py
+                  tests/unit/test_api_endpoints.py -o addopts= -q; log
+                  /private/tmp/issue513-regression.log
+                result: passed
+              - name: New HTTP, persistence, rejection and real worker configuration regression
+                note: 37 passed; /private/tmp/issue513-green.log. Initial root-cause run failed
+                  3 tests with actual 201 instead of 400 before implementation.
+                result: passed
+              - name: Black and Ruff on changed Python sources and integration test
+                note: black --check and ruff check api/models.py api/documentation.py
+                  tests/integration/test_api_workflows.py both exit 0
+                result: passed
+              - name: mypy api/models.py
+                note: "Success: no issues found in 1 source file. Broader api/documentation.py
+                  check has 3 unchanged HEAD baseline errors, documented
+                  separately."
+                result: passed
+              - name: OpenSpec strict validation
+                note: "comet classic openspec -- validate reject-unsupported-evaluation-options
+                  --strict: valid"
+                result: passed
+              - name: git diff --check
+                note: exit 0; six implementation/documentation/test deliverables
+                result: passed
+              - name: Four broader HTTP cost tests rerun with local socket permission
+                note: 4 passed, 9 warnings; /private/tmp/issue513-broader-recheck.log. Sandbox
+                  setup errors were PermissionError at
+                  tests/test_api_cost.py:631.
+                result: passed
+            event: build-complete
+          status: succeeded
+        protocolVersion: 1
+        receipts:
+          - hash: b826d9796491f93030e36db9d39d6295e59e6b02d6fd19d19aee4327bff2c780
+            outcomeId: 9ca46041-2127-4267-8f8b-fe4a789a3d05
+        reconciliations: []
+        ref: comet-build
+        requiredCapabilities: []
+        retry: manual
+        runId: reject-unsupported-evaluation-options
+        status: succeeded
+        stepId: tweak.build.execute
+        type: invoke_skill
+      - attempt: 1
+        claim:
+          executorId: comet-classic-guard
+          token: portable-93b62fb13f9f6effdff7bd11177beb338ca5b93726a6bef2e08a5d1fa17541a6
+        executionOrigin:
+          workflow:
+            hash: 518d3e8e12eb39899775cb7d2ddcc7ddeba10cb1f1d43cff7b03f2ca61a70c65
+            id: comet-classic-tweak
+            version: "2"
+        id: reject-unsupported-evaluation-options:4
+        input:
+          input:
+            change: reject-unsupported-evaluation-options
+            changeDir: openspec/changes/reject-unsupported-evaluation-options
+            workspaceBaseline:
+              ref: 3315937d-f385-475b-b863-1a1c8ee5f650
+          outputs:
+            tweak.build.execute:
+              checks:
+                - name: Focused API/workflow/version/documentation/async/unit regression in
+                    repository root
+                  note: 1113 passed, 40 warnings; .venv/bin/python -m pytest
+                    tests/test_api_evaluations.py
+                    tests/integration/test_api_workflows.py
+                    tests/test_api_versioning.py tests/test_api_documentation.py
+                    tests/test_evaluation_service_async.py
+                    tests/test_generic_evaluation_submission.py
+                    tests/unit/test_api_endpoints.py -o addopts= -q; log
+                    /private/tmp/issue513-regression.log
+                  result: passed
+                - name: New HTTP, persistence, rejection and real worker configuration regression
+                  note: 37 passed; /private/tmp/issue513-green.log. Initial root-cause run failed
+                    3 tests with actual 201 instead of 400 before
+                    implementation.
+                  result: passed
+                - name: Black and Ruff on changed Python sources and integration test
+                  note: black --check and ruff check api/models.py api/documentation.py
+                    tests/integration/test_api_workflows.py both exit 0
+                  result: passed
+                - name: mypy api/models.py
+                  note: "Success: no issues found in 1 source file. Broader api/documentation.py
+                    check has 3 unchanged HEAD baseline errors, documented
+                    separately."
+                  result: passed
+                - name: OpenSpec strict validation
+                  note: "comet classic openspec -- validate reject-unsupported-evaluation-options
+                    --strict: valid"
+                  result: passed
+                - name: git diff --check
+                  note: exit 0; six implementation/documentation/test deliverables
+                  result: passed
+                - name: Four broader HTTP cost tests rerun with local socket permission
+                  note: 4 passed, 9 warnings; /private/tmp/issue513-broader-recheck.log. Sandbox
+                    setup errors were PermissionError at
+                    tests/test_api_cost.py:631.
+                  result: passed
+              event: build-complete
+            tweak.open:
+              event: open-complete
+              requirementsEvidence:
+                ref: openspec/changes/reject-unsupported-evaluation-options
+            tweak.open.evidence:
+              contentHash: 233f4da1d1bb50841c763ddb1e11d896c30f162c214c981d225b596cbf1f5b1f
+              ref: openspec/changes/reject-unsupported-evaluation-options
+        inputHash: a0ea342058b1fce6fd1966687911319063e16d4a2760b012617014246688493c
+        outcome:
+          actionId: reject-unsupported-evaluation-options:4
+          attempt: 1
+          claimToken: portable-93b62fb13f9f6effdff7bd11177beb338ca5b93726a6bef2e08a5d1fa17541a6
+          inputHash: a0ea342058b1fce6fd1966687911319063e16d4a2760b012617014246688493c
+          outcomeId: ce576cb9-3d05-4e31-b527-c2a430c615e2
+          output:
+            checks:
+              - name: Focused API/workflow/version/documentation/async/unit regression in
+                  repository root
+                note: 1113 passed, 40 warnings; .venv/bin/python -m pytest
+                  tests/test_api_evaluations.py
+                  tests/integration/test_api_workflows.py
+                  tests/test_api_versioning.py tests/test_api_documentation.py
+                  tests/test_evaluation_service_async.py
+                  tests/test_generic_evaluation_submission.py
+                  tests/unit/test_api_endpoints.py -o addopts= -q; log
+                  /private/tmp/issue513-regression.log
+                result: passed
+              - name: New HTTP, persistence, rejection and real worker configuration regression
+                note: 37 passed; /private/tmp/issue513-green.log. Initial root-cause run failed
+                  3 tests with actual 201 instead of 400 before implementation.
+                result: passed
+              - name: Black and Ruff on changed Python sources and integration test
+                note: black --check and ruff check api/models.py api/documentation.py
+                  tests/integration/test_api_workflows.py both exit 0
+                result: passed
+              - name: mypy api/models.py
+                note: "Success: no issues found in 1 source file. Broader api/documentation.py
+                  check has 3 unchanged HEAD baseline errors, documented
+                  separately."
+                result: passed
+              - name: OpenSpec strict validation
+                note: "comet classic openspec -- validate reject-unsupported-evaluation-options
+                  --strict: valid"
+                result: passed
+              - name: git diff --check
+                note: exit 0; six implementation/documentation/test deliverables
+                result: passed
+              - name: Four broader HTTP cost tests rerun with local socket permission
+                note: 4 passed, 9 warnings; /private/tmp/issue513-broader-recheck.log. Sandbox
+                  setup errors were PermissionError at
+                  tests/test_api_cost.py:631.
+                result: passed
+            event: verification-ready
+            verificationReport: docs/superpowers/reports/2026-11-23-reject-unsupported-evaluation-options-verify.md
+          status: succeeded
+        protocolVersion: 1
+        receipts:
+          - hash: b5184abea052151aabacb83d07c2e18d77cd2935d3da02f0a7d6a3c0da4d77f2
+            outcomeId: ce576cb9-3d05-4e31-b527-c2a430c615e2
+        reconciliations: []
+        ref: comet-verify
+        requiredCapabilities: []
+        retry: manual
+        runId: reject-unsupported-evaluation-options
+        status: succeeded
+        stepId: tweak.verify.run
+        type: invoke_skill
+      - attempt: 1
+        claim:
+          executorId: comet-classic-state
+          token: portable-9e157a0277e9f44c3980980b89ba90f20be09184a161bbb3cb7f48369689f9b8
+        executionOrigin:
+          workflow:
+            hash: 518d3e8e12eb39899775cb7d2ddcc7ddeba10cb1f1d43cff7b03f2ca61a70c65
+            id: comet-classic-tweak
+            version: "2"
+        id: reject-unsupported-evaluation-options:6
+        input:
+          input:
+            change: reject-unsupported-evaluation-options
+            changeDir: openspec/changes/reject-unsupported-evaluation-options
+            workspaceBaseline:
+              ref: 3315937d-f385-475b-b863-1a1c8ee5f650
+          outputs:
+            tweak.build.execute:
+              checks:
+                - name: Focused API/workflow/version/documentation/async/unit regression in
+                    repository root
+                  note: 1113 passed, 40 warnings; .venv/bin/python -m pytest
+                    tests/test_api_evaluations.py
+                    tests/integration/test_api_workflows.py
+                    tests/test_api_versioning.py tests/test_api_documentation.py
+                    tests/test_evaluation_service_async.py
+                    tests/test_generic_evaluation_submission.py
+                    tests/unit/test_api_endpoints.py -o addopts= -q; log
+                    /private/tmp/issue513-regression.log
+                  result: passed
+                - name: New HTTP, persistence, rejection and real worker configuration regression
+                  note: 37 passed; /private/tmp/issue513-green.log. Initial root-cause run failed
+                    3 tests with actual 201 instead of 400 before
+                    implementation.
+                  result: passed
+                - name: Black and Ruff on changed Python sources and integration test
+                  note: black --check and ruff check api/models.py api/documentation.py
+                    tests/integration/test_api_workflows.py both exit 0
+                  result: passed
+                - name: mypy api/models.py
+                  note: "Success: no issues found in 1 source file. Broader api/documentation.py
+                    check has 3 unchanged HEAD baseline errors, documented
+                    separately."
+                  result: passed
+                - name: OpenSpec strict validation
+                  note: "comet classic openspec -- validate reject-unsupported-evaluation-options
+                    --strict: valid"
+                  result: passed
+                - name: git diff --check
+                  note: exit 0; six implementation/documentation/test deliverables
+                  result: passed
+                - name: Four broader HTTP cost tests rerun with local socket permission
+                  note: 4 passed, 9 warnings; /private/tmp/issue513-broader-recheck.log. Sandbox
+                    setup errors were PermissionError at
+                    tests/test_api_cost.py:631.
+                  result: passed
+              event: build-complete
+            tweak.open:
+              event: open-complete
+              requirementsEvidence:
+                ref: openspec/changes/reject-unsupported-evaluation-options
+            tweak.open.evidence:
+              contentHash: 233f4da1d1bb50841c763ddb1e11d896c30f162c214c981d225b596cbf1f5b1f
+              ref: openspec/changes/reject-unsupported-evaluation-options
+            tweak.verify.report.evidence:
+              contentHash: a0ea342058b1fce6fd1966687911319063e16d4a2760b012617014246688493c
+              ref: docs/superpowers/reports/2026-11-23-reject-unsupported-evaluation-options-verify.md
+            tweak.verify.run:
+              checks:
+                - name: Focused API/workflow/version/documentation/async/unit regression in
+                    repository root
+                  note: 1113 passed, 40 warnings; .venv/bin/python -m pytest
+                    tests/test_api_evaluations.py
+                    tests/integration/test_api_workflows.py
+                    tests/test_api_versioning.py tests/test_api_documentation.py
+                    tests/test_evaluation_service_async.py
+                    tests/test_generic_evaluation_submission.py
+                    tests/unit/test_api_endpoints.py -o addopts= -q; log
+                    /private/tmp/issue513-regression.log
+                  result: passed
+                - name: New HTTP, persistence, rejection and real worker configuration regression
+                  note: 37 passed; /private/tmp/issue513-green.log. Initial root-cause run failed
+                    3 tests with actual 201 instead of 400 before
+                    implementation.
+                  result: passed
+                - name: Black and Ruff on changed Python sources and integration test
+                  note: black --check and ruff check api/models.py api/documentation.py
+                    tests/integration/test_api_workflows.py both exit 0
+                  result: passed
+                - name: mypy api/models.py
+                  note: "Success: no issues found in 1 source file. Broader api/documentation.py
+                    check has 3 unchanged HEAD baseline errors, documented
+                    separately."
+                  result: passed
+                - name: OpenSpec strict validation
+                  note: "comet classic openspec -- validate reject-unsupported-evaluation-options
+                    --strict: valid"
+                  result: passed
+                - name: git diff --check
+                  note: exit 0; six implementation/documentation/test deliverables
+                  result: passed
+                - name: Four broader HTTP cost tests rerun with local socket permission
+                  note: 4 passed, 9 warnings; /private/tmp/issue513-broader-recheck.log. Sandbox
+                    setup errors were PermissionError at
+                    tests/test_api_cost.py:631.
+                  result: passed
+              event: verification-ready
+              verificationReport: docs/superpowers/reports/2026-11-23-reject-unsupported-evaluation-options-verify.md
+        inputHash: 9e6ab8596fdf8f70f6b830313c8d4315ac6f3f309786aee081e8aa4dbfc12a8c
+        outcome:
+          actionId: reject-unsupported-evaluation-options:6
+          attempt: 1
+          claimToken: portable-9e157a0277e9f44c3980980b89ba90f20be09184a161bbb3cb7f48369689f9b8
+          inputHash: 9e6ab8596fdf8f70f6b830313c8d4315ac6f3f309786aee081e8aa4dbfc12a8c
+          outcomeId: 5873070a-1cf9-4255-a501-36949df5bf3b
+          output:
+            summary: 目标验收与 Runtime Verify
+              已通过，4/4任务、3/3新增需求、6/6场景，相关测试1113项及本地端口授权复测4项通过。拟在当前本地 main 分支归档本
+              change，将 delta 同步至 api/evaluation-execution
+              主规格，并将六个交付文件、验收报告、归档材料和已有 walkthrough.html
+              纳入一个本地提交；当前没有无关工作区改动。尚未获得归档、Git提交或远端交付授权。全仓离线测试未完成；api/documentation.py
+              的三个 mypy 错误与 HEAD 基线一致。请用户选择 local（仅归档与本地提交）、push、pr、reverify 或
+              later；push/pr 需另行明确实际远端和分支目标。
+            targetBranch: main
+          status: succeeded
+        protocolVersion: 1
+        receipts:
+          - hash: cc1c746319492801068d5a0a015ba7d4263366784df076620cc4fab4df07e713
+            outcomeId: 5873070a-1cf9-4255-a501-36949df5bf3b
+        reconciliations: []
+        ref: comet-archive
+        requiredCapabilities: []
+        retry: manual
+        runId: reject-unsupported-evaluation-options
+        status: succeeded
+        stepId: tweak.archive.prepare
+        type: invoke_skill
+      - attempt: 1
+        claim:
+          executorId: comet-classic-guard
+          token: portable-c30b124eb0b5bdfb0f2e84b942270e904c5a9cdf9217ea89752b89fc6639830b
+        executionOrigin:
+          workflow:
+            hash: d1e067bc00ca13395dbc6f701565417c3e227f17a57df025dd73ebda905e2638
+            id: comet-classic-tweak
+            version: "2"
+        id: reject-unsupported-evaluation-options:8
+        input:
+          activation:
+            expectedRevision: 12
+            fromPhase: archive
+          input:
+            change: reject-unsupported-evaluation-options
+            changeDir: openspec/changes/reject-unsupported-evaluation-options
+            workspaceBaseline:
+              ref: 3315937d-f385-475b-b863-1a1c8ee5f650
+          outputs: {}
+        inputHash: 9d6d191d5871d9d0df21dc3d5788e2c97b55261a7566aabb14bacf727a6c21f0
+        outcome:
+          actionId: reject-unsupported-evaluation-options:8
+          attempt: 1
+          claimToken: portable-c30b124eb0b5bdfb0f2e84b942270e904c5a9cdf9217ea89752b89fc6639830b
+          inputHash: 9d6d191d5871d9d0df21dc3d5788e2c97b55261a7566aabb14bacf727a6c21f0
+          outcomeId: 9d2207b8-7f64-4aaa-823a-9e332835dc75
+          output:
+            checks:
+              - name: Focused API/workflow/version/documentation/async/unit regression in
+                  repository root
+                note: 1113 passed, 40 warnings; .venv/bin/python -m pytest
+                  tests/test_api_evaluations.py
+                  tests/integration/test_api_workflows.py
+                  tests/test_api_versioning.py tests/test_api_documentation.py
+                  tests/test_evaluation_service_async.py
+                  tests/test_generic_evaluation_submission.py
+                  tests/unit/test_api_endpoints.py -o addopts= -q; log
+                  /private/tmp/issue513-regression.log
+                result: passed
+              - name: New HTTP, persistence, rejection and real worker configuration regression
+                note: 37 passed; /private/tmp/issue513-green.log. Initial root-cause run failed
+                  3 tests with actual 201 instead of 400 before implementation.
+                result: passed
+              - name: Black and Ruff on changed Python sources and integration test
+                note: black --check and ruff check api/models.py api/documentation.py
+                  tests/integration/test_api_workflows.py both exit 0
+                result: passed
+              - name: mypy api/models.py
+                note: "Success: no issues found in 1 source file. Broader api/documentation.py
+                  check has 3 unchanged HEAD baseline errors, documented
+                  separately."
+                result: passed
+              - name: OpenSpec strict validation
+                note: "comet classic openspec -- validate reject-unsupported-evaluation-options
+                  --strict: valid"
+                result: passed
+              - name: git diff --check
+                note: exit 0; six implementation/documentation/test deliverables
+                result: passed
+              - name: Four broader HTTP cost tests rerun with local socket permission
+                note: 4 passed, 9 warnings; /private/tmp/issue513-broader-recheck.log. Sandbox
+                  setup errors were PermissionError at
+                  tests/test_api_cost.py:631.
+                result: passed
+            event: verification-ready
+            verificationReport: docs/superpowers/reports/2026-11-23-reject-unsupported-evaluation-options-verify.md
+          status: succeeded
+        protocolVersion: 1
+        receipts:
+          - hash: 8476dffb7d0cd9861a04e23ca1260282a004858e3f2d4914d4435cef87b33334
+            outcomeId: 9d2207b8-7f64-4aaa-823a-9e332835dc75
+        reconciliations: []
+        ref: comet-verify
+        requiredCapabilities: []
+        retry: manual
+        runId: reject-unsupported-evaluation-options
+        status: succeeded
+        stepId: tweak.verify.run
+        type: invoke_skill
+      - attempt: 1
+        claim:
+          executorId: comet-classic-state
+          token: portable-f411006198bb5df7782e6a3ac53f402bc83b58754b9b36f07bee1902aca6c8d8
+        executionOrigin:
+          workflow:
+            hash: d1e067bc00ca13395dbc6f701565417c3e227f17a57df025dd73ebda905e2638
+            id: comet-classic-tweak
+            version: "2"
+        id: reject-unsupported-evaluation-options:10
+        input:
+          input:
+            change: reject-unsupported-evaluation-options
+            changeDir: openspec/changes/reject-unsupported-evaluation-options
+            workspaceBaseline:
+              ref: 3315937d-f385-475b-b863-1a1c8ee5f650
+          outputs:
+            tweak.verify.report.evidence:
+              contentHash: 9d6d191d5871d9d0df21dc3d5788e2c97b55261a7566aabb14bacf727a6c21f0
+              ref: docs/superpowers/reports/2026-11-23-reject-unsupported-evaluation-options-verify.md
+            tweak.verify.run:
+              checks:
+                - name: Focused API/workflow/version/documentation/async/unit regression in
+                    repository root
+                  note: 1113 passed, 40 warnings; .venv/bin/python -m pytest
+                    tests/test_api_evaluations.py
+                    tests/integration/test_api_workflows.py
+                    tests/test_api_versioning.py tests/test_api_documentation.py
+                    tests/test_evaluation_service_async.py
+                    tests/test_generic_evaluation_submission.py
+                    tests/unit/test_api_endpoints.py -o addopts= -q; log
+                    /private/tmp/issue513-regression.log
+                  result: passed
+                - name: New HTTP, persistence, rejection and real worker configuration regression
+                  note: 37 passed; /private/tmp/issue513-green.log. Initial root-cause run failed
+                    3 tests with actual 201 instead of 400 before
+                    implementation.
+                  result: passed
+                - name: Black and Ruff on changed Python sources and integration test
+                  note: black --check and ruff check api/models.py api/documentation.py
+                    tests/integration/test_api_workflows.py both exit 0
+                  result: passed
+                - name: mypy api/models.py
+                  note: "Success: no issues found in 1 source file. Broader api/documentation.py
+                    check has 3 unchanged HEAD baseline errors, documented
+                    separately."
+                  result: passed
+                - name: OpenSpec strict validation
+                  note: "comet classic openspec -- validate reject-unsupported-evaluation-options
+                    --strict: valid"
+                  result: passed
+                - name: git diff --check
+                  note: exit 0; six implementation/documentation/test deliverables
+                  result: passed
+                - name: Four broader HTTP cost tests rerun with local socket permission
+                  note: 4 passed, 9 warnings; /private/tmp/issue513-broader-recheck.log. Sandbox
+                    setup errors were PermissionError at
+                    tests/test_api_cost.py:631.
+                  result: passed
+              event: verification-ready
+              verificationReport: docs/superpowers/reports/2026-11-23-reject-unsupported-evaluation-options-verify.md
+        inputHash: a687a016576d780bc36f5a61d6954692c13a506367cc42fa2c20929f4b96f7be
+        outcome:
+          actionId: reject-unsupported-evaluation-options:10
+          attempt: 1
+          claimToken: portable-f411006198bb5df7782e6a3ac53f402bc83b58754b9b36f07bee1902aca6c8d8
+          inputHash: a687a016576d780bc36f5a61d6954692c13a506367cc42fa2c20929f4b96f7be
+          outcomeId: d84fa98a-e6c9-4a52-b4ae-9cfc3f48d63d
+          output:
+            prBaseBranch: main
+            remote: origin
+            summary: "用户已明确授权归档、推送并创建PR。目标为
+              origin/codex/reject-unsupported-evaluation-options，向
+              JayNey/LLM-Algorithm-Harness 的 main 创建 PR，关联关闭 #513。功能分支 HEAD
+              与已核对的 origin/main 和原验证基线均为 6668006d，全部实现检查仍有效，Verify 收据已刷新。归档本
+              change、同步 api/evaluation-execution 主规格，并将六个交付文件、验收报告、归档材料及已有
+              walkthrough.html
+              纳入一个提交后推送。相关测试1117项通过，全仓未完成和三个既有文档类型错误已在验收报告明确记录。"
+            targetBranch: codex/reject-unsupported-evaluation-options
+          status: succeeded
+        protocolVersion: 1
+        receipts:
+          - hash: d41565057c8bf8f0f9d85c9e5ac5ad1512eedb696556c317ab7711ebef662e87
+            outcomeId: d84fa98a-e6c9-4a52-b4ae-9cfc3f48d63d
+        reconciliations: []
+        ref: comet-archive
+        requiredCapabilities: []
+        retry: manual
+        runId: reject-unsupported-evaluation-options
+        status: succeeded
+        stepId: tweak.archive.prepare
+        type: invoke_skill
+      - attempt: 1
+        claim:
+          executorId: comet-classic-archive-preflight
+          token: portable-adc911fb749d086c4b15ce656c4ceac44692480a241406d32dc5d3d52b4bb31f
+        executionOrigin:
+          workflow:
+            hash: d1e067bc00ca13395dbc6f701565417c3e227f17a57df025dd73ebda905e2638
+            id: comet-classic-tweak
+            version: "2"
+        id: reject-unsupported-evaluation-options:12
+        input:
+          input:
+            change: reject-unsupported-evaluation-options
+            changeDir: openspec/changes/reject-unsupported-evaluation-options
+            workspaceBaseline:
+              ref: 3315937d-f385-475b-b863-1a1c8ee5f650
+          outputs:
+            tweak.archive.confirm:
+              choice: pr
+              proposal:
+                input:
+                  change: reject-unsupported-evaluation-options
+                  changeDir: openspec/changes/reject-unsupported-evaluation-options
+                  workspaceBaseline:
+                    ref: 3315937d-f385-475b-b863-1a1c8ee5f650
+                outputs:
+                  tweak.archive.prepare:
+                    prBaseBranch: main
+                    remote: origin
+                    summary: "用户已明确授权归档、推送并创建PR。目标为
+                      origin/codex/reject-unsupported-evaluation-options，向
+                      JayNey/LLM-Algorithm-Harness 的 main 创建 PR，关联关闭 #513。功能分支
+                      HEAD 与已核对的 origin/main 和原验证基线均为 6668006d，全部实现检查仍有效，Verify
+                      收据已刷新。归档本 change、同步 api/evaluation-execution
+                      主规格，并将六个交付文件、验收报告、归档材料及已有 walkthrough.html
+                      纳入一个提交后推送。相关测试1117项通过，全仓未完成和三个既有文档类型错误已在验收报告明确记录。"
+                    targetBranch: codex/reject-unsupported-evaluation-options
+            tweak.archive.prepare:
+              prBaseBranch: main
+              remote: origin
+              summary: "用户已明确授权归档、推送并创建PR。目标为
+                origin/codex/reject-unsupported-evaluation-options，向
+                JayNey/LLM-Algorithm-Harness 的 main 创建 PR，关联关闭 #513。功能分支 HEAD
+                与已核对的 origin/main 和原验证基线均为 6668006d，全部实现检查仍有效，Verify 收据已刷新。归档本
+                change、同步 api/evaluation-execution 主规格，并将六个交付文件、验收报告、归档材料及已有
+                walkthrough.html
+                纳入一个提交后推送。相关测试1117项通过，全仓未完成和三个既有文档类型错误已在验收报告明确记录。"
+              targetBranch: codex/reject-unsupported-evaluation-options
+            tweak.verify.report.evidence:
+              contentHash: 9d6d191d5871d9d0df21dc3d5788e2c97b55261a7566aabb14bacf727a6c21f0
+              ref: docs/superpowers/reports/2026-11-23-reject-unsupported-evaluation-options-verify.md
+            tweak.verify.run:
+              checks:
+                - name: Focused API/workflow/version/documentation/async/unit regression in
+                    repository root
+                  note: 1113 passed, 40 warnings; .venv/bin/python -m pytest
+                    tests/test_api_evaluations.py
+                    tests/integration/test_api_workflows.py
+                    tests/test_api_versioning.py tests/test_api_documentation.py
+                    tests/test_evaluation_service_async.py
+                    tests/test_generic_evaluation_submission.py
+                    tests/unit/test_api_endpoints.py -o addopts= -q; log
+                    /private/tmp/issue513-regression.log
+                  result: passed
+                - name: New HTTP, persistence, rejection and real worker configuration regression
+                  note: 37 passed; /private/tmp/issue513-green.log. Initial root-cause run failed
+                    3 tests with actual 201 instead of 400 before
+                    implementation.
+                  result: passed
+                - name: Black and Ruff on changed Python sources and integration test
+                  note: black --check and ruff check api/models.py api/documentation.py
+                    tests/integration/test_api_workflows.py both exit 0
+                  result: passed
+                - name: mypy api/models.py
+                  note: "Success: no issues found in 1 source file. Broader api/documentation.py
+                    check has 3 unchanged HEAD baseline errors, documented
+                    separately."
+                  result: passed
+                - name: OpenSpec strict validation
+                  note: "comet classic openspec -- validate reject-unsupported-evaluation-options
+                    --strict: valid"
+                  result: passed
+                - name: git diff --check
+                  note: exit 0; six implementation/documentation/test deliverables
+                  result: passed
+                - name: Four broader HTTP cost tests rerun with local socket permission
+                  note: 4 passed, 9 warnings; /private/tmp/issue513-broader-recheck.log. Sandbox
+                    setup errors were PermissionError at
+                    tests/test_api_cost.py:631.
+                  result: passed
+              event: verification-ready
+              verificationReport: docs/superpowers/reports/2026-11-23-reject-unsupported-evaluation-options-verify.md
+        inputHash: e728c1705b39e6cf9bdf5d386c69579319772a3d59e9b2e6a04dac9f7c271344
+        outcome:
+          actionId: reject-unsupported-evaluation-options:12
+          attempt: 1
+          claimToken: portable-adc911fb749d086c4b15ce656c4ceac44692480a241406d32dc5d3d52b4bb31f
+          inputHash: e728c1705b39e6cf9bdf5d386c69579319772a3d59e9b2e6a04dac9f7c271344
+          outcomeId: b0c6b243-82ae-4f6c-9532-95b00fceb380
+          output:
+            baseCommit: 6668006d011bd6481b84f4145551b7f48439b630
+            deliveryAction: pr
+            deliveryPaths:
+              - API.md
+              - api/documentation.py
+              - api/models.py
+              - docs/api-versioning.md
+              - tests/fixtures/openapi-v1.json
+              - tests/integration/test_api_workflows.py
+            prBaseBranch: main
+            remote: origin
+            remoteIdentity: 128eeb1e6f0d21b25601fcb7f9aad36adfdfb4d76f37f54f004760410190f351
+            targetBranch: codex/reject-unsupported-evaluation-options
+            verifiedBranch: codex/reject-unsupported-evaluation-options
+          status: succeeded
+        protocolVersion: 1
+        receipts:
+          - hash: 0bff292050277acfe60b36b5b77cf34423caba93a4567f49169ceff021aa0cad
+            outcomeId: b0c6b243-82ae-4f6c-9532-95b00fceb380
+        reconciliations: []
+        ref: classic-archive-preflight
+        requiredCapabilities: []
+        retry: manual
+        runId: reject-unsupported-evaluation-options
+        status: succeeded
+        stepId: tweak.archive.preflight
+        type: call_tool
+      - attempt: 1
+        claim:
+          executorId: comet-classic-archive
+          token: portable-49e7e3956331c0e6bb73dfbae4e362cf4ce563cf0280f69ff9f4397e0993246a
+        executionOrigin:
+          workflow:
+            hash: d1e067bc00ca13395dbc6f701565417c3e227f17a57df025dd73ebda905e2638
+            id: comet-classic-tweak
+            version: "2"
+        id: reject-unsupported-evaluation-options:13
+        input:
+          input:
+            change: reject-unsupported-evaluation-options
+            changeDir: openspec/changes/reject-unsupported-evaluation-options
+            workspaceBaseline:
+              ref: 3315937d-f385-475b-b863-1a1c8ee5f650
+          outputs:
+            tweak.archive.confirm:
+              choice: pr
+              proposal:
+                input:
+                  change: reject-unsupported-evaluation-options
+                  changeDir: openspec/changes/reject-unsupported-evaluation-options
+                  workspaceBaseline:
+                    ref: 3315937d-f385-475b-b863-1a1c8ee5f650
+                outputs:
+                  tweak.archive.prepare:
+                    prBaseBranch: main
+                    remote: origin
+                    summary: "用户已明确授权归档、推送并创建PR。目标为
+                      origin/codex/reject-unsupported-evaluation-options，向
+                      JayNey/LLM-Algorithm-Harness 的 main 创建 PR，关联关闭 #513。功能分支
+                      HEAD 与已核对的 origin/main 和原验证基线均为 6668006d，全部实现检查仍有效，Verify
+                      收据已刷新。归档本 change、同步 api/evaluation-execution
+                      主规格，并将六个交付文件、验收报告、归档材料及已有 walkthrough.html
+                      纳入一个提交后推送。相关测试1117项通过，全仓未完成和三个既有文档类型错误已在验收报告明确记录。"
+                    targetBranch: codex/reject-unsupported-evaluation-options
+            tweak.archive.preflight:
+              baseCommit: 6668006d011bd6481b84f4145551b7f48439b630
+              deliveryAction: pr
+              deliveryPaths:
+                - API.md
+                - api/documentation.py
+                - api/models.py
+                - docs/api-versioning.md
+                - tests/fixtures/openapi-v1.json
+                - tests/integration/test_api_workflows.py
+              prBaseBranch: main
+              remote: origin
+              remoteIdentity: 128eeb1e6f0d21b25601fcb7f9aad36adfdfb4d76f37f54f004760410190f351
+              targetBranch: codex/reject-unsupported-evaluation-options
+              verifiedBranch: codex/reject-unsupported-evaluation-options
+            tweak.archive.prepare:
+              prBaseBranch: main
+              remote: origin
+              summary: "用户已明确授权归档、推送并创建PR。目标为
+                origin/codex/reject-unsupported-evaluation-options，向
+                JayNey/LLM-Algorithm-Harness 的 main 创建 PR，关联关闭 #513。功能分支 HEAD
+                与已核对的 origin/main 和原验证基线均为 6668006d，全部实现检查仍有效，Verify 收据已刷新。归档本
+                change、同步 api/evaluation-execution 主规格，并将六个交付文件、验收报告、归档材料及已有
+                walkthrough.html
+                纳入一个提交后推送。相关测试1117项通过，全仓未完成和三个既有文档类型错误已在验收报告明确记录。"
+              targetBranch: codex/reject-unsupported-evaluation-options
+            tweak.verify.report.evidence:
+              contentHash: 9d6d191d5871d9d0df21dc3d5788e2c97b55261a7566aabb14bacf727a6c21f0
+              ref: docs/superpowers/reports/2026-11-23-reject-unsupported-evaluation-options-verify.md
+            tweak.verify.run:
+              checks:
+                - name: Focused API/workflow/version/documentation/async/unit regression in
+                    repository root
+                  note: 1113 passed, 40 warnings; .venv/bin/python -m pytest
+                    tests/test_api_evaluations.py
+                    tests/integration/test_api_workflows.py
+                    tests/test_api_versioning.py tests/test_api_documentation.py
+                    tests/test_evaluation_service_async.py
+                    tests/test_generic_evaluation_submission.py
+                    tests/unit/test_api_endpoints.py -o addopts= -q; log
+                    /private/tmp/issue513-regression.log
+                  result: passed
+                - name: New HTTP, persistence, rejection and real worker configuration regression
+                  note: 37 passed; /private/tmp/issue513-green.log. Initial root-cause run failed
+                    3 tests with actual 201 instead of 400 before
+                    implementation.
+                  result: passed
+                - name: Black and Ruff on changed Python sources and integration test
+                  note: black --check and ruff check api/models.py api/documentation.py
+                    tests/integration/test_api_workflows.py both exit 0
+                  result: passed
+                - name: mypy api/models.py
+                  note: "Success: no issues found in 1 source file. Broader api/documentation.py
+                    check has 3 unchanged HEAD baseline errors, documented
+                    separately."
+                  result: passed
+                - name: OpenSpec strict validation
+                  note: "comet classic openspec -- validate reject-unsupported-evaluation-options
+                    --strict: valid"
+                  result: passed
+                - name: git diff --check
+                  note: exit 0; six implementation/documentation/test deliverables
+                  result: passed
+                - name: Four broader HTTP cost tests rerun with local socket permission
+                  note: 4 passed, 9 warnings; /private/tmp/issue513-broader-recheck.log. Sandbox
+                    setup errors were PermissionError at
+                    tests/test_api_cost.py:631.
+                  result: passed
+              event: verification-ready
+              verificationReport: docs/superpowers/reports/2026-11-23-reject-unsupported-evaluation-options-verify.md
+        inputHash: d5b1ac9a28bc758d0f366bb7930389fe6d44d37cdb96b14da7bbd5ad1517f68b
+        outcome:
+          actionId: reject-unsupported-evaluation-options:13
+          artifacts: []
+          attempt: 1
+          claimToken: portable-49e7e3956331c0e6bb73dfbae4e362cf4ce563cf0280f69ff9f4397e0993246a
+          inputHash: d5b1ac9a28bc758d0f366bb7930389fe6d44d37cdb96b14da7bbd5ad1517f68b
+          outcomeId: ea065155-85ad-406f-89a6-6366c8334101
+          output:
+            archiveDirectory: openspec/changes/archive/2026-11-23-reject-unsupported-evaluation-options
+          status: succeeded
+        protocolVersion: 1
+        receipts:
+          - hash: d2b9b7d093f9050fa13aed58f77675f654d5d5bae655ba6eeabfabb93ed4b90b
+            outcomeId: ea065155-85ad-406f-89a6-6366c8334101
+        reconciliations: []
+        ref: classic-archive
+        requiredCapabilities: []
+        retry: manual
+        runId: reject-unsupported-evaluation-options
+        status: succeeded
+        stepId: tweak.archive.execute
+        type: call_tool
+      - attempt: 1
+        id: reject-unsupported-evaluation-options:14
+        input:
+          input:
+            change: reject-unsupported-evaluation-options
+            changeDir: openspec/changes/reject-unsupported-evaluation-options
+            workspaceBaseline:
+              ref: 3315937d-f385-475b-b863-1a1c8ee5f650
+          outputs:
+            tweak.archive.confirm:
+              choice: pr
+              proposal:
+                input:
+                  change: reject-unsupported-evaluation-options
+                  changeDir: openspec/changes/reject-unsupported-evaluation-options
+                  workspaceBaseline:
+                    ref: 3315937d-f385-475b-b863-1a1c8ee5f650
+                outputs:
+                  tweak.archive.prepare:
+                    prBaseBranch: main
+                    remote: origin
+                    summary: "用户已明确授权归档、推送并创建PR。目标为
+                      origin/codex/reject-unsupported-evaluation-options，向
+                      JayNey/LLM-Algorithm-Harness 的 main 创建 PR，关联关闭 #513。功能分支
+                      HEAD 与已核对的 origin/main 和原验证基线均为 6668006d，全部实现检查仍有效，Verify
+                      收据已刷新。归档本 change、同步 api/evaluation-execution
+                      主规格，并将六个交付文件、验收报告、归档材料及已有 walkthrough.html
+                      纳入一个提交后推送。相关测试1117项通过，全仓未完成和三个既有文档类型错误已在验收报告明确记录。"
+                    targetBranch: codex/reject-unsupported-evaluation-options
+            tweak.archive.execute:
+              archiveDirectory: openspec/changes/archive/2026-11-23-reject-unsupported-evaluation-options
+            tweak.archive.preflight:
+              baseCommit: 6668006d011bd6481b84f4145551b7f48439b630
+              deliveryAction: pr
+              deliveryPaths:
+                - API.md
+                - api/documentation.py
+                - api/models.py
+                - docs/api-versioning.md
+                - tests/fixtures/openapi-v1.json
+                - tests/integration/test_api_workflows.py
+              prBaseBranch: main
+              remote: origin
+              remoteIdentity: 128eeb1e6f0d21b25601fcb7f9aad36adfdfb4d76f37f54f004760410190f351
+              targetBranch: codex/reject-unsupported-evaluation-options
+              verifiedBranch: codex/reject-unsupported-evaluation-options
+            tweak.archive.prepare:
+              prBaseBranch: main
+              remote: origin
+              summary: "用户已明确授权归档、推送并创建PR。目标为
+                origin/codex/reject-unsupported-evaluation-options，向
+                JayNey/LLM-Algorithm-Harness 的 main 创建 PR，关联关闭 #513。功能分支 HEAD
+                与已核对的 origin/main 和原验证基线均为 6668006d，全部实现检查仍有效，Verify 收据已刷新。归档本
+                change、同步 api/evaluation-execution 主规格，并将六个交付文件、验收报告、归档材料及已有
+                walkthrough.html
+                纳入一个提交后推送。相关测试1117项通过，全仓未完成和三个既有文档类型错误已在验收报告明确记录。"
+              targetBranch: codex/reject-unsupported-evaluation-options
+            tweak.verify.report.evidence:
+              contentHash: 9d6d191d5871d9d0df21dc3d5788e2c97b55261a7566aabb14bacf727a6c21f0
+              ref: docs/superpowers/reports/2026-11-23-reject-unsupported-evaluation-options-verify.md
+            tweak.verify.run:
+              checks:
+                - name: Focused API/workflow/version/documentation/async/unit regression in
+                    repository root
+                  note: 1113 passed, 40 warnings; .venv/bin/python -m pytest
+                    tests/test_api_evaluations.py
+                    tests/integration/test_api_workflows.py
+                    tests/test_api_versioning.py tests/test_api_documentation.py
+                    tests/test_evaluation_service_async.py
+                    tests/test_generic_evaluation_submission.py
+                    tests/unit/test_api_endpoints.py -o addopts= -q; log
+                    /private/tmp/issue513-regression.log
+                  result: passed
+                - name: New HTTP, persistence, rejection and real worker configuration regression
+                  note: 37 passed; /private/tmp/issue513-green.log. Initial root-cause run failed
+                    3 tests with actual 201 instead of 400 before
+                    implementation.
+                  result: passed
+                - name: Black and Ruff on changed Python sources and integration test
+                  note: black --check and ruff check api/models.py api/documentation.py
+                    tests/integration/test_api_workflows.py both exit 0
+                  result: passed
+                - name: mypy api/models.py
+                  note: "Success: no issues found in 1 source file. Broader api/documentation.py
+                    check has 3 unchanged HEAD baseline errors, documented
+                    separately."
+                  result: passed
+                - name: OpenSpec strict validation
+                  note: "comet classic openspec -- validate reject-unsupported-evaluation-options
+                    --strict: valid"
+                  result: passed
+                - name: git diff --check
+                  note: exit 0; six implementation/documentation/test deliverables
+                  result: passed
+                - name: Four broader HTTP cost tests rerun with local socket permission
+                  note: 4 passed, 9 warnings; /private/tmp/issue513-broader-recheck.log. Sandbox
+                    setup errors were PermissionError at
+                    tests/test_api_cost.py:631.
+                  result: passed
+              event: verification-ready
+              verificationReport: docs/superpowers/reports/2026-11-23-reject-unsupported-evaluation-options-verify.md
+        inputHash: d5e7e7888d294c72183d475f6268604491777c6ef631f86ea9182743a037716a
+        protocolVersion: 1
+        receipts: []
+        reconciliations: []
+        ref: comet-archive
+        requiredCapabilities: []
+        retry: manual
+        runId: reject-unsupported-evaluation-options
+        status: pending
+        stepId: tweak.archive.deliver
+        type: invoke_skill
+    commands:
+      - id: deb4e5dcc4b6ec140b774e62378f98ee795ede41054805a046b8154b10f5a7d6
+        name: reopen-verification
+        inputHash: f5e487703e8f5203c1a70838dc38a9f0c3378ad441ad266fc269ee9debbfde5a
+        actionId: reject-unsupported-evaluation-options:8
+    actionContexts:
+      reject-unsupported-evaluation-options:1:
+        results: {}
+        sequence: 1
+      reject-unsupported-evaluation-options:10:
+        results:
+          tweak.verify.report.evidence:
+            sequence: 9
+            value:
+              contentHash: 9d6d191d5871d9d0df21dc3d5788e2c97b55261a7566aabb14bacf727a6c21f0
+              ref: docs/superpowers/reports/2026-11-23-reject-unsupported-evaluation-options-verify.md
+          tweak.verify.run:
+            sequence: 8
+            value:
+              checks:
+                - name: Focused API/workflow/version/documentation/async/unit regression in
+                    repository root
+                  note: 1113 passed, 40 warnings; .venv/bin/python -m pytest
+                    tests/test_api_evaluations.py
+                    tests/integration/test_api_workflows.py
+                    tests/test_api_versioning.py tests/test_api_documentation.py
+                    tests/test_evaluation_service_async.py
+                    tests/test_generic_evaluation_submission.py
+                    tests/unit/test_api_endpoints.py -o addopts= -q; log
+                    /private/tmp/issue513-regression.log
+                  result: passed
+                - name: New HTTP, persistence, rejection and real worker configuration regression
+                  note: 37 passed; /private/tmp/issue513-green.log. Initial root-cause run failed
+                    3 tests with actual 201 instead of 400 before
+                    implementation.
+                  result: passed
+                - name: Black and Ruff on changed Python sources and integration test
+                  note: black --check and ruff check api/models.py api/documentation.py
+                    tests/integration/test_api_workflows.py both exit 0
+                  result: passed
+                - name: mypy api/models.py
+                  note: "Success: no issues found in 1 source file. Broader api/documentation.py
+                    check has 3 unchanged HEAD baseline errors, documented
+                    separately."
+                  result: passed
+                - name: OpenSpec strict validation
+                  note: "comet classic openspec -- validate reject-unsupported-evaluation-options
+                    --strict: valid"
+                  result: passed
+                - name: git diff --check
+                  note: exit 0; six implementation/documentation/test deliverables
+                  result: passed
+                - name: Four broader HTTP cost tests rerun with local socket permission
+                  note: 4 passed, 9 warnings; /private/tmp/issue513-broader-recheck.log. Sandbox
+                    setup errors were PermissionError at
+                    tests/test_api_cost.py:631.
+                  result: passed
+              event: verification-ready
+              verificationReport: docs/superpowers/reports/2026-11-23-reject-unsupported-evaluation-options-verify.md
+        sequence: 10
+      reject-unsupported-evaluation-options:12:
+        results:
+          tweak.archive.confirm:
+            sequence: 11
+            value:
+              choice: pr
+              proposal:
+                input:
+                  change: reject-unsupported-evaluation-options
+                  changeDir: openspec/changes/reject-unsupported-evaluation-options
+                  workspaceBaseline:
+                    ref: 3315937d-f385-475b-b863-1a1c8ee5f650
+                outputs:
+                  tweak.archive.prepare:
+                    prBaseBranch: main
+                    remote: origin
+                    summary: "用户已明确授权归档、推送并创建PR。目标为
+                      origin/codex/reject-unsupported-evaluation-options，向
+                      JayNey/LLM-Algorithm-Harness 的 main 创建 PR，关联关闭 #513。功能分支
+                      HEAD 与已核对的 origin/main 和原验证基线均为 6668006d，全部实现检查仍有效，Verify
+                      收据已刷新。归档本 change、同步 api/evaluation-execution
+                      主规格，并将六个交付文件、验收报告、归档材料及已有 walkthrough.html
+                      纳入一个提交后推送。相关测试1117项通过，全仓未完成和三个既有文档类型错误已在验收报告明确记录。"
+                    targetBranch: codex/reject-unsupported-evaluation-options
+          tweak.archive.prepare:
+            sequence: 10
+            value:
+              prBaseBranch: main
+              remote: origin
+              summary: "用户已明确授权归档、推送并创建PR。目标为
+                origin/codex/reject-unsupported-evaluation-options，向
+                JayNey/LLM-Algorithm-Harness 的 main 创建 PR，关联关闭 #513。功能分支 HEAD
+                与已核对的 origin/main 和原验证基线均为 6668006d，全部实现检查仍有效，Verify 收据已刷新。归档本
+                change、同步 api/evaluation-execution 主规格，并将六个交付文件、验收报告、归档材料及已有
+                walkthrough.html
+                纳入一个提交后推送。相关测试1117项通过，全仓未完成和三个既有文档类型错误已在验收报告明确记录。"
+              targetBranch: codex/reject-unsupported-evaluation-options
+          tweak.verify.report.evidence:
+            sequence: 9
+            value:
+              contentHash: 9d6d191d5871d9d0df21dc3d5788e2c97b55261a7566aabb14bacf727a6c21f0
+              ref: docs/superpowers/reports/2026-11-23-reject-unsupported-evaluation-options-verify.md
+          tweak.verify.run:
+            sequence: 8
+            value:
+              checks:
+                - name: Focused API/workflow/version/documentation/async/unit regression in
+                    repository root
+                  note: 1113 passed, 40 warnings; .venv/bin/python -m pytest
+                    tests/test_api_evaluations.py
+                    tests/integration/test_api_workflows.py
+                    tests/test_api_versioning.py tests/test_api_documentation.py
+                    tests/test_evaluation_service_async.py
+                    tests/test_generic_evaluation_submission.py
+                    tests/unit/test_api_endpoints.py -o addopts= -q; log
+                    /private/tmp/issue513-regression.log
+                  result: passed
+                - name: New HTTP, persistence, rejection and real worker configuration regression
+                  note: 37 passed; /private/tmp/issue513-green.log. Initial root-cause run failed
+                    3 tests with actual 201 instead of 400 before
+                    implementation.
+                  result: passed
+                - name: Black and Ruff on changed Python sources and integration test
+                  note: black --check and ruff check api/models.py api/documentation.py
+                    tests/integration/test_api_workflows.py both exit 0
+                  result: passed
+                - name: mypy api/models.py
+                  note: "Success: no issues found in 1 source file. Broader api/documentation.py
+                    check has 3 unchanged HEAD baseline errors, documented
+                    separately."
+                  result: passed
+                - name: OpenSpec strict validation
+                  note: "comet classic openspec -- validate reject-unsupported-evaluation-options
+                    --strict: valid"
+                  result: passed
+                - name: git diff --check
+                  note: exit 0; six implementation/documentation/test deliverables
+                  result: passed
+                - name: Four broader HTTP cost tests rerun with local socket permission
+                  note: 4 passed, 9 warnings; /private/tmp/issue513-broader-recheck.log. Sandbox
+                    setup errors were PermissionError at
+                    tests/test_api_cost.py:631.
+                  result: passed
+              event: verification-ready
+              verificationReport: docs/superpowers/reports/2026-11-23-reject-unsupported-evaluation-options-verify.md
+        sequence: 12
+      reject-unsupported-evaluation-options:13:
+        results:
+          tweak.archive.confirm:
+            sequence: 11
+            value:
+              choice: pr
+              proposal:
+                input:
+                  change: reject-unsupported-evaluation-options
+                  changeDir: openspec/changes/reject-unsupported-evaluation-options
+                  workspaceBaseline:
+                    ref: 3315937d-f385-475b-b863-1a1c8ee5f650
+                outputs:
+                  tweak.archive.prepare:
+                    prBaseBranch: main
+                    remote: origin
+                    summary: "用户已明确授权归档、推送并创建PR。目标为
+                      origin/codex/reject-unsupported-evaluation-options，向
+                      JayNey/LLM-Algorithm-Harness 的 main 创建 PR，关联关闭 #513。功能分支
+                      HEAD 与已核对的 origin/main 和原验证基线均为 6668006d，全部实现检查仍有效，Verify
+                      收据已刷新。归档本 change、同步 api/evaluation-execution
+                      主规格，并将六个交付文件、验收报告、归档材料及已有 walkthrough.html
+                      纳入一个提交后推送。相关测试1117项通过，全仓未完成和三个既有文档类型错误已在验收报告明确记录。"
+                    targetBranch: codex/reject-unsupported-evaluation-options
+          tweak.archive.preflight:
+            sequence: 12
+            value:
+              baseCommit: 6668006d011bd6481b84f4145551b7f48439b630
+              deliveryAction: pr
+              deliveryPaths:
+                - API.md
+                - api/documentation.py
+                - api/models.py
+                - docs/api-versioning.md
+                - tests/fixtures/openapi-v1.json
+                - tests/integration/test_api_workflows.py
+              prBaseBranch: main
+              remote: origin
+              remoteIdentity: 128eeb1e6f0d21b25601fcb7f9aad36adfdfb4d76f37f54f004760410190f351
+              targetBranch: codex/reject-unsupported-evaluation-options
+              verifiedBranch: codex/reject-unsupported-evaluation-options
+          tweak.archive.prepare:
+            sequence: 10
+            value:
+              prBaseBranch: main
+              remote: origin
+              summary: "用户已明确授权归档、推送并创建PR。目标为
+                origin/codex/reject-unsupported-evaluation-options，向
+                JayNey/LLM-Algorithm-Harness 的 main 创建 PR，关联关闭 #513。功能分支 HEAD
+                与已核对的 origin/main 和原验证基线均为 6668006d，全部实现检查仍有效，Verify 收据已刷新。归档本
+                change、同步 api/evaluation-execution 主规格，并将六个交付文件、验收报告、归档材料及已有
+                walkthrough.html
+                纳入一个提交后推送。相关测试1117项通过，全仓未完成和三个既有文档类型错误已在验收报告明确记录。"
+              targetBranch: codex/reject-unsupported-evaluation-options
+          tweak.verify.report.evidence:
+            sequence: 9
+            value:
+              contentHash: 9d6d191d5871d9d0df21dc3d5788e2c97b55261a7566aabb14bacf727a6c21f0
+              ref: docs/superpowers/reports/2026-11-23-reject-unsupported-evaluation-options-verify.md
+          tweak.verify.run:
+            sequence: 8
+            value:
+              checks:
+                - name: Focused API/workflow/version/documentation/async/unit regression in
+                    repository root
+                  note: 1113 passed, 40 warnings; .venv/bin/python -m pytest
+                    tests/test_api_evaluations.py
+                    tests/integration/test_api_workflows.py
+                    tests/test_api_versioning.py tests/test_api_documentation.py
+                    tests/test_evaluation_service_async.py
+                    tests/test_generic_evaluation_submission.py
+                    tests/unit/test_api_endpoints.py -o addopts= -q; log
+                    /private/tmp/issue513-regression.log
+                  result: passed
+                - name: New HTTP, persistence, rejection and real worker configuration regression
+                  note: 37 passed; /private/tmp/issue513-green.log. Initial root-cause run failed
+                    3 tests with actual 201 instead of 400 before
+                    implementation.
+                  result: passed
+                - name: Black and Ruff on changed Python sources and integration test
+                  note: black --check and ruff check api/models.py api/documentation.py
+                    tests/integration/test_api_workflows.py both exit 0
+                  result: passed
+                - name: mypy api/models.py
+                  note: "Success: no issues found in 1 source file. Broader api/documentation.py
+                    check has 3 unchanged HEAD baseline errors, documented
+                    separately."
+                  result: passed
+                - name: OpenSpec strict validation
+                  note: "comet classic openspec -- validate reject-unsupported-evaluation-options
+                    --strict: valid"
+                  result: passed
+                - name: git diff --check
+                  note: exit 0; six implementation/documentation/test deliverables
+                  result: passed
+                - name: Four broader HTTP cost tests rerun with local socket permission
+                  note: 4 passed, 9 warnings; /private/tmp/issue513-broader-recheck.log. Sandbox
+                    setup errors were PermissionError at
+                    tests/test_api_cost.py:631.
+                  result: passed
+              event: verification-ready
+              verificationReport: docs/superpowers/reports/2026-11-23-reject-unsupported-evaluation-options-verify.md
+        sequence: 13
+      reject-unsupported-evaluation-options:14:
+        results:
+          tweak.archive.confirm:
+            sequence: 11
+            value:
+              choice: pr
+              proposal:
+                input:
+                  change: reject-unsupported-evaluation-options
+                  changeDir: openspec/changes/reject-unsupported-evaluation-options
+                  workspaceBaseline:
+                    ref: 3315937d-f385-475b-b863-1a1c8ee5f650
+                outputs:
+                  tweak.archive.prepare:
+                    prBaseBranch: main
+                    remote: origin
+                    summary: "用户已明确授权归档、推送并创建PR。目标为
+                      origin/codex/reject-unsupported-evaluation-options，向
+                      JayNey/LLM-Algorithm-Harness 的 main 创建 PR，关联关闭 #513。功能分支
+                      HEAD 与已核对的 origin/main 和原验证基线均为 6668006d，全部实现检查仍有效，Verify
+                      收据已刷新。归档本 change、同步 api/evaluation-execution
+                      主规格，并将六个交付文件、验收报告、归档材料及已有 walkthrough.html
+                      纳入一个提交后推送。相关测试1117项通过，全仓未完成和三个既有文档类型错误已在验收报告明确记录。"
+                    targetBranch: codex/reject-unsupported-evaluation-options
+          tweak.archive.execute:
+            sequence: 13
+            value:
+              archiveDirectory: openspec/changes/archive/2026-11-23-reject-unsupported-evaluation-options
+          tweak.archive.preflight:
+            sequence: 12
+            value:
+              baseCommit: 6668006d011bd6481b84f4145551b7f48439b630
+              deliveryAction: pr
+              deliveryPaths:
+                - API.md
+                - api/documentation.py
+                - api/models.py
+                - docs/api-versioning.md
+                - tests/fixtures/openapi-v1.json
+                - tests/integration/test_api_workflows.py
+              prBaseBranch: main
+              remote: origin
+              remoteIdentity: 128eeb1e6f0d21b25601fcb7f9aad36adfdfb4d76f37f54f004760410190f351
+              targetBranch: codex/reject-unsupported-evaluation-options
+              verifiedBranch: codex/reject-unsupported-evaluation-options
+          tweak.archive.prepare:
+            sequence: 10
+            value:
+              prBaseBranch: main
+              remote: origin
+              summary: "用户已明确授权归档、推送并创建PR。目标为
+                origin/codex/reject-unsupported-evaluation-options，向
+                JayNey/LLM-Algorithm-Harness 的 main 创建 PR，关联关闭 #513。功能分支 HEAD
+                与已核对的 origin/main 和原验证基线均为 6668006d，全部实现检查仍有效，Verify 收据已刷新。归档本
+                change、同步 api/evaluation-execution 主规格，并将六个交付文件、验收报告、归档材料及已有
+                walkthrough.html
+                纳入一个提交后推送。相关测试1117项通过，全仓未完成和三个既有文档类型错误已在验收报告明确记录。"
+              targetBranch: codex/reject-unsupported-evaluation-options
+          tweak.verify.report.evidence:
+            sequence: 9
+            value:
+              contentHash: 9d6d191d5871d9d0df21dc3d5788e2c97b55261a7566aabb14bacf727a6c21f0
+              ref: docs/superpowers/reports/2026-11-23-reject-unsupported-evaluation-options-verify.md
+          tweak.verify.run:
+            sequence: 8
+            value:
+              checks:
+                - name: Focused API/workflow/version/documentation/async/unit regression in
+                    repository root
+                  note: 1113 passed, 40 warnings; .venv/bin/python -m pytest
+                    tests/test_api_evaluations.py
+                    tests/integration/test_api_workflows.py
+                    tests/test_api_versioning.py tests/test_api_documentation.py
+                    tests/test_evaluation_service_async.py
+                    tests/test_generic_evaluation_submission.py
+                    tests/unit/test_api_endpoints.py -o addopts= -q; log
+                    /private/tmp/issue513-regression.log
+                  result: passed
+                - name: New HTTP, persistence, rejection and real worker configuration regression
+                  note: 37 passed; /private/tmp/issue513-green.log. Initial root-cause run failed
+                    3 tests with actual 201 instead of 400 before
+                    implementation.
+                  result: passed
+                - name: Black and Ruff on changed Python sources and integration test
+                  note: black --check and ruff check api/models.py api/documentation.py
+                    tests/integration/test_api_workflows.py both exit 0
+                  result: passed
+                - name: mypy api/models.py
+                  note: "Success: no issues found in 1 source file. Broader api/documentation.py
+                    check has 3 unchanged HEAD baseline errors, documented
+                    separately."
+                  result: passed
+                - name: OpenSpec strict validation
+                  note: "comet classic openspec -- validate reject-unsupported-evaluation-options
+                    --strict: valid"
+                  result: passed
+                - name: git diff --check
+                  note: exit 0; six implementation/documentation/test deliverables
+                  result: passed
+                - name: Four broader HTTP cost tests rerun with local socket permission
+                  note: 4 passed, 9 warnings; /private/tmp/issue513-broader-recheck.log. Sandbox
+                    setup errors were PermissionError at
+                    tests/test_api_cost.py:631.
+                  result: passed
+              event: verification-ready
+              verificationReport: docs/superpowers/reports/2026-11-23-reject-unsupported-evaluation-options-verify.md
+        sequence: 14
+      reject-unsupported-evaluation-options:3:
+        results:
+          tweak.open:
+            sequence: 1
+            value:
+              event: open-complete
+              requirementsEvidence:
+                ref: openspec/changes/reject-unsupported-evaluation-options
+          tweak.open.evidence:
+            sequence: 2
+            value:
+              contentHash: 233f4da1d1bb50841c763ddb1e11d896c30f162c214c981d225b596cbf1f5b1f
+              ref: openspec/changes/reject-unsupported-evaluation-options
+        sequence: 3
+      reject-unsupported-evaluation-options:4:
+        results:
+          tweak.build.execute:
+            sequence: 3
+            value:
+              checks:
+                - name: Focused API/workflow/version/documentation/async/unit regression in
+                    repository root
+                  note: 1113 passed, 40 warnings; .venv/bin/python -m pytest
+                    tests/test_api_evaluations.py
+                    tests/integration/test_api_workflows.py
+                    tests/test_api_versioning.py tests/test_api_documentation.py
+                    tests/test_evaluation_service_async.py
+                    tests/test_generic_evaluation_submission.py
+                    tests/unit/test_api_endpoints.py -o addopts= -q; log
+                    /private/tmp/issue513-regression.log
+                  result: passed
+                - name: New HTTP, persistence, rejection and real worker configuration regression
+                  note: 37 passed; /private/tmp/issue513-green.log. Initial root-cause run failed
+                    3 tests with actual 201 instead of 400 before
+                    implementation.
+                  result: passed
+                - name: Black and Ruff on changed Python sources and integration test
+                  note: black --check and ruff check api/models.py api/documentation.py
+                    tests/integration/test_api_workflows.py both exit 0
+                  result: passed
+                - name: mypy api/models.py
+                  note: "Success: no issues found in 1 source file. Broader api/documentation.py
+                    check has 3 unchanged HEAD baseline errors, documented
+                    separately."
+                  result: passed
+                - name: OpenSpec strict validation
+                  note: "comet classic openspec -- validate reject-unsupported-evaluation-options
+                    --strict: valid"
+                  result: passed
+                - name: git diff --check
+                  note: exit 0; six implementation/documentation/test deliverables
+                  result: passed
+                - name: Four broader HTTP cost tests rerun with local socket permission
+                  note: 4 passed, 9 warnings; /private/tmp/issue513-broader-recheck.log. Sandbox
+                    setup errors were PermissionError at
+                    tests/test_api_cost.py:631.
+                  result: passed
+              event: build-complete
+          tweak.open:
+            sequence: 1
+            value:
+              event: open-complete
+              requirementsEvidence:
+                ref: openspec/changes/reject-unsupported-evaluation-options
+          tweak.open.evidence:
+            sequence: 2
+            value:
+              contentHash: 233f4da1d1bb50841c763ddb1e11d896c30f162c214c981d225b596cbf1f5b1f
+              ref: openspec/changes/reject-unsupported-evaluation-options
+        sequence: 4
+      reject-unsupported-evaluation-options:6:
+        results:
+          tweak.build.execute:
+            sequence: 3
+            value:
+              checks:
+                - name: Focused API/workflow/version/documentation/async/unit regression in
+                    repository root
+                  note: 1113 passed, 40 warnings; .venv/bin/python -m pytest
+                    tests/test_api_evaluations.py
+                    tests/integration/test_api_workflows.py
+                    tests/test_api_versioning.py tests/test_api_documentation.py
+                    tests/test_evaluation_service_async.py
+                    tests/test_generic_evaluation_submission.py
+                    tests/unit/test_api_endpoints.py -o addopts= -q; log
+                    /private/tmp/issue513-regression.log
+                  result: passed
+                - name: New HTTP, persistence, rejection and real worker configuration regression
+                  note: 37 passed; /private/tmp/issue513-green.log. Initial root-cause run failed
+                    3 tests with actual 201 instead of 400 before
+                    implementation.
+                  result: passed
+                - name: Black and Ruff on changed Python sources and integration test
+                  note: black --check and ruff check api/models.py api/documentation.py
+                    tests/integration/test_api_workflows.py both exit 0
+                  result: passed
+                - name: mypy api/models.py
+                  note: "Success: no issues found in 1 source file. Broader api/documentation.py
+                    check has 3 unchanged HEAD baseline errors, documented
+                    separately."
+                  result: passed
+                - name: OpenSpec strict validation
+                  note: "comet classic openspec -- validate reject-unsupported-evaluation-options
+                    --strict: valid"
+                  result: passed
+                - name: git diff --check
+                  note: exit 0; six implementation/documentation/test deliverables
+                  result: passed
+                - name: Four broader HTTP cost tests rerun with local socket permission
+                  note: 4 passed, 9 warnings; /private/tmp/issue513-broader-recheck.log. Sandbox
+                    setup errors were PermissionError at
+                    tests/test_api_cost.py:631.
+                  result: passed
+              event: build-complete
+          tweak.open:
+            sequence: 1
+            value:
+              event: open-complete
+              requirementsEvidence:
+                ref: openspec/changes/reject-unsupported-evaluation-options
+          tweak.open.evidence:
+            sequence: 2
+            value:
+              contentHash: 233f4da1d1bb50841c763ddb1e11d896c30f162c214c981d225b596cbf1f5b1f
+              ref: openspec/changes/reject-unsupported-evaluation-options
+          tweak.verify.report.evidence:
+            sequence: 5
+            value:
+              contentHash: a0ea342058b1fce6fd1966687911319063e16d4a2760b012617014246688493c
+              ref: docs/superpowers/reports/2026-11-23-reject-unsupported-evaluation-options-verify.md
+          tweak.verify.run:
+            sequence: 4
+            value:
+              checks:
+                - name: Focused API/workflow/version/documentation/async/unit regression in
+                    repository root
+                  note: 1113 passed, 40 warnings; .venv/bin/python -m pytest
+                    tests/test_api_evaluations.py
+                    tests/integration/test_api_workflows.py
+                    tests/test_api_versioning.py tests/test_api_documentation.py
+                    tests/test_evaluation_service_async.py
+                    tests/test_generic_evaluation_submission.py
+                    tests/unit/test_api_endpoints.py -o addopts= -q; log
+                    /private/tmp/issue513-regression.log
+                  result: passed
+                - name: New HTTP, persistence, rejection and real worker configuration regression
+                  note: 37 passed; /private/tmp/issue513-green.log. Initial root-cause run failed
+                    3 tests with actual 201 instead of 400 before
+                    implementation.
+                  result: passed
+                - name: Black and Ruff on changed Python sources and integration test
+                  note: black --check and ruff check api/models.py api/documentation.py
+                    tests/integration/test_api_workflows.py both exit 0
+                  result: passed
+                - name: mypy api/models.py
+                  note: "Success: no issues found in 1 source file. Broader api/documentation.py
+                    check has 3 unchanged HEAD baseline errors, documented
+                    separately."
+                  result: passed
+                - name: OpenSpec strict validation
+                  note: "comet classic openspec -- validate reject-unsupported-evaluation-options
+                    --strict: valid"
+                  result: passed
+                - name: git diff --check
+                  note: exit 0; six implementation/documentation/test deliverables
+                  result: passed
+                - name: Four broader HTTP cost tests rerun with local socket permission
+                  note: 4 passed, 9 warnings; /private/tmp/issue513-broader-recheck.log. Sandbox
+                    setup errors were PermissionError at
+                    tests/test_api_cost.py:631.
+                  result: passed
+              event: verification-ready
+              verificationReport: docs/superpowers/reports/2026-11-23-reject-unsupported-evaluation-options-verify.md
+        sequence: 6
+      reject-unsupported-evaluation-options:8:
+        results: {}
+        sequence: 8
+    waits:
+      - id: reject-unsupported-evaluation-options:7
+        stepId: tweak.archive.confirm
+        sequence: 7
+        status: cancelled
+        proposal:
+          input:
+            change: reject-unsupported-evaluation-options
+            changeDir: openspec/changes/reject-unsupported-evaluation-options
+            workspaceBaseline:
+              ref: 3315937d-f385-475b-b863-1a1c8ee5f650
+          outputs:
+            tweak.archive.prepare:
+              summary: 目标验收与 Runtime Verify
+                已通过，4/4任务、3/3新增需求、6/6场景，相关测试1113项及本地端口授权复测4项通过。拟在当前本地 main 分支归档本
+                change，将 delta 同步至 api/evaluation-execution
+                主规格，并将六个交付文件、验收报告、归档材料和已有 walkthrough.html
+                纳入一个本地提交；当前没有无关工作区改动。尚未获得归档、Git提交或远端交付授权。全仓离线测试未完成；api/documentation.py
+                的三个 mypy 错误与 HEAD 基线一致。请用户选择 local（仅归档与本地提交）、push、pr、reverify 或
+                later；push/pr 需另行明确实际远端和分支目标。
+              targetBranch: main
+        proposalHash: de1e02ca7703aca3366966656319c8c64d7aff3732772f6eaa73c796c8d8d552
+        choices:
+          - local
+          - push
+          - pr
+          - reverify
+          - later
+        results:
+          tweak.archive.prepare:
+            sequence: 6
+            value:
+              summary: 目标验收与 Runtime Verify
+                已通过，4/4任务、3/3新增需求、6/6场景，相关测试1113项及本地端口授权复测4项通过。拟在当前本地 main 分支归档本
+                change，将 delta 同步至 api/evaluation-execution
+                主规格，并将六个交付文件、验收报告、归档材料和已有 walkthrough.html
+                纳入一个本地提交；当前没有无关工作区改动。尚未获得归档、Git提交或远端交付授权。全仓离线测试未完成；api/documentation.py
+                的三个 mypy 错误与 HEAD 基线一致。请用户选择 local（仅归档与本地提交）、push、pr、reverify 或
+                later；push/pr 需另行明确实际远端和分支目标。
+              targetBranch: main
+          tweak.build.execute:
+            sequence: 3
+            value:
+              checks:
+                - name: Focused API/workflow/version/documentation/async/unit regression in
+                    repository root
+                  note: 1113 passed, 40 warnings; .venv/bin/python -m pytest
+                    tests/test_api_evaluations.py
+                    tests/integration/test_api_workflows.py
+                    tests/test_api_versioning.py tests/test_api_documentation.py
+                    tests/test_evaluation_service_async.py
+                    tests/test_generic_evaluation_submission.py
+                    tests/unit/test_api_endpoints.py -o addopts= -q; log
+                    /private/tmp/issue513-regression.log
+                  result: passed
+                - name: New HTTP, persistence, rejection and real worker configuration regression
+                  note: 37 passed; /private/tmp/issue513-green.log. Initial root-cause run failed
+                    3 tests with actual 201 instead of 400 before
+                    implementation.
+                  result: passed
+                - name: Black and Ruff on changed Python sources and integration test
+                  note: black --check and ruff check api/models.py api/documentation.py
+                    tests/integration/test_api_workflows.py both exit 0
+                  result: passed
+                - name: mypy api/models.py
+                  note: "Success: no issues found in 1 source file. Broader api/documentation.py
+                    check has 3 unchanged HEAD baseline errors, documented
+                    separately."
+                  result: passed
+                - name: OpenSpec strict validation
+                  note: "comet classic openspec -- validate reject-unsupported-evaluation-options
+                    --strict: valid"
+                  result: passed
+                - name: git diff --check
+                  note: exit 0; six implementation/documentation/test deliverables
+                  result: passed
+                - name: Four broader HTTP cost tests rerun with local socket permission
+                  note: 4 passed, 9 warnings; /private/tmp/issue513-broader-recheck.log. Sandbox
+                    setup errors were PermissionError at
+                    tests/test_api_cost.py:631.
+                  result: passed
+              event: build-complete
+          tweak.open:
+            sequence: 1
+            value:
+              event: open-complete
+              requirementsEvidence:
+                ref: openspec/changes/reject-unsupported-evaluation-options
+          tweak.open.evidence:
+            sequence: 2
+            value:
+              contentHash: 233f4da1d1bb50841c763ddb1e11d896c30f162c214c981d225b596cbf1f5b1f
+              ref: openspec/changes/reject-unsupported-evaluation-options
+          tweak.verify.report.evidence:
+            sequence: 5
+            value:
+              contentHash: a0ea342058b1fce6fd1966687911319063e16d4a2760b012617014246688493c
+              ref: docs/superpowers/reports/2026-11-23-reject-unsupported-evaluation-options-verify.md
+          tweak.verify.run:
+            sequence: 4
+            value:
+              checks:
+                - name: Focused API/workflow/version/documentation/async/unit regression in
+                    repository root
+                  note: 1113 passed, 40 warnings; .venv/bin/python -m pytest
+                    tests/test_api_evaluations.py
+                    tests/integration/test_api_workflows.py
+                    tests/test_api_versioning.py tests/test_api_documentation.py
+                    tests/test_evaluation_service_async.py
+                    tests/test_generic_evaluation_submission.py
+                    tests/unit/test_api_endpoints.py -o addopts= -q; log
+                    /private/tmp/issue513-regression.log
+                  result: passed
+                - name: New HTTP, persistence, rejection and real worker configuration regression
+                  note: 37 passed; /private/tmp/issue513-green.log. Initial root-cause run failed
+                    3 tests with actual 201 instead of 400 before
+                    implementation.
+                  result: passed
+                - name: Black and Ruff on changed Python sources and integration test
+                  note: black --check and ruff check api/models.py api/documentation.py
+                    tests/integration/test_api_workflows.py both exit 0
+                  result: passed
+                - name: mypy api/models.py
+                  note: "Success: no issues found in 1 source file. Broader api/documentation.py
+                    check has 3 unchanged HEAD baseline errors, documented
+                    separately."
+                  result: passed
+                - name: OpenSpec strict validation
+                  note: "comet classic openspec -- validate reject-unsupported-evaluation-options
+                    --strict: valid"
+                  result: passed
+                - name: git diff --check
+                  note: exit 0; six implementation/documentation/test deliverables
+                  result: passed
+                - name: Four broader HTTP cost tests rerun with local socket permission
+                  note: 4 passed, 9 warnings; /private/tmp/issue513-broader-recheck.log. Sandbox
+                    setup errors were PermissionError at
+                    tests/test_api_cost.py:631.
+                  result: passed
+              event: verification-ready
+              verificationReport: docs/superpowers/reports/2026-11-23-reject-unsupported-evaluation-options-verify.md
+      - id: reject-unsupported-evaluation-options:11
+        stepId: tweak.archive.confirm
+        sequence: 11
+        status: resolved
+        proposal:
+          input:
+            change: reject-unsupported-evaluation-options
+            changeDir: openspec/changes/reject-unsupported-evaluation-options
+            workspaceBaseline:
+              ref: 3315937d-f385-475b-b863-1a1c8ee5f650
+          outputs:
+            tweak.archive.prepare:
+              prBaseBranch: main
+              remote: origin
+              summary: "用户已明确授权归档、推送并创建PR。目标为
+                origin/codex/reject-unsupported-evaluation-options，向
+                JayNey/LLM-Algorithm-Harness 的 main 创建 PR，关联关闭 #513。功能分支 HEAD
+                与已核对的 origin/main 和原验证基线均为 6668006d，全部实现检查仍有效，Verify 收据已刷新。归档本
+                change、同步 api/evaluation-execution 主规格，并将六个交付文件、验收报告、归档材料及已有
+                walkthrough.html
+                纳入一个提交后推送。相关测试1117项通过，全仓未完成和三个既有文档类型错误已在验收报告明确记录。"
+              targetBranch: codex/reject-unsupported-evaluation-options
+        proposalHash: 81101a439fdcd02e71f7400f8957906bde881bd0a49843dc6e7d5e817da4efdc
+        choices:
+          - local
+          - push
+          - pr
+          - reverify
+          - later
+        results:
+          tweak.archive.prepare:
+            sequence: 10
+            value:
+              prBaseBranch: main
+              remote: origin
+              summary: "用户已明确授权归档、推送并创建PR。目标为
+                origin/codex/reject-unsupported-evaluation-options，向
+                JayNey/LLM-Algorithm-Harness 的 main 创建 PR，关联关闭 #513。功能分支 HEAD
+                与已核对的 origin/main 和原验证基线均为 6668006d，全部实现检查仍有效，Verify 收据已刷新。归档本
+                change、同步 api/evaluation-execution 主规格，并将六个交付文件、验收报告、归档材料及已有
+                walkthrough.html
+                纳入一个提交后推送。相关测试1117项通过，全仓未完成和三个既有文档类型错误已在验收报告明确记录。"
+              targetBranch: codex/reject-unsupported-evaluation-options
+          tweak.verify.report.evidence:
+            sequence: 9
+            value:
+              contentHash: 9d6d191d5871d9d0df21dc3d5788e2c97b55261a7566aabb14bacf727a6c21f0
+              ref: docs/superpowers/reports/2026-11-23-reject-unsupported-evaluation-options-verify.md
+          tweak.verify.run:
+            sequence: 8
+            value:
+              checks:
+                - name: Focused API/workflow/version/documentation/async/unit regression in
+                    repository root
+                  note: 1113 passed, 40 warnings; .venv/bin/python -m pytest
+                    tests/test_api_evaluations.py
+                    tests/integration/test_api_workflows.py
+                    tests/test_api_versioning.py tests/test_api_documentation.py
+                    tests/test_evaluation_service_async.py
+                    tests/test_generic_evaluation_submission.py
+                    tests/unit/test_api_endpoints.py -o addopts= -q; log
+                    /private/tmp/issue513-regression.log
+                  result: passed
+                - name: New HTTP, persistence, rejection and real worker configuration regression
+                  note: 37 passed; /private/tmp/issue513-green.log. Initial root-cause run failed
+                    3 tests with actual 201 instead of 400 before
+                    implementation.
+                  result: passed
+                - name: Black and Ruff on changed Python sources and integration test
+                  note: black --check and ruff check api/models.py api/documentation.py
+                    tests/integration/test_api_workflows.py both exit 0
+                  result: passed
+                - name: mypy api/models.py
+                  note: "Success: no issues found in 1 source file. Broader api/documentation.py
+                    check has 3 unchanged HEAD baseline errors, documented
+                    separately."
+                  result: passed
+                - name: OpenSpec strict validation
+                  note: "comet classic openspec -- validate reject-unsupported-evaluation-options
+                    --strict: valid"
+                  result: passed
+                - name: git diff --check
+                  note: exit 0; six implementation/documentation/test deliverables
+                  result: passed
+                - name: Four broader HTTP cost tests rerun with local socket permission
+                  note: 4 passed, 9 warnings; /private/tmp/issue513-broader-recheck.log. Sandbox
+                    setup errors were PermissionError at
+                    tests/test_api_cost.py:631.
+                  result: passed
+              event: verification-ready
+              verificationReport: docs/superpowers/reports/2026-11-23-reject-unsupported-evaluation-options-verify.md
+        decision:
+          id: classic-archive-81101a439fdcd02e71f7400f8957906bde881bd0a49843dc6e7d5e817da4efdc-pr
+          choice: pr
+          proposalHash: 81101a439fdcd02e71f7400f8957906bde881bd0a49843dc6e7d5e817da4efdc
+    evidenceWaits:
+      - id: reject-unsupported-evaluation-options:2
+        stepId: tweak.open.evidence
+        sequence: 2
+        kind: classic-open-artifacts
+        status: resolved
+        results:
+          tweak.open:
+            sequence: 1
+            value:
+              event: open-complete
+              requirementsEvidence:
+                ref: openspec/changes/reject-unsupported-evaluation-options
+        receipt:
+          ref: openspec/changes/reject-unsupported-evaluation-options
+          contentHash: 233f4da1d1bb50841c763ddb1e11d896c30f162c214c981d225b596cbf1f5b1f
+          submissionId: 95a7c1cc-ce3e-4ae2-9979-c8d981e9ea10
+      - id: reject-unsupported-evaluation-options:5
+        stepId: tweak.verify.report.evidence
+        sequence: 5
+        kind: classic-verification-report
+        status: resolved
+        results:
+          tweak.build.execute:
+            sequence: 3
+            value:
+              checks:
+                - name: Focused API/workflow/version/documentation/async/unit regression in
+                    repository root
+                  note: 1113 passed, 40 warnings; .venv/bin/python -m pytest
+                    tests/test_api_evaluations.py
+                    tests/integration/test_api_workflows.py
+                    tests/test_api_versioning.py tests/test_api_documentation.py
+                    tests/test_evaluation_service_async.py
+                    tests/test_generic_evaluation_submission.py
+                    tests/unit/test_api_endpoints.py -o addopts= -q; log
+                    /private/tmp/issue513-regression.log
+                  result: passed
+                - name: New HTTP, persistence, rejection and real worker configuration regression
+                  note: 37 passed; /private/tmp/issue513-green.log. Initial root-cause run failed
+                    3 tests with actual 201 instead of 400 before
+                    implementation.
+                  result: passed
+                - name: Black and Ruff on changed Python sources and integration test
+                  note: black --check and ruff check api/models.py api/documentation.py
+                    tests/integration/test_api_workflows.py both exit 0
+                  result: passed
+                - name: mypy api/models.py
+                  note: "Success: no issues found in 1 source file. Broader api/documentation.py
+                    check has 3 unchanged HEAD baseline errors, documented
+                    separately."
+                  result: passed
+                - name: OpenSpec strict validation
+                  note: "comet classic openspec -- validate reject-unsupported-evaluation-options
+                    --strict: valid"
+                  result: passed
+                - name: git diff --check
+                  note: exit 0; six implementation/documentation/test deliverables
+                  result: passed
+                - name: Four broader HTTP cost tests rerun with local socket permission
+                  note: 4 passed, 9 warnings; /private/tmp/issue513-broader-recheck.log. Sandbox
+                    setup errors were PermissionError at
+                    tests/test_api_cost.py:631.
+                  result: passed
+              event: build-complete
+          tweak.open:
+            sequence: 1
+            value:
+              event: open-complete
+              requirementsEvidence:
+                ref: openspec/changes/reject-unsupported-evaluation-options
+          tweak.open.evidence:
+            sequence: 2
+            value:
+              contentHash: 233f4da1d1bb50841c763ddb1e11d896c30f162c214c981d225b596cbf1f5b1f
+              ref: openspec/changes/reject-unsupported-evaluation-options
+          tweak.verify.run:
+            sequence: 4
+            value:
+              checks:
+                - name: Focused API/workflow/version/documentation/async/unit regression in
+                    repository root
+                  note: 1113 passed, 40 warnings; .venv/bin/python -m pytest
+                    tests/test_api_evaluations.py
+                    tests/integration/test_api_workflows.py
+                    tests/test_api_versioning.py tests/test_api_documentation.py
+                    tests/test_evaluation_service_async.py
+                    tests/test_generic_evaluation_submission.py
+                    tests/unit/test_api_endpoints.py -o addopts= -q; log
+                    /private/tmp/issue513-regression.log
+                  result: passed
+                - name: New HTTP, persistence, rejection and real worker configuration regression
+                  note: 37 passed; /private/tmp/issue513-green.log. Initial root-cause run failed
+                    3 tests with actual 201 instead of 400 before
+                    implementation.
+                  result: passed
+                - name: Black and Ruff on changed Python sources and integration test
+                  note: black --check and ruff check api/models.py api/documentation.py
+                    tests/integration/test_api_workflows.py both exit 0
+                  result: passed
+                - name: mypy api/models.py
+                  note: "Success: no issues found in 1 source file. Broader api/documentation.py
+                    check has 3 unchanged HEAD baseline errors, documented
+                    separately."
+                  result: passed
+                - name: OpenSpec strict validation
+                  note: "comet classic openspec -- validate reject-unsupported-evaluation-options
+                    --strict: valid"
+                  result: passed
+                - name: git diff --check
+                  note: exit 0; six implementation/documentation/test deliverables
+                  result: passed
+                - name: Four broader HTTP cost tests rerun with local socket permission
+                  note: 4 passed, 9 warnings; /private/tmp/issue513-broader-recheck.log. Sandbox
+                    setup errors were PermissionError at
+                    tests/test_api_cost.py:631.
+                  result: passed
+              event: verification-ready
+              verificationReport: docs/superpowers/reports/2026-11-23-reject-unsupported-evaluation-options-verify.md
+        receipt:
+          ref: docs/superpowers/reports/2026-11-23-reject-unsupported-evaluation-options-verify.md
+          contentHash: a0ea342058b1fce6fd1966687911319063e16d4a2760b012617014246688493c
+          submissionId: dbcdfcbc-3887-49a8-bbd1-1e4e94d2bdf5
+      - id: reject-unsupported-evaluation-options:9
+        stepId: tweak.verify.report.evidence
+        sequence: 9
+        kind: classic-verification-report
+        status: resolved
+        results:
+          tweak.verify.run:
+            sequence: 8
+            value:
+              checks:
+                - name: Focused API/workflow/version/documentation/async/unit regression in
+                    repository root
+                  note: 1113 passed, 40 warnings; .venv/bin/python -m pytest
+                    tests/test_api_evaluations.py
+                    tests/integration/test_api_workflows.py
+                    tests/test_api_versioning.py tests/test_api_documentation.py
+                    tests/test_evaluation_service_async.py
+                    tests/test_generic_evaluation_submission.py
+                    tests/unit/test_api_endpoints.py -o addopts= -q; log
+                    /private/tmp/issue513-regression.log
+                  result: passed
+                - name: New HTTP, persistence, rejection and real worker configuration regression
+                  note: 37 passed; /private/tmp/issue513-green.log. Initial root-cause run failed
+                    3 tests with actual 201 instead of 400 before
+                    implementation.
+                  result: passed
+                - name: Black and Ruff on changed Python sources and integration test
+                  note: black --check and ruff check api/models.py api/documentation.py
+                    tests/integration/test_api_workflows.py both exit 0
+                  result: passed
+                - name: mypy api/models.py
+                  note: "Success: no issues found in 1 source file. Broader api/documentation.py
+                    check has 3 unchanged HEAD baseline errors, documented
+                    separately."
+                  result: passed
+                - name: OpenSpec strict validation
+                  note: "comet classic openspec -- validate reject-unsupported-evaluation-options
+                    --strict: valid"
+                  result: passed
+                - name: git diff --check
+                  note: exit 0; six implementation/documentation/test deliverables
+                  result: passed
+                - name: Four broader HTTP cost tests rerun with local socket permission
+                  note: 4 passed, 9 warnings; /private/tmp/issue513-broader-recheck.log. Sandbox
+                    setup errors were PermissionError at
+                    tests/test_api_cost.py:631.
+                  result: passed
+              event: verification-ready
+              verificationReport: docs/superpowers/reports/2026-11-23-reject-unsupported-evaluation-options-verify.md
+        receipt:
+          ref: docs/superpowers/reports/2026-11-23-reject-unsupported-evaluation-options-verify.md
+          contentHash: 9d6d191d5871d9d0df21dc3d5788e2c97b55261a7566aabb14bacf727a6c21f0
+          submissionId: 6fb580e5-4824-4590-beab-7250bbed5b82
+    ready: []
+    joins: {}
+    outputs:
+      tweak.archive.confirm:
+        sequence: 11
+        value:
+          choice: pr
+          proposal:
+            input:
+              change: reject-unsupported-evaluation-options
+              changeDir: openspec/changes/reject-unsupported-evaluation-options
+              workspaceBaseline:
+                ref: 3315937d-f385-475b-b863-1a1c8ee5f650
+            outputs:
+              tweak.archive.prepare:
+                prBaseBranch: main
+                remote: origin
+                summary: "用户已明确授权归档、推送并创建PR。目标为
+                  origin/codex/reject-unsupported-evaluation-options，向
+                  JayNey/LLM-Algorithm-Harness 的 main 创建 PR，关联关闭 #513。功能分支 HEAD
+                  与已核对的 origin/main 和原验证基线均为 6668006d，全部实现检查仍有效，Verify 收据已刷新。归档本
+                  change、同步 api/evaluation-execution 主规格，并将六个交付文件、验收报告、归档材料及已有
+                  walkthrough.html
+                  纳入一个提交后推送。相关测试1117项通过，全仓未完成和三个既有文档类型错误已在验收报告明确记录。"
+                targetBranch: codex/reject-unsupported-evaluation-options
+      tweak.archive.execute:
+        sequence: 13
+        value:
+          archiveDirectory: openspec/changes/archive/2026-11-23-reject-unsupported-evaluation-options
+      tweak.archive.preflight:
+        sequence: 12
+        value:
+          baseCommit: 6668006d011bd6481b84f4145551b7f48439b630
+          deliveryAction: pr
+          deliveryPaths:
+            - API.md
+            - api/documentation.py
+            - api/models.py
+            - docs/api-versioning.md
+            - tests/fixtures/openapi-v1.json
+            - tests/integration/test_api_workflows.py
+          prBaseBranch: main
+          remote: origin
+          remoteIdentity: 128eeb1e6f0d21b25601fcb7f9aad36adfdfb4d76f37f54f004760410190f351
+          targetBranch: codex/reject-unsupported-evaluation-options
+          verifiedBranch: codex/reject-unsupported-evaluation-options
+      tweak.archive.prepare:
+        sequence: 10
+        value:
+          prBaseBranch: main
+          remote: origin
+          summary: "用户已明确授权归档、推送并创建PR。目标为
+            origin/codex/reject-unsupported-evaluation-options，向
+            JayNey/LLM-Algorithm-Harness 的 main 创建 PR，关联关闭 #513。功能分支 HEAD 与已核对的
+            origin/main 和原验证基线均为 6668006d，全部实现检查仍有效，Verify 收据已刷新。归档本 change、同步
+            api/evaluation-execution 主规格，并将六个交付文件、验收报告、归档材料及已有 walkthrough.html
+            纳入一个提交后推送。相关测试1117项通过，全仓未完成和三个既有文档类型错误已在验收报告明确记录。"
+          targetBranch: codex/reject-unsupported-evaluation-options
+      tweak.build.execute:
+        sequence: 3
+        value:
+          checks:
+            - name: Focused API/workflow/version/documentation/async/unit regression in
+                repository root
+              note: 1113 passed, 40 warnings; .venv/bin/python -m pytest
+                tests/test_api_evaluations.py
+                tests/integration/test_api_workflows.py
+                tests/test_api_versioning.py tests/test_api_documentation.py
+                tests/test_evaluation_service_async.py
+                tests/test_generic_evaluation_submission.py
+                tests/unit/test_api_endpoints.py -o addopts= -q; log
+                /private/tmp/issue513-regression.log
+              result: passed
+            - name: New HTTP, persistence, rejection and real worker configuration regression
+              note: 37 passed; /private/tmp/issue513-green.log. Initial root-cause run failed
+                3 tests with actual 201 instead of 400 before implementation.
+              result: passed
+            - name: Black and Ruff on changed Python sources and integration test
+              note: black --check and ruff check api/models.py api/documentation.py
+                tests/integration/test_api_workflows.py both exit 0
+              result: passed
+            - name: mypy api/models.py
+              note: "Success: no issues found in 1 source file. Broader api/documentation.py
+                check has 3 unchanged HEAD baseline errors, documented
+                separately."
+              result: passed
+            - name: OpenSpec strict validation
+              note: "comet classic openspec -- validate reject-unsupported-evaluation-options
+                --strict: valid"
+              result: passed
+            - name: git diff --check
+              note: exit 0; six implementation/documentation/test deliverables
+              result: passed
+            - name: Four broader HTTP cost tests rerun with local socket permission
+              note: 4 passed, 9 warnings; /private/tmp/issue513-broader-recheck.log. Sandbox
+                setup errors were PermissionError at tests/test_api_cost.py:631.
+              result: passed
+          event: build-complete
+      tweak.open:
+        sequence: 1
+        value:
+          event: open-complete
+          requirementsEvidence:
+            ref: openspec/changes/reject-unsupported-evaluation-options
+      tweak.open.evidence:
+        sequence: 2
+        value:
+          contentHash: 233f4da1d1bb50841c763ddb1e11d896c30f162c214c981d225b596cbf1f5b1f
+          ref: openspec/changes/reject-unsupported-evaluation-options
+      tweak.verify.report.evidence:
+        sequence: 9
+        value:
+          contentHash: 9d6d191d5871d9d0df21dc3d5788e2c97b55261a7566aabb14bacf727a6c21f0
+          ref: docs/superpowers/reports/2026-11-23-reject-unsupported-evaluation-options-verify.md
+      tweak.verify.run:
+        sequence: 8
+        value:
+          checks:
+            - name: Focused API/workflow/version/documentation/async/unit regression in
+                repository root
+              note: 1113 passed, 40 warnings; .venv/bin/python -m pytest
+                tests/test_api_evaluations.py
+                tests/integration/test_api_workflows.py
+                tests/test_api_versioning.py tests/test_api_documentation.py
+                tests/test_evaluation_service_async.py
+                tests/test_generic_evaluation_submission.py
+                tests/unit/test_api_endpoints.py -o addopts= -q; log
+                /private/tmp/issue513-regression.log
+              result: passed
+            - name: New HTTP, persistence, rejection and real worker configuration regression
+              note: 37 passed; /private/tmp/issue513-green.log. Initial root-cause run failed
+                3 tests with actual 201 instead of 400 before implementation.
+              result: passed
+            - name: Black and Ruff on changed Python sources and integration test
+              note: black --check and ruff check api/models.py api/documentation.py
+                tests/integration/test_api_workflows.py both exit 0
+              result: passed
+            - name: mypy api/models.py
+              note: "Success: no issues found in 1 source file. Broader api/documentation.py
+                check has 3 unchanged HEAD baseline errors, documented
+                separately."
+              result: passed
+            - name: OpenSpec strict validation
+              note: "comet classic openspec -- validate reject-unsupported-evaluation-options
+                --strict: valid"
+              result: passed
+            - name: git diff --check
+              note: exit 0; six implementation/documentation/test deliverables
+              result: passed
+            - name: Four broader HTTP cost tests rerun with local socket permission
+              note: 4 passed, 9 warnings; /private/tmp/issue513-broader-recheck.log. Sandbox
+                setup errors were PermissionError at tests/test_api_cost.py:631.
+              result: passed
+          event: verification-ready
+          verificationReport: docs/superpowers/reports/2026-11-23-reject-unsupported-evaluation-options-verify.md
+    children: []
+    lineage: []
+  sourceRevision: 23
+  sourceHash: 9b50d99b9932f88e4db171423d3b9286bee557fae0a30861fc770ad551d70319
+direct_override: null
+handoff_context: null
+handoff_hash: null
+classic_profile: null
+classic_migration: null
+check_epoch: 6

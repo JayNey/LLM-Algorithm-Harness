@@ -17,14 +17,39 @@ class EvaluationCreateRequest(BaseModel):
         ..., min_length=1, description="List of strategy names to use"
     )
     budget_cap_usd: float | None = Field(None, ge=0, description="Maximum budget in USD")
-    timeout_seconds: int = Field(300, ge=1, description="Timeout per problem in seconds")
+    timeout_seconds: int = Field(
+        300,
+        ge=1,
+        deprecated=True,
+        description=(
+            "Not supported: omit this field. Explicit values, including null, return HTTP 400. "
+            "The legacy schema default 300 is not an execution setting. "
+            "The sandbox currently allows 5 seconds per test case."
+        ),
+    )
     generation_timeout_seconds: int = Field(
         DEFAULT_GENERATION_TIMEOUT_SECONDS,
         ge=1,
         le=300,
         description="Model request timeout in seconds",
     )
-    max_concurrency: int = Field(5, ge=1, description="Max concurrent problems")
+    max_concurrency: int = Field(
+        5,
+        ge=1,
+        deprecated=True,
+        description=(
+            "Not supported: omit this field. Explicit values, including null, return HTTP 400. "
+            "The legacy schema default 5 is not an execution setting. "
+            "Evaluation units currently execute serially."
+        ),
+    )
+
+    @field_validator("timeout_seconds", "max_concurrency", mode="before")
+    @classmethod
+    def _reject_unsupported_execution_options(cls, value: object) -> object:
+        # Omitted defaults bypass validation; every explicit value must fail
+        # before persistence or task publication, even null or legacy defaults.
+        raise ValueError("This execution option is not supported; omit this field")
 
     @field_validator("strategy_names")
     @classmethod
@@ -64,8 +89,6 @@ class EvaluationCreateRequest(BaseModel):
                 "model": "gpt-4o-mini",
                 "strategy_names": ["vanilla", "chain_of_thought"],
                 "budget_cap_usd": 10.0,
-                "timeout_seconds": 300,
-                "max_concurrency": 5,
             }
         }
 
@@ -80,7 +103,20 @@ class EvaluationUpdateRequest(BaseModel):
     """Request model for updating an evaluation (only pending tasks)."""
 
     budget_cap_usd: float | None = Field(None, ge=0, description="Updated budget cap")
-    timeout_seconds: int | None = Field(None, ge=1, description="Updated timeout")
+    timeout_seconds: int | None = Field(
+        None,
+        ge=1,
+        deprecated=True,
+        description=(
+            "Not supported: omit this field. Explicit values, including null, return HTTP 400; "
+            "the evaluation and its budget remain unchanged."
+        ),
+    )
+
+    @field_validator("timeout_seconds", mode="before")
+    @classmethod
+    def _reject_unsupported_execution_timeout(cls, value: object) -> object:
+        raise ValueError("This execution option is not supported; omit this field")
 
 
 class PaginationParams(BaseModel):
