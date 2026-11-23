@@ -1,0 +1,39 @@
+{
+  "checks": [
+    {
+      "name": "关联评估、任务、文件与 worker 回归（465 项）",
+      "result": "passed",
+      "note": "MPLCONFIGDIR=/tmp/issue511-mpl .venv/bin/python -m pytest tests/test_evaluation_workflow_contract.py tests/test_evaluation_service_async.py tests/test_user_evaluation_concurrency.py tests/test_api_files.py tests/test_api_evaluations.py tests/test_api_database.py tests/test_evaluation_async_flow.py tests/test_celery_tasks.py tests/test_task_manager.py tests/test_evaluation_artifacts.py --no-cov -q；原运行 463 passed/1 skipped/1 sandbox socket.bind failure；唯一失败已在允许本机端口环境单独补验通过，合计 464 passed、1 skipped。日志 /tmp/issue511-regression.log、/tmp/issue511-broker-check.log。"
+    },
+    {
+      "name": "最终删除保护与能力投影回归",
+      "result": "passed",
+      "note": "最终谓词类型整理后复验 54 passed；/tmp/issue511-final-focused.log。"
+    },
+    {
+      "name": "Ruff、Black 与 diff 空白检查",
+      "result": "passed",
+      "note": "5 个改动 Python 文件的 ruff check / black --check 及 git diff --check 均通过。"
+    },
+    {
+      "name": "改动实现类型检查",
+      "result": "passed",
+      "note": ".venv/bin/mypy api/services/evaluation_service.py src/task_manager.py --follow-imports=silent --disable-error-code=import-untyped：Success, 2 source files。仓库依赖 Celery/scipy 缺类型桩，排除 import-untyped；原始报告 /tmp/issue511-mypy.log。"
+    },
+    {
+      "name": "OpenSpec 严格校验",
+      "result": "passed",
+      "note": "comet classic openspec -- validate fix-queued-evaluation-delete --strict：valid。"
+    },
+    {
+      "name": "真实 PostgreSQL",
+      "result": "not-run",
+      "note": "TEST_POSTGRESQL_URL 未配置，连接池回归跳过；本次锁 key 与 SQL 顺序已通过真实 SQLite Session 拦截 PG SQL 的契约测试覆盖。"
+    },
+    {
+      "name": "独立审查",
+      "result": "not-run",
+      "note": "本 tweak Run 配置 reviewMode=off；由实施者完成规格、设计和最终差异核对，未伪称独立审查。"
+    }
+  ]
+}

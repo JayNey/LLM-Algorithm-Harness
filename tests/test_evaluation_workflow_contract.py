@@ -13,7 +13,7 @@ from api.db.models import AsyncTask, Evaluation
 from api.models import EvaluationCreateRequest, EvaluationUpdateRequest
 from api.routes.evaluations import call
 from api.services.evaluation_service import EvaluationService
-from src.task_manager import TaskManager, celery_app
+from src.task_manager import TaskManager, celery_app, evaluation_execution
 
 OWNER = "workflow-owner"
 
@@ -173,6 +173,201 @@ def test_list_loads_linked_tasks_in_one_query(service, monkeypatch):
     assert total == 3
     assert [capabilities(item) for item in items] == [(False, True)] * 3
     assert sum("FROM async_tasks" in statement for statement in statements) == 1
+
+
+@pytest.mark.parametrize("status", ["pending", "completed", "cancelled"])
+@pytest.mark.parametrize("task_status", ["pending", "running", "paused"])
+def test_active_task_blocks_delete_before_cleanup(service, publisher, status, task_status):
+    evaluation_id = create(service).evaluation_id
+    set_state(service, evaluation_id, status, task_status)
+    cleanup = Mock()
+    with pytest.raises(ValueError, match="cancel.*stop"):
+        service.delete_evaluation(evaluation_id, OWNER, cleanup)
+    cleanup.assert_not_called()
+    with service._session() as session:
+        assert session.get(Evaluation, evaluation_id).status == status
+        assert session.get(AsyncTask, f"linked-{evaluation_id}").status == task_status
+
+
+@pytest.mark.parametrize("status", ["pending", "completed", "cancelled"])
+@pytest.mark.parametrize(
+    "task_status", [None, "pending", "running", "paused", "completed", "failed", "cancelled"]
+)
+def test_delete_capability_matches_persisted_activity(service, monkeypatch, status, task_status):
+    evaluation_id = create(service).evaluation_id
+    set_state(service, evaluation_id, status, task_status)
+    monkeypatch.setattr(TaskManager, "get_task", Mock(side_effect=AssertionError("broker read")))
+    expected = task_status not in ("pending", "running", "paused")
+    assert service.get_evaluation(evaluation_id, OWNER).can_delete is expected
+    assert service.get_evaluation_async(evaluation_id, OWNER).can_delete is expected
+    items, _ = service.list_evaluations(OWNER)
+    assert items[0].can_delete is expected
+
+
+@pytest.mark.parametrize("stale_link", [False, True])
+def test_delete_finds_active_tasks_without_current_link(service, stale_link):
+    evaluation_id = create(service).evaluation_id
+    set_state(service, evaluation_id, "pending", "pending")
+    with service._session() as session, session.begin():
+        evaluation = session.get(Evaluation, evaluation_id)
+        if stale_link:
+            terminal = AsyncTask(
+                id=f"terminal-{evaluation_id}",
+                celery_task_id="old",
+                task_type="evaluation",
+                entity_id=evaluation_id,
+                user_id=OWNER,
+                status="completed",
+            )
+            session.add(terminal)
+            session.flush()
+            evaluation.async_task_id = terminal.id
+        else:
+            evaluation.async_task_id = None
+    assert not service.get_evaluation(evaluation_id, OWNER).can_delete
+    assert not service.get_evaluation_async(evaluation_id, OWNER).can_delete
+    assert not service.list_evaluations(OWNER)[0][0].can_delete
+    cleanup = Mock()
+    with pytest.raises(ValueError, match="cancel.*stop"):
+        service.delete_evaluation(evaluation_id, OWNER, cleanup)
+    cleanup.assert_not_called()
+
+
+@pytest.mark.parametrize("wrong_field", ["user_id", "entity_id", "task_type"])
+def test_unrelated_task_does_not_block_delete(service, wrong_field):
+    evaluation_id = create(service).evaluation_id
+    set_state(service, evaluation_id, "pending", "pending")
+    with service._session() as session, session.begin():
+        task = session.get(AsyncTask, f"linked-{evaluation_id}")
+        setattr(task, wrong_field, "unrelated")
+    assert service.get_evaluation(evaluation_id, OWNER).can_delete
+    assert service.list_evaluations(OWNER)[0][0].can_delete
+    service.delete_evaluation(evaluation_id, OWNER)
+
+
+def test_delete_owns_transaction_through_cleanup_against_start(service, publisher, monkeypatch):
+    evaluation_id = create(service).evaluation_id
+    cleaning, attempted, release = threading.Event(), threading.Event(), threading.Event()
+    original_enqueue = TaskManager.enqueue_task
+
+    def enqueue(manager, *args, **kwargs):
+        attempted.set()
+        return original_enqueue(manager, *args, **kwargs)
+
+    def cleanup():
+        cleaning.set()
+        assert release.wait(5)
+
+    monkeypatch.setattr(TaskManager, "enqueue_task", enqueue)
+    with ThreadPoolExecutor(max_workers=2) as pool:
+        deletion = pool.submit(service.delete_evaluation, evaluation_id, OWNER, cleanup)
+        try:
+            assert cleaning.wait(5)
+            start = pool.submit(service.start_evaluation, evaluation_id, OWNER)
+            assert attempted.wait(5)
+        finally:
+            release.set()
+        deletion.result(timeout=10)
+        with pytest.raises(ValueError):
+            start.result(timeout=10)
+    publisher.assert_not_called()
+    with service._session() as session:
+        assert session.get(Evaluation, evaluation_id) is None
+        assert session.scalars(select(AsyncTask)).all() == []
+
+
+def test_start_owns_transaction_before_delete_rechecks_activity(service, publisher, monkeypatch):
+    evaluation_id = create(service).evaluation_id
+    linked, deleting, release = threading.Event(), threading.Event(), threading.Event()
+    original_enqueue = TaskManager.enqueue_task
+    cleanup = Mock()
+
+    def enqueue(manager, *args, **kwargs):
+        original_link = kwargs["on_before_publish"]
+
+        def link(task):
+            original_link(task)
+            linked.set()
+            assert release.wait(5)
+
+        kwargs["on_before_publish"] = link
+        return original_enqueue(manager, *args, **kwargs)
+
+    def delete():
+        deleting.set()
+        service.delete_evaluation(evaluation_id, OWNER, cleanup)
+
+    monkeypatch.setattr(TaskManager, "enqueue_task", enqueue)
+    with ThreadPoolExecutor(max_workers=2) as pool:
+        start = pool.submit(service.start_evaluation, evaluation_id, OWNER)
+        try:
+            assert linked.wait(5)
+            deletion = pool.submit(delete)
+            assert deleting.wait(5)
+        finally:
+            release.set()
+        queued = start.result(timeout=10)
+        with pytest.raises(ValueError, match="cancel.*stop"):
+            deletion.result(timeout=10)
+    cleanup.assert_not_called()
+    assert publisher.call_count == 1
+    assert not service.get_evaluation(evaluation_id, OWNER).can_delete
+    with service._session() as session:
+        assert session.get(AsyncTask, queued.async_task_id).status == "pending"
+
+
+@pytest.mark.parametrize("method", ["delete_evaluation", "delete_evaluation_async"])
+def test_cancelled_but_still_executing_cannot_be_deleted(service, method):
+    evaluation_id = create(service).evaluation_id
+    set_state(service, evaluation_id, "cancelled", "cancelled")
+    cleanup = Mock()
+    args = (
+        (evaluation_id, OWNER, cleanup) if method == "delete_evaluation" else (evaluation_id, OWNER)
+    )
+    with evaluation_execution(evaluation_id), pytest.raises(ValueError, match="not stopped"):
+        getattr(service, method)(*args)
+    cleanup.assert_not_called()
+    assert service.get_evaluation(evaluation_id, OWNER).status == "cancelled"
+    getattr(service, method)(*args)
+    with service._session() as session:
+        assert session.get(Evaluation, evaluation_id) is None
+
+
+def test_cleanup_failure_keeps_evaluation_and_releases_locks(service):
+    evaluation_id = create(service).evaluation_id
+    with pytest.raises(OSError, match="cleanup failed"):
+        service.delete_evaluation(evaluation_id, OWNER, Mock(side_effect=OSError("cleanup failed")))
+    assert service.get_evaluation(evaluation_id, OWNER).can_delete
+    service.delete_evaluation(evaluation_id, OWNER)
+
+
+def test_postgresql_delete_uses_admission_lock_without_capacity_check(
+    service, publisher, monkeypatch
+):
+    evaluation_id = create(service).evaluation_id
+    keys = []
+    original_name = service.engine.dialect.name
+
+    def capture(conn, cursor, statement, parameters, context, many):
+        if "pg_advisory_xact_lock" in statement:
+            keys.append(parameters[0])
+            return "SELECT 1", ()
+        return statement, parameters
+
+    def no_capacity_check(*args):
+        pytest.fail("deletion must work even when user capacity is full")
+
+    event.listen(service.engine, "before_cursor_execute", capture, retval=True)
+    try:
+        service.engine.dialect.name = "postgresql"
+        with service._session() as session:
+            TaskManager(session)._check_evaluation_capacity("evaluation", OWNER)
+        monkeypatch.setattr(TaskManager, "_check_evaluation_capacity", no_capacity_check)
+        service.delete_evaluation(evaluation_id, OWNER)
+    finally:
+        service.engine.dialect.name = original_name
+        event.remove(service.engine, "before_cursor_execute", capture)
+    assert len(keys) == 2 and keys[0] == keys[1]
 
 
 def test_publish_failure_is_retryable_without_recreating_evaluation(service, publisher):
@@ -348,7 +543,7 @@ def test_execution_progress_preserves_async_task_progress(service):
         ("running", "running", False, (True, False, False, False)),
         ("paused", "paused", False, (False, True, False, False)),
         ("paused", "paused", True, (False, True, False, False)),
-        ("completed", "running", True, (False, False, False, True)),
+        ("completed", "running", True, (False, False, False, False)),
         ("failed", "failed", True, (False, False, False, False)),
         ("cancelled", "cancelled", True, (False, False, False, True)),
     ],

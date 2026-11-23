@@ -592,9 +592,24 @@ def test_owner_evaluation_lifecycle(api):
     with patch("src.task_manager.celery_app.send_task", return_value=Mock()) as mock_send:
         assert client.post(url + "/start", headers=headers(tokens)).status_code == 202
     mock_send.assert_called_once()
-    assert client.get(url, headers=headers(tokens)).json()["data"]["status"] == "pending"
-    # 已入队的评估不能重复启动
+    queued = client.get(url, headers=headers(tokens)).json()["data"]
+    assert queued["status"] == "pending"
+    assert queued["can_delete"] is False
+    # 已入队的评估不能重复启动或直接删除，必须先取消。
     assert client.post(url + "/start", headers=headers(tokens)).status_code == 400
+    assert client.delete(url, headers=headers(tokens)).status_code == 400
+    assert client.get(url, headers=headers(tokens)).json()["data"]["status"] == "pending"
+    with (
+        patch(
+            "src.task_manager.celery_app.AsyncResult",
+            return_value=SimpleNamespace(state="PENDING"),
+        ),
+        patch("src.task_manager.celery_app.control.revoke"),
+    ):
+        cancelled = client.post(url + "/cancel", headers=headers(tokens))
+    assert cancelled.status_code == 200
+    assert cancelled.json()["data"]["status"] == "cancelled"
+    assert cancelled.json()["data"]["can_delete"] is True
     assert client.delete(url, headers=headers(tokens)).status_code == 204
     assert client.get(url, headers=headers(tokens)).status_code == 404
 

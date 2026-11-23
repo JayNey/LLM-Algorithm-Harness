@@ -230,15 +230,8 @@ class TaskManager:
             task.status == "paused" and status != "cancelled"
         )
 
-    def _check_evaluation_capacity(self, task_type: str, user_id: str) -> None:
-        """Serialize admission in the shared DB until task commit or rollback.
-
-        Pending messages reserve capacity before workers start them. No counter
-        needs repairing: completion, pause and cancellation release capacity by
-        changing the persisted task status. All submitters use the same limit.
-        """
-        if task_type != "evaluation":
-            return
+    def _lock_evaluation_admission(self, user_id: str) -> None:
+        """Serialize evaluation submission and deletion until commit/rollback."""
         with self.db.no_autoflush:
             dialect = self.db.get_bind().dialect.name
             if dialect == "sqlite":
@@ -263,6 +256,12 @@ class TaskManager:
                 self.db.execute(text("SELECT pg_advisory_xact_lock(:key)"), {"key": key})
             else:
                 raise ValueError("Evaluation concurrency requires SQLite or PostgreSQL")
+
+    def _check_evaluation_capacity(self, task_type: str, user_id: str) -> None:
+        """Reserve capacity for queued/running tasks under the shared DB lock."""
+        if task_type != "evaluation":
+            return
+        self._lock_evaluation_admission(user_id)
         self.db.flush()
         active = self.db.execute(
             select(func.count())

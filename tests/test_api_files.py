@@ -777,6 +777,93 @@ def test_run_deletion_cleans_artifacts_and_blocks_late_worker(api):
         app.state.files.publish_results("../unregistered", owner, {"vanilla": [result]})
 
 
+def test_queued_evaluation_delete_preserves_files_until_cancelled_and_stopped(api, monkeypatch):
+    from sqlalchemy import select
+
+    from api.db.models import AsyncTask, Evaluation, EvaluationResult
+    from src.task_manager import celery_app, evaluation_execution
+
+    client, alice, _, app, _, _ = api
+    run_id = new_task(client, alice)
+    headers = auth_headers(alice)
+    owner = app.state.auth.store.find_user("alice")["id"]
+    results = {
+        "vanilla": [
+            ExecutionResult(
+                problem_id="p1", strategy="vanilla", generated_code="pass", status="success"
+            )
+        ]
+    }
+    meta = app.state.files.publish_results(run_id, owner, results)
+    file = app.state.files.store.owned_file(meta["id"], owner)
+    path = app.state.files.path(file["relative_path"], owner)
+    with app.state.evaluations._session() as db, db.begin():
+        db.add(
+            EvaluationResult(
+                id=str(uuid.uuid4()),
+                evaluation_id=run_id,
+                problem_id="p1",
+                strategy_name="vanilla",
+                status="success",
+                metrics={},
+            )
+        )
+    assert client.post(f"/api/v1/evaluations/{run_id}/start", headers=headers).status_code == 202
+    assert (
+        client.get(f"/api/v1/evaluations/{run_id}", headers=headers).json()["data"]["can_delete"]
+        is False
+    )
+    assert (
+        client.get("/api/v1/quotas", headers=headers).json()["data"]["evaluation_concurrency"][
+            "used"
+        ]
+        == 1
+    )
+    with patch.object(app.state.files, "delete_run", wraps=app.state.files.delete_run) as cleanup:
+        rejected = client.delete(f"/api/v1/evaluations/{run_id}", headers=headers)
+        assert rejected.status_code == 400, rejected.text
+        assert "cancel" in rejected.text and "stop" in rejected.text
+        cleanup.assert_not_called()
+    assert path.exists()
+    with app.state.evaluations._session() as db:
+        evaluation = db.get(Evaluation, run_id)
+        task_id = evaluation.async_task_id
+        assert db.get(AsyncTask, task_id).status == "pending"
+        assert db.scalar(select(EvaluationResult).where(EvaluationResult.evaluation_id == run_id))
+
+    monkeypatch.setattr(celery_app.control, "revoke", Mock())
+    with evaluation_execution(run_id):
+        assert (
+            client.post(f"/api/v1/evaluations/{run_id}/cancel", headers=headers).status_code == 200
+        )
+        with patch.object(
+            app.state.files, "delete_run", wraps=app.state.files.delete_run
+        ) as cleanup:
+            rejected = client.delete(f"/api/v1/evaluations/{run_id}", headers=headers)
+            assert rejected.status_code == 400 and "not stopped" in rejected.text
+            cleanup.assert_not_called()
+        assert path.exists()
+    assert (
+        client.get("/api/v1/quotas", headers=headers).json()["data"]["evaluation_concurrency"][
+            "used"
+        ]
+        == 0
+    )
+    assert client.delete(f"/api/v1/evaluations/{run_id}", headers=headers).status_code == 204
+    assert not path.exists()
+    with app.state.evaluations._session() as db:
+        assert db.get(Evaluation, run_id) is None
+        assert (
+            db.scalar(select(EvaluationResult).where(EvaluationResult.evaluation_id == run_id))
+            is None
+        )
+        assert db.get(AsyncTask, task_id).status == "cancelled"
+    assert client.get(f"/api/v1/results/{run_id}/download", headers=headers).status_code == 404
+    with pytest.raises(HTTPException) as error:
+        app.state.files.publish_results(run_id, owner, results)
+    assert error.value.status_code == 404
+
+
 def test_cleanup_retries_permission_error_and_expires_stale_jobs(api, monkeypatch):
     client, alice, _, app, _, _ = api
     owner = app.state.auth.store.find_user("alice")["id"]
