@@ -412,6 +412,201 @@ test('HTTP 真值原样交付且附带当前模式', async () => {
 
 // ---------- 降级与重连 ----------
 
+for (const failure of ['sync-error', 'throw', 'async-error'] as const) {
+  test(`${failure} 进入降级、有限退避重连且持续轮询`, async () => {
+    let attempts = 0
+    const failedSockets: FakeSocket[] = []
+    const world = setup({
+      connectSocket: (handlers) => {
+        attempts += 1
+        if (failure === 'throw') throw new Error('WebSocket constructor failed')
+        const socket = new FakeSocket(handlers)
+        failedSockets.push(socket)
+        if (failure === 'sync-error') socket.fail()
+        else queueMicrotask(() => socket.fail())
+        return socket
+      },
+    })
+    assert.doesNotThrow(() => world.observer.start('eval-1'))
+    await settle()
+    assert.equal(last(world.modes()), 'degraded')
+    assert.equal(world.calls.length, 1)
+    assert.deepEqual(world.clock.pendingDelays(), [3_000, 3_000])
+
+    for (const gap of [3_000, 6_000, 12_000, 30_000]) {
+      const before = attempts
+      world.clock.advance(gap - 1)
+      await settle()
+      assert.equal(attempts, before, '退避到期前不重连')
+      const callsBefore = world.calls.length
+      world.clock.advance(1)
+      await settle()
+      assert.equal(attempts, before + 1)
+      if (gap === 3_000) assert.equal(world.calls.length, callsBefore + 1)
+    }
+    assert.equal(attempts, 5)
+    const callsBefore = world.calls.length
+    world.clock.advance(60_000)
+    await settle()
+    assert.equal(attempts, 5, '达到失败上限后不再重连')
+    assert.ok(world.calls.length > callsBefore, '放弃 WS 后仍轮询')
+    assert.ok(failedSockets.every((socket) => socket.closeCodes.length === 1))
+
+    world.observer.dispose()
+    assert.deepEqual(world.clock.pendingDelays(), [])
+    const eventsBefore = world.events.length
+    const requestsBefore = world.calls.length
+    for (const socket of failedSockets) {
+      socket.open()
+      socket.frame({ type: 'subscribed', task_id: 'eval-1' })
+      socket.remoteClose(1006)
+      socket.fail()
+    }
+    world.clock.advance(120_000)
+    await settle()
+    assert.equal(world.events.length, eventsBefore)
+    assert.equal(world.calls.length, requestsBefore)
+    assert.equal(attempts, 5)
+    assert.ok(failedSockets.every((socket) => socket.sent.length === 0))
+  })
+}
+
+test('同步失败的旧事件不影响后续连接恢复 live', async () => {
+  const sockets: FakeSocket[] = []
+  const world = setup({
+    connectSocket: (handlers) => {
+      const socket = new FakeSocket(handlers)
+      sockets.push(socket)
+      if (sockets.length === 1) socket.fail()
+      return socket
+    },
+  })
+  world.observer.start('eval-1')
+  await settle()
+  assert.equal(last(world.modes()), 'degraded')
+  const failed = sockets[0]
+  failed.fail()
+  failed.remoteClose(1006)
+  failed.open()
+  failed.frame({ type: 'subscribed', task_id: 'eval-1' })
+  assert.equal(last(world.modes()), 'degraded')
+  assert.equal(failed.sent.length, 0)
+  world.clock.advance(3_000)
+  await settle()
+  assert.equal(sockets.length, 2, '旧失败通知不增加退避次数')
+  const recovered = sockets[1]
+  recovered.open()
+  recovered.frame({ type: 'subscribed', task_id: 'eval-1' })
+  await settle()
+  assert.equal(last(world.modes()), 'live')
+  const callsBefore = world.calls.length
+  failed.fail()
+  failed.remoteClose(4403)
+  failed.frame({ type: 'task.progress', task_id: 'eval-1' })
+  world.clock.advance(3_000)
+  await settle()
+  assert.equal(last(world.modes()), 'live')
+  assert.equal(world.calls.length, callsBefore, '恢复 live 已清理降级轮询')
+  assert.equal(sockets.length, 2)
+  recovered.fail()
+  assert.deepEqual(world.clock.pendingDelays(), [3_000, 3_000])
+  world.observer.dispose()
+})
+
+test('初始化同步 open 和 subscribed 在句柄可用后有序处理', async () => {
+  let socket!: FakeSocket
+  const world = setup({
+    connectSocket: (handlers) => {
+      socket = new FakeSocket(handlers)
+      socket.open()
+      socket.frame({ type: 'subscribed', task_id: 'eval-1' })
+      return socket
+    },
+  })
+  assert.doesNotThrow(() => world.observer.start('eval-1'))
+  await settle()
+  assert.deepEqual(socket.sent, [{ action: 'subscribe', task_id: 'eval-1' }])
+  assert.equal(last(world.modes()), 'live')
+  assert.deepEqual(world.clock.pendingDelays(), [15_000])
+  world.observer.dispose()
+  assert.deepEqual(socket.closeCodes, [1000])
+  assert.deepEqual(world.clock.pendingDelays(), [])
+})
+
+test('初始化同步 open 后 error 清理订阅定时器，close 回调不重复计失败', async () => {
+  let socket!: FakeSocket
+  const world = setup({
+    connectSocket: (handlers) => {
+      socket = new FakeSocket(handlers)
+      socket.close = (code = 1000) => {
+        socket.closeCodes.push(code)
+        handlers.onClose(code)
+      }
+      socket.open()
+      socket.fail()
+      socket.fail()
+      return socket
+    },
+  })
+  world.observer.start('eval-1')
+  await settle()
+  assert.equal(last(world.modes()), 'degraded')
+  assert.deepEqual(socket.sent, [{ action: 'subscribe', task_id: 'eval-1' }])
+  assert.deepEqual(socket.closeCodes, [1000])
+  assert.deepEqual(world.clock.pendingDelays(), [3_000, 3_000])
+  world.observer.dispose()
+})
+
+test('同步通知后构造抛错只安排一次失败退避', async () => {
+  let attempts = 0
+  const world = setup({
+    connectSocket: (handlers) => {
+      attempts += 1
+      handlers.onOpen()
+      handlers.onError()
+      throw new Error('constructor failed after callback')
+    },
+  })
+  assert.doesNotThrow(() => world.observer.start('eval-1'))
+  await settle()
+  assert.equal(last(world.modes()), 'degraded')
+  assert.deepEqual(world.clock.pendingDelays(), [3_000, 3_000])
+  world.clock.advance(3_000)
+  await settle()
+  assert.equal(attempts, 2)
+  assert.deepEqual(world.clock.pendingDelays(), [3_000, 6_000])
+  world.observer.dispose()
+})
+
+test('同步失败降级通知中 dispose 不遗留定时器', async () => {
+  const events: ObserverEvent[] = []
+  let socket!: FakeSocket
+  const world = setup({
+    connectSocket: (handlers) => {
+      socket = new FakeSocket(handlers)
+      socket.fail()
+      return socket
+    },
+    onChange: (event) => {
+      events.push(event)
+      if (event.type === 'mode' && event.mode === 'degraded') observer.dispose()
+    },
+  })
+  const observer = world.observer
+  observer.start('eval-1')
+  await settle()
+  assert.ok(
+    events.some((event) => event.type === 'mode' && event.mode === 'degraded'),
+  )
+  assert.deepEqual(socket.closeCodes, [1000])
+  assert.deepEqual(world.clock.pendingDelays(), [])
+  const eventsBefore = events.length
+  world.clock.advance(60_000)
+  await settle()
+  assert.equal(events.length, eventsBefore)
+  assert.equal(world.calls.length, 1)
+})
+
 test('live 兜底：15 秒无事件且非终态则主动刷新一次', async () => {
   const world = setup()
   await world.goLive()

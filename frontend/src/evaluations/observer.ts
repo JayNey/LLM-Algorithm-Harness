@@ -94,7 +94,7 @@ export function resolveProgressWsUrl(
 }
 
 interface Connection {
-  handle: SocketHandle
+  handle: SocketHandle | null
   open: boolean
   subscribeSent: boolean
   subscribed: boolean
@@ -165,10 +165,15 @@ export function createProgressObserver(deps: ObserverDeps): ProgressObserver {
 
   function teardownSocket(): void {
     if (!conn) return
-    if (conn.subscribed)
-      conn.handle.send({ action: 'unsubscribe', task_id: evaluationId ?? '' })
-    conn.handle.close(1000)
+    const connection = conn
+    connection.closed = true
     conn = null
+    if (connection.subscribed)
+      connection.handle?.send({
+        action: 'unsubscribe',
+        task_id: evaluationId ?? '',
+      })
+    connection.handle?.close(1000)
   }
 
   function stopObserving(): void {
@@ -347,7 +352,7 @@ export function createProgressObserver(deps: ObserverDeps): ProgressObserver {
       setMode('connecting')
     const target = evaluationId
     const connection: Connection = {
-      handle: null as unknown as SocketHandle,
+      handle: null,
       open: false,
       subscribeSent: false,
       subscribed: false,
@@ -355,17 +360,18 @@ export function createProgressObserver(deps: ObserverDeps): ProgressObserver {
       closed: false,
     }
     const isCurrent = (): boolean => conn === connection && !connection.closed
-    connection.handle = deps.connectSocket({
+    conn = connection
+    const handlers: SocketHandlers = {
       onOpen: () => {
         if (!isCurrent() || connection.open) return
         connection.open = true
         connection.subscribeSent = true
-        connection.handle.send({ action: 'subscribe', task_id: target })
+        connection.handle?.send({ action: 'subscribe', task_id: target })
         connection.subscribeTimer = clock_timer(() => {
           if (!isCurrent()) return
           connection.closed = true
           conn = null
-          connection.handle.close(1000)
+          connection.handle?.close(1000)
           handleSocketFailure('subscribe timeout')
         }, timing.subscribeTimeoutMs)
       },
@@ -395,10 +401,38 @@ export function createProgressObserver(deps: ObserverDeps): ProgressObserver {
         connection.closed = true
         conn = null
         clearHandle(connection.subscribeTimer)
+        connection.handle?.close(1000)
         handleSocketFailure('socket error')
       },
-    })
-    conn = connection
+    }
+    // 工厂可能同步交付事件；等句柄就绪后按顺序处理，避免空句柄与丢失失败。
+    let initializing = true
+    const pending: Array<() => void> = []
+    const dispatch = (callback: () => void): void => {
+      if (initializing) pending.push(callback)
+      else callback()
+    }
+    try {
+      connection.handle = deps.connectSocket({
+        onOpen: () => dispatch(handlers.onOpen),
+        onMessage: (frame) => dispatch(() => handlers.onMessage(frame)),
+        onClose: (code) => dispatch(() => handlers.onClose(code)),
+        onError: () => dispatch(handlers.onError),
+      })
+    } catch {
+      // 工厂没有返回句柄：丢弃初始化事件，统一计为一次连接失败。
+      initializing = false
+      pending.length = 0
+      handlers.onError()
+      return
+    }
+    initializing = false
+    if (!isCurrent()) {
+      connection.handle.close(1000)
+      return
+    }
+    for (const callback of pending) callback()
+    pending.length = 0
   }
 
   function handleFrame(frame: ServerFrame): void {
@@ -422,6 +456,7 @@ export function createProgressObserver(deps: ObserverDeps): ProgressObserver {
   function handleSocketFailure(reason: string): void {
     connectAttempts += 1
     setMode('degraded')
+    if (disposed || paused || mode === 'stopped') return
     // 进入降级：清掉 live 期遗留的兜底定时器
     clearHandle(staleTimer)
     staleTimer = null

@@ -1,0 +1,37 @@
+{
+  "schema": "comet.classic.archive-manifest.v2",
+  "execution": {
+    "workflow": {
+      "id": "comet-classic-tweak",
+      "version": "2",
+      "hash": "518d3e8e12eb39899775cb7d2ddcc7ddeba10cb1f1d43cff7b03f2ca61a70c65"
+    },
+    "runId": "fix-sync-websocket-failure",
+    "actionId": "fix-sync-websocket-failure:9",
+    "attempt": 1,
+    "inputHash": "b636822b53676d1e66a6c678e54eaa2835c825359f0e09d6ea0d6f5c992ef8ec",
+    "claimToken": "portable-55e74fbcd04d2fa9b8aca96f4f03568a54c1a2778a6d8f2c1fe670dc6069ea58"
+  },
+  "activeRef": "openspec/changes/fix-sync-websocket-failure",
+  "archiveRef": "openspec/changes/archive/2026-11-23-fix-sync-websocket-failure",
+  "stateRef": "openspec/changes/archive/2026-11-23-fix-sync-websocket-failure/comet-state.yaml",
+  "paths": [
+    "openspec/changes/archive/2026-11-23-fix-sync-websocket-failure/.comet/archive-requirements.json",
+    "openspec/changes/archive/2026-11-23-fix-sync-websocket-failure/.openspec.yaml",
+    "openspec/changes/archive/2026-11-23-fix-sync-websocket-failure/design.md",
+    "openspec/changes/archive/2026-11-23-fix-sync-websocket-failure/proposal.md",
+    "openspec/changes/archive/2026-11-23-fix-sync-websocket-failure/specs/frontend/evaluation-observer/spec.md",
+    "openspec/changes/archive/2026-11-23-fix-sync-websocket-failure/tasks.md",
+    "openspec/changes/archive/2026-11-23-fix-sync-websocket-failure/walkthrough.html",
+    "openspec/specs/frontend/evaluation-observer/spec.md"
+  ],
+  "sourcePaths": [
+    "openspec/changes/fix-sync-websocket-failure/.comet/archive-requirements.json",
+    "openspec/changes/fix-sync-websocket-failure/.openspec.yaml",
+    "openspec/changes/fix-sync-websocket-failure/design.md",
+    "openspec/changes/fix-sync-websocket-failure/proposal.md",
+    "openspec/changes/fix-sync-websocket-failure/specs/frontend/evaluation-observer/spec.md",
+    "openspec/changes/fix-sync-websocket-failure/tasks.md",
+    "openspec/changes/fix-sync-websocket-failure/walkthrough.html"
+  ]
+}
