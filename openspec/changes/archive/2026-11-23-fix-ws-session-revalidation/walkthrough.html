@@ -1,0 +1,139 @@
+<!doctype html>
+<html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'unsafe-inline'; base-uri 'none'; form-action 'none'"><title>变更说明 · 进度 WebSocket 在注销或访问令牌到期后关闭并释放订阅</title>
+<style>
+:root {
+  color-scheme: light dark;
+  --page: #fafbfc;
+  --ink: #202a35;
+  --muted: #566575;
+  --line: #dbe2e8;
+  --accent: #245b85;
+  --highlight: #edf3f7;
+  --hover: #e9eef3;
+  --code-bg: #edf0f4;
+  --code-ink: #263443;
+  --success: #236d4f;
+  --failure: #a83131;
+  --text: 15px;
+  --small: 13px;
+  --label: 12px;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --page: #181d23;
+    --ink: #e4eaf0;
+    --muted: #a4b1be;
+    --line: #35404b;
+    --accent: #94c6ec;
+    --highlight: #222e39;
+    --hover: #27323d;
+    --code-bg: #10161d;
+    --code-ink: #e0e8f0;
+    --success: #8ed8b5;
+    --failure: #ffb0a8;
+  }
+}
+* { box-sizing: border-box; }
+body {
+  margin: 0;
+  background: var(--page);
+  color: var(--ink);
+  font: var(--text)/1.65 system-ui, -apple-system, "Segoe UI", sans-serif;
+}
+main { max-width: 1040px; margin: auto; padding: 32px 32px 48px; }
+.eyebrow { color: var(--accent); font-size: var(--label); font-weight: 500; letter-spacing: .08em; }
+h1 { margin: 8px 0 12px; max-width: 32em; font-size: 28px; font-weight: 500; line-height: 1.4; letter-spacing: -.02em; overflow-wrap: anywhere; }
+h2 { margin: 0; font-size: 18px; font-weight: 500; line-height: 1.5; overflow-wrap: anywhere; }
+h3 { margin: 0 0 4px; color: var(--muted); font-size: var(--label); font-weight: 500; }
+p { margin: 0; white-space: pre-wrap; overflow-wrap: anywhere; }
+strong { font-weight: 500; }
+.meta { margin-bottom: 24px; color: var(--muted); font-size: var(--small); overflow-wrap: anywhere; }
+.meta p + p { margin-top: 2px; }
+article { padding: 20px 0 12px; border-top: 1px solid var(--line); }
+article header { display: flex; align-items: baseline; gap: 12px; margin-bottom: 12px; }
+.number { color: var(--muted); font: var(--label)/1.5 ui-monospace, Consolas, monospace; font-variant-numeric: tabular-nums; }
+.comparison { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 16px; }
+.comparison section { min-width: 0; padding: 12px; }
+.after { background: var(--highlight); border-radius: 4px; }
+.after h3 { color: var(--accent); }
+.reason { margin-top: 12px; font-size: var(--small); color: var(--muted); }
+.reason strong { margin-right: 8px; color: var(--ink); }
+summary { min-height: 44px; padding: 10px 4px; cursor: pointer; font-size: var(--small); font-weight: 500; border-radius: 4px; }
+summary:hover { background: var(--hover); }
+summary:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.count, .tag { color: var(--muted); font-size: var(--label); font-weight: 400; }
+.count { margin-left: 4px; font-variant-numeric: tabular-nums; }
+.file { min-width: 0; padding: 0 0 16px; scroll-margin-top: 20px; }
+.file:target { outline: 2px solid var(--accent); outline-offset: 4px; }
+.file-heading { display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 8px; }
+.file-heading code { min-width: 0; font-size: var(--small); overflow-wrap: anywhere; }
+.tag { white-space: nowrap; }
+pre { margin: 8px 0 0; padding: 12px 16px; overflow: auto; background: var(--code-bg); color: var(--code-ink); border-radius: 4px; font: var(--small)/1.65 ui-monospace, Consolas, monospace; tab-size: 2; }
+footer { margin-top: 12px; padding-top: 20px; border-top: 1px solid var(--line); }
+footer h2 { margin-bottom: 8px; }
+.check { display: grid; grid-template-columns: 72px minmax(0, 1fr); gap: 12px; padding: 12px 0; border-bottom: 1px solid var(--line); }
+.status { padding-top: 2px; font-size: var(--label); font-weight: 500; }
+.passed { color: var(--success); }
+.failed { color: var(--failure); }
+.not-run, .unknown { color: var(--muted); }
+.check p { margin-top: 2px; color: var(--muted); font-size: var(--small); }
+.more { border-top: 1px solid var(--line); }
+.more > summary { padding-block: 12px; }
+.diagram { margin: 0; padding: 20px 0; border-top: 1px solid var(--line); }
+.diagram figcaption { margin-bottom: 12px; font-size: 18px; font-weight: 500; overflow-wrap: anywhere; }
+.diagram-svg { display: block; max-width: 100%; height: auto; margin: auto; overflow: visible; font: 13px system-ui, -apple-system, "Segoe UI", sans-serif; }
+.diagram-svg text { fill: var(--ink); }
+.diagram-edge { fill: none; stroke: var(--muted); stroke-width: 1.5; }
+.diagram-svg marker path { fill: var(--muted); }
+.diagram-edge-label { fill: var(--page); }
+.diagram-svg .diagram-edge-text { fill: var(--muted); font-size: 12px; }
+.diagram-node rect { fill: var(--page); stroke: var(--line); stroke-width: 1.5; }
+.diagram-node.modified rect { fill: var(--highlight); stroke: var(--accent); }
+.diagram-node.added rect { stroke: var(--success); }
+.diagram-node.deleted rect { stroke: var(--failure); stroke-dasharray: 4 3; }
+.diagram-svg .diagram-kind { fill: var(--muted); font-size: 11px; }
+.diagram-node[href] { cursor: pointer; }
+.diagram-node[href]:hover rect, .diagram-node[href]:focus-visible rect { stroke: var(--accent); stroke-width: 2.5; }
+.diagram-node[href]:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; }
+.diagram-hint { margin-top: 12px; color: var(--muted); font-size: var(--small); text-align: center; }
+.diagram-comparison { display: grid; grid-template-columns: minmax(0,1fr) minmax(0,1fr); gap: 16px; }
+.diagram-comparison > section { min-width: 0; padding: 12px; border: 1px solid var(--line); border-radius: 4px; }
+.diagram-comparison > section > h3 { margin-bottom: 12px; }
+.diagram-compact { display: none; }
+@media (max-width: 999px) {
+  .diagram-wide { display: none; }
+  .diagram-compact { display: block; }
+}
+@media (max-width: 640px) {
+  main { padding: 24px 16px 32px; }
+  h1 { font-size: 24px; }
+  .meta { margin-bottom: 20px; }
+  article { padding-top: 16px; }
+  article header { gap: 8px; }
+  .comparison { grid-template-columns: minmax(0, 1fr); gap: 4px; }
+  .check { grid-template-columns: 60px minmax(0, 1fr); gap: 8px; }
+  pre { padding: 12px; }
+  .diagram-comparison { grid-template-columns: minmax(0,1fr); }
+  .diagram-comparison > section { padding: 12px 0; border: 0; }
+}
+</style></head><body><main><div class="eyebrow">COMET / 变更说明</div><h1>进度 WebSocket 在注销或访问令牌到期后关闭并释放订阅</h1><div class="meta"><p>比较范围 · main 的本次工作区差异：api/routes/ws.py、tests/test_api_ws.py，以及 fix-ws-session-revalidation 的 OpenSpec 产物。</p><p>生成时间 · 2026-11-23T05:23:48.236Z</p></div><figure class="diagram"><figcaption>进度访问与会话失效处理</figcaption><div class="diagram-wide"><svg class="diagram-svg" width="562" height="208" viewBox="0 0 562 208" role="group" aria-labelledby="walkthrough-diagram-0-wide-title walkthrough-diagram-0-wide-description"><title id="walkthrough-diagram-0-wide-title">进度访问与会话失效处理</title><desc id="walkthrough-diagram-0-wide-description">连接原始凭据 → 动作 / 发送 / 定期认证; 动作 / 发送 / 定期认证 → 发送快照或事件 (有效); 动作 / 发送 / 定期认证 → 4401 关闭并清理 (撤销 / 到期)</desc><defs><marker id="walkthrough-diagram-0-wide-arrow" viewBox="0 0 8 8" refX="7" refY="4" markerWidth="6" markerHeight="6" orient="auto"><path d="M 0 0 L 8 4 L 0 8 z"/></marker></defs><path class="diagram-edge" d="M 132 104 C 176.5 104, 176.5 104, 218 104" marker-end="url(#walkthrough-diagram-0-wide-arrow)"/><path class="diagram-edge" d="M 341 104 C 385.5 104, 385.5 50, 427 50" marker-end="url(#walkthrough-diagram-0-wide-arrow)"/><rect class="diagram-edge-label" x="368.5" y="66" width="34" height="22"/><text class="diagram-edge-text" x="385.5" y="81" text-anchor="middle"><tspan x="385.5" dy="0">有效</tspan></text><path class="diagram-edge" d="M 341 104 C 385.5 104, 385.5 158, 427 158" marker-end="url(#walkthrough-diagram-0-wide-arrow)"/><rect class="diagram-edge-label" x="345" y="120" width="81" height="22"/><text class="diagram-edge-text" x="385.5" y="135" text-anchor="middle"><tspan x="385.5" dy="0">撤销 / 到期</tspan></text><g class="diagram-node "><rect x="12" y="66" width="120" height="76" rx="5"/><text class="" x="72" y="108" text-anchor="middle"><tspan x="72" dy="0">连接原始凭据</tspan></text></g><a class="diagram-node modified" href="#walkthrough-file-0-0" aria-label="动作 / 发送 / 定期认证 · api/routes/ws.py:45"><rect x="221" y="66" width="120" height="76" rx="5"/><text class="diagram-kind" x="281" y="83" text-anchor="middle"><tspan x="281" dy="0">修改</tspan></text><text class="" x="281" y="101" text-anchor="middle"><tspan x="281" dy="0">动作 / 发送 /</tspan><tspan x="281" dy="18">定期认证</tspan></text></a><g class="diagram-node "><rect x="430" y="12" width="120" height="76" rx="5"/><text class="" x="490" y="54" text-anchor="middle"><tspan x="490" dy="0">发送快照或事件</tspan></text></g><a class="diagram-node modified" href="#walkthrough-file-1-0" aria-label="4401 关闭并清理 · api/routes/ws.py:102"><rect x="430" y="120" width="120" height="76" rx="5"/><text class="diagram-kind" x="490" y="137" text-anchor="middle"><tspan x="490" dy="0">修改</tspan></text><text class="" x="490" y="155" text-anchor="middle"><tspan x="490" dy="0">4401</tspan><tspan x="490" dy="18">关闭并清理</tspan></text></a></svg></div><div class="diagram-compact"><svg class="diagram-svg" width="272" height="324" viewBox="0 0 272 324" role="group" aria-labelledby="walkthrough-diagram-0-compact-title walkthrough-diagram-0-compact-description"><title id="walkthrough-diagram-0-compact-title">进度访问与会话失效处理</title><desc id="walkthrough-diagram-0-compact-description">连接原始凭据 → 动作 / 发送 / 定期认证; 动作 / 发送 / 定期认证 → 发送快照或事件 (有效); 动作 / 发送 / 定期认证 → 4401 关闭并清理 (撤销 / 到期)</desc><defs><marker id="walkthrough-diagram-0-compact-arrow" viewBox="0 0 8 8" refX="7" refY="4" markerWidth="6" markerHeight="6" orient="auto"><path d="M 0 0 L 8 4 L 0 8 z"/></marker></defs><path class="diagram-edge" d="M 136 88 C 136 106, 136 106, 136 121" marker-end="url(#walkthrough-diagram-0-compact-arrow)"/><path class="diagram-edge" d="M 136 200 C 136 218, 68 218, 68 233" marker-end="url(#walkthrough-diagram-0-compact-arrow)"/><rect class="diagram-edge-label" x="85" y="207" width="34" height="22"/><text class="diagram-edge-text" x="102" y="222" text-anchor="middle"><tspan x="102" dy="0">有效</tspan></text><path class="diagram-edge" d="M 136 200 C 136 218, 204 218, 204 233" marker-end="url(#walkthrough-diagram-0-compact-arrow)"/><rect class="diagram-edge-label" x="129.5" y="207" width="81" height="22"/><text class="diagram-edge-text" x="170" y="222" text-anchor="middle"><tspan x="170" dy="0">撤销 / 到期</tspan></text><g class="diagram-node "><rect x="80" y="12" width="112" height="76" rx="5"/><text class="" x="136" y="54" text-anchor="middle"><tspan x="136" dy="0">连接原始凭据</tspan></text></g><a class="diagram-node modified" href="#walkthrough-file-0-0" aria-label="动作 / 发送 / 定期认证 · api/routes/ws.py:45"><rect x="80" y="124" width="112" height="76" rx="5"/><text class="diagram-kind" x="136" y="141" text-anchor="middle"><tspan x="136" dy="0">修改</tspan></text><text class="" x="136" y="159" text-anchor="middle"><tspan x="136" dy="0">动作 / 发送</tspan><tspan x="136" dy="18">/ 定期认证</tspan></text></a><g class="diagram-node "><rect x="12" y="236" width="112" height="76" rx="5"/><text class="" x="68" y="269" text-anchor="middle"><tspan x="68" dy="0">发送快照或事</tspan><tspan x="68" dy="18">件</tspan></text></g><a class="diagram-node modified" href="#walkthrough-file-1-0" aria-label="4401 关闭并清理 · api/routes/ws.py:102"><rect x="148" y="236" width="112" height="76" rx="5"/><text class="diagram-kind" x="204" y="253" text-anchor="middle"><tspan x="204" dy="0">修改</tspan></text><text class="" x="204" y="271" text-anchor="middle"><tspan x="204" dy="0">4401</tspan><tspan x="204" dy="18">关闭并清理</tspan></text></a></svg></div><p class="diagram-hint">点击带链接的节点查看相关代码。</p></figure><article><header><span class="number">01</span><h2>每次数据访问都核验建连凭据</h2></header><div class="comparison"><section><h3>原来</h3><p>连接只在建连时认证，注销后的旧连接仍能订阅快照、接收实时事件。</p></section><section class="after"><h3>现在</h3><p>处理客户端动作、发送快照及事件前重新认证原始查询参数或 Cookie 凭据；失效以 4401 关闭。每秒检查空闲连接，覆盖其他进程撤销会话和令牌自然到期。</p></section></div><p class="reason"><strong>原因</strong> 实时通道必须使用与 HTTP 相同的认证服务与共享会话状态。</p><details><summary>查看文件和关键代码 <span class="count">1</span></summary><div class="file" id="walkthrough-file-0-0"><div class="file-heading"><span class="tag">修改</span><code>api/routes/ws.py:45</code></div><pre><code>def authenticate() -&gt; None:
+    try:
+        auth.authenticate(credential)
+    except Exception:
+        raise WebSocketDisconnect(code=CLOSE_INVALID_TOKEN) from None
+
+async def watch_auth() -&gt; None:
+    while True:
+        await asyncio.sleep(AUTH_RECHECK_INTERVAL)
+        authenticate()</code></pre></div></details></article><article><header><span class="number">02</span><h2>统一关闭并释放全部订阅</h2></header><div class="comparison"><section><h3>原来</h3><p>事件转发与连接接收各自等待，认证失效不触发退出；半初始化订阅和断连取消可能遗漏清理。</p></section><section class="after"><h3>现在</h3><p>发送与关闭共用锁；订阅建立后立即登记，先发送快照和确认再启动转发。连接监督接收、定期认证与关闭信号，退出时取消并等待任务，以受保护的清理过程释放全部订阅。</p></section></div><p class="reason"><strong>原因</strong> 关闭连接必须同时终止后续数据发送并回收后台资源。</p><details><summary>查看文件和关键代码 <span class="count">1</span></summary><div class="file" id="walkthrough-file-1-0"><div class="file-heading"><span class="tag">修改</span><code>api/routes/ws.py:102</code></div><pre><code>subscription = await stream.subscribe(channel_for(task_id))
+listeners[task_id] = (subscription, None)
+authenticate()
+# ...
+with CancelScope(shield=True):
+    for task in background:
+        task.cancel()
+    await asyncio.gather(*background, return_exceptions=True)
+    for task_id in list(listeners):
+        await stop_listener(task_id)</code></pre></div></details></article><article><header><span class="number">03</span><h2>覆盖撤销、到期与异步清理竞争</h2></header><div class="comparison"><section><h3>原来</h3><p>10 项原有 WebSocket 测试未覆盖连接建立后的凭据失效。</p></section><section class="after"><h3>现在</h3><p>共 28 项 WebSocket 测试通过，新增 18 项覆盖查询参数/Cookie、注销后新及重复订阅、事件转发、空闲失效、JWT 到期、跨认证实例撤销、多订阅清理与订阅初始化竞争。按用户确认保持现有改密后会话有效，验证后续注销关闭。</p></section></div><p class="reason"><strong>原因</strong> 用真实路由、认证和 SQLite 验证边界，仅替换进度传输与可控时间/并发点。</p><details><summary>查看文件和关键代码 <span class="count">1</span></summary><div class="file" id="walkthrough-file-2-0"><div class="file-heading"><span class="tag">修改</span><code>tests/test_api_ws.py:149</code></div><pre><code>class TestSessionLifetime:
+    # Logout, expiry, idle, cookie/query, multi-subscription cleanup,
+    # revocation during subscription/snapshot, and password compatibility.</code></pre></div></details></article><footer><h2>实际验证</h2><div class="check"><span class="status passed">通过</span><div><strong>Builder 自检</strong><p>最终 WebSocket 28 passed；相关组合回归 142 passed，后续仅 WS 变化并重验。Ruff、Black、git diff --check、OpenSpec --strict 均通过。</p></div></div><div class="check"><span class="status passed">通过</span><div><strong>Runtime 检查</strong><p>Open、Build 与 Verify Guard 均通过；3/3 任务、1 项需求的 9 个场景完成核对。当前等待归档与 Git 交付授权。</p></div></div><div class="check"><span class="status not-run">未执行</span><div><strong>独立验收</strong><p>本 Run 为 tweak direct/direct/off；当前会话完成最终差异与规格验证，未派发独立审查。</p></div></div><div class="check"><span class="status failed">失败</span><div><strong>离线全套测试</strong><p>全套收集 4465 项，运行到约 15% 出现 4 项成本 API setup error 后中止；中止时 pytest 清理另报 KeyError。全套未完成。4 项均因沙箱拒绝本地 listener.bind；允许本地回环服务后原样重验 4 passed。见 docs/superpowers/reports/2026-11-23-fix-ws-session-revalidation-verify.md 与 /tmp/issue-510-suite-errors-recheck.log。未运行在线模型验证或真实 Redis 进度链路。</p></div></div></footer></main><template id="walkthrough-data">eyJzdW1tYXJ5Ijoi6L+b5bqmIFdlYlNvY2tldCDlnKjms6jplIDmiJborr/pl67ku6TniYzliLDmnJ/lkI7lhbPpl63lubbph4rmlL7orqLpmIUiLCJzY29wZSI6Im1haW4g55qE5pys5qyh5bel5L2c5Yy65beu5byC77yaYXBpL3JvdXRlcy93cy5weeOAgXRlc3RzL3Rlc3RfYXBpX3dzLnB577yM5Lul5Y+KIGZpeC13cy1zZXNzaW9uLXJldmFsaWRhdGlvbiDnmoQgT3BlblNwZWMg5Lqn54mp44CCIiwiY2hhbmdlcyI6W3sidGl0bGUiOiLmr4/mrKHmlbDmja7orr/pl67pg73moLjpqozlu7rov57lh63mja4iLCJiZWZvcmUiOiLov57mjqXlj6rlnKjlu7rov57ml7borqTor4HvvIzms6jplIDlkI7nmoTml6fov57mjqXku43og73orqLpmIXlv6vnhafjgIHmjqXmlLblrp7ml7bkuovku7bjgIIiLCJhZnRlciI6IuWkhOeQhuWuouaIt+err+WKqOS9nOOAgeWPkemAgeW/q+eFp+WPiuS6i+S7tuWJjemHjeaWsOiupOivgeWOn+Wni+afpeivouWPguaVsOaIliBDb29raWUg5Yet5o2u77yb5aSx5pWI5LulIDQ0MDEg5YWz6Zet44CC5q+P56eS5qOA5p+l56m66Zey6L+e5o6l77yM6KaG55uW5YW25LuW6L+b56iL5pKk6ZSA5Lya6K+d5ZKM5Luk54mM6Ieq54S25Yiw5pyf44CCIiwicmVhc29uIjoi5a6e5pe26YCa6YGT5b+F6aG75L2/55So5LiOIEhUVFAg55u45ZCM55qE6K6k6K+B5pyN5Yqh5LiO5YWx5Lqr5Lya6K+d54q25oCB44CCIiwiZmlsZXMiOlt7InBhdGgiOiJhcGkvcm91dGVzL3dzLnB5OjQ1Iiwia2luZCI6Im1vZGlmaWVkIiwiY29kZSI6ImRlZiBhdXRoZW50aWNhdGUoKSAtPiBOb25lOlxuICAgIHRyeTpcbiAgICAgICAgYXV0aC5hdXRoZW50aWNhdGUoY3JlZGVudGlhbClcbiAgICBleGNlcHQgRXhjZXB0aW9uOlxuICAgICAgICByYWlzZSBXZWJTb2NrZXREaXNjb25uZWN0KGNvZGU9Q0xPU0VfSU5WQUxJRF9UT0tFTikgZnJvbSBOb25lXG5cbmFzeW5jIGRlZiB3YXRjaF9hdXRoKCkgLT4gTm9uZTpcbiAgICB3aGlsZSBUcnVlOlxuICAgICAgICBhd2FpdCBhc3luY2lvLnNsZWVwKEFVVEhfUkVDSEVDS19JTlRFUlZBTClcbiAgICAgICAgYXV0aGVudGljYXRlKCkifV19LHsidGl0bGUiOiLnu5/kuIDlhbPpl63lubbph4rmlL7lhajpg6jorqLpmIUiLCJiZWZvcmUiOiLkuovku7bovazlj5HkuI7ov57mjqXmjqXmlLblkIToh6rnrYnlvoXvvIzorqTor4HlpLHmlYjkuI3op6blj5HpgIDlh7rvvJvljYrliJ3lp4vljJborqLpmIXlkozmlq3ov57lj5bmtojlj6/og73pgZfmvI/muIXnkIbjgIIiLCJhZnRlciI6IuWPkemAgeS4juWFs+mXreWFseeUqOmUge+8m+iuoumYheW7uueri+WQjueri+WNs+eZu+iusO+8jOWFiOWPkemAgeW/q+eFp+WSjOehruiupOWGjeWQr+WKqOi9rOWPkeOAgui/nuaOpeebkeedo+aOpeaUtuOAgeWumuacn+iupOivgeS4juWFs+mXreS/oeWPt++8jOmAgOWHuuaXtuWPlua2iOW5tuetieW+heS7u+WKoe+8jOS7peWPl+S/neaKpOeahOa4heeQhui/h+eoi+mHiuaUvuWFqOmDqOiuoumYheOAgiIsInJlYXNvbiI6IuWFs+mXrei/nuaOpeW/hemhu+WQjOaXtue7iOatouWQjue7reaVsOaNruWPkemAgeW5tuWbnuaUtuWQjuWPsOi1hOa6kOOAgiIsImZpbGVzIjpbeyJwYXRoIjoiYXBpL3JvdXRlcy93cy5weToxMDIiLCJraW5kIjoibW9kaWZpZWQiLCJjb2RlIjoic3Vic2NyaXB0aW9uID0gYXdhaXQgc3RyZWFtLnN1YnNjcmliZShjaGFubmVsX2Zvcih0YXNrX2lkKSlcbmxpc3RlbmVyc1t0YXNrX2lkXSA9IChzdWJzY3JpcHRpb24sIE5vbmUpXG5hdXRoZW50aWNhdGUoKVxuIyAuLi5cbndpdGggQ2FuY2VsU2NvcGUoc2hpZWxkPVRydWUpOlxuICAgIGZvciB0YXNrIGluIGJhY2tncm91bmQ6XG4gICAgICAgIHRhc2suY2FuY2VsKClcbiAgICBhd2FpdCBhc3luY2lvLmdhdGhlcigqYmFja2dyb3VuZCwgcmV0dXJuX2V4Y2VwdGlvbnM9VHJ1ZSlcbiAgICBmb3IgdGFza19pZCBpbiBsaXN0KGxpc3RlbmVycyk6XG4gICAgICAgIGF3YWl0IHN0b3BfbGlzdGVuZXIodGFza19pZCkifV19LHsidGl0bGUiOiLopobnm5bmkqTplIDjgIHliLDmnJ/kuI7lvILmraXmuIXnkIbnq57kuokiLCJiZWZvcmUiOiIxMCDpobnljp/mnIkgV2ViU29ja2V0IOa1i+ivleacquimhueblui/nuaOpeW7uueri+WQjueahOWHreaNruWkseaViOOAgiIsImFmdGVyIjoi5YWxIDI4IOmhuSBXZWJTb2NrZXQg5rWL6K+V6YCa6L+H77yM5paw5aKeIDE4IOmhueimhuebluafpeivouWPguaVsC9Db29raWXjgIHms6jplIDlkI7mlrDlj4rph43lpI3orqLpmIXjgIHkuovku7bovazlj5HjgIHnqbrpl7LlpLHmlYjjgIFKV1Qg5Yiw5pyf44CB6Leo6K6k6K+B5a6e5L6L5pKk6ZSA44CB5aSa6K6i6ZiF5riF55CG5LiO6K6i6ZiF5Yid5aeL5YyW56ue5LqJ44CC5oyJ55So5oi356Gu6K6k5L+d5oyB546w5pyJ5pS55a+G5ZCO5Lya6K+d5pyJ5pWI77yM6aqM6K+B5ZCO57ut5rOo6ZSA5YWz6Zet44CCIiwicmVhc29uIjoi55So55yf5a6e6Lev55Sx44CB6K6k6K+B5ZKMIFNRTGl0ZSDpqozor4HovrnnlYzvvIzku4Xmm7/mjaLov5vluqbkvKDovpPkuI7lj6/mjqfml7bpl7Qv5bm25Y+R54K544CCIiwiZmlsZXMiOlt7InBhdGgiOiJ0ZXN0cy90ZXN0X2FwaV93cy5weToxNDkiLCJraW5kIjoibW9kaWZpZWQiLCJjb2RlIjoiY2xhc3MgVGVzdFNlc3Npb25MaWZldGltZTpcbiAgICAjIExvZ291dCwgZXhwaXJ5LCBpZGxlLCBjb29raWUvcXVlcnksIG11bHRpLXN1YnNjcmlwdGlvbiBjbGVhbnVwLFxuICAgICMgcmV2b2NhdGlvbiBkdXJpbmcgc3Vic2NyaXB0aW9uL3NuYXBzaG90LCBhbmQgcGFzc3dvcmQgY29tcGF0aWJpbGl0eS4ifV19XSwidmVyaWZpY2F0aW9uIjpbeyJsYWJlbCI6IkJ1aWxkZXIg6Ieq5qOAIiwic3RhdHVzIjoicGFzc2VkIiwiZGV0YWlsIjoi5pyA57uIIFdlYlNvY2tldCAyOCBwYXNzZWTvvJvnm7jlhbPnu4TlkIjlm57lvZIgMTQyIHBhc3NlZO+8jOWQjue7reS7hSBXUyDlj5jljJblubbph43pqozjgIJSdWZm44CBQmxhY2vjgIFnaXQgZGlmZiAtLWNoZWNr44CBT3BlblNwZWMgLS1zdHJpY3Qg5Z2H6YCa6L+H44CCIn0seyJsYWJlbCI6IlJ1bnRpbWUg5qOA5p+lIiwic3RhdHVzIjoicGFzc2VkIiwiZGV0YWlsIjoiT3BlbuOAgUJ1aWxkIOS4jiBWZXJpZnkgR3VhcmQg5Z2H6YCa6L+H77ybMy8zIOS7u+WKoeOAgTEg6aG56ZyA5rGC55qEIDkg5Liq5Zy65pmv5a6M5oiQ5qC45a+544CC5b2T5YmN562J5b6F5b2S5qGj5LiOIEdpdCDkuqTku5jmjojmnYPjgIIifSx7ImxhYmVsIjoi54us56uL6aqM5pS2Iiwic3RhdHVzIjoibm90LXJ1biIsImRldGFpbCI6IuacrCBSdW4g5Li6IHR3ZWFrIGRpcmVjdC9kaXJlY3Qvb2Zm77yb5b2T5YmN5Lya6K+d5a6M5oiQ5pyA57uI5beu5byC5LiO6KeE5qC86aqM6K+B77yM5pyq5rS+5Y+R54us56uL5a6h5p+l44CCIn0seyJsYWJlbCI6Iuemu+e6v+WFqOWll+a1i+ivlSIsInN0YXR1cyI6ImZhaWxlZCIsImRldGFpbCI6IuWFqOWll+aUtumbhiA0NDY1IOmhue+8jOi/kOihjOWIsOe6piAxNSUg5Ye6546wIDQg6aG55oiQ5pysIEFQSSBzZXR1cCBlcnJvciDlkI7kuK3mraLvvJvkuK3mraLml7YgcHl0ZXN0IOa4heeQhuWPpuaKpSBLZXlFcnJvcuOAguWFqOWll+acquWujOaIkOOAgjQg6aG55Z2H5Zug5rKZ566x5ouS57ud5pys5ZywIGxpc3RlbmVyLmJpbmTvvJvlhYHorrjmnKzlnLDlm57njq/mnI3liqHlkI7ljp/moLfph43pqowgNCBwYXNzZWTjgILop4EgZG9jcy9zdXBlcnBvd2Vycy9yZXBvcnRzLzIwMjYtMTEtMjMtZml4LXdzLXNlc3Npb24tcmV2YWxpZGF0aW9uLXZlcmlmeS5tZCDkuI4gL3RtcC9pc3N1ZS01MTAtc3VpdGUtZXJyb3JzLXJlY2hlY2subG9n44CC5pyq6L+Q6KGM5Zyo57q/5qih5Z6L6aqM6K+B5oiW55yf5a6eIFJlZGlzIOi/m+W6pumTvui3r+OAgiJ9XSwiZGlhZ3JhbXMiOlt7InR5cGUiOiJmbG93IiwidGl0bGUiOiLov5vluqborr/pl67kuI7kvJror53lpLHmlYjlpITnkIYiLCJub2RlcyI6W3siaWQiOiJjb25uZWN0aW9uIiwibGFiZWwiOiLov57mjqXljp/lp4vlh63mja4ifSx7ImlkIjoiYXV0aCIsImxhYmVsIjoi5Yqo5L2cIC8g5Y+R6YCBIC8g5a6a5pyf6K6k6K+BIiwiZmlsZSI6ImFwaS9yb3V0ZXMvd3MucHk6NDUiLCJraW5kIjoibW9kaWZpZWQifSx7ImlkIjoic2VuZCIsImxhYmVsIjoi5Y+R6YCB5b+r54Wn5oiW5LqL5Lu2In0seyJpZCI6ImNsb3NlIiwibGFiZWwiOiI0NDAxIOWFs+mXreW5tua4heeQhiIsImZpbGUiOiJhcGkvcm91dGVzL3dzLnB5OjEwMiIsImtpbmQiOiJtb2RpZmllZCJ9XSwiZWRnZXMiOlt7ImZyb20iOiJjb25uZWN0aW9uIiwidG8iOiJhdXRoIn0seyJmcm9tIjoiYXV0aCIsInRvIjoic2VuZCIsImxhYmVsIjoi5pyJ5pWIIn0seyJmcm9tIjoiYXV0aCIsInRvIjoiY2xvc2UiLCJsYWJlbCI6IuaSpOmUgCAvIOWIsOacnyJ9XX1dfQ==</template></body></html>

@@ -2,7 +2,9 @@
 
 import asyncio
 import secrets
+from datetime import datetime
 
+import jwt.api_jwt
 import pytest
 from cryptography.fernet import Fernet
 from fastapi.testclient import TestClient
@@ -10,10 +12,13 @@ from sqlalchemy.orm import Session
 from starlette.websockets import WebSocketDisconnect
 
 from api.auth.config import AuthSettings
+from api.auth.cookies import ACCESS_COOKIE
+from api.auth.service import AuthService
 from api.db.models import Evaluation
 from api.files.config import FileSettings
 from api.main import create_app
 from api.progress import ProgressStream, Subscription, channel_for
+from api.routes import ws as ws_route
 
 PASSWORD = "a-long-test-password-!"
 KEY = "sk-private-unique-test-value"
@@ -98,6 +103,7 @@ def env(tmp_path):
             "client": client,
             "app": app,
             "token": tokens["access_token"],
+            "key_id": key_id,
             "bob_token": bob_tokens["access_token"],
             "evaluation_id": evaluation_id,
             "stream": stream,
@@ -106,6 +112,236 @@ def env(tmp_path):
 
 def _connect(client, token):
     return client.websocket_connect(f"/api/v1/ws/progress?token={token}")
+
+
+def _subscribe(ws, evaluation_id):
+    ws.send_json({"action": "subscribe", "task_id": evaluation_id})
+    assert ws.receive_json()["type"] == "task.snapshot"
+    assert ws.receive_json()["type"] == "subscribed"
+
+
+def _logout(env):
+    headers = {"Authorization": "Bearer " + env["token"]}
+    assert env["client"].post("/api/v1/auth/logout", headers=headers).status_code == 204
+    assert env["client"].get("/api/v1/users/me", headers=headers).status_code == 401
+
+
+def _assert_closed_and_released(ws, stream):
+    async def receive_close():
+        # TestClient's public receive has no timeout. Bound its underlying
+        # receive so a missing idle/auth check fails instead of hanging CI.
+        return await asyncio.wait_for(ws._send_rx.receive(), timeout=3)
+
+    message = ws.portal.call(receive_close)
+    assert message["type"] == "websocket.close", message
+    assert message["code"] == 4401
+
+    async def wait_for_cleanup():
+        async def released():
+            while any(stream.queues.values()):
+                await asyncio.sleep(0.01)
+
+        await asyncio.wait_for(released(), timeout=1)
+
+    ws.portal.call(wait_for_cleanup)
+
+
+class TestSessionLifetime:
+    @pytest.mark.parametrize("credential", ["query", "cookie"])
+    @pytest.mark.parametrize("existing_subscription", [False, True])
+    def test_logout_blocks_new_and_duplicate_subscriptions(
+        self, env, monkeypatch, credential, existing_subscription
+    ):
+        # Disable the periodic check here: each action must enforce auth itself.
+        monkeypatch.setattr(ws_route, "AUTH_RECHECK_INTERVAL", 60, raising=False)
+        client = env["client"]
+        client.cookies.set(ACCESS_COOKIE, env["token"])
+        connection = (
+            _connect(client, env["token"])
+            if credential == "query"
+            else client.websocket_connect("/api/v1/ws/progress")
+        )
+        with connection as ws:
+            assert ws.receive_json()["type"] == "connected"
+            if existing_subscription:
+                _subscribe(ws, env["evaluation_id"])
+            _logout(env)
+            ws.send_json({"action": "subscribe", "task_id": env["evaluation_id"]})
+            _assert_closed_and_released(ws, env["stream"])
+
+    def test_logout_blocks_events_on_existing_subscriptions(self, env, monkeypatch):
+        monkeypatch.setattr(ws_route, "AUTH_RECHECK_INTERVAL", 60, raising=False)
+        with _connect(env["client"], env["token"]) as ws:
+            ws.receive_json()
+            _subscribe(ws, env["evaluation_id"])
+            _logout(env)
+            ws.portal.call(
+                env["stream"].emit,
+                channel_for(env["evaluation_id"]),
+                {"type": "task.progress", "data": {"private": "must not leak"}},
+            )
+            _assert_closed_and_released(ws, env["stream"])
+
+    @pytest.mark.parametrize("subscribed", [False, True])
+    def test_idle_connection_closes_after_logout(self, env, subscribed):
+        with _connect(env["client"], env["token"]) as ws:
+            ws.receive_json()
+            if subscribed:
+                _subscribe(ws, env["evaluation_id"])
+            _logout(env)
+            _assert_closed_and_released(ws, env["stream"])
+
+    @pytest.mark.parametrize("trigger", ["idle", "event", "subscribe", "ping"])
+    def test_access_token_expiry_closes_connection(self, env, monkeypatch, trigger):
+        auth = env["app"].state.auth
+        claims = auth.decode(env["token"], "access")
+
+        class ExpiredClock(datetime):
+            @classmethod
+            def now(cls, tz=None):
+                return datetime.fromtimestamp(claims["exp"] + 1, tz=tz)
+
+        if trigger != "idle":
+            monkeypatch.setattr(ws_route, "AUTH_RECHECK_INTERVAL", 60, raising=False)
+        with _connect(env["client"], env["token"]) as ws:
+            ws.receive_json()
+            _subscribe(ws, env["evaluation_id"])
+            monkeypatch.setattr(jwt.api_jwt, "datetime", ExpiredClock)
+            assert auth.store.session(claims["sid"], claims["sub"]) is not None
+            assert (
+                env["client"]
+                .get("/api/v1/users/me", headers={"Authorization": "Bearer " + env["token"]})
+                .status_code
+                == 401
+            )
+            if trigger == "event":
+                ws.portal.call(
+                    env["stream"].emit,
+                    channel_for(env["evaluation_id"]),
+                    {"type": "task.progress", "data": {}},
+                )
+            elif trigger in {"subscribe", "ping"}:
+                ws.send_json({"action": trigger, "task_id": env["evaluation_id"]})
+            _assert_closed_and_released(ws, env["stream"])
+
+    def test_revocation_during_subscription_does_not_send_snapshot(self, env, monkeypatch):
+        stream = env["stream"]
+        original_subscribe = stream.subscribe
+        auth = env["app"].state.auth
+        principal = auth.authenticate(env["token"])
+
+        async def subscribe_then_revoke(channel):
+            subscription = await original_subscribe(channel)
+            auth.logout(principal)
+            return subscription
+
+        monkeypatch.setattr(stream, "subscribe", subscribe_then_revoke)
+        with _connect(env["client"], env["token"]) as ws:
+            ws.receive_json()
+            ws.send_json({"action": "subscribe", "task_id": env["evaluation_id"]})
+            _assert_closed_and_released(ws, stream)
+
+    def test_revocation_during_subscription_releases_with_async_cleanup(self, env, monkeypatch):
+        monkeypatch.setattr(ws_route, "AUTH_RECHECK_INTERVAL", 0.01)
+        stream = env["stream"]
+        original_subscribe = stream.subscribe
+        original_unsubscribe = stream.unsubscribe
+        auth = env["app"].state.auth
+        principal = auth.authenticate(env["token"])
+
+        async def subscribe_then_revoke(channel):
+            subscription = await original_subscribe(channel)
+            auth.logout(principal)
+            return subscription
+
+        async def delayed_unsubscribe(subscription):
+            await asyncio.sleep(0.05)
+            await original_unsubscribe(subscription)
+
+        monkeypatch.setattr(stream, "subscribe", subscribe_then_revoke)
+        monkeypatch.setattr(stream, "unsubscribe", delayed_unsubscribe)
+        with _connect(env["client"], env["token"]) as ws:
+            ws.receive_json()
+            ws.send_json({"action": "subscribe", "task_id": env["evaluation_id"]})
+            _assert_closed_and_released(ws, stream)
+
+    def test_revocation_during_snapshot_read_does_not_send_snapshot(self, env, monkeypatch):
+        monkeypatch.setattr(ws_route, "AUTH_RECHECK_INTERVAL", 60)
+        evaluations = env["app"].state.evaluations
+        original_get = evaluations.get_evaluation
+        auth = env["app"].state.auth
+        principal = auth.authenticate(env["token"])
+
+        def get_then_revoke(task_id, user_id):
+            snapshot = original_get(task_id, user_id)
+            auth.logout(principal)
+            return snapshot
+
+        monkeypatch.setattr(evaluations, "get_evaluation", get_then_revoke)
+        with _connect(env["client"], env["token"]) as ws:
+            ws.receive_json()
+            ws.send_json({"action": "subscribe", "task_id": env["evaluation_id"]})
+            _assert_closed_and_released(ws, env["stream"])
+
+    @pytest.mark.parametrize("logout", [False, True])
+    def test_all_subscriptions_are_released_on_close(self, env, monkeypatch, logout):
+        stream = env["stream"]
+        original_unsubscribe = stream.unsubscribe
+
+        async def yielding_unsubscribe(subscription):
+            # Exercise cleanup that yields to the ASGI host during disconnect.
+            await asyncio.sleep(0)
+            await original_unsubscribe(subscription)
+
+        monkeypatch.setattr(stream, "unsubscribe", yielding_unsubscribe)
+        response = env["client"].post(
+            "/api/v1/evaluations",
+            headers={"Authorization": "Bearer " + env["token"]},
+            json={
+                "api_key_id": env["key_id"],
+                "problem_ids": ["p2"],
+                "strategy_names": ["vanilla"],
+                "model": "gpt-test",
+            },
+        )
+        assert response.status_code == 201, response.text
+        second_id = response.json()["data"]["evaluation_id"]
+        with _connect(env["client"], env["token"]) as ws:
+            ws.receive_json()
+            _subscribe(ws, env["evaluation_id"])
+            _subscribe(ws, second_id)
+            if logout:
+                _logout(env)
+                _assert_closed_and_released(ws, stream)
+        assert not any(stream.queues.values())
+
+    def test_revocation_from_another_auth_service_closes_connection(self, env):
+        auth = env["app"].state.auth
+        other_service = AuthService(auth.settings)
+        with _connect(env["client"], env["token"]) as ws:
+            ws.receive_json()
+            _subscribe(ws, env["evaluation_id"])
+            other_service.logout(other_service.authenticate(env["token"]))
+            _assert_closed_and_released(ws, env["stream"])
+
+    def test_password_change_keeps_connection_until_logout(self, env):
+        with _connect(env["client"], env["token"]) as ws:
+            ws.receive_json()
+            _subscribe(ws, env["evaluation_id"])
+            assert (
+                env["client"]
+                .post(
+                    "/api/v1/users/me/password",
+                    headers={"Authorization": "Bearer " + env["token"]},
+                    json={"current_password": PASSWORD, "new_password": "another-long-password!"},
+                )
+                .status_code
+                == 204
+            )
+            ws.send_json({"action": "ping"})
+            assert ws.receive_json()["type"] == "pong"
+            _logout(env)
+            _assert_closed_and_released(ws, env["stream"])
 
 
 class TestAuthentication:

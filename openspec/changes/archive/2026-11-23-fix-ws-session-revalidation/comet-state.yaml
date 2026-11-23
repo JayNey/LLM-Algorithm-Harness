@@ -1,0 +1,2255 @@
+# comet-execution: managed-run
+change_id: 1bb50fe1-06fd-4bc9-a7e0-21205625f668
+workflow: tweak
+language: zh-CN
+phase: archive
+context_compression: off
+build_mode: direct
+build_pause: null
+subagent_dispatch: null
+tdd_mode: direct
+review_mode: off
+isolation: current
+verify_mode: light
+auto_transition: true
+base_ref: 9fd0bbb841b9d378b358bb8ca6296e685c605a3c
+design_doc: null
+plan: null
+verify_result: pass
+verify_failures: 0
+verification_report: docs/superpowers/reports/2026-11-23-fix-ws-session-revalidation-verify.md
+branch_status: pending
+created_at: 2026-11-23
+verified_at: 2026-11-23
+archive_confirmation: confirmed
+archived: true
+bound_branch: main
+run_checkpoint:
+  schema: comet.workflow-run-checkpoint.v1
+  hash: f352fa0facb8095afb6c052a3c504b68ffadfd1215eeca2c5839ea07ef9a7e13
+  run:
+    protocolVersion: 1
+    schemaVersion: 1
+    runId: fix-ws-session-revalidation
+    revision: 1
+    workflow:
+      id: comet-classic-tweak
+      version: "2"
+      hash: 518d3e8e12eb39899775cb7d2ddcc7ddeba10cb1f1d43cff7b03f2ca61a70c65
+    definitionHashes:
+      '["comet-classic-tweak","2"]': 518d3e8e12eb39899775cb7d2ddcc7ddeba10cb1f1d43cff7b03f2ca61a70c65
+    initialStateHash: 2e7b1149af7560bba9c3123e64060c24602f42c7fe59b0b98f1c3a240b69ec27
+    input:
+      change: fix-ws-session-revalidation
+      changeDir: openspec/changes/fix-ws-session-revalidation
+      workspaceBaseline:
+        ref: 93aba920-1086-40a3-ae29-66baa0a21a4d
+    state:
+      archiveConfirmation: confirmed
+      archived: true
+      autoTransition: true
+      baseRef: 9fd0bbb841b9d378b358bb8ca6296e685c605a3c
+      boundBranch: main
+      branchStatus: pending
+      buildMode: direct
+      buildPause: null
+      checkEpoch: 5
+      classicMigration: null
+      classicProfile: null
+      contextCompression: off
+      createdAt: 2026-11-23
+      designDoc: null
+      directOverride: null
+      handoffContext: null
+      handoffHash: null
+      isolation: current
+      language: zh-CN
+      phase: archive
+      plan: null
+      reviewMode: off
+      subagentDispatch: null
+      tddMode: direct
+      verificationReport: docs/superpowers/reports/2026-11-23-fix-ws-session-revalidation-verify.md
+      verifiedAt: 2026-11-23
+      verifyFailures: 0
+      verifyMode: light
+      verifyResult: pass
+      workflow: tweak
+    status: running
+    sequence: 12
+    actions:
+      - attempt: 1
+        claim:
+          executorId: comet-classic-guard
+          token: portable-c57479f830b59f6c890c8e7f801940cd61d183aa20003715df07312d073b9ae4
+        executionOrigin:
+          workflow:
+            hash: 518d3e8e12eb39899775cb7d2ddcc7ddeba10cb1f1d43cff7b03f2ca61a70c65
+            id: comet-classic-tweak
+            version: "2"
+        id: fix-ws-session-revalidation:1
+        input:
+          input:
+            change: fix-ws-session-revalidation
+            changeDir: openspec/changes/fix-ws-session-revalidation
+            workspaceBaseline:
+              ref: 93aba920-1086-40a3-ae29-66baa0a21a4d
+          outputs: {}
+        inputHash: acec4735fd5777491662e4190ee8732f4865b2a9646addbf28d5e843eeadfbe1
+        outcome:
+          actionId: fix-ws-session-revalidation:1
+          attempt: 1
+          claimToken: portable-c57479f830b59f6c890c8e7f801940cd61d183aa20003715df07312d073b9ae4
+          inputHash: acec4735fd5777491662e4190ee8732f4865b2a9646addbf28d5e843eeadfbe1
+          outcomeId: 967930f0-4719-4eef-935c-eafc45e4beba
+          output:
+            event: open-complete
+            requirementsEvidence:
+              ref: openspec/changes/fix-ws-session-revalidation
+          status: succeeded
+        protocolVersion: 1
+        receipts:
+          - hash: 0a04fb8661f4b295c3c3556f810760d56c7fe67392ed02fa748d330a0ffec532
+            outcomeId: 967930f0-4719-4eef-935c-eafc45e4beba
+        reconciliations: []
+        ref: comet-tweak
+        requiredCapabilities: []
+        retry: manual
+        runId: fix-ws-session-revalidation
+        status: succeeded
+        stepId: tweak.open
+        type: invoke_skill
+      - attempt: 1
+        claim:
+          executorId: comet-classic-state
+          token: portable-31173fb2286435528b2098b82da593c8b170f66538fea0b1da9852189384f835
+        executionOrigin:
+          workflow:
+            hash: 518d3e8e12eb39899775cb7d2ddcc7ddeba10cb1f1d43cff7b03f2ca61a70c65
+            id: comet-classic-tweak
+            version: "2"
+        id: fix-ws-session-revalidation:3
+        input:
+          input:
+            change: fix-ws-session-revalidation
+            changeDir: openspec/changes/fix-ws-session-revalidation
+            workspaceBaseline:
+              ref: 93aba920-1086-40a3-ae29-66baa0a21a4d
+          outputs:
+            tweak.open:
+              event: open-complete
+              requirementsEvidence:
+                ref: openspec/changes/fix-ws-session-revalidation
+            tweak.open.evidence:
+              contentHash: acec4735fd5777491662e4190ee8732f4865b2a9646addbf28d5e843eeadfbe1
+              ref: openspec/changes/fix-ws-session-revalidation
+        inputHash: c0d5e158fa2c0e10717e6eb49dd13d16ff32f967bb7f4c5ca5c329a105a86571
+        outcome:
+          actionId: fix-ws-session-revalidation:3
+          attempt: 1
+          claimToken: portable-31173fb2286435528b2098b82da593c8b170f66538fea0b1da9852189384f835
+          inputHash: c0d5e158fa2c0e10717e6eb49dd13d16ff32f967bb7f4c5ca5c329a105a86571
+          outcomeId: 51e633e2-10ed-4fd4-8b23-ceea0b8fbb21
+          output:
+            event: escalation-requested
+            proposal: "核对 api/password-change
+              主规格与现有测试后，用户已明确选择沿用改密后保留会话的行为；纠正设计中的撤销假设，并将该回归改为改密后连接有效、后续注销关闭。其余
+              #510 范围与实现方式不变，继续 tweak。"
+            requirementsEvidence:
+              contentHash: c0d5e158fa2c0e10717e6eb49dd13d16ff32f967bb7f4c5ca5c329a105a86571
+              ref: openspec/changes/fix-ws-session-revalidation
+          status: succeeded
+        protocolVersion: 1
+        receipts:
+          - hash: 962231dc17794fefc4939cd3fe58117d3fdd86babaf30bfbabffcb2635ae2bcc
+            outcomeId: 51e633e2-10ed-4fd4-8b23-ceea0b8fbb21
+        reconciliations: []
+        ref: comet-build
+        requiredCapabilities: []
+        retry: manual
+        runId: fix-ws-session-revalidation
+        status: succeeded
+        stepId: tweak.build.execute
+        type: invoke_skill
+      - attempt: 1
+        claim:
+          executorId: comet-classic-state
+          sessionId: codex-issue-510
+          token: portable-9835b529cd4a07e066113e3d43b7ce2ac0cfc9fae6686f3a428b6ef08d654402
+        executionOrigin:
+          workflow:
+            hash: 518d3e8e12eb39899775cb7d2ddcc7ddeba10cb1f1d43cff7b03f2ca61a70c65
+            id: comet-classic-tweak
+            version: "2"
+        id: fix-ws-session-revalidation:5
+        input:
+          input:
+            change: fix-ws-session-revalidation
+            changeDir: openspec/changes/fix-ws-session-revalidation
+            workspaceBaseline:
+              ref: 93aba920-1086-40a3-ae29-66baa0a21a4d
+          outputs:
+            tweak.build.escalation-confirm:
+              choice: continue
+              proposal:
+                input:
+                  change: fix-ws-session-revalidation
+                  changeDir: openspec/changes/fix-ws-session-revalidation
+                  workspaceBaseline:
+                    ref: 93aba920-1086-40a3-ae29-66baa0a21a4d
+                outputs:
+                  tweak.build.execute:
+                    event: escalation-requested
+                    proposal: "核对 api/password-change
+                      主规格与现有测试后，用户已明确选择沿用改密后保留会话的行为；纠正设计中的撤销假设，并将该回归改为改密后连接有效、后\
+                      续注销关闭。其余 #510 范围与实现方式不变，继续 tweak。"
+                    requirementsEvidence:
+                      contentHash: c0d5e158fa2c0e10717e6eb49dd13d16ff32f967bb7f4c5ca5c329a105a86571
+                      ref: openspec/changes/fix-ws-session-revalidation
+            tweak.build.execute:
+              event: escalation-requested
+              proposal: "核对 api/password-change
+                主规格与现有测试后，用户已明确选择沿用改密后保留会话的行为；纠正设计中的撤销假设，并将该回归改为改密后连接有效、后续注销关闭。\
+                其余 #510 范围与实现方式不变，继续 tweak。"
+              requirementsEvidence:
+                contentHash: c0d5e158fa2c0e10717e6eb49dd13d16ff32f967bb7f4c5ca5c329a105a86571
+                ref: openspec/changes/fix-ws-session-revalidation
+            tweak.open:
+              event: open-complete
+              requirementsEvidence:
+                ref: openspec/changes/fix-ws-session-revalidation
+            tweak.open.evidence:
+              contentHash: acec4735fd5777491662e4190ee8732f4865b2a9646addbf28d5e843eeadfbe1
+              ref: openspec/changes/fix-ws-session-revalidation
+        inputHash: 273414d927a5e7c3f0eb02971d8db75988c23635c4f3b67e1b0421ec7af7f6b3
+        outcome:
+          actionId: fix-ws-session-revalidation:5
+          attempt: 1
+          claimToken: portable-9835b529cd4a07e066113e3d43b7ce2ac0cfc9fae6686f3a428b6ef08d654402
+          inputHash: 273414d927a5e7c3f0eb02971d8db75988c23635c4f3b67e1b0421ec7af7f6b3
+          outcomeId: 143e6ac8-eb75-4fce-998c-ac2b0329a96f
+          output:
+            checks:
+              - name: .venv/bin/python -m pytest tests/test_api_ws.py -q --no-cov
+                  (cwd=/Users/verstappen/LLM-Algorithm-Harness)
+                note: 最终候选：28 passed, 5 existing deprecation warnings, 43.65s。日志
+                  /tmp/issue-510-ws-final.log。
+                result: passed
+              - name: .venv/bin/python -m pytest tests/test_api_ws.py tests/test_api_auth.py
+                  tests/test_task_submission_authorization.py
+                  tests/integration/test_api_workflows.py -q --no-cov
+                  (cwd=/Users/verstappen/LLM-Algorithm-Harness)
+                note: 142 passed, 35 warnings, 80.37s。日志 /tmp/issue-510-regression.log。随后仅调整 WS
+                  部分初始化订阅登记与测试；WS 已用最终 28 项重新验证，认证、权限及 API 工作流结果仍适用。
+                result: passed
+              - name: .venv/bin/python -m ruff check api/routes/ws.py tests/test_api_ws.py
+                note: All checks passed；cwd=/Users/verstappen/LLM-Algorithm-Harness。
+                result: passed
+              - name: .venv/bin/python -m black --check api/routes/ws.py tests/test_api_ws.py
+                note: 2 files would be left
+                  unchanged；cwd=/Users/verstappen/LLM-Algorithm-Harness。
+                result: passed
+              - name: git diff --check
+                note: exit 0；cwd=/Users/verstappen/LLM-Algorithm-Harness。
+                result: passed
+              - name: comet classic openspec -- validate fix-ws-session-revalidation --strict
+                note: Change is valid；cwd=/Users/verstappen/LLM-Algorithm-Harness。
+                result: passed
+            event: build-complete
+          status: succeeded
+        protocolVersion: 1
+        receipts:
+          - hash: 3c48a007f7d4f25ac8dfe226866b658c779730aaac4d7a40e91787b20bcae699
+            outcomeId: 143e6ac8-eb75-4fce-998c-ac2b0329a96f
+        reconciliations: []
+        ref: comet-build
+        requiredCapabilities: []
+        retry: manual
+        runId: fix-ws-session-revalidation
+        status: succeeded
+        stepId: tweak.build.execute
+        type: invoke_skill
+      - attempt: 1
+        claim:
+          executorId: comet-classic-guard
+          token: portable-7b1219d4cbed3419b57134f8838236db7463273d69795c06e97304c4ee110bcb
+        executionOrigin:
+          workflow:
+            hash: 518d3e8e12eb39899775cb7d2ddcc7ddeba10cb1f1d43cff7b03f2ca61a70c65
+            id: comet-classic-tweak
+            version: "2"
+        id: fix-ws-session-revalidation:6
+        input:
+          input:
+            change: fix-ws-session-revalidation
+            changeDir: openspec/changes/fix-ws-session-revalidation
+            workspaceBaseline:
+              ref: 93aba920-1086-40a3-ae29-66baa0a21a4d
+          outputs:
+            tweak.build.escalation-confirm:
+              choice: continue
+              proposal:
+                input:
+                  change: fix-ws-session-revalidation
+                  changeDir: openspec/changes/fix-ws-session-revalidation
+                  workspaceBaseline:
+                    ref: 93aba920-1086-40a3-ae29-66baa0a21a4d
+                outputs:
+                  tweak.build.execute:
+                    event: escalation-requested
+                    proposal: "核对 api/password-change
+                      主规格与现有测试后，用户已明确选择沿用改密后保留会话的行为；纠正设计中的撤销假设，并将该回归改为改密后连接有效、后\
+                      续注销关闭。其余 #510 范围与实现方式不变，继续 tweak。"
+                    requirementsEvidence:
+                      contentHash: c0d5e158fa2c0e10717e6eb49dd13d16ff32f967bb7f4c5ca5c329a105a86571
+                      ref: openspec/changes/fix-ws-session-revalidation
+            tweak.build.execute:
+              checks:
+                - name: .venv/bin/python -m pytest tests/test_api_ws.py -q --no-cov
+                    (cwd=/Users/verstappen/LLM-Algorithm-Harness)
+                  note: 最终候选：28 passed, 5 existing deprecation warnings, 43.65s。日志
+                    /tmp/issue-510-ws-final.log。
+                  result: passed
+                - name: .venv/bin/python -m pytest tests/test_api_ws.py tests/test_api_auth.py
+                    tests/test_task_submission_authorization.py
+                    tests/integration/test_api_workflows.py -q --no-cov
+                    (cwd=/Users/verstappen/LLM-Algorithm-Harness)
+                  note: 142 passed, 35 warnings, 80.37s。日志 /tmp/issue-510-regression.log。随后仅调整 WS
+                    部分初始化订阅登记与测试；WS 已用最终 28 项重新验证，认证、权限及 API 工作流结果仍适用。
+                  result: passed
+                - name: .venv/bin/python -m ruff check api/routes/ws.py tests/test_api_ws.py
+                  note: All checks passed；cwd=/Users/verstappen/LLM-Algorithm-Harness。
+                  result: passed
+                - name: .venv/bin/python -m black --check api/routes/ws.py tests/test_api_ws.py
+                  note: 2 files would be left
+                    unchanged；cwd=/Users/verstappen/LLM-Algorithm-Harness。
+                  result: passed
+                - name: git diff --check
+                  note: exit 0；cwd=/Users/verstappen/LLM-Algorithm-Harness。
+                  result: passed
+                - name: comet classic openspec -- validate fix-ws-session-revalidation --strict
+                  note: Change is valid；cwd=/Users/verstappen/LLM-Algorithm-Harness。
+                  result: passed
+              event: build-complete
+            tweak.open:
+              event: open-complete
+              requirementsEvidence:
+                ref: openspec/changes/fix-ws-session-revalidation
+            tweak.open.evidence:
+              contentHash: acec4735fd5777491662e4190ee8732f4865b2a9646addbf28d5e843eeadfbe1
+              ref: openspec/changes/fix-ws-session-revalidation
+        inputHash: 68f6345bc1b7c89fc99b03eabe98b8a9ca42d1d3593f60e4c91d8c32688dbd71
+        outcome:
+          actionId: fix-ws-session-revalidation:6
+          attempt: 1
+          claimToken: portable-7b1219d4cbed3419b57134f8838236db7463273d69795c06e97304c4ee110bcb
+          inputHash: 68f6345bc1b7c89fc99b03eabe98b8a9ca42d1d3593f60e4c91d8c32688dbd71
+          outcomeId: 042767bf-8b6b-456a-baac-19da5b030e42
+          output:
+            checks:
+              - name: .venv/bin/python -m pytest tests/test_api_ws.py -q --no-cov
+                  (cwd=/Users/verstappen/LLM-Algorithm-Harness)
+                note: 最终候选：28 passed, 5 existing deprecation warnings, 43.65s。日志
+                  /tmp/issue-510-ws-final.log。
+                result: passed
+              - name: .venv/bin/python -m pytest tests/test_api_ws.py tests/test_api_auth.py
+                  tests/test_task_submission_authorization.py
+                  tests/integration/test_api_workflows.py -q --no-cov
+                  (cwd=/Users/verstappen/LLM-Algorithm-Harness)
+                note: 142 passed, 35 warnings, 80.37s。日志 /tmp/issue-510-regression.log。随后仅调整 WS
+                  部分初始化订阅登记与测试；WS 已用最终 28 项重新验证，认证、权限及 API 工作流结果仍适用。
+                result: passed
+              - name: .venv/bin/python -m ruff check api/routes/ws.py tests/test_api_ws.py
+                note: All checks passed；cwd=/Users/verstappen/LLM-Algorithm-Harness。
+                result: passed
+              - name: .venv/bin/python -m black --check api/routes/ws.py tests/test_api_ws.py
+                note: 2 files would be left
+                  unchanged；cwd=/Users/verstappen/LLM-Algorithm-Harness。
+                result: passed
+              - name: git diff --check
+                note: exit 0；cwd=/Users/verstappen/LLM-Algorithm-Harness。
+                result: passed
+              - name: comet classic openspec -- validate fix-ws-session-revalidation --strict
+                note: Change is valid；cwd=/Users/verstappen/LLM-Algorithm-Harness。
+                result: passed
+              - name: 成本 HTTP 夹具 4 项本地端口权限重验
+                note: 同一 4 项沙箱内因 listener.bind 权限失败；仅放开本地回环服务后 4 passed, 9 warnings, 5.64s。命令及 4
+                  个名称见
+                  docs/superpowers/reports/2026-11-23-fix-ws-session-revalidation-verify.md，日志
+                  /tmp/issue-510-suite-errors-recheck.log。未声称完整全套通过。
+                result: passed
+              - name: 最终 diff 与 OpenSpec 完整一致性核对
+                note: 3/3 tasks，1 MODIFIED requirement，9/9 场景映射到 api/routes/ws.py 与
+                  tests/test_api_ws.py；无未解决重要问题。当前会话核对，review_mode=off，无独立审查。证据
+                  docs/superpowers/reports/2026-11-23-fix-ws-session-revalidation-verify.md。
+                result: passed
+            event: verification-ready
+            verificationReport: docs/superpowers/reports/2026-11-23-fix-ws-session-revalidation-verify.md
+          status: succeeded
+        protocolVersion: 1
+        receipts:
+          - hash: 56164b6f5396f147a2439a401899cbc3d9774ccb9f61fb6b2edbbeff33042c92
+            outcomeId: 042767bf-8b6b-456a-baac-19da5b030e42
+        reconciliations: []
+        ref: comet-verify
+        requiredCapabilities: []
+        retry: manual
+        runId: fix-ws-session-revalidation
+        status: succeeded
+        stepId: tweak.verify.run
+        type: invoke_skill
+      - attempt: 1
+        claim:
+          executorId: comet-classic-state
+          token: portable-136a5d7fafda25987d55b9a43950c130bdb3b13eb492371c5d762b27da6ad827
+        executionOrigin:
+          workflow:
+            hash: 518d3e8e12eb39899775cb7d2ddcc7ddeba10cb1f1d43cff7b03f2ca61a70c65
+            id: comet-classic-tweak
+            version: "2"
+        id: fix-ws-session-revalidation:8
+        input:
+          input:
+            change: fix-ws-session-revalidation
+            changeDir: openspec/changes/fix-ws-session-revalidation
+            workspaceBaseline:
+              ref: 93aba920-1086-40a3-ae29-66baa0a21a4d
+          outputs:
+            tweak.build.escalation-confirm:
+              choice: continue
+              proposal:
+                input:
+                  change: fix-ws-session-revalidation
+                  changeDir: openspec/changes/fix-ws-session-revalidation
+                  workspaceBaseline:
+                    ref: 93aba920-1086-40a3-ae29-66baa0a21a4d
+                outputs:
+                  tweak.build.execute:
+                    event: escalation-requested
+                    proposal: "核对 api/password-change
+                      主规格与现有测试后，用户已明确选择沿用改密后保留会话的行为；纠正设计中的撤销假设，并将该回归改为改密后连接有效、后\
+                      续注销关闭。其余 #510 范围与实现方式不变，继续 tweak。"
+                    requirementsEvidence:
+                      contentHash: c0d5e158fa2c0e10717e6eb49dd13d16ff32f967bb7f4c5ca5c329a105a86571
+                      ref: openspec/changes/fix-ws-session-revalidation
+            tweak.build.execute:
+              checks:
+                - name: .venv/bin/python -m pytest tests/test_api_ws.py -q --no-cov
+                    (cwd=/Users/verstappen/LLM-Algorithm-Harness)
+                  note: 最终候选：28 passed, 5 existing deprecation warnings, 43.65s。日志
+                    /tmp/issue-510-ws-final.log。
+                  result: passed
+                - name: .venv/bin/python -m pytest tests/test_api_ws.py tests/test_api_auth.py
+                    tests/test_task_submission_authorization.py
+                    tests/integration/test_api_workflows.py -q --no-cov
+                    (cwd=/Users/verstappen/LLM-Algorithm-Harness)
+                  note: 142 passed, 35 warnings, 80.37s。日志 /tmp/issue-510-regression.log。随后仅调整 WS
+                    部分初始化订阅登记与测试；WS 已用最终 28 项重新验证，认证、权限及 API 工作流结果仍适用。
+                  result: passed
+                - name: .venv/bin/python -m ruff check api/routes/ws.py tests/test_api_ws.py
+                  note: All checks passed；cwd=/Users/verstappen/LLM-Algorithm-Harness。
+                  result: passed
+                - name: .venv/bin/python -m black --check api/routes/ws.py tests/test_api_ws.py
+                  note: 2 files would be left
+                    unchanged；cwd=/Users/verstappen/LLM-Algorithm-Harness。
+                  result: passed
+                - name: git diff --check
+                  note: exit 0；cwd=/Users/verstappen/LLM-Algorithm-Harness。
+                  result: passed
+                - name: comet classic openspec -- validate fix-ws-session-revalidation --strict
+                  note: Change is valid；cwd=/Users/verstappen/LLM-Algorithm-Harness。
+                  result: passed
+              event: build-complete
+            tweak.open:
+              event: open-complete
+              requirementsEvidence:
+                ref: openspec/changes/fix-ws-session-revalidation
+            tweak.open.evidence:
+              contentHash: acec4735fd5777491662e4190ee8732f4865b2a9646addbf28d5e843eeadfbe1
+              ref: openspec/changes/fix-ws-session-revalidation
+            tweak.verify.report.evidence:
+              contentHash: 68f6345bc1b7c89fc99b03eabe98b8a9ca42d1d3593f60e4c91d8c32688dbd71
+              ref: docs/superpowers/reports/2026-11-23-fix-ws-session-revalidation-verify.md
+            tweak.verify.run:
+              checks:
+                - name: .venv/bin/python -m pytest tests/test_api_ws.py -q --no-cov
+                    (cwd=/Users/verstappen/LLM-Algorithm-Harness)
+                  note: 最终候选：28 passed, 5 existing deprecation warnings, 43.65s。日志
+                    /tmp/issue-510-ws-final.log。
+                  result: passed
+                - name: .venv/bin/python -m pytest tests/test_api_ws.py tests/test_api_auth.py
+                    tests/test_task_submission_authorization.py
+                    tests/integration/test_api_workflows.py -q --no-cov
+                    (cwd=/Users/verstappen/LLM-Algorithm-Harness)
+                  note: 142 passed, 35 warnings, 80.37s。日志 /tmp/issue-510-regression.log。随后仅调整 WS
+                    部分初始化订阅登记与测试；WS 已用最终 28 项重新验证，认证、权限及 API 工作流结果仍适用。
+                  result: passed
+                - name: .venv/bin/python -m ruff check api/routes/ws.py tests/test_api_ws.py
+                  note: All checks passed；cwd=/Users/verstappen/LLM-Algorithm-Harness。
+                  result: passed
+                - name: .venv/bin/python -m black --check api/routes/ws.py tests/test_api_ws.py
+                  note: 2 files would be left
+                    unchanged；cwd=/Users/verstappen/LLM-Algorithm-Harness。
+                  result: passed
+                - name: git diff --check
+                  note: exit 0；cwd=/Users/verstappen/LLM-Algorithm-Harness。
+                  result: passed
+                - name: comet classic openspec -- validate fix-ws-session-revalidation --strict
+                  note: Change is valid；cwd=/Users/verstappen/LLM-Algorithm-Harness。
+                  result: passed
+                - name: 成本 HTTP 夹具 4 项本地端口权限重验
+                  note: 同一 4 项沙箱内因 listener.bind 权限失败；仅放开本地回环服务后 4 passed, 9 warnings, 5.64s。命令及 4
+                    个名称见
+                    docs/superpowers/reports/2026-11-23-fix-ws-session-revalidation-verify.md，日志
+                    /tmp/issue-510-suite-errors-recheck.log。未声称完整全套通过。
+                  result: passed
+                - name: 最终 diff 与 OpenSpec 完整一致性核对
+                  note: 3/3 tasks，1 MODIFIED requirement，9/9 场景映射到 api/routes/ws.py 与
+                    tests/test_api_ws.py；无未解决重要问题。当前会话核对，review_mode=off，无独立审查。证据
+                    docs/superpowers/reports/2026-11-23-fix-ws-session-revalidation-verify.md。
+                  result: passed
+              event: verification-ready
+              verificationReport: docs/superpowers/reports/2026-11-23-fix-ws-session-revalidation-verify.md
+        inputHash: 582038a69ea152589a6c304f75bfb075c0f5f14548e7aeaf6b5b5f0653dc6ce9
+        outcome:
+          actionId: fix-ws-session-revalidation:8
+          attempt: 1
+          claimToken: portable-136a5d7fafda25987d55b9a43950c130bdb3b13eb492371c5d762b27da6ad827
+          inputHash: 582038a69ea152589a6c304f75bfb075c0f5f14548e7aeaf6b5b5f0653dc6ce9
+          outcomeId: fb784487-2d61-499a-b5c1-89caea3926d8
+          output:
+            prBaseBranch: main
+            remote: origin
+            summary: "修复 #510：原始建连凭据在动作/发送前重新认证，每秒检查空闲连接，失效以 4401
+              关闭并释放所有订阅及后台任务；保持用户确认的改密保留会话语义。交付包括
+              api/routes/ws.py、tests/test_api_ws.py、验证报告、当前 change 归档及
+              api/progress-streaming 主规格同步。当前分支 main，目标 main，remote origin，PR
+              base main；local 仅本地提交，push 推送 origin/main，pr 须先确认合适的独立交付分支。Verify
+              已通过，WS 28 项与相关组合回归 142 项通过；额外全套未完成，4 项本地端口权限错误在放开回环服务后重验通过。"
+            targetBranch: main
+          status: succeeded
+        protocolVersion: 1
+        receipts:
+          - hash: 43b23b43efc9c0633ab76e7d67deb3c4316a715594f4700e48b10ea7e3fc83d9
+            outcomeId: fb784487-2d61-499a-b5c1-89caea3926d8
+        reconciliations: []
+        ref: comet-archive
+        requiredCapabilities: []
+        retry: manual
+        runId: fix-ws-session-revalidation
+        status: succeeded
+        stepId: tweak.archive.prepare
+        type: invoke_skill
+      - attempt: 1
+        claim:
+          executorId: comet-classic-archive-preflight
+          token: portable-0d3c57fa65a285be2050d845c7264a4fa3a03b732875e343ee89f9fd7f4becfa
+        executionOrigin:
+          workflow:
+            hash: 518d3e8e12eb39899775cb7d2ddcc7ddeba10cb1f1d43cff7b03f2ca61a70c65
+            id: comet-classic-tweak
+            version: "2"
+        id: fix-ws-session-revalidation:10
+        input:
+          input:
+            change: fix-ws-session-revalidation
+            changeDir: openspec/changes/fix-ws-session-revalidation
+            workspaceBaseline:
+              ref: 93aba920-1086-40a3-ae29-66baa0a21a4d
+          outputs:
+            tweak.archive.confirm:
+              choice: local
+              proposal:
+                input:
+                  change: fix-ws-session-revalidation
+                  changeDir: openspec/changes/fix-ws-session-revalidation
+                  workspaceBaseline:
+                    ref: 93aba920-1086-40a3-ae29-66baa0a21a4d
+                outputs:
+                  tweak.archive.prepare:
+                    prBaseBranch: main
+                    remote: origin
+                    summary: "修复 #510：原始建连凭据在动作/发送前重新认证，每秒检查空闲连接，失效以 4401
+                      关闭并释放所有订阅及后台任务；保持用户确认的改密保留会话语义。交付包括
+                      api/routes/ws.py、tests/test_api_ws.py、验证报告、当前 change 归档及
+                      api/progress-streaming 主规格同步。当前分支 main，目标 main，remote
+                      origin，PR base main；local 仅本地提交，push 推送 origin/main，pr
+                      须先确认合适的独立交付分支。Verify 已通过，WS 28 项与相关组合回归 142 项通过；额外全套未完成，4
+                      项本地端口权限错误在放开回环服务后重验通过。"
+                    targetBranch: main
+            tweak.archive.prepare:
+              prBaseBranch: main
+              remote: origin
+              summary: "修复 #510：原始建连凭据在动作/发送前重新认证，每秒检查空闲连接，失效以 4401
+                关闭并释放所有订阅及后台任务；保持用户确认的改密保留会话语义。交付包括
+                api/routes/ws.py、tests/test_api_ws.py、验证报告、当前 change 归档及
+                api/progress-streaming 主规格同步。当前分支 main，目标 main，remote origin，PR
+                base main；local 仅本地提交，push 推送 origin/main，pr
+                须先确认合适的独立交付分支。Verify 已通过，WS 28 项与相关组合回归 142 项通过；额外全套未完成，4
+                项本地端口权限错误在放开回环服务后重验通过。"
+              targetBranch: main
+            tweak.build.escalation-confirm:
+              choice: continue
+              proposal:
+                input:
+                  change: fix-ws-session-revalidation
+                  changeDir: openspec/changes/fix-ws-session-revalidation
+                  workspaceBaseline:
+                    ref: 93aba920-1086-40a3-ae29-66baa0a21a4d
+                outputs:
+                  tweak.build.execute:
+                    event: escalation-requested
+                    proposal: "核对 api/password-change
+                      主规格与现有测试后，用户已明确选择沿用改密后保留会话的行为；纠正设计中的撤销假设，并将该回归改为改密后连接有效、后\
+                      续注销关闭。其余 #510 范围与实现方式不变，继续 tweak。"
+                    requirementsEvidence:
+                      contentHash: c0d5e158fa2c0e10717e6eb49dd13d16ff32f967bb7f4c5ca5c329a105a86571
+                      ref: openspec/changes/fix-ws-session-revalidation
+            tweak.build.execute:
+              checks:
+                - name: .venv/bin/python -m pytest tests/test_api_ws.py -q --no-cov
+                    (cwd=/Users/verstappen/LLM-Algorithm-Harness)
+                  note: 最终候选：28 passed, 5 existing deprecation warnings, 43.65s。日志
+                    /tmp/issue-510-ws-final.log。
+                  result: passed
+                - name: .venv/bin/python -m pytest tests/test_api_ws.py tests/test_api_auth.py
+                    tests/test_task_submission_authorization.py
+                    tests/integration/test_api_workflows.py -q --no-cov
+                    (cwd=/Users/verstappen/LLM-Algorithm-Harness)
+                  note: 142 passed, 35 warnings, 80.37s。日志 /tmp/issue-510-regression.log。随后仅调整 WS
+                    部分初始化订阅登记与测试；WS 已用最终 28 项重新验证，认证、权限及 API 工作流结果仍适用。
+                  result: passed
+                - name: .venv/bin/python -m ruff check api/routes/ws.py tests/test_api_ws.py
+                  note: All checks passed；cwd=/Users/verstappen/LLM-Algorithm-Harness。
+                  result: passed
+                - name: .venv/bin/python -m black --check api/routes/ws.py tests/test_api_ws.py
+                  note: 2 files would be left
+                    unchanged；cwd=/Users/verstappen/LLM-Algorithm-Harness。
+                  result: passed
+                - name: git diff --check
+                  note: exit 0；cwd=/Users/verstappen/LLM-Algorithm-Harness。
+                  result: passed
+                - name: comet classic openspec -- validate fix-ws-session-revalidation --strict
+                  note: Change is valid；cwd=/Users/verstappen/LLM-Algorithm-Harness。
+                  result: passed
+              event: build-complete
+            tweak.open:
+              event: open-complete
+              requirementsEvidence:
+                ref: openspec/changes/fix-ws-session-revalidation
+            tweak.open.evidence:
+              contentHash: acec4735fd5777491662e4190ee8732f4865b2a9646addbf28d5e843eeadfbe1
+              ref: openspec/changes/fix-ws-session-revalidation
+            tweak.verify.report.evidence:
+              contentHash: 68f6345bc1b7c89fc99b03eabe98b8a9ca42d1d3593f60e4c91d8c32688dbd71
+              ref: docs/superpowers/reports/2026-11-23-fix-ws-session-revalidation-verify.md
+            tweak.verify.run:
+              checks:
+                - name: .venv/bin/python -m pytest tests/test_api_ws.py -q --no-cov
+                    (cwd=/Users/verstappen/LLM-Algorithm-Harness)
+                  note: 最终候选：28 passed, 5 existing deprecation warnings, 43.65s。日志
+                    /tmp/issue-510-ws-final.log。
+                  result: passed
+                - name: .venv/bin/python -m pytest tests/test_api_ws.py tests/test_api_auth.py
+                    tests/test_task_submission_authorization.py
+                    tests/integration/test_api_workflows.py -q --no-cov
+                    (cwd=/Users/verstappen/LLM-Algorithm-Harness)
+                  note: 142 passed, 35 warnings, 80.37s。日志 /tmp/issue-510-regression.log。随后仅调整 WS
+                    部分初始化订阅登记与测试；WS 已用最终 28 项重新验证，认证、权限及 API 工作流结果仍适用。
+                  result: passed
+                - name: .venv/bin/python -m ruff check api/routes/ws.py tests/test_api_ws.py
+                  note: All checks passed；cwd=/Users/verstappen/LLM-Algorithm-Harness。
+                  result: passed
+                - name: .venv/bin/python -m black --check api/routes/ws.py tests/test_api_ws.py
+                  note: 2 files would be left
+                    unchanged；cwd=/Users/verstappen/LLM-Algorithm-Harness。
+                  result: passed
+                - name: git diff --check
+                  note: exit 0；cwd=/Users/verstappen/LLM-Algorithm-Harness。
+                  result: passed
+                - name: comet classic openspec -- validate fix-ws-session-revalidation --strict
+                  note: Change is valid；cwd=/Users/verstappen/LLM-Algorithm-Harness。
+                  result: passed
+                - name: 成本 HTTP 夹具 4 项本地端口权限重验
+                  note: 同一 4 项沙箱内因 listener.bind 权限失败；仅放开本地回环服务后 4 passed, 9 warnings, 5.64s。命令及 4
+                    个名称见
+                    docs/superpowers/reports/2026-11-23-fix-ws-session-revalidation-verify.md，日志
+                    /tmp/issue-510-suite-errors-recheck.log。未声称完整全套通过。
+                  result: passed
+                - name: 最终 diff 与 OpenSpec 完整一致性核对
+                  note: 3/3 tasks，1 MODIFIED requirement，9/9 场景映射到 api/routes/ws.py 与
+                    tests/test_api_ws.py；无未解决重要问题。当前会话核对，review_mode=off，无独立审查。证据
+                    docs/superpowers/reports/2026-11-23-fix-ws-session-revalidation-verify.md。
+                  result: passed
+              event: verification-ready
+              verificationReport: docs/superpowers/reports/2026-11-23-fix-ws-session-revalidation-verify.md
+        inputHash: 57789d6510df60fda7a46e293e269c1183981dc68b7552078a9b20e74be27179
+        outcome:
+          actionId: fix-ws-session-revalidation:10
+          attempt: 1
+          claimToken: portable-0d3c57fa65a285be2050d845c7264a4fa3a03b732875e343ee89f9fd7f4becfa
+          inputHash: 57789d6510df60fda7a46e293e269c1183981dc68b7552078a9b20e74be27179
+          outcomeId: a14d72a4-0686-421f-8d57-082caf0081e3
+          output:
+            baseCommit: 9fd0bbb841b9d378b358bb8ca6296e685c605a3c
+            deliveryAction: local
+            deliveryPaths:
+              - api/routes/ws.py
+              - tests/test_api_ws.py
+            prBaseBranch: main
+            remote: origin
+            remoteIdentity: 128eeb1e6f0d21b25601fcb7f9aad36adfdfb4d76f37f54f004760410190f351
+            targetBranch: main
+            verifiedBranch: main
+          status: succeeded
+        protocolVersion: 1
+        receipts:
+          - hash: 32ed5192b3153ecaca97fc5d51d636afa67deac27ce92aa5ca5a70efc2925711
+            outcomeId: a14d72a4-0686-421f-8d57-082caf0081e3
+        reconciliations: []
+        ref: classic-archive-preflight
+        requiredCapabilities: []
+        retry: manual
+        runId: fix-ws-session-revalidation
+        status: succeeded
+        stepId: tweak.archive.preflight
+        type: call_tool
+      - attempt: 1
+        claim:
+          executorId: comet-classic-archive
+          token: portable-3e59cee86b9dc63a2fe1ae534a363bea4dbd1e97df0b3f5922dd4e627678c086
+        executionOrigin:
+          workflow:
+            hash: 518d3e8e12eb39899775cb7d2ddcc7ddeba10cb1f1d43cff7b03f2ca61a70c65
+            id: comet-classic-tweak
+            version: "2"
+        id: fix-ws-session-revalidation:11
+        input:
+          input:
+            change: fix-ws-session-revalidation
+            changeDir: openspec/changes/fix-ws-session-revalidation
+            workspaceBaseline:
+              ref: 93aba920-1086-40a3-ae29-66baa0a21a4d
+          outputs:
+            tweak.archive.confirm:
+              choice: local
+              proposal:
+                input:
+                  change: fix-ws-session-revalidation
+                  changeDir: openspec/changes/fix-ws-session-revalidation
+                  workspaceBaseline:
+                    ref: 93aba920-1086-40a3-ae29-66baa0a21a4d
+                outputs:
+                  tweak.archive.prepare:
+                    prBaseBranch: main
+                    remote: origin
+                    summary: "修复 #510：原始建连凭据在动作/发送前重新认证，每秒检查空闲连接，失效以 4401
+                      关闭并释放所有订阅及后台任务；保持用户确认的改密保留会话语义。交付包括
+                      api/routes/ws.py、tests/test_api_ws.py、验证报告、当前 change 归档及
+                      api/progress-streaming 主规格同步。当前分支 main，目标 main，remote
+                      origin，PR base main；local 仅本地提交，push 推送 origin/main，pr
+                      须先确认合适的独立交付分支。Verify 已通过，WS 28 项与相关组合回归 142 项通过；额外全套未完成，4
+                      项本地端口权限错误在放开回环服务后重验通过。"
+                    targetBranch: main
+            tweak.archive.preflight:
+              baseCommit: 9fd0bbb841b9d378b358bb8ca6296e685c605a3c
+              deliveryAction: local
+              deliveryPaths:
+                - api/routes/ws.py
+                - tests/test_api_ws.py
+              prBaseBranch: main
+              remote: origin
+              remoteIdentity: 128eeb1e6f0d21b25601fcb7f9aad36adfdfb4d76f37f54f004760410190f351
+              targetBranch: main
+              verifiedBranch: main
+            tweak.archive.prepare:
+              prBaseBranch: main
+              remote: origin
+              summary: "修复 #510：原始建连凭据在动作/发送前重新认证，每秒检查空闲连接，失效以 4401
+                关闭并释放所有订阅及后台任务；保持用户确认的改密保留会话语义。交付包括
+                api/routes/ws.py、tests/test_api_ws.py、验证报告、当前 change 归档及
+                api/progress-streaming 主规格同步。当前分支 main，目标 main，remote origin，PR
+                base main；local 仅本地提交，push 推送 origin/main，pr
+                须先确认合适的独立交付分支。Verify 已通过，WS 28 项与相关组合回归 142 项通过；额外全套未完成，4
+                项本地端口权限错误在放开回环服务后重验通过。"
+              targetBranch: main
+            tweak.build.escalation-confirm:
+              choice: continue
+              proposal:
+                input:
+                  change: fix-ws-session-revalidation
+                  changeDir: openspec/changes/fix-ws-session-revalidation
+                  workspaceBaseline:
+                    ref: 93aba920-1086-40a3-ae29-66baa0a21a4d
+                outputs:
+                  tweak.build.execute:
+                    event: escalation-requested
+                    proposal: "核对 api/password-change
+                      主规格与现有测试后，用户已明确选择沿用改密后保留会话的行为；纠正设计中的撤销假设，并将该回归改为改密后连接有效、后\
+                      续注销关闭。其余 #510 范围与实现方式不变，继续 tweak。"
+                    requirementsEvidence:
+                      contentHash: c0d5e158fa2c0e10717e6eb49dd13d16ff32f967bb7f4c5ca5c329a105a86571
+                      ref: openspec/changes/fix-ws-session-revalidation
+            tweak.build.execute:
+              checks:
+                - name: .venv/bin/python -m pytest tests/test_api_ws.py -q --no-cov
+                    (cwd=/Users/verstappen/LLM-Algorithm-Harness)
+                  note: 最终候选：28 passed, 5 existing deprecation warnings, 43.65s。日志
+                    /tmp/issue-510-ws-final.log。
+                  result: passed
+                - name: .venv/bin/python -m pytest tests/test_api_ws.py tests/test_api_auth.py
+                    tests/test_task_submission_authorization.py
+                    tests/integration/test_api_workflows.py -q --no-cov
+                    (cwd=/Users/verstappen/LLM-Algorithm-Harness)
+                  note: 142 passed, 35 warnings, 80.37s。日志 /tmp/issue-510-regression.log。随后仅调整 WS
+                    部分初始化订阅登记与测试；WS 已用最终 28 项重新验证，认证、权限及 API 工作流结果仍适用。
+                  result: passed
+                - name: .venv/bin/python -m ruff check api/routes/ws.py tests/test_api_ws.py
+                  note: All checks passed；cwd=/Users/verstappen/LLM-Algorithm-Harness。
+                  result: passed
+                - name: .venv/bin/python -m black --check api/routes/ws.py tests/test_api_ws.py
+                  note: 2 files would be left
+                    unchanged；cwd=/Users/verstappen/LLM-Algorithm-Harness。
+                  result: passed
+                - name: git diff --check
+                  note: exit 0；cwd=/Users/verstappen/LLM-Algorithm-Harness。
+                  result: passed
+                - name: comet classic openspec -- validate fix-ws-session-revalidation --strict
+                  note: Change is valid；cwd=/Users/verstappen/LLM-Algorithm-Harness。
+                  result: passed
+              event: build-complete
+            tweak.open:
+              event: open-complete
+              requirementsEvidence:
+                ref: openspec/changes/fix-ws-session-revalidation
+            tweak.open.evidence:
+              contentHash: acec4735fd5777491662e4190ee8732f4865b2a9646addbf28d5e843eeadfbe1
+              ref: openspec/changes/fix-ws-session-revalidation
+            tweak.verify.report.evidence:
+              contentHash: 68f6345bc1b7c89fc99b03eabe98b8a9ca42d1d3593f60e4c91d8c32688dbd71
+              ref: docs/superpowers/reports/2026-11-23-fix-ws-session-revalidation-verify.md
+            tweak.verify.run:
+              checks:
+                - name: .venv/bin/python -m pytest tests/test_api_ws.py -q --no-cov
+                    (cwd=/Users/verstappen/LLM-Algorithm-Harness)
+                  note: 最终候选：28 passed, 5 existing deprecation warnings, 43.65s。日志
+                    /tmp/issue-510-ws-final.log。
+                  result: passed
+                - name: .venv/bin/python -m pytest tests/test_api_ws.py tests/test_api_auth.py
+                    tests/test_task_submission_authorization.py
+                    tests/integration/test_api_workflows.py -q --no-cov
+                    (cwd=/Users/verstappen/LLM-Algorithm-Harness)
+                  note: 142 passed, 35 warnings, 80.37s。日志 /tmp/issue-510-regression.log。随后仅调整 WS
+                    部分初始化订阅登记与测试；WS 已用最终 28 项重新验证，认证、权限及 API 工作流结果仍适用。
+                  result: passed
+                - name: .venv/bin/python -m ruff check api/routes/ws.py tests/test_api_ws.py
+                  note: All checks passed；cwd=/Users/verstappen/LLM-Algorithm-Harness。
+                  result: passed
+                - name: .venv/bin/python -m black --check api/routes/ws.py tests/test_api_ws.py
+                  note: 2 files would be left
+                    unchanged；cwd=/Users/verstappen/LLM-Algorithm-Harness。
+                  result: passed
+                - name: git diff --check
+                  note: exit 0；cwd=/Users/verstappen/LLM-Algorithm-Harness。
+                  result: passed
+                - name: comet classic openspec -- validate fix-ws-session-revalidation --strict
+                  note: Change is valid；cwd=/Users/verstappen/LLM-Algorithm-Harness。
+                  result: passed
+                - name: 成本 HTTP 夹具 4 项本地端口权限重验
+                  note: 同一 4 项沙箱内因 listener.bind 权限失败；仅放开本地回环服务后 4 passed, 9 warnings, 5.64s。命令及 4
+                    个名称见
+                    docs/superpowers/reports/2026-11-23-fix-ws-session-revalidation-verify.md，日志
+                    /tmp/issue-510-suite-errors-recheck.log。未声称完整全套通过。
+                  result: passed
+                - name: 最终 diff 与 OpenSpec 完整一致性核对
+                  note: 3/3 tasks，1 MODIFIED requirement，9/9 场景映射到 api/routes/ws.py 与
+                    tests/test_api_ws.py；无未解决重要问题。当前会话核对，review_mode=off，无独立审查。证据
+                    docs/superpowers/reports/2026-11-23-fix-ws-session-revalidation-verify.md。
+                  result: passed
+              event: verification-ready
+              verificationReport: docs/superpowers/reports/2026-11-23-fix-ws-session-revalidation-verify.md
+        inputHash: 47dbbfa76a2abc194d10729fb0898479c87e46a8fbef5257f521d42cd323e6ed
+        outcome:
+          actionId: fix-ws-session-revalidation:11
+          artifacts: []
+          attempt: 1
+          claimToken: portable-3e59cee86b9dc63a2fe1ae534a363bea4dbd1e97df0b3f5922dd4e627678c086
+          inputHash: 47dbbfa76a2abc194d10729fb0898479c87e46a8fbef5257f521d42cd323e6ed
+          outcomeId: 230165a4-440b-4c68-9e81-1ad67720097e
+          output:
+            archiveDirectory: openspec/changes/archive/2026-11-23-fix-ws-session-revalidation
+          status: succeeded
+        protocolVersion: 1
+        receipts:
+          - hash: 2304268e9496e57c99b7a8bb7063240f3351c2974514906af63a7a8cccb581fd
+            outcomeId: 230165a4-440b-4c68-9e81-1ad67720097e
+        reconciliations: []
+        ref: classic-archive
+        requiredCapabilities: []
+        retry: manual
+        runId: fix-ws-session-revalidation
+        status: succeeded
+        stepId: tweak.archive.execute
+        type: call_tool
+      - attempt: 1
+        id: fix-ws-session-revalidation:12
+        input:
+          input:
+            change: fix-ws-session-revalidation
+            changeDir: openspec/changes/fix-ws-session-revalidation
+            workspaceBaseline:
+              ref: 93aba920-1086-40a3-ae29-66baa0a21a4d
+          outputs:
+            tweak.archive.confirm:
+              choice: local
+              proposal:
+                input:
+                  change: fix-ws-session-revalidation
+                  changeDir: openspec/changes/fix-ws-session-revalidation
+                  workspaceBaseline:
+                    ref: 93aba920-1086-40a3-ae29-66baa0a21a4d
+                outputs:
+                  tweak.archive.prepare:
+                    prBaseBranch: main
+                    remote: origin
+                    summary: "修复 #510：原始建连凭据在动作/发送前重新认证，每秒检查空闲连接，失效以 4401
+                      关闭并释放所有订阅及后台任务；保持用户确认的改密保留会话语义。交付包括
+                      api/routes/ws.py、tests/test_api_ws.py、验证报告、当前 change 归档及
+                      api/progress-streaming 主规格同步。当前分支 main，目标 main，remote
+                      origin，PR base main；local 仅本地提交，push 推送 origin/main，pr
+                      须先确认合适的独立交付分支。Verify 已通过，WS 28 项与相关组合回归 142 项通过；额外全套未完成，4
+                      项本地端口权限错误在放开回环服务后重验通过。"
+                    targetBranch: main
+            tweak.archive.execute:
+              archiveDirectory: openspec/changes/archive/2026-11-23-fix-ws-session-revalidation
+            tweak.archive.preflight:
+              baseCommit: 9fd0bbb841b9d378b358bb8ca6296e685c605a3c
+              deliveryAction: local
+              deliveryPaths:
+                - api/routes/ws.py
+                - tests/test_api_ws.py
+              prBaseBranch: main
+              remote: origin
+              remoteIdentity: 128eeb1e6f0d21b25601fcb7f9aad36adfdfb4d76f37f54f004760410190f351
+              targetBranch: main
+              verifiedBranch: main
+            tweak.archive.prepare:
+              prBaseBranch: main
+              remote: origin
+              summary: "修复 #510：原始建连凭据在动作/发送前重新认证，每秒检查空闲连接，失效以 4401
+                关闭并释放所有订阅及后台任务；保持用户确认的改密保留会话语义。交付包括
+                api/routes/ws.py、tests/test_api_ws.py、验证报告、当前 change 归档及
+                api/progress-streaming 主规格同步。当前分支 main，目标 main，remote origin，PR
+                base main；local 仅本地提交，push 推送 origin/main，pr
+                须先确认合适的独立交付分支。Verify 已通过，WS 28 项与相关组合回归 142 项通过；额外全套未完成，4
+                项本地端口权限错误在放开回环服务后重验通过。"
+              targetBranch: main
+            tweak.build.escalation-confirm:
+              choice: continue
+              proposal:
+                input:
+                  change: fix-ws-session-revalidation
+                  changeDir: openspec/changes/fix-ws-session-revalidation
+                  workspaceBaseline:
+                    ref: 93aba920-1086-40a3-ae29-66baa0a21a4d
+                outputs:
+                  tweak.build.execute:
+                    event: escalation-requested
+                    proposal: "核对 api/password-change
+                      主规格与现有测试后，用户已明确选择沿用改密后保留会话的行为；纠正设计中的撤销假设，并将该回归改为改密后连接有效、后\
+                      续注销关闭。其余 #510 范围与实现方式不变，继续 tweak。"
+                    requirementsEvidence:
+                      contentHash: c0d5e158fa2c0e10717e6eb49dd13d16ff32f967bb7f4c5ca5c329a105a86571
+                      ref: openspec/changes/fix-ws-session-revalidation
+            tweak.build.execute:
+              checks:
+                - name: .venv/bin/python -m pytest tests/test_api_ws.py -q --no-cov
+                    (cwd=/Users/verstappen/LLM-Algorithm-Harness)
+                  note: 最终候选：28 passed, 5 existing deprecation warnings, 43.65s。日志
+                    /tmp/issue-510-ws-final.log。
+                  result: passed
+                - name: .venv/bin/python -m pytest tests/test_api_ws.py tests/test_api_auth.py
+                    tests/test_task_submission_authorization.py
+                    tests/integration/test_api_workflows.py -q --no-cov
+                    (cwd=/Users/verstappen/LLM-Algorithm-Harness)
+                  note: 142 passed, 35 warnings, 80.37s。日志 /tmp/issue-510-regression.log。随后仅调整 WS
+                    部分初始化订阅登记与测试；WS 已用最终 28 项重新验证，认证、权限及 API 工作流结果仍适用。
+                  result: passed
+                - name: .venv/bin/python -m ruff check api/routes/ws.py tests/test_api_ws.py
+                  note: All checks passed；cwd=/Users/verstappen/LLM-Algorithm-Harness。
+                  result: passed
+                - name: .venv/bin/python -m black --check api/routes/ws.py tests/test_api_ws.py
+                  note: 2 files would be left
+                    unchanged；cwd=/Users/verstappen/LLM-Algorithm-Harness。
+                  result: passed
+                - name: git diff --check
+                  note: exit 0；cwd=/Users/verstappen/LLM-Algorithm-Harness。
+                  result: passed
+                - name: comet classic openspec -- validate fix-ws-session-revalidation --strict
+                  note: Change is valid；cwd=/Users/verstappen/LLM-Algorithm-Harness。
+                  result: passed
+              event: build-complete
+            tweak.open:
+              event: open-complete
+              requirementsEvidence:
+                ref: openspec/changes/fix-ws-session-revalidation
+            tweak.open.evidence:
+              contentHash: acec4735fd5777491662e4190ee8732f4865b2a9646addbf28d5e843eeadfbe1
+              ref: openspec/changes/fix-ws-session-revalidation
+            tweak.verify.report.evidence:
+              contentHash: 68f6345bc1b7c89fc99b03eabe98b8a9ca42d1d3593f60e4c91d8c32688dbd71
+              ref: docs/superpowers/reports/2026-11-23-fix-ws-session-revalidation-verify.md
+            tweak.verify.run:
+              checks:
+                - name: .venv/bin/python -m pytest tests/test_api_ws.py -q --no-cov
+                    (cwd=/Users/verstappen/LLM-Algorithm-Harness)
+                  note: 最终候选：28 passed, 5 existing deprecation warnings, 43.65s。日志
+                    /tmp/issue-510-ws-final.log。
+                  result: passed
+                - name: .venv/bin/python -m pytest tests/test_api_ws.py tests/test_api_auth.py
+                    tests/test_task_submission_authorization.py
+                    tests/integration/test_api_workflows.py -q --no-cov
+                    (cwd=/Users/verstappen/LLM-Algorithm-Harness)
+                  note: 142 passed, 35 warnings, 80.37s。日志 /tmp/issue-510-regression.log。随后仅调整 WS
+                    部分初始化订阅登记与测试；WS 已用最终 28 项重新验证，认证、权限及 API 工作流结果仍适用。
+                  result: passed
+                - name: .venv/bin/python -m ruff check api/routes/ws.py tests/test_api_ws.py
+                  note: All checks passed；cwd=/Users/verstappen/LLM-Algorithm-Harness。
+                  result: passed
+                - name: .venv/bin/python -m black --check api/routes/ws.py tests/test_api_ws.py
+                  note: 2 files would be left
+                    unchanged；cwd=/Users/verstappen/LLM-Algorithm-Harness。
+                  result: passed
+                - name: git diff --check
+                  note: exit 0；cwd=/Users/verstappen/LLM-Algorithm-Harness。
+                  result: passed
+                - name: comet classic openspec -- validate fix-ws-session-revalidation --strict
+                  note: Change is valid；cwd=/Users/verstappen/LLM-Algorithm-Harness。
+                  result: passed
+                - name: 成本 HTTP 夹具 4 项本地端口权限重验
+                  note: 同一 4 项沙箱内因 listener.bind 权限失败；仅放开本地回环服务后 4 passed, 9 warnings, 5.64s。命令及 4
+                    个名称见
+                    docs/superpowers/reports/2026-11-23-fix-ws-session-revalidation-verify.md，日志
+                    /tmp/issue-510-suite-errors-recheck.log。未声称完整全套通过。
+                  result: passed
+                - name: 最终 diff 与 OpenSpec 完整一致性核对
+                  note: 3/3 tasks，1 MODIFIED requirement，9/9 场景映射到 api/routes/ws.py 与
+                    tests/test_api_ws.py；无未解决重要问题。当前会话核对，review_mode=off，无独立审查。证据
+                    docs/superpowers/reports/2026-11-23-fix-ws-session-revalidation-verify.md。
+                  result: passed
+              event: verification-ready
+              verificationReport: docs/superpowers/reports/2026-11-23-fix-ws-session-revalidation-verify.md
+        inputHash: e0d137a7801182eb7f363413fe12a7f5f1d36b881b64713046b598c1dd744a8f
+        protocolVersion: 1
+        receipts: []
+        reconciliations: []
+        ref: comet-archive
+        requiredCapabilities: []
+        retry: manual
+        runId: fix-ws-session-revalidation
+        status: pending
+        stepId: tweak.archive.deliver
+        type: invoke_skill
+    actionContexts:
+      fix-ws-session-revalidation:1:
+        results: {}
+        sequence: 1
+      fix-ws-session-revalidation:10:
+        results:
+          tweak.archive.confirm:
+            sequence: 9
+            value:
+              choice: local
+              proposal:
+                input:
+                  change: fix-ws-session-revalidation
+                  changeDir: openspec/changes/fix-ws-session-revalidation
+                  workspaceBaseline:
+                    ref: 93aba920-1086-40a3-ae29-66baa0a21a4d
+                outputs:
+                  tweak.archive.prepare:
+                    prBaseBranch: main
+                    remote: origin
+                    summary: "修复 #510：原始建连凭据在动作/发送前重新认证，每秒检查空闲连接，失效以 4401
+                      关闭并释放所有订阅及后台任务；保持用户确认的改密保留会话语义。交付包括
+                      api/routes/ws.py、tests/test_api_ws.py、验证报告、当前 change 归档及
+                      api/progress-streaming 主规格同步。当前分支 main，目标 main，remote
+                      origin，PR base main；local 仅本地提交，push 推送 origin/main，pr
+                      须先确认合适的独立交付分支。Verify 已通过，WS 28 项与相关组合回归 142 项通过；额外全套未完成，4
+                      项本地端口权限错误在放开回环服务后重验通过。"
+                    targetBranch: main
+          tweak.archive.prepare:
+            sequence: 8
+            value:
+              prBaseBranch: main
+              remote: origin
+              summary: "修复 #510：原始建连凭据在动作/发送前重新认证，每秒检查空闲连接，失效以 4401
+                关闭并释放所有订阅及后台任务；保持用户确认的改密保留会话语义。交付包括
+                api/routes/ws.py、tests/test_api_ws.py、验证报告、当前 change 归档及
+                api/progress-streaming 主规格同步。当前分支 main，目标 main，remote origin，PR
+                base main；local 仅本地提交，push 推送 origin/main，pr
+                须先确认合适的独立交付分支。Verify 已通过，WS 28 项与相关组合回归 142 项通过；额外全套未完成，4
+                项本地端口权限错误在放开回环服务后重验通过。"
+              targetBranch: main
+          tweak.build.escalation-confirm:
+            sequence: 4
+            value:
+              choice: continue
+              proposal:
+                input:
+                  change: fix-ws-session-revalidation
+                  changeDir: openspec/changes/fix-ws-session-revalidation
+                  workspaceBaseline:
+                    ref: 93aba920-1086-40a3-ae29-66baa0a21a4d
+                outputs:
+                  tweak.build.execute:
+                    event: escalation-requested
+                    proposal: "核对 api/password-change
+                      主规格与现有测试后，用户已明确选择沿用改密后保留会话的行为；纠正设计中的撤销假设，并将该回归改为改密后连接有效、后\
+                      续注销关闭。其余 #510 范围与实现方式不变，继续 tweak。"
+                    requirementsEvidence:
+                      contentHash: c0d5e158fa2c0e10717e6eb49dd13d16ff32f967bb7f4c5ca5c329a105a86571
+                      ref: openspec/changes/fix-ws-session-revalidation
+          tweak.build.execute:
+            sequence: 5
+            value:
+              checks:
+                - name: .venv/bin/python -m pytest tests/test_api_ws.py -q --no-cov
+                    (cwd=/Users/verstappen/LLM-Algorithm-Harness)
+                  note: 最终候选：28 passed, 5 existing deprecation warnings, 43.65s。日志
+                    /tmp/issue-510-ws-final.log。
+                  result: passed
+                - name: .venv/bin/python -m pytest tests/test_api_ws.py tests/test_api_auth.py
+                    tests/test_task_submission_authorization.py
+                    tests/integration/test_api_workflows.py -q --no-cov
+                    (cwd=/Users/verstappen/LLM-Algorithm-Harness)
+                  note: 142 passed, 35 warnings, 80.37s。日志 /tmp/issue-510-regression.log。随后仅调整 WS
+                    部分初始化订阅登记与测试；WS 已用最终 28 项重新验证，认证、权限及 API 工作流结果仍适用。
+                  result: passed
+                - name: .venv/bin/python -m ruff check api/routes/ws.py tests/test_api_ws.py
+                  note: All checks passed；cwd=/Users/verstappen/LLM-Algorithm-Harness。
+                  result: passed
+                - name: .venv/bin/python -m black --check api/routes/ws.py tests/test_api_ws.py
+                  note: 2 files would be left
+                    unchanged；cwd=/Users/verstappen/LLM-Algorithm-Harness。
+                  result: passed
+                - name: git diff --check
+                  note: exit 0；cwd=/Users/verstappen/LLM-Algorithm-Harness。
+                  result: passed
+                - name: comet classic openspec -- validate fix-ws-session-revalidation --strict
+                  note: Change is valid；cwd=/Users/verstappen/LLM-Algorithm-Harness。
+                  result: passed
+              event: build-complete
+          tweak.open:
+            sequence: 1
+            value:
+              event: open-complete
+              requirementsEvidence:
+                ref: openspec/changes/fix-ws-session-revalidation
+          tweak.open.evidence:
+            sequence: 2
+            value:
+              contentHash: acec4735fd5777491662e4190ee8732f4865b2a9646addbf28d5e843eeadfbe1
+              ref: openspec/changes/fix-ws-session-revalidation
+          tweak.verify.report.evidence:
+            sequence: 7
+            value:
+              contentHash: 68f6345bc1b7c89fc99b03eabe98b8a9ca42d1d3593f60e4c91d8c32688dbd71
+              ref: docs/superpowers/reports/2026-11-23-fix-ws-session-revalidation-verify.md
+          tweak.verify.run:
+            sequence: 6
+            value:
+              checks:
+                - name: .venv/bin/python -m pytest tests/test_api_ws.py -q --no-cov
+                    (cwd=/Users/verstappen/LLM-Algorithm-Harness)
+                  note: 最终候选：28 passed, 5 existing deprecation warnings, 43.65s。日志
+                    /tmp/issue-510-ws-final.log。
+                  result: passed
+                - name: .venv/bin/python -m pytest tests/test_api_ws.py tests/test_api_auth.py
+                    tests/test_task_submission_authorization.py
+                    tests/integration/test_api_workflows.py -q --no-cov
+                    (cwd=/Users/verstappen/LLM-Algorithm-Harness)
+                  note: 142 passed, 35 warnings, 80.37s。日志 /tmp/issue-510-regression.log。随后仅调整 WS
+                    部分初始化订阅登记与测试；WS 已用最终 28 项重新验证，认证、权限及 API 工作流结果仍适用。
+                  result: passed
+                - name: .venv/bin/python -m ruff check api/routes/ws.py tests/test_api_ws.py
+                  note: All checks passed；cwd=/Users/verstappen/LLM-Algorithm-Harness。
+                  result: passed
+                - name: .venv/bin/python -m black --check api/routes/ws.py tests/test_api_ws.py
+                  note: 2 files would be left
+                    unchanged；cwd=/Users/verstappen/LLM-Algorithm-Harness。
+                  result: passed
+                - name: git diff --check
+                  note: exit 0；cwd=/Users/verstappen/LLM-Algorithm-Harness。
+                  result: passed
+                - name: comet classic openspec -- validate fix-ws-session-revalidation --strict
+                  note: Change is valid；cwd=/Users/verstappen/LLM-Algorithm-Harness。
+                  result: passed
+                - name: 成本 HTTP 夹具 4 项本地端口权限重验
+                  note: 同一 4 项沙箱内因 listener.bind 权限失败；仅放开本地回环服务后 4 passed, 9 warnings, 5.64s。命令及 4
+                    个名称见
+                    docs/superpowers/reports/2026-11-23-fix-ws-session-revalidation-verify.md，日志
+                    /tmp/issue-510-suite-errors-recheck.log。未声称完整全套通过。
+                  result: passed
+                - name: 最终 diff 与 OpenSpec 完整一致性核对
+                  note: 3/3 tasks，1 MODIFIED requirement，9/9 场景映射到 api/routes/ws.py 与
+                    tests/test_api_ws.py；无未解决重要问题。当前会话核对，review_mode=off，无独立审查。证据
+                    docs/superpowers/reports/2026-11-23-fix-ws-session-revalidation-verify.md。
+                  result: passed
+              event: verification-ready
+              verificationReport: docs/superpowers/reports/2026-11-23-fix-ws-session-revalidation-verify.md
+        sequence: 10
+      fix-ws-session-revalidation:11:
+        results:
+          tweak.archive.confirm:
+            sequence: 9
+            value:
+              choice: local
+              proposal:
+                input:
+                  change: fix-ws-session-revalidation
+                  changeDir: openspec/changes/fix-ws-session-revalidation
+                  workspaceBaseline:
+                    ref: 93aba920-1086-40a3-ae29-66baa0a21a4d
+                outputs:
+                  tweak.archive.prepare:
+                    prBaseBranch: main
+                    remote: origin
+                    summary: "修复 #510：原始建连凭据在动作/发送前重新认证，每秒检查空闲连接，失效以 4401
+                      关闭并释放所有订阅及后台任务；保持用户确认的改密保留会话语义。交付包括
+                      api/routes/ws.py、tests/test_api_ws.py、验证报告、当前 change 归档及
+                      api/progress-streaming 主规格同步。当前分支 main，目标 main，remote
+                      origin，PR base main；local 仅本地提交，push 推送 origin/main，pr
+                      须先确认合适的独立交付分支。Verify 已通过，WS 28 项与相关组合回归 142 项通过；额外全套未完成，4
+                      项本地端口权限错误在放开回环服务后重验通过。"
+                    targetBranch: main
+          tweak.archive.preflight:
+            sequence: 10
+            value:
+              baseCommit: 9fd0bbb841b9d378b358bb8ca6296e685c605a3c
+              deliveryAction: local
+              deliveryPaths:
+                - api/routes/ws.py
+                - tests/test_api_ws.py
+              prBaseBranch: main
+              remote: origin
+              remoteIdentity: 128eeb1e6f0d21b25601fcb7f9aad36adfdfb4d76f37f54f004760410190f351
+              targetBranch: main
+              verifiedBranch: main
+          tweak.archive.prepare:
+            sequence: 8
+            value:
+              prBaseBranch: main
+              remote: origin
+              summary: "修复 #510：原始建连凭据在动作/发送前重新认证，每秒检查空闲连接，失效以 4401
+                关闭并释放所有订阅及后台任务；保持用户确认的改密保留会话语义。交付包括
+                api/routes/ws.py、tests/test_api_ws.py、验证报告、当前 change 归档及
+                api/progress-streaming 主规格同步。当前分支 main，目标 main，remote origin，PR
+                base main；local 仅本地提交，push 推送 origin/main，pr
+                须先确认合适的独立交付分支。Verify 已通过，WS 28 项与相关组合回归 142 项通过；额外全套未完成，4
+                项本地端口权限错误在放开回环服务后重验通过。"
+              targetBranch: main
+          tweak.build.escalation-confirm:
+            sequence: 4
+            value:
+              choice: continue
+              proposal:
+                input:
+                  change: fix-ws-session-revalidation
+                  changeDir: openspec/changes/fix-ws-session-revalidation
+                  workspaceBaseline:
+                    ref: 93aba920-1086-40a3-ae29-66baa0a21a4d
+                outputs:
+                  tweak.build.execute:
+                    event: escalation-requested
+                    proposal: "核对 api/password-change
+                      主规格与现有测试后，用户已明确选择沿用改密后保留会话的行为；纠正设计中的撤销假设，并将该回归改为改密后连接有效、后\
+                      续注销关闭。其余 #510 范围与实现方式不变，继续 tweak。"
+                    requirementsEvidence:
+                      contentHash: c0d5e158fa2c0e10717e6eb49dd13d16ff32f967bb7f4c5ca5c329a105a86571
+                      ref: openspec/changes/fix-ws-session-revalidation
+          tweak.build.execute:
+            sequence: 5
+            value:
+              checks:
+                - name: .venv/bin/python -m pytest tests/test_api_ws.py -q --no-cov
+                    (cwd=/Users/verstappen/LLM-Algorithm-Harness)
+                  note: 最终候选：28 passed, 5 existing deprecation warnings, 43.65s。日志
+                    /tmp/issue-510-ws-final.log。
+                  result: passed
+                - name: .venv/bin/python -m pytest tests/test_api_ws.py tests/test_api_auth.py
+                    tests/test_task_submission_authorization.py
+                    tests/integration/test_api_workflows.py -q --no-cov
+                    (cwd=/Users/verstappen/LLM-Algorithm-Harness)
+                  note: 142 passed, 35 warnings, 80.37s。日志 /tmp/issue-510-regression.log。随后仅调整 WS
+                    部分初始化订阅登记与测试；WS 已用最终 28 项重新验证，认证、权限及 API 工作流结果仍适用。
+                  result: passed
+                - name: .venv/bin/python -m ruff check api/routes/ws.py tests/test_api_ws.py
+                  note: All checks passed；cwd=/Users/verstappen/LLM-Algorithm-Harness。
+                  result: passed
+                - name: .venv/bin/python -m black --check api/routes/ws.py tests/test_api_ws.py
+                  note: 2 files would be left
+                    unchanged；cwd=/Users/verstappen/LLM-Algorithm-Harness。
+                  result: passed
+                - name: git diff --check
+                  note: exit 0；cwd=/Users/verstappen/LLM-Algorithm-Harness。
+                  result: passed
+                - name: comet classic openspec -- validate fix-ws-session-revalidation --strict
+                  note: Change is valid；cwd=/Users/verstappen/LLM-Algorithm-Harness。
+                  result: passed
+              event: build-complete
+          tweak.open:
+            sequence: 1
+            value:
+              event: open-complete
+              requirementsEvidence:
+                ref: openspec/changes/fix-ws-session-revalidation
+          tweak.open.evidence:
+            sequence: 2
+            value:
+              contentHash: acec4735fd5777491662e4190ee8732f4865b2a9646addbf28d5e843eeadfbe1
+              ref: openspec/changes/fix-ws-session-revalidation
+          tweak.verify.report.evidence:
+            sequence: 7
+            value:
+              contentHash: 68f6345bc1b7c89fc99b03eabe98b8a9ca42d1d3593f60e4c91d8c32688dbd71
+              ref: docs/superpowers/reports/2026-11-23-fix-ws-session-revalidation-verify.md
+          tweak.verify.run:
+            sequence: 6
+            value:
+              checks:
+                - name: .venv/bin/python -m pytest tests/test_api_ws.py -q --no-cov
+                    (cwd=/Users/verstappen/LLM-Algorithm-Harness)
+                  note: 最终候选：28 passed, 5 existing deprecation warnings, 43.65s。日志
+                    /tmp/issue-510-ws-final.log。
+                  result: passed
+                - name: .venv/bin/python -m pytest tests/test_api_ws.py tests/test_api_auth.py
+                    tests/test_task_submission_authorization.py
+                    tests/integration/test_api_workflows.py -q --no-cov
+                    (cwd=/Users/verstappen/LLM-Algorithm-Harness)
+                  note: 142 passed, 35 warnings, 80.37s。日志 /tmp/issue-510-regression.log。随后仅调整 WS
+                    部分初始化订阅登记与测试；WS 已用最终 28 项重新验证，认证、权限及 API 工作流结果仍适用。
+                  result: passed
+                - name: .venv/bin/python -m ruff check api/routes/ws.py tests/test_api_ws.py
+                  note: All checks passed；cwd=/Users/verstappen/LLM-Algorithm-Harness。
+                  result: passed
+                - name: .venv/bin/python -m black --check api/routes/ws.py tests/test_api_ws.py
+                  note: 2 files would be left
+                    unchanged；cwd=/Users/verstappen/LLM-Algorithm-Harness。
+                  result: passed
+                - name: git diff --check
+                  note: exit 0；cwd=/Users/verstappen/LLM-Algorithm-Harness。
+                  result: passed
+                - name: comet classic openspec -- validate fix-ws-session-revalidation --strict
+                  note: Change is valid；cwd=/Users/verstappen/LLM-Algorithm-Harness。
+                  result: passed
+                - name: 成本 HTTP 夹具 4 项本地端口权限重验
+                  note: 同一 4 项沙箱内因 listener.bind 权限失败；仅放开本地回环服务后 4 passed, 9 warnings, 5.64s。命令及 4
+                    个名称见
+                    docs/superpowers/reports/2026-11-23-fix-ws-session-revalidation-verify.md，日志
+                    /tmp/issue-510-suite-errors-recheck.log。未声称完整全套通过。
+                  result: passed
+                - name: 最终 diff 与 OpenSpec 完整一致性核对
+                  note: 3/3 tasks，1 MODIFIED requirement，9/9 场景映射到 api/routes/ws.py 与
+                    tests/test_api_ws.py；无未解决重要问题。当前会话核对，review_mode=off，无独立审查。证据
+                    docs/superpowers/reports/2026-11-23-fix-ws-session-revalidation-verify.md。
+                  result: passed
+              event: verification-ready
+              verificationReport: docs/superpowers/reports/2026-11-23-fix-ws-session-revalidation-verify.md
+        sequence: 11
+      fix-ws-session-revalidation:12:
+        results:
+          tweak.archive.confirm:
+            sequence: 9
+            value:
+              choice: local
+              proposal:
+                input:
+                  change: fix-ws-session-revalidation
+                  changeDir: openspec/changes/fix-ws-session-revalidation
+                  workspaceBaseline:
+                    ref: 93aba920-1086-40a3-ae29-66baa0a21a4d
+                outputs:
+                  tweak.archive.prepare:
+                    prBaseBranch: main
+                    remote: origin
+                    summary: "修复 #510：原始建连凭据在动作/发送前重新认证，每秒检查空闲连接，失效以 4401
+                      关闭并释放所有订阅及后台任务；保持用户确认的改密保留会话语义。交付包括
+                      api/routes/ws.py、tests/test_api_ws.py、验证报告、当前 change 归档及
+                      api/progress-streaming 主规格同步。当前分支 main，目标 main，remote
+                      origin，PR base main；local 仅本地提交，push 推送 origin/main，pr
+                      须先确认合适的独立交付分支。Verify 已通过，WS 28 项与相关组合回归 142 项通过；额外全套未完成，4
+                      项本地端口权限错误在放开回环服务后重验通过。"
+                    targetBranch: main
+          tweak.archive.execute:
+            sequence: 11
+            value:
+              archiveDirectory: openspec/changes/archive/2026-11-23-fix-ws-session-revalidation
+          tweak.archive.preflight:
+            sequence: 10
+            value:
+              baseCommit: 9fd0bbb841b9d378b358bb8ca6296e685c605a3c
+              deliveryAction: local
+              deliveryPaths:
+                - api/routes/ws.py
+                - tests/test_api_ws.py
+              prBaseBranch: main
+              remote: origin
+              remoteIdentity: 128eeb1e6f0d21b25601fcb7f9aad36adfdfb4d76f37f54f004760410190f351
+              targetBranch: main
+              verifiedBranch: main
+          tweak.archive.prepare:
+            sequence: 8
+            value:
+              prBaseBranch: main
+              remote: origin
+              summary: "修复 #510：原始建连凭据在动作/发送前重新认证，每秒检查空闲连接，失效以 4401
+                关闭并释放所有订阅及后台任务；保持用户确认的改密保留会话语义。交付包括
+                api/routes/ws.py、tests/test_api_ws.py、验证报告、当前 change 归档及
+                api/progress-streaming 主规格同步。当前分支 main，目标 main，remote origin，PR
+                base main；local 仅本地提交，push 推送 origin/main，pr
+                须先确认合适的独立交付分支。Verify 已通过，WS 28 项与相关组合回归 142 项通过；额外全套未完成，4
+                项本地端口权限错误在放开回环服务后重验通过。"
+              targetBranch: main
+          tweak.build.escalation-confirm:
+            sequence: 4
+            value:
+              choice: continue
+              proposal:
+                input:
+                  change: fix-ws-session-revalidation
+                  changeDir: openspec/changes/fix-ws-session-revalidation
+                  workspaceBaseline:
+                    ref: 93aba920-1086-40a3-ae29-66baa0a21a4d
+                outputs:
+                  tweak.build.execute:
+                    event: escalation-requested
+                    proposal: "核对 api/password-change
+                      主规格与现有测试后，用户已明确选择沿用改密后保留会话的行为；纠正设计中的撤销假设，并将该回归改为改密后连接有效、后\
+                      续注销关闭。其余 #510 范围与实现方式不变，继续 tweak。"
+                    requirementsEvidence:
+                      contentHash: c0d5e158fa2c0e10717e6eb49dd13d16ff32f967bb7f4c5ca5c329a105a86571
+                      ref: openspec/changes/fix-ws-session-revalidation
+          tweak.build.execute:
+            sequence: 5
+            value:
+              checks:
+                - name: .venv/bin/python -m pytest tests/test_api_ws.py -q --no-cov
+                    (cwd=/Users/verstappen/LLM-Algorithm-Harness)
+                  note: 最终候选：28 passed, 5 existing deprecation warnings, 43.65s。日志
+                    /tmp/issue-510-ws-final.log。
+                  result: passed
+                - name: .venv/bin/python -m pytest tests/test_api_ws.py tests/test_api_auth.py
+                    tests/test_task_submission_authorization.py
+                    tests/integration/test_api_workflows.py -q --no-cov
+                    (cwd=/Users/verstappen/LLM-Algorithm-Harness)
+                  note: 142 passed, 35 warnings, 80.37s。日志 /tmp/issue-510-regression.log。随后仅调整 WS
+                    部分初始化订阅登记与测试；WS 已用最终 28 项重新验证，认证、权限及 API 工作流结果仍适用。
+                  result: passed
+                - name: .venv/bin/python -m ruff check api/routes/ws.py tests/test_api_ws.py
+                  note: All checks passed；cwd=/Users/verstappen/LLM-Algorithm-Harness。
+                  result: passed
+                - name: .venv/bin/python -m black --check api/routes/ws.py tests/test_api_ws.py
+                  note: 2 files would be left
+                    unchanged；cwd=/Users/verstappen/LLM-Algorithm-Harness。
+                  result: passed
+                - name: git diff --check
+                  note: exit 0；cwd=/Users/verstappen/LLM-Algorithm-Harness。
+                  result: passed
+                - name: comet classic openspec -- validate fix-ws-session-revalidation --strict
+                  note: Change is valid；cwd=/Users/verstappen/LLM-Algorithm-Harness。
+                  result: passed
+              event: build-complete
+          tweak.open:
+            sequence: 1
+            value:
+              event: open-complete
+              requirementsEvidence:
+                ref: openspec/changes/fix-ws-session-revalidation
+          tweak.open.evidence:
+            sequence: 2
+            value:
+              contentHash: acec4735fd5777491662e4190ee8732f4865b2a9646addbf28d5e843eeadfbe1
+              ref: openspec/changes/fix-ws-session-revalidation
+          tweak.verify.report.evidence:
+            sequence: 7
+            value:
+              contentHash: 68f6345bc1b7c89fc99b03eabe98b8a9ca42d1d3593f60e4c91d8c32688dbd71
+              ref: docs/superpowers/reports/2026-11-23-fix-ws-session-revalidation-verify.md
+          tweak.verify.run:
+            sequence: 6
+            value:
+              checks:
+                - name: .venv/bin/python -m pytest tests/test_api_ws.py -q --no-cov
+                    (cwd=/Users/verstappen/LLM-Algorithm-Harness)
+                  note: 最终候选：28 passed, 5 existing deprecation warnings, 43.65s。日志
+                    /tmp/issue-510-ws-final.log。
+                  result: passed
+                - name: .venv/bin/python -m pytest tests/test_api_ws.py tests/test_api_auth.py
+                    tests/test_task_submission_authorization.py
+                    tests/integration/test_api_workflows.py -q --no-cov
+                    (cwd=/Users/verstappen/LLM-Algorithm-Harness)
+                  note: 142 passed, 35 warnings, 80.37s。日志 /tmp/issue-510-regression.log。随后仅调整 WS
+                    部分初始化订阅登记与测试；WS 已用最终 28 项重新验证，认证、权限及 API 工作流结果仍适用。
+                  result: passed
+                - name: .venv/bin/python -m ruff check api/routes/ws.py tests/test_api_ws.py
+                  note: All checks passed；cwd=/Users/verstappen/LLM-Algorithm-Harness。
+                  result: passed
+                - name: .venv/bin/python -m black --check api/routes/ws.py tests/test_api_ws.py
+                  note: 2 files would be left
+                    unchanged；cwd=/Users/verstappen/LLM-Algorithm-Harness。
+                  result: passed
+                - name: git diff --check
+                  note: exit 0；cwd=/Users/verstappen/LLM-Algorithm-Harness。
+                  result: passed
+                - name: comet classic openspec -- validate fix-ws-session-revalidation --strict
+                  note: Change is valid；cwd=/Users/verstappen/LLM-Algorithm-Harness。
+                  result: passed
+                - name: 成本 HTTP 夹具 4 项本地端口权限重验
+                  note: 同一 4 项沙箱内因 listener.bind 权限失败；仅放开本地回环服务后 4 passed, 9 warnings, 5.64s。命令及 4
+                    个名称见
+                    docs/superpowers/reports/2026-11-23-fix-ws-session-revalidation-verify.md，日志
+                    /tmp/issue-510-suite-errors-recheck.log。未声称完整全套通过。
+                  result: passed
+                - name: 最终 diff 与 OpenSpec 完整一致性核对
+                  note: 3/3 tasks，1 MODIFIED requirement，9/9 场景映射到 api/routes/ws.py 与
+                    tests/test_api_ws.py；无未解决重要问题。当前会话核对，review_mode=off，无独立审查。证据
+                    docs/superpowers/reports/2026-11-23-fix-ws-session-revalidation-verify.md。
+                  result: passed
+              event: verification-ready
+              verificationReport: docs/superpowers/reports/2026-11-23-fix-ws-session-revalidation-verify.md
+        sequence: 12
+      fix-ws-session-revalidation:3:
+        results:
+          tweak.open:
+            sequence: 1
+            value:
+              event: open-complete
+              requirementsEvidence:
+                ref: openspec/changes/fix-ws-session-revalidation
+          tweak.open.evidence:
+            sequence: 2
+            value:
+              contentHash: acec4735fd5777491662e4190ee8732f4865b2a9646addbf28d5e843eeadfbe1
+              ref: openspec/changes/fix-ws-session-revalidation
+        sequence: 3
+      fix-ws-session-revalidation:5:
+        results:
+          tweak.build.escalation-confirm:
+            sequence: 4
+            value:
+              choice: continue
+              proposal:
+                input:
+                  change: fix-ws-session-revalidation
+                  changeDir: openspec/changes/fix-ws-session-revalidation
+                  workspaceBaseline:
+                    ref: 93aba920-1086-40a3-ae29-66baa0a21a4d
+                outputs:
+                  tweak.build.execute:
+                    event: escalation-requested
+                    proposal: "核对 api/password-change
+                      主规格与现有测试后，用户已明确选择沿用改密后保留会话的行为；纠正设计中的撤销假设，并将该回归改为改密后连接有效、后\
+                      续注销关闭。其余 #510 范围与实现方式不变，继续 tweak。"
+                    requirementsEvidence:
+                      contentHash: c0d5e158fa2c0e10717e6eb49dd13d16ff32f967bb7f4c5ca5c329a105a86571
+                      ref: openspec/changes/fix-ws-session-revalidation
+          tweak.build.execute:
+            sequence: 3
+            value:
+              event: escalation-requested
+              proposal: "核对 api/password-change
+                主规格与现有测试后，用户已明确选择沿用改密后保留会话的行为；纠正设计中的撤销假设，并将该回归改为改密后连接有效、后续注销关闭。\
+                其余 #510 范围与实现方式不变，继续 tweak。"
+              requirementsEvidence:
+                contentHash: c0d5e158fa2c0e10717e6eb49dd13d16ff32f967bb7f4c5ca5c329a105a86571
+                ref: openspec/changes/fix-ws-session-revalidation
+          tweak.open:
+            sequence: 1
+            value:
+              event: open-complete
+              requirementsEvidence:
+                ref: openspec/changes/fix-ws-session-revalidation
+          tweak.open.evidence:
+            sequence: 2
+            value:
+              contentHash: acec4735fd5777491662e4190ee8732f4865b2a9646addbf28d5e843eeadfbe1
+              ref: openspec/changes/fix-ws-session-revalidation
+        sequence: 5
+      fix-ws-session-revalidation:6:
+        results:
+          tweak.build.escalation-confirm:
+            sequence: 4
+            value:
+              choice: continue
+              proposal:
+                input:
+                  change: fix-ws-session-revalidation
+                  changeDir: openspec/changes/fix-ws-session-revalidation
+                  workspaceBaseline:
+                    ref: 93aba920-1086-40a3-ae29-66baa0a21a4d
+                outputs:
+                  tweak.build.execute:
+                    event: escalation-requested
+                    proposal: "核对 api/password-change
+                      主规格与现有测试后，用户已明确选择沿用改密后保留会话的行为；纠正设计中的撤销假设，并将该回归改为改密后连接有效、后\
+                      续注销关闭。其余 #510 范围与实现方式不变，继续 tweak。"
+                    requirementsEvidence:
+                      contentHash: c0d5e158fa2c0e10717e6eb49dd13d16ff32f967bb7f4c5ca5c329a105a86571
+                      ref: openspec/changes/fix-ws-session-revalidation
+          tweak.build.execute:
+            sequence: 5
+            value:
+              checks:
+                - name: .venv/bin/python -m pytest tests/test_api_ws.py -q --no-cov
+                    (cwd=/Users/verstappen/LLM-Algorithm-Harness)
+                  note: 最终候选：28 passed, 5 existing deprecation warnings, 43.65s。日志
+                    /tmp/issue-510-ws-final.log。
+                  result: passed
+                - name: .venv/bin/python -m pytest tests/test_api_ws.py tests/test_api_auth.py
+                    tests/test_task_submission_authorization.py
+                    tests/integration/test_api_workflows.py -q --no-cov
+                    (cwd=/Users/verstappen/LLM-Algorithm-Harness)
+                  note: 142 passed, 35 warnings, 80.37s。日志 /tmp/issue-510-regression.log。随后仅调整 WS
+                    部分初始化订阅登记与测试；WS 已用最终 28 项重新验证，认证、权限及 API 工作流结果仍适用。
+                  result: passed
+                - name: .venv/bin/python -m ruff check api/routes/ws.py tests/test_api_ws.py
+                  note: All checks passed；cwd=/Users/verstappen/LLM-Algorithm-Harness。
+                  result: passed
+                - name: .venv/bin/python -m black --check api/routes/ws.py tests/test_api_ws.py
+                  note: 2 files would be left
+                    unchanged；cwd=/Users/verstappen/LLM-Algorithm-Harness。
+                  result: passed
+                - name: git diff --check
+                  note: exit 0；cwd=/Users/verstappen/LLM-Algorithm-Harness。
+                  result: passed
+                - name: comet classic openspec -- validate fix-ws-session-revalidation --strict
+                  note: Change is valid；cwd=/Users/verstappen/LLM-Algorithm-Harness。
+                  result: passed
+              event: build-complete
+          tweak.open:
+            sequence: 1
+            value:
+              event: open-complete
+              requirementsEvidence:
+                ref: openspec/changes/fix-ws-session-revalidation
+          tweak.open.evidence:
+            sequence: 2
+            value:
+              contentHash: acec4735fd5777491662e4190ee8732f4865b2a9646addbf28d5e843eeadfbe1
+              ref: openspec/changes/fix-ws-session-revalidation
+        sequence: 6
+      fix-ws-session-revalidation:8:
+        results:
+          tweak.build.escalation-confirm:
+            sequence: 4
+            value:
+              choice: continue
+              proposal:
+                input:
+                  change: fix-ws-session-revalidation
+                  changeDir: openspec/changes/fix-ws-session-revalidation
+                  workspaceBaseline:
+                    ref: 93aba920-1086-40a3-ae29-66baa0a21a4d
+                outputs:
+                  tweak.build.execute:
+                    event: escalation-requested
+                    proposal: "核对 api/password-change
+                      主规格与现有测试后，用户已明确选择沿用改密后保留会话的行为；纠正设计中的撤销假设，并将该回归改为改密后连接有效、后\
+                      续注销关闭。其余 #510 范围与实现方式不变，继续 tweak。"
+                    requirementsEvidence:
+                      contentHash: c0d5e158fa2c0e10717e6eb49dd13d16ff32f967bb7f4c5ca5c329a105a86571
+                      ref: openspec/changes/fix-ws-session-revalidation
+          tweak.build.execute:
+            sequence: 5
+            value:
+              checks:
+                - name: .venv/bin/python -m pytest tests/test_api_ws.py -q --no-cov
+                    (cwd=/Users/verstappen/LLM-Algorithm-Harness)
+                  note: 最终候选：28 passed, 5 existing deprecation warnings, 43.65s。日志
+                    /tmp/issue-510-ws-final.log。
+                  result: passed
+                - name: .venv/bin/python -m pytest tests/test_api_ws.py tests/test_api_auth.py
+                    tests/test_task_submission_authorization.py
+                    tests/integration/test_api_workflows.py -q --no-cov
+                    (cwd=/Users/verstappen/LLM-Algorithm-Harness)
+                  note: 142 passed, 35 warnings, 80.37s。日志 /tmp/issue-510-regression.log。随后仅调整 WS
+                    部分初始化订阅登记与测试；WS 已用最终 28 项重新验证，认证、权限及 API 工作流结果仍适用。
+                  result: passed
+                - name: .venv/bin/python -m ruff check api/routes/ws.py tests/test_api_ws.py
+                  note: All checks passed；cwd=/Users/verstappen/LLM-Algorithm-Harness。
+                  result: passed
+                - name: .venv/bin/python -m black --check api/routes/ws.py tests/test_api_ws.py
+                  note: 2 files would be left
+                    unchanged；cwd=/Users/verstappen/LLM-Algorithm-Harness。
+                  result: passed
+                - name: git diff --check
+                  note: exit 0；cwd=/Users/verstappen/LLM-Algorithm-Harness。
+                  result: passed
+                - name: comet classic openspec -- validate fix-ws-session-revalidation --strict
+                  note: Change is valid；cwd=/Users/verstappen/LLM-Algorithm-Harness。
+                  result: passed
+              event: build-complete
+          tweak.open:
+            sequence: 1
+            value:
+              event: open-complete
+              requirementsEvidence:
+                ref: openspec/changes/fix-ws-session-revalidation
+          tweak.open.evidence:
+            sequence: 2
+            value:
+              contentHash: acec4735fd5777491662e4190ee8732f4865b2a9646addbf28d5e843eeadfbe1
+              ref: openspec/changes/fix-ws-session-revalidation
+          tweak.verify.report.evidence:
+            sequence: 7
+            value:
+              contentHash: 68f6345bc1b7c89fc99b03eabe98b8a9ca42d1d3593f60e4c91d8c32688dbd71
+              ref: docs/superpowers/reports/2026-11-23-fix-ws-session-revalidation-verify.md
+          tweak.verify.run:
+            sequence: 6
+            value:
+              checks:
+                - name: .venv/bin/python -m pytest tests/test_api_ws.py -q --no-cov
+                    (cwd=/Users/verstappen/LLM-Algorithm-Harness)
+                  note: 最终候选：28 passed, 5 existing deprecation warnings, 43.65s。日志
+                    /tmp/issue-510-ws-final.log。
+                  result: passed
+                - name: .venv/bin/python -m pytest tests/test_api_ws.py tests/test_api_auth.py
+                    tests/test_task_submission_authorization.py
+                    tests/integration/test_api_workflows.py -q --no-cov
+                    (cwd=/Users/verstappen/LLM-Algorithm-Harness)
+                  note: 142 passed, 35 warnings, 80.37s。日志 /tmp/issue-510-regression.log。随后仅调整 WS
+                    部分初始化订阅登记与测试；WS 已用最终 28 项重新验证，认证、权限及 API 工作流结果仍适用。
+                  result: passed
+                - name: .venv/bin/python -m ruff check api/routes/ws.py tests/test_api_ws.py
+                  note: All checks passed；cwd=/Users/verstappen/LLM-Algorithm-Harness。
+                  result: passed
+                - name: .venv/bin/python -m black --check api/routes/ws.py tests/test_api_ws.py
+                  note: 2 files would be left
+                    unchanged；cwd=/Users/verstappen/LLM-Algorithm-Harness。
+                  result: passed
+                - name: git diff --check
+                  note: exit 0；cwd=/Users/verstappen/LLM-Algorithm-Harness。
+                  result: passed
+                - name: comet classic openspec -- validate fix-ws-session-revalidation --strict
+                  note: Change is valid；cwd=/Users/verstappen/LLM-Algorithm-Harness。
+                  result: passed
+                - name: 成本 HTTP 夹具 4 项本地端口权限重验
+                  note: 同一 4 项沙箱内因 listener.bind 权限失败；仅放开本地回环服务后 4 passed, 9 warnings, 5.64s。命令及 4
+                    个名称见
+                    docs/superpowers/reports/2026-11-23-fix-ws-session-revalidation-verify.md，日志
+                    /tmp/issue-510-suite-errors-recheck.log。未声称完整全套通过。
+                  result: passed
+                - name: 最终 diff 与 OpenSpec 完整一致性核对
+                  note: 3/3 tasks，1 MODIFIED requirement，9/9 场景映射到 api/routes/ws.py 与
+                    tests/test_api_ws.py；无未解决重要问题。当前会话核对，review_mode=off，无独立审查。证据
+                    docs/superpowers/reports/2026-11-23-fix-ws-session-revalidation-verify.md。
+                  result: passed
+              event: verification-ready
+              verificationReport: docs/superpowers/reports/2026-11-23-fix-ws-session-revalidation-verify.md
+        sequence: 8
+    waits:
+      - id: fix-ws-session-revalidation:4
+        stepId: tweak.build.escalation-confirm
+        sequence: 4
+        status: resolved
+        proposal:
+          input:
+            change: fix-ws-session-revalidation
+            changeDir: openspec/changes/fix-ws-session-revalidation
+            workspaceBaseline:
+              ref: 93aba920-1086-40a3-ae29-66baa0a21a4d
+          outputs:
+            tweak.build.execute:
+              event: escalation-requested
+              proposal: "核对 api/password-change
+                主规格与现有测试后，用户已明确选择沿用改密后保留会话的行为；纠正设计中的撤销假设，并将该回归改为改密后连接有效、后续注销关闭。\
+                其余 #510 范围与实现方式不变，继续 tweak。"
+              requirementsEvidence:
+                contentHash: c0d5e158fa2c0e10717e6eb49dd13d16ff32f967bb7f4c5ca5c329a105a86571
+                ref: openspec/changes/fix-ws-session-revalidation
+        proposalHash: c0b4a2c5e4a5c99fa9995681761c3408b937a15efe92c87707cc641885081f7c
+        choices:
+          - continue
+          - upgrade
+        results:
+          tweak.build.execute:
+            sequence: 3
+            value:
+              event: escalation-requested
+              proposal: "核对 api/password-change
+                主规格与现有测试后，用户已明确选择沿用改密后保留会话的行为；纠正设计中的撤销假设，并将该回归改为改密后连接有效、后续注销关闭。\
+                其余 #510 范围与实现方式不变，继续 tweak。"
+              requirementsEvidence:
+                contentHash: c0d5e158fa2c0e10717e6eb49dd13d16ff32f967bb7f4c5ca5c329a105a86571
+                ref: openspec/changes/fix-ws-session-revalidation
+          tweak.open:
+            sequence: 1
+            value:
+              event: open-complete
+              requirementsEvidence:
+                ref: openspec/changes/fix-ws-session-revalidation
+          tweak.open.evidence:
+            sequence: 2
+            value:
+              contentHash: acec4735fd5777491662e4190ee8732f4865b2a9646addbf28d5e843eeadfbe1
+              ref: openspec/changes/fix-ws-session-revalidation
+        decision:
+          id: classic-escalation-c0b4a2c5e4a5c99fa9995681761c3408b937a15efe92c87707cc641885081f7c-continue
+          choice: continue
+          proposalHash: c0b4a2c5e4a5c99fa9995681761c3408b937a15efe92c87707cc641885081f7c
+      - id: fix-ws-session-revalidation:9
+        stepId: tweak.archive.confirm
+        sequence: 9
+        status: resolved
+        proposal:
+          input:
+            change: fix-ws-session-revalidation
+            changeDir: openspec/changes/fix-ws-session-revalidation
+            workspaceBaseline:
+              ref: 93aba920-1086-40a3-ae29-66baa0a21a4d
+          outputs:
+            tweak.archive.prepare:
+              prBaseBranch: main
+              remote: origin
+              summary: "修复 #510：原始建连凭据在动作/发送前重新认证，每秒检查空闲连接，失效以 4401
+                关闭并释放所有订阅及后台任务；保持用户确认的改密保留会话语义。交付包括
+                api/routes/ws.py、tests/test_api_ws.py、验证报告、当前 change 归档及
+                api/progress-streaming 主规格同步。当前分支 main，目标 main，remote origin，PR
+                base main；local 仅本地提交，push 推送 origin/main，pr
+                须先确认合适的独立交付分支。Verify 已通过，WS 28 项与相关组合回归 142 项通过；额外全套未完成，4
+                项本地端口权限错误在放开回环服务后重验通过。"
+              targetBranch: main
+        proposalHash: 39235859175efe6214862a9358b427237aabc800b226124d15693dd9795eb380
+        choices:
+          - local
+          - push
+          - pr
+          - reverify
+          - later
+        results:
+          tweak.archive.prepare:
+            sequence: 8
+            value:
+              prBaseBranch: main
+              remote: origin
+              summary: "修复 #510：原始建连凭据在动作/发送前重新认证，每秒检查空闲连接，失效以 4401
+                关闭并释放所有订阅及后台任务；保持用户确认的改密保留会话语义。交付包括
+                api/routes/ws.py、tests/test_api_ws.py、验证报告、当前 change 归档及
+                api/progress-streaming 主规格同步。当前分支 main，目标 main，remote origin，PR
+                base main；local 仅本地提交，push 推送 origin/main，pr
+                须先确认合适的独立交付分支。Verify 已通过，WS 28 项与相关组合回归 142 项通过；额外全套未完成，4
+                项本地端口权限错误在放开回环服务后重验通过。"
+              targetBranch: main
+          tweak.build.escalation-confirm:
+            sequence: 4
+            value:
+              choice: continue
+              proposal:
+                input:
+                  change: fix-ws-session-revalidation
+                  changeDir: openspec/changes/fix-ws-session-revalidation
+                  workspaceBaseline:
+                    ref: 93aba920-1086-40a3-ae29-66baa0a21a4d
+                outputs:
+                  tweak.build.execute:
+                    event: escalation-requested
+                    proposal: "核对 api/password-change
+                      主规格与现有测试后，用户已明确选择沿用改密后保留会话的行为；纠正设计中的撤销假设，并将该回归改为改密后连接有效、后\
+                      续注销关闭。其余 #510 范围与实现方式不变，继续 tweak。"
+                    requirementsEvidence:
+                      contentHash: c0d5e158fa2c0e10717e6eb49dd13d16ff32f967bb7f4c5ca5c329a105a86571
+                      ref: openspec/changes/fix-ws-session-revalidation
+          tweak.build.execute:
+            sequence: 5
+            value:
+              checks:
+                - name: .venv/bin/python -m pytest tests/test_api_ws.py -q --no-cov
+                    (cwd=/Users/verstappen/LLM-Algorithm-Harness)
+                  note: 最终候选：28 passed, 5 existing deprecation warnings, 43.65s。日志
+                    /tmp/issue-510-ws-final.log。
+                  result: passed
+                - name: .venv/bin/python -m pytest tests/test_api_ws.py tests/test_api_auth.py
+                    tests/test_task_submission_authorization.py
+                    tests/integration/test_api_workflows.py -q --no-cov
+                    (cwd=/Users/verstappen/LLM-Algorithm-Harness)
+                  note: 142 passed, 35 warnings, 80.37s。日志 /tmp/issue-510-regression.log。随后仅调整 WS
+                    部分初始化订阅登记与测试；WS 已用最终 28 项重新验证，认证、权限及 API 工作流结果仍适用。
+                  result: passed
+                - name: .venv/bin/python -m ruff check api/routes/ws.py tests/test_api_ws.py
+                  note: All checks passed；cwd=/Users/verstappen/LLM-Algorithm-Harness。
+                  result: passed
+                - name: .venv/bin/python -m black --check api/routes/ws.py tests/test_api_ws.py
+                  note: 2 files would be left
+                    unchanged；cwd=/Users/verstappen/LLM-Algorithm-Harness。
+                  result: passed
+                - name: git diff --check
+                  note: exit 0；cwd=/Users/verstappen/LLM-Algorithm-Harness。
+                  result: passed
+                - name: comet classic openspec -- validate fix-ws-session-revalidation --strict
+                  note: Change is valid；cwd=/Users/verstappen/LLM-Algorithm-Harness。
+                  result: passed
+              event: build-complete
+          tweak.open:
+            sequence: 1
+            value:
+              event: open-complete
+              requirementsEvidence:
+                ref: openspec/changes/fix-ws-session-revalidation
+          tweak.open.evidence:
+            sequence: 2
+            value:
+              contentHash: acec4735fd5777491662e4190ee8732f4865b2a9646addbf28d5e843eeadfbe1
+              ref: openspec/changes/fix-ws-session-revalidation
+          tweak.verify.report.evidence:
+            sequence: 7
+            value:
+              contentHash: 68f6345bc1b7c89fc99b03eabe98b8a9ca42d1d3593f60e4c91d8c32688dbd71
+              ref: docs/superpowers/reports/2026-11-23-fix-ws-session-revalidation-verify.md
+          tweak.verify.run:
+            sequence: 6
+            value:
+              checks:
+                - name: .venv/bin/python -m pytest tests/test_api_ws.py -q --no-cov
+                    (cwd=/Users/verstappen/LLM-Algorithm-Harness)
+                  note: 最终候选：28 passed, 5 existing deprecation warnings, 43.65s。日志
+                    /tmp/issue-510-ws-final.log。
+                  result: passed
+                - name: .venv/bin/python -m pytest tests/test_api_ws.py tests/test_api_auth.py
+                    tests/test_task_submission_authorization.py
+                    tests/integration/test_api_workflows.py -q --no-cov
+                    (cwd=/Users/verstappen/LLM-Algorithm-Harness)
+                  note: 142 passed, 35 warnings, 80.37s。日志 /tmp/issue-510-regression.log。随后仅调整 WS
+                    部分初始化订阅登记与测试；WS 已用最终 28 项重新验证，认证、权限及 API 工作流结果仍适用。
+                  result: passed
+                - name: .venv/bin/python -m ruff check api/routes/ws.py tests/test_api_ws.py
+                  note: All checks passed；cwd=/Users/verstappen/LLM-Algorithm-Harness。
+                  result: passed
+                - name: .venv/bin/python -m black --check api/routes/ws.py tests/test_api_ws.py
+                  note: 2 files would be left
+                    unchanged；cwd=/Users/verstappen/LLM-Algorithm-Harness。
+                  result: passed
+                - name: git diff --check
+                  note: exit 0；cwd=/Users/verstappen/LLM-Algorithm-Harness。
+                  result: passed
+                - name: comet classic openspec -- validate fix-ws-session-revalidation --strict
+                  note: Change is valid；cwd=/Users/verstappen/LLM-Algorithm-Harness。
+                  result: passed
+                - name: 成本 HTTP 夹具 4 项本地端口权限重验
+                  note: 同一 4 项沙箱内因 listener.bind 权限失败；仅放开本地回环服务后 4 passed, 9 warnings, 5.64s。命令及 4
+                    个名称见
+                    docs/superpowers/reports/2026-11-23-fix-ws-session-revalidation-verify.md，日志
+                    /tmp/issue-510-suite-errors-recheck.log。未声称完整全套通过。
+                  result: passed
+                - name: 最终 diff 与 OpenSpec 完整一致性核对
+                  note: 3/3 tasks，1 MODIFIED requirement，9/9 场景映射到 api/routes/ws.py 与
+                    tests/test_api_ws.py；无未解决重要问题。当前会话核对，review_mode=off，无独立审查。证据
+                    docs/superpowers/reports/2026-11-23-fix-ws-session-revalidation-verify.md。
+                  result: passed
+              event: verification-ready
+              verificationReport: docs/superpowers/reports/2026-11-23-fix-ws-session-revalidation-verify.md
+        decision:
+          id: classic-archive-39235859175efe6214862a9358b427237aabc800b226124d15693dd9795eb380-local
+          choice: local
+          proposalHash: 39235859175efe6214862a9358b427237aabc800b226124d15693dd9795eb380
+    evidenceWaits:
+      - id: fix-ws-session-revalidation:2
+        stepId: tweak.open.evidence
+        sequence: 2
+        kind: classic-open-artifacts
+        status: resolved
+        results:
+          tweak.open:
+            sequence: 1
+            value:
+              event: open-complete
+              requirementsEvidence:
+                ref: openspec/changes/fix-ws-session-revalidation
+        receipt:
+          ref: openspec/changes/fix-ws-session-revalidation
+          contentHash: acec4735fd5777491662e4190ee8732f4865b2a9646addbf28d5e843eeadfbe1
+          submissionId: 5c3469b5-3dde-44fa-9235-ab724f3395d6
+      - id: fix-ws-session-revalidation:7
+        stepId: tweak.verify.report.evidence
+        sequence: 7
+        kind: classic-verification-report
+        status: resolved
+        results:
+          tweak.build.escalation-confirm:
+            sequence: 4
+            value:
+              choice: continue
+              proposal:
+                input:
+                  change: fix-ws-session-revalidation
+                  changeDir: openspec/changes/fix-ws-session-revalidation
+                  workspaceBaseline:
+                    ref: 93aba920-1086-40a3-ae29-66baa0a21a4d
+                outputs:
+                  tweak.build.execute:
+                    event: escalation-requested
+                    proposal: "核对 api/password-change
+                      主规格与现有测试后，用户已明确选择沿用改密后保留会话的行为；纠正设计中的撤销假设，并将该回归改为改密后连接有效、后\
+                      续注销关闭。其余 #510 范围与实现方式不变，继续 tweak。"
+                    requirementsEvidence:
+                      contentHash: c0d5e158fa2c0e10717e6eb49dd13d16ff32f967bb7f4c5ca5c329a105a86571
+                      ref: openspec/changes/fix-ws-session-revalidation
+          tweak.build.execute:
+            sequence: 5
+            value:
+              checks:
+                - name: .venv/bin/python -m pytest tests/test_api_ws.py -q --no-cov
+                    (cwd=/Users/verstappen/LLM-Algorithm-Harness)
+                  note: 最终候选：28 passed, 5 existing deprecation warnings, 43.65s。日志
+                    /tmp/issue-510-ws-final.log。
+                  result: passed
+                - name: .venv/bin/python -m pytest tests/test_api_ws.py tests/test_api_auth.py
+                    tests/test_task_submission_authorization.py
+                    tests/integration/test_api_workflows.py -q --no-cov
+                    (cwd=/Users/verstappen/LLM-Algorithm-Harness)
+                  note: 142 passed, 35 warnings, 80.37s。日志 /tmp/issue-510-regression.log。随后仅调整 WS
+                    部分初始化订阅登记与测试；WS 已用最终 28 项重新验证，认证、权限及 API 工作流结果仍适用。
+                  result: passed
+                - name: .venv/bin/python -m ruff check api/routes/ws.py tests/test_api_ws.py
+                  note: All checks passed；cwd=/Users/verstappen/LLM-Algorithm-Harness。
+                  result: passed
+                - name: .venv/bin/python -m black --check api/routes/ws.py tests/test_api_ws.py
+                  note: 2 files would be left
+                    unchanged；cwd=/Users/verstappen/LLM-Algorithm-Harness。
+                  result: passed
+                - name: git diff --check
+                  note: exit 0；cwd=/Users/verstappen/LLM-Algorithm-Harness。
+                  result: passed
+                - name: comet classic openspec -- validate fix-ws-session-revalidation --strict
+                  note: Change is valid；cwd=/Users/verstappen/LLM-Algorithm-Harness。
+                  result: passed
+              event: build-complete
+          tweak.open:
+            sequence: 1
+            value:
+              event: open-complete
+              requirementsEvidence:
+                ref: openspec/changes/fix-ws-session-revalidation
+          tweak.open.evidence:
+            sequence: 2
+            value:
+              contentHash: acec4735fd5777491662e4190ee8732f4865b2a9646addbf28d5e843eeadfbe1
+              ref: openspec/changes/fix-ws-session-revalidation
+          tweak.verify.run:
+            sequence: 6
+            value:
+              checks:
+                - name: .venv/bin/python -m pytest tests/test_api_ws.py -q --no-cov
+                    (cwd=/Users/verstappen/LLM-Algorithm-Harness)
+                  note: 最终候选：28 passed, 5 existing deprecation warnings, 43.65s。日志
+                    /tmp/issue-510-ws-final.log。
+                  result: passed
+                - name: .venv/bin/python -m pytest tests/test_api_ws.py tests/test_api_auth.py
+                    tests/test_task_submission_authorization.py
+                    tests/integration/test_api_workflows.py -q --no-cov
+                    (cwd=/Users/verstappen/LLM-Algorithm-Harness)
+                  note: 142 passed, 35 warnings, 80.37s。日志 /tmp/issue-510-regression.log。随后仅调整 WS
+                    部分初始化订阅登记与测试；WS 已用最终 28 项重新验证，认证、权限及 API 工作流结果仍适用。
+                  result: passed
+                - name: .venv/bin/python -m ruff check api/routes/ws.py tests/test_api_ws.py
+                  note: All checks passed；cwd=/Users/verstappen/LLM-Algorithm-Harness。
+                  result: passed
+                - name: .venv/bin/python -m black --check api/routes/ws.py tests/test_api_ws.py
+                  note: 2 files would be left
+                    unchanged；cwd=/Users/verstappen/LLM-Algorithm-Harness。
+                  result: passed
+                - name: git diff --check
+                  note: exit 0；cwd=/Users/verstappen/LLM-Algorithm-Harness。
+                  result: passed
+                - name: comet classic openspec -- validate fix-ws-session-revalidation --strict
+                  note: Change is valid；cwd=/Users/verstappen/LLM-Algorithm-Harness。
+                  result: passed
+                - name: 成本 HTTP 夹具 4 项本地端口权限重验
+                  note: 同一 4 项沙箱内因 listener.bind 权限失败；仅放开本地回环服务后 4 passed, 9 warnings, 5.64s。命令及 4
+                    个名称见
+                    docs/superpowers/reports/2026-11-23-fix-ws-session-revalidation-verify.md，日志
+                    /tmp/issue-510-suite-errors-recheck.log。未声称完整全套通过。
+                  result: passed
+                - name: 最终 diff 与 OpenSpec 完整一致性核对
+                  note: 3/3 tasks，1 MODIFIED requirement，9/9 场景映射到 api/routes/ws.py 与
+                    tests/test_api_ws.py；无未解决重要问题。当前会话核对，review_mode=off，无独立审查。证据
+                    docs/superpowers/reports/2026-11-23-fix-ws-session-revalidation-verify.md。
+                  result: passed
+              event: verification-ready
+              verificationReport: docs/superpowers/reports/2026-11-23-fix-ws-session-revalidation-verify.md
+        receipt:
+          ref: docs/superpowers/reports/2026-11-23-fix-ws-session-revalidation-verify.md
+          contentHash: 68f6345bc1b7c89fc99b03eabe98b8a9ca42d1d3593f60e4c91d8c32688dbd71
+          submissionId: 7910fe97-1660-4813-acc7-07ba73b824ee
+    ready: []
+    joins: {}
+    outputs:
+      tweak.archive.confirm:
+        sequence: 9
+        value:
+          choice: local
+          proposal:
+            input:
+              change: fix-ws-session-revalidation
+              changeDir: openspec/changes/fix-ws-session-revalidation
+              workspaceBaseline:
+                ref: 93aba920-1086-40a3-ae29-66baa0a21a4d
+            outputs:
+              tweak.archive.prepare:
+                prBaseBranch: main
+                remote: origin
+                summary: "修复 #510：原始建连凭据在动作/发送前重新认证，每秒检查空闲连接，失效以 4401
+                  关闭并释放所有订阅及后台任务；保持用户确认的改密保留会话语义。交付包括
+                  api/routes/ws.py、tests/test_api_ws.py、验证报告、当前 change 归档及
+                  api/progress-streaming 主规格同步。当前分支 main，目标 main，remote
+                  origin，PR base main；local 仅本地提交，push 推送 origin/main，pr
+                  须先确认合适的独立交付分支。Verify 已通过，WS 28 项与相关组合回归 142 项通过；额外全套未完成，4
+                  项本地端口权限错误在放开回环服务后重验通过。"
+                targetBranch: main
+      tweak.archive.execute:
+        sequence: 11
+        value:
+          archiveDirectory: openspec/changes/archive/2026-11-23-fix-ws-session-revalidation
+      tweak.archive.preflight:
+        sequence: 10
+        value:
+          baseCommit: 9fd0bbb841b9d378b358bb8ca6296e685c605a3c
+          deliveryAction: local
+          deliveryPaths:
+            - api/routes/ws.py
+            - tests/test_api_ws.py
+          prBaseBranch: main
+          remote: origin
+          remoteIdentity: 128eeb1e6f0d21b25601fcb7f9aad36adfdfb4d76f37f54f004760410190f351
+          targetBranch: main
+          verifiedBranch: main
+      tweak.archive.prepare:
+        sequence: 8
+        value:
+          prBaseBranch: main
+          remote: origin
+          summary: "修复 #510：原始建连凭据在动作/发送前重新认证，每秒检查空闲连接，失效以 4401
+            关闭并释放所有订阅及后台任务；保持用户确认的改密保留会话语义。交付包括
+            api/routes/ws.py、tests/test_api_ws.py、验证报告、当前 change 归档及
+            api/progress-streaming 主规格同步。当前分支 main，目标 main，remote origin，PR base
+            main；local 仅本地提交，push 推送 origin/main，pr 须先确认合适的独立交付分支。Verify 已通过，WS
+            28 项与相关组合回归 142 项通过；额外全套未完成，4 项本地端口权限错误在放开回环服务后重验通过。"
+          targetBranch: main
+      tweak.build.escalation-confirm:
+        sequence: 4
+        value:
+          choice: continue
+          proposal:
+            input:
+              change: fix-ws-session-revalidation
+              changeDir: openspec/changes/fix-ws-session-revalidation
+              workspaceBaseline:
+                ref: 93aba920-1086-40a3-ae29-66baa0a21a4d
+            outputs:
+              tweak.build.execute:
+                event: escalation-requested
+                proposal: "核对 api/password-change
+                  主规格与现有测试后，用户已明确选择沿用改密后保留会话的行为；纠正设计中的撤销假设，并将该回归改为改密后连接有效、后续注销关\
+                  闭。其余 #510 范围与实现方式不变，继续 tweak。"
+                requirementsEvidence:
+                  contentHash: c0d5e158fa2c0e10717e6eb49dd13d16ff32f967bb7f4c5ca5c329a105a86571
+                  ref: openspec/changes/fix-ws-session-revalidation
+      tweak.build.execute:
+        sequence: 5
+        value:
+          checks:
+            - name: .venv/bin/python -m pytest tests/test_api_ws.py -q --no-cov
+                (cwd=/Users/verstappen/LLM-Algorithm-Harness)
+              note: 最终候选：28 passed, 5 existing deprecation warnings, 43.65s。日志
+                /tmp/issue-510-ws-final.log。
+              result: passed
+            - name: .venv/bin/python -m pytest tests/test_api_ws.py tests/test_api_auth.py
+                tests/test_task_submission_authorization.py
+                tests/integration/test_api_workflows.py -q --no-cov
+                (cwd=/Users/verstappen/LLM-Algorithm-Harness)
+              note: 142 passed, 35 warnings, 80.37s。日志 /tmp/issue-510-regression.log。随后仅调整 WS
+                部分初始化订阅登记与测试；WS 已用最终 28 项重新验证，认证、权限及 API 工作流结果仍适用。
+              result: passed
+            - name: .venv/bin/python -m ruff check api/routes/ws.py tests/test_api_ws.py
+              note: All checks passed；cwd=/Users/verstappen/LLM-Algorithm-Harness。
+              result: passed
+            - name: .venv/bin/python -m black --check api/routes/ws.py tests/test_api_ws.py
+              note: 2 files would be left
+                unchanged；cwd=/Users/verstappen/LLM-Algorithm-Harness。
+              result: passed
+            - name: git diff --check
+              note: exit 0；cwd=/Users/verstappen/LLM-Algorithm-Harness。
+              result: passed
+            - name: comet classic openspec -- validate fix-ws-session-revalidation --strict
+              note: Change is valid；cwd=/Users/verstappen/LLM-Algorithm-Harness。
+              result: passed
+          event: build-complete
+      tweak.open:
+        sequence: 1
+        value:
+          event: open-complete
+          requirementsEvidence:
+            ref: openspec/changes/fix-ws-session-revalidation
+      tweak.open.evidence:
+        sequence: 2
+        value:
+          contentHash: acec4735fd5777491662e4190ee8732f4865b2a9646addbf28d5e843eeadfbe1
+          ref: openspec/changes/fix-ws-session-revalidation
+      tweak.verify.report.evidence:
+        sequence: 7
+        value:
+          contentHash: 68f6345bc1b7c89fc99b03eabe98b8a9ca42d1d3593f60e4c91d8c32688dbd71
+          ref: docs/superpowers/reports/2026-11-23-fix-ws-session-revalidation-verify.md
+      tweak.verify.run:
+        sequence: 6
+        value:
+          checks:
+            - name: .venv/bin/python -m pytest tests/test_api_ws.py -q --no-cov
+                (cwd=/Users/verstappen/LLM-Algorithm-Harness)
+              note: 最终候选：28 passed, 5 existing deprecation warnings, 43.65s。日志
+                /tmp/issue-510-ws-final.log。
+              result: passed
+            - name: .venv/bin/python -m pytest tests/test_api_ws.py tests/test_api_auth.py
+                tests/test_task_submission_authorization.py
+                tests/integration/test_api_workflows.py -q --no-cov
+                (cwd=/Users/verstappen/LLM-Algorithm-Harness)
+              note: 142 passed, 35 warnings, 80.37s。日志 /tmp/issue-510-regression.log。随后仅调整 WS
+                部分初始化订阅登记与测试；WS 已用最终 28 项重新验证，认证、权限及 API 工作流结果仍适用。
+              result: passed
+            - name: .venv/bin/python -m ruff check api/routes/ws.py tests/test_api_ws.py
+              note: All checks passed；cwd=/Users/verstappen/LLM-Algorithm-Harness。
+              result: passed
+            - name: .venv/bin/python -m black --check api/routes/ws.py tests/test_api_ws.py
+              note: 2 files would be left
+                unchanged；cwd=/Users/verstappen/LLM-Algorithm-Harness。
+              result: passed
+            - name: git diff --check
+              note: exit 0；cwd=/Users/verstappen/LLM-Algorithm-Harness。
+              result: passed
+            - name: comet classic openspec -- validate fix-ws-session-revalidation --strict
+              note: Change is valid；cwd=/Users/verstappen/LLM-Algorithm-Harness。
+              result: passed
+            - name: 成本 HTTP 夹具 4 项本地端口权限重验
+              note: 同一 4 项沙箱内因 listener.bind 权限失败；仅放开本地回环服务后 4 passed, 9 warnings, 5.64s。命令及 4
+                个名称见
+                docs/superpowers/reports/2026-11-23-fix-ws-session-revalidation-verify.md，日志
+                /tmp/issue-510-suite-errors-recheck.log。未声称完整全套通过。
+              result: passed
+            - name: 最终 diff 与 OpenSpec 完整一致性核对
+              note: 3/3 tasks，1 MODIFIED requirement，9/9 场景映射到 api/routes/ws.py 与
+                tests/test_api_ws.py；无未解决重要问题。当前会话核对，review_mode=off，无独立审查。证据
+                docs/superpowers/reports/2026-11-23-fix-ws-session-revalidation-verify.md。
+              result: passed
+          event: verification-ready
+          verificationReport: docs/superpowers/reports/2026-11-23-fix-ws-session-revalidation-verify.md
+    children: []
+    lineage: []
+  sourceRevision: 19
+  sourceHash: 7fabbce732419d24c7622072fc53d4ab1b2c0bbf19800319f4f1be5d8054c249
+direct_override: null
+handoff_context: null
+handoff_hash: null
+classic_profile: null
+classic_migration: null
+check_epoch: 5

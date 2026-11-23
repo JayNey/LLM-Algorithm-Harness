@@ -1,0 +1,37 @@
+{
+  "schema": "comet.classic.archive-manifest.v2",
+  "execution": {
+    "workflow": {
+      "id": "comet-classic-tweak",
+      "version": "2",
+      "hash": "518d3e8e12eb39899775cb7d2ddcc7ddeba10cb1f1d43cff7b03f2ca61a70c65"
+    },
+    "runId": "fix-ws-session-revalidation",
+    "actionId": "fix-ws-session-revalidation:11",
+    "attempt": 1,
+    "inputHash": "47dbbfa76a2abc194d10729fb0898479c87e46a8fbef5257f521d42cd323e6ed",
+    "claimToken": "portable-3e59cee86b9dc63a2fe1ae534a363bea4dbd1e97df0b3f5922dd4e627678c086"
+  },
+  "activeRef": "openspec/changes/fix-ws-session-revalidation",
+  "archiveRef": "openspec/changes/archive/2026-11-23-fix-ws-session-revalidation",
+  "stateRef": "openspec/changes/archive/2026-11-23-fix-ws-session-revalidation/comet-state.yaml",
+  "paths": [
+    "openspec/changes/archive/2026-11-23-fix-ws-session-revalidation/.comet/archive-requirements.json",
+    "openspec/changes/archive/2026-11-23-fix-ws-session-revalidation/.openspec.yaml",
+    "openspec/changes/archive/2026-11-23-fix-ws-session-revalidation/design.md",
+    "openspec/changes/archive/2026-11-23-fix-ws-session-revalidation/proposal.md",
+    "openspec/changes/archive/2026-11-23-fix-ws-session-revalidation/specs/api/progress-streaming/spec.md",
+    "openspec/changes/archive/2026-11-23-fix-ws-session-revalidation/tasks.md",
+    "openspec/changes/archive/2026-11-23-fix-ws-session-revalidation/walkthrough.html",
+    "openspec/specs/api/progress-streaming/spec.md"
+  ],
+  "sourcePaths": [
+    "openspec/changes/fix-ws-session-revalidation/.comet/archive-requirements.json",
+    "openspec/changes/fix-ws-session-revalidation/.openspec.yaml",
+    "openspec/changes/fix-ws-session-revalidation/design.md",
+    "openspec/changes/fix-ws-session-revalidation/proposal.md",
+    "openspec/changes/fix-ws-session-revalidation/specs/api/progress-streaming/spec.md",
+    "openspec/changes/fix-ws-session-revalidation/tasks.md",
+    "openspec/changes/fix-ws-session-revalidation/walkthrough.html"
+  ]
+}
