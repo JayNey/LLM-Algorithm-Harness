@@ -17,6 +17,7 @@ from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
 from api.db.models import AlertEvent, AlertRule, Evaluation, EvaluationResult, utcnow
+from api.services.alert_target_policy import authorized_alert_target
 from api.services.cost_service import CostService
 from api.services.in_app_notification_service import budget_event_key, stage_notification
 from src.cost_alert import CostAlertSender
@@ -55,7 +56,7 @@ class WebCostAlertDispatcher:
     @staticmethod
     def _config(rule: AlertRule) -> CostAlertConfig:
         if rule.channel in {"slack", "webhook"}:
-            endpoint = SecretStr(rule.target)
+            endpoint = SecretStr(authorized_alert_target(rule.channel, rule.target))
             if rule.channel == "slack":
                 return CostAlertConfig(slack_webhook_url=endpoint)
             return CostAlertConfig(webhook_url=endpoint)

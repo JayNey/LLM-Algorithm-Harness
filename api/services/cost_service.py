@@ -35,6 +35,7 @@ from api.db import (
 )
 from api.db.engine import business_database_url
 from api.db.models import SpendRecord, utcnow
+from api.services.alert_target_policy import authorized_alert_target
 from src.cost_optimizer import build_advisory
 from src.models import NOT_EVALUABLE
 from src.utils.pricing import PricingManager
@@ -616,13 +617,14 @@ class CostService:
             raise ValueError(f"channel must be one of {sorted(_CHANNELS)}")
         if request.channel != "log" and not request.target:
             raise ValueError(f"channel {request.channel} requires a target")
+        target = authorized_alert_target(request.channel, request.target)
         row = AlertRule(
             id=str(uuid.uuid4()),
             user_id=owner_id,
             name=request.name,
             threshold_pct=request.threshold_pct,
             channel=request.channel,
-            target=request.target,
+            target=target,
             enabled=request.enabled,
             created_at=utcnow(),
             updated_at=utcnow(),
@@ -672,6 +674,7 @@ class CostService:
                 row.name = request.name
             if row.channel != "log" and not row.target:
                 raise ValueError(f"channel {row.channel} requires a target")
+            row.target = authorized_alert_target(row.channel, row.target)
             row.updated_at = utcnow()
             return self._rule_view(row)
 

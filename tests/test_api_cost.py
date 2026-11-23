@@ -1,5 +1,6 @@
 """API tests for cost tracking, budgets, alerts and pricing (issue #154)."""
 
+import json
 import secrets
 import socket
 import threading
@@ -48,6 +49,14 @@ def _app_with_benchmarks(tmp_path):
 PASSWORD = "a-long-test-password-!"
 KEY = "sk-private-unique-test-value"
 WEBHOOK = "https://hooks.example.com/abc/secret-token"
+
+
+@pytest.fixture(autouse=True)
+def allowed_webhook_targets(monkeypatch):
+    monkeypatch.setenv(
+        "COST_ALERT_ALLOWED_WEBHOOK_URLS",
+        json.dumps([WEBHOOK, "https://hooks.example.com/other"]),
+    )
 
 
 def auth_config(tmp_path):
@@ -345,6 +354,157 @@ class TestBudgets:
 
 
 class TestAlertRules:
+    def test_policy_defaults_and_settings_repr_hide_secrets(self, monkeypatch):
+        from api.services.alert_target_policy import WebAlertTargetSettings
+
+        monkeypatch.delenv("COST_ALERT_ALLOWED_WEBHOOK_URLS")
+        assert WebAlertTargetSettings(_env_file=None).allowed_webhook_urls == []
+        monkeypatch.setenv("COST_ALERT_ALLOWED_WEBHOOK_URLS", json.dumps([WEBHOOK]))
+        assert "secret-token" not in repr(WebAlertTargetSettings(_env_file=None))
+
+    @pytest.mark.parametrize("channel", ["slack", "webhook"])
+    def test_complete_url_with_query_is_allowed(self, api, monkeypatch, channel):
+        client, headers, _, _ = api
+        target = "https://hooks.example.com/CaseSensitive?token=private&mode=budget"
+        monkeypatch.setenv("COST_ALERT_ALLOWED_WEBHOOK_URLS", json.dumps([target]))
+        response = client.post(
+            "/api/v1/alerts",
+            headers=headers,
+            json={"threshold_pct": 50, "channel": channel, "target": target},
+        )
+        assert response.status_code == 201, response.text
+        assert response.json()["data"]["target"] == "https://hooks.example.com/***"
+        assert "private" not in response.text
+        for other in [target.replace("CaseSensitive", "casesensitive"), target + "&extra=1"]:
+            assert (
+                client.patch(
+                    f"/api/v1/alerts/{response.json()['data']['id']}",
+                    headers=headers,
+                    json={"target": other},
+                ).status_code
+                == 400
+            )
+
+    def test_channel_only_change_cannot_authorize_log_target(self, api):
+        client, headers, _, _ = api
+        created = client.post(
+            "/api/v1/alerts",
+            headers=headers,
+            json={"threshold_pct": 50, "channel": "log", "target": "https://127.0.0.1/private"},
+        ).json()["data"]
+        assert (
+            client.patch(
+                f"/api/v1/alerts/{created['id']}",
+                headers=headers,
+                json={"channel": "webhook"},
+            ).status_code
+            == 400
+        )
+        assert client.get("/api/v1/alerts", headers=headers).json()["data"] == [created]
+
+    @pytest.mark.parametrize("channel", ["webhook", "slack"])
+    @pytest.mark.parametrize(
+        "target",
+        [
+            "https://127.0.0.1:9443/internal",
+            "https://[::1]/internal",
+            "https://[fd00::1]/internal",
+            "https://10.0.0.1/internal",
+            "https://169.254.169.254/internal",
+            "https://private.example/internal",
+            "https://hooks.example.com/abc/secret-token/extra",
+            "https://hooks.example.com:9443/abc/secret-token",
+            "https://hooks.example.com/abc/secret-token?other=secret",
+            "https://hooks.example.com.evil.example/abc/secret-token",
+        ],
+    )
+    def test_unapproved_targets_rejected_without_network(self, api, monkeypatch, channel, target):
+        client, headers, _, _ = api
+        dns = Mock(return_value=[(socket.AF_INET, socket.SOCK_STREAM, 6, "", ("10.0.0.1", 443))])
+        post = Mock()
+        monkeypatch.setattr(socket, "getaddrinfo", dns)
+        monkeypatch.setattr("src.cost_alert.requests.post", post)
+        response = client.post(
+            "/api/v1/alerts",
+            headers=headers,
+            json={"threshold_pct": 50, "channel": channel, "target": target},
+        )
+        assert response.status_code == 400, response.text
+        assert target not in response.text
+        assert "secret-token" not in response.text
+        assert client.get("/api/v1/alerts", headers=headers).json()["data"] == []
+        dns.assert_not_called()
+        post.assert_not_called()
+
+    @pytest.mark.parametrize("configuration", ["[]", "not-json", "[123]", "{}"])
+    def test_empty_or_invalid_allowlist_fails_closed(self, api, monkeypatch, configuration):
+        client, headers, _, _ = api
+        monkeypatch.setenv("COST_ALERT_ALLOWED_WEBHOOK_URLS", configuration)
+        response = client.post(
+            "/api/v1/alerts",
+            headers=headers,
+            json={"threshold_pct": 50, "channel": "webhook", "target": WEBHOOK},
+        )
+        assert response.status_code == 400, response.text
+        assert "secret-token" not in response.text
+
+    @pytest.mark.parametrize(
+        "target",
+        [
+            "http://hooks.example.com/secret",
+            "https://user:secret@hooks.example.com/hook",
+            "https://hooks.example.com/hook#secret",
+            "https://hooks.example.com:bad/secret",
+            "https://hooks.example.com:65536/secret",
+            "https://hooks.example.com:/secret",
+            "https://[::1]evil/secret",
+            "https://@hooks.example.com/secret",
+            "https://hooks.example.com\\@127.0.0.1/secret",
+            "https://hooks.example.com/\nsecret",
+            "https:///secret",
+            "https://*/secret",
+        ],
+    )
+    def test_dangerous_syntax_rejected_even_if_listed(self, api, monkeypatch, target):
+        client, headers, _, _ = api
+        monkeypatch.setenv("COST_ALERT_ALLOWED_WEBHOOK_URLS", json.dumps([target]))
+        response = client.post(
+            "/api/v1/alerts",
+            headers=headers,
+            json={"threshold_pct": 50, "channel": "webhook", "target": target},
+        )
+        assert response.status_code == 400, response.text
+        assert "secret" not in response.text
+
+    @pytest.mark.parametrize(
+        "change",
+        [
+            {"target": "https://127.0.0.1/private", "threshold_pct": 90},
+            {"name": "new", "enabled": False},
+            {"channel": "slack"},
+        ],
+    )
+    def test_invalid_final_target_rolls_back_all_changes(self, api, monkeypatch, change):
+        client, headers, _, _ = api
+        created = client.post(
+            "/api/v1/alerts",
+            headers=headers,
+            json={"name": "old", "threshold_pct": 50, "channel": "webhook", "target": WEBHOOK},
+        ).json()["data"]
+        monkeypatch.setenv("COST_ALERT_ALLOWED_WEBHOOK_URLS", "[]")
+        response = client.patch(f"/api/v1/alerts/{created['id']}", headers=headers, json=change)
+        assert response.status_code == 400, response.text
+        assert client.get("/api/v1/alerts", headers=headers).json()["data"] == [created]
+        # A legacy HTTP rule can still be changed to a local channel or deleted.
+        assert (
+            client.patch(
+                f"/api/v1/alerts/{created['id']}",
+                headers=headers,
+                json={"channel": "log"},
+            ).status_code
+            == 200
+        )
+
     def test_rule_crud_with_masked_target(self, api):
         client, headers, _, _ = api
         created = client.post(

@@ -1,5 +1,7 @@
 """Web notifications use committed owner spend and durable delivery history."""
 
+import json
+import socket
 from unittest.mock import Mock
 
 import pytest
@@ -7,6 +9,74 @@ import requests
 
 from api.db import make_engine, make_session_factory, run_migrations
 from api.db.models import AlertEvent, AlertRule, Budget, Evaluation, InAppNotification
+
+
+@pytest.fixture(autouse=True)
+def allowed_webhook_targets(monkeypatch):
+    monkeypatch.setenv(
+        "COST_ALERT_ALLOWED_WEBHOOK_URLS",
+        json.dumps(
+            [
+                "https://example.org/secret",
+                "https://hooks.slack.com/services/secret",
+            ]
+        ),
+    )
+
+
+@pytest.mark.parametrize("channel", ["webhook", "slack"])
+@pytest.mark.parametrize(
+    "target",
+    [
+        "https://127.0.0.1:9443/internal",
+        "https://[::1]/internal",
+        "https://[fd00::1]/internal",
+        "https://192.168.1.1/internal",
+        "https://169.254.169.254/internal",
+        "https://private.example/internal",
+    ],
+)
+def test_legacy_unapproved_target_never_reaches_transport(
+    sessions, monkeypatch, caplog, channel, target
+):
+    add_rule(sessions, channel=channel, target=target)
+    add_rule(sessions, "local", channel="log", target="")
+    dns = Mock(return_value=[(socket.AF_INET, socket.SOCK_STREAM, 6, "", ("10.0.0.1", 443))])
+    post = Mock(return_value=Mock(status_code=200))
+    monkeypatch.setattr(socket, "getaddrinfo", dns)
+    monkeypatch.setattr("src.cost_alert.requests.post", post)
+    dispatcher(sessions).process("alice")
+    dns.assert_not_called()
+    post.assert_not_called()
+    with sessions() as db:
+        events = {event.rule_id: event.status for event in db.query(AlertEvent)}
+        assert events == {"rule": "failed", "local": "succeeded"}
+        assert db.query(InAppNotification).count() > 0
+    assert target not in caplog.text
+
+
+def test_worker_rechecks_revoked_authorization(sessions, monkeypatch):
+    add_rule(sessions)
+    worker = dispatcher(sessions)
+    monkeypatch.setenv("COST_ALERT_ALLOWED_WEBHOOK_URLS", "[]")
+    post = Mock(return_value=Mock(status_code=200))
+    monkeypatch.setattr("src.cost_alert.requests.post", post)
+    worker.process("alice")
+    post.assert_not_called()
+    with sessions() as db:
+        assert db.query(AlertEvent).one().status == "failed"
+
+
+def test_web_tls_failure_is_not_retried(sessions, monkeypatch):
+    add_rule(sessions)
+    post = Mock(side_effect=requests.exceptions.SSLError("secret"))
+    monkeypatch.setattr("src.cost_alert.requests.post", post)
+    dispatcher(sessions).process("alice")
+    assert post.call_count == 1
+    assert post.call_args.kwargs.get("verify", True) is True
+    assert post.call_args.kwargs["allow_redirects"] is False
+    with sessions() as db:
+        assert db.query(AlertEvent).one().status == "failed"
 
 
 def test_delivery_status_migration_preserves_existing_history(tmp_path):

@@ -1,0 +1,122 @@
+<!doctype html>
+<html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'unsafe-inline'; base-uri 'none'; form-action 'none'"><title>变更说明 · Web 成本告警仅能发送到部署者批准的完整 HTTPS 目标。</title>
+<style>
+:root {
+  color-scheme: light dark;
+  --page: #fafbfc;
+  --ink: #202a35;
+  --muted: #566575;
+  --line: #dbe2e8;
+  --accent: #245b85;
+  --highlight: #edf3f7;
+  --hover: #e9eef3;
+  --code-bg: #edf0f4;
+  --code-ink: #263443;
+  --success: #236d4f;
+  --failure: #a83131;
+  --text: 15px;
+  --small: 13px;
+  --label: 12px;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --page: #181d23;
+    --ink: #e4eaf0;
+    --muted: #a4b1be;
+    --line: #35404b;
+    --accent: #94c6ec;
+    --highlight: #222e39;
+    --hover: #27323d;
+    --code-bg: #10161d;
+    --code-ink: #e0e8f0;
+    --success: #8ed8b5;
+    --failure: #ffb0a8;
+  }
+}
+* { box-sizing: border-box; }
+body {
+  margin: 0;
+  background: var(--page);
+  color: var(--ink);
+  font: var(--text)/1.65 system-ui, -apple-system, "Segoe UI", sans-serif;
+}
+main { max-width: 1040px; margin: auto; padding: 32px 32px 48px; }
+.eyebrow { color: var(--accent); font-size: var(--label); font-weight: 500; letter-spacing: .08em; }
+h1 { margin: 8px 0 12px; max-width: 32em; font-size: 28px; font-weight: 500; line-height: 1.4; letter-spacing: -.02em; overflow-wrap: anywhere; }
+h2 { margin: 0; font-size: 18px; font-weight: 500; line-height: 1.5; overflow-wrap: anywhere; }
+h3 { margin: 0 0 4px; color: var(--muted); font-size: var(--label); font-weight: 500; }
+p { margin: 0; white-space: pre-wrap; overflow-wrap: anywhere; }
+strong { font-weight: 500; }
+.meta { margin-bottom: 24px; color: var(--muted); font-size: var(--small); overflow-wrap: anywhere; }
+.meta p + p { margin-top: 2px; }
+article { padding: 20px 0 12px; border-top: 1px solid var(--line); }
+article header { display: flex; align-items: baseline; gap: 12px; margin-bottom: 12px; }
+.number { color: var(--muted); font: var(--label)/1.5 ui-monospace, Consolas, monospace; font-variant-numeric: tabular-nums; }
+.comparison { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 16px; }
+.comparison section { min-width: 0; padding: 12px; }
+.after { background: var(--highlight); border-radius: 4px; }
+.after h3 { color: var(--accent); }
+.reason { margin-top: 12px; font-size: var(--small); color: var(--muted); }
+.reason strong { margin-right: 8px; color: var(--ink); }
+summary { min-height: 44px; padding: 10px 4px; cursor: pointer; font-size: var(--small); font-weight: 500; border-radius: 4px; }
+summary:hover { background: var(--hover); }
+summary:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.count, .tag { color: var(--muted); font-size: var(--label); font-weight: 400; }
+.count { margin-left: 4px; font-variant-numeric: tabular-nums; }
+.file { min-width: 0; padding: 0 0 16px; scroll-margin-top: 20px; }
+.file:target { outline: 2px solid var(--accent); outline-offset: 4px; }
+.file-heading { display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 8px; }
+.file-heading code { min-width: 0; font-size: var(--small); overflow-wrap: anywhere; }
+.tag { white-space: nowrap; }
+pre { margin: 8px 0 0; padding: 12px 16px; overflow: auto; background: var(--code-bg); color: var(--code-ink); border-radius: 4px; font: var(--small)/1.65 ui-monospace, Consolas, monospace; tab-size: 2; }
+footer { margin-top: 12px; padding-top: 20px; border-top: 1px solid var(--line); }
+footer h2 { margin-bottom: 8px; }
+.check { display: grid; grid-template-columns: 72px minmax(0, 1fr); gap: 12px; padding: 12px 0; border-bottom: 1px solid var(--line); }
+.status { padding-top: 2px; font-size: var(--label); font-weight: 500; }
+.passed { color: var(--success); }
+.failed { color: var(--failure); }
+.not-run, .unknown { color: var(--muted); }
+.check p { margin-top: 2px; color: var(--muted); font-size: var(--small); }
+.more { border-top: 1px solid var(--line); }
+.more > summary { padding-block: 12px; }
+.diagram { margin: 0; padding: 20px 0; border-top: 1px solid var(--line); }
+.diagram figcaption { margin-bottom: 12px; font-size: 18px; font-weight: 500; overflow-wrap: anywhere; }
+.diagram-svg { display: block; max-width: 100%; height: auto; margin: auto; overflow: visible; font: 13px system-ui, -apple-system, "Segoe UI", sans-serif; }
+.diagram-svg text { fill: var(--ink); }
+.diagram-edge { fill: none; stroke: var(--muted); stroke-width: 1.5; }
+.diagram-svg marker path { fill: var(--muted); }
+.diagram-edge-label { fill: var(--page); }
+.diagram-svg .diagram-edge-text { fill: var(--muted); font-size: 12px; }
+.diagram-node rect { fill: var(--page); stroke: var(--line); stroke-width: 1.5; }
+.diagram-node.modified rect { fill: var(--highlight); stroke: var(--accent); }
+.diagram-node.added rect { stroke: var(--success); }
+.diagram-node.deleted rect { stroke: var(--failure); stroke-dasharray: 4 3; }
+.diagram-svg .diagram-kind { fill: var(--muted); font-size: 11px; }
+.diagram-node[href] { cursor: pointer; }
+.diagram-node[href]:hover rect, .diagram-node[href]:focus-visible rect { stroke: var(--accent); stroke-width: 2.5; }
+.diagram-node[href]:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; }
+.diagram-hint { margin-top: 12px; color: var(--muted); font-size: var(--small); text-align: center; }
+.diagram-comparison { display: grid; grid-template-columns: minmax(0,1fr) minmax(0,1fr); gap: 16px; }
+.diagram-comparison > section { min-width: 0; padding: 12px; border: 1px solid var(--line); border-radius: 4px; }
+.diagram-comparison > section > h3 { margin-bottom: 12px; }
+.diagram-compact { display: none; }
+@media (max-width: 999px) {
+  .diagram-wide { display: none; }
+  .diagram-compact { display: block; }
+}
+@media (max-width: 640px) {
+  main { padding: 24px 16px 32px; }
+  h1 { font-size: 24px; }
+  .meta { margin-bottom: 20px; }
+  article { padding-top: 16px; }
+  article header { gap: 8px; }
+  .comparison { grid-template-columns: minmax(0, 1fr); gap: 4px; }
+  .check { grid-template-columns: 60px minmax(0, 1fr); gap: 8px; }
+  pre { padding: 12px; }
+  .diagram-comparison { grid-template-columns: minmax(0,1fr); }
+  .diagram-comparison > section { padding: 12px 0; border: 0; }
+}
+</style></head><body><main><div class="eyebrow">COMET / 变更说明</div><h1>Web 成本告警仅能发送到部署者批准的完整 HTTPS 目标。</h1><div class="meta"><p>比较范围 · main @ e7deb9f7 与当前工作区的本 change 差异；6 个实现、测试及用户文档文件。</p><p>生成时间 · 2026-11-23T02:44:07.274Z</p></div><figure class="diagram"><figcaption>发送前独立授权</figcaption><div class="diagram-wide"><svg class="diagram-svg" width="494" height="208" viewBox="0 0 494 208" role="group" aria-labelledby="walkthrough-diagram-0-wide-title walkthrough-diagram-0-wide-description"><title id="walkthrough-diagram-0-wide-title">发送前独立授权</title><desc id="walkthrough-diagram-0-wide-description">用户规则或历史规则 → 部署白名单精确校验; 部署白名单精确校验 → 拒绝并脱敏记录 (未获准); 部署白名单精确校验 → 获准 HTTPS 投递 (获准)</desc><defs><marker id="walkthrough-diagram-0-wide-arrow" viewBox="0 0 8 8" refX="7" refY="4" markerWidth="6" markerHeight="6" orient="auto"><path d="M 0 0 L 8 4 L 0 8 z"/></marker></defs><path class="diagram-edge" d="M 132 104 C 159.5 104, 159.5 104, 184 104" marker-end="url(#walkthrough-diagram-0-wide-arrow)"/><path class="diagram-edge" d="M 307 104 C 334.5 104, 334.5 50, 359 50" marker-end="url(#walkthrough-diagram-0-wide-arrow)"/><rect class="diagram-edge-label" x="311" y="66" width="47" height="22"/><text class="diagram-edge-text" x="334.5" y="81" text-anchor="middle"><tspan x="334.5" dy="0">未获准</tspan></text><path class="diagram-edge" d="M 307 104 C 334.5 104, 334.5 158, 359 158" marker-end="url(#walkthrough-diagram-0-wide-arrow)"/><rect class="diagram-edge-label" x="317.5" y="120" width="34" height="22"/><text class="diagram-edge-text" x="334.5" y="135" text-anchor="middle"><tspan x="334.5" dy="0">获准</tspan></text><g class="diagram-node "><rect x="12" y="66" width="120" height="76" rx="5"/><text class="" x="72" y="99" text-anchor="middle"><tspan x="72" dy="0">用户规则或历史</tspan><tspan x="72" dy="18">规则</tspan></text></g><a class="diagram-node added" href="#walkthrough-file-0-0" aria-label="部署白名单精确校验 · api/services/alert_target_policy.py"><rect x="187" y="66" width="120" height="76" rx="5"/><text class="diagram-kind" x="247" y="83" text-anchor="middle"><tspan x="247" dy="0">新增</tspan></text><text class="" x="247" y="101" text-anchor="middle"><tspan x="247" dy="0">部署白名单精确</tspan><tspan x="247" dy="18">校验</tspan></text></a><g class="diagram-node "><rect x="362" y="12" width="120" height="76" rx="5"/><text class="" x="422" y="54" text-anchor="middle"><tspan x="422" dy="0">拒绝并脱敏记录</tspan></text></g><a class="diagram-node modified" href="#walkthrough-file-0-2" aria-label="获准 HTTPS 投递 · api/services/cost_alert_service.py"><rect x="362" y="120" width="120" height="76" rx="5"/><text class="diagram-kind" x="422" y="137" text-anchor="middle"><tspan x="422" dy="0">修改</tspan></text><text class="" x="422" y="155" text-anchor="middle"><tspan x="422" dy="0">获准 HTTPS</tspan><tspan x="422" dy="18">投递</tspan></text></a></svg></div><div class="diagram-compact"><svg class="diagram-svg" width="272" height="324" viewBox="0 0 272 324" role="group" aria-labelledby="walkthrough-diagram-0-compact-title walkthrough-diagram-0-compact-description"><title id="walkthrough-diagram-0-compact-title">发送前独立授权</title><desc id="walkthrough-diagram-0-compact-description">用户规则或历史规则 → 部署白名单精确校验; 部署白名单精确校验 → 拒绝并脱敏记录 (未获准); 部署白名单精确校验 → 获准 HTTPS 投递 (获准)</desc><defs><marker id="walkthrough-diagram-0-compact-arrow" viewBox="0 0 8 8" refX="7" refY="4" markerWidth="6" markerHeight="6" orient="auto"><path d="M 0 0 L 8 4 L 0 8 z"/></marker></defs><path class="diagram-edge" d="M 136 88 C 136 106, 136 106, 136 121" marker-end="url(#walkthrough-diagram-0-compact-arrow)"/><path class="diagram-edge" d="M 136 200 C 136 218, 68 218, 68 233" marker-end="url(#walkthrough-diagram-0-compact-arrow)"/><rect class="diagram-edge-label" x="78.5" y="207" width="47" height="22"/><text class="diagram-edge-text" x="102" y="222" text-anchor="middle"><tspan x="102" dy="0">未获准</tspan></text><path class="diagram-edge" d="M 136 200 C 136 218, 204 218, 204 233" marker-end="url(#walkthrough-diagram-0-compact-arrow)"/><rect class="diagram-edge-label" x="153" y="207" width="34" height="22"/><text class="diagram-edge-text" x="170" y="222" text-anchor="middle"><tspan x="170" dy="0">获准</tspan></text><g class="diagram-node "><rect x="80" y="12" width="112" height="76" rx="5"/><text class="" x="136" y="45" text-anchor="middle"><tspan x="136" dy="0">用户规则或历</tspan><tspan x="136" dy="18">史规则</tspan></text></g><a class="diagram-node added" href="#walkthrough-file-0-0" aria-label="部署白名单精确校验 · api/services/alert_target_policy.py"><rect x="80" y="124" width="112" height="76" rx="5"/><text class="diagram-kind" x="136" y="141" text-anchor="middle"><tspan x="136" dy="0">新增</tspan></text><text class="" x="136" y="159" text-anchor="middle"><tspan x="136" dy="0">部署白名单精</tspan><tspan x="136" dy="18">确校验</tspan></text></a><g class="diagram-node "><rect x="12" y="236" width="112" height="76" rx="5"/><text class="" x="68" y="269" text-anchor="middle"><tspan x="68" dy="0">拒绝并脱敏记</tspan><tspan x="68" dy="18">录</tspan></text></g><a class="diagram-node modified" href="#walkthrough-file-0-2" aria-label="获准 HTTPS 投递 · api/services/cost_alert_service.py"><rect x="148" y="236" width="112" height="76" rx="5"/><text class="diagram-kind" x="204" y="253" text-anchor="middle"><tspan x="204" dy="0">修改</tspan></text><text class="" x="204" y="271" text-anchor="middle"><tspan x="204" dy="0">获准 HTTPS</tspan><tspan x="204" dy="18">投递</tspan></text></a></svg></div><p class="diagram-hint">点击带链接的节点查看相关代码。</p></figure><article><header><span class="number">01</span><h2>统一授权规则写入和历史投递</h2></header><div class="comparison"><section><h3>原来</h3><p>普通用户可将 HTTPS 回环或内网目标存入告警规则并交给 worker。</p></section><section class="after"><h3>现在</h3><p>API 与 worker 共用部署白名单，完整 URL 精确匹配；默认拒绝，历史规则也重新授权。</p></section></div><p class="reason"><strong>原因</strong> 让目的地选择权归部署者，阻断普通用户利用 worker 访问未获授权地址。白名单域名和 DNS 属于可信部署边界。</p><details><summary>查看文件和关键代码 <span class="count">6</span></summary><div class="file" id="walkthrough-file-0-0"><div class="file-heading"><span class="tag">新增</span><code>api/services/alert_target_policy.py</code></div><pre><code>COST_ALERT_ALLOWED_WEBHOOK_URLS
+allowed_webhook_urls: list[SecretStr] = Field(default_factory=list)
+authorized_alert_target(channel, target)</code></pre></div><div class="file" id="walkthrough-file-0-1"><div class="file-heading"><span class="tag">修改</span><code>api/services/cost_service.py</code></div><pre><code>target = authorized_alert_target(request.channel, request.target)
+row.target = authorized_alert_target(row.channel, row.target)</code></pre></div><div class="file" id="walkthrough-file-0-2"><div class="file-heading"><span class="tag">修改</span><code>api/services/cost_alert_service.py</code></div><pre><code>endpoint = SecretStr(authorized_alert_target(rule.channel, rule.target))</code></pre></div><div class="file" id="walkthrough-file-0-3"><div class="file-heading"><span class="tag">修改</span><code>tests/test_api_cost.py</code></div><pre><code>覆盖默认拒绝、完整 URL 精确允许、非法语法、内网目标、最终状态校验及事务回滚。</code></pre></div><div class="file" id="walkthrough-file-0-4"><div class="file-heading"><span class="tag">修改</span><code>tests/test_web_cost_alerts.py</code></div><pre><code>覆盖历史内网目标零网络调用、撤销授权、失败隔离、TLS 与其他渠道回归。</code></pre></div><div class="file" id="walkthrough-file-0-5"><div class="file-heading"><span class="tag">修改</span><code>docs/cost-alerts.md</code></div><pre><code>API 和 worker 配置相同 JSON URL 列表并重启；只允许可信目标及其 DNS。</code></pre></div></details></article><footer><h2>实际验证</h2><div class="check"><span class="status passed">通过</span><div><strong>Builder 自检</strong><p>146 项相关测试通过；Ruff、Black、git diff --check、OpenSpec 严格校验通过。4 项本地 HTTP 测试解除端口限制后补跑通过。</p></div></div><div class="check"><span class="status passed">通过</span><div><strong>Runtime 检查</strong><p>Build 完成记录与 Verify Guard 均通过；当前进入 Archive，尚待交付选择。</p></div></div><div class="check"><span class="status passed">通过</span><div><strong>规格验收</strong><p>6/6 任务，2/2 需求，7/7 场景覆盖；最终 diff 与批准方案一致。验证报告：docs/superpowers/reports/2026-11-23-restrict-web-alert-targets-verify.md</p></div></div><div class="check"><span class="status not-run">未执行</span><div><strong>独立 reviewer</strong><p>本次 direct/direct/off 预设按配置不要求独立 reviewer。</p></div></div><div class="check"><span class="status not-run">未执行</span><div><strong>未执行项与边界</strong><p>未运行仓库全量或真实外部网络测试；白名单完整目标及 DNS 由部署者信任。部署时需为 API 和 worker 配置相同白名单并重启。</p></div></div></footer></main><template id="walkthrough-data">eyJzdW1tYXJ5IjoiV2ViIOaIkOacrOWRiuitpuS7heiDveWPkemAgeWIsOmDqOe9suiAheaJueWHhueahOWujOaVtCBIVFRQUyDnm67moIfjgIIiLCJzY29wZSI6Im1haW4gQCBlN2RlYjlmNyDkuI7lvZPliY3lt6XkvZzljLrnmoTmnKwgY2hhbmdlIOW3ruW8gu+8mzYg5Liq5a6e546w44CB5rWL6K+V5Y+K55So5oi35paH5qGj5paH5Lu244CCIiwiY2hhbmdlcyI6W3sidGl0bGUiOiLnu5/kuIDmjojmnYPop4TliJnlhpnlhaXlkozljoblj7LmipXpgJIiLCJiZWZvcmUiOiLmma7pgJrnlKjmiLflj6/lsIYgSFRUUFMg5Zue546v5oiW5YaF572R55uu5qCH5a2Y5YWl5ZGK6K2m6KeE5YiZ5bm25Lqk57uZIHdvcmtlcuOAgiIsImFmdGVyIjoiQVBJIOS4jiB3b3JrZXIg5YWx55So6YOo572y55m95ZCN5Y2V77yM5a6M5pW0IFVSTCDnsr7noa7ljLnphY3vvJvpu5jorqTmi5Lnu53vvIzljoblj7Lop4TliJnkuZ/ph43mlrDmjojmnYPjgIIiLCJyZWFzb24iOiLorqnnm67nmoTlnLDpgInmi6nmnYPlvZLpg6jnvbLogIXvvIzpmLvmlq3mma7pgJrnlKjmiLfliKnnlKggd29ya2VyIOiuv+mXruacquiOt+aOiOadg+WcsOWdgOOAgueZveWQjeWNleWfn+WQjeWSjCBETlMg5bGe5LqO5Y+v5L+h6YOo572y6L6555WM44CCIiwiZmlsZXMiOlt7InBhdGgiOiJhcGkvc2VydmljZXMvYWxlcnRfdGFyZ2V0X3BvbGljeS5weSIsImtpbmQiOiJhZGRlZCIsImNvZGUiOiJDT1NUX0FMRVJUX0FMTE9XRURfV0VCSE9PS19VUkxTXG5hbGxvd2VkX3dlYmhvb2tfdXJsczogbGlzdFtTZWNyZXRTdHJdID0gRmllbGQoZGVmYXVsdF9mYWN0b3J5PWxpc3QpXG5hdXRob3JpemVkX2FsZXJ0X3RhcmdldChjaGFubmVsLCB0YXJnZXQpIn0seyJwYXRoIjoiYXBpL3NlcnZpY2VzL2Nvc3Rfc2VydmljZS5weSIsImtpbmQiOiJtb2RpZmllZCIsImNvZGUiOiJ0YXJnZXQgPSBhdXRob3JpemVkX2FsZXJ0X3RhcmdldChyZXF1ZXN0LmNoYW5uZWwsIHJlcXVlc3QudGFyZ2V0KVxucm93LnRhcmdldCA9IGF1dGhvcml6ZWRfYWxlcnRfdGFyZ2V0KHJvdy5jaGFubmVsLCByb3cudGFyZ2V0KSJ9LHsicGF0aCI6ImFwaS9zZXJ2aWNlcy9jb3N0X2FsZXJ0X3NlcnZpY2UucHkiLCJraW5kIjoibW9kaWZpZWQiLCJjb2RlIjoiZW5kcG9pbnQgPSBTZWNyZXRTdHIoYXV0aG9yaXplZF9hbGVydF90YXJnZXQocnVsZS5jaGFubmVsLCBydWxlLnRhcmdldCkpIn0seyJwYXRoIjoidGVzdHMvdGVzdF9hcGlfY29zdC5weSIsImtpbmQiOiJtb2RpZmllZCIsImNvZGUiOiLopobnm5bpu5jorqTmi5Lnu53jgIHlrozmlbQgVVJMIOeyvuehruWFgeiuuOOAgemdnuazleivreazleOAgeWGhee9keebruagh+OAgeacgOe7iOeKtuaAgeagoemqjOWPiuS6i+WKoeWbnua7muOAgiJ9LHsicGF0aCI6InRlc3RzL3Rlc3Rfd2ViX2Nvc3RfYWxlcnRzLnB5Iiwia2luZCI6Im1vZGlmaWVkIiwiY29kZSI6IuimhuebluWOhuWPsuWGhee9keebruagh+mbtue9kee7nOiwg+eUqOOAgeaSpOmUgOaOiOadg+OAgeWksei0pemalOemu+OAgVRMUyDkuI7lhbbku5bmuKDpgZPlm57lvZLjgIIifSx7InBhdGgiOiJkb2NzL2Nvc3QtYWxlcnRzLm1kIiwia2luZCI6Im1vZGlmaWVkIiwiY29kZSI6IkFQSSDlkowgd29ya2VyIOmFjee9ruebuOWQjCBKU09OIFVSTCDliJfooajlubbph43lkK/vvJvlj6rlhYHorrjlj6/kv6Hnm67moIflj4rlhbYgRE5T44CCIn1dfV0sInZlcmlmaWNhdGlvbiI6W3sibGFiZWwiOiJCdWlsZGVyIOiHquajgCIsInN0YXR1cyI6InBhc3NlZCIsImRldGFpbCI6IjE0NiDpobnnm7jlhbPmtYvor5XpgJrov4fvvJtSdWZm44CBQmxhY2vjgIFnaXQgZGlmZiAtLWNoZWNr44CBT3BlblNwZWMg5Lil5qC85qCh6aqM6YCa6L+H44CCNCDpobnmnKzlnLAgSFRUUCDmtYvor5Xop6PpmaTnq6/lj6PpmZDliLblkI7ooaXot5HpgJrov4fjgIIifSx7ImxhYmVsIjoiUnVudGltZSDmo4Dmn6UiLCJzdGF0dXMiOiJwYXNzZWQiLCJkZXRhaWwiOiJCdWlsZCDlrozmiJDorrDlvZXkuI4gVmVyaWZ5IEd1YXJkIOWdh+mAmui/h++8m+W9k+WJjei/m+WFpSBBcmNoaXZl77yM5bCa5b6F5Lqk5LuY6YCJ5oup44CCIn0seyJsYWJlbCI6IuinhOagvOmqjOaUtiIsInN0YXR1cyI6InBhc3NlZCIsImRldGFpbCI6IjYvNiDku7vliqHvvIwyLzIg6ZyA5rGC77yMNy83IOWcuuaZr+imhueblu+8m+acgOe7iCBkaWZmIOS4juaJueWHhuaWueahiOS4gOiHtOOAgumqjOivgeaKpeWRiu+8mmRvY3Mvc3VwZXJwb3dlcnMvcmVwb3J0cy8yMDI2LTExLTIzLXJlc3RyaWN0LXdlYi1hbGVydC10YXJnZXRzLXZlcmlmeS5tZCJ9LHsibGFiZWwiOiLni6znq4sgcmV2aWV3ZXIiLCJzdGF0dXMiOiJub3QtcnVuIiwiZGV0YWlsIjoi5pys5qyhIGRpcmVjdC9kaXJlY3Qvb2ZmIOmihOiuvuaMiemFjee9ruS4jeimgeaxgueLrOeriyByZXZpZXdlcuOAgiJ9LHsibGFiZWwiOiLmnKrmiafooYzpobnkuI7ovrnnlYwiLCJzdGF0dXMiOiJub3QtcnVuIiwiZGV0YWlsIjoi5pyq6L+Q6KGM5LuT5bqT5YWo6YeP5oiW55yf5a6e5aSW6YOo572R57uc5rWL6K+V77yb55m95ZCN5Y2V5a6M5pW055uu5qCH5Y+KIEROUyDnlLHpg6jnvbLogIXkv6Hku7vjgILpg6jnvbLml7bpnIDkuLogQVBJIOWSjCB3b3JrZXIg6YWN572u55u45ZCM55m95ZCN5Y2V5bm26YeN5ZCv44CCIn1dLCJkaWFncmFtcyI6W3sidHlwZSI6ImZsb3ciLCJ0aXRsZSI6IuWPkemAgeWJjeeLrOeri+aOiOadgyIsIm5vZGVzIjpbeyJpZCI6InJ1bGUiLCJsYWJlbCI6IueUqOaIt+inhOWImeaIluWOhuWPsuinhOWImSJ9LHsiaWQiOiJwb2xpY3kiLCJsYWJlbCI6IumDqOe9sueZveWQjeWNleeyvuehruagoemqjCIsImZpbGUiOiJhcGkvc2VydmljZXMvYWxlcnRfdGFyZ2V0X3BvbGljeS5weSIsImtpbmQiOiJhZGRlZCJ9LHsiaWQiOiJyZWplY3QiLCJsYWJlbCI6IuaLkue7neW5tuiEseaVj+iusOW9lSJ9LHsiaWQiOiJzZW5kIiwibGFiZWwiOiLojrflh4YgSFRUUFMg5oqV6YCSIiwiZmlsZSI6ImFwaS9zZXJ2aWNlcy9jb3N0X2FsZXJ0X3NlcnZpY2UucHkiLCJraW5kIjoibW9kaWZpZWQifV0sImVkZ2VzIjpbeyJmcm9tIjoicnVsZSIsInRvIjoicG9saWN5In0seyJmcm9tIjoicG9saWN5IiwidG8iOiJyZWplY3QiLCJsYWJlbCI6IuacquiOt+WHhiJ9LHsiZnJvbSI6InBvbGljeSIsInRvIjoic2VuZCIsImxhYmVsIjoi6I635YeGIn1dfV19</template></body></html>
