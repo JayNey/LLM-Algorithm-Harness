@@ -1,0 +1,124 @@
+<!doctype html>
+<html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'unsafe-inline'; base-uri 'none'; form-action 'none'"><title>变更说明 · 评估 API 明确拒绝尚未实现的超时与并发选项，避免成功响应产生错误执行预期。</title>
+<style>
+:root {
+  color-scheme: light dark;
+  --page: #fafbfc;
+  --ink: #202a35;
+  --muted: #566575;
+  --line: #dbe2e8;
+  --accent: #245b85;
+  --highlight: #edf3f7;
+  --hover: #e9eef3;
+  --code-bg: #edf0f4;
+  --code-ink: #263443;
+  --success: #236d4f;
+  --failure: #a83131;
+  --text: 15px;
+  --small: 13px;
+  --label: 12px;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --page: #181d23;
+    --ink: #e4eaf0;
+    --muted: #a4b1be;
+    --line: #35404b;
+    --accent: #94c6ec;
+    --highlight: #222e39;
+    --hover: #27323d;
+    --code-bg: #10161d;
+    --code-ink: #e0e8f0;
+    --success: #8ed8b5;
+    --failure: #ffb0a8;
+  }
+}
+* { box-sizing: border-box; }
+body {
+  margin: 0;
+  background: var(--page);
+  color: var(--ink);
+  font: var(--text)/1.65 system-ui, -apple-system, "Segoe UI", sans-serif;
+}
+main { max-width: 1040px; margin: auto; padding: 32px 32px 48px; }
+.eyebrow { color: var(--accent); font-size: var(--label); font-weight: 500; letter-spacing: .08em; }
+h1 { margin: 8px 0 12px; max-width: 32em; font-size: 28px; font-weight: 500; line-height: 1.4; letter-spacing: -.02em; overflow-wrap: anywhere; }
+h2 { margin: 0; font-size: 18px; font-weight: 500; line-height: 1.5; overflow-wrap: anywhere; }
+h3 { margin: 0 0 4px; color: var(--muted); font-size: var(--label); font-weight: 500; }
+p { margin: 0; white-space: pre-wrap; overflow-wrap: anywhere; }
+strong { font-weight: 500; }
+.meta { margin-bottom: 24px; color: var(--muted); font-size: var(--small); overflow-wrap: anywhere; }
+.meta p + p { margin-top: 2px; }
+article { padding: 20px 0 12px; border-top: 1px solid var(--line); }
+article header { display: flex; align-items: baseline; gap: 12px; margin-bottom: 12px; }
+.number { color: var(--muted); font: var(--label)/1.5 ui-monospace, Consolas, monospace; font-variant-numeric: tabular-nums; }
+.comparison { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 16px; }
+.comparison section { min-width: 0; padding: 12px; }
+.after { background: var(--highlight); border-radius: 4px; }
+.after h3 { color: var(--accent); }
+.reason { margin-top: 12px; font-size: var(--small); color: var(--muted); }
+.reason strong { margin-right: 8px; color: var(--ink); }
+summary { min-height: 44px; padding: 10px 4px; cursor: pointer; font-size: var(--small); font-weight: 500; border-radius: 4px; }
+summary:hover { background: var(--hover); }
+summary:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.count, .tag { color: var(--muted); font-size: var(--label); font-weight: 400; }
+.count { margin-left: 4px; font-variant-numeric: tabular-nums; }
+.file { min-width: 0; padding: 0 0 16px; scroll-margin-top: 20px; }
+.file:target { outline: 2px solid var(--accent); outline-offset: 4px; }
+.file-heading { display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 8px; }
+.file-heading code { min-width: 0; font-size: var(--small); overflow-wrap: anywhere; }
+.tag { white-space: nowrap; }
+pre { margin: 8px 0 0; padding: 12px 16px; overflow: auto; background: var(--code-bg); color: var(--code-ink); border-radius: 4px; font: var(--small)/1.65 ui-monospace, Consolas, monospace; tab-size: 2; }
+footer { margin-top: 12px; padding-top: 20px; border-top: 1px solid var(--line); }
+footer h2 { margin-bottom: 8px; }
+.check { display: grid; grid-template-columns: 72px minmax(0, 1fr); gap: 12px; padding: 12px 0; border-bottom: 1px solid var(--line); }
+.status { padding-top: 2px; font-size: var(--label); font-weight: 500; }
+.passed { color: var(--success); }
+.failed { color: var(--failure); }
+.not-run, .unknown { color: var(--muted); }
+.check p { margin-top: 2px; color: var(--muted); font-size: var(--small); }
+.more { border-top: 1px solid var(--line); }
+.more > summary { padding-block: 12px; }
+.diagram { margin: 0; padding: 20px 0; border-top: 1px solid var(--line); }
+.diagram figcaption { margin-bottom: 12px; font-size: 18px; font-weight: 500; overflow-wrap: anywhere; }
+.diagram-svg { display: block; max-width: 100%; height: auto; margin: auto; overflow: visible; font: 13px system-ui, -apple-system, "Segoe UI", sans-serif; }
+.diagram-svg text { fill: var(--ink); }
+.diagram-edge { fill: none; stroke: var(--muted); stroke-width: 1.5; }
+.diagram-svg marker path { fill: var(--muted); }
+.diagram-edge-label { fill: var(--page); }
+.diagram-svg .diagram-edge-text { fill: var(--muted); font-size: 12px; }
+.diagram-node rect { fill: var(--page); stroke: var(--line); stroke-width: 1.5; }
+.diagram-node.modified rect { fill: var(--highlight); stroke: var(--accent); }
+.diagram-node.added rect { stroke: var(--success); }
+.diagram-node.deleted rect { stroke: var(--failure); stroke-dasharray: 4 3; }
+.diagram-svg .diagram-kind { fill: var(--muted); font-size: 11px; }
+.diagram-node[href] { cursor: pointer; }
+.diagram-node[href]:hover rect, .diagram-node[href]:focus-visible rect { stroke: var(--accent); stroke-width: 2.5; }
+.diagram-node[href]:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; }
+.diagram-hint { margin-top: 12px; color: var(--muted); font-size: var(--small); text-align: center; }
+.diagram-comparison { display: grid; grid-template-columns: minmax(0,1fr) minmax(0,1fr); gap: 16px; }
+.diagram-comparison > section { min-width: 0; padding: 12px; border: 1px solid var(--line); border-radius: 4px; }
+.diagram-comparison > section > h3 { margin-bottom: 12px; }
+.diagram-compact { display: none; }
+@media (max-width: 999px) {
+  .diagram-wide { display: none; }
+  .diagram-compact { display: block; }
+}
+@media (max-width: 640px) {
+  main { padding: 24px 16px 32px; }
+  h1 { font-size: 24px; }
+  .meta { margin-bottom: 20px; }
+  article { padding-top: 16px; }
+  article header { gap: 8px; }
+  .comparison { grid-template-columns: minmax(0, 1fr); gap: 4px; }
+  .check { grid-template-columns: 60px minmax(0, 1fr); gap: 8px; }
+  pre { padding: 12px; }
+  .diagram-comparison { grid-template-columns: minmax(0,1fr); }
+  .diagram-comparison > section { padding: 12px 0; border: 0; }
+}
+</style></head><body><main><div class="eyebrow">COMET / 变更说明</div><h1>评估 API 明确拒绝尚未实现的超时与并发选项，避免成功响应产生错误执行预期。</h1><div class="meta"><p>比较范围 · HEAD 6668006d 与本次工作区差异；六个交付文件，沿用当前 main 分支。</p><p>生成时间 · 2026-11-23T12:31:31.589Z</p></div><article><header><span class="number">01</span><h2>在请求入口明确拒绝</h2></header><div class="comparison"><section><h3>原来</h3><p>创建接受 timeout_seconds/max_concurrency，PATCH 接受 timeout_seconds，但服务不保存或应用。</p></section><section class="after"><h3>现在</h3><p>显式提供任意值时返回字段级 HTTP 400；省略字段的请求继续执行。</p></section></div><p class="reason"><strong>原因</strong> 采用 Issue #513 与用户已批准的明确拒绝路径，避免将每题时限和测试用例时限混同，保留预算串行调度。</p><details><summary>查看文件和关键代码 <span class="count">1</span></summary><div class="file" id="walkthrough-file-0-0"><div class="file-heading"><span class="tag">修改</span><code>api/models.py</code></div><pre><code>@field_validator(&quot;timeout_seconds&quot;, &quot;max_concurrency&quot;, mode=&quot;before&quot;)
+@classmethod
+def _reject_unsupported_execution_options(cls, value: object) -&gt; object:
+    raise ValueError(&quot;This execution option is not supported; omit this field&quot;)</code></pre></div></details></article><article><header><span class="number">02</span><h2>提供迁移说明与真实链路回归</h2></header><div class="comparison"><section><h3>原来</h3><p>公开 PATCH 示例包含无效的 timeout_seconds=120。</p></section><section class="after"><h3>现在</h3><p>示例只修改预算；字段标记弃用，文档说明应删除遗留字段。37 项新增检查覆盖 HTTP、数据库、消息及实际 worker。</p></section></div><p class="reason"><strong>原因</strong> 旧客户端显式发送遗留字段会收到 400；模型请求超时仍由 generation_timeout_seconds 单独控制。</p><details><summary>查看文件和关键代码 <span class="count">2</span></summary><div class="file" id="walkthrough-file-1-0"><div class="file-heading"><span class="tag">修改</span><code>api/documentation.py</code></div><pre><code>&quot;EvaluationUpdateRequest&quot;: {&quot;budget_cap_usd&quot;: 2.0},</code></pre></div><div class="file" id="walkthrough-file-1-1"><div class="file-heading"><span class="tag">修改</span><code>tests/integration/test_api_workflows.py</code></div><pre><code>assert workers == [1]
+assert sandbox_timeouts == [5]
+assert len(generation_timeouts) == 1 and 5 &lt; generation_timeouts[0] &lt;= 18</code></pre></div></details></article><footer><h2>实际验证</h2><div class="check"><span class="status passed">通过</span><div><strong>Builder 自检</strong><p>相关评估 API、工作流、文档与版本门禁共 1113 passed；Black、Ruff 和 api/models.py 类型检查通过。另有四项实际 TCP HTTP 成本测试允许本地端口后全部通过，相关独立测试总计 1117 项。</p></div></div><div class="check"><span class="status passed">通过</span><div><strong>Runtime 检查</strong><p>Build 与 Verify 均已提交并通过；本 change 的 4 项任务、3 条新增需求及 6 个场景完成核对，当前等待归档交付决定。</p></div></div><div class="check"><span class="status not-run">未执行</span><div><strong>独立验收</strong><p>本 Run 为 direct/direct/off，未配置独立审查。</p></div></div><div class="check"><span class="status not-run">未执行</span><div><strong>全仓离线检查</strong><p>全仓命令已尝试并中断，未完成全量验收；出现的四项本地端口准备错误已授权复测全部通过。日志 /private/tmp/issue513-offline-suite.log 与 /private/tmp/issue513-broader-recheck.log。</p></div></div><div class="check"><span class="status failed">失败</span><div><strong>既有类型错误</strong><p>api/documentation.py 广域类型检查有 JOB 注解、object.items、method-assign 三项错误；HEAD 原文独立复跑得到相同三项，属于既有基线。</p></div></div></footer></main><template id="walkthrough-data">eyJzdW1tYXJ5Ijoi6K+E5LywIEFQSSDmmI7noa7mi5Lnu53lsJrmnKrlrp7njrDnmoTotoXml7bkuI7lubblj5HpgInpobnvvIzpgb/lhY3miJDlip/lk43lupTkuqfnlJ/plJnor6/miafooYzpooTmnJ/jgIIiLCJzY29wZSI6IkhFQUQgNjY2ODAwNmQg5LiO5pys5qyh5bel5L2c5Yy65beu5byC77yb5YWt5Liq5Lqk5LuY5paH5Lu277yM5rK/55So5b2T5YmNIG1haW4g5YiG5pSv44CCIiwiY2hhbmdlcyI6W3sidGl0bGUiOiLlnKjor7fmsYLlhaXlj6PmmI7noa7mi5Lnu50iLCJiZWZvcmUiOiLliJvlu7rmjqXlj5cgdGltZW91dF9zZWNvbmRzL21heF9jb25jdXJyZW5jee+8jFBBVENIIOaOpeWPlyB0aW1lb3V0X3NlY29uZHPvvIzkvYbmnI3liqHkuI3kv53lrZjmiJblupTnlKjjgIIiLCJhZnRlciI6IuaYvuW8j+aPkOS+m+S7u+aEj+WAvOaXtui/lOWbnuWtl+autee6pyBIVFRQIDQwMO+8m+ecgeeVpeWtl+auteeahOivt+axgue7p+e7reaJp+ihjOOAgiIsInJlYXNvbiI6IumHh+eUqCBJc3N1ZSAjNTEzIOS4jueUqOaIt+W3suaJueWHhueahOaYjuehruaLkue7nei3r+W+hO+8jOmBv+WFjeWwhuavj+mimOaXtumZkOWSjOa1i+ivleeUqOS+i+aXtumZkOa3t+WQjO+8jOS/neeVmemihOeul+S4suihjOiwg+W6puOAgiIsImZpbGVzIjpbeyJwYXRoIjoiYXBpL21vZGVscy5weSIsImtpbmQiOiJtb2RpZmllZCIsImNvZGUiOiJAZmllbGRfdmFsaWRhdG9yKFwidGltZW91dF9zZWNvbmRzXCIsIFwibWF4X2NvbmN1cnJlbmN5XCIsIG1vZGU9XCJiZWZvcmVcIilcbkBjbGFzc21ldGhvZFxuZGVmIF9yZWplY3RfdW5zdXBwb3J0ZWRfZXhlY3V0aW9uX29wdGlvbnMoY2xzLCB2YWx1ZTogb2JqZWN0KSAtPiBvYmplY3Q6XG4gICAgcmFpc2UgVmFsdWVFcnJvcihcIlRoaXMgZXhlY3V0aW9uIG9wdGlvbiBpcyBub3Qgc3VwcG9ydGVkOyBvbWl0IHRoaXMgZmllbGRcIikifV19LHsidGl0bGUiOiLmj5Dkvpvov4Hnp7vor7TmmI7kuI7nnJ/lrp7pk77ot6/lm57lvZIiLCJiZWZvcmUiOiLlhazlvIAgUEFUQ0gg56S65L6L5YyF5ZCr5peg5pWI55qEIHRpbWVvdXRfc2Vjb25kcz0xMjDjgIIiLCJhZnRlciI6IuekuuS+i+WPquS/ruaUuemihOeul++8m+Wtl+auteagh+iusOW8g+eUqO+8jOaWh+aho+ivtOaYjuW6lOWIoOmZpOmBl+eVmeWtl+auteOAgjM3IOmhueaWsOWinuajgOafpeimhuebliBIVFRQ44CB5pWw5o2u5bqT44CB5raI5oGv5Y+K5a6e6ZmFIHdvcmtlcuOAgiIsInJlYXNvbiI6IuaXp+WuouaIt+err+aYvuW8j+WPkemAgemBl+eVmeWtl+auteS8muaUtuWIsCA0MDDvvJvmqKHlnovor7fmsYLotoXml7bku43nlLEgZ2VuZXJhdGlvbl90aW1lb3V0X3NlY29uZHMg5Y2V54us5o6n5Yi244CCIiwiZmlsZXMiOlt7InBhdGgiOiJhcGkvZG9jdW1lbnRhdGlvbi5weSIsImtpbmQiOiJtb2RpZmllZCIsImNvZGUiOiJcIkV2YWx1YXRpb25VcGRhdGVSZXF1ZXN0XCI6IHtcImJ1ZGdldF9jYXBfdXNkXCI6IDIuMH0sIn0seyJwYXRoIjoidGVzdHMvaW50ZWdyYXRpb24vdGVzdF9hcGlfd29ya2Zsb3dzLnB5Iiwia2luZCI6Im1vZGlmaWVkIiwiY29kZSI6ImFzc2VydCB3b3JrZXJzID09IFsxXVxuYXNzZXJ0IHNhbmRib3hfdGltZW91dHMgPT0gWzVdXG5hc3NlcnQgbGVuKGdlbmVyYXRpb25fdGltZW91dHMpID09IDEgYW5kIDUgPCBnZW5lcmF0aW9uX3RpbWVvdXRzWzBdIDw9IDE4In1dfV0sInZlcmlmaWNhdGlvbiI6W3sibGFiZWwiOiJCdWlsZGVyIOiHquajgCIsInN0YXR1cyI6InBhc3NlZCIsImRldGFpbCI6IuebuOWFs+ivhOS8sCBBUEnjgIHlt6XkvZzmtYHjgIHmlofmoaPkuI7niYjmnKzpl6jnpoHlhbEgMTExMyBwYXNzZWTvvJtCbGFja+OAgVJ1ZmYg5ZKMIGFwaS9tb2RlbHMucHkg57G75Z6L5qOA5p+l6YCa6L+H44CC5Y+m5pyJ5Zub6aG55a6e6ZmFIFRDUCBIVFRQIOaIkOacrOa1i+ivleWFgeiuuOacrOWcsOerr+WPo+WQjuWFqOmDqOmAmui/h++8jOebuOWFs+eLrOeri+a1i+ivleaAu+iuoSAxMTE3IOmhueOAgiJ9LHsibGFiZWwiOiJSdW50aW1lIOajgOafpSIsInN0YXR1cyI6InBhc3NlZCIsImRldGFpbCI6IkJ1aWxkIOS4jiBWZXJpZnkg5Z2H5bey5o+Q5Lqk5bm26YCa6L+H77yb5pysIGNoYW5nZSDnmoQgNCDpobnku7vliqHjgIEzIOadoeaWsOWinumcgOaxguWPiiA2IOS4quWcuuaZr+WujOaIkOaguOWvue+8jOW9k+WJjeetieW+heW9kuaho+S6pOS7mOWGs+WumuOAgiJ9LHsibGFiZWwiOiLni6znq4vpqozmlLYiLCJzdGF0dXMiOiJub3QtcnVuIiwiZGV0YWlsIjoi5pysIFJ1biDkuLogZGlyZWN0L2RpcmVjdC9vZmbvvIzmnKrphY3nva7ni6znq4vlrqHmn6XjgIIifSx7ImxhYmVsIjoi5YWo5LuT56a757q/5qOA5p+lIiwic3RhdHVzIjoibm90LXJ1biIsImRldGFpbCI6IuWFqOS7k+WRveS7pOW3suWwneivleW5tuS4reaWre+8jOacquWujOaIkOWFqOmHj+mqjOaUtu+8m+WHuueOsOeahOWbm+mhueacrOWcsOerr+WPo+WHhuWkh+mUmeivr+W3suaOiOadg+Wkjea1i+WFqOmDqOmAmui/h+OAguaXpeW/lyAvcHJpdmF0ZS90bXAvaXNzdWU1MTMtb2ZmbGluZS1zdWl0ZS5sb2cg5LiOIC9wcml2YXRlL3RtcC9pc3N1ZTUxMy1icm9hZGVyLXJlY2hlY2subG9n44CCIn0seyJsYWJlbCI6IuaXouacieexu+Wei+mUmeivryIsInN0YXR1cyI6ImZhaWxlZCIsImRldGFpbCI6ImFwaS9kb2N1bWVudGF0aW9uLnB5IOW5v+Wfn+exu+Wei+ajgOafpeaciSBKT0Ig5rOo6Kej44CBb2JqZWN0Lml0ZW1z44CBbWV0aG9kLWFzc2lnbiDkuInpobnplJnor6/vvJtIRUFEIOWOn+aWh+eLrOeri+Wkjei3keW+l+WIsOebuOWQjOS4iemhue+8jOWxnuS6juaXouacieWfuue6v+OAgiJ9XX0=</template></body></html>

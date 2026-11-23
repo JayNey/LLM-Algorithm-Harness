@@ -1,0 +1,37 @@
+{
+  "schema": "comet.classic.archive-manifest.v2",
+  "execution": {
+    "workflow": {
+      "id": "comet-classic-tweak",
+      "version": "2",
+      "hash": "d1e067bc00ca13395dbc6f701565417c3e227f17a57df025dd73ebda905e2638"
+    },
+    "runId": "reject-unsupported-evaluation-options",
+    "actionId": "reject-unsupported-evaluation-options:13",
+    "attempt": 1,
+    "inputHash": "d5b1ac9a28bc758d0f366bb7930389fe6d44d37cdb96b14da7bbd5ad1517f68b",
+    "claimToken": "portable-49e7e3956331c0e6bb73dfbae4e362cf4ce563cf0280f69ff9f4397e0993246a"
+  },
+  "activeRef": "openspec/changes/reject-unsupported-evaluation-options",
+  "archiveRef": "openspec/changes/archive/2026-11-23-reject-unsupported-evaluation-options",
+  "stateRef": "openspec/changes/archive/2026-11-23-reject-unsupported-evaluation-options/comet-state.yaml",
+  "paths": [
+    "openspec/changes/archive/2026-11-23-reject-unsupported-evaluation-options/.comet/archive-requirements.json",
+    "openspec/changes/archive/2026-11-23-reject-unsupported-evaluation-options/.openspec.yaml",
+    "openspec/changes/archive/2026-11-23-reject-unsupported-evaluation-options/design.md",
+    "openspec/changes/archive/2026-11-23-reject-unsupported-evaluation-options/proposal.md",
+    "openspec/changes/archive/2026-11-23-reject-unsupported-evaluation-options/specs/api/evaluation-execution/spec.md",
+    "openspec/changes/archive/2026-11-23-reject-unsupported-evaluation-options/tasks.md",
+    "openspec/changes/archive/2026-11-23-reject-unsupported-evaluation-options/walkthrough.html",
+    "openspec/specs/api/evaluation-execution/spec.md"
+  ],
+  "sourcePaths": [
+    "openspec/changes/reject-unsupported-evaluation-options/.comet/archive-requirements.json",
+    "openspec/changes/reject-unsupported-evaluation-options/.openspec.yaml",
+    "openspec/changes/reject-unsupported-evaluation-options/design.md",
+    "openspec/changes/reject-unsupported-evaluation-options/proposal.md",
+    "openspec/changes/reject-unsupported-evaluation-options/specs/api/evaluation-execution/spec.md",
+    "openspec/changes/reject-unsupported-evaluation-options/tasks.md",
+    "openspec/changes/reject-unsupported-evaluation-options/walkthrough.html"
+  ]
+}

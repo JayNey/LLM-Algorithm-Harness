@@ -29,17 +29,21 @@ from uuid import uuid4
 import pytest
 from cryptography.fernet import Fernet
 from fastapi.testclient import TestClient
+from pydantic import ValidationError
+from sqlalchemy import select
 
 from api.auth.config import AuthSettings
 from api.config import settings
-from api.db.models import Evaluation
+from api.db.models import AsyncTask, Evaluation
 from api.db.problem_store import ProblemStore
 from api.files.config import FileSettings
 from api.main import create_app
+from api.models import EvaluationCreateRequest
 from src.celery_app import celery_app
 from src.llm_client import LLMClient
 from src.models import LLMResponse, SandboxResult, TokenUsage
 from src.sandbox_executor import SandboxExecutor
+from src.task_service import TaskService
 from src.tasks.artifacts import publish_evaluation_artifacts
 from src.tasks.evaluation import run_evaluation_task
 from src.tasks.experiment import run_experiment_task
@@ -207,6 +211,146 @@ def create_evaluation(client, headers, key, ids=("p1",), **options):
         ),
         201,
     )["evaluation_id"]
+
+
+# These fail if a route silently drops an explicit execution option, including
+# historical defaults and null. Keep HTTP, auth, SQL and queue publication real.
+UNSUPPORTED_OPTIONS = [
+    {"timeout_seconds": 123},
+    {"max_concurrency": 7},
+    {"timeout_seconds": 123, "max_concurrency": 7},
+    {"timeout_seconds": 300},
+    {"max_concurrency": 5},
+    {"timeout_seconds": None},
+    {"max_concurrency": None},
+    {"timeout_seconds": "123", "max_concurrency": True},
+]
+
+
+@pytest.mark.parametrize("options", UNSUPPORTED_OPTIONS)
+@pytest.mark.parametrize("suffix", ["", "/with-selection", "/with-dataset-version"])
+def test_unsupported_execution_options_rejected_before_creation(environment, options, suffix):
+    with environment.session() as (client, app):
+        headers, key = account(client)
+        ProblemStore(app.state.task_session_factory).upsert_import([problem("p1")])
+        payload = {
+            "api_key_id": key,
+            "model": "gpt-4o-mini",
+            "problem_ids": ["p1"],
+            "strategy_names": ["vanilla"],
+            **options,
+        }
+        if suffix == "/with-dataset-version":
+            owner = data(client.get("/api/v1/users/me", headers=headers))["id"]
+            token, _ = app.state.files.store.dataset_snapshot(owner)
+            version = app.state.files.store.save_dataset_version(
+                owner, token, "execution-options", [problem("p1")]
+            )
+            payload["dataset_version_id"] = version["id"]
+        response = client.post("/api/v1/evaluations" + suffix, headers=headers, json=payload)
+        assert response.status_code == 400, response.text
+        body = response.json()
+        assert body["error"]["code"] == "INVALID_PARAMETER"
+        assert set(body["details"]) == set(options)
+        for message in body["details"].values():
+            assert "not supported" in message and "omit" in message
+        with app.state.task_session_factory() as session:
+            assert session.scalars(select(Evaluation)).all() == []
+            assert session.scalars(select(AsyncTask)).all() == []
+        assert list(environment.queue) == []
+
+
+@pytest.mark.parametrize("timeout", [123, 300, None, "123"])
+def test_unsupported_timeout_patch_preserves_entire_record(environment, timeout):
+    with environment.session() as (client, app):
+        headers, key = account(client)
+        evaluation = create_evaluation(client, headers, key, budget_cap_usd=1)
+        with app.state.task_session_factory() as session:
+            before = session.execute(select(Evaluation.__table__)).all()
+        response = client.patch(
+            f"/api/v1/evaluations/{evaluation}",
+            headers=headers,
+            json={"budget_cap_usd": 2, "timeout_seconds": timeout},
+        )
+        assert response.status_code == 400, response.text
+        assert response.json()["error"]["code"] == "INVALID_PARAMETER"
+        assert set(response.json()["details"]) == {"timeout_seconds"}
+        assert "not supported" in response.json()["details"]["timeout_seconds"]
+        with app.state.task_session_factory() as session:
+            assert session.execute(select(Evaluation.__table__)).all() == before
+            assert session.scalars(select(AsyncTask)).all() == []
+        assert list(environment.queue) == []
+
+
+@pytest.mark.parametrize("options", UNSUPPORTED_OPTIONS)
+def test_async_service_request_rejects_unsupported_options(environment, options):
+    # Async creation is a service method, not a separate HTTP route. It consumes
+    # the same validated request as the real HTTP creation routes above.
+    with environment.session() as (client, app):
+        headers, key = account(client)
+        owner = data(client.get("/api/v1/users/me", headers=headers))["id"]
+        with pytest.raises(ValidationError) as error:
+            app.state.evaluations.create_evaluation_async(
+                EvaluationCreateRequest.model_validate(
+                    {
+                        "api_key_id": key,
+                        "model": "gpt-4o-mini",
+                        "problem_ids": ["p1"],
+                        "strategy_names": ["vanilla"],
+                        **options,
+                    }
+                ),
+                owner,
+            )
+        assert {item["loc"][0] for item in error.value.errors()} == set(options)
+        assert all("not supported" in item["msg"] for item in error.value.errors())
+        with app.state.task_session_factory() as session:
+            assert session.scalars(select(Evaluation)).all() == []
+            assert session.scalars(select(AsyncTask)).all() == []
+        assert list(environment.queue) == []
+
+
+def test_omitted_options_use_real_worker_configuration(environment, monkeypatch):
+    workers, sandbox_timeouts, generation_timeouts = [], [], []
+    real_run = TaskService.run
+    generate = LLMClient.generate
+
+    def observe_run(self, *args, **kwargs):
+        workers.append(kwargs["max_workers"])
+        return real_run(self, *args, **kwargs)
+
+    def observe_generate(self, *args, **kwargs):
+        generation_timeouts.append(self.config.timeout)
+        return generate(self, *args, **kwargs)
+
+    def observe_sandbox(self, *args, **kwargs):
+        sandbox_timeouts.append(self.config.timeout_seconds)
+        return SandboxResult(status="success", all_passed=True, execution_time=0.01)
+
+    monkeypatch.setattr(TaskService, "run", observe_run)
+    monkeypatch.setattr(LLMClient, "generate", observe_generate)
+    monkeypatch.setattr(SandboxExecutor, "execute", observe_sandbox)
+    with environment.session() as (client, app):
+        headers, key = account(client)
+        ProblemStore(app.state.task_session_factory).upsert_import([problem("p1")])
+        evaluation = create_evaluation(client, headers, key, generation_timeout_seconds=18)
+        with app.state.task_session_factory() as session:
+            row = session.get_one(Evaluation, evaluation)
+            assert row.generation_timeout_seconds == 18
+            assert row.status == "pending" and row.async_task_id is None
+        # A budget-only PATCH still works when timeout_seconds is omitted.
+        data(
+            client.patch(
+                f"/api/v1/evaluations/{evaluation}", headers=headers, json={"budget_cap_usd": 2}
+            )
+        )
+        start(client, headers, evaluation)
+        environment.drain()
+        assert result(client, headers, evaluation)["status"] == "completed"
+        assert environment.generated == ["gpt-4o-mini"]
+    assert workers == [1]
+    assert sandbox_timeouts == [5]
+    assert len(generation_timeouts) == 1 and 5 < generation_timeouts[0] <= 18
 
 
 def cookie_account(client, name="cookie-alice"):

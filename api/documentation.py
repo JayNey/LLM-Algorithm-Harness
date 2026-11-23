@@ -1526,7 +1526,7 @@ REQUEST_EXAMPLES: dict[str, Any] = {
         "strategy_names": ["vanilla"],
         "budget_cap_usd": 1.0,
     },
-    "EvaluationUpdateRequest": {"budget_cap_usd": 2.0, "timeout_seconds": 120},
+    "EvaluationUpdateRequest": {"budget_cap_usd": 2.0},
     "AsyncTaskCreateRequest": {
         "task_type": "evaluation",
         "entity_id": "eval-demo",
