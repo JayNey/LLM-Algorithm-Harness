@@ -11,6 +11,7 @@ from __future__ import annotations
 import asyncio
 import json
 import logging
+from collections.abc import Awaitable, Callable
 from dataclasses import dataclass
 from datetime import datetime, timezone
 from typing import Any
@@ -136,7 +137,9 @@ class RedisProgressStream(ProgressStream):
                 pass
             finally:
                 try:
-                    await pubsub.aclose()  # type: ignore[no-untyped-call]
+                    # redis-py versions differ in whether aclose is annotated.
+                    close_pubsub: Callable[[], Awaitable[None]] = pubsub.aclose
+                    await close_pubsub()
                     await client.aclose()
                 except Exception:  # noqa: BLE001 - cleanup is best-effort
                     pass
