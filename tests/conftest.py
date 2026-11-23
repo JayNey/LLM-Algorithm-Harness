@@ -48,7 +48,7 @@ def _isolate_llm_response_cache(tmp_path, monkeypatch):
 
 
 @pytest.fixture(autouse=True)
-def _increase_docker_timeout_on_windows(monkeypatch):
+def _increase_docker_timeout_on_windows(monkeypatch, request):
     """Increase Docker timeout on Windows where container operations are slower.
 
     Windows Docker Desktop has higher overhead for container lifecycle operations
@@ -58,7 +58,8 @@ def _increase_docker_timeout_on_windows(monkeypatch):
     This fixture increases the default timeout from 5s to 15s for Docker backend
     on Windows, while leaving explicitly-set timeouts and host backend unchanged.
     """
-    if sys.platform == "win32":
+    # Indirect parametrization exercises this adjustment on non-Windows hosts too.
+    if sys.platform == "win32" or getattr(request, "param", False):
         from src.sandbox_executor import SandboxExecutor
 
         original_init = SandboxExecutor.__init__

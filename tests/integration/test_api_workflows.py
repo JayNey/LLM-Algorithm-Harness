@@ -310,10 +310,17 @@ def test_async_service_request_rejects_unsupported_options(environment, options)
         assert list(environment.queue) == []
 
 
+@pytest.mark.parametrize(
+    "_increase_docker_timeout_on_windows",
+    [False, True],
+    indirect=True,
+    ids=["native-timeout", "windows-timeout"],
+)
 def test_omitted_options_use_real_worker_configuration(environment, monkeypatch):
     workers, sandbox_timeouts, generation_timeouts = [], [], []
     real_run = TaskService.run
     generate = LLMClient.generate
+    initialize_sandbox = SandboxExecutor.__init__
 
     def observe_run(self, *args, **kwargs):
         workers.append(kwargs["max_workers"])
@@ -323,13 +330,18 @@ def test_omitted_options_use_real_worker_configuration(environment, monkeypatch)
         generation_timeouts.append(self.config.timeout)
         return generate(self, *args, **kwargs)
 
-    def observe_sandbox(self, *args, **kwargs):
-        sandbox_timeouts.append(self.config.timeout_seconds)
+    def observe_sandbox_init(self, config):
+        # Check the worker's default before the Windows test fixture increases it.
+        sandbox_timeouts.append(config.timeout_seconds)
+        initialize_sandbox(self, config)
+
+    def execute_sandbox(self, *args, **kwargs):
         return SandboxResult(status="success", all_passed=True, execution_time=0.01)
 
     monkeypatch.setattr(TaskService, "run", observe_run)
     monkeypatch.setattr(LLMClient, "generate", observe_generate)
-    monkeypatch.setattr(SandboxExecutor, "execute", observe_sandbox)
+    monkeypatch.setattr(SandboxExecutor, "__init__", observe_sandbox_init)
+    monkeypatch.setattr(SandboxExecutor, "execute", execute_sandbox)
     with environment.session() as (client, app):
         headers, key = account(client)
         ProblemStore(app.state.task_session_factory).upsert_import([problem("p1")])
