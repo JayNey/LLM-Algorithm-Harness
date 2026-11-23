@@ -1,0 +1,1657 @@
+# comet-execution: managed-run
+change_id: f1e41a0a-7a40-4300-b7db-f31fde70d14a
+workflow: tweak
+language: zh-CN
+phase: archive
+context_compression: off
+build_mode: direct
+build_pause: null
+subagent_dispatch: null
+tdd_mode: direct
+review_mode: off
+isolation: worktree
+verify_mode: light
+auto_transition: true
+base_ref: 0169c10895d020e30e8c51004a79b85a8f6aeb15
+design_doc: null
+plan: null
+verify_result: pass
+verify_failures: 0
+verification_report: docs/superpowers/reports/2026-11-23-fix-sync-websocket-failure-verify.md
+branch_status: pending
+created_at: 2026-11-23
+verified_at: 2026-11-23
+archive_confirmation: confirmed
+archived: true
+bound_branch: comet/fix-sync-websocket-failure
+run_checkpoint:
+  schema: comet.workflow-run-checkpoint.v1
+  hash: a1923ed57c64bf78c8a8fd2ec2613d47fe62cab07ab68710f3d072a68337f589
+  run:
+    protocolVersion: 1
+    schemaVersion: 1
+    runId: fix-sync-websocket-failure
+    revision: 1
+    workflow:
+      id: comet-classic-tweak
+      version: "2"
+      hash: 518d3e8e12eb39899775cb7d2ddcc7ddeba10cb1f1d43cff7b03f2ca61a70c65
+    definitionHashes:
+      '["comet-classic-tweak","2"]': 518d3e8e12eb39899775cb7d2ddcc7ddeba10cb1f1d43cff7b03f2ca61a70c65
+    initialStateHash: e05a7bd2993afb4fe4c0646d0801b599e7bb33fde1feea46cd3df6f649c9af55
+    input:
+      change: fix-sync-websocket-failure
+      changeDir: openspec/changes/fix-sync-websocket-failure
+      workspaceBaseline:
+        ref: 40abfa50-b4e1-4395-9d06-9e35a9a50a9b
+    state:
+      archiveConfirmation: confirmed
+      archived: true
+      autoTransition: true
+      baseRef: 0169c10895d020e30e8c51004a79b85a8f6aeb15
+      boundBranch: comet/fix-sync-websocket-failure
+      branchStatus: pending
+      buildMode: direct
+      buildPause: null
+      checkEpoch: 5
+      classicMigration: null
+      classicProfile: null
+      contextCompression: off
+      createdAt: 2026-11-23
+      designDoc: null
+      directOverride: null
+      handoffContext: null
+      handoffHash: null
+      isolation: worktree
+      language: zh-CN
+      phase: archive
+      plan: null
+      reviewMode: off
+      subagentDispatch: null
+      tddMode: direct
+      verificationReport: docs/superpowers/reports/2026-11-23-fix-sync-websocket-failure-verify.md
+      verifiedAt: 2026-11-23
+      verifyFailures: 0
+      verifyMode: light
+      verifyResult: pass
+      workflow: tweak
+    status: running
+    sequence: 10
+    actions:
+      - attempt: 1
+        claim:
+          executorId: comet-classic-guard
+          token: portable-fa492f8a6d12bbcc0daf18c62e93d5b85bfee724e7425ff29bc8102b074288d5
+        executionOrigin:
+          workflow:
+            hash: 518d3e8e12eb39899775cb7d2ddcc7ddeba10cb1f1d43cff7b03f2ca61a70c65
+            id: comet-classic-tweak
+            version: "2"
+        id: fix-sync-websocket-failure:1
+        input:
+          input:
+            change: fix-sync-websocket-failure
+            changeDir: openspec/changes/fix-sync-websocket-failure
+            workspaceBaseline:
+              ref: 40abfa50-b4e1-4395-9d06-9e35a9a50a9b
+          outputs: {}
+        inputHash: 6d9ee2c89f28699772e120d8ab802e883b1118f7221809108983927e2c9a51c2
+        outcome:
+          actionId: fix-sync-websocket-failure:1
+          attempt: 1
+          claimToken: portable-fa492f8a6d12bbcc0daf18c62e93d5b85bfee724e7425ff29bc8102b074288d5
+          inputHash: 6d9ee2c89f28699772e120d8ab802e883b1118f7221809108983927e2c9a51c2
+          outcomeId: fac4ee9e-400b-4d73-8021-71c6612a2089
+          output:
+            event: open-complete
+            requirementsEvidence:
+              ref: openspec/changes/fix-sync-websocket-failure
+          status: succeeded
+        protocolVersion: 1
+        receipts:
+          - hash: c6f5edc486e213524807d319354aceb01b509ddd02cecc068c0d3eaa6a16ec4d
+            outcomeId: fac4ee9e-400b-4d73-8021-71c6612a2089
+        reconciliations: []
+        ref: comet-tweak
+        requiredCapabilities: []
+        retry: manual
+        runId: fix-sync-websocket-failure
+        status: succeeded
+        stepId: tweak.open
+        type: invoke_skill
+      - attempt: 1
+        claim:
+          executorId: comet-classic-state
+          sessionId: codex-514
+          token: portable-dcbc4317a3cf049350e89ba1abc2ba6a3f0177a5a373ff30a832efff19613c85
+        executionOrigin:
+          workflow:
+            hash: 518d3e8e12eb39899775cb7d2ddcc7ddeba10cb1f1d43cff7b03f2ca61a70c65
+            id: comet-classic-tweak
+            version: "2"
+        id: fix-sync-websocket-failure:3
+        input:
+          input:
+            change: fix-sync-websocket-failure
+            changeDir: openspec/changes/fix-sync-websocket-failure
+            workspaceBaseline:
+              ref: 40abfa50-b4e1-4395-9d06-9e35a9a50a9b
+          outputs:
+            tweak.open:
+              event: open-complete
+              requirementsEvidence:
+                ref: openspec/changes/fix-sync-websocket-failure
+            tweak.open.evidence:
+              contentHash: 6d9ee2c89f28699772e120d8ab802e883b1118f7221809108983927e2c9a51c2
+              ref: openspec/changes/fix-sync-websocket-failure
+        inputHash: aaa4b8bbe0ac0f61b44bda8a9729f4cbf39027290a0e0c40328b22ad6c6e9eb1
+        outcome:
+          actionId: fix-sync-websocket-failure:3
+          attempt: 1
+          claimToken: portable-dcbc4317a3cf049350e89ba1abc2ba6a3f0177a5a373ff30a832efff19613c85
+          inputHash: aaa4b8bbe0ac0f61b44bda8a9729f4cbf39027290a0e0c40328b22ad6c6e9eb1
+          outcomeId: 7014e145-02c0-4372-a181-6505776e394e
+          output:
+            checks:
+              - name: "frontend: node --experimental-strip-types --test
+                  src/evaluations/observer.test.ts"
+                note: 35/35 passed；修复前 27 passed、8 failed，RED 日志 /tmp/issue-514-red.log。
+                result: passed
+              - name: "frontend: npm test"
+                note: 365/365 passed，0 failed；日志 /tmp/issue-514-frontend-tests.log。
+                result: passed
+              - name: "frontend: npm run lint"
+                note: ESLint 全量通过；日志 /tmp/issue-514-lint.log。
+                result: passed
+              - name: "frontend: npm run build"
+                note: TypeScript 与 Vite 构建通过；仅有大 chunk 提示；日志 /tmp/issue-514-build.log。
+                result: passed
+              - name: "frontend: npx prettier --check src/evaluations/observer.ts
+                  src/evaluations/observer.test.ts"
+                note: 两个交付文件格式通过。
+                result: passed
+              - name: "worktree: git diff --check"
+                note: 无空白错误。
+                result: passed
+              - name: "worktree: comet classic openspec -- validate fix-sync-websocket-failure
+                  --strict"
+                note: Change is valid。
+                result: passed
+            event: build-complete
+          status: succeeded
+        protocolVersion: 1
+        receipts:
+          - hash: c7c0cdb4ab19fd6d71cb74cabbac59eb9ffafeb04fdbe25cdd431dd32fb141f1
+            outcomeId: 7014e145-02c0-4372-a181-6505776e394e
+        reconciliations: []
+        ref: comet-build
+        requiredCapabilities: []
+        retry: manual
+        runId: fix-sync-websocket-failure
+        status: succeeded
+        stepId: tweak.build.execute
+        type: invoke_skill
+      - attempt: 1
+        claim:
+          executorId: comet-classic-guard
+          token: portable-fbb7f8364769adbfcd92bde3b8a3cfd6cd1b85fa27a81daeb9976e467ad70c9c
+        executionOrigin:
+          workflow:
+            hash: 518d3e8e12eb39899775cb7d2ddcc7ddeba10cb1f1d43cff7b03f2ca61a70c65
+            id: comet-classic-tweak
+            version: "2"
+        id: fix-sync-websocket-failure:4
+        input:
+          input:
+            change: fix-sync-websocket-failure
+            changeDir: openspec/changes/fix-sync-websocket-failure
+            workspaceBaseline:
+              ref: 40abfa50-b4e1-4395-9d06-9e35a9a50a9b
+          outputs:
+            tweak.build.execute:
+              checks:
+                - name: "frontend: node --experimental-strip-types --test
+                    src/evaluations/observer.test.ts"
+                  note: 35/35 passed；修复前 27 passed、8 failed，RED 日志 /tmp/issue-514-red.log。
+                  result: passed
+                - name: "frontend: npm test"
+                  note: 365/365 passed，0 failed；日志 /tmp/issue-514-frontend-tests.log。
+                  result: passed
+                - name: "frontend: npm run lint"
+                  note: ESLint 全量通过；日志 /tmp/issue-514-lint.log。
+                  result: passed
+                - name: "frontend: npm run build"
+                  note: TypeScript 与 Vite 构建通过；仅有大 chunk 提示；日志 /tmp/issue-514-build.log。
+                  result: passed
+                - name: "frontend: npx prettier --check src/evaluations/observer.ts
+                    src/evaluations/observer.test.ts"
+                  note: 两个交付文件格式通过。
+                  result: passed
+                - name: "worktree: git diff --check"
+                  note: 无空白错误。
+                  result: passed
+                - name: "worktree: comet classic openspec -- validate fix-sync-websocket-failure
+                    --strict"
+                  note: Change is valid。
+                  result: passed
+              event: build-complete
+            tweak.open:
+              event: open-complete
+              requirementsEvidence:
+                ref: openspec/changes/fix-sync-websocket-failure
+            tweak.open.evidence:
+              contentHash: 6d9ee2c89f28699772e120d8ab802e883b1118f7221809108983927e2c9a51c2
+              ref: openspec/changes/fix-sync-websocket-failure
+        inputHash: f8e664cc774d08399b54b1e6bd925854cfe123258ec32cf60c8da3f6834c8f1d
+        outcome:
+          actionId: fix-sync-websocket-failure:4
+          attempt: 1
+          claimToken: portable-fbb7f8364769adbfcd92bde3b8a3cfd6cd1b85fa27a81daeb9976e467ad70c9c
+          inputHash: f8e664cc774d08399b54b1e6bd925854cfe123258ec32cf60c8da3f6834c8f1d
+          outcomeId: dd7f94bf-a5dc-43ee-8877-325d8f625dc0
+          output:
+            checks:
+              - name: "frontend: node --experimental-strip-types --test
+                  src/evaluations/observer.test.ts"
+                note: 35/35 passed；修复前 27 passed、8 failed，RED 日志 /tmp/issue-514-red.log。
+                result: passed
+              - name: "frontend: npm test"
+                note: 365/365 passed，0 failed；日志 /tmp/issue-514-frontend-tests.log。
+                result: passed
+              - name: "frontend: npm run lint"
+                note: ESLint 全量通过；日志 /tmp/issue-514-lint.log。
+                result: passed
+              - name: "frontend: npm run build"
+                note: TypeScript 与 Vite 构建通过；仅有大 chunk 提示；日志 /tmp/issue-514-build.log。
+                result: passed
+              - name: "frontend: npx prettier --check src/evaluations/observer.ts
+                  src/evaluations/observer.test.ts"
+                note: 两个交付文件格式通过。
+                result: passed
+              - name: "worktree: git diff --check"
+                note: 无空白错误。
+                result: passed
+              - name: "worktree: comet classic openspec -- validate fix-sync-websocket-failure
+                  --strict"
+                note: Change is valid。
+                result: passed
+            event: verification-ready
+            verificationReport: docs/superpowers/reports/2026-11-23-fix-sync-websocket-failure-verify.md
+          status: succeeded
+        protocolVersion: 1
+        receipts:
+          - hash: 567e123ee69a7e3a510c3a69a18d47c5c3ccc36f6d56af97fb2c0e270c1c400d
+            outcomeId: dd7f94bf-a5dc-43ee-8877-325d8f625dc0
+        reconciliations: []
+        ref: comet-verify
+        requiredCapabilities: []
+        retry: manual
+        runId: fix-sync-websocket-failure
+        status: succeeded
+        stepId: tweak.verify.run
+        type: invoke_skill
+      - attempt: 1
+        claim:
+          executorId: comet-classic-state
+          token: portable-a85164503f03405e1773ef4b1df1a35d67e87672f93e380d433623a52953d6cf
+        executionOrigin:
+          workflow:
+            hash: 518d3e8e12eb39899775cb7d2ddcc7ddeba10cb1f1d43cff7b03f2ca61a70c65
+            id: comet-classic-tweak
+            version: "2"
+        id: fix-sync-websocket-failure:6
+        input:
+          input:
+            change: fix-sync-websocket-failure
+            changeDir: openspec/changes/fix-sync-websocket-failure
+            workspaceBaseline:
+              ref: 40abfa50-b4e1-4395-9d06-9e35a9a50a9b
+          outputs:
+            tweak.build.execute:
+              checks:
+                - name: "frontend: node --experimental-strip-types --test
+                    src/evaluations/observer.test.ts"
+                  note: 35/35 passed；修复前 27 passed、8 failed，RED 日志 /tmp/issue-514-red.log。
+                  result: passed
+                - name: "frontend: npm test"
+                  note: 365/365 passed，0 failed；日志 /tmp/issue-514-frontend-tests.log。
+                  result: passed
+                - name: "frontend: npm run lint"
+                  note: ESLint 全量通过；日志 /tmp/issue-514-lint.log。
+                  result: passed
+                - name: "frontend: npm run build"
+                  note: TypeScript 与 Vite 构建通过；仅有大 chunk 提示；日志 /tmp/issue-514-build.log。
+                  result: passed
+                - name: "frontend: npx prettier --check src/evaluations/observer.ts
+                    src/evaluations/observer.test.ts"
+                  note: 两个交付文件格式通过。
+                  result: passed
+                - name: "worktree: git diff --check"
+                  note: 无空白错误。
+                  result: passed
+                - name: "worktree: comet classic openspec -- validate fix-sync-websocket-failure
+                    --strict"
+                  note: Change is valid。
+                  result: passed
+              event: build-complete
+            tweak.open:
+              event: open-complete
+              requirementsEvidence:
+                ref: openspec/changes/fix-sync-websocket-failure
+            tweak.open.evidence:
+              contentHash: 6d9ee2c89f28699772e120d8ab802e883b1118f7221809108983927e2c9a51c2
+              ref: openspec/changes/fix-sync-websocket-failure
+            tweak.verify.report.evidence:
+              contentHash: f8e664cc774d08399b54b1e6bd925854cfe123258ec32cf60c8da3f6834c8f1d
+              ref: docs/superpowers/reports/2026-11-23-fix-sync-websocket-failure-verify.md
+            tweak.verify.run:
+              checks:
+                - name: "frontend: node --experimental-strip-types --test
+                    src/evaluations/observer.test.ts"
+                  note: 35/35 passed；修复前 27 passed、8 failed，RED 日志 /tmp/issue-514-red.log。
+                  result: passed
+                - name: "frontend: npm test"
+                  note: 365/365 passed，0 failed；日志 /tmp/issue-514-frontend-tests.log。
+                  result: passed
+                - name: "frontend: npm run lint"
+                  note: ESLint 全量通过；日志 /tmp/issue-514-lint.log。
+                  result: passed
+                - name: "frontend: npm run build"
+                  note: TypeScript 与 Vite 构建通过；仅有大 chunk 提示；日志 /tmp/issue-514-build.log。
+                  result: passed
+                - name: "frontend: npx prettier --check src/evaluations/observer.ts
+                    src/evaluations/observer.test.ts"
+                  note: 两个交付文件格式通过。
+                  result: passed
+                - name: "worktree: git diff --check"
+                  note: 无空白错误。
+                  result: passed
+                - name: "worktree: comet classic openspec -- validate fix-sync-websocket-failure
+                    --strict"
+                  note: Change is valid。
+                  result: passed
+              event: verification-ready
+              verificationReport: docs/superpowers/reports/2026-11-23-fix-sync-websocket-failure-verify.md
+        inputHash: 7afb016173e0b09c22a62b18fab725aed3e2ca7a4d2be814d1e1c1b8609972fe
+        outcome:
+          actionId: fix-sync-websocket-failure:6
+          attempt: 1
+          claimToken: portable-a85164503f03405e1773ef4b1df1a35d67e87672f93e380d433623a52953d6cf
+          inputHash: 7afb016173e0b09c22a62b18fab725aed3e2ca7a4d2be814d1e1c1b8609972fe
+          outcomeId: 07897a29-5240-45fd-a902-3867db40f66e
+          output:
+            prBaseBranch: main
+            remote: origin
+            summary: "Issue #514：同步 WebSocket 失败进入 degraded，HTTP 轮询及有限重连继续，失败句柄与 dispose
+              正确清理。365 个前端测试、ESLint、构建与规格核对通过。归档将同步 frontend/evaluation-observer
+              主 spec，保存方案、任务、验收报告和现有说明页，在 comet/fix-sync-websocket-failure
+              创建唯一提交；可仅本地提交，或推送 origin 同名分支并向 main 创建 PR。"
+            targetBranch: comet/fix-sync-websocket-failure
+          status: succeeded
+        protocolVersion: 1
+        receipts:
+          - hash: 6409850b8a820b23cce252b228fe138aa37a2973ef576c97eb7e0cbf05f4f47a
+            outcomeId: 07897a29-5240-45fd-a902-3867db40f66e
+        reconciliations: []
+        ref: comet-archive
+        requiredCapabilities: []
+        retry: manual
+        runId: fix-sync-websocket-failure
+        status: succeeded
+        stepId: tweak.archive.prepare
+        type: invoke_skill
+      - attempt: 1
+        claim:
+          executorId: comet-classic-archive-preflight
+          token: portable-032efe75ef8ee6e193006be4cde974d0e5f05bc245c89d4c090e51358198babb
+        executionOrigin:
+          workflow:
+            hash: 518d3e8e12eb39899775cb7d2ddcc7ddeba10cb1f1d43cff7b03f2ca61a70c65
+            id: comet-classic-tweak
+            version: "2"
+        id: fix-sync-websocket-failure:8
+        input:
+          input:
+            change: fix-sync-websocket-failure
+            changeDir: openspec/changes/fix-sync-websocket-failure
+            workspaceBaseline:
+              ref: 40abfa50-b4e1-4395-9d06-9e35a9a50a9b
+          outputs:
+            tweak.archive.confirm:
+              choice: pr
+              proposal:
+                input:
+                  change: fix-sync-websocket-failure
+                  changeDir: openspec/changes/fix-sync-websocket-failure
+                  workspaceBaseline:
+                    ref: 40abfa50-b4e1-4395-9d06-9e35a9a50a9b
+                outputs:
+                  tweak.archive.prepare:
+                    prBaseBranch: main
+                    remote: origin
+                    summary: "Issue #514：同步 WebSocket 失败进入 degraded，HTTP 轮询及有限重连继续，失败句柄与 dispose
+                      正确清理。365 个前端测试、ESLint、构建与规格核对通过。归档将同步
+                      frontend/evaluation-observer 主 spec，保存方案、任务、验收报告和现有说明页，在
+                      comet/fix-sync-websocket-failure 创建唯一提交；可仅本地提交，或推送 origin
+                      同名分支并向 main 创建 PR。"
+                    targetBranch: comet/fix-sync-websocket-failure
+            tweak.archive.prepare:
+              prBaseBranch: main
+              remote: origin
+              summary: "Issue #514：同步 WebSocket 失败进入 degraded，HTTP 轮询及有限重连继续，失败句柄与 dispose
+                正确清理。365 个前端测试、ESLint、构建与规格核对通过。归档将同步
+                frontend/evaluation-observer 主 spec，保存方案、任务、验收报告和现有说明页，在
+                comet/fix-sync-websocket-failure 创建唯一提交；可仅本地提交，或推送 origin 同名分支并向
+                main 创建 PR。"
+              targetBranch: comet/fix-sync-websocket-failure
+            tweak.build.execute:
+              checks:
+                - name: "frontend: node --experimental-strip-types --test
+                    src/evaluations/observer.test.ts"
+                  note: 35/35 passed；修复前 27 passed、8 failed，RED 日志 /tmp/issue-514-red.log。
+                  result: passed
+                - name: "frontend: npm test"
+                  note: 365/365 passed，0 failed；日志 /tmp/issue-514-frontend-tests.log。
+                  result: passed
+                - name: "frontend: npm run lint"
+                  note: ESLint 全量通过；日志 /tmp/issue-514-lint.log。
+                  result: passed
+                - name: "frontend: npm run build"
+                  note: TypeScript 与 Vite 构建通过；仅有大 chunk 提示；日志 /tmp/issue-514-build.log。
+                  result: passed
+                - name: "frontend: npx prettier --check src/evaluations/observer.ts
+                    src/evaluations/observer.test.ts"
+                  note: 两个交付文件格式通过。
+                  result: passed
+                - name: "worktree: git diff --check"
+                  note: 无空白错误。
+                  result: passed
+                - name: "worktree: comet classic openspec -- validate fix-sync-websocket-failure
+                    --strict"
+                  note: Change is valid。
+                  result: passed
+              event: build-complete
+            tweak.open:
+              event: open-complete
+              requirementsEvidence:
+                ref: openspec/changes/fix-sync-websocket-failure
+            tweak.open.evidence:
+              contentHash: 6d9ee2c89f28699772e120d8ab802e883b1118f7221809108983927e2c9a51c2
+              ref: openspec/changes/fix-sync-websocket-failure
+            tweak.verify.report.evidence:
+              contentHash: f8e664cc774d08399b54b1e6bd925854cfe123258ec32cf60c8da3f6834c8f1d
+              ref: docs/superpowers/reports/2026-11-23-fix-sync-websocket-failure-verify.md
+            tweak.verify.run:
+              checks:
+                - name: "frontend: node --experimental-strip-types --test
+                    src/evaluations/observer.test.ts"
+                  note: 35/35 passed；修复前 27 passed、8 failed，RED 日志 /tmp/issue-514-red.log。
+                  result: passed
+                - name: "frontend: npm test"
+                  note: 365/365 passed，0 failed；日志 /tmp/issue-514-frontend-tests.log。
+                  result: passed
+                - name: "frontend: npm run lint"
+                  note: ESLint 全量通过；日志 /tmp/issue-514-lint.log。
+                  result: passed
+                - name: "frontend: npm run build"
+                  note: TypeScript 与 Vite 构建通过；仅有大 chunk 提示；日志 /tmp/issue-514-build.log。
+                  result: passed
+                - name: "frontend: npx prettier --check src/evaluations/observer.ts
+                    src/evaluations/observer.test.ts"
+                  note: 两个交付文件格式通过。
+                  result: passed
+                - name: "worktree: git diff --check"
+                  note: 无空白错误。
+                  result: passed
+                - name: "worktree: comet classic openspec -- validate fix-sync-websocket-failure
+                    --strict"
+                  note: Change is valid。
+                  result: passed
+              event: verification-ready
+              verificationReport: docs/superpowers/reports/2026-11-23-fix-sync-websocket-failure-verify.md
+        inputHash: 5d3a03010fae1103c79e9e6e340a765b83f08f76a587d0c09875c5df07c9fbd7
+        outcome:
+          actionId: fix-sync-websocket-failure:8
+          attempt: 1
+          claimToken: portable-032efe75ef8ee6e193006be4cde974d0e5f05bc245c89d4c090e51358198babb
+          inputHash: 5d3a03010fae1103c79e9e6e340a765b83f08f76a587d0c09875c5df07c9fbd7
+          outcomeId: ec9f616a-43ac-4d08-8418-33ed7ca1258a
+          output:
+            baseCommit: 0169c10895d020e30e8c51004a79b85a8f6aeb15
+            deliveryAction: pr
+            deliveryPaths:
+              - frontend/src/evaluations/observer.test.ts
+              - frontend/src/evaluations/observer.ts
+            prBaseBranch: main
+            remote: origin
+            remoteIdentity: 128eeb1e6f0d21b25601fcb7f9aad36adfdfb4d76f37f54f004760410190f351
+            targetBranch: comet/fix-sync-websocket-failure
+            verifiedBranch: comet/fix-sync-websocket-failure
+          status: succeeded
+        protocolVersion: 1
+        receipts:
+          - hash: cc7b26bf083cd1bb37c9ecbc954b03d946dc3c712daf1ace08628d9361c4dc9e
+            outcomeId: ec9f616a-43ac-4d08-8418-33ed7ca1258a
+        reconciliations: []
+        ref: classic-archive-preflight
+        requiredCapabilities: []
+        retry: manual
+        runId: fix-sync-websocket-failure
+        status: succeeded
+        stepId: tweak.archive.preflight
+        type: call_tool
+      - attempt: 1
+        claim:
+          executorId: comet-classic-archive
+          token: portable-55e74fbcd04d2fa9b8aca96f4f03568a54c1a2778a6d8f2c1fe670dc6069ea58
+        executionOrigin:
+          workflow:
+            hash: 518d3e8e12eb39899775cb7d2ddcc7ddeba10cb1f1d43cff7b03f2ca61a70c65
+            id: comet-classic-tweak
+            version: "2"
+        id: fix-sync-websocket-failure:9
+        input:
+          input:
+            change: fix-sync-websocket-failure
+            changeDir: openspec/changes/fix-sync-websocket-failure
+            workspaceBaseline:
+              ref: 40abfa50-b4e1-4395-9d06-9e35a9a50a9b
+          outputs:
+            tweak.archive.confirm:
+              choice: pr
+              proposal:
+                input:
+                  change: fix-sync-websocket-failure
+                  changeDir: openspec/changes/fix-sync-websocket-failure
+                  workspaceBaseline:
+                    ref: 40abfa50-b4e1-4395-9d06-9e35a9a50a9b
+                outputs:
+                  tweak.archive.prepare:
+                    prBaseBranch: main
+                    remote: origin
+                    summary: "Issue #514：同步 WebSocket 失败进入 degraded，HTTP 轮询及有限重连继续，失败句柄与 dispose
+                      正确清理。365 个前端测试、ESLint、构建与规格核对通过。归档将同步
+                      frontend/evaluation-observer 主 spec，保存方案、任务、验收报告和现有说明页，在
+                      comet/fix-sync-websocket-failure 创建唯一提交；可仅本地提交，或推送 origin
+                      同名分支并向 main 创建 PR。"
+                    targetBranch: comet/fix-sync-websocket-failure
+            tweak.archive.preflight:
+              baseCommit: 0169c10895d020e30e8c51004a79b85a8f6aeb15
+              deliveryAction: pr
+              deliveryPaths:
+                - frontend/src/evaluations/observer.test.ts
+                - frontend/src/evaluations/observer.ts
+              prBaseBranch: main
+              remote: origin
+              remoteIdentity: 128eeb1e6f0d21b25601fcb7f9aad36adfdfb4d76f37f54f004760410190f351
+              targetBranch: comet/fix-sync-websocket-failure
+              verifiedBranch: comet/fix-sync-websocket-failure
+            tweak.archive.prepare:
+              prBaseBranch: main
+              remote: origin
+              summary: "Issue #514：同步 WebSocket 失败进入 degraded，HTTP 轮询及有限重连继续，失败句柄与 dispose
+                正确清理。365 个前端测试、ESLint、构建与规格核对通过。归档将同步
+                frontend/evaluation-observer 主 spec，保存方案、任务、验收报告和现有说明页，在
+                comet/fix-sync-websocket-failure 创建唯一提交；可仅本地提交，或推送 origin 同名分支并向
+                main 创建 PR。"
+              targetBranch: comet/fix-sync-websocket-failure
+            tweak.build.execute:
+              checks:
+                - name: "frontend: node --experimental-strip-types --test
+                    src/evaluations/observer.test.ts"
+                  note: 35/35 passed；修复前 27 passed、8 failed，RED 日志 /tmp/issue-514-red.log。
+                  result: passed
+                - name: "frontend: npm test"
+                  note: 365/365 passed，0 failed；日志 /tmp/issue-514-frontend-tests.log。
+                  result: passed
+                - name: "frontend: npm run lint"
+                  note: ESLint 全量通过；日志 /tmp/issue-514-lint.log。
+                  result: passed
+                - name: "frontend: npm run build"
+                  note: TypeScript 与 Vite 构建通过；仅有大 chunk 提示；日志 /tmp/issue-514-build.log。
+                  result: passed
+                - name: "frontend: npx prettier --check src/evaluations/observer.ts
+                    src/evaluations/observer.test.ts"
+                  note: 两个交付文件格式通过。
+                  result: passed
+                - name: "worktree: git diff --check"
+                  note: 无空白错误。
+                  result: passed
+                - name: "worktree: comet classic openspec -- validate fix-sync-websocket-failure
+                    --strict"
+                  note: Change is valid。
+                  result: passed
+              event: build-complete
+            tweak.open:
+              event: open-complete
+              requirementsEvidence:
+                ref: openspec/changes/fix-sync-websocket-failure
+            tweak.open.evidence:
+              contentHash: 6d9ee2c89f28699772e120d8ab802e883b1118f7221809108983927e2c9a51c2
+              ref: openspec/changes/fix-sync-websocket-failure
+            tweak.verify.report.evidence:
+              contentHash: f8e664cc774d08399b54b1e6bd925854cfe123258ec32cf60c8da3f6834c8f1d
+              ref: docs/superpowers/reports/2026-11-23-fix-sync-websocket-failure-verify.md
+            tweak.verify.run:
+              checks:
+                - name: "frontend: node --experimental-strip-types --test
+                    src/evaluations/observer.test.ts"
+                  note: 35/35 passed；修复前 27 passed、8 failed，RED 日志 /tmp/issue-514-red.log。
+                  result: passed
+                - name: "frontend: npm test"
+                  note: 365/365 passed，0 failed；日志 /tmp/issue-514-frontend-tests.log。
+                  result: passed
+                - name: "frontend: npm run lint"
+                  note: ESLint 全量通过；日志 /tmp/issue-514-lint.log。
+                  result: passed
+                - name: "frontend: npm run build"
+                  note: TypeScript 与 Vite 构建通过；仅有大 chunk 提示；日志 /tmp/issue-514-build.log。
+                  result: passed
+                - name: "frontend: npx prettier --check src/evaluations/observer.ts
+                    src/evaluations/observer.test.ts"
+                  note: 两个交付文件格式通过。
+                  result: passed
+                - name: "worktree: git diff --check"
+                  note: 无空白错误。
+                  result: passed
+                - name: "worktree: comet classic openspec -- validate fix-sync-websocket-failure
+                    --strict"
+                  note: Change is valid。
+                  result: passed
+              event: verification-ready
+              verificationReport: docs/superpowers/reports/2026-11-23-fix-sync-websocket-failure-verify.md
+        inputHash: b636822b53676d1e66a6c678e54eaa2835c825359f0e09d6ea0d6f5c992ef8ec
+        outcome:
+          actionId: fix-sync-websocket-failure:9
+          artifacts: []
+          attempt: 1
+          claimToken: portable-55e74fbcd04d2fa9b8aca96f4f03568a54c1a2778a6d8f2c1fe670dc6069ea58
+          inputHash: b636822b53676d1e66a6c678e54eaa2835c825359f0e09d6ea0d6f5c992ef8ec
+          outcomeId: dce5cbe3-b4d0-4b51-9a8b-59837d8f080a
+          output:
+            archiveDirectory: openspec/changes/archive/2026-11-23-fix-sync-websocket-failure
+          status: succeeded
+        protocolVersion: 1
+        receipts:
+          - hash: 22249938e8004f809ba8f82eef37d06b61347186ab196350747c32d27160672b
+            outcomeId: dce5cbe3-b4d0-4b51-9a8b-59837d8f080a
+        reconciliations: []
+        ref: classic-archive
+        requiredCapabilities: []
+        retry: manual
+        runId: fix-sync-websocket-failure
+        status: succeeded
+        stepId: tweak.archive.execute
+        type: call_tool
+      - attempt: 1
+        id: fix-sync-websocket-failure:10
+        input:
+          input:
+            change: fix-sync-websocket-failure
+            changeDir: openspec/changes/fix-sync-websocket-failure
+            workspaceBaseline:
+              ref: 40abfa50-b4e1-4395-9d06-9e35a9a50a9b
+          outputs:
+            tweak.archive.confirm:
+              choice: pr
+              proposal:
+                input:
+                  change: fix-sync-websocket-failure
+                  changeDir: openspec/changes/fix-sync-websocket-failure
+                  workspaceBaseline:
+                    ref: 40abfa50-b4e1-4395-9d06-9e35a9a50a9b
+                outputs:
+                  tweak.archive.prepare:
+                    prBaseBranch: main
+                    remote: origin
+                    summary: "Issue #514：同步 WebSocket 失败进入 degraded，HTTP 轮询及有限重连继续，失败句柄与 dispose
+                      正确清理。365 个前端测试、ESLint、构建与规格核对通过。归档将同步
+                      frontend/evaluation-observer 主 spec，保存方案、任务、验收报告和现有说明页，在
+                      comet/fix-sync-websocket-failure 创建唯一提交；可仅本地提交，或推送 origin
+                      同名分支并向 main 创建 PR。"
+                    targetBranch: comet/fix-sync-websocket-failure
+            tweak.archive.execute:
+              archiveDirectory: openspec/changes/archive/2026-11-23-fix-sync-websocket-failure
+            tweak.archive.preflight:
+              baseCommit: 0169c10895d020e30e8c51004a79b85a8f6aeb15
+              deliveryAction: pr
+              deliveryPaths:
+                - frontend/src/evaluations/observer.test.ts
+                - frontend/src/evaluations/observer.ts
+              prBaseBranch: main
+              remote: origin
+              remoteIdentity: 128eeb1e6f0d21b25601fcb7f9aad36adfdfb4d76f37f54f004760410190f351
+              targetBranch: comet/fix-sync-websocket-failure
+              verifiedBranch: comet/fix-sync-websocket-failure
+            tweak.archive.prepare:
+              prBaseBranch: main
+              remote: origin
+              summary: "Issue #514：同步 WebSocket 失败进入 degraded，HTTP 轮询及有限重连继续，失败句柄与 dispose
+                正确清理。365 个前端测试、ESLint、构建与规格核对通过。归档将同步
+                frontend/evaluation-observer 主 spec，保存方案、任务、验收报告和现有说明页，在
+                comet/fix-sync-websocket-failure 创建唯一提交；可仅本地提交，或推送 origin 同名分支并向
+                main 创建 PR。"
+              targetBranch: comet/fix-sync-websocket-failure
+            tweak.build.execute:
+              checks:
+                - name: "frontend: node --experimental-strip-types --test
+                    src/evaluations/observer.test.ts"
+                  note: 35/35 passed；修复前 27 passed、8 failed，RED 日志 /tmp/issue-514-red.log。
+                  result: passed
+                - name: "frontend: npm test"
+                  note: 365/365 passed，0 failed；日志 /tmp/issue-514-frontend-tests.log。
+                  result: passed
+                - name: "frontend: npm run lint"
+                  note: ESLint 全量通过；日志 /tmp/issue-514-lint.log。
+                  result: passed
+                - name: "frontend: npm run build"
+                  note: TypeScript 与 Vite 构建通过；仅有大 chunk 提示；日志 /tmp/issue-514-build.log。
+                  result: passed
+                - name: "frontend: npx prettier --check src/evaluations/observer.ts
+                    src/evaluations/observer.test.ts"
+                  note: 两个交付文件格式通过。
+                  result: passed
+                - name: "worktree: git diff --check"
+                  note: 无空白错误。
+                  result: passed
+                - name: "worktree: comet classic openspec -- validate fix-sync-websocket-failure
+                    --strict"
+                  note: Change is valid。
+                  result: passed
+              event: build-complete
+            tweak.open:
+              event: open-complete
+              requirementsEvidence:
+                ref: openspec/changes/fix-sync-websocket-failure
+            tweak.open.evidence:
+              contentHash: 6d9ee2c89f28699772e120d8ab802e883b1118f7221809108983927e2c9a51c2
+              ref: openspec/changes/fix-sync-websocket-failure
+            tweak.verify.report.evidence:
+              contentHash: f8e664cc774d08399b54b1e6bd925854cfe123258ec32cf60c8da3f6834c8f1d
+              ref: docs/superpowers/reports/2026-11-23-fix-sync-websocket-failure-verify.md
+            tweak.verify.run:
+              checks:
+                - name: "frontend: node --experimental-strip-types --test
+                    src/evaluations/observer.test.ts"
+                  note: 35/35 passed；修复前 27 passed、8 failed，RED 日志 /tmp/issue-514-red.log。
+                  result: passed
+                - name: "frontend: npm test"
+                  note: 365/365 passed，0 failed；日志 /tmp/issue-514-frontend-tests.log。
+                  result: passed
+                - name: "frontend: npm run lint"
+                  note: ESLint 全量通过；日志 /tmp/issue-514-lint.log。
+                  result: passed
+                - name: "frontend: npm run build"
+                  note: TypeScript 与 Vite 构建通过；仅有大 chunk 提示；日志 /tmp/issue-514-build.log。
+                  result: passed
+                - name: "frontend: npx prettier --check src/evaluations/observer.ts
+                    src/evaluations/observer.test.ts"
+                  note: 两个交付文件格式通过。
+                  result: passed
+                - name: "worktree: git diff --check"
+                  note: 无空白错误。
+                  result: passed
+                - name: "worktree: comet classic openspec -- validate fix-sync-websocket-failure
+                    --strict"
+                  note: Change is valid。
+                  result: passed
+              event: verification-ready
+              verificationReport: docs/superpowers/reports/2026-11-23-fix-sync-websocket-failure-verify.md
+        inputHash: 954786bb97623a6ea8a6d0cdf36ab587493024eb673bcda3408b4656fe81ed9f
+        protocolVersion: 1
+        receipts: []
+        reconciliations: []
+        ref: comet-archive
+        requiredCapabilities: []
+        retry: manual
+        runId: fix-sync-websocket-failure
+        status: pending
+        stepId: tweak.archive.deliver
+        type: invoke_skill
+    actionContexts:
+      fix-sync-websocket-failure:1:
+        results: {}
+        sequence: 1
+      fix-sync-websocket-failure:10:
+        results:
+          tweak.archive.confirm:
+            sequence: 7
+            value:
+              choice: pr
+              proposal:
+                input:
+                  change: fix-sync-websocket-failure
+                  changeDir: openspec/changes/fix-sync-websocket-failure
+                  workspaceBaseline:
+                    ref: 40abfa50-b4e1-4395-9d06-9e35a9a50a9b
+                outputs:
+                  tweak.archive.prepare:
+                    prBaseBranch: main
+                    remote: origin
+                    summary: "Issue #514：同步 WebSocket 失败进入 degraded，HTTP 轮询及有限重连继续，失败句柄与 dispose
+                      正确清理。365 个前端测试、ESLint、构建与规格核对通过。归档将同步
+                      frontend/evaluation-observer 主 spec，保存方案、任务、验收报告和现有说明页，在
+                      comet/fix-sync-websocket-failure 创建唯一提交；可仅本地提交，或推送 origin
+                      同名分支并向 main 创建 PR。"
+                    targetBranch: comet/fix-sync-websocket-failure
+          tweak.archive.execute:
+            sequence: 9
+            value:
+              archiveDirectory: openspec/changes/archive/2026-11-23-fix-sync-websocket-failure
+          tweak.archive.preflight:
+            sequence: 8
+            value:
+              baseCommit: 0169c10895d020e30e8c51004a79b85a8f6aeb15
+              deliveryAction: pr
+              deliveryPaths:
+                - frontend/src/evaluations/observer.test.ts
+                - frontend/src/evaluations/observer.ts
+              prBaseBranch: main
+              remote: origin
+              remoteIdentity: 128eeb1e6f0d21b25601fcb7f9aad36adfdfb4d76f37f54f004760410190f351
+              targetBranch: comet/fix-sync-websocket-failure
+              verifiedBranch: comet/fix-sync-websocket-failure
+          tweak.archive.prepare:
+            sequence: 6
+            value:
+              prBaseBranch: main
+              remote: origin
+              summary: "Issue #514：同步 WebSocket 失败进入 degraded，HTTP 轮询及有限重连继续，失败句柄与 dispose
+                正确清理。365 个前端测试、ESLint、构建与规格核对通过。归档将同步
+                frontend/evaluation-observer 主 spec，保存方案、任务、验收报告和现有说明页，在
+                comet/fix-sync-websocket-failure 创建唯一提交；可仅本地提交，或推送 origin 同名分支并向
+                main 创建 PR。"
+              targetBranch: comet/fix-sync-websocket-failure
+          tweak.build.execute:
+            sequence: 3
+            value:
+              checks:
+                - name: "frontend: node --experimental-strip-types --test
+                    src/evaluations/observer.test.ts"
+                  note: 35/35 passed；修复前 27 passed、8 failed，RED 日志 /tmp/issue-514-red.log。
+                  result: passed
+                - name: "frontend: npm test"
+                  note: 365/365 passed，0 failed；日志 /tmp/issue-514-frontend-tests.log。
+                  result: passed
+                - name: "frontend: npm run lint"
+                  note: ESLint 全量通过；日志 /tmp/issue-514-lint.log。
+                  result: passed
+                - name: "frontend: npm run build"
+                  note: TypeScript 与 Vite 构建通过；仅有大 chunk 提示；日志 /tmp/issue-514-build.log。
+                  result: passed
+                - name: "frontend: npx prettier --check src/evaluations/observer.ts
+                    src/evaluations/observer.test.ts"
+                  note: 两个交付文件格式通过。
+                  result: passed
+                - name: "worktree: git diff --check"
+                  note: 无空白错误。
+                  result: passed
+                - name: "worktree: comet classic openspec -- validate fix-sync-websocket-failure
+                    --strict"
+                  note: Change is valid。
+                  result: passed
+              event: build-complete
+          tweak.open:
+            sequence: 1
+            value:
+              event: open-complete
+              requirementsEvidence:
+                ref: openspec/changes/fix-sync-websocket-failure
+          tweak.open.evidence:
+            sequence: 2
+            value:
+              contentHash: 6d9ee2c89f28699772e120d8ab802e883b1118f7221809108983927e2c9a51c2
+              ref: openspec/changes/fix-sync-websocket-failure
+          tweak.verify.report.evidence:
+            sequence: 5
+            value:
+              contentHash: f8e664cc774d08399b54b1e6bd925854cfe123258ec32cf60c8da3f6834c8f1d
+              ref: docs/superpowers/reports/2026-11-23-fix-sync-websocket-failure-verify.md
+          tweak.verify.run:
+            sequence: 4
+            value:
+              checks:
+                - name: "frontend: node --experimental-strip-types --test
+                    src/evaluations/observer.test.ts"
+                  note: 35/35 passed；修复前 27 passed、8 failed，RED 日志 /tmp/issue-514-red.log。
+                  result: passed
+                - name: "frontend: npm test"
+                  note: 365/365 passed，0 failed；日志 /tmp/issue-514-frontend-tests.log。
+                  result: passed
+                - name: "frontend: npm run lint"
+                  note: ESLint 全量通过；日志 /tmp/issue-514-lint.log。
+                  result: passed
+                - name: "frontend: npm run build"
+                  note: TypeScript 与 Vite 构建通过；仅有大 chunk 提示；日志 /tmp/issue-514-build.log。
+                  result: passed
+                - name: "frontend: npx prettier --check src/evaluations/observer.ts
+                    src/evaluations/observer.test.ts"
+                  note: 两个交付文件格式通过。
+                  result: passed
+                - name: "worktree: git diff --check"
+                  note: 无空白错误。
+                  result: passed
+                - name: "worktree: comet classic openspec -- validate fix-sync-websocket-failure
+                    --strict"
+                  note: Change is valid。
+                  result: passed
+              event: verification-ready
+              verificationReport: docs/superpowers/reports/2026-11-23-fix-sync-websocket-failure-verify.md
+        sequence: 10
+      fix-sync-websocket-failure:3:
+        results:
+          tweak.open:
+            sequence: 1
+            value:
+              event: open-complete
+              requirementsEvidence:
+                ref: openspec/changes/fix-sync-websocket-failure
+          tweak.open.evidence:
+            sequence: 2
+            value:
+              contentHash: 6d9ee2c89f28699772e120d8ab802e883b1118f7221809108983927e2c9a51c2
+              ref: openspec/changes/fix-sync-websocket-failure
+        sequence: 3
+      fix-sync-websocket-failure:4:
+        results:
+          tweak.build.execute:
+            sequence: 3
+            value:
+              checks:
+                - name: "frontend: node --experimental-strip-types --test
+                    src/evaluations/observer.test.ts"
+                  note: 35/35 passed；修复前 27 passed、8 failed，RED 日志 /tmp/issue-514-red.log。
+                  result: passed
+                - name: "frontend: npm test"
+                  note: 365/365 passed，0 failed；日志 /tmp/issue-514-frontend-tests.log。
+                  result: passed
+                - name: "frontend: npm run lint"
+                  note: ESLint 全量通过；日志 /tmp/issue-514-lint.log。
+                  result: passed
+                - name: "frontend: npm run build"
+                  note: TypeScript 与 Vite 构建通过；仅有大 chunk 提示；日志 /tmp/issue-514-build.log。
+                  result: passed
+                - name: "frontend: npx prettier --check src/evaluations/observer.ts
+                    src/evaluations/observer.test.ts"
+                  note: 两个交付文件格式通过。
+                  result: passed
+                - name: "worktree: git diff --check"
+                  note: 无空白错误。
+                  result: passed
+                - name: "worktree: comet classic openspec -- validate fix-sync-websocket-failure
+                    --strict"
+                  note: Change is valid。
+                  result: passed
+              event: build-complete
+          tweak.open:
+            sequence: 1
+            value:
+              event: open-complete
+              requirementsEvidence:
+                ref: openspec/changes/fix-sync-websocket-failure
+          tweak.open.evidence:
+            sequence: 2
+            value:
+              contentHash: 6d9ee2c89f28699772e120d8ab802e883b1118f7221809108983927e2c9a51c2
+              ref: openspec/changes/fix-sync-websocket-failure
+        sequence: 4
+      fix-sync-websocket-failure:6:
+        results:
+          tweak.build.execute:
+            sequence: 3
+            value:
+              checks:
+                - name: "frontend: node --experimental-strip-types --test
+                    src/evaluations/observer.test.ts"
+                  note: 35/35 passed；修复前 27 passed、8 failed，RED 日志 /tmp/issue-514-red.log。
+                  result: passed
+                - name: "frontend: npm test"
+                  note: 365/365 passed，0 failed；日志 /tmp/issue-514-frontend-tests.log。
+                  result: passed
+                - name: "frontend: npm run lint"
+                  note: ESLint 全量通过；日志 /tmp/issue-514-lint.log。
+                  result: passed
+                - name: "frontend: npm run build"
+                  note: TypeScript 与 Vite 构建通过；仅有大 chunk 提示；日志 /tmp/issue-514-build.log。
+                  result: passed
+                - name: "frontend: npx prettier --check src/evaluations/observer.ts
+                    src/evaluations/observer.test.ts"
+                  note: 两个交付文件格式通过。
+                  result: passed
+                - name: "worktree: git diff --check"
+                  note: 无空白错误。
+                  result: passed
+                - name: "worktree: comet classic openspec -- validate fix-sync-websocket-failure
+                    --strict"
+                  note: Change is valid。
+                  result: passed
+              event: build-complete
+          tweak.open:
+            sequence: 1
+            value:
+              event: open-complete
+              requirementsEvidence:
+                ref: openspec/changes/fix-sync-websocket-failure
+          tweak.open.evidence:
+            sequence: 2
+            value:
+              contentHash: 6d9ee2c89f28699772e120d8ab802e883b1118f7221809108983927e2c9a51c2
+              ref: openspec/changes/fix-sync-websocket-failure
+          tweak.verify.report.evidence:
+            sequence: 5
+            value:
+              contentHash: f8e664cc774d08399b54b1e6bd925854cfe123258ec32cf60c8da3f6834c8f1d
+              ref: docs/superpowers/reports/2026-11-23-fix-sync-websocket-failure-verify.md
+          tweak.verify.run:
+            sequence: 4
+            value:
+              checks:
+                - name: "frontend: node --experimental-strip-types --test
+                    src/evaluations/observer.test.ts"
+                  note: 35/35 passed；修复前 27 passed、8 failed，RED 日志 /tmp/issue-514-red.log。
+                  result: passed
+                - name: "frontend: npm test"
+                  note: 365/365 passed，0 failed；日志 /tmp/issue-514-frontend-tests.log。
+                  result: passed
+                - name: "frontend: npm run lint"
+                  note: ESLint 全量通过；日志 /tmp/issue-514-lint.log。
+                  result: passed
+                - name: "frontend: npm run build"
+                  note: TypeScript 与 Vite 构建通过；仅有大 chunk 提示；日志 /tmp/issue-514-build.log。
+                  result: passed
+                - name: "frontend: npx prettier --check src/evaluations/observer.ts
+                    src/evaluations/observer.test.ts"
+                  note: 两个交付文件格式通过。
+                  result: passed
+                - name: "worktree: git diff --check"
+                  note: 无空白错误。
+                  result: passed
+                - name: "worktree: comet classic openspec -- validate fix-sync-websocket-failure
+                    --strict"
+                  note: Change is valid。
+                  result: passed
+              event: verification-ready
+              verificationReport: docs/superpowers/reports/2026-11-23-fix-sync-websocket-failure-verify.md
+        sequence: 6
+      fix-sync-websocket-failure:8:
+        results:
+          tweak.archive.confirm:
+            sequence: 7
+            value:
+              choice: pr
+              proposal:
+                input:
+                  change: fix-sync-websocket-failure
+                  changeDir: openspec/changes/fix-sync-websocket-failure
+                  workspaceBaseline:
+                    ref: 40abfa50-b4e1-4395-9d06-9e35a9a50a9b
+                outputs:
+                  tweak.archive.prepare:
+                    prBaseBranch: main
+                    remote: origin
+                    summary: "Issue #514：同步 WebSocket 失败进入 degraded，HTTP 轮询及有限重连继续，失败句柄与 dispose
+                      正确清理。365 个前端测试、ESLint、构建与规格核对通过。归档将同步
+                      frontend/evaluation-observer 主 spec，保存方案、任务、验收报告和现有说明页，在
+                      comet/fix-sync-websocket-failure 创建唯一提交；可仅本地提交，或推送 origin
+                      同名分支并向 main 创建 PR。"
+                    targetBranch: comet/fix-sync-websocket-failure
+          tweak.archive.prepare:
+            sequence: 6
+            value:
+              prBaseBranch: main
+              remote: origin
+              summary: "Issue #514：同步 WebSocket 失败进入 degraded，HTTP 轮询及有限重连继续，失败句柄与 dispose
+                正确清理。365 个前端测试、ESLint、构建与规格核对通过。归档将同步
+                frontend/evaluation-observer 主 spec，保存方案、任务、验收报告和现有说明页，在
+                comet/fix-sync-websocket-failure 创建唯一提交；可仅本地提交，或推送 origin 同名分支并向
+                main 创建 PR。"
+              targetBranch: comet/fix-sync-websocket-failure
+          tweak.build.execute:
+            sequence: 3
+            value:
+              checks:
+                - name: "frontend: node --experimental-strip-types --test
+                    src/evaluations/observer.test.ts"
+                  note: 35/35 passed；修复前 27 passed、8 failed，RED 日志 /tmp/issue-514-red.log。
+                  result: passed
+                - name: "frontend: npm test"
+                  note: 365/365 passed，0 failed；日志 /tmp/issue-514-frontend-tests.log。
+                  result: passed
+                - name: "frontend: npm run lint"
+                  note: ESLint 全量通过；日志 /tmp/issue-514-lint.log。
+                  result: passed
+                - name: "frontend: npm run build"
+                  note: TypeScript 与 Vite 构建通过；仅有大 chunk 提示；日志 /tmp/issue-514-build.log。
+                  result: passed
+                - name: "frontend: npx prettier --check src/evaluations/observer.ts
+                    src/evaluations/observer.test.ts"
+                  note: 两个交付文件格式通过。
+                  result: passed
+                - name: "worktree: git diff --check"
+                  note: 无空白错误。
+                  result: passed
+                - name: "worktree: comet classic openspec -- validate fix-sync-websocket-failure
+                    --strict"
+                  note: Change is valid。
+                  result: passed
+              event: build-complete
+          tweak.open:
+            sequence: 1
+            value:
+              event: open-complete
+              requirementsEvidence:
+                ref: openspec/changes/fix-sync-websocket-failure
+          tweak.open.evidence:
+            sequence: 2
+            value:
+              contentHash: 6d9ee2c89f28699772e120d8ab802e883b1118f7221809108983927e2c9a51c2
+              ref: openspec/changes/fix-sync-websocket-failure
+          tweak.verify.report.evidence:
+            sequence: 5
+            value:
+              contentHash: f8e664cc774d08399b54b1e6bd925854cfe123258ec32cf60c8da3f6834c8f1d
+              ref: docs/superpowers/reports/2026-11-23-fix-sync-websocket-failure-verify.md
+          tweak.verify.run:
+            sequence: 4
+            value:
+              checks:
+                - name: "frontend: node --experimental-strip-types --test
+                    src/evaluations/observer.test.ts"
+                  note: 35/35 passed；修复前 27 passed、8 failed，RED 日志 /tmp/issue-514-red.log。
+                  result: passed
+                - name: "frontend: npm test"
+                  note: 365/365 passed，0 failed；日志 /tmp/issue-514-frontend-tests.log。
+                  result: passed
+                - name: "frontend: npm run lint"
+                  note: ESLint 全量通过；日志 /tmp/issue-514-lint.log。
+                  result: passed
+                - name: "frontend: npm run build"
+                  note: TypeScript 与 Vite 构建通过；仅有大 chunk 提示；日志 /tmp/issue-514-build.log。
+                  result: passed
+                - name: "frontend: npx prettier --check src/evaluations/observer.ts
+                    src/evaluations/observer.test.ts"
+                  note: 两个交付文件格式通过。
+                  result: passed
+                - name: "worktree: git diff --check"
+                  note: 无空白错误。
+                  result: passed
+                - name: "worktree: comet classic openspec -- validate fix-sync-websocket-failure
+                    --strict"
+                  note: Change is valid。
+                  result: passed
+              event: verification-ready
+              verificationReport: docs/superpowers/reports/2026-11-23-fix-sync-websocket-failure-verify.md
+        sequence: 8
+      fix-sync-websocket-failure:9:
+        results:
+          tweak.archive.confirm:
+            sequence: 7
+            value:
+              choice: pr
+              proposal:
+                input:
+                  change: fix-sync-websocket-failure
+                  changeDir: openspec/changes/fix-sync-websocket-failure
+                  workspaceBaseline:
+                    ref: 40abfa50-b4e1-4395-9d06-9e35a9a50a9b
+                outputs:
+                  tweak.archive.prepare:
+                    prBaseBranch: main
+                    remote: origin
+                    summary: "Issue #514：同步 WebSocket 失败进入 degraded，HTTP 轮询及有限重连继续，失败句柄与 dispose
+                      正确清理。365 个前端测试、ESLint、构建与规格核对通过。归档将同步
+                      frontend/evaluation-observer 主 spec，保存方案、任务、验收报告和现有说明页，在
+                      comet/fix-sync-websocket-failure 创建唯一提交；可仅本地提交，或推送 origin
+                      同名分支并向 main 创建 PR。"
+                    targetBranch: comet/fix-sync-websocket-failure
+          tweak.archive.preflight:
+            sequence: 8
+            value:
+              baseCommit: 0169c10895d020e30e8c51004a79b85a8f6aeb15
+              deliveryAction: pr
+              deliveryPaths:
+                - frontend/src/evaluations/observer.test.ts
+                - frontend/src/evaluations/observer.ts
+              prBaseBranch: main
+              remote: origin
+              remoteIdentity: 128eeb1e6f0d21b25601fcb7f9aad36adfdfb4d76f37f54f004760410190f351
+              targetBranch: comet/fix-sync-websocket-failure
+              verifiedBranch: comet/fix-sync-websocket-failure
+          tweak.archive.prepare:
+            sequence: 6
+            value:
+              prBaseBranch: main
+              remote: origin
+              summary: "Issue #514：同步 WebSocket 失败进入 degraded，HTTP 轮询及有限重连继续，失败句柄与 dispose
+                正确清理。365 个前端测试、ESLint、构建与规格核对通过。归档将同步
+                frontend/evaluation-observer 主 spec，保存方案、任务、验收报告和现有说明页，在
+                comet/fix-sync-websocket-failure 创建唯一提交；可仅本地提交，或推送 origin 同名分支并向
+                main 创建 PR。"
+              targetBranch: comet/fix-sync-websocket-failure
+          tweak.build.execute:
+            sequence: 3
+            value:
+              checks:
+                - name: "frontend: node --experimental-strip-types --test
+                    src/evaluations/observer.test.ts"
+                  note: 35/35 passed；修复前 27 passed、8 failed，RED 日志 /tmp/issue-514-red.log。
+                  result: passed
+                - name: "frontend: npm test"
+                  note: 365/365 passed，0 failed；日志 /tmp/issue-514-frontend-tests.log。
+                  result: passed
+                - name: "frontend: npm run lint"
+                  note: ESLint 全量通过；日志 /tmp/issue-514-lint.log。
+                  result: passed
+                - name: "frontend: npm run build"
+                  note: TypeScript 与 Vite 构建通过；仅有大 chunk 提示；日志 /tmp/issue-514-build.log。
+                  result: passed
+                - name: "frontend: npx prettier --check src/evaluations/observer.ts
+                    src/evaluations/observer.test.ts"
+                  note: 两个交付文件格式通过。
+                  result: passed
+                - name: "worktree: git diff --check"
+                  note: 无空白错误。
+                  result: passed
+                - name: "worktree: comet classic openspec -- validate fix-sync-websocket-failure
+                    --strict"
+                  note: Change is valid。
+                  result: passed
+              event: build-complete
+          tweak.open:
+            sequence: 1
+            value:
+              event: open-complete
+              requirementsEvidence:
+                ref: openspec/changes/fix-sync-websocket-failure
+          tweak.open.evidence:
+            sequence: 2
+            value:
+              contentHash: 6d9ee2c89f28699772e120d8ab802e883b1118f7221809108983927e2c9a51c2
+              ref: openspec/changes/fix-sync-websocket-failure
+          tweak.verify.report.evidence:
+            sequence: 5
+            value:
+              contentHash: f8e664cc774d08399b54b1e6bd925854cfe123258ec32cf60c8da3f6834c8f1d
+              ref: docs/superpowers/reports/2026-11-23-fix-sync-websocket-failure-verify.md
+          tweak.verify.run:
+            sequence: 4
+            value:
+              checks:
+                - name: "frontend: node --experimental-strip-types --test
+                    src/evaluations/observer.test.ts"
+                  note: 35/35 passed；修复前 27 passed、8 failed，RED 日志 /tmp/issue-514-red.log。
+                  result: passed
+                - name: "frontend: npm test"
+                  note: 365/365 passed，0 failed；日志 /tmp/issue-514-frontend-tests.log。
+                  result: passed
+                - name: "frontend: npm run lint"
+                  note: ESLint 全量通过；日志 /tmp/issue-514-lint.log。
+                  result: passed
+                - name: "frontend: npm run build"
+                  note: TypeScript 与 Vite 构建通过；仅有大 chunk 提示；日志 /tmp/issue-514-build.log。
+                  result: passed
+                - name: "frontend: npx prettier --check src/evaluations/observer.ts
+                    src/evaluations/observer.test.ts"
+                  note: 两个交付文件格式通过。
+                  result: passed
+                - name: "worktree: git diff --check"
+                  note: 无空白错误。
+                  result: passed
+                - name: "worktree: comet classic openspec -- validate fix-sync-websocket-failure
+                    --strict"
+                  note: Change is valid。
+                  result: passed
+              event: verification-ready
+              verificationReport: docs/superpowers/reports/2026-11-23-fix-sync-websocket-failure-verify.md
+        sequence: 9
+    waits:
+      - id: fix-sync-websocket-failure:7
+        stepId: tweak.archive.confirm
+        sequence: 7
+        status: resolved
+        proposal:
+          input:
+            change: fix-sync-websocket-failure
+            changeDir: openspec/changes/fix-sync-websocket-failure
+            workspaceBaseline:
+              ref: 40abfa50-b4e1-4395-9d06-9e35a9a50a9b
+          outputs:
+            tweak.archive.prepare:
+              prBaseBranch: main
+              remote: origin
+              summary: "Issue #514：同步 WebSocket 失败进入 degraded，HTTP 轮询及有限重连继续，失败句柄与 dispose
+                正确清理。365 个前端测试、ESLint、构建与规格核对通过。归档将同步
+                frontend/evaluation-observer 主 spec，保存方案、任务、验收报告和现有说明页，在
+                comet/fix-sync-websocket-failure 创建唯一提交；可仅本地提交，或推送 origin 同名分支并向
+                main 创建 PR。"
+              targetBranch: comet/fix-sync-websocket-failure
+        proposalHash: c2097afc3d8a836a8562c3ddf3d734704460ece57bd87df33ea6d424daf80336
+        choices:
+          - local
+          - push
+          - pr
+          - reverify
+          - later
+        results:
+          tweak.archive.prepare:
+            sequence: 6
+            value:
+              prBaseBranch: main
+              remote: origin
+              summary: "Issue #514：同步 WebSocket 失败进入 degraded，HTTP 轮询及有限重连继续，失败句柄与 dispose
+                正确清理。365 个前端测试、ESLint、构建与规格核对通过。归档将同步
+                frontend/evaluation-observer 主 spec，保存方案、任务、验收报告和现有说明页，在
+                comet/fix-sync-websocket-failure 创建唯一提交；可仅本地提交，或推送 origin 同名分支并向
+                main 创建 PR。"
+              targetBranch: comet/fix-sync-websocket-failure
+          tweak.build.execute:
+            sequence: 3
+            value:
+              checks:
+                - name: "frontend: node --experimental-strip-types --test
+                    src/evaluations/observer.test.ts"
+                  note: 35/35 passed；修复前 27 passed、8 failed，RED 日志 /tmp/issue-514-red.log。
+                  result: passed
+                - name: "frontend: npm test"
+                  note: 365/365 passed，0 failed；日志 /tmp/issue-514-frontend-tests.log。
+                  result: passed
+                - name: "frontend: npm run lint"
+                  note: ESLint 全量通过；日志 /tmp/issue-514-lint.log。
+                  result: passed
+                - name: "frontend: npm run build"
+                  note: TypeScript 与 Vite 构建通过；仅有大 chunk 提示；日志 /tmp/issue-514-build.log。
+                  result: passed
+                - name: "frontend: npx prettier --check src/evaluations/observer.ts
+                    src/evaluations/observer.test.ts"
+                  note: 两个交付文件格式通过。
+                  result: passed
+                - name: "worktree: git diff --check"
+                  note: 无空白错误。
+                  result: passed
+                - name: "worktree: comet classic openspec -- validate fix-sync-websocket-failure
+                    --strict"
+                  note: Change is valid。
+                  result: passed
+              event: build-complete
+          tweak.open:
+            sequence: 1
+            value:
+              event: open-complete
+              requirementsEvidence:
+                ref: openspec/changes/fix-sync-websocket-failure
+          tweak.open.evidence:
+            sequence: 2
+            value:
+              contentHash: 6d9ee2c89f28699772e120d8ab802e883b1118f7221809108983927e2c9a51c2
+              ref: openspec/changes/fix-sync-websocket-failure
+          tweak.verify.report.evidence:
+            sequence: 5
+            value:
+              contentHash: f8e664cc774d08399b54b1e6bd925854cfe123258ec32cf60c8da3f6834c8f1d
+              ref: docs/superpowers/reports/2026-11-23-fix-sync-websocket-failure-verify.md
+          tweak.verify.run:
+            sequence: 4
+            value:
+              checks:
+                - name: "frontend: node --experimental-strip-types --test
+                    src/evaluations/observer.test.ts"
+                  note: 35/35 passed；修复前 27 passed、8 failed，RED 日志 /tmp/issue-514-red.log。
+                  result: passed
+                - name: "frontend: npm test"
+                  note: 365/365 passed，0 failed；日志 /tmp/issue-514-frontend-tests.log。
+                  result: passed
+                - name: "frontend: npm run lint"
+                  note: ESLint 全量通过；日志 /tmp/issue-514-lint.log。
+                  result: passed
+                - name: "frontend: npm run build"
+                  note: TypeScript 与 Vite 构建通过；仅有大 chunk 提示；日志 /tmp/issue-514-build.log。
+                  result: passed
+                - name: "frontend: npx prettier --check src/evaluations/observer.ts
+                    src/evaluations/observer.test.ts"
+                  note: 两个交付文件格式通过。
+                  result: passed
+                - name: "worktree: git diff --check"
+                  note: 无空白错误。
+                  result: passed
+                - name: "worktree: comet classic openspec -- validate fix-sync-websocket-failure
+                    --strict"
+                  note: Change is valid。
+                  result: passed
+              event: verification-ready
+              verificationReport: docs/superpowers/reports/2026-11-23-fix-sync-websocket-failure-verify.md
+        decision:
+          id: classic-archive-c2097afc3d8a836a8562c3ddf3d734704460ece57bd87df33ea6d424daf80336-pr
+          choice: pr
+          proposalHash: c2097afc3d8a836a8562c3ddf3d734704460ece57bd87df33ea6d424daf80336
+    evidenceWaits:
+      - id: fix-sync-websocket-failure:2
+        stepId: tweak.open.evidence
+        sequence: 2
+        kind: classic-open-artifacts
+        status: resolved
+        results:
+          tweak.open:
+            sequence: 1
+            value:
+              event: open-complete
+              requirementsEvidence:
+                ref: openspec/changes/fix-sync-websocket-failure
+        receipt:
+          ref: openspec/changes/fix-sync-websocket-failure
+          contentHash: 6d9ee2c89f28699772e120d8ab802e883b1118f7221809108983927e2c9a51c2
+          submissionId: add071f1-01d8-4729-86c2-fd20f319be73
+      - id: fix-sync-websocket-failure:5
+        stepId: tweak.verify.report.evidence
+        sequence: 5
+        kind: classic-verification-report
+        status: resolved
+        results:
+          tweak.build.execute:
+            sequence: 3
+            value:
+              checks:
+                - name: "frontend: node --experimental-strip-types --test
+                    src/evaluations/observer.test.ts"
+                  note: 35/35 passed；修复前 27 passed、8 failed，RED 日志 /tmp/issue-514-red.log。
+                  result: passed
+                - name: "frontend: npm test"
+                  note: 365/365 passed，0 failed；日志 /tmp/issue-514-frontend-tests.log。
+                  result: passed
+                - name: "frontend: npm run lint"
+                  note: ESLint 全量通过；日志 /tmp/issue-514-lint.log。
+                  result: passed
+                - name: "frontend: npm run build"
+                  note: TypeScript 与 Vite 构建通过；仅有大 chunk 提示；日志 /tmp/issue-514-build.log。
+                  result: passed
+                - name: "frontend: npx prettier --check src/evaluations/observer.ts
+                    src/evaluations/observer.test.ts"
+                  note: 两个交付文件格式通过。
+                  result: passed
+                - name: "worktree: git diff --check"
+                  note: 无空白错误。
+                  result: passed
+                - name: "worktree: comet classic openspec -- validate fix-sync-websocket-failure
+                    --strict"
+                  note: Change is valid。
+                  result: passed
+              event: build-complete
+          tweak.open:
+            sequence: 1
+            value:
+              event: open-complete
+              requirementsEvidence:
+                ref: openspec/changes/fix-sync-websocket-failure
+          tweak.open.evidence:
+            sequence: 2
+            value:
+              contentHash: 6d9ee2c89f28699772e120d8ab802e883b1118f7221809108983927e2c9a51c2
+              ref: openspec/changes/fix-sync-websocket-failure
+          tweak.verify.run:
+            sequence: 4
+            value:
+              checks:
+                - name: "frontend: node --experimental-strip-types --test
+                    src/evaluations/observer.test.ts"
+                  note: 35/35 passed；修复前 27 passed、8 failed，RED 日志 /tmp/issue-514-red.log。
+                  result: passed
+                - name: "frontend: npm test"
+                  note: 365/365 passed，0 failed；日志 /tmp/issue-514-frontend-tests.log。
+                  result: passed
+                - name: "frontend: npm run lint"
+                  note: ESLint 全量通过；日志 /tmp/issue-514-lint.log。
+                  result: passed
+                - name: "frontend: npm run build"
+                  note: TypeScript 与 Vite 构建通过；仅有大 chunk 提示；日志 /tmp/issue-514-build.log。
+                  result: passed
+                - name: "frontend: npx prettier --check src/evaluations/observer.ts
+                    src/evaluations/observer.test.ts"
+                  note: 两个交付文件格式通过。
+                  result: passed
+                - name: "worktree: git diff --check"
+                  note: 无空白错误。
+                  result: passed
+                - name: "worktree: comet classic openspec -- validate fix-sync-websocket-failure
+                    --strict"
+                  note: Change is valid。
+                  result: passed
+              event: verification-ready
+              verificationReport: docs/superpowers/reports/2026-11-23-fix-sync-websocket-failure-verify.md
+        receipt:
+          ref: docs/superpowers/reports/2026-11-23-fix-sync-websocket-failure-verify.md
+          contentHash: f8e664cc774d08399b54b1e6bd925854cfe123258ec32cf60c8da3f6834c8f1d
+          submissionId: 39c5d872-cae8-40a4-af19-0782f7153b71
+    ready: []
+    joins: {}
+    outputs:
+      tweak.archive.confirm:
+        sequence: 7
+        value:
+          choice: pr
+          proposal:
+            input:
+              change: fix-sync-websocket-failure
+              changeDir: openspec/changes/fix-sync-websocket-failure
+              workspaceBaseline:
+                ref: 40abfa50-b4e1-4395-9d06-9e35a9a50a9b
+            outputs:
+              tweak.archive.prepare:
+                prBaseBranch: main
+                remote: origin
+                summary: "Issue #514：同步 WebSocket 失败进入 degraded，HTTP 轮询及有限重连继续，失败句柄与 dispose
+                  正确清理。365 个前端测试、ESLint、构建与规格核对通过。归档将同步
+                  frontend/evaluation-observer 主 spec，保存方案、任务、验收报告和现有说明页，在
+                  comet/fix-sync-websocket-failure 创建唯一提交；可仅本地提交，或推送 origin
+                  同名分支并向 main 创建 PR。"
+                targetBranch: comet/fix-sync-websocket-failure
+      tweak.archive.execute:
+        sequence: 9
+        value:
+          archiveDirectory: openspec/changes/archive/2026-11-23-fix-sync-websocket-failure
+      tweak.archive.preflight:
+        sequence: 8
+        value:
+          baseCommit: 0169c10895d020e30e8c51004a79b85a8f6aeb15
+          deliveryAction: pr
+          deliveryPaths:
+            - frontend/src/evaluations/observer.test.ts
+            - frontend/src/evaluations/observer.ts
+          prBaseBranch: main
+          remote: origin
+          remoteIdentity: 128eeb1e6f0d21b25601fcb7f9aad36adfdfb4d76f37f54f004760410190f351
+          targetBranch: comet/fix-sync-websocket-failure
+          verifiedBranch: comet/fix-sync-websocket-failure
+      tweak.archive.prepare:
+        sequence: 6
+        value:
+          prBaseBranch: main
+          remote: origin
+          summary: "Issue #514：同步 WebSocket 失败进入 degraded，HTTP 轮询及有限重连继续，失败句柄与 dispose
+            正确清理。365 个前端测试、ESLint、构建与规格核对通过。归档将同步 frontend/evaluation-observer 主
+            spec，保存方案、任务、验收报告和现有说明页，在 comet/fix-sync-websocket-failure
+            创建唯一提交；可仅本地提交，或推送 origin 同名分支并向 main 创建 PR。"
+          targetBranch: comet/fix-sync-websocket-failure
+      tweak.build.execute:
+        sequence: 3
+        value:
+          checks:
+            - name: "frontend: node --experimental-strip-types --test
+                src/evaluations/observer.test.ts"
+              note: 35/35 passed；修复前 27 passed、8 failed，RED 日志 /tmp/issue-514-red.log。
+              result: passed
+            - name: "frontend: npm test"
+              note: 365/365 passed，0 failed；日志 /tmp/issue-514-frontend-tests.log。
+              result: passed
+            - name: "frontend: npm run lint"
+              note: ESLint 全量通过；日志 /tmp/issue-514-lint.log。
+              result: passed
+            - name: "frontend: npm run build"
+              note: TypeScript 与 Vite 构建通过；仅有大 chunk 提示；日志 /tmp/issue-514-build.log。
+              result: passed
+            - name: "frontend: npx prettier --check src/evaluations/observer.ts
+                src/evaluations/observer.test.ts"
+              note: 两个交付文件格式通过。
+              result: passed
+            - name: "worktree: git diff --check"
+              note: 无空白错误。
+              result: passed
+            - name: "worktree: comet classic openspec -- validate fix-sync-websocket-failure
+                --strict"
+              note: Change is valid。
+              result: passed
+          event: build-complete
+      tweak.open:
+        sequence: 1
+        value:
+          event: open-complete
+          requirementsEvidence:
+            ref: openspec/changes/fix-sync-websocket-failure
+      tweak.open.evidence:
+        sequence: 2
+        value:
+          contentHash: 6d9ee2c89f28699772e120d8ab802e883b1118f7221809108983927e2c9a51c2
+          ref: openspec/changes/fix-sync-websocket-failure
+      tweak.verify.report.evidence:
+        sequence: 5
+        value:
+          contentHash: f8e664cc774d08399b54b1e6bd925854cfe123258ec32cf60c8da3f6834c8f1d
+          ref: docs/superpowers/reports/2026-11-23-fix-sync-websocket-failure-verify.md
+      tweak.verify.run:
+        sequence: 4
+        value:
+          checks:
+            - name: "frontend: node --experimental-strip-types --test
+                src/evaluations/observer.test.ts"
+              note: 35/35 passed；修复前 27 passed、8 failed，RED 日志 /tmp/issue-514-red.log。
+              result: passed
+            - name: "frontend: npm test"
+              note: 365/365 passed，0 failed；日志 /tmp/issue-514-frontend-tests.log。
+              result: passed
+            - name: "frontend: npm run lint"
+              note: ESLint 全量通过；日志 /tmp/issue-514-lint.log。
+              result: passed
+            - name: "frontend: npm run build"
+              note: TypeScript 与 Vite 构建通过；仅有大 chunk 提示；日志 /tmp/issue-514-build.log。
+              result: passed
+            - name: "frontend: npx prettier --check src/evaluations/observer.ts
+                src/evaluations/observer.test.ts"
+              note: 两个交付文件格式通过。
+              result: passed
+            - name: "worktree: git diff --check"
+              note: 无空白错误。
+              result: passed
+            - name: "worktree: comet classic openspec -- validate fix-sync-websocket-failure
+                --strict"
+              note: Change is valid。
+              result: passed
+          event: verification-ready
+          verificationReport: docs/superpowers/reports/2026-11-23-fix-sync-websocket-failure-verify.md
+    children: []
+    lineage: []
+  sourceRevision: 16
+  sourceHash: 0d8fd32bb2d5ee2f1be4b1a02f911d8f0ad43e7286474139ff01801a99d76f0b
+direct_override: null
+handoff_context: null
+handoff_hash: null
+classic_profile: null
+classic_migration: null
+check_epoch: 5

@@ -1,0 +1,123 @@
+<!doctype html>
+<html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'unsafe-inline'; base-uri 'none'; form-action 'none'"><title>变更说明 · WebSocket 同步构造失败后，评估进度可继续通过 HTTP 刷新</title>
+<style>
+:root {
+  color-scheme: light dark;
+  --page: #fafbfc;
+  --ink: #202a35;
+  --muted: #566575;
+  --line: #dbe2e8;
+  --accent: #245b85;
+  --highlight: #edf3f7;
+  --hover: #e9eef3;
+  --code-bg: #edf0f4;
+  --code-ink: #263443;
+  --success: #236d4f;
+  --failure: #a83131;
+  --text: 15px;
+  --small: 13px;
+  --label: 12px;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --page: #181d23;
+    --ink: #e4eaf0;
+    --muted: #a4b1be;
+    --line: #35404b;
+    --accent: #94c6ec;
+    --highlight: #222e39;
+    --hover: #27323d;
+    --code-bg: #10161d;
+    --code-ink: #e0e8f0;
+    --success: #8ed8b5;
+    --failure: #ffb0a8;
+  }
+}
+* { box-sizing: border-box; }
+body {
+  margin: 0;
+  background: var(--page);
+  color: var(--ink);
+  font: var(--text)/1.65 system-ui, -apple-system, "Segoe UI", sans-serif;
+}
+main { max-width: 1040px; margin: auto; padding: 32px 32px 48px; }
+.eyebrow { color: var(--accent); font-size: var(--label); font-weight: 500; letter-spacing: .08em; }
+h1 { margin: 8px 0 12px; max-width: 32em; font-size: 28px; font-weight: 500; line-height: 1.4; letter-spacing: -.02em; overflow-wrap: anywhere; }
+h2 { margin: 0; font-size: 18px; font-weight: 500; line-height: 1.5; overflow-wrap: anywhere; }
+h3 { margin: 0 0 4px; color: var(--muted); font-size: var(--label); font-weight: 500; }
+p { margin: 0; white-space: pre-wrap; overflow-wrap: anywhere; }
+strong { font-weight: 500; }
+.meta { margin-bottom: 24px; color: var(--muted); font-size: var(--small); overflow-wrap: anywhere; }
+.meta p + p { margin-top: 2px; }
+article { padding: 20px 0 12px; border-top: 1px solid var(--line); }
+article header { display: flex; align-items: baseline; gap: 12px; margin-bottom: 12px; }
+.number { color: var(--muted); font: var(--label)/1.5 ui-monospace, Consolas, monospace; font-variant-numeric: tabular-nums; }
+.comparison { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 16px; }
+.comparison section { min-width: 0; padding: 12px; }
+.after { background: var(--highlight); border-radius: 4px; }
+.after h3 { color: var(--accent); }
+.reason { margin-top: 12px; font-size: var(--small); color: var(--muted); }
+.reason strong { margin-right: 8px; color: var(--ink); }
+summary { min-height: 44px; padding: 10px 4px; cursor: pointer; font-size: var(--small); font-weight: 500; border-radius: 4px; }
+summary:hover { background: var(--hover); }
+summary:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.count, .tag { color: var(--muted); font-size: var(--label); font-weight: 400; }
+.count { margin-left: 4px; font-variant-numeric: tabular-nums; }
+.file { min-width: 0; padding: 0 0 16px; scroll-margin-top: 20px; }
+.file:target { outline: 2px solid var(--accent); outline-offset: 4px; }
+.file-heading { display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 8px; }
+.file-heading code { min-width: 0; font-size: var(--small); overflow-wrap: anywhere; }
+.tag { white-space: nowrap; }
+pre { margin: 8px 0 0; padding: 12px 16px; overflow: auto; background: var(--code-bg); color: var(--code-ink); border-radius: 4px; font: var(--small)/1.65 ui-monospace, Consolas, monospace; tab-size: 2; }
+footer { margin-top: 12px; padding-top: 20px; border-top: 1px solid var(--line); }
+footer h2 { margin-bottom: 8px; }
+.check { display: grid; grid-template-columns: 72px minmax(0, 1fr); gap: 12px; padding: 12px 0; border-bottom: 1px solid var(--line); }
+.status { padding-top: 2px; font-size: var(--label); font-weight: 500; }
+.passed { color: var(--success); }
+.failed { color: var(--failure); }
+.not-run, .unknown { color: var(--muted); }
+.check p { margin-top: 2px; color: var(--muted); font-size: var(--small); }
+.more { border-top: 1px solid var(--line); }
+.more > summary { padding-block: 12px; }
+.diagram { margin: 0; padding: 20px 0; border-top: 1px solid var(--line); }
+.diagram figcaption { margin-bottom: 12px; font-size: 18px; font-weight: 500; overflow-wrap: anywhere; }
+.diagram-svg { display: block; max-width: 100%; height: auto; margin: auto; overflow: visible; font: 13px system-ui, -apple-system, "Segoe UI", sans-serif; }
+.diagram-svg text { fill: var(--ink); }
+.diagram-edge { fill: none; stroke: var(--muted); stroke-width: 1.5; }
+.diagram-svg marker path { fill: var(--muted); }
+.diagram-edge-label { fill: var(--page); }
+.diagram-svg .diagram-edge-text { fill: var(--muted); font-size: 12px; }
+.diagram-node rect { fill: var(--page); stroke: var(--line); stroke-width: 1.5; }
+.diagram-node.modified rect { fill: var(--highlight); stroke: var(--accent); }
+.diagram-node.added rect { stroke: var(--success); }
+.diagram-node.deleted rect { stroke: var(--failure); stroke-dasharray: 4 3; }
+.diagram-svg .diagram-kind { fill: var(--muted); font-size: 11px; }
+.diagram-node[href] { cursor: pointer; }
+.diagram-node[href]:hover rect, .diagram-node[href]:focus-visible rect { stroke: var(--accent); stroke-width: 2.5; }
+.diagram-node[href]:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; }
+.diagram-hint { margin-top: 12px; color: var(--muted); font-size: var(--small); text-align: center; }
+.diagram-comparison { display: grid; grid-template-columns: minmax(0,1fr) minmax(0,1fr); gap: 16px; }
+.diagram-comparison > section { min-width: 0; padding: 12px; border: 1px solid var(--line); border-radius: 4px; }
+.diagram-comparison > section > h3 { margin-bottom: 12px; }
+.diagram-compact { display: none; }
+@media (max-width: 999px) {
+  .diagram-wide { display: none; }
+  .diagram-compact { display: block; }
+}
+@media (max-width: 640px) {
+  main { padding: 24px 16px 32px; }
+  h1 { font-size: 24px; }
+  .meta { margin-bottom: 20px; }
+  article { padding-top: 16px; }
+  article header { gap: 8px; }
+  .comparison { grid-template-columns: minmax(0, 1fr); gap: 4px; }
+  .check { grid-template-columns: 60px minmax(0, 1fr); gap: 8px; }
+  pre { padding: 12px; }
+  .diagram-comparison { grid-template-columns: minmax(0,1fr); }
+  .diagram-comparison > section { padding: 12px 0; border: 0; }
+}
+</style></head><body><main><div class="eyebrow">COMET / 变更说明</div><h1>WebSocket 同步构造失败后，评估进度可继续通过 HTTP 刷新</h1><div class="meta"><p>比较范围 · 独立 worktree comet/fix-sync-websocket-failure；相对 HEAD 仅修改 observer.ts 与 observer.test.ts 两个交付文件，附带本 change 的 OpenSpec 材料。</p><p>生成时间 · 2026-11-23T14:22:44.103Z</p></div><figure class="diagram"><figcaption>失败后的恢复路径</figcaption><div class="diagram-wide"><svg class="diagram-svg" width="884" height="208" viewBox="0 0 884 208" role="group" aria-labelledby="walkthrough-diagram-0-wide-title walkthrough-diagram-0-wide-description"><title id="walkthrough-diagram-0-wide-title">失败后的恢复路径</title><desc id="walkthrough-diagram-0-wide-description">登记身份并暂存回调 → 调用连接工厂; 调用连接工厂 → 句柄就绪后交付事件 (返回); 调用连接工厂 → 捕获构造异常 (抛错); 句柄就绪后交付事件 → 失败进入 degraded (onError); 捕获构造异常 → 失败进入 degraded; 失败进入 degraded → HTTP 轮询与有限重连</desc><defs><marker id="walkthrough-diagram-0-wide-arrow" viewBox="0 0 8 8" refX="7" refY="4" markerWidth="6" markerHeight="6" orient="auto"><path d="M 0 0 L 8 4 L 0 8 z"/></marker></defs><path class="diagram-edge" d="M 132 104 C 164.5 104, 164.5 104, 194 104" marker-end="url(#walkthrough-diagram-0-wide-arrow)"/><path class="diagram-edge" d="M 317 104 C 349.5 104, 349.5 50, 379 50" marker-end="url(#walkthrough-diagram-0-wide-arrow)"/><rect class="diagram-edge-label" x="332.5" y="66" width="34" height="22"/><text class="diagram-edge-text" x="349.5" y="81" text-anchor="middle"><tspan x="349.5" dy="0">返回</tspan></text><path class="diagram-edge" d="M 317 104 C 349.5 104, 349.5 158, 379 158" marker-end="url(#walkthrough-diagram-0-wide-arrow)"/><rect class="diagram-edge-label" x="332.5" y="120" width="34" height="22"/><text class="diagram-edge-text" x="349.5" y="135" text-anchor="middle"><tspan x="349.5" dy="0">抛错</tspan></text><path class="diagram-edge" d="M 502 50 C 534.5 50, 534.5 104, 564 104" marker-end="url(#walkthrough-diagram-0-wide-arrow)"/><rect class="diagram-edge-label" x="506" y="66" width="57" height="22"/><text class="diagram-edge-text" x="534.5" y="81" text-anchor="middle"><tspan x="534.5" dy="0">onError</tspan></text><path class="diagram-edge" d="M 502 158 C 534.5 158, 534.5 104, 564 104" marker-end="url(#walkthrough-diagram-0-wide-arrow)"/><path class="diagram-edge" d="M 687 104 C 719.5 104, 719.5 104, 749 104" marker-end="url(#walkthrough-diagram-0-wide-arrow)"/><a class="diagram-node modified" href="#walkthrough-file-0-0" aria-label="登记身份并暂存回调 · frontend/src/evaluations/observer.ts:362"><rect x="12" y="66" width="120" height="76" rx="5"/><text class="diagram-kind" x="72" y="83" text-anchor="middle"><tspan x="72" dy="0">修改</tspan></text><text class="" x="72" y="101" text-anchor="middle"><tspan x="72" dy="0">登记身份并暂存</tspan><tspan x="72" dy="18">回调</tspan></text></a><g class="diagram-node "><rect x="197" y="66" width="120" height="76" rx="5"/><text class="" x="257" y="108" text-anchor="middle"><tspan x="257" dy="0">调用连接工厂</tspan></text></g><g class="diagram-node "><rect x="382" y="12" width="120" height="76" rx="5"/><text class="" x="442" y="45" text-anchor="middle"><tspan x="442" dy="0">句柄就绪后交付</tspan><tspan x="442" dy="18">事件</tspan></text></g><g class="diagram-node "><rect x="382" y="120" width="120" height="76" rx="5"/><text class="" x="442" y="162" text-anchor="middle"><tspan x="442" dy="0">捕获构造异常</tspan></text></g><g class="diagram-node "><rect x="567" y="66" width="120" height="76" rx="5"/><text class="" x="627" y="99" text-anchor="middle"><tspan x="627" dy="0">失败进入</tspan><tspan x="627" dy="18">degraded</tspan></text></g><g class="diagram-node "><rect x="752" y="66" width="120" height="76" rx="5"/><text class="" x="812" y="99" text-anchor="middle"><tspan x="812" dy="0">HTTP</tspan><tspan x="812" dy="18">轮询与有限重连</tspan></text></g></svg></div><div class="diagram-compact"><svg class="diagram-svg" width="272" height="558" viewBox="0 0 272 558" role="group" aria-labelledby="walkthrough-diagram-0-compact-title walkthrough-diagram-0-compact-description"><title id="walkthrough-diagram-0-compact-title">失败后的恢复路径</title><desc id="walkthrough-diagram-0-compact-description">登记身份并暂存回调 → 调用连接工厂; 调用连接工厂 → 句柄就绪后交付事件 (返回); 调用连接工厂 → 捕获构造异常 (抛错); 句柄就绪后交付事件 → 失败进入 degraded (onError); 捕获构造异常 → 失败进入 degraded; 失败进入 degraded → HTTP 轮询与有限重连</desc><defs><marker id="walkthrough-diagram-0-compact-arrow" viewBox="0 0 8 8" refX="7" refY="4" markerWidth="6" markerHeight="6" orient="auto"><path d="M 0 0 L 8 4 L 0 8 z"/></marker></defs><path class="diagram-edge" d="M 136 90 C 136 108, 136 108, 136 123" marker-end="url(#walkthrough-diagram-0-compact-arrow)"/><path class="diagram-edge" d="M 136 204 C 136 222, 68 222, 68 237" marker-end="url(#walkthrough-diagram-0-compact-arrow)"/><rect class="diagram-edge-label" x="85" y="211" width="34" height="22"/><text class="diagram-edge-text" x="102" y="226" text-anchor="middle"><tspan x="102" dy="0">返回</tspan></text><path class="diagram-edge" d="M 136 204 C 136 222, 204 222, 204 237" marker-end="url(#walkthrough-diagram-0-compact-arrow)"/><rect class="diagram-edge-label" x="153" y="211" width="34" height="22"/><text class="diagram-edge-text" x="170" y="226" text-anchor="middle"><tspan x="170" dy="0">抛错</tspan></text><path class="diagram-edge" d="M 68 318 C 68 336, 136 336, 136 351" marker-end="url(#walkthrough-diagram-0-compact-arrow)"/><rect class="diagram-edge-label" x="73.5" y="325" width="57" height="22"/><text class="diagram-edge-text" x="102" y="340" text-anchor="middle"><tspan x="102" dy="0">onError</tspan></text><path class="diagram-edge" d="M 204 318 C 204 336, 136 336, 136 351" marker-end="url(#walkthrough-diagram-0-compact-arrow)"/><path class="diagram-edge" d="M 136 432 C 136 450, 136 450, 136 465" marker-end="url(#walkthrough-diagram-0-compact-arrow)"/><a class="diagram-node modified" href="#walkthrough-file-0-0" aria-label="登记身份并暂存回调 · frontend/src/evaluations/observer.ts:362"><rect x="80" y="12" width="112" height="78" rx="5"/><text class="diagram-kind" x="136" y="29" text-anchor="middle"><tspan x="136" dy="0">修改</tspan></text><text class="" x="136" y="47" text-anchor="middle"><tspan x="136" dy="0">登记身份并暂</tspan><tspan x="136" dy="18">存回调</tspan></text></a><g class="diagram-node "><rect x="80" y="126" width="112" height="78" rx="5"/><text class="" x="136" y="169" text-anchor="middle"><tspan x="136" dy="0">调用连接工厂</tspan></text></g><g class="diagram-node "><rect x="12" y="240" width="112" height="78" rx="5"/><text class="" x="68" y="274" text-anchor="middle"><tspan x="68" dy="0">句柄就绪后交</tspan><tspan x="68" dy="18">付事件</tspan></text></g><g class="diagram-node "><rect x="148" y="240" width="112" height="78" rx="5"/><text class="" x="204" y="283" text-anchor="middle"><tspan x="204" dy="0">捕获构造异常</tspan></text></g><g class="diagram-node "><rect x="80" y="354" width="112" height="78" rx="5"/><text class="" x="136" y="388" text-anchor="middle"><tspan x="136" dy="0">失败进入</tspan><tspan x="136" dy="18">degraded</tspan></text></g><g class="diagram-node "><rect x="80" y="468" width="112" height="78" rx="5"/><text class="" x="136" y="493" text-anchor="middle"><tspan x="136" dy="0">HTTP</tspan><tspan x="136" dy="18">轮询与有限重</tspan><tspan x="136" dy="18">连</tspan></text></g></svg></div><p class="diagram-hint">点击带链接的节点查看相关代码。</p></figure><article><header><span class="number">01</span><h2>统一处理连接初始化失败</h2></header><div class="comparison"><section><h3>原来</h3><p>工厂同步报告 onError 时连接身份尚未建立，错误被丢弃；直接抛错会逃逸。页面停在 connecting，无轮询与重连。</p></section><section class="after"><h3>现在</h3><p>先建立连接身份，暂存初始化回调，句柄就绪后按顺序交付；构造抛错统一进入 degraded。HTTP 轮询继续，按既有退避有限重连；失败句柄关闭，旧事件隔离，dispose 清理定时器。</p></section></div><p class="reason"><strong>原因</strong> 连接身份与句柄初始化必须覆盖同步和异步时序，才能可靠触发现有恢复机制。</p><details><summary>查看文件和关键代码 <span class="count">2</span></summary><div class="file" id="walkthrough-file-0-0"><div class="file-heading"><span class="tag">修改</span><code>frontend/src/evaluations/observer.ts:362</code></div><pre><code>conn = connection
+// 初始化事件暂存到 pending，返回句柄后重放。
+try { connection.handle = deps.connectSocket(...) }
+catch { initializing = false; pending.length = 0; handlers.onError(); return }
+// onError 先 closed + conn = null，再 close，避免重入重复失败。</code></pre></div><div class="file" id="walkthrough-file-0-1"><div class="file-heading"><span class="tag">修改</span><code>frontend/src/evaluations/observer.test.ts:415</code></div><pre><code>新增 8 个确定性回归：同步错误、构造抛错、异步错误、旧事件隔离与恢复、同步 open/subscribed、open 后 error、回调后抛错、降级回调内 dispose。假时钟验证轮询、3/6/12/30 秒退避和失败上限。</code></pre></div></details></article><footer><h2>实际验证</h2><div class="check"><span class="status passed">通过</span><div><strong>Builder 自检</strong><p>观察器 35/35、前端全量 365/365；全量 ESLint、TypeScript/Vite 构建、改动文件 Prettier、git diff --check 均通过。RED: 27 passed/8 failed；GREEN: 35 passed。</p></div></div><div class="check"><span class="status passed">通过</span><div><strong>Runtime 检查</strong><p>Open 守卫已接受用户确认，OpenSpec strict 校验通过；Build 完成提交与 Verify 待执行。</p></div></div><div class="check"><span class="status not-run">未执行</span><div><strong>独立验收</strong><p>tweak 当前配置 reviewMode=off，由当前会话核对规格与差异。</p></div></div><div class="check"><span class="status not-run">未执行</span><div><strong>验证边界</strong><p>未做浏览器故障注入、生产连接或付费模型调用；改动为依赖注入观察器状态与时序。构建存在大 chunk 提示。</p></div></div></footer></main><template id="walkthrough-data">eyJzdW1tYXJ5IjoiV2ViU29ja2V0IOWQjOatpeaehOmAoOWksei0peWQju+8jOivhOS8sOi/m+W6puWPr+e7p+e7remAmui/hyBIVFRQIOWIt+aWsCIsInNjb3BlIjoi54us56uLIHdvcmt0cmVlIGNvbWV0L2ZpeC1zeW5jLXdlYnNvY2tldC1mYWlsdXJl77yb55u45a+5IEhFQUQg5LuF5L+u5pS5IG9ic2VydmVyLnRzIOS4jiBvYnNlcnZlci50ZXN0LnRzIOS4pOS4quS6pOS7mOaWh+S7tu+8jOmZhOW4puacrCBjaGFuZ2Ug55qEIE9wZW5TcGVjIOadkOaWmeOAgiIsImNoYW5nZXMiOlt7InRpdGxlIjoi57uf5LiA5aSE55CG6L+e5o6l5Yid5aeL5YyW5aSx6LSlIiwiYmVmb3JlIjoi5bel5Y6C5ZCM5q2l5oql5ZGKIG9uRXJyb3Ig5pe26L+e5o6l6Lqr5Lu95bCa5pyq5bu656uL77yM6ZSZ6K+v6KKr5Lii5byD77yb55u05o6l5oqb6ZSZ5Lya6YCD6YC444CC6aG16Z2i5YGc5ZyoIGNvbm5lY3RpbmfvvIzml6Dova7or6LkuI7ph43ov57jgIIiLCJhZnRlciI6IuWFiOW7uueri+i/nuaOpei6q+S7ve+8jOaaguWtmOWIneWni+WMluWbnuiwg++8jOWPpeafhOWwsee7quWQjuaMiemhuuW6j+S6pOS7mO+8m+aehOmAoOaKm+mUmee7n+S4gOi/m+WFpSBkZWdyYWRlZOOAgkhUVFAg6L2u6K+i57un57ut77yM5oyJ5pei5pyJ6YCA6YG/5pyJ6ZmQ6YeN6L+e77yb5aSx6LSl5Y+l5p+E5YWz6Zet77yM5pen5LqL5Lu26ZqU56a777yMZGlzcG9zZSDmuIXnkIblrprml7blmajjgIIiLCJyZWFzb24iOiLov57mjqXouqvku73kuI7lj6Xmn4TliJ3lp4vljJblv4Xpobvopobnm5blkIzmraXlkozlvILmraXml7bluo/vvIzmiY3og73lj6/pnaDop6blj5HnjrDmnInmgaLlpI3mnLrliLbjgIIiLCJmaWxlcyI6W3sicGF0aCI6ImZyb250ZW5kL3NyYy9ldmFsdWF0aW9ucy9vYnNlcnZlci50czozNjIiLCJraW5kIjoibW9kaWZpZWQiLCJjb2RlIjoiY29ubiA9IGNvbm5lY3Rpb25cbi8vIOWIneWni+WMluS6i+S7tuaaguWtmOWIsCBwZW5kaW5n77yM6L+U5Zue5Y+l5p+E5ZCO6YeN5pS+44CCXG50cnkgeyBjb25uZWN0aW9uLmhhbmRsZSA9IGRlcHMuY29ubmVjdFNvY2tldCguLi4pIH1cbmNhdGNoIHsgaW5pdGlhbGl6aW5nID0gZmFsc2U7IHBlbmRpbmcubGVuZ3RoID0gMDsgaGFuZGxlcnMub25FcnJvcigpOyByZXR1cm4gfVxuLy8gb25FcnJvciDlhYggY2xvc2VkICsgY29ubiA9IG51bGzvvIzlho0gY2xvc2XvvIzpgb/lhY3ph43lhaXph43lpI3lpLHotKXjgIIifSx7InBhdGgiOiJmcm9udGVuZC9zcmMvZXZhbHVhdGlvbnMvb2JzZXJ2ZXIudGVzdC50czo0MTUiLCJraW5kIjoibW9kaWZpZWQiLCJjb2RlIjoi5paw5aKeIDgg5Liq56Gu5a6a5oCn5Zue5b2S77ya5ZCM5q2l6ZSZ6K+v44CB5p6E6YCg5oqb6ZSZ44CB5byC5q2l6ZSZ6K+v44CB5pen5LqL5Lu26ZqU56a75LiO5oGi5aSN44CB5ZCM5q2lIG9wZW4vc3Vic2NyaWJlZOOAgW9wZW4g5ZCOIGVycm9y44CB5Zue6LCD5ZCO5oqb6ZSZ44CB6ZmN57qn5Zue6LCD5YaFIGRpc3Bvc2XjgILlgYfml7bpkp/pqozor4Hova7or6LjgIEzLzYvMTIvMzAg56eS6YCA6YG/5ZKM5aSx6LSl5LiK6ZmQ44CCIn1dfV0sInZlcmlmaWNhdGlvbiI6W3sibGFiZWwiOiJCdWlsZGVyIOiHquajgCIsInN0YXR1cyI6InBhc3NlZCIsImRldGFpbCI6IuinguWvn+WZqCAzNS8zNeOAgeWJjeerr+WFqOmHjyAzNjUvMzY177yb5YWo6YePIEVTTGludOOAgVR5cGVTY3JpcHQvVml0ZSDmnoTlu7rjgIHmlLnliqjmlofku7YgUHJldHRpZXLjgIFnaXQgZGlmZiAtLWNoZWNrIOWdh+mAmui/h+OAglJFRDogMjcgcGFzc2VkLzggZmFpbGVk77ybR1JFRU46IDM1IHBhc3NlZOOAgiJ9LHsibGFiZWwiOiJSdW50aW1lIOajgOafpSIsInN0YXR1cyI6InBhc3NlZCIsImRldGFpbCI6Ik9wZW4g5a6I5Y2r5bey5o6l5Y+X55So5oi356Gu6K6k77yMT3BlblNwZWMgc3RyaWN0IOagoemqjOmAmui/h++8m0J1aWxkIOWujOaIkOaPkOS6pOS4jiBWZXJpZnkg5b6F5omn6KGM44CCIn0seyJsYWJlbCI6IueLrOeri+mqjOaUtiIsInN0YXR1cyI6Im5vdC1ydW4iLCJkZXRhaWwiOiJ0d2VhayDlvZPliY3phY3nva4gcmV2aWV3TW9kZT1vZmbvvIznlLHlvZPliY3kvJror53moLjlr7nop4TmoLzkuI7lt67lvILjgIIifSx7ImxhYmVsIjoi6aqM6K+B6L6555WMIiwic3RhdHVzIjoibm90LXJ1biIsImRldGFpbCI6IuacquWBmua1j+iniOWZqOaVhemanOazqOWFpeOAgeeUn+S6p+i/nuaOpeaIluS7mOi0ueaooeWei+iwg+eUqO+8m+aUueWKqOS4uuS+nei1luazqOWFpeinguWvn+WZqOeKtuaAgeS4juaXtuW6j+OAguaehOW7uuWtmOWcqOWkpyBjaHVuayDmj5DnpLrjgIIifV0sImRpYWdyYW1zIjpbeyJ0eXBlIjoiZmxvdyIsInRpdGxlIjoi5aSx6LSl5ZCO55qE5oGi5aSN6Lev5b6EIiwibm9kZXMiOlt7ImlkIjoiaWRlbnRpdHkiLCJsYWJlbCI6IueZu+iusOi6q+S7veW5tuaaguWtmOWbnuiwgyIsImZpbGUiOiJmcm9udGVuZC9zcmMvZXZhbHVhdGlvbnMvb2JzZXJ2ZXIudHM6MzYyIiwia2luZCI6Im1vZGlmaWVkIn0seyJpZCI6ImZhY3RvcnkiLCJsYWJlbCI6Iuiwg+eUqOi/nuaOpeW3peWOgiJ9LHsiaWQiOiJyZXR1cm5lZCIsImxhYmVsIjoi5Y+l5p+E5bCx57uq5ZCO5Lqk5LuY5LqL5Lu2In0seyJpZCI6InRocm93biIsImxhYmVsIjoi5o2V6I635p6E6YCg5byC5bi4In0seyJpZCI6ImRlZ3JhZGVkIiwibGFiZWwiOiLlpLHotKXov5vlhaUgZGVncmFkZWQifSx7ImlkIjoicmVjb3ZlcnkiLCJsYWJlbCI6IkhUVFAg6L2u6K+i5LiO5pyJ6ZmQ6YeN6L+eIn1dLCJlZGdlcyI6W3siZnJvbSI6ImlkZW50aXR5IiwidG8iOiJmYWN0b3J5In0seyJmcm9tIjoiZmFjdG9yeSIsInRvIjoicmV0dXJuZWQiLCJsYWJlbCI6Iui/lOWbniJ9LHsiZnJvbSI6ImZhY3RvcnkiLCJ0byI6InRocm93biIsImxhYmVsIjoi5oqb6ZSZIn0seyJmcm9tIjoicmV0dXJuZWQiLCJ0byI6ImRlZ3JhZGVkIiwibGFiZWwiOiJvbkVycm9yIn0seyJmcm9tIjoidGhyb3duIiwidG8iOiJkZWdyYWRlZCJ9LHsiZnJvbSI6ImRlZ3JhZGVkIiwidG8iOiJyZWNvdmVyeSJ9XX1dfQ==</template></body></html>
