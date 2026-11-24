@@ -1,0 +1,40 @@
+{
+  "schema": "comet.classic.archive-manifest.v2",
+  "execution": {
+    "workflow": {
+      "id": "comet-classic-tweak",
+      "version": "2",
+      "hash": "d1e067bc00ca13395dbc6f701565417c3e227f17a57df025dd73ebda905e2638"
+    },
+    "runId": "bound-job-list-pagination",
+    "actionId": "bound-job-list-pagination:13",
+    "attempt": 1,
+    "inputHash": "219329d6f50c872e50abe6bca6356ab36c76580a59a4e4c901326bb66d50ca1e",
+    "claimToken": "portable-f0a0ef21f57a6f1eae03c3b69702e843da535ad5201f9b7f04147dc75f7b00d3"
+  },
+  "activeRef": "openspec/changes/bound-job-list-pagination",
+  "archiveRef": "openspec/changes/archive/2026-11-24-bound-job-list-pagination",
+  "stateRef": "openspec/changes/archive/2026-11-24-bound-job-list-pagination/comet-state.yaml",
+  "paths": [
+    "openspec/changes/archive/2026-11-24-bound-job-list-pagination/.comet/archive-requirements.json",
+    "openspec/changes/archive/2026-11-24-bound-job-list-pagination/.openspec.yaml",
+    "openspec/changes/archive/2026-11-24-bound-job-list-pagination/design.md",
+    "openspec/changes/archive/2026-11-24-bound-job-list-pagination/proposal.md",
+    "openspec/changes/archive/2026-11-24-bound-job-list-pagination/specs/api/evaluation-execution/spec.md",
+    "openspec/changes/archive/2026-11-24-bound-job-list-pagination/specs/api/experiment-management/spec.md",
+    "openspec/changes/archive/2026-11-24-bound-job-list-pagination/tasks.md",
+    "openspec/changes/archive/2026-11-24-bound-job-list-pagination/walkthrough.html",
+    "openspec/specs/api/evaluation-execution/spec.md",
+    "openspec/specs/api/experiment-management/spec.md"
+  ],
+  "sourcePaths": [
+    "openspec/changes/bound-job-list-pagination/.comet/archive-requirements.json",
+    "openspec/changes/bound-job-list-pagination/.openspec.yaml",
+    "openspec/changes/bound-job-list-pagination/design.md",
+    "openspec/changes/bound-job-list-pagination/proposal.md",
+    "openspec/changes/bound-job-list-pagination/specs/api/evaluation-execution/spec.md",
+    "openspec/changes/bound-job-list-pagination/specs/api/experiment-management/spec.md",
+    "openspec/changes/bound-job-list-pagination/tasks.md",
+    "openspec/changes/bound-job-list-pagination/walkthrough.html"
+  ]
+}

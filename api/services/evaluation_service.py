@@ -15,8 +15,8 @@ from contextlib import ExitStack
 from datetime import datetime
 from typing import TypedDict
 
-from sqlalchemy import Engine, and_, or_, select, update
-from sqlalchemy.orm import Session, object_session
+from sqlalchemy import Engine, and_, func, or_, select, update
+from sqlalchemy.orm import Session, load_only, object_session
 from sqlalchemy.sql.elements import ColumnElement
 
 from api.db import Evaluation, make_engine, make_session_factory, run_migrations
@@ -400,17 +400,56 @@ class EvaluationService:
     def list_evaluations(
         self, owner_id: str, status: str | None = None, limit: int = 20, offset: int = 0
     ) -> tuple[list[EvaluationResponse], int]:
-        """List all evaluation tasks with optional filtering."""
+        """Count matching evaluations and load only the requested page."""
         with self._session() as session:
-            query = select(Evaluation).where(Evaluation.user_id == owner_id)
+            filters = [Evaluation.user_id == owner_id]
             if status:
-                query = query.where(Evaluation.status == status)
-            tasks = session.scalars(query.order_by(Evaluation.created_at, Evaluation.id)).all()
-            page = tasks[offset : offset + limit]
+                filters.append(Evaluation.status == status)
+            total = (
+                session.scalar(select(func.count()).select_from(Evaluation).where(*filters)) or 0
+            )
+            page = session.scalars(
+                select(Evaluation)
+                .where(*filters)
+                .options(
+                    load_only(
+                        Evaluation.id,
+                        Evaluation.user_id,
+                        Evaluation.status,
+                        Evaluation.strategy_names,
+                        Evaluation.problem_count,
+                        Evaluation.model,
+                        Evaluation.generation_timeout_seconds,
+                        Evaluation.budget_cap_usd,
+                        Evaluation.spent_usd,
+                        Evaluation.completed_count,
+                        Evaluation.failed_count,
+                        Evaluation.error_message,
+                        Evaluation.async_task_id,
+                        Evaluation.created_at,
+                        Evaluation.updated_at,
+                        raiseload=True,
+                    )
+                )
+                .order_by(Evaluation.created_at, Evaluation.id)
+                .limit(limit)
+                .offset(offset)
+            ).all()
             task_ids = {task.async_task_id for task in page if task.async_task_id}
             async_tasks = (
                 session.scalars(
-                    select(AsyncTask).where(
+                    select(AsyncTask)
+                    .options(
+                        load_only(
+                            AsyncTask.id,
+                            AsyncTask.user_id,
+                            AsyncTask.task_type,
+                            AsyncTask.entity_id,
+                            AsyncTask.status,
+                            raiseload=True,
+                        )
+                    )
+                    .where(
                         or_(
                             AsyncTask.id.in_(task_ids),
                             _live_evaluation_task_filter(owner_id, [task.id for task in page]),
@@ -438,7 +477,7 @@ class EvaluationService:
                 )
                 for task in page
             ]
-            return responses, len(tasks)
+            return responses, total
 
     def update_evaluation(
         self, evaluation_id: str, request: EvaluationUpdateRequest, owner_id: str
