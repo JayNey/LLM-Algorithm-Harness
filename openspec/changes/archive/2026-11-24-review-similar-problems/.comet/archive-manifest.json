@@ -1,0 +1,40 @@
+{
+  "schema": "comet.classic.archive-manifest.v2",
+  "execution": {
+    "workflow": {
+      "id": "comet-classic-tweak",
+      "version": "2",
+      "hash": "d1e067bc00ca13395dbc6f701565417c3e227f17a57df025dd73ebda905e2638"
+    },
+    "runId": "review-similar-problems",
+    "actionId": "review-similar-problems:15",
+    "attempt": 1,
+    "inputHash": "6f476581f16b70e30c0b70ba517e385119d3ad94c16d7012e154e828e84e084e",
+    "claimToken": "portable-383e4dd7f196bc1d235e891ea75ffdd119f610e33bc60a95dc57b5117d42e7c9"
+  },
+  "activeRef": "openspec/changes/review-similar-problems",
+  "archiveRef": "openspec/changes/archive/2026-11-24-review-similar-problems",
+  "stateRef": "openspec/changes/archive/2026-11-24-review-similar-problems/comet-state.yaml",
+  "paths": [
+    "openspec/changes/archive/2026-11-24-review-similar-problems/.comet/archive-requirements.json",
+    "openspec/changes/archive/2026-11-24-review-similar-problems/.openspec.yaml",
+    "openspec/changes/archive/2026-11-24-review-similar-problems/design.md",
+    "openspec/changes/archive/2026-11-24-review-similar-problems/proposal.md",
+    "openspec/changes/archive/2026-11-24-review-similar-problems/specs/frontend/problems-management/spec.md",
+    "openspec/changes/archive/2026-11-24-review-similar-problems/specs/problem-deduplication/spec.md",
+    "openspec/changes/archive/2026-11-24-review-similar-problems/tasks.md",
+    "openspec/changes/archive/2026-11-24-review-similar-problems/walkthrough.html",
+    "openspec/specs/frontend/problems-management/spec.md",
+    "openspec/specs/problem-deduplication/spec.md"
+  ],
+  "sourcePaths": [
+    "openspec/changes/review-similar-problems/.comet/archive-requirements.json",
+    "openspec/changes/review-similar-problems/.openspec.yaml",
+    "openspec/changes/review-similar-problems/design.md",
+    "openspec/changes/review-similar-problems/proposal.md",
+    "openspec/changes/review-similar-problems/specs/frontend/problems-management/spec.md",
+    "openspec/changes/review-similar-problems/specs/problem-deduplication/spec.md",
+    "openspec/changes/review-similar-problems/tasks.md",
+    "openspec/changes/review-similar-problems/walkthrough.html"
+  ]
+}

@@ -4,6 +4,8 @@ import type {
   ApiPage,
   DatasetVersion,
   DatasetVersionDetail,
+  DeduplicationPreview,
+  DuplicateProblem,
   DirectImportResult,
   EvaluationOptionsMeta,
   GovernancePreview,
@@ -337,6 +339,88 @@ export const DIRECT_IMPORT_MAX_BYTES = 5 * 1024 * 1024
 
 const governance = '/problems/governance'
 
+function duplicateProblem(value: unknown, field: string): DuplicateProblem {
+  const data = record(value, field)
+  return {
+    ...data,
+    problem_id: text(data.problem_id, field + '.problem_id'),
+    title: text(data.title, field + '.title', true),
+  }
+}
+
+function readDeduplication(value: unknown): DeduplicationPreview {
+  const data = record(value, 'deduplication')
+  return {
+    preview_token: text(data.preview_token, 'preview_token'),
+    groups: array(
+      data.groups,
+      (value, path) => {
+        const group = record(value, path)
+        const problems = array(
+          group.problems,
+          duplicateProblem,
+          path + '.problems',
+        )
+        const recommended = text(
+          group.recommended_primary_id,
+          path + '.recommended_primary_id',
+        )
+        const variants = record(group.merges, path + '.merges')
+        const merges = Object.fromEntries(
+          Object.entries(variants).map(([id, value]) => [
+            id,
+            duplicateProblem(value, path + '.merges.' + id),
+          ]),
+        )
+        const ids = new Set(problems.map((p) => p.problem_id))
+        if (
+          ids.size < 2 ||
+          ids.size !== problems.length ||
+          !ids.has(recommended) ||
+          Object.keys(merges).length !== ids.size ||
+          [...ids].some(
+            (id) => !Object.hasOwn(merges, id) || merges[id].problem_id !== id,
+          )
+        )
+          protocol(path)
+        return {
+          group_id: text(group.group_id, path + '.group_id'),
+          recommended_primary_id: recommended,
+          problems,
+          merges,
+          matches: array(
+            group.matches,
+            (value, path) => {
+              const match = record(value, path)
+              const similarity = nullableFloat(
+                match.similarity,
+                path + '.similarity',
+              )
+              const left_id = text(match.left_id, path + '.left_id')
+              const right_id = text(match.right_id, path + '.right_id')
+              if (
+                (similarity !== null && similarity > 1) ||
+                !ids.has(left_id) ||
+                !ids.has(right_id) ||
+                left_id === right_id
+              )
+                protocol(path)
+              return {
+                left_id,
+                right_id,
+                similarity,
+                fingerprint: boolean(match.fingerprint, path + '.fingerprint'),
+              }
+            },
+            path + '.matches',
+          ),
+        }
+      },
+      'groups',
+    ),
+  }
+}
+
 function readGovernancePreview(value: unknown): GovernancePreview {
   const data = record(value, 'preview')
   return {
@@ -423,6 +507,15 @@ function readDatasetVersionDetail(value: unknown): DatasetVersionDetail {
             (tag, path) => text(tag, path, true),
             field + '.tags',
           ),
+          ...(problem.merged_from === undefined
+            ? {}
+            : {
+                merged_from: array(
+                  problem.merged_from,
+                  text,
+                  field + '.merged_from',
+                ),
+              }),
         }
       },
       'version.problems',
@@ -444,6 +537,22 @@ export function createProblemClient(http: AxiosInstance): ProblemClient {
     )
   }
   return {
+    previewDeduplication: async (request, signal) =>
+      readDeduplication(
+        await http.post<unknown, unknown>(
+          governance + '/deduplication/preview',
+          request,
+          { signal, timeout: 120_000 },
+        ),
+      ),
+    saveDeduplication: async (request) =>
+      readDatasetVersion(
+        await http.post<unknown, unknown>(
+          governance + '/deduplication/versions',
+          request,
+          { timeout: 120_000 },
+        ),
+      ),
     previewGovernance: async (request, signal) =>
       readGovernancePreview(
         await http.post<unknown, unknown>(governance + '/preview', request, {

@@ -1,5 +1,19 @@
 # 文件上传、批量导入与下载（#153）
 
+## 审核与合并个人相似题（#474）
+
+题库页打开「批量治理 → 查找相似题」，设置 0–1 的文本相似度阈值（默认 0.9）。扫描使用 CLI 相同的来源指纹、TF-IDF 和余弦相似度规则；文本得分严格超过阈值才匹配，来源指纹匹配不受文本阈值限制。各候选组默认跳过，选择保留题后可核对字段变化及完整合并内容。填写版本名称并保存，仅批准组会合并，其他题目保持原样。
+
+合并保留选定题的 ID、正文及非列表字段，按 CLI 规则合并标签与测试用例列表，并在 `merged_from` 记录被合并题 ID。保存生成独立个人题集版本，不修改源库、历史评估或已保存题集；在「题集版本」中可重新打开并创建评估。版本继续遵循每账号最多保留最近 50 个的策略。
+
+接口均要求当前登录身份，Cookie 请求沿用 CSRF 校验，返回既有 `ApiResponse` 包装：
+
+- `POST /api/v1/problems/governance/deduplication/preview`：请求 `{ "threshold": 0.9 }`，返回 `preview_token` 和 `groups`。组含 `group_id`、推荐保留题 ID、完整 `problems`、`matches`（题目对、指纹匹配和文本相似度），以及按保留题 ID 索引的 `merges`。来源指纹匹配也会展示低于文本阈值的实际得分；空词表的文本得分为零。
+- `POST /api/v1/problems/governance/deduplication/versions`：请求 `{ "threshold": 0.9, "preview_token": "预览令牌", "name": "版本名称", "groups": [{ "group_id": "候选组 ID", "primary_id": "保留题 ID" }] }`，返回新版本的 `id`、`name`、`problem_count`。客户端不回传合并后的题目内容。
+- 版本列表与详情继续使用 `GET /api/v1/problems/governance/versions` 和 `GET /api/v1/problems/governance/versions/{id}`；详情中的 `merged_from` 显示合并记录。
+
+源库更新后，尚未完成的确认返回 409，须重新扫描并审核。未知组、重复组、组外保留题及空批准列表会被拒绝。相同令牌、阈值、版本名和组选择（与组顺序无关）的重试及并发提交返回同一个版本，回执跨进程重启保留；该版本若已被保留策略清理，重试返回 410，不会再次创建。选择或名称不同表示新的确认。
+
 ## 启动与存储
 
 先完成 [API 认证配置](api-authentication.md)，安装 `pip install -e '.[dev]'`，再启动 API。全部文件接口使用 `Authorization: Bearer <access_token>`。

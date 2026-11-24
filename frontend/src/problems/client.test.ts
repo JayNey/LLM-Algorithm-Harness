@@ -21,6 +21,77 @@ function clientFor(
   return { client, seen }
 }
 
+test('相似题扫描解析原题与保留题合并方案，保存仅发送审核选择', async () => {
+  const original = {
+    problem_id: 'a',
+    title: 'Search',
+    description: 'Original',
+    tags: ['array'],
+  }
+  const merged = { ...original, merged_from: ['b'], tags: ['array', 'search'] }
+  const preview = {
+    preview_token: 'token',
+    groups: [
+      {
+        group_id: 'g',
+        recommended_primary_id: 'a',
+        problems: [original, { ...original, problem_id: 'b' }],
+        matches: [
+          { left_id: 'a', right_id: 'b', fingerprint: true, similarity: 0.95 },
+        ],
+        merges: {
+          a: merged,
+          b: { ...merged, problem_id: 'b', merged_from: ['a'] },
+        },
+      },
+    ],
+  }
+  const { client, seen } = clientFor(({ url }) => ({
+    data: url.endsWith('/preview')
+      ? preview
+      : { id: 'v', name: 'Reviewed', problem_count: 1 },
+  }))
+  assert.deepEqual(
+    await client.previewDeduplication({ threshold: 0.9 }),
+    preview,
+  )
+  const request = {
+    threshold: 0.9,
+    preview_token: 'token',
+    name: 'Reviewed',
+    groups: [{ group_id: 'g', primary_id: 'b' }],
+  }
+  assert.equal((await client.saveDeduplication(request)).id, 'v')
+  assert.deepEqual(seen[1], {
+    method: 'POST',
+    url: '/problems/governance/deduplication/versions',
+    body: request,
+  })
+})
+
+test('相似题接口拒绝非法分数及不完整合并方案', async () => {
+  const original = { problem_id: 'a', title: 'A' }
+  for (const similarity of [-1, 1.5, '0.9']) {
+    const { client } = clientFor(() => ({
+      data: {
+        preview_token: 't',
+        groups: [
+          {
+            group_id: 'g',
+            recommended_primary_id: 'a',
+            problems: [original, { ...original, problem_id: 'b' }],
+            matches: [
+              { left_id: 'a', right_id: 'b', fingerprint: true, similarity },
+            ],
+            merges: { a: original, b: { ...original, problem_id: 'b' } },
+          },
+        ],
+      },
+    }))
+    await assert.rejects(() => client.previewDeduplication({ threshold: 0.9 }))
+  }
+})
+
 test('来源选项与题目列表严格解析（元数据 4 字段）', async () => {
   const { client, seen } = clientFor(({ url }) => {
     if (url === '/evaluation-options')

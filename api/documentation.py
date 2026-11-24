@@ -143,6 +143,14 @@ GOVERNANCE_TOKEN = "0" * 64 + "." + "0" * 64
 # Handler name -> purpose, response data. Aliased paths share the same contract.
 # Examples show representative data; empty aggregates mean no stored results.
 OPERATIONS: dict[str, tuple[str, Any]] = {
+    "preview_duplicate_problems": (
+        "只读扫描本人的个人题库，按来源指纹与文本阈值返回相似题候选、匹配分数及各保留题的合并预览。",
+        {"preview_token": GOVERNANCE_TOKEN, "groups": []},
+    ),
+    "save_duplicate_version": (
+        "只保存逐组获批的相似题合并版本；源库过期返回 409，同一确认幂等，已清理版本的重试返回 410。",
+        DATASET_VERSION,
+    ),
     "preview_problem_governance": (
         "逐题预览个人题库的标签和难度变更；无权访问的题目或历史评估返回 404。",
         {
@@ -1477,6 +1485,13 @@ DOWNLOADS = {
 }
 
 REQUEST_EXAMPLES: dict[str, Any] = {
+    "DeduplicationRequest": {"threshold": 0.9},
+    "DeduplicationSaveRequest": {
+        "threshold": 0.9,
+        "preview_token": GOVERNANCE_TOKEN,
+        "name": "审核后的合并题集",
+        "groups": [{"group_id": "group-demo", "primary_id": "two-sum"}],
+    },
     "GovernanceRequest": GOVERNANCE_REQUEST,
     "GovernanceSaveRequest": {
         "preview": GOVERNANCE_REQUEST,
@@ -1883,19 +1898,23 @@ def _document_operation(path: str, method: str, operation: dict[str, Any]) -> No
                 **(
                     {"config_type": "harness"}
                     if name == "upload_config"
-                    else {"mode": "append", "validate": True} if name == "upload_problems" else {}
+                    else {"mode": "append", "validate": True}
+                    if name == "upload_problems"
+                    else {}
                 ),
             }
             properties = media["schema"]["properties"]
             allowed = (
                 {"file", "config_type"}
                 if name == "upload_config"
-                else {"file", "mode", "validate"} if name == "upload_problems" else {"file"}
+                else {"file", "mode", "validate"}
+                if name == "upload_problems"
+                else {"file"}
             )
             media["schema"]["properties"] = {k: v for k, v in properties.items() if k in allowed}
-        operation["requestBody"][
-            "description"
-        ] = "请求体各字段的语义、必填项、类型及约束见 schema；示例中的 ID/令牌需要替换为自己的资源。"
+        operation["requestBody"]["description"] = (
+            "请求体各字段的语义、必填项、类型及约束见 schema；示例中的 ID/令牌需要替换为自己的资源。"
+        )
     responses = operation["responses"]
     # The application's RequestValidationError handler returns 400, never 422.
     responses.pop("422", None)

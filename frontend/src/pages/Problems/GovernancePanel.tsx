@@ -26,6 +26,7 @@ import type {
   GovernanceRequest,
 } from '@/problems/types.ts'
 import { useAuthStore } from '@/store/auth.ts'
+import { DeduplicationReview } from './DeduplicationReview.tsx'
 
 const pageSize = 50
 
@@ -547,6 +548,12 @@ function SavedVersions({
                 <small>
                   {problem.problem_id} · {difficultyLabel(problem.difficulty)} ·{' '}
                   {tagList(problem.tags)}
+                  {!!problem.merged_from?.length && (
+                    <>
+                      {' '}
+                      · {t('被合并题目')} {tagList(problem.merged_from)}
+                    </>
+                  )}
                 </small>
               </li>
             ))}
@@ -568,6 +575,19 @@ export function GovernancePanel({ onClose }: { onClose: () => void }) {
         activeKey={tab}
         onChange={setTab}
         items={[
+          {
+            key: 'duplicates',
+            label: t('查找相似题'),
+            children: (
+              <DeduplicationReview
+                onSaved={(id) => {
+                  setVersionId(id)
+                  setSavedCount((count) => count + 1)
+                  setTab('versions')
+                }}
+              />
+            ),
+          },
           {
             key: 'review',
             label: t('预览与审核'),
