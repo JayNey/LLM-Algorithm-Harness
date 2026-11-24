@@ -14,8 +14,8 @@ from pathlib import Path
 from threading import Semaphore
 from typing import Any, cast
 
-from sqlalchemy import CursorResult, or_, select, update
-from sqlalchemy.orm import Session
+from sqlalchemy import CursorResult, func, or_, select, update
+from sqlalchemy.orm import Session, load_only, with_expression
 
 from api.auth.service import AuthService
 from api.config import settings
@@ -23,6 +23,7 @@ from api.datasets import (
     execution_dataset,
     freeze_dataset,
     public_dataset_config,
+    public_dataset_config_sql,
     resolve_dataset_path,
 )
 from api.db import AsyncTask, Experiment, make_engine, make_session_factory, run_migrations
@@ -210,16 +211,39 @@ class ExperimentService:
         self, owner_id: str, status: str | None = None, limit: int = 20, offset: int = 0
     ) -> tuple[list[dict[str, Any]], int]:
         with self._session() as session:
-            query = select(Experiment).where(Experiment.user_id == owner_id)
+            filters = [Experiment.user_id == owner_id]
             if status:
-                query = query.where(Experiment.status == status)
-            rows = session.scalars(query.order_by(Experiment.created_at, Experiment.id)).all()
-            total = len(rows)
-            page = rows[offset : offset + limit]
+                filters.append(Experiment.status == status)
+            total = (
+                session.scalar(select(func.count()).select_from(Experiment).where(*filters)) or 0
+            )
+            page = session.scalars(
+                select(Experiment)
+                .where(*filters)
+                .options(
+                    load_only(
+                        Experiment.id,
+                        Experiment.name,
+                        Experiment.status,
+                        Experiment.error_message,
+                        Experiment.created_at,
+                        Experiment.updated_at,
+                        raiseload=True,
+                    ),
+                    with_expression(
+                        Experiment.config,
+                        public_dataset_config_sql(Experiment.config, self._engine.dialect.name),
+                    ),
+                )
+                .order_by(Experiment.created_at, Experiment.id)
+                .limit(limit)
+                .offset(offset)
+            ).all()
             task_ids: dict[str, str] = {}
             if page:
                 tasks = session.scalars(
                     select(AsyncTask)
+                    .options(load_only(AsyncTask.id, AsyncTask.entity_id, raiseload=True))
                     .where(
                         AsyncTask.task_type == "experiment",
                         AsyncTask.user_id == owner_id,

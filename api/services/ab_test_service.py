@@ -9,8 +9,8 @@ from threading import Semaphore
 from typing import Any
 
 from fastapi import HTTPException
-from sqlalchemy import delete, select, update
-from sqlalchemy.orm import Session
+from sqlalchemy import delete, func, select, update
+from sqlalchemy.orm import Session, load_only, with_expression
 
 from api.auth.service import AuthService
 from api.config import settings
@@ -18,6 +18,7 @@ from api.datasets import (
     execution_dataset,
     freeze_dataset,
     public_dataset_config,
+    public_dataset_config_sql,
     resolve_dataset_path,
 )
 from api.db import ABTest, AsyncTask, make_engine, make_session_factory, run_migrations
@@ -163,12 +164,33 @@ class ABTestService:
         self, owner_id: str, status: str | None = None, limit: int = 20, offset: int = 0
     ) -> tuple[list[dict[str, Any]], int]:
         with self._session() as session:
-            query = select(ABTest).where(ABTest.user_id == owner_id)
+            filters = [ABTest.user_id == owner_id]
             if status:
-                query = query.where(ABTest.status == status)
-            rows = session.scalars(query.order_by(ABTest.created_at, ABTest.id)).all()
-        total = len(rows)
-        return [_job_view(row) for row in rows[offset : offset + limit]], total
+                filters.append(ABTest.status == status)
+            total = session.scalar(select(func.count()).select_from(ABTest).where(*filters)) or 0
+            rows = session.scalars(
+                select(ABTest)
+                .where(*filters)
+                .options(
+                    load_only(
+                        ABTest.id,
+                        ABTest.name,
+                        ABTest.status,
+                        ABTest.error_message,
+                        ABTest.created_at,
+                        ABTest.updated_at,
+                        raiseload=True,
+                    ),
+                    with_expression(
+                        ABTest.config,
+                        public_dataset_config_sql(ABTest.config, self._engine.dialect.name),
+                    ),
+                )
+                .order_by(ABTest.created_at, ABTest.id)
+                .limit(limit)
+                .offset(offset)
+            ).all()
+            return [_job_view(row) for row in rows], total
 
     def delete_test(self, test_id: str, owner_id: str) -> None:
         with self._session() as session, session.begin():

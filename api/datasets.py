@@ -17,6 +17,10 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
+from sqlalchemy import JSON, SQLColumnExpression, cast, func, type_coerce
+from sqlalchemy.dialects.postgresql import JSONB, array
+from sqlalchemy.sql.elements import ColumnElement
+
 from api.auth.service import AuthService
 from api.config import settings
 from api.files.store import FileStore
@@ -133,6 +137,19 @@ def public_dataset_config(config: dict[str, Any]) -> dict[str, Any]:
         **config,
         **({"dataset_snapshot": snapshot_summary(config)} if "dataset_snapshot" in config else {}),
     }
+
+
+def public_dataset_config_sql(
+    config: SQLColumnExpression[dict[str, Any]], dialect: str
+) -> ColumnElement[dict[str, Any]]:
+    """Project public JSON in the DB so list reads never transfer frozen problems."""
+    if dialect == "postgresql":
+        public = cast(config, JSONB).op("#-")(array(["dataset_snapshot", "problems"]))
+        public = public.op("#-")(array(["dataset_snapshot", "owner_id"]))
+        return type_coerce(public, JSON)
+    return func.json_remove(
+        config, "$.dataset_snapshot.problems", "$.dataset_snapshot.owner_id", type_=JSON
+    )
 
 
 @contextmanager
