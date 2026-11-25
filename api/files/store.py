@@ -62,6 +62,10 @@ class FileStore:
                 );
                 CREATE INDEX IF NOT EXISTS api_dataset_versions_owner
                     ON api_dataset_versions(user_id, created_at, id);
+                CREATE TABLE IF NOT EXISTS api_dataset_confirmations (
+                    user_id TEXT NOT NULL, confirmation_key TEXT NOT NULL,
+                    version_id TEXT NOT NULL, PRIMARY KEY(user_id, confirmation_key)
+                );
                 CREATE TABLE IF NOT EXISTS api_file_jobs (
                     id TEXT PRIMARY KEY, user_id TEXT NOT NULL, file_id TEXT NOT NULL,
                     mode TEXT NOT NULL, status TEXT NOT NULL,
@@ -279,16 +283,26 @@ class FileStore:
         problems: list[dict[str, Any]],
         *,
         max_versions: int = DATASET_VERSION_MAX_PER_USER,
+        confirmation_key: str | None = None,
     ) -> dict[str, Any]:
         version = {"id": str(uuid.uuid4()), "name": name, "problem_count": len(problems)}
         with self.connection() as db:
             db.execute("BEGIN IMMEDIATE")
+            if confirmation_key is not None:
+                previous = self._dataset_confirmation(db, user_id, confirmation_key)
+                if previous is not None:
+                    return previous
             if self._dataset_snapshot(db, user_id)[0] != source_token:
                 raise HTTPException(409, "Governance preview is stale")
             db.execute(
                 "INSERT INTO api_dataset_versions VALUES (?,?,?,?,?,?)",
                 (version["id"], user_id, name, json.dumps(problems), len(problems), time.time_ns()),
             )
+            if confirmation_key is not None:
+                db.execute(
+                    "INSERT INTO api_dataset_confirmations VALUES (?,?,?)",
+                    (user_id, confirmation_key, version["id"]),
+                )
             # 每用户只保留最近 N 个版本：版本载荷是整份题库快照，不清理会单调膨胀 (#501)。
             db.execute(
                 """
@@ -301,6 +315,26 @@ class FileStore:
                 (user_id, user_id, max_versions),
             )
         return version
+
+    @staticmethod
+    def _dataset_confirmation(
+        db: sqlite3.Connection, user_id: str, confirmation_key: str
+    ) -> dict[str, Any] | None:
+        row = db.execute(
+            "SELECT v.id, v.name, v.problem_count FROM api_dataset_confirmations c "
+            "LEFT JOIN api_dataset_versions v ON v.id=c.version_id AND v.user_id=c.user_id "
+            "WHERE c.user_id=? AND c.confirmation_key=?",
+            (user_id, confirmation_key),
+        ).fetchone()
+        if row is None:
+            return None
+        if row["id"] is None:
+            raise HTTPException(410, "Confirmed dataset version is no longer available")
+        return dict(row)
+
+    def dataset_confirmation(self, user_id: str, confirmation_key: str) -> dict[str, Any] | None:
+        with self.connection() as db:
+            return self._dataset_confirmation(db, user_id, confirmation_key)
 
     def dataset_versions(self, user_id: str) -> list[dict[str, Any]]:
         with self.connection() as db:

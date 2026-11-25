@@ -18,6 +18,13 @@ from api.evaluation_options import (
     RecommendationWeakness,
     RecommendedProblem,
 )
+from api.files.deduplication import (
+    DeduplicationPreview,
+    DeduplicationRequest,
+    DeduplicationSaveRequest,
+    preview_deduplication,
+    save_deduplication,
+)
 from api.files.dependencies import file_service
 from api.files.governance import (
     DatasetVersion,
@@ -84,6 +91,29 @@ def preview_problem_governance(
 ) -> ApiResponse[GovernancePreview]:
     preview, _ = call(lambda: preview_governance(files.store, history, principal.user_id, request))
     return ApiResponse(success=True, data=preview, message="Governance preview")
+
+
+@router.post("/problems/governance/deduplication/preview")
+def preview_duplicate_problems(
+    request: DeduplicationRequest,
+    principal: Principal = Depends(current_user),
+    files: FileService = Depends(file_service),
+) -> ApiResponse[DeduplicationPreview]:
+    preview, _ = call(lambda: preview_deduplication(files.store, principal.user_id, request))
+    return ApiResponse(success=True, data=preview, message="Duplicate candidates")
+
+
+@router.post("/problems/governance/deduplication/versions", status_code=201)
+def save_duplicate_version(
+    request: DeduplicationSaveRequest,
+    http_request: Request,
+    principal: Principal = Depends(current_user),
+    files: FileService = Depends(file_service),
+) -> ApiResponse[DatasetVersion]:
+    version = call(lambda: save_deduplication(files.store, principal.user_id, request))
+    resource_id = version.get("id") if isinstance(version, dict) else version.id
+    http_request.app.state.auth.audit("dataset_deduplication_save", principal.user_id, resource_id)
+    return ApiResponse(success=True, data=version, message="Merged dataset version saved")
 
 
 @router.post("/problems/governance/versions", status_code=201)

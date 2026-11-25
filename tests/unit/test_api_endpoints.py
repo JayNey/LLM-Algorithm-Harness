@@ -153,6 +153,30 @@ def case(method, path, target=None, args=(), **kwargs):
 CASES = [
     case(
         "POST",
+        "/problems/governance/deduplication/preview",
+        "deduplication_preview",
+        (ANY, OWNER, ANY),
+        body={"threshold": 0.9},
+        result=({"preview_token": "a" * 64 + "." + "b" * 64, "groups": []}, []),
+        expected={"preview_token": "a" * 64 + "." + "b" * 64, "groups": []},
+    ),
+    case(
+        "POST",
+        "/problems/governance/deduplication/versions",
+        "deduplication_save",
+        (ANY, OWNER, ANY),
+        body={
+            "threshold": 0.9,
+            "preview_token": "a" * 64 + "." + "b" * 64,
+            "name": "Reviewed",
+            "groups": [{"group_id": "group", "primary_id": "p1"}],
+        },
+        result=DATASET_VERSION,
+        expected=DATASET_VERSION,
+        status=201,
+    ),
+    case(
+        "POST",
         "/problems/governance/preview",
         "governance_preview",
         (ANY, ANY, OWNER, ANY),
@@ -184,7 +208,7 @@ CASES = [
         "files.store.dataset_version",
         (OWNER, "version-1"),
         result=(DATASET_VERSION["name"], [VERSION_PROBLEM]),
-        expected={**DATASET_VERSION, "problems": [VERSION_PROBLEM]},
+        expected={**DATASET_VERSION, "problems": [{**VERSION_PROBLEM, "merged_from": []}]},
     ),
     case(
         "POST",
@@ -1181,6 +1205,14 @@ def api(monkeypatch, tmp_path, unit_app):
         "api.routes.evaluation_results.preview_governance", state.governance_preview
     )
     monkeypatch.setattr("api.routes.evaluation_results.save_governance", state.governance_save)
+    state.deduplication_preview = Mock()
+    state.deduplication_save = Mock()
+    monkeypatch.setattr(
+        "api.routes.evaluation_results.preview_deduplication", state.deduplication_preview
+    )
+    monkeypatch.setattr(
+        "api.routes.evaluation_results.save_deduplication", state.deduplication_save
+    )
 
     def unexpected_external_call(*args, **kwargs):
         raise AssertionError("Route unit test attempted an external dependency")

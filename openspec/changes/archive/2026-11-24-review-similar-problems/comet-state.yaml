@@ -1,0 +1,2183 @@
+# comet-execution: managed-run
+change_id: ffc5d05e-f2e3-4e2b-a71d-b0b82e59c771
+workflow: tweak
+language: zh-CN
+phase: archive
+context_compression: off
+build_mode: direct
+build_pause: null
+subagent_dispatch: null
+tdd_mode: direct
+review_mode: off
+isolation: current
+verify_mode: light
+auto_transition: true
+base_ref: 5bf999c5be826f3d25fe655a7a77225ed8accf34
+design_doc: null
+plan: null
+verify_result: pass
+verify_failures: 0
+verification_report: docs/superpowers/reports/2026-11-24-review-similar-problems-verify.md
+branch_status: pending
+created_at: 2026-11-24
+verified_at: 2026-11-24
+archive_confirmation: confirmed
+archived: true
+bound_branch: codex/review-similar-problems
+run_checkpoint:
+  schema: comet.workflow-run-checkpoint.v1
+  hash: f792266812d8720401753ec3eb6232eab105181f1212220e3db5f2bbec5b3d47
+  run:
+    protocolVersion: 1
+    schemaVersion: 1
+    runId: review-similar-problems
+    revision: 1
+    workflow:
+      id: comet-classic-tweak
+      version: "2"
+      hash: d1e067bc00ca13395dbc6f701565417c3e227f17a57df025dd73ebda905e2638
+    definitionHashes:
+      '["comet-classic-tweak","2"]': d1e067bc00ca13395dbc6f701565417c3e227f17a57df025dd73ebda905e2638
+    initialStateHash: 26082b2e223bb45a3f9511b6900c5f5bfb5a10eb831010c7ca46dc6a1690b03b
+    input:
+      change: review-similar-problems
+      changeDir: openspec/changes/review-similar-problems
+      workspaceBaseline:
+        ref: 029ec0fc-f525-4596-a07b-aeef5c4ed851
+    state:
+      archiveConfirmation: confirmed
+      archived: true
+      autoTransition: true
+      baseRef: 5bf999c5be826f3d25fe655a7a77225ed8accf34
+      boundBranch: codex/review-similar-problems
+      branchStatus: pending
+      buildMode: direct
+      buildPause: null
+      checkEpoch: 6
+      classicMigration: null
+      classicProfile: null
+      contextCompression: off
+      createdAt: 2026-11-24
+      designDoc: null
+      directOverride: null
+      handoffContext: null
+      handoffHash: null
+      isolation: current
+      language: zh-CN
+      phase: archive
+      plan: null
+      reviewMode: off
+      subagentDispatch: null
+      tddMode: direct
+      verificationReport: docs/superpowers/reports/2026-11-24-review-similar-problems-verify.md
+      verifiedAt: 2026-11-24
+      verifyFailures: 0
+      verifyMode: light
+      verifyResult: pass
+      workflow: tweak
+    status: running
+    sequence: 16
+    actions:
+      - attempt: 1
+        claim:
+          executorId: comet-classic-guard
+          token: portable-9f7b72cfa7bbe5991e7e7afecf14e0e46a57bec7f48557216a1e964ddf89cf2c
+        executionOrigin:
+          workflow:
+            hash: 518d3e8e12eb39899775cb7d2ddcc7ddeba10cb1f1d43cff7b03f2ca61a70c65
+            id: comet-classic-tweak
+            version: "2"
+        id: review-similar-problems:1
+        input:
+          input:
+            change: review-similar-problems
+            changeDir: openspec/changes/review-similar-problems
+            workspaceBaseline:
+              ref: 029ec0fc-f525-4596-a07b-aeef5c4ed851
+          outputs: {}
+        inputHash: 98a722acbef8c22bdc6603b01ccfb4a3e2bcc4a817595f9385375328c5df8877
+        outcome:
+          actionId: review-similar-problems:1
+          attempt: 1
+          claimToken: portable-9f7b72cfa7bbe5991e7e7afecf14e0e46a57bec7f48557216a1e964ddf89cf2c
+          inputHash: 98a722acbef8c22bdc6603b01ccfb4a3e2bcc4a817595f9385375328c5df8877
+          outcomeId: 1c9a2616-6287-4cdb-a7a1-cd6d8a50275c
+          output:
+            event: open-complete
+            requirementsEvidence:
+              ref: openspec/changes/review-similar-problems
+          status: succeeded
+        protocolVersion: 1
+        receipts:
+          - hash: 67749509ad205b24613a3022a6cfa84b52b10bd778b0d1b6808467fed28f7565
+            outcomeId: 1c9a2616-6287-4cdb-a7a1-cd6d8a50275c
+        reconciliations: []
+        ref: comet-tweak
+        requiredCapabilities: []
+        retry: manual
+        runId: review-similar-problems
+        status: succeeded
+        stepId: tweak.open
+        type: invoke_skill
+      - attempt: 1
+        claim:
+          executorId: comet-classic-state
+          token: portable-e757d67b201184d6c8b93be172054832df6a09c3638739d40b2bdf480a670e45
+        executionOrigin:
+          workflow:
+            hash: 518d3e8e12eb39899775cb7d2ddcc7ddeba10cb1f1d43cff7b03f2ca61a70c65
+            id: comet-classic-tweak
+            version: "2"
+        id: review-similar-problems:3
+        input:
+          input:
+            change: review-similar-problems
+            changeDir: openspec/changes/review-similar-problems
+            workspaceBaseline:
+              ref: 029ec0fc-f525-4596-a07b-aeef5c4ed851
+          outputs:
+            tweak.open:
+              event: open-complete
+              requirementsEvidence:
+                ref: openspec/changes/review-similar-problems
+            tweak.open.evidence:
+              contentHash: 98a722acbef8c22bdc6603b01ccfb4a3e2bcc4a817595f9385375328c5df8877
+              ref: openspec/changes/review-similar-problems
+        inputHash: b6b815d2e488049ea8b5cb5e8941f9aec0e01e126babaf97f91a42ab2da404b3
+        outcome:
+          actionId: review-similar-problems:3
+          attempt: 1
+          claimToken: portable-e757d67b201184d6c8b93be172054832df6a09c3638739d40b2bdf480a670e45
+          inputHash: b6b815d2e488049ea8b5cb5e8941f9aec0e01e126babaf97f91a42ab2da404b3
+          outcomeId: ce544622-21df-47a5-9524-f589de8eb995
+          output:
+            event: escalation-requested
+            proposal: "Issue #474 新增治理预览/保存 API，预估 10–14 个实现、测试和文档文件；用户已明确批准本方案并允许按此范围继续
+              tweak，无跨层架构重构。"
+            requirementsEvidence:
+              contentHash: b6b815d2e488049ea8b5cb5e8941f9aec0e01e126babaf97f91a42ab2da404b3
+              ref: openspec/changes/review-similar-problems
+          status: succeeded
+        protocolVersion: 1
+        receipts:
+          - hash: ffdf0e305a0f295f04007c32328ebdb316099460b5bc512b6606e960b3d7c657
+            outcomeId: ce544622-21df-47a5-9524-f589de8eb995
+        reconciliations: []
+        ref: comet-build
+        requiredCapabilities: []
+        retry: manual
+        runId: review-similar-problems
+        status: succeeded
+        stepId: tweak.build.execute
+        type: invoke_skill
+      - attempt: 1
+        claim:
+          executorId: comet-classic-state
+          sessionId: codex-474-root
+          token: portable-a45a2fa66b25680343a517fa660b8ef237328b78a298cce4685ae5768547ee29
+        executionOrigin:
+          workflow:
+            hash: 518d3e8e12eb39899775cb7d2ddcc7ddeba10cb1f1d43cff7b03f2ca61a70c65
+            id: comet-classic-tweak
+            version: "2"
+        id: review-similar-problems:5
+        input:
+          input:
+            change: review-similar-problems
+            changeDir: openspec/changes/review-similar-problems
+            workspaceBaseline:
+              ref: 029ec0fc-f525-4596-a07b-aeef5c4ed851
+          outputs:
+            tweak.build.escalation-confirm:
+              choice: continue
+              proposal:
+                input:
+                  change: review-similar-problems
+                  changeDir: openspec/changes/review-similar-problems
+                  workspaceBaseline:
+                    ref: 029ec0fc-f525-4596-a07b-aeef5c4ed851
+                outputs:
+                  tweak.build.execute:
+                    event: escalation-requested
+                    proposal: "Issue #474 新增治理预览/保存 API，预估 10–14 个实现、测试和文档文件；用户已明确批准本方案并允许按此范围继续
+                      tweak，无跨层架构重构。"
+                    requirementsEvidence:
+                      contentHash: b6b815d2e488049ea8b5cb5e8941f9aec0e01e126babaf97f91a42ab2da404b3
+                      ref: openspec/changes/review-similar-problems
+            tweak.build.execute:
+              event: escalation-requested
+              proposal: "Issue #474 新增治理预览/保存 API，预估 10–14 个实现、测试和文档文件；用户已明确批准本方案并允许按此范围继续
+                tweak，无跨层架构重构。"
+              requirementsEvidence:
+                contentHash: b6b815d2e488049ea8b5cb5e8941f9aec0e01e126babaf97f91a42ab2da404b3
+                ref: openspec/changes/review-similar-problems
+            tweak.open:
+              event: open-complete
+              requirementsEvidence:
+                ref: openspec/changes/review-similar-problems
+            tweak.open.evidence:
+              contentHash: 98a722acbef8c22bdc6603b01ccfb4a3e2bcc4a817595f9385375328c5df8877
+              ref: openspec/changes/review-similar-problems
+        inputHash: 33a7627ad628800bc42f5424bb32da3a4ab8e471d74576ddc6c7e7fbbea3ad59
+        outcome:
+          actionId: review-similar-problems:5
+          attempt: 1
+          claimToken: portable-a45a2fa66b25680343a517fa660b8ef237328b78a298cce4685ae5768547ee29
+          inputHash: 33a7627ad628800bc42f5424bb32da3a4ab8e471d74576ddc6c7e7fbbea3ad59
+          outcomeId: 40e8a9b3-97e6-44e2-b731-a984798cfd37
+          output:
+            checks:
+              - name: Backend duplicate review, store and route contracts (987 tests)
+                note: /private/tmp/issue-474-final-targeted.log
+                result: passed
+              - name: Legacy governance, versions and dataset references (91 tests)
+                note: /private/tmp/issue-474-legacy-final.log
+                result: passed
+              - name: OpenAPI operation documentation and examples (25 tests)
+                note: /private/tmp/issue-474-doc-final.log
+                result: passed
+              - name: Frontend npm test (367 tests)
+                note: /private/tmp/issue-474-frontend-final.log
+                result: passed
+              - name: Frontend lint, prettier, TypeScript and production build
+                note: /private/tmp/issue-474-lint-final.log; /private/tmp/issue-474-format.log;
+                  /private/tmp/issue-474-build-final.log
+                result: passed
+              - name: Chrome browser review, mobile, stale, primary, skip, retry, session and
+                  duplicate click
+                note: /private/tmp/issue-474-browser-final.log
+                result: passed
+              - name: Previously blocked local-port regressions (4 tests, permitted local
+                  server)
+                note: /private/tmp/issue-474-port-tests.log
+                result: passed
+              - name: Python lint/format, git diff check and OpenSpec strict validation
+                note: Commands inspected directly; no errors.
+                result: passed
+            event: build-complete
+          status: succeeded
+        protocolVersion: 1
+        receipts:
+          - hash: 53c015021ce9818a1ac438df75c0c685019baa8be97c74617363afb2d73622be
+            outcomeId: 40e8a9b3-97e6-44e2-b731-a984798cfd37
+        reconciliations: []
+        ref: comet-build
+        requiredCapabilities: []
+        retry: manual
+        runId: review-similar-problems
+        status: succeeded
+        stepId: tweak.build.execute
+        type: invoke_skill
+      - attempt: 1
+        claim:
+          executorId: comet-classic-guard
+          token: portable-29f2b1ce2972a103a4fce3dc444f2ff5a2033eae087c7f71a643f8a59cc3ac0a
+        executionOrigin:
+          workflow:
+            hash: 518d3e8e12eb39899775cb7d2ddcc7ddeba10cb1f1d43cff7b03f2ca61a70c65
+            id: comet-classic-tweak
+            version: "2"
+        id: review-similar-problems:6
+        input:
+          input:
+            change: review-similar-problems
+            changeDir: openspec/changes/review-similar-problems
+            workspaceBaseline:
+              ref: 029ec0fc-f525-4596-a07b-aeef5c4ed851
+          outputs:
+            tweak.build.escalation-confirm:
+              choice: continue
+              proposal:
+                input:
+                  change: review-similar-problems
+                  changeDir: openspec/changes/review-similar-problems
+                  workspaceBaseline:
+                    ref: 029ec0fc-f525-4596-a07b-aeef5c4ed851
+                outputs:
+                  tweak.build.execute:
+                    event: escalation-requested
+                    proposal: "Issue #474 新增治理预览/保存 API，预估 10–14 个实现、测试和文档文件；用户已明确批准本方案并允许按此范围继续
+                      tweak，无跨层架构重构。"
+                    requirementsEvidence:
+                      contentHash: b6b815d2e488049ea8b5cb5e8941f9aec0e01e126babaf97f91a42ab2da404b3
+                      ref: openspec/changes/review-similar-problems
+            tweak.build.execute:
+              checks:
+                - name: Backend duplicate review, store and route contracts (987 tests)
+                  note: /private/tmp/issue-474-final-targeted.log
+                  result: passed
+                - name: Legacy governance, versions and dataset references (91 tests)
+                  note: /private/tmp/issue-474-legacy-final.log
+                  result: passed
+                - name: OpenAPI operation documentation and examples (25 tests)
+                  note: /private/tmp/issue-474-doc-final.log
+                  result: passed
+                - name: Frontend npm test (367 tests)
+                  note: /private/tmp/issue-474-frontend-final.log
+                  result: passed
+                - name: Frontend lint, prettier, TypeScript and production build
+                  note: /private/tmp/issue-474-lint-final.log; /private/tmp/issue-474-format.log;
+                    /private/tmp/issue-474-build-final.log
+                  result: passed
+                - name: Chrome browser review, mobile, stale, primary, skip, retry, session and
+                    duplicate click
+                  note: /private/tmp/issue-474-browser-final.log
+                  result: passed
+                - name: Previously blocked local-port regressions (4 tests, permitted local
+                    server)
+                  note: /private/tmp/issue-474-port-tests.log
+                  result: passed
+                - name: Python lint/format, git diff check and OpenSpec strict validation
+                  note: Commands inspected directly; no errors.
+                  result: passed
+              event: build-complete
+            tweak.open:
+              event: open-complete
+              requirementsEvidence:
+                ref: openspec/changes/review-similar-problems
+            tweak.open.evidence:
+              contentHash: 98a722acbef8c22bdc6603b01ccfb4a3e2bcc4a817595f9385375328c5df8877
+              ref: openspec/changes/review-similar-problems
+        inputHash: d6e07350236b8c76db2796a9bef9addae40509a9adcfc510c048ceb184371aa2
+        outcome:
+          actionId: review-similar-problems:6
+          attempt: 1
+          claimToken: portable-29f2b1ce2972a103a4fce3dc444f2ff5a2033eae087c7f71a643f8a59cc3ac0a
+          inputHash: d6e07350236b8c76db2796a9bef9addae40509a9adcfc510c048ceb184371aa2
+          outcomeId: 88e2cfaf-520e-4d65-be23-d9ebcc0a7d18
+          output:
+            checks:
+              - name: Backend duplicate review, store and route contracts (987 tests)
+                note: /private/tmp/issue-474-final-targeted.log
+                result: passed
+              - name: Legacy governance, versions and dataset references (91 tests)
+                note: /private/tmp/issue-474-legacy-final.log
+                result: passed
+              - name: OpenAPI operation documentation and examples (25 tests)
+                note: /private/tmp/issue-474-doc-final.log
+                result: passed
+              - name: Frontend npm test (367 tests)
+                note: /private/tmp/issue-474-frontend-final.log
+                result: passed
+              - name: Frontend lint, prettier, TypeScript and production build
+                note: /private/tmp/issue-474-lint-final.log; /private/tmp/issue-474-format.log;
+                  /private/tmp/issue-474-build-final.log
+                result: passed
+              - name: Chrome browser review, mobile, stale, primary, skip, retry, session and
+                  duplicate click
+                note: /private/tmp/issue-474-browser-final.log
+                result: passed
+              - name: Previously blocked local-port regressions (4 tests, permitted local
+                  server)
+                note: /private/tmp/issue-474-port-tests.log
+                result: passed
+              - name: Python lint/format, git diff check and OpenSpec strict validation
+                note: Commands inspected directly; no errors.
+                result: passed
+            event: verification-ready
+            verificationReport: docs/superpowers/reports/2026-11-24-review-similar-problems-verify.md
+          status: succeeded
+        protocolVersion: 1
+        receipts:
+          - hash: c1f8c991a41c022dc7bcbc52c50e5923fe786ed86bdc7d991aa50a7f464e879d
+            outcomeId: 88e2cfaf-520e-4d65-be23-d9ebcc0a7d18
+        reconciliations: []
+        ref: comet-verify
+        requiredCapabilities: []
+        retry: manual
+        runId: review-similar-problems
+        status: succeeded
+        stepId: tweak.verify.run
+        type: invoke_skill
+      - attempt: 1
+        claim:
+          executorId: comet-classic-state
+          token: portable-bfa3b6481aace8c62ad15fb00a058e66063f5b8e8e3db5b7889cb236b9120864
+        executionOrigin:
+          workflow:
+            hash: 518d3e8e12eb39899775cb7d2ddcc7ddeba10cb1f1d43cff7b03f2ca61a70c65
+            id: comet-classic-tweak
+            version: "2"
+        id: review-similar-problems:8
+        input:
+          input:
+            change: review-similar-problems
+            changeDir: openspec/changes/review-similar-problems
+            workspaceBaseline:
+              ref: 029ec0fc-f525-4596-a07b-aeef5c4ed851
+          outputs:
+            tweak.build.escalation-confirm:
+              choice: continue
+              proposal:
+                input:
+                  change: review-similar-problems
+                  changeDir: openspec/changes/review-similar-problems
+                  workspaceBaseline:
+                    ref: 029ec0fc-f525-4596-a07b-aeef5c4ed851
+                outputs:
+                  tweak.build.execute:
+                    event: escalation-requested
+                    proposal: "Issue #474 新增治理预览/保存 API，预估 10–14 个实现、测试和文档文件；用户已明确批准本方案并允许按此范围继续
+                      tweak，无跨层架构重构。"
+                    requirementsEvidence:
+                      contentHash: b6b815d2e488049ea8b5cb5e8941f9aec0e01e126babaf97f91a42ab2da404b3
+                      ref: openspec/changes/review-similar-problems
+            tweak.build.execute:
+              checks:
+                - name: Backend duplicate review, store and route contracts (987 tests)
+                  note: /private/tmp/issue-474-final-targeted.log
+                  result: passed
+                - name: Legacy governance, versions and dataset references (91 tests)
+                  note: /private/tmp/issue-474-legacy-final.log
+                  result: passed
+                - name: OpenAPI operation documentation and examples (25 tests)
+                  note: /private/tmp/issue-474-doc-final.log
+                  result: passed
+                - name: Frontend npm test (367 tests)
+                  note: /private/tmp/issue-474-frontend-final.log
+                  result: passed
+                - name: Frontend lint, prettier, TypeScript and production build
+                  note: /private/tmp/issue-474-lint-final.log; /private/tmp/issue-474-format.log;
+                    /private/tmp/issue-474-build-final.log
+                  result: passed
+                - name: Chrome browser review, mobile, stale, primary, skip, retry, session and
+                    duplicate click
+                  note: /private/tmp/issue-474-browser-final.log
+                  result: passed
+                - name: Previously blocked local-port regressions (4 tests, permitted local
+                    server)
+                  note: /private/tmp/issue-474-port-tests.log
+                  result: passed
+                - name: Python lint/format, git diff check and OpenSpec strict validation
+                  note: Commands inspected directly; no errors.
+                  result: passed
+              event: build-complete
+            tweak.open:
+              event: open-complete
+              requirementsEvidence:
+                ref: openspec/changes/review-similar-problems
+            tweak.open.evidence:
+              contentHash: 98a722acbef8c22bdc6603b01ccfb4a3e2bcc4a817595f9385375328c5df8877
+              ref: openspec/changes/review-similar-problems
+            tweak.verify.report.evidence:
+              contentHash: d6e07350236b8c76db2796a9bef9addae40509a9adcfc510c048ceb184371aa2
+              ref: docs/superpowers/reports/2026-11-24-review-similar-problems-verify.md
+            tweak.verify.run:
+              checks:
+                - name: Backend duplicate review, store and route contracts (987 tests)
+                  note: /private/tmp/issue-474-final-targeted.log
+                  result: passed
+                - name: Legacy governance, versions and dataset references (91 tests)
+                  note: /private/tmp/issue-474-legacy-final.log
+                  result: passed
+                - name: OpenAPI operation documentation and examples (25 tests)
+                  note: /private/tmp/issue-474-doc-final.log
+                  result: passed
+                - name: Frontend npm test (367 tests)
+                  note: /private/tmp/issue-474-frontend-final.log
+                  result: passed
+                - name: Frontend lint, prettier, TypeScript and production build
+                  note: /private/tmp/issue-474-lint-final.log; /private/tmp/issue-474-format.log;
+                    /private/tmp/issue-474-build-final.log
+                  result: passed
+                - name: Chrome browser review, mobile, stale, primary, skip, retry, session and
+                    duplicate click
+                  note: /private/tmp/issue-474-browser-final.log
+                  result: passed
+                - name: Previously blocked local-port regressions (4 tests, permitted local
+                    server)
+                  note: /private/tmp/issue-474-port-tests.log
+                  result: passed
+                - name: Python lint/format, git diff check and OpenSpec strict validation
+                  note: Commands inspected directly; no errors.
+                  result: passed
+              event: verification-ready
+              verificationReport: docs/superpowers/reports/2026-11-24-review-similar-problems-verify.md
+        inputHash: fda0c66076b9c05e04e05f44fbdca755c6f87d5f9ea547ccd54c224aea979ed1
+        outcome:
+          actionId: review-similar-problems:8
+          attempt: 1
+          claimToken: portable-bfa3b6481aace8c62ad15fb00a058e66063f5b8e8e3db5b7889cb236b9120864
+          inputHash: fda0c66076b9c05e04e05f44fbdca755c6f87d5f9ea547ccd54c224aea979ed1
+          outcomeId: 352a7429-ac51-401e-81b1-005b73598836
+          output:
+            prBaseBranch: main
+            remote: origin
+            summary: "Issue #474：Verify 已通过，18 个交付文件及验证报告；归档将同步 problem-deduplication 与
+              frontend/problems-management 两份主规格并封存本 change。当前绑定 main；local 在
+              main 仅归档提交，push 另推送 origin/main；若选择 PR，将创建并绑定
+              codex/review-similar-problems，推送 origin 同名分支并向 main 创建
+              PR。也可重新验证或稍后交付。全仓测试已中断且未声明全仓覆盖率，相关 1103 后端与 367
+              前端测试、浏览器、构建通过，四项端口错误已许可后复验通过。"
+            targetBranch: main
+          status: succeeded
+        protocolVersion: 1
+        receipts:
+          - hash: 19a7059d3dde37ce807fbaa7dde8e8fa02cc64b7146dd19fa7591e5c3c2c4273
+            outcomeId: 352a7429-ac51-401e-81b1-005b73598836
+        reconciliations: []
+        ref: comet-archive
+        requiredCapabilities: []
+        retry: manual
+        runId: review-similar-problems
+        status: succeeded
+        stepId: tweak.archive.prepare
+        type: invoke_skill
+      - attempt: 1
+        claim:
+          executorId: comet-classic-guard
+          token: portable-84442abc01a9472281c424a7356487fdd0c15f1bd417b2047b5c0b856f32ba94
+        executionOrigin:
+          workflow:
+            hash: d1e067bc00ca13395dbc6f701565417c3e227f17a57df025dd73ebda905e2638
+            id: comet-classic-tweak
+            version: "2"
+        id: review-similar-problems:10
+        input:
+          activation:
+            expectedRevision: 15
+            fromPhase: archive
+          input:
+            change: review-similar-problems
+            changeDir: openspec/changes/review-similar-problems
+            workspaceBaseline:
+              ref: 029ec0fc-f525-4596-a07b-aeef5c4ed851
+          outputs: {}
+        inputHash: b81fc2de51f129a05d6ecdce8c563ac6c5f19d9dce342d5088196e5c9b15e8f7
+        outcome:
+          actionId: review-similar-problems:10
+          attempt: 1
+          claimToken: portable-84442abc01a9472281c424a7356487fdd0c15f1bd417b2047b5c0b856f32ba94
+          inputHash: b81fc2de51f129a05d6ecdce8c563ac6c5f19d9dce342d5088196e5c9b15e8f7
+          outcomeId: 0aab562c-8b82-4fb8-aff9-869a06fd4533
+          output:
+            checks:
+              - name: Backend duplicate review, store and route contracts (987 tests)
+                note: /private/tmp/issue-474-final-targeted.log
+                result: passed
+              - name: Legacy governance, versions and dataset references (91 tests)
+                note: /private/tmp/issue-474-legacy-final.log
+                result: passed
+              - name: OpenAPI operation documentation and examples (25 tests)
+                note: /private/tmp/issue-474-doc-final.log
+                result: passed
+              - name: Frontend npm test (367 tests)
+                note: /private/tmp/issue-474-frontend-final.log
+                result: passed
+              - name: Frontend lint, prettier, TypeScript and production build
+                note: /private/tmp/issue-474-lint-final.log; /private/tmp/issue-474-format.log;
+                  /private/tmp/issue-474-build-final.log
+                result: passed
+              - name: Chrome browser review, mobile, stale, primary, skip, retry, session and
+                  duplicate click
+                note: /private/tmp/issue-474-browser-final.log
+                result: passed
+              - name: Previously blocked local-port regressions (4 tests, permitted local
+                  server)
+                note: /private/tmp/issue-474-port-tests.log
+                result: passed
+              - name: Python lint/format, git diff check and OpenSpec strict validation
+                note: Commands inspected directly; no errors.
+                result: passed
+            event: verification-ready
+            verificationReport: docs/superpowers/reports/2026-11-24-review-similar-problems-verify.md
+          status: succeeded
+        protocolVersion: 1
+        receipts:
+          - hash: d7be8df1b2f6b1686b523c1ac58f9d95c64f159e5fa3076393ba437dec695620
+            outcomeId: 0aab562c-8b82-4fb8-aff9-869a06fd4533
+        reconciliations: []
+        ref: comet-verify
+        requiredCapabilities: []
+        retry: manual
+        runId: review-similar-problems
+        status: succeeded
+        stepId: tweak.verify.run
+        type: invoke_skill
+      - attempt: 1
+        claim:
+          executorId: comet-classic-state
+          token: portable-8d35bbb0a7b83fc3a0dffe4b7dc819a55312858b58be0a1191d693731c2cc775
+        executionOrigin:
+          workflow:
+            hash: d1e067bc00ca13395dbc6f701565417c3e227f17a57df025dd73ebda905e2638
+            id: comet-classic-tweak
+            version: "2"
+        id: review-similar-problems:12
+        input:
+          input:
+            change: review-similar-problems
+            changeDir: openspec/changes/review-similar-problems
+            workspaceBaseline:
+              ref: 029ec0fc-f525-4596-a07b-aeef5c4ed851
+          outputs:
+            tweak.verify.report.evidence:
+              contentHash: b81fc2de51f129a05d6ecdce8c563ac6c5f19d9dce342d5088196e5c9b15e8f7
+              ref: docs/superpowers/reports/2026-11-24-review-similar-problems-verify.md
+            tweak.verify.run:
+              checks:
+                - name: Backend duplicate review, store and route contracts (987 tests)
+                  note: /private/tmp/issue-474-final-targeted.log
+                  result: passed
+                - name: Legacy governance, versions and dataset references (91 tests)
+                  note: /private/tmp/issue-474-legacy-final.log
+                  result: passed
+                - name: OpenAPI operation documentation and examples (25 tests)
+                  note: /private/tmp/issue-474-doc-final.log
+                  result: passed
+                - name: Frontend npm test (367 tests)
+                  note: /private/tmp/issue-474-frontend-final.log
+                  result: passed
+                - name: Frontend lint, prettier, TypeScript and production build
+                  note: /private/tmp/issue-474-lint-final.log; /private/tmp/issue-474-format.log;
+                    /private/tmp/issue-474-build-final.log
+                  result: passed
+                - name: Chrome browser review, mobile, stale, primary, skip, retry, session and
+                    duplicate click
+                  note: /private/tmp/issue-474-browser-final.log
+                  result: passed
+                - name: Previously blocked local-port regressions (4 tests, permitted local
+                    server)
+                  note: /private/tmp/issue-474-port-tests.log
+                  result: passed
+                - name: Python lint/format, git diff check and OpenSpec strict validation
+                  note: Commands inspected directly; no errors.
+                  result: passed
+              event: verification-ready
+              verificationReport: docs/superpowers/reports/2026-11-24-review-similar-problems-verify.md
+        inputHash: c3decf18d4e0387541c2c06a8b1049f0566c65ffcaa147bddc5b94e8525d0cd9
+        outcome:
+          actionId: review-similar-problems:12
+          attempt: 1
+          claimToken: portable-8d35bbb0a7b83fc3a0dffe4b7dc819a55312858b58be0a1191d693731c2cc775
+          inputHash: c3decf18d4e0387541c2c06a8b1049f0566c65ffcaa147bddc5b94e8525d0cd9
+          outcomeId: 78d93f76-7bd8-4e72-a426-d5efae7770e5
+          output:
+            prBaseBranch: main
+            remote: origin
+            summary: 用户选择方案 3，已授权：在 codex/review-similar-problems 归档提交本次已验证改动，同步
+              problem-deduplication 与 frontend/problems-management 主规格，推送 origin
+              同名分支并创建面向 main 的 PR。代码与原验证输入未变，已刷新新分支 Verify 收据。相关后端 1103、前端 367
+              项及浏览器和构建通过；全仓测试未完整完成，已发现的问题均已修复或复验通过。
+            targetBranch: codex/review-similar-problems
+          status: succeeded
+        protocolVersion: 1
+        receipts:
+          - hash: 084884ce71f577d8c26ba68d3e1949bdf4c5964529da1bbb84ba2bdc1033eceb
+            outcomeId: 78d93f76-7bd8-4e72-a426-d5efae7770e5
+        reconciliations: []
+        ref: comet-archive
+        requiredCapabilities: []
+        retry: manual
+        runId: review-similar-problems
+        status: succeeded
+        stepId: tweak.archive.prepare
+        type: invoke_skill
+      - attempt: 1
+        claim:
+          executorId: comet-classic-archive-preflight
+          token: portable-89bef1e354e295ca97ccfc0e7f19399d8eeb62f366ed1d65825b4750632deb70
+        executionOrigin:
+          workflow:
+            hash: d1e067bc00ca13395dbc6f701565417c3e227f17a57df025dd73ebda905e2638
+            id: comet-classic-tweak
+            version: "2"
+        id: review-similar-problems:14
+        input:
+          input:
+            change: review-similar-problems
+            changeDir: openspec/changes/review-similar-problems
+            workspaceBaseline:
+              ref: 029ec0fc-f525-4596-a07b-aeef5c4ed851
+          outputs:
+            tweak.archive.confirm:
+              choice: pr
+              proposal:
+                input:
+                  change: review-similar-problems
+                  changeDir: openspec/changes/review-similar-problems
+                  workspaceBaseline:
+                    ref: 029ec0fc-f525-4596-a07b-aeef5c4ed851
+                outputs:
+                  tweak.archive.prepare:
+                    prBaseBranch: main
+                    remote: origin
+                    summary: 用户选择方案 3，已授权：在 codex/review-similar-problems 归档提交本次已验证改动，同步
+                      problem-deduplication 与 frontend/problems-management
+                      主规格，推送 origin 同名分支并创建面向 main 的 PR。代码与原验证输入未变，已刷新新分支 Verify
+                      收据。相关后端 1103、前端 367 项及浏览器和构建通过；全仓测试未完整完成，已发现的问题均已修复或复验通过。
+                    targetBranch: codex/review-similar-problems
+            tweak.archive.prepare:
+              prBaseBranch: main
+              remote: origin
+              summary: 用户选择方案 3，已授权：在 codex/review-similar-problems 归档提交本次已验证改动，同步
+                problem-deduplication 与 frontend/problems-management 主规格，推送
+                origin 同名分支并创建面向 main 的 PR。代码与原验证输入未变，已刷新新分支 Verify 收据。相关后端
+                1103、前端 367 项及浏览器和构建通过；全仓测试未完整完成，已发现的问题均已修复或复验通过。
+              targetBranch: codex/review-similar-problems
+            tweak.verify.report.evidence:
+              contentHash: b81fc2de51f129a05d6ecdce8c563ac6c5f19d9dce342d5088196e5c9b15e8f7
+              ref: docs/superpowers/reports/2026-11-24-review-similar-problems-verify.md
+            tweak.verify.run:
+              checks:
+                - name: Backend duplicate review, store and route contracts (987 tests)
+                  note: /private/tmp/issue-474-final-targeted.log
+                  result: passed
+                - name: Legacy governance, versions and dataset references (91 tests)
+                  note: /private/tmp/issue-474-legacy-final.log
+                  result: passed
+                - name: OpenAPI operation documentation and examples (25 tests)
+                  note: /private/tmp/issue-474-doc-final.log
+                  result: passed
+                - name: Frontend npm test (367 tests)
+                  note: /private/tmp/issue-474-frontend-final.log
+                  result: passed
+                - name: Frontend lint, prettier, TypeScript and production build
+                  note: /private/tmp/issue-474-lint-final.log; /private/tmp/issue-474-format.log;
+                    /private/tmp/issue-474-build-final.log
+                  result: passed
+                - name: Chrome browser review, mobile, stale, primary, skip, retry, session and
+                    duplicate click
+                  note: /private/tmp/issue-474-browser-final.log
+                  result: passed
+                - name: Previously blocked local-port regressions (4 tests, permitted local
+                    server)
+                  note: /private/tmp/issue-474-port-tests.log
+                  result: passed
+                - name: Python lint/format, git diff check and OpenSpec strict validation
+                  note: Commands inspected directly; no errors.
+                  result: passed
+              event: verification-ready
+              verificationReport: docs/superpowers/reports/2026-11-24-review-similar-problems-verify.md
+        inputHash: 3b40a5491a1929985731ba3eac4501f07010aaba95422fb0cc0cf0c7322c6582
+        outcome:
+          actionId: review-similar-problems:14
+          attempt: 1
+          claimToken: portable-89bef1e354e295ca97ccfc0e7f19399d8eeb62f366ed1d65825b4750632deb70
+          inputHash: 3b40a5491a1929985731ba3eac4501f07010aaba95422fb0cc0cf0c7322c6582
+          outcomeId: 68b40da0-05c5-40e2-a91b-ab26401fb27f
+          output:
+            baseCommit: 5bf999c5be826f3d25fe655a7a77225ed8accf34
+            deliveryAction: pr
+            deliveryPaths:
+              - api/documentation.py
+              - api/files/deduplication.py
+              - api/files/governance.py
+              - api/files/store.py
+              - api/routes/evaluation_results.py
+              - docs/api-files.md
+              - frontend/scripts/verify-deduplication.mjs
+              - frontend/src/i18n/en-US.ts
+              - frontend/src/i18n/zh-CN.ts
+              - frontend/src/pages/Problems/DeduplicationReview.tsx
+              - frontend/src/pages/Problems/GovernancePanel.tsx
+              - frontend/src/problems/client.test.ts
+              - frontend/src/problems/client.ts
+              - frontend/src/problems/types.ts
+              - src/problem_utils/utils/deduplication.py
+              - tests/test_deduplication.py
+              - tests/test_web_deduplication.py
+              - tests/unit/test_api_endpoints.py
+            prBaseBranch: main
+            remote: origin
+            remoteIdentity: 128eeb1e6f0d21b25601fcb7f9aad36adfdfb4d76f37f54f004760410190f351
+            targetBranch: codex/review-similar-problems
+            verifiedBranch: codex/review-similar-problems
+          status: succeeded
+        protocolVersion: 1
+        receipts:
+          - hash: c2b4ddcb76d611df416ff1a31aecdcc7e834d2ed8391583beb2cda01e5486b3c
+            outcomeId: 68b40da0-05c5-40e2-a91b-ab26401fb27f
+        reconciliations: []
+        ref: classic-archive-preflight
+        requiredCapabilities: []
+        retry: manual
+        runId: review-similar-problems
+        status: succeeded
+        stepId: tweak.archive.preflight
+        type: call_tool
+      - attempt: 1
+        claim:
+          executorId: comet-classic-archive
+          token: portable-383e4dd7f196bc1d235e891ea75ffdd119f610e33bc60a95dc57b5117d42e7c9
+        executionOrigin:
+          workflow:
+            hash: d1e067bc00ca13395dbc6f701565417c3e227f17a57df025dd73ebda905e2638
+            id: comet-classic-tweak
+            version: "2"
+        id: review-similar-problems:15
+        input:
+          input:
+            change: review-similar-problems
+            changeDir: openspec/changes/review-similar-problems
+            workspaceBaseline:
+              ref: 029ec0fc-f525-4596-a07b-aeef5c4ed851
+          outputs:
+            tweak.archive.confirm:
+              choice: pr
+              proposal:
+                input:
+                  change: review-similar-problems
+                  changeDir: openspec/changes/review-similar-problems
+                  workspaceBaseline:
+                    ref: 029ec0fc-f525-4596-a07b-aeef5c4ed851
+                outputs:
+                  tweak.archive.prepare:
+                    prBaseBranch: main
+                    remote: origin
+                    summary: 用户选择方案 3，已授权：在 codex/review-similar-problems 归档提交本次已验证改动，同步
+                      problem-deduplication 与 frontend/problems-management
+                      主规格，推送 origin 同名分支并创建面向 main 的 PR。代码与原验证输入未变，已刷新新分支 Verify
+                      收据。相关后端 1103、前端 367 项及浏览器和构建通过；全仓测试未完整完成，已发现的问题均已修复或复验通过。
+                    targetBranch: codex/review-similar-problems
+            tweak.archive.preflight:
+              baseCommit: 5bf999c5be826f3d25fe655a7a77225ed8accf34
+              deliveryAction: pr
+              deliveryPaths:
+                - api/documentation.py
+                - api/files/deduplication.py
+                - api/files/governance.py
+                - api/files/store.py
+                - api/routes/evaluation_results.py
+                - docs/api-files.md
+                - frontend/scripts/verify-deduplication.mjs
+                - frontend/src/i18n/en-US.ts
+                - frontend/src/i18n/zh-CN.ts
+                - frontend/src/pages/Problems/DeduplicationReview.tsx
+                - frontend/src/pages/Problems/GovernancePanel.tsx
+                - frontend/src/problems/client.test.ts
+                - frontend/src/problems/client.ts
+                - frontend/src/problems/types.ts
+                - src/problem_utils/utils/deduplication.py
+                - tests/test_deduplication.py
+                - tests/test_web_deduplication.py
+                - tests/unit/test_api_endpoints.py
+              prBaseBranch: main
+              remote: origin
+              remoteIdentity: 128eeb1e6f0d21b25601fcb7f9aad36adfdfb4d76f37f54f004760410190f351
+              targetBranch: codex/review-similar-problems
+              verifiedBranch: codex/review-similar-problems
+            tweak.archive.prepare:
+              prBaseBranch: main
+              remote: origin
+              summary: 用户选择方案 3，已授权：在 codex/review-similar-problems 归档提交本次已验证改动，同步
+                problem-deduplication 与 frontend/problems-management 主规格，推送
+                origin 同名分支并创建面向 main 的 PR。代码与原验证输入未变，已刷新新分支 Verify 收据。相关后端
+                1103、前端 367 项及浏览器和构建通过；全仓测试未完整完成，已发现的问题均已修复或复验通过。
+              targetBranch: codex/review-similar-problems
+            tweak.verify.report.evidence:
+              contentHash: b81fc2de51f129a05d6ecdce8c563ac6c5f19d9dce342d5088196e5c9b15e8f7
+              ref: docs/superpowers/reports/2026-11-24-review-similar-problems-verify.md
+            tweak.verify.run:
+              checks:
+                - name: Backend duplicate review, store and route contracts (987 tests)
+                  note: /private/tmp/issue-474-final-targeted.log
+                  result: passed
+                - name: Legacy governance, versions and dataset references (91 tests)
+                  note: /private/tmp/issue-474-legacy-final.log
+                  result: passed
+                - name: OpenAPI operation documentation and examples (25 tests)
+                  note: /private/tmp/issue-474-doc-final.log
+                  result: passed
+                - name: Frontend npm test (367 tests)
+                  note: /private/tmp/issue-474-frontend-final.log
+                  result: passed
+                - name: Frontend lint, prettier, TypeScript and production build
+                  note: /private/tmp/issue-474-lint-final.log; /private/tmp/issue-474-format.log;
+                    /private/tmp/issue-474-build-final.log
+                  result: passed
+                - name: Chrome browser review, mobile, stale, primary, skip, retry, session and
+                    duplicate click
+                  note: /private/tmp/issue-474-browser-final.log
+                  result: passed
+                - name: Previously blocked local-port regressions (4 tests, permitted local
+                    server)
+                  note: /private/tmp/issue-474-port-tests.log
+                  result: passed
+                - name: Python lint/format, git diff check and OpenSpec strict validation
+                  note: Commands inspected directly; no errors.
+                  result: passed
+              event: verification-ready
+              verificationReport: docs/superpowers/reports/2026-11-24-review-similar-problems-verify.md
+        inputHash: 6f476581f16b70e30c0b70ba517e385119d3ad94c16d7012e154e828e84e084e
+        outcome:
+          actionId: review-similar-problems:15
+          artifacts: []
+          attempt: 1
+          claimToken: portable-383e4dd7f196bc1d235e891ea75ffdd119f610e33bc60a95dc57b5117d42e7c9
+          inputHash: 6f476581f16b70e30c0b70ba517e385119d3ad94c16d7012e154e828e84e084e
+          outcomeId: 11223ea1-315c-4b37-a156-6f2c04f79526
+          output:
+            archiveDirectory: openspec/changes/archive/2026-11-24-review-similar-problems
+          status: succeeded
+        protocolVersion: 1
+        receipts:
+          - hash: 3b9b2b4f6327c1d8288867ccfbbfc1f7b386956377e5d75992ffa9e53fe89123
+            outcomeId: 11223ea1-315c-4b37-a156-6f2c04f79526
+        reconciliations: []
+        ref: classic-archive
+        requiredCapabilities: []
+        retry: manual
+        runId: review-similar-problems
+        status: succeeded
+        stepId: tweak.archive.execute
+        type: call_tool
+      - attempt: 1
+        id: review-similar-problems:16
+        input:
+          input:
+            change: review-similar-problems
+            changeDir: openspec/changes/review-similar-problems
+            workspaceBaseline:
+              ref: 029ec0fc-f525-4596-a07b-aeef5c4ed851
+          outputs:
+            tweak.archive.confirm:
+              choice: pr
+              proposal:
+                input:
+                  change: review-similar-problems
+                  changeDir: openspec/changes/review-similar-problems
+                  workspaceBaseline:
+                    ref: 029ec0fc-f525-4596-a07b-aeef5c4ed851
+                outputs:
+                  tweak.archive.prepare:
+                    prBaseBranch: main
+                    remote: origin
+                    summary: 用户选择方案 3，已授权：在 codex/review-similar-problems 归档提交本次已验证改动，同步
+                      problem-deduplication 与 frontend/problems-management
+                      主规格，推送 origin 同名分支并创建面向 main 的 PR。代码与原验证输入未变，已刷新新分支 Verify
+                      收据。相关后端 1103、前端 367 项及浏览器和构建通过；全仓测试未完整完成，已发现的问题均已修复或复验通过。
+                    targetBranch: codex/review-similar-problems
+            tweak.archive.execute:
+              archiveDirectory: openspec/changes/archive/2026-11-24-review-similar-problems
+            tweak.archive.preflight:
+              baseCommit: 5bf999c5be826f3d25fe655a7a77225ed8accf34
+              deliveryAction: pr
+              deliveryPaths:
+                - api/documentation.py
+                - api/files/deduplication.py
+                - api/files/governance.py
+                - api/files/store.py
+                - api/routes/evaluation_results.py
+                - docs/api-files.md
+                - frontend/scripts/verify-deduplication.mjs
+                - frontend/src/i18n/en-US.ts
+                - frontend/src/i18n/zh-CN.ts
+                - frontend/src/pages/Problems/DeduplicationReview.tsx
+                - frontend/src/pages/Problems/GovernancePanel.tsx
+                - frontend/src/problems/client.test.ts
+                - frontend/src/problems/client.ts
+                - frontend/src/problems/types.ts
+                - src/problem_utils/utils/deduplication.py
+                - tests/test_deduplication.py
+                - tests/test_web_deduplication.py
+                - tests/unit/test_api_endpoints.py
+              prBaseBranch: main
+              remote: origin
+              remoteIdentity: 128eeb1e6f0d21b25601fcb7f9aad36adfdfb4d76f37f54f004760410190f351
+              targetBranch: codex/review-similar-problems
+              verifiedBranch: codex/review-similar-problems
+            tweak.archive.prepare:
+              prBaseBranch: main
+              remote: origin
+              summary: 用户选择方案 3，已授权：在 codex/review-similar-problems 归档提交本次已验证改动，同步
+                problem-deduplication 与 frontend/problems-management 主规格，推送
+                origin 同名分支并创建面向 main 的 PR。代码与原验证输入未变，已刷新新分支 Verify 收据。相关后端
+                1103、前端 367 项及浏览器和构建通过；全仓测试未完整完成，已发现的问题均已修复或复验通过。
+              targetBranch: codex/review-similar-problems
+            tweak.verify.report.evidence:
+              contentHash: b81fc2de51f129a05d6ecdce8c563ac6c5f19d9dce342d5088196e5c9b15e8f7
+              ref: docs/superpowers/reports/2026-11-24-review-similar-problems-verify.md
+            tweak.verify.run:
+              checks:
+                - name: Backend duplicate review, store and route contracts (987 tests)
+                  note: /private/tmp/issue-474-final-targeted.log
+                  result: passed
+                - name: Legacy governance, versions and dataset references (91 tests)
+                  note: /private/tmp/issue-474-legacy-final.log
+                  result: passed
+                - name: OpenAPI operation documentation and examples (25 tests)
+                  note: /private/tmp/issue-474-doc-final.log
+                  result: passed
+                - name: Frontend npm test (367 tests)
+                  note: /private/tmp/issue-474-frontend-final.log
+                  result: passed
+                - name: Frontend lint, prettier, TypeScript and production build
+                  note: /private/tmp/issue-474-lint-final.log; /private/tmp/issue-474-format.log;
+                    /private/tmp/issue-474-build-final.log
+                  result: passed
+                - name: Chrome browser review, mobile, stale, primary, skip, retry, session and
+                    duplicate click
+                  note: /private/tmp/issue-474-browser-final.log
+                  result: passed
+                - name: Previously blocked local-port regressions (4 tests, permitted local
+                    server)
+                  note: /private/tmp/issue-474-port-tests.log
+                  result: passed
+                - name: Python lint/format, git diff check and OpenSpec strict validation
+                  note: Commands inspected directly; no errors.
+                  result: passed
+              event: verification-ready
+              verificationReport: docs/superpowers/reports/2026-11-24-review-similar-problems-verify.md
+        inputHash: ed408ddc428d6ad1adcec9f2df703ae55d3c1c276302a29854a7a67005722755
+        protocolVersion: 1
+        receipts: []
+        reconciliations: []
+        ref: comet-archive
+        requiredCapabilities: []
+        retry: manual
+        runId: review-similar-problems
+        status: pending
+        stepId: tweak.archive.deliver
+        type: invoke_skill
+    commands:
+      - id: 4c373b926dcd7fd3f3437fdffa72e4515e24fa0d94945d4a2e446b43ddf62eef
+        name: reopen-verification
+        inputHash: e21a092de095848216fb81a2b61305240ce08e6b013bc9954c9ad1aceae277a1
+        actionId: review-similar-problems:10
+    actionContexts:
+      review-similar-problems:1:
+        results: {}
+        sequence: 1
+      review-similar-problems:10:
+        results: {}
+        sequence: 10
+      review-similar-problems:12:
+        results:
+          tweak.verify.report.evidence:
+            sequence: 11
+            value:
+              contentHash: b81fc2de51f129a05d6ecdce8c563ac6c5f19d9dce342d5088196e5c9b15e8f7
+              ref: docs/superpowers/reports/2026-11-24-review-similar-problems-verify.md
+          tweak.verify.run:
+            sequence: 10
+            value:
+              checks:
+                - name: Backend duplicate review, store and route contracts (987 tests)
+                  note: /private/tmp/issue-474-final-targeted.log
+                  result: passed
+                - name: Legacy governance, versions and dataset references (91 tests)
+                  note: /private/tmp/issue-474-legacy-final.log
+                  result: passed
+                - name: OpenAPI operation documentation and examples (25 tests)
+                  note: /private/tmp/issue-474-doc-final.log
+                  result: passed
+                - name: Frontend npm test (367 tests)
+                  note: /private/tmp/issue-474-frontend-final.log
+                  result: passed
+                - name: Frontend lint, prettier, TypeScript and production build
+                  note: /private/tmp/issue-474-lint-final.log; /private/tmp/issue-474-format.log;
+                    /private/tmp/issue-474-build-final.log
+                  result: passed
+                - name: Chrome browser review, mobile, stale, primary, skip, retry, session and
+                    duplicate click
+                  note: /private/tmp/issue-474-browser-final.log
+                  result: passed
+                - name: Previously blocked local-port regressions (4 tests, permitted local
+                    server)
+                  note: /private/tmp/issue-474-port-tests.log
+                  result: passed
+                - name: Python lint/format, git diff check and OpenSpec strict validation
+                  note: Commands inspected directly; no errors.
+                  result: passed
+              event: verification-ready
+              verificationReport: docs/superpowers/reports/2026-11-24-review-similar-problems-verify.md
+        sequence: 12
+      review-similar-problems:14:
+        results:
+          tweak.archive.confirm:
+            sequence: 13
+            value:
+              choice: pr
+              proposal:
+                input:
+                  change: review-similar-problems
+                  changeDir: openspec/changes/review-similar-problems
+                  workspaceBaseline:
+                    ref: 029ec0fc-f525-4596-a07b-aeef5c4ed851
+                outputs:
+                  tweak.archive.prepare:
+                    prBaseBranch: main
+                    remote: origin
+                    summary: 用户选择方案 3，已授权：在 codex/review-similar-problems 归档提交本次已验证改动，同步
+                      problem-deduplication 与 frontend/problems-management
+                      主规格，推送 origin 同名分支并创建面向 main 的 PR。代码与原验证输入未变，已刷新新分支 Verify
+                      收据。相关后端 1103、前端 367 项及浏览器和构建通过；全仓测试未完整完成，已发现的问题均已修复或复验通过。
+                    targetBranch: codex/review-similar-problems
+          tweak.archive.prepare:
+            sequence: 12
+            value:
+              prBaseBranch: main
+              remote: origin
+              summary: 用户选择方案 3，已授权：在 codex/review-similar-problems 归档提交本次已验证改动，同步
+                problem-deduplication 与 frontend/problems-management 主规格，推送
+                origin 同名分支并创建面向 main 的 PR。代码与原验证输入未变，已刷新新分支 Verify 收据。相关后端
+                1103、前端 367 项及浏览器和构建通过；全仓测试未完整完成，已发现的问题均已修复或复验通过。
+              targetBranch: codex/review-similar-problems
+          tweak.verify.report.evidence:
+            sequence: 11
+            value:
+              contentHash: b81fc2de51f129a05d6ecdce8c563ac6c5f19d9dce342d5088196e5c9b15e8f7
+              ref: docs/superpowers/reports/2026-11-24-review-similar-problems-verify.md
+          tweak.verify.run:
+            sequence: 10
+            value:
+              checks:
+                - name: Backend duplicate review, store and route contracts (987 tests)
+                  note: /private/tmp/issue-474-final-targeted.log
+                  result: passed
+                - name: Legacy governance, versions and dataset references (91 tests)
+                  note: /private/tmp/issue-474-legacy-final.log
+                  result: passed
+                - name: OpenAPI operation documentation and examples (25 tests)
+                  note: /private/tmp/issue-474-doc-final.log
+                  result: passed
+                - name: Frontend npm test (367 tests)
+                  note: /private/tmp/issue-474-frontend-final.log
+                  result: passed
+                - name: Frontend lint, prettier, TypeScript and production build
+                  note: /private/tmp/issue-474-lint-final.log; /private/tmp/issue-474-format.log;
+                    /private/tmp/issue-474-build-final.log
+                  result: passed
+                - name: Chrome browser review, mobile, stale, primary, skip, retry, session and
+                    duplicate click
+                  note: /private/tmp/issue-474-browser-final.log
+                  result: passed
+                - name: Previously blocked local-port regressions (4 tests, permitted local
+                    server)
+                  note: /private/tmp/issue-474-port-tests.log
+                  result: passed
+                - name: Python lint/format, git diff check and OpenSpec strict validation
+                  note: Commands inspected directly; no errors.
+                  result: passed
+              event: verification-ready
+              verificationReport: docs/superpowers/reports/2026-11-24-review-similar-problems-verify.md
+        sequence: 14
+      review-similar-problems:15:
+        results:
+          tweak.archive.confirm:
+            sequence: 13
+            value:
+              choice: pr
+              proposal:
+                input:
+                  change: review-similar-problems
+                  changeDir: openspec/changes/review-similar-problems
+                  workspaceBaseline:
+                    ref: 029ec0fc-f525-4596-a07b-aeef5c4ed851
+                outputs:
+                  tweak.archive.prepare:
+                    prBaseBranch: main
+                    remote: origin
+                    summary: 用户选择方案 3，已授权：在 codex/review-similar-problems 归档提交本次已验证改动，同步
+                      problem-deduplication 与 frontend/problems-management
+                      主规格，推送 origin 同名分支并创建面向 main 的 PR。代码与原验证输入未变，已刷新新分支 Verify
+                      收据。相关后端 1103、前端 367 项及浏览器和构建通过；全仓测试未完整完成，已发现的问题均已修复或复验通过。
+                    targetBranch: codex/review-similar-problems
+          tweak.archive.preflight:
+            sequence: 14
+            value:
+              baseCommit: 5bf999c5be826f3d25fe655a7a77225ed8accf34
+              deliveryAction: pr
+              deliveryPaths:
+                - api/documentation.py
+                - api/files/deduplication.py
+                - api/files/governance.py
+                - api/files/store.py
+                - api/routes/evaluation_results.py
+                - docs/api-files.md
+                - frontend/scripts/verify-deduplication.mjs
+                - frontend/src/i18n/en-US.ts
+                - frontend/src/i18n/zh-CN.ts
+                - frontend/src/pages/Problems/DeduplicationReview.tsx
+                - frontend/src/pages/Problems/GovernancePanel.tsx
+                - frontend/src/problems/client.test.ts
+                - frontend/src/problems/client.ts
+                - frontend/src/problems/types.ts
+                - src/problem_utils/utils/deduplication.py
+                - tests/test_deduplication.py
+                - tests/test_web_deduplication.py
+                - tests/unit/test_api_endpoints.py
+              prBaseBranch: main
+              remote: origin
+              remoteIdentity: 128eeb1e6f0d21b25601fcb7f9aad36adfdfb4d76f37f54f004760410190f351
+              targetBranch: codex/review-similar-problems
+              verifiedBranch: codex/review-similar-problems
+          tweak.archive.prepare:
+            sequence: 12
+            value:
+              prBaseBranch: main
+              remote: origin
+              summary: 用户选择方案 3，已授权：在 codex/review-similar-problems 归档提交本次已验证改动，同步
+                problem-deduplication 与 frontend/problems-management 主规格，推送
+                origin 同名分支并创建面向 main 的 PR。代码与原验证输入未变，已刷新新分支 Verify 收据。相关后端
+                1103、前端 367 项及浏览器和构建通过；全仓测试未完整完成，已发现的问题均已修复或复验通过。
+              targetBranch: codex/review-similar-problems
+          tweak.verify.report.evidence:
+            sequence: 11
+            value:
+              contentHash: b81fc2de51f129a05d6ecdce8c563ac6c5f19d9dce342d5088196e5c9b15e8f7
+              ref: docs/superpowers/reports/2026-11-24-review-similar-problems-verify.md
+          tweak.verify.run:
+            sequence: 10
+            value:
+              checks:
+                - name: Backend duplicate review, store and route contracts (987 tests)
+                  note: /private/tmp/issue-474-final-targeted.log
+                  result: passed
+                - name: Legacy governance, versions and dataset references (91 tests)
+                  note: /private/tmp/issue-474-legacy-final.log
+                  result: passed
+                - name: OpenAPI operation documentation and examples (25 tests)
+                  note: /private/tmp/issue-474-doc-final.log
+                  result: passed
+                - name: Frontend npm test (367 tests)
+                  note: /private/tmp/issue-474-frontend-final.log
+                  result: passed
+                - name: Frontend lint, prettier, TypeScript and production build
+                  note: /private/tmp/issue-474-lint-final.log; /private/tmp/issue-474-format.log;
+                    /private/tmp/issue-474-build-final.log
+                  result: passed
+                - name: Chrome browser review, mobile, stale, primary, skip, retry, session and
+                    duplicate click
+                  note: /private/tmp/issue-474-browser-final.log
+                  result: passed
+                - name: Previously blocked local-port regressions (4 tests, permitted local
+                    server)
+                  note: /private/tmp/issue-474-port-tests.log
+                  result: passed
+                - name: Python lint/format, git diff check and OpenSpec strict validation
+                  note: Commands inspected directly; no errors.
+                  result: passed
+              event: verification-ready
+              verificationReport: docs/superpowers/reports/2026-11-24-review-similar-problems-verify.md
+        sequence: 15
+      review-similar-problems:16:
+        results:
+          tweak.archive.confirm:
+            sequence: 13
+            value:
+              choice: pr
+              proposal:
+                input:
+                  change: review-similar-problems
+                  changeDir: openspec/changes/review-similar-problems
+                  workspaceBaseline:
+                    ref: 029ec0fc-f525-4596-a07b-aeef5c4ed851
+                outputs:
+                  tweak.archive.prepare:
+                    prBaseBranch: main
+                    remote: origin
+                    summary: 用户选择方案 3，已授权：在 codex/review-similar-problems 归档提交本次已验证改动，同步
+                      problem-deduplication 与 frontend/problems-management
+                      主规格，推送 origin 同名分支并创建面向 main 的 PR。代码与原验证输入未变，已刷新新分支 Verify
+                      收据。相关后端 1103、前端 367 项及浏览器和构建通过；全仓测试未完整完成，已发现的问题均已修复或复验通过。
+                    targetBranch: codex/review-similar-problems
+          tweak.archive.execute:
+            sequence: 15
+            value:
+              archiveDirectory: openspec/changes/archive/2026-11-24-review-similar-problems
+          tweak.archive.preflight:
+            sequence: 14
+            value:
+              baseCommit: 5bf999c5be826f3d25fe655a7a77225ed8accf34
+              deliveryAction: pr
+              deliveryPaths:
+                - api/documentation.py
+                - api/files/deduplication.py
+                - api/files/governance.py
+                - api/files/store.py
+                - api/routes/evaluation_results.py
+                - docs/api-files.md
+                - frontend/scripts/verify-deduplication.mjs
+                - frontend/src/i18n/en-US.ts
+                - frontend/src/i18n/zh-CN.ts
+                - frontend/src/pages/Problems/DeduplicationReview.tsx
+                - frontend/src/pages/Problems/GovernancePanel.tsx
+                - frontend/src/problems/client.test.ts
+                - frontend/src/problems/client.ts
+                - frontend/src/problems/types.ts
+                - src/problem_utils/utils/deduplication.py
+                - tests/test_deduplication.py
+                - tests/test_web_deduplication.py
+                - tests/unit/test_api_endpoints.py
+              prBaseBranch: main
+              remote: origin
+              remoteIdentity: 128eeb1e6f0d21b25601fcb7f9aad36adfdfb4d76f37f54f004760410190f351
+              targetBranch: codex/review-similar-problems
+              verifiedBranch: codex/review-similar-problems
+          tweak.archive.prepare:
+            sequence: 12
+            value:
+              prBaseBranch: main
+              remote: origin
+              summary: 用户选择方案 3，已授权：在 codex/review-similar-problems 归档提交本次已验证改动，同步
+                problem-deduplication 与 frontend/problems-management 主规格，推送
+                origin 同名分支并创建面向 main 的 PR。代码与原验证输入未变，已刷新新分支 Verify 收据。相关后端
+                1103、前端 367 项及浏览器和构建通过；全仓测试未完整完成，已发现的问题均已修复或复验通过。
+              targetBranch: codex/review-similar-problems
+          tweak.verify.report.evidence:
+            sequence: 11
+            value:
+              contentHash: b81fc2de51f129a05d6ecdce8c563ac6c5f19d9dce342d5088196e5c9b15e8f7
+              ref: docs/superpowers/reports/2026-11-24-review-similar-problems-verify.md
+          tweak.verify.run:
+            sequence: 10
+            value:
+              checks:
+                - name: Backend duplicate review, store and route contracts (987 tests)
+                  note: /private/tmp/issue-474-final-targeted.log
+                  result: passed
+                - name: Legacy governance, versions and dataset references (91 tests)
+                  note: /private/tmp/issue-474-legacy-final.log
+                  result: passed
+                - name: OpenAPI operation documentation and examples (25 tests)
+                  note: /private/tmp/issue-474-doc-final.log
+                  result: passed
+                - name: Frontend npm test (367 tests)
+                  note: /private/tmp/issue-474-frontend-final.log
+                  result: passed
+                - name: Frontend lint, prettier, TypeScript and production build
+                  note: /private/tmp/issue-474-lint-final.log; /private/tmp/issue-474-format.log;
+                    /private/tmp/issue-474-build-final.log
+                  result: passed
+                - name: Chrome browser review, mobile, stale, primary, skip, retry, session and
+                    duplicate click
+                  note: /private/tmp/issue-474-browser-final.log
+                  result: passed
+                - name: Previously blocked local-port regressions (4 tests, permitted local
+                    server)
+                  note: /private/tmp/issue-474-port-tests.log
+                  result: passed
+                - name: Python lint/format, git diff check and OpenSpec strict validation
+                  note: Commands inspected directly; no errors.
+                  result: passed
+              event: verification-ready
+              verificationReport: docs/superpowers/reports/2026-11-24-review-similar-problems-verify.md
+        sequence: 16
+      review-similar-problems:3:
+        results:
+          tweak.open:
+            sequence: 1
+            value:
+              event: open-complete
+              requirementsEvidence:
+                ref: openspec/changes/review-similar-problems
+          tweak.open.evidence:
+            sequence: 2
+            value:
+              contentHash: 98a722acbef8c22bdc6603b01ccfb4a3e2bcc4a817595f9385375328c5df8877
+              ref: openspec/changes/review-similar-problems
+        sequence: 3
+      review-similar-problems:5:
+        results:
+          tweak.build.escalation-confirm:
+            sequence: 4
+            value:
+              choice: continue
+              proposal:
+                input:
+                  change: review-similar-problems
+                  changeDir: openspec/changes/review-similar-problems
+                  workspaceBaseline:
+                    ref: 029ec0fc-f525-4596-a07b-aeef5c4ed851
+                outputs:
+                  tweak.build.execute:
+                    event: escalation-requested
+                    proposal: "Issue #474 新增治理预览/保存 API，预估 10–14 个实现、测试和文档文件；用户已明确批准本方案并允许按此范围继续
+                      tweak，无跨层架构重构。"
+                    requirementsEvidence:
+                      contentHash: b6b815d2e488049ea8b5cb5e8941f9aec0e01e126babaf97f91a42ab2da404b3
+                      ref: openspec/changes/review-similar-problems
+          tweak.build.execute:
+            sequence: 3
+            value:
+              event: escalation-requested
+              proposal: "Issue #474 新增治理预览/保存 API，预估 10–14 个实现、测试和文档文件；用户已明确批准本方案并允许按此范围继续
+                tweak，无跨层架构重构。"
+              requirementsEvidence:
+                contentHash: b6b815d2e488049ea8b5cb5e8941f9aec0e01e126babaf97f91a42ab2da404b3
+                ref: openspec/changes/review-similar-problems
+          tweak.open:
+            sequence: 1
+            value:
+              event: open-complete
+              requirementsEvidence:
+                ref: openspec/changes/review-similar-problems
+          tweak.open.evidence:
+            sequence: 2
+            value:
+              contentHash: 98a722acbef8c22bdc6603b01ccfb4a3e2bcc4a817595f9385375328c5df8877
+              ref: openspec/changes/review-similar-problems
+        sequence: 5
+      review-similar-problems:6:
+        results:
+          tweak.build.escalation-confirm:
+            sequence: 4
+            value:
+              choice: continue
+              proposal:
+                input:
+                  change: review-similar-problems
+                  changeDir: openspec/changes/review-similar-problems
+                  workspaceBaseline:
+                    ref: 029ec0fc-f525-4596-a07b-aeef5c4ed851
+                outputs:
+                  tweak.build.execute:
+                    event: escalation-requested
+                    proposal: "Issue #474 新增治理预览/保存 API，预估 10–14 个实现、测试和文档文件；用户已明确批准本方案并允许按此范围继续
+                      tweak，无跨层架构重构。"
+                    requirementsEvidence:
+                      contentHash: b6b815d2e488049ea8b5cb5e8941f9aec0e01e126babaf97f91a42ab2da404b3
+                      ref: openspec/changes/review-similar-problems
+          tweak.build.execute:
+            sequence: 5
+            value:
+              checks:
+                - name: Backend duplicate review, store and route contracts (987 tests)
+                  note: /private/tmp/issue-474-final-targeted.log
+                  result: passed
+                - name: Legacy governance, versions and dataset references (91 tests)
+                  note: /private/tmp/issue-474-legacy-final.log
+                  result: passed
+                - name: OpenAPI operation documentation and examples (25 tests)
+                  note: /private/tmp/issue-474-doc-final.log
+                  result: passed
+                - name: Frontend npm test (367 tests)
+                  note: /private/tmp/issue-474-frontend-final.log
+                  result: passed
+                - name: Frontend lint, prettier, TypeScript and production build
+                  note: /private/tmp/issue-474-lint-final.log; /private/tmp/issue-474-format.log;
+                    /private/tmp/issue-474-build-final.log
+                  result: passed
+                - name: Chrome browser review, mobile, stale, primary, skip, retry, session and
+                    duplicate click
+                  note: /private/tmp/issue-474-browser-final.log
+                  result: passed
+                - name: Previously blocked local-port regressions (4 tests, permitted local
+                    server)
+                  note: /private/tmp/issue-474-port-tests.log
+                  result: passed
+                - name: Python lint/format, git diff check and OpenSpec strict validation
+                  note: Commands inspected directly; no errors.
+                  result: passed
+              event: build-complete
+          tweak.open:
+            sequence: 1
+            value:
+              event: open-complete
+              requirementsEvidence:
+                ref: openspec/changes/review-similar-problems
+          tweak.open.evidence:
+            sequence: 2
+            value:
+              contentHash: 98a722acbef8c22bdc6603b01ccfb4a3e2bcc4a817595f9385375328c5df8877
+              ref: openspec/changes/review-similar-problems
+        sequence: 6
+      review-similar-problems:8:
+        results:
+          tweak.build.escalation-confirm:
+            sequence: 4
+            value:
+              choice: continue
+              proposal:
+                input:
+                  change: review-similar-problems
+                  changeDir: openspec/changes/review-similar-problems
+                  workspaceBaseline:
+                    ref: 029ec0fc-f525-4596-a07b-aeef5c4ed851
+                outputs:
+                  tweak.build.execute:
+                    event: escalation-requested
+                    proposal: "Issue #474 新增治理预览/保存 API，预估 10–14 个实现、测试和文档文件；用户已明确批准本方案并允许按此范围继续
+                      tweak，无跨层架构重构。"
+                    requirementsEvidence:
+                      contentHash: b6b815d2e488049ea8b5cb5e8941f9aec0e01e126babaf97f91a42ab2da404b3
+                      ref: openspec/changes/review-similar-problems
+          tweak.build.execute:
+            sequence: 5
+            value:
+              checks:
+                - name: Backend duplicate review, store and route contracts (987 tests)
+                  note: /private/tmp/issue-474-final-targeted.log
+                  result: passed
+                - name: Legacy governance, versions and dataset references (91 tests)
+                  note: /private/tmp/issue-474-legacy-final.log
+                  result: passed
+                - name: OpenAPI operation documentation and examples (25 tests)
+                  note: /private/tmp/issue-474-doc-final.log
+                  result: passed
+                - name: Frontend npm test (367 tests)
+                  note: /private/tmp/issue-474-frontend-final.log
+                  result: passed
+                - name: Frontend lint, prettier, TypeScript and production build
+                  note: /private/tmp/issue-474-lint-final.log; /private/tmp/issue-474-format.log;
+                    /private/tmp/issue-474-build-final.log
+                  result: passed
+                - name: Chrome browser review, mobile, stale, primary, skip, retry, session and
+                    duplicate click
+                  note: /private/tmp/issue-474-browser-final.log
+                  result: passed
+                - name: Previously blocked local-port regressions (4 tests, permitted local
+                    server)
+                  note: /private/tmp/issue-474-port-tests.log
+                  result: passed
+                - name: Python lint/format, git diff check and OpenSpec strict validation
+                  note: Commands inspected directly; no errors.
+                  result: passed
+              event: build-complete
+          tweak.open:
+            sequence: 1
+            value:
+              event: open-complete
+              requirementsEvidence:
+                ref: openspec/changes/review-similar-problems
+          tweak.open.evidence:
+            sequence: 2
+            value:
+              contentHash: 98a722acbef8c22bdc6603b01ccfb4a3e2bcc4a817595f9385375328c5df8877
+              ref: openspec/changes/review-similar-problems
+          tweak.verify.report.evidence:
+            sequence: 7
+            value:
+              contentHash: d6e07350236b8c76db2796a9bef9addae40509a9adcfc510c048ceb184371aa2
+              ref: docs/superpowers/reports/2026-11-24-review-similar-problems-verify.md
+          tweak.verify.run:
+            sequence: 6
+            value:
+              checks:
+                - name: Backend duplicate review, store and route contracts (987 tests)
+                  note: /private/tmp/issue-474-final-targeted.log
+                  result: passed
+                - name: Legacy governance, versions and dataset references (91 tests)
+                  note: /private/tmp/issue-474-legacy-final.log
+                  result: passed
+                - name: OpenAPI operation documentation and examples (25 tests)
+                  note: /private/tmp/issue-474-doc-final.log
+                  result: passed
+                - name: Frontend npm test (367 tests)
+                  note: /private/tmp/issue-474-frontend-final.log
+                  result: passed
+                - name: Frontend lint, prettier, TypeScript and production build
+                  note: /private/tmp/issue-474-lint-final.log; /private/tmp/issue-474-format.log;
+                    /private/tmp/issue-474-build-final.log
+                  result: passed
+                - name: Chrome browser review, mobile, stale, primary, skip, retry, session and
+                    duplicate click
+                  note: /private/tmp/issue-474-browser-final.log
+                  result: passed
+                - name: Previously blocked local-port regressions (4 tests, permitted local
+                    server)
+                  note: /private/tmp/issue-474-port-tests.log
+                  result: passed
+                - name: Python lint/format, git diff check and OpenSpec strict validation
+                  note: Commands inspected directly; no errors.
+                  result: passed
+              event: verification-ready
+              verificationReport: docs/superpowers/reports/2026-11-24-review-similar-problems-verify.md
+        sequence: 8
+    waits:
+      - id: review-similar-problems:4
+        stepId: tweak.build.escalation-confirm
+        sequence: 4
+        status: resolved
+        proposal:
+          input:
+            change: review-similar-problems
+            changeDir: openspec/changes/review-similar-problems
+            workspaceBaseline:
+              ref: 029ec0fc-f525-4596-a07b-aeef5c4ed851
+          outputs:
+            tweak.build.execute:
+              event: escalation-requested
+              proposal: "Issue #474 新增治理预览/保存 API，预估 10–14 个实现、测试和文档文件；用户已明确批准本方案并允许按此范围继续
+                tweak，无跨层架构重构。"
+              requirementsEvidence:
+                contentHash: b6b815d2e488049ea8b5cb5e8941f9aec0e01e126babaf97f91a42ab2da404b3
+                ref: openspec/changes/review-similar-problems
+        proposalHash: bd1b3981bdc19a7d4bfbf315fa3aa03a3e364846aacb4b19d5aa377f3a33614a
+        choices:
+          - continue
+          - upgrade
+        results:
+          tweak.build.execute:
+            sequence: 3
+            value:
+              event: escalation-requested
+              proposal: "Issue #474 新增治理预览/保存 API，预估 10–14 个实现、测试和文档文件；用户已明确批准本方案并允许按此范围继续
+                tweak，无跨层架构重构。"
+              requirementsEvidence:
+                contentHash: b6b815d2e488049ea8b5cb5e8941f9aec0e01e126babaf97f91a42ab2da404b3
+                ref: openspec/changes/review-similar-problems
+          tweak.open:
+            sequence: 1
+            value:
+              event: open-complete
+              requirementsEvidence:
+                ref: openspec/changes/review-similar-problems
+          tweak.open.evidence:
+            sequence: 2
+            value:
+              contentHash: 98a722acbef8c22bdc6603b01ccfb4a3e2bcc4a817595f9385375328c5df8877
+              ref: openspec/changes/review-similar-problems
+        decision:
+          id: classic-escalation-bd1b3981bdc19a7d4bfbf315fa3aa03a3e364846aacb4b19d5aa377f3a33614a-continue
+          choice: continue
+          proposalHash: bd1b3981bdc19a7d4bfbf315fa3aa03a3e364846aacb4b19d5aa377f3a33614a
+      - id: review-similar-problems:9
+        stepId: tweak.archive.confirm
+        sequence: 9
+        status: cancelled
+        proposal:
+          input:
+            change: review-similar-problems
+            changeDir: openspec/changes/review-similar-problems
+            workspaceBaseline:
+              ref: 029ec0fc-f525-4596-a07b-aeef5c4ed851
+          outputs:
+            tweak.archive.prepare:
+              prBaseBranch: main
+              remote: origin
+              summary: "Issue #474：Verify 已通过，18 个交付文件及验证报告；归档将同步 problem-deduplication 与
+                frontend/problems-management 两份主规格并封存本 change。当前绑定 main；local 在
+                main 仅归档提交，push 另推送 origin/main；若选择 PR，将创建并绑定
+                codex/review-similar-problems，推送 origin 同名分支并向 main 创建
+                PR。也可重新验证或稍后交付。全仓测试已中断且未声明全仓覆盖率，相关 1103 后端与 367
+                前端测试、浏览器、构建通过，四项端口错误已许可后复验通过。"
+              targetBranch: main
+        proposalHash: 1e74f05845fc25d18c9451c6c41378167ed440eb706a8fa43aeadf411e9b31f0
+        choices:
+          - local
+          - push
+          - pr
+          - reverify
+          - later
+        results:
+          tweak.archive.prepare:
+            sequence: 8
+            value:
+              prBaseBranch: main
+              remote: origin
+              summary: "Issue #474：Verify 已通过，18 个交付文件及验证报告；归档将同步 problem-deduplication 与
+                frontend/problems-management 两份主规格并封存本 change。当前绑定 main；local 在
+                main 仅归档提交，push 另推送 origin/main；若选择 PR，将创建并绑定
+                codex/review-similar-problems，推送 origin 同名分支并向 main 创建
+                PR。也可重新验证或稍后交付。全仓测试已中断且未声明全仓覆盖率，相关 1103 后端与 367
+                前端测试、浏览器、构建通过，四项端口错误已许可后复验通过。"
+              targetBranch: main
+          tweak.build.escalation-confirm:
+            sequence: 4
+            value:
+              choice: continue
+              proposal:
+                input:
+                  change: review-similar-problems
+                  changeDir: openspec/changes/review-similar-problems
+                  workspaceBaseline:
+                    ref: 029ec0fc-f525-4596-a07b-aeef5c4ed851
+                outputs:
+                  tweak.build.execute:
+                    event: escalation-requested
+                    proposal: "Issue #474 新增治理预览/保存 API，预估 10–14 个实现、测试和文档文件；用户已明确批准本方案并允许按此范围继续
+                      tweak，无跨层架构重构。"
+                    requirementsEvidence:
+                      contentHash: b6b815d2e488049ea8b5cb5e8941f9aec0e01e126babaf97f91a42ab2da404b3
+                      ref: openspec/changes/review-similar-problems
+          tweak.build.execute:
+            sequence: 5
+            value:
+              checks:
+                - name: Backend duplicate review, store and route contracts (987 tests)
+                  note: /private/tmp/issue-474-final-targeted.log
+                  result: passed
+                - name: Legacy governance, versions and dataset references (91 tests)
+                  note: /private/tmp/issue-474-legacy-final.log
+                  result: passed
+                - name: OpenAPI operation documentation and examples (25 tests)
+                  note: /private/tmp/issue-474-doc-final.log
+                  result: passed
+                - name: Frontend npm test (367 tests)
+                  note: /private/tmp/issue-474-frontend-final.log
+                  result: passed
+                - name: Frontend lint, prettier, TypeScript and production build
+                  note: /private/tmp/issue-474-lint-final.log; /private/tmp/issue-474-format.log;
+                    /private/tmp/issue-474-build-final.log
+                  result: passed
+                - name: Chrome browser review, mobile, stale, primary, skip, retry, session and
+                    duplicate click
+                  note: /private/tmp/issue-474-browser-final.log
+                  result: passed
+                - name: Previously blocked local-port regressions (4 tests, permitted local
+                    server)
+                  note: /private/tmp/issue-474-port-tests.log
+                  result: passed
+                - name: Python lint/format, git diff check and OpenSpec strict validation
+                  note: Commands inspected directly; no errors.
+                  result: passed
+              event: build-complete
+          tweak.open:
+            sequence: 1
+            value:
+              event: open-complete
+              requirementsEvidence:
+                ref: openspec/changes/review-similar-problems
+          tweak.open.evidence:
+            sequence: 2
+            value:
+              contentHash: 98a722acbef8c22bdc6603b01ccfb4a3e2bcc4a817595f9385375328c5df8877
+              ref: openspec/changes/review-similar-problems
+          tweak.verify.report.evidence:
+            sequence: 7
+            value:
+              contentHash: d6e07350236b8c76db2796a9bef9addae40509a9adcfc510c048ceb184371aa2
+              ref: docs/superpowers/reports/2026-11-24-review-similar-problems-verify.md
+          tweak.verify.run:
+            sequence: 6
+            value:
+              checks:
+                - name: Backend duplicate review, store and route contracts (987 tests)
+                  note: /private/tmp/issue-474-final-targeted.log
+                  result: passed
+                - name: Legacy governance, versions and dataset references (91 tests)
+                  note: /private/tmp/issue-474-legacy-final.log
+                  result: passed
+                - name: OpenAPI operation documentation and examples (25 tests)
+                  note: /private/tmp/issue-474-doc-final.log
+                  result: passed
+                - name: Frontend npm test (367 tests)
+                  note: /private/tmp/issue-474-frontend-final.log
+                  result: passed
+                - name: Frontend lint, prettier, TypeScript and production build
+                  note: /private/tmp/issue-474-lint-final.log; /private/tmp/issue-474-format.log;
+                    /private/tmp/issue-474-build-final.log
+                  result: passed
+                - name: Chrome browser review, mobile, stale, primary, skip, retry, session and
+                    duplicate click
+                  note: /private/tmp/issue-474-browser-final.log
+                  result: passed
+                - name: Previously blocked local-port regressions (4 tests, permitted local
+                    server)
+                  note: /private/tmp/issue-474-port-tests.log
+                  result: passed
+                - name: Python lint/format, git diff check and OpenSpec strict validation
+                  note: Commands inspected directly; no errors.
+                  result: passed
+              event: verification-ready
+              verificationReport: docs/superpowers/reports/2026-11-24-review-similar-problems-verify.md
+      - id: review-similar-problems:13
+        stepId: tweak.archive.confirm
+        sequence: 13
+        status: resolved
+        proposal:
+          input:
+            change: review-similar-problems
+            changeDir: openspec/changes/review-similar-problems
+            workspaceBaseline:
+              ref: 029ec0fc-f525-4596-a07b-aeef5c4ed851
+          outputs:
+            tweak.archive.prepare:
+              prBaseBranch: main
+              remote: origin
+              summary: 用户选择方案 3，已授权：在 codex/review-similar-problems 归档提交本次已验证改动，同步
+                problem-deduplication 与 frontend/problems-management 主规格，推送
+                origin 同名分支并创建面向 main 的 PR。代码与原验证输入未变，已刷新新分支 Verify 收据。相关后端
+                1103、前端 367 项及浏览器和构建通过；全仓测试未完整完成，已发现的问题均已修复或复验通过。
+              targetBranch: codex/review-similar-problems
+        proposalHash: 9fe4e81875bbf0d7361dc2ee5d9248c06df400bd4f22368deffeb44369f28017
+        choices:
+          - local
+          - push
+          - pr
+          - reverify
+          - later
+        results:
+          tweak.archive.prepare:
+            sequence: 12
+            value:
+              prBaseBranch: main
+              remote: origin
+              summary: 用户选择方案 3，已授权：在 codex/review-similar-problems 归档提交本次已验证改动，同步
+                problem-deduplication 与 frontend/problems-management 主规格，推送
+                origin 同名分支并创建面向 main 的 PR。代码与原验证输入未变，已刷新新分支 Verify 收据。相关后端
+                1103、前端 367 项及浏览器和构建通过；全仓测试未完整完成，已发现的问题均已修复或复验通过。
+              targetBranch: codex/review-similar-problems
+          tweak.verify.report.evidence:
+            sequence: 11
+            value:
+              contentHash: b81fc2de51f129a05d6ecdce8c563ac6c5f19d9dce342d5088196e5c9b15e8f7
+              ref: docs/superpowers/reports/2026-11-24-review-similar-problems-verify.md
+          tweak.verify.run:
+            sequence: 10
+            value:
+              checks:
+                - name: Backend duplicate review, store and route contracts (987 tests)
+                  note: /private/tmp/issue-474-final-targeted.log
+                  result: passed
+                - name: Legacy governance, versions and dataset references (91 tests)
+                  note: /private/tmp/issue-474-legacy-final.log
+                  result: passed
+                - name: OpenAPI operation documentation and examples (25 tests)
+                  note: /private/tmp/issue-474-doc-final.log
+                  result: passed
+                - name: Frontend npm test (367 tests)
+                  note: /private/tmp/issue-474-frontend-final.log
+                  result: passed
+                - name: Frontend lint, prettier, TypeScript and production build
+                  note: /private/tmp/issue-474-lint-final.log; /private/tmp/issue-474-format.log;
+                    /private/tmp/issue-474-build-final.log
+                  result: passed
+                - name: Chrome browser review, mobile, stale, primary, skip, retry, session and
+                    duplicate click
+                  note: /private/tmp/issue-474-browser-final.log
+                  result: passed
+                - name: Previously blocked local-port regressions (4 tests, permitted local
+                    server)
+                  note: /private/tmp/issue-474-port-tests.log
+                  result: passed
+                - name: Python lint/format, git diff check and OpenSpec strict validation
+                  note: Commands inspected directly; no errors.
+                  result: passed
+              event: verification-ready
+              verificationReport: docs/superpowers/reports/2026-11-24-review-similar-problems-verify.md
+        decision:
+          id: classic-archive-9fe4e81875bbf0d7361dc2ee5d9248c06df400bd4f22368deffeb44369f28017-pr
+          choice: pr
+          proposalHash: 9fe4e81875bbf0d7361dc2ee5d9248c06df400bd4f22368deffeb44369f28017
+    evidenceWaits:
+      - id: review-similar-problems:2
+        stepId: tweak.open.evidence
+        sequence: 2
+        kind: classic-open-artifacts
+        status: resolved
+        results:
+          tweak.open:
+            sequence: 1
+            value:
+              event: open-complete
+              requirementsEvidence:
+                ref: openspec/changes/review-similar-problems
+        receipt:
+          ref: openspec/changes/review-similar-problems
+          contentHash: 98a722acbef8c22bdc6603b01ccfb4a3e2bcc4a817595f9385375328c5df8877
+          submissionId: 3eb0d62f-f448-4fcd-a895-4a16ee9f6911
+      - id: review-similar-problems:7
+        stepId: tweak.verify.report.evidence
+        sequence: 7
+        kind: classic-verification-report
+        status: resolved
+        results:
+          tweak.build.escalation-confirm:
+            sequence: 4
+            value:
+              choice: continue
+              proposal:
+                input:
+                  change: review-similar-problems
+                  changeDir: openspec/changes/review-similar-problems
+                  workspaceBaseline:
+                    ref: 029ec0fc-f525-4596-a07b-aeef5c4ed851
+                outputs:
+                  tweak.build.execute:
+                    event: escalation-requested
+                    proposal: "Issue #474 新增治理预览/保存 API，预估 10–14 个实现、测试和文档文件；用户已明确批准本方案并允许按此范围继续
+                      tweak，无跨层架构重构。"
+                    requirementsEvidence:
+                      contentHash: b6b815d2e488049ea8b5cb5e8941f9aec0e01e126babaf97f91a42ab2da404b3
+                      ref: openspec/changes/review-similar-problems
+          tweak.build.execute:
+            sequence: 5
+            value:
+              checks:
+                - name: Backend duplicate review, store and route contracts (987 tests)
+                  note: /private/tmp/issue-474-final-targeted.log
+                  result: passed
+                - name: Legacy governance, versions and dataset references (91 tests)
+                  note: /private/tmp/issue-474-legacy-final.log
+                  result: passed
+                - name: OpenAPI operation documentation and examples (25 tests)
+                  note: /private/tmp/issue-474-doc-final.log
+                  result: passed
+                - name: Frontend npm test (367 tests)
+                  note: /private/tmp/issue-474-frontend-final.log
+                  result: passed
+                - name: Frontend lint, prettier, TypeScript and production build
+                  note: /private/tmp/issue-474-lint-final.log; /private/tmp/issue-474-format.log;
+                    /private/tmp/issue-474-build-final.log
+                  result: passed
+                - name: Chrome browser review, mobile, stale, primary, skip, retry, session and
+                    duplicate click
+                  note: /private/tmp/issue-474-browser-final.log
+                  result: passed
+                - name: Previously blocked local-port regressions (4 tests, permitted local
+                    server)
+                  note: /private/tmp/issue-474-port-tests.log
+                  result: passed
+                - name: Python lint/format, git diff check and OpenSpec strict validation
+                  note: Commands inspected directly; no errors.
+                  result: passed
+              event: build-complete
+          tweak.open:
+            sequence: 1
+            value:
+              event: open-complete
+              requirementsEvidence:
+                ref: openspec/changes/review-similar-problems
+          tweak.open.evidence:
+            sequence: 2
+            value:
+              contentHash: 98a722acbef8c22bdc6603b01ccfb4a3e2bcc4a817595f9385375328c5df8877
+              ref: openspec/changes/review-similar-problems
+          tweak.verify.run:
+            sequence: 6
+            value:
+              checks:
+                - name: Backend duplicate review, store and route contracts (987 tests)
+                  note: /private/tmp/issue-474-final-targeted.log
+                  result: passed
+                - name: Legacy governance, versions and dataset references (91 tests)
+                  note: /private/tmp/issue-474-legacy-final.log
+                  result: passed
+                - name: OpenAPI operation documentation and examples (25 tests)
+                  note: /private/tmp/issue-474-doc-final.log
+                  result: passed
+                - name: Frontend npm test (367 tests)
+                  note: /private/tmp/issue-474-frontend-final.log
+                  result: passed
+                - name: Frontend lint, prettier, TypeScript and production build
+                  note: /private/tmp/issue-474-lint-final.log; /private/tmp/issue-474-format.log;
+                    /private/tmp/issue-474-build-final.log
+                  result: passed
+                - name: Chrome browser review, mobile, stale, primary, skip, retry, session and
+                    duplicate click
+                  note: /private/tmp/issue-474-browser-final.log
+                  result: passed
+                - name: Previously blocked local-port regressions (4 tests, permitted local
+                    server)
+                  note: /private/tmp/issue-474-port-tests.log
+                  result: passed
+                - name: Python lint/format, git diff check and OpenSpec strict validation
+                  note: Commands inspected directly; no errors.
+                  result: passed
+              event: verification-ready
+              verificationReport: docs/superpowers/reports/2026-11-24-review-similar-problems-verify.md
+        receipt:
+          ref: docs/superpowers/reports/2026-11-24-review-similar-problems-verify.md
+          contentHash: d6e07350236b8c76db2796a9bef9addae40509a9adcfc510c048ceb184371aa2
+          submissionId: 3f0357d6-c5ba-4ff4-bc2f-af9274e88aee
+      - id: review-similar-problems:11
+        stepId: tweak.verify.report.evidence
+        sequence: 11
+        kind: classic-verification-report
+        status: resolved
+        results:
+          tweak.verify.run:
+            sequence: 10
+            value:
+              checks:
+                - name: Backend duplicate review, store and route contracts (987 tests)
+                  note: /private/tmp/issue-474-final-targeted.log
+                  result: passed
+                - name: Legacy governance, versions and dataset references (91 tests)
+                  note: /private/tmp/issue-474-legacy-final.log
+                  result: passed
+                - name: OpenAPI operation documentation and examples (25 tests)
+                  note: /private/tmp/issue-474-doc-final.log
+                  result: passed
+                - name: Frontend npm test (367 tests)
+                  note: /private/tmp/issue-474-frontend-final.log
+                  result: passed
+                - name: Frontend lint, prettier, TypeScript and production build
+                  note: /private/tmp/issue-474-lint-final.log; /private/tmp/issue-474-format.log;
+                    /private/tmp/issue-474-build-final.log
+                  result: passed
+                - name: Chrome browser review, mobile, stale, primary, skip, retry, session and
+                    duplicate click
+                  note: /private/tmp/issue-474-browser-final.log
+                  result: passed
+                - name: Previously blocked local-port regressions (4 tests, permitted local
+                    server)
+                  note: /private/tmp/issue-474-port-tests.log
+                  result: passed
+                - name: Python lint/format, git diff check and OpenSpec strict validation
+                  note: Commands inspected directly; no errors.
+                  result: passed
+              event: verification-ready
+              verificationReport: docs/superpowers/reports/2026-11-24-review-similar-problems-verify.md
+        receipt:
+          ref: docs/superpowers/reports/2026-11-24-review-similar-problems-verify.md
+          contentHash: b81fc2de51f129a05d6ecdce8c563ac6c5f19d9dce342d5088196e5c9b15e8f7
+          submissionId: c4649048-1873-4446-b1d6-38f3201ab36b
+    ready: []
+    joins: {}
+    outputs:
+      tweak.archive.confirm:
+        sequence: 13
+        value:
+          choice: pr
+          proposal:
+            input:
+              change: review-similar-problems
+              changeDir: openspec/changes/review-similar-problems
+              workspaceBaseline:
+                ref: 029ec0fc-f525-4596-a07b-aeef5c4ed851
+            outputs:
+              tweak.archive.prepare:
+                prBaseBranch: main
+                remote: origin
+                summary: 用户选择方案 3，已授权：在 codex/review-similar-problems 归档提交本次已验证改动，同步
+                  problem-deduplication 与 frontend/problems-management 主规格，推送
+                  origin 同名分支并创建面向 main 的 PR。代码与原验证输入未变，已刷新新分支 Verify 收据。相关后端
+                  1103、前端 367 项及浏览器和构建通过；全仓测试未完整完成，已发现的问题均已修复或复验通过。
+                targetBranch: codex/review-similar-problems
+      tweak.archive.execute:
+        sequence: 15
+        value:
+          archiveDirectory: openspec/changes/archive/2026-11-24-review-similar-problems
+      tweak.archive.preflight:
+        sequence: 14
+        value:
+          baseCommit: 5bf999c5be826f3d25fe655a7a77225ed8accf34
+          deliveryAction: pr
+          deliveryPaths:
+            - api/documentation.py
+            - api/files/deduplication.py
+            - api/files/governance.py
+            - api/files/store.py
+            - api/routes/evaluation_results.py
+            - docs/api-files.md
+            - frontend/scripts/verify-deduplication.mjs
+            - frontend/src/i18n/en-US.ts
+            - frontend/src/i18n/zh-CN.ts
+            - frontend/src/pages/Problems/DeduplicationReview.tsx
+            - frontend/src/pages/Problems/GovernancePanel.tsx
+            - frontend/src/problems/client.test.ts
+            - frontend/src/problems/client.ts
+            - frontend/src/problems/types.ts
+            - src/problem_utils/utils/deduplication.py
+            - tests/test_deduplication.py
+            - tests/test_web_deduplication.py
+            - tests/unit/test_api_endpoints.py
+          prBaseBranch: main
+          remote: origin
+          remoteIdentity: 128eeb1e6f0d21b25601fcb7f9aad36adfdfb4d76f37f54f004760410190f351
+          targetBranch: codex/review-similar-problems
+          verifiedBranch: codex/review-similar-problems
+      tweak.archive.prepare:
+        sequence: 12
+        value:
+          prBaseBranch: main
+          remote: origin
+          summary: 用户选择方案 3，已授权：在 codex/review-similar-problems 归档提交本次已验证改动，同步
+            problem-deduplication 与 frontend/problems-management 主规格，推送 origin
+            同名分支并创建面向 main 的 PR。代码与原验证输入未变，已刷新新分支 Verify 收据。相关后端 1103、前端 367
+            项及浏览器和构建通过；全仓测试未完整完成，已发现的问题均已修复或复验通过。
+          targetBranch: codex/review-similar-problems
+      tweak.build.escalation-confirm:
+        sequence: 4
+        value:
+          choice: continue
+          proposal:
+            input:
+              change: review-similar-problems
+              changeDir: openspec/changes/review-similar-problems
+              workspaceBaseline:
+                ref: 029ec0fc-f525-4596-a07b-aeef5c4ed851
+            outputs:
+              tweak.build.execute:
+                event: escalation-requested
+                proposal: "Issue #474 新增治理预览/保存 API，预估 10–14 个实现、测试和文档文件；用户已明确批准本方案并允许按此范围继续
+                  tweak，无跨层架构重构。"
+                requirementsEvidence:
+                  contentHash: b6b815d2e488049ea8b5cb5e8941f9aec0e01e126babaf97f91a42ab2da404b3
+                  ref: openspec/changes/review-similar-problems
+      tweak.build.execute:
+        sequence: 5
+        value:
+          checks:
+            - name: Backend duplicate review, store and route contracts (987 tests)
+              note: /private/tmp/issue-474-final-targeted.log
+              result: passed
+            - name: Legacy governance, versions and dataset references (91 tests)
+              note: /private/tmp/issue-474-legacy-final.log
+              result: passed
+            - name: OpenAPI operation documentation and examples (25 tests)
+              note: /private/tmp/issue-474-doc-final.log
+              result: passed
+            - name: Frontend npm test (367 tests)
+              note: /private/tmp/issue-474-frontend-final.log
+              result: passed
+            - name: Frontend lint, prettier, TypeScript and production build
+              note: /private/tmp/issue-474-lint-final.log; /private/tmp/issue-474-format.log;
+                /private/tmp/issue-474-build-final.log
+              result: passed
+            - name: Chrome browser review, mobile, stale, primary, skip, retry, session and
+                duplicate click
+              note: /private/tmp/issue-474-browser-final.log
+              result: passed
+            - name: Previously blocked local-port regressions (4 tests, permitted local
+                server)
+              note: /private/tmp/issue-474-port-tests.log
+              result: passed
+            - name: Python lint/format, git diff check and OpenSpec strict validation
+              note: Commands inspected directly; no errors.
+              result: passed
+          event: build-complete
+      tweak.open:
+        sequence: 1
+        value:
+          event: open-complete
+          requirementsEvidence:
+            ref: openspec/changes/review-similar-problems
+      tweak.open.evidence:
+        sequence: 2
+        value:
+          contentHash: 98a722acbef8c22bdc6603b01ccfb4a3e2bcc4a817595f9385375328c5df8877
+          ref: openspec/changes/review-similar-problems
+      tweak.verify.report.evidence:
+        sequence: 11
+        value:
+          contentHash: b81fc2de51f129a05d6ecdce8c563ac6c5f19d9dce342d5088196e5c9b15e8f7
+          ref: docs/superpowers/reports/2026-11-24-review-similar-problems-verify.md
+      tweak.verify.run:
+        sequence: 10
+        value:
+          checks:
+            - name: Backend duplicate review, store and route contracts (987 tests)
+              note: /private/tmp/issue-474-final-targeted.log
+              result: passed
+            - name: Legacy governance, versions and dataset references (91 tests)
+              note: /private/tmp/issue-474-legacy-final.log
+              result: passed
+            - name: OpenAPI operation documentation and examples (25 tests)
+              note: /private/tmp/issue-474-doc-final.log
+              result: passed
+            - name: Frontend npm test (367 tests)
+              note: /private/tmp/issue-474-frontend-final.log
+              result: passed
+            - name: Frontend lint, prettier, TypeScript and production build
+              note: /private/tmp/issue-474-lint-final.log; /private/tmp/issue-474-format.log;
+                /private/tmp/issue-474-build-final.log
+              result: passed
+            - name: Chrome browser review, mobile, stale, primary, skip, retry, session and
+                duplicate click
+              note: /private/tmp/issue-474-browser-final.log
+              result: passed
+            - name: Previously blocked local-port regressions (4 tests, permitted local
+                server)
+              note: /private/tmp/issue-474-port-tests.log
+              result: passed
+            - name: Python lint/format, git diff check and OpenSpec strict validation
+              note: Commands inspected directly; no errors.
+              result: passed
+          event: verification-ready
+          verificationReport: docs/superpowers/reports/2026-11-24-review-similar-problems-verify.md
+    children: []
+    lineage: []
+  sourceRevision: 26
+  sourceHash: 14941925e829bf8a905783512c4a90e52d4f5219b7d3dd4ec0e147385eb53e28
+direct_override: null
+handoff_context: null
+handoff_hash: null
+classic_profile: null
+classic_migration: null
+check_epoch: 6

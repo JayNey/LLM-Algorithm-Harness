@@ -40,7 +40,10 @@ def compute_similarity(problems: list[dict[str, Any]]) -> np.ndarray:
 
 
 def find_similar_pairs(
-    problems: list[dict[str, Any]], threshold: float = 0.9
+    problems: list[dict[str, Any]],
+    threshold: float = 0.9,
+    *,
+    include_pairs: set[tuple[int, int]] | None = None,
 ) -> list[tuple[int, int, float]]:
     """
     基于相似度阈值检测相似题目对
@@ -48,24 +51,37 @@ def find_similar_pairs(
     Args:
         problems: 题目列表
         threshold: 相似度阈值，默认 0.9
+        include_pairs: 同时返回这些题目对的分数，供来源指纹审核显示低于阈值的分数
 
     Returns:
         相似题目对列表，每个元素为 (index1, index2, similarity)
     """
-    similarity_matrix = compute_similarity(problems)
-
-    if similarity_matrix.size == 0:
+    if len(problems) < 2:
         return []
-
+    requested = include_pairs or set()
+    requested_rows: dict[int, set[int]] = {}
+    for left, right in requested:
+        requested_rows.setdefault(left, set()).add(right)
+    texts = [f"{p.get('title', '')} {p.get('description', '')}" for p in problems]
+    vectorizer = TfidfVectorizer(max_features=1000, stop_words="english", ngram_range=(1, 2))
+    try:
+        vectors = vectorizer.fit_transform(texts)
+    except ValueError as exc:
+        if "empty vocabulary" not in str(exc):
+            raise
+        return [(i, j, 0.0) for i, j in sorted(requested)]
     pairs = []
     n = len(problems)
-
-    # 只检查上三角矩阵，避免重复
-    for i in range(n):
-        for j in range(i + 1, n):
-            sim = similarity_matrix[i][j]
-            if sim > threshold:
-                pairs.append((i, j, float(sim)))
+    # Keep the same corpus-wide TF-IDF weights without allocating an n*n dense matrix.
+    for start in range(0, n, 64):
+        block = cosine_similarity(vectors[start : start + 64], vectors)
+        np.clip(block, 0, 1, out=block)
+        for offset, row in enumerate(block):
+            i = start + offset
+            indices = {int(j) for j in np.flatnonzero(row[i + 1 :] > threshold) + i + 1}
+            indices.update(requested_rows.get(i, ()))
+            for j in sorted(indices):
+                pairs.append((i, int(j), float(row[j])))
 
     return pairs
 

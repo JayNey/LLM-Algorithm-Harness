@@ -9,9 +9,27 @@ import pytest
 from src.problem_utils.utils.deduplication import (
     compute_similarity,
     find_fingerprint_duplicates,
+    find_similar_pairs,
     merge_problems,
     select_primary_problem,
 )
+
+
+def test_pair_detection_empty_vocabulary_and_strict_threshold():
+    assert find_similar_pairs([{"title": "the", "description": "a"}] * 2) == []
+    rows = [{"title": "binary array search"}] * 3
+    assert find_similar_pairs(rows, threshold=1) == []
+    assert [(i, j) for i, j, _ in find_similar_pairs(rows, threshold=0.9)] == [
+        (0, 1),
+        (0, 2),
+        (1, 2),
+    ]
+
+
+def test_fingerprint_review_can_show_score_below_text_threshold():
+    rows = [{"title": "binary search"}, {"title": "graph traversal"}]
+    assert find_similar_pairs(rows, threshold=0.9, include_pairs={(0, 1)}) == [(0, 1, 0.0)]
+    assert find_similar_pairs([{"title": "the"}] * 2, include_pairs={(0, 1)}) == [(0, 1, 0.0)]
 
 
 class TestSimilarityDetection:

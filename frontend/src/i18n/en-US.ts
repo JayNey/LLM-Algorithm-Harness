@@ -1653,4 +1653,27 @@ export default {
   '还没有保存的题集版本。': 'No saved dataset versions yet.',
   '正在加载题集版本…': 'Loading dataset version…',
   使用此版本创建评估: 'Create evaluation with this version',
+  查找相似题: 'Find similar problems',
+  扫描相似题: 'Scan similar problems',
+  文本相似度阈值: 'Text similarity threshold',
+  '扫描不会修改个人题库。逐组选定保留题，合并只保存到新版本。':
+    'Scanning leaves your library unchanged. Choose a primary per group and save merges as a new version.',
+  '候选组 {{number}}': 'Candidate group {{number}}',
+  原题内容与元数据: 'Original content and metadata',
+  来源指纹相同: 'Matching source fingerprint',
+  文本相似度: 'Text similarity',
+  推荐保留题: 'Recommended primary',
+  保留题: 'Primary problem',
+  跳过整组: 'Skip group',
+  合并前后的字段变化: 'Field changes after merging',
+  字段: 'Field',
+  合并前: 'Before merging',
+  合并后: 'After merging',
+  合并后的题目: 'Merged problem',
+  被合并题目: 'Merged problem IDs',
+  '没有发现相似题。': 'No similar problems found.',
+  '题库已更新，请重新扫描并确认。':
+    'Your library has changed. Scan and confirm again.',
+  '已保存的版本已不可用，请重新扫描。':
+    'The saved version is no longer available. Scan again.',
 }

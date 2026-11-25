@@ -143,6 +143,14 @@ GOVERNANCE_TOKEN = "0" * 64 + "." + "0" * 64
 # Handler name -> purpose, response data. Aliased paths share the same contract.
 # Examples show representative data; empty aggregates mean no stored results.
 OPERATIONS: dict[str, tuple[str, Any]] = {
+    "preview_duplicate_problems": (
+        "只读扫描本人的个人题库，按来源指纹与文本阈值返回相似题候选、匹配分数及各保留题的合并预览。",
+        {"preview_token": GOVERNANCE_TOKEN, "groups": []},
+    ),
+    "save_duplicate_version": (
+        "只保存逐组获批的相似题合并版本；源库过期返回 409，同一确认幂等，已清理版本的重试返回 410。",
+        DATASET_VERSION,
+    ),
     "preview_problem_governance": (
         "逐题预览个人题库的标签和难度变更；无权访问的题目或历史评估返回 404。",
         {
@@ -1477,6 +1485,13 @@ DOWNLOADS = {
 }
 
 REQUEST_EXAMPLES: dict[str, Any] = {
+    "DeduplicationRequest": {"threshold": 0.9},
+    "DeduplicationSaveRequest": {
+        "threshold": 0.9,
+        "preview_token": GOVERNANCE_TOKEN,
+        "name": "审核后的合并题集",
+        "groups": [{"group_id": "group-demo", "primary_id": "two-sum"}],
+    },
     "GovernanceRequest": GOVERNANCE_REQUEST,
     "GovernanceSaveRequest": {
         "preview": GOVERNANCE_REQUEST,

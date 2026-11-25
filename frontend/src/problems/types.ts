@@ -192,10 +192,47 @@ export interface DatasetVersion {
 }
 
 export interface DatasetVersionDetail extends DatasetVersion {
-  problems: (Omit<ProblemOption, 'source'> & { tags: string[] })[]
+  problems: (Omit<ProblemOption, 'source'> & {
+    tags: string[]
+    merged_from?: string[]
+  })[]
+}
+
+export interface DeduplicationRequest {
+  threshold: number
+}
+export interface DuplicateProblem extends Record<string, unknown> {
+  problem_id: string
+  title: string
+}
+export interface DuplicateGroup {
+  group_id: string
+  recommended_primary_id: string
+  problems: DuplicateProblem[]
+  matches: {
+    left_id: string
+    right_id: string
+    fingerprint: boolean
+    similarity: number | null
+  }[]
+  merges: Record<string, DuplicateProblem>
+}
+export interface DeduplicationPreview {
+  preview_token: string
+  groups: DuplicateGroup[]
+}
+export interface DeduplicationSaveRequest extends DeduplicationRequest {
+  preview_token: string
+  name: string
+  groups: { group_id: string; primary_id: string }[]
 }
 
 export interface ProblemClient {
+  previewDeduplication(
+    request: DeduplicationRequest,
+    signal?: AbortSignal,
+  ): Promise<DeduplicationPreview>
+  saveDeduplication(request: DeduplicationSaveRequest): Promise<DatasetVersion>
   previewGovernance(
     request: GovernanceRequest,
     signal?: AbortSignal,

@@ -1,0 +1,119 @@
+<!doctype html>
+<html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'unsafe-inline'; base-uri 'none'; form-action 'none'"><title>变更说明 · Web 题库可以审核相似题并保存独立合并版本</title>
+<style>
+:root {
+  color-scheme: light dark;
+  --page: #fafbfc;
+  --ink: #202a35;
+  --muted: #566575;
+  --line: #dbe2e8;
+  --accent: #245b85;
+  --highlight: #edf3f7;
+  --hover: #e9eef3;
+  --code-bg: #edf0f4;
+  --code-ink: #263443;
+  --success: #236d4f;
+  --failure: #a83131;
+  --text: 15px;
+  --small: 13px;
+  --label: 12px;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --page: #181d23;
+    --ink: #e4eaf0;
+    --muted: #a4b1be;
+    --line: #35404b;
+    --accent: #94c6ec;
+    --highlight: #222e39;
+    --hover: #27323d;
+    --code-bg: #10161d;
+    --code-ink: #e0e8f0;
+    --success: #8ed8b5;
+    --failure: #ffb0a8;
+  }
+}
+* { box-sizing: border-box; }
+body {
+  margin: 0;
+  background: var(--page);
+  color: var(--ink);
+  font: var(--text)/1.65 system-ui, -apple-system, "Segoe UI", sans-serif;
+}
+main { max-width: 1040px; margin: auto; padding: 32px 32px 48px; }
+.eyebrow { color: var(--accent); font-size: var(--label); font-weight: 500; letter-spacing: .08em; }
+h1 { margin: 8px 0 12px; max-width: 32em; font-size: 28px; font-weight: 500; line-height: 1.4; letter-spacing: -.02em; overflow-wrap: anywhere; }
+h2 { margin: 0; font-size: 18px; font-weight: 500; line-height: 1.5; overflow-wrap: anywhere; }
+h3 { margin: 0 0 4px; color: var(--muted); font-size: var(--label); font-weight: 500; }
+p { margin: 0; white-space: pre-wrap; overflow-wrap: anywhere; }
+strong { font-weight: 500; }
+.meta { margin-bottom: 24px; color: var(--muted); font-size: var(--small); overflow-wrap: anywhere; }
+.meta p + p { margin-top: 2px; }
+article { padding: 20px 0 12px; border-top: 1px solid var(--line); }
+article header { display: flex; align-items: baseline; gap: 12px; margin-bottom: 12px; }
+.number { color: var(--muted); font: var(--label)/1.5 ui-monospace, Consolas, monospace; font-variant-numeric: tabular-nums; }
+.comparison { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 16px; }
+.comparison section { min-width: 0; padding: 12px; }
+.after { background: var(--highlight); border-radius: 4px; }
+.after h3 { color: var(--accent); }
+.reason { margin-top: 12px; font-size: var(--small); color: var(--muted); }
+.reason strong { margin-right: 8px; color: var(--ink); }
+summary { min-height: 44px; padding: 10px 4px; cursor: pointer; font-size: var(--small); font-weight: 500; border-radius: 4px; }
+summary:hover { background: var(--hover); }
+summary:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.count, .tag { color: var(--muted); font-size: var(--label); font-weight: 400; }
+.count { margin-left: 4px; font-variant-numeric: tabular-nums; }
+.file { min-width: 0; padding: 0 0 16px; scroll-margin-top: 20px; }
+.file:target { outline: 2px solid var(--accent); outline-offset: 4px; }
+.file-heading { display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 8px; }
+.file-heading code { min-width: 0; font-size: var(--small); overflow-wrap: anywhere; }
+.tag { white-space: nowrap; }
+pre { margin: 8px 0 0; padding: 12px 16px; overflow: auto; background: var(--code-bg); color: var(--code-ink); border-radius: 4px; font: var(--small)/1.65 ui-monospace, Consolas, monospace; tab-size: 2; }
+footer { margin-top: 12px; padding-top: 20px; border-top: 1px solid var(--line); }
+footer h2 { margin-bottom: 8px; }
+.check { display: grid; grid-template-columns: 72px minmax(0, 1fr); gap: 12px; padding: 12px 0; border-bottom: 1px solid var(--line); }
+.status { padding-top: 2px; font-size: var(--label); font-weight: 500; }
+.passed { color: var(--success); }
+.failed { color: var(--failure); }
+.not-run, .unknown { color: var(--muted); }
+.check p { margin-top: 2px; color: var(--muted); font-size: var(--small); }
+.more { border-top: 1px solid var(--line); }
+.more > summary { padding-block: 12px; }
+.diagram { margin: 0; padding: 20px 0; border-top: 1px solid var(--line); }
+.diagram figcaption { margin-bottom: 12px; font-size: 18px; font-weight: 500; overflow-wrap: anywhere; }
+.diagram-svg { display: block; max-width: 100%; height: auto; margin: auto; overflow: visible; font: 13px system-ui, -apple-system, "Segoe UI", sans-serif; }
+.diagram-svg text { fill: var(--ink); }
+.diagram-edge { fill: none; stroke: var(--muted); stroke-width: 1.5; }
+.diagram-svg marker path { fill: var(--muted); }
+.diagram-edge-label { fill: var(--page); }
+.diagram-svg .diagram-edge-text { fill: var(--muted); font-size: 12px; }
+.diagram-node rect { fill: var(--page); stroke: var(--line); stroke-width: 1.5; }
+.diagram-node.modified rect { fill: var(--highlight); stroke: var(--accent); }
+.diagram-node.added rect { stroke: var(--success); }
+.diagram-node.deleted rect { stroke: var(--failure); stroke-dasharray: 4 3; }
+.diagram-svg .diagram-kind { fill: var(--muted); font-size: 11px; }
+.diagram-node[href] { cursor: pointer; }
+.diagram-node[href]:hover rect, .diagram-node[href]:focus-visible rect { stroke: var(--accent); stroke-width: 2.5; }
+.diagram-node[href]:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; }
+.diagram-hint { margin-top: 12px; color: var(--muted); font-size: var(--small); text-align: center; }
+.diagram-comparison { display: grid; grid-template-columns: minmax(0,1fr) minmax(0,1fr); gap: 16px; }
+.diagram-comparison > section { min-width: 0; padding: 12px; border: 1px solid var(--line); border-radius: 4px; }
+.diagram-comparison > section > h3 { margin-bottom: 12px; }
+.diagram-compact { display: none; }
+@media (max-width: 999px) {
+  .diagram-wide { display: none; }
+  .diagram-compact { display: block; }
+}
+@media (max-width: 640px) {
+  main { padding: 24px 16px 32px; }
+  h1 { font-size: 24px; }
+  .meta { margin-bottom: 20px; }
+  article { padding-top: 16px; }
+  article header { gap: 8px; }
+  .comparison { grid-template-columns: minmax(0, 1fr); gap: 4px; }
+  .check { grid-template-columns: 60px minmax(0, 1fr); gap: 8px; }
+  pre { padding: 12px; }
+  .diagram-comparison { grid-template-columns: minmax(0,1fr); }
+  .diagram-comparison > section { padding: 12px 0; border: 0; }
+}
+</style></head><body><main><div class="eyebrow">COMET / 变更说明</div><h1>Web 题库可以审核相似题并保存独立合并版本</h1><div class="meta"><p>比较范围 · HEAD 与本 change 工作区差异；18 个交付文件，功能范围为 issue #474。</p><p>生成时间 · 2026-11-24T09:37:45.902Z</p></div><figure class="diagram"><figcaption>审核合并版本的路径</figcaption><div class="diagram-wide"><svg class="diagram-svg" width="624" height="84" viewBox="0 0 624 84" role="group" aria-labelledby="walkthrough-diagram-0-wide-title walkthrough-diagram-0-wide-description"><title id="walkthrough-diagram-0-wide-title">审核合并版本的路径</title><desc id="walkthrough-diagram-0-wide-description">只读扫描 → 选择保留题或跳过; 选择保留题或跳过 → 校验修订与确认回执; 校验修订与确认回执 → 独立版本可创建评估</desc><defs><marker id="walkthrough-diagram-0-wide-arrow" viewBox="0 0 8 8" refX="7" refY="4" markerWidth="6" markerHeight="6" orient="auto"><path d="M 0 0 L 8 4 L 0 8 z"/></marker></defs><path class="diagram-edge" d="M 132 42 C 152 42, 152 42, 169 42" marker-end="url(#walkthrough-diagram-0-wide-arrow)"/><path class="diagram-edge" d="M 292 42 C 312 42, 312 42, 329 42" marker-end="url(#walkthrough-diagram-0-wide-arrow)"/><path class="diagram-edge" d="M 452 42 C 472 42, 472 42, 489 42" marker-end="url(#walkthrough-diagram-0-wide-arrow)"/><g class="diagram-node "><rect x="12" y="12" width="120" height="60" rx="5"/><text class="" x="72" y="46" text-anchor="middle"><tspan x="72" dy="0">只读扫描</tspan></text></g><g class="diagram-node "><rect x="172" y="12" width="120" height="60" rx="5"/><text class="" x="232" y="37" text-anchor="middle"><tspan x="232" dy="0">选择保留题或跳</tspan><tspan x="232" dy="18">过</tspan></text></g><g class="diagram-node "><rect x="332" y="12" width="120" height="60" rx="5"/><text class="" x="392" y="37" text-anchor="middle"><tspan x="392" dy="0">校验修订与确认</tspan><tspan x="392" dy="18">回执</tspan></text></g><g class="diagram-node "><rect x="492" y="12" width="120" height="60" rx="5"/><text class="" x="552" y="37" text-anchor="middle"><tspan x="552" dy="0">独立版本可创建</tspan><tspan x="552" dy="18">评估</tspan></text></g></svg></div><div class="diagram-compact"><svg class="diagram-svg" width="272" height="372" viewBox="0 0 272 372" role="group" aria-labelledby="walkthrough-diagram-0-compact-title walkthrough-diagram-0-compact-description"><title id="walkthrough-diagram-0-compact-title">审核合并版本的路径</title><desc id="walkthrough-diagram-0-compact-description">只读扫描 → 选择保留题或跳过; 选择保留题或跳过 → 校验修订与确认回执; 校验修订与确认回执 → 独立版本可创建评估</desc><defs><marker id="walkthrough-diagram-0-compact-arrow" viewBox="0 0 8 8" refX="7" refY="4" markerWidth="6" markerHeight="6" orient="auto"><path d="M 0 0 L 8 4 L 0 8 z"/></marker></defs><path class="diagram-edge" d="M 136 72 C 136 90, 136 90, 136 105" marker-end="url(#walkthrough-diagram-0-compact-arrow)"/><path class="diagram-edge" d="M 136 168 C 136 186, 136 186, 136 201" marker-end="url(#walkthrough-diagram-0-compact-arrow)"/><path class="diagram-edge" d="M 136 264 C 136 282, 136 282, 136 297" marker-end="url(#walkthrough-diagram-0-compact-arrow)"/><g class="diagram-node "><rect x="80" y="12" width="112" height="60" rx="5"/><text class="" x="136" y="46" text-anchor="middle"><tspan x="136" dy="0">只读扫描</tspan></text></g><g class="diagram-node "><rect x="80" y="108" width="112" height="60" rx="5"/><text class="" x="136" y="133" text-anchor="middle"><tspan x="136" dy="0">选择保留题或</tspan><tspan x="136" dy="18">跳过</tspan></text></g><g class="diagram-node "><rect x="80" y="204" width="112" height="60" rx="5"/><text class="" x="136" y="229" text-anchor="middle"><tspan x="136" dy="0">校验修订与确</tspan><tspan x="136" dy="18">认回执</tspan></text></g><g class="diagram-node "><rect x="80" y="300" width="112" height="60" rx="5"/><text class="" x="136" y="325" text-anchor="middle"><tspan x="136" dy="0">独立版本可创</tspan><tspan x="136" dy="18">建评估</tspan></text></g></svg></div></figure><article><header><span class="number">01</span><h2>扫描与逐组审核</h2></header><div class="comparison"><section><h3>原来</h3><p>已有相似题只能借助 CLI 处理</p></section><section class="after"><h3>现在</h3><p>治理抽屉可扫描、查看来源/分数、选择保留题并审核完整合并内容</p></section></div><p class="reason"><strong>原因</strong> 让用户确认实际保留内容和列表变化</p><details><summary>查看文件和关键代码 <span class="count">2</span></summary><div class="file" id="walkthrough-file-0-0"><div class="file-heading"><span class="tag">新增</span><code>api/files/deduplication.py</code></div><pre><code>preview_deduplication: owner-scoped snapshot + CLI detection/merge functions</code></pre></div><div class="file" id="walkthrough-file-0-1"><div class="file-heading"><span class="tag">新增</span><code>frontend/src/pages/Problems/DeduplicationReview.tsx</code></div><pre><code>Explicit per-group primary/skip selection, field changes and merged content</code></pre></div></details></article><article><header><span class="number">02</span><h2>原子版本保存与幂等</h2></header><div class="comparison"><section><h3>原来</h3><p>治理版本保存缺少确认回执</p></section><section class="after"><h3>现在</h3><p>只应用批准组，保存完整快照；过期拒绝，同次确认重试返回原版本</p></section></div><p class="reason"><strong>原因</strong> 保护源库、历史引用和重复提交的一致性</p><details><summary>查看文件和关键代码 <span class="count">2</span></summary><div class="file" id="walkthrough-file-1-0"><div class="file-heading"><span class="tag">修改</span><code>api/files/store.py</code></div><pre><code>BEGIN IMMEDIATE; check confirmation; check source revision; insert version + receipt</code></pre></div><div class="file" id="walkthrough-file-1-1"><div class="file-heading"><span class="tag">修改</span><code>api/files/governance.py</code></div><pre><code>VersionProblem.merged_from exposes merge lineage</code></pre></div></details></article><footer><h2>实际验证</h2><div class="check"><span class="status passed">通过</span><div><strong>Builder 自检</strong><p>相关后端 1103 项、前端 367 项、Chrome 交互、类型构建、格式及严格规格验证通过。</p></div></div><div class="check"><span class="status passed">通过</span><div><strong>Runtime 检查</strong><p>Build 已完成，Verify Guard 已通过，当前进入 Archive 等待用户交付选择。</p></div></div><div class="check"><span class="status not-run">未执行</span><div><strong>独立验收</strong><p>当前批准 review_mode=off。</p></div></div><div class="check"><span class="status not-run">未执行</span><div><strong>完整仓库测试</strong><p>受限环境全仓运行中断；已发现的两项文档失败修复，四项本机端口错误在允许端口后复验通过。详见验证报告。</p></div></div></footer></main><template id="walkthrough-data">eyJzdW1tYXJ5IjoiV2ViIOmimOW6k+WPr+S7peWuoeaguOebuOS8vOmimOW5tuS/neWtmOeLrOeri+WQiOW5tueJiOacrCIsInNjb3BlIjoiSEVBRCDkuI7mnKwgY2hhbmdlIOW3peS9nOWMuuW3ruW8gu+8mzE4IOS4quS6pOS7mOaWh+S7tu+8jOWKn+iDveiMg+WbtOS4uiBpc3N1ZSAjNDc044CCIiwiY2hhbmdlcyI6W3sidGl0bGUiOiLmiavmj4/kuI7pgJDnu4TlrqHmoLgiLCJiZWZvcmUiOiLlt7LmnInnm7jkvLzpopjlj6rog73lgJ/liqkgQ0xJIOWkhOeQhiIsImFmdGVyIjoi5rK755CG5oq95bGJ5Y+v5omr5o+P44CB5p+l55yL5p2l5rqQL+WIhuaVsOOAgemAieaLqeS/neeVmemimOW5tuWuoeaguOWujOaVtOWQiOW5tuWGheWuuSIsInJlYXNvbiI6IuiuqeeUqOaIt+ehruiupOWunumZheS/neeVmeWGheWuueWSjOWIl+ihqOWPmOWMliIsImZpbGVzIjpbeyJwYXRoIjoiYXBpL2ZpbGVzL2RlZHVwbGljYXRpb24ucHkiLCJraW5kIjoiYWRkZWQiLCJjb2RlIjoicHJldmlld19kZWR1cGxpY2F0aW9uOiBvd25lci1zY29wZWQgc25hcHNob3QgKyBDTEkgZGV0ZWN0aW9uL21lcmdlIGZ1bmN0aW9ucyJ9LHsicGF0aCI6ImZyb250ZW5kL3NyYy9wYWdlcy9Qcm9ibGVtcy9EZWR1cGxpY2F0aW9uUmV2aWV3LnRzeCIsImtpbmQiOiJhZGRlZCIsImNvZGUiOiJFeHBsaWNpdCBwZXItZ3JvdXAgcHJpbWFyeS9za2lwIHNlbGVjdGlvbiwgZmllbGQgY2hhbmdlcyBhbmQgbWVyZ2VkIGNvbnRlbnQifV19LHsidGl0bGUiOiLljp/lrZDniYjmnKzkv53lrZjkuI7luYLnrYkiLCJiZWZvcmUiOiLmsrvnkIbniYjmnKzkv53lrZjnvLrlsJHnoa7orqTlm57miaciLCJhZnRlciI6IuWPquW6lOeUqOaJueWHhue7hO+8jOS/neWtmOWujOaVtOW/q+eFp++8m+i/h+acn+aLkue7ne+8jOWQjOasoeehruiupOmHjeivlei/lOWbnuWOn+eJiOacrCIsInJlYXNvbiI6IuS/neaKpOa6kOW6k+OAgeWOhuWPsuW8leeUqOWSjOmHjeWkjeaPkOS6pOeahOS4gOiHtOaApyIsImZpbGVzIjpbeyJwYXRoIjoiYXBpL2ZpbGVzL3N0b3JlLnB5Iiwia2luZCI6Im1vZGlmaWVkIiwiY29kZSI6IkJFR0lOIElNTUVESUFURTsgY2hlY2sgY29uZmlybWF0aW9uOyBjaGVjayBzb3VyY2UgcmV2aXNpb247IGluc2VydCB2ZXJzaW9uICsgcmVjZWlwdCJ9LHsicGF0aCI6ImFwaS9maWxlcy9nb3Zlcm5hbmNlLnB5Iiwia2luZCI6Im1vZGlmaWVkIiwiY29kZSI6IlZlcnNpb25Qcm9ibGVtLm1lcmdlZF9mcm9tIGV4cG9zZXMgbWVyZ2UgbGluZWFnZSJ9XX1dLCJ2ZXJpZmljYXRpb24iOlt7ImxhYmVsIjoiQnVpbGRlciDoh6rmo4AiLCJzdGF0dXMiOiJwYXNzZWQiLCJkZXRhaWwiOiLnm7jlhbPlkI7nq68gMTEwMyDpobnjgIHliY3nq68gMzY3IOmhueOAgUNocm9tZSDkuqTkupLjgIHnsbvlnovmnoTlu7rjgIHmoLzlvI/lj4rkuKXmoLzop4TmoLzpqozor4HpgJrov4fjgIIifSx7ImxhYmVsIjoiUnVudGltZSDmo4Dmn6UiLCJzdGF0dXMiOiJwYXNzZWQiLCJkZXRhaWwiOiJCdWlsZCDlt7LlrozmiJDvvIxWZXJpZnkgR3VhcmQg5bey6YCa6L+H77yM5b2T5YmN6L+b5YWlIEFyY2hpdmUg562J5b6F55So5oi35Lqk5LuY6YCJ5oup44CCIn0seyJsYWJlbCI6IueLrOeri+mqjOaUtiIsInN0YXR1cyI6Im5vdC1ydW4iLCJkZXRhaWwiOiLlvZPliY3mibnlh4YgcmV2aWV3X21vZGU9b2Zm44CCIn0seyJsYWJlbCI6IuWujOaVtOS7k+W6k+a1i+ivlSIsInN0YXR1cyI6Im5vdC1ydW4iLCJkZXRhaWwiOiLlj5fpmZDnjq/looPlhajku5Pov5DooYzkuK3mlq3vvJvlt7Llj5HnjrDnmoTkuKTpobnmlofmoaPlpLHotKXkv67lpI3vvIzlm5vpobnmnKzmnLrnq6/lj6PplJnor6/lnKjlhYHorrjnq6/lj6PlkI7lpI3pqozpgJrov4fjgILor6bop4Hpqozor4HmiqXlkYrjgIIifV0sImRpYWdyYW1zIjpbeyJ0eXBlIjoiZmxvdyIsInRpdGxlIjoi5a6h5qC45ZCI5bm254mI5pys55qE6Lev5b6EIiwibm9kZXMiOlt7ImlkIjoic2NhbiIsImxhYmVsIjoi5Y+q6K+75omr5o+PIn0seyJpZCI6InJldmlldyIsImxhYmVsIjoi6YCJ5oup5L+d55WZ6aKY5oiW6Lez6L+HIn0seyJpZCI6ImNoZWNrIiwibGFiZWwiOiLmoKHpqozkv67orqLkuI7noa7orqTlm57miacifSx7ImlkIjoidmVyc2lvbiIsImxhYmVsIjoi54us56uL54mI5pys5Y+v5Yib5bu66K+E5LywIn1dLCJlZGdlcyI6W3siZnJvbSI6InNjYW4iLCJ0byI6InJldmlldyJ9LHsiZnJvbSI6InJldmlldyIsInRvIjoiY2hlY2sifSx7ImZyb20iOiJjaGVjayIsInRvIjoidmVyc2lvbiJ9XX1dfQ==</template></body></html>

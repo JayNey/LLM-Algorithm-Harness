@@ -60,6 +60,7 @@ class VersionProblem(BaseModel):
     title: str
     difficulty: str
     tags: list[str] = Field(default_factory=list)
+    merged_from: list[str] = Field(default_factory=list)
 
 
 class TagSuggestion(BaseModel):
