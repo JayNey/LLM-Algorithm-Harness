@@ -1,0 +1,49 @@
+{
+  "checks": [
+    {
+      "name": "后端相关回归 / repository / .venv/bin/python -m pytest [16 test modules] --no-cov -q",
+      "result": "passed",
+      "note": "597 passed; final full command and output in openspec/changes/web-incremental-evaluation/.comet/checks/backend.log"
+    },
+    {
+      "name": "结果费用补测 / repository / pytest API reuse + results modules",
+      "result": "passed",
+      "note": "32 passed after nullable unknown new-cost presentation; .comet/checks/cost-view.log"
+    },
+    {
+      "name": "题目指纹 / repository / pytest test_incremental_e2e.py -k problem_fingerprint_tracks_evaluation_fields",
+      "result": "passed",
+      "note": "12 passed; includes hidden/feedback/public tests and judge metadata; .comet/checks/fingerprint-fields.log"
+    },
+    {
+      "name": "前端 / frontend / npm test",
+      "result": "passed",
+      "note": "370 passed; .comet/checks/frontend-tests.log"
+    },
+    {
+      "name": "前端构建与 Lint / frontend / npm run build; npm run lint",
+      "result": "passed",
+      "note": "Both exit 0; existing large-bundle warning; .comet/checks/frontend-build.log and frontend-lint.log"
+    },
+    {
+      "name": "Python / repository / Ruff, Black check, scoped mypy",
+      "result": "passed",
+      "note": "Ruff clean, Black 16 files unchanged; mypy --follow-imports=silent --ignore-missing-imports: no issues in 8 source files. Unrestricted traversal has pre-existing untyped-dependency errors; scoped check used for changed code."
+    },
+    {
+      "name": "浏览器 / frontend production preview / node /tmp/issue475-browser.mjs",
+      "result": "passed",
+      "note": "Actual React/client/store with offline HTTP fixtures. Preview, failure/retry, submission/source/cost and 320/390/1280px layout pass. Analytics fixture intentionally returns 404; not analytics E2E. Evidence: docs/superpowers/reports/assets/web-incremental-evaluation/report.json"
+    },
+    {
+      "name": "OpenSpec / repository / comet classic openspec -- validate web-incremental-evaluation --strict",
+      "result": "passed",
+      "note": "Strict validation passed; git diff --check also clean."
+    },
+    {
+      "name": "全复用零预算且无定价 / pytest -k web_incremental_all_reused_zero_budget_no_runtime",
+      "result": "passed",
+      "note": "1 passed; runtime initialization forbidden and PricingManager reports pricing_known=False; .comet/checks/zero-budget-no-pricing.log"
+    }
+  ]
+}

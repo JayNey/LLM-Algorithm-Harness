@@ -433,3 +433,42 @@ test('单题结果保留可显示的失败阶段和类型', async () => {
   assert.equal(result.problems.items[0]?.error_stage, 'generation')
   assert.equal(result.problems.items[0]?.error_type, 'timeout')
 })
+
+test('增量客户端预览保持复用与版本参数并拒绝不一致计数', async () => {
+  const seen: InternalAxiosRequestConfig[] = []
+  const response = {
+    total_units: 2,
+    reused_units: 1,
+    new_units: 1,
+    units: [
+      {
+        problem_id: 'p1',
+        strategy: 'direct',
+        reason: 'compatible_history',
+        source: {
+          evaluation_id: 'old',
+          run_id: 'web-old',
+          result_id: 'unit-old',
+        },
+      },
+    ],
+  }
+  const client = clientFor(response, seen)
+  assert.deepEqual(
+    await client.reusePreview({
+      ...payload,
+      reuse_history: true,
+      dataset_version_id: 'v1',
+    }),
+    response,
+  )
+  const sent = JSON.parse(seen[0].data)
+  assert.equal(seen[0].url, '/evaluations/reuse-preview')
+  assert.equal(sent.reuse_history, true)
+  assert.equal(sent.dataset_version_id, 'v1')
+  assert.equal('verify_problem_access' in sent, false)
+  const invalid = clientFor({ ...response, new_units: 2 })
+  await assert.rejects(
+    invalid.reusePreview({ ...payload, reuse_history: true }),
+  )
+})

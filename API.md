@@ -322,3 +322,23 @@ running/paused/failed/cancelled 的已提交结果为部分产物，只有 compl
 归属由业务记录与文件注册共同校验，跨账号或不存在资源返回 404。结果文件沿用既有无自动 TTL 的保留策略；候选文件可过期回收。单独主动删除的结果内容不会因状态或代际变化复活，只有真实新结果可生成新产物；过期/损坏文件仅显式重试可重建。新旧文件并存按真实占用检查配额，空间不足报告 storage_limit，释放空间后可重试。删除评估会删除发布记录并清理文件，延迟消息不会复活它。
 
 部署顺序：应用业务迁移 `0007`（依赖站内通知 `0006`），再更新 API 与包含 `src.tasks.artifacts` 的 Worker；API/Worker 必须共享认证元数据库和 UPLOAD_DIR。回退到 `0006` 仅移除新增发布表与原始执行字段，不影响站内通知；代码回滚不自动降级删除数据。可用 `python scripts/verify_evaluation_artifacts.py` 复跑真实 TCP API、实际任务函数、六种格式和故障重试联调；供应商、沙箱及队列/结果后端在该脚本中明确使用可控替身，无手工结果注入或付费模型调用。
+
+## Web 增量评估与历史复用（#475）
+
+创建页可开启「复用历史结果」。创建请求新增可选布尔字段 `reuse_history`，默认 `false`，普通、选题及个人集合版本入口均支持。预览使用 `POST /api/v1/evaluations/reuse-preview`，请求字段与创建相同；个人集合版本需包含 `dataset_version_id`。预览不调用模型、不创建任务、不结算费用。
+
+```json
+{
+  "api_key_id": "your-owned-key-id",
+  "model": "gpt-4o-mini",
+  "problem_ids": ["p1", "p2"],
+  "strategy_names": ["vanilla", "chain_of_thought"],
+  "reuse_history": true
+}
+```
+
+预览的 `data.total_units/reused_units/new_units` 按题目 × 策略计数，`units` 包含各单元的 `reason`，兼容历史的 `source` 包含 `evaluation_id/run_id/result_id`。仅使用本人已完成运行中实际执行且兼容信息完整的结果；旧记录缺少指纹、取消/未执行、不兼容模型/策略/测试/执行配置均会新跑。动态 few-shot 示例池无法证明兼容时也采用新跑。
+
+创建时重新计算并固定题目完整版本、有效配置、复用结果副本及来源，响应返回最终 `reuse_history/reused_units/new_units`。预览和提交间数据变化可能改变最终数量。创建之后的题库修改或来源删除不改变本次固定计划；暂停恢复和重投递沿用该计划。固定配置不兼容或计划损坏时明确失败。
+
+任务 `spent_usd/known_cost_usd/unknown_cost_count` 与预算使用本次新增调用口径。全部复用仍生成完整结果，新增模型调用和费用为零，包括零预算或缺少定价的情形。结果详情额外返回 `reuse.total_units/reused_units/new_units/new_cost_usd/new_cost_unknown_count`；每行提供 `reused/reuse_source/original_cost_usd/new_cost_usd`。复用行保留原始 token、迭代、耗时与原始成本，历史未知成本不算本次未知支出。策略统计的成本保留原始执行口径，页面和报告会明确标注；含复用单元的 CSV 增加来源与本次费用列，原有列保留。私有计划、隐藏测试和凭证不会通过上述接口返回。

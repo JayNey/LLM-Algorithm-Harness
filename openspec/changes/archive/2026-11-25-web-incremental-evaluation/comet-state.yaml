@@ -1,0 +1,2654 @@
+# comet-execution: managed-run
+change_id: ac4940d8-41e8-430e-8596-79276630e1c4
+workflow: tweak
+language: zh-CN
+phase: archive
+context_compression: off
+build_mode: direct
+build_pause: null
+subagent_dispatch: null
+tdd_mode: direct
+review_mode: off
+isolation: current
+verify_mode: light
+auto_transition: true
+base_ref: 58d6b9770005f357ccec68fc207be34024c2bf3d
+design_doc: null
+plan: null
+verify_result: pass
+verify_failures: 0
+verification_report: docs/superpowers/reports/2026-11-25-web-incremental-evaluation-verify.md
+branch_status: pending
+created_at: 2026-11-25
+verified_at: 2026-11-25
+archive_confirmation: confirmed
+archived: true
+bound_branch: codex/web-incremental-evaluation
+run_checkpoint:
+  schema: comet.workflow-run-checkpoint.v1
+  hash: abac944a27c1057cfe52c4684dea1c65862574524a61a7584f26e6c9579e1bc6
+  run:
+    protocolVersion: 1
+    schemaVersion: 1
+    runId: web-incremental-evaluation
+    revision: 1
+    workflow:
+      id: comet-classic-tweak
+      version: "2"
+      hash: d1e067bc00ca13395dbc6f701565417c3e227f17a57df025dd73ebda905e2638
+    definitionHashes:
+      '["comet-classic-tweak","2"]': d1e067bc00ca13395dbc6f701565417c3e227f17a57df025dd73ebda905e2638
+    initialStateHash: 5f292a052137b8ecd45e674ffdeecd6000f6251d946fb233f1a9d344d7597004
+    input:
+      change: web-incremental-evaluation
+      changeDir: openspec/changes/web-incremental-evaluation
+      workspaceBaseline:
+        ref: c6ecc2a8-59e4-46be-8107-a3e0b1c86b18
+    state:
+      archiveConfirmation: confirmed
+      archived: true
+      autoTransition: true
+      baseRef: 58d6b9770005f357ccec68fc207be34024c2bf3d
+      boundBranch: codex/web-incremental-evaluation
+      branchStatus: pending
+      buildMode: direct
+      buildPause: null
+      checkEpoch: 6
+      classicMigration: null
+      classicProfile: null
+      contextCompression: off
+      createdAt: 2026-11-25
+      designDoc: null
+      directOverride: null
+      handoffContext: null
+      handoffHash: null
+      isolation: current
+      language: zh-CN
+      phase: archive
+      plan: null
+      reviewMode: off
+      subagentDispatch: null
+      tddMode: direct
+      verificationReport: docs/superpowers/reports/2026-11-25-web-incremental-evaluation-verify.md
+      verifiedAt: 2026-11-25
+      verifyFailures: 0
+      verifyMode: light
+      verifyResult: pass
+      workflow: tweak
+    status: running
+    sequence: 16
+    actions:
+      - attempt: 1
+        claim:
+          executorId: comet-classic-guard
+          token: portable-c89beaca9951ab94b962aef568f7aeb357351bf9b122d53fd39cc693b44a90f5
+        executionOrigin:
+          workflow:
+            hash: 518d3e8e12eb39899775cb7d2ddcc7ddeba10cb1f1d43cff7b03f2ca61a70c65
+            id: comet-classic-tweak
+            version: "2"
+        id: web-incremental-evaluation:1
+        input:
+          input:
+            change: web-incremental-evaluation
+            changeDir: openspec/changes/web-incremental-evaluation
+            workspaceBaseline:
+              ref: c6ecc2a8-59e4-46be-8107-a3e0b1c86b18
+          outputs: {}
+        inputHash: 931dabae85b5cefa398e7e28a6b61413ceb8eeca961dc8d9a15273d693938ab1
+        outcome:
+          actionId: web-incremental-evaluation:1
+          attempt: 1
+          claimToken: portable-c89beaca9951ab94b962aef568f7aeb357351bf9b122d53fd39cc693b44a90f5
+          inputHash: 931dabae85b5cefa398e7e28a6b61413ceb8eeca961dc8d9a15273d693938ab1
+          outcomeId: ec6755d6-30fd-4813-8f6b-44cbd2bf5018
+          output:
+            event: open-complete
+            requirementsEvidence:
+              ref: openspec/changes/web-incremental-evaluation
+          status: succeeded
+        protocolVersion: 1
+        receipts:
+          - hash: 290a787a44c6c16a0b332abeffe162213dbed914f8263aa694932acc7612fd4f
+            outcomeId: ec6755d6-30fd-4813-8f6b-44cbd2bf5018
+        reconciliations: []
+        ref: comet-tweak
+        requiredCapabilities: []
+        retry: manual
+        runId: web-incremental-evaluation
+        status: succeeded
+        stepId: tweak.open
+        type: invoke_skill
+      - attempt: 1
+        claim:
+          executorId: comet-classic-state
+          token: portable-2d62a595ddeab6cf63ca57d4837cbc5d7eb5d6499d377a39dba89f3dbd329ac7
+        executionOrigin:
+          workflow:
+            hash: 518d3e8e12eb39899775cb7d2ddcc7ddeba10cb1f1d43cff7b03f2ca61a70c65
+            id: comet-classic-tweak
+            version: "2"
+        id: web-incremental-evaluation:3
+        input:
+          input:
+            change: web-incremental-evaluation
+            changeDir: openspec/changes/web-incremental-evaluation
+            workspaceBaseline:
+              ref: c6ecc2a8-59e4-46be-8107-a3e0b1c86b18
+          outputs:
+            tweak.open:
+              event: open-complete
+              requirementsEvidence:
+                ref: openspec/changes/web-incremental-evaluation
+            tweak.open.evidence:
+              contentHash: 931dabae85b5cefa398e7e28a6b61413ceb8eeca961dc8d9a15273d693938ab1
+              ref: openspec/changes/web-incremental-evaluation
+        inputHash: c7267a11518d0fe1c38c4fc71ecb3a8863b5eda565e24547d191d27d46f8051f
+        outcome:
+          actionId: web-incremental-evaluation:3
+          attempt: 1
+          claimToken: portable-2d62a595ddeab6cf63ca57d4837cbc5d7eb5d6499d377a39dba89f3dbd329ac7
+          inputHash: c7267a11518d0fe1c38c4fc71ecb3a8863b5eda565e24547d191d27d46f8051f
+          outcomeId: 7e672b2e-83a2-46bc-8bf2-dd7cb79125b1
+          output:
+            event: escalation-requested
+            proposal: "Issue #475 已确认范围包含公开预览 API、持久化 schema、前后端与 worker/预算/恢复联动，预计超过 6
+              个交付文件；用户已在 Open 范围展示后明确选择选项 2：继续 tweak，接受该范围。"
+            requirementsEvidence:
+              contentHash: c7267a11518d0fe1c38c4fc71ecb3a8863b5eda565e24547d191d27d46f8051f
+              ref: openspec/changes/web-incremental-evaluation
+          status: succeeded
+        protocolVersion: 1
+        receipts:
+          - hash: 4981e363187a0bdad0dd3e12e1b4fe5078febf369c8d6d27200215bf7c2a21c5
+            outcomeId: 7e672b2e-83a2-46bc-8bf2-dd7cb79125b1
+        reconciliations: []
+        ref: comet-build
+        requiredCapabilities: []
+        retry: manual
+        runId: web-incremental-evaluation
+        status: succeeded
+        stepId: tweak.build.execute
+        type: invoke_skill
+      - attempt: 1
+        claim:
+          executorId: comet-classic-state
+          sessionId: 01a21089-8c15-7343-80b7-53feab22aa9e
+          token: portable-3ad854e15faf8d987915faf6280fae4cfa2fff93a3ecbccdb644741bba287374
+        executionOrigin:
+          workflow:
+            hash: 518d3e8e12eb39899775cb7d2ddcc7ddeba10cb1f1d43cff7b03f2ca61a70c65
+            id: comet-classic-tweak
+            version: "2"
+        id: web-incremental-evaluation:5
+        input:
+          input:
+            change: web-incremental-evaluation
+            changeDir: openspec/changes/web-incremental-evaluation
+            workspaceBaseline:
+              ref: c6ecc2a8-59e4-46be-8107-a3e0b1c86b18
+          outputs:
+            tweak.build.escalation-confirm:
+              choice: continue
+              proposal:
+                input:
+                  change: web-incremental-evaluation
+                  changeDir: openspec/changes/web-incremental-evaluation
+                  workspaceBaseline:
+                    ref: c6ecc2a8-59e4-46be-8107-a3e0b1c86b18
+                outputs:
+                  tweak.build.execute:
+                    event: escalation-requested
+                    proposal: "Issue #475 已确认范围包含公开预览 API、持久化 schema、前后端与 worker/预算/恢复联动，预计超过 6
+                      个交付文件；用户已在 Open 范围展示后明确选择选项 2：继续 tweak，接受该范围。"
+                    requirementsEvidence:
+                      contentHash: c7267a11518d0fe1c38c4fc71ecb3a8863b5eda565e24547d191d27d46f8051f
+                      ref: openspec/changes/web-incremental-evaluation
+            tweak.build.execute:
+              event: escalation-requested
+              proposal: "Issue #475 已确认范围包含公开预览 API、持久化 schema、前后端与 worker/预算/恢复联动，预计超过 6
+                个交付文件；用户已在 Open 范围展示后明确选择选项 2：继续 tweak，接受该范围。"
+              requirementsEvidence:
+                contentHash: c7267a11518d0fe1c38c4fc71ecb3a8863b5eda565e24547d191d27d46f8051f
+                ref: openspec/changes/web-incremental-evaluation
+            tweak.open:
+              event: open-complete
+              requirementsEvidence:
+                ref: openspec/changes/web-incremental-evaluation
+            tweak.open.evidence:
+              contentHash: 931dabae85b5cefa398e7e28a6b61413ceb8eeca961dc8d9a15273d693938ab1
+              ref: openspec/changes/web-incremental-evaluation
+        inputHash: 4022a19966517044a2b872b406b7817e7e795a25c3a2b8761d1726eff97b5329
+        outcome:
+          actionId: web-incremental-evaluation:5
+          attempt: 1
+          claimToken: portable-3ad854e15faf8d987915faf6280fae4cfa2fff93a3ecbccdb644741bba287374
+          inputHash: 4022a19966517044a2b872b406b7817e7e795a25c3a2b8761d1726eff97b5329
+          outcomeId: 9215ba98-2549-487b-9ebf-9e422b0a526e
+          output:
+            checks:
+              - name: 后端相关回归 / repository / .venv/bin/python -m pytest [16 test modules]
+                  --no-cov -q
+                note: 597 passed; final full command and output in
+                  openspec/changes/web-incremental-evaluation/.comet/checks/backend.log
+                result: passed
+              - name: 结果费用补测 / repository / pytest API reuse + results modules
+                note: 32 passed after nullable unknown new-cost presentation;
+                  .comet/checks/cost-view.log
+                result: passed
+              - name: 题目指纹 / repository / pytest test_incremental_e2e.py -k
+                  problem_fingerprint_tracks_evaluation_fields
+                note: 12 passed; includes hidden/feedback/public tests and judge metadata;
+                  .comet/checks/fingerprint-fields.log
+                result: passed
+              - name: 前端 / frontend / npm test
+                note: 370 passed; .comet/checks/frontend-tests.log
+                result: passed
+              - name: 前端构建与 Lint / frontend / npm run build; npm run lint
+                note: Both exit 0; existing large-bundle warning;
+                  .comet/checks/frontend-build.log and frontend-lint.log
+                result: passed
+              - name: Python / repository / Ruff, Black check, scoped mypy
+                note: "Ruff clean, Black 16 files unchanged; mypy --follow-imports=silent
+                  --ignore-missing-imports: no issues in 8 source files.
+                  Unrestricted traversal has pre-existing untyped-dependency
+                  errors; scoped check used for changed code."
+                result: passed
+              - name: 浏览器 / frontend production preview / node /tmp/issue475-browser.mjs
+                note: "Actual React/client/store with offline HTTP fixtures. Preview,
+                  failure/retry, submission/source/cost and 320/390/1280px
+                  layout pass. Analytics fixture intentionally returns 404; not
+                  analytics E2E. Evidence:
+                  docs/superpowers/reports/assets/web-incremental-evaluation/re\
+                  port.json"
+                result: passed
+              - name: OpenSpec / repository / comet classic openspec -- validate
+                  web-incremental-evaluation --strict
+                note: Strict validation passed; git diff --check also clean.
+                result: passed
+            event: build-complete
+          status: succeeded
+        protocolVersion: 1
+        receipts:
+          - hash: f8a07e812b73b17d0ad3064afc6e25221d062387f1036f85fac808ffe4e4dbd0
+            outcomeId: 9215ba98-2549-487b-9ebf-9e422b0a526e
+        reconciliations: []
+        ref: comet-build
+        requiredCapabilities: []
+        retry: manual
+        runId: web-incremental-evaluation
+        status: succeeded
+        stepId: tweak.build.execute
+        type: invoke_skill
+      - attempt: 1
+        claim:
+          executorId: comet-classic-guard
+          token: portable-6e8e025526c321a247512d968c01c5af6f1d21b50fc611b010af87d9ad50e26b
+        executionOrigin:
+          workflow:
+            hash: 518d3e8e12eb39899775cb7d2ddcc7ddeba10cb1f1d43cff7b03f2ca61a70c65
+            id: comet-classic-tweak
+            version: "2"
+        id: web-incremental-evaluation:6
+        input:
+          input:
+            change: web-incremental-evaluation
+            changeDir: openspec/changes/web-incremental-evaluation
+            workspaceBaseline:
+              ref: c6ecc2a8-59e4-46be-8107-a3e0b1c86b18
+          outputs:
+            tweak.build.escalation-confirm:
+              choice: continue
+              proposal:
+                input:
+                  change: web-incremental-evaluation
+                  changeDir: openspec/changes/web-incremental-evaluation
+                  workspaceBaseline:
+                    ref: c6ecc2a8-59e4-46be-8107-a3e0b1c86b18
+                outputs:
+                  tweak.build.execute:
+                    event: escalation-requested
+                    proposal: "Issue #475 已确认范围包含公开预览 API、持久化 schema、前后端与 worker/预算/恢复联动，预计超过 6
+                      个交付文件；用户已在 Open 范围展示后明确选择选项 2：继续 tweak，接受该范围。"
+                    requirementsEvidence:
+                      contentHash: c7267a11518d0fe1c38c4fc71ecb3a8863b5eda565e24547d191d27d46f8051f
+                      ref: openspec/changes/web-incremental-evaluation
+            tweak.build.execute:
+              checks:
+                - name: 后端相关回归 / repository / .venv/bin/python -m pytest [16 test modules]
+                    --no-cov -q
+                  note: 597 passed; final full command and output in
+                    openspec/changes/web-incremental-evaluation/.comet/checks/backend.log
+                  result: passed
+                - name: 结果费用补测 / repository / pytest API reuse + results modules
+                  note: 32 passed after nullable unknown new-cost presentation;
+                    .comet/checks/cost-view.log
+                  result: passed
+                - name: 题目指纹 / repository / pytest test_incremental_e2e.py -k
+                    problem_fingerprint_tracks_evaluation_fields
+                  note: 12 passed; includes hidden/feedback/public tests and judge metadata;
+                    .comet/checks/fingerprint-fields.log
+                  result: passed
+                - name: 前端 / frontend / npm test
+                  note: 370 passed; .comet/checks/frontend-tests.log
+                  result: passed
+                - name: 前端构建与 Lint / frontend / npm run build; npm run lint
+                  note: Both exit 0; existing large-bundle warning;
+                    .comet/checks/frontend-build.log and frontend-lint.log
+                  result: passed
+                - name: Python / repository / Ruff, Black check, scoped mypy
+                  note: "Ruff clean, Black 16 files unchanged; mypy --follow-imports=silent
+                    --ignore-missing-imports: no issues in 8 source files.
+                    Unrestricted traversal has pre-existing untyped-dependency
+                    errors; scoped check used for changed code."
+                  result: passed
+                - name: 浏览器 / frontend production preview / node /tmp/issue475-browser.mjs
+                  note: "Actual React/client/store with offline HTTP fixtures. Preview,
+                    failure/retry, submission/source/cost and 320/390/1280px
+                    layout pass. Analytics fixture intentionally returns 404;
+                    not analytics E2E. Evidence:
+                    docs/superpowers/reports/assets/web-incremental-evaluation/\
+                    report.json"
+                  result: passed
+                - name: OpenSpec / repository / comet classic openspec -- validate
+                    web-incremental-evaluation --strict
+                  note: Strict validation passed; git diff --check also clean.
+                  result: passed
+              event: build-complete
+            tweak.open:
+              event: open-complete
+              requirementsEvidence:
+                ref: openspec/changes/web-incremental-evaluation
+            tweak.open.evidence:
+              contentHash: 931dabae85b5cefa398e7e28a6b61413ceb8eeca961dc8d9a15273d693938ab1
+              ref: openspec/changes/web-incremental-evaluation
+        inputHash: b8832575a253d1b0b342ee08b7f6044fb92a71be2dc7a95fdb492214af1f6c70
+        outcome:
+          actionId: web-incremental-evaluation:6
+          attempt: 1
+          claimToken: portable-6e8e025526c321a247512d968c01c5af6f1d21b50fc611b010af87d9ad50e26b
+          inputHash: b8832575a253d1b0b342ee08b7f6044fb92a71be2dc7a95fdb492214af1f6c70
+          outcomeId: 34a0e560-1697-464d-abd9-673a2e354d29
+          output:
+            checks:
+              - name: 后端相关回归 / repository / .venv/bin/python -m pytest [16 test modules]
+                  --no-cov -q
+                note: 597 passed; final full command and output in
+                  openspec/changes/web-incremental-evaluation/.comet/checks/backend.log
+                result: passed
+              - name: 结果费用补测 / repository / pytest API reuse + results modules
+                note: 32 passed after nullable unknown new-cost presentation;
+                  .comet/checks/cost-view.log
+                result: passed
+              - name: 题目指纹 / repository / pytest test_incremental_e2e.py -k
+                  problem_fingerprint_tracks_evaluation_fields
+                note: 12 passed; includes hidden/feedback/public tests and judge metadata;
+                  .comet/checks/fingerprint-fields.log
+                result: passed
+              - name: 前端 / frontend / npm test
+                note: 370 passed; .comet/checks/frontend-tests.log
+                result: passed
+              - name: 前端构建与 Lint / frontend / npm run build; npm run lint
+                note: Both exit 0; existing large-bundle warning;
+                  .comet/checks/frontend-build.log and frontend-lint.log
+                result: passed
+              - name: Python / repository / Ruff, Black check, scoped mypy
+                note: "Ruff clean, Black 16 files unchanged; mypy --follow-imports=silent
+                  --ignore-missing-imports: no issues in 8 source files.
+                  Unrestricted traversal has pre-existing untyped-dependency
+                  errors; scoped check used for changed code."
+                result: passed
+              - name: 浏览器 / frontend production preview / node /tmp/issue475-browser.mjs
+                note: "Actual React/client/store with offline HTTP fixtures. Preview,
+                  failure/retry, submission/source/cost and 320/390/1280px
+                  layout pass. Analytics fixture intentionally returns 404; not
+                  analytics E2E. Evidence:
+                  docs/superpowers/reports/assets/web-incremental-evaluation/re\
+                  port.json"
+                result: passed
+              - name: OpenSpec / repository / comet classic openspec -- validate
+                  web-incremental-evaluation --strict
+                note: Strict validation passed; git diff --check also clean.
+                result: passed
+              - name: 全复用零预算且无定价 / pytest -k web_incremental_all_reused_zero_budget_no_runtime
+                note: 1 passed; runtime initialization forbidden and PricingManager reports
+                  pricing_known=False; .comet/checks/zero-budget-no-pricing.log
+                result: passed
+            event: verification-ready
+            verificationReport: docs/superpowers/reports/2026-11-25-web-incremental-evaluation-verify.md
+          status: succeeded
+        protocolVersion: 1
+        receipts:
+          - hash: ee59f179a46ec08340429f9f396070e6dbeeea162063190758f0c545d9761b5f
+            outcomeId: 34a0e560-1697-464d-abd9-673a2e354d29
+        reconciliations: []
+        ref: comet-verify
+        requiredCapabilities: []
+        retry: manual
+        runId: web-incremental-evaluation
+        status: succeeded
+        stepId: tweak.verify.run
+        type: invoke_skill
+      - attempt: 1
+        claim:
+          executorId: comet-classic-state
+          token: portable-14a56ea6bc9ec3745915faada2df58b775cd8eb31d355ad3792420ca93286492
+        executionOrigin:
+          workflow:
+            hash: 518d3e8e12eb39899775cb7d2ddcc7ddeba10cb1f1d43cff7b03f2ca61a70c65
+            id: comet-classic-tweak
+            version: "2"
+        id: web-incremental-evaluation:8
+        input:
+          input:
+            change: web-incremental-evaluation
+            changeDir: openspec/changes/web-incremental-evaluation
+            workspaceBaseline:
+              ref: c6ecc2a8-59e4-46be-8107-a3e0b1c86b18
+          outputs:
+            tweak.build.escalation-confirm:
+              choice: continue
+              proposal:
+                input:
+                  change: web-incremental-evaluation
+                  changeDir: openspec/changes/web-incremental-evaluation
+                  workspaceBaseline:
+                    ref: c6ecc2a8-59e4-46be-8107-a3e0b1c86b18
+                outputs:
+                  tweak.build.execute:
+                    event: escalation-requested
+                    proposal: "Issue #475 已确认范围包含公开预览 API、持久化 schema、前后端与 worker/预算/恢复联动，预计超过 6
+                      个交付文件；用户已在 Open 范围展示后明确选择选项 2：继续 tweak，接受该范围。"
+                    requirementsEvidence:
+                      contentHash: c7267a11518d0fe1c38c4fc71ecb3a8863b5eda565e24547d191d27d46f8051f
+                      ref: openspec/changes/web-incremental-evaluation
+            tweak.build.execute:
+              checks:
+                - name: 后端相关回归 / repository / .venv/bin/python -m pytest [16 test modules]
+                    --no-cov -q
+                  note: 597 passed; final full command and output in
+                    openspec/changes/web-incremental-evaluation/.comet/checks/backend.log
+                  result: passed
+                - name: 结果费用补测 / repository / pytest API reuse + results modules
+                  note: 32 passed after nullable unknown new-cost presentation;
+                    .comet/checks/cost-view.log
+                  result: passed
+                - name: 题目指纹 / repository / pytest test_incremental_e2e.py -k
+                    problem_fingerprint_tracks_evaluation_fields
+                  note: 12 passed; includes hidden/feedback/public tests and judge metadata;
+                    .comet/checks/fingerprint-fields.log
+                  result: passed
+                - name: 前端 / frontend / npm test
+                  note: 370 passed; .comet/checks/frontend-tests.log
+                  result: passed
+                - name: 前端构建与 Lint / frontend / npm run build; npm run lint
+                  note: Both exit 0; existing large-bundle warning;
+                    .comet/checks/frontend-build.log and frontend-lint.log
+                  result: passed
+                - name: Python / repository / Ruff, Black check, scoped mypy
+                  note: "Ruff clean, Black 16 files unchanged; mypy --follow-imports=silent
+                    --ignore-missing-imports: no issues in 8 source files.
+                    Unrestricted traversal has pre-existing untyped-dependency
+                    errors; scoped check used for changed code."
+                  result: passed
+                - name: 浏览器 / frontend production preview / node /tmp/issue475-browser.mjs
+                  note: "Actual React/client/store with offline HTTP fixtures. Preview,
+                    failure/retry, submission/source/cost and 320/390/1280px
+                    layout pass. Analytics fixture intentionally returns 404;
+                    not analytics E2E. Evidence:
+                    docs/superpowers/reports/assets/web-incremental-evaluation/\
+                    report.json"
+                  result: passed
+                - name: OpenSpec / repository / comet classic openspec -- validate
+                    web-incremental-evaluation --strict
+                  note: Strict validation passed; git diff --check also clean.
+                  result: passed
+              event: build-complete
+            tweak.open:
+              event: open-complete
+              requirementsEvidence:
+                ref: openspec/changes/web-incremental-evaluation
+            tweak.open.evidence:
+              contentHash: 931dabae85b5cefa398e7e28a6b61413ceb8eeca961dc8d9a15273d693938ab1
+              ref: openspec/changes/web-incremental-evaluation
+            tweak.verify.report.evidence:
+              contentHash: b8832575a253d1b0b342ee08b7f6044fb92a71be2dc7a95fdb492214af1f6c70
+              ref: docs/superpowers/reports/2026-11-25-web-incremental-evaluation-verify.md
+            tweak.verify.run:
+              checks:
+                - name: 后端相关回归 / repository / .venv/bin/python -m pytest [16 test modules]
+                    --no-cov -q
+                  note: 597 passed; final full command and output in
+                    openspec/changes/web-incremental-evaluation/.comet/checks/backend.log
+                  result: passed
+                - name: 结果费用补测 / repository / pytest API reuse + results modules
+                  note: 32 passed after nullable unknown new-cost presentation;
+                    .comet/checks/cost-view.log
+                  result: passed
+                - name: 题目指纹 / repository / pytest test_incremental_e2e.py -k
+                    problem_fingerprint_tracks_evaluation_fields
+                  note: 12 passed; includes hidden/feedback/public tests and judge metadata;
+                    .comet/checks/fingerprint-fields.log
+                  result: passed
+                - name: 前端 / frontend / npm test
+                  note: 370 passed; .comet/checks/frontend-tests.log
+                  result: passed
+                - name: 前端构建与 Lint / frontend / npm run build; npm run lint
+                  note: Both exit 0; existing large-bundle warning;
+                    .comet/checks/frontend-build.log and frontend-lint.log
+                  result: passed
+                - name: Python / repository / Ruff, Black check, scoped mypy
+                  note: "Ruff clean, Black 16 files unchanged; mypy --follow-imports=silent
+                    --ignore-missing-imports: no issues in 8 source files.
+                    Unrestricted traversal has pre-existing untyped-dependency
+                    errors; scoped check used for changed code."
+                  result: passed
+                - name: 浏览器 / frontend production preview / node /tmp/issue475-browser.mjs
+                  note: "Actual React/client/store with offline HTTP fixtures. Preview,
+                    failure/retry, submission/source/cost and 320/390/1280px
+                    layout pass. Analytics fixture intentionally returns 404;
+                    not analytics E2E. Evidence:
+                    docs/superpowers/reports/assets/web-incremental-evaluation/\
+                    report.json"
+                  result: passed
+                - name: OpenSpec / repository / comet classic openspec -- validate
+                    web-incremental-evaluation --strict
+                  note: Strict validation passed; git diff --check also clean.
+                  result: passed
+                - name: 全复用零预算且无定价 / pytest -k web_incremental_all_reused_zero_budget_no_runtime
+                  note: 1 passed; runtime initialization forbidden and PricingManager reports
+                    pricing_known=False;
+                    .comet/checks/zero-budget-no-pricing.log
+                  result: passed
+              event: verification-ready
+              verificationReport: docs/superpowers/reports/2026-11-25-web-incremental-evaluation-verify.md
+        inputHash: f7e074e2f3f922e3db4e1f7ffd20704fe01274b7945b07afb53b71702f7ada80
+        outcome:
+          actionId: web-incremental-evaluation:8
+          attempt: 1
+          claimToken: portable-14a56ea6bc9ec3745915faada2df58b775cd8eb31d355ad3792420ca93286492
+          inputHash: f7e074e2f3f922e3db4e1f7ffd20704fe01274b7945b07afb53b71702f7ada80
+          outcomeId: c31e5007-2183-45bf-8544-de296700e968
+          output:
+            prBaseBranch: main
+            remote: origin
+            summary: "Issue #475 已实现并通过 Verify：12/12 任务，597 项后端回归、370 项前端测试及专项通过。36
+              个交付文件（implementation 22、tests 6、user-docs 3、generated 5），另有本
+              change 的 OpenSpec/Comet 产物。归档会将当前 change 移入
+              openspec/changes/archive/2026-11-25-web-incremental-evaluation，并同步
+              api/evaluation-execution、api/evaluation-results、frontend/incremen\
+              tal-evaluation 三项规格。当前绑定 main：local 在 main 归档并提交；push 再推送
+              origin/main。若选择 PR，先按用户明确选择将同一已验证候选迁移到
+              codex/web-incremental-evaluation，经公开 rebind 与新提案核对目标后，再推送 origin
+              同名分支并向 main 创建 PR。归档提交包含本次实现、迁移 0011、API 1.9.0 文档/基线及验收证据。"
+            targetBranch: main
+          status: succeeded
+        protocolVersion: 1
+        receipts:
+          - hash: a1aac38e062d5382e7798e173ea0e24d5dbcee313539ef4b1a48b288003b2a7d
+            outcomeId: c31e5007-2183-45bf-8544-de296700e968
+        reconciliations: []
+        ref: comet-archive
+        requiredCapabilities: []
+        retry: manual
+        runId: web-incremental-evaluation
+        status: succeeded
+        stepId: tweak.archive.prepare
+        type: invoke_skill
+      - attempt: 1
+        claim:
+          executorId: comet-classic-guard
+          token: portable-61631356fabffbf8b74f34fdf2a031f82d8a33781e1c201c06a69e9e2bd19128
+        executionOrigin:
+          workflow:
+            hash: d1e067bc00ca13395dbc6f701565417c3e227f17a57df025dd73ebda905e2638
+            id: comet-classic-tweak
+            version: "2"
+        id: web-incremental-evaluation:10
+        input:
+          activation:
+            expectedRevision: 15
+            fromPhase: archive
+          input:
+            change: web-incremental-evaluation
+            changeDir: openspec/changes/web-incremental-evaluation
+            workspaceBaseline:
+              ref: c6ecc2a8-59e4-46be-8107-a3e0b1c86b18
+          outputs: {}
+        inputHash: 339525bd01ac135f1f2d888ad3b9005d5668d2d9bde7334048ce60d1b7cba90a
+        outcome:
+          actionId: web-incremental-evaluation:10
+          attempt: 1
+          claimToken: portable-61631356fabffbf8b74f34fdf2a031f82d8a33781e1c201c06a69e9e2bd19128
+          inputHash: 339525bd01ac135f1f2d888ad3b9005d5668d2d9bde7334048ce60d1b7cba90a
+          outcomeId: 3a30f8e6-16b6-4b5f-8aff-907964156540
+          output:
+            checks:
+              - name: 后端相关回归 / repository / .venv/bin/python -m pytest [16 test modules]
+                  --no-cov -q
+                note: 597 passed; final full command and output in
+                  openspec/changes/web-incremental-evaluation/.comet/checks/backend.log
+                result: passed
+              - name: 结果费用补测 / repository / pytest API reuse + results modules
+                note: 32 passed after nullable unknown new-cost presentation;
+                  .comet/checks/cost-view.log
+                result: passed
+              - name: 题目指纹 / repository / pytest test_incremental_e2e.py -k
+                  problem_fingerprint_tracks_evaluation_fields
+                note: 12 passed; includes hidden/feedback/public tests and judge metadata;
+                  .comet/checks/fingerprint-fields.log
+                result: passed
+              - name: 前端 / frontend / npm test
+                note: 370 passed; .comet/checks/frontend-tests.log
+                result: passed
+              - name: 前端构建与 Lint / frontend / npm run build; npm run lint
+                note: Both exit 0; existing large-bundle warning;
+                  .comet/checks/frontend-build.log and frontend-lint.log
+                result: passed
+              - name: Python / repository / Ruff, Black check, scoped mypy
+                note: "Ruff clean, Black 16 files unchanged; mypy --follow-imports=silent
+                  --ignore-missing-imports: no issues in 8 source files.
+                  Unrestricted traversal has pre-existing untyped-dependency
+                  errors; scoped check used for changed code."
+                result: passed
+              - name: 浏览器 / frontend production preview / node /tmp/issue475-browser.mjs
+                note: "Actual React/client/store with offline HTTP fixtures. Preview,
+                  failure/retry, submission/source/cost and 320/390/1280px
+                  layout pass. Analytics fixture intentionally returns 404; not
+                  analytics E2E. Evidence:
+                  docs/superpowers/reports/assets/web-incremental-evaluation/re\
+                  port.json"
+                result: passed
+              - name: OpenSpec / repository / comet classic openspec -- validate
+                  web-incremental-evaluation --strict
+                note: Strict validation passed; git diff --check also clean.
+                result: passed
+              - name: 全复用零预算且无定价 / pytest -k web_incremental_all_reused_zero_budget_no_runtime
+                note: 1 passed; runtime initialization forbidden and PricingManager reports
+                  pricing_known=False; .comet/checks/zero-budget-no-pricing.log
+                result: passed
+            event: verification-ready
+            verificationReport: docs/superpowers/reports/2026-11-25-web-incremental-evaluation-verify.md
+          status: succeeded
+        protocolVersion: 1
+        receipts:
+          - hash: 021ca1fb3c007b971c203b87e57028f67bb9368dbb19017a4e425f7afc61ee8a
+            outcomeId: 3a30f8e6-16b6-4b5f-8aff-907964156540
+        reconciliations: []
+        ref: comet-verify
+        requiredCapabilities: []
+        retry: manual
+        runId: web-incremental-evaluation
+        status: succeeded
+        stepId: tweak.verify.run
+        type: invoke_skill
+      - attempt: 1
+        claim:
+          executorId: comet-classic-state
+          token: portable-e0fed457075f2df62d6c4cf3a6f359c674627d5182bbf6d7c80b95d7bba2f670
+        executionOrigin:
+          workflow:
+            hash: d1e067bc00ca13395dbc6f701565417c3e227f17a57df025dd73ebda905e2638
+            id: comet-classic-tweak
+            version: "2"
+        id: web-incremental-evaluation:12
+        input:
+          input:
+            change: web-incremental-evaluation
+            changeDir: openspec/changes/web-incremental-evaluation
+            workspaceBaseline:
+              ref: c6ecc2a8-59e4-46be-8107-a3e0b1c86b18
+          outputs:
+            tweak.verify.report.evidence:
+              contentHash: 339525bd01ac135f1f2d888ad3b9005d5668d2d9bde7334048ce60d1b7cba90a
+              ref: docs/superpowers/reports/2026-11-25-web-incremental-evaluation-verify.md
+            tweak.verify.run:
+              checks:
+                - name: 后端相关回归 / repository / .venv/bin/python -m pytest [16 test modules]
+                    --no-cov -q
+                  note: 597 passed; final full command and output in
+                    openspec/changes/web-incremental-evaluation/.comet/checks/backend.log
+                  result: passed
+                - name: 结果费用补测 / repository / pytest API reuse + results modules
+                  note: 32 passed after nullable unknown new-cost presentation;
+                    .comet/checks/cost-view.log
+                  result: passed
+                - name: 题目指纹 / repository / pytest test_incremental_e2e.py -k
+                    problem_fingerprint_tracks_evaluation_fields
+                  note: 12 passed; includes hidden/feedback/public tests and judge metadata;
+                    .comet/checks/fingerprint-fields.log
+                  result: passed
+                - name: 前端 / frontend / npm test
+                  note: 370 passed; .comet/checks/frontend-tests.log
+                  result: passed
+                - name: 前端构建与 Lint / frontend / npm run build; npm run lint
+                  note: Both exit 0; existing large-bundle warning;
+                    .comet/checks/frontend-build.log and frontend-lint.log
+                  result: passed
+                - name: Python / repository / Ruff, Black check, scoped mypy
+                  note: "Ruff clean, Black 16 files unchanged; mypy --follow-imports=silent
+                    --ignore-missing-imports: no issues in 8 source files.
+                    Unrestricted traversal has pre-existing untyped-dependency
+                    errors; scoped check used for changed code."
+                  result: passed
+                - name: 浏览器 / frontend production preview / node /tmp/issue475-browser.mjs
+                  note: "Actual React/client/store with offline HTTP fixtures. Preview,
+                    failure/retry, submission/source/cost and 320/390/1280px
+                    layout pass. Analytics fixture intentionally returns 404;
+                    not analytics E2E. Evidence:
+                    docs/superpowers/reports/assets/web-incremental-evaluation/\
+                    report.json"
+                  result: passed
+                - name: OpenSpec / repository / comet classic openspec -- validate
+                    web-incremental-evaluation --strict
+                  note: Strict validation passed; git diff --check also clean.
+                  result: passed
+                - name: 全复用零预算且无定价 / pytest -k web_incremental_all_reused_zero_budget_no_runtime
+                  note: 1 passed; runtime initialization forbidden and PricingManager reports
+                    pricing_known=False;
+                    .comet/checks/zero-budget-no-pricing.log
+                  result: passed
+              event: verification-ready
+              verificationReport: docs/superpowers/reports/2026-11-25-web-incremental-evaluation-verify.md
+        inputHash: e4e67942454ea4b98ebc1a666584ce5053a04abbe02d491f4925bab1bc51c844
+        outcome:
+          actionId: web-incremental-evaluation:12
+          attempt: 1
+          claimToken: portable-e0fed457075f2df62d6c4cf3a6f359c674627d5182bbf6d7c80b95d7bba2f670
+          inputHash: e4e67942454ea4b98ebc1a666584ce5053a04abbe02d491f4925bab1bc51c844
+          outcomeId: 3e8a5558-88c5-43db-aaa9-96ec161a87ee
+          output:
+            prBaseBranch: main
+            remote: origin
+            summary: "用户已明确选择方案 3，已授权在 codex/web-incremental-evaluation 归档提交 Issue #475
+              的全部已验证改动，推送 origin 同名分支并向 main 创建 PR。当前分支和 Comet 绑定一致，12/12
+              任务完成，Verify 已在该分支核对通过，复用有效的 597 项后端和 370
+              项前端等检查证据。归档同步三份规格，保留实现、数据库迁移 0011、API 1.9.0 契约、报告与界面证据。"
+            targetBranch: codex/web-incremental-evaluation
+          status: succeeded
+        protocolVersion: 1
+        receipts:
+          - hash: a079bb722bca8c69edea8f5694fafdd697a7294dfe2a0c76e31dd9befcb10e7d
+            outcomeId: 3e8a5558-88c5-43db-aaa9-96ec161a87ee
+        reconciliations: []
+        ref: comet-archive
+        requiredCapabilities: []
+        retry: manual
+        runId: web-incremental-evaluation
+        status: succeeded
+        stepId: tweak.archive.prepare
+        type: invoke_skill
+      - attempt: 1
+        claim:
+          executorId: comet-classic-archive-preflight
+          token: portable-022c1bdcfc3663e744cd2b871fc88dab40d904f8f420a05addecb8b71414bad7
+        executionOrigin:
+          workflow:
+            hash: d1e067bc00ca13395dbc6f701565417c3e227f17a57df025dd73ebda905e2638
+            id: comet-classic-tweak
+            version: "2"
+        id: web-incremental-evaluation:14
+        input:
+          input:
+            change: web-incremental-evaluation
+            changeDir: openspec/changes/web-incremental-evaluation
+            workspaceBaseline:
+              ref: c6ecc2a8-59e4-46be-8107-a3e0b1c86b18
+          outputs:
+            tweak.archive.confirm:
+              choice: pr
+              proposal:
+                input:
+                  change: web-incremental-evaluation
+                  changeDir: openspec/changes/web-incremental-evaluation
+                  workspaceBaseline:
+                    ref: c6ecc2a8-59e4-46be-8107-a3e0b1c86b18
+                outputs:
+                  tweak.archive.prepare:
+                    prBaseBranch: main
+                    remote: origin
+                    summary: "用户已明确选择方案 3，已授权在 codex/web-incremental-evaluation 归档提交 Issue #475
+                      的全部已验证改动，推送 origin 同名分支并向 main 创建 PR。当前分支和 Comet
+                      绑定一致，12/12 任务完成，Verify 已在该分支核对通过，复用有效的 597 项后端和 370
+                      项前端等检查证据。归档同步三份规格，保留实现、数据库迁移 0011、API 1.9.0 契约、报告与界面证据。"
+                    targetBranch: codex/web-incremental-evaluation
+            tweak.archive.prepare:
+              prBaseBranch: main
+              remote: origin
+              summary: "用户已明确选择方案 3，已授权在 codex/web-incremental-evaluation 归档提交 Issue #475
+                的全部已验证改动，推送 origin 同名分支并向 main 创建 PR。当前分支和 Comet 绑定一致，12/12
+                任务完成，Verify 已在该分支核对通过，复用有效的 597 项后端和 370
+                项前端等检查证据。归档同步三份规格，保留实现、数据库迁移 0011、API 1.9.0 契约、报告与界面证据。"
+              targetBranch: codex/web-incremental-evaluation
+            tweak.verify.report.evidence:
+              contentHash: 339525bd01ac135f1f2d888ad3b9005d5668d2d9bde7334048ce60d1b7cba90a
+              ref: docs/superpowers/reports/2026-11-25-web-incremental-evaluation-verify.md
+            tweak.verify.run:
+              checks:
+                - name: 后端相关回归 / repository / .venv/bin/python -m pytest [16 test modules]
+                    --no-cov -q
+                  note: 597 passed; final full command and output in
+                    openspec/changes/web-incremental-evaluation/.comet/checks/backend.log
+                  result: passed
+                - name: 结果费用补测 / repository / pytest API reuse + results modules
+                  note: 32 passed after nullable unknown new-cost presentation;
+                    .comet/checks/cost-view.log
+                  result: passed
+                - name: 题目指纹 / repository / pytest test_incremental_e2e.py -k
+                    problem_fingerprint_tracks_evaluation_fields
+                  note: 12 passed; includes hidden/feedback/public tests and judge metadata;
+                    .comet/checks/fingerprint-fields.log
+                  result: passed
+                - name: 前端 / frontend / npm test
+                  note: 370 passed; .comet/checks/frontend-tests.log
+                  result: passed
+                - name: 前端构建与 Lint / frontend / npm run build; npm run lint
+                  note: Both exit 0; existing large-bundle warning;
+                    .comet/checks/frontend-build.log and frontend-lint.log
+                  result: passed
+                - name: Python / repository / Ruff, Black check, scoped mypy
+                  note: "Ruff clean, Black 16 files unchanged; mypy --follow-imports=silent
+                    --ignore-missing-imports: no issues in 8 source files.
+                    Unrestricted traversal has pre-existing untyped-dependency
+                    errors; scoped check used for changed code."
+                  result: passed
+                - name: 浏览器 / frontend production preview / node /tmp/issue475-browser.mjs
+                  note: "Actual React/client/store with offline HTTP fixtures. Preview,
+                    failure/retry, submission/source/cost and 320/390/1280px
+                    layout pass. Analytics fixture intentionally returns 404;
+                    not analytics E2E. Evidence:
+                    docs/superpowers/reports/assets/web-incremental-evaluation/\
+                    report.json"
+                  result: passed
+                - name: OpenSpec / repository / comet classic openspec -- validate
+                    web-incremental-evaluation --strict
+                  note: Strict validation passed; git diff --check also clean.
+                  result: passed
+                - name: 全复用零预算且无定价 / pytest -k web_incremental_all_reused_zero_budget_no_runtime
+                  note: 1 passed; runtime initialization forbidden and PricingManager reports
+                    pricing_known=False;
+                    .comet/checks/zero-budget-no-pricing.log
+                  result: passed
+              event: verification-ready
+              verificationReport: docs/superpowers/reports/2026-11-25-web-incremental-evaluation-verify.md
+        inputHash: f9df4b557e56cf222840c440a87144c83dd7e56fcdb2ee248703487a6922b142
+        outcome:
+          actionId: web-incremental-evaluation:14
+          attempt: 1
+          claimToken: portable-022c1bdcfc3663e744cd2b871fc88dab40d904f8f420a05addecb8b71414bad7
+          inputHash: f9df4b557e56cf222840c440a87144c83dd7e56fcdb2ee248703487a6922b142
+          outcomeId: 3e38b7a0-1487-4ab3-84ce-1ec7510d8395
+          output:
+            baseCommit: 58d6b9770005f357ccec68fc207be34024c2bf3d
+            deliveryAction: pr
+            deliveryPaths:
+              - API.md
+              - api/db/migrations/versions/k0011_evaluation_reuse.py
+              - api/db/models.py
+              - api/documentation.py
+              - api/models.py
+              - api/routes/evaluations.py
+              - api/schemas.py
+              - api/services/artifact_service.py
+              - api/services/cost_alert_service.py
+              - api/services/cost_service.py
+              - api/services/evaluation_results_service.py
+              - api/services/evaluation_reuse.py
+              - api/services/evaluation_service.py
+              - docs/api-versioning.md
+              - frontend/src/evaluations/client.test.ts
+              - frontend/src/evaluations/client.ts
+              - frontend/src/evaluations/components.tsx
+              - frontend/src/evaluations/creation.test.ts
+              - frontend/src/evaluations/creation.ts
+              - frontend/src/evaluations/presentation.test.ts
+              - frontend/src/evaluations/presentation.ts
+              - frontend/src/evaluations/types.ts
+              - frontend/src/evaluations/validation.ts
+              - frontend/src/i18n/en-US.ts
+              - frontend/src/i18n/zh-CN.ts
+              - frontend/src/pages/Evaluations/CreateEvaluationPage.tsx
+              - src/tasks/evaluation.py
+              - tests/fixtures/openapi-v1.json
+              - tests/test_api_evaluation_reuse.py
+              - tests/test_api_versioning.py
+              - tests/test_celery_tasks.py
+            prBaseBranch: main
+            remote: origin
+            remoteIdentity: 128eeb1e6f0d21b25601fcb7f9aad36adfdfb4d76f37f54f004760410190f351
+            targetBranch: codex/web-incremental-evaluation
+            verifiedBranch: codex/web-incremental-evaluation
+          status: succeeded
+        protocolVersion: 1
+        receipts:
+          - hash: 6137dc2d192e171840da0bf6d858ac1b8e0745ccbcae23b32ef3ed9f84549ed3
+            outcomeId: 3e38b7a0-1487-4ab3-84ce-1ec7510d8395
+        reconciliations: []
+        ref: classic-archive-preflight
+        requiredCapabilities: []
+        retry: manual
+        runId: web-incremental-evaluation
+        status: succeeded
+        stepId: tweak.archive.preflight
+        type: call_tool
+      - attempt: 1
+        claim:
+          executorId: comet-classic-archive
+          token: portable-f0de93602113a7358467ca54bbd2836f19f8437c8f13b9f23dc7dfbcc9148ee7
+        executionOrigin:
+          workflow:
+            hash: d1e067bc00ca13395dbc6f701565417c3e227f17a57df025dd73ebda905e2638
+            id: comet-classic-tweak
+            version: "2"
+        id: web-incremental-evaluation:15
+        input:
+          input:
+            change: web-incremental-evaluation
+            changeDir: openspec/changes/web-incremental-evaluation
+            workspaceBaseline:
+              ref: c6ecc2a8-59e4-46be-8107-a3e0b1c86b18
+          outputs:
+            tweak.archive.confirm:
+              choice: pr
+              proposal:
+                input:
+                  change: web-incremental-evaluation
+                  changeDir: openspec/changes/web-incremental-evaluation
+                  workspaceBaseline:
+                    ref: c6ecc2a8-59e4-46be-8107-a3e0b1c86b18
+                outputs:
+                  tweak.archive.prepare:
+                    prBaseBranch: main
+                    remote: origin
+                    summary: "用户已明确选择方案 3，已授权在 codex/web-incremental-evaluation 归档提交 Issue #475
+                      的全部已验证改动，推送 origin 同名分支并向 main 创建 PR。当前分支和 Comet
+                      绑定一致，12/12 任务完成，Verify 已在该分支核对通过，复用有效的 597 项后端和 370
+                      项前端等检查证据。归档同步三份规格，保留实现、数据库迁移 0011、API 1.9.0 契约、报告与界面证据。"
+                    targetBranch: codex/web-incremental-evaluation
+            tweak.archive.preflight:
+              baseCommit: 58d6b9770005f357ccec68fc207be34024c2bf3d
+              deliveryAction: pr
+              deliveryPaths:
+                - API.md
+                - api/db/migrations/versions/k0011_evaluation_reuse.py
+                - api/db/models.py
+                - api/documentation.py
+                - api/models.py
+                - api/routes/evaluations.py
+                - api/schemas.py
+                - api/services/artifact_service.py
+                - api/services/cost_alert_service.py
+                - api/services/cost_service.py
+                - api/services/evaluation_results_service.py
+                - api/services/evaluation_reuse.py
+                - api/services/evaluation_service.py
+                - docs/api-versioning.md
+                - frontend/src/evaluations/client.test.ts
+                - frontend/src/evaluations/client.ts
+                - frontend/src/evaluations/components.tsx
+                - frontend/src/evaluations/creation.test.ts
+                - frontend/src/evaluations/creation.ts
+                - frontend/src/evaluations/presentation.test.ts
+                - frontend/src/evaluations/presentation.ts
+                - frontend/src/evaluations/types.ts
+                - frontend/src/evaluations/validation.ts
+                - frontend/src/i18n/en-US.ts
+                - frontend/src/i18n/zh-CN.ts
+                - frontend/src/pages/Evaluations/CreateEvaluationPage.tsx
+                - src/tasks/evaluation.py
+                - tests/fixtures/openapi-v1.json
+                - tests/test_api_evaluation_reuse.py
+                - tests/test_api_versioning.py
+                - tests/test_celery_tasks.py
+              prBaseBranch: main
+              remote: origin
+              remoteIdentity: 128eeb1e6f0d21b25601fcb7f9aad36adfdfb4d76f37f54f004760410190f351
+              targetBranch: codex/web-incremental-evaluation
+              verifiedBranch: codex/web-incremental-evaluation
+            tweak.archive.prepare:
+              prBaseBranch: main
+              remote: origin
+              summary: "用户已明确选择方案 3，已授权在 codex/web-incremental-evaluation 归档提交 Issue #475
+                的全部已验证改动，推送 origin 同名分支并向 main 创建 PR。当前分支和 Comet 绑定一致，12/12
+                任务完成，Verify 已在该分支核对通过，复用有效的 597 项后端和 370
+                项前端等检查证据。归档同步三份规格，保留实现、数据库迁移 0011、API 1.9.0 契约、报告与界面证据。"
+              targetBranch: codex/web-incremental-evaluation
+            tweak.verify.report.evidence:
+              contentHash: 339525bd01ac135f1f2d888ad3b9005d5668d2d9bde7334048ce60d1b7cba90a
+              ref: docs/superpowers/reports/2026-11-25-web-incremental-evaluation-verify.md
+            tweak.verify.run:
+              checks:
+                - name: 后端相关回归 / repository / .venv/bin/python -m pytest [16 test modules]
+                    --no-cov -q
+                  note: 597 passed; final full command and output in
+                    openspec/changes/web-incremental-evaluation/.comet/checks/backend.log
+                  result: passed
+                - name: 结果费用补测 / repository / pytest API reuse + results modules
+                  note: 32 passed after nullable unknown new-cost presentation;
+                    .comet/checks/cost-view.log
+                  result: passed
+                - name: 题目指纹 / repository / pytest test_incremental_e2e.py -k
+                    problem_fingerprint_tracks_evaluation_fields
+                  note: 12 passed; includes hidden/feedback/public tests and judge metadata;
+                    .comet/checks/fingerprint-fields.log
+                  result: passed
+                - name: 前端 / frontend / npm test
+                  note: 370 passed; .comet/checks/frontend-tests.log
+                  result: passed
+                - name: 前端构建与 Lint / frontend / npm run build; npm run lint
+                  note: Both exit 0; existing large-bundle warning;
+                    .comet/checks/frontend-build.log and frontend-lint.log
+                  result: passed
+                - name: Python / repository / Ruff, Black check, scoped mypy
+                  note: "Ruff clean, Black 16 files unchanged; mypy --follow-imports=silent
+                    --ignore-missing-imports: no issues in 8 source files.
+                    Unrestricted traversal has pre-existing untyped-dependency
+                    errors; scoped check used for changed code."
+                  result: passed
+                - name: 浏览器 / frontend production preview / node /tmp/issue475-browser.mjs
+                  note: "Actual React/client/store with offline HTTP fixtures. Preview,
+                    failure/retry, submission/source/cost and 320/390/1280px
+                    layout pass. Analytics fixture intentionally returns 404;
+                    not analytics E2E. Evidence:
+                    docs/superpowers/reports/assets/web-incremental-evaluation/\
+                    report.json"
+                  result: passed
+                - name: OpenSpec / repository / comet classic openspec -- validate
+                    web-incremental-evaluation --strict
+                  note: Strict validation passed; git diff --check also clean.
+                  result: passed
+                - name: 全复用零预算且无定价 / pytest -k web_incremental_all_reused_zero_budget_no_runtime
+                  note: 1 passed; runtime initialization forbidden and PricingManager reports
+                    pricing_known=False;
+                    .comet/checks/zero-budget-no-pricing.log
+                  result: passed
+              event: verification-ready
+              verificationReport: docs/superpowers/reports/2026-11-25-web-incremental-evaluation-verify.md
+        inputHash: 6b406ef340d9d8211e75c6b08619c07832cd48bf8ccb6970db72139a3dcbd4e8
+        outcome:
+          actionId: web-incremental-evaluation:15
+          artifacts: []
+          attempt: 1
+          claimToken: portable-f0de93602113a7358467ca54bbd2836f19f8437c8f13b9f23dc7dfbcc9148ee7
+          inputHash: 6b406ef340d9d8211e75c6b08619c07832cd48bf8ccb6970db72139a3dcbd4e8
+          outcomeId: d048dd1e-8570-4543-8aed-8f4623845e26
+          output:
+            archiveDirectory: openspec/changes/archive/2026-11-25-web-incremental-evaluation
+          status: succeeded
+        protocolVersion: 1
+        receipts:
+          - hash: 83f12f09a504f5b1c30edbb67ff992308648d5f80263daa52c68ce44b2d4b5df
+            outcomeId: d048dd1e-8570-4543-8aed-8f4623845e26
+        reconciliations: []
+        ref: classic-archive
+        requiredCapabilities: []
+        retry: manual
+        runId: web-incremental-evaluation
+        status: succeeded
+        stepId: tweak.archive.execute
+        type: call_tool
+      - attempt: 1
+        id: web-incremental-evaluation:16
+        input:
+          input:
+            change: web-incremental-evaluation
+            changeDir: openspec/changes/web-incremental-evaluation
+            workspaceBaseline:
+              ref: c6ecc2a8-59e4-46be-8107-a3e0b1c86b18
+          outputs:
+            tweak.archive.confirm:
+              choice: pr
+              proposal:
+                input:
+                  change: web-incremental-evaluation
+                  changeDir: openspec/changes/web-incremental-evaluation
+                  workspaceBaseline:
+                    ref: c6ecc2a8-59e4-46be-8107-a3e0b1c86b18
+                outputs:
+                  tweak.archive.prepare:
+                    prBaseBranch: main
+                    remote: origin
+                    summary: "用户已明确选择方案 3，已授权在 codex/web-incremental-evaluation 归档提交 Issue #475
+                      的全部已验证改动，推送 origin 同名分支并向 main 创建 PR。当前分支和 Comet
+                      绑定一致，12/12 任务完成，Verify 已在该分支核对通过，复用有效的 597 项后端和 370
+                      项前端等检查证据。归档同步三份规格，保留实现、数据库迁移 0011、API 1.9.0 契约、报告与界面证据。"
+                    targetBranch: codex/web-incremental-evaluation
+            tweak.archive.execute:
+              archiveDirectory: openspec/changes/archive/2026-11-25-web-incremental-evaluation
+            tweak.archive.preflight:
+              baseCommit: 58d6b9770005f357ccec68fc207be34024c2bf3d
+              deliveryAction: pr
+              deliveryPaths:
+                - API.md
+                - api/db/migrations/versions/k0011_evaluation_reuse.py
+                - api/db/models.py
+                - api/documentation.py
+                - api/models.py
+                - api/routes/evaluations.py
+                - api/schemas.py
+                - api/services/artifact_service.py
+                - api/services/cost_alert_service.py
+                - api/services/cost_service.py
+                - api/services/evaluation_results_service.py
+                - api/services/evaluation_reuse.py
+                - api/services/evaluation_service.py
+                - docs/api-versioning.md
+                - frontend/src/evaluations/client.test.ts
+                - frontend/src/evaluations/client.ts
+                - frontend/src/evaluations/components.tsx
+                - frontend/src/evaluations/creation.test.ts
+                - frontend/src/evaluations/creation.ts
+                - frontend/src/evaluations/presentation.test.ts
+                - frontend/src/evaluations/presentation.ts
+                - frontend/src/evaluations/types.ts
+                - frontend/src/evaluations/validation.ts
+                - frontend/src/i18n/en-US.ts
+                - frontend/src/i18n/zh-CN.ts
+                - frontend/src/pages/Evaluations/CreateEvaluationPage.tsx
+                - src/tasks/evaluation.py
+                - tests/fixtures/openapi-v1.json
+                - tests/test_api_evaluation_reuse.py
+                - tests/test_api_versioning.py
+                - tests/test_celery_tasks.py
+              prBaseBranch: main
+              remote: origin
+              remoteIdentity: 128eeb1e6f0d21b25601fcb7f9aad36adfdfb4d76f37f54f004760410190f351
+              targetBranch: codex/web-incremental-evaluation
+              verifiedBranch: codex/web-incremental-evaluation
+            tweak.archive.prepare:
+              prBaseBranch: main
+              remote: origin
+              summary: "用户已明确选择方案 3，已授权在 codex/web-incremental-evaluation 归档提交 Issue #475
+                的全部已验证改动，推送 origin 同名分支并向 main 创建 PR。当前分支和 Comet 绑定一致，12/12
+                任务完成，Verify 已在该分支核对通过，复用有效的 597 项后端和 370
+                项前端等检查证据。归档同步三份规格，保留实现、数据库迁移 0011、API 1.9.0 契约、报告与界面证据。"
+              targetBranch: codex/web-incremental-evaluation
+            tweak.verify.report.evidence:
+              contentHash: 339525bd01ac135f1f2d888ad3b9005d5668d2d9bde7334048ce60d1b7cba90a
+              ref: docs/superpowers/reports/2026-11-25-web-incremental-evaluation-verify.md
+            tweak.verify.run:
+              checks:
+                - name: 后端相关回归 / repository / .venv/bin/python -m pytest [16 test modules]
+                    --no-cov -q
+                  note: 597 passed; final full command and output in
+                    openspec/changes/web-incremental-evaluation/.comet/checks/backend.log
+                  result: passed
+                - name: 结果费用补测 / repository / pytest API reuse + results modules
+                  note: 32 passed after nullable unknown new-cost presentation;
+                    .comet/checks/cost-view.log
+                  result: passed
+                - name: 题目指纹 / repository / pytest test_incremental_e2e.py -k
+                    problem_fingerprint_tracks_evaluation_fields
+                  note: 12 passed; includes hidden/feedback/public tests and judge metadata;
+                    .comet/checks/fingerprint-fields.log
+                  result: passed
+                - name: 前端 / frontend / npm test
+                  note: 370 passed; .comet/checks/frontend-tests.log
+                  result: passed
+                - name: 前端构建与 Lint / frontend / npm run build; npm run lint
+                  note: Both exit 0; existing large-bundle warning;
+                    .comet/checks/frontend-build.log and frontend-lint.log
+                  result: passed
+                - name: Python / repository / Ruff, Black check, scoped mypy
+                  note: "Ruff clean, Black 16 files unchanged; mypy --follow-imports=silent
+                    --ignore-missing-imports: no issues in 8 source files.
+                    Unrestricted traversal has pre-existing untyped-dependency
+                    errors; scoped check used for changed code."
+                  result: passed
+                - name: 浏览器 / frontend production preview / node /tmp/issue475-browser.mjs
+                  note: "Actual React/client/store with offline HTTP fixtures. Preview,
+                    failure/retry, submission/source/cost and 320/390/1280px
+                    layout pass. Analytics fixture intentionally returns 404;
+                    not analytics E2E. Evidence:
+                    docs/superpowers/reports/assets/web-incremental-evaluation/\
+                    report.json"
+                  result: passed
+                - name: OpenSpec / repository / comet classic openspec -- validate
+                    web-incremental-evaluation --strict
+                  note: Strict validation passed; git diff --check also clean.
+                  result: passed
+                - name: 全复用零预算且无定价 / pytest -k web_incremental_all_reused_zero_budget_no_runtime
+                  note: 1 passed; runtime initialization forbidden and PricingManager reports
+                    pricing_known=False;
+                    .comet/checks/zero-budget-no-pricing.log
+                  result: passed
+              event: verification-ready
+              verificationReport: docs/superpowers/reports/2026-11-25-web-incremental-evaluation-verify.md
+        inputHash: d0c2c9cfa7a6f5df0f8979adbe5824352d64cc2b66d1b14da6eca1fa4b274b6e
+        protocolVersion: 1
+        receipts: []
+        reconciliations: []
+        ref: comet-archive
+        requiredCapabilities: []
+        retry: manual
+        runId: web-incremental-evaluation
+        status: pending
+        stepId: tweak.archive.deliver
+        type: invoke_skill
+    commands:
+      - id: f5d56c57ee8ad380ed6c03c595892372058516c0668419cf2099735cfb17c859
+        name: reopen-verification
+        inputHash: e21a092de095848216fb81a2b61305240ce08e6b013bc9954c9ad1aceae277a1
+        actionId: web-incremental-evaluation:10
+    actionContexts:
+      web-incremental-evaluation:1:
+        results: {}
+        sequence: 1
+      web-incremental-evaluation:10:
+        results: {}
+        sequence: 10
+      web-incremental-evaluation:12:
+        results:
+          tweak.verify.report.evidence:
+            sequence: 11
+            value:
+              contentHash: 339525bd01ac135f1f2d888ad3b9005d5668d2d9bde7334048ce60d1b7cba90a
+              ref: docs/superpowers/reports/2026-11-25-web-incremental-evaluation-verify.md
+          tweak.verify.run:
+            sequence: 10
+            value:
+              checks:
+                - name: 后端相关回归 / repository / .venv/bin/python -m pytest [16 test modules]
+                    --no-cov -q
+                  note: 597 passed; final full command and output in
+                    openspec/changes/web-incremental-evaluation/.comet/checks/backend.log
+                  result: passed
+                - name: 结果费用补测 / repository / pytest API reuse + results modules
+                  note: 32 passed after nullable unknown new-cost presentation;
+                    .comet/checks/cost-view.log
+                  result: passed
+                - name: 题目指纹 / repository / pytest test_incremental_e2e.py -k
+                    problem_fingerprint_tracks_evaluation_fields
+                  note: 12 passed; includes hidden/feedback/public tests and judge metadata;
+                    .comet/checks/fingerprint-fields.log
+                  result: passed
+                - name: 前端 / frontend / npm test
+                  note: 370 passed; .comet/checks/frontend-tests.log
+                  result: passed
+                - name: 前端构建与 Lint / frontend / npm run build; npm run lint
+                  note: Both exit 0; existing large-bundle warning;
+                    .comet/checks/frontend-build.log and frontend-lint.log
+                  result: passed
+                - name: Python / repository / Ruff, Black check, scoped mypy
+                  note: "Ruff clean, Black 16 files unchanged; mypy --follow-imports=silent
+                    --ignore-missing-imports: no issues in 8 source files.
+                    Unrestricted traversal has pre-existing untyped-dependency
+                    errors; scoped check used for changed code."
+                  result: passed
+                - name: 浏览器 / frontend production preview / node /tmp/issue475-browser.mjs
+                  note: "Actual React/client/store with offline HTTP fixtures. Preview,
+                    failure/retry, submission/source/cost and 320/390/1280px
+                    layout pass. Analytics fixture intentionally returns 404;
+                    not analytics E2E. Evidence:
+                    docs/superpowers/reports/assets/web-incremental-evaluation/\
+                    report.json"
+                  result: passed
+                - name: OpenSpec / repository / comet classic openspec -- validate
+                    web-incremental-evaluation --strict
+                  note: Strict validation passed; git diff --check also clean.
+                  result: passed
+                - name: 全复用零预算且无定价 / pytest -k web_incremental_all_reused_zero_budget_no_runtime
+                  note: 1 passed; runtime initialization forbidden and PricingManager reports
+                    pricing_known=False;
+                    .comet/checks/zero-budget-no-pricing.log
+                  result: passed
+              event: verification-ready
+              verificationReport: docs/superpowers/reports/2026-11-25-web-incremental-evaluation-verify.md
+        sequence: 12
+      web-incremental-evaluation:14:
+        results:
+          tweak.archive.confirm:
+            sequence: 13
+            value:
+              choice: pr
+              proposal:
+                input:
+                  change: web-incremental-evaluation
+                  changeDir: openspec/changes/web-incremental-evaluation
+                  workspaceBaseline:
+                    ref: c6ecc2a8-59e4-46be-8107-a3e0b1c86b18
+                outputs:
+                  tweak.archive.prepare:
+                    prBaseBranch: main
+                    remote: origin
+                    summary: "用户已明确选择方案 3，已授权在 codex/web-incremental-evaluation 归档提交 Issue #475
+                      的全部已验证改动，推送 origin 同名分支并向 main 创建 PR。当前分支和 Comet
+                      绑定一致，12/12 任务完成，Verify 已在该分支核对通过，复用有效的 597 项后端和 370
+                      项前端等检查证据。归档同步三份规格，保留实现、数据库迁移 0011、API 1.9.0 契约、报告与界面证据。"
+                    targetBranch: codex/web-incremental-evaluation
+          tweak.archive.prepare:
+            sequence: 12
+            value:
+              prBaseBranch: main
+              remote: origin
+              summary: "用户已明确选择方案 3，已授权在 codex/web-incremental-evaluation 归档提交 Issue #475
+                的全部已验证改动，推送 origin 同名分支并向 main 创建 PR。当前分支和 Comet 绑定一致，12/12
+                任务完成，Verify 已在该分支核对通过，复用有效的 597 项后端和 370
+                项前端等检查证据。归档同步三份规格，保留实现、数据库迁移 0011、API 1.9.0 契约、报告与界面证据。"
+              targetBranch: codex/web-incremental-evaluation
+          tweak.verify.report.evidence:
+            sequence: 11
+            value:
+              contentHash: 339525bd01ac135f1f2d888ad3b9005d5668d2d9bde7334048ce60d1b7cba90a
+              ref: docs/superpowers/reports/2026-11-25-web-incremental-evaluation-verify.md
+          tweak.verify.run:
+            sequence: 10
+            value:
+              checks:
+                - name: 后端相关回归 / repository / .venv/bin/python -m pytest [16 test modules]
+                    --no-cov -q
+                  note: 597 passed; final full command and output in
+                    openspec/changes/web-incremental-evaluation/.comet/checks/backend.log
+                  result: passed
+                - name: 结果费用补测 / repository / pytest API reuse + results modules
+                  note: 32 passed after nullable unknown new-cost presentation;
+                    .comet/checks/cost-view.log
+                  result: passed
+                - name: 题目指纹 / repository / pytest test_incremental_e2e.py -k
+                    problem_fingerprint_tracks_evaluation_fields
+                  note: 12 passed; includes hidden/feedback/public tests and judge metadata;
+                    .comet/checks/fingerprint-fields.log
+                  result: passed
+                - name: 前端 / frontend / npm test
+                  note: 370 passed; .comet/checks/frontend-tests.log
+                  result: passed
+                - name: 前端构建与 Lint / frontend / npm run build; npm run lint
+                  note: Both exit 0; existing large-bundle warning;
+                    .comet/checks/frontend-build.log and frontend-lint.log
+                  result: passed
+                - name: Python / repository / Ruff, Black check, scoped mypy
+                  note: "Ruff clean, Black 16 files unchanged; mypy --follow-imports=silent
+                    --ignore-missing-imports: no issues in 8 source files.
+                    Unrestricted traversal has pre-existing untyped-dependency
+                    errors; scoped check used for changed code."
+                  result: passed
+                - name: 浏览器 / frontend production preview / node /tmp/issue475-browser.mjs
+                  note: "Actual React/client/store with offline HTTP fixtures. Preview,
+                    failure/retry, submission/source/cost and 320/390/1280px
+                    layout pass. Analytics fixture intentionally returns 404;
+                    not analytics E2E. Evidence:
+                    docs/superpowers/reports/assets/web-incremental-evaluation/\
+                    report.json"
+                  result: passed
+                - name: OpenSpec / repository / comet classic openspec -- validate
+                    web-incremental-evaluation --strict
+                  note: Strict validation passed; git diff --check also clean.
+                  result: passed
+                - name: 全复用零预算且无定价 / pytest -k web_incremental_all_reused_zero_budget_no_runtime
+                  note: 1 passed; runtime initialization forbidden and PricingManager reports
+                    pricing_known=False;
+                    .comet/checks/zero-budget-no-pricing.log
+                  result: passed
+              event: verification-ready
+              verificationReport: docs/superpowers/reports/2026-11-25-web-incremental-evaluation-verify.md
+        sequence: 14
+      web-incremental-evaluation:15:
+        results:
+          tweak.archive.confirm:
+            sequence: 13
+            value:
+              choice: pr
+              proposal:
+                input:
+                  change: web-incremental-evaluation
+                  changeDir: openspec/changes/web-incremental-evaluation
+                  workspaceBaseline:
+                    ref: c6ecc2a8-59e4-46be-8107-a3e0b1c86b18
+                outputs:
+                  tweak.archive.prepare:
+                    prBaseBranch: main
+                    remote: origin
+                    summary: "用户已明确选择方案 3，已授权在 codex/web-incremental-evaluation 归档提交 Issue #475
+                      的全部已验证改动，推送 origin 同名分支并向 main 创建 PR。当前分支和 Comet
+                      绑定一致，12/12 任务完成，Verify 已在该分支核对通过，复用有效的 597 项后端和 370
+                      项前端等检查证据。归档同步三份规格，保留实现、数据库迁移 0011、API 1.9.0 契约、报告与界面证据。"
+                    targetBranch: codex/web-incremental-evaluation
+          tweak.archive.preflight:
+            sequence: 14
+            value:
+              baseCommit: 58d6b9770005f357ccec68fc207be34024c2bf3d
+              deliveryAction: pr
+              deliveryPaths:
+                - API.md
+                - api/db/migrations/versions/k0011_evaluation_reuse.py
+                - api/db/models.py
+                - api/documentation.py
+                - api/models.py
+                - api/routes/evaluations.py
+                - api/schemas.py
+                - api/services/artifact_service.py
+                - api/services/cost_alert_service.py
+                - api/services/cost_service.py
+                - api/services/evaluation_results_service.py
+                - api/services/evaluation_reuse.py
+                - api/services/evaluation_service.py
+                - docs/api-versioning.md
+                - frontend/src/evaluations/client.test.ts
+                - frontend/src/evaluations/client.ts
+                - frontend/src/evaluations/components.tsx
+                - frontend/src/evaluations/creation.test.ts
+                - frontend/src/evaluations/creation.ts
+                - frontend/src/evaluations/presentation.test.ts
+                - frontend/src/evaluations/presentation.ts
+                - frontend/src/evaluations/types.ts
+                - frontend/src/evaluations/validation.ts
+                - frontend/src/i18n/en-US.ts
+                - frontend/src/i18n/zh-CN.ts
+                - frontend/src/pages/Evaluations/CreateEvaluationPage.tsx
+                - src/tasks/evaluation.py
+                - tests/fixtures/openapi-v1.json
+                - tests/test_api_evaluation_reuse.py
+                - tests/test_api_versioning.py
+                - tests/test_celery_tasks.py
+              prBaseBranch: main
+              remote: origin
+              remoteIdentity: 128eeb1e6f0d21b25601fcb7f9aad36adfdfb4d76f37f54f004760410190f351
+              targetBranch: codex/web-incremental-evaluation
+              verifiedBranch: codex/web-incremental-evaluation
+          tweak.archive.prepare:
+            sequence: 12
+            value:
+              prBaseBranch: main
+              remote: origin
+              summary: "用户已明确选择方案 3，已授权在 codex/web-incremental-evaluation 归档提交 Issue #475
+                的全部已验证改动，推送 origin 同名分支并向 main 创建 PR。当前分支和 Comet 绑定一致，12/12
+                任务完成，Verify 已在该分支核对通过，复用有效的 597 项后端和 370
+                项前端等检查证据。归档同步三份规格，保留实现、数据库迁移 0011、API 1.9.0 契约、报告与界面证据。"
+              targetBranch: codex/web-incremental-evaluation
+          tweak.verify.report.evidence:
+            sequence: 11
+            value:
+              contentHash: 339525bd01ac135f1f2d888ad3b9005d5668d2d9bde7334048ce60d1b7cba90a
+              ref: docs/superpowers/reports/2026-11-25-web-incremental-evaluation-verify.md
+          tweak.verify.run:
+            sequence: 10
+            value:
+              checks:
+                - name: 后端相关回归 / repository / .venv/bin/python -m pytest [16 test modules]
+                    --no-cov -q
+                  note: 597 passed; final full command and output in
+                    openspec/changes/web-incremental-evaluation/.comet/checks/backend.log
+                  result: passed
+                - name: 结果费用补测 / repository / pytest API reuse + results modules
+                  note: 32 passed after nullable unknown new-cost presentation;
+                    .comet/checks/cost-view.log
+                  result: passed
+                - name: 题目指纹 / repository / pytest test_incremental_e2e.py -k
+                    problem_fingerprint_tracks_evaluation_fields
+                  note: 12 passed; includes hidden/feedback/public tests and judge metadata;
+                    .comet/checks/fingerprint-fields.log
+                  result: passed
+                - name: 前端 / frontend / npm test
+                  note: 370 passed; .comet/checks/frontend-tests.log
+                  result: passed
+                - name: 前端构建与 Lint / frontend / npm run build; npm run lint
+                  note: Both exit 0; existing large-bundle warning;
+                    .comet/checks/frontend-build.log and frontend-lint.log
+                  result: passed
+                - name: Python / repository / Ruff, Black check, scoped mypy
+                  note: "Ruff clean, Black 16 files unchanged; mypy --follow-imports=silent
+                    --ignore-missing-imports: no issues in 8 source files.
+                    Unrestricted traversal has pre-existing untyped-dependency
+                    errors; scoped check used for changed code."
+                  result: passed
+                - name: 浏览器 / frontend production preview / node /tmp/issue475-browser.mjs
+                  note: "Actual React/client/store with offline HTTP fixtures. Preview,
+                    failure/retry, submission/source/cost and 320/390/1280px
+                    layout pass. Analytics fixture intentionally returns 404;
+                    not analytics E2E. Evidence:
+                    docs/superpowers/reports/assets/web-incremental-evaluation/\
+                    report.json"
+                  result: passed
+                - name: OpenSpec / repository / comet classic openspec -- validate
+                    web-incremental-evaluation --strict
+                  note: Strict validation passed; git diff --check also clean.
+                  result: passed
+                - name: 全复用零预算且无定价 / pytest -k web_incremental_all_reused_zero_budget_no_runtime
+                  note: 1 passed; runtime initialization forbidden and PricingManager reports
+                    pricing_known=False;
+                    .comet/checks/zero-budget-no-pricing.log
+                  result: passed
+              event: verification-ready
+              verificationReport: docs/superpowers/reports/2026-11-25-web-incremental-evaluation-verify.md
+        sequence: 15
+      web-incremental-evaluation:16:
+        results:
+          tweak.archive.confirm:
+            sequence: 13
+            value:
+              choice: pr
+              proposal:
+                input:
+                  change: web-incremental-evaluation
+                  changeDir: openspec/changes/web-incremental-evaluation
+                  workspaceBaseline:
+                    ref: c6ecc2a8-59e4-46be-8107-a3e0b1c86b18
+                outputs:
+                  tweak.archive.prepare:
+                    prBaseBranch: main
+                    remote: origin
+                    summary: "用户已明确选择方案 3，已授权在 codex/web-incremental-evaluation 归档提交 Issue #475
+                      的全部已验证改动，推送 origin 同名分支并向 main 创建 PR。当前分支和 Comet
+                      绑定一致，12/12 任务完成，Verify 已在该分支核对通过，复用有效的 597 项后端和 370
+                      项前端等检查证据。归档同步三份规格，保留实现、数据库迁移 0011、API 1.9.0 契约、报告与界面证据。"
+                    targetBranch: codex/web-incremental-evaluation
+          tweak.archive.execute:
+            sequence: 15
+            value:
+              archiveDirectory: openspec/changes/archive/2026-11-25-web-incremental-evaluation
+          tweak.archive.preflight:
+            sequence: 14
+            value:
+              baseCommit: 58d6b9770005f357ccec68fc207be34024c2bf3d
+              deliveryAction: pr
+              deliveryPaths:
+                - API.md
+                - api/db/migrations/versions/k0011_evaluation_reuse.py
+                - api/db/models.py
+                - api/documentation.py
+                - api/models.py
+                - api/routes/evaluations.py
+                - api/schemas.py
+                - api/services/artifact_service.py
+                - api/services/cost_alert_service.py
+                - api/services/cost_service.py
+                - api/services/evaluation_results_service.py
+                - api/services/evaluation_reuse.py
+                - api/services/evaluation_service.py
+                - docs/api-versioning.md
+                - frontend/src/evaluations/client.test.ts
+                - frontend/src/evaluations/client.ts
+                - frontend/src/evaluations/components.tsx
+                - frontend/src/evaluations/creation.test.ts
+                - frontend/src/evaluations/creation.ts
+                - frontend/src/evaluations/presentation.test.ts
+                - frontend/src/evaluations/presentation.ts
+                - frontend/src/evaluations/types.ts
+                - frontend/src/evaluations/validation.ts
+                - frontend/src/i18n/en-US.ts
+                - frontend/src/i18n/zh-CN.ts
+                - frontend/src/pages/Evaluations/CreateEvaluationPage.tsx
+                - src/tasks/evaluation.py
+                - tests/fixtures/openapi-v1.json
+                - tests/test_api_evaluation_reuse.py
+                - tests/test_api_versioning.py
+                - tests/test_celery_tasks.py
+              prBaseBranch: main
+              remote: origin
+              remoteIdentity: 128eeb1e6f0d21b25601fcb7f9aad36adfdfb4d76f37f54f004760410190f351
+              targetBranch: codex/web-incremental-evaluation
+              verifiedBranch: codex/web-incremental-evaluation
+          tweak.archive.prepare:
+            sequence: 12
+            value:
+              prBaseBranch: main
+              remote: origin
+              summary: "用户已明确选择方案 3，已授权在 codex/web-incremental-evaluation 归档提交 Issue #475
+                的全部已验证改动，推送 origin 同名分支并向 main 创建 PR。当前分支和 Comet 绑定一致，12/12
+                任务完成，Verify 已在该分支核对通过，复用有效的 597 项后端和 370
+                项前端等检查证据。归档同步三份规格，保留实现、数据库迁移 0011、API 1.9.0 契约、报告与界面证据。"
+              targetBranch: codex/web-incremental-evaluation
+          tweak.verify.report.evidence:
+            sequence: 11
+            value:
+              contentHash: 339525bd01ac135f1f2d888ad3b9005d5668d2d9bde7334048ce60d1b7cba90a
+              ref: docs/superpowers/reports/2026-11-25-web-incremental-evaluation-verify.md
+          tweak.verify.run:
+            sequence: 10
+            value:
+              checks:
+                - name: 后端相关回归 / repository / .venv/bin/python -m pytest [16 test modules]
+                    --no-cov -q
+                  note: 597 passed; final full command and output in
+                    openspec/changes/web-incremental-evaluation/.comet/checks/backend.log
+                  result: passed
+                - name: 结果费用补测 / repository / pytest API reuse + results modules
+                  note: 32 passed after nullable unknown new-cost presentation;
+                    .comet/checks/cost-view.log
+                  result: passed
+                - name: 题目指纹 / repository / pytest test_incremental_e2e.py -k
+                    problem_fingerprint_tracks_evaluation_fields
+                  note: 12 passed; includes hidden/feedback/public tests and judge metadata;
+                    .comet/checks/fingerprint-fields.log
+                  result: passed
+                - name: 前端 / frontend / npm test
+                  note: 370 passed; .comet/checks/frontend-tests.log
+                  result: passed
+                - name: 前端构建与 Lint / frontend / npm run build; npm run lint
+                  note: Both exit 0; existing large-bundle warning;
+                    .comet/checks/frontend-build.log and frontend-lint.log
+                  result: passed
+                - name: Python / repository / Ruff, Black check, scoped mypy
+                  note: "Ruff clean, Black 16 files unchanged; mypy --follow-imports=silent
+                    --ignore-missing-imports: no issues in 8 source files.
+                    Unrestricted traversal has pre-existing untyped-dependency
+                    errors; scoped check used for changed code."
+                  result: passed
+                - name: 浏览器 / frontend production preview / node /tmp/issue475-browser.mjs
+                  note: "Actual React/client/store with offline HTTP fixtures. Preview,
+                    failure/retry, submission/source/cost and 320/390/1280px
+                    layout pass. Analytics fixture intentionally returns 404;
+                    not analytics E2E. Evidence:
+                    docs/superpowers/reports/assets/web-incremental-evaluation/\
+                    report.json"
+                  result: passed
+                - name: OpenSpec / repository / comet classic openspec -- validate
+                    web-incremental-evaluation --strict
+                  note: Strict validation passed; git diff --check also clean.
+                  result: passed
+                - name: 全复用零预算且无定价 / pytest -k web_incremental_all_reused_zero_budget_no_runtime
+                  note: 1 passed; runtime initialization forbidden and PricingManager reports
+                    pricing_known=False;
+                    .comet/checks/zero-budget-no-pricing.log
+                  result: passed
+              event: verification-ready
+              verificationReport: docs/superpowers/reports/2026-11-25-web-incremental-evaluation-verify.md
+        sequence: 16
+      web-incremental-evaluation:3:
+        results:
+          tweak.open:
+            sequence: 1
+            value:
+              event: open-complete
+              requirementsEvidence:
+                ref: openspec/changes/web-incremental-evaluation
+          tweak.open.evidence:
+            sequence: 2
+            value:
+              contentHash: 931dabae85b5cefa398e7e28a6b61413ceb8eeca961dc8d9a15273d693938ab1
+              ref: openspec/changes/web-incremental-evaluation
+        sequence: 3
+      web-incremental-evaluation:5:
+        results:
+          tweak.build.escalation-confirm:
+            sequence: 4
+            value:
+              choice: continue
+              proposal:
+                input:
+                  change: web-incremental-evaluation
+                  changeDir: openspec/changes/web-incremental-evaluation
+                  workspaceBaseline:
+                    ref: c6ecc2a8-59e4-46be-8107-a3e0b1c86b18
+                outputs:
+                  tweak.build.execute:
+                    event: escalation-requested
+                    proposal: "Issue #475 已确认范围包含公开预览 API、持久化 schema、前后端与 worker/预算/恢复联动，预计超过 6
+                      个交付文件；用户已在 Open 范围展示后明确选择选项 2：继续 tweak，接受该范围。"
+                    requirementsEvidence:
+                      contentHash: c7267a11518d0fe1c38c4fc71ecb3a8863b5eda565e24547d191d27d46f8051f
+                      ref: openspec/changes/web-incremental-evaluation
+          tweak.build.execute:
+            sequence: 3
+            value:
+              event: escalation-requested
+              proposal: "Issue #475 已确认范围包含公开预览 API、持久化 schema、前后端与 worker/预算/恢复联动，预计超过 6
+                个交付文件；用户已在 Open 范围展示后明确选择选项 2：继续 tweak，接受该范围。"
+              requirementsEvidence:
+                contentHash: c7267a11518d0fe1c38c4fc71ecb3a8863b5eda565e24547d191d27d46f8051f
+                ref: openspec/changes/web-incremental-evaluation
+          tweak.open:
+            sequence: 1
+            value:
+              event: open-complete
+              requirementsEvidence:
+                ref: openspec/changes/web-incremental-evaluation
+          tweak.open.evidence:
+            sequence: 2
+            value:
+              contentHash: 931dabae85b5cefa398e7e28a6b61413ceb8eeca961dc8d9a15273d693938ab1
+              ref: openspec/changes/web-incremental-evaluation
+        sequence: 5
+      web-incremental-evaluation:6:
+        results:
+          tweak.build.escalation-confirm:
+            sequence: 4
+            value:
+              choice: continue
+              proposal:
+                input:
+                  change: web-incremental-evaluation
+                  changeDir: openspec/changes/web-incremental-evaluation
+                  workspaceBaseline:
+                    ref: c6ecc2a8-59e4-46be-8107-a3e0b1c86b18
+                outputs:
+                  tweak.build.execute:
+                    event: escalation-requested
+                    proposal: "Issue #475 已确认范围包含公开预览 API、持久化 schema、前后端与 worker/预算/恢复联动，预计超过 6
+                      个交付文件；用户已在 Open 范围展示后明确选择选项 2：继续 tweak，接受该范围。"
+                    requirementsEvidence:
+                      contentHash: c7267a11518d0fe1c38c4fc71ecb3a8863b5eda565e24547d191d27d46f8051f
+                      ref: openspec/changes/web-incremental-evaluation
+          tweak.build.execute:
+            sequence: 5
+            value:
+              checks:
+                - name: 后端相关回归 / repository / .venv/bin/python -m pytest [16 test modules]
+                    --no-cov -q
+                  note: 597 passed; final full command and output in
+                    openspec/changes/web-incremental-evaluation/.comet/checks/backend.log
+                  result: passed
+                - name: 结果费用补测 / repository / pytest API reuse + results modules
+                  note: 32 passed after nullable unknown new-cost presentation;
+                    .comet/checks/cost-view.log
+                  result: passed
+                - name: 题目指纹 / repository / pytest test_incremental_e2e.py -k
+                    problem_fingerprint_tracks_evaluation_fields
+                  note: 12 passed; includes hidden/feedback/public tests and judge metadata;
+                    .comet/checks/fingerprint-fields.log
+                  result: passed
+                - name: 前端 / frontend / npm test
+                  note: 370 passed; .comet/checks/frontend-tests.log
+                  result: passed
+                - name: 前端构建与 Lint / frontend / npm run build; npm run lint
+                  note: Both exit 0; existing large-bundle warning;
+                    .comet/checks/frontend-build.log and frontend-lint.log
+                  result: passed
+                - name: Python / repository / Ruff, Black check, scoped mypy
+                  note: "Ruff clean, Black 16 files unchanged; mypy --follow-imports=silent
+                    --ignore-missing-imports: no issues in 8 source files.
+                    Unrestricted traversal has pre-existing untyped-dependency
+                    errors; scoped check used for changed code."
+                  result: passed
+                - name: 浏览器 / frontend production preview / node /tmp/issue475-browser.mjs
+                  note: "Actual React/client/store with offline HTTP fixtures. Preview,
+                    failure/retry, submission/source/cost and 320/390/1280px
+                    layout pass. Analytics fixture intentionally returns 404;
+                    not analytics E2E. Evidence:
+                    docs/superpowers/reports/assets/web-incremental-evaluation/\
+                    report.json"
+                  result: passed
+                - name: OpenSpec / repository / comet classic openspec -- validate
+                    web-incremental-evaluation --strict
+                  note: Strict validation passed; git diff --check also clean.
+                  result: passed
+              event: build-complete
+          tweak.open:
+            sequence: 1
+            value:
+              event: open-complete
+              requirementsEvidence:
+                ref: openspec/changes/web-incremental-evaluation
+          tweak.open.evidence:
+            sequence: 2
+            value:
+              contentHash: 931dabae85b5cefa398e7e28a6b61413ceb8eeca961dc8d9a15273d693938ab1
+              ref: openspec/changes/web-incremental-evaluation
+        sequence: 6
+      web-incremental-evaluation:8:
+        results:
+          tweak.build.escalation-confirm:
+            sequence: 4
+            value:
+              choice: continue
+              proposal:
+                input:
+                  change: web-incremental-evaluation
+                  changeDir: openspec/changes/web-incremental-evaluation
+                  workspaceBaseline:
+                    ref: c6ecc2a8-59e4-46be-8107-a3e0b1c86b18
+                outputs:
+                  tweak.build.execute:
+                    event: escalation-requested
+                    proposal: "Issue #475 已确认范围包含公开预览 API、持久化 schema、前后端与 worker/预算/恢复联动，预计超过 6
+                      个交付文件；用户已在 Open 范围展示后明确选择选项 2：继续 tweak，接受该范围。"
+                    requirementsEvidence:
+                      contentHash: c7267a11518d0fe1c38c4fc71ecb3a8863b5eda565e24547d191d27d46f8051f
+                      ref: openspec/changes/web-incremental-evaluation
+          tweak.build.execute:
+            sequence: 5
+            value:
+              checks:
+                - name: 后端相关回归 / repository / .venv/bin/python -m pytest [16 test modules]
+                    --no-cov -q
+                  note: 597 passed; final full command and output in
+                    openspec/changes/web-incremental-evaluation/.comet/checks/backend.log
+                  result: passed
+                - name: 结果费用补测 / repository / pytest API reuse + results modules
+                  note: 32 passed after nullable unknown new-cost presentation;
+                    .comet/checks/cost-view.log
+                  result: passed
+                - name: 题目指纹 / repository / pytest test_incremental_e2e.py -k
+                    problem_fingerprint_tracks_evaluation_fields
+                  note: 12 passed; includes hidden/feedback/public tests and judge metadata;
+                    .comet/checks/fingerprint-fields.log
+                  result: passed
+                - name: 前端 / frontend / npm test
+                  note: 370 passed; .comet/checks/frontend-tests.log
+                  result: passed
+                - name: 前端构建与 Lint / frontend / npm run build; npm run lint
+                  note: Both exit 0; existing large-bundle warning;
+                    .comet/checks/frontend-build.log and frontend-lint.log
+                  result: passed
+                - name: Python / repository / Ruff, Black check, scoped mypy
+                  note: "Ruff clean, Black 16 files unchanged; mypy --follow-imports=silent
+                    --ignore-missing-imports: no issues in 8 source files.
+                    Unrestricted traversal has pre-existing untyped-dependency
+                    errors; scoped check used for changed code."
+                  result: passed
+                - name: 浏览器 / frontend production preview / node /tmp/issue475-browser.mjs
+                  note: "Actual React/client/store with offline HTTP fixtures. Preview,
+                    failure/retry, submission/source/cost and 320/390/1280px
+                    layout pass. Analytics fixture intentionally returns 404;
+                    not analytics E2E. Evidence:
+                    docs/superpowers/reports/assets/web-incremental-evaluation/\
+                    report.json"
+                  result: passed
+                - name: OpenSpec / repository / comet classic openspec -- validate
+                    web-incremental-evaluation --strict
+                  note: Strict validation passed; git diff --check also clean.
+                  result: passed
+              event: build-complete
+          tweak.open:
+            sequence: 1
+            value:
+              event: open-complete
+              requirementsEvidence:
+                ref: openspec/changes/web-incremental-evaluation
+          tweak.open.evidence:
+            sequence: 2
+            value:
+              contentHash: 931dabae85b5cefa398e7e28a6b61413ceb8eeca961dc8d9a15273d693938ab1
+              ref: openspec/changes/web-incremental-evaluation
+          tweak.verify.report.evidence:
+            sequence: 7
+            value:
+              contentHash: b8832575a253d1b0b342ee08b7f6044fb92a71be2dc7a95fdb492214af1f6c70
+              ref: docs/superpowers/reports/2026-11-25-web-incremental-evaluation-verify.md
+          tweak.verify.run:
+            sequence: 6
+            value:
+              checks:
+                - name: 后端相关回归 / repository / .venv/bin/python -m pytest [16 test modules]
+                    --no-cov -q
+                  note: 597 passed; final full command and output in
+                    openspec/changes/web-incremental-evaluation/.comet/checks/backend.log
+                  result: passed
+                - name: 结果费用补测 / repository / pytest API reuse + results modules
+                  note: 32 passed after nullable unknown new-cost presentation;
+                    .comet/checks/cost-view.log
+                  result: passed
+                - name: 题目指纹 / repository / pytest test_incremental_e2e.py -k
+                    problem_fingerprint_tracks_evaluation_fields
+                  note: 12 passed; includes hidden/feedback/public tests and judge metadata;
+                    .comet/checks/fingerprint-fields.log
+                  result: passed
+                - name: 前端 / frontend / npm test
+                  note: 370 passed; .comet/checks/frontend-tests.log
+                  result: passed
+                - name: 前端构建与 Lint / frontend / npm run build; npm run lint
+                  note: Both exit 0; existing large-bundle warning;
+                    .comet/checks/frontend-build.log and frontend-lint.log
+                  result: passed
+                - name: Python / repository / Ruff, Black check, scoped mypy
+                  note: "Ruff clean, Black 16 files unchanged; mypy --follow-imports=silent
+                    --ignore-missing-imports: no issues in 8 source files.
+                    Unrestricted traversal has pre-existing untyped-dependency
+                    errors; scoped check used for changed code."
+                  result: passed
+                - name: 浏览器 / frontend production preview / node /tmp/issue475-browser.mjs
+                  note: "Actual React/client/store with offline HTTP fixtures. Preview,
+                    failure/retry, submission/source/cost and 320/390/1280px
+                    layout pass. Analytics fixture intentionally returns 404;
+                    not analytics E2E. Evidence:
+                    docs/superpowers/reports/assets/web-incremental-evaluation/\
+                    report.json"
+                  result: passed
+                - name: OpenSpec / repository / comet classic openspec -- validate
+                    web-incremental-evaluation --strict
+                  note: Strict validation passed; git diff --check also clean.
+                  result: passed
+                - name: 全复用零预算且无定价 / pytest -k web_incremental_all_reused_zero_budget_no_runtime
+                  note: 1 passed; runtime initialization forbidden and PricingManager reports
+                    pricing_known=False;
+                    .comet/checks/zero-budget-no-pricing.log
+                  result: passed
+              event: verification-ready
+              verificationReport: docs/superpowers/reports/2026-11-25-web-incremental-evaluation-verify.md
+        sequence: 8
+    waits:
+      - id: web-incremental-evaluation:4
+        stepId: tweak.build.escalation-confirm
+        sequence: 4
+        status: resolved
+        proposal:
+          input:
+            change: web-incremental-evaluation
+            changeDir: openspec/changes/web-incremental-evaluation
+            workspaceBaseline:
+              ref: c6ecc2a8-59e4-46be-8107-a3e0b1c86b18
+          outputs:
+            tweak.build.execute:
+              event: escalation-requested
+              proposal: "Issue #475 已确认范围包含公开预览 API、持久化 schema、前后端与 worker/预算/恢复联动，预计超过 6
+                个交付文件；用户已在 Open 范围展示后明确选择选项 2：继续 tweak，接受该范围。"
+              requirementsEvidence:
+                contentHash: c7267a11518d0fe1c38c4fc71ecb3a8863b5eda565e24547d191d27d46f8051f
+                ref: openspec/changes/web-incremental-evaluation
+        proposalHash: f7429f004dde1458ae253a9b9655ecd0bc4c4ce76a5f1b0198a28820be3f11a1
+        choices:
+          - continue
+          - upgrade
+        results:
+          tweak.build.execute:
+            sequence: 3
+            value:
+              event: escalation-requested
+              proposal: "Issue #475 已确认范围包含公开预览 API、持久化 schema、前后端与 worker/预算/恢复联动，预计超过 6
+                个交付文件；用户已在 Open 范围展示后明确选择选项 2：继续 tweak，接受该范围。"
+              requirementsEvidence:
+                contentHash: c7267a11518d0fe1c38c4fc71ecb3a8863b5eda565e24547d191d27d46f8051f
+                ref: openspec/changes/web-incremental-evaluation
+          tweak.open:
+            sequence: 1
+            value:
+              event: open-complete
+              requirementsEvidence:
+                ref: openspec/changes/web-incremental-evaluation
+          tweak.open.evidence:
+            sequence: 2
+            value:
+              contentHash: 931dabae85b5cefa398e7e28a6b61413ceb8eeca961dc8d9a15273d693938ab1
+              ref: openspec/changes/web-incremental-evaluation
+        decision:
+          id: classic-escalation-f7429f004dde1458ae253a9b9655ecd0bc4c4ce76a5f1b0198a28820be3f11a1-continue
+          choice: continue
+          proposalHash: f7429f004dde1458ae253a9b9655ecd0bc4c4ce76a5f1b0198a28820be3f11a1
+      - id: web-incremental-evaluation:9
+        stepId: tweak.archive.confirm
+        sequence: 9
+        status: cancelled
+        proposal:
+          input:
+            change: web-incremental-evaluation
+            changeDir: openspec/changes/web-incremental-evaluation
+            workspaceBaseline:
+              ref: c6ecc2a8-59e4-46be-8107-a3e0b1c86b18
+          outputs:
+            tweak.archive.prepare:
+              prBaseBranch: main
+              remote: origin
+              summary: "Issue #475 已实现并通过 Verify：12/12 任务，597 项后端回归、370 项前端测试及专项通过。36
+                个交付文件（implementation 22、tests 6、user-docs 3、generated 5），另有本
+                change 的 OpenSpec/Comet 产物。归档会将当前 change 移入
+                openspec/changes/archive/2026-11-25-web-incremental-evaluation，\
+                并同步
+                api/evaluation-execution、api/evaluation-results、frontend/increm\
+                ental-evaluation 三项规格。当前绑定 main：local 在 main 归档并提交；push 再推送
+                origin/main。若选择 PR，先按用户明确选择将同一已验证候选迁移到
+                codex/web-incremental-evaluation，经公开 rebind 与新提案核对目标后，再推送 origin
+                同名分支并向 main 创建 PR。归档提交包含本次实现、迁移 0011、API 1.9.0 文档/基线及验收证据。"
+              targetBranch: main
+        proposalHash: 2cc0a48d73a8f5324cfaa072ab2133f69635b56131d1bfc378b881229ebecf76
+        choices:
+          - local
+          - push
+          - pr
+          - reverify
+          - later
+        results:
+          tweak.archive.prepare:
+            sequence: 8
+            value:
+              prBaseBranch: main
+              remote: origin
+              summary: "Issue #475 已实现并通过 Verify：12/12 任务，597 项后端回归、370 项前端测试及专项通过。36
+                个交付文件（implementation 22、tests 6、user-docs 3、generated 5），另有本
+                change 的 OpenSpec/Comet 产物。归档会将当前 change 移入
+                openspec/changes/archive/2026-11-25-web-incremental-evaluation，\
+                并同步
+                api/evaluation-execution、api/evaluation-results、frontend/increm\
+                ental-evaluation 三项规格。当前绑定 main：local 在 main 归档并提交；push 再推送
+                origin/main。若选择 PR，先按用户明确选择将同一已验证候选迁移到
+                codex/web-incremental-evaluation，经公开 rebind 与新提案核对目标后，再推送 origin
+                同名分支并向 main 创建 PR。归档提交包含本次实现、迁移 0011、API 1.9.0 文档/基线及验收证据。"
+              targetBranch: main
+          tweak.build.escalation-confirm:
+            sequence: 4
+            value:
+              choice: continue
+              proposal:
+                input:
+                  change: web-incremental-evaluation
+                  changeDir: openspec/changes/web-incremental-evaluation
+                  workspaceBaseline:
+                    ref: c6ecc2a8-59e4-46be-8107-a3e0b1c86b18
+                outputs:
+                  tweak.build.execute:
+                    event: escalation-requested
+                    proposal: "Issue #475 已确认范围包含公开预览 API、持久化 schema、前后端与 worker/预算/恢复联动，预计超过 6
+                      个交付文件；用户已在 Open 范围展示后明确选择选项 2：继续 tweak，接受该范围。"
+                    requirementsEvidence:
+                      contentHash: c7267a11518d0fe1c38c4fc71ecb3a8863b5eda565e24547d191d27d46f8051f
+                      ref: openspec/changes/web-incremental-evaluation
+          tweak.build.execute:
+            sequence: 5
+            value:
+              checks:
+                - name: 后端相关回归 / repository / .venv/bin/python -m pytest [16 test modules]
+                    --no-cov -q
+                  note: 597 passed; final full command and output in
+                    openspec/changes/web-incremental-evaluation/.comet/checks/backend.log
+                  result: passed
+                - name: 结果费用补测 / repository / pytest API reuse + results modules
+                  note: 32 passed after nullable unknown new-cost presentation;
+                    .comet/checks/cost-view.log
+                  result: passed
+                - name: 题目指纹 / repository / pytest test_incremental_e2e.py -k
+                    problem_fingerprint_tracks_evaluation_fields
+                  note: 12 passed; includes hidden/feedback/public tests and judge metadata;
+                    .comet/checks/fingerprint-fields.log
+                  result: passed
+                - name: 前端 / frontend / npm test
+                  note: 370 passed; .comet/checks/frontend-tests.log
+                  result: passed
+                - name: 前端构建与 Lint / frontend / npm run build; npm run lint
+                  note: Both exit 0; existing large-bundle warning;
+                    .comet/checks/frontend-build.log and frontend-lint.log
+                  result: passed
+                - name: Python / repository / Ruff, Black check, scoped mypy
+                  note: "Ruff clean, Black 16 files unchanged; mypy --follow-imports=silent
+                    --ignore-missing-imports: no issues in 8 source files.
+                    Unrestricted traversal has pre-existing untyped-dependency
+                    errors; scoped check used for changed code."
+                  result: passed
+                - name: 浏览器 / frontend production preview / node /tmp/issue475-browser.mjs
+                  note: "Actual React/client/store with offline HTTP fixtures. Preview,
+                    failure/retry, submission/source/cost and 320/390/1280px
+                    layout pass. Analytics fixture intentionally returns 404;
+                    not analytics E2E. Evidence:
+                    docs/superpowers/reports/assets/web-incremental-evaluation/\
+                    report.json"
+                  result: passed
+                - name: OpenSpec / repository / comet classic openspec -- validate
+                    web-incremental-evaluation --strict
+                  note: Strict validation passed; git diff --check also clean.
+                  result: passed
+              event: build-complete
+          tweak.open:
+            sequence: 1
+            value:
+              event: open-complete
+              requirementsEvidence:
+                ref: openspec/changes/web-incremental-evaluation
+          tweak.open.evidence:
+            sequence: 2
+            value:
+              contentHash: 931dabae85b5cefa398e7e28a6b61413ceb8eeca961dc8d9a15273d693938ab1
+              ref: openspec/changes/web-incremental-evaluation
+          tweak.verify.report.evidence:
+            sequence: 7
+            value:
+              contentHash: b8832575a253d1b0b342ee08b7f6044fb92a71be2dc7a95fdb492214af1f6c70
+              ref: docs/superpowers/reports/2026-11-25-web-incremental-evaluation-verify.md
+          tweak.verify.run:
+            sequence: 6
+            value:
+              checks:
+                - name: 后端相关回归 / repository / .venv/bin/python -m pytest [16 test modules]
+                    --no-cov -q
+                  note: 597 passed; final full command and output in
+                    openspec/changes/web-incremental-evaluation/.comet/checks/backend.log
+                  result: passed
+                - name: 结果费用补测 / repository / pytest API reuse + results modules
+                  note: 32 passed after nullable unknown new-cost presentation;
+                    .comet/checks/cost-view.log
+                  result: passed
+                - name: 题目指纹 / repository / pytest test_incremental_e2e.py -k
+                    problem_fingerprint_tracks_evaluation_fields
+                  note: 12 passed; includes hidden/feedback/public tests and judge metadata;
+                    .comet/checks/fingerprint-fields.log
+                  result: passed
+                - name: 前端 / frontend / npm test
+                  note: 370 passed; .comet/checks/frontend-tests.log
+                  result: passed
+                - name: 前端构建与 Lint / frontend / npm run build; npm run lint
+                  note: Both exit 0; existing large-bundle warning;
+                    .comet/checks/frontend-build.log and frontend-lint.log
+                  result: passed
+                - name: Python / repository / Ruff, Black check, scoped mypy
+                  note: "Ruff clean, Black 16 files unchanged; mypy --follow-imports=silent
+                    --ignore-missing-imports: no issues in 8 source files.
+                    Unrestricted traversal has pre-existing untyped-dependency
+                    errors; scoped check used for changed code."
+                  result: passed
+                - name: 浏览器 / frontend production preview / node /tmp/issue475-browser.mjs
+                  note: "Actual React/client/store with offline HTTP fixtures. Preview,
+                    failure/retry, submission/source/cost and 320/390/1280px
+                    layout pass. Analytics fixture intentionally returns 404;
+                    not analytics E2E. Evidence:
+                    docs/superpowers/reports/assets/web-incremental-evaluation/\
+                    report.json"
+                  result: passed
+                - name: OpenSpec / repository / comet classic openspec -- validate
+                    web-incremental-evaluation --strict
+                  note: Strict validation passed; git diff --check also clean.
+                  result: passed
+                - name: 全复用零预算且无定价 / pytest -k web_incremental_all_reused_zero_budget_no_runtime
+                  note: 1 passed; runtime initialization forbidden and PricingManager reports
+                    pricing_known=False;
+                    .comet/checks/zero-budget-no-pricing.log
+                  result: passed
+              event: verification-ready
+              verificationReport: docs/superpowers/reports/2026-11-25-web-incremental-evaluation-verify.md
+      - id: web-incremental-evaluation:13
+        stepId: tweak.archive.confirm
+        sequence: 13
+        status: resolved
+        proposal:
+          input:
+            change: web-incremental-evaluation
+            changeDir: openspec/changes/web-incremental-evaluation
+            workspaceBaseline:
+              ref: c6ecc2a8-59e4-46be-8107-a3e0b1c86b18
+          outputs:
+            tweak.archive.prepare:
+              prBaseBranch: main
+              remote: origin
+              summary: "用户已明确选择方案 3，已授权在 codex/web-incremental-evaluation 归档提交 Issue #475
+                的全部已验证改动，推送 origin 同名分支并向 main 创建 PR。当前分支和 Comet 绑定一致，12/12
+                任务完成，Verify 已在该分支核对通过，复用有效的 597 项后端和 370
+                项前端等检查证据。归档同步三份规格，保留实现、数据库迁移 0011、API 1.9.0 契约、报告与界面证据。"
+              targetBranch: codex/web-incremental-evaluation
+        proposalHash: cd27812d9e28592d612c90ca8b00187fc83c8226782aa93425a7dfc9d45621f9
+        choices:
+          - local
+          - push
+          - pr
+          - reverify
+          - later
+        results:
+          tweak.archive.prepare:
+            sequence: 12
+            value:
+              prBaseBranch: main
+              remote: origin
+              summary: "用户已明确选择方案 3，已授权在 codex/web-incremental-evaluation 归档提交 Issue #475
+                的全部已验证改动，推送 origin 同名分支并向 main 创建 PR。当前分支和 Comet 绑定一致，12/12
+                任务完成，Verify 已在该分支核对通过，复用有效的 597 项后端和 370
+                项前端等检查证据。归档同步三份规格，保留实现、数据库迁移 0011、API 1.9.0 契约、报告与界面证据。"
+              targetBranch: codex/web-incremental-evaluation
+          tweak.verify.report.evidence:
+            sequence: 11
+            value:
+              contentHash: 339525bd01ac135f1f2d888ad3b9005d5668d2d9bde7334048ce60d1b7cba90a
+              ref: docs/superpowers/reports/2026-11-25-web-incremental-evaluation-verify.md
+          tweak.verify.run:
+            sequence: 10
+            value:
+              checks:
+                - name: 后端相关回归 / repository / .venv/bin/python -m pytest [16 test modules]
+                    --no-cov -q
+                  note: 597 passed; final full command and output in
+                    openspec/changes/web-incremental-evaluation/.comet/checks/backend.log
+                  result: passed
+                - name: 结果费用补测 / repository / pytest API reuse + results modules
+                  note: 32 passed after nullable unknown new-cost presentation;
+                    .comet/checks/cost-view.log
+                  result: passed
+                - name: 题目指纹 / repository / pytest test_incremental_e2e.py -k
+                    problem_fingerprint_tracks_evaluation_fields
+                  note: 12 passed; includes hidden/feedback/public tests and judge metadata;
+                    .comet/checks/fingerprint-fields.log
+                  result: passed
+                - name: 前端 / frontend / npm test
+                  note: 370 passed; .comet/checks/frontend-tests.log
+                  result: passed
+                - name: 前端构建与 Lint / frontend / npm run build; npm run lint
+                  note: Both exit 0; existing large-bundle warning;
+                    .comet/checks/frontend-build.log and frontend-lint.log
+                  result: passed
+                - name: Python / repository / Ruff, Black check, scoped mypy
+                  note: "Ruff clean, Black 16 files unchanged; mypy --follow-imports=silent
+                    --ignore-missing-imports: no issues in 8 source files.
+                    Unrestricted traversal has pre-existing untyped-dependency
+                    errors; scoped check used for changed code."
+                  result: passed
+                - name: 浏览器 / frontend production preview / node /tmp/issue475-browser.mjs
+                  note: "Actual React/client/store with offline HTTP fixtures. Preview,
+                    failure/retry, submission/source/cost and 320/390/1280px
+                    layout pass. Analytics fixture intentionally returns 404;
+                    not analytics E2E. Evidence:
+                    docs/superpowers/reports/assets/web-incremental-evaluation/\
+                    report.json"
+                  result: passed
+                - name: OpenSpec / repository / comet classic openspec -- validate
+                    web-incremental-evaluation --strict
+                  note: Strict validation passed; git diff --check also clean.
+                  result: passed
+                - name: 全复用零预算且无定价 / pytest -k web_incremental_all_reused_zero_budget_no_runtime
+                  note: 1 passed; runtime initialization forbidden and PricingManager reports
+                    pricing_known=False;
+                    .comet/checks/zero-budget-no-pricing.log
+                  result: passed
+              event: verification-ready
+              verificationReport: docs/superpowers/reports/2026-11-25-web-incremental-evaluation-verify.md
+        decision:
+          id: classic-archive-cd27812d9e28592d612c90ca8b00187fc83c8226782aa93425a7dfc9d45621f9-pr
+          choice: pr
+          proposalHash: cd27812d9e28592d612c90ca8b00187fc83c8226782aa93425a7dfc9d45621f9
+    evidenceWaits:
+      - id: web-incremental-evaluation:2
+        stepId: tweak.open.evidence
+        sequence: 2
+        kind: classic-open-artifacts
+        status: resolved
+        results:
+          tweak.open:
+            sequence: 1
+            value:
+              event: open-complete
+              requirementsEvidence:
+                ref: openspec/changes/web-incremental-evaluation
+        receipt:
+          ref: openspec/changes/web-incremental-evaluation
+          contentHash: 931dabae85b5cefa398e7e28a6b61413ceb8eeca961dc8d9a15273d693938ab1
+          submissionId: d971c199-6ddc-460c-b059-aa9ab0140439
+      - id: web-incremental-evaluation:7
+        stepId: tweak.verify.report.evidence
+        sequence: 7
+        kind: classic-verification-report
+        status: resolved
+        results:
+          tweak.build.escalation-confirm:
+            sequence: 4
+            value:
+              choice: continue
+              proposal:
+                input:
+                  change: web-incremental-evaluation
+                  changeDir: openspec/changes/web-incremental-evaluation
+                  workspaceBaseline:
+                    ref: c6ecc2a8-59e4-46be-8107-a3e0b1c86b18
+                outputs:
+                  tweak.build.execute:
+                    event: escalation-requested
+                    proposal: "Issue #475 已确认范围包含公开预览 API、持久化 schema、前后端与 worker/预算/恢复联动，预计超过 6
+                      个交付文件；用户已在 Open 范围展示后明确选择选项 2：继续 tweak，接受该范围。"
+                    requirementsEvidence:
+                      contentHash: c7267a11518d0fe1c38c4fc71ecb3a8863b5eda565e24547d191d27d46f8051f
+                      ref: openspec/changes/web-incremental-evaluation
+          tweak.build.execute:
+            sequence: 5
+            value:
+              checks:
+                - name: 后端相关回归 / repository / .venv/bin/python -m pytest [16 test modules]
+                    --no-cov -q
+                  note: 597 passed; final full command and output in
+                    openspec/changes/web-incremental-evaluation/.comet/checks/backend.log
+                  result: passed
+                - name: 结果费用补测 / repository / pytest API reuse + results modules
+                  note: 32 passed after nullable unknown new-cost presentation;
+                    .comet/checks/cost-view.log
+                  result: passed
+                - name: 题目指纹 / repository / pytest test_incremental_e2e.py -k
+                    problem_fingerprint_tracks_evaluation_fields
+                  note: 12 passed; includes hidden/feedback/public tests and judge metadata;
+                    .comet/checks/fingerprint-fields.log
+                  result: passed
+                - name: 前端 / frontend / npm test
+                  note: 370 passed; .comet/checks/frontend-tests.log
+                  result: passed
+                - name: 前端构建与 Lint / frontend / npm run build; npm run lint
+                  note: Both exit 0; existing large-bundle warning;
+                    .comet/checks/frontend-build.log and frontend-lint.log
+                  result: passed
+                - name: Python / repository / Ruff, Black check, scoped mypy
+                  note: "Ruff clean, Black 16 files unchanged; mypy --follow-imports=silent
+                    --ignore-missing-imports: no issues in 8 source files.
+                    Unrestricted traversal has pre-existing untyped-dependency
+                    errors; scoped check used for changed code."
+                  result: passed
+                - name: 浏览器 / frontend production preview / node /tmp/issue475-browser.mjs
+                  note: "Actual React/client/store with offline HTTP fixtures. Preview,
+                    failure/retry, submission/source/cost and 320/390/1280px
+                    layout pass. Analytics fixture intentionally returns 404;
+                    not analytics E2E. Evidence:
+                    docs/superpowers/reports/assets/web-incremental-evaluation/\
+                    report.json"
+                  result: passed
+                - name: OpenSpec / repository / comet classic openspec -- validate
+                    web-incremental-evaluation --strict
+                  note: Strict validation passed; git diff --check also clean.
+                  result: passed
+              event: build-complete
+          tweak.open:
+            sequence: 1
+            value:
+              event: open-complete
+              requirementsEvidence:
+                ref: openspec/changes/web-incremental-evaluation
+          tweak.open.evidence:
+            sequence: 2
+            value:
+              contentHash: 931dabae85b5cefa398e7e28a6b61413ceb8eeca961dc8d9a15273d693938ab1
+              ref: openspec/changes/web-incremental-evaluation
+          tweak.verify.run:
+            sequence: 6
+            value:
+              checks:
+                - name: 后端相关回归 / repository / .venv/bin/python -m pytest [16 test modules]
+                    --no-cov -q
+                  note: 597 passed; final full command and output in
+                    openspec/changes/web-incremental-evaluation/.comet/checks/backend.log
+                  result: passed
+                - name: 结果费用补测 / repository / pytest API reuse + results modules
+                  note: 32 passed after nullable unknown new-cost presentation;
+                    .comet/checks/cost-view.log
+                  result: passed
+                - name: 题目指纹 / repository / pytest test_incremental_e2e.py -k
+                    problem_fingerprint_tracks_evaluation_fields
+                  note: 12 passed; includes hidden/feedback/public tests and judge metadata;
+                    .comet/checks/fingerprint-fields.log
+                  result: passed
+                - name: 前端 / frontend / npm test
+                  note: 370 passed; .comet/checks/frontend-tests.log
+                  result: passed
+                - name: 前端构建与 Lint / frontend / npm run build; npm run lint
+                  note: Both exit 0; existing large-bundle warning;
+                    .comet/checks/frontend-build.log and frontend-lint.log
+                  result: passed
+                - name: Python / repository / Ruff, Black check, scoped mypy
+                  note: "Ruff clean, Black 16 files unchanged; mypy --follow-imports=silent
+                    --ignore-missing-imports: no issues in 8 source files.
+                    Unrestricted traversal has pre-existing untyped-dependency
+                    errors; scoped check used for changed code."
+                  result: passed
+                - name: 浏览器 / frontend production preview / node /tmp/issue475-browser.mjs
+                  note: "Actual React/client/store with offline HTTP fixtures. Preview,
+                    failure/retry, submission/source/cost and 320/390/1280px
+                    layout pass. Analytics fixture intentionally returns 404;
+                    not analytics E2E. Evidence:
+                    docs/superpowers/reports/assets/web-incremental-evaluation/\
+                    report.json"
+                  result: passed
+                - name: OpenSpec / repository / comet classic openspec -- validate
+                    web-incremental-evaluation --strict
+                  note: Strict validation passed; git diff --check also clean.
+                  result: passed
+                - name: 全复用零预算且无定价 / pytest -k web_incremental_all_reused_zero_budget_no_runtime
+                  note: 1 passed; runtime initialization forbidden and PricingManager reports
+                    pricing_known=False;
+                    .comet/checks/zero-budget-no-pricing.log
+                  result: passed
+              event: verification-ready
+              verificationReport: docs/superpowers/reports/2026-11-25-web-incremental-evaluation-verify.md
+        receipt:
+          ref: docs/superpowers/reports/2026-11-25-web-incremental-evaluation-verify.md
+          contentHash: b8832575a253d1b0b342ee08b7f6044fb92a71be2dc7a95fdb492214af1f6c70
+          submissionId: 17f10f5c-14c7-4cf4-96e9-786f87778cd4
+      - id: web-incremental-evaluation:11
+        stepId: tweak.verify.report.evidence
+        sequence: 11
+        kind: classic-verification-report
+        status: resolved
+        results:
+          tweak.verify.run:
+            sequence: 10
+            value:
+              checks:
+                - name: 后端相关回归 / repository / .venv/bin/python -m pytest [16 test modules]
+                    --no-cov -q
+                  note: 597 passed; final full command and output in
+                    openspec/changes/web-incremental-evaluation/.comet/checks/backend.log
+                  result: passed
+                - name: 结果费用补测 / repository / pytest API reuse + results modules
+                  note: 32 passed after nullable unknown new-cost presentation;
+                    .comet/checks/cost-view.log
+                  result: passed
+                - name: 题目指纹 / repository / pytest test_incremental_e2e.py -k
+                    problem_fingerprint_tracks_evaluation_fields
+                  note: 12 passed; includes hidden/feedback/public tests and judge metadata;
+                    .comet/checks/fingerprint-fields.log
+                  result: passed
+                - name: 前端 / frontend / npm test
+                  note: 370 passed; .comet/checks/frontend-tests.log
+                  result: passed
+                - name: 前端构建与 Lint / frontend / npm run build; npm run lint
+                  note: Both exit 0; existing large-bundle warning;
+                    .comet/checks/frontend-build.log and frontend-lint.log
+                  result: passed
+                - name: Python / repository / Ruff, Black check, scoped mypy
+                  note: "Ruff clean, Black 16 files unchanged; mypy --follow-imports=silent
+                    --ignore-missing-imports: no issues in 8 source files.
+                    Unrestricted traversal has pre-existing untyped-dependency
+                    errors; scoped check used for changed code."
+                  result: passed
+                - name: 浏览器 / frontend production preview / node /tmp/issue475-browser.mjs
+                  note: "Actual React/client/store with offline HTTP fixtures. Preview,
+                    failure/retry, submission/source/cost and 320/390/1280px
+                    layout pass. Analytics fixture intentionally returns 404;
+                    not analytics E2E. Evidence:
+                    docs/superpowers/reports/assets/web-incremental-evaluation/\
+                    report.json"
+                  result: passed
+                - name: OpenSpec / repository / comet classic openspec -- validate
+                    web-incremental-evaluation --strict
+                  note: Strict validation passed; git diff --check also clean.
+                  result: passed
+                - name: 全复用零预算且无定价 / pytest -k web_incremental_all_reused_zero_budget_no_runtime
+                  note: 1 passed; runtime initialization forbidden and PricingManager reports
+                    pricing_known=False;
+                    .comet/checks/zero-budget-no-pricing.log
+                  result: passed
+              event: verification-ready
+              verificationReport: docs/superpowers/reports/2026-11-25-web-incremental-evaluation-verify.md
+        receipt:
+          ref: docs/superpowers/reports/2026-11-25-web-incremental-evaluation-verify.md
+          contentHash: 339525bd01ac135f1f2d888ad3b9005d5668d2d9bde7334048ce60d1b7cba90a
+          submissionId: ad6afc97-c759-4a80-b11e-3e6464987b13
+    ready: []
+    joins: {}
+    outputs:
+      tweak.archive.confirm:
+        sequence: 13
+        value:
+          choice: pr
+          proposal:
+            input:
+              change: web-incremental-evaluation
+              changeDir: openspec/changes/web-incremental-evaluation
+              workspaceBaseline:
+                ref: c6ecc2a8-59e4-46be-8107-a3e0b1c86b18
+            outputs:
+              tweak.archive.prepare:
+                prBaseBranch: main
+                remote: origin
+                summary: "用户已明确选择方案 3，已授权在 codex/web-incremental-evaluation 归档提交 Issue #475
+                  的全部已验证改动，推送 origin 同名分支并向 main 创建 PR。当前分支和 Comet 绑定一致，12/12
+                  任务完成，Verify 已在该分支核对通过，复用有效的 597 项后端和 370
+                  项前端等检查证据。归档同步三份规格，保留实现、数据库迁移 0011、API 1.9.0 契约、报告与界面证据。"
+                targetBranch: codex/web-incremental-evaluation
+      tweak.archive.execute:
+        sequence: 15
+        value:
+          archiveDirectory: openspec/changes/archive/2026-11-25-web-incremental-evaluation
+      tweak.archive.preflight:
+        sequence: 14
+        value:
+          baseCommit: 58d6b9770005f357ccec68fc207be34024c2bf3d
+          deliveryAction: pr
+          deliveryPaths:
+            - API.md
+            - api/db/migrations/versions/k0011_evaluation_reuse.py
+            - api/db/models.py
+            - api/documentation.py
+            - api/models.py
+            - api/routes/evaluations.py
+            - api/schemas.py
+            - api/services/artifact_service.py
+            - api/services/cost_alert_service.py
+            - api/services/cost_service.py
+            - api/services/evaluation_results_service.py
+            - api/services/evaluation_reuse.py
+            - api/services/evaluation_service.py
+            - docs/api-versioning.md
+            - frontend/src/evaluations/client.test.ts
+            - frontend/src/evaluations/client.ts
+            - frontend/src/evaluations/components.tsx
+            - frontend/src/evaluations/creation.test.ts
+            - frontend/src/evaluations/creation.ts
+            - frontend/src/evaluations/presentation.test.ts
+            - frontend/src/evaluations/presentation.ts
+            - frontend/src/evaluations/types.ts
+            - frontend/src/evaluations/validation.ts
+            - frontend/src/i18n/en-US.ts
+            - frontend/src/i18n/zh-CN.ts
+            - frontend/src/pages/Evaluations/CreateEvaluationPage.tsx
+            - src/tasks/evaluation.py
+            - tests/fixtures/openapi-v1.json
+            - tests/test_api_evaluation_reuse.py
+            - tests/test_api_versioning.py
+            - tests/test_celery_tasks.py
+          prBaseBranch: main
+          remote: origin
+          remoteIdentity: 128eeb1e6f0d21b25601fcb7f9aad36adfdfb4d76f37f54f004760410190f351
+          targetBranch: codex/web-incremental-evaluation
+          verifiedBranch: codex/web-incremental-evaluation
+      tweak.archive.prepare:
+        sequence: 12
+        value:
+          prBaseBranch: main
+          remote: origin
+          summary: "用户已明确选择方案 3，已授权在 codex/web-incremental-evaluation 归档提交 Issue #475
+            的全部已验证改动，推送 origin 同名分支并向 main 创建 PR。当前分支和 Comet 绑定一致，12/12
+            任务完成，Verify 已在该分支核对通过，复用有效的 597 项后端和 370
+            项前端等检查证据。归档同步三份规格，保留实现、数据库迁移 0011、API 1.9.0 契约、报告与界面证据。"
+          targetBranch: codex/web-incremental-evaluation
+      tweak.build.escalation-confirm:
+        sequence: 4
+        value:
+          choice: continue
+          proposal:
+            input:
+              change: web-incremental-evaluation
+              changeDir: openspec/changes/web-incremental-evaluation
+              workspaceBaseline:
+                ref: c6ecc2a8-59e4-46be-8107-a3e0b1c86b18
+            outputs:
+              tweak.build.execute:
+                event: escalation-requested
+                proposal: "Issue #475 已确认范围包含公开预览 API、持久化 schema、前后端与 worker/预算/恢复联动，预计超过 6
+                  个交付文件；用户已在 Open 范围展示后明确选择选项 2：继续 tweak，接受该范围。"
+                requirementsEvidence:
+                  contentHash: c7267a11518d0fe1c38c4fc71ecb3a8863b5eda565e24547d191d27d46f8051f
+                  ref: openspec/changes/web-incremental-evaluation
+      tweak.build.execute:
+        sequence: 5
+        value:
+          checks:
+            - name: 后端相关回归 / repository / .venv/bin/python -m pytest [16 test modules]
+                --no-cov -q
+              note: 597 passed; final full command and output in
+                openspec/changes/web-incremental-evaluation/.comet/checks/backend.log
+              result: passed
+            - name: 结果费用补测 / repository / pytest API reuse + results modules
+              note: 32 passed after nullable unknown new-cost presentation;
+                .comet/checks/cost-view.log
+              result: passed
+            - name: 题目指纹 / repository / pytest test_incremental_e2e.py -k
+                problem_fingerprint_tracks_evaluation_fields
+              note: 12 passed; includes hidden/feedback/public tests and judge metadata;
+                .comet/checks/fingerprint-fields.log
+              result: passed
+            - name: 前端 / frontend / npm test
+              note: 370 passed; .comet/checks/frontend-tests.log
+              result: passed
+            - name: 前端构建与 Lint / frontend / npm run build; npm run lint
+              note: Both exit 0; existing large-bundle warning;
+                .comet/checks/frontend-build.log and frontend-lint.log
+              result: passed
+            - name: Python / repository / Ruff, Black check, scoped mypy
+              note: "Ruff clean, Black 16 files unchanged; mypy --follow-imports=silent
+                --ignore-missing-imports: no issues in 8 source files.
+                Unrestricted traversal has pre-existing untyped-dependency
+                errors; scoped check used for changed code."
+              result: passed
+            - name: 浏览器 / frontend production preview / node /tmp/issue475-browser.mjs
+              note: "Actual React/client/store with offline HTTP fixtures. Preview,
+                failure/retry, submission/source/cost and 320/390/1280px layout
+                pass. Analytics fixture intentionally returns 404; not analytics
+                E2E. Evidence:
+                docs/superpowers/reports/assets/web-incremental-evaluation/repo\
+                rt.json"
+              result: passed
+            - name: OpenSpec / repository / comet classic openspec -- validate
+                web-incremental-evaluation --strict
+              note: Strict validation passed; git diff --check also clean.
+              result: passed
+          event: build-complete
+      tweak.open:
+        sequence: 1
+        value:
+          event: open-complete
+          requirementsEvidence:
+            ref: openspec/changes/web-incremental-evaluation
+      tweak.open.evidence:
+        sequence: 2
+        value:
+          contentHash: 931dabae85b5cefa398e7e28a6b61413ceb8eeca961dc8d9a15273d693938ab1
+          ref: openspec/changes/web-incremental-evaluation
+      tweak.verify.report.evidence:
+        sequence: 11
+        value:
+          contentHash: 339525bd01ac135f1f2d888ad3b9005d5668d2d9bde7334048ce60d1b7cba90a
+          ref: docs/superpowers/reports/2026-11-25-web-incremental-evaluation-verify.md
+      tweak.verify.run:
+        sequence: 10
+        value:
+          checks:
+            - name: 后端相关回归 / repository / .venv/bin/python -m pytest [16 test modules]
+                --no-cov -q
+              note: 597 passed; final full command and output in
+                openspec/changes/web-incremental-evaluation/.comet/checks/backend.log
+              result: passed
+            - name: 结果费用补测 / repository / pytest API reuse + results modules
+              note: 32 passed after nullable unknown new-cost presentation;
+                .comet/checks/cost-view.log
+              result: passed
+            - name: 题目指纹 / repository / pytest test_incremental_e2e.py -k
+                problem_fingerprint_tracks_evaluation_fields
+              note: 12 passed; includes hidden/feedback/public tests and judge metadata;
+                .comet/checks/fingerprint-fields.log
+              result: passed
+            - name: 前端 / frontend / npm test
+              note: 370 passed; .comet/checks/frontend-tests.log
+              result: passed
+            - name: 前端构建与 Lint / frontend / npm run build; npm run lint
+              note: Both exit 0; existing large-bundle warning;
+                .comet/checks/frontend-build.log and frontend-lint.log
+              result: passed
+            - name: Python / repository / Ruff, Black check, scoped mypy
+              note: "Ruff clean, Black 16 files unchanged; mypy --follow-imports=silent
+                --ignore-missing-imports: no issues in 8 source files.
+                Unrestricted traversal has pre-existing untyped-dependency
+                errors; scoped check used for changed code."
+              result: passed
+            - name: 浏览器 / frontend production preview / node /tmp/issue475-browser.mjs
+              note: "Actual React/client/store with offline HTTP fixtures. Preview,
+                failure/retry, submission/source/cost and 320/390/1280px layout
+                pass. Analytics fixture intentionally returns 404; not analytics
+                E2E. Evidence:
+                docs/superpowers/reports/assets/web-incremental-evaluation/repo\
+                rt.json"
+              result: passed
+            - name: OpenSpec / repository / comet classic openspec -- validate
+                web-incremental-evaluation --strict
+              note: Strict validation passed; git diff --check also clean.
+              result: passed
+            - name: 全复用零预算且无定价 / pytest -k web_incremental_all_reused_zero_budget_no_runtime
+              note: 1 passed; runtime initialization forbidden and PricingManager reports
+                pricing_known=False; .comet/checks/zero-budget-no-pricing.log
+              result: passed
+          event: verification-ready
+          verificationReport: docs/superpowers/reports/2026-11-25-web-incremental-evaluation-verify.md
+    children: []
+    lineage: []
+  sourceRevision: 26
+  sourceHash: 948f676376e9928cbcdfeaea6b1afd9e83df11df624143d7b0f25e938bc5c543
+direct_override: null
+handoff_context: null
+handoff_hash: null
+classic_profile: null
+classic_migration: null
+check_epoch: 6

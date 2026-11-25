@@ -1,6 +1,11 @@
 import { createStore, type StoreApi } from 'zustand/vanilla'
 import { ApiClientError } from '../auth/http.ts'
-import type { Draft, EvaluationClient } from './types.ts'
+import type {
+  Draft,
+  EvaluationClient,
+  ReusePreview,
+  ReuseSummary,
+} from './types.ts'
 import { createPayload } from './validation.ts'
 
 export type CreationPhase =
@@ -13,6 +18,11 @@ export type CreationPhase =
   | 'create-unknown'
 
 export interface CreationState {
+  reusePreview: ReusePreview | null
+  previewPending: boolean
+  previewError: ApiClientError | null
+  createdReuse: ReuseSummary | null
+  refreshReusePreview(): Promise<void>
   owner: string | null
   draft: Draft
   phase: CreationPhase
@@ -65,6 +75,8 @@ export function createCreationStore(
 ): StoreApi<CreationState> {
   let operation = 0
   let active: Promise<void> | null = null
+  let previewEpoch = 0
+  let previewController: AbortController | null = null
   return createStore<CreationState>((set, get) => {
     function owns(owner: string | null): owner is string {
       return (
@@ -107,6 +119,48 @@ export function createCreationStore(
       }
     }
     return {
+      reusePreview: null,
+      previewPending: false,
+      previewError: null,
+      createdReuse: null,
+      async refreshReusePreview() {
+        const epoch = ++previewEpoch
+        previewController?.abort()
+        previewController = null
+        set({ reusePreview: null, previewPending: false, previewError: null })
+        const { owner, draft, phase } = get()
+        if (!owns(owner) || !draft.reuse_history || phase !== 'editing') return
+        let payload
+        try {
+          payload = createPayload(draft)
+        } catch {
+          return
+        }
+        const controller = new AbortController()
+        previewController = controller
+        set({ previewPending: true })
+        try {
+          if (!deps.client.reusePreview)
+            throw new ApiClientError('复用预览暂不可用，请重试。')
+          const preview = await deps.client.reusePreview(
+            payload,
+            controller.signal,
+          )
+          if (
+            epoch === previewEpoch &&
+            owns(owner) &&
+            !controller.signal.aborted
+          )
+            set({ reusePreview: preview, previewPending: false })
+        } catch (error) {
+          if (
+            epoch === previewEpoch &&
+            owns(owner) &&
+            !controller.signal.aborted
+          )
+            set({ previewError: asError(error), previewPending: false })
+        }
+      },
       owner: deps.readOwner(),
       draft: emptyDraft(),
       phase: 'editing',
@@ -132,6 +186,7 @@ export function createCreationStore(
           },
           error: null,
         })
+        void get().refreshReusePreview()
       },
       startNewDraft() {
         const { owner, phase, evaluationId } = get()
@@ -144,6 +199,9 @@ export function createCreationStore(
           return false
         set({
           draft: emptyDraft(),
+          reusePreview: null,
+          createdReuse: null,
+          previewError: null,
           phase: 'editing',
           evaluationId: null,
           error: null,
@@ -171,6 +229,7 @@ export function createCreationStore(
           evaluationId: null,
           error: null,
         })
+        void get().refreshReusePreview()
         return true
       },
       submit() {
@@ -178,6 +237,11 @@ export function createCreationStore(
         if (!owns(owner)) return Promise.resolve()
         if (active) return active
         if (phase !== 'editing') return Promise.resolve()
+        if (
+          draft.reuse_history &&
+          (get().previewPending || !get().reusePreview)
+        )
+          return Promise.resolve()
         let payload
         try {
           payload = createPayload(draft)
@@ -190,7 +254,18 @@ export function createCreationStore(
             if (!current(owner, id)) return
             const created = await deps.client.create(payload)
             if (!current(owner, id)) return
-            set({ phase: 'created', evaluationId: created.evaluation_id })
+            set({
+              phase: 'created',
+              evaluationId: created.evaluation_id,
+              createdReuse: created.reuse_history
+                ? {
+                    total_units:
+                      created.problem_count * created.strategy_names.length,
+                    reused_units: created.reused_units ?? 0,
+                    new_units: created.new_units ?? 0,
+                  }
+                : null,
+            })
             if (!current(owner, id)) return
             deps.onCreated?.(created.evaluation_id)
             if (!current(owner, id)) return
@@ -275,6 +350,9 @@ export function createCreationStore(
         return task
       },
       reset(owner) {
+        previewEpoch++
+        previewController?.abort()
+        previewController = null
         operation++
         active = null
         set({
@@ -284,6 +362,10 @@ export function createCreationStore(
           phase: 'editing',
           evaluationId: null,
           error: null,
+          reusePreview: null,
+          previewPending: false,
+          previewError: null,
+          createdReuse: null,
         })
       },
     }

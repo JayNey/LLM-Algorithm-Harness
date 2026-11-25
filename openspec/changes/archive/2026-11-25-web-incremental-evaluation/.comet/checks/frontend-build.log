@@ -1,0 +1,98 @@
+
+> llm-harness-frontend@0.1.0 build
+> tsc -b && vite build
+
+vite v8.3.4 building client environment for production...
+transforming...
+✓ 2316 modules transformed.
+rendering chunks...
+computing gzip size...
+dist/index.html                                      1.98 kB │ gzip:   0.61 kB
+dist/assets/optionFields-DOlXYFPQ.css                0.25 kB │ gzip:   0.17 kB
+dist/assets/index-C1j7np70.css                      49.40 kB │ gzip:  10.18 kB
+dist/assets/fallbackProp-Bfe6RA8u.js                 0.06 kB │ gzip:   0.08 kB
+dist/assets/validateMessagesContext-BIiPKxBZ.js      0.10 kB │ gzip:   0.11 kB
+dist/assets/useForceUpdate-DlhW23lc.js               0.11 kB │ gzip:   0.12 kB
+dist/assets/SettingsTable-CjfXBVZu.js                0.29 kB │ gzip:   0.20 kB
+dist/assets/SettingsPage-ChpOMFc0.js                 0.42 kB │ gzip:   0.30 kB
+dist/assets/useResource-DmSW1Xgk.js                  0.54 kB │ gzip:   0.38 kB
+dist/assets/presentation-BWbY-HzC.js                 0.63 kB │ gzip:   0.45 kB
+dist/assets/registerForm-umbsUlf6.js                 0.67 kB │ gzip:   0.47 kB
+dist/assets/useVariants-CEtN3MlO.js                  0.67 kB │ gzip:   0.40 kB
+dist/assets/PlusOutlined-DPG-VqE_.js                 0.69 kB │ gzip:   0.47 kB
+dist/assets/presentation-CtLzNJqT.js                 0.78 kB │ gzip:   0.53 kB
+dist/assets/presentation-4_WZsOc4.js                 0.82 kB │ gzip:   0.49 kB
+dist/assets/useList-CF7x0NFY.js                      0.89 kB │ gzip:   0.54 kB
+dist/assets/datasets-BbEj2EDW.js                     1.04 kB │ gzip:   0.46 kB
+dist/assets/profile-C_zGWTyS.js                      1.07 kB │ gzip:   0.59 kB
+dist/assets/components-B9s_wF8S.js                   1.14 kB │ gzip:   0.68 kB
+dist/assets/useTaskProgress-D2-ChSHm.js              1.36 kB │ gzip:   0.67 kB
+dist/assets/useZIndex-DK1cNUT5.js                    1.36 kB │ gzip:   0.81 kB
+dist/assets/modal-BoBVlfcC.js                        1.43 kB │ gzip:   0.77 kB
+dist/assets/apiKeys-CtVMdh-V.js                      1.61 kB │ gzip:   0.89 kB
+dist/assets/useBreakpoint-uShSWRU9.js                1.86 kB │ gzip:   0.89 kB
+dist/assets/style-F_n3bDG1.js                        1.96 kB │ gzip:   0.82 kB
+dist/assets/auto-complete-BkDVZ0aK.js                2.04 kB │ gzip:   1.03 kB
+dist/assets/presentation-Dm06ReRi.js                 2.21 kB │ gzip:   1.13 kB
+dist/assets/Addon-DcVEjYMi.js                        2.39 kB │ gzip:   0.98 kB
+dist/assets/validation-Bog0Ovvq.js                   2.67 kB │ gzip:   1.30 kB
+dist/assets/zoom-DlOjJBdG.js                         2.75 kB │ gzip:   0.70 kB
+dist/assets/BenchmarksPage-Cbvpk3bV.js               3.29 kB │ gzip:   1.62 kB
+dist/assets/validation-rF1-IRqQ.js                   3.92 kB │ gzip:   1.77 kB
+dist/assets/SystemLogsPage-B2NypoQl.js               4.51 kB │ gzip:   2.01 kB
+dist/assets/RegisterPage-BPnk_jqJ.js                 4.61 kB │ gzip:   1.83 kB
+dist/assets/EvaluationsPage-D9K2NDdT.js              4.62 kB │ gzip:   2.03 kB
+dist/assets/ABTestsPage-ATugOZdP.js                  4.73 kB │ gzip:   2.10 kB
+dist/assets/ResultsPage-BsPAx_Ql.js                  4.95 kB │ gzip:   2.12 kB
+dist/assets/ProfilePage-DbE60Q_8.js                  5.13 kB │ gzip:   1.95 kB
+dist/assets/ApiKeysPage-CUYyBtJW.js                  5.15 kB │ gzip:   2.15 kB
+dist/assets/ExperimentsPage-4vCC-hpx.js              5.53 kB │ gzip:   2.40 kB
+dist/assets/PricingPage-YAdaZcC4.js                  5.58 kB │ gzip:   2.20 kB
+dist/assets/EvaluationDetailPage-Ytwnt96v.js         5.81 kB │ gzip:   2.54 kB
+dist/assets/CreateABTestPage-DVR2X3dm.js             6.13 kB │ gzip:   2.23 kB
+dist/assets/components-DGdXHooY.js                   6.23 kB │ gzip:   2.09 kB
+dist/assets/alert-Buw_GqqF.js                        6.46 kB │ gzip:   2.74 kB
+dist/assets/HelpPage-D6mY90Ni.js                     6.46 kB │ gzip:   2.67 kB
+dist/assets/config-provider-DKAxv1pG.js              6.62 kB │ gzip:   2.69 kB
+dist/assets/LoginPage-BbLVjvvU.js                    6.96 kB │ gzip:   3.11 kB
+dist/assets/CreateExperimentPage-CHPaWvlG.js         7.43 kB │ gzip:   2.49 kB
+dist/assets/checkbox-7lCwYfE-.js                     7.44 kB │ gzip:   3.10 kB
+dist/assets/useEvaluation-BSg1SLj-.js                8.10 kB │ gzip:   3.22 kB
+dist/assets/ABTestDetailPage-C6lqWWM6.js             8.31 kB │ gzip:   3.17 kB
+dist/assets/es-CKBnIhKD.js                           8.58 kB │ gzip:   3.73 kB
+dist/assets/ResultDetailPage-BEpkHlJC.js             8.84 kB │ gzip:   3.77 kB
+dist/assets/skeleton-DpYlU_RP.js                     9.47 kB │ gzip:   3.25 kB
+dist/assets/SandboxDiagnostic-CCJ6dkhf.js            9.89 kB │ gzip:   3.24 kB
+dist/assets/DashboardPage-CBrfENQf.js               11.96 kB │ gzip:   4.12 kB
+dist/assets/client-CFxTT8ea.js                      12.06 kB │ gzip:   3.68 kB
+dist/assets/optionFields-BDAQy-kd.js                12.46 kB │ gzip:   4.96 kB
+dist/assets/CreateEvaluationPage-D7hndn0U.js        13.21 kB │ gzip:   4.57 kB
+dist/assets/BenchmarkDetailPage-CJKhKoxN.js         13.26 kB │ gzip:   5.06 kB
+dist/assets/ExperimentDetailPage-CYdkcJbA.js        14.20 kB │ gzip:   4.62 kB
+dist/assets/progress-C0F1rwXv.js                    14.81 kB │ gzip:   5.71 kB
+dist/assets/style-BN4wFIPT.js                       16.17 kB │ gzip:   3.83 kB
+dist/assets/BudgetsPage-DSRAtYh7.js                 16.21 kB │ gzip:   5.22 kB
+dist/assets/input-number-C_kKf5KU.js                20.94 kB │ gzip:   7.63 kB
+dist/assets/motion-C3t4-Zzb.js                      23.38 kB │ gzip:   9.25 kB
+dist/assets/SystemPage-wSsI7gSk.js                  25.40 kB │ gzip:   8.73 kB
+dist/assets/useModal-D5uPTk8T.js                    27.52 kB │ gzip:   9.56 kB
+dist/assets/form-Iuwcm1PN.js                        28.93 kB │ gzip:  11.27 kB
+dist/assets/input-BvCNWCcB.js                       29.80 kB │ gzip:  11.05 kB
+dist/assets/analysis-B7-4HZLB.js                    31.74 kB │ gzip:   9.58 kB
+dist/assets/tabs-E8kbb_s7.js                        34.90 kB │ gzip:  10.93 kB
+dist/assets/index.esm-B-MW27VX.js                   36.31 kB │ gzip:  12.73 kB
+dist/assets/chunk-OB3PAWPO-eSA8vB5Q.js              40.58 kB │ gzip:  14.58 kB
+dist/assets/ContextIsolator-D9x70Vyy.js             47.08 kB │ gzip:  15.52 kB
+dist/assets/auth-DIrVPZLP.js                        64.55 kB │ gzip:  23.78 kB
+dist/assets/ProblemsPage-IE712N-I.js                65.68 kB │ gzip:  22.09 kB
+dist/assets/jsx-runtime-uPIZYZlc.js                218.02 kB │ gzip:  69.11 kB
+dist/assets/button-nLkzk_wA.js                     248.78 kB │ gzip:  84.70 kB
+dist/assets/index-ByA1aVQt.js                      353.77 kB │ gzip: 111.23 kB
+dist/assets/CompareCharts-BOtO8ko3.js            1,136.04 kB │ gzip: 377.59 kB
+
+[plugin builtin:vite-reporter] 
+(!) Some chunks are larger than 500 kB after minification. Consider:
+- Using dynamic import() to code-split the application
+- Use build.rolldownOptions.output.codeSplitting to improve chunking: https://rolldown.rs/reference/OutputOptions.codeSplitting
+- Adjust chunk size limit for this warning via build.chunkSizeWarningLimit.
+✓ built in 907ms

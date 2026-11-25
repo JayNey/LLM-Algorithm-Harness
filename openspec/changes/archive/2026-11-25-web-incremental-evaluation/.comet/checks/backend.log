@@ -1,0 +1,87 @@
+/Users/verstappen/LLM-Algorithm-Harness/.venv/lib/python3.12/site-packages/pytest_asyncio/plugin.py:306: PytestDeprecationWarning: The configuration option "asyncio_default_fixture_loop_scope" is unset.
+The event loop scope for asynchronous fixtures will default to the fixture scope. Future versions of pytest-asyncio will default the loop scope for asynchronous fixtures to "function" scope. Set the default fixture loop scope explicitly in order to avoid unexpected behavior in the future. Valid fixture loop scopes are: "function", "class", "module", "package", "session". Set it to "fixture-scope" to keep the current behavior.
+
+  warnings.warn(PytestDeprecationWarning(_DEFAULT_FIXTURE_LOOP_SCOPE_UNSET))
+============================= test session starts ==============================
+platform darwin -- Python 3.12.16, pytest-9.2.0, pluggy-1.7.0
+rootdir: /Users/verstappen/LLM-Algorithm-Harness
+configfile: pyproject.toml
+plugins: platformdirs-4.14.8, cov-7.1.0, anyio-4.16.0, asyncio-1.5.0
+asyncio: mode=Mode.STRICT, debug=False, asyncio_default_fixture_loop_scope=None, asyncio_default_test_loop_scope=function
+collected 597 items
+
+tests/test_celery_tasks.py ............................................. [  7%]
+....................................................................     [ 18%]
+tests/test_api_evaluation_reuse.py ....                                  [ 19%]
+tests/test_api_evaluations.py ........                                   [ 20%]
+tests/test_api_evaluation_options.py ................................... [ 26%]
+..................................                                       [ 32%]
+tests/test_evaluation_workflow_contract.py ............................. [ 37%]
+........................................................................ [ 49%]
+.......                                                                  [ 50%]
+tests/test_evaluation_service_async.py .........................         [ 54%]
+tests/test_evaluation_results_service.py ....                            [ 55%]
+tests/test_api_evaluation_results.py .......................             [ 59%]
+tests/test_evaluation_artifacts.py ..................................... [ 65%]
+........                                                                 [ 66%]
+tests/test_budget_coverage.py ...                                        [ 67%]
+tests/test_spend_execution.py .............                              [ 69%]
+tests/test_web_cost_alerts.py ...........................                [ 74%]
+tests/test_api_versioning.py .......................                     [ 77%]
+tests/test_api_documentation.py .........................                [ 82%]
+tests/test_evaluation_async_flow.py ......................               [ 85%]
+tests/test_api_restart_worker_recovery.py .............................. [ 90%]
+.......................................................                  [100%]
+
+=============================== warnings summary ===============================
+api/config.py:9
+  /Users/verstappen/LLM-Algorithm-Harness/api/config.py:9: PydanticDeprecatedSince20: Support for class-based `config` is deprecated, use ConfigDict instead. Deprecated in Pydantic V2.0 to be removed in V3.0. See Pydantic V2 Migration Guide at https://errors.pydantic.dev/2.14/migration/
+    class Settings(BaseSettings):
+
+api/models.py:8
+  /Users/verstappen/LLM-Algorithm-Harness/api/models.py:8: PydanticDeprecatedSince20: Support for class-based `config` is deprecated, use ConfigDict instead. Deprecated in Pydantic V2.0 to be removed in V3.0. See Pydantic V2 Migration Guide at https://errors.pydantic.dev/2.14/migration/
+    class EvaluationCreateRequest(BaseModel):
+
+api/models.py:138
+  /Users/verstappen/LLM-Algorithm-Harness/api/models.py:138: PydanticDeprecatedSince20: Support for class-based `config` is deprecated, use ConfigDict instead. Deprecated in Pydantic V2.0 to be removed in V3.0. See Pydantic V2 Migration Guide at https://errors.pydantic.dev/2.14/migration/
+    class AsyncTaskCreateRequest(BaseModel):
+
+api/schemas.py:12
+  /Users/verstappen/LLM-Algorithm-Harness/api/schemas.py:12: PydanticDeprecatedSince20: Support for class-based `config` is deprecated, use ConfigDict instead. Deprecated in Pydantic V2.0 to be removed in V3.0. See Pydantic V2 Migration Guide at https://errors.pydantic.dev/2.14/migration/
+    class ApiResponse(BaseModel, Generic[T]):
+
+api/schemas.py:29
+  /Users/verstappen/LLM-Algorithm-Harness/api/schemas.py:29: PydanticDeprecatedSince20: Support for class-based `config` is deprecated, use ConfigDict instead. Deprecated in Pydantic V2.0 to be removed in V3.0. See Pydantic V2 Migration Guide at https://errors.pydantic.dev/2.14/migration/
+    class PaginatedData(BaseModel, Generic[T]):
+
+tests/test_celery_tasks.py: 70 warnings
+tests/test_api_evaluation_results.py: 1 warning
+tests/test_evaluation_artifacts.py: 9 warnings
+tests/test_budget_coverage.py: 4 warnings
+tests/test_api_restart_worker_recovery.py: 1 warning
+  /Users/verstappen/LLM-Algorithm-Harness/src/task_manager.py:600: DeprecationWarning: datetime.datetime.utcnow() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.now(datetime.UTC).
+    task.started_at = datetime.utcnow()
+
+tests/test_celery_tasks.py: 59 warnings
+tests/test_api_evaluation_results.py: 1 warning
+tests/test_evaluation_artifacts.py: 8 warnings
+tests/test_budget_coverage.py: 4 warnings
+tests/test_api_restart_worker_recovery.py: 1 warning
+  /Users/verstappen/LLM-Algorithm-Harness/src/task_manager.py:603: DeprecationWarning: datetime.datetime.utcnow() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.now(datetime.UTC).
+    task.completed_at = datetime.utcnow()
+
+tests/test_evaluation_workflow_contract.py::test_create_update_start_and_cancel_expose_capabilities
+tests/test_evaluation_artifacts.py::test_cancel_api_durably_stages_terminal_snapshot_without_worker_finally
+  /Users/verstappen/LLM-Algorithm-Harness/src/task_manager.py:722: DeprecationWarning: datetime.datetime.utcnow() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.now(datetime.UTC).
+    task.completed_at = datetime.utcnow()
+
+tests/test_evaluation_workflow_contract.py::test_publish_failure_is_retryable_without_recreating_evaluation
+  /Users/verstappen/LLM-Algorithm-Harness/src/task_manager.py:417: DeprecationWarning: datetime.datetime.utcnow() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.now(datetime.UTC).
+    completed_at=datetime.utcnow(),
+
+tests/test_evaluation_artifacts.py::test_cancel_api_durably_stages_terminal_snapshot_without_worker_finally
+  /Users/verstappen/LLM-Algorithm-Harness/src/task_manager.py:503: DeprecationWarning: datetime.datetime.utcnow() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.now(datetime.UTC).
+    task.started_at = datetime.utcnow()
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+================= 597 passed, 167 warnings in 68.84s (0:01:08) =================

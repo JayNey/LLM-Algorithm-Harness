@@ -73,6 +73,7 @@ export function createPayload(draft: Draft): CreatePayload {
   if (draft.verify_problem_access) payload.verify_problem_access = true
   if (draft.dataset_version_id)
     payload.dataset_version_id = draft.dataset_version_id
+  if (draft.reuse_history) payload.reuse_history = true
   return payload
 }
 

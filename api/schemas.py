@@ -90,6 +90,9 @@ class EvaluationResponse(BaseModel):
     model: str | None = Field(None, description="Model name used to execute the evaluation")
     generation_timeout_seconds: int = DEFAULT_GENERATION_TIMEOUT_SECONDS
     problem_count: int = Field(..., ge=0, description="Total number of problems")
+    reuse_history: bool = False
+    reused_units: int = Field(0, ge=0)
+    new_units: int = Field(0, ge=0)
     spent_usd: float = Field(..., ge=0, description="Amount spent so far in USD")
     budget_cap_usd: float | None = Field(None, ge=0, description="Budget limit in USD")
     known_cost_usd: float | None = Field(None, ge=0, description="Known USD subtotal, if available")

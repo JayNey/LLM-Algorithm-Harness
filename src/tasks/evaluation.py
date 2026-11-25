@@ -32,6 +32,14 @@ from api.progress import publish_progress
 from api.services.artifact_service import EvaluationArtifactService, stage_publication
 from api.services.cost_alert_service import WebCostAlertDispatcher
 from api.services.cost_service import CostService
+from api.services.evaluation_reuse import (
+    execution_config,
+    execution_fingerprint,
+    new_cost,
+    new_cost_unknown,
+    restore_problems,
+    validate_plan,
+)
 from src.budget import BudgetExhausted
 from src.celery_app import celery_app
 from src.cost_strategy import (
@@ -42,12 +50,11 @@ from src.cost_strategy import (
     result_cost_details,
 )
 from src.harness import AlgorithmHarness
+from src.incremental.fingerprint import compute_problem_fingerprint
 from src.llm_client import LLMAdmissionError
 from src.models import (
     ExecutionResult,
-    HarnessConfig,
     LLMResponse,
-    SandboxConfig,
     StrategyConfig,
 )
 from src.models import Problem as DomainProblem
@@ -272,13 +279,39 @@ def _run_owned_evaluation(self: EvaluationTask, evaluation_id: str) -> dict[str,
         # _build_harness 抛 RuntimeError（sandbox preflight 失败）/ValueError（未知策略）
         # → 落入既有 except 置 failed（RuntimeError 走通用 except Exception，不在
         # autoretry_for=(RedisConnectionError, ConnectionError) 内，不会无限重试）。
-        harness, strategy_configs, runtimes = _build_harness(ctx, evaluation.strategy_names)
-
         # 4. 创建 TaskService 任务单元
         units = _create_task_units(evaluation.strategy_names, evaluation.problem_ids)
         for unit in units:
             unit.problem_snapshot = _freeze_problem(ctx, unit.problem_id)
-        config_fingerprint = TaskService.config_fingerprint({"evaluation_id": evaluation_id})
+        if evaluation.reuse_history:
+            plan = validate_plan(evaluation)
+            planned = {(u["strategy"], u["problem_id"]): u for u in plan["units"]}
+            saved = {
+                (r.strategy_name, r.problem_id): r
+                for r in db.scalars(
+                    select(EvaluationResult).where(EvaluationResult.evaluation_id == evaluation_id)
+                )
+            }
+            for unit in units:
+                selection = planned[(unit.strategy, unit.problem_id)]
+                if selection.get("source"):
+                    unit.status = "completed"
+                    unit.result = selection["result"]["execution_payload"]
+                elif (
+                    row := saved.get((unit.strategy, unit.problem_id))
+                ) is not None and row.execution_payload:
+                    unit.status = "completed"
+                    unit.result = row.execution_payload
+        config_fingerprint = TaskService.config_fingerprint(
+            {
+                "evaluation_id": evaluation_id,
+                **(
+                    {"plan": validate_plan(evaluation)["digest"]}
+                    if evaluation.reuse_history
+                    else {}
+                ),
+            }
+        )
         dataset_fingerprint = TaskService._hash_json(evaluation.problem_ids)
 
         # 5. 创建或加载 TaskService 任务
@@ -289,8 +322,7 @@ def _run_owned_evaluation(self: EvaluationTask, evaluation_id: str) -> dict[str,
         resume = False
         try:
             existing_record = task_service.get(run_id)
-            if existing_record.state in ("running", "paused", "failed", "completed"):
-                resume = True
+            resume = True
         except FileNotFoundError:
             pass
 
@@ -348,6 +380,8 @@ def _run_owned_evaluation(self: EvaluationTask, evaluation_id: str) -> dict[str,
             # already contain all queued problems, including across a pause.
             if unit.problem_snapshot is None:
                 unit.problem_snapshot = _freeze_problem(ctx, unit.problem_id)
+            if harness is None:
+                raise ValueError("No runtime for an unplanned execution unit")
             selected = execution_strategies.get(unit.unit_id, unit.strategy)
             if selected not in runtimes:
                 strategy_configs[selected] = StrategyConfig(name=selected)
@@ -381,14 +415,20 @@ def _run_owned_evaluation(self: EvaluationTask, evaluation_id: str) -> dict[str,
                 )
                 .first()
             )
-            previous_cost = (
-                Decimal(str((previous.metrics or {}).get("cost_usd", 0)))
-                if previous
-                else Decimal(0)
-            )
+            previous_cost = Decimal(str(new_cost(previous.metrics))) if previous else Decimal(0)
             cost = _record_unit_result(db, evaluation, unit)
             key = (unit.problem_id, unit.strategy)
-            if ((unit.result or {}).get("metadata") or {}).get("cost_unknown"):
+            current_metrics = (
+                db.query(EvaluationResult)
+                .filter_by(
+                    evaluation_id=evaluation_id,
+                    problem_id=unit.problem_id,
+                    strategy_name=unit.strategy,
+                )
+                .one()
+                .metrics
+            )
+            if new_cost_unknown(current_metrics):
                 unknown_cost_units.add(key)
             else:
                 unknown_cost_units.discard(key)
@@ -496,15 +536,25 @@ def _run_owned_evaluation(self: EvaluationTask, evaluation_id: str) -> dict[str,
         # 真实 worker（Design Doc §5.7）：闭包捕获 harness/策略配置/预建 runtime/只读题目
         # 映射，绝不引用 db（worker 跑在 executor 线程，跨线程触碰 session 会损坏连接）。
         # worker 返回 ExecutionResult，由 TaskService._serialize_result 序列化入 unit.result。
-        worker = _make_worker(
-            harness,
-            strategy_configs,
-            runtimes,
-            ctx.problem_map,
-            ctx.missing_reasons,
-            execution_strategies=execution_strategies,
-            retry_budget=ctx.retry_budget,
+        # Reused units are completed before admission/budget checks. A fully
+        # reusable run needs neither model clients nor sandbox runtimes.
+        pending_names = list(dict.fromkeys(u.strategy for u in units if u.status == "queued"))
+        harness, strategy_configs, runtimes = (
+            _build_harness(ctx, pending_names) if pending_names else (None, {}, {})
         )
+
+        def worker(unit: TaskUnit) -> ExecutionResult:
+            if harness is None:
+                raise ValueError("No runtime for an unplanned execution unit")
+            return _make_worker(
+                harness,
+                strategy_configs,
+                runtimes,
+                ctx.problem_map,
+                ctx.missing_reasons,
+                execution_strategies=execution_strategies,
+                retry_budget=ctx.retry_budget,
+            )(unit)
 
         if resume:
             # Validate before replay, just as TaskService.run does before dispatch.
@@ -514,18 +564,43 @@ def _run_owned_evaluation(self: EvaluationTask, evaluation_id: str) -> dict[str,
                 config_fingerprint=config_fingerprint,
                 dataset_fingerprint=dataset_fingerprint,
             )
+            if evaluation.reuse_history:
+                confirmed = {
+                    (u.strategy, u.problem_id): u for u in units if u.status == "completed"
+                }
+                for checkpoint_unit in existing_record.units:
+                    if (
+                        saved_unit := confirmed.get(
+                            (checkpoint_unit.strategy, checkpoint_unit.problem_id)
+                        )
+                    ) is not None:
+                        checkpoint_unit.status = "completed"
+                        checkpoint_unit.uncertain = False
+                        checkpoint_unit.result = saved_unit.result
+                        checkpoint_unit.problem_snapshot = saved_unit.problem_snapshot
+                existing_record.completed_units = sum(
+                    u.status in {"completed", "failed"} for u in existing_record.units
+                )
+                task_service.store.save(existing_record)
             for unit in existing_record.units:
                 if unit.status in {"completed", "failed"} and not unit.uncertain:
                     on_unit_finished(existing_record, unit)
+        elif evaluation.reuse_history:
+            seeded_record = task_service.get(run_id)
+            seeded_record.completed_units = sum(
+                u.status == "completed" for u in seeded_record.units
+            )
+            task_service.store.save(seeded_record)
+            for unit in seeded_record.units:
+                if unit.status == "completed":
+                    on_unit_finished(seeded_record, unit)
 
         unknown_cost_units.update(
-            (problem_id, strategy)
-            for problem_id, strategy in db.execute(
-                select(EvaluationResult.problem_id, EvaluationResult.strategy_name).where(
-                    EvaluationResult.evaluation_id == evaluation_id,
-                    EvaluationResult.metrics["cost_unknown"].as_boolean().is_(True),
-                )
+            (row.problem_id, row.strategy_name)
+            for row in db.scalars(
+                select(EvaluationResult).where(EvaluationResult.evaluation_id == evaluation_id)
             )
+            if new_cost_unknown(row.metrics)
         )
         # Check committed spend on start/resume, including when budget pause
         # prevents any further units from running.
@@ -875,7 +950,11 @@ def _validation_error_summary(exc: ValidationError) -> str:
 
 
 def _resolve_execution_context(
-    evaluation: Evaluation, session_factory: sessionmaker[Session]
+    evaluation: Evaluation,
+    session_factory: sessionmaker[Session],
+    *,
+    auth: Any = None,
+    use_plan: bool = True,
 ) -> _EvalContext:
     """在执行任何单元前 fail-fast 解析「model + 凭证 + 题目」。
 
@@ -904,7 +983,7 @@ def _resolve_execution_context(
     if not api_key_id:
         raise ValueError(f"Credential unavailable: evaluation {evaluation.id} has no api_key_id")
 
-    auth = AuthService(AuthSettings())
+    auth = auth or AuthService(AuthSettings())
     try:
         llm_config = auth.llm_config(api_key_id, evaluation.user_id, model)
     except HTTPException as exc:
@@ -914,17 +993,32 @@ def _resolve_execution_context(
         update={
             "timeout": timeout,
             "retry_max_attempts": 3,
-            "retry_max_elapsed_seconds": min(600, 3 * timeout),
+            "retry_max_elapsed_seconds": float(min(600, 3 * timeout)),
         }
     )
     llm_config._enforce_retry_deadline = True
+
+    plan = validate_plan(evaluation) if use_plan and evaluation.reuse_history else None
+    if plan is not None:
+        from src.models import LLMConfig
+
+        llm_config = LLMConfig.model_validate({**plan["llm"], "api_key": llm_config.api_key})
+        llm_config._enforce_retry_deadline = True
+        for selection in plan["units"]:
+            if (
+                execution_fingerprint(llm_config, selection["strategy"])
+                != selection["execution_fingerprint"]
+            ):
+                raise ValueError("Incremental execution configuration is incompatible")
 
     store = ProblemStore(session_factory)
     # Uploads are private to their owner and must never be copied into the
     # shared problem table. Prefer the owner's version on ID collisions.
     files = FileStore(auth.store)
     version_id = evaluation.dataset_version_id
-    if version_id is None:
+    if plan is not None:
+        dataset = [p.model_dump(mode="json") for p in restore_problems(plan).values()]
+    elif version_id is None:
         dataset = files.dataset(evaluation.user_id)
     else:
         try:
@@ -976,7 +1070,14 @@ def _resolve_execution_context(
         missing_problems=missing,
         missing_reasons=missing_reasons,
         pricing_manager=pricing_manager,
-        problem_sources={pid: "personal" if pid in uploaded else "public" for pid in problem_map},
+        problem_sources={
+            pid: (
+                plan["problems"][pid]["origin"]
+                if plan
+                else "personal" if pid in uploaded else "public"
+            )
+            for pid in problem_map
+        },
         dataset_version_id=version_id,
         retry_budget=_EvaluationRetryBudget(
             session_factory, evaluation.id, has_cap=evaluation.budget_cap_usd is not None
@@ -1061,6 +1162,53 @@ def _record_unit_result(db: Session, evaluation: Evaluation, unit: TaskUnit) -> 
     row.metrics = metrics
     row.error_message = error_message
     row.execution_payload = redact_sensitive_data(unit.result) if unit.result else None
+    if evaluation.reuse_history:
+        selection = next(
+            u
+            for u in validate_plan(evaluation)["units"]
+            if u["problem_id"] == unit.problem_id and u["strategy"] == unit.strategy
+        )
+        if selection.get("source"):
+            saved = selection["result"]
+            row.status = saved["status"]
+            row.metrics = {
+                **saved["metrics"],
+                "reuse_source": selection["source"],
+                "actually_executed": False,
+                "new_cost_usd": 0.0,
+                "new_cost_unknown": False,
+            }
+            row.error_message = saved["error_message"]
+            row.execution_payload = {
+                **saved["execution_payload"],
+                "source": "reused",
+                "metadata": {
+                    **(saved["execution_payload"].get("metadata") or {}),
+                    "reuse_source": selection["source"],
+                    "new_cost_usd": 0.0,
+                    "new_cost_unknown": False,
+                },
+            }
+            return 0.0
+    if row.metrics is not None:
+        row.metrics = {
+            **row.metrics,
+            "new_cost_usd": cost,
+            "new_cost_unknown": bool(row.metrics.get("cost_unknown")),
+            "actually_executed": unit.status == "completed",
+        }
+        if unit.problem_snapshot and unit.problem_snapshot.get("problem"):
+            try:
+                frozen_problem = DomainProblem.model_validate(unit.problem_snapshot["problem"])
+            except ValidationError:
+                # Legacy checkpoints can contain metadata only; they remain
+                # readable but cannot become compatibility evidence.
+                pass
+            else:
+                row.metrics["problem_fingerprint"] = compute_problem_fingerprint(frozen_problem)
+        fingerprint = ((unit.result or {}).get("metadata") or {}).get("execution_fingerprint")
+        if fingerprint:
+            row.metrics["execution_fingerprint"] = fingerprint
     return cost
 
 
@@ -1091,14 +1239,7 @@ def _build_harness(
         ``{strategy_name: (strategy_instance, sandbox)}``。
     """
     strategy_configs = {name: StrategyConfig(name=name) for name in strategy_names}
-    config = HarnessConfig(
-        llm_config=ctx.llm_config,
-        sandbox_config=SandboxConfig(),
-        dataset_path=_UNUSED_DATASET_PATH,
-        strategies=list(strategy_configs.values()),
-        budget_cap_usd=None,
-        enable_quality_analysis=False,
-    )
+    config = execution_config(ctx.llm_config, list(strategy_configs))
     harness = AlgorithmHarness(config)
     harness.pricing_manager = ctx.pricing_manager
     if ctx.retry_budget is not None:
@@ -1172,6 +1313,9 @@ def _make_worker(
             result.metadata["problem_snapshot"] = _problem_metadata(frozen)
         result.metadata["executed_strategy"] = selected
         result.metadata["cost_downgraded"] = selected != unit.strategy
+        result.metadata["execution_fingerprint"] = execution_fingerprint(
+            harness.config.llm_config, selected
+        )
         if retry_budget is not None:
             retry_budget.call_cost.write_result(result)
         if "cost_known" not in result.metadata:

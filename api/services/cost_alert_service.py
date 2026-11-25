@@ -19,6 +19,7 @@ from sqlalchemy.orm import Session
 from api.db.models import AlertEvent, AlertRule, Evaluation, EvaluationResult, utcnow
 from api.services.alert_target_policy import authorized_alert_target
 from api.services.cost_service import CostService
+from api.services.evaluation_reuse import new_cost_unknown
 from api.services.in_app_notification_service import budget_event_key, stage_notification
 from src.cost_alert import CostAlertSender
 from src.models import CostAlertConfig
@@ -179,7 +180,7 @@ class WebCostAlertDispatcher:
                         .join(Evaluation, Evaluation.id == EvaluationResult.evaluation_id)
                         .where(Evaluation.user_id == owner_id)
                     )
-                    if metrics and metrics.get("cost_unknown")
+                    if new_cost_unknown(metrics)
                 )
                 if rules
                 else 0

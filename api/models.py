@@ -17,6 +17,9 @@ class EvaluationCreateRequest(BaseModel):
         ..., min_length=1, description="List of strategy names to use"
     )
     budget_cap_usd: float | None = Field(None, ge=0, description="Maximum budget in USD")
+    reuse_history: bool = Field(
+        False, description="Reuse compatible completed units from your own history"
+    )
     timeout_seconds: int = Field(
         300,
         ge=1,
@@ -96,6 +99,12 @@ class EvaluationCreateRequest(BaseModel):
 class EvaluationVersionCreateRequest(EvaluationCreateRequest):
     dataset_version_id: str = Field(
         min_length=1, max_length=64, description="ID of an owned personal dataset version"
+    )
+
+
+class EvaluationReusePreviewRequest(EvaluationCreateRequest):
+    dataset_version_id: str | None = Field(
+        None, min_length=1, max_length=64, description="Optional owned personal dataset version"
     )
 
 

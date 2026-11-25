@@ -20,6 +20,7 @@ from api.db.models import (
     utcnow,
 )
 from api.files.service import FileService, json_bytes
+from api.services.evaluation_reuse import new_cost_unknown
 from src.task_manager import TaskManager
 from src.utils.secrets import redact_sensitive_data
 
@@ -79,6 +80,13 @@ def stage_publication(db: Session, evaluation: Evaluation) -> EvaluationArtifact
             "complete": evaluation.status == "completed" and len(rows) == expected,
             "expected_units": expected,
             "recorded_units": len(rows),
+            "reuse": {
+                "reused_units": evaluation.reused_units or 0,
+                "new_units": expected - (evaluation.reused_units or 0),
+                "new_cost_usd": evaluation.spent_usd,
+                "new_cost_unknown_count": sum(new_cost_unknown(row.metrics) for row in rows),
+                "result_cost_basis": "original_execution",
+            },
             "execution_payload_available": all(row.execution_payload is not None for row in rows),
             "results": results,
         }

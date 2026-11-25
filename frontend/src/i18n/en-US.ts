@@ -1,4 +1,26 @@
 export default {
+  复用历史结果: 'Reuse historical results',
+  '复用预览暂不可用，请重试。': 'Reuse preview is unavailable. Try again.',
+  '按题目 × 策略匹配本人历史；最终计划以提交时核对结果为准。':
+    'Match your own history by problem × strategy. The plan is finalized on submission.',
+  '正在计算复用预览…': 'Calculating reuse preview…',
+  '复用预览失败，请重试或关闭复用。':
+    'Reuse preview failed. Retry or turn off reuse.',
+  '请选择题目、模型与策略以查看复用预览。':
+    'Select problems, a model and strategies to preview reuse.',
+  '预计复用 {{reused}}，新跑 {{fresh}}，共 {{total}} 个单元':
+    'Expected: {{reused}} reused, {{fresh}} new, {{total}} units total',
+  '复用 {{reused}}，新跑 {{fresh}}，共 {{total}} 个单元':
+    '{{reused}} reused, {{fresh}} new, {{total}} units total',
+  本次新增费用: 'New cost for this run',
+  '复用 / 新跑单元': 'Reused / new units',
+  增量运行汇总: 'Incremental run summary',
+  '策略费用与单元原始费用包含历史度量，本次预算只结算新增调用。':
+    'Strategy costs and original unit costs include historical measurements. This run’s budget only charges new calls.',
+  原始执行费用: 'Original execution cost',
+  结果来源: 'Result source',
+  复用: 'Reused',
+  新跑: 'New',
   超出输出限制: 'Output limit exceeded',
   超出进程限制: 'Process limit exceeded',
   模型生成超时: 'Generation timeout',

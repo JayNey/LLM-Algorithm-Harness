@@ -10,6 +10,7 @@ import {
   successRateLabel,
 } from './presentation.ts'
 import { Alert, Button } from 'antd'
+import { Link } from 'react-router-dom'
 
 export function EvaluationFeedback({
   message,
@@ -73,11 +74,21 @@ export function EvaluationFacts({ evaluation }: { evaluation: Evaluation }) {
           <dd>{evaluation.problem_count}</dd>
         </div>
         <div>
-          <dt>{t('已知费用合计')}</dt>
+          <dt>
+            {t(evaluation.reuse_history ? '本次新增费用' : '已知费用合计')}
+          </dt>
           <dd>
             {knownCost === null ? t('费用未知') : metricLabel(knownCost, 'USD')}
           </dd>
         </div>
+        {evaluation.reuse_history && (
+          <div>
+            <dt>{t('复用 / 新跑单元')}</dt>
+            <dd>
+              {evaluation.reused_units ?? 0} / {evaluation.new_units ?? 0}
+            </dd>
+          </div>
+        )}
         {evaluation.unknown_cost_count !== undefined && (
           <div>
             <dt>{t('费用未知单元')}</dt>
@@ -129,6 +140,29 @@ export function ResultTables({ result }: { result: ResultDetail }) {
 
   return (
     <>
+      {result.reuse && (
+        <div className="panel evaluation-panel" aria-label={t('增量运行汇总')}>
+          <p>
+            {t('复用 {{reused}}，新跑 {{fresh}}，共 {{total}} 个单元', {
+              reused: result.reuse.reused_units,
+              fresh: result.reuse.new_units,
+              total: result.reuse.total_units,
+            })}
+          </p>
+          <p>
+            {t('本次新增费用')}：{metricLabel(result.reuse.new_cost_usd, 'USD')}
+            {!!result.reuse.new_cost_unknown_count &&
+              ` · ${t('费用未知单元')} ${result.reuse.new_cost_unknown_count}`}
+          </p>
+          {!!result.reuse.reused_units && (
+            <p>
+              {t(
+                '策略费用与单元原始费用包含历史度量，本次预算只结算新增调用。',
+              )}
+            </p>
+          )}
+        </div>
+      )}
       <h2>{t('策略汇总')}</h2>
       {result.strategies.length ? (
         <div
@@ -146,7 +180,7 @@ export function ResultTables({ result }: { result: ResultDetail }) {
                   t('成功率'),
                   t('平均 Token'),
                   t('平均执行耗时'),
-                  t('估算费用'),
+                  t(result.reuse?.reused_units ? '原始执行费用' : '估算费用'),
                   t('难度分布'),
                 ].map((name) => (
                   <th scope="col" key={name}>
@@ -202,6 +236,9 @@ export function ResultTables({ result }: { result: ResultDetail }) {
                   t('迭代次数'),
                   'Token',
                   t('执行耗时'),
+                  t('结果来源'),
+                  t('原始执行费用'),
+                  t('本次新增费用'),
                 ].map((name) => (
                   <th scope="col" key={name}>
                     {name}
@@ -227,6 +264,24 @@ export function ResultTables({ result }: { result: ResultDetail }) {
                   <td>{metricLabel(row.iterations)}</td>
                   <td>{metricLabel(row.tokens)}</td>
                   <td>{metricLabel(row.execution_time, t('秒'))}</td>
+                  <td>
+                    {row.reused ? (
+                      <>
+                        {t('复用')}{' '}
+                        {row.reuse_source && (
+                          <Link
+                            to={`/results/${encodeURIComponent(row.reuse_source.evaluation_id)}`}
+                          >
+                            {row.reuse_source.run_id}
+                          </Link>
+                        )}
+                      </>
+                    ) : (
+                      t('新跑')
+                    )}
+                  </td>
+                  <td>{metricLabel(row.original_cost_usd ?? null, 'USD')}</td>
+                  <td>{metricLabel(row.new_cost_usd ?? null, 'USD')}</td>
                 </tr>
               ))}
             </tbody>

@@ -591,3 +591,85 @@ test('从题集版本创建时提交版本 ID 和选中的题目', async () => {
   assert.equal(h.payloads[0].dataset_version_id, 'v-1')
   assert.deepEqual(h.payloads[0].problem_ids, ['p-42'])
 })
+
+test('复用预览作废旧草稿响应，失败可重试，提交使用最终服务端数量', async () => {
+  const old = Promise.withResolvers<import('./types.ts').ReusePreview>()
+  let calls = 0
+  const preview = { total_units: 1, reused_units: 1, new_units: 0, units: [] }
+  const h = setup({
+    reusePreview: async () => {
+      calls++
+      if (calls === 1) return old.promise
+      if (calls === 2) throw new ApiClientError('temporary failure')
+      return preview
+    },
+    create: async (payload) => {
+      assert.equal(payload.reuse_history, true)
+      return evaluation({ reuse_history: true, reused_units: 0, new_units: 1 })
+    },
+  })
+  h.store.getState().setDraft({ reuse_history: true })
+  assert.equal(h.store.getState().previewPending, true)
+  h.store.getState().setDraft({ model: 'model-2' })
+  await Promise.resolve()
+  assert.ok(h.store.getState().previewError)
+  assert.equal(h.store.getState().reusePreview, null)
+  await h.store.getState().submit()
+  assert.deepEqual(h.starts, [])
+  old.resolve(preview)
+  await Promise.resolve()
+  await Promise.resolve()
+  assert.equal(h.store.getState().reusePreview, null)
+  await h.store.getState().refreshReusePreview()
+  assert.deepEqual(h.store.getState().reusePreview, preview)
+  await h.store.getState().submit()
+  assert.deepEqual(h.store.getState().createdReuse, {
+    total_units: 1,
+    reused_units: 0,
+    new_units: 1,
+  })
+  assert.deepEqual(h.starts, ['eval-1'])
+})
+
+test('关闭复用及账号切换清除迟到预览，未填全不发预览请求', async () => {
+  const requests: {
+    signal?: AbortSignal
+    result: ReturnType<
+      typeof Promise.withResolvers<import('./types.ts').ReusePreview>
+    >
+  }[] = []
+  const h = setup({
+    reusePreview: async (_payload, signal) => {
+      const result = Promise.withResolvers<import('./types.ts').ReusePreview>()
+      requests.push({ signal, result })
+      return result.promise
+    },
+  })
+  h.store.getState().setDraft({ model: '', reuse_history: true })
+  assert.equal(requests.length, 0)
+  h.store.getState().setDraft({ model: 'model-1' })
+  assert.equal(requests.length, 1)
+  h.store.getState().setDraft({ reuse_history: false })
+  assert.equal(requests[0].signal?.aborted, true)
+  requests[0].result.resolve({
+    total_units: 1,
+    reused_units: 1,
+    new_units: 0,
+    units: [],
+  })
+  await Promise.resolve()
+  assert.equal(h.store.getState().reusePreview, null)
+  h.store.getState().setDraft({ reuse_history: true })
+  h.setOwner('session-2')
+  h.store.getState().reset('session-2')
+  assert.equal(requests[1].signal?.aborted, true)
+  requests[1].result.resolve({
+    total_units: 1,
+    reused_units: 1,
+    new_units: 0,
+    units: [],
+  })
+  await Promise.resolve()
+  assert.equal(h.store.getState().reusePreview, null)
+  assert.equal(h.store.getState().previewPending, false)
+})

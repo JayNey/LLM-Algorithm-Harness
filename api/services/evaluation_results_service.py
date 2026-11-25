@@ -38,6 +38,7 @@ from api.db import (
 from api.db.engine import business_database_url
 from api.db.migrate import SCRIPT_LOCATION
 from api.db.models import WEB_EVALUATION_RUN_PREFIX
+from api.services.evaluation_reuse import new_cost, new_cost_unknown
 from src.error_analysis import normalize_message
 from src.models import NOT_EVALUABLE, ExecutionResult, IterationResult
 from src.recommender import RecommendationProblem
@@ -227,6 +228,12 @@ def _problem_item(row: EvaluationResult) -> dict:
         ),
         "tokens": (metrics or {}).get("total_tokens"),
         "execution_time": (metrics or {}).get("execution_time_seconds"),
+        "reused": bool((metrics or {}).get("reuse_source")),
+        "reuse_source": (metrics or {}).get("reuse_source"),
+        "original_cost_usd": (
+            None if (metrics or {}).get("cost_unknown") else (metrics or {}).get("cost_usd")
+        ),
+        "new_cost_usd": None if new_cost_unknown(metrics) else new_cost(metrics),
     }
 
 
@@ -590,14 +597,31 @@ def _execution_results(rows: list[EvaluationResult]) -> dict[str, list[Execution
 def _csv_text(rows: list[EvaluationResult]) -> str:
     """UTF-8 BOM CSV. Unstored test counts and a missing iterations key stay blank."""
     buffer = io.StringIO()
-    writer = csv.DictWriter(buffer, fieldnames=_CSV_FIELDNAMES)
+    incremental = any((row.metrics or {}).get("reuse_source") for row in rows)
+    fields = [
+        *_CSV_FIELDNAMES,
+        *(
+            ["result_source", "source_run_id", "new_cost_usd", "new_cost_unknown"]
+            if incremental
+            else []
+        ),
+    ]
+    writer = csv.DictWriter(buffer, fieldnames=fields)
     writer.writeheader()
     for row in rows:
         metrics = row.metrics or {}
         count = _stored_iterations(row.metrics)
         tokens = metrics.get("total_tokens")
         elapsed = metrics.get("execution_time_seconds")
-        record: dict[str, Any] = {name: "" for name in _CSV_FIELDNAMES}
+        record: dict[str, Any] = {name: "" for name in fields}
+        if incremental:
+            source = metrics.get("reuse_source") or {}
+            record.update(
+                result_source="reused" if source else "new",
+                source_run_id=source.get("run_id", ""),
+                new_cost_usd=new_cost(metrics),
+                new_cost_unknown=new_cost_unknown(metrics),
+            )
         record.update(
             {
                 "problem_id": row.problem_id,
@@ -687,6 +711,14 @@ class EvaluationResultsService:
                 "created_at": _iso(evaluation.created_at),
                 "completed_at": _iso(evaluation.completed_at),
                 "strategies": aggregate(pairs),
+                "reuse": {
+                    "total_units": evaluation.problem_count * len(evaluation.strategy_names),
+                    "reused_units": evaluation.reused_units or 0,
+                    "new_units": evaluation.problem_count * len(evaluation.strategy_names)
+                    - (evaluation.reused_units or 0),
+                    "new_cost_usd": evaluation.spent_usd,
+                    "new_cost_unknown_count": sum(new_cost_unknown(row.metrics) for row in rows),
+                },
                 "problems": {
                     "items": [_problem_item(row) for row in page],
                     "total": total,
@@ -1317,24 +1349,43 @@ class EvaluationResultsService:
             evaluation = self._resolve(session, owner_id, run_id)
             pairs = self._unit_pairs(session, evaluation.id)
             rows = [row for row, _problem in pairs]
-            config = {"model": evaluation.model} if evaluation.model else None
+            config: dict[str, Any] | None = (
+                {"model": evaluation.model} if evaluation.model else None
+            )
+            if evaluation.reuse_history:
+                config = {
+                    **(config or {}),
+                    "reuse": {
+                        "reused": evaluation.reused_units,
+                        "new": evaluation.problem_count * len(evaluation.strategy_names)
+                        - evaluation.reused_units,
+                        "new_cost_usd": evaluation.spent_usd,
+                    },
+                }
             return _generator_metrics(pairs), _execution_results(rows), config
 
     def report_markdown(self, owner_id: str, run_id: str) -> str:
         """Markdown body from MarkdownGenerator. The temporary file is deleted."""
         metrics, results, config = self._report_inputs(owner_id, run_id)
-        return _generated_text(
+        body = _generated_text(
             lambda path: MarkdownGenerator.generate(metrics, results, path, config=config)
         )
+        if config and (reuse := config.get("reuse")):
+            body += f"\n## Incremental run\n\nReused units: {reuse['reused']}; new units: {reuse['new']}. New cost for this run: ${reuse['new_cost_usd']:.6f}.\n\nStrategy cost statistics retain original execution costs; only new calls are charged to this run.\n"
+        return body
 
     def report_html(self, owner_id: str, run_id: str) -> str:
         """HTML body from HTMLGenerator, including its existing charts."""
         metrics, results, config = self._report_inputs(owner_id, run_id)
-        return _generated_text(
+        body = _generated_text(
             lambda path: HTMLGenerator.generate(
                 metrics, results, path, include_charts=True, config=config
             )
         )
+        if config and (reuse := config.get("reuse")):
+            section = f"<section><h2>Incremental run</h2><p>Reused units: {reuse['reused']}; new units: {reuse['new']}. New cost for this run: ${reuse['new_cost_usd']:.6f}.</p><p>Strategy cost statistics retain original execution costs; only new calls are charged to this run.</p></section>"
+            body = body.replace("</body>", section + "</body>")
+        return body
 
     def report_csv(self, owner_id: str, run_id: str) -> str:
         """CSV text for one owned run. Does not call CSVExporter.export."""

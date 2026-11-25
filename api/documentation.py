@@ -328,6 +328,17 @@ OPERATIONS: dict[str, tuple[str, Any]] = {
         "从自己的个人题集版本创建待运行评估；版本不存在或无权访问返回 404，题目不属于该版本返回 400。随后调用 start。",
         EVALUATION,
     ),
+    "preview_evaluation_reuse": (
+        "预览本人兼容历史结果，按题目 × 策略返回复用和新跑数量及来源；不调用模型、不创建评估、不结算费用。创建提交时重新核对并固定最终计划。",
+        {
+            "total_units": 1,
+            "reused_units": 0,
+            "new_units": 1,
+            "units": [
+                {"problem_id": "two-sum", "strategy": "vanilla", "reason": "no_compatible_history"}
+            ],
+        },
+    ),
     "list_evaluations": ("分页查询自己的评估，可按状态过滤。", page([EVALUATION])),
     "get_evaluation": ("查询自己的单个评估及状态、预算和进度。", EVALUATION),
     "update_evaluation": ("仅修改 pending 评估的预算或单题超时；其他状态返回 400。", EVALUATION),
@@ -1485,6 +1496,13 @@ DOWNLOADS = {
 }
 
 REQUEST_EXAMPLES: dict[str, Any] = {
+    "EvaluationReusePreviewRequest": {
+        "api_key_id": "key-demo",
+        "model": "gpt-4o-mini",
+        "problem_ids": ["two-sum"],
+        "strategy_names": ["vanilla"],
+        "reuse_history": True,
+    },
     "DeduplicationRequest": {"threshold": 0.9},
     "DeduplicationSaveRequest": {
         "threshold": 0.9,
@@ -1730,9 +1748,9 @@ ERROR_MESSAGES = {
     503: "Service is unavailable",
 }
 
-API_CONTRACT_VERSION = "1.8.0"
+API_CONTRACT_VERSION = "1.9.0"
 
-OVERVIEW = """LLM Algorithm Harness API，HTTP 契约版本 1.8.0（API v1）。
+OVERVIEW = """LLM Algorithm Harness API，HTTP 契约版本 1.9.0（API v1）。
 
 **版本策略**：URL 主版本 `/api/v1`；不使用 Header 版本协商。
 兼容扩展沿用 v1；破坏性变更使用新的 URL 主版本，并提供迁移说明、并行支持与退役公告。
