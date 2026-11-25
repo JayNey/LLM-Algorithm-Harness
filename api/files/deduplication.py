@@ -112,9 +112,10 @@ def preview_deduplication(
             )
         )
     content = [owner, request.threshold, [group.model_dump() for group in candidates]]
-    return DeduplicationPreview(
-        preview_token=revision + "." + digest(content), groups=candidates
-    ), problems
+    return (
+        DeduplicationPreview(preview_token=revision + "." + digest(content), groups=candidates),
+        problems,
+    )
 
 
 def save_deduplication(

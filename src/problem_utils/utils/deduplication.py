@@ -78,7 +78,7 @@ def find_similar_pairs(
         np.clip(block, 0, 1, out=block)
         for offset, row in enumerate(block):
             i = start + offset
-            indices = set(np.flatnonzero(row[i + 1 :] > threshold) + i + 1)
+            indices = {int(j) for j in np.flatnonzero(row[i + 1 :] > threshold) + i + 1}
             indices.update(requested_rows.get(i, ()))
             for j in sorted(indices):
                 pairs.append((i, int(j), float(row[j])))
