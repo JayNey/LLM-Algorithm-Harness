@@ -1,4 +1,20 @@
 export default {
+  题数: 'Problems',
+  '优化预算（USD，可选）': 'Optimization budget (USD, optional)',
+  '最低准确率（%，可选）': 'Minimum accuracy (%, optional)',
+  预算须为有限正数: 'Budget must be a finite positive number',
+  '最低准确率须为 0–100 的有限数值':
+    'Minimum accuracy must be a finite number from 0 to 100',
+  '预算用于难度分层方案；最低准确率用于最低成本推荐和分层方案。留空使用默认值。推荐基于历史数据估算。':
+    'Budget applies to the difficulty plan; minimum accuracy applies to lowest-cost recommendations and the plan. Leave blank for defaults. Recommendations are estimates based on historical data.',
+  预算方案: 'Budget plan',
+  最低准确率: 'Minimum accuracy',
+  估算总成本: 'Estimated total cost',
+  预期准确率: 'Expected accuracy',
+  覆盖题数: 'Problems covered',
+  无法估算: 'Cannot estimate',
+  难度分层预算方案: 'Budget plan by difficulty',
+  估算成本: 'Estimated cost',
   复用历史结果: 'Reuse historical results',
   '复用预览暂不可用，请重试。': 'Reuse preview is unavailable. Try again.',
   '按题目 × 策略匹配本人历史；最终计划以提交时核对结果为准。':

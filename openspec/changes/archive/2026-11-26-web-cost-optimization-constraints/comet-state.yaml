@@ -1,0 +1,1869 @@
+# comet-execution: managed-run
+change_id: 3285242b-4be5-426c-9c80-e5543d8169ca
+workflow: tweak
+language: zh-CN
+phase: archive
+context_compression: off
+build_mode: direct
+build_pause: null
+subagent_dispatch: null
+tdd_mode: direct
+review_mode: off
+isolation: current
+verify_mode: light
+auto_transition: true
+base_ref: c0b36b7993c9f7dcbfbc9c7bd70ab605d5081f6a
+design_doc: null
+plan: null
+verify_result: pass
+verify_failures: 0
+verification_report: docs/superpowers/reports/web-cost-optimization-constraints-verification.md
+branch_status: pending
+created_at: 2026-11-26
+verified_at: 2026-11-26
+archive_confirmation: confirmed
+archived: true
+bound_branch: codex/web-cost-optimization-constraints
+run_checkpoint:
+  schema: comet.workflow-run-checkpoint.v1
+  hash: 066814d00b0a756cb3dbc93e100be946e1720b1a324bab0abcfff439206e9a64
+  run:
+    protocolVersion: 1
+    schemaVersion: 1
+    runId: web-cost-optimization-constraints
+    revision: 1
+    workflow:
+      id: comet-classic-tweak
+      version: "2"
+      hash: d1e067bc00ca13395dbc6f701565417c3e227f17a57df025dd73ebda905e2638
+    definitionHashes:
+      '["comet-classic-tweak","2"]': d1e067bc00ca13395dbc6f701565417c3e227f17a57df025dd73ebda905e2638
+    initialStateHash: ae9c015c3250efa4c374ff194c351ac6d3ab435bc6a450dcc0193febd275f604
+    input:
+      change: web-cost-optimization-constraints
+      changeDir: openspec/changes/web-cost-optimization-constraints
+      workspaceBaseline:
+        ref: c4deea04-050d-4171-a426-c865f56f5ca7
+    state:
+      archiveConfirmation: confirmed
+      archived: true
+      autoTransition: true
+      baseRef: c0b36b7993c9f7dcbfbc9c7bd70ab605d5081f6a
+      boundBranch: codex/web-cost-optimization-constraints
+      branchStatus: pending
+      buildMode: direct
+      buildPause: null
+      checkEpoch: 6
+      classicMigration: null
+      classicProfile: null
+      contextCompression: off
+      createdAt: 2026-11-26
+      designDoc: null
+      directOverride: null
+      handoffContext: null
+      handoffHash: null
+      isolation: current
+      language: zh-CN
+      phase: archive
+      plan: null
+      reviewMode: off
+      subagentDispatch: null
+      tddMode: direct
+      verificationReport: docs/superpowers/reports/web-cost-optimization-constraints-verification.md
+      verifiedAt: 2026-11-26
+      verifyFailures: 0
+      verifyMode: light
+      verifyResult: pass
+      workflow: tweak
+    status: running
+    sequence: 14
+    actions:
+      - attempt: 1
+        claim:
+          executorId: comet-classic-guard
+          token: portable-f548adae71c57a6e134ea22b0ec0793c480b89aebb264205d7585114d75cc6be
+        executionOrigin:
+          workflow:
+            hash: 518d3e8e12eb39899775cb7d2ddcc7ddeba10cb1f1d43cff7b03f2ca61a70c65
+            id: comet-classic-tweak
+            version: "2"
+        id: web-cost-optimization-constraints:1
+        input:
+          input:
+            change: web-cost-optimization-constraints
+            changeDir: openspec/changes/web-cost-optimization-constraints
+            workspaceBaseline:
+              ref: c4deea04-050d-4171-a426-c865f56f5ca7
+          outputs: {}
+        inputHash: 53c9d9bb56a81a4eb334734bec2b0f9135c7e41d6b2a31fe5e3dde2cbe67bac1
+        outcome:
+          actionId: web-cost-optimization-constraints:1
+          attempt: 1
+          claimToken: portable-f548adae71c57a6e134ea22b0ec0793c480b89aebb264205d7585114d75cc6be
+          inputHash: 53c9d9bb56a81a4eb334734bec2b0f9135c7e41d6b2a31fe5e3dde2cbe67bac1
+          outcomeId: 205d728c-6050-490f-8efd-a9ca61fcc86c
+          output:
+            event: open-complete
+            requirementsEvidence:
+              ref: openspec/changes/web-cost-optimization-constraints
+          status: succeeded
+        protocolVersion: 1
+        receipts:
+          - hash: ad8e5f5c1d5ed873d9abb4ed1097ae43ee635426d02ba44ff490d63755b2defd
+            outcomeId: 205d728c-6050-490f-8efd-a9ca61fcc86c
+        reconciliations: []
+        ref: comet-tweak
+        requiredCapabilities: []
+        retry: manual
+        runId: web-cost-optimization-constraints
+        status: succeeded
+        stepId: tweak.open
+        type: invoke_skill
+      - attempt: 1
+        claim:
+          executorId: comet-classic-state
+          sessionId: 01a216d9-0194-7b11-b3c2-04862456567f
+          token: portable-3bb4a31261cd06f558d23e060c0753b3ebbbb7adf4d28ac89165bb6ffcbf9f8d
+        executionOrigin:
+          workflow:
+            hash: 518d3e8e12eb39899775cb7d2ddcc7ddeba10cb1f1d43cff7b03f2ca61a70c65
+            id: comet-classic-tweak
+            version: "2"
+        id: web-cost-optimization-constraints:3
+        input:
+          input:
+            change: web-cost-optimization-constraints
+            changeDir: openspec/changes/web-cost-optimization-constraints
+            workspaceBaseline:
+              ref: c4deea04-050d-4171-a426-c865f56f5ca7
+          outputs:
+            tweak.open:
+              event: open-complete
+              requirementsEvidence:
+                ref: openspec/changes/web-cost-optimization-constraints
+            tweak.open.evidence:
+              contentHash: 53c9d9bb56a81a4eb334734bec2b0f9135c7e41d6b2a31fe5e3dde2cbe67bac1
+              ref: openspec/changes/web-cost-optimization-constraints
+        inputHash: 01a49eeba6c5e6f9ae3043d3a91758ea6fa06fb317984bc715b8e09a02ebfcd6
+        outcome:
+          actionId: web-cost-optimization-constraints:3
+          attempt: 1
+          claimToken: portable-3bb4a31261cd06f558d23e060c0753b3ebbbb7adf4d28ac89165bb6ffcbf9f8d
+          inputHash: 01a49eeba6c5e6f9ae3043d3a91758ea6fa06fb317984bc715b8e09a02ebfcd6
+          outcomeId: bac29486-05ea-421b-a52e-15ab0ebc0bc2
+          output:
+            checks:
+              - name: "frontend: npm run build"
+                note: TypeScript and Vite build exit 0; /tmp/issue-523-build.log. Existing large
+                  chunk warning remains.
+                result: passed
+              - name: "frontend: npm run lint + prettier --check (six delivery files)"
+                note: Exit 0; ESLint and formatting pass.
+                result: passed
+              - name: "frontend: node --experimental-strip-types --test
+                  src/experiments/*.test.ts src/i18n/*.test.ts"
+                note: 33 passed, 0 failed; /tmp/issue-523-frontend-tests.log
+                result: passed
+              - name: .venv/bin/python -m pytest tests/test_cost_optimizer.py
+                  tests/test_api_experiment_benchmark.py::TestAnalysis --no-cov
+                  -q
+                note: 17 passed; /tmp/issue-523-python-tests.log. Initial targeted run passed
+                  tests but triggered repository-wide 90% coverage gate; final
+                  targeted run disables irrelevant whole-project coverage.
+                result: passed
+              - name: "frontend: CHROME_PATH=<local Chrome> node --experimental-strip-types
+                  scripts/verify-optimization-constraints.mjs"
+                note: Client parsing, real FastAPI /optimize with wrapped shared build_advisory,
+                  14 browser requests, invalid values, defaults, budget plan,
+                  retry and stale response scenarios pass.
+                  /tmp/issue-523-browser.log; /tmp/issue-523-qa/result.json;
+                  desktop/mobile screenshots visually inspected.
+                result: passed
+              - name: git diff --check
+                note: No whitespace errors.
+                result: passed
+            event: build-complete
+          status: succeeded
+        protocolVersion: 1
+        receipts:
+          - hash: 1d31ed848a9e7ddd5ad430dd68d6a001d5d0516bff29d9382cac581935157828
+            outcomeId: bac29486-05ea-421b-a52e-15ab0ebc0bc2
+        reconciliations: []
+        ref: comet-build
+        requiredCapabilities: []
+        retry: manual
+        runId: web-cost-optimization-constraints
+        status: succeeded
+        stepId: tweak.build.execute
+        type: invoke_skill
+      - attempt: 1
+        claim:
+          executorId: comet-classic-guard
+          token: portable-cc1718071d0d161bac233648eb7c1be676d926b1f99a7ead496db45ef87182c6
+        executionOrigin:
+          workflow:
+            hash: 518d3e8e12eb39899775cb7d2ddcc7ddeba10cb1f1d43cff7b03f2ca61a70c65
+            id: comet-classic-tweak
+            version: "2"
+        id: web-cost-optimization-constraints:4
+        input:
+          input:
+            change: web-cost-optimization-constraints
+            changeDir: openspec/changes/web-cost-optimization-constraints
+            workspaceBaseline:
+              ref: c4deea04-050d-4171-a426-c865f56f5ca7
+          outputs:
+            tweak.build.execute:
+              checks:
+                - name: "frontend: npm run build"
+                  note: TypeScript and Vite build exit 0; /tmp/issue-523-build.log. Existing large
+                    chunk warning remains.
+                  result: passed
+                - name: "frontend: npm run lint + prettier --check (six delivery files)"
+                  note: Exit 0; ESLint and formatting pass.
+                  result: passed
+                - name: "frontend: node --experimental-strip-types --test
+                    src/experiments/*.test.ts src/i18n/*.test.ts"
+                  note: 33 passed, 0 failed; /tmp/issue-523-frontend-tests.log
+                  result: passed
+                - name: .venv/bin/python -m pytest tests/test_cost_optimizer.py
+                    tests/test_api_experiment_benchmark.py::TestAnalysis
+                    --no-cov -q
+                  note: 17 passed; /tmp/issue-523-python-tests.log. Initial targeted run passed
+                    tests but triggered repository-wide 90% coverage gate; final
+                    targeted run disables irrelevant whole-project coverage.
+                  result: passed
+                - name: "frontend: CHROME_PATH=<local Chrome> node --experimental-strip-types
+                    scripts/verify-optimization-constraints.mjs"
+                  note: Client parsing, real FastAPI /optimize with wrapped shared build_advisory,
+                    14 browser requests, invalid values, defaults, budget plan,
+                    retry and stale response scenarios pass.
+                    /tmp/issue-523-browser.log; /tmp/issue-523-qa/result.json;
+                    desktop/mobile screenshots visually inspected.
+                  result: passed
+                - name: git diff --check
+                  note: No whitespace errors.
+                  result: passed
+              event: build-complete
+            tweak.open:
+              event: open-complete
+              requirementsEvidence:
+                ref: openspec/changes/web-cost-optimization-constraints
+            tweak.open.evidence:
+              contentHash: 53c9d9bb56a81a4eb334734bec2b0f9135c7e41d6b2a31fe5e3dde2cbe67bac1
+              ref: openspec/changes/web-cost-optimization-constraints
+        inputHash: 46e1ae3df7dd3175241623ae13ab7b3ab138de7a6dec8d5837e46d67ec744baa
+        outcome:
+          actionId: web-cost-optimization-constraints:4
+          attempt: 1
+          claimToken: portable-cc1718071d0d161bac233648eb7c1be676d926b1f99a7ead496db45ef87182c6
+          inputHash: 46e1ae3df7dd3175241623ae13ab7b3ab138de7a6dec8d5837e46d67ec744baa
+          outcomeId: 545782c8-c40e-4a77-bd96-87c3b1a68a55
+          output:
+            checks:
+              - name: "frontend: npm run build"
+                note: TypeScript and Vite build exit 0; /tmp/issue-523-build.log. Existing large
+                  chunk warning remains.
+                result: passed
+              - name: "frontend: npm run lint + prettier --check (six delivery files)"
+                note: Exit 0; ESLint and formatting pass.
+                result: passed
+              - name: "frontend: node --experimental-strip-types --test
+                  src/experiments/*.test.ts src/i18n/*.test.ts"
+                note: 33 passed, 0 failed; /tmp/issue-523-frontend-tests.log
+                result: passed
+              - name: .venv/bin/python -m pytest tests/test_cost_optimizer.py
+                  tests/test_api_experiment_benchmark.py::TestAnalysis --no-cov
+                  -q
+                note: 17 passed; /tmp/issue-523-python-tests.log. Initial targeted run passed
+                  tests but triggered repository-wide 90% coverage gate; final
+                  targeted run disables irrelevant whole-project coverage.
+                result: passed
+              - name: "frontend: CHROME_PATH=<local Chrome> node --experimental-strip-types
+                  scripts/verify-optimization-constraints.mjs"
+                note: Client parsing, real FastAPI /optimize with wrapped shared build_advisory,
+                  14 browser requests, invalid values, defaults, budget plan,
+                  retry and stale response scenarios pass.
+                  /tmp/issue-523-browser.log; /tmp/issue-523-qa/result.json;
+                  desktop/mobile screenshots visually inspected.
+                result: passed
+              - name: git diff --check
+                note: No whitespace errors.
+                result: passed
+            event: verification-ready
+            verificationReport: docs/superpowers/reports/web-cost-optimization-constraints-verification.md
+          status: succeeded
+        protocolVersion: 1
+        receipts:
+          - hash: a93a88a2ca48145cc8159f0a3c98dacb0349486f04e1bb796ad6616a023c6774
+            outcomeId: 545782c8-c40e-4a77-bd96-87c3b1a68a55
+        reconciliations: []
+        ref: comet-verify
+        requiredCapabilities: []
+        retry: manual
+        runId: web-cost-optimization-constraints
+        status: succeeded
+        stepId: tweak.verify.run
+        type: invoke_skill
+      - attempt: 1
+        claim:
+          executorId: comet-classic-state
+          token: portable-24ae430ea62236977622a435bbd2cc59e0fd5eeaf3d6c3b427e1c15a7f357b73
+        executionOrigin:
+          workflow:
+            hash: 518d3e8e12eb39899775cb7d2ddcc7ddeba10cb1f1d43cff7b03f2ca61a70c65
+            id: comet-classic-tweak
+            version: "2"
+        id: web-cost-optimization-constraints:6
+        input:
+          input:
+            change: web-cost-optimization-constraints
+            changeDir: openspec/changes/web-cost-optimization-constraints
+            workspaceBaseline:
+              ref: c4deea04-050d-4171-a426-c865f56f5ca7
+          outputs:
+            tweak.build.execute:
+              checks:
+                - name: "frontend: npm run build"
+                  note: TypeScript and Vite build exit 0; /tmp/issue-523-build.log. Existing large
+                    chunk warning remains.
+                  result: passed
+                - name: "frontend: npm run lint + prettier --check (six delivery files)"
+                  note: Exit 0; ESLint and formatting pass.
+                  result: passed
+                - name: "frontend: node --experimental-strip-types --test
+                    src/experiments/*.test.ts src/i18n/*.test.ts"
+                  note: 33 passed, 0 failed; /tmp/issue-523-frontend-tests.log
+                  result: passed
+                - name: .venv/bin/python -m pytest tests/test_cost_optimizer.py
+                    tests/test_api_experiment_benchmark.py::TestAnalysis
+                    --no-cov -q
+                  note: 17 passed; /tmp/issue-523-python-tests.log. Initial targeted run passed
+                    tests but triggered repository-wide 90% coverage gate; final
+                    targeted run disables irrelevant whole-project coverage.
+                  result: passed
+                - name: "frontend: CHROME_PATH=<local Chrome> node --experimental-strip-types
+                    scripts/verify-optimization-constraints.mjs"
+                  note: Client parsing, real FastAPI /optimize with wrapped shared build_advisory,
+                    14 browser requests, invalid values, defaults, budget plan,
+                    retry and stale response scenarios pass.
+                    /tmp/issue-523-browser.log; /tmp/issue-523-qa/result.json;
+                    desktop/mobile screenshots visually inspected.
+                  result: passed
+                - name: git diff --check
+                  note: No whitespace errors.
+                  result: passed
+              event: build-complete
+            tweak.open:
+              event: open-complete
+              requirementsEvidence:
+                ref: openspec/changes/web-cost-optimization-constraints
+            tweak.open.evidence:
+              contentHash: 53c9d9bb56a81a4eb334734bec2b0f9135c7e41d6b2a31fe5e3dde2cbe67bac1
+              ref: openspec/changes/web-cost-optimization-constraints
+            tweak.verify.report.evidence:
+              contentHash: 46e1ae3df7dd3175241623ae13ab7b3ab138de7a6dec8d5837e46d67ec744baa
+              ref: docs/superpowers/reports/web-cost-optimization-constraints-verification.md
+            tweak.verify.run:
+              checks:
+                - name: "frontend: npm run build"
+                  note: TypeScript and Vite build exit 0; /tmp/issue-523-build.log. Existing large
+                    chunk warning remains.
+                  result: passed
+                - name: "frontend: npm run lint + prettier --check (six delivery files)"
+                  note: Exit 0; ESLint and formatting pass.
+                  result: passed
+                - name: "frontend: node --experimental-strip-types --test
+                    src/experiments/*.test.ts src/i18n/*.test.ts"
+                  note: 33 passed, 0 failed; /tmp/issue-523-frontend-tests.log
+                  result: passed
+                - name: .venv/bin/python -m pytest tests/test_cost_optimizer.py
+                    tests/test_api_experiment_benchmark.py::TestAnalysis
+                    --no-cov -q
+                  note: 17 passed; /tmp/issue-523-python-tests.log. Initial targeted run passed
+                    tests but triggered repository-wide 90% coverage gate; final
+                    targeted run disables irrelevant whole-project coverage.
+                  result: passed
+                - name: "frontend: CHROME_PATH=<local Chrome> node --experimental-strip-types
+                    scripts/verify-optimization-constraints.mjs"
+                  note: Client parsing, real FastAPI /optimize with wrapped shared build_advisory,
+                    14 browser requests, invalid values, defaults, budget plan,
+                    retry and stale response scenarios pass.
+                    /tmp/issue-523-browser.log; /tmp/issue-523-qa/result.json;
+                    desktop/mobile screenshots visually inspected.
+                  result: passed
+                - name: git diff --check
+                  note: No whitespace errors.
+                  result: passed
+              event: verification-ready
+              verificationReport: docs/superpowers/reports/web-cost-optimization-constraints-verification.md
+        inputHash: 29b80f5e0ee96bfbe497ced84055ecb2810085626a6079a885763da793d65d3a
+        outcome:
+          actionId: web-cost-optimization-constraints:6
+          attempt: 1
+          claimToken: portable-24ae430ea62236977622a435bbd2cc59e0fd5eeaf3d6c3b427e1c15a7f357b73
+          inputHash: 29b80f5e0ee96bfbe497ced84055ecb2810085626a6079a885763da793d65d3a
+          outcomeId: d72375a9-da11-497c-9f89-841b4aa325a3
+          output:
+            prBaseBranch: main
+            remote: origin
+            summary: "Issue #523 已通过 Verify：可选 USD 预算与最低准确率、预算分层与不可行原因、失败重试和迟到响应隔离；6
+              个实现/测试交付文件，加 Comet 产物与验收报告。当前绑定 main，target main；归档将同步
+              frontend/experiments-management 主规格、迁移 change 并创建本次唯一提交。推荐
+              local，仅本地归档与提交；push 将推送 origin/main；尚未获得任何 Git 交付授权。"
+            targetBranch: main
+          status: succeeded
+        protocolVersion: 1
+        receipts:
+          - hash: d725712881209e3379e37daaaf88b90cedcf96cff34fe29af16a66d9a0709be6
+            outcomeId: d72375a9-da11-497c-9f89-841b4aa325a3
+        reconciliations: []
+        ref: comet-archive
+        requiredCapabilities: []
+        retry: manual
+        runId: web-cost-optimization-constraints
+        status: succeeded
+        stepId: tweak.archive.prepare
+        type: invoke_skill
+      - attempt: 1
+        claim:
+          executorId: comet-classic-guard
+          token: portable-6d0fc5cd91bdd77bab0f7a2994a18a0dcd8718e45f658fe6554954a13c002f07
+        executionOrigin:
+          workflow:
+            hash: d1e067bc00ca13395dbc6f701565417c3e227f17a57df025dd73ebda905e2638
+            id: comet-classic-tweak
+            version: "2"
+        id: web-cost-optimization-constraints:8
+        input:
+          activation:
+            expectedRevision: 12
+            fromPhase: archive
+          input:
+            change: web-cost-optimization-constraints
+            changeDir: openspec/changes/web-cost-optimization-constraints
+            workspaceBaseline:
+              ref: c4deea04-050d-4171-a426-c865f56f5ca7
+          outputs: {}
+        inputHash: 5599957a9290517c15080a75c7d884678c614211e3f41873da060c6931063421
+        outcome:
+          actionId: web-cost-optimization-constraints:8
+          attempt: 1
+          claimToken: portable-6d0fc5cd91bdd77bab0f7a2994a18a0dcd8718e45f658fe6554954a13c002f07
+          inputHash: 5599957a9290517c15080a75c7d884678c614211e3f41873da060c6931063421
+          outcomeId: 5226b270-2682-4e3f-92b6-d7a35db484db
+          output:
+            checks:
+              - name: "frontend: npm run build"
+                note: TypeScript and Vite build exit 0; /tmp/issue-523-build.log. Existing large
+                  chunk warning remains.
+                result: passed
+              - name: "frontend: npm run lint + prettier --check (six delivery files)"
+                note: Exit 0; ESLint and formatting pass.
+                result: passed
+              - name: "frontend: node --experimental-strip-types --test
+                  src/experiments/*.test.ts src/i18n/*.test.ts"
+                note: 33 passed, 0 failed; /tmp/issue-523-frontend-tests.log
+                result: passed
+              - name: .venv/bin/python -m pytest tests/test_cost_optimizer.py
+                  tests/test_api_experiment_benchmark.py::TestAnalysis --no-cov
+                  -q
+                note: 17 passed; /tmp/issue-523-python-tests.log. Initial targeted run passed
+                  tests but triggered repository-wide 90% coverage gate; final
+                  targeted run disables irrelevant whole-project coverage.
+                result: passed
+              - name: "frontend: CHROME_PATH=<local Chrome> node --experimental-strip-types
+                  scripts/verify-optimization-constraints.mjs"
+                note: Client parsing, real FastAPI /optimize with wrapped shared build_advisory,
+                  14 browser requests, invalid values, defaults, budget plan,
+                  retry and stale response scenarios pass.
+                  /tmp/issue-523-browser.log; /tmp/issue-523-qa/result.json;
+                  desktop/mobile screenshots visually inspected.
+                result: passed
+              - name: git diff --check
+                note: No whitespace errors.
+                result: passed
+            event: verification-ready
+            verificationReport: docs/superpowers/reports/web-cost-optimization-constraints-verification.md
+          status: succeeded
+        protocolVersion: 1
+        receipts:
+          - hash: 26721e3eebd15280e50c7f19847e5c5c1966509d1aeac5e984661bcfa711cd42
+            outcomeId: 5226b270-2682-4e3f-92b6-d7a35db484db
+        reconciliations: []
+        ref: comet-verify
+        requiredCapabilities: []
+        retry: manual
+        runId: web-cost-optimization-constraints
+        status: succeeded
+        stepId: tweak.verify.run
+        type: invoke_skill
+      - attempt: 1
+        claim:
+          executorId: comet-classic-state
+          token: portable-e65832ed0993d27019c72b6a0a47e76fe06bdc0220e36022edc625e42d84843e
+        executionOrigin:
+          workflow:
+            hash: d1e067bc00ca13395dbc6f701565417c3e227f17a57df025dd73ebda905e2638
+            id: comet-classic-tweak
+            version: "2"
+        id: web-cost-optimization-constraints:10
+        input:
+          input:
+            change: web-cost-optimization-constraints
+            changeDir: openspec/changes/web-cost-optimization-constraints
+            workspaceBaseline:
+              ref: c4deea04-050d-4171-a426-c865f56f5ca7
+          outputs:
+            tweak.verify.report.evidence:
+              contentHash: 5599957a9290517c15080a75c7d884678c614211e3f41873da060c6931063421
+              ref: docs/superpowers/reports/web-cost-optimization-constraints-verification.md
+            tweak.verify.run:
+              checks:
+                - name: "frontend: npm run build"
+                  note: TypeScript and Vite build exit 0; /tmp/issue-523-build.log. Existing large
+                    chunk warning remains.
+                  result: passed
+                - name: "frontend: npm run lint + prettier --check (six delivery files)"
+                  note: Exit 0; ESLint and formatting pass.
+                  result: passed
+                - name: "frontend: node --experimental-strip-types --test
+                    src/experiments/*.test.ts src/i18n/*.test.ts"
+                  note: 33 passed, 0 failed; /tmp/issue-523-frontend-tests.log
+                  result: passed
+                - name: .venv/bin/python -m pytest tests/test_cost_optimizer.py
+                    tests/test_api_experiment_benchmark.py::TestAnalysis
+                    --no-cov -q
+                  note: 17 passed; /tmp/issue-523-python-tests.log. Initial targeted run passed
+                    tests but triggered repository-wide 90% coverage gate; final
+                    targeted run disables irrelevant whole-project coverage.
+                  result: passed
+                - name: "frontend: CHROME_PATH=<local Chrome> node --experimental-strip-types
+                    scripts/verify-optimization-constraints.mjs"
+                  note: Client parsing, real FastAPI /optimize with wrapped shared build_advisory,
+                    14 browser requests, invalid values, defaults, budget plan,
+                    retry and stale response scenarios pass.
+                    /tmp/issue-523-browser.log; /tmp/issue-523-qa/result.json;
+                    desktop/mobile screenshots visually inspected.
+                  result: passed
+                - name: git diff --check
+                  note: No whitespace errors.
+                  result: passed
+              event: verification-ready
+              verificationReport: docs/superpowers/reports/web-cost-optimization-constraints-verification.md
+        inputHash: 3ff14fd633210d3c30db2042052458017c8ee9716748b4c71c6396bb9d55fa8c
+        outcome:
+          actionId: web-cost-optimization-constraints:10
+          attempt: 1
+          claimToken: portable-e65832ed0993d27019c72b6a0a47e76fe06bdc0220e36022edc625e42d84843e
+          inputHash: 3ff14fd633210d3c30db2042052458017c8ee9716748b4c71c6396bb9d55fa8c
+          outcomeId: cbde3ea0-d6fa-4deb-8bbb-85e58817b019
+          output:
+            prBaseBranch: main
+            remote: origin
+            summary: "用户明确要求归档、推送并创建 PR。将已通过 Verify 的 issue #523 变更归档，同步
+              frontend/experiments-management 主规格并创建唯一提交；推送
+              origin/codex/web-cost-optimization-constraints，创建以 main 为 base 的
+              PR，并关联 #523。实现与验收结论不变，无无关改动。"
+            targetBranch: codex/web-cost-optimization-constraints
+          status: succeeded
+        protocolVersion: 1
+        receipts:
+          - hash: dd4962fc90259ee792a7fc3a594d53e4cf38eda7c63fb346c3ca9a78662f5871
+            outcomeId: cbde3ea0-d6fa-4deb-8bbb-85e58817b019
+        reconciliations: []
+        ref: comet-archive
+        requiredCapabilities: []
+        retry: manual
+        runId: web-cost-optimization-constraints
+        status: succeeded
+        stepId: tweak.archive.prepare
+        type: invoke_skill
+      - attempt: 1
+        claim:
+          executorId: comet-classic-archive-preflight
+          token: portable-22cbb0674181864057afdb60ac6aee74f94623d2d6d7ad081f09243cc5e3d902
+        executionOrigin:
+          workflow:
+            hash: d1e067bc00ca13395dbc6f701565417c3e227f17a57df025dd73ebda905e2638
+            id: comet-classic-tweak
+            version: "2"
+        id: web-cost-optimization-constraints:12
+        input:
+          input:
+            change: web-cost-optimization-constraints
+            changeDir: openspec/changes/web-cost-optimization-constraints
+            workspaceBaseline:
+              ref: c4deea04-050d-4171-a426-c865f56f5ca7
+          outputs:
+            tweak.archive.confirm:
+              choice: pr
+              proposal:
+                input:
+                  change: web-cost-optimization-constraints
+                  changeDir: openspec/changes/web-cost-optimization-constraints
+                  workspaceBaseline:
+                    ref: c4deea04-050d-4171-a426-c865f56f5ca7
+                outputs:
+                  tweak.archive.prepare:
+                    prBaseBranch: main
+                    remote: origin
+                    summary: "用户明确要求归档、推送并创建 PR。将已通过 Verify 的 issue #523 变更归档，同步
+                      frontend/experiments-management 主规格并创建唯一提交；推送
+                      origin/codex/web-cost-optimization-constraints，创建以 main 为
+                      base 的 PR，并关联 #523。实现与验收结论不变，无无关改动。"
+                    targetBranch: codex/web-cost-optimization-constraints
+            tweak.archive.prepare:
+              prBaseBranch: main
+              remote: origin
+              summary: "用户明确要求归档、推送并创建 PR。将已通过 Verify 的 issue #523 变更归档，同步
+                frontend/experiments-management 主规格并创建唯一提交；推送
+                origin/codex/web-cost-optimization-constraints，创建以 main 为 base 的
+                PR，并关联 #523。实现与验收结论不变，无无关改动。"
+              targetBranch: codex/web-cost-optimization-constraints
+            tweak.verify.report.evidence:
+              contentHash: 5599957a9290517c15080a75c7d884678c614211e3f41873da060c6931063421
+              ref: docs/superpowers/reports/web-cost-optimization-constraints-verification.md
+            tweak.verify.run:
+              checks:
+                - name: "frontend: npm run build"
+                  note: TypeScript and Vite build exit 0; /tmp/issue-523-build.log. Existing large
+                    chunk warning remains.
+                  result: passed
+                - name: "frontend: npm run lint + prettier --check (six delivery files)"
+                  note: Exit 0; ESLint and formatting pass.
+                  result: passed
+                - name: "frontend: node --experimental-strip-types --test
+                    src/experiments/*.test.ts src/i18n/*.test.ts"
+                  note: 33 passed, 0 failed; /tmp/issue-523-frontend-tests.log
+                  result: passed
+                - name: .venv/bin/python -m pytest tests/test_cost_optimizer.py
+                    tests/test_api_experiment_benchmark.py::TestAnalysis
+                    --no-cov -q
+                  note: 17 passed; /tmp/issue-523-python-tests.log. Initial targeted run passed
+                    tests but triggered repository-wide 90% coverage gate; final
+                    targeted run disables irrelevant whole-project coverage.
+                  result: passed
+                - name: "frontend: CHROME_PATH=<local Chrome> node --experimental-strip-types
+                    scripts/verify-optimization-constraints.mjs"
+                  note: Client parsing, real FastAPI /optimize with wrapped shared build_advisory,
+                    14 browser requests, invalid values, defaults, budget plan,
+                    retry and stale response scenarios pass.
+                    /tmp/issue-523-browser.log; /tmp/issue-523-qa/result.json;
+                    desktop/mobile screenshots visually inspected.
+                  result: passed
+                - name: git diff --check
+                  note: No whitespace errors.
+                  result: passed
+              event: verification-ready
+              verificationReport: docs/superpowers/reports/web-cost-optimization-constraints-verification.md
+        inputHash: 9eec293d9c0d2175ac321c51dbeac22a24787e0683ebd514d5c7026e3552cc41
+        outcome:
+          actionId: web-cost-optimization-constraints:12
+          attempt: 1
+          claimToken: portable-22cbb0674181864057afdb60ac6aee74f94623d2d6d7ad081f09243cc5e3d902
+          inputHash: 9eec293d9c0d2175ac321c51dbeac22a24787e0683ebd514d5c7026e3552cc41
+          outcomeId: 320381ca-50e7-46f0-a85e-72031aa33e89
+          output:
+            baseCommit: c0b36b7993c9f7dcbfbc9c7bd70ab605d5081f6a
+            deliveryAction: pr
+            deliveryPaths:
+              - frontend/scripts/verify-optimization-constraints.mjs
+              - frontend/src/experiments/client.ts
+              - frontend/src/experiments/types.ts
+              - frontend/src/i18n/en-US.ts
+              - frontend/src/i18n/zh-CN.ts
+              - frontend/src/pages/Experiments/ExperimentDetailPage.tsx
+            prBaseBranch: main
+            remote: origin
+            remoteIdentity: 128eeb1e6f0d21b25601fcb7f9aad36adfdfb4d76f37f54f004760410190f351
+            targetBranch: codex/web-cost-optimization-constraints
+            verifiedBranch: codex/web-cost-optimization-constraints
+          status: succeeded
+        protocolVersion: 1
+        receipts:
+          - hash: 3b4efb64b4ab4046b01e6e3457bd8bc51a2366aa560881ccda233b0748d6483d
+            outcomeId: 320381ca-50e7-46f0-a85e-72031aa33e89
+        reconciliations: []
+        ref: classic-archive-preflight
+        requiredCapabilities: []
+        retry: manual
+        runId: web-cost-optimization-constraints
+        status: succeeded
+        stepId: tweak.archive.preflight
+        type: call_tool
+      - attempt: 1
+        claim:
+          executorId: comet-classic-archive
+          token: portable-12d9bc4e8107616a73969266d07ac5a456b4d3588cde200cba26434c00efddb5
+        executionOrigin:
+          workflow:
+            hash: d1e067bc00ca13395dbc6f701565417c3e227f17a57df025dd73ebda905e2638
+            id: comet-classic-tweak
+            version: "2"
+        id: web-cost-optimization-constraints:13
+        input:
+          input:
+            change: web-cost-optimization-constraints
+            changeDir: openspec/changes/web-cost-optimization-constraints
+            workspaceBaseline:
+              ref: c4deea04-050d-4171-a426-c865f56f5ca7
+          outputs:
+            tweak.archive.confirm:
+              choice: pr
+              proposal:
+                input:
+                  change: web-cost-optimization-constraints
+                  changeDir: openspec/changes/web-cost-optimization-constraints
+                  workspaceBaseline:
+                    ref: c4deea04-050d-4171-a426-c865f56f5ca7
+                outputs:
+                  tweak.archive.prepare:
+                    prBaseBranch: main
+                    remote: origin
+                    summary: "用户明确要求归档、推送并创建 PR。将已通过 Verify 的 issue #523 变更归档，同步
+                      frontend/experiments-management 主规格并创建唯一提交；推送
+                      origin/codex/web-cost-optimization-constraints，创建以 main 为
+                      base 的 PR，并关联 #523。实现与验收结论不变，无无关改动。"
+                    targetBranch: codex/web-cost-optimization-constraints
+            tweak.archive.preflight:
+              baseCommit: c0b36b7993c9f7dcbfbc9c7bd70ab605d5081f6a
+              deliveryAction: pr
+              deliveryPaths:
+                - frontend/scripts/verify-optimization-constraints.mjs
+                - frontend/src/experiments/client.ts
+                - frontend/src/experiments/types.ts
+                - frontend/src/i18n/en-US.ts
+                - frontend/src/i18n/zh-CN.ts
+                - frontend/src/pages/Experiments/ExperimentDetailPage.tsx
+              prBaseBranch: main
+              remote: origin
+              remoteIdentity: 128eeb1e6f0d21b25601fcb7f9aad36adfdfb4d76f37f54f004760410190f351
+              targetBranch: codex/web-cost-optimization-constraints
+              verifiedBranch: codex/web-cost-optimization-constraints
+            tweak.archive.prepare:
+              prBaseBranch: main
+              remote: origin
+              summary: "用户明确要求归档、推送并创建 PR。将已通过 Verify 的 issue #523 变更归档，同步
+                frontend/experiments-management 主规格并创建唯一提交；推送
+                origin/codex/web-cost-optimization-constraints，创建以 main 为 base 的
+                PR，并关联 #523。实现与验收结论不变，无无关改动。"
+              targetBranch: codex/web-cost-optimization-constraints
+            tweak.verify.report.evidence:
+              contentHash: 5599957a9290517c15080a75c7d884678c614211e3f41873da060c6931063421
+              ref: docs/superpowers/reports/web-cost-optimization-constraints-verification.md
+            tweak.verify.run:
+              checks:
+                - name: "frontend: npm run build"
+                  note: TypeScript and Vite build exit 0; /tmp/issue-523-build.log. Existing large
+                    chunk warning remains.
+                  result: passed
+                - name: "frontend: npm run lint + prettier --check (six delivery files)"
+                  note: Exit 0; ESLint and formatting pass.
+                  result: passed
+                - name: "frontend: node --experimental-strip-types --test
+                    src/experiments/*.test.ts src/i18n/*.test.ts"
+                  note: 33 passed, 0 failed; /tmp/issue-523-frontend-tests.log
+                  result: passed
+                - name: .venv/bin/python -m pytest tests/test_cost_optimizer.py
+                    tests/test_api_experiment_benchmark.py::TestAnalysis
+                    --no-cov -q
+                  note: 17 passed; /tmp/issue-523-python-tests.log. Initial targeted run passed
+                    tests but triggered repository-wide 90% coverage gate; final
+                    targeted run disables irrelevant whole-project coverage.
+                  result: passed
+                - name: "frontend: CHROME_PATH=<local Chrome> node --experimental-strip-types
+                    scripts/verify-optimization-constraints.mjs"
+                  note: Client parsing, real FastAPI /optimize with wrapped shared build_advisory,
+                    14 browser requests, invalid values, defaults, budget plan,
+                    retry and stale response scenarios pass.
+                    /tmp/issue-523-browser.log; /tmp/issue-523-qa/result.json;
+                    desktop/mobile screenshots visually inspected.
+                  result: passed
+                - name: git diff --check
+                  note: No whitespace errors.
+                  result: passed
+              event: verification-ready
+              verificationReport: docs/superpowers/reports/web-cost-optimization-constraints-verification.md
+        inputHash: 561a62bf9c0a4283bb0e574aa347bef7c0cee5ed40ac357729e87f4b57e7bcad
+        outcome:
+          actionId: web-cost-optimization-constraints:13
+          artifacts: []
+          attempt: 1
+          claimToken: portable-12d9bc4e8107616a73969266d07ac5a456b4d3588cde200cba26434c00efddb5
+          inputHash: 561a62bf9c0a4283bb0e574aa347bef7c0cee5ed40ac357729e87f4b57e7bcad
+          outcomeId: 1f1d4cb7-ce87-433b-ad37-fd071003a3b2
+          output:
+            archiveDirectory: openspec/changes/archive/2026-11-26-web-cost-optimization-constraints
+          status: succeeded
+        protocolVersion: 1
+        receipts:
+          - hash: d263e37df748c3e07aced6ea651c8f06293037df1f8d5667dc3e846869b8202c
+            outcomeId: 1f1d4cb7-ce87-433b-ad37-fd071003a3b2
+        reconciliations: []
+        ref: classic-archive
+        requiredCapabilities: []
+        retry: manual
+        runId: web-cost-optimization-constraints
+        status: succeeded
+        stepId: tweak.archive.execute
+        type: call_tool
+      - attempt: 1
+        id: web-cost-optimization-constraints:14
+        input:
+          input:
+            change: web-cost-optimization-constraints
+            changeDir: openspec/changes/web-cost-optimization-constraints
+            workspaceBaseline:
+              ref: c4deea04-050d-4171-a426-c865f56f5ca7
+          outputs:
+            tweak.archive.confirm:
+              choice: pr
+              proposal:
+                input:
+                  change: web-cost-optimization-constraints
+                  changeDir: openspec/changes/web-cost-optimization-constraints
+                  workspaceBaseline:
+                    ref: c4deea04-050d-4171-a426-c865f56f5ca7
+                outputs:
+                  tweak.archive.prepare:
+                    prBaseBranch: main
+                    remote: origin
+                    summary: "用户明确要求归档、推送并创建 PR。将已通过 Verify 的 issue #523 变更归档，同步
+                      frontend/experiments-management 主规格并创建唯一提交；推送
+                      origin/codex/web-cost-optimization-constraints，创建以 main 为
+                      base 的 PR，并关联 #523。实现与验收结论不变，无无关改动。"
+                    targetBranch: codex/web-cost-optimization-constraints
+            tweak.archive.execute:
+              archiveDirectory: openspec/changes/archive/2026-11-26-web-cost-optimization-constraints
+            tweak.archive.preflight:
+              baseCommit: c0b36b7993c9f7dcbfbc9c7bd70ab605d5081f6a
+              deliveryAction: pr
+              deliveryPaths:
+                - frontend/scripts/verify-optimization-constraints.mjs
+                - frontend/src/experiments/client.ts
+                - frontend/src/experiments/types.ts
+                - frontend/src/i18n/en-US.ts
+                - frontend/src/i18n/zh-CN.ts
+                - frontend/src/pages/Experiments/ExperimentDetailPage.tsx
+              prBaseBranch: main
+              remote: origin
+              remoteIdentity: 128eeb1e6f0d21b25601fcb7f9aad36adfdfb4d76f37f54f004760410190f351
+              targetBranch: codex/web-cost-optimization-constraints
+              verifiedBranch: codex/web-cost-optimization-constraints
+            tweak.archive.prepare:
+              prBaseBranch: main
+              remote: origin
+              summary: "用户明确要求归档、推送并创建 PR。将已通过 Verify 的 issue #523 变更归档，同步
+                frontend/experiments-management 主规格并创建唯一提交；推送
+                origin/codex/web-cost-optimization-constraints，创建以 main 为 base 的
+                PR，并关联 #523。实现与验收结论不变，无无关改动。"
+              targetBranch: codex/web-cost-optimization-constraints
+            tweak.verify.report.evidence:
+              contentHash: 5599957a9290517c15080a75c7d884678c614211e3f41873da060c6931063421
+              ref: docs/superpowers/reports/web-cost-optimization-constraints-verification.md
+            tweak.verify.run:
+              checks:
+                - name: "frontend: npm run build"
+                  note: TypeScript and Vite build exit 0; /tmp/issue-523-build.log. Existing large
+                    chunk warning remains.
+                  result: passed
+                - name: "frontend: npm run lint + prettier --check (six delivery files)"
+                  note: Exit 0; ESLint and formatting pass.
+                  result: passed
+                - name: "frontend: node --experimental-strip-types --test
+                    src/experiments/*.test.ts src/i18n/*.test.ts"
+                  note: 33 passed, 0 failed; /tmp/issue-523-frontend-tests.log
+                  result: passed
+                - name: .venv/bin/python -m pytest tests/test_cost_optimizer.py
+                    tests/test_api_experiment_benchmark.py::TestAnalysis
+                    --no-cov -q
+                  note: 17 passed; /tmp/issue-523-python-tests.log. Initial targeted run passed
+                    tests but triggered repository-wide 90% coverage gate; final
+                    targeted run disables irrelevant whole-project coverage.
+                  result: passed
+                - name: "frontend: CHROME_PATH=<local Chrome> node --experimental-strip-types
+                    scripts/verify-optimization-constraints.mjs"
+                  note: Client parsing, real FastAPI /optimize with wrapped shared build_advisory,
+                    14 browser requests, invalid values, defaults, budget plan,
+                    retry and stale response scenarios pass.
+                    /tmp/issue-523-browser.log; /tmp/issue-523-qa/result.json;
+                    desktop/mobile screenshots visually inspected.
+                  result: passed
+                - name: git diff --check
+                  note: No whitespace errors.
+                  result: passed
+              event: verification-ready
+              verificationReport: docs/superpowers/reports/web-cost-optimization-constraints-verification.md
+        inputHash: 91db34629664cc30a6b3de159a5b295ef2a1ae2a6f5ad2ea38477430c5547b55
+        protocolVersion: 1
+        receipts: []
+        reconciliations: []
+        ref: comet-archive
+        requiredCapabilities: []
+        retry: manual
+        runId: web-cost-optimization-constraints
+        status: pending
+        stepId: tweak.archive.deliver
+        type: invoke_skill
+    commands:
+      - id: 8620ac133a24d182f9d9fd13733d8a07bc8f8f1a74f1517d12c3d0e078f0cccb
+        name: reopen-verification
+        inputHash: f5e487703e8f5203c1a70838dc38a9f0c3378ad441ad266fc269ee9debbfde5a
+        actionId: web-cost-optimization-constraints:8
+    actionContexts:
+      web-cost-optimization-constraints:1:
+        results: {}
+        sequence: 1
+      web-cost-optimization-constraints:10:
+        results:
+          tweak.verify.report.evidence:
+            sequence: 9
+            value:
+              contentHash: 5599957a9290517c15080a75c7d884678c614211e3f41873da060c6931063421
+              ref: docs/superpowers/reports/web-cost-optimization-constraints-verification.md
+          tweak.verify.run:
+            sequence: 8
+            value:
+              checks:
+                - name: "frontend: npm run build"
+                  note: TypeScript and Vite build exit 0; /tmp/issue-523-build.log. Existing large
+                    chunk warning remains.
+                  result: passed
+                - name: "frontend: npm run lint + prettier --check (six delivery files)"
+                  note: Exit 0; ESLint and formatting pass.
+                  result: passed
+                - name: "frontend: node --experimental-strip-types --test
+                    src/experiments/*.test.ts src/i18n/*.test.ts"
+                  note: 33 passed, 0 failed; /tmp/issue-523-frontend-tests.log
+                  result: passed
+                - name: .venv/bin/python -m pytest tests/test_cost_optimizer.py
+                    tests/test_api_experiment_benchmark.py::TestAnalysis
+                    --no-cov -q
+                  note: 17 passed; /tmp/issue-523-python-tests.log. Initial targeted run passed
+                    tests but triggered repository-wide 90% coverage gate; final
+                    targeted run disables irrelevant whole-project coverage.
+                  result: passed
+                - name: "frontend: CHROME_PATH=<local Chrome> node --experimental-strip-types
+                    scripts/verify-optimization-constraints.mjs"
+                  note: Client parsing, real FastAPI /optimize with wrapped shared build_advisory,
+                    14 browser requests, invalid values, defaults, budget plan,
+                    retry and stale response scenarios pass.
+                    /tmp/issue-523-browser.log; /tmp/issue-523-qa/result.json;
+                    desktop/mobile screenshots visually inspected.
+                  result: passed
+                - name: git diff --check
+                  note: No whitespace errors.
+                  result: passed
+              event: verification-ready
+              verificationReport: docs/superpowers/reports/web-cost-optimization-constraints-verification.md
+        sequence: 10
+      web-cost-optimization-constraints:12:
+        results:
+          tweak.archive.confirm:
+            sequence: 11
+            value:
+              choice: pr
+              proposal:
+                input:
+                  change: web-cost-optimization-constraints
+                  changeDir: openspec/changes/web-cost-optimization-constraints
+                  workspaceBaseline:
+                    ref: c4deea04-050d-4171-a426-c865f56f5ca7
+                outputs:
+                  tweak.archive.prepare:
+                    prBaseBranch: main
+                    remote: origin
+                    summary: "用户明确要求归档、推送并创建 PR。将已通过 Verify 的 issue #523 变更归档，同步
+                      frontend/experiments-management 主规格并创建唯一提交；推送
+                      origin/codex/web-cost-optimization-constraints，创建以 main 为
+                      base 的 PR，并关联 #523。实现与验收结论不变，无无关改动。"
+                    targetBranch: codex/web-cost-optimization-constraints
+          tweak.archive.prepare:
+            sequence: 10
+            value:
+              prBaseBranch: main
+              remote: origin
+              summary: "用户明确要求归档、推送并创建 PR。将已通过 Verify 的 issue #523 变更归档，同步
+                frontend/experiments-management 主规格并创建唯一提交；推送
+                origin/codex/web-cost-optimization-constraints，创建以 main 为 base 的
+                PR，并关联 #523。实现与验收结论不变，无无关改动。"
+              targetBranch: codex/web-cost-optimization-constraints
+          tweak.verify.report.evidence:
+            sequence: 9
+            value:
+              contentHash: 5599957a9290517c15080a75c7d884678c614211e3f41873da060c6931063421
+              ref: docs/superpowers/reports/web-cost-optimization-constraints-verification.md
+          tweak.verify.run:
+            sequence: 8
+            value:
+              checks:
+                - name: "frontend: npm run build"
+                  note: TypeScript and Vite build exit 0; /tmp/issue-523-build.log. Existing large
+                    chunk warning remains.
+                  result: passed
+                - name: "frontend: npm run lint + prettier --check (six delivery files)"
+                  note: Exit 0; ESLint and formatting pass.
+                  result: passed
+                - name: "frontend: node --experimental-strip-types --test
+                    src/experiments/*.test.ts src/i18n/*.test.ts"
+                  note: 33 passed, 0 failed; /tmp/issue-523-frontend-tests.log
+                  result: passed
+                - name: .venv/bin/python -m pytest tests/test_cost_optimizer.py
+                    tests/test_api_experiment_benchmark.py::TestAnalysis
+                    --no-cov -q
+                  note: 17 passed; /tmp/issue-523-python-tests.log. Initial targeted run passed
+                    tests but triggered repository-wide 90% coverage gate; final
+                    targeted run disables irrelevant whole-project coverage.
+                  result: passed
+                - name: "frontend: CHROME_PATH=<local Chrome> node --experimental-strip-types
+                    scripts/verify-optimization-constraints.mjs"
+                  note: Client parsing, real FastAPI /optimize with wrapped shared build_advisory,
+                    14 browser requests, invalid values, defaults, budget plan,
+                    retry and stale response scenarios pass.
+                    /tmp/issue-523-browser.log; /tmp/issue-523-qa/result.json;
+                    desktop/mobile screenshots visually inspected.
+                  result: passed
+                - name: git diff --check
+                  note: No whitespace errors.
+                  result: passed
+              event: verification-ready
+              verificationReport: docs/superpowers/reports/web-cost-optimization-constraints-verification.md
+        sequence: 12
+      web-cost-optimization-constraints:13:
+        results:
+          tweak.archive.confirm:
+            sequence: 11
+            value:
+              choice: pr
+              proposal:
+                input:
+                  change: web-cost-optimization-constraints
+                  changeDir: openspec/changes/web-cost-optimization-constraints
+                  workspaceBaseline:
+                    ref: c4deea04-050d-4171-a426-c865f56f5ca7
+                outputs:
+                  tweak.archive.prepare:
+                    prBaseBranch: main
+                    remote: origin
+                    summary: "用户明确要求归档、推送并创建 PR。将已通过 Verify 的 issue #523 变更归档，同步
+                      frontend/experiments-management 主规格并创建唯一提交；推送
+                      origin/codex/web-cost-optimization-constraints，创建以 main 为
+                      base 的 PR，并关联 #523。实现与验收结论不变，无无关改动。"
+                    targetBranch: codex/web-cost-optimization-constraints
+          tweak.archive.preflight:
+            sequence: 12
+            value:
+              baseCommit: c0b36b7993c9f7dcbfbc9c7bd70ab605d5081f6a
+              deliveryAction: pr
+              deliveryPaths:
+                - frontend/scripts/verify-optimization-constraints.mjs
+                - frontend/src/experiments/client.ts
+                - frontend/src/experiments/types.ts
+                - frontend/src/i18n/en-US.ts
+                - frontend/src/i18n/zh-CN.ts
+                - frontend/src/pages/Experiments/ExperimentDetailPage.tsx
+              prBaseBranch: main
+              remote: origin
+              remoteIdentity: 128eeb1e6f0d21b25601fcb7f9aad36adfdfb4d76f37f54f004760410190f351
+              targetBranch: codex/web-cost-optimization-constraints
+              verifiedBranch: codex/web-cost-optimization-constraints
+          tweak.archive.prepare:
+            sequence: 10
+            value:
+              prBaseBranch: main
+              remote: origin
+              summary: "用户明确要求归档、推送并创建 PR。将已通过 Verify 的 issue #523 变更归档，同步
+                frontend/experiments-management 主规格并创建唯一提交；推送
+                origin/codex/web-cost-optimization-constraints，创建以 main 为 base 的
+                PR，并关联 #523。实现与验收结论不变，无无关改动。"
+              targetBranch: codex/web-cost-optimization-constraints
+          tweak.verify.report.evidence:
+            sequence: 9
+            value:
+              contentHash: 5599957a9290517c15080a75c7d884678c614211e3f41873da060c6931063421
+              ref: docs/superpowers/reports/web-cost-optimization-constraints-verification.md
+          tweak.verify.run:
+            sequence: 8
+            value:
+              checks:
+                - name: "frontend: npm run build"
+                  note: TypeScript and Vite build exit 0; /tmp/issue-523-build.log. Existing large
+                    chunk warning remains.
+                  result: passed
+                - name: "frontend: npm run lint + prettier --check (six delivery files)"
+                  note: Exit 0; ESLint and formatting pass.
+                  result: passed
+                - name: "frontend: node --experimental-strip-types --test
+                    src/experiments/*.test.ts src/i18n/*.test.ts"
+                  note: 33 passed, 0 failed; /tmp/issue-523-frontend-tests.log
+                  result: passed
+                - name: .venv/bin/python -m pytest tests/test_cost_optimizer.py
+                    tests/test_api_experiment_benchmark.py::TestAnalysis
+                    --no-cov -q
+                  note: 17 passed; /tmp/issue-523-python-tests.log. Initial targeted run passed
+                    tests but triggered repository-wide 90% coverage gate; final
+                    targeted run disables irrelevant whole-project coverage.
+                  result: passed
+                - name: "frontend: CHROME_PATH=<local Chrome> node --experimental-strip-types
+                    scripts/verify-optimization-constraints.mjs"
+                  note: Client parsing, real FastAPI /optimize with wrapped shared build_advisory,
+                    14 browser requests, invalid values, defaults, budget plan,
+                    retry and stale response scenarios pass.
+                    /tmp/issue-523-browser.log; /tmp/issue-523-qa/result.json;
+                    desktop/mobile screenshots visually inspected.
+                  result: passed
+                - name: git diff --check
+                  note: No whitespace errors.
+                  result: passed
+              event: verification-ready
+              verificationReport: docs/superpowers/reports/web-cost-optimization-constraints-verification.md
+        sequence: 13
+      web-cost-optimization-constraints:14:
+        results:
+          tweak.archive.confirm:
+            sequence: 11
+            value:
+              choice: pr
+              proposal:
+                input:
+                  change: web-cost-optimization-constraints
+                  changeDir: openspec/changes/web-cost-optimization-constraints
+                  workspaceBaseline:
+                    ref: c4deea04-050d-4171-a426-c865f56f5ca7
+                outputs:
+                  tweak.archive.prepare:
+                    prBaseBranch: main
+                    remote: origin
+                    summary: "用户明确要求归档、推送并创建 PR。将已通过 Verify 的 issue #523 变更归档，同步
+                      frontend/experiments-management 主规格并创建唯一提交；推送
+                      origin/codex/web-cost-optimization-constraints，创建以 main 为
+                      base 的 PR，并关联 #523。实现与验收结论不变，无无关改动。"
+                    targetBranch: codex/web-cost-optimization-constraints
+          tweak.archive.execute:
+            sequence: 13
+            value:
+              archiveDirectory: openspec/changes/archive/2026-11-26-web-cost-optimization-constraints
+          tweak.archive.preflight:
+            sequence: 12
+            value:
+              baseCommit: c0b36b7993c9f7dcbfbc9c7bd70ab605d5081f6a
+              deliveryAction: pr
+              deliveryPaths:
+                - frontend/scripts/verify-optimization-constraints.mjs
+                - frontend/src/experiments/client.ts
+                - frontend/src/experiments/types.ts
+                - frontend/src/i18n/en-US.ts
+                - frontend/src/i18n/zh-CN.ts
+                - frontend/src/pages/Experiments/ExperimentDetailPage.tsx
+              prBaseBranch: main
+              remote: origin
+              remoteIdentity: 128eeb1e6f0d21b25601fcb7f9aad36adfdfb4d76f37f54f004760410190f351
+              targetBranch: codex/web-cost-optimization-constraints
+              verifiedBranch: codex/web-cost-optimization-constraints
+          tweak.archive.prepare:
+            sequence: 10
+            value:
+              prBaseBranch: main
+              remote: origin
+              summary: "用户明确要求归档、推送并创建 PR。将已通过 Verify 的 issue #523 变更归档，同步
+                frontend/experiments-management 主规格并创建唯一提交；推送
+                origin/codex/web-cost-optimization-constraints，创建以 main 为 base 的
+                PR，并关联 #523。实现与验收结论不变，无无关改动。"
+              targetBranch: codex/web-cost-optimization-constraints
+          tweak.verify.report.evidence:
+            sequence: 9
+            value:
+              contentHash: 5599957a9290517c15080a75c7d884678c614211e3f41873da060c6931063421
+              ref: docs/superpowers/reports/web-cost-optimization-constraints-verification.md
+          tweak.verify.run:
+            sequence: 8
+            value:
+              checks:
+                - name: "frontend: npm run build"
+                  note: TypeScript and Vite build exit 0; /tmp/issue-523-build.log. Existing large
+                    chunk warning remains.
+                  result: passed
+                - name: "frontend: npm run lint + prettier --check (six delivery files)"
+                  note: Exit 0; ESLint and formatting pass.
+                  result: passed
+                - name: "frontend: node --experimental-strip-types --test
+                    src/experiments/*.test.ts src/i18n/*.test.ts"
+                  note: 33 passed, 0 failed; /tmp/issue-523-frontend-tests.log
+                  result: passed
+                - name: .venv/bin/python -m pytest tests/test_cost_optimizer.py
+                    tests/test_api_experiment_benchmark.py::TestAnalysis
+                    --no-cov -q
+                  note: 17 passed; /tmp/issue-523-python-tests.log. Initial targeted run passed
+                    tests but triggered repository-wide 90% coverage gate; final
+                    targeted run disables irrelevant whole-project coverage.
+                  result: passed
+                - name: "frontend: CHROME_PATH=<local Chrome> node --experimental-strip-types
+                    scripts/verify-optimization-constraints.mjs"
+                  note: Client parsing, real FastAPI /optimize with wrapped shared build_advisory,
+                    14 browser requests, invalid values, defaults, budget plan,
+                    retry and stale response scenarios pass.
+                    /tmp/issue-523-browser.log; /tmp/issue-523-qa/result.json;
+                    desktop/mobile screenshots visually inspected.
+                  result: passed
+                - name: git diff --check
+                  note: No whitespace errors.
+                  result: passed
+              event: verification-ready
+              verificationReport: docs/superpowers/reports/web-cost-optimization-constraints-verification.md
+        sequence: 14
+      web-cost-optimization-constraints:3:
+        results:
+          tweak.open:
+            sequence: 1
+            value:
+              event: open-complete
+              requirementsEvidence:
+                ref: openspec/changes/web-cost-optimization-constraints
+          tweak.open.evidence:
+            sequence: 2
+            value:
+              contentHash: 53c9d9bb56a81a4eb334734bec2b0f9135c7e41d6b2a31fe5e3dde2cbe67bac1
+              ref: openspec/changes/web-cost-optimization-constraints
+        sequence: 3
+      web-cost-optimization-constraints:4:
+        results:
+          tweak.build.execute:
+            sequence: 3
+            value:
+              checks:
+                - name: "frontend: npm run build"
+                  note: TypeScript and Vite build exit 0; /tmp/issue-523-build.log. Existing large
+                    chunk warning remains.
+                  result: passed
+                - name: "frontend: npm run lint + prettier --check (six delivery files)"
+                  note: Exit 0; ESLint and formatting pass.
+                  result: passed
+                - name: "frontend: node --experimental-strip-types --test
+                    src/experiments/*.test.ts src/i18n/*.test.ts"
+                  note: 33 passed, 0 failed; /tmp/issue-523-frontend-tests.log
+                  result: passed
+                - name: .venv/bin/python -m pytest tests/test_cost_optimizer.py
+                    tests/test_api_experiment_benchmark.py::TestAnalysis
+                    --no-cov -q
+                  note: 17 passed; /tmp/issue-523-python-tests.log. Initial targeted run passed
+                    tests but triggered repository-wide 90% coverage gate; final
+                    targeted run disables irrelevant whole-project coverage.
+                  result: passed
+                - name: "frontend: CHROME_PATH=<local Chrome> node --experimental-strip-types
+                    scripts/verify-optimization-constraints.mjs"
+                  note: Client parsing, real FastAPI /optimize with wrapped shared build_advisory,
+                    14 browser requests, invalid values, defaults, budget plan,
+                    retry and stale response scenarios pass.
+                    /tmp/issue-523-browser.log; /tmp/issue-523-qa/result.json;
+                    desktop/mobile screenshots visually inspected.
+                  result: passed
+                - name: git diff --check
+                  note: No whitespace errors.
+                  result: passed
+              event: build-complete
+          tweak.open:
+            sequence: 1
+            value:
+              event: open-complete
+              requirementsEvidence:
+                ref: openspec/changes/web-cost-optimization-constraints
+          tweak.open.evidence:
+            sequence: 2
+            value:
+              contentHash: 53c9d9bb56a81a4eb334734bec2b0f9135c7e41d6b2a31fe5e3dde2cbe67bac1
+              ref: openspec/changes/web-cost-optimization-constraints
+        sequence: 4
+      web-cost-optimization-constraints:6:
+        results:
+          tweak.build.execute:
+            sequence: 3
+            value:
+              checks:
+                - name: "frontend: npm run build"
+                  note: TypeScript and Vite build exit 0; /tmp/issue-523-build.log. Existing large
+                    chunk warning remains.
+                  result: passed
+                - name: "frontend: npm run lint + prettier --check (six delivery files)"
+                  note: Exit 0; ESLint and formatting pass.
+                  result: passed
+                - name: "frontend: node --experimental-strip-types --test
+                    src/experiments/*.test.ts src/i18n/*.test.ts"
+                  note: 33 passed, 0 failed; /tmp/issue-523-frontend-tests.log
+                  result: passed
+                - name: .venv/bin/python -m pytest tests/test_cost_optimizer.py
+                    tests/test_api_experiment_benchmark.py::TestAnalysis
+                    --no-cov -q
+                  note: 17 passed; /tmp/issue-523-python-tests.log. Initial targeted run passed
+                    tests but triggered repository-wide 90% coverage gate; final
+                    targeted run disables irrelevant whole-project coverage.
+                  result: passed
+                - name: "frontend: CHROME_PATH=<local Chrome> node --experimental-strip-types
+                    scripts/verify-optimization-constraints.mjs"
+                  note: Client parsing, real FastAPI /optimize with wrapped shared build_advisory,
+                    14 browser requests, invalid values, defaults, budget plan,
+                    retry and stale response scenarios pass.
+                    /tmp/issue-523-browser.log; /tmp/issue-523-qa/result.json;
+                    desktop/mobile screenshots visually inspected.
+                  result: passed
+                - name: git diff --check
+                  note: No whitespace errors.
+                  result: passed
+              event: build-complete
+          tweak.open:
+            sequence: 1
+            value:
+              event: open-complete
+              requirementsEvidence:
+                ref: openspec/changes/web-cost-optimization-constraints
+          tweak.open.evidence:
+            sequence: 2
+            value:
+              contentHash: 53c9d9bb56a81a4eb334734bec2b0f9135c7e41d6b2a31fe5e3dde2cbe67bac1
+              ref: openspec/changes/web-cost-optimization-constraints
+          tweak.verify.report.evidence:
+            sequence: 5
+            value:
+              contentHash: 46e1ae3df7dd3175241623ae13ab7b3ab138de7a6dec8d5837e46d67ec744baa
+              ref: docs/superpowers/reports/web-cost-optimization-constraints-verification.md
+          tweak.verify.run:
+            sequence: 4
+            value:
+              checks:
+                - name: "frontend: npm run build"
+                  note: TypeScript and Vite build exit 0; /tmp/issue-523-build.log. Existing large
+                    chunk warning remains.
+                  result: passed
+                - name: "frontend: npm run lint + prettier --check (six delivery files)"
+                  note: Exit 0; ESLint and formatting pass.
+                  result: passed
+                - name: "frontend: node --experimental-strip-types --test
+                    src/experiments/*.test.ts src/i18n/*.test.ts"
+                  note: 33 passed, 0 failed; /tmp/issue-523-frontend-tests.log
+                  result: passed
+                - name: .venv/bin/python -m pytest tests/test_cost_optimizer.py
+                    tests/test_api_experiment_benchmark.py::TestAnalysis
+                    --no-cov -q
+                  note: 17 passed; /tmp/issue-523-python-tests.log. Initial targeted run passed
+                    tests but triggered repository-wide 90% coverage gate; final
+                    targeted run disables irrelevant whole-project coverage.
+                  result: passed
+                - name: "frontend: CHROME_PATH=<local Chrome> node --experimental-strip-types
+                    scripts/verify-optimization-constraints.mjs"
+                  note: Client parsing, real FastAPI /optimize with wrapped shared build_advisory,
+                    14 browser requests, invalid values, defaults, budget plan,
+                    retry and stale response scenarios pass.
+                    /tmp/issue-523-browser.log; /tmp/issue-523-qa/result.json;
+                    desktop/mobile screenshots visually inspected.
+                  result: passed
+                - name: git diff --check
+                  note: No whitespace errors.
+                  result: passed
+              event: verification-ready
+              verificationReport: docs/superpowers/reports/web-cost-optimization-constraints-verification.md
+        sequence: 6
+      web-cost-optimization-constraints:8:
+        results: {}
+        sequence: 8
+    waits:
+      - id: web-cost-optimization-constraints:7
+        stepId: tweak.archive.confirm
+        sequence: 7
+        status: cancelled
+        proposal:
+          input:
+            change: web-cost-optimization-constraints
+            changeDir: openspec/changes/web-cost-optimization-constraints
+            workspaceBaseline:
+              ref: c4deea04-050d-4171-a426-c865f56f5ca7
+          outputs:
+            tweak.archive.prepare:
+              prBaseBranch: main
+              remote: origin
+              summary: "Issue #523 已通过 Verify：可选 USD 预算与最低准确率、预算分层与不可行原因、失败重试和迟到响应隔离；6
+                个实现/测试交付文件，加 Comet 产物与验收报告。当前绑定 main，target main；归档将同步
+                frontend/experiments-management 主规格、迁移 change 并创建本次唯一提交。推荐
+                local，仅本地归档与提交；push 将推送 origin/main；尚未获得任何 Git 交付授权。"
+              targetBranch: main
+        proposalHash: 4a7e762981bff35ecfdc9eaab736896a778b9b0ed02dfa4fb324f1c29fe5893c
+        choices:
+          - local
+          - push
+          - pr
+          - reverify
+          - later
+        results:
+          tweak.archive.prepare:
+            sequence: 6
+            value:
+              prBaseBranch: main
+              remote: origin
+              summary: "Issue #523 已通过 Verify：可选 USD 预算与最低准确率、预算分层与不可行原因、失败重试和迟到响应隔离；6
+                个实现/测试交付文件，加 Comet 产物与验收报告。当前绑定 main，target main；归档将同步
+                frontend/experiments-management 主规格、迁移 change 并创建本次唯一提交。推荐
+                local，仅本地归档与提交；push 将推送 origin/main；尚未获得任何 Git 交付授权。"
+              targetBranch: main
+          tweak.build.execute:
+            sequence: 3
+            value:
+              checks:
+                - name: "frontend: npm run build"
+                  note: TypeScript and Vite build exit 0; /tmp/issue-523-build.log. Existing large
+                    chunk warning remains.
+                  result: passed
+                - name: "frontend: npm run lint + prettier --check (six delivery files)"
+                  note: Exit 0; ESLint and formatting pass.
+                  result: passed
+                - name: "frontend: node --experimental-strip-types --test
+                    src/experiments/*.test.ts src/i18n/*.test.ts"
+                  note: 33 passed, 0 failed; /tmp/issue-523-frontend-tests.log
+                  result: passed
+                - name: .venv/bin/python -m pytest tests/test_cost_optimizer.py
+                    tests/test_api_experiment_benchmark.py::TestAnalysis
+                    --no-cov -q
+                  note: 17 passed; /tmp/issue-523-python-tests.log. Initial targeted run passed
+                    tests but triggered repository-wide 90% coverage gate; final
+                    targeted run disables irrelevant whole-project coverage.
+                  result: passed
+                - name: "frontend: CHROME_PATH=<local Chrome> node --experimental-strip-types
+                    scripts/verify-optimization-constraints.mjs"
+                  note: Client parsing, real FastAPI /optimize with wrapped shared build_advisory,
+                    14 browser requests, invalid values, defaults, budget plan,
+                    retry and stale response scenarios pass.
+                    /tmp/issue-523-browser.log; /tmp/issue-523-qa/result.json;
+                    desktop/mobile screenshots visually inspected.
+                  result: passed
+                - name: git diff --check
+                  note: No whitespace errors.
+                  result: passed
+              event: build-complete
+          tweak.open:
+            sequence: 1
+            value:
+              event: open-complete
+              requirementsEvidence:
+                ref: openspec/changes/web-cost-optimization-constraints
+          tweak.open.evidence:
+            sequence: 2
+            value:
+              contentHash: 53c9d9bb56a81a4eb334734bec2b0f9135c7e41d6b2a31fe5e3dde2cbe67bac1
+              ref: openspec/changes/web-cost-optimization-constraints
+          tweak.verify.report.evidence:
+            sequence: 5
+            value:
+              contentHash: 46e1ae3df7dd3175241623ae13ab7b3ab138de7a6dec8d5837e46d67ec744baa
+              ref: docs/superpowers/reports/web-cost-optimization-constraints-verification.md
+          tweak.verify.run:
+            sequence: 4
+            value:
+              checks:
+                - name: "frontend: npm run build"
+                  note: TypeScript and Vite build exit 0; /tmp/issue-523-build.log. Existing large
+                    chunk warning remains.
+                  result: passed
+                - name: "frontend: npm run lint + prettier --check (six delivery files)"
+                  note: Exit 0; ESLint and formatting pass.
+                  result: passed
+                - name: "frontend: node --experimental-strip-types --test
+                    src/experiments/*.test.ts src/i18n/*.test.ts"
+                  note: 33 passed, 0 failed; /tmp/issue-523-frontend-tests.log
+                  result: passed
+                - name: .venv/bin/python -m pytest tests/test_cost_optimizer.py
+                    tests/test_api_experiment_benchmark.py::TestAnalysis
+                    --no-cov -q
+                  note: 17 passed; /tmp/issue-523-python-tests.log. Initial targeted run passed
+                    tests but triggered repository-wide 90% coverage gate; final
+                    targeted run disables irrelevant whole-project coverage.
+                  result: passed
+                - name: "frontend: CHROME_PATH=<local Chrome> node --experimental-strip-types
+                    scripts/verify-optimization-constraints.mjs"
+                  note: Client parsing, real FastAPI /optimize with wrapped shared build_advisory,
+                    14 browser requests, invalid values, defaults, budget plan,
+                    retry and stale response scenarios pass.
+                    /tmp/issue-523-browser.log; /tmp/issue-523-qa/result.json;
+                    desktop/mobile screenshots visually inspected.
+                  result: passed
+                - name: git diff --check
+                  note: No whitespace errors.
+                  result: passed
+              event: verification-ready
+              verificationReport: docs/superpowers/reports/web-cost-optimization-constraints-verification.md
+      - id: web-cost-optimization-constraints:11
+        stepId: tweak.archive.confirm
+        sequence: 11
+        status: resolved
+        proposal:
+          input:
+            change: web-cost-optimization-constraints
+            changeDir: openspec/changes/web-cost-optimization-constraints
+            workspaceBaseline:
+              ref: c4deea04-050d-4171-a426-c865f56f5ca7
+          outputs:
+            tweak.archive.prepare:
+              prBaseBranch: main
+              remote: origin
+              summary: "用户明确要求归档、推送并创建 PR。将已通过 Verify 的 issue #523 变更归档，同步
+                frontend/experiments-management 主规格并创建唯一提交；推送
+                origin/codex/web-cost-optimization-constraints，创建以 main 为 base 的
+                PR，并关联 #523。实现与验收结论不变，无无关改动。"
+              targetBranch: codex/web-cost-optimization-constraints
+        proposalHash: 34c72ebd8a1681d48ba2315395c64063988055f9d410946f938aed4ff81a5627
+        choices:
+          - local
+          - push
+          - pr
+          - reverify
+          - later
+        results:
+          tweak.archive.prepare:
+            sequence: 10
+            value:
+              prBaseBranch: main
+              remote: origin
+              summary: "用户明确要求归档、推送并创建 PR。将已通过 Verify 的 issue #523 变更归档，同步
+                frontend/experiments-management 主规格并创建唯一提交；推送
+                origin/codex/web-cost-optimization-constraints，创建以 main 为 base 的
+                PR，并关联 #523。实现与验收结论不变，无无关改动。"
+              targetBranch: codex/web-cost-optimization-constraints
+          tweak.verify.report.evidence:
+            sequence: 9
+            value:
+              contentHash: 5599957a9290517c15080a75c7d884678c614211e3f41873da060c6931063421
+              ref: docs/superpowers/reports/web-cost-optimization-constraints-verification.md
+          tweak.verify.run:
+            sequence: 8
+            value:
+              checks:
+                - name: "frontend: npm run build"
+                  note: TypeScript and Vite build exit 0; /tmp/issue-523-build.log. Existing large
+                    chunk warning remains.
+                  result: passed
+                - name: "frontend: npm run lint + prettier --check (six delivery files)"
+                  note: Exit 0; ESLint and formatting pass.
+                  result: passed
+                - name: "frontend: node --experimental-strip-types --test
+                    src/experiments/*.test.ts src/i18n/*.test.ts"
+                  note: 33 passed, 0 failed; /tmp/issue-523-frontend-tests.log
+                  result: passed
+                - name: .venv/bin/python -m pytest tests/test_cost_optimizer.py
+                    tests/test_api_experiment_benchmark.py::TestAnalysis
+                    --no-cov -q
+                  note: 17 passed; /tmp/issue-523-python-tests.log. Initial targeted run passed
+                    tests but triggered repository-wide 90% coverage gate; final
+                    targeted run disables irrelevant whole-project coverage.
+                  result: passed
+                - name: "frontend: CHROME_PATH=<local Chrome> node --experimental-strip-types
+                    scripts/verify-optimization-constraints.mjs"
+                  note: Client parsing, real FastAPI /optimize with wrapped shared build_advisory,
+                    14 browser requests, invalid values, defaults, budget plan,
+                    retry and stale response scenarios pass.
+                    /tmp/issue-523-browser.log; /tmp/issue-523-qa/result.json;
+                    desktop/mobile screenshots visually inspected.
+                  result: passed
+                - name: git diff --check
+                  note: No whitespace errors.
+                  result: passed
+              event: verification-ready
+              verificationReport: docs/superpowers/reports/web-cost-optimization-constraints-verification.md
+        decision:
+          id: classic-archive-34c72ebd8a1681d48ba2315395c64063988055f9d410946f938aed4ff81a5627-pr
+          choice: pr
+          proposalHash: 34c72ebd8a1681d48ba2315395c64063988055f9d410946f938aed4ff81a5627
+    evidenceWaits:
+      - id: web-cost-optimization-constraints:2
+        stepId: tweak.open.evidence
+        sequence: 2
+        kind: classic-open-artifacts
+        status: resolved
+        results:
+          tweak.open:
+            sequence: 1
+            value:
+              event: open-complete
+              requirementsEvidence:
+                ref: openspec/changes/web-cost-optimization-constraints
+        receipt:
+          ref: openspec/changes/web-cost-optimization-constraints
+          contentHash: 53c9d9bb56a81a4eb334734bec2b0f9135c7e41d6b2a31fe5e3dde2cbe67bac1
+          submissionId: 3d655a06-fb75-450d-9e4a-a5861459809e
+      - id: web-cost-optimization-constraints:5
+        stepId: tweak.verify.report.evidence
+        sequence: 5
+        kind: classic-verification-report
+        status: resolved
+        results:
+          tweak.build.execute:
+            sequence: 3
+            value:
+              checks:
+                - name: "frontend: npm run build"
+                  note: TypeScript and Vite build exit 0; /tmp/issue-523-build.log. Existing large
+                    chunk warning remains.
+                  result: passed
+                - name: "frontend: npm run lint + prettier --check (six delivery files)"
+                  note: Exit 0; ESLint and formatting pass.
+                  result: passed
+                - name: "frontend: node --experimental-strip-types --test
+                    src/experiments/*.test.ts src/i18n/*.test.ts"
+                  note: 33 passed, 0 failed; /tmp/issue-523-frontend-tests.log
+                  result: passed
+                - name: .venv/bin/python -m pytest tests/test_cost_optimizer.py
+                    tests/test_api_experiment_benchmark.py::TestAnalysis
+                    --no-cov -q
+                  note: 17 passed; /tmp/issue-523-python-tests.log. Initial targeted run passed
+                    tests but triggered repository-wide 90% coverage gate; final
+                    targeted run disables irrelevant whole-project coverage.
+                  result: passed
+                - name: "frontend: CHROME_PATH=<local Chrome> node --experimental-strip-types
+                    scripts/verify-optimization-constraints.mjs"
+                  note: Client parsing, real FastAPI /optimize with wrapped shared build_advisory,
+                    14 browser requests, invalid values, defaults, budget plan,
+                    retry and stale response scenarios pass.
+                    /tmp/issue-523-browser.log; /tmp/issue-523-qa/result.json;
+                    desktop/mobile screenshots visually inspected.
+                  result: passed
+                - name: git diff --check
+                  note: No whitespace errors.
+                  result: passed
+              event: build-complete
+          tweak.open:
+            sequence: 1
+            value:
+              event: open-complete
+              requirementsEvidence:
+                ref: openspec/changes/web-cost-optimization-constraints
+          tweak.open.evidence:
+            sequence: 2
+            value:
+              contentHash: 53c9d9bb56a81a4eb334734bec2b0f9135c7e41d6b2a31fe5e3dde2cbe67bac1
+              ref: openspec/changes/web-cost-optimization-constraints
+          tweak.verify.run:
+            sequence: 4
+            value:
+              checks:
+                - name: "frontend: npm run build"
+                  note: TypeScript and Vite build exit 0; /tmp/issue-523-build.log. Existing large
+                    chunk warning remains.
+                  result: passed
+                - name: "frontend: npm run lint + prettier --check (six delivery files)"
+                  note: Exit 0; ESLint and formatting pass.
+                  result: passed
+                - name: "frontend: node --experimental-strip-types --test
+                    src/experiments/*.test.ts src/i18n/*.test.ts"
+                  note: 33 passed, 0 failed; /tmp/issue-523-frontend-tests.log
+                  result: passed
+                - name: .venv/bin/python -m pytest tests/test_cost_optimizer.py
+                    tests/test_api_experiment_benchmark.py::TestAnalysis
+                    --no-cov -q
+                  note: 17 passed; /tmp/issue-523-python-tests.log. Initial targeted run passed
+                    tests but triggered repository-wide 90% coverage gate; final
+                    targeted run disables irrelevant whole-project coverage.
+                  result: passed
+                - name: "frontend: CHROME_PATH=<local Chrome> node --experimental-strip-types
+                    scripts/verify-optimization-constraints.mjs"
+                  note: Client parsing, real FastAPI /optimize with wrapped shared build_advisory,
+                    14 browser requests, invalid values, defaults, budget plan,
+                    retry and stale response scenarios pass.
+                    /tmp/issue-523-browser.log; /tmp/issue-523-qa/result.json;
+                    desktop/mobile screenshots visually inspected.
+                  result: passed
+                - name: git diff --check
+                  note: No whitespace errors.
+                  result: passed
+              event: verification-ready
+              verificationReport: docs/superpowers/reports/web-cost-optimization-constraints-verification.md
+        receipt:
+          ref: docs/superpowers/reports/web-cost-optimization-constraints-verification.md
+          contentHash: 46e1ae3df7dd3175241623ae13ab7b3ab138de7a6dec8d5837e46d67ec744baa
+          submissionId: 3d49abd0-33ad-425c-97fb-92488896c3e5
+      - id: web-cost-optimization-constraints:9
+        stepId: tweak.verify.report.evidence
+        sequence: 9
+        kind: classic-verification-report
+        status: resolved
+        results:
+          tweak.verify.run:
+            sequence: 8
+            value:
+              checks:
+                - name: "frontend: npm run build"
+                  note: TypeScript and Vite build exit 0; /tmp/issue-523-build.log. Existing large
+                    chunk warning remains.
+                  result: passed
+                - name: "frontend: npm run lint + prettier --check (six delivery files)"
+                  note: Exit 0; ESLint and formatting pass.
+                  result: passed
+                - name: "frontend: node --experimental-strip-types --test
+                    src/experiments/*.test.ts src/i18n/*.test.ts"
+                  note: 33 passed, 0 failed; /tmp/issue-523-frontend-tests.log
+                  result: passed
+                - name: .venv/bin/python -m pytest tests/test_cost_optimizer.py
+                    tests/test_api_experiment_benchmark.py::TestAnalysis
+                    --no-cov -q
+                  note: 17 passed; /tmp/issue-523-python-tests.log. Initial targeted run passed
+                    tests but triggered repository-wide 90% coverage gate; final
+                    targeted run disables irrelevant whole-project coverage.
+                  result: passed
+                - name: "frontend: CHROME_PATH=<local Chrome> node --experimental-strip-types
+                    scripts/verify-optimization-constraints.mjs"
+                  note: Client parsing, real FastAPI /optimize with wrapped shared build_advisory,
+                    14 browser requests, invalid values, defaults, budget plan,
+                    retry and stale response scenarios pass.
+                    /tmp/issue-523-browser.log; /tmp/issue-523-qa/result.json;
+                    desktop/mobile screenshots visually inspected.
+                  result: passed
+                - name: git diff --check
+                  note: No whitespace errors.
+                  result: passed
+              event: verification-ready
+              verificationReport: docs/superpowers/reports/web-cost-optimization-constraints-verification.md
+        receipt:
+          ref: docs/superpowers/reports/web-cost-optimization-constraints-verification.md
+          contentHash: 5599957a9290517c15080a75c7d884678c614211e3f41873da060c6931063421
+          submissionId: 82d74be5-2a4b-45fc-99e8-98ba87fc43c5
+    ready: []
+    joins: {}
+    outputs:
+      tweak.archive.confirm:
+        sequence: 11
+        value:
+          choice: pr
+          proposal:
+            input:
+              change: web-cost-optimization-constraints
+              changeDir: openspec/changes/web-cost-optimization-constraints
+              workspaceBaseline:
+                ref: c4deea04-050d-4171-a426-c865f56f5ca7
+            outputs:
+              tweak.archive.prepare:
+                prBaseBranch: main
+                remote: origin
+                summary: "用户明确要求归档、推送并创建 PR。将已通过 Verify 的 issue #523 变更归档，同步
+                  frontend/experiments-management 主规格并创建唯一提交；推送
+                  origin/codex/web-cost-optimization-constraints，创建以 main 为 base
+                  的 PR，并关联 #523。实现与验收结论不变，无无关改动。"
+                targetBranch: codex/web-cost-optimization-constraints
+      tweak.archive.execute:
+        sequence: 13
+        value:
+          archiveDirectory: openspec/changes/archive/2026-11-26-web-cost-optimization-constraints
+      tweak.archive.preflight:
+        sequence: 12
+        value:
+          baseCommit: c0b36b7993c9f7dcbfbc9c7bd70ab605d5081f6a
+          deliveryAction: pr
+          deliveryPaths:
+            - frontend/scripts/verify-optimization-constraints.mjs
+            - frontend/src/experiments/client.ts
+            - frontend/src/experiments/types.ts
+            - frontend/src/i18n/en-US.ts
+            - frontend/src/i18n/zh-CN.ts
+            - frontend/src/pages/Experiments/ExperimentDetailPage.tsx
+          prBaseBranch: main
+          remote: origin
+          remoteIdentity: 128eeb1e6f0d21b25601fcb7f9aad36adfdfb4d76f37f54f004760410190f351
+          targetBranch: codex/web-cost-optimization-constraints
+          verifiedBranch: codex/web-cost-optimization-constraints
+      tweak.archive.prepare:
+        sequence: 10
+        value:
+          prBaseBranch: main
+          remote: origin
+          summary: "用户明确要求归档、推送并创建 PR。将已通过 Verify 的 issue #523 变更归档，同步
+            frontend/experiments-management 主规格并创建唯一提交；推送
+            origin/codex/web-cost-optimization-constraints，创建以 main 为 base 的
+            PR，并关联 #523。实现与验收结论不变，无无关改动。"
+          targetBranch: codex/web-cost-optimization-constraints
+      tweak.build.execute:
+        sequence: 3
+        value:
+          checks:
+            - name: "frontend: npm run build"
+              note: TypeScript and Vite build exit 0; /tmp/issue-523-build.log. Existing large
+                chunk warning remains.
+              result: passed
+            - name: "frontend: npm run lint + prettier --check (six delivery files)"
+              note: Exit 0; ESLint and formatting pass.
+              result: passed
+            - name: "frontend: node --experimental-strip-types --test
+                src/experiments/*.test.ts src/i18n/*.test.ts"
+              note: 33 passed, 0 failed; /tmp/issue-523-frontend-tests.log
+              result: passed
+            - name: .venv/bin/python -m pytest tests/test_cost_optimizer.py
+                tests/test_api_experiment_benchmark.py::TestAnalysis --no-cov -q
+              note: 17 passed; /tmp/issue-523-python-tests.log. Initial targeted run passed
+                tests but triggered repository-wide 90% coverage gate; final
+                targeted run disables irrelevant whole-project coverage.
+              result: passed
+            - name: "frontend: CHROME_PATH=<local Chrome> node --experimental-strip-types
+                scripts/verify-optimization-constraints.mjs"
+              note: Client parsing, real FastAPI /optimize with wrapped shared build_advisory,
+                14 browser requests, invalid values, defaults, budget plan,
+                retry and stale response scenarios pass.
+                /tmp/issue-523-browser.log; /tmp/issue-523-qa/result.json;
+                desktop/mobile screenshots visually inspected.
+              result: passed
+            - name: git diff --check
+              note: No whitespace errors.
+              result: passed
+          event: build-complete
+      tweak.open:
+        sequence: 1
+        value:
+          event: open-complete
+          requirementsEvidence:
+            ref: openspec/changes/web-cost-optimization-constraints
+      tweak.open.evidence:
+        sequence: 2
+        value:
+          contentHash: 53c9d9bb56a81a4eb334734bec2b0f9135c7e41d6b2a31fe5e3dde2cbe67bac1
+          ref: openspec/changes/web-cost-optimization-constraints
+      tweak.verify.report.evidence:
+        sequence: 9
+        value:
+          contentHash: 5599957a9290517c15080a75c7d884678c614211e3f41873da060c6931063421
+          ref: docs/superpowers/reports/web-cost-optimization-constraints-verification.md
+      tweak.verify.run:
+        sequence: 8
+        value:
+          checks:
+            - name: "frontend: npm run build"
+              note: TypeScript and Vite build exit 0; /tmp/issue-523-build.log. Existing large
+                chunk warning remains.
+              result: passed
+            - name: "frontend: npm run lint + prettier --check (six delivery files)"
+              note: Exit 0; ESLint and formatting pass.
+              result: passed
+            - name: "frontend: node --experimental-strip-types --test
+                src/experiments/*.test.ts src/i18n/*.test.ts"
+              note: 33 passed, 0 failed; /tmp/issue-523-frontend-tests.log
+              result: passed
+            - name: .venv/bin/python -m pytest tests/test_cost_optimizer.py
+                tests/test_api_experiment_benchmark.py::TestAnalysis --no-cov -q
+              note: 17 passed; /tmp/issue-523-python-tests.log. Initial targeted run passed
+                tests but triggered repository-wide 90% coverage gate; final
+                targeted run disables irrelevant whole-project coverage.
+              result: passed
+            - name: "frontend: CHROME_PATH=<local Chrome> node --experimental-strip-types
+                scripts/verify-optimization-constraints.mjs"
+              note: Client parsing, real FastAPI /optimize with wrapped shared build_advisory,
+                14 browser requests, invalid values, defaults, budget plan,
+                retry and stale response scenarios pass.
+                /tmp/issue-523-browser.log; /tmp/issue-523-qa/result.json;
+                desktop/mobile screenshots visually inspected.
+              result: passed
+            - name: git diff --check
+              note: No whitespace errors.
+              result: passed
+          event: verification-ready
+          verificationReport: docs/superpowers/reports/web-cost-optimization-constraints-verification.md
+    children: []
+    lineage: []
+  sourceRevision: 23
+  sourceHash: 8e6fc8619a0ae40accc334d9345beda82a018e80095aae1be30dc6bf94b7dea3
+direct_override: null
+handoff_context: null
+handoff_hash: null
+classic_profile: null
+classic_migration: null
+check_epoch: 6

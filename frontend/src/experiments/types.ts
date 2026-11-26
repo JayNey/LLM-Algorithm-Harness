@@ -233,8 +233,20 @@ export interface OptimizeAdvisory {
     budget: number
     min_accuracy?: number
     estimated_cost?: number
-    estimated_accuracy?: number
+    estimated_accuracy?: number | null
     coverage?: number
+    layers?: Record<
+      string,
+      | { feasible: false; note: string }
+      | {
+          feasible: true
+          model: string
+          strategy: string
+          layer_accuracy: number
+          estimated_cost: number
+          problems: number
+        }
+    >
   }
 }
 

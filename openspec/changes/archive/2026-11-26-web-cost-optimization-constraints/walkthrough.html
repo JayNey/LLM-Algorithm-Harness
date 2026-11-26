@@ -1,0 +1,123 @@
+<!doctype html>
+<html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'unsafe-inline'; base-uri 'none'; form-action 'none'"><title>变更说明 · 实验成本优化支持可选预算与最低准确率约束</title>
+<style>
+:root {
+  color-scheme: light dark;
+  --page: #fafbfc;
+  --ink: #202a35;
+  --muted: #566575;
+  --line: #dbe2e8;
+  --accent: #245b85;
+  --highlight: #edf3f7;
+  --hover: #e9eef3;
+  --code-bg: #edf0f4;
+  --code-ink: #263443;
+  --success: #236d4f;
+  --failure: #a83131;
+  --text: 15px;
+  --small: 13px;
+  --label: 12px;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --page: #181d23;
+    --ink: #e4eaf0;
+    --muted: #a4b1be;
+    --line: #35404b;
+    --accent: #94c6ec;
+    --highlight: #222e39;
+    --hover: #27323d;
+    --code-bg: #10161d;
+    --code-ink: #e0e8f0;
+    --success: #8ed8b5;
+    --failure: #ffb0a8;
+  }
+}
+* { box-sizing: border-box; }
+body {
+  margin: 0;
+  background: var(--page);
+  color: var(--ink);
+  font: var(--text)/1.65 system-ui, -apple-system, "Segoe UI", sans-serif;
+}
+main { max-width: 1040px; margin: auto; padding: 32px 32px 48px; }
+.eyebrow { color: var(--accent); font-size: var(--label); font-weight: 500; letter-spacing: .08em; }
+h1 { margin: 8px 0 12px; max-width: 32em; font-size: 28px; font-weight: 500; line-height: 1.4; letter-spacing: -.02em; overflow-wrap: anywhere; }
+h2 { margin: 0; font-size: 18px; font-weight: 500; line-height: 1.5; overflow-wrap: anywhere; }
+h3 { margin: 0 0 4px; color: var(--muted); font-size: var(--label); font-weight: 500; }
+p { margin: 0; white-space: pre-wrap; overflow-wrap: anywhere; }
+strong { font-weight: 500; }
+.meta { margin-bottom: 24px; color: var(--muted); font-size: var(--small); overflow-wrap: anywhere; }
+.meta p + p { margin-top: 2px; }
+article { padding: 20px 0 12px; border-top: 1px solid var(--line); }
+article header { display: flex; align-items: baseline; gap: 12px; margin-bottom: 12px; }
+.number { color: var(--muted); font: var(--label)/1.5 ui-monospace, Consolas, monospace; font-variant-numeric: tabular-nums; }
+.comparison { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 16px; }
+.comparison section { min-width: 0; padding: 12px; }
+.after { background: var(--highlight); border-radius: 4px; }
+.after h3 { color: var(--accent); }
+.reason { margin-top: 12px; font-size: var(--small); color: var(--muted); }
+.reason strong { margin-right: 8px; color: var(--ink); }
+summary { min-height: 44px; padding: 10px 4px; cursor: pointer; font-size: var(--small); font-weight: 500; border-radius: 4px; }
+summary:hover { background: var(--hover); }
+summary:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.count, .tag { color: var(--muted); font-size: var(--label); font-weight: 400; }
+.count { margin-left: 4px; font-variant-numeric: tabular-nums; }
+.file { min-width: 0; padding: 0 0 16px; scroll-margin-top: 20px; }
+.file:target { outline: 2px solid var(--accent); outline-offset: 4px; }
+.file-heading { display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 8px; }
+.file-heading code { min-width: 0; font-size: var(--small); overflow-wrap: anywhere; }
+.tag { white-space: nowrap; }
+pre { margin: 8px 0 0; padding: 12px 16px; overflow: auto; background: var(--code-bg); color: var(--code-ink); border-radius: 4px; font: var(--small)/1.65 ui-monospace, Consolas, monospace; tab-size: 2; }
+footer { margin-top: 12px; padding-top: 20px; border-top: 1px solid var(--line); }
+footer h2 { margin-bottom: 8px; }
+.check { display: grid; grid-template-columns: 72px minmax(0, 1fr); gap: 12px; padding: 12px 0; border-bottom: 1px solid var(--line); }
+.status { padding-top: 2px; font-size: var(--label); font-weight: 500; }
+.passed { color: var(--success); }
+.failed { color: var(--failure); }
+.not-run, .unknown { color: var(--muted); }
+.check p { margin-top: 2px; color: var(--muted); font-size: var(--small); }
+.more { border-top: 1px solid var(--line); }
+.more > summary { padding-block: 12px; }
+.diagram { margin: 0; padding: 20px 0; border-top: 1px solid var(--line); }
+.diagram figcaption { margin-bottom: 12px; font-size: 18px; font-weight: 500; overflow-wrap: anywhere; }
+.diagram-svg { display: block; max-width: 100%; height: auto; margin: auto; overflow: visible; font: 13px system-ui, -apple-system, "Segoe UI", sans-serif; }
+.diagram-svg text { fill: var(--ink); }
+.diagram-edge { fill: none; stroke: var(--muted); stroke-width: 1.5; }
+.diagram-svg marker path { fill: var(--muted); }
+.diagram-edge-label { fill: var(--page); }
+.diagram-svg .diagram-edge-text { fill: var(--muted); font-size: 12px; }
+.diagram-node rect { fill: var(--page); stroke: var(--line); stroke-width: 1.5; }
+.diagram-node.modified rect { fill: var(--highlight); stroke: var(--accent); }
+.diagram-node.added rect { stroke: var(--success); }
+.diagram-node.deleted rect { stroke: var(--failure); stroke-dasharray: 4 3; }
+.diagram-svg .diagram-kind { fill: var(--muted); font-size: 11px; }
+.diagram-node[href] { cursor: pointer; }
+.diagram-node[href]:hover rect, .diagram-node[href]:focus-visible rect { stroke: var(--accent); stroke-width: 2.5; }
+.diagram-node[href]:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; }
+.diagram-hint { margin-top: 12px; color: var(--muted); font-size: var(--small); text-align: center; }
+.diagram-comparison { display: grid; grid-template-columns: minmax(0,1fr) minmax(0,1fr); gap: 16px; }
+.diagram-comparison > section { min-width: 0; padding: 12px; border: 1px solid var(--line); border-radius: 4px; }
+.diagram-comparison > section > h3 { margin-bottom: 12px; }
+.diagram-compact { display: none; }
+@media (max-width: 999px) {
+  .diagram-wide { display: none; }
+  .diagram-compact { display: block; }
+}
+@media (max-width: 640px) {
+  main { padding: 24px 16px 32px; }
+  h1 { font-size: 24px; }
+  .meta { margin-bottom: 20px; }
+  article { padding-top: 16px; }
+  article header { gap: 8px; }
+  .comparison { grid-template-columns: minmax(0, 1fr); gap: 4px; }
+  .check { grid-template-columns: 60px minmax(0, 1fr); gap: 8px; }
+  pre { padding: 12px; }
+  .diagram-comparison { grid-template-columns: minmax(0,1fr); }
+  .diagram-comparison > section { padding: 12px 0; border: 0; }
+}
+</style></head><body><main><div class="eyebrow">COMET / 变更说明</div><h1>实验成本优化支持可选预算与最低准确率约束</h1><div class="meta"><p>比较范围 · 基于 main c0b36b7993c9f7dcbfbc9c7bd70ab605d5081f6a 的当前 change；六个实现与测试交付文件，无无关改动。</p><p>生成时间 · 2026-11-26T08:09:30.473Z</p></div><article><header><span class="number">01</span><h2>约束输入与请求恢复</h2></header><div class="comparison"><section><h3>原来</h3><p>仅可选择优化目标，加载和失败时表单消失且缺少重试。</p></section><section class="after"><h3>现在</h3><p>可填写 USD 预算及 0–100% 最低准确率，空值保持默认；校验错误不请求，加载和失败仍可编辑，支持重试及迟到结果隔离。</p></section></div><p class="reason"><strong>原因</strong> 使 Web 能使用现有分析 API 的约束能力。</p><details><summary>查看文件和关键代码 <span class="count">1</span></summary><div class="file" id="walkthrough-file-0-0"><div class="file-heading"><span class="tag">修改</span><code>frontend/src/pages/Experiments/ExperimentDetailPage.tsx:373</code></div><pre><code>if (budgetError || accuracyError) return null
+return client.optimize(experimentId, { objective, budget, minAccuracy }, signal)</code></pre></div></details></article><article><header><span class="number">02</span><h2>预算方案与真实数据校验</h2></header><div class="comparison"><section><h3>原来</h3><p>预算分层数据被客户端丢弃，无法估算的准确率被转换为 0。</p></section><section class="after"><h3>现在</h3><p>展示汇总、每层推荐或不可行原因，null 准确率显示无法估算；中英文文案齐全。</p></section></div><p class="reason"><strong>原因</strong> 保留服务端事实并清楚表达约束适用范围：预算作用于分层方案，最低准确率作用于最低成本推荐及分层方案。</p><details><summary>查看文件和关键代码 <span class="count">5</span></summary><div class="file" id="walkthrough-file-1-0"><div class="file-heading"><span class="tag">修改</span><code>frontend/src/experiments/client.ts:551</code></div><pre><code>estimated_accuracy: nullableNumber(row.estimated_accuracy, ...)
+layers: Object.fromEntries(...)</code></pre></div><div class="file" id="walkthrough-file-1-1"><div class="file-heading"><span class="tag">修改</span><code>frontend/src/experiments/types.ts:232</code></div><pre><code>estimated_accuracy?: number | null
+layers?: Record&lt;string, ...&gt;</code></pre></div><div class="file" id="walkthrough-file-1-2"><div class="file-heading"><span class="tag">修改</span><code>frontend/src/i18n/en-US.ts</code></div><pre><code>Minimum accuracy (%, optional) / Budget plan by difficulty</code></pre></div><div class="file" id="walkthrough-file-1-3"><div class="file-heading"><span class="tag">修改</span><code>frontend/src/i18n/zh-CN.ts</code></div><pre><code>最低准确率（%，可选） / 难度分层预算方案</code></pre></div><div class="file" id="walkthrough-file-1-4"><div class="file-heading"><span class="tag">新增</span><code>frontend/scripts/verify-optimization-constraints.mjs</code></div><pre><code>TestClient(app).post(&quot;/api/v1/optimize&quot;, json=payload)
+shared.assert_called_once_with(...)</code></pre></div></details></article><footer><h2>实际验证</h2><div class="check"><span class="status passed">通过</span><div><strong>Builder 自检</strong><p>构建、lint、格式、33 个前端测试、17 个 Python 回归及 14 请求浏览器集成场景通过。</p></div></div><div class="check"><span class="status passed">通过</span><div><strong>Runtime 检查</strong><p>OpenSpec strict validate、Build 和 Verify Guard 全部通过；Run 进入 Archive，等待交付选择。</p></div></div><div class="check"><span class="status passed">通过</span><div><strong>规格验收</strong><p>2/2 新增需求、6/6 场景、5/5 任务核对，桌面与 390px 视觉检查通过；详见 verification-report.md。</p></div></div><div class="check"><span class="status not-run">未执行</span><div><strong>独立代码审查</strong><p>按当前 tweak 配置 review_mode=off 跳过，无独立 reviewer 结论。</p></div></div><div class="check"><span class="status not-run">未执行</span><div><strong>验证边界</strong><p>无生产部署、付费模型或全仓覆盖率验收；API 使用隔离 TestClient 与鉴权替身。</p></div></div></footer></main><template id="walkthrough-data">eyJzdW1tYXJ5Ijoi5a6e6aqM5oiQ5pys5LyY5YyW5pSv5oyB5Y+v6YCJ6aKE566X5LiO5pyA5L2O5YeG56Gu546H57qm5p2fIiwic2NvcGUiOiLln7rkuo4gbWFpbiBjMGIzNmI3OTkzYzlmN2RjYmZiYzljN2JkNzBhYjYwNWQ1MDgxZjZhIOeahOW9k+WJjSBjaGFuZ2XvvJvlha3kuKrlrp7njrDkuI7mtYvor5XkuqTku5jmlofku7bvvIzml6Dml6DlhbPmlLnliqjjgIIiLCJjaGFuZ2VzIjpbeyJ0aXRsZSI6Iue6puadn+i+k+WFpeS4juivt+axguaBouWkjSIsImJlZm9yZSI6IuS7heWPr+mAieaLqeS8mOWMluebruagh++8jOWKoOi9veWSjOWksei0peaXtuihqOWNlea2iOWkseS4lOe8uuWwkemHjeivleOAgiIsImFmdGVyIjoi5Y+v5aGr5YaZIFVTRCDpooTnrpflj4ogMOKAkzEwMCUg5pyA5L2O5YeG56Gu546H77yM56m65YC85L+d5oyB6buY6K6k77yb5qCh6aqM6ZSZ6K+v5LiN6K+35rGC77yM5Yqg6L295ZKM5aSx6LSl5LuN5Y+v57yW6L6R77yM5pSv5oyB6YeN6K+V5Y+K6L+f5Yiw57uT5p6c6ZqU56a744CCIiwicmVhc29uIjoi5L2/IFdlYiDog73kvb/nlKjnjrDmnInliIbmnpAgQVBJIOeahOe6puadn+iDveWKm+OAgiIsImZpbGVzIjpbeyJwYXRoIjoiZnJvbnRlbmQvc3JjL3BhZ2VzL0V4cGVyaW1lbnRzL0V4cGVyaW1lbnREZXRhaWxQYWdlLnRzeDozNzMiLCJraW5kIjoibW9kaWZpZWQiLCJjb2RlIjoiaWYgKGJ1ZGdldEVycm9yIHx8IGFjY3VyYWN5RXJyb3IpIHJldHVybiBudWxsXG5yZXR1cm4gY2xpZW50Lm9wdGltaXplKGV4cGVyaW1lbnRJZCwgeyBvYmplY3RpdmUsIGJ1ZGdldCwgbWluQWNjdXJhY3kgfSwgc2lnbmFsKSJ9XX0seyJ0aXRsZSI6IumihOeul+aWueahiOS4juecn+WunuaVsOaNruagoemqjCIsImJlZm9yZSI6IumihOeul+WIhuWxguaVsOaNruiiq+WuouaIt+err+S4ouW8g++8jOaXoOazleS8sOeul+eahOWHhuehrueOh+iiq+i9rOaNouS4uiAw44CCIiwiYWZ0ZXIiOiLlsZXnpLrmsYfmgLvjgIHmr4/lsYLmjqjojZDmiJbkuI3lj6/ooYzljp/lm6DvvIxudWxsIOWHhuehrueOh+aYvuekuuaXoOazleS8sOeul++8m+S4reiLseaWh+aWh+ahiOm9kOWFqOOAgiIsInJlYXNvbiI6IuS/neeVmeacjeWKoeerr+S6i+WunuW5tua4healmuihqOi+vue6puadn+mAgueUqOiMg+WbtO+8mumihOeul+S9nOeUqOS6juWIhuWxguaWueahiO+8jOacgOS9juWHhuehrueOh+S9nOeUqOS6juacgOS9juaIkOacrOaOqOiNkOWPiuWIhuWxguaWueahiOOAgiIsImZpbGVzIjpbeyJwYXRoIjoiZnJvbnRlbmQvc3JjL2V4cGVyaW1lbnRzL2NsaWVudC50czo1NTEiLCJraW5kIjoibW9kaWZpZWQiLCJjb2RlIjoiZXN0aW1hdGVkX2FjY3VyYWN5OiBudWxsYWJsZU51bWJlcihyb3cuZXN0aW1hdGVkX2FjY3VyYWN5LCAuLi4pXG5sYXllcnM6IE9iamVjdC5mcm9tRW50cmllcyguLi4pIn0seyJwYXRoIjoiZnJvbnRlbmQvc3JjL2V4cGVyaW1lbnRzL3R5cGVzLnRzOjIzMiIsImtpbmQiOiJtb2RpZmllZCIsImNvZGUiOiJlc3RpbWF0ZWRfYWNjdXJhY3k/OiBudW1iZXIgfCBudWxsXG5sYXllcnM/OiBSZWNvcmQ8c3RyaW5nLCAuLi4+In0seyJwYXRoIjoiZnJvbnRlbmQvc3JjL2kxOG4vZW4tVVMudHMiLCJraW5kIjoibW9kaWZpZWQiLCJjb2RlIjoiTWluaW11bSBhY2N1cmFjeSAoJSwgb3B0aW9uYWwpIC8gQnVkZ2V0IHBsYW4gYnkgZGlmZmljdWx0eSJ9LHsicGF0aCI6ImZyb250ZW5kL3NyYy9pMThuL3poLUNOLnRzIiwia2luZCI6Im1vZGlmaWVkIiwiY29kZSI6IuacgOS9juWHhuehrueOh++8iCXvvIzlj6/pgInvvIkgLyDpmr7luqbliIblsYLpooTnrpfmlrnmoYgifSx7InBhdGgiOiJmcm9udGVuZC9zY3JpcHRzL3ZlcmlmeS1vcHRpbWl6YXRpb24tY29uc3RyYWludHMubWpzIiwia2luZCI6ImFkZGVkIiwiY29kZSI6IlRlc3RDbGllbnQoYXBwKS5wb3N0KFwiL2FwaS92MS9vcHRpbWl6ZVwiLCBqc29uPXBheWxvYWQpXG5zaGFyZWQuYXNzZXJ0X2NhbGxlZF9vbmNlX3dpdGgoLi4uKSJ9XX1dLCJ2ZXJpZmljYXRpb24iOlt7ImxhYmVsIjoiQnVpbGRlciDoh6rmo4AiLCJzdGF0dXMiOiJwYXNzZWQiLCJkZXRhaWwiOiLmnoTlu7rjgIFsaW5044CB5qC85byP44CBMzMg5Liq5YmN56uv5rWL6K+V44CBMTcg5LiqIFB5dGhvbiDlm57lvZLlj4ogMTQg6K+35rGC5rWP6KeI5Zmo6ZuG5oiQ5Zy65pmv6YCa6L+H44CCIn0seyJsYWJlbCI6IlJ1bnRpbWUg5qOA5p+lIiwic3RhdHVzIjoicGFzc2VkIiwiZGV0YWlsIjoiT3BlblNwZWMgc3RyaWN0IHZhbGlkYXRl44CBQnVpbGQg5ZKMIFZlcmlmeSBHdWFyZCDlhajpg6jpgJrov4fvvJtSdW4g6L+b5YWlIEFyY2hpdmXvvIznrYnlvoXkuqTku5jpgInmi6njgIIifSx7ImxhYmVsIjoi6KeE5qC86aqM5pS2Iiwic3RhdHVzIjoicGFzc2VkIiwiZGV0YWlsIjoiMi8yIOaWsOWinumcgOaxguOAgTYvNiDlnLrmma/jgIE1LzUg5Lu75Yqh5qC45a+577yM5qGM6Z2i5LiOIDM5MHB4IOinhuinieajgOafpemAmui/h++8m+ivpuingSB2ZXJpZmljYXRpb24tcmVwb3J0Lm1k44CCIn0seyJsYWJlbCI6IueLrOeri+S7o+eggeWuoeafpSIsInN0YXR1cyI6Im5vdC1ydW4iLCJkZXRhaWwiOiLmjInlvZPliY0gdHdlYWsg6YWN572uIHJldmlld19tb2RlPW9mZiDot7Pov4fvvIzml6Dni6znq4sgcmV2aWV3ZXIg57uT6K6644CCIn0seyJsYWJlbCI6IumqjOivgei+ueeVjCIsInN0YXR1cyI6Im5vdC1ydW4iLCJkZXRhaWwiOiLml6DnlJ/kuqfpg6jnvbLjgIHku5jotLnmqKHlnovmiJblhajku5Popobnm5bnjofpqozmlLbvvJtBUEkg5L2/55So6ZqU56a7IFRlc3RDbGllbnQg5LiO6Ym05p2D5pu/6Lqr44CCIn1dfQ==</template></body></html>
