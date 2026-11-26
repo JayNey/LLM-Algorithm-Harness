@@ -1,6 +1,6 @@
 import { useTranslation } from 'react-i18next'
 import { t } from '../../i18n/core.ts'
-import { Alert, Button, Select, Skeleton, Tabs } from 'antd'
+import { Alert, Button, Input, Select, Skeleton, Tabs } from 'antd'
 import { useCallback, useEffect, useState } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
 import {
@@ -377,17 +377,44 @@ function OptimizeTab({ experimentId }: { experimentId: string }) {
   const [objective, setObjective] = useState<
     'highest_accuracy' | 'best_value' | 'lowest_cost'
   >('best_value')
+  const [budgetInput, setBudgetInput] = useState('')
+  const [accuracyInput, setAccuracyInput] = useState('')
+  const budget = budgetInput.trim() === '' ? undefined : Number(budgetInput)
+  const minAccuracy =
+    accuracyInput.trim() === '' ? undefined : Number(accuracyInput) / 100
+  const decimal = /^(?:\d+(?:\.\d*)?|\.\d+)(?:[eE][+-]?\d+)?$/
+  const budgetError =
+    budget !== undefined &&
+    (!decimal.test(budgetInput.trim()) ||
+      !Number.isFinite(budget) ||
+      budget <= 0)
+  const accuracyError =
+    minAccuracy !== undefined &&
+    (!decimal.test(accuracyInput.trim()) ||
+      !Number.isFinite(minAccuracy) ||
+      minAccuracy < 0 ||
+      minAccuracy > 1)
   const load = useCallback(
-    async (signal: AbortSignal): Promise<OptimizeAdvisory> => {
-      return client.optimize(experimentId, { objective }, signal)
+    async (signal: AbortSignal): Promise<OptimizeAdvisory | null> => {
+      if (budgetError || accuracyError) return null
+      return client.optimize(
+        experimentId,
+        { objective, budget, minAccuracy },
+        signal,
+      )
     },
-    [client, experimentId, objective],
+    [
+      client,
+      experimentId,
+      objective,
+      budget,
+      minAccuracy,
+      budgetError,
+      accuracyError,
+    ],
   )
   const advisory = useResource(load)
-  if (advisory.loading) return <Skeleton active paragraph={{ rows: 5 }} />
-  if (advisory.error)
-    return <Alert role="alert" type="error" message={t(advisory.error)} />
-  const data = advisory.data as OptimizeAdvisory
+  const data = !budgetError && !accuracyError ? advisory.data : undefined
   const names: Record<string, string> = {
     highest_accuracy: t('最高准确率'),
     best_value: t('最佳性价比'),
@@ -409,6 +436,154 @@ function OptimizeTab({ experimentId }: { experimentId: string }) {
           ) => setObjective(value)}
         />
       </label>
+      <div className="form-grid">
+        <div>
+          <label htmlFor="optimization-budget">
+            {t('优化预算（USD，可选）')}
+          </label>
+          <Input
+            id="optimization-budget"
+            inputMode="decimal"
+            value={budgetInput}
+            aria-invalid={budgetError}
+            aria-describedby={
+              budgetError ? 'optimization-budget-error' : undefined
+            }
+            onChange={(event) => setBudgetInput(event.target.value)}
+          />
+          {budgetError && (
+            <p id="optimization-budget-error" role="alert">
+              {t('预算须为有限正数')}
+            </p>
+          )}
+        </div>
+        <div>
+          <label htmlFor="optimization-accuracy">
+            {t('最低准确率（%，可选）')}
+          </label>
+          <Input
+            id="optimization-accuracy"
+            inputMode="decimal"
+            value={accuracyInput}
+            aria-invalid={accuracyError}
+            aria-describedby={
+              accuracyError ? 'optimization-accuracy-error' : undefined
+            }
+            onChange={(event) => setAccuracyInput(event.target.value)}
+          />
+          {accuracyError && (
+            <p id="optimization-accuracy-error" role="alert">
+              {t('最低准确率须为 0–100 的有限数值')}
+            </p>
+          )}
+        </div>
+      </div>
+      <p>
+        {t(
+          '预算用于难度分层方案；最低准确率用于最低成本推荐和分层方案。留空使用默认值。推荐基于历史数据估算。',
+        )}
+      </p>
+      {!budgetError && !accuracyError && advisory.loading && (
+        <Skeleton active paragraph={{ rows: 5 }} />
+      )}
+      {!budgetError && !accuracyError && advisory.error && (
+        <ExperimentFeedback
+          message={t(advisory.error)}
+          retry={advisory.retry}
+        />
+      )}
+      {data && <OptimizeResults data={data} names={names} />}
+    </div>
+  )
+}
+
+function OptimizeResults({
+  data,
+  names,
+}: {
+  data: OptimizeAdvisory
+  names: Record<string, string>
+}) {
+  useTranslation()
+  const plan = data.budget_plan
+  return (
+    <div>
+      {plan && (
+        <section aria-label={t('预算方案')}>
+          <h3>{t('预算方案')}</h3>
+          <dl className="detail-list">
+            <dt>{t('预算（USD）')}</dt>
+            <dd>{formatUsd(plan.budget)}</dd>
+            <dt>{t('最低准确率')}</dt>
+            <dd>
+              {plan.min_accuracy === undefined
+                ? '—'
+                : formatAccuracy(plan.min_accuracy)}
+            </dd>
+            <dt>{t('估算总成本')}</dt>
+            <dd>
+              {plan.estimated_cost === undefined
+                ? '—'
+                : formatUsd(plan.estimated_cost)}
+            </dd>
+            <dt>{t('预期准确率')}</dt>
+            <dd>
+              {plan.estimated_accuracy == null
+                ? t('无法估算')
+                : formatAccuracy(plan.estimated_accuracy)}
+            </dd>
+            <dt>{t('覆盖题数')}</dt>
+            <dd>{plan.coverage ?? '—'}</dd>
+          </dl>
+          <div className="evaluation-list-scroll">
+            <table
+              className="evaluation-list-table"
+              aria-label={t('难度分层预算方案')}
+            >
+              <thead>
+                <tr>
+                  {[
+                    t('难度'),
+                    t('可行'),
+                    t('推荐组合'),
+                    t('准确率'),
+                    t('估算成本'),
+                    t('题数'),
+                  ].map((name) => (
+                    <th key={name} scope="col">
+                      {name}
+                    </th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody>
+                {Object.entries(plan.layers ?? {}).map(
+                  ([difficulty, layer]) => (
+                    <tr key={difficulty}>
+                      <td>{difficulty}</td>
+                      <td>{layer.feasible ? t('可行') : t('不可行')}</td>
+                      <td>
+                        {layer.feasible
+                          ? `${layer.model} × ${layer.strategy}`
+                          : layer.note}
+                      </td>
+                      <td>
+                        {layer.feasible
+                          ? formatAccuracy(layer.layer_accuracy)
+                          : '—'}
+                      </td>
+                      <td>
+                        {layer.feasible ? formatUsd(layer.estimated_cost) : '—'}
+                      </td>
+                      <td>{layer.feasible ? layer.problems : '—'}</td>
+                    </tr>
+                  ),
+                )}
+              </tbody>
+            </table>
+          </div>
+        </section>
+      )}
       <div className="evaluation-list-scroll">
         <table className="evaluation-list-table" aria-label={t('优化建议')}>
           <thead>

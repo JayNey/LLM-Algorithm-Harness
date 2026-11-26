@@ -551,20 +551,56 @@ function advisory(value: unknown): OptimizeAdvisory {
               : {}),
             ...(row.estimated_accuracy !== undefined
               ? {
-                  estimated_accuracy:
-                    nullableNumber(
-                      row.estimated_accuracy,
-                      'advisory.budget_plan.estimated_accuracy',
-                    ) ?? 0,
+                  estimated_accuracy: nullableNumber(
+                    row.estimated_accuracy,
+                    'advisory.budget_plan.estimated_accuracy',
+                  ),
                 }
               : {}),
             ...(row.coverage !== undefined
               ? {
-                  coverage:
-                    nullableNumber(
-                      row.coverage,
-                      'advisory.budget_plan.coverage',
-                    ) ?? 0,
+                  coverage: count(
+                    row.coverage,
+                    'advisory.budget_plan.coverage',
+                  ),
+                }
+              : {}),
+            ...(row.layers !== undefined
+              ? {
+                  layers: Object.fromEntries(
+                    Object.entries(
+                      record(row.layers, 'advisory.budget_plan.layers'),
+                    ).map(([key, value]) => {
+                      const field = `advisory.budget_plan.layers.${key}`
+                      const layer = record(value, field)
+                      if (!boolean(layer.feasible, `${field}.feasible`))
+                        return [
+                          key,
+                          {
+                            feasible: false,
+                            note: text(layer.note, `${field}.note`),
+                          },
+                        ]
+                      return [
+                        key,
+                        {
+                          feasible: true,
+                          model: text(layer.model, `${field}.model`),
+                          strategy: text(layer.strategy, `${field}.strategy`),
+                          layer_accuracy: number(
+                            layer.layer_accuracy,
+                            `${field}.layer_accuracy`,
+                            1,
+                          ),
+                          estimated_cost: number(
+                            layer.estimated_cost,
+                            `${field}.estimated_cost`,
+                          ),
+                          problems: count(layer.problems, `${field}.problems`),
+                        },
+                      ]
+                    }),
+                  ),
                 }
               : {}),
           }

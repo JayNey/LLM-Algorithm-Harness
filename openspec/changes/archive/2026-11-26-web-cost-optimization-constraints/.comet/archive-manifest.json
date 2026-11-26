@@ -1,0 +1,39 @@
+{
+  "schema": "comet.classic.archive-manifest.v2",
+  "execution": {
+    "workflow": {
+      "id": "comet-classic-tweak",
+      "version": "2",
+      "hash": "d1e067bc00ca13395dbc6f701565417c3e227f17a57df025dd73ebda905e2638"
+    },
+    "runId": "web-cost-optimization-constraints",
+    "actionId": "web-cost-optimization-constraints:13",
+    "attempt": 1,
+    "inputHash": "561a62bf9c0a4283bb0e574aa347bef7c0cee5ed40ac357729e87f4b57e7bcad",
+    "claimToken": "portable-12d9bc4e8107616a73969266d07ac5a456b4d3588cde200cba26434c00efddb5"
+  },
+  "activeRef": "openspec/changes/web-cost-optimization-constraints",
+  "archiveRef": "openspec/changes/archive/2026-11-26-web-cost-optimization-constraints",
+  "stateRef": "openspec/changes/archive/2026-11-26-web-cost-optimization-constraints/comet-state.yaml",
+  "paths": [
+    "openspec/changes/archive/2026-11-26-web-cost-optimization-constraints/.comet/archive-requirements.json",
+    "openspec/changes/archive/2026-11-26-web-cost-optimization-constraints/.openspec.yaml",
+    "openspec/changes/archive/2026-11-26-web-cost-optimization-constraints/checks.json",
+    "openspec/changes/archive/2026-11-26-web-cost-optimization-constraints/design.md",
+    "openspec/changes/archive/2026-11-26-web-cost-optimization-constraints/proposal.md",
+    "openspec/changes/archive/2026-11-26-web-cost-optimization-constraints/specs/frontend/experiments-management/spec.md",
+    "openspec/changes/archive/2026-11-26-web-cost-optimization-constraints/tasks.md",
+    "openspec/changes/archive/2026-11-26-web-cost-optimization-constraints/walkthrough.html",
+    "openspec/specs/frontend/experiments-management/spec.md"
+  ],
+  "sourcePaths": [
+    "openspec/changes/web-cost-optimization-constraints/.comet/archive-requirements.json",
+    "openspec/changes/web-cost-optimization-constraints/.openspec.yaml",
+    "openspec/changes/web-cost-optimization-constraints/checks.json",
+    "openspec/changes/web-cost-optimization-constraints/design.md",
+    "openspec/changes/web-cost-optimization-constraints/proposal.md",
+    "openspec/changes/web-cost-optimization-constraints/specs/frontend/experiments-management/spec.md",
+    "openspec/changes/web-cost-optimization-constraints/tasks.md",
+    "openspec/changes/web-cost-optimization-constraints/walkthrough.html"
+  ]
+}

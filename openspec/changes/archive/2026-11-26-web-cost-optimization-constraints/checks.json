@@ -1,0 +1,34 @@
+{
+  "checks": [
+    {
+      "name": "frontend: npm run build",
+      "result": "passed",
+      "note": "TypeScript and Vite build exit 0; /tmp/issue-523-build.log. Existing large chunk warning remains."
+    },
+    {
+      "name": "frontend: npm run lint + prettier --check (six delivery files)",
+      "result": "passed",
+      "note": "Exit 0; ESLint and formatting pass."
+    },
+    {
+      "name": "frontend: node --experimental-strip-types --test src/experiments/*.test.ts src/i18n/*.test.ts",
+      "result": "passed",
+      "note": "33 passed, 0 failed; /tmp/issue-523-frontend-tests.log"
+    },
+    {
+      "name": ".venv/bin/python -m pytest tests/test_cost_optimizer.py tests/test_api_experiment_benchmark.py::TestAnalysis --no-cov -q",
+      "result": "passed",
+      "note": "17 passed; /tmp/issue-523-python-tests.log. Initial targeted run passed tests but triggered repository-wide 90% coverage gate; final targeted run disables irrelevant whole-project coverage."
+    },
+    {
+      "name": "frontend: CHROME_PATH=<local Chrome> node --experimental-strip-types scripts/verify-optimization-constraints.mjs",
+      "result": "passed",
+      "note": "Client parsing, real FastAPI /optimize with wrapped shared build_advisory, 14 browser requests, invalid values, defaults, budget plan, retry and stale response scenarios pass. /tmp/issue-523-browser.log; /tmp/issue-523-qa/result.json; desktop/mobile screenshots visually inspected."
+    },
+    {
+      "name": "git diff --check",
+      "result": "passed",
+      "note": "No whitespace errors."
+    }
+  ]
+}
