@@ -29,6 +29,9 @@ export interface ProgressInfo {
   percentage?: number | null
 }
 export interface Evaluation {
+  reuse_history?: boolean
+  reused_units?: number
+  new_units?: number
   evaluation_id: string
   created_at: string
   updated_at: string
@@ -97,6 +100,10 @@ export interface FailureDiagnostic {
 }
 
 export interface ProblemResult extends FailureDiagnostic {
+  reused?: boolean
+  reuse_source?: ReuseSource | null
+  original_cost_usd?: number | null
+  new_cost_usd?: number | null
   problem_id: string
   strategy: string
   status: string
@@ -106,6 +113,10 @@ export interface ProblemResult extends FailureDiagnostic {
   execution_time: number | null
 }
 export interface ResultDetail {
+  reuse?: ReuseSummary & {
+    new_cost_usd: number
+    new_cost_unknown_count: number
+  }
   run_id: string | null
   status: string
   created_at: string
@@ -119,6 +130,7 @@ export interface EvaluationSnapshot extends Evaluation {
   resultError?: string | null
 }
 export interface CreatePayload {
+  reuse_history?: boolean
   api_key_id: string
   model: string
   problem_ids: string[]
@@ -128,6 +140,7 @@ export interface CreatePayload {
   dataset_version_id?: string
 }
 export interface Draft {
+  reuse_history?: boolean
   api_key_id: string
   model: string
   problem_ids: string[]
@@ -159,6 +172,10 @@ export interface ResultAvailability {
   expected_units: number
 }
 export interface EvaluationClient {
+  reusePreview?(
+    payload: CreatePayload,
+    signal?: AbortSignal,
+  ): Promise<ReusePreview>
   options(signal?: AbortSignal): Promise<EvaluationOptions>
   problems(
     query: ProblemQuery,
@@ -187,4 +204,23 @@ export interface EvaluationClient {
     page: PageQuery,
     signal?: AbortSignal,
   ): Promise<ResultDetail>
+}
+
+export interface ReuseSource {
+  evaluation_id: string
+  run_id: string
+  result_id: string
+}
+export interface ReuseSummary {
+  total_units: number
+  reused_units: number
+  new_units: number
+}
+export interface ReusePreview extends ReuseSummary {
+  units: {
+    problem_id: string
+    strategy: string
+    reason: string
+    source?: ReuseSource
+  }[]
 }

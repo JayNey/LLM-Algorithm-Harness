@@ -1,0 +1,108 @@
+{
+  "passed": true,
+  "checks": [
+    "default off",
+    "preview counts",
+    "preview failure blocks submit",
+    "retry",
+    "changed selection refresh",
+    "create carries reuse flag",
+    "final submitted counts",
+    "source link",
+    "original/new cost separation",
+    "320/390/1280px layout"
+  ],
+  "calls": [
+    {
+      "path": "/notifications",
+      "method": "GET"
+    },
+    {
+      "path": "/users/me",
+      "method": "GET"
+    },
+    {
+      "path": "/evaluation-options",
+      "method": "GET"
+    },
+    {
+      "path": "/api-keys",
+      "method": "GET"
+    },
+    {
+      "path": "/evaluation-options/problems",
+      "method": "GET"
+    },
+    {
+      "path": "/evaluation-options/models",
+      "method": "GET"
+    },
+    {
+      "path": "/evaluations/reuse-preview",
+      "method": "POST"
+    },
+    {
+      "path": "/evaluations/reuse-preview",
+      "method": "POST"
+    },
+    {
+      "path": "/evaluations/reuse-preview",
+      "method": "POST"
+    },
+    {
+      "path": "/evaluations/reuse-preview",
+      "method": "POST"
+    },
+    {
+      "path": "/evaluations",
+      "method": "POST"
+    },
+    {
+      "path": "/evaluations/eval-new/start",
+      "method": "POST"
+    },
+    {
+      "path": "/evaluations/eval-new",
+      "method": "GET"
+    },
+    {
+      "path": "/notifications",
+      "method": "GET"
+    },
+    {
+      "path": "/users/me",
+      "method": "GET"
+    },
+    {
+      "path": "/evaluations/eval-new",
+      "method": "GET"
+    },
+    {
+      "path": "/results/eval-new",
+      "method": "GET"
+    },
+    {
+      "path": "/analytics/success-rate",
+      "method": "GET"
+    },
+    {
+      "path": "/analytics/tokens",
+      "method": "GET"
+    },
+    {
+      "path": "/analytics/iterations",
+      "method": "GET"
+    },
+    {
+      "path": "/analytics/failure-modes",
+      "method": "GET"
+    }
+  ],
+  "unknown": [
+    "/analytics/success-rate",
+    "/analytics/tokens",
+    "/analytics/iterations",
+    "/analytics/failure-modes"
+  ],
+  "pageErrors": []
+}

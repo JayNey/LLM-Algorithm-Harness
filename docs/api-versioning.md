@@ -1,6 +1,6 @@
 # API 版本管理
 
-当前 HTTP 契约版本为 **1.8.0**，URL 主版本为 **v1**。业务接口均使用 `/api/v1/...`；公开文档入口仍是 `/docs`、`/redoc` 和 `/openapi.json`。OpenAPI `info.version` 显示契约版本，Swagger UI 和 ReDoc 读取同一份文档。
+当前 HTTP 契约版本为 **1.9.0**，URL 主版本为 **v1**。业务接口均使用 `/api/v1/...`；公开文档入口仍是 `/docs`、`/redoc` 和 `/openapi.json`。OpenAPI `info.version` 显示契约版本，Swagger UI 和 ReDoc 读取同一份文档。
 
 采用 URL 版本，而非 `API-Version`、`Accept-Version` 或自定义 Accept 媒体类型的 Header 协商：URL 在 curl、代理、日志和客户端中直接可见，不需要版本相关的 `Vary` 缓存规则。Header 不选择版本，例如 `/api/v1/health` 带 `API-Version: 2` 仍请求 v1；未实现的 `/api/v2/health` 返回 404。不要将 v2 静默降级到 v1。
 
@@ -53,3 +53,5 @@ OpenAPI 门禁覆盖结构契约，不能验证业务语义、动态字典中的
 1.7.0 为 Web 评估创建请求新增可选整数 `generation_timeout_seconds`，取值 1–300，默认 60。评估响应包含生效值，历史记录没有保存值时返回 60。既有客户端可以沿用原请求格式，旧版结果响应缺少该字段时也可由当前 Web 客户端解析。冻结基线仅增加两个评估组件中的该字段。
 
 1.8.0 为 `EvaluationResponse` 增加三个可选响应字段。 `known_cost_usd` 是已知费用小计，无可用金额时为 `null`。 `unknown_cost_count` 是费用未知的单元数，`budget_status` 是任务预算状态。现有请求和原有响应字段继续适用，当前 Web 客户端可读取旧版响应。
+
+1.9.0 增加 Web 增量评估：创建请求的可选 `reuse_history` 默认 false，评估响应可选增加 `reuse_history/reused_units/new_units`，新增只读业务预览 `POST /evaluations/reuse-preview`。现有请求不启用复用时沿用原行为；新前端解析器忽略其他未知字段，并接受没有新字段的旧响应。冻结基线仅定向增加这些可选属性、预览操作及其引用的缺失组件，不改既有必填字段、类型、认证、错误语义或比较规则。结果动态字典新增来源与本次费用，原始度量保留；含复用结果的 CSV 在原有列后追加来源与新增费用列，既有无复用报告的列保持原样。

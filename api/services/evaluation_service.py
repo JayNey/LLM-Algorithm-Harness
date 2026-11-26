@@ -13,7 +13,7 @@ import uuid
 from collections.abc import Callable
 from contextlib import ExitStack
 from datetime import datetime
-from typing import TypedDict
+from typing import Any, TypedDict
 
 from sqlalchemy import Engine, and_, func, or_, select, update
 from sqlalchemy.orm import Session, load_only, object_session
@@ -24,6 +24,7 @@ from api.db.engine import business_database_url
 from api.db.models import AsyncTask, EvaluationResult, utcnow
 from api.models import EvaluationCreateRequest, EvaluationUpdateRequest
 from api.schemas import EvaluationResponse, ExecutionProgress, ProgressInfo
+from api.services.evaluation_reuse import build_plan, new_cost_unknown, reuse_summary
 from src.cost_strategy import MISSING_PRICING_BUDGET
 from src.task_manager import TaskManager, evaluation_execution
 
@@ -143,7 +144,7 @@ def _cost_counts(session: Session, evaluation_ids: list[str]) -> dict[str, tuple
     ):
         metrics = metrics or {}
         unknown, known = counts.get(evaluation_id, (0, False))
-        missing = bool(metrics.get("cost_unknown"))
+        missing = new_cost_unknown(metrics)
         counts[evaluation_id] = (
             unknown + int(missing),
             known or bool(metrics.get("cost_known", "cost_usd" in metrics and not missing)),
@@ -203,6 +204,9 @@ def _to_response(
         model=task.model,
         generation_timeout_seconds=task.effective_generation_timeout,
         problem_count=task.problem_count,
+        reuse_history=bool(task.reuse_history),
+        reused_units=task.reused_units or 0,
+        new_units=task.problem_count * len(task.strategy_names) - (task.reused_units or 0),
         spent_usd=task.spent_usd,
         budget_cap_usd=task.budget_cap_usd,
         **_cost_summary(task, counts),
@@ -263,6 +267,10 @@ def _to_response_async(evaluation: Evaluation, async_task: AsyncTask | None) -> 
         model=evaluation.model,
         generation_timeout_seconds=evaluation.effective_generation_timeout,
         problem_count=evaluation.problem_count,
+        reuse_history=bool(evaluation.reuse_history),
+        reused_units=evaluation.reused_units or 0,
+        new_units=evaluation.problem_count * len(evaluation.strategy_names)
+        - (evaluation.reused_units or 0),
         spent_usd=evaluation.spent_usd,
         budget_cap_usd=evaluation.budget_cap_usd,
         **_cost_summary(evaluation),
@@ -360,6 +368,7 @@ class EvaluationService:
         owner_id: str,
         *,
         dataset_version_id: str | None = None,
+        auth: Any = None,
     ) -> EvaluationResponse:
         """Create a new evaluation task."""
         task = Evaluation(
@@ -370,6 +379,7 @@ class EvaluationService:
             problem_ids=list(request.problem_ids),
             dataset_version_id=dataset_version_id,
             problem_count=len(request.problem_ids),
+            reuse_history=request.reuse_history,
             api_key_id=request.api_key_id,
             model=request.model,
             generation_timeout_seconds=request.generation_timeout_seconds,
@@ -381,6 +391,9 @@ class EvaluationService:
             updated_at=utcnow(),
         )
         with self._session() as session, session.begin():
+            if request.reuse_history:
+                task.reuse_plan = build_plan(task, self._session_factory, auth=auth)
+                task.reused_units = reuse_summary(task.reuse_plan)["reused_units"]
             session.add(task)
         return _to_response(task)
 
@@ -418,6 +431,8 @@ class EvaluationService:
                         Evaluation.status,
                         Evaluation.strategy_names,
                         Evaluation.problem_count,
+                        Evaluation.reuse_history,
+                        Evaluation.reused_units,
                         Evaluation.model,
                         Evaluation.generation_timeout_seconds,
                         Evaluation.budget_cap_usd,
@@ -578,6 +593,7 @@ class EvaluationService:
                 strategy_names=list(request.strategy_names),
                 problem_ids=list(request.problem_ids),
                 problem_count=len(request.problem_ids),
+                reuse_history=request.reuse_history,
                 api_key_id=request.api_key_id,
                 model=request.model,
                 generation_timeout_seconds=request.generation_timeout_seconds,
@@ -588,6 +604,9 @@ class EvaluationService:
                 created_at=utcnow(),
                 updated_at=utcnow(),
             )
+            if request.reuse_history:
+                evaluation.reuse_plan = build_plan(evaluation, self._session_factory)
+                evaluation.reused_units = reuse_summary(evaluation.reuse_plan)["reused_units"]
             session.add(evaluation)
             session.flush()
 

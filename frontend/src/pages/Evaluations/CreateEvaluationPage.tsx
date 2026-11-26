@@ -49,6 +49,11 @@ export default function CreateEvaluationPage() {
     startNewDraft,
     submit,
     reset,
+    reusePreview,
+    previewPending,
+    previewError,
+    refreshReusePreview,
+    createdReuse,
   } = useStore(creationStore)
   useEffect(() => {
     if (!versionId && draft.dataset_version_id && phase === 'editing') {
@@ -244,6 +249,15 @@ export default function CreateEvaluationPage() {
       ) : evaluationId ? (
         <div className="panel evaluation-panel">
           <p>{t('任务已创建。')}</p>
+          {createdReuse && (
+            <p role="status">
+              {t('复用 {{reused}}，新跑 {{fresh}}，共 {{total}} 个单元', {
+                reused: createdReuse.reused_units,
+                fresh: createdReuse.new_units,
+                total: createdReuse.total_units,
+              })}
+            </p>
+          )}
           <div className="evaluation-actions">
             <Link to={`/evaluations/${encodeURIComponent(evaluationId)}`}>
               {t('查看任务 ')}
@@ -655,13 +669,56 @@ export default function CreateEvaluationPage() {
               </>
             )}
           </div>
+          <div className="panel evaluation-panel">
+            <Checkbox
+              checked={!!draft.reuse_history}
+              onChange={(event) =>
+                setDraft({ reuse_history: event.target.checked })
+              }
+            >
+              {t('复用历史结果')}
+            </Checkbox>
+            {draft.reuse_history && (
+              <>
+                <p>
+                  {t(
+                    '按题目 × 策略匹配本人历史；最终计划以提交时核对结果为准。',
+                  )}
+                </p>
+                {previewPending ? (
+                  <p role="status">{t('正在计算复用预览…')}</p>
+                ) : previewError ? (
+                  <EvaluationFeedback
+                    message={t('复用预览失败，请重试或关闭复用。')}
+                    retry={() => void refreshReusePreview()}
+                  />
+                ) : reusePreview ? (
+                  <p role="status">
+                    {t(
+                      '预计复用 {{reused}}，新跑 {{fresh}}，共 {{total}} 个单元',
+                      {
+                        reused: reusePreview.reused_units,
+                        fresh: reusePreview.new_units,
+                        total: reusePreview.total_units,
+                      },
+                    )}
+                  </p>
+                ) : (
+                  <p>{t('请选择题目、模型与策略以查看复用预览。')}</p>
+                )}
+              </>
+            )}
+          </div>
           {error ? <EvaluationFeedback message={t(error.message)} /> : null}
           <div className="evaluation-actions">
             <Button
               type="primary"
               htmlType="submit"
               loading={phase === 'creating'}
-              disabled={locked}
+              disabled={
+                locked ||
+                (!!draft.reuse_history && (previewPending || !reusePreview))
+              }
             >
               {t('创建并启动')}
             </Button>

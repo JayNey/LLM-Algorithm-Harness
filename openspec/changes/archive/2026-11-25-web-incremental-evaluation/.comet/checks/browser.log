@@ -1,0 +1,16 @@
+HTTP 503 http://127.0.0.1:5188/api/v1/evaluations/reuse-preview
+BUTTONS [
+  '创建评估',   '导入题目',
+  '折叠侧边栏', '',
+  '快速操作 ',  '',
+  '',           'f',
+  '上一页',     '下一页',
+  '重 试',      '创建并启动',
+  '导入'
+]
+ALERTS [ '复用预览失败，请重试或关闭复用。重 试' ]
+HTTP 404 http://127.0.0.1:5188/api/v1/analytics/success-rate?run_id=web-evaluation-new
+HTTP 404 http://127.0.0.1:5188/api/v1/analytics/tokens?run_id=web-evaluation-new
+HTTP 404 http://127.0.0.1:5188/api/v1/analytics/iterations?run_id=web-evaluation-new
+HTTP 404 http://127.0.0.1:5188/api/v1/analytics/failure-modes?run_id=web-evaluation-new
+Browser reuse workflow and responsive checks passed; /tmp/issue475-browser/report.json

@@ -121,6 +121,7 @@ test('null度量显示未知，零值与秒/USD单位保留，成功率转百分
 test('结果列表状态保持开放值，未知成本明确已知部分且不冒充免费', () => {
   assert.equal(resultStatusLabel('pending'), '待执行')
   assert.equal(resultStatusLabel('completed'), '已完成')
+  assert.equal(resultStatusLabel('success'), '通过')
   assert.equal(resultStatusLabel('__proto__'), '未知状态（__proto__）')
   assert.equal(
     resultCostLabel({ estimated_cost_usd: 0, unknown_cost_count: 0 }),

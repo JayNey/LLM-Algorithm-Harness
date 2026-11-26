@@ -1,7 +1,7 @@
 """Authenticated evaluation endpoints with owner-scoped service operations."""
 
 from collections.abc import Callable
-from typing import TypeVar
+from typing import Any, TypeVar, cast
 
 from fastapi import APIRouter, Depends, HTTPException, Request
 
@@ -12,6 +12,7 @@ from api.files.service import FileService
 from api.middleware.errors import ApiError, ErrorCode
 from api.models import (
     EvaluationCreateRequest,
+    EvaluationReusePreviewRequest,
     EvaluationUpdateRequest,
     EvaluationVersionCreateRequest,
 )
@@ -19,6 +20,7 @@ from api.routes.evaluation_options import evaluation_options_service
 from api.schemas import ApiResponse, EvaluationResponse, PaginatedData, ProgressInfo
 from api.services import EvaluationService
 from api.services.evaluation_options_service import EvaluationOptionsService
+from api.services.evaluation_reuse import build_plan, public_preview
 from src.task_manager import EvaluationConcurrencyLimitExceeded
 
 router = APIRouter(prefix="/api/v1", tags=["evaluations"])
@@ -26,7 +28,7 @@ T = TypeVar("T")
 
 
 def evaluation_service(request: Request) -> EvaluationService:
-    return request.app.state.evaluations
+    return cast(EvaluationService, request.app.state.evaluations)
 
 
 def call(operation: Callable[[], T]) -> T:
@@ -56,11 +58,19 @@ def _create_evaluation(
             raise HTTPException(400, "Selected problems must belong to the dataset version")
     elif options is not None:
         options.selected_problems(principal.user_id, request.problem_ids, require_all=True)
+    creation_options: dict[str, Any] = {"auth": auth} if request.reuse_history else {}
     if dataset_version_id is None:
-        result = service.create_evaluation(request, principal.user_id)
+        result = call(
+            lambda: service.create_evaluation(request, principal.user_id, **creation_options)
+        )
     else:
-        result = service.create_evaluation(
-            request, principal.user_id, dataset_version_id=dataset_version_id
+        result = call(
+            lambda: service.create_evaluation(
+                request,
+                principal.user_id,
+                dataset_version_id=dataset_version_id,
+                **creation_options,
+            )
         )
     try:
         files.store.register_run(result.evaluation_id, principal.user_id)
@@ -80,6 +90,37 @@ def create_evaluation(
     files: FileService = Depends(file_service),
 ) -> ApiResponse[EvaluationResponse]:
     return _create_evaluation(request, principal, auth, service, files)
+
+
+@router.post("/evaluations/reuse-preview")
+def preview_evaluation_reuse(
+    request: EvaluationReusePreviewRequest,
+    principal: Principal = Depends(current_user),
+    auth: AuthService = Depends(auth_service),
+    service: EvaluationService = Depends(evaluation_service),
+) -> ApiResponse[dict]:
+    from api.db.models import Evaluation
+
+    auth.owned_key(request.api_key_id, principal.user_id)
+    draft = Evaluation(
+        id="preview",
+        user_id=principal.user_id,
+        problem_ids=list(request.problem_ids),
+        strategy_names=list(request.strategy_names),
+        model=request.model,
+        api_key_id=request.api_key_id,
+        generation_timeout_seconds=request.generation_timeout_seconds,
+        budget_cap_usd=request.budget_cap_usd,
+        dataset_version_id=getattr(request, "dataset_version_id", None),
+    )
+    if request.reuse_history:
+        preview = call(
+            lambda: public_preview(build_plan(draft, service._session_factory, auth=auth))
+        )
+    else:
+        total = len(request.problem_ids) * len(request.strategy_names)
+        preview = {"total_units": total, "reused_units": 0, "new_units": total, "units": []}
+    return ApiResponse(success=True, data=preview, message="Reuse preview computed")
 
 
 @router.post("/evaluations/with-selection", status_code=201)

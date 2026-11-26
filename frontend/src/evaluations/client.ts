@@ -172,6 +172,13 @@ function evaluation(value: unknown, field = 'evaluation'): Evaluation {
         }
       : {}),
     problem_count: count(data.problem_count, `${field}.problem_count`),
+    ...('reuse_history' in data
+      ? {
+          reuse_history: boolean(data.reuse_history, `${field}.reuse_history`),
+          reused_units: count(data.reused_units, `${field}.reused_units`),
+          new_units: count(data.new_units, `${field}.new_units`),
+        }
+      : {}),
     spent_usd: number(data.spent_usd, `${field}.spent_usd`),
     ...('known_cost_usd' in data && {
       known_cost_usd: nullable(
@@ -358,6 +365,25 @@ function problemResult(value: unknown, field: string): ProblemResult {
     problem_id: text(data.problem_id, `${field}.problem_id`),
     strategy: text(data.strategy, `${field}.strategy`),
     status: text(data.status, `${field}.status`),
+    ...('reused' in data
+      ? {
+          reused: boolean(data.reused, `${field}.reused`),
+          reuse_source:
+            data.reuse_source === null
+              ? null
+              : reuseSource(data.reuse_source, `${field}.reuse_source`),
+          original_cost_usd: nullable(
+            data.original_cost_usd,
+            number,
+            `${field}.original_cost_usd`,
+          ),
+          new_cost_usd: nullable(
+            data.new_cost_usd,
+            number,
+            `${field}.new_cost_usd`,
+          ),
+        }
+      : {}),
     ...failureDiagnostic(data, field),
     ...('error_message' in data
       ? {
@@ -386,6 +412,61 @@ function detail(value: unknown): ResultDetail {
     completed_at: nullable(data.completed_at, text, 'result.completed_at'),
     strategies: array(data.strategies, strategy, 'result.strategies'),
     problems: page(data.problems, problemResult, 'result.problems'),
+    ...('reuse' in data
+      ? {
+          reuse: {
+            ...reuseSummary(data.reuse, 'result.reuse'),
+            new_cost_usd: number(
+              record(data.reuse, 'result.reuse').new_cost_usd,
+              'result.reuse.new_cost_usd',
+            ),
+            new_cost_unknown_count: count(
+              record(data.reuse, 'result.reuse').new_cost_unknown_count,
+              'result.reuse.new_cost_unknown_count',
+            ),
+          },
+        }
+      : {}),
+  }
+}
+function reuseSource(value: unknown, field: string) {
+  const data = record(value, field)
+  return {
+    evaluation_id: text(data.evaluation_id, `${field}.evaluation_id`),
+    run_id: text(data.run_id, `${field}.run_id`),
+    result_id: text(data.result_id, `${field}.result_id`),
+  }
+}
+function reuseSummary(value: unknown, field: string) {
+  const data = record(value, field)
+  const summary = {
+    total_units: count(data.total_units, `${field}.total_units`),
+    reused_units: count(data.reused_units, `${field}.reused_units`),
+    new_units: count(data.new_units, `${field}.new_units`),
+  }
+  if (summary.reused_units + summary.new_units !== summary.total_units)
+    protocol(field)
+  return summary
+}
+function reusePreview(value: unknown) {
+  const data = record(value, 'reuse')
+  return {
+    ...reuseSummary(value, 'reuse'),
+    units: array(
+      data.units,
+      (value, field) => {
+        const unit = record(value, field)
+        return {
+          problem_id: text(unit.problem_id, `${field}.problem_id`),
+          strategy: text(unit.strategy, `${field}.strategy`),
+          reason: text(unit.reason, `${field}.reason`),
+          ...('source' in unit
+            ? { source: reuseSource(unit.source, `${field}.source`) }
+            : {}),
+        }
+      },
+      'reuse.units',
+    ),
   }
 }
 function pathId(id: string): string {
@@ -446,6 +527,11 @@ export function createEvaluationClient(http: AxiosInstance) {
     )
   }
   return {
+    reusePreview: (input: CreatePayload, signal?: AbortSignal) => {
+      const body = payload(input)
+      delete body.verify_problem_access
+      return post('/evaluations/reuse-preview', body, reusePreview, signal)
+    },
     options: (signal) => get('/evaluation-options', options, undefined, signal),
     problems: (query, signal) =>
       get(

@@ -114,6 +114,7 @@ export function successRateLabel(value: number | null): string {
 
 export function resultStatusLabel(status: string): string {
   if (status === 'pending') return t('待执行')
+  if (status === 'success') return t('通过')
   return Object.hasOwn(labels, status)
     ? labels[status]
     : t('未知状态（{{value1}}）', { value1: status })

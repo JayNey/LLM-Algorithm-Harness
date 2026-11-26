@@ -1,0 +1,119 @@
+<!doctype html>
+<html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'unsafe-inline'; base-uri 'none'; form-action 'none'"><title>变更说明 · Web 评估可按题目 × 策略复用本人历史，只为新增调用结算费用。</title>
+<style>
+:root {
+  color-scheme: light dark;
+  --page: #fafbfc;
+  --ink: #202a35;
+  --muted: #566575;
+  --line: #dbe2e8;
+  --accent: #245b85;
+  --highlight: #edf3f7;
+  --hover: #e9eef3;
+  --code-bg: #edf0f4;
+  --code-ink: #263443;
+  --success: #236d4f;
+  --failure: #a83131;
+  --text: 15px;
+  --small: 13px;
+  --label: 12px;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --page: #181d23;
+    --ink: #e4eaf0;
+    --muted: #a4b1be;
+    --line: #35404b;
+    --accent: #94c6ec;
+    --highlight: #222e39;
+    --hover: #27323d;
+    --code-bg: #10161d;
+    --code-ink: #e0e8f0;
+    --success: #8ed8b5;
+    --failure: #ffb0a8;
+  }
+}
+* { box-sizing: border-box; }
+body {
+  margin: 0;
+  background: var(--page);
+  color: var(--ink);
+  font: var(--text)/1.65 system-ui, -apple-system, "Segoe UI", sans-serif;
+}
+main { max-width: 1040px; margin: auto; padding: 32px 32px 48px; }
+.eyebrow { color: var(--accent); font-size: var(--label); font-weight: 500; letter-spacing: .08em; }
+h1 { margin: 8px 0 12px; max-width: 32em; font-size: 28px; font-weight: 500; line-height: 1.4; letter-spacing: -.02em; overflow-wrap: anywhere; }
+h2 { margin: 0; font-size: 18px; font-weight: 500; line-height: 1.5; overflow-wrap: anywhere; }
+h3 { margin: 0 0 4px; color: var(--muted); font-size: var(--label); font-weight: 500; }
+p { margin: 0; white-space: pre-wrap; overflow-wrap: anywhere; }
+strong { font-weight: 500; }
+.meta { margin-bottom: 24px; color: var(--muted); font-size: var(--small); overflow-wrap: anywhere; }
+.meta p + p { margin-top: 2px; }
+article { padding: 20px 0 12px; border-top: 1px solid var(--line); }
+article header { display: flex; align-items: baseline; gap: 12px; margin-bottom: 12px; }
+.number { color: var(--muted); font: var(--label)/1.5 ui-monospace, Consolas, monospace; font-variant-numeric: tabular-nums; }
+.comparison { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 16px; }
+.comparison section { min-width: 0; padding: 12px; }
+.after { background: var(--highlight); border-radius: 4px; }
+.after h3 { color: var(--accent); }
+.reason { margin-top: 12px; font-size: var(--small); color: var(--muted); }
+.reason strong { margin-right: 8px; color: var(--ink); }
+summary { min-height: 44px; padding: 10px 4px; cursor: pointer; font-size: var(--small); font-weight: 500; border-radius: 4px; }
+summary:hover { background: var(--hover); }
+summary:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.count, .tag { color: var(--muted); font-size: var(--label); font-weight: 400; }
+.count { margin-left: 4px; font-variant-numeric: tabular-nums; }
+.file { min-width: 0; padding: 0 0 16px; scroll-margin-top: 20px; }
+.file:target { outline: 2px solid var(--accent); outline-offset: 4px; }
+.file-heading { display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 8px; }
+.file-heading code { min-width: 0; font-size: var(--small); overflow-wrap: anywhere; }
+.tag { white-space: nowrap; }
+pre { margin: 8px 0 0; padding: 12px 16px; overflow: auto; background: var(--code-bg); color: var(--code-ink); border-radius: 4px; font: var(--small)/1.65 ui-monospace, Consolas, monospace; tab-size: 2; }
+footer { margin-top: 12px; padding-top: 20px; border-top: 1px solid var(--line); }
+footer h2 { margin-bottom: 8px; }
+.check { display: grid; grid-template-columns: 72px minmax(0, 1fr); gap: 12px; padding: 12px 0; border-bottom: 1px solid var(--line); }
+.status { padding-top: 2px; font-size: var(--label); font-weight: 500; }
+.passed { color: var(--success); }
+.failed { color: var(--failure); }
+.not-run, .unknown { color: var(--muted); }
+.check p { margin-top: 2px; color: var(--muted); font-size: var(--small); }
+.more { border-top: 1px solid var(--line); }
+.more > summary { padding-block: 12px; }
+.diagram { margin: 0; padding: 20px 0; border-top: 1px solid var(--line); }
+.diagram figcaption { margin-bottom: 12px; font-size: 18px; font-weight: 500; overflow-wrap: anywhere; }
+.diagram-svg { display: block; max-width: 100%; height: auto; margin: auto; overflow: visible; font: 13px system-ui, -apple-system, "Segoe UI", sans-serif; }
+.diagram-svg text { fill: var(--ink); }
+.diagram-edge { fill: none; stroke: var(--muted); stroke-width: 1.5; }
+.diagram-svg marker path { fill: var(--muted); }
+.diagram-edge-label { fill: var(--page); }
+.diagram-svg .diagram-edge-text { fill: var(--muted); font-size: 12px; }
+.diagram-node rect { fill: var(--page); stroke: var(--line); stroke-width: 1.5; }
+.diagram-node.modified rect { fill: var(--highlight); stroke: var(--accent); }
+.diagram-node.added rect { stroke: var(--success); }
+.diagram-node.deleted rect { stroke: var(--failure); stroke-dasharray: 4 3; }
+.diagram-svg .diagram-kind { fill: var(--muted); font-size: 11px; }
+.diagram-node[href] { cursor: pointer; }
+.diagram-node[href]:hover rect, .diagram-node[href]:focus-visible rect { stroke: var(--accent); stroke-width: 2.5; }
+.diagram-node[href]:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; }
+.diagram-hint { margin-top: 12px; color: var(--muted); font-size: var(--small); text-align: center; }
+.diagram-comparison { display: grid; grid-template-columns: minmax(0,1fr) minmax(0,1fr); gap: 16px; }
+.diagram-comparison > section { min-width: 0; padding: 12px; border: 1px solid var(--line); border-radius: 4px; }
+.diagram-comparison > section > h3 { margin-bottom: 12px; }
+.diagram-compact { display: none; }
+@media (max-width: 999px) {
+  .diagram-wide { display: none; }
+  .diagram-compact { display: block; }
+}
+@media (max-width: 640px) {
+  main { padding: 24px 16px 32px; }
+  h1 { font-size: 24px; }
+  .meta { margin-bottom: 20px; }
+  article { padding-top: 16px; }
+  article header { gap: 8px; }
+  .comparison { grid-template-columns: minmax(0, 1fr); gap: 4px; }
+  .check { grid-template-columns: 60px minmax(0, 1fr); gap: 8px; }
+  pre { padding: 12px; }
+  .diagram-comparison { grid-template-columns: minmax(0,1fr); }
+  .diagram-comparison > section { padding: 12px 0; border: 0; }
+}
+</style></head><body><main><div class="eyebrow">COMET / 变更说明</div><h1>Web 评估可按题目 × 策略复用本人历史，只为新增调用结算费用。</h1><div class="meta"><p>比较范围 · 基线 58d6b9770005f357ccec68fc207be34024c2bf3d 与本次工作区改动；已批准继续 tweak，包含 API、迁移、worker、费用及前端。</p><p>生成时间 · 2026-11-25T03:09:42.132Z</p></div><figure class="diagram"><figcaption>增量评估路径</figcaption><div class="diagram-wide"><svg class="diagram-svg" width="669" height="208" viewBox="0 0 669 208" role="group" aria-labelledby="walkthrough-diagram-0-wide-title walkthrough-diagram-0-wide-description"><title id="walkthrough-diagram-0-wide-title">增量评估路径</title><desc id="walkthrough-diagram-0-wide-description">题目与模型策略 → 本人历史匹配并固定; 本人历史匹配并固定 → 兼容历史副本 (兼容); 本人历史匹配并固定 → 真实新增调用 (需新跑); 兼容历史副本 → 完整结果与新增费用; 真实新增调用 → 完整结果与新增费用</desc><defs><marker id="walkthrough-diagram-0-wide-arrow" viewBox="0 0 8 8" refX="7" refY="4" markerWidth="6" markerHeight="6" orient="auto"><path d="M 0 0 L 8 4 L 0 8 z"/></marker></defs><path class="diagram-edge" d="M 132 104 C 159.5 104, 159.5 104, 184 104" marker-end="url(#walkthrough-diagram-0-wide-arrow)"/><path class="diagram-edge" d="M 307 104 C 334.5 104, 334.5 50, 359 50" marker-end="url(#walkthrough-diagram-0-wide-arrow)"/><rect class="diagram-edge-label" x="317.5" y="66" width="34" height="22"/><text class="diagram-edge-text" x="334.5" y="81" text-anchor="middle"><tspan x="334.5" dy="0">兼容</tspan></text><path class="diagram-edge" d="M 307 104 C 334.5 104, 334.5 158, 359 158" marker-end="url(#walkthrough-diagram-0-wide-arrow)"/><rect class="diagram-edge-label" x="311" y="120" width="47" height="22"/><text class="diagram-edge-text" x="334.5" y="135" text-anchor="middle"><tspan x="334.5" dy="0">需新跑</tspan></text><path class="diagram-edge" d="M 482 50 C 509.5 50, 509.5 104, 534 104" marker-end="url(#walkthrough-diagram-0-wide-arrow)"/><path class="diagram-edge" d="M 482 158 C 509.5 158, 509.5 104, 534 104" marker-end="url(#walkthrough-diagram-0-wide-arrow)"/><g class="diagram-node "><rect x="12" y="66" width="120" height="76" rx="5"/><text class="" x="72" y="108" text-anchor="middle"><tspan x="72" dy="0">题目与模型策略</tspan></text></g><a class="diagram-node added" href="#walkthrough-file-0-0" aria-label="本人历史匹配并固定 · api/services/evaluation_reuse.py"><rect x="187" y="66" width="120" height="76" rx="5"/><text class="diagram-kind" x="247" y="83" text-anchor="middle"><tspan x="247" dy="0">新增</tspan></text><text class="" x="247" y="101" text-anchor="middle"><tspan x="247" dy="0">本人历史匹配并</tspan><tspan x="247" dy="18">固定</tspan></text></a><g class="diagram-node "><rect x="362" y="12" width="120" height="76" rx="5"/><text class="" x="422" y="54" text-anchor="middle"><tspan x="422" dy="0">兼容历史副本</tspan></text></g><g class="diagram-node "><rect x="362" y="120" width="120" height="76" rx="5"/><text class="" x="422" y="162" text-anchor="middle"><tspan x="422" dy="0">真实新增调用</tspan></text></g><g class="diagram-node "><rect x="537" y="66" width="120" height="76" rx="5"/><text class="" x="597" y="99" text-anchor="middle"><tspan x="597" dy="0">完整结果与新增</tspan><tspan x="597" dy="18">费用</tspan></text></g></svg></div><div class="diagram-compact"><svg class="diagram-svg" width="272" height="436" viewBox="0 0 272 436" role="group" aria-labelledby="walkthrough-diagram-0-compact-title walkthrough-diagram-0-compact-description"><title id="walkthrough-diagram-0-compact-title">增量评估路径</title><desc id="walkthrough-diagram-0-compact-description">题目与模型策略 → 本人历史匹配并固定; 本人历史匹配并固定 → 兼容历史副本 (兼容); 本人历史匹配并固定 → 真实新增调用 (需新跑); 兼容历史副本 → 完整结果与新增费用; 真实新增调用 → 完整结果与新增费用</desc><defs><marker id="walkthrough-diagram-0-compact-arrow" viewBox="0 0 8 8" refX="7" refY="4" markerWidth="6" markerHeight="6" orient="auto"><path d="M 0 0 L 8 4 L 0 8 z"/></marker></defs><path class="diagram-edge" d="M 136 88 C 136 106, 136 106, 136 121" marker-end="url(#walkthrough-diagram-0-compact-arrow)"/><path class="diagram-edge" d="M 136 200 C 136 218, 68 218, 68 233" marker-end="url(#walkthrough-diagram-0-compact-arrow)"/><rect class="diagram-edge-label" x="85" y="207" width="34" height="22"/><text class="diagram-edge-text" x="102" y="222" text-anchor="middle"><tspan x="102" dy="0">兼容</tspan></text><path class="diagram-edge" d="M 136 200 C 136 218, 204 218, 204 233" marker-end="url(#walkthrough-diagram-0-compact-arrow)"/><rect class="diagram-edge-label" x="146.5" y="207" width="47" height="22"/><text class="diagram-edge-text" x="170" y="222" text-anchor="middle"><tspan x="170" dy="0">需新跑</tspan></text><path class="diagram-edge" d="M 68 312 C 68 330, 136 330, 136 345" marker-end="url(#walkthrough-diagram-0-compact-arrow)"/><path class="diagram-edge" d="M 204 312 C 204 330, 136 330, 136 345" marker-end="url(#walkthrough-diagram-0-compact-arrow)"/><g class="diagram-node "><rect x="80" y="12" width="112" height="76" rx="5"/><text class="" x="136" y="45" text-anchor="middle"><tspan x="136" dy="0">题目与模型策</tspan><tspan x="136" dy="18">略</tspan></text></g><a class="diagram-node added" href="#walkthrough-file-0-0" aria-label="本人历史匹配并固定 · api/services/evaluation_reuse.py"><rect x="80" y="124" width="112" height="76" rx="5"/><text class="diagram-kind" x="136" y="141" text-anchor="middle"><tspan x="136" dy="0">新增</tspan></text><text class="" x="136" y="159" text-anchor="middle"><tspan x="136" dy="0">本人历史匹配</tspan><tspan x="136" dy="18">并固定</tspan></text></a><g class="diagram-node "><rect x="12" y="236" width="112" height="76" rx="5"/><text class="" x="68" y="278" text-anchor="middle"><tspan x="68" dy="0">兼容历史副本</tspan></text></g><g class="diagram-node "><rect x="148" y="236" width="112" height="76" rx="5"/><text class="" x="204" y="278" text-anchor="middle"><tspan x="204" dy="0">真实新增调用</tspan></text></g><g class="diagram-node "><rect x="80" y="348" width="112" height="76" rx="5"/><text class="" x="136" y="381" text-anchor="middle"><tspan x="136" dy="0">完整结果与新</tspan><tspan x="136" dy="18">增费用</tspan></text></g></svg></div><p class="diagram-hint">点击带链接的节点查看相关代码。</p></figure><article><header><span class="number">01</span><h2>提交前预览与固定计划</h2></header><div class="comparison"><section><h3>原来</h3><p>Web 每个单元都重跑，worker 启动时读取当前题目。</p></section><section class="after"><h3>现在</h3><p>创建页显示预计复用/新跑；提交保存题目、配置、来源和结果副本。</p></section></div><p class="reason"><strong>原因</strong> 题目改动或原来源删除不应改变已提交的评估。</p><details><summary>查看文件和关键代码 <span class="count">2</span></summary><div class="file" id="walkthrough-file-0-0"><div class="file-heading"><span class="tag">新增</span><code>api/services/evaluation_reuse.py</code></div><pre><code>build_plan: owner-scoped candidates + per-strategy execution fingerprints + immutable result copies</code></pre></div><div class="file" id="walkthrough-file-0-1"><div class="file-heading"><span class="tag">新增</span><code>api/db/migrations/versions/k0011_evaluation_reuse.py</code></div><pre><code>reuse_history (default false), reuse_plan (private JSON), reused_units</code></pre></div></details></article><article><header><span class="number">02</span><h2>复用执行与费用隔离</h2></header><div class="comparison"><section><h3>原来</h3><p>所有单元进入运行时，统计费用直接来自原始结果。</p></section><section class="after"><h3>现在</h3><p>兼容单元预填完成，仅调度剩余单元；原始度量保留，new_cost_usd 只计算新增调用。</p></section></div><p class="reason"><strong>原因</strong> 全部复用零调用，恢复与重投递保持结果和费用幂等。</p><details><summary>查看文件和关键代码 <span class="count">2</span></summary><div class="file" id="walkthrough-file-1-0"><div class="file-heading"><span class="tag">修改</span><code>src/tasks/evaluation.py</code></div><pre><code>validate_plan → seed completed units → checkpoint replay → dispatch remaining units; reused payload source=&#39;reused&#39;</code></pre></div><div class="file" id="walkthrough-file-1-1"><div class="file-heading"><span class="tag">修改</span><code>api/services/evaluation_results_service.py</code></div><pre><code>reuse summary + per-row source/original_cost_usd/new_cost_usd; unknown new cost is null</code></pre></div></details></article><article><header><span class="number">03</span><h2>页面展示与兼容 API</h2></header><div class="comparison"><section><h3>原来</h3><p>创建页不能选择历史复用，结果页不区分来源。</p></section><section class="after"><h3>现在</h3><p>增加默认关闭的复用开关、可重试预览、来源链接和本次费用；API 契约 1.9.0。</p></section></div><p class="reason"><strong>原因</strong> 用户能核对计划与新增成本，旧客户端省略新字段维持原行为。</p><details><summary>查看文件和关键代码 <span class="count">2</span></summary><div class="file" id="walkthrough-file-2-0"><div class="file-heading"><span class="tag">修改</span><code>frontend/src/evaluations/creation.ts</code></div><pre><code>previewEpoch + AbortController discard stale draft/account responses</code></pre></div><div class="file" id="walkthrough-file-2-1"><div class="file-heading"><span class="tag">修改</span><code>frontend/src/evaluations/components.tsx</code></div><pre><code>reused/new summary, original/new costs and source links</code></pre></div></details></article><footer><h2>实际验证</h2><div class="check"><span class="status passed">通过</span><div><strong>Builder 自检</strong><p>597 后端、32 结果费用补测、12 指纹场景、1 零预算无定价专项；370 前端测试、构建与 Lint；Python 格式与定向类型检查通过。</p></div></div><div class="check"><span class="status passed">通过</span><div><strong>浏览器验收</strong><p>生产构建、真实 React/client/store + 离线 HTTP fixture，预览/重试/提交/来源/费用及 320/390/1280px 布局通过；无真实供应商调用。</p></div></div><div class="check"><span class="status not-run">未执行</span><div><strong>独立审查</strong><p>按用户确认的 tweak / review_mode=off 跳过。</p></div></div><div class="check"><span class="status passed">通过</span><div><strong>Runtime 检查</strong><p>Open、Build 完成提交与 Verify Guard 均通过；12/12 任务完成，当前等待归档交付选择。</p></div></div></footer></main><template id="walkthrough-data">eyJzdW1tYXJ5IjoiV2ViIOivhOS8sOWPr+aMiemimOebriDDlyDnrZbnlaXlpI3nlKjmnKzkurrljoblj7LvvIzlj6rkuLrmlrDlop7osIPnlKjnu5PnrpfotLnnlKjjgIIiLCJzY29wZSI6IuWfuue6vyA1OGQ2Yjk3NzAwMDVmMzU3Y2NlYzY4ZmMyMDdiZTM0MDI0YzJiZjNkIOS4juacrOasoeW3peS9nOWMuuaUueWKqO+8m+W3suaJueWHhue7p+e7rSB0d2Vha++8jOWMheWQqyBBUEnjgIHov4Hnp7vjgIF3b3JrZXLjgIHotLnnlKjlj4rliY3nq6/jgIIiLCJjaGFuZ2VzIjpbeyJ0aXRsZSI6IuaPkOS6pOWJjemihOiniOS4juWbuuWumuiuoeWIkiIsImJlZm9yZSI6IldlYiDmr4/kuKrljZXlhYPpg73ph43ot5HvvIx3b3JrZXIg5ZCv5Yqo5pe26K+75Y+W5b2T5YmN6aKY55uu44CCIiwiYWZ0ZXIiOiLliJvlu7rpobXmmL7npLrpooTorqHlpI3nlKgv5paw6LeR77yb5o+Q5Lqk5L+d5a2Y6aKY55uu44CB6YWN572u44CB5p2l5rqQ5ZKM57uT5p6c5Ymv5pys44CCIiwicmVhc29uIjoi6aKY55uu5pS55Yqo5oiW5Y6f5p2l5rqQ5Yig6Zmk5LiN5bqU5pS55Y+Y5bey5o+Q5Lqk55qE6K+E5Lyw44CCIiwiZmlsZXMiOlt7InBhdGgiOiJhcGkvc2VydmljZXMvZXZhbHVhdGlvbl9yZXVzZS5weSIsImtpbmQiOiJhZGRlZCIsImNvZGUiOiJidWlsZF9wbGFuOiBvd25lci1zY29wZWQgY2FuZGlkYXRlcyArIHBlci1zdHJhdGVneSBleGVjdXRpb24gZmluZ2VycHJpbnRzICsgaW1tdXRhYmxlIHJlc3VsdCBjb3BpZXMifSx7InBhdGgiOiJhcGkvZGIvbWlncmF0aW9ucy92ZXJzaW9ucy9rMDAxMV9ldmFsdWF0aW9uX3JldXNlLnB5Iiwia2luZCI6ImFkZGVkIiwiY29kZSI6InJldXNlX2hpc3RvcnkgKGRlZmF1bHQgZmFsc2UpLCByZXVzZV9wbGFuIChwcml2YXRlIEpTT04pLCByZXVzZWRfdW5pdHMifV19LHsidGl0bGUiOiLlpI3nlKjmiafooYzkuI7otLnnlKjpmpTnprsiLCJiZWZvcmUiOiLmiYDmnInljZXlhYPov5vlhaXov5DooYzml7bvvIznu5/orqHotLnnlKjnm7TmjqXmnaXoh6rljp/lp4vnu5PmnpzjgIIiLCJhZnRlciI6IuWFvOWuueWNleWFg+mihOWhq+WujOaIkO+8jOS7heiwg+W6puWJqeS9meWNleWFg++8m+WOn+Wni+W6pumHj+S/neeVme+8jG5ld19jb3N0X3VzZCDlj6rorqHnrpfmlrDlop7osIPnlKjjgIIiLCJyZWFzb24iOiLlhajpg6jlpI3nlKjpm7bosIPnlKjvvIzmgaLlpI3kuI7ph43mipXpgJLkv53mjIHnu5PmnpzlkozotLnnlKjluYLnrYnjgIIiLCJmaWxlcyI6W3sicGF0aCI6InNyYy90YXNrcy9ldmFsdWF0aW9uLnB5Iiwia2luZCI6Im1vZGlmaWVkIiwiY29kZSI6InZhbGlkYXRlX3BsYW4g4oaSIHNlZWQgY29tcGxldGVkIHVuaXRzIOKGkiBjaGVja3BvaW50IHJlcGxheSDihpIgZGlzcGF0Y2ggcmVtYWluaW5nIHVuaXRzOyByZXVzZWQgcGF5bG9hZCBzb3VyY2U9J3JldXNlZCcifSx7InBhdGgiOiJhcGkvc2VydmljZXMvZXZhbHVhdGlvbl9yZXN1bHRzX3NlcnZpY2UucHkiLCJraW5kIjoibW9kaWZpZWQiLCJjb2RlIjoicmV1c2Ugc3VtbWFyeSArIHBlci1yb3cgc291cmNlL29yaWdpbmFsX2Nvc3RfdXNkL25ld19jb3N0X3VzZDsgdW5rbm93biBuZXcgY29zdCBpcyBudWxsIn1dfSx7InRpdGxlIjoi6aG16Z2i5bGV56S65LiO5YW85a65IEFQSSIsImJlZm9yZSI6IuWIm+W7uumhteS4jeiDvemAieaLqeWOhuWPsuWkjeeUqO+8jOe7k+aenOmhteS4jeWMuuWIhuadpea6kOOAgiIsImFmdGVyIjoi5aKe5Yqg6buY6K6k5YWz6Zet55qE5aSN55So5byA5YWz44CB5Y+v6YeN6K+V6aKE6KeI44CB5p2l5rqQ6ZO+5o6l5ZKM5pys5qyh6LS555So77ybQVBJIOWlkee6piAxLjkuMOOAgiIsInJlYXNvbiI6IueUqOaIt+iDveaguOWvueiuoeWIkuS4juaWsOWinuaIkOacrO+8jOaXp+WuouaIt+err+ecgeeVpeaWsOWtl+autee7tOaMgeWOn+ihjOS4uuOAgiIsImZpbGVzIjpbeyJwYXRoIjoiZnJvbnRlbmQvc3JjL2V2YWx1YXRpb25zL2NyZWF0aW9uLnRzIiwia2luZCI6Im1vZGlmaWVkIiwiY29kZSI6InByZXZpZXdFcG9jaCArIEFib3J0Q29udHJvbGxlciBkaXNjYXJkIHN0YWxlIGRyYWZ0L2FjY291bnQgcmVzcG9uc2VzIn0seyJwYXRoIjoiZnJvbnRlbmQvc3JjL2V2YWx1YXRpb25zL2NvbXBvbmVudHMudHN4Iiwia2luZCI6Im1vZGlmaWVkIiwiY29kZSI6InJldXNlZC9uZXcgc3VtbWFyeSwgb3JpZ2luYWwvbmV3IGNvc3RzIGFuZCBzb3VyY2UgbGlua3MifV19XSwidmVyaWZpY2F0aW9uIjpbeyJsYWJlbCI6IkJ1aWxkZXIg6Ieq5qOAIiwic3RhdHVzIjoicGFzc2VkIiwiZGV0YWlsIjoiNTk3IOWQjuerr+OAgTMyIOe7k+aenOi0ueeUqOihpea1i+OAgTEyIOaMh+e6ueWcuuaZr+OAgTEg6Zu26aKE566X5peg5a6a5Lu35LiT6aG577ybMzcwIOWJjeerr+a1i+ivleOAgeaehOW7uuS4jiBMaW5077ybUHl0aG9uIOagvOW8j+S4juWumuWQkeexu+Wei+ajgOafpemAmui/h+OAgiJ9LHsibGFiZWwiOiLmtY/op4jlmajpqozmlLYiLCJzdGF0dXMiOiJwYXNzZWQiLCJkZXRhaWwiOiLnlJ/kuqfmnoTlu7rjgIHnnJ/lrp4gUmVhY3QvY2xpZW50L3N0b3JlICsg56a757q/IEhUVFAgZml4dHVyZe+8jOmihOiniC/ph43or5Uv5o+Q5LqkL+adpea6kC/otLnnlKjlj4ogMzIwLzM5MC8xMjgwcHgg5biD5bGA6YCa6L+H77yb5peg55yf5a6e5L6b5bqU5ZWG6LCD55So44CCIn0seyJsYWJlbCI6IueLrOeri+WuoeafpSIsInN0YXR1cyI6Im5vdC1ydW4iLCJkZXRhaWwiOiLmjInnlKjmiLfnoa7orqTnmoQgdHdlYWsgLyByZXZpZXdfbW9kZT1vZmYg6Lez6L+H44CCIn0seyJsYWJlbCI6IlJ1bnRpbWUg5qOA5p+lIiwic3RhdHVzIjoicGFzc2VkIiwiZGV0YWlsIjoiT3BlbuOAgUJ1aWxkIOWujOaIkOaPkOS6pOS4jiBWZXJpZnkgR3VhcmQg5Z2H6YCa6L+H77ybMTIvMTIg5Lu75Yqh5a6M5oiQ77yM5b2T5YmN562J5b6F5b2S5qGj5Lqk5LuY6YCJ5oup44CCIn1dLCJkaWFncmFtcyI6W3sidHlwZSI6ImZsb3ciLCJ0aXRsZSI6IuWinumHj+ivhOS8sOi3r+W+hCIsIm5vZGVzIjpbeyJpZCI6ImRyYWZ0IiwibGFiZWwiOiLpopjnm67kuI7mqKHlnovnrZbnlaUifSx7ImlkIjoicGxhbiIsImxhYmVsIjoi5pys5Lq65Y6G5Y+y5Yy56YWN5bm25Zu65a6aIiwiZmlsZSI6ImFwaS9zZXJ2aWNlcy9ldmFsdWF0aW9uX3JldXNlLnB5Iiwia2luZCI6ImFkZGVkIn0seyJpZCI6InJldXNlIiwibGFiZWwiOiLlhbzlrrnljoblj7Llia/mnKwifSx7ImlkIjoiZnJlc2giLCJsYWJlbCI6Iuecn+WunuaWsOWinuiwg+eUqCJ9LHsiaWQiOiJyZXN1bHQiLCJsYWJlbCI6IuWujOaVtOe7k+aenOS4juaWsOWinui0ueeUqCJ9XSwiZWRnZXMiOlt7ImZyb20iOiJkcmFmdCIsInRvIjoicGxhbiJ9LHsiZnJvbSI6InBsYW4iLCJ0byI6InJldXNlIiwibGFiZWwiOiLlhbzlrrkifSx7ImZyb20iOiJwbGFuIiwidG8iOiJmcmVzaCIsImxhYmVsIjoi6ZyA5paw6LeRIn0seyJmcm9tIjoicmV1c2UiLCJ0byI6InJlc3VsdCJ9LHsiZnJvbSI6ImZyZXNoIiwidG8iOiJyZXN1bHQifV19XX0=</template></body></html>

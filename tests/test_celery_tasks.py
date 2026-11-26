@@ -2494,3 +2494,276 @@ def test_web_generation_cancels_slow_sdk_response(db_session, auth_ok, monkeypat
     with pytest.raises(RuntimeError, match=r"\[timeout\]"):
         LLMClient(config).generate("prompt")
     assert cancelled == [True]
+
+
+def _execute_for_reuse(db, evaluation_id):
+    with patch("src.tasks.evaluation.get_db_session", return_value=db):
+        return run_evaluation_task.run(evaluation_id)
+
+
+def _new_reuse_evaluation(db, *, problem_ids, strategies=None, owner="test_user", budget=None):
+    from api.services.evaluation_reuse import build_plan, reuse_summary
+
+    eid = _seed_evaluation(
+        db,
+        problem_ids=problem_ids,
+        strategy_names=strategies or ["vanilla"],
+        seed_problem_ids=[],
+        budget_cap_usd=budget,
+    )
+    evaluation = db.get(Evaluation, eid)
+    evaluation.user_id = owner
+    db.get(AsyncTask, evaluation.async_task_id).user_id = owner
+    evaluation.reuse_history = True
+    evaluation.reuse_plan = build_plan(evaluation, sessionmaker(bind=db.get_bind()))
+    evaluation.reused_units = reuse_summary(evaluation.reuse_plan)["reused_units"]
+    db.commit()
+    return eid
+
+
+def test_web_incremental_mixed_units_and_immutable_source(db_session, integration_harness):
+    from api.services.evaluation_results_service import _problem_item
+    from api.services.evaluation_reuse import public_preview
+
+    source = _seed_evaluation(
+        db_session, problem_ids=["p1", "p2"], strategy_names=["vanilla", "chain_of_thought"]
+    )
+    _execute_for_reuse(db_session, source)
+    db_session.query(ORMProblem).filter_by(problem_id="p2").one().description = "Changed problem"
+    _seed_problem(db_session, "p3")
+    db_session.commit()
+    target = _new_reuse_evaluation(
+        db_session, problem_ids=["p1", "p2", "p3"], strategies=["vanilla", "chain_of_thought"]
+    )
+    ev = db_session.get(Evaluation, target)
+    preview = public_preview(ev.reuse_plan)
+    assert (preview["total_units"], preview["reused_units"], preview["new_units"]) == (6, 2, 4)
+    assert "hidden_test_cases" not in str(preview)
+    assert "api_key" not in ev.reuse_plan["llm"]
+    # Both current problem contents and original result rows can disappear.
+    db_session.query(ORMProblem).filter_by(problem_id="p1").one().description = "Later edit"
+    db_session.query(EvaluationResult).filter_by(evaluation_id=source).delete()
+    db_session.delete(db_session.get(Evaluation, source))
+    db_session.commit()
+    integration_harness.execute_calls.clear()
+    result = _execute_for_reuse(db_session, target)
+    assert result["status"] == "completed"
+    assert set(integration_harness.execute_calls) == {
+        (s, p) for s in ["vanilla", "chain_of_thought"] for p in ["p2", "p3"]
+    }
+    ev = _reload(db_session, Evaluation, target)
+    assert ev.completed_count == 6
+    assert ev.spent_usd == pytest.approx(4 * integration_harness.cost)
+    rows = db_session.query(EvaluationResult).filter_by(evaluation_id=target).all()
+    assert len(rows) == 6
+    for row in rows:
+        if row.problem_id == "p1":
+            assert row.metrics["reuse_source"]["evaluation_id"] == source
+            assert row.metrics["cost_usd"] == integration_harness.cost
+            assert row.metrics["new_cost_usd"] == 0
+            assert row.execution_payload["source"] == "reused"
+            assert row.execution_payload["metadata"]["reuse_source"]["evaluation_id"] == source
+            assert _problem_item(row)["reused"] is True
+
+
+def test_web_incremental_all_reused_zero_budget_no_runtime(
+    db_session, integration_harness, monkeypatch
+):
+    source = _seed_evaluation(db_session, problem_ids=["p1"], strategy_names=["vanilla"])
+    _execute_for_reuse(db_session, source)
+    target = _new_reuse_evaluation(db_session, problem_ids=["p1"], budget=0)
+    integration_harness.execute_calls.clear()
+    monkeypatch.setattr(
+        "src.tasks.evaluation._build_harness", Mock(side_effect=AssertionError("No runtime needed"))
+    )
+    monkeypatch.setattr(
+        "src.tasks.evaluation.PricingManager.get_pricing",
+        Mock(return_value=Mock(pricing_known=False)),
+    )
+    result = _execute_for_reuse(db_session, target)
+    assert result["status"] == "completed"
+    assert result["completed_units"] == result["total_units"] == 1
+    ev = _reload(db_session, Evaluation, target)
+    assert ev.spent_usd == 0
+    assert integration_harness.execute_calls == []
+
+
+@pytest.mark.parametrize(
+    "invalid",
+    ["owner", "cancelled", "fingerprint", "unexecuted", "model", "timeout", "test", "strategy"],
+)
+def test_web_incremental_incompatible_history_runs(db_session, integration_harness, invalid):
+    source = _seed_evaluation(db_session, problem_ids=["p1"], strategy_names=["vanilla"])
+    _execute_for_reuse(db_session, source)
+    ev = db_session.get(Evaluation, source)
+    row = db_session.query(EvaluationResult).filter_by(evaluation_id=source).one()
+    if invalid == "owner":
+        ev.user_id = "other-owner"
+    if invalid == "cancelled":
+        ev.status = "cancelled"
+    if invalid == "fingerprint":
+        row.metrics = {k: v for k, v in row.metrics.items() if k != "execution_fingerprint"}
+    if invalid == "unexecuted":
+        row.metrics = {**row.metrics, "actually_executed": False}
+    if invalid == "test":
+        db_session.query(ORMProblem).filter_by(problem_id="p1").one().test_cases = [
+            {"input": {}, "expected_output": 99}
+        ]
+    db_session.commit()
+    if invalid in {"model", "timeout"}:
+        # Compare using a fresh draft, as an HTTP client does.
+        draft = Evaluation(
+            id="draft",
+            user_id="test_user",
+            model="test-model",
+            api_key_id="key-1",
+            problem_ids=["p1"],
+            strategy_names=["vanilla"],
+            generation_timeout_seconds=120 if invalid == "timeout" else 60,
+        )
+        from api.services.evaluation_reuse import build_plan, reuse_summary
+
+        if invalid == "model":
+            with patch("api.auth.service.AuthService") as auth:
+                auth.return_value.llm_config.return_value = LLMConfig(
+                    provider="openai", model="other-model", api_key=SecretStr("fake")
+                )
+                plan = build_plan(draft, sessionmaker(bind=db_session.get_bind()))
+        else:
+            plan = build_plan(draft, sessionmaker(bind=db_session.get_bind()))
+        assert reuse_summary(plan)["reused_units"] == 0
+    else:
+        target = _new_reuse_evaluation(
+            db_session,
+            problem_ids=["p1"],
+            strategies=["chain_of_thought"] if invalid == "strategy" else None,
+        )
+        assert db_session.get(Evaluation, target).reused_units == 0
+        integration_harness.execute_calls.clear()
+        assert _execute_for_reuse(db_session, target)["status"] == "completed"
+        assert len(integration_harness.execute_calls) == 1
+
+
+@pytest.mark.parametrize("boundary", ["file_after", "sql_after"])
+def test_web_incremental_replay_preserves_cost_and_progress(
+    db_session, integration_harness, monkeypatch, boundary
+):
+    from src.task_service import TaskStore
+
+    source = _seed_evaluation(db_session, problem_ids=["p1"], strategy_names=["vanilla"])
+    _execute_for_reuse(db_session, source)
+    _seed_problem(db_session, "p2")
+    db_session.commit()
+    target = _new_reuse_evaluation(db_session, problem_ids=["p1", "p2"])
+    save, commit = TaskStore.save, db_session.commit
+    lost = False
+
+    def crash():
+        nonlocal lost
+        lost = True
+        raise SystemExit("reuse commit window")
+
+    def save_at_boundary(store, record):
+        save(store, record)
+        if not lost and boundary == "file_after" and record.units[0].status == "completed":
+            crash()
+
+    def commit_at_boundary():
+        committed = db_session.query(EvaluationResult).filter_by(evaluation_id=target).count()
+        commit()
+        if not lost and boundary == "sql_after" and committed:
+            crash()
+
+    with monkeypatch.context() as m:
+        m.setattr(TaskStore, "save", save_at_boundary)
+        m.setattr(db_session, "commit", commit_at_boundary)
+        with pytest.raises(SystemExit, match="reuse commit window"):
+            _execute_for_reuse(db_session, target)
+    assert lost
+    integration_harness.execute_calls.clear()
+    assert _execute_for_reuse(db_session, target)["status"] == "completed"
+    assert _execute_for_reuse(db_session, target)["status"] == "completed"
+    ev = _reload(db_session, Evaluation, target)
+    assert ev.completed_count == 2
+    assert ev.spent_usd == pytest.approx(integration_harness.cost)
+    assert integration_harness.execute_calls == [("vanilla", "p2")]
+    assert db_session.query(EvaluationResult).filter_by(evaluation_id=target).count() == 2
+
+
+def test_web_incremental_pause_resume_uses_submitted_problem_versions(
+    db_session, integration_harness, monkeypatch
+):
+    source = _seed_evaluation(db_session, problem_ids=["p1"], strategy_names=["vanilla"])
+    _execute_for_reuse(db_session, source)
+    for pid in ["p2", "p3"]:
+        _seed_problem(db_session, pid)
+    db_session.commit()
+    target = _new_reuse_evaluation(
+        db_session, problem_ids=["p1", "p2", "p3"], budget=integration_harness.cost / 2
+    )
+    integration_harness.execute_calls.clear()
+    assert _execute_for_reuse(db_session, target)["status"] == "paused"
+    ev = _reload(db_session, Evaluation, target)
+    assert ev.completed_count == 2 and ev.spent_usd == pytest.approx(integration_harness.cost)
+    old = db_session.query(ORMProblem).filter_by(problem_id="p3").one().description
+    db_session.query(ORMProblem).filter_by(problem_id="p3").one().description = (
+        "Changed while paused"
+    )
+    ev.budget_cap_usd = 100
+    ev.status = "pending"
+    db_session.get(AsyncTask, ev.async_task_id).status = "pending"
+    db_session.commit()
+    execute = AlgorithmHarness._execute_problem
+
+    def verify_frozen(harness, strategy_config, problem, strategy, sandbox):
+        assert problem.problem_id == "p3" and problem.description == old
+        return execute(harness, strategy_config, problem, strategy, sandbox)
+
+    monkeypatch.setattr(AlgorithmHarness, "_execute_problem", verify_frozen)
+    assert _execute_for_reuse(db_session, target)["status"] == "completed"
+    ev = _reload(db_session, Evaluation, target)
+    assert ev.completed_count == 3
+    assert ev.spent_usd == pytest.approx(2 * integration_harness.cost)
+    assert integration_harness.execute_calls == [("vanilla", "p2"), ("vanilla", "p3")]
+
+
+def test_web_incremental_unknown_original_cost_does_not_charge_or_pause(
+    db_session, integration_harness
+):
+    source = _seed_evaluation(db_session, problem_ids=["p1"], strategy_names=["vanilla"])
+    _execute_for_reuse(db_session, source)
+    original = db_session.query(EvaluationResult).filter_by(evaluation_id=source).one()
+    original.metrics = {**original.metrics, "cost_unknown": True, "cost_known": False}
+    db_session.commit()
+    target = _new_reuse_evaluation(db_session, problem_ids=["p1"], budget=0)
+    assert _execute_for_reuse(db_session, target)["status"] == "completed"
+    ev = _reload(db_session, Evaluation, target)
+    row = db_session.query(EvaluationResult).filter_by(evaluation_id=target).one()
+    from api.services.evaluation_service import _cost_summary
+
+    assert row.metrics["cost_unknown"] is True
+    assert row.metrics["new_cost_unknown"] is False
+    assert _cost_summary(ev)["unknown_cost_count"] == 0
+    assert ev.spent_usd == 0
+
+
+@pytest.mark.parametrize("invalid", ["missing", "damaged", "environment"])
+def test_web_incremental_rejects_corrupt_or_incompatible_plan(
+    db_session, integration_harness, monkeypatch, invalid
+):
+    source = _seed_evaluation(db_session, problem_ids=["p1"], strategy_names=["vanilla"])
+    _execute_for_reuse(db_session, source)
+    target = _new_reuse_evaluation(db_session, problem_ids=["p1"])
+    ev = db_session.get(Evaluation, target)
+    if invalid == "missing":
+        ev.reuse_plan = None
+    elif invalid == "damaged":
+        ev.reuse_plan = {**ev.reuse_plan, "units": []}
+    else:
+        monkeypatch.setenv("OPENAI_BASE_URL", "https://changed-endpoint.invalid/v1")
+    db_session.commit()
+    integration_harness.execute_calls.clear()
+    with pytest.raises(ValueError, match="(plan|configuration)"):
+        _execute_for_reuse(db_session, target)
+    assert integration_harness.execute_calls == []
+    assert db_session.query(EvaluationResult).filter_by(evaluation_id=target).count() == 0

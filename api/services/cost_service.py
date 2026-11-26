@@ -36,6 +36,7 @@ from api.db import (
 from api.db.engine import business_database_url
 from api.db.models import SpendRecord, utcnow
 from api.services.alert_target_policy import authorized_alert_target
+from api.services.evaluation_reuse import new_cost
 from src.cost_optimizer import build_advisory
 from src.models import NOT_EVALUABLE
 from src.utils.pricing import PricingManager
@@ -461,9 +462,7 @@ class CostService:
             )
             for metrics in metrics_rows:
                 if metrics and metrics.get("difficulty") in caps:
-                    difficulty_used[metrics["difficulty"]] += Decimal(
-                        str(metrics.get("cost_usd") or 0)
-                    )
+                    difficulty_used[metrics["difficulty"]] += Decimal(str(new_cost(metrics)))
         return {
             "global_cap_usd": budget.global_cap_usd,
             "used_usd": used,
