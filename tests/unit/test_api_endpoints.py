@@ -212,6 +212,15 @@ CASES = [
     ),
     case(
         "POST",
+        "/evaluations/reuse-preview",
+        "auth.owned_key",
+        ("key-1", OWNER),
+        body={**EVAL_BODY, "reuse_history": False},
+        result=None,
+        expected={"total_units": 1, "reused_units": 0, "new_units": 1, "units": []},
+    ),
+    case(
+        "POST",
         "/evaluations/with-dataset-version",
         "evaluations.create_evaluation",
         (ANY, OWNER),

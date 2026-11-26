@@ -4,16 +4,8 @@ from sqlalchemy import create_engine
 from sqlalchemy.orm import Session
 
 from api.db.models import Base, Evaluation, EvaluationResult
+from src.task_service import TaskUnit
 from src.tasks.evaluation import _record_unit_result
-
-
-class _Unit:
-    def __init__(self, status, result, problem_id="two-sum", strategy="vanilla", error=None):
-        self.status = status
-        self.result = result
-        self.problem_id = problem_id
-        self.strategy = strategy
-        self.error = error
 
 
 def test_record_unit_result_stores_iteration_count_only():
@@ -33,9 +25,12 @@ def test_record_unit_result_stores_iteration_count_only():
         _record_unit_result(
             db,
             evaluation,
-            _Unit(
-                "completed",
-                {
+            TaskUnit(
+                unit_id="two-sum:vanilla",
+                problem_id="two-sum",
+                strategy="vanilla",
+                status="completed",
+                result={
                     "status": "success",
                     "iterations": [{"code": "secret"}, {"code": "still-secret"}],
                     "generated_code": "print(1)",
