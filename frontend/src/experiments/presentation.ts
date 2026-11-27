@@ -1,3 +1,4 @@
+import { budgetDraft } from './advanced.ts'
 import { currentLanguage, t } from '../i18n/core.ts'
 import type { ExperimentDraft, ExperimentStatus } from './types.ts'
 
@@ -68,8 +69,8 @@ export function formatDateTime(value: string): string {
 
 export function summarizeDraft(draft: ExperimentDraft): string {
   const parts: string[] = []
-  if (draft.budget_kind !== 'none')
-    parts.push(`${budgetKindLabels[draft.budget_kind]} ≤ ${draft.budget_value}`)
+  for (const [kind, value] of Object.entries(budgetDraft(draft)))
+    if (value.trim()) parts.push(`${budgetKindLabels[kind]} ≤ ${value}`)
   if (draft.execution === 'parallel')
     parts.push(t('并行 ×{{value1}}', { value1: draft.max_workers }))
   return parts.join(' · ')

@@ -151,3 +151,196 @@ test('列表查询白名单回填：非法状态丢弃、limit 钳位', () => {
   assert.equal(search.get('limit'), '50')
   assert.equal(search.get('offset'), '0')
 })
+
+test('高级参数与筛选及多维预算完整提交，保留提示词正文', () => {
+  const payload = createExperimentPayload(
+    draft({
+      strategies: [
+        {
+          name: 'self_consistency',
+          max_iterations: '',
+          temperature: '',
+          max_tokens: '3456',
+          system_prompt: '  Explain carefully.\n',
+          custom_params: '{"num_candidates":3,"temperature":1.2}',
+        },
+      ],
+      problem_filters: {
+        difficulty: 'easy',
+        tags: 'array, math\narray',
+        problem_ids: 'cf:1-A, lc-2\nlc-2',
+        limit: '2',
+      },
+      budget: { max_calls: '4', max_tokens: '500', max_seconds: '1.5' },
+    }),
+  )
+  assert.deepEqual(payload.strategies, [
+    {
+      name: 'self_consistency',
+      max_tokens: 3456,
+      system_prompt: '  Explain carefully.\n',
+      custom_params: { num_candidates: 3, temperature: 1.2 },
+    },
+  ])
+  assert.deepEqual(payload.problem_filters, {
+    difficulty: 'easy',
+    tags: ['array', 'math'],
+    problem_ids: ['cf:1-A', 'lc-2'],
+    limit: 2,
+  })
+  assert.deepEqual(payload.budget, {
+    max_calls: 4,
+    max_tokens: 500,
+    max_seconds: 1.5,
+  })
+})
+
+test('空高级配置保持省略，空新预算覆盖旧单预算', () => {
+  const payload = createExperimentPayload(
+    draft({
+      strategies: [
+        {
+          name: 'vanilla',
+          max_iterations: '',
+          temperature: '',
+          max_tokens: ' ',
+          system_prompt: ' ',
+          custom_params: '{}',
+        },
+      ],
+      problem_filters: { tags: ' , \n', limit: ' ' },
+      budget: {},
+      budget_kind: 'max_calls',
+      budget_value: '12',
+    }),
+  )
+  assert.deepEqual(payload.strategies, [{ name: 'vanilla' }])
+  assert.equal(payload.problem_filters, undefined)
+  assert.equal(payload.budget, null)
+})
+
+test('高级错误定位到策略和字段；修正后可提交', () => {
+  for (const input of [
+    '{',
+    '[]',
+    'null',
+    'true',
+    '{"num_candidates":0}',
+    '{"num_candidates":1.2}',
+    '{"num_candidates":true}',
+    '{"temperature":3}',
+    '{"base_url":"http://host"}',
+    '{"example_manifest":"/private"}',
+    '{"__proto__":1}',
+  ]) {
+    const value = draft({
+      strategies: [
+        {
+          name: 'self_consistency',
+          max_iterations: '',
+          temperature: '',
+          custom_params: input,
+        },
+      ],
+    })
+    assert.ok(
+      validateExperimentDraft(value)['strategies.0.custom_params'],
+      input,
+    )
+    assert.throws(() => createExperimentPayload(value), ApiClientError)
+  }
+  for (const value of ['99', '8001', '1.5', 'Infinity']) {
+    assert.ok(
+      validateExperimentDraft(
+        draft({
+          strategies: [
+            {
+              name: 'vanilla',
+              max_iterations: '',
+              temperature: '',
+              max_tokens: value,
+            },
+          ],
+        }),
+      )['strategies.0.max_tokens'],
+    )
+  }
+  assert.ok(
+    validateExperimentDraft(draft({ problem_filters: { limit: '0' } }))[
+      'problem_filters.limit'
+    ],
+  )
+  assert.ok(
+    validateExperimentDraft(
+      draft({ problem_filters: { difficulty: 'unknown' } }),
+    )['problem_filters.difficulty'],
+  )
+  const invalid = draft({
+    budget: { max_calls: '1.5', max_tokens: '-1', max_seconds: 'Infinity' },
+  })
+  const errors = validateExperimentDraft(invalid)
+  for (const key of ['max_calls', 'max_tokens', 'max_seconds'])
+    assert.ok(errors[`budget.${key}`])
+  invalid.budget = { max_calls: '1', max_tokens: '15', max_seconds: '0.5' }
+  assert.deepEqual(validateExperimentDraft(invalid), {})
+})
+
+test('白名单覆盖其他现有策略控件及枚举边界', () => {
+  const valid = [
+    [
+      'tree_of_thoughts',
+      {
+        branching_factor: 1,
+        max_depth: 2,
+        search_strategy: 'dfs',
+        pruning_threshold: 0,
+      },
+    ],
+    [
+      'few_shot_learning',
+      {
+        num_examples: 0,
+        similarity_metric: 'tag_overlap',
+        min_similarity_score: 1,
+      },
+    ],
+    ['reflexion', { reflection_context_chars: 1 }],
+  ] as const
+  for (const [name, custom_params] of valid) {
+    const input = draft({
+      strategies: [
+        {
+          name,
+          max_iterations: '',
+          temperature: '',
+          custom_params: JSON.stringify(custom_params),
+        },
+      ],
+    })
+    assert.deepEqual(
+      createExperimentPayload(input).strategies[0].custom_params,
+      custom_params,
+    )
+  }
+  for (const [name, params] of [
+    ['tree_of_thoughts', { search_strategy: 'random' }],
+    ['few_shot_learning', { similarity_metric: 'embedding' }],
+    ['reflexion', { reflection_context_chars: 0 }],
+    ['vanilla', { num_candidates: 2 }],
+  ] as const) {
+    assert.ok(
+      validateExperimentDraft(
+        draft({
+          strategies: [
+            {
+              name,
+              max_iterations: '',
+              temperature: '',
+              custom_params: JSON.stringify(params),
+            },
+          ],
+        }),
+      )['strategies.0.custom_params'],
+    )
+  }
+})

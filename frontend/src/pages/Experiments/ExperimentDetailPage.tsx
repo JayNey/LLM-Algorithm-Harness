@@ -1,3 +1,5 @@
+import { StrategySummary } from '@/experiments/AdvancedFields.tsx'
+import { filterSummary } from '@/experiments/advanced.ts'
 import { useTranslation } from 'react-i18next'
 import { t } from '../../i18n/core.ts'
 import { Alert, Button, Input, Select, Skeleton, Tabs } from 'antd'
@@ -74,6 +76,10 @@ function ConfigSummary({ job }: { job: ExperimentJob }) {
     <dl>
       <dt>{t('数据集')}</dt>
       <dd>{config.dataset_id ? t('个人题库') : config.dataset_path}</dd>
+      <dt>{t('题目筛选')}</dt>
+      <dd style={{ overflowWrap: 'anywhere' }}>
+        {filterSummary(config.problem_filters)}
+      </dd>
       <dt>{t('模型')}</dt>
       <dd>
         {config.models
@@ -84,7 +90,9 @@ function ConfigSummary({ job }: { job: ExperimentJob }) {
           .join('、')}
       </dd>
       <dt>{t('策略')}</dt>
-      <dd>{config.strategies.map((strategy) => strategy.name).join('、')}</dd>
+      <dd>
+        <StrategySummary strategies={config.strategies} />
+      </dd>
       <dt>{t('执行')}</dt>
       <dd>
         {config.execution === 'parallel'
@@ -98,6 +106,7 @@ function ConfigSummary({ job }: { job: ExperimentJob }) {
         {config.budget === null
           ? t('不限制')
           : Object.entries(config.budget)
+              .filter(([, value]) => value !== undefined)
               .map(([kind, value]) => `${kind} ≤ ${value}`)
               .join('，')}
       </dd>

@@ -1,3 +1,11 @@
+import {
+  BudgetFields,
+  ProblemFilterFields,
+  StrategyAdvancedFields,
+  StrategySummary,
+} from '@/experiments/AdvancedFields.tsx'
+import { filterSummary, problemFilters } from '@/experiments/advanced.ts'
+import { createExperimentPayload } from '@/experiments/validation.ts'
 import DatasetPicker from '@/experiments/DatasetPicker.tsx'
 import { useTranslation } from 'react-i18next'
 import { t } from '../../i18n/core.ts'
@@ -7,10 +15,7 @@ import { Link, useNavigate } from 'react-router-dom'
 import { useStore } from 'zustand'
 import { readApiKeys } from '@/account/apiKeys.ts'
 import { ExperimentFeedback } from '@/experiments/components.tsx'
-import {
-  budgetKindLabels,
-  executionLabels,
-} from '@/experiments/presentation.ts'
+import { executionLabels } from '@/experiments/presentation.ts'
 import { useExperimentSession } from '@/experiments/session.tsx'
 import type { DraftErrors, ExperimentDraft } from '@/experiments/types.ts'
 import { validateExperimentDraft } from '@/experiments/validation.ts'
@@ -102,6 +107,10 @@ export default function CreateExperimentPage() {
                     {t('前往详情页启动')}
                   </Link>
                 </p>
+                <p>{filterSummary(problemFilters(draft))}</p>
+                <StrategySummary
+                  strategies={createExperimentPayload(draft).strategies}
+                />
                 <Button
                   onClick={() => {
                     if (startNewDraft()) setErrors({})
@@ -153,6 +162,12 @@ export default function CreateExperimentPage() {
               onChange={update}
               disabled={!editing}
               error={errors.dataset_path}
+            />
+            <ProblemFilterFields
+              draft={draft}
+              update={update}
+              disabled={!editing}
+              errors={errors}
             />
             <label>
               API Key
@@ -285,6 +300,13 @@ export default function CreateExperimentPage() {
                     }
                     disabled={!editing}
                   />
+                  <StrategyAdvancedFields
+                    strategy={strategy}
+                    index={index}
+                    update={(patch) => updateStrategy(index, patch)}
+                    disabled={!editing}
+                    errors={errors}
+                  />
                   {draft.strategies.length > 1 && editing && (
                     <Button
                       aria-label={t('移除策略 {{value1}}', {
@@ -368,40 +390,12 @@ export default function CreateExperimentPage() {
                 )}
               </label>
             )}
-            <label>
-              {t('预算类型')}
-              <Select
-                aria-label={t('实验预算类型')}
-                value={draft.budget_kind}
-                options={Object.entries(budgetKindLabels).map(
-                  ([value, label]) => ({
-                    value,
-                    label,
-                  }),
-                )}
-                onChange={(value: ExperimentDraft['budget_kind']) =>
-                  update({ budget_kind: value })
-                }
-                disabled={!editing}
-              />
-            </label>
-            {draft.budget_kind !== 'none' && (
-              <label>
-                {t('预算限制值（')}
-                {budgetKindLabels[draft.budget_kind]}）
-                <Input
-                  aria-label={t('实验预算限制值')}
-                  value={draft.budget_value}
-                  onChange={(event) =>
-                    update({ budget_value: event.target.value })
-                  }
-                  disabled={!editing}
-                />
-                {errors.budget_value && (
-                  <small role="alert">{t(errors.budget_value)}</small>
-                )}
-              </label>
-            )}
+            <BudgetFields
+              draft={draft}
+              update={update}
+              disabled={!editing}
+              errors={errors}
+            />
 
             {phase === 'create-unknown' && (
               <>

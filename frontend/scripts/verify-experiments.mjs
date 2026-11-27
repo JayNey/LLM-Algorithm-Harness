@@ -215,12 +215,12 @@ async function enterCreateFromList(page) {
   await page.getByRole('link', { name: '创建实验' }).click()
 }
 
-async function selectBudget(page, name) {
-  await page.getByLabel('实验预算类型').click()
-  await page
-    .locator('.ant-select-dropdown:visible')
-    .getByText(name, { exact: true })
-    .click()
+async function fillBudget(page, values) {
+  for (const kind of ['max_calls', 'max_tokens', 'max_seconds']) {
+    await page
+      .getByLabel(`实验预算 ${kind}`, { exact: true })
+      .fill(values[kind] ?? '')
+  }
 }
 
 async function createScenario(page) {
@@ -257,19 +257,20 @@ async function createScenario(page) {
   })
   await page.getByLabel('策略 1 名称').fill('direct')
   await page.keyboard.press('Escape')
-  const budgetValue = page.getByLabel('实验预算限制值')
-  for (const [name, fraction] of [
-    ['调用次数', '1.5'],
-    ['token 数', '0.5'],
+  for (const [kind, name, invalid, message] of [
+    ['max_calls', '调用次数', ['1.5', '0', '-1', 'abc'], '预算须为正整数'],
+    ['max_tokens', 'token 数', ['0.5', '0', '-1', 'abc'], '预算须为正整数'],
+    ['max_seconds', '时间', ['0', '-1', 'abc', 'Infinity'], '预算须为正数'],
   ]) {
     await check(`${name}无效时提示字段错误且不发送创建请求`, async () => {
-      await selectBudget(page, name)
+      await fillBudget(page, {})
+      const budgetValue = page.getByLabel(`实验预算 ${kind}`, { exact: true })
       const error = page
         .locator('label')
         .filter({ has: budgetValue })
         .getByRole('alert')
-        .filter({ hasText: '预算须为正整数' })
-      for (const value of [fraction, '0', '-1', 'abc', '']) {
+        .filter({ hasText: message })
+      for (const value of invalid) {
         await budgetValue.fill(value)
         await page.getByLabel('提交实验').click()
         await error.waitFor({ timeout: 2_000 })
@@ -278,8 +279,7 @@ async function createScenario(page) {
     })
     if (createRequests.length) return
   }
-  await selectBudget(page, '调用次数')
-  await budgetValue.fill('12')
+  await fillBudget(page, { max_calls: '12' })
   await page.getByLabel('提交实验').click()
   await check('创建成功后导航到详情', async () => {
     await page.waitForURL('**/experiments/exp-fixture-new', { timeout: 5_000 })
@@ -308,8 +308,11 @@ async function createScenario(page) {
     assert.equal(await page.getByLabel('实验名称').inputValue(), '')
     assert.equal(createRequests.length, 1)
     await fillDraft(page, '第二个实验')
-    await selectBudget(page, 'token 数')
-    await budgetValue.fill('50')
+    await fillBudget(page, {
+      max_tokens: '50',
+      max_calls: '2',
+      max_seconds: '1.5',
+    })
     await page.getByLabel('提交实验').click()
     await page.waitForURL('**/experiments/exp-fixture-new-2', {
       timeout: 5_000,
@@ -318,7 +321,11 @@ async function createScenario(page) {
       createRequests.map(({ name }) => name),
       ['对比实验', '第二个实验'],
     )
-    assert.deepEqual(createRequests[1].budget, { max_tokens: 50 })
+    assert.deepEqual(createRequests[1].budget, {
+      max_calls: 2,
+      max_tokens: 50,
+      max_seconds: 1.5,
+    })
   })
 
   if (createRequests.length !== 2) return
@@ -351,8 +358,7 @@ async function createScenario(page) {
 
   await check('离开创建页后的迟到成功回执不会重定向或重复提交', async () => {
     await fillDraft(page, '迟到实验')
-    await selectBudget(page, '时间（秒）')
-    await budgetValue.fill('0.5')
+    await fillBudget(page, { max_seconds: '0.5' })
     const isCreate = (request) =>
       request.method() === 'POST' &&
       new URL(request.url()).pathname === '/api/v1/experiments'

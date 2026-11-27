@@ -1,3 +1,4 @@
+import { budgetDraft, parseCustomParams, problemFilters } from './advanced.ts'
 import { datasetConflict, datasetPayload } from '../experiments/datasets.ts'
 import { ApiClientError } from '../auth/http.ts'
 import type {
@@ -56,12 +57,44 @@ export function validateExperimentDraft(draft: ExperimentDraft): DraftErrors {
     errors.repeats = '重复次数须为正整数'
   if (!validInteger(draft.max_workers, 1, 16))
     errors.max_workers = '并行数须为 1–16 的整数'
-  if (draft.budget_kind !== 'none') {
-    const value = draft.budget_value.trim()
-    if (draft.budget_kind === 'max_seconds') {
-      if (!validPositive(value)) errors.budget_value = '预算须为正数'
-    } else if (!validInteger(value, 1, Number.MAX_SAFE_INTEGER)) {
-      errors.budget_value = '预算须为正整数'
+  draft.strategies.forEach((strategy, index) => {
+    if (!strategy.name.trim()) return
+    if (
+      strategy.max_tokens?.trim() &&
+      !validInteger(strategy.max_tokens, 100, 8000)
+    )
+      errors[`strategies.${index}.max_tokens`] =
+        '最大生成 Token 须为 100–8000 的整数'
+    try {
+      parseCustomParams(strategy.name.trim(), strategy.custom_params)
+    } catch (error) {
+      errors[`strategies.${index}.custom_params`] = (error as Error).message
+    }
+  })
+  const filters = draft.problem_filters
+  if (
+    filters?.limit?.trim() &&
+    !validInteger(filters.limit, 1, Number.MAX_SAFE_INTEGER)
+  )
+    errors['problem_filters.limit'] = '题目数量上限须为正整数'
+  if (
+    filters?.difficulty &&
+    !['easy', 'medium', 'hard'].includes(filters.difficulty)
+  )
+    errors['problem_filters.difficulty'] = '请选择有效难度'
+  for (const [kind, value] of Object.entries(budgetDraft(draft))) {
+    if (!value.trim() && draft.budget !== undefined) continue
+    const error =
+      kind === 'max_seconds'
+        ? !validPositive(value.trim())
+          ? '预算须为正数'
+          : undefined
+        : !validInteger(value, 1, Number.MAX_SAFE_INTEGER)
+          ? '预算须为正整数'
+          : undefined
+    if (error) {
+      errors[`budget.${kind}`] = error
+      if (!draft.budget) errors.budget_value = error
     }
   }
   return errors
@@ -71,12 +104,13 @@ export function createExperimentPayload(draft: ExperimentDraft): CreatePayload {
   const errors = validateExperimentDraft(draft)
   if (Object.keys(errors).length)
     throw new ApiClientError('实验配置无效', undefined, errors)
-  const budget =
-    draft.budget_kind === 'none'
-      ? null
-      : {
-          [draft.budget_kind]: Number(trimmed(draft.budget_value)),
-        }
+  const values = Object.entries(budgetDraft(draft)).filter(([, value]) =>
+    value.trim(),
+  )
+  const budget = values.length
+    ? Object.fromEntries(values.map(([key, value]) => [key, Number(value)]))
+    : null
+  const filters = problemFilters(draft)
   return {
     name: trimmed(draft.name),
     ...datasetPayload(draft),
@@ -101,9 +135,24 @@ export function createExperimentPayload(draft: ExperimentDraft): CreatePayload {
         ...(strategy.temperature.trim()
           ? { temperature: Number(strategy.temperature) }
           : {}),
+        ...(strategy.max_tokens?.trim()
+          ? { max_tokens: Number(strategy.max_tokens) }
+          : {}),
+        ...(strategy.system_prompt?.trim()
+          ? { system_prompt: strategy.system_prompt }
+          : {}),
+        ...(parseCustomParams(strategy.name.trim(), strategy.custom_params)
+          ? {
+              custom_params: parseCustomParams(
+                strategy.name.trim(),
+                strategy.custom_params,
+              ),
+            }
+          : {}),
       })),
     repeats: Number(trimmed(draft.repeats)),
     budget,
+    ...(filters ? { problem_filters: filters } : {}),
     execution: draft.execution,
     max_workers: Number(trimmed(draft.max_workers)),
     api_key_id: trimmed(draft.api_key_id),

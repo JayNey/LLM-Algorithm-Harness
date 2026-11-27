@@ -1,0 +1,199 @@
+<!doctype html>
+<html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'unsafe-inline'; base-uri 'none'; form-action 'none'"><title>变更说明 · Web 实验支持高级策略参数、题目筛选和组合每题预算，空值继续继承默认。</title>
+<style>
+:root {
+  color-scheme: light dark;
+  --page: #fafbfc;
+  --ink: #202a35;
+  --muted: #566575;
+  --line: #dbe2e8;
+  --accent: #245b85;
+  --highlight: #edf3f7;
+  --hover: #e9eef3;
+  --code-bg: #edf0f4;
+  --code-ink: #263443;
+  --success: #236d4f;
+  --failure: #a83131;
+  --text: 15px;
+  --small: 13px;
+  --label: 12px;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --page: #181d23;
+    --ink: #e4eaf0;
+    --muted: #a4b1be;
+    --line: #35404b;
+    --accent: #94c6ec;
+    --highlight: #222e39;
+    --hover: #27323d;
+    --code-bg: #10161d;
+    --code-ink: #e0e8f0;
+    --success: #8ed8b5;
+    --failure: #ffb0a8;
+  }
+}
+* { box-sizing: border-box; }
+body {
+  margin: 0;
+  background: var(--page);
+  color: var(--ink);
+  font: var(--text)/1.65 system-ui, -apple-system, "Segoe UI", sans-serif;
+}
+main { max-width: 1040px; margin: auto; padding: 32px 32px 48px; }
+.eyebrow { color: var(--accent); font-size: var(--label); font-weight: 500; letter-spacing: .08em; }
+h1 { margin: 8px 0 12px; max-width: 32em; font-size: 28px; font-weight: 500; line-height: 1.4; letter-spacing: -.02em; overflow-wrap: anywhere; }
+h2 { margin: 0; font-size: 18px; font-weight: 500; line-height: 1.5; overflow-wrap: anywhere; }
+h3 { margin: 0 0 4px; color: var(--muted); font-size: var(--label); font-weight: 500; }
+p { margin: 0; white-space: pre-wrap; overflow-wrap: anywhere; }
+strong { font-weight: 500; }
+.meta { margin-bottom: 24px; color: var(--muted); font-size: var(--small); overflow-wrap: anywhere; }
+.meta p + p { margin-top: 2px; }
+article { padding: 20px 0 12px; border-top: 1px solid var(--line); }
+article header { display: flex; align-items: baseline; gap: 12px; margin-bottom: 12px; }
+.number { color: var(--muted); font: var(--label)/1.5 ui-monospace, Consolas, monospace; font-variant-numeric: tabular-nums; }
+.comparison { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 16px; }
+.comparison section { min-width: 0; padding: 12px; }
+.after { background: var(--highlight); border-radius: 4px; }
+.after h3 { color: var(--accent); }
+.reason { margin-top: 12px; font-size: var(--small); color: var(--muted); }
+.reason strong { margin-right: 8px; color: var(--ink); }
+summary { min-height: 44px; padding: 10px 4px; cursor: pointer; font-size: var(--small); font-weight: 500; border-radius: 4px; }
+summary:hover { background: var(--hover); }
+summary:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.count, .tag { color: var(--muted); font-size: var(--label); font-weight: 400; }
+.count { margin-left: 4px; font-variant-numeric: tabular-nums; }
+.file { min-width: 0; padding: 0 0 16px; scroll-margin-top: 20px; }
+.file:target { outline: 2px solid var(--accent); outline-offset: 4px; }
+.file-heading { display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 8px; }
+.file-heading code { min-width: 0; font-size: var(--small); overflow-wrap: anywhere; }
+.tag { white-space: nowrap; }
+pre { margin: 8px 0 0; padding: 12px 16px; overflow: auto; background: var(--code-bg); color: var(--code-ink); border-radius: 4px; font: var(--small)/1.65 ui-monospace, Consolas, monospace; tab-size: 2; }
+footer { margin-top: 12px; padding-top: 20px; border-top: 1px solid var(--line); }
+footer h2 { margin-bottom: 8px; }
+.check { display: grid; grid-template-columns: 72px minmax(0, 1fr); gap: 12px; padding: 12px 0; border-bottom: 1px solid var(--line); }
+.status { padding-top: 2px; font-size: var(--label); font-weight: 500; }
+.passed { color: var(--success); }
+.failed { color: var(--failure); }
+.not-run, .unknown { color: var(--muted); }
+.check p { margin-top: 2px; color: var(--muted); font-size: var(--small); }
+.more { border-top: 1px solid var(--line); }
+.more > summary { padding-block: 12px; }
+.diagram { margin: 0; padding: 20px 0; border-top: 1px solid var(--line); }
+.diagram figcaption { margin-bottom: 12px; font-size: 18px; font-weight: 500; overflow-wrap: anywhere; }
+.diagram-svg { display: block; max-width: 100%; height: auto; margin: auto; overflow: visible; font: 13px system-ui, -apple-system, "Segoe UI", sans-serif; }
+.diagram-svg text { fill: var(--ink); }
+.diagram-edge { fill: none; stroke: var(--muted); stroke-width: 1.5; }
+.diagram-svg marker path { fill: var(--muted); }
+.diagram-edge-label { fill: var(--page); }
+.diagram-svg .diagram-edge-text { fill: var(--muted); font-size: 12px; }
+.diagram-node rect { fill: var(--page); stroke: var(--line); stroke-width: 1.5; }
+.diagram-node.modified rect { fill: var(--highlight); stroke: var(--accent); }
+.diagram-node.added rect { stroke: var(--success); }
+.diagram-node.deleted rect { stroke: var(--failure); stroke-dasharray: 4 3; }
+.diagram-svg .diagram-kind { fill: var(--muted); font-size: 11px; }
+.diagram-node[href] { cursor: pointer; }
+.diagram-node[href]:hover rect, .diagram-node[href]:focus-visible rect { stroke: var(--accent); stroke-width: 2.5; }
+.diagram-node[href]:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; }
+.diagram-hint { margin-top: 12px; color: var(--muted); font-size: var(--small); text-align: center; }
+.diagram-comparison { display: grid; grid-template-columns: minmax(0,1fr) minmax(0,1fr); gap: 16px; }
+.diagram-comparison > section { min-width: 0; padding: 12px; border: 1px solid var(--line); border-radius: 4px; }
+.diagram-comparison > section > h3 { margin-bottom: 12px; }
+.diagram-compact { display: none; }
+@media (max-width: 999px) {
+  .diagram-wide { display: none; }
+  .diagram-compact { display: block; }
+}
+@media (max-width: 640px) {
+  main { padding: 24px 16px 32px; }
+  h1 { font-size: 24px; }
+  .meta { margin-bottom: 20px; }
+  article { padding-top: 16px; }
+  article header { gap: 8px; }
+  .comparison { grid-template-columns: minmax(0, 1fr); gap: 4px; }
+  .check { grid-template-columns: 60px minmax(0, 1fr); gap: 8px; }
+  pre { padding: 12px; }
+  .diagram-comparison { grid-template-columns: minmax(0,1fr); }
+  .diagram-comparison > section { padding: 12px 0; border: 0; }
+}
+</style></head><body><main><div class="eyebrow">COMET / 变更说明</div><h1>Web 实验支持高级策略参数、题目筛选和组合每题预算，空值继续继承默认。</h1><div class="meta"><p>比较范围 · main / 40a033e1ab4328697010f314ad5e12791e70dd4c 与当前工作区；15 个交付文件，限已批准 issue #526。Comet 产物另计。</p><p>生成时间 · 2026-11-27T13:22:47.136Z</p></div><figure class="diagram"><figcaption>配置进入既有执行逻辑</figcaption><div class="diagram-wide"><svg class="diagram-svg" width="624" height="102" viewBox="0 0 624 102" role="group" aria-labelledby="walkthrough-diagram-0-wide-title walkthrough-diagram-0-wide-description"><title id="walkthrough-diagram-0-wide-title">配置进入既有执行逻辑</title><desc id="walkthrough-diagram-0-wide-description">Web 表单与校验 → 已有 API 与配置持久化; 已有 API 与配置持久化 → 已有 ExperimentRunner; 已有 ExperimentRunner → 题目筛选 · 策略 · 每题预算</desc><defs><marker id="walkthrough-diagram-0-wide-arrow" viewBox="0 0 8 8" refX="7" refY="4" markerWidth="6" markerHeight="6" orient="auto"><path d="M 0 0 L 8 4 L 0 8 z"/></marker></defs><path class="diagram-edge" d="M 132 51 C 152 51, 152 51, 169 51" marker-end="url(#walkthrough-diagram-0-wide-arrow)"/><path class="diagram-edge" d="M 292 51 C 312 51, 312 51, 329 51" marker-end="url(#walkthrough-diagram-0-wide-arrow)"/><path class="diagram-edge" d="M 452 51 C 472 51, 472 51, 489 51" marker-end="url(#walkthrough-diagram-0-wide-arrow)"/><a class="diagram-node modified" href="#walkthrough-file-1-1" aria-label="Web 表单与校验 · frontend/src/experiments/validation.ts"><rect x="12" y="12" width="120" height="78" rx="5"/><text class="diagram-kind" x="72" y="29" text-anchor="middle"><tspan x="72" dy="0">修改</tspan></text><text class="" x="72" y="47" text-anchor="middle"><tspan x="72" dy="0">Web 表单与校验</tspan></text></a><g class="diagram-node "><rect x="172" y="12" width="120" height="78" rx="5"/><text class="" x="232" y="46" text-anchor="middle"><tspan x="232" dy="0">已有 API</tspan><tspan x="232" dy="18">与配置持久化</tspan></text></g><g class="diagram-node "><rect x="332" y="12" width="120" height="78" rx="5"/><text class="" x="392" y="37" text-anchor="middle"><tspan x="392" dy="0">已有</tspan><tspan x="392" dy="18">ExperimentRun</tspan><tspan x="392" dy="18">ner</tspan></text></g><g class="diagram-node "><rect x="492" y="12" width="120" height="78" rx="5"/><text class="" x="552" y="37" text-anchor="middle"><tspan x="552" dy="0">题目筛选 ·</tspan><tspan x="552" dy="18">策略 ·</tspan><tspan x="552" dy="18">每题预算</tspan></text></g></svg></div><div class="diagram-compact"><svg class="diagram-svg" width="272" height="444" viewBox="0 0 272 444" role="group" aria-labelledby="walkthrough-diagram-0-compact-title walkthrough-diagram-0-compact-description"><title id="walkthrough-diagram-0-compact-title">配置进入既有执行逻辑</title><desc id="walkthrough-diagram-0-compact-description">Web 表单与校验 → 已有 API 与配置持久化; 已有 API 与配置持久化 → 已有 ExperimentRunner; 已有 ExperimentRunner → 题目筛选 · 策略 · 每题预算</desc><defs><marker id="walkthrough-diagram-0-compact-arrow" viewBox="0 0 8 8" refX="7" refY="4" markerWidth="6" markerHeight="6" orient="auto"><path d="M 0 0 L 8 4 L 0 8 z"/></marker></defs><path class="diagram-edge" d="M 136 90 C 136 108, 136 108, 136 123" marker-end="url(#walkthrough-diagram-0-compact-arrow)"/><path class="diagram-edge" d="M 136 204 C 136 222, 136 222, 136 237" marker-end="url(#walkthrough-diagram-0-compact-arrow)"/><path class="diagram-edge" d="M 136 318 C 136 336, 136 336, 136 351" marker-end="url(#walkthrough-diagram-0-compact-arrow)"/><a class="diagram-node modified" href="#walkthrough-file-1-1" aria-label="Web 表单与校验 · frontend/src/experiments/validation.ts"><rect x="80" y="12" width="112" height="78" rx="5"/><text class="diagram-kind" x="136" y="29" text-anchor="middle"><tspan x="136" dy="0">修改</tspan></text><text class="" x="136" y="47" text-anchor="middle"><tspan x="136" dy="0">Web</tspan><tspan x="136" dy="18">表单与校验</tspan></text></a><g class="diagram-node "><rect x="80" y="126" width="112" height="78" rx="5"/><text class="" x="136" y="160" text-anchor="middle"><tspan x="136" dy="0">已有 API</tspan><tspan x="136" dy="18">与配置持久化</tspan></text></g><g class="diagram-node "><rect x="80" y="240" width="112" height="78" rx="5"/><text class="" x="136" y="265" text-anchor="middle"><tspan x="136" dy="0">已有</tspan><tspan x="136" dy="18">ExperimentRu</tspan><tspan x="136" dy="18">nner</tspan></text></g><g class="diagram-node "><rect x="80" y="354" width="112" height="78" rx="5"/><text class="" x="136" y="379" text-anchor="middle"><tspan x="136" dy="0">题目筛选 ·</tspan><tspan x="136" dy="18">策略 ·</tspan><tspan x="136" dy="18">每题预算</tspan></text></g></svg></div><p class="diagram-hint">点击带链接的节点查看相关代码。</p></figure><article><header><span class="number">01</span><h2>高级策略配置与参数继承</h2></header><div class="comparison"><section><h3>原来</h3><p>只可设置策略名、迭代、温度，响应也只保留策略名。</p></section><section class="after"><h3>现在</h3><p>可配置 max_tokens、system_prompt 和白名单 custom_params；错误定位到具体策略，空字段省略，持久化详情回显实际值。</p></section></div><p class="reason"><strong>原因</strong> 复现已有 CLI 参数，同时限制路径和连接配置入口。</p><details><summary>查看文件和关键代码 <span class="count">2</span></summary><div class="file" id="walkthrough-file-0-0"><div class="file-heading"><span class="tag">新增</span><code>frontend/src/experiments/advanced.ts</code></div><pre><code>import { t } from &#39;../i18n/core.ts&#39;
+import type { ExperimentDraft, ProblemFilters, ProblemBudget } from &#39;./types.ts&#39;
+
+type Rule = { min?: number; max?: number; integer?: boolean; values?: string[] }
+// Only existing in-process strategy controls; no file paths or connection options.
+export const strategyControls: Record&lt;string, Record&lt;string, Rule&gt;&gt; = {
+  self_consistency: {
+    num_candidates: { min: 1, integer: true },
+    temperature: { min: 0, max: 2 },
+  },
+  tree_of_thoughts: {
+    branching_factor: { min: 1, integer: true },
+    max_depth: { min: 1, integer: true },
+    search_strategy: { values: [&#39;bfs&#39;, &#39;dfs&#39;] },
+    pruning_threshold: { min: 0, max: 1 },
+  },
+  few_shot_learning: {
+    num_examples: { min: 0, integer: true },
+    similarity_metric: { values: [&#39;tag_overlap&#39;] },
+    min_similarity_score: { min: 0, max: 1 },
+  },
+  reflexion: { reflection_context_chars: { min: 1, integer: true } },
+}
+
+export function parseCustomParams(
+  name: string,
+  input = &#39;&#39;,
+): Record&lt;string, unknown&gt; | undefined {
+  if (!input.trim()) return undefined
+  let value: unknown
+  try {
+    value = JSON.parse(input)
+  } catch {
+    throw new Error(t(&#39;自定义参数须为有效 JSON 对象&#39;))
+  }
+  if (!value || typeof value !== &#39;object&#39; || Array.isArray(value))
+    throw new Error(t(&#39;自定义参数须为有效 JSON 对象&#39;))
+  const rules = strategyControls[name] ?? {}
+  for (const [key, item] of Object.entries(value)) {
+    const rule = Object.hasOwn(rules, key) ? rules[key] : undefined
+    if (!rule) throw new Error(t(&#39;不支持的策略参数：{{key}}&#39;, { key }))
+    const valid = rule.values
+      ? typeof item === &#39;string&#39; &amp;&amp; rule.values.includes(item)
+      : typeof item === &#39;number&#39; &amp;&amp;
+        Number.isFinite(item) &amp;&amp;
+        (!rule.integer || Number.isSafeInteger(item)) &amp;&amp;
+        (rule.min === undefined || item &gt;= rule.min) &amp;&amp;
+        (rule.max === undefined || item &lt;= rule.max)
+    if (!valid)
+      throw new Error(
+        t(&#39;策略参数 {{key}} 无效；要求 {{rule}}&#39;, {
+          key,
+          rule:
+            rule.values?.join(&#39; / &#39;) ??
+            `${rule.integer ? t(&#39;整数&#39;) : t(&#39;数值&#39;)} ≥ ${rule.min}${rule.max === undefined ? &#39;&#39; : ` ≤ ${rule.max}`}`,
+        }),
+      )
+  }
+  return Object.keys(value).length
+    ? (value as Record&lt;string, unknown&gt;)
+    : undefined
+}
+
+export function splitFilterList(input = &#39;&#39;): string[] {
+  return [
+    ...new Set(
+      input
+        .split(/[,，\r\n]+/)
+        .map((value) =&gt; value.trim())
+        .filter(Boolean),
+    ),
+  ]
+}
+
+export function problemFilters(
+  draft: ExperimentDraft,
+): P</code></pre></div><div class="file" id="walkthrough-file-0-1"><div class="file-heading"><span class="tag">修改</span><code>frontend/src/experiments/client.ts</code></div><pre><code>+ 响应读取 max_iterations / temperature / max_tokens / system_prompt / custom_params 与 problem_filters</code></pre></div></details></article><article><header><span class="number">02</span><h2>筛选与组合预算</h2></header><div class="comparison"><section><h3>原来</h3><p>无筛选入口；预算只能选择一个维度。</p></section><section class="after"><h3>现在</h3><p>难度、标签、题目 ID、limit 可组合；calls/tokens/seconds 独立选填，任一上限触发按共享语义停止，条件在提交前后与刷新详情显示。</p></section></div><p class="reason"><strong>原因</strong> 沿用 ProblemLoader 与 ProblemBudget，使 Web 参数进入现有执行逻辑。</p><details><summary>查看文件和关键代码 <span class="count">2</span></summary><div class="file" id="walkthrough-file-1-0"><div class="file-heading"><span class="tag">新增</span><code>frontend/src/experiments/AdvancedFields.tsx</code></div><pre><code>ProblemFilterFields: difficulty / tags / problem_ids / limit
+BudgetFields: max_calls / max_tokens / max_seconds
+StrategySummary: 配置或默认语义回显</code></pre></div><div class="file" id="walkthrough-file-1-1"><div class="file-heading"><span class="tag">修改</span><code>frontend/src/experiments/validation.ts</code></div><pre><code>+ 空筛选省略；空预算 null；多个维度一起提交；旧 budget_kind / budget_value 草稿可转换</code></pre></div></details></article><article><header><span class="number">03</span><h2>离线执行链路与浏览器回归</h2></header><div class="comparison"><section><h3>原来</h3><p>不能凭控件出现确定策略参数和筛选、预算实际生效。</p></section><section class="after"><h3>现在</h3><p>真实 ExperimentRunner 与 self_consistency 经 mock SDK、mock 沙箱执行，验证两道选中题目、候选次数、生成参数和三种预算停止原因；双语浏览器检查真实表单请求及回显。</p></section></div><p class="reason"><strong>原因</strong> 覆盖 issue 四条验收，避免仅检查 payload 或 UI。</p><details><summary>查看文件和关键代码 <span class="count">2</span></summary><div class="file" id="walkthrough-file-2-0"><div class="file-heading"><span class="tag">新增</span><code>tests/test_web_experiment_config.py</code></div><pre><code>@pytest.mark.parametrize(&quot;stop&quot;, [None, &quot;max_calls&quot;, &quot;max_tokens&quot;, &quot;max_seconds&quot;])
+请求→数据库→ExperimentConfig→ExperimentRunner→真实策略→mock SDK
+核对 problem_ids、每题调用数、stop_reason、max_tokens、temperature、system_prompt</code></pre></div><div class="file" id="walkthrough-file-2-1"><div class="file-heading"><span class="tag">新增</span><code>frontend/scripts/verify-experiment-config.mjs</code></div><pre><code>中英文：错误输入不提交→修正→核对完整 payload→刷新配置回显→移动端→旧任务默认显示</code></pre></div></details></article><footer><h2>实际验证</h2><div class="check"><span class="status passed">通过</span><div><strong>Builder 自检</strong><p>前端 377 项、Python 103 项；最终双语资源测试、构建、lint、格式检查与中英文浏览器流程通过。</p></div></div><div class="check"><span class="status passed">通过</span><div><strong>Runtime 检查</strong><p>OpenSpec strict、Build Guard、Verify Guard 均通过；当前进入 Archive，等待用户交付选择。</p></div></div><div class="check"><span class="status not-run">未执行</span><div><strong>独立审查</strong><p>tweak 预设 review_mode=off，未启动独立 reviewer。</p></div></div><div class="check"><span class="status not-run">未执行</span><div><strong>真实付费模型与全仓覆盖率</strong><p>按 issue 使用小型题库与本地 mock；局部 Python 验证使用 --no-cov，不声明全仓测试或 90% 全仓覆盖率通过。</p></div></div></footer></main><template id="walkthrough-data">eyJzdW1tYXJ5IjoiV2ViIOWunumqjOaUr+aMgemrmOe6p+etlueVpeWPguaVsOOAgemimOebruetm+mAieWSjOe7hOWQiOavj+mimOmihOeul++8jOepuuWAvOe7p+e7ree7p+aJv+m7mOiupOOAgiIsInNjb3BlIjoibWFpbiAvIDQwYTAzM2UxYWI0MzI4Njk3MDEwZjMxNGFkNWUxMjc5MWU3MGRkNGMg5LiO5b2T5YmN5bel5L2c5Yy677ybMTUg5Liq5Lqk5LuY5paH5Lu277yM6ZmQ5bey5om55YeGIGlzc3VlICM1MjbjgIJDb21ldCDkuqfnianlj6borqHjgIIiLCJjaGFuZ2VzIjpbeyJ0aXRsZSI6IumrmOe6p+etlueVpemFjee9ruS4juWPguaVsOe7p+aJvyIsImJlZm9yZSI6IuWPquWPr+iuvue9ruetlueVpeWQjeOAgei/reS7o+OAgea4qeW6pu+8jOWTjeW6lOS5n+WPquS/neeVmeetlueVpeWQjeOAgiIsImFmdGVyIjoi5Y+v6YWN572uIG1heF90b2tlbnPjgIFzeXN0ZW1fcHJvbXB0IOWSjOeZveWQjeWNlSBjdXN0b21fcGFyYW1z77yb6ZSZ6K+v5a6a5L2N5Yiw5YW35L2T562W55Wl77yM56m65a2X5q6155yB55Wl77yM5oyB5LmF5YyW6K+m5oOF5Zue5pi+5a6e6ZmF5YC844CCIiwicmVhc29uIjoi5aSN546w5bey5pyJIENMSSDlj4LmlbDvvIzlkIzml7bpmZDliLbot6/lvoTlkozov57mjqXphY3nva7lhaXlj6PjgIIiLCJmaWxlcyI6W3sicGF0aCI6ImZyb250ZW5kL3NyYy9leHBlcmltZW50cy9hZHZhbmNlZC50cyIsImtpbmQiOiJhZGRlZCIsImNvZGUiOiJpbXBvcnQgeyB0IH0gZnJvbSAnLi4vaTE4bi9jb3JlLnRzJ1xuaW1wb3J0IHR5cGUgeyBFeHBlcmltZW50RHJhZnQsIFByb2JsZW1GaWx0ZXJzLCBQcm9ibGVtQnVkZ2V0IH0gZnJvbSAnLi90eXBlcy50cydcblxudHlwZSBSdWxlID0geyBtaW4/OiBudW1iZXI7IG1heD86IG51bWJlcjsgaW50ZWdlcj86IGJvb2xlYW47IHZhbHVlcz86IHN0cmluZ1tdIH1cbi8vIE9ubHkgZXhpc3RpbmcgaW4tcHJvY2VzcyBzdHJhdGVneSBjb250cm9sczsgbm8gZmlsZSBwYXRocyBvciBjb25uZWN0aW9uIG9wdGlvbnMuXG5leHBvcnQgY29uc3Qgc3RyYXRlZ3lDb250cm9sczogUmVjb3JkPHN0cmluZywgUmVjb3JkPHN0cmluZywgUnVsZT4+ID0ge1xuICBzZWxmX2NvbnNpc3RlbmN5OiB7XG4gICAgbnVtX2NhbmRpZGF0ZXM6IHsgbWluOiAxLCBpbnRlZ2VyOiB0cnVlIH0sXG4gICAgdGVtcGVyYXR1cmU6IHsgbWluOiAwLCBtYXg6IDIgfSxcbiAgfSxcbiAgdHJlZV9vZl90aG91Z2h0czoge1xuICAgIGJyYW5jaGluZ19mYWN0b3I6IHsgbWluOiAxLCBpbnRlZ2VyOiB0cnVlIH0sXG4gICAgbWF4X2RlcHRoOiB7IG1pbjogMSwgaW50ZWdlcjogdHJ1ZSB9LFxuICAgIHNlYXJjaF9zdHJhdGVneTogeyB2YWx1ZXM6IFsnYmZzJywgJ2RmcyddIH0sXG4gICAgcHJ1bmluZ190aHJlc2hvbGQ6IHsgbWluOiAwLCBtYXg6IDEgfSxcbiAgfSxcbiAgZmV3X3Nob3RfbGVhcm5pbmc6IHtcbiAgICBudW1fZXhhbXBsZXM6IHsgbWluOiAwLCBpbnRlZ2VyOiB0cnVlIH0sXG4gICAgc2ltaWxhcml0eV9tZXRyaWM6IHsgdmFsdWVzOiBbJ3RhZ19vdmVybGFwJ10gfSxcbiAgICBtaW5fc2ltaWxhcml0eV9zY29yZTogeyBtaW46IDAsIG1heDogMSB9LFxuICB9LFxuICByZWZsZXhpb246IHsgcmVmbGVjdGlvbl9jb250ZXh0X2NoYXJzOiB7IG1pbjogMSwgaW50ZWdlcjogdHJ1ZSB9IH0sXG59XG5cbmV4cG9ydCBmdW5jdGlvbiBwYXJzZUN1c3RvbVBhcmFtcyhcbiAgbmFtZTogc3RyaW5nLFxuICBpbnB1dCA9ICcnLFxuKTogUmVjb3JkPHN0cmluZywgdW5rbm93bj4gfCB1bmRlZmluZWQge1xuICBpZiAoIWlucHV0LnRyaW0oKSkgcmV0dXJuIHVuZGVmaW5lZFxuICBsZXQgdmFsdWU6IHVua25vd25cbiAgdHJ5IHtcbiAgICB2YWx1ZSA9IEpTT04ucGFyc2UoaW5wdXQpXG4gIH0gY2F0Y2gge1xuICAgIHRocm93IG5ldyBFcnJvcih0KCfoh6rlrprkuYnlj4LmlbDpobvkuLrmnInmlYggSlNPTiDlr7nosaEnKSlcbiAgfVxuICBpZiAoIXZhbHVlIHx8IHR5cGVvZiB2YWx1ZSAhPT0gJ29iamVjdCcgfHwgQXJyYXkuaXNBcnJheSh2YWx1ZSkpXG4gICAgdGhyb3cgbmV3IEVycm9yKHQoJ+iHquWumuS5ieWPguaVsOmhu+S4uuacieaViCBKU09OIOWvueixoScpKVxuICBjb25zdCBydWxlcyA9IHN0cmF0ZWd5Q29udHJvbHNbbmFtZV0gPz8ge31cbiAgZm9yIChjb25zdCBba2V5LCBpdGVtXSBvZiBPYmplY3QuZW50cmllcyh2YWx1ZSkpIHtcbiAgICBjb25zdCBydWxlID0gT2JqZWN0Lmhhc093bihydWxlcywga2V5KSA/IHJ1bGVzW2tleV0gOiB1bmRlZmluZWRcbiAgICBpZiAoIXJ1bGUpIHRocm93IG5ldyBFcnJvcih0KCfkuI3mlK/mjIHnmoTnrZbnlaXlj4LmlbDvvJp7e2tleX19JywgeyBrZXkgfSkpXG4gICAgY29uc3QgdmFsaWQgPSBydWxlLnZhbHVlc1xuICAgICAgPyB0eXBlb2YgaXRlbSA9PT0gJ3N0cmluZycgJiYgcnVsZS52YWx1ZXMuaW5jbHVkZXMoaXRlbSlcbiAgICAgIDogdHlwZW9mIGl0ZW0gPT09ICdudW1iZXInICYmXG4gICAgICAgIE51bWJlci5pc0Zpbml0ZShpdGVtKSAmJlxuICAgICAgICAoIXJ1bGUuaW50ZWdlciB8fCBOdW1iZXIuaXNTYWZlSW50ZWdlcihpdGVtKSkgJiZcbiAgICAgICAgKHJ1bGUubWluID09PSB1bmRlZmluZWQgfHwgaXRlbSA+PSBydWxlLm1pbikgJiZcbiAgICAgICAgKHJ1bGUubWF4ID09PSB1bmRlZmluZWQgfHwgaXRlbSA8PSBydWxlLm1heClcbiAgICBpZiAoIXZhbGlkKVxuICAgICAgdGhyb3cgbmV3IEVycm9yKFxuICAgICAgICB0KCfnrZbnlaXlj4LmlbAge3trZXl9fSDml6DmlYjvvJvopoHmsYIge3tydWxlfX0nLCB7XG4gICAgICAgICAga2V5LFxuICAgICAgICAgIHJ1bGU6XG4gICAgICAgICAgICBydWxlLnZhbHVlcz8uam9pbignIC8gJykgPz9cbiAgICAgICAgICAgIGAke3J1bGUuaW50ZWdlciA/IHQoJ+aVtOaVsCcpIDogdCgn5pWw5YC8Jyl9IOKJpSAke3J1bGUubWlufSR7cnVsZS5tYXggPT09IHVuZGVmaW5lZCA/ICcnIDogYCDiiaQgJHtydWxlLm1heH1gfWAsXG4gICAgICAgIH0pLFxuICAgICAgKVxuICB9XG4gIHJldHVybiBPYmplY3Qua2V5cyh2YWx1ZSkubGVuZ3RoXG4gICAgPyAodmFsdWUgYXMgUmVjb3JkPHN0cmluZywgdW5rbm93bj4pXG4gICAgOiB1bmRlZmluZWRcbn1cblxuZXhwb3J0IGZ1bmN0aW9uIHNwbGl0RmlsdGVyTGlzdChpbnB1dCA9ICcnKTogc3RyaW5nW10ge1xuICByZXR1cm4gW1xuICAgIC4uLm5ldyBTZXQoXG4gICAgICBpbnB1dFxuICAgICAgICAuc3BsaXQoL1ss77yMXFxyXFxuXSsvKVxuICAgICAgICAubWFwKCh2YWx1ZSkgPT4gdmFsdWUudHJpbSgpKVxuICAgICAgICAuZmlsdGVyKEJvb2xlYW4pLFxuICAgICksXG4gIF1cbn1cblxuZXhwb3J0IGZ1bmN0aW9uIHByb2JsZW1GaWx0ZXJzKFxuICBkcmFmdDogRXhwZXJpbWVudERyYWZ0LFxuKTogUCJ9LHsicGF0aCI6ImZyb250ZW5kL3NyYy9leHBlcmltZW50cy9jbGllbnQudHMiLCJraW5kIjoibW9kaWZpZWQiLCJjb2RlIjoiKyDlk43lupTor7vlj5YgbWF4X2l0ZXJhdGlvbnMgLyB0ZW1wZXJhdHVyZSAvIG1heF90b2tlbnMgLyBzeXN0ZW1fcHJvbXB0IC8gY3VzdG9tX3BhcmFtcyDkuI4gcHJvYmxlbV9maWx0ZXJzIn1dfSx7InRpdGxlIjoi562b6YCJ5LiO57uE5ZCI6aKE566XIiwiYmVmb3JlIjoi5peg562b6YCJ5YWl5Y+j77yb6aKE566X5Y+q6IO96YCJ5oup5LiA5Liq57u05bqm44CCIiwiYWZ0ZXIiOiLpmr7luqbjgIHmoIfnrb7jgIHpopjnm64gSUTjgIFsaW1pdCDlj6/nu4TlkIjvvJtjYWxscy90b2tlbnMvc2Vjb25kcyDni6znq4vpgInloavvvIzku7vkuIDkuIrpmZDop6blj5HmjInlhbHkuqvor63kuYnlgZzmraLvvIzmnaHku7blnKjmj5DkuqTliY3lkI7kuI7liLfmlrDor6bmg4XmmL7npLrjgIIiLCJyZWFzb24iOiLmsr/nlKggUHJvYmxlbUxvYWRlciDkuI4gUHJvYmxlbUJ1ZGdldO+8jOS9vyBXZWIg5Y+C5pWw6L+b5YWl546w5pyJ5omn6KGM6YC76L6R44CCIiwiZmlsZXMiOlt7InBhdGgiOiJmcm9udGVuZC9zcmMvZXhwZXJpbWVudHMvQWR2YW5jZWRGaWVsZHMudHN4Iiwia2luZCI6ImFkZGVkIiwiY29kZSI6IlByb2JsZW1GaWx0ZXJGaWVsZHM6IGRpZmZpY3VsdHkgLyB0YWdzIC8gcHJvYmxlbV9pZHMgLyBsaW1pdFxuQnVkZ2V0RmllbGRzOiBtYXhfY2FsbHMgLyBtYXhfdG9rZW5zIC8gbWF4X3NlY29uZHNcblN0cmF0ZWd5U3VtbWFyeTog6YWN572u5oiW6buY6K6k6K+t5LmJ5Zue5pi+In0seyJwYXRoIjoiZnJvbnRlbmQvc3JjL2V4cGVyaW1lbnRzL3ZhbGlkYXRpb24udHMiLCJraW5kIjoibW9kaWZpZWQiLCJjb2RlIjoiKyDnqbrnrZvpgInnnIHnlaXvvJvnqbrpooTnrpcgbnVsbO+8m+WkmuS4que7tOW6puS4gOi1t+aPkOS6pO+8m+aXpyBidWRnZXRfa2luZCAvIGJ1ZGdldF92YWx1ZSDojYnnqL/lj6/ovazmjaIifV19LHsidGl0bGUiOiLnprvnur/miafooYzpk77ot6/kuI7mtY/op4jlmajlm57lvZIiLCJiZWZvcmUiOiLkuI3og73lh63mjqfku7blh7rnjrDnoa7lrprnrZbnlaXlj4LmlbDlkoznrZvpgInjgIHpooTnrpflrp7pmYXnlJ/mlYjjgIIiLCJhZnRlciI6Iuecn+WuniBFeHBlcmltZW50UnVubmVyIOS4jiBzZWxmX2NvbnNpc3RlbmN5IOe7jyBtb2NrIFNES+OAgW1vY2sg5rKZ566x5omn6KGM77yM6aqM6K+B5Lik6YGT6YCJ5Lit6aKY55uu44CB5YCZ6YCJ5qyh5pWw44CB55Sf5oiQ5Y+C5pWw5ZKM5LiJ56eN6aKE566X5YGc5q2i5Y6f5Zug77yb5Y+M6K+t5rWP6KeI5Zmo5qOA5p+l55yf5a6e6KGo5Y2V6K+35rGC5Y+K5Zue5pi+44CCIiwicmVhc29uIjoi6KaG55uWIGlzc3VlIOWbm+adoemqjOaUtu+8jOmBv+WFjeS7heajgOafpSBwYXlsb2FkIOaIliBVSeOAgiIsImZpbGVzIjpbeyJwYXRoIjoidGVzdHMvdGVzdF93ZWJfZXhwZXJpbWVudF9jb25maWcucHkiLCJraW5kIjoiYWRkZWQiLCJjb2RlIjoiQHB5dGVzdC5tYXJrLnBhcmFtZXRyaXplKFwic3RvcFwiLCBbTm9uZSwgXCJtYXhfY2FsbHNcIiwgXCJtYXhfdG9rZW5zXCIsIFwibWF4X3NlY29uZHNcIl0pXG7or7fmsYLihpLmlbDmja7lupPihpJFeHBlcmltZW50Q29uZmln4oaSRXhwZXJpbWVudFJ1bm5lcuKGkuecn+WunuetlueVpeKGkm1vY2sgU0RLXG7moLjlr7kgcHJvYmxlbV9pZHPjgIHmr4/popjosIPnlKjmlbDjgIFzdG9wX3JlYXNvbuOAgW1heF90b2tlbnPjgIF0ZW1wZXJhdHVyZeOAgXN5c3RlbV9wcm9tcHQifSx7InBhdGgiOiJmcm9udGVuZC9zY3JpcHRzL3ZlcmlmeS1leHBlcmltZW50LWNvbmZpZy5tanMiLCJraW5kIjoiYWRkZWQiLCJjb2RlIjoi5Lit6Iux5paH77ya6ZSZ6K+v6L6T5YWl5LiN5o+Q5Lqk4oaS5L+u5q2j4oaS5qC45a+55a6M5pW0IHBheWxvYWTihpLliLfmlrDphY3nva7lm57mmL7ihpLnp7vliqjnq6/ihpLml6fku7vliqHpu5jorqTmmL7npLoifV19XSwidmVyaWZpY2F0aW9uIjpbeyJsYWJlbCI6IkJ1aWxkZXIg6Ieq5qOAIiwic3RhdHVzIjoicGFzc2VkIiwiZGV0YWlsIjoi5YmN56uvIDM3NyDpobnjgIFQeXRob24gMTAzIOmhue+8m+acgOe7iOWPjOivrei1hOa6kOa1i+ivleOAgeaehOW7uuOAgWxpbnTjgIHmoLzlvI/mo4Dmn6XkuI7kuK3oi7HmlofmtY/op4jlmajmtYHnqIvpgJrov4fjgIIifSx7ImxhYmVsIjoiUnVudGltZSDmo4Dmn6UiLCJzdGF0dXMiOiJwYXNzZWQiLCJkZXRhaWwiOiJPcGVuU3BlYyBzdHJpY3TjgIFCdWlsZCBHdWFyZOOAgVZlcmlmeSBHdWFyZCDlnYfpgJrov4fvvJvlvZPliY3ov5vlhaUgQXJjaGl2Ze+8jOetieW+heeUqOaIt+S6pOS7mOmAieaLqeOAgiJ9LHsibGFiZWwiOiLni6znq4vlrqHmn6UiLCJzdGF0dXMiOiJub3QtcnVuIiwiZGV0YWlsIjoidHdlYWsg6aKE6K6+IHJldmlld19tb2RlPW9mZu+8jOacquWQr+WKqOeLrOeriyByZXZpZXdlcuOAgiJ9LHsibGFiZWwiOiLnnJ/lrp7ku5jotLnmqKHlnovkuI7lhajku5Popobnm5bnjociLCJzdGF0dXMiOiJub3QtcnVuIiwiZGV0YWlsIjoi5oyJIGlzc3VlIOS9v+eUqOWwj+Wei+mimOW6k+S4juacrOWcsCBtb2Nr77yb5bGA6YOoIFB5dGhvbiDpqozor4Hkvb/nlKggLS1uby1jb3bvvIzkuI3lo7DmmI7lhajku5PmtYvor5XmiJYgOTAlIOWFqOS7k+imhueblueOh+mAmui/h+OAgiJ9XSwiZGlhZ3JhbXMiOlt7InR5cGUiOiJmbG93IiwidGl0bGUiOiLphY3nva7ov5vlhaXml6LmnInmiafooYzpgLvovpEiLCJub2RlcyI6W3siaWQiOiJmb3JtIiwibGFiZWwiOiJXZWIg6KGo5Y2V5LiO5qCh6aqMIiwiZmlsZSI6ImZyb250ZW5kL3NyYy9leHBlcmltZW50cy92YWxpZGF0aW9uLnRzIiwia2luZCI6Im1vZGlmaWVkIn0seyJpZCI6ImFwaSIsImxhYmVsIjoi5bey5pyJIEFQSSDkuI7phY3nva7mjIHkuYXljJYifSx7ImlkIjoicnVubmVyIiwibGFiZWwiOiLlt7LmnIkgRXhwZXJpbWVudFJ1bm5lciJ9LHsiaWQiOiJzdHJhdGVneSIsImxhYmVsIjoi6aKY55uu562b6YCJIMK3IOetlueVpSDCtyDmr4/popjpooTnrpcifV0sImVkZ2VzIjpbeyJmcm9tIjoiZm9ybSIsInRvIjoiYXBpIn0seyJmcm9tIjoiYXBpIiwidG8iOiJydW5uZXIifSx7ImZyb20iOiJydW5uZXIiLCJ0byI6InN0cmF0ZWd5In1dfV19</template></body></html>
