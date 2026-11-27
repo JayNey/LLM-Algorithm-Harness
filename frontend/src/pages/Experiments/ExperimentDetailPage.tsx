@@ -299,103 +299,19 @@ function ParetoTab({ experimentId }: { experimentId: string }) {
   const [accuracyMetric, setAccuracyMetric] = useState<'overall' | 'formal'>(
     'overall',
   )
-  const [selectedIds, setSelectedIds] = useState<string[]>([experimentId])
-  const [budgetInput, setBudgetInput] = useState('')
-  const [pageOffset, setPageOffset] = useState(0)
-  const [choices, setChoices] = useState<ExperimentJob[]>([])
-  const list = useResource(
-    useCallback(
-      (signal: AbortSignal) =>
-        client.list({ limit: 20, offset: pageOffset }, signal),
-      [client, pageOffset],
-    ),
-  )
-  // Derive the visible page immediately; accumulated options survive pagination.
-  const options = [
-    ...new Map(
-      [...choices, ...(list.data?.items ?? [])].map((job) => [
-        job.id,
-        { value: job.id, label: `${job.name} (${job.id})` },
-      ]),
-    ).values(),
-  ]
-  if (!options.some((option) => option.value === experimentId))
-    options.unshift({ value: experimentId, label: experimentId })
-  const tokens = budgetInput.trim() ? budgetInput.trim().split(/[,，\s]+/) : []
-  const decimal = /^(?:\d+(?:\.\d*)?|\.\d+)(?:[eE][+-]?\d+)?$/
-  const budgetError = tokens.some(
-    (token) => !decimal.test(token) || !Number.isFinite(Number(token)),
-  )
   const load = useCallback(
-    async (signal: AbortSignal): Promise<ParetoResult | null> => {
-      if (budgetError || selectedIds.length === 0) return null
-      const budgets = budgetInput.trim()
-        ? budgetInput
-            .trim()
-            .split(/[,，\s]+/)
-            .map(Number)
-        : []
-      return client.pareto(selectedIds, budgets, accuracyMetric, signal)
+    async (signal: AbortSignal): Promise<ParetoResult> => {
+      return client.pareto(experimentId, [], accuracyMetric, signal)
     },
-    [client, selectedIds, budgetInput, budgetError, accuracyMetric],
+    [client, experimentId, accuracyMetric],
   )
   const pareto = useResource(load)
-  const data = pareto.data
+  if (pareto.loading) return <Skeleton active paragraph={{ rows: 5 }} />
+  if (pareto.error)
+    return <Alert role="alert" type="error" message={t(pareto.error)} />
+  const data = pareto.data as ParetoResult
   return (
     <div>
-      <label>
-        {t('分析实验')}
-        <Select
-          mode="multiple"
-          style={{ width: '100%' }}
-          aria-label={t('分析实验')}
-          value={selectedIds}
-          options={options}
-          onChange={(ids: string[]) => setSelectedIds([...new Set(ids)])}
-        />
-      </label>
-      {list.error && (
-        <Alert
-          role="alert"
-          type="error"
-          message={t(list.error)}
-          action={<Button onClick={list.retry}>{t('重试')}</Button>}
-        />
-      )}
-      {list.loading && <p>{t('正在加载实验…')}</p>}
-      {list.data?.has_more && (
-        <Button
-          onClick={() => {
-            setChoices((previous) => [
-              ...new Map(
-                [...previous, ...list.data!.items].map((job) => [job.id, job]),
-              ).values(),
-            ])
-            setPageOffset(list.data!.offset + list.data!.limit)
-          }}
-        >
-          {t('加载更多实验')}
-        </Button>
-      )}
-      <label>
-        {t('预算列表（USD，可选）')}
-        <Input
-          aria-label={t('预算列表（USD，可选）')}
-          value={budgetInput}
-          placeholder={t('以逗号或空白分隔，例如 0, 0.05, 1')}
-          onChange={(event) => setBudgetInput(event.target.value)}
-        />
-      </label>
-      {budgetError && (
-        <Alert
-          role="alert"
-          type="warning"
-          message={t('预算列表须为有限非负数，以逗号或空白分隔')}
-        />
-      )}
-      {selectedIds.length === 0 && (
-        <Alert role="alert" type="warning" message={t('请选择至少一个实验')} />
-      )}
       <label>
         {t('准确率口径')}
         <Select
@@ -408,63 +324,48 @@ function ParetoTab({ experimentId }: { experimentId: string }) {
           onChange={(value: 'overall' | 'formal') => setAccuracyMetric(value)}
         />
       </label>
-      {pareto.loading && !budgetError && selectedIds.length > 0 && (
-        <Skeleton active paragraph={{ rows: 5 }} />
-      )}
-      {pareto.error && (
-        <Alert
-          role="alert"
-          type="error"
-          message={t(pareto.error)}
-          action={<Button onClick={pareto.retry}>{t('重试')}</Button>}
-        />
-      )}
-      {data && (
-        <>
-          <ScatterPlot
-            points={data.points.map((point) => ({
-              label: point.id,
-              x: point.mean_cost_usd,
-              y: point.mean_accuracy,
-            }))}
-            highlightIds={data.frontier_ids}
-            xName={t('平均成本（USD）')}
-            yName={t('平均准确率')}
-          />
-          <p>
-            {t('前沿组合：')}
-            {data.points
-              .filter((point) => data.frontier_ids.includes(point.id))
-              .map((point) => `${point.model} × ${point.strategy}`)
-              .join('、') || t('无')}
-          </p>
-          <div className="evaluation-list-scroll">
-            <table
-              className="evaluation-list-table"
-              aria-label={t('帕累托预算建议')}
-            >
-              <thead>
-                <tr>
-                  {[t('预算（USD）'), t('可行'), t('推荐组合')].map((name) => (
-                    <th key={name} scope="col">
-                      {name}
-                    </th>
-                  ))}
-                </tr>
-              </thead>
-              <tbody>
-                {data.budget_recommendations.map((row, index) => (
-                  <tr key={`${row.budget_usd}-${index}`}>
-                    <td>{row.budget_usd}</td>
-                    <td>{row.feasible ? t('可行') : t('不可行')}</td>
-                    <td>{row.point_id || '—'}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </>
-      )}
+      <ScatterPlot
+        points={data.points.map((point) => ({
+          label: point.id,
+          x: point.mean_cost_usd,
+          y: point.mean_accuracy,
+        }))}
+        highlightIds={data.frontier_ids}
+        xName={t('平均成本（USD）')}
+        yName={t('平均准确率')}
+      />
+      <p>
+        {t('前沿组合：')}
+        {data.points
+          .filter((point) => data.frontier_ids.includes(point.id))
+          .map((point) => `${point.model} × ${point.strategy}`)
+          .join('、') || t('无')}
+      </p>
+      <div className="evaluation-list-scroll">
+        <table
+          className="evaluation-list-table"
+          aria-label={t('帕累托预算建议')}
+        >
+          <thead>
+            <tr>
+              {[t('预算（USD）'), t('可行'), t('推荐组合')].map((name) => (
+                <th key={name} scope="col">
+                  {name}
+                </th>
+              ))}
+            </tr>
+          </thead>
+          <tbody>
+            {data.budget_recommendations.map((row) => (
+              <tr key={row.budget_usd}>
+                <td>{row.budget_usd}</td>
+                <td>{row.feasible ? t('可行') : t('不可行')}</td>
+                <td>{row.point_id || '—'}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
     </div>
   )
 }
@@ -1014,7 +915,7 @@ function ExperimentDetail({ experimentId }: { experimentId: string }) {
                   {
                     key: 'pareto',
                     label: t('帕累托'),
-                    children: <ParetoTab key={job.id} experimentId={job.id} />,
+                    children: <ParetoTab experimentId={job.id} />,
                   },
                   {
                     key: 'optimize',
