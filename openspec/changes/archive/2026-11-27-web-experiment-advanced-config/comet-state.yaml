@@ -1,0 +1,2153 @@
+# comet-execution: managed-run
+change_id: dede8952-165e-4e21-91dd-0e6da0074b6c
+workflow: tweak
+language: zh-CN
+phase: archive
+context_compression: off
+build_mode: direct
+build_pause: null
+subagent_dispatch: null
+tdd_mode: direct
+review_mode: off
+isolation: current
+verify_mode: light
+auto_transition: true
+base_ref: 40a033e1ab4328697010f314ad5e12791e70dd4c
+design_doc: null
+plan: null
+verify_result: pass
+verify_failures: 0
+verification_report: docs/superpowers/reports/2026-11-27-web-experiment-advanced-config-verify.md
+branch_status: pending
+created_at: 2026-11-27
+verified_at: 2026-11-27
+archive_confirmation: confirmed
+archived: true
+bound_branch: codex/web-experiment-advanced-config
+run_checkpoint:
+  schema: comet.workflow-run-checkpoint.v1
+  hash: 2aea7da7e0c797dbf712597d2faa72942be2caba35157900851837e56914f8fa
+  run:
+    protocolVersion: 1
+    schemaVersion: 1
+    runId: web-experiment-advanced-config
+    revision: 1
+    workflow:
+      id: comet-classic-tweak
+      version: "2"
+      hash: d1e067bc00ca13395dbc6f701565417c3e227f17a57df025dd73ebda905e2638
+    definitionHashes:
+      '["comet-classic-tweak","2"]': d1e067bc00ca13395dbc6f701565417c3e227f17a57df025dd73ebda905e2638
+    initialStateHash: 7943ff1ae1d9502094c9c7a531f39797aa055001ddeaccb10bf440ead0f472ab
+    input:
+      change: web-experiment-advanced-config
+      changeDir: openspec/changes/web-experiment-advanced-config
+      workspaceBaseline:
+        ref: 0f0ace63-321e-4b7c-82a0-dc8193131d10
+    state:
+      archiveConfirmation: confirmed
+      archived: true
+      autoTransition: true
+      baseRef: 40a033e1ab4328697010f314ad5e12791e70dd4c
+      boundBranch: codex/web-experiment-advanced-config
+      branchStatus: pending
+      buildMode: direct
+      buildPause: null
+      checkEpoch: 6
+      classicMigration: null
+      classicProfile: null
+      contextCompression: off
+      createdAt: 2026-11-27
+      designDoc: null
+      directOverride: null
+      handoffContext: null
+      handoffHash: null
+      isolation: current
+      language: zh-CN
+      phase: archive
+      plan: null
+      reviewMode: off
+      subagentDispatch: null
+      tddMode: direct
+      verificationReport: docs/superpowers/reports/2026-11-27-web-experiment-advanced-config-verify.md
+      verifiedAt: 2026-11-27
+      verifyFailures: 0
+      verifyMode: light
+      verifyResult: pass
+      workflow: tweak
+    status: running
+    sequence: 14
+    actions:
+      - attempt: 1
+        claim:
+          executorId: comet-classic-guard
+          token: portable-32f793f6fa277aa932bab0bdcedeb02efbbbcca3f621dd5e908c68c77743759b
+        executionOrigin:
+          workflow:
+            hash: 518d3e8e12eb39899775cb7d2ddcc7ddeba10cb1f1d43cff7b03f2ca61a70c65
+            id: comet-classic-tweak
+            version: "2"
+        id: web-experiment-advanced-config:1
+        input:
+          input:
+            change: web-experiment-advanced-config
+            changeDir: openspec/changes/web-experiment-advanced-config
+            workspaceBaseline:
+              ref: 0f0ace63-321e-4b7c-82a0-dc8193131d10
+          outputs: {}
+        inputHash: b0e63336aadd60af34be9509c44d1d239016c5fcfde541cf1001f88f851fb0b5
+        outcome:
+          actionId: web-experiment-advanced-config:1
+          attempt: 1
+          claimToken: portable-32f793f6fa277aa932bab0bdcedeb02efbbbcca3f621dd5e908c68c77743759b
+          inputHash: b0e63336aadd60af34be9509c44d1d239016c5fcfde541cf1001f88f851fb0b5
+          outcomeId: e738ab6c-41c4-4f8a-9575-764f89a633f2
+          output:
+            event: open-complete
+            requirementsEvidence:
+              ref: openspec/changes/web-experiment-advanced-config
+          status: succeeded
+        protocolVersion: 1
+        receipts:
+          - hash: 4340da803a08678220b81f197db928bfb40f191181d7ae4fc761cc133e582b34
+            outcomeId: e738ab6c-41c4-4f8a-9575-764f89a633f2
+        reconciliations: []
+        ref: comet-tweak
+        requiredCapabilities: []
+        retry: manual
+        runId: web-experiment-advanced-config
+        status: succeeded
+        stepId: tweak.open
+        type: invoke_skill
+      - attempt: 1
+        claim:
+          executorId: comet-classic-state
+          sessionId: 01a21d1c-393f-7bb3-8c8a-e9f9e387845d
+          token: portable-f6f7a283ac88d0e9a0d576e1b49f227ac2c642d8856ba1eff565a5a1717ac3b7
+        executionOrigin:
+          workflow:
+            hash: 518d3e8e12eb39899775cb7d2ddcc7ddeba10cb1f1d43cff7b03f2ca61a70c65
+            id: comet-classic-tweak
+            version: "2"
+        id: web-experiment-advanced-config:3
+        input:
+          input:
+            change: web-experiment-advanced-config
+            changeDir: openspec/changes/web-experiment-advanced-config
+            workspaceBaseline:
+              ref: 0f0ace63-321e-4b7c-82a0-dc8193131d10
+          outputs:
+            tweak.open:
+              event: open-complete
+              requirementsEvidence:
+                ref: openspec/changes/web-experiment-advanced-config
+            tweak.open.evidence:
+              contentHash: b0e63336aadd60af34be9509c44d1d239016c5fcfde541cf1001f88f851fb0b5
+              ref: openspec/changes/web-experiment-advanced-config
+        inputHash: 4d52d2ea2a0dfd67836c657f082672346b8fe3968ecdbcf2da29d47baf95ba35
+        outcome:
+          actionId: web-experiment-advanced-config:3
+          attempt: 1
+          claimToken: portable-f6f7a283ac88d0e9a0d576e1b49f227ac2c642d8856ba1eff565a5a1717ac3b7
+          inputHash: 4d52d2ea2a0dfd67836c657f082672346b8fe3968ecdbcf2da29d47baf95ba35
+          outcomeId: dfb00d87-ef59-488c-a2d2-a600ae157e15
+          output:
+            checks:
+              - name: "frontend: npm test"
+                note: 377 passed; /tmp/issue526-frontend.log. 后续仅补默认配置回显和对应双语资源，浏览器与资源测试已覆盖最终改动。
+                result: passed
+              - name: "root: .venv/bin/python -m pytest -q --no-cov
+                  tests/test_web_experiment_config.py
+                  tests/test_strategy_parameter_contract.py
+                  tests/test_experiment.py"
+                note: 103 passed; /tmp/issue526-python-regression.log. 含真实 Runner /
+                  self_consistency / SDK 请求构造及 calls/tokens/seconds 各自停止。
+                result: passed
+              - name: "frontend: npm run build"
+                note: TypeScript + Vite passed; /tmp/issue526-build.log. 既有 CompareCharts
+                  分包大小提示不影响构建。
+                result: passed
+              - name: "frontend: npm run lint"
+                note: ESLint passed; /tmp/issue526-lint.log
+                result: passed
+              - name: "frontend: prettier --check 修改的 14 个前端文件"
+                note: All matched files use Prettier code style; /tmp/issue526-format.log
+                result: passed
+              - name: "root: .venv/bin/ruff check tests/test_web_experiment_config.py;
+                  .venv/bin/black --check tests/test_web_experiment_config.py;
+                  git diff --check"
+                note: All checks passed; Black unchanged; diff 无空白错误。
+                result: passed
+              - name: "root: CHROME_PATH=<local Chrome> node
+                  frontend/scripts/verify-experiment-config.mjs"
+                note: 双语创建/错误修正/完整 payload/刷新回显/移动端/旧任务均通过; /tmp/issue526-browser/report.json
+                  与截图。无真实模型或后端网络请求。
+                result: passed
+              - name: "frontend: node --experimental-strip-types --test
+                  src/i18n/resources.test.ts"
+                note: 1 passed; /tmp/issue526-i18n-final.log; 最终双语资源键覆盖通过。
+                result: passed
+              - name: "root: comet classic openspec -- validate web-experiment-advanced-config
+                  --strict"
+                note: Change valid（Open 时已执行，后续仅完成 checkbox 与稳定任务 ID，无需求正文改变）。
+                result: passed
+            event: build-complete
+          status: succeeded
+        protocolVersion: 1
+        receipts:
+          - hash: 11dfb64f09ead0d7a01f362ae6118726dcbc1d7b70df8091c2fdeb1a12db6401
+            outcomeId: dfb00d87-ef59-488c-a2d2-a600ae157e15
+        reconciliations: []
+        ref: comet-build
+        requiredCapabilities: []
+        retry: manual
+        runId: web-experiment-advanced-config
+        status: succeeded
+        stepId: tweak.build.execute
+        type: invoke_skill
+      - attempt: 1
+        claim:
+          executorId: comet-classic-guard
+          token: portable-8a3ac7ab6805bb4cf86ae3844b43fb13c4e2b7370e9c9829bdeedef01da5d368
+        executionOrigin:
+          workflow:
+            hash: 518d3e8e12eb39899775cb7d2ddcc7ddeba10cb1f1d43cff7b03f2ca61a70c65
+            id: comet-classic-tweak
+            version: "2"
+        id: web-experiment-advanced-config:4
+        input:
+          input:
+            change: web-experiment-advanced-config
+            changeDir: openspec/changes/web-experiment-advanced-config
+            workspaceBaseline:
+              ref: 0f0ace63-321e-4b7c-82a0-dc8193131d10
+          outputs:
+            tweak.build.execute:
+              checks:
+                - name: "frontend: npm test"
+                  note: 377 passed; /tmp/issue526-frontend.log. 后续仅补默认配置回显和对应双语资源，浏览器与资源测试已覆盖最终改动。
+                  result: passed
+                - name: "root: .venv/bin/python -m pytest -q --no-cov
+                    tests/test_web_experiment_config.py
+                    tests/test_strategy_parameter_contract.py
+                    tests/test_experiment.py"
+                  note: 103 passed; /tmp/issue526-python-regression.log. 含真实 Runner /
+                    self_consistency / SDK 请求构造及 calls/tokens/seconds 各自停止。
+                  result: passed
+                - name: "frontend: npm run build"
+                  note: TypeScript + Vite passed; /tmp/issue526-build.log. 既有 CompareCharts
+                    分包大小提示不影响构建。
+                  result: passed
+                - name: "frontend: npm run lint"
+                  note: ESLint passed; /tmp/issue526-lint.log
+                  result: passed
+                - name: "frontend: prettier --check 修改的 14 个前端文件"
+                  note: All matched files use Prettier code style; /tmp/issue526-format.log
+                  result: passed
+                - name: "root: .venv/bin/ruff check tests/test_web_experiment_config.py;
+                    .venv/bin/black --check tests/test_web_experiment_config.py;
+                    git diff --check"
+                  note: All checks passed; Black unchanged; diff 无空白错误。
+                  result: passed
+                - name: "root: CHROME_PATH=<local Chrome> node
+                    frontend/scripts/verify-experiment-config.mjs"
+                  note: 双语创建/错误修正/完整 payload/刷新回显/移动端/旧任务均通过; /tmp/issue526-browser/report.json
+                    与截图。无真实模型或后端网络请求。
+                  result: passed
+                - name: "frontend: node --experimental-strip-types --test
+                    src/i18n/resources.test.ts"
+                  note: 1 passed; /tmp/issue526-i18n-final.log; 最终双语资源键覆盖通过。
+                  result: passed
+                - name: "root: comet classic openspec -- validate web-experiment-advanced-config
+                    --strict"
+                  note: Change valid（Open 时已执行，后续仅完成 checkbox 与稳定任务 ID，无需求正文改变）。
+                  result: passed
+              event: build-complete
+            tweak.open:
+              event: open-complete
+              requirementsEvidence:
+                ref: openspec/changes/web-experiment-advanced-config
+            tweak.open.evidence:
+              contentHash: b0e63336aadd60af34be9509c44d1d239016c5fcfde541cf1001f88f851fb0b5
+              ref: openspec/changes/web-experiment-advanced-config
+        inputHash: 3b25e9c93b2f5df227cc501ffe566c72accd5c415cbd4aebea74ee5d6b8fd92b
+        outcome:
+          actionId: web-experiment-advanced-config:4
+          attempt: 1
+          claimToken: portable-8a3ac7ab6805bb4cf86ae3844b43fb13c4e2b7370e9c9829bdeedef01da5d368
+          inputHash: 3b25e9c93b2f5df227cc501ffe566c72accd5c415cbd4aebea74ee5d6b8fd92b
+          outcomeId: e4cb8864-981b-425b-adab-a3cd5dd5ae26
+          output:
+            checks:
+              - name: "frontend: npm test"
+                note: 377 passed; /tmp/issue526-frontend.log. 后续仅补默认配置回显和对应双语资源，浏览器与资源测试已覆盖最终改动。
+                result: passed
+              - name: "root: .venv/bin/python -m pytest -q --no-cov
+                  tests/test_web_experiment_config.py
+                  tests/test_strategy_parameter_contract.py
+                  tests/test_experiment.py"
+                note: 103 passed; /tmp/issue526-python-regression.log. 含真实 Runner /
+                  self_consistency / SDK 请求构造及 calls/tokens/seconds 各自停止。
+                result: passed
+              - name: "frontend: npm run build"
+                note: TypeScript + Vite passed; /tmp/issue526-build.log. 既有 CompareCharts
+                  分包大小提示不影响构建。
+                result: passed
+              - name: "frontend: npm run lint"
+                note: ESLint passed; /tmp/issue526-lint.log
+                result: passed
+              - name: "frontend: prettier --check 修改的 14 个前端文件"
+                note: All matched files use Prettier code style; /tmp/issue526-format.log
+                result: passed
+              - name: "root: .venv/bin/ruff check tests/test_web_experiment_config.py;
+                  .venv/bin/black --check tests/test_web_experiment_config.py;
+                  git diff --check"
+                note: All checks passed; Black unchanged; diff 无空白错误。
+                result: passed
+              - name: "root: CHROME_PATH=<local Chrome> node
+                  frontend/scripts/verify-experiment-config.mjs"
+                note: 双语创建/错误修正/完整 payload/刷新回显/移动端/旧任务均通过; /tmp/issue526-browser/report.json
+                  与截图。无真实模型或后端网络请求。
+                result: passed
+              - name: "frontend: node --experimental-strip-types --test
+                  src/i18n/resources.test.ts"
+                note: 1 passed; /tmp/issue526-i18n-final.log; 最终双语资源键覆盖通过。
+                result: passed
+              - name: "root: comet classic openspec -- validate web-experiment-advanced-config
+                  --strict"
+                note: Change valid（Open 时已执行，后续仅完成 checkbox 与稳定任务 ID，无需求正文改变）。
+                result: passed
+            event: verification-ready
+            verificationReport: docs/superpowers/reports/2026-11-27-web-experiment-advanced-config-verify.md
+          status: succeeded
+        protocolVersion: 1
+        receipts:
+          - hash: b5cad98f3a63a9525133e25c759793049f66befcffe4115926c353c8105c272d
+            outcomeId: e4cb8864-981b-425b-adab-a3cd5dd5ae26
+        reconciliations: []
+        ref: comet-verify
+        requiredCapabilities: []
+        retry: manual
+        runId: web-experiment-advanced-config
+        status: succeeded
+        stepId: tweak.verify.run
+        type: invoke_skill
+      - attempt: 1
+        claim:
+          executorId: comet-classic-state
+          token: portable-ef33ebaff77a6f4cc91e53f040a8fc2f2a10d42eb17fff747300be882ac711c0
+        executionOrigin:
+          workflow:
+            hash: 518d3e8e12eb39899775cb7d2ddcc7ddeba10cb1f1d43cff7b03f2ca61a70c65
+            id: comet-classic-tweak
+            version: "2"
+        id: web-experiment-advanced-config:6
+        input:
+          input:
+            change: web-experiment-advanced-config
+            changeDir: openspec/changes/web-experiment-advanced-config
+            workspaceBaseline:
+              ref: 0f0ace63-321e-4b7c-82a0-dc8193131d10
+          outputs:
+            tweak.build.execute:
+              checks:
+                - name: "frontend: npm test"
+                  note: 377 passed; /tmp/issue526-frontend.log. 后续仅补默认配置回显和对应双语资源，浏览器与资源测试已覆盖最终改动。
+                  result: passed
+                - name: "root: .venv/bin/python -m pytest -q --no-cov
+                    tests/test_web_experiment_config.py
+                    tests/test_strategy_parameter_contract.py
+                    tests/test_experiment.py"
+                  note: 103 passed; /tmp/issue526-python-regression.log. 含真实 Runner /
+                    self_consistency / SDK 请求构造及 calls/tokens/seconds 各自停止。
+                  result: passed
+                - name: "frontend: npm run build"
+                  note: TypeScript + Vite passed; /tmp/issue526-build.log. 既有 CompareCharts
+                    分包大小提示不影响构建。
+                  result: passed
+                - name: "frontend: npm run lint"
+                  note: ESLint passed; /tmp/issue526-lint.log
+                  result: passed
+                - name: "frontend: prettier --check 修改的 14 个前端文件"
+                  note: All matched files use Prettier code style; /tmp/issue526-format.log
+                  result: passed
+                - name: "root: .venv/bin/ruff check tests/test_web_experiment_config.py;
+                    .venv/bin/black --check tests/test_web_experiment_config.py;
+                    git diff --check"
+                  note: All checks passed; Black unchanged; diff 无空白错误。
+                  result: passed
+                - name: "root: CHROME_PATH=<local Chrome> node
+                    frontend/scripts/verify-experiment-config.mjs"
+                  note: 双语创建/错误修正/完整 payload/刷新回显/移动端/旧任务均通过; /tmp/issue526-browser/report.json
+                    与截图。无真实模型或后端网络请求。
+                  result: passed
+                - name: "frontend: node --experimental-strip-types --test
+                    src/i18n/resources.test.ts"
+                  note: 1 passed; /tmp/issue526-i18n-final.log; 最终双语资源键覆盖通过。
+                  result: passed
+                - name: "root: comet classic openspec -- validate web-experiment-advanced-config
+                    --strict"
+                  note: Change valid（Open 时已执行，后续仅完成 checkbox 与稳定任务 ID，无需求正文改变）。
+                  result: passed
+              event: build-complete
+            tweak.open:
+              event: open-complete
+              requirementsEvidence:
+                ref: openspec/changes/web-experiment-advanced-config
+            tweak.open.evidence:
+              contentHash: b0e63336aadd60af34be9509c44d1d239016c5fcfde541cf1001f88f851fb0b5
+              ref: openspec/changes/web-experiment-advanced-config
+            tweak.verify.report.evidence:
+              contentHash: 3b25e9c93b2f5df227cc501ffe566c72accd5c415cbd4aebea74ee5d6b8fd92b
+              ref: docs/superpowers/reports/2026-11-27-web-experiment-advanced-config-verify.md
+            tweak.verify.run:
+              checks:
+                - name: "frontend: npm test"
+                  note: 377 passed; /tmp/issue526-frontend.log. 后续仅补默认配置回显和对应双语资源，浏览器与资源测试已覆盖最终改动。
+                  result: passed
+                - name: "root: .venv/bin/python -m pytest -q --no-cov
+                    tests/test_web_experiment_config.py
+                    tests/test_strategy_parameter_contract.py
+                    tests/test_experiment.py"
+                  note: 103 passed; /tmp/issue526-python-regression.log. 含真实 Runner /
+                    self_consistency / SDK 请求构造及 calls/tokens/seconds 各自停止。
+                  result: passed
+                - name: "frontend: npm run build"
+                  note: TypeScript + Vite passed; /tmp/issue526-build.log. 既有 CompareCharts
+                    分包大小提示不影响构建。
+                  result: passed
+                - name: "frontend: npm run lint"
+                  note: ESLint passed; /tmp/issue526-lint.log
+                  result: passed
+                - name: "frontend: prettier --check 修改的 14 个前端文件"
+                  note: All matched files use Prettier code style; /tmp/issue526-format.log
+                  result: passed
+                - name: "root: .venv/bin/ruff check tests/test_web_experiment_config.py;
+                    .venv/bin/black --check tests/test_web_experiment_config.py;
+                    git diff --check"
+                  note: All checks passed; Black unchanged; diff 无空白错误。
+                  result: passed
+                - name: "root: CHROME_PATH=<local Chrome> node
+                    frontend/scripts/verify-experiment-config.mjs"
+                  note: 双语创建/错误修正/完整 payload/刷新回显/移动端/旧任务均通过; /tmp/issue526-browser/report.json
+                    与截图。无真实模型或后端网络请求。
+                  result: passed
+                - name: "frontend: node --experimental-strip-types --test
+                    src/i18n/resources.test.ts"
+                  note: 1 passed; /tmp/issue526-i18n-final.log; 最终双语资源键覆盖通过。
+                  result: passed
+                - name: "root: comet classic openspec -- validate web-experiment-advanced-config
+                    --strict"
+                  note: Change valid（Open 时已执行，后续仅完成 checkbox 与稳定任务 ID，无需求正文改变）。
+                  result: passed
+              event: verification-ready
+              verificationReport: docs/superpowers/reports/2026-11-27-web-experiment-advanced-config-verify.md
+        inputHash: af6a636d1baaeba60c337f9f57fb94e7bfb7bec5934e74f569168e56d16725a1
+        outcome:
+          actionId: web-experiment-advanced-config:6
+          attempt: 1
+          claimToken: portable-ef33ebaff77a6f4cc91e53f040a8fc2f2a10d42eb17fff747300be882ac711c0
+          inputHash: af6a636d1baaeba60c337f9f57fb94e7bfb7bec5934e74f569168e56d16725a1
+          outcomeId: 95337059-c343-43bb-96ff-267ba751243f
+          output:
+            prBaseBranch: main
+            remote: origin
+            summary: "issue #526 已实现并通过 Verify：归档本 change、同步 frontend/experiments-management
+              主规格，提交 15 个交付文件及工作流材料。当前绑定 main，基线
+              40a033e1ab4328697010f314ad5e12791e70dd4c；远端 origin，PR base
+              main。local 仅归档并在 main 提交；push 再推送 origin/main；若选择 PR，先核对并绑定独立
+              codex 工作分支，重新确认该交付目标后推送建 PR。无无关改动。"
+            targetBranch: main
+          status: succeeded
+        protocolVersion: 1
+        receipts:
+          - hash: 78438c6d13ad7cb39401d9af9500c16009cfa01508943afe6af6d47785b1c210
+            outcomeId: 95337059-c343-43bb-96ff-267ba751243f
+        reconciliations: []
+        ref: comet-archive
+        requiredCapabilities: []
+        retry: manual
+        runId: web-experiment-advanced-config
+        status: succeeded
+        stepId: tweak.archive.prepare
+        type: invoke_skill
+      - attempt: 1
+        claim:
+          executorId: comet-classic-guard
+          token: portable-595b6d219239fa7a4f6763adcf7d52bd282fc142b4a504f229fedc808d607a43
+        executionOrigin:
+          workflow:
+            hash: d1e067bc00ca13395dbc6f701565417c3e227f17a57df025dd73ebda905e2638
+            id: comet-classic-tweak
+            version: "2"
+        id: web-experiment-advanced-config:8
+        input:
+          activation:
+            expectedRevision: 12
+            fromPhase: archive
+          input:
+            change: web-experiment-advanced-config
+            changeDir: openspec/changes/web-experiment-advanced-config
+            workspaceBaseline:
+              ref: 0f0ace63-321e-4b7c-82a0-dc8193131d10
+          outputs: {}
+        inputHash: 04c0f9af071855fd20984fc51de66660b31c5a74d306a260dce668568c7992ec
+        outcome:
+          actionId: web-experiment-advanced-config:8
+          attempt: 1
+          claimToken: portable-595b6d219239fa7a4f6763adcf7d52bd282fc142b4a504f229fedc808d607a43
+          inputHash: 04c0f9af071855fd20984fc51de66660b31c5a74d306a260dce668568c7992ec
+          outcomeId: 60007a36-79a6-4b6e-97f7-0519fd5181d3
+          output:
+            checks:
+              - name: "frontend: npm test"
+                note: 377 passed; /tmp/issue526-frontend.log. 后续仅补默认配置回显和对应双语资源，浏览器与资源测试已覆盖最终改动。
+                result: passed
+              - name: "root: .venv/bin/python -m pytest -q --no-cov
+                  tests/test_web_experiment_config.py
+                  tests/test_strategy_parameter_contract.py
+                  tests/test_experiment.py"
+                note: 103 passed; /tmp/issue526-python-regression.log. 含真实 Runner /
+                  self_consistency / SDK 请求构造及 calls/tokens/seconds 各自停止。
+                result: passed
+              - name: "frontend: npm run build"
+                note: TypeScript + Vite passed; /tmp/issue526-build.log. 既有 CompareCharts
+                  分包大小提示不影响构建。
+                result: passed
+              - name: "frontend: npm run lint"
+                note: ESLint passed; /tmp/issue526-lint.log
+                result: passed
+              - name: "frontend: prettier --check 修改的 14 个前端文件"
+                note: All matched files use Prettier code style; /tmp/issue526-format.log
+                result: passed
+              - name: "root: .venv/bin/ruff check tests/test_web_experiment_config.py;
+                  .venv/bin/black --check tests/test_web_experiment_config.py;
+                  git diff --check"
+                note: All checks passed; Black unchanged; diff 无空白错误。
+                result: passed
+              - name: "root: CHROME_PATH=<local Chrome> node
+                  frontend/scripts/verify-experiment-config.mjs"
+                note: 双语创建/错误修正/完整 payload/刷新回显/移动端/旧任务均通过; /tmp/issue526-browser/report.json
+                  与截图。无真实模型或后端网络请求。
+                result: passed
+              - name: "frontend: node --experimental-strip-types --test
+                  src/i18n/resources.test.ts"
+                note: 1 passed; /tmp/issue526-i18n-final.log; 最终双语资源键覆盖通过。
+                result: passed
+              - name: "root: comet classic openspec -- validate web-experiment-advanced-config
+                  --strict"
+                note: Change valid（Open 时已执行，后续仅完成 checkbox 与稳定任务 ID，无需求正文改变）。
+                result: passed
+            event: verification-ready
+            verificationReport: docs/superpowers/reports/2026-11-27-web-experiment-advanced-config-verify.md
+          status: succeeded
+        protocolVersion: 1
+        receipts:
+          - hash: 42e2c77cc77e0626c505be34412356da68858212668cb38403ece2f19909d9a4
+            outcomeId: 60007a36-79a6-4b6e-97f7-0519fd5181d3
+        reconciliations: []
+        ref: comet-verify
+        requiredCapabilities: []
+        retry: manual
+        runId: web-experiment-advanced-config
+        status: succeeded
+        stepId: tweak.verify.run
+        type: invoke_skill
+      - attempt: 1
+        claim:
+          executorId: comet-classic-state
+          token: portable-9a108fd37b3f52694441a9fc89313f7a079405b5acaa8ddd5afff6159e8dd7c3
+        executionOrigin:
+          workflow:
+            hash: d1e067bc00ca13395dbc6f701565417c3e227f17a57df025dd73ebda905e2638
+            id: comet-classic-tweak
+            version: "2"
+        id: web-experiment-advanced-config:10
+        input:
+          input:
+            change: web-experiment-advanced-config
+            changeDir: openspec/changes/web-experiment-advanced-config
+            workspaceBaseline:
+              ref: 0f0ace63-321e-4b7c-82a0-dc8193131d10
+          outputs:
+            tweak.verify.report.evidence:
+              contentHash: 04c0f9af071855fd20984fc51de66660b31c5a74d306a260dce668568c7992ec
+              ref: docs/superpowers/reports/2026-11-27-web-experiment-advanced-config-verify.md
+            tweak.verify.run:
+              checks:
+                - name: "frontend: npm test"
+                  note: 377 passed; /tmp/issue526-frontend.log. 后续仅补默认配置回显和对应双语资源，浏览器与资源测试已覆盖最终改动。
+                  result: passed
+                - name: "root: .venv/bin/python -m pytest -q --no-cov
+                    tests/test_web_experiment_config.py
+                    tests/test_strategy_parameter_contract.py
+                    tests/test_experiment.py"
+                  note: 103 passed; /tmp/issue526-python-regression.log. 含真实 Runner /
+                    self_consistency / SDK 请求构造及 calls/tokens/seconds 各自停止。
+                  result: passed
+                - name: "frontend: npm run build"
+                  note: TypeScript + Vite passed; /tmp/issue526-build.log. 既有 CompareCharts
+                    分包大小提示不影响构建。
+                  result: passed
+                - name: "frontend: npm run lint"
+                  note: ESLint passed; /tmp/issue526-lint.log
+                  result: passed
+                - name: "frontend: prettier --check 修改的 14 个前端文件"
+                  note: All matched files use Prettier code style; /tmp/issue526-format.log
+                  result: passed
+                - name: "root: .venv/bin/ruff check tests/test_web_experiment_config.py;
+                    .venv/bin/black --check tests/test_web_experiment_config.py;
+                    git diff --check"
+                  note: All checks passed; Black unchanged; diff 无空白错误。
+                  result: passed
+                - name: "root: CHROME_PATH=<local Chrome> node
+                    frontend/scripts/verify-experiment-config.mjs"
+                  note: 双语创建/错误修正/完整 payload/刷新回显/移动端/旧任务均通过; /tmp/issue526-browser/report.json
+                    与截图。无真实模型或后端网络请求。
+                  result: passed
+                - name: "frontend: node --experimental-strip-types --test
+                    src/i18n/resources.test.ts"
+                  note: 1 passed; /tmp/issue526-i18n-final.log; 最终双语资源键覆盖通过。
+                  result: passed
+                - name: "root: comet classic openspec -- validate web-experiment-advanced-config
+                    --strict"
+                  note: Change valid（Open 时已执行，后续仅完成 checkbox 与稳定任务 ID，无需求正文改变）。
+                  result: passed
+              event: verification-ready
+              verificationReport: docs/superpowers/reports/2026-11-27-web-experiment-advanced-config-verify.md
+        inputHash: a1bec01958a8b0c42bad6c0c5bd39092132abe49689442d5abb733c8f41956ff
+        outcome:
+          actionId: web-experiment-advanced-config:10
+          attempt: 1
+          claimToken: portable-9a108fd37b3f52694441a9fc89313f7a079405b5acaa8ddd5afff6159e8dd7c3
+          inputHash: a1bec01958a8b0c42bad6c0c5bd39092132abe49689442d5abb733c8f41956ff
+          outcomeId: d1c5d267-7b07-4fed-a41e-18c97d7bf384
+          output:
+            prBaseBranch: main
+            remote: origin
+            summary: "用户选择 C：归档 issue #526 并同步 frontend/experiments-management 主规格，将 15
+              个已验证实现及测试文件、验收报告和归档材料提交至 codex/web-experiment-advanced-config，推送
+              origin 同名分支，创建以 main 为 base 的 PR。无无关改动。用户当前 C 选择明确授权此独立分支 PR
+              交付；保留有效验收证据。"
+            targetBranch: codex/web-experiment-advanced-config
+          status: succeeded
+        protocolVersion: 1
+        receipts:
+          - hash: 5ff77afccf99f8cf53c25776d1e9ea7eb27de06767988f071fdcbf986d2364f3
+            outcomeId: d1c5d267-7b07-4fed-a41e-18c97d7bf384
+        reconciliations: []
+        ref: comet-archive
+        requiredCapabilities: []
+        retry: manual
+        runId: web-experiment-advanced-config
+        status: succeeded
+        stepId: tweak.archive.prepare
+        type: invoke_skill
+      - attempt: 1
+        claim:
+          executorId: comet-classic-archive-preflight
+          token: portable-36e980f24c5afe6ed421af3cd14e1c42eb7dc45fcf16ef05f365868068729872
+        executionOrigin:
+          workflow:
+            hash: d1e067bc00ca13395dbc6f701565417c3e227f17a57df025dd73ebda905e2638
+            id: comet-classic-tweak
+            version: "2"
+        id: web-experiment-advanced-config:12
+        input:
+          input:
+            change: web-experiment-advanced-config
+            changeDir: openspec/changes/web-experiment-advanced-config
+            workspaceBaseline:
+              ref: 0f0ace63-321e-4b7c-82a0-dc8193131d10
+          outputs:
+            tweak.archive.confirm:
+              choice: pr
+              proposal:
+                input:
+                  change: web-experiment-advanced-config
+                  changeDir: openspec/changes/web-experiment-advanced-config
+                  workspaceBaseline:
+                    ref: 0f0ace63-321e-4b7c-82a0-dc8193131d10
+                outputs:
+                  tweak.archive.prepare:
+                    prBaseBranch: main
+                    remote: origin
+                    summary: "用户选择 C：归档 issue #526 并同步 frontend/experiments-management 主规格，将 15
+                      个已验证实现及测试文件、验收报告和归档材料提交至
+                      codex/web-experiment-advanced-config，推送 origin 同名分支，创建以
+                      main 为 base 的 PR。无无关改动。用户当前 C 选择明确授权此独立分支 PR 交付；保留有效验收证据。"
+                    targetBranch: codex/web-experiment-advanced-config
+            tweak.archive.prepare:
+              prBaseBranch: main
+              remote: origin
+              summary: "用户选择 C：归档 issue #526 并同步 frontend/experiments-management 主规格，将 15
+                个已验证实现及测试文件、验收报告和归档材料提交至 codex/web-experiment-advanced-config，推送
+                origin 同名分支，创建以 main 为 base 的 PR。无无关改动。用户当前 C 选择明确授权此独立分支 PR
+                交付；保留有效验收证据。"
+              targetBranch: codex/web-experiment-advanced-config
+            tweak.verify.report.evidence:
+              contentHash: 04c0f9af071855fd20984fc51de66660b31c5a74d306a260dce668568c7992ec
+              ref: docs/superpowers/reports/2026-11-27-web-experiment-advanced-config-verify.md
+            tweak.verify.run:
+              checks:
+                - name: "frontend: npm test"
+                  note: 377 passed; /tmp/issue526-frontend.log. 后续仅补默认配置回显和对应双语资源，浏览器与资源测试已覆盖最终改动。
+                  result: passed
+                - name: "root: .venv/bin/python -m pytest -q --no-cov
+                    tests/test_web_experiment_config.py
+                    tests/test_strategy_parameter_contract.py
+                    tests/test_experiment.py"
+                  note: 103 passed; /tmp/issue526-python-regression.log. 含真实 Runner /
+                    self_consistency / SDK 请求构造及 calls/tokens/seconds 各自停止。
+                  result: passed
+                - name: "frontend: npm run build"
+                  note: TypeScript + Vite passed; /tmp/issue526-build.log. 既有 CompareCharts
+                    分包大小提示不影响构建。
+                  result: passed
+                - name: "frontend: npm run lint"
+                  note: ESLint passed; /tmp/issue526-lint.log
+                  result: passed
+                - name: "frontend: prettier --check 修改的 14 个前端文件"
+                  note: All matched files use Prettier code style; /tmp/issue526-format.log
+                  result: passed
+                - name: "root: .venv/bin/ruff check tests/test_web_experiment_config.py;
+                    .venv/bin/black --check tests/test_web_experiment_config.py;
+                    git diff --check"
+                  note: All checks passed; Black unchanged; diff 无空白错误。
+                  result: passed
+                - name: "root: CHROME_PATH=<local Chrome> node
+                    frontend/scripts/verify-experiment-config.mjs"
+                  note: 双语创建/错误修正/完整 payload/刷新回显/移动端/旧任务均通过; /tmp/issue526-browser/report.json
+                    与截图。无真实模型或后端网络请求。
+                  result: passed
+                - name: "frontend: node --experimental-strip-types --test
+                    src/i18n/resources.test.ts"
+                  note: 1 passed; /tmp/issue526-i18n-final.log; 最终双语资源键覆盖通过。
+                  result: passed
+                - name: "root: comet classic openspec -- validate web-experiment-advanced-config
+                    --strict"
+                  note: Change valid（Open 时已执行，后续仅完成 checkbox 与稳定任务 ID，无需求正文改变）。
+                  result: passed
+              event: verification-ready
+              verificationReport: docs/superpowers/reports/2026-11-27-web-experiment-advanced-config-verify.md
+        inputHash: 0e5091deb108ef6a6dbe61177c173297fa0fb6069d7e93645063da08f599c2b0
+        outcome:
+          actionId: web-experiment-advanced-config:12
+          attempt: 1
+          claimToken: portable-36e980f24c5afe6ed421af3cd14e1c42eb7dc45fcf16ef05f365868068729872
+          inputHash: 0e5091deb108ef6a6dbe61177c173297fa0fb6069d7e93645063da08f599c2b0
+          outcomeId: 7acb598b-878e-4bf9-93fe-e0aa9e802e4a
+          output:
+            baseCommit: 40a033e1ab4328697010f314ad5e12791e70dd4c
+            deliveryAction: pr
+            deliveryPaths:
+              - frontend/scripts/verify-experiment-config.mjs
+              - frontend/src/experiments/AdvancedFields.tsx
+              - frontend/src/experiments/advanced.ts
+              - frontend/src/experiments/client.test.ts
+              - frontend/src/experiments/client.ts
+              - frontend/src/experiments/presentation.ts
+              - frontend/src/experiments/runCreation.ts
+              - frontend/src/experiments/types.ts
+              - frontend/src/experiments/validation.test.ts
+              - frontend/src/experiments/validation.ts
+              - frontend/src/i18n/en-US.ts
+              - frontend/src/i18n/zh-CN.ts
+              - frontend/src/pages/Experiments/CreateExperimentPage.tsx
+              - frontend/src/pages/Experiments/ExperimentDetailPage.tsx
+              - tests/test_web_experiment_config.py
+            prBaseBranch: main
+            remote: origin
+            remoteIdentity: 128eeb1e6f0d21b25601fcb7f9aad36adfdfb4d76f37f54f004760410190f351
+            targetBranch: codex/web-experiment-advanced-config
+            verifiedBranch: codex/web-experiment-advanced-config
+          status: succeeded
+        protocolVersion: 1
+        receipts:
+          - hash: dd5c3b9cb946f3c22af5bf71908b81a01865b8be6a56dd14285aa03f3ac2cbb6
+            outcomeId: 7acb598b-878e-4bf9-93fe-e0aa9e802e4a
+        reconciliations: []
+        ref: classic-archive-preflight
+        requiredCapabilities: []
+        retry: manual
+        runId: web-experiment-advanced-config
+        status: succeeded
+        stepId: tweak.archive.preflight
+        type: call_tool
+      - attempt: 1
+        claim:
+          executorId: comet-classic-archive
+          token: portable-891b0d388e09b2f74784d5156332dd74a4b761018f7e7b4a80fe57f29548a7e6
+        executionOrigin:
+          workflow:
+            hash: d1e067bc00ca13395dbc6f701565417c3e227f17a57df025dd73ebda905e2638
+            id: comet-classic-tweak
+            version: "2"
+        id: web-experiment-advanced-config:13
+        input:
+          input:
+            change: web-experiment-advanced-config
+            changeDir: openspec/changes/web-experiment-advanced-config
+            workspaceBaseline:
+              ref: 0f0ace63-321e-4b7c-82a0-dc8193131d10
+          outputs:
+            tweak.archive.confirm:
+              choice: pr
+              proposal:
+                input:
+                  change: web-experiment-advanced-config
+                  changeDir: openspec/changes/web-experiment-advanced-config
+                  workspaceBaseline:
+                    ref: 0f0ace63-321e-4b7c-82a0-dc8193131d10
+                outputs:
+                  tweak.archive.prepare:
+                    prBaseBranch: main
+                    remote: origin
+                    summary: "用户选择 C：归档 issue #526 并同步 frontend/experiments-management 主规格，将 15
+                      个已验证实现及测试文件、验收报告和归档材料提交至
+                      codex/web-experiment-advanced-config，推送 origin 同名分支，创建以
+                      main 为 base 的 PR。无无关改动。用户当前 C 选择明确授权此独立分支 PR 交付；保留有效验收证据。"
+                    targetBranch: codex/web-experiment-advanced-config
+            tweak.archive.preflight:
+              baseCommit: 40a033e1ab4328697010f314ad5e12791e70dd4c
+              deliveryAction: pr
+              deliveryPaths:
+                - frontend/scripts/verify-experiment-config.mjs
+                - frontend/src/experiments/AdvancedFields.tsx
+                - frontend/src/experiments/advanced.ts
+                - frontend/src/experiments/client.test.ts
+                - frontend/src/experiments/client.ts
+                - frontend/src/experiments/presentation.ts
+                - frontend/src/experiments/runCreation.ts
+                - frontend/src/experiments/types.ts
+                - frontend/src/experiments/validation.test.ts
+                - frontend/src/experiments/validation.ts
+                - frontend/src/i18n/en-US.ts
+                - frontend/src/i18n/zh-CN.ts
+                - frontend/src/pages/Experiments/CreateExperimentPage.tsx
+                - frontend/src/pages/Experiments/ExperimentDetailPage.tsx
+                - tests/test_web_experiment_config.py
+              prBaseBranch: main
+              remote: origin
+              remoteIdentity: 128eeb1e6f0d21b25601fcb7f9aad36adfdfb4d76f37f54f004760410190f351
+              targetBranch: codex/web-experiment-advanced-config
+              verifiedBranch: codex/web-experiment-advanced-config
+            tweak.archive.prepare:
+              prBaseBranch: main
+              remote: origin
+              summary: "用户选择 C：归档 issue #526 并同步 frontend/experiments-management 主规格，将 15
+                个已验证实现及测试文件、验收报告和归档材料提交至 codex/web-experiment-advanced-config，推送
+                origin 同名分支，创建以 main 为 base 的 PR。无无关改动。用户当前 C 选择明确授权此独立分支 PR
+                交付；保留有效验收证据。"
+              targetBranch: codex/web-experiment-advanced-config
+            tweak.verify.report.evidence:
+              contentHash: 04c0f9af071855fd20984fc51de66660b31c5a74d306a260dce668568c7992ec
+              ref: docs/superpowers/reports/2026-11-27-web-experiment-advanced-config-verify.md
+            tweak.verify.run:
+              checks:
+                - name: "frontend: npm test"
+                  note: 377 passed; /tmp/issue526-frontend.log. 后续仅补默认配置回显和对应双语资源，浏览器与资源测试已覆盖最终改动。
+                  result: passed
+                - name: "root: .venv/bin/python -m pytest -q --no-cov
+                    tests/test_web_experiment_config.py
+                    tests/test_strategy_parameter_contract.py
+                    tests/test_experiment.py"
+                  note: 103 passed; /tmp/issue526-python-regression.log. 含真实 Runner /
+                    self_consistency / SDK 请求构造及 calls/tokens/seconds 各自停止。
+                  result: passed
+                - name: "frontend: npm run build"
+                  note: TypeScript + Vite passed; /tmp/issue526-build.log. 既有 CompareCharts
+                    分包大小提示不影响构建。
+                  result: passed
+                - name: "frontend: npm run lint"
+                  note: ESLint passed; /tmp/issue526-lint.log
+                  result: passed
+                - name: "frontend: prettier --check 修改的 14 个前端文件"
+                  note: All matched files use Prettier code style; /tmp/issue526-format.log
+                  result: passed
+                - name: "root: .venv/bin/ruff check tests/test_web_experiment_config.py;
+                    .venv/bin/black --check tests/test_web_experiment_config.py;
+                    git diff --check"
+                  note: All checks passed; Black unchanged; diff 无空白错误。
+                  result: passed
+                - name: "root: CHROME_PATH=<local Chrome> node
+                    frontend/scripts/verify-experiment-config.mjs"
+                  note: 双语创建/错误修正/完整 payload/刷新回显/移动端/旧任务均通过; /tmp/issue526-browser/report.json
+                    与截图。无真实模型或后端网络请求。
+                  result: passed
+                - name: "frontend: node --experimental-strip-types --test
+                    src/i18n/resources.test.ts"
+                  note: 1 passed; /tmp/issue526-i18n-final.log; 最终双语资源键覆盖通过。
+                  result: passed
+                - name: "root: comet classic openspec -- validate web-experiment-advanced-config
+                    --strict"
+                  note: Change valid（Open 时已执行，后续仅完成 checkbox 与稳定任务 ID，无需求正文改变）。
+                  result: passed
+              event: verification-ready
+              verificationReport: docs/superpowers/reports/2026-11-27-web-experiment-advanced-config-verify.md
+        inputHash: 1b097965ddd32e2af3a9e67419bb7b9f85e8c363f461a4bcb0fdc74cd795cd5c
+        outcome:
+          actionId: web-experiment-advanced-config:13
+          artifacts: []
+          attempt: 1
+          claimToken: portable-891b0d388e09b2f74784d5156332dd74a4b761018f7e7b4a80fe57f29548a7e6
+          inputHash: 1b097965ddd32e2af3a9e67419bb7b9f85e8c363f461a4bcb0fdc74cd795cd5c
+          outcomeId: b58fa9a6-0158-4188-aa9c-a53d5717a422
+          output:
+            archiveDirectory: openspec/changes/archive/2026-11-27-web-experiment-advanced-config
+          status: succeeded
+        protocolVersion: 1
+        receipts:
+          - hash: e915a4e0535795ca83fd51b01ed8e02b6c4cfea1b1eaa656004fa3ba5c6284ea
+            outcomeId: b58fa9a6-0158-4188-aa9c-a53d5717a422
+        reconciliations: []
+        ref: classic-archive
+        requiredCapabilities: []
+        retry: manual
+        runId: web-experiment-advanced-config
+        status: succeeded
+        stepId: tweak.archive.execute
+        type: call_tool
+      - attempt: 1
+        id: web-experiment-advanced-config:14
+        input:
+          input:
+            change: web-experiment-advanced-config
+            changeDir: openspec/changes/web-experiment-advanced-config
+            workspaceBaseline:
+              ref: 0f0ace63-321e-4b7c-82a0-dc8193131d10
+          outputs:
+            tweak.archive.confirm:
+              choice: pr
+              proposal:
+                input:
+                  change: web-experiment-advanced-config
+                  changeDir: openspec/changes/web-experiment-advanced-config
+                  workspaceBaseline:
+                    ref: 0f0ace63-321e-4b7c-82a0-dc8193131d10
+                outputs:
+                  tweak.archive.prepare:
+                    prBaseBranch: main
+                    remote: origin
+                    summary: "用户选择 C：归档 issue #526 并同步 frontend/experiments-management 主规格，将 15
+                      个已验证实现及测试文件、验收报告和归档材料提交至
+                      codex/web-experiment-advanced-config，推送 origin 同名分支，创建以
+                      main 为 base 的 PR。无无关改动。用户当前 C 选择明确授权此独立分支 PR 交付；保留有效验收证据。"
+                    targetBranch: codex/web-experiment-advanced-config
+            tweak.archive.execute:
+              archiveDirectory: openspec/changes/archive/2026-11-27-web-experiment-advanced-config
+            tweak.archive.preflight:
+              baseCommit: 40a033e1ab4328697010f314ad5e12791e70dd4c
+              deliveryAction: pr
+              deliveryPaths:
+                - frontend/scripts/verify-experiment-config.mjs
+                - frontend/src/experiments/AdvancedFields.tsx
+                - frontend/src/experiments/advanced.ts
+                - frontend/src/experiments/client.test.ts
+                - frontend/src/experiments/client.ts
+                - frontend/src/experiments/presentation.ts
+                - frontend/src/experiments/runCreation.ts
+                - frontend/src/experiments/types.ts
+                - frontend/src/experiments/validation.test.ts
+                - frontend/src/experiments/validation.ts
+                - frontend/src/i18n/en-US.ts
+                - frontend/src/i18n/zh-CN.ts
+                - frontend/src/pages/Experiments/CreateExperimentPage.tsx
+                - frontend/src/pages/Experiments/ExperimentDetailPage.tsx
+                - tests/test_web_experiment_config.py
+              prBaseBranch: main
+              remote: origin
+              remoteIdentity: 128eeb1e6f0d21b25601fcb7f9aad36adfdfb4d76f37f54f004760410190f351
+              targetBranch: codex/web-experiment-advanced-config
+              verifiedBranch: codex/web-experiment-advanced-config
+            tweak.archive.prepare:
+              prBaseBranch: main
+              remote: origin
+              summary: "用户选择 C：归档 issue #526 并同步 frontend/experiments-management 主规格，将 15
+                个已验证实现及测试文件、验收报告和归档材料提交至 codex/web-experiment-advanced-config，推送
+                origin 同名分支，创建以 main 为 base 的 PR。无无关改动。用户当前 C 选择明确授权此独立分支 PR
+                交付；保留有效验收证据。"
+              targetBranch: codex/web-experiment-advanced-config
+            tweak.verify.report.evidence:
+              contentHash: 04c0f9af071855fd20984fc51de66660b31c5a74d306a260dce668568c7992ec
+              ref: docs/superpowers/reports/2026-11-27-web-experiment-advanced-config-verify.md
+            tweak.verify.run:
+              checks:
+                - name: "frontend: npm test"
+                  note: 377 passed; /tmp/issue526-frontend.log. 后续仅补默认配置回显和对应双语资源，浏览器与资源测试已覆盖最终改动。
+                  result: passed
+                - name: "root: .venv/bin/python -m pytest -q --no-cov
+                    tests/test_web_experiment_config.py
+                    tests/test_strategy_parameter_contract.py
+                    tests/test_experiment.py"
+                  note: 103 passed; /tmp/issue526-python-regression.log. 含真实 Runner /
+                    self_consistency / SDK 请求构造及 calls/tokens/seconds 各自停止。
+                  result: passed
+                - name: "frontend: npm run build"
+                  note: TypeScript + Vite passed; /tmp/issue526-build.log. 既有 CompareCharts
+                    分包大小提示不影响构建。
+                  result: passed
+                - name: "frontend: npm run lint"
+                  note: ESLint passed; /tmp/issue526-lint.log
+                  result: passed
+                - name: "frontend: prettier --check 修改的 14 个前端文件"
+                  note: All matched files use Prettier code style; /tmp/issue526-format.log
+                  result: passed
+                - name: "root: .venv/bin/ruff check tests/test_web_experiment_config.py;
+                    .venv/bin/black --check tests/test_web_experiment_config.py;
+                    git diff --check"
+                  note: All checks passed; Black unchanged; diff 无空白错误。
+                  result: passed
+                - name: "root: CHROME_PATH=<local Chrome> node
+                    frontend/scripts/verify-experiment-config.mjs"
+                  note: 双语创建/错误修正/完整 payload/刷新回显/移动端/旧任务均通过; /tmp/issue526-browser/report.json
+                    与截图。无真实模型或后端网络请求。
+                  result: passed
+                - name: "frontend: node --experimental-strip-types --test
+                    src/i18n/resources.test.ts"
+                  note: 1 passed; /tmp/issue526-i18n-final.log; 最终双语资源键覆盖通过。
+                  result: passed
+                - name: "root: comet classic openspec -- validate web-experiment-advanced-config
+                    --strict"
+                  note: Change valid（Open 时已执行，后续仅完成 checkbox 与稳定任务 ID，无需求正文改变）。
+                  result: passed
+              event: verification-ready
+              verificationReport: docs/superpowers/reports/2026-11-27-web-experiment-advanced-config-verify.md
+        inputHash: 9505d04dc40849c5fd63f6fc1acf121ef6cfafdc254e360cdf5cdb4d1a122e83
+        protocolVersion: 1
+        receipts: []
+        reconciliations: []
+        ref: comet-archive
+        requiredCapabilities: []
+        retry: manual
+        runId: web-experiment-advanced-config
+        status: pending
+        stepId: tweak.archive.deliver
+        type: invoke_skill
+    commands:
+      - id: 32bd7602e0a678a883f424ed338d9fb652e348825c80b19e96bf0350b73e9d6e
+        name: reopen-verification
+        inputHash: f5e487703e8f5203c1a70838dc38a9f0c3378ad441ad266fc269ee9debbfde5a
+        actionId: web-experiment-advanced-config:8
+    actionContexts:
+      web-experiment-advanced-config:1:
+        results: {}
+        sequence: 1
+      web-experiment-advanced-config:10:
+        results:
+          tweak.verify.report.evidence:
+            sequence: 9
+            value:
+              contentHash: 04c0f9af071855fd20984fc51de66660b31c5a74d306a260dce668568c7992ec
+              ref: docs/superpowers/reports/2026-11-27-web-experiment-advanced-config-verify.md
+          tweak.verify.run:
+            sequence: 8
+            value:
+              checks:
+                - name: "frontend: npm test"
+                  note: 377 passed; /tmp/issue526-frontend.log. 后续仅补默认配置回显和对应双语资源，浏览器与资源测试已覆盖最终改动。
+                  result: passed
+                - name: "root: .venv/bin/python -m pytest -q --no-cov
+                    tests/test_web_experiment_config.py
+                    tests/test_strategy_parameter_contract.py
+                    tests/test_experiment.py"
+                  note: 103 passed; /tmp/issue526-python-regression.log. 含真实 Runner /
+                    self_consistency / SDK 请求构造及 calls/tokens/seconds 各自停止。
+                  result: passed
+                - name: "frontend: npm run build"
+                  note: TypeScript + Vite passed; /tmp/issue526-build.log. 既有 CompareCharts
+                    分包大小提示不影响构建。
+                  result: passed
+                - name: "frontend: npm run lint"
+                  note: ESLint passed; /tmp/issue526-lint.log
+                  result: passed
+                - name: "frontend: prettier --check 修改的 14 个前端文件"
+                  note: All matched files use Prettier code style; /tmp/issue526-format.log
+                  result: passed
+                - name: "root: .venv/bin/ruff check tests/test_web_experiment_config.py;
+                    .venv/bin/black --check tests/test_web_experiment_config.py;
+                    git diff --check"
+                  note: All checks passed; Black unchanged; diff 无空白错误。
+                  result: passed
+                - name: "root: CHROME_PATH=<local Chrome> node
+                    frontend/scripts/verify-experiment-config.mjs"
+                  note: 双语创建/错误修正/完整 payload/刷新回显/移动端/旧任务均通过; /tmp/issue526-browser/report.json
+                    与截图。无真实模型或后端网络请求。
+                  result: passed
+                - name: "frontend: node --experimental-strip-types --test
+                    src/i18n/resources.test.ts"
+                  note: 1 passed; /tmp/issue526-i18n-final.log; 最终双语资源键覆盖通过。
+                  result: passed
+                - name: "root: comet classic openspec -- validate web-experiment-advanced-config
+                    --strict"
+                  note: Change valid（Open 时已执行，后续仅完成 checkbox 与稳定任务 ID，无需求正文改变）。
+                  result: passed
+              event: verification-ready
+              verificationReport: docs/superpowers/reports/2026-11-27-web-experiment-advanced-config-verify.md
+        sequence: 10
+      web-experiment-advanced-config:12:
+        results:
+          tweak.archive.confirm:
+            sequence: 11
+            value:
+              choice: pr
+              proposal:
+                input:
+                  change: web-experiment-advanced-config
+                  changeDir: openspec/changes/web-experiment-advanced-config
+                  workspaceBaseline:
+                    ref: 0f0ace63-321e-4b7c-82a0-dc8193131d10
+                outputs:
+                  tweak.archive.prepare:
+                    prBaseBranch: main
+                    remote: origin
+                    summary: "用户选择 C：归档 issue #526 并同步 frontend/experiments-management 主规格，将 15
+                      个已验证实现及测试文件、验收报告和归档材料提交至
+                      codex/web-experiment-advanced-config，推送 origin 同名分支，创建以
+                      main 为 base 的 PR。无无关改动。用户当前 C 选择明确授权此独立分支 PR 交付；保留有效验收证据。"
+                    targetBranch: codex/web-experiment-advanced-config
+          tweak.archive.prepare:
+            sequence: 10
+            value:
+              prBaseBranch: main
+              remote: origin
+              summary: "用户选择 C：归档 issue #526 并同步 frontend/experiments-management 主规格，将 15
+                个已验证实现及测试文件、验收报告和归档材料提交至 codex/web-experiment-advanced-config，推送
+                origin 同名分支，创建以 main 为 base 的 PR。无无关改动。用户当前 C 选择明确授权此独立分支 PR
+                交付；保留有效验收证据。"
+              targetBranch: codex/web-experiment-advanced-config
+          tweak.verify.report.evidence:
+            sequence: 9
+            value:
+              contentHash: 04c0f9af071855fd20984fc51de66660b31c5a74d306a260dce668568c7992ec
+              ref: docs/superpowers/reports/2026-11-27-web-experiment-advanced-config-verify.md
+          tweak.verify.run:
+            sequence: 8
+            value:
+              checks:
+                - name: "frontend: npm test"
+                  note: 377 passed; /tmp/issue526-frontend.log. 后续仅补默认配置回显和对应双语资源，浏览器与资源测试已覆盖最终改动。
+                  result: passed
+                - name: "root: .venv/bin/python -m pytest -q --no-cov
+                    tests/test_web_experiment_config.py
+                    tests/test_strategy_parameter_contract.py
+                    tests/test_experiment.py"
+                  note: 103 passed; /tmp/issue526-python-regression.log. 含真实 Runner /
+                    self_consistency / SDK 请求构造及 calls/tokens/seconds 各自停止。
+                  result: passed
+                - name: "frontend: npm run build"
+                  note: TypeScript + Vite passed; /tmp/issue526-build.log. 既有 CompareCharts
+                    分包大小提示不影响构建。
+                  result: passed
+                - name: "frontend: npm run lint"
+                  note: ESLint passed; /tmp/issue526-lint.log
+                  result: passed
+                - name: "frontend: prettier --check 修改的 14 个前端文件"
+                  note: All matched files use Prettier code style; /tmp/issue526-format.log
+                  result: passed
+                - name: "root: .venv/bin/ruff check tests/test_web_experiment_config.py;
+                    .venv/bin/black --check tests/test_web_experiment_config.py;
+                    git diff --check"
+                  note: All checks passed; Black unchanged; diff 无空白错误。
+                  result: passed
+                - name: "root: CHROME_PATH=<local Chrome> node
+                    frontend/scripts/verify-experiment-config.mjs"
+                  note: 双语创建/错误修正/完整 payload/刷新回显/移动端/旧任务均通过; /tmp/issue526-browser/report.json
+                    与截图。无真实模型或后端网络请求。
+                  result: passed
+                - name: "frontend: node --experimental-strip-types --test
+                    src/i18n/resources.test.ts"
+                  note: 1 passed; /tmp/issue526-i18n-final.log; 最终双语资源键覆盖通过。
+                  result: passed
+                - name: "root: comet classic openspec -- validate web-experiment-advanced-config
+                    --strict"
+                  note: Change valid（Open 时已执行，后续仅完成 checkbox 与稳定任务 ID，无需求正文改变）。
+                  result: passed
+              event: verification-ready
+              verificationReport: docs/superpowers/reports/2026-11-27-web-experiment-advanced-config-verify.md
+        sequence: 12
+      web-experiment-advanced-config:13:
+        results:
+          tweak.archive.confirm:
+            sequence: 11
+            value:
+              choice: pr
+              proposal:
+                input:
+                  change: web-experiment-advanced-config
+                  changeDir: openspec/changes/web-experiment-advanced-config
+                  workspaceBaseline:
+                    ref: 0f0ace63-321e-4b7c-82a0-dc8193131d10
+                outputs:
+                  tweak.archive.prepare:
+                    prBaseBranch: main
+                    remote: origin
+                    summary: "用户选择 C：归档 issue #526 并同步 frontend/experiments-management 主规格，将 15
+                      个已验证实现及测试文件、验收报告和归档材料提交至
+                      codex/web-experiment-advanced-config，推送 origin 同名分支，创建以
+                      main 为 base 的 PR。无无关改动。用户当前 C 选择明确授权此独立分支 PR 交付；保留有效验收证据。"
+                    targetBranch: codex/web-experiment-advanced-config
+          tweak.archive.preflight:
+            sequence: 12
+            value:
+              baseCommit: 40a033e1ab4328697010f314ad5e12791e70dd4c
+              deliveryAction: pr
+              deliveryPaths:
+                - frontend/scripts/verify-experiment-config.mjs
+                - frontend/src/experiments/AdvancedFields.tsx
+                - frontend/src/experiments/advanced.ts
+                - frontend/src/experiments/client.test.ts
+                - frontend/src/experiments/client.ts
+                - frontend/src/experiments/presentation.ts
+                - frontend/src/experiments/runCreation.ts
+                - frontend/src/experiments/types.ts
+                - frontend/src/experiments/validation.test.ts
+                - frontend/src/experiments/validation.ts
+                - frontend/src/i18n/en-US.ts
+                - frontend/src/i18n/zh-CN.ts
+                - frontend/src/pages/Experiments/CreateExperimentPage.tsx
+                - frontend/src/pages/Experiments/ExperimentDetailPage.tsx
+                - tests/test_web_experiment_config.py
+              prBaseBranch: main
+              remote: origin
+              remoteIdentity: 128eeb1e6f0d21b25601fcb7f9aad36adfdfb4d76f37f54f004760410190f351
+              targetBranch: codex/web-experiment-advanced-config
+              verifiedBranch: codex/web-experiment-advanced-config
+          tweak.archive.prepare:
+            sequence: 10
+            value:
+              prBaseBranch: main
+              remote: origin
+              summary: "用户选择 C：归档 issue #526 并同步 frontend/experiments-management 主规格，将 15
+                个已验证实现及测试文件、验收报告和归档材料提交至 codex/web-experiment-advanced-config，推送
+                origin 同名分支，创建以 main 为 base 的 PR。无无关改动。用户当前 C 选择明确授权此独立分支 PR
+                交付；保留有效验收证据。"
+              targetBranch: codex/web-experiment-advanced-config
+          tweak.verify.report.evidence:
+            sequence: 9
+            value:
+              contentHash: 04c0f9af071855fd20984fc51de66660b31c5a74d306a260dce668568c7992ec
+              ref: docs/superpowers/reports/2026-11-27-web-experiment-advanced-config-verify.md
+          tweak.verify.run:
+            sequence: 8
+            value:
+              checks:
+                - name: "frontend: npm test"
+                  note: 377 passed; /tmp/issue526-frontend.log. 后续仅补默认配置回显和对应双语资源，浏览器与资源测试已覆盖最终改动。
+                  result: passed
+                - name: "root: .venv/bin/python -m pytest -q --no-cov
+                    tests/test_web_experiment_config.py
+                    tests/test_strategy_parameter_contract.py
+                    tests/test_experiment.py"
+                  note: 103 passed; /tmp/issue526-python-regression.log. 含真实 Runner /
+                    self_consistency / SDK 请求构造及 calls/tokens/seconds 各自停止。
+                  result: passed
+                - name: "frontend: npm run build"
+                  note: TypeScript + Vite passed; /tmp/issue526-build.log. 既有 CompareCharts
+                    分包大小提示不影响构建。
+                  result: passed
+                - name: "frontend: npm run lint"
+                  note: ESLint passed; /tmp/issue526-lint.log
+                  result: passed
+                - name: "frontend: prettier --check 修改的 14 个前端文件"
+                  note: All matched files use Prettier code style; /tmp/issue526-format.log
+                  result: passed
+                - name: "root: .venv/bin/ruff check tests/test_web_experiment_config.py;
+                    .venv/bin/black --check tests/test_web_experiment_config.py;
+                    git diff --check"
+                  note: All checks passed; Black unchanged; diff 无空白错误。
+                  result: passed
+                - name: "root: CHROME_PATH=<local Chrome> node
+                    frontend/scripts/verify-experiment-config.mjs"
+                  note: 双语创建/错误修正/完整 payload/刷新回显/移动端/旧任务均通过; /tmp/issue526-browser/report.json
+                    与截图。无真实模型或后端网络请求。
+                  result: passed
+                - name: "frontend: node --experimental-strip-types --test
+                    src/i18n/resources.test.ts"
+                  note: 1 passed; /tmp/issue526-i18n-final.log; 最终双语资源键覆盖通过。
+                  result: passed
+                - name: "root: comet classic openspec -- validate web-experiment-advanced-config
+                    --strict"
+                  note: Change valid（Open 时已执行，后续仅完成 checkbox 与稳定任务 ID，无需求正文改变）。
+                  result: passed
+              event: verification-ready
+              verificationReport: docs/superpowers/reports/2026-11-27-web-experiment-advanced-config-verify.md
+        sequence: 13
+      web-experiment-advanced-config:14:
+        results:
+          tweak.archive.confirm:
+            sequence: 11
+            value:
+              choice: pr
+              proposal:
+                input:
+                  change: web-experiment-advanced-config
+                  changeDir: openspec/changes/web-experiment-advanced-config
+                  workspaceBaseline:
+                    ref: 0f0ace63-321e-4b7c-82a0-dc8193131d10
+                outputs:
+                  tweak.archive.prepare:
+                    prBaseBranch: main
+                    remote: origin
+                    summary: "用户选择 C：归档 issue #526 并同步 frontend/experiments-management 主规格，将 15
+                      个已验证实现及测试文件、验收报告和归档材料提交至
+                      codex/web-experiment-advanced-config，推送 origin 同名分支，创建以
+                      main 为 base 的 PR。无无关改动。用户当前 C 选择明确授权此独立分支 PR 交付；保留有效验收证据。"
+                    targetBranch: codex/web-experiment-advanced-config
+          tweak.archive.execute:
+            sequence: 13
+            value:
+              archiveDirectory: openspec/changes/archive/2026-11-27-web-experiment-advanced-config
+          tweak.archive.preflight:
+            sequence: 12
+            value:
+              baseCommit: 40a033e1ab4328697010f314ad5e12791e70dd4c
+              deliveryAction: pr
+              deliveryPaths:
+                - frontend/scripts/verify-experiment-config.mjs
+                - frontend/src/experiments/AdvancedFields.tsx
+                - frontend/src/experiments/advanced.ts
+                - frontend/src/experiments/client.test.ts
+                - frontend/src/experiments/client.ts
+                - frontend/src/experiments/presentation.ts
+                - frontend/src/experiments/runCreation.ts
+                - frontend/src/experiments/types.ts
+                - frontend/src/experiments/validation.test.ts
+                - frontend/src/experiments/validation.ts
+                - frontend/src/i18n/en-US.ts
+                - frontend/src/i18n/zh-CN.ts
+                - frontend/src/pages/Experiments/CreateExperimentPage.tsx
+                - frontend/src/pages/Experiments/ExperimentDetailPage.tsx
+                - tests/test_web_experiment_config.py
+              prBaseBranch: main
+              remote: origin
+              remoteIdentity: 128eeb1e6f0d21b25601fcb7f9aad36adfdfb4d76f37f54f004760410190f351
+              targetBranch: codex/web-experiment-advanced-config
+              verifiedBranch: codex/web-experiment-advanced-config
+          tweak.archive.prepare:
+            sequence: 10
+            value:
+              prBaseBranch: main
+              remote: origin
+              summary: "用户选择 C：归档 issue #526 并同步 frontend/experiments-management 主规格，将 15
+                个已验证实现及测试文件、验收报告和归档材料提交至 codex/web-experiment-advanced-config，推送
+                origin 同名分支，创建以 main 为 base 的 PR。无无关改动。用户当前 C 选择明确授权此独立分支 PR
+                交付；保留有效验收证据。"
+              targetBranch: codex/web-experiment-advanced-config
+          tweak.verify.report.evidence:
+            sequence: 9
+            value:
+              contentHash: 04c0f9af071855fd20984fc51de66660b31c5a74d306a260dce668568c7992ec
+              ref: docs/superpowers/reports/2026-11-27-web-experiment-advanced-config-verify.md
+          tweak.verify.run:
+            sequence: 8
+            value:
+              checks:
+                - name: "frontend: npm test"
+                  note: 377 passed; /tmp/issue526-frontend.log. 后续仅补默认配置回显和对应双语资源，浏览器与资源测试已覆盖最终改动。
+                  result: passed
+                - name: "root: .venv/bin/python -m pytest -q --no-cov
+                    tests/test_web_experiment_config.py
+                    tests/test_strategy_parameter_contract.py
+                    tests/test_experiment.py"
+                  note: 103 passed; /tmp/issue526-python-regression.log. 含真实 Runner /
+                    self_consistency / SDK 请求构造及 calls/tokens/seconds 各自停止。
+                  result: passed
+                - name: "frontend: npm run build"
+                  note: TypeScript + Vite passed; /tmp/issue526-build.log. 既有 CompareCharts
+                    分包大小提示不影响构建。
+                  result: passed
+                - name: "frontend: npm run lint"
+                  note: ESLint passed; /tmp/issue526-lint.log
+                  result: passed
+                - name: "frontend: prettier --check 修改的 14 个前端文件"
+                  note: All matched files use Prettier code style; /tmp/issue526-format.log
+                  result: passed
+                - name: "root: .venv/bin/ruff check tests/test_web_experiment_config.py;
+                    .venv/bin/black --check tests/test_web_experiment_config.py;
+                    git diff --check"
+                  note: All checks passed; Black unchanged; diff 无空白错误。
+                  result: passed
+                - name: "root: CHROME_PATH=<local Chrome> node
+                    frontend/scripts/verify-experiment-config.mjs"
+                  note: 双语创建/错误修正/完整 payload/刷新回显/移动端/旧任务均通过; /tmp/issue526-browser/report.json
+                    与截图。无真实模型或后端网络请求。
+                  result: passed
+                - name: "frontend: node --experimental-strip-types --test
+                    src/i18n/resources.test.ts"
+                  note: 1 passed; /tmp/issue526-i18n-final.log; 最终双语资源键覆盖通过。
+                  result: passed
+                - name: "root: comet classic openspec -- validate web-experiment-advanced-config
+                    --strict"
+                  note: Change valid（Open 时已执行，后续仅完成 checkbox 与稳定任务 ID，无需求正文改变）。
+                  result: passed
+              event: verification-ready
+              verificationReport: docs/superpowers/reports/2026-11-27-web-experiment-advanced-config-verify.md
+        sequence: 14
+      web-experiment-advanced-config:3:
+        results:
+          tweak.open:
+            sequence: 1
+            value:
+              event: open-complete
+              requirementsEvidence:
+                ref: openspec/changes/web-experiment-advanced-config
+          tweak.open.evidence:
+            sequence: 2
+            value:
+              contentHash: b0e63336aadd60af34be9509c44d1d239016c5fcfde541cf1001f88f851fb0b5
+              ref: openspec/changes/web-experiment-advanced-config
+        sequence: 3
+      web-experiment-advanced-config:4:
+        results:
+          tweak.build.execute:
+            sequence: 3
+            value:
+              checks:
+                - name: "frontend: npm test"
+                  note: 377 passed; /tmp/issue526-frontend.log. 后续仅补默认配置回显和对应双语资源，浏览器与资源测试已覆盖最终改动。
+                  result: passed
+                - name: "root: .venv/bin/python -m pytest -q --no-cov
+                    tests/test_web_experiment_config.py
+                    tests/test_strategy_parameter_contract.py
+                    tests/test_experiment.py"
+                  note: 103 passed; /tmp/issue526-python-regression.log. 含真实 Runner /
+                    self_consistency / SDK 请求构造及 calls/tokens/seconds 各自停止。
+                  result: passed
+                - name: "frontend: npm run build"
+                  note: TypeScript + Vite passed; /tmp/issue526-build.log. 既有 CompareCharts
+                    分包大小提示不影响构建。
+                  result: passed
+                - name: "frontend: npm run lint"
+                  note: ESLint passed; /tmp/issue526-lint.log
+                  result: passed
+                - name: "frontend: prettier --check 修改的 14 个前端文件"
+                  note: All matched files use Prettier code style; /tmp/issue526-format.log
+                  result: passed
+                - name: "root: .venv/bin/ruff check tests/test_web_experiment_config.py;
+                    .venv/bin/black --check tests/test_web_experiment_config.py;
+                    git diff --check"
+                  note: All checks passed; Black unchanged; diff 无空白错误。
+                  result: passed
+                - name: "root: CHROME_PATH=<local Chrome> node
+                    frontend/scripts/verify-experiment-config.mjs"
+                  note: 双语创建/错误修正/完整 payload/刷新回显/移动端/旧任务均通过; /tmp/issue526-browser/report.json
+                    与截图。无真实模型或后端网络请求。
+                  result: passed
+                - name: "frontend: node --experimental-strip-types --test
+                    src/i18n/resources.test.ts"
+                  note: 1 passed; /tmp/issue526-i18n-final.log; 最终双语资源键覆盖通过。
+                  result: passed
+                - name: "root: comet classic openspec -- validate web-experiment-advanced-config
+                    --strict"
+                  note: Change valid（Open 时已执行，后续仅完成 checkbox 与稳定任务 ID，无需求正文改变）。
+                  result: passed
+              event: build-complete
+          tweak.open:
+            sequence: 1
+            value:
+              event: open-complete
+              requirementsEvidence:
+                ref: openspec/changes/web-experiment-advanced-config
+          tweak.open.evidence:
+            sequence: 2
+            value:
+              contentHash: b0e63336aadd60af34be9509c44d1d239016c5fcfde541cf1001f88f851fb0b5
+              ref: openspec/changes/web-experiment-advanced-config
+        sequence: 4
+      web-experiment-advanced-config:6:
+        results:
+          tweak.build.execute:
+            sequence: 3
+            value:
+              checks:
+                - name: "frontend: npm test"
+                  note: 377 passed; /tmp/issue526-frontend.log. 后续仅补默认配置回显和对应双语资源，浏览器与资源测试已覆盖最终改动。
+                  result: passed
+                - name: "root: .venv/bin/python -m pytest -q --no-cov
+                    tests/test_web_experiment_config.py
+                    tests/test_strategy_parameter_contract.py
+                    tests/test_experiment.py"
+                  note: 103 passed; /tmp/issue526-python-regression.log. 含真实 Runner /
+                    self_consistency / SDK 请求构造及 calls/tokens/seconds 各自停止。
+                  result: passed
+                - name: "frontend: npm run build"
+                  note: TypeScript + Vite passed; /tmp/issue526-build.log. 既有 CompareCharts
+                    分包大小提示不影响构建。
+                  result: passed
+                - name: "frontend: npm run lint"
+                  note: ESLint passed; /tmp/issue526-lint.log
+                  result: passed
+                - name: "frontend: prettier --check 修改的 14 个前端文件"
+                  note: All matched files use Prettier code style; /tmp/issue526-format.log
+                  result: passed
+                - name: "root: .venv/bin/ruff check tests/test_web_experiment_config.py;
+                    .venv/bin/black --check tests/test_web_experiment_config.py;
+                    git diff --check"
+                  note: All checks passed; Black unchanged; diff 无空白错误。
+                  result: passed
+                - name: "root: CHROME_PATH=<local Chrome> node
+                    frontend/scripts/verify-experiment-config.mjs"
+                  note: 双语创建/错误修正/完整 payload/刷新回显/移动端/旧任务均通过; /tmp/issue526-browser/report.json
+                    与截图。无真实模型或后端网络请求。
+                  result: passed
+                - name: "frontend: node --experimental-strip-types --test
+                    src/i18n/resources.test.ts"
+                  note: 1 passed; /tmp/issue526-i18n-final.log; 最终双语资源键覆盖通过。
+                  result: passed
+                - name: "root: comet classic openspec -- validate web-experiment-advanced-config
+                    --strict"
+                  note: Change valid（Open 时已执行，后续仅完成 checkbox 与稳定任务 ID，无需求正文改变）。
+                  result: passed
+              event: build-complete
+          tweak.open:
+            sequence: 1
+            value:
+              event: open-complete
+              requirementsEvidence:
+                ref: openspec/changes/web-experiment-advanced-config
+          tweak.open.evidence:
+            sequence: 2
+            value:
+              contentHash: b0e63336aadd60af34be9509c44d1d239016c5fcfde541cf1001f88f851fb0b5
+              ref: openspec/changes/web-experiment-advanced-config
+          tweak.verify.report.evidence:
+            sequence: 5
+            value:
+              contentHash: 3b25e9c93b2f5df227cc501ffe566c72accd5c415cbd4aebea74ee5d6b8fd92b
+              ref: docs/superpowers/reports/2026-11-27-web-experiment-advanced-config-verify.md
+          tweak.verify.run:
+            sequence: 4
+            value:
+              checks:
+                - name: "frontend: npm test"
+                  note: 377 passed; /tmp/issue526-frontend.log. 后续仅补默认配置回显和对应双语资源，浏览器与资源测试已覆盖最终改动。
+                  result: passed
+                - name: "root: .venv/bin/python -m pytest -q --no-cov
+                    tests/test_web_experiment_config.py
+                    tests/test_strategy_parameter_contract.py
+                    tests/test_experiment.py"
+                  note: 103 passed; /tmp/issue526-python-regression.log. 含真实 Runner /
+                    self_consistency / SDK 请求构造及 calls/tokens/seconds 各自停止。
+                  result: passed
+                - name: "frontend: npm run build"
+                  note: TypeScript + Vite passed; /tmp/issue526-build.log. 既有 CompareCharts
+                    分包大小提示不影响构建。
+                  result: passed
+                - name: "frontend: npm run lint"
+                  note: ESLint passed; /tmp/issue526-lint.log
+                  result: passed
+                - name: "frontend: prettier --check 修改的 14 个前端文件"
+                  note: All matched files use Prettier code style; /tmp/issue526-format.log
+                  result: passed
+                - name: "root: .venv/bin/ruff check tests/test_web_experiment_config.py;
+                    .venv/bin/black --check tests/test_web_experiment_config.py;
+                    git diff --check"
+                  note: All checks passed; Black unchanged; diff 无空白错误。
+                  result: passed
+                - name: "root: CHROME_PATH=<local Chrome> node
+                    frontend/scripts/verify-experiment-config.mjs"
+                  note: 双语创建/错误修正/完整 payload/刷新回显/移动端/旧任务均通过; /tmp/issue526-browser/report.json
+                    与截图。无真实模型或后端网络请求。
+                  result: passed
+                - name: "frontend: node --experimental-strip-types --test
+                    src/i18n/resources.test.ts"
+                  note: 1 passed; /tmp/issue526-i18n-final.log; 最终双语资源键覆盖通过。
+                  result: passed
+                - name: "root: comet classic openspec -- validate web-experiment-advanced-config
+                    --strict"
+                  note: Change valid（Open 时已执行，后续仅完成 checkbox 与稳定任务 ID，无需求正文改变）。
+                  result: passed
+              event: verification-ready
+              verificationReport: docs/superpowers/reports/2026-11-27-web-experiment-advanced-config-verify.md
+        sequence: 6
+      web-experiment-advanced-config:8:
+        results: {}
+        sequence: 8
+    waits:
+      - id: web-experiment-advanced-config:7
+        stepId: tweak.archive.confirm
+        sequence: 7
+        status: cancelled
+        proposal:
+          input:
+            change: web-experiment-advanced-config
+            changeDir: openspec/changes/web-experiment-advanced-config
+            workspaceBaseline:
+              ref: 0f0ace63-321e-4b7c-82a0-dc8193131d10
+          outputs:
+            tweak.archive.prepare:
+              prBaseBranch: main
+              remote: origin
+              summary: "issue #526 已实现并通过 Verify：归档本 change、同步 frontend/experiments-management
+                主规格，提交 15 个交付文件及工作流材料。当前绑定 main，基线
+                40a033e1ab4328697010f314ad5e12791e70dd4c；远端 origin，PR base
+                main。local 仅归档并在 main 提交；push 再推送 origin/main；若选择 PR，先核对并绑定独立
+                codex 工作分支，重新确认该交付目标后推送建 PR。无无关改动。"
+              targetBranch: main
+        proposalHash: 249f5f2360fff3447a6455266468189285534b2ce11763502c0c2a113b87e289
+        choices:
+          - local
+          - push
+          - pr
+          - reverify
+          - later
+        results:
+          tweak.archive.prepare:
+            sequence: 6
+            value:
+              prBaseBranch: main
+              remote: origin
+              summary: "issue #526 已实现并通过 Verify：归档本 change、同步 frontend/experiments-management
+                主规格，提交 15 个交付文件及工作流材料。当前绑定 main，基线
+                40a033e1ab4328697010f314ad5e12791e70dd4c；远端 origin，PR base
+                main。local 仅归档并在 main 提交；push 再推送 origin/main；若选择 PR，先核对并绑定独立
+                codex 工作分支，重新确认该交付目标后推送建 PR。无无关改动。"
+              targetBranch: main
+          tweak.build.execute:
+            sequence: 3
+            value:
+              checks:
+                - name: "frontend: npm test"
+                  note: 377 passed; /tmp/issue526-frontend.log. 后续仅补默认配置回显和对应双语资源，浏览器与资源测试已覆盖最终改动。
+                  result: passed
+                - name: "root: .venv/bin/python -m pytest -q --no-cov
+                    tests/test_web_experiment_config.py
+                    tests/test_strategy_parameter_contract.py
+                    tests/test_experiment.py"
+                  note: 103 passed; /tmp/issue526-python-regression.log. 含真实 Runner /
+                    self_consistency / SDK 请求构造及 calls/tokens/seconds 各自停止。
+                  result: passed
+                - name: "frontend: npm run build"
+                  note: TypeScript + Vite passed; /tmp/issue526-build.log. 既有 CompareCharts
+                    分包大小提示不影响构建。
+                  result: passed
+                - name: "frontend: npm run lint"
+                  note: ESLint passed; /tmp/issue526-lint.log
+                  result: passed
+                - name: "frontend: prettier --check 修改的 14 个前端文件"
+                  note: All matched files use Prettier code style; /tmp/issue526-format.log
+                  result: passed
+                - name: "root: .venv/bin/ruff check tests/test_web_experiment_config.py;
+                    .venv/bin/black --check tests/test_web_experiment_config.py;
+                    git diff --check"
+                  note: All checks passed; Black unchanged; diff 无空白错误。
+                  result: passed
+                - name: "root: CHROME_PATH=<local Chrome> node
+                    frontend/scripts/verify-experiment-config.mjs"
+                  note: 双语创建/错误修正/完整 payload/刷新回显/移动端/旧任务均通过; /tmp/issue526-browser/report.json
+                    与截图。无真实模型或后端网络请求。
+                  result: passed
+                - name: "frontend: node --experimental-strip-types --test
+                    src/i18n/resources.test.ts"
+                  note: 1 passed; /tmp/issue526-i18n-final.log; 最终双语资源键覆盖通过。
+                  result: passed
+                - name: "root: comet classic openspec -- validate web-experiment-advanced-config
+                    --strict"
+                  note: Change valid（Open 时已执行，后续仅完成 checkbox 与稳定任务 ID，无需求正文改变）。
+                  result: passed
+              event: build-complete
+          tweak.open:
+            sequence: 1
+            value:
+              event: open-complete
+              requirementsEvidence:
+                ref: openspec/changes/web-experiment-advanced-config
+          tweak.open.evidence:
+            sequence: 2
+            value:
+              contentHash: b0e63336aadd60af34be9509c44d1d239016c5fcfde541cf1001f88f851fb0b5
+              ref: openspec/changes/web-experiment-advanced-config
+          tweak.verify.report.evidence:
+            sequence: 5
+            value:
+              contentHash: 3b25e9c93b2f5df227cc501ffe566c72accd5c415cbd4aebea74ee5d6b8fd92b
+              ref: docs/superpowers/reports/2026-11-27-web-experiment-advanced-config-verify.md
+          tweak.verify.run:
+            sequence: 4
+            value:
+              checks:
+                - name: "frontend: npm test"
+                  note: 377 passed; /tmp/issue526-frontend.log. 后续仅补默认配置回显和对应双语资源，浏览器与资源测试已覆盖最终改动。
+                  result: passed
+                - name: "root: .venv/bin/python -m pytest -q --no-cov
+                    tests/test_web_experiment_config.py
+                    tests/test_strategy_parameter_contract.py
+                    tests/test_experiment.py"
+                  note: 103 passed; /tmp/issue526-python-regression.log. 含真实 Runner /
+                    self_consistency / SDK 请求构造及 calls/tokens/seconds 各自停止。
+                  result: passed
+                - name: "frontend: npm run build"
+                  note: TypeScript + Vite passed; /tmp/issue526-build.log. 既有 CompareCharts
+                    分包大小提示不影响构建。
+                  result: passed
+                - name: "frontend: npm run lint"
+                  note: ESLint passed; /tmp/issue526-lint.log
+                  result: passed
+                - name: "frontend: prettier --check 修改的 14 个前端文件"
+                  note: All matched files use Prettier code style; /tmp/issue526-format.log
+                  result: passed
+                - name: "root: .venv/bin/ruff check tests/test_web_experiment_config.py;
+                    .venv/bin/black --check tests/test_web_experiment_config.py;
+                    git diff --check"
+                  note: All checks passed; Black unchanged; diff 无空白错误。
+                  result: passed
+                - name: "root: CHROME_PATH=<local Chrome> node
+                    frontend/scripts/verify-experiment-config.mjs"
+                  note: 双语创建/错误修正/完整 payload/刷新回显/移动端/旧任务均通过; /tmp/issue526-browser/report.json
+                    与截图。无真实模型或后端网络请求。
+                  result: passed
+                - name: "frontend: node --experimental-strip-types --test
+                    src/i18n/resources.test.ts"
+                  note: 1 passed; /tmp/issue526-i18n-final.log; 最终双语资源键覆盖通过。
+                  result: passed
+                - name: "root: comet classic openspec -- validate web-experiment-advanced-config
+                    --strict"
+                  note: Change valid（Open 时已执行，后续仅完成 checkbox 与稳定任务 ID，无需求正文改变）。
+                  result: passed
+              event: verification-ready
+              verificationReport: docs/superpowers/reports/2026-11-27-web-experiment-advanced-config-verify.md
+      - id: web-experiment-advanced-config:11
+        stepId: tweak.archive.confirm
+        sequence: 11
+        status: resolved
+        proposal:
+          input:
+            change: web-experiment-advanced-config
+            changeDir: openspec/changes/web-experiment-advanced-config
+            workspaceBaseline:
+              ref: 0f0ace63-321e-4b7c-82a0-dc8193131d10
+          outputs:
+            tweak.archive.prepare:
+              prBaseBranch: main
+              remote: origin
+              summary: "用户选择 C：归档 issue #526 并同步 frontend/experiments-management 主规格，将 15
+                个已验证实现及测试文件、验收报告和归档材料提交至 codex/web-experiment-advanced-config，推送
+                origin 同名分支，创建以 main 为 base 的 PR。无无关改动。用户当前 C 选择明确授权此独立分支 PR
+                交付；保留有效验收证据。"
+              targetBranch: codex/web-experiment-advanced-config
+        proposalHash: f7374cb8faedcde5498b3dbac0998d66203f8d7cbf8c8a7278b71d6f90a4908a
+        choices:
+          - local
+          - push
+          - pr
+          - reverify
+          - later
+        results:
+          tweak.archive.prepare:
+            sequence: 10
+            value:
+              prBaseBranch: main
+              remote: origin
+              summary: "用户选择 C：归档 issue #526 并同步 frontend/experiments-management 主规格，将 15
+                个已验证实现及测试文件、验收报告和归档材料提交至 codex/web-experiment-advanced-config，推送
+                origin 同名分支，创建以 main 为 base 的 PR。无无关改动。用户当前 C 选择明确授权此独立分支 PR
+                交付；保留有效验收证据。"
+              targetBranch: codex/web-experiment-advanced-config
+          tweak.verify.report.evidence:
+            sequence: 9
+            value:
+              contentHash: 04c0f9af071855fd20984fc51de66660b31c5a74d306a260dce668568c7992ec
+              ref: docs/superpowers/reports/2026-11-27-web-experiment-advanced-config-verify.md
+          tweak.verify.run:
+            sequence: 8
+            value:
+              checks:
+                - name: "frontend: npm test"
+                  note: 377 passed; /tmp/issue526-frontend.log. 后续仅补默认配置回显和对应双语资源，浏览器与资源测试已覆盖最终改动。
+                  result: passed
+                - name: "root: .venv/bin/python -m pytest -q --no-cov
+                    tests/test_web_experiment_config.py
+                    tests/test_strategy_parameter_contract.py
+                    tests/test_experiment.py"
+                  note: 103 passed; /tmp/issue526-python-regression.log. 含真实 Runner /
+                    self_consistency / SDK 请求构造及 calls/tokens/seconds 各自停止。
+                  result: passed
+                - name: "frontend: npm run build"
+                  note: TypeScript + Vite passed; /tmp/issue526-build.log. 既有 CompareCharts
+                    分包大小提示不影响构建。
+                  result: passed
+                - name: "frontend: npm run lint"
+                  note: ESLint passed; /tmp/issue526-lint.log
+                  result: passed
+                - name: "frontend: prettier --check 修改的 14 个前端文件"
+                  note: All matched files use Prettier code style; /tmp/issue526-format.log
+                  result: passed
+                - name: "root: .venv/bin/ruff check tests/test_web_experiment_config.py;
+                    .venv/bin/black --check tests/test_web_experiment_config.py;
+                    git diff --check"
+                  note: All checks passed; Black unchanged; diff 无空白错误。
+                  result: passed
+                - name: "root: CHROME_PATH=<local Chrome> node
+                    frontend/scripts/verify-experiment-config.mjs"
+                  note: 双语创建/错误修正/完整 payload/刷新回显/移动端/旧任务均通过; /tmp/issue526-browser/report.json
+                    与截图。无真实模型或后端网络请求。
+                  result: passed
+                - name: "frontend: node --experimental-strip-types --test
+                    src/i18n/resources.test.ts"
+                  note: 1 passed; /tmp/issue526-i18n-final.log; 最终双语资源键覆盖通过。
+                  result: passed
+                - name: "root: comet classic openspec -- validate web-experiment-advanced-config
+                    --strict"
+                  note: Change valid（Open 时已执行，后续仅完成 checkbox 与稳定任务 ID，无需求正文改变）。
+                  result: passed
+              event: verification-ready
+              verificationReport: docs/superpowers/reports/2026-11-27-web-experiment-advanced-config-verify.md
+        decision:
+          id: classic-archive-f7374cb8faedcde5498b3dbac0998d66203f8d7cbf8c8a7278b71d6f90a4908a-pr
+          choice: pr
+          proposalHash: f7374cb8faedcde5498b3dbac0998d66203f8d7cbf8c8a7278b71d6f90a4908a
+    evidenceWaits:
+      - id: web-experiment-advanced-config:2
+        stepId: tweak.open.evidence
+        sequence: 2
+        kind: classic-open-artifacts
+        status: resolved
+        results:
+          tweak.open:
+            sequence: 1
+            value:
+              event: open-complete
+              requirementsEvidence:
+                ref: openspec/changes/web-experiment-advanced-config
+        receipt:
+          ref: openspec/changes/web-experiment-advanced-config
+          contentHash: b0e63336aadd60af34be9509c44d1d239016c5fcfde541cf1001f88f851fb0b5
+          submissionId: 439fada6-ee88-4afb-a291-b54d4ed4848f
+      - id: web-experiment-advanced-config:5
+        stepId: tweak.verify.report.evidence
+        sequence: 5
+        kind: classic-verification-report
+        status: resolved
+        results:
+          tweak.build.execute:
+            sequence: 3
+            value:
+              checks:
+                - name: "frontend: npm test"
+                  note: 377 passed; /tmp/issue526-frontend.log. 后续仅补默认配置回显和对应双语资源，浏览器与资源测试已覆盖最终改动。
+                  result: passed
+                - name: "root: .venv/bin/python -m pytest -q --no-cov
+                    tests/test_web_experiment_config.py
+                    tests/test_strategy_parameter_contract.py
+                    tests/test_experiment.py"
+                  note: 103 passed; /tmp/issue526-python-regression.log. 含真实 Runner /
+                    self_consistency / SDK 请求构造及 calls/tokens/seconds 各自停止。
+                  result: passed
+                - name: "frontend: npm run build"
+                  note: TypeScript + Vite passed; /tmp/issue526-build.log. 既有 CompareCharts
+                    分包大小提示不影响构建。
+                  result: passed
+                - name: "frontend: npm run lint"
+                  note: ESLint passed; /tmp/issue526-lint.log
+                  result: passed
+                - name: "frontend: prettier --check 修改的 14 个前端文件"
+                  note: All matched files use Prettier code style; /tmp/issue526-format.log
+                  result: passed
+                - name: "root: .venv/bin/ruff check tests/test_web_experiment_config.py;
+                    .venv/bin/black --check tests/test_web_experiment_config.py;
+                    git diff --check"
+                  note: All checks passed; Black unchanged; diff 无空白错误。
+                  result: passed
+                - name: "root: CHROME_PATH=<local Chrome> node
+                    frontend/scripts/verify-experiment-config.mjs"
+                  note: 双语创建/错误修正/完整 payload/刷新回显/移动端/旧任务均通过; /tmp/issue526-browser/report.json
+                    与截图。无真实模型或后端网络请求。
+                  result: passed
+                - name: "frontend: node --experimental-strip-types --test
+                    src/i18n/resources.test.ts"
+                  note: 1 passed; /tmp/issue526-i18n-final.log; 最终双语资源键覆盖通过。
+                  result: passed
+                - name: "root: comet classic openspec -- validate web-experiment-advanced-config
+                    --strict"
+                  note: Change valid（Open 时已执行，后续仅完成 checkbox 与稳定任务 ID，无需求正文改变）。
+                  result: passed
+              event: build-complete
+          tweak.open:
+            sequence: 1
+            value:
+              event: open-complete
+              requirementsEvidence:
+                ref: openspec/changes/web-experiment-advanced-config
+          tweak.open.evidence:
+            sequence: 2
+            value:
+              contentHash: b0e63336aadd60af34be9509c44d1d239016c5fcfde541cf1001f88f851fb0b5
+              ref: openspec/changes/web-experiment-advanced-config
+          tweak.verify.run:
+            sequence: 4
+            value:
+              checks:
+                - name: "frontend: npm test"
+                  note: 377 passed; /tmp/issue526-frontend.log. 后续仅补默认配置回显和对应双语资源，浏览器与资源测试已覆盖最终改动。
+                  result: passed
+                - name: "root: .venv/bin/python -m pytest -q --no-cov
+                    tests/test_web_experiment_config.py
+                    tests/test_strategy_parameter_contract.py
+                    tests/test_experiment.py"
+                  note: 103 passed; /tmp/issue526-python-regression.log. 含真实 Runner /
+                    self_consistency / SDK 请求构造及 calls/tokens/seconds 各自停止。
+                  result: passed
+                - name: "frontend: npm run build"
+                  note: TypeScript + Vite passed; /tmp/issue526-build.log. 既有 CompareCharts
+                    分包大小提示不影响构建。
+                  result: passed
+                - name: "frontend: npm run lint"
+                  note: ESLint passed; /tmp/issue526-lint.log
+                  result: passed
+                - name: "frontend: prettier --check 修改的 14 个前端文件"
+                  note: All matched files use Prettier code style; /tmp/issue526-format.log
+                  result: passed
+                - name: "root: .venv/bin/ruff check tests/test_web_experiment_config.py;
+                    .venv/bin/black --check tests/test_web_experiment_config.py;
+                    git diff --check"
+                  note: All checks passed; Black unchanged; diff 无空白错误。
+                  result: passed
+                - name: "root: CHROME_PATH=<local Chrome> node
+                    frontend/scripts/verify-experiment-config.mjs"
+                  note: 双语创建/错误修正/完整 payload/刷新回显/移动端/旧任务均通过; /tmp/issue526-browser/report.json
+                    与截图。无真实模型或后端网络请求。
+                  result: passed
+                - name: "frontend: node --experimental-strip-types --test
+                    src/i18n/resources.test.ts"
+                  note: 1 passed; /tmp/issue526-i18n-final.log; 最终双语资源键覆盖通过。
+                  result: passed
+                - name: "root: comet classic openspec -- validate web-experiment-advanced-config
+                    --strict"
+                  note: Change valid（Open 时已执行，后续仅完成 checkbox 与稳定任务 ID，无需求正文改变）。
+                  result: passed
+              event: verification-ready
+              verificationReport: docs/superpowers/reports/2026-11-27-web-experiment-advanced-config-verify.md
+        receipt:
+          ref: docs/superpowers/reports/2026-11-27-web-experiment-advanced-config-verify.md
+          contentHash: 3b25e9c93b2f5df227cc501ffe566c72accd5c415cbd4aebea74ee5d6b8fd92b
+          submissionId: e281b92d-9034-46b5-997c-77b6d93c5ac8
+      - id: web-experiment-advanced-config:9
+        stepId: tweak.verify.report.evidence
+        sequence: 9
+        kind: classic-verification-report
+        status: resolved
+        results:
+          tweak.verify.run:
+            sequence: 8
+            value:
+              checks:
+                - name: "frontend: npm test"
+                  note: 377 passed; /tmp/issue526-frontend.log. 后续仅补默认配置回显和对应双语资源，浏览器与资源测试已覆盖最终改动。
+                  result: passed
+                - name: "root: .venv/bin/python -m pytest -q --no-cov
+                    tests/test_web_experiment_config.py
+                    tests/test_strategy_parameter_contract.py
+                    tests/test_experiment.py"
+                  note: 103 passed; /tmp/issue526-python-regression.log. 含真实 Runner /
+                    self_consistency / SDK 请求构造及 calls/tokens/seconds 各自停止。
+                  result: passed
+                - name: "frontend: npm run build"
+                  note: TypeScript + Vite passed; /tmp/issue526-build.log. 既有 CompareCharts
+                    分包大小提示不影响构建。
+                  result: passed
+                - name: "frontend: npm run lint"
+                  note: ESLint passed; /tmp/issue526-lint.log
+                  result: passed
+                - name: "frontend: prettier --check 修改的 14 个前端文件"
+                  note: All matched files use Prettier code style; /tmp/issue526-format.log
+                  result: passed
+                - name: "root: .venv/bin/ruff check tests/test_web_experiment_config.py;
+                    .venv/bin/black --check tests/test_web_experiment_config.py;
+                    git diff --check"
+                  note: All checks passed; Black unchanged; diff 无空白错误。
+                  result: passed
+                - name: "root: CHROME_PATH=<local Chrome> node
+                    frontend/scripts/verify-experiment-config.mjs"
+                  note: 双语创建/错误修正/完整 payload/刷新回显/移动端/旧任务均通过; /tmp/issue526-browser/report.json
+                    与截图。无真实模型或后端网络请求。
+                  result: passed
+                - name: "frontend: node --experimental-strip-types --test
+                    src/i18n/resources.test.ts"
+                  note: 1 passed; /tmp/issue526-i18n-final.log; 最终双语资源键覆盖通过。
+                  result: passed
+                - name: "root: comet classic openspec -- validate web-experiment-advanced-config
+                    --strict"
+                  note: Change valid（Open 时已执行，后续仅完成 checkbox 与稳定任务 ID，无需求正文改变）。
+                  result: passed
+              event: verification-ready
+              verificationReport: docs/superpowers/reports/2026-11-27-web-experiment-advanced-config-verify.md
+        receipt:
+          ref: docs/superpowers/reports/2026-11-27-web-experiment-advanced-config-verify.md
+          contentHash: 04c0f9af071855fd20984fc51de66660b31c5a74d306a260dce668568c7992ec
+          submissionId: 2feca544-53db-4b62-a7c6-c31f1454c869
+    ready: []
+    joins: {}
+    outputs:
+      tweak.archive.confirm:
+        sequence: 11
+        value:
+          choice: pr
+          proposal:
+            input:
+              change: web-experiment-advanced-config
+              changeDir: openspec/changes/web-experiment-advanced-config
+              workspaceBaseline:
+                ref: 0f0ace63-321e-4b7c-82a0-dc8193131d10
+            outputs:
+              tweak.archive.prepare:
+                prBaseBranch: main
+                remote: origin
+                summary: "用户选择 C：归档 issue #526 并同步 frontend/experiments-management 主规格，将 15
+                  个已验证实现及测试文件、验收报告和归档材料提交至
+                  codex/web-experiment-advanced-config，推送 origin 同名分支，创建以 main 为
+                  base 的 PR。无无关改动。用户当前 C 选择明确授权此独立分支 PR 交付；保留有效验收证据。"
+                targetBranch: codex/web-experiment-advanced-config
+      tweak.archive.execute:
+        sequence: 13
+        value:
+          archiveDirectory: openspec/changes/archive/2026-11-27-web-experiment-advanced-config
+      tweak.archive.preflight:
+        sequence: 12
+        value:
+          baseCommit: 40a033e1ab4328697010f314ad5e12791e70dd4c
+          deliveryAction: pr
+          deliveryPaths:
+            - frontend/scripts/verify-experiment-config.mjs
+            - frontend/src/experiments/AdvancedFields.tsx
+            - frontend/src/experiments/advanced.ts
+            - frontend/src/experiments/client.test.ts
+            - frontend/src/experiments/client.ts
+            - frontend/src/experiments/presentation.ts
+            - frontend/src/experiments/runCreation.ts
+            - frontend/src/experiments/types.ts
+            - frontend/src/experiments/validation.test.ts
+            - frontend/src/experiments/validation.ts
+            - frontend/src/i18n/en-US.ts
+            - frontend/src/i18n/zh-CN.ts
+            - frontend/src/pages/Experiments/CreateExperimentPage.tsx
+            - frontend/src/pages/Experiments/ExperimentDetailPage.tsx
+            - tests/test_web_experiment_config.py
+          prBaseBranch: main
+          remote: origin
+          remoteIdentity: 128eeb1e6f0d21b25601fcb7f9aad36adfdfb4d76f37f54f004760410190f351
+          targetBranch: codex/web-experiment-advanced-config
+          verifiedBranch: codex/web-experiment-advanced-config
+      tweak.archive.prepare:
+        sequence: 10
+        value:
+          prBaseBranch: main
+          remote: origin
+          summary: "用户选择 C：归档 issue #526 并同步 frontend/experiments-management 主规格，将 15
+            个已验证实现及测试文件、验收报告和归档材料提交至 codex/web-experiment-advanced-config，推送
+            origin 同名分支，创建以 main 为 base 的 PR。无无关改动。用户当前 C 选择明确授权此独立分支 PR
+            交付；保留有效验收证据。"
+          targetBranch: codex/web-experiment-advanced-config
+      tweak.build.execute:
+        sequence: 3
+        value:
+          checks:
+            - name: "frontend: npm test"
+              note: 377 passed; /tmp/issue526-frontend.log. 后续仅补默认配置回显和对应双语资源，浏览器与资源测试已覆盖最终改动。
+              result: passed
+            - name: "root: .venv/bin/python -m pytest -q --no-cov
+                tests/test_web_experiment_config.py
+                tests/test_strategy_parameter_contract.py
+                tests/test_experiment.py"
+              note: 103 passed; /tmp/issue526-python-regression.log. 含真实 Runner /
+                self_consistency / SDK 请求构造及 calls/tokens/seconds 各自停止。
+              result: passed
+            - name: "frontend: npm run build"
+              note: TypeScript + Vite passed; /tmp/issue526-build.log. 既有 CompareCharts
+                分包大小提示不影响构建。
+              result: passed
+            - name: "frontend: npm run lint"
+              note: ESLint passed; /tmp/issue526-lint.log
+              result: passed
+            - name: "frontend: prettier --check 修改的 14 个前端文件"
+              note: All matched files use Prettier code style; /tmp/issue526-format.log
+              result: passed
+            - name: "root: .venv/bin/ruff check tests/test_web_experiment_config.py;
+                .venv/bin/black --check tests/test_web_experiment_config.py; git
+                diff --check"
+              note: All checks passed; Black unchanged; diff 无空白错误。
+              result: passed
+            - name: "root: CHROME_PATH=<local Chrome> node
+                frontend/scripts/verify-experiment-config.mjs"
+              note: 双语创建/错误修正/完整 payload/刷新回显/移动端/旧任务均通过; /tmp/issue526-browser/report.json
+                与截图。无真实模型或后端网络请求。
+              result: passed
+            - name: "frontend: node --experimental-strip-types --test
+                src/i18n/resources.test.ts"
+              note: 1 passed; /tmp/issue526-i18n-final.log; 最终双语资源键覆盖通过。
+              result: passed
+            - name: "root: comet classic openspec -- validate web-experiment-advanced-config
+                --strict"
+              note: Change valid（Open 时已执行，后续仅完成 checkbox 与稳定任务 ID，无需求正文改变）。
+              result: passed
+          event: build-complete
+      tweak.open:
+        sequence: 1
+        value:
+          event: open-complete
+          requirementsEvidence:
+            ref: openspec/changes/web-experiment-advanced-config
+      tweak.open.evidence:
+        sequence: 2
+        value:
+          contentHash: b0e63336aadd60af34be9509c44d1d239016c5fcfde541cf1001f88f851fb0b5
+          ref: openspec/changes/web-experiment-advanced-config
+      tweak.verify.report.evidence:
+        sequence: 9
+        value:
+          contentHash: 04c0f9af071855fd20984fc51de66660b31c5a74d306a260dce668568c7992ec
+          ref: docs/superpowers/reports/2026-11-27-web-experiment-advanced-config-verify.md
+      tweak.verify.run:
+        sequence: 8
+        value:
+          checks:
+            - name: "frontend: npm test"
+              note: 377 passed; /tmp/issue526-frontend.log. 后续仅补默认配置回显和对应双语资源，浏览器与资源测试已覆盖最终改动。
+              result: passed
+            - name: "root: .venv/bin/python -m pytest -q --no-cov
+                tests/test_web_experiment_config.py
+                tests/test_strategy_parameter_contract.py
+                tests/test_experiment.py"
+              note: 103 passed; /tmp/issue526-python-regression.log. 含真实 Runner /
+                self_consistency / SDK 请求构造及 calls/tokens/seconds 各自停止。
+              result: passed
+            - name: "frontend: npm run build"
+              note: TypeScript + Vite passed; /tmp/issue526-build.log. 既有 CompareCharts
+                分包大小提示不影响构建。
+              result: passed
+            - name: "frontend: npm run lint"
+              note: ESLint passed; /tmp/issue526-lint.log
+              result: passed
+            - name: "frontend: prettier --check 修改的 14 个前端文件"
+              note: All matched files use Prettier code style; /tmp/issue526-format.log
+              result: passed
+            - name: "root: .venv/bin/ruff check tests/test_web_experiment_config.py;
+                .venv/bin/black --check tests/test_web_experiment_config.py; git
+                diff --check"
+              note: All checks passed; Black unchanged; diff 无空白错误。
+              result: passed
+            - name: "root: CHROME_PATH=<local Chrome> node
+                frontend/scripts/verify-experiment-config.mjs"
+              note: 双语创建/错误修正/完整 payload/刷新回显/移动端/旧任务均通过; /tmp/issue526-browser/report.json
+                与截图。无真实模型或后端网络请求。
+              result: passed
+            - name: "frontend: node --experimental-strip-types --test
+                src/i18n/resources.test.ts"
+              note: 1 passed; /tmp/issue526-i18n-final.log; 最终双语资源键覆盖通过。
+              result: passed
+            - name: "root: comet classic openspec -- validate web-experiment-advanced-config
+                --strict"
+              note: Change valid（Open 时已执行，后续仅完成 checkbox 与稳定任务 ID，无需求正文改变）。
+              result: passed
+          event: verification-ready
+          verificationReport: docs/superpowers/reports/2026-11-27-web-experiment-advanced-config-verify.md
+    children: []
+    lineage: []
+  sourceRevision: 23
+  sourceHash: 6bb8ba0903798af23605d97e2301d778dac378e4e4868b1f9f5488bd66c70389
+direct_override: null
+handoff_context: null
+handoff_hash: null
+classic_profile: null
+classic_migration: null
+check_epoch: 6

@@ -92,6 +92,10 @@ export function createExperimentCreationStore(
           draft: {
             ...state.draft,
             ...patch,
+            ...(patch.budget ? { budget: { ...patch.budget } } : {}),
+            ...(patch.problem_filters
+              ? { problem_filters: { ...patch.problem_filters } }
+              : {}),
             models: patch.models
               ? patch.models.map((model) => ({ ...model }))
               : state.draft.models.map((model) => ({ ...model })),

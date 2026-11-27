@@ -1,0 +1,49 @@
+{
+  "checks": [
+    {
+      "name": "frontend: npm test",
+      "result": "passed",
+      "note": "377 passed; /tmp/issue526-frontend.log. 后续仅补默认配置回显和对应双语资源，浏览器与资源测试已覆盖最终改动。"
+    },
+    {
+      "name": "root: .venv/bin/python -m pytest -q --no-cov tests/test_web_experiment_config.py tests/test_strategy_parameter_contract.py tests/test_experiment.py",
+      "result": "passed",
+      "note": "103 passed; /tmp/issue526-python-regression.log. 含真实 Runner / self_consistency / SDK 请求构造及 calls/tokens/seconds 各自停止。"
+    },
+    {
+      "name": "frontend: npm run build",
+      "result": "passed",
+      "note": "TypeScript + Vite passed; /tmp/issue526-build.log. 既有 CompareCharts 分包大小提示不影响构建。"
+    },
+    {
+      "name": "frontend: npm run lint",
+      "result": "passed",
+      "note": "ESLint passed; /tmp/issue526-lint.log"
+    },
+    {
+      "name": "frontend: prettier --check 修改的 14 个前端文件",
+      "result": "passed",
+      "note": "All matched files use Prettier code style; /tmp/issue526-format.log"
+    },
+    {
+      "name": "root: .venv/bin/ruff check tests/test_web_experiment_config.py; .venv/bin/black --check tests/test_web_experiment_config.py; git diff --check",
+      "result": "passed",
+      "note": "All checks passed; Black unchanged; diff 无空白错误。"
+    },
+    {
+      "name": "root: CHROME_PATH=<local Chrome> node frontend/scripts/verify-experiment-config.mjs",
+      "result": "passed",
+      "note": "双语创建/错误修正/完整 payload/刷新回显/移动端/旧任务均通过; /tmp/issue526-browser/report.json 与截图。无真实模型或后端网络请求。"
+    },
+    {
+      "name": "frontend: node --experimental-strip-types --test src/i18n/resources.test.ts",
+      "result": "passed",
+      "note": "1 passed; /tmp/issue526-i18n-final.log; 最终双语资源键覆盖通过。"
+    },
+    {
+      "name": "root: comet classic openspec -- validate web-experiment-advanced-config --strict",
+      "result": "passed",
+      "note": "Change valid（Open 时已执行，后续仅完成 checkbox 与稳定任务 ID，无需求正文改变）。"
+    }
+  ]
+}

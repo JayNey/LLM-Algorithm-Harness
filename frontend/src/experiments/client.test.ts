@@ -521,3 +521,51 @@ test('Pareto 多实验去重并保留原始快照、预算和口径，读取失�
     { name: 'AbortError' },
   )
 })
+
+test('高级配置在创建、读取和旧任务响应中保留兼容性', async () => {
+  const config = {
+    ...job.config,
+    strategies: [
+      {
+        name: 'self_consistency',
+        max_iterations: 2,
+        temperature: 0.4,
+        max_tokens: 3456,
+        system_prompt: 'Be precise',
+        custom_params: { num_candidates: 3 },
+      },
+    ],
+    problem_filters: {
+      difficulty: 'easy',
+      tags: ['array'],
+      problem_ids: ['one'],
+      limit: 1,
+    },
+    budget: { max_calls: 2, max_tokens: 100, max_seconds: 2.5 },
+  }
+  const { client, seen } = clientFor(() => ({ data: { ...job, config } }))
+  const created = await client.create({ ...config, api_key_id: 'k1' })
+  assert.deepEqual(created.config, config)
+  assert.deepEqual(
+    (seen[0].body as Record<string, unknown>).strategies,
+    config.strategies,
+  )
+  assert.deepEqual((await client.get('exp-1')).config, config)
+  const legacy = clientFor(() => ({ data: job })).client
+  assert.deepEqual((await legacy.get('exp-1')).config.strategies, [
+    { name: 'direct' },
+  ])
+})
+
+test('新增响应字段形状错误时显式报错', async () => {
+  for (const config of [
+    { ...job.config, problem_filters: { tags: 'array' } },
+    { ...job.config, strategies: [{ name: 'vanilla', custom_params: [] }] },
+    { ...job.config, strategies: [{ name: 'vanilla', max_tokens: '2000' }] },
+  ]) {
+    await assert.rejects(
+      clientFor(() => ({ data: { ...job, config } })).client.get('exp-1'),
+      /实验接口响应格式不兼容/,
+    )
+  }
+})

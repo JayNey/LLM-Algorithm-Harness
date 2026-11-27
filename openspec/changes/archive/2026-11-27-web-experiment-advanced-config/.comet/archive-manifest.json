@@ -1,0 +1,41 @@
+{
+  "schema": "comet.classic.archive-manifest.v2",
+  "execution": {
+    "workflow": {
+      "id": "comet-classic-tweak",
+      "version": "2",
+      "hash": "d1e067bc00ca13395dbc6f701565417c3e227f17a57df025dd73ebda905e2638"
+    },
+    "runId": "web-experiment-advanced-config",
+    "actionId": "web-experiment-advanced-config:13",
+    "attempt": 1,
+    "inputHash": "1b097965ddd32e2af3a9e67419bb7b9f85e8c363f461a4bcb0fdc74cd795cd5c",
+    "claimToken": "portable-891b0d388e09b2f74784d5156332dd74a4b761018f7e7b4a80fe57f29548a7e6"
+  },
+  "activeRef": "openspec/changes/web-experiment-advanced-config",
+  "archiveRef": "openspec/changes/archive/2026-11-27-web-experiment-advanced-config",
+  "stateRef": "openspec/changes/archive/2026-11-27-web-experiment-advanced-config/comet-state.yaml",
+  "paths": [
+    "openspec/changes/archive/2026-11-27-web-experiment-advanced-config/.comet/archive-requirements.json",
+    "openspec/changes/archive/2026-11-27-web-experiment-advanced-config/.comet/rulings.md",
+    "openspec/changes/archive/2026-11-27-web-experiment-advanced-config/.openspec.yaml",
+    "openspec/changes/archive/2026-11-27-web-experiment-advanced-config/checks.json",
+    "openspec/changes/archive/2026-11-27-web-experiment-advanced-config/design.md",
+    "openspec/changes/archive/2026-11-27-web-experiment-advanced-config/proposal.md",
+    "openspec/changes/archive/2026-11-27-web-experiment-advanced-config/specs/frontend/experiments-management/spec.md",
+    "openspec/changes/archive/2026-11-27-web-experiment-advanced-config/tasks.md",
+    "openspec/changes/archive/2026-11-27-web-experiment-advanced-config/walkthrough.html",
+    "openspec/specs/frontend/experiments-management/spec.md"
+  ],
+  "sourcePaths": [
+    "openspec/changes/web-experiment-advanced-config/.comet/archive-requirements.json",
+    "openspec/changes/web-experiment-advanced-config/.comet/rulings.md",
+    "openspec/changes/web-experiment-advanced-config/.openspec.yaml",
+    "openspec/changes/web-experiment-advanced-config/checks.json",
+    "openspec/changes/web-experiment-advanced-config/design.md",
+    "openspec/changes/web-experiment-advanced-config/proposal.md",
+    "openspec/changes/web-experiment-advanced-config/specs/frontend/experiments-management/spec.md",
+    "openspec/changes/web-experiment-advanced-config/tasks.md",
+    "openspec/changes/web-experiment-advanced-config/walkthrough.html"
+  ]
+}

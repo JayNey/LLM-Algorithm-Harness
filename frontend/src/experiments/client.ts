@@ -84,6 +84,22 @@ function nullableNumber(value: unknown, field: string): number | null {
   return nullable(value, number, field)
 }
 
+function readProblemFilters(value: unknown, field: string) {
+  const row = record(value, field)
+  return {
+    ...(row.difficulty != null
+      ? { difficulty: text(row.difficulty, `${field}.difficulty`) }
+      : {}),
+    ...(row.tags != null
+      ? { tags: array(row.tags, text, `${field}.tags`) }
+      : {}),
+    ...(row.problem_ids != null
+      ? { problem_ids: array(row.problem_ids, text, `${field}.problem_ids`) }
+      : {}),
+    ...(row.limit != null ? { limit: count(row.limit, `${field}.limit`) } : {}),
+  }
+}
+
 function experimentConfig(value: unknown, field: string): ExperimentConfig {
   const data = record(value, field)
   const execution = text(data.execution, `${field}.execution`)
@@ -148,12 +164,53 @@ function experimentConfig(value: unknown, field: string): ExperimentConfig {
       },
       `${field}.models`,
     ),
+    ...(data.problem_filters !== undefined && data.problem_filters !== null
+      ? {
+          problem_filters: readProblemFilters(
+            data.problem_filters,
+            `${field}.problem_filters`,
+          ),
+        }
+      : {}),
     strategies: array(
       data.strategies,
       (value, field) => {
         const row = record(value, field)
         return {
           name: text(row.name, `${field}.name`),
+          ...(row.max_iterations != null
+            ? {
+                max_iterations: count(
+                  row.max_iterations,
+                  `${field}.max_iterations`,
+                ),
+              }
+            : {}),
+          ...(row.temperature != null
+            ? {
+                temperature: number(row.temperature, `${field}.temperature`, 2),
+              }
+            : {}),
+          ...(row.max_tokens != null
+            ? { max_tokens: count(row.max_tokens, `${field}.max_tokens`) }
+            : {}),
+          ...(row.system_prompt != null
+            ? {
+                system_prompt: text(
+                  row.system_prompt,
+                  `${field}.system_prompt`,
+                  true,
+                ),
+              }
+            : {}),
+          ...(row.custom_params != null
+            ? {
+                custom_params: record(
+                  row.custom_params,
+                  `${field}.custom_params`,
+                ),
+              }
+            : {}),
         }
       },
       `${field}.strategies`,

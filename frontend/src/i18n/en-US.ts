@@ -1,4 +1,49 @@
 export default {
+  使用现有默认配置: 'Use existing defaults',
+  '自定义参数须为有效 JSON 对象':
+    'Custom parameters must be a valid JSON object',
+  '不支持的策略参数：{{key}}': 'Unsupported strategy parameter: {{key}}',
+  '策略参数 {{key}} 无效；要求 {{rule}}':
+    'Invalid strategy parameter {{key}}; expected {{rule}}',
+  整数: 'Integer',
+  数值: 'Number',
+  '难度：{{value}}': 'Difficulty: {{value}}',
+  '标签（任一）：{{value}}': 'Tags (any): {{value}}',
+  '题目 ID：{{value}}': 'Problem IDs: {{value}}',
+  '最后取前 {{value}} 题': 'Take the first {{value}} matching problems',
+  '全部题目（未筛选）': 'All problems (no filters)',
+  '最大生成 Token 须为 100–8000 的整数':
+    'Maximum generation tokens must be an integer from 100 to 8000',
+  题目数量上限须为正整数: 'Problem limit must be a positive integer',
+  请选择有效难度: 'Select a valid difficulty',
+  高级策略配置: 'Advanced strategy settings',
+  '最大生成 Token（可选）': 'Maximum generation tokens (optional)',
+  '策略 {{index}} 最大生成 Token':
+    'Strategy {{index}} maximum generation tokens',
+  '系统提示词（可选）': 'System prompt (optional)',
+  '策略 {{index}} 系统提示词': 'Strategy {{index}} system prompt',
+  '自定义策略参数（JSON，可选）': 'Custom strategy parameters (JSON, optional)',
+  '策略 {{index}} 自定义参数': 'Strategy {{index}} custom parameters',
+  '留空继承现有默认。仅支持下列策略参数，不支持路径、连接地址或沙箱配置。':
+    'Leave blank to inherit existing defaults. Only the strategy controls below are supported; paths, connection addresses and sandbox settings are unavailable.',
+  当前策略无可配置的自定义参数:
+    'This strategy has no configurable custom parameters',
+  '题目筛选（可选）': 'Problem filters (optional)',
+  实验筛选难度: 'Experiment difficulty filter',
+  '标签（任一匹配）': 'Tags (match any)',
+  实验筛选标签: 'Experiment tag filters',
+  以逗号或换行分隔: 'Separate with commas or newlines',
+  '题目 ID 白名单': 'Problem ID allowlist',
+  '实验筛选题目 ID': 'Experiment problem ID filters',
+  题目数量上限: 'Problem limit',
+  实验筛选数量上限: 'Experiment problem limit',
+  '标签任一匹配；各条件取交集，最后按数据集顺序截取数量。实际匹配题数在执行后确认。':
+    'Tags match any; filter conditions are intersected, then the limit is applied in dataset order. The actual matching count is confirmed after execution.',
+  '每题预算（可组合，可选）': 'Per-problem budgets (combinable, optional)',
+  '实验预算 {{kind}}': 'Experiment budget {{kind}}',
+  '留空不限制。每题重置，任一上限触发后停止后续调用；Token 按已知用量结算，时间为每题墙钟时间。':
+    'Leave blank for no limit. Budgets reset per problem; any reached limit stops subsequent calls. Tokens settle against known usage; time is wall-clock time per problem.',
+  题目筛选: 'Problem filters',
   失败率阈值: 'Failure rate threshold',
   推荐数量: 'Recommendation count',
   '失败率阈值须大于 0 且不超过 1':

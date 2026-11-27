@@ -21,6 +21,14 @@ export interface StrategyConfig {
   temperature?: number
   max_tokens?: number
   system_prompt?: string
+  custom_params?: Record<string, unknown>
+}
+
+export interface ProblemFilters {
+  difficulty?: string
+  tags?: string[]
+  problem_ids?: string[]
+  limit?: number
 }
 
 export interface ProblemBudget {
@@ -36,6 +44,7 @@ export interface ExperimentConfig {
   models: ModelSpec[]
   strategies: StrategyConfig[]
   repeats: number
+  problem_filters?: ProblemFilters | null
   budget: ProblemBudget | null
   execution: 'serial' | 'parallel'
   max_workers: number
@@ -78,6 +87,7 @@ export interface CreatePayload {
   models: ModelSpec[]
   strategies: StrategyConfig[]
   repeats: number
+  problem_filters?: ProblemFilters | null
   budget: ProblemBudget | null
   execution: 'serial' | 'parallel'
   max_workers: number
@@ -288,7 +298,21 @@ export interface ExperimentDraft {
   dataset_path: string
   api_key_id: string
   models: { model: string; temperature: string; api_key_id: string }[]
-  strategies: { name: string; max_iterations: string; temperature: string }[]
+  strategies: {
+    name: string
+    max_iterations: string
+    temperature: string
+    max_tokens?: string
+    system_prompt?: string
+    custom_params?: string
+  }[]
+  problem_filters?: {
+    difficulty?: string
+    tags?: string
+    problem_ids?: string
+    limit?: string
+  }
+  budget?: Partial<Record<keyof ProblemBudget, string>>
   repeats: string
   execution: 'serial' | 'parallel'
   max_workers: string
@@ -297,6 +321,7 @@ export interface ExperimentDraft {
 }
 
 export interface DraftErrors {
+  [field: string]: string | undefined
   name?: string
   dataset_path?: string
   api_key_id?: string
