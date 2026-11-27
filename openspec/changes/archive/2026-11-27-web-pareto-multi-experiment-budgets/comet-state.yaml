@@ -1,0 +1,1541 @@
+# comet-execution: managed-run
+change_id: df7f94ca-8903-43fe-b567-e7abace67818
+workflow: tweak
+language: zh-CN
+phase: archive
+context_compression: off
+build_mode: direct
+build_pause: null
+subagent_dispatch: null
+tdd_mode: direct
+review_mode: off
+isolation: current
+verify_mode: light
+auto_transition: true
+base_ref: c1d55bf4056da877d62d9fa97724f01c7c5c313c
+design_doc: null
+plan: null
+verify_result: pass
+verify_failures: 0
+verification_report: docs/superpowers/reports/2026-11-26-web-pareto-multi-experiment-budgets-verify.md
+branch_status: pending
+created_at: 2026-11-26
+verified_at: 2026-11-26
+archive_confirmation: confirmed
+archived: true
+bound_branch: main
+run_checkpoint:
+  schema: comet.workflow-run-checkpoint.v1
+  hash: a44ecff466a4464ff9c66da3062ee8933dd2ffae1ca84123614d2d283047a377
+  run:
+    protocolVersion: 1
+    schemaVersion: 1
+    runId: web-pareto-multi-experiment-budgets
+    revision: 1
+    workflow:
+      id: comet-classic-tweak
+      version: "2"
+      hash: 518d3e8e12eb39899775cb7d2ddcc7ddeba10cb1f1d43cff7b03f2ca61a70c65
+    definitionHashes:
+      '["comet-classic-tweak","2"]': 518d3e8e12eb39899775cb7d2ddcc7ddeba10cb1f1d43cff7b03f2ca61a70c65
+    initialStateHash: 0fc4b92ed6c4b2b42490bdfcbe763643d944df695ad47c28d87ce325dd4d0b48
+    input:
+      change: web-pareto-multi-experiment-budgets
+      changeDir: openspec/changes/web-pareto-multi-experiment-budgets
+      workspaceBaseline:
+        ref: eed325ec-5331-4528-818f-bff73baf401a
+    state:
+      archiveConfirmation: confirmed
+      archived: true
+      autoTransition: true
+      baseRef: c1d55bf4056da877d62d9fa97724f01c7c5c313c
+      boundBranch: main
+      branchStatus: pending
+      buildMode: direct
+      buildPause: null
+      checkEpoch: 5
+      classicMigration: null
+      classicProfile: null
+      contextCompression: off
+      createdAt: 2026-11-26
+      designDoc: null
+      directOverride: null
+      handoffContext: null
+      handoffHash: null
+      isolation: current
+      language: zh-CN
+      phase: archive
+      plan: null
+      reviewMode: off
+      subagentDispatch: null
+      tddMode: direct
+      verificationReport: docs/superpowers/reports/2026-11-26-web-pareto-multi-experiment-budgets-verify.md
+      verifiedAt: 2026-11-26
+      verifyFailures: 0
+      verifyMode: light
+      verifyResult: pass
+      workflow: tweak
+    status: running
+    sequence: 10
+    actions:
+      - attempt: 1
+        claim:
+          executorId: comet-classic-guard
+          token: portable-2be18cbd6884b2543d638c757e5f4093503c2072e4702c7e0d4479365f7a05ea
+        executionOrigin:
+          workflow:
+            hash: 518d3e8e12eb39899775cb7d2ddcc7ddeba10cb1f1d43cff7b03f2ca61a70c65
+            id: comet-classic-tweak
+            version: "2"
+        id: web-pareto-multi-experiment-budgets:1
+        input:
+          input:
+            change: web-pareto-multi-experiment-budgets
+            changeDir: openspec/changes/web-pareto-multi-experiment-budgets
+            workspaceBaseline:
+              ref: eed325ec-5331-4528-818f-bff73baf401a
+          outputs: {}
+        inputHash: 8a310ef73bdc268675e565afa7d841e59a4edd148d9839790754c8eafbf024ca
+        outcome:
+          actionId: web-pareto-multi-experiment-budgets:1
+          attempt: 1
+          claimToken: portable-2be18cbd6884b2543d638c757e5f4093503c2072e4702c7e0d4479365f7a05ea
+          inputHash: 8a310ef73bdc268675e565afa7d841e59a4edd148d9839790754c8eafbf024ca
+          outcomeId: 5dd1ad00-af85-4e28-af5c-328e67bafd17
+          output:
+            event: open-complete
+            requirementsEvidence:
+              ref: openspec/changes/web-pareto-multi-experiment-budgets
+          status: succeeded
+        protocolVersion: 1
+        receipts:
+          - hash: 58f04f24b955b3b289585b3c844011aa5442aec3b1787b73e907ca3a1b09b148
+            outcomeId: 5dd1ad00-af85-4e28-af5c-328e67bafd17
+        reconciliations: []
+        ref: comet-tweak
+        requiredCapabilities: []
+        retry: manual
+        runId: web-pareto-multi-experiment-budgets
+        status: succeeded
+        stepId: tweak.open
+        type: invoke_skill
+      - attempt: 1
+        claim:
+          executorId: comet-classic-state
+          sessionId: codex-issue524
+          token: portable-2ad9045b3c83d7b8dc39467950d2369241e1290af3ded61262714a343137733f
+        executionOrigin:
+          workflow:
+            hash: 518d3e8e12eb39899775cb7d2ddcc7ddeba10cb1f1d43cff7b03f2ca61a70c65
+            id: comet-classic-tweak
+            version: "2"
+        id: web-pareto-multi-experiment-budgets:3
+        input:
+          input:
+            change: web-pareto-multi-experiment-budgets
+            changeDir: openspec/changes/web-pareto-multi-experiment-budgets
+            workspaceBaseline:
+              ref: eed325ec-5331-4528-818f-bff73baf401a
+          outputs:
+            tweak.open:
+              event: open-complete
+              requirementsEvidence:
+                ref: openspec/changes/web-pareto-multi-experiment-budgets
+            tweak.open.evidence:
+              contentHash: 8a310ef73bdc268675e565afa7d841e59a4edd148d9839790754c8eafbf024ca
+              ref: openspec/changes/web-pareto-multi-experiment-budgets
+        inputHash: 96d9d6ccdc3264b0410607d3a33f4a3746af69a5d2a80df335ce4f497800389d
+        outcome:
+          actionId: web-pareto-multi-experiment-budgets:3
+          attempt: 1
+          claimToken: portable-2ad9045b3c83d7b8dc39467950d2369241e1290af3ded61262714a343137733f
+          inputHash: 96d9d6ccdc3264b0410607d3a33f4a3746af69a5d2a80df335ce4f497800389d
+          outcomeId: e5a46484-0b42-4f72-82d4-07f0ecfabd20
+          output:
+            checks:
+              - name: frontend npm test
+                note: 371 passed; /tmp/issue524-all-frontend.log
+                result: passed
+              - name: pytest tests/test_pareto.py --no-cov -q
+                note: 31 passed; /tmp/issue524-pytest.log
+                result: passed
+              - name: frontend npm run build
+                note: tsc/Vite exit0; /tmp/issue524-build.log
+                result: passed
+              - name: affected eslint/prettier and git diff --check
+                note: 7 delivery files; exit0
+                result: passed
+              - name: Playwright and real Pareto API
+                note: 18 analysis requests; /tmp/issue524-browser-complete.log;
+                  /tmp/issue-524-qa/result.json
+                result: passed
+              - name: OpenSpec strict validation and scenario/design mapping
+                note: 3 requirements covered; verification-report.md
+                result: passed
+            event: build-complete
+          status: succeeded
+        protocolVersion: 1
+        receipts:
+          - hash: aa306231e72392026d6f3b708bcff98d0e5e7d15ecec65f0a3a596c368ab75ad
+            outcomeId: e5a46484-0b42-4f72-82d4-07f0ecfabd20
+        reconciliations: []
+        ref: comet-build
+        requiredCapabilities: []
+        retry: manual
+        runId: web-pareto-multi-experiment-budgets
+        status: succeeded
+        stepId: tweak.build.execute
+        type: invoke_skill
+      - attempt: 1
+        claim:
+          executorId: comet-classic-guard
+          token: portable-5692ec5fb280b6c1a080ce4588e4ccf92db22b48b1e754997e2fda20ec7753ba
+        executionOrigin:
+          workflow:
+            hash: 518d3e8e12eb39899775cb7d2ddcc7ddeba10cb1f1d43cff7b03f2ca61a70c65
+            id: comet-classic-tweak
+            version: "2"
+        id: web-pareto-multi-experiment-budgets:4
+        input:
+          input:
+            change: web-pareto-multi-experiment-budgets
+            changeDir: openspec/changes/web-pareto-multi-experiment-budgets
+            workspaceBaseline:
+              ref: eed325ec-5331-4528-818f-bff73baf401a
+          outputs:
+            tweak.build.execute:
+              checks:
+                - name: frontend npm test
+                  note: 371 passed; /tmp/issue524-all-frontend.log
+                  result: passed
+                - name: pytest tests/test_pareto.py --no-cov -q
+                  note: 31 passed; /tmp/issue524-pytest.log
+                  result: passed
+                - name: frontend npm run build
+                  note: tsc/Vite exit0; /tmp/issue524-build.log
+                  result: passed
+                - name: affected eslint/prettier and git diff --check
+                  note: 7 delivery files; exit0
+                  result: passed
+                - name: Playwright and real Pareto API
+                  note: 18 analysis requests; /tmp/issue524-browser-complete.log;
+                    /tmp/issue-524-qa/result.json
+                  result: passed
+                - name: OpenSpec strict validation and scenario/design mapping
+                  note: 3 requirements covered; verification-report.md
+                  result: passed
+              event: build-complete
+            tweak.open:
+              event: open-complete
+              requirementsEvidence:
+                ref: openspec/changes/web-pareto-multi-experiment-budgets
+            tweak.open.evidence:
+              contentHash: 8a310ef73bdc268675e565afa7d841e59a4edd148d9839790754c8eafbf024ca
+              ref: openspec/changes/web-pareto-multi-experiment-budgets
+        inputHash: 0181dd38140743a1c8525bd35e422bd06a30d9179ad32d84b4f9f9ff7e827d4e
+        outcome:
+          actionId: web-pareto-multi-experiment-budgets:4
+          attempt: 1
+          claimToken: portable-5692ec5fb280b6c1a080ce4588e4ccf92db22b48b1e754997e2fda20ec7753ba
+          inputHash: 0181dd38140743a1c8525bd35e422bd06a30d9179ad32d84b4f9f9ff7e827d4e
+          outcomeId: 17833a10-a736-4d6f-892a-239c1831c162
+          output:
+            checks:
+              - name: frontend npm test
+                note: 371 passed; /tmp/issue524-all-frontend.log
+                result: passed
+              - name: pytest tests/test_pareto.py --no-cov -q
+                note: 31 passed; /tmp/issue524-pytest.log
+                result: passed
+              - name: frontend npm run build
+                note: tsc/Vite exit0; /tmp/issue524-build.log
+                result: passed
+              - name: affected eslint/prettier and git diff --check
+                note: 7 delivery files; exit0
+                result: passed
+              - name: Playwright and real Pareto API
+                note: 18 analysis requests; /tmp/issue524-browser-complete.log;
+                  /tmp/issue-524-qa/result.json
+                result: passed
+              - name: OpenSpec strict validation and scenario/design mapping
+                note: 3 requirements covered; verification-report.md
+                result: passed
+            event: verification-ready
+            verificationReport: docs/superpowers/reports/2026-11-26-web-pareto-multi-experiment-budgets-verify.md
+          status: succeeded
+        protocolVersion: 1
+        receipts:
+          - hash: d54773aaca01f1cd3989b52ef2bd680475a91d3e48686b173519c01a401502b0
+            outcomeId: 17833a10-a736-4d6f-892a-239c1831c162
+        reconciliations: []
+        ref: comet-verify
+        requiredCapabilities: []
+        retry: manual
+        runId: web-pareto-multi-experiment-budgets
+        status: succeeded
+        stepId: tweak.verify.run
+        type: invoke_skill
+      - attempt: 1
+        claim:
+          executorId: comet-classic-state
+          token: portable-c23923939d3d131127320038461510f3f58207067a380ef7a81791a7cd6dafd7
+        executionOrigin:
+          workflow:
+            hash: 518d3e8e12eb39899775cb7d2ddcc7ddeba10cb1f1d43cff7b03f2ca61a70c65
+            id: comet-classic-tweak
+            version: "2"
+        id: web-pareto-multi-experiment-budgets:6
+        input:
+          input:
+            change: web-pareto-multi-experiment-budgets
+            changeDir: openspec/changes/web-pareto-multi-experiment-budgets
+            workspaceBaseline:
+              ref: eed325ec-5331-4528-818f-bff73baf401a
+          outputs:
+            tweak.build.execute:
+              checks:
+                - name: frontend npm test
+                  note: 371 passed; /tmp/issue524-all-frontend.log
+                  result: passed
+                - name: pytest tests/test_pareto.py --no-cov -q
+                  note: 31 passed; /tmp/issue524-pytest.log
+                  result: passed
+                - name: frontend npm run build
+                  note: tsc/Vite exit0; /tmp/issue524-build.log
+                  result: passed
+                - name: affected eslint/prettier and git diff --check
+                  note: 7 delivery files; exit0
+                  result: passed
+                - name: Playwright and real Pareto API
+                  note: 18 analysis requests; /tmp/issue524-browser-complete.log;
+                    /tmp/issue-524-qa/result.json
+                  result: passed
+                - name: OpenSpec strict validation and scenario/design mapping
+                  note: 3 requirements covered; verification-report.md
+                  result: passed
+              event: build-complete
+            tweak.open:
+              event: open-complete
+              requirementsEvidence:
+                ref: openspec/changes/web-pareto-multi-experiment-budgets
+            tweak.open.evidence:
+              contentHash: 8a310ef73bdc268675e565afa7d841e59a4edd148d9839790754c8eafbf024ca
+              ref: openspec/changes/web-pareto-multi-experiment-budgets
+            tweak.verify.report.evidence:
+              contentHash: 0181dd38140743a1c8525bd35e422bd06a30d9179ad32d84b4f9f9ff7e827d4e
+              ref: docs/superpowers/reports/2026-11-26-web-pareto-multi-experiment-budgets-verify.md
+            tweak.verify.run:
+              checks:
+                - name: frontend npm test
+                  note: 371 passed; /tmp/issue524-all-frontend.log
+                  result: passed
+                - name: pytest tests/test_pareto.py --no-cov -q
+                  note: 31 passed; /tmp/issue524-pytest.log
+                  result: passed
+                - name: frontend npm run build
+                  note: tsc/Vite exit0; /tmp/issue524-build.log
+                  result: passed
+                - name: affected eslint/prettier and git diff --check
+                  note: 7 delivery files; exit0
+                  result: passed
+                - name: Playwright and real Pareto API
+                  note: 18 analysis requests; /tmp/issue524-browser-complete.log;
+                    /tmp/issue-524-qa/result.json
+                  result: passed
+                - name: OpenSpec strict validation and scenario/design mapping
+                  note: 3 requirements covered; verification-report.md
+                  result: passed
+              event: verification-ready
+              verificationReport: docs/superpowers/reports/2026-11-26-web-pareto-multi-experiment-budgets-verify.md
+        inputHash: 4f11b1e02cf158574058d96900c5dcae02d1a0b1f2011a350f92cca61c767e60
+        outcome:
+          actionId: web-pareto-multi-experiment-budgets:6
+          attempt: 1
+          claimToken: portable-c23923939d3d131127320038461510f3f58207067a380ef7a81791a7cd6dafd7
+          inputHash: 4f11b1e02cf158574058d96900c5dcae02d1a0b1f2011a350f92cca61c767e60
+          outcomeId: bcaca8aa-ab02-48ae-8093-afc46e4078d8
+          output:
+            prBaseBranch: main
+            remote: origin
+            summary: "Issue #524 已完成并通过 Verify：7个交付文件支持多实验、精确预算、错误恢复；归档 change 并合并
+              frontend/experiments-management delta spec。当前 main，remote
+              origin，PR base main；local=归档并本地提交，push=另推送
+              origin/main，pr=需独立分支后创建目标main的PR。"
+            targetBranch: main
+          status: succeeded
+        protocolVersion: 1
+        receipts:
+          - hash: b906935f961bb2d5476348637c6c20e7a38903d2a93b4d3eafb6aa32e85fa5d4
+            outcomeId: bcaca8aa-ab02-48ae-8093-afc46e4078d8
+        reconciliations: []
+        ref: comet-archive
+        requiredCapabilities: []
+        retry: manual
+        runId: web-pareto-multi-experiment-budgets
+        status: succeeded
+        stepId: tweak.archive.prepare
+        type: invoke_skill
+      - attempt: 1
+        claim:
+          executorId: comet-classic-archive-preflight
+          token: portable-80e818142d83c8eb32d15a45de97da38d432d87dbf37077ff625523fbe58e31f
+        executionOrigin:
+          workflow:
+            hash: 518d3e8e12eb39899775cb7d2ddcc7ddeba10cb1f1d43cff7b03f2ca61a70c65
+            id: comet-classic-tweak
+            version: "2"
+        id: web-pareto-multi-experiment-budgets:8
+        input:
+          input:
+            change: web-pareto-multi-experiment-budgets
+            changeDir: openspec/changes/web-pareto-multi-experiment-budgets
+            workspaceBaseline:
+              ref: eed325ec-5331-4528-818f-bff73baf401a
+          outputs:
+            tweak.archive.confirm:
+              choice: push
+              proposal:
+                input:
+                  change: web-pareto-multi-experiment-budgets
+                  changeDir: openspec/changes/web-pareto-multi-experiment-budgets
+                  workspaceBaseline:
+                    ref: eed325ec-5331-4528-818f-bff73baf401a
+                outputs:
+                  tweak.archive.prepare:
+                    prBaseBranch: main
+                    remote: origin
+                    summary: "Issue #524 已完成并通过 Verify：7个交付文件支持多实验、精确预算、错误恢复；归档 change 并合并
+                      frontend/experiments-management delta spec。当前 main，remote
+                      origin，PR base main；local=归档并本地提交，push=另推送
+                      origin/main，pr=需独立分支后创建目标main的PR。"
+                    targetBranch: main
+            tweak.archive.prepare:
+              prBaseBranch: main
+              remote: origin
+              summary: "Issue #524 已完成并通过 Verify：7个交付文件支持多实验、精确预算、错误恢复；归档 change 并合并
+                frontend/experiments-management delta spec。当前 main，remote
+                origin，PR base main；local=归档并本地提交，push=另推送
+                origin/main，pr=需独立分支后创建目标main的PR。"
+              targetBranch: main
+            tweak.build.execute:
+              checks:
+                - name: frontend npm test
+                  note: 371 passed; /tmp/issue524-all-frontend.log
+                  result: passed
+                - name: pytest tests/test_pareto.py --no-cov -q
+                  note: 31 passed; /tmp/issue524-pytest.log
+                  result: passed
+                - name: frontend npm run build
+                  note: tsc/Vite exit0; /tmp/issue524-build.log
+                  result: passed
+                - name: affected eslint/prettier and git diff --check
+                  note: 7 delivery files; exit0
+                  result: passed
+                - name: Playwright and real Pareto API
+                  note: 18 analysis requests; /tmp/issue524-browser-complete.log;
+                    /tmp/issue-524-qa/result.json
+                  result: passed
+                - name: OpenSpec strict validation and scenario/design mapping
+                  note: 3 requirements covered; verification-report.md
+                  result: passed
+              event: build-complete
+            tweak.open:
+              event: open-complete
+              requirementsEvidence:
+                ref: openspec/changes/web-pareto-multi-experiment-budgets
+            tweak.open.evidence:
+              contentHash: 8a310ef73bdc268675e565afa7d841e59a4edd148d9839790754c8eafbf024ca
+              ref: openspec/changes/web-pareto-multi-experiment-budgets
+            tweak.verify.report.evidence:
+              contentHash: 0181dd38140743a1c8525bd35e422bd06a30d9179ad32d84b4f9f9ff7e827d4e
+              ref: docs/superpowers/reports/2026-11-26-web-pareto-multi-experiment-budgets-verify.md
+            tweak.verify.run:
+              checks:
+                - name: frontend npm test
+                  note: 371 passed; /tmp/issue524-all-frontend.log
+                  result: passed
+                - name: pytest tests/test_pareto.py --no-cov -q
+                  note: 31 passed; /tmp/issue524-pytest.log
+                  result: passed
+                - name: frontend npm run build
+                  note: tsc/Vite exit0; /tmp/issue524-build.log
+                  result: passed
+                - name: affected eslint/prettier and git diff --check
+                  note: 7 delivery files; exit0
+                  result: passed
+                - name: Playwright and real Pareto API
+                  note: 18 analysis requests; /tmp/issue524-browser-complete.log;
+                    /tmp/issue-524-qa/result.json
+                  result: passed
+                - name: OpenSpec strict validation and scenario/design mapping
+                  note: 3 requirements covered; verification-report.md
+                  result: passed
+              event: verification-ready
+              verificationReport: docs/superpowers/reports/2026-11-26-web-pareto-multi-experiment-budgets-verify.md
+        inputHash: e945aefb11b35aeba51e8e687b873cd1ba5e0034f50b17692eb52b7ce0d25ee7
+        outcome:
+          actionId: web-pareto-multi-experiment-budgets:8
+          attempt: 1
+          claimToken: portable-80e818142d83c8eb32d15a45de97da38d432d87dbf37077ff625523fbe58e31f
+          inputHash: e945aefb11b35aeba51e8e687b873cd1ba5e0034f50b17692eb52b7ce0d25ee7
+          outcomeId: 4a2e72a6-7076-4de7-a3cb-db7d03750aa0
+          output:
+            baseCommit: c1d55bf4056da877d62d9fa97724f01c7c5c313c
+            deliveryAction: push
+            deliveryPaths:
+              - frontend/scripts/verify-pareto-inputs.mjs
+              - frontend/src/experiments/client.test.ts
+              - frontend/src/experiments/client.ts
+              - frontend/src/experiments/types.ts
+              - frontend/src/i18n/en-US.ts
+              - frontend/src/i18n/zh-CN.ts
+              - frontend/src/pages/Experiments/ExperimentDetailPage.tsx
+            prBaseBranch: main
+            remote: origin
+            remoteIdentity: 128eeb1e6f0d21b25601fcb7f9aad36adfdfb4d76f37f54f004760410190f351
+            targetBranch: main
+            verifiedBranch: main
+          status: succeeded
+        protocolVersion: 1
+        receipts:
+          - hash: d3fb3079b20ef5e7795179ec015d5d7302399ca70c6ed218a3d19127248afced
+            outcomeId: 4a2e72a6-7076-4de7-a3cb-db7d03750aa0
+        reconciliations: []
+        ref: classic-archive-preflight
+        requiredCapabilities: []
+        retry: manual
+        runId: web-pareto-multi-experiment-budgets
+        status: succeeded
+        stepId: tweak.archive.preflight
+        type: call_tool
+      - attempt: 1
+        claim:
+          executorId: comet-classic-archive
+          token: portable-ec668011bac2797db85764cd85e55bf3dfd83046f47b6057e17c21a8a3975655
+        executionOrigin:
+          workflow:
+            hash: 518d3e8e12eb39899775cb7d2ddcc7ddeba10cb1f1d43cff7b03f2ca61a70c65
+            id: comet-classic-tweak
+            version: "2"
+        id: web-pareto-multi-experiment-budgets:9
+        input:
+          input:
+            change: web-pareto-multi-experiment-budgets
+            changeDir: openspec/changes/web-pareto-multi-experiment-budgets
+            workspaceBaseline:
+              ref: eed325ec-5331-4528-818f-bff73baf401a
+          outputs:
+            tweak.archive.confirm:
+              choice: push
+              proposal:
+                input:
+                  change: web-pareto-multi-experiment-budgets
+                  changeDir: openspec/changes/web-pareto-multi-experiment-budgets
+                  workspaceBaseline:
+                    ref: eed325ec-5331-4528-818f-bff73baf401a
+                outputs:
+                  tweak.archive.prepare:
+                    prBaseBranch: main
+                    remote: origin
+                    summary: "Issue #524 已完成并通过 Verify：7个交付文件支持多实验、精确预算、错误恢复；归档 change 并合并
+                      frontend/experiments-management delta spec。当前 main，remote
+                      origin，PR base main；local=归档并本地提交，push=另推送
+                      origin/main，pr=需独立分支后创建目标main的PR。"
+                    targetBranch: main
+            tweak.archive.preflight:
+              baseCommit: c1d55bf4056da877d62d9fa97724f01c7c5c313c
+              deliveryAction: push
+              deliveryPaths:
+                - frontend/scripts/verify-pareto-inputs.mjs
+                - frontend/src/experiments/client.test.ts
+                - frontend/src/experiments/client.ts
+                - frontend/src/experiments/types.ts
+                - frontend/src/i18n/en-US.ts
+                - frontend/src/i18n/zh-CN.ts
+                - frontend/src/pages/Experiments/ExperimentDetailPage.tsx
+              prBaseBranch: main
+              remote: origin
+              remoteIdentity: 128eeb1e6f0d21b25601fcb7f9aad36adfdfb4d76f37f54f004760410190f351
+              targetBranch: main
+              verifiedBranch: main
+            tweak.archive.prepare:
+              prBaseBranch: main
+              remote: origin
+              summary: "Issue #524 已完成并通过 Verify：7个交付文件支持多实验、精确预算、错误恢复；归档 change 并合并
+                frontend/experiments-management delta spec。当前 main，remote
+                origin，PR base main；local=归档并本地提交，push=另推送
+                origin/main，pr=需独立分支后创建目标main的PR。"
+              targetBranch: main
+            tweak.build.execute:
+              checks:
+                - name: frontend npm test
+                  note: 371 passed; /tmp/issue524-all-frontend.log
+                  result: passed
+                - name: pytest tests/test_pareto.py --no-cov -q
+                  note: 31 passed; /tmp/issue524-pytest.log
+                  result: passed
+                - name: frontend npm run build
+                  note: tsc/Vite exit0; /tmp/issue524-build.log
+                  result: passed
+                - name: affected eslint/prettier and git diff --check
+                  note: 7 delivery files; exit0
+                  result: passed
+                - name: Playwright and real Pareto API
+                  note: 18 analysis requests; /tmp/issue524-browser-complete.log;
+                    /tmp/issue-524-qa/result.json
+                  result: passed
+                - name: OpenSpec strict validation and scenario/design mapping
+                  note: 3 requirements covered; verification-report.md
+                  result: passed
+              event: build-complete
+            tweak.open:
+              event: open-complete
+              requirementsEvidence:
+                ref: openspec/changes/web-pareto-multi-experiment-budgets
+            tweak.open.evidence:
+              contentHash: 8a310ef73bdc268675e565afa7d841e59a4edd148d9839790754c8eafbf024ca
+              ref: openspec/changes/web-pareto-multi-experiment-budgets
+            tweak.verify.report.evidence:
+              contentHash: 0181dd38140743a1c8525bd35e422bd06a30d9179ad32d84b4f9f9ff7e827d4e
+              ref: docs/superpowers/reports/2026-11-26-web-pareto-multi-experiment-budgets-verify.md
+            tweak.verify.run:
+              checks:
+                - name: frontend npm test
+                  note: 371 passed; /tmp/issue524-all-frontend.log
+                  result: passed
+                - name: pytest tests/test_pareto.py --no-cov -q
+                  note: 31 passed; /tmp/issue524-pytest.log
+                  result: passed
+                - name: frontend npm run build
+                  note: tsc/Vite exit0; /tmp/issue524-build.log
+                  result: passed
+                - name: affected eslint/prettier and git diff --check
+                  note: 7 delivery files; exit0
+                  result: passed
+                - name: Playwright and real Pareto API
+                  note: 18 analysis requests; /tmp/issue524-browser-complete.log;
+                    /tmp/issue-524-qa/result.json
+                  result: passed
+                - name: OpenSpec strict validation and scenario/design mapping
+                  note: 3 requirements covered; verification-report.md
+                  result: passed
+              event: verification-ready
+              verificationReport: docs/superpowers/reports/2026-11-26-web-pareto-multi-experiment-budgets-verify.md
+        inputHash: 07cb220bddb01d52050fbdf005e005e3c2f2ba9df25e1742a269dd0b2126e510
+        outcome:
+          actionId: web-pareto-multi-experiment-budgets:9
+          artifacts: []
+          attempt: 1
+          claimToken: portable-ec668011bac2797db85764cd85e55bf3dfd83046f47b6057e17c21a8a3975655
+          inputHash: 07cb220bddb01d52050fbdf005e005e3c2f2ba9df25e1742a269dd0b2126e510
+          outcomeId: 1dee63d2-1f60-4029-85d4-9ed149f34a07
+          output:
+            archiveDirectory: openspec/changes/archive/2026-11-27-web-pareto-multi-experiment-budgets
+          status: succeeded
+        protocolVersion: 1
+        receipts:
+          - hash: 8d65f4d40043bdcd9a15b019b30e3ddcfebc9cd33daf5d5be5f246dca1548f88
+            outcomeId: 1dee63d2-1f60-4029-85d4-9ed149f34a07
+        reconciliations: []
+        ref: classic-archive
+        requiredCapabilities: []
+        retry: manual
+        runId: web-pareto-multi-experiment-budgets
+        status: succeeded
+        stepId: tweak.archive.execute
+        type: call_tool
+      - attempt: 1
+        id: web-pareto-multi-experiment-budgets:10
+        input:
+          input:
+            change: web-pareto-multi-experiment-budgets
+            changeDir: openspec/changes/web-pareto-multi-experiment-budgets
+            workspaceBaseline:
+              ref: eed325ec-5331-4528-818f-bff73baf401a
+          outputs:
+            tweak.archive.confirm:
+              choice: push
+              proposal:
+                input:
+                  change: web-pareto-multi-experiment-budgets
+                  changeDir: openspec/changes/web-pareto-multi-experiment-budgets
+                  workspaceBaseline:
+                    ref: eed325ec-5331-4528-818f-bff73baf401a
+                outputs:
+                  tweak.archive.prepare:
+                    prBaseBranch: main
+                    remote: origin
+                    summary: "Issue #524 已完成并通过 Verify：7个交付文件支持多实验、精确预算、错误恢复；归档 change 并合并
+                      frontend/experiments-management delta spec。当前 main，remote
+                      origin，PR base main；local=归档并本地提交，push=另推送
+                      origin/main，pr=需独立分支后创建目标main的PR。"
+                    targetBranch: main
+            tweak.archive.execute:
+              archiveDirectory: openspec/changes/archive/2026-11-27-web-pareto-multi-experiment-budgets
+            tweak.archive.preflight:
+              baseCommit: c1d55bf4056da877d62d9fa97724f01c7c5c313c
+              deliveryAction: push
+              deliveryPaths:
+                - frontend/scripts/verify-pareto-inputs.mjs
+                - frontend/src/experiments/client.test.ts
+                - frontend/src/experiments/client.ts
+                - frontend/src/experiments/types.ts
+                - frontend/src/i18n/en-US.ts
+                - frontend/src/i18n/zh-CN.ts
+                - frontend/src/pages/Experiments/ExperimentDetailPage.tsx
+              prBaseBranch: main
+              remote: origin
+              remoteIdentity: 128eeb1e6f0d21b25601fcb7f9aad36adfdfb4d76f37f54f004760410190f351
+              targetBranch: main
+              verifiedBranch: main
+            tweak.archive.prepare:
+              prBaseBranch: main
+              remote: origin
+              summary: "Issue #524 已完成并通过 Verify：7个交付文件支持多实验、精确预算、错误恢复；归档 change 并合并
+                frontend/experiments-management delta spec。当前 main，remote
+                origin，PR base main；local=归档并本地提交，push=另推送
+                origin/main，pr=需独立分支后创建目标main的PR。"
+              targetBranch: main
+            tweak.build.execute:
+              checks:
+                - name: frontend npm test
+                  note: 371 passed; /tmp/issue524-all-frontend.log
+                  result: passed
+                - name: pytest tests/test_pareto.py --no-cov -q
+                  note: 31 passed; /tmp/issue524-pytest.log
+                  result: passed
+                - name: frontend npm run build
+                  note: tsc/Vite exit0; /tmp/issue524-build.log
+                  result: passed
+                - name: affected eslint/prettier and git diff --check
+                  note: 7 delivery files; exit0
+                  result: passed
+                - name: Playwright and real Pareto API
+                  note: 18 analysis requests; /tmp/issue524-browser-complete.log;
+                    /tmp/issue-524-qa/result.json
+                  result: passed
+                - name: OpenSpec strict validation and scenario/design mapping
+                  note: 3 requirements covered; verification-report.md
+                  result: passed
+              event: build-complete
+            tweak.open:
+              event: open-complete
+              requirementsEvidence:
+                ref: openspec/changes/web-pareto-multi-experiment-budgets
+            tweak.open.evidence:
+              contentHash: 8a310ef73bdc268675e565afa7d841e59a4edd148d9839790754c8eafbf024ca
+              ref: openspec/changes/web-pareto-multi-experiment-budgets
+            tweak.verify.report.evidence:
+              contentHash: 0181dd38140743a1c8525bd35e422bd06a30d9179ad32d84b4f9f9ff7e827d4e
+              ref: docs/superpowers/reports/2026-11-26-web-pareto-multi-experiment-budgets-verify.md
+            tweak.verify.run:
+              checks:
+                - name: frontend npm test
+                  note: 371 passed; /tmp/issue524-all-frontend.log
+                  result: passed
+                - name: pytest tests/test_pareto.py --no-cov -q
+                  note: 31 passed; /tmp/issue524-pytest.log
+                  result: passed
+                - name: frontend npm run build
+                  note: tsc/Vite exit0; /tmp/issue524-build.log
+                  result: passed
+                - name: affected eslint/prettier and git diff --check
+                  note: 7 delivery files; exit0
+                  result: passed
+                - name: Playwright and real Pareto API
+                  note: 18 analysis requests; /tmp/issue524-browser-complete.log;
+                    /tmp/issue-524-qa/result.json
+                  result: passed
+                - name: OpenSpec strict validation and scenario/design mapping
+                  note: 3 requirements covered; verification-report.md
+                  result: passed
+              event: verification-ready
+              verificationReport: docs/superpowers/reports/2026-11-26-web-pareto-multi-experiment-budgets-verify.md
+        inputHash: e4720260146a19b5834d3df351c2b59be7319bbe0bbdebd52143ec842411792a
+        protocolVersion: 1
+        receipts: []
+        reconciliations: []
+        ref: comet-archive
+        requiredCapabilities: []
+        retry: manual
+        runId: web-pareto-multi-experiment-budgets
+        status: pending
+        stepId: tweak.archive.deliver
+        type: invoke_skill
+    actionContexts:
+      web-pareto-multi-experiment-budgets:1:
+        results: {}
+        sequence: 1
+      web-pareto-multi-experiment-budgets:10:
+        results:
+          tweak.archive.confirm:
+            sequence: 7
+            value:
+              choice: push
+              proposal:
+                input:
+                  change: web-pareto-multi-experiment-budgets
+                  changeDir: openspec/changes/web-pareto-multi-experiment-budgets
+                  workspaceBaseline:
+                    ref: eed325ec-5331-4528-818f-bff73baf401a
+                outputs:
+                  tweak.archive.prepare:
+                    prBaseBranch: main
+                    remote: origin
+                    summary: "Issue #524 已完成并通过 Verify：7个交付文件支持多实验、精确预算、错误恢复；归档 change 并合并
+                      frontend/experiments-management delta spec。当前 main，remote
+                      origin，PR base main；local=归档并本地提交，push=另推送
+                      origin/main，pr=需独立分支后创建目标main的PR。"
+                    targetBranch: main
+          tweak.archive.execute:
+            sequence: 9
+            value:
+              archiveDirectory: openspec/changes/archive/2026-11-27-web-pareto-multi-experiment-budgets
+          tweak.archive.preflight:
+            sequence: 8
+            value:
+              baseCommit: c1d55bf4056da877d62d9fa97724f01c7c5c313c
+              deliveryAction: push
+              deliveryPaths:
+                - frontend/scripts/verify-pareto-inputs.mjs
+                - frontend/src/experiments/client.test.ts
+                - frontend/src/experiments/client.ts
+                - frontend/src/experiments/types.ts
+                - frontend/src/i18n/en-US.ts
+                - frontend/src/i18n/zh-CN.ts
+                - frontend/src/pages/Experiments/ExperimentDetailPage.tsx
+              prBaseBranch: main
+              remote: origin
+              remoteIdentity: 128eeb1e6f0d21b25601fcb7f9aad36adfdfb4d76f37f54f004760410190f351
+              targetBranch: main
+              verifiedBranch: main
+          tweak.archive.prepare:
+            sequence: 6
+            value:
+              prBaseBranch: main
+              remote: origin
+              summary: "Issue #524 已完成并通过 Verify：7个交付文件支持多实验、精确预算、错误恢复；归档 change 并合并
+                frontend/experiments-management delta spec。当前 main，remote
+                origin，PR base main；local=归档并本地提交，push=另推送
+                origin/main，pr=需独立分支后创建目标main的PR。"
+              targetBranch: main
+          tweak.build.execute:
+            sequence: 3
+            value:
+              checks:
+                - name: frontend npm test
+                  note: 371 passed; /tmp/issue524-all-frontend.log
+                  result: passed
+                - name: pytest tests/test_pareto.py --no-cov -q
+                  note: 31 passed; /tmp/issue524-pytest.log
+                  result: passed
+                - name: frontend npm run build
+                  note: tsc/Vite exit0; /tmp/issue524-build.log
+                  result: passed
+                - name: affected eslint/prettier and git diff --check
+                  note: 7 delivery files; exit0
+                  result: passed
+                - name: Playwright and real Pareto API
+                  note: 18 analysis requests; /tmp/issue524-browser-complete.log;
+                    /tmp/issue-524-qa/result.json
+                  result: passed
+                - name: OpenSpec strict validation and scenario/design mapping
+                  note: 3 requirements covered; verification-report.md
+                  result: passed
+              event: build-complete
+          tweak.open:
+            sequence: 1
+            value:
+              event: open-complete
+              requirementsEvidence:
+                ref: openspec/changes/web-pareto-multi-experiment-budgets
+          tweak.open.evidence:
+            sequence: 2
+            value:
+              contentHash: 8a310ef73bdc268675e565afa7d841e59a4edd148d9839790754c8eafbf024ca
+              ref: openspec/changes/web-pareto-multi-experiment-budgets
+          tweak.verify.report.evidence:
+            sequence: 5
+            value:
+              contentHash: 0181dd38140743a1c8525bd35e422bd06a30d9179ad32d84b4f9f9ff7e827d4e
+              ref: docs/superpowers/reports/2026-11-26-web-pareto-multi-experiment-budgets-verify.md
+          tweak.verify.run:
+            sequence: 4
+            value:
+              checks:
+                - name: frontend npm test
+                  note: 371 passed; /tmp/issue524-all-frontend.log
+                  result: passed
+                - name: pytest tests/test_pareto.py --no-cov -q
+                  note: 31 passed; /tmp/issue524-pytest.log
+                  result: passed
+                - name: frontend npm run build
+                  note: tsc/Vite exit0; /tmp/issue524-build.log
+                  result: passed
+                - name: affected eslint/prettier and git diff --check
+                  note: 7 delivery files; exit0
+                  result: passed
+                - name: Playwright and real Pareto API
+                  note: 18 analysis requests; /tmp/issue524-browser-complete.log;
+                    /tmp/issue-524-qa/result.json
+                  result: passed
+                - name: OpenSpec strict validation and scenario/design mapping
+                  note: 3 requirements covered; verification-report.md
+                  result: passed
+              event: verification-ready
+              verificationReport: docs/superpowers/reports/2026-11-26-web-pareto-multi-experiment-budgets-verify.md
+        sequence: 10
+      web-pareto-multi-experiment-budgets:3:
+        results:
+          tweak.open:
+            sequence: 1
+            value:
+              event: open-complete
+              requirementsEvidence:
+                ref: openspec/changes/web-pareto-multi-experiment-budgets
+          tweak.open.evidence:
+            sequence: 2
+            value:
+              contentHash: 8a310ef73bdc268675e565afa7d841e59a4edd148d9839790754c8eafbf024ca
+              ref: openspec/changes/web-pareto-multi-experiment-budgets
+        sequence: 3
+      web-pareto-multi-experiment-budgets:4:
+        results:
+          tweak.build.execute:
+            sequence: 3
+            value:
+              checks:
+                - name: frontend npm test
+                  note: 371 passed; /tmp/issue524-all-frontend.log
+                  result: passed
+                - name: pytest tests/test_pareto.py --no-cov -q
+                  note: 31 passed; /tmp/issue524-pytest.log
+                  result: passed
+                - name: frontend npm run build
+                  note: tsc/Vite exit0; /tmp/issue524-build.log
+                  result: passed
+                - name: affected eslint/prettier and git diff --check
+                  note: 7 delivery files; exit0
+                  result: passed
+                - name: Playwright and real Pareto API
+                  note: 18 analysis requests; /tmp/issue524-browser-complete.log;
+                    /tmp/issue-524-qa/result.json
+                  result: passed
+                - name: OpenSpec strict validation and scenario/design mapping
+                  note: 3 requirements covered; verification-report.md
+                  result: passed
+              event: build-complete
+          tweak.open:
+            sequence: 1
+            value:
+              event: open-complete
+              requirementsEvidence:
+                ref: openspec/changes/web-pareto-multi-experiment-budgets
+          tweak.open.evidence:
+            sequence: 2
+            value:
+              contentHash: 8a310ef73bdc268675e565afa7d841e59a4edd148d9839790754c8eafbf024ca
+              ref: openspec/changes/web-pareto-multi-experiment-budgets
+        sequence: 4
+      web-pareto-multi-experiment-budgets:6:
+        results:
+          tweak.build.execute:
+            sequence: 3
+            value:
+              checks:
+                - name: frontend npm test
+                  note: 371 passed; /tmp/issue524-all-frontend.log
+                  result: passed
+                - name: pytest tests/test_pareto.py --no-cov -q
+                  note: 31 passed; /tmp/issue524-pytest.log
+                  result: passed
+                - name: frontend npm run build
+                  note: tsc/Vite exit0; /tmp/issue524-build.log
+                  result: passed
+                - name: affected eslint/prettier and git diff --check
+                  note: 7 delivery files; exit0
+                  result: passed
+                - name: Playwright and real Pareto API
+                  note: 18 analysis requests; /tmp/issue524-browser-complete.log;
+                    /tmp/issue-524-qa/result.json
+                  result: passed
+                - name: OpenSpec strict validation and scenario/design mapping
+                  note: 3 requirements covered; verification-report.md
+                  result: passed
+              event: build-complete
+          tweak.open:
+            sequence: 1
+            value:
+              event: open-complete
+              requirementsEvidence:
+                ref: openspec/changes/web-pareto-multi-experiment-budgets
+          tweak.open.evidence:
+            sequence: 2
+            value:
+              contentHash: 8a310ef73bdc268675e565afa7d841e59a4edd148d9839790754c8eafbf024ca
+              ref: openspec/changes/web-pareto-multi-experiment-budgets
+          tweak.verify.report.evidence:
+            sequence: 5
+            value:
+              contentHash: 0181dd38140743a1c8525bd35e422bd06a30d9179ad32d84b4f9f9ff7e827d4e
+              ref: docs/superpowers/reports/2026-11-26-web-pareto-multi-experiment-budgets-verify.md
+          tweak.verify.run:
+            sequence: 4
+            value:
+              checks:
+                - name: frontend npm test
+                  note: 371 passed; /tmp/issue524-all-frontend.log
+                  result: passed
+                - name: pytest tests/test_pareto.py --no-cov -q
+                  note: 31 passed; /tmp/issue524-pytest.log
+                  result: passed
+                - name: frontend npm run build
+                  note: tsc/Vite exit0; /tmp/issue524-build.log
+                  result: passed
+                - name: affected eslint/prettier and git diff --check
+                  note: 7 delivery files; exit0
+                  result: passed
+                - name: Playwright and real Pareto API
+                  note: 18 analysis requests; /tmp/issue524-browser-complete.log;
+                    /tmp/issue-524-qa/result.json
+                  result: passed
+                - name: OpenSpec strict validation and scenario/design mapping
+                  note: 3 requirements covered; verification-report.md
+                  result: passed
+              event: verification-ready
+              verificationReport: docs/superpowers/reports/2026-11-26-web-pareto-multi-experiment-budgets-verify.md
+        sequence: 6
+      web-pareto-multi-experiment-budgets:8:
+        results:
+          tweak.archive.confirm:
+            sequence: 7
+            value:
+              choice: push
+              proposal:
+                input:
+                  change: web-pareto-multi-experiment-budgets
+                  changeDir: openspec/changes/web-pareto-multi-experiment-budgets
+                  workspaceBaseline:
+                    ref: eed325ec-5331-4528-818f-bff73baf401a
+                outputs:
+                  tweak.archive.prepare:
+                    prBaseBranch: main
+                    remote: origin
+                    summary: "Issue #524 已完成并通过 Verify：7个交付文件支持多实验、精确预算、错误恢复；归档 change 并合并
+                      frontend/experiments-management delta spec。当前 main，remote
+                      origin，PR base main；local=归档并本地提交，push=另推送
+                      origin/main，pr=需独立分支后创建目标main的PR。"
+                    targetBranch: main
+          tweak.archive.prepare:
+            sequence: 6
+            value:
+              prBaseBranch: main
+              remote: origin
+              summary: "Issue #524 已完成并通过 Verify：7个交付文件支持多实验、精确预算、错误恢复；归档 change 并合并
+                frontend/experiments-management delta spec。当前 main，remote
+                origin，PR base main；local=归档并本地提交，push=另推送
+                origin/main，pr=需独立分支后创建目标main的PR。"
+              targetBranch: main
+          tweak.build.execute:
+            sequence: 3
+            value:
+              checks:
+                - name: frontend npm test
+                  note: 371 passed; /tmp/issue524-all-frontend.log
+                  result: passed
+                - name: pytest tests/test_pareto.py --no-cov -q
+                  note: 31 passed; /tmp/issue524-pytest.log
+                  result: passed
+                - name: frontend npm run build
+                  note: tsc/Vite exit0; /tmp/issue524-build.log
+                  result: passed
+                - name: affected eslint/prettier and git diff --check
+                  note: 7 delivery files; exit0
+                  result: passed
+                - name: Playwright and real Pareto API
+                  note: 18 analysis requests; /tmp/issue524-browser-complete.log;
+                    /tmp/issue-524-qa/result.json
+                  result: passed
+                - name: OpenSpec strict validation and scenario/design mapping
+                  note: 3 requirements covered; verification-report.md
+                  result: passed
+              event: build-complete
+          tweak.open:
+            sequence: 1
+            value:
+              event: open-complete
+              requirementsEvidence:
+                ref: openspec/changes/web-pareto-multi-experiment-budgets
+          tweak.open.evidence:
+            sequence: 2
+            value:
+              contentHash: 8a310ef73bdc268675e565afa7d841e59a4edd148d9839790754c8eafbf024ca
+              ref: openspec/changes/web-pareto-multi-experiment-budgets
+          tweak.verify.report.evidence:
+            sequence: 5
+            value:
+              contentHash: 0181dd38140743a1c8525bd35e422bd06a30d9179ad32d84b4f9f9ff7e827d4e
+              ref: docs/superpowers/reports/2026-11-26-web-pareto-multi-experiment-budgets-verify.md
+          tweak.verify.run:
+            sequence: 4
+            value:
+              checks:
+                - name: frontend npm test
+                  note: 371 passed; /tmp/issue524-all-frontend.log
+                  result: passed
+                - name: pytest tests/test_pareto.py --no-cov -q
+                  note: 31 passed; /tmp/issue524-pytest.log
+                  result: passed
+                - name: frontend npm run build
+                  note: tsc/Vite exit0; /tmp/issue524-build.log
+                  result: passed
+                - name: affected eslint/prettier and git diff --check
+                  note: 7 delivery files; exit0
+                  result: passed
+                - name: Playwright and real Pareto API
+                  note: 18 analysis requests; /tmp/issue524-browser-complete.log;
+                    /tmp/issue-524-qa/result.json
+                  result: passed
+                - name: OpenSpec strict validation and scenario/design mapping
+                  note: 3 requirements covered; verification-report.md
+                  result: passed
+              event: verification-ready
+              verificationReport: docs/superpowers/reports/2026-11-26-web-pareto-multi-experiment-budgets-verify.md
+        sequence: 8
+      web-pareto-multi-experiment-budgets:9:
+        results:
+          tweak.archive.confirm:
+            sequence: 7
+            value:
+              choice: push
+              proposal:
+                input:
+                  change: web-pareto-multi-experiment-budgets
+                  changeDir: openspec/changes/web-pareto-multi-experiment-budgets
+                  workspaceBaseline:
+                    ref: eed325ec-5331-4528-818f-bff73baf401a
+                outputs:
+                  tweak.archive.prepare:
+                    prBaseBranch: main
+                    remote: origin
+                    summary: "Issue #524 已完成并通过 Verify：7个交付文件支持多实验、精确预算、错误恢复；归档 change 并合并
+                      frontend/experiments-management delta spec。当前 main，remote
+                      origin，PR base main；local=归档并本地提交，push=另推送
+                      origin/main，pr=需独立分支后创建目标main的PR。"
+                    targetBranch: main
+          tweak.archive.preflight:
+            sequence: 8
+            value:
+              baseCommit: c1d55bf4056da877d62d9fa97724f01c7c5c313c
+              deliveryAction: push
+              deliveryPaths:
+                - frontend/scripts/verify-pareto-inputs.mjs
+                - frontend/src/experiments/client.test.ts
+                - frontend/src/experiments/client.ts
+                - frontend/src/experiments/types.ts
+                - frontend/src/i18n/en-US.ts
+                - frontend/src/i18n/zh-CN.ts
+                - frontend/src/pages/Experiments/ExperimentDetailPage.tsx
+              prBaseBranch: main
+              remote: origin
+              remoteIdentity: 128eeb1e6f0d21b25601fcb7f9aad36adfdfb4d76f37f54f004760410190f351
+              targetBranch: main
+              verifiedBranch: main
+          tweak.archive.prepare:
+            sequence: 6
+            value:
+              prBaseBranch: main
+              remote: origin
+              summary: "Issue #524 已完成并通过 Verify：7个交付文件支持多实验、精确预算、错误恢复；归档 change 并合并
+                frontend/experiments-management delta spec。当前 main，remote
+                origin，PR base main；local=归档并本地提交，push=另推送
+                origin/main，pr=需独立分支后创建目标main的PR。"
+              targetBranch: main
+          tweak.build.execute:
+            sequence: 3
+            value:
+              checks:
+                - name: frontend npm test
+                  note: 371 passed; /tmp/issue524-all-frontend.log
+                  result: passed
+                - name: pytest tests/test_pareto.py --no-cov -q
+                  note: 31 passed; /tmp/issue524-pytest.log
+                  result: passed
+                - name: frontend npm run build
+                  note: tsc/Vite exit0; /tmp/issue524-build.log
+                  result: passed
+                - name: affected eslint/prettier and git diff --check
+                  note: 7 delivery files; exit0
+                  result: passed
+                - name: Playwright and real Pareto API
+                  note: 18 analysis requests; /tmp/issue524-browser-complete.log;
+                    /tmp/issue-524-qa/result.json
+                  result: passed
+                - name: OpenSpec strict validation and scenario/design mapping
+                  note: 3 requirements covered; verification-report.md
+                  result: passed
+              event: build-complete
+          tweak.open:
+            sequence: 1
+            value:
+              event: open-complete
+              requirementsEvidence:
+                ref: openspec/changes/web-pareto-multi-experiment-budgets
+          tweak.open.evidence:
+            sequence: 2
+            value:
+              contentHash: 8a310ef73bdc268675e565afa7d841e59a4edd148d9839790754c8eafbf024ca
+              ref: openspec/changes/web-pareto-multi-experiment-budgets
+          tweak.verify.report.evidence:
+            sequence: 5
+            value:
+              contentHash: 0181dd38140743a1c8525bd35e422bd06a30d9179ad32d84b4f9f9ff7e827d4e
+              ref: docs/superpowers/reports/2026-11-26-web-pareto-multi-experiment-budgets-verify.md
+          tweak.verify.run:
+            sequence: 4
+            value:
+              checks:
+                - name: frontend npm test
+                  note: 371 passed; /tmp/issue524-all-frontend.log
+                  result: passed
+                - name: pytest tests/test_pareto.py --no-cov -q
+                  note: 31 passed; /tmp/issue524-pytest.log
+                  result: passed
+                - name: frontend npm run build
+                  note: tsc/Vite exit0; /tmp/issue524-build.log
+                  result: passed
+                - name: affected eslint/prettier and git diff --check
+                  note: 7 delivery files; exit0
+                  result: passed
+                - name: Playwright and real Pareto API
+                  note: 18 analysis requests; /tmp/issue524-browser-complete.log;
+                    /tmp/issue-524-qa/result.json
+                  result: passed
+                - name: OpenSpec strict validation and scenario/design mapping
+                  note: 3 requirements covered; verification-report.md
+                  result: passed
+              event: verification-ready
+              verificationReport: docs/superpowers/reports/2026-11-26-web-pareto-multi-experiment-budgets-verify.md
+        sequence: 9
+    waits:
+      - id: web-pareto-multi-experiment-budgets:7
+        stepId: tweak.archive.confirm
+        sequence: 7
+        status: resolved
+        proposal:
+          input:
+            change: web-pareto-multi-experiment-budgets
+            changeDir: openspec/changes/web-pareto-multi-experiment-budgets
+            workspaceBaseline:
+              ref: eed325ec-5331-4528-818f-bff73baf401a
+          outputs:
+            tweak.archive.prepare:
+              prBaseBranch: main
+              remote: origin
+              summary: "Issue #524 已完成并通过 Verify：7个交付文件支持多实验、精确预算、错误恢复；归档 change 并合并
+                frontend/experiments-management delta spec。当前 main，remote
+                origin，PR base main；local=归档并本地提交，push=另推送
+                origin/main，pr=需独立分支后创建目标main的PR。"
+              targetBranch: main
+        proposalHash: 0c8870328c6e5c194f29ccb0d4d2e0d1aa4c5d81b95c289c8b7a4db629e67129
+        choices:
+          - local
+          - push
+          - pr
+          - reverify
+          - later
+        results:
+          tweak.archive.prepare:
+            sequence: 6
+            value:
+              prBaseBranch: main
+              remote: origin
+              summary: "Issue #524 已完成并通过 Verify：7个交付文件支持多实验、精确预算、错误恢复；归档 change 并合并
+                frontend/experiments-management delta spec。当前 main，remote
+                origin，PR base main；local=归档并本地提交，push=另推送
+                origin/main，pr=需独立分支后创建目标main的PR。"
+              targetBranch: main
+          tweak.build.execute:
+            sequence: 3
+            value:
+              checks:
+                - name: frontend npm test
+                  note: 371 passed; /tmp/issue524-all-frontend.log
+                  result: passed
+                - name: pytest tests/test_pareto.py --no-cov -q
+                  note: 31 passed; /tmp/issue524-pytest.log
+                  result: passed
+                - name: frontend npm run build
+                  note: tsc/Vite exit0; /tmp/issue524-build.log
+                  result: passed
+                - name: affected eslint/prettier and git diff --check
+                  note: 7 delivery files; exit0
+                  result: passed
+                - name: Playwright and real Pareto API
+                  note: 18 analysis requests; /tmp/issue524-browser-complete.log;
+                    /tmp/issue-524-qa/result.json
+                  result: passed
+                - name: OpenSpec strict validation and scenario/design mapping
+                  note: 3 requirements covered; verification-report.md
+                  result: passed
+              event: build-complete
+          tweak.open:
+            sequence: 1
+            value:
+              event: open-complete
+              requirementsEvidence:
+                ref: openspec/changes/web-pareto-multi-experiment-budgets
+          tweak.open.evidence:
+            sequence: 2
+            value:
+              contentHash: 8a310ef73bdc268675e565afa7d841e59a4edd148d9839790754c8eafbf024ca
+              ref: openspec/changes/web-pareto-multi-experiment-budgets
+          tweak.verify.report.evidence:
+            sequence: 5
+            value:
+              contentHash: 0181dd38140743a1c8525bd35e422bd06a30d9179ad32d84b4f9f9ff7e827d4e
+              ref: docs/superpowers/reports/2026-11-26-web-pareto-multi-experiment-budgets-verify.md
+          tweak.verify.run:
+            sequence: 4
+            value:
+              checks:
+                - name: frontend npm test
+                  note: 371 passed; /tmp/issue524-all-frontend.log
+                  result: passed
+                - name: pytest tests/test_pareto.py --no-cov -q
+                  note: 31 passed; /tmp/issue524-pytest.log
+                  result: passed
+                - name: frontend npm run build
+                  note: tsc/Vite exit0; /tmp/issue524-build.log
+                  result: passed
+                - name: affected eslint/prettier and git diff --check
+                  note: 7 delivery files; exit0
+                  result: passed
+                - name: Playwright and real Pareto API
+                  note: 18 analysis requests; /tmp/issue524-browser-complete.log;
+                    /tmp/issue-524-qa/result.json
+                  result: passed
+                - name: OpenSpec strict validation and scenario/design mapping
+                  note: 3 requirements covered; verification-report.md
+                  result: passed
+              event: verification-ready
+              verificationReport: docs/superpowers/reports/2026-11-26-web-pareto-multi-experiment-budgets-verify.md
+        decision:
+          id: classic-archive-0c8870328c6e5c194f29ccb0d4d2e0d1aa4c5d81b95c289c8b7a4db629e67129-push
+          choice: push
+          proposalHash: 0c8870328c6e5c194f29ccb0d4d2e0d1aa4c5d81b95c289c8b7a4db629e67129
+    evidenceWaits:
+      - id: web-pareto-multi-experiment-budgets:2
+        stepId: tweak.open.evidence
+        sequence: 2
+        kind: classic-open-artifacts
+        status: resolved
+        results:
+          tweak.open:
+            sequence: 1
+            value:
+              event: open-complete
+              requirementsEvidence:
+                ref: openspec/changes/web-pareto-multi-experiment-budgets
+        receipt:
+          ref: openspec/changes/web-pareto-multi-experiment-budgets
+          contentHash: 8a310ef73bdc268675e565afa7d841e59a4edd148d9839790754c8eafbf024ca
+          submissionId: 0c13194f-b250-4d85-bbae-f5f7ba14758e
+      - id: web-pareto-multi-experiment-budgets:5
+        stepId: tweak.verify.report.evidence
+        sequence: 5
+        kind: classic-verification-report
+        status: resolved
+        results:
+          tweak.build.execute:
+            sequence: 3
+            value:
+              checks:
+                - name: frontend npm test
+                  note: 371 passed; /tmp/issue524-all-frontend.log
+                  result: passed
+                - name: pytest tests/test_pareto.py --no-cov -q
+                  note: 31 passed; /tmp/issue524-pytest.log
+                  result: passed
+                - name: frontend npm run build
+                  note: tsc/Vite exit0; /tmp/issue524-build.log
+                  result: passed
+                - name: affected eslint/prettier and git diff --check
+                  note: 7 delivery files; exit0
+                  result: passed
+                - name: Playwright and real Pareto API
+                  note: 18 analysis requests; /tmp/issue524-browser-complete.log;
+                    /tmp/issue-524-qa/result.json
+                  result: passed
+                - name: OpenSpec strict validation and scenario/design mapping
+                  note: 3 requirements covered; verification-report.md
+                  result: passed
+              event: build-complete
+          tweak.open:
+            sequence: 1
+            value:
+              event: open-complete
+              requirementsEvidence:
+                ref: openspec/changes/web-pareto-multi-experiment-budgets
+          tweak.open.evidence:
+            sequence: 2
+            value:
+              contentHash: 8a310ef73bdc268675e565afa7d841e59a4edd148d9839790754c8eafbf024ca
+              ref: openspec/changes/web-pareto-multi-experiment-budgets
+          tweak.verify.run:
+            sequence: 4
+            value:
+              checks:
+                - name: frontend npm test
+                  note: 371 passed; /tmp/issue524-all-frontend.log
+                  result: passed
+                - name: pytest tests/test_pareto.py --no-cov -q
+                  note: 31 passed; /tmp/issue524-pytest.log
+                  result: passed
+                - name: frontend npm run build
+                  note: tsc/Vite exit0; /tmp/issue524-build.log
+                  result: passed
+                - name: affected eslint/prettier and git diff --check
+                  note: 7 delivery files; exit0
+                  result: passed
+                - name: Playwright and real Pareto API
+                  note: 18 analysis requests; /tmp/issue524-browser-complete.log;
+                    /tmp/issue-524-qa/result.json
+                  result: passed
+                - name: OpenSpec strict validation and scenario/design mapping
+                  note: 3 requirements covered; verification-report.md
+                  result: passed
+              event: verification-ready
+              verificationReport: docs/superpowers/reports/2026-11-26-web-pareto-multi-experiment-budgets-verify.md
+        receipt:
+          ref: docs/superpowers/reports/2026-11-26-web-pareto-multi-experiment-budgets-verify.md
+          contentHash: 0181dd38140743a1c8525bd35e422bd06a30d9179ad32d84b4f9f9ff7e827d4e
+          submissionId: dbae7bb5-af2d-4958-86d6-6b514203a3c1
+    ready: []
+    joins: {}
+    outputs:
+      tweak.archive.confirm:
+        sequence: 7
+        value:
+          choice: push
+          proposal:
+            input:
+              change: web-pareto-multi-experiment-budgets
+              changeDir: openspec/changes/web-pareto-multi-experiment-budgets
+              workspaceBaseline:
+                ref: eed325ec-5331-4528-818f-bff73baf401a
+            outputs:
+              tweak.archive.prepare:
+                prBaseBranch: main
+                remote: origin
+                summary: "Issue #524 已完成并通过 Verify：7个交付文件支持多实验、精确预算、错误恢复；归档 change 并合并
+                  frontend/experiments-management delta spec。当前 main，remote
+                  origin，PR base main；local=归档并本地提交，push=另推送
+                  origin/main，pr=需独立分支后创建目标main的PR。"
+                targetBranch: main
+      tweak.archive.execute:
+        sequence: 9
+        value:
+          archiveDirectory: openspec/changes/archive/2026-11-27-web-pareto-multi-experiment-budgets
+      tweak.archive.preflight:
+        sequence: 8
+        value:
+          baseCommit: c1d55bf4056da877d62d9fa97724f01c7c5c313c
+          deliveryAction: push
+          deliveryPaths:
+            - frontend/scripts/verify-pareto-inputs.mjs
+            - frontend/src/experiments/client.test.ts
+            - frontend/src/experiments/client.ts
+            - frontend/src/experiments/types.ts
+            - frontend/src/i18n/en-US.ts
+            - frontend/src/i18n/zh-CN.ts
+            - frontend/src/pages/Experiments/ExperimentDetailPage.tsx
+          prBaseBranch: main
+          remote: origin
+          remoteIdentity: 128eeb1e6f0d21b25601fcb7f9aad36adfdfb4d76f37f54f004760410190f351
+          targetBranch: main
+          verifiedBranch: main
+      tweak.archive.prepare:
+        sequence: 6
+        value:
+          prBaseBranch: main
+          remote: origin
+          summary: "Issue #524 已完成并通过 Verify：7个交付文件支持多实验、精确预算、错误恢复；归档 change 并合并
+            frontend/experiments-management delta spec。当前 main，remote origin，PR
+            base main；local=归档并本地提交，push=另推送 origin/main，pr=需独立分支后创建目标main的PR。"
+          targetBranch: main
+      tweak.build.execute:
+        sequence: 3
+        value:
+          checks:
+            - name: frontend npm test
+              note: 371 passed; /tmp/issue524-all-frontend.log
+              result: passed
+            - name: pytest tests/test_pareto.py --no-cov -q
+              note: 31 passed; /tmp/issue524-pytest.log
+              result: passed
+            - name: frontend npm run build
+              note: tsc/Vite exit0; /tmp/issue524-build.log
+              result: passed
+            - name: affected eslint/prettier and git diff --check
+              note: 7 delivery files; exit0
+              result: passed
+            - name: Playwright and real Pareto API
+              note: 18 analysis requests; /tmp/issue524-browser-complete.log;
+                /tmp/issue-524-qa/result.json
+              result: passed
+            - name: OpenSpec strict validation and scenario/design mapping
+              note: 3 requirements covered; verification-report.md
+              result: passed
+          event: build-complete
+      tweak.open:
+        sequence: 1
+        value:
+          event: open-complete
+          requirementsEvidence:
+            ref: openspec/changes/web-pareto-multi-experiment-budgets
+      tweak.open.evidence:
+        sequence: 2
+        value:
+          contentHash: 8a310ef73bdc268675e565afa7d841e59a4edd148d9839790754c8eafbf024ca
+          ref: openspec/changes/web-pareto-multi-experiment-budgets
+      tweak.verify.report.evidence:
+        sequence: 5
+        value:
+          contentHash: 0181dd38140743a1c8525bd35e422bd06a30d9179ad32d84b4f9f9ff7e827d4e
+          ref: docs/superpowers/reports/2026-11-26-web-pareto-multi-experiment-budgets-verify.md
+      tweak.verify.run:
+        sequence: 4
+        value:
+          checks:
+            - name: frontend npm test
+              note: 371 passed; /tmp/issue524-all-frontend.log
+              result: passed
+            - name: pytest tests/test_pareto.py --no-cov -q
+              note: 31 passed; /tmp/issue524-pytest.log
+              result: passed
+            - name: frontend npm run build
+              note: tsc/Vite exit0; /tmp/issue524-build.log
+              result: passed
+            - name: affected eslint/prettier and git diff --check
+              note: 7 delivery files; exit0
+              result: passed
+            - name: Playwright and real Pareto API
+              note: 18 analysis requests; /tmp/issue524-browser-complete.log;
+                /tmp/issue-524-qa/result.json
+              result: passed
+            - name: OpenSpec strict validation and scenario/design mapping
+              note: 3 requirements covered; verification-report.md
+              result: passed
+          event: verification-ready
+          verificationReport: docs/superpowers/reports/2026-11-26-web-pareto-multi-experiment-budgets-verify.md
+    children: []
+    lineage: []
+  sourceRevision: 16
+  sourceHash: 0f0164aa4529cfe4aa03cdf3dcf66e86cf35c2850254593421016cc73f9de256
+direct_override: null
+handoff_context: null
+handoff_hash: null
+classic_profile: null
+classic_migration: null
+check_epoch: 5

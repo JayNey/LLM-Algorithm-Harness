@@ -1,4 +1,13 @@
 export default {
+  分析实验: 'Experiments to analyze',
+  加载更多实验: 'Load more experiments',
+  '预算列表（USD，可选）': 'Budgets (USD, optional)',
+  '以逗号或空白分隔，例如 0, 0.05, 1':
+    'Separate with commas or whitespace, e.g. 0, 0.05, 1',
+  '预算列表须为有限非负数，以逗号或空白分隔':
+    'Budgets must be finite non-negative numbers separated by commas or whitespace',
+  请选择至少一个实验: 'Select at least one experiment',
+
   题数: 'Problems',
   '优化预算（USD，可选）': 'Optimization budget (USD, optional)',
   '最低准确率（%，可选）': 'Minimum accuracy (%, optional)',
