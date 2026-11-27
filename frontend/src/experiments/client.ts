@@ -778,15 +778,26 @@ export function createExperimentClient(http: AxiosInstance): ExperimentClient {
     pareto: async (experimentId, budgets, accuracyMetric, signal) => {
       // 后端帕累托校验依赖原始报告（数据集指纹/token 预算标志等），
       // 因此这里取未解析的原始 comparison 作为 payload。
-      const raw = await http.get<unknown, unknown>(
-        `/experiments/${pathId(experimentId)}/comparison`,
-        { signal, timeout: 20_000 },
+      const ids = [
+        ...new Set(
+          typeof experimentId === 'string' ? [experimentId] : experimentId,
+        ),
+      ]
+      if (ids.length === 0) throw new ApiClientError('请选择至少一个实验')
+      const comparisons = await Promise.all(
+        ids.map((id) =>
+          http.get<unknown, unknown>(`/experiments/${pathId(id)}/comparison`, {
+            signal,
+            timeout: 20_000,
+          }),
+        ),
       )
+      signal?.throwIfAborted()
       return post(
         '/pareto/analyze',
         pareto,
         {
-          comparisons: [raw],
+          comparisons,
           budgets,
           accuracy_metric: accuracyMetric,
         },
