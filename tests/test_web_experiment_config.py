@@ -117,10 +117,10 @@ def test_saved_web_config_controls_real_strategy_filters_and_budget(
         assert config.strategies[0].custom_params == strategy["custom_params"]
         output = ExperimentRunner(config).run()
         calls = sdk.return_value.chat.completions.create.call_args_list
-    metadata = json.loads((output / "experiment.json").read_text())
+    metadata = json.loads((output / "experiment.json").read_text(encoding="utf-8"))
     assert metadata["dataset"]["problem_ids"] == ["picked-a", "picked-b"]
     combo = next(output.glob("combo-*"))
-    ledger = json.loads((combo / "budget_ledger.json").read_text())
+    ledger = json.loads((combo / "budget_ledger.json").read_text(encoding="utf-8"))
     assert ledger["budget"] == budget
     assert [entry["problem_id"] for entry in ledger["problems"]] == ["picked-a", "picked-b"]
     per_problem = 1 if stop else 3
