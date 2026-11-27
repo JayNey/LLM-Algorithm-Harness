@@ -1,0 +1,43 @@
+{
+  "schema": "comet.classic.archive-manifest.v2",
+  "execution": {
+    "workflow": {
+      "id": "comet-classic-tweak",
+      "version": "2",
+      "hash": "d1e067bc00ca13395dbc6f701565417c3e227f17a57df025dd73ebda905e2638"
+    },
+    "runId": "web-recommendation-controls",
+    "actionId": "web-recommendation-controls:13",
+    "attempt": 1,
+    "inputHash": "d2b453dcaf7ff1c6e71b91611000537bc4d2385f9df931d9a4c53942b1a23488",
+    "claimToken": "portable-9b72ffbeabd5db01ad3c7d7a0388cb46625b23b449b054b4098c070f4ed6ffdc"
+  },
+  "activeRef": "openspec/changes/web-recommendation-controls",
+  "archiveRef": "openspec/changes/archive/2026-11-27-web-recommendation-controls",
+  "stateRef": "openspec/changes/archive/2026-11-27-web-recommendation-controls/comet-state.yaml",
+  "paths": [
+    "openspec/changes/archive/2026-11-27-web-recommendation-controls/.comet/archive-requirements.json",
+    "openspec/changes/archive/2026-11-27-web-recommendation-controls/.comet/rulings.md",
+    "openspec/changes/archive/2026-11-27-web-recommendation-controls/.openspec.yaml",
+    "openspec/changes/archive/2026-11-27-web-recommendation-controls/checks.json",
+    "openspec/changes/archive/2026-11-27-web-recommendation-controls/design.md",
+    "openspec/changes/archive/2026-11-27-web-recommendation-controls/proposal.md",
+    "openspec/changes/archive/2026-11-27-web-recommendation-controls/specs/api/evaluation-results/spec.md",
+    "openspec/changes/archive/2026-11-27-web-recommendation-controls/tasks.md",
+    "openspec/changes/archive/2026-11-27-web-recommendation-controls/verification.md",
+    "openspec/changes/archive/2026-11-27-web-recommendation-controls/walkthrough.html",
+    "openspec/specs/api/evaluation-results/spec.md"
+  ],
+  "sourcePaths": [
+    "openspec/changes/web-recommendation-controls/.comet/archive-requirements.json",
+    "openspec/changes/web-recommendation-controls/.comet/rulings.md",
+    "openspec/changes/web-recommendation-controls/.openspec.yaml",
+    "openspec/changes/web-recommendation-controls/checks.json",
+    "openspec/changes/web-recommendation-controls/design.md",
+    "openspec/changes/web-recommendation-controls/proposal.md",
+    "openspec/changes/web-recommendation-controls/specs/api/evaluation-results/spec.md",
+    "openspec/changes/web-recommendation-controls/tasks.md",
+    "openspec/changes/web-recommendation-controls/verification.md",
+    "openspec/changes/web-recommendation-controls/walkthrough.html"
+  ]
+}

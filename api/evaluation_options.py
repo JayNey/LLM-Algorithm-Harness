@@ -57,6 +57,7 @@ class RecommendationPreviewRequest(BaseModel):
     source: ProblemSourceFilter = "all"
     min_samples: int = Field(default=1, ge=1, le=1000)
     failure_threshold: float = Field(default=0.5, gt=0, le=1)
+    limit: int = Field(default=20, ge=1, le=100, strict=True)
 
 
 class RecommendationWeakness(BaseModel):

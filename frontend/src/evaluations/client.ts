@@ -625,6 +625,8 @@ export function createEvaluationClient(http: AxiosInstance) {
         run_ids: string[]
         source: 'all' | ProblemSource
         min_samples: number
+        failure_threshold?: number
+        limit?: number
       },
       signal: AbortSignal,
     ) =>

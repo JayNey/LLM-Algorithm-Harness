@@ -707,6 +707,85 @@ def test_saved_recommendation_set_preserves_references_and_is_private(populated)
     assert rejected.status_code == 400, rejected.text
 
 
+def test_recommendation_controls_change_real_analysis_and_preserve_selection(
+    recommendation_history,
+):
+    from api.db.models import Evaluation, EvaluationResult
+
+    app, client, users = recommendation_history
+    headers = users["alice"][0]
+    url = "/api/v1/results/recommendations/preview"
+    ProblemStore(app.state.task_session_factory).upsert_import(
+        [problem(f"candidate-{i:03}") for i in range(110)]
+    )
+    with app.state.task_session_factory() as db, db.begin():
+        row = db.get(EvaluationResult, "p2")
+        row.status = "success"
+        row.execution_payload = {"evaluation_completed": True}
+
+    def preview(**params):
+        response = client.post(url, headers=headers, json={"run_ids": ["mine"], **params})
+        assert response.status_code == 200, response.text
+        return response.json()["data"]
+
+    default = preview()
+    assert len(default["problems"]) == 20
+    assert all(group["failure_rate"] == 0.5 for group in default["weaknesses"])
+    for limit in (1, 20, 30, 100):
+        data = preview(limit=limit, failure_threshold=0.5)
+        assert len(data["problems"]) == limit
+        assert data["problems"][:20] == default["problems"][:limit]
+        assert not {"p1", "p2", "bob-secret"} & {item["problem_id"] for item in data["problems"]}
+    assert preview(failure_threshold=0.75, limit=100)["empty_reason"] == "no_weaknesses"
+    assert preview(failure_threshold=1, limit=100)["problems"] == []
+    assert preview(min_samples=3, limit=100)["empty_reason"] == "insufficient_history"
+    assert preview(source="personal", limit=100)["empty_reason"] == "no_candidates"
+    denied = client.post(url, headers=headers, json={"run_ids": ["mine", "theirs"], "limit": 100})
+    assert denied.status_code == 404
+
+    ids = [item["problem_id"] for item in preview(limit=30)["problems"]][20:23]
+    saved = client.post(
+        "/api/v1/recommendation-sets",
+        headers=headers,
+        json={"name": "Beyond twenty", "problem_ids": ids},
+    )
+    assert saved.status_code == 201, saved.text
+    reopened = client.get(
+        "/api/v1/recommendation-sets/" + saved.json()["data"]["id"], headers=headers
+    ).json()["data"]
+    assert [item["problem_id"] for item in reopened["problems"]] == ids
+    created = client.post(
+        "/api/v1/evaluations/with-selection",
+        headers=headers,
+        json={
+            "api_key_id": model_key(app, users),
+            "model": "test",
+            "problem_ids": ids,
+            "strategy_names": ["vanilla"],
+        },
+    )
+    assert created.status_code == 201, created.text
+    with app.state.task_session_factory() as db:
+        assert db.get(Evaluation, created.json()["data"]["evaluation_id"]).problem_ids == ids
+
+
+def test_recommendation_controls_reject_invalid_parameters(recommendation_history):
+    _, client, users = recommendation_history
+    for field, values in (
+        ("limit", (0, -1, 101, 20.5, True, "30", None)),
+        ("failure_threshold", (0, -0.1, 1.01, "invalid", None)),
+    ):
+        for value in values:
+            response = client.post(
+                "/api/v1/results/recommendations/preview",
+                headers=users["alice"][0],
+                json={"run_ids": ["mine"], field: value},
+            )
+            assert response.status_code == 400, (field, value, response.text)
+            assert response.json()["error"]["code"] == "INVALID_PARAMETER"
+            assert field in response.text
+
+
 def test_governance_previews_only_owned_executed_history_and_saves_approved_changes(
     recommendation_history,
 ):

@@ -1,0 +1,1758 @@
+# comet-execution: managed-run
+change_id: c0ef652d-be1b-4ae2-9fe5-178fe770da32
+workflow: tweak
+language: zh-CN
+phase: archive
+context_compression: off
+build_mode: direct
+build_pause: null
+subagent_dispatch: null
+tdd_mode: direct
+review_mode: off
+isolation: current
+verify_mode: light
+auto_transition: true
+base_ref: bf1ac089d60fdb19f9fbdf9c0bce5572225154ce
+design_doc: null
+plan: null
+verify_result: pass
+verify_failures: 0
+verification_report: docs/superpowers/reports/2026-11-27-web-recommendation-controls-verify.md
+branch_status: pending
+created_at: 2026-11-27
+verified_at: 2026-11-27
+archive_confirmation: confirmed
+archived: true
+bound_branch: codex/issue-525-recommendation-controls
+run_checkpoint:
+  schema: comet.workflow-run-checkpoint.v1
+  hash: d574b9b32ec27ae5f5c50004ecec61250af71b31e34ce0bc9251e1491bbabfc3
+  run:
+    protocolVersion: 1
+    schemaVersion: 1
+    runId: web-recommendation-controls
+    revision: 1
+    workflow:
+      id: comet-classic-tweak
+      version: "2"
+      hash: d1e067bc00ca13395dbc6f701565417c3e227f17a57df025dd73ebda905e2638
+    definitionHashes:
+      '["comet-classic-tweak","2"]': d1e067bc00ca13395dbc6f701565417c3e227f17a57df025dd73ebda905e2638
+    initialStateHash: 59eae7fd66d278b51682ed5c4bd6b7866a794a0f95c148d0b2eec151872babb4
+    input:
+      change: web-recommendation-controls
+      changeDir: openspec/changes/web-recommendation-controls
+      workspaceBaseline:
+        ref: 3e268806-1526-44a0-8ded-aa727dab193d
+    state:
+      archiveConfirmation: confirmed
+      archived: true
+      autoTransition: true
+      baseRef: bf1ac089d60fdb19f9fbdf9c0bce5572225154ce
+      boundBranch: codex/issue-525-recommendation-controls
+      branchStatus: pending
+      buildMode: direct
+      buildPause: null
+      checkEpoch: 6
+      classicMigration: null
+      classicProfile: null
+      contextCompression: off
+      createdAt: 2026-11-27
+      designDoc: null
+      directOverride: null
+      handoffContext: null
+      handoffHash: null
+      isolation: current
+      language: zh-CN
+      phase: archive
+      plan: null
+      reviewMode: off
+      subagentDispatch: null
+      tddMode: direct
+      verificationReport: docs/superpowers/reports/2026-11-27-web-recommendation-controls-verify.md
+      verifiedAt: 2026-11-27
+      verifyFailures: 0
+      verifyMode: light
+      verifyResult: pass
+      workflow: tweak
+    status: running
+    sequence: 14
+    actions:
+      - attempt: 1
+        claim:
+          executorId: comet-classic-guard
+          token: portable-92fae0a2db144c898a01e1814d2f6d4586e69a1e44ff7f919f93e02c79377022
+        executionOrigin:
+          workflow:
+            hash: 518d3e8e12eb39899775cb7d2ddcc7ddeba10cb1f1d43cff7b03f2ca61a70c65
+            id: comet-classic-tweak
+            version: "2"
+        id: web-recommendation-controls:1
+        input:
+          input:
+            change: web-recommendation-controls
+            changeDir: openspec/changes/web-recommendation-controls
+            workspaceBaseline:
+              ref: 3e268806-1526-44a0-8ded-aa727dab193d
+          outputs: {}
+        inputHash: 02f3aa749b05f1690d1066ca1b46060cd9b1d12020d95f7aee2baa3e3cdc8db2
+        outcome:
+          actionId: web-recommendation-controls:1
+          attempt: 1
+          claimToken: portable-92fae0a2db144c898a01e1814d2f6d4586e69a1e44ff7f919f93e02c79377022
+          inputHash: 02f3aa749b05f1690d1066ca1b46060cd9b1d12020d95f7aee2baa3e3cdc8db2
+          outcomeId: 16339da8-b1a7-4e28-99bb-e7f0b4f8d54b
+          output:
+            event: open-complete
+            requirementsEvidence:
+              ref: openspec/changes/web-recommendation-controls
+          status: succeeded
+        protocolVersion: 1
+        receipts:
+          - hash: 51e72fe9dcc5a92e20281e28c4eafbb73955fbbb24493a0c52af50bc2a054eea
+            outcomeId: 16339da8-b1a7-4e28-99bb-e7f0b4f8d54b
+        reconciliations: []
+        ref: comet-tweak
+        requiredCapabilities: []
+        retry: manual
+        runId: web-recommendation-controls
+        status: succeeded
+        stepId: tweak.open
+        type: invoke_skill
+      - attempt: 1
+        claim:
+          executorId: comet-classic-state
+          sessionId: codex-525
+          token: portable-321d4b2b2f92ce1975d9deb43064b480b4e9036127f8f0ca8872621d75c02ec3
+        executionOrigin:
+          workflow:
+            hash: 518d3e8e12eb39899775cb7d2ddcc7ddeba10cb1f1d43cff7b03f2ca61a70c65
+            id: comet-classic-tweak
+            version: "2"
+        id: web-recommendation-controls:3
+        input:
+          input:
+            change: web-recommendation-controls
+            changeDir: openspec/changes/web-recommendation-controls
+            workspaceBaseline:
+              ref: 3e268806-1526-44a0-8ded-aa727dab193d
+          outputs:
+            tweak.open:
+              event: open-complete
+              requirementsEvidence:
+                ref: openspec/changes/web-recommendation-controls
+            tweak.open.evidence:
+              contentHash: 02f3aa749b05f1690d1066ca1b46060cd9b1d12020d95f7aee2baa3e3cdc8db2
+              ref: openspec/changes/web-recommendation-controls
+        inputHash: c2c7fc474be6676bc6ab334c054878ef83b9bbe4ff2056156b4c8bdf88d7f734
+        outcome:
+          actionId: web-recommendation-controls:3
+          attempt: 1
+          claimToken: portable-321d4b2b2f92ce1975d9deb43064b480b4e9036127f8f0ca8872621d75c02ec3
+          inputHash: c2c7fc474be6676bc6ab334c054878ef83b9bbe4ff2056156b4c8bdf88d7f734
+          outcomeId: 152c6274-6050-4efe-b4f1-b4ab847df165
+          output:
+            checks:
+              - name: pytest options + recommender; repo root
+                note: 82 passed; /tmp/issue-525-backend-tests.log
+                result: passed
+              - name: npm test; frontend
+                note: 371 passed; /tmp/issue-525-frontend-tests.log
+                result: passed
+              - name: npm run build; frontend
+                note: TypeScript + Vite succeeded
+                result: passed
+              - name: Chrome verify-recommendation-controls.mjs; repo root
+                note: All scenarios passed; /tmp/issue-525-browser.log
+                result: passed
+              - name: Ruff + Black; 3 changed Python files
+                note: passed
+                result: passed
+              - name: ESLint + Prettier; 5 changed frontend files
+                note: passed
+                result: passed
+              - name: git diff --check; repo root
+                note: passed
+                result: passed
+              - name: comet classic openspec -- validate web-recommendation-controls --strict
+                note: valid
+                result: passed
+            event: build-complete
+          status: succeeded
+        protocolVersion: 1
+        receipts:
+          - hash: ebdd076526f5c965bd866c28ad41a6f22593eaad97e377d53d2f3c39e1d1f5ad
+            outcomeId: 152c6274-6050-4efe-b4f1-b4ab847df165
+        reconciliations: []
+        ref: comet-build
+        requiredCapabilities: []
+        retry: manual
+        runId: web-recommendation-controls
+        status: succeeded
+        stepId: tweak.build.execute
+        type: invoke_skill
+      - attempt: 1
+        claim:
+          executorId: comet-classic-guard
+          token: portable-ca531f93bbe7551ac70bdc66b4aeb0f6f736d5775af91350918189ad1606ffbb
+        executionOrigin:
+          workflow:
+            hash: 518d3e8e12eb39899775cb7d2ddcc7ddeba10cb1f1d43cff7b03f2ca61a70c65
+            id: comet-classic-tweak
+            version: "2"
+        id: web-recommendation-controls:4
+        input:
+          input:
+            change: web-recommendation-controls
+            changeDir: openspec/changes/web-recommendation-controls
+            workspaceBaseline:
+              ref: 3e268806-1526-44a0-8ded-aa727dab193d
+          outputs:
+            tweak.build.execute:
+              checks:
+                - name: pytest options + recommender; repo root
+                  note: 82 passed; /tmp/issue-525-backend-tests.log
+                  result: passed
+                - name: npm test; frontend
+                  note: 371 passed; /tmp/issue-525-frontend-tests.log
+                  result: passed
+                - name: npm run build; frontend
+                  note: TypeScript + Vite succeeded
+                  result: passed
+                - name: Chrome verify-recommendation-controls.mjs; repo root
+                  note: All scenarios passed; /tmp/issue-525-browser.log
+                  result: passed
+                - name: Ruff + Black; 3 changed Python files
+                  note: passed
+                  result: passed
+                - name: ESLint + Prettier; 5 changed frontend files
+                  note: passed
+                  result: passed
+                - name: git diff --check; repo root
+                  note: passed
+                  result: passed
+                - name: comet classic openspec -- validate web-recommendation-controls --strict
+                  note: valid
+                  result: passed
+              event: build-complete
+            tweak.open:
+              event: open-complete
+              requirementsEvidence:
+                ref: openspec/changes/web-recommendation-controls
+            tweak.open.evidence:
+              contentHash: 02f3aa749b05f1690d1066ca1b46060cd9b1d12020d95f7aee2baa3e3cdc8db2
+              ref: openspec/changes/web-recommendation-controls
+        inputHash: d4258b65dca613157666c13a06a1c0a8ce22a8e0c982c78b188b3814f73932a3
+        outcome:
+          actionId: web-recommendation-controls:4
+          attempt: 1
+          claimToken: portable-ca531f93bbe7551ac70bdc66b4aeb0f6f736d5775af91350918189ad1606ffbb
+          inputHash: d4258b65dca613157666c13a06a1c0a8ce22a8e0c982c78b188b3814f73932a3
+          outcomeId: 79dfe267-3cd9-454e-a3ae-9248fcaca958
+          output:
+            checks:
+              - name: pytest options + recommender; repo root
+                note: 82 passed; /tmp/issue-525-backend-tests.log
+                result: passed
+              - name: npm test; frontend
+                note: 371 passed; /tmp/issue-525-frontend-tests.log
+                result: passed
+              - name: npm run build; frontend
+                note: TypeScript + Vite succeeded
+                result: passed
+              - name: Chrome verify-recommendation-controls.mjs; repo root
+                note: All scenarios passed; /tmp/issue-525-browser.log
+                result: passed
+              - name: Ruff + Black; 3 changed Python files
+                note: passed
+                result: passed
+              - name: ESLint + Prettier; 5 changed frontend files
+                note: passed
+                result: passed
+              - name: git diff --check; repo root
+                note: passed
+                result: passed
+              - name: comet classic openspec -- validate web-recommendation-controls --strict
+                note: valid
+                result: passed
+            event: verification-ready
+            verificationReport: docs/superpowers/reports/2026-11-27-web-recommendation-controls-verify.md
+          status: succeeded
+        protocolVersion: 1
+        receipts:
+          - hash: 670cc0c2dc6aa56c35e7127af1a0e47b3b39faf992c2dc7f1bf675f6cc0ea2b4
+            outcomeId: 79dfe267-3cd9-454e-a3ae-9248fcaca958
+        reconciliations: []
+        ref: comet-verify
+        requiredCapabilities: []
+        retry: manual
+        runId: web-recommendation-controls
+        status: succeeded
+        stepId: tweak.verify.run
+        type: invoke_skill
+      - attempt: 1
+        claim:
+          executorId: comet-classic-state
+          token: portable-f67adbbaaf6c52ff731d3310111e78771951484fb3ad9e15b0162147324361b0
+        executionOrigin:
+          workflow:
+            hash: 518d3e8e12eb39899775cb7d2ddcc7ddeba10cb1f1d43cff7b03f2ca61a70c65
+            id: comet-classic-tweak
+            version: "2"
+        id: web-recommendation-controls:6
+        input:
+          input:
+            change: web-recommendation-controls
+            changeDir: openspec/changes/web-recommendation-controls
+            workspaceBaseline:
+              ref: 3e268806-1526-44a0-8ded-aa727dab193d
+          outputs:
+            tweak.build.execute:
+              checks:
+                - name: pytest options + recommender; repo root
+                  note: 82 passed; /tmp/issue-525-backend-tests.log
+                  result: passed
+                - name: npm test; frontend
+                  note: 371 passed; /tmp/issue-525-frontend-tests.log
+                  result: passed
+                - name: npm run build; frontend
+                  note: TypeScript + Vite succeeded
+                  result: passed
+                - name: Chrome verify-recommendation-controls.mjs; repo root
+                  note: All scenarios passed; /tmp/issue-525-browser.log
+                  result: passed
+                - name: Ruff + Black; 3 changed Python files
+                  note: passed
+                  result: passed
+                - name: ESLint + Prettier; 5 changed frontend files
+                  note: passed
+                  result: passed
+                - name: git diff --check; repo root
+                  note: passed
+                  result: passed
+                - name: comet classic openspec -- validate web-recommendation-controls --strict
+                  note: valid
+                  result: passed
+              event: build-complete
+            tweak.open:
+              event: open-complete
+              requirementsEvidence:
+                ref: openspec/changes/web-recommendation-controls
+            tweak.open.evidence:
+              contentHash: 02f3aa749b05f1690d1066ca1b46060cd9b1d12020d95f7aee2baa3e3cdc8db2
+              ref: openspec/changes/web-recommendation-controls
+            tweak.verify.report.evidence:
+              contentHash: d4258b65dca613157666c13a06a1c0a8ce22a8e0c982c78b188b3814f73932a3
+              ref: docs/superpowers/reports/2026-11-27-web-recommendation-controls-verify.md
+            tweak.verify.run:
+              checks:
+                - name: pytest options + recommender; repo root
+                  note: 82 passed; /tmp/issue-525-backend-tests.log
+                  result: passed
+                - name: npm test; frontend
+                  note: 371 passed; /tmp/issue-525-frontend-tests.log
+                  result: passed
+                - name: npm run build; frontend
+                  note: TypeScript + Vite succeeded
+                  result: passed
+                - name: Chrome verify-recommendation-controls.mjs; repo root
+                  note: All scenarios passed; /tmp/issue-525-browser.log
+                  result: passed
+                - name: Ruff + Black; 3 changed Python files
+                  note: passed
+                  result: passed
+                - name: ESLint + Prettier; 5 changed frontend files
+                  note: passed
+                  result: passed
+                - name: git diff --check; repo root
+                  note: passed
+                  result: passed
+                - name: comet classic openspec -- validate web-recommendation-controls --strict
+                  note: valid
+                  result: passed
+              event: verification-ready
+              verificationReport: docs/superpowers/reports/2026-11-27-web-recommendation-controls-verify.md
+        inputHash: e5e6e795e5740b22ceed9417a6d9e46e87ccf9b880b67c731caf0b7856a0d6f6
+        outcome:
+          actionId: web-recommendation-controls:6
+          attempt: 1
+          claimToken: portable-f67adbbaaf6c52ff731d3310111e78771951484fb3ad9e15b0162147324361b0
+          inputHash: e5e6e795e5740b22ceed9417a6d9e46e87ccf9b880b67c731caf0b7856a0d6f6
+          outcomeId: 39d86e10-4e03-45b7-bab7-3a19b32ee1f7
+          output:
+            prBaseBranch: main
+            remote: origin
+            summary: "#525 已实现并验收通过；当前分支 main，目标 main。归档会将本 change 移至带日期的 archive 目录、同步
+              api/evaluation-results 主规格，并提交本次 9 个交付文件和归档材料。推荐
+              local：仅本地归档提交；尚未授权 push 或 PR。后端 82 项、前端 371 项、构建与 Chrome 验收通过，mypy
+              既有问题已记录。"
+            targetBranch: main
+          status: succeeded
+        protocolVersion: 1
+        receipts:
+          - hash: 5dc883bcf4eb9549ac02ce7351076619551c8e2d9ab68fbb9260eb3e796e2018
+            outcomeId: 39d86e10-4e03-45b7-bab7-3a19b32ee1f7
+        reconciliations: []
+        ref: comet-archive
+        requiredCapabilities: []
+        retry: manual
+        runId: web-recommendation-controls
+        status: succeeded
+        stepId: tweak.archive.prepare
+        type: invoke_skill
+      - attempt: 1
+        claim:
+          executorId: comet-classic-guard
+          token: portable-0846bf328259396c09b96f10060fc142db6be45b7b2c87acde3bcef2615b66e0
+        executionOrigin:
+          workflow:
+            hash: d1e067bc00ca13395dbc6f701565417c3e227f17a57df025dd73ebda905e2638
+            id: comet-classic-tweak
+            version: "2"
+        id: web-recommendation-controls:8
+        input:
+          activation:
+            expectedRevision: 12
+            fromPhase: archive
+          input:
+            change: web-recommendation-controls
+            changeDir: openspec/changes/web-recommendation-controls
+            workspaceBaseline:
+              ref: 3e268806-1526-44a0-8ded-aa727dab193d
+          outputs: {}
+        inputHash: 6323f16d8cfab6d1163da095b2e4f9734fddc3e37effd5c9f71cbccf4c3312ea
+        outcome:
+          actionId: web-recommendation-controls:8
+          attempt: 1
+          claimToken: portable-0846bf328259396c09b96f10060fc142db6be45b7b2c87acde3bcef2615b66e0
+          inputHash: 6323f16d8cfab6d1163da095b2e4f9734fddc3e37effd5c9f71cbccf4c3312ea
+          outcomeId: 71ceadb5-bc5d-464e-b1c9-5ccc1d65481a
+          output:
+            checks:
+              - name: pytest options + recommender; repo root
+                note: 82 passed; /tmp/issue-525-backend-tests.log
+                result: passed
+              - name: npm test; frontend
+                note: 371 passed; /tmp/issue-525-frontend-tests.log
+                result: passed
+              - name: npm run build; frontend
+                note: TypeScript + Vite succeeded
+                result: passed
+              - name: Chrome verify-recommendation-controls.mjs; repo root
+                note: All scenarios passed; /tmp/issue-525-browser.log
+                result: passed
+              - name: Ruff + Black; 3 changed Python files
+                note: passed
+                result: passed
+              - name: ESLint + Prettier; 5 changed frontend files
+                note: passed
+                result: passed
+              - name: git diff --check; repo root
+                note: passed
+                result: passed
+              - name: comet classic openspec -- validate web-recommendation-controls --strict
+                note: valid
+                result: passed
+            event: verification-ready
+            verificationReport: docs/superpowers/reports/2026-11-27-web-recommendation-controls-verify.md
+          status: succeeded
+        protocolVersion: 1
+        receipts:
+          - hash: 612ed8ff3dd82c4c79ec278820a75abd91437c30342ea3f6308872a4f7427774
+            outcomeId: 71ceadb5-bc5d-464e-b1c9-5ccc1d65481a
+        reconciliations: []
+        ref: comet-verify
+        requiredCapabilities: []
+        retry: manual
+        runId: web-recommendation-controls
+        status: succeeded
+        stepId: tweak.verify.run
+        type: invoke_skill
+      - attempt: 1
+        claim:
+          executorId: comet-classic-state
+          token: portable-5b67d4e1de8ba56cdb73d4a6008408b5f1331df76f8ab9ad4cf65d6de7b2c215
+        executionOrigin:
+          workflow:
+            hash: d1e067bc00ca13395dbc6f701565417c3e227f17a57df025dd73ebda905e2638
+            id: comet-classic-tweak
+            version: "2"
+        id: web-recommendation-controls:10
+        input:
+          input:
+            change: web-recommendation-controls
+            changeDir: openspec/changes/web-recommendation-controls
+            workspaceBaseline:
+              ref: 3e268806-1526-44a0-8ded-aa727dab193d
+          outputs:
+            tweak.verify.report.evidence:
+              contentHash: 6323f16d8cfab6d1163da095b2e4f9734fddc3e37effd5c9f71cbccf4c3312ea
+              ref: docs/superpowers/reports/2026-11-27-web-recommendation-controls-verify.md
+            tweak.verify.run:
+              checks:
+                - name: pytest options + recommender; repo root
+                  note: 82 passed; /tmp/issue-525-backend-tests.log
+                  result: passed
+                - name: npm test; frontend
+                  note: 371 passed; /tmp/issue-525-frontend-tests.log
+                  result: passed
+                - name: npm run build; frontend
+                  note: TypeScript + Vite succeeded
+                  result: passed
+                - name: Chrome verify-recommendation-controls.mjs; repo root
+                  note: All scenarios passed; /tmp/issue-525-browser.log
+                  result: passed
+                - name: Ruff + Black; 3 changed Python files
+                  note: passed
+                  result: passed
+                - name: ESLint + Prettier; 5 changed frontend files
+                  note: passed
+                  result: passed
+                - name: git diff --check; repo root
+                  note: passed
+                  result: passed
+                - name: comet classic openspec -- validate web-recommendation-controls --strict
+                  note: valid
+                  result: passed
+              event: verification-ready
+              verificationReport: docs/superpowers/reports/2026-11-27-web-recommendation-controls-verify.md
+        inputHash: 1b4253e047e39e697b3a344d30ffd6cf4a3205fd64a6d0a4e25da9893a010113
+        outcome:
+          actionId: web-recommendation-controls:10
+          attempt: 1
+          claimToken: portable-5b67d4e1de8ba56cdb73d4a6008408b5f1331df76f8ab9ad4cf65d6de7b2c215
+          inputHash: 1b4253e047e39e697b3a344d30ffd6cf4a3205fd64a6d0a4e25da9893a010113
+          outcomeId: ec298f3f-179a-41ff-8a20-d663bb9b46f1
+          output:
+            prBaseBranch: main
+            remote: origin
+            summary: "#525 已验收通过；用户明确授权推送并创建 PR。交付分支
+              codex/issue-525-recommendation-controls，remote origin，PR base
+              main；归档同步 api/evaluation-results 主规格，提交已验证的实现、测试、报告及归档材料，然后推送并创建
+              PR。"
+            targetBranch: codex/issue-525-recommendation-controls
+          status: succeeded
+        protocolVersion: 1
+        receipts:
+          - hash: e463cbea3711cbda603d87da0d5e350465e7731672e9877883cbb0f6893ee1f3
+            outcomeId: ec298f3f-179a-41ff-8a20-d663bb9b46f1
+        reconciliations: []
+        ref: comet-archive
+        requiredCapabilities: []
+        retry: manual
+        runId: web-recommendation-controls
+        status: succeeded
+        stepId: tweak.archive.prepare
+        type: invoke_skill
+      - attempt: 1
+        claim:
+          executorId: comet-classic-archive-preflight
+          token: portable-e07bf68ceb049cf3520e0d9b7e4b877f68d910c70860e2e577acc3a9542e6214
+        executionOrigin:
+          workflow:
+            hash: d1e067bc00ca13395dbc6f701565417c3e227f17a57df025dd73ebda905e2638
+            id: comet-classic-tweak
+            version: "2"
+        id: web-recommendation-controls:12
+        input:
+          input:
+            change: web-recommendation-controls
+            changeDir: openspec/changes/web-recommendation-controls
+            workspaceBaseline:
+              ref: 3e268806-1526-44a0-8ded-aa727dab193d
+          outputs:
+            tweak.archive.confirm:
+              choice: pr
+              proposal:
+                input:
+                  change: web-recommendation-controls
+                  changeDir: openspec/changes/web-recommendation-controls
+                  workspaceBaseline:
+                    ref: 3e268806-1526-44a0-8ded-aa727dab193d
+                outputs:
+                  tweak.archive.prepare:
+                    prBaseBranch: main
+                    remote: origin
+                    summary: "#525 已验收通过；用户明确授权推送并创建 PR。交付分支
+                      codex/issue-525-recommendation-controls，remote origin，PR
+                      base main；归档同步 api/evaluation-results
+                      主规格，提交已验证的实现、测试、报告及归档材料，然后推送并创建 PR。"
+                    targetBranch: codex/issue-525-recommendation-controls
+            tweak.archive.prepare:
+              prBaseBranch: main
+              remote: origin
+              summary: "#525 已验收通过；用户明确授权推送并创建 PR。交付分支
+                codex/issue-525-recommendation-controls，remote origin，PR base
+                main；归档同步 api/evaluation-results 主规格，提交已验证的实现、测试、报告及归档材料，然后推送并创建
+                PR。"
+              targetBranch: codex/issue-525-recommendation-controls
+            tweak.verify.report.evidence:
+              contentHash: 6323f16d8cfab6d1163da095b2e4f9734fddc3e37effd5c9f71cbccf4c3312ea
+              ref: docs/superpowers/reports/2026-11-27-web-recommendation-controls-verify.md
+            tweak.verify.run:
+              checks:
+                - name: pytest options + recommender; repo root
+                  note: 82 passed; /tmp/issue-525-backend-tests.log
+                  result: passed
+                - name: npm test; frontend
+                  note: 371 passed; /tmp/issue-525-frontend-tests.log
+                  result: passed
+                - name: npm run build; frontend
+                  note: TypeScript + Vite succeeded
+                  result: passed
+                - name: Chrome verify-recommendation-controls.mjs; repo root
+                  note: All scenarios passed; /tmp/issue-525-browser.log
+                  result: passed
+                - name: Ruff + Black; 3 changed Python files
+                  note: passed
+                  result: passed
+                - name: ESLint + Prettier; 5 changed frontend files
+                  note: passed
+                  result: passed
+                - name: git diff --check; repo root
+                  note: passed
+                  result: passed
+                - name: comet classic openspec -- validate web-recommendation-controls --strict
+                  note: valid
+                  result: passed
+              event: verification-ready
+              verificationReport: docs/superpowers/reports/2026-11-27-web-recommendation-controls-verify.md
+        inputHash: 3abe66ff8a218391c3c18332036bfc6cf2e31b258a6fcbb813ef0fdea886317c
+        outcome:
+          actionId: web-recommendation-controls:12
+          attempt: 1
+          claimToken: portable-e07bf68ceb049cf3520e0d9b7e4b877f68d910c70860e2e577acc3a9542e6214
+          inputHash: 3abe66ff8a218391c3c18332036bfc6cf2e31b258a6fcbb813ef0fdea886317c
+          outcomeId: 7a2c4ad8-cb8f-4b0b-913f-5d1d9ed77b88
+          output:
+            baseCommit: bf1ac089d60fdb19f9fbdf9c0bce5572225154ce
+            deliveryAction: pr
+            deliveryPaths:
+              - api/evaluation_options.py
+              - api/routes/evaluation_results.py
+              - frontend/scripts/verify-recommendation-controls.mjs
+              - frontend/src/evaluations/RecommendationPanel.tsx
+              - frontend/src/evaluations/client.ts
+              - frontend/src/i18n/en-US.ts
+              - frontend/src/i18n/zh-CN.ts
+              - tests/test_api_evaluation_options.py
+            prBaseBranch: main
+            remote: origin
+            remoteIdentity: 128eeb1e6f0d21b25601fcb7f9aad36adfdfb4d76f37f54f004760410190f351
+            targetBranch: codex/issue-525-recommendation-controls
+            verifiedBranch: codex/issue-525-recommendation-controls
+          status: succeeded
+        protocolVersion: 1
+        receipts:
+          - hash: ccdd26227780b55835d0a3ca156e00e0ba38119fdb81e87812038df2e1da6759
+            outcomeId: 7a2c4ad8-cb8f-4b0b-913f-5d1d9ed77b88
+        reconciliations: []
+        ref: classic-archive-preflight
+        requiredCapabilities: []
+        retry: manual
+        runId: web-recommendation-controls
+        status: succeeded
+        stepId: tweak.archive.preflight
+        type: call_tool
+      - attempt: 1
+        claim:
+          executorId: comet-classic-archive
+          token: portable-9b72ffbeabd5db01ad3c7d7a0388cb46625b23b449b054b4098c070f4ed6ffdc
+        executionOrigin:
+          workflow:
+            hash: d1e067bc00ca13395dbc6f701565417c3e227f17a57df025dd73ebda905e2638
+            id: comet-classic-tweak
+            version: "2"
+        id: web-recommendation-controls:13
+        input:
+          input:
+            change: web-recommendation-controls
+            changeDir: openspec/changes/web-recommendation-controls
+            workspaceBaseline:
+              ref: 3e268806-1526-44a0-8ded-aa727dab193d
+          outputs:
+            tweak.archive.confirm:
+              choice: pr
+              proposal:
+                input:
+                  change: web-recommendation-controls
+                  changeDir: openspec/changes/web-recommendation-controls
+                  workspaceBaseline:
+                    ref: 3e268806-1526-44a0-8ded-aa727dab193d
+                outputs:
+                  tweak.archive.prepare:
+                    prBaseBranch: main
+                    remote: origin
+                    summary: "#525 已验收通过；用户明确授权推送并创建 PR。交付分支
+                      codex/issue-525-recommendation-controls，remote origin，PR
+                      base main；归档同步 api/evaluation-results
+                      主规格，提交已验证的实现、测试、报告及归档材料，然后推送并创建 PR。"
+                    targetBranch: codex/issue-525-recommendation-controls
+            tweak.archive.preflight:
+              baseCommit: bf1ac089d60fdb19f9fbdf9c0bce5572225154ce
+              deliveryAction: pr
+              deliveryPaths:
+                - api/evaluation_options.py
+                - api/routes/evaluation_results.py
+                - frontend/scripts/verify-recommendation-controls.mjs
+                - frontend/src/evaluations/RecommendationPanel.tsx
+                - frontend/src/evaluations/client.ts
+                - frontend/src/i18n/en-US.ts
+                - frontend/src/i18n/zh-CN.ts
+                - tests/test_api_evaluation_options.py
+              prBaseBranch: main
+              remote: origin
+              remoteIdentity: 128eeb1e6f0d21b25601fcb7f9aad36adfdfb4d76f37f54f004760410190f351
+              targetBranch: codex/issue-525-recommendation-controls
+              verifiedBranch: codex/issue-525-recommendation-controls
+            tweak.archive.prepare:
+              prBaseBranch: main
+              remote: origin
+              summary: "#525 已验收通过；用户明确授权推送并创建 PR。交付分支
+                codex/issue-525-recommendation-controls，remote origin，PR base
+                main；归档同步 api/evaluation-results 主规格，提交已验证的实现、测试、报告及归档材料，然后推送并创建
+                PR。"
+              targetBranch: codex/issue-525-recommendation-controls
+            tweak.verify.report.evidence:
+              contentHash: 6323f16d8cfab6d1163da095b2e4f9734fddc3e37effd5c9f71cbccf4c3312ea
+              ref: docs/superpowers/reports/2026-11-27-web-recommendation-controls-verify.md
+            tweak.verify.run:
+              checks:
+                - name: pytest options + recommender; repo root
+                  note: 82 passed; /tmp/issue-525-backend-tests.log
+                  result: passed
+                - name: npm test; frontend
+                  note: 371 passed; /tmp/issue-525-frontend-tests.log
+                  result: passed
+                - name: npm run build; frontend
+                  note: TypeScript + Vite succeeded
+                  result: passed
+                - name: Chrome verify-recommendation-controls.mjs; repo root
+                  note: All scenarios passed; /tmp/issue-525-browser.log
+                  result: passed
+                - name: Ruff + Black; 3 changed Python files
+                  note: passed
+                  result: passed
+                - name: ESLint + Prettier; 5 changed frontend files
+                  note: passed
+                  result: passed
+                - name: git diff --check; repo root
+                  note: passed
+                  result: passed
+                - name: comet classic openspec -- validate web-recommendation-controls --strict
+                  note: valid
+                  result: passed
+              event: verification-ready
+              verificationReport: docs/superpowers/reports/2026-11-27-web-recommendation-controls-verify.md
+        inputHash: d2b453dcaf7ff1c6e71b91611000537bc4d2385f9df931d9a4c53942b1a23488
+        outcome:
+          actionId: web-recommendation-controls:13
+          artifacts: []
+          attempt: 1
+          claimToken: portable-9b72ffbeabd5db01ad3c7d7a0388cb46625b23b449b054b4098c070f4ed6ffdc
+          inputHash: d2b453dcaf7ff1c6e71b91611000537bc4d2385f9df931d9a4c53942b1a23488
+          outcomeId: 2a785864-7857-4908-aee1-ece090c374c3
+          output:
+            archiveDirectory: openspec/changes/archive/2026-11-27-web-recommendation-controls
+          status: succeeded
+        protocolVersion: 1
+        receipts:
+          - hash: 1af0faac575c06bcc2b1c89278fb48378c70928b16ee1ca121638a98348085dd
+            outcomeId: 2a785864-7857-4908-aee1-ece090c374c3
+        reconciliations: []
+        ref: classic-archive
+        requiredCapabilities: []
+        retry: manual
+        runId: web-recommendation-controls
+        status: succeeded
+        stepId: tweak.archive.execute
+        type: call_tool
+      - attempt: 1
+        id: web-recommendation-controls:14
+        input:
+          input:
+            change: web-recommendation-controls
+            changeDir: openspec/changes/web-recommendation-controls
+            workspaceBaseline:
+              ref: 3e268806-1526-44a0-8ded-aa727dab193d
+          outputs:
+            tweak.archive.confirm:
+              choice: pr
+              proposal:
+                input:
+                  change: web-recommendation-controls
+                  changeDir: openspec/changes/web-recommendation-controls
+                  workspaceBaseline:
+                    ref: 3e268806-1526-44a0-8ded-aa727dab193d
+                outputs:
+                  tweak.archive.prepare:
+                    prBaseBranch: main
+                    remote: origin
+                    summary: "#525 已验收通过；用户明确授权推送并创建 PR。交付分支
+                      codex/issue-525-recommendation-controls，remote origin，PR
+                      base main；归档同步 api/evaluation-results
+                      主规格，提交已验证的实现、测试、报告及归档材料，然后推送并创建 PR。"
+                    targetBranch: codex/issue-525-recommendation-controls
+            tweak.archive.execute:
+              archiveDirectory: openspec/changes/archive/2026-11-27-web-recommendation-controls
+            tweak.archive.preflight:
+              baseCommit: bf1ac089d60fdb19f9fbdf9c0bce5572225154ce
+              deliveryAction: pr
+              deliveryPaths:
+                - api/evaluation_options.py
+                - api/routes/evaluation_results.py
+                - frontend/scripts/verify-recommendation-controls.mjs
+                - frontend/src/evaluations/RecommendationPanel.tsx
+                - frontend/src/evaluations/client.ts
+                - frontend/src/i18n/en-US.ts
+                - frontend/src/i18n/zh-CN.ts
+                - tests/test_api_evaluation_options.py
+              prBaseBranch: main
+              remote: origin
+              remoteIdentity: 128eeb1e6f0d21b25601fcb7f9aad36adfdfb4d76f37f54f004760410190f351
+              targetBranch: codex/issue-525-recommendation-controls
+              verifiedBranch: codex/issue-525-recommendation-controls
+            tweak.archive.prepare:
+              prBaseBranch: main
+              remote: origin
+              summary: "#525 已验收通过；用户明确授权推送并创建 PR。交付分支
+                codex/issue-525-recommendation-controls，remote origin，PR base
+                main；归档同步 api/evaluation-results 主规格，提交已验证的实现、测试、报告及归档材料，然后推送并创建
+                PR。"
+              targetBranch: codex/issue-525-recommendation-controls
+            tweak.verify.report.evidence:
+              contentHash: 6323f16d8cfab6d1163da095b2e4f9734fddc3e37effd5c9f71cbccf4c3312ea
+              ref: docs/superpowers/reports/2026-11-27-web-recommendation-controls-verify.md
+            tweak.verify.run:
+              checks:
+                - name: pytest options + recommender; repo root
+                  note: 82 passed; /tmp/issue-525-backend-tests.log
+                  result: passed
+                - name: npm test; frontend
+                  note: 371 passed; /tmp/issue-525-frontend-tests.log
+                  result: passed
+                - name: npm run build; frontend
+                  note: TypeScript + Vite succeeded
+                  result: passed
+                - name: Chrome verify-recommendation-controls.mjs; repo root
+                  note: All scenarios passed; /tmp/issue-525-browser.log
+                  result: passed
+                - name: Ruff + Black; 3 changed Python files
+                  note: passed
+                  result: passed
+                - name: ESLint + Prettier; 5 changed frontend files
+                  note: passed
+                  result: passed
+                - name: git diff --check; repo root
+                  note: passed
+                  result: passed
+                - name: comet classic openspec -- validate web-recommendation-controls --strict
+                  note: valid
+                  result: passed
+              event: verification-ready
+              verificationReport: docs/superpowers/reports/2026-11-27-web-recommendation-controls-verify.md
+        inputHash: 62b5a1cdc0c26e6a69cd2fc96f550d36a0610f79d7ad6a81445d5a92ebed6476
+        protocolVersion: 1
+        receipts: []
+        reconciliations: []
+        ref: comet-archive
+        requiredCapabilities: []
+        retry: manual
+        runId: web-recommendation-controls
+        status: pending
+        stepId: tweak.archive.deliver
+        type: invoke_skill
+    commands:
+      - id: 6fb4e65183c6ab9f16d649dc6855e8dd68e345610fccec04f0cbf44b78769d10
+        name: reopen-verification
+        inputHash: f5e487703e8f5203c1a70838dc38a9f0c3378ad441ad266fc269ee9debbfde5a
+        actionId: web-recommendation-controls:8
+    actionContexts:
+      web-recommendation-controls:1:
+        results: {}
+        sequence: 1
+      web-recommendation-controls:10:
+        results:
+          tweak.verify.report.evidence:
+            sequence: 9
+            value:
+              contentHash: 6323f16d8cfab6d1163da095b2e4f9734fddc3e37effd5c9f71cbccf4c3312ea
+              ref: docs/superpowers/reports/2026-11-27-web-recommendation-controls-verify.md
+          tweak.verify.run:
+            sequence: 8
+            value:
+              checks:
+                - name: pytest options + recommender; repo root
+                  note: 82 passed; /tmp/issue-525-backend-tests.log
+                  result: passed
+                - name: npm test; frontend
+                  note: 371 passed; /tmp/issue-525-frontend-tests.log
+                  result: passed
+                - name: npm run build; frontend
+                  note: TypeScript + Vite succeeded
+                  result: passed
+                - name: Chrome verify-recommendation-controls.mjs; repo root
+                  note: All scenarios passed; /tmp/issue-525-browser.log
+                  result: passed
+                - name: Ruff + Black; 3 changed Python files
+                  note: passed
+                  result: passed
+                - name: ESLint + Prettier; 5 changed frontend files
+                  note: passed
+                  result: passed
+                - name: git diff --check; repo root
+                  note: passed
+                  result: passed
+                - name: comet classic openspec -- validate web-recommendation-controls --strict
+                  note: valid
+                  result: passed
+              event: verification-ready
+              verificationReport: docs/superpowers/reports/2026-11-27-web-recommendation-controls-verify.md
+        sequence: 10
+      web-recommendation-controls:12:
+        results:
+          tweak.archive.confirm:
+            sequence: 11
+            value:
+              choice: pr
+              proposal:
+                input:
+                  change: web-recommendation-controls
+                  changeDir: openspec/changes/web-recommendation-controls
+                  workspaceBaseline:
+                    ref: 3e268806-1526-44a0-8ded-aa727dab193d
+                outputs:
+                  tweak.archive.prepare:
+                    prBaseBranch: main
+                    remote: origin
+                    summary: "#525 已验收通过；用户明确授权推送并创建 PR。交付分支
+                      codex/issue-525-recommendation-controls，remote origin，PR
+                      base main；归档同步 api/evaluation-results
+                      主规格，提交已验证的实现、测试、报告及归档材料，然后推送并创建 PR。"
+                    targetBranch: codex/issue-525-recommendation-controls
+          tweak.archive.prepare:
+            sequence: 10
+            value:
+              prBaseBranch: main
+              remote: origin
+              summary: "#525 已验收通过；用户明确授权推送并创建 PR。交付分支
+                codex/issue-525-recommendation-controls，remote origin，PR base
+                main；归档同步 api/evaluation-results 主规格，提交已验证的实现、测试、报告及归档材料，然后推送并创建
+                PR。"
+              targetBranch: codex/issue-525-recommendation-controls
+          tweak.verify.report.evidence:
+            sequence: 9
+            value:
+              contentHash: 6323f16d8cfab6d1163da095b2e4f9734fddc3e37effd5c9f71cbccf4c3312ea
+              ref: docs/superpowers/reports/2026-11-27-web-recommendation-controls-verify.md
+          tweak.verify.run:
+            sequence: 8
+            value:
+              checks:
+                - name: pytest options + recommender; repo root
+                  note: 82 passed; /tmp/issue-525-backend-tests.log
+                  result: passed
+                - name: npm test; frontend
+                  note: 371 passed; /tmp/issue-525-frontend-tests.log
+                  result: passed
+                - name: npm run build; frontend
+                  note: TypeScript + Vite succeeded
+                  result: passed
+                - name: Chrome verify-recommendation-controls.mjs; repo root
+                  note: All scenarios passed; /tmp/issue-525-browser.log
+                  result: passed
+                - name: Ruff + Black; 3 changed Python files
+                  note: passed
+                  result: passed
+                - name: ESLint + Prettier; 5 changed frontend files
+                  note: passed
+                  result: passed
+                - name: git diff --check; repo root
+                  note: passed
+                  result: passed
+                - name: comet classic openspec -- validate web-recommendation-controls --strict
+                  note: valid
+                  result: passed
+              event: verification-ready
+              verificationReport: docs/superpowers/reports/2026-11-27-web-recommendation-controls-verify.md
+        sequence: 12
+      web-recommendation-controls:13:
+        results:
+          tweak.archive.confirm:
+            sequence: 11
+            value:
+              choice: pr
+              proposal:
+                input:
+                  change: web-recommendation-controls
+                  changeDir: openspec/changes/web-recommendation-controls
+                  workspaceBaseline:
+                    ref: 3e268806-1526-44a0-8ded-aa727dab193d
+                outputs:
+                  tweak.archive.prepare:
+                    prBaseBranch: main
+                    remote: origin
+                    summary: "#525 已验收通过；用户明确授权推送并创建 PR。交付分支
+                      codex/issue-525-recommendation-controls，remote origin，PR
+                      base main；归档同步 api/evaluation-results
+                      主规格，提交已验证的实现、测试、报告及归档材料，然后推送并创建 PR。"
+                    targetBranch: codex/issue-525-recommendation-controls
+          tweak.archive.preflight:
+            sequence: 12
+            value:
+              baseCommit: bf1ac089d60fdb19f9fbdf9c0bce5572225154ce
+              deliveryAction: pr
+              deliveryPaths:
+                - api/evaluation_options.py
+                - api/routes/evaluation_results.py
+                - frontend/scripts/verify-recommendation-controls.mjs
+                - frontend/src/evaluations/RecommendationPanel.tsx
+                - frontend/src/evaluations/client.ts
+                - frontend/src/i18n/en-US.ts
+                - frontend/src/i18n/zh-CN.ts
+                - tests/test_api_evaluation_options.py
+              prBaseBranch: main
+              remote: origin
+              remoteIdentity: 128eeb1e6f0d21b25601fcb7f9aad36adfdfb4d76f37f54f004760410190f351
+              targetBranch: codex/issue-525-recommendation-controls
+              verifiedBranch: codex/issue-525-recommendation-controls
+          tweak.archive.prepare:
+            sequence: 10
+            value:
+              prBaseBranch: main
+              remote: origin
+              summary: "#525 已验收通过；用户明确授权推送并创建 PR。交付分支
+                codex/issue-525-recommendation-controls，remote origin，PR base
+                main；归档同步 api/evaluation-results 主规格，提交已验证的实现、测试、报告及归档材料，然后推送并创建
+                PR。"
+              targetBranch: codex/issue-525-recommendation-controls
+          tweak.verify.report.evidence:
+            sequence: 9
+            value:
+              contentHash: 6323f16d8cfab6d1163da095b2e4f9734fddc3e37effd5c9f71cbccf4c3312ea
+              ref: docs/superpowers/reports/2026-11-27-web-recommendation-controls-verify.md
+          tweak.verify.run:
+            sequence: 8
+            value:
+              checks:
+                - name: pytest options + recommender; repo root
+                  note: 82 passed; /tmp/issue-525-backend-tests.log
+                  result: passed
+                - name: npm test; frontend
+                  note: 371 passed; /tmp/issue-525-frontend-tests.log
+                  result: passed
+                - name: npm run build; frontend
+                  note: TypeScript + Vite succeeded
+                  result: passed
+                - name: Chrome verify-recommendation-controls.mjs; repo root
+                  note: All scenarios passed; /tmp/issue-525-browser.log
+                  result: passed
+                - name: Ruff + Black; 3 changed Python files
+                  note: passed
+                  result: passed
+                - name: ESLint + Prettier; 5 changed frontend files
+                  note: passed
+                  result: passed
+                - name: git diff --check; repo root
+                  note: passed
+                  result: passed
+                - name: comet classic openspec -- validate web-recommendation-controls --strict
+                  note: valid
+                  result: passed
+              event: verification-ready
+              verificationReport: docs/superpowers/reports/2026-11-27-web-recommendation-controls-verify.md
+        sequence: 13
+      web-recommendation-controls:14:
+        results:
+          tweak.archive.confirm:
+            sequence: 11
+            value:
+              choice: pr
+              proposal:
+                input:
+                  change: web-recommendation-controls
+                  changeDir: openspec/changes/web-recommendation-controls
+                  workspaceBaseline:
+                    ref: 3e268806-1526-44a0-8ded-aa727dab193d
+                outputs:
+                  tweak.archive.prepare:
+                    prBaseBranch: main
+                    remote: origin
+                    summary: "#525 已验收通过；用户明确授权推送并创建 PR。交付分支
+                      codex/issue-525-recommendation-controls，remote origin，PR
+                      base main；归档同步 api/evaluation-results
+                      主规格，提交已验证的实现、测试、报告及归档材料，然后推送并创建 PR。"
+                    targetBranch: codex/issue-525-recommendation-controls
+          tweak.archive.execute:
+            sequence: 13
+            value:
+              archiveDirectory: openspec/changes/archive/2026-11-27-web-recommendation-controls
+          tweak.archive.preflight:
+            sequence: 12
+            value:
+              baseCommit: bf1ac089d60fdb19f9fbdf9c0bce5572225154ce
+              deliveryAction: pr
+              deliveryPaths:
+                - api/evaluation_options.py
+                - api/routes/evaluation_results.py
+                - frontend/scripts/verify-recommendation-controls.mjs
+                - frontend/src/evaluations/RecommendationPanel.tsx
+                - frontend/src/evaluations/client.ts
+                - frontend/src/i18n/en-US.ts
+                - frontend/src/i18n/zh-CN.ts
+                - tests/test_api_evaluation_options.py
+              prBaseBranch: main
+              remote: origin
+              remoteIdentity: 128eeb1e6f0d21b25601fcb7f9aad36adfdfb4d76f37f54f004760410190f351
+              targetBranch: codex/issue-525-recommendation-controls
+              verifiedBranch: codex/issue-525-recommendation-controls
+          tweak.archive.prepare:
+            sequence: 10
+            value:
+              prBaseBranch: main
+              remote: origin
+              summary: "#525 已验收通过；用户明确授权推送并创建 PR。交付分支
+                codex/issue-525-recommendation-controls，remote origin，PR base
+                main；归档同步 api/evaluation-results 主规格，提交已验证的实现、测试、报告及归档材料，然后推送并创建
+                PR。"
+              targetBranch: codex/issue-525-recommendation-controls
+          tweak.verify.report.evidence:
+            sequence: 9
+            value:
+              contentHash: 6323f16d8cfab6d1163da095b2e4f9734fddc3e37effd5c9f71cbccf4c3312ea
+              ref: docs/superpowers/reports/2026-11-27-web-recommendation-controls-verify.md
+          tweak.verify.run:
+            sequence: 8
+            value:
+              checks:
+                - name: pytest options + recommender; repo root
+                  note: 82 passed; /tmp/issue-525-backend-tests.log
+                  result: passed
+                - name: npm test; frontend
+                  note: 371 passed; /tmp/issue-525-frontend-tests.log
+                  result: passed
+                - name: npm run build; frontend
+                  note: TypeScript + Vite succeeded
+                  result: passed
+                - name: Chrome verify-recommendation-controls.mjs; repo root
+                  note: All scenarios passed; /tmp/issue-525-browser.log
+                  result: passed
+                - name: Ruff + Black; 3 changed Python files
+                  note: passed
+                  result: passed
+                - name: ESLint + Prettier; 5 changed frontend files
+                  note: passed
+                  result: passed
+                - name: git diff --check; repo root
+                  note: passed
+                  result: passed
+                - name: comet classic openspec -- validate web-recommendation-controls --strict
+                  note: valid
+                  result: passed
+              event: verification-ready
+              verificationReport: docs/superpowers/reports/2026-11-27-web-recommendation-controls-verify.md
+        sequence: 14
+      web-recommendation-controls:3:
+        results:
+          tweak.open:
+            sequence: 1
+            value:
+              event: open-complete
+              requirementsEvidence:
+                ref: openspec/changes/web-recommendation-controls
+          tweak.open.evidence:
+            sequence: 2
+            value:
+              contentHash: 02f3aa749b05f1690d1066ca1b46060cd9b1d12020d95f7aee2baa3e3cdc8db2
+              ref: openspec/changes/web-recommendation-controls
+        sequence: 3
+      web-recommendation-controls:4:
+        results:
+          tweak.build.execute:
+            sequence: 3
+            value:
+              checks:
+                - name: pytest options + recommender; repo root
+                  note: 82 passed; /tmp/issue-525-backend-tests.log
+                  result: passed
+                - name: npm test; frontend
+                  note: 371 passed; /tmp/issue-525-frontend-tests.log
+                  result: passed
+                - name: npm run build; frontend
+                  note: TypeScript + Vite succeeded
+                  result: passed
+                - name: Chrome verify-recommendation-controls.mjs; repo root
+                  note: All scenarios passed; /tmp/issue-525-browser.log
+                  result: passed
+                - name: Ruff + Black; 3 changed Python files
+                  note: passed
+                  result: passed
+                - name: ESLint + Prettier; 5 changed frontend files
+                  note: passed
+                  result: passed
+                - name: git diff --check; repo root
+                  note: passed
+                  result: passed
+                - name: comet classic openspec -- validate web-recommendation-controls --strict
+                  note: valid
+                  result: passed
+              event: build-complete
+          tweak.open:
+            sequence: 1
+            value:
+              event: open-complete
+              requirementsEvidence:
+                ref: openspec/changes/web-recommendation-controls
+          tweak.open.evidence:
+            sequence: 2
+            value:
+              contentHash: 02f3aa749b05f1690d1066ca1b46060cd9b1d12020d95f7aee2baa3e3cdc8db2
+              ref: openspec/changes/web-recommendation-controls
+        sequence: 4
+      web-recommendation-controls:6:
+        results:
+          tweak.build.execute:
+            sequence: 3
+            value:
+              checks:
+                - name: pytest options + recommender; repo root
+                  note: 82 passed; /tmp/issue-525-backend-tests.log
+                  result: passed
+                - name: npm test; frontend
+                  note: 371 passed; /tmp/issue-525-frontend-tests.log
+                  result: passed
+                - name: npm run build; frontend
+                  note: TypeScript + Vite succeeded
+                  result: passed
+                - name: Chrome verify-recommendation-controls.mjs; repo root
+                  note: All scenarios passed; /tmp/issue-525-browser.log
+                  result: passed
+                - name: Ruff + Black; 3 changed Python files
+                  note: passed
+                  result: passed
+                - name: ESLint + Prettier; 5 changed frontend files
+                  note: passed
+                  result: passed
+                - name: git diff --check; repo root
+                  note: passed
+                  result: passed
+                - name: comet classic openspec -- validate web-recommendation-controls --strict
+                  note: valid
+                  result: passed
+              event: build-complete
+          tweak.open:
+            sequence: 1
+            value:
+              event: open-complete
+              requirementsEvidence:
+                ref: openspec/changes/web-recommendation-controls
+          tweak.open.evidence:
+            sequence: 2
+            value:
+              contentHash: 02f3aa749b05f1690d1066ca1b46060cd9b1d12020d95f7aee2baa3e3cdc8db2
+              ref: openspec/changes/web-recommendation-controls
+          tweak.verify.report.evidence:
+            sequence: 5
+            value:
+              contentHash: d4258b65dca613157666c13a06a1c0a8ce22a8e0c982c78b188b3814f73932a3
+              ref: docs/superpowers/reports/2026-11-27-web-recommendation-controls-verify.md
+          tweak.verify.run:
+            sequence: 4
+            value:
+              checks:
+                - name: pytest options + recommender; repo root
+                  note: 82 passed; /tmp/issue-525-backend-tests.log
+                  result: passed
+                - name: npm test; frontend
+                  note: 371 passed; /tmp/issue-525-frontend-tests.log
+                  result: passed
+                - name: npm run build; frontend
+                  note: TypeScript + Vite succeeded
+                  result: passed
+                - name: Chrome verify-recommendation-controls.mjs; repo root
+                  note: All scenarios passed; /tmp/issue-525-browser.log
+                  result: passed
+                - name: Ruff + Black; 3 changed Python files
+                  note: passed
+                  result: passed
+                - name: ESLint + Prettier; 5 changed frontend files
+                  note: passed
+                  result: passed
+                - name: git diff --check; repo root
+                  note: passed
+                  result: passed
+                - name: comet classic openspec -- validate web-recommendation-controls --strict
+                  note: valid
+                  result: passed
+              event: verification-ready
+              verificationReport: docs/superpowers/reports/2026-11-27-web-recommendation-controls-verify.md
+        sequence: 6
+      web-recommendation-controls:8:
+        results: {}
+        sequence: 8
+    waits:
+      - id: web-recommendation-controls:7
+        stepId: tweak.archive.confirm
+        sequence: 7
+        status: cancelled
+        proposal:
+          input:
+            change: web-recommendation-controls
+            changeDir: openspec/changes/web-recommendation-controls
+            workspaceBaseline:
+              ref: 3e268806-1526-44a0-8ded-aa727dab193d
+          outputs:
+            tweak.archive.prepare:
+              prBaseBranch: main
+              remote: origin
+              summary: "#525 已实现并验收通过；当前分支 main，目标 main。归档会将本 change 移至带日期的 archive 目录、同步
+                api/evaluation-results 主规格，并提交本次 9 个交付文件和归档材料。推荐
+                local：仅本地归档提交；尚未授权 push 或 PR。后端 82 项、前端 371 项、构建与 Chrome
+                验收通过，mypy 既有问题已记录。"
+              targetBranch: main
+        proposalHash: 6551b431f741f730cca6f4060cf0c16fa351f6268946e778a7b484729d394601
+        choices:
+          - local
+          - push
+          - pr
+          - reverify
+          - later
+        results:
+          tweak.archive.prepare:
+            sequence: 6
+            value:
+              prBaseBranch: main
+              remote: origin
+              summary: "#525 已实现并验收通过；当前分支 main，目标 main。归档会将本 change 移至带日期的 archive 目录、同步
+                api/evaluation-results 主规格，并提交本次 9 个交付文件和归档材料。推荐
+                local：仅本地归档提交；尚未授权 push 或 PR。后端 82 项、前端 371 项、构建与 Chrome
+                验收通过，mypy 既有问题已记录。"
+              targetBranch: main
+          tweak.build.execute:
+            sequence: 3
+            value:
+              checks:
+                - name: pytest options + recommender; repo root
+                  note: 82 passed; /tmp/issue-525-backend-tests.log
+                  result: passed
+                - name: npm test; frontend
+                  note: 371 passed; /tmp/issue-525-frontend-tests.log
+                  result: passed
+                - name: npm run build; frontend
+                  note: TypeScript + Vite succeeded
+                  result: passed
+                - name: Chrome verify-recommendation-controls.mjs; repo root
+                  note: All scenarios passed; /tmp/issue-525-browser.log
+                  result: passed
+                - name: Ruff + Black; 3 changed Python files
+                  note: passed
+                  result: passed
+                - name: ESLint + Prettier; 5 changed frontend files
+                  note: passed
+                  result: passed
+                - name: git diff --check; repo root
+                  note: passed
+                  result: passed
+                - name: comet classic openspec -- validate web-recommendation-controls --strict
+                  note: valid
+                  result: passed
+              event: build-complete
+          tweak.open:
+            sequence: 1
+            value:
+              event: open-complete
+              requirementsEvidence:
+                ref: openspec/changes/web-recommendation-controls
+          tweak.open.evidence:
+            sequence: 2
+            value:
+              contentHash: 02f3aa749b05f1690d1066ca1b46060cd9b1d12020d95f7aee2baa3e3cdc8db2
+              ref: openspec/changes/web-recommendation-controls
+          tweak.verify.report.evidence:
+            sequence: 5
+            value:
+              contentHash: d4258b65dca613157666c13a06a1c0a8ce22a8e0c982c78b188b3814f73932a3
+              ref: docs/superpowers/reports/2026-11-27-web-recommendation-controls-verify.md
+          tweak.verify.run:
+            sequence: 4
+            value:
+              checks:
+                - name: pytest options + recommender; repo root
+                  note: 82 passed; /tmp/issue-525-backend-tests.log
+                  result: passed
+                - name: npm test; frontend
+                  note: 371 passed; /tmp/issue-525-frontend-tests.log
+                  result: passed
+                - name: npm run build; frontend
+                  note: TypeScript + Vite succeeded
+                  result: passed
+                - name: Chrome verify-recommendation-controls.mjs; repo root
+                  note: All scenarios passed; /tmp/issue-525-browser.log
+                  result: passed
+                - name: Ruff + Black; 3 changed Python files
+                  note: passed
+                  result: passed
+                - name: ESLint + Prettier; 5 changed frontend files
+                  note: passed
+                  result: passed
+                - name: git diff --check; repo root
+                  note: passed
+                  result: passed
+                - name: comet classic openspec -- validate web-recommendation-controls --strict
+                  note: valid
+                  result: passed
+              event: verification-ready
+              verificationReport: docs/superpowers/reports/2026-11-27-web-recommendation-controls-verify.md
+      - id: web-recommendation-controls:11
+        stepId: tweak.archive.confirm
+        sequence: 11
+        status: resolved
+        proposal:
+          input:
+            change: web-recommendation-controls
+            changeDir: openspec/changes/web-recommendation-controls
+            workspaceBaseline:
+              ref: 3e268806-1526-44a0-8ded-aa727dab193d
+          outputs:
+            tweak.archive.prepare:
+              prBaseBranch: main
+              remote: origin
+              summary: "#525 已验收通过；用户明确授权推送并创建 PR。交付分支
+                codex/issue-525-recommendation-controls，remote origin，PR base
+                main；归档同步 api/evaluation-results 主规格，提交已验证的实现、测试、报告及归档材料，然后推送并创建
+                PR。"
+              targetBranch: codex/issue-525-recommendation-controls
+        proposalHash: 3f292ae1c3e60f4f44e186959b44e8e68ea7c33a1d73e7b4ecac9c20e7929925
+        choices:
+          - local
+          - push
+          - pr
+          - reverify
+          - later
+        results:
+          tweak.archive.prepare:
+            sequence: 10
+            value:
+              prBaseBranch: main
+              remote: origin
+              summary: "#525 已验收通过；用户明确授权推送并创建 PR。交付分支
+                codex/issue-525-recommendation-controls，remote origin，PR base
+                main；归档同步 api/evaluation-results 主规格，提交已验证的实现、测试、报告及归档材料，然后推送并创建
+                PR。"
+              targetBranch: codex/issue-525-recommendation-controls
+          tweak.verify.report.evidence:
+            sequence: 9
+            value:
+              contentHash: 6323f16d8cfab6d1163da095b2e4f9734fddc3e37effd5c9f71cbccf4c3312ea
+              ref: docs/superpowers/reports/2026-11-27-web-recommendation-controls-verify.md
+          tweak.verify.run:
+            sequence: 8
+            value:
+              checks:
+                - name: pytest options + recommender; repo root
+                  note: 82 passed; /tmp/issue-525-backend-tests.log
+                  result: passed
+                - name: npm test; frontend
+                  note: 371 passed; /tmp/issue-525-frontend-tests.log
+                  result: passed
+                - name: npm run build; frontend
+                  note: TypeScript + Vite succeeded
+                  result: passed
+                - name: Chrome verify-recommendation-controls.mjs; repo root
+                  note: All scenarios passed; /tmp/issue-525-browser.log
+                  result: passed
+                - name: Ruff + Black; 3 changed Python files
+                  note: passed
+                  result: passed
+                - name: ESLint + Prettier; 5 changed frontend files
+                  note: passed
+                  result: passed
+                - name: git diff --check; repo root
+                  note: passed
+                  result: passed
+                - name: comet classic openspec -- validate web-recommendation-controls --strict
+                  note: valid
+                  result: passed
+              event: verification-ready
+              verificationReport: docs/superpowers/reports/2026-11-27-web-recommendation-controls-verify.md
+        decision:
+          id: classic-archive-3f292ae1c3e60f4f44e186959b44e8e68ea7c33a1d73e7b4ecac9c20e7929925-pr
+          choice: pr
+          proposalHash: 3f292ae1c3e60f4f44e186959b44e8e68ea7c33a1d73e7b4ecac9c20e7929925
+    evidenceWaits:
+      - id: web-recommendation-controls:2
+        stepId: tweak.open.evidence
+        sequence: 2
+        kind: classic-open-artifacts
+        status: resolved
+        results:
+          tweak.open:
+            sequence: 1
+            value:
+              event: open-complete
+              requirementsEvidence:
+                ref: openspec/changes/web-recommendation-controls
+        receipt:
+          ref: openspec/changes/web-recommendation-controls
+          contentHash: 02f3aa749b05f1690d1066ca1b46060cd9b1d12020d95f7aee2baa3e3cdc8db2
+          submissionId: b5a381ee-59e7-48bb-905c-3c93e308afb2
+      - id: web-recommendation-controls:5
+        stepId: tweak.verify.report.evidence
+        sequence: 5
+        kind: classic-verification-report
+        status: resolved
+        results:
+          tweak.build.execute:
+            sequence: 3
+            value:
+              checks:
+                - name: pytest options + recommender; repo root
+                  note: 82 passed; /tmp/issue-525-backend-tests.log
+                  result: passed
+                - name: npm test; frontend
+                  note: 371 passed; /tmp/issue-525-frontend-tests.log
+                  result: passed
+                - name: npm run build; frontend
+                  note: TypeScript + Vite succeeded
+                  result: passed
+                - name: Chrome verify-recommendation-controls.mjs; repo root
+                  note: All scenarios passed; /tmp/issue-525-browser.log
+                  result: passed
+                - name: Ruff + Black; 3 changed Python files
+                  note: passed
+                  result: passed
+                - name: ESLint + Prettier; 5 changed frontend files
+                  note: passed
+                  result: passed
+                - name: git diff --check; repo root
+                  note: passed
+                  result: passed
+                - name: comet classic openspec -- validate web-recommendation-controls --strict
+                  note: valid
+                  result: passed
+              event: build-complete
+          tweak.open:
+            sequence: 1
+            value:
+              event: open-complete
+              requirementsEvidence:
+                ref: openspec/changes/web-recommendation-controls
+          tweak.open.evidence:
+            sequence: 2
+            value:
+              contentHash: 02f3aa749b05f1690d1066ca1b46060cd9b1d12020d95f7aee2baa3e3cdc8db2
+              ref: openspec/changes/web-recommendation-controls
+          tweak.verify.run:
+            sequence: 4
+            value:
+              checks:
+                - name: pytest options + recommender; repo root
+                  note: 82 passed; /tmp/issue-525-backend-tests.log
+                  result: passed
+                - name: npm test; frontend
+                  note: 371 passed; /tmp/issue-525-frontend-tests.log
+                  result: passed
+                - name: npm run build; frontend
+                  note: TypeScript + Vite succeeded
+                  result: passed
+                - name: Chrome verify-recommendation-controls.mjs; repo root
+                  note: All scenarios passed; /tmp/issue-525-browser.log
+                  result: passed
+                - name: Ruff + Black; 3 changed Python files
+                  note: passed
+                  result: passed
+                - name: ESLint + Prettier; 5 changed frontend files
+                  note: passed
+                  result: passed
+                - name: git diff --check; repo root
+                  note: passed
+                  result: passed
+                - name: comet classic openspec -- validate web-recommendation-controls --strict
+                  note: valid
+                  result: passed
+              event: verification-ready
+              verificationReport: docs/superpowers/reports/2026-11-27-web-recommendation-controls-verify.md
+        receipt:
+          ref: docs/superpowers/reports/2026-11-27-web-recommendation-controls-verify.md
+          contentHash: d4258b65dca613157666c13a06a1c0a8ce22a8e0c982c78b188b3814f73932a3
+          submissionId: eca83326-f9eb-4e2e-a226-c3c2f27e9e1e
+      - id: web-recommendation-controls:9
+        stepId: tweak.verify.report.evidence
+        sequence: 9
+        kind: classic-verification-report
+        status: resolved
+        results:
+          tweak.verify.run:
+            sequence: 8
+            value:
+              checks:
+                - name: pytest options + recommender; repo root
+                  note: 82 passed; /tmp/issue-525-backend-tests.log
+                  result: passed
+                - name: npm test; frontend
+                  note: 371 passed; /tmp/issue-525-frontend-tests.log
+                  result: passed
+                - name: npm run build; frontend
+                  note: TypeScript + Vite succeeded
+                  result: passed
+                - name: Chrome verify-recommendation-controls.mjs; repo root
+                  note: All scenarios passed; /tmp/issue-525-browser.log
+                  result: passed
+                - name: Ruff + Black; 3 changed Python files
+                  note: passed
+                  result: passed
+                - name: ESLint + Prettier; 5 changed frontend files
+                  note: passed
+                  result: passed
+                - name: git diff --check; repo root
+                  note: passed
+                  result: passed
+                - name: comet classic openspec -- validate web-recommendation-controls --strict
+                  note: valid
+                  result: passed
+              event: verification-ready
+              verificationReport: docs/superpowers/reports/2026-11-27-web-recommendation-controls-verify.md
+        receipt:
+          ref: docs/superpowers/reports/2026-11-27-web-recommendation-controls-verify.md
+          contentHash: 6323f16d8cfab6d1163da095b2e4f9734fddc3e37effd5c9f71cbccf4c3312ea
+          submissionId: 6cd8c162-234d-4d2e-b1fa-e5640e166808
+    ready: []
+    joins: {}
+    outputs:
+      tweak.archive.confirm:
+        sequence: 11
+        value:
+          choice: pr
+          proposal:
+            input:
+              change: web-recommendation-controls
+              changeDir: openspec/changes/web-recommendation-controls
+              workspaceBaseline:
+                ref: 3e268806-1526-44a0-8ded-aa727dab193d
+            outputs:
+              tweak.archive.prepare:
+                prBaseBranch: main
+                remote: origin
+                summary: "#525 已验收通过；用户明确授权推送并创建 PR。交付分支
+                  codex/issue-525-recommendation-controls，remote origin，PR base
+                  main；归档同步 api/evaluation-results
+                  主规格，提交已验证的实现、测试、报告及归档材料，然后推送并创建 PR。"
+                targetBranch: codex/issue-525-recommendation-controls
+      tweak.archive.execute:
+        sequence: 13
+        value:
+          archiveDirectory: openspec/changes/archive/2026-11-27-web-recommendation-controls
+      tweak.archive.preflight:
+        sequence: 12
+        value:
+          baseCommit: bf1ac089d60fdb19f9fbdf9c0bce5572225154ce
+          deliveryAction: pr
+          deliveryPaths:
+            - api/evaluation_options.py
+            - api/routes/evaluation_results.py
+            - frontend/scripts/verify-recommendation-controls.mjs
+            - frontend/src/evaluations/RecommendationPanel.tsx
+            - frontend/src/evaluations/client.ts
+            - frontend/src/i18n/en-US.ts
+            - frontend/src/i18n/zh-CN.ts
+            - tests/test_api_evaluation_options.py
+          prBaseBranch: main
+          remote: origin
+          remoteIdentity: 128eeb1e6f0d21b25601fcb7f9aad36adfdfb4d76f37f54f004760410190f351
+          targetBranch: codex/issue-525-recommendation-controls
+          verifiedBranch: codex/issue-525-recommendation-controls
+      tweak.archive.prepare:
+        sequence: 10
+        value:
+          prBaseBranch: main
+          remote: origin
+          summary: "#525 已验收通过；用户明确授权推送并创建 PR。交付分支
+            codex/issue-525-recommendation-controls，remote origin，PR base
+            main；归档同步 api/evaluation-results 主规格，提交已验证的实现、测试、报告及归档材料，然后推送并创建
+            PR。"
+          targetBranch: codex/issue-525-recommendation-controls
+      tweak.build.execute:
+        sequence: 3
+        value:
+          checks:
+            - name: pytest options + recommender; repo root
+              note: 82 passed; /tmp/issue-525-backend-tests.log
+              result: passed
+            - name: npm test; frontend
+              note: 371 passed; /tmp/issue-525-frontend-tests.log
+              result: passed
+            - name: npm run build; frontend
+              note: TypeScript + Vite succeeded
+              result: passed
+            - name: Chrome verify-recommendation-controls.mjs; repo root
+              note: All scenarios passed; /tmp/issue-525-browser.log
+              result: passed
+            - name: Ruff + Black; 3 changed Python files
+              note: passed
+              result: passed
+            - name: ESLint + Prettier; 5 changed frontend files
+              note: passed
+              result: passed
+            - name: git diff --check; repo root
+              note: passed
+              result: passed
+            - name: comet classic openspec -- validate web-recommendation-controls --strict
+              note: valid
+              result: passed
+          event: build-complete
+      tweak.open:
+        sequence: 1
+        value:
+          event: open-complete
+          requirementsEvidence:
+            ref: openspec/changes/web-recommendation-controls
+      tweak.open.evidence:
+        sequence: 2
+        value:
+          contentHash: 02f3aa749b05f1690d1066ca1b46060cd9b1d12020d95f7aee2baa3e3cdc8db2
+          ref: openspec/changes/web-recommendation-controls
+      tweak.verify.report.evidence:
+        sequence: 9
+        value:
+          contentHash: 6323f16d8cfab6d1163da095b2e4f9734fddc3e37effd5c9f71cbccf4c3312ea
+          ref: docs/superpowers/reports/2026-11-27-web-recommendation-controls-verify.md
+      tweak.verify.run:
+        sequence: 8
+        value:
+          checks:
+            - name: pytest options + recommender; repo root
+              note: 82 passed; /tmp/issue-525-backend-tests.log
+              result: passed
+            - name: npm test; frontend
+              note: 371 passed; /tmp/issue-525-frontend-tests.log
+              result: passed
+            - name: npm run build; frontend
+              note: TypeScript + Vite succeeded
+              result: passed
+            - name: Chrome verify-recommendation-controls.mjs; repo root
+              note: All scenarios passed; /tmp/issue-525-browser.log
+              result: passed
+            - name: Ruff + Black; 3 changed Python files
+              note: passed
+              result: passed
+            - name: ESLint + Prettier; 5 changed frontend files
+              note: passed
+              result: passed
+            - name: git diff --check; repo root
+              note: passed
+              result: passed
+            - name: comet classic openspec -- validate web-recommendation-controls --strict
+              note: valid
+              result: passed
+          event: verification-ready
+          verificationReport: docs/superpowers/reports/2026-11-27-web-recommendation-controls-verify.md
+    children: []
+    lineage: []
+  sourceRevision: 23
+  sourceHash: cda9b563f065ab62e91e42be22a6066c6bcea23e0d7235ca1ec4430714154c1e
+direct_override: null
+handoff_context: null
+handoff_hash: null
+classic_profile: null
+classic_migration: null
+check_epoch: 6
