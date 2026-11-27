@@ -184,6 +184,7 @@ def preview_recommendations(
         (problem for problem, source in catalog.values() if request.source in ("all", source)),
         min_samples=request.min_samples,
         failure_threshold=request.failure_threshold,
+        limit=request.limit,
     )
     weaknesses = [
         RecommendationWeakness.model_validate(item) for item in analysis["weakness_report"]

@@ -1,4 +1,12 @@
 export default {
+  失败率阈值: 'Failure rate threshold',
+  推荐数量: 'Recommendation count',
+  '失败率阈值须大于 0 且不超过 1':
+    'Failure rate threshold must be greater than 0 and at most 1',
+  '推荐数量须为 1–100 的整数':
+    'Recommendation count must be an integer from 1 to 100',
+  '最多选择、保存和带入评估 100 道题。':
+    'Select, save and carry up to 100 problems into an evaluation.',
   分析实验: 'Experiments to analyze',
   加载更多实验: 'Load more experiments',
   '预算列表（USD，可选）': 'Budgets (USD, optional)',

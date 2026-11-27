@@ -1,0 +1,44 @@
+{
+  "checks": [
+    {
+      "name": "pytest options + recommender; repo root",
+      "result": "passed",
+      "note": "82 passed; /tmp/issue-525-backend-tests.log"
+    },
+    {
+      "name": "npm test; frontend",
+      "result": "passed",
+      "note": "371 passed; /tmp/issue-525-frontend-tests.log"
+    },
+    {
+      "name": "npm run build; frontend",
+      "result": "passed",
+      "note": "TypeScript + Vite succeeded"
+    },
+    {
+      "name": "Chrome verify-recommendation-controls.mjs; repo root",
+      "result": "passed",
+      "note": "All scenarios passed; /tmp/issue-525-browser.log"
+    },
+    {
+      "name": "Ruff + Black; 3 changed Python files",
+      "result": "passed",
+      "note": "passed"
+    },
+    {
+      "name": "ESLint + Prettier; 5 changed frontend files",
+      "result": "passed",
+      "note": "passed"
+    },
+    {
+      "name": "git diff --check; repo root",
+      "result": "passed",
+      "note": "passed"
+    },
+    {
+      "name": "comet classic openspec -- validate web-recommendation-controls --strict",
+      "result": "passed",
+      "note": "valid"
+    }
+  ]
+}

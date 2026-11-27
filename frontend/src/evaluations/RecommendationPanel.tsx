@@ -127,9 +127,26 @@ function RecommendationPreview({
   const [runIds, setRunIds] = useState([evaluationId])
   const [source, setSource] = useState<ProblemQuery['source']>('all')
   const [minSamples, setMinSamples] = useState<number | null>(1)
+  const [failureThreshold, setFailureThreshold] = useState<number | null>(0.5)
+  const [limit, setLimit] = useState<number | null>(20)
+  const validParameters =
+    failureThreshold !== null &&
+    Number.isFinite(failureThreshold) &&
+    failureThreshold > 0 &&
+    failureThreshold <= 1 &&
+    limit !== null &&
+    Number.isInteger(limit) &&
+    limit >= 1 &&
+    limit <= 100
   const [request, setRequest] = useState<
     Parameters<typeof client.previewRecommendations>[0] | null
-  >({ run_ids: [evaluationId], source: 'all', min_samples: 1 })
+  >({
+    run_ids: [evaluationId],
+    source: 'all',
+    min_samples: 1,
+    failure_threshold: 0.5,
+    limit: 20,
+  })
   const [selected, setSelected] = useState<string[]>([])
   const [name, setName] = useState('')
   const [save, setSave] = useState<{
@@ -201,10 +218,16 @@ function RecommendationPreview({
         layout="vertical"
         disabled={save.pending}
         onFinish={() => {
-          if (!runIds.length || !minSamples) return
+          if (!runIds.length || !minSamples || !validParameters) return
           setSelected([])
           setSave({})
-          setRequest({ run_ids: runIds, source, min_samples: minSamples })
+          setRequest({
+            run_ids: runIds,
+            source,
+            min_samples: minSamples,
+            failure_threshold: failureThreshold,
+            limit,
+          })
         }}
       >
         <Form.Item label={t('历史评估')} htmlFor="recommendation-history">
@@ -283,11 +306,44 @@ function RecommendationPreview({
               }}
             />
           </Form.Item>
+          <Form.Item
+            label={t('失败率阈值')}
+            htmlFor="recommendation-failure-threshold"
+            help={t('失败率阈值须大于 0 且不超过 1')}
+          >
+            <InputNumber
+              id="recommendation-failure-threshold"
+              max={1}
+              step={0.05}
+              value={failureThreshold}
+              onChange={(value) => {
+                setFailureThreshold(value)
+                clearPreview()
+              }}
+            />
+          </Form.Item>
+          <Form.Item
+            label={t('推荐数量')}
+            htmlFor="recommendation-limit"
+            help={t('推荐数量须为 1–100 的整数')}
+          >
+            <InputNumber
+              id="recommendation-limit"
+              min={1}
+              max={100}
+              value={limit}
+              onChange={(value) => {
+                setLimit(value)
+                clearPreview()
+              }}
+            />
+          </Form.Item>
         </div>
+        <p>{t('最多选择、保存和带入评估 100 道题。')}</p>
         <Button
           htmlType="submit"
           loading={request !== null && preview.loading}
-          disabled={!runIds.length || !minSamples}
+          disabled={!runIds.length || !minSamples || !validParameters}
         >
           {t('预览推荐')}
         </Button>
