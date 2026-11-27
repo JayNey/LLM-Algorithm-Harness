@@ -265,7 +265,7 @@ export interface ExperimentClient {
   cancelTask(taskId: string): Promise<void>
   runningExperimentTasks(signal?: AbortSignal): Promise<TaskSnapshot[]>
   pareto(
-    experimentId: string,
+    experimentId: string | string[],
     budgets: number[],
     accuracyMetric: 'overall' | 'formal',
     signal?: AbortSignal,
