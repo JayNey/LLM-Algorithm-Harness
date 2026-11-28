@@ -1,0 +1,44 @@
+{
+  "schema": "comet.classic.archive-manifest.v2",
+  "execution": {
+    "workflow": {
+      "id": "comet-classic-tweak",
+      "version": "2",
+      "hash": "518d3e8e12eb39899775cb7d2ddcc7ddeba10cb1f1d43cff7b03f2ca61a70c65"
+    },
+    "runId": "web-benchmark-advanced-config",
+    "actionId": "web-benchmark-advanced-config:9",
+    "attempt": 1,
+    "inputHash": "db4b527f9b0c664339f89254963469e9080423c86782d4482196d5b6c9f708f8",
+    "claimToken": "portable-9c24a156b16e24bc2fd4938bb2803c4699579885902aea65f00a72b21562e4f7"
+  },
+  "activeRef": "openspec/changes/web-benchmark-advanced-config",
+  "archiveRef": "openspec/changes/archive/2026-11-28-web-benchmark-advanced-config",
+  "stateRef": "openspec/changes/archive/2026-11-28-web-benchmark-advanced-config/comet-state.yaml",
+  "paths": [
+    "openspec/changes/archive/2026-11-28-web-benchmark-advanced-config/.comet/archive-requirements.json",
+    "openspec/changes/archive/2026-11-28-web-benchmark-advanced-config/.openspec.yaml",
+    "openspec/changes/archive/2026-11-28-web-benchmark-advanced-config/checks.json",
+    "openspec/changes/archive/2026-11-28-web-benchmark-advanced-config/design.md",
+    "openspec/changes/archive/2026-11-28-web-benchmark-advanced-config/proposal.md",
+    "openspec/changes/archive/2026-11-28-web-benchmark-advanced-config/rulings.md",
+    "openspec/changes/archive/2026-11-28-web-benchmark-advanced-config/specs/benchmark/spec.md",
+    "openspec/changes/archive/2026-11-28-web-benchmark-advanced-config/specs/frontend/benchmark-management/spec.md",
+    "openspec/changes/archive/2026-11-28-web-benchmark-advanced-config/tasks.md",
+    "openspec/changes/archive/2026-11-28-web-benchmark-advanced-config/walkthrough.html",
+    "openspec/specs/benchmark/spec.md",
+    "openspec/specs/frontend/benchmark-management/spec.md"
+  ],
+  "sourcePaths": [
+    "openspec/changes/web-benchmark-advanced-config/.comet/archive-requirements.json",
+    "openspec/changes/web-benchmark-advanced-config/.openspec.yaml",
+    "openspec/changes/web-benchmark-advanced-config/checks.json",
+    "openspec/changes/web-benchmark-advanced-config/design.md",
+    "openspec/changes/web-benchmark-advanced-config/proposal.md",
+    "openspec/changes/web-benchmark-advanced-config/rulings.md",
+    "openspec/changes/web-benchmark-advanced-config/specs/benchmark/spec.md",
+    "openspec/changes/web-benchmark-advanced-config/specs/frontend/benchmark-management/spec.md",
+    "openspec/changes/web-benchmark-advanced-config/tasks.md",
+    "openspec/changes/web-benchmark-advanced-config/walkthrough.html"
+  ]
+}

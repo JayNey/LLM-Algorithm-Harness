@@ -86,12 +86,12 @@ class BenchmarkExecutor:
             missing=len(missing_problems),
         )
 
-        # Override config to use only benchmark problems
-        # We do this by temporarily modifying problem_filters
-        original_filters = self.config.problem_filters
-        self.config.problem_filters = {
-            "limit": len(benchmark_problems),
-        }
+        if self.config.problem_filters:
+            benchmark_problems = self.problem_loader.filter_problems(
+                benchmark_problems, **self.config.problem_filters
+            )
+        if not benchmark_problems:
+            raise ValueError("No benchmark suite problems match the requested filters")
 
         # Create a temporary dataset with only benchmark problems
         import json
@@ -106,12 +106,12 @@ class BenchmarkExecutor:
             Path(temp_name).unlink(missing_ok=True)
             raise
 
-        original_dataset = self.config.dataset_path
-        self.config.dataset_path = temp_name
-
         try:
+            run_config = self.config.model_copy(
+                update={"dataset_path": temp_name, "problem_filters": None}, deep=True
+            )
             # Run evaluation using the harness
-            harness = AlgorithmHarness(self.config)
+            harness = AlgorithmHarness(run_config)
             harness.checkpoint_dir = self.checkpoint_dir
             harness.should_pause = self.should_pause
             harness.on_problem = self.on_problem
@@ -166,9 +166,5 @@ class BenchmarkExecutor:
             return results
 
         finally:
-            # Restore original config
-            self.config.problem_filters = original_filters
-            self.config.dataset_path = original_dataset
-
             # Clean up temp file
             Path(temp_name).unlink(missing_ok=True)

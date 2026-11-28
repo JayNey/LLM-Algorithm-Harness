@@ -1,3 +1,7 @@
+import {
+  StrategyAdvancedFields,
+  ProblemFilterFields,
+} from '@/experiments/AdvancedFields.tsx'
 import DatasetPicker from '@/experiments/DatasetPicker.tsx'
 import { useTranslation } from 'react-i18next'
 import { t } from '../../i18n/core.ts'
@@ -27,6 +31,7 @@ import type {
 } from '@/benchmarks/types.ts'
 import {
   runPayload,
+  runStrategies,
   suiteToDraft,
   validateRunDraft,
   validateSuiteDraft,
@@ -329,6 +334,85 @@ function BenchmarkDetailContent() {
                       }
                     />
                   </label>
+                  {runStrategies(runDraft).map((strategy, index) => (
+                    <fieldset key={strategy.name} disabled={busy}>
+                      <legend>{strategy.name}</legend>
+                      {(['max_iterations', 'temperature'] as const).map(
+                        (field) => (
+                          <label key={field}>
+                            {field === 'max_iterations'
+                              ? t('最大迭代次数（可选）')
+                              : t('策略温度（可选）')}
+                            <Input
+                              aria-label={
+                                field === 'max_iterations'
+                                  ? t('策略 {{index}} 最大迭代次数', {
+                                      index: index + 1,
+                                    })
+                                  : t('策略 {{index}} 温度', {
+                                      index: index + 1,
+                                    })
+                              }
+                              value={strategy[field]}
+                              placeholder={
+                                field === 'max_iterations' ? '1–10' : '0–2'
+                              }
+                              disabled={busy}
+                              aria-invalid={
+                                !!runErrors[`strategies.${index}.${field}`]
+                              }
+                              onChange={(event) =>
+                                setRunDraft((previous) => ({
+                                  ...previous,
+                                  strategy_settings: {
+                                    ...previous.strategy_settings,
+                                    [strategy.name]: {
+                                      ...previous.strategy_settings?.[
+                                        strategy.name
+                                      ],
+                                      [field]: event.target.value,
+                                    },
+                                  },
+                                }))
+                              }
+                            />
+                            {runErrors[`strategies.${index}.${field}`] && (
+                              <small role="alert">
+                                {t(runErrors[`strategies.${index}.${field}`])}
+                              </small>
+                            )}
+                          </label>
+                        ),
+                      )}
+                      <StrategyAdvancedFields
+                        strategy={strategy}
+                        index={index}
+                        disabled={busy}
+                        errors={runErrors}
+                        update={(patch) =>
+                          setRunDraft((previous) => ({
+                            ...previous,
+                            strategy_settings: {
+                              ...previous.strategy_settings,
+                              [strategy.name]: {
+                                ...previous.strategy_settings?.[strategy.name],
+                                ...patch,
+                              },
+                            },
+                          }))
+                        }
+                      />
+                    </fieldset>
+                  ))}
+                  <ProblemFilterFields
+                    draft={runDraft}
+                    disabled={busy}
+                    errors={runErrors}
+                    kind="benchmark"
+                    update={(patch) =>
+                      setRunDraft((previous) => ({ ...previous, ...patch }))
+                    }
+                  />
                   <label>
                     {t('预算上限 USD（可选）')}
                     <Input

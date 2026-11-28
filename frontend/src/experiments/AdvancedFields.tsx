@@ -107,7 +107,7 @@ export function ProblemFilterFields({
   draft: Pick<ExperimentDraft, 'problem_filters'>
   update(patch: Pick<ExperimentDraft, 'problem_filters'>): void
   disabled: boolean
-  kind?: 'abtest'
+  kind?: 'abtest' | 'benchmark'
   errors: DraftErrors
 }) {
   const raw = draft.problem_filters ?? {}
@@ -119,7 +119,11 @@ export function ProblemFilterFields({
       <label>
         {t('难度')}
         <Select
-          aria-label={kind === 'abtest' ? t('题目筛选难度') : t('实验筛选难度')}
+          aria-label={
+            kind === 'abtest' || kind === 'benchmark'
+              ? t('题目筛选难度')
+              : t('实验筛选难度')
+          }
           value={raw.difficulty || undefined}
           allowClear
           placeholder={t('全部难度')}
@@ -137,7 +141,11 @@ export function ProblemFilterFields({
       <label>
         {t('标签（任一匹配）')}
         <Input.TextArea
-          aria-label={kind === 'abtest' ? t('题目筛选标签') : t('实验筛选标签')}
+          aria-label={
+            kind === 'abtest' || kind === 'benchmark'
+              ? t('题目筛选标签')
+              : t('实验筛选标签')
+          }
           value={raw.tags ?? ''}
           placeholder={t('以逗号或换行分隔')}
           onChange={(event) => change({ tags: event.target.value })}
@@ -148,7 +156,9 @@ export function ProblemFilterFields({
         {t('题目 ID 白名单')}
         <Input.TextArea
           aria-label={
-            kind === 'abtest' ? t('题目筛选题目 ID') : t('实验筛选题目 ID')
+            kind === 'abtest' || kind === 'benchmark'
+              ? t('题目筛选题目 ID')
+              : t('实验筛选题目 ID')
           }
           value={raw.problem_ids ?? ''}
           placeholder={t('以逗号或换行分隔')}
@@ -160,7 +170,9 @@ export function ProblemFilterFields({
         {t('题目数量上限')}
         <Input
           aria-label={
-            kind === 'abtest' ? t('题目筛选数量上限') : t('实验筛选数量上限')
+            kind === 'abtest' || kind === 'benchmark'
+              ? t('题目筛选数量上限')
+              : t('实验筛选数量上限')
           }
           value={raw.limit ?? ''}
           onChange={(event) => change({ limit: event.target.value })}
@@ -173,7 +185,9 @@ export function ProblemFilterFields({
       </label>
       <p>
         {t(
-          '标签任一匹配；各条件取交集，最后按数据集顺序截取数量。实际匹配题数在执行后确认。',
+          kind === 'benchmark'
+            ? '仅运行套件内题目；标签任一匹配，各条件取交集，最后按套件顺序截取数量。无匹配题目时运行报错。'
+            : '标签任一匹配；各条件取交集，最后按数据集顺序截取数量。实际匹配题数在执行后确认。',
         )}
       </p>
       <p role="status">{filterSummary(problemFilters(draft))}</p>

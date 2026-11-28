@@ -1,0 +1,120 @@
+<!doctype html>
+<html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'unsafe-inline'; base-uri 'none'; form-action 'none'"><title>变更说明 · 基准运行支持高级策略参数及题目筛选，实际执行与表单条件一致。</title>
+<style>
+:root {
+  color-scheme: light dark;
+  --page: #fafbfc;
+  --ink: #202a35;
+  --muted: #566575;
+  --line: #dbe2e8;
+  --accent: #245b85;
+  --highlight: #edf3f7;
+  --hover: #e9eef3;
+  --code-bg: #edf0f4;
+  --code-ink: #263443;
+  --success: #236d4f;
+  --failure: #a83131;
+  --text: 15px;
+  --small: 13px;
+  --label: 12px;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --page: #181d23;
+    --ink: #e4eaf0;
+    --muted: #a4b1be;
+    --line: #35404b;
+    --accent: #94c6ec;
+    --highlight: #222e39;
+    --hover: #27323d;
+    --code-bg: #10161d;
+    --code-ink: #e0e8f0;
+    --success: #8ed8b5;
+    --failure: #ffb0a8;
+  }
+}
+* { box-sizing: border-box; }
+body {
+  margin: 0;
+  background: var(--page);
+  color: var(--ink);
+  font: var(--text)/1.65 system-ui, -apple-system, "Segoe UI", sans-serif;
+}
+main { max-width: 1040px; margin: auto; padding: 32px 32px 48px; }
+.eyebrow { color: var(--accent); font-size: var(--label); font-weight: 500; letter-spacing: .08em; }
+h1 { margin: 8px 0 12px; max-width: 32em; font-size: 28px; font-weight: 500; line-height: 1.4; letter-spacing: -.02em; overflow-wrap: anywhere; }
+h2 { margin: 0; font-size: 18px; font-weight: 500; line-height: 1.5; overflow-wrap: anywhere; }
+h3 { margin: 0 0 4px; color: var(--muted); font-size: var(--label); font-weight: 500; }
+p { margin: 0; white-space: pre-wrap; overflow-wrap: anywhere; }
+strong { font-weight: 500; }
+.meta { margin-bottom: 24px; color: var(--muted); font-size: var(--small); overflow-wrap: anywhere; }
+.meta p + p { margin-top: 2px; }
+article { padding: 20px 0 12px; border-top: 1px solid var(--line); }
+article header { display: flex; align-items: baseline; gap: 12px; margin-bottom: 12px; }
+.number { color: var(--muted); font: var(--label)/1.5 ui-monospace, Consolas, monospace; font-variant-numeric: tabular-nums; }
+.comparison { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 16px; }
+.comparison section { min-width: 0; padding: 12px; }
+.after { background: var(--highlight); border-radius: 4px; }
+.after h3 { color: var(--accent); }
+.reason { margin-top: 12px; font-size: var(--small); color: var(--muted); }
+.reason strong { margin-right: 8px; color: var(--ink); }
+summary { min-height: 44px; padding: 10px 4px; cursor: pointer; font-size: var(--small); font-weight: 500; border-radius: 4px; }
+summary:hover { background: var(--hover); }
+summary:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.count, .tag { color: var(--muted); font-size: var(--label); font-weight: 400; }
+.count { margin-left: 4px; font-variant-numeric: tabular-nums; }
+.file { min-width: 0; padding: 0 0 16px; scroll-margin-top: 20px; }
+.file:target { outline: 2px solid var(--accent); outline-offset: 4px; }
+.file-heading { display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 8px; }
+.file-heading code { min-width: 0; font-size: var(--small); overflow-wrap: anywhere; }
+.tag { white-space: nowrap; }
+pre { margin: 8px 0 0; padding: 12px 16px; overflow: auto; background: var(--code-bg); color: var(--code-ink); border-radius: 4px; font: var(--small)/1.65 ui-monospace, Consolas, monospace; tab-size: 2; }
+footer { margin-top: 12px; padding-top: 20px; border-top: 1px solid var(--line); }
+footer h2 { margin-bottom: 8px; }
+.check { display: grid; grid-template-columns: 72px minmax(0, 1fr); gap: 12px; padding: 12px 0; border-bottom: 1px solid var(--line); }
+.status { padding-top: 2px; font-size: var(--label); font-weight: 500; }
+.passed { color: var(--success); }
+.failed { color: var(--failure); }
+.not-run, .unknown { color: var(--muted); }
+.check p { margin-top: 2px; color: var(--muted); font-size: var(--small); }
+.more { border-top: 1px solid var(--line); }
+.more > summary { padding-block: 12px; }
+.diagram { margin: 0; padding: 20px 0; border-top: 1px solid var(--line); }
+.diagram figcaption { margin-bottom: 12px; font-size: 18px; font-weight: 500; overflow-wrap: anywhere; }
+.diagram-svg { display: block; max-width: 100%; height: auto; margin: auto; overflow: visible; font: 13px system-ui, -apple-system, "Segoe UI", sans-serif; }
+.diagram-svg text { fill: var(--ink); }
+.diagram-edge { fill: none; stroke: var(--muted); stroke-width: 1.5; }
+.diagram-svg marker path { fill: var(--muted); }
+.diagram-edge-label { fill: var(--page); }
+.diagram-svg .diagram-edge-text { fill: var(--muted); font-size: 12px; }
+.diagram-node rect { fill: var(--page); stroke: var(--line); stroke-width: 1.5; }
+.diagram-node.modified rect { fill: var(--highlight); stroke: var(--accent); }
+.diagram-node.added rect { stroke: var(--success); }
+.diagram-node.deleted rect { stroke: var(--failure); stroke-dasharray: 4 3; }
+.diagram-svg .diagram-kind { fill: var(--muted); font-size: 11px; }
+.diagram-node[href] { cursor: pointer; }
+.diagram-node[href]:hover rect, .diagram-node[href]:focus-visible rect { stroke: var(--accent); stroke-width: 2.5; }
+.diagram-node[href]:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; }
+.diagram-hint { margin-top: 12px; color: var(--muted); font-size: var(--small); text-align: center; }
+.diagram-comparison { display: grid; grid-template-columns: minmax(0,1fr) minmax(0,1fr); gap: 16px; }
+.diagram-comparison > section { min-width: 0; padding: 12px; border: 1px solid var(--line); border-radius: 4px; }
+.diagram-comparison > section > h3 { margin-bottom: 12px; }
+.diagram-compact { display: none; }
+@media (max-width: 999px) {
+  .diagram-wide { display: none; }
+  .diagram-compact { display: block; }
+}
+@media (max-width: 640px) {
+  main { padding: 24px 16px 32px; }
+  h1 { font-size: 24px; }
+  .meta { margin-bottom: 20px; }
+  article { padding-top: 16px; }
+  article header { gap: 8px; }
+  .comparison { grid-template-columns: minmax(0, 1fr); gap: 4px; }
+  .check { grid-template-columns: 60px minmax(0, 1fr); gap: 8px; }
+  pre { padding: 12px; }
+  .diagram-comparison { grid-template-columns: minmax(0,1fr); }
+  .diagram-comparison > section { padding: 12px 0; border: 0; }
+}
+</style></head><body><main><div class="eyebrow">COMET / 变更说明</div><h1>基准运行支持高级策略参数及题目筛选，实际执行与表单条件一致。</h1><div class="meta"><p>比较范围 · HEAD 与本次工作区差异；10 个交付文件，无其他用户改动。</p><p>生成时间 · 2026-11-28T11:02:21.837Z</p></div><figure class="diagram"><figcaption>配置进入实际执行</figcaption><div class="diagram-wide"><svg class="diagram-svg" width="624" height="84" viewBox="0 0 624 84" role="group" aria-labelledby="walkthrough-diagram-0-wide-title walkthrough-diagram-0-wide-description"><title id="walkthrough-diagram-0-wide-title">配置进入实际执行</title><desc id="walkthrough-diagram-0-wide-description">表单策略及筛选 → API 持久化与 HarnessConfig; API 持久化与 HarnessConfig → 套件范围与条件交集; 套件范围与条件交集 → 真实策略执行及历史结果</desc><defs><marker id="walkthrough-diagram-0-wide-arrow" viewBox="0 0 8 8" refX="7" refY="4" markerWidth="6" markerHeight="6" orient="auto"><path d="M 0 0 L 8 4 L 0 8 z"/></marker></defs><path class="diagram-edge" d="M 132 42 C 152 42, 152 42, 169 42" marker-end="url(#walkthrough-diagram-0-wide-arrow)"/><path class="diagram-edge" d="M 292 42 C 312 42, 312 42, 329 42" marker-end="url(#walkthrough-diagram-0-wide-arrow)"/><path class="diagram-edge" d="M 452 42 C 472 42, 472 42, 489 42" marker-end="url(#walkthrough-diagram-0-wide-arrow)"/><g class="diagram-node "><rect x="12" y="12" width="120" height="60" rx="5"/><text class="" x="72" y="46" text-anchor="middle"><tspan x="72" dy="0">表单策略及筛选</tspan></text></g><g class="diagram-node "><rect x="172" y="12" width="120" height="60" rx="5"/><text class="" x="232" y="37" text-anchor="middle"><tspan x="232" dy="0">API 持久化与</tspan><tspan x="232" dy="18">HarnessConfig</tspan></text></g><g class="diagram-node "><rect x="332" y="12" width="120" height="60" rx="5"/><text class="" x="392" y="37" text-anchor="middle"><tspan x="392" dy="0">套件范围与条件</tspan><tspan x="392" dy="18">交集</tspan></text></g><g class="diagram-node "><rect x="492" y="12" width="120" height="60" rx="5"/><text class="" x="552" y="37" text-anchor="middle"><tspan x="552" dy="0">真实策略执行及</tspan><tspan x="552" dy="18">历史结果</tspan></text></g></svg></div><div class="diagram-compact"><svg class="diagram-svg" width="272" height="444" viewBox="0 0 272 444" role="group" aria-labelledby="walkthrough-diagram-0-compact-title walkthrough-diagram-0-compact-description"><title id="walkthrough-diagram-0-compact-title">配置进入实际执行</title><desc id="walkthrough-diagram-0-compact-description">表单策略及筛选 → API 持久化与 HarnessConfig; API 持久化与 HarnessConfig → 套件范围与条件交集; 套件范围与条件交集 → 真实策略执行及历史结果</desc><defs><marker id="walkthrough-diagram-0-compact-arrow" viewBox="0 0 8 8" refX="7" refY="4" markerWidth="6" markerHeight="6" orient="auto"><path d="M 0 0 L 8 4 L 0 8 z"/></marker></defs><path class="diagram-edge" d="M 136 90 C 136 108, 136 108, 136 123" marker-end="url(#walkthrough-diagram-0-compact-arrow)"/><path class="diagram-edge" d="M 136 204 C 136 222, 136 222, 136 237" marker-end="url(#walkthrough-diagram-0-compact-arrow)"/><path class="diagram-edge" d="M 136 318 C 136 336, 136 336, 136 351" marker-end="url(#walkthrough-diagram-0-compact-arrow)"/><g class="diagram-node "><rect x="80" y="12" width="112" height="78" rx="5"/><text class="" x="136" y="46" text-anchor="middle"><tspan x="136" dy="0">表单策略及筛</tspan><tspan x="136" dy="18">选</tspan></text></g><g class="diagram-node "><rect x="80" y="126" width="112" height="78" rx="5"/><text class="" x="136" y="151" text-anchor="middle"><tspan x="136" dy="0">API 持久化与</tspan><tspan x="136" dy="18">HarnessConfi</tspan><tspan x="136" dy="18">g</tspan></text></g><g class="diagram-node "><rect x="80" y="240" width="112" height="78" rx="5"/><text class="" x="136" y="274" text-anchor="middle"><tspan x="136" dy="0">套件范围与条</tspan><tspan x="136" dy="18">件交集</tspan></text></g><g class="diagram-node "><rect x="80" y="354" width="112" height="78" rx="5"/><text class="" x="136" y="388" text-anchor="middle"><tspan x="136" dy="0">真实策略执行</tspan><tspan x="136" dy="18">及历史结果</tspan></text></g></svg></div></figure><article><header><span class="number">01</span><h2>高级策略及筛选表单</h2></header><div class="comparison"><section><h3>原来</h3><p>仅提交策略名称，无法设置过滤。</p></section><section class="after"><h3>现在</h3><p>复用共享高级控件，提供完整策略字段及四类筛选，空值沿用默认。</p></section></div><p class="reason"><strong>原因</strong> 支持现有执行配置并保留简单流程。</p><details><summary>查看文件和关键代码 <span class="count">2</span></summary><div class="file" id="walkthrough-file-0-0"><div class="file-heading"><span class="tag">修改</span><code>frontend/src/benchmarks/validation.ts</code></div><pre><code>runStrategies → validateRunDraft → runPayload；空字段省略，temperature=0 保留。</code></pre></div><div class="file" id="walkthrough-file-0-1"><div class="file-heading"><span class="tag">修改</span><code>frontend/src/pages/Benchmarks/BenchmarkDetailPage.tsx</code></div><pre><code>按已选策略名称保存参数；复用 StrategyAdvancedFields 和 ProblemFilterFields。</code></pre></div></details></article><article><header><span class="number">02</span><h2>实际执行范围</h2></header><div class="comparison"><section><h3>原来</h3><p>执行器覆盖过滤条件，筛选失效。</p></section><section class="after"><h3>现在</h3><p>先按套件顺序取交集并应用数量上限，空交集明确报错，返回真实执行题数。</p></section></div><p class="reason"><strong>原因</strong> 确保模型只处理用户指定范围，异常不改写调用者配置。</p><details><summary>查看文件和关键代码 <span class="count">1</span></summary><div class="file" id="walkthrough-file-1-0"><div class="file-heading"><span class="tag">修改</span><code>src/benchmark/executor.py</code></div><pre><code>filter_problems(benchmark_problems, **self.config.problem_filters)
+run_config = self.config.model_copy(update={&quot;dataset_path&quot;: temp_name, &quot;problem_filters&quot;: None}, deep=True)</code></pre></div></details></article><footer><h2>实际验证</h2><div class="check"><span class="status passed">通过</span><div><strong>Builder 自检</strong><p>前端 384 测试；后端相关回归 100 测试；最终执行器调整后定向 4 测试；双语浏览器 mock 和 320px 布局；构建、ESLint、Ruff、格式检查通过。</p></div></div><div class="check"><span class="status passed">通过</span><div><strong>Runtime 检查</strong><p>OpenSpec strict validation and Comet Open, Build, Verify passed; Archive awaits delivery choice.</p></div></div><div class="check"><span class="status not-run">未执行</span><div><strong>独立验收</strong><p>本次执行配置 review_mode=off。</p></div></div><div class="check"><span class="status not-run">未执行</span><div><strong>未执行项</strong><p>未运行全量 Python 测试及付费模型。定向测试采用 --no-cov，不评估全局覆盖率。</p></div></div></footer></main><template id="walkthrough-data">eyJzdW1tYXJ5Ijoi5Z+65YeG6L+Q6KGM5pSv5oyB6auY57qn562W55Wl5Y+C5pWw5Y+K6aKY55uu562b6YCJ77yM5a6e6ZmF5omn6KGM5LiO6KGo5Y2V5p2h5Lu25LiA6Ie044CCIiwic2NvcGUiOiJIRUFEIOS4juacrOasoeW3peS9nOWMuuW3ruW8gu+8mzEwIOS4quS6pOS7mOaWh+S7tu+8jOaXoOWFtuS7lueUqOaIt+aUueWKqOOAgiIsImNoYW5nZXMiOlt7InRpdGxlIjoi6auY57qn562W55Wl5Y+K562b6YCJ6KGo5Y2VIiwiYmVmb3JlIjoi5LuF5o+Q5Lqk562W55Wl5ZCN56ew77yM5peg5rOV6K6+572u6L+H5ruk44CCIiwiYWZ0ZXIiOiLlpI3nlKjlhbHkuqvpq5jnuqfmjqfku7bvvIzmj5DkvpvlrozmlbTnrZbnlaXlrZfmrrXlj4rlm5vnsbvnrZvpgInvvIznqbrlgLzmsr/nlKjpu5jorqTjgIIiLCJyZWFzb24iOiLmlK/mjIHnjrDmnInmiafooYzphY3nva7lubbkv53nlZnnroDljZXmtYHnqIvjgIIiLCJmaWxlcyI6W3sicGF0aCI6ImZyb250ZW5kL3NyYy9iZW5jaG1hcmtzL3ZhbGlkYXRpb24udHMiLCJraW5kIjoibW9kaWZpZWQiLCJjb2RlIjoicnVuU3RyYXRlZ2llcyDihpIgdmFsaWRhdGVSdW5EcmFmdCDihpIgcnVuUGF5bG9hZO+8m+epuuWtl+auteecgeeVpe+8jHRlbXBlcmF0dXJlPTAg5L+d55WZ44CCIn0seyJwYXRoIjoiZnJvbnRlbmQvc3JjL3BhZ2VzL0JlbmNobWFya3MvQmVuY2htYXJrRGV0YWlsUGFnZS50c3giLCJraW5kIjoibW9kaWZpZWQiLCJjb2RlIjoi5oyJ5bey6YCJ562W55Wl5ZCN56ew5L+d5a2Y5Y+C5pWw77yb5aSN55SoIFN0cmF0ZWd5QWR2YW5jZWRGaWVsZHMg5ZKMIFByb2JsZW1GaWx0ZXJGaWVsZHPjgIIifV19LHsidGl0bGUiOiLlrp7pmYXmiafooYzojIPlm7QiLCJiZWZvcmUiOiLmiafooYzlmajopobnm5bov4fmu6TmnaHku7bvvIznrZvpgInlpLHmlYjjgIIiLCJhZnRlciI6IuWFiOaMieWll+S7tumhuuW6j+WPluS6pOmbhuW5tuW6lOeUqOaVsOmHj+S4iumZkO+8jOepuuS6pOmbhuaYjuehruaKpemUme+8jOi/lOWbnuecn+WunuaJp+ihjOmimOaVsOOAgiIsInJlYXNvbiI6IuehruS/neaooeWei+WPquWkhOeQhueUqOaIt+aMh+WumuiMg+WbtO+8jOW8guW4uOS4jeaUueWGmeiwg+eUqOiAhemFjee9ruOAgiIsImZpbGVzIjpbeyJwYXRoIjoic3JjL2JlbmNobWFyay9leGVjdXRvci5weSIsImtpbmQiOiJtb2RpZmllZCIsImNvZGUiOiJmaWx0ZXJfcHJvYmxlbXMoYmVuY2htYXJrX3Byb2JsZW1zLCAqKnNlbGYuY29uZmlnLnByb2JsZW1fZmlsdGVycylcbnJ1bl9jb25maWcgPSBzZWxmLmNvbmZpZy5tb2RlbF9jb3B5KHVwZGF0ZT17XCJkYXRhc2V0X3BhdGhcIjogdGVtcF9uYW1lLCBcInByb2JsZW1fZmlsdGVyc1wiOiBOb25lfSwgZGVlcD1UcnVlKSJ9XX1dLCJ2ZXJpZmljYXRpb24iOlt7ImxhYmVsIjoiQnVpbGRlciDoh6rmo4AiLCJzdGF0dXMiOiJwYXNzZWQiLCJkZXRhaWwiOiLliY3nq68gMzg0IOa1i+ivle+8m+WQjuerr+ebuOWFs+WbnuW9kiAxMDAg5rWL6K+V77yb5pyA57uI5omn6KGM5Zmo6LCD5pW05ZCO5a6a5ZCRIDQg5rWL6K+V77yb5Y+M6K+t5rWP6KeI5ZmoIG1vY2sg5ZKMIDMyMHB4IOW4g+WxgO+8m+aehOW7uuOAgUVTTGludOOAgVJ1ZmbjgIHmoLzlvI/mo4Dmn6XpgJrov4fjgIIifSx7ImxhYmVsIjoiUnVudGltZSDmo4Dmn6UiLCJzdGF0dXMiOiJwYXNzZWQiLCJkZXRhaWwiOiJPcGVuU3BlYyBzdHJpY3QgdmFsaWRhdGlvbiBhbmQgQ29tZXQgT3BlbiwgQnVpbGQsIFZlcmlmeSBwYXNzZWQ7IEFyY2hpdmUgYXdhaXRzIGRlbGl2ZXJ5IGNob2ljZS4ifSx7ImxhYmVsIjoi54us56uL6aqM5pS2Iiwic3RhdHVzIjoibm90LXJ1biIsImRldGFpbCI6IuacrOasoeaJp+ihjOmFjee9riByZXZpZXdfbW9kZT1vZmbjgIIifSx7ImxhYmVsIjoi5pyq5omn6KGM6aG5Iiwic3RhdHVzIjoibm90LXJ1biIsImRldGFpbCI6Iuacqui/kOihjOWFqOmHjyBQeXRob24g5rWL6K+V5Y+K5LuY6LS55qih5Z6L44CC5a6a5ZCR5rWL6K+V6YeH55SoIC0tbm8tY29277yM5LiN6K+E5Lyw5YWo5bGA6KaG55uW546H44CCIn1dLCJkaWFncmFtcyI6W3sidHlwZSI6ImZsb3ciLCJ0aXRsZSI6IumFjee9rui/m+WFpeWunumZheaJp+ihjCIsIm5vZGVzIjpbeyJpZCI6ImZvcm0iLCJsYWJlbCI6IuihqOWNleetlueVpeWPiuetm+mAiSJ9LHsiaWQiOiJhcGkiLCJsYWJlbCI6IkFQSSDmjIHkuYXljJbkuI4gSGFybmVzc0NvbmZpZyJ9LHsiaWQiOiJzdWl0ZSIsImxhYmVsIjoi5aWX5Lu26IyD5Zu05LiO5p2h5Lu25Lqk6ZuGIn0seyJpZCI6InJ1biIsImxhYmVsIjoi55yf5a6e562W55Wl5omn6KGM5Y+K5Y6G5Y+y57uT5p6cIn1dLCJlZGdlcyI6W3siZnJvbSI6ImZvcm0iLCJ0byI6ImFwaSJ9LHsiZnJvbSI6ImFwaSIsInRvIjoic3VpdGUifSx7ImZyb20iOiJzdWl0ZSIsInRvIjoicnVuIn1dfV19</template></body></html>

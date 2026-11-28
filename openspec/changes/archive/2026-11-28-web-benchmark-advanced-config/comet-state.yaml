@@ -1,0 +1,1870 @@
+# comet-execution: managed-run
+change_id: 223b3788-6a81-4150-bb15-614006d5bfed
+workflow: tweak
+language: zh-CN
+phase: archive
+context_compression: off
+build_mode: direct
+build_pause: null
+subagent_dispatch: null
+tdd_mode: direct
+review_mode: off
+isolation: branch
+verify_mode: light
+auto_transition: true
+base_ref: a39f3e8e1398f5ce629e5816459f25dbdf770d1c
+design_doc: null
+plan: null
+verify_result: pass
+verify_failures: 0
+verification_report: docs/superpowers/reports/2026-11-28-web-benchmark-advanced-config-verify.md
+branch_status: pending
+created_at: 2026-11-28
+verified_at: 2026-11-28
+archive_confirmation: confirmed
+archived: true
+bound_branch: comet/web-benchmark-advanced-config
+run_checkpoint:
+  schema: comet.workflow-run-checkpoint.v1
+  hash: 347cb93d955ef5609ca93f77a177fb63fc3447d0eb83addf9406aa1ffc465d14
+  run:
+    protocolVersion: 1
+    schemaVersion: 1
+    runId: web-benchmark-advanced-config
+    revision: 1
+    workflow:
+      id: comet-classic-tweak
+      version: "2"
+      hash: 518d3e8e12eb39899775cb7d2ddcc7ddeba10cb1f1d43cff7b03f2ca61a70c65
+    definitionHashes:
+      '["comet-classic-tweak","2"]': 518d3e8e12eb39899775cb7d2ddcc7ddeba10cb1f1d43cff7b03f2ca61a70c65
+    initialStateHash: d1cbc3c809cbc3fa3fcd08786c9cc9c1cdb7cbce28ec5e5c379b4a20bd94b16e
+    input:
+      change: web-benchmark-advanced-config
+      changeDir: openspec/changes/web-benchmark-advanced-config
+      workspaceBaseline:
+        ref: 5f7245e5-b9a5-4ceb-9aad-aecea08d8481
+    state:
+      archiveConfirmation: confirmed
+      archived: true
+      autoTransition: true
+      baseRef: a39f3e8e1398f5ce629e5816459f25dbdf770d1c
+      boundBranch: comet/web-benchmark-advanced-config
+      branchStatus: pending
+      buildMode: direct
+      buildPause: null
+      checkEpoch: 5
+      classicMigration: null
+      classicProfile: null
+      contextCompression: off
+      createdAt: 2026-11-28
+      designDoc: null
+      directOverride: null
+      handoffContext: null
+      handoffHash: null
+      isolation: branch
+      language: zh-CN
+      phase: archive
+      plan: null
+      reviewMode: off
+      subagentDispatch: null
+      tddMode: direct
+      verificationReport: docs/superpowers/reports/2026-11-28-web-benchmark-advanced-config-verify.md
+      verifiedAt: 2026-11-28
+      verifyFailures: 0
+      verifyMode: light
+      verifyResult: pass
+      workflow: tweak
+    status: running
+    sequence: 10
+    actions:
+      - attempt: 1
+        claim:
+          executorId: comet-classic-guard
+          token: portable-0a6830583b123c3c9401691f9d13e8adf20bb162c83424bbb77c8eb1981cfc7f
+        executionOrigin:
+          workflow:
+            hash: 518d3e8e12eb39899775cb7d2ddcc7ddeba10cb1f1d43cff7b03f2ca61a70c65
+            id: comet-classic-tweak
+            version: "2"
+        id: web-benchmark-advanced-config:1
+        input:
+          input:
+            change: web-benchmark-advanced-config
+            changeDir: openspec/changes/web-benchmark-advanced-config
+            workspaceBaseline:
+              ref: 5f7245e5-b9a5-4ceb-9aad-aecea08d8481
+          outputs: {}
+        inputHash: 39e2d9825f676dacc3df6b1a69036a45e28499bcffe8d3cfb22a3a5287694e1b
+        outcome:
+          actionId: web-benchmark-advanced-config:1
+          attempt: 1
+          claimToken: portable-0a6830583b123c3c9401691f9d13e8adf20bb162c83424bbb77c8eb1981cfc7f
+          inputHash: 39e2d9825f676dacc3df6b1a69036a45e28499bcffe8d3cfb22a3a5287694e1b
+          outcomeId: ff2571ed-a6e9-4702-8a16-5f2011020e95
+          output:
+            event: open-complete
+            requirementsEvidence:
+              ref: openspec/changes/web-benchmark-advanced-config
+          status: succeeded
+        protocolVersion: 1
+        receipts:
+          - hash: 50471f94ae50277ca7276e87a6c5e85cdd981729f5d920ac455692d6f85c6c35
+            outcomeId: ff2571ed-a6e9-4702-8a16-5f2011020e95
+        reconciliations: []
+        ref: comet-tweak
+        requiredCapabilities: []
+        retry: manual
+        runId: web-benchmark-advanced-config
+        status: succeeded
+        stepId: tweak.open
+        type: invoke_skill
+      - attempt: 1
+        claim:
+          executorId: comet-classic-state
+          sessionId: codex-528-root
+          token: portable-a9c25f7dc1b8c3a71cfa5aada0761ca2f9ba530d28840a6acd8103b3090f0ef2
+        executionOrigin:
+          workflow:
+            hash: 518d3e8e12eb39899775cb7d2ddcc7ddeba10cb1f1d43cff7b03f2ca61a70c65
+            id: comet-classic-tweak
+            version: "2"
+        id: web-benchmark-advanced-config:3
+        input:
+          input:
+            change: web-benchmark-advanced-config
+            changeDir: openspec/changes/web-benchmark-advanced-config
+            workspaceBaseline:
+              ref: 5f7245e5-b9a5-4ceb-9aad-aecea08d8481
+          outputs:
+            tweak.open:
+              event: open-complete
+              requirementsEvidence:
+                ref: openspec/changes/web-benchmark-advanced-config
+            tweak.open.evidence:
+              contentHash: 39e2d9825f676dacc3df6b1a69036a45e28499bcffe8d3cfb22a3a5287694e1b
+              ref: openspec/changes/web-benchmark-advanced-config
+        inputHash: ab78baecfac0fe9d608b275fec1f8164785355dc6221d0d2d1584afb082f4105
+        outcome:
+          actionId: web-benchmark-advanced-config:3
+          attempt: 1
+          claimToken: portable-a9c25f7dc1b8c3a71cfa5aada0761ca2f9ba530d28840a6acd8103b3090f0ef2
+          inputHash: ab78baecfac0fe9d608b275fec1f8164785355dc6221d0d2d1584afb082f4105
+          outcomeId: 1920a6ae-0146-49d1-933a-cc53fb022e57
+          output:
+            checks:
+              - name: "frontend: npm test"
+                note: 384 passed, 0 failed; /tmp/issue528-frontend-tests.log
+                result: passed
+              - name: "root: .venv/bin/python -m pytest --no-cov
+                  tests/test_web_benchmark_config.py
+                  tests/test_benchmark_run_budget.py
+                  tests/test_benchmark_task.py
+                  tests/test_api_experiment_benchmark.py -q"
+                note: 100 passed; /tmp/issue528-backend-regression.log. Final executor cleanup
+                  boundary adjustment rechecked by the 4 new tests;
+                  /tmp/issue528-final-backend.log.
+                result: passed
+              - name: "frontend: node scripts/verify-benchmark-config.mjs"
+                note: Chinese/English, invalid inputs, complete submitted request, old history,
+                  320px layout; /tmp/issue528-browser/checks.json and
+                  screenshots. /tmp/issue528-browser.log
+                result: passed
+              - name: "frontend: npm run build"
+                note: TypeScript and Vite passed; existing bundle size warning;
+                  /tmp/issue528-build.log
+                result: passed
+              - name: "frontend: npm run lint and changed-file prettier --check"
+                note: ESLint passed; 8 changed frontend files formatted; /tmp/issue528-lint.log
+                result: passed
+              - name: "root: ruff check, ruff format --check on executor and new test; git diff
+                  --check"
+                note: All passed.
+                result: passed
+              - name: comet classic openspec -- validate web-benchmark-advanced-config --strict
+                note: Change is valid.
+                result: passed
+            event: build-complete
+          status: succeeded
+        protocolVersion: 1
+        receipts:
+          - hash: 8576a843458bd9672c033837e36afd9661f8e34c30ea7b5cc0d71714675f6d5c
+            outcomeId: 1920a6ae-0146-49d1-933a-cc53fb022e57
+        reconciliations: []
+        ref: comet-build
+        requiredCapabilities: []
+        retry: manual
+        runId: web-benchmark-advanced-config
+        status: succeeded
+        stepId: tweak.build.execute
+        type: invoke_skill
+      - attempt: 1
+        claim:
+          executorId: comet-classic-guard
+          token: portable-40224c65d4d878a734030124fc4ee0f7e9fe2c2f135c89ded6e98bf51dc67869
+        executionOrigin:
+          workflow:
+            hash: 518d3e8e12eb39899775cb7d2ddcc7ddeba10cb1f1d43cff7b03f2ca61a70c65
+            id: comet-classic-tweak
+            version: "2"
+        id: web-benchmark-advanced-config:4
+        input:
+          input:
+            change: web-benchmark-advanced-config
+            changeDir: openspec/changes/web-benchmark-advanced-config
+            workspaceBaseline:
+              ref: 5f7245e5-b9a5-4ceb-9aad-aecea08d8481
+          outputs:
+            tweak.build.execute:
+              checks:
+                - name: "frontend: npm test"
+                  note: 384 passed, 0 failed; /tmp/issue528-frontend-tests.log
+                  result: passed
+                - name: "root: .venv/bin/python -m pytest --no-cov
+                    tests/test_web_benchmark_config.py
+                    tests/test_benchmark_run_budget.py
+                    tests/test_benchmark_task.py
+                    tests/test_api_experiment_benchmark.py -q"
+                  note: 100 passed; /tmp/issue528-backend-regression.log. Final executor cleanup
+                    boundary adjustment rechecked by the 4 new tests;
+                    /tmp/issue528-final-backend.log.
+                  result: passed
+                - name: "frontend: node scripts/verify-benchmark-config.mjs"
+                  note: Chinese/English, invalid inputs, complete submitted request, old history,
+                    320px layout; /tmp/issue528-browser/checks.json and
+                    screenshots. /tmp/issue528-browser.log
+                  result: passed
+                - name: "frontend: npm run build"
+                  note: TypeScript and Vite passed; existing bundle size warning;
+                    /tmp/issue528-build.log
+                  result: passed
+                - name: "frontend: npm run lint and changed-file prettier --check"
+                  note: ESLint passed; 8 changed frontend files formatted; /tmp/issue528-lint.log
+                  result: passed
+                - name: "root: ruff check, ruff format --check on executor and new test; git diff
+                    --check"
+                  note: All passed.
+                  result: passed
+                - name: comet classic openspec -- validate web-benchmark-advanced-config --strict
+                  note: Change is valid.
+                  result: passed
+              event: build-complete
+            tweak.open:
+              event: open-complete
+              requirementsEvidence:
+                ref: openspec/changes/web-benchmark-advanced-config
+            tweak.open.evidence:
+              contentHash: 39e2d9825f676dacc3df6b1a69036a45e28499bcffe8d3cfb22a3a5287694e1b
+              ref: openspec/changes/web-benchmark-advanced-config
+        inputHash: 9dbabd35e113dcad98e22afce12280b1759387fa2fb4abceba683e8a9a54637c
+        outcome:
+          actionId: web-benchmark-advanced-config:4
+          attempt: 1
+          claimToken: portable-40224c65d4d878a734030124fc4ee0f7e9fe2c2f135c89ded6e98bf51dc67869
+          inputHash: 9dbabd35e113dcad98e22afce12280b1759387fa2fb4abceba683e8a9a54637c
+          outcomeId: 26363c87-e854-468d-9979-4df33ba45150
+          output:
+            checks:
+              - name: "frontend: npm test"
+                note: 384 passed, 0 failed; /tmp/issue528-frontend-tests.log
+                result: passed
+              - name: "root: .venv/bin/python -m pytest --no-cov
+                  tests/test_web_benchmark_config.py
+                  tests/test_benchmark_run_budget.py
+                  tests/test_benchmark_task.py
+                  tests/test_api_experiment_benchmark.py -q"
+                note: 100 passed; /tmp/issue528-backend-regression.log. Final executor cleanup
+                  boundary adjustment rechecked by the 4 new tests;
+                  /tmp/issue528-final-backend.log.
+                result: passed
+              - name: "frontend: node scripts/verify-benchmark-config.mjs"
+                note: Chinese/English, invalid inputs, complete submitted request, old history,
+                  320px layout; /tmp/issue528-browser/checks.json and
+                  screenshots. /tmp/issue528-browser.log
+                result: passed
+              - name: "frontend: npm run build"
+                note: TypeScript and Vite passed; existing bundle size warning;
+                  /tmp/issue528-build.log
+                result: passed
+              - name: "frontend: npm run lint and changed-file prettier --check"
+                note: ESLint passed; 8 changed frontend files formatted; /tmp/issue528-lint.log
+                result: passed
+              - name: "root: ruff check, ruff format --check on executor and new test; git diff
+                  --check"
+                note: All passed.
+                result: passed
+              - name: comet classic openspec -- validate web-benchmark-advanced-config --strict
+                note: Change is valid.
+                result: passed
+            event: verification-ready
+            verificationReport: docs/superpowers/reports/2026-11-28-web-benchmark-advanced-config-verify.md
+          status: succeeded
+        protocolVersion: 1
+        receipts:
+          - hash: 2d38310ed9a63a03d82b393c83254938eab68038ca61db569f2748f31216d0be
+            outcomeId: 26363c87-e854-468d-9979-4df33ba45150
+        reconciliations: []
+        ref: comet-verify
+        requiredCapabilities: []
+        retry: manual
+        runId: web-benchmark-advanced-config
+        status: succeeded
+        stepId: tweak.verify.run
+        type: invoke_skill
+      - attempt: 1
+        claim:
+          executorId: comet-classic-state
+          token: portable-7fca0d4a5d5d436d40d619ef2fe6d0cfbb9cb7207d66e34849db089ade6724bf
+        executionOrigin:
+          workflow:
+            hash: 518d3e8e12eb39899775cb7d2ddcc7ddeba10cb1f1d43cff7b03f2ca61a70c65
+            id: comet-classic-tweak
+            version: "2"
+        id: web-benchmark-advanced-config:6
+        input:
+          input:
+            change: web-benchmark-advanced-config
+            changeDir: openspec/changes/web-benchmark-advanced-config
+            workspaceBaseline:
+              ref: 5f7245e5-b9a5-4ceb-9aad-aecea08d8481
+          outputs:
+            tweak.build.execute:
+              checks:
+                - name: "frontend: npm test"
+                  note: 384 passed, 0 failed; /tmp/issue528-frontend-tests.log
+                  result: passed
+                - name: "root: .venv/bin/python -m pytest --no-cov
+                    tests/test_web_benchmark_config.py
+                    tests/test_benchmark_run_budget.py
+                    tests/test_benchmark_task.py
+                    tests/test_api_experiment_benchmark.py -q"
+                  note: 100 passed; /tmp/issue528-backend-regression.log. Final executor cleanup
+                    boundary adjustment rechecked by the 4 new tests;
+                    /tmp/issue528-final-backend.log.
+                  result: passed
+                - name: "frontend: node scripts/verify-benchmark-config.mjs"
+                  note: Chinese/English, invalid inputs, complete submitted request, old history,
+                    320px layout; /tmp/issue528-browser/checks.json and
+                    screenshots. /tmp/issue528-browser.log
+                  result: passed
+                - name: "frontend: npm run build"
+                  note: TypeScript and Vite passed; existing bundle size warning;
+                    /tmp/issue528-build.log
+                  result: passed
+                - name: "frontend: npm run lint and changed-file prettier --check"
+                  note: ESLint passed; 8 changed frontend files formatted; /tmp/issue528-lint.log
+                  result: passed
+                - name: "root: ruff check, ruff format --check on executor and new test; git diff
+                    --check"
+                  note: All passed.
+                  result: passed
+                - name: comet classic openspec -- validate web-benchmark-advanced-config --strict
+                  note: Change is valid.
+                  result: passed
+              event: build-complete
+            tweak.open:
+              event: open-complete
+              requirementsEvidence:
+                ref: openspec/changes/web-benchmark-advanced-config
+            tweak.open.evidence:
+              contentHash: 39e2d9825f676dacc3df6b1a69036a45e28499bcffe8d3cfb22a3a5287694e1b
+              ref: openspec/changes/web-benchmark-advanced-config
+            tweak.verify.report.evidence:
+              contentHash: 9dbabd35e113dcad98e22afce12280b1759387fa2fb4abceba683e8a9a54637c
+              ref: docs/superpowers/reports/2026-11-28-web-benchmark-advanced-config-verify.md
+            tweak.verify.run:
+              checks:
+                - name: "frontend: npm test"
+                  note: 384 passed, 0 failed; /tmp/issue528-frontend-tests.log
+                  result: passed
+                - name: "root: .venv/bin/python -m pytest --no-cov
+                    tests/test_web_benchmark_config.py
+                    tests/test_benchmark_run_budget.py
+                    tests/test_benchmark_task.py
+                    tests/test_api_experiment_benchmark.py -q"
+                  note: 100 passed; /tmp/issue528-backend-regression.log. Final executor cleanup
+                    boundary adjustment rechecked by the 4 new tests;
+                    /tmp/issue528-final-backend.log.
+                  result: passed
+                - name: "frontend: node scripts/verify-benchmark-config.mjs"
+                  note: Chinese/English, invalid inputs, complete submitted request, old history,
+                    320px layout; /tmp/issue528-browser/checks.json and
+                    screenshots. /tmp/issue528-browser.log
+                  result: passed
+                - name: "frontend: npm run build"
+                  note: TypeScript and Vite passed; existing bundle size warning;
+                    /tmp/issue528-build.log
+                  result: passed
+                - name: "frontend: npm run lint and changed-file prettier --check"
+                  note: ESLint passed; 8 changed frontend files formatted; /tmp/issue528-lint.log
+                  result: passed
+                - name: "root: ruff check, ruff format --check on executor and new test; git diff
+                    --check"
+                  note: All passed.
+                  result: passed
+                - name: comet classic openspec -- validate web-benchmark-advanced-config --strict
+                  note: Change is valid.
+                  result: passed
+              event: verification-ready
+              verificationReport: docs/superpowers/reports/2026-11-28-web-benchmark-advanced-config-verify.md
+        inputHash: c618e7a9712515ec6c12af06bf619b8be9111829608d01996c5f83114f93eb99
+        outcome:
+          actionId: web-benchmark-advanced-config:6
+          attempt: 1
+          claimToken: portable-7fca0d4a5d5d436d40d619ef2fe6d0cfbb9cb7207d66e34849db089ade6724bf
+          inputHash: c618e7a9712515ec6c12af06bf619b8be9111829608d01996c5f83114f93eb99
+          outcomeId: 0c21ccac-8ec2-43c3-90c7-095847eab7f7
+          output:
+            prBaseBranch: main
+            remote: origin
+            summary: "Issue #528：在 comet/web-benchmark-advanced-config 分支归档已验证的 10 个交付文件及
+              Comet 产物，同步 benchmark 和 frontend/benchmark-management
+              两项主规格并创建唯一提交；本地提交为推荐选项。如选择 push/pr，推送 origin 的当前分支，PR base 为
+              main。无无关改动。"
+            targetBranch: comet/web-benchmark-advanced-config
+          status: succeeded
+        protocolVersion: 1
+        receipts:
+          - hash: 957aa90211e66628e2001e5a3420de09ccad8f544ccdce501c741089201ba3e8
+            outcomeId: 0c21ccac-8ec2-43c3-90c7-095847eab7f7
+        reconciliations: []
+        ref: comet-archive
+        requiredCapabilities: []
+        retry: manual
+        runId: web-benchmark-advanced-config
+        status: succeeded
+        stepId: tweak.archive.prepare
+        type: invoke_skill
+      - attempt: 1
+        claim:
+          executorId: comet-classic-archive-preflight
+          token: portable-ac3456b238d46a12fc3be832bfcc67d335a350169491ee6e63a84e0ccdb8360c
+        executionOrigin:
+          workflow:
+            hash: 518d3e8e12eb39899775cb7d2ddcc7ddeba10cb1f1d43cff7b03f2ca61a70c65
+            id: comet-classic-tweak
+            version: "2"
+        id: web-benchmark-advanced-config:8
+        input:
+          input:
+            change: web-benchmark-advanced-config
+            changeDir: openspec/changes/web-benchmark-advanced-config
+            workspaceBaseline:
+              ref: 5f7245e5-b9a5-4ceb-9aad-aecea08d8481
+          outputs:
+            tweak.archive.confirm:
+              choice: pr
+              proposal:
+                input:
+                  change: web-benchmark-advanced-config
+                  changeDir: openspec/changes/web-benchmark-advanced-config
+                  workspaceBaseline:
+                    ref: 5f7245e5-b9a5-4ceb-9aad-aecea08d8481
+                outputs:
+                  tweak.archive.prepare:
+                    prBaseBranch: main
+                    remote: origin
+                    summary: "Issue #528：在 comet/web-benchmark-advanced-config 分支归档已验证的 10 个交付文件及
+                      Comet 产物，同步 benchmark 和 frontend/benchmark-management
+                      两项主规格并创建唯一提交；本地提交为推荐选项。如选择 push/pr，推送 origin 的当前分支，PR base
+                      为 main。无无关改动。"
+                    targetBranch: comet/web-benchmark-advanced-config
+            tweak.archive.prepare:
+              prBaseBranch: main
+              remote: origin
+              summary: "Issue #528：在 comet/web-benchmark-advanced-config 分支归档已验证的 10 个交付文件及
+                Comet 产物，同步 benchmark 和 frontend/benchmark-management
+                两项主规格并创建唯一提交；本地提交为推荐选项。如选择 push/pr，推送 origin 的当前分支，PR base 为
+                main。无无关改动。"
+              targetBranch: comet/web-benchmark-advanced-config
+            tweak.build.execute:
+              checks:
+                - name: "frontend: npm test"
+                  note: 384 passed, 0 failed; /tmp/issue528-frontend-tests.log
+                  result: passed
+                - name: "root: .venv/bin/python -m pytest --no-cov
+                    tests/test_web_benchmark_config.py
+                    tests/test_benchmark_run_budget.py
+                    tests/test_benchmark_task.py
+                    tests/test_api_experiment_benchmark.py -q"
+                  note: 100 passed; /tmp/issue528-backend-regression.log. Final executor cleanup
+                    boundary adjustment rechecked by the 4 new tests;
+                    /tmp/issue528-final-backend.log.
+                  result: passed
+                - name: "frontend: node scripts/verify-benchmark-config.mjs"
+                  note: Chinese/English, invalid inputs, complete submitted request, old history,
+                    320px layout; /tmp/issue528-browser/checks.json and
+                    screenshots. /tmp/issue528-browser.log
+                  result: passed
+                - name: "frontend: npm run build"
+                  note: TypeScript and Vite passed; existing bundle size warning;
+                    /tmp/issue528-build.log
+                  result: passed
+                - name: "frontend: npm run lint and changed-file prettier --check"
+                  note: ESLint passed; 8 changed frontend files formatted; /tmp/issue528-lint.log
+                  result: passed
+                - name: "root: ruff check, ruff format --check on executor and new test; git diff
+                    --check"
+                  note: All passed.
+                  result: passed
+                - name: comet classic openspec -- validate web-benchmark-advanced-config --strict
+                  note: Change is valid.
+                  result: passed
+              event: build-complete
+            tweak.open:
+              event: open-complete
+              requirementsEvidence:
+                ref: openspec/changes/web-benchmark-advanced-config
+            tweak.open.evidence:
+              contentHash: 39e2d9825f676dacc3df6b1a69036a45e28499bcffe8d3cfb22a3a5287694e1b
+              ref: openspec/changes/web-benchmark-advanced-config
+            tweak.verify.report.evidence:
+              contentHash: 9dbabd35e113dcad98e22afce12280b1759387fa2fb4abceba683e8a9a54637c
+              ref: docs/superpowers/reports/2026-11-28-web-benchmark-advanced-config-verify.md
+            tweak.verify.run:
+              checks:
+                - name: "frontend: npm test"
+                  note: 384 passed, 0 failed; /tmp/issue528-frontend-tests.log
+                  result: passed
+                - name: "root: .venv/bin/python -m pytest --no-cov
+                    tests/test_web_benchmark_config.py
+                    tests/test_benchmark_run_budget.py
+                    tests/test_benchmark_task.py
+                    tests/test_api_experiment_benchmark.py -q"
+                  note: 100 passed; /tmp/issue528-backend-regression.log. Final executor cleanup
+                    boundary adjustment rechecked by the 4 new tests;
+                    /tmp/issue528-final-backend.log.
+                  result: passed
+                - name: "frontend: node scripts/verify-benchmark-config.mjs"
+                  note: Chinese/English, invalid inputs, complete submitted request, old history,
+                    320px layout; /tmp/issue528-browser/checks.json and
+                    screenshots. /tmp/issue528-browser.log
+                  result: passed
+                - name: "frontend: npm run build"
+                  note: TypeScript and Vite passed; existing bundle size warning;
+                    /tmp/issue528-build.log
+                  result: passed
+                - name: "frontend: npm run lint and changed-file prettier --check"
+                  note: ESLint passed; 8 changed frontend files formatted; /tmp/issue528-lint.log
+                  result: passed
+                - name: "root: ruff check, ruff format --check on executor and new test; git diff
+                    --check"
+                  note: All passed.
+                  result: passed
+                - name: comet classic openspec -- validate web-benchmark-advanced-config --strict
+                  note: Change is valid.
+                  result: passed
+              event: verification-ready
+              verificationReport: docs/superpowers/reports/2026-11-28-web-benchmark-advanced-config-verify.md
+        inputHash: 601d40c0d487426696bc66247e3e52b5b142729dfc08558e233050a2caa5c6d7
+        outcome:
+          actionId: web-benchmark-advanced-config:8
+          attempt: 1
+          claimToken: portable-ac3456b238d46a12fc3be832bfcc67d335a350169491ee6e63a84e0ccdb8360c
+          inputHash: 601d40c0d487426696bc66247e3e52b5b142729dfc08558e233050a2caa5c6d7
+          outcomeId: 2adfc407-04e8-4115-a3e2-7d2a117aca68
+          output:
+            baseCommit: a39f3e8e1398f5ce629e5816459f25dbdf770d1c
+            deliveryAction: pr
+            deliveryPaths:
+              - frontend/scripts/verify-benchmark-config.mjs
+              - frontend/src/benchmarks/types.ts
+              - frontend/src/benchmarks/validation.test.ts
+              - frontend/src/benchmarks/validation.ts
+              - frontend/src/experiments/AdvancedFields.tsx
+              - frontend/src/i18n/en-US.ts
+              - frontend/src/i18n/zh-CN.ts
+              - frontend/src/pages/Benchmarks/BenchmarkDetailPage.tsx
+              - src/benchmark/executor.py
+              - tests/test_web_benchmark_config.py
+            prBaseBranch: main
+            remote: origin
+            remoteIdentity: 128eeb1e6f0d21b25601fcb7f9aad36adfdfb4d76f37f54f004760410190f351
+            targetBranch: comet/web-benchmark-advanced-config
+            verifiedBranch: comet/web-benchmark-advanced-config
+          status: succeeded
+        protocolVersion: 1
+        receipts:
+          - hash: 680da415747961d2ad57e404380a31ae798cb8fc6c2ed6bba5c4ff3869e650ed
+            outcomeId: 2adfc407-04e8-4115-a3e2-7d2a117aca68
+        reconciliations: []
+        ref: classic-archive-preflight
+        requiredCapabilities: []
+        retry: manual
+        runId: web-benchmark-advanced-config
+        status: succeeded
+        stepId: tweak.archive.preflight
+        type: call_tool
+      - attempt: 1
+        claim:
+          executorId: comet-classic-archive
+          token: portable-9c24a156b16e24bc2fd4938bb2803c4699579885902aea65f00a72b21562e4f7
+        executionOrigin:
+          workflow:
+            hash: 518d3e8e12eb39899775cb7d2ddcc7ddeba10cb1f1d43cff7b03f2ca61a70c65
+            id: comet-classic-tweak
+            version: "2"
+        id: web-benchmark-advanced-config:9
+        input:
+          input:
+            change: web-benchmark-advanced-config
+            changeDir: openspec/changes/web-benchmark-advanced-config
+            workspaceBaseline:
+              ref: 5f7245e5-b9a5-4ceb-9aad-aecea08d8481
+          outputs:
+            tweak.archive.confirm:
+              choice: pr
+              proposal:
+                input:
+                  change: web-benchmark-advanced-config
+                  changeDir: openspec/changes/web-benchmark-advanced-config
+                  workspaceBaseline:
+                    ref: 5f7245e5-b9a5-4ceb-9aad-aecea08d8481
+                outputs:
+                  tweak.archive.prepare:
+                    prBaseBranch: main
+                    remote: origin
+                    summary: "Issue #528：在 comet/web-benchmark-advanced-config 分支归档已验证的 10 个交付文件及
+                      Comet 产物，同步 benchmark 和 frontend/benchmark-management
+                      两项主规格并创建唯一提交；本地提交为推荐选项。如选择 push/pr，推送 origin 的当前分支，PR base
+                      为 main。无无关改动。"
+                    targetBranch: comet/web-benchmark-advanced-config
+            tweak.archive.preflight:
+              baseCommit: a39f3e8e1398f5ce629e5816459f25dbdf770d1c
+              deliveryAction: pr
+              deliveryPaths:
+                - frontend/scripts/verify-benchmark-config.mjs
+                - frontend/src/benchmarks/types.ts
+                - frontend/src/benchmarks/validation.test.ts
+                - frontend/src/benchmarks/validation.ts
+                - frontend/src/experiments/AdvancedFields.tsx
+                - frontend/src/i18n/en-US.ts
+                - frontend/src/i18n/zh-CN.ts
+                - frontend/src/pages/Benchmarks/BenchmarkDetailPage.tsx
+                - src/benchmark/executor.py
+                - tests/test_web_benchmark_config.py
+              prBaseBranch: main
+              remote: origin
+              remoteIdentity: 128eeb1e6f0d21b25601fcb7f9aad36adfdfb4d76f37f54f004760410190f351
+              targetBranch: comet/web-benchmark-advanced-config
+              verifiedBranch: comet/web-benchmark-advanced-config
+            tweak.archive.prepare:
+              prBaseBranch: main
+              remote: origin
+              summary: "Issue #528：在 comet/web-benchmark-advanced-config 分支归档已验证的 10 个交付文件及
+                Comet 产物，同步 benchmark 和 frontend/benchmark-management
+                两项主规格并创建唯一提交；本地提交为推荐选项。如选择 push/pr，推送 origin 的当前分支，PR base 为
+                main。无无关改动。"
+              targetBranch: comet/web-benchmark-advanced-config
+            tweak.build.execute:
+              checks:
+                - name: "frontend: npm test"
+                  note: 384 passed, 0 failed; /tmp/issue528-frontend-tests.log
+                  result: passed
+                - name: "root: .venv/bin/python -m pytest --no-cov
+                    tests/test_web_benchmark_config.py
+                    tests/test_benchmark_run_budget.py
+                    tests/test_benchmark_task.py
+                    tests/test_api_experiment_benchmark.py -q"
+                  note: 100 passed; /tmp/issue528-backend-regression.log. Final executor cleanup
+                    boundary adjustment rechecked by the 4 new tests;
+                    /tmp/issue528-final-backend.log.
+                  result: passed
+                - name: "frontend: node scripts/verify-benchmark-config.mjs"
+                  note: Chinese/English, invalid inputs, complete submitted request, old history,
+                    320px layout; /tmp/issue528-browser/checks.json and
+                    screenshots. /tmp/issue528-browser.log
+                  result: passed
+                - name: "frontend: npm run build"
+                  note: TypeScript and Vite passed; existing bundle size warning;
+                    /tmp/issue528-build.log
+                  result: passed
+                - name: "frontend: npm run lint and changed-file prettier --check"
+                  note: ESLint passed; 8 changed frontend files formatted; /tmp/issue528-lint.log
+                  result: passed
+                - name: "root: ruff check, ruff format --check on executor and new test; git diff
+                    --check"
+                  note: All passed.
+                  result: passed
+                - name: comet classic openspec -- validate web-benchmark-advanced-config --strict
+                  note: Change is valid.
+                  result: passed
+              event: build-complete
+            tweak.open:
+              event: open-complete
+              requirementsEvidence:
+                ref: openspec/changes/web-benchmark-advanced-config
+            tweak.open.evidence:
+              contentHash: 39e2d9825f676dacc3df6b1a69036a45e28499bcffe8d3cfb22a3a5287694e1b
+              ref: openspec/changes/web-benchmark-advanced-config
+            tweak.verify.report.evidence:
+              contentHash: 9dbabd35e113dcad98e22afce12280b1759387fa2fb4abceba683e8a9a54637c
+              ref: docs/superpowers/reports/2026-11-28-web-benchmark-advanced-config-verify.md
+            tweak.verify.run:
+              checks:
+                - name: "frontend: npm test"
+                  note: 384 passed, 0 failed; /tmp/issue528-frontend-tests.log
+                  result: passed
+                - name: "root: .venv/bin/python -m pytest --no-cov
+                    tests/test_web_benchmark_config.py
+                    tests/test_benchmark_run_budget.py
+                    tests/test_benchmark_task.py
+                    tests/test_api_experiment_benchmark.py -q"
+                  note: 100 passed; /tmp/issue528-backend-regression.log. Final executor cleanup
+                    boundary adjustment rechecked by the 4 new tests;
+                    /tmp/issue528-final-backend.log.
+                  result: passed
+                - name: "frontend: node scripts/verify-benchmark-config.mjs"
+                  note: Chinese/English, invalid inputs, complete submitted request, old history,
+                    320px layout; /tmp/issue528-browser/checks.json and
+                    screenshots. /tmp/issue528-browser.log
+                  result: passed
+                - name: "frontend: npm run build"
+                  note: TypeScript and Vite passed; existing bundle size warning;
+                    /tmp/issue528-build.log
+                  result: passed
+                - name: "frontend: npm run lint and changed-file prettier --check"
+                  note: ESLint passed; 8 changed frontend files formatted; /tmp/issue528-lint.log
+                  result: passed
+                - name: "root: ruff check, ruff format --check on executor and new test; git diff
+                    --check"
+                  note: All passed.
+                  result: passed
+                - name: comet classic openspec -- validate web-benchmark-advanced-config --strict
+                  note: Change is valid.
+                  result: passed
+              event: verification-ready
+              verificationReport: docs/superpowers/reports/2026-11-28-web-benchmark-advanced-config-verify.md
+        inputHash: db4b527f9b0c664339f89254963469e9080423c86782d4482196d5b6c9f708f8
+        outcome:
+          actionId: web-benchmark-advanced-config:9
+          artifacts: []
+          attempt: 1
+          claimToken: portable-9c24a156b16e24bc2fd4938bb2803c4699579885902aea65f00a72b21562e4f7
+          inputHash: db4b527f9b0c664339f89254963469e9080423c86782d4482196d5b6c9f708f8
+          outcomeId: f2c71818-d254-48ea-918d-e822fb4c3bcb
+          output:
+            archiveDirectory: openspec/changes/archive/2026-11-28-web-benchmark-advanced-config
+          status: succeeded
+        protocolVersion: 1
+        receipts:
+          - hash: 62d5bc48821ba3f9964ff4e87cc679b573e0e47b56e97ae8d981de8a20b6a3a1
+            outcomeId: f2c71818-d254-48ea-918d-e822fb4c3bcb
+        reconciliations: []
+        ref: classic-archive
+        requiredCapabilities: []
+        retry: manual
+        runId: web-benchmark-advanced-config
+        status: succeeded
+        stepId: tweak.archive.execute
+        type: call_tool
+      - attempt: 1
+        id: web-benchmark-advanced-config:10
+        input:
+          input:
+            change: web-benchmark-advanced-config
+            changeDir: openspec/changes/web-benchmark-advanced-config
+            workspaceBaseline:
+              ref: 5f7245e5-b9a5-4ceb-9aad-aecea08d8481
+          outputs:
+            tweak.archive.confirm:
+              choice: pr
+              proposal:
+                input:
+                  change: web-benchmark-advanced-config
+                  changeDir: openspec/changes/web-benchmark-advanced-config
+                  workspaceBaseline:
+                    ref: 5f7245e5-b9a5-4ceb-9aad-aecea08d8481
+                outputs:
+                  tweak.archive.prepare:
+                    prBaseBranch: main
+                    remote: origin
+                    summary: "Issue #528：在 comet/web-benchmark-advanced-config 分支归档已验证的 10 个交付文件及
+                      Comet 产物，同步 benchmark 和 frontend/benchmark-management
+                      两项主规格并创建唯一提交；本地提交为推荐选项。如选择 push/pr，推送 origin 的当前分支，PR base
+                      为 main。无无关改动。"
+                    targetBranch: comet/web-benchmark-advanced-config
+            tweak.archive.execute:
+              archiveDirectory: openspec/changes/archive/2026-11-28-web-benchmark-advanced-config
+            tweak.archive.preflight:
+              baseCommit: a39f3e8e1398f5ce629e5816459f25dbdf770d1c
+              deliveryAction: pr
+              deliveryPaths:
+                - frontend/scripts/verify-benchmark-config.mjs
+                - frontend/src/benchmarks/types.ts
+                - frontend/src/benchmarks/validation.test.ts
+                - frontend/src/benchmarks/validation.ts
+                - frontend/src/experiments/AdvancedFields.tsx
+                - frontend/src/i18n/en-US.ts
+                - frontend/src/i18n/zh-CN.ts
+                - frontend/src/pages/Benchmarks/BenchmarkDetailPage.tsx
+                - src/benchmark/executor.py
+                - tests/test_web_benchmark_config.py
+              prBaseBranch: main
+              remote: origin
+              remoteIdentity: 128eeb1e6f0d21b25601fcb7f9aad36adfdfb4d76f37f54f004760410190f351
+              targetBranch: comet/web-benchmark-advanced-config
+              verifiedBranch: comet/web-benchmark-advanced-config
+            tweak.archive.prepare:
+              prBaseBranch: main
+              remote: origin
+              summary: "Issue #528：在 comet/web-benchmark-advanced-config 分支归档已验证的 10 个交付文件及
+                Comet 产物，同步 benchmark 和 frontend/benchmark-management
+                两项主规格并创建唯一提交；本地提交为推荐选项。如选择 push/pr，推送 origin 的当前分支，PR base 为
+                main。无无关改动。"
+              targetBranch: comet/web-benchmark-advanced-config
+            tweak.build.execute:
+              checks:
+                - name: "frontend: npm test"
+                  note: 384 passed, 0 failed; /tmp/issue528-frontend-tests.log
+                  result: passed
+                - name: "root: .venv/bin/python -m pytest --no-cov
+                    tests/test_web_benchmark_config.py
+                    tests/test_benchmark_run_budget.py
+                    tests/test_benchmark_task.py
+                    tests/test_api_experiment_benchmark.py -q"
+                  note: 100 passed; /tmp/issue528-backend-regression.log. Final executor cleanup
+                    boundary adjustment rechecked by the 4 new tests;
+                    /tmp/issue528-final-backend.log.
+                  result: passed
+                - name: "frontend: node scripts/verify-benchmark-config.mjs"
+                  note: Chinese/English, invalid inputs, complete submitted request, old history,
+                    320px layout; /tmp/issue528-browser/checks.json and
+                    screenshots. /tmp/issue528-browser.log
+                  result: passed
+                - name: "frontend: npm run build"
+                  note: TypeScript and Vite passed; existing bundle size warning;
+                    /tmp/issue528-build.log
+                  result: passed
+                - name: "frontend: npm run lint and changed-file prettier --check"
+                  note: ESLint passed; 8 changed frontend files formatted; /tmp/issue528-lint.log
+                  result: passed
+                - name: "root: ruff check, ruff format --check on executor and new test; git diff
+                    --check"
+                  note: All passed.
+                  result: passed
+                - name: comet classic openspec -- validate web-benchmark-advanced-config --strict
+                  note: Change is valid.
+                  result: passed
+              event: build-complete
+            tweak.open:
+              event: open-complete
+              requirementsEvidence:
+                ref: openspec/changes/web-benchmark-advanced-config
+            tweak.open.evidence:
+              contentHash: 39e2d9825f676dacc3df6b1a69036a45e28499bcffe8d3cfb22a3a5287694e1b
+              ref: openspec/changes/web-benchmark-advanced-config
+            tweak.verify.report.evidence:
+              contentHash: 9dbabd35e113dcad98e22afce12280b1759387fa2fb4abceba683e8a9a54637c
+              ref: docs/superpowers/reports/2026-11-28-web-benchmark-advanced-config-verify.md
+            tweak.verify.run:
+              checks:
+                - name: "frontend: npm test"
+                  note: 384 passed, 0 failed; /tmp/issue528-frontend-tests.log
+                  result: passed
+                - name: "root: .venv/bin/python -m pytest --no-cov
+                    tests/test_web_benchmark_config.py
+                    tests/test_benchmark_run_budget.py
+                    tests/test_benchmark_task.py
+                    tests/test_api_experiment_benchmark.py -q"
+                  note: 100 passed; /tmp/issue528-backend-regression.log. Final executor cleanup
+                    boundary adjustment rechecked by the 4 new tests;
+                    /tmp/issue528-final-backend.log.
+                  result: passed
+                - name: "frontend: node scripts/verify-benchmark-config.mjs"
+                  note: Chinese/English, invalid inputs, complete submitted request, old history,
+                    320px layout; /tmp/issue528-browser/checks.json and
+                    screenshots. /tmp/issue528-browser.log
+                  result: passed
+                - name: "frontend: npm run build"
+                  note: TypeScript and Vite passed; existing bundle size warning;
+                    /tmp/issue528-build.log
+                  result: passed
+                - name: "frontend: npm run lint and changed-file prettier --check"
+                  note: ESLint passed; 8 changed frontend files formatted; /tmp/issue528-lint.log
+                  result: passed
+                - name: "root: ruff check, ruff format --check on executor and new test; git diff
+                    --check"
+                  note: All passed.
+                  result: passed
+                - name: comet classic openspec -- validate web-benchmark-advanced-config --strict
+                  note: Change is valid.
+                  result: passed
+              event: verification-ready
+              verificationReport: docs/superpowers/reports/2026-11-28-web-benchmark-advanced-config-verify.md
+        inputHash: 25a2b24dc62d28e80d746b53f832f9b9d0056273bc1c5d207d9f431d314294d5
+        protocolVersion: 1
+        receipts: []
+        reconciliations: []
+        ref: comet-archive
+        requiredCapabilities: []
+        retry: manual
+        runId: web-benchmark-advanced-config
+        status: pending
+        stepId: tweak.archive.deliver
+        type: invoke_skill
+    actionContexts:
+      web-benchmark-advanced-config:1:
+        results: {}
+        sequence: 1
+      web-benchmark-advanced-config:10:
+        results:
+          tweak.archive.confirm:
+            sequence: 7
+            value:
+              choice: pr
+              proposal:
+                input:
+                  change: web-benchmark-advanced-config
+                  changeDir: openspec/changes/web-benchmark-advanced-config
+                  workspaceBaseline:
+                    ref: 5f7245e5-b9a5-4ceb-9aad-aecea08d8481
+                outputs:
+                  tweak.archive.prepare:
+                    prBaseBranch: main
+                    remote: origin
+                    summary: "Issue #528：在 comet/web-benchmark-advanced-config 分支归档已验证的 10 个交付文件及
+                      Comet 产物，同步 benchmark 和 frontend/benchmark-management
+                      两项主规格并创建唯一提交；本地提交为推荐选项。如选择 push/pr，推送 origin 的当前分支，PR base
+                      为 main。无无关改动。"
+                    targetBranch: comet/web-benchmark-advanced-config
+          tweak.archive.execute:
+            sequence: 9
+            value:
+              archiveDirectory: openspec/changes/archive/2026-11-28-web-benchmark-advanced-config
+          tweak.archive.preflight:
+            sequence: 8
+            value:
+              baseCommit: a39f3e8e1398f5ce629e5816459f25dbdf770d1c
+              deliveryAction: pr
+              deliveryPaths:
+                - frontend/scripts/verify-benchmark-config.mjs
+                - frontend/src/benchmarks/types.ts
+                - frontend/src/benchmarks/validation.test.ts
+                - frontend/src/benchmarks/validation.ts
+                - frontend/src/experiments/AdvancedFields.tsx
+                - frontend/src/i18n/en-US.ts
+                - frontend/src/i18n/zh-CN.ts
+                - frontend/src/pages/Benchmarks/BenchmarkDetailPage.tsx
+                - src/benchmark/executor.py
+                - tests/test_web_benchmark_config.py
+              prBaseBranch: main
+              remote: origin
+              remoteIdentity: 128eeb1e6f0d21b25601fcb7f9aad36adfdfb4d76f37f54f004760410190f351
+              targetBranch: comet/web-benchmark-advanced-config
+              verifiedBranch: comet/web-benchmark-advanced-config
+          tweak.archive.prepare:
+            sequence: 6
+            value:
+              prBaseBranch: main
+              remote: origin
+              summary: "Issue #528：在 comet/web-benchmark-advanced-config 分支归档已验证的 10 个交付文件及
+                Comet 产物，同步 benchmark 和 frontend/benchmark-management
+                两项主规格并创建唯一提交；本地提交为推荐选项。如选择 push/pr，推送 origin 的当前分支，PR base 为
+                main。无无关改动。"
+              targetBranch: comet/web-benchmark-advanced-config
+          tweak.build.execute:
+            sequence: 3
+            value:
+              checks:
+                - name: "frontend: npm test"
+                  note: 384 passed, 0 failed; /tmp/issue528-frontend-tests.log
+                  result: passed
+                - name: "root: .venv/bin/python -m pytest --no-cov
+                    tests/test_web_benchmark_config.py
+                    tests/test_benchmark_run_budget.py
+                    tests/test_benchmark_task.py
+                    tests/test_api_experiment_benchmark.py -q"
+                  note: 100 passed; /tmp/issue528-backend-regression.log. Final executor cleanup
+                    boundary adjustment rechecked by the 4 new tests;
+                    /tmp/issue528-final-backend.log.
+                  result: passed
+                - name: "frontend: node scripts/verify-benchmark-config.mjs"
+                  note: Chinese/English, invalid inputs, complete submitted request, old history,
+                    320px layout; /tmp/issue528-browser/checks.json and
+                    screenshots. /tmp/issue528-browser.log
+                  result: passed
+                - name: "frontend: npm run build"
+                  note: TypeScript and Vite passed; existing bundle size warning;
+                    /tmp/issue528-build.log
+                  result: passed
+                - name: "frontend: npm run lint and changed-file prettier --check"
+                  note: ESLint passed; 8 changed frontend files formatted; /tmp/issue528-lint.log
+                  result: passed
+                - name: "root: ruff check, ruff format --check on executor and new test; git diff
+                    --check"
+                  note: All passed.
+                  result: passed
+                - name: comet classic openspec -- validate web-benchmark-advanced-config --strict
+                  note: Change is valid.
+                  result: passed
+              event: build-complete
+          tweak.open:
+            sequence: 1
+            value:
+              event: open-complete
+              requirementsEvidence:
+                ref: openspec/changes/web-benchmark-advanced-config
+          tweak.open.evidence:
+            sequence: 2
+            value:
+              contentHash: 39e2d9825f676dacc3df6b1a69036a45e28499bcffe8d3cfb22a3a5287694e1b
+              ref: openspec/changes/web-benchmark-advanced-config
+          tweak.verify.report.evidence:
+            sequence: 5
+            value:
+              contentHash: 9dbabd35e113dcad98e22afce12280b1759387fa2fb4abceba683e8a9a54637c
+              ref: docs/superpowers/reports/2026-11-28-web-benchmark-advanced-config-verify.md
+          tweak.verify.run:
+            sequence: 4
+            value:
+              checks:
+                - name: "frontend: npm test"
+                  note: 384 passed, 0 failed; /tmp/issue528-frontend-tests.log
+                  result: passed
+                - name: "root: .venv/bin/python -m pytest --no-cov
+                    tests/test_web_benchmark_config.py
+                    tests/test_benchmark_run_budget.py
+                    tests/test_benchmark_task.py
+                    tests/test_api_experiment_benchmark.py -q"
+                  note: 100 passed; /tmp/issue528-backend-regression.log. Final executor cleanup
+                    boundary adjustment rechecked by the 4 new tests;
+                    /tmp/issue528-final-backend.log.
+                  result: passed
+                - name: "frontend: node scripts/verify-benchmark-config.mjs"
+                  note: Chinese/English, invalid inputs, complete submitted request, old history,
+                    320px layout; /tmp/issue528-browser/checks.json and
+                    screenshots. /tmp/issue528-browser.log
+                  result: passed
+                - name: "frontend: npm run build"
+                  note: TypeScript and Vite passed; existing bundle size warning;
+                    /tmp/issue528-build.log
+                  result: passed
+                - name: "frontend: npm run lint and changed-file prettier --check"
+                  note: ESLint passed; 8 changed frontend files formatted; /tmp/issue528-lint.log
+                  result: passed
+                - name: "root: ruff check, ruff format --check on executor and new test; git diff
+                    --check"
+                  note: All passed.
+                  result: passed
+                - name: comet classic openspec -- validate web-benchmark-advanced-config --strict
+                  note: Change is valid.
+                  result: passed
+              event: verification-ready
+              verificationReport: docs/superpowers/reports/2026-11-28-web-benchmark-advanced-config-verify.md
+        sequence: 10
+      web-benchmark-advanced-config:3:
+        results:
+          tweak.open:
+            sequence: 1
+            value:
+              event: open-complete
+              requirementsEvidence:
+                ref: openspec/changes/web-benchmark-advanced-config
+          tweak.open.evidence:
+            sequence: 2
+            value:
+              contentHash: 39e2d9825f676dacc3df6b1a69036a45e28499bcffe8d3cfb22a3a5287694e1b
+              ref: openspec/changes/web-benchmark-advanced-config
+        sequence: 3
+      web-benchmark-advanced-config:4:
+        results:
+          tweak.build.execute:
+            sequence: 3
+            value:
+              checks:
+                - name: "frontend: npm test"
+                  note: 384 passed, 0 failed; /tmp/issue528-frontend-tests.log
+                  result: passed
+                - name: "root: .venv/bin/python -m pytest --no-cov
+                    tests/test_web_benchmark_config.py
+                    tests/test_benchmark_run_budget.py
+                    tests/test_benchmark_task.py
+                    tests/test_api_experiment_benchmark.py -q"
+                  note: 100 passed; /tmp/issue528-backend-regression.log. Final executor cleanup
+                    boundary adjustment rechecked by the 4 new tests;
+                    /tmp/issue528-final-backend.log.
+                  result: passed
+                - name: "frontend: node scripts/verify-benchmark-config.mjs"
+                  note: Chinese/English, invalid inputs, complete submitted request, old history,
+                    320px layout; /tmp/issue528-browser/checks.json and
+                    screenshots. /tmp/issue528-browser.log
+                  result: passed
+                - name: "frontend: npm run build"
+                  note: TypeScript and Vite passed; existing bundle size warning;
+                    /tmp/issue528-build.log
+                  result: passed
+                - name: "frontend: npm run lint and changed-file prettier --check"
+                  note: ESLint passed; 8 changed frontend files formatted; /tmp/issue528-lint.log
+                  result: passed
+                - name: "root: ruff check, ruff format --check on executor and new test; git diff
+                    --check"
+                  note: All passed.
+                  result: passed
+                - name: comet classic openspec -- validate web-benchmark-advanced-config --strict
+                  note: Change is valid.
+                  result: passed
+              event: build-complete
+          tweak.open:
+            sequence: 1
+            value:
+              event: open-complete
+              requirementsEvidence:
+                ref: openspec/changes/web-benchmark-advanced-config
+          tweak.open.evidence:
+            sequence: 2
+            value:
+              contentHash: 39e2d9825f676dacc3df6b1a69036a45e28499bcffe8d3cfb22a3a5287694e1b
+              ref: openspec/changes/web-benchmark-advanced-config
+        sequence: 4
+      web-benchmark-advanced-config:6:
+        results:
+          tweak.build.execute:
+            sequence: 3
+            value:
+              checks:
+                - name: "frontend: npm test"
+                  note: 384 passed, 0 failed; /tmp/issue528-frontend-tests.log
+                  result: passed
+                - name: "root: .venv/bin/python -m pytest --no-cov
+                    tests/test_web_benchmark_config.py
+                    tests/test_benchmark_run_budget.py
+                    tests/test_benchmark_task.py
+                    tests/test_api_experiment_benchmark.py -q"
+                  note: 100 passed; /tmp/issue528-backend-regression.log. Final executor cleanup
+                    boundary adjustment rechecked by the 4 new tests;
+                    /tmp/issue528-final-backend.log.
+                  result: passed
+                - name: "frontend: node scripts/verify-benchmark-config.mjs"
+                  note: Chinese/English, invalid inputs, complete submitted request, old history,
+                    320px layout; /tmp/issue528-browser/checks.json and
+                    screenshots. /tmp/issue528-browser.log
+                  result: passed
+                - name: "frontend: npm run build"
+                  note: TypeScript and Vite passed; existing bundle size warning;
+                    /tmp/issue528-build.log
+                  result: passed
+                - name: "frontend: npm run lint and changed-file prettier --check"
+                  note: ESLint passed; 8 changed frontend files formatted; /tmp/issue528-lint.log
+                  result: passed
+                - name: "root: ruff check, ruff format --check on executor and new test; git diff
+                    --check"
+                  note: All passed.
+                  result: passed
+                - name: comet classic openspec -- validate web-benchmark-advanced-config --strict
+                  note: Change is valid.
+                  result: passed
+              event: build-complete
+          tweak.open:
+            sequence: 1
+            value:
+              event: open-complete
+              requirementsEvidence:
+                ref: openspec/changes/web-benchmark-advanced-config
+          tweak.open.evidence:
+            sequence: 2
+            value:
+              contentHash: 39e2d9825f676dacc3df6b1a69036a45e28499bcffe8d3cfb22a3a5287694e1b
+              ref: openspec/changes/web-benchmark-advanced-config
+          tweak.verify.report.evidence:
+            sequence: 5
+            value:
+              contentHash: 9dbabd35e113dcad98e22afce12280b1759387fa2fb4abceba683e8a9a54637c
+              ref: docs/superpowers/reports/2026-11-28-web-benchmark-advanced-config-verify.md
+          tweak.verify.run:
+            sequence: 4
+            value:
+              checks:
+                - name: "frontend: npm test"
+                  note: 384 passed, 0 failed; /tmp/issue528-frontend-tests.log
+                  result: passed
+                - name: "root: .venv/bin/python -m pytest --no-cov
+                    tests/test_web_benchmark_config.py
+                    tests/test_benchmark_run_budget.py
+                    tests/test_benchmark_task.py
+                    tests/test_api_experiment_benchmark.py -q"
+                  note: 100 passed; /tmp/issue528-backend-regression.log. Final executor cleanup
+                    boundary adjustment rechecked by the 4 new tests;
+                    /tmp/issue528-final-backend.log.
+                  result: passed
+                - name: "frontend: node scripts/verify-benchmark-config.mjs"
+                  note: Chinese/English, invalid inputs, complete submitted request, old history,
+                    320px layout; /tmp/issue528-browser/checks.json and
+                    screenshots. /tmp/issue528-browser.log
+                  result: passed
+                - name: "frontend: npm run build"
+                  note: TypeScript and Vite passed; existing bundle size warning;
+                    /tmp/issue528-build.log
+                  result: passed
+                - name: "frontend: npm run lint and changed-file prettier --check"
+                  note: ESLint passed; 8 changed frontend files formatted; /tmp/issue528-lint.log
+                  result: passed
+                - name: "root: ruff check, ruff format --check on executor and new test; git diff
+                    --check"
+                  note: All passed.
+                  result: passed
+                - name: comet classic openspec -- validate web-benchmark-advanced-config --strict
+                  note: Change is valid.
+                  result: passed
+              event: verification-ready
+              verificationReport: docs/superpowers/reports/2026-11-28-web-benchmark-advanced-config-verify.md
+        sequence: 6
+      web-benchmark-advanced-config:8:
+        results:
+          tweak.archive.confirm:
+            sequence: 7
+            value:
+              choice: pr
+              proposal:
+                input:
+                  change: web-benchmark-advanced-config
+                  changeDir: openspec/changes/web-benchmark-advanced-config
+                  workspaceBaseline:
+                    ref: 5f7245e5-b9a5-4ceb-9aad-aecea08d8481
+                outputs:
+                  tweak.archive.prepare:
+                    prBaseBranch: main
+                    remote: origin
+                    summary: "Issue #528：在 comet/web-benchmark-advanced-config 分支归档已验证的 10 个交付文件及
+                      Comet 产物，同步 benchmark 和 frontend/benchmark-management
+                      两项主规格并创建唯一提交；本地提交为推荐选项。如选择 push/pr，推送 origin 的当前分支，PR base
+                      为 main。无无关改动。"
+                    targetBranch: comet/web-benchmark-advanced-config
+          tweak.archive.prepare:
+            sequence: 6
+            value:
+              prBaseBranch: main
+              remote: origin
+              summary: "Issue #528：在 comet/web-benchmark-advanced-config 分支归档已验证的 10 个交付文件及
+                Comet 产物，同步 benchmark 和 frontend/benchmark-management
+                两项主规格并创建唯一提交；本地提交为推荐选项。如选择 push/pr，推送 origin 的当前分支，PR base 为
+                main。无无关改动。"
+              targetBranch: comet/web-benchmark-advanced-config
+          tweak.build.execute:
+            sequence: 3
+            value:
+              checks:
+                - name: "frontend: npm test"
+                  note: 384 passed, 0 failed; /tmp/issue528-frontend-tests.log
+                  result: passed
+                - name: "root: .venv/bin/python -m pytest --no-cov
+                    tests/test_web_benchmark_config.py
+                    tests/test_benchmark_run_budget.py
+                    tests/test_benchmark_task.py
+                    tests/test_api_experiment_benchmark.py -q"
+                  note: 100 passed; /tmp/issue528-backend-regression.log. Final executor cleanup
+                    boundary adjustment rechecked by the 4 new tests;
+                    /tmp/issue528-final-backend.log.
+                  result: passed
+                - name: "frontend: node scripts/verify-benchmark-config.mjs"
+                  note: Chinese/English, invalid inputs, complete submitted request, old history,
+                    320px layout; /tmp/issue528-browser/checks.json and
+                    screenshots. /tmp/issue528-browser.log
+                  result: passed
+                - name: "frontend: npm run build"
+                  note: TypeScript and Vite passed; existing bundle size warning;
+                    /tmp/issue528-build.log
+                  result: passed
+                - name: "frontend: npm run lint and changed-file prettier --check"
+                  note: ESLint passed; 8 changed frontend files formatted; /tmp/issue528-lint.log
+                  result: passed
+                - name: "root: ruff check, ruff format --check on executor and new test; git diff
+                    --check"
+                  note: All passed.
+                  result: passed
+                - name: comet classic openspec -- validate web-benchmark-advanced-config --strict
+                  note: Change is valid.
+                  result: passed
+              event: build-complete
+          tweak.open:
+            sequence: 1
+            value:
+              event: open-complete
+              requirementsEvidence:
+                ref: openspec/changes/web-benchmark-advanced-config
+          tweak.open.evidence:
+            sequence: 2
+            value:
+              contentHash: 39e2d9825f676dacc3df6b1a69036a45e28499bcffe8d3cfb22a3a5287694e1b
+              ref: openspec/changes/web-benchmark-advanced-config
+          tweak.verify.report.evidence:
+            sequence: 5
+            value:
+              contentHash: 9dbabd35e113dcad98e22afce12280b1759387fa2fb4abceba683e8a9a54637c
+              ref: docs/superpowers/reports/2026-11-28-web-benchmark-advanced-config-verify.md
+          tweak.verify.run:
+            sequence: 4
+            value:
+              checks:
+                - name: "frontend: npm test"
+                  note: 384 passed, 0 failed; /tmp/issue528-frontend-tests.log
+                  result: passed
+                - name: "root: .venv/bin/python -m pytest --no-cov
+                    tests/test_web_benchmark_config.py
+                    tests/test_benchmark_run_budget.py
+                    tests/test_benchmark_task.py
+                    tests/test_api_experiment_benchmark.py -q"
+                  note: 100 passed; /tmp/issue528-backend-regression.log. Final executor cleanup
+                    boundary adjustment rechecked by the 4 new tests;
+                    /tmp/issue528-final-backend.log.
+                  result: passed
+                - name: "frontend: node scripts/verify-benchmark-config.mjs"
+                  note: Chinese/English, invalid inputs, complete submitted request, old history,
+                    320px layout; /tmp/issue528-browser/checks.json and
+                    screenshots. /tmp/issue528-browser.log
+                  result: passed
+                - name: "frontend: npm run build"
+                  note: TypeScript and Vite passed; existing bundle size warning;
+                    /tmp/issue528-build.log
+                  result: passed
+                - name: "frontend: npm run lint and changed-file prettier --check"
+                  note: ESLint passed; 8 changed frontend files formatted; /tmp/issue528-lint.log
+                  result: passed
+                - name: "root: ruff check, ruff format --check on executor and new test; git diff
+                    --check"
+                  note: All passed.
+                  result: passed
+                - name: comet classic openspec -- validate web-benchmark-advanced-config --strict
+                  note: Change is valid.
+                  result: passed
+              event: verification-ready
+              verificationReport: docs/superpowers/reports/2026-11-28-web-benchmark-advanced-config-verify.md
+        sequence: 8
+      web-benchmark-advanced-config:9:
+        results:
+          tweak.archive.confirm:
+            sequence: 7
+            value:
+              choice: pr
+              proposal:
+                input:
+                  change: web-benchmark-advanced-config
+                  changeDir: openspec/changes/web-benchmark-advanced-config
+                  workspaceBaseline:
+                    ref: 5f7245e5-b9a5-4ceb-9aad-aecea08d8481
+                outputs:
+                  tweak.archive.prepare:
+                    prBaseBranch: main
+                    remote: origin
+                    summary: "Issue #528：在 comet/web-benchmark-advanced-config 分支归档已验证的 10 个交付文件及
+                      Comet 产物，同步 benchmark 和 frontend/benchmark-management
+                      两项主规格并创建唯一提交；本地提交为推荐选项。如选择 push/pr，推送 origin 的当前分支，PR base
+                      为 main。无无关改动。"
+                    targetBranch: comet/web-benchmark-advanced-config
+          tweak.archive.preflight:
+            sequence: 8
+            value:
+              baseCommit: a39f3e8e1398f5ce629e5816459f25dbdf770d1c
+              deliveryAction: pr
+              deliveryPaths:
+                - frontend/scripts/verify-benchmark-config.mjs
+                - frontend/src/benchmarks/types.ts
+                - frontend/src/benchmarks/validation.test.ts
+                - frontend/src/benchmarks/validation.ts
+                - frontend/src/experiments/AdvancedFields.tsx
+                - frontend/src/i18n/en-US.ts
+                - frontend/src/i18n/zh-CN.ts
+                - frontend/src/pages/Benchmarks/BenchmarkDetailPage.tsx
+                - src/benchmark/executor.py
+                - tests/test_web_benchmark_config.py
+              prBaseBranch: main
+              remote: origin
+              remoteIdentity: 128eeb1e6f0d21b25601fcb7f9aad36adfdfb4d76f37f54f004760410190f351
+              targetBranch: comet/web-benchmark-advanced-config
+              verifiedBranch: comet/web-benchmark-advanced-config
+          tweak.archive.prepare:
+            sequence: 6
+            value:
+              prBaseBranch: main
+              remote: origin
+              summary: "Issue #528：在 comet/web-benchmark-advanced-config 分支归档已验证的 10 个交付文件及
+                Comet 产物，同步 benchmark 和 frontend/benchmark-management
+                两项主规格并创建唯一提交；本地提交为推荐选项。如选择 push/pr，推送 origin 的当前分支，PR base 为
+                main。无无关改动。"
+              targetBranch: comet/web-benchmark-advanced-config
+          tweak.build.execute:
+            sequence: 3
+            value:
+              checks:
+                - name: "frontend: npm test"
+                  note: 384 passed, 0 failed; /tmp/issue528-frontend-tests.log
+                  result: passed
+                - name: "root: .venv/bin/python -m pytest --no-cov
+                    tests/test_web_benchmark_config.py
+                    tests/test_benchmark_run_budget.py
+                    tests/test_benchmark_task.py
+                    tests/test_api_experiment_benchmark.py -q"
+                  note: 100 passed; /tmp/issue528-backend-regression.log. Final executor cleanup
+                    boundary adjustment rechecked by the 4 new tests;
+                    /tmp/issue528-final-backend.log.
+                  result: passed
+                - name: "frontend: node scripts/verify-benchmark-config.mjs"
+                  note: Chinese/English, invalid inputs, complete submitted request, old history,
+                    320px layout; /tmp/issue528-browser/checks.json and
+                    screenshots. /tmp/issue528-browser.log
+                  result: passed
+                - name: "frontend: npm run build"
+                  note: TypeScript and Vite passed; existing bundle size warning;
+                    /tmp/issue528-build.log
+                  result: passed
+                - name: "frontend: npm run lint and changed-file prettier --check"
+                  note: ESLint passed; 8 changed frontend files formatted; /tmp/issue528-lint.log
+                  result: passed
+                - name: "root: ruff check, ruff format --check on executor and new test; git diff
+                    --check"
+                  note: All passed.
+                  result: passed
+                - name: comet classic openspec -- validate web-benchmark-advanced-config --strict
+                  note: Change is valid.
+                  result: passed
+              event: build-complete
+          tweak.open:
+            sequence: 1
+            value:
+              event: open-complete
+              requirementsEvidence:
+                ref: openspec/changes/web-benchmark-advanced-config
+          tweak.open.evidence:
+            sequence: 2
+            value:
+              contentHash: 39e2d9825f676dacc3df6b1a69036a45e28499bcffe8d3cfb22a3a5287694e1b
+              ref: openspec/changes/web-benchmark-advanced-config
+          tweak.verify.report.evidence:
+            sequence: 5
+            value:
+              contentHash: 9dbabd35e113dcad98e22afce12280b1759387fa2fb4abceba683e8a9a54637c
+              ref: docs/superpowers/reports/2026-11-28-web-benchmark-advanced-config-verify.md
+          tweak.verify.run:
+            sequence: 4
+            value:
+              checks:
+                - name: "frontend: npm test"
+                  note: 384 passed, 0 failed; /tmp/issue528-frontend-tests.log
+                  result: passed
+                - name: "root: .venv/bin/python -m pytest --no-cov
+                    tests/test_web_benchmark_config.py
+                    tests/test_benchmark_run_budget.py
+                    tests/test_benchmark_task.py
+                    tests/test_api_experiment_benchmark.py -q"
+                  note: 100 passed; /tmp/issue528-backend-regression.log. Final executor cleanup
+                    boundary adjustment rechecked by the 4 new tests;
+                    /tmp/issue528-final-backend.log.
+                  result: passed
+                - name: "frontend: node scripts/verify-benchmark-config.mjs"
+                  note: Chinese/English, invalid inputs, complete submitted request, old history,
+                    320px layout; /tmp/issue528-browser/checks.json and
+                    screenshots. /tmp/issue528-browser.log
+                  result: passed
+                - name: "frontend: npm run build"
+                  note: TypeScript and Vite passed; existing bundle size warning;
+                    /tmp/issue528-build.log
+                  result: passed
+                - name: "frontend: npm run lint and changed-file prettier --check"
+                  note: ESLint passed; 8 changed frontend files formatted; /tmp/issue528-lint.log
+                  result: passed
+                - name: "root: ruff check, ruff format --check on executor and new test; git diff
+                    --check"
+                  note: All passed.
+                  result: passed
+                - name: comet classic openspec -- validate web-benchmark-advanced-config --strict
+                  note: Change is valid.
+                  result: passed
+              event: verification-ready
+              verificationReport: docs/superpowers/reports/2026-11-28-web-benchmark-advanced-config-verify.md
+        sequence: 9
+    waits:
+      - id: web-benchmark-advanced-config:7
+        stepId: tweak.archive.confirm
+        sequence: 7
+        status: resolved
+        proposal:
+          input:
+            change: web-benchmark-advanced-config
+            changeDir: openspec/changes/web-benchmark-advanced-config
+            workspaceBaseline:
+              ref: 5f7245e5-b9a5-4ceb-9aad-aecea08d8481
+          outputs:
+            tweak.archive.prepare:
+              prBaseBranch: main
+              remote: origin
+              summary: "Issue #528：在 comet/web-benchmark-advanced-config 分支归档已验证的 10 个交付文件及
+                Comet 产物，同步 benchmark 和 frontend/benchmark-management
+                两项主规格并创建唯一提交；本地提交为推荐选项。如选择 push/pr，推送 origin 的当前分支，PR base 为
+                main。无无关改动。"
+              targetBranch: comet/web-benchmark-advanced-config
+        proposalHash: 8206802658dda771e43a04cab6db8183b7c1cc84a97ed7cdca71a4003d0dfeb8
+        choices:
+          - local
+          - push
+          - pr
+          - reverify
+          - later
+        results:
+          tweak.archive.prepare:
+            sequence: 6
+            value:
+              prBaseBranch: main
+              remote: origin
+              summary: "Issue #528：在 comet/web-benchmark-advanced-config 分支归档已验证的 10 个交付文件及
+                Comet 产物，同步 benchmark 和 frontend/benchmark-management
+                两项主规格并创建唯一提交；本地提交为推荐选项。如选择 push/pr，推送 origin 的当前分支，PR base 为
+                main。无无关改动。"
+              targetBranch: comet/web-benchmark-advanced-config
+          tweak.build.execute:
+            sequence: 3
+            value:
+              checks:
+                - name: "frontend: npm test"
+                  note: 384 passed, 0 failed; /tmp/issue528-frontend-tests.log
+                  result: passed
+                - name: "root: .venv/bin/python -m pytest --no-cov
+                    tests/test_web_benchmark_config.py
+                    tests/test_benchmark_run_budget.py
+                    tests/test_benchmark_task.py
+                    tests/test_api_experiment_benchmark.py -q"
+                  note: 100 passed; /tmp/issue528-backend-regression.log. Final executor cleanup
+                    boundary adjustment rechecked by the 4 new tests;
+                    /tmp/issue528-final-backend.log.
+                  result: passed
+                - name: "frontend: node scripts/verify-benchmark-config.mjs"
+                  note: Chinese/English, invalid inputs, complete submitted request, old history,
+                    320px layout; /tmp/issue528-browser/checks.json and
+                    screenshots. /tmp/issue528-browser.log
+                  result: passed
+                - name: "frontend: npm run build"
+                  note: TypeScript and Vite passed; existing bundle size warning;
+                    /tmp/issue528-build.log
+                  result: passed
+                - name: "frontend: npm run lint and changed-file prettier --check"
+                  note: ESLint passed; 8 changed frontend files formatted; /tmp/issue528-lint.log
+                  result: passed
+                - name: "root: ruff check, ruff format --check on executor and new test; git diff
+                    --check"
+                  note: All passed.
+                  result: passed
+                - name: comet classic openspec -- validate web-benchmark-advanced-config --strict
+                  note: Change is valid.
+                  result: passed
+              event: build-complete
+          tweak.open:
+            sequence: 1
+            value:
+              event: open-complete
+              requirementsEvidence:
+                ref: openspec/changes/web-benchmark-advanced-config
+          tweak.open.evidence:
+            sequence: 2
+            value:
+              contentHash: 39e2d9825f676dacc3df6b1a69036a45e28499bcffe8d3cfb22a3a5287694e1b
+              ref: openspec/changes/web-benchmark-advanced-config
+          tweak.verify.report.evidence:
+            sequence: 5
+            value:
+              contentHash: 9dbabd35e113dcad98e22afce12280b1759387fa2fb4abceba683e8a9a54637c
+              ref: docs/superpowers/reports/2026-11-28-web-benchmark-advanced-config-verify.md
+          tweak.verify.run:
+            sequence: 4
+            value:
+              checks:
+                - name: "frontend: npm test"
+                  note: 384 passed, 0 failed; /tmp/issue528-frontend-tests.log
+                  result: passed
+                - name: "root: .venv/bin/python -m pytest --no-cov
+                    tests/test_web_benchmark_config.py
+                    tests/test_benchmark_run_budget.py
+                    tests/test_benchmark_task.py
+                    tests/test_api_experiment_benchmark.py -q"
+                  note: 100 passed; /tmp/issue528-backend-regression.log. Final executor cleanup
+                    boundary adjustment rechecked by the 4 new tests;
+                    /tmp/issue528-final-backend.log.
+                  result: passed
+                - name: "frontend: node scripts/verify-benchmark-config.mjs"
+                  note: Chinese/English, invalid inputs, complete submitted request, old history,
+                    320px layout; /tmp/issue528-browser/checks.json and
+                    screenshots. /tmp/issue528-browser.log
+                  result: passed
+                - name: "frontend: npm run build"
+                  note: TypeScript and Vite passed; existing bundle size warning;
+                    /tmp/issue528-build.log
+                  result: passed
+                - name: "frontend: npm run lint and changed-file prettier --check"
+                  note: ESLint passed; 8 changed frontend files formatted; /tmp/issue528-lint.log
+                  result: passed
+                - name: "root: ruff check, ruff format --check on executor and new test; git diff
+                    --check"
+                  note: All passed.
+                  result: passed
+                - name: comet classic openspec -- validate web-benchmark-advanced-config --strict
+                  note: Change is valid.
+                  result: passed
+              event: verification-ready
+              verificationReport: docs/superpowers/reports/2026-11-28-web-benchmark-advanced-config-verify.md
+        decision:
+          id: classic-archive-8206802658dda771e43a04cab6db8183b7c1cc84a97ed7cdca71a4003d0dfeb8-pr
+          choice: pr
+          proposalHash: 8206802658dda771e43a04cab6db8183b7c1cc84a97ed7cdca71a4003d0dfeb8
+    evidenceWaits:
+      - id: web-benchmark-advanced-config:2
+        stepId: tweak.open.evidence
+        sequence: 2
+        kind: classic-open-artifacts
+        status: resolved
+        results:
+          tweak.open:
+            sequence: 1
+            value:
+              event: open-complete
+              requirementsEvidence:
+                ref: openspec/changes/web-benchmark-advanced-config
+        receipt:
+          ref: openspec/changes/web-benchmark-advanced-config
+          contentHash: 39e2d9825f676dacc3df6b1a69036a45e28499bcffe8d3cfb22a3a5287694e1b
+          submissionId: d2894a4b-7034-469e-af2d-7f176fe320fe
+      - id: web-benchmark-advanced-config:5
+        stepId: tweak.verify.report.evidence
+        sequence: 5
+        kind: classic-verification-report
+        status: resolved
+        results:
+          tweak.build.execute:
+            sequence: 3
+            value:
+              checks:
+                - name: "frontend: npm test"
+                  note: 384 passed, 0 failed; /tmp/issue528-frontend-tests.log
+                  result: passed
+                - name: "root: .venv/bin/python -m pytest --no-cov
+                    tests/test_web_benchmark_config.py
+                    tests/test_benchmark_run_budget.py
+                    tests/test_benchmark_task.py
+                    tests/test_api_experiment_benchmark.py -q"
+                  note: 100 passed; /tmp/issue528-backend-regression.log. Final executor cleanup
+                    boundary adjustment rechecked by the 4 new tests;
+                    /tmp/issue528-final-backend.log.
+                  result: passed
+                - name: "frontend: node scripts/verify-benchmark-config.mjs"
+                  note: Chinese/English, invalid inputs, complete submitted request, old history,
+                    320px layout; /tmp/issue528-browser/checks.json and
+                    screenshots. /tmp/issue528-browser.log
+                  result: passed
+                - name: "frontend: npm run build"
+                  note: TypeScript and Vite passed; existing bundle size warning;
+                    /tmp/issue528-build.log
+                  result: passed
+                - name: "frontend: npm run lint and changed-file prettier --check"
+                  note: ESLint passed; 8 changed frontend files formatted; /tmp/issue528-lint.log
+                  result: passed
+                - name: "root: ruff check, ruff format --check on executor and new test; git diff
+                    --check"
+                  note: All passed.
+                  result: passed
+                - name: comet classic openspec -- validate web-benchmark-advanced-config --strict
+                  note: Change is valid.
+                  result: passed
+              event: build-complete
+          tweak.open:
+            sequence: 1
+            value:
+              event: open-complete
+              requirementsEvidence:
+                ref: openspec/changes/web-benchmark-advanced-config
+          tweak.open.evidence:
+            sequence: 2
+            value:
+              contentHash: 39e2d9825f676dacc3df6b1a69036a45e28499bcffe8d3cfb22a3a5287694e1b
+              ref: openspec/changes/web-benchmark-advanced-config
+          tweak.verify.run:
+            sequence: 4
+            value:
+              checks:
+                - name: "frontend: npm test"
+                  note: 384 passed, 0 failed; /tmp/issue528-frontend-tests.log
+                  result: passed
+                - name: "root: .venv/bin/python -m pytest --no-cov
+                    tests/test_web_benchmark_config.py
+                    tests/test_benchmark_run_budget.py
+                    tests/test_benchmark_task.py
+                    tests/test_api_experiment_benchmark.py -q"
+                  note: 100 passed; /tmp/issue528-backend-regression.log. Final executor cleanup
+                    boundary adjustment rechecked by the 4 new tests;
+                    /tmp/issue528-final-backend.log.
+                  result: passed
+                - name: "frontend: node scripts/verify-benchmark-config.mjs"
+                  note: Chinese/English, invalid inputs, complete submitted request, old history,
+                    320px layout; /tmp/issue528-browser/checks.json and
+                    screenshots. /tmp/issue528-browser.log
+                  result: passed
+                - name: "frontend: npm run build"
+                  note: TypeScript and Vite passed; existing bundle size warning;
+                    /tmp/issue528-build.log
+                  result: passed
+                - name: "frontend: npm run lint and changed-file prettier --check"
+                  note: ESLint passed; 8 changed frontend files formatted; /tmp/issue528-lint.log
+                  result: passed
+                - name: "root: ruff check, ruff format --check on executor and new test; git diff
+                    --check"
+                  note: All passed.
+                  result: passed
+                - name: comet classic openspec -- validate web-benchmark-advanced-config --strict
+                  note: Change is valid.
+                  result: passed
+              event: verification-ready
+              verificationReport: docs/superpowers/reports/2026-11-28-web-benchmark-advanced-config-verify.md
+        receipt:
+          ref: docs/superpowers/reports/2026-11-28-web-benchmark-advanced-config-verify.md
+          contentHash: 9dbabd35e113dcad98e22afce12280b1759387fa2fb4abceba683e8a9a54637c
+          submissionId: d002a315-bf15-4c3c-9f30-20ea9f48f840
+    ready: []
+    joins: {}
+    outputs:
+      tweak.archive.confirm:
+        sequence: 7
+        value:
+          choice: pr
+          proposal:
+            input:
+              change: web-benchmark-advanced-config
+              changeDir: openspec/changes/web-benchmark-advanced-config
+              workspaceBaseline:
+                ref: 5f7245e5-b9a5-4ceb-9aad-aecea08d8481
+            outputs:
+              tweak.archive.prepare:
+                prBaseBranch: main
+                remote: origin
+                summary: "Issue #528：在 comet/web-benchmark-advanced-config 分支归档已验证的 10 个交付文件及
+                  Comet 产物，同步 benchmark 和 frontend/benchmark-management
+                  两项主规格并创建唯一提交；本地提交为推荐选项。如选择 push/pr，推送 origin 的当前分支，PR base 为
+                  main。无无关改动。"
+                targetBranch: comet/web-benchmark-advanced-config
+      tweak.archive.execute:
+        sequence: 9
+        value:
+          archiveDirectory: openspec/changes/archive/2026-11-28-web-benchmark-advanced-config
+      tweak.archive.preflight:
+        sequence: 8
+        value:
+          baseCommit: a39f3e8e1398f5ce629e5816459f25dbdf770d1c
+          deliveryAction: pr
+          deliveryPaths:
+            - frontend/scripts/verify-benchmark-config.mjs
+            - frontend/src/benchmarks/types.ts
+            - frontend/src/benchmarks/validation.test.ts
+            - frontend/src/benchmarks/validation.ts
+            - frontend/src/experiments/AdvancedFields.tsx
+            - frontend/src/i18n/en-US.ts
+            - frontend/src/i18n/zh-CN.ts
+            - frontend/src/pages/Benchmarks/BenchmarkDetailPage.tsx
+            - src/benchmark/executor.py
+            - tests/test_web_benchmark_config.py
+          prBaseBranch: main
+          remote: origin
+          remoteIdentity: 128eeb1e6f0d21b25601fcb7f9aad36adfdfb4d76f37f54f004760410190f351
+          targetBranch: comet/web-benchmark-advanced-config
+          verifiedBranch: comet/web-benchmark-advanced-config
+      tweak.archive.prepare:
+        sequence: 6
+        value:
+          prBaseBranch: main
+          remote: origin
+          summary: "Issue #528：在 comet/web-benchmark-advanced-config 分支归档已验证的 10 个交付文件及
+            Comet 产物，同步 benchmark 和 frontend/benchmark-management
+            两项主规格并创建唯一提交；本地提交为推荐选项。如选择 push/pr，推送 origin 的当前分支，PR base 为
+            main。无无关改动。"
+          targetBranch: comet/web-benchmark-advanced-config
+      tweak.build.execute:
+        sequence: 3
+        value:
+          checks:
+            - name: "frontend: npm test"
+              note: 384 passed, 0 failed; /tmp/issue528-frontend-tests.log
+              result: passed
+            - name: "root: .venv/bin/python -m pytest --no-cov
+                tests/test_web_benchmark_config.py
+                tests/test_benchmark_run_budget.py tests/test_benchmark_task.py
+                tests/test_api_experiment_benchmark.py -q"
+              note: 100 passed; /tmp/issue528-backend-regression.log. Final executor cleanup
+                boundary adjustment rechecked by the 4 new tests;
+                /tmp/issue528-final-backend.log.
+              result: passed
+            - name: "frontend: node scripts/verify-benchmark-config.mjs"
+              note: Chinese/English, invalid inputs, complete submitted request, old history,
+                320px layout; /tmp/issue528-browser/checks.json and screenshots.
+                /tmp/issue528-browser.log
+              result: passed
+            - name: "frontend: npm run build"
+              note: TypeScript and Vite passed; existing bundle size warning;
+                /tmp/issue528-build.log
+              result: passed
+            - name: "frontend: npm run lint and changed-file prettier --check"
+              note: ESLint passed; 8 changed frontend files formatted; /tmp/issue528-lint.log
+              result: passed
+            - name: "root: ruff check, ruff format --check on executor and new test; git diff
+                --check"
+              note: All passed.
+              result: passed
+            - name: comet classic openspec -- validate web-benchmark-advanced-config --strict
+              note: Change is valid.
+              result: passed
+          event: build-complete
+      tweak.open:
+        sequence: 1
+        value:
+          event: open-complete
+          requirementsEvidence:
+            ref: openspec/changes/web-benchmark-advanced-config
+      tweak.open.evidence:
+        sequence: 2
+        value:
+          contentHash: 39e2d9825f676dacc3df6b1a69036a45e28499bcffe8d3cfb22a3a5287694e1b
+          ref: openspec/changes/web-benchmark-advanced-config
+      tweak.verify.report.evidence:
+        sequence: 5
+        value:
+          contentHash: 9dbabd35e113dcad98e22afce12280b1759387fa2fb4abceba683e8a9a54637c
+          ref: docs/superpowers/reports/2026-11-28-web-benchmark-advanced-config-verify.md
+      tweak.verify.run:
+        sequence: 4
+        value:
+          checks:
+            - name: "frontend: npm test"
+              note: 384 passed, 0 failed; /tmp/issue528-frontend-tests.log
+              result: passed
+            - name: "root: .venv/bin/python -m pytest --no-cov
+                tests/test_web_benchmark_config.py
+                tests/test_benchmark_run_budget.py tests/test_benchmark_task.py
+                tests/test_api_experiment_benchmark.py -q"
+              note: 100 passed; /tmp/issue528-backend-regression.log. Final executor cleanup
+                boundary adjustment rechecked by the 4 new tests;
+                /tmp/issue528-final-backend.log.
+              result: passed
+            - name: "frontend: node scripts/verify-benchmark-config.mjs"
+              note: Chinese/English, invalid inputs, complete submitted request, old history,
+                320px layout; /tmp/issue528-browser/checks.json and screenshots.
+                /tmp/issue528-browser.log
+              result: passed
+            - name: "frontend: npm run build"
+              note: TypeScript and Vite passed; existing bundle size warning;
+                /tmp/issue528-build.log
+              result: passed
+            - name: "frontend: npm run lint and changed-file prettier --check"
+              note: ESLint passed; 8 changed frontend files formatted; /tmp/issue528-lint.log
+              result: passed
+            - name: "root: ruff check, ruff format --check on executor and new test; git diff
+                --check"
+              note: All passed.
+              result: passed
+            - name: comet classic openspec -- validate web-benchmark-advanced-config --strict
+              note: Change is valid.
+              result: passed
+          event: verification-ready
+          verificationReport: docs/superpowers/reports/2026-11-28-web-benchmark-advanced-config-verify.md
+    children: []
+    lineage: []
+  sourceRevision: 16
+  sourceHash: 98ce656ff7e653e51c1d3f8877ac2cc62e7cfe9e40050c9c39e38a30345ab1ee
+direct_override: null
+handoff_context: null
+handoff_hash: null
+classic_profile: null
+classic_migration: null
+check_epoch: 5

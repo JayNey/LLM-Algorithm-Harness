@@ -1,0 +1,11 @@
+{
+  "checks": [
+    {"name":"frontend: npm test","result":"passed","note":"384 passed, 0 failed; /tmp/issue528-frontend-tests.log"},
+    {"name":"root: .venv/bin/python -m pytest --no-cov tests/test_web_benchmark_config.py tests/test_benchmark_run_budget.py tests/test_benchmark_task.py tests/test_api_experiment_benchmark.py -q","result":"passed","note":"100 passed; /tmp/issue528-backend-regression.log. Final executor cleanup boundary adjustment rechecked by the 4 new tests; /tmp/issue528-final-backend.log."},
+    {"name":"frontend: node scripts/verify-benchmark-config.mjs","result":"passed","note":"Chinese/English, invalid inputs, complete submitted request, old history, 320px layout; /tmp/issue528-browser/checks.json and screenshots. /tmp/issue528-browser.log"},
+    {"name":"frontend: npm run build","result":"passed","note":"TypeScript and Vite passed; existing bundle size warning; /tmp/issue528-build.log"},
+    {"name":"frontend: npm run lint and changed-file prettier --check","result":"passed","note":"ESLint passed; 8 changed frontend files formatted; /tmp/issue528-lint.log"},
+    {"name":"root: ruff check, ruff format --check on executor and new test; git diff --check","result":"passed","note":"All passed."},
+    {"name":"comet classic openspec -- validate web-benchmark-advanced-config --strict","result":"passed","note":"Change is valid."}
+  ]
+}
