@@ -1,3 +1,7 @@
+import {
+  ProblemFilterFields,
+  StrategyAdvancedFields,
+} from '@/experiments/AdvancedFields.tsx'
 import DatasetPicker from '@/experiments/DatasetPicker.tsx'
 import { useTranslation } from 'react-i18next'
 import { t } from '../../i18n/core.ts'
@@ -154,14 +158,15 @@ export default function CreateABTestPage() {
     setDraft((previous) => ({ ...previous, ...patch }))
   }
   async function submit() {
+    if (busy) return
     const nextErrors = validateABTestDraft(draft)
     if (!strategyIsAvailable) nextErrors.strategy = '请选择可用策略'
     setErrors(nextErrors)
     if (Object.keys(nextErrors).length) return
     setBusy(true)
     setActionError(null)
-    const payload = createPayload(draft)
     try {
+      const payload = createPayload(draft)
       const created = await client.create(payload)
       void navigate(`/ab-tests/${encodeURIComponent(created.id)}`, {
         replace: true,
@@ -194,7 +199,10 @@ export default function CreateABTestPage() {
             <Skeleton active paragraph={{ rows: 6 }} />
           )
         ) : (
-          <>
+          <fieldset
+            disabled={busy}
+            style={{ border: 0, padding: 0, margin: 0, minWidth: 0 }}
+          >
             <label>
               {t('测试名称（可选）')}
               <Input
@@ -222,6 +230,7 @@ export default function CreateABTestPage() {
                   value: key.id,
                   label: key.key_name || key.id,
                 }))}
+                disabled={busy}
                 onChange={(value: string) => update({ api_key_id: value })}
               />
               {errors.api_key_id && (
@@ -234,6 +243,7 @@ export default function CreateABTestPage() {
                 ariaLabel={t('A/B 模型')}
                 value={draft.model}
                 apiKeyId={draft.api_key_id}
+                disabled={busy}
                 onChange={(value) => update({ model: value })}
               />
               {errors.model && <small role="alert">{t(errors.model)}</small>}
@@ -281,6 +291,56 @@ export default function CreateABTestPage() {
               />
             </label>
             <label>
+              {t('策略温度（可选，0–2）')}
+              <Input
+                aria-label={t('A/B 策略温度')}
+                value={draft.strategy_temperature ?? ''}
+                onChange={(event) =>
+                  update({ strategy_temperature: event.target.value })
+                }
+                aria-invalid={!!errors.strategy_temperature}
+              />
+              {errors.strategy_temperature && (
+                <small role="alert">{t(errors.strategy_temperature)}</small>
+              )}
+            </label>
+            <StrategyAdvancedFields
+              index={0}
+              strategy={{
+                name: draft.strategy,
+                max_iterations: draft.strategy_max_iterations,
+                temperature: draft.strategy_temperature ?? '',
+                max_tokens: draft.strategy_max_tokens,
+                system_prompt: draft.strategy_system_prompt,
+                custom_params: draft.strategy_custom_params,
+              }}
+              update={(patch) =>
+                update({
+                  ...(patch.max_tokens !== undefined
+                    ? { strategy_max_tokens: patch.max_tokens }
+                    : {}),
+                  ...(patch.system_prompt !== undefined
+                    ? { strategy_system_prompt: patch.system_prompt }
+                    : {}),
+                  ...(patch.custom_params !== undefined
+                    ? { strategy_custom_params: patch.custom_params }
+                    : {}),
+                })
+              }
+              disabled={busy}
+              errors={errors}
+            />
+            <p>
+              {t('变体系统提示词优先；变体留空时使用策略提示词或现有默认。')}
+            </p>
+            <ProblemFilterFields
+              kind="abtest"
+              draft={draft}
+              update={update}
+              disabled={busy}
+              errors={errors}
+            />
+            <label>
               {t('随机种子')}
               <Input
                 aria-label={t('A/B 随机种子')}
@@ -327,7 +387,7 @@ export default function CreateABTestPage() {
             >
               {busy ? t('创建中…') : t('创建 A/B 测试')}
             </Button>
-          </>
+          </fieldset>
         )}
       </div>
     </section>

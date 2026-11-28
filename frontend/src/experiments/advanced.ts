@@ -73,7 +73,7 @@ export function splitFilterList(input = ''): string[] {
 }
 
 export function problemFilters(
-  draft: ExperimentDraft,
+  draft: Pick<ExperimentDraft, 'problem_filters'>,
 ): ProblemFilters | undefined {
   const raw = draft.problem_filters ?? {}
   const tags = splitFilterList(raw.tags)

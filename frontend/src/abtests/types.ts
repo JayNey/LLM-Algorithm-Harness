@@ -1,3 +1,9 @@
+import type {
+  ExperimentDraft,
+  ProblemFilters,
+  StrategyConfig,
+} from '../experiments/types.ts'
+
 /** A/B 测试前端类型（issue #166 第②步）。
  * 字段与 api/services/ab_test_service.py 的 _job_view、
  * api/experiment_models.py 的 ABTestCreateRequest、src/ab_testing.py 的
@@ -20,7 +26,9 @@ export interface ABTestConfig {
   dataset_path?: string | null
   dataset_id?: string
   model: { model: string; temperature?: number }
-  strategy: { name: string; max_iterations?: number; temperature?: number }
+  strategy: StrategyConfig
+  problem_filters?: ProblemFilters | null
+  baseline_id?: string | null
   prompt_variants: { id: string; description?: string }[]
   seed: number
   max_workers: number
@@ -46,7 +54,9 @@ export interface CreatePayload {
   dataset_path?: string | null
   dataset_id?: string
   model: { model: string; temperature?: number }
-  strategy: { name: string; max_iterations?: number; temperature?: number }
+  strategy: StrategyConfig
+  problem_filters?: ProblemFilters | null
+  baseline_id?: string | null
   prompt_variants: {
     id: string
     description?: string
@@ -119,12 +129,18 @@ export interface ABTestDraft {
   model_temperature: string
   strategy: string
   strategy_max_iterations: string
+  strategy_temperature?: string
+  strategy_max_tokens?: string
+  strategy_system_prompt?: string
+  strategy_custom_params?: string
+  problem_filters?: ExperimentDraft['problem_filters']
   seed: string
   max_workers: string
   variants: PromptVariantDraft[]
 }
 
 export interface DraftErrors {
+  [field: string]: string | undefined
   name?: string
   dataset_path?: string
   api_key_id?: string

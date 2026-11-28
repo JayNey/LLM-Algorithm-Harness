@@ -77,6 +77,22 @@ function page<T>(
   }
 }
 
+function readProblemFilters(value: unknown, field: string) {
+  const row = record(value, field)
+  return {
+    ...(row.difficulty != null
+      ? { difficulty: text(row.difficulty, `${field}.difficulty`) }
+      : {}),
+    ...(row.tags != null
+      ? { tags: array(row.tags, text, `${field}.tags`) }
+      : {}),
+    ...(row.problem_ids != null
+      ? { problem_ids: array(row.problem_ids, text, `${field}.problem_ids`) }
+      : {}),
+    ...(row.limit != null ? { limit: count(row.limit, `${field}.limit`) } : {}),
+  }
+}
+
 function configSubset(value: unknown, field: string) {
   const data = record(value, field)
   const model = record(data.model, `${field}.model`)
@@ -84,8 +100,74 @@ function configSubset(value: unknown, field: string) {
   return {
     name: text(data.name, `${field}.name`, true),
     ...readDatasetSource(data),
-    model: { model: text(model.model, `${field}.model.model`) },
-    strategy: { name: text(strategy.name, `${field}.strategy.name`) },
+    model: {
+      model: text(model.model, `${field}.model.model`),
+      ...(model.temperature != null
+        ? {
+            temperature: number(
+              model.temperature,
+              `${field}.model.temperature`,
+              2,
+            ),
+          }
+        : {}),
+    },
+    strategy: {
+      name: text(strategy.name, `${field}.strategy.name`),
+      ...(strategy.max_iterations != null
+        ? {
+            max_iterations: count(
+              strategy.max_iterations,
+              `${field}.strategy.max_iterations`,
+            ),
+          }
+        : {}),
+      ...(strategy.temperature != null
+        ? {
+            temperature: number(
+              strategy.temperature,
+              `${field}.strategy.temperature`,
+              2,
+            ),
+          }
+        : {}),
+      ...(strategy.max_tokens != null
+        ? {
+            max_tokens: count(
+              strategy.max_tokens,
+              `${field}.strategy.max_tokens`,
+            ),
+          }
+        : {}),
+      ...(strategy.system_prompt != null
+        ? {
+            system_prompt: text(
+              strategy.system_prompt,
+              `${field}.strategy.system_prompt`,
+              true,
+            ),
+          }
+        : {}),
+      ...(strategy.custom_params != null
+        ? {
+            custom_params: record(
+              strategy.custom_params,
+              `${field}.strategy.custom_params`,
+            ),
+          }
+        : {}),
+    },
+    ...(data.problem_filters != null
+      ? {
+          problem_filters: readProblemFilters(
+            data.problem_filters,
+            `${field}.problem_filters`,
+          ),
+        }
+      : {}),
+    ...(data.baseline_id != null
+      ? { baseline_id: text(data.baseline_id, `${field}.baseline_id`) }
+      : {}),
     prompt_variants: array(
       data.prompt_variants,
       (value, field) => ({

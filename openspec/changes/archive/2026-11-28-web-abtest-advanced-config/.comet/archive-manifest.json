@@ -1,0 +1,41 @@
+{
+  "schema": "comet.classic.archive-manifest.v2",
+  "execution": {
+    "workflow": {
+      "id": "comet-classic-tweak",
+      "version": "2",
+      "hash": "d1e067bc00ca13395dbc6f701565417c3e227f17a57df025dd73ebda905e2638"
+    },
+    "runId": "web-abtest-advanced-config",
+    "actionId": "web-abtest-advanced-config:13",
+    "attempt": 1,
+    "inputHash": "3dfd9e30ccf98e08e0f90387b752002c4c7745b97a176d4c7842d48d40bdb0b0",
+    "claimToken": "portable-fbb541d74f84035be232b3a91c4382f3f966d59ec38f66185408fb12c07e8955"
+  },
+  "activeRef": "openspec/changes/web-abtest-advanced-config",
+  "archiveRef": "openspec/changes/archive/2026-11-28-web-abtest-advanced-config",
+  "stateRef": "openspec/changes/archive/2026-11-28-web-abtest-advanced-config/comet-state.yaml",
+  "paths": [
+    "openspec/changes/archive/2026-11-28-web-abtest-advanced-config/.comet/archive-requirements.json",
+    "openspec/changes/archive/2026-11-28-web-abtest-advanced-config/.comet/rulings.md",
+    "openspec/changes/archive/2026-11-28-web-abtest-advanced-config/.openspec.yaml",
+    "openspec/changes/archive/2026-11-28-web-abtest-advanced-config/checks.json",
+    "openspec/changes/archive/2026-11-28-web-abtest-advanced-config/design.md",
+    "openspec/changes/archive/2026-11-28-web-abtest-advanced-config/proposal.md",
+    "openspec/changes/archive/2026-11-28-web-abtest-advanced-config/specs/frontend/abtest-management/spec.md",
+    "openspec/changes/archive/2026-11-28-web-abtest-advanced-config/tasks.md",
+    "openspec/changes/archive/2026-11-28-web-abtest-advanced-config/walkthrough.html",
+    "openspec/specs/frontend/abtest-management/spec.md"
+  ],
+  "sourcePaths": [
+    "openspec/changes/web-abtest-advanced-config/.comet/archive-requirements.json",
+    "openspec/changes/web-abtest-advanced-config/.comet/rulings.md",
+    "openspec/changes/web-abtest-advanced-config/.openspec.yaml",
+    "openspec/changes/web-abtest-advanced-config/checks.json",
+    "openspec/changes/web-abtest-advanced-config/design.md",
+    "openspec/changes/web-abtest-advanced-config/proposal.md",
+    "openspec/changes/web-abtest-advanced-config/specs/frontend/abtest-management/spec.md",
+    "openspec/changes/web-abtest-advanced-config/tasks.md",
+    "openspec/changes/web-abtest-advanced-config/walkthrough.html"
+  ]
+}
