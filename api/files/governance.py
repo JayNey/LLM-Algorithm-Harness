@@ -165,7 +165,7 @@ def save_governance(
         raise HTTPException(400, "Invalid governance selection")
 
     updated = originals.copy()
-    applied = False
+    report_changes = []
     for pid, approval in approved.items():
         change = changes[pid]
         allowed_tags = [suggestion.tag for suggestion in change.suggestions]
@@ -181,9 +181,29 @@ def save_governance(
         )
         if tags != change.original_tags or difficulty != change.original_difficulty:
             updated[pid] = {**originals[pid], "tags": tags, "difficulty": difficulty}
-            applied = True
+            report_changes.append(
+                {
+                    "problem_id": pid,
+                    "original_tags": change.original_tags,
+                    "new_tags": tags,
+                    "original_difficulty": change.original_difficulty,
+                    "new_difficulty": difficulty,
+                    "approval": approval.model_dump(exclude={"problem_id"}),
+                }
+            )
 
-    if not applied:
+    if not report_changes:
         raise HTTPException(400, "No approved changes to save")
-    version = store.save_dataset_version(owner, revision, request.name, list(updated.values()))
+    version = store.save_dataset_version(
+        owner,
+        revision,
+        request.name,
+        list(updated.values()),
+        change_report={
+            "schema_version": 1,
+            "source_revision": revision,
+            "preview": request.preview.model_dump(),
+            "changes": report_changes,
+        },
+    )
     return DatasetVersion.model_validate(version)

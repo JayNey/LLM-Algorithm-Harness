@@ -9,7 +9,7 @@ import {
   Space,
   Tabs,
 } from 'antd'
-import { useCallback, useRef, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Link } from 'react-router-dom'
 import { ApiClientError } from '@/auth/http.ts'
@@ -475,6 +475,81 @@ function GovernanceReview({ onSaved }: { onSaved: (id: string) => void }) {
   )
 }
 
+function VersionDownloads({ versionId }: { versionId: string }) {
+  const { client, owner } = useProblemSession()
+  const pending = useRef<AbortController | null>(null)
+  const [busy, setBusy] = useState<'dataset' | 'report' | null>(null)
+  const [error, setError] = useState<string | null>(null)
+  useEffect(() => () => pending.current?.abort(), [])
+
+  async function download(kind: 'dataset' | 'report') {
+    if (pending.current) return
+    const controller = new AbortController()
+    pending.current = controller
+    setBusy(kind)
+    setError(null)
+    const isCurrent = () =>
+      !controller.signal.aborted &&
+      useAuthStore.getState().session?.marker === owner
+    try {
+      const blob = await client.exportDatasetVersion(
+        versionId,
+        kind,
+        controller.signal,
+      )
+      if (!isCurrent()) return
+      if (!(blob instanceof Blob)) throw new Error('Invalid download')
+      const url = URL.createObjectURL(blob)
+      const link = document.createElement('a')
+      try {
+        link.href = url
+        link.download = `dataset-${versionId}${kind === 'report' ? '-changes' : ''}.json`
+        document.body.append(link)
+        link.click()
+      } finally {
+        link.remove()
+        setTimeout(() => URL.revokeObjectURL(url), 1000)
+      }
+    } catch (error) {
+      if (isCurrent())
+        setError(
+          error instanceof ApiClientError
+            ? error.message
+            : '版本下载失败，请重试',
+        )
+    } finally {
+      if (isCurrent()) {
+        pending.current = null
+        setBusy(null)
+      }
+    }
+  }
+
+  return (
+    <div>
+      <Space wrap>
+        <Button
+          aria-label={t('导出版本完整 JSON')}
+          loading={busy === 'dataset'}
+          disabled={busy !== null}
+          onClick={() => void download('dataset')}
+        >
+          {t('导出版本完整 JSON')}
+        </Button>
+        <Button
+          aria-label={t('导出标签与难度变更报告')}
+          loading={busy === 'report'}
+          disabled={busy !== null}
+          onClick={() => void download('report')}
+        >
+          {t('导出标签与难度变更报告')}
+        </Button>
+      </Space>
+      {error && <EvaluationFeedback message={t(error)} />}
+    </div>
+  )
+}
+
 function SavedVersions({
   versionId,
   onSelect,
@@ -530,7 +605,7 @@ function SavedVersions({
           retry={selected.retry}
         />
       )}
-      {selected.data && (
+      {selected.data && selected.data.id === versionId && (
         <section className="panel evaluation-panel">
           <Space wrap className="evaluation-section-heading">
             <h3>{selected.data.name}</h3>
@@ -541,6 +616,10 @@ function SavedVersions({
               {t('使用此版本创建评估')}
             </Link>
           </Space>
+          <VersionDownloads
+            key={selected.data.id}
+            versionId={selected.data.id}
+          />
           <ul className="evaluation-problem-list">
             {selected.data.problems.map((problem) => (
               <li key={problem.problem_id}>

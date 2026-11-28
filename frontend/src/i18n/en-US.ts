@@ -1,4 +1,10 @@
 export default {
+  '导出版本完整 JSON': 'Export complete version JSON',
+  导出标签与难度变更报告: 'Export tag and difficulty change report',
+  题集版本不存在或已清理: 'Dataset version does not exist or has been removed',
+  此版本没有可追溯的历史变更报告:
+    'No traceable historical change report is available for this version',
+  '版本下载失败，请重试': 'Version download failed. Please retry.',
   '策略温度须在 0–2 之间': 'Strategy temperature must be between 0 and 2',
   '策略温度（可选，0–2）': 'Strategy temperature (optional, 0–2)',
   'A/B 策略温度': 'A/B strategy temperature',

@@ -580,6 +580,22 @@ export function createProblemClient(http: AxiosInstance): ProblemClient {
         undefined,
         signal,
       ),
+    exportDatasetVersion: async (id, kind, signal) => {
+      try {
+        return await http.get<unknown, Blob>(
+          `${governance}/versions/${encodeURIComponent(id)}/${kind === 'report' ? 'report' : 'export'}`,
+          { responseType: 'blob', signal, timeout: 60_000 },
+        )
+      } catch (error) {
+        if (error instanceof ApiClientError) {
+          if (error.status === 404)
+            throw new ApiClientError('题集版本不存在或已清理', 404)
+          if (error.status === 409)
+            throw new ApiClientError('此版本没有可追溯的历史变更报告', 409)
+        }
+        throw error
+      }
+    },
     options: async (signal) =>
       get('/evaluation-options', optionsMeta, undefined, signal),
     problems: (query, signal) =>
