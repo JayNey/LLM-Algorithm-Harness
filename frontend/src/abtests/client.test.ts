@@ -238,3 +238,141 @@ test('个人题库 A/B 详情解析保留引用，无需路径', async () => {
   assert.equal(detail.config.dataset_id, 'mine')
   assert.equal(detail.config.dataset_path, undefined)
 })
+
+test('高级配置经请求保存，保留筛选归一、变体与 seed/并发', async () => {
+  const draft = baseDraft({
+    strategy: 'self_consistency',
+    strategy_temperature: '0',
+    strategy_max_tokens: '3456',
+    strategy_system_prompt: '  default instructions\n',
+    strategy_custom_params: '{"num_candidates":3,"temperature":1.2}',
+    problem_filters: {
+      difficulty: 'easy',
+      tags: 'array，math\narray',
+      problem_ids: 'LC.1, CF-2\nLC.1',
+      limit: '2',
+    },
+    seed: '17',
+    max_workers: '2',
+  })
+  draft.variants[1].system_prompt = 'variant override'
+  draft.variants[1].prefix = 'prefix'
+  draft.variants[1].suffix = 'suffix'
+  const payload = createPayload(draft)
+  assert.deepEqual(payload.strategy, {
+    name: 'self_consistency',
+    temperature: 0,
+    max_tokens: 3456,
+    system_prompt: '  default instructions\n',
+    custom_params: { num_candidates: 3, temperature: 1.2 },
+  })
+  assert.deepEqual(payload.problem_filters, {
+    difficulty: 'easy',
+    tags: ['array', 'math'],
+    problem_ids: ['LC.1', 'CF-2'],
+    limit: 2,
+  })
+  assert.equal(payload.prompt_variants[0].system_prompt, undefined)
+  assert.equal(payload.prompt_variants[1].system_prompt, 'variant override')
+  assert.equal(payload.prompt_variants[1].prefix, 'prefix')
+  assert.equal(payload.prompt_variants[1].suffix, 'suffix')
+  assert.equal(payload.seed, 17)
+  assert.equal(payload.max_workers, 2)
+  const { client, seen } = clientFor(() => ({
+    data: { ...job, config: payload },
+  }))
+  const saved = await client.create(payload)
+  assert.deepEqual(seen[0].body, payload)
+  assert.deepEqual(saved.config.strategy, payload.strategy)
+  assert.deepEqual(saved.config.problem_filters, payload.problem_filters)
+})
+
+test('留空高级输入不覆盖继承默认，旧响应仍兼容', async () => {
+  const payload = createPayload(
+    baseDraft({
+      strategy_temperature: ' ',
+      strategy_max_tokens: ' ',
+      strategy_system_prompt: '\n',
+      strategy_custom_params: '{}',
+      problem_filters: { tags: ' ,\n', problem_ids: '', limit: '' },
+    }),
+  )
+  assert.deepEqual(payload.strategy, { name: 'vanilla' })
+  assert.equal(Object.hasOwn(payload, 'problem_filters'), false)
+  const { client } = clientFor(() => ({ data: job }))
+  assert.equal((await client.get(job.id)).config.problem_filters, undefined)
+})
+
+test('高级配置非法字段逐项拒绝，切换策略重新检查白名单', () => {
+  for (const [patch, key] of [
+    ...['-0.1', '2.1', 'Infinity'].map((value) => [
+      { strategy_temperature: value },
+      'strategy_temperature',
+    ]),
+    ...['99', '8001', '100.5', '-100', 'NaN'].map((value) => [
+      { strategy_max_tokens: value },
+      'strategies.0.max_tokens',
+    ]),
+    ...[
+      'oops',
+      '[]',
+      'null',
+      '1',
+      '{"num_candidates":0}',
+      '{"num_candidates":"3"}',
+      '{"temperature":3}',
+      '{"base_url":"http://localhost"}',
+    ].map((value) => [
+      { strategy_custom_params: value },
+      'strategies.0.custom_params',
+    ]),
+    ...['0', '-1', '1.5', 'Infinity'].map((value) => [
+      { problem_filters: { limit: value } },
+      'problem_filters.limit',
+    ]),
+    [
+      { problem_filters: { difficulty: 'expert' } },
+      'problem_filters.difficulty',
+    ],
+  ] as [Partial<ABTestDraft>, string][]) {
+    const draft = baseDraft({ strategy: 'self_consistency', ...patch })
+    assert.ok(validateABTestDraft(draft)[key], JSON.stringify(patch))
+    assert.throws(() => createPayload(draft), ApiClientError)
+  }
+  const draft = baseDraft({
+    strategy: 'self_consistency',
+    strategy_custom_params: '{"num_candidates":3}',
+  })
+  assert.deepEqual(validateABTestDraft(draft), {})
+  assert.ok(
+    validateABTestDraft({ ...draft, strategy: 'vanilla' })[
+      'strategies.0.custom_params'
+    ],
+  )
+  assert.ok(
+    validateABTestDraft(
+      baseDraft({
+        strategy: 'tree_of_thoughts',
+        strategy_custom_params: '{"search_strategy":"random"}',
+      }),
+    )['strategies.0.custom_params'],
+  )
+})
+
+test('新增响应字段形状错误明确拒绝，基线与模型温度保留', async () => {
+  for (const config of [
+    { ...job.config, strategy: { name: 'vanilla', max_tokens: '2000' } },
+    { ...job.config, strategy: { name: 'vanilla', custom_params: [] } },
+    { ...job.config, problem_filters: { tags: 'array' } },
+    { ...job.config, problem_filters: { limit: 1.5 } },
+  ]) {
+    const { client } = clientFor(() => ({ data: { ...job, config } }))
+    await assert.rejects(client.get(job.id), /AB 测试接口响应格式不兼容/)
+  }
+  const { client } = clientFor(() => ({
+    data: { ...job, config: { ...job.config, baseline_id: 'treatment' } },
+  }))
+  const result = await client.get(job.id)
+  assert.equal(result.config.baseline_id, 'treatment')
+  assert.equal(result.config.model.temperature, 0.7)
+})

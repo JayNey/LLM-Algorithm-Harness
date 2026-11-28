@@ -1,3 +1,4 @@
+import { parseCustomParams, problemFilters } from '../experiments/advanced.ts'
 import { datasetConflict, datasetPayload } from '../experiments/datasets.ts'
 import { ApiClientError } from '../auth/http.ts'
 import type {
@@ -37,6 +38,32 @@ export function validateABTestDraft(draft: ABTestDraft): DraftErrors {
   )
     errors.strategy = '策略迭代须为 1–10 整数'
   if (
+    draft.strategy_temperature?.trim() &&
+    !validRange(draft.strategy_temperature, 0, 2)
+  )
+    errors.strategy_temperature = '策略温度须在 0–2 之间'
+  if (
+    draft.strategy_max_tokens?.trim() &&
+    !validInteger(draft.strategy_max_tokens, 100, 8000)
+  )
+    errors['strategies.0.max_tokens'] = '最大生成 Token 须为 100–8000 的整数'
+  try {
+    parseCustomParams(draft.strategy.trim(), draft.strategy_custom_params)
+  } catch (error) {
+    errors['strategies.0.custom_params'] = (error as Error).message
+  }
+  const filters = draft.problem_filters
+  if (
+    filters?.limit?.trim() &&
+    !validInteger(filters.limit, 1, Number.MAX_SAFE_INTEGER)
+  )
+    errors['problem_filters.limit'] = '题目数量上限须为正整数'
+  if (
+    filters?.difficulty &&
+    !['easy', 'medium', 'hard'].includes(filters.difficulty)
+  )
+    errors['problem_filters.difficulty'] = '请选择有效难度'
+  if (
     draft.seed.trim() &&
     !validInteger(draft.seed, 0, Number.MAX_SAFE_INTEGER)
   )
@@ -57,6 +84,11 @@ export function createPayload(draft: ABTestDraft): CreatePayload {
   const errors = validateABTestDraft(draft)
   if (Object.keys(errors).length)
     throw new ApiClientError('AB 测试配置无效', undefined, errors)
+  const customParams = parseCustomParams(
+    draft.strategy.trim(),
+    draft.strategy_custom_params,
+  )
+  const filters = problemFilters(draft)
   return {
     name: draft.name.trim(),
     ...datasetPayload(draft),
@@ -68,10 +100,21 @@ export function createPayload(draft: ABTestDraft): CreatePayload {
     },
     strategy: {
       name: draft.strategy.trim(),
+      ...(draft.strategy_temperature?.trim()
+        ? { temperature: Number(draft.strategy_temperature) }
+        : {}),
+      ...(draft.strategy_max_tokens?.trim()
+        ? { max_tokens: Number(draft.strategy_max_tokens) }
+        : {}),
+      ...(draft.strategy_system_prompt?.trim()
+        ? { system_prompt: draft.strategy_system_prompt }
+        : {}),
+      ...(customParams ? { custom_params: customParams } : {}),
       ...(draft.strategy_max_iterations.trim()
         ? { max_iterations: Number(draft.strategy_max_iterations) }
         : {}),
     },
+    ...(filters ? { problem_filters: filters } : {}),
     prompt_variants: draft.variants.map((variant) => ({
       id: variant.id.trim(),
       ...(variant.description.trim()

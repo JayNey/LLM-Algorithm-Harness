@@ -1,0 +1,39 @@
+{
+  "checks": [
+    {
+      "name": "frontend: node --experimental-strip-types --test src/abtests/*.test.ts src/experiments/*.test.ts src/i18n/*.test.ts",
+      "result": "passed",
+      "note": "62 passed, 0 failed; /tmp/issue527-frontend-tests.log"
+    },
+    {
+      "name": "repo: .venv/bin/python -m pytest tests/test_ab_testing.py tests/test_web_abtest_config.py tests/test_web_experiment_config.py tests/test_api_experiment_benchmark.py::TestABTests -q --no-cov",
+      "result": "passed",
+      "note": "37 passed; /tmp/issue527-python.log; real API persistence, runner, strategies, mock SDK and sandbox"
+    },
+    {
+      "name": "frontend: npm run build",
+      "result": "passed",
+      "note": "TypeScript and Vite build passed; existing chunk size warning; /tmp/issue527-build.log"
+    },
+    {
+      "name": "frontend: npm run lint; eslint scripts/verify-abtest-config.mjs",
+      "result": "passed",
+      "note": "ESLint passed; /tmp/issue527-lint.log; final QA script also checked after formatting"
+    },
+    {
+      "name": "frontend: node scripts/verify-abtest-config.mjs",
+      "result": "passed",
+      "note": "zh-CN/en-US; invalid inputs, busy disabled, 503 recovery, corrected payload, detail reload, legacy defaults, 320/390px; /tmp/issue527-browser/report.json"
+    },
+    {
+      "name": "frontend: prettier --check changed TS/TSX/locales and scripts/verify-abtest-config.mjs; repo: ruff check tests/test_web_abtest_config.py; black --check tests/test_web_abtest_config.py; git diff --check",
+      "result": "passed",
+      "note": "All changed source/QA files pass formatting, Python lint and whitespace checks"
+    },
+    {
+      "name": "repo: comet classic openspec -- validate web-abtest-advanced-config --strict",
+      "result": "passed",
+      "note": "All three delta requirements valid"
+    }
+  ]
+}

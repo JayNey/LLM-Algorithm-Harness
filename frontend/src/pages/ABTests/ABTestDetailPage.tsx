@@ -1,3 +1,5 @@
+import { StrategySummary } from '@/experiments/AdvancedFields.tsx'
+import { filterSummary } from '@/experiments/advanced.ts'
 import { useTranslation } from 'react-i18next'
 import { t } from '../../i18n/core.ts'
 import { Alert, Button, Skeleton, Tabs } from 'antd'
@@ -289,6 +291,18 @@ export default function ABTestDetailPage() {
           <dd>
             {job.config.model.model} × {job.config.strategy.name}（seed{' '}
             {job.config.seed}）
+          </dd>
+          <dt>{t('高级策略配置')}</dt>
+          <dd>
+            <StrategySummary strategies={[job.config.strategy]} />
+          </dd>
+          <dt>{t('题目筛选（可选）')}</dt>
+          <dd>{filterSummary(job.config.problem_filters)}</dd>
+          <dt>{t('并行数')}</dt>
+          <dd>{job.config.max_workers}</dd>
+          <dt>{t('基线')}</dt>
+          <dd>
+            {job.config.baseline_id ?? job.config.prompt_variants[0]?.id ?? '—'}
           </dd>
           <dt>{t('变体')}</dt>
           <dd>

@@ -1,0 +1,2063 @@
+# comet-execution: managed-run
+change_id: 730d0972-116e-468f-8e50-f666468566c3
+workflow: tweak
+language: zh-CN
+phase: archive
+context_compression: off
+build_mode: direct
+build_pause: null
+subagent_dispatch: null
+tdd_mode: direct
+review_mode: off
+isolation: current
+verify_mode: light
+auto_transition: true
+base_ref: 2b2ba6e5904f89fac7c25d773efd5d921429f0ef
+design_doc: null
+plan: null
+verify_result: pass
+verify_failures: 0
+verification_report: docs/superpowers/reports/2026-11-27-web-abtest-advanced-config-verify.md
+branch_status: pending
+created_at: 2026-11-27
+verified_at: 2026-11-28
+archive_confirmation: confirmed
+archived: true
+bound_branch: codex/web-abtest-advanced-config
+run_checkpoint:
+  schema: comet.workflow-run-checkpoint.v1
+  hash: f57750915ca2432a19ef32d5eb8331e94adc07556e35e678bc5a1eb49587db14
+  run:
+    protocolVersion: 1
+    schemaVersion: 1
+    runId: web-abtest-advanced-config
+    revision: 1
+    workflow:
+      id: comet-classic-tweak
+      version: "2"
+      hash: d1e067bc00ca13395dbc6f701565417c3e227f17a57df025dd73ebda905e2638
+    definitionHashes:
+      '["comet-classic-tweak","2"]': d1e067bc00ca13395dbc6f701565417c3e227f17a57df025dd73ebda905e2638
+    initialStateHash: 07da075e27a62c3c8abc011f8f6820c292a5c9bd141f2745998c590d550f263c
+    input:
+      change: web-abtest-advanced-config
+      changeDir: openspec/changes/web-abtest-advanced-config
+      workspaceBaseline:
+        ref: 4f2b9f7c-8585-4801-bab4-043ec483b126
+    state:
+      archiveConfirmation: confirmed
+      archived: true
+      autoTransition: true
+      baseRef: 2b2ba6e5904f89fac7c25d773efd5d921429f0ef
+      boundBranch: codex/web-abtest-advanced-config
+      branchStatus: pending
+      buildMode: direct
+      buildPause: null
+      checkEpoch: 6
+      classicMigration: null
+      classicProfile: null
+      contextCompression: off
+      createdAt: 2026-11-27
+      designDoc: null
+      directOverride: null
+      handoffContext: null
+      handoffHash: null
+      isolation: current
+      language: zh-CN
+      phase: archive
+      plan: null
+      reviewMode: off
+      subagentDispatch: null
+      tddMode: direct
+      verificationReport: docs/superpowers/reports/2026-11-27-web-abtest-advanced-config-verify.md
+      verifiedAt: 2026-11-28
+      verifyFailures: 0
+      verifyMode: light
+      verifyResult: pass
+      workflow: tweak
+    status: running
+    sequence: 14
+    actions:
+      - attempt: 1
+        claim:
+          executorId: comet-classic-guard
+          token: portable-faec3ebe5d660a58035028c487a45e60155c57f8516151b6d4f689883032ea0e
+        executionOrigin:
+          workflow:
+            hash: 518d3e8e12eb39899775cb7d2ddcc7ddeba10cb1f1d43cff7b03f2ca61a70c65
+            id: comet-classic-tweak
+            version: "2"
+        id: web-abtest-advanced-config:1
+        input:
+          input:
+            change: web-abtest-advanced-config
+            changeDir: openspec/changes/web-abtest-advanced-config
+            workspaceBaseline:
+              ref: 4f2b9f7c-8585-4801-bab4-043ec483b126
+          outputs: {}
+        inputHash: 2f57073c0b595376de18ba59470bdb84e1074b6138357e4823f82285ab5f2a0b
+        outcome:
+          actionId: web-abtest-advanced-config:1
+          attempt: 1
+          claimToken: portable-faec3ebe5d660a58035028c487a45e60155c57f8516151b6d4f689883032ea0e
+          inputHash: 2f57073c0b595376de18ba59470bdb84e1074b6138357e4823f82285ab5f2a0b
+          outcomeId: 0ef12477-7255-4d87-9358-331c898b4a68
+          output:
+            event: open-complete
+            requirementsEvidence:
+              ref: openspec/changes/web-abtest-advanced-config
+          status: succeeded
+        protocolVersion: 1
+        receipts:
+          - hash: 68a27c7c84a91d0e68b8bf634f745b88b418934cf8225978100c34925936febb
+            outcomeId: 0ef12477-7255-4d87-9358-331c898b4a68
+        reconciliations: []
+        ref: comet-tweak
+        requiredCapabilities: []
+        retry: manual
+        runId: web-abtest-advanced-config
+        status: succeeded
+        stepId: tweak.open
+        type: invoke_skill
+      - attempt: 1
+        claim:
+          executorId: comet-classic-state
+          sessionId: codex-527-root
+          token: portable-42a56e7798ac78a65c146d74f82b7a523480692c93044e45bd7bf214bcc32373
+        executionOrigin:
+          workflow:
+            hash: 518d3e8e12eb39899775cb7d2ddcc7ddeba10cb1f1d43cff7b03f2ca61a70c65
+            id: comet-classic-tweak
+            version: "2"
+        id: web-abtest-advanced-config:3
+        input:
+          input:
+            change: web-abtest-advanced-config
+            changeDir: openspec/changes/web-abtest-advanced-config
+            workspaceBaseline:
+              ref: 4f2b9f7c-8585-4801-bab4-043ec483b126
+          outputs:
+            tweak.open:
+              event: open-complete
+              requirementsEvidence:
+                ref: openspec/changes/web-abtest-advanced-config
+            tweak.open.evidence:
+              contentHash: 2f57073c0b595376de18ba59470bdb84e1074b6138357e4823f82285ab5f2a0b
+              ref: openspec/changes/web-abtest-advanced-config
+        inputHash: 553447ae56769ea74fdf3a7c443cc513c8e5d1e6a5f95f2385657060b2dc72b2
+        outcome:
+          actionId: web-abtest-advanced-config:3
+          attempt: 1
+          claimToken: portable-42a56e7798ac78a65c146d74f82b7a523480692c93044e45bd7bf214bcc32373
+          inputHash: 553447ae56769ea74fdf3a7c443cc513c8e5d1e6a5f95f2385657060b2dc72b2
+          outcomeId: 3eb58c38-5b5b-4c8f-b1c9-4021334a3b2c
+          output:
+            checks:
+              - name: "frontend: node --experimental-strip-types --test src/abtests/*.test.ts
+                  src/experiments/*.test.ts src/i18n/*.test.ts"
+                note: 62 passed, 0 failed; /tmp/issue527-frontend-tests.log
+                result: passed
+              - name: "repo: .venv/bin/python -m pytest tests/test_ab_testing.py
+                  tests/test_web_abtest_config.py
+                  tests/test_web_experiment_config.py
+                  tests/test_api_experiment_benchmark.py::TestABTests -q
+                  --no-cov"
+                note: 37 passed; /tmp/issue527-python.log; real API persistence, runner,
+                  strategies, mock SDK and sandbox
+                result: passed
+              - name: "frontend: npm run build"
+                note: TypeScript and Vite build passed; existing chunk size warning;
+                  /tmp/issue527-build.log
+                result: passed
+              - name: "frontend: npm run lint; eslint scripts/verify-abtest-config.mjs"
+                note: ESLint passed; /tmp/issue527-lint.log; final QA script also checked after
+                  formatting
+                result: passed
+              - name: "frontend: node scripts/verify-abtest-config.mjs"
+                note: zh-CN/en-US; invalid inputs, busy disabled, 503 recovery, corrected
+                  payload, detail reload, legacy defaults, 320/390px;
+                  /tmp/issue527-browser/report.json
+                result: passed
+              - name: "frontend: prettier --check changed TS/TSX/locales and
+                  scripts/verify-abtest-config.mjs; repo: ruff check
+                  tests/test_web_abtest_config.py; black --check
+                  tests/test_web_abtest_config.py; git diff --check"
+                note: All changed source/QA files pass formatting, Python lint and whitespace
+                  checks
+                result: passed
+              - name: "repo: comet classic openspec -- validate web-abtest-advanced-config
+                  --strict"
+                note: All three delta requirements valid
+                result: passed
+            event: build-complete
+          status: succeeded
+        protocolVersion: 1
+        receipts:
+          - hash: d58cb1697c3234836e3376f67c40c6f750d02c7c254882a88a9d6080148100df
+            outcomeId: 3eb58c38-5b5b-4c8f-b1c9-4021334a3b2c
+        reconciliations: []
+        ref: comet-build
+        requiredCapabilities: []
+        retry: manual
+        runId: web-abtest-advanced-config
+        status: succeeded
+        stepId: tweak.build.execute
+        type: invoke_skill
+      - attempt: 1
+        claim:
+          executorId: comet-classic-guard
+          token: portable-02ba56b6f226a1bfcae07cd940d0795e68c7693953dce9baa5e2e8d99eac8f74
+        executionOrigin:
+          workflow:
+            hash: 518d3e8e12eb39899775cb7d2ddcc7ddeba10cb1f1d43cff7b03f2ca61a70c65
+            id: comet-classic-tweak
+            version: "2"
+        id: web-abtest-advanced-config:4
+        input:
+          input:
+            change: web-abtest-advanced-config
+            changeDir: openspec/changes/web-abtest-advanced-config
+            workspaceBaseline:
+              ref: 4f2b9f7c-8585-4801-bab4-043ec483b126
+          outputs:
+            tweak.build.execute:
+              checks:
+                - name: "frontend: node --experimental-strip-types --test src/abtests/*.test.ts
+                    src/experiments/*.test.ts src/i18n/*.test.ts"
+                  note: 62 passed, 0 failed; /tmp/issue527-frontend-tests.log
+                  result: passed
+                - name: "repo: .venv/bin/python -m pytest tests/test_ab_testing.py
+                    tests/test_web_abtest_config.py
+                    tests/test_web_experiment_config.py
+                    tests/test_api_experiment_benchmark.py::TestABTests -q
+                    --no-cov"
+                  note: 37 passed; /tmp/issue527-python.log; real API persistence, runner,
+                    strategies, mock SDK and sandbox
+                  result: passed
+                - name: "frontend: npm run build"
+                  note: TypeScript and Vite build passed; existing chunk size warning;
+                    /tmp/issue527-build.log
+                  result: passed
+                - name: "frontend: npm run lint; eslint scripts/verify-abtest-config.mjs"
+                  note: ESLint passed; /tmp/issue527-lint.log; final QA script also checked after
+                    formatting
+                  result: passed
+                - name: "frontend: node scripts/verify-abtest-config.mjs"
+                  note: zh-CN/en-US; invalid inputs, busy disabled, 503 recovery, corrected
+                    payload, detail reload, legacy defaults, 320/390px;
+                    /tmp/issue527-browser/report.json
+                  result: passed
+                - name: "frontend: prettier --check changed TS/TSX/locales and
+                    scripts/verify-abtest-config.mjs; repo: ruff check
+                    tests/test_web_abtest_config.py; black --check
+                    tests/test_web_abtest_config.py; git diff --check"
+                  note: All changed source/QA files pass formatting, Python lint and whitespace
+                    checks
+                  result: passed
+                - name: "repo: comet classic openspec -- validate web-abtest-advanced-config
+                    --strict"
+                  note: All three delta requirements valid
+                  result: passed
+              event: build-complete
+            tweak.open:
+              event: open-complete
+              requirementsEvidence:
+                ref: openspec/changes/web-abtest-advanced-config
+            tweak.open.evidence:
+              contentHash: 2f57073c0b595376de18ba59470bdb84e1074b6138357e4823f82285ab5f2a0b
+              ref: openspec/changes/web-abtest-advanced-config
+        inputHash: 031f1fffde37e86de1a6c83759e91bb20b774d34510ef9cd0794ad6456668573
+        outcome:
+          actionId: web-abtest-advanced-config:4
+          attempt: 1
+          claimToken: portable-02ba56b6f226a1bfcae07cd940d0795e68c7693953dce9baa5e2e8d99eac8f74
+          inputHash: 031f1fffde37e86de1a6c83759e91bb20b774d34510ef9cd0794ad6456668573
+          outcomeId: e68907f7-489c-474e-b980-79ecf8e462aa
+          output:
+            checks:
+              - name: "frontend: node --experimental-strip-types --test src/abtests/*.test.ts
+                  src/experiments/*.test.ts src/i18n/*.test.ts"
+                note: 62 passed, 0 failed; /tmp/issue527-frontend-tests.log
+                result: passed
+              - name: "repo: .venv/bin/python -m pytest tests/test_ab_testing.py
+                  tests/test_web_abtest_config.py
+                  tests/test_web_experiment_config.py
+                  tests/test_api_experiment_benchmark.py::TestABTests -q
+                  --no-cov"
+                note: 37 passed; /tmp/issue527-python.log; real API persistence, runner,
+                  strategies, mock SDK and sandbox
+                result: passed
+              - name: "frontend: npm run build"
+                note: TypeScript and Vite build passed; existing chunk size warning;
+                  /tmp/issue527-build.log
+                result: passed
+              - name: "frontend: npm run lint; eslint scripts/verify-abtest-config.mjs"
+                note: ESLint passed; /tmp/issue527-lint.log; final QA script also checked after
+                  formatting
+                result: passed
+              - name: "frontend: node scripts/verify-abtest-config.mjs"
+                note: zh-CN/en-US; invalid inputs, busy disabled, 503 recovery, corrected
+                  payload, detail reload, legacy defaults, 320/390px;
+                  /tmp/issue527-browser/report.json
+                result: passed
+              - name: "frontend: prettier --check changed TS/TSX/locales and
+                  scripts/verify-abtest-config.mjs; repo: ruff check
+                  tests/test_web_abtest_config.py; black --check
+                  tests/test_web_abtest_config.py; git diff --check"
+                note: All changed source/QA files pass formatting, Python lint and whitespace
+                  checks
+                result: passed
+              - name: "repo: comet classic openspec -- validate web-abtest-advanced-config
+                  --strict"
+                note: All three delta requirements valid
+                result: passed
+            event: verification-ready
+            verificationReport: docs/superpowers/reports/2026-11-27-web-abtest-advanced-config-verify.md
+          status: succeeded
+        protocolVersion: 1
+        receipts:
+          - hash: 2447edde4a805f759a5aee362922e479b6d45a0fc71c1c7093e12d007af51f57
+            outcomeId: e68907f7-489c-474e-b980-79ecf8e462aa
+        reconciliations: []
+        ref: comet-verify
+        requiredCapabilities: []
+        retry: manual
+        runId: web-abtest-advanced-config
+        status: succeeded
+        stepId: tweak.verify.run
+        type: invoke_skill
+      - attempt: 1
+        claim:
+          executorId: comet-classic-state
+          token: portable-145f7049456274b3dd6433484e88ad598cdb5581f3349d78094fdcbce81fa30e
+        executionOrigin:
+          workflow:
+            hash: 518d3e8e12eb39899775cb7d2ddcc7ddeba10cb1f1d43cff7b03f2ca61a70c65
+            id: comet-classic-tweak
+            version: "2"
+        id: web-abtest-advanced-config:6
+        input:
+          input:
+            change: web-abtest-advanced-config
+            changeDir: openspec/changes/web-abtest-advanced-config
+            workspaceBaseline:
+              ref: 4f2b9f7c-8585-4801-bab4-043ec483b126
+          outputs:
+            tweak.build.execute:
+              checks:
+                - name: "frontend: node --experimental-strip-types --test src/abtests/*.test.ts
+                    src/experiments/*.test.ts src/i18n/*.test.ts"
+                  note: 62 passed, 0 failed; /tmp/issue527-frontend-tests.log
+                  result: passed
+                - name: "repo: .venv/bin/python -m pytest tests/test_ab_testing.py
+                    tests/test_web_abtest_config.py
+                    tests/test_web_experiment_config.py
+                    tests/test_api_experiment_benchmark.py::TestABTests -q
+                    --no-cov"
+                  note: 37 passed; /tmp/issue527-python.log; real API persistence, runner,
+                    strategies, mock SDK and sandbox
+                  result: passed
+                - name: "frontend: npm run build"
+                  note: TypeScript and Vite build passed; existing chunk size warning;
+                    /tmp/issue527-build.log
+                  result: passed
+                - name: "frontend: npm run lint; eslint scripts/verify-abtest-config.mjs"
+                  note: ESLint passed; /tmp/issue527-lint.log; final QA script also checked after
+                    formatting
+                  result: passed
+                - name: "frontend: node scripts/verify-abtest-config.mjs"
+                  note: zh-CN/en-US; invalid inputs, busy disabled, 503 recovery, corrected
+                    payload, detail reload, legacy defaults, 320/390px;
+                    /tmp/issue527-browser/report.json
+                  result: passed
+                - name: "frontend: prettier --check changed TS/TSX/locales and
+                    scripts/verify-abtest-config.mjs; repo: ruff check
+                    tests/test_web_abtest_config.py; black --check
+                    tests/test_web_abtest_config.py; git diff --check"
+                  note: All changed source/QA files pass formatting, Python lint and whitespace
+                    checks
+                  result: passed
+                - name: "repo: comet classic openspec -- validate web-abtest-advanced-config
+                    --strict"
+                  note: All three delta requirements valid
+                  result: passed
+              event: build-complete
+            tweak.open:
+              event: open-complete
+              requirementsEvidence:
+                ref: openspec/changes/web-abtest-advanced-config
+            tweak.open.evidence:
+              contentHash: 2f57073c0b595376de18ba59470bdb84e1074b6138357e4823f82285ab5f2a0b
+              ref: openspec/changes/web-abtest-advanced-config
+            tweak.verify.report.evidence:
+              contentHash: 031f1fffde37e86de1a6c83759e91bb20b774d34510ef9cd0794ad6456668573
+              ref: docs/superpowers/reports/2026-11-27-web-abtest-advanced-config-verify.md
+            tweak.verify.run:
+              checks:
+                - name: "frontend: node --experimental-strip-types --test src/abtests/*.test.ts
+                    src/experiments/*.test.ts src/i18n/*.test.ts"
+                  note: 62 passed, 0 failed; /tmp/issue527-frontend-tests.log
+                  result: passed
+                - name: "repo: .venv/bin/python -m pytest tests/test_ab_testing.py
+                    tests/test_web_abtest_config.py
+                    tests/test_web_experiment_config.py
+                    tests/test_api_experiment_benchmark.py::TestABTests -q
+                    --no-cov"
+                  note: 37 passed; /tmp/issue527-python.log; real API persistence, runner,
+                    strategies, mock SDK and sandbox
+                  result: passed
+                - name: "frontend: npm run build"
+                  note: TypeScript and Vite build passed; existing chunk size warning;
+                    /tmp/issue527-build.log
+                  result: passed
+                - name: "frontend: npm run lint; eslint scripts/verify-abtest-config.mjs"
+                  note: ESLint passed; /tmp/issue527-lint.log; final QA script also checked after
+                    formatting
+                  result: passed
+                - name: "frontend: node scripts/verify-abtest-config.mjs"
+                  note: zh-CN/en-US; invalid inputs, busy disabled, 503 recovery, corrected
+                    payload, detail reload, legacy defaults, 320/390px;
+                    /tmp/issue527-browser/report.json
+                  result: passed
+                - name: "frontend: prettier --check changed TS/TSX/locales and
+                    scripts/verify-abtest-config.mjs; repo: ruff check
+                    tests/test_web_abtest_config.py; black --check
+                    tests/test_web_abtest_config.py; git diff --check"
+                  note: All changed source/QA files pass formatting, Python lint and whitespace
+                    checks
+                  result: passed
+                - name: "repo: comet classic openspec -- validate web-abtest-advanced-config
+                    --strict"
+                  note: All three delta requirements valid
+                  result: passed
+              event: verification-ready
+              verificationReport: docs/superpowers/reports/2026-11-27-web-abtest-advanced-config-verify.md
+        inputHash: 634ad6cd930532320fbec272837e24142d3228e626e1d294deca947336c57844
+        outcome:
+          actionId: web-abtest-advanced-config:6
+          attempt: 1
+          claimToken: portable-145f7049456274b3dd6433484e88ad598cdb5581f3349d78094fdcbce81fa30e
+          inputHash: 634ad6cd930532320fbec272837e24142d3228e626e1d294deca947336c57844
+          outcomeId: 9e61fc50-552b-474c-a57b-5530e1961d3a
+          output:
+            prBaseBranch: main
+            remote: origin
+            summary: "issue #527 已实现并通过 Verify：12 个实现与测试文件，62 项前端、37 项 Python 回归及中英文 mock
+              浏览器通过；归档将同步 frontend/abtest-management delta spec、保存变更材料并提交。本地绑定
+              main，推送目标 origin/main；PR base main 与当前 main 同名，当前推荐 local
+              仅本地归档提交。"
+            targetBranch: main
+          status: succeeded
+        protocolVersion: 1
+        receipts:
+          - hash: 2133ece067550dea57bc9b93a3879d7c23470851893843dfc1f787a16a8ec06a
+            outcomeId: 9e61fc50-552b-474c-a57b-5530e1961d3a
+        reconciliations: []
+        ref: comet-archive
+        requiredCapabilities: []
+        retry: manual
+        runId: web-abtest-advanced-config
+        status: succeeded
+        stepId: tweak.archive.prepare
+        type: invoke_skill
+      - attempt: 1
+        claim:
+          executorId: comet-classic-guard
+          token: portable-0ad9b8ff008d4bdb79d9f9726a8e0561bef1fb525dcb8cda184cf89342dfbcf4
+        executionOrigin:
+          workflow:
+            hash: d1e067bc00ca13395dbc6f701565417c3e227f17a57df025dd73ebda905e2638
+            id: comet-classic-tweak
+            version: "2"
+        id: web-abtest-advanced-config:8
+        input:
+          activation:
+            expectedRevision: 12
+            fromPhase: archive
+          input:
+            change: web-abtest-advanced-config
+            changeDir: openspec/changes/web-abtest-advanced-config
+            workspaceBaseline:
+              ref: 4f2b9f7c-8585-4801-bab4-043ec483b126
+          outputs: {}
+        inputHash: 8a9197c782fdbe8346859f941895986a0a48fdad4e03aacbb423bacdf2234ea3
+        outcome:
+          actionId: web-abtest-advanced-config:8
+          attempt: 1
+          claimToken: portable-0ad9b8ff008d4bdb79d9f9726a8e0561bef1fb525dcb8cda184cf89342dfbcf4
+          inputHash: 8a9197c782fdbe8346859f941895986a0a48fdad4e03aacbb423bacdf2234ea3
+          outcomeId: 8ba9d44a-1766-4cb8-9676-e343d89df2e7
+          output:
+            checks:
+              - name: "frontend: node --experimental-strip-types --test src/abtests/*.test.ts
+                  src/experiments/*.test.ts src/i18n/*.test.ts"
+                note: 62 passed, 0 failed; /tmp/issue527-frontend-tests.log
+                result: passed
+              - name: "repo: .venv/bin/python -m pytest tests/test_ab_testing.py
+                  tests/test_web_abtest_config.py
+                  tests/test_web_experiment_config.py
+                  tests/test_api_experiment_benchmark.py::TestABTests -q
+                  --no-cov"
+                note: 37 passed; /tmp/issue527-python.log; real API persistence, runner,
+                  strategies, mock SDK and sandbox
+                result: passed
+              - name: "frontend: npm run build"
+                note: TypeScript and Vite build passed; existing chunk size warning;
+                  /tmp/issue527-build.log
+                result: passed
+              - name: "frontend: npm run lint; eslint scripts/verify-abtest-config.mjs"
+                note: ESLint passed; /tmp/issue527-lint.log; final QA script also checked after
+                  formatting
+                result: passed
+              - name: "frontend: node scripts/verify-abtest-config.mjs"
+                note: zh-CN/en-US; invalid inputs, busy disabled, 503 recovery, corrected
+                  payload, detail reload, legacy defaults, 320/390px;
+                  /tmp/issue527-browser/report.json
+                result: passed
+              - name: "frontend: prettier --check changed TS/TSX/locales and
+                  scripts/verify-abtest-config.mjs; repo: ruff check
+                  tests/test_web_abtest_config.py; black --check
+                  tests/test_web_abtest_config.py; git diff --check"
+                note: All changed source/QA files pass formatting, Python lint and whitespace
+                  checks
+                result: passed
+              - name: "repo: comet classic openspec -- validate web-abtest-advanced-config
+                  --strict"
+                note: All three delta requirements valid
+                result: passed
+            event: verification-ready
+            verificationReport: docs/superpowers/reports/2026-11-27-web-abtest-advanced-config-verify.md
+          status: succeeded
+        protocolVersion: 1
+        receipts:
+          - hash: aaac491784c4c5bd08a5e2c676e4d087e83142d5f9a57734aadb408b8f8bfbde
+            outcomeId: 8ba9d44a-1766-4cb8-9676-e343d89df2e7
+        reconciliations: []
+        ref: comet-verify
+        requiredCapabilities: []
+        retry: manual
+        runId: web-abtest-advanced-config
+        status: succeeded
+        stepId: tweak.verify.run
+        type: invoke_skill
+      - attempt: 1
+        claim:
+          executorId: comet-classic-state
+          token: portable-fa8c656a75227d6dbed69386df7c10fae1d632b2f927897c8238346b97aa7bb3
+        executionOrigin:
+          workflow:
+            hash: d1e067bc00ca13395dbc6f701565417c3e227f17a57df025dd73ebda905e2638
+            id: comet-classic-tweak
+            version: "2"
+        id: web-abtest-advanced-config:10
+        input:
+          input:
+            change: web-abtest-advanced-config
+            changeDir: openspec/changes/web-abtest-advanced-config
+            workspaceBaseline:
+              ref: 4f2b9f7c-8585-4801-bab4-043ec483b126
+          outputs:
+            tweak.verify.report.evidence:
+              contentHash: 8a9197c782fdbe8346859f941895986a0a48fdad4e03aacbb423bacdf2234ea3
+              ref: docs/superpowers/reports/2026-11-27-web-abtest-advanced-config-verify.md
+            tweak.verify.run:
+              checks:
+                - name: "frontend: node --experimental-strip-types --test src/abtests/*.test.ts
+                    src/experiments/*.test.ts src/i18n/*.test.ts"
+                  note: 62 passed, 0 failed; /tmp/issue527-frontend-tests.log
+                  result: passed
+                - name: "repo: .venv/bin/python -m pytest tests/test_ab_testing.py
+                    tests/test_web_abtest_config.py
+                    tests/test_web_experiment_config.py
+                    tests/test_api_experiment_benchmark.py::TestABTests -q
+                    --no-cov"
+                  note: 37 passed; /tmp/issue527-python.log; real API persistence, runner,
+                    strategies, mock SDK and sandbox
+                  result: passed
+                - name: "frontend: npm run build"
+                  note: TypeScript and Vite build passed; existing chunk size warning;
+                    /tmp/issue527-build.log
+                  result: passed
+                - name: "frontend: npm run lint; eslint scripts/verify-abtest-config.mjs"
+                  note: ESLint passed; /tmp/issue527-lint.log; final QA script also checked after
+                    formatting
+                  result: passed
+                - name: "frontend: node scripts/verify-abtest-config.mjs"
+                  note: zh-CN/en-US; invalid inputs, busy disabled, 503 recovery, corrected
+                    payload, detail reload, legacy defaults, 320/390px;
+                    /tmp/issue527-browser/report.json
+                  result: passed
+                - name: "frontend: prettier --check changed TS/TSX/locales and
+                    scripts/verify-abtest-config.mjs; repo: ruff check
+                    tests/test_web_abtest_config.py; black --check
+                    tests/test_web_abtest_config.py; git diff --check"
+                  note: All changed source/QA files pass formatting, Python lint and whitespace
+                    checks
+                  result: passed
+                - name: "repo: comet classic openspec -- validate web-abtest-advanced-config
+                    --strict"
+                  note: All three delta requirements valid
+                  result: passed
+              event: verification-ready
+              verificationReport: docs/superpowers/reports/2026-11-27-web-abtest-advanced-config-verify.md
+        inputHash: 83a6ea24abcbc61243c954d189b4e44e01770d2cebbc4330312e0bfc09ee8626
+        outcome:
+          actionId: web-abtest-advanced-config:10
+          attempt: 1
+          claimToken: portable-fa8c656a75227d6dbed69386df7c10fae1d632b2f927897c8238346b97aa7bb3
+          inputHash: 83a6ea24abcbc61243c954d189b4e44e01770d2cebbc4330312e0bfc09ee8626
+          outcomeId: bdfc6eb8-76b4-4edb-88d5-92b4f42fd34e
+          output:
+            prBaseBranch: main
+            remote: origin
+            summary: "用户已授权归档、提交并创建 PR：将 issue #527 已验证修改、主规格同步与归档材料提交到
+              codex/web-abtest-advanced-config，推送 origin 同名分支，创建以 main 为 base 的
+              PR。检查证据保持有效：62 项前端、37 项 Python 及中英文 mock 浏览器验收通过。"
+            targetBranch: codex/web-abtest-advanced-config
+          status: succeeded
+        protocolVersion: 1
+        receipts:
+          - hash: 459150f92fa85692d68a5e1e2cb5e4bcb264f185774e9cbc2729bc674bc7f7e0
+            outcomeId: bdfc6eb8-76b4-4edb-88d5-92b4f42fd34e
+        reconciliations: []
+        ref: comet-archive
+        requiredCapabilities: []
+        retry: manual
+        runId: web-abtest-advanced-config
+        status: succeeded
+        stepId: tweak.archive.prepare
+        type: invoke_skill
+      - attempt: 1
+        claim:
+          executorId: comet-classic-archive-preflight
+          token: portable-0ce8d5397f7c638df5ce0f28efc14740200d0d937c1580b0f39c1d58dc5aa102
+        executionOrigin:
+          workflow:
+            hash: d1e067bc00ca13395dbc6f701565417c3e227f17a57df025dd73ebda905e2638
+            id: comet-classic-tweak
+            version: "2"
+        id: web-abtest-advanced-config:12
+        input:
+          input:
+            change: web-abtest-advanced-config
+            changeDir: openspec/changes/web-abtest-advanced-config
+            workspaceBaseline:
+              ref: 4f2b9f7c-8585-4801-bab4-043ec483b126
+          outputs:
+            tweak.archive.confirm:
+              choice: pr
+              proposal:
+                input:
+                  change: web-abtest-advanced-config
+                  changeDir: openspec/changes/web-abtest-advanced-config
+                  workspaceBaseline:
+                    ref: 4f2b9f7c-8585-4801-bab4-043ec483b126
+                outputs:
+                  tweak.archive.prepare:
+                    prBaseBranch: main
+                    remote: origin
+                    summary: "用户已授权归档、提交并创建 PR：将 issue #527 已验证修改、主规格同步与归档材料提交到
+                      codex/web-abtest-advanced-config，推送 origin 同名分支，创建以 main 为
+                      base 的 PR。检查证据保持有效：62 项前端、37 项 Python 及中英文 mock 浏览器验收通过。"
+                    targetBranch: codex/web-abtest-advanced-config
+            tweak.archive.prepare:
+              prBaseBranch: main
+              remote: origin
+              summary: "用户已授权归档、提交并创建 PR：将 issue #527 已验证修改、主规格同步与归档材料提交到
+                codex/web-abtest-advanced-config，推送 origin 同名分支，创建以 main 为 base
+                的 PR。检查证据保持有效：62 项前端、37 项 Python 及中英文 mock 浏览器验收通过。"
+              targetBranch: codex/web-abtest-advanced-config
+            tweak.verify.report.evidence:
+              contentHash: 8a9197c782fdbe8346859f941895986a0a48fdad4e03aacbb423bacdf2234ea3
+              ref: docs/superpowers/reports/2026-11-27-web-abtest-advanced-config-verify.md
+            tweak.verify.run:
+              checks:
+                - name: "frontend: node --experimental-strip-types --test src/abtests/*.test.ts
+                    src/experiments/*.test.ts src/i18n/*.test.ts"
+                  note: 62 passed, 0 failed; /tmp/issue527-frontend-tests.log
+                  result: passed
+                - name: "repo: .venv/bin/python -m pytest tests/test_ab_testing.py
+                    tests/test_web_abtest_config.py
+                    tests/test_web_experiment_config.py
+                    tests/test_api_experiment_benchmark.py::TestABTests -q
+                    --no-cov"
+                  note: 37 passed; /tmp/issue527-python.log; real API persistence, runner,
+                    strategies, mock SDK and sandbox
+                  result: passed
+                - name: "frontend: npm run build"
+                  note: TypeScript and Vite build passed; existing chunk size warning;
+                    /tmp/issue527-build.log
+                  result: passed
+                - name: "frontend: npm run lint; eslint scripts/verify-abtest-config.mjs"
+                  note: ESLint passed; /tmp/issue527-lint.log; final QA script also checked after
+                    formatting
+                  result: passed
+                - name: "frontend: node scripts/verify-abtest-config.mjs"
+                  note: zh-CN/en-US; invalid inputs, busy disabled, 503 recovery, corrected
+                    payload, detail reload, legacy defaults, 320/390px;
+                    /tmp/issue527-browser/report.json
+                  result: passed
+                - name: "frontend: prettier --check changed TS/TSX/locales and
+                    scripts/verify-abtest-config.mjs; repo: ruff check
+                    tests/test_web_abtest_config.py; black --check
+                    tests/test_web_abtest_config.py; git diff --check"
+                  note: All changed source/QA files pass formatting, Python lint and whitespace
+                    checks
+                  result: passed
+                - name: "repo: comet classic openspec -- validate web-abtest-advanced-config
+                    --strict"
+                  note: All three delta requirements valid
+                  result: passed
+              event: verification-ready
+              verificationReport: docs/superpowers/reports/2026-11-27-web-abtest-advanced-config-verify.md
+        inputHash: acb5a2a47ff0808b70c468f820fdbaaa3d185553c8937a6e353edff8a8e12a84
+        outcome:
+          actionId: web-abtest-advanced-config:12
+          attempt: 1
+          claimToken: portable-0ce8d5397f7c638df5ce0f28efc14740200d0d937c1580b0f39c1d58dc5aa102
+          inputHash: acb5a2a47ff0808b70c468f820fdbaaa3d185553c8937a6e353edff8a8e12a84
+          outcomeId: 198e8496-8392-46e1-b2ca-b7daca51dccf
+          output:
+            baseCommit: 2b2ba6e5904f89fac7c25d773efd5d921429f0ef
+            deliveryAction: pr
+            deliveryPaths:
+              - frontend/scripts/verify-abtest-config.mjs
+              - frontend/src/abtests/client.test.ts
+              - frontend/src/abtests/client.ts
+              - frontend/src/abtests/types.ts
+              - frontend/src/abtests/validation.ts
+              - frontend/src/experiments/AdvancedFields.tsx
+              - frontend/src/experiments/advanced.ts
+              - frontend/src/i18n/en-US.ts
+              - frontend/src/i18n/zh-CN.ts
+              - frontend/src/pages/ABTests/ABTestDetailPage.tsx
+              - frontend/src/pages/ABTests/CreateABTestPage.tsx
+              - tests/test_web_abtest_config.py
+            prBaseBranch: main
+            remote: origin
+            remoteIdentity: 128eeb1e6f0d21b25601fcb7f9aad36adfdfb4d76f37f54f004760410190f351
+            targetBranch: codex/web-abtest-advanced-config
+            verifiedBranch: codex/web-abtest-advanced-config
+          status: succeeded
+        protocolVersion: 1
+        receipts:
+          - hash: afaccbb77ad7c6eccf56dbca5f61bfc8790ba32c66436225b86dc0e44cb550c7
+            outcomeId: 198e8496-8392-46e1-b2ca-b7daca51dccf
+        reconciliations: []
+        ref: classic-archive-preflight
+        requiredCapabilities: []
+        retry: manual
+        runId: web-abtest-advanced-config
+        status: succeeded
+        stepId: tweak.archive.preflight
+        type: call_tool
+      - attempt: 1
+        claim:
+          executorId: comet-classic-archive
+          token: portable-fbb541d74f84035be232b3a91c4382f3f966d59ec38f66185408fb12c07e8955
+        executionOrigin:
+          workflow:
+            hash: d1e067bc00ca13395dbc6f701565417c3e227f17a57df025dd73ebda905e2638
+            id: comet-classic-tweak
+            version: "2"
+        id: web-abtest-advanced-config:13
+        input:
+          input:
+            change: web-abtest-advanced-config
+            changeDir: openspec/changes/web-abtest-advanced-config
+            workspaceBaseline:
+              ref: 4f2b9f7c-8585-4801-bab4-043ec483b126
+          outputs:
+            tweak.archive.confirm:
+              choice: pr
+              proposal:
+                input:
+                  change: web-abtest-advanced-config
+                  changeDir: openspec/changes/web-abtest-advanced-config
+                  workspaceBaseline:
+                    ref: 4f2b9f7c-8585-4801-bab4-043ec483b126
+                outputs:
+                  tweak.archive.prepare:
+                    prBaseBranch: main
+                    remote: origin
+                    summary: "用户已授权归档、提交并创建 PR：将 issue #527 已验证修改、主规格同步与归档材料提交到
+                      codex/web-abtest-advanced-config，推送 origin 同名分支，创建以 main 为
+                      base 的 PR。检查证据保持有效：62 项前端、37 项 Python 及中英文 mock 浏览器验收通过。"
+                    targetBranch: codex/web-abtest-advanced-config
+            tweak.archive.preflight:
+              baseCommit: 2b2ba6e5904f89fac7c25d773efd5d921429f0ef
+              deliveryAction: pr
+              deliveryPaths:
+                - frontend/scripts/verify-abtest-config.mjs
+                - frontend/src/abtests/client.test.ts
+                - frontend/src/abtests/client.ts
+                - frontend/src/abtests/types.ts
+                - frontend/src/abtests/validation.ts
+                - frontend/src/experiments/AdvancedFields.tsx
+                - frontend/src/experiments/advanced.ts
+                - frontend/src/i18n/en-US.ts
+                - frontend/src/i18n/zh-CN.ts
+                - frontend/src/pages/ABTests/ABTestDetailPage.tsx
+                - frontend/src/pages/ABTests/CreateABTestPage.tsx
+                - tests/test_web_abtest_config.py
+              prBaseBranch: main
+              remote: origin
+              remoteIdentity: 128eeb1e6f0d21b25601fcb7f9aad36adfdfb4d76f37f54f004760410190f351
+              targetBranch: codex/web-abtest-advanced-config
+              verifiedBranch: codex/web-abtest-advanced-config
+            tweak.archive.prepare:
+              prBaseBranch: main
+              remote: origin
+              summary: "用户已授权归档、提交并创建 PR：将 issue #527 已验证修改、主规格同步与归档材料提交到
+                codex/web-abtest-advanced-config，推送 origin 同名分支，创建以 main 为 base
+                的 PR。检查证据保持有效：62 项前端、37 项 Python 及中英文 mock 浏览器验收通过。"
+              targetBranch: codex/web-abtest-advanced-config
+            tweak.verify.report.evidence:
+              contentHash: 8a9197c782fdbe8346859f941895986a0a48fdad4e03aacbb423bacdf2234ea3
+              ref: docs/superpowers/reports/2026-11-27-web-abtest-advanced-config-verify.md
+            tweak.verify.run:
+              checks:
+                - name: "frontend: node --experimental-strip-types --test src/abtests/*.test.ts
+                    src/experiments/*.test.ts src/i18n/*.test.ts"
+                  note: 62 passed, 0 failed; /tmp/issue527-frontend-tests.log
+                  result: passed
+                - name: "repo: .venv/bin/python -m pytest tests/test_ab_testing.py
+                    tests/test_web_abtest_config.py
+                    tests/test_web_experiment_config.py
+                    tests/test_api_experiment_benchmark.py::TestABTests -q
+                    --no-cov"
+                  note: 37 passed; /tmp/issue527-python.log; real API persistence, runner,
+                    strategies, mock SDK and sandbox
+                  result: passed
+                - name: "frontend: npm run build"
+                  note: TypeScript and Vite build passed; existing chunk size warning;
+                    /tmp/issue527-build.log
+                  result: passed
+                - name: "frontend: npm run lint; eslint scripts/verify-abtest-config.mjs"
+                  note: ESLint passed; /tmp/issue527-lint.log; final QA script also checked after
+                    formatting
+                  result: passed
+                - name: "frontend: node scripts/verify-abtest-config.mjs"
+                  note: zh-CN/en-US; invalid inputs, busy disabled, 503 recovery, corrected
+                    payload, detail reload, legacy defaults, 320/390px;
+                    /tmp/issue527-browser/report.json
+                  result: passed
+                - name: "frontend: prettier --check changed TS/TSX/locales and
+                    scripts/verify-abtest-config.mjs; repo: ruff check
+                    tests/test_web_abtest_config.py; black --check
+                    tests/test_web_abtest_config.py; git diff --check"
+                  note: All changed source/QA files pass formatting, Python lint and whitespace
+                    checks
+                  result: passed
+                - name: "repo: comet classic openspec -- validate web-abtest-advanced-config
+                    --strict"
+                  note: All three delta requirements valid
+                  result: passed
+              event: verification-ready
+              verificationReport: docs/superpowers/reports/2026-11-27-web-abtest-advanced-config-verify.md
+        inputHash: 3dfd9e30ccf98e08e0f90387b752002c4c7745b97a176d4c7842d48d40bdb0b0
+        outcome:
+          actionId: web-abtest-advanced-config:13
+          artifacts: []
+          attempt: 1
+          claimToken: portable-fbb541d74f84035be232b3a91c4382f3f966d59ec38f66185408fb12c07e8955
+          inputHash: 3dfd9e30ccf98e08e0f90387b752002c4c7745b97a176d4c7842d48d40bdb0b0
+          outcomeId: 96871719-50ee-4bb6-b6c3-74beefdd2421
+          output:
+            archiveDirectory: openspec/changes/archive/2026-11-28-web-abtest-advanced-config
+          status: succeeded
+        protocolVersion: 1
+        receipts:
+          - hash: b62a643699d3df06cf4203a904ee5eb82d196fc3aceadeb7eeef66063b34aaf6
+            outcomeId: 96871719-50ee-4bb6-b6c3-74beefdd2421
+        reconciliations: []
+        ref: classic-archive
+        requiredCapabilities: []
+        retry: manual
+        runId: web-abtest-advanced-config
+        status: succeeded
+        stepId: tweak.archive.execute
+        type: call_tool
+      - attempt: 1
+        id: web-abtest-advanced-config:14
+        input:
+          input:
+            change: web-abtest-advanced-config
+            changeDir: openspec/changes/web-abtest-advanced-config
+            workspaceBaseline:
+              ref: 4f2b9f7c-8585-4801-bab4-043ec483b126
+          outputs:
+            tweak.archive.confirm:
+              choice: pr
+              proposal:
+                input:
+                  change: web-abtest-advanced-config
+                  changeDir: openspec/changes/web-abtest-advanced-config
+                  workspaceBaseline:
+                    ref: 4f2b9f7c-8585-4801-bab4-043ec483b126
+                outputs:
+                  tweak.archive.prepare:
+                    prBaseBranch: main
+                    remote: origin
+                    summary: "用户已授权归档、提交并创建 PR：将 issue #527 已验证修改、主规格同步与归档材料提交到
+                      codex/web-abtest-advanced-config，推送 origin 同名分支，创建以 main 为
+                      base 的 PR。检查证据保持有效：62 项前端、37 项 Python 及中英文 mock 浏览器验收通过。"
+                    targetBranch: codex/web-abtest-advanced-config
+            tweak.archive.execute:
+              archiveDirectory: openspec/changes/archive/2026-11-28-web-abtest-advanced-config
+            tweak.archive.preflight:
+              baseCommit: 2b2ba6e5904f89fac7c25d773efd5d921429f0ef
+              deliveryAction: pr
+              deliveryPaths:
+                - frontend/scripts/verify-abtest-config.mjs
+                - frontend/src/abtests/client.test.ts
+                - frontend/src/abtests/client.ts
+                - frontend/src/abtests/types.ts
+                - frontend/src/abtests/validation.ts
+                - frontend/src/experiments/AdvancedFields.tsx
+                - frontend/src/experiments/advanced.ts
+                - frontend/src/i18n/en-US.ts
+                - frontend/src/i18n/zh-CN.ts
+                - frontend/src/pages/ABTests/ABTestDetailPage.tsx
+                - frontend/src/pages/ABTests/CreateABTestPage.tsx
+                - tests/test_web_abtest_config.py
+              prBaseBranch: main
+              remote: origin
+              remoteIdentity: 128eeb1e6f0d21b25601fcb7f9aad36adfdfb4d76f37f54f004760410190f351
+              targetBranch: codex/web-abtest-advanced-config
+              verifiedBranch: codex/web-abtest-advanced-config
+            tweak.archive.prepare:
+              prBaseBranch: main
+              remote: origin
+              summary: "用户已授权归档、提交并创建 PR：将 issue #527 已验证修改、主规格同步与归档材料提交到
+                codex/web-abtest-advanced-config，推送 origin 同名分支，创建以 main 为 base
+                的 PR。检查证据保持有效：62 项前端、37 项 Python 及中英文 mock 浏览器验收通过。"
+              targetBranch: codex/web-abtest-advanced-config
+            tweak.verify.report.evidence:
+              contentHash: 8a9197c782fdbe8346859f941895986a0a48fdad4e03aacbb423bacdf2234ea3
+              ref: docs/superpowers/reports/2026-11-27-web-abtest-advanced-config-verify.md
+            tweak.verify.run:
+              checks:
+                - name: "frontend: node --experimental-strip-types --test src/abtests/*.test.ts
+                    src/experiments/*.test.ts src/i18n/*.test.ts"
+                  note: 62 passed, 0 failed; /tmp/issue527-frontend-tests.log
+                  result: passed
+                - name: "repo: .venv/bin/python -m pytest tests/test_ab_testing.py
+                    tests/test_web_abtest_config.py
+                    tests/test_web_experiment_config.py
+                    tests/test_api_experiment_benchmark.py::TestABTests -q
+                    --no-cov"
+                  note: 37 passed; /tmp/issue527-python.log; real API persistence, runner,
+                    strategies, mock SDK and sandbox
+                  result: passed
+                - name: "frontend: npm run build"
+                  note: TypeScript and Vite build passed; existing chunk size warning;
+                    /tmp/issue527-build.log
+                  result: passed
+                - name: "frontend: npm run lint; eslint scripts/verify-abtest-config.mjs"
+                  note: ESLint passed; /tmp/issue527-lint.log; final QA script also checked after
+                    formatting
+                  result: passed
+                - name: "frontend: node scripts/verify-abtest-config.mjs"
+                  note: zh-CN/en-US; invalid inputs, busy disabled, 503 recovery, corrected
+                    payload, detail reload, legacy defaults, 320/390px;
+                    /tmp/issue527-browser/report.json
+                  result: passed
+                - name: "frontend: prettier --check changed TS/TSX/locales and
+                    scripts/verify-abtest-config.mjs; repo: ruff check
+                    tests/test_web_abtest_config.py; black --check
+                    tests/test_web_abtest_config.py; git diff --check"
+                  note: All changed source/QA files pass formatting, Python lint and whitespace
+                    checks
+                  result: passed
+                - name: "repo: comet classic openspec -- validate web-abtest-advanced-config
+                    --strict"
+                  note: All three delta requirements valid
+                  result: passed
+              event: verification-ready
+              verificationReport: docs/superpowers/reports/2026-11-27-web-abtest-advanced-config-verify.md
+        inputHash: 00c41e9f1fb2d107d91078200117474e6698050b765f6243ea9802f476e52f8e
+        protocolVersion: 1
+        receipts: []
+        reconciliations: []
+        ref: comet-archive
+        requiredCapabilities: []
+        retry: manual
+        runId: web-abtest-advanced-config
+        status: pending
+        stepId: tweak.archive.deliver
+        type: invoke_skill
+    commands:
+      - id: cd8d92d6cebdb7e278d5d00bef508f3e243d1ef48e8261259df764fc7345712b
+        name: reopen-verification
+        inputHash: f5e487703e8f5203c1a70838dc38a9f0c3378ad441ad266fc269ee9debbfde5a
+        actionId: web-abtest-advanced-config:8
+    actionContexts:
+      web-abtest-advanced-config:1:
+        results: {}
+        sequence: 1
+      web-abtest-advanced-config:10:
+        results:
+          tweak.verify.report.evidence:
+            sequence: 9
+            value:
+              contentHash: 8a9197c782fdbe8346859f941895986a0a48fdad4e03aacbb423bacdf2234ea3
+              ref: docs/superpowers/reports/2026-11-27-web-abtest-advanced-config-verify.md
+          tweak.verify.run:
+            sequence: 8
+            value:
+              checks:
+                - name: "frontend: node --experimental-strip-types --test src/abtests/*.test.ts
+                    src/experiments/*.test.ts src/i18n/*.test.ts"
+                  note: 62 passed, 0 failed; /tmp/issue527-frontend-tests.log
+                  result: passed
+                - name: "repo: .venv/bin/python -m pytest tests/test_ab_testing.py
+                    tests/test_web_abtest_config.py
+                    tests/test_web_experiment_config.py
+                    tests/test_api_experiment_benchmark.py::TestABTests -q
+                    --no-cov"
+                  note: 37 passed; /tmp/issue527-python.log; real API persistence, runner,
+                    strategies, mock SDK and sandbox
+                  result: passed
+                - name: "frontend: npm run build"
+                  note: TypeScript and Vite build passed; existing chunk size warning;
+                    /tmp/issue527-build.log
+                  result: passed
+                - name: "frontend: npm run lint; eslint scripts/verify-abtest-config.mjs"
+                  note: ESLint passed; /tmp/issue527-lint.log; final QA script also checked after
+                    formatting
+                  result: passed
+                - name: "frontend: node scripts/verify-abtest-config.mjs"
+                  note: zh-CN/en-US; invalid inputs, busy disabled, 503 recovery, corrected
+                    payload, detail reload, legacy defaults, 320/390px;
+                    /tmp/issue527-browser/report.json
+                  result: passed
+                - name: "frontend: prettier --check changed TS/TSX/locales and
+                    scripts/verify-abtest-config.mjs; repo: ruff check
+                    tests/test_web_abtest_config.py; black --check
+                    tests/test_web_abtest_config.py; git diff --check"
+                  note: All changed source/QA files pass formatting, Python lint and whitespace
+                    checks
+                  result: passed
+                - name: "repo: comet classic openspec -- validate web-abtest-advanced-config
+                    --strict"
+                  note: All three delta requirements valid
+                  result: passed
+              event: verification-ready
+              verificationReport: docs/superpowers/reports/2026-11-27-web-abtest-advanced-config-verify.md
+        sequence: 10
+      web-abtest-advanced-config:12:
+        results:
+          tweak.archive.confirm:
+            sequence: 11
+            value:
+              choice: pr
+              proposal:
+                input:
+                  change: web-abtest-advanced-config
+                  changeDir: openspec/changes/web-abtest-advanced-config
+                  workspaceBaseline:
+                    ref: 4f2b9f7c-8585-4801-bab4-043ec483b126
+                outputs:
+                  tweak.archive.prepare:
+                    prBaseBranch: main
+                    remote: origin
+                    summary: "用户已授权归档、提交并创建 PR：将 issue #527 已验证修改、主规格同步与归档材料提交到
+                      codex/web-abtest-advanced-config，推送 origin 同名分支，创建以 main 为
+                      base 的 PR。检查证据保持有效：62 项前端、37 项 Python 及中英文 mock 浏览器验收通过。"
+                    targetBranch: codex/web-abtest-advanced-config
+          tweak.archive.prepare:
+            sequence: 10
+            value:
+              prBaseBranch: main
+              remote: origin
+              summary: "用户已授权归档、提交并创建 PR：将 issue #527 已验证修改、主规格同步与归档材料提交到
+                codex/web-abtest-advanced-config，推送 origin 同名分支，创建以 main 为 base
+                的 PR。检查证据保持有效：62 项前端、37 项 Python 及中英文 mock 浏览器验收通过。"
+              targetBranch: codex/web-abtest-advanced-config
+          tweak.verify.report.evidence:
+            sequence: 9
+            value:
+              contentHash: 8a9197c782fdbe8346859f941895986a0a48fdad4e03aacbb423bacdf2234ea3
+              ref: docs/superpowers/reports/2026-11-27-web-abtest-advanced-config-verify.md
+          tweak.verify.run:
+            sequence: 8
+            value:
+              checks:
+                - name: "frontend: node --experimental-strip-types --test src/abtests/*.test.ts
+                    src/experiments/*.test.ts src/i18n/*.test.ts"
+                  note: 62 passed, 0 failed; /tmp/issue527-frontend-tests.log
+                  result: passed
+                - name: "repo: .venv/bin/python -m pytest tests/test_ab_testing.py
+                    tests/test_web_abtest_config.py
+                    tests/test_web_experiment_config.py
+                    tests/test_api_experiment_benchmark.py::TestABTests -q
+                    --no-cov"
+                  note: 37 passed; /tmp/issue527-python.log; real API persistence, runner,
+                    strategies, mock SDK and sandbox
+                  result: passed
+                - name: "frontend: npm run build"
+                  note: TypeScript and Vite build passed; existing chunk size warning;
+                    /tmp/issue527-build.log
+                  result: passed
+                - name: "frontend: npm run lint; eslint scripts/verify-abtest-config.mjs"
+                  note: ESLint passed; /tmp/issue527-lint.log; final QA script also checked after
+                    formatting
+                  result: passed
+                - name: "frontend: node scripts/verify-abtest-config.mjs"
+                  note: zh-CN/en-US; invalid inputs, busy disabled, 503 recovery, corrected
+                    payload, detail reload, legacy defaults, 320/390px;
+                    /tmp/issue527-browser/report.json
+                  result: passed
+                - name: "frontend: prettier --check changed TS/TSX/locales and
+                    scripts/verify-abtest-config.mjs; repo: ruff check
+                    tests/test_web_abtest_config.py; black --check
+                    tests/test_web_abtest_config.py; git diff --check"
+                  note: All changed source/QA files pass formatting, Python lint and whitespace
+                    checks
+                  result: passed
+                - name: "repo: comet classic openspec -- validate web-abtest-advanced-config
+                    --strict"
+                  note: All three delta requirements valid
+                  result: passed
+              event: verification-ready
+              verificationReport: docs/superpowers/reports/2026-11-27-web-abtest-advanced-config-verify.md
+        sequence: 12
+      web-abtest-advanced-config:13:
+        results:
+          tweak.archive.confirm:
+            sequence: 11
+            value:
+              choice: pr
+              proposal:
+                input:
+                  change: web-abtest-advanced-config
+                  changeDir: openspec/changes/web-abtest-advanced-config
+                  workspaceBaseline:
+                    ref: 4f2b9f7c-8585-4801-bab4-043ec483b126
+                outputs:
+                  tweak.archive.prepare:
+                    prBaseBranch: main
+                    remote: origin
+                    summary: "用户已授权归档、提交并创建 PR：将 issue #527 已验证修改、主规格同步与归档材料提交到
+                      codex/web-abtest-advanced-config，推送 origin 同名分支，创建以 main 为
+                      base 的 PR。检查证据保持有效：62 项前端、37 项 Python 及中英文 mock 浏览器验收通过。"
+                    targetBranch: codex/web-abtest-advanced-config
+          tweak.archive.preflight:
+            sequence: 12
+            value:
+              baseCommit: 2b2ba6e5904f89fac7c25d773efd5d921429f0ef
+              deliveryAction: pr
+              deliveryPaths:
+                - frontend/scripts/verify-abtest-config.mjs
+                - frontend/src/abtests/client.test.ts
+                - frontend/src/abtests/client.ts
+                - frontend/src/abtests/types.ts
+                - frontend/src/abtests/validation.ts
+                - frontend/src/experiments/AdvancedFields.tsx
+                - frontend/src/experiments/advanced.ts
+                - frontend/src/i18n/en-US.ts
+                - frontend/src/i18n/zh-CN.ts
+                - frontend/src/pages/ABTests/ABTestDetailPage.tsx
+                - frontend/src/pages/ABTests/CreateABTestPage.tsx
+                - tests/test_web_abtest_config.py
+              prBaseBranch: main
+              remote: origin
+              remoteIdentity: 128eeb1e6f0d21b25601fcb7f9aad36adfdfb4d76f37f54f004760410190f351
+              targetBranch: codex/web-abtest-advanced-config
+              verifiedBranch: codex/web-abtest-advanced-config
+          tweak.archive.prepare:
+            sequence: 10
+            value:
+              prBaseBranch: main
+              remote: origin
+              summary: "用户已授权归档、提交并创建 PR：将 issue #527 已验证修改、主规格同步与归档材料提交到
+                codex/web-abtest-advanced-config，推送 origin 同名分支，创建以 main 为 base
+                的 PR。检查证据保持有效：62 项前端、37 项 Python 及中英文 mock 浏览器验收通过。"
+              targetBranch: codex/web-abtest-advanced-config
+          tweak.verify.report.evidence:
+            sequence: 9
+            value:
+              contentHash: 8a9197c782fdbe8346859f941895986a0a48fdad4e03aacbb423bacdf2234ea3
+              ref: docs/superpowers/reports/2026-11-27-web-abtest-advanced-config-verify.md
+          tweak.verify.run:
+            sequence: 8
+            value:
+              checks:
+                - name: "frontend: node --experimental-strip-types --test src/abtests/*.test.ts
+                    src/experiments/*.test.ts src/i18n/*.test.ts"
+                  note: 62 passed, 0 failed; /tmp/issue527-frontend-tests.log
+                  result: passed
+                - name: "repo: .venv/bin/python -m pytest tests/test_ab_testing.py
+                    tests/test_web_abtest_config.py
+                    tests/test_web_experiment_config.py
+                    tests/test_api_experiment_benchmark.py::TestABTests -q
+                    --no-cov"
+                  note: 37 passed; /tmp/issue527-python.log; real API persistence, runner,
+                    strategies, mock SDK and sandbox
+                  result: passed
+                - name: "frontend: npm run build"
+                  note: TypeScript and Vite build passed; existing chunk size warning;
+                    /tmp/issue527-build.log
+                  result: passed
+                - name: "frontend: npm run lint; eslint scripts/verify-abtest-config.mjs"
+                  note: ESLint passed; /tmp/issue527-lint.log; final QA script also checked after
+                    formatting
+                  result: passed
+                - name: "frontend: node scripts/verify-abtest-config.mjs"
+                  note: zh-CN/en-US; invalid inputs, busy disabled, 503 recovery, corrected
+                    payload, detail reload, legacy defaults, 320/390px;
+                    /tmp/issue527-browser/report.json
+                  result: passed
+                - name: "frontend: prettier --check changed TS/TSX/locales and
+                    scripts/verify-abtest-config.mjs; repo: ruff check
+                    tests/test_web_abtest_config.py; black --check
+                    tests/test_web_abtest_config.py; git diff --check"
+                  note: All changed source/QA files pass formatting, Python lint and whitespace
+                    checks
+                  result: passed
+                - name: "repo: comet classic openspec -- validate web-abtest-advanced-config
+                    --strict"
+                  note: All three delta requirements valid
+                  result: passed
+              event: verification-ready
+              verificationReport: docs/superpowers/reports/2026-11-27-web-abtest-advanced-config-verify.md
+        sequence: 13
+      web-abtest-advanced-config:14:
+        results:
+          tweak.archive.confirm:
+            sequence: 11
+            value:
+              choice: pr
+              proposal:
+                input:
+                  change: web-abtest-advanced-config
+                  changeDir: openspec/changes/web-abtest-advanced-config
+                  workspaceBaseline:
+                    ref: 4f2b9f7c-8585-4801-bab4-043ec483b126
+                outputs:
+                  tweak.archive.prepare:
+                    prBaseBranch: main
+                    remote: origin
+                    summary: "用户已授权归档、提交并创建 PR：将 issue #527 已验证修改、主规格同步与归档材料提交到
+                      codex/web-abtest-advanced-config，推送 origin 同名分支，创建以 main 为
+                      base 的 PR。检查证据保持有效：62 项前端、37 项 Python 及中英文 mock 浏览器验收通过。"
+                    targetBranch: codex/web-abtest-advanced-config
+          tweak.archive.execute:
+            sequence: 13
+            value:
+              archiveDirectory: openspec/changes/archive/2026-11-28-web-abtest-advanced-config
+          tweak.archive.preflight:
+            sequence: 12
+            value:
+              baseCommit: 2b2ba6e5904f89fac7c25d773efd5d921429f0ef
+              deliveryAction: pr
+              deliveryPaths:
+                - frontend/scripts/verify-abtest-config.mjs
+                - frontend/src/abtests/client.test.ts
+                - frontend/src/abtests/client.ts
+                - frontend/src/abtests/types.ts
+                - frontend/src/abtests/validation.ts
+                - frontend/src/experiments/AdvancedFields.tsx
+                - frontend/src/experiments/advanced.ts
+                - frontend/src/i18n/en-US.ts
+                - frontend/src/i18n/zh-CN.ts
+                - frontend/src/pages/ABTests/ABTestDetailPage.tsx
+                - frontend/src/pages/ABTests/CreateABTestPage.tsx
+                - tests/test_web_abtest_config.py
+              prBaseBranch: main
+              remote: origin
+              remoteIdentity: 128eeb1e6f0d21b25601fcb7f9aad36adfdfb4d76f37f54f004760410190f351
+              targetBranch: codex/web-abtest-advanced-config
+              verifiedBranch: codex/web-abtest-advanced-config
+          tweak.archive.prepare:
+            sequence: 10
+            value:
+              prBaseBranch: main
+              remote: origin
+              summary: "用户已授权归档、提交并创建 PR：将 issue #527 已验证修改、主规格同步与归档材料提交到
+                codex/web-abtest-advanced-config，推送 origin 同名分支，创建以 main 为 base
+                的 PR。检查证据保持有效：62 项前端、37 项 Python 及中英文 mock 浏览器验收通过。"
+              targetBranch: codex/web-abtest-advanced-config
+          tweak.verify.report.evidence:
+            sequence: 9
+            value:
+              contentHash: 8a9197c782fdbe8346859f941895986a0a48fdad4e03aacbb423bacdf2234ea3
+              ref: docs/superpowers/reports/2026-11-27-web-abtest-advanced-config-verify.md
+          tweak.verify.run:
+            sequence: 8
+            value:
+              checks:
+                - name: "frontend: node --experimental-strip-types --test src/abtests/*.test.ts
+                    src/experiments/*.test.ts src/i18n/*.test.ts"
+                  note: 62 passed, 0 failed; /tmp/issue527-frontend-tests.log
+                  result: passed
+                - name: "repo: .venv/bin/python -m pytest tests/test_ab_testing.py
+                    tests/test_web_abtest_config.py
+                    tests/test_web_experiment_config.py
+                    tests/test_api_experiment_benchmark.py::TestABTests -q
+                    --no-cov"
+                  note: 37 passed; /tmp/issue527-python.log; real API persistence, runner,
+                    strategies, mock SDK and sandbox
+                  result: passed
+                - name: "frontend: npm run build"
+                  note: TypeScript and Vite build passed; existing chunk size warning;
+                    /tmp/issue527-build.log
+                  result: passed
+                - name: "frontend: npm run lint; eslint scripts/verify-abtest-config.mjs"
+                  note: ESLint passed; /tmp/issue527-lint.log; final QA script also checked after
+                    formatting
+                  result: passed
+                - name: "frontend: node scripts/verify-abtest-config.mjs"
+                  note: zh-CN/en-US; invalid inputs, busy disabled, 503 recovery, corrected
+                    payload, detail reload, legacy defaults, 320/390px;
+                    /tmp/issue527-browser/report.json
+                  result: passed
+                - name: "frontend: prettier --check changed TS/TSX/locales and
+                    scripts/verify-abtest-config.mjs; repo: ruff check
+                    tests/test_web_abtest_config.py; black --check
+                    tests/test_web_abtest_config.py; git diff --check"
+                  note: All changed source/QA files pass formatting, Python lint and whitespace
+                    checks
+                  result: passed
+                - name: "repo: comet classic openspec -- validate web-abtest-advanced-config
+                    --strict"
+                  note: All three delta requirements valid
+                  result: passed
+              event: verification-ready
+              verificationReport: docs/superpowers/reports/2026-11-27-web-abtest-advanced-config-verify.md
+        sequence: 14
+      web-abtest-advanced-config:3:
+        results:
+          tweak.open:
+            sequence: 1
+            value:
+              event: open-complete
+              requirementsEvidence:
+                ref: openspec/changes/web-abtest-advanced-config
+          tweak.open.evidence:
+            sequence: 2
+            value:
+              contentHash: 2f57073c0b595376de18ba59470bdb84e1074b6138357e4823f82285ab5f2a0b
+              ref: openspec/changes/web-abtest-advanced-config
+        sequence: 3
+      web-abtest-advanced-config:4:
+        results:
+          tweak.build.execute:
+            sequence: 3
+            value:
+              checks:
+                - name: "frontend: node --experimental-strip-types --test src/abtests/*.test.ts
+                    src/experiments/*.test.ts src/i18n/*.test.ts"
+                  note: 62 passed, 0 failed; /tmp/issue527-frontend-tests.log
+                  result: passed
+                - name: "repo: .venv/bin/python -m pytest tests/test_ab_testing.py
+                    tests/test_web_abtest_config.py
+                    tests/test_web_experiment_config.py
+                    tests/test_api_experiment_benchmark.py::TestABTests -q
+                    --no-cov"
+                  note: 37 passed; /tmp/issue527-python.log; real API persistence, runner,
+                    strategies, mock SDK and sandbox
+                  result: passed
+                - name: "frontend: npm run build"
+                  note: TypeScript and Vite build passed; existing chunk size warning;
+                    /tmp/issue527-build.log
+                  result: passed
+                - name: "frontend: npm run lint; eslint scripts/verify-abtest-config.mjs"
+                  note: ESLint passed; /tmp/issue527-lint.log; final QA script also checked after
+                    formatting
+                  result: passed
+                - name: "frontend: node scripts/verify-abtest-config.mjs"
+                  note: zh-CN/en-US; invalid inputs, busy disabled, 503 recovery, corrected
+                    payload, detail reload, legacy defaults, 320/390px;
+                    /tmp/issue527-browser/report.json
+                  result: passed
+                - name: "frontend: prettier --check changed TS/TSX/locales and
+                    scripts/verify-abtest-config.mjs; repo: ruff check
+                    tests/test_web_abtest_config.py; black --check
+                    tests/test_web_abtest_config.py; git diff --check"
+                  note: All changed source/QA files pass formatting, Python lint and whitespace
+                    checks
+                  result: passed
+                - name: "repo: comet classic openspec -- validate web-abtest-advanced-config
+                    --strict"
+                  note: All three delta requirements valid
+                  result: passed
+              event: build-complete
+          tweak.open:
+            sequence: 1
+            value:
+              event: open-complete
+              requirementsEvidence:
+                ref: openspec/changes/web-abtest-advanced-config
+          tweak.open.evidence:
+            sequence: 2
+            value:
+              contentHash: 2f57073c0b595376de18ba59470bdb84e1074b6138357e4823f82285ab5f2a0b
+              ref: openspec/changes/web-abtest-advanced-config
+        sequence: 4
+      web-abtest-advanced-config:6:
+        results:
+          tweak.build.execute:
+            sequence: 3
+            value:
+              checks:
+                - name: "frontend: node --experimental-strip-types --test src/abtests/*.test.ts
+                    src/experiments/*.test.ts src/i18n/*.test.ts"
+                  note: 62 passed, 0 failed; /tmp/issue527-frontend-tests.log
+                  result: passed
+                - name: "repo: .venv/bin/python -m pytest tests/test_ab_testing.py
+                    tests/test_web_abtest_config.py
+                    tests/test_web_experiment_config.py
+                    tests/test_api_experiment_benchmark.py::TestABTests -q
+                    --no-cov"
+                  note: 37 passed; /tmp/issue527-python.log; real API persistence, runner,
+                    strategies, mock SDK and sandbox
+                  result: passed
+                - name: "frontend: npm run build"
+                  note: TypeScript and Vite build passed; existing chunk size warning;
+                    /tmp/issue527-build.log
+                  result: passed
+                - name: "frontend: npm run lint; eslint scripts/verify-abtest-config.mjs"
+                  note: ESLint passed; /tmp/issue527-lint.log; final QA script also checked after
+                    formatting
+                  result: passed
+                - name: "frontend: node scripts/verify-abtest-config.mjs"
+                  note: zh-CN/en-US; invalid inputs, busy disabled, 503 recovery, corrected
+                    payload, detail reload, legacy defaults, 320/390px;
+                    /tmp/issue527-browser/report.json
+                  result: passed
+                - name: "frontend: prettier --check changed TS/TSX/locales and
+                    scripts/verify-abtest-config.mjs; repo: ruff check
+                    tests/test_web_abtest_config.py; black --check
+                    tests/test_web_abtest_config.py; git diff --check"
+                  note: All changed source/QA files pass formatting, Python lint and whitespace
+                    checks
+                  result: passed
+                - name: "repo: comet classic openspec -- validate web-abtest-advanced-config
+                    --strict"
+                  note: All three delta requirements valid
+                  result: passed
+              event: build-complete
+          tweak.open:
+            sequence: 1
+            value:
+              event: open-complete
+              requirementsEvidence:
+                ref: openspec/changes/web-abtest-advanced-config
+          tweak.open.evidence:
+            sequence: 2
+            value:
+              contentHash: 2f57073c0b595376de18ba59470bdb84e1074b6138357e4823f82285ab5f2a0b
+              ref: openspec/changes/web-abtest-advanced-config
+          tweak.verify.report.evidence:
+            sequence: 5
+            value:
+              contentHash: 031f1fffde37e86de1a6c83759e91bb20b774d34510ef9cd0794ad6456668573
+              ref: docs/superpowers/reports/2026-11-27-web-abtest-advanced-config-verify.md
+          tweak.verify.run:
+            sequence: 4
+            value:
+              checks:
+                - name: "frontend: node --experimental-strip-types --test src/abtests/*.test.ts
+                    src/experiments/*.test.ts src/i18n/*.test.ts"
+                  note: 62 passed, 0 failed; /tmp/issue527-frontend-tests.log
+                  result: passed
+                - name: "repo: .venv/bin/python -m pytest tests/test_ab_testing.py
+                    tests/test_web_abtest_config.py
+                    tests/test_web_experiment_config.py
+                    tests/test_api_experiment_benchmark.py::TestABTests -q
+                    --no-cov"
+                  note: 37 passed; /tmp/issue527-python.log; real API persistence, runner,
+                    strategies, mock SDK and sandbox
+                  result: passed
+                - name: "frontend: npm run build"
+                  note: TypeScript and Vite build passed; existing chunk size warning;
+                    /tmp/issue527-build.log
+                  result: passed
+                - name: "frontend: npm run lint; eslint scripts/verify-abtest-config.mjs"
+                  note: ESLint passed; /tmp/issue527-lint.log; final QA script also checked after
+                    formatting
+                  result: passed
+                - name: "frontend: node scripts/verify-abtest-config.mjs"
+                  note: zh-CN/en-US; invalid inputs, busy disabled, 503 recovery, corrected
+                    payload, detail reload, legacy defaults, 320/390px;
+                    /tmp/issue527-browser/report.json
+                  result: passed
+                - name: "frontend: prettier --check changed TS/TSX/locales and
+                    scripts/verify-abtest-config.mjs; repo: ruff check
+                    tests/test_web_abtest_config.py; black --check
+                    tests/test_web_abtest_config.py; git diff --check"
+                  note: All changed source/QA files pass formatting, Python lint and whitespace
+                    checks
+                  result: passed
+                - name: "repo: comet classic openspec -- validate web-abtest-advanced-config
+                    --strict"
+                  note: All three delta requirements valid
+                  result: passed
+              event: verification-ready
+              verificationReport: docs/superpowers/reports/2026-11-27-web-abtest-advanced-config-verify.md
+        sequence: 6
+      web-abtest-advanced-config:8:
+        results: {}
+        sequence: 8
+    waits:
+      - id: web-abtest-advanced-config:7
+        stepId: tweak.archive.confirm
+        sequence: 7
+        status: cancelled
+        proposal:
+          input:
+            change: web-abtest-advanced-config
+            changeDir: openspec/changes/web-abtest-advanced-config
+            workspaceBaseline:
+              ref: 4f2b9f7c-8585-4801-bab4-043ec483b126
+          outputs:
+            tweak.archive.prepare:
+              prBaseBranch: main
+              remote: origin
+              summary: "issue #527 已实现并通过 Verify：12 个实现与测试文件，62 项前端、37 项 Python 回归及中英文 mock
+                浏览器通过；归档将同步 frontend/abtest-management delta spec、保存变更材料并提交。本地绑定
+                main，推送目标 origin/main；PR base main 与当前 main 同名，当前推荐 local
+                仅本地归档提交。"
+              targetBranch: main
+        proposalHash: adfe05283ab303047af0eaa40d2721277f73574b8b7f7d0c3a2a3b4152c9d1d4
+        choices:
+          - local
+          - push
+          - pr
+          - reverify
+          - later
+        results:
+          tweak.archive.prepare:
+            sequence: 6
+            value:
+              prBaseBranch: main
+              remote: origin
+              summary: "issue #527 已实现并通过 Verify：12 个实现与测试文件，62 项前端、37 项 Python 回归及中英文 mock
+                浏览器通过；归档将同步 frontend/abtest-management delta spec、保存变更材料并提交。本地绑定
+                main，推送目标 origin/main；PR base main 与当前 main 同名，当前推荐 local
+                仅本地归档提交。"
+              targetBranch: main
+          tweak.build.execute:
+            sequence: 3
+            value:
+              checks:
+                - name: "frontend: node --experimental-strip-types --test src/abtests/*.test.ts
+                    src/experiments/*.test.ts src/i18n/*.test.ts"
+                  note: 62 passed, 0 failed; /tmp/issue527-frontend-tests.log
+                  result: passed
+                - name: "repo: .venv/bin/python -m pytest tests/test_ab_testing.py
+                    tests/test_web_abtest_config.py
+                    tests/test_web_experiment_config.py
+                    tests/test_api_experiment_benchmark.py::TestABTests -q
+                    --no-cov"
+                  note: 37 passed; /tmp/issue527-python.log; real API persistence, runner,
+                    strategies, mock SDK and sandbox
+                  result: passed
+                - name: "frontend: npm run build"
+                  note: TypeScript and Vite build passed; existing chunk size warning;
+                    /tmp/issue527-build.log
+                  result: passed
+                - name: "frontend: npm run lint; eslint scripts/verify-abtest-config.mjs"
+                  note: ESLint passed; /tmp/issue527-lint.log; final QA script also checked after
+                    formatting
+                  result: passed
+                - name: "frontend: node scripts/verify-abtest-config.mjs"
+                  note: zh-CN/en-US; invalid inputs, busy disabled, 503 recovery, corrected
+                    payload, detail reload, legacy defaults, 320/390px;
+                    /tmp/issue527-browser/report.json
+                  result: passed
+                - name: "frontend: prettier --check changed TS/TSX/locales and
+                    scripts/verify-abtest-config.mjs; repo: ruff check
+                    tests/test_web_abtest_config.py; black --check
+                    tests/test_web_abtest_config.py; git diff --check"
+                  note: All changed source/QA files pass formatting, Python lint and whitespace
+                    checks
+                  result: passed
+                - name: "repo: comet classic openspec -- validate web-abtest-advanced-config
+                    --strict"
+                  note: All three delta requirements valid
+                  result: passed
+              event: build-complete
+          tweak.open:
+            sequence: 1
+            value:
+              event: open-complete
+              requirementsEvidence:
+                ref: openspec/changes/web-abtest-advanced-config
+          tweak.open.evidence:
+            sequence: 2
+            value:
+              contentHash: 2f57073c0b595376de18ba59470bdb84e1074b6138357e4823f82285ab5f2a0b
+              ref: openspec/changes/web-abtest-advanced-config
+          tweak.verify.report.evidence:
+            sequence: 5
+            value:
+              contentHash: 031f1fffde37e86de1a6c83759e91bb20b774d34510ef9cd0794ad6456668573
+              ref: docs/superpowers/reports/2026-11-27-web-abtest-advanced-config-verify.md
+          tweak.verify.run:
+            sequence: 4
+            value:
+              checks:
+                - name: "frontend: node --experimental-strip-types --test src/abtests/*.test.ts
+                    src/experiments/*.test.ts src/i18n/*.test.ts"
+                  note: 62 passed, 0 failed; /tmp/issue527-frontend-tests.log
+                  result: passed
+                - name: "repo: .venv/bin/python -m pytest tests/test_ab_testing.py
+                    tests/test_web_abtest_config.py
+                    tests/test_web_experiment_config.py
+                    tests/test_api_experiment_benchmark.py::TestABTests -q
+                    --no-cov"
+                  note: 37 passed; /tmp/issue527-python.log; real API persistence, runner,
+                    strategies, mock SDK and sandbox
+                  result: passed
+                - name: "frontend: npm run build"
+                  note: TypeScript and Vite build passed; existing chunk size warning;
+                    /tmp/issue527-build.log
+                  result: passed
+                - name: "frontend: npm run lint; eslint scripts/verify-abtest-config.mjs"
+                  note: ESLint passed; /tmp/issue527-lint.log; final QA script also checked after
+                    formatting
+                  result: passed
+                - name: "frontend: node scripts/verify-abtest-config.mjs"
+                  note: zh-CN/en-US; invalid inputs, busy disabled, 503 recovery, corrected
+                    payload, detail reload, legacy defaults, 320/390px;
+                    /tmp/issue527-browser/report.json
+                  result: passed
+                - name: "frontend: prettier --check changed TS/TSX/locales and
+                    scripts/verify-abtest-config.mjs; repo: ruff check
+                    tests/test_web_abtest_config.py; black --check
+                    tests/test_web_abtest_config.py; git diff --check"
+                  note: All changed source/QA files pass formatting, Python lint and whitespace
+                    checks
+                  result: passed
+                - name: "repo: comet classic openspec -- validate web-abtest-advanced-config
+                    --strict"
+                  note: All three delta requirements valid
+                  result: passed
+              event: verification-ready
+              verificationReport: docs/superpowers/reports/2026-11-27-web-abtest-advanced-config-verify.md
+      - id: web-abtest-advanced-config:11
+        stepId: tweak.archive.confirm
+        sequence: 11
+        status: resolved
+        proposal:
+          input:
+            change: web-abtest-advanced-config
+            changeDir: openspec/changes/web-abtest-advanced-config
+            workspaceBaseline:
+              ref: 4f2b9f7c-8585-4801-bab4-043ec483b126
+          outputs:
+            tweak.archive.prepare:
+              prBaseBranch: main
+              remote: origin
+              summary: "用户已授权归档、提交并创建 PR：将 issue #527 已验证修改、主规格同步与归档材料提交到
+                codex/web-abtest-advanced-config，推送 origin 同名分支，创建以 main 为 base
+                的 PR。检查证据保持有效：62 项前端、37 项 Python 及中英文 mock 浏览器验收通过。"
+              targetBranch: codex/web-abtest-advanced-config
+        proposalHash: 0ec3f0083270d80dfbd6994086c372eb98c6372e75028c18dbd378de5e3a38c4
+        choices:
+          - local
+          - push
+          - pr
+          - reverify
+          - later
+        results:
+          tweak.archive.prepare:
+            sequence: 10
+            value:
+              prBaseBranch: main
+              remote: origin
+              summary: "用户已授权归档、提交并创建 PR：将 issue #527 已验证修改、主规格同步与归档材料提交到
+                codex/web-abtest-advanced-config，推送 origin 同名分支，创建以 main 为 base
+                的 PR。检查证据保持有效：62 项前端、37 项 Python 及中英文 mock 浏览器验收通过。"
+              targetBranch: codex/web-abtest-advanced-config
+          tweak.verify.report.evidence:
+            sequence: 9
+            value:
+              contentHash: 8a9197c782fdbe8346859f941895986a0a48fdad4e03aacbb423bacdf2234ea3
+              ref: docs/superpowers/reports/2026-11-27-web-abtest-advanced-config-verify.md
+          tweak.verify.run:
+            sequence: 8
+            value:
+              checks:
+                - name: "frontend: node --experimental-strip-types --test src/abtests/*.test.ts
+                    src/experiments/*.test.ts src/i18n/*.test.ts"
+                  note: 62 passed, 0 failed; /tmp/issue527-frontend-tests.log
+                  result: passed
+                - name: "repo: .venv/bin/python -m pytest tests/test_ab_testing.py
+                    tests/test_web_abtest_config.py
+                    tests/test_web_experiment_config.py
+                    tests/test_api_experiment_benchmark.py::TestABTests -q
+                    --no-cov"
+                  note: 37 passed; /tmp/issue527-python.log; real API persistence, runner,
+                    strategies, mock SDK and sandbox
+                  result: passed
+                - name: "frontend: npm run build"
+                  note: TypeScript and Vite build passed; existing chunk size warning;
+                    /tmp/issue527-build.log
+                  result: passed
+                - name: "frontend: npm run lint; eslint scripts/verify-abtest-config.mjs"
+                  note: ESLint passed; /tmp/issue527-lint.log; final QA script also checked after
+                    formatting
+                  result: passed
+                - name: "frontend: node scripts/verify-abtest-config.mjs"
+                  note: zh-CN/en-US; invalid inputs, busy disabled, 503 recovery, corrected
+                    payload, detail reload, legacy defaults, 320/390px;
+                    /tmp/issue527-browser/report.json
+                  result: passed
+                - name: "frontend: prettier --check changed TS/TSX/locales and
+                    scripts/verify-abtest-config.mjs; repo: ruff check
+                    tests/test_web_abtest_config.py; black --check
+                    tests/test_web_abtest_config.py; git diff --check"
+                  note: All changed source/QA files pass formatting, Python lint and whitespace
+                    checks
+                  result: passed
+                - name: "repo: comet classic openspec -- validate web-abtest-advanced-config
+                    --strict"
+                  note: All three delta requirements valid
+                  result: passed
+              event: verification-ready
+              verificationReport: docs/superpowers/reports/2026-11-27-web-abtest-advanced-config-verify.md
+        decision:
+          id: classic-archive-0ec3f0083270d80dfbd6994086c372eb98c6372e75028c18dbd378de5e3a38c4-pr
+          choice: pr
+          proposalHash: 0ec3f0083270d80dfbd6994086c372eb98c6372e75028c18dbd378de5e3a38c4
+    evidenceWaits:
+      - id: web-abtest-advanced-config:2
+        stepId: tweak.open.evidence
+        sequence: 2
+        kind: classic-open-artifacts
+        status: resolved
+        results:
+          tweak.open:
+            sequence: 1
+            value:
+              event: open-complete
+              requirementsEvidence:
+                ref: openspec/changes/web-abtest-advanced-config
+        receipt:
+          ref: openspec/changes/web-abtest-advanced-config
+          contentHash: 2f57073c0b595376de18ba59470bdb84e1074b6138357e4823f82285ab5f2a0b
+          submissionId: c1a6c132-175f-4a17-9f19-b13a75ad70ae
+      - id: web-abtest-advanced-config:5
+        stepId: tweak.verify.report.evidence
+        sequence: 5
+        kind: classic-verification-report
+        status: resolved
+        results:
+          tweak.build.execute:
+            sequence: 3
+            value:
+              checks:
+                - name: "frontend: node --experimental-strip-types --test src/abtests/*.test.ts
+                    src/experiments/*.test.ts src/i18n/*.test.ts"
+                  note: 62 passed, 0 failed; /tmp/issue527-frontend-tests.log
+                  result: passed
+                - name: "repo: .venv/bin/python -m pytest tests/test_ab_testing.py
+                    tests/test_web_abtest_config.py
+                    tests/test_web_experiment_config.py
+                    tests/test_api_experiment_benchmark.py::TestABTests -q
+                    --no-cov"
+                  note: 37 passed; /tmp/issue527-python.log; real API persistence, runner,
+                    strategies, mock SDK and sandbox
+                  result: passed
+                - name: "frontend: npm run build"
+                  note: TypeScript and Vite build passed; existing chunk size warning;
+                    /tmp/issue527-build.log
+                  result: passed
+                - name: "frontend: npm run lint; eslint scripts/verify-abtest-config.mjs"
+                  note: ESLint passed; /tmp/issue527-lint.log; final QA script also checked after
+                    formatting
+                  result: passed
+                - name: "frontend: node scripts/verify-abtest-config.mjs"
+                  note: zh-CN/en-US; invalid inputs, busy disabled, 503 recovery, corrected
+                    payload, detail reload, legacy defaults, 320/390px;
+                    /tmp/issue527-browser/report.json
+                  result: passed
+                - name: "frontend: prettier --check changed TS/TSX/locales and
+                    scripts/verify-abtest-config.mjs; repo: ruff check
+                    tests/test_web_abtest_config.py; black --check
+                    tests/test_web_abtest_config.py; git diff --check"
+                  note: All changed source/QA files pass formatting, Python lint and whitespace
+                    checks
+                  result: passed
+                - name: "repo: comet classic openspec -- validate web-abtest-advanced-config
+                    --strict"
+                  note: All three delta requirements valid
+                  result: passed
+              event: build-complete
+          tweak.open:
+            sequence: 1
+            value:
+              event: open-complete
+              requirementsEvidence:
+                ref: openspec/changes/web-abtest-advanced-config
+          tweak.open.evidence:
+            sequence: 2
+            value:
+              contentHash: 2f57073c0b595376de18ba59470bdb84e1074b6138357e4823f82285ab5f2a0b
+              ref: openspec/changes/web-abtest-advanced-config
+          tweak.verify.run:
+            sequence: 4
+            value:
+              checks:
+                - name: "frontend: node --experimental-strip-types --test src/abtests/*.test.ts
+                    src/experiments/*.test.ts src/i18n/*.test.ts"
+                  note: 62 passed, 0 failed; /tmp/issue527-frontend-tests.log
+                  result: passed
+                - name: "repo: .venv/bin/python -m pytest tests/test_ab_testing.py
+                    tests/test_web_abtest_config.py
+                    tests/test_web_experiment_config.py
+                    tests/test_api_experiment_benchmark.py::TestABTests -q
+                    --no-cov"
+                  note: 37 passed; /tmp/issue527-python.log; real API persistence, runner,
+                    strategies, mock SDK and sandbox
+                  result: passed
+                - name: "frontend: npm run build"
+                  note: TypeScript and Vite build passed; existing chunk size warning;
+                    /tmp/issue527-build.log
+                  result: passed
+                - name: "frontend: npm run lint; eslint scripts/verify-abtest-config.mjs"
+                  note: ESLint passed; /tmp/issue527-lint.log; final QA script also checked after
+                    formatting
+                  result: passed
+                - name: "frontend: node scripts/verify-abtest-config.mjs"
+                  note: zh-CN/en-US; invalid inputs, busy disabled, 503 recovery, corrected
+                    payload, detail reload, legacy defaults, 320/390px;
+                    /tmp/issue527-browser/report.json
+                  result: passed
+                - name: "frontend: prettier --check changed TS/TSX/locales and
+                    scripts/verify-abtest-config.mjs; repo: ruff check
+                    tests/test_web_abtest_config.py; black --check
+                    tests/test_web_abtest_config.py; git diff --check"
+                  note: All changed source/QA files pass formatting, Python lint and whitespace
+                    checks
+                  result: passed
+                - name: "repo: comet classic openspec -- validate web-abtest-advanced-config
+                    --strict"
+                  note: All three delta requirements valid
+                  result: passed
+              event: verification-ready
+              verificationReport: docs/superpowers/reports/2026-11-27-web-abtest-advanced-config-verify.md
+        receipt:
+          ref: docs/superpowers/reports/2026-11-27-web-abtest-advanced-config-verify.md
+          contentHash: 031f1fffde37e86de1a6c83759e91bb20b774d34510ef9cd0794ad6456668573
+          submissionId: 5e009b58-0997-4893-bfd4-9e6dd4a61923
+      - id: web-abtest-advanced-config:9
+        stepId: tweak.verify.report.evidence
+        sequence: 9
+        kind: classic-verification-report
+        status: resolved
+        results:
+          tweak.verify.run:
+            sequence: 8
+            value:
+              checks:
+                - name: "frontend: node --experimental-strip-types --test src/abtests/*.test.ts
+                    src/experiments/*.test.ts src/i18n/*.test.ts"
+                  note: 62 passed, 0 failed; /tmp/issue527-frontend-tests.log
+                  result: passed
+                - name: "repo: .venv/bin/python -m pytest tests/test_ab_testing.py
+                    tests/test_web_abtest_config.py
+                    tests/test_web_experiment_config.py
+                    tests/test_api_experiment_benchmark.py::TestABTests -q
+                    --no-cov"
+                  note: 37 passed; /tmp/issue527-python.log; real API persistence, runner,
+                    strategies, mock SDK and sandbox
+                  result: passed
+                - name: "frontend: npm run build"
+                  note: TypeScript and Vite build passed; existing chunk size warning;
+                    /tmp/issue527-build.log
+                  result: passed
+                - name: "frontend: npm run lint; eslint scripts/verify-abtest-config.mjs"
+                  note: ESLint passed; /tmp/issue527-lint.log; final QA script also checked after
+                    formatting
+                  result: passed
+                - name: "frontend: node scripts/verify-abtest-config.mjs"
+                  note: zh-CN/en-US; invalid inputs, busy disabled, 503 recovery, corrected
+                    payload, detail reload, legacy defaults, 320/390px;
+                    /tmp/issue527-browser/report.json
+                  result: passed
+                - name: "frontend: prettier --check changed TS/TSX/locales and
+                    scripts/verify-abtest-config.mjs; repo: ruff check
+                    tests/test_web_abtest_config.py; black --check
+                    tests/test_web_abtest_config.py; git diff --check"
+                  note: All changed source/QA files pass formatting, Python lint and whitespace
+                    checks
+                  result: passed
+                - name: "repo: comet classic openspec -- validate web-abtest-advanced-config
+                    --strict"
+                  note: All three delta requirements valid
+                  result: passed
+              event: verification-ready
+              verificationReport: docs/superpowers/reports/2026-11-27-web-abtest-advanced-config-verify.md
+        receipt:
+          ref: docs/superpowers/reports/2026-11-27-web-abtest-advanced-config-verify.md
+          contentHash: 8a9197c782fdbe8346859f941895986a0a48fdad4e03aacbb423bacdf2234ea3
+          submissionId: 1b7c3986-4037-4c1c-b276-47920453bfda
+    ready: []
+    joins: {}
+    outputs:
+      tweak.archive.confirm:
+        sequence: 11
+        value:
+          choice: pr
+          proposal:
+            input:
+              change: web-abtest-advanced-config
+              changeDir: openspec/changes/web-abtest-advanced-config
+              workspaceBaseline:
+                ref: 4f2b9f7c-8585-4801-bab4-043ec483b126
+            outputs:
+              tweak.archive.prepare:
+                prBaseBranch: main
+                remote: origin
+                summary: "用户已授权归档、提交并创建 PR：将 issue #527 已验证修改、主规格同步与归档材料提交到
+                  codex/web-abtest-advanced-config，推送 origin 同名分支，创建以 main 为
+                  base 的 PR。检查证据保持有效：62 项前端、37 项 Python 及中英文 mock 浏览器验收通过。"
+                targetBranch: codex/web-abtest-advanced-config
+      tweak.archive.execute:
+        sequence: 13
+        value:
+          archiveDirectory: openspec/changes/archive/2026-11-28-web-abtest-advanced-config
+      tweak.archive.preflight:
+        sequence: 12
+        value:
+          baseCommit: 2b2ba6e5904f89fac7c25d773efd5d921429f0ef
+          deliveryAction: pr
+          deliveryPaths:
+            - frontend/scripts/verify-abtest-config.mjs
+            - frontend/src/abtests/client.test.ts
+            - frontend/src/abtests/client.ts
+            - frontend/src/abtests/types.ts
+            - frontend/src/abtests/validation.ts
+            - frontend/src/experiments/AdvancedFields.tsx
+            - frontend/src/experiments/advanced.ts
+            - frontend/src/i18n/en-US.ts
+            - frontend/src/i18n/zh-CN.ts
+            - frontend/src/pages/ABTests/ABTestDetailPage.tsx
+            - frontend/src/pages/ABTests/CreateABTestPage.tsx
+            - tests/test_web_abtest_config.py
+          prBaseBranch: main
+          remote: origin
+          remoteIdentity: 128eeb1e6f0d21b25601fcb7f9aad36adfdfb4d76f37f54f004760410190f351
+          targetBranch: codex/web-abtest-advanced-config
+          verifiedBranch: codex/web-abtest-advanced-config
+      tweak.archive.prepare:
+        sequence: 10
+        value:
+          prBaseBranch: main
+          remote: origin
+          summary: "用户已授权归档、提交并创建 PR：将 issue #527 已验证修改、主规格同步与归档材料提交到
+            codex/web-abtest-advanced-config，推送 origin 同名分支，创建以 main 为 base 的
+            PR。检查证据保持有效：62 项前端、37 项 Python 及中英文 mock 浏览器验收通过。"
+          targetBranch: codex/web-abtest-advanced-config
+      tweak.build.execute:
+        sequence: 3
+        value:
+          checks:
+            - name: "frontend: node --experimental-strip-types --test src/abtests/*.test.ts
+                src/experiments/*.test.ts src/i18n/*.test.ts"
+              note: 62 passed, 0 failed; /tmp/issue527-frontend-tests.log
+              result: passed
+            - name: "repo: .venv/bin/python -m pytest tests/test_ab_testing.py
+                tests/test_web_abtest_config.py
+                tests/test_web_experiment_config.py
+                tests/test_api_experiment_benchmark.py::TestABTests -q --no-cov"
+              note: 37 passed; /tmp/issue527-python.log; real API persistence, runner,
+                strategies, mock SDK and sandbox
+              result: passed
+            - name: "frontend: npm run build"
+              note: TypeScript and Vite build passed; existing chunk size warning;
+                /tmp/issue527-build.log
+              result: passed
+            - name: "frontend: npm run lint; eslint scripts/verify-abtest-config.mjs"
+              note: ESLint passed; /tmp/issue527-lint.log; final QA script also checked after
+                formatting
+              result: passed
+            - name: "frontend: node scripts/verify-abtest-config.mjs"
+              note: zh-CN/en-US; invalid inputs, busy disabled, 503 recovery, corrected
+                payload, detail reload, legacy defaults, 320/390px;
+                /tmp/issue527-browser/report.json
+              result: passed
+            - name: "frontend: prettier --check changed TS/TSX/locales and
+                scripts/verify-abtest-config.mjs; repo: ruff check
+                tests/test_web_abtest_config.py; black --check
+                tests/test_web_abtest_config.py; git diff --check"
+              note: All changed source/QA files pass formatting, Python lint and whitespace
+                checks
+              result: passed
+            - name: "repo: comet classic openspec -- validate web-abtest-advanced-config
+                --strict"
+              note: All three delta requirements valid
+              result: passed
+          event: build-complete
+      tweak.open:
+        sequence: 1
+        value:
+          event: open-complete
+          requirementsEvidence:
+            ref: openspec/changes/web-abtest-advanced-config
+      tweak.open.evidence:
+        sequence: 2
+        value:
+          contentHash: 2f57073c0b595376de18ba59470bdb84e1074b6138357e4823f82285ab5f2a0b
+          ref: openspec/changes/web-abtest-advanced-config
+      tweak.verify.report.evidence:
+        sequence: 9
+        value:
+          contentHash: 8a9197c782fdbe8346859f941895986a0a48fdad4e03aacbb423bacdf2234ea3
+          ref: docs/superpowers/reports/2026-11-27-web-abtest-advanced-config-verify.md
+      tweak.verify.run:
+        sequence: 8
+        value:
+          checks:
+            - name: "frontend: node --experimental-strip-types --test src/abtests/*.test.ts
+                src/experiments/*.test.ts src/i18n/*.test.ts"
+              note: 62 passed, 0 failed; /tmp/issue527-frontend-tests.log
+              result: passed
+            - name: "repo: .venv/bin/python -m pytest tests/test_ab_testing.py
+                tests/test_web_abtest_config.py
+                tests/test_web_experiment_config.py
+                tests/test_api_experiment_benchmark.py::TestABTests -q --no-cov"
+              note: 37 passed; /tmp/issue527-python.log; real API persistence, runner,
+                strategies, mock SDK and sandbox
+              result: passed
+            - name: "frontend: npm run build"
+              note: TypeScript and Vite build passed; existing chunk size warning;
+                /tmp/issue527-build.log
+              result: passed
+            - name: "frontend: npm run lint; eslint scripts/verify-abtest-config.mjs"
+              note: ESLint passed; /tmp/issue527-lint.log; final QA script also checked after
+                formatting
+              result: passed
+            - name: "frontend: node scripts/verify-abtest-config.mjs"
+              note: zh-CN/en-US; invalid inputs, busy disabled, 503 recovery, corrected
+                payload, detail reload, legacy defaults, 320/390px;
+                /tmp/issue527-browser/report.json
+              result: passed
+            - name: "frontend: prettier --check changed TS/TSX/locales and
+                scripts/verify-abtest-config.mjs; repo: ruff check
+                tests/test_web_abtest_config.py; black --check
+                tests/test_web_abtest_config.py; git diff --check"
+              note: All changed source/QA files pass formatting, Python lint and whitespace
+                checks
+              result: passed
+            - name: "repo: comet classic openspec -- validate web-abtest-advanced-config
+                --strict"
+              note: All three delta requirements valid
+              result: passed
+          event: verification-ready
+          verificationReport: docs/superpowers/reports/2026-11-27-web-abtest-advanced-config-verify.md
+    children: []
+    lineage: []
+  sourceRevision: 23
+  sourceHash: a815f89ab4a54cd0aaa97f55a3da4c76132817b96f8c7facbc94c0a73bf98531
+direct_override: null
+handoff_context: null
+handoff_hash: null
+classic_profile: null
+classic_migration: null
+check_epoch: 6

@@ -1,4 +1,13 @@
 export default {
+  '策略温度须在 0–2 之间': 'Strategy temperature must be between 0 and 2',
+  '策略温度（可选，0–2）': 'Strategy temperature (optional, 0–2)',
+  'A/B 策略温度': 'A/B strategy temperature',
+  '变体系统提示词优先；变体留空时使用策略提示词或现有默认。':
+    'Variant system prompts take priority; an empty variant uses the strategy prompt or existing default.',
+  题目筛选难度: 'Problem filter difficulty',
+  题目筛选标签: 'Problem filter tags',
+  '题目筛选题目 ID': 'Problem filter problem IDs',
+  题目筛选数量上限: 'Problem filter limit',
   使用现有默认配置: 'Use existing defaults',
   '自定义参数须为有效 JSON 对象':
     'Custom parameters must be a valid JSON object',

@@ -102,10 +102,12 @@ export function ProblemFilterFields({
   update,
   disabled,
   errors,
+  kind,
 }: {
-  draft: ExperimentDraft
-  update(patch: Partial<ExperimentDraft>): void
+  draft: Pick<ExperimentDraft, 'problem_filters'>
+  update(patch: Pick<ExperimentDraft, 'problem_filters'>): void
   disabled: boolean
+  kind?: 'abtest'
   errors: DraftErrors
 }) {
   const raw = draft.problem_filters ?? {}
@@ -117,7 +119,7 @@ export function ProblemFilterFields({
       <label>
         {t('难度')}
         <Select
-          aria-label={t('实验筛选难度')}
+          aria-label={kind === 'abtest' ? t('题目筛选难度') : t('实验筛选难度')}
           value={raw.difficulty || undefined}
           allowClear
           placeholder={t('全部难度')}
@@ -135,7 +137,7 @@ export function ProblemFilterFields({
       <label>
         {t('标签（任一匹配）')}
         <Input.TextArea
-          aria-label={t('实验筛选标签')}
+          aria-label={kind === 'abtest' ? t('题目筛选标签') : t('实验筛选标签')}
           value={raw.tags ?? ''}
           placeholder={t('以逗号或换行分隔')}
           onChange={(event) => change({ tags: event.target.value })}
@@ -145,7 +147,9 @@ export function ProblemFilterFields({
       <label>
         {t('题目 ID 白名单')}
         <Input.TextArea
-          aria-label={t('实验筛选题目 ID')}
+          aria-label={
+            kind === 'abtest' ? t('题目筛选题目 ID') : t('实验筛选题目 ID')
+          }
           value={raw.problem_ids ?? ''}
           placeholder={t('以逗号或换行分隔')}
           onChange={(event) => change({ problem_ids: event.target.value })}
@@ -155,7 +159,9 @@ export function ProblemFilterFields({
       <label>
         {t('题目数量上限')}
         <Input
-          aria-label={t('实验筛选数量上限')}
+          aria-label={
+            kind === 'abtest' ? t('题目筛选数量上限') : t('实验筛选数量上限')
+          }
           value={raw.limit ?? ''}
           onChange={(event) => change({ limit: event.target.value })}
           disabled={disabled}
