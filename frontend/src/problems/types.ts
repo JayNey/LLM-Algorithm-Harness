@@ -243,6 +243,11 @@ export interface ProblemClient {
     id: string,
     signal?: AbortSignal,
   ): Promise<DatasetVersionDetail>
+  exportDatasetVersion(
+    id: string,
+    kind: 'dataset' | 'report',
+    signal?: AbortSignal,
+  ): Promise<Blob>
   options(signal?: AbortSignal): Promise<EvaluationOptionsMeta>
   problems(
     query: ProblemListQuery,

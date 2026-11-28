@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict'
 import { test } from 'node:test'
-import { createHttpClient } from '../auth/http.ts'
+import { ApiClientError, createHttpClient } from '../auth/http.ts'
 import { createProblemClient } from './client.ts'
 import { readListQuery, writeListQuery } from './validation.ts'
 
@@ -382,6 +382,83 @@ test('题库导出使用会话 HTTP 刷新到期 Cookie 并保留文件字节', 
   })
   assert.equal(await createProblemClient(http).exportLibrary('json'), blob)
   assert.deepEqual(seen, ['/auth/refresh', '/problems/export'])
+})
+
+test('版本下载按版本 ID 选择完整数据或报告，保留 Blob、凭据和取消信号', async () => {
+  let session = { marker: 'owner', username: 'owner', expiresAt: 0 }
+  const signal = new AbortController().signal
+  const seen: string[] = []
+  const blob = new Blob(['[{"hidden_test_cases":[1]}]'], {
+    type: 'application/json',
+  })
+  const http = createHttpClient({
+    baseURL: '/api/v1',
+    now: () => 1,
+    read: () => session,
+    write: (next) => {
+      session = next
+    },
+    clear: () => assert.fail('valid refresh must keep the session'),
+    adapter: async (config) => {
+      seen.push(config.url ?? '')
+      assert.equal(config.withCredentials, true)
+      const isRefresh = config.url === '/auth/refresh'
+      if (!isRefresh) {
+        assert.equal(config.responseType, 'blob')
+        assert.equal(config.signal, signal)
+        assert.equal(config.params, undefined)
+      }
+      return {
+        config,
+        status: 200,
+        statusText: 'OK',
+        headers: {},
+        data: isRefresh ? { data: { expires_in: 60 } } : blob,
+      }
+    },
+  })
+  const client = createProblemClient(http)
+  assert.equal(
+    await client.exportDatasetVersion('version/one', 'dataset', signal),
+    blob,
+  )
+  assert.equal(
+    await client.exportDatasetVersion('version/two', 'report', signal),
+    blob,
+  )
+  assert.deepEqual(seen, [
+    '/auth/refresh',
+    '/problems/governance/versions/version%2Fone/export',
+    '/problems/governance/versions/version%2Ftwo/report',
+  ])
+})
+
+test('版本下载将 Blob 错误状态转为明确的版本与历史报告反馈', async () => {
+  for (const [status, message] of [
+    [404, '题集版本不存在或已清理'],
+    [409, '此版本没有可追溯的历史变更报告'],
+  ] as const) {
+    const http = createHttpClient({
+      baseURL: '/api/v1',
+      now: () => 1,
+      read: () => ({ marker: 'owner', username: 'owner', expiresAt: 100_000 }),
+      write: () => {},
+      clear: () => {},
+      adapter: async (config) => {
+        throw {
+          config,
+          response: { status, data: new Blob(['{"detail":"error"}']) },
+        }
+      },
+    })
+    await assert.rejects(
+      () => createProblemClient(http).exportDatasetVersion('v', 'report'),
+      (error) =>
+        error instanceof ApiClientError &&
+        error.status === status &&
+        error.message === message,
+    )
+  }
 })
 
 test('previews LeetCode metadata and retries only the selected slug', async () => {

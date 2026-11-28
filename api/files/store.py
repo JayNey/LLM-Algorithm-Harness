@@ -62,6 +62,10 @@ class FileStore:
                 );
                 CREATE INDEX IF NOT EXISTS api_dataset_versions_owner
                     ON api_dataset_versions(user_id, created_at, id);
+                CREATE TABLE IF NOT EXISTS api_dataset_version_reports (
+                    version_id TEXT PRIMARY KEY, payload TEXT NOT NULL,
+                    FOREIGN KEY(version_id) REFERENCES api_dataset_versions(id) ON DELETE CASCADE
+                );
                 CREATE TABLE IF NOT EXISTS api_dataset_confirmations (
                     user_id TEXT NOT NULL, confirmation_key TEXT NOT NULL,
                     version_id TEXT NOT NULL, PRIMARY KEY(user_id, confirmation_key)
@@ -284,6 +288,7 @@ class FileStore:
         *,
         max_versions: int = DATASET_VERSION_MAX_PER_USER,
         confirmation_key: str | None = None,
+        change_report: dict[str, Any] | None = None,
     ) -> dict[str, Any]:
         version = {"id": str(uuid.uuid4()), "name": name, "problem_count": len(problems)}
         with self.connection() as db:
@@ -298,6 +303,11 @@ class FileStore:
                 "INSERT INTO api_dataset_versions VALUES (?,?,?,?,?,?)",
                 (version["id"], user_id, name, json.dumps(problems), len(problems), time.time_ns()),
             )
+            if change_report is not None:
+                db.execute(
+                    "INSERT INTO api_dataset_version_reports VALUES (?,?)",
+                    (version["id"], json.dumps({**change_report, "version": version})),
+                )
             if confirmation_key is not None:
                 db.execute(
                     "INSERT INTO api_dataset_confirmations VALUES (?,?,?)",
@@ -356,6 +366,20 @@ class FileStore:
         if row is None:
             raise HTTPException(404, "Dataset version not found")
         return row["name"], json.loads(row["payload"])
+
+    def dataset_version_report(self, user_id: str, version_id: str) -> dict[str, Any]:
+        with self.connection() as db:
+            row = db.execute(
+                "SELECT r.payload FROM api_dataset_versions v "
+                "LEFT JOIN api_dataset_version_reports r ON r.version_id=v.id "
+                "WHERE v.user_id=? AND v.id=?",
+                (user_id, version_id),
+            ).fetchone()
+        if row is None:
+            raise HTTPException(404, "Dataset version not found")
+        if row["payload"] is None:
+            raise HTTPException(409, "Historical change report is unavailable for this version")
+        return cast(dict[str, Any], json.loads(row["payload"]))
 
     def save_recommendation_set(self, user_id: str, name: str, problem_ids: list[str]) -> str:
         set_id = str(uuid.uuid4())

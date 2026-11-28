@@ -1,0 +1,41 @@
+{
+  "schema": "comet.classic.archive-manifest.v2",
+  "execution": {
+    "workflow": {
+      "id": "comet-classic-tweak",
+      "version": "2",
+      "hash": "d1e067bc00ca13395dbc6f701565417c3e227f17a57df025dd73ebda905e2638"
+    },
+    "runId": "governance-version-export",
+    "actionId": "governance-version-export:15",
+    "attempt": 1,
+    "inputHash": "f77791aa138911599d204aef3c2ed3ba690881419efac7a0f1cb00d2e39b12b9",
+    "claimToken": "portable-f8666a5e3ad11612b230b4a17cdbf97e3cf780d16842945b32c0217dcec4f1d3"
+  },
+  "activeRef": "openspec/changes/governance-version-export",
+  "archiveRef": "openspec/changes/archive/2026-11-28-governance-version-export",
+  "stateRef": "openspec/changes/archive/2026-11-28-governance-version-export/comet-state.yaml",
+  "paths": [
+    "openspec/changes/archive/2026-11-28-governance-version-export/.comet/archive-requirements.json",
+    "openspec/changes/archive/2026-11-28-governance-version-export/.openspec.yaml",
+    "openspec/changes/archive/2026-11-28-governance-version-export/checks.json",
+    "openspec/changes/archive/2026-11-28-governance-version-export/design.md",
+    "openspec/changes/archive/2026-11-28-governance-version-export/proposal.md",
+    "openspec/changes/archive/2026-11-28-governance-version-export/rulings.md",
+    "openspec/changes/archive/2026-11-28-governance-version-export/specs/frontend/problems-management/spec.md",
+    "openspec/changes/archive/2026-11-28-governance-version-export/tasks.md",
+    "openspec/changes/archive/2026-11-28-governance-version-export/walkthrough.html",
+    "openspec/specs/frontend/problems-management/spec.md"
+  ],
+  "sourcePaths": [
+    "openspec/changes/governance-version-export/.comet/archive-requirements.json",
+    "openspec/changes/governance-version-export/.openspec.yaml",
+    "openspec/changes/governance-version-export/checks.json",
+    "openspec/changes/governance-version-export/design.md",
+    "openspec/changes/governance-version-export/proposal.md",
+    "openspec/changes/governance-version-export/rulings.md",
+    "openspec/changes/governance-version-export/specs/frontend/problems-management/spec.md",
+    "openspec/changes/governance-version-export/tasks.md",
+    "openspec/changes/governance-version-export/walkthrough.html"
+  ]
+}

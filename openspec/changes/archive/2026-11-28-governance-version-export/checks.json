@@ -1,0 +1,12 @@
+{
+  "checks": [
+    {"name": "Backend integration: pytest four related modules, repository root", "result": "passed", "note": "177 passed; /private/tmp/issue-529-pytest.log"},
+    {"name": "Complete export scenarios: pytest tests/test_governance_version_export.py, repository root", "result": "passed", "note": "7 passed including partial approval and deduplication; /private/tmp/issue-529-export-tests.log"},
+    {"name": "Frontend: npm test, frontend directory", "result": "passed", "note": "386 passed; /private/tmp/issue-529-frontend-tests.log"},
+    {"name": "Browser: Chrome + scripts/verify-governance-export.mjs, frontend directory", "result": "passed", "note": "Exit 0; download contents, version/account races, errors, retry, duplicate prevention, evaluation link."},
+    {"name": "Frontend: npm run build, frontend directory", "result": "passed", "note": "TypeScript and production build exit 0; /private/tmp/issue-529-build.log"},
+    {"name": "Changed files: Ruff, Black, ESLint, Prettier and git diff --check", "result": "passed", "note": "5 Python and 7 frontend files; exits 0."},
+    {"name": "OpenSpec strict validation", "result": "passed", "note": "comet classic openspec -- validate governance-version-export --strict: valid."},
+    {"name": "mypy changed implementation and diagnostic comparison against HEAD", "result": "passed", "note": "3 implementation files pass focused mypy. Same 5 files on current and HEAD both return exit 1 with identical 13 existing diagnostics; comparison assertion passes. Raw mypy is not claimed passing; details in docs/superpowers/reports/2026-11-28-governance-version-export-verify.md."}
+  ]
+}

@@ -38,6 +38,7 @@ from api.files.governance import (
 )
 from api.files.service import FileService
 from api.routes.evaluation_options import evaluation_options_service
+from api.routes.files import download
 from api.schemas import ApiResponse, PaginatedData
 from api.services import EvaluationResultsService
 from api.services.evaluation_options_service import EvaluationOptionsService
@@ -144,6 +145,24 @@ def list_problem_versions(
         data=[DatasetVersion.model_validate(version) for version in versions],
         message="Personal dataset versions",
     )
+
+
+@router.get("/problems/governance/versions/{version_id}/export")
+def export_problem_version(
+    version_id: str,
+    principal: Principal = Depends(current_user),
+    files: FileService = Depends(file_service),
+) -> Response:
+    return download(*files.export_dataset_version(principal.user_id, version_id))
+
+
+@router.get("/problems/governance/versions/{version_id}/report")
+def export_problem_version_report(
+    version_id: str,
+    principal: Principal = Depends(current_user),
+    files: FileService = Depends(file_service),
+) -> Response:
+    return download(*files.export_dataset_version(principal.user_id, version_id, report=True))
 
 
 @router.get("/problems/governance/versions/{version_id}")

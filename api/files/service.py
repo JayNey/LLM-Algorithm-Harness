@@ -551,6 +551,15 @@ class FileService:
             writer.writerow(row)
         return "problems.csv", "text/csv", stream.getvalue().encode("utf-8-sig")
 
+    def export_dataset_version(
+        self, user_id: str, version_id: str, *, report: bool = False
+    ) -> tuple[str, str, bytes]:
+        if report:
+            data = self.store.dataset_version_report(user_id, version_id)
+            return f"dataset-{version_id}-changes.json", "application/json", json_bytes(data)
+        _, problems = self.store.dataset_version(user_id, version_id)
+        return f"dataset-{version_id}.json", "application/json", json_bytes(problems)
+
     def publish_results(
         self, run_id: str, user_id: str, results: dict[str, list[ExecutionResult]]
     ) -> dict[str, Any]:

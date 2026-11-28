@@ -1,0 +1,2307 @@
+# comet-execution: managed-run
+change_id: ac38e1ae-ac75-4c34-8444-545398545c5f
+workflow: tweak
+language: zh-CN
+phase: archive
+context_compression: off
+build_mode: direct
+build_pause: null
+subagent_dispatch: null
+tdd_mode: direct
+review_mode: off
+isolation: current
+verify_mode: light
+auto_transition: true
+base_ref: 38df6abb1d690d0e7dd01e5d58cbbad9df039ac4
+design_doc: null
+plan: null
+verify_result: pass
+verify_failures: 0
+verification_report: docs/superpowers/reports/2026-11-28-governance-version-export-verify.md
+branch_status: pending
+created_at: 2026-11-28
+verified_at: 2026-11-28
+archive_confirmation: confirmed
+archived: true
+bound_branch: codex/governance-version-export
+run_checkpoint:
+  schema: comet.workflow-run-checkpoint.v1
+  hash: 98b21a0acb307ff5ce02d9903f419be01a72f51f3949b72f55db1b6439b2b346
+  run:
+    protocolVersion: 1
+    schemaVersion: 1
+    runId: governance-version-export
+    revision: 1
+    workflow:
+      id: comet-classic-tweak
+      version: "2"
+      hash: d1e067bc00ca13395dbc6f701565417c3e227f17a57df025dd73ebda905e2638
+    definitionHashes:
+      '["comet-classic-tweak","2"]': d1e067bc00ca13395dbc6f701565417c3e227f17a57df025dd73ebda905e2638
+    initialStateHash: acc4db68f251d166de8b2d054095cb7cfd76ccc5f4457006c583007dfe578f8b
+    input:
+      change: governance-version-export
+      changeDir: openspec/changes/governance-version-export
+      workspaceBaseline:
+        ref: 1522cedf-8465-4552-b93a-e315d55f4301
+    state:
+      archiveConfirmation: confirmed
+      archived: true
+      autoTransition: true
+      baseRef: 38df6abb1d690d0e7dd01e5d58cbbad9df039ac4
+      boundBranch: codex/governance-version-export
+      branchStatus: pending
+      buildMode: direct
+      buildPause: null
+      checkEpoch: 6
+      classicMigration: null
+      classicProfile: null
+      contextCompression: off
+      createdAt: 2026-11-28
+      designDoc: null
+      directOverride: null
+      handoffContext: null
+      handoffHash: null
+      isolation: current
+      language: zh-CN
+      phase: archive
+      plan: null
+      reviewMode: off
+      subagentDispatch: null
+      tddMode: direct
+      verificationReport: docs/superpowers/reports/2026-11-28-governance-version-export-verify.md
+      verifiedAt: 2026-11-28
+      verifyFailures: 0
+      verifyMode: light
+      verifyResult: pass
+      workflow: tweak
+    status: running
+    sequence: 16
+    actions:
+      - attempt: 1
+        claim:
+          executorId: comet-classic-guard
+          token: portable-d8c0c52ff0efb4892f982db1465db5d728f7ff245e5037f2a344af44a57ae5bc
+        executionOrigin:
+          workflow:
+            hash: 518d3e8e12eb39899775cb7d2ddcc7ddeba10cb1f1d43cff7b03f2ca61a70c65
+            id: comet-classic-tweak
+            version: "2"
+        id: governance-version-export:1
+        input:
+          input:
+            change: governance-version-export
+            changeDir: openspec/changes/governance-version-export
+            workspaceBaseline:
+              ref: 1522cedf-8465-4552-b93a-e315d55f4301
+          outputs: {}
+        inputHash: b803a7a85c5e00b95deb3f82f7bfbee1b61710875c00c062b877aa1c235000f1
+        outcome:
+          actionId: governance-version-export:1
+          attempt: 1
+          claimToken: portable-d8c0c52ff0efb4892f982db1465db5d728f7ff245e5037f2a344af44a57ae5bc
+          inputHash: b803a7a85c5e00b95deb3f82f7bfbee1b61710875c00c062b877aa1c235000f1
+          outcomeId: 9060f62e-36db-4497-81a5-3de10d9a4857
+          output:
+            event: open-complete
+            requirementsEvidence:
+              ref: openspec/changes/governance-version-export
+          status: succeeded
+        protocolVersion: 1
+        receipts:
+          - hash: c71b5eff98b1a9ee4d03575de812f800edc65edaf06f94022cbd4874eacd6bb2
+            outcomeId: 9060f62e-36db-4497-81a5-3de10d9a4857
+        reconciliations: []
+        ref: comet-tweak
+        requiredCapabilities: []
+        retry: manual
+        runId: governance-version-export
+        status: succeeded
+        stepId: tweak.open
+        type: invoke_skill
+      - attempt: 1
+        claim:
+          executorId: comet-classic-state
+          token: portable-33c3409e3676db484f4e7a95ee53acacd32fcd433d7a2d3ec06ff1d7a5b9dd6a
+        executionOrigin:
+          workflow:
+            hash: 518d3e8e12eb39899775cb7d2ddcc7ddeba10cb1f1d43cff7b03f2ca61a70c65
+            id: comet-classic-tweak
+            version: "2"
+        id: governance-version-export:3
+        input:
+          input:
+            change: governance-version-export
+            changeDir: openspec/changes/governance-version-export
+            workspaceBaseline:
+              ref: 1522cedf-8465-4552-b93a-e315d55f4301
+          outputs:
+            tweak.open:
+              event: open-complete
+              requirementsEvidence:
+                ref: openspec/changes/governance-version-export
+            tweak.open.evidence:
+              contentHash: b803a7a85c5e00b95deb3f82f7bfbee1b61710875c00c062b877aa1c235000f1
+              ref: openspec/changes/governance-version-export
+        inputHash: 695b513a2987ba2cf8f033dfe8ae5dcc1b17f02d7561e1e362b3acf03d33b3fa
+        outcome:
+          actionId: governance-version-export:3
+          attempt: 1
+          claimToken: portable-33c3409e3676db484f4e7a95ee53acacd32fcd433d7a2d3ec06ff1d7a5b9dd6a
+          inputHash: 695b513a2987ba2cf8f033dfe8ae5dcc1b17f02d7561e1e362b3acf03d33b3fa
+          outcomeId: edf5d40d-c7ea-4ed9-8c33-f97032c6dc42
+          output:
+            event: escalation-requested
+            proposal: "Issue #529 已批准：新增版本下载 API 和事务内报告存储，预计 12 个交付文件（后端 4、前端 5、测试
+              3）；范围、风险与验收均与已展示 Open 产物一致。用户已明确确认方案并继续 tweak，记录该继续决定。"
+            requirementsEvidence:
+              contentHash: 695b513a2987ba2cf8f033dfe8ae5dcc1b17f02d7561e1e362b3acf03d33b3fa
+              ref: openspec/changes/governance-version-export
+          status: succeeded
+        protocolVersion: 1
+        receipts:
+          - hash: 9d1565ea3e3f22224a25c5e920db921d9de08dc8a5f1bcee8ec9e2717c15e343
+            outcomeId: edf5d40d-c7ea-4ed9-8c33-f97032c6dc42
+        reconciliations: []
+        ref: comet-build
+        requiredCapabilities: []
+        retry: manual
+        runId: governance-version-export
+        status: succeeded
+        stepId: tweak.build.execute
+        type: invoke_skill
+      - attempt: 1
+        claim:
+          executorId: comet-classic-state
+          sessionId: codex-529-root
+          token: portable-9c3f07797bbf8930f125beffb788a3bcde883b64e4e868e295d8cc0c19f54497
+        executionOrigin:
+          workflow:
+            hash: 518d3e8e12eb39899775cb7d2ddcc7ddeba10cb1f1d43cff7b03f2ca61a70c65
+            id: comet-classic-tweak
+            version: "2"
+        id: governance-version-export:5
+        input:
+          input:
+            change: governance-version-export
+            changeDir: openspec/changes/governance-version-export
+            workspaceBaseline:
+              ref: 1522cedf-8465-4552-b93a-e315d55f4301
+          outputs:
+            tweak.build.escalation-confirm:
+              choice: continue
+              proposal:
+                input:
+                  change: governance-version-export
+                  changeDir: openspec/changes/governance-version-export
+                  workspaceBaseline:
+                    ref: 1522cedf-8465-4552-b93a-e315d55f4301
+                outputs:
+                  tweak.build.execute:
+                    event: escalation-requested
+                    proposal: "Issue #529 已批准：新增版本下载 API 和事务内报告存储，预计 12 个交付文件（后端 4、前端 5、测试
+                      3）；范围、风险与验收均与已展示 Open 产物一致。用户已明确确认方案并继续 tweak，记录该继续决定。"
+                    requirementsEvidence:
+                      contentHash: 695b513a2987ba2cf8f033dfe8ae5dcc1b17f02d7561e1e362b3acf03d33b3fa
+                      ref: openspec/changes/governance-version-export
+            tweak.build.execute:
+              event: escalation-requested
+              proposal: "Issue #529 已批准：新增版本下载 API 和事务内报告存储，预计 12 个交付文件（后端 4、前端 5、测试
+                3）；范围、风险与验收均与已展示 Open 产物一致。用户已明确确认方案并继续 tweak，记录该继续决定。"
+              requirementsEvidence:
+                contentHash: 695b513a2987ba2cf8f033dfe8ae5dcc1b17f02d7561e1e362b3acf03d33b3fa
+                ref: openspec/changes/governance-version-export
+            tweak.open:
+              event: open-complete
+              requirementsEvidence:
+                ref: openspec/changes/governance-version-export
+            tweak.open.evidence:
+              contentHash: b803a7a85c5e00b95deb3f82f7bfbee1b61710875c00c062b877aa1c235000f1
+              ref: openspec/changes/governance-version-export
+        inputHash: 08e5000df37346b8aed797739f80b1e305c81f5406e5987e3a60dd0c97dbb811
+        outcome:
+          actionId: governance-version-export:5
+          attempt: 1
+          claimToken: portable-9c3f07797bbf8930f125beffb788a3bcde883b64e4e868e295d8cc0c19f54497
+          inputHash: 08e5000df37346b8aed797739f80b1e305c81f5406e5987e3a60dd0c97dbb811
+          outcomeId: cae4a86b-f10a-4bb1-8143-e9fc3251e3eb
+          output:
+            checks:
+              - name: "Backend integration: pytest four related modules, repository root"
+                note: 177 passed; /private/tmp/issue-529-pytest.log
+                result: passed
+              - name: "Complete export scenarios: pytest
+                  tests/test_governance_version_export.py, repository root"
+                note: 7 passed including partial approval and deduplication;
+                  /private/tmp/issue-529-export-tests.log
+                result: passed
+              - name: "Frontend: npm test, frontend directory"
+                note: 386 passed; /private/tmp/issue-529-frontend-tests.log
+                result: passed
+              - name: "Browser: Chrome + scripts/verify-governance-export.mjs, frontend
+                  directory"
+                note: Exit 0; download contents, version/account races, errors, retry, duplicate
+                  prevention, evaluation link.
+                result: passed
+              - name: "Frontend: npm run build, frontend directory"
+                note: TypeScript and production build exit 0; /private/tmp/issue-529-build.log
+                result: passed
+              - name: "Changed files: Ruff, Black, ESLint, Prettier and git diff --check"
+                note: 5 Python and 7 frontend files; exits 0.
+                result: passed
+              - name: OpenSpec strict validation
+                note: "comet classic openspec -- validate governance-version-export --strict:
+                  valid."
+                result: passed
+              - name: mypy changed implementation and diagnostic comparison against HEAD
+                note: 3 implementation files pass focused mypy. Same 5 files on current and HEAD
+                  both return exit 1 with identical 13 existing diagnostics;
+                  comparison assertion passes. Raw mypy is not claimed passing;
+                  details in verification.md.
+                result: passed
+            event: build-complete
+          status: succeeded
+        protocolVersion: 1
+        receipts:
+          - hash: de73919af171a133ad600a0d6042f39777a22193bfb90b3794d76886f06bee1e
+            outcomeId: cae4a86b-f10a-4bb1-8143-e9fc3251e3eb
+        reconciliations: []
+        ref: comet-build
+        requiredCapabilities: []
+        retry: manual
+        runId: governance-version-export
+        status: succeeded
+        stepId: tweak.build.execute
+        type: invoke_skill
+      - attempt: 1
+        claim:
+          executorId: comet-classic-guard
+          token: portable-c78dc478361ab3efa31736e09dea722bca58f3e3e226f47d780d0d10975ec568
+        executionOrigin:
+          workflow:
+            hash: 518d3e8e12eb39899775cb7d2ddcc7ddeba10cb1f1d43cff7b03f2ca61a70c65
+            id: comet-classic-tweak
+            version: "2"
+        id: governance-version-export:6
+        input:
+          input:
+            change: governance-version-export
+            changeDir: openspec/changes/governance-version-export
+            workspaceBaseline:
+              ref: 1522cedf-8465-4552-b93a-e315d55f4301
+          outputs:
+            tweak.build.escalation-confirm:
+              choice: continue
+              proposal:
+                input:
+                  change: governance-version-export
+                  changeDir: openspec/changes/governance-version-export
+                  workspaceBaseline:
+                    ref: 1522cedf-8465-4552-b93a-e315d55f4301
+                outputs:
+                  tweak.build.execute:
+                    event: escalation-requested
+                    proposal: "Issue #529 已批准：新增版本下载 API 和事务内报告存储，预计 12 个交付文件（后端 4、前端 5、测试
+                      3）；范围、风险与验收均与已展示 Open 产物一致。用户已明确确认方案并继续 tweak，记录该继续决定。"
+                    requirementsEvidence:
+                      contentHash: 695b513a2987ba2cf8f033dfe8ae5dcc1b17f02d7561e1e362b3acf03d33b3fa
+                      ref: openspec/changes/governance-version-export
+            tweak.build.execute:
+              checks:
+                - name: "Backend integration: pytest four related modules, repository root"
+                  note: 177 passed; /private/tmp/issue-529-pytest.log
+                  result: passed
+                - name: "Complete export scenarios: pytest
+                    tests/test_governance_version_export.py, repository root"
+                  note: 7 passed including partial approval and deduplication;
+                    /private/tmp/issue-529-export-tests.log
+                  result: passed
+                - name: "Frontend: npm test, frontend directory"
+                  note: 386 passed; /private/tmp/issue-529-frontend-tests.log
+                  result: passed
+                - name: "Browser: Chrome + scripts/verify-governance-export.mjs, frontend
+                    directory"
+                  note: Exit 0; download contents, version/account races, errors, retry, duplicate
+                    prevention, evaluation link.
+                  result: passed
+                - name: "Frontend: npm run build, frontend directory"
+                  note: TypeScript and production build exit 0; /private/tmp/issue-529-build.log
+                  result: passed
+                - name: "Changed files: Ruff, Black, ESLint, Prettier and git diff --check"
+                  note: 5 Python and 7 frontend files; exits 0.
+                  result: passed
+                - name: OpenSpec strict validation
+                  note: "comet classic openspec -- validate governance-version-export --strict:
+                    valid."
+                  result: passed
+                - name: mypy changed implementation and diagnostic comparison against HEAD
+                  note: 3 implementation files pass focused mypy. Same 5 files on current and HEAD
+                    both return exit 1 with identical 13 existing diagnostics;
+                    comparison assertion passes. Raw mypy is not claimed
+                    passing; details in verification.md.
+                  result: passed
+              event: build-complete
+            tweak.open:
+              event: open-complete
+              requirementsEvidence:
+                ref: openspec/changes/governance-version-export
+            tweak.open.evidence:
+              contentHash: b803a7a85c5e00b95deb3f82f7bfbee1b61710875c00c062b877aa1c235000f1
+              ref: openspec/changes/governance-version-export
+        inputHash: b96384749096fe66e52414c52abc1883c68b947efc36eea10293651b4c0f4547
+        outcome:
+          actionId: governance-version-export:6
+          attempt: 1
+          claimToken: portable-c78dc478361ab3efa31736e09dea722bca58f3e3e226f47d780d0d10975ec568
+          inputHash: b96384749096fe66e52414c52abc1883c68b947efc36eea10293651b4c0f4547
+          outcomeId: 8e3f09cf-183c-4461-aa84-81f18bd93f0f
+          output:
+            checks:
+              - name: "Backend integration: pytest four related modules, repository root"
+                note: 177 passed; /private/tmp/issue-529-pytest.log
+                result: passed
+              - name: "Complete export scenarios: pytest
+                  tests/test_governance_version_export.py, repository root"
+                note: 7 passed including partial approval and deduplication;
+                  /private/tmp/issue-529-export-tests.log
+                result: passed
+              - name: "Frontend: npm test, frontend directory"
+                note: 386 passed; /private/tmp/issue-529-frontend-tests.log
+                result: passed
+              - name: "Browser: Chrome + scripts/verify-governance-export.mjs, frontend
+                  directory"
+                note: Exit 0; download contents, version/account races, errors, retry, duplicate
+                  prevention, evaluation link.
+                result: passed
+              - name: "Frontend: npm run build, frontend directory"
+                note: TypeScript and production build exit 0; /private/tmp/issue-529-build.log
+                result: passed
+              - name: "Changed files: Ruff, Black, ESLint, Prettier and git diff --check"
+                note: 5 Python and 7 frontend files; exits 0.
+                result: passed
+              - name: OpenSpec strict validation
+                note: "comet classic openspec -- validate governance-version-export --strict:
+                  valid."
+                result: passed
+              - name: mypy changed implementation and diagnostic comparison against HEAD
+                note: 3 implementation files pass focused mypy. Same 5 files on current and HEAD
+                  both return exit 1 with identical 13 existing diagnostics;
+                  comparison assertion passes. Raw mypy is not claimed passing;
+                  details in
+                  docs/superpowers/reports/2026-11-28-governance-version-export-verify.md.
+                result: passed
+            event: verification-ready
+            verificationReport: docs/superpowers/reports/2026-11-28-governance-version-export-verify.md
+          status: succeeded
+        protocolVersion: 1
+        receipts:
+          - hash: 31fb58043c41fd1fd980fff69e020b5bf5a8b2dada6f6b0cb506cdf92d091b8b
+            outcomeId: 8e3f09cf-183c-4461-aa84-81f18bd93f0f
+        reconciliations: []
+        ref: comet-verify
+        requiredCapabilities: []
+        retry: manual
+        runId: governance-version-export
+        status: succeeded
+        stepId: tweak.verify.run
+        type: invoke_skill
+      - attempt: 1
+        claim:
+          executorId: comet-classic-state
+          token: portable-753f051164c85456a0a519da87107a0023ae2a2252865bb88ebfd3d000b7bd45
+        executionOrigin:
+          workflow:
+            hash: 518d3e8e12eb39899775cb7d2ddcc7ddeba10cb1f1d43cff7b03f2ca61a70c65
+            id: comet-classic-tweak
+            version: "2"
+        id: governance-version-export:8
+        input:
+          input:
+            change: governance-version-export
+            changeDir: openspec/changes/governance-version-export
+            workspaceBaseline:
+              ref: 1522cedf-8465-4552-b93a-e315d55f4301
+          outputs:
+            tweak.build.escalation-confirm:
+              choice: continue
+              proposal:
+                input:
+                  change: governance-version-export
+                  changeDir: openspec/changes/governance-version-export
+                  workspaceBaseline:
+                    ref: 1522cedf-8465-4552-b93a-e315d55f4301
+                outputs:
+                  tweak.build.execute:
+                    event: escalation-requested
+                    proposal: "Issue #529 已批准：新增版本下载 API 和事务内报告存储，预计 12 个交付文件（后端 4、前端 5、测试
+                      3）；范围、风险与验收均与已展示 Open 产物一致。用户已明确确认方案并继续 tweak，记录该继续决定。"
+                    requirementsEvidence:
+                      contentHash: 695b513a2987ba2cf8f033dfe8ae5dcc1b17f02d7561e1e362b3acf03d33b3fa
+                      ref: openspec/changes/governance-version-export
+            tweak.build.execute:
+              checks:
+                - name: "Backend integration: pytest four related modules, repository root"
+                  note: 177 passed; /private/tmp/issue-529-pytest.log
+                  result: passed
+                - name: "Complete export scenarios: pytest
+                    tests/test_governance_version_export.py, repository root"
+                  note: 7 passed including partial approval and deduplication;
+                    /private/tmp/issue-529-export-tests.log
+                  result: passed
+                - name: "Frontend: npm test, frontend directory"
+                  note: 386 passed; /private/tmp/issue-529-frontend-tests.log
+                  result: passed
+                - name: "Browser: Chrome + scripts/verify-governance-export.mjs, frontend
+                    directory"
+                  note: Exit 0; download contents, version/account races, errors, retry, duplicate
+                    prevention, evaluation link.
+                  result: passed
+                - name: "Frontend: npm run build, frontend directory"
+                  note: TypeScript and production build exit 0; /private/tmp/issue-529-build.log
+                  result: passed
+                - name: "Changed files: Ruff, Black, ESLint, Prettier and git diff --check"
+                  note: 5 Python and 7 frontend files; exits 0.
+                  result: passed
+                - name: OpenSpec strict validation
+                  note: "comet classic openspec -- validate governance-version-export --strict:
+                    valid."
+                  result: passed
+                - name: mypy changed implementation and diagnostic comparison against HEAD
+                  note: 3 implementation files pass focused mypy. Same 5 files on current and HEAD
+                    both return exit 1 with identical 13 existing diagnostics;
+                    comparison assertion passes. Raw mypy is not claimed
+                    passing; details in verification.md.
+                  result: passed
+              event: build-complete
+            tweak.open:
+              event: open-complete
+              requirementsEvidence:
+                ref: openspec/changes/governance-version-export
+            tweak.open.evidence:
+              contentHash: b803a7a85c5e00b95deb3f82f7bfbee1b61710875c00c062b877aa1c235000f1
+              ref: openspec/changes/governance-version-export
+            tweak.verify.report.evidence:
+              contentHash: b96384749096fe66e52414c52abc1883c68b947efc36eea10293651b4c0f4547
+              ref: docs/superpowers/reports/2026-11-28-governance-version-export-verify.md
+            tweak.verify.run:
+              checks:
+                - name: "Backend integration: pytest four related modules, repository root"
+                  note: 177 passed; /private/tmp/issue-529-pytest.log
+                  result: passed
+                - name: "Complete export scenarios: pytest
+                    tests/test_governance_version_export.py, repository root"
+                  note: 7 passed including partial approval and deduplication;
+                    /private/tmp/issue-529-export-tests.log
+                  result: passed
+                - name: "Frontend: npm test, frontend directory"
+                  note: 386 passed; /private/tmp/issue-529-frontend-tests.log
+                  result: passed
+                - name: "Browser: Chrome + scripts/verify-governance-export.mjs, frontend
+                    directory"
+                  note: Exit 0; download contents, version/account races, errors, retry, duplicate
+                    prevention, evaluation link.
+                  result: passed
+                - name: "Frontend: npm run build, frontend directory"
+                  note: TypeScript and production build exit 0; /private/tmp/issue-529-build.log
+                  result: passed
+                - name: "Changed files: Ruff, Black, ESLint, Prettier and git diff --check"
+                  note: 5 Python and 7 frontend files; exits 0.
+                  result: passed
+                - name: OpenSpec strict validation
+                  note: "comet classic openspec -- validate governance-version-export --strict:
+                    valid."
+                  result: passed
+                - name: mypy changed implementation and diagnostic comparison against HEAD
+                  note: 3 implementation files pass focused mypy. Same 5 files on current and HEAD
+                    both return exit 1 with identical 13 existing diagnostics;
+                    comparison assertion passes. Raw mypy is not claimed
+                    passing; details in
+                    docs/superpowers/reports/2026-11-28-governance-version-export-verify.md.
+                  result: passed
+              event: verification-ready
+              verificationReport: docs/superpowers/reports/2026-11-28-governance-version-export-verify.md
+        inputHash: 99115225013d12edefe07944a79e217e3d6640599cefb34fe73a663236b7b79d
+        outcome:
+          actionId: governance-version-export:8
+          attempt: 1
+          claimToken: portable-753f051164c85456a0a519da87107a0023ae2a2252865bb88ebfd3d000b7bd45
+          inputHash: 99115225013d12edefe07944a79e217e3d6640599cefb34fe73a663236b7b79d
+          outcomeId: 34be538d-2a4e-4dc0-9179-9283fdabb75f
+          output:
+            prBaseBranch: main
+            remote: origin
+            summary: "Issue #529 已实现并通过 Verify：12 个实现/文案/测试文件，完整版本
+              JSON、持久化标签难度报告、用户与版本隔离；相关后端回归、386 项前端测试、浏览器 mock、构建和规格检查通过。归档将同步
+              frontend/problems-management 的 3 条新增要求，移动本 change 到 archive
+              并保存验收报告及 walkthrough。建议 local：在当前绑定 main 分支创建本地归档提交，保留无关
+              data/tasks 文件。push 将发布到 origin/main；pr 需先确定独立分支并重新绑定目标后向 main 创建
+              PR。尚未执行归档、commit、push 或 PR。"
+            targetBranch: main
+          status: succeeded
+        protocolVersion: 1
+        receipts:
+          - hash: 877075f42407f30522834f2bd1e4180b5e357bd47abd8ebfe17d6a0157c267ce
+            outcomeId: 34be538d-2a4e-4dc0-9179-9283fdabb75f
+        reconciliations: []
+        ref: comet-archive
+        requiredCapabilities: []
+        retry: manual
+        runId: governance-version-export
+        status: succeeded
+        stepId: tweak.archive.prepare
+        type: invoke_skill
+      - attempt: 1
+        claim:
+          executorId: comet-classic-guard
+          token: portable-05e0afef5f67e2ec2e860ba5410718bc74b79c3e89fe521a6844b80013d945e1
+        executionOrigin:
+          workflow:
+            hash: d1e067bc00ca13395dbc6f701565417c3e227f17a57df025dd73ebda905e2638
+            id: comet-classic-tweak
+            version: "2"
+        id: governance-version-export:10
+        input:
+          activation:
+            expectedRevision: 15
+            fromPhase: archive
+          input:
+            change: governance-version-export
+            changeDir: openspec/changes/governance-version-export
+            workspaceBaseline:
+              ref: 1522cedf-8465-4552-b93a-e315d55f4301
+          outputs: {}
+        inputHash: d2e91bdb0485cd22c9310281d793fda941597d769f3fc5d7be6aaae1a389038d
+        outcome:
+          actionId: governance-version-export:10
+          attempt: 1
+          claimToken: portable-05e0afef5f67e2ec2e860ba5410718bc74b79c3e89fe521a6844b80013d945e1
+          inputHash: d2e91bdb0485cd22c9310281d793fda941597d769f3fc5d7be6aaae1a389038d
+          outcomeId: af58b18b-7df1-4df9-b2ce-86b49f3ed2f5
+          output:
+            checks:
+              - name: "Backend integration: pytest four related modules, repository root"
+                note: 177 passed; /private/tmp/issue-529-pytest.log
+                result: passed
+              - name: "Complete export scenarios: pytest
+                  tests/test_governance_version_export.py, repository root"
+                note: 7 passed including partial approval and deduplication;
+                  /private/tmp/issue-529-export-tests.log
+                result: passed
+              - name: "Frontend: npm test, frontend directory"
+                note: 386 passed; /private/tmp/issue-529-frontend-tests.log
+                result: passed
+              - name: "Browser: Chrome + scripts/verify-governance-export.mjs, frontend
+                  directory"
+                note: Exit 0; download contents, version/account races, errors, retry, duplicate
+                  prevention, evaluation link.
+                result: passed
+              - name: "Frontend: npm run build, frontend directory"
+                note: TypeScript and production build exit 0; /private/tmp/issue-529-build.log
+                result: passed
+              - name: "Changed files: Ruff, Black, ESLint, Prettier and git diff --check"
+                note: 5 Python and 7 frontend files; exits 0.
+                result: passed
+              - name: OpenSpec strict validation
+                note: "comet classic openspec -- validate governance-version-export --strict:
+                  valid."
+                result: passed
+              - name: mypy changed implementation and diagnostic comparison against HEAD
+                note: 3 implementation files pass focused mypy. Same 5 files on current and HEAD
+                  both return exit 1 with identical 13 existing diagnostics;
+                  comparison assertion passes. Raw mypy is not claimed passing;
+                  details in
+                  docs/superpowers/reports/2026-11-28-governance-version-export-verify.md.
+                result: passed
+            event: verification-ready
+            verificationReport: docs/superpowers/reports/2026-11-28-governance-version-export-verify.md
+          status: succeeded
+        protocolVersion: 1
+        receipts:
+          - hash: bac9d44e11d4d7b366b5f916d148463b3303dcbe7769f7547e9febe5bc6278d3
+            outcomeId: af58b18b-7df1-4df9-b2ce-86b49f3ed2f5
+        reconciliations: []
+        ref: comet-verify
+        requiredCapabilities: []
+        retry: manual
+        runId: governance-version-export
+        status: succeeded
+        stepId: tweak.verify.run
+        type: invoke_skill
+      - attempt: 1
+        claim:
+          executorId: comet-classic-state
+          token: portable-c9a5c3c07e4ac8b4856e15fe32665d5bc7ecdb0c1d3bc262856eae4fa4753daf
+        executionOrigin:
+          workflow:
+            hash: d1e067bc00ca13395dbc6f701565417c3e227f17a57df025dd73ebda905e2638
+            id: comet-classic-tweak
+            version: "2"
+        id: governance-version-export:12
+        input:
+          input:
+            change: governance-version-export
+            changeDir: openspec/changes/governance-version-export
+            workspaceBaseline:
+              ref: 1522cedf-8465-4552-b93a-e315d55f4301
+          outputs:
+            tweak.verify.report.evidence:
+              contentHash: d2e91bdb0485cd22c9310281d793fda941597d769f3fc5d7be6aaae1a389038d
+              ref: docs/superpowers/reports/2026-11-28-governance-version-export-verify.md
+            tweak.verify.run:
+              checks:
+                - name: "Backend integration: pytest four related modules, repository root"
+                  note: 177 passed; /private/tmp/issue-529-pytest.log
+                  result: passed
+                - name: "Complete export scenarios: pytest
+                    tests/test_governance_version_export.py, repository root"
+                  note: 7 passed including partial approval and deduplication;
+                    /private/tmp/issue-529-export-tests.log
+                  result: passed
+                - name: "Frontend: npm test, frontend directory"
+                  note: 386 passed; /private/tmp/issue-529-frontend-tests.log
+                  result: passed
+                - name: "Browser: Chrome + scripts/verify-governance-export.mjs, frontend
+                    directory"
+                  note: Exit 0; download contents, version/account races, errors, retry, duplicate
+                    prevention, evaluation link.
+                  result: passed
+                - name: "Frontend: npm run build, frontend directory"
+                  note: TypeScript and production build exit 0; /private/tmp/issue-529-build.log
+                  result: passed
+                - name: "Changed files: Ruff, Black, ESLint, Prettier and git diff --check"
+                  note: 5 Python and 7 frontend files; exits 0.
+                  result: passed
+                - name: OpenSpec strict validation
+                  note: "comet classic openspec -- validate governance-version-export --strict:
+                    valid."
+                  result: passed
+                - name: mypy changed implementation and diagnostic comparison against HEAD
+                  note: 3 implementation files pass focused mypy. Same 5 files on current and HEAD
+                    both return exit 1 with identical 13 existing diagnostics;
+                    comparison assertion passes. Raw mypy is not claimed
+                    passing; details in
+                    docs/superpowers/reports/2026-11-28-governance-version-export-verify.md.
+                  result: passed
+              event: verification-ready
+              verificationReport: docs/superpowers/reports/2026-11-28-governance-version-export-verify.md
+        inputHash: 71d469aeddb3c27322c7304877a139735fb4578698b1e91b6bb38c460a5f56ec
+        outcome:
+          actionId: governance-version-export:12
+          attempt: 1
+          claimToken: portable-c9a5c3c07e4ac8b4856e15fe32665d5bc7ecdb0c1d3bc262856eae4fa4753daf
+          inputHash: 71d469aeddb3c27322c7304877a139735fb4578698b1e91b6bb38c460a5f56ec
+          outcomeId: 3d3b8735-77fb-4392-b27c-9ac215292dcc
+          output:
+            prBaseBranch: main
+            remote: origin
+            summary: "用户明确选择选项 3：归档并提交 Issue #529 已验证改动，推送独立分支
+              codex/governance-version-export 至 origin，同仓库向 main 创建 PR。包含本次 12
+              个实现、文案和测试文件，以及本 change 的规格归档、验收报告和已有 walkthrough；同步
+              frontend/problems-management 三条新增要求，保留无关 data/tasks 文件。"
+            targetBranch: codex/governance-version-export
+          status: succeeded
+        protocolVersion: 1
+        receipts:
+          - hash: 9c9e1db5e10adc3a368fd89042f93a0a3a3585b0360a3ecb6a27e6f400efb0f4
+            outcomeId: 3d3b8735-77fb-4392-b27c-9ac215292dcc
+        reconciliations: []
+        ref: comet-archive
+        requiredCapabilities: []
+        retry: manual
+        runId: governance-version-export
+        status: succeeded
+        stepId: tweak.archive.prepare
+        type: invoke_skill
+      - attempt: 1
+        claim:
+          executorId: comet-classic-archive-preflight
+          token: portable-ca21b10cc5fdd974c8acb93e30f852b7a49260cb6df4763619df721a95701c62
+        executionOrigin:
+          workflow:
+            hash: d1e067bc00ca13395dbc6f701565417c3e227f17a57df025dd73ebda905e2638
+            id: comet-classic-tweak
+            version: "2"
+        id: governance-version-export:14
+        input:
+          input:
+            change: governance-version-export
+            changeDir: openspec/changes/governance-version-export
+            workspaceBaseline:
+              ref: 1522cedf-8465-4552-b93a-e315d55f4301
+          outputs:
+            tweak.archive.confirm:
+              choice: pr
+              proposal:
+                input:
+                  change: governance-version-export
+                  changeDir: openspec/changes/governance-version-export
+                  workspaceBaseline:
+                    ref: 1522cedf-8465-4552-b93a-e315d55f4301
+                outputs:
+                  tweak.archive.prepare:
+                    prBaseBranch: main
+                    remote: origin
+                    summary: "用户明确选择选项 3：归档并提交 Issue #529 已验证改动，推送独立分支
+                      codex/governance-version-export 至 origin，同仓库向 main 创建
+                      PR。包含本次 12 个实现、文案和测试文件，以及本 change 的规格归档、验收报告和已有
+                      walkthrough；同步 frontend/problems-management 三条新增要求，保留无关
+                      data/tasks 文件。"
+                    targetBranch: codex/governance-version-export
+            tweak.archive.prepare:
+              prBaseBranch: main
+              remote: origin
+              summary: "用户明确选择选项 3：归档并提交 Issue #529 已验证改动，推送独立分支
+                codex/governance-version-export 至 origin，同仓库向 main 创建 PR。包含本次 12
+                个实现、文案和测试文件，以及本 change 的规格归档、验收报告和已有 walkthrough；同步
+                frontend/problems-management 三条新增要求，保留无关 data/tasks 文件。"
+              targetBranch: codex/governance-version-export
+            tweak.verify.report.evidence:
+              contentHash: d2e91bdb0485cd22c9310281d793fda941597d769f3fc5d7be6aaae1a389038d
+              ref: docs/superpowers/reports/2026-11-28-governance-version-export-verify.md
+            tweak.verify.run:
+              checks:
+                - name: "Backend integration: pytest four related modules, repository root"
+                  note: 177 passed; /private/tmp/issue-529-pytest.log
+                  result: passed
+                - name: "Complete export scenarios: pytest
+                    tests/test_governance_version_export.py, repository root"
+                  note: 7 passed including partial approval and deduplication;
+                    /private/tmp/issue-529-export-tests.log
+                  result: passed
+                - name: "Frontend: npm test, frontend directory"
+                  note: 386 passed; /private/tmp/issue-529-frontend-tests.log
+                  result: passed
+                - name: "Browser: Chrome + scripts/verify-governance-export.mjs, frontend
+                    directory"
+                  note: Exit 0; download contents, version/account races, errors, retry, duplicate
+                    prevention, evaluation link.
+                  result: passed
+                - name: "Frontend: npm run build, frontend directory"
+                  note: TypeScript and production build exit 0; /private/tmp/issue-529-build.log
+                  result: passed
+                - name: "Changed files: Ruff, Black, ESLint, Prettier and git diff --check"
+                  note: 5 Python and 7 frontend files; exits 0.
+                  result: passed
+                - name: OpenSpec strict validation
+                  note: "comet classic openspec -- validate governance-version-export --strict:
+                    valid."
+                  result: passed
+                - name: mypy changed implementation and diagnostic comparison against HEAD
+                  note: 3 implementation files pass focused mypy. Same 5 files on current and HEAD
+                    both return exit 1 with identical 13 existing diagnostics;
+                    comparison assertion passes. Raw mypy is not claimed
+                    passing; details in
+                    docs/superpowers/reports/2026-11-28-governance-version-export-verify.md.
+                  result: passed
+              event: verification-ready
+              verificationReport: docs/superpowers/reports/2026-11-28-governance-version-export-verify.md
+        inputHash: efda7fa3a9e3e52cac20976b03cf5c474dbe03ede4ed2495f53380e7eb6b94b4
+        outcome:
+          actionId: governance-version-export:14
+          attempt: 1
+          claimToken: portable-ca21b10cc5fdd974c8acb93e30f852b7a49260cb6df4763619df721a95701c62
+          inputHash: efda7fa3a9e3e52cac20976b03cf5c474dbe03ede4ed2495f53380e7eb6b94b4
+          outcomeId: fefc8454-9b5e-418c-90e6-2e36a60ae27f
+          output:
+            baseCommit: 38df6abb1d690d0e7dd01e5d58cbbad9df039ac4
+            deliveryAction: pr
+            deliveryPaths:
+              - api/files/governance.py
+              - api/files/service.py
+              - api/files/store.py
+              - api/routes/evaluation_results.py
+              - data/tasks/.execution/00410f371ba09161591a87ec2202e0d41db18bcb258781ea523b69fb493f0f14.lock
+              - data/tasks/.execution/ceb0b2b8d117117506fb027b3f0f1d95190873948044d121be9833ed9f8e256a.lock
+              - frontend/scripts/verify-governance-export.mjs
+              - frontend/src/i18n/en-US.ts
+              - frontend/src/i18n/zh-CN.ts
+              - frontend/src/pages/Problems/GovernancePanel.tsx
+              - frontend/src/problems/client.test.ts
+              - frontend/src/problems/client.ts
+              - frontend/src/problems/types.ts
+              - tests/test_governance_version_export.py
+            prBaseBranch: main
+            remote: origin
+            remoteIdentity: 128eeb1e6f0d21b25601fcb7f9aad36adfdfb4d76f37f54f004760410190f351
+            targetBranch: codex/governance-version-export
+            verifiedBranch: codex/governance-version-export
+          status: succeeded
+        protocolVersion: 1
+        receipts:
+          - hash: 87965390b23b4207ee085cdffbd8fdb51550c411417bdae01be97eaf0c74ebbe
+            outcomeId: fefc8454-9b5e-418c-90e6-2e36a60ae27f
+        reconciliations: []
+        ref: classic-archive-preflight
+        requiredCapabilities: []
+        retry: manual
+        runId: governance-version-export
+        status: succeeded
+        stepId: tweak.archive.preflight
+        type: call_tool
+      - attempt: 1
+        claim:
+          executorId: comet-classic-archive
+          token: portable-f8666a5e3ad11612b230b4a17cdbf97e3cf780d16842945b32c0217dcec4f1d3
+        executionOrigin:
+          workflow:
+            hash: d1e067bc00ca13395dbc6f701565417c3e227f17a57df025dd73ebda905e2638
+            id: comet-classic-tweak
+            version: "2"
+        id: governance-version-export:15
+        input:
+          input:
+            change: governance-version-export
+            changeDir: openspec/changes/governance-version-export
+            workspaceBaseline:
+              ref: 1522cedf-8465-4552-b93a-e315d55f4301
+          outputs:
+            tweak.archive.confirm:
+              choice: pr
+              proposal:
+                input:
+                  change: governance-version-export
+                  changeDir: openspec/changes/governance-version-export
+                  workspaceBaseline:
+                    ref: 1522cedf-8465-4552-b93a-e315d55f4301
+                outputs:
+                  tweak.archive.prepare:
+                    prBaseBranch: main
+                    remote: origin
+                    summary: "用户明确选择选项 3：归档并提交 Issue #529 已验证改动，推送独立分支
+                      codex/governance-version-export 至 origin，同仓库向 main 创建
+                      PR。包含本次 12 个实现、文案和测试文件，以及本 change 的规格归档、验收报告和已有
+                      walkthrough；同步 frontend/problems-management 三条新增要求，保留无关
+                      data/tasks 文件。"
+                    targetBranch: codex/governance-version-export
+            tweak.archive.preflight:
+              baseCommit: 38df6abb1d690d0e7dd01e5d58cbbad9df039ac4
+              deliveryAction: pr
+              deliveryPaths:
+                - api/files/governance.py
+                - api/files/service.py
+                - api/files/store.py
+                - api/routes/evaluation_results.py
+                - data/tasks/.execution/00410f371ba09161591a87ec2202e0d41db18bcb258781ea523b69fb493f0f14.lock
+                - data/tasks/.execution/ceb0b2b8d117117506fb027b3f0f1d95190873948044d121be9833ed9f8e256a.lock
+                - frontend/scripts/verify-governance-export.mjs
+                - frontend/src/i18n/en-US.ts
+                - frontend/src/i18n/zh-CN.ts
+                - frontend/src/pages/Problems/GovernancePanel.tsx
+                - frontend/src/problems/client.test.ts
+                - frontend/src/problems/client.ts
+                - frontend/src/problems/types.ts
+                - tests/test_governance_version_export.py
+              prBaseBranch: main
+              remote: origin
+              remoteIdentity: 128eeb1e6f0d21b25601fcb7f9aad36adfdfb4d76f37f54f004760410190f351
+              targetBranch: codex/governance-version-export
+              verifiedBranch: codex/governance-version-export
+            tweak.archive.prepare:
+              prBaseBranch: main
+              remote: origin
+              summary: "用户明确选择选项 3：归档并提交 Issue #529 已验证改动，推送独立分支
+                codex/governance-version-export 至 origin，同仓库向 main 创建 PR。包含本次 12
+                个实现、文案和测试文件，以及本 change 的规格归档、验收报告和已有 walkthrough；同步
+                frontend/problems-management 三条新增要求，保留无关 data/tasks 文件。"
+              targetBranch: codex/governance-version-export
+            tweak.verify.report.evidence:
+              contentHash: d2e91bdb0485cd22c9310281d793fda941597d769f3fc5d7be6aaae1a389038d
+              ref: docs/superpowers/reports/2026-11-28-governance-version-export-verify.md
+            tweak.verify.run:
+              checks:
+                - name: "Backend integration: pytest four related modules, repository root"
+                  note: 177 passed; /private/tmp/issue-529-pytest.log
+                  result: passed
+                - name: "Complete export scenarios: pytest
+                    tests/test_governance_version_export.py, repository root"
+                  note: 7 passed including partial approval and deduplication;
+                    /private/tmp/issue-529-export-tests.log
+                  result: passed
+                - name: "Frontend: npm test, frontend directory"
+                  note: 386 passed; /private/tmp/issue-529-frontend-tests.log
+                  result: passed
+                - name: "Browser: Chrome + scripts/verify-governance-export.mjs, frontend
+                    directory"
+                  note: Exit 0; download contents, version/account races, errors, retry, duplicate
+                    prevention, evaluation link.
+                  result: passed
+                - name: "Frontend: npm run build, frontend directory"
+                  note: TypeScript and production build exit 0; /private/tmp/issue-529-build.log
+                  result: passed
+                - name: "Changed files: Ruff, Black, ESLint, Prettier and git diff --check"
+                  note: 5 Python and 7 frontend files; exits 0.
+                  result: passed
+                - name: OpenSpec strict validation
+                  note: "comet classic openspec -- validate governance-version-export --strict:
+                    valid."
+                  result: passed
+                - name: mypy changed implementation and diagnostic comparison against HEAD
+                  note: 3 implementation files pass focused mypy. Same 5 files on current and HEAD
+                    both return exit 1 with identical 13 existing diagnostics;
+                    comparison assertion passes. Raw mypy is not claimed
+                    passing; details in
+                    docs/superpowers/reports/2026-11-28-governance-version-export-verify.md.
+                  result: passed
+              event: verification-ready
+              verificationReport: docs/superpowers/reports/2026-11-28-governance-version-export-verify.md
+        inputHash: f77791aa138911599d204aef3c2ed3ba690881419efac7a0f1cb00d2e39b12b9
+        outcome:
+          actionId: governance-version-export:15
+          artifacts: []
+          attempt: 1
+          claimToken: portable-f8666a5e3ad11612b230b4a17cdbf97e3cf780d16842945b32c0217dcec4f1d3
+          inputHash: f77791aa138911599d204aef3c2ed3ba690881419efac7a0f1cb00d2e39b12b9
+          outcomeId: cc606b74-4cb7-4f7f-98c5-861c5f924015
+          output:
+            archiveDirectory: openspec/changes/archive/2026-11-28-governance-version-export
+          status: succeeded
+        protocolVersion: 1
+        receipts:
+          - hash: d390275a5baaf0aebe168565c986ed0a5de44dd7fe1363935833977a9337494c
+            outcomeId: cc606b74-4cb7-4f7f-98c5-861c5f924015
+        reconciliations: []
+        ref: classic-archive
+        requiredCapabilities: []
+        retry: manual
+        runId: governance-version-export
+        status: succeeded
+        stepId: tweak.archive.execute
+        type: call_tool
+      - attempt: 1
+        id: governance-version-export:16
+        input:
+          input:
+            change: governance-version-export
+            changeDir: openspec/changes/governance-version-export
+            workspaceBaseline:
+              ref: 1522cedf-8465-4552-b93a-e315d55f4301
+          outputs:
+            tweak.archive.confirm:
+              choice: pr
+              proposal:
+                input:
+                  change: governance-version-export
+                  changeDir: openspec/changes/governance-version-export
+                  workspaceBaseline:
+                    ref: 1522cedf-8465-4552-b93a-e315d55f4301
+                outputs:
+                  tweak.archive.prepare:
+                    prBaseBranch: main
+                    remote: origin
+                    summary: "用户明确选择选项 3：归档并提交 Issue #529 已验证改动，推送独立分支
+                      codex/governance-version-export 至 origin，同仓库向 main 创建
+                      PR。包含本次 12 个实现、文案和测试文件，以及本 change 的规格归档、验收报告和已有
+                      walkthrough；同步 frontend/problems-management 三条新增要求，保留无关
+                      data/tasks 文件。"
+                    targetBranch: codex/governance-version-export
+            tweak.archive.execute:
+              archiveDirectory: openspec/changes/archive/2026-11-28-governance-version-export
+            tweak.archive.preflight:
+              baseCommit: 38df6abb1d690d0e7dd01e5d58cbbad9df039ac4
+              deliveryAction: pr
+              deliveryPaths:
+                - api/files/governance.py
+                - api/files/service.py
+                - api/files/store.py
+                - api/routes/evaluation_results.py
+                - data/tasks/.execution/00410f371ba09161591a87ec2202e0d41db18bcb258781ea523b69fb493f0f14.lock
+                - data/tasks/.execution/ceb0b2b8d117117506fb027b3f0f1d95190873948044d121be9833ed9f8e256a.lock
+                - frontend/scripts/verify-governance-export.mjs
+                - frontend/src/i18n/en-US.ts
+                - frontend/src/i18n/zh-CN.ts
+                - frontend/src/pages/Problems/GovernancePanel.tsx
+                - frontend/src/problems/client.test.ts
+                - frontend/src/problems/client.ts
+                - frontend/src/problems/types.ts
+                - tests/test_governance_version_export.py
+              prBaseBranch: main
+              remote: origin
+              remoteIdentity: 128eeb1e6f0d21b25601fcb7f9aad36adfdfb4d76f37f54f004760410190f351
+              targetBranch: codex/governance-version-export
+              verifiedBranch: codex/governance-version-export
+            tweak.archive.prepare:
+              prBaseBranch: main
+              remote: origin
+              summary: "用户明确选择选项 3：归档并提交 Issue #529 已验证改动，推送独立分支
+                codex/governance-version-export 至 origin，同仓库向 main 创建 PR。包含本次 12
+                个实现、文案和测试文件，以及本 change 的规格归档、验收报告和已有 walkthrough；同步
+                frontend/problems-management 三条新增要求，保留无关 data/tasks 文件。"
+              targetBranch: codex/governance-version-export
+            tweak.verify.report.evidence:
+              contentHash: d2e91bdb0485cd22c9310281d793fda941597d769f3fc5d7be6aaae1a389038d
+              ref: docs/superpowers/reports/2026-11-28-governance-version-export-verify.md
+            tweak.verify.run:
+              checks:
+                - name: "Backend integration: pytest four related modules, repository root"
+                  note: 177 passed; /private/tmp/issue-529-pytest.log
+                  result: passed
+                - name: "Complete export scenarios: pytest
+                    tests/test_governance_version_export.py, repository root"
+                  note: 7 passed including partial approval and deduplication;
+                    /private/tmp/issue-529-export-tests.log
+                  result: passed
+                - name: "Frontend: npm test, frontend directory"
+                  note: 386 passed; /private/tmp/issue-529-frontend-tests.log
+                  result: passed
+                - name: "Browser: Chrome + scripts/verify-governance-export.mjs, frontend
+                    directory"
+                  note: Exit 0; download contents, version/account races, errors, retry, duplicate
+                    prevention, evaluation link.
+                  result: passed
+                - name: "Frontend: npm run build, frontend directory"
+                  note: TypeScript and production build exit 0; /private/tmp/issue-529-build.log
+                  result: passed
+                - name: "Changed files: Ruff, Black, ESLint, Prettier and git diff --check"
+                  note: 5 Python and 7 frontend files; exits 0.
+                  result: passed
+                - name: OpenSpec strict validation
+                  note: "comet classic openspec -- validate governance-version-export --strict:
+                    valid."
+                  result: passed
+                - name: mypy changed implementation and diagnostic comparison against HEAD
+                  note: 3 implementation files pass focused mypy. Same 5 files on current and HEAD
+                    both return exit 1 with identical 13 existing diagnostics;
+                    comparison assertion passes. Raw mypy is not claimed
+                    passing; details in
+                    docs/superpowers/reports/2026-11-28-governance-version-export-verify.md.
+                  result: passed
+              event: verification-ready
+              verificationReport: docs/superpowers/reports/2026-11-28-governance-version-export-verify.md
+        inputHash: 0aeb4325ced591519aff855f8b3dcb50b160ae22cee52649d4884c80b3afece9
+        protocolVersion: 1
+        receipts: []
+        reconciliations: []
+        ref: comet-archive
+        requiredCapabilities: []
+        retry: manual
+        runId: governance-version-export
+        status: pending
+        stepId: tweak.archive.deliver
+        type: invoke_skill
+    commands:
+      - id: d5e7f57089785f664b102b6bfa455854752daf9dce2c00566bdc16cd9cdd1659
+        name: reopen-verification
+        inputHash: e21a092de095848216fb81a2b61305240ce08e6b013bc9954c9ad1aceae277a1
+        actionId: governance-version-export:10
+    actionContexts:
+      governance-version-export:1:
+        results: {}
+        sequence: 1
+      governance-version-export:10:
+        results: {}
+        sequence: 10
+      governance-version-export:12:
+        results:
+          tweak.verify.report.evidence:
+            sequence: 11
+            value:
+              contentHash: d2e91bdb0485cd22c9310281d793fda941597d769f3fc5d7be6aaae1a389038d
+              ref: docs/superpowers/reports/2026-11-28-governance-version-export-verify.md
+          tweak.verify.run:
+            sequence: 10
+            value:
+              checks:
+                - name: "Backend integration: pytest four related modules, repository root"
+                  note: 177 passed; /private/tmp/issue-529-pytest.log
+                  result: passed
+                - name: "Complete export scenarios: pytest
+                    tests/test_governance_version_export.py, repository root"
+                  note: 7 passed including partial approval and deduplication;
+                    /private/tmp/issue-529-export-tests.log
+                  result: passed
+                - name: "Frontend: npm test, frontend directory"
+                  note: 386 passed; /private/tmp/issue-529-frontend-tests.log
+                  result: passed
+                - name: "Browser: Chrome + scripts/verify-governance-export.mjs, frontend
+                    directory"
+                  note: Exit 0; download contents, version/account races, errors, retry, duplicate
+                    prevention, evaluation link.
+                  result: passed
+                - name: "Frontend: npm run build, frontend directory"
+                  note: TypeScript and production build exit 0; /private/tmp/issue-529-build.log
+                  result: passed
+                - name: "Changed files: Ruff, Black, ESLint, Prettier and git diff --check"
+                  note: 5 Python and 7 frontend files; exits 0.
+                  result: passed
+                - name: OpenSpec strict validation
+                  note: "comet classic openspec -- validate governance-version-export --strict:
+                    valid."
+                  result: passed
+                - name: mypy changed implementation and diagnostic comparison against HEAD
+                  note: 3 implementation files pass focused mypy. Same 5 files on current and HEAD
+                    both return exit 1 with identical 13 existing diagnostics;
+                    comparison assertion passes. Raw mypy is not claimed
+                    passing; details in
+                    docs/superpowers/reports/2026-11-28-governance-version-export-verify.md.
+                  result: passed
+              event: verification-ready
+              verificationReport: docs/superpowers/reports/2026-11-28-governance-version-export-verify.md
+        sequence: 12
+      governance-version-export:14:
+        results:
+          tweak.archive.confirm:
+            sequence: 13
+            value:
+              choice: pr
+              proposal:
+                input:
+                  change: governance-version-export
+                  changeDir: openspec/changes/governance-version-export
+                  workspaceBaseline:
+                    ref: 1522cedf-8465-4552-b93a-e315d55f4301
+                outputs:
+                  tweak.archive.prepare:
+                    prBaseBranch: main
+                    remote: origin
+                    summary: "用户明确选择选项 3：归档并提交 Issue #529 已验证改动，推送独立分支
+                      codex/governance-version-export 至 origin，同仓库向 main 创建
+                      PR。包含本次 12 个实现、文案和测试文件，以及本 change 的规格归档、验收报告和已有
+                      walkthrough；同步 frontend/problems-management 三条新增要求，保留无关
+                      data/tasks 文件。"
+                    targetBranch: codex/governance-version-export
+          tweak.archive.prepare:
+            sequence: 12
+            value:
+              prBaseBranch: main
+              remote: origin
+              summary: "用户明确选择选项 3：归档并提交 Issue #529 已验证改动，推送独立分支
+                codex/governance-version-export 至 origin，同仓库向 main 创建 PR。包含本次 12
+                个实现、文案和测试文件，以及本 change 的规格归档、验收报告和已有 walkthrough；同步
+                frontend/problems-management 三条新增要求，保留无关 data/tasks 文件。"
+              targetBranch: codex/governance-version-export
+          tweak.verify.report.evidence:
+            sequence: 11
+            value:
+              contentHash: d2e91bdb0485cd22c9310281d793fda941597d769f3fc5d7be6aaae1a389038d
+              ref: docs/superpowers/reports/2026-11-28-governance-version-export-verify.md
+          tweak.verify.run:
+            sequence: 10
+            value:
+              checks:
+                - name: "Backend integration: pytest four related modules, repository root"
+                  note: 177 passed; /private/tmp/issue-529-pytest.log
+                  result: passed
+                - name: "Complete export scenarios: pytest
+                    tests/test_governance_version_export.py, repository root"
+                  note: 7 passed including partial approval and deduplication;
+                    /private/tmp/issue-529-export-tests.log
+                  result: passed
+                - name: "Frontend: npm test, frontend directory"
+                  note: 386 passed; /private/tmp/issue-529-frontend-tests.log
+                  result: passed
+                - name: "Browser: Chrome + scripts/verify-governance-export.mjs, frontend
+                    directory"
+                  note: Exit 0; download contents, version/account races, errors, retry, duplicate
+                    prevention, evaluation link.
+                  result: passed
+                - name: "Frontend: npm run build, frontend directory"
+                  note: TypeScript and production build exit 0; /private/tmp/issue-529-build.log
+                  result: passed
+                - name: "Changed files: Ruff, Black, ESLint, Prettier and git diff --check"
+                  note: 5 Python and 7 frontend files; exits 0.
+                  result: passed
+                - name: OpenSpec strict validation
+                  note: "comet classic openspec -- validate governance-version-export --strict:
+                    valid."
+                  result: passed
+                - name: mypy changed implementation and diagnostic comparison against HEAD
+                  note: 3 implementation files pass focused mypy. Same 5 files on current and HEAD
+                    both return exit 1 with identical 13 existing diagnostics;
+                    comparison assertion passes. Raw mypy is not claimed
+                    passing; details in
+                    docs/superpowers/reports/2026-11-28-governance-version-export-verify.md.
+                  result: passed
+              event: verification-ready
+              verificationReport: docs/superpowers/reports/2026-11-28-governance-version-export-verify.md
+        sequence: 14
+      governance-version-export:15:
+        results:
+          tweak.archive.confirm:
+            sequence: 13
+            value:
+              choice: pr
+              proposal:
+                input:
+                  change: governance-version-export
+                  changeDir: openspec/changes/governance-version-export
+                  workspaceBaseline:
+                    ref: 1522cedf-8465-4552-b93a-e315d55f4301
+                outputs:
+                  tweak.archive.prepare:
+                    prBaseBranch: main
+                    remote: origin
+                    summary: "用户明确选择选项 3：归档并提交 Issue #529 已验证改动，推送独立分支
+                      codex/governance-version-export 至 origin，同仓库向 main 创建
+                      PR。包含本次 12 个实现、文案和测试文件，以及本 change 的规格归档、验收报告和已有
+                      walkthrough；同步 frontend/problems-management 三条新增要求，保留无关
+                      data/tasks 文件。"
+                    targetBranch: codex/governance-version-export
+          tweak.archive.preflight:
+            sequence: 14
+            value:
+              baseCommit: 38df6abb1d690d0e7dd01e5d58cbbad9df039ac4
+              deliveryAction: pr
+              deliveryPaths:
+                - api/files/governance.py
+                - api/files/service.py
+                - api/files/store.py
+                - api/routes/evaluation_results.py
+                - data/tasks/.execution/00410f371ba09161591a87ec2202e0d41db18bcb258781ea523b69fb493f0f14.lock
+                - data/tasks/.execution/ceb0b2b8d117117506fb027b3f0f1d95190873948044d121be9833ed9f8e256a.lock
+                - frontend/scripts/verify-governance-export.mjs
+                - frontend/src/i18n/en-US.ts
+                - frontend/src/i18n/zh-CN.ts
+                - frontend/src/pages/Problems/GovernancePanel.tsx
+                - frontend/src/problems/client.test.ts
+                - frontend/src/problems/client.ts
+                - frontend/src/problems/types.ts
+                - tests/test_governance_version_export.py
+              prBaseBranch: main
+              remote: origin
+              remoteIdentity: 128eeb1e6f0d21b25601fcb7f9aad36adfdfb4d76f37f54f004760410190f351
+              targetBranch: codex/governance-version-export
+              verifiedBranch: codex/governance-version-export
+          tweak.archive.prepare:
+            sequence: 12
+            value:
+              prBaseBranch: main
+              remote: origin
+              summary: "用户明确选择选项 3：归档并提交 Issue #529 已验证改动，推送独立分支
+                codex/governance-version-export 至 origin，同仓库向 main 创建 PR。包含本次 12
+                个实现、文案和测试文件，以及本 change 的规格归档、验收报告和已有 walkthrough；同步
+                frontend/problems-management 三条新增要求，保留无关 data/tasks 文件。"
+              targetBranch: codex/governance-version-export
+          tweak.verify.report.evidence:
+            sequence: 11
+            value:
+              contentHash: d2e91bdb0485cd22c9310281d793fda941597d769f3fc5d7be6aaae1a389038d
+              ref: docs/superpowers/reports/2026-11-28-governance-version-export-verify.md
+          tweak.verify.run:
+            sequence: 10
+            value:
+              checks:
+                - name: "Backend integration: pytest four related modules, repository root"
+                  note: 177 passed; /private/tmp/issue-529-pytest.log
+                  result: passed
+                - name: "Complete export scenarios: pytest
+                    tests/test_governance_version_export.py, repository root"
+                  note: 7 passed including partial approval and deduplication;
+                    /private/tmp/issue-529-export-tests.log
+                  result: passed
+                - name: "Frontend: npm test, frontend directory"
+                  note: 386 passed; /private/tmp/issue-529-frontend-tests.log
+                  result: passed
+                - name: "Browser: Chrome + scripts/verify-governance-export.mjs, frontend
+                    directory"
+                  note: Exit 0; download contents, version/account races, errors, retry, duplicate
+                    prevention, evaluation link.
+                  result: passed
+                - name: "Frontend: npm run build, frontend directory"
+                  note: TypeScript and production build exit 0; /private/tmp/issue-529-build.log
+                  result: passed
+                - name: "Changed files: Ruff, Black, ESLint, Prettier and git diff --check"
+                  note: 5 Python and 7 frontend files; exits 0.
+                  result: passed
+                - name: OpenSpec strict validation
+                  note: "comet classic openspec -- validate governance-version-export --strict:
+                    valid."
+                  result: passed
+                - name: mypy changed implementation and diagnostic comparison against HEAD
+                  note: 3 implementation files pass focused mypy. Same 5 files on current and HEAD
+                    both return exit 1 with identical 13 existing diagnostics;
+                    comparison assertion passes. Raw mypy is not claimed
+                    passing; details in
+                    docs/superpowers/reports/2026-11-28-governance-version-export-verify.md.
+                  result: passed
+              event: verification-ready
+              verificationReport: docs/superpowers/reports/2026-11-28-governance-version-export-verify.md
+        sequence: 15
+      governance-version-export:16:
+        results:
+          tweak.archive.confirm:
+            sequence: 13
+            value:
+              choice: pr
+              proposal:
+                input:
+                  change: governance-version-export
+                  changeDir: openspec/changes/governance-version-export
+                  workspaceBaseline:
+                    ref: 1522cedf-8465-4552-b93a-e315d55f4301
+                outputs:
+                  tweak.archive.prepare:
+                    prBaseBranch: main
+                    remote: origin
+                    summary: "用户明确选择选项 3：归档并提交 Issue #529 已验证改动，推送独立分支
+                      codex/governance-version-export 至 origin，同仓库向 main 创建
+                      PR。包含本次 12 个实现、文案和测试文件，以及本 change 的规格归档、验收报告和已有
+                      walkthrough；同步 frontend/problems-management 三条新增要求，保留无关
+                      data/tasks 文件。"
+                    targetBranch: codex/governance-version-export
+          tweak.archive.execute:
+            sequence: 15
+            value:
+              archiveDirectory: openspec/changes/archive/2026-11-28-governance-version-export
+          tweak.archive.preflight:
+            sequence: 14
+            value:
+              baseCommit: 38df6abb1d690d0e7dd01e5d58cbbad9df039ac4
+              deliveryAction: pr
+              deliveryPaths:
+                - api/files/governance.py
+                - api/files/service.py
+                - api/files/store.py
+                - api/routes/evaluation_results.py
+                - data/tasks/.execution/00410f371ba09161591a87ec2202e0d41db18bcb258781ea523b69fb493f0f14.lock
+                - data/tasks/.execution/ceb0b2b8d117117506fb027b3f0f1d95190873948044d121be9833ed9f8e256a.lock
+                - frontend/scripts/verify-governance-export.mjs
+                - frontend/src/i18n/en-US.ts
+                - frontend/src/i18n/zh-CN.ts
+                - frontend/src/pages/Problems/GovernancePanel.tsx
+                - frontend/src/problems/client.test.ts
+                - frontend/src/problems/client.ts
+                - frontend/src/problems/types.ts
+                - tests/test_governance_version_export.py
+              prBaseBranch: main
+              remote: origin
+              remoteIdentity: 128eeb1e6f0d21b25601fcb7f9aad36adfdfb4d76f37f54f004760410190f351
+              targetBranch: codex/governance-version-export
+              verifiedBranch: codex/governance-version-export
+          tweak.archive.prepare:
+            sequence: 12
+            value:
+              prBaseBranch: main
+              remote: origin
+              summary: "用户明确选择选项 3：归档并提交 Issue #529 已验证改动，推送独立分支
+                codex/governance-version-export 至 origin，同仓库向 main 创建 PR。包含本次 12
+                个实现、文案和测试文件，以及本 change 的规格归档、验收报告和已有 walkthrough；同步
+                frontend/problems-management 三条新增要求，保留无关 data/tasks 文件。"
+              targetBranch: codex/governance-version-export
+          tweak.verify.report.evidence:
+            sequence: 11
+            value:
+              contentHash: d2e91bdb0485cd22c9310281d793fda941597d769f3fc5d7be6aaae1a389038d
+              ref: docs/superpowers/reports/2026-11-28-governance-version-export-verify.md
+          tweak.verify.run:
+            sequence: 10
+            value:
+              checks:
+                - name: "Backend integration: pytest four related modules, repository root"
+                  note: 177 passed; /private/tmp/issue-529-pytest.log
+                  result: passed
+                - name: "Complete export scenarios: pytest
+                    tests/test_governance_version_export.py, repository root"
+                  note: 7 passed including partial approval and deduplication;
+                    /private/tmp/issue-529-export-tests.log
+                  result: passed
+                - name: "Frontend: npm test, frontend directory"
+                  note: 386 passed; /private/tmp/issue-529-frontend-tests.log
+                  result: passed
+                - name: "Browser: Chrome + scripts/verify-governance-export.mjs, frontend
+                    directory"
+                  note: Exit 0; download contents, version/account races, errors, retry, duplicate
+                    prevention, evaluation link.
+                  result: passed
+                - name: "Frontend: npm run build, frontend directory"
+                  note: TypeScript and production build exit 0; /private/tmp/issue-529-build.log
+                  result: passed
+                - name: "Changed files: Ruff, Black, ESLint, Prettier and git diff --check"
+                  note: 5 Python and 7 frontend files; exits 0.
+                  result: passed
+                - name: OpenSpec strict validation
+                  note: "comet classic openspec -- validate governance-version-export --strict:
+                    valid."
+                  result: passed
+                - name: mypy changed implementation and diagnostic comparison against HEAD
+                  note: 3 implementation files pass focused mypy. Same 5 files on current and HEAD
+                    both return exit 1 with identical 13 existing diagnostics;
+                    comparison assertion passes. Raw mypy is not claimed
+                    passing; details in
+                    docs/superpowers/reports/2026-11-28-governance-version-export-verify.md.
+                  result: passed
+              event: verification-ready
+              verificationReport: docs/superpowers/reports/2026-11-28-governance-version-export-verify.md
+        sequence: 16
+      governance-version-export:3:
+        results:
+          tweak.open:
+            sequence: 1
+            value:
+              event: open-complete
+              requirementsEvidence:
+                ref: openspec/changes/governance-version-export
+          tweak.open.evidence:
+            sequence: 2
+            value:
+              contentHash: b803a7a85c5e00b95deb3f82f7bfbee1b61710875c00c062b877aa1c235000f1
+              ref: openspec/changes/governance-version-export
+        sequence: 3
+      governance-version-export:5:
+        results:
+          tweak.build.escalation-confirm:
+            sequence: 4
+            value:
+              choice: continue
+              proposal:
+                input:
+                  change: governance-version-export
+                  changeDir: openspec/changes/governance-version-export
+                  workspaceBaseline:
+                    ref: 1522cedf-8465-4552-b93a-e315d55f4301
+                outputs:
+                  tweak.build.execute:
+                    event: escalation-requested
+                    proposal: "Issue #529 已批准：新增版本下载 API 和事务内报告存储，预计 12 个交付文件（后端 4、前端 5、测试
+                      3）；范围、风险与验收均与已展示 Open 产物一致。用户已明确确认方案并继续 tweak，记录该继续决定。"
+                    requirementsEvidence:
+                      contentHash: 695b513a2987ba2cf8f033dfe8ae5dcc1b17f02d7561e1e362b3acf03d33b3fa
+                      ref: openspec/changes/governance-version-export
+          tweak.build.execute:
+            sequence: 3
+            value:
+              event: escalation-requested
+              proposal: "Issue #529 已批准：新增版本下载 API 和事务内报告存储，预计 12 个交付文件（后端 4、前端 5、测试
+                3）；范围、风险与验收均与已展示 Open 产物一致。用户已明确确认方案并继续 tweak，记录该继续决定。"
+              requirementsEvidence:
+                contentHash: 695b513a2987ba2cf8f033dfe8ae5dcc1b17f02d7561e1e362b3acf03d33b3fa
+                ref: openspec/changes/governance-version-export
+          tweak.open:
+            sequence: 1
+            value:
+              event: open-complete
+              requirementsEvidence:
+                ref: openspec/changes/governance-version-export
+          tweak.open.evidence:
+            sequence: 2
+            value:
+              contentHash: b803a7a85c5e00b95deb3f82f7bfbee1b61710875c00c062b877aa1c235000f1
+              ref: openspec/changes/governance-version-export
+        sequence: 5
+      governance-version-export:6:
+        results:
+          tweak.build.escalation-confirm:
+            sequence: 4
+            value:
+              choice: continue
+              proposal:
+                input:
+                  change: governance-version-export
+                  changeDir: openspec/changes/governance-version-export
+                  workspaceBaseline:
+                    ref: 1522cedf-8465-4552-b93a-e315d55f4301
+                outputs:
+                  tweak.build.execute:
+                    event: escalation-requested
+                    proposal: "Issue #529 已批准：新增版本下载 API 和事务内报告存储，预计 12 个交付文件（后端 4、前端 5、测试
+                      3）；范围、风险与验收均与已展示 Open 产物一致。用户已明确确认方案并继续 tweak，记录该继续决定。"
+                    requirementsEvidence:
+                      contentHash: 695b513a2987ba2cf8f033dfe8ae5dcc1b17f02d7561e1e362b3acf03d33b3fa
+                      ref: openspec/changes/governance-version-export
+          tweak.build.execute:
+            sequence: 5
+            value:
+              checks:
+                - name: "Backend integration: pytest four related modules, repository root"
+                  note: 177 passed; /private/tmp/issue-529-pytest.log
+                  result: passed
+                - name: "Complete export scenarios: pytest
+                    tests/test_governance_version_export.py, repository root"
+                  note: 7 passed including partial approval and deduplication;
+                    /private/tmp/issue-529-export-tests.log
+                  result: passed
+                - name: "Frontend: npm test, frontend directory"
+                  note: 386 passed; /private/tmp/issue-529-frontend-tests.log
+                  result: passed
+                - name: "Browser: Chrome + scripts/verify-governance-export.mjs, frontend
+                    directory"
+                  note: Exit 0; download contents, version/account races, errors, retry, duplicate
+                    prevention, evaluation link.
+                  result: passed
+                - name: "Frontend: npm run build, frontend directory"
+                  note: TypeScript and production build exit 0; /private/tmp/issue-529-build.log
+                  result: passed
+                - name: "Changed files: Ruff, Black, ESLint, Prettier and git diff --check"
+                  note: 5 Python and 7 frontend files; exits 0.
+                  result: passed
+                - name: OpenSpec strict validation
+                  note: "comet classic openspec -- validate governance-version-export --strict:
+                    valid."
+                  result: passed
+                - name: mypy changed implementation and diagnostic comparison against HEAD
+                  note: 3 implementation files pass focused mypy. Same 5 files on current and HEAD
+                    both return exit 1 with identical 13 existing diagnostics;
+                    comparison assertion passes. Raw mypy is not claimed
+                    passing; details in verification.md.
+                  result: passed
+              event: build-complete
+          tweak.open:
+            sequence: 1
+            value:
+              event: open-complete
+              requirementsEvidence:
+                ref: openspec/changes/governance-version-export
+          tweak.open.evidence:
+            sequence: 2
+            value:
+              contentHash: b803a7a85c5e00b95deb3f82f7bfbee1b61710875c00c062b877aa1c235000f1
+              ref: openspec/changes/governance-version-export
+        sequence: 6
+      governance-version-export:8:
+        results:
+          tweak.build.escalation-confirm:
+            sequence: 4
+            value:
+              choice: continue
+              proposal:
+                input:
+                  change: governance-version-export
+                  changeDir: openspec/changes/governance-version-export
+                  workspaceBaseline:
+                    ref: 1522cedf-8465-4552-b93a-e315d55f4301
+                outputs:
+                  tweak.build.execute:
+                    event: escalation-requested
+                    proposal: "Issue #529 已批准：新增版本下载 API 和事务内报告存储，预计 12 个交付文件（后端 4、前端 5、测试
+                      3）；范围、风险与验收均与已展示 Open 产物一致。用户已明确确认方案并继续 tweak，记录该继续决定。"
+                    requirementsEvidence:
+                      contentHash: 695b513a2987ba2cf8f033dfe8ae5dcc1b17f02d7561e1e362b3acf03d33b3fa
+                      ref: openspec/changes/governance-version-export
+          tweak.build.execute:
+            sequence: 5
+            value:
+              checks:
+                - name: "Backend integration: pytest four related modules, repository root"
+                  note: 177 passed; /private/tmp/issue-529-pytest.log
+                  result: passed
+                - name: "Complete export scenarios: pytest
+                    tests/test_governance_version_export.py, repository root"
+                  note: 7 passed including partial approval and deduplication;
+                    /private/tmp/issue-529-export-tests.log
+                  result: passed
+                - name: "Frontend: npm test, frontend directory"
+                  note: 386 passed; /private/tmp/issue-529-frontend-tests.log
+                  result: passed
+                - name: "Browser: Chrome + scripts/verify-governance-export.mjs, frontend
+                    directory"
+                  note: Exit 0; download contents, version/account races, errors, retry, duplicate
+                    prevention, evaluation link.
+                  result: passed
+                - name: "Frontend: npm run build, frontend directory"
+                  note: TypeScript and production build exit 0; /private/tmp/issue-529-build.log
+                  result: passed
+                - name: "Changed files: Ruff, Black, ESLint, Prettier and git diff --check"
+                  note: 5 Python and 7 frontend files; exits 0.
+                  result: passed
+                - name: OpenSpec strict validation
+                  note: "comet classic openspec -- validate governance-version-export --strict:
+                    valid."
+                  result: passed
+                - name: mypy changed implementation and diagnostic comparison against HEAD
+                  note: 3 implementation files pass focused mypy. Same 5 files on current and HEAD
+                    both return exit 1 with identical 13 existing diagnostics;
+                    comparison assertion passes. Raw mypy is not claimed
+                    passing; details in verification.md.
+                  result: passed
+              event: build-complete
+          tweak.open:
+            sequence: 1
+            value:
+              event: open-complete
+              requirementsEvidence:
+                ref: openspec/changes/governance-version-export
+          tweak.open.evidence:
+            sequence: 2
+            value:
+              contentHash: b803a7a85c5e00b95deb3f82f7bfbee1b61710875c00c062b877aa1c235000f1
+              ref: openspec/changes/governance-version-export
+          tweak.verify.report.evidence:
+            sequence: 7
+            value:
+              contentHash: b96384749096fe66e52414c52abc1883c68b947efc36eea10293651b4c0f4547
+              ref: docs/superpowers/reports/2026-11-28-governance-version-export-verify.md
+          tweak.verify.run:
+            sequence: 6
+            value:
+              checks:
+                - name: "Backend integration: pytest four related modules, repository root"
+                  note: 177 passed; /private/tmp/issue-529-pytest.log
+                  result: passed
+                - name: "Complete export scenarios: pytest
+                    tests/test_governance_version_export.py, repository root"
+                  note: 7 passed including partial approval and deduplication;
+                    /private/tmp/issue-529-export-tests.log
+                  result: passed
+                - name: "Frontend: npm test, frontend directory"
+                  note: 386 passed; /private/tmp/issue-529-frontend-tests.log
+                  result: passed
+                - name: "Browser: Chrome + scripts/verify-governance-export.mjs, frontend
+                    directory"
+                  note: Exit 0; download contents, version/account races, errors, retry, duplicate
+                    prevention, evaluation link.
+                  result: passed
+                - name: "Frontend: npm run build, frontend directory"
+                  note: TypeScript and production build exit 0; /private/tmp/issue-529-build.log
+                  result: passed
+                - name: "Changed files: Ruff, Black, ESLint, Prettier and git diff --check"
+                  note: 5 Python and 7 frontend files; exits 0.
+                  result: passed
+                - name: OpenSpec strict validation
+                  note: "comet classic openspec -- validate governance-version-export --strict:
+                    valid."
+                  result: passed
+                - name: mypy changed implementation and diagnostic comparison against HEAD
+                  note: 3 implementation files pass focused mypy. Same 5 files on current and HEAD
+                    both return exit 1 with identical 13 existing diagnostics;
+                    comparison assertion passes. Raw mypy is not claimed
+                    passing; details in
+                    docs/superpowers/reports/2026-11-28-governance-version-export-verify.md.
+                  result: passed
+              event: verification-ready
+              verificationReport: docs/superpowers/reports/2026-11-28-governance-version-export-verify.md
+        sequence: 8
+    waits:
+      - id: governance-version-export:4
+        stepId: tweak.build.escalation-confirm
+        sequence: 4
+        status: resolved
+        proposal:
+          input:
+            change: governance-version-export
+            changeDir: openspec/changes/governance-version-export
+            workspaceBaseline:
+              ref: 1522cedf-8465-4552-b93a-e315d55f4301
+          outputs:
+            tweak.build.execute:
+              event: escalation-requested
+              proposal: "Issue #529 已批准：新增版本下载 API 和事务内报告存储，预计 12 个交付文件（后端 4、前端 5、测试
+                3）；范围、风险与验收均与已展示 Open 产物一致。用户已明确确认方案并继续 tweak，记录该继续决定。"
+              requirementsEvidence:
+                contentHash: 695b513a2987ba2cf8f033dfe8ae5dcc1b17f02d7561e1e362b3acf03d33b3fa
+                ref: openspec/changes/governance-version-export
+        proposalHash: b1b94fb7e826d78a3f9c71ba0789ced3209fedcf5feb8a11bf56f8a645b57e4f
+        choices:
+          - continue
+          - upgrade
+        results:
+          tweak.build.execute:
+            sequence: 3
+            value:
+              event: escalation-requested
+              proposal: "Issue #529 已批准：新增版本下载 API 和事务内报告存储，预计 12 个交付文件（后端 4、前端 5、测试
+                3）；范围、风险与验收均与已展示 Open 产物一致。用户已明确确认方案并继续 tweak，记录该继续决定。"
+              requirementsEvidence:
+                contentHash: 695b513a2987ba2cf8f033dfe8ae5dcc1b17f02d7561e1e362b3acf03d33b3fa
+                ref: openspec/changes/governance-version-export
+          tweak.open:
+            sequence: 1
+            value:
+              event: open-complete
+              requirementsEvidence:
+                ref: openspec/changes/governance-version-export
+          tweak.open.evidence:
+            sequence: 2
+            value:
+              contentHash: b803a7a85c5e00b95deb3f82f7bfbee1b61710875c00c062b877aa1c235000f1
+              ref: openspec/changes/governance-version-export
+        decision:
+          id: classic-escalation-b1b94fb7e826d78a3f9c71ba0789ced3209fedcf5feb8a11bf56f8a645b57e4f-continue
+          choice: continue
+          proposalHash: b1b94fb7e826d78a3f9c71ba0789ced3209fedcf5feb8a11bf56f8a645b57e4f
+      - id: governance-version-export:9
+        stepId: tweak.archive.confirm
+        sequence: 9
+        status: cancelled
+        proposal:
+          input:
+            change: governance-version-export
+            changeDir: openspec/changes/governance-version-export
+            workspaceBaseline:
+              ref: 1522cedf-8465-4552-b93a-e315d55f4301
+          outputs:
+            tweak.archive.prepare:
+              prBaseBranch: main
+              remote: origin
+              summary: "Issue #529 已实现并通过 Verify：12 个实现/文案/测试文件，完整版本
+                JSON、持久化标签难度报告、用户与版本隔离；相关后端回归、386 项前端测试、浏览器 mock、构建和规格检查通过。归档将同步
+                frontend/problems-management 的 3 条新增要求，移动本 change 到 archive
+                并保存验收报告及 walkthrough。建议 local：在当前绑定 main 分支创建本地归档提交，保留无关
+                data/tasks 文件。push 将发布到 origin/main；pr 需先确定独立分支并重新绑定目标后向 main 创建
+                PR。尚未执行归档、commit、push 或 PR。"
+              targetBranch: main
+        proposalHash: 6bf4a259b72284483caf20862cb1f441518dd6ae39a1a68b8f346904501eb6db
+        choices:
+          - local
+          - push
+          - pr
+          - reverify
+          - later
+        results:
+          tweak.archive.prepare:
+            sequence: 8
+            value:
+              prBaseBranch: main
+              remote: origin
+              summary: "Issue #529 已实现并通过 Verify：12 个实现/文案/测试文件，完整版本
+                JSON、持久化标签难度报告、用户与版本隔离；相关后端回归、386 项前端测试、浏览器 mock、构建和规格检查通过。归档将同步
+                frontend/problems-management 的 3 条新增要求，移动本 change 到 archive
+                并保存验收报告及 walkthrough。建议 local：在当前绑定 main 分支创建本地归档提交，保留无关
+                data/tasks 文件。push 将发布到 origin/main；pr 需先确定独立分支并重新绑定目标后向 main 创建
+                PR。尚未执行归档、commit、push 或 PR。"
+              targetBranch: main
+          tweak.build.escalation-confirm:
+            sequence: 4
+            value:
+              choice: continue
+              proposal:
+                input:
+                  change: governance-version-export
+                  changeDir: openspec/changes/governance-version-export
+                  workspaceBaseline:
+                    ref: 1522cedf-8465-4552-b93a-e315d55f4301
+                outputs:
+                  tweak.build.execute:
+                    event: escalation-requested
+                    proposal: "Issue #529 已批准：新增版本下载 API 和事务内报告存储，预计 12 个交付文件（后端 4、前端 5、测试
+                      3）；范围、风险与验收均与已展示 Open 产物一致。用户已明确确认方案并继续 tweak，记录该继续决定。"
+                    requirementsEvidence:
+                      contentHash: 695b513a2987ba2cf8f033dfe8ae5dcc1b17f02d7561e1e362b3acf03d33b3fa
+                      ref: openspec/changes/governance-version-export
+          tweak.build.execute:
+            sequence: 5
+            value:
+              checks:
+                - name: "Backend integration: pytest four related modules, repository root"
+                  note: 177 passed; /private/tmp/issue-529-pytest.log
+                  result: passed
+                - name: "Complete export scenarios: pytest
+                    tests/test_governance_version_export.py, repository root"
+                  note: 7 passed including partial approval and deduplication;
+                    /private/tmp/issue-529-export-tests.log
+                  result: passed
+                - name: "Frontend: npm test, frontend directory"
+                  note: 386 passed; /private/tmp/issue-529-frontend-tests.log
+                  result: passed
+                - name: "Browser: Chrome + scripts/verify-governance-export.mjs, frontend
+                    directory"
+                  note: Exit 0; download contents, version/account races, errors, retry, duplicate
+                    prevention, evaluation link.
+                  result: passed
+                - name: "Frontend: npm run build, frontend directory"
+                  note: TypeScript and production build exit 0; /private/tmp/issue-529-build.log
+                  result: passed
+                - name: "Changed files: Ruff, Black, ESLint, Prettier and git diff --check"
+                  note: 5 Python and 7 frontend files; exits 0.
+                  result: passed
+                - name: OpenSpec strict validation
+                  note: "comet classic openspec -- validate governance-version-export --strict:
+                    valid."
+                  result: passed
+                - name: mypy changed implementation and diagnostic comparison against HEAD
+                  note: 3 implementation files pass focused mypy. Same 5 files on current and HEAD
+                    both return exit 1 with identical 13 existing diagnostics;
+                    comparison assertion passes. Raw mypy is not claimed
+                    passing; details in verification.md.
+                  result: passed
+              event: build-complete
+          tweak.open:
+            sequence: 1
+            value:
+              event: open-complete
+              requirementsEvidence:
+                ref: openspec/changes/governance-version-export
+          tweak.open.evidence:
+            sequence: 2
+            value:
+              contentHash: b803a7a85c5e00b95deb3f82f7bfbee1b61710875c00c062b877aa1c235000f1
+              ref: openspec/changes/governance-version-export
+          tweak.verify.report.evidence:
+            sequence: 7
+            value:
+              contentHash: b96384749096fe66e52414c52abc1883c68b947efc36eea10293651b4c0f4547
+              ref: docs/superpowers/reports/2026-11-28-governance-version-export-verify.md
+          tweak.verify.run:
+            sequence: 6
+            value:
+              checks:
+                - name: "Backend integration: pytest four related modules, repository root"
+                  note: 177 passed; /private/tmp/issue-529-pytest.log
+                  result: passed
+                - name: "Complete export scenarios: pytest
+                    tests/test_governance_version_export.py, repository root"
+                  note: 7 passed including partial approval and deduplication;
+                    /private/tmp/issue-529-export-tests.log
+                  result: passed
+                - name: "Frontend: npm test, frontend directory"
+                  note: 386 passed; /private/tmp/issue-529-frontend-tests.log
+                  result: passed
+                - name: "Browser: Chrome + scripts/verify-governance-export.mjs, frontend
+                    directory"
+                  note: Exit 0; download contents, version/account races, errors, retry, duplicate
+                    prevention, evaluation link.
+                  result: passed
+                - name: "Frontend: npm run build, frontend directory"
+                  note: TypeScript and production build exit 0; /private/tmp/issue-529-build.log
+                  result: passed
+                - name: "Changed files: Ruff, Black, ESLint, Prettier and git diff --check"
+                  note: 5 Python and 7 frontend files; exits 0.
+                  result: passed
+                - name: OpenSpec strict validation
+                  note: "comet classic openspec -- validate governance-version-export --strict:
+                    valid."
+                  result: passed
+                - name: mypy changed implementation and diagnostic comparison against HEAD
+                  note: 3 implementation files pass focused mypy. Same 5 files on current and HEAD
+                    both return exit 1 with identical 13 existing diagnostics;
+                    comparison assertion passes. Raw mypy is not claimed
+                    passing; details in
+                    docs/superpowers/reports/2026-11-28-governance-version-export-verify.md.
+                  result: passed
+              event: verification-ready
+              verificationReport: docs/superpowers/reports/2026-11-28-governance-version-export-verify.md
+      - id: governance-version-export:13
+        stepId: tweak.archive.confirm
+        sequence: 13
+        status: resolved
+        proposal:
+          input:
+            change: governance-version-export
+            changeDir: openspec/changes/governance-version-export
+            workspaceBaseline:
+              ref: 1522cedf-8465-4552-b93a-e315d55f4301
+          outputs:
+            tweak.archive.prepare:
+              prBaseBranch: main
+              remote: origin
+              summary: "用户明确选择选项 3：归档并提交 Issue #529 已验证改动，推送独立分支
+                codex/governance-version-export 至 origin，同仓库向 main 创建 PR。包含本次 12
+                个实现、文案和测试文件，以及本 change 的规格归档、验收报告和已有 walkthrough；同步
+                frontend/problems-management 三条新增要求，保留无关 data/tasks 文件。"
+              targetBranch: codex/governance-version-export
+        proposalHash: 528938c6e9ed59cc7fdee1d33eaa5b5249b08a3698d6ec823ff7591b6203fcc7
+        choices:
+          - local
+          - push
+          - pr
+          - reverify
+          - later
+        results:
+          tweak.archive.prepare:
+            sequence: 12
+            value:
+              prBaseBranch: main
+              remote: origin
+              summary: "用户明确选择选项 3：归档并提交 Issue #529 已验证改动，推送独立分支
+                codex/governance-version-export 至 origin，同仓库向 main 创建 PR。包含本次 12
+                个实现、文案和测试文件，以及本 change 的规格归档、验收报告和已有 walkthrough；同步
+                frontend/problems-management 三条新增要求，保留无关 data/tasks 文件。"
+              targetBranch: codex/governance-version-export
+          tweak.verify.report.evidence:
+            sequence: 11
+            value:
+              contentHash: d2e91bdb0485cd22c9310281d793fda941597d769f3fc5d7be6aaae1a389038d
+              ref: docs/superpowers/reports/2026-11-28-governance-version-export-verify.md
+          tweak.verify.run:
+            sequence: 10
+            value:
+              checks:
+                - name: "Backend integration: pytest four related modules, repository root"
+                  note: 177 passed; /private/tmp/issue-529-pytest.log
+                  result: passed
+                - name: "Complete export scenarios: pytest
+                    tests/test_governance_version_export.py, repository root"
+                  note: 7 passed including partial approval and deduplication;
+                    /private/tmp/issue-529-export-tests.log
+                  result: passed
+                - name: "Frontend: npm test, frontend directory"
+                  note: 386 passed; /private/tmp/issue-529-frontend-tests.log
+                  result: passed
+                - name: "Browser: Chrome + scripts/verify-governance-export.mjs, frontend
+                    directory"
+                  note: Exit 0; download contents, version/account races, errors, retry, duplicate
+                    prevention, evaluation link.
+                  result: passed
+                - name: "Frontend: npm run build, frontend directory"
+                  note: TypeScript and production build exit 0; /private/tmp/issue-529-build.log
+                  result: passed
+                - name: "Changed files: Ruff, Black, ESLint, Prettier and git diff --check"
+                  note: 5 Python and 7 frontend files; exits 0.
+                  result: passed
+                - name: OpenSpec strict validation
+                  note: "comet classic openspec -- validate governance-version-export --strict:
+                    valid."
+                  result: passed
+                - name: mypy changed implementation and diagnostic comparison against HEAD
+                  note: 3 implementation files pass focused mypy. Same 5 files on current and HEAD
+                    both return exit 1 with identical 13 existing diagnostics;
+                    comparison assertion passes. Raw mypy is not claimed
+                    passing; details in
+                    docs/superpowers/reports/2026-11-28-governance-version-export-verify.md.
+                  result: passed
+              event: verification-ready
+              verificationReport: docs/superpowers/reports/2026-11-28-governance-version-export-verify.md
+        decision:
+          id: classic-archive-528938c6e9ed59cc7fdee1d33eaa5b5249b08a3698d6ec823ff7591b6203fcc7-pr
+          choice: pr
+          proposalHash: 528938c6e9ed59cc7fdee1d33eaa5b5249b08a3698d6ec823ff7591b6203fcc7
+    evidenceWaits:
+      - id: governance-version-export:2
+        stepId: tweak.open.evidence
+        sequence: 2
+        kind: classic-open-artifacts
+        status: resolved
+        results:
+          tweak.open:
+            sequence: 1
+            value:
+              event: open-complete
+              requirementsEvidence:
+                ref: openspec/changes/governance-version-export
+        receipt:
+          ref: openspec/changes/governance-version-export
+          contentHash: b803a7a85c5e00b95deb3f82f7bfbee1b61710875c00c062b877aa1c235000f1
+          submissionId: e5dcfe95-3814-4a56-b5d3-0440872c6491
+      - id: governance-version-export:7
+        stepId: tweak.verify.report.evidence
+        sequence: 7
+        kind: classic-verification-report
+        status: resolved
+        results:
+          tweak.build.escalation-confirm:
+            sequence: 4
+            value:
+              choice: continue
+              proposal:
+                input:
+                  change: governance-version-export
+                  changeDir: openspec/changes/governance-version-export
+                  workspaceBaseline:
+                    ref: 1522cedf-8465-4552-b93a-e315d55f4301
+                outputs:
+                  tweak.build.execute:
+                    event: escalation-requested
+                    proposal: "Issue #529 已批准：新增版本下载 API 和事务内报告存储，预计 12 个交付文件（后端 4、前端 5、测试
+                      3）；范围、风险与验收均与已展示 Open 产物一致。用户已明确确认方案并继续 tweak，记录该继续决定。"
+                    requirementsEvidence:
+                      contentHash: 695b513a2987ba2cf8f033dfe8ae5dcc1b17f02d7561e1e362b3acf03d33b3fa
+                      ref: openspec/changes/governance-version-export
+          tweak.build.execute:
+            sequence: 5
+            value:
+              checks:
+                - name: "Backend integration: pytest four related modules, repository root"
+                  note: 177 passed; /private/tmp/issue-529-pytest.log
+                  result: passed
+                - name: "Complete export scenarios: pytest
+                    tests/test_governance_version_export.py, repository root"
+                  note: 7 passed including partial approval and deduplication;
+                    /private/tmp/issue-529-export-tests.log
+                  result: passed
+                - name: "Frontend: npm test, frontend directory"
+                  note: 386 passed; /private/tmp/issue-529-frontend-tests.log
+                  result: passed
+                - name: "Browser: Chrome + scripts/verify-governance-export.mjs, frontend
+                    directory"
+                  note: Exit 0; download contents, version/account races, errors, retry, duplicate
+                    prevention, evaluation link.
+                  result: passed
+                - name: "Frontend: npm run build, frontend directory"
+                  note: TypeScript and production build exit 0; /private/tmp/issue-529-build.log
+                  result: passed
+                - name: "Changed files: Ruff, Black, ESLint, Prettier and git diff --check"
+                  note: 5 Python and 7 frontend files; exits 0.
+                  result: passed
+                - name: OpenSpec strict validation
+                  note: "comet classic openspec -- validate governance-version-export --strict:
+                    valid."
+                  result: passed
+                - name: mypy changed implementation and diagnostic comparison against HEAD
+                  note: 3 implementation files pass focused mypy. Same 5 files on current and HEAD
+                    both return exit 1 with identical 13 existing diagnostics;
+                    comparison assertion passes. Raw mypy is not claimed
+                    passing; details in verification.md.
+                  result: passed
+              event: build-complete
+          tweak.open:
+            sequence: 1
+            value:
+              event: open-complete
+              requirementsEvidence:
+                ref: openspec/changes/governance-version-export
+          tweak.open.evidence:
+            sequence: 2
+            value:
+              contentHash: b803a7a85c5e00b95deb3f82f7bfbee1b61710875c00c062b877aa1c235000f1
+              ref: openspec/changes/governance-version-export
+          tweak.verify.run:
+            sequence: 6
+            value:
+              checks:
+                - name: "Backend integration: pytest four related modules, repository root"
+                  note: 177 passed; /private/tmp/issue-529-pytest.log
+                  result: passed
+                - name: "Complete export scenarios: pytest
+                    tests/test_governance_version_export.py, repository root"
+                  note: 7 passed including partial approval and deduplication;
+                    /private/tmp/issue-529-export-tests.log
+                  result: passed
+                - name: "Frontend: npm test, frontend directory"
+                  note: 386 passed; /private/tmp/issue-529-frontend-tests.log
+                  result: passed
+                - name: "Browser: Chrome + scripts/verify-governance-export.mjs, frontend
+                    directory"
+                  note: Exit 0; download contents, version/account races, errors, retry, duplicate
+                    prevention, evaluation link.
+                  result: passed
+                - name: "Frontend: npm run build, frontend directory"
+                  note: TypeScript and production build exit 0; /private/tmp/issue-529-build.log
+                  result: passed
+                - name: "Changed files: Ruff, Black, ESLint, Prettier and git diff --check"
+                  note: 5 Python and 7 frontend files; exits 0.
+                  result: passed
+                - name: OpenSpec strict validation
+                  note: "comet classic openspec -- validate governance-version-export --strict:
+                    valid."
+                  result: passed
+                - name: mypy changed implementation and diagnostic comparison against HEAD
+                  note: 3 implementation files pass focused mypy. Same 5 files on current and HEAD
+                    both return exit 1 with identical 13 existing diagnostics;
+                    comparison assertion passes. Raw mypy is not claimed
+                    passing; details in
+                    docs/superpowers/reports/2026-11-28-governance-version-export-verify.md.
+                  result: passed
+              event: verification-ready
+              verificationReport: docs/superpowers/reports/2026-11-28-governance-version-export-verify.md
+        receipt:
+          ref: docs/superpowers/reports/2026-11-28-governance-version-export-verify.md
+          contentHash: b96384749096fe66e52414c52abc1883c68b947efc36eea10293651b4c0f4547
+          submissionId: ccb5a636-85d0-4279-b91d-b1ab41cea4ea
+      - id: governance-version-export:11
+        stepId: tweak.verify.report.evidence
+        sequence: 11
+        kind: classic-verification-report
+        status: resolved
+        results:
+          tweak.verify.run:
+            sequence: 10
+            value:
+              checks:
+                - name: "Backend integration: pytest four related modules, repository root"
+                  note: 177 passed; /private/tmp/issue-529-pytest.log
+                  result: passed
+                - name: "Complete export scenarios: pytest
+                    tests/test_governance_version_export.py, repository root"
+                  note: 7 passed including partial approval and deduplication;
+                    /private/tmp/issue-529-export-tests.log
+                  result: passed
+                - name: "Frontend: npm test, frontend directory"
+                  note: 386 passed; /private/tmp/issue-529-frontend-tests.log
+                  result: passed
+                - name: "Browser: Chrome + scripts/verify-governance-export.mjs, frontend
+                    directory"
+                  note: Exit 0; download contents, version/account races, errors, retry, duplicate
+                    prevention, evaluation link.
+                  result: passed
+                - name: "Frontend: npm run build, frontend directory"
+                  note: TypeScript and production build exit 0; /private/tmp/issue-529-build.log
+                  result: passed
+                - name: "Changed files: Ruff, Black, ESLint, Prettier and git diff --check"
+                  note: 5 Python and 7 frontend files; exits 0.
+                  result: passed
+                - name: OpenSpec strict validation
+                  note: "comet classic openspec -- validate governance-version-export --strict:
+                    valid."
+                  result: passed
+                - name: mypy changed implementation and diagnostic comparison against HEAD
+                  note: 3 implementation files pass focused mypy. Same 5 files on current and HEAD
+                    both return exit 1 with identical 13 existing diagnostics;
+                    comparison assertion passes. Raw mypy is not claimed
+                    passing; details in
+                    docs/superpowers/reports/2026-11-28-governance-version-export-verify.md.
+                  result: passed
+              event: verification-ready
+              verificationReport: docs/superpowers/reports/2026-11-28-governance-version-export-verify.md
+        receipt:
+          ref: docs/superpowers/reports/2026-11-28-governance-version-export-verify.md
+          contentHash: d2e91bdb0485cd22c9310281d793fda941597d769f3fc5d7be6aaae1a389038d
+          submissionId: 90dac8f5-5057-462a-9571-0de70b6d1220
+    ready: []
+    joins: {}
+    outputs:
+      tweak.archive.confirm:
+        sequence: 13
+        value:
+          choice: pr
+          proposal:
+            input:
+              change: governance-version-export
+              changeDir: openspec/changes/governance-version-export
+              workspaceBaseline:
+                ref: 1522cedf-8465-4552-b93a-e315d55f4301
+            outputs:
+              tweak.archive.prepare:
+                prBaseBranch: main
+                remote: origin
+                summary: "用户明确选择选项 3：归档并提交 Issue #529 已验证改动，推送独立分支
+                  codex/governance-version-export 至 origin，同仓库向 main 创建 PR。包含本次
+                  12 个实现、文案和测试文件，以及本 change 的规格归档、验收报告和已有 walkthrough；同步
+                  frontend/problems-management 三条新增要求，保留无关 data/tasks 文件。"
+                targetBranch: codex/governance-version-export
+      tweak.archive.execute:
+        sequence: 15
+        value:
+          archiveDirectory: openspec/changes/archive/2026-11-28-governance-version-export
+      tweak.archive.preflight:
+        sequence: 14
+        value:
+          baseCommit: 38df6abb1d690d0e7dd01e5d58cbbad9df039ac4
+          deliveryAction: pr
+          deliveryPaths:
+            - api/files/governance.py
+            - api/files/service.py
+            - api/files/store.py
+            - api/routes/evaluation_results.py
+            - data/tasks/.execution/00410f371ba09161591a87ec2202e0d41db18bcb258781ea523b69fb493f0f14.lock
+            - data/tasks/.execution/ceb0b2b8d117117506fb027b3f0f1d95190873948044d121be9833ed9f8e256a.lock
+            - frontend/scripts/verify-governance-export.mjs
+            - frontend/src/i18n/en-US.ts
+            - frontend/src/i18n/zh-CN.ts
+            - frontend/src/pages/Problems/GovernancePanel.tsx
+            - frontend/src/problems/client.test.ts
+            - frontend/src/problems/client.ts
+            - frontend/src/problems/types.ts
+            - tests/test_governance_version_export.py
+          prBaseBranch: main
+          remote: origin
+          remoteIdentity: 128eeb1e6f0d21b25601fcb7f9aad36adfdfb4d76f37f54f004760410190f351
+          targetBranch: codex/governance-version-export
+          verifiedBranch: codex/governance-version-export
+      tweak.archive.prepare:
+        sequence: 12
+        value:
+          prBaseBranch: main
+          remote: origin
+          summary: "用户明确选择选项 3：归档并提交 Issue #529 已验证改动，推送独立分支
+            codex/governance-version-export 至 origin，同仓库向 main 创建 PR。包含本次 12
+            个实现、文案和测试文件，以及本 change 的规格归档、验收报告和已有 walkthrough；同步
+            frontend/problems-management 三条新增要求，保留无关 data/tasks 文件。"
+          targetBranch: codex/governance-version-export
+      tweak.build.escalation-confirm:
+        sequence: 4
+        value:
+          choice: continue
+          proposal:
+            input:
+              change: governance-version-export
+              changeDir: openspec/changes/governance-version-export
+              workspaceBaseline:
+                ref: 1522cedf-8465-4552-b93a-e315d55f4301
+            outputs:
+              tweak.build.execute:
+                event: escalation-requested
+                proposal: "Issue #529 已批准：新增版本下载 API 和事务内报告存储，预计 12 个交付文件（后端 4、前端 5、测试
+                  3）；范围、风险与验收均与已展示 Open 产物一致。用户已明确确认方案并继续 tweak，记录该继续决定。"
+                requirementsEvidence:
+                  contentHash: 695b513a2987ba2cf8f033dfe8ae5dcc1b17f02d7561e1e362b3acf03d33b3fa
+                  ref: openspec/changes/governance-version-export
+      tweak.build.execute:
+        sequence: 5
+        value:
+          checks:
+            - name: "Backend integration: pytest four related modules, repository root"
+              note: 177 passed; /private/tmp/issue-529-pytest.log
+              result: passed
+            - name: "Complete export scenarios: pytest
+                tests/test_governance_version_export.py, repository root"
+              note: 7 passed including partial approval and deduplication;
+                /private/tmp/issue-529-export-tests.log
+              result: passed
+            - name: "Frontend: npm test, frontend directory"
+              note: 386 passed; /private/tmp/issue-529-frontend-tests.log
+              result: passed
+            - name: "Browser: Chrome + scripts/verify-governance-export.mjs, frontend
+                directory"
+              note: Exit 0; download contents, version/account races, errors, retry, duplicate
+                prevention, evaluation link.
+              result: passed
+            - name: "Frontend: npm run build, frontend directory"
+              note: TypeScript and production build exit 0; /private/tmp/issue-529-build.log
+              result: passed
+            - name: "Changed files: Ruff, Black, ESLint, Prettier and git diff --check"
+              note: 5 Python and 7 frontend files; exits 0.
+              result: passed
+            - name: OpenSpec strict validation
+              note: "comet classic openspec -- validate governance-version-export --strict:
+                valid."
+              result: passed
+            - name: mypy changed implementation and diagnostic comparison against HEAD
+              note: 3 implementation files pass focused mypy. Same 5 files on current and HEAD
+                both return exit 1 with identical 13 existing diagnostics;
+                comparison assertion passes. Raw mypy is not claimed passing;
+                details in verification.md.
+              result: passed
+          event: build-complete
+      tweak.open:
+        sequence: 1
+        value:
+          event: open-complete
+          requirementsEvidence:
+            ref: openspec/changes/governance-version-export
+      tweak.open.evidence:
+        sequence: 2
+        value:
+          contentHash: b803a7a85c5e00b95deb3f82f7bfbee1b61710875c00c062b877aa1c235000f1
+          ref: openspec/changes/governance-version-export
+      tweak.verify.report.evidence:
+        sequence: 11
+        value:
+          contentHash: d2e91bdb0485cd22c9310281d793fda941597d769f3fc5d7be6aaae1a389038d
+          ref: docs/superpowers/reports/2026-11-28-governance-version-export-verify.md
+      tweak.verify.run:
+        sequence: 10
+        value:
+          checks:
+            - name: "Backend integration: pytest four related modules, repository root"
+              note: 177 passed; /private/tmp/issue-529-pytest.log
+              result: passed
+            - name: "Complete export scenarios: pytest
+                tests/test_governance_version_export.py, repository root"
+              note: 7 passed including partial approval and deduplication;
+                /private/tmp/issue-529-export-tests.log
+              result: passed
+            - name: "Frontend: npm test, frontend directory"
+              note: 386 passed; /private/tmp/issue-529-frontend-tests.log
+              result: passed
+            - name: "Browser: Chrome + scripts/verify-governance-export.mjs, frontend
+                directory"
+              note: Exit 0; download contents, version/account races, errors, retry, duplicate
+                prevention, evaluation link.
+              result: passed
+            - name: "Frontend: npm run build, frontend directory"
+              note: TypeScript and production build exit 0; /private/tmp/issue-529-build.log
+              result: passed
+            - name: "Changed files: Ruff, Black, ESLint, Prettier and git diff --check"
+              note: 5 Python and 7 frontend files; exits 0.
+              result: passed
+            - name: OpenSpec strict validation
+              note: "comet classic openspec -- validate governance-version-export --strict:
+                valid."
+              result: passed
+            - name: mypy changed implementation and diagnostic comparison against HEAD
+              note: 3 implementation files pass focused mypy. Same 5 files on current and HEAD
+                both return exit 1 with identical 13 existing diagnostics;
+                comparison assertion passes. Raw mypy is not claimed passing;
+                details in
+                docs/superpowers/reports/2026-11-28-governance-version-export-verify.md.
+              result: passed
+          event: verification-ready
+          verificationReport: docs/superpowers/reports/2026-11-28-governance-version-export-verify.md
+    children: []
+    lineage: []
+  sourceRevision: 26
+  sourceHash: b6c995d7b309ca1cf5ff2d80caa8a87a7b33a27b11417fabf3e9c840d28563ec
+direct_override: null
+handoff_context: null
+handoff_hash: null
+classic_profile: null
+classic_migration: null
+check_epoch: 6
