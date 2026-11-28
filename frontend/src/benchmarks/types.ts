@@ -1,3 +1,9 @@
+import type {
+  ExperimentDraft,
+  StrategyConfig,
+  ProblemFilters,
+} from '../experiments/types.ts'
+
 /** 基准 Suite 前端类型（issue #166 第②步）。字段与
  * api/services/benchmark_service.py 的 _suite_view/_run_view 及
  * api/experiment_models.py 的 BenchmarkSuiteCreateRequest/Update/RunRequest 对齐。
@@ -35,7 +41,8 @@ export interface BenchmarkRunRequestPayload {
   dataset_path?: string | null
   dataset_id?: string
   model: string
-  strategies?: { name: string }[]
+  strategies?: StrategyConfig[]
+  problem_filters?: ProblemFilters
   budget_cap_usd?: number
 }
 
@@ -136,6 +143,11 @@ export interface SuiteDraftErrors {
 
 /** Run 启动草稿。 */
 export interface RunDraft {
+  strategy_settings?: Record<
+    string,
+    Partial<Omit<ExperimentDraft['strategies'][number], 'name'>>
+  >
+  problem_filters?: ExperimentDraft['problem_filters']
   dataset_id?: string
   api_key_id: string
   dataset_path: string
@@ -145,6 +157,7 @@ export interface RunDraft {
 }
 
 export interface RunDraftErrors {
+  [field: string]: string | undefined
   api_key_id?: string
   dataset_path?: string
   model?: string

@@ -1785,4 +1785,10 @@ export default {
     'Your library has changed. Scan and confirm again.',
   '已保存的版本已不可用，请重新扫描。':
     'The saved version is no longer available. Scan again.',
+  '最大迭代次数（可选）': 'Max iterations (optional)',
+  '策略温度（可选）': 'Strategy temperature (optional)',
+  '策略 {{index}} 最大迭代次数': 'Strategy {{index}} max iterations',
+  '策略 {{index}} 温度': 'Strategy {{index}} temperature',
+  '仅运行套件内题目；标签任一匹配，各条件取交集，最后按套件顺序截取数量。无匹配题目时运行报错。':
+    'Only suite problems are run. Tags match any; conditions intersect, then the limit is applied in suite order. No matches produces a run error.',
 }
